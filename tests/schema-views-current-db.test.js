@@ -21,7 +21,7 @@ before(async () => {
   await initSchema();
 });
 
-test('aucune vue ne qualifie ses tables avec un nom de base', async () => {
+test('aucune vue ne lit un autre schéma que la base courante', async () => {
   const dbRow = await queryOne('SELECT DATABASE() AS db');
   const currentDb = String(dbRow?.db || '');
   assert.ok(currentDb, 'DATABASE() doit être défini');
@@ -33,24 +33,37 @@ test('aucune vue ne qualifie ses tables avec un nom de base', async () => {
   );
   assert.ok(views.length > 0, 'au moins une vue doit exister (v_food_web, v_zone_inventory)');
 
-  // Une qualification par la base COURANTE est ce que MariaDB écrit normalement ; toute
-  // AUTRE base est le symptôme d'une copie de schéma (ou d'un renommage) non rejouée.
+  // VIEW_DEFINITION emploie la même notation `x`.`y` pour DEUX choses : une table qualifiée
+  // par son schéma (`base`.`table`) et une colonne qualifiée par son alias (`si`.`id`). On
+  // ne peut donc pas conclure du seul motif — c'est ce qui faisait échouer ce test sur des
+  // vues pourtant saines. On ne retient que les préfixes qui sont de VRAIS noms de schéma,
+  // confrontés à information_schema.schemata : un alias de table n'y figure jamais.
+  const schemaRows = await queryAll('SELECT schema_name AS name FROM information_schema.schemata');
+  const knownSchemas = new Set(schemaRows.map((r) => String(r.name)));
+
   const foreign = [];
   for (const view of views) {
     const def = String(view.def || '');
-    for (const match of def.matchAll(/`([A-Za-z0-9_$]+)`\s*\.\s*`/g)) {
-      if (match[1] !== currentDb) foreign.push(`${view.name} → \`${match[1]}\``);
+    for (const match of def.matchAll(/`([^`]+)`\s*\.\s*`/g)) {
+      const prefix = match[1];
+      if (prefix === currentDb) continue;
+      if (!knownSchemas.has(prefix)) continue; // alias de table, pas un schéma
+      foreign.push(`${view.name} → \`${prefix}\``);
     }
   }
   assert.deepStrictEqual(
-    foreign,
+    [...new Set(foreign)],
     [],
-    `vue(s) lisant une autre base que ${currentDb} — rejouer migrations/183_views_recreate_in_current_schema.sql : ${foreign.join(', ')}`,
+    `vue(s) lisant un autre schéma que ${currentDb} — rejouer migrations/183_views_recreate_in_current_schema.sql`,
   );
 });
 
 test('les vues vivantes restent interrogeables et cohérentes avec leurs tables', async () => {
-  // Si une vue pointait ailleurs, ce COUNT divergerait (ou lèverait) : contrôle de bout en bout.
+  // Complément indispensable au test précédent, qui ne peut reconnaître qu'un schéma
+  // EXISTANT sur le serveur : si la base d'origine a disparu (copie restaurée sur une autre
+  // machine), son nom n'est plus dans information_schema.schemata et passe inaperçu. Ici la
+  // vue est réellement interrogée — une référence morte lève, une référence vers d'autres
+  // données fait diverger le COUNT. Contrôle de bout en bout.
   const viaTable = await queryOne('SELECT COUNT(*) AS n FROM species_interactions');
   const viaView = await queryOne('SELECT COUNT(*) AS n FROM v_food_web');
   assert.strictEqual(
