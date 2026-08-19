@@ -401,8 +401,9 @@ la table est **polymorphe**, `routes/gl/auth.js:502` y écrit des jetons `user_t
 'gl_player'` dont le `user_id` désigne `gl_players.id`. La clé étrangère posée par la
 migration 185 rendait donc toute réinitialisation de mot de passe impossible côté GL —
 `ER_NO_REFERENCED_ROW_2` à l'insertion. La CI l'a rejetée
-(`tests/gl-auth-forgot-password.test.js`) ; la migration **189** la retire, et
-`tests/schema-password-reset-polymorphic.test.js` interdit qu'elle revienne.
+(`tests/gl-auth-forgot-password.test.js`) ; la migration
+**`189_password_reset_tokens_polymorphic_fk.sql`** la retire, et
+`tests/password-reset-polymorphic.test.js` interdit qu'elle revienne.
 
 Aucune clé étrangère ne peut exprimer « selon `user_type`, référence telle ou telle
 table ». Pour cette table-là, la garantie reste donc portée par le code
@@ -715,7 +716,7 @@ comme annoncé dès le §3.2.
 | 2   | fait        | `lib/legacyTimestampNormalization.js`, `lib/shared/isoTimestamp.js`                   |
 | 3   | fait        | `lib/legacySchemaCleanup.js` + 2 tests (dont un statique qui ferme la classe entière) |
 | 4   | fait        | migration 183 + `tests/schema-views-current-db.test.js`                               |
-| 5   | fait\*      | migration 185, puis **189** : la FK de `password_reset_tokens` était une erreur       |
+| 5   | fait\*      | migration 185, puis 189 : la FK de `password_reset_tokens` était une erreur           |
 | 6   | fait        | migration 185 (attributions non primaires croisant les populations)                   |
 | 7   | fait        | `.gitignore` en liste blanche                                                         |
 | 8   | fait        | migration 186 (reprise rejouée avant suppression)                                     |
@@ -735,11 +736,17 @@ jetons `'gl_player'` dont l'identifiant vit dans `gl_players`. Effet : plus aucu
 ne pouvait demander une réinitialisation de mot de passe — `ER_NO_REFERENCED_ROW_2` à
 l'insertion. La CI l'a signalé sur `tests/gl-auth-forgot-password.test.js`.
 
-La migration **189** retire la clé et l'index qui ne servait qu'à la porter ;
-`tests/schema-password-reset-polymorphic.test.js` vérifie désormais les deux faces :
-qu'aucune FK ne pèse sur `user_id`, et qu'un jeton `'gl_player'` s'insère. `user_roles`
-conserve la sienne — sa population est bien entièrement dans `users`. Le manque d'intégrité
-signalé au §4.2 n'est donc **comblé qu'à moitié**, et le §4.2 le dit.
+La migration **`189_password_reset_tokens_polymorphic_fk.sql`** retire la clé, et
+`tests/password-reset-polymorphic.test.js` vérifie les deux faces : qu'aucune contrainte
+référentielle ne pèse sur la table, et qu'un joueur GL obtient bien son jeton. `user_roles`
+conserve la sienne — sa population est bien entièrement dans `users`. `sql/schema_foretmap.sql`
+cesse de déclarer la clé : sans cela le fichier de schéma continuerait de la poser à la
+création de la table pour qu'une migration la retire aussitôt, exactement le travers que le
+§3.3 reproche par ailleurs. L'index `idx_password_reset_user`, qui n'existait que pour
+porter cette clé, tombe avec la migration **190** — le fichier de schéma ne le déclarant
+plus lui non plus, le laisser en base aurait rouvert la même dérive d'un cran plus bas.
+
+Le manque d'intégrité signalé au §4.2 n'est donc **comblé qu'à moitié**, et le §4.2 le dit.
 
 ### Trois écarts assumés par rapport au plan initial
 
