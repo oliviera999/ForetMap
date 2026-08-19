@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — un échange de feuillet n'écrase plus une découverte déjà faite
+
+Sur le Marché, livrer une copie à une équipe qui **possédait déjà** le feuillet
+réécrivait son état : une découverte sur la carte pouvait être reclassée en échange,
+et un feuillet encore lisible pouvait se retrouver plus effacé (copie d'un camarade
+plus tardive). L'équipe **conserve** désormais l'état qu'elle a déjà ; la copie
+n'écrit que si le feuillet est nouveau pour elle.
+
 ### GL — les ressources rattachées au mauvais chapitre
 
 Dans GL, une ressource (espèce, terme de glossaire, question de QCM, feuillet) n'est

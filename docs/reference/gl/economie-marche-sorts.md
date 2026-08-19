@@ -62,6 +62,8 @@ notamment par la résolution d'actions — il ne se confond pas avec la vitalit�
   n'offre pas la paternité d'une découverte, on offre une lecture.
   - Un élève ne peut proposer que ce qu'il a déjà — y compris ce qu'il a trouvé lors d'un
     chapitre précédent, puisque son carnet le suit d'une partie à l'autre.
+  - Si l'équipe du camarade **a déjà** ce feuillet, elle **garde le sien** : l'échange ne
+    l'efface pas davantage et ne transforme pas une découverte sur la carte en simple copie.
   - Le receveur doit **participer à une partie en cours** : sans équipe active, l'échange
     est refusé avec un message explicite (le feuillet n'aurait nulle part où atterrir).
   - Réglage **« Feuillets échangeables sur le Marché »** (actif par défaut, nécessite le

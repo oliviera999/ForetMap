@@ -419,9 +419,14 @@ racheter — ou de se faire offrir — la sanction.
   dans l’état de l’**équipe courante du receveur** — celle de sa partie `live`/`paused` la plus
   récente. Sans partie en cours, la finalisation est refusée en `409` plutôt que de créer un état
   orphelin.
-- Le feuillet reçu porte `unlocked_via = 'echange'` et `acquired_via = 'echange'` : un feuillet
-  reçu n’est pas un feuillet trouvé, distinction nécessaire à un futur bonus de complétion de
-  chapitre. L’attribution d’origine (« Découvert par … ») voyage avec la copie.
+- Si l’équipe du receveur **possède déjà** le feuillet (découvert / lu / tenu / effacé), l’état
+  existant est **conservé** : pas d’écrasement de `effacement_pct` ni de `unlocked_via` (une
+  découverte d’exploration ne redevient pas un échange ; une copie plus effacée n’opacifie pas
+  un feuillet déjà lisible).
+- Le feuillet reçu (lorsqu’il est nouveau pour l’équipe) porte `unlocked_via = 'echange'` et
+  `acquired_via = 'echange'` : un feuillet reçu n’est pas un feuillet trouvé, distinction
+  nécessaire à un futur bonus de complétion de chapitre. L’attribution d’origine (« Découvert par … »)
+  voyage avec la copie.
 
 **Possession durable des feuillets** — `gl_player_feuillet_states (player_id, feuillet_code)` est
 écrite à chaque acquisition, pour chaque membre présent de l’équipe. Auparavant la possession était

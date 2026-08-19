@@ -256,6 +256,76 @@ test('échange : le feuillet est recopié vers l’équipe du receveur, le donne
   });
 });
 
+test('échange : ne dégrade pas un feuillet déjà trouvé par l’équipe du receveur', async () => {
+  const fadedCode = `mkt-fade-${stamp}`;
+  await execute(
+    `INSERT INTO gl_lore_feuillets (feuillet_code, titre, incipit, texte_accessible, biome_slug, ordre_voyage)
+     VALUES (?, ?, ?, ?, ?, 1)`,
+    [fadedCode, `Feuillet ${fadedCode}`, 'Incipit', 'Texte accessible', biomeSlug],
+  );
+  await upsertFeuilletState(db, {
+    gameId,
+    teamId: teamAId,
+    feuilletCode: fadedCode,
+    status: 'effaced',
+    effacementPct: 90,
+    unlockedVia: 'echange',
+    acquiredVia: 'echange',
+    discoveredByPlayerId: String(playerAId),
+    discoveredByName: 'A',
+    discoveredSource: 'echange',
+  });
+  await upsertFeuilletState(db, {
+    gameId,
+    teamId: teamBId,
+    feuilletCode: fadedCode,
+    status: 'discovered',
+    effacementPct: 0,
+    unlockedVia: 'zone',
+    acquiredVia: 'decouverte',
+    discoveredByPlayerId: String(playerBId),
+    discoveredByName: 'B',
+    discoveredSource: 'zone',
+  });
+
+  await withTrade(async (tradeId) => {
+    const offerRes = await request(app)
+      .patch(`/api/gl/market/trades/${tradeId}/offer`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ offerHealth: 0, offerPower: 0, offerFeuillets: [fadedCode] });
+    assert.strictEqual(offerRes.status, 200);
+
+    await request(app)
+      .patch(`/api/gl/market/trades/${tradeId}/accept`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ accepted: true });
+    const completeRes = await request(app)
+      .patch(`/api/gl/market/trades/${tradeId}/accept`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ accepted: true });
+    assert.strictEqual(completeRes.status, 200);
+    assert.strictEqual(completeRes.body.status, 'completed');
+
+    const teamState = await queryOne(
+      `SELECT unlocked_via, status, effacement_pct FROM gl_game_feuillet_states
+        WHERE game_id = ? AND team_id = ? AND feuillet_code = ?`,
+      [gameId, teamBId, fadedCode],
+    );
+    assert.strictEqual(teamState.unlocked_via, 'zone');
+    assert.strictEqual(teamState.status, 'discovered');
+    assert.strictEqual(Number(teamState.effacement_pct), 0);
+
+    const receiverOwn = await queryOne(
+      `SELECT acquired_via, status, effacement_pct FROM gl_player_feuillet_states
+        WHERE player_id = ? AND feuillet_code = ?`,
+      [playerBId, fadedCode],
+    );
+    assert.strictEqual(receiverOwn.acquired_via, 'decouverte');
+    assert.strictEqual(receiverOwn.status, 'discovered');
+    assert.strictEqual(Number(receiverOwn.effacement_pct), 0);
+  });
+});
+
 test('receveur sans partie en cours : la finalisation est refusée (409)', async () => {
   const createRes = await request(app)
     .post('/api/gl/market/trades')
