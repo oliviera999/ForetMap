@@ -7,6 +7,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctif — réinitialisation de mot de passe rétablie côté Gnomes & Licornes
+
+La migration 185 du lot précédent posait une clé étrangère
+`password_reset_tokens.user_id → users.id`. La table est en réalité **polymorphe** : les
+jetons `gl_player` désignent `gl_players`, pas `users`. Conséquence, aucun joueur GL ne
+pouvait plus demander de lien de réinitialisation — l'insertion du jeton échouait. Les
+comptes élèves et enseignants n'étaient pas touchés.
+
+La migration **189** retire cette clé et l'index qui ne servait qu'à la porter. Aucune
+contrainte SQL ne peut exprimer une référence qui change de table selon une colonne : pour
+cette table, la purge à la suppression d'un compte reste portée par `lib/studentDeletion.js`
+et par l'expiration des jetons. `user_roles` conserve la sienne, sa population étant
+entièrement dans `users`. `tests/schema-password-reset-polymorphic.test.js` vérifie les
+deux faces.
+
 ### Base de données — exécution du plan d'audit (points 2 à 12)
 
 Le plan d'action de [`docs/AUDIT_BDD_2026-08.md`](docs/AUDIT_BDD_2026-08.md) est appliqué,
@@ -29,8 +44,9 @@ garde-fou, pas seulement réparées :
   que l'import depuis `tutos/*.html` l'avait déjà créée sous un autre slug — la production
   comptait 24 tutoriels pour 14 contenus, la plupart affichés deux fois aux élèves.
 
-**Intégrité et hygiène.** Clés étrangères `user_roles → users` et
-`password_reset_tokens → users` après purge des orphelins ; attributions de rôles croisant
+**Intégrité et hygiène.** Clé étrangère `user_roles → users` après purge des orphelins
+(celle de `password_reset_tokens` a dû être retirée, voir le correctif ci-dessus) ;
+attributions de rôles croisant
 les populations retirées ; trois tables de jonction héritées supprimées après rejeu de leur
 reprise ; 14 index redondants supprimés ; collations alignées ; slugs de rôle réparés et
 leur cause corrigée à la saisie (`src/utils/slugify.js`, accent-conscient).

@@ -1,0 +1,32 @@
+-- =====================================================================
+-- ForetMap — Retrait de la clé étrangère `fk_password_reset_user`.
+--
+-- CORRECTION D'UNE RÉGRESSION INTRODUITE PAR LA MIGRATION 185.
+--
+-- `password_reset_tokens` est une table POLYMORPHE : le couple (user_type, user_id)
+-- désigne trois populations stockées dans deux tables différentes.
+--   * user_type = 'student' | 'teacher' -> `users.id`      (routes/auth.js)
+--   * user_type = 'gl_player'           -> `gl_players.id` (routes/gl/auth.js:502)
+--
+-- La 185 a posé `fk_password_reset_user (user_id) REFERENCES users(id)` en ne
+-- considérant que les deux premières. Conséquence : plus aucun joueur GL ne peut
+-- demander une réinitialisation de mot de passe — l'INSERT échoue en
+-- ER_NO_REFERENCED_ROW_2, son identifiant n'étant pas dans `users`. La CI l'a
+-- attrapé (tests/gl-auth-forgot-password.test.js), la production non, faute de
+-- redéploiement entre-temps.
+--
+-- Aucune clé étrangère ne peut exprimer « selon la valeur de user_type, référence
+-- telle ou telle table » : la garantie d'intégrité visée par l'audit §4.2 reste
+-- donc portée par le code (`lib/studentDeletion.js` purge les deux tables) et par
+-- l'expiration des jetons. `fk_user_roles_user`, elle, est conservée :
+-- `user_roles` ne connaît que 'student' et 'teacher', tous deux dans `users`.
+--
+-- L'index `idx_password_reset_user (user_id)` n'existait que pour porter cette clé —
+-- `idx_password_reset_lookup (user_type, user_id)` couvre les lectures réelles. Il part
+-- avec elle.
+--
+-- Idempotent : DROP toléré si l'objet est déjà absent (errno 1091).
+-- =====================================================================
+
+ALTER TABLE password_reset_tokens DROP FOREIGN KEY fk_password_reset_user;
+ALTER TABLE password_reset_tokens DROP INDEX idx_password_reset_user;

@@ -512,12 +512,12 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
   INDEX idx_password_reset_lookup (user_type, user_id),
   INDEX idx_password_reset_expires (expires_at),
   INDEX idx_password_reset_used (used_at),
-  -- user_id n'est en tête d'aucun autre index : nécessaire pour porter la clé étrangère.
-  INDEX idx_password_reset_user (user_id),
-  UNIQUE KEY uq_password_reset_token_hash (token_hash),
-  -- Un jeton de réinitialisation ne doit pas survivre à la suppression du compte
-  -- (audit docs/AUDIT_BDD_2026-08.md §4.2). user_type reste informatif.
-  CONSTRAINT fk_password_reset_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  UNIQUE KEY uq_password_reset_token_hash (token_hash)
+  -- PAS de clé étrangère vers `users` : table POLYMORPHE. (user_type, user_id) désigne
+  -- `users.id` pour 'student' et 'teacher', mais `gl_players.id` pour 'gl_player'
+  -- (routes/gl/auth.js). La 185 avait posé cette clé, la 189 la retire — elle rendait
+  -- toute réinitialisation de mot de passe impossible côté GL. La purge à la suppression
+  -- d'un compte reste portée par `lib/studentDeletion.js` (audit §4.2).
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- RBAC: profils et permissions configurables
