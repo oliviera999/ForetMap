@@ -43,6 +43,7 @@ const {
 const router = express.Router();
 
 const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
+const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 
 // O7 — `POST /register` : remplace la validation manuelle `if (!studentId) -> 400 'studentId requis'`.
 // Le refine est au niveau racine (path vide) pour que `formatZodError` renvoie exactement
@@ -241,7 +242,7 @@ router.post(
       const { payload, rowNumber } = rowItem;
       const hash = await bcrypt.hash(payload.password, 10);
       const id = crypto.randomUUID();
-      const now = new Date().toISOString();
+      const now = nowIsoUtc();
       const roleSlug = payload.userType === 'teacher' ? 'prof' : 'eleve_novice';
       try {
         await execute(
@@ -322,7 +323,7 @@ router.post(
     ]);
     if (!s) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
     await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [
-      new Date().toISOString(),
+      nowIsoUtc(),
       askedStudentId,
     ]);
     res.json({ ...s, password_hash: undefined });
@@ -400,7 +401,7 @@ router.post(
 
     const newId = crypto.randomUUID();
     const hash = await bcrypt.hash(password, 10);
-    const now = new Date().toISOString();
+    const now = nowIsoUtc();
     let avatarPath = null;
 
     if (copyAvatar && source.avatar_path) {
