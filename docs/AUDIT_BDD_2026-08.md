@@ -391,11 +391,24 @@ SELECT t.* FROM password_reset_tokens t
  WHERE u.id IS NULL;
 ```
 
-**Correction.** Purger les deux lignes, puis ajouter les FK. Le couple
-`(user_type, user_id)` n'étant pas unique dans `users` du point de vue de l'index, la voie
-la plus simple est une FK sur `user_id` seul vers `users(id)` (`ON DELETE CASCADE`), la
-colonne `user_type` restant informative — `users.id` est déjà la clé primaire, c'est
-suffisant.
+**Correction — et sa moitié fausse.** Purger les deux lignes, puis ajouter une FK sur
+`user_id` seul vers `users(id)` (`ON DELETE CASCADE`), la colonne `user_type` restant
+informative — `users.id` est déjà la clé primaire, c'est suffisant.
+
+C'est vrai pour `user_roles`, qui ne connaît que `'student'` et `'teacher'`, tous deux
+stockés dans `users`. **C'est faux pour `password_reset_tokens`**, et je ne l'avais pas vu :
+la table est **polymorphe**, `routes/gl/auth.js:502` y écrit des jetons `user_type =
+'gl_player'` dont le `user_id` désigne `gl_players.id`. La clé étrangère posée par la
+migration 185 rendait donc toute réinitialisation de mot de passe impossible côté GL —
+`ER_NO_REFERENCED_ROW_2` à l'insertion. La CI l'a rejetée
+(`tests/gl-auth-forgot-password.test.js`) ; la migration **189** la retire, et
+`tests/schema-password-reset-polymorphic.test.js` interdit qu'elle revienne.
+
+Aucune clé étrangère ne peut exprimer « selon `user_type`, référence telle ou telle
+table ». Pour cette table-là, la garantie reste donc portée par le code
+(`lib/studentDeletion.js`) et par l'expiration des jetons : **le manque signalé ici n'est
+pas comblé**, il est seulement circonscrit. Le combler supposerait de scinder la table par
+population, ou d'y ajouter une purge périodique des jetons dont le compte n'existe plus.
 
 ### 4.3 — Un compte élève porte une attribution du rôle `prof`
 
@@ -702,7 +715,7 @@ comme annoncé dès le §3.2.
 | 2   | fait        | `lib/legacyTimestampNormalization.js`, `lib/shared/isoTimestamp.js`                   |
 | 3   | fait        | `lib/legacySchemaCleanup.js` + 2 tests (dont un statique qui ferme la classe entière) |
 | 4   | fait        | migration 183 + `tests/schema-views-current-db.test.js`                               |
-| 5   | fait        | migration 185 + clés étrangères dans `sql/schema_foretmap.sql`                        |
+| 5   | fait\*      | migration 185, puis **189** : la FK de `password_reset_tokens` était une erreur       |
 | 6   | fait        | migration 185 (attributions non primaires croisant les populations)                   |
 | 7   | fait        | `.gitignore` en liste blanche                                                         |
 | 8   | fait        | migration 186 (reprise rejouée avant suppression)                                     |
@@ -711,6 +724,22 @@ comme annoncé dès le §3.2.
 | 11  | fait        | garde-fou base de test + découpage des instructions à l'import de dump                |
 | 12  | fait\*      | migrations 184 et 187, `src/utils/slugify.js`, `npm run tutorials:dedup`              |
 | 13  | à venir     | passage des 29 colonnes de date en `DATETIME` — lot dédié                             |
+
+### Une régression corrigée après coup
+
+**Point 5 — la clé étrangère de `password_reset_tokens` était une erreur.** La migration
+185 posait `fk_password_reset_user (user_id) REFERENCES users(id)`. Je n'avais regardé que
+les deux populations de `routes/auth.js` (`'student'`, `'teacher'`), toutes deux dans
+`users` : la table est en réalité **polymorphe**, `routes/gl/auth.js:502` y écrit des
+jetons `'gl_player'` dont l'identifiant vit dans `gl_players`. Effet : plus aucun joueur GL
+ne pouvait demander une réinitialisation de mot de passe — `ER_NO_REFERENCED_ROW_2` à
+l'insertion. La CI l'a signalé sur `tests/gl-auth-forgot-password.test.js`.
+
+La migration **189** retire la clé et l'index qui ne servait qu'à la porter ;
+`tests/schema-password-reset-polymorphic.test.js` vérifie désormais les deux faces :
+qu'aucune FK ne pèse sur `user_id`, et qu'un jeton `'gl_player'` s'insère. `user_roles`
+conserve la sienne — sa population est bien entièrement dans `users`. Le manque d'intégrité
+signalé au §4.2 n'est donc **comblé qu'à moitié**, et le §4.2 le dit.
 
 ### Trois écarts assumés par rapport au plan initial
 
