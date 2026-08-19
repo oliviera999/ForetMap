@@ -29,6 +29,17 @@ La liasse est donc remise **en bloc, à la fin du voyage**.
   `offert_cloture` (pendant de `offert_ouverture`), marquage piloté par la donnée (`liasse`,
   et non une liste de codes), provenance `cloture` ajoutée en fin d'ENUM. **Plus aucun
   feuillet du corpus n'est hors de portée.**
+- **Position des trois actes dans le récit** — migration **`191_gl_feuillets_ordre_recit_places.sql`** :
+  les actes portaient 210, 693 et 2050, hors de l'échelle du récit (1→150), donc rejetés en
+  fin de lecture. Leur texte dit où ils vont : « CHACUN POUR SA PEAU » s'adresse au joueur
+  « à ta première case » (→ 14), « LE BÂTON » commente la scène de la tourbière où Sélène se
+  couche dans la boue (→ 76, juste après elle), « LA MÊME CORDE » tend le carnet au lecteur
+  et conclut « Tourne la page » (→ 150, le dernier mot, après les feuillets vierges).
+  La même migration replace **cinq scènes** que la migration 178 avait ramenées trop tôt : en
+  soustrayant 80 000 elle transformait un rang local au plateau en position globale, et deux
+  scènes des landes atterrissaient au milieu des tropiques. Elles rejoignent la portion de
+  récit de leur milieu (tourbière après la page des landes, ligne de feu auprès de sa version
+  d'origine, rechute après la page du désert froid).
 - **Technique** — `lib/glFeuilletStarterGrant.js` devient `lib/glFeuilletBundleGrant.js` :
   une seule mécanique de remise, paramétrée par liasse.
 - **Nettoyage** — retrait de `migrations/189_password_reset_tokens_polymorphic_fk.sql`,

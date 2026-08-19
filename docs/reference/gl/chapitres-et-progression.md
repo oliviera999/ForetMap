@@ -145,6 +145,10 @@ Pour une classe qui s'arrête avant le chapitre 5, ou pour une dernière séance
 peut **remettre une liasse à la demande** (ouverture ou clôture) depuis la console : la
 remise est sans effet sur les feuillets déjà trouvés, elle ne fait que compléter.
 
+La liasse se lit dans l'**ordre du récit** : les trois « actes » du copiste y sont placés là
+où son texte les appelle — le premier au début du voyage, le deuxième juste après la scène de
+la tourbière qu'il commente, le troisième en tout dernier, après les feuillets vierges.
+
 > ⚠️ **Point d'attention** — La découverte par zone-feuillet exige que le chapitre
 > soit **rattaché à un plateau (1 à 5)** compatible. Un chapitre sans plateau rend
 > ses feuillets de carte inatteignables — l'éditeur de chapitre affiche désormais un
