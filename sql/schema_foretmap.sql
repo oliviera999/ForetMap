@@ -56,7 +56,6 @@ CREATE TABLE IF NOT EXISTS zone_history (
   zone_id VARCHAR(64) NOT NULL,
   plant VARCHAR(255) NOT NULL,
   harvested_at VARCHAR(32) NOT NULL,
-  INDEX idx_zone_history_zone_id (zone_id),
   INDEX idx_zone_history_zone_harvested (zone_id, harvested_at),
   CONSTRAINT fk_zone_history_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -340,7 +339,6 @@ CREATE TABLE IF NOT EXISTS task_assignments (
   student_last_name VARCHAR(255) NOT NULL,
   done_at VARCHAR(32) DEFAULT NULL,
   assigned_at VARCHAR(32) DEFAULT NULL,
-  INDEX idx_task_assignments_task_id (task_id),
   INDEX idx_task_assignments_student_id (student_id),
   INDEX idx_task_assignments_student_name (student_first_name, student_last_name),
   -- Une seule inscription par n3beur et par tâche. Les lignes héritées (student_id NULL)
@@ -519,9 +517,10 @@ CREATE TABLE IF NOT EXISTS permissions (
 CREATE TABLE IF NOT EXISTS role_permissions (
   role_id INT UNSIGNED NOT NULL,
   permission_key VARCHAR(120) NOT NULL,
-  -- Colonne héritée du système d'élévation par PIN (supprimé) : conservée ici pour que les
-  -- migrations historiques 034/139 s'appliquent sur une base neuve, puis supprimée par la
-  -- migration 164_drop_pin_elevation_system.sql. Ne plus lire/écrire cette colonne.
+  -- ÉCHAFAUDAGE — colonne héritée du système d'élévation par PIN (supprimé). Déclarée ici
+  -- uniquement pour que les migrations historiques 025/034/139/163, qui l'écrivent, se
+  -- rejouent sur une base neuve. Elle est supprimée à CHAQUE démarrage, après les
+  -- migrations, par lib/legacySchemaCleanup.js. Ne plus lire/écrire cette colonne.
   requires_elevation TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (role_id, permission_key),
@@ -529,9 +528,9 @@ CREATE TABLE IF NOT EXISTS role_permissions (
   CONSTRAINT fk_role_permissions_permission FOREIGN KEY (permission_key) REFERENCES permissions(`key`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Table héritée du système d'élévation par PIN (supprimé). Supprimée par la migration
--- 164_drop_pin_elevation_system.sql ; conservée ici uniquement pour la compatibilité des
--- migrations historiques sur une base neuve.
+-- ÉCHAFAUDAGE — table héritée du système d'élévation par PIN (supprimé). Déclarée ici
+-- uniquement pour la compatibilité des migrations historiques (025 l'alimente) sur une base
+-- neuve ; supprimée à CHAQUE démarrage, après les migrations, par lib/legacySchemaCleanup.js.
 CREATE TABLE IF NOT EXISTS role_pin_secrets (
   role_id INT UNSIGNED NOT NULL PRIMARY KEY,
   pin_hash VARCHAR(128) NOT NULL,
@@ -550,9 +549,10 @@ CREATE TABLE IF NOT EXISTS user_roles (
   CONSTRAINT fk_user_roles_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Table héritée du système d'élévation par PIN (supprimé). Supprimée par la migration
--- 164_drop_pin_elevation_system.sql ; conservée ici uniquement pour la compatibilité des
--- migrations historiques sur une base neuve.
+-- ÉCHAFAUDAGE — table héritée du système d'élévation par PIN (supprimé). Déclarée ici
+-- uniquement pour la compatibilité des migrations historiques (029 la met à jour) sur une
+-- base neuve ; supprimée à CHAQUE démarrage, après les migrations, par
+-- lib/legacySchemaCleanup.js.
 CREATE TABLE IF NOT EXISTS elevation_audit (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   user_type VARCHAR(16) NOT NULL,
@@ -665,7 +665,6 @@ CREATE TABLE IF NOT EXISTS group_scopes (
   map_id VARCHAR(32) DEFAULT NULL,
   project_id VARCHAR(64) DEFAULT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_group_scopes_group (group_id),
   INDEX idx_group_scopes_map (map_id),
   INDEX idx_group_scopes_project (project_id),
   UNIQUE KEY uq_group_scopes_triplet (group_id, map_id, project_id),

@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const logger = require('./lib/logger');
 const { inlineLegacyTutorialHtmlToDb } = require('./lib/inlineLegacyTutorialHtml');
+const { dropLegacyScaffolding } = require('./lib/legacySchemaCleanup');
 
 /** Errnos MySQL souvent attendus lors de migrations idempotentes (table/colonne/index déjà présents ou legacy absent). */
 const MYSQL_MIGRATION_EXPECTED_ERRNO = new Set([1050, 1060, 1061, 1091, 1146, 1826]);
@@ -366,6 +367,10 @@ async function initSchema() {
       );
     }
     await runMigrations(conn);
+    // Échafaudage de schéma : objets que schema_foretmap.sql doit déclarer pour que les
+    // migrations historiques se rejouent, mais qui ne doivent plus exister ensuite. Sans
+    // ce passage, ils ressusciteraient au démarrage suivant (voir lib/legacySchemaCleanup.js).
+    await dropLegacyScaffolding(conn);
   } finally {
     conn.release();
   }
