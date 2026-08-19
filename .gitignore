@@ -32,9 +32,17 @@ backups/
 # (users, gl_players, password_reset_tokens, audit_log, forum_*). Pour alimenter
 # `npm run db:import:biodiv`, extraire les seules tables de contenu via
 # `node scripts/extract-biodiv-pedago-seed.js <dump.sql>` → sql/biodiv_pedago_seed.sql.
-*_bdd_complete.sql
-*_dump.sql
-*-dump.sql
+#
+# Règle par LISTE BLANCHE (audit docs/AUDIT_BDD_2026-08.md §5.1) : les motifs ciblés
+# ci-dessous laissaient passer le nom que phpMyAdmin et docs/LOCAL_DEV.md donnent
+# réellement aux exports — `oliviera_foretmap.sql`, nommé d'après la base. Tout `.sql`
+# est donc ignoré par défaut, et seuls les fichiers SQL du dépôt sont ré-autorisés.
+*.sql
+!sql/schema_foretmap.sql
+!sql/biodiv_pedago_seed.sql
+!sql/quiz_foretmap_data.sql
+!sql/zones_lyautey_batiments.sql
+!migrations/*.sql
 sql/dumps/
 
 # Logs
