@@ -166,7 +166,10 @@ test('FM — GET challenge requis avec question liée si gating ON', async () =>
     .set('Authorization', 'Bearer ' + studentToken)
     .expect(200);
   assert.equal(res.body.required, true);
-  assert.equal(res.body.mode, 'all');
+  // Le mode du site est désormais appliqué (audit F1) : `learning.gating.default_mode` vaut
+  // `any` par défaut, et une seule question est liée ici — une réussite suffit.
+  assert.equal(res.body.mode, 'any');
+  assert.equal(res.body.required_correct, 1);
   assert.ok(res.body.questions.some((q) => q.question_code === qcode));
   assert.equal(res.body.pending_count, 1);
 });

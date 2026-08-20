@@ -78,11 +78,21 @@ export function buildCooldownLockMessage(cooldown, itemTitle = '') {
   );
 }
 
-/** Questions encore à réussir pour le challenge. */
+/**
+ * Questions encore à poser pour satisfaire le challenge.
+ *
+ * On ne pose PAS toutes les questions non réussies : le serveur dit, via `pending_count`,
+ * combien de bonnes réponses il attend encore selon le mode effectif — 1 en mode « any »,
+ * N en mode « threshold », toutes en mode « all » (audit F1, 2026-08). Repli sur « toutes
+ * les non réussies » si un serveur plus ancien n'envoie pas `pending_count`.
+ */
 export function pendingChallengeQuestions(challenge) {
   if (!challenge?.required) return [];
   const list = Array.isArray(challenge.questions) ? challenge.questions : [];
-  return list.filter((q) => !q.already_correct);
+  const notCorrect = list.filter((q) => !q.already_correct);
+  const pendingCount = Number(challenge.pending_count);
+  if (!Number.isFinite(pendingCount) || pendingCount < 0) return notCorrect;
+  return notCorrect.slice(0, Math.min(pendingCount, notCorrect.length));
 }
 
 /**
