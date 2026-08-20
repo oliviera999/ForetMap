@@ -7,6 +7,30 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation technique remise au niveau du code
+
+Quatre lots de documentation restés en brouillon depuis juillet (PR #260, #271, #280, #289) ont été
+re-vérifiés ligne à ligne contre le code actuel, puis repris sur la base courante — les constats
+devenus faux ont été écartés, les autres corrigés et complétés.
+
+- **Jobs quotidiens serveur** (`docs/EXPLOITATION.md`, `docs/LOCAL_DEV.md`, `README.md`) : cadence
+  réelle (premier passage 45–165 s après le boot, puis 24 h), réglages de suspension, logs Pino à
+  surveiller, rattrapage manuel. Le piège du nom historique est désormais écrit noir sur blanc :
+  `FORETMAP_DISABLE_RECURRING_TASK_JOB=1` coupe **aussi** l'archivage automatique.
+- **Médias privés sous `/uploads`** (`docs/EXPLOITATION.md`, `docs/API.md`) : garde monté avant
+  `express.static`, familles concernées, point de contrôle après déploiement.
+- **Contrats API manquants** (`docs/API.md`) : affectation de groupe (`assign-group` — capacité,
+  idempotence, absence de `FOR UPDATE`), limites et validation réelle des avatars, trois routes
+  admin GL de médiathèque (`audit`, `chapter-scenes`, `scene-meta`), nature `qcm_lore`.
+- **Onglet Contenus GL** (`docs/GL_ARCHITECTURE.md`) : flux analyse → application, plafonds,
+  collisions de noms dans un ZIP, cloisonnement logique de la médiathèque, documentation de
+  référence éditable (surcouche en base, jamais d'écriture dans le dépôt).
+- **Frontière produit et pipeline JWT** (`docs/GL_ARCHITECTURE.md`) : réutilisation des claims
+  vérifiés, épinglage HS256, rappel qu'un JWT est signé et non chiffré.
+- **Trackers** (`docs/SITE_ISSUES.*`, `docs/AUDIT_CODE_2026-07.md`, `docs/EVOLUTION.md`,
+  `docs/GL_TESTS.md`) : statuts remis à l'état vérifié, inventaire des tests GL recompté, et
+  bandeaux sur les deux audits de mars 2026 qui pouvaient encore se lire comme l'état courant.
+
 ### GL — le double clic ne donne plus deux fois les cœurs (ni deux jets de dés)
 
 Toutes les gardes « une seule fois » du jeu étaient bâties sur le même schéma : lire l'état,
