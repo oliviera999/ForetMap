@@ -7,6 +7,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — lire un feuillet ne restaure plus le texte mangé par le Souffle
+
+`POST …/feuillets/:code/read` (et `…/hold`) n'envoyaient que le nouveau statut.
+`upsertFeuilletState` posait alors `effacement_pct = 0` par défaut, et
+l'écriture `ON DUPLICATE KEY UPDATE` écrasait le pourcentage calculé à la
+découverte. Scénario : l'équipe trouve un feuillet partiellement (ou totalement)
+effacé ; un joueur l'ouvre dans le Carnet de Sélène, ou la modale d'arrivée
+appelle « marquer lu » — le texte redevient intégral, y compris pour toute
+l'équipe via l'instantané de possession. L'omission du pourcentage conserve
+désormais l'effacement existant ; un appelant qui le fournit encore (découverte,
+liasse offerte) continue de l'écrire.
+
 ### Sécurité — la bonne réponse des QCM ForetMap était en accès libre
 
 `GET /api/quiz/questions` est une route **publique** — le catalogue des questions doit être

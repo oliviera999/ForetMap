@@ -103,7 +103,8 @@ réinitialiser (voir [presentation.md](presentation.md)).
   chapitre que dans le dernier. Une découverte peut **coûter des gemmes** et **rapporter des
   cœurs** (réglable), et le texte peut être partiellement « mangé par le Souffle »
   (effacement progressif, réglable). L'équipe passe ensuite du feuillet « découvert »
-  à « lu », voire « tenu ». Le MJ, lui, voit tous les feuillets en texte intégral.
+  à « lu », voire « tenu » — cela ne restaure pas le texte déjà mangé : l'effacement
+  reste celui de la découverte. Le MJ, lui, voit tous les feuillets en texte intégral.
 
 Deux notions de « feuillet acquis » coexistent dans le carnet, désormais **distinguées
 visuellement** :
