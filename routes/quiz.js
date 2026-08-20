@@ -5,6 +5,7 @@ const { queryAll, queryOne, execute } = require('../database');
 const {
   requireAuth,
   requirePermission,
+  hasPermission,
   parseBearerToken,
   hydrateAuthFromTokenClaims,
   JWT_SECRET,
@@ -236,6 +237,15 @@ router.get(
     }
     sql += ' ORDER BY c.theme ASC, q.categorie_slug ASC, q.numero_dans_categorie ASC';
 
+    // La bonne réponse n'est exposée qu'à qui gère le catalogue. Cette route est
+    // **publique** : sans ce filtre, `GET /api/quiz/questions` livrait `reponse_correcte`
+    // pour toutes les questions actives, à n'importe qui. Le mélange des choix et
+    // l'empreinte HMAC du jeton de présentation ne protègent alors plus rien — la
+    // solution s'obtient sans même ouvrir le QCM. Même règle que le catalogue GL
+    // (`routes/gl/qcm.js`, permission `gl.content.manage`).
+    const auth = await tryHydrateAuth(req);
+    const canSeeAnswers = hasPermission(auth, 'plants.manage');
+
     let rows = await queryAll(sql, params);
     if (q) {
       const needle = q.toLowerCase();
@@ -254,7 +264,7 @@ router.get(
       niveau: row.niveau,
       difficulte: row.difficulte,
       difficulte_label: row.difficulte_label,
-      reponse_correcte: row.reponse_correcte,
+      ...(canSeeAnswers ? { reponse_correcte: row.reponse_correcte } : {}),
     }));
 
     return res.json({ items });
