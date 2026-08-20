@@ -56,6 +56,15 @@ lorsqu'un effet de repère l'exige.
 > les zones et régler les effets en direct devant la classe est possible mais
 > inconfortable. Le studio et l'import tableur sont faits pour préparer en amont.
 
+> ⚠️ **Point d'attention** — **Il faut être sur place.** Un élève ne déclenche le contenu
+> d'une zone que si sa mascotte est réellement dans cette zone, et les effets d'un repère
+> que si son équipe est posée dessus. Sinon l'application répond « votre mascotte n'est pas
+> dans cette zone » ou « votre équipe n'est pas sur ce repère » : ce n'est pas une panne,
+> c'est la règle — sans quoi une classe pourrait encaisser cœurs et gemmes de tout le
+> plateau sans jamais se déplacer. **Le MJ, lui, garde la présentation à distance** :
+> montrer une zone à la classe ou rattraper une équipe bloquée reste possible depuis la
+> console.
+
 > ⚠️ **Point d'attention** — Le déclenchement des contenus de zone dépend du réglage
 > de répétition (« une fois par partie » par défaut) : si un popover ne s'ouvre plus,
 > ce n'est pas une panne — l'équipe l'a déjà vu. Le réglage se change globalement, et
