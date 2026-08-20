@@ -99,7 +99,9 @@ Autrement dit : le QCM ne garde pas la porte du feuillet, il garde la porte du
 > règle (jusqu'à l'annuler, à 0 jour).
 
 > ⚠️ **Point d'attention** — Un élève ne peut pas lire la bonne réponse par avance : elle
-> ne quitte jamais le serveur avant d'avoir été trouvée. Et si le score d'équipe est
+> ne quitte jamais le serveur avant d'avoir été trouvée — ni dans le QCM lui-même, ni par
+> la liste publique des questions, qui ne livre le corrigé qu'aux enseignants gérant le
+> catalogue. Et si le score d'équipe est
 > activé, **une même réponse ne compte qu'une fois** : renvoyer plusieurs fois la sienne ne
 > fait pas monter le score. À ne pas confondre avec la règle du point par joueur ci-dessus —
 > les camarades, eux, marquent bien chacun le leur.

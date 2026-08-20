@@ -33,6 +33,47 @@ test.before(async () => {
   );
 });
 
+test('GET /api/quiz/questions — public : la bonne réponse n’est pas livrée', async () => {
+  // Cette route est ouverte à tous. Elle renvoyait `reponse_correcte` pour toutes les
+  // questions actives : la solution s'obtenait sans même ouvrir le QCM, ce qui vidait de
+  // son sens le mélange des choix et l'empreinte HMAC du jeton de présentation.
+  const res = await request(app).get('/api/quiz/questions').expect(200);
+  assert.ok(Array.isArray(res.body.items));
+  assert.ok(res.body.items.length > 0, 'catalogue non vide attendu');
+  for (const item of res.body.items) {
+    assert.ok(!('reponse_correcte' in item), `réponse exposée pour ${item.question_code}`);
+  }
+  // Le reste de la fiche reste public : c'est un catalogue consultable.
+  assert.ok(res.body.items[0].question_code);
+  assert.ok(res.body.items[0].question);
+});
+
+test('GET /api/quiz/questions — un élève connecté n’y a pas droit non plus', async () => {
+  const student = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Quiz', lastName: `Fuite${Date.now()}`, password: 'pass1234' })
+    .expect(201);
+  const res = await request(app)
+    .get('/api/quiz/questions')
+    .set('Authorization', `Bearer ${student.body.authToken}`)
+    .expect(200);
+  for (const item of res.body.items) {
+    assert.ok(!('reponse_correcte' in item));
+  }
+});
+
+test('GET /api/quiz/questions — le gestionnaire du catalogue, lui, voit les réponses', async () => {
+  const token = await ensureAdminTeacherAuthToken();
+  const res = await request(app)
+    .get('/api/quiz/questions')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.ok(
+    res.body.items.some((item) => 'reponse_correcte' in item),
+    'le catalogue admin doit rester exploitable',
+  );
+});
+
 test('GET /api/quiz/categories — public', async () => {
   const res = await request(app).get('/api/quiz/categories?theme=sciences').expect(200);
   assert.ok(Array.isArray(res.body.categories));

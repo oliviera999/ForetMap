@@ -7,6 +7,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — la bonne réponse des QCM ForetMap était en accès libre
+
+`GET /api/quiz/questions` est une route **publique** — le catalogue des questions doit être
+consultable. Elle renvoyait aussi `reponse_correcte`, pour **toutes** les questions actives,
+à n'importe quel appelant : une seule requête suffisait à obtenir le corrigé complet.
+
+La conséquence dépasse cette route. Le lot v1.100.1 avait retiré la bonne réponse du jeton
+de présentation, précisément pour qu'un élève ne puisse pas la lire avant de répondre ; ce
+durcissement ne servait à rien tant que la même information s'obtenait ailleurs, sans même
+ouvrir le QCM. Le mélange des choix à chaque tirage non plus.
+
+`reponse_correcte` n'est désormais exposé qu'à un appelant détenant **`plants.manage`**,
+c'est-à-dire à qui gère le catalogue. C'est exactement la règle déjà appliquée côté GL
+(`routes/gl/qcm.js` : `gl.content.manage`) — ForetMap était le seul des deux catalogues à ne
+pas la poser. Le reste de la fiche (énoncé, catégorie, niveau, difficulté) reste public.
+
+Aucun écran n'est affecté : le front ne consomme `reponse_correcte` que dans les éditeurs,
+servis par les routes `/api/quiz/admin/*`, elles-mêmes déjà derrière `plants.manage`.
+Diagnostic repris de la PR #284, restée en brouillon depuis le 6 août.
+
 ### GL — le score du QCM se compte par joueur : règle tranchée, pas un défaut
 
 `docs/AUDIT_APP_ET_JEU_2026-08.md` §6.2 laissait une question ouverte : une équipe de cinq
