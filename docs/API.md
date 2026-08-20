@@ -1468,7 +1468,7 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/glossary/terms` | non | Liste/recherche |
 | GET | `/api/glossary/terms/:code` | non | Fiche terme |
 | GET | `/api/quiz/categories` | non | Catégories QCM |
-| GET | `/api/quiz/questions` | non | Liste questions (`theme`, `categorieSlug`, `niveau`, `q`) |
+| GET | `/api/quiz/questions` | non | Liste questions (`theme`, `categorieSlug`, `niveau`, `q`). `reponse_correcte` n’est présent **que** pour un appelant détenant `plants.manage` — même règle que le catalogue GL |
 | GET | `/api/quiz/draw` | non | Tirage QCM (`?illustrated=1` : questions avec photo) |
 | GET | `/api/quiz/questions/:code/present` | non | Question présentée |
 | POST | `/api/quiz/questions/:code/answer` | non | Validation réponse |
