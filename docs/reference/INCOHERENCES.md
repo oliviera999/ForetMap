@@ -387,7 +387,13 @@ des cœurs pour rien, sans alerte. Détail technique : `docs/AUDIT_SORTILEGES.md
 - **C — Statu quo documenté.** Rien ne change dans le code ; la doc de référence dit
   clairement que l'effet est l'affaire du MJ (volet déjà livré dans ce lot).
 
-**Décision :**
+**Décision :** ✅ **Livré** (2026-08-20, option A) — la console MJ affiche une file
+« **Sortilèges à appliquer** » : chaque sort lancé y reste tant que le MJ n'a pas coché
+« Effet appliqué ✔ ». La fiche y rappelle l'effet, la portée, la cible, le moment et la
+limite d'usage ; un bouton « Raconter cet effet » pré-remplit la narration (le MJ relit et
+envoie, rien n'est écrit à sa place) ; l'ajustement de vitalité et le score sont dans le même
+écran. L'application est tracée au journal de partie. Le logiciel n'exécute toujours pas les
+effets — c'est l'option B, non retenue — mais plus rien ne s'oublie en silence.
 
 ### G12 — 🟠 Sortilèges : les réglages sortis d'usine laissent dépenser la vitalité d'autrui
 
@@ -408,7 +414,13 @@ les jauges d'un camarade d'une autre équipe sans son accord. Détail :
   le jeu.
 - **C** — Statu quo, avec un avertissement explicite dans le guide du MJ.
 
-**Décision :**
+**Décision :** ✅ **Livré** (2026-08-20, option A) — un élève ne peut plus, sorti d'usine,
+dépenser les points d'un camarade ni viser une autre équipe : les défauts sont « Chaque joueur
+saisit uniquement sa contribution » et « Uniquement son équipe ». **Le MJ et l'admin, eux,
+répartissent toujours pour qui ils veulent** — c'est leur rôle. Les modes permissifs restent
+disponibles, mais deviennent un choix conscient : ils portent un ⚠️ dans les réglages et disent
+en clair ce qu'ils autorisent. Une classe déjà réglée en « Les deux » garde son réglage : seuls
+les défauts changent, aucun choix existant n'est écrasé.
 
 ### G13 — 🟡 Sortilèges : deux règles annoncées que le serveur ne tient pas
 

@@ -23,7 +23,7 @@ export function GLSpellCastSettings({ settings, savingKey, onSaveSetting }) {
       <label>
         Mode de contribution
         <select
-          value={readSelectSetting(settings, 'gameplay.spell_cast_contribution_mode', 'both')}
+          value={readSelectSetting(settings, 'gameplay.spell_cast_contribution_mode', 'self_only')}
           disabled={savingKey === 'gameplay.spell_cast_contribution_mode'}
           onChange={(event) =>
             onSaveSetting('gameplay.spell_cast_contribution_mode', event.target.value)
@@ -39,7 +39,7 @@ export function GLSpellCastSettings({ settings, savingKey, onSaveSetting }) {
       <label>
         Équipes pouvant lancer
         <select
-          value={readSelectSetting(settings, 'gameplay.spell_cast_team_scope', 'any_team')}
+          value={readSelectSetting(settings, 'gameplay.spell_cast_team_scope', 'own_team')}
           disabled={savingKey === 'gameplay.spell_cast_team_scope'}
           onChange={(event) => onSaveSetting('gameplay.spell_cast_team_scope', event.target.value)}
         >
