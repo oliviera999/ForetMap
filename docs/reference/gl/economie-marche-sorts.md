@@ -90,6 +90,11 @@ notamment par la résolution d'actions — il ne se confond pas avec la vitalit�
 - Un même sort n'est débité **qu'une fois**, même si plusieurs personnes cliquent
   « lancer » au même instant : la seconde tentative reçoit un message « ce sortilège a
   déjà été lancé » et rien n'est prélevé une deuxième fois.
+- **Chaque élève ne dépense que ses propres points, et pour sa propre équipe** (réglages
+  par défaut). Le MJ et l'admin, eux, répartissent pour qui ils veulent. Les réglages
+  « Coordinateur » et « Les deux », qui laissent un élève puiser dans les points d'un
+  camarade, restent disponibles mais sont **désactivés par défaut** et signalés par un ⚠️
+  dans les Réglages : c'est un choix à faire en conscience, pas un état de départ.
 - On ne verse dans le pot que ce que le sort demande : sur un sort qui ne coûte que des
   cœurs, aucune gemme ne peut y partir (et réciproquement).
 - Tant qu'un sort attend la validation du MJ, la même équipe ne peut pas en ouvrir un
@@ -126,14 +131,30 @@ jamais vérifiés par le logiciel.
 
 **C'est donc le MJ qui applique l'effet**, à la table, avec les outils de la console :
 raconter (narration), ajuster les cœurs et les gemmes d'un joueur ou d'une équipe, déplacer
-une mascotte, accorder un score. Le lancement d'un sort ne pré-remplit rien de tout cela et
-ne garde aucune trace du type « effet appliqué » : à vous de tenir le fil.
+une mascotte, accorder un score.
 
-> ⚠️ **Point d'attention** — Conséquence pratique : un sort payé dont l'effet est oublié a
-> coûté des cœurs pour rien, sans que rien ne le signale. Deux réflexes utiles : garder la
-> fenêtre de résultat ouverte le temps d'appliquer l'effet, et rédiger l'« effet court » des
-> fiches comme une **instruction exécutable par le MJ** (« +2 ❤️ à l'équipe voisine »)
-> plutôt que comme une formule d'ambiance.
+### La file « Sortilèges à appliquer »
+
+Pour que rien ne se perde, la console du MJ tient la liste des sorts **payés dont l'effet
+n'a pas encore été appliqué**. Chaque entrée rappelle ce qu'il y a à faire :
+
+- le nom du sort, l'équipe (ou « toute la partie »), l'heure du lancement et ce qui a été payé ;
+- le **texte de l'effet**, ainsi que portée, cible, moment et limite d'usage tels qu'ils sont
+  écrits sur la fiche ;
+- un bouton **« Raconter cet effet »** qui pré-remplit la narration — vous relisez, ajustez et
+  envoyez : rien n'est écrit au journal à votre place ;
+- un bouton **« Effet appliqué ✔ »** qui retire le sort de la liste et inscrit l'application au
+  journal de partie.
+
+Les outils d'ajustement (cœurs et gemmes, score) sont dans le même écran, juste en dessous.
+Le logiciel ne calcule toujours rien : il vous rappelle quoi faire, et garde trace du moment
+où vous l'avez fait.
+
+> ⚠️ **Point d'attention** — Un sort dont l'effet n'est jamais coché reste dans la file : c'est
+> voulu, c'est le signal. Si vous jugez qu'il n'y avait rien à appliquer, cochez quand même —
+> la liste doit rester le reflet de ce qui reste à faire. Et rédigez l'« effet court » des
+> fiches comme une **instruction exécutable** (« +2 ❤️ à l'équipe voisine ») plutôt que comme
+> une formule d'ambiance : c'est ce texte que la file vous met sous les yeux.
 
 > ⚠️ **Point d'attention** — « Une fois par partie » écrit dans **limite d'usage** n'est pas
 > tenu par le logiciel : tant que les cœurs et les gemmes suivent, le sort peut repartir.

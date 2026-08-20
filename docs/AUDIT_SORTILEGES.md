@@ -32,22 +32,25 @@ dans des **champs de texte libre** de la fiche (`effet_court`, `effet_detaille`,
 de mascotte, score d'équipe, ouverture d'une question…).
 
 En d'autres termes, le moteur de sortilèges est un **moteur de paiement collaboratif**, pas
-un moteur d'effets. La conséquence pratique est en §4.
+un moteur d'effets. C'est un choix assumé depuis l'arbitrage G11 (option A) : le logiciel
+n'exécute pas les effets, mais il ne laisse plus le MJ sans filet — une file « Sortilèges à
+appliquer » lui rappelle chaque sort payé dont l'effet reste à jouer, et garde trace du moment
+où il l'a appliqué (§4.6). La conséquence pratique est en §4.
 
 ---
 
 ## 2. Modèle de données
 
-| Table                             | Rôle                                                                                                                                                                                                                          |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `gl_spell_categories`             | 4 catégories (`vie`, `mouvement`, `meta_social`, `pedagogique`) — migration `108`.                                                                                                                                            |
-| `gl_spells`                       | Le catalogue. Coûts **exécutables** (`cout_gemmes`, `cout_coeurs`) ; règles **exécutables** (`approval_mode`, `cast_scope`, `caster_kind`, migrations `139`/`173`) ; tout le reste est du **texte non interprété** (voir §3). |
-| `gl_chapter_spells`               | Quels sorts sont disponibles dans quel chapitre (`chapter_id` × `spell_code`).                                                                                                                                                |
-| `gl_spell_cast_drafts`            | Un « pot commun » en cours : `status ∈ { collecting, pending_approval, cast, rejected, cancelled }`, `roster_scope ∈ { team, game }`, traçabilité `created_by_*` / `launched_by_*` / `decided_by_*`.                          |
-| `gl_spell_cast_contributions`     | Qui met combien dans le pot (`draft_id` × `player_id` → `gems`, `hearts`).                                                                                                                                                    |
-| `gl_players`                      | Les soldes réellement débités (`health_points`, `power_points`, bornés 0–99 par `clampVitality`).                                                                                                                             |
-| `gl_game_events`                  | Le journal : `spell_cast`, `spell_cast_request`, `spell_cast_rejected`.                                                                                                                                                       |
-| `gl_chapters.sortileges_markdown` | Page libre « sortilèges » d'un chapitre — encore du texte pour l'humain.                                                                                                                                                      |
+| Table                             | Rôle                                                                                                                                                                                                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gl_spell_categories`             | 4 catégories (`vie`, `mouvement`, `meta_social`, `pedagogique`) — migration `108`.                                                                                                                                                          |
+| `gl_spells`                       | Le catalogue. Coûts **exécutables** (`cout_gemmes`, `cout_coeurs`) ; règles **exécutables** (`approval_mode`, `cast_scope`, `caster_kind`, migrations `139`/`173`) ; tout le reste est du **texte non interprété** (voir §3).               |
+| `gl_chapter_spells`               | Quels sorts sont disponibles dans quel chapitre (`chapter_id` × `spell_code`).                                                                                                                                                              |
+| `gl_spell_cast_drafts`            | Un « pot commun » en cours : `status ∈ { collecting, pending_approval, cast, rejected, cancelled }`, `roster_scope ∈ { team, game }`, traçabilité `created_by_*` / `launched_by_*` / `decided_by_*` / `effect_applied_*` (migration `195`). |
+| `gl_spell_cast_contributions`     | Qui met combien dans le pot (`draft_id` × `player_id` → `gems`, `hearts`).                                                                                                                                                                  |
+| `gl_players`                      | Les soldes réellement débités (`health_points`, `power_points`, bornés 0–99 par `clampVitality`).                                                                                                                                           |
+| `gl_game_events`                  | Le journal : `spell_cast`, `spell_cast_request`, `spell_cast_rejected`, `spell_effect_applied`.                                                                                                                                             |
+| `gl_chapters.sortileges_markdown` | Page libre « sortilèges » d'un chapitre — encore du texte pour l'humain.                                                                                                                                                                    |
 
 ---
 
@@ -60,9 +63,9 @@ un moteur d'effets. La conséquence pratique est en §4.
 | `cast_scope`                      | **Exécutable** | `solo` = 1 contributeur max, `collective` = 2 minimum (`:611-620`).                           |
 | `caster_kind`                     | **Exécutable** | `gnome` / `unicorn` : filtre les équipes et les contributeurs (`:246-283`).                   |
 | `statut` (`officiel` / `propose`) | **Décoratif**  | Affiché en pastille. **Ne conditionne pas le lancement** (cf. finding S6).                    |
-| `effet_court`, `effet_detaille`   | **Décoratif**  | Affichés dans le popover avant et après lancement. Jamais interprétés.                        |
-| `portee`, `cible`, `timing`       | **Décoratif**  | Trois lignes de métadonnées dans le popover (`GLSpellPopover.jsx:27-33`).                     |
-| `limite_usage`, `cumul`           | **Décoratif**  | Affichés. **Aucun compteur d'usage, aucune règle de cumul n'existe** (cf. finding S8).        |
+| `effet_court`, `effet_detaille`   | **Décoratif**  | Affichés au joueur, et rappelés au MJ dans la file « à appliquer ». Jamais interprétés.       |
+| `portee`, `cible`, `timing`       | **Décoratif**  | Métadonnées du popover, reprises dans la file « à appliquer » côté MJ.                        |
+| `limite_usage`, `cumul`           | **Décoratif**  | Affichés et rappelés au MJ. **Aucun compteur d'usage n'existe** : c'est lui qui compte (S8).  |
 | `cout_total_eq`                   | **Décoratif**  | Libellé de coût « lisible » sur la tuile du catalogue ; le débit suit les colonnes chiffrées. |
 | `notes_pedagogiques`, `source`    | **Décoratif**  | Notes de préparation du MJ : servies aux seules routes `admin/spells` (S12, corrigé).         |
 
@@ -140,6 +143,25 @@ outils manuels de la console (ajustement de vitalité par joueur ou par équipe,
 score, déplacement de mascotte) — mais **rien ne relie ces outils au sort qui vient d'être
 lancé** : ni pré-remplissage, ni rappel, ni trace « effet appliqué ✔ ».
 
+### 4.6 Le filet posé par G11 — la file « Sortilèges à appliquer »
+
+Le constat de §4.5 reste vrai : **le serveur n'exécute aucun effet**. Ce que l'arbitrage G11
+(option A) a changé, c'est que le MJ n'est plus seul à s'en souvenir.
+
+- Tout sort passé en `cast` entre dans une file tant que `effect_applied_at IS NULL`
+  (`GET /api/gl/games/:id/spell-casts/awaiting-effect`, réservé à `gl.game.manage`).
+- La console MJ l'affiche avec le texte de l'effet, la portée, la cible, le moment et la
+  limite d'usage — c'est-à-dire précisément les champs que le logiciel n'applique pas.
+- « Raconter cet effet » **pré-remplit** la narration (le MJ relit et envoie : on n'écrit
+  jamais au journal à sa place). L'ajustement de vitalité et le score sont dans le même écran.
+- « Effet appliqué ✔ » (`POST …/drafts/:draftId/effect-applied`) horodate l'application,
+  nomme l'acteur, émet `spell_effect_applied` et sort le sort de la file. L'écriture est
+  conditionnée (`WHERE status = 'cast' AND effect_applied_at IS NULL`) : deux clics
+  concurrents laissent une seule trace et un seul événement.
+
+Ce qui reste **hors** du logiciel, et le restera tant que l'option B de G11 n'est pas
+retenue : le calcul de l'effet lui-même, le décompte de `limite_usage`, les règles de `cumul`.
+
 ---
 
 ## 5. Qui peut quoi
@@ -159,16 +181,16 @@ cherche une permission de la liste `STAFF_PERMISSIONS` (finding S13).
 
 ## 6. Réglages plateforme du module
 
-| Clé                                     | Défaut      | Effet                                                                                |
-| --------------------------------------- | ----------- | ------------------------------------------------------------------------------------ |
-| `modules.spell_cast_enabled`            | `false`     | Interrupteur général du module.                                                      |
-| `gameplay.spell_cast_mj_only`           | `false`     | Réserve tout le mécanisme au MJ.                                                     |
-| `gameplay.spell_cast_team_scope`        | `any_team`  | Quelle équipe un joueur peut viser : **toutes** par défaut.                          |
-| `gameplay.spell_cast_contribution_mode` | `both`      | Qui saisit la contribution de qui : **n'importe qui pour n'importe qui** par défaut. |
-| `gameplay.spell_cast_approval_mode`     | `per_spell` | `auto` / `mj_required` / au cas par cas selon la fiche.                              |
+| Clé                                     | Défaut      | Effet                                                                                       |
+| --------------------------------------- | ----------- | ------------------------------------------------------------------------------------------- |
+| `modules.spell_cast_enabled`            | `false`     | Interrupteur général du module.                                                             |
+| `gameplay.spell_cast_mj_only`           | `false`     | Réserve tout le mécanisme au MJ.                                                            |
+| `gameplay.spell_cast_team_scope`        | `own_team`  | Quelle équipe un joueur peut viser — **la sienne** depuis G12 (`any_team` reste réglable).  |
+| `gameplay.spell_cast_contribution_mode` | `self_only` | Qui saisit la contribution de qui — **chacun la sienne** depuis G12 ; le staff reste libre. |
+| `gameplay.spell_cast_approval_mode`     | `per_spell` | `auto` / `mj_required` / au cas par cas selon la fiche.                                     |
 
-Les deux valeurs par défaut `any_team` + `both` sont les plus permissives des trois
-possibles : voir finding S4.
+Depuis l'arbitrage G12, ces deux défauts sont les plus **prudents** des trois possibles ; les
+modes permissifs restent disponibles mais portent un ⚠️ dans l'écran de réglages (voir S4).
 
 ---
 
@@ -177,6 +199,8 @@ possibles : voir finding S4.
 Gravité : 🔴 à traiter en priorité · 🟠 gênant au quotidien · 🟡 nettoyage / clarification.
 
 ### S1 — 🟠 Un sort ne « fait » rien : seul le coût est joué
+
+> ✅ **Arbitré et livré** (v1.100.5) — option **A** retenue (G11) — le logiciel n'exécute toujours pas les effets, mais la console MJ tient une file « Sortilèges à appliquer » : rappel de l'effet, raccourci « Raconter cet effet », bouton « Effet appliqué ✔ » tracé au journal. Ce qui est payé et non appliqué se voit désormais.
 
 **Constat.** Décrit en §1 et §4.5. Les colonnes `effet_court`, `effet_detaille`, `portee`,
 `cible`, `timing` ne sont lues que pour être affichées ; aucune n'entre dans une décision.
@@ -231,6 +255,8 @@ que la part requise.
 
 ### S4 — 🟠 Les réglages par défaut laissent dépenser la vitalité d'autrui
 
+> ✅ **Arbitré et livré** (v1.100.5) — option **A** retenue (G12) — défauts basculés sur « chacun sa part » (`self_only`) et « son équipe » (`own_team`). Le MJ et l'admin gardent la répartition libre ; les modes permissifs restent réglables mais portent un ⚠️ explicite.
+
 **Constat.** `spell_cast_team_scope = 'any_team'` autorise un joueur à ouvrir un pot pour
 **n'importe quelle équipe** ; `spell_cast_contribution_mode = 'both'` autorise **n'importe qui
 à saisir la contribution de n'importe qui** dans le roster de ce pot
@@ -277,6 +303,8 @@ trace au journal.
 que le journal reflète tous les sorts.
 
 ### S8 — 🟡 `limite_usage` et `cumul` promettent une règle qui n'existe pas
+
+> 🟨 **Arbitré** (v1.100.5) — partiellement — `limite_usage` et `cumul` ne sont toujours pas appliqués par le logiciel (choix G11 option A), mais ils sont désormais **rappelés au MJ** dans la file « à appliquer », au moment où il en a besoin.
 
 **Constat.** Les deux champs sont saisis, importés/exportés, affichés au joueur — et
 **jamais** appliqués : aucun compteur d'usage par partie/équipe/chapitre n'existe en base.
@@ -392,33 +420,37 @@ n'ont pas encore de comportement attendu à figer.
 
 ## 9. Synthèse
 
-| #   | Gravité | Point                                                          | État         |
-| --- | ------- | -------------------------------------------------------------- | ------------ |
-| S2  | 🔴      | Double lancement concurrent → double débit                     | ✅ corrigé   |
-| S1  | 🟠      | L'effet d'un sort n'est jamais appliqué par le logiciel        | ⏳ arbitrage |
-| S3  | 🟠      | Contribution sur un axe à coût nul : débitée sans contrepartie | ✅ corrigé   |
-| S4  | 🟠      | Défauts permissifs : dépenser la vitalité d'un autre joueur    | ⏳ arbitrage |
-| S5  | 🟡      | Tour d'équipe filtré à l'écran, non vérifié au serveur         | ⏳ arbitrage |
-| S6  | 🟡      | Sorts `propose` lançables comme les officiels                  | ⏳ arbitrage |
-| S7  | 🟡      | Sort à coût nul impossible à lancer                            | ⏳ arbitrage |
-| S8  | 🟡      | `limite_usage` / `cumul` jamais appliqués                      | ⏳ arbitrage |
-| S9  | 🟡      | Portée solo/collectif non revérifiée à l'acceptation MJ        | ✅ corrigé   |
-| S10 | 🟡      | Doublons de soumission dans la file de validation              | ✅ corrigé   |
-| S11 | 🟡      | `mj_only` bloque aussi la lecture                              | ✅ corrigé   |
-| S12 | 🟡      | Notes pédagogiques exposées à tout compte `gl.read`            | ✅ corrigé   |
-| S13 | 🟡      | `STAFF_PERMISSIONS` contient une permission de joueur          | ✅ corrigé   |
-| S14 | 🟡      | Journal : attribution à une seule équipe                       | ✅ corrigé   |
-| S15 | 🟡      | Écarts documentaires                                           | ✅ corrigé   |
+| #   | Gravité | Point                                                          | État                          |
+| --- | ------- | -------------------------------------------------------------- | ----------------------------- |
+| S2  | 🔴      | Double lancement concurrent → double débit                     | ✅ corrigé                    |
+| S1  | 🟠      | L'effet d'un sort n'est jamais appliqué par le logiciel        | ✅ arbitré (G11-A)            |
+| S3  | 🟠      | Contribution sur un axe à coût nul : débitée sans contrepartie | ✅ corrigé                    |
+| S4  | 🟠      | Défauts permissifs : dépenser la vitalité d'un autre joueur    | ✅ arbitré (G12-A)            |
+| S5  | 🟡      | Tour d'équipe filtré à l'écran, non vérifié au serveur         | ⏳ arbitrage                  |
+| S6  | 🟡      | Sorts `propose` lançables comme les officiels                  | ⏳ arbitrage                  |
+| S7  | 🟡      | Sort à coût nul impossible à lancer                            | ⏳ arbitrage                  |
+| S8  | 🟡      | `limite_usage` / `cumul` jamais appliqués                      | 🟨 rappelé au MJ, non exécuté |
+| S9  | 🟡      | Portée solo/collectif non revérifiée à l'acceptation MJ        | ✅ corrigé                    |
+| S10 | 🟡      | Doublons de soumission dans la file de validation              | ✅ corrigé                    |
+| S11 | 🟡      | `mj_only` bloque aussi la lecture                              | ✅ corrigé                    |
+| S12 | 🟡      | Notes pédagogiques exposées à tout compte `gl.read`            | ✅ corrigé                    |
+| S13 | 🟡      | `STAFF_PERMISSIONS` contient une permission de joueur          | ✅ corrigé                    |
+| S14 | 🟡      | Journal : attribution à une seule équipe                       | ✅ corrigé                    |
+| S15 | 🟡      | Écarts documentaires                                           | ✅ corrigé                    |
 
 **Neuf points sont corrigés** (lot v1.100.4) : ceux dont la bonne réponse ne se discute pas —
 un débit qui part deux fois, une ressource prélevée sans contrepartie, une règle annoncée puis
 non tenue. Chacun est accompagné d'un test qui échoue sans son correctif.
 
-**Six points restent ouverts** parce qu'ils demandent un choix de jeu, pas une correction :
-S1 et S8 (faut-il exécuter les effets, ou seulement outiller le MJ ?), S4 (quels réglages par
-défaut pour une classe ?), S5, S6 et S7 (quelles règles le serveur doit-il tenir ?). Ils sont
-posés comme décisions à trancher dans
-[`docs/reference/INCOHERENCES.md`](reference/INCOHERENCES.md) (G11 à G13), et la description du
+**Trois points ont été arbitrés puis livrés** (lot v1.100.5) : S1 et S8 via **G11 option A**
+— le logiciel n'exécute pas les effets, il les rappelle au MJ et trace leur application ; S4
+via **G12 option A** — un élève ne dépense plus, par défaut, que ses propres points et pour sa
+propre équipe.
+
+**Trois points restent ouverts**, faute de décision : S5 et S6 (le tour d'équipe et le statut
+« proposé » sont annoncés à l'écran mais non tenus par le serveur — G13), et S7 (un sort à coût
+nul reste injouable par l'assistant). Ils sont posés comme décisions à trancher dans
+[`docs/reference/INCOHERENCES.md`](reference/INCOHERENCES.md), et la description du
 fonctionnement actuel est tenue à jour dans
 [`docs/reference/gl/economie-marche-sorts.md`](reference/gl/economie-marche-sorts.md).
 

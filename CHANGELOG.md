@@ -7,6 +7,42 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sortilèges : les arbitrages G11 et G12 sont livrés
+
+Deux décisions prises sur le registre d'arbitrage, mises en œuvre.
+
+**G11 — le MJ n'est plus seul à se souvenir des effets** (option A). Le logiciel continue de
+ne pas exécuter les effets des sortilèges : ils restent du texte, appliqué à la table par le
+maître du jeu. Mais un sort payé dont l'effet est oublié ne passe plus inaperçu.
+
+- La console MJ tient une file **« Sortilèges à appliquer »** : chaque sort lancé y reste tant
+  que le MJ n'a pas coché « Effet appliqué ✔ ». L'entrée rappelle l'effet, la portée, la cible,
+  le moment et la limite d'usage — précisément les champs que le logiciel n'applique pas.
+- Un bouton **« Raconter cet effet »** pré-remplit la narration : le MJ relit, ajuste, envoie.
+  Rien n'est jamais écrit au journal à sa place.
+- Cocher horodate l'application, nomme l'acteur et inscrit une ligne au journal de partie.
+  L'écriture est conditionnée : deux clics ne laissent qu'une trace et qu'un événement.
+- Migration `195` (`gl_spell_cast_drafts.effect_applied_*`), routes
+  `GET /api/gl/games/:id/spell-casts/awaiting-effect` et
+  `POST /api/gl/games/:id/spell-casts/drafts/:draftId/effect-applied`, événement
+  `spell_effect_applied`.
+
+**G12 — un élève ne dépense plus les points d'un camarade** (option A). Les réglages sortis
+d'usine étaient les plus permissifs des trois possibles : un joueur pouvait ouvrir un sort pour
+n'importe quelle équipe et puiser dans la vitalité de n'importe qui, la seule barrière étant une
+confirmation dans son propre navigateur.
+
+- Défauts basculés sur **« Chaque joueur saisit uniquement sa contribution »** et
+  **« Uniquement son équipe »**.
+- **Le MJ et l'admin répartissent toujours librement** — c'est leur rôle, rien ne change pour eux.
+- Les modes permissifs restent disponibles, mais deviennent un choix conscient : ils portent un
+  ⚠️ dans les réglages et disent en clair ce qu'ils autorisent.
+- Une classe déjà réglée en « Les deux » **garde son réglage** : seuls les défauts changent,
+  aucun choix existant n'est écrasé.
+
+Restent ouverts au registre : G13 (tour d'équipe et statut « proposé » annoncés à l'écran mais
+non tenus par le serveur) et le sort à coût nul, injouable par l'assistant.
+
 ### Sortilèges : neuf défauts corrigés — dont un débit qui pouvait partir deux fois
 
 Suite directe de [docs/AUDIT_SORTILEGES.md](docs/AUDIT_SORTILEGES.md) : les points dont la

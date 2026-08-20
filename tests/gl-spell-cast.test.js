@@ -69,12 +69,12 @@ before(async () => {
   chapterId = Number(chapter.id);
 
   await execute(
-    `INSERT INTO gl_spells (spell_code, category_slug, nom, emoji, cout_gemmes, cout_coeurs, statut, created_at, updated_at)
-     VALUES ('SCT01', 'vie', 'Sort gemmes', '💎', 2, 0, 'officiel', NOW(), NOW()),
-            ('SCT02', 'vie', 'Sort coeurs', '❤️', 0, 2, 'officiel', NOW(), NOW()),
-            ('SCT03', 'vie', 'Sort mixte', '✨', 1, 1, 'officiel', NOW(), NOW())
+    `INSERT INTO gl_spells (spell_code, category_slug, nom, emoji, cout_gemmes, cout_coeurs, effet_court, statut, created_at, updated_at)
+     VALUES ('SCT01', 'vie', 'Sort gemmes', '💎', 2, 0, 'Rend un cœur à un camarade', 'officiel', NOW(), NOW()),
+            ('SCT02', 'vie', 'Sort coeurs', '❤️', 0, 2, NULL, 'officiel', NOW(), NOW()),
+            ('SCT03', 'vie', 'Sort mixte', '✨', 1, 1, NULL, 'officiel', NOW(), NOW())
      ON DUPLICATE KEY UPDATE nom = VALUES(nom), cout_gemmes = VALUES(cout_gemmes),
-       cout_coeurs = VALUES(cout_coeurs), updated_at = NOW()`,
+       cout_coeurs = VALUES(cout_coeurs), effet_court = VALUES(effet_court), updated_at = NOW()`,
   );
   await execute(
     `INSERT INTO gl_chapter_spells (chapter_id, spell_code, order_index)
@@ -638,4 +638,146 @@ test('audit S11 : en mj_only, un joueur consulte encore le brouillon mais ne lan
   } finally {
     await enableSpellCast({ mjOnly: false });
   }
+});
+
+// --- Arbitrages G11 / G12 (docs/reference/INCOHERENCES.md) ---
+
+// G12 — un joueur ne dépense que SA vitalité et ne vise que SON équipe, sauf réglage
+// explicite de l'admin. Le MJ, lui, répartit toujours pour qui il veut.
+test('audit G12 : par défaut, un joueur ne peut pas dépenser la vitalité d’un camarade', async () => {
+  await resetSpellCastState();
+  // Réglages « sortis d'usine » : on efface les clés pour retomber sur les défauts du code.
+  await execute(
+    `DELETE FROM gl_settings
+      WHERE \`key\` IN ('gameplay.spell_cast_contribution_mode', 'gameplay.spell_cast_team_scope')`,
+  );
+  invalidateGameplayCache();
+  try {
+    const settings = await request(app)
+      .get('/api/gl/spell-cast-settings')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    assert.strictEqual(settings.body.settings.contributionMode, 'self_only');
+    assert.strictEqual(settings.body.settings.teamScope, 'own_team');
+
+    const draftRes = await request(app)
+      .post(`/api/gl/games/${gameId}/spell-casts/drafts`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ spellCode: 'SCT01', teamId: teamAId })
+      .expect(201);
+    const draftId = draftRes.body.draft.id;
+
+    // A tente de dépenser les gemmes de B : refusé.
+    const refused = await request(app)
+      .put(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/contributions`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ contributions: [{ playerId: playerBId, gems: 2, hearts: 0 }] });
+    assert.strictEqual(refused.status, 403);
+
+    // Sa propre part reste évidemment permise.
+    await request(app)
+      .put(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/contributions`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ contributions: [{ playerId: playerAId, gems: 2, hearts: 0 }] })
+      .expect(200);
+
+    // Le MJ, lui, répartit pour n'importe qui.
+    const mjToken = await mjTokenForGame();
+    await request(app)
+      .put(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/contributions`)
+      .set('Authorization', `Bearer ${mjToken}`)
+      .send({ contributions: [{ playerId: playerBId, gems: 0, hearts: 0 }] })
+      .expect(200);
+  } finally {
+    await enableSpellCast();
+  }
+});
+
+test('audit G12 : par défaut, un joueur ne vise pas une autre équipe', async () => {
+  await resetSpellCastState();
+  await execute(
+    `DELETE FROM gl_settings
+      WHERE \`key\` IN ('gameplay.spell_cast_contribution_mode', 'gameplay.spell_cast_team_scope')`,
+  );
+  invalidateGameplayCache();
+  try {
+    const res = await request(app)
+      .post(`/api/gl/games/${gameId}/spell-casts/drafts`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ spellCode: 'SCT01', teamId: teamBId });
+    assert.strictEqual(res.status, 403);
+  } finally {
+    await enableSpellCast();
+  }
+});
+
+// G11 — le logiciel n'exécute pas l'effet : il rappelle au MJ de l'appliquer et garde
+// la trace du moment où il l'a fait.
+test('audit G11 : un sort lancé entre dans la file « à appliquer », puis en sort une fois coché', async () => {
+  await resetSpellCastState();
+  const mjToken = await mjTokenForGame();
+
+  const draftRes = await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({ spellCode: 'SCT01', teamId: teamAId })
+    .expect(201);
+  const draftId = draftRes.body.draft.id;
+  await request(app)
+    .put(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/contributions`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({ contributions: [{ playerId: playerAId, gems: 2, hearts: 0 }] })
+    .expect(200);
+  await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/launch`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .expect(200);
+
+  const queue = await request(app)
+    .get(`/api/gl/games/${gameId}/spell-casts/awaiting-effect`)
+    .set('Authorization', `Bearer ${mjToken}`)
+    .expect(200);
+  const entry = queue.body.drafts.find((d) => Number(d.id) === Number(draftId));
+  assert.ok(entry, 'le sort lancé doit figurer dans la file « à appliquer »');
+  assert.strictEqual(entry.effectAppliedAt, null);
+  assert.strictEqual(entry.spell.effetCourt, 'Rend un cœur à un camarade');
+
+  // La file est réservée au MJ.
+  await request(app)
+    .get(`/api/gl/games/${gameId}/spell-casts/awaiting-effect`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .expect(403);
+  await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/effect-applied`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .expect(403);
+
+  const applied = await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/effect-applied`)
+    .set('Authorization', `Bearer ${mjToken}`)
+    .expect(200);
+  assert.strictEqual(applied.body.event.eventType, 'spell_effect_applied');
+  assert.ok(applied.body.draft.effectAppliedAt, 'l’horodatage d’application est enregistré');
+
+  const after = await request(app)
+    .get(`/api/gl/games/${gameId}/spell-casts/awaiting-effect`)
+    .set('Authorization', `Bearer ${mjToken}`)
+    .expect(200);
+  assert.ok(
+    !after.body.drafts.some((d) => Number(d.id) === Number(draftId)),
+    'le sort coché sort de la file',
+  );
+
+  // Deux clics : une seule trace, un seul événement.
+  await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/effect-applied`)
+    .set('Authorization', `Bearer ${mjToken}`)
+    .expect(409);
+  const countRow = await queryOne(
+    `SELECT COUNT(*) AS c FROM gl_game_events
+      WHERE game_id = ? AND event_type = 'spell_effect_applied'
+        AND CAST(JSON_UNQUOTE(JSON_EXTRACT(payload_json, '$.draftId')) AS UNSIGNED) = ?`,
+    [gameId, draftId],
+  );
+  assert.strictEqual(Number(countRow.c), 1, 'un seul événement spell_effect_applied');
 });
