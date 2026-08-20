@@ -7,7 +7,7 @@ const {
   isMj,
   actorTypeOf,
 } = require('../../middleware/requireGlAuth');
-const { normalizeEventRow, insertGameEvent } = require('../../lib/glGameEvents');
+const { insertGameEvent } = require('../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../lib/realtime');
 const { getSpellCastConfig } = require('../../lib/glSpellCast');
 const { getGameplaySettings } = require('../../lib/glSettings');
