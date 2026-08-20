@@ -4805,6 +4805,32 @@ changer le mot de passe d'un autre prof.
 - `server.js` : création du serveur via `http.createServer(app)` pour attacher Socket.IO.
 - **Page À propos** : correction des crédits avec l'auteur principal `Mohammed El Farrai` (majuscules respectées) et `oliviera999` mentionné comme contributeur.
 
+### Conditionnement par QCM : activation rétroactive, message honnête, contenus retirés non marquables (v1.100.3)
+
+Suites immédiates de l'audit ci-dessous — les constats qui ne demandaient aucun arbitrage.
+
+- **Activer le conditionnement devient rétroactif.** Les tentatives QCM n'étaient enregistrées
+  que si l'interrupteur global était déjà allumé : le jour de l'activation, chaque élève repartait
+  de zéro et se voyait reposer des questions déjà réussies sur le plateau. L'écriture est
+  désormais inconditionnelle (une ligne par réponse, sans effet visible tant que le
+  conditionnement dort) ; seule la **lecture** reste conditionnée.
+- **Le contrôle de compréhension ne promet plus ce qu'il ne tient pas.** L'écran annonçait
+  « Tu pourras réessayer en cas d'erreur » alors que la première mauvaise réponse verrouille la
+  ressource 3 jours par défaut. Le message suit maintenant le délai réglé : « une erreur bloquera
+  la validation pendant N jours » quand un délai existe, promesse de réessai immédiat seulement
+  quand le délai est à 0.
+- **Un contenu retiré du jeu n'est plus marquable.** Un feuillet ou un terme du lexique lore au
+  statut « inactif » — donc absent de toutes les listes, y compris côté MJ — restait marquable
+  « étudié » et importable dans le carnet personnel. Il est désormais introuvable pour ces deux
+  actions, comme les espèces et le glossaire scientifique l'étaient déjà.
+- **Tests** : nouveau `tests/gl-lore-feuillet-gating.test.js` (parcours complet feuillet × QCM
+  lore : challenge, présentation, bonne réponse, marquage — plus les deux gardes ci-dessus), et
+  cas de message ajoutés côté UI.
+- **Documentation** : `docs/API.md` (réglages non appliqués, tentatives inconditionnelles, filtre
+  de statut, convention de préfixe `LQCM…`, déclencheur réel de l'acquisition ③) et
+  [docs/reference/gl/qcm-et-pedagogie.md](docs/reference/gl/qcm-et-pedagogie.md) — dont un point
+  d'attention nommant les quatre réglages sans effet, en attendant l'arbitrage.
+
 ### Audit — conditionnement par QCM des feuillets de lore (documentation)
 
 Audit de cohérence de la chaîne « questions ↔ feuillets de lore », de l'écran MJ qui crée le

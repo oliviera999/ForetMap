@@ -20,6 +20,11 @@
 > `src/shared/utils/learningGatingChallengeClient.js`, `scripts/suggest-learning-links.js`,
 > `docs/API.md`, `docs/reference/gl/qcm-et-pedagogie.md`, `docs/reference/INCOHERENCES.md`,
 > `tests/gl-learning-*.test.js`.
+>
+> **Mise à jour du 2026-08-20 (même lot)** : les constats qui ne demandaient aucun arbitrage
+> (F3, F6, J2, J4, J5, J6) ont été corrigés dans la foulée — détail au **§5**. Les constats
+> marqués ⏳ dans le récapitulatif attendent une décision et sont décrits ci-dessous **tels
+> qu'observés à la rédaction**.
 
 ---
 
@@ -190,7 +195,7 @@ documentaire), ou traiter F1-A pour que le mode « any » redevienne possible. E
 moteur de suggestion dans l'écran MJ pour que les feuillets aient enfin un chemin de saisie
 réaliste (voir J3).
 
-### 🟠 F3 — Activer le conditionnement n'est pas rétroactif
+### 🟠 F3 — Activer le conditionnement n'est pas rétroactif ✅ corrigé
 
 `recordGlQcmAttemptIfGatingEnabled()` (`lib/learningGatingRuntime.js:41`) **n'écrit rien** dans
 `gl_qcm_attempts` tant que `gating.enabled` est faux. Toutes les bonnes réponses données avant
@@ -232,7 +237,7 @@ La table est exposée par l'API et documentée (`docs/API.md:1556-1557` : « Pol
 ressource … résolue avec les défauts du site »), ce qui laisse croire à un levier existant.
 Même arbitrage que F1 : brancher, ou retirer de l'API et de la doc.
 
-### 🟠 F6 — « Tu pourras réessayer en cas d'erreur » — c'est faux 3 jours durant
+### 🟠 F6 — « Tu pourras réessayer en cas d'erreur » — c'est faux 3 jours durant ✅ corrigé
 
 L'intro du quiz affirme : « Tu pourras réessayer en cas d'erreur et abandonner à tout moment »
 (`learningGatingChallengeClient.js`, `buildGatingQuizIntroMessage`). Avec le délai par défaut
@@ -258,13 +263,15 @@ liste côté joueur est déjà masquée (`maskLockedFeuillet`), mais l'écart en
 et la règle appliquée reste réel. **Recommandation :** dans le résolveur `feuillet`, exiger un
 état de progression trouvé pour le lecteur — le helper `loadPlayerFeuilletStates` existe déjà.
 
-### 🟡 J2 — `resourceExists` ne filtre pas le statut pour trois types sur sept
+### 🟡 J2 — `resourceExists` ne filtre pas le statut pour deux types sur sept ✅ corrigé
 
-`lib/glLearnableResources.js` : `species` et `glossary` filtrent `statut = 'actif'` ;
-`feuillet` (ligne 84), `lore_glossary` (ligne 68) et `content_page` (ligne 100) ne filtrent
-rien. Un feuillet **désactivé** — donc absent de toutes les listes de jeu, y compris pour le MJ
-— reste marquable comme étudié et importable. Incohérence interne au même fichier, correction
-d'une ligne.
+`lib/glLearnableResources.js` : `species` et `glossary` filtraient `statut = 'actif'` ;
+`feuillet` et `lore_glossary` ne filtraient rien. Un feuillet **désactivé** — donc absent de
+toutes les listes de jeu, y compris pour le MJ — restait marquable comme étudié et importable.
+Incohérence interne au même fichier, corrigée d'une ligne par résolveur.
+
+(`content_page` et `ecosystem` ne sont pas concernés : `gl_content_pages` n'a pas de colonne
+`statut`, et `ecosystem` valide déjà l'existence du biome dans `gl_biomes`.)
 
 ### 🟡 J3 — Créer un lien vers un feuillet relève du pari
 
@@ -288,7 +295,7 @@ de recherche (le registre `glLearnableResources` fournit déjà `resolveResource
 d'existence à la création (400 explicite), et bouton « Proposer des liens » branché sur le
 matcher existant.
 
-### 🟡 J4 — Deux sources de vérité pour le jeu de questions
+### 🟡 J4 — Deux sources de vérité pour le jeu de questions ✅ documenté
 
 Le jeu d'une question est tantôt **stocké** (`gl_resource_question_links.question_dataset`),
 tantôt **déduit du préfixe** `LQCM…` (`glQcmResolve.js`, `glQcmAttempts.js`). Aujourd'hui les
@@ -299,7 +306,7 @@ tables, une bonne réponse à l'un satisferait un lien portant sur l'autre. Séc
 convention de nommage, pas par contrainte. À documenter, ou à verrouiller par un index/`CHECK`
 sur le préfixe.
 
-### 🟡 J5 — Le type `feuillet` n'est couvert par aucun test de bout en bout
+### 🟡 J5 — Le type `feuillet` n'est couvert par aucun test de bout en bout ✅ corrigé
 
 `tests/gl-learning-gating-newtypes.test.js` verrouille le parcours complet pour `content_page`
 et `ecosystem` ; `tests/gl-learning-gating-acknowledge.test.js` le fait pour `species`. **Ni le
@@ -310,7 +317,7 @@ la seule combinaison qui fait basculer le client vers `/api/gl/lore/qcm/...`
 
 Le fichier de test existant est un modèle directement réutilisable : le lot serait court.
 
-### 🟡 J6 — Commentaires et documentation en retard sur le code
+### 🟡 J6 — Commentaires et documentation en retard sur le code ✅ corrigé
 
 - `routes/gl/learning-links.js:5` : « Inerte tant que `gating.enabled` = false (**pas de
   branchement runtime**) » — le branchement runtime existe depuis `routes/gl/learning.js`.
@@ -331,23 +338,23 @@ Le fichier de test existant est un modèle directement réutilisable : le lot se
 
 ## 3. Récapitulatif
 
-| #      | Gravité | Sujet                                                             | Correction estimée                |
-| ------ | ------- | ----------------------------------------------------------------- | --------------------------------- |
-| **F1** | 🔴      | 4 réglages sur 6 sans effet (mode, seuil, granularité, auto-mark) | Lot (brancher) ou court (retirer) |
-| **F2** | 🔴      | Liens bloquants hérités/générés qui se réveillent à l'allumage    | Requête + décision MJ             |
-| **F3** | 🟠      | Activation non rétroactive des bonnes réponses                    | Court                             |
-| **F4** | 🟠      | Mode « QCM réservés au MJ » : réponses créditées au MJ            | Lié à F1 (granularité)            |
-| **F5** | 🟠      | Politique par ressource écrite, jamais lue                        | Lié à F1                          |
-| **F6** | 🟠      | « Tu pourras réessayer » contredit par le verrou de 3 jours       | Très court                        |
-| **J1** | 🟡      | Marquage possible d'un feuillet non découvert (API directe)       | Court                             |
-| **J2** | 🟡      | `statut='actif'` non filtré pour feuillet/lore_glossary/page      | Une ligne × 3                     |
-| **J3** | 🟡      | Saisie des liens : champ libre, sans titre, sans suggestion       | Lot d'ergonomie                   |
-| **J4** | 🟡      | Dataset stocké vs déduit du préfixe                               | Doc ou contrainte                 |
-| **J5** | 🟡      | Aucun test e2e sur `feuillet` ni sur le dataset `qcm_lore`        | Court                             |
-| **J6** | 🟡      | Commentaires et doc en retard                                     | Court                             |
+| #      | Gravité | Sujet                                                             | État                               |
+| ------ | ------- | ----------------------------------------------------------------- | ---------------------------------- |
+| **F1** | 🔴      | 4 réglages sur 6 sans effet (mode, seuil, granularité, auto-mark) | ⏳ arbitrage : brancher ou retirer |
+| **F2** | 🔴      | Liens bloquants hérités/générés qui se réveillent à l'allumage    | ⏳ inventaire + décision MJ        |
+| **F3** | 🟠      | Activation non rétroactive des bonnes réponses                    | ✅ corrigé (§5)                    |
+| **F4** | 🟠      | Mode « QCM réservés au MJ » : réponses créditées au MJ            | ⏳ lié à F1 (granularité)          |
+| **F5** | 🟠      | Politique par ressource écrite, jamais lue                        | ⏳ lié à F1                        |
+| **F6** | 🟠      | « Tu pourras réessayer » contredit par le verrou de 3 jours       | ✅ corrigé (§5)                    |
+| **J1** | 🟡      | Marquage possible d'un feuillet non découvert (API directe)       | ⏳ après F2                        |
+| **J2** | 🟡      | `statut='actif'` non filtré pour feuillet / lore_glossary         | ✅ corrigé (§5)                    |
+| **J3** | 🟡      | Saisie des liens : champ libre, sans titre, sans suggestion       | ⏳ lot d'ergonomie                 |
+| **J4** | 🟡      | Dataset stocké vs déduit du préfixe                               | ✅ documenté (§5)                  |
+| **J5** | 🟡      | Aucun test e2e sur `feuillet` ni sur le dataset `qcm_lore`        | ✅ corrigé (§5)                    |
+| **J6** | 🟡      | Commentaires et doc en retard                                     | ✅ corrigé (§5)                    |
 
-**Ordre conseillé :** F6 + J2 + J5 (rapides, sans risque) → F3 → décision sur F1 (brancher ou
-retirer, qui entraîne F5 et F4) → F2 avant toute activation → J1, J3.
+**Ordre conseillé :** ~~F6 + J2 + J5~~ → ~~F3~~ (faits) → **décision sur F1** (brancher ou
+retirer, qui entraîne F5 et F4) → **F2 avant toute activation** → J1, J3.
 
 ---
 
@@ -385,6 +392,30 @@ SELECT l.resource_ref, f.statut
   JOIN gl_lore_feuillets f ON f.feuillet_code = l.resource_ref
  WHERE l.resource_type = 'feuillet' AND f.statut <> 'actif';
 ```
+
+## 5. Ce qui a été corrigé dans le même lot
+
+Les constats qui ne demandaient **aucun arbitrage** ont été traités immédiatement ; les autres
+attendent une décision (F1, F2, F4, F5, J1, J3).
+
+| #      | Correction                                                                                                                                                                                                                           |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **F3** | `recordGlQcmAttemptIfGatingEnabled` → `recordGlQcmAttemptForReader` : l'écriture des tentatives ne dépend plus de `gating.enabled`. Seule la lecture reste conditionnée → **l'activation devient rétroactive**.                      |
+| **F6** | `buildGatingQuizIntroMessage(pendingCount, itemTitle, retryDays)` : le message annonce « une erreur bloquera la validation pendant N jours » quand un délai est configuré, et ne promet le réessai immédiat que si le délai est nul. |
+| **J2** | `resourceExists` exige `statut = 'actif'` pour `feuillet` et `lore_glossary`, comme pour `species` et `glossary`.                                                                                                                    |
+| **J5** | `tests/gl-lore-feuillet-gating.test.js` : parcours complet feuillet × dataset `qcm_lore` (challenge → présentation → bonne réponse → marquage), plus les gardes J2 et F3.                                                            |
+| **J4** | Convention de préfixe (`LQCM…` = lore) documentée dans `docs/API.md` comme la seule garantie d'unicité entre les deux jeux de questions.                                                                                             |
+| **J6** | Commentaires remis à jour (`routes/gl/learning-links.js`, `routes/gl/learning.js`, `lib/glQcmAttempts.js`), `docs/API.md` complété (réglages non appliqués, tentatives inconditionnelles, filtre de statut, acquisition ③).          |
+
+**Non corrigé volontairement** : F1 et F5 demandent de choisir entre brancher les réglages et les
+retirer — les deux sont défendables et le choix est pédagogique, pas technique. F4 dépend de F1
+(granularité « équipe »). F2 demande l'inventaire en production (§4) puis une décision du MJ sur
+les liens hérités. J1 et J3 viennent après.
+
+En attendant l'arbitrage sur F1, l'écran admin n'a pas été touché, mais la **doc de référence**
+porte désormais un point d'attention explicite : les quatre réglages inertes y sont nommés, avec
+le comportement réel (toutes les questions, suivi par élève). Un professeur ne peut plus se fier à
+une promesse fausse.
 
 ## Pour aller plus loin
 
