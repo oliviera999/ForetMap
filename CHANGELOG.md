@@ -7,6 +7,56 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité GL — la possession d'un feuillet n'est plus forgeable
+
+`POST …/feuillets/:code/read` et `…/hold` écrivaient l'état du feuillet **sans vérifier que
+l'équipe l'avait trouvé**, ni même que le code existait. Or `read` et `held` comptent parmi
+les statuts « trouvés » : un joueur s'attribuait donc n'importe quel feuillet du corpus —
+sans QCM, sans coût en gemmes, sans canal de découverte — et la possession se propageait à
+toute son équipe puis à son carnet personnel. Les codes étant lisibles dans l'aperçu
+verrouillé du carnet, il n'y avait rien à deviner ; la garde de portée posée sur `present`
+au lot précédent se contournait par ces deux routes. Elles exigent désormais un feuillet
+déjà trouvé (`409` sinon). Le MJ n'est pas concerné : marquer l'avancée d'une équipe est un
+geste d'animation. Diagnostic repris de la PR #267.
+
+### Sécurité — une purge de médiathèque ne déborde plus sur l'autre produit
+
+ForetMap et G&L partagent le **même dossier** `uploads/media-library/` ; seule l'étiquette
+`app` de `_keys.json` sépare les deux médiathèques logiques, et la lecture en tenait compte.
+Les suppressions, non : `clear_all` listait puis effaçait **tout**, sans filtre. Une purge
+déclenchée depuis les réglages G&L emportait donc les médias ForetMap, et réciproquement —
+sans confirmation, sans trace, et sans rien pour le deviner. Une suppression ciblée par
+chemin franchissait la même frontière.
+
+Chaque route passe désormais sa médiathèque (`gl` ou `foretmap`) : la purge s'y limite, et
+une suppression hors périmètre est refusée. Diagnostic repris de la PR #286 — le plus
+destructeur des correctifs restés en brouillon.
+
+### Sécurité GL — le flux temps réel révoque enfin les comptes désactivés
+
+Socket.IO acceptait les claims **brutes** du jeton (`socket.data.auth = claims`) sans
+relire l'état du compte. Un jeton GL valant 24 h, un membre du staff désactivé ou supprimé
+conservait le flux live de sa classe jusqu'à expiration — alors que la même révocation
+prend effet immédiatement sur les routes HTTP, qui ré-hydratent à chaque requête. Une
+connexion socket étant bien plus durable qu'une requête, c'est précisément là qu'il fallait
+revérifier. L'authentification GL passe maintenant par `hydrateGlAuthFromClaims` ; une
+panne de base rend `unavailable` plutôt que de déconnecter tout le monde. Repris de la #272.
+
+### Tâches — l'archivage tient enfin ses promesses
+
+Archiver une tâche, c'est la retirer du jeu. Trois mécanismes l'ignoraient :
+
+- **Quota d'inscriptions** — une tâche archivée non validée continuait d'occuper un créneau
+  du plafond de l'élève. Un enseignant qui rangeait ses vieilles tâches bloquait ses élèves
+  sans que personne puisse comprendre pourquoi : les tâches en cause avaient disparu de
+  leur écran (PR #263).
+- **Récurrence** — une tâche récurrente archivée continuait d'engendrer une occurrence à
+  chaque échéance. La ranger ne suffisait pas, il fallait aussi penser à retirer la
+  récurrence (PR #266). Le filtre est posé aux **deux** endroits : la sélection des
+  candidates et la relecture verrouillée qui garde la course.
+- **Duplication de projet** — copier un projet recopiait aussi ses tâches archivées, en
+  clones **actifs**, ressuscitant du travail justement rangé (PR #267).
+
 ### Sécurité — la bonne réponse des QCM ForetMap était en accès libre
 
 `GET /api/quiz/questions` est une route **publique** — le catalogue des questions doit être

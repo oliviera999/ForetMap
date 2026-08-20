@@ -8,7 +8,6 @@ const http = require('http');
 const express = require('express');
 const { io: clientIo } = require('socket.io-client');
 const { initRealtime, emitGlGameEvent } = require('../lib/realtime');
-const { signAuthToken } = require('../middleware/requireTeacher');
 const { initSchema, execute, queryOne } = require('../database');
 const {
   createGlAdmin,
@@ -19,6 +18,15 @@ const {
 } = require('./helpers/glFixtures');
 
 test('Socket.IO GL : réception gl:game:event', async () => {
+  // Le compte doit exister en base : depuis que la connexion socket ré-hydrate les droits
+  // (révocation immédiate d'un compte désactivé), un jeton signé pour un identifiant
+  // fabriqué est refusé — comme il l'est déjà sur les routes HTTP.
+  await initSchema();
+  const admin = await createGlAdmin({
+    email: `gl.socket.evt.${Date.now()}@ecole.local`,
+    displayName: 'MJ Socket Evt',
+  });
+
   const app = express();
   const server = http.createServer(app);
   initRealtime(server);
@@ -27,12 +35,9 @@ test('Socket.IO GL : réception gl:game:event', async () => {
     server.listen(0, '127.0.0.1', resolve);
   });
   const { port } = server.address();
-  const token = await signAuthToken({
-    product: 'gl',
-    userType: 'gl_admin',
-    userId: '500',
-    roleSlug: 'gl_admin',
-    permissions: ['gl.read', 'gl.event.emit'],
+  const { adminToken: token } = await signTokens({
+    adminId: admin.id,
+    adminPermissions: ['gl.read', 'gl.event.emit'],
   });
 
   const socket = clientIo(`http://127.0.0.1:${port}`, {
@@ -67,6 +72,61 @@ test('Socket.IO GL : réception gl:game:event', async () => {
   assert.strictEqual(Number(payload.gameId), 77);
   assert.strictEqual(payload.eventType, 'move');
   assert.strictEqual(payload.teamId, 4);
+
+  socket.close();
+  await new Promise((resolve, reject) => {
+    server.close((err) => (err ? reject(err) : resolve()));
+  });
+});
+
+test('Socket.IO GL : un compte désactivé est refusé à la connexion', async () => {
+  // Un jeton GL vaut 24 h : sans relecture en base, un membre du staff désactivé gardait
+  // le flux live de sa classe jusqu'à expiration, alors que la révocation prend effet
+  // immédiatement sur les routes HTTP. Une connexion socket dure bien plus qu'une requête.
+  await initSchema();
+  const stamp = Date.now();
+  const admin = await createGlAdmin({
+    email: `gl.socket.revoke.${stamp}@ecole.local`,
+    displayName: 'MJ Socket Revoque',
+  });
+  const { adminToken } = await signTokens({
+    adminId: admin.id,
+    adminPermissions: ['gl.read', 'gl.event.emit'],
+  });
+
+  // Le jeton reste valide et signé — c'est le compte qui ne l'est plus.
+  await execute('UPDATE gl_admins SET is_active = 0 WHERE id = ?', [admin.id]);
+
+  const app = express();
+  const server = http.createServer(app);
+  initRealtime(server);
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const { port } = server.address();
+  const socket = clientIo(`http://127.0.0.1:${port}`, {
+    path: '/socket.io',
+    transports: ['websocket'],
+    timeout: 8000,
+    auth: { token: adminToken },
+  });
+
+  const error = await new Promise((resolve, reject) => {
+    const timeout = setTimeout(
+      () => reject(new Error('connexion acceptée : révocation ignorée')),
+      8000,
+    );
+    socket.once('connect', () => {
+      clearTimeout(timeout);
+      reject(new Error('un compte désactivé ne doit pas obtenir le flux live'));
+    });
+    socket.once('connect_error', (err) => {
+      clearTimeout(timeout);
+      resolve(err);
+    });
+  });
+  assert.match(String(error?.message || ''), /unauthorized/i);
 
   socket.close();
   await new Promise((resolve, reject) => {

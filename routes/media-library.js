@@ -79,7 +79,7 @@ router.delete(
   '/',
   requirePermission('teacher.access'),
   asyncHandler(async (req, res) => {
-    const payload = executeMediaLibraryDeleteRequest(req.body || {});
+    const payload = executeMediaLibraryDeleteRequest(req.body || {}, { app: 'foretmap' });
     const auditTarget = payload.results?.length === 1 ? payload.results[0].relativePath : 'bulk';
     await logAudit('media_library_delete', 'media', auditTarget, 'Média supprimé depuis ForetMap', {
       req,
