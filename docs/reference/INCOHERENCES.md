@@ -422,28 +422,65 @@ disponibles, mais deviennent un choix conscient : ils portent un ⚠️ dans les
 en clair ce qu'ils autorisent. Une classe déjà réglée en « Les deux » garde son réglage : seuls
 les défauts changent, aucun choix existant n'est écrasé.
 
-### G13 — 🟡 Sortilèges : deux règles annoncées que le serveur ne tient pas
+### G13 — 🟡 Sortilèges : deux promesses d'écran que le serveur ne tient pas
 
 > Le troisième écart de ce point (un second exemplaire d'un sort déjà soumis au MJ) est
-> ✅ **livré** (2026-08-20) : l'ouverture d'un doublon est refusée avec un message clair.
-> Restent les deux points ci-dessous, qui demandent un vrai choix de règle.
+> ✅ **livré** (2026-08-20). Restent les deux ci-dessous. **Analyse revue le 2026-08-20** :
+> la relecture du code a montré que le premier point n'est pas une règle manquante côté
+> serveur, mais un **vestige d'écran** — les options ont été reformulées en conséquence.
 
-**Constat.** Deux écarts entre ce que l'écran laisse entendre et ce que le serveur vérifie
-(détail dans `docs/AUDIT_SORTILEGES.md`, S5 et S6) :
+#### G13-a — Le filtre « c'est le tour de telle équipe » dans l'assistant de sorts
 
-- le **tour de l'équipe** filtre les équipes proposées à l'écran mais n'est plus vérifié au
-  serveur (héritage du passage au mode classique) ;
-- un sort au statut **« proposé »** (brouillon d'écriture) rattaché à un chapitre apparaît
-  au catalogue des joueurs et se lance comme un sort officiel.
+**Constat.** Quand les tours sont activés, l'assistant de lancement ne propose que
+**l'équipe active** de la partie. Or le « mode classique » (migration 139) a justement
+remplacé la rotation séquentielle par des **tours globaux** : le MJ lance un tour, _toutes_
+les équipes jouent. Le serveur applique ce modèle avec un **quota par tour** — une équipe
+déplace sa mascotte une fois par tour, lance les dés une fois par tour — et **ne borne pas
+du tout les sortilèges**, ce qui est écrit noir sur blanc dans la migration : « les
+sortilèges sont en auto ou soumis à l'approbation du MJ ».
+
+Autrement dit : le serveur fait ce qui était prévu ; c'est **l'écran** qui applique encore
+l'ancienne règle séquentielle. Une équipe qui n'est pas « active » ne voit pas comment
+lancer un sort, alors que rien ne le lui interdit.
 
 **Options.**
 
-- **A** — Le serveur applique les deux règles : un sort ne part pas hors du tour de son
-  équipe, et un sort « proposé » n'est pas jouable. Cohérent, mais peut bloquer des usages
-  actuels (chapitre bâti sur des sorts encore en brouillon).
-- **B** — L'écran cesse de les annoncer : plus de filtre par tour dans l'assistant, et le
-  statut « proposé » devient un simple repère éditorial sans promesse.
-- **C** — Un point chacun (par exemple A pour le statut, B pour le tour).
+- **A (recommandée)** — Retirer le filtre de l'assistant. Les sortilèges cessent d'être liés
+  au tour, comme le mode classique le prévoit ; c'est l'approbation du MJ (par sort ou
+  globale) qui régule, pas le tour. Effort minime, et l'écran cesse de mentir.
+- **B** — Aligner les sorts sur le modèle des mascottes : **un lancement par équipe et par
+  tour**, vérifié côté serveur. Cohérent avec le reste du mode classique, ajoute une vraie
+  contrainte de rythme. Effort moyen (colonne de suivi par équipe + refus explicite).
+- **C** — Rétablir la règle séquentielle pour les sorts (seule l'équipe active lance),
+  cette fois vérifiée au serveur. Contredit le mode classique : à ne retenir que si vous
+  jouez réellement en tour par tour.
+
+**Décision :**
+
+#### G13-b — Un sortilège « proposé » se joue comme un sortilège officiel
+
+**Constat.** Chaque fiche porte un statut, **Officiel** ou **Proposé**. Dans le corpus livré,
+ce n'est pas un détail : sur 35 sorts, **18 sont officiels et 17 sont des propositions**
+(colonne `source` : `proposition_claude`), accompagnées d'une justification pédagogique —
+autrement dit des suggestions soumises à votre validation, pas du contenu publié.
+
+Aujourd'hui, rattacher un sort à un chapitre suffit à le rendre jouable, quel que soit son
+statut : côté élève, un « proposé » se lance exactement comme un officiel, seule une pastille
+les distingue. Et l'écran qui rattache les sorts à un chapitre **n'affiche pas le statut** —
+on peut donc publier une proposition sans le voir.
+
+**Options.**
+
+- **A** — Un sort « proposé » n'est **pas jouable** : il reste visible côté administration,
+  mais n'apparaît ni au catalogue élève ni à l'assistant. Le statut devient une vraie étape
+  de publication. ⚠️ Si un chapitre s'appuie déjà sur des propositions, ces sorts
+  disparaîtraient du jeu au déploiement — à vérifier avant de trancher.
+- **B (recommandée si vous jouez déjà avec)** — Le rattachement à un chapitre **est** la
+  validation : on l'assume, et l'écran de rattachement affiche le statut avec un
+  avertissement (« ce sort est une proposition non validée »). Rien ne disparaît, mais plus
+  rien ne se publie par inadvertance.
+- **C** — Renommer le statut pour qu'il ne promette rien (« Origine : proposition »), et le
+  traiter comme une simple provenance éditoriale.
 
 **Décision :**
 

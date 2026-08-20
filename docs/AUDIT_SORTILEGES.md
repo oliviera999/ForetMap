@@ -273,24 +273,43 @@ défauts**.
 classe) ; (b) garder `both` mais exiger un accord côté serveur (le joueur ciblé valide sa part) ;
 (c) laisser tel quel et l'écrire noir sur blanc dans le guide du MJ.
 
-### S5 — 🟡 Le tour d'équipe n'est pas contrôlé côté serveur
+### S5 — 🟡 L'assistant filtre par tour, alors que le serveur ne borne pas les sorts
 
-**Constat.** `assertTurnAllowsTeam()` est un **no-op assumé** (`:339-341`, mode classique :
-toutes les équipes jouent en même temps). Mais l'écran, lui, filtre encore les équipes sur
-`currentTeamId` quand `turnsEnabled` (`glSpellCastRules.js`, `filterSelectableTeams`). Un
-client qui ignore ce filtre lance hors tour sans être refusé.
+**Constat.** `assertTurnAllowsTeam()` est un **no-op assumé** (`:375-378`). Ce n'est pas un
+oubli : la migration `139` (« mode classique ») a remplacé la rotation séquentielle par des
+**tours globaux**, et son en-tête le dit — « le MJ lance un tour ; toutes les équipes jouent
+et peuvent avancer leur mascotte une fois par tour. **Sortilèges en auto ou soumis à
+l'approbation du MJ** ». Le serveur applique bien ce modèle ailleurs, sous forme de **quota
+par tour** : `gl_teams.last_move_round_number` pour la mascotte (409 « Mascotte déjà déplacée
+pour ce tour »), `last_dice_round_number` pour les dés. Les sortilèges, eux, sont
+délibérément hors quota — c'est l'approbation MJ qui régule.
 
-**Piste.** Trancher : soit le tour n'existe plus pour les sorts et le filtre d'écran tombe,
-soit il existe et le serveur le vérifie. Aujourd'hui les deux moitiés se contredisent.
+L'écart n'est donc pas côté serveur mais **côté écran** : `filterSelectableTeams`
+(`glSpellCastRules.js:78-80`) ne propose que l'équipe active quand `turnsEnabled`, ce qui est
+la règle _séquentielle_ d'avant la 139. Une équipe non active ne voit pas comment lancer un
+sort, alors que rien ne le lui interdit.
+
+**Pistes.** (a) retirer le filtre d'écran — le plus fidèle à l'intention de la 139 ;
+(b) donner aux sorts le même quota par tour qu'aux mascottes, vérifié au serveur ;
+(c) rétablir la règle séquentielle, cette fois vraiment appliquée. Arbitrage ouvert
+(**G13-a**).
 
 ### S6 — 🟡 Les sorts « proposés » se lancent comme les officiels
 
-**Constat.** `loadSpellForChapter` (`:216-243`) ne filtre pas `statut`. Un sort en cours
-d'écriture (`statut = 'propose'`), s'il est rattaché à un chapitre, apparaît dans le catalogue
-joueur et se lance normalement — seule une pastille le distingue.
+**Constat.** `loadSpellForChapter` (`:216-243`) ne filtre pas `statut`. Un sort
+`statut = 'propose'` rattaché à un chapitre apparaît au catalogue joueur et se lance comme un
+officiel — seule une pastille le distingue.
 
-**Piste.** Soit exclure `propose` du catalogue de jeu (le statut devient un vrai brouillon),
-soit renommer le statut pour qu'il n'annonce pas une garantie qu'il n'offre pas.
+Ce n'est pas marginal : dans le corpus livré (`data/gl/sortileges-gnomes-et-licornes.xlsx`),
+**17 des 35 sorts sont des propositions** (`source = proposition_claude`), livrées avec une
+colonne de justification pédagogique — des suggestions à valider, pas du contenu publié. Et
+l'écran qui rattache les sorts à un chapitre (`GLChapterSpellsFieldset`) **n'affiche pas le
+statut** : on peut publier une proposition sans le voir.
+
+**Pistes.** (a) exclure `propose` du jeu — mais vérifier d'abord qu'aucun chapitre actif ne
+s'appuie déjà dessus ; (b) assumer que le rattachement à un chapitre _est_ la validation, et
+l'afficher dans l'écran de rattachement ; (c) requalifier le statut en simple provenance
+éditoriale. Arbitrage ouvert (**G13-b**).
 
 ### S7 — 🟡 Un sort gratuit est impossible à lancer
 
