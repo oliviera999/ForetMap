@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('node:crypto');
 const { withTransaction } = require('../../database');
+const { nowIsoUtc } = require('../../lib/shared/isoTimestamp');
 const { deleteFile, writeBufferToDisk } = require('../../lib/uploads');
 const asyncHandler = require('../../lib/asyncHandler');
 const { logAudit } = require('../audit');
@@ -138,7 +139,7 @@ router.post(
           proposalImportanceParsed.level,
           'proposed',
           null,
-          new Date().toISOString(),
+          nowIsoUtc(),
         ],
       );
       await setTaskZones(id, zIds, tx);

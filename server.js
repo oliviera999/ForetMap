@@ -10,7 +10,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const path = require('path');
-const jwt = require('jsonwebtoken');
 const { initDatabase, isApplicationDatabaseReady, endPool } = require('./database');
 const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
@@ -21,6 +20,7 @@ const { checkCriticalAdminAccount } = require('./lib/rbac');
 const { assignRequestId } = require('./lib/requestId');
 const { createHttpRequestLogMiddleware } = require('./lib/httpRequestLog');
 const { parseBearerToken, JWT_SECRET } = require('./middleware/requireTeacher');
+const { verifyJwtToken } = require('./lib/auth/jwtPipeline');
 const { resolveProductFromRequest } = require('./lib/productResolver');
 const { generalLimiter, authLimiter } = require('./lib/rateLimit');
 
@@ -331,7 +331,7 @@ app.use('/api', (req, res, next) => {
   const token = parseBearerToken(req);
   if (!token || !JWT_SECRET) return next();
   try {
-    const claims = jwt.verify(token, JWT_SECRET);
+    const claims = verifyJwtToken(token, JWT_SECRET);
     const product = String(claims.product || 'foret').toLowerCase();
     if (product === 'gl') {
       return res

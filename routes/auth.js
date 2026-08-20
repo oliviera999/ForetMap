@@ -1,6 +1,5 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const { queryOne, execute } = require('../database');
@@ -12,6 +11,7 @@ const {
   requirePermission,
   hydrateAuthFromTokenClaims,
 } = require('../middleware/requireTeacher');
+const { verifyJwtToken } = require('../lib/auth/jwtPipeline');
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const logger = require('../lib/logger');
@@ -217,7 +217,7 @@ router.get('/me', requireAuth, async (req, res) => {
   try {
     const tokenIn = parseBearerToken(req);
     if (tokenIn && req.auth) {
-      const claims = jwt.verify(tokenIn, JWT_SECRET);
+      const claims = verifyJwtToken(tokenIn, JWT_SECRET);
       if (
         String(claims.roleId) !== String(req.auth.roleId) ||
         String(claims.roleSlug || '').toLowerCase() !==
@@ -1014,7 +1014,6 @@ router.post(
     const teacherId = await consumePasswordResetToken('teacher', token);
     if (!teacherId) return res.status(400).json({ error: 'Token invalide ou expiré' });
     const hash = await bcrypt.hash(password, 10);
-    const now = nowIsoUtc();
     await execute(
       "UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'",
       [hash, teacherId],
@@ -1076,7 +1075,7 @@ router.post(
     if (!tokenIn) return res.status(401).json({ error: 'Token requis' });
     let claims;
     try {
-      claims = jwt.verify(tokenIn, JWT_SECRET);
+      claims = verifyJwtToken(tokenIn, JWT_SECRET);
     } catch (_) {
       return res.status(401).json({ error: 'Token invalide ou expiré' });
     }
@@ -1100,7 +1099,7 @@ router.post(
     const token = await signAuthToken(tokenPayload);
     let hydrated;
     try {
-      hydrated = await hydrateAuthFromTokenClaims(jwt.verify(token, JWT_SECRET));
+      hydrated = await hydrateAuthFromTokenClaims(verifyJwtToken(token, JWT_SECRET));
     } catch (err) {
       logRouteError(err, req);
       return res.status(500).json({ error: 'Erreur lors de l’émission du jeton' });
@@ -1139,7 +1138,7 @@ router.post(
     const tokenIn = parseBearerToken(req);
     if (!tokenIn) return res.status(401).json({ error: 'Token requis' });
     try {
-      jwt.verify(tokenIn, JWT_SECRET);
+      verifyJwtToken(tokenIn, JWT_SECRET);
     } catch (_) {
       return res.status(401).json({ error: 'Token invalide ou expiré' });
     }
@@ -1153,7 +1152,7 @@ router.post(
     const token = await signAuthToken(session.tokenPayload);
     let hydrated;
     try {
-      hydrated = await hydrateAuthFromTokenClaims(jwt.verify(token, JWT_SECRET));
+      hydrated = await hydrateAuthFromTokenClaims(verifyJwtToken(token, JWT_SECRET));
     } catch (err) {
       logRouteError(err, req);
       return res.status(500).json({ error: 'Erreur lors de l’émission du jeton' });

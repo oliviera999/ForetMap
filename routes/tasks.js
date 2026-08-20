@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
+const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { deleteFile, writeBufferToDisk } = require('../lib/uploads');
 const { respondInternalError } = require('../lib/routeLog');
@@ -658,7 +659,7 @@ router.post(
           parsedDifficulty.level,
           parsedImportance.level,
           recurrence || null,
-          new Date().toISOString(),
+          nowIsoUtc(),
         ],
       );
       await setTaskZones(id, zIds, tx);

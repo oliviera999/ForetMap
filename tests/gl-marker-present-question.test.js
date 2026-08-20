@@ -14,7 +14,6 @@ const {
   createGlGameWithTeams,
   signTokens,
 } = require('./helpers/glFixtures');
-const jwt = require('jsonwebtoken');
 const { serializeEventConfig } = require('../lib/glMarkerEventConfig');
 const { invalidateGameplayCache } = require('../lib/glSettings');
 
@@ -102,6 +101,24 @@ before(async () => {
   );
 });
 
+/**
+ * Position du bon choix dans la présentation mélangée. La bonne réponse ne figure plus
+ * dans le jeton (elle y était lisible par l'élève) : on la retrouve comme le ferait un
+ * joueur qui connaît sa leçon — par le texte du choix, lu dans le corpus.
+ */
+async function correctChoiceIdOf(presentation, questionCode = 'QCM0001') {
+  const row = await queryOne(
+    `SELECT reponse_correcte, choix_a, choix_b, choix_c, choix_d, choix_e
+       FROM gl_qcm_questions WHERE question_code = ? LIMIT 1`,
+    [questionCode],
+  );
+  const letter = String(row?.reponse_correcte || '').toLowerCase();
+  const expected = String(row?.[`choix_${letter}`] || '').trim();
+  const index = presentation.choices.findIndex((choice) => choice.text === expected);
+  assert.ok(index >= 0, `bon choix « ${expected} » introuvable dans la présentation`);
+  return index;
+}
+
 test('GET /api/gl/gameplay-settings expose markerQuestionRetrigger', async () => {
   const res = await request(app)
     .get('/api/gl/gameplay-settings')
@@ -131,8 +148,9 @@ test('POST qcm/answer pour joueur membre après présentation', async () => {
     .set('Authorization', `Bearer ${playerToken}`)
     .send({})
     .expect(200);
-  const tokenClaims = jwt.decode(present.body.presentation.presentationToken);
-  const choiceId = Number(tokenClaims?.correctChoiceId);
+  // La bonne réponse ne figure plus dans le jeton (elle y était lisible par l'élève) :
+  // on la retrouve comme le ferait un joueur qui connaît sa leçon — par le texte du choix.
+  const choiceId = await correctChoiceIdOf(present.body.presentation);
 
   const answer = await request(app)
     .post(`/api/gl/games/${gameId}/qcm/answer`)
@@ -162,8 +180,9 @@ test('POST qcm/answer pour MJ avec teamId (sans gl.action.request)', async () =>
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ teamId })
     .expect(200);
-  const tokenClaims = jwt.decode(present.body.presentation.presentationToken);
-  const choiceId = Number(tokenClaims?.correctChoiceId);
+  // La bonne réponse ne figure plus dans le jeton (elle y était lisible par l'élève) :
+  // on la retrouve comme le ferait un joueur qui connaît sa leçon — par le texte du choix.
+  const choiceId = await correctChoiceIdOf(present.body.presentation);
 
   const answer = await request(app)
     .post(`/api/gl/games/${gameId}/qcm/answer`)

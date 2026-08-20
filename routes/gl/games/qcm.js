@@ -5,6 +5,7 @@ const { insertGameEvent } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { getGameplaySettings } = require('../../../lib/glSettings');
 const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../../lib/glQcmChoices');
+const { consumePresentationJti } = require('../../../lib/glQcmPresentationUse');
 const { combineKeywords } = require('../../../lib/glQcmImport');
 const { combineKeywords: combineLoreKeywords } = require('../../../lib/glQcmLoreImport');
 const {
@@ -132,6 +133,71 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
   }
 
   const dataset = isLore ? 'qcm_lore' : 'qcm';
+
+  let scoreDelta = 0;
+  const markerIdRaw = req.body?.markerId;
+  const markerId = markerIdRaw == null ? null : Number(markerIdRaw);
+
+  let lastEvent = null;
+  try {
+    await withTransaction(async (tx) => {
+      // Une présentation ne se joue qu'une fois : sans cette consommation, renvoyer la
+      // même requête pendant les 15 min de validité du jeton recréditait l'équipe à
+      // chaque appel. Dans la transaction du score — jeton consommé et point compté vont
+      // ensemble, ou rien.
+      const consumed = await consumePresentationJti(tx, {
+        jti: verification.jti,
+        gameId,
+        teamId: teamIdForGame,
+        questionCode,
+      });
+      if (consumed === 'already_used') {
+        const err = new Error('Présentation déjà utilisée');
+        err.status = 409;
+        throw err;
+      }
+
+      lastEvent = await insertGameEvent(tx, {
+        gameId,
+        teamId: teamIdForGame,
+        actorType: answerCtx.actorType,
+        actorId: answerCtx.actorId,
+        eventType: 'qcm_answer',
+        payload: {
+          questionCode,
+          correct: verification.correct,
+          choiceId: verification.selectedChoiceId,
+          markerId: Number.isFinite(markerId) ? markerId : null,
+        },
+      });
+      if (verification.correct && settings.scoringEnabled) {
+        scoreDelta = 1;
+        await tx.execute(
+          `INSERT INTO gl_team_scores (game_id, team_id, score, last_reason, updated_at)
+           VALUES (?, ?, ?, ?, NOW())
+           ON DUPLICATE KEY UPDATE
+             score = score + VALUES(score),
+             last_reason = VALUES(last_reason),
+             updated_at = NOW()`,
+          [gameId, teamIdForGame, scoreDelta, 'Bonne réponse QCM'],
+        );
+        lastEvent = await insertGameEvent(tx, {
+          gameId,
+          teamId: teamIdForGame,
+          actorType: answerCtx.actorType,
+          actorId: answerCtx.actorId,
+          eventType: 'score',
+          payload: { delta: scoreDelta, reason: 'Bonne réponse QCM', questionCode },
+        });
+      }
+    });
+  } catch (err) {
+    if (err?.status === 409) return res.status(409).json({ error: err.message });
+    throw err;
+  }
+
+  // Après consommation seulement : un rejeu refusé ne doit pas peser sur le gating
+  // (tentative comptée, verrou de re-tentative posé) alors qu'il n'a rien joué.
   await recordGlQcmAttemptIfGatingEnabled(
     { queryAll, queryOne, execute },
     {
@@ -143,47 +209,6 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
       teamId: teamIdForGame,
     },
   );
-
-  let scoreDelta = 0;
-  const markerIdRaw = req.body?.markerId;
-  const markerId = markerIdRaw == null ? null : Number(markerIdRaw);
-
-  let lastEvent = null;
-  await withTransaction(async (tx) => {
-    lastEvent = await insertGameEvent(tx, {
-      gameId,
-      teamId: teamIdForGame,
-      actorType: answerCtx.actorType,
-      actorId: answerCtx.actorId,
-      eventType: 'qcm_answer',
-      payload: {
-        questionCode,
-        correct: verification.correct,
-        choiceId: verification.selectedChoiceId,
-        markerId: Number.isFinite(markerId) ? markerId : null,
-      },
-    });
-    if (verification.correct && settings.scoringEnabled) {
-      scoreDelta = 1;
-      await tx.execute(
-        `INSERT INTO gl_team_scores (game_id, team_id, score, last_reason, updated_at)
-         VALUES (?, ?, ?, ?, NOW())
-         ON DUPLICATE KEY UPDATE
-           score = score + VALUES(score),
-           last_reason = VALUES(last_reason),
-           updated_at = NOW()`,
-        [gameId, teamIdForGame, scoreDelta, 'Bonne réponse QCM'],
-      );
-      lastEvent = await insertGameEvent(tx, {
-        gameId,
-        teamId: teamIdForGame,
-        actorType: answerCtx.actorType,
-        actorId: answerCtx.actorId,
-        eventType: 'score',
-        payload: { delta: scoreDelta, reason: 'Bonne réponse QCM', questionCode },
-      });
-    }
-  });
 
   const glossaryRows = await queryAll(
     isLore

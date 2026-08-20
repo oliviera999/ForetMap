@@ -3,6 +3,7 @@ const http = require('http');
 const https = require('https');
 const crypto = require('crypto');
 const { pool, queryAll, queryOne, execute } = require('../database');
+const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const { requirePermission, requireAuth } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
@@ -232,7 +233,7 @@ router.post(
         });
       }
 
-      const now = new Date().toISOString();
+      const now = nowIsoUtc();
       await execute(
         'INSERT INTO user_plant_observation_events (user_id, plant_id, observed_at) VALUES (?, ?, ?)',
         [String(userId), pid, now],
