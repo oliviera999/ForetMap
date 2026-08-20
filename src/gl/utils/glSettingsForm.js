@@ -264,18 +264,26 @@ export function toggleFeuilletAcquisitionChannel(current, channel, checked) {
   return checked && FEUILLET_ACQUISITION_CHANNEL_VALUES.has(channel) ? [...base, channel] : base;
 }
 
-/** Options du mode de contribution au lancement de sortilèges. */
+/**
+ * Options du mode de contribution au lancement de sortilèges.
+ * G12 — l'ordre suit la prudence décroissante : le défaut (`self_only`) en tête, les
+ * modes qui laissent un élève dépenser la vitalité d'un camarade signalés comme tels.
+ * Le MJ et l'admin, eux, répartissent toujours pour qui ils veulent.
+ */
 export const SPELL_CAST_CONTRIBUTION_OPTIONS = [
-  { value: 'both', label: 'Les deux (soi + répartition équipe avec confirmation)' },
-  { value: 'coordinator', label: 'Coordinateur (une personne répartit pour toute l’équipe)' },
-  { value: 'self_only', label: 'Chaque joueur saisit uniquement sa contribution' },
+  { value: 'self_only', label: 'Chaque joueur saisit uniquement sa contribution (défaut)' },
+  {
+    value: 'coordinator',
+    label: '⚠️ Coordinateur : un élève dépense les points de toute l’équipe',
+  },
+  { value: 'both', label: '⚠️ Les deux : un élève peut dépenser les points d’un camarade' },
 ];
 
 /** Options de portée d'équipe pour le lancement de sortilèges. */
 export const SPELL_CAST_TEAM_SCOPE_OPTIONS = [
-  { value: 'any_team', label: 'Toutes les équipes de la partie' },
-  { value: 'own_team', label: 'Uniquement son équipe' },
+  { value: 'own_team', label: 'Uniquement son équipe (défaut)' },
   { value: 'mj_any', label: 'Joueur : son équipe · MJ : toutes les équipes' },
+  { value: 'any_team', label: '⚠️ Toutes les équipes de la partie, joueurs compris' },
 ];
 
 /** Options du mode d'approbation des sortilèges (mode classique). */

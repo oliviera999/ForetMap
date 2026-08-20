@@ -87,10 +87,82 @@ notamment par la résolution d'actions — il ne se confond pas avec la vitalit�
   équipes, selon le réglage) **contribuent** au pot commun du sort, chacun voyant son
   solde et ce qu'il lui restera. Quand le coût est réuni, le sort se lance — avec
   **l'approbation du MJ** si le réglage l'exige.
+- Un même sort n'est débité **qu'une fois**, même si plusieurs personnes cliquent
+  « lancer » au même instant : la seconde tentative reçoit un message « ce sortilège a
+  déjà été lancé » et rien n'est prélevé une deuxième fois.
+- **Chaque élève ne dépense que ses propres points, et pour sa propre équipe** (réglages
+  par défaut). Le MJ et l'admin, eux, répartissent pour qui ils veulent. Les réglages
+  « Coordinateur » et « Les deux », qui laissent un élève puiser dans les points d'un
+  camarade, restent disponibles mais sont **désactivés par défaut** et signalés par un ⚠️
+  dans les Réglages : c'est un choix à faire en conscience, pas un état de départ.
+- On ne verse dans le pot que ce que le sort demande : sur un sort qui ne coûte que des
+  cœurs, aucune gemme ne peut y partir (et réciproquement).
+- Tant qu'un sort attend la validation du MJ, la même équipe ne peut pas en ouvrir un
+  **second exemplaire** : cela évitait deux entrées jumelles dans la file du MJ — et deux
+  débits s'il les acceptait toutes les deux.
+- Avec le réglage « lancement réservé au MJ », les joueurs **voient toujours** le pot se
+  remplir : c'est le lancement qui leur est fermé, pas la consultation.
 - Par défaut, les joueurs peuvent lancer les sorts ; le profil de séance « MJ +
   tours » réserve le lancement au MJ.
+- **Lancer un sort n'est pas lié au tour.** Même quand les tours sont activés, toutes les
+  équipes peuvent lancer — le tour sert à cadencer les déplacements de mascotte et les dés
+  (une fois par tour chacun), pas les sortilèges. Ce qui régule les sorts, c'est la
+  validation du MJ.
 - Le module Sortilèges est désactivé par défaut : c'est un choix d'activation
   conscient de l'admin.
+
+### Ce que fait l'application quand le sort part — et ce qu'elle ne fait pas
+
+C'est le point le plus souvent mal compris, alors disons-le net : **l'application encaisse
+le coût du sort, elle n'en applique pas l'effet.**
+
+Quand le pot est réuni et que le sort part, il se passe exactement trois choses :
+
+1. les cœurs et les gemmes promis sont **retirés** aux joueurs qui ont contribué (et à eux
+   seuls, chacun du montant qu'il a mis) ;
+2. une **fenêtre de résultat** s'ouvre chez tout le monde dans la partie : le nom du sort,
+   son coût, la liste de ceux qui l'ont lancé, et **le texte de sa fiche** (« effet court »
+   et « effet détaillé ») ;
+3. une ligne s'inscrit au **journal de partie** : « _L'équipe X lance ✨ Nom du sort._ » —
+   ou « _Toute la partie lance…_ » quand c'est le MJ qui a ouvert un pot commun sur
+   l'ensemble du plateau, puisque les contributeurs viennent alors de plusieurs équipes.
+
+Puis l'application s'arrête là. Elle ne soigne personne, ne déplace aucune mascotte,
+n'accorde aucun bonus, ne débloque aucun feuillet, ne décompte aucune durée. Les champs
+**« portée »**, **« cible »**, **« timing »**, **« limite d'usage »** et **« cumul »** de la
+fiche sont des **consignes écrites pour vous** : ils s'affichent au joueur, ils ne sont
+jamais vérifiés par le logiciel.
+
+**C'est donc le MJ qui applique l'effet**, à la table, avec les outils de la console :
+raconter (narration), ajuster les cœurs et les gemmes d'un joueur ou d'une équipe, déplacer
+une mascotte, accorder un score.
+
+### La file « Sortilèges à appliquer »
+
+Pour que rien ne se perde, la console du MJ tient la liste des sorts **payés dont l'effet
+n'a pas encore été appliqué**. Chaque entrée rappelle ce qu'il y a à faire :
+
+- le nom du sort, l'équipe (ou « toute la partie »), l'heure du lancement et ce qui a été payé ;
+- le **texte de l'effet**, ainsi que portée, cible, moment et limite d'usage tels qu'ils sont
+  écrits sur la fiche ;
+- un bouton **« Raconter cet effet »** qui pré-remplit la narration — vous relisez, ajustez et
+  envoyez : rien n'est écrit au journal à votre place ;
+- un bouton **« Effet appliqué ✔ »** qui retire le sort de la liste et inscrit l'application au
+  journal de partie.
+
+Les outils d'ajustement (cœurs et gemmes, score) sont dans le même écran, juste en dessous.
+Le logiciel ne calcule toujours rien : il vous rappelle quoi faire, et garde trace du moment
+où vous l'avez fait.
+
+> ⚠️ **Point d'attention** — Un sort dont l'effet n'est jamais coché reste dans la file : c'est
+> voulu, c'est le signal. Si vous jugez qu'il n'y avait rien à appliquer, cochez quand même —
+> la liste doit rester le reflet de ce qui reste à faire. Et rédigez l'« effet court » des
+> fiches comme une **instruction exécutable** (« +2 ❤️ à l'équipe voisine ») plutôt que comme
+> une formule d'ambiance : c'est ce texte que la file vous met sous les yeux.
+
+> ⚠️ **Point d'attention** — « Une fois par partie » écrit dans **limite d'usage** n'est pas
+> tenu par le logiciel : tant que les cœurs et les gemmes suivent, le sort peut repartir.
+> C'est à vous de compter.
 
 ### Réserver un sortilège à un peuple
 

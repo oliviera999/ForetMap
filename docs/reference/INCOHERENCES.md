@@ -366,6 +366,157 @@ de comportement, couvert par les tests existants.
 
 **Décision :** ✅ **Livré** (2026-07-08) — réglage en double supprimé, table de correspondance désormais dérivée automatiquement (plus de liste manuelle), liste des modules resynchronisée.
 
+### G11 — 🟠 Sortilèges : l'application encaisse le coût, personne n'applique l'effet
+
+**Constat.** Un sort lancé retire les cœurs et les gemmes promis, affiche le texte de sa
+fiche et écrit une ligne au journal — puis plus rien. Les champs « portée », « cible »,
+« timing », « limite d'usage » et « cumul » sont affichés au joueur mais **jamais appliqués**
+par le logiciel : c'est le MJ qui applique l'effet à la main, sans que le lancement ne lui
+prépare quoi que ce soit ni ne garde trace de l'application. Le vocabulaire du catalogue
+laisse pourtant croire à un moteur de règles. Un sort payé dont l'effet est oublié a coûté
+des cœurs pour rien, sans alerte. Détail technique : `docs/AUDIT_SORTILEGES.md` (S1, S8).
+
+**Options.**
+
+- **A — L'assumer et l'outiller (recommandée).** Le logiciel reste un pot commun, mais
+  au lancement (et à l'acceptation MJ) la console rappelle au MJ **l'effet à appliquer**,
+  avec des raccourcis vers l'ajustement de vitalité et la narration, et une case
+  « effet appliqué ✔ » tracée au journal. Effort modéré, aucun changement de règles.
+- **B — Un vocabulaire d'effets exécutés.** Un petit jeu d'effets structurés
+  (`+N ❤️ à l'équipe cible`, `déplacer de N cases`, `révéler un feuillet`) saisis sur la
+  fiche et **appliqués par le serveur**. Beaucoup plus d'effort, et il faudrait reprendre
+  tout le catalogue existant ; en échange, plus rien ne s'oublie.
+- **C — Statu quo documenté.** Rien ne change dans le code ; la doc de référence dit
+  clairement que l'effet est l'affaire du MJ (volet déjà livré dans ce lot).
+
+**Décision :** ✅ **Livré** (2026-08-20, option A) — la console MJ affiche une file
+« **Sortilèges à appliquer** » : chaque sort lancé y reste tant que le MJ n'a pas coché
+« Effet appliqué ✔ ». La fiche y rappelle l'effet, la portée, la cible, le moment et la
+limite d'usage ; un bouton « Raconter cet effet » pré-remplit la narration (le MJ relit et
+envoie, rien n'est écrit à sa place) ; l'ajustement de vitalité et le score sont dans le même
+écran. L'application est tracée au journal de partie. Le logiciel n'exécute toujours pas les
+effets — c'est l'option B, non retenue — mais plus rien ne s'oublie en silence.
+
+### G12 — 🟠 Sortilèges : les réglages sortis d'usine laissent dépenser la vitalité d'autrui
+
+**Constat.** Par défaut, un joueur peut ouvrir un sort **pour n'importe quelle équipe**
+(« Toutes les équipes de la partie ») et **saisir la contribution de n'importe qui**
+(« Les deux »). La seule barrière est une fenêtre de confirmation… validée par celui qui
+dépense, pas par celui dont on prend les cœurs. Tout est tracé, mais un élève peut vider
+les jauges d'un camarade d'une autre équipe sans son accord. Détail :
+`docs/AUDIT_SORTILEGES.md` (S4).
+
+**Options.**
+
+- **A (recommandée)** — Changer les **valeurs par défaut** : « Uniquement son équipe » +
+  « Chaque joueur saisit uniquement sa contribution ». Les réglages permissifs restent
+  disponibles pour qui les veut. Effort faible.
+- **B** — Garder la répartition libre mais demander un **accord côté serveur** : la part
+  d'un autre joueur reste en attente tant qu'il ne l'a pas validée. Effort moyen, ralentit
+  le jeu.
+- **C** — Statu quo, avec un avertissement explicite dans le guide du MJ.
+
+**Décision :** ✅ **Livré** (2026-08-20, option A) — un élève ne peut plus, sorti d'usine,
+dépenser les points d'un camarade ni viser une autre équipe : les défauts sont « Chaque joueur
+saisit uniquement sa contribution » et « Uniquement son équipe ». **Le MJ et l'admin, eux,
+répartissent toujours pour qui ils veulent** — c'est leur rôle. Les modes permissifs restent
+disponibles, mais deviennent un choix conscient : ils portent un ⚠️ dans les réglages et disent
+en clair ce qu'ils autorisent. Une classe déjà réglée en « Les deux » garde son réglage : seuls
+les défauts changent, aucun choix existant n'est écrasé.
+
+### G13 — 🟡 Sortilèges : deux promesses d'écran que le serveur ne tient pas
+
+> Le troisième écart de ce point (un second exemplaire d'un sort déjà soumis au MJ) est
+> ✅ **livré** (2026-08-20). Restent les deux ci-dessous. **Analyse revue le 2026-08-20** :
+> la relecture du code a montré que le premier point n'est pas une règle manquante côté
+> serveur, mais un **vestige d'écran** — les options ont été reformulées en conséquence.
+
+#### G13-a — Le filtre « c'est le tour de telle équipe » dans l'assistant de sorts
+
+**Constat.** Quand les tours sont activés, l'assistant de lancement ne propose que
+**l'équipe active** de la partie. Or le « mode classique » (migration 139) a justement
+remplacé la rotation séquentielle par des **tours globaux** : le MJ lance un tour, _toutes_
+les équipes jouent. Le serveur applique ce modèle avec un **quota par tour** — une équipe
+déplace sa mascotte une fois par tour, lance les dés une fois par tour — et **ne borne pas
+du tout les sortilèges**, ce qui est écrit noir sur blanc dans la migration : « les
+sortilèges sont en auto ou soumis à l'approbation du MJ ».
+
+Autrement dit : le serveur fait ce qui était prévu ; c'est **l'écran** qui applique encore
+l'ancienne règle séquentielle. Une équipe qui n'est pas « active » ne voit pas comment
+lancer un sort, alors que rien ne le lui interdit.
+
+**Options.**
+
+- **A (recommandée)** — Retirer le filtre de l'assistant. Les sortilèges cessent d'être liés
+  au tour, comme le mode classique le prévoit ; c'est l'approbation du MJ (par sort ou
+  globale) qui régule, pas le tour. Effort minime, et l'écran cesse de mentir.
+- **B** — Aligner les sorts sur le modèle des mascottes : **un lancement par équipe et par
+  tour**, vérifié côté serveur. Cohérent avec le reste du mode classique, ajoute une vraie
+  contrainte de rythme. Effort moyen (colonne de suivi par équipe + refus explicite).
+- **C** — Rétablir la règle séquentielle pour les sorts (seule l'équipe active lance),
+  cette fois vérifiée au serveur. Contredit le mode classique : à ne retenir que si vous
+  jouez réellement en tour par tour.
+
+**Décision :** ✅ **Livré** (2026-08-20, option A) — le filtre est retiré de l'assistant.
+Quand les tours sont activés, **toutes** les équipes restent proposées : le lancement d'un
+sortilège n'est plus lié au tour, conformément au mode classique. Ce qui régule les sorts,
+c'est l'approbation du MJ (globale ou par sort), pas la rotation. Le périmètre d'équipe du
+joueur (« Uniquement son équipe ») continue, lui, de s'appliquer.
+
+#### G13-b — Un sortilège « proposé » se joue comme un sortilège officiel
+
+**Constat.** Chaque fiche porte un statut, **Officiel** ou **Proposé**. Dans le corpus livré,
+ce n'est pas un détail : sur 35 sorts, **18 sont officiels et 17 sont des propositions**
+(colonne `source` : `proposition_claude`), accompagnées d'une justification pédagogique —
+autrement dit des suggestions soumises à votre validation, pas du contenu publié.
+
+Aujourd'hui, rattacher un sort à un chapitre suffit à le rendre jouable, quel que soit son
+statut : côté élève, un « proposé » se lance exactement comme un officiel, seule une pastille
+les distingue. Et l'écran qui rattache les sorts à un chapitre **n'affiche pas le statut** —
+on peut donc publier une proposition sans le voir.
+
+**Options.**
+
+- **A** — Un sort « proposé » n'est **pas jouable** : il reste visible côté administration,
+  mais n'apparaît ni au catalogue élève ni à l'assistant. Le statut devient une vraie étape
+  de publication. ⚠️ Si un chapitre s'appuie déjà sur des propositions, ces sorts
+  disparaîtraient du jeu au déploiement — à vérifier avant de trancher.
+- **B (recommandée si vous jouez déjà avec)** — Le rattachement à un chapitre **est** la
+  validation : on l'assume, et l'écran de rattachement affiche le statut avec un
+  avertissement (« ce sort est une proposition non validée »). Rien ne disparaît, mais plus
+  rien ne se publie par inadvertance.
+- **C** — Renommer le statut pour qu'il ne promette rien (« Origine : proposition »), et le
+  traiter comme une simple provenance éditoriale.
+
+**Décision :** ⏳ **En attente** (2026-08-20) — décision suspendue le temps de faire le tri
+dans le catalogue existant : trancher avant de savoir quels sorts « proposés » sont déjà
+rattachés à des chapitres risquerait d'en retirer du jeu en cours d'année.
+
+_Outils disponibles pour ce tri, vérifiés :_ **Contenus → Sortilèges** liste les sorts par
+catégorie, avec cases à cocher et **édition en masse du statut** (officiel ⇄ proposé) ; le
+panneau d'import/export permet un **export XLSX filtré par statut**. Ce qu'aucun écran ne
+montre encore : **quels sorts « proposés » sont déjà rattachés à un chapitre** — c'est
+justement l'information qui rend l'option A sûre ou risquée. Une fois le catalogue assaini,
+l'option A devient sans danger.
+
+### G14 — 🔴 Sortilèges : un double clic peut faire payer deux fois
+
+**Constat.** Deux lancements simultanés du même sort (double clic, deux onglets, deux
+membres de l'équipe qui valident ensemble) peuvent **débiter deux fois** et écrire deux
+fois au journal, si les soldes suffisent à payer deux fois. Le correctif est déjà écrit —
+mais dort dans une proposition non fusionnée, bâtie sur une version très antérieure
+(PR #276), et demande donc une reprise sur la base actuelle. Même famille de défaut que la
+résolution d'action MJ concurrente, corrigée dans la même proposition. Détail :
+`docs/AUDIT_SORTILEGES.md` (S2).
+
+**Option unique (recommandée).** Reprendre le correctif sur la base actuelle (verrou du
+brouillon + écriture conditionnelle), avec son test de concurrence.
+
+**Décision :** ✅ **Livré** (2026-08-20) — le brouillon est verrouillé en tête de transaction
+et son passage à « lancé » n'a lieu qu'une fois : deux clics simultanés donnent un lancement
+et un message « ce sortilège a déjà été lancé », jamais deux débits. Même verrouillage pour la
+soumission au MJ et pour le refus. Test de concurrence à l'appui.
+
 ---
 
 ## Arbitrage du 2026-07-08

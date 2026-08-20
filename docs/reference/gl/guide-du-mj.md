@@ -39,7 +39,10 @@
 - **La vitalité** : ajuster cœurs et gemmes par joueur ou par équipe (récompense,
   péripétie, correction).
 - **Les sorts** : suivre le pot commun des contributions, approuver le lancement si
-  le réglage l'exige.
+  le réglage l'exige — puis **appliquer l'effet**. Le logiciel encaisse le coût, il
+  n'exécute pas l'effet : la file **« Sortilèges à appliquer »** liste les sorts payés
+  dont l'effet reste à jouer, avec son texte, et un bouton « Effet appliqué ✔ » quand
+  c'est fait. Détail : [Économie du jeu](economie-marche-sorts.md).
 - **Entre deux chapitres** : annoncer le **passage de seuil** — et, si vous changez
   les mascottes des équipes, c'est le récit qui le justifie (« le seuil donne la forme
   dont le prochain territoire aura besoin »).
@@ -54,14 +57,15 @@
 
 ## Incidents courants
 
-| Symptôme                                | Cause probable                                                                                               | Geste                                                                                                  |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| « Le Marché a disparu »                 | Vitalité désactivée (le Marché l'exige)                                                                      | Réglages → activer la vitalité (bouton proposé sous l'avertissement)                                   |
-| Un élève ne peut pas marquer « appris » | Conditionnement par QCM actif : question à réussir, ou délai de nouvelle tentative en cours après une erreur | Vérifier Contenus → Conditionnement QCM et le délai dans Réglages plateforme                           |
-| Un popover de zone ne s'ouvre plus      | Réglage de répétition « une fois par partie » : l'équipe l'a déjà vu                                         | Changer le réglage de répétition (globalement ou pour la partie)                                       |
-| Mot de passe oublié                     | —                                                                                                            | Gestion des joueurs → réinitialiser le mot de passe (ou forcer le changement à la prochaine connexion) |
-| Vérifier ce que voit un élève           | —                                                                                                            | Prendre la main sur son compte (bandeau affiché, action tracée) ou basculer en « vue joueur »          |
-| Les sorts ne se lancent pas             | Module Sortilèges désactivé, ou lancement réservé au MJ par le profil de séance                              | Réglages → modules / gameplay                                                                          |
+| Symptôme                                    | Cause probable                                                                                               | Geste                                                                                                  |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| « Le Marché a disparu »                     | Vitalité désactivée (le Marché l'exige)                                                                      | Réglages → activer la vitalité (bouton proposé sous l'avertissement)                                   |
+| Un élève ne peut pas marquer « appris »     | Conditionnement par QCM actif : question à réussir, ou délai de nouvelle tentative en cours après une erreur | Vérifier Contenus → Conditionnement QCM et le délai dans Réglages plateforme                           |
+| Un popover de zone ne s'ouvre plus          | Réglage de répétition « une fois par partie » : l'équipe l'a déjà vu                                         | Changer le réglage de répétition (globalement ou pour la partie)                                       |
+| Mot de passe oublié                         | —                                                                                                            | Gestion des joueurs → réinitialiser le mot de passe (ou forcer le changement à la prochaine connexion) |
+| Vérifier ce que voit un élève               | —                                                                                                            | Prendre la main sur son compte (bandeau affiché, action tracée) ou basculer en « vue joueur »          |
+| Les sorts ne se lancent pas                 | Module Sortilèges désactivé, ou lancement réservé au MJ par le profil de séance                              | Réglages → modules / gameplay                                                                          |
+| Un élève ne peut pas payer pour un camarade | C'est le réglage par défaut (chacun sa part, sa propre équipe) — le MJ, lui, répartit toujours librement     | Réglages → gameplay → « Mode de contribution » / « Équipes pouvant lancer »                            |
 
 ## Lire et amender cette documentation depuis le jeu
 

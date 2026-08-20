@@ -15,6 +15,8 @@ const {
   launchDraft,
   resolveDraftApproval,
   listPendingApprovalDrafts,
+  listCastsAwaitingEffect,
+  markEffectApplied,
   cancelDraft,
   isStaff,
 } = require('../../../lib/glSpellCast');
@@ -45,7 +47,12 @@ async function handleSpellCastRoute(req, res, handler) {
     if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
     const config = await getSpellCastConfig();
     await assertSpellCastAvailable(config);
-    assertSpellCastActorAllowed(req.glAuth, config);
+    // Audit S11 — `spell_cast_mj_only` réserve au MJ le *lancement*, pas la lecture :
+    // bloquer aussi les GET privait les joueurs de la consultation du pot alors que les
+    // événements Socket.IO le leur poussaient quand même.
+    if (String(req.method || '').toUpperCase() !== 'GET') {
+      assertSpellCastActorAllowed(req.glAuth, config);
+    }
     return await handler({ gameId, config });
   } catch (err) {
     const mapped = resolveSpellCastError(mapSpellCastSqlError(err));
@@ -231,6 +238,51 @@ router.post('/games/:id/spell-casts/drafts/:draftId/resolve', requireGlAuth, asy
     return res.json({ ok: true, decision, draft, event: normalized });
   });
 });
+
+/**
+ * G11 — file des sortilèges lancés dont le MJ n'a pas encore appliqué l'effet.
+ * Le logiciel n'exécute pas les effets : cette liste est son pense-bête.
+ */
+router.get('/games/:id/spell-casts/awaiting-effect', requireGlAuth, async (req, res) => {
+  if (!hasGlPermission(req.glAuth, 'gl.game.manage')) {
+    return res.status(403).json({ error: 'Réservé au maître du jeu' });
+  }
+  return handleSpellCastRoute(req, res, async ({ gameId }) => {
+    const drafts = await listCastsAwaitingEffect(gameId);
+    return res.json({ drafts });
+  });
+});
+
+/** G11 — le MJ note qu'il a appliqué l'effet à la table (trace + ligne de journal). */
+router.post(
+  '/games/:id/spell-casts/drafts/:draftId/effect-applied',
+  requireGlAuth,
+  async (req, res) => {
+    if (!hasGlPermission(req.glAuth, 'gl.game.manage')) {
+      return res.status(403).json({ error: 'Réservé au maître du jeu' });
+    }
+    return handleSpellCastRoute(req, res, async ({ gameId }) => {
+      const draftId = parseId(req.params.draftId);
+      if (!draftId) return res.status(400).json({ error: 'draftId invalide' });
+      const { draft, eventId } = await markEffectApplied({ gameId, draftId, auth: req.glAuth });
+      const evt = eventId
+        ? await queryOne(
+            `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
+               FROM gl_game_events WHERE id = ? AND game_id = ? LIMIT 1`,
+            [eventId, gameId],
+          )
+        : null;
+      const normalized = evt ? normalizeEventRow(evt) : null;
+      if (normalized) emitGlGameEvent(gameId, normalized);
+      emitGlSpellCastDraftChanged(gameId, {
+        draftId: draft.id,
+        type: 'draft_effect_applied',
+        draft,
+      });
+      return res.json({ ok: true, draft, event: normalized });
+    });
+  },
+);
 
 router.delete(
   '/games/:id/spell-casts/drafts/:draftId',

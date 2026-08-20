@@ -281,6 +281,7 @@ Tables GL préfixées `gl_` :
   - Réglages : `gameplay.spell_cast_contribution_mode`, `gameplay.spell_cast_team_scope`, `gameplay.spell_cast_mj_only` (G8 — défaut `false` : les joueurs lancent ; le profil de séance « MJ + tours » le passe à `true` pour un lancement réservé au MJ, cf. `docs/GL_GAMEPLAY_PRESETS.md`)
   - Routes `/api/gl/games/:id/spell-casts/*`, logique `lib/glSpellCast.js`, UI `GLSpellCastWizard` (Sortilèges, carte, popover, **console MJ → Sortilèges**)
   - Événement `spell_cast` (+ `teamId` par contribution) + Socket.IO `gl:spell_cast:draft`
+  - **L'effet du sort n'est pas exécuté** : `effet_court`/`effet_detaille`/`portee`/`cible`/`timing`/`limite_usage`/`cumul` sont du texte affiché, jamais interprété — seul le coût est joué, l'effet est appliqué à la main par le MJ. Chaîne complète et points d'attention : [`docs/AUDIT_SORTILEGES.md`](AUDIT_SORTILEGES.md)
 
 ## Temps réel
 

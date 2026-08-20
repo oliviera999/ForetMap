@@ -267,3 +267,35 @@ describe('GL journal API', () => {
       .expect(403);
   });
 });
+
+// S14 (docs/AUDIT_SORTILEGES.md) — pot commun ouvert par le MJ sur tout le plateau :
+// la ligne de journal n'attribue plus à une seule équipe un sort payé par plusieurs.
+test('presentJournalEvent : sortilège financé par toute la partie', () => {
+  const teamsById = { 2: { id: 2, name: 'Les Gnomes' } };
+
+  const perTeam = presentJournalEvent(
+    {
+      eventType: 'spell_cast',
+      payload: { spellName: 'Progression', spellEmoji: '✨', rosterScope: 'team' },
+      actorType: 'team',
+      actorId: '3',
+      teamId: 2,
+    },
+    { teamsById, forPlayer: true },
+  );
+  assert.ok(perTeam.body.includes('Les Gnomes'));
+
+  const wholeGame = presentJournalEvent(
+    {
+      eventType: 'spell_cast',
+      payload: { spellName: 'Progression', spellEmoji: '✨', rosterScope: 'game' },
+      actorType: 'mj',
+      actorId: '1',
+      teamId: 2,
+    },
+    { teamsById, forPlayer: true },
+  );
+  assert.strictEqual(wholeGame.kind, 'spell_cast');
+  assert.ok(wholeGame.body.includes('Toute la partie'));
+  assert.ok(!wholeGame.body.includes('Les Gnomes'));
+});

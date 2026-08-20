@@ -29,9 +29,8 @@ export function GLSpellCastWizard({
   playerId,
   playerTeamId,
   currentTeamId,
-  turnsEnabled = false,
-  contributionMode = 'both',
-  teamScope = 'any_team',
+  contributionMode = 'self_only',
+  teamScope = 'own_team',
   isStaff = false,
   spellCast,
   chapterSpells = [],
@@ -75,12 +74,10 @@ export function GLSpellCastWizard({
         teams,
         teamScope,
         playerTeamId,
-        currentTeamId,
-        turnsEnabled,
         isStaff,
         casterKind,
       }),
-    [teams, teamScope, playerTeamId, currentTeamId, turnsEnabled, isStaff, casterKind],
+    [teams, teamScope, playerTeamId, isStaff, casterKind],
   );
 
   const beginFundDraft = useCallback(
