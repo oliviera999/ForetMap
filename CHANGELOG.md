@@ -79,6 +79,16 @@ comportement, mais un seul endroit à lire — et à corriger — pour chacune.
 - Doc de référence : `qcm-et-pedagogie.md` (une question affichée = une réponse comptée) et
   `economie-marche-sorts.md` (l'échange ne dégrade pas ce que l'équipe a déjà).
 
+### Intégration continue — une étape figée ne coûte plus six heures
+
+`.github/workflows/ci.yml` ne posait aucun `timeout-minutes`. Une étape suspendue consommait
+donc les **6 heures** du délai GitHub par défaut, après quoi le job `test` — le check requis
+par les protections de branche — terminait en `cancelled`, indiscernable d'un vrai échec.
+C'est arrivé le 19/08/2026 : `npx playwright install --with-deps chromium` est resté bloqué
+5 h 55, alors que les tests backend étaient passés en 4 minutes. Les jobs sont désormais
+bornés (30 min pour `test`, 20 pour `quality` — un run sain tient en ~15 min), et l'étape
+d'installation du navigateur, seule à dépendre d'un réseau externe, l'est à 10 min.
+
 ### GL — la liasse du copiste, remise en fin de voyage
 
 Sur les 40 feuillets de la liasse `copiste`, 14 étaient déjà distribués en jeu (un par
