@@ -75,6 +75,11 @@ export function GLSettingsView() {
     setPlateauMarkerSizePercent(String(readPlateauMarkerSizePercent(mapSettings)));
   }, [mapSettings]);
 
+  // Un GET en échec laissait le formulaire garni de valeurs par défaut, avec les quatre
+  // enregistrements automatiques armés : modifier une couleur suffisait alors à réécrire
+  // toute la charte avec ces défauts. `settingsLoadRevision` ne s'incrémente qu'au succès.
+  const settingsReady = settingsLoadRevision > 0;
+
   const platformIdentity = { title, subtitle };
 
   const persistPlatformIdentity = useCallback(async () => {
@@ -127,24 +132,28 @@ export function GLSettingsView() {
     resetKey: settingsLoadRevision,
     canSave: () => String(title || '').trim().length > 0,
     onSave: persistPlatformIdentity,
+    enabled: settingsReady,
   });
 
   const brandSave = useDebouncedAutoSave({
     value: brandDraft,
     resetKey: settingsLoadRevision,
     onSave: persistBrand,
+    enabled: settingsReady,
   });
 
   const markerSizeSave = useDebouncedAutoSave({
     value: plateauMarkerSizePercent,
     resetKey: `${settingsLoadRevision}:${readPlateauMarkerSizePercent(mapSettings)}`,
     onSave: persistMarkerSize,
+    enabled: settingsReady,
   });
 
   const vitalitySave = useDebouncedAutoSave({
     value: vitalityDefaults,
     resetKey: settingsLoadRevision,
     onSave: persistVitalityDefaults,
+    enabled: settingsReady,
   });
 
   async function toggleGameplayFlag(toggleKey, nextValue) {

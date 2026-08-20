@@ -39,7 +39,11 @@ const TAB_LABELS = {
 };
 
 export function GLHelpContentAdminPanel() {
-  const [draft, setDraft] = useState({ entries: {} });
+  // `null` tant que le chargement n'a pas abouti — et non un brouillon vide. Un GET en
+  // échec laissait sinon un formulaire éditable rempli de valeurs par défaut, avec
+  // l'enregistrement automatique armé : une frappe suffisait à écrire ces défauts en base
+  // et à effacer les bulles d'aide personnalisées.
+  const [draft, setDraft] = useState(null);
   const [activeKey, setActiveKey] = useState('tab:maps');
   const [loadRevision, setLoadRevision] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -81,6 +85,7 @@ export function GLHelpContentAdminPanel() {
   const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
     value: draft,
     resetKey: loadRevision,
+    enabled: draft != null,
     onSave: persistHelp,
   });
 
@@ -98,6 +103,29 @@ export function GLHelpContentAdminPanel() {
     } finally {
       setBusy(false);
     }
+  }
+
+  // Tant que le chargement n'a pas abouti, on n'affiche pas de formulaire : mieux vaut une
+  // invitation à réessayer qu'un brouillon vide qui donnerait l'illusion d'un contenu perdu
+  // — et qui l'aurait fait perdre pour de bon à la première frappe.
+  if (draft == null) {
+    return (
+      <div className="gl-panel">
+        {error ? (
+          <div className="auth-error">⚠️ {error}</div>
+        ) : (
+          <p className="gl-hint">Chargement…</p>
+        )}
+        {error ? (
+          <GLButton
+            type="button"
+            onClick={() => load().catch((err) => setError(err.message || 'Chargement impossible'))}
+          >
+            Réessayer
+          </GLButton>
+        ) : null}
+      </div>
+    );
   }
 
   const entryKeys = Object.keys(draft.entries || {}).sort((a, b) =>

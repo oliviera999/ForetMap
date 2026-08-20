@@ -7,7 +7,7 @@ const {
   isMj,
   actorTypeOf,
 } = require('../../middleware/requireGlAuth');
-const { normalizeEventRow, insertGameEvent } = require('../../lib/glGameEvents');
+const { insertGameEvent } = require('../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../lib/realtime');
 const { getSpellCastConfig } = require('../../lib/glSpellCast');
 const { getGameplaySettings } = require('../../lib/glSettings');
@@ -30,6 +30,7 @@ const { parseDiceRollPayload } = require('../../lib/glDiceRoll');
 const {
   getPlayerGameMembership,
   resolveRosterError,
+  claimTeamRoundAction,
   applyTeamMoveTx,
   readGameState,
 } = require('../../lib/gl/gamesRuntime');
@@ -685,6 +686,7 @@ router.post(
       if (roundNumber === 0) {
         return res.status(409).json({ error: 'Aucun tour en cours : attendez le lancement du MJ' });
       }
+      // Contrôle rapide : la réservation atomique du tour a lieu dans la transaction.
       if (Number(team.last_dice_round_number || 0) >= roundNumber) {
         return res.status(409).json({ error: 'Dés déjà lancés pour ce tour' });
       }
@@ -695,22 +697,38 @@ router.post(
     const payload = { values: roll.values, total: roll.total, roundNumber };
 
     let diceEvent = null;
-    await withTransaction(async (tx) => {
-      diceEvent = await insertGameEvent(tx, {
-        gameId,
-        teamId,
-        actorType,
-        actorId,
-        eventType: 'dice_roll',
-        payload,
+    try {
+      await withTransaction(async (tx) => {
+        // Réservation d'abord : si le tour est déjà consommé, l'événement n'est pas inséré
+        // (la transaction est annulée) et l'équipe ne garde qu'un seul jet pour ce tour.
+        if (settings.turnsEnabled) {
+          const claimed = await claimTeamRoundAction(tx, {
+            gameId,
+            teamId,
+            roundNumber,
+            action: 'dice',
+          });
+          if (!claimed) {
+            const err = new Error('DICE_ALREADY_ROLLED');
+            err.status = 409;
+            throw err;
+          }
+        }
+        diceEvent = await insertGameEvent(tx, {
+          gameId,
+          teamId,
+          actorType,
+          actorId,
+          eventType: 'dice_roll',
+          payload,
+        });
       });
-      if (settings.turnsEnabled && roundNumber > 0) {
-        await tx.execute(
-          'UPDATE gl_teams SET last_dice_round_number = ?, updated_at = NOW() WHERE id = ? AND game_id = ?',
-          [roundNumber, teamId, gameId],
-        );
+    } catch (err) {
+      if (err?.message === 'DICE_ALREADY_ROLLED') {
+        return res.status(409).json({ error: 'Dés déjà lancés pour ce tour' });
       }
-    });
+      throw err;
+    }
 
     emitGlGameEvent(gameId, diceEvent);
     return res.status(201).json(diceEvent);
@@ -765,6 +783,7 @@ router.post(
       if (roundNumber === 0) {
         return res.status(409).json({ error: 'Aucun tour en cours : attendez le lancement du MJ' });
       }
+      // Contrôle rapide : la réservation atomique du tour a lieu dans la transaction.
       if (Number(team.last_move_round_number || 0) >= roundNumber) {
         return res.status(409).json({ error: 'Mascotte déjà déplacée pour ce tour' });
       }
@@ -794,6 +813,20 @@ router.post(
     let moveEvent = null;
     try {
       await withTransaction(async (tx) => {
+        // Réservation d'abord : deux requêtes simultanées ne consomment qu'un déplacement.
+        if (settings.turnsEnabled) {
+          const claimed = await claimTeamRoundAction(tx, {
+            gameId,
+            teamId,
+            roundNumber,
+            action: 'move',
+          });
+          if (!claimed) {
+            const err = new Error('MOVE_ALREADY_DONE');
+            err.status = 409;
+            throw err;
+          }
+        }
         moveEvent = await insertGameEvent(tx, {
           gameId,
           teamId,
@@ -812,6 +845,9 @@ router.post(
         });
       });
     } catch (err) {
+      if (err?.message === 'MOVE_ALREADY_DONE') {
+        return res.status(409).json({ error: 'Mascotte déjà déplacée pour ce tour' });
+      }
       if (err?.status === 404 && err?.message === 'MARKER_NOT_FOUND') {
         return res.status(404).json({ error: 'Repère introuvable' });
       }

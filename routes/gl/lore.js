@@ -501,6 +501,28 @@ router.post(
   }),
 );
 
+/**
+ * L'équipe possède-t-elle déjà ce feuillet ? Garde des transitions d'état.
+ *
+ * `read` et `hold` écrivent directement dans `gl_game_feuillet_states` via
+ * `upsertFeuilletState`, et `read` / `held` comptent parmi les statuts « trouvés » : sans
+ * ce contrôle, un joueur marquait n'importe quel code comme lu et en obtenait la
+ * possession pour toute son équipe — sans QCM, sans coût en gemmes, sans passer par un
+ * canal de découverte, et en contournant la garde de portée posée sur `present`. Les codes
+ * sont visibles dans l'aperçu verrouillé du carnet : il n'y avait rien à deviner.
+ *
+ * Le MJ n'est pas soumis à la garde : marquer l'avancée d'une équipe est un geste
+ * d'animation.
+ */
+async function teamOwnsFeuillet(gameId, teamId, feuilletCode) {
+  const state = await queryOne(
+    `SELECT status FROM gl_game_feuillet_states
+      WHERE game_id = ? AND team_id = ? AND feuillet_code = ? LIMIT 1`,
+    [gameId, teamId, feuilletCode],
+  );
+  return !!state && isFeuilletFound(state.status);
+}
+
 /** POST /api/gl/lore/games/:id/feuillets/:code/read */
 router.post(
   '/games/:id/feuillets/:code/read',
@@ -515,6 +537,10 @@ router.post(
     const teamCtx = await resolveTeamContext(req, gameId, req.body?.teamId);
     if (teamCtx.error)
       return res.status(teamCtx.error.status).json({ error: teamCtx.error.message });
+
+    if (!isMj(req) && !(await teamOwnsFeuillet(gameId, teamCtx.teamId, code))) {
+      return res.status(409).json({ error: 'Feuillet non trouvé par cette équipe' });
+    }
 
     await upsertFeuilletState(db, {
       gameId,
@@ -560,6 +586,10 @@ router.post(
     const teamCtx = await resolveTeamContext(req, gameId, req.body?.teamId);
     if (teamCtx.error)
       return res.status(teamCtx.error.status).json({ error: teamCtx.error.message });
+
+    if (!isMj(req) && !(await teamOwnsFeuillet(gameId, teamCtx.teamId, code))) {
+      return res.status(409).json({ error: 'Feuillet non trouvé par cette équipe' });
+    }
 
     await upsertFeuilletState(db, {
       gameId,

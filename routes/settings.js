@@ -542,7 +542,7 @@ router.delete(
   '/admin/media-library',
   requirePermission('admin.settings.write'),
   asyncHandler(async (req, res) => {
-    const payload = executeMediaLibraryDeleteRequest(req.body || {});
+    const payload = executeMediaLibraryDeleteRequest(req.body || {}, { app: 'foretmap' });
     await logAudit('settings_media_delete', 'media', 'bulk', 'Média(s) supprimé(s)', {
       req,
       payload: {
