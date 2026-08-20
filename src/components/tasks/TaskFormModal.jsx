@@ -250,6 +250,15 @@ function TaskFormModal({
     }
   };
 
+  // Déclaré AVANT le bloc d'enregistrement automatique ci-dessous, qui le référence dans
+  // son tableau de dépendances : ce tableau est évalué à chaque rendu, donc une
+  // déclaration plus bas plaçait la constante en zone morte temporelle et faisait planter
+  // l'ouverture de la modale (`ReferenceError`), en création comme en édition.
+  const normalizedTutorialIds = useMemo(
+    () => normalizeTutorialIds(form.tutorial_ids),
+    [form.tutorial_ids],
+  );
+
   // Enregistrement automatique — **édition seule** (A3).
   //
   // Actif uniquement sur une tâche **existante** : ni en création, ni en
@@ -335,10 +344,6 @@ function TaskFormModal({
     editTask?.project_status,
     isProposal,
   ]);
-  const normalizedTutorialIds = useMemo(
-    () => normalizeTutorialIds(form.tutorial_ids),
-    [form.tutorial_ids],
-  );
   const teacherReferentCandidates = useMemo(
     () => referentCandidates.filter((c) => c.user_type === 'teacher'),
     [referentCandidates],
