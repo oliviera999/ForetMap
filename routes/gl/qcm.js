@@ -1,7 +1,7 @@
 const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../../database');
 const {
-  recordGlQcmAttemptIfGatingEnabled,
+  recordGlQcmAttemptForReader,
   registerGlCooldownOnWrongIfGating,
 } = require('../../lib/learningGatingRuntime');
 const { requireGlPermission, hasGlPermission } = require('../../middleware/requireGlAuth');
@@ -253,9 +253,10 @@ router.post(
       );
       const glossaryByKey = await loadGlossaryLookup();
       const glossaryTerms = await enrichQuestionWithGlossary(row, glossaryByKey);
-      // Tentative par lecteur + auto-marquage des ressources liees (inerte si gating OFF).
+      // Tentative par lecteur, enregistree meme conditionnement eteint : une bonne reponse
+      // donnee aujourd'hui doit compter le jour ou l'interrupteur sera allume (audit F3).
       const dbHandle = { queryAll, queryOne, execute };
-      await recordGlQcmAttemptIfGatingEnabled(dbHandle, {
+      await recordGlQcmAttemptForReader(dbHandle, {
         glAuth: req.glAuth,
         dataset: 'qcm',
         questionCode: code,

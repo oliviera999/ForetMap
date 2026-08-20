@@ -50,13 +50,19 @@ tutoriel, feuillet…) comme apprise.
   lien, un statut et des filtres pour s'y retrouver.
 - **Régler le comportement global** : dans **Réglages plateforme → Conditionnement par
   QCM** (admin) — l'interrupteur général (tant qu'il est éteint, les liens sont sans
-  effet), le mode (une réussite suffit / toutes les questions / un nombre minimum), le
-  marquage automatique après une bonne réponse, et le **délai avant nouvelle
-  tentative** après une erreur (3 jours par défaut).
-- **Ce que vit l'élève** : au moment de marquer « appris », une question s'ouvre ;
-  bonne réponse → c'est acquis (et marqué automatiquement si le réglage le prévoit) ;
-  mauvaise réponse → la ressource est verrouillée le temps du délai, puis il peut
-  réessayer.
+  effet) et le **délai avant nouvelle tentative** après une erreur (3 jours par défaut).
+  Les autres champs de cet écran (mode, granularité, nombre de réussites, marquage
+  automatique) **n'ont aucun effet aujourd'hui** : voir le point d'attention ci-dessous.
+- **Ce que vit l'élève** : au moment de marquer « appris », l'écran annonce combien de
+  questions seront posées **et ce qu'une erreur coûterait** (« une erreur bloquera la
+  validation pendant 3 jours ») ; il peut abandonner sans rien risquer. Bonne réponse à
+  toutes → il peut confirmer ; mauvaise réponse → la ressource est verrouillée le temps
+  du délai, puis il peut réessayer.
+- **Les bonnes réponses comptent toujours**, même données avant l'activation du
+  conditionnement et même ailleurs (sur le plateau, à l'entraînement) : allumer
+  l'interrupteur ne fait pas repasser à l'élève une question qu'il a déjà réussie.
+- **Un contenu désactivé n'est plus marquable** : un feuillet ou un terme retiré du jeu
+  (statut « inactif ») ne peut plus être marqué appris ni importé dans le carnet.
 
 ## Le marquage « appris » et le carnet
 
@@ -71,9 +77,9 @@ Deux choses différentes, souvent confondues :
 
 - **Posséder** un feuillet (le voir arriver dans le Carnet de Sélène) ne demande
   **aucune question sur ce feuillet**. Il arrive parce que l'équipe a traversé une zone,
-  parce qu'un joueur a validé le QCM d'**une autre ressource** (une espèce, un terme de
-  glossaire…), parce qu'il a été **offert à l'ouverture** de la partie, ou parce qu'un
-  camarade l'a **échangé** au Marché.
+  parce qu'un joueur a marqué « apprise » **une autre ressource** (une espèce, un terme de
+  glossaire… — c'est le marquage qui déclenche, avec ou sans question), parce qu'il a été
+  **offert à l'ouverture** de la partie, ou parce qu'un camarade l'a **échangé** au Marché.
 - **Le marquer étudié** (et donc pouvoir l'importer dans son carnet personnel) passe,
   lui, par le conditionnement QCM du feuillet lui-même, comme n'importe quelle autre
   ressource — et n'est proposé que sur un feuillet déjà accessible en partie.
@@ -91,6 +97,21 @@ Autrement dit : le QCM ne garde pas la porte du feuillet, il garde la porte du
 > ⚠️ **Point d'attention** — Le délai de nouvelle tentative s'applique à **toute la
 > ressource** après une erreur : un élève verrouillé n'est pas un bug. Le délai se
 > règle (jusqu'à l'annuler, à 0 jour).
+
+> ⚠️ **Point d'attention** — Quatre réglages de l'écran « Conditionnement par QCM » sont
+> aujourd'hui **sans effet** : le **mode** (une réussite suffit / toutes / un minimum), le
+> **nombre de réussites requises**, la **granularité du suivi** et le **marquage automatique
+> après une bonne réponse**. Le comportement réel est toujours le plus exigeant :
+> **toutes** les questions bloquantes liées doivent être réussies, et le suivi se fait
+> **par élève**. Ne comptez pas sur « une réussite suffit » pour alléger un contenu relié à
+> plusieurs questions — retirez plutôt la case « bloquant » des liens en trop. Arbitrage en
+> cours ; détail dans l'audit technique `docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md`.
+
+> ⚠️ **Point d'attention** — Avant d'allumer l'interrupteur global en classe, regardez
+> **combien de questions sont déjà reliées** à vos termes de glossaire : les liens créés
+> automatiquement par les imports de QCM sont **bloquants**, et comme toutes les questions
+> liées sont exigées, un terme relié à huit questions demandera huit bonnes réponses. Le MJ
+> peut décocher « bloquant » sur les liens qu'il ne veut pas exiger.
 
 > ⚠️ **Point d'attention** — Un élève ne peut pas lire la bonne réponse par avance : elle
 > ne quitte jamais le serveur avant d'avoir été trouvée. Et si le score d'équipe est

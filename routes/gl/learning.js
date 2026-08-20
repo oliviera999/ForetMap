@@ -120,8 +120,10 @@ router.get('/me', requireGlAuth, async (req, res) => {
 });
 
 /**
- * Socle d'acquisition ③ : après une consultation gatée réussie (QCM lié passé),
- * tente d'attribuer un feuillet du pool du chapitre à l'équipe, attribué au joueur.
+ * Socle d'acquisition ③ : au PREMIER marquage « appris » d'une ressource éligible, tente
+ * d'attribuer un feuillet du pool du chapitre à l'équipe, attribué au joueur. À noter : le
+ * déclencheur est le marquage, pas la réussite d'un QCM — conditionnement éteint, le feuillet
+ * tombe quand même (cf. docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md, constat J6).
  * Best-effort — n'échoue jamais l'acquittement principal. Renvoie le feuillet ou null.
  */
 async function maybeAwardFeuilletFromConsultation(req, { source, sourceRef }) {

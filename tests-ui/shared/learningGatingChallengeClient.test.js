@@ -43,6 +43,23 @@ describe('buildGatingQuizIntroMessage', () => {
   it('retourne vide si aucune question', () => {
     expect(buildGatingQuizIntroMessage(0)).toBe('');
   });
+
+  // F6 (audit 2026-08) : promettre « tu pourras réessayer » alors qu'une erreur verrouille
+  // la ressource 3 jours était faux. Le message suit désormais le délai réel.
+  it('annonce le verrou quand un délai de nouvelle tentative est configuré', () => {
+    const msg = buildGatingQuizIntroMessage(1, 'Feuillet', 3);
+    expect(msg).toContain('3 jours');
+    expect(msg).not.toContain('Tu pourras réessayer');
+  });
+
+  it('accorde le singulier du délai', () => {
+    expect(buildGatingQuizIntroMessage(2, 'Feuillet', 1)).toContain('1 jour.');
+  });
+
+  it('promet le réessai immédiat quand le délai est nul', () => {
+    const msg = buildGatingQuizIntroMessage(1, 'Feuillet', 0);
+    expect(msg).toContain('Tu pourras réessayer');
+  });
 });
 
 describe('isCooldownLocked', () => {
