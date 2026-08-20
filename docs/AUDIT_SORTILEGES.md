@@ -64,7 +64,7 @@ un moteur d'effets. La conséquence pratique est en §4.
 | `portee`, `cible`, `timing`       | **Décoratif**  | Trois lignes de métadonnées dans le popover (`GLSpellPopover.jsx:27-33`).                     |
 | `limite_usage`, `cumul`           | **Décoratif**  | Affichés. **Aucun compteur d'usage, aucune règle de cumul n'existe** (cf. finding S8).        |
 | `cout_total_eq`                   | **Décoratif**  | Libellé de coût « lisible » sur la tuile du catalogue ; le débit suit les colonnes chiffrées. |
-| `notes_pedagogiques`, `source`    | **Décoratif**  | Non affichés côté joueur, mais **servis par l'API** à tout compte `gl.read` (finding S12).    |
+| `notes_pedagogiques`, `source`    | **Décoratif**  | Notes de préparation du MJ : servies aux seules routes `admin/spells` (S12, corrigé).         |
 
 ---
 
@@ -76,8 +76,8 @@ Trois verrous, tous vérifiés à **chaque** requête (`routes/gl/games/spell-ca
 
 1. `modules.spell_cast_enabled` — **désactivé par défaut** (`glSettings.js:130`) ; sinon `409`.
 2. `gameplay.vitality_enabled` — sans jauges, pas de monnaie, donc pas de sort ; sinon `409`.
-3. `gameplay.spell_cast_mj_only` — si activé, un joueur reçoit `403` (y compris en lecture,
-   cf. finding S11).
+3. `gameplay.spell_cast_mj_only` — si activé, un joueur reçoit `403` **sur les écritures** ;
+   la lecture du pot lui reste ouverte (S11, corrigé).
 
 S'y ajoutent : la partie doit être **`live`**, le sort doit être **rattaché au chapitre de la
 partie**, et son coût doit être **non nul** (finding S7).
@@ -96,9 +96,10 @@ partie**, et son coût doit être **non nul** (finding S7).
 
 ### 4.3 Alimentation — `PUT …/drafts/:id/contributions`
 
-Chaque ligne `{ playerId, gems, hearts }` est validée puis écrite en _upsert_. Trois gardes :
+Chaque ligne `{ playerId, gems, hearts }` est validée puis écrite en _upsert_. Quatre gardes :
 solde suffisant (`CONTRIBUTION_EXCEEDS_BALANCE`), droit d'écrire pour ce joueur
-(`gameplay.spell_cast_contribution_mode`), peuple autorisé si la contribution est non nulle.
+(`gameplay.spell_cast_contribution_mode`), peuple autorisé si la contribution est non nulle, et
+axe effectivement demandé par le sort (S3, corrigé).
 
 **Rien n'est réservé** : la contribution est une _intention_, pas un séquestre. Les gemmes
 restent dépensables au Marché tant que le sort n'est pas parti — le solde n'est revérifié
@@ -112,9 +113,10 @@ qu'au moment du débit.
 4. **Si approbation MJ requise et acteur non-staff** : le pot passe `pending_approval`,
    événement `spell_cast_request`, **aucun débit**. Le MJ tranche via `…/resolve`
    (`accept` → débit, `reject` → `rejected` + événement, aucun débit).
-5. **Sinon** : transaction unique — verrou `FOR UPDATE` sur chaque `gl_players` contributeur,
-   revérification des soldes, débit via `applyPlayerVitalityDelta`, passage du pot en `cast`,
-   insertion de l'événement `spell_cast`.
+5. **Sinon** : transaction unique — verrou `FOR UPDATE` sur le brouillon **puis** sur chaque
+   `gl_players` contributeur, revérification des soldes, débit via `applyPlayerVitalityDelta`,
+   passage du pot en `cast` par un `UPDATE` conditionnel au statut (S2, corrigé), insertion de
+   l'événement `spell_cast`.
 
 ### 4.5 Ce qui arrive ensuite — **le point clé de cet audit**
 
@@ -192,6 +194,8 @@ structurés (`+N ❤️ à l'équipe cible`, `déplacer de N cases`) exécutés 
 
 ### S2 — 🔴 Deux lancements simultanés débitent deux fois
 
+> ✅ **Corrigé** (v1.100.4) — verrou `FOR UPDATE` sur le brouillon en tête de transaction, puis `UPDATE … WHERE status IN (…)` conditionnel au lancement, à la soumission et au refus (`lib/glSpellCast.js`) ; test de concurrence dans `tests/gl-spell-cast.test.js`. Le correctif est repris de la PR #276, réécrit sur la base actuelle.
+
 **Constat.** Dans `launchDraft`, le statut du brouillon est lu **hors transaction**, et le
 `UPDATE … SET status = 'cast'` (`:663-673`) n'est **pas conditionné** au statut. Deux requêtes
 concurrentes (double-clic, deux onglets, deux membres de l'équipe) passent toutes les deux la
@@ -209,6 +213,8 @@ brouillon en tête de `finalizeCastTx` + `UPDATE … WHERE status IN ('collectin
 entière, hors périmètre de cet audit).
 
 ### S3 — 🟠 Contribuer sur un axe non demandé fait payer sans contrepartie
+
+> ✅ **Corrigé** (v1.100.4) — une contribution sur un axe à coût nul est refusée en `400` à l'écriture, et `isDraftReady` la rejette en filet arrière (miroir front dans `glSpellCastRules.js`).
 
 **Constat.** `isDraftReady` (`:370-375`) ne contrôle un total **que si le coût correspondant
 est strictement positif**. Pour un sort à `cout_gemmes = 0`, des gemmes déposées dans le pot
@@ -281,6 +287,8 @@ déjà l'historique) ou les marquer explicitement comme consignes pour le MJ.
 
 ### S9 — 🟡 La portée solo/collectif n'est pas revérifiée à l'acceptation MJ
 
+> ✅ **Corrigé** (v1.100.4) — `assertCastScope` est rejouée à l'acceptation MJ, au même endroit que la restriction de peuple.
+
 **Constat.** `resolveDraftApproval` rejoue la complétude du pot **et** la restriction de
 peuple avant de débiter (choix explicite et commenté), mais **pas** `assertCastScope`. Si le
 `cast_scope` d'un sort change pendant qu'il attend le MJ, l'acceptation débite quand même.
@@ -288,6 +296,8 @@ peuple avant de débiter (choix explicite et commenté), mais **pas** `assertCas
 **Piste.** Symétriser : rejouer `assertCastScope` au même endroit que la restriction de peuple.
 
 ### S10 — 🟡 Plusieurs soumissions concurrentes pour le même sort
+
+> ✅ **Corrigé** (v1.100.4) — l'ouverture d'un brouillon est refusée en `409` tant qu'un brouillon du même sort est `pending_approval` pour cette équipe.
 
 **Constat.** `findCollectingDraft` ne cherche que les pots `collecting`. Une équipe dont le
 sort attend le MJ (`pending_approval`) peut donc **en ouvrir un second** pour le même sort,
@@ -300,6 +310,8 @@ ou signaler visuellement le doublon dans la file MJ.
 
 ### S11 — 🟡 En mode « MJ seul », les joueurs ne peuvent même plus regarder
 
+> ✅ **Corrigé** (v1.100.4) — l'assertion `mj_only` ne s'applique plus qu'aux routes d'écriture ; les `GET` restent ouverts aux joueurs.
+
 **Constat.** `assertSpellCastActorAllowed` est appelé par `handleSpellCastRoute`, donc sur
 **toutes** les routes du module, y compris `GET …/drafts/:id`. En `mj_only`, un joueur reçoit
 `403` en simple lecture — alors que les événements Socket.IO du pot lui sont **quand même**
@@ -309,6 +321,8 @@ diffusés (room de partie). Suivi possible en direct, consultation refusée.
 
 ### S12 — 🟡 Notes pédagogiques servies à tout compte GL
 
+> ✅ **Corrigé** (v1.100.4) — les routes `gl.read` servent une projection joueur sans `source` ni `notes_pedagogiques` ; les routes `admin/spells` gardent la fiche complète.
+
 **Constat.** `GET /api/gl/spells` et `GET /api/gl/spells/:code` (permission `gl.read`, donc
 joueurs et observateurs) renvoient **toute** la ligne, `notes_pedagogiques` et `source`
 comprises (`SPELL_LIST_COLUMNS`, `routes/gl/spells.js:78-83`). L'écran joueur ne les affiche
@@ -317,6 +331,8 @@ pas ; la réponse réseau, si.
 **Piste.** Deux projections : une colonne « joueur » et une colonne « admin ».
 
 ### S13 — 🟡 `STAFF_PERMISSIONS` contient une permission de joueur
+
+> ✅ **Corrigé** (v1.100.4) — `gl.mascot.position` retirée de `STAFF_PERMISSIONS` (aucun changement de comportement : MJ et admin gardent `gl.event.emit` / `gl.game.manage`).
 
 **Constat.** `STAFF_PERMISSIONS = ['gl.event.emit', 'gl.game.manage', 'gl.mascot.position']`
 (`:11`) — or `gl.mascot.position` est **accordée à `gl_player`** (`lib/rbac.js:250`). Seule la
@@ -329,6 +345,8 @@ de comportement attendu).
 
 ### S14 — 🟡 Le journal attribue à une seule équipe un sort payé par tout le plateau
 
+> ✅ **Corrigé** (v1.100.4) — l'événement `spell_cast` porte `rosterScope` ; le journal écrit « Toute la partie lance … » quand le pot est celui du plateau entier.
+
 **Constat.** L'événement `spell_cast` porte `team_id = draft.team_id`. En portée `game` (pot
 ouvert par le MJ), les contributeurs peuvent venir de **plusieurs équipes** — le journal, lui,
 écrit « _L'équipe X lance …_ ». Les contributions détaillées sont bien dans la charge utile,
@@ -337,6 +355,8 @@ mais la ligne lisible désigne une seule équipe.
 **Piste.** Formuler différemment la ligne de journal quand `roster_scope = 'game'`.
 
 ### S15 — 🟡 Écarts documentaires mineurs
+
+> ✅ **Corrigé** (v1.100.4) — `docs/API.md` cite désormais la migration `173` et documente les refus ajoutés ci-dessus.
 
 - Le message d'erreur `SPELL_CAST_SCHEMA_OUTDATED` cite les migrations **113, 139 et 173** ;
   `docs/API.md` (ligne « launch ») n'en mentionne que **113 et 139**.
@@ -347,42 +367,59 @@ mais la ligne lisible désigne une seule équipe.
 
 ## 8. Couverture de tests
 
-`tests/gl-spell-cast.test.js` (9 cas) et `tests/gl-spell-caster-kind.test.js` couvrent :
-module désactivé, sort hors chapitre, débit + événement, `self_only`, `own_team`, `mj_only`,
-roster multi-équipes, dépassement de solde, restrictions de peuple. Complété par
+`tests/gl-spell-cast.test.js` et `tests/gl-spell-caster-kind.test.js` couvrent : module
+désactivé, sort hors chapitre, débit + événement, `self_only`, `own_team`, `mj_only`, roster
+multi-équipes, dépassement de solde, restrictions de peuple. Complété par
 `gl-spells-catalog`, `gl-spells-admin-crud`, `gl-spells-validation`, `gl-spells-import-lib`,
-`gl-spell-options-lib`, `gl-chapter-spells`.
+`gl-spell-options-lib`, `gl-chapter-spells`, `gl-game-turn-classic` (file de validation MJ).
 
-**Non couvert** : la concurrence (S2 — le test existe, dans la PR #276 non fusionnée), la
-contribution sur un axe à coût nul (S3), la portée solo/collectif à l'acceptation MJ (S9), le
-doublon de soumission (S10).
+**Ajouté avec les correctifs de ce lot** — chacun a été vérifié rouge sans son correctif :
+
+| Test                                                                   | Couvre |
+| ---------------------------------------------------------------------- | ------ |
+| `audit S2 : deux lancements concurrents ne débitent qu'une fois`       | S2     |
+| `audit S3 : contribution sur un axe à coût nul → 400, aucun débit`     | S3     |
+| `audit S9 : portée devenue « solo » pendant l'attente`                 | S9     |
+| `audit S10 : un second brouillon du même sort en attente MJ → 409`     | S10    |
+| `audit S11 : en mj_only, un joueur consulte encore le brouillon`       | S11    |
+| `audit S12 : la fiche joueur ne porte ni notes pédagogiques ni source` | S12    |
+| `presentJournalEvent : sortilège financé par toute la partie`          | S14    |
+
+**Toujours non couvert** : les points laissés à l'arbitrage (S1, S4, S5, S6, S7, S8), qui
+n'ont pas encore de comportement attendu à figer.
 
 ---
 
 ## 9. Synthèse
 
-| #   | Gravité | Point                                                                  |
-| --- | ------- | ---------------------------------------------------------------------- |
-| S2  | 🔴      | Double lancement concurrent → double débit (correctif dormant PR #276) |
-| S1  | 🟠      | L'effet d'un sort n'est jamais appliqué par le logiciel                |
-| S3  | 🟠      | Contribution sur un axe à coût nul : débitée sans contrepartie         |
-| S4  | 🟠      | Défauts permissifs : dépenser la vitalité d'un autre joueur            |
-| S5  | 🟡      | Tour d'équipe filtré à l'écran, non vérifié au serveur                 |
-| S6  | 🟡      | Sorts `propose` lançables comme les officiels                          |
-| S7  | 🟡      | Sort à coût nul impossible à lancer                                    |
-| S8  | 🟡      | `limite_usage` / `cumul` jamais appliqués                              |
-| S9  | 🟡      | Portée solo/collectif non revérifiée à l'acceptation MJ                |
-| S10 | 🟡      | Doublons de soumission dans la file de validation                      |
-| S11 | 🟡      | `mj_only` bloque aussi la lecture                                      |
-| S12 | 🟡      | Notes pédagogiques exposées à tout compte `gl.read`                    |
-| S13 | 🟡      | `STAFF_PERMISSIONS` contient une permission de joueur                  |
-| S14 | 🟡      | Journal : attribution à une seule équipe                               |
-| S15 | 🟡      | Écarts documentaires                                                   |
+| #   | Gravité | Point                                                          | État         |
+| --- | ------- | -------------------------------------------------------------- | ------------ |
+| S2  | 🔴      | Double lancement concurrent → double débit                     | ✅ corrigé   |
+| S1  | 🟠      | L'effet d'un sort n'est jamais appliqué par le logiciel        | ⏳ arbitrage |
+| S3  | 🟠      | Contribution sur un axe à coût nul : débitée sans contrepartie | ✅ corrigé   |
+| S4  | 🟠      | Défauts permissifs : dépenser la vitalité d'un autre joueur    | ⏳ arbitrage |
+| S5  | 🟡      | Tour d'équipe filtré à l'écran, non vérifié au serveur         | ⏳ arbitrage |
+| S6  | 🟡      | Sorts `propose` lançables comme les officiels                  | ⏳ arbitrage |
+| S7  | 🟡      | Sort à coût nul impossible à lancer                            | ⏳ arbitrage |
+| S8  | 🟡      | `limite_usage` / `cumul` jamais appliqués                      | ⏳ arbitrage |
+| S9  | 🟡      | Portée solo/collectif non revérifiée à l'acceptation MJ        | ✅ corrigé   |
+| S10 | 🟡      | Doublons de soumission dans la file de validation              | ✅ corrigé   |
+| S11 | 🟡      | `mj_only` bloque aussi la lecture                              | ✅ corrigé   |
+| S12 | 🟡      | Notes pédagogiques exposées à tout compte `gl.read`            | ✅ corrigé   |
+| S13 | 🟡      | `STAFF_PERMISSIONS` contient une permission de joueur          | ✅ corrigé   |
+| S14 | 🟡      | Journal : attribution à une seule équipe                       | ✅ corrigé   |
+| S15 | 🟡      | Écarts documentaires                                           | ✅ corrigé   |
 
-**Aucun correctif n'est appliqué dans ce lot** : l'audit est un préalable d'arbitrage. Les
-points ouverts sont repris comme décisions à trancher dans
-[`docs/reference/INCOHERENCES.md`](reference/INCOHERENCES.md) (G11 à G14), et la description
-du fonctionnement actuel est ajoutée à
+**Neuf points sont corrigés** (lot v1.100.4) : ceux dont la bonne réponse ne se discute pas —
+un débit qui part deux fois, une ressource prélevée sans contrepartie, une règle annoncée puis
+non tenue. Chacun est accompagné d'un test qui échoue sans son correctif.
+
+**Six points restent ouverts** parce qu'ils demandent un choix de jeu, pas une correction :
+S1 et S8 (faut-il exécuter les effets, ou seulement outiller le MJ ?), S4 (quels réglages par
+défaut pour une classe ?), S5, S6 et S7 (quelles règles le serveur doit-il tenir ?). Ils sont
+posés comme décisions à trancher dans
+[`docs/reference/INCOHERENCES.md`](reference/INCOHERENCES.md) (G11 à G13), et la description du
+fonctionnement actuel est tenue à jour dans
 [`docs/reference/gl/economie-marche-sorts.md`](reference/gl/economie-marche-sorts.md).
 
 ---

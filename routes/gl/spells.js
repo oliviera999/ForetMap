@@ -82,9 +82,31 @@ const SPELL_LIST_COLUMNS = `
   caster_kind, approval_mode, cast_scope
 `;
 
+// Audit S12 — projection servie aux comptes `gl.read` (joueurs, observateurs) : mêmes
+// champs qu'affichent le catalogue et la fiche, sans `source` ni `notes_pedagogiques`,
+// qui sont des notes de préparation destinées au MJ.
+const SPELL_PLAYER_COLUMNS = `
+  spell_code, category_slug, nom, emoji, cout_gemmes, cout_coeurs, cout_total_eq,
+  portee, cible, timing, effet_court, effet_detaille, limite_usage, cumul,
+  statut, cree_le,
+  caster_kind, approval_mode, cast_scope
+`;
+
 async function loadAdminSpellDetail(code) {
   const row = await queryOne(
     `SELECT id, ${SPELL_LIST_COLUMNS}
+       FROM gl_spells
+      WHERE spell_code = ?
+      LIMIT 1`,
+    [code],
+  );
+  return row || null;
+}
+
+/** Fiche sort servie au joueur (popover) : sans les notes de préparation du MJ. */
+async function loadPlayerSpellDetail(code) {
+  const row = await queryOne(
+    `SELECT id, ${SPELL_PLAYER_COLUMNS}
        FROM gl_spells
       WHERE spell_code = ?
       LIMIT 1`,
@@ -140,7 +162,7 @@ router.get(
     const normalized = normalizeSpellCodeList(spellCodes);
     const placeholders = normalized.map(() => '?').join(', ');
     const items = await queryAll(
-      `SELECT id, ${SPELL_LIST_COLUMNS}
+      `SELECT id, ${SPELL_PLAYER_COLUMNS}
        FROM gl_spells
       WHERE spell_code IN (${placeholders})
       ORDER BY category_slug ASC, nom ASC`,
@@ -160,7 +182,7 @@ router.get(
       .trim()
       .toUpperCase();
     if (!code) return res.status(400).json({ error: 'Code invalide' });
-    const spell = await loadAdminSpellDetail(code);
+    const spell = await loadPlayerSpellDetail(code);
     if (!spell) return res.status(404).json({ error: 'Sort introuvable' });
     const category = await queryOne(
       'SELECT slug, nom FROM gl_spell_categories WHERE slug = ? LIMIT 1',

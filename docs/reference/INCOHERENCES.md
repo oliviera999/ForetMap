@@ -410,21 +410,28 @@ les jauges d'un camarade d'une autre équipe sans son accord. Détail :
 
 **Décision :**
 
-### G13 — 🟡 Sortilèges : trois règles annoncées que le serveur ne tient pas
+### G13 — 🟡 Sortilèges : deux règles annoncées que le serveur ne tient pas
 
-**Constat.** Trois écarts entre ce que l'écran laisse entendre et ce que le serveur vérifie
-(détail dans `docs/AUDIT_SORTILEGES.md`, S5/S6/S10) :
+> Le troisième écart de ce point (un second exemplaire d'un sort déjà soumis au MJ) est
+> ✅ **livré** (2026-08-20) : l'ouverture d'un doublon est refusée avec un message clair.
+> Restent les deux points ci-dessous, qui demandent un vrai choix de règle.
+
+**Constat.** Deux écarts entre ce que l'écran laisse entendre et ce que le serveur vérifie
+(détail dans `docs/AUDIT_SORTILEGES.md`, S5 et S6) :
 
 - le **tour de l'équipe** filtre les équipes proposées à l'écran mais n'est plus vérifié au
   serveur (héritage du passage au mode classique) ;
 - un sort au statut **« proposé »** (brouillon d'écriture) rattaché à un chapitre apparaît
-  au catalogue des joueurs et se lance comme un sort officiel ;
-- une équipe dont le sort **attend le MJ** peut en soumettre un second identique : la file
-  de validation affiche deux entrées, et les accepter toutes les deux débite deux fois.
+  au catalogue des joueurs et se lance comme un sort officiel.
 
-**Option unique (recommandée).** Lot de mise en cohérence : soit la règle est appliquée au
-serveur, soit l'écran cesse de l'annoncer — point par point. Sans changement de règles du
-jeu.
+**Options.**
+
+- **A** — Le serveur applique les deux règles : un sort ne part pas hors du tour de son
+  équipe, et un sort « proposé » n'est pas jouable. Cohérent, mais peut bloquer des usages
+  actuels (chapitre bâti sur des sorts encore en brouillon).
+- **B** — L'écran cesse de les annoncer : plus de filtre par tour dans l'assistant, et le
+  statut « proposé » devient un simple repère éditorial sans promesse.
+- **C** — Un point chacun (par exemple A pour le statut, B pour le tour).
 
 **Décision :**
 
@@ -441,7 +448,10 @@ résolution d'action MJ concurrente, corrigée dans la même proposition. Détai
 **Option unique (recommandée).** Reprendre le correctif sur la base actuelle (verrou du
 brouillon + écriture conditionnelle), avec son test de concurrence.
 
-**Décision :**
+**Décision :** ✅ **Livré** (2026-08-20) — le brouillon est verrouillé en tête de transaction
+et son passage à « lancé » n'a lieu qu'une fois : deux clics simultanés donnent un lancement
+et un message « ce sortilège a déjà été lancé », jamais deux débits. Même verrouillage pour la
+soumission au MJ et pour le refus. Test de concurrence à l'appui.
 
 ---
 

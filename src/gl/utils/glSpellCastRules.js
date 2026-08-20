@@ -17,6 +17,9 @@ export function isSpellCastReady(totals, required) {
   const t = totals || { gems: 0, hearts: 0 };
   if (req.gems > 0 && t.gems !== req.gems) return false;
   if (req.hearts > 0 && t.hearts !== req.hearts) return false;
+  // Miroir de `isDraftReady` (`lib/glSpellCast.js`) : un axe non demandé reste à zéro.
+  if (req.gems === 0 && t.gems > 0) return false;
+  if (req.hearts === 0 && t.hearts > 0) return false;
   if (req.gems === 0 && req.hearts === 0) return false;
   return true;
 }

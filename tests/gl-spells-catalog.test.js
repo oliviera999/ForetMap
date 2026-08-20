@@ -119,3 +119,40 @@ test('GET /api/gl/spells/:code retourne le détail', async () => {
   assert.strictEqual(res.body?.spell?.spell_code, 'SL002');
   assert.ok(res.body?.spell?.effet_detaille);
 });
+
+// S12 (docs/AUDIT_SORTILEGES.md) — les notes de préparation du MJ ne partent pas
+// chez le joueur : elles restent réservées aux routes `gl.content.manage`.
+test('audit S12 : la fiche joueur ne porte ni notes pédagogiques ni source', async () => {
+  await execute(
+    `UPDATE gl_spells
+        SET notes_pedagogiques = 'Note réservée au MJ', source = 'Cahier interne'
+      WHERE spell_code = 'SL002'`,
+  );
+
+  const detail = await request(app)
+    .get('/api/gl/spells/SL002')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.strictEqual(detail.body.spell.spell_code, 'SL002');
+  assert.ok(detail.body.spell.effet_detaille, 'le contenu de jeu reste servi');
+  assert.ok(
+    !('notes_pedagogiques' in detail.body.spell),
+    'notes_pedagogiques absent de la fiche joueur',
+  );
+  assert.ok(!('source' in detail.body.spell), 'source absent de la fiche joueur');
+
+  const list = await request(app)
+    .get('/api/gl/spells?spellCodes=SL002')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.ok(!('notes_pedagogiques' in list.body.items[0]));
+  assert.ok(!('source' in list.body.items[0]));
+
+  // Le MJ, lui, les voit toujours.
+  const admin = await request(app)
+    .get('/api/gl/admin/spells/SL002')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  assert.strictEqual(admin.body.spell.notes_pedagogiques, 'Note réservée au MJ');
+  assert.strictEqual(admin.body.spell.source, 'Cahier interne');
+});
