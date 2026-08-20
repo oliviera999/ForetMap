@@ -143,6 +143,158 @@ et répond à la question posée — comment son effet s'applique-t-il aujourd'h
   charge du MJ.
 - **Registre d'arbitrage** : quatre points ouverts à trancher (G11 à G14) dans
   [docs/reference/INCOHERENCES.md](docs/reference/INCOHERENCES.md).
+### Documentation technique remise au niveau du code
+
+Quatre lots de documentation restés en brouillon depuis juillet (PR #260, #271, #280, #289) ont été
+re-vérifiés ligne à ligne contre le code actuel, puis repris sur la base courante — les constats
+devenus faux ont été écartés, les autres corrigés et complétés.
+
+- **Jobs quotidiens serveur** (`docs/EXPLOITATION.md`, `docs/LOCAL_DEV.md`, `README.md`) : cadence
+  réelle (premier passage 45–165 s après le boot, puis 24 h), réglages de suspension, logs Pino à
+  surveiller, rattrapage manuel. Le piège du nom historique est désormais écrit noir sur blanc :
+  `FORETMAP_DISABLE_RECURRING_TASK_JOB=1` coupe **aussi** l'archivage automatique.
+- **Médias privés sous `/uploads`** (`docs/EXPLOITATION.md`, `docs/API.md`) : garde monté avant
+  `express.static`, familles concernées, point de contrôle après déploiement.
+- **Contrats API manquants** (`docs/API.md`) : affectation de groupe (`assign-group` — capacité,
+  idempotence, absence de `FOR UPDATE`), limites et validation réelle des avatars, trois routes
+  admin GL de médiathèque (`audit`, `chapter-scenes`, `scene-meta`), nature `qcm_lore`.
+- **Onglet Contenus GL** (`docs/GL_ARCHITECTURE.md`) : flux analyse → application, plafonds,
+  collisions de noms dans un ZIP, cloisonnement logique de la médiathèque, documentation de
+  référence éditable (surcouche en base, jamais d'écriture dans le dépôt).
+- **Frontière produit et pipeline JWT** (`docs/GL_ARCHITECTURE.md`) : réutilisation des claims
+  vérifiés, épinglage HS256, rappel qu'un JWT est signé et non chiffré.
+- **Trackers** (`docs/SITE_ISSUES.*`, `docs/AUDIT_CODE_2026-07.md`, `docs/EVOLUTION.md`,
+  `docs/GL_TESTS.md`) : statuts remis à l'état vérifié, inventaire des tests GL recompté, et
+  bandeaux sur les deux audits de mars 2026 qui pouvaient encore se lire comme l'état courant.
+
+### GL — le double clic ne donne plus deux fois les cœurs (ni deux jets de dés)
+
+Toutes les gardes « une seule fois » du jeu étaient bâties sur le même schéma : lire l'état,
+puis, plus tard, l'écrire. Entre les deux, une seconde requête lisait la même valeur périmée et
+concluait elle aussi « pas encore fait ». Deux clics rapprochés, deux onglets ouverts ou deux
+membres de la même équipe suffisaient donc à encaisser deux fois les effets d'un repère, à
+lancer deux fois les dés pour un même tour, ou à présenter deux fois une zone feuillet.
+
+- **Effets de repères et zones feuillets** — la ligne d'équipe est verrouillée (`FOR UPDATE`)
+  *avant* le contrôle d'idempotence, et non après : la seconde transaction attend la fin de la
+  première, puis relit un journal où l'événement figure désormais. La route « appliquer les
+  effets » refait ce contrôle sous verrou au lieu de se fier au seul contrôle d'entrée.
+- **Vitalité d'un joueur** — l'écriture est un lire-modifier-écrire en valeur absolue
+  (`SET health_points = ?`) : sans verrou de ligne, deux effets simultanés lisaient la même
+  valeur de départ et l'un des deux deltas disparaissait. La ligne joueur est verrouillée.
+- **Jet de dés et déplacement de mascotte** — la consommation du tour devient un `UPDATE`
+  conditionnel atomique (`… WHERE COALESCE(last_*_round_number, 0) < ?`) : la seconde requête
+  ne touche aucune ligne, sa transaction est annulée et l'événement n'est jamais inséré.
+
+Les contrôles rapides hors transaction sont conservés — ils évitent d'ouvrir une transaction
+pour rien dans le cas courant — mais ce ne sont plus eux qui garantissent l'unicité. Réponses
+et messages d'erreur inchangés (`409`). Diagnostic repris de la PR #279.
+
+### ForetMap — la modale de tâche ne s'ouvrait plus du tout
+
+`ReferenceError: Cannot access 'normalizedTutorialIds' before initialization` à chaque
+ouverture de « Nouvelle tâche » ou « Modifier la tâche » : les enseignants ne pouvaient ni
+créer ni modifier de tâche. La constante était référencée dans le tableau de dépendances de
+l'enregistrement automatique — **évalué à chaque rendu** — alors qu'elle était déclarée
+soixante lignes plus bas, donc en zone morte temporelle. Sa déclaration remonte avant le
+bloc concerné.
+
+Aucun test ne montait cette modale : c'est ce qui a permis au crash de passer. Il en existe
+un désormais, en création comme en édition. Diagnostic repris de la PR #295.
+
+### Deux panneaux d'administration pouvaient écraser leurs contenus après un échec réseau
+
+Quand le `GET` initial échouait (coupure, 500, délai dépassé), **Contenus → Aide** et
+**Réglages** affichaient un formulaire éditable garni de valeurs par défaut, avec
+l'enregistrement automatique déjà armé. Une seule frappe déclenchait alors un `PUT` qui
+écrivait ces défauts en base : bulles d'aide personnalisées perdues, charte de la
+plateforme réinitialisée. L'écran ne montrait rien d'anormal — c'est précisément ce qui
+rendait le piège efficace.
+
+- **Aide** — le brouillon reste `null` tant que le chargement n'a pas abouti ; le
+  formulaire cède la place à l'erreur et à un bouton « Réessayer ».
+- **Réglages** — les quatre enregistrements automatiques (identité, charte, taille des
+  repères, vitalité) sont conditionnés à un chargement réussi.
+
+Les autres panneaux à enregistrement automatique ont été passés en revue : tous portaient
+déjà leur garde. Diagnostic repris de la PR #291.
+
+### Tâches — deux homonymes ne se marchent plus dessus
+
+`task_assignments` et `task_logs` portent à la fois `student_id` et le nom de l'élève,
+l'identifiant étant arrivé plus tard. La condition employée en six endroits — `student_id = ?
+OR (prénom, nom)` — appliquait le `OR` **même aux lignes possédant un identifiant** : deux
+élèves qui portent le même prénom et le même nom se reconnaissaient donc mutuellement.
+
+Les conséquences allaient bien au-delà d'un compteur faussé : plafond d'inscriptions
+partagé (l'un bloquait l'autre), « tâche faite » pouvant cocher la ligne du camarade,
+désinscription pouvant retirer la sienne — et surtout, **supprimer un compte effaçait les
+inscriptions et les journaux de son homonyme.**
+
+La règle vit désormais dans `lib/tasks/assignmentIdentityMatch.js` : une ligne qui porte un
+identifiant n'est reconnue que par lui, une ligne héritée reste reconnue par le nom. Aucune
+reprise de données n'est nécessaire et l'historique est préservé. Diagnostic repris de la
+PR #276.
+
+### Tâches — une validation ne peut plus être écrasée par un recalcul concurrent
+
+`recalculateTaskStatusWithConn` protège bien le statut `validated`, mais sur la valeur lue
+en entrée — souvent issue d'une lecture antérieure, hors transaction. Si un enseignant
+validait entre cette lecture et l'écriture, l'`UPDATE` inconditionnel rétrogradait
+silencieusement la tâche. L'écriture est devenue un compare-and-set (`AND status <=> ?`) :
+si l'état a bougé, elle ne s'applique pas, et le recalcul suivant repart de la valeur à
+jour. Diagnostic repris de la PR #274.
+
+### Sécurité GL — la possession d'un feuillet n'est plus forgeable
+
+`POST …/feuillets/:code/read` et `…/hold` écrivaient l'état du feuillet **sans vérifier que
+l'équipe l'avait trouvé**, ni même que le code existait. Or `read` et `held` comptent parmi
+les statuts « trouvés » : un joueur s'attribuait donc n'importe quel feuillet du corpus —
+sans QCM, sans coût en gemmes, sans canal de découverte — et la possession se propageait à
+toute son équipe puis à son carnet personnel. Les codes étant lisibles dans l'aperçu
+verrouillé du carnet, il n'y avait rien à deviner ; la garde de portée posée sur `present`
+au lot précédent se contournait par ces deux routes. Elles exigent désormais un feuillet
+déjà trouvé (`409` sinon). Le MJ n'est pas concerné : marquer l'avancée d'une équipe est un
+geste d'animation. Diagnostic repris de la PR #267.
+
+### Sécurité — une purge de médiathèque ne déborde plus sur l'autre produit
+
+ForetMap et G&L partagent le **même dossier** `uploads/media-library/` ; seule l'étiquette
+`app` de `_keys.json` sépare les deux médiathèques logiques, et la lecture en tenait compte.
+Les suppressions, non : `clear_all` listait puis effaçait **tout**, sans filtre. Une purge
+déclenchée depuis les réglages G&L emportait donc les médias ForetMap, et réciproquement —
+sans confirmation, sans trace, et sans rien pour le deviner. Une suppression ciblée par
+chemin franchissait la même frontière.
+
+Chaque route passe désormais sa médiathèque (`gl` ou `foretmap`) : la purge s'y limite, et
+une suppression hors périmètre est refusée. Diagnostic repris de la PR #286 — le plus
+destructeur des correctifs restés en brouillon.
+
+### Sécurité GL — le flux temps réel révoque enfin les comptes désactivés
+
+Socket.IO acceptait les claims **brutes** du jeton (`socket.data.auth = claims`) sans
+relire l'état du compte. Un jeton GL valant 24 h, un membre du staff désactivé ou supprimé
+conservait le flux live de sa classe jusqu'à expiration — alors que la même révocation
+prend effet immédiatement sur les routes HTTP, qui ré-hydratent à chaque requête. Une
+connexion socket étant bien plus durable qu'une requête, c'est précisément là qu'il fallait
+revérifier. L'authentification GL passe maintenant par `hydrateGlAuthFromClaims` ; une
+panne de base rend `unavailable` plutôt que de déconnecter tout le monde. Repris de la #272.
+
+### Tâches — l'archivage tient enfin ses promesses
+
+Archiver une tâche, c'est la retirer du jeu. Trois mécanismes l'ignoraient :
+
+- **Quota d'inscriptions** — une tâche archivée non validée continuait d'occuper un créneau
+  du plafond de l'élève. Un enseignant qui rangeait ses vieilles tâches bloquait ses élèves
+  sans que personne puisse comprendre pourquoi : les tâches en cause avaient disparu de
+  leur écran (PR #263).
+- **Récurrence** — une tâche récurrente archivée continuait d'engendrer une occurrence à
+  chaque échéance. La ranger ne suffisait pas, il fallait aussi penser à retirer la
+  récurrence (PR #266). Le filtre est posé aux **deux** endroits : la sélection des
+  candidates et la relecture verrouillée qui garde la course.
+- **Duplication de projet** — copier un projet recopiait aussi ses tâches archivées, en
+  clones **actifs**, ressuscitant du travail justement rangé (PR #267).
+
 ### Sécurité — la bonne réponse des QCM ForetMap était en accès libre
 
 `GET /api/quiz/questions` est une route **publique** — le catalogue des questions doit être
@@ -5026,6 +5178,76 @@ changer le mot de passe d'un autre prof.
 - `lib/logger.js` : sortie Pino dupliquée vers stdout et tampon [`lib/logBuffer.js`](lib/logBuffer.js).
 - `server.js` : création du serveur via `http.createServer(app)` pour attacher Socket.IO.
 - **Page À propos** : correction des crédits avec l'auteur principal `Mohammed El Farrai` (majuscules respectées) et `oliviera999` mentionné comme contributeur.
+
+### Le conditionnement par QCM obéit enfin à ses réglages (v1.101.0)
+
+Suite de l'audit [docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md](docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md),
+après arbitrage : **brancher** les réglages plutôt que les retirer.
+
+- **Le mode agit.** « Une réussite suffit », « toutes les questions » et « un nombre minimum »
+  pilotent réellement la validation — jusqu'ici l'accusé exigeait **toutes** les questions liées,
+  quoi qu'affiche l'écran. Un professeur qui choisit « une réussite suffit » obtient une question,
+  pas cinq. Le seuil du mode « minimum » est borné au nombre de questions liées (un seuil de 25 sur
+  3 questions ne rend plus la ressource impossible à valider).
+- **La politique par ressource agit aussi** : une ressource peut être dispensée de conditionnement,
+  ou assouplie en « une réussite suffit » alors que la plateforme est en « toutes les questions ».
+  L'interrupteur global reste **maître** : éteint, aucune surcharge ne le rallume.
+- **Granularité « par équipe »** : la bonne réponse d'un coéquipier compte pour ses camarades —
+  y compris celle saisie par le MJ quand « QCM réservés au MJ » est actif. Dans ce mode
+  d'animation, les élèves ne capitalisaient jusqu'ici **aucune** bonne réponse.
+- **On ne pose plus que les questions nécessaires.** Le challenge renvoie `mode`,
+  `required_correct`, `granularity`, `satisfied` et un `pending_count` qui vaut désormais
+  « combien de bonnes réponses il reste à donner » ; l'élève ne voit que ce nombre de questions.
+- **Les liens créés automatiquement ne bloquent plus.** Les rapprochements question ↔ terme de
+  glossaire générés par les imports (et par la migration 145) étaient **approuvés et bloquants** :
+  allumer l'interrupteur global aurait conditionné d'un coup des dizaines de termes que personne
+  n'avait choisis. Ils restent en base pour leur valeur documentaire, mais non bloquants
+  (migration `194`, plus les six points de code qui les génèrent). Un conditionnement ne s'applique
+  désormais que là où quelqu'un a coché « bloquant ».
+- **Réglage retiré** : « marquer automatiquement appris après une bonne réponse » disparaît de
+  l'écran. Il était déjà déprécié et ignoré ; le rebrancher aurait changé le comportement sans que
+  personne le demande. Même chose pour la granularité « par ressource », sans effet distinct
+  désormais — elle reste affichée, étiquetée « ancien réglage », sur les bases qui la portent.
+- **Tests** : `tests/gl-learning-gating-modes.test.js` (trois modes, bornage du seuil, dispense et
+  assouplissement par ressource, primauté de l'interrupteur global, deux granularités) et
+  couverture UI du nombre de questions posées.
+
+### Conditionnement par QCM : activation rétroactive, message honnête, contenus retirés non marquables (v1.100.3)
+
+Suites immédiates de l'audit ci-dessous — les constats qui ne demandaient aucun arbitrage.
+
+- **Activer le conditionnement devient rétroactif.** Les tentatives QCM n'étaient enregistrées
+  que si l'interrupteur global était déjà allumé : le jour de l'activation, chaque élève repartait
+  de zéro et se voyait reposer des questions déjà réussies sur le plateau. L'écriture est
+  désormais inconditionnelle (une ligne par réponse, sans effet visible tant que le
+  conditionnement dort) ; seule la **lecture** reste conditionnée.
+- **Le contrôle de compréhension ne promet plus ce qu'il ne tient pas.** L'écran annonçait
+  « Tu pourras réessayer en cas d'erreur » alors que la première mauvaise réponse verrouille la
+  ressource 3 jours par défaut. Le message suit maintenant le délai réglé : « une erreur bloquera
+  la validation pendant N jours » quand un délai existe, promesse de réessai immédiat seulement
+  quand le délai est à 0.
+- **Un contenu retiré du jeu n'est plus marquable.** Un feuillet ou un terme du lexique lore au
+  statut « inactif » — donc absent de toutes les listes, y compris côté MJ — restait marquable
+  « étudié » et importable dans le carnet personnel. Il est désormais introuvable pour ces deux
+  actions, comme les espèces et le glossaire scientifique l'étaient déjà.
+- **Tests** : nouveau `tests/gl-lore-feuillet-gating.test.js` (parcours complet feuillet × QCM
+  lore : challenge, présentation, bonne réponse, marquage — plus les deux gardes ci-dessus), et
+  cas de message ajoutés côté UI.
+- **Documentation** : `docs/API.md` (réglages non appliqués, tentatives inconditionnelles, filtre
+  de statut, convention de préfixe `LQCM…`, déclencheur réel de l'acquisition ③) et
+  [docs/reference/gl/qcm-et-pedagogie.md](docs/reference/gl/qcm-et-pedagogie.md) — dont un point
+  d'attention nommant les quatre réglages sans effet, en attendant l'arbitrage.
+
+### Audit — conditionnement par QCM des feuillets de lore (documentation)
+
+Audit de cohérence de la chaîne « questions ↔ feuillets de lore », de l'écran MJ qui crée le
+lien jusqu'à la modale de l'élève dans le Carnet de Sélène :
+[docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md](docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md).
+Aucun changement de comportement — document seul. Points saillants : quatre des six réglages de
+« Conditionnement par QCM » sont sans effet sur le code (mode, seuil, granularité, marquage
+automatique — l'accusé est figé en mode `all`), et les liens bloquants hérités de la migration
+145 / des imports de QCM se réveilleraient tous à l'allumage de l'interrupteur global. Les
+requêtes de contrôle à passer avant activation figurent en fin de document.
 
 ---
 

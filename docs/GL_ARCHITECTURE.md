@@ -17,8 +17,15 @@ Couches **autorisées** (sans fusionner auth, thème `gl-theme` ni catalogues m�
 | Couche                | Emplacement                                                                                                        | Usage                                                                                                                                                |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Infra                 | `server.js`, `database.js`, `lib/productResolver.js`                                                               | Un serveur, isolation JWT `product`                                                                                                                  |
+| Base d'URL front      | `src/shared/appBase.js` (`API`, `withAppBase`)                                                                     | Résolution neutre du `base` Vite ; importable par ForetMap et GL sans tirer une session ni une logique 401 produit                                   |
+| Chargement ressource  | `src/hooks/useApiResource.js`                                                                                      | Hook générique `data/loading/error/reload` avec garde anti-course ; le `fetcher` reste local au produit (`api` ou `apiGL`)                           |
 | Utilitaires           | `src/utils/image.js` (`IMAGE_COMPRESSION_PRESETS`), `markdown.js`, `visitMascotState.js`, `mapViewMascotMotion.js` | ForetMap + imports depuis `src/gl/`                                                                                                                  |
+| Géométrie carte       | `src/utils/zoneGeometry.js` + réexports `visitMapGeometry.js`, `mapImageFit.js`                                    | Parsing des polygones en % et rectangle `object-fit: contain` partagés visite/biodiversité, alias historiques conservés                              |
+| Auto-liens GL         | `src/utils/glTermAutolink.js`                                                                                      | Fabrique commune glossaire SVT / glossaire lore ; rendu markdown, désinfection et classes CSS restent dans chaque module appelant                    |
 | Noyaux                | `src/shared/*`, `lib/shared/*Core.js`                                                                              | Parité front/back (cadres image, repères, etc.)                                                                                                      |
+| OAuth pur             | `lib/shared/oauthCommon.js`                                                                                        | Fonctions Google OAuth strictement pures (listes de domaines/e-mails, configuration, autorisation) ; aucune session, cookie, redirection ni claim    |
+| Helpers tâches        | `lib/tasks/taskQueries.js`                                                                                         | Cluster ForetMap partagé entre routes tâches / propositions / inscriptions ; les helpers d'écriture acceptent `dbx`/`tx` pour une transaction        |
+| Tirage QCM / lore     | `lib/gl/questionDrawShared.js`                                                                                     | Sélection commune des questions GL biome et lore, sans dupliquer la logique de pool                                                                  |
 | Packs mascotte        | `src/shared/mascot-pack/` (validation UI, preview sprite_cut), `src/utils/glMascotPackToVisit.js`                  | Studio GL + mapper `sprite_cut` → format visite                                                                                                      |
 | Miroir serveur GL     | `lib/gl-pack/mascotPack.js` via **`npm run sync:gl-pack-lib`** (enchaîné par **`npm run build`**)                  | Validation Zod `/api/gl/mascots/packs*` sans `src/`                                                                                                  |
 | Miroir serveur visite | `lib/visit-pack/` via **`npm run sync:visit-pack-lib`**                                                            | Validation packs visite                                                                                                                              |
@@ -28,7 +35,7 @@ Couches **autorisées** (sans fusionner auth, thème `gl-theme` ni catalogues m�
 | Statistiques joueurs  | `lib/glPlayerStats.js`, `routes/gl/stats.js`, `src/gl/components/GLStatsView.jsx`                                  | Stats perso (`GET /api/gl/stats/me`) et collectives classe (`GET /api/gl/stats/class`, permission `gl.players.manage`) — vitalité + apprentissages   |
 | Identité / groupes    | `lib/glGroupBridge.js`, `groups` + `group_members`, `gl_classes.foretmap_group_id`                                 | Chaque classe GL a un groupe ForetMap miroir ; les nouveaux joueurs GL sont liés à `users` et membres du groupe                                      |
 
-**À ne pas mutualiser** : tables gameplay `gl_*` (hors lien groupe), RBAC JWT GL, catalogue `glMascotCatalog.js` (ids `gl-*`), styles couleur GL.
+**À ne pas mutualiser** : tables gameplay `gl_*` (hors lien groupe), RBAC JWT GL, sessions, cookies, redirections OAuth, claims, catalogue `glMascotCatalog.js` (ids `gl-*`), styles couleur GL.
 
 **Commentaires contextuels** : types `gl_*` uniquement sur **`/api/gl/context-comments`** (retirés de
 l’API ForetMap standard pour éviter deux chemins JWT). ⚠️ **Backend seul à ce jour** : la route est
@@ -46,6 +53,25 @@ de la v1.90.1 (récupérable dans l’historique Git). Câbler l’UI reste à f
 - Fallback SPA :
   - ForetMap => `dist/index.vite.html`
   - GL => `dist/gl.html`
+
+### Pipeline JWT et frontière produit
+
+- Les routeurs `/api/gl/*` sont montés **avant** la garde ForetMap. Toute route GL doit rester
+  sous ce préfixe et utiliser l'auth GL dédiée (`middleware/requireGlAuth.js`).
+- La garde `/api` ForetMap vérifie le jeton Bearer quand il existe : un JWT `product:"gl"` reçoit
+  un **403**, tandis qu'un JWT ForetMap vérifié est mémorisé sur `req.verifiedForetJwt`.
+- Les middlewares ForetMap (`requireAuth`, `requirePermission`, `requireTeacher`, `requireProduct`)
+  réutilisent ces claims si le jeton est identique, puis réappliquent la contrainte produit avec
+  `checkClaimsProduct`. Montés directement (test, hors garde globale), ils retombent sur une
+  vérification JWT complète.
+- **Signature et vérification passent exclusivement par `lib/auth/jwtPipeline.js`**
+  (`signJwtToken` / `verifyJwtToken`), qui épingle l'algorithme **HS256** à la vérification. Ne pas
+  rappeler `jsonwebtoken` ailleurs : sans liste d'algorithmes explicite, un jeton forgé avec un
+  autre algorithme reste recevable.
+- Rappel : un JWT est **signé, pas chiffré** — son contenu est lisible par le porteur. Ne jamais y
+  placer de secret (bonne réponse d'un QCM, etc.).
+- Gardes de régression : `tests/jwt-pipeline.test.js` (cache de claims, isolement GL, épinglage
+  d'algorithme).
 
 ## Build frontend
 
@@ -91,6 +117,73 @@ Ajouts Lot 2D (édition visuelle carte) :
 
 - `GLChapterMapStudio` : studio admin **Contenus → Chapitres** — carte unique avec repères (`GLBoardMarkers`) et zones polygonales (`GLKingdomZoneMapOverlay` + `useGLKingdomZones` / `useGLKingdomZoneEditor`) ; musique de zone si `modules.zone_music_enabled` ; **popover texte/images** par zone (`popoverMarkdown`, `popoverImages`) affiché en partie via `POST /api/gl/games/:id/zones/:zoneId/present-content` et `GLZoneContentPopover` (re-déclenchement `gameplay.zone_content_retrigger` / `gl_games.zone_content_retrigger`).
 - Socle frontend partagé : `useGlPctMapGestures`, `GLPctMapCanvas`, `GLBoardMarkers` pour homogénéiser les interactions carte GL.
+
+### Onglet Contenus : bibliothèque, médiathèque et doc de référence
+
+L'onglet admin **Contenus** (`GLContentsAdminView`) agrège pages éditoriales, chapitres,
+catalogues XLSX, médiathèque et documentation de référence. Il est réservé à `gl.content.manage` ;
+les joueurs ne voient que ce que publient les routes de lecture GL.
+
+#### Bibliothèque de contenus (import en masse)
+
+1. `GET /api/gl/admin/content-library/limits` expose les plafonds effectifs.
+2. `POST /api/gl/admin/content-library/analyze` classe les fichiers et exécute les imports en
+   **dry-run**, sans écriture en base.
+3. L'interface ne coche que les entrées `canApply` sans erreur.
+4. `POST /api/gl/admin/content-library/apply` renvoie les fichiers retenus et applique réellement.
+
+Contraintes :
+
+- Transport recommandé : `multipart/form-data`. Le JSON hérité reste réservé aux petits tests et
+  subit `FORETMAP_JSON_BODY_LIMIT`.
+- Plafonds par défaut : ZIP **50 Mo**, fichier **32 Mo**, décompressé **100 Mo**, **200** fichiers ;
+  ajustables par `FORETMAP_CONTENT_LIBRARY_MAX_*` (voir `.env.example`).
+- Une sélection contenant un ZIP passe en mode **archive** : le premier ZIP est envoyé, les autres
+  fichiers sélectionnés sont ignorés avec un avertissement.
+- Une archive est refusée si deux entrées portent le même nom de fichier final (`basename`,
+  comparé sans tenir compte de la casse) : l'`apply` référence les fichiers par nom, une collision
+  serait ambiguë.
+- Natures (`kind`) applicables : `media`, `species`, `glossary`, `lore_glossary`, `spells`, `qcm`,
+  `qcm_lore`, `chapters`, `chapter_charte`, `lore_feuillets`. La classification XLSX repose sur les
+  noms de feuilles et quelques en-têtes discriminants (QCM lore vs QCM biomes, glossaire lore vs
+  glossaire scientifique).
+- Les médias appliqués sont écrits dans `uploads/media-library/`, étiquetés `app: 'gl'` dans
+  `_keys.json`, puis les manifestes d'assets sont resynchronisés.
+
+Gardes : `tests/content-library-*.test.js` et `tests-ui/gl/GLContentLibrary*.test.jsx`.
+
+#### Médiathèque GL et conventions de fichiers
+
+Le dossier physique est partagé (`uploads/media-library/`), mais l'API le découpe en deux
+médiathèques **logiques**, séparées par la seule étiquette `app` de `_keys.json` : les routes GL
+listent les médias `app: 'gl'` **et** les fichiers hérités sans étiquette ; les routes ForetMap
+masquent ces hérités. Une suppression est refusée si la cible n'appartient pas à la médiathèque de
+l'appelant (`assertMediaItemInScope`).
+
+- `GET /api/gl/admin/media-library/usage` — références en base (chapitres, zones, espèces, QCM,
+  pages, journaux, intro) ; alimente les badges « Utilisée / Inutilisée ».
+- `GET /api/gl/admin/media-library/audit` — conventions attendues : plateaux, biomes, feuillets,
+  images d'intro, audio de plateaux, scènes de récit et clés `recit_*` suspectes. Équivalent en
+  ligne de commande : `npm run gl:audit:media-keys`.
+- `GET /api/gl/admin/media-library/chapter-scenes?chapter=0..5` — scènes de récit d'un chapitre,
+  d'après les clés stables `recit_…`.
+- `PATCH /api/gl/admin/media-library/scene-meta` — légende, ordre et drapeau de couverture dans
+  `_keys.json`. Avec `cover: true`, les autres couvertures du même chapitre sont retirées.
+
+#### Documentation de référence éditable
+
+`routes/gl/reference-docs.js` expose `docs/reference/gl/*.md` dans **Contenus → Doc de référence** :
+
+- le fichier Markdown versionné dans Git reste la base ;
+- une édition faite depuis l'application est une **surcouche** en table `gl_reference_docs` ;
+- le serveur ne réécrit jamais les fichiers du dépôt ;
+- `reset` supprime la surcouche et revient au fichier Git — si le déploiement d'exécution ne
+  contient pas `docs/reference/gl`, une surcouche reste lisible, mais un `reset` sans fichier rend
+  le document introuvable (**404**) ;
+- les slugs sont limités au nom de fichier Markdown (`^[a-z0-9]+(-[a-z0-9]+)*$`, 80 caractères max),
+  sans création ni traversée de chemin.
+
+Gardes : `tests/gl-reference-docs.test.js` et `tests-ui/gl/GLReferenceDocsPanel.test.jsx`.
 
 Ajouts Lot 2C (mascottes & équipes) :
 

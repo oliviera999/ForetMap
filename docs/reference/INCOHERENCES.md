@@ -237,6 +237,8 @@ configurer : manipulation technique obligatoire. Fonction inachevée côté admi
 
 **Décision :** ✅ **Livré** (2026-07-08, option A) — deux écrans : « Contenus → Conditionnement QCM » (liens ressource ↔ question : liste filtrable, ajout, bascule bloquant, statut, suppression) et « Réglages plateforme → Conditionnement par QCM » (interrupteur global, mode, granularité, seuil, délai de nouvelle tentative).
 
+**Complément (2026-08-20).** L'audit [`docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md`](../AUDIT_GATING_QCM_FEUILLETS_2026-08.md) a montré que ces écrans écrivaient bien leurs réglages, mais que le code ne relisait ni le **mode**, ni le **seuil**, ni la **granularité**, ni la politique par ressource : l'accusé exigeait toujours **toutes** les questions liées, avec un suivi par élève. C'est corrigé — les réglages pilotent désormais réellement le conditionnement, la granularité « par équipe » fait compter les réponses saisies par le MJ en mode animation, et les liens créés **automatiquement** par les imports ne sont plus bloquants (seul un « bloquant » coché par un humain conditionne quelque chose). Le réglage « marquage automatique après une bonne réponse » a été **retiré** de l'écran : il était déjà déprécié et ignoré, et le rebrancher aurait changé le comportement sans que personne le demande.
+
 ### G4 — 🟠 Deux glossaires et deux jeux de questions : vocabulaire à clarifier partout
 
 **Constat.** Coexistent volontairement : le **glossaire scientifique** et le **lexique
