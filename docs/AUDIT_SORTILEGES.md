@@ -273,32 +273,37 @@ défauts**.
 classe) ; (b) garder `both` mais exiger un accord côté serveur (le joueur ciblé valide sa part) ;
 (c) laisser tel quel et l'écrire noir sur blanc dans le guide du MJ.
 
-### S5 — 🟡 L'assistant filtre par tour, alors que le serveur ne borne pas les sorts
+### S5 — ✅ L'assistant filtrait par tour, alors que le serveur ne borne pas les sorts
 
-**Constat.** `assertTurnAllowsTeam()` est un **no-op assumé** (`:375-378`). Ce n'est pas un
-oubli : la migration `139` (« mode classique ») a remplacé la rotation séquentielle par des
-**tours globaux**, et son en-tête le dit — « le MJ lance un tour ; toutes les équipes jouent
-et peuvent avancer leur mascotte une fois par tour. **Sortilèges en auto ou soumis à
+> ✅ **Arbitré et livré** (v1.100.7, G13-a option A) — le filtre est retiré de l'assistant :
+> toutes les équipes restent proposées, tours activés ou non.
+
+**Constat.** `assertTurnAllowsTeam()` est un **no-op assumé**. Ce n'est pas un oubli : la
+migration `139` (« mode classique ») a remplacé la rotation séquentielle par des **tours
+globaux**, et son en-tête le dit — « le MJ lance un tour ; toutes les équipes jouent et
+peuvent avancer leur mascotte une fois par tour. **Sortilèges en auto ou soumis à
 l'approbation du MJ** ». Le serveur applique bien ce modèle ailleurs, sous forme de **quota
 par tour** : `gl_teams.last_move_round_number` pour la mascotte (409 « Mascotte déjà déplacée
 pour ce tour »), `last_dice_round_number` pour les dés. Les sortilèges, eux, sont
 délibérément hors quota — c'est l'approbation MJ qui régule.
 
-L'écart n'est donc pas côté serveur mais **côté écran** : `filterSelectableTeams`
-(`glSpellCastRules.js:78-80`) ne propose que l'équipe active quand `turnsEnabled`, ce qui est
-la règle _séquentielle_ d'avant la 139. Une équipe non active ne voit pas comment lancer un
-sort, alors que rien ne le lui interdit.
+L'écart n'était donc pas côté serveur mais **côté écran** : `filterSelectableTeams` ne
+proposait que l'équipe active quand `turnsEnabled`, soit la règle _séquentielle_ d'avant la 139. Une équipe non active ne voyait pas comment lancer un sort, alors que rien ne le lui
+interdisait.
 
-**Pistes.** (a) retirer le filtre d'écran — le plus fidèle à l'intention de la 139 ;
-(b) donner aux sorts le même quota par tour qu'aux mascottes, vérifié au serveur ;
-(c) rétablir la règle séquentielle, cette fois vraiment appliquée. Arbitrage ouvert
-(**G13-a**).
+**Correctif.** Le filtre par tour disparaît de `filterSelectableTeams` ; la prop
+`turnsEnabled` de l'assistant, devenue sans emploi, est retirée de la chaîne. Le périmètre
+d'équipe du joueur (`own_team` / `mj_any`) et la restriction de peuple continuent de
+s'appliquer. Deux tests figent la règle (`tests-ui/gl/glSpellCasterKindRules.test.js`).
 
 ### S6 — 🟡 Les sorts « proposés » se lancent comme les officiels
 
 **Constat.** `loadSpellForChapter` (`:216-243`) ne filtre pas `statut`. Un sort
 `statut = 'propose'` rattaché à un chapitre apparaît au catalogue joueur et se lance comme un
 officiel — seule une pastille le distingue.
+
+> ⏳ **Arbitrage suspendu** (G13-b) — décision reportée le temps d'assainir le catalogue
+> existant ; détail et outils dans le registre.
 
 Ce n'est pas marginal : dans le corpus livré (`data/gl/sortileges-gnomes-et-licornes.xlsx`),
 **17 des 35 sorts sont des propositions** (`source = proposition_claude`), livrées avec une
@@ -445,8 +450,8 @@ n'ont pas encore de comportement attendu à figer.
 | S1  | 🟠      | L'effet d'un sort n'est jamais appliqué par le logiciel        | ✅ arbitré (G11-A)            |
 | S3  | 🟠      | Contribution sur un axe à coût nul : débitée sans contrepartie | ✅ corrigé                    |
 | S4  | 🟠      | Défauts permissifs : dépenser la vitalité d'un autre joueur    | ✅ arbitré (G12-A)            |
-| S5  | 🟡      | Tour d'équipe filtré à l'écran, non vérifié au serveur         | ⏳ arbitrage                  |
-| S6  | 🟡      | Sorts `propose` lançables comme les officiels                  | ⏳ arbitrage                  |
+| S5  | 🟡      | Tour d'équipe filtré à l'écran, non vérifié au serveur         | ✅ corrigé (G13-a)            |
+| S6  | 🟡      | Sorts `propose` lançables comme les officiels                  | ⏳ tri du catalogue           |
 | S7  | 🟡      | Sort à coût nul impossible à lancer                            | ⏳ arbitrage                  |
 | S8  | 🟡      | `limite_usage` / `cumul` jamais appliqués                      | 🟨 rappelé au MJ, non exécuté |
 | S9  | 🟡      | Portée solo/collectif non revérifiée à l'acceptation MJ        | ✅ corrigé                    |

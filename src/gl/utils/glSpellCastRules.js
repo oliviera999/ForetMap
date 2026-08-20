@@ -60,12 +60,18 @@ export function needsOtherPlayerConfirm({ contributionMode, actorPlayerId, targe
   return Number(actorPlayerId) !== Number(targetPlayerId);
 }
 
+/**
+ * Équipes qu'un acteur peut viser pour un sortilège.
+ *
+ * G13-a — le filtre « seule l'équipe active » a été retiré : il appliquait la rotation
+ * séquentielle d'avant le mode classique (migration 139), alors que ce mode fait jouer
+ * toutes les équipes dans un même tour et ne borne pas les sortilèges — c'est l'approbation
+ * du MJ qui les régule. L'écran promettait donc une règle que le serveur n'a jamais eue.
+ */
 export function filterSelectableTeams({
   teams,
   teamScope,
   playerTeamId,
-  currentTeamId,
-  turnsEnabled,
   isStaff,
   casterKind = 'any',
 }) {
@@ -74,9 +80,6 @@ export function filterSelectableTeams({
   if (!isStaff && (teamScope === 'own_team' || teamScope === 'mj_any')) {
     if (playerTeamId == null) return [];
     filtered = filtered.filter((t) => Number(t.id) === Number(playerTeamId));
-  }
-  if (turnsEnabled && currentTeamId != null) {
-    filtered = filtered.filter((t) => Number(t.id) === Number(currentTeamId));
   }
   // Sort réservé à un peuple : les équipes de l'autre peuple ne sont pas proposées,
   // y compris au MJ — c'est le peuple de l'équipe qui lance qui est contraint.

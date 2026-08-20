@@ -104,6 +104,10 @@ notamment par la résolution d'actions — il ne se confond pas avec la vitalit�
   remplir : c'est le lancement qui leur est fermé, pas la consultation.
 - Par défaut, les joueurs peuvent lancer les sorts ; le profil de séance « MJ +
   tours » réserve le lancement au MJ.
+- **Lancer un sort n'est pas lié au tour.** Même quand les tours sont activés, toutes les
+  équipes peuvent lancer — le tour sert à cadencer les déplacements de mascotte et les dés
+  (une fois par tour chacun), pas les sortilèges. Ce qui régule les sorts, c'est la
+  validation du MJ.
 - Le module Sortilèges est désactivé par défaut : c'est un choix d'activation
   conscient de l'admin.
 

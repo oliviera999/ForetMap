@@ -7,6 +7,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sortilèges : lancer un sort n'est plus lié au tour de l'équipe (G13-a)
+
+Arbitrage G13-a tranché, option A. Quand les tours sont activés, l'assistant de lancement
+ne proposait que **l'équipe active** — la règle séquentielle d'avant le « mode classique ».
+Or ce mode fait jouer toutes les équipes dans un même tour et ne borne pas les sortilèges :
+le tour cadence les déplacements de mascotte et les dés (une fois par tour chacun), et c'est
+la validation du MJ qui régule les sorts. L'écran promettait donc une règle que le serveur
+n'a jamais appliquée, et une équipe non active ne voyait pas comment lancer un sort.
+
+- Le filtre par tour est retiré de l'assistant : **toutes les équipes restent proposées**,
+  tours activés ou non.
+- Ce qui continue de s'appliquer : le périmètre d'équipe du joueur (« Uniquement son
+  équipe ») et la réservation d'un sort à un peuple.
+- Deux tests figent la règle ; ils échouent tous deux sans le correctif.
+
+**G13-b** (le statut « proposé », jouable comme un officiel) reste en attente : la décision
+est suspendue le temps d'assainir le catalogue existant — 17 des 35 sortilèges livrés sont
+des propositions, et rien ne montre encore lesquelles sont déjà rattachées à un chapitre.
+
 ### Sortilèges : G13 réanalysé — ce n'était pas une règle manquante, mais un vestige d'écran
 
 Analyse seule, aucun changement de comportement. En détaillant le point G13 du registre, la
