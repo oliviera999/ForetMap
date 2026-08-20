@@ -606,6 +606,16 @@ signature, le `kind` et le `questionCode` — **aucun usage unique**. Pendant 15
 **Ces deux points sont exactement l'objet des PR #277 et #275** (§2.2), toutes deux
 complètes, testées et documentées. **Il n'y a rien à concevoir : il y a à fusionner.**
 
+> **Statut — corrigé sur `main`.** Les deux défauts (a) et (b) sont fermés, sur la base
+> actuelle plutôt que par fusion des brouillons : le jeton ne porte plus qu'une empreinte
+> HMAC de la bonne réponse, et chaque présentation porte un `jti` consommé à la première
+> réponse (migration `193`, et non `171` — sur une base migrée au-delà, le runner aurait
+> sauté ce numéro sans bruit). Voir `lib/glQcmChoices.js`, `lib/glQcmPresentationUse.js`,
+> `tests/gl-qcm-presentation-reuse.test.js`. **Le point restant du §6.2 — une équipe de 5
+> marque +5 sur la même question, chaque joueur ayant sa propre présentation — n'est
+> toujours pas tranché** : l'usage unique porte sur la présentation, pas sur le couple
+> (équipe, question).
+
 Reste **un point que ces PR ne traitent pas** : une équipe de 5 qui répond à la même
 question du plateau marque mécaniquement +5, puisque chaque joueur obtient sa propre
 présentation. Il faut trancher la règle — « une question du plateau rapporte des points

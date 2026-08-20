@@ -78,7 +78,14 @@ async function runMigration() {
         await execute(stmt);
       } catch (err) {
         // ADD COLUMN rejoué : même tolérance que le runner de migrations.
-        if (err?.errno !== 1060) throw err;
+        if (err?.errno === 1060) continue;
+        // Rejouer 178 sur une base qui a DÉJÀ 191 : son `MODIFY COLUMN unlocked_via`
+        // décrit un ENUM d'avant `cloture`, et MySQL refuse de rétrécir un ENUM dont une
+        // valeur est utilisée (1265). Le runner réel ne rejoue jamais une migration
+        // passée ; ici la 191 qui suit rétablit l'ENUM complet, et ce test porte sur les
+        // réparations de données, pas sur la définition de colonne.
+        if (err?.errno === 1265) continue;
+        throw err;
       }
     }
   }

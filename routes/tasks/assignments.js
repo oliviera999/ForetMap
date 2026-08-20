@@ -1,5 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../../database');
+const { nowIsoUtc } = require('../../lib/shared/isoTimestamp');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const { saveBase64ToDisk } = require('../../lib/uploads');
 const asyncHandler = require('../../lib/asyncHandler');
@@ -102,13 +103,7 @@ router.post(
         if ((Number(countRow?.c) || 0) >= Number(task.required_students)) return false;
         await tx.execute(
           'INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?, ?)',
-          [
-            task.id,
-            action.studentId || null,
-            action.firstName,
-            action.lastName,
-            new Date().toISOString(),
-          ],
+          [task.id, action.studentId || null, action.firstName, action.lastName, nowIsoUtc()],
         );
         return true;
       });
@@ -179,7 +174,7 @@ router.post(
     }
     const assigned = toAssign.length;
     if (toAssign.length > 0) {
-      const assignedAt = new Date().toISOString();
+      const assignedAt = nowIsoUtc();
       const placeholders = toAssign.map(() => '(?, ?, ?, ?, ?)').join(', ');
       const params = [];
       for (const student of toAssign) {
@@ -261,7 +256,7 @@ router.post(
           action.lastName,
           comment || '',
           null,
-          new Date().toISOString(),
+          nowIsoUtc(),
         ],
       );
       const logId = result.insertId;
@@ -280,7 +275,7 @@ router.post(
     if (completionMode === 'all_assignees_done') {
       if (!assignment.done_at) {
         await execute('UPDATE task_assignments SET done_at = ? WHERE id = ?', [
-          new Date().toISOString(),
+          nowIsoUtc(),
           assignment.id,
         ]);
       }

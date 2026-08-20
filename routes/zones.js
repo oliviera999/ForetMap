@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
+const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const { requirePermission } = require('../middleware/requireTeacher');
 const {
   serializeZonePhotoListRow,
@@ -112,7 +113,7 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
       ? parseVisitEditorialBlocksInput(patchBlocksInput)
       : parseVisitEditorialBlocksInput(existing?.body_json);
   const bodyJson = serializeVisitEditorialBlocks(normalizedBlocks);
-  const now = new Date().toISOString();
+  const now = nowIsoUtc();
   await execute(
     `INSERT INTO visit_zones
       (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json, is_active, sort_order, created_at, updated_at)

@@ -34,6 +34,10 @@ pédagogiques** (un commentaire par réponse, qui explique pourquoi c'est juste 
   (mode animation).
 - La répétition d'une question sur un repère déjà visité dépend d'un réglage (à chaque
   passage, une fois par équipe, une fois par partie).
+- **Une question affichée = une réponse comptée.** Dès que l'équipe a répondu (juste ou
+  faux), la question affichée est close : renvoyer la même réponse ne rapporte pas de
+  points supplémentaires. Pour rejouer, il faut une nouvelle question — nouveau passage
+  sur le repère, ou nouveau tirage.
 
 ## Le conditionnement par QCM (« marquer appris »)
 
@@ -87,6 +91,11 @@ Autrement dit : le QCM ne garde pas la porte du feuillet, il garde la porte du
 > ⚠️ **Point d'attention** — Le délai de nouvelle tentative s'applique à **toute la
 > ressource** après une erreur : un élève verrouillé n'est pas un bug. Le délai se
 > règle (jusqu'à l'annuler, à 0 jour).
+
+> ⚠️ **Point d'attention** — Un élève ne peut pas lire la bonne réponse par avance : elle
+> ne quitte jamais le serveur avant d'avoir été trouvée. Et si le score d'équipe est
+> activé, une bonne réponse ne compte qu'une fois — renvoyer plusieurs fois la même
+> réponse ne fait plus monter le score.
 
 ## Pour aller plus loin
 
