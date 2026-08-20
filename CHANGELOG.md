@@ -7,6 +7,29 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit des sortilèges : ce que l'application encaisse, et ce que personne n'applique
+
+Audit de lecture, **sans changement de code ni de comportement** :
+[docs/AUDIT_SORTILEGES.md](docs/AUDIT_SORTILEGES.md) suit un sortilège du catalogue au débit
+et répond à la question posée — comment son effet s'applique-t-il aujourd'hui ?
+
+- **Réponse : il ne s'applique pas.** Un sort lancé retire les cœurs et les gemmes promis,
+  affiche le texte de sa fiche et écrit une ligne au journal. C'est tout. « Portée »,
+  « cible », « timing », « limite d'usage » et « cumul » sont affichés au joueur et **jamais
+  interprétés** : le moteur est un pot commun collaboratif, pas un moteur d'effets, et c'est
+  le MJ qui applique l'effet à la main — sans rappel ni trace.
+- **Quinze points d'attention** classés par gravité, dont un 🔴 : deux lancements
+  simultanés peuvent débiter deux fois (le correctif dort dans la PR #276, bâtie sur
+  v1.85.5 — reprise à faire sur la base actuelle). Puis, en 🟠 : une contribution sur un axe
+  à coût nul est débitée sans contrepartie, et les réglages sortis d'usine (`any_team` +
+  `both`) laissent un élève dépenser la vitalité d'un camarade d'une autre équipe, la seule
+  barrière étant une confirmation côté navigateur.
+- **Doc de référence** : [economie-marche-sorts.md](docs/reference/gl/economie-marche-sorts.md)
+  décrit désormais noir sur blanc ce qui se passe quand le sort part, et ce qui reste à la
+  charge du MJ.
+- **Registre d'arbitrage** : quatre points ouverts à trancher (G11 à G14) dans
+  [docs/reference/INCOHERENCES.md](docs/reference/INCOHERENCES.md).
+
 ### Intégrité du QCM : la bonne réponse ne quitte plus le serveur, et une question ne se joue qu'une fois
 
 Deux défauts identifiés par [docs/AUDIT_APP_ET_JEU_2026-08.md](docs/AUDIT_APP_ET_JEU_2026-08.md)
