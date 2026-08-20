@@ -2,7 +2,11 @@
 
 // API GL (MJ/admin) — liens « ressource <-> question QCM », politique de conditionnement
 // et reglages de gating (site + surcharges chapitre/scope lore). Miroir isole du backbone
-// ForetMap. Inerte tant que gl_settings 'gating.enabled' = false (pas de branchement runtime).
+// ForetMap. Les liens sont sans effet tant que gl_settings 'gating.enabled' = false ; des qu'il
+// est vrai, ils sont lus a l'accuse par lib/learningGatingAcknowledge (routes/gl/learning.js).
+// ATTENTION : la politique par ressource (mode/required_correct/enabled) et la granularite
+// ecrites ici ne sont PAS relues par le runtime, qui exige toujours TOUTES les questions
+// bloquantes approuvees — cf. docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md, constats F1 et F5.
 // Permissions : gl.content.manage (liens/politique), gl.settings.manage (reglages site/granularite).
 // O8 — erreurs : tous les try/catch etaient generiques (logRouteError + respondInternalError,
 // soit 500 { error: 'Erreur serveur' }) ; ils sont remplaces par asyncHandler -> gestionnaire

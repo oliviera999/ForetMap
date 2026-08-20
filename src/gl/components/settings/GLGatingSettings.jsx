@@ -11,11 +11,13 @@ const MODE_OPTIONS = [
   { value: 'threshold', label: 'Un nombre minimum de réussites (threshold)' },
   { value: 'off', label: 'Désactivé par défaut (off)' },
 ];
+// « per_resource » n'a pas de sens distinct à l'accusé (la politique par ressource s'applique
+// de toute façon) : il n'est plus proposé, mais reste affiché si une base le porte encore.
 const GRANULARITY_OPTIONS = [
-  { value: 'player', label: 'Par joueur' },
-  { value: 'team', label: 'Par équipe' },
-  { value: 'per_resource', label: 'Par ressource' },
+  { value: 'player', label: 'Par joueur (chacun répond pour lui)' },
+  { value: 'team', label: "Par équipe (la réponse d'un coéquipier ou du MJ compte pour tous)" },
 ];
+const LEGACY_GRANULARITY_LABEL = 'Par ressource (ancien réglage — équivaut à « par joueur »)';
 
 export function GLGatingSettings() {
   const [gating, setGating] = useState(null);
@@ -64,7 +66,8 @@ export function GLGatingSettings() {
       <p className="gl-hint">
         Quand il est actif, un élève doit réussir la ou les questions liées à une ressource avant de
         pouvoir la marquer « apprise ». Les liens ressource ↔ question se gèrent dans
-        <strong> Contenus → Conditionnement QCM</strong>.
+        <strong> Contenus → Conditionnement QCM</strong>. L&apos;interrupteur global est maître :
+        éteint, aucun quiz n&apos;est posé, même si une ressource a sa propre politique.
       </p>
       {error ? <p className="gl-error">{error}</p> : null}
       <div className="gl-form">
@@ -76,15 +79,6 @@ export function GLGatingSettings() {
             onChange={(event) => save('gating.enabled', event.target.checked)}
           />
           <span>Activer le conditionnement (interrupteur global)</span>
-        </label>
-        <label className="gl-gameplay-toggle-row">
-          <input
-            type="checkbox"
-            checked={!!gating.autoMarkOnCorrect}
-            disabled={savingKey === 'gating.auto_mark_on_correct'}
-            onChange={(event) => save('gating.auto_mark_on_correct', event.target.checked)}
-          />
-          <span>Marquer automatiquement « appris » après une bonne réponse</span>
         </label>
         <label>
           Mode par défaut
@@ -112,6 +106,9 @@ export function GLGatingSettings() {
                 {o.label}
               </option>
             ))}
+            {gating.granularity === 'per_resource' ? (
+              <option value="per_resource">{LEGACY_GRANULARITY_LABEL}</option>
+            ) : null}
           </select>
         </label>
         <label>

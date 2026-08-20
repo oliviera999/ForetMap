@@ -112,7 +112,7 @@ test('GL — gating ON : tentative enregistrée sans auto-marquage', async () =>
     defaultMode: 'any',
     defaultRequiredCorrect: 1,
   });
-  await runtime.recordGlQcmAttemptIfGatingEnabled(db, {
+  await runtime.recordGlQcmAttemptForReader(db, {
     glAuth: reader,
     dataset: 'qcm',
     questionCode: glq,
@@ -131,20 +131,30 @@ test('GL — gating ON : tentative enregistrée sans auto-marquage', async () =>
   assert.equal(ack, undefined, "l'espèce ne doit pas être auto-marquée");
 });
 
-test('GL — gating OFF : aucune écriture de tentative', async () => {
+test('GL — gating OFF : la tentative est quand même enregistrée (activation rétroactive)', async () => {
+  // F3 (audit 2026-08) : l'écriture ne dépend plus de gating.enabled, sinon allumer
+  // l'interrupteur repose des questions déjà réussies. Seule la lecture reste conditionnée.
   glSettings.setGatingCacheForTests({ enabled: false });
   const reader2 = { userType: 'gl_player', userId: `8${stamp}`.slice(0, 12) };
-  await runtime.recordGlQcmAttemptIfGatingEnabled(db, {
+  await runtime.recordGlQcmAttemptForReader(db, {
     glAuth: reader2,
     dataset: 'qcm',
     questionCode: glq,
     isCorrect: true,
   });
   const attempt = await queryOne(
-    'SELECT 1 AS x FROM gl_qcm_attempts WHERE reader_user_id = ? LIMIT 1',
-    [reader2.userId],
+    'SELECT is_correct FROM gl_qcm_attempts WHERE reader_user_id = ? AND question_code = ? LIMIT 1',
+    [reader2.userId, glq],
   );
-  assert.equal(attempt, undefined);
+  assert.ok(attempt, 'la tentative doit être enregistrée même conditionnement éteint');
+  assert.equal(Number(attempt.is_correct), 1);
+  // …mais rien n'est marqué appris pour autant.
+  const ack = await queryOne(
+    `SELECT 1 AS x FROM gl_learning_acknowledgements
+      WHERE reader_user_type = ? AND reader_user_id = ? LIMIT 1`,
+    [reader2.userType, reader2.userId],
+  );
+  assert.equal(ack, undefined, 'aucun marquage automatique');
 });
 
 test('FM — GET challenge requis avec question liée si gating ON', async () => {
@@ -156,7 +166,10 @@ test('FM — GET challenge requis avec question liée si gating ON', async () =>
     .set('Authorization', 'Bearer ' + studentToken)
     .expect(200);
   assert.equal(res.body.required, true);
-  assert.equal(res.body.mode, 'all');
+  // Le mode du site est désormais appliqué (audit F1) : `learning.gating.default_mode` vaut
+  // `any` par défaut, et une seule question est liée ici — une réussite suffit.
+  assert.equal(res.body.mode, 'any');
+  assert.equal(res.body.required_correct, 1);
   assert.ok(res.body.questions.some((q) => q.question_code === qcode));
   assert.equal(res.body.pending_count, 1);
 });
