@@ -92,6 +92,41 @@ notamment par la résolution d'actions — il ne se confond pas avec la vitalit�
 - Le module Sortilèges est désactivé par défaut : c'est un choix d'activation
   conscient de l'admin.
 
+### Ce que fait l'application quand le sort part — et ce qu'elle ne fait pas
+
+C'est le point le plus souvent mal compris, alors disons-le net : **l'application encaisse
+le coût du sort, elle n'en applique pas l'effet.**
+
+Quand le pot est réuni et que le sort part, il se passe exactement trois choses :
+
+1. les cœurs et les gemmes promis sont **retirés** aux joueurs qui ont contribué (et à eux
+   seuls, chacun du montant qu'il a mis) ;
+2. une **fenêtre de résultat** s'ouvre chez tout le monde dans la partie : le nom du sort,
+   son coût, la liste de ceux qui l'ont lancé, et **le texte de sa fiche** (« effet court »
+   et « effet détaillé ») ;
+3. une ligne s'inscrit au **journal de partie** : « _L'équipe X lance ✨ Nom du sort._ »
+
+Puis l'application s'arrête là. Elle ne soigne personne, ne déplace aucune mascotte,
+n'accorde aucun bonus, ne débloque aucun feuillet, ne décompte aucune durée. Les champs
+**« portée »**, **« cible »**, **« timing »**, **« limite d'usage »** et **« cumul »** de la
+fiche sont des **consignes écrites pour vous** : ils s'affichent au joueur, ils ne sont
+jamais vérifiés par le logiciel.
+
+**C'est donc le MJ qui applique l'effet**, à la table, avec les outils de la console :
+raconter (narration), ajuster les cœurs et les gemmes d'un joueur ou d'une équipe, déplacer
+une mascotte, accorder un score. Le lancement d'un sort ne pré-remplit rien de tout cela et
+ne garde aucune trace du type « effet appliqué » : à vous de tenir le fil.
+
+> ⚠️ **Point d'attention** — Conséquence pratique : un sort payé dont l'effet est oublié a
+> coûté des cœurs pour rien, sans que rien ne le signale. Deux réflexes utiles : garder la
+> fenêtre de résultat ouverte le temps d'appliquer l'effet, et rédiger l'« effet court » des
+> fiches comme une **instruction exécutable par le MJ** (« +2 ❤️ à l'équipe voisine »)
+> plutôt que comme une formule d'ambiance.
+
+> ⚠️ **Point d'attention** — « Une fois par partie » écrit dans **limite d'usage** n'est pas
+> tenu par le logiciel : tant que les cœurs et les gemmes suivent, le sort peut repartir.
+> C'est à vous de compter.
+
 ### Réserver un sortilège à un peuple
 
 Chaque sortilège porte un réglage **« Lanceurs autorisés »** à trois valeurs :

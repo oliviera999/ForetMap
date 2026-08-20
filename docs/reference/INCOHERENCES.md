@@ -364,6 +364,85 @@ de comportement, couvert par les tests existants.
 
 **Décision :** ✅ **Livré** (2026-07-08) — réglage en double supprimé, table de correspondance désormais dérivée automatiquement (plus de liste manuelle), liste des modules resynchronisée.
 
+### G11 — 🟠 Sortilèges : l'application encaisse le coût, personne n'applique l'effet
+
+**Constat.** Un sort lancé retire les cœurs et les gemmes promis, affiche le texte de sa
+fiche et écrit une ligne au journal — puis plus rien. Les champs « portée », « cible »,
+« timing », « limite d'usage » et « cumul » sont affichés au joueur mais **jamais appliqués**
+par le logiciel : c'est le MJ qui applique l'effet à la main, sans que le lancement ne lui
+prépare quoi que ce soit ni ne garde trace de l'application. Le vocabulaire du catalogue
+laisse pourtant croire à un moteur de règles. Un sort payé dont l'effet est oublié a coûté
+des cœurs pour rien, sans alerte. Détail technique : `docs/AUDIT_SORTILEGES.md` (S1, S8).
+
+**Options.**
+
+- **A — L'assumer et l'outiller (recommandée).** Le logiciel reste un pot commun, mais
+  au lancement (et à l'acceptation MJ) la console rappelle au MJ **l'effet à appliquer**,
+  avec des raccourcis vers l'ajustement de vitalité et la narration, et une case
+  « effet appliqué ✔ » tracée au journal. Effort modéré, aucun changement de règles.
+- **B — Un vocabulaire d'effets exécutés.** Un petit jeu d'effets structurés
+  (`+N ❤️ à l'équipe cible`, `déplacer de N cases`, `révéler un feuillet`) saisis sur la
+  fiche et **appliqués par le serveur**. Beaucoup plus d'effort, et il faudrait reprendre
+  tout le catalogue existant ; en échange, plus rien ne s'oublie.
+- **C — Statu quo documenté.** Rien ne change dans le code ; la doc de référence dit
+  clairement que l'effet est l'affaire du MJ (volet déjà livré dans ce lot).
+
+**Décision :**
+
+### G12 — 🟠 Sortilèges : les réglages sortis d'usine laissent dépenser la vitalité d'autrui
+
+**Constat.** Par défaut, un joueur peut ouvrir un sort **pour n'importe quelle équipe**
+(« Toutes les équipes de la partie ») et **saisir la contribution de n'importe qui**
+(« Les deux »). La seule barrière est une fenêtre de confirmation… validée par celui qui
+dépense, pas par celui dont on prend les cœurs. Tout est tracé, mais un élève peut vider
+les jauges d'un camarade d'une autre équipe sans son accord. Détail :
+`docs/AUDIT_SORTILEGES.md` (S4).
+
+**Options.**
+
+- **A (recommandée)** — Changer les **valeurs par défaut** : « Uniquement son équipe » +
+  « Chaque joueur saisit uniquement sa contribution ». Les réglages permissifs restent
+  disponibles pour qui les veut. Effort faible.
+- **B** — Garder la répartition libre mais demander un **accord côté serveur** : la part
+  d'un autre joueur reste en attente tant qu'il ne l'a pas validée. Effort moyen, ralentit
+  le jeu.
+- **C** — Statu quo, avec un avertissement explicite dans le guide du MJ.
+
+**Décision :**
+
+### G13 — 🟡 Sortilèges : trois règles annoncées que le serveur ne tient pas
+
+**Constat.** Trois écarts entre ce que l'écran laisse entendre et ce que le serveur vérifie
+(détail dans `docs/AUDIT_SORTILEGES.md`, S5/S6/S10) :
+
+- le **tour de l'équipe** filtre les équipes proposées à l'écran mais n'est plus vérifié au
+  serveur (héritage du passage au mode classique) ;
+- un sort au statut **« proposé »** (brouillon d'écriture) rattaché à un chapitre apparaît
+  au catalogue des joueurs et se lance comme un sort officiel ;
+- une équipe dont le sort **attend le MJ** peut en soumettre un second identique : la file
+  de validation affiche deux entrées, et les accepter toutes les deux débite deux fois.
+
+**Option unique (recommandée).** Lot de mise en cohérence : soit la règle est appliquée au
+serveur, soit l'écran cesse de l'annoncer — point par point. Sans changement de règles du
+jeu.
+
+**Décision :**
+
+### G14 — 🔴 Sortilèges : un double clic peut faire payer deux fois
+
+**Constat.** Deux lancements simultanés du même sort (double clic, deux onglets, deux
+membres de l'équipe qui valident ensemble) peuvent **débiter deux fois** et écrire deux
+fois au journal, si les soldes suffisent à payer deux fois. Le correctif est déjà écrit —
+mais dort dans une proposition non fusionnée, bâtie sur une version très antérieure
+(PR #276), et demande donc une reprise sur la base actuelle. Même famille de défaut que la
+résolution d'action MJ concurrente, corrigée dans la même proposition. Détail :
+`docs/AUDIT_SORTILEGES.md` (S2).
+
+**Option unique (recommandée).** Reprendre le correctif sur la base actuelle (verrou du
+brouillon + écriture conditionnelle), avec son test de concurrence.
+
+**Décision :**
+
 ---
 
 ## Arbitrage du 2026-07-08
