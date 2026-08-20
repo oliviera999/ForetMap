@@ -12,6 +12,8 @@ jobs:
   # qui ne paie ni le health-check MariaDB (~40 s) ni db:init.
   quality:
     runs-on: ubuntu-latest
+    # Même garde-fou que le job `test` ci-dessous (run sain : ~5 min).
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -36,6 +38,12 @@ jobs:
   # Conserve le nom `test` : c'est le check requis côté protections de branche.
   test:
     runs-on: ubuntu-latest
+    # Sans borne, une étape qui se fige consomme les 6 h du délai GitHub par défaut,
+    # puis le check requis termine en `cancelled` — indiscernable d'un vrai échec, et
+    # six heures de retard pour la PR (vécu le 19/08/2026 : blocage sur l'installation
+    # du navigateur Playwright). Un run sain tient en ~15 min ; 30 laisse de la marge
+    # tout en faisant échouer vite.
+    timeout-minutes: 30
     env:
       NODE_ENV: test
       DB_HOST: 127.0.0.1
@@ -83,6 +91,10 @@ jobs:
         run: npm run build
 
       - name: Install Playwright browser
+        # Téléchargement du navigateur + paquets système : la seule étape du job qui
+        # dépende d'un réseau externe, et donc la seule à pouvoir rester suspendue.
+        # Elle prend ~1 min quand tout va bien.
+        timeout-minutes: 10
         run: npx playwright install --with-deps chromium
 
       - name: Start app server for e2e
