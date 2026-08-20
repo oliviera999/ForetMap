@@ -38,6 +38,12 @@ pédagogiques** (un commentaire par réponse, qui explique pourquoi c'est juste 
   faux), la question affichée est close : renvoyer la même réponse ne rapporte pas de
   points supplémentaires. Pour rejouer, il faut une nouvelle question — nouveau passage
   sur le repère, ou nouveau tirage.
+- **Le score se compte par joueur, pas par équipe.** Chaque élève qui répond juste rapporte
+  un point à son équipe : une équipe de cinq peut donc gagner jusqu'à cinq points sur la
+  même question. C'est voulu — on veut que **chacun réponde**, et non qu'un seul réponde
+  pour tout le groupe. Corollaire à garder en tête au moment de composer les équipes : une
+  équipe nombreuse marque mécaniquement plus qu'une équipe réduite. Si les scores doivent
+  être comparables, former des équipes de taille voisine.
 
 ## Le conditionnement par QCM (« marquer appris »)
 
@@ -114,9 +120,12 @@ Autrement dit : le QCM ne garde pas la porte du feuillet, il garde la porte du
 > peut décocher « bloquant » sur les liens qu'il ne veut pas exiger.
 
 > ⚠️ **Point d'attention** — Un élève ne peut pas lire la bonne réponse par avance : elle
-> ne quitte jamais le serveur avant d'avoir été trouvée. Et si le score d'équipe est
-> activé, une bonne réponse ne compte qu'une fois — renvoyer plusieurs fois la même
-> réponse ne fait plus monter le score.
+> ne quitte jamais le serveur avant d'avoir été trouvée — ni dans le QCM lui-même, ni par
+> la liste publique des questions, qui ne livre le corrigé qu'aux enseignants gérant le
+> catalogue. Et si le score d'équipe est
+> activé, **une même réponse ne compte qu'une fois** : renvoyer plusieurs fois la sienne ne
+> fait pas monter le score. À ne pas confondre avec la règle du point par joueur ci-dessus —
+> les camarades, eux, marquent bien chacun le leur.
 
 ## Pour aller plus loin
 

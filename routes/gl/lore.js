@@ -959,6 +959,17 @@ router.put(
   }),
 );
 
+// Déclarée AVANT `/admin/feuillets/:code` : « export » est un segment unique, il serait
+// sinon capturé comme un code de feuillet (404 « Feuillet introuvable »).
+router.get(
+  '/admin/feuillets/export',
+  requireGlPermission('gl.content.manage'),
+  wrapXlsxRoute(async () => ({
+    buffer: await buildFeuilletsExportWorkbook(await loadFeuilletsExportRows(db)),
+    filename: 'export-feuillets-selene.xlsx',
+  })),
+);
+
 router.get(
   '/admin/feuillets/:code',
   requireGlPermission('gl.content.manage'),
@@ -1073,15 +1084,6 @@ router.get(
   wrapXlsxRoute(async () => ({
     buffer: await buildFeuilletsTemplateWorkbook(),
     filename: 'modele-feuillets-selene.xlsx',
-  })),
-);
-
-router.get(
-  '/admin/feuillets/export',
-  requireGlPermission('gl.content.manage'),
-  wrapXlsxRoute(async () => ({
-    buffer: await buildFeuilletsExportWorkbook(await loadFeuilletsExportRows(db)),
-    filename: 'export-feuillets-selene.xlsx',
   })),
 );
 
