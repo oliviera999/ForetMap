@@ -7,6 +7,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sortilèges : G13 réanalysé — ce n'était pas une règle manquante, mais un vestige d'écran
+
+Analyse seule, aucun changement de comportement. En détaillant le point G13 du registre, la
+relecture du code a corrigé une prémisse fausse de la rédaction initiale.
+
+- **Le filtre « c'est le tour de telle équipe » (G13-a).** On avait écrit que le serveur ne
+  tenait pas une règle annoncée à l'écran. C'est l'inverse : la migration `139` (« mode
+  classique ») a **volontairement** sorti les sortilèges du tour par tour — le serveur
+  applique un quota par tour aux mascottes et aux dés, et laisse les sorts libres, régulés
+  par l'approbation du MJ. C'est **l'assistant de lancement** qui applique encore l'ancienne
+  règle séquentielle. Les options ont été réécrites en conséquence (retirer le filtre,
+  aligner les sorts sur le quota par tour, ou rétablir la séquence pour de bon).
+- **Le statut « proposé » (G13-b).** Chiffré : dans le corpus livré, **17 des 35 sortilèges
+  sont des propositions** (`source = proposition_claude`, avec justification pédagogique),
+  jouables aujourd'hui comme les officiels dès qu'on les rattache à un chapitre — et l'écran
+  de rattachement n'affiche même pas le statut.
+
+Le point est scindé en **G13-a** et **G13-b** dans
+[docs/reference/INCOHERENCES.md](docs/reference/INCOHERENCES.md) : ce sont deux décisions
+distinctes. `docs/AUDIT_SORTILEGES.md` (S5, S6) est corrigé en conséquence.
+
 ### Sortilèges : les arbitrages G11 et G12 sont livrés
 
 Deux décisions prises sur le registre d'arbitrage, mises en œuvre.
