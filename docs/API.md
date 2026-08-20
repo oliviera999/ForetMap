@@ -319,7 +319,7 @@ Note UX admin GL : l’édition des chapitres (repères + zones polygonales sur 
 | GET | `/api/gl/admin/media-library` | `?limit=` optionnel (défaut 300, max 800) — liste **G&L** (médias `app: 'gl'` + hérités sans étiquette) | `gl.content.manage` |
 | GET | `/api/gl/admin/media-library/usage` | Usage des médias **G&L** (même format `{ usage }` que ForetMap ; voir section **Médiathèque ForetMap**) | `gl.content.manage` |
 | POST | `/api/gl/admin/media-library` | `{ media_data }` (data URL base64 image/audio/vidéo) — enregistre `app: 'gl'` | `gl.content.manage` |
-| DELETE | `/api/gl/admin/media-library` | `{ relative_path }` (`media-library/...`) | `gl.content.manage` |
+| DELETE | `/api/gl/admin/media-library` | `{ relative_path }` \| `{ relative_paths[] }` \| `{ clear_all: true }` (`media-library/...`) — **cloisonné G&L** : une purge ne touche que les médias `app: 'gl'` (et les hérités), et supprimer un média ForetMap est refusé | `gl.content.manage` |
 | GET | `/api/gl/admin/content-library/limits` | — ; `{ maxArchiveBytes, maxFileBytes, maxDecompressedBytes, maxFileCount }` | `gl.content.manage` |
 | POST | `/api/gl/admin/content-library/analyze` | **Recommandé** : `multipart/form-data` — champ `archive` (ZIP, max **50 Mo** par défaut) **ou** `files[]` (max **32 Mo** / fichier, **200** fichiers). **Legacy JSON** (petits fichiers / tests) : `{ files: [{ fileName, fileDataBase64 }] }` ou `{ archive: { fileName, fileDataBase64 } }` — soumis à `FORETMAP_JSON_BODY_LIMIT` (défaut 25 Mo). Classification + dry-run sans écriture BDD. Erreur **413** : `{ code: 'PAYLOAD_TOO_LARGE', error, hint? }` | `gl.content.manage` |
 | POST | `/api/gl/admin/content-library/apply` | **Recommandé** : `multipart/form-data` — champ texte `entries` (JSON `[{ fileName, kind, mimeType?, options? }]`) + `archive` (ZIP) **ou** `files[]` (binaires). **Legacy JSON** : `{ entries, archive?, fileDataBase64? }` par entrée. | `gl.content.manage` |
@@ -429,6 +429,11 @@ racheter — ou de se faire offrir — la sanction.
   `acquired_via = 'echange'` : un feuillet reçu n’est pas un feuillet trouvé, distinction
   nécessaire à un futur bonus de complétion de chapitre. L’attribution d’origine
   (« Découvert par … ») voyage avec la copie.
+
+**Transitions d'état d'un feuillet** — `read` et `hold` exigent, hors MJ, que l'équipe ait
+**déjà trouvé** le feuillet (`409` « Feuillet non trouvé par cette équipe » sinon). `read` et
+`held` comptant parmi les statuts « trouvés », ces routes valaient sinon attribution : un
+joueur s'octroyait n'importe quel code du corpus, contournant la garde de portée de `present`.
 
 **Possession durable des feuillets** — `gl_player_feuillet_states (player_id, feuillet_code)` est
 écrite à chaque acquisition, pour chaque membre présent de l’équipe. Auparavant la possession était
