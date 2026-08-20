@@ -318,13 +318,16 @@ Note UX admin GL : l’édition des chapitres (repères + zones polygonales sur 
 | GET | `/api/gl/admin/content` | — | `gl.content.manage` |
 | GET | `/api/gl/admin/media-library` | `?limit=` optionnel (défaut 300, max 800) — liste **G&L** (médias `app: 'gl'` + hérités sans étiquette) | `gl.content.manage` |
 | GET | `/api/gl/admin/media-library/usage` | Usage des médias **G&L** (même format `{ usage }` que ForetMap ; voir section **Médiathèque ForetMap**) | `gl.content.manage` |
+| GET | `/api/gl/admin/media-library/audit` | — ; `{ report }` : clés branchées, ressources requises manquantes, clés `recit_*` suspectes et emplacements audio | `gl.content.manage` |
+| GET | `/api/gl/admin/media-library/chapter-scenes` | `?chapter=0..5` ; scènes de récit résolues `{ stableKey, url, relativePath, caption, order, cover }` | `gl.content.manage` |
+| PATCH | `/api/gl/admin/media-library/scene-meta` | `{ stable_key \| stableKey, caption?, order?, cover? }` ; met à jour les métadonnées de `_keys.json`, avec une seule couverture par chapitre | `gl.content.manage` |
 | POST | `/api/gl/admin/media-library` | `{ media_data }` (data URL base64 image/audio/vidéo) — enregistre `app: 'gl'` | `gl.content.manage` |
-| DELETE | `/api/gl/admin/media-library` | `{ relative_path }` (`media-library/...`) | `gl.content.manage` |
+| DELETE | `/api/gl/admin/media-library` | `{ relative_path }` \| `{ relative_paths[] }` \| `{ clear_all: true }` (`media-library/...`) — **cloisonné G&L** : une purge ne touche que les médias `app: 'gl'` (et les hérités), et supprimer un média ForetMap est refusé | `gl.content.manage` |
 | GET | `/api/gl/admin/content-library/limits` | — ; `{ maxArchiveBytes, maxFileBytes, maxDecompressedBytes, maxFileCount }` | `gl.content.manage` |
 | POST | `/api/gl/admin/content-library/analyze` | **Recommandé** : `multipart/form-data` — champ `archive` (ZIP, max **50 Mo** par défaut) **ou** `files[]` (max **32 Mo** / fichier, **200** fichiers). **Legacy JSON** (petits fichiers / tests) : `{ files: [{ fileName, fileDataBase64 }] }` ou `{ archive: { fileName, fileDataBase64 } }` — soumis à `FORETMAP_JSON_BODY_LIMIT` (défaut 25 Mo). Classification + dry-run sans écriture BDD. Erreur **413** : `{ code: 'PAYLOAD_TOO_LARGE', error, hint? }` | `gl.content.manage` |
 | POST | `/api/gl/admin/content-library/apply` | **Recommandé** : `multipart/form-data` — champ texte `entries` (JSON `[{ fileName, kind, mimeType?, options? }]`) + `archive` (ZIP) **ou** `files[]` (binaires). **Legacy JSON** : `{ entries, archive?, fileDataBase64? }` par entrée. | `gl.content.manage` |
 
-**Bibliothèque contenu (admin GL)** — sous-onglet **Contenus → Bibliothèque**. Nature (`kind`) détectée : `media`, `species`, `glossary`, `lore_glossary`, `spells`, `qcm`, `chapters`, `chapter_charte`, `lore_feuillets`, `unknown`. Réponse `analyze` : `{ entries[], summary: { total, byKind, errors, applyable } }` ; chaque entrée inclut `kindLabel`, `subTab` (lien UI), `preview` (dry-run), `canApply`, `warnings`. Réponse `apply` : `{ results[], summary: { total, applied, failed } }`. Les médias sont stockés dans `uploads/media-library/` ; les catalogues réutilisent les imports XLSX existants (XLSX jusqu'à **32 Mo** en bibliothèque, **8 Mo** sur les panneaux d'import unitaires). Variables d'environnement : `FORETMAP_CONTENT_LIBRARY_MAX_*` (voir `.env.example`).
+**Bibliothèque contenu (admin GL)** — sous-onglet **Contenus → Bibliothèque**. Nature (`kind`) détectée : `media`, `species`, `glossary`, `lore_glossary`, `spells`, `qcm`, `qcm_lore`, `chapters`, `chapter_charte`, `lore_feuillets`, `unknown`. Réponse `analyze` : `{ entries[], summary: { total, byKind, errors, applyable } }` ; chaque entrée inclut `kindLabel`, `subTab` (lien UI), `preview` (dry-run), `canApply`, `warnings`. Réponse `apply` : `{ results[], summary: { total, applied, failed } }`. Les médias sont stockés dans `uploads/media-library/` ; les catalogues réutilisent les imports XLSX existants (XLSX jusqu'à **32 Mo** en bibliothèque, **8 Mo** sur les panneaux d'import unitaires). Variables d'environnement : `FORETMAP_CONTENT_LIBRARY_MAX_*` (voir `.env.example`).
 
 ### Permissions RBAC GL ajoutées
 
@@ -429,6 +432,11 @@ racheter — ou de se faire offrir — la sanction.
   `acquired_via = 'echange'` : un feuillet reçu n’est pas un feuillet trouvé, distinction
   nécessaire à un futur bonus de complétion de chapitre. L’attribution d’origine
   (« Découvert par … ») voyage avec la copie.
+
+**Transitions d'état d'un feuillet** — `read` et `hold` exigent, hors MJ, que l'équipe ait
+**déjà trouvé** le feuillet (`409` « Feuillet non trouvé par cette équipe » sinon). `read` et
+`held` comptant parmi les statuts « trouvés », ces routes valaient sinon attribution : un
+joueur s'octroyait n'importe quel code du corpus, contournant la garde de portée de `present`.
 
 **Possession durable des feuillets** — `gl_player_feuillet_states (player_id, feuillet_code)` est
 écrite à chaque acquisition, pour chaque membre présent de l’équipe. Auparavant la possession était
@@ -1191,6 +1199,13 @@ Contrat principal :
 - Les inscriptions **héritées** (`task_assignments.student_id IS NULL`, saisies avant la généralisation des comptes) ne sont pas concernées par la contrainte d’unicité.
 - Une action n3boss « pour le compte d’un n3beur » exige un `studentId` : un corps `{ firstName, lastName }` seul renvoie **400**. Les inscriptions héritées ne sont donc pas marquables ainsi (l’UI ne propose plus le bouton).
 
+**Affectation de groupe (`POST /api/tasks/:id/assign-group`)** — contrat de lot :
+
+- Corps JSON : `{ "group_id": "<uuid>" }` obligatoire. Le groupe doit appartenir au périmètre du n3boss ; sinon **403** (`Groupe hors périmètre`).
+- Réponse : `{ task, assigned, skipped, considered }` — `considered` = n3beurs actifs du groupe évalués par le serveur ; `assigned` = inscriptions créées dans ce lot ; `skipped` = n3beurs déjà inscrits rencontrés avant saturation des places.
+- La capacité respecte `required_students` à partir de la lecture initiale de la tâche. Contrairement à l'auto-inscription `assign`, cette route ne verrouille pas la ligne `tasks` avec `FOR UPDATE` ; c'est l'index unique `(task_id, student_id)` qui empêche les doublons par n3beur, et le `ON DUPLICATE KEY UPDATE` qui rend le lot idempotent en cas de course sur un même élève.
+- Le plafond d'auto-inscriptions n3beur (`tasks.student_max_active_assignments` / `roles.max_concurrent_tasks`) ne s'applique pas : c'est une action n3boss.
+
 \* Un n3beur peut aussi modifier **sa propre proposition** (statut `proposed`, préfixe de description `Proposition n3beur:`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `referent_user_ids`, `recurrence`, `completion_mode`) restent réservés aux profils avec `tasks.manage`. Un profil n’ayant que `tasks.validate` (sans `tasks.manage`) peut uniquement passer une tâche en `validated` via `POST /validate` ou `PUT` avec `{ "status": "validated" }` (pas les autres champs ni statuts).
 
 **Photo illustrative (fiche tâche)** — `POST /api/tasks`, `POST /api/tasks/proposals`, `PUT /api/tasks/:id` :
@@ -1406,6 +1421,16 @@ applicative et les noms de fichiers sont prédictibles :
 > `PRIVATE_UPLOAD_PREFIXES` (`lib/uploadsPrivatePaths.js`), sans quoi elle serait servie en
 > clair par `/uploads`.
 
+Notes d'exploitation :
+
+- Le garde `/uploads` est monté **avant** `express.static` : un accès direct à
+  `/uploads/observations/…` ou `/uploads/task-logs/…` répond **403** sans que le fichier soit lu
+  sur disque.
+- La normalisation refuse les chemins suspects (`..`, séparateurs Windows, encodage pourcent
+  invalide), pour qu'un chemin privé ne soit pas servi par contournement.
+- Les familles publiques restent servies statiquement. En particulier, les avatars `students/…`
+  sont publics par URL : ne pas y stocker de média nécessitant une autorisation.
+
 ---
 
 ## Audit
@@ -1455,7 +1480,14 @@ Objet **`site`** (réponse `GET /api/stats/all` uniquement) :
 | PATCH   | `/api/students/:id/profile`     | non (token élève propriétaire requis) | Mettre à jour son profil (`{ pseudo?, email?, description?, avatarData?, removeAvatar?, currentPassword }`) |
 | DELETE  | `/api/students/:id`             | oui (`students.delete`)               | Supprimer un n3beur (cascade)                                                                               |
 
-`avatarData` doit être une data URL image (`png`, `jpg/jpeg`, `webp`). Les fichiers sont stockés sous `uploads/students/...` et exposés via `/uploads/...`.
+`avatarData` doit être une data URL image (`png`, `jpg/jpeg`, `webp`).
+
+- Taille décodée maximale : **2 Mo**.
+- Validation : type MIME déclaré dans la data URL, sur liste fermée (`lib/shared/dataUrlImage.js`,
+  `image/svg+xml` exclu), et taille décodée. Il n'y a **pas** de contrôle de signature binaire
+  (« magic bytes ») : le type déclaré fait foi pour l'extension du fichier écrit.
+- Exposition : fichiers stockés sous `uploads/students/…` et servis par `/uploads/…` — famille
+  **publique**, toute personne connaissant l'URL peut charger l'image.
 
 ---
 
