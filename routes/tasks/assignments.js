@@ -1,6 +1,7 @@
 const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../../database');
 const { nowIsoUtc } = require('../../lib/shared/isoTimestamp');
+const { assignmentIdentityMatch } = require('../../lib/tasks/assignmentIdentityMatch');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const { saveBase64ToDisk } = require('../../lib/uploads');
 const asyncHandler = require('../../lib/asyncHandler');
@@ -220,26 +221,18 @@ router.post(
         .json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
     }
 
-    const assignment = action.studentId
-      ? await queryOne(
-          `SELECT id, done_at
+    // Une inscription qui porte un identifiant n'est reconnue que par lui : sans cela,
+    // marquer sa part « faite » pouvait cocher la ligne d'un homonyme.
+    const identity = assignmentIdentityMatch('');
+    const assignment = await queryOne(
+      `SELECT id, done_at
          FROM task_assignments
         WHERE task_id = ?
-          AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?))
+          AND ${identity.clause}
         ORDER BY assigned_at DESC
         LIMIT 1`,
-          [task.id, action.studentId, action.firstName, action.lastName],
-        )
-      : await queryOne(
-          `SELECT id, done_at
-         FROM task_assignments
-        WHERE task_id = ?
-          AND student_first_name = ?
-          AND student_last_name = ?
-        ORDER BY assigned_at DESC
-        LIMIT 1`,
-          [task.id, action.firstName, action.lastName],
-        );
+      [task.id, ...identity.params(action.studentId, action.firstName, action.lastName)],
+    );
     if (!assignment) {
       return res
         .status(400)
@@ -323,17 +316,13 @@ router.post(
         .json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
     }
 
-    if (action.studentId) {
-      await execute(
-        'DELETE FROM task_assignments WHERE task_id = ? AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?))',
-        [task.id, action.studentId, action.firstName, action.lastName],
-      );
-    } else {
-      await execute(
-        'DELETE FROM task_assignments WHERE task_id = ? AND student_first_name = ? AND student_last_name = ?',
-        [task.id, action.firstName, action.lastName],
-      );
-    }
+    // Même règle qu'à l'inscription : se désinscrire ne doit pas retirer l'inscription
+    // d'un camarade qui porte le même nom.
+    const unassign = assignmentIdentityMatch('');
+    await execute(`DELETE FROM task_assignments WHERE task_id = ? AND ${unassign.clause}`, [
+      task.id,
+      ...unassign.params(action.studentId, action.firstName, action.lastName),
+    ]);
     const recalculated = await recalculateTaskStatus(task);
     const newStatus = recalculated?.status || normalizeTaskStatusForRead(task.status);
 

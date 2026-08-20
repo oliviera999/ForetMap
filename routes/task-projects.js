@@ -644,6 +644,10 @@ async function copyProjectTasksTx(
             recurrence, sort_order
        FROM tasks
       WHERE project_id = ?
+        -- Une tâche archivée est une tâche retirée du jeu : la dupliquer la ferait
+        -- revenir en clone ACTIF (statut « available ») dans le projet copié, ressuscitant
+        -- du travail que l'enseignant avait justement rangé.
+        AND archived_at IS NULL
       ORDER BY sort_order ASC, created_at ASC, title ASC`,
     [sourceProjectId],
   );
