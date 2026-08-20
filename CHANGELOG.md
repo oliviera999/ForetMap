@@ -7,6 +7,44 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sortilèges : neuf défauts corrigés — dont un débit qui pouvait partir deux fois
+
+Suite directe de [docs/AUDIT_SORTILEGES.md](docs/AUDIT_SORTILEGES.md) : les points dont la
+bonne réponse ne se discute pas sont corrigés. Chaque correctif a son test, et chaque test a
+été vérifié **rouge sans son correctif**. Les six points restants demandent un choix de jeu et
+attendent l'arbitrage (G11 à G13 du registre).
+
+- **Un sort ne se paie plus deux fois (S2).** Deux clics simultanés sur « lancer » — deux
+  onglets, deux membres de l'équipe, un double-clic — pouvaient débiter deux fois et écrire
+  deux événements : le statut du brouillon était lu hors transaction et l'écriture n'était
+  pas conditionnée. Le brouillon est désormais verrouillé en tête de transaction et son
+  passage à « lancé » n'a lieu qu'une fois ; la seconde tentative reçoit « ce sortilège a
+  déjà été lancé ». Même verrouillage pour la soumission au MJ et pour le refus. Correctif
+  repris de la PR #276 (restée en brouillon sur v1.85.5) et réécrit sur la base actuelle.
+- **On ne verse plus dans un axe que le sort ne demande pas (S3).** Des gemmes déposées sur
+  un sort qui n'en coûte pas n'étaient comparées à rien — mais bien débitées. L'écran ne
+  proposait pas le champ ; une requête fabriquée passait. Refus en `400` à l'écriture, plus
+  un filet arrière dans le contrôle de complétude.
+- **La portée solo/collectif est rejouée avant le débit (S9)**, comme l'était déjà la
+  restriction de peuple : un sort dont la portée change pendant qu'il attend le MJ ne part
+  plus en contradiction avec sa fiche.
+- **Plus de doublon dans la file du MJ (S10).** Une équipe dont le sort attendait validation
+  pouvait en ouvrir un second identique — et le MJ, les accepter tous les deux.
+- **« MJ seul » ne ferme plus la lecture (S11).** Le réglage réserve le lancement au MJ ; il
+  privait aussi les joueurs de la consultation du pot, alors que les événements temps réel la
+  leur poussaient quand même.
+- **Les notes de préparation du MJ ne partent plus chez le joueur (S12).** `source` et
+  `notes_pedagogiques` étaient servis par l'API à tout compte de lecture, sans être affichés.
+  Les routes joueur servent désormais une projection dédiée ; les écrans d'administration
+  gardent la fiche complète.
+- **Défense en profondeur sur les droits (S13).** `gl.mascot.position`, accordée aux joueurs,
+  ne fait plus partie des permissions qui identifient le staff — la distinction ne repose
+  plus sur le seul type de compte.
+- **Le journal ne met plus un sort collectif au compte d'une seule équipe (S14).** Quand le
+  MJ ouvre un pot sur tout le plateau, la ligne dit « Toute la partie lance… ».
+- **Documentation d'API alignée (S15)** : migration `173` citée, refus ajoutés décrits,
+  `rosterScope` documenté dans la charge utile de l'événement.
+
 ### Audit des sortilèges : ce que l'application encaisse, et ce que personne n'applique
 
 Audit de lecture, **sans changement de code ni de comportement** :

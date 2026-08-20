@@ -87,6 +87,16 @@ notamment par la résolution d'actions — il ne se confond pas avec la vitalit�
   équipes, selon le réglage) **contribuent** au pot commun du sort, chacun voyant son
   solde et ce qu'il lui restera. Quand le coût est réuni, le sort se lance — avec
   **l'approbation du MJ** si le réglage l'exige.
+- Un même sort n'est débité **qu'une fois**, même si plusieurs personnes cliquent
+  « lancer » au même instant : la seconde tentative reçoit un message « ce sortilège a
+  déjà été lancé » et rien n'est prélevé une deuxième fois.
+- On ne verse dans le pot que ce que le sort demande : sur un sort qui ne coûte que des
+  cœurs, aucune gemme ne peut y partir (et réciproquement).
+- Tant qu'un sort attend la validation du MJ, la même équipe ne peut pas en ouvrir un
+  **second exemplaire** : cela évitait deux entrées jumelles dans la file du MJ — et deux
+  débits s'il les acceptait toutes les deux.
+- Avec le réglage « lancement réservé au MJ », les joueurs **voient toujours** le pot se
+  remplir : c'est le lancement qui leur est fermé, pas la consultation.
 - Par défaut, les joueurs peuvent lancer les sorts ; le profil de séance « MJ +
   tours » réserve le lancement au MJ.
 - Le module Sortilèges est désactivé par défaut : c'est un choix d'activation
@@ -104,7 +114,9 @@ Quand le pot est réuni et que le sort part, il se passe exactement trois choses
 2. une **fenêtre de résultat** s'ouvre chez tout le monde dans la partie : le nom du sort,
    son coût, la liste de ceux qui l'ont lancé, et **le texte de sa fiche** (« effet court »
    et « effet détaillé ») ;
-3. une ligne s'inscrit au **journal de partie** : « _L'équipe X lance ✨ Nom du sort._ »
+3. une ligne s'inscrit au **journal de partie** : « _L'équipe X lance ✨ Nom du sort._ » —
+   ou « _Toute la partie lance…_ » quand c'est le MJ qui a ouvert un pot commun sur
+   l'ensemble du plateau, puisque les contributeurs viennent alors de plusieurs équipes.
 
 Puis l'application s'arrête là. Elle ne soigne personne, ne déplace aucune mascotte,
 n'accorde aucun bonus, ne débloque aucun feuillet, ne décompte aucune durée. Les champs

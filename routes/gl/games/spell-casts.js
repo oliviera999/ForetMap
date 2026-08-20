@@ -45,7 +45,12 @@ async function handleSpellCastRoute(req, res, handler) {
     if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
     const config = await getSpellCastConfig();
     await assertSpellCastAvailable(config);
-    assertSpellCastActorAllowed(req.glAuth, config);
+    // Audit S11 — `spell_cast_mj_only` réserve au MJ le *lancement*, pas la lecture :
+    // bloquer aussi les GET privait les joueurs de la consultation du pot alors que les
+    // événements Socket.IO le leur poussaient quand même.
+    if (String(req.method || '').toUpperCase() !== 'GET') {
+      assertSpellCastActorAllowed(req.glAuth, config);
+    }
     return await handler({ gameId, config });
   } catch (err) {
     const mapped = resolveSpellCastError(mapSpellCastSqlError(err));
