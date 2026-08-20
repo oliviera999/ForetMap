@@ -3,7 +3,10 @@
 > Portée : sous-produit **GL** du monorepo ForetMap. Ce document décrit **la chaîne complète
 > d'un sortilège** — du catalogue au débit — répond précisément à la question « **comment
 > l'effet d'un sort s'applique-t-il aujourd'hui ?** », puis liste les points d'attention
-> relevés à la lecture du code. Rédigé le 2026-08-20 (base `main`, v1.100.1).
+> relevés à la lecture du code. Rédigé le 2026-08-20 sur `main` v1.100.1, puis rebasé sur
+> v1.100.2 : les commits arrivés entre-temps ne touchent **aucun** fichier du chemin des
+> sortilèges (seul `lib/glVitality.js` change, sur un libellé d'erreur sans rapport avec le
+> débit) — les constats ci-dessous restent valables tels quels.
 >
 > Références principales : `lib/glSpellCast.js`, `lib/glSpellOptions.js`,
 > `lib/glChapterSpells.js`, `lib/glSpellsImport.js`, `lib/glSpellBulkPatch.js`,
