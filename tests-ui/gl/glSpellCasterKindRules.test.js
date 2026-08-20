@@ -35,8 +35,6 @@ describe('filterSelectableTeams — restriction de peuple', () => {
     teams: [GNOME_TEAM, UNICORN_TEAM],
     teamScope: 'any_team',
     playerTeamId: null,
-    currentTeamId: null,
-    turnsEnabled: false,
     isStaff: true,
   };
 
@@ -133,5 +131,36 @@ describe('glSpellCasterKindBadge', () => {
 
   test('les libellés du formulaire couvrent les trois valeurs', () => {
     expect(Object.keys(GL_SPELL_CASTER_KIND_LABELS)).toEqual(['any', 'gnome', 'unicorn']);
+  });
+});
+
+// G13-a — le mode classique fait jouer toutes les équipes dans un même tour et ne borne
+// pas les sortilèges : l'assistant ne doit plus restreindre le choix à l'équipe active.
+describe('filterSelectableTeams — plus de filtre par tour', () => {
+  test('les tours activés ne réduisent plus le choix à l’équipe active', () => {
+    const teams = filterSelectableTeams({
+      teams: [GNOME_TEAM, UNICORN_TEAM],
+      teamScope: 'any_team',
+      playerTeamId: null,
+      isStaff: true,
+      casterKind: 'any',
+      // Champs de l'ancienne règle séquentielle : ignorés désormais.
+      currentTeamId: 2,
+      turnsEnabled: true,
+    });
+    expect(teams.map((t) => t.id)).toEqual([1, 2]);
+  });
+
+  test('le périmètre d’équipe du joueur reste, lui, appliqué', () => {
+    const teams = filterSelectableTeams({
+      teams: [GNOME_TEAM, UNICORN_TEAM],
+      teamScope: 'own_team',
+      playerTeamId: 1,
+      isStaff: false,
+      casterKind: 'any',
+      currentTeamId: 2,
+      turnsEnabled: true,
+    });
+    expect(teams.map((t) => t.id)).toEqual([1]);
   });
 });

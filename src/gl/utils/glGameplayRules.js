@@ -14,8 +14,8 @@ export const GL_DEFAULT_GAMEPLAY = {
   defaultHealthPoints: 3,
   defaultPowerPoints: 3,
   spellCastEnabled: false,
-  spellCastContributionMode: 'both',
-  spellCastTeamScope: 'any_team',
+  spellCastContributionMode: 'self_only',
+  spellCastTeamScope: 'own_team',
   spellCastMjOnly: false,
   qcmMjOnly: false,
   // Marché : cœurs non échangeables par défaut (seules les gemmes circulent).

@@ -1079,9 +1079,8 @@ export function AppGL() {
             playerId={auth?.userId != null ? Number(auth.userId) : null}
             playerTeamId={auth?.teamId != null ? Number(auth.teamId) : null}
             currentTeamId={currentTeamId}
-            turnsEnabled={!!gameplaySettings.turnsEnabled}
-            contributionMode={gameplaySettings.spellCastContributionMode || 'both'}
-            teamScope={gameplaySettings.spellCastTeamScope || 'any_team'}
+            contributionMode={gameplaySettings.spellCastContributionMode || 'self_only'}
+            teamScope={gameplaySettings.spellCastTeamScope || 'own_team'}
             isStaff={showStaffAdminUi}
             spellCast={spellCast}
             chapterSpells={gameState?.game?.chapter_spells || []}

@@ -260,6 +260,17 @@
   align-items: center;
 }
 
+/* G11 — file « Sortilèges à appliquer » : l'effet à jouer doit se lire d'un coup d'œil. */
+.gl-spell-effect-queue__effect {
+  margin: 6px 0;
+  padding: 6px 8px;
+  border-left: 3px solid var(--gl-accent, #047c8c);
+  background: #ffffff;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 .gl-pending-action-payload {
   background: #f1f5f9;
   padding: 6px;

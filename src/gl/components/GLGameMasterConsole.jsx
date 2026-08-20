@@ -79,6 +79,9 @@ export function GLGameMasterConsole({
   const [rosterRefreshKey, setRosterRefreshKey] = useState(0);
   const [busy, setBusy] = useState(false);
   const [pendingSpellCasts, setPendingSpellCasts] = useState([]);
+  // G11 — sorts lancés dont l'effet reste à appliquer à la table : le logiciel ne
+  // l'exécute pas, il se contente de rappeler au MJ ce qu'il doit faire.
+  const [castsAwaitingEffect, setCastsAwaitingEffect] = useState([]);
   const { mascots: mascotCatalog } = useGLMascotCatalog();
 
   const activeClasses = useMemo(
@@ -496,9 +499,23 @@ export function GLGameMasterConsole({
     }
   }, [game?.id, canSpellCast, gameStatus]);
 
+  const loadCastsAwaitingEffect = useCallback(async () => {
+    if (!game?.id || !canSpellCast || gameStatus !== 'live') {
+      setCastsAwaitingEffect([]);
+      return;
+    }
+    try {
+      const data = await apiGL(`/api/gl/games/${game.id}/spell-casts/awaiting-effect`);
+      setCastsAwaitingEffect(Array.isArray(data?.drafts) ? data.drafts : []);
+    } catch (_) {
+      // rappel non bloquant : une erreur de rafraîchissement ne doit pas gêner la partie
+    }
+  }, [game?.id, canSpellCast, gameStatus]);
+
   useEffect(() => {
     loadPendingSpellCasts();
-  }, [loadPendingSpellCasts, gameState]);
+    loadCastsAwaitingEffect();
+  }, [loadPendingSpellCasts, loadCastsAwaitingEffect, gameState]);
 
   async function resolveSpellCast(draftId, decision) {
     if (!game?.id || draftId == null) return;
@@ -515,6 +532,34 @@ export function GLGameMasterConsole({
     } finally {
       setBusy(false);
     }
+  }
+
+  /** G11 — le MJ note qu'il a appliqué l'effet : trace au journal, sort retiré du rappel. */
+  async function markSpellEffectApplied(draftId) {
+    if (!game?.id || draftId == null) return;
+    setBusy(true);
+    try {
+      await apiGL(`/api/gl/games/${game.id}/spell-casts/drafts/${draftId}/effect-applied`, 'POST');
+      await loadCastsAwaitingEffect();
+      await onReloadGame?.();
+      showSuccess('Effet noté comme appliqué.');
+    } catch (err) {
+      showFailure(err.message || 'Impossible de noter l’effet comme appliqué');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * G11 — raccourci « raconter » : pré-remplit la narration avec l'effet du sort.
+   * Le MJ relit, ajuste et envoie — on n'écrit jamais au journal à sa place.
+   */
+  function prefillNarrationFromSpell(draft) {
+    const spell = draft?.spell || {};
+    const name = String(spell.nom || draft?.spellCode || 'Sortilège').trim();
+    const emoji = spell.emoji ? `${spell.emoji} ` : '';
+    const effect = String(spell.effetDetaille || spell.effetCourt || '').trim();
+    setNarration(`${emoji}${name} — ${effect}`.trim());
   }
 
   async function sendNarration(event) {
@@ -850,6 +895,9 @@ export function GLGameMasterConsole({
             roundNumber={game?.current_round_number}
             pendingSpellCasts={pendingSpellCasts}
             onResolveSpellCast={resolveSpellCast}
+            castsAwaitingEffect={castsAwaitingEffect}
+            onMarkSpellEffectApplied={markSpellEffectApplied}
+            onNarrateSpellEffect={prefillNarrationFromSpell}
             narrationEnabled={narrationEnabled}
             playerActionsEnabled={playerActionsEnabled}
             scoringEnabled={scoringEnabled}

@@ -7,6 +7,142 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sortilèges : lancer un sort n'est plus lié au tour de l'équipe (G13-a)
+
+Arbitrage G13-a tranché, option A. Quand les tours sont activés, l'assistant de lancement
+ne proposait que **l'équipe active** — la règle séquentielle d'avant le « mode classique ».
+Or ce mode fait jouer toutes les équipes dans un même tour et ne borne pas les sortilèges :
+le tour cadence les déplacements de mascotte et les dés (une fois par tour chacun), et c'est
+la validation du MJ qui régule les sorts. L'écran promettait donc une règle que le serveur
+n'a jamais appliquée, et une équipe non active ne voyait pas comment lancer un sort.
+
+- Le filtre par tour est retiré de l'assistant : **toutes les équipes restent proposées**,
+  tours activés ou non.
+- Ce qui continue de s'appliquer : le périmètre d'équipe du joueur (« Uniquement son
+  équipe ») et la réservation d'un sort à un peuple.
+- Deux tests figent la règle ; ils échouent tous deux sans le correctif.
+
+**G13-b** (le statut « proposé », jouable comme un officiel) reste en attente : la décision
+est suspendue le temps d'assainir le catalogue existant — 17 des 35 sortilèges livrés sont
+des propositions, et rien ne montre encore lesquelles sont déjà rattachées à un chapitre.
+
+### Sortilèges : G13 réanalysé — ce n'était pas une règle manquante, mais un vestige d'écran
+
+Analyse seule, aucun changement de comportement. En détaillant le point G13 du registre, la
+relecture du code a corrigé une prémisse fausse de la rédaction initiale.
+
+- **Le filtre « c'est le tour de telle équipe » (G13-a).** On avait écrit que le serveur ne
+  tenait pas une règle annoncée à l'écran. C'est l'inverse : la migration `139` (« mode
+  classique ») a **volontairement** sorti les sortilèges du tour par tour — le serveur
+  applique un quota par tour aux mascottes et aux dés, et laisse les sorts libres, régulés
+  par l'approbation du MJ. C'est **l'assistant de lancement** qui applique encore l'ancienne
+  règle séquentielle. Les options ont été réécrites en conséquence (retirer le filtre,
+  aligner les sorts sur le quota par tour, ou rétablir la séquence pour de bon).
+- **Le statut « proposé » (G13-b).** Chiffré : dans le corpus livré, **17 des 35 sortilèges
+  sont des propositions** (`source = proposition_claude`, avec justification pédagogique),
+  jouables aujourd'hui comme les officiels dès qu'on les rattache à un chapitre — et l'écran
+  de rattachement n'affiche même pas le statut.
+
+Le point est scindé en **G13-a** et **G13-b** dans
+[docs/reference/INCOHERENCES.md](docs/reference/INCOHERENCES.md) : ce sont deux décisions
+distinctes. `docs/AUDIT_SORTILEGES.md` (S5, S6) est corrigé en conséquence.
+
+### Sortilèges : les arbitrages G11 et G12 sont livrés
+
+Deux décisions prises sur le registre d'arbitrage, mises en œuvre.
+
+**G11 — le MJ n'est plus seul à se souvenir des effets** (option A). Le logiciel continue de
+ne pas exécuter les effets des sortilèges : ils restent du texte, appliqué à la table par le
+maître du jeu. Mais un sort payé dont l'effet est oublié ne passe plus inaperçu.
+
+- La console MJ tient une file **« Sortilèges à appliquer »** : chaque sort lancé y reste tant
+  que le MJ n'a pas coché « Effet appliqué ✔ ». L'entrée rappelle l'effet, la portée, la cible,
+  le moment et la limite d'usage — précisément les champs que le logiciel n'applique pas.
+- Un bouton **« Raconter cet effet »** pré-remplit la narration : le MJ relit, ajuste, envoie.
+  Rien n'est jamais écrit au journal à sa place.
+- Cocher horodate l'application, nomme l'acteur et inscrit une ligne au journal de partie.
+  L'écriture est conditionnée : deux clics ne laissent qu'une trace et qu'un événement.
+- Migration `195` (`gl_spell_cast_drafts.effect_applied_*`), routes
+  `GET /api/gl/games/:id/spell-casts/awaiting-effect` et
+  `POST /api/gl/games/:id/spell-casts/drafts/:draftId/effect-applied`, événement
+  `spell_effect_applied`.
+
+**G12 — un élève ne dépense plus les points d'un camarade** (option A). Les réglages sortis
+d'usine étaient les plus permissifs des trois possibles : un joueur pouvait ouvrir un sort pour
+n'importe quelle équipe et puiser dans la vitalité de n'importe qui, la seule barrière étant une
+confirmation dans son propre navigateur.
+
+- Défauts basculés sur **« Chaque joueur saisit uniquement sa contribution »** et
+  **« Uniquement son équipe »**.
+- **Le MJ et l'admin répartissent toujours librement** — c'est leur rôle, rien ne change pour eux.
+- Les modes permissifs restent disponibles, mais deviennent un choix conscient : ils portent un
+  ⚠️ dans les réglages et disent en clair ce qu'ils autorisent.
+- Une classe déjà réglée en « Les deux » **garde son réglage** : seuls les défauts changent,
+  aucun choix existant n'est écrasé.
+
+Restent ouverts au registre : G13 (tour d'équipe et statut « proposé » annoncés à l'écran mais
+non tenus par le serveur) et le sort à coût nul, injouable par l'assistant.
+
+### Sortilèges : neuf défauts corrigés — dont un débit qui pouvait partir deux fois
+
+Suite directe de [docs/AUDIT_SORTILEGES.md](docs/AUDIT_SORTILEGES.md) : les points dont la
+bonne réponse ne se discute pas sont corrigés. Chaque correctif a son test, et chaque test a
+été vérifié **rouge sans son correctif**. Les six points restants demandent un choix de jeu et
+attendent l'arbitrage (G11 à G13 du registre).
+
+- **Un sort ne se paie plus deux fois (S2).** Deux clics simultanés sur « lancer » — deux
+  onglets, deux membres de l'équipe, un double-clic — pouvaient débiter deux fois et écrire
+  deux événements : le statut du brouillon était lu hors transaction et l'écriture n'était
+  pas conditionnée. Le brouillon est désormais verrouillé en tête de transaction et son
+  passage à « lancé » n'a lieu qu'une fois ; la seconde tentative reçoit « ce sortilège a
+  déjà été lancé ». Même verrouillage pour la soumission au MJ et pour le refus. Correctif
+  repris de la PR #276 (restée en brouillon sur v1.85.5) et réécrit sur la base actuelle.
+- **On ne verse plus dans un axe que le sort ne demande pas (S3).** Des gemmes déposées sur
+  un sort qui n'en coûte pas n'étaient comparées à rien — mais bien débitées. L'écran ne
+  proposait pas le champ ; une requête fabriquée passait. Refus en `400` à l'écriture, plus
+  un filet arrière dans le contrôle de complétude.
+- **La portée solo/collectif est rejouée avant le débit (S9)**, comme l'était déjà la
+  restriction de peuple : un sort dont la portée change pendant qu'il attend le MJ ne part
+  plus en contradiction avec sa fiche.
+- **Plus de doublon dans la file du MJ (S10).** Une équipe dont le sort attendait validation
+  pouvait en ouvrir un second identique — et le MJ, les accepter tous les deux.
+- **« MJ seul » ne ferme plus la lecture (S11).** Le réglage réserve le lancement au MJ ; il
+  privait aussi les joueurs de la consultation du pot, alors que les événements temps réel la
+  leur poussaient quand même.
+- **Les notes de préparation du MJ ne partent plus chez le joueur (S12).** `source` et
+  `notes_pedagogiques` étaient servis par l'API à tout compte de lecture, sans être affichés.
+  Les routes joueur servent désormais une projection dédiée ; les écrans d'administration
+  gardent la fiche complète.
+- **Défense en profondeur sur les droits (S13).** `gl.mascot.position`, accordée aux joueurs,
+  ne fait plus partie des permissions qui identifient le staff — la distinction ne repose
+  plus sur le seul type de compte.
+- **Le journal ne met plus un sort collectif au compte d'une seule équipe (S14).** Quand le
+  MJ ouvre un pot sur tout le plateau, la ligne dit « Toute la partie lance… ».
+- **Documentation d'API alignée (S15)** : migration `173` citée, refus ajoutés décrits,
+  `rosterScope` documenté dans la charge utile de l'événement.
+
+### Audit des sortilèges : ce que l'application encaisse, et ce que personne n'applique
+
+Audit de lecture, **sans changement de code ni de comportement** :
+[docs/AUDIT_SORTILEGES.md](docs/AUDIT_SORTILEGES.md) suit un sortilège du catalogue au débit
+et répond à la question posée — comment son effet s'applique-t-il aujourd'hui ?
+
+- **Réponse : il ne s'applique pas.** Un sort lancé retire les cœurs et les gemmes promis,
+  affiche le texte de sa fiche et écrit une ligne au journal. C'est tout. « Portée »,
+  « cible », « timing », « limite d'usage » et « cumul » sont affichés au joueur et **jamais
+  interprétés** : le moteur est un pot commun collaboratif, pas un moteur d'effets, et c'est
+  le MJ qui applique l'effet à la main — sans rappel ni trace.
+- **Quinze points d'attention** classés par gravité, dont un 🔴 : deux lancements
+  simultanés peuvent débiter deux fois (le correctif dort dans la PR #276, bâtie sur
+  v1.85.5 — reprise à faire sur la base actuelle). Puis, en 🟠 : une contribution sur un axe
+  à coût nul est débitée sans contrepartie, et les réglages sortis d'usine (`any_team` +
+  `both`) laissent un élève dépenser la vitalité d'un camarade d'une autre équipe, la seule
+  barrière étant une confirmation côté navigateur.
+- **Doc de référence** : [economie-marche-sorts.md](docs/reference/gl/economie-marche-sorts.md)
+  décrit désormais noir sur blanc ce qui se passe quand le sort part, et ce qui reste à la
+  charge du MJ.
+- **Registre d'arbitrage** : quatre points ouverts à trancher (G11 à G14) dans
+  [docs/reference/INCOHERENCES.md](docs/reference/INCOHERENCES.md).
 ### Documentation technique remise au niveau du code
 
 Quatre lots de documentation restés en brouillon depuis juillet (PR #260, #271, #280, #289) ont été

@@ -15,6 +15,9 @@ export default function GLGameMasterConsoleLive({
   roundNumber,
   pendingSpellCasts = [],
   onResolveSpellCast,
+  castsAwaitingEffect = [],
+  onMarkSpellEffectApplied,
+  onNarrateSpellEffect,
   narrationEnabled,
   playerActionsEnabled,
   scoringEnabled,
@@ -172,6 +175,78 @@ export default function GLGameMasterConsoleLive({
                     >
                       Refuser
                     </GLButton>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+
+      {castsAwaitingEffect.length > 0 ? (
+        <div className="gl-gameplay-block gl-spell-effect-queue">
+          <h3>Sortilèges à appliquer ({castsAwaitingEffect.length})</h3>
+          <p className="gl-hint">
+            Les cœurs et les gemmes sont déjà débités. L’effet, lui, c’est vous qui l’appliquez —
+            ajustez la vitalité ou le score ci-dessous, racontez-le, puis cochez.
+          </p>
+          <ul className="gl-pending-actions">
+            {castsAwaitingEffect.map((draft) => {
+              const team = teams.find((t) => Number(t.id) === Number(draft.teamId));
+              const spell = draft.spell || {};
+              const spellName = spell.nom || draft.spellCode;
+              const cost = draft.required || spell.required || {};
+              const wholeGame = draft.rosterScope === 'game';
+              const effect = spell.effetDetaille || spell.effetCourt || '';
+              const meta = [
+                spell.portee ? `Portée : ${spell.portee}` : '',
+                spell.cible ? `Cible : ${spell.cible}` : '',
+                spell.timing ? `Moment : ${spell.timing}` : '',
+                spell.limiteUsage ? `Limite d’usage : ${spell.limiteUsage}` : '',
+              ].filter(Boolean);
+              return (
+                <li key={draft.id} className="gl-pending-action">
+                  <div className="gl-pending-action-head">
+                    <strong>
+                      {spell.emoji ? `${spell.emoji} ` : ''}
+                      {spellName}
+                    </strong>
+                    <span className="gl-hint">
+                      {wholeGame ? 'Toute la partie' : team?.name || `Équipe #${draft.teamId}`}
+                      {draft.castAt && formatTimestamp ? ` · ${formatTimestamp(draft.castAt)}` : ''}
+                    </span>
+                  </div>
+                  <div className="gl-hint">
+                    Payé : {Number(cost.gems) || 0} 💎 · {Number(cost.hearts) || 0} ❤️
+                  </div>
+                  {effect ? (
+                    <p className="gl-spell-effect-queue__effect">{effect}</p>
+                  ) : (
+                    <p className="gl-hint">
+                      Aucun effet n’est décrit sur la fiche de ce sortilège.
+                    </p>
+                  )}
+                  {meta.length > 0 ? <p className="gl-hint">{meta.join(' · ')}</p> : null}
+                  <div className="gl-inline-actions">
+                    <GLButton
+                      type="button"
+                      size="sm"
+                      onClick={() => onMarkSpellEffectApplied?.(draft.id)}
+                      disabled={busy}
+                    >
+                      Effet appliqué ✔
+                    </GLButton>
+                    {narrationEnabled && effect ? (
+                      <GLButton
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => onNarrateSpellEffect?.(draft)}
+                        disabled={busy}
+                      >
+                        Raconter cet effet
+                      </GLButton>
+                    ) : null}
                   </div>
                 </li>
               );
