@@ -38,6 +38,9 @@ const {
   MARKERS_SHEET,
   ZONES_SHEET,
 } = require('../lib/glChaptersImport');
+const { parseFeuilletsWorkbook } = require('../lib/glLoreFeuilletsImport');
+const { parseLoreGlossaryWorkbook } = require('../lib/glLoreGlossaryImport');
+const { parseQcmLoreWorkbook } = require('../lib/glQcmLoreImport');
 
 let adminToken = '';
 let playerToken = '';
@@ -124,6 +127,61 @@ test('GET /api/gl/admin/qcm/import/template retourne un modèle XLSX (2 feuilles
   assert.ok(categoryRows.length >= 1);
   assert.ok(questionRows.length >= 1);
   assert.strictEqual(validateCategoryPayload(buildCategoryPayload(categoryRows[0]), 2).length, 0);
+});
+
+// Les six téléchargements du panneau contenus lore. Leurs handlers se contentent de
+// retourner `{ buffer, filename }` : tant que `wrapXlsxRoute` n'envoyait pas ce retour,
+// Express laissait la requête pendante et aucun fichier n'arrivait. `getXlsxBuffer` exige
+// un 200, le bon type MIME et la signature ZIP — un handler muet échoue donc ici.
+test('GET /api/gl/lore/admin/feuillets/import/template livre un modèle XLSX', async () => {
+  const buf = await getXlsxBuffer(
+    request(app),
+    '/api/gl/lore/admin/feuillets/import/template',
+    adminToken,
+  );
+  const { feuilletRows } = await parseFeuilletsWorkbook(buf);
+  assert.ok(feuilletRows.length >= 1);
+});
+
+test('GET /api/gl/lore/admin/feuillets/export livre le catalogue (et non un 404 « Feuillet introuvable »)', async () => {
+  // `export` est un segment unique : déclarée après `/admin/feuillets/:code`, la route
+  // était capturée comme un code de feuillet.
+  const buf = await getXlsxBuffer(request(app), '/api/gl/lore/admin/feuillets/export', adminToken);
+  const { feuilletRows } = await parseFeuilletsWorkbook(buf);
+  assert.ok(Array.isArray(feuilletRows));
+});
+
+test('GET /api/gl/lore/admin/glossary/import/template livre un modèle XLSX', async () => {
+  const buf = await getXlsxBuffer(
+    request(app),
+    '/api/gl/lore/admin/glossary/import/template',
+    adminToken,
+  );
+  const { glossaryRows } = await parseLoreGlossaryWorkbook(buf);
+  assert.ok(glossaryRows.length >= 1);
+});
+
+test('GET /api/gl/lore/admin/glossary/export livre le catalogue', async () => {
+  const buf = await getXlsxBuffer(request(app), '/api/gl/lore/admin/glossary/export', adminToken);
+  const { glossaryRows } = await parseLoreGlossaryWorkbook(buf);
+  assert.ok(Array.isArray(glossaryRows));
+});
+
+test('GET /api/gl/lore/admin/qcm/import/template livre un modèle XLSX', async () => {
+  const buf = await getXlsxBuffer(
+    request(app),
+    '/api/gl/lore/admin/qcm/import/template',
+    adminToken,
+  );
+  const { categoryRows, questionRows } = await parseQcmLoreWorkbook(buf);
+  assert.ok(categoryRows.length >= 1);
+  assert.ok(questionRows.length >= 1);
+});
+
+test('GET /api/gl/lore/admin/qcm/export livre le catalogue', async () => {
+  const buf = await getXlsxBuffer(request(app), '/api/gl/lore/admin/qcm/export', adminToken);
+  const { questionRows } = await parseQcmLoreWorkbook(buf);
+  assert.ok(Array.isArray(questionRows));
 });
 
 test('GET /api/gl/admin/glossary/export round-trip ré-importable', async () => {

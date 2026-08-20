@@ -331,22 +331,38 @@ router.post(
     }
 
     const team = await queryOne(
-      'SELECT id, type, name FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1',
+      'SELECT id, type, name, position_marker_id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1',
       [teamId, gameId],
     );
     if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
+
+    // Anti-farm : « présenter une arrivée » suppose d'être arrivé. Sans cette garde, un
+    // joueur déclenchait les bonus (cœurs, gemmes, déplacement automatique) de tous les
+    // repères à effet du plateau sans s'y rendre. Le MJ garde la présentation à distance.
+    if (
+      req.glAuth.userType === 'gl_player' &&
+      Number(team.position_marker_id) !== Number(markerId)
+    ) {
+      return res.status(409).json({ error: 'Votre équipe n’est pas sur ce repère' });
+    }
 
     const arrival = buildMarkerArrivalPayload(marker, team);
     const actorType = actorTypeOf(req);
     const actorId = String(req.glAuth.userId);
     const reason = String(marker.label || 'Repère').trim();
 
-    const playerIdsRaw = req.body?.playerIds;
-    const playerIds = Array.isArray(playerIdsRaw)
-      ? playerIdsRaw
-      : playerIdsRaw != null
-        ? [playerIdsRaw]
-        : null;
+    // `playerIds` cible un sous-ensemble de l'équipe : c'est un geste d'animation, réservé
+    // au MJ. Laissé au joueur, il permettait de choisir qui encaisse un gain ou subit une
+    // perte — y compris, avant la validation de roster ci-dessous, hors de son équipe.
+    let playerIds = null;
+    if (req.glAuth.userType !== 'gl_player') {
+      const playerIdsRaw = req.body?.playerIds;
+      playerIds = Array.isArray(playerIdsRaw)
+        ? playerIdsRaw
+        : playerIdsRaw != null
+          ? [playerIdsRaw]
+          : null;
+    }
 
     let vitalityPayload = null;
     let autoMove = null;
