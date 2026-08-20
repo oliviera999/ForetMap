@@ -455,7 +455,11 @@ lancer un sort, alors que rien ne le lui interdit.
   cette fois vérifiée au serveur. Contredit le mode classique : à ne retenir que si vous
   jouez réellement en tour par tour.
 
-**Décision :**
+**Décision :** ✅ **Livré** (2026-08-20, option A) — le filtre est retiré de l'assistant.
+Quand les tours sont activés, **toutes** les équipes restent proposées : le lancement d'un
+sortilège n'est plus lié au tour, conformément au mode classique. Ce qui régule les sorts,
+c'est l'approbation du MJ (globale ou par sort), pas la rotation. Le périmètre d'équipe du
+joueur (« Uniquement son équipe ») continue, lui, de s'appliquer.
 
 #### G13-b — Un sortilège « proposé » se joue comme un sortilège officiel
 
@@ -482,7 +486,16 @@ on peut donc publier une proposition sans le voir.
 - **C** — Renommer le statut pour qu'il ne promette rien (« Origine : proposition »), et le
   traiter comme une simple provenance éditoriale.
 
-**Décision :**
+**Décision :** ⏳ **En attente** (2026-08-20) — décision suspendue le temps de faire le tri
+dans le catalogue existant : trancher avant de savoir quels sorts « proposés » sont déjà
+rattachés à des chapitres risquerait d'en retirer du jeu en cours d'année.
+
+_Outils disponibles pour ce tri, vérifiés :_ **Contenus → Sortilèges** liste les sorts par
+catégorie, avec cases à cocher et **édition en masse du statut** (officiel ⇄ proposé) ; le
+panneau d'import/export permet un **export XLSX filtré par statut**. Ce qu'aucun écran ne
+montre encore : **quels sorts « proposés » sont déjà rattachés à un chapitre** — c'est
+justement l'information qui rend l'option A sûre ou risquée. Une fois le catalogue assaini,
+l'option A devient sans danger.
 
 ### G14 — 🔴 Sortilèges : un double clic peut faire payer deux fois
 
