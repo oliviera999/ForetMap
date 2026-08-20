@@ -56,13 +56,23 @@ tutoriel, feuillet…) comme apprise.
   lien, un statut et des filtres pour s'y retrouver.
 - **Régler le comportement global** : dans **Réglages plateforme → Conditionnement par
   QCM** (admin) — l'interrupteur général (tant qu'il est éteint, les liens sont sans
-  effet), le mode (une réussite suffit / toutes les questions / un nombre minimum), le
-  marquage automatique après une bonne réponse, et le **délai avant nouvelle
-  tentative** après une erreur (3 jours par défaut).
-- **Ce que vit l'élève** : au moment de marquer « appris », une question s'ouvre ;
-  bonne réponse → c'est acquis (et marqué automatiquement si le réglage le prévoit) ;
-  mauvaise réponse → la ressource est verrouillée le temps du délai, puis il peut
-  réessayer.
+  effet), le **mode** (une réussite suffit / toutes les questions / un nombre minimum), le
+  **nombre de réussites** du mode « minimum », la **granularité du suivi** (par joueur ou
+  par équipe) et le **délai avant nouvelle tentative** après une erreur (3 jours par défaut).
+- **Assouplir une ressource en particulier** : une ressource peut porter sa propre politique
+  (son propre mode, ou une dispense complète), qui l'emporte sur le réglage général. Mais
+  l'interrupteur général reste **maître** : éteint, rien n'est demandé nulle part.
+- **Ce que vit l'élève** : au moment de marquer « appris », l'écran annonce combien de
+  questions seront posées **et ce qu'une erreur coûterait** (« une erreur bloquera la
+  validation pendant 3 jours ») ; il peut abandonner sans rien risquer. On ne lui pose que
+  le nombre de questions réellement exigé par le mode : en mode « une réussite suffit », une
+  seule question, même si la ressource en compte cinq. Bonne réponse → il peut confirmer ;
+  mauvaise réponse → la ressource est verrouillée le temps du délai, puis il peut réessayer.
+- **Les bonnes réponses comptent toujours**, même données avant l'activation du
+  conditionnement et même ailleurs (sur le plateau, à l'entraînement) : allumer
+  l'interrupteur ne fait pas repasser à l'élève une question qu'il a déjà réussie.
+- **Un contenu désactivé n'est plus marquable** : un feuillet ou un terme retiré du jeu
+  (statut « inactif ») ne peut plus être marqué appris ni importé dans le carnet.
 
 ## Le marquage « appris » et le carnet
 
@@ -77,9 +87,9 @@ Deux choses différentes, souvent confondues :
 
 - **Posséder** un feuillet (le voir arriver dans le Carnet de Sélène) ne demande
   **aucune question sur ce feuillet**. Il arrive parce que l'équipe a traversé une zone,
-  parce qu'un joueur a validé le QCM d'**une autre ressource** (une espèce, un terme de
-  glossaire…), parce qu'il a été **offert à l'ouverture** de la partie, ou parce qu'un
-  camarade l'a **échangé** au Marché.
+  parce qu'un joueur a marqué « apprise » **une autre ressource** (une espèce, un terme de
+  glossaire… — c'est le marquage qui déclenche, avec ou sans question), parce qu'il a été
+  **offert à l'ouverture** de la partie, ou parce qu'un camarade l'a **échangé** au Marché.
 - **Le marquer étudié** (et donc pouvoir l'importer dans son carnet personnel) passe,
   lui, par le conditionnement QCM du feuillet lui-même, comme n'importe quelle autre
   ressource — et n'est proposé que sur un feuillet déjà accessible en partie.
@@ -97,6 +107,21 @@ Autrement dit : le QCM ne garde pas la porte du feuillet, il garde la porte du
 > ⚠️ **Point d'attention** — Le délai de nouvelle tentative s'applique à **toute la
 > ressource** après une erreur : un élève verrouillé n'est pas un bug. Le délai se
 > règle (jusqu'à l'annuler, à 0 jour).
+
+> ⚠️ **Point d'attention** — Le **mode** choisi change beaucoup la charge de travail : sur une
+> ressource reliée à huit questions, « toutes les questions » en demande huit, « une réussite
+> suffit » une seule. Le mode par défaut est « une réussite suffit ».
+
+> ⚠️ **Point d'attention** — Seuls les liens que **quelqu'un a cochés « bloquant »**
+> conditionnent quoi que ce soit. Les liens créés automatiquement par les imports de QCM
+> (qui repèrent les termes de glossaire cités par une question) sont **non bloquants** : ils
+> documentent, ils ne barrent pas la route. Pour exiger une question, cochez sa case
+> « bloquant » dans **Contenus → Conditionnement QCM**.
+
+> ⚠️ **Point d'attention** — La **granularité « par équipe »** fait compter la bonne réponse
+> d'un coéquipier pour tous ses camarades — y compris celle saisie par le MJ quand le réglage
+> « QCM réservés au MJ » est actif. En « par joueur » (défaut), chacun répond pour lui : dans
+> ce cas, le mode animation ne fait progresser personne côté conditionnement.
 
 > ⚠️ **Point d'attention** — Un élève ne peut pas lire la bonne réponse par avance : elle
 > ne quitte jamais le serveur avant d'avoir été trouvée — ni dans le QCM lui-même, ni par

@@ -18,7 +18,7 @@ const {
 } = require('../../../lib/glLoreGlossaryMatch');
 const { loadAnyActiveQuestion, isLoreQuestionCode } = require('../../../lib/glQcmResolve');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
-const { recordGlQcmAttemptIfGatingEnabled } = require('../../../lib/learningGatingRuntime');
+const { recordGlQcmAttemptForReader } = require('../../../lib/learningGatingRuntime');
 const { parseId } = require('../../../lib/shared/httpHelpers');
 
 const router = express.Router();
@@ -198,7 +198,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
 
   // Après consommation seulement : un rejeu refusé ne doit pas peser sur le gating
   // (tentative comptée, verrou de re-tentative posé) alors qu'il n'a rien joué.
-  await recordGlQcmAttemptIfGatingEnabled(
+  await recordGlQcmAttemptForReader(
     { queryAll, queryOne, execute },
     {
       glAuth: req.glAuth,

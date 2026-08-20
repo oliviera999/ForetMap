@@ -78,26 +78,48 @@ export function buildCooldownLockMessage(cooldown, itemTitle = '') {
   );
 }
 
-/** Questions encore à réussir pour le challenge. */
+/**
+ * Questions encore à poser pour satisfaire le challenge.
+ *
+ * On ne pose PAS toutes les questions non réussies : le serveur dit, via `pending_count`,
+ * combien de bonnes réponses il attend encore selon le mode effectif — 1 en mode « any »,
+ * N en mode « threshold », toutes en mode « all » (audit F1, 2026-08). Repli sur « toutes
+ * les non réussies » si un serveur plus ancien n'envoie pas `pending_count`.
+ */
 export function pendingChallengeQuestions(challenge) {
   if (!challenge?.required) return [];
   const list = Array.isArray(challenge.questions) ? challenge.questions : [];
-  return list.filter((q) => !q.already_correct);
+  const notCorrect = list.filter((q) => !q.already_correct);
+  const pendingCount = Number(challenge.pending_count);
+  if (!Number.isFinite(pendingCount) || pendingCount < 0) return notCorrect;
+  return notCorrect.slice(0, Math.min(pendingCount, notCorrect.length));
 }
 
 /**
  * Texte d'introduction avant le quiz gating (une ou plusieurs questions).
+ *
+ * L'annonce de ce qui suit une erreur dépend du délai de nouvelle tentative : avec un délai
+ * (3 jours par défaut), la PREMIÈRE mauvaise réponse verrouille la ressource — promettre
+ * « tu pourras réessayer » serait faux (audit F6, 2026-08). Sans délai (0), le réessai
+ * immédiat est bien possible.
  * @param {number} pendingCount
  * @param {string} [itemTitle]
+ * @param {number} [retryDays] `cooldown.retry_days` renvoyé par le challenge (0 = pas de verrou)
  */
-export function buildGatingQuizIntroMessage(pendingCount, itemTitle = '') {
+export function buildGatingQuizIntroMessage(pendingCount, itemTitle = '', retryDays = 0) {
   const n = Math.max(0, Number(pendingCount) || 0);
   if (n <= 0) return '';
   const label = itemTitle ? `« ${itemTitle} »` : 'ce contenu';
   const questionWord = n === 1 ? 'une question' : `${n} questions`;
   const verb = n === 1 ? 'sera posée' : 'seront posées';
+  const days = Math.max(0, Math.floor(Number(retryDays) || 0));
+  const consequence =
+    days > 0
+      ? `Attention : une erreur bloquera la validation pendant ${days === 1 ? '1 jour' : `${days} jours`}. ` +
+        `Tu peux abandonner à tout moment sans rien risquer.`
+      : `Tu pourras réessayer en cas d'erreur et abandonner à tout moment.`;
   return (
     `Pour valider que tu as bien compris ${label}, ${questionWord} ${verb} ` +
-    `avant de pouvoir confirmer. Tu pourras réessayer en cas d'erreur et abandonner à tout moment.`
+    `avant de pouvoir confirmer. ${consequence}`
   );
 }
