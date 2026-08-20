@@ -7,6 +7,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — le score du QCM se compte par joueur : règle tranchée, pas un défaut
+
+`docs/AUDIT_APP_ET_JEU_2026-08.md` §6.2 laissait une question ouverte : une équipe de cinq
+marque mécaniquement +5 sur la même question du plateau, chaque joueur obtenant sa propre
+présentation. Le document y voyait un défaut d'unicité à corriger côté serveur.
+
+**Décision : le score se compte par joueur, et c'est voulu.** Chaque élève qui répond juste
+rapporte un point à son équipe. L'intention est pédagogique — on veut que *chacun* réponde,
+pas qu'un seul réponde pour tout le groupe pendant que les autres regardent ; compter par
+équipe aurait récompensé le plus rapide et dispensé les autres.
+
+Aucun changement de code : le comportement actuel est le bon. Ce qui change, c'est qu'il est
+désormais **écrit** — dans l'audit (le point est tranché, plus « à trancher »), dans
+`docs/API.md` et dans la doc de référence MJ, avec le corollaire d'équilibrage à connaître :
+une équipe nombreuse marque plus qu'une équipe réduite, donc mieux vaut des effectifs
+voisins si les scores doivent être comparés. La garde d'usage unique introduite en v1.100.1
+reste indispensable et porte sur **la présentation** : elle empêche un élève de rejouer son
+jeton, pas ses camarades de répondre à leur tour.
+
 ### GL — on ne récolte plus le plateau sans le parcourir
 
 Deux routes de partie accordaient leurs récompenses sans vérifier que l'équipe se trouvait

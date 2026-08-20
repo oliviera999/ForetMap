@@ -611,16 +611,29 @@ complètes, testées et documentées. **Il n'y a rien à concevoir : il y a à f
 > HMAC de la bonne réponse, et chaque présentation porte un `jti` consommé à la première
 > réponse (migration `193`, et non `171` — sur une base migrée au-delà, le runner aurait
 > sauté ce numéro sans bruit). Voir `lib/glQcmChoices.js`, `lib/glQcmPresentationUse.js`,
-> `tests/gl-qcm-presentation-reuse.test.js`. **Le point restant du §6.2 — une équipe de 5
-> marque +5 sur la même question, chaque joueur ayant sa propre présentation — n'est
-> toujours pas tranché** : l'usage unique porte sur la présentation, pas sur le couple
-> (équipe, question).
+> `tests/gl-qcm-presentation-reuse.test.js`. Le point restant du §6.2 — une équipe de 5
+> marque +5 sur la même question — a depuis été **tranché en faveur du score par joueur**
+> (voir ci-dessous) : l'usage unique porte donc bien sur la présentation, et non sur le
+> couple (équipe, question). Rien à changer côté serveur.
 
-Reste **un point que ces PR ne traitent pas** : une équipe de 5 qui répond à la même
+Restait **un point que ces PR ne traitaient pas** : une équipe de 5 qui répond à la même
 question du plateau marque mécaniquement +5, puisque chaque joueur obtient sa propre
-présentation. Il faut trancher la règle — « une question du plateau rapporte des points
-**par équipe**, pas par joueur » — et l'appliquer côté serveur (clé d'unicité
-`(gameId, teamId, questionCode)` sur l'attribution de score).
+présentation. Ce document proposait d'y voir un défaut et de compter **par équipe** (clé
+d'unicité `(gameId, teamId, questionCode)` sur l'attribution de score).
+
+> **Tranché le 20/08/2026 — le score se compte par joueur, et c'est voulu.** Chaque élève
+> qui répond juste rapporte un point à son équipe ; une équipe de cinq peut donc gagner
+> jusqu'à cinq points sur la même question. Ce n'est pas un défaut d'unicité : c'est la
+> règle du jeu, et elle est cohérente avec l'intention pédagogique — on veut que **chaque
+> élève réponde**, pas qu'un seul réponde pour les autres pendant que le reste du groupe
+> regarde. Compter par équipe aurait récompensé le plus rapide et dispensé les autres.
+>
+> Conséquence sur l'équilibrage, à connaître : une équipe nombreuse marque mécaniquement
+> plus qu'une équipe réduite. Le MJ qui veut des scores comparables constitue des équipes
+> de taille voisine — la console affiche l'effectif de chacune.
+>
+> La garde d'usage unique reste indispensable et porte sur **la présentation** : elle
+> empêche un même élève de rejouer son jeton, pas ses camarades de répondre à leur tour.
 
 ### 6.3 🟠 Une requête de glossaire inutile à chaque réponse au QCM
 
