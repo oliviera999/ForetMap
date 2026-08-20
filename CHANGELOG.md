@@ -7,6 +7,53 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — on ne récolte plus le plateau sans le parcourir
+
+Deux routes de partie accordaient leurs récompenses sans vérifier que l'équipe se trouvait
+là où l'action se joue. Le déplacement de la mascotte est pourtant tout le jeu : sans ces
+gardes, une classe encaissait cœurs et gemmes de l'ensemble du plateau depuis sa chaise.
+Diagnostic et approche repris de la PR #285, restée en brouillon sur une base antérieure.
+
+- **Zones feuillets** — `POST …/feuillet-zones/:zoneId/present` refuse désormais (`409`)
+  si la mascotte n'est pas **dans le polygone** de la zone : position libre, ou héritée du
+  repère où l'équipe se tient. Les 24 zones du catalogue étaient jusqu'ici présentables
+  d'affilée sans bouger, chacune inscrivant son événement `feuillet_zone_presented`.
+  Le contrôle est un miroir CJS exact de `src/gl/utils/glPointInPolygon.js`
+  (`lib/shared/glPointInPolygon.js`) : le serveur doit conclure comme l'écran du joueur,
+  faute de quoi une mascotte visiblement dans la zone se verrait refusée.
+- **Effets de repère** — `POST …/markers/:markerId/present-arrival` refuse (`409`) si
+  l'équipe n'est pas sur ce repère : « présenter une arrivée » suppose d'être arrivé.
+  Le paramètre `playerIds`, qui cible un sous-ensemble de joueurs, redevient un geste de
+  MJ — laissé au joueur, il permettait de choisir qui encaisse un gain ou subit une perte.
+- **Ciblage** — `applyMarkerVitalityEffects` vérifie que chaque joueur ciblé appartient au
+  **roster de l'équipe** (`400` sinon) : `playerIds` désignait des lignes de `gl_players`
+  sans autre contrôle, donc un joueur d'une autre équipe, d'une autre classe, ou ne
+  participant à aucune partie pouvait être crédité ou débité. La liste est aussi
+  dédoublonnée — le même identifiant deux fois appliquait le delta deux fois.
+
+Dans les deux cas, **le MJ n'est pas soumis à la garde** : présenter à distance est un geste
+d'animation légitime (démonstration, rattrapage d'une équipe bloquée).
+
+Une faiblesse du brouillon d'origine a été corrigée au passage : `Number(null)` valant `0`,
+une équipe de position inconnue était traitée comme posée au coin `(0, 0)` du plateau au lieu
+d'être refusée. La coercition est désormais stricte, et c'est couvert par un test.
+
+### GL — les téléchargements XLSX du panneau contenus lore ne livraient aucun fichier
+
+Les six boutons « Modèle XLSX » / « Exporter » du carnet de Sélène, du glossaire lore et du
+QCM lore ne produisaient rien. Deux causes, indépendantes, reprises de la PR #265 :
+
+- `wrapXlsxRoute` n'envoyait pas le retour `{ buffer, filename }` des handlers lore —
+  **Express ignore la valeur de retour d'un handler**, si bien que la réponse ne partait
+  jamais et que la requête restait pendante jusqu'au délai du navigateur. L'enveloppe
+  envoie désormais ce retour, sans double envoi si le handler a déjà répondu.
+- `GET /admin/feuillets/export` était déclarée **après** `/admin/feuillets/:code` : `export`
+  étant un segment unique, la route était capturée comme un code de feuillet et répondait
+  `404 « Feuillet introuvable »`. Elle remonte avant la route paramétrée.
+
+Les six routes sont désormais couvertes par un test HTTP qui exige un `200`, le type MIME
+XLSX et la signature ZIP — un handler muet échoue donc au lieu de faire patienter.
+
 ### Intégrité du QCM : la bonne réponse ne quitte plus le serveur, et une question ne se joue qu'une fois
 
 Deux défauts identifiés par [docs/AUDIT_APP_ET_JEU_2026-08.md](docs/AUDIT_APP_ET_JEU_2026-08.md)
