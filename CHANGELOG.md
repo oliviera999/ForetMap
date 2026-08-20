@@ -4805,6 +4805,17 @@ changer le mot de passe d'un autre prof.
 - `server.js` : création du serveur via `http.createServer(app)` pour attacher Socket.IO.
 - **Page À propos** : correction des crédits avec l'auteur principal `Mohammed El Farrai` (majuscules respectées) et `oliviera999` mentionné comme contributeur.
 
+### Audit — conditionnement par QCM des feuillets de lore (documentation)
+
+Audit de cohérence de la chaîne « questions ↔ feuillets de lore », de l'écran MJ qui crée le
+lien jusqu'à la modale de l'élève dans le Carnet de Sélène :
+[docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md](docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md).
+Aucun changement de comportement — document seul. Points saillants : quatre des six réglages de
+« Conditionnement par QCM » sont sans effet sur le code (mode, seuil, granularité, marquage
+automatique — l'accusé est figé en mode `all`), et les liens bloquants hérités de la migration
+145 / des imports de QCM se réveilleraient tous à l'allumage de l'interrupteur global. Les
+requêtes de contrôle à passer avant activation figurent en fin de document.
+
 ---
 
 ## [1.2.0] - 2026-03-20
