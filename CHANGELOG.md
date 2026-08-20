@@ -7,6 +7,29 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — le double clic ne donne plus deux fois les cœurs (ni deux jets de dés)
+
+Toutes les gardes « une seule fois » du jeu étaient bâties sur le même schéma : lire l'état,
+puis, plus tard, l'écrire. Entre les deux, une seconde requête lisait la même valeur périmée et
+concluait elle aussi « pas encore fait ». Deux clics rapprochés, deux onglets ouverts ou deux
+membres de la même équipe suffisaient donc à encaisser deux fois les effets d'un repère, à
+lancer deux fois les dés pour un même tour, ou à présenter deux fois une zone feuillet.
+
+- **Effets de repères et zones feuillets** — la ligne d'équipe est verrouillée (`FOR UPDATE`)
+  *avant* le contrôle d'idempotence, et non après : la seconde transaction attend la fin de la
+  première, puis relit un journal où l'événement figure désormais. La route « appliquer les
+  effets » refait ce contrôle sous verrou au lieu de se fier au seul contrôle d'entrée.
+- **Vitalité d'un joueur** — l'écriture est un lire-modifier-écrire en valeur absolue
+  (`SET health_points = ?`) : sans verrou de ligne, deux effets simultanés lisaient la même
+  valeur de départ et l'un des deux deltas disparaissait. La ligne joueur est verrouillée.
+- **Jet de dés et déplacement de mascotte** — la consommation du tour devient un `UPDATE`
+  conditionnel atomique (`… WHERE COALESCE(last_*_round_number, 0) < ?`) : la seconde requête
+  ne touche aucune ligne, sa transaction est annulée et l'événement n'est jamais inséré.
+
+Les contrôles rapides hors transaction sont conservés — ils évitent d'ouvrir une transaction
+pour rien dans le cas courant — mais ce ne sont plus eux qui garantissent l'unicité. Réponses
+et messages d'erreur inchangés (`409`). Diagnostic repris de la PR #279.
+
 ### ForetMap — la modale de tâche ne s'ouvrait plus du tout
 
 `ReferenceError: Cannot access 'normalizedTutorialIds' before initialization` à chaque

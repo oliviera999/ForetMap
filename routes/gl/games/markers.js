@@ -511,6 +511,9 @@ router.post(
         ? [playerIdsRaw]
         : null;
 
+    // Contrôle rapide, hors transaction : il évite d'ouvrir une transaction pour rien dans
+    // le cas courant. Il ne suffit pas — deux requêtes simultanées le passent toutes deux —,
+    // d'où le second contrôle sous verrou d'équipe dans la transaction ci-dessous.
     const alreadyApplied = await hasMarkerVitalityApplied(
       { queryAll },
       { gameId, teamId, markerId },
@@ -533,8 +536,15 @@ router.post(
           teamType: team.type,
           settings,
           playerIds,
-          skipIfAlreadyApplied: false,
+          // Re-contrôle sous verrou : c'est lui qui bloque réellement la double application.
+          skipIfAlreadyApplied: true,
         });
+
+        if (vitalityPayload?.alreadyApplied) {
+          const err = new Error('MARKER_EFFECT_ALREADY_APPLIED');
+          err.status = 409;
+          throw err;
+        }
 
         if (!vitalityPayload?.resolvedEffect) {
           const err = new Error('NO_MARKER_EFFECT');
@@ -600,6 +610,11 @@ router.post(
         if (autoMove?.moveEvent) lastEvent = autoMove.moveEvent;
       });
     } catch (err) {
+      if (err?.message === 'MARKER_EFFECT_ALREADY_APPLIED') {
+        return res
+          .status(409)
+          .json({ error: 'Effets vitalité déjà appliqués pour ce repère et cette équipe' });
+      }
       if (err?.message === 'NO_MARKER_EFFECT') {
         return res.status(409).json({ error: 'Aucun effet applicable sur ce repère' });
       }
