@@ -144,6 +144,38 @@ npm run dev
 
 Ouvrir **http://localhost:3000** : Express sert le contenu de **`dist/`** (SPA compilée).
 
+### Jobs quotidiens en local
+
+`npm run dev` démarre le même serveur Node qu'en production : sauf `NODE_ENV=test`, il planifie
+donc aussi les jobs quotidiens (premier passage 45 à 165 s après le boot, puis toutes les 24 h) :
+
+- duplication des tâches récurrentes validées arrivées à échéance ;
+- archivage automatique des tâches et projets validés anciens.
+
+Pour éviter toute écriture automatique pendant une démo, un import de dump ou une session de
+débogage, couper la planification complète :
+
+```bash
+FORETMAP_DISABLE_RECURRING_TASK_JOB=1 npm run dev
+```
+
+Sous PowerShell :
+
+```powershell
+$env:FORETMAP_DISABLE_RECURRING_TASK_JOB = '1'; npm run dev
+```
+
+Cette variable coupe **les deux** traitements. Pour n'essayer que la duplication des tâches
+récurrentes, utiliser le rattrapage manuel (forcé, JSON sur la sortie standard) :
+
+```bash
+npm run tasks:spawn-recurring
+```
+
+Ce script ne lance pas l'archivage automatique. Pour l'archivage, ajuster plutôt les réglages
+admin `tasks.auto_archive_enabled` et `tasks.auto_archive_after_days`. Détail du contrat :
+[EXPLOITATION.md](EXPLOITATION.md) — _Jobs quotidiens serveur_.
+
 ## 5. Tests d’intégration (base séparée)
 
 Les tests utilisent **`foretmap_test`** pour ne pas toucher à votre base de dev :
@@ -171,6 +203,24 @@ Le script force `DB_NAME=foretmap_test` ; le schéma est (re)créé par les fich
 Après une modification **frontend** : **`npm run build`** si le serveur sert **`dist/`** (`NODE_ENV=production`), avant **`npm run test:e2e`**. Le build Vite applique un **code-splitting** par onglet (`React.lazy` dans `App.jsx`) et des chunks vendor (`react-vendor`, `socket-io`, `rive`, `markdown` — voir `vite.config.js`).
 
 Référence de couverture GL: `docs/GL_TESTS.md`.
+
+### Régressions sécurité et intégrité
+
+Vérification rapide des garde-fous les plus sensibles :
+
+| Commande                                                                                                                             | Couvre                                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `node --test tests/uploads-private-paths.test.js`                                                                                    | Normalisation et refus **403** des familles privées `/uploads/observations` et `/uploads/task-logs` (sans BDD) |
+| `node --test tests/tasks-assignment-concurrency.test.js`                                                                             | Unicité `(tâche, n3beur)` et capacité sérialisée sur `POST /api/tasks/:id/assign`                              |
+| `node --test tests/homonymes-inscriptions.test.js`                                                                                   | Deux homonymes ne partagent plus leurs inscriptions ni leurs suppressions                                      |
+| `node --test tests/tasks-archive.test.js`                                                                                            | Archivage automatique des tâches et projets validés anciens                                                    |
+| `node --test --test-concurrency=1 --test-force-exit tests/gl-auth-revocation.test.js tests/gl-permissions-catalog-alignment.test.js` | Révocation immédiate des droits GL et alignement du catalogue RBAC                                             |
+| `node --test --test-concurrency=1 --test-force-exit tests/gl-concurrence-double-clic.test.js`                                        | Anti-double-clic GL : un seul effet de repère, un seul jet de dés, une seule présentation de zone feuillet     |
+
+Les tests GL qui touchent la base restent séquentiels (`--test-concurrency=1 --test-force-exit`).
+Piège de fixture : un compte n3beur inscrit par l'API sans groupe démarre en profil `visiteur` ;
+il faut le rattacher ou le promouvoir avant d'appeler des routes réservées aux n3beurs, sinon
+elles répondent **403**.
 
 ### Recette visuelle GL (effets partagés ForetMap ↔ GL)
 
