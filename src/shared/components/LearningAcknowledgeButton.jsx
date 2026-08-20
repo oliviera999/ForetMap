@@ -92,6 +92,8 @@ export function LearningAcknowledgeButton({
         setFlowPhase('locked');
         return;
       }
+      // Conservé même déverrouillé : `retry_days` dit à l'élève ce qu'une erreur coûterait.
+      setCooldown(challenge?.cooldown || null);
       const pending = pendingChallengeQuestions(challenge);
       if (pending.length > 0) {
         setPendingQuestions(pending);
@@ -151,7 +153,11 @@ export function LearningAcknowledgeButton({
   );
 
   const currentQuestion = pendingQuestions[questionIndex] || null;
-  const quizIntroMessage = buildGatingQuizIntroMessage(pendingQuestions.length, itemTitle);
+  const quizIntroMessage = buildGatingQuizIntroMessage(
+    pendingQuestions.length,
+    itemTitle,
+    cooldown?.retry_days,
+  );
 
   return (
     <>

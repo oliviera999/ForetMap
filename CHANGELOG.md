@@ -5043,6 +5043,76 @@ changer le mot de passe d'un autre prof.
 - `server.js` : création du serveur via `http.createServer(app)` pour attacher Socket.IO.
 - **Page À propos** : correction des crédits avec l'auteur principal `Mohammed El Farrai` (majuscules respectées) et `oliviera999` mentionné comme contributeur.
 
+### Le conditionnement par QCM obéit enfin à ses réglages (v1.101.0)
+
+Suite de l'audit [docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md](docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md),
+après arbitrage : **brancher** les réglages plutôt que les retirer.
+
+- **Le mode agit.** « Une réussite suffit », « toutes les questions » et « un nombre minimum »
+  pilotent réellement la validation — jusqu'ici l'accusé exigeait **toutes** les questions liées,
+  quoi qu'affiche l'écran. Un professeur qui choisit « une réussite suffit » obtient une question,
+  pas cinq. Le seuil du mode « minimum » est borné au nombre de questions liées (un seuil de 25 sur
+  3 questions ne rend plus la ressource impossible à valider).
+- **La politique par ressource agit aussi** : une ressource peut être dispensée de conditionnement,
+  ou assouplie en « une réussite suffit » alors que la plateforme est en « toutes les questions ».
+  L'interrupteur global reste **maître** : éteint, aucune surcharge ne le rallume.
+- **Granularité « par équipe »** : la bonne réponse d'un coéquipier compte pour ses camarades —
+  y compris celle saisie par le MJ quand « QCM réservés au MJ » est actif. Dans ce mode
+  d'animation, les élèves ne capitalisaient jusqu'ici **aucune** bonne réponse.
+- **On ne pose plus que les questions nécessaires.** Le challenge renvoie `mode`,
+  `required_correct`, `granularity`, `satisfied` et un `pending_count` qui vaut désormais
+  « combien de bonnes réponses il reste à donner » ; l'élève ne voit que ce nombre de questions.
+- **Les liens créés automatiquement ne bloquent plus.** Les rapprochements question ↔ terme de
+  glossaire générés par les imports (et par la migration 145) étaient **approuvés et bloquants** :
+  allumer l'interrupteur global aurait conditionné d'un coup des dizaines de termes que personne
+  n'avait choisis. Ils restent en base pour leur valeur documentaire, mais non bloquants
+  (migration `194`, plus les six points de code qui les génèrent). Un conditionnement ne s'applique
+  désormais que là où quelqu'un a coché « bloquant ».
+- **Réglage retiré** : « marquer automatiquement appris après une bonne réponse » disparaît de
+  l'écran. Il était déjà déprécié et ignoré ; le rebrancher aurait changé le comportement sans que
+  personne le demande. Même chose pour la granularité « par ressource », sans effet distinct
+  désormais — elle reste affichée, étiquetée « ancien réglage », sur les bases qui la portent.
+- **Tests** : `tests/gl-learning-gating-modes.test.js` (trois modes, bornage du seuil, dispense et
+  assouplissement par ressource, primauté de l'interrupteur global, deux granularités) et
+  couverture UI du nombre de questions posées.
+
+### Conditionnement par QCM : activation rétroactive, message honnête, contenus retirés non marquables (v1.100.3)
+
+Suites immédiates de l'audit ci-dessous — les constats qui ne demandaient aucun arbitrage.
+
+- **Activer le conditionnement devient rétroactif.** Les tentatives QCM n'étaient enregistrées
+  que si l'interrupteur global était déjà allumé : le jour de l'activation, chaque élève repartait
+  de zéro et se voyait reposer des questions déjà réussies sur le plateau. L'écriture est
+  désormais inconditionnelle (une ligne par réponse, sans effet visible tant que le
+  conditionnement dort) ; seule la **lecture** reste conditionnée.
+- **Le contrôle de compréhension ne promet plus ce qu'il ne tient pas.** L'écran annonçait
+  « Tu pourras réessayer en cas d'erreur » alors que la première mauvaise réponse verrouille la
+  ressource 3 jours par défaut. Le message suit maintenant le délai réglé : « une erreur bloquera
+  la validation pendant N jours » quand un délai existe, promesse de réessai immédiat seulement
+  quand le délai est à 0.
+- **Un contenu retiré du jeu n'est plus marquable.** Un feuillet ou un terme du lexique lore au
+  statut « inactif » — donc absent de toutes les listes, y compris côté MJ — restait marquable
+  « étudié » et importable dans le carnet personnel. Il est désormais introuvable pour ces deux
+  actions, comme les espèces et le glossaire scientifique l'étaient déjà.
+- **Tests** : nouveau `tests/gl-lore-feuillet-gating.test.js` (parcours complet feuillet × QCM
+  lore : challenge, présentation, bonne réponse, marquage — plus les deux gardes ci-dessus), et
+  cas de message ajoutés côté UI.
+- **Documentation** : `docs/API.md` (réglages non appliqués, tentatives inconditionnelles, filtre
+  de statut, convention de préfixe `LQCM…`, déclencheur réel de l'acquisition ③) et
+  [docs/reference/gl/qcm-et-pedagogie.md](docs/reference/gl/qcm-et-pedagogie.md) — dont un point
+  d'attention nommant les quatre réglages sans effet, en attendant l'arbitrage.
+
+### Audit — conditionnement par QCM des feuillets de lore (documentation)
+
+Audit de cohérence de la chaîne « questions ↔ feuillets de lore », de l'écran MJ qui crée le
+lien jusqu'à la modale de l'élève dans le Carnet de Sélène :
+[docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md](docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md).
+Aucun changement de comportement — document seul. Points saillants : quatre des six réglages de
+« Conditionnement par QCM » sont sans effet sur le code (mode, seuil, granularité, marquage
+automatique — l'accusé est figé en mode `all`), et les liens bloquants hérités de la migration
+145 / des imports de QCM se réveilleraient tous à l'allumage de l'interrupteur global. Les
+requêtes de contrôle à passer avant activation figurent en fin de document.
+
 ---
 
 ## [1.2.0] - 2026-03-20

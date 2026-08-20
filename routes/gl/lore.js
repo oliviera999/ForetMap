@@ -3,7 +3,7 @@
 const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../../database');
 const {
-  recordGlQcmAttemptIfGatingEnabled,
+  recordGlQcmAttemptForReader,
   registerGlCooldownOnWrongIfGating,
 } = require('../../lib/learningGatingRuntime');
 const {
@@ -1425,7 +1425,7 @@ router.post(
       const glossaryByKey = await loadLoreGlossaryLookupForQcm();
       const loreGlossaryTerms = await enrichLoreQuestionWithGlossary(row, glossaryByKey);
       const dbHandle = { queryAll, queryOne, execute };
-      await recordGlQcmAttemptIfGatingEnabled(dbHandle, {
+      await recordGlQcmAttemptForReader(dbHandle, {
         glAuth: req.glAuth,
         dataset: 'qcm_lore',
         questionCode: code,
