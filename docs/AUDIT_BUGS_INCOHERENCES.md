@@ -2,6 +2,12 @@
 
 Date: 2026-03-24
 
+> **Statut août 2026** — Ce document décrit l'état observé lors de l'audit de mars 2026. Plusieurs
+> constats de sécurité autour des observations, des photos d'élèves et des actions sur les tâches
+> ont depuis été repris ou corrigés (voir [AUDIT_BUGS_2026-07.md](AUDIT_BUGS_2026-07.md) et le
+> `CHANGELOG.md`). Ne pas lire la matrice ci-dessous comme le contrat courant sans vérifier
+> [API.md](API.md) et le code.
+
 ## 1) Objectif et périmètre
 
 Ce document consolide:

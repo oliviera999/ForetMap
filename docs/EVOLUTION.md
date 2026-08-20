@@ -1,7 +1,8 @@
 # Évolution du code ForetMap — État réel et suite
 
 Ce document sert de feuille de route d’évolution **sans changement métier non souhaité**.
-Il reflète l’état réel du dépôt (avril 2026) et priorise la suite en commençant par des quick wins.
+Il reflète l’état réel du dépôt (mis à jour en août 2026) et priorise la suite en commençant
+par des quick wins.
 
 ---
 
@@ -53,6 +54,19 @@ Il reflète l’état réel du dépôt (avril 2026) et priorise la suite en comm
 - **Mai 2026 — GL Lot 2A : gameplay MJ paramétrable** : 4 toggles `gameplay.*` (`turns_enabled`, `narration_enabled`, `player_actions_enabled`, `scoring_enabled`) lus par `GET /api/gl/gameplay-settings` ; tours cycliques (`/turn/next`), narration MJ, demandes d'action joueur (`/actions`) résolues par le MJ (`/actions/:id/resolve`) avec bonus de score, types d'événements `turn_change` / `narration` / `score` / `action_request` / `action_resolved` (replay enrichi). Migration `082_gl_gameplay_settings.sql` (toggles, `gl_games.current_team_id`, `gl_team_scores`, `gl_action_requests`). Console MJ enrichie (sélecteur d'équipe active, panneaux conditionnels). UI joueur : bandeau narration, toast tour, modale d'action sur marker. Permission RBAC `gl.action.request` côté joueur.
 - **Mai 2026 — GL Lot 2B : contenus & chapitres** : nouveau routeur `routes/gl/chapters.js` (`GET /api/gl/chapters/:slug` public + CRUD admin protégé par `gl.content.manage`) pour gérer chapitres et repères depuis l'interface MJ. Sous-onglets `Pages` / `Chapitres` dans `GLContentsAdminView` et nouveau composant `GLChaptersAdminView` (édition markdown histoire/biotope/biocénose, gestion des markers). Suppression d'un chapitre refusée (`409`) s'il est lié à une partie en cours. Importeur WordPress étendu (`--target=chapters` + `chapterMap` dans `scripts/gl-import-wp.config.json`) pour pré-remplir `gl_chapters.story_markdown` depuis le HTML WP. Tests `tests/gl-chapter-detail.test.js`, `tests/gl-chapters-admin.test.js`, e2e `e2e/gl-content.spec.js`.
 - **Mai 2026 — GL Lot 2C : mascottes & équipes** : catalogue G&L dédié (`src/utils/glMascotCatalog.js`, ≥ 6 gnomes + ≥ 6 licornes, ids `gl-*`) avec rendu fallback SVG (`GLMascotFallbackSvg`) et composant réutilisable `GLMascotAvatar`. Nouveau routeur `routes/gl/mascots.js` (`GET /api/gl/mascots[?gameId]`, `POST /api/gl/mascots/assign`) avec assignation transactionnelle, refus collision intra-partie (`409`), refus mascotte inconnue (`404`). UI : `GLMascotsAdminView` refondue (grille + filtres + état assigné), affichage mascotte dans `GLGameBoard` / `GLTopBar` (préfixe `gl-` détecté pour basculer du `VisitMapMascotRenderer` vers `GLMascotAvatar`). Pont CJS→ESM `lib/glMascotCatalog.js` (cache). Tests `tests/gl-mascot-catalog.test.js`, `tests/gl-mascots.test.js`, e2e `e2e/gl-mascots.spec.js`.
+- **Juillet–août 2026 — lots audit code** : optimisation `httpRequestLog`, cache intra-requête des
+  claims JWT ForetMap après la garde produit (`req.verifiedForetJwt`) puis centralisation
+  signature/vérification dans `lib/auth/jwtPipeline.js` avec épinglage HS256, transactions
+  `task-projects` / `tutorials` / `tasks` / `visit/sync`, cluster `lib/tasks/taskQueries.js`,
+  helpers purs `lib/shared/oauthCommon.js`, tirage GL `lib/gl/questionDrawShared.js`, primitives
+  frontend `src/shared/appBase.js`, `src/utils/zoneGeometry.js`, `src/utils/glTermAutolink.js`,
+  `src/hooks/useApiResource.js`, découpage progressif des vues admin GL.
+- **Août 2026 — lots sécurité / intégrité** : empreinte HMAC des réponses QCM GL (plus de bonne
+  réponse dans le jeton) et consommation à usage unique du `jti`, cloisonnement de la médiathèque
+  ForetMap ↔ G&L, révocation immédiate des droits GL sur les sockets temps réel, familles privées
+  sous `/uploads` (**403** en accès direct), inscriptions d'homonymes désolidarisées, et gardes
+  anti-double-clic du jeu (un seul effet de repère, un seul jet de dés, une seule présentation de
+  zone feuillet).
 - **Mai 2026 — GL exécution transposition (lots initiaux)** : alignement migration `083_gl_players_password.sql` côté routes (`/api/gl/auth/login` pseudo+password avec compat `pin`, `/api/gl/auth/change-password`, `/api/gl/admin/players` enrichi, `PUT /api/gl/admin/players/:id`, `POST /reset-password`, alias `reset-pin`, import joueurs CSV/XLSX), ajout des drapeaux modules `modules.*` (backend `lib/glSettings.js` + exposition `/api/gl/auth/config` + validation admin settings), et première brique packs mascotte GL (migration `084_gl_mascot_packs.sql`, validation Zod `lib/gl-pack/mascotPack.js`, endpoints `/api/gl/mascots/packs*` et `/api/gl/mascots/sprite-library*`, studio front initial `GLMascotPackManager`).
 
 ## 1.2 Partiellement réalisé / restant
