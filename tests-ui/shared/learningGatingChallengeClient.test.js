@@ -24,6 +24,46 @@ describe('pendingChallengeQuestions', () => {
       pendingChallengeQuestions({ required: false, questions: [{ question_code: 'Q1' }] }),
     ).toEqual([]);
   });
+
+  // F1 (audit 2026-08) : en mode « any », le serveur n'attend qu'une bonne réponse — on ne
+  // pose donc qu'une question, même si trois sont liées.
+  it('se limite au nombre de réponses encore attendues (pending_count)', () => {
+    const pending = pendingChallengeQuestions({
+      required: true,
+      pending_count: 1,
+      questions: [
+        { question_code: 'Q1', already_correct: false },
+        { question_code: 'Q2', already_correct: false },
+        { question_code: 'Q3', already_correct: false },
+      ],
+    });
+    expect(pending).toHaveLength(1);
+    expect(pending[0].question_code).toBe('Q1');
+  });
+
+  it('pose toutes les questions restantes quand pending_count les couvre', () => {
+    const pending = pendingChallengeQuestions({
+      required: true,
+      pending_count: 3,
+      questions: [
+        { question_code: 'Q1', already_correct: true },
+        { question_code: 'Q2', already_correct: false },
+        { question_code: 'Q3', already_correct: false },
+      ],
+    });
+    expect(pending.map((q) => q.question_code)).toEqual(['Q2', 'Q3']);
+  });
+
+  it('retombe sur « toutes les non réussies » sans pending_count (serveur ancien)', () => {
+    const pending = pendingChallengeQuestions({
+      required: true,
+      questions: [
+        { question_code: 'Q1', already_correct: false },
+        { question_code: 'Q2', already_correct: false },
+      ],
+    });
+    expect(pending).toHaveLength(2);
+  });
 });
 
 describe('buildGatingQuizIntroMessage', () => {

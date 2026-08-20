@@ -21,10 +21,11 @@
 > `docs/API.md`, `docs/reference/gl/qcm-et-pedagogie.md`, `docs/reference/INCOHERENCES.md`,
 > `tests/gl-learning-*.test.js`.
 >
-> **Mise à jour du 2026-08-20 (même lot)** : les constats qui ne demandaient aucun arbitrage
-> (F3, F6, J2, J4, J5, J6) ont été corrigés dans la foulée — détail au **§5**. Les constats
-> marqués ⏳ dans le récapitulatif attendent une décision et sont décrits ci-dessous **tels
-> qu'observés à la rédaction**.
+> **Mise à jour du 2026-08-20 (même lot)** : d'abord les constats sans arbitrage (F3, F6, J2,
+> J4, J5, J6), puis — après arbitrage du porteur du projet — **F1 « brancher les réglages »** et
+> **F2**, ce qui emporte F4 et F5. Détail des corrections au **§5**. Les constats ci-dessous
+> restent rédigés **tels qu'observés à la rédaction** : ils décrivent le problème, le §5 dit ce
+> qui a été fait. Seuls **J1 et J3** restent ouverts.
 
 ---
 
@@ -54,9 +55,9 @@ Les incohérences sont ailleurs, et elles sont de trois familles :
    les bonnes réponses sont créditées au MJ et jamais aux élèves ; la saisie d'un lien est un
    champ libre sans contrôle d'existence.
 
-Classement : **2 points rouges**, **4 orange**, **5 jaunes**. Aucun ne demande une correction
-en urgence (le conditionnement est éteint par défaut) ; **F1 et F2 doivent être traités avant
-toute activation en classe**.
+Classement : **2 points rouges**, **4 orange**, **5 jaunes**. Aucun ne demandait une correction
+en urgence (le conditionnement est éteint par défaut) ; **F1 et F2 devaient être traités avant
+toute activation en classe** — ils l'ont été (§5), avec le reste sauf J1 et J3.
 
 ---
 
@@ -113,7 +114,7 @@ MJ : Contenus → Conditionnement QCM        Admin : Réglages plateforme → Co
 
 ## 2. Incohérences
 
-### 🔴 F1 — Quatre des six réglages de l'écran « Conditionnement par QCM » ne font rien
+### 🔴 F1 — Quatre des six réglages de l'écran « Conditionnement par QCM » ne font rien ✅ corrigé
 
 **Constat.** `getChallengeState()` et `assertGatingSatisfiedForAcknowledge()` figent le mode à
 la constante `ACKNOWLEDGE_MODE = 'all'` (`lib/learningGatingAcknowledge.js:24`) et calculent
@@ -164,7 +165,7 @@ intention. Combiné à F2, l'écart est massif.
   ne garder que l'interrupteur et le délai, et corriger la doc de référence + la fiche G3.
   C'est le minimum tant que A n'est pas fait.
 
-### 🔴 F2 — À l'allumage, des dizaines de liens bloquants hérités se réveillent d'un coup
+### 🔴 F2 — À l'allumage, des dizaines de liens bloquants hérités se réveillent d'un coup ✅ corrigé
 
 **Constat.** Trois sources créent des liens `status='approved'`, `is_gating=1` **sans
 intervention humaine** :
@@ -209,7 +210,7 @@ ne conditionner que la _lecture_. Le commentaire d'en-tête de `lib/glQcmAttempt
 écriture par defaut : backbone structurel ») décrit un choix qui ne se justifie plus une fois
 la fonction livrée.
 
-### 🟠 F4 — Mode « QCM réservés au MJ » : les bonnes réponses sont créditées au MJ
+### 🟠 F4 — Mode « QCM réservés au MJ » : les bonnes réponses sont créditées au MJ ✅ corrigé
 
 `routes/gl/games/qcm.js:201` enregistre la tentative avec `glAuth: req.glAuth`, c'est-à-dire
 **l'auteur de la requête**. Or le même endpoint autorise le staff à répondre pour une équipe
@@ -223,7 +224,7 @@ Même hors mode animation, le problème existe en plus petit : un QCM du plateau
 C'est exactement le trou que la granularité « par équipe » devait boucher — et elle est inerte
 (F1). Les deux mécaniques doivent être traitées ensemble.
 
-### 🟠 F5 — La politique par ressource est écrite mais jamais lue
+### 🟠 F5 — La politique par ressource est écrite mais jamais lue ✅ corrigé
 
 `PUT /api/gl/learning-links/policy` renseigne `gl_resource_gating_policy`
 (`mode`, `required_correct`, `enabled`), mais `getChallengeState()` ne consulte que
@@ -338,29 +339,31 @@ Le fichier de test existant est un modèle directement réutilisable : le lot se
 
 ## 3. Récapitulatif
 
-| #      | Gravité | Sujet                                                             | État                               |
-| ------ | ------- | ----------------------------------------------------------------- | ---------------------------------- |
-| **F1** | 🔴      | 4 réglages sur 6 sans effet (mode, seuil, granularité, auto-mark) | ⏳ arbitrage : brancher ou retirer |
-| **F2** | 🔴      | Liens bloquants hérités/générés qui se réveillent à l'allumage    | ⏳ inventaire + décision MJ        |
-| **F3** | 🟠      | Activation non rétroactive des bonnes réponses                    | ✅ corrigé (§5)                    |
-| **F4** | 🟠      | Mode « QCM réservés au MJ » : réponses créditées au MJ            | ⏳ lié à F1 (granularité)          |
-| **F5** | 🟠      | Politique par ressource écrite, jamais lue                        | ⏳ lié à F1                        |
-| **F6** | 🟠      | « Tu pourras réessayer » contredit par le verrou de 3 jours       | ✅ corrigé (§5)                    |
-| **J1** | 🟡      | Marquage possible d'un feuillet non découvert (API directe)       | ⏳ après F2                        |
-| **J2** | 🟡      | `statut='actif'` non filtré pour feuillet / lore_glossary         | ✅ corrigé (§5)                    |
-| **J3** | 🟡      | Saisie des liens : champ libre, sans titre, sans suggestion       | ⏳ lot d'ergonomie                 |
-| **J4** | 🟡      | Dataset stocké vs déduit du préfixe                               | ✅ documenté (§5)                  |
-| **J5** | 🟡      | Aucun test e2e sur `feuillet` ni sur le dataset `qcm_lore`        | ✅ corrigé (§5)                    |
-| **J6** | 🟡      | Commentaires et doc en retard                                     | ✅ corrigé (§5)                    |
+| #      | Gravité | Sujet                                                             | État                            |
+| ------ | ------- | ----------------------------------------------------------------- | ------------------------------- |
+| **F1** | 🔴      | 4 réglages sur 6 sans effet (mode, seuil, granularité, auto-mark) | ✅ branchés (§5)                |
+| **F2** | 🔴      | Liens bloquants hérités/générés qui se réveillent à l'allumage    | ✅ neutralisés (§5)             |
+| **F3** | 🟠      | Activation non rétroactive des bonnes réponses                    | ✅ corrigé (§5)                 |
+| **F4** | 🟠      | Mode « QCM réservés au MJ » : réponses créditées au MJ            | ✅ corrigé via granularité (§5) |
+| **F5** | 🟠      | Politique par ressource écrite, jamais lue                        | ✅ appliquée (§5)               |
+| **F6** | 🟠      | « Tu pourras réessayer » contredit par le verrou de 3 jours       | ✅ corrigé (§5)                 |
+| **J1** | 🟡      | Marquage possible d'un feuillet non découvert (API directe)       | ⏳ ouvert                       |
+| **J2** | 🟡      | `statut='actif'` non filtré pour feuillet / lore_glossary         | ✅ corrigé (§5)                 |
+| **J3** | 🟡      | Saisie des liens : champ libre, sans titre, sans suggestion       | ⏳ ouvert                       |
+| **J4** | 🟡      | Dataset stocké vs déduit du préfixe                               | ✅ documenté (§5)               |
+| **J5** | 🟡      | Aucun test e2e sur `feuillet` ni sur le dataset `qcm_lore`        | ✅ corrigé (§5)                 |
+| **J6** | 🟡      | Commentaires et doc en retard                                     | ✅ corrigé (§5)                 |
 
-**Ordre conseillé :** ~~F6 + J2 + J5~~ → ~~F3~~ (faits) → **décision sur F1** (brancher ou
-retirer, qui entraîne F5 et F4) → **F2 avant toute activation** → J1, J3.
+**Reste ouvert :** J1 (contrôle serveur de l'accès au feuillet avant marquage) et J3 (ergonomie
+de la saisie des liens : sélecteur de ressource, contrôle d'existence, suggestions dans l'écran).
 
 ---
 
 ## 4. Requêtes de contrôle avant activation
 
-À passer en production **avant** de basculer `gating.enabled` à `true` — elles répondent à F2 :
+À passer en production **avant** de basculer `gating.enabled` à `true`. Depuis la correction de
+F2 (§5), la première devrait ne renvoyer que des liens `manual` : tout ce qui reste bloquant a
+été voulu par quelqu'un. Les deux dernières restent utiles pour traquer les liens fantômes (J3).
 
 ```sql
 -- Combien de liens bloquants approuvés, par type de ressource et par origine ?
@@ -407,15 +410,61 @@ attendent une décision (F1, F2, F4, F5, J1, J3).
 | **J4** | Convention de préfixe (`LQCM…` = lore) documentée dans `docs/API.md` comme la seule garantie d'unicité entre les deux jeux de questions.                                                                                             |
 | **J6** | Commentaires remis à jour (`routes/gl/learning-links.js`, `routes/gl/learning.js`, `lib/glQcmAttempts.js`), `docs/API.md` complété (réglages non appliqués, tentatives inconditionnelles, filtre de statut, acquisition ③).          |
 
-**Non corrigé volontairement** : F1 et F5 demandent de choisir entre brancher les réglages et les
-retirer — les deux sont défendables et le choix est pédagogique, pas technique. F4 dépend de F1
-(granularité « équipe »). F2 demande l'inventaire en production (§4) puis une décision du MJ sur
-les liens hérités. J1 et J3 viennent après.
+### Puis, après arbitrage : F1 branché, F2 tranché
 
-En attendant l'arbitrage sur F1, l'écran admin n'a pas été touché, mais la **doc de référence**
-porte désormais un point d'attention explicite : les quatre réglages inertes y sont nommés, avec
-le comportement réel (toutes les questions, suivi par élève). Un professeur ne peut plus se fier à
-une promesse fausse.
+**F1 + F5 — les réglages pilotent réellement l'accusé.** `getChallengeState()` résout à chaque
+appel la **politique effective** (`resolveEffectivePolicy` : réglages du site + surcharge
+`resource_gating_policy` / `gl_resource_gating_policy`) et la fait appliquer par `evaluateUnlock` :
+
+- `any` → une bonne réponse suffit, `all` → toutes, `threshold` → N (borné au nombre de questions
+  liées : un seuil de 25 sur 3 questions ne rend plus la ressource insatisfiable) ;
+- la surcharge par ressource s'applique : `enabled = 0` **dispense** une ressource, `mode = 'any'`
+  l'assouplit sur une plateforme réglée en `all` ;
+- deux garde-fous délibérés : **l'interrupteur global reste maître** (site éteint → aucun quiz,
+  même sur une ressource `enabled = 1` : la surcharge ne peut qu'assouplir), et le challenge
+  renvoie désormais `mode`, `required_correct`, `granularity`, `satisfied` en plus de
+  `pending_count` — lequel vaut maintenant « combien de bonnes réponses il reste à donner »,
+  et non plus « combien de questions ne sont pas réussies ». Le client ne pose que ce nombre de
+  questions (`pendingChallengeQuestions`) : en mode `any`, une seule, même si cinq sont liées.
+
+**F4 — la granularité « équipe » rattrape le mode animation.** En granularité `team`, les bonnes
+réponses portant le `team_id` du lecteur comptent **en plus** des siennes. C'est ce qui répare le
+mode « QCM réservés au MJ », où toutes les réponses étaient créditées au MJ : elles portent le
+`team_id` de l'équipe, donc elles profitent à ses élèves. L'équipe du lecteur vient du JWT GL
+(`teamId`), avec repli sur `gl_players.team_id`.
+
+**Le réglage « marquage automatique » a été retiré de l'écran plutôt que branché.** Il était déjà
+documenté « déprécié, ignoré » dans `docs/API.md`, et l'auto-marquage _push_ avait été retiré
+volontairement par un lot antérieur (en-tête de `lib/learningGatingRuntime.js`) : seul le bouton
+« Marquer comme… » valide une ressource. Le rebrancher aurait été un changement de comportement
+métier que personne n'a demandé ; le laisser affiché aurait continué de mentir. Même raisonnement
+pour la granularité `per_resource`, qui n'a pas de sens distinct maintenant que la politique par
+ressource s'applique toujours : elle n'est plus proposée (et reste affichée, étiquetée « ancien
+réglage », si une base la porte encore).
+
+**Restent hors runtime, faute de contexte** : les surcharges de granularité **par chapitre**
+(`gl_chapters.gating_granularity`) et **par scope lore** (`gl_qcm_lore_scopes.gating_granularity`).
+L'accusé ne sait pas dans quel chapitre l'élève se trouve — une ressource n'appartient pas à un
+chapitre. Elles restent lisibles via `GET /policy`, qui reçoit `chapterGranularity` de l'appelant.
+`docs/API.md` le dit explicitement. À retirer si elles ne trouvent pas d'usage.
+
+**F2 — un conditionnement ne s'applique que là où un humain l'a demandé.** Les liens créés
+**automatiquement** (migration 144/145 et rapprochement de mots-clés à chaque import ou
+enregistrement de question) passent en `is_gating = 0` : ils gardent leur valeur documentaire —
+ils disent quelle question parle de quelle ressource — mais ne barrent plus la route. Deux volets :
+la migration **194** rattrape l'existant (`origin = 'import'` uniquement, jamais `manual`), et les
+six points de code qui les génèrent insèrent désormais `is_gating = 0` (`glQcmImport`,
+`glQcmLoreImport`, `fmQuizImport`, `glQcmCrud`, `glQcmLoreCrud`, `fmQuizCrud`). Allumer
+l'interrupteur global ne peut donc plus conditionner quoi que ce soit que personne n'a coché.
+
+**Tests** : `tests/gl-learning-gating-modes.test.js` verrouille les trois modes, le bornage du
+seuil, la dispense par ressource, l'assouplissement par ressource, la primauté de l'interrupteur
+global et les deux granularités. Côté UI, `pendingChallengeQuestions` est testée sur le respect de
+`pending_count` (et son repli sans le champ).
+
+**Non corrigé** : J1 (contrôle serveur que le feuillet est accessible avant de le marquer étudié)
+et J3 (ergonomie de la saisie des liens : sélecteur de ressource, contrôle d'existence, titres,
+suggestions dans l'écran). Les deux sont des lots à part entière.
 
 ## Pour aller plus loin
 

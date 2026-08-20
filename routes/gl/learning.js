@@ -104,8 +104,11 @@ router.get(
       gating_enabled: state.gating_enabled,
       required: state.required,
       mode: state.mode,
+      required_correct: state.required_correct,
+      granularity: state.granularity,
       questions: state.questions,
       pending_count: state.pending_count,
+      satisfied: state.satisfied,
       cooldown: state.cooldown,
     });
   }),
