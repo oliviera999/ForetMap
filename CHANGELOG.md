@@ -7,6 +7,61 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — la modale de tâche ne s'ouvrait plus du tout
+
+`ReferenceError: Cannot access 'normalizedTutorialIds' before initialization` à chaque
+ouverture de « Nouvelle tâche » ou « Modifier la tâche » : les enseignants ne pouvaient ni
+créer ni modifier de tâche. La constante était référencée dans le tableau de dépendances de
+l'enregistrement automatique — **évalué à chaque rendu** — alors qu'elle était déclarée
+soixante lignes plus bas, donc en zone morte temporelle. Sa déclaration remonte avant le
+bloc concerné.
+
+Aucun test ne montait cette modale : c'est ce qui a permis au crash de passer. Il en existe
+un désormais, en création comme en édition. Diagnostic repris de la PR #295.
+
+### Deux panneaux d'administration pouvaient écraser leurs contenus après un échec réseau
+
+Quand le `GET` initial échouait (coupure, 500, délai dépassé), **Contenus → Aide** et
+**Réglages** affichaient un formulaire éditable garni de valeurs par défaut, avec
+l'enregistrement automatique déjà armé. Une seule frappe déclenchait alors un `PUT` qui
+écrivait ces défauts en base : bulles d'aide personnalisées perdues, charte de la
+plateforme réinitialisée. L'écran ne montrait rien d'anormal — c'est précisément ce qui
+rendait le piège efficace.
+
+- **Aide** — le brouillon reste `null` tant que le chargement n'a pas abouti ; le
+  formulaire cède la place à l'erreur et à un bouton « Réessayer ».
+- **Réglages** — les quatre enregistrements automatiques (identité, charte, taille des
+  repères, vitalité) sont conditionnés à un chargement réussi.
+
+Les autres panneaux à enregistrement automatique ont été passés en revue : tous portaient
+déjà leur garde. Diagnostic repris de la PR #291.
+
+### Tâches — deux homonymes ne se marchent plus dessus
+
+`task_assignments` et `task_logs` portent à la fois `student_id` et le nom de l'élève,
+l'identifiant étant arrivé plus tard. La condition employée en six endroits — `student_id = ?
+OR (prénom, nom)` — appliquait le `OR` **même aux lignes possédant un identifiant** : deux
+élèves qui portent le même prénom et le même nom se reconnaissaient donc mutuellement.
+
+Les conséquences allaient bien au-delà d'un compteur faussé : plafond d'inscriptions
+partagé (l'un bloquait l'autre), « tâche faite » pouvant cocher la ligne du camarade,
+désinscription pouvant retirer la sienne — et surtout, **supprimer un compte effaçait les
+inscriptions et les journaux de son homonyme.**
+
+La règle vit désormais dans `lib/tasks/assignmentIdentityMatch.js` : une ligne qui porte un
+identifiant n'est reconnue que par lui, une ligne héritée reste reconnue par le nom. Aucune
+reprise de données n'est nécessaire et l'historique est préservé. Diagnostic repris de la
+PR #276.
+
+### Tâches — une validation ne peut plus être écrasée par un recalcul concurrent
+
+`recalculateTaskStatusWithConn` protège bien le statut `validated`, mais sur la valeur lue
+en entrée — souvent issue d'une lecture antérieure, hors transaction. Si un enseignant
+validait entre cette lecture et l'écriture, l'`UPDATE` inconditionnel rétrogradait
+silencieusement la tâche. L'écriture est devenue un compare-and-set (`AND status <=> ?`) :
+si l'état a bougé, elle ne s'applique pas, et le recalcul suivant repart de la valeur à
+jour. Diagnostic repris de la PR #274.
+
 ### Sécurité GL — la possession d'un feuillet n'est plus forgeable
 
 `POST …/feuillets/:code/read` et `…/hold` écrivaient l'état du feuillet **sans vérifier que
