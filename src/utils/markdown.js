@@ -48,7 +48,14 @@ const ALLOWED_ATTR_WITH_JOURNAL = [
   'data-gl-embed-type',
   'data-gl-ref',
 ];
-const ALLOWED_ATTR_WITH_GLOSSARY = [...ALLOWED_ATTR, 'class', 'data-gl-glossary-code'];
+const ALLOWED_ATTR_WITH_GLOSSARY = [
+  ...ALLOWED_ATTR,
+  'class',
+  'data-gl-glossary-code',
+  // Auto-liens du glossaire **ForetMap** (audit A12) : sans cette autorisation,
+  // DOMPurify supprimait l'attribut et le lien restait muet.
+  'data-glossary-code',
+];
 const JOURNAL_EMBED_TYPES = new Set(['spell', 'species', 'glossary', 'chapter', 'module_stub']);
 
 marked.setOptions({
@@ -155,6 +162,19 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
       const className = String(node.getAttribute('class') || '').trim();
       if (!className.includes('gl-glossary-inline-link')) {
         node.setAttribute('class', `${className} gl-glossary-inline-link`.trim());
+      }
+      return;
+    }
+    // Pendant ForetMap : même traitement, classe `fm-glossary-inline-link`
+    // (identique à celle produite côté serveur pour les tutoriels).
+    const foretmapGlossaryCode = String(node.getAttribute('data-glossary-code') || '').trim();
+    if (foretmapGlossaryCode) {
+      node.setAttribute('href', '#');
+      node.removeAttribute('target');
+      node.removeAttribute('rel');
+      const className = String(node.getAttribute('class') || '').trim();
+      if (!className.includes('fm-glossary-inline-link')) {
+        node.setAttribute('class', `${className} fm-glossary-inline-link`.trim());
       }
       return;
     }

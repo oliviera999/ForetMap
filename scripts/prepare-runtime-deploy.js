@@ -55,6 +55,8 @@ const REQUIRED_RUNTIME_BASE = [
   'lib/visit-pack/data/renard2-cut-manifest.js',
   /** Validation packs mascotte GL (`npm run sync:gl-pack-lib`). */
   'lib/gl-pack/mascotPack.js',
+  /** Auto-liens de glossaire partagés ForetMap/GL (`npm run sync:term-autolink-lib`). */
+  'lib/term-autolink/termAutolink.js',
 ];
 const REQUIRED_RUNTIME = includeNodeModules
   ? [...REQUIRED_RUNTIME_BASE, 'node_modules']

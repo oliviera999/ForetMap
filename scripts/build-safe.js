@@ -46,6 +46,17 @@ function syncGlPackServerLib() {
   return child.status === 0;
 }
 
+function syncTermAutolinkLib() {
+  const script = path.join(root, 'scripts', 'sync-term-autolink-lib.js');
+  if (!fs.existsSync(script)) return true;
+  const child = spawnSync(process.execPath, [script], {
+    cwd: root,
+    stdio: 'inherit',
+    env: process.env,
+  });
+  return child.status === 0;
+}
+
 function syncGlAssetManifests() {
   const script = path.join(root, 'scripts', 'build-asset-manifest.mjs');
   if (!fs.existsSync(script)) return true;
@@ -64,6 +75,7 @@ function main() {
     if (!ok) process.exit(1);
     if (!syncVisitPackServerLib()) process.exit(1);
     if (!syncGlPackServerLib()) process.exit(1);
+    if (!syncTermAutolinkLib()) process.exit(1);
     process.exit(0);
   }
 
@@ -72,6 +84,7 @@ function main() {
     console.warn('[build-safe] dist/ détecté : build ignoré (mode prébuild local).');
     if (!syncVisitPackServerLib()) process.exit(1);
     if (!syncGlPackServerLib()) process.exit(1);
+    if (!syncTermAutolinkLib()) process.exit(1);
     process.exit(0);
   }
 
