@@ -1,7 +1,11 @@
+import { resolveRoleTextFrom } from '../shared/help/roleText.js';
+
+/**
+ * Texte d'une entrée d'aide selon le rôle. La règle vit dans le noyau partagé
+ * (`src/shared/help/roleText.js`), que GL emploie avec ses propres noms de champs.
+ */
 function resolveRoleText(entry, isTeacher) {
-  if (!entry) return '';
-  if (isTeacher && entry.textTeacher) return entry.textTeacher;
-  return entry.text || '';
+  return resolveRoleTextFrom(entry, isTeacher);
 }
 
 const HELP_TOOLTIPS = {

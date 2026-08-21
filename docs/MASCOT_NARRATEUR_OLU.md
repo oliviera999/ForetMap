@@ -25,6 +25,11 @@
 > - **Lot 7a** — audit du mapping d'états d'OLU (§3.1a) : alias morts supprimés, états non
 >   mappés assumés, garde-fou de test sur le catalogue.
 >
+> - **Lot 8 (accompagnement)** — le socle d'aide et de visite guidée **remonté dans
+>   `src/shared/`** et servi aux deux produits : GL gagne une aide **appelée** (bouton
+>   « ? » + modale), une variante **MJ** (`bodyMj`), et ses **premières visites guidées**.
+>   Et, des deux côtés, **OLU se présente à la première connexion**. Voir §16.
+>
 > **Reste à faire : lot 7b (optionnel, suspendu à une planche d'animation).** OLU est à l'écran **et** il parle à la
 > première personne. Le brief de production graphique des portraits est dans
 > [`MASCOT_OLU_BRIEF_VISUEL.md`](./MASCOT_OLU_BRIEF_VISUEL.md).
@@ -1146,3 +1151,96 @@ fonctionnalité neuve, et une explosion de périmètre.
 - [`GL_IMAGE_FRAMES.md`](./GL_IMAGE_FRAMES.md) — cadres d'image GL (à regarder avant d'écrire un nouveau cadre)
 - [`VISIT_MAP_GEOMETRY.md`](./VISIT_MAP_GEOMETRY.md) — géométrie du plan de visite et assets mascottes
 - [`docs/reference/foretmap/visite-et-mascottes.md`](./reference/foretmap/visite-et-mascottes.md) — doc de référence fonctionnelle
+
+---
+
+## 16. Lot 8 — l'accompagnement, des deux côtés
+
+Ce lot ne parle plus du portrait d'OLU mais de **ce qu'il accompagne** : l'aide, les
+visites guidées, et le premier contact.
+
+### 16.1 Ce qui manquait
+
+Une revue d'ensemble des deux produits a montré une asymétrie que personne n'avait
+regardée d'un bloc :
+
+| Besoin           | ForetMap (avant)                  | GL (avant)                                     |
+| ---------------- | --------------------------------- | ---------------------------------------------- |
+| Aide d'écran     | bouton « ? » → modale, 7 panneaux | encadré replié **en bas de page**, 26 entrées  |
+| Micro-aide       | 21 infobulles, 6 hints, 3 astuces | rien                                           |
+| Visite guidée    | 13 parcours, 33 étapes            | **rien**                                       |
+| Variante de rôle | `textTeacher` / `bodyTeacher`     | **rien** — un MJ lisait le texte joueur        |
+| Premier contact  | rien                              | intro cinématique (iframe, écran de connexion) |
+
+Deux constats ont guidé le lot. **L'aide GL était passive** : un texte qu'il fallait
+aller chercher sous le contenu n'est lu que par ceux qui descendent jusqu'à lui — le
+corpus réécrit au lot 6b ne servait qu'à moitié. Et **personne ne présentait jamais
+l'application** : ni ForetMap ni GL n'accueillaient un nouveau venu.
+
+### 16.2 Le socle partagé — ce qui a bougé, et ce qui n'a pas bougé
+
+| Fichier                                                                                         | Rôle                                                                                                                    |
+| ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| [`src/shared/tour/tourRegistryCore.js`](../src/shared/tour/tourRegistryCore.js)                 | Règles communes : filtrage par rôle, clés de surcharge, application des surcharges. **Aucun contenu.**                  |
+| [`src/shared/hooks/useGuidedTour.js`](../src/shared/hooks/useGuidedTour.js)                     | Moteur : mémoire des parcours vus, état d'exécution. Paramétré par `getSteps` et une clé de stockage propre au produit. |
+| [`src/shared/components/GuidedTourOverlay.jsx`](../src/shared/components/GuidedTourOverlay.jsx) | Overlay (spotlight, bulle, navigation). Ex-`DiscoveryTour`, rendu agnostique : il reçoit le parcours déjà résolu.       |
+| [`src/shared/styles/guided-tour.css`](../src/shared/styles/guided-tour.css)                     | Styles, sortis de `src/index.css` que GL ne charge pas. Couleurs en variables `--fm-tour-*`.                            |
+| [`src/shared/help/roleText.js`](../src/shared/help/roleText.js)                                 | Choix du texte selon le rôle, avec des noms de champs paramétrables (`textTeacher` côté FM, `bodyMj` côté GL).          |
+
+**Le contenu, lui, reste à chaque produit** : `src/constants/discoveryTour.js` (13 parcours
+ForetMap) et `src/gl/constants/glDiscoveryTour.js` (5 parcours GL). Les **mémoires sont
+distinctes** — `foretmap_discovery_seen_v1` et `gl_discovery_seen_v1` : avoir fait le tour
+du verger ne vaut pas avoir vu le royaume.
+
+L'API publique de ForetMap n'a pas changé d'un signe : `getDiscoverySteps`,
+`hasDiscoveryTour`, `tourOverrideKey`, `applyTourOverrides` gardent leur signature, et
+les tests existants passent sans retouche.
+
+### 16.3 L'aide GL, appelée plutôt qu'affichée
+
+`GLHelpDialog` + `GLHelpDock` : un bouton « ? », qui **pulse tant que l'aide de l'onglet
+n'a jamais été ouverte**, puis se calme. La mémoire par clé (`gl_help_seen:`) est celle de
+l'ancien encadré — un onglet déjà consulté ne réclame pas l'attention deux fois.
+
+L'encadré inline (`GLHelpPanel`) subsiste là où l'aide fait partie de la page elle-même,
+comme le carnet personnel. Les deux partagent leur rendu (`glHelpBody.jsx`) : un même
+texte s'affiche de la même façon, quel que soit le contenant.
+
+### 16.4 `bodyMj` — la variante de service
+
+Pendant GL du `textTeacher` de ForetMap, **optionnel** : son absence fait retomber sur
+`body`. Dix entrées en portent une — celles des écrans que joueurs et MJ ouvrent tous les
+deux (la carte, le carnet, le marché, le forum…). Sur les écrans réservés, OLU se tait
+déjà (§8.4), la question ne se pose pas.
+
+Le champ n'est écrit que s'il porte un texte : une entrée sans variante reste
+**strictement identique** à ce qu'elle était, et la surcharge stockée ne se peuple pas de
+chaînes vides à chaque enregistrement.
+
+### 16.5 L'accueil — OLU se présente
+
+**Trois bulles, centrées, jouées une seule fois**, avant tout parcours d'onglet : se faire
+présenter la carte par quelqu'un qu'on n'a pas encore rencontré met la charrue avant les
+bœufs. Aucune ne vise d'élément — à la première seconde, désigner un bouton qu'on n'a pas
+appris à lire ne veut rien dire.
+
+Il se présente, dit ce qu'on fait ici, et indique où le retrouver. Puis il s'efface.
+
+⚠️ **Côté GL, l'accueil ne raconte pas le lore** : la règle du §8.4 vaut ici comme
+ailleurs. Une première version faisait dire à OLU que « le Souffle a mangé des noms » —
+c'est la voix de Sélène, pas la sienne. Il dit désormais : « L'histoire, elle, je te laisse
+la découvrir — ce n'est pas la mienne à raconter. » Le test ne peut pas attraper ce genre
+d'écart : il se voit à la relecture.
+
+L'accueil est rangé sous une clé (`welcome`) **qui n'est celle d'aucun onglet** : il ne
+peut pas se déclencher par navigation. Un test le vérifie.
+
+### 16.6 Ce que ce lot ne fait pas
+
+- **Les infobulles GL** (P4 de la revue) : GL n'en a toujours aucune.
+- **L'édition des parcours GL depuis l'application** : ForetMap l'a (`tours.manage`,
+  §6ter.2), GL non — le registre GL est versionné, et une surcharge éditoriale
+  demanderait une route et un studio, soit un lot à part entière.
+- **L'intro GL** reste une iframe statique, hors du système (§8.3).
+- **Les parcours GL couvrent 5 onglets** sur 26, les plus fréquentés. Les autres suivront
+  au rythme de l'écriture : le mécanisme, lui, est en place.

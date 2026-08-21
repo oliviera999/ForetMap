@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 
-import { DiscoveryTour } from '../../src/components/DiscoveryTour';
+import { GuidedTourOverlay as DiscoveryTour } from '../../src/shared/components/GuidedTourOverlay';
 import { DISCOVERY_TOURS, resolveDiscoveryExpression } from '../../src/constants/discoveryTour';
 import { MASCOT_EXPRESSIONS } from '../../src/utils/mascotExpressions';
 
