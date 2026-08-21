@@ -78,7 +78,7 @@ export function PlantBiodiversityCatalogPreviewCard({
           </p>
         )}
         <PlantBiodivHeroPhoto plant={plant} />
-        <PlantEcosystemHumanLead plant={plant} />
+        <PlantEcosystemHumanLead plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
         <PlantTaxonomyLine plant={plant} />
         <PlantPedagoTraitBadges plant={plant} />
         <PlantRangeGauges plant={plant} />

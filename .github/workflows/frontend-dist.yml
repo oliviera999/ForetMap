@@ -1,6 +1,6 @@
 name: Frontend dist
 
-# Garantit que le `dist/` (et les miroirs CJS `lib/visit-pack/` & `lib/gl-pack/`)
+# Garantit que le `dist/` (et les miroirs CJS `lib/visit-pack/`, `lib/gl-pack/` & `lib/term-autolink/`)
 # commités correspondent bien aux sources — l'invariant sur lequel repose le
 # déploiement par `git pull` du cron (scripts/auto-deploy-cron.sh).
 #
@@ -48,12 +48,12 @@ jobs:
       - name: Détecter une dérive dist/ + miroirs
         id: drift
         run: |
-          if git diff --quiet -- dist/ lib/visit-pack/ lib/gl-pack/; then
+          if git diff --quiet -- dist/ lib/visit-pack/ lib/gl-pack/ lib/term-autolink/; then
             echo "drift=false" >> "$GITHUB_OUTPUT"
             echo "dist/ et miroirs à jour."
           else
             echo "drift=true" >> "$GITHUB_OUTPUT"
-            git --no-pager diff --stat -- dist/ lib/visit-pack/ lib/gl-pack/
+            git --no-pager diff --stat -- dist/ lib/visit-pack/ lib/gl-pack/ lib/term-autolink/
           fi
 
       # --- C : PR du dépôt → recommit automatique du dist/ régénéré ---
@@ -65,7 +65,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add dist/ lib/visit-pack/ lib/gl-pack/
+          git add dist/ lib/visit-pack/ lib/gl-pack/ lib/term-autolink/
           git commit -m "chore(build): régénère dist/ + miroirs (auto) [skip ci]"
           # Le push avec GITHUB_TOKEN ne re-déclenche pas de workflow (anti-boucle).
           git push origin "HEAD:${{ github.head_ref }}"
@@ -77,5 +77,5 @@ jobs:
           (github.event_name == 'push' ||
            github.event.pull_request.head.repo.full_name != github.repository)
         run: |
-          echo "::error::dist/ ou miroirs CJS périmés. Lance 'npm run build' (ou 'npm run ship') puis recommite dist/ + lib/visit-pack/ + lib/gl-pack/."
+          echo "::error::dist/ ou miroirs CJS périmés. Lance 'npm run build' (ou 'npm run ship') puis recommite dist/ + lib/visit-pack/ + lib/gl-pack/ + lib/term-autolink/."
           exit 1

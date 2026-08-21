@@ -189,7 +189,10 @@ Les tutoriels sont des **fiches pratiques** rédigées par les professeurs : un 
 résumé, une image de couverture, et un contenu libre (page rédigée dans l'application,
 document existant ou lien externe). Les mots du glossaire y sont automatiquement
 transformés en liens vers leur définition, et chaque fiche peut être téléchargée (page
-ou PDF).
+ou PDF). Ces liens apparaissent sur **toutes les fiches affichées dans l'application** —
+qu'elles aient été rédigées ici ou importées d'un fichier de page web. Deux exceptions,
+par nature : un **lien externe** (le site d'un tiers, que ForetMap n'a pas à réécrire) et
+un **document PDF joint**, affiché tel quel.
 
 - Un tutoriel se **relie** aux tâches et aux zones/repères concernés : l'élève le trouve
   directement depuis la tâche ou le lieu.
