@@ -179,10 +179,18 @@ SELECT id, title, type,
  WHERE is_active = 1
    AND type <> 'link'
    AND source_file_path IS NOT NULL
-   AND TRIM(source_file_path) <> '';
+   AND TRIM(source_file_path) <> ''
+   AND (LOWER(source_file_path) LIKE '%.html' OR LOWER(source_file_path) LIKE '%.htm');
 ```
 
 Toute ligne retournée est un tutoriel **sans glossaire**, quel que soit l'état de A1.
+
+> Requête corrigée au Lot 3 : la condition d'extension a été ajoutée, car un
+> `source_file_path` non HTML (PDF, image) n'est pas enrichissable et n'est donc pas un
+> symptôme. Après le Lot 3, cette requête doit renvoyer **zéro ligne** : les fichiers HTML
+> sont rapatriés en base au démarrage (`html_content` rempli, `source_file_path` mis à
+> NULL) et, tant qu'ils ne le sont pas, l'aperçu passe malgré tout par
+> `/api/tutorials/:id/view`.
 
 ---
 
