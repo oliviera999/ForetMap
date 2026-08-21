@@ -24,8 +24,24 @@ d'observation** pour l'écriture naturaliste libre.
 - Le vocabulaire du jardin et des sciences du vivant, consultable par tous : chaque
   terme a sa définition, et peut être relié à des plantes du catalogue et à des
   questions de quiz.
-- Le professeur enrichit le glossaire au fil de l'année ; les termes s'ouvrent en fiche
-  depuis les autres écrans quand ils y sont cités.
+- Le professeur enrichit le glossaire au fil de l'année.
+- **Fiche rapide en surimpression.** Partout où un terme du glossaire est cité et
+  cliquable — dans un tutoriel ouvert en lecture, sur une fiche plante, dans un quiz ou
+  dans le réseau trophique — le clic ouvre une **petite fiche par-dessus l'écran en
+  cours**. L'élève lit la définition, puis referme : il retrouve exactement sa page et sa
+  position de lecture. Il ne quitte plus son tutoriel pour consulter un mot.
+- La fiche rapide affiche la définition courte, la définition détaillée, l'exemple et
+  l'étymologie, ainsi que les espèces et tutoriels rattachés au terme. Les **termes
+  voisins** y sont proposés en pastilles : les enchaîner fait défiler les définitions
+  dans la fiche, sans jamais la fermer.
+- Un bouton **« Voir la fiche complète »** reste disponible pour basculer, cette fois
+  volontairement, sur l'onglet Glossaire et y explorer le terme en grand.
+- La fiche se ferme par la croix, par le bouton Fermer, par la touche Échap ou par un
+  clic à côté.
+- Dans les tutoriels, les termes du glossaire sont désormais **repérables à l'œil** :
+  ils apparaissent en vert, soulignés d'un pointillé. Ce marquage reste discret pour ne
+  pas dénaturer la mise en page des fiches ; une fiche qui impose sa propre charte de
+  liens garde la sienne.
 
 ## Le Réseau trophique
 

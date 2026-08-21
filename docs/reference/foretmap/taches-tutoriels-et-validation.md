@@ -39,24 +39,34 @@ s'y ajoute. La **validation** d'un projet, elle, est une décision manuelle du p
 
 Chaque tâche décrit précisément le travail attendu :
 
-| Élément              | Détail                                                                                                                           |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Titre et description | Le titre est obligatoire ; la description accepte la mise en forme.                                                              |
-| Image                | Une photo de couverture illustrative (facultative).                                                                              |
-| Lieux                | Une ou **plusieurs** zones et repères de la même carte — la tâche apparaît sur ces lieux.                                        |
-| Niveau de danger     | Sans danger · Danger potentiel · Dangereux · Très dangereux.                                                                     |
-| Niveau de difficulté | Facile · Moyen · Compliqué · Super compliqué.                                                                                    |
-| Degré d'importance   | Pas important · Peu important · Modéré · Important · Urgent ! (l'importance sert au tri de la liste).                            |
-| Élèves requis        | Le nombre de places : quand elles sont prises, plus personne ne peut s'inscrire.                                                 |
-| Mode de validation   | **Individuel** (un élève termine la tâche pour tous) ou **collectif** (chaque inscrit doit marquer sa part faite).               |
-| Dates                | Une **date de départ** (avant elle, impossible de s'inscrire) et une **date limite** (affichée en « Dans N jours / En retard »). |
-| Référents            | Des professeurs (ou élèves expérimentés) « à qui s'adresser » ; recommandés si la tâche est difficile ou dangereuse.             |
-| Tutoriels liés       | Les fiches pratiques à lire avant de commencer.                                                                                  |
-| Espèces liées        | Les êtres vivants du catalogue concernés par la tâche.                                                                           |
-| Récurrence           | Aucune (tâche unique), hebdomadaire, toutes les 2 semaines, ou mensuelle.                                                        |
+| Élément              | Détail                                                                                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Titre et description | Le titre est obligatoire ; la description accepte la mise en forme.                                                                                                      |
+| Image                | Une photo de couverture illustrative (facultative).                                                                                                                      |
+| Lieux                | Une ou **plusieurs** zones et repères de la même carte — la tâche apparaît sur ces lieux.                                                                                |
+| Niveau de danger     | Sans danger · Danger potentiel · Dangereux · Très dangereux.                                                                                                             |
+| Niveau de difficulté | Facile · Moyen · Compliqué · Super compliqué.                                                                                                                            |
+| Degré d'importance   | Pas important · Peu important · Modéré · Important · Urgent ! (l'importance sert au tri de la liste ; « Urgent ! » ouvre en plus l'encart du même nom, voir ci-dessous). |
+| Élèves requis        | Le nombre de places : quand elles sont prises, plus personne ne peut s'inscrire.                                                                                         |
+| Mode de validation   | **Individuel** (un élève termine la tâche pour tous) ou **collectif** (chaque inscrit doit marquer sa part faite).                                                       |
+| Dates                | Une **date de départ** (avant elle, impossible de s'inscrire) et une **date limite** (affichée en « Dans N jours / En retard »).                                         |
+| Référents            | Des professeurs (ou élèves expérimentés) « à qui s'adresser » ; recommandés si la tâche est difficile ou dangereuse.                                                     |
+| Tutoriels liés       | Les fiches pratiques à lire avant de commencer.                                                                                                                          |
+| Espèces liées        | Les êtres vivants du catalogue concernés par la tâche.                                                                                                                   |
+| Récurrence           | Aucune (tâche unique), hebdomadaire, toutes les 2 semaines, ou mensuelle.                                                                                                |
 
 Si une tâche compliquée ou dangereuse n'a pas de référent, un avertissement invite
 l'élève à demander l'accord de l'équipe pédagogique avant de commencer.
+
+## L'encart « 🚨 Urgent ! »
+
+Les tâches marquées **« Urgent ! »** sont regroupées en haut de l'écran Tâches, dans un
+encart à elles — elles n'apparaissent donc pas dans la section de leur statut tant qu'elles
+y figurent. **Une tâche urgente quitte cet encart dès qu'elle est validée** (directement, ou
+parce que son projet a été validé) : elle rejoint alors « ✅ Validées » côté professeur,
+« ✅ Récemment validées » côté élève. Une tâche « Terminée » (en attente de validation) ou
+« Proposée » reste, elle, dans l'encart : quelque chose est encore attendu de l'équipe
+pédagogique.
 
 ## Le cycle de vie d'une tâche
 
@@ -97,6 +107,8 @@ Une tâche passe par des états visibles de tous : **Disponible** → **En cours
   suppression 🗑️ pour un travail terminé qu'on veut garder en mémoire sans encombrer
   l'écran. On retrouve les archives via le filtre de statut « 📦 Archivés » (réservé aux
   professeurs), d'où l'on peut **désarchiver** (♻️) pour les remettre en circulation.
+  Tant qu'elle est archivée, la tâche est **hors jeu** : ni inscription, ni marquage
+  « terminée » ne sont acceptés, même depuis un écran resté ouvert avant l'archivage.
 
 ## Archiver un projet
 
@@ -115,6 +127,11 @@ Pour éviter que les listes ne s'encombrent avec le temps, les éléments **term
 dans les archives lors du passage quotidien. Seuls les éléments **validés** sont concernés —
 une tâche à faire, en cours ou en attente n'est **jamais** archivée automatiquement, même
 ancienne. Comme tout archivage, c'est réversible (désarchivage manuel).
+
+L'archivage automatique d'un **projet** n'entraîne **pas** ses tâches (contrairement à
+l'archivage manuel) : chacune suit son propre critère. Les tâches encore actives d'un projet
+ainsi rangé ne disparaissent pas pour autant — elles réapparaissent simplement dans la
+section de leur statut, hors bloc projet.
 
 Deux réglages (côté administration, portée professeur) pilotent ce comportement :
 
@@ -172,7 +189,10 @@ Les tutoriels sont des **fiches pratiques** rédigées par les professeurs : un 
 résumé, une image de couverture, et un contenu libre (page rédigée dans l'application,
 document existant ou lien externe). Les mots du glossaire y sont automatiquement
 transformés en liens vers leur définition, et chaque fiche peut être téléchargée (page
-ou PDF).
+ou PDF). Ces liens apparaissent sur **toutes les fiches affichées dans l'application** —
+qu'elles aient été rédigées ici ou importées d'un fichier de page web. Deux exceptions,
+par nature : un **lien externe** (le site d'un tiers, que ForetMap n'a pas à réécrire) et
+un **document PDF joint**, affiché tel quel.
 
 - Un tutoriel se **relie** aux tâches et aux zones/repères concernés : l'élève le trouve
   directement depuis la tâche ou le lieu.
