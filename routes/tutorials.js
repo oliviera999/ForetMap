@@ -34,28 +34,67 @@ const {
   scanTutosForImport,
   importMissingTutosFromFilesystem,
 } = require('../lib/importTutosFromFilesystem');
+const {
+  fingerprintText,
+  buildGlossaryIndexVersion,
+  buildTutorialViewCacheKey,
+  sharedTutorialViewCache,
+  clearTutorialViewCache,
+} = require('../lib/tutorialViewCache');
 
 let glossaryAutolinkCache = null;
 let glossaryAutolinkCacheAt = 0;
+let glossaryAutolinkVersion = '';
 const GLOSSARY_AUTOLINK_TTL_MS = 5 * 60 * 1000;
 
+/**
+ * Index des termes du glossaire (TTL 5 min), accompagné d'une **version de contenu**.
+ * La version est dérivée des lignes SQL, pas d'un compteur de rechargement : un
+ * rafraîchissement TTL qui retrouve les mêmes termes conserve la même version, donc le
+ * cache de sortie du HTML enrichi (`lib/tutorialViewCache.js`) reste valide.
+ */
 async function loadGlossaryAutolinkEntries() {
   const now = Date.now();
   if (glossaryAutolinkCache && now - glossaryAutolinkCacheAt < GLOSSARY_AUTOLINK_TTL_MS) {
-    return glossaryAutolinkCache;
+    return { entries: glossaryAutolinkCache, version: glossaryAutolinkVersion };
   }
   const rows = await queryAll(
     `SELECT glossary_code, terme, variantes FROM glossary_terms WHERE statut = 'actif'`,
   );
-  glossaryAutolinkCache = buildGlossaryLinkEntries(rows);
+  const version = buildGlossaryIndexVersion(rows);
+  if (!glossaryAutolinkCache || version !== glossaryAutolinkVersion) {
+    glossaryAutolinkCache = buildGlossaryLinkEntries(rows);
+    glossaryAutolinkVersion = version;
+  }
   glossaryAutolinkCacheAt = now;
-  return glossaryAutolinkCache;
+  return { entries: glossaryAutolinkCache, version: glossaryAutolinkVersion };
 }
 
-async function enrichTutorialHtmlWithGlossary(html) {
-  const entries = await loadGlossaryAutolinkEntries();
+/** Calcul brut (CPU synchrone, ~100 ms sur une fiche de 30 ko) : à n'appeler qu'en cas de miss. */
+function enrichTutorialHtmlWithGlossary(html, entries) {
   const linked = autolinkHtmlTextNodes(html, entries);
   return injectGlossaryAutolinkScript(injectTutorialViewIframeLinkScript(linked));
+}
+
+/**
+ * HTML enrichi servi par `GET /:id/view`, mémorisé par
+ * (id, `updated_at`, version de l'index glossaire, empreinte du HTML source).
+ * L'empreinte du HTML couvre les tutoriels à `updated_at` nul et ceux servis depuis
+ * `source_file_path`, dont le fichier peut changer sans que la ligne SQL bouge.
+ * Les téléchargements (`/download/html`, `/download/pdf`) servent volontairement le HTML
+ * **non enrichi** : ils ne passent pas par ici.
+ */
+async function renderTutorialViewHtml(tutorial, html) {
+  const { entries, version } = await loadGlossaryAutolinkEntries();
+  const key = buildTutorialViewCacheKey({
+    tutorialId: tutorial.id,
+    updatedAt: tutorial.updated_at,
+    glossaryIndexVersion: version,
+    htmlFingerprint: fingerprintText(html),
+  });
+  return sharedTutorialViewCache.getOrCompute(key, () =>
+    enrichTutorialHtmlWithGlossary(html, entries),
+  );
 }
 
 const router = express.Router();
@@ -352,6 +391,7 @@ router.post(
       { dryRun },
     );
     if (!dryRun && report.totals.imported > 0) {
+      clearTutorialViewCache();
       for (const item of report.items) {
         if (item.status === 'imported' && item.tutorial_id) {
           await emitTutorialTasksChanged('tutorial_create', Number(item.tutorial_id));
@@ -612,6 +652,7 @@ router.post(
       }
       return newId;
     });
+    clearTutorialViewCache();
     const created = await queryOne('SELECT * FROM tutorials WHERE id = ?', [createdId]);
     const zMap = await fetchZonesForTutorials([createdId]);
     const mMap = await fetchMarkersForTutorials([createdId]);
@@ -668,6 +709,7 @@ router.post(
       now,
       tid,
     ]);
+    clearTutorialViewCache();
     const updated = await queryOne('SELECT * FROM tutorials WHERE id = ?', [tid]);
     const linked = await queryOne(
       'SELECT COUNT(*) AS c FROM task_tutorials WHERE tutorial_id = ?',
@@ -730,6 +772,9 @@ router.put(
         ]);
       }
     });
+    // `reorder` réécrit `updated_at` de tous les tutoriels : toutes les clés de cache
+    // deviennent orphelines, autant les libérer tout de suite.
+    clearTutorialViewCache();
 
     res.json({ success: true });
   }),
@@ -857,6 +902,7 @@ router.put(
       ],
     );
     await replaceTutorialZonesMarkers(existingId, loc.zoneIds, loc.markerIds);
+    clearTutorialViewCache();
     const updated = await queryOne('SELECT * FROM tutorials WHERE id = ?', [req.params.id]);
     const linked = await queryOne(
       'SELECT COUNT(*) AS c FROM task_tutorials WHERE tutorial_id = ?',
@@ -886,6 +932,7 @@ router.delete(
       nowIsoUtc(),
       req.params.id,
     ]);
+    clearTutorialViewCache();
     await emitTutorialTasksChanged('tutorial_delete', Number(req.params.id));
     res.json({ success: true });
   }),
@@ -966,7 +1013,7 @@ router.get(
     const html = await loadTutorialHtml(tutorial);
     if (!html) return res.status(400).send('Aucun contenu HTML');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(await enrichTutorialHtmlWithGlossary(html));
+    res.send(await renderTutorialViewHtml(tutorial, html));
   }),
 );
 
