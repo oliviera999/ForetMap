@@ -94,6 +94,12 @@ demande un compte, le jeu la refuse poliment.
 
 > ⚠️ **Point d'attention** — Un joueur **sans adresse e-mail** ne peut pas utiliser
 > « mot de passe oublié » : seul le staff peut alors le dépanner via « Reset mdp ».
+
+Une **prise de contrôle** d'un compte joueur (« se connecter en tant que ») s'arrête
+d'elle-même si le membre du staff qui l'a ouverte est désactivé, supprimé ou perd son
+rôle : la session contrôlée est coupée dès l'action suivante, sans attendre l'expiration
+de la connexion. Désactiver un compte staff suffit donc à reprendre la main.
+
 > Par ailleurs, quand le MJ réinitialise un mot de passe, le joueur n'est **pas**
 > obligé de le changer ensuite : si l'on veut un mot de passe « provisoire », il faut
 > le savoir (le changement forcé n'est pas réarmé par la réinitialisation).
