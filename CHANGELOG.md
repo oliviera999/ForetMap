@@ -7,6 +7,74 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### OLU prend la parole dans GL — et il sait aussi se taire (lot 6b)
+
+Arbitrage §11.7 de `docs/MASCOT_NARRATEUR_OLU.md` tranché : **OLU est du seuil, pas du
+royaume — ni gnome ni licorne.** Il a traversé, il n'y a pas pris de forme, il note dans
+son carnet d'explorateur et non dans celui de Sélène. Ce statut donne une règle d'écriture
+tenable : **OLU parle du jeu, jamais dans le jeu.** Il dit comment on ouvre un feuillet ;
+il ne dit jamais ce que le feuillet raconte, et il ne prend pas parti entre les deux
+peuples — un narrateur qui aurait un camp, des élèves le discuteraient.
+
+- **La bulle d'un feuillet ne porte plus d'étiquette de locuteur.** Le texte y est écrit
+  par le MJ : le signer « OLU » lui attribuait des mots qui ne sont pas les siens. Il
+  garde le portrait — il montre le feuillet, il ne le récite pas.
+- **Les 26 entrées d'aide GL sont réécrites à sa voix**, et chaque onglet a enfin son
+  propre titre : 25 d'entre eux s'appelaient « Aide GL ».
+- **Sur les cinq écrans d'administration et la console MJ, OLU se tait** : textes
+  factuels, pas de première personne, pas d'humour. On ne plaisante pas avec des comptes
+  et des permissions.
+
+Deux défauts de l'ancien corpus disparaissent au passage : la consigne « Désactive un
+module dans Réglages plateforme… » était répétée à des **joueurs** qui n'y ont pas accès
+— elle rejoint l'entrée `tab:settings`, où elle s'adresse à qui peut agir — et sa coquille
+« épurger », présente en cinq exemplaires, tombe avec elle.
+
+Un test verrouille les règles mécaniques de la charte (aucun emoji, plafond
+d'exclamations, tournures bannies, 1 à 3 phrases par ligne, silence sur les écrans de
+responsabilité). La règle « du jeu, jamais dans le jeu » n'est pas automatisable : elle
+reste à la relecture.
+
+**Et le corpus est enfin atteignable.** `lib/glHelp.js` persistait l'objet **dense** — les
+26 entrées, y compris celles que personne n'avait touchées. La première sauvegarde d'un MJ
+gelait donc tout le corpus, et améliorer un texte du dépôt n'avait plus le moindre effet à
+l'écran : cette réécriture serait restée invisible en production. C'est la dette symétrique
+signalée au §11.2 du plan, côté GL. L'écriture ne stocke désormais que la **surcharge**, et
+`scripts/compact-gl-help-registry.js` réécrit une ligne dense existante à rendu identique
+(il compare la configuration résolue avant/après et refuse d'écrire au moindre écart).
+
+> ⚠️ **Geste d'exploitation à passer une fois par instance** :
+> `node scripts/compact-gl-help-registry.js --apply`. Sans lui, une instance qui a déjà
+> enregistré ses bulles d'aide GL continuera d'afficher les anciens textes.
+
+### OLU entre dans Gnomes & Licornes — et c'est le même OLU (lot 6a)
+
+Le narrateur de l'aide ForetMap accompagne désormais aussi Gnomes & Licornes. **Un seul
+personnage, un seul réglage, un seul jeu de portraits** : c'est la révision de l'arbitrage
+§8.2 de `docs/MASCOT_NARRATEUR_OLU.md`, qui prévoyait une configuration GL distincte. Les
+portraits ayant été téléversés une fois, côté ForetMap, un second studio aurait imposé de
+re-téléverser les mêmes fichiers puis de tenir deux jeux en phase — pour un personnage dont
+le plan dit qu'il est le même des deux côtés.
+
+- **Ouverture d'un feuillet** (`GLFeuilletPopover`) : portrait latéral, bulle signée et effet
+  de frappe — le registre « visual novel léger » du §4.5. Sous 480 px, le portrait devient un
+  médaillon pour laisser la largeur au texte. Un clic dans la bulle affiche tout d'un coup.
+- **Encadrés d'aide GL** (`GLHelpPanel`, donc tous les onglets) : portrait `face` en en-tête.
+- **Nouvelle route publique `GET /api/gl/content/narrator`**, en lecture seule.
+
+L'isolement GL reste entier : GL lit sous `/api/gl/*` et n'appelle jamais `/api/settings/*`,
+aucun jeton ne traverse, aucune table `gl_*` n'entre en jeu, et l'écriture du réglage demeure
+au studio ForetMap (`PUT /api/settings/admin/help-narrator`). Le partage est **serveur**, à
+l'image de `VisitMapMascotRenderer` déjà réutilisé par GL.
+
+Le portrait reste décoratif (`aria-hidden`, `alt` vide) : sans image téléversée, la silhouette
+SVG prend le relais sans un octet de réseau, et éteindre l'interrupteur retire portrait et nom
+des deux côtés sans toucher aux textes.
+
+**Ce que ce lot ne fait pas :** le **corpus** d'aide GL (~26 entrées par onglet) n'est pas
+réécrit à la voix d'OLU — c'est le lot 6b, un lot d'écriture séparé (§13 : ne pas mélanger lot
+technique et lot corpus), qui suppose de trancher d'abord §11.7 (OLU est-il un personnage *du*
+lore GL ou un narrateur extérieur ?).
 ### Glossaire ForetMap — vrai popover, auto-liens partout, moteur corrigé
 
 Suite de l'audit `docs/AUDIT_GLOSSAIRE_FORETMAP_2026-08.md` : les cinq lots de son plan de

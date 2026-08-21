@@ -4,6 +4,11 @@ const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const { getGlModulesSettings } = require('../../lib/glSettings');
 const { buildPublicIntroPayload, getIntroConfigFromDb } = require('../../lib/glIntro');
 const { buildPublicGlHelpPayload, getGlHelpConfigFromDb } = require('../../lib/glHelp');
+const {
+  buildPublicNarratorPayload,
+  getHelpNarratorFromDb,
+  loadDefaultNarratorConfig,
+} = require('../../lib/helpNarrator');
 const asyncHandler = require('../../lib/asyncHandler');
 
 const router = express.Router();
@@ -39,6 +44,37 @@ router.get(
   asyncHandler(async (_req, res) => {
     const config = await getGlHelpConfigFromDb();
     return res.json(buildPublicGlHelpPayload(config));
+  }),
+);
+
+/**
+ * GET /api/gl/content/narrator — configuration publique du narrateur OLU.
+ *
+ * **Réglage partagé ForetMap + GL**, en révision de l'arbitrage §8.2 de
+ * `docs/MASCOT_NARRATEUR_OLU.md` qui prévoyait une configuration GL distincte : OLU est
+ * un seul personnage, ses portraits n'ont été téléversés qu'une fois (côté ForetMap,
+ * réglage `content.help.narrator`), et deux jeux d'assets finiraient par diverger.
+ *
+ * L'isolement runtime reste entier : la lecture passe par `/api/gl/*` — jamais un appel
+ * client vers `/api/settings/*` — aucun jeton ne traverse, et la route est en **lecture
+ * seule**. L'édition demeure au studio ForetMap (`PUT /api/settings/admin/help-narrator`,
+ * permission `admin.settings.write`), unique point d'écriture du réglage.
+ *
+ * Route publique, comme `/intro` : la charge utile ne contient qu'un nom de locuteur et
+ * des URLs de médias déjà servis en clair sous `/uploads`, et le portrait doit pouvoir
+ * s'afficher avant toute connexion GL.
+ */
+router.get(
+  '/narrator',
+  asyncHandler(async (_req, res) => {
+    try {
+      const config = await getHelpNarratorFromDb();
+      return res.json(buildPublicNarratorPayload(config));
+    } catch (_) {
+      // « Jamais d'écran vide » (§9.4) : une lecture en échec renvoie les défauts plutôt
+      // qu'une erreur — l'aide et les feuillets GL restent affichables, silhouette comprise.
+      return res.json(buildPublicNarratorPayload(loadDefaultNarratorConfig()));
+    }
   }),
 );
 
