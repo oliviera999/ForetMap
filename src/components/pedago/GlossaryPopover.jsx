@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDialogA11y } from '../../hooks/useDialogA11y.js';
 import { usePrefersReducedMotion } from '../../shared/hooks/usePrefersReducedMotion.js';
 import { lockBodyScroll } from '../../utils/body-scroll-lock.js';
 import { api } from '../../services/api';
-import { MarkdownContent } from '../MarkdownContent.jsx';
+import { GlossaryMarkdown } from '../GlossaryMarkdown.jsx';
+import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
 
 /**
  * Fiche rapide d'un terme du glossaire, affichée **par-dessus** l'écran courant.
@@ -182,12 +183,24 @@ export function GlossaryPopover({
     return lockBodyScroll();
   }, [open, isClosing]);
 
+  // Auto-liens dans la définition elle-même : index partagé, **privé du terme
+  // affiché** pour ne pas l'auto-lier vers lui-même. Le clic reste dans le
+  // popover (`openRelatedTerm`), il n'en ouvre pas un second par-dessus.
+  const glossaryIndex = useGlossaryLinkIndex({ enabled: open || isClosing });
+  const autolinkItems = useMemo(
+    () => glossaryIndex.filter((item) => item?.glossary_code !== activeCode),
+    [glossaryIndex, activeCode],
+  );
+
   /** Navigation d'un terme voisin à l'autre, sans jamais fermer le popover. */
-  function openRelatedTerm(code) {
-    const next = String(code || '').trim();
-    if (!next || next === activeCode) return;
-    setActiveCode(next);
-  }
+  const openRelatedTerm = useCallback(
+    (code) => {
+      const next = String(code || '').trim();
+      if (!next) return;
+      setActiveCode((current) => (next === current ? current : next));
+    },
+    [setActiveCode],
+  );
 
   function openFullGlossary() {
     const code = activeCode;
@@ -274,29 +287,45 @@ export function GlossaryPopover({
 
             <div className="fm-glossary-popover__body">
               {detail.definition_courte ? (
-                <MarkdownContent className="fm-glossary-popover__lead">
+                <GlossaryMarkdown
+                  className="fm-glossary-popover__lead"
+                  glossaryItems={autolinkItems}
+                  onOpenGlossaryTerm={openRelatedTerm}
+                >
                   {detail.definition_courte}
-                </MarkdownContent>
+                </GlossaryMarkdown>
               ) : null}
               {detail.definition_complete ? (
-                <MarkdownContent className="fm-glossary-popover__text">
+                <GlossaryMarkdown
+                  className="fm-glossary-popover__text"
+                  glossaryItems={autolinkItems}
+                  onOpenGlossaryTerm={openRelatedTerm}
+                >
                   {detail.definition_complete}
-                </MarkdownContent>
+                </GlossaryMarkdown>
               ) : null}
               {detail.exemple ? (
                 <div className="fm-glossary-popover__meta">
                   <div className="plant-meta-label">Exemple</div>
-                  <MarkdownContent className="fm-glossary-popover__text">
+                  <GlossaryMarkdown
+                    className="fm-glossary-popover__text"
+                    glossaryItems={autolinkItems}
+                    onOpenGlossaryTerm={openRelatedTerm}
+                  >
                     {detail.exemple}
-                  </MarkdownContent>
+                  </GlossaryMarkdown>
                 </div>
               ) : null}
               {detail.etymologie ? (
                 <div className="fm-glossary-popover__meta">
                   <div className="plant-meta-label">Étymologie</div>
-                  <MarkdownContent className="fm-glossary-popover__text">
+                  <GlossaryMarkdown
+                    className="fm-glossary-popover__text"
+                    glossaryItems={autolinkItems}
+                    onOpenGlossaryTerm={openRelatedTerm}
+                  >
                     {detail.etymologie}
-                  </MarkdownContent>
+                  </GlossaryMarkdown>
                 </div>
               ) : null}
 
