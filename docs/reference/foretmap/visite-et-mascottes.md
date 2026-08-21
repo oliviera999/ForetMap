@@ -79,6 +79,13 @@ familles.
   packs** et **une seule bibliothèque d'images**, communes à toutes les cartes. Une
   mascotte créée ici est disponible partout dès sa publication — inutile de la
   recréer, de la dupliquer ou de l'exporter/réimporter pour une autre carte.
+- **Un pack peut compléter une mascotte livrée avec l'application.** Si son identifiant
+  de catalogue reprend celui d'une mascotte existante, c'est le pack qui est affiché : la
+  liste ne montre pas deux entrées, elle montre la version animée. C'est le moyen de
+  donner ses animations à une mascotte dont l'application n'a que la silhouette — **OLU**
+  est aujourd'hui dans ce cas : sa planche d'animation n'est pas livrée avec
+  l'application, il apparaît donc en silhouette dessinée tant qu'aucun pack
+  `olu-spritesheet` n'a été publié.
 - **Suivre la fréquentation** : un tableau de bord donne sessions, lieux vus et taux de
   parcours complets, en séparant élèves connectés et visiteurs anonymes.
 
