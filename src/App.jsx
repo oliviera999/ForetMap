@@ -34,6 +34,7 @@ const StudentProfileEditorLazy = lazy(() =>
   import('./components/stats-views').then((m) => ({ default: m.StudentProfileEditor })),
 );
 import { TabSuspense } from './components/TabSuspense.jsx';
+import { GlossaryPopover, readGlossaryTermMessage } from './components/pedago/GlossaryPopover.jsx';
 
 const VisitViewLazy = lazy(() =>
   import('./components/visit-views').then((m) => ({ default: m.VisitView })),
@@ -790,7 +791,27 @@ function App() {
   const [pedagoGlossaryCode, setPedagoGlossaryCode] = useState(null);
   const [pedagoQuizQuestionCode, setPedagoQuizQuestionCode] = useState(null);
   const [foodWebHighlightPlantId, setFoodWebHighlightPlantId] = useState(null);
+  // Code du terme affiché dans le popover de glossaire (fiche rapide, rendue hors des
+  // onglets pour survivre à tout changement de vue — audit A1).
+  const [glossaryPopoverCode, setGlossaryPopoverCode] = useState(null);
 
+  /**
+   * Geste par défaut sur un terme de glossaire (tutoriel, fiche plante, quiz, réseau
+   * trophique) : ouvrir la fiche rapide **par-dessus** l'écran courant. L'élève ne perd
+   * ni sa page de tutoriel, ni sa position de lecture.
+   */
+  const openGlossaryPopover = useCallback((code) => {
+    const c = String(code || '').trim();
+    if (!c) return;
+    setGlossaryPopoverCode(c);
+  }, []);
+
+  const closeGlossaryPopover = useCallback(() => setGlossaryPopoverCode(null), []);
+
+  /**
+   * Chemin « fiche complète » : bascule sur l'onglet Glossaire et y sélectionne le terme.
+   * Ce n'est plus le geste par défaut — seul le bouton dédié du popover y mène.
+   */
   const openPedagoGlossaryTerm = useCallback(
     (code) => {
       const c = String(code || '').trim();
@@ -823,16 +844,17 @@ function App() {
     [setPlantCatalogPreview],
   );
 
+  // Clic sur un terme auto-lié dans l'iframe d'un tutoriel : le message n'est accepté que
+  // s'il vient de notre origine (audit A10 — un tutoriel `type = 'link'` affiche un site
+  // tiers dans une iframe de la même page et pourrait sinon piloter la navigation).
   useEffect(() => {
     const onGlossaryMessage = (event) => {
-      const data = event?.data;
-      if (!data || data.type !== 'foretmap:glossary') return;
-      const code = String(data.code || '').trim();
-      if (code) openPedagoGlossaryTerm(code);
+      const code = readGlossaryTermMessage(event, window.location.origin);
+      if (code) openGlossaryPopover(code);
     };
     window.addEventListener('message', onGlossaryMessage);
     return () => window.removeEventListener('message', onGlossaryMessage);
-  }, [openPedagoGlossaryTerm]);
+  }, [openGlossaryPopover]);
 
   const useWideMain = shouldUseDesktopSplit;
   const mapChromeCompactVisible =
@@ -1149,6 +1171,18 @@ function App() {
         <DataProvider value={dataContextValue}>
           <TourProvider tab={tab} isTeacher={effectiveIsTeacher} enabled={discoveryTourAutoEnabled}>
             <div id="app">
+              {/* Fiche rapide du glossaire : hors des onglets et hors des modales, pour
+                  survivre à tout changement de vue et se poser au-dessus de l'aperçu
+                  de tutoriel (audit A1). */}
+              {glossaryPopoverCode && (
+                <GlossaryPopover
+                  open
+                  glossaryCode={glossaryPopoverCode}
+                  onClose={closeGlossaryPopover}
+                  onOpenFullGlossary={openPedagoGlossaryTerm}
+                  showFullGlossaryLink={tab !== 'glossary'}
+                />
+              )}
               {plantCatalogPreview && (
                 <Suspense fallback={null}>
                   <PlantCatalogPreviewModalLazy
@@ -1157,7 +1191,7 @@ function App() {
                     onClose={() => setPlantCatalogPreview(null)}
                     onForceLogout={forceLogout}
                     onOpenPlant={openPlantCatalogPreviewById}
-                    onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                    onOpenGlossaryTerm={openGlossaryPopover}
                     onNavigateToFoodWeb={openPedagoFoodWeb}
                     onOpenQuizQuestion={openPedagoQuizQuestion}
                   />
@@ -1532,7 +1566,7 @@ function App() {
                         onForceLogout={forceLogout}
                         onOpenMascotPackStudioTab={openMascotPackStudioTab}
                         onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                        onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                        onOpenGlossaryTerm={openGlossaryPopover}
                         onOpenQuizQuestion={openPedagoQuizQuestion}
                         glossarySelectedCode={pedagoGlossaryCode}
                         onGlossarySelectedCodeChange={setPedagoGlossaryCode}
@@ -1587,7 +1621,7 @@ function App() {
                               maps={visibleMaps}
                               onForceLogout={forceLogout}
                               onOpenPlant={openPlantCatalogPreviewById}
-                              onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                              onOpenGlossaryTerm={openGlossaryPopover}
                               onNavigateToFoodWeb={openPedagoFoodWeb}
                             />
                           </TabSuspense>
@@ -1635,7 +1669,7 @@ function App() {
                           markers={markers}
                           onForceLogout={forceLogout}
                           onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                          onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                          onOpenGlossaryTerm={openGlossaryPopover}
                           onOpenQuizQuestion={openPedagoQuizQuestion}
                           glossarySelectedCode={pedagoGlossaryCode}
                           onGlossarySelectedCodeChange={setPedagoGlossaryCode}
