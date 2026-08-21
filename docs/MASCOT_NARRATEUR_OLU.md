@@ -19,12 +19,13 @@
 >   `GET /api/gl/content/narrator`, hook `useGlNarrator`, portrait `face` dans `GLHelpPanel`,
 >   mise en scène portrait + bulle dans `GLFeuilletPopover`, styles GL. **Le réglage est
 >   partagé avec ForetMap** — arbitrage §8.2 révisé, voir §8.2bis.
->
 > - **Lot 6b (GL, corpus)** — arbitrage **§11.7 tranché** (OLU est du seuil, ni gnome ni licorne —
 >   §8.4), les 26 entrées d'aide GL réécrites à sa voix, et la bulle des feuillets **sans étiquette
 >   de locuteur** : le texte y est celui du MJ, pas le sien.
+> - **Lot 7a** — audit du mapping d'états d'OLU (§3.1a) : alias morts supprimés, états non
+>   mappés assumés, garde-fou de test sur le catalogue.
 >
-> **Reste à faire : lot 7 (optionnel).** OLU est à l'écran **et** il parle à la
+> **Reste à faire : lot 7b (optionnel, suspendu à une planche d'animation).** OLU est à l'écran **et** il parle à la
 > première personne. Le brief de production graphique des portraits est dans
 > [`MASCOT_OLU_BRIEF_VISUEL.md`](./MASCOT_OLU_BRIEF_VISUEL.md).
 
@@ -205,11 +206,39 @@ Le système mascotte est **mature** ; ce plan l'étend, il ne le crée pas.
 ### 3.1 Deux constats de départ
 
 **(a) L'entrée `olu-spritesheet` existe mais son asset n'a jamais été versionné.**
-[`visitMascotCatalog.js:222`](../src/utils/visitMascotCatalog.js) déclare une grille 64×64 avec
+[`visitMascotCatalog.js`](../src/utils/visitMascotCatalog.js) déclare une grille 64×64 avec
 12 états mappés pointant vers `/assets/mascots/olu/olu-spritesheet.png` — fichier **absent du
 dépôt** (aucun commit sur ce chemin, absent de `dist/`). OLU retombe donc systématiquement sur le
 fallback SVG aujourd'hui. Les sprites à venir comblent ce trou : **prévoir de vérifier
 si le mapping d'états existant correspond aux nouveaux sprites, ou s'il faut le corriger.**
+
+> ✅ **Traité au lot 7 — ce qui pouvait l'être sans planche.** L'audit du mapping a trouvé deux
+> défauts vérifiables sans un seul sprite :
+>
+> - **Six alias d'états morts.** `resolveStateSpec` consulte `stateFrames` **avant**
+>   `stateAliases` ; or les six clés d'alias figuraient déjà dans `stateFrames` (trois étaient
+>   des identités, `spin -> spin`). Bloc entièrement inopérant, supprimé — comportement
+>   inchangé, code mort en moins.
+> - **Neuf états canoniques non mappés** (`angry`, `sleep`, `wave`, `dance`, `eat`, `search`,
+>   `sad`, `love`, `point`), ajoutés au moteur par le lot « comportements » après l'écriture de
+>   l'entrée. Ils retombent sur `idle`. **Ils n'ont pas été inventés** : leur donner une rangée
+>   reviendrait à décrire une planche qui n'existe pas. Le repli est assumé et figé par test.
+>
+> Ce qui **reste** subordonné à la planche : la confrontation du découpage supposé (12 états sur
+> 5 rangées, dont 4 partagent la rangée 3 à l'identique) aux sprites réels.
+>
+> **Et cette confrontation n'aura probablement jamais lieu sous cette forme** : la voie
+> recommandée n'est pas de versionner un PNG mais de **publier un pack mascotte
+> `olu-spritesheet` depuis le studio**. `buildVisitMascotSelectionOptions` fait gagner, à
+> identifiant égal, l'entrée du pack ; `catalog_id` est un champ libre ; les spritesheets sont
+> déjà en médiathèque. Le pack apporte alors son propre découpage, et l'hypothèse ci-dessus
+> devient sans objet. C'est aussi ce que demande l'arbitrage §5.1 : pas de visuel figé au dépôt.
+>
+> Garde-fou : [`tests/visit-mascot-catalog-states.test.js`](../tests/visit-mascot-catalog-states.test.js)
+> — aucun alias mort dans tout le catalogue, tout alias vise un état défini, et la **liste des
+> entrées sans asset versionné est figée** (12 aujourd'hui : OLU, le template et dix Rive). Elles
+> restent proposées dans le sélecteur : les retirer changerait ce que voient les profs et ce que
+> devient une mascotte déjà choisie — c'est un arbitrage produit, pas un nettoyage.
 
 **(b) Le corpus d'aide vit à trois endroits, avec des règles différentes.** Point structurant
 pour le lot de réécriture — détaillé en §7.
@@ -931,7 +960,8 @@ de la chrome d'interface — un bouton ne parle pas, et le préfixe est de toute
 | **5**  | ✅ **Livré** — studio prof `HelpNarratorAdminPanel` (onglet dédié, cf. §6bis.2) + portrait `face` dans `HelpPanel`.                                                                                    | ❌ aucun\*     | Moyen  | Faible            |
 | **6a** | ✅ **Livré** — GL : `GLFeuilletPopover` + `GLHelpPanel`, `useGlNarrator`, route publique `GET /api/gl/content/narrator`, styles GL. **Réglage partagé avec ForetMap** (§8.2bis, arbitrage révisé).     | ❌ aucun\*\*   | Moyen  | Moyen — isolement |
 | **6b** | ✅ **Livré** — GL : **corpus** — 26 entrées d'aide (`data/gl/help.default.json`) à la voix d'OLU, titres propres à chaque onglet, §11.7 tranché (§8.4). Sur les écrans de responsabilité, OLU se tait. | ❌ aucun       | Moyen  | Faible            |
-| **7**  | _(optionnel)_ Cadrage `body`, spritesheet OLU, correction du mapping d'états §3.1a.                                                                                                                    | ✅ spritesheet | Moyen  | Faible            |
+| **7a** | ✅ **Livré** — audit du mapping d'états §3.1a : six alias morts supprimés, neuf états non mappés assumés et figés, garde-fou `tests/visit-mascot-catalog-states.test.js`.                              | ❌ aucun       | Faible | Faible            |
+| **7b** | _(optionnel, suspendu)_ Animation d'OLU et cadrage `body` — **subordonnés à une planche**. Voie recommandée : publier un pack `olu-spritesheet` au studio plutôt que versionner un PNG (§3.1a).        | ✅ spritesheet | Moyen  | Faible            |
 
 **Les lots 1 à 4 ont été livrés sans aucun sprite** et apportent déjà l'essentiel de l'effet
 ludique — le cadre, le rythme et la voix. C'est délibéré : la production graphique ne doit

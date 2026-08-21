@@ -7,6 +7,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Mascottes : six alias d'états qui ne servaient à rien, et un état des lieux figé (lot 7a)
+
+Audit du mapping d'états d'OLU demandé au §3.1a de `docs/MASCOT_NARRATEUR_OLU.md`. Deux
+défauts s'y trouvaient, tous deux vérifiables sans disposer de la planche d'animation.
+
+- **Six alias morts, supprimés.** `resolveStateSpec` consulte `stateFrames` **avant**
+  `stateAliases` ; or les six clés d'alias de l'entrée `olu-spritesheet` figuraient déjà
+  dans `stateFrames`, et trois étaient des identités (`spin -> spin`). Aucune ne
+  s'exécutait. Comportement inchangé, code mort en moins.
+- **Neuf états canoniques ne sont pas mappés** (`angry`, `sleep`, `wave`, `dance`, `eat`,
+  `search`, `sad`, `love`, `point`) : ajoutés au moteur par le lot « comportements » après
+  l'écriture de l'entrée, ils retombent sur `idle`. Ils n'ont **pas** été inventés — leur
+  donner une rangée reviendrait à décrire une planche qui n'existe pas. Le repli est
+  assumé, et figé par test.
+
+Un garde-fou (`tests/visit-mascot-catalog-states.test.js`) interdit désormais l'alias mort
+dans tout le catalogue, exige que tout alias vise un état réellement défini, vérifie que
+deux états partageant une rangée y lisent le même nombre d'images, et **fige la liste des
+douze entrées dont l'asset n'est pas versionné** (OLU, le template et dix Rive). Ces
+entrées restent proposées dans le sélecteur : les retirer changerait ce que voient les
+profs et ce que devient une mascotte déjà choisie — c'est un arbitrage produit, pas un
+nettoyage de test.
+
+**Pour animer OLU, la voie recommandée n'est pas de versionner une planche** mais de
+publier un pack mascotte portant l'identifiant de catalogue `olu-spritesheet` : à
+identifiant égal, c'est l'entrée du pack qui est affichée. Le pack apporte son propre
+découpage, se retouche au studio sans déploiement, et respecte l'arbitrage §5.1 (aucun
+visuel figé au dépôt).
 ### Mises à jour npm du lot Dependabot (v1.107.0)
 
 Les 21 montées correctives et mineures proposées par #287 (`adm-zip`, `express-rate-limit`,
