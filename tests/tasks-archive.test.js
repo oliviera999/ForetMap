@@ -2,8 +2,9 @@
 
 // Archivage (soft-delete) des tâches et des projets de tâches.
 // Vérifie : masquage des listes actives, portées ?archived=archived|all,
-// idempotence, invisibilité côté élève, cascade projet→tâches et exclusion
-// des archivées du calcul de complétion de projet.
+// idempotence, invisibilité côté élève, cascade projet→tâches, exclusion
+// des archivées du calcul de complétion de projet, refus des actions élève
+// sur une tâche archivée, et date de validation posée à l'import.
 
 require('./helpers/setup');
 require('dotenv').config();
@@ -25,6 +26,7 @@ async function validateTask(taskId) {
 
 let teacherToken;
 let studentToken;
+let studentId;
 const firstName = `Arch${Date.now()}`;
 const lastName = 'Test';
 
@@ -87,6 +89,7 @@ before(async () => {
     .send({ firstName, lastName, password: 'pass123' })
     .expect(201);
   studentToken = reg.body.authToken;
+  studentId = reg.body.id;
 });
 
 describe('Archivage des tâches', () => {
@@ -348,5 +351,104 @@ describe('Archivage automatique (job quotidien)', () => {
     assert.ok(res.projectsArchived >= 1, 'au moins un projet archivé');
     const row = await queryOne('SELECT archived_at FROM task_projects WHERE id = ?', [project.id]);
     assert.ok(row.archived_at, 'projet validé ancien archivé automatiquement');
+  });
+});
+
+describe('Actions élève sur une tâche archivée', () => {
+  // Une tâche archivée disparaît des listes, mais un client resté ouvert garde son id.
+  // Sans garde-fou côté API, l'inscription passait encore — et échappait au plafond de
+  // tâches actives, qui ne compte que les tâches non archivées.
+  async function archivedTask(title) {
+    const task = await createTask({ title, required_students: 2 });
+    await request(app)
+      .post(`/api/tasks/${task.id}/archive`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+    return task;
+  }
+
+  it("refuse l'inscription d'un élève (POST /:id/assign)", async () => {
+    const task = await archivedTask(`Archivée assign ${Date.now()}`);
+    const res = await request(app)
+      .post(`/api/tasks/${task.id}/assign`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ firstName, lastName, studentId })
+      .expect(400);
+    assert.match(res.body.error, /archiv/i);
+    const row = await queryOne('SELECT COUNT(*) AS c FROM task_assignments WHERE task_id = ?', [
+      task.id,
+    ]);
+    assert.strictEqual(Number(row.c), 0, 'aucune inscription enregistrée');
+  });
+
+  it('refuse le marquage « terminée » (POST /:id/done)', async () => {
+    const task = await createTask({ title: `Archivée done ${Date.now()}`, required_students: 1 });
+    await request(app)
+      .post(`/api/tasks/${task.id}/assign`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ firstName, lastName, studentId })
+      .expect(200);
+    await request(app)
+      .post(`/api/tasks/${task.id}/archive`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+
+    const res = await request(app)
+      .post(`/api/tasks/${task.id}/done`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ firstName, lastName, studentId })
+      .expect(400);
+    assert.match(res.body.error, /archiv/i);
+    const row = await queryOne('SELECT done_at FROM task_assignments WHERE task_id = ? LIMIT 1', [
+      task.id,
+    ]);
+    assert.strictEqual(row.done_at ?? null, null, 'la part n’a pas été marquée faite');
+  });
+
+  it("refuse l'inscription d'un groupe (POST /:id/assign-group)", async () => {
+    const task = await archivedTask(`Archivée assign-group ${Date.now()}`);
+    const res = await request(app)
+      .post(`/api/tasks/${task.id}/assign-group`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ group_id: 'peu-importe' })
+      .expect(400);
+    assert.match(res.body.error, /archiv/i);
+  });
+});
+
+describe('Date de validation à l’import', () => {
+  it('une tâche importée en statut « validated » porte validated_at et devient archivable', async () => {
+    const unique = Date.now();
+    const taskTitle = `Import validée ${unique}`;
+    const csv = [
+      'Type;Carte;Projet;Description projet;Tâche;Description tâche;Date limite;n3beurs requis;Statut;Récurrence',
+      `task;foret;;;${taskTitle};Déjà faite avant l’import;;1;validated;`,
+    ].join('\n');
+
+    await request(app)
+      .post('/api/tasks/import')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({
+        fileName: 'import-validee.csv',
+        fileDataBase64: Buffer.from(csv, 'utf8').toString('base64'),
+        dryRun: false,
+      })
+      .expect(200);
+
+    const imported = await queryOne('SELECT id, status, validated_at FROM tasks WHERE title = ?', [
+      taskTitle,
+    ]);
+    assert.ok(imported, 'tâche importée retrouvée');
+    assert.strictEqual(imported.status, 'validated');
+    assert.ok(imported.validated_at, 'validated_at posé à l’import');
+
+    // Sans validated_at, le job quotidien ignorait la ligne : la tâche restait à vie.
+    await execute(
+      'UPDATE tasks SET validated_at = DATE_SUB(NOW(), INTERVAL 200 DAY) WHERE id = ?',
+      [imported.id],
+    );
+    await runAutoArchiveJob();
+    const row = await queryOne('SELECT archived_at FROM tasks WHERE id = ?', [imported.id]);
+    assert.ok(row.archived_at, 'tâche importée validée archivée automatiquement');
   });
 });
