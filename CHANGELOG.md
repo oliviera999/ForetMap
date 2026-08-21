@@ -7,6 +7,74 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Glossaire ForetMap — vrai popover, auto-liens partout, moteur corrigé
+
+Suite de l'audit `docs/AUDIT_GLOSSAIRE_FORETMAP_2026-08.md` : les cinq lots de son plan de
+correction sont livrés (§6 de l'audit). Fiche d'arbitrage **F8** de `docs/reference/INCOHERENCES.md`
+close, options A + C.
+
+- **Popover de définition (A1)** — un clic sur un terme n'éjecte plus l'élève de son tutoriel.
+  `GlossaryPopover` est rendu par portail à la racine de l'application, donc hors des onglets :
+  la modale de lecture reste ouverte derrière, à la bonne page. Termes voisins parcourus sans
+  fermeture, bouton « voir la fiche complète » pour l'ancienne bascule d'onglet, piège à focus
+  et Échap, animation neutralisée sous `prefers-reduced-motion`.
+- **Moteur d'auto-liens mutualisé et corrigé (A3, A5, A6, A10)** — `lib/foretmapGlossaryAutolink.js`
+  était un fork dégradé de `src/utils/glTermAutolink.js` : son filtre `SKIP_TAGS` était inopérant
+  (les deux branches du ternaire renvoyaient la même valeur), ce qui injectait **26 ancres dans
+  des blocs `<style>` sur 6 des 10 fiches de `tutos/`** — du CSS corrompu servi à l'élève. Une
+  seule implémentation désormais : `src/utils/termAutolink.js` et son miroir CJS
+  `lib/term-autolink/` (`npm run sync:term-autolink-lib`). **Bug jumeau corrigé côté GL** : un
+  `<img>` non auto-fermé, ce que produit DOMPurify, coupait tous les auto-liens suivants dans
+  n'importe quel contenu markdown comportant une image. Tokenisation consciente des guillemets
+  et des commentaires, attribut échappé, `postMessage` et `event.origin` restreints à l'origine
+  de l'application.
+- **Tous les tutoriels couverts (A2)** — un contenu local passe par `/api/tutorials/:id/view`
+  quel que soit son `type` ; les fichiers non-HTML restent servis tels quels. Les fiches servies
+  en statique depuis `/tutos/` n'étaient jusqu'ici ni hyperliées ni cliquables.
+- **Auto-liens hors tutoriels (A11, A12)** — définitions du glossaire, rôle et utilité des fiches
+  plantes, énoncé/choix/feedback du quiz, réseau trophique, et les définitions du popover
+  lui-même. `src/utils/foretmapGlossaryAutolink.js`, `GlossaryMarkdown` / `GlossaryInlineText`,
+  `useGlossaryLinkIndex`. Le hook de sanitisation supprimait le `href` des ancres ForetMap
+  (lien non focalisable, sans rôle) : il connaît désormais les deux glossaires.
+- **Performance (A4)** — regex précompilées et cache LRU du HTML enrichi, clé
+  `id | updated_at | version d'index | empreinte du HTML source`, invalidé à chaque écriture de
+  tutoriel. Affichage d'une fiche de 32 ko en régime chaud : **104 ms → 0,107 ms** de CPU
+  bloquant ; 30 élèves sur la même fiche : ~3 120 ms → **~22 ms**.
+- **Style (A8)** — `.fm-glossary-inline-link` n'était défini nulle part : dans l'iframe, les
+  termes héritaient du style `a` de chaque fiche, souvent inexistant. Style ajouté côté
+  application et injecté dans l'iframe, sans `!important` pour ne pas défigurer les chartes des
+  fiches de `tutos/`.
+- **Tests (A7)** — le module ForetMap n'en avait aucun : 85 tests ajoutés (`term-autolink-core`,
+  `foretmap-glossary-inject`, `tutorial-view-cache`, `tutorials-inline-legacy`, et 5 fichiers UI).
+  Chaque cas de bug a été confronté au code d'avant pour vérifier qu'il échouait sans le correctif.
+- **Cohérence de déploiement** — le nouveau miroir CJS est déclaré dans
+  `scripts/prepare-runtime-deploy.js` et dans le workflow `frontend-dist`, comme les deux autres.
+- Doc de référence mise à jour : `pedagogie-quiz-glossaire-reseau.md`,
+  `taches-tutoriels-et-validation.md`, `plantes-et-biodiversite.md`. Deux constats de l'audit
+  ont été **démentis par l'implémentation** et portent un encadré de correction : **A9**
+  (surévalué — aucune route d'écriture du glossaire n'existe) et **A12** (mauvais coupable).
+
+### Audit — Glossaire ForetMap : hyperliens de termes et « popover » de définition
+
+Audit sans changement de comportement : `docs/AUDIT_GLOSSAIRE_FORETMAP_2026-08.md` suit la
+chaîne complète « terme du glossaire cité dans un contenu », du `SELECT` sur `glossary_terms`
+jusqu'au clic de l'élève, et confronte code, écrans, doc de référence et tests.
+
+Constat central : **il n'existe pas de popover côté ForetMap** — `openPedagoGlossaryTerm`
+bascule d'onglet, ce qui démonte la vue Tutoriels et **ferme la modale de lecture** ; d'où le
+symptôme « le popover ne fonctionne pas sur les tutos ». Trois points rouges (A1 absence de
+popover, A2 tutoriels servis en statique donc jamais enrichis, A3 `SKIP_TAGS` inopérant dans
+`lib/foretmapGlossaryAutolink.js` → 26 balises `<a>` injectées dans des blocs `<style>` sur
+6 fiches de `tutos/` sur 10), trois orange (A4 108 ms de CPU bloquant par affichage sans
+cache de sortie, A5 fork dégradé de `src/utils/glTermAutolink.js`, **A6 bug jumeau GL** : un
+`<img>` non auto-fermé coupe tous les auto-liens suivants — reproduit de bout en bout sur
+`renderGlMarkdownWithGlossaryLinks`), six jaunes (tests absents, aucun style
+`.fm-glossary-inline-link`, cache d'index sans invalidation, robustesse de la tokenisation et
+du `postMessage`, couverture limitée aux tutoriels, `data-glossary-code` non autorisé par le
+sanitizer).
+
+Plan de correction en 5 lots proposé au §4 ; aucun n'est implémenté. Fiche d'arbitrage
+**F8** ajoutée à `docs/reference/INCOHERENCES.md`.
 ### Tâches : une tâche « Urgent ! » validée rejoint enfin « Validées » — et audit de l'archivage
 
 L'encart « 🚨 Urgent ! » extrait ses tâches de **toutes** les autres sections de l'écran

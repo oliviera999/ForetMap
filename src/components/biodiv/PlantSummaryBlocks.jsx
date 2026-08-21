@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import { MarkdownContent } from '../MarkdownContent.jsx';
+import { GlossaryMarkdown } from '../GlossaryMarkdown.jsx';
+import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
 import { PlantRangeGauge } from '../pedago/PlantRangeGauge.jsx';
 import { normalizedPlantValue } from '../../utils/plantFormValues.js';
 import { isVegetalCatalogEntry } from '../../utils/plantCatalogHelpers.js';
@@ -293,23 +295,37 @@ export function PlantSummaryBadges({ plant }) {
   );
 }
 
-/** Rôle écologique et utilité humaine, affichés à la suite de la description (hors blocs repliables). */
-export function PlantEcosystemHumanLead({ plant }) {
+/**
+ * Rôle écologique et utilité humaine, affichés à la suite de la description
+ * (hors blocs repliables).
+ *
+ * Avec `onOpenGlossaryTerm`, les termes du glossaire cités dans ces deux textes
+ * deviennent cliquables ; sans cette prop, le rendu est inchangé.
+ */
+export function PlantEcosystemHumanLead({ plant, onOpenGlossaryTerm = undefined }) {
   const role = normalizedPlantValue(plant.ecosystem_role);
   const utility = normalizedPlantValue(plant.human_utility);
+  const autolinkEnabled = typeof onOpenGlossaryTerm === 'function' && Boolean(role || utility);
+  const glossaryItems = useGlossaryLinkIndex({ enabled: autolinkEnabled });
+  const Text = autolinkEnabled ? GlossaryMarkdown : MarkdownContent;
+  const textProps = autolinkEnabled ? { glossaryItems, onOpenGlossaryTerm } : {};
   if (!role && !utility) return null;
   return (
     <div className="plant-ecology-lead">
       {role && (
         <div className="plant-meta-item">
           <div className="plant-meta-label">Rôle dans l'écosystème</div>
-          <MarkdownContent className="plant-meta-value">{role}</MarkdownContent>
+          <Text className="plant-meta-value" {...textProps}>
+            {role}
+          </Text>
         </div>
       )}
       {utility && (
         <div className="plant-meta-item">
           <div className="plant-meta-label">Utilité pour l'être humain</div>
-          <MarkdownContent className="plant-meta-value">{utility}</MarkdownContent>
+          <Text className="plant-meta-value" {...textProps}>
+            {utility}
+          </Text>
         </div>
       )}
     </div>

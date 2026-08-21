@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../services/api';
-import { MarkdownContent } from '../MarkdownContent.jsx';
+import { GlossaryMarkdown } from '../GlossaryMarkdown.jsx';
+import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
 
 const NIVEAU_OPTIONS = [
   { value: '', label: 'Tous niveaux' },
@@ -93,6 +94,15 @@ export function GlossaryView({
     else setDetail(null);
   }, [activeCode, loadDetail]);
 
+  // Auto-liens : index partagé des termes actifs, **privé du terme affiché** pour
+  // ne pas auto-lier une fiche vers elle-même. Dans cet onglet, le clic navigue
+  // dans la vue (`selectTerm`), il n'ouvre pas de popover par-dessus.
+  const glossaryIndex = useGlossaryLinkIndex();
+  const autolinkItems = useMemo(
+    () => glossaryIndex.filter((item) => item?.glossary_code !== activeCode),
+    [glossaryIndex, activeCode],
+  );
+
   const categorieOptions = useMemo(
     () => [
       { value: '', label: 'Toutes catégories' },
@@ -101,10 +111,13 @@ export function GlossaryView({
     [categories],
   );
 
-  function selectTerm(code) {
-    setActiveCode(code);
-    onSelectedCodeChange?.(code);
-  }
+  const selectTerm = useCallback(
+    (code) => {
+      setActiveCode(code);
+      onSelectedCodeChange?.(code);
+    },
+    [onSelectedCodeChange],
+  );
 
   return (
     <div className="pedago-view pedago-glossary">
@@ -201,22 +214,36 @@ export function GlossaryView({
                 <p className="plant-row-desc">{detail.definition_courte}</p>
               ) : null}
               {detail.definition_complete ? (
-                <MarkdownContent className="plant-row-desc">
+                <GlossaryMarkdown
+                  className="plant-row-desc"
+                  glossaryItems={autolinkItems}
+                  onOpenGlossaryTerm={selectTerm}
+                >
                   {detail.definition_complete}
-                </MarkdownContent>
+                </GlossaryMarkdown>
               ) : null}
               {detail.exemple ? (
                 <div className="plant-meta-item" style={{ marginTop: 12 }}>
                   <div className="plant-meta-label">Exemple</div>
-                  <MarkdownContent className="plant-meta-value">{detail.exemple}</MarkdownContent>
+                  <GlossaryMarkdown
+                    className="plant-meta-value"
+                    glossaryItems={autolinkItems}
+                    onOpenGlossaryTerm={selectTerm}
+                  >
+                    {detail.exemple}
+                  </GlossaryMarkdown>
                 </div>
               ) : null}
               {detail.etymologie ? (
                 <div className="plant-meta-item" style={{ marginTop: 8 }}>
                   <div className="plant-meta-label">Étymologie</div>
-                  <MarkdownContent className="plant-meta-value">
+                  <GlossaryMarkdown
+                    className="plant-meta-value"
+                    glossaryItems={autolinkItems}
+                    onOpenGlossaryTerm={selectTerm}
+                  >
                     {detail.etymologie}
-                  </MarkdownContent>
+                  </GlossaryMarkdown>
                 </div>
               ) : null}
 
