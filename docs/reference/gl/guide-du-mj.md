@@ -55,6 +55,43 @@
   le travail d'écriture des élèves.
 - **Le journal de partie** garde la trace narrative de la séance.
 
+## OLU, le narrateur, entre dans le jeu
+
+**OLU** — le renard explorateur qui accompagne déjà l'aide de ForetMap — est désormais présent
+dans Gnomes & Licornes. C'est **le même personnage**, pas un sosie.
+
+Où on le voit :
+
+- **À l'ouverture d'un feuillet** du carnet de voyage : son portrait apparaît à gauche et le texte
+  du feuillet s'affiche dans une bulle, avec un léger effet de frappe. Un clic dans la bulle
+  affiche tout le texte d'un coup. **La bulle ne porte pas son nom, et c'est voulu** : le feuillet
+  est écrit par vous, pas par lui. Il le montre, il ne le récite pas.
+- **Dans les encadrés d'aide** de chaque onglet : un petit visage dans l'en-tête, discret. Les
+  textes d'aide des onglets joueurs sont désormais **écrits à sa voix** — il dit « je », il
+  tutoie. Sur les écrans d'administration et la console MJ, il se tait : les textes y restent
+  factuels, parce qu'on ne plaisante pas avec des comptes et des permissions.
+
+Ce qu'il faut savoir :
+
+- **Le portrait ne porte jamais d'information.** Tout ce qui compte est dans le texte, et les
+  lecteurs d'écran ignorent l'image. Si aucun portrait n'a été chargé, une silhouette dessinée
+  prend le relais : rien ne reste vide, rien ne se casse.
+- **Il parle du jeu, jamais dans le jeu.** OLU explique comment on ouvre un feuillet ; il ne dit
+  jamais ce que le feuillet raconte, n'a pas d'avis sur le Souffle et **ne prend jamais parti
+  entre gnomes et licornes**. Ce n'est pas un détail d'écriture : un narrateur qui aurait un camp,
+  des élèves le discuteraient — et lui feraient donner raison à leur propre équipe. Il a traversé
+  le seuil, mais il n'y a pas pris de forme : il est de passage, pas du royaume.
+- **Les textes d'aide restent modifiables** depuis Contenus → Bulles d'aide. Réécrire une entrée
+  remplace la version livrée, pour tout le monde.
+- **Le réglage est commun aux deux applications.** Nom affiché, portraits, interrupteur : tout se
+  règle **une seule fois**, côté ForetMap (Paramètres → Narrateur OLU), et l'effet est immédiat
+  des deux côtés. Concrètement, les images n'ont à être téléversées qu'une fois.
+- **Éteindre OLU** depuis ce même réglage retire portrait et nom partout, GL compris. Les textes
+  des feuillets et de l'aide, eux, ne bougent pas.
+
+> Conséquence à connaître : un MJ qui n'est pas administrateur ForetMap ne peut pas modifier OLU
+> lui-même — il faut passer par un administrateur. C'est le revers du personnage unique.
+
 ## Incidents courants
 
 | Symptôme                                    | Cause probable                                                                                               | Geste                                                                                                  |
@@ -65,6 +102,7 @@
 | Mot de passe oublié                         | —                                                                                                            | Gestion des joueurs → réinitialiser le mot de passe (ou forcer le changement à la prochaine connexion) |
 | Vérifier ce que voit un élève               | —                                                                                                            | Prendre la main sur son compte (bandeau affiché, action tracée) ou basculer en « vue joueur »          |
 | Les sorts ne se lancent pas                 | Module Sortilèges désactivé, ou lancement réservé au MJ par le profil de séance                              | Réglages → modules / gameplay                                                                          |
+| OLU n'apparaît pas sur les feuillets        | Le narrateur a été éteint côté ForetMap (le réglage est commun)                                              | ForetMap → Paramètres → Narrateur OLU → rallumer l'interrupteur                                        |
 | Un élève ne peut pas payer pour un camarade | C'est le réglage par défaut (chacun sa part, sa propre équipe) — le MJ, lui, répartit toujours librement     | Réglages → gameplay → « Mode de contribution » / « Équipes pouvant lancer »                            |
 
 ## Lire et amender cette documentation depuis le jeu

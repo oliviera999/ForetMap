@@ -15,8 +15,16 @@
 >   `tours.manage`. Voir §6ter.
 > - **Lot 5** — studio prof `HelpNarratorAdminPanel` (onglet **Paramètres → Narrateur OLU**) et
 >   portrait `face` dans l'en-tête de `HelpPanel`. Voir §12 et §6bis.
+> - **Lot 6a (GL, technique)** — OLU entre dans Gnomes & Licornes : route publique
+>   `GET /api/gl/content/narrator`, hook `useGlNarrator`, portrait `face` dans `GLHelpPanel`,
+>   mise en scène portrait + bulle dans `GLFeuilletPopover`, styles GL. **Le réglage est
+>   partagé avec ForetMap** — arbitrage §8.2 révisé, voir §8.2bis.
 >
-> **Reste à faire : lot 6 (GL), lot 7 (optionnel).** OLU est à l'écran **et** il parle à la
+> - **Lot 6b (GL, corpus)** — arbitrage **§11.7 tranché** (OLU est du seuil, ni gnome ni licorne —
+>   §8.4), les 26 entrées d'aide GL réécrites à sa voix, et la bulle des feuillets **sans étiquette
+>   de locuteur** : le texte y est celui du MJ, pas le sien.
+>
+> **Reste à faire : lot 7 (optionnel).** OLU est à l'écran **et** il parle à la
 > première personne. Le brief de production graphique des portraits est dans
 > [`MASCOT_OLU_BRIEF_VISUEL.md`](./MASCOT_OLU_BRIEF_VISUEL.md).
 
@@ -678,12 +686,45 @@ le cas (`VisitMapMascotRenderer` est réutilisé par GL, `mascotBehaviorEngine.j
 [`lib/glSettings.js`](../lib/glSettings.js)) et de ses propres assets. Même personnage, mêmes
 composants, **deux configurations**. C'est le coût de l'isolement, et il est assumé.
 
+> **Révisé au lot 6 — voir §8.2bis.** Cette conséquence a été retournée par le porteur du
+> projet : le réglage est **partagé**, pas dupliqué.
+
+### 8.2bis Réglage partagé — arbitrage révisé (lot 6) ✅ _livré_
+
+**Décision : ForetMap et GL partagent le réglage `content.help.narrator`.** Une seule
+configuration, un seul jeu de portraits, une seule saisie.
+
+Ce qui a fait pencher la balance : les portraits ont été **téléversés une seule fois, côté
+ForetMap**. Dupliquer le réglage aurait imposé de re-téléverser les mêmes fichiers dans un
+second studio, puis de maintenir les deux en phase à chaque retouche — pour un personnage dont
+le §1 dit qu'il est **le même** des deux côtés. Deux configurations ne protégeaient rien : elles
+garantissaient la divergence.
+
+**Ce que l'isolement exige vraiment, et qui reste tenu :**
+
+| Règle d'isolement                           | Comment elle est respectée                                                                      |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Aucun appel client GL hors `/api/gl/*`      | GL lit `GET /api/gl/content/narrator` ; il n'appelle **jamais** `/api/settings/*`               |
+| Aucun jeton traversant                      | La route est publique et sans jeton — un JWT `product:'gl'` ne sort toujours pas de `/api/gl/*` |
+| Pas de mélange de tables                    | Lecture seule d'`app_settings` **côté serveur** ; aucune table `gl_*` n'entre en jeu            |
+| Un produit n'écrit pas la config de l'autre | La route GL est en **lecture seule** ; l'écriture reste `PUT /api/settings/admin/help-narrator` |
+
+Le partage est donc **serveur**, pas client : c'est exactement la nature du partage déjà pratiqué
+pour `VisitMapMascotRenderer` ou `mascotBehaviorEngine.js`, transposée à une donnée.
+
+**Le prix, assumé :** le studio narrateur vit côté ForetMap. Un MJ qui ne serait pas admin
+ForetMap ne peut pas retoucher OLU lui-même — c'est le pendant logique du personnage unique, et
+c'est ce qu'indique la doc de référence GL. Si un jour GL doit s'écarter (autre nom de locuteur,
+autres portraits), la sortie est ouverte sans rien casser : ajouter une surcharge GL dans
+`lib/glSettings.js` que la route fusionnerait par-dessus le réglage ForetMap.
+
 ### 8.3 Points d'ancrage GL
 
 | Fichier                                                               | Nature                                                                                                                                                                 |
 | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`GLFeuilletPopover.jsx`](../src/gl/components/GLFeuilletPopover.jsx) | Cible **n°1** — c'est le feuillet, le terrain naturel du carnet d'exploration                                                                                          |
-| [`GLTabHelpPanel.jsx`](../src/gl/components/GLTabHelpPanel.jsx)       | Portrait `face` en en-tête                                                                                                                                             |
+| [`GLFeuilletPopover.jsx`](../src/gl/components/GLFeuilletPopover.jsx) | ✅ _livré (lot 6a)_ — cible **n°1**, mise en scène « visual novel léger » : portrait `bust` (`face` sous 480 px) + `SpeechBubble` signée                               |
+| [`GLHelpPanel.jsx`](../src/gl/components/GLHelpPanel.jsx)             | ✅ _livré (lot 6a)_ — portrait `face` en en-tête. C'est bien ici, et non dans `GLTabHelpPanel`, que se fait le rendu : le panneau par onglet n'est qu'un adaptateur    |
+| [`GLTabHelpPanel.jsx`](../src/gl/components/GLTabHelpPanel.jsx)       | Inchangé — il délègue à `GLHelpPanel`, qui porte le portrait                                                                                                           |
 | [`useGlHelpContent.js`](../src/gl/hooks/useGlHelpContent.js)          | Corpus d'aide GL par onglet (~19 onglets listés dans `GLHelpContentAdminPanel`)                                                                                        |
 | [`GLIntroOverlay.jsx`](../src/gl/components/GLIntroOverlay.jsx)       | ⚠️ **iframe statique** (`/gl/intro/index.html`) — hors React. Modifier l'intro suppose de toucher l'asset statique, pas le composant. **Sortir du périmètre initial.** |
 | [`GLGlossaryPopover.jsx`](../src/gl/components/GLGlossaryPopover.jsx) | Candidat secondaire                                                                                                                                                    |
@@ -692,6 +733,44 @@ composants, **deux configurations**. C'est le coût de l'isolement, et il est as
 doit être **découpé en deux commits**.
 
 ⚠️ **Tests GL séquentiels obligatoires** (`--test-concurrency=1 --test-force-exit`) — BDD partagée.
+
+### 8.4 Qui est OLU dans GL — §11.7 tranché (lot 6b)
+
+**OLU est du seuil, pas du royaume. Il n'est ni gnome ni licorne.**
+
+Le socle narratif de GL ([`docs/reference/gl/lore-deux-peuples.md`](./reference/gl/lore-deux-peuples.md))
+pose que « personne ne traverse tel quel » : quiconque passe le miroir pour aider Sélène prend une
+forme. Un renard qui garde la sienne serait donc une anomalie — et une anomalie sans statut abîme
+la règle. Le statut est simple : **OLU ne traverse pas pour aider Sélène.** Il passe, il regarde,
+il note dans **son** carnet d'explorateur — pas dans le Carnet. Le seuil ne lui donne pas de forme
+parce qu'il ne demande rien au royaume.
+
+Ce que ce statut achète :
+
+- **Il est _dans_ le monde** : il connaît le seuil, il a vu les biomes, il peut dire « j'y suis
+  passé ». Le §8.1 tient — le carnet et la découverte sont son métier.
+- **Il n'est pas _de_ l'histoire** : il ignore ce que contient le prochain feuillet, il n'a pas
+  d'avis sur le Souffle, et **il ne prend pas parti entre les deux peuples**. Ce dernier point
+  n'est pas décoratif : GL est un jeu de classe. Un narrateur qui aurait un camp, des élèves le
+  discuteraient — et lui feraient donner raison à leur propre équipe.
+
+**Trois voix, trois métiers, à ne jamais confondre :**
+
+| Voix       | Ce qu'elle porte                       |
+| ---------- | -------------------------------------- |
+| **Sélène** | le Carnet — le contenu du lore         |
+| **Le MJ**  | la partie — ce qui se passe à la table |
+| **OLU**    | le jeu — comment on s'en sert          |
+
+**La règle d'écriture, en une ligne : OLU parle _du_ jeu, jamais _dans_ le jeu.** Il dit comment
+on ouvre un feuillet ; il ne dit jamais ce que le feuillet raconte.
+
+**Conséquence sur la mise en scène, appliquée au lot 6b.** Le texte affiché dans
+`GLFeuilletPopover` est du contenu MJ : la bulle **ne porte pas d'étiquette de locuteur**. La
+signer « OLU » lui attribuerait des mots qui ne sont pas les siens. Il garde le portrait — il
+montre le feuillet, il ne le récite pas. L'étiquette reste réservée aux surfaces où il parle en
+son nom. Une variante plus riche (une phrase d'introduction à sa voix, au-dessus du feuillet)
+reste ouverte : elle suppose d'écrire une accroche par situation, donc un lot de corpus à part.
 
 ---
 
@@ -740,12 +819,14 @@ part significative de la largeur utile. Prévoir sous ~480 px : portrait en **m�
 
 Règle projet : **les tests sont dans le même lot que le code.**
 
-| Niveau                | Objet                                                                                                                                                                                                                                         |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Backend (`node:test`) | Schéma Zod `content.help.narrator` : valeurs valides, rejets, valeurs partielles. Routes `/admin/help-content` (lecture, écriture, reset). Audit `settings_help_content_update`.                                                              |
-| UI (Vitest)           | `MascotSpeaker` : cascade pack → défaut → SVG ; `aria-hidden` présent ; **aucun renderer lourd importé** (assertion sur les imports). `SpeechBubble` : machine à écrire instantanée sous `prefers-reduced-motion`. Mapping expression → état. |
-| e2e (Playwright)      | Parcours découverte avec portrait : progression, `Échap`, clic pour tout afficher. Portrait absent → SVG de repli, aucune erreur console. `data-mascot-speaker` stable.                                                                       |
-| Non-régression        | Les parcours existants ne perdent aucune étape (sélecteurs intacts). Les tooltips restent inchangés.                                                                                                                                          |
+| Niveau                | Objet                                                                                                                                                                                                                                                                                                                                                                                     |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend (`node:test`) | Schéma Zod `content.help.narrator` : valeurs valides, rejets, valeurs partielles. Routes `/admin/help-content` (lecture, écriture, reset). Audit `settings_help_content_update`.                                                                                                                                                                                                          |
+| UI (Vitest)           | `MascotSpeaker` : cascade pack → défaut → SVG ; `aria-hidden` présent ; **aucun renderer lourd importé** (assertion sur les imports). `SpeechBubble` : machine à écrire instantanée sous `prefers-reduced-motion`. Mapping expression → état.                                                                                                                                             |
+| e2e (Playwright)      | Parcours découverte avec portrait : progression, `Échap`, clic pour tout afficher. Portrait absent → SVG de repli, aucune erreur console. `data-mascot-speaker` stable.                                                                                                                                                                                                                   |
+| GL (lot 6b)           | `tests/gl-help-corpus-olu.test.js` : schéma, couverture des 26 clés, titres distincts, aucun emoji, plafond d'exclamations, tournures bannies, 1 à 3 phrases par ligne, silence d'OLU sur les écrans de responsabilité, consigne d'administration retirée des écrans joueurs. La règle « du jeu, jamais dans le jeu » (§8.4) reste à la relecture humaine — elle n'est pas automatisable. |
+| GL (lot 6a)           | Backend `tests/gl-narrator.test.js` : route publique, **égalité du payload avec `/api/settings/public`** (le partage est la règle testée), charge utile limitée au narrateur, repli sur réglage illisible. UI `tests-ui/gl/` : cache du hook, repli hors ligne, portrait décoratif, narrateur éteint.                                                                                     |
+| Non-régression        | Les parcours existants ne perdent aucune étape (sélecteurs intacts). Les tooltips restent inchangés.                                                                                                                                                                                                                                                                                      |
 
 Rappels d'exécution : `npm run start:e2e` (sinon `429` sur les formulaires) ; `npm run build`
 avant les e2e si `dist/` est absent ou obsolète ; tests GL en séquentiel.
@@ -784,9 +865,10 @@ Une instance déjà en service conserve sa ligne dense tant que personne n'enreg
 `node scripts/compact-help-registry.js --apply` la réécrit en surcharge, à rendu identique
 (le script refuse d'écrire si le contenu affiché changerait).
 
-> ⚠️ **Dette symétrique non traitée** : `lib/glHelp.js` (aide GL par onglet) persiste toujours
-> l'objet dense et présente donc le même gel. Le correctif y est mécaniquement identique, mais
-> relève d'un commit `feat(gl)` séparé (règle projet).
+> ✅ **Dette symétrique traitée au lot 6b** : `lib/glHelp.js` ne persiste plus que la surcharge
+> (`buildGlHelpOverride`), et `scripts/compact-gl-help-registry.js` réécrit une ligne dense
+> existante à rendu identique. Sans ce dégel, la réécriture du corpus GL serait restée
+> **invisible en production** dès qu'un MJ aurait enregistré une fois ses bulles d'aide.
 
 ### 11.3 🟠 Nombre d'expressions au démarrage — §4.3
 
@@ -821,11 +903,13 @@ OLU répète-t-il le même texte à chaque ouverture, ou varie-t-il selon qu'on 
 `useHelp.js` trace déjà `seenSections` et des métriques en `localStorage` — la donnée existe.
 Tentant, mais c'est du corpus × 2. Recommandation : **non au départ**.
 
-### 11.7 🟡 Identité d'OLU dans le lore GL
+### 11.7 ✅ Identité d'OLU dans le lore GL — _tranché (lot 6b)_
 
 OLU est-il un personnage **du** monde de Gnomes & Licornes (avec une place dans le lore, une
-relation au carnet de Sélène), ou un narrateur **extérieur** aux deux produits ? Question
-d'écriture, pas de technique — mais elle change le corpus GL.
+relation au carnet de Sélène), ou un narrateur **extérieur** aux deux produits ?
+
+**Réponse : les deux, et le « les deux » a un nom — OLU est du _seuil_, pas du royaume.**
+Détail et règles d'écriture au §8.4.
 
 ### 11.8 ✅ `quickTips` et `chrome` — §7.3 — _tranché (lot 4)_
 
@@ -838,19 +922,24 @@ de la chrome d'interface — un bouton ne parle pas, et le préfixe est de toute
 
 ## 12. Découpage en lots
 
-| Lot   | Contenu                                                                                                                                          | Assets requis  | Effort | Risque            |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- | ------ | ----------------- |
-| **1** | ✅ **Livré** — `SpeechBubble` : cadre, étiquette locuteur, machine à écrire + `reduced-motion`. Branché sur `DiscoveryTour` seul. Styles.        | ❌ aucun       | Faible | Très faible       |
-| **2** | ✅ **Livré** — `MascotSpeaker` (rendu SVG niveau 3) + `mascotExpressions.js` + réglage `content.help.narrator` (schéma, routes, payload public). | ❌ aucun       | Moyen  | Faible            |
-| **3** | ✅ **Livré** — champ `expression` dans `DISCOVERY_TOURS`, portrait dans `DiscoveryTour`, médaillon sous 480 px (§6bis.1).                        | ❌ aucun       | Faible | Faible            |
-| **4** | ✅ **Livré** — corpus à la voix d'OLU (21 étapes, 7 panneaux + miroir, 3 `quickTips`) **et** édition des parcours sous `tours.manage` (§6ter).   | ❌ aucun       | Moyen  | Moyen — §11.2     |
-| **5** | ✅ **Livré** — studio prof `HelpNarratorAdminPanel` (onglet dédié, cf. §6bis.2) + portrait `face` dans `HelpPanel`.                              | ❌ aucun\*     | Moyen  | Faible            |
-| **6** | GL : `GLFeuilletPopover` + `GLTabHelpPanel`, réglage GL dédié, corpus GL. **Commits `feat(gl)` séparés.**                                        | ✅ portraits   | Moyen  | Moyen — isolement |
-| **7** | _(optionnel)_ Cadrage `body`, spritesheet OLU, correction du mapping d'états §3.1a.                                                              | ✅ spritesheet | Moyen  | Faible            |
+| Lot    | Contenu                                                                                                                                                                                                | Assets requis  | Effort | Risque            |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- | ------ | ----------------- |
+| **1**  | ✅ **Livré** — `SpeechBubble` : cadre, étiquette locuteur, machine à écrire + `reduced-motion`. Branché sur `DiscoveryTour` seul. Styles.                                                              | ❌ aucun       | Faible | Très faible       |
+| **2**  | ✅ **Livré** — `MascotSpeaker` (rendu SVG niveau 3) + `mascotExpressions.js` + réglage `content.help.narrator` (schéma, routes, payload public).                                                       | ❌ aucun       | Moyen  | Faible            |
+| **3**  | ✅ **Livré** — champ `expression` dans `DISCOVERY_TOURS`, portrait dans `DiscoveryTour`, médaillon sous 480 px (§6bis.1).                                                                              | ❌ aucun       | Faible | Faible            |
+| **4**  | ✅ **Livré** — corpus à la voix d'OLU (21 étapes, 7 panneaux + miroir, 3 `quickTips`) **et** édition des parcours sous `tours.manage` (§6ter).                                                         | ❌ aucun       | Moyen  | Moyen — §11.2     |
+| **5**  | ✅ **Livré** — studio prof `HelpNarratorAdminPanel` (onglet dédié, cf. §6bis.2) + portrait `face` dans `HelpPanel`.                                                                                    | ❌ aucun\*     | Moyen  | Faible            |
+| **6a** | ✅ **Livré** — GL : `GLFeuilletPopover` + `GLHelpPanel`, `useGlNarrator`, route publique `GET /api/gl/content/narrator`, styles GL. **Réglage partagé avec ForetMap** (§8.2bis, arbitrage révisé).     | ❌ aucun\*\*   | Moyen  | Moyen — isolement |
+| **6b** | ✅ **Livré** — GL : **corpus** — 26 entrées d'aide (`data/gl/help.default.json`) à la voix d'OLU, titres propres à chaque onglet, §11.7 tranché (§8.4). Sur les écrans de responsabilité, OLU se tait. | ❌ aucun       | Moyen  | Faible            |
+| **7**  | _(optionnel)_ Cadrage `body`, spritesheet OLU, correction du mapping d'états §3.1a.                                                                                                                    | ✅ spritesheet | Moyen  | Faible            |
 
 **Les lots 1 à 4 ont été livrés sans aucun sprite** et apportent déjà l'essentiel de l'effet
 ludique — le cadre, le rythme et la voix. C'est délibéré : la production graphique ne doit
 bloquer ni le développement ni l'écriture.
+
+\*\* Le lot 6a n'a pas eu besoin d'assets non plus : il consomme ceux qui sont déjà chargés côté
+ForetMap, et retombe sur la silhouette SVG s'il n'y en a pas. Les portraits, eux, ne sont plus à
+téléverser qu'**une seule fois** pour les deux produits.
 
 \* Le lot 5 a finalement été livré **sans aucun asset** : le studio se charge d'accueillir les
 portraits, et tant qu'il n'y en a pas, l'aide et les parcours affichent la silhouette SVG. Les
