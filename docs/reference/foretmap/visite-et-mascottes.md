@@ -96,6 +96,8 @@ de lui-même : uniquement quand on ouvre l'aide, ou qu'on lance une visite guid�
   invite à explorer…). Sur petit écran, le portrait devient un médaillon pour ne pas manger la
   largeur du texte.
 - Dans un **panneau d'aide** : un petit visage dans l'en-tête, discret et sans animation.
+- **Dans Gnomes & Licornes** : le même OLU accompagne l'ouverture des feuillets du carnet de
+  voyage et les encadrés d'aide du jeu (voir le [guide du MJ](../gl/guide-du-mj.md)).
 - **Le portrait ne porte jamais d'information** : tout ce qui compte est écrit dans le texte. Les
   lecteurs d'écran l'ignorent, et l'aide fonctionne à l'identique s'il n'y a aucune image.
 
@@ -165,10 +167,12 @@ Dans l'écran des visites guidées :
 
 ### Ce que règle l'administrateur
 
-Onglet **Paramètres → Narrateur OLU** :
+Onglet **Paramètres → Narrateur OLU**. **Ce réglage vaut pour les deux applications** :
+ForetMap et Gnomes & Licornes affichent le même OLU, avec les mêmes portraits, et il n'y a donc
+qu'une seule saisie à faire — ici.
 
-- **L'interrupteur** : éteindre OLU retire portrait et nom partout, sans toucher aux textes. Les
-  images affectées sont conservées — on peut le rallumer à tout moment.
+- **L'interrupteur** : éteindre OLU retire portrait et nom partout — GL compris —, sans toucher
+  aux textes. Les images affectées sont conservées : on peut le rallumer à tout moment.
 - **Le nom affiché** au-dessus des bulles, et la **silhouette de repli** : un dessin utilisé quand
   aucune image n'est disponible. Il ne coûte rien à charger et garantit qu'aucun écran ne reste
   vide.
