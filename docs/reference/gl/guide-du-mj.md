@@ -129,9 +129,9 @@ Trois repères utiles :
   panneau n'affiche plus le document précédent : il annonce l'échec et propose
   « Réessayer ». Aucun bouton d'édition n'apparaît tant que le texte n'est pas
   réellement chargé — c'est ce qui évite d'enregistrer par-dessus le mauvais
-  document, ou de le vider. Même règle pour la fiche d'un **feuillet** ouverte
-  depuis l'onglet Contenus : sans chargement réussi, ni « Enregistrer » ni
-  « Archiver ».
+  document, ou de le vider. Même règle pour la fiche d'un **feuillet** et pour
+  l'écran **Intro** ouverts depuis l'onglet Contenus : sans chargement réussi, le
+  formulaire ne s'ouvre pas, et rien n'est enregistré.
 
 ## ⚠️ Point d'attention
 

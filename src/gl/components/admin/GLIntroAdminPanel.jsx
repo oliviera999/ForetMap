@@ -27,7 +27,12 @@ function emptyDraft() {
 }
 
 export function GLIntroAdminPanel() {
-  const [draft, setDraft] = useState(emptyDraft);
+  // `null` tant que le chargement n'a pas abouti — et non un brouillon vide. `emptyDraft()`
+  // au montage servait de référence à l'enregistrement automatique : après un GET en échec,
+  // `loadRevision` n'avançait pas, la référence restait ce brouillon vide, et la première
+  // frappe suffisait à écrire `scenes: []` et des textes vides par-dessus l'intro en base.
+  // Même contrat que `GLHelpContentAdminPanel` et `GLReferenceDocsPanel`.
+  const [draft, setDraft] = useState(null);
   const [loadRevision, setLoadRevision] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -60,6 +65,8 @@ export function GLIntroAdminPanel() {
   const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
     value: draft,
     resetKey: loadRevision,
+    // Aucune écriture tant que l'intro n'a pas été relue avec succès (anti-wipe).
+    enabled: draft != null,
     onSave: persistIntro,
   });
 
@@ -91,6 +98,25 @@ export function GLIntroAdminPanel() {
       apiGL('/api/gl/admin/media-library', 'POST', { media_data: mediaData }),
     removeItem: (relativePath) => apiGL('/api/gl/admin/media-library', 'DELETE', { relativePath }),
   };
+
+  // Tant que le chargement n'a pas abouti, pas de formulaire : mieux vaut une invitation à
+  // réessayer qu'un brouillon vide qui donnerait l'illusion d'une intro perdue — et la
+  // ferait perdre pour de bon à la première frappe.
+  if (draft == null) {
+    return (
+      <div className="gl-intro-admin">
+        {error ? <p className="gl-error">⚠️ {error}</p> : <p className="gl-hint">Chargement…</p>}
+        {error ? (
+          <GLButton
+            type="button"
+            onClick={() => load().catch((err) => setError(err.message || 'Chargement impossible'))}
+          >
+            Réessayer
+          </GLButton>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="gl-intro-admin">

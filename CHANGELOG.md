@@ -7,6 +7,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Deux failles trouvées en auditant les PR fermées (v1.106.0)
+
+En vérifiant que les correctifs des PR fermées sans fusion (le grand ménage du 20 août)
+étaient bien arrivés dans `main` par une autre voie, deux cas ne l'étaient pas — et
+restaient ouverts.
+
+- **Une prise de contrôle GL survivait à la révocation de celui qui l'avait ouverte.**
+  `POST /api/gl/admin/impersonate` vérifie que l'acteur est un staff GL actif, mais
+  seulement à la délivrance du jeton : les requêtes suivantes ne relisaient que l'identité
+  du **joueur** contrôlé. Un MJ désactivé, supprimé ou rétrogradé gardait donc le contrôle
+  du compte jusqu'à l'expiration du JWT — de 90 minutes à 7 jours — alors que ses propres
+  droits, eux, étaient bien révoqués à la requête suivante. L'acteur est désormais
+  revalidé à chaque hydratation, comme le fait déjà ForetMap pour `admin.impersonate`.
+- **L'écran Intro de l'administration GL pouvait effacer l'intro en base.** Son brouillon
+  démarrait sur un objet vide mais complet, qui servait de référence à l'enregistrement
+  automatique. Après un GET en échec, la référence restait ce brouillon : la première
+  frappe écrivait `scenes: []` et des textes vides par-dessus le contenu réel. Les deux
+  autres écrans de la même famille (bulles d'aide, réglages) avaient déjà été corrigés ;
+  l'Intro était restée en arrière. Elle applique maintenant la même règle — pas de
+  formulaire, donc pas d'écriture, tant que le chargement n'a pas abouti.
+
 ### Cinq correctifs repris de PR en attente (v1.105.0)
 
 Cinq correctifs restés en attente sur des branches devenues inmergeables (conflits sur les
