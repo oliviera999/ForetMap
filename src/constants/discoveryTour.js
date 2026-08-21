@@ -31,7 +31,15 @@
  * structure : une surcharge ne peut donc pas faire disparaître une étape.
  */
 
-import { resolveMascotExpression } from '../utils/mascotExpressions.js';
+import {
+  SHARED_TOUR_KEY,
+  TOUR_EDITABLE_FIELDS,
+  applyTourOverridesFrom,
+  createTourRegistryApi,
+  resolveDiscoveryBodyFrom,
+  resolveDiscoveryExpressionFrom,
+  tourOverrideKeyFrom,
+} from '../shared/tour/tourRegistryCore.js';
 
 // Sélecteurs génériques stables, présents quel que soit l'onglet.
 const ACTIVE_NAV = '.nav-btn.active, .top-tab.active';
@@ -54,7 +62,57 @@ const RELAUNCH_STEP = {
   expression: 'complice',
 };
 
+/**
+ * **Accueil — première connexion.** OLU se présente, dit ce qu'est ForetMap, puis
+ * s'efface.
+ *
+ * Aucune étape ne vise d'élément : les bulles s'affichent au centre (le moteur conserve
+ * les étapes sans `target`). C'est voulu — à la première seconde, désigner un bouton
+ * qu'on n'a pas encore appris à lire ne veut rien dire.
+ *
+ * Trois bulles, pas davantage : le reste, ce sont les parcours d'onglet qui le montrent.
+ * Rangé sous une clé qui n'est celle d'aucun onglet, il ne se déclenche jamais par la
+ * navigation.
+ */
+export const WELCOME_TOUR_KEY = 'welcome';
+
+const WELCOME_TOUR = {
+  steps: [
+    {
+      key: 'hello',
+      title: 'Salut, moi c’est OLU',
+      body: 'Renard, explorateur, et accessoirement guide. J’ai arpenté cette forêt en long et en large — et il me reste des coins entiers à voir.',
+      bodyTeacher:
+        'Salut. Je suis OLU : j’accompagne les n3beurs dans l’application, et je vous signale au passage ce qui se règle où.',
+      target: null,
+      placement: 'center',
+      expression: 'content',
+    },
+    {
+      key: 'what',
+      title: 'Ce qu’on fait ici',
+      body: 'Une forêt comestible, ça se cartographie, ça s’entretient et ça se raconte. Tout ce que tu notes ici sert à quelqu’un d’autre, plus tard.',
+      bodyTeacher:
+        'Cartographier les zones, suivre les plantes, distribuer les tâches et voir où en est la classe. Chaque onglet a sa visite.',
+      target: null,
+      placement: 'center',
+      expression: 'parle',
+    },
+    {
+      key: 'where',
+      title: 'Si tu me cherches',
+      body: 'Le « ? » de chaque page me rappelle, et je te fais le tour de l’onglet où tu es. Rien à retenir maintenant.',
+      bodyTeacher:
+        'Le « ? » de chaque page rouvre l’aide et relance la visite de l’onglet affiché.',
+      target: null,
+      placement: 'center',
+      expression: 'complice',
+    },
+  ],
+};
+
 const DISCOVERY_TOURS = {
+  [WELCOME_TOUR_KEY]: WELCOME_TOUR,
   map: {
     title: 'Découverte · Carte',
     steps: [
@@ -323,11 +381,22 @@ const DISCOVERY_TOURS = {
   },
 };
 
+/*
+ * Les règles de résolution (rôle, surcharges, clés) vivent désormais dans le noyau
+ * partagé `src/shared/tour/tourRegistryCore.js` : ce module ne garde que le **contenu**
+ * ForetMap et son API historique, inchangée pour ses appelants.
+ */
+
+/** Étapes rangées sous `SHARED_TOUR_KEY` : partagées par les 13 parcours. */
+const SHARED_STEP_KEYS = [RELAUNCH_STEP.key];
+
+const foretMapTours = createTourRegistryApi(DISCOVERY_TOURS, {
+  sharedStepKeys: SHARED_STEP_KEYS,
+});
+
 /** Texte d'une étape selon le rôle (prof si dispo, sinon élève). */
 export function resolveDiscoveryBody(step, isTeacher) {
-  if (!step) return '';
-  if (isTeacher && step.bodyTeacher) return step.bodyTeacher;
-  return step.body || '';
+  return resolveDiscoveryBodyFrom(step, isTeacher);
 }
 
 /**
@@ -337,55 +406,17 @@ export function resolveDiscoveryBody(step, isTeacher) {
  * @returns {string} expression canonique
  */
 export function resolveDiscoveryExpression(step) {
-  return resolveMascotExpression(step?.expression);
+  return resolveDiscoveryExpressionFrom(step);
 }
-
-/** Champs de parcours ouverts à l'édition depuis l'application. */
-export const TOUR_EDITABLE_FIELDS = ['title', 'body', 'bodyTeacher'];
-
-/**
- * Parcours fictif sous lequel se range l'étape de relance.
- *
- * `RELAUNCH_STEP` est un objet **partagé par les 13 parcours** : lui donner une clé
- * par parcours laisserait croire qu'on peut l'adapter à un onglet, alors que la
- * modification vaudrait partout. Une seule clé, un seul texte, aucune ambiguïté.
- */
-export const SHARED_TOUR_KEY = 'commun';
 
 /** Clé plate de surcharge d'un champ d'étape (`<parcours>.<étape>.<champ>`). */
 export function tourOverrideKey(tabKey, step, field) {
-  const scope = step?.key === RELAUNCH_STEP.key ? SHARED_TOUR_KEY : tabKey;
-  return `${scope}.${step?.key || ''}.${field}`;
+  return tourOverrideKeyFrom(tabKey, step, field, SHARED_STEP_KEYS);
 }
 
-/**
- * Applique les surcharges éditoriales à une liste d'étapes.
- *
- * Ne recopie que les trois champs de texte : la structure (`target`, `placement`,
- * `role`, `expression`) reste celle du code, de sorte qu'une saisie malheureuse ne
- * puisse pas faire disparaître une étape ni déplacer une bulle. Une valeur vide ou
- * blanche est ignorée — vider un champ revient donc à **revenir au défaut**, ce qui
- * est la seule interprétation sûre pour un parcours (une bulle sans texte n'a pas
- * de sens, contrairement à une ligne d'aide qu'on peut vouloir masquer).
- *
- * Les étapes ne sont jamais mutées : `RELAUNCH_STEP` est partagé, l'écrire en place
- * contaminerait les 13 parcours pour la durée de la session.
- */
+/** Applique les surcharges éditoriales à une liste d'étapes. */
 export function applyTourOverrides(steps, tabKey, overrides) {
-  if (!overrides || typeof overrides !== 'object') return steps;
-  return steps.map((step) => {
-    let patched = null;
-    for (const field of TOUR_EDITABLE_FIELDS) {
-      const value = overrides[tourOverrideKey(tabKey, step, field)];
-      if (typeof value !== 'string' || !value.trim()) continue;
-      // `bodyTeacher` absent du défaut reste absent : le surcharger créerait un texte
-      // prof là où le parcours n'en prévoit pas, sans que personne l'ait décidé.
-      if (field === 'bodyTeacher' && step.bodyTeacher === undefined) continue;
-      if (!patched) patched = { ...step };
-      patched[field] = value.trim();
-    }
-    return patched || step;
-  });
+  return applyTourOverridesFrom(steps, tabKey, overrides, SHARED_STEP_KEYS);
 }
 
 /**
@@ -394,18 +425,12 @@ export function applyTourOverrides(steps, tabKey, overrides) {
  * @returns {Array} étapes (le filtrage par présence DOM est fait au démarrage).
  */
 export function getDiscoverySteps(tabKey, isTeacher = false, overrides = null) {
-  const tour = DISCOVERY_TOURS[tabKey];
-  if (!tour || !Array.isArray(tour.steps)) return [];
-  const steps = tour.steps.filter((step) => {
-    if (!step.role) return true;
-    return step.role === (isTeacher ? 'teacher' : 'student');
-  });
-  return applyTourOverrides(steps, tabKey, overrides);
+  return foretMapTours.getSteps(tabKey, isTeacher, overrides);
 }
 
 /** Indique s'il existe un parcours de découverte pour cet onglet/section. */
 export function hasDiscoveryTour(tabKey, isTeacher = false) {
-  return getDiscoverySteps(tabKey, isTeacher).length > 0;
+  return foretMapTours.hasTour(tabKey, isTeacher);
 }
 
-export { DISCOVERY_TOURS, RELAUNCH_STEP };
+export { DISCOVERY_TOURS, RELAUNCH_STEP, SHARED_TOUR_KEY, TOUR_EDITABLE_FIELDS };

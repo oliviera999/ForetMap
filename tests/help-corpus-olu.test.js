@@ -100,9 +100,14 @@ test('parcours : structure intacte (cibles, placements, rôles)', async () => {
   }
 });
 
+/*
+ * L'accueil de première connexion n'est pas un parcours d'onglet : ses bulles ne visent
+ * aucun élément et sa dernière étape dit déjà où retrouver OLU. Lui coller l'étape de
+ * relance ferait redire la même chose deux fois de suite.
+ */
 test('parcours : l’étape de relance reste un objet unique partagé', async () => {
-  const { DISCOVERY_TOURS } = await import(tourUrl);
-  const tours = Object.entries(DISCOVERY_TOURS);
+  const { DISCOVERY_TOURS, WELCOME_TOUR_KEY } = await import(tourUrl);
+  const tours = Object.entries(DISCOVERY_TOURS).filter(([key]) => key !== WELCOME_TOUR_KEY);
   const relaunchSteps = tours.map(([key, tour]) => {
     const step = tour.steps[tour.steps.length - 1];
     assert.equal(step.target, '.fm-help-btn', `parcours ${key} : dernière étape ≠ relance`);
@@ -158,4 +163,25 @@ test('corpus d’aide : les infobulles restent au registre fonctionnel', () => {
       assert.ok(text.length <= 300, `infobulle ${key} : ${text.length} caractères (maximum 300)`);
     }
   }
+});
+
+/*
+ * L'accueil : une séquence centrée, jouée une seule fois, avant tout parcours d'onglet.
+ */
+test('accueil : trois bulles au plus, aucune ne visant un élément de l’interface', async () => {
+  const { DISCOVERY_TOURS, WELCOME_TOUR_KEY } = await import(tourUrl);
+  const steps = DISCOVERY_TOURS[WELCOME_TOUR_KEY]?.steps || [];
+  assert.ok(steps.length >= 1 && steps.length <= 3, `${steps.length} bulles d’accueil (max 3)`);
+  for (const step of steps) {
+    assert.equal(step.target, null, `l’étape « ${step.key} » vise un élément`);
+    assert.equal(step.placement, 'center', `l’étape « ${step.key} » n’est pas centrée`);
+    assert.ok(step.bodyTeacher, `l’étape « ${step.key} » n’a pas de variante prof`);
+  }
+});
+
+test('accueil : la clé n’est celle d’aucun onglet — il ne peut pas se déclencher par navigation', async () => {
+  const { DISCOVERY_TOURS, WELCOME_TOUR_KEY } = await import(tourUrl);
+  const { HELP_PANELS } = await import(helpUrl);
+  assert.ok(!Object.keys(HELP_PANELS).includes(WELCOME_TOUR_KEY));
+  assert.ok(Object.keys(DISCOVERY_TOURS).includes(WELCOME_TOUR_KEY));
 });

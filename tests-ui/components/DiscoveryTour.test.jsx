@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 
-import { DiscoveryTour } from '../../src/components/DiscoveryTour';
+import { GuidedTourOverlay as DiscoveryTour } from '../../src/shared/components/GuidedTourOverlay';
 
 /**
  * Le corps de l'étape est rendu par `SpeechBubble` (machine à écrire) : le texte
@@ -81,7 +81,7 @@ describe('DiscoveryTour', () => {
         { target: null, title: 'T', body: 'élève', bodyTeacher: 'prof', placement: 'center' },
       ],
     };
-    render(<DiscoveryTour active={active} isTeacher />);
+    render(<DiscoveryTour active={active} isStaff />);
     expect(bubble()).toHaveTextContent('prof');
   });
 

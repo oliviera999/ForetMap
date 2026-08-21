@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { resolveDiscoveryBody, resolveDiscoveryExpression } from '../constants/discoveryTour.js';
-import { SpeechBubble } from '../shared/components/SpeechBubble.jsx';
-import { MascotSpeaker } from '../shared/components/MascotSpeaker.jsx';
-import { useMediaQuery } from '../shared/hooks/useMediaQuery.js';
+import {
+  resolveDiscoveryBodyFrom,
+  resolveDiscoveryExpressionFrom,
+} from '../tour/tourRegistryCore.js';
+import { SpeechBubble } from './SpeechBubble.jsx';
+import { MascotSpeaker } from './MascotSpeaker.jsx';
+import { useMediaQuery } from '../hooks/useMediaQuery.js';
 
 const SPOTLIGHT_PADDING = 8;
 const CARD_MARGIN = 14;
@@ -77,13 +80,20 @@ function computeCardPosition(rect, placement, cardWidth = CARD_WIDTH) {
 }
 
 /**
- * Overlay du mode visite/découverte : assombrit la page, met en lumière l'élément
- * ciblé par l'étape courante et affiche une carte explicative avec la navigation
- * (Précédent / Suivant / Passer). Rendu via un portail sur `document.body`.
+ * Overlay de **visite guidée**, partagé ForetMap + G&L : assombrit la page, met en
+ * lumière l'élément ciblé par l'étape courante et affiche une carte explicative avec
+ * la navigation (Précédent / Suivant / Passer). Rendu via un portail sur `document.body`.
+ *
+ * Purement présentationnel : il reçoit le parcours déjà résolu (`active.steps`) et ne
+ * connaît ni registre, ni produit, ni stockage. Une étape sans `target` s'affiche
+ * centrée, ce dont se servent les séquences d'accueil.
+ *
+ * `isStaff` sélectionne la variante de texte du second public — prof côté ForetMap,
+ * MJ côté GL.
  */
-export function DiscoveryTour({
+export function GuidedTourOverlay({
   active,
-  isTeacher = false,
+  isStaff = false,
   speakerName = '',
   narrator = null,
   onNext,
@@ -187,7 +197,7 @@ export function DiscoveryTour({
 
   if (!active || !step || typeof document === 'undefined') return null;
 
-  const body = resolveDiscoveryBody(step, isTeacher);
+  const body = resolveDiscoveryBodyFrom(step, isStaff);
   // Le narrateur est un enrichissement : seul un `enabled: false` explicite l'éteint.
   // Sans réglage chargé, le portrait reste rendu — c'est le repli SVG, gratuit (§4.1).
   const showPortrait = !narrator || narrator.enabled !== false;
@@ -235,7 +245,7 @@ export function DiscoveryTour({
             <MascotSpeaker
               className="discovery-tour__portrait"
               narrator={narrator}
-              expression={resolveDiscoveryExpression(step)}
+              expression={resolveDiscoveryExpressionFrom(step)}
               size={compact ? 'face' : 'bust'}
             />
           ) : null}

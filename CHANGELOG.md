@@ -7,6 +7,47 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### OLU se présente, et GL gagne aide appelable et visites guidées (lot 8)
+
+Revue d'ensemble de l'aide, des tutoriels et des visites des deux produits. Elle a
+montré une asymétrie que personne n'avait regardée d'un bloc : ForetMap avait
+13 parcours guidés, 21 infobulles et une aide qu'on appelle d'un bouton ; GL avait un
+encadré replié en bas de page, aucune visite, et le même texte pour un joueur et un MJ.
+Et **aucun des deux ne présentait jamais l'application** à un nouveau venu.
+
+**Le socle est désormais partagé** (`src/shared/`) : le noyau de registre de parcours
+(filtrage par rôle, surcharges), le moteur (`useGuidedTour`), l'overlay
+(`GuidedTourOverlay`, ex-`DiscoveryTour`), ses styles et la résolution de texte par
+rôle. Le **contenu** reste à chaque produit, et les mémoires sont distinctes : avoir
+fait le tour du verger ne vaut pas avoir vu le royaume. L'API ForetMap n'a pas changé
+d'un signe.
+
+**Côté Gnomes & Licornes :**
+
+- **L'aide s'appelle** — un bouton « ? » par onglet, qui pulse tant que l'aide de cet
+  écran n'a jamais été ouverte. L'encadré en bas de page ne se lisait que si l'on
+  descendait jusqu'à lui : le corpus réécrit au lot précédent ne servait qu'à moitié.
+- **Une variante MJ** (`bodyMj`, optionnelle) sur les dix écrans partagés avec les
+  joueurs. Ailleurs, tout le monde lit le même texte — et sur les écrans réservés, OLU
+  se tait déjà.
+- **Cinq visites guidées** (cartes, aventure, carnet de Sélène, marché, console MJ),
+  relançables depuis le « ? ». Désactivées pour les invités, dont le passage est
+  éphémère, et alignées sur l'interrupteur du module d'aide.
+
+**Des deux côtés, OLU accueille.** Trois bulles centrées à la première connexion : il se
+présente, dit ce qu'on fait ici, indique où le retrouver. Jouées une seule fois, avant
+tout parcours d'onglet — se faire présenter la carte par quelqu'un qu'on n'a pas encore
+rencontré met la charrue avant les bœufs. Aucune ne désigne d'élément : à la première
+seconde, montrer un bouton qu'on n'a pas appris à lire n'apprend rien.
+
+Côté GL, l'accueil **ne raconte pas le lore** : c'est la règle du §8.4, et une première
+version la violait en faisant dire à OLU ce que le Souffle avait fait. Il renvoie
+désormais l'histoire à qui elle appartient — « ce n'est pas la mienne à raconter ».
+
+Restent hors de ce lot : les infobulles GL (inexistantes), l'édition des parcours GL
+depuis l'application (ForetMap l'a, GL non), et l'intro cinématique, toujours une iframe
+statique hors du système d'aide.
+
 ### Mascottes : six alias d'états qui ne servaient à rien, et un état des lieux figé (lot 7a)
 
 Audit du mapping d'états d'OLU demandé au §3.1a de `docs/MASCOT_NARRATEUR_OLU.md`. Deux
