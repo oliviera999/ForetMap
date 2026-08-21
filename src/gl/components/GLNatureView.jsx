@@ -25,7 +25,12 @@ export function GLNatureView({
 }) {
   return (
     <div className="gl-nature-view fade-in">
-      <nav className="gl-subtabs gl-nature-view__tabs" role="tablist" aria-label="La nature">
+      <nav
+        className="gl-subtabs gl-nature-view__tabs"
+        data-gl-tour="subnav-nature"
+        role="tablist"
+        aria-label="La nature"
+      >
         {GL_NATURE_SUB_TABS.map((subTab) => (
           <button
             key={subTab.id}

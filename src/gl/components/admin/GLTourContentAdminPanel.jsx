@@ -3,7 +3,12 @@ import React, { useCallback, useMemo } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { TourOverridesEditor } from '../../../shared/components/TourOverridesEditor.jsx';
 import { createTourRegistryApi } from '../../../shared/tour/tourRegistryCore.js';
-import { GL_DISCOVERY_TOURS, GL_RELAUNCH_STEP } from '../../constants/glDiscoveryTour.js';
+import {
+  GL_DISCOVERY_TOURS,
+  GL_HUB_STEPS,
+  GL_RELAUNCH_STEP,
+  GL_SHARED_STEP_KEYS,
+} from '../../constants/glDiscoveryTour.js';
 import { invalidateGlTourOverridesCache } from '../../hooks/useGlTourOverrides.js';
 import { SHARED_TOUR_KEY } from '../../../shared/tour/tourRegistryCore.js';
 
@@ -21,20 +26,28 @@ const FIELD_LABELS = {
 };
 
 const glTours = createTourRegistryApi(GL_DISCOVERY_TOURS, {
-  sharedStepKeys: [GL_RELAUNCH_STEP.key],
+  sharedStepKeys: GL_SHARED_STEP_KEYS,
 });
 
+const SHARED_STEP_KEY_SET = new Set(GL_SHARED_STEP_KEYS);
+
+/**
+ * Les étapes réutilisées entre parcours (relance, orientation des quatre
+ * regroupements) sont regroupées en tête, **une seule fois** : elles portent une clé de
+ * surcharge unique, les proposer une fois par parcours ferait croire à des textes
+ * distincts alors qu'une réécriture les change tous.
+ */
 function buildSections() {
   const sections = [
     {
       key: SHARED_TOUR_KEY,
-      label: 'Étape commune',
-      hint: 'Dernière étape de chaque visite guidée : réécrite ici, elle change partout.',
-      steps: [GL_RELAUNCH_STEP],
+      label: 'Étapes communes',
+      hint: 'Étapes réutilisées par plusieurs visites : réécrites ici, elles changent partout.',
+      steps: [GL_RELAUNCH_STEP, ...Object.values(GL_HUB_STEPS)],
     },
   ];
   for (const [tourKey, tour] of Object.entries(GL_DISCOVERY_TOURS)) {
-    const steps = tour.steps.filter((step) => step.key !== GL_RELAUNCH_STEP.key);
+    const steps = tour.steps.filter((step) => !SHARED_STEP_KEY_SET.has(step.key));
     if (steps.length === 0) continue;
     sections.push({ key: tourKey, label: tour.title || tourKey, hint: '', steps });
   }

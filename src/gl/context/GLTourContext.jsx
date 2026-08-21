@@ -5,7 +5,7 @@ import { useGuidedTour } from '../../shared/hooks/useGuidedTour.js';
 import { createTourRegistryApi } from '../../shared/tour/tourRegistryCore.js';
 import {
   GL_DISCOVERY_TOURS,
-  GL_RELAUNCH_STEP,
+  GL_SHARED_STEP_KEYS,
   GL_WELCOME_TOUR_KEY,
 } from '../constants/glDiscoveryTour.js';
 import { useGlNarrator } from '../hooks/useGlNarrator.js';
@@ -24,7 +24,7 @@ const GL_SEEN_STORAGE_KEY = 'gl_discovery_seen_v1';
 const AUTO_START_DELAY_MS = 650;
 
 const glTours = createTourRegistryApi(GL_DISCOVERY_TOURS, {
-  sharedStepKeys: [GL_RELAUNCH_STEP.key],
+  sharedStepKeys: GL_SHARED_STEP_KEYS,
 });
 
 const GLTourContext = createContext({

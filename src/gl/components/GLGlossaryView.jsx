@@ -110,7 +110,7 @@ export function GLGlossaryView({
         </p>
       )}
 
-      <div className="gl-glossary__filters">
+      <div className="gl-glossary__filters" data-gl-tour="glossary-filters">
         <label>
           Recherche
           <input

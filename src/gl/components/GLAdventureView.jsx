@@ -35,7 +35,12 @@ export function GLAdventureView({
 
   return (
     <div className="gl-adventure-view fade-in">
-      <nav className="gl-subtabs gl-adventure-view__tabs" role="tablist" aria-label="L'aventure">
+      <nav
+        className="gl-subtabs gl-adventure-view__tabs"
+        data-gl-tour="subnav-adventure"
+        role="tablist"
+        aria-label="L'aventure"
+      >
         {visibleSubTabs.map((subTab) => (
           <button
             key={subTab.id}

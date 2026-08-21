@@ -105,17 +105,32 @@ glossaires, les tutoriels — l'aide affiche une version qui vous est destinée 
 faut vérifier avant la séance, où se règle telle mécanique. Les autres écrans affichent le
 même texte pour tout le monde.
 
-**Onze onglets ont une visite guidée** (découverte, cartes, la nature, le monde G&L,
-l'aventure, carnet de Sélène, marché, forum, journal personnel, statistiques, console
-MJ) : une courte séquence qui présente l'écran, bulle après bulle, la première fois qu'on
-l'ouvre. Elle se relance à volonté depuis le bouton « ? » → « ▶ Visite guidée ». Les
-élèves qui ont déjà vu un onglet ne la revoient pas.
+**Dix-huit onglets ont une visite guidée** — tout ce qui se joue : cartes, écosystèmes,
+biodiversité, glossaire scientifique, histoire, carnet de Sélène, sortilèges,
+introduction, règles, lexique du récit, tutoriels, forum, marché, statistiques, journal
+de partie, journal personnel, plateau de découverte et console MJ. C'est une courte
+séquence qui présente l'écran, bulle après bulle, la première fois qu'on l'ouvre. Elle se
+relance à volonté depuis le bouton « ? » → « ▶ Visite guidée ». Les élèves qui ont déjà
+vu un onglet ne la revoient pas.
+
+Les **quatre écrans d'administration** (utilisateurs, contenus, réglages, mascottes)
+n'ont pas de visite : OLU n'y parle pas, leur aide est rédigée sur un ton neutre.
+
+Chaque sous-onglet d'un regroupement — « La nature », « L'aventure », « Le monde G&L »,
+« Les joueurs » — ouvre sa visite sur une bulle qui montre la barre de sous-onglets et dit
+ce qu'il y a à côté. Vous la reverrez en ouvrant un deuxième sous-onglet du même
+regroupement : c'est voulu, elle rappelle où l'on se trouve.
 
 **Vous pouvez réécrire ces textes** sans attendre une mise à jour : onglet **Contenus →
 Visites guidées**. On y trouve chaque parcours, étape par étape, avec le texte livré
 affiché en filigrane ; laisser un champ vide revient à ce texte d'origine. Comme pour
 l'aide, vous disposez d'une version joueur et d'une version MJ là où le parcours en
 prévoit une.
+
+> La section **« Étapes communes »**, en tête, regroupe les bulles réutilisées par
+> plusieurs visites : la bulle finale (« je reste dans le coin ») et les quatre bulles
+> d'orientation des regroupements. Les réécrire ici les change **partout** — c'est
+> pourquoi elles n'apparaissent qu'une fois.
 
 > Seuls les **textes** sont modifiables. Ce que chaque bulle désigne à l'écran reste
 > défini dans l'application : une cible saisie à la main serait le moyen le plus simple
@@ -148,7 +163,7 @@ change pas.
 | Vérifier ce que voit un élève               | —                                                                                                            | Prendre la main sur son compte (bandeau affiché, action tracée) ou basculer en « vue joueur »          |
 | Les sorts ne se lancent pas                 | Module Sortilèges désactivé, ou lancement réservé au MJ par le profil de séance                              | Réglages → modules / gameplay                                                                          |
 | OLU n'apparaît pas sur les feuillets        | Le narrateur a été éteint côté ForetMap (le réglage est commun)                                              | ForetMap → Paramètres → Narrateur OLU → rallumer l'interrupteur                                        |
-| Une visite guidée ne se relance pas         | L'onglet affiché n'en a pas (onze en ont une), ou le module d'aide est éteint                                | Ouvrir le « ? » : le bouton « ▶ Visite guidée » n'apparaît que si un parcours existe                   |
+| Une visite guidée ne se relance pas         | L'onglet affiché n'en a pas (les écrans d'administration), ou le module d'aide est éteint                    | Ouvrir le « ? » : le bouton « ▶ Visite guidée » n'apparaît que si un parcours existe                   |
 | Un texte de visite réécrit ne s'affiche pas | La réécriture est enregistrée mais la page n'a pas rechargé le parcours                                      | Rouvrir l'onglet ; en cas de doute, vérifier le champ dans Contenus → Visites guidées                  |
 | Un élève veut revoir l'accueil d'OLU        | Il n'est joué qu'une fois par navigateur                                                                     | Effacer les données du site dans le navigateur, ou passer par un autre profil                          |
 | Un élève ne peut pas payer pour un camarade | C'est le réglage par défaut (chacun sa part, sa propre équipe) — le MJ, lui, répartit toujours librement     | Réglages → gameplay → « Mode de contribution » / « Équipes pouvant lancer »                            |

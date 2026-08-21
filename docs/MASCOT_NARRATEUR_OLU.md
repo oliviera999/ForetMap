@@ -1273,8 +1273,86 @@ parti entre les peuples.
 
 - **Les infobulles GL** (P4 de la revue) : GL n'en a toujours aucune.
 - **L'intro GL** reste une iframe statique, hors du système (§8.3).
-- **15 onglets GL sur 26** n'ont pas de parcours — ceux d'administration, surtout, où OLU
-  se tait déjà. Le mécanisme est en place ; ce qui reste est de l'écriture.
+- ~~**15 onglets GL sur 26** n'ont pas de parcours~~ — **repris au lot 10 (§16.7)**, qui a
+  d'abord révélé que le problème n'était pas celui-là.
 - **Aucun bouton « tout réinitialiser » côté GL** : il faudrait une route dédiée, alors
   que vider chaque champ revient déjà au texte livré. On n'ajoute pas un geste destructif
   pour épargner quelques clics.
+
+### 16.7 Lot 10 — quatre parcours qui ne pouvaient pas se déclencher
+
+Le lot 9 se terminait sur « 15 onglets sans parcours, ce qui reste est de l'écriture ».
+C'était faux dans les deux moitiés de la phrase.
+
+**Le décompte.** Les « 26 onglets » sont **12 onglets de premier niveau** plus
+**13 sous-onglets** répartis dans quatre regroupements — pas 26 destinations distinctes.
+
+**Le défaut.** `resolveGlMainTabChange()` et `readStoredGlTab()` replient tous les
+identifiants de regroupement sur un sous-onglet : cliquer « La nature » place `tab` sur
+`ecosystemes`, jamais sur `nature`. Or les lots 8b et 9b avaient rangé quatre parcours
+sous `nature`, `adventure`, `monde-gl` et `joueurs` — **des valeurs que `tab` ne prend
+jamais**. Un tiers du corpus GL était mort-né, sans erreur, sans avertissement, sans même
+un parcours vide à l'écran. Et `world`, l'onglet d'arrivée par défaut, n'avait rien.
+
+C'est le mode de défaillance le plus coûteux d'un système à cibles : celui où tout est
+correct — le texte, le schéma, les tests de charte — sauf la seule chose qui le relie au
+réel.
+
+**La correction.** Les clés sont les onglets que l'application affiche réellement.
+Dix-huit parcours couvrent tout ce qui se joue ; les quatre écrans d'administration
+restent sans parcours (§8.4 — le corpus d'aide y est déjà neutre).
+
+**Les cibles.** Toutes les étapes du lot 9 visaient `.gl-main-inner` : le projecteur
+éclairait la zone de contenu entière, donc ne désignait rien. Deux changements :
+
+| Situation                          | Avant            | Après                                           |
+| ---------------------------------- | ---------------- | ----------------------------------------------- |
+| Étape qui désigne un élément       | `.gl-main-inner` | `[data-gl-tour="…"]`, ancre dédiée              |
+| Étape qui présente un écran entier | `.gl-main-inner` | `target: null` — bulle centrée, sans projecteur |
+
+L'attribut `data-gl-tour` n'a d'autre raison d'être que la visite : contrairement à une
+classe de style, on ne le déplace pas par distraction. L'en-tête du registre le
+recommandait déjà au lot 8 — sans l'appliquer.
+
+**Une ancre ne se pose pas n'importe où.** La première version en posait treize, dont
+cinq sur l'`<article>` qui remplit l'écran — la même non-désignation que
+`.gl-main-inner`, sous un autre nom. Deux d'entre elles étaient en plus derrière un
+**retour anticipé** : `GLContentPage` rend un `<div>` de chargement tant que le contenu
+n'est pas arrivé, `GLJournalView` un encadré « aucune partie sélectionnée ». Or
+l'auto-démarrage se déclenche 650 ms après l'affichage de l'onglet — sur `world`, l'onglet
+d'arrivée par défaut, la présence de la cible était une course avec le réseau.
+
+La règle retenue : **une ancre désigne un élément précis, qui se rend dès que l'écran a
+quelque chose à montrer.** Restent dix ancres — les quatre barres de sous-onglets, les
+deux barres de recherche des glossaires, la liste des tutoriels, celle des fils du forum,
+celle des offres du marché, la barre de filtres du journal. Les étapes qui présentent un
+écran entier n'ont plus de cible du tout.
+
+**Le moteur rendait ces courses définitives.** `startTour()` marquait l'onglet « vu »
+**avant** de filtrer les étapes : un parcours dont aucune cible n'était présente
+n'affichait rien, et ne se relançait plus jamais. Le marquage a lieu désormais une fois
+acquis qu'au moins une étape s'affiche
+([`tests-ui/shared/useGuidedTour.test.jsx`](../tests-ui/shared/useGuidedTour.test.jsx)).
+Le moteur étant partagé, la correction vaut aussi pour ForetMap.
+
+**L'orientation par regroupement.** Chaque sous-onglet ouvre son parcours sur une étape
+qui désigne la barre de sous-onglets et dit ce qu'il y a à côté. Elle est **partagée**
+(rangée sous `commun`) : une réécriture vaut pour tout le groupe. On la revoit en ouvrant
+un deuxième sous-onglet du même groupe — contrepartie assumée : une bulle courte qui
+redit où l'on est vaut mieux qu'un regroupement jamais présenté.
+
+**Ce qui ferme la classe de défaut**
+([`tests/gl-tour-corpus-olu.test.js`](../tests/gl-tour-corpus-olu.test.js),
+[`tests-ui/gl/glTourAnchors.test.jsx`](../tests-ui/gl/glTourAnchors.test.jsx)) :
+
+1. Toute clé de parcours est une valeur que `tab` peut prendre, vérifiée contre
+   `GL_VALID_TABS` moins les quatre identifiants de regroupement.
+2. Toute ancre citée par un parcours existe dans `src/gl/`.
+3. Les quatre barres de sous-onglets **rendent** leur ancre — la présence dans le code
+   ne prouve pas la présence dans le DOM.
+
+⚠️ Le deuxième garde-fou a failli ne rien garantir : sa première version balayait
+`src/gl/` **registre compris**, où chaque sélecteur contient littéralement
+`data-gl-tour="…"`. Chaque cible s'y trouvait elle-même et le test ne pouvait pas
+échouer. Le registre est désormais exclu du balayage. Un test à cibles doit être vérifié
+en le faisant échouer volontairement — les trois l'ont été.
