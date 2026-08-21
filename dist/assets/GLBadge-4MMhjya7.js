@@ -1,0 +1,1 @@
+import"./rolldown-runtime-QTnfLwEv.js";import{i as e,t}from"./react-vendor-CCIEwYL0.js";e();var n=t();function r(...e){return e.filter(Boolean).join(` `)}function i({tone:e=`neutral`,className:t=``,children:i}){return(0,n.jsx)(`span`,{className:r(`gl-badge`,`gl-badge--${e}`,t),children:i})}export{i as t};
