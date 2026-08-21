@@ -1,6 +1,8 @@
 import { describe, test, expect } from 'vitest';
 import {
   isTaskUrgentCategory,
+  isTaskUrgentPending,
+  taskSectionStatus,
   taskMatchesFilters,
   applyTaskFilters,
   projectMatchesMapChoice,
@@ -131,6 +133,55 @@ describe('projets visibles selon le filtre carte', () => {
   });
 });
 
+describe('isTaskUrgentPending', () => {
+  const urgent = (extra) => ({ importance_level: 'absolute', ...extra });
+
+  test('garde les tâches urgentes encore en vie', () => {
+    expect(isTaskUrgentPending(urgent({ status: 'available' }))).toBe(true);
+    expect(isTaskUrgentPending(urgent({ status: 'in_progress' }))).toBe(true);
+    expect(isTaskUrgentPending(urgent({ status: 'on_hold' }))).toBe(true);
+    // Encore en attente d'une décision du prof : toujours dans l'encart urgence.
+    expect(isTaskUrgentPending(urgent({ status: 'done' }))).toBe(true);
+    expect(isTaskUrgentPending(urgent({ status: 'proposed' }))).toBe(true);
+  });
+
+  test('écarte les tâches urgentes validées (elles rejoignent « Validées »)', () => {
+    expect(isTaskUrgentPending(urgent({ status: 'validated' }))).toBe(false);
+    expect(isTaskUrgentPending(urgent({ status: 'available', project_status: 'validated' }))).toBe(
+      false,
+    );
+  });
+
+  test('reste faux pour toute tâche non urgente', () => {
+    expect(isTaskUrgentPending({ importance_level: 'high', status: 'available' })).toBe(false);
+    expect(isTaskUrgentPending({ status: 'validated' })).toBe(false);
+  });
+});
+
+describe('taskSectionStatus', () => {
+  test('laisse le statut effectif inchangé hors cas projet', () => {
+    expect(taskSectionStatus({ status: 'in_progress' })).toBe('in_progress');
+    expect(taskSectionStatus({ status: 'validated' })).toBe('validated');
+  });
+
+  test('reclasse sur le statut propre quand le projet est terminé/validé', () => {
+    expect(taskSectionStatus({ status: 'available', project_status: 'validated' })).toBe(
+      'available',
+    );
+    expect(taskSectionStatus({ status: 'done', project_status: 'completed' })).toBe('done');
+  });
+
+  test('le reclassement respecte les autres règles de statut effectif', () => {
+    expect(
+      taskSectionStatus({
+        status: 'available',
+        project_status: 'validated',
+        is_before_start_date: true,
+      }),
+    ).toBe('on_hold');
+  });
+});
+
 describe('partitionTasksByEffectiveStatus', () => {
   test('répartit chaque tâche dans le seau de son statut effectif', () => {
     const list = [
@@ -140,8 +191,6 @@ describe('partitionTasksByEffectiveStatus', () => {
       { id: 'd', status: 'validated' },
       { id: 'e', status: 'proposed' },
       { id: 'f', status: 'on_hold' },
-      { id: 'g', status: 'available', project_status: 'completed' },
-      { id: 'h', status: 'available', project_status: 'validated' },
     ];
     const out = partitionTasksByEffectiveStatus(list);
     expect(out.available.map((t) => t.id)).toEqual(['a']);
@@ -150,8 +199,19 @@ describe('partitionTasksByEffectiveStatus', () => {
     expect(out.validated.map((t) => t.id)).toEqual(['d']);
     expect(out.proposed.map((t) => t.id)).toEqual(['e']);
     expect(out.onHold.map((t) => t.id)).toEqual(['f']);
-    expect(out.projectCompletedTasks.map((t) => t.id)).toEqual(['g']);
-    expect(out.projectValidatedTasks.map((t) => t.id)).toEqual(['h']);
+  });
+
+  test('les tâches d’un projet terminé/validé non affiché atterrissent dans une section', () => {
+    const list = [
+      { id: 'g', status: 'available', project_status: 'completed' },
+      { id: 'h', status: 'validated', project_status: 'validated' },
+    ];
+    const out = partitionTasksByEffectiveStatus(list);
+    expect(out.available.map((t) => t.id)).toEqual(['g']);
+    expect(out.validated.map((t) => t.id)).toEqual(['h']);
+    // Aucune tâche ne doit se perdre en route.
+    const total = Object.values(out).reduce((n, bucket) => n + bucket.length, 0);
+    expect(total).toBe(list.length);
   });
 });
 
