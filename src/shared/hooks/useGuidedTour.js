@@ -74,14 +74,18 @@ export function useGuidedTour({ getSteps, storageKey }) {
    * seulement à la fin : c'est bien la première découverte qui déclenche la visite.
    * Quitter la page, recharger ou se reconnecter ne relance donc jamais un parcours
    * déjà présenté.
+   *
+   * ⚠️ En revanche, un parcours dont **aucune** étape n'a pu s'afficher n'est pas
+   * marqué vu : il n'a rien présenté. L'écart compte, parce que le filtrage lit le DOM
+   * à un instant donné — une cible encore en cours de chargement fait disparaître son
+   * étape. Marquer vu dans ce cas coûterait la visite définitivement, sur un simple
+   * aléa de réseau.
    * @returns {boolean} true si un parcours a effectivement démarré.
    */
   const startTour = useCallback(
     (tabKey, { force = false } = {}) => {
       if (!tabKey) return false;
       if (!force && seen?.[tabKey]) return false;
-      // Marque immédiatement l'onglet comme vu (écriture localStorage hors updater).
-      markTourSeen(tabKey);
       const allSteps = getSteps(tabKey) || [];
       const usable = allSteps.filter((step) => {
         if (!step.target) return true;
@@ -92,6 +96,9 @@ export function useGuidedTour({ getSteps, storageKey }) {
         }
       });
       if (usable.length === 0) return false;
+      // Marque l'onglet comme vu (écriture localStorage hors updater), une fois acquis
+      // qu'il y a bien quelque chose à présenter.
+      markTourSeen(tabKey);
       setActive({ tab: tabKey, steps: usable, index: 0 });
       return true;
     },
