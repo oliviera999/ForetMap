@@ -144,7 +144,7 @@ export function GLMarketView({
           </ul>
 
           <h3>Échanges en cours</h3>
-          <ul className="gl-market-trades-list">
+          <ul className="gl-market-trades-list" data-gl-tour="market-trades">
             {negotiatingTrades.map((trade) => {
               const peer = findPeerSide(trade, playerId);
               return (

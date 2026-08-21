@@ -7,6 +7,45 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Les visites guidées GL atteignent enfin les écrans où l'on arrive (lot 10)
+
+**Quatre des douze visites du lot 9 ne pouvaient pas se déclencher.** La navigation GL
+replie les identifiants de regroupement sur un sous-onglet : ouvrir « La nature » place
+l'application sur *Écosystèmes*, jamais sur `nature`. Les parcours rangés sous `nature`,
+`adventure`, `monde-gl` et `joueurs` attendaient donc une valeur que rien ne produit —
+un contenu correct, invisible, et silencieux. Pendant ce temps `Introduction`, l'onglet
+d'arrivée par défaut, n'avait aucune visite.
+
+Les parcours sont désormais rangés sous les onglets où l'on atterrit vraiment :
+**dix-huit visites** couvrent tout ce qui se joue — cartes, écosystèmes, biodiversité,
+glossaire, histoire, carnet, sortilèges, introduction, règles, lexique du récit,
+tutoriels, forum, marché, statistiques, journal de partie, journal personnel, plateau de
+découverte, console MJ. Les quatre écrans d'administration restent sans visite : le
+corpus d'aide y est déjà neutre, OLU n'y parle pas.
+
+**Les bulles désignent quelque chose.** Toutes les étapes du lot 9 visaient la zone de
+contenu entière : le projecteur éclairait la page complète, donc ne montrait rien. Les
+étapes pointent maintenant des ancres dédiées (la barre de sous-onglets, la recherche du
+glossaire, la liste des tutoriels, la barre du journal…), et celles qui présentent un
+écran entier n'ont plus de cible du tout — bulle centrée, sans projecteur inutile.
+
+**Une étape d'orientation par regroupement**, partagée par ses sous-onglets et éditable
+une seule fois dans le studio : elle désigne la barre de sous-onglets et dit ce qu'il y a
+à côté.
+
+**Une visite qui n'a rien pu montrer n'est plus considérée comme vue.** Le moteur
+marquait l'onglet « découvert » avant de vérifier que ses bulles pouvaient s'afficher :
+si une cible n'était pas encore chargée, la visite ne montrait rien — et ne se relançait
+plus jamais. Elle attend désormais qu'au moins une bulle soit affichable. La correction
+vaut pour les deux produits, le moteur étant commun — **c'est donc un changement de
+comportement côté ForetMap aussi**, où un onglet dont aucune bulle ne s'affichait était
+jusqu'ici compté comme découvert.
+
+Deux garde-fous ferment la classe de défaut : une clé de visite doit être un onglet que
+l'application peut réellement afficher, et une ancre citée par une visite doit exister
+dans le code des vues. Un test d'interface vérifie en plus que les quatre barres de
+sous-onglets **rendent** leur ancre — l'écrire ne suffit pas.
+
 ### Les MJ peuvent réécrire les visites guidées, et GL en gagne six de plus (lot 9)
 
 Suite des chantiers laissés ouverts au lot 8.

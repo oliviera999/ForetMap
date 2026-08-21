@@ -206,7 +206,7 @@ export function GLTutorialsView({
         </form>
       ) : null}
 
-      <ul className="gl-tutorials-list">
+      <ul className="gl-tutorials-list" data-gl-tour="tutorials-list">
         {items.map((item) => (
           <li key={item.id} className={isTutorialRead(item.id) ? 'is-read' : ''}>
             <button type="button" onClick={() => openTutorial(item.id)}>
