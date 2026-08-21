@@ -33,6 +33,11 @@ router.post(
   asyncHandler(async (req, res) => {
     const task = await getTaskWithAssignments(req.params.id);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    // Une tâche archivée est retirée du jeu : elle a disparu des listes, mais un client
+    // resté ouvert garde son id — sans ce garde-fou, l'inscription passait encore et
+    // échappait au plafond de tâches actives (qui ignore les archives).
+    if (task.archived_at != null)
+      return res.status(400).json({ error: 'Tâche archivée : inscription indisponible' });
     if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
     if (task.status === 'on_hold')
       return res.status(400).json({ error: 'Tâche en attente : inscription indisponible' });
@@ -140,6 +145,8 @@ router.post(
   asyncHandler(async (req, res) => {
     const task = await getTaskWithAssignments(req.params.id);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    if (task.archived_at != null)
+      return res.status(400).json({ error: 'Tâche archivée : inscription indisponible' });
     if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
     const groupId = normalizeOptionalId(req.body?.group_id);
     if (!groupId) return res.status(400).json({ error: 'group_id requis' });
@@ -211,6 +218,8 @@ router.post(
   asyncHandler(async (req, res) => {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    if (task.archived_at != null)
+      return res.status(400).json({ error: 'Tâche archivée : action indisponible' });
     const completionMode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
 
     const { comment, imageData } = req.body || {};

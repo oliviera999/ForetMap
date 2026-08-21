@@ -171,6 +171,8 @@ CREATE TABLE IF NOT EXISTS tasks (
   INDEX idx_tasks_start_date (start_date),
   INDEX idx_tasks_due_date (due_date),
   INDEX idx_tasks_archived_at (archived_at),
+  -- Support du balayage de l'archivage automatique (validated_at < date-butoir).
+  INDEX idx_tasks_validated_at (validated_at),
   CONSTRAINT fk_tasks_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE SET NULL,
   CONSTRAINT fk_tasks_project FOREIGN KEY (project_id) REFERENCES task_projects(id) ON DELETE SET NULL,
   CONSTRAINT fk_tasks_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL,
