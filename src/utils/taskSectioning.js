@@ -25,6 +25,41 @@ export function isTaskUrgentCategory(task) {
   );
 }
 
+/**
+ * Statuts effectifs « terminaux » : plus rien n'est attendu sur la tâche.
+ * `done` n'en fait pas partie (elle attend encore la validation d'un prof) ni `proposed`
+ * (elle attend une décision) : ces deux-là restent des tâches sur lesquelles agir.
+ */
+const TERMINAL_EFFECTIVE_STATUSES = new Set(['validated', 'project_validated']);
+
+/**
+ * Tâche urgente ENCORE en cours de vie — seul critère de la section « 🚨 Urgent ! ».
+ *
+ * La section urgence extrait ses tâches de toutes les autres sections : sans ce filtre,
+ * une tâche « Urgent ! » validée y restait bloquée et n'apparaissait jamais dans
+ * « ✅ Validées » (prof) / « ✅ Récemment validées » (élève). Une fois validée, une tâche
+ * n'est plus urgente : elle rejoint la section de son statut comme n'importe quelle autre.
+ */
+export function isTaskUrgentPending(task) {
+  return isTaskUrgentCategory(task) && !TERMINAL_EFFECTIVE_STATUSES.has(taskEffectiveStatus(task));
+}
+
+/**
+ * Statut de section d'une tâche affichée HORS bloc projet.
+ *
+ * `taskEffectiveStatus` renvoie `project_completed`/`project_validated` dès que le projet
+ * porteur est terminé/validé — deux valeurs qui ne correspondent à aucune section rendue.
+ * Tant que la tâche est affichée dans le bloc de son projet, c'est sans conséquence ; mais
+ * une tâche dont le projet n'est PAS affiché (projet archivé sans cascade, ou archivé
+ * automatiquement) disparaissait alors complètement de l'écran. On la reclasse donc sur
+ * son statut propre, projet mis de côté.
+ */
+export function taskSectionStatus(task) {
+  const effective = taskEffectiveStatus(task);
+  if (effective !== 'project_completed' && effective !== 'project_validated') return effective;
+  return taskEffectiveStatus({ ...task, project_status: null });
+}
+
 /** Une tâche passe-t-elle l'ensemble des filtres de la vue Tâches ? */
 export function taskMatchesFilters(
   t,
@@ -92,22 +127,36 @@ export function sortedVisibleProjects(projects, filterMap, activeMapId) {
     .sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'fr'));
 }
 
-/** Répartit les tâches (hors urgent / projets visibles) par statut effectif — sections de la vue. */
+/**
+ * Répartit les tâches (hors urgent / projets visibles) par statut de section.
+ *
+ * Ces tâches sont, par construction, celles qui ne sont PAS rendues dans un bloc projet :
+ * on les range donc sur `taskSectionStatus` et non sur le statut effectif brut, sans quoi
+ * celles rattachées à un projet terminé/validé non affiché ne tomberaient dans aucune
+ * section et seraient invisibles.
+ */
 export function partitionTasksByEffectiveStatus(regularFiltered) {
-  return {
-    available: regularFiltered.filter((t) => taskEffectiveStatus(t) === 'available'),
-    inProgress: regularFiltered.filter((t) => taskEffectiveStatus(t) === 'in_progress'),
-    done: regularFiltered.filter((t) => taskEffectiveStatus(t) === 'done'),
-    validated: regularFiltered.filter((t) => taskEffectiveStatus(t) === 'validated'),
-    proposed: regularFiltered.filter((t) => taskEffectiveStatus(t) === 'proposed'),
-    onHold: regularFiltered.filter((t) => taskEffectiveStatus(t) === 'on_hold'),
-    projectCompletedTasks: regularFiltered.filter(
-      (t) => taskEffectiveStatus(t) === 'project_completed',
-    ),
-    projectValidatedTasks: regularFiltered.filter(
-      (t) => taskEffectiveStatus(t) === 'project_validated',
-    ),
+  const buckets = {
+    available: [],
+    inProgress: [],
+    done: [],
+    validated: [],
+    proposed: [],
+    onHold: [],
   };
+  const bucketByStatus = {
+    available: buckets.available,
+    in_progress: buckets.inProgress,
+    done: buckets.done,
+    validated: buckets.validated,
+    proposed: buckets.proposed,
+    on_hold: buckets.onHold,
+  };
+  for (const t of regularFiltered) {
+    const bucket = bucketByStatus[taskSectionStatus(t)];
+    if (bucket) bucket.push(t);
+  }
+  return buckets;
 }
 
 /** Bandeau « Échéances proches » côté élève : tâches actives dues entre J-2 (retard) et J+3, triées par importance puis échéance. */

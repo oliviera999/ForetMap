@@ -22,7 +22,7 @@ import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../utils/brows
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { TEACHER_STATUS_ACTIONS } from './tasks/taskViewHelpers.js';
 import {
-  isTaskUrgentCategory,
+  isTaskUrgentPending,
   applyTaskFilters,
   sortedVisibleProjects,
   partitionTasksByEffectiveStatus,
@@ -512,12 +512,15 @@ function TasksViewImpl({
       filterUrgentCategory,
     ],
   );
+  // La section « 🚨 Urgent ! » ne retient que les tâches urgentes ENCORE en cours de vie :
+  // une tâche urgente validée doit repartir dans « ✅ Validées » / « ✅ Récemment validées »
+  // (avant, elle restait piégée dans l'encart urgence, retirée de toutes les autres sections).
   const urgentCategoryTasks = useMemo(
-    () => allFiltered.filter(isTaskUrgentCategory).sort(compareTasksByImportanceThenDueDate),
+    () => allFiltered.filter(isTaskUrgentPending).sort(compareTasksByImportanceThenDueDate),
     [allFiltered],
   );
   const allFilteredWithoutUrgent = useMemo(
-    () => allFiltered.filter((t) => !isTaskUrgentCategory(t)),
+    () => allFiltered.filter((t) => !isTaskUrgentPending(t)),
     [allFiltered],
   );
   // Groupement projet → tâches calculé une seule fois ici (P2) : TaskProjectsBlock
