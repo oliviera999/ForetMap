@@ -92,6 +92,40 @@ Ce qu'il faut savoir :
 > Conséquence à connaître : un MJ qui n'est pas administrateur ForetMap ne peut pas modifier OLU
 > lui-même — il faut passer par un administrateur. C'est le revers du personnage unique.
 
+## L'aide et les visites guidées
+
+**Un bouton « ? »** est présent en bas de chaque onglet. Il ouvre l'aide de l'écran
+affiché — auparavant, ce texte était un encadré qu'il fallait aller chercher sous le
+contenu de la page. Le bouton **clignote** tant que l'aide de cet onglet n'a jamais été
+ouverte, puis se calme définitivement.
+
+**Vous ne lisez pas la même aide que vos élèves.** Sur les écrans que vous partagez avec
+eux — la carte, le carnet, le marché, le forum, le journal, les sortilèges, les
+glossaires, les tutoriels — l'aide affiche une version qui vous est destinée : ce qu'il
+faut vérifier avant la séance, où se règle telle mécanique. Les autres écrans affichent le
+même texte pour tout le monde.
+
+**Cinq onglets ont une visite guidée** (cartes, aventure, carnet de Sélène, marché,
+console MJ) : une courte séquence qui présente l'écran, bulle après bulle, la première
+fois qu'on l'ouvre. Elle se relance à volonté depuis le bouton « ? » → « ▶ Visite
+guidée ». Les élèves qui ont déjà vu un onglet ne la revoient pas.
+
+> Les visites sont **désactivées pour les invités** : leur passage est éphémère, leur
+> imposer un parcours à chaque venue serait une porte qui claque. Elles suivent aussi
+> l'interrupteur du module d'aide : éteindre l'aide éteint les visites.
+
+## À la première connexion, OLU se présente
+
+Un nouveau venu — élève ou MJ — est accueilli par **trois bulles** : OLU se présente, dit
+ce qu'on fait dans le jeu, et indique où le retrouver. Puis il s'efface, et ne revient
+plus.
+
+Il ne raconte **pas** l'histoire : « L'histoire, elle, je te laisse la découvrir — ce
+n'est pas la mienne à raconter. » Le récit reste au carnet et à vous.
+
+Cet accueil est distinct de l'intro cinématique de l'écran de connexion, qui, elle, ne
+change pas.
+
 ## Incidents courants
 
 | Symptôme                                    | Cause probable                                                                                               | Geste                                                                                                  |
@@ -103,6 +137,8 @@ Ce qu'il faut savoir :
 | Vérifier ce que voit un élève               | —                                                                                                            | Prendre la main sur son compte (bandeau affiché, action tracée) ou basculer en « vue joueur »          |
 | Les sorts ne se lancent pas                 | Module Sortilèges désactivé, ou lancement réservé au MJ par le profil de séance                              | Réglages → modules / gameplay                                                                          |
 | OLU n'apparaît pas sur les feuillets        | Le narrateur a été éteint côté ForetMap (le réglage est commun)                                              | ForetMap → Paramètres → Narrateur OLU → rallumer l'interrupteur                                        |
+| Une visite guidée ne se relance pas         | L'onglet affiché n'en a pas (cinq en ont une), ou le module d'aide est éteint                                | Ouvrir le « ? » : le bouton « ▶ Visite guidée » n'apparaît que si un parcours existe                   |
+| Un élève veut revoir l'accueil d'OLU        | Il n'est joué qu'une fois par navigateur                                                                     | Effacer les données du site dans le navigateur, ou passer par un autre profil                          |
 | Un élève ne peut pas payer pour un camarade | C'est le réglage par défaut (chacun sa part, sa propre équipe) — le MJ, lui, répartit toujours librement     | Réglages → gameplay → « Mode de contribution » / « Équipes pouvant lancer »                            |
 
 ## Lire et amender cette documentation depuis le jeu

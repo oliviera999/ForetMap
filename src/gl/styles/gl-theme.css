@@ -2892,6 +2892,94 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   color: #1e3a8a;
 }
 
+/* ── VISITE GUIDÉE — thématisation GL ───────────────────────────────────────
+ * L'overlay et ses règles vivent dans `src/shared/styles/guided-tour.css` : on ne
+ * redéfinit ici que les variables `--fm-tour-*`, pour que le parcours porte les
+ * couleurs du royaume et non celles de la forêt.
+ */
+
+/* L'overlay est rendu par portail sur `document.body`, donc **hors** de `.gl-app` :
+   le scoper sous l'app ne matcherait jamais. `gl-theme.css` n'étant chargé que par GL,
+   la règle nue ne peut pas déteindre sur ForetMap. */
+.discovery-tour {
+  --fm-tour-accent: color-mix(in srgb, #fff 45%, var(--gl-color-primary, #047c8c) 55%);
+  --fm-tour-card-bg: var(--gl-color-surface, #fff);
+  --fm-tour-text: #10333a;
+  --fm-tour-muted: var(--gl-color-primary, #047c8c);
+}
+
+/* ── AIDE CONTEXTUELLE APPELÉE (bouton « ? » + modale) ──────────────────────
+ * Pendant GL du `HelpPanel` ForetMap. L'encadré replié en bas de page ne se lisait
+ * que si l'on descendait jusqu'à lui ; le bouton, lui, se voit et se demande.
+ * L'encadré inline (`gl-help-panel`) subsiste là où l'aide fait partie de la page.
+ */
+
+.gl-help-dock {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.gl-help-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1.5px solid color-mix(in srgb, #fff 55%, var(--gl-color-primary) 45%);
+  background: #ffffff;
+  color: var(--gl-color-primary);
+  font-size: 1.15rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--gl-shadow-sm);
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.gl-help-btn:hover {
+  transform: translateY(-1px);
+}
+
+.gl-help-btn.is-pulsing {
+  animation: attentionPulse 1.6s ease-in-out infinite;
+}
+
+.gl-help-dialog {
+  width: min(560px, calc(100vw - 32px));
+  padding: 18px;
+  border-radius: 16px;
+  background: var(--gl-color-surface, #fff);
+}
+
+.gl-help-dialog__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+}
+
+.gl-help-dialog__portrait {
+  border: 1.5px solid #bfdbfe;
+  background: #ffffff;
+}
+
+.gl-help-dialog__body {
+  color: #1e3a8a;
+  line-height: 1.5;
+}
+
+.gl-help-dialog__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.gl-help-dialog__tour-cta {
+  margin-right: auto;
+}
+
 /* ── NARRATEUR OLU — mise en scène GL ───────────────────────────────────────
  * OLU est **le même personnage et le même réglage** qu'en ForetMap (§8.2 de
  * docs/MASCOT_NARRATEUR_OLU.md, arbitrage révisé) : les composants et leurs styles
