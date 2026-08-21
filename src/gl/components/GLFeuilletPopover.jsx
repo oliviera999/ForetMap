@@ -7,13 +7,19 @@ import { GLButton } from './ui/GLButton.jsx';
 import { useGlNarrator } from '../hooks/useGlNarrator.js';
 
 /**
- * Aperçu d'un feuillet du carnet de voyage, **mis en scène par le narrateur OLU**
+ * Aperçu d'un feuillet du carnet de voyage, **présenté par le narrateur OLU**
  * (`docs/MASCOT_NARRATEUR_OLU.md` §4.5, registre « visual novel léger » : portrait
- * latéral, cadre, nom du locuteur, effet machine à écrire).
+ * latéral, cadre, effet machine à écrire).
  *
- * Le texte du feuillet reste le contenu — le portrait est décoratif (`aria-hidden`) et
- * son absence est un mode de fonctionnement normal, pas une panne : sans portrait
- * téléversé, la silhouette SVG prend le relais sans un octet de réseau.
+ * ⚠️ **Sans étiquette de locuteur, et c'est délibéré.** Le texte affiché ici est celui du
+ * feuillet — du contenu écrit par le MJ, la voix du carnet de Sélène. Le signer « OLU »
+ * lui attribuerait des mots qui ne sont pas les siens et violerait la règle d'écriture du
+ * §11.7 : **OLU parle du jeu, jamais dans le jeu.** Il montre le feuillet, il ne le récite
+ * pas. L'étiquette reste donc réservée aux surfaces où il parle en son nom (l'aide).
+ *
+ * Le portrait est décoratif (`aria-hidden`) et son absence est un mode de fonctionnement
+ * normal, pas une panne : sans portrait téléversé, la silhouette SVG prend le relais sans
+ * un octet de réseau.
  */
 /** Sous cette largeur, le portrait devient un médaillon : le texte garde la place (§9.3). */
 const COMPACT_QUERY = '(max-width: 480px)';
@@ -29,7 +35,7 @@ export function GLFeuilletPopover({
   onClose,
   themeStyle = null,
 }) {
-  const { narrator, speakerName } = useGlNarrator();
+  const { narrator } = useGlNarrator();
   const compact = useMediaQuery(COMPACT_QUERY);
   const gemCost = Number(coutGemme) || 0;
   const heartGain = Number(gainCoeur) || 0;
@@ -72,11 +78,7 @@ export function GLFeuilletPopover({
               size={compact ? 'face' : 'bust'}
             />
           ) : null}
-          <SpeechBubble
-            className="gl-narrator-scene__bubble"
-            speakerName={speakerName}
-            text={popover}
-          />
+          <SpeechBubble className="gl-narrator-scene__bubble" text={popover} />
         </div>
       ) : null}
 

@@ -1,108 +1,108 @@
 {
   "entries": {
     "tab:discovery": {
-      "title": "Aide GL",
-      "body": "Onglet Découverte : explore le plateau démo. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "title": "Découverte",
+      "body": "Voilà le plateau de démonstration : tu peux tout ouvrir, rien n’est cassable. Clique un repère pour voir ce qu’il déclenche, puis reviens ici quand tu veux."
     },
     "tab:maps": {
-      "title": "Aide GL",
-      "body": "Onglet Cartes : consulte les cartes du monde. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "title": "Les cartes",
+      "body": "Ici je garde les cartes du monde, chapitre par chapitre. Zoome, promène-toi, et clique un repère pour savoir ce qui s’y trouve."
     },
     "tab:nature": {
-      "title": "Aide GL",
-      "body": "Onglet La nature : écosystèmes, biodiversité et glossaire SVT du chapitre. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "title": "La nature",
+      "body": "Trois entrées au même endroit : les écosystèmes du chapitre, les espèces qui y vivent et le glossaire qui explique les mots. Commence par ce qui t’intrigue — l’ordre n’a aucune importance."
     },
     "tab:ecosystemes": {
-      "title": "Aide GL",
-      "body": "Onglet Écosystèmes : biotopes et biocénoses du chapitre. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "title": "Écosystèmes",
+      "body": "Chaque territoire a son biotope (le décor, le climat, le sol) et sa biocénose (tout ce qui y vit). Ouvre une fiche pour voir comment les deux tiennent ensemble."
     },
     "tab:biodiversite": {
-      "title": "Aide GL",
-      "body": "Onglet Biodiversité : fiches des espèces du chapitre. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "title": "Biodiversité",
+      "body": "Les fiches des espèces du chapitre : à quoi elles ressemblent, où elles vivent, de quoi elles dépendent. Marque une fiche comme apprise quand tu la maîtrises — elle rejoint ta progression."
     },
     "tab:glossary": {
-      "title": "Aide GL",
-      "body": "Onglet Glossaire : définitions et termes du jeu. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "title": "Glossaire scientifique",
+      "body": "Les définitions employées dans les fiches et les questions. Si un mot te bloque en pleine lecture, il est presque toujours ici."
     },
     "tab:lore-glossary": {
-      "title": "Aide GL",
-      "body": "Onglet Lexique lore : vocabulaire narratif. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "title": "Lexique du récit",
+      "body": "Le vocabulaire du monde : les noms, les lieux, les termes que le récit emploie sans les expliquer. À ouvrir quand une page te parle d’une chose que tu n’as jamais croisée."
     },
     "tab:selene-carnet": {
-      "title": "Aide GL",
-      "body": "Onglet Carnet Sélène : feuillets et récits. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "title": "Le Carnet de Sélène",
+      "body": "Les feuillets retrouvés par ton équipe s’empilent ici, avec les récits qui les accompagnent. Tu peux les rouvrir depuis cette page, tranquillement, une fois la séance passée."
     },
     "tab:adventure": {
-      "title": "Aide GL",
-      "body": "Onglet L'aventure : histoire, carnet Sélène et sortilèges du chapitre. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "title": "L’aventure",
+      "body": "Le fil du chapitre : l’histoire, le Carnet de Sélène et les sortilèges disponibles. C’est l’endroit où reprendre quand tu ne sais plus où tu en étais."
     },
     "tab:history": {
-      "title": "Aide GL",
-      "body": "Onglet Histoire : chronologie et contexte. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "title": "L’histoire",
+      "body": "Le récit du chapitre, dans l’ordre. Reviens-y dès que tu as perdu le fil — c’est fait pour."
     },
     "tab:monde-gl": {
-      "title": "Aide GL",
-      "body": "Onglet Le monde G&L : introduction, règles, lexique lore et tutoriels. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurger la navigation joueur."
+      "title": "Le monde G&L",
+      "body": "Tout ce qui explique le monde plutôt que la partie en cours : l’introduction, les règles, le lexique du récit et les tutoriels."
     },
     "tab:world": {
-      "title": "Aide GL",
-      "body": "Onglet Introduction : présentation générale du jeu. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurger la navigation joueur."
+      "title": "Introduction",
+      "body": "La présentation du jeu : de quoi il retourne, qui est qui, ce qu’on y fait. Deux minutes de lecture qui évitent une séance de tâtonnement."
     },
     "tab:spells": {
-      "title": "Aide GL",
-      "body": "Onglet Sortilèges : liste et effets des sorts. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurger la navigation joueur."
+      "title": "Sortilèges",
+      "body": "La liste des sorts, ce qu’ils coûtent et ce qu’ils font. Certains sont réservés à un peuple, et selon les réglages c’est le MJ qui valide le lancement."
     },
     "tab:rules": {
-      "title": "Aide GL",
-      "body": "Onglet Règles du jeu : mécaniques et consignes. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "title": "Règles du jeu",
+      "body": "Les mécaniques au calme, en dehors d’une partie : tours, déplacements, vitalité, échanges. Si une action t’a surpris pendant la séance, l’explication est ici."
     },
     "tab:tutorials": {
-      "title": "Aide GL",
-      "body": "Onglet Tutoriels : parcours guidés. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "title": "Tutoriels",
+      "body": "Des parcours guidés, courts, à suivre dans l’ordre que tu veux. Commence par celui qui correspond à ce que tu n’arrives pas à faire."
     },
     "tab:joueurs": {
-      "title": "Aide GL",
-      "body": "Onglet Les joueurs : forum, marché et statistiques. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurger la navigation joueur."
+      "title": "Les joueurs",
+      "body": "Ce qui se passe entre vous : le forum, le marché et les statistiques. Rien d’obligatoire ici — mais c’est là qu’une équipe s’organise."
     },
     "tab:forum": {
-      "title": "Aide GL",
-      "body": "Onglet Forum : échanges entre joueurs. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "title": "Forum",
+      "body": "Pour poser une question, partager une trouvaille ou coordonner ton équipe. Ce que tu écris est lu par la classe et par le MJ."
     },
     "tab:market": {
-      "title": "Aide GL",
-      "body": "Onglet Marché : échanges et ressources. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "title": "Marché",
+      "body": "Les échanges entre équipes : gemmes, feuillets et, selon les réglages, d’autres ressources. Regarde ce qui manque à ton équipe avant de proposer quoi que ce soit."
     },
     "tab:journal": {
-      "title": "Aide GL",
-      "body": "Onglet Journal : suivi de partie. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "title": "Journal de partie",
+      "body": "La trace de ce qui s’est passé pendant la séance, dans l’ordre. Pratique pour retrouver qui a fait quoi, et quand."
     },
     "tab:my-journal": {
       "title": "Aide — Mon journal",
       "body": "• Geste clé : sur la page d'un élément (feuillet, espèce, définition, tutoriel, écosystème, page), clique « Marquer comme appris » (parfois après un court quiz qui valide la lecture).\n• Puis « + Ajouter à mon journal » : l'élément apparaît dans ton fil pour le retrouver facilement.\n• Épingle une entrée importante pour la garder en haut du fil.\n• Recherche, filtre et trie le fil pour retrouver rapidement une entrée.\n• Le texte accepte le markdown (titres, listes, liens).\n• Illustration : bouton « Ajouter une image » (compte dans le quota).\n• Encart : référence un sort, une espèce, un terme ou un chapitre du site.\n• La sauvegarde est automatique après une courte pause de frappe."
     },
     "tab:stats": {
-      "title": "Aide GL",
-      "body": "Onglet Statistiques : indicateurs et suivi. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "title": "Statistiques",
+      "body": "Où en est ta progression, et celle de la classe : contenus appris, feuillets retrouvés, points. Un chiffre bas n’est pas un jugement — c’est ce qu’il te reste à explorer."
     },
     "tab:users": {
-      "title": "Aide GL",
-      "body": "Onglet Gestion utilisateurs : comptes et rôles. Réservé aux administrateurs."
+      "title": "Gestion des utilisateurs",
+      "body": "Comptes, rôles et rattachement aux classes. Réservé aux administrateurs : la réinitialisation d’un mot de passe et le changement de rôle prennent effet immédiatement."
     },
     "tab:contents": {
-      "title": "Aide GL",
-      "body": "Onglet Contenus : édition éditoriale (pages, intro, bulles d'aide). Réservé aux administrateurs."
+      "title": "Contenus",
+      "body": "Édition éditoriale : pages du monde, intro, chapitres, feuillets et textes d’aide. Réservé aux administrateurs et au MJ ; les modifications sont visibles de tous dès l’enregistrement."
     },
     "tab:settings": {
-      "title": "Aide GL",
-      "body": "Onglet Réglages plateforme : modules, gameplay et affichage. Réservé aux administrateurs."
+      "title": "Réglages de la plateforme",
+      "body": "Modules, gameplay et affichage. Réservé aux administrateurs : désactiver un module le retire de la navigation des joueurs, sans supprimer les contenus associés."
     },
     "tab:mascots": {
-      "title": "Aide GL",
-      "body": "Onglet Gestion mascottes : packs et animations. Réservé aux administrateurs."
+      "title": "Gestion des mascottes",
+      "body": "Packs de mascottes, animations et cadres d’image. Réservé aux administrateurs."
     },
     "tab:mj": {
-      "title": "Aide GL",
-      "body": "Onglet Console MJ : pilotage de partie en direct. Réservé au maître du jeu."
+      "title": "Console du MJ",
+      "body": "Pilotage de la partie en direct : tours, déplacements, QCM, validations et vitalité. Réservé au maître du jeu ; les actions prennent effet immédiatement pour tous les joueurs."
     }
   }
 }

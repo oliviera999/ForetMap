@@ -28,16 +28,29 @@ describe('GLFeuilletPopover — mise en scène OLU', () => {
     invalidateGlNarratorCache();
   });
 
-  test('le feuillet est porté par une bulle signée OLU, portrait à l’appui', async () => {
+  test('le feuillet est présenté dans une bulle, portrait à l’appui', async () => {
     apiGLMock.mockResolvedValue(NARRATOR);
     render(
       <GLFeuilletPopover open titre="La Trame" popover="J’ai noté ceci." onClose={() => {}} />,
     );
 
-    await waitFor(() => expect(screen.getByText('OLU')).toBeTruthy());
+    await waitFor(() => expect(portrait()).toBeTruthy());
     expect(document.querySelector('.fm-speech-bubble')).toBeTruthy();
     const img = portrait().querySelector('img');
     expect(img.getAttribute('src')).toBe(PORTRAIT);
+  });
+
+  // §11.7 : le texte du feuillet est la voix du carnet, pas celle d'OLU. Le signer lui
+  // attribuerait des mots qui ne sont pas les siens — il montre, il ne récite pas.
+  test('la bulle du feuillet n’est jamais signée OLU', async () => {
+    apiGLMock.mockResolvedValue(NARRATOR);
+    render(
+      <GLFeuilletPopover open titre="La Trame" popover="J’ai noté ceci." onClose={() => {}} />,
+    );
+
+    await waitFor(() => expect(portrait()).toBeTruthy());
+    expect(document.querySelector('[data-speech-bubble-speaker]')).toBeNull();
+    expect(screen.queryByText('OLU')).toBeNull();
   });
 
   test('le portrait reste décoratif : aria-hidden, alt vide, texte intact', async () => {
@@ -62,7 +75,7 @@ describe('GLFeuilletPopover — mise en scène OLU', () => {
     expect(portrait().querySelector('svg')).toBeTruthy();
   });
 
-  test('narrateur éteint : ni portrait ni étiquette, le feuillet reste lisible', async () => {
+  test('narrateur éteint : plus de portrait, le feuillet reste lisible', async () => {
     apiGLMock.mockResolvedValue({ ...NARRATOR, enabled: false });
     render(
       <GLFeuilletPopover open titre="La Trame" popover="Texte du feuillet" onClose={() => {}} />,
