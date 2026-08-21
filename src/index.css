@@ -6,6 +6,7 @@
     @import './shared/styles/map-fullscreen.css';
     @import './shared/styles/visit-map-mascot.css';
     @import './shared/styles/guided-tour.css';
+    @import './shared/styles/tour-editor.css';
 
     @font-face {
       font-family: 'ForetMapColorEmoji';

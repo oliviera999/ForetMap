@@ -77,6 +77,7 @@ const RELAUNCH_STEP = {
 export const WELCOME_TOUR_KEY = 'welcome';
 
 const WELCOME_TOUR = {
+  title: 'Accueil · Première connexion',
   steps: [
     {
       key: 'hello',
