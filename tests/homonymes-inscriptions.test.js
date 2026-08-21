@@ -16,7 +16,10 @@ const assert = require('node:assert');
 const crypto = require('node:crypto');
 const { initSchema, execute, queryOne, queryAll } = require('../database');
 const { countStudentActiveTaskAssignments } = require('../lib/studentTaskEnrollment');
-const { assignmentIdentityMatch } = require('../lib/tasks/assignmentIdentityMatch');
+const {
+  assignmentIdentityMatch,
+  assignmentRowMatchesStudent,
+} = require('../lib/tasks/assignmentIdentityMatch');
 
 const stamp = Date.now();
 const FIRST = 'Camille';
@@ -119,4 +122,42 @@ test('assignmentIdentityMatch : sans identifiant, seule la branche « nom » s�
   assert.deepStrictEqual(match.params(null, 'Jean', 'Dupont'), [null, null, 'Jean', 'Dupont']);
   assert.deepStrictEqual(match.params('  ', 'Jean', 'Dupont'), [null, null, 'Jean', 'Dupont']);
   assert.match(match.clause, /ta\.student_id IS NULL/);
+});
+
+test('assignmentRowMatchesStudent : même règle appliquée en mémoire', () => {
+  const withId = { student_id: 'A', student_first_name: FIRST, student_last_name: LAST };
+  const legacy = { student_id: null, student_first_name: FIRST, student_last_name: LAST };
+
+  // Une ligne qui porte un identifiant n'est reconnue que par lui : un homonyme (ou un
+  // nom envoyé par le client) ne doit pas s'y reconnaître.
+  assert.strictEqual(
+    assignmentRowMatchesStudent(withId, { studentId: 'A', firstName: FIRST, lastName: LAST }),
+    true,
+  );
+  assert.strictEqual(
+    assignmentRowMatchesStudent(withId, { studentId: 'B', firstName: FIRST, lastName: LAST }),
+    false,
+    'un homonyme ne prend pas la ligne d’un compte identifié',
+  );
+  assert.strictEqual(
+    assignmentRowMatchesStudent(withId, { firstName: FIRST, lastName: LAST }),
+    false,
+    'sans identifiant, une ligne identifiée reste hors de portée',
+  );
+
+  // Ligne héritée : le nom reste la seule clé — insensible à la casse et aux espaces.
+  assert.strictEqual(
+    assignmentRowMatchesStudent(legacy, {
+      studentId: 'B',
+      firstName: ` ${FIRST.toUpperCase()} `,
+      lastName: LAST.toLowerCase(),
+    }),
+    true,
+  );
+  assert.strictEqual(
+    assignmentRowMatchesStudent(legacy, { studentId: 'B', firstName: 'Autre', lastName: LAST }),
+    false,
+  );
+  assert.strictEqual(assignmentRowMatchesStudent(legacy, { studentId: 'B' }), false);
+  assert.strictEqual(assignmentRowMatchesStudent(null, { studentId: 'B' }), false);
 });

@@ -93,7 +93,9 @@ Une tâche passe par des états visibles de tous : **Disponible** → **En cours
 ### Du point de vue du professeur
 
 - **Valider** : la validation est définitive et déclenche la progression des élèves
-  inscrits. Détail à connaître : une tâche validée est **détachée de ses zones et
+  inscrits. Une inscription élève qui arrive **en même temps** qu'une validation ne
+  peut plus « défaire » cette validation : l'inscription est refusée et le statut
+  validé est conservé. Détail à connaître : une tâche validée est **détachée de ses zones et
   repères** (elle n'encombre plus la carte) ; pour les tâches récurrentes, les lieux
   sont mémorisés afin que la prochaine occurrence les retrouve.
 - **Remettre au travail** : il n'y a pas de bouton « refuser » — le professeur repasse
@@ -233,7 +235,10 @@ un **document PDF joint**, affiché tel quel.
 
 > ⚠️ **Point d'attention** — La progression des paliers reconnaît aussi les élèves par
 > **prénom + nom** (héritage des anciennes inscriptions sans compte) : deux homonymes
-> parfaits pourraient voir leurs validations confondues.
+> parfaits pourraient voir leurs validations confondues. En revanche, pour
+> s'inscrire / se retirer / marquer fait sur une tâche, l'identité de l'élève connecté
+> vient toujours de son compte : envoyer le nom d'un autre élève dans la requête ne
+> permet plus d'agir à sa place.
 
 ## Pour aller plus loin
 

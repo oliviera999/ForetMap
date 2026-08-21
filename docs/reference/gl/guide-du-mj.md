@@ -125,6 +125,13 @@ Trois repères utiles :
   rétablit le texte livré avec l'application.
 - **Télécharger le .md** enregistre le document tel qu'il est affiché, pour l'archiver
   ou le transmettre.
+- Si le document **ne se charge pas** (réseau coupé, serveur qui ne répond pas), le
+  panneau n'affiche plus le document précédent : il annonce l'échec et propose
+  « Réessayer ». Aucun bouton d'édition n'apparaît tant que le texte n'est pas
+  réellement chargé — c'est ce qui évite d'enregistrer par-dessus le mauvais
+  document, ou de le vider. Même règle pour la fiche d'un **feuillet** ouverte
+  depuis l'onglet Contenus : sans chargement réussi, ni « Enregistrer » ni
+  « Archiver ».
 
 ## ⚠️ Point d'attention
 
