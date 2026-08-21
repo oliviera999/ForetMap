@@ -48,11 +48,17 @@ export function GLReferenceDocsPanel({ glossaryLinkItems = [], onOpenGlossaryTer
   const [draftBody, setDraftBody] = useState('');
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Chargement de la fiche courante (distinct de la liste) : sans ce flag, un échec
+  // de GET laissait l'ancien document affiché sous le nouveau slug — et un PUT
+  // pouvait écraser le document ciblé avec le contenu du précédent.
+  const [docLoading, setDocLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const bodyRef = useRef(null);
+  // Le détail n'est « prêt » que s'il correspond exactement au slug sélectionné.
+  const loadReady = Boolean(doc && doc.slug === activeSlug);
 
   const loadList = useCallback(async () => {
     const rows = await apiGL(API_BASE);
@@ -74,21 +80,46 @@ export function GLReferenceDocsPanel({ glossaryLinkItems = [], onOpenGlossaryTer
   useEffect(() => {
     if (!activeSlug) {
       setDoc(null);
+      setDraftTitle('');
+      setDraftBody('');
+      setDocLoading(false);
       return undefined;
     }
     let cancelled = false;
+    const requestedSlug = activeSlug;
     setError('');
     setInfo('');
     setEditing(false);
-    apiGL(`${API_BASE}/${encodeURIComponent(activeSlug)}`)
+    // Vider immédiatement : tant que le GET n'a pas réussi pour ce slug, aucun
+    // formulaire ni autosave ne doit porter le contenu d'un autre document.
+    setDoc(null);
+    setDraftTitle('');
+    setDraftBody('');
+    setDocLoading(true);
+    apiGL(`${API_BASE}/${encodeURIComponent(requestedSlug)}`)
       .then((data) => {
         if (cancelled) return;
+        const loadedSlug = String(data?.slug || '');
+        if (!data || loadedSlug !== requestedSlug) {
+          setDoc(null);
+          setDraftTitle('');
+          setDraftBody('');
+          setError('Document introuvable');
+          return;
+        }
         setDoc(data);
-        setDraftTitle(String(data?.title || ''));
-        setDraftBody(String(data?.bodyMarkdown || ''));
+        setDraftTitle(String(data.title || ''));
+        setDraftBody(String(data.bodyMarkdown || ''));
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message || 'Chargement du document impossible');
+        if (cancelled) return;
+        setDoc(null);
+        setDraftTitle('');
+        setDraftBody('');
+        setError(err.message || 'Chargement du document impossible');
+      })
+      .finally(() => {
+        if (!cancelled) setDocLoading(false);
       });
     return () => {
       cancelled = true;
@@ -101,6 +132,10 @@ export function GLReferenceDocsPanel({ glossaryLinkItems = [], onOpenGlossaryTer
   );
 
   const persistDoc = useCallback(async () => {
+    // Garde serveur-côté client : refuse d'écrire si le détail n'est pas celui du slug actif.
+    if (!activeSlug || !doc || doc.slug !== activeSlug) {
+      throw new Error('Document non chargé — enregistrement annulé.');
+    }
     const titleTrim = String(draftTitle || '').trim();
     if (!titleTrim) throw new Error('Le titre est obligatoire.');
     const saved = await apiGL(`${API_BASE}/${encodeURIComponent(activeSlug)}`, 'PUT', {
@@ -111,18 +146,19 @@ export function GLReferenceDocsPanel({ glossaryLinkItems = [], onOpenGlossaryTer
     // La liste porte le repère « modifié » et la date : elle doit suivre chaque sauvegarde.
     await loadList().catch(() => {});
     return { title: titleTrim, bodyMarkdown: draftBody };
-  }, [activeSlug, draftTitle, draftBody, loadList]);
+  }, [activeSlug, doc, draftTitle, draftBody, loadList]);
 
   const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
     value: draft,
     resetKey: `${activeSlug}:${reloadKey}:${editing ? 'edit' : 'view'}`,
-    enabled: Boolean(activeSlug) && editing,
-    canSave: () => String(draftTitle || '').trim().length > 0,
+    // Autosave uniquement après un GET réussi pour le slug courant (anti wipe cross-doc).
+    enabled: loadReady && editing,
+    canSave: () => loadReady && String(draftTitle || '').trim().length > 0,
     onSave: persistDoc,
   });
 
   async function resetDoc() {
-    if (!doc?.edited) return;
+    if (!loadReady || !doc?.edited) return;
     const confirmed = window.confirm(
       `Réinitialiser « ${doc.title} » ?\n\nLes modifications faites depuis l’application seront supprimées et le document reviendra au texte du dépôt.`,
     );
@@ -194,7 +230,9 @@ export function GLReferenceDocsPanel({ glossaryLinkItems = [], onOpenGlossaryTer
         </div>
       ) : null}
 
-      {doc ? (
+      {docLoading && activeSlug ? <p className="gl-hint">Chargement du document…</p> : null}
+
+      {loadReady ? (
         <article className="gl-panel gl-markdown">
           <h3>{doc.title}</h3>
           <p className="gl-hint">
@@ -283,7 +321,7 @@ export function GLReferenceDocsPanel({ glossaryLinkItems = [], onOpenGlossaryTer
         </article>
       ) : null}
 
-      {docs.length > 0 && !doc && !loading ? (
+      {docs.length > 0 && activeSlug && !loadReady && !docLoading && !loading ? (
         <GLButton type="button" onClick={() => setReloadKey((key) => key + 1)}>
           Réessayer
         </GLButton>

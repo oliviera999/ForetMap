@@ -117,4 +117,39 @@ describe('GLFeuilletEditorDialog', () => {
 
     expect(await screen.findByText('Feuillet introuvable')).toBeInTheDocument();
   });
+
+  test('échec du GET : Enregistrer / Archiver indisponibles (anti-wipe EMPTY_FORM)', async () => {
+    apiGlMock.mockImplementation(async (path, method) => {
+      if (path === '/api/gl/biomes') return [];
+      if (path === '/api/gl/lore/admin/feuillets/cop-cover' && !method) {
+        throw new Error('Réseau indisponible');
+      }
+      return {};
+    });
+
+    render(<GLFeuilletEditorDialog code="cop-cover" initialMode="edit" onClose={() => {}} />);
+
+    expect(await screen.findByText('Réseau indisponible')).toBeInTheDocument();
+    // Sans fiche chargée, un PUT enverrait EMPTY_FORM et écraserait toutes les colonnes.
+    expect(screen.queryByRole('button', { name: 'Enregistrer' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Archiver' })).toBeNull();
+    expect(apiGlMock.mock.calls.some((call) => call[1] === 'PUT' || call[1] === 'PATCH')).toBe(
+      false,
+    );
+  });
+
+  test('réponse GET sans feuillet : mutations bloquées', async () => {
+    apiGlMock.mockImplementation(async (path, method) => {
+      if (path === '/api/gl/biomes') return [];
+      if (path === '/api/gl/lore/admin/feuillets/cop-cover' && !method) {
+        return { ok: true };
+      }
+      return {};
+    });
+
+    render(<GLFeuilletEditorDialog code="cop-cover" initialMode="edit" onClose={() => {}} />);
+
+    expect(await screen.findByText('Feuillet introuvable')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Enregistrer' })).toBeNull();
+  });
 });
