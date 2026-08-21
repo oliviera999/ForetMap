@@ -2892,6 +2892,68 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   color: #1e3a8a;
 }
 
+/* ── NARRATEUR OLU — mise en scène GL ───────────────────────────────────────
+ * OLU est **le même personnage et le même réglage** qu'en ForetMap (§8.2 de
+ * docs/MASCOT_NARRATEUR_OLU.md, arbitrage révisé) : les composants et leurs styles
+ * de base vivent dans `src/shared/` (`mascot-speaker.css`, `speech-bubble.css`).
+ * Ne sont ici que la thématisation GL, via les variables `--fm-bubble-*` prévues
+ * pour ça, et la mise en page des deux points d'ancrage.
+ */
+
+/* En-tête d'aide contextuelle : portrait `face` en médaillon devant le titre. */
+.gl-help-panel__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.gl-help-panel__portrait {
+  border: 1.5px solid #bfdbfe;
+  background: #ffffff;
+}
+
+/* Registre « visual novel léger » : portrait latéral + bulle (§4.5). */
+.gl-narrator-scene {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.gl-narrator-scene__bubble {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.gl-narrator-scene__portrait {
+  margin-top: 2px;
+  filter: drop-shadow(0 2px 6px rgba(4, 124, 140, 0.22));
+}
+
+/* Sous 480 px le portrait est servi en `face` par le composant : on l'entoure. */
+.gl-narrator-scene.is-compact {
+  gap: 8px;
+}
+
+.gl-narrator-scene.is-compact .gl-narrator-scene__portrait {
+  border: 1.5px solid color-mix(in srgb, #fff 55%, var(--gl-color-primary) 45%);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* Aperçu de feuillet : la bulle prend les couleurs du carnet, pas celles de la forêt. */
+.gl-feuillet-popover .fm-speech-bubble {
+  --fm-bubble-bg: rgba(255, 252, 244, 0.86);
+  --fm-bubble-border: color-mix(in srgb, #fff 45%, var(--gl-color-primary) 55%);
+  --fm-bubble-text: #2a2118;
+  --fm-bubble-speaker: var(--gl-color-primary);
+}
+
+/* La taille de lecture du feuillet prime sur celle, générique, de la bulle. */
+.gl-feuillet-popover .fm-speech-bubble__text {
+  font-size: inherit;
+  white-space: pre-wrap;
+}
+
 .gl-notifications {
   position: fixed;
   right: 16px;
@@ -6265,11 +6327,6 @@ fieldset .media-library-menu__gallery {
 .gl-feuillet-popover__body {
   font-size: clamp(1.05rem, 2.2vw, 1.35rem);
   line-height: 1.55;
-}
-
-.gl-feuillet-popover__text {
-  margin: 0;
-  white-space: pre-wrap;
 }
 
 .gl-feuillet-popover__mechanics {

@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import '../shared/styles/motion.css';
+import '../shared/styles/speech-bubble.css';
+import '../shared/styles/mascot-speaker.css';
 import '../shared/styles/modal-shell.css';
 import '../shared/styles/toast-shell.css';
 import '../shared/styles/visit-map-mascot.css';

@@ -1,6 +1,22 @@
 import React from 'react';
 import { DialogShell } from '../../components/DialogShell.jsx';
+import { MascotSpeaker } from '../../shared/components/MascotSpeaker.jsx';
+import { SpeechBubble } from '../../shared/components/SpeechBubble.jsx';
+import { useMediaQuery } from '../../shared/hooks/useMediaQuery.js';
 import { GLButton } from './ui/GLButton.jsx';
+import { useGlNarrator } from '../hooks/useGlNarrator.js';
+
+/**
+ * Aperçu d'un feuillet du carnet de voyage, **mis en scène par le narrateur OLU**
+ * (`docs/MASCOT_NARRATEUR_OLU.md` §4.5, registre « visual novel léger » : portrait
+ * latéral, cadre, nom du locuteur, effet machine à écrire).
+ *
+ * Le texte du feuillet reste le contenu — le portrait est décoratif (`aria-hidden`) et
+ * son absence est un mode de fonctionnement normal, pas une panne : sans portrait
+ * téléversé, la silhouette SVG prend le relais sans un octet de réseau.
+ */
+/** Sous cette largeur, le portrait devient un médaillon : le texte garde la place (§9.3). */
+const COMPACT_QUERY = '(max-width: 480px)';
 
 export function GLFeuilletPopover({
   open = false,
@@ -13,9 +29,14 @@ export function GLFeuilletPopover({
   onClose,
   themeStyle = null,
 }) {
+  const { narrator, speakerName } = useGlNarrator();
+  const compact = useMediaQuery(COMPACT_QUERY);
   const gemCost = Number(coutGemme) || 0;
   const heartGain = Number(gainCoeur) || 0;
   const showMechanics = gemCost > 0 || heartGain > 0;
+  // Le narrateur est un enrichissement : seul un `enabled: false` explicite l'éteint.
+  // Réglage pas encore chargé ⇒ portrait rendu quand même (repli SVG, gratuit — §4.1).
+  const showPortrait = !narrator || narrator.enabled !== false;
 
   return (
     <DialogShell
@@ -38,8 +59,24 @@ export function GLFeuilletPopover({
       {loading ? <p className="gl-hint">Ouverture du feuillet…</p> : null}
 
       {!loading && popover ? (
-        <div className="gl-feui-discovery__body gl-feuillet-popover__body">
-          <p className="gl-feuillet-popover__text">{popover}</p>
+        <div
+          className={`gl-feui-discovery__body gl-feuillet-popover__body gl-narrator-scene ${
+            compact ? 'is-compact' : ''
+          }`}
+        >
+          {showPortrait ? (
+            <MascotSpeaker
+              className="gl-narrator-scene__portrait"
+              narrator={narrator}
+              expression="parle"
+              size={compact ? 'face' : 'bust'}
+            />
+          ) : null}
+          <SpeechBubble
+            className="gl-narrator-scene__bubble"
+            speakerName={speakerName}
+            text={popover}
+          />
         </div>
       ) : null}
 

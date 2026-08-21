@@ -7,6 +7,35 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### OLU entre dans Gnomes & Licornes — et c'est le même OLU (lot 6a)
+
+Le narrateur de l'aide ForetMap accompagne désormais aussi Gnomes & Licornes. **Un seul
+personnage, un seul réglage, un seul jeu de portraits** : c'est la révision de l'arbitrage
+§8.2 de `docs/MASCOT_NARRATEUR_OLU.md`, qui prévoyait une configuration GL distincte. Les
+portraits ayant été téléversés une fois, côté ForetMap, un second studio aurait imposé de
+re-téléverser les mêmes fichiers puis de tenir deux jeux en phase — pour un personnage dont
+le plan dit qu'il est le même des deux côtés.
+
+- **Ouverture d'un feuillet** (`GLFeuilletPopover`) : portrait latéral, bulle signée et effet
+  de frappe — le registre « visual novel léger » du §4.5. Sous 480 px, le portrait devient un
+  médaillon pour laisser la largeur au texte. Un clic dans la bulle affiche tout d'un coup.
+- **Encadrés d'aide GL** (`GLHelpPanel`, donc tous les onglets) : portrait `face` en en-tête.
+- **Nouvelle route publique `GET /api/gl/content/narrator`**, en lecture seule.
+
+L'isolement GL reste entier : GL lit sous `/api/gl/*` et n'appelle jamais `/api/settings/*`,
+aucun jeton ne traverse, aucune table `gl_*` n'entre en jeu, et l'écriture du réglage demeure
+au studio ForetMap (`PUT /api/settings/admin/help-narrator`). Le partage est **serveur**, à
+l'image de `VisitMapMascotRenderer` déjà réutilisé par GL.
+
+Le portrait reste décoratif (`aria-hidden`, `alt` vide) : sans image téléversée, la silhouette
+SVG prend le relais sans un octet de réseau, et éteindre l'interrupteur retire portrait et nom
+des deux côtés sans toucher aux textes.
+
+**Ce que ce lot ne fait pas :** le **corpus** d'aide GL (~26 entrées par onglet) n'est pas
+réécrit à la voix d'OLU — c'est le lot 6b, un lot d'écriture séparé (§13 : ne pas mélanger lot
+technique et lot corpus), qui suppose de trancher d'abord §11.7 (OLU est-il un personnage *du*
+lore GL ou un narrateur extérieur ?).
+
 ### Sortilèges : lancer un sort n'est plus lié au tour de l'équipe (G13-a)
 
 Arbitrage G13-a tranché, option A. Quand les tours sont activés, l'assistant de lancement
