@@ -7,6 +7,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Mises à jour npm du lot Dependabot (v1.107.0)
+
+Les 21 montées correctives et mineures proposées par #287 (`adm-zip`, `express-rate-limit`,
+`helmet`, `mysql2`, `nodemailer`, `eslint`, `vite`, `vitest`, `react`, `prettier`,
+`@playwright/test`…) sont reprises ici. La PR d'origine restait inmergeable non pas à cause
+des dépendances — `package.json` et le lock fusionnaient sans conflit — mais parce que sa
+branche du 10 août portait un `dist/` régénéré par le workflow `frontend-dist`, dont les
+empreintes de bundles entraient en conflit avec celles produites depuis sur `main`.
+
+Point regardé de près : **`adm-zip` `0.5.18` → `0.6.0`**, seule montée à franchir un palier
+`0.x`. Ses deux appelants — `lib/mascotPackArchive.js` et `lib/contentLibraryBulk.js` — sont
+couverts par `tests/mascot-pack-archive.test.js` et `tests/content-library-bulk-zip.test.js`,
+verts avec la nouvelle version.
+
 ### Deux failles trouvées en auditant les PR fermées (v1.106.0)
 
 En vérifiant que les correctifs des PR fermées sans fusion (le grand ménage du 20 août)
