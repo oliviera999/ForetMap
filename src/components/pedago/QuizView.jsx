@@ -4,6 +4,9 @@ import {
   PedagoQcmFeedbackBlock,
   shouldShowPedagoQcmAnswerPhase,
 } from './PedagoQcmFeedbackBlock.jsx';
+import { GlossaryInlineText } from '../GlossaryMarkdown.jsx';
+import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
+import { mergeGlossaryLinkItems } from '../../utils/foretmapGlossaryAutolink.js';
 
 const THEME_OPTIONS = [
   { value: '', label: 'Tous thèmes' },
@@ -147,6 +150,15 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
     }
     return [...byCode.values()];
   }, [answerResult, presentation]);
+
+  // Auto-liens : index partagé, complété par les termes déjà liés à la question
+  // (comme `QcmPreviewModal` côté GL) — ces termes-là ne sont pas forcément
+  // « actifs » dans l'index général.
+  const glossaryIndex = useGlossaryLinkIndex();
+  const autolinkItems = useMemo(
+    () => mergeGlossaryLinkItems(glossaryIndex, remediationTerms),
+    [glossaryIndex, remediationTerms],
+  );
 
   useEffect(() => {
     if (!showAnswer) return;
@@ -307,7 +319,13 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
 
           {showChoices ? (
             <>
-              <p className="pedago-quiz__question">{presentation.question}</p>
+              <GlossaryInlineText
+                tag="p"
+                className="pedago-quiz__question"
+                text={presentation.question}
+                glossaryItems={autolinkItems}
+                onOpenGlossaryTerm={onOpenGlossaryTerm}
+              />
               {presentation.photoUrl ? (
                 <figure className="pedago-quiz__photo-wrap">
                   <img src={presentation.photoUrl} alt="" className="pedago-quiz__photo" />
@@ -330,7 +348,11 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
                       checked={selectedChoiceId === choice.id}
                       onChange={() => setSelectedChoiceId(choice.id)}
                     />
-                    <span>{choice.text}</span>
+                    <GlossaryInlineText
+                      text={choice.text}
+                      glossaryItems={autolinkItems}
+                      onOpenGlossaryTerm={onOpenGlossaryTerm}
+                    />
                   </label>
                 ))}
               </div>
@@ -368,7 +390,11 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
 
           {showAnswer ? (
             <>
-              <PedagoQcmFeedbackBlock result={answerResult} />
+              <PedagoQcmFeedbackBlock
+                result={answerResult}
+                glossaryItems={autolinkItems}
+                onOpenGlossaryTerm={onOpenGlossaryTerm}
+              />
               {remediationTerms.length > 0 ? (
                 <div className="pedago-remediation">
                   <strong>Pour approfondir — glossaire</strong>

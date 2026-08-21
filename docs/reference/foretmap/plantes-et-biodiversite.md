@@ -43,6 +43,12 @@ La fiche affiche aussi automatiquement ses liens avec le reste de l'application 
 réseau trophique (« qui mange qui, qui aide qui »), les termes du glossaire et les
 questions de quiz qui s'y rapportent.
 
+Dans les textes **« rôle dans l'écosystème »** et **« utilité pour l'être humain »**,
+les mots qui correspondent à un terme du glossaire deviennent **cliquables
+automatiquement** : l'élève qui bute sur un mot ouvre sa définition d'un clic, sans
+que le professeur ait rien à saisir. Les termes du glossaire rattachés explicitement à
+la fiche restent affichés à part, en pastilles.
+
 ## Comment ça se passe — côté élève
 
 1. L'élève ouvre l'onglet **Biodiversité** : la liste des fiches, avec une **recherche**
