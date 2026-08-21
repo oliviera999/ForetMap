@@ -169,4 +169,60 @@ describe('GLReferenceDocsPanel', () => {
       expect(screen.getByText(/Aucun document de référence trouvé/)).toBeTruthy();
     });
   });
+
+  test('échec du GET après changement de document : pas de contenu stale ni de PUT cross-slug', async () => {
+    mockDefaultApi();
+    render(<GLReferenceDocsPanel />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/docs\/reference\/gl\/presentation\.md/)).toBeTruthy();
+    });
+    expect(screen.getByRole('button', { name: 'Modifier le document' })).toBeTruthy();
+
+    // Le second document échoue : l’ancien contenu ne doit plus rester affiché
+    // sous le nouveau slug (sinon un autosave écraserait guide-du-mj).
+    apiGlMock.mockImplementation((url, method) => {
+      if (url === '/api/gl/admin/reference-docs') return Promise.resolve(LIST);
+      if (url === '/api/gl/admin/reference-docs/guide-du-mj' && !method) {
+        return Promise.reject(new Error('Timeout détail'));
+      }
+      if (method === 'PUT') {
+        return Promise.reject(new Error(`PUT inattendu vers ${url}`));
+      }
+      return Promise.reject(new Error(`URL inattendue: ${url}`));
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: /Guide pratique du maître du jeu/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Timeout détail')).toBeTruthy();
+    });
+    expect(screen.queryByText(/docs\/reference\/gl\/presentation\.md/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Modifier le document' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Réessayer' })).toBeTruthy();
+    expect(
+      apiGlMock.mock.calls.some(([, method]) => method === 'PUT'),
+      'aucun PUT ne doit partir après un GET en échec',
+    ).toBe(false);
+  });
+
+  test('réponse GET sans slug cohérent : édition bloquée', async () => {
+    apiGlMock.mockImplementation((url) => {
+      if (url === '/api/gl/admin/reference-docs') return Promise.resolve(LIST);
+      if (url === '/api/gl/admin/reference-docs/presentation') {
+        // Corps sans slug (ou slug incongru) : traité comme échec de chargement.
+        return Promise.resolve({
+          title: 'Titre orphelin',
+          bodyMarkdown: '# Titre orphelin\n\nNe doit pas être éditable.',
+        });
+      }
+      return Promise.reject(new Error(`URL inattendue: ${url}`));
+    });
+    render(<GLReferenceDocsPanel />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Document introuvable')).toBeTruthy();
+    });
+    expect(screen.queryByRole('button', { name: 'Modifier le document' })).toBeNull();
+  });
 });

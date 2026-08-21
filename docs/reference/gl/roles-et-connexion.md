@@ -86,9 +86,11 @@ demande un compte, le jeu la refuse poliment.
   héritée du « PIN » a disparu ; tout parle désormais de « mot de passe »).
 - **Changement forcé à la prochaine connexion** : un joueur peut être marqué
   « doit changer son mot de passe ». À sa connexion suivante, une fenêtre bloquante
-  l'oblige à en choisir un nouveau avant de pouvoir jouer. Ce marquage se pose à la
-  création d'un compte (coché par défaut quand aucun mot de passe n'est fourni) et
-  automatiquement à l'import quand le mot de passe est généré.
+  l'oblige à en choisir un nouveau avant de pouvoir jouer. **Dès que le nouveau mot
+  de passe est enregistré, il peut jouer tout de suite** — sans se déconnecter ni
+  se reconnecter. Ce marquage se pose à la création d'un compte (coché par défaut
+  quand aucun mot de passe n'est fourni) et automatiquement à l'import quand le mot
+  de passe est généré.
 
 > ⚠️ **Point d'attention** — Un joueur **sans adresse e-mail** ne peut pas utiliser
 > « mot de passe oublié » : seul le staff peut alors le dépanner via « Reset mdp ».

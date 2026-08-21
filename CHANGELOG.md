@@ -7,6 +7,40 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Cinq correctifs repris de PR en attente (v1.105.0)
+
+Cinq correctifs restés en attente sur des branches devenues inmergeables (conflits sur les
+bundles `dist/` et les numéros de version) sont repris ici, **réécrits sur le code
+actuel** : entre-temps, `main` a introduit `lib/tasks/assignmentIdentityMatch.js` et le
+compare-and-set du recalcul de statut, qui couvraient déjà une partie du terrain. Ce qui
+suit est ce qui restait ouvert, et chaque correctif porte un test qui échoue sans lui.
+
+- **Un n3beur ne peut plus agir sous le nom d'un tiers.** Les noms d'action venaient du
+  corps de la requête en priorité sur la fiche `users`. Or le couple prénom+nom sert encore
+  de clé d'appariement aux inscriptions **héritées** (`student_id IS NULL`) : envoyer le nom
+  d'un camarade suffisait à supprimer son inscription ou à marquer sa part « faite ». La
+  fiche fait désormais foi, le corps n'étant qu'un repli pour un compte sans nom en base.
+  Au passage, le contrôle « déjà assigné » de la route d'inscription applique la même règle
+  que le SQL (`assignmentRowMatchesStudent`) : deux homonymes ne se reconnaissent plus.
+- **Une inscription concurrente ne passe plus sur une tâche qui vient d'être validée.** Le
+  statut est relu **sous le verrou** de la ligne `tasks` (`lib/tasks/assignmentSeat.js`) :
+  `validated` et `on_hold` refusent l'inscription (400), une tâche disparue renvoie 404, et
+  le recalcul part de la ligne verrouillée au lieu d'un objet lu avant la transaction.
+- **Un joueur GL n'est plus bloqué après avoir changé son mot de passe.** `POST
+  /api/gl/auth/change-password` remettait bien `password_must_reset` à 0 en base, mais le
+  drapeau était relu dans le **JWT** : le middleware continuait de barrer toute la session
+  jusqu'à reconnexion. Il est désormais relu en base pour les joueurs, comme les
+  permissions (contrat B6).
+- **Marquer un feuillet « lu » ou « tenu » ne restaure plus le texte mangé par le Souffle.**
+  Ces routes n'envoient que `status` ; le défaut `effacementPct = 0` réécrivait le
+  pourcentage posé à la découverte — y compris sur un feuillet à 100 %. La valeur existante
+  est conservée sauf demande explicite de l'appelant.
+- **Deux écrans d'administration GL n'écrivent plus par-dessus un chargement raté.** Un GET
+  en échec laissait l'éditeur de **feuillet** avec un formulaire vide (un PUT vidait alors
+  toutes les colonnes) et le panneau **Doc de référence** avec le document précédent sous le
+  nouveau slug (l'autosave écrivait dans le mauvais document). Les deux exigent maintenant
+  un chargement réussi pour le slug courant avant d'exposer la moindre mutation.
+
 ### OLU prend la parole dans GL — et il sait aussi se taire (lot 6b)
 
 Arbitrage §11.7 de `docs/MASCOT_NARRATEUR_OLU.md` tranché : **OLU est du seuil, pas du
