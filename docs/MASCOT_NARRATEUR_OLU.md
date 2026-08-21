@@ -1235,12 +1235,46 @@ d'écart : il se voit à la relecture.
 L'accueil est rangé sous une clé (`welcome`) **qui n'est celle d'aucun onglet** : il ne
 peut pas se déclencher par navigation. Un test le vérifie.
 
-### 16.6 Ce que ce lot ne fait pas
+### 16.6 Ce que le lot 8 ne faisait pas — et ce que le lot 9 a repris
+
+Le lot 8 laissait quatre chantiers ouverts. **Deux sont traités au lot 9 :**
+
+**L'édition des parcours GL depuis l'application.** ForetMap l'avait (`tours.manage`,
+§6ter.2), GL non. Le mécanisme est désormais symétrique :
+
+| Élément             | ForetMap                                                       | GL                                                     |
+| ------------------- | -------------------------------------------------------------- | ------------------------------------------------------ |
+| Noyau de validation | `lib/shared/tourOverridesCore.js`                              | idem                                                   |
+| Persistance         | `lib/tourContent.js` (`app_settings`, `content.tour.registry`) | `lib/glTourContent.js` (`gl_settings`, `content.tour`) |
+| Route               | `/api/settings/admin/tour-content` (`tours.manage`)            | `/api/gl/content/tours` (`gl.content.manage`)          |
+| Studio              | `DiscoveryTourAdminPanel`                                      | `GLTourContentAdminPanel` (Contenus → Visites guidées) |
+| Écran               | `shared/components/TourOverridesEditor.jsx` — **le même**      | idem                                                   |
+
+L'extraction de l'écran partagé a fait fondre le panneau ForetMap de 240 à 79 lignes, et
+révélé un défaut du lot 8c : le parcours d'accueil n'avait pas de titre et se serait
+affiché « welcome » dans le studio. Les 12 parcours GL et les 14 parcours ForetMap en ont
+un désormais, vérifié par test.
+
+Comme côté ForetMap, **le corpus par défaut n'est pas dupliqué en base** : seules les
+clés réécrites sont stockées, donc améliorer un texte versionné reste visible partout où
+personne ne l'a réécrit — la propriété que le registre d'aide GL n'a obtenue qu'au prix
+d'un dégel (§11.2), acquise ici par construction.
+
+**Les parcours GL passent de 5 à 11 onglets** (+ l'accueil) : découverte, cartes, la
+nature, le monde G&L, l'aventure, carnet de Sélène, marché, forum, journal personnel,
+statistiques, console MJ. Un test de charte les couvre
+([`tests/gl-tour-corpus-olu.test.js`](../tests/gl-tour-corpus-olu.test.js)) : emoji,
+plafond d'exclamations, tournures bannies, 1 à 3 phrases par bulle, structure — et **la
+règle §8.4 dans ce qu'elle a de mécanisable** : aucune bulle d'OLU ne contient « Souffle »,
+« Sélène », « gnome » ni « licorne ». Il parle du jeu, pas dans le jeu, et ne prend pas
+parti entre les peuples.
+
+**Restent ouverts :**
 
 - **Les infobulles GL** (P4 de la revue) : GL n'en a toujours aucune.
-- **L'édition des parcours GL depuis l'application** : ForetMap l'a (`tours.manage`,
-  §6ter.2), GL non — le registre GL est versionné, et une surcharge éditoriale
-  demanderait une route et un studio, soit un lot à part entière.
 - **L'intro GL** reste une iframe statique, hors du système (§8.3).
-- **Les parcours GL couvrent 5 onglets** sur 26, les plus fréquentés. Les autres suivront
-  au rythme de l'écriture : le mécanisme, lui, est en place.
+- **15 onglets GL sur 26** n'ont pas de parcours — ceux d'administration, surtout, où OLU
+  se tait déjà. Le mécanisme est en place ; ce qui reste est de l'écriture.
+- **Aucun bouton « tout réinitialiser » côté GL** : il faudrait une route dédiée, alors
+  que vider chaque champ revient déjà au texte livré. On n'ajoute pas un geste destructif
+  pour épargner quelques clics.

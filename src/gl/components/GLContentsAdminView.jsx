@@ -22,6 +22,7 @@ import { GLLoreGlossaryImportPanel } from './admin/GLLoreGlossaryImportPanel.jsx
 import { GLContentLibraryView } from './admin/GLContentLibraryView.jsx';
 import { GLIntroAdminPanel } from './admin/GLIntroAdminPanel.jsx';
 import { GLHelpContentAdminPanel } from './admin/GLHelpContentAdminPanel.jsx';
+import { GLTourContentAdminPanel } from './admin/GLTourContentAdminPanel.jsx';
 import { GLLearningLinksPanel } from './admin/GLLearningLinksPanel.jsx';
 import { GLReferenceDocsPanel } from './admin/GLReferenceDocsPanel.jsx';
 
@@ -158,6 +159,14 @@ export function GLContentsAdminView({
         </button>
         <button
           type="button"
+          className={section === 'tours' ? 'is-active' : ''}
+          onClick={() => setSection('tours')}
+          data-subtab="tours"
+        >
+          Visites guidées
+        </button>
+        <button
+          type="button"
           className={section === 'library' ? 'is-active' : ''}
           onClick={() => setSection('library')}
           data-subtab="library"
@@ -241,6 +250,8 @@ export function GLContentsAdminView({
         <GLIntroAdminPanel />
       ) : section === 'help' ? (
         <GLHelpContentAdminPanel />
+      ) : section === 'tours' ? (
+        <GLTourContentAdminPanel />
       ) : section === 'library' ? (
         <GLContentLibraryView onOpenSubTab={setSection} />
       ) : section === 'reference' ? (
