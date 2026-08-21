@@ -186,7 +186,15 @@ Détail technique et mesures : `docs/AUDIT_GLOSSAIRE_FORETMAP_2026-08.md`.
   réseau trophique et aux définitions du glossaire. Change le rendu de nombreux écrans :
   à décider explicitement.
 
-**Décision :** _à arbitrer._
+**Décision :** ✅ **Livré** (2026-08-21, options A + C) — les mots du glossaire ouvrent
+désormais une **petite fenêtre de définition par-dessus** l'écran en cours : le tutoriel reste
+ouvert derrière, à la bonne page. On y trouve la définition, l'exemple, l'étymologie, les termes
+voisins (cliquables sans fermer la fenêtre), les plantes et tutoriels liés, et un bouton « voir la
+fiche complète » pour basculer sur l'onglet Glossaire quand on veut aller plus loin. La mise en
+page abîmée de certaines fiches est corrigée, tous les tutoriels ont leurs mots cliquables (sauf
+lien externe et PDF joint), et la mise en évidence automatique est étendue aux définitions du
+glossaire, aux fiches plantes, au quiz et au réseau trophique. Détail :
+`docs/AUDIT_GLOSSAIRE_FORETMAP_2026-08.md` §6.
 
 ---
 
