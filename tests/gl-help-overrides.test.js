@@ -43,3 +43,26 @@ test('la surcharge se relit à l’identique de la configuration dense', () => {
   draft.entries['tab:rules'] = { title: 'Nos règles', body: 'Version de la classe' };
   assert.deepStrictEqual(normalizeGlHelpConfig(buildGlHelpOverride(draft)), draft);
 });
+
+// Variante MJ (`bodyMj`) : champ optionnel, pendant du `textTeacher` de ForetMap.
+test('une entrée sans variante MJ n’en gagne pas une vide', () => {
+  const defaults = loadNormalizedGlHelpDefaults();
+  assert.ok(!('bodyMj' in defaults.entries['tab:discovery']));
+  assert.ok(defaults.entries['tab:maps'].bodyMj, 'la carte doit porter une variante MJ');
+});
+
+test('la variante MJ se réécrit seule, sans emporter le texte joueur', () => {
+  const draft = loadNormalizedGlHelpDefaults();
+  draft.entries['tab:maps'].bodyMj = 'Consigne d’animation';
+  const override = buildGlHelpOverride(draft);
+  assert.deepStrictEqual(override, { entries: { 'tab:maps': { bodyMj: 'Consigne d’animation' } } });
+  const resolved = normalizeGlHelpConfig(override).entries['tab:maps'];
+  assert.strictEqual(resolved.bodyMj, 'Consigne d’animation');
+  assert.strictEqual(resolved.body, loadNormalizedGlHelpDefaults().entries['tab:maps'].body);
+});
+
+test('une variante MJ blanche est écartée plutôt que stockée', () => {
+  const draft = loadNormalizedGlHelpDefaults();
+  draft.entries['tab:forum'].bodyMj = '   ';
+  assert.deepStrictEqual(buildGlHelpOverride(draft), {});
+});
