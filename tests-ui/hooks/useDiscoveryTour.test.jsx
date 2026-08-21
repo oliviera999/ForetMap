@@ -106,7 +106,7 @@ describe('useDiscoveryTour', () => {
     expect(result.current.isActive).toBe(false);
   });
 
-  it('marque l’onglet vu et ne démarre pas si aucune étape n’est présentable', () => {
+  it('ne démarre ni ne marque vu si aucune étape n’est présentable', () => {
     const { result } = renderHook(() => useDiscoveryTour({ isTeacher: false }));
     // « stats » n'a que des étapes ciblées : aucune cible dans le DOM de test.
     let started = true;
@@ -114,7 +114,13 @@ describe('useDiscoveryTour', () => {
       started = result.current.startTour('stats', { force: true });
     });
     expect(started).toBe(false);
-    expect(result.current.hasSeenTour('stats')).toBe(true);
+    /*
+     * L'onglet reste à découvrir. La règle « vu dès le démarrage » (cas précédent) vaut
+     * pour un parcours qui a **présenté** quelque chose ; ici rien ne s'est affiché.
+     * Le filtrage lisant le DOM à un instant donné, une cible encore en cours de
+     * chargement suffirait sinon à perdre la visite définitivement.
+     */
+    expect(result.current.hasSeenTour('stats')).toBe(false);
   });
 
   it('réinitialise les onglets vus', () => {
