@@ -26,6 +26,13 @@
 Légende gravité : 🔴 à traiter en priorité · 🟠 gênant au quotidien · 🟡 nettoyage /
 clarification.
 
+> **Mise à jour du 2026-08-21 (même journée)** : les cinq lots du §4 ont été **implémentés** —
+> détail au **§6**. Les constats du §2 restent rédigés **tels qu'observés à la rédaction** : ils
+> décrivent le problème, le §6 dit ce qui a été fait. Deux d'entre eux ont été **démentis par
+> l'implémentation** et portent un encadré de correction : **A9** (surévalué : aucune route
+> d'écriture du glossaire n'existe) et **A12** (mauvais coupable : ce n'était pas la liste
+> d'attributs, mais l'option jamais passée et le `href` supprimé par le hook).
+
 ---
 
 ## 0. Verdict en une page
@@ -359,16 +366,23 @@ puisqu'aucune CSS de l'application n'y pénètre.
 
 ---
 
-### A9 — 🟡 L'index d'auto-liens reste périmé jusqu'à 5 minutes après une édition
+### A9 — 🟡 L'index d'auto-liens a un TTL fixe, sans invalidation
+
+> **Correction du 2026-08-21 — ce constat était surévalué à la rédaction.** Il décrivait un
+> professeur qui édite un terme et attend cinq minutes. Ce scénario **n'existe pas** : il n'y a
+> aucune route d'écriture du glossaire ForetMap. `routes/glossary.js` est en lecture seule et
+> la table `glossary_terms` n'est alimentée que par `scripts/import-biodiv-pedago.js`, hors
+> session. Ce qui reste ci-dessous est le constat technique, sans la conséquence en classe.
 
 **Constat.** `glossaryAutolinkCache` (`routes/tutorials.js:38-52`) a un TTL fixe de 5 minutes
-et **aucune invalidation** sur écriture. Un professeur qui ajoute un terme, corrige une
-variante ou passe un terme en `statut = 'inactif'` ne voit son changement dans les tutoriels
-qu'après expiration — sans indication à l'écran. En classe, cela ressemble à « ça n'a pas
-marché », et invite à refaire la manipulation.
+et **aucune invalidation** sur écriture. Après un import de glossaire, les tutoriels servis ne
+reflètent le nouveau contenu qu'à l'expiration du TTL.
 
 Le cache est par ailleurs un module global : en cluster (plusieurs processus), chaque worker a
 le sien, avec des expirations désynchronisées.
+
+La vraie invalidation utile est ailleurs — sur l'écriture d'un **tutoriel**, dont le HTML, lui,
+change en cours de session. C'est ce qu'a livré le lot 4.
 
 ---
 
@@ -424,16 +438,25 @@ relation a été saisie à la main dans `glossary_term_relations`.
 
 ### A12 — 🟡 Le sanitizer bloquerait toute extension au Markdown ForetMap
 
+> **Correction du 2026-08-21 — ce constat désignait le mauvais coupable.** Mesuré à
+> l'implémentation du lot 5 : `ALLOW_DATA_ATTR`, déjà activé quand `allowGlossaryLinks` est
+> vrai, laisse passer **n'importe quel** `data-*`. La liste d'attributs n'était donc pas le
+> verrou. Les deux vrais blocages sont énoncés ci-dessous.
+
 **Constat.** `src/utils/markdown.js:51` :
 
 ```js
 const ALLOWED_ATTR_WITH_GLOSSARY = [...ALLOWED_ATTR, 'class', 'data-gl-glossary-code'];
 ```
 
-Seul l'attribut **GL** est autorisé, et l'option `allowGlossaryLinks` n'est jamais passée par
-`MarkdownContent` (`src/components/MarkdownContent.jsx:10`, appel sans options). Toute
-tentative d'auto-lier du Markdown ForetMap avec `data-glossary-code` verrait l'attribut
-**supprimé par DOMPurify** — le lien resterait, muet.
+1. **L'option `allowGlossaryLinks` n'est jamais passée** par `MarkdownContent`
+   (`src/components/MarkdownContent.jsx:10`, appel sans options) : sans elle, `class` n'est pas
+   dans la liste blanche et `ALLOW_DATA_ATTR` reste faux — le lien perd et sa classe et son
+   attribut, il ressort en `<a>sol</a>`.
+2. **Le hook `afterSanitizeAttributes`** (`src/utils/markdown.js:148`) ne reconnaît que le code
+   GL et **supprime le `href="#"`** des ancres ForetMap. Un `<a>` sans `href` n'est ni
+   focalisable au clavier, ni annoncé comme lien par un lecteur d'écran : le terme serait
+   cliquable à la souris seulement.
 
 C'est un prérequis technique à traiter **avant** A11, pas un bug en soi.
 
@@ -465,7 +488,7 @@ Trois causes se superposent, dans cet ordre d'importance :
 
 ---
 
-## 4. Plan de correction proposé
+## 4. Plan de correction — livré le 2026-08-21 (voir §6)
 
 Découpage en lots livrables indépendamment, du plus rentable au moins urgent. **Aucun n'a été
 implémenté** : cet audit est une photographie, l'arbitrage revient au porteur du projet.
@@ -543,3 +566,44 @@ périmètre — chaque affirmation renvoie à un fichier et une ligne.
 - Le rendu visuel dans un navigateur (aucune session applicative disponible ici). Les effets
   décrits en A3 et A8 sont déduits du HTML produit, qui est reproductible hors ligne.
 - Les tests backend (`npm test`) et e2e, qui exigent une base MySQL.
+
+---
+
+## 6. Ce qui a été livré (2026-08-21)
+
+Les cinq lots du §4 ont été implémentés le jour même, par cinq agents travaillant en parallèle
+sur des périmètres de fichiers disjoints. Rien n'a été laissé en suspens dans le plan.
+
+| Lot                           | Constats            | Livré                                                                                                                                                                                                                                                                                                                                                                                               |
+| ----------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 — moteur d'auto-liens       | A3, A5, A6, A10, A4 | `src/utils/termAutolink.js` (tronc commun ESM, source de vérité), miroir CJS `lib/term-autolink/` généré par `npm run sync:term-autolink-lib` sur le modèle `visit-pack`/`gl-pack`, deux adaptateurs paramétrés. `SKIP_TAGS` fonctionnel, éléments vides HTML traités, tokenisation consciente des guillemets et commentaires, attribut échappé, `postMessage` ciblé, regex précompilées. 30 tests. |
+| 2 — popover                   | A1, A8              | `src/components/pedago/GlossaryPopover.jsx`, rendu par portail à la racine : la modale de tutoriel **reste ouverte derrière**. Termes voisins parcourus sans fermeture, bouton « voir la fiche complète » pour l'ancienne bascule d'onglet, `event.origin` vérifié, style injecté dans l'iframe. 16 + 8 tests.                                                                                      |
+| 3 — couverture des tutoriels  | A2                  | Tout contenu local passe par `/api/tutorials/:id/view`, quel que soit `type` ; les fichiers non-HTML restent servis tels quels ; rapatriement legacy étendu avec garde-fou d'extension. 13 + 7 tests.                                                                                                                                                                                               |
+| 4 — cache de sortie           | A4, A9              | Cache LRU borné du HTML enrichi, clé `id \| updated_at \| version d'index \| empreinte du HTML source`, invalidé à chaque écriture de tutoriel. 18 tests.                                                                                                                                                                                                                                           |
+| 5 — auto-liens hors tutoriels | A11, A12            | `src/utils/foretmapGlossaryAutolink.js`, `GlossaryMarkdown` / `GlossaryInlineText`, `useGlossaryLinkIndex`. Branchés : définitions du glossaire, rôle et utilité des fiches plantes, énoncé/choix/feedback du quiz, réseau trophique, et les définitions du popover. 18 tests.                                                                                                                      |
+
+**Mesures après correction**, mêmes protocoles qu'au §5 :
+
+|                                                           |     avant |                         après |
+| --------------------------------------------------------- | --------: | ----------------------------: |
+| ancres injectées dans un `<style>`/`<script>` (10 fiches) |        26 |                         **0** |
+| liens légitimes (10 fiches)                               |       745 | 719 (= 745 − 26, aucun perdu) |
+| passe complète des 10 fiches                              |    698 ms |                    **133 ms** |
+| affichage d'un tutoriel de 32 ko, régime chaud            |    104 ms |  **0,107 ms** (avec le cache) |
+| 30 élèves ouvrant la même fiche                           | ~3 120 ms |                    **~22 ms** |
+
+**Restent ouverts, hors périmètre des cinq lots :**
+
+- `definition_courte` de la liste du glossaire, et les descriptions de tâches, zones et forum :
+  toujours sans auto-liens (non demandés).
+- La description de plante (`foretmap-views.jsx`, `PlantCatalogPreview`) : `MarkdownContent`
+  accepte désormais les options, deux props suffiront.
+- L'index client n'est pas invalidé en cours de session : un terme importé n'apparaît qu'après
+  rechargement de la page.
+- Le piège à focus du popover capture les focusables au montage, avant l'arrivée de la
+  définition : les pastilles « termes liés » n'entrent dans le cycle Tab qu'à la réouverture.
+  Limitation partagée avec `GLGlossaryPopover`, non corrigée pour ne pas toucher un hook
+  utilisé partout.
+- La branche visite publique invitée ne rend pas le popover (sans effet aujourd'hui : aucun
+  tutoriel ne lui est proposé).
+- `/api/tutorials/:id/view` reste accessible sans authentification (cf. « Hors périmètre »).
