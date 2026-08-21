@@ -160,6 +160,34 @@ renuméroter les migrations (risqué pour rien), juste documenter la tolérance.
 
 **Décision :** ✅ **Livré** (2026-07-08) — règle de numérotation des migrations documentée là où on la cherche ; documents internes contradictoires corrigés.
 
+### F8 — 🔴 Glossaire : cliquer un mot dans un tutoriel fait sortir du tutoriel
+
+**Constat.** Dans un tutoriel, les mots du glossaire sont bien mis en évidence et
+cliquables. Mais le clic **referme la fiche en cours de lecture** et bascule sur l'onglet
+Glossaire : l'élève perd sa page et doit tout rouvrir. Il n'existe pas, côté ForetMap, de
+petite fenêtre de définition « par-dessus » comme dans Gnomes & Licornes. Trois problèmes
+s'ajoutent : certains tutoriels n'ont aucun mot cliquable du tout (selon la façon dont ils
+ont été enregistrés) ; sur 6 fiches du dossier `tutos/` sur 10, la mise en évidence
+automatique abîme la mise en page de la fiche ; et hors des tutoriels (fiches plantes, quiz,
+réseau trophique, définitions du glossaire lui-même) aucun mot n'est repéré automatiquement —
+seules les liaisons saisies à la main donnent des puces cliquables.
+Détail technique et mesures : `docs/AUDIT_GLOSSAIRE_FORETMAP_2026-08.md`.
+
+**Options.**
+
+- **A (recommandée)** — Petite fenêtre de définition qui s'ouvre **par-dessus** le tutoriel,
+  sans le fermer (même principe que Gnomes & Licornes : définition, exemple, termes voisins,
+  et un lien « voir la fiche complète » pour qui veut aller plus loin). Corriger au passage
+  la mise en page abîmée et faire en sorte que **tous** les tutoriels aient leurs mots
+  cliquables. Effort modéré, gain immédiat en classe.
+- **B** — Ne corriger que la mise en page abîmée et les tutoriels sans mots cliquables, et
+  garder le basculement d'onglet. Effort faible, mais l'élève continue de perdre sa page.
+- **C** — Étendre en plus la mise en évidence automatique aux fiches plantes, au quiz, au
+  réseau trophique et aux définitions du glossaire. Change le rendu de nombreux écrans :
+  à décider explicitement.
+
+**Décision :** _à arbitrer._
+
 ---
 
 ## Gnomes & Licornes

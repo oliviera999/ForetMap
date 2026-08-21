@@ -7,6 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit — Glossaire ForetMap : hyperliens de termes et « popover » de définition
+
+Audit sans changement de comportement : `docs/AUDIT_GLOSSAIRE_FORETMAP_2026-08.md` suit la
+chaîne complète « terme du glossaire cité dans un contenu », du `SELECT` sur `glossary_terms`
+jusqu'au clic de l'élève, et confronte code, écrans, doc de référence et tests.
+
+Constat central : **il n'existe pas de popover côté ForetMap** — `openPedagoGlossaryTerm`
+bascule d'onglet, ce qui démonte la vue Tutoriels et **ferme la modale de lecture** ; d'où le
+symptôme « le popover ne fonctionne pas sur les tutos ». Trois points rouges (A1 absence de
+popover, A2 tutoriels servis en statique donc jamais enrichis, A3 `SKIP_TAGS` inopérant dans
+`lib/foretmapGlossaryAutolink.js` → 26 balises `<a>` injectées dans des blocs `<style>` sur
+6 fiches de `tutos/` sur 10), trois orange (A4 108 ms de CPU bloquant par affichage sans
+cache de sortie, A5 fork dégradé de `src/utils/glTermAutolink.js`, **A6 bug jumeau GL** : un
+`<img>` non auto-fermé coupe tous les auto-liens suivants — reproduit de bout en bout sur
+`renderGlMarkdownWithGlossaryLinks`), six jaunes (tests absents, aucun style
+`.fm-glossary-inline-link`, cache d'index sans invalidation, robustesse de la tokenisation et
+du `postMessage`, couverture limitée aux tutoriels, `data-glossary-code` non autorisé par le
+sanitizer).
+
+Plan de correction en 5 lots proposé au §4 ; aucun n'est implémenté. Fiche d'arbitrage
+**F8** ajoutée à `docs/reference/INCOHERENCES.md`.
+
 ### Sortilèges : lancer un sort n'est plus lié au tour de l'équipe (G13-a)
 
 Arbitrage G13-a tranché, option A. Quand les tours sont activés, l'assistant de lancement
