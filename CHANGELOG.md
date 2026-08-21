@@ -7,6 +7,46 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Tâches : une tâche « Urgent ! » validée rejoint enfin « Validées » — et audit de l'archivage
+
+L'encart « 🚨 Urgent ! » extrait ses tâches de **toutes** les autres sections de l'écran
+Tâches. Il les retenait sur le seul degré d'importance, sans regarder le statut : une tâche
+urgente **validée** y restait donc piégée à vie, absente de « ✅ Validées » (prof) comme de
+« ✅ Récemment validées » (élève), et l'encart se remplissait de travail terminé.
+
+- L'encart ne retient plus que les tâches urgentes **encore en vie** : une fois validée
+  (directement ou via son projet), la tâche redescend dans la section de son statut.
+  « Terminée » et « Proposée » y restent — elles attendent une décision du professeur.
+
+L'audit du système d'archivage mené dans la foulée
+(**[docs/AUDIT_ARCHIVAGE_TACHES_2026-08.md](docs/AUDIT_ARCHIVAGE_TACHES_2026-08.md)**)
+conclut à un mécanisme solide — marqueur de
+cascade plutôt que rapprochement par horodatage, portée forcée à `active` hors
+`tasks.manage`, périmètre du job limité aux éléments validés — mais relève **trois défauts**,
+corrigés ici :
+
+- **Des tâches invisibles.** Archiver un projet **sans cascade** (geste manuel, ou archivage
+  automatique du projet, qui n'entraîne jamais ses tâches) laissait ses tâches actives dans
+  un statut effectif (`project_validated` / `project_completed`) que **aucune section ne
+  rendait** : elles disparaissaient de l'écran, sans message ni compteur. Elles sont
+  désormais reclassées sur leur statut propre.
+- **Des tâches importées jamais archivables.** L'import acceptait le statut `validated` sans
+  écrire `validated_at` — or le job quotidien ignore les lignes sans cette date. Une reprise
+  d'historique produisait donc des tâches validées inéligibles **à vie** à l'archivage
+  automatique. La date est maintenant posée à l'import.
+- **Des actions encore acceptées sur une archive.** `assign`, `assign-group` et `done`
+  ne vérifiaient pas `archived_at` : depuis un écran resté ouvert, on pouvait s'inscrire sur
+  une tâche rangée — et échapper au plafond de tâches actives, qui ne compte que les
+  non-archivées. Les trois routes répondent désormais `400`. Le retrait reste autorisé.
+
+Deux comportements sont documentés plutôt que modifiés : la progression des élèves **compte**
+les tâches archivées validées (l'inverse rétrograderait un élève parce qu'un prof range ses
+listes), et le job quotidien dépend de la longévité du processus — sans conséquence ici, le
+critère étant un seuil de date et non un compteur.
+
+Cinq tests figent les règles (deux backend, trois UI) ; tous échouent sans les correctifs.
+
+
 ### Sortilèges : lancer un sort n'est plus lié au tour de l'équipe (G13-a)
 
 Arbitrage G13-a tranché, option A. Quand les tours sont activés, l'assistant de lancement
