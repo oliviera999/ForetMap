@@ -55,6 +55,32 @@
   le travail d'écriture des élèves.
 - **Le journal de partie** garde la trace narrative de la séance.
 
+## OLU, le narrateur, entre dans le jeu
+
+**OLU** — le renard explorateur qui accompagne déjà l'aide de ForetMap — est désormais présent
+dans Gnomes & Licornes. C'est **le même personnage**, pas un sosie.
+
+Où on le voit :
+
+- **À l'ouverture d'un feuillet** du carnet de voyage : son portrait apparaît à gauche, le texte
+  du feuillet s'affiche dans une bulle signée à son nom, avec un léger effet de frappe. Un clic
+  dans la bulle affiche tout le texte d'un coup.
+- **Dans les encadrés d'aide** de chaque onglet : un petit visage dans l'en-tête, discret.
+
+Ce qu'il faut savoir :
+
+- **Le portrait ne porte jamais d'information.** Tout ce qui compte est dans le texte, et les
+  lecteurs d'écran ignorent l'image. Si aucun portrait n'a été chargé, une silhouette dessinée
+  prend le relais : rien ne reste vide, rien ne se casse.
+- **Le réglage est commun aux deux applications.** Nom affiché, portraits, interrupteur : tout se
+  règle **une seule fois**, côté ForetMap (Paramètres → Narrateur OLU), et l'effet est immédiat
+  des deux côtés. Concrètement, les images n'ont à être téléversées qu'une fois.
+- **Éteindre OLU** depuis ce même réglage retire portrait et nom partout, GL compris. Les textes
+  des feuillets et de l'aide, eux, ne bougent pas.
+
+> Conséquence à connaître : un MJ qui n'est pas administrateur ForetMap ne peut pas modifier OLU
+> lui-même — il faut passer par un administrateur. C'est le revers du personnage unique.
+
 ## Incidents courants
 
 | Symptôme                                    | Cause probable                                                                                               | Geste                                                                                                  |
@@ -65,6 +91,7 @@
 | Mot de passe oublié                         | —                                                                                                            | Gestion des joueurs → réinitialiser le mot de passe (ou forcer le changement à la prochaine connexion) |
 | Vérifier ce que voit un élève               | —                                                                                                            | Prendre la main sur son compte (bandeau affiché, action tracée) ou basculer en « vue joueur »          |
 | Les sorts ne se lancent pas                 | Module Sortilèges désactivé, ou lancement réservé au MJ par le profil de séance                              | Réglages → modules / gameplay                                                                          |
+| OLU n'apparaît pas sur les feuillets        | Le narrateur a été éteint côté ForetMap (le réglage est commun)                                              | ForetMap → Paramètres → Narrateur OLU → rallumer l'interrupteur                                        |
 | Un élève ne peut pas payer pour un camarade | C'est le réglage par défaut (chacun sa part, sa propre équipe) — le MJ, lui, répartit toujours librement     | Réglages → gameplay → « Mode de contribution » / « Équipes pouvant lancer »                            |
 
 ## Lire et amender cette documentation depuis le jeu
