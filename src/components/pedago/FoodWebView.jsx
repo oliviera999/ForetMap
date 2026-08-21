@@ -7,6 +7,8 @@ import {
   orientInteraction,
 } from '../../shared/foodWebTypes.js';
 import { edgeStyleForType } from '../../shared/foodWebEdgeStyle.js';
+import { GlossaryInlineText } from '../GlossaryMarkdown.jsx';
+import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
 
 const EMPTY_FORM = { fromId: '', toId: '', type: INTERACTION_TYPES[0], description: '' };
 
@@ -32,6 +34,9 @@ export function FoodWebView({
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [adminError, setAdminError] = useState('');
+
+  // Auto-liens des descriptions d'interaction (texte brut).
+  const glossaryIndex = useGlossaryLinkIndex();
 
   const loadFoodWeb = useCallback(async () => {
     setLoading(true);
@@ -258,7 +263,13 @@ export function FoodWebView({
                     ) : null}
                   </div>
                   {row.description ? (
-                    <p className="pedago-foodweb__desc">{row.description}</p>
+                    <GlossaryInlineText
+                      tag="p"
+                      className="pedago-foodweb__desc"
+                      text={row.description}
+                      glossaryItems={glossaryIndex}
+                      onOpenGlossaryTerm={onOpenGlossaryTerm}
+                    />
                   ) : null}
                 </li>
               );
