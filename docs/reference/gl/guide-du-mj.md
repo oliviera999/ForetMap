@@ -105,10 +105,21 @@ glossaires, les tutoriels — l'aide affiche une version qui vous est destinée 
 faut vérifier avant la séance, où se règle telle mécanique. Les autres écrans affichent le
 même texte pour tout le monde.
 
-**Cinq onglets ont une visite guidée** (cartes, aventure, carnet de Sélène, marché,
-console MJ) : une courte séquence qui présente l'écran, bulle après bulle, la première
-fois qu'on l'ouvre. Elle se relance à volonté depuis le bouton « ? » → « ▶ Visite
-guidée ». Les élèves qui ont déjà vu un onglet ne la revoient pas.
+**Onze onglets ont une visite guidée** (découverte, cartes, la nature, le monde G&L,
+l'aventure, carnet de Sélène, marché, forum, journal personnel, statistiques, console
+MJ) : une courte séquence qui présente l'écran, bulle après bulle, la première fois qu'on
+l'ouvre. Elle se relance à volonté depuis le bouton « ? » → « ▶ Visite guidée ». Les
+élèves qui ont déjà vu un onglet ne la revoient pas.
+
+**Vous pouvez réécrire ces textes** sans attendre une mise à jour : onglet **Contenus →
+Visites guidées**. On y trouve chaque parcours, étape par étape, avec le texte livré
+affiché en filigrane ; laisser un champ vide revient à ce texte d'origine. Comme pour
+l'aide, vous disposez d'une version joueur et d'une version MJ là où le parcours en
+prévoit une.
+
+> Seuls les **textes** sont modifiables. Ce que chaque bulle désigne à l'écran reste
+> défini dans l'application : une cible saisie à la main serait le moyen le plus simple
+> de faire disparaître une étape sans le moindre message d'erreur.
 
 > Les visites sont **désactivées pour les invités** : leur passage est éphémère, leur
 > imposer un parcours à chaque venue serait une porte qui claque. Elles suivent aussi
@@ -137,7 +148,8 @@ change pas.
 | Vérifier ce que voit un élève               | —                                                                                                            | Prendre la main sur son compte (bandeau affiché, action tracée) ou basculer en « vue joueur »          |
 | Les sorts ne se lancent pas                 | Module Sortilèges désactivé, ou lancement réservé au MJ par le profil de séance                              | Réglages → modules / gameplay                                                                          |
 | OLU n'apparaît pas sur les feuillets        | Le narrateur a été éteint côté ForetMap (le réglage est commun)                                              | ForetMap → Paramètres → Narrateur OLU → rallumer l'interrupteur                                        |
-| Une visite guidée ne se relance pas         | L'onglet affiché n'en a pas (cinq en ont une), ou le module d'aide est éteint                                | Ouvrir le « ? » : le bouton « ▶ Visite guidée » n'apparaît que si un parcours existe                   |
+| Une visite guidée ne se relance pas         | L'onglet affiché n'en a pas (onze en ont une), ou le module d'aide est éteint                                | Ouvrir le « ? » : le bouton « ▶ Visite guidée » n'apparaît que si un parcours existe                   |
+| Un texte de visite réécrit ne s'affiche pas | La réécriture est enregistrée mais la page n'a pas rechargé le parcours                                      | Rouvrir l'onglet ; en cas de doute, vérifier le champ dans Contenus → Visites guidées                  |
 | Un élève veut revoir l'accueil d'OLU        | Il n'est joué qu'une fois par navigateur                                                                     | Effacer les données du site dans le navigateur, ou passer par un autre profil                          |
 | Un élève ne peut pas payer pour un camarade | C'est le réglage par défaut (chacun sa part, sa propre équipe) — le MJ, lui, répartit toujours librement     | Réglages → gameplay → « Mode de contribution » / « Équipes pouvant lancer »                            |
 

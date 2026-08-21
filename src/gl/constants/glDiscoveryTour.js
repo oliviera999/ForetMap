@@ -39,6 +39,7 @@ export const GL_WELCOME_TOUR_KEY = 'welcome';
 
 export const GL_DISCOVERY_TOURS = Object.freeze({
   [GL_WELCOME_TOUR_KEY]: {
+    title: 'Accueil · Première connexion',
     steps: [
       {
         key: 'hello',
@@ -73,7 +74,111 @@ export const GL_DISCOVERY_TOURS = Object.freeze({
     ],
   },
 
+  discovery: {
+    title: 'Découverte',
+    steps: [
+      {
+        key: 'intro',
+        title: 'Le plateau de démonstration',
+        body: 'Tu peux tout ouvrir ici, rien n’est cassable. C’est fait pour tâtonner — je ne regarde même pas.',
+        bodyTeacher:
+          'Le plateau de démonstration, ouvert aux invités. Rien de ce qui s’y passe ne touche une partie.',
+        target: '.gl-main-inner',
+        placement: 'center',
+        expression: 'complice',
+      },
+      GL_RELAUNCH_STEP,
+    ],
+  },
+  nature: {
+    title: 'La nature',
+    steps: [
+      {
+        key: 'intro',
+        title: 'Trois entrées, un même endroit',
+        body: 'Les écosystèmes du chapitre, les espèces qui y vivent, et le glossaire qui explique les mots. Commence par ce qui t’intrigue.',
+        bodyTeacher:
+          'Écosystèmes, espèces et glossaire du chapitre. Le conditionnement par QCM, s’il est actif, s’applique aux fiches d’ici.',
+        target: '.gl-main-inner',
+        placement: 'center',
+        expression: 'cherche',
+      },
+      {
+        key: 'appris',
+        title: 'Marquer comme appris',
+        body: 'Quand une fiche est claire pour toi, dis-le : elle rejoint ta progression. Parfois un petit quiz vérifie au passage.',
+        bodyTeacher:
+          'Le marquage « appris » alimente la progression et peut déclencher l’attribution d’un feuillet.',
+        target: '.gl-main-inner',
+        placement: 'bottom',
+        expression: 'content',
+      },
+      GL_RELAUNCH_STEP,
+    ],
+  },
+  'monde-gl': {
+    title: 'Le monde G&L',
+    steps: [
+      {
+        key: 'intro',
+        title: 'Le monde, pas la partie',
+        body: 'L’introduction, les règles, le lexique du récit et les tutoriels. C’est ce qu’on lit au calme, en dehors d’une séance.',
+        target: '.gl-main-inner',
+        placement: 'center',
+        expression: 'parle',
+      },
+      GL_RELAUNCH_STEP,
+    ],
+  },
+  'my-journal': {
+    title: 'Mon journal',
+    steps: [
+      {
+        key: 'intro',
+        title: 'Ton carnet à toi',
+        body: 'Ce que tu ajoutes ici t’appartient : tes notes, tes trouvailles, dans l’ordre que tu veux. Ça s’enregistre tout seul.',
+        bodyTeacher:
+          'Le carnet personnel de chaque élève. Consultable en lecture depuis les statistiques, et exportable.',
+        target: '.gl-main-inner',
+        placement: 'center',
+        expression: 'content',
+      },
+      GL_RELAUNCH_STEP,
+    ],
+  },
+  forum: {
+    title: 'Le forum',
+    steps: [
+      {
+        key: 'intro',
+        title: 'Poser, partager, s’organiser',
+        body: 'Une question, une trouvaille, un plan d’équipe. Ce que tu écris est lu par la classe — et par le MJ.',
+        bodyTeacher: 'Les échanges de la classe, lisibles par vous, et conservés après la séance.',
+        target: '.gl-main-inner',
+        placement: 'center',
+        expression: 'parle',
+      },
+      GL_RELAUNCH_STEP,
+    ],
+  },
+  stats: {
+    title: 'Les statistiques',
+    steps: [
+      {
+        key: 'intro',
+        title: 'Où tu en es',
+        body: 'Contenus appris, feuillets retrouvés, points. Un chiffre bas n’est pas un jugement — c’est ce qu’il te reste à explorer.',
+        bodyTeacher:
+          'La progression individuelle et de classe. Utile en fin de séance pour un bilan rapide.',
+        target: '.gl-main-inner',
+        placement: 'center',
+        expression: 'vigilant',
+      },
+      GL_RELAUNCH_STEP,
+    ],
+  },
   maps: {
+    title: 'Les cartes',
     steps: [
       {
         key: 'intro',
@@ -98,6 +203,7 @@ export const GL_DISCOVERY_TOURS = Object.freeze({
     ],
   },
   adventure: {
+    title: 'L’aventure',
     steps: [
       {
         key: 'intro',
@@ -111,6 +217,7 @@ export const GL_DISCOVERY_TOURS = Object.freeze({
     ],
   },
   'selene-carnet': {
+    title: 'Le Carnet de Sélène',
     steps: [
       {
         key: 'intro',
@@ -126,6 +233,7 @@ export const GL_DISCOVERY_TOURS = Object.freeze({
     ],
   },
   market: {
+    title: 'Le marché',
     steps: [
       {
         key: 'intro',
@@ -141,6 +249,7 @@ export const GL_DISCOVERY_TOURS = Object.freeze({
     ],
   },
   mj: {
+    title: 'Console du MJ',
     steps: [
       {
         key: 'intro',

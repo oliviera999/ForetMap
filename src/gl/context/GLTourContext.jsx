@@ -9,6 +9,7 @@ import {
   GL_WELCOME_TOUR_KEY,
 } from '../constants/glDiscoveryTour.js';
 import { useGlNarrator } from '../hooks/useGlNarrator.js';
+import { useGlTourOverrides } from '../hooks/useGlTourOverrides.js';
 
 /**
  * Visite guidée **Gnomes & Licornes** : même moteur et même overlay que ForetMap
@@ -35,7 +36,13 @@ const GLTourContext = createContext({
 });
 
 export function GLTourProvider({ tab, isStaff = false, enabled = false, children }) {
-  const getSteps = useCallback((tabKey) => glTours.getSteps(tabKey, isStaff), [isStaff]);
+  // Surcharges éditoriales (`content.tour`) : un MJ peut réécrire une bulle sans
+  // déploiement. Absentes ou illisibles, les parcours jouent leurs textes versionnés.
+  const overrides = useGlTourOverrides(enabled);
+  const getSteps = useCallback(
+    (tabKey) => glTours.getSteps(tabKey, isStaff, overrides),
+    [isStaff, overrides],
+  );
   const tour = useGuidedTour({ getSteps, storageKey: GL_SEEN_STORAGE_KEY });
   const { startTour, hasSeenTour, isActive } = tour;
   const timerRef = useRef(0);

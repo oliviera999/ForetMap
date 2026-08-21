@@ -7,6 +7,36 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Les MJ peuvent réécrire les visites guidées, et GL en gagne six de plus (lot 9)
+
+Suite des chantiers laissés ouverts au lot 8.
+
+**L'édition des parcours depuis l'application, côté GL.** ForetMap l'avait, GL non : un
+MJ devait attendre une mise à jour pour changer un mot. C'est désormais symétrique —
+onglet **Contenus → Visites guidées**, chaque parcours étape par étape, le texte livré en
+filigrane, une version joueur et une version MJ. Seuls les **textes** circulent : ce que
+chaque bulle désigne à l'écran reste en code, une cible saisie à la main étant le moyen
+le plus simple de faire disparaître une étape sans le moindre message d'erreur.
+
+Comme côté ForetMap, seules les clés réécrites sont stockées : améliorer un texte livré
+reste visible partout où personne ne l'a réécrit.
+
+**L'écran d'édition est le même pour les deux produits**
+(`shared/components/TourOverridesEditor.jsx`), et son extraction a fait fondre le panneau
+ForetMap de 240 à 79 lignes. Elle a aussi révélé un défaut du lot précédent : le parcours
+d'accueil n'avait pas de titre et se serait affiché « welcome » dans le studio. Les
+26 parcours des deux produits en ont un désormais, vérifié par test.
+
+**Six visites guidées GL de plus** — découverte, la nature, le monde G&L, forum, journal
+personnel, statistiques —, soit onze onglets couverts au lieu de cinq.
+
+Un test de charte couvre ce corpus, et verrouille **la règle §8.4 dans ce qu'elle a de
+mécanisable** : aucune bulle d'OLU ne contient « Souffle », « Sélène », « gnome » ni
+« licorne ». Il parle du jeu, pas dans le jeu, et ne prend pas parti entre les peuples.
+
+Restent ouverts : les infobulles GL (toujours aucune), l'intro cinématique en iframe, et
+quinze onglets GL sans parcours — surtout ceux d'administration, où OLU se tait déjà.
+
 ### OLU se présente, et GL gagne aide appelable et visites guidées (lot 8)
 
 Revue d'ensemble de l'aide, des tutoriels et des visites des deux produits. Elle a
