@@ -1,7 +1,10 @@
 const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../../database');
 const { nowIsoUtc } = require('../../lib/shared/isoTimestamp');
-const { assignmentIdentityMatch } = require('../../lib/tasks/assignmentIdentityMatch');
+const {
+  assignmentIdentityMatch,
+  assignmentRowMatchesStudent,
+} = require('../../lib/tasks/assignmentIdentityMatch');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const { saveBase64ToDisk } = require('../../lib/uploads');
 const asyncHandler = require('../../lib/asyncHandler');
@@ -25,6 +28,7 @@ const {
   normalizeOptionalId,
 } = require('../../lib/taskRouteHelpers');
 const { resolveStudentActionContext } = require('../../lib/tasks/studentActionContext');
+const { claimAssignmentSeat, SEAT_REFUSAL } = require('../../lib/tasks/assignmentSeat');
 
 const router = express.Router();
 
@@ -62,11 +66,12 @@ router.post(
         .json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
     }
 
-    const already = task.assignments.find(
-      (a) =>
-        (action.studentId && a.student_id && String(a.student_id) === String(action.studentId)) ||
-        (String(a.student_first_name || '').toLowerCase() === action.firstName.toLowerCase() &&
-          String(a.student_last_name || '').toLowerCase() === action.lastName.toLowerCase()),
+    const already = task.assignments.find((a) =>
+      assignmentRowMatchesStudent(a, {
+        studentId: action.studentId,
+        firstName: action.firstName,
+        lastName: action.lastName,
+      }),
     );
     if (already) return res.status(400).json({ error: 'Déjà assigné à cette tâche' });
 
@@ -93,38 +98,30 @@ router.post(
       return res.status(400).json({ error: 'Plus de place disponible sur cette tâche' });
     }
 
-    // Contrôle de capacité + insertion sérialisés : les vérifications ci-dessus reposent sur
-    // une lecture faite AVANT (`getTaskWithAssignments`), donc deux requêtes concurrentes
-    // (double-clic, inscription en lot) pouvaient toutes deux les franchir et dépasser
-    // `required_students`. Le verrou sur la ligne `tasks` sérialise les inscriptions de la
-    // même tâche ; l'index unique (migration 170) reste le filet contre les doublons.
-    // Cf. audit B4, docs/AUDIT_BUGS_2026-07.md.
+    // Prise de place et recalcul de statut sous le verrou de la ligne `tasks`
+    // (cf. lib/tasks/assignmentSeat.js pour le détail des deux courses couvertes).
+    let newStatus = normalizeTaskStatusForRead(task.status);
     try {
-      const seatTaken = await withTransaction(async (tx) => {
-        await tx.queryOne('SELECT id FROM tasks WHERE id = ? FOR UPDATE', [task.id]);
-        const countRow = await tx.queryOne(
-          'SELECT COUNT(*) AS c FROM task_assignments WHERE task_id = ?',
-          [task.id],
-        );
-        if ((Number(countRow?.c) || 0) >= Number(task.required_students)) return false;
-        await tx.execute(
-          'INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?, ?)',
-          [task.id, action.studentId || null, action.firstName, action.lastName, nowIsoUtc()],
-        );
-        return true;
-      });
-      if (!seatTaken) {
-        return res.status(400).json({ error: 'Plus de place disponible sur cette tâche' });
+      const outcome = await withTransaction((tx) =>
+        claimAssignmentSeat(tx, {
+          taskId: task.id,
+          studentId: action.studentId,
+          firstName: action.firstName,
+          lastName: action.lastName,
+          assignedAt: nowIsoUtc(),
+        }),
+      );
+      if (!outcome.ok) {
+        const refusal = SEAT_REFUSAL[outcome.reason] || SEAT_REFUSAL.full;
+        return res.status(refusal.status).json({ error: refusal.error });
       }
+      newStatus = outcome.status;
     } catch (err) {
       if (err?.code === 'ER_DUP_ENTRY' || err?.errno === 1062) {
         return res.status(400).json({ error: 'Déjà assigné à cette tâche' });
       }
       throw err;
     }
-
-    const recalculated = await recalculateTaskStatus(task);
-    const newStatus = recalculated?.status || normalizeTaskStatusForRead(task.status);
 
     const updated = await getTaskWithAssignments(task.id);
     logAudit('assign_task', 'task', task.id, `${action.firstName} ${action.lastName}`, {
