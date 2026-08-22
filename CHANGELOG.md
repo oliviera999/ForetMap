@@ -7,6 +7,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Un échange ne mange plus un feuillet déjà lu dans le carnet personnel
+
+Le Marché savait déjà ne pas écraser l'état **d'équipe** : si les receveurs avaient
+trouvé un feuillet intact, une copie très effacée ne l'opacifiait pas. La trace
+**personnelle** — celle qui survit à un changement de partie ou d'équipe — n'avait pas
+cette garde. Un élève qui avait lu un feuillet au chapitre 1, puis recevait la même
+page « mangée » dans une nouvelle partie, voyait son carnet s'obscurcir.
+
+L'instantané personnel garde désormais le moins effacé, comme la lecture du carnet le
+faisait déjà. Les camarades qui n'avaient pas le feuillet reçoivent bien la copie.
+
 ### Les visites guidées GL atteignent enfin les écrans où l'on arrive (lot 10)
 
 **Quatre des douze visites du lot 9 ne pouvaient pas se déclencher.** La navigation GL
