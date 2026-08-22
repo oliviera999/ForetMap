@@ -132,7 +132,7 @@ export function GLJournalView({
 
       {error ? <p className="gl-error">{error}</p> : null}
 
-      <div className="gl-journal-toolbar">
+      <div className="gl-journal-toolbar" data-gl-tour="journal-toolbar">
         <GLField label="Filtrer par équipe">
           <select
             className="gl-input"

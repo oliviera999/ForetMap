@@ -72,7 +72,7 @@ export function GLLoreGlossaryView({
       <p className="gl-hint">
         Vocabulaire narratif de Gnomes &amp; Licornes (distinct du glossaire SVT).
       </p>
-      <div className="gl-glossary-filters">
+      <div className="gl-glossary-filters" data-gl-tour="lore-glossary-filters">
         <label>
           Catégorie
           <select value={categorie} onChange={(e) => setCategorie(e.target.value)}>

@@ -37,7 +37,12 @@ export function GLMondeView({
 
   return (
     <div className="gl-monde-view fade-in">
-      <nav className="gl-subtabs gl-monde-view__tabs" role="tablist" aria-label="Le monde G&L">
+      <nav
+        className="gl-subtabs gl-monde-view__tabs"
+        data-gl-tour="subnav-monde"
+        role="tablist"
+        aria-label="Le monde G&L"
+      >
         {visibleSubTabs.map((subTab) => (
           <button
             key={subTab.id}

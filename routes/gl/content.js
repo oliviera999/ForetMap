@@ -9,6 +9,8 @@ const {
   getHelpNarratorFromDb,
   loadDefaultNarratorConfig,
 } = require('../../lib/helpNarrator');
+const { getGlTourRegistryFromDb, saveGlTourRegistryToDb } = require('../../lib/glTourContent');
+const { tourRegistrySchema } = require('../../lib/shared/tourOverridesCore');
 const asyncHandler = require('../../lib/asyncHandler');
 
 const router = express.Router();
@@ -75,6 +77,42 @@ router.get(
       // qu'une erreur — l'aide et les feuillets GL restent affichables, silhouette comprise.
       return res.json(buildPublicNarratorPayload(loadDefaultNarratorConfig()));
     }
+  }),
+);
+
+/**
+ * GET /api/gl/content/tours — surcharges éditoriales des visites guidées GL.
+ *
+ * Lecture ouverte à tout joueur : le client applique ces textes par-dessus le corpus
+ * versionné, il lui faut donc les connaître. Ne circulent que des champs de texte —
+ * la structure des parcours (cibles, placements) reste en code (§7.1).
+ */
+router.get(
+  '/tours',
+  requireGlPermission('gl.read'),
+  asyncHandler(async (_req, res) => {
+    const registry = await getGlTourRegistryFromDb();
+    return res.json({ registry });
+  }),
+);
+
+/**
+ * PUT /api/gl/content/tours — réécriture des bulles par un MJ.
+ *
+ * Sous `gl.content.manage`, la permission éditoriale du produit : réécrire une bulle est
+ * un geste de contenu, pas de configuration. Un registre vide efface toute
+ * personnalisation et rend le corpus versionné.
+ */
+router.put(
+  '/tours',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const parsed = tourRegistrySchema.safeParse(req.body?.registry ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Registre de visites guidées invalide' });
+    }
+    const registry = await saveGlTourRegistryToDb(parsed.data, req.glAuth?.userId ?? null);
+    return res.json({ registry });
   }),
 );
 

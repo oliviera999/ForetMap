@@ -25,6 +25,11 @@
 > - **Lot 7a** — audit du mapping d'états d'OLU (§3.1a) : alias morts supprimés, états non
 >   mappés assumés, garde-fou de test sur le catalogue.
 >
+> - **Lot 8 (accompagnement)** — le socle d'aide et de visite guidée **remonté dans
+>   `src/shared/`** et servi aux deux produits : GL gagne une aide **appelée** (bouton
+>   « ? » + modale), une variante **MJ** (`bodyMj`), et ses **premières visites guidées**.
+>   Et, des deux côtés, **OLU se présente à la première connexion**. Voir §16.
+>
 > **Reste à faire : lot 7b (optionnel, suspendu à une planche d'animation).** OLU est à l'écran **et** il parle à la
 > première personne. Le brief de production graphique des portraits est dans
 > [`MASCOT_OLU_BRIEF_VISUEL.md`](./MASCOT_OLU_BRIEF_VISUEL.md).
@@ -1146,3 +1151,208 @@ fonctionnalité neuve, et une explosion de périmètre.
 - [`GL_IMAGE_FRAMES.md`](./GL_IMAGE_FRAMES.md) — cadres d'image GL (à regarder avant d'écrire un nouveau cadre)
 - [`VISIT_MAP_GEOMETRY.md`](./VISIT_MAP_GEOMETRY.md) — géométrie du plan de visite et assets mascottes
 - [`docs/reference/foretmap/visite-et-mascottes.md`](./reference/foretmap/visite-et-mascottes.md) — doc de référence fonctionnelle
+
+---
+
+## 16. Lot 8 — l'accompagnement, des deux côtés
+
+Ce lot ne parle plus du portrait d'OLU mais de **ce qu'il accompagne** : l'aide, les
+visites guidées, et le premier contact.
+
+### 16.1 Ce qui manquait
+
+Une revue d'ensemble des deux produits a montré une asymétrie que personne n'avait
+regardée d'un bloc :
+
+| Besoin           | ForetMap (avant)                  | GL (avant)                                     |
+| ---------------- | --------------------------------- | ---------------------------------------------- |
+| Aide d'écran     | bouton « ? » → modale, 7 panneaux | encadré replié **en bas de page**, 26 entrées  |
+| Micro-aide       | 21 infobulles, 6 hints, 3 astuces | rien                                           |
+| Visite guidée    | 13 parcours, 33 étapes            | **rien**                                       |
+| Variante de rôle | `textTeacher` / `bodyTeacher`     | **rien** — un MJ lisait le texte joueur        |
+| Premier contact  | rien                              | intro cinématique (iframe, écran de connexion) |
+
+Deux constats ont guidé le lot. **L'aide GL était passive** : un texte qu'il fallait
+aller chercher sous le contenu n'est lu que par ceux qui descendent jusqu'à lui — le
+corpus réécrit au lot 6b ne servait qu'à moitié. Et **personne ne présentait jamais
+l'application** : ni ForetMap ni GL n'accueillaient un nouveau venu.
+
+### 16.2 Le socle partagé — ce qui a bougé, et ce qui n'a pas bougé
+
+| Fichier                                                                                         | Rôle                                                                                                                    |
+| ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| [`src/shared/tour/tourRegistryCore.js`](../src/shared/tour/tourRegistryCore.js)                 | Règles communes : filtrage par rôle, clés de surcharge, application des surcharges. **Aucun contenu.**                  |
+| [`src/shared/hooks/useGuidedTour.js`](../src/shared/hooks/useGuidedTour.js)                     | Moteur : mémoire des parcours vus, état d'exécution. Paramétré par `getSteps` et une clé de stockage propre au produit. |
+| [`src/shared/components/GuidedTourOverlay.jsx`](../src/shared/components/GuidedTourOverlay.jsx) | Overlay (spotlight, bulle, navigation). Ex-`DiscoveryTour`, rendu agnostique : il reçoit le parcours déjà résolu.       |
+| [`src/shared/styles/guided-tour.css`](../src/shared/styles/guided-tour.css)                     | Styles, sortis de `src/index.css` que GL ne charge pas. Couleurs en variables `--fm-tour-*`.                            |
+| [`src/shared/help/roleText.js`](../src/shared/help/roleText.js)                                 | Choix du texte selon le rôle, avec des noms de champs paramétrables (`textTeacher` côté FM, `bodyMj` côté GL).          |
+
+**Le contenu, lui, reste à chaque produit** : `src/constants/discoveryTour.js` (13 parcours
+ForetMap) et `src/gl/constants/glDiscoveryTour.js` (5 parcours GL). Les **mémoires sont
+distinctes** — `foretmap_discovery_seen_v1` et `gl_discovery_seen_v1` : avoir fait le tour
+du verger ne vaut pas avoir vu le royaume.
+
+L'API publique de ForetMap n'a pas changé d'un signe : `getDiscoverySteps`,
+`hasDiscoveryTour`, `tourOverrideKey`, `applyTourOverrides` gardent leur signature, et
+les tests existants passent sans retouche.
+
+### 16.3 L'aide GL, appelée plutôt qu'affichée
+
+`GLHelpDialog` + `GLHelpDock` : un bouton « ? », qui **pulse tant que l'aide de l'onglet
+n'a jamais été ouverte**, puis se calme. La mémoire par clé (`gl_help_seen:`) est celle de
+l'ancien encadré — un onglet déjà consulté ne réclame pas l'attention deux fois.
+
+L'encadré inline (`GLHelpPanel`) subsiste là où l'aide fait partie de la page elle-même,
+comme le carnet personnel. Les deux partagent leur rendu (`glHelpBody.jsx`) : un même
+texte s'affiche de la même façon, quel que soit le contenant.
+
+### 16.4 `bodyMj` — la variante de service
+
+Pendant GL du `textTeacher` de ForetMap, **optionnel** : son absence fait retomber sur
+`body`. Dix entrées en portent une — celles des écrans que joueurs et MJ ouvrent tous les
+deux (la carte, le carnet, le marché, le forum…). Sur les écrans réservés, OLU se tait
+déjà (§8.4), la question ne se pose pas.
+
+Le champ n'est écrit que s'il porte un texte : une entrée sans variante reste
+**strictement identique** à ce qu'elle était, et la surcharge stockée ne se peuple pas de
+chaînes vides à chaque enregistrement.
+
+### 16.5 L'accueil — OLU se présente
+
+**Trois bulles, centrées, jouées une seule fois**, avant tout parcours d'onglet : se faire
+présenter la carte par quelqu'un qu'on n'a pas encore rencontré met la charrue avant les
+bœufs. Aucune ne vise d'élément — à la première seconde, désigner un bouton qu'on n'a pas
+appris à lire ne veut rien dire.
+
+Il se présente, dit ce qu'on fait ici, et indique où le retrouver. Puis il s'efface.
+
+⚠️ **Côté GL, l'accueil ne raconte pas le lore** : la règle du §8.4 vaut ici comme
+ailleurs. Une première version faisait dire à OLU que « le Souffle a mangé des noms » —
+c'est la voix de Sélène, pas la sienne. Il dit désormais : « L'histoire, elle, je te laisse
+la découvrir — ce n'est pas la mienne à raconter. » Le test ne peut pas attraper ce genre
+d'écart : il se voit à la relecture.
+
+L'accueil est rangé sous une clé (`welcome`) **qui n'est celle d'aucun onglet** : il ne
+peut pas se déclencher par navigation. Un test le vérifie.
+
+### 16.6 Ce que le lot 8 ne faisait pas — et ce que le lot 9 a repris
+
+Le lot 8 laissait quatre chantiers ouverts. **Deux sont traités au lot 9 :**
+
+**L'édition des parcours GL depuis l'application.** ForetMap l'avait (`tours.manage`,
+§6ter.2), GL non. Le mécanisme est désormais symétrique :
+
+| Élément             | ForetMap                                                       | GL                                                     |
+| ------------------- | -------------------------------------------------------------- | ------------------------------------------------------ |
+| Noyau de validation | `lib/shared/tourOverridesCore.js`                              | idem                                                   |
+| Persistance         | `lib/tourContent.js` (`app_settings`, `content.tour.registry`) | `lib/glTourContent.js` (`gl_settings`, `content.tour`) |
+| Route               | `/api/settings/admin/tour-content` (`tours.manage`)            | `/api/gl/content/tours` (`gl.content.manage`)          |
+| Studio              | `DiscoveryTourAdminPanel`                                      | `GLTourContentAdminPanel` (Contenus → Visites guidées) |
+| Écran               | `shared/components/TourOverridesEditor.jsx` — **le même**      | idem                                                   |
+
+L'extraction de l'écran partagé a fait fondre le panneau ForetMap de 240 à 79 lignes, et
+révélé un défaut du lot 8c : le parcours d'accueil n'avait pas de titre et se serait
+affiché « welcome » dans le studio. Les 12 parcours GL et les 14 parcours ForetMap en ont
+un désormais, vérifié par test.
+
+Comme côté ForetMap, **le corpus par défaut n'est pas dupliqué en base** : seules les
+clés réécrites sont stockées, donc améliorer un texte versionné reste visible partout où
+personne ne l'a réécrit — la propriété que le registre d'aide GL n'a obtenue qu'au prix
+d'un dégel (§11.2), acquise ici par construction.
+
+**Les parcours GL passent de 5 à 11 onglets** (+ l'accueil) : découverte, cartes, la
+nature, le monde G&L, l'aventure, carnet de Sélène, marché, forum, journal personnel,
+statistiques, console MJ. Un test de charte les couvre
+([`tests/gl-tour-corpus-olu.test.js`](../tests/gl-tour-corpus-olu.test.js)) : emoji,
+plafond d'exclamations, tournures bannies, 1 à 3 phrases par bulle, structure — et **la
+règle §8.4 dans ce qu'elle a de mécanisable** : aucune bulle d'OLU ne contient « Souffle »,
+« Sélène », « gnome » ni « licorne ». Il parle du jeu, pas dans le jeu, et ne prend pas
+parti entre les peuples.
+
+**Restent ouverts :**
+
+- **Les infobulles GL** (P4 de la revue) : GL n'en a toujours aucune.
+- **L'intro GL** reste une iframe statique, hors du système (§8.3).
+- ~~**15 onglets GL sur 26** n'ont pas de parcours~~ — **repris au lot 10 (§16.7)**, qui a
+  d'abord révélé que le problème n'était pas celui-là.
+- **Aucun bouton « tout réinitialiser » côté GL** : il faudrait une route dédiée, alors
+  que vider chaque champ revient déjà au texte livré. On n'ajoute pas un geste destructif
+  pour épargner quelques clics.
+
+### 16.7 Lot 10 — quatre parcours qui ne pouvaient pas se déclencher
+
+Le lot 9 se terminait sur « 15 onglets sans parcours, ce qui reste est de l'écriture ».
+C'était faux dans les deux moitiés de la phrase.
+
+**Le décompte.** Les « 26 onglets » sont **12 onglets de premier niveau** plus
+**13 sous-onglets** répartis dans quatre regroupements — pas 26 destinations distinctes.
+
+**Le défaut.** `resolveGlMainTabChange()` et `readStoredGlTab()` replient tous les
+identifiants de regroupement sur un sous-onglet : cliquer « La nature » place `tab` sur
+`ecosystemes`, jamais sur `nature`. Or les lots 8b et 9b avaient rangé quatre parcours
+sous `nature`, `adventure`, `monde-gl` et `joueurs` — **des valeurs que `tab` ne prend
+jamais**. Un tiers du corpus GL était mort-né, sans erreur, sans avertissement, sans même
+un parcours vide à l'écran. Et `world`, l'onglet d'arrivée par défaut, n'avait rien.
+
+C'est le mode de défaillance le plus coûteux d'un système à cibles : celui où tout est
+correct — le texte, le schéma, les tests de charte — sauf la seule chose qui le relie au
+réel.
+
+**La correction.** Les clés sont les onglets que l'application affiche réellement.
+Dix-huit parcours couvrent tout ce qui se joue ; les quatre écrans d'administration
+restent sans parcours (§8.4 — le corpus d'aide y est déjà neutre).
+
+**Les cibles.** Toutes les étapes du lot 9 visaient `.gl-main-inner` : le projecteur
+éclairait la zone de contenu entière, donc ne désignait rien. Deux changements :
+
+| Situation                          | Avant            | Après                                           |
+| ---------------------------------- | ---------------- | ----------------------------------------------- |
+| Étape qui désigne un élément       | `.gl-main-inner` | `[data-gl-tour="…"]`, ancre dédiée              |
+| Étape qui présente un écran entier | `.gl-main-inner` | `target: null` — bulle centrée, sans projecteur |
+
+L'attribut `data-gl-tour` n'a d'autre raison d'être que la visite : contrairement à une
+classe de style, on ne le déplace pas par distraction. L'en-tête du registre le
+recommandait déjà au lot 8 — sans l'appliquer.
+
+**Une ancre ne se pose pas n'importe où.** La première version en posait treize, dont
+cinq sur l'`<article>` qui remplit l'écran — la même non-désignation que
+`.gl-main-inner`, sous un autre nom. Deux d'entre elles étaient en plus derrière un
+**retour anticipé** : `GLContentPage` rend un `<div>` de chargement tant que le contenu
+n'est pas arrivé, `GLJournalView` un encadré « aucune partie sélectionnée ». Or
+l'auto-démarrage se déclenche 650 ms après l'affichage de l'onglet — sur `world`, l'onglet
+d'arrivée par défaut, la présence de la cible était une course avec le réseau.
+
+La règle retenue : **une ancre désigne un élément précis, qui se rend dès que l'écran a
+quelque chose à montrer.** Restent dix ancres — les quatre barres de sous-onglets, les
+deux barres de recherche des glossaires, la liste des tutoriels, celle des fils du forum,
+celle des offres du marché, la barre de filtres du journal. Les étapes qui présentent un
+écran entier n'ont plus de cible du tout.
+
+**Le moteur rendait ces courses définitives.** `startTour()` marquait l'onglet « vu »
+**avant** de filtrer les étapes : un parcours dont aucune cible n'était présente
+n'affichait rien, et ne se relançait plus jamais. Le marquage a lieu désormais une fois
+acquis qu'au moins une étape s'affiche
+([`tests-ui/shared/useGuidedTour.test.jsx`](../tests-ui/shared/useGuidedTour.test.jsx)).
+Le moteur étant partagé, la correction vaut aussi pour ForetMap.
+
+**L'orientation par regroupement.** Chaque sous-onglet ouvre son parcours sur une étape
+qui désigne la barre de sous-onglets et dit ce qu'il y a à côté. Elle est **partagée**
+(rangée sous `commun`) : une réécriture vaut pour tout le groupe. On la revoit en ouvrant
+un deuxième sous-onglet du même groupe — contrepartie assumée : une bulle courte qui
+redit où l'on est vaut mieux qu'un regroupement jamais présenté.
+
+**Ce qui ferme la classe de défaut**
+([`tests/gl-tour-corpus-olu.test.js`](../tests/gl-tour-corpus-olu.test.js),
+[`tests-ui/gl/glTourAnchors.test.jsx`](../tests-ui/gl/glTourAnchors.test.jsx)) :
+
+1. Toute clé de parcours est une valeur que `tab` peut prendre, vérifiée contre
+   `GL_VALID_TABS` moins les quatre identifiants de regroupement.
+2. Toute ancre citée par un parcours existe dans `src/gl/`.
+3. Les quatre barres de sous-onglets **rendent** leur ancre — la présence dans le code
+   ne prouve pas la présence dans le DOM.
+
+⚠️ Le deuxième garde-fou a failli ne rien garantir : sa première version balayait
+`src/gl/` **registre compris**, où chaque sélecteur contient littéralement
+`data-gl-tour="…"`. Chaque cible s'y trouvait elle-même et le test ne pouvait pas
+échouer. Le registre est désormais exclu du balayage. Un test à cibles doit être vérifié
+en le faisant échouer volontairement — les trois l'ont été.

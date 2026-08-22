@@ -4,8 +4,8 @@ import { GLHelpPanel } from './GLHelpPanel.jsx';
 import { useGlHelpContent } from '../hooks/useGlHelpContent.js';
 
 /** Panneau d'aide GL pour l'onglet courant (textes depuis `content.help`). */
-export function GLTabHelpPanel({ tab, defaultOpen = false }) {
+export function GLTabHelpPanel({ tab, defaultOpen = false, isStaff = false }) {
   const helpKey = `tab:${tab}`;
-  const { title, body } = useGlHelpContent(helpKey);
+  const { title, body } = useGlHelpContent(helpKey, { isStaff });
   return <GLHelpPanel helpKey={helpKey} title={title} body={body} defaultOpen={defaultOpen} />;
 }

@@ -92,9 +92,20 @@ describe('GlossaryView — auto-liens dans la fiche', () => {
     // Le terme couramment affiché n'est pas auto-lié vers lui-même.
     expect(container.querySelector('a[data-glossary-code="FM_ECO"]')).toBeNull();
 
-    fireEvent.click(container.querySelector('a[data-glossary-code="FM_BIO"]'));
-
-    await waitFor(() => expect(apiMock).toHaveBeenCalledWith('/api/glossary/terms/FM_BIO'));
+    /*
+     * Le clic est rejoué jusqu'à ce qu'il porte. `GlossaryMarkdown` capte les auto-liens
+     * par **délégation attachée dans un `useEffect`** : la présence du lien dans le DOM
+     * ne garantit pas que l'écouteur le soit déjà. Attendre le nœud puis cliquer une
+     * seule fois laisse donc une fenêtre où le clic tombe dans le vide — invisible en
+     * local, mais reproduite en CI sous charge (2887 tests en parallèle).
+     *
+     * Sélectionner le nœud à chaque tentative importe autant : un re-rendu consécutif au
+     * chargement de la liste remplace le lien, et un nœud capturé plus tôt serait détaché.
+     */
+    await waitFor(() => {
+      fireEvent.click(container.querySelector('a[data-glossary-code="FM_BIO"]'));
+      expect(apiMock).toHaveBeenCalledWith('/api/glossary/terms/FM_BIO');
+    });
     await waitFor(() =>
       expect(
         container.querySelector('.pedago-glossary__detail .pedago-panel-title').textContent,
