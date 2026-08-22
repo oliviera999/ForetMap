@@ -124,7 +124,7 @@ export function GLForumView({ canModerate }) {
         </form>
       ) : null}
 
-      <ul className="gl-forum-threads">
+      <ul className="gl-forum-threads" data-gl-tour="forum-threads">
         {threads.map((thread) => (
           <li key={thread.id} className={activeId === thread.id ? 'is-active' : ''}>
             <button type="button" onClick={() => setActiveId(thread.id)}>

@@ -108,6 +108,17 @@ de lui-même : uniquement quand on ouvre l'aide, ou qu'on lance une visite guid�
 - **Le portrait ne porte jamais d'information** : tout ce qui compte est écrit dans le texte. Les
   lecteurs d'écran l'ignorent, et l'aide fonctionne à l'identique s'il n'y a aucune image.
 
+### À la première connexion, il se présente
+
+Un nouveau venu est accueilli par **trois bulles** au centre de l'écran : OLU se présente,
+dit ce qu'on fait dans l'application, et indique où le retrouver. Elles ne désignent aucun
+bouton — à la première seconde, montrer un élément qu'on n'a pas appris à lire n'apprend
+rien.
+
+Cet accueil est joué **une seule fois par navigateur**, avant toute visite guidée
+d'onglet, et le professeur en lit une version qui lui est propre. Il suit le même
+interrupteur que les visites guidées : les désactiver le désactive aussi.
+
 ### Comment OLU parle
 
 Les textes de l'aide et des visites guidées sont écrits **à sa voix**, à la première personne.

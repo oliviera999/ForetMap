@@ -6,7 +6,8 @@
     },
     "tab:maps": {
       "title": "Les cartes",
-      "body": "Ici je garde les cartes du monde, chapitre par chapitre. Zoome, promène-toi, et clique un repère pour savoir ce qui s’y trouve."
+      "body": "Ici je garde les cartes du monde, chapitre par chapitre. Zoome, promène-toi, et clique un repère pour savoir ce qui s’y trouve.",
+      "bodyMj": "Les cartes du chapitre en cours. Vérifiez avant la séance que les repères et les zones sont en place : c'est ce que verront les équipes."
     },
     "tab:nature": {
       "title": "La nature",
@@ -22,19 +23,23 @@
     },
     "tab:glossary": {
       "title": "Glossaire scientifique",
-      "body": "Les définitions employées dans les fiches et les questions. Si un mot te bloque en pleine lecture, il est presque toujours ici."
+      "body": "Les définitions employées dans les fiches et les questions. Si un mot te bloque en pleine lecture, il est presque toujours ici.",
+      "bodyMj": "Les définitions employées dans les fiches et les questions. Un terme qui manque s'ajoute depuis Contenus → Glossaire."
     },
     "tab:lore-glossary": {
       "title": "Lexique du récit",
-      "body": "Le vocabulaire du monde : les noms, les lieux, les termes que le récit emploie sans les expliquer. À ouvrir quand une page te parle d’une chose que tu n’as jamais croisée."
+      "body": "Le vocabulaire du monde : les noms, les lieux, les termes que le récit emploie sans les expliquer. À ouvrir quand une page te parle d’une chose que tu n’as jamais croisée.",
+      "bodyMj": "Le vocabulaire du monde. Il alimente les infobulles du récit : l'enrichir profite à toutes les pages qui emploient ces mots."
     },
     "tab:selene-carnet": {
       "title": "Le Carnet de Sélène",
-      "body": "Les feuillets retrouvés par ton équipe s’empilent ici, avec les récits qui les accompagnent. Tu peux les rouvrir depuis cette page, tranquillement, une fois la séance passée."
+      "body": "Les feuillets retrouvés par ton équipe s’empilent ici, avec les récits qui les accompagnent. Tu peux les rouvrir depuis cette page, tranquillement, une fois la séance passée.",
+      "bodyMj": "Les feuillets retrouvés par l'équipe affichée. Pour distribuer, retirer ou vérifier un feuillet, passez par Contenus → Carnet de Sélène."
     },
     "tab:adventure": {
       "title": "L’aventure",
-      "body": "Le fil du chapitre : l’histoire, le Carnet de Sélène et les sortilèges disponibles. C’est l’endroit où reprendre quand tu ne sais plus où tu en étais."
+      "body": "Le fil du chapitre : l’histoire, le Carnet de Sélène et les sortilèges disponibles. C’est l’endroit où reprendre quand tu ne sais plus où tu en étais.",
+      "bodyMj": "Le fil du chapitre tel que les joueurs le découvrent. Utile pour situer une équipe qui a décroché, sans ouvrir la console."
     },
     "tab:history": {
       "title": "L’histoire",
@@ -50,7 +55,8 @@
     },
     "tab:spells": {
       "title": "Sortilèges",
-      "body": "La liste des sorts, ce qu’ils coûtent et ce qu’ils font. Certains sont réservés à un peuple, et selon les réglages c’est le MJ qui valide le lancement."
+      "body": "La liste des sorts, ce qu’ils coûtent et ce qu’ils font. Certains sont réservés à un peuple, et selon les réglages c’est le MJ qui valide le lancement.",
+      "bodyMj": "Le catalogue des sorts. Selon le profil de séance, c'est vous qui validez les lancements — le réglage se trouve dans Réglages → Gameplay."
     },
     "tab:rules": {
       "title": "Règles du jeu",
@@ -58,7 +64,8 @@
     },
     "tab:tutorials": {
       "title": "Tutoriels",
-      "body": "Des parcours guidés, courts, à suivre dans l’ordre que tu veux. Commence par celui qui correspond à ce que tu n’arrives pas à faire."
+      "body": "Des parcours guidés, courts, à suivre dans l’ordre que tu veux. Commence par celui qui correspond à ce que tu n’arrives pas à faire.",
+      "bodyMj": "Les parcours guidés proposés aux élèves. Vous pouvez les modifier depuis cette page si vous avez les droits de contenu."
     },
     "tab:joueurs": {
       "title": "Les joueurs",
@@ -66,15 +73,18 @@
     },
     "tab:forum": {
       "title": "Forum",
-      "body": "Pour poser une question, partager une trouvaille ou coordonner ton équipe. Ce que tu écris est lu par la classe et par le MJ."
+      "body": "Pour poser une question, partager une trouvaille ou coordonner ton équipe. Ce que tu écris est lu par la classe et par le MJ.",
+      "bodyMj": "Les échanges de la classe. Tout y est lisible par vous, et les messages restent après la séance."
     },
     "tab:market": {
       "title": "Marché",
-      "body": "Les échanges entre équipes : gemmes, feuillets et, selon les réglages, d’autres ressources. Regarde ce qui manque à ton équipe avant de proposer quoi que ce soit."
+      "body": "Les échanges entre équipes : gemmes, feuillets et, selon les réglages, d’autres ressources. Regarde ce qui manque à ton équipe avant de proposer quoi que ce soit.",
+      "bodyMj": "Les échanges entre équipes. Ce qui circule dépend des réglages du Marché ; les cœurs sont bloqués par défaut."
     },
     "tab:journal": {
       "title": "Journal de partie",
-      "body": "La trace de ce qui s’est passé pendant la séance, dans l’ordre. Pratique pour retrouver qui a fait quoi, et quand."
+      "body": "La trace de ce qui s’est passé pendant la séance, dans l’ordre. Pratique pour retrouver qui a fait quoi, et quand.",
+      "bodyMj": "Le déroulé de la partie, dans l'ordre. C'est la trace à relire pour un bilan ou pour retrouver quand une action a eu lieu."
     },
     "tab:my-journal": {
       "title": "Aide — Mon journal",

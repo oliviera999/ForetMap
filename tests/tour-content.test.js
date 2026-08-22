@@ -94,10 +94,16 @@ test('applyTourOverrides ne mute pas les étapes d’origine', async () => {
   assert.equal(DISCOVERY_TOURS.map.steps[0].body, originalBody);
 });
 
-test('l’étape de relance se surcharge une fois pour les 13 parcours', async () => {
-  const { DISCOVERY_TOURS, getDiscoverySteps, SHARED_TOUR_KEY } = await import(tourUrl);
+test('l’étape de relance se surcharge une fois pour tous les parcours d’onglet', async () => {
+  const { DISCOVERY_TOURS, getDiscoverySteps, SHARED_TOUR_KEY, WELCOME_TOUR_KEY } = await import(
+    tourUrl
+  );
   const overrides = { [`${SHARED_TOUR_KEY}.relaunch.body`]: 'Relance réécrite.' };
-  for (const tabKey of Object.keys(DISCOVERY_TOURS)) {
+  // L'accueil de première connexion n'est pas un parcours d'onglet : il ne porte pas
+  // l'étape de relance, sa dernière bulle disant déjà où retrouver OLU.
+  const tabKeys = Object.keys(DISCOVERY_TOURS).filter((key) => key !== WELCOME_TOUR_KEY);
+  assert.ok(tabKeys.length > 0);
+  for (const tabKey of tabKeys) {
     const steps = getDiscoverySteps(tabKey, true, overrides);
     const relaunch = steps[steps.length - 1];
     assert.equal(relaunch.body, 'Relance réécrite.', `parcours ${tabKey} non surchargé`);

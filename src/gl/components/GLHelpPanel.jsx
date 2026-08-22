@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 import { MascotSpeaker } from '../../shared/components/MascotSpeaker.jsx';
 import { useGlNarrator } from '../hooks/useGlNarrator.js';
+import { renderGlHelpBody } from './glHelpBody.jsx';
 
 const STORAGE_PREFIX = 'gl_help_seen:';
 
@@ -19,25 +20,6 @@ function writeSeen(key) {
   } catch (_) {
     // noop
   }
-}
-
-function renderHelpBody(body) {
-  const text = String(body || '').trim();
-  if (!text) return null;
-  const lines = text
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-  if (lines.length <= 1 && !text.includes('•') && !text.startsWith('-')) {
-    return <p>{text}</p>;
-  }
-  return (
-    <ul className="gl-help-list">
-      {lines.map((line) => (
-        <li key={line}>{line.replace(/^[-•]\s*/, '')}</li>
-      ))}
-    </ul>
-  );
 }
 
 /**
@@ -82,7 +64,7 @@ export function GLHelpPanel({ helpKey, title, body, defaultOpen = true }) {
           {open ? 'Masquer' : 'Voir l’aide'}
         </button>
       </header>
-      {open ? <div className="gl-help-panel-body">{renderHelpBody(body)}</div> : null}
+      {open ? <div className="gl-help-panel-body">{renderGlHelpBody(body)}</div> : null}
     </aside>
   );
 }

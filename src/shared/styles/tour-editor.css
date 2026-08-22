@@ -1,0 +1,54 @@
+/*
+ * Studio d'édition des textes de visites guidées — feuille partagée ForetMap + G&L.
+ *
+ * L'écran (`TourOverridesEditor`) sert les deux produits : ses règles ne peuvent pas
+ * vivre dans `src/index.css`, que GL ne charge pas. Elles remplacent les styles en ligne
+ * que portait la version ForetMap, à rendu équivalent.
+ */
+
+.fm-tour-editor__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.fm-tour-editor__toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fm-tour-editor__sections {
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.fm-tour-editor__step {
+  border: 1px solid var(--fm-tour-editor-border, #e5e7eb);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.fm-tour-editor__step > legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+
+.fm-tour-editor__field {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.fm-tour-editor__field > span {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.fm-tour-editor__field textarea {
+  width: 100%;
+}

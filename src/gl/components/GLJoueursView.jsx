@@ -34,7 +34,12 @@ export function GLJoueursView({
 
   return (
     <div className="gl-joueurs-view fade-in">
-      <nav className="gl-subtabs gl-joueurs-view__tabs" role="tablist" aria-label="Les joueurs">
+      <nav
+        className="gl-subtabs gl-joueurs-view__tabs"
+        data-gl-tour="subnav-joueurs"
+        role="tablist"
+        aria-label="Les joueurs"
+      >
         {visibleSubTabs.map((subTab) => (
           <button
             key={subTab.id}

@@ -7,6 +7,116 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Les visites guidées GL atteignent enfin les écrans où l'on arrive (lot 10)
+
+**Quatre des douze visites du lot 9 ne pouvaient pas se déclencher.** La navigation GL
+replie les identifiants de regroupement sur un sous-onglet : ouvrir « La nature » place
+l'application sur *Écosystèmes*, jamais sur `nature`. Les parcours rangés sous `nature`,
+`adventure`, `monde-gl` et `joueurs` attendaient donc une valeur que rien ne produit —
+un contenu correct, invisible, et silencieux. Pendant ce temps `Introduction`, l'onglet
+d'arrivée par défaut, n'avait aucune visite.
+
+Les parcours sont désormais rangés sous les onglets où l'on atterrit vraiment :
+**dix-huit visites** couvrent tout ce qui se joue — cartes, écosystèmes, biodiversité,
+glossaire, histoire, carnet, sortilèges, introduction, règles, lexique du récit,
+tutoriels, forum, marché, statistiques, journal de partie, journal personnel, plateau de
+découverte, console MJ. Les quatre écrans d'administration restent sans visite : le
+corpus d'aide y est déjà neutre, OLU n'y parle pas.
+
+**Les bulles désignent quelque chose.** Toutes les étapes du lot 9 visaient la zone de
+contenu entière : le projecteur éclairait la page complète, donc ne montrait rien. Les
+étapes pointent maintenant des ancres dédiées (la barre de sous-onglets, la recherche du
+glossaire, la liste des tutoriels, la barre du journal…), et celles qui présentent un
+écran entier n'ont plus de cible du tout — bulle centrée, sans projecteur inutile.
+
+**Une étape d'orientation par regroupement**, partagée par ses sous-onglets et éditable
+une seule fois dans le studio : elle désigne la barre de sous-onglets et dit ce qu'il y a
+à côté.
+
+**Une visite qui n'a rien pu montrer n'est plus considérée comme vue.** Le moteur
+marquait l'onglet « découvert » avant de vérifier que ses bulles pouvaient s'afficher :
+si une cible n'était pas encore chargée, la visite ne montrait rien — et ne se relançait
+plus jamais. Elle attend désormais qu'au moins une bulle soit affichable. La correction
+vaut pour les deux produits, le moteur étant commun — **c'est donc un changement de
+comportement côté ForetMap aussi**, où un onglet dont aucune bulle ne s'affichait était
+jusqu'ici compté comme découvert.
+
+Deux garde-fous ferment la classe de défaut : une clé de visite doit être un onglet que
+l'application peut réellement afficher, et une ancre citée par une visite doit exister
+dans le code des vues. Un test d'interface vérifie en plus que les quatre barres de
+sous-onglets **rendent** leur ancre — l'écrire ne suffit pas.
+
+### Les MJ peuvent réécrire les visites guidées, et GL en gagne six de plus (lot 9)
+
+Suite des chantiers laissés ouverts au lot 8.
+
+**L'édition des parcours depuis l'application, côté GL.** ForetMap l'avait, GL non : un
+MJ devait attendre une mise à jour pour changer un mot. C'est désormais symétrique —
+onglet **Contenus → Visites guidées**, chaque parcours étape par étape, le texte livré en
+filigrane, une version joueur et une version MJ. Seuls les **textes** circulent : ce que
+chaque bulle désigne à l'écran reste en code, une cible saisie à la main étant le moyen
+le plus simple de faire disparaître une étape sans le moindre message d'erreur.
+
+Comme côté ForetMap, seules les clés réécrites sont stockées : améliorer un texte livré
+reste visible partout où personne ne l'a réécrit.
+
+**L'écran d'édition est le même pour les deux produits**
+(`shared/components/TourOverridesEditor.jsx`), et son extraction a fait fondre le panneau
+ForetMap de 240 à 79 lignes. Elle a aussi révélé un défaut du lot précédent : le parcours
+d'accueil n'avait pas de titre et se serait affiché « welcome » dans le studio. Les
+26 parcours des deux produits en ont un désormais, vérifié par test.
+
+**Six visites guidées GL de plus** — découverte, la nature, le monde G&L, forum, journal
+personnel, statistiques —, soit onze onglets couverts au lieu de cinq.
+
+Un test de charte couvre ce corpus, et verrouille **la règle §8.4 dans ce qu'elle a de
+mécanisable** : aucune bulle d'OLU ne contient « Souffle », « Sélène », « gnome » ni
+« licorne ». Il parle du jeu, pas dans le jeu, et ne prend pas parti entre les peuples.
+
+Restent ouverts : les infobulles GL (toujours aucune), l'intro cinématique en iframe, et
+quinze onglets GL sans parcours — surtout ceux d'administration, où OLU se tait déjà.
+
+### OLU se présente, et GL gagne aide appelable et visites guidées (lot 8)
+
+Revue d'ensemble de l'aide, des tutoriels et des visites des deux produits. Elle a
+montré une asymétrie que personne n'avait regardée d'un bloc : ForetMap avait
+13 parcours guidés, 21 infobulles et une aide qu'on appelle d'un bouton ; GL avait un
+encadré replié en bas de page, aucune visite, et le même texte pour un joueur et un MJ.
+Et **aucun des deux ne présentait jamais l'application** à un nouveau venu.
+
+**Le socle est désormais partagé** (`src/shared/`) : le noyau de registre de parcours
+(filtrage par rôle, surcharges), le moteur (`useGuidedTour`), l'overlay
+(`GuidedTourOverlay`, ex-`DiscoveryTour`), ses styles et la résolution de texte par
+rôle. Le **contenu** reste à chaque produit, et les mémoires sont distinctes : avoir
+fait le tour du verger ne vaut pas avoir vu le royaume. L'API ForetMap n'a pas changé
+d'un signe.
+
+**Côté Gnomes & Licornes :**
+
+- **L'aide s'appelle** — un bouton « ? » par onglet, qui pulse tant que l'aide de cet
+  écran n'a jamais été ouverte. L'encadré en bas de page ne se lisait que si l'on
+  descendait jusqu'à lui : le corpus réécrit au lot précédent ne servait qu'à moitié.
+- **Une variante MJ** (`bodyMj`, optionnelle) sur les dix écrans partagés avec les
+  joueurs. Ailleurs, tout le monde lit le même texte — et sur les écrans réservés, OLU
+  se tait déjà.
+- **Cinq visites guidées** (cartes, aventure, carnet de Sélène, marché, console MJ),
+  relançables depuis le « ? ». Désactivées pour les invités, dont le passage est
+  éphémère, et alignées sur l'interrupteur du module d'aide.
+
+**Des deux côtés, OLU accueille.** Trois bulles centrées à la première connexion : il se
+présente, dit ce qu'on fait ici, indique où le retrouver. Jouées une seule fois, avant
+tout parcours d'onglet — se faire présenter la carte par quelqu'un qu'on n'a pas encore
+rencontré met la charrue avant les bœufs. Aucune ne désigne d'élément : à la première
+seconde, montrer un bouton qu'on n'a pas appris à lire n'apprend rien.
+
+Côté GL, l'accueil **ne raconte pas le lore** : c'est la règle du §8.4, et une première
+version la violait en faisant dire à OLU ce que le Souffle avait fait. Il renvoie
+désormais l'histoire à qui elle appartient — « ce n'est pas la mienne à raconter ».
+
+Restent hors de ce lot : les infobulles GL (inexistantes), l'édition des parcours GL
+depuis l'application (ForetMap l'a, GL non), et l'intro cinématique, toujours une iframe
+statique hors du système d'aide.
+
 ### Mascottes : six alias d'états qui ne servaient à rien, et un état des lieux figé (lot 7a)
 
 Audit du mapping d'états d'OLU demandé au §3.1a de `docs/MASCOT_NARRATEUR_OLU.md`. Deux
