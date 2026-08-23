@@ -6,7 +6,7 @@ import {
   NOTIFICATION_LEVEL,
   NOTIFICATION_LEVEL_LABELS,
 } from '../constants/notifications';
-import { Tooltip } from './Tooltip';
+import { Tooltip } from '../shared/components/Tooltip.jsx';
 
 const CATEGORY_LABELS = {
   [NOTIFICATION_CATEGORY.DEADLINES]: 'Échéances',

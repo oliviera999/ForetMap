@@ -144,6 +144,17 @@ prévoit une.
 > imposer un parcours à chaque venue serait une porte qui claque. Elles suivent aussi
 > l'interrupteur du module d'aide : éteindre l'aide éteint les visites.
 
+## Les boutons en pictogramme s'expliquent au survol
+
+Les commandes qui n'affichent qu'une icône — les dés, la musique, le plein écran, le
+« ? », la cloche de notifications — montrent leur libellé quand on les survole, qu'on
+les atteint au clavier, ou qu'on garde le doigt dessus sur tablette. Ce n'est plus
+l'infobulle du navigateur : elle mettait une à deux secondes, ne réagissait pas au
+clavier, et n'apparaissait jamais au toucher.
+
+Les boutons qui affichent déjà leur libellé n'en reçoivent pas : ils n'ont rien de plus
+à dire.
+
 ## À la première connexion, OLU se présente
 
 Un nouveau venu — élève ou MJ — est accueilli par **trois bulles** : OLU se présente, dit
