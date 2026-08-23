@@ -46,7 +46,7 @@ tactiles, navigation clavier).
    ≈ 2:1 (`src/index.css`, multiples).
 9. **[A11y] Zones de la carte inaccessibles au clavier** —
    `src/components/map/ZonePolygonsLayer.jsx:67`.
-10. **[Qualité] Aucun audit de sécurité npm en CI** alors que 4 vulnérabilités *high* existent
+10. **[Qualité] Aucun audit de sécurité npm en CI** alors que 4 vulnérabilités _high_ existent
     en prod (`.github/workflows/ci.yml`, pile Socket.IO).
 
 ## 2. Méthodologie
@@ -231,9 +231,9 @@ mais ne referment pas la faille de révélation de réponse, indépendante des r
 
 - **[MAJEUR] Course de capacité sur l'inscription de groupe** —
   `routes/tasks/assignments.js:154-204` — Contrairement à `/assign` (verrou `claimAssignmentSeat`
-  + `FOR UPDATE`), `/assign-group` calcule `maxSlots` sur une lecture antérieure et insère hors
-  transaction : une inscription concurrente peut dépasser `required_students`. **Reco :**
-  `withTransaction` avec relecture de `tasks` sous `FOR UPDATE`.
+  - `FOR UPDATE`), `/assign-group` calcule `maxSlots` sur une lecture antérieure et insère hors
+    transaction : une inscription concurrente peut dépasser `required_students`. **Reco :**
+    `withTransaction` avec relecture de `tasks` sous `FOR UPDATE`.
 - **[MAJEUR] Suppression d'un joueur GL bloquée par une FK RESTRICT → 500** —
   `migrations/109_gl_spell_cast.sql:34`, `routes/gl/admin.js:480-505` —
   `fk_gl_spell_cast_contrib_player` est `ON DELETE RESTRICT`, mais le garde de la route ne refuse
@@ -358,8 +358,8 @@ mais ne referment pas la faille de révélation de réponse, indépendante des r
 
 - **[MAJEUR] Aucun audit de sécurité npm en CI** — `.github/workflows/ci.yml` — La CI enchaîne
   lint → format → tests → coverage → build, sans job `npm audit` ni scanning ; or 4 vulnérabilités
-  *high* existent en prod : `engine.io` et `socket.io-parser` (Socket.IO exposé), `brace-expansion`,
-  `ip-address` (SSRF via google-auth-library), + 3 *moderate*. **Reco :** ajouter
+  _high_ existent en prod : `engine.io` et `socket.io-parser` (Socket.IO exposé), `brace-expansion`,
+  `ip-address` (SSRF via google-auth-library), + 3 _moderate_. **Reco :** ajouter
   `npm audit --omit=dev --audit-level=high` (non bloquant d'abord), puis `npm audit fix` en lot
   dédié en priorisant la pile Socket.IO.
 - **[MAJEUR] 8 vulnérabilités en prod dont 4 high, quasi toutes corrigibles sans breaking
