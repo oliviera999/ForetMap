@@ -17,7 +17,7 @@ const {
   ALLOWED_GAMEPLAY_SETTINGS,
 } = require('../lib/gl/adminRouteHelpers');
 
-const { MODULE_KEYS } = require('../lib/glSettings');
+const { MODULE_KEYS, GAMEPLAY_KEYS } = require('../lib/glSettings');
 
 describe('normalizeBiomeSlugFilter', () => {
   it('renvoie null pour null/undefined', () => {
@@ -127,9 +127,29 @@ describe('ALLOWED_GAMEPLAY_SETTINGS', () => {
     assert.ok(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.plateau_marker_numbers_visible'));
     assert.ok(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.market_hearts_enabled'));
     assert.ok(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.market_feuillets_enabled'));
+    assert.ok(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.max_health_points'));
+    assert.ok(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.max_power_points'));
     assert.equal(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.inexistant'), false);
   });
-  it('compte 32 clés gameplay', () => {
-    assert.equal(ALLOWED_GAMEPLAY_SETTINGS.size, 32);
+
+  /*
+   * L'invariant utile n'est pas le nombre de clés — un compte figé casse à chaque ajout
+   * légitime sans rien démontrer — mais l'**équivalence** entre la liste que la route PUT
+   * accepte et celle que le chargeur de réglages sait relire. Une clé présente d'un seul
+   * côté est un vrai défaut : soit la route accepte une valeur que personne ne relira
+   * jamais, soit un réglage documenté est refusé en 400 « Clé gameplay inconnue ».
+   */
+  it('accepte exactement les clés que le chargeur de réglages sait relire', () => {
+    const known = new Set(GAMEPLAY_KEYS);
+    assert.deepEqual(
+      [...ALLOWED_GAMEPLAY_SETTINGS].filter((key) => !known.has(key)),
+      [],
+      'clés acceptées par la route mais inconnues de getGameplaySettings()',
+    );
+    assert.deepEqual(
+      [...known].filter((key) => !ALLOWED_GAMEPLAY_SETTINGS.has(key)),
+      [],
+      'clés lues par getGameplaySettings() mais refusées par la route',
+    );
   });
 });

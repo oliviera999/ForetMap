@@ -26,6 +26,44 @@ demandaient aucune décision de conception :
   `aria-current` sur l'onglet actif ; zones de la carte accessibles au clavier.
 - **Documentation de référence** : contradiction sur les « tours » levée, encadré « pas
   de lore » actualisé, dé virtuel documenté, renvois et terminologie corrigés.
+### Le jeu tenait des promesses qu'il n'appliquait pas (audit des mécaniques G&L)
+
+**Aucun élève n'a jamais gagné un cœur ni une gemme en jouant.** Les quatre parties
+réelles de juin 2026 ont produit 483 événements : douze effets de case, tous à
+`healthDelta: 0` et `powerDelta: 0`, quinze réponses de QCM, zéro gemme créditée. Les
+seuls mouvements de vitalité du corpus sont sept ajustements manuels du MJ. Les compteurs
+sont décoratifs — ce qui invalide au passage le diagnostic d'économie inflationniste sur
+lequel reposait la refonte prévue : le jeu n'est pas déséquilibré, il est inerte.
+
+La cause est une divergence silencieuse. Chaque case porte deux champs indépendants : un
+texte d'effet, que l'élève lit, et une configuration machine, seule exécutée. Rien ne les
+relie et aucune erreur n'est levée quand ils s'écartent. **103 des 217 cases (47 %)
+annoncent un effet que le moteur n'applique pas** : 96 promesses conditionnelles
+(« Bonne réponse : +1 gemme ») que le moteur ne sait pas exprimer — ses branches sont
+neutre/gnome/licorne, jamais bonne/mauvaise réponse — et 7 « Passe ton tour » sans effet.
+Un contrôle de cohérence les liste désormais par chapitre et par repère
+(`GET /api/gl/admin/plateaux/coherence`). Il ne corrige rien : câbler l'effet ou retirer
+la promesse est une décision de conception, pas une réparation mécanique.
+
+**Un avantage scolaire ne s'achète plus au comptant.** Le réglage global d'approbation des
+sortilèges vaut `per_spell`, et les 31 sorts étaient en `auto` : *Consécration*, qui vaut
+un « vert + » au bulletin, partait donc sans qu'aucun adulte soit consulté, dès qu'un élève
+réunissait huit gemmes. Les cinq sortilèges à effet scolaire réel — Esquive, Révélation,
+Mentorat, Annulation, Consécration — exigent maintenant une validation du MJ. Les coûts
+sont inchangés, aucun sort n'est supprimé, et les sortilèges fictionnels restent en
+lancement libre.
+
+**Un plafond de vitalité réglable** (« Cœurs maximum », « Gemmes maximum », 0 à 99) permet
+de rendre les cœurs de nouveau rares — sans quoi les sortilèges de soin répondent à une
+pénurie qui n'existe pas. La valeur par défaut est 0, soit aucun plafond : rien ne change
+tant qu'elle n'est pas fixée. Deux règles le gouvernent : il **bloque les gains sans jamais
+confisquer** un solde déjà supérieur (un élève à 9 cœurs le jour où le plafond passe à 5
+n'en perd aucun), et il s'applique aux cases, aux feuillets et au Marché — sans quoi le
+Marché serait le contournement évident — mais laisse souverain l'ajustement manuel du MJ.
+
+L'audit complet et les options de finition, pensées pour une classe de 6ème, sont dans
+[docs/reference/gl/audit-mecaniques-2026-08.md](docs/reference/gl/audit-mecaniques-2026-08.md).
+
 
 ### Les visites guidées GL atteignent enfin les écrans où l'on arrive (lot 10)
 
