@@ -382,6 +382,16 @@ async function initSchema() {
     // ce passage, ils ressusciteraient au démarrage suivant (voir lib/legacySchemaCleanup.js).
     await dropLegacyScaffolding(conn);
   } finally {
+    // `schema_foretmap.sql` ouvre par `SET FOREIGN_KEY_CHECKS=0` (portée session) et le
+    // rétablit en fin de script. Si une exception survient avant ce rétablissement, la
+    // connexion « empoisonnée » (FKC=0) retournerait au pool et désactiverait silencieusement
+    // les FK pour la prochaine requête qui la réutilise (impact réel pour les tests appelant
+    // initSchema() in-process). On réarme donc toujours FKC=1 avant de rendre la connexion.
+    try {
+      await conn.query('SET FOREIGN_KEY_CHECKS=1');
+    } catch (_) {
+      /* la connexion sera libérée quoi qu'il arrive */
+    }
     conn.release();
   }
   try {

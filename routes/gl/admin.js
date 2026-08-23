@@ -1,6 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { queryAll, queryOne, execute } = require('../../database');
+const { queryAll, queryOne, execute, withTransaction } = require('../../database');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const { logAudit } = require('../audit');
 const {
@@ -499,8 +499,29 @@ router.delete(
         .json({ error: 'Suppression refusée : joueur engagé dans une partie en cours' });
     }
 
-    await execute('DELETE FROM gl_team_members WHERE player_id = ?', [id]);
-    await execute('DELETE FROM gl_players WHERE id = ?', [id]);
+    try {
+      await withTransaction(async (tx) => {
+        await tx.execute('DELETE FROM gl_team_members WHERE player_id = ?', [id]);
+        // Les jetons de réinitialisation du joueur ne portent pas de FK (table polymorphe) :
+        // purge applicative, comme pour les élèves (lib/studentDeletion.js).
+        await tx.execute(
+          `DELETE FROM password_reset_tokens WHERE user_type = 'gl_player' AND user_id = ?`,
+          [id],
+        );
+        await tx.execute('DELETE FROM gl_players WHERE id = ?', [id]);
+      });
+    } catch (err) {
+      // Une contribution à un sortilège dans une partie TERMINÉE référence encore le joueur via
+      // `fk_gl_spell_cast_contrib_player` (ON DELETE RESTRICT) : sans capture, l'erreur devenait
+      // un 500. On répond un 409 explicite plutôt que de supprimer l'historique de partie.
+      if (err && (err.errno === 1451 || err.code === 'ER_ROW_IS_REFERENCED_2')) {
+        return res.status(409).json({
+          error:
+            'Suppression refusée : ce joueur a contribué à un sortilège dans une partie terminée. Supprimez d’abord cette partie.',
+        });
+      }
+      throw err;
+    }
     return res.json({ ok: true });
   }),
 );
