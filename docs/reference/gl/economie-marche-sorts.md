@@ -21,6 +21,31 @@ L'ensemble s'appelle la **vitalité** ; c'est un réglage global à activer, et
 l'administrateur choisit les valeurs de départ des nouveaux joueurs (3 et 3 par
 défaut).
 
+### Le plafond de jeu (nouveau réglage)
+
+Le 99 ci-dessus est une limite **technique**. À côté existe désormais un plafond
+**de jeu** : **« Cœurs maximum »** et **« Gemmes maximum »** (Réglages GL → Gameplay),
+réglables de 1 à 99. La valeur **0 (par défaut) signifie « pas de plafond »** — le jeu
+se comporte exactement comme avant tant que vous n'y touchez pas.
+
+Pourquoi ce réglage existe : sans plafond, les cœurs ne font que monter. Ils cessent
+d'être une ressource sous tension, et tous les sortilèges de soin (Soins, Transmission,
+Résurrection) deviennent inutiles puisqu'il n'y a jamais de pénurie. Fixer un plafond
+(5 est la valeur discutée pour une année de 6ème) redonne de la valeur au soin et rend
+la gestion de son capital réellement intéressante.
+
+**Deux règles à connaître avant de l'activer :**
+
+- **Le plafond bloque les gains, il ne confisque rien.** Un élève déjà à 9 cœurs le
+  jour où vous fixez le plafond à 5 **ne perd pas 4 cœurs**. Il ne peut simplement plus
+  monter ; son solde ne redescend que par ses propres dépenses. Une sanction rétroactive
+  et invisible serait incompréhensible pour un élève de 6ème — le jeu ne le fait pas.
+- **Le plafond s'applique au jeu, pas au MJ.** Les effets de cases, les récompenses de
+  feuillets et les échanges du Marché le respectent (sans quoi le Marché serait le
+  contournement évident : « donne-moi tes cœurs, je suis au maximum »). Un **ajustement
+  manuel du MJ** reste souverain : vous pouvez toujours accorder un dépassement
+  exceptionnel.
+
 **Le triple rôle, assumé** : les mêmes points servent de jauge de vie/pouvoir, de
 monnaie d'échange et de récompense. C'est voulu — un seul système simple plutôt que
 trois compteurs — et c'est pourquoi le jeu affiche désormais, partout où l'on dépense,
@@ -220,10 +245,20 @@ circuit de l'économie, qui relie la lecture du lore à la vitalité.
 ## ⚠️ Points d'attention
 
 > ⚠️ **Point d'attention** — Comme les jauges sont durables, une classe qui joue toute
-> l'année accumule : penser aux **ajustements MJ** (ou à des coûts de sorts plus
-> élevés) pour garder de la tension. Un « plancher » configurable (empêcher un élève de
-> descendre sous X cœurs via le marché ou un sort) est noté au registre comme évolution
-> possible, à trancher après observation en classe.
+> l'année accumule. Le **plafond de jeu** décrit plus haut est la réponse à ce problème ;
+> tant qu'il vaut 0 (défaut), l'accumulation continue et il faut compter sur les
+> **ajustements MJ** ou des coûts de sorts plus élevés. Un « plancher » configurable
+> (empêcher un élève de descendre sous X cœurs via le marché ou un sort) est noté au
+> registre comme évolution possible, à trancher après observation en classe.
+
+> ⚠️ **Point d'attention — sortilèges à effet scolaire réel.** Cinq sortilèges ne
+> produisent pas un effet de jeu mais un effet dans la scolarité de l'élève : **Esquive**
+> (reporter un rendu), **Révélation** (le professeur donne la réponse), **Mentorat**
+> (« vert + » à l'oral), **Annulation** (dispense d'une activité évaluée) et
+> **Consécration** (« vert + » au bulletin). Ils exigent désormais tous une **validation
+> du MJ** avant de partir : leur coût n'a pas changé, mais un élève ne peut plus se les
+> offrir seul parce qu'il a réuni les gemmes. Les sortilèges purement fictionnels
+> (déplacement, soin, narration) restent en lancement libre.
 
 > ⚠️ **Point d'attention** — Le Marché n'apparaît chez les joueurs que si module Marché
 > **et** vitalité sont actifs tous les deux ; les réglages avertissent, mais c'est le
