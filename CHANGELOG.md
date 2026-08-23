@@ -26,6 +26,25 @@ affiché qu'une fois l'aide reçue du serveur, alors que la visite démarre 650 
 l'affichage de l'onglet. Sur un premier onglet à froid, la bulle finale — celle qui
 montre où retrouver OLU — disparaissait sans un mot, et l'onglet étant compté comme vu,
 elle ne revenait plus. La visite attend désormais que l'aide soit là.
+### Correctifs d'audit sans arbitrage (sécurité, BDD, a11y, docs)
+
+Suite de l'audit général (`docs/AUDIT_GENERAL_2026-08.md`), les correctifs qui ne
+demandaient aucune décision de conception :
+
+- **Sécurité & intégrité GL** : rate-limit sur les endpoints prof forgot/reset-password ;
+  `/api/site-issues` réservé à `admin.settings.read` ; jeton de présentation QCM
+  d'entraînement à usage unique (fin du brute-force des réponses, migration `197`) ;
+  `present-question` exige que le joueur soit sur le repère (anti-farm) ; validation des
+  coordonnées de repères ; `connectTimeout` sur le pool MySQL.
+- **Intégrité base de données** : inscription de groupe aux tâches sous verrou
+  (`FOR UPDATE`, plus de dépassement de capacité en concurrence) ; suppressions de tâche
+  et de groupe transactionnelles ; détachement (`NULL`) des `group_id` orphelins ;
+  suppression de joueur GL transactionnelle + purge des jetons + `409` explicite sur FK
+  RESTRICT ; `FOREIGN_KEY_CHECKS` réarmé après `initSchema`.
+- **Accessibilité** : contrastes des textes secondaires conformes WCAG AA ;
+  `aria-current` sur l'onglet actif ; zones de la carte accessibles au clavier.
+- **Documentation de référence** : contradiction sur les « tours » levée, encadré « pas
+  de lore » actualisé, dé virtuel documenté, renvois et terminologie corrigés.
 ### Le jeu tenait des promesses qu'il n'appliquait pas (audit des mécaniques G&L)
 
 **Aucun élève n'a jamais gagné un cœur ni une gemme en jouant.** Les quatre parties

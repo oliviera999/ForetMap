@@ -33,9 +33,11 @@ avance. Chaque chapitre (chaque biome) a sa propre carte.
 ## Qui déplace les mascottes
 
 C'est un **réglage de gameplay** : soit les joueurs déplacent eux-mêmes leur mascotte,
-soit le MJ garde la main (mode animation). Avec les **tours** activés, seule l'équipe
-dont c'est le tour agit. Un réglage optionnel déplace automatiquement la mascotte
-lorsqu'un effet de repère l'exige.
+soit le MJ garde la main (mode animation). Avec les **tours** activés, chaque « tour
+suivant » ouvre un round où **toutes les équipes rejouent** (le moteur ne désigne pas
+d'équipe « au trait ») ; le tour réarme simplement le quota par tour — un déplacement et
+un lancer de dé par équipe. Un réglage optionnel déplace automatiquement la mascotte
+lorsqu'un effet de repère l'exige (parcours numéroté).
 
 ## Ce que règle et construit le MJ/admin
 

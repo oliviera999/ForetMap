@@ -26,6 +26,7 @@ const {
   verifyPresentationAnswer,
   resolveQcmAnswerFeedback,
 } = require('../../lib/glQcmChoices');
+const { consumePresentationJti } = require('../../lib/glQcmPresentationUse');
 const {
   buildGlossaryLookupMap,
   matchGlossaryTermsForSpecies,
@@ -251,6 +252,18 @@ router.post(
         code,
         req.body?.choiceId,
       );
+      // Usage unique du jeton, même hors partie : sans cela, le même `presentationToken`
+      // permettait d'essayer tous les `choiceId` jusqu'à trouver la bonne réponse. La
+      // consommation force un nouveau tirage (choix remélangés) à chaque tentative, ce qui
+      // défait le brute-force. La clé primaire (jti) arbitre l'unicité (game_id NULL hors
+      // partie, cf. migration 197).
+      const consumption = await consumePresentationJti(
+        { execute },
+        { jti: result.jti, gameId: null, teamId: null, questionCode: code },
+      );
+      if (consumption === 'already_used') {
+        return res.status(409).json({ error: 'Présentation déjà utilisée' });
+      }
       const glossaryByKey = await loadGlossaryLookup();
       const glossaryTerms = await enrichQuestionWithGlossary(row, glossaryByKey);
       // Tentative par lecteur, enregistree meme conditionnement eteint : une bonne reponse

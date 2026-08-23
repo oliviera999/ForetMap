@@ -1084,9 +1084,14 @@ router.delete(
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     if (task.image_path) deleteFile(task.image_path);
-    await execute('DELETE FROM task_logs WHERE task_id = ?', [req.params.id]);
-    await execute('DELETE FROM task_assignments WHERE task_id = ?', [req.params.id]);
-    await execute('DELETE FROM tasks WHERE id = ?', [req.params.id]);
+    // Suppression atomique : sans transaction, un échec entre deux DELETE laissait une tâche
+    // amputée de ses logs/assignations (les écritures composées de ce fichier — POST/PUT/validate —
+    // sont déjà transactionnelles).
+    await withTransaction(async (tx) => {
+      await tx.execute('DELETE FROM task_logs WHERE task_id = ?', [req.params.id]);
+      await tx.execute('DELETE FROM task_assignments WHERE task_id = ?', [req.params.id]);
+      await tx.execute('DELETE FROM tasks WHERE id = ?', [req.params.id]);
+    });
     logAudit('delete_task', 'task', req.params.id, task.title, { req });
     emitTasksChanged({
       reason: 'delete_task',
