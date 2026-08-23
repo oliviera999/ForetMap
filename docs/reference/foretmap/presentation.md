@@ -136,8 +136,9 @@ existe, lui, sur la carte de travail des élèves.
   le texte s'affiche d'emblée en entier.
 - Ces bulles peuvent porter le **nom d'un narrateur** (par défaut « OLU »), affiché au-dessus du
   texte. Un réglage d'administration permet de changer ce nom, de le retirer, ou d'**éteindre
-  complètement le narrateur** sans intervention technique. Ce même réglage accueillera les
-  portraits du personnage lorsqu'ils seront produits ; tant qu'aucun n'est fourni, l'application
+  complètement le narrateur** sans intervention technique. Ce même réglage gère les
+  **portraits du personnage par expression** (import/choix d'une image par expression, voir
+  [visite-et-mascottes.md](visite-et-mascottes.md)) ; tant qu'aucun n'est fourni, l'application
   se rabat sur une silhouette dessinée — il n'y a jamais d'emplacement vide.
 
 ### L'administration

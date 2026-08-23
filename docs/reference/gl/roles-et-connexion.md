@@ -81,8 +81,8 @@ demande un compte, le jeu la refuse poliment.
   fonctionne pour les joueurs (si leur compte a une adresse e-mail) comme pour le
   staff. La réponse à l'écran est toujours neutre, pour ne pas révéler quels comptes
   existent.
-- **Réinitialisation par le MJ** : sur la fiche d'un joueur, une seule commande —
-  « Reset mdp » — permet de poser un nouveau mot de passe (l'ancienne commande
+- **Réinitialisation par le MJ** : sur la fiche d'un joueur, une seule commande de
+  **réinitialisation du mot de passe** permet d'en poser un nouveau (l'ancienne commande
   héritée du « PIN » a disparu ; tout parle désormais de « mot de passe »).
 - **Changement forcé à la prochaine connexion** : un joueur peut être marqué
   « doit changer son mot de passe ». À sa connexion suivante, une fenêtre bloquante
