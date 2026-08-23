@@ -62,3 +62,28 @@ export function useGlHelpContent(helpKey, { isStaff = false } = {}) {
     ready: !!config,
   };
 }
+
+/**
+ * Vrai une fois la configuration d'aide chargée (ou son échec absorbé).
+ *
+ * Sert à la visite guidée : son étape de relance vise le bouton « ? », lequel n'est
+ * rendu qu'une fois l'aide connue. Démarrer un parcours avant cet instant, c'est le
+ * priver de sa dernière bulle — le moteur écarte les cibles absentes du DOM, en
+ * silence. On attend donc, plutôt que de courir après le réseau.
+ */
+export function useGlHelpReady() {
+  const [ready, setReady] = useState(!!cachedHelpConfig);
+
+  useEffect(() => {
+    if (ready) return undefined;
+    let cancelled = false;
+    fetchGlHelpConfig().then(() => {
+      if (!cancelled) setReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [ready]);
+
+  return ready;
+}

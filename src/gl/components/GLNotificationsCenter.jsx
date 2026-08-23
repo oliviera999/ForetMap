@@ -1,19 +1,29 @@
 import React, { useState } from 'react';
 import { GLButton } from './ui/GLButton.jsx';
+import { Tooltip } from '../../shared/components/Tooltip.jsx';
 
 export function GLNotificationsCenter({ items, unreadCount, onMarkAllRead, onClear }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="gl-notifications">
-      <button
-        type="button"
-        className="gl-notifications-bell"
-        onClick={() => setOpen((v) => !v)}
-        aria-label={`Notifications (${unreadCount} non lues)`}
+      <Tooltip
+        text={
+          unreadCount > 0
+            ? `Notifications — ${unreadCount} non ${unreadCount > 1 ? 'lues' : 'lue'}`
+            : 'Notifications'
+        }
+        position="bottom"
       >
-        <span aria-hidden>🔔</span>
-        {unreadCount > 0 ? <span className="gl-notifications-badge">{unreadCount}</span> : null}
-      </button>
+        <button
+          type="button"
+          className="gl-notifications-bell"
+          onClick={() => setOpen((v) => !v)}
+          aria-label={`Notifications (${unreadCount} non lues)`}
+        >
+          <span aria-hidden>🔔</span>
+          {unreadCount > 0 ? <span className="gl-notifications-badge">{unreadCount}</span> : null}
+        </button>
+      </Tooltip>
       {open ? (
         <div className="gl-notifications-panel" role="dialog" aria-label="Centre de notifications">
           <header>

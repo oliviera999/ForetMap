@@ -4,7 +4,7 @@ import { SPECIAL_EMOJI, SPECIAL_DESC, TREE_LEGEND, TREE_DOTS } from '../constant
 import { compressImage } from '../utils/image';
 import { useHelp } from '../hooks/useHelp';
 import { CatalogRemarksSection } from './map-views';
-import { Tooltip } from './Tooltip';
+import { Tooltip } from '../shared/components/Tooltip.jsx';
 import { HelpPanel } from './HelpPanel';
 import { ContextComments } from './context-comments';
 import { PlantSpeciesDiscoveryAcknowledgeButton } from './PlantSpeciesDiscoveryAcknowledge';

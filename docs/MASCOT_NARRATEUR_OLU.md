@@ -1271,7 +1271,7 @@ parti entre les peuples.
 
 **Restent ouverts :**
 
-- **Les infobulles GL** (P4 de la revue) : GL n'en a toujours aucune.
+- ~~**Les infobulles GL** (P4 de la revue)~~ — **livrées au lot 11 (§16.8)**.
 - **L'intro GL** reste une iframe statique, hors du système (§8.3).
 - ~~**15 onglets GL sur 26** n'ont pas de parcours~~ — **repris au lot 10 (§16.7)**, qui a
   d'abord révélé que le problème n'était pas celui-là.
@@ -1356,3 +1356,56 @@ redit où l'on est vaut mieux qu'un regroupement jamais présenté.
 `data-gl-tour="…"`. Chaque cible s'y trouvait elle-même et le test ne pouvait pas
 échouer. Le registre est désormais exclu du balayage. Un test à cibles doit être vérifié
 en le faisant échouer volontairement — les trois l'ont été.
+
+### 16.8 Lot 11 — les infobulles GL, et une ancre que le lot 10 avait manquée
+
+**GL n'avait aucune infobulle** (P4 de la revue) : ses commandes en icône seule
+s'expliquaient par l'attribut `title` du navigateur, qui met une à deux secondes à
+venir, ne s'affiche **pas** à la prise de focus clavier et **jamais** au toucher.
+
+ForetMap avait déjà le bon composant — `Tooltip.jsx` : ouverture temporisée au survol,
+immédiate au focus, appui long au doigt, retournement quand la bulle déborderait de la
+fenêtre, `role="tooltip"` et `aria-describedby`. Il ne contenait **rien** de propre à
+ForetMap. En écrire un second pour GL aurait été une faute ; il rejoint donc
+`src/shared/`, comme le socle de visite guidée au lot 8a.
+
+| Élément   | Avant                        | Après                                   |
+| --------- | ---------------------------- | --------------------------------------- |
+| Composant | `src/components/Tooltip.jsx` | `src/shared/components/Tooltip.jsx`     |
+| Styles    | `src/index.css` (62 lignes)  | `src/shared/styles/tooltip.css`         |
+| Couleurs  | en dur, thème forêt          | variables `--fm-tooltip-*`, repli forêt |
+| GL        | `title` natif                | même infobulle, palette du royaume      |
+
+**Où elles se posent, et pourquoi pas ailleurs.** `GLBoardActionButton` est le point de
+passage **unique** des commandes en icône seule du plateau — dés, musique, plein écran,
+actions de tour. L'infobulle s'y pose une fois et les couvre toutes. S'y ajoutent le
+bouton « ? » et la cloche de notifications, les deux autres pictogrammes isolés de la
+chrome. Un bouton qui affiche déjà son libellé n'est **pas** enrobé : il n'a rien à
+expliquer, et l'enrobage ajouterait un nœud dans une barre d'outils déjà dense.
+
+L'attribut `title` disparaît **là où l'infobulle prend le relais**, et là seulement :
+les deux affichées ensemble se superposeraient.
+
+#### L'ancre que le lot 10 avait manquée
+
+En verrouillant par test que le bouton « ? » reste atteignable malgré son enrobage, le
+test a échoué — pour une raison qui n'avait rien à voir avec l'enrobage :
+
+> `GLHelpDialog` rend `null` tant que le corps de l'aide est vide, et ce corps vient
+> d'un `GET /api/gl/content/help`. **Le bouton « ? » est donc derrière une requête.**
+
+Or il est la cible de `GL_RELAUNCH_STEP`, l'étape finale de **tous** les parcours GL, et
+l'auto-démarrage se déclenche 650 ms après l'affichage de l'onglet. Sur un premier
+onglet à froid, la dernière bulle de la visite disparaissait — sans erreur, sans trace —
+et l'onglet étant marqué vu au passage, elle ne revenait plus.
+
+C'est la classe de défaut traitée au §16.7. Je l'avais fermée pour les ancres
+`data-gl-tour`, et laissée ouverte sur `.gl-help-btn` : ce sélecteur figurait dans la
+liste des exceptions admises du test, où je ne l'avais pas vérifié.
+
+**La correction** : l'auto-démarrage attend que la configuration d'aide soit chargée
+(`useGlHelpReady`). Le couplage est cohérent — aide et visite s'allument déjà ensemble
+par le même module, et un parcours dont la dernière bulle désigne le bouton d'aide n'a
+pas de raison de partir avant que ce bouton puisse exister. La relance manuelle depuis
+le « ? », elle, n'est pas concernée : le bouton est là, puisqu'on vient de cliquer
+dessus.

@@ -5318,73 +5318,11 @@
 }
 
 /* ── CONTEXTUAL HELP ── */
-.fm-tooltip-wrap {
-  position: relative;
-  display: inline-flex;
-}
-.fm-tooltip {
-  position: absolute;
-  z-index: 80;
-  min-width: 150px;
-  max-width: 260px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,.18);
-  background: rgba(26,71,49,.95);
-  color: var(--cream);
-  font-size: .78rem;
-  line-height: 1.35;
-  box-shadow: var(--shadow);
-  animation: fadeIn .16s ease-out;
-  pointer-events: none;
-}
-.fm-tooltip--top {
-  left: 50%;
-  bottom: calc(100% + 8px);
-  transform: translateX(-50%);
-}
-.fm-tooltip--bottom {
-  left: 50%;
-  top: calc(100% + 8px);
-  transform: translateX(-50%);
-}
-.fm-tooltip--left {
-  right: calc(100% + 8px);
-  top: 50%;
-  transform: translateY(-50%);
-}
-.fm-tooltip--right {
-  left: calc(100% + 8px);
-  top: 50%;
-  transform: translateY(-50%);
-}
-.fm-tooltip__arrow {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background: rgba(26,71,49,.95);
-  transform: rotate(45deg);
-}
-.fm-tooltip--top .fm-tooltip__arrow {
-  left: 50%;
-  top: calc(100% - 4px);
-  margin-left: -4px;
-}
-.fm-tooltip--bottom .fm-tooltip__arrow {
-  left: 50%;
-  bottom: calc(100% - 4px);
-  margin-left: -4px;
-}
-.fm-tooltip--left .fm-tooltip__arrow {
-  top: 50%;
-  left: calc(100% - 4px);
-  margin-top: -4px;
-}
-.fm-tooltip--right .fm-tooltip__arrow {
-  top: 50%;
-  right: calc(100% - 4px);
-  margin-top: -4px;
-}
+/*
+ * Les infobulles (`.fm-tooltip*`) vivent désormais dans
+ * `src/shared/styles/tooltip.css` : leur composant sert aussi G&L, qui ne charge pas
+ * cette feuille. Redéfinir une couleur se fait par les variables `--fm-tooltip-*`.
+ */
 
 .fm-help-btn {
   min-width: 48px;

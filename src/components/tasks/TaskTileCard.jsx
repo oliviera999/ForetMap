@@ -27,7 +27,7 @@ import { TaskTileMeta } from './TaskTileMeta.jsx';
 import { assignmentMatchesStudent, isStudentAssignedToTask } from '../../utils/task-assignments';
 import { ContextComments } from '../context-comments';
 import { MarkdownContent } from '../MarkdownContent.jsx';
-import { Tooltip } from '../Tooltip';
+import { Tooltip } from '../../shared/components/Tooltip.jsx';
 import { tutorialPreviewCanEmbed } from '../TutorialPreviewModal';
 import { ImageLightbox } from '../../shared/components/ImageLightbox.jsx';
 
