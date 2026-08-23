@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { DialogShell } from '../../components/DialogShell.jsx';
 import { MascotSpeaker } from '../../shared/components/MascotSpeaker.jsx';
 import { GLButton } from './ui/GLButton.jsx';
+import { Tooltip } from '../../shared/components/Tooltip.jsx';
 import { useGlNarrator } from '../hooks/useGlNarrator.js';
 import { useGlHelpContent } from '../hooks/useGlHelpContent.js';
 import { renderGlHelpBody } from './glHelpBody.jsx';
@@ -58,18 +59,29 @@ export function GLHelpDialog({ helpKey, isStaff = false, onStartTour = null }) {
 
   return (
     <>
-      <button
-        type="button"
-        className={`gl-help-btn ${seen ? '' : 'is-pulsing'}`}
-        aria-label={`Ouvrir l'aide : ${title}`}
-        data-gl-help-key={helpKey}
-        onClick={() => {
-          markSeen();
-          setOpen(true);
-        }}
+      {/*
+       * L'infobulle dit ce que le bouton ouvre **vraiment** — l'aide, et la visite
+       * quand elle existe. Le « ? » pulse pour attirer l'œil, il n'explique rien.
+       * `aria-label` reste la source du nom accessible ; l'infobulle s'y ajoute
+       * comme description, elle ne s'y substitue pas.
+       */}
+      <Tooltip
+        text={onStartTour ? 'Aide et visite guidée de cet écran' : 'Aide de cet écran'}
+        position="left"
       >
-        ?
-      </button>
+        <button
+          type="button"
+          className={`gl-help-btn ${seen ? '' : 'is-pulsing'}`}
+          aria-label={`Ouvrir l'aide : ${title}`}
+          data-gl-help-key={helpKey}
+          onClick={() => {
+            markSeen();
+            setOpen(true);
+          }}
+        >
+          ?
+        </button>
+      </Tooltip>
       {open ? (
         <DialogShell
           open={open}

@@ -7,6 +7,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Les commandes GL en icône seule s'expliquent enfin (lot 11)
+
+**GL n'avait aucune infobulle.** Ses boutons en pictogramme — les dés, la musique, le
+plein écran, le « ? », la cloche — comptaient sur l'infobulle du navigateur : une à deux
+secondes d'attente, rien à la prise de focus au clavier, **rien du tout au doigt**.
+
+ForetMap avait déjà le bon composant. Il n'avait rien de propre à ForetMap : il rejoint
+le socle partagé et sert désormais les deux produits, avec les couleurs du royaume côté
+GL. Ouverture temporisée au survol, immédiate au focus clavier, appui long sur écran
+tactile, et retournement quand la bulle déborderait de la fenêtre.
+
+Un bouton qui affiche déjà son libellé n'en reçoit pas : il n'a rien à expliquer.
+
+**Une visite guidée perdait sa dernière bulle sur le premier onglet ouvert.** En
+verrouillant tout cela par des tests, une course est apparue : le bouton « ? » n'est
+affiché qu'une fois l'aide reçue du serveur, alors que la visite démarre 650 ms après
+l'affichage de l'onglet. Sur un premier onglet à froid, la bulle finale — celle qui
+montre où retrouver OLU — disparaissait sans un mot, et l'onglet étant compté comme vu,
+elle ne revenait plus. La visite attend désormais que l'aide soit là.
+
 ### Les visites guidées GL atteignent enfin les écrans où l'on arrive (lot 10)
 
 **Quatre des douze visites du lot 9 ne pouvaient pas se déclencher.** La navigation GL

@@ -2908,6 +2908,17 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   --fm-tour-muted: var(--gl-color-primary, #047c8c);
 }
 
+/* ── INFOBULLES — thématisation GL ──────────────────────────────────────────
+ * Placement et comportement viennent de `src/shared/styles/tooltip.css` ; seules les
+ * couleurs changent. Contrairement à l'overlay de visite, l'infobulle est rendue **en
+ * place**, à côté de sa cible : elle reste donc sous `.gl-app` et se scope normalement.
+ */
+.gl-app {
+  --fm-tooltip-bg: color-mix(in srgb, #04222a 88%, var(--gl-color-primary, #047c8c) 12%);
+  --fm-tooltip-text: #f2fbfd;
+  --fm-tooltip-border: color-mix(in srgb, #fff 22%, transparent);
+}
+
 /* ── AIDE CONTEXTUELLE APPELÉE (bouton « ? » + modale) ──────────────────────
  * Pendant GL du `HelpPanel` ForetMap. L'encadré replié en bas de page ne se lisait
  * que si l'on descendait jusqu'à lui ; le bouton, lui, se voit et se demande.
