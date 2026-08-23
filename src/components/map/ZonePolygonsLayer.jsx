@@ -60,11 +60,27 @@ const ZonePolygon = React.memo(function ZonePolygon({
   const mx = wp.reduce((s, p) => s + p.cx, 0) / wp.length;
   const my = wp.reduce((s, p) => s + p.cy, 0) / wp.length;
   const isEd = isEditing;
+  const isInteractive = mode === 'view';
   return (
     <g
-      className={mode === 'view' ? 'map-zone-hit' : ''}
-      style={{ cursor: mode === 'view' ? 'pointer' : 'default' }}
+      className={isInteractive ? 'map-zone-hit' : ''}
+      style={{ cursor: isInteractive ? 'pointer' : 'default' }}
       onClick={(e) => onZoneOpen(z, e)}
+      // Accessibilité clavier : en consultation, une zone est un bouton — sinon un élève au
+      // clavier ne pouvait pas l'ouvrir (les repères, eux, sont déjà des boutons).
+      role={isInteractive ? 'button' : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+      aria-label={isInteractive ? zoneName || z.name : undefined}
+      onKeyDown={
+        isInteractive
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onZoneOpen(z, e);
+              }
+            }
+          : undefined
+      }
     >
       <polygon
         points={str}
