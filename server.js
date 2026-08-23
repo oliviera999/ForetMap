@@ -19,7 +19,7 @@ const { initRealtime, shutdownRealtime } = require('./lib/realtime');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
 const { assignRequestId } = require('./lib/requestId');
 const { createHttpRequestLogMiddleware } = require('./lib/httpRequestLog');
-const { parseBearerToken, JWT_SECRET } = require('./middleware/requireTeacher');
+const { parseBearerToken, JWT_SECRET, requirePermission } = require('./middleware/requireTeacher');
 const { verifyJwtToken } = require('./lib/auth/jwtPipeline');
 const { resolveProductFromRequest } = require('./lib/productResolver');
 const { generalLimiter, authLimiter } = require('./lib/rateLimit');
@@ -149,6 +149,9 @@ app.use('/api/', generalLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/reset-password', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
+app.use('/api/auth/teacher/forgot-password', authLimiter);
+app.use('/api/auth/teacher/reset-password', authLimiter);
 app.use('/api/gl/auth/login', authLimiter);
 app.use('/api/gl/auth/guest', authLimiter);
 app.use('/api/gl/auth/forgot-password', authLimiter);
@@ -404,12 +407,14 @@ app.get('/docs/:file', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'docs', file));
 });
 
-// Liste centralisée des problèmes potentiels du site (audit interne)
-app.get('/api/site-issues', (req, res) => {
+// Liste centralisée des problèmes potentiels du site (audit interne) : réservée aux
+// détenteurs de `admin.settings.read` — ce document recense des faiblesses connues et ne
+// doit pas être servi publiquement.
+app.get('/api/site-issues', requirePermission('admin.settings.read'), (req, res) => {
   res.type('text/markdown; charset=utf-8');
   res.sendFile(path.resolve(__dirname, 'docs', 'SITE_ISSUES.md'));
 });
-app.get('/api/site-issues.json', (req, res) => {
+app.get('/api/site-issues.json', requirePermission('admin.settings.read'), (req, res) => {
   res.type('application/json; charset=utf-8');
   res.sendFile(path.resolve(__dirname, 'docs', 'SITE_ISSUES.json'));
 });

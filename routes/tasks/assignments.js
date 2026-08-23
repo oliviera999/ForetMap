@@ -159,50 +159,68 @@ router.post(
         AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
       scope.studentIds,
     );
-    const already = new Set((task.assignments || []).map((a) => String(a.student_id || '')));
-    const maxSlots = Math.max(
-      0,
-      Number(task.required_students || 1) - Number(task.assignments?.length || 0),
-    );
-    // Sélectionne (dans l'ordre) les n3beurs à affecter en préservant la sémantique de la boucle :
-    // `skipped` compte les déjà-affectés rencontrés AVANT que les créneaux soient pleins, puis on
-    // insère tout en UNE requête multi-valeurs (au lieu d'un INSERT par n3beur).
-    const toAssign = [];
-    let skipped = 0;
-    for (const student of students) {
-      if (already.has(String(student.id))) {
-        skipped += 1;
-        continue;
+    // Toute l'inscription de groupe se fait **sous le verrou** de la ligne `tasks` : sans
+    // cela, `maxSlots` était calculé à partir d'une lecture antérieure (getTaskWithAssignments)
+    // et une inscription concurrente pouvait faire dépasser `required_students` (l'index unique
+    // de la migration 170 ne couvre que le doublon n3beur, pas la capacité). Même garde que le
+    // chemin individuel (`claimAssignmentSeat`).
+    const outcome = await withTransaction(async (tx) => {
+      const locked = await tx.queryOne(
+        'SELECT id, status, completion_mode, required_students FROM tasks WHERE id = ? FOR UPDATE',
+        [task.id],
+      );
+      if (!locked) return { http: 404, error: 'Tâche introuvable' };
+      const lockedStatus = normalizeTaskStatusForRead(locked.status);
+      if (lockedStatus === 'validated') return { http: 400, error: 'Tâche déjà validée' };
+      if (lockedStatus === 'on_hold')
+        return { http: 400, error: 'Tâche en attente : inscription indisponible' };
+
+      const assignedRows = await tx.queryAll(
+        'SELECT student_id FROM task_assignments WHERE task_id = ?',
+        [task.id],
+      );
+      const already = new Set(assignedRows.map((a) => String(a.student_id || '')));
+      const maxSlots = Math.max(0, Number(locked.required_students || 1) - assignedRows.length);
+
+      // `skipped` compte les déjà-affectés rencontrés AVANT que les créneaux soient pleins.
+      const toAssign = [];
+      let skipped = 0;
+      for (const student of students) {
+        if (already.has(String(student.id))) {
+          skipped += 1;
+          continue;
+        }
+        if (toAssign.length >= maxSlots) break;
+        toAssign.push(student);
       }
-      if (toAssign.length >= maxSlots) break;
-      toAssign.push(student);
-    }
-    const assigned = toAssign.length;
-    if (toAssign.length > 0) {
-      const assignedAt = nowIsoUtc();
-      const placeholders = toAssign.map(() => '(?, ?, ?, ?, ?)').join(', ');
-      const params = [];
-      for (const student of toAssign) {
-        params.push(
-          task.id,
-          student.id,
-          student.first_name || '',
-          student.last_name || '',
-          assignedAt,
-        );
-      }
-      // `ON DUPLICATE KEY UPDATE` neutre : depuis l'index unique (migration 170), une
-      // inscription concurrente sur le même couple (tâche, n3beur) ferait échouer TOUT le lot.
-      // On retombe alors sur une mise à jour sans effet plutôt que sur une erreur 500.
-      await execute(
-        `INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at)
+      if (toAssign.length > 0) {
+        const assignedAt = nowIsoUtc();
+        const placeholders = toAssign.map(() => '(?, ?, ?, ?, ?)').join(', ');
+        const params = [];
+        for (const student of toAssign) {
+          params.push(
+            task.id,
+            student.id,
+            student.first_name || '',
+            student.last_name || '',
+            assignedAt,
+          );
+        }
+        // `ON DUPLICATE KEY UPDATE` neutre : filet anti-doublon (index unique migration 170).
+        await tx.execute(
+          `INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at)
        VALUES ${placeholders}
        ON DUPLICATE KEY UPDATE student_first_name = VALUES(student_first_name),
                                student_last_name = VALUES(student_last_name)`,
-        params,
-      );
-    }
-    await recalculateTaskStatus(task);
+          params,
+        );
+      }
+      await recalculateTaskStatus(locked, tx);
+      return { assigned: toAssign.length, skipped };
+    });
+
+    if (outcome.http) return res.status(outcome.http).json({ error: outcome.error });
+    const { assigned, skipped } = outcome;
     const updated = await getTaskWithAssignments(task.id);
     emitTasksChanged({ reason: 'assign_group', taskId: task.id, mapId: resolveTaskMapId(updated) });
     await syncTaskProjectCompletionForProjects([updated.project_id]);

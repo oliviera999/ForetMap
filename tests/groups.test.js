@@ -337,6 +337,32 @@ test('Tasks: affectation rapide par groupe', async () => {
   assert.ok(assignments.some((a) => String(a.student_id) === student.id));
 });
 
+test('Groupes: la suppression détache (NULL) les group_id sans FK', async () => {
+  const token = await getAdminToken();
+  const groupId = crypto.randomUUID();
+  const taskId = crypto.randomUUID();
+  await execute(
+    `INSERT INTO \`groups\` (id, slug, name, kind, is_active, created_at, updated_at)
+     VALUES (?, ?, ?, 'class', 1, NOW(), NOW())`,
+    [groupId, `del-group-${Date.now()}`, `Del Group ${Date.now()}`],
+  );
+  await execute(
+    `INSERT INTO tasks (id, title, description, map_id, group_id, required_students, completion_mode, status, created_at)
+     VALUES (?, ?, '', 'foret', ?, 1, 'single_done', 'available', ?)`,
+    [taskId, `Task del ${Date.now()}`, groupId, new Date().toISOString()],
+  );
+
+  await request(app)
+    .delete(`/api/groups/${groupId}`)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+
+  const row = await queryOne('SELECT group_id FROM tasks WHERE id = ? LIMIT 1', [taskId]);
+  assert.strictEqual(row?.group_id ?? null, null, 'la tâche ne doit plus référencer le groupe');
+  const gone = await queryOne('SELECT id FROM `groups` WHERE id = ? LIMIT 1', [groupId]);
+  assert.ok(!gone, 'le groupe est supprimé');
+});
+
 // ---------------------------------------------------------------------------
 // F2-B — comptes en attente de rattachement + rattachement unitaire
 // ---------------------------------------------------------------------------
