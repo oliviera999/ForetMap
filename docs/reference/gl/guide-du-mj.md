@@ -24,8 +24,12 @@
 
 ## Pendant la séance — la console MJ
 
-- **Les tours** : passer au tour suivant fait tourner les équipes (et restreint QCM,
-  actions et sorts à l'équipe active si les tours sont activés).
+- **Les tours** : passer au tour suivant ouvre un nouveau round où **toutes les équipes
+  rejouent** — le moteur ne désigne pas d'équipe « au trait ». Le tour réarme seulement ce
+  que chaque équipe peut faire une fois par tour (déplacement, lancer de dé) ; l'alternance
+  stricte entre équipes reste une convention d'animation que vous tenez. Les **sortilèges ne
+  sont pas liés au tour** : ce qui les régule, c'est la validation du MJ (voir
+  [l'économie](economie-marche-sorts.md)).
 - **Les déplacements** : selon le réglage, le MJ déplace les mascottes ou laisse la
   main aux joueurs. À l'arrivée sur un repère, les effets s'appliquent — parfois
   différemment pour un gnome et une licorne : c'est le moment de la phrase-clé,

@@ -244,5 +244,5 @@ un **document PDF joint**, affiché tel quel.
 
 - Vue d'ensemble de l'application : [presentation.md](presentation.md)
 - Comptes, rôles et paliers en détail : [comptes-roles-et-groupes.md](comptes-roles-et-groupes.md)
-- La carte, les zones et les repères où vivent les tâches : _carte-et-zones.md_ (à rédiger)
-- Les statistiques et le suivi de la progression : _stats-forum-et-suivi.md_ (à rédiger)
+- La carte, les zones et les repères où vivent les tâches : [carte-et-zones.md](carte-et-zones.md)
+- Les statistiques et le suivi de la progression : [stats-forum-et-suivi.md](stats-forum-et-suivi.md)

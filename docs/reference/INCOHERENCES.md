@@ -389,7 +389,7 @@ d'abord un problème d'explication : le doc économie est de toute façon prévu
 plancher de C est une jolie protection pour le cycle 3 — à trancher après une ou deux
 séances d'observation. B seulement si la confusion résiste à A + C.
 
-**Décision :** ✅ **Livré (volet libellés)** (2026-07-08, option C) — au Marché et dans l'assistant de sorts, chaque champ de dépense affiche « tu dépenses tes cœurs/gemmes — il te restera N ». Le plancher configurable reste à trancher après observation en classe ; le doc « économie du jeu » (option A) reste prévu au sommaire.
+**Décision :** ✅ **Livré (volets libellés + doc)** (2026-07-08, option C ; doc livré depuis) — au Marché et dans l'assistant de sorts, chaque champ de dépense affiche « tu dépenses tes cœurs/gemmes — il te restera N ». Le doc « économie du jeu » (option A) est désormais rédigé : [gl/economie-marche-sorts.md](gl/economie-marche-sorts.md). **Reste ouvert :** le plancher de vitalité configurable, à trancher après observation en classe.
 
 ### G10 — 🟡 Scories internes GL
 
