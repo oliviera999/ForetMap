@@ -51,7 +51,7 @@ tactiles, navigation clavier).
 
 ## 2. Méthodologie
 
-Audit statique, en lecture seule, sans exécution ni accès base, mené en cinq passes
+Audit statique, en lecture seule, sans exécution ni accès base, mené en six passes
 parallèles :
 
 - **Backend & sécurité** : `server.js`, `app.js`, `routes/*.js`, `middleware/`, `lib/`
@@ -63,9 +63,11 @@ parallèles :
 - **Frontend UI/UX** : `src/` hors `src/gl/`, `index.vite.html`, `src/index.css`.
 - **Tests / CI / docs** : `tests/`, `tests-ui/`, `e2e/`, `.github/workflows/`, `docs/`,
   `package.json`.
+- **Contenu des docs de référence** : les 18 fichiers de `docs/reference/` (qualité, cohérence,
+  terminologie, lacunes, fraîcheur, marqueurs en attente) — voir §8.
 
 Les constats majeurs les plus lourds ont été revérifiés directement dans le code. **Réserve :**
-les exploits GID de farm/brute-force reposent sur les réglages **par défaut** des parties
+les exploits GL de farm/brute-force reposent sur les réglages **par défaut** des parties
 (`markerQuestionRetrigger='every_arrival'`, gating off) ; certains profils réduisent la surface
 mais ne referment pas la faille de révélation de réponse, indépendante des réglages.
 
@@ -393,7 +395,181 @@ mais ne referment pas la faille de révélation de réponse, indépendante des r
   `docs/reference/INCOHERENCES.md:527` (17 sortilèges « proposés » jouables comme officiels ;
   arbitrage suspendu faute d'un écran de tri par chapitre).
 
-## 8. Plan d'action recommandé
+## 8. Documentation de référence (contenu fonctionnel)
+
+> Cette section audite le **contenu** des 18 documents non techniques de `docs/reference/`
+> (destinés aux profs, MJ et admins), au-delà du seul angle « fraîcheur » du §7. Ces docs
+> décrivent « ce que le jeu fait aujourd'hui » ; ils sont désormais **joints systématiquement**
+> aux audits (voir la note de méthode en fin de section).
+
+### Décisions et marqueurs en attente (liste exhaustive)
+
+- **Aucun marqueur `🔧 À implémenter` actif** : les 4 occurrences décrivent la convention
+  elle-même (`README.md:34,72,88`, `guide-du-mj.md:181`). Aucun « TODO ».
+- **`INCOHERENCES.md:527` — G13-b, `⏳ En attente` (2026-08-20)** : un sortilège « proposé » se
+  joue comme un sortilège officiel ; arbitrage suspendu le temps de trier le catalogue. **Seul
+  point du registre non résolu.**
+- **`INCOHERENCES.md:389,392` + `economie-marche-sorts.md:226` — G9** : plancher de vitalité
+  configurable, « à trancher après observation en classe ».
+- **`lore-deux-peuples.md:122-134`, `gl/presentation.md:185-189`** : intégration du corpus « Les
+  deux peuples du seuil » dans les contenus du jeu — action d'édition MJ/admin restant à faire
+  (pas du code).
+
+### Constats de contenu
+
+- **[MAJEUR] Contradiction directe sur ce que font les « tours »** — `carte-du-royaume.md:37` et
+  `guide-du-mj.md:27` (« seule l'équipe dont c'est le tour agit », sorts inclus) contredisent
+  `chapitres-et-progression.md:77-81` (« toutes les équipes rejouent en même temps ; aucune n'est
+  au trait ») et `economie-marche-sorts.md:107` (« lancer un sort n'est pas lié au tour »). C'est
+  la décision G13-a marquée livrée. **Reco :** aligner les deux premiers docs sur le mode réel
+  (tours globaux, quota par tour sur déplacement/dé seulement, sorts non bornés).
+- **[MAJEUR] L'encadré « le jeu n'a pas de lore » se contredit dans le même document** —
+  `gl/presentation.md:32-37` affirme qu'il n'existe pas de récit mettant en scène gnomes/licornes,
+  alors que `:185-189` (même doc) annonce le corpus « Les deux peuples du seuil » rédigé et
+  pré-intégré (G1 marqué résolu). Le lecteur tombe d'abord sur l'affirmation périmée. **Reco :**
+  reformuler en « le récit existe et reste à mettre en scène » ou supprimer l'encadré.
+- **[MINEUR] Fraîcheur** : portraits d'OLU décrits comme « à venir » (`foretmap/presentation.md:140-141`)
+  alors qu'ils sont opérationnels (`visite-et-mascottes.md:198-207`) ; renvois « (à rédiger) »
+  vers deux docs déjà écrits (`taches-tutoriels-et-validation.md:247-248`) ; mention « doc économie
+  prévu au sommaire » obsolète (`INCOHERENCES.md:392`) ; résumé d'arbitrage de bas de page
+  (`INCOHERENCES.md:558-575`) en retard sur la vague d'août (F8, G11-G14, G13-b).
+- **[MINEUR] Terminologie divergente** : le carnet personnel GL porte trois noms (« Mon journal »
+  / « carnet personnel » / « journal personnel » — `gl/presentation.md:117`, `guide-du-mj.md:52,110`) ;
+  libellé franglais « Reset mdp » (`roles-et-connexion.md:84,86`) vs « réinitialisation de mot de
+  passe » ailleurs ; les deux tableaux de rôles GL divergent (`gl/presentation.md:43-46` vs
+  `roles-et-connexion.md:16-21`) sur qui crée le compte joueur et sur l'auth du MJ.
+- **[MINEUR] Lacunes** : le « dé virtuel » est cité comme module (`gl/presentation.md:165`,
+  `guide-du-mj.md:22`) mais jamais expliqué ; le module Quiz ForetMap est traité très
+  superficiellement (`pedagogie-quiz-glossaire-reseau.md:15-21`) au regard du QCM GL ; les
+  « Cadres d'image » sont listés sans définition (`gl/presentation.md:126-127`).
+- **[INFO] Registre `INCOHERENCES.md` bien tenu** (24/25 points résolus et datés), mais deux
+  résolutions sont **démenties par des docs consommateurs** (G1 par l'encadré périmé, G13-a par la
+  contradiction « tours ») et deux décisions « à trancher après observation » (G9, G13-b) n'ont pas
+  de mécanisme de rappel.
+- **[INFO] Densité** : `visite-et-mascottes.md` (237 l., mêle Visite + mascottes + réglage OLU) et
+  `taches-tutoriels-et-validation.md` (248 l.) gagneraient un sommaire interne ou un découpage
+  (OLU en doc dédié).
+
+**Points forts de la doc** : registre d'arbitrage exemplaire (constat → options → décision datée,
+traçable vers les audits techniques), ton et public parfaitement tenus (français clair, encadrés
+⚠️ orientés « geste à faire »), convention de mise à jour explicite et vivante, guide du MJ très
+opérationnel (tableau incidents symptôme/cause/geste), corpus lore de grande qualité.
+
+> **Note de méthode — joindre ces docs aux audits.** Le premier lot d'audit ne couvrait `docs/`
+> que sous l'angle tests/CI/fraîcheur. Désormais, tout audit général inclut une passe de contenu
+> sur `docs/reference/` (cohérence interne, terminologie, lacunes, fraîcheur, marqueurs en
+> attente), conformément au skill `foretmap-docs-reference`.
+
+## 9. Mécaniques de jeu (GL) — propositions pour rendre le jeu plus vivant
+
+> Section **prospective** (pas un constat de défaut) : pistes d'évolution à trancher par le
+> propriétaire. Rien n'est implémenté par cet audit. Propositions classées de la moins coûteuse
+> (pur réglage / donnée) à la plus structurante (moteur).
+
+### 9.0 Le diagnostic de fond : un plateau qui « n'applique presque rien »
+
+Trois faits, tirés des docs de référence et des audits code, cadrent le problème :
+
+- **L'appli encaisse, le MJ applique.** Pour les sortilèges, le logiciel retire le coût mais
+  n'exécute aucun effet (`economie-marche-sorts.md:114-138`) : soin, déplacement, bonus, durée
+  sont appliqués **à la main** par le MJ ; `limite d'usage` et `cumul` ne sont jamais vérifiés
+  par le code (`:132-134,163-165`).
+- **Les « tours » ne tournent pas.** Chaque « tour suivant » ouvre un round où **toutes les
+  équipes rejouent en même temps** (`chapitres-et-progression.md:77-81`). L'alternance est une
+  convention d'animation, pas une règle du jeu.
+- **La vitalité s'accumule sans puits.** Cœurs/gemmes sont durables et traversent les parties
+  (`economie-marche-sorts.md:14-15,222-226`) : sur une année, une classe thésaurise et la tension
+  disparaît.
+
+Conséquence : pour un élève, **jouer ne change presque rien à l'écran** — c'est le levier
+d'engagement n°1. Pourtant les champs d'effet existent déjà : chaque case stocke par branche
+`neutre`/`gnome`/`licorne` un `deltaPv`, un `deltaGems`, un `deltaMove` et un `passTurn`
+(`src/shared/glMarkerEventConfigCore.js:105-111`), et le moteur applique bien `deltaMove`
+(déplacement auto sur parcours numéroté) et `passTurn` (`lib/glMarkerEffectAutoMove.js`,
+`lib/glMarkerVitalityEffects.js`). Le socle est là, sous-exploité.
+
+### 9.1 Rendre les récompenses tangibles et automatiques (levier n°1)
+
+- **Créditer une petite récompense sur bonne réponse au QCM en partie** : aujourd'hui une bonne
+  réponse ne donne que +1 au score d'équipe (`chapitres-et-progression.md:69-71`), jamais de
+  gemme. Ajouter un gain configurable (ex. +1 💎 tous les N bonnes réponses) relie l'effort de
+  l'élève à sa jauge, côté serveur, sans intervention MJ. _Coût : moteur léger + réglage._
+- **Peupler les branches d'effet des cases** (deltaPv/deltaGems/deltaMove déjà câblés) pour que
+  l'arrivée sur un repère produise un résultat visible immédiat, différencié gnome/licorne — ce
+  que le lore raconte déjà (`carte-du-royaume.md:24-26`). _Coût : donnée (studio / import tableur),
+  zéro code._
+- **Cadrer l'asymétrie** : gros gains sur les cases « défi » (avec QCM), petits aléas sur les
+  cases neutres, pour garder la récompense liée à l'apprentissage.
+
+### 9.2 Remplacer les cases « passe ton tour » (demande explicite)
+
+**Pourquoi c'est prioritaire.** « Passe ton tour » est une punition à temps mort : l'élève reste
+spectateur, l'inverse de l'objectif en classe. Un enfant mis sur la touche décroche, et l'impact
+cumulé est réel vu le nombre de cases concernées.
+
+**Note de décompte.** L'audit certifié de la PR #334 (dump du 2026-08) recensait **7** cases
+« passe ton tour » ; le décompte évoqué en séance est de **42**. Les données de cases vivent en
+base (importées via `lib/glChaptersImport.js`), pas dans le dépôt : le décompte fiable doit venir
+de `GET /api/gl/admin/plateaux/coherence` (endpoint ajouté par la PR #334) ou d'une requête sur
+`gl_markers`. La proposition ci-dessous est **indépendante du nombre** : elle vise toute case
+portant `passTurn` ou un `effet_mecanique` textuel « passe ton tour ».
+
+| #   | Remplacement                                                                        | Effet pour l'élève                                          | Coût de mise en œuvre                                                                   |
+| --- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| A   | **Recul immédiat** (`deltaMove` négatif : −2/−3 cases) au lieu de `passTurn`        | Revers **visible et instantané**, sans temps mort           | **Nul côté moteur** (`deltaMove` déjà appliqué) : pur changement de donnée              |
+| B   | **Dé du prochain tour divisé par deux** (arrondi bas, minimum 1)                    | Le revers **dure un tour** mais l'élève **agit quand même** | Petit ajout moteur : état par équipe `malus_prochain_de` (module dé déjà présent)       |
+| C   | **Mini-défi de rattrapage** : QCM sur la case ; réussi = pas de malus, raté = recul | Convertit la punition en **moment d'apprentissage**         | Moyen : réutilise le moteur QCM + branche l'effet sur l'issue                           |
+| D   | **Détour narratif** : la case ouvre un feuillet/évènement de lore                   | Le temps « perdu » devient **du récit**                     | Faible : rattache un contenu de zone/feuillet à la case                                 |
+| E   | **Petit malus de ressource** (−1 💎, jamais un cœur)                                | Revers léger, sans temps mort                               | **Nul côté moteur** (`deltaGems` déjà appliqué) — éviter les cœurs (valeur de conduite) |
+
+**Recommandation — combiner A + B + C selon la case :**
+
+1. **Par défaut, option A (recul immédiat)** : meilleur rapport effet/coût (zéro code, feedback
+   instantané, aucun enfant sur la touche). Une migration de données réécrit en une passe toutes
+   les cases `passTurn:true` en `deltaMove:-2` (valeur à caler en test).
+2. **Option B (dé ÷ 2 au prochain tour)** — exactement la piste proposée en séance — pour les
+   cases où un revers « qui dure » a du sens narratif (tempête, sort adverse). Régler l'arrondi
+   (÷2 arrondi bas, plancher 1 pour ne jamais bloquer) et l'afficher (« dé réduit ce tour-ci »).
+3. **Option C (mini-défi)** sur une minorité de cases, pour transformer le malus en question
+   d'écologie (piste la plus pédagogique).
+
+Éviter tout revers touchant les cœurs (valeur de conduite) ou laissant l'élève sans action.
+**Décision à prendre :** proportion A/B/C, valeur du recul, règle d'arrondi du dé.
+
+### 9.3 Donner une vraie dynamique de tour
+
+- **Vraie initiative optionnelle** : un mode « tour par tour » qui désigne réellement l'équipe au
+  trait (le vocabulaire le promet déjà, `chapitres-et-progression.md:77-81`), en gardant le mode
+  simultané actuel en option.
+- **Objectif de round** : un mini-but commun par tour (« la première équipe à 3 bonnes réponses
+  gagne un bonus »), pour rythmer les rounds simultanés sans réécrire le moteur.
+
+### 9.4 Recréer de la tension économique (puits de points)
+
+- **Puits réguliers** : péages de zone, coût d'entrée d'un plateau, « entretien » de la mascotte —
+  pour contrer l'accumulation durable (`economie-marche-sorts.md:222-226`).
+- **Boutique de bonus temporaires** (relançables) : dé bonus, protection d'un tour, indice de
+  QCM — des dépenses désirables qui font circuler les gemmes.
+- **Plancher configurable** déjà noté au registre (G9) : empêcher de descendre sous X cœurs.
+
+### 9.5 Coopération et compétition
+
+- **Objectifs d'équipe visibles** (collection de feuillets d'un chapitre, carte explorée) avec
+  récompense collective.
+- **Course aux feuillets** entre équipes, en s'appuyant sur le canal de découverte par zone
+  existant (`chapitres-et-progression.md:95-107`).
+
+### 9.6 Cohérence à corriger au passage (doc ↔ code)
+
+- **Le QCM d'entraînement trahit la promesse anti-triche de la doc** : la doc affirme « un élève
+  ne peut pas lire la bonne réponse par avance » (`qcm-et-pedagogie.md:126-132`), or l'endpoint
+  hors partie (`routes/gl/qcm.js:238-284`) renvoie `correctChoiceId` sans consommer de jeton (cf.
+  §3). **À corriger côté code** pour que le comportement rejoigne la promesse écrite.
+- **Effets promis mais non appliqués** : la divergence `effet_mecanique` (lu) ↔ `event_config_json`
+  (exécuté) est la cause racine de l'inertie (§9.0) ; le contrôle de cohérence de la PR #334 est
+  le bon outil pour la résorber au fil du peuplement.
+
+## 10. Plan d'action recommandé
 
 **Lot 1 — Intégrité du jeu (le plus urgent fonctionnellement)**
 Consommer le jeton dans `qcm/answer` + ne plus renvoyer `correctChoiceId` en rejeu ; exiger la
@@ -418,7 +594,18 @@ Contrastes des gris secondaires ; cibles tactiles ≥ 44px ; zones de carte au c
 Job `npm audit` en CI + `npm audit fix` (pile Socket.IO) ; réduire la rafale de requêtes du
 catalogue ; généraliser `useApiResource` pour la déconnexion sur compte supprimé.
 
-## 9. Points forts
+**Lot 6 — Cohérence documentaire (docs/reference)**
+Aligner `carte-du-royaume.md`/`guide-du-mj.md` sur le mode réel des « tours » ; reformuler
+l'encadré « pas de lore » de `gl/presentation.md` ; corriger les renvois « (à rédiger) » et les
+mentions de fraîcheur (portraits OLU, doc économie) ; harmoniser la terminologie (carnet
+personnel, « Reset mdp », tableaux de rôles) ; documenter le dé virtuel.
+
+**Lot 7 — Évolution du jeu (sur décision du propriétaire, cf. §9)**
+Remplacer les cases « passe ton tour » (option A par défaut, B/C selon la case) ; créditer une
+récompense automatique sur bonne réponse QCM ; peupler les branches d'effet des cases ; recréer
+des puits économiques. À cadrer avant implémentation (proportions, valeurs).
+
+## 11. Points forts
 
 - **Sécurité applicative de bon niveau** : SQL systématiquement paramétré (aucune injection),
   JWT HS256 épinglé contre la confusion d'algorithmes, secret exigé/validé en prod, pipeline
