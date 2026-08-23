@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tooltip } from '../Tooltip';
+import { Tooltip } from '../../shared/components/Tooltip.jsx';
 
 /**
  * Bannières d'aperçu de rôle — extraites de `src/App.jsx` (O6).
