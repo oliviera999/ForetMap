@@ -56,6 +56,12 @@ test.describe('GL repère question — present-question API', () => {
     );
     const teamRow = await queryOne('SELECT id FROM gl_teams ORDER BY id DESC LIMIT 1');
 
+    // L'équipe est posée sur le repère : present-question côté joueur exige d'y être (anti-farm).
+    await execute('UPDATE gl_teams SET position_marker_id = ? WHERE id = ?', [
+      markerRow.id,
+      teamRow.id,
+    ]);
+
     await execute(
       `INSERT INTO gl_team_members (game_id, team_id, player_id, joined_at)
        VALUES (?, ?, ?, NOW())`,

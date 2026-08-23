@@ -7,7 +7,24 @@ import React from 'react';
  * et les libellés dérivés restent calculés dans `App` (aucun état déplacé).
  * `hasPermission` / `hasPermissionInRole` sont les callbacks mémoïsés d'App
  * (volontairement en props, cf. note O5 sur la vue élève).
+ *
+ * Accessibilité : l'onglet actif porte `aria-current="page"` (sinon l'état actif
+ * n'était signalé que par la classe CSS).
  */
+function TopTab({ id, tab, onTabChange, children }) {
+  const isActive = tab === id;
+  return (
+    <button
+      className={`top-tab ${isActive ? 'active' : ''}`}
+      type="button"
+      aria-current={isActive ? 'page' : undefined}
+      onClick={() => onTabChange(id)}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function TeacherTopTabs({
   tab,
   onTabChange,
@@ -28,128 +45,80 @@ export function TeacherTopTabs({
   return (
     <div className="top-tabs app-tabs-surface">
       {shouldUseDesktopSplit && (
-        <button
-          className={`top-tab ${tab === 'maptasks' ? 'active' : ''}`}
-          onClick={() => onTabChange('maptasks')}
-        >
+        <TopTab id="maptasks" tab={tab} onTabChange={onTabChange}>
           {mapTasksSplitLabel}
           {pendingSuffix}
-        </button>
+        </TopTab>
       )}
-      <button
-        className={`top-tab ${tab === 'map' ? 'active' : ''}`}
-        onClick={() => onTabChange('map')}
-      >
+      <TopTab id="map" tab={tab} onTabChange={onTabChange}>
         🗺️ Carte & Zones
-      </button>
-      <button
-        className={`top-tab ${tab === 'tasks' ? 'active' : ''}`}
-        onClick={() => onTabChange('tasks')}
-      >
+      </TopTab>
+      <TopTab id="tasks" tab={tab} onTabChange={onTabChange}>
         {tasksTabLabel}
         {pendingSuffix}
-      </button>
-      <button
-        className={`top-tab ${tab === 'plants' ? 'active' : ''}`}
-        onClick={() => onTabChange('plants')}
-      >
+      </TopTab>
+      <TopTab id="plants" tab={tab} onTabChange={onTabChange}>
         🌱 Biodiversité
-      </button>
-      <button
-        className={`top-tab ${tab === 'quiz' ? 'active' : ''}`}
-        onClick={() => onTabChange('quiz')}
-      >
+      </TopTab>
+      <TopTab id="quiz" tab={tab} onTabChange={onTabChange}>
         ❓ Quiz
-      </button>
-      <button
-        className={`top-tab ${tab === 'foodweb' ? 'active' : ''}`}
-        onClick={() => onTabChange('foodweb')}
-      >
+      </TopTab>
+      <TopTab id="foodweb" tab={tab} onTabChange={onTabChange}>
         🕸️ Réseau trophique
-      </button>
+      </TopTab>
       {tutorialsModuleEnabled && (
-        <button
-          className={`top-tab ${tab === 'tuto' ? 'active' : ''}`}
-          onClick={() => onTabChange('tuto')}
-        >
+        <TopTab id="tuto" tab={tab} onTabChange={onTabChange}>
           📘 Tuto
-        </button>
+        </TopTab>
       )}
       {canAccessForum && (
-        <button
-          className={`top-tab ${tab === 'forum' ? 'active' : ''}`}
-          onClick={() => onTabChange('forum')}
-        >
+        <TopTab id="forum" tab={tab} onTabChange={onTabChange}>
           💬 Forum
-        </button>
+        </TopTab>
       )}
       {statsEnabled && (
-        <button
-          className={`top-tab ${tab === 'stats' ? 'active' : ''}`}
-          onClick={() => onTabChange('stats')}
-        >
+        <TopTab id="stats" tab={tab} onTabChange={onTabChange}>
           📊 Stats
-        </button>
+        </TopTab>
       )}
       {visitEnabled && (
-        <button
-          className={`top-tab ${tab === 'visit' ? 'active' : ''}`}
-          onClick={() => onTabChange('visit')}
-        >
+        <TopTab id="visit" tab={tab} onTabChange={onTabChange}>
           🧭 Visite
-        </button>
+        </TopTab>
       )}
       {visitEnabled && (
-        <button
-          className={`top-tab ${tab === 'mascot_packs' ? 'active' : ''}`}
-          onClick={() => onTabChange('mascot_packs')}
-        >
+        <TopTab id="mascot_packs" tab={tab} onTabChange={onTabChange}>
           🎨 Packs mascotte
-        </button>
+        </TopTab>
       )}
-      <button
-        className={`top-tab ${tab === 'media_library' ? 'active' : ''}`}
-        onClick={() => onTabChange('media_library')}
-      >
+      <TopTab id="media_library" tab={tab} onTabChange={onTabChange}>
         🗂️ Médiathèque
-      </button>
+      </TopTab>
       {(hasPermissionInRole('admin.roles.manage') ||
         hasPermissionInRole('admin.users.assign_roles') ||
         hasPermissionInRole('stats.export') ||
         hasPermissionInRole('students.import') ||
         hasPermissionInRole('students.delete') ||
         hasPermissionInRole('users.create')) && (
-        <button
-          className={`top-tab ${tab === 'profiles' ? 'active' : ''}`}
-          onClick={() => onTabChange('profiles')}
-        >
+        <TopTab id="profiles" tab={tab} onTabChange={onTabChange}>
           🛡️ {isN3Affiliated ? 'n3boss & utilisateurs' : 'Profils & utilisateurs'}
-        </button>
+        </TopTab>
       )}
       {/* `tours.manage` ouvre l'onglet sans `admin.settings.read` : un prof à qui l'on
           délègue la réécriture des visites guidées n'y voit que ce sous-onglet. */}
       {(hasPermissionInRole('admin.settings.read') || hasPermissionInRole('tours.manage')) && (
-        <button
-          className={`top-tab ${tab === 'settings' ? 'active' : ''}`}
-          onClick={() => onTabChange('settings')}
-        >
+        <TopTab id="settings" tab={tab} onTabChange={onTabChange}>
           ⚙️ Paramètres
-        </button>
+        </TopTab>
       )}
       {hasPermission('audit.read') && (
-        <button
-          className={`top-tab ${tab === 'audit' ? 'active' : ''}`}
-          onClick={() => onTabChange('audit')}
-        >
+        <TopTab id="audit" tab={tab} onTabChange={onTabChange}>
           📜 Audit
-        </button>
+        </TopTab>
       )}
-      <button
-        className={`top-tab ${tab === 'about' ? 'active' : ''}`}
-        onClick={() => onTabChange('about')}
-      >
+      <TopTab id="about" tab={tab} onTabChange={onTabChange}>
         ℹ️ À propos
-      </button>
+      </TopTab>
     </div>
   );
 }

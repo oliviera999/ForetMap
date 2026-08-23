@@ -533,7 +533,7 @@
     /* ── FOOTER VERSION ── */
     .app-footer {
       flex-shrink:0;
-      text-align:center; font-size:.7rem; color:#aaa;
+      text-align:center; font-size:.7rem; color:#6b7280;
       padding:8px 16px; margin-top:auto;
       border-top:1px solid rgba(183,228,199,.4);
       background:rgba(254,250,224,.5);
@@ -991,7 +991,7 @@
     .stage-empty   { background:#f1f5f9; color:#475569; }
     .stage-special { background:#dbeafe; color:#1e40af; }
     .history-list { margin-top:12px; }
-    .history-list h4 { font-size:.75rem; font-weight:700; color:#aaa; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
+    .history-list h4 { font-size:.75rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
     .history-item { display:flex; justify-content:space-between; font-size:.82rem; padding:6px 0; border-bottom:1px solid var(--mint); color:#555; }
     .edit-zone { background:#f0fdf4; border-radius:12px; padding:14px; border:1.5px dashed var(--sage); margin-top:12px; }
 
@@ -1241,7 +1241,7 @@
       opacity: 0.65;
       cursor: wait;
     }
-    .slots { font-size:.82rem; color:#aaa; margin-bottom:6px; }
+    .slots { font-size:.82rem; color:#6b7280; margin-bottom:6px; }
 
     /* ── STATUS BADGES ── */
     .status-badge { border-radius:20px; padding:4px 10px; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; flex-shrink:0; }
@@ -1782,7 +1782,7 @@
       animation:popIn .3s var(--spring) forwards;
     }
     .pin-card h3 { font-size:1.2rem; margin-bottom:8px; }
-    .pin-card p { font-size:.85rem; color:#aaa; margin-bottom:20px; }
+    .pin-card p { font-size:.85rem; color:#6b7280; margin-bottom:20px; }
     .pin-input {
       font-size:1.8rem !important; text-align:center; letter-spacing:.3em;
       padding:14px; border:2px solid var(--mint); border-radius:10px;
@@ -1954,7 +1954,7 @@
       font-size:.68rem;
       line-height:1.25;
     }
-    .auth-version { font-size:.7rem; color:#aaa; margin-top:8px; margin-bottom:0; text-align:center; }
+    .auth-version { font-size:.7rem; color:#6b7280; margin-top:8px; margin-bottom:0; text-align:center; }
 
     /* ── ROWS ── */
     .row { display:flex; gap:10px; }
@@ -2190,7 +2190,7 @@
     }
 
     /* ── EMPTY STATE ── */
-    .empty { text-align:center; padding:clamp(24px, 8vw, 40px) 20px; color:#bbb; }
+    .empty { text-align:center; padding:clamp(24px, 8vw, 40px) 20px; color:#6b7280; }
     .empty-icon { font-size:2.5rem; margin-bottom:10px; opacity:.72; }
     .empty p { font-size:.9rem; color:#6b7280; line-height:1.5; }
 
@@ -2274,7 +2274,7 @@
     .student-avatar { box-shadow:0 1px 4px rgba(0,0,0,.08); flex-shrink:0; }
 
     .log-entry { background:var(--parchment); border-radius:10px; padding:14px; margin-bottom:10px; }
-    .log-entry-header { display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px; margin-bottom:8px; font-size:.82rem; color:#aaa; }
+    .log-entry-header { display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px; margin-bottom:8px; font-size:.82rem; color:#6b7280; }
     .log-entry-author { font-weight:700; color:var(--forest); }
     .log-comment { font-size:.9rem; color:#333; line-height:1.55; margin-bottom:10px; }
     .log-image { width:100%; border-radius:8px; max-height:250px; object-fit:cover; cursor:pointer; transition:transform .15s; }
@@ -2513,7 +2513,7 @@
     .stat-card:nth-child(4) { animation-delay:.2s }
     .stat-card.highlight { border-color:var(--sage); background:#f7fef9; }
     .stat-number { font-family:'Playfair Display',serif; font-size:clamp(1.85rem, 1.45rem + 1vw, 2.2rem); font-weight:700; color:var(--forest); line-height:1; }
-    .stat-label { font-size:.7rem; color:#aaa; margin-top:4px; text-transform:uppercase; letter-spacing:.07em; }
+    .stat-label { font-size:.7rem; color:#6b7280; margin-top:4px; text-transform:uppercase; letter-spacing:.07em; }
     .stat-icon { font-size:1.3rem; margin-bottom:6px; }
     .activity-list { background:white; border-radius:14px; padding:14px; box-shadow:0 1px 6px rgba(0,0,0,.05); }
     .activity-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(183,228,199,.4); }
@@ -2525,7 +2525,7 @@
     .activity-dot.available { background:#e5e7eb; border:1.5px solid #ccc; }
     .activity-info { flex:1; min-width:0; }
     .activity-title { font-size:.9rem; font-weight:500; color:var(--forest); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .activity-meta { font-size:.76rem; color:#bbb; }
+    .activity-meta { font-size:.76rem; color:#6b7280; }
 
     /* ── LEADERBOARD ── */
     .leaderboard { background:white; border-radius:14px; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,.05); }
@@ -2542,10 +2542,10 @@
     .lb-rank.bronze { color:#92400e; }
     .lb-name { flex:1; min-width:0; }
     .lb-name strong { font-size:.92rem; color:var(--forest); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .lb-name small { display:block; font-size:.72rem; color:#bbb; }
+    .lb-name small { display:block; font-size:.72rem; color:#6b7280; }
     .lb-stat { text-align:center; min-width:36px; }
     .lb-stat-num { font-weight:700; font-size:.95rem; color:var(--forest); }
-    .lb-stat-label { font-size:.62rem; color:#ccc; text-transform:uppercase; }
+    .lb-stat-label { font-size:.62rem; color:#6b7280; text-transform:uppercase; }
     .lb-bar-bg { background:#e5e7eb; border-radius:4px; height:6px; overflow:hidden; margin-top:4px; }
     .lb-bar-fill { background:var(--sage); border-radius:4px; height:6px; transition:width .6s var(--ease-out); }
     @media(max-width:500px) { .lb-bar-bg { display:none; } .lb-row { gap:8px; padding:12px; } }
@@ -2669,7 +2669,7 @@
       background:linear-gradient(90deg, var(--sage), var(--forest));
     }
     .rank-steps {
-      display:flex; justify-content:space-between; margin-top:6px; font-size:.68rem; color:#aaa;
+      display:flex; justify-content:space-between; margin-top:6px; font-size:.68rem; color:#6b7280;
     }
     .rank-steps span.current { color:var(--forest); font-weight:700; }
 
@@ -2680,7 +2680,7 @@
     }
     .obs-header { display:flex; justify-content:space-between; margin-bottom:6px; }
     .obs-author { font-weight:600; font-size:.88rem; color:var(--forest); }
-    .obs-date { font-size:.76rem; color:#bbb; }
+    .obs-date { font-size:.76rem; color:#6b7280; }
     .obs-content { font-size:.9rem; color:#444; line-height:1.55; }
     .obs-zone { font-size:.76rem; color:var(--soil); margin-top:4px; }
 
