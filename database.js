@@ -47,6 +47,11 @@ function safePort(raw, fallback) {
   return Number.isFinite(n) && n >= 1 && n <= 65535 ? n : fallback;
 }
 
+function parseConnectTimeoutMs() {
+  const n = parseInt(process.env.DB_CONNECT_TIMEOUT_MS, 10);
+  return Number.isFinite(n) && n >= 1000 ? n : 10000;
+}
+
 function parseDbConnectionLimit() {
   const raw = String(process.env.FORETMAP_DB_CONNECTION_LIMIT || '').trim();
   if (!raw) return 30;
@@ -77,6 +82,9 @@ const pool = mysql.createPool({
       .toLowerCase() === 'test'
       ? 0
       : 200,
+  // Borne l'attente d'établissement TCP : sans cela, MySQL injoignable au niveau réseau
+  // faisait s'empiler les requêtes longuement avant de remonter une erreur.
+  connectTimeout: parseConnectTimeoutMs(),
   charset: 'utf8mb4',
 });
 

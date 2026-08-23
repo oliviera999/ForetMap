@@ -196,6 +196,16 @@ router.post(
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     if (!label?.trim()) return res.status(400).json({ error: 'Label requis' });
+    // Coordonnées en pourcentage : bornées 0-100 (sinon un repère hors carte, ou NaN, était
+    // inséré tel quel — paramétré donc sans injection, mais qualité de données non garantie).
+    const xPct = Number(x_pct);
+    const yPct = Number(y_pct);
+    if (!Number.isFinite(xPct) || xPct < 0 || xPct > 100) {
+      return res.status(400).json({ error: 'x_pct doit être un nombre entre 0 et 100' });
+    }
+    if (!Number.isFinite(yPct) || yPct < 0 || yPct > 100) {
+      return res.status(400).json({ error: 'y_pct doit être un nombre entre 0 et 100' });
+    }
     const nextLiving = normalizeLivingBeings(living_beings, plant_name);
     const nextPlantName = nextLiving.length > 0 ? '' : String(plant_name || '').trim();
     const id = crypto.randomUUID();
@@ -204,8 +214,8 @@ router.post(
       [
         id,
         mapId,
-        x_pct,
-        y_pct,
+        xPct,
+        yPct,
         label.trim(),
         nextPlantName,
         note || '',
