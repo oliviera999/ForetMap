@@ -195,11 +195,22 @@ router.post(
       return res.status(400).json({ error: 'teamId requis pour le MJ' });
     }
 
-    const team = await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [
-      teamId,
-      gameId,
-    ]);
+    const team = await queryOne(
+      'SELECT id, position_marker_id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1',
+      [teamId, gameId],
+    );
     if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
+
+    // Anti-farm : présenter la question d'un repère suppose d'y être posé. Sans cette garde,
+    // un joueur pouvait re-présenter la même question à volonté (retrigger `every_arrival`) et
+    // gonfler le score d'équipe sans se déplacer. Le MJ garde la présentation à distance —
+    // même règle que `present-arrival`.
+    if (
+      req.glAuth.userType === 'gl_player' &&
+      Number(team.position_marker_id) !== Number(markerId)
+    ) {
+      return res.status(409).json({ error: 'Votre équipe n’est pas sur ce repère' });
+    }
     const canPresent = await canPresentMarkerQuestion(
       { queryAll },
       {
