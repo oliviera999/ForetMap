@@ -215,7 +215,10 @@ avaient déjà la valeur demandée, ils sont comptés à part — ce n'est pas u
 
 Selon les réglages, la consultation ou l'« effacement » d'un feuillet peut **coûter des
 gemmes**, et certaines découvertes **rapportent des cœurs** — c'est le troisième
-circuit de l'économie, qui relie la lecture du lore à la vitalité.
+circuit de l'économie, qui relie la lecture du lore à la vitalité. Par défaut, une
+équipe n'encaisse cette récompense **qu'une fois** par feuillet : deux élèves qui
+découvrent le même feuillet au même instant ne doublent ni les cœurs ni la dépense
+de gemmes.
 
 ## ⚠️ Points d'attention
 
