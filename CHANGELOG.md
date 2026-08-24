@@ -7,6 +7,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Un échange au plafond ne fait plus disparaître des gemmes
+
+Depuis le plafond de jeu (cœurs/gemmes max), finaliser un troc alors que le
+receveur était déjà au maximum **débitait le donneur et jetait la monnaie** :
+le plafond rognait le gain, pas la dépense. Deux élèves qui s'accordent
+« je te donne 2 gemmes » voyaient les 2 gemmes s'évaporer.
+
+L'échange est désormais **refusé** (comme un solde insuffisant) : personne ne
+perd rien, personne n'en gagne. Les récompenses de cases et de feuillets
+continuent d'ignorer un gain au-delà du plafond — là, rien n'est pris à
+personne.
+
 ### Les commandes GL en icône seule s'expliquent enfin (lot 11)
 
 **GL n'avait aucune infobulle.** Ses boutons en pictogramme — les dés, la musique, le
