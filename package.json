@@ -179,7 +179,7 @@
     "@testing-library/user-event": "^14.6.3",
     "@vitejs/plugin-react": "^6.0.5",
     "@vitest/ui": "^4.1.10",
-    "artillery": "^2.0.33",
+    "artillery": "^2.0.34",
     "better-sqlite3": "^12.11.1",
     "cross-env": "^10.1.0",
     "eslint": "^10.8.0",
