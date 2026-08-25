@@ -7,6 +7,37 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Les boutons de Gnomes & Licornes retrouvent la police du jeu (lot 14)
+
+**Ils s'affichaient en Arial 13 pixels**, la police par défaut du navigateur, alors que tout
+le reste de l'application est composé en Caudex 16 pixels. C'est ce décalage qu'on lisait
+comme une « apparence ancienne ». La cause tenait à une ligne : le remise à zéro des styles
+donnait la police du jeu aux champs de saisie, mais avait oublié les boutons — un bouton
+n'hérite pas de la police de son conteneur.
+
+**Et dans les formulaires, tous les boutons se ressemblaient.** « Annuler » était aussi
+sombre que « Valider », et surtout **« Supprimer » avait perdu son rouge** : un bouton
+destructeur déguisé en bouton de confirmation, sur une trentaine d'écrans. Les variantes
+sont rétablies. Les boutons gagnent au passage un état désactivé lisible, un survol qui se
+voit aussi sur les fonds clairs, et l'alignement correct des libellés à pictogramme.
+
+**Des pans entiers de l'interface ignoraient les couleurs choisies par le MJ.** Vingt-sept
+variables de style étaient appelées sans avoir jamais été définies — le plus souvent une
+faute de frappe dans leur nom. Le carnet de Séléné, plusieurs panneaux d'administration et
+la vue plateau s'affichaient donc en turquoise figé, insensibles au thème de marque. Les
+noms sont corrigés, les rôles qui manquaient vraiment sont ajoutés au système.
+
+**L'administration ressemblait à un back-office générique.** Deux cents teintes de gris et
+de bleu venues d'une palette par défaut se mêlaient au thème médiéval ; il en reste deux.
+Les états de sélection, qui viraient au bleu système, reprennent le turquoise du produit.
+
+**Enfin, l'harmonie avec ForetMap est rétablie** : mêmes rayons, mêmes ombres, même
+géométrie de contrôles, seule la palette diffère. La bibliothèque de médias, partagée par
+les deux produits, affichait des boutons non stylés d'un côté ou de l'autre selon la
+commande — elle utilise désormais des contrôles neutres que chaque produit habille.
+
+Environ 80 lignes de styles morts ont été supprimées et un conflit de sélecteur corrigé.
+Audit complet et mesures : `docs/AUDIT_UI_BOUTONS_GL_2026-08.md`.
 ### Doc — Audit UI : pourquoi les boutons de G&L paraissent d'un autre âge
 
 L'impression n'était pas subjective. Mesures faites dans Chromium sur du markup G&L réel :
@@ -16,12 +47,15 @@ appauvrie du `.btn` de ForetMap à qui il manque `font-family` et `font-size`. S
 CSS ciblant des boutons, une seule fixe la police.
 
 Second défaut mesuré : dans un `.gl-form`, les variantes `secondary`, `ghost` et `danger`
-s'affichent toutes en primaire foncé. S'ajoutent 80 lignes de CSS bouton mort, 27 variables
+s'affichent toutes en primaire foncé. S'ajoutent 80 lignes de CSS bouton mort et 27 variables
 CSS jamais définies (dont `--gl-primary`, 28 usages — ces zones ignorent donc le thème de
-marque), et `.gl-btn--sm` à 36 px, sous la cible tactile de 44 px que le projet s'impose.
+marque).
 
-**Aucune correction n'est appliquée** : l'audit décrit les remèdes et les laisse à arbitrage.
-Détail : `docs/AUDIT_UI_BOUTONS_GL_2026-08.md`.
+L'audit décrivait les remèdes sans les appliquer ; **ils l'ont été depuis, au lot 14
+ci-dessus**. Deux de ses constats se sont révélés surévalués à la vérification et sont
+corrigés dans le document : le nombre de sélecteurs dupliqués (1, et non 27 — le comptage
+confondait surcharges `@media` et doublons) et les cibles tactiles, déjà conformes grâce au
+pseudo-élément du lot 4. Détail : `docs/AUDIT_UI_BOUTONS_GL_2026-08.md`.
 
 ### Les questions redeviennent lisibles, côté fiche comme côté écran (lot 13)
 
