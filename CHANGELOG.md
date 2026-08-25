@@ -7,6 +7,85 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Le rafraîchissement ne recharge plus que ce qui a changé (lot 21)
+
+Prolongement du lot 20, toujours sans changement fonctionnel visible :
+
+**Refetch ciblé par domaine.** `GET /api/sync-state` expose désormais un compteur par
+domaine de données (cartes, zones, tâches, plantes, repères, tutoriels, session) ;
+quand quelque chose a changé, le client ne recharge que les domaines concernés au
+lieu des huit appels systématiques — valider une tâche ne refait plus recharger
+plantes et tutoriels. La sûreté prime : table inconnue du mapping → tout est
+rechargé ; activité sans rapport (forum, jeu G&L) → rien ne l'est ; changement de
+carte, redémarrage serveur ou sonde en échec → cycle complet, comme avant.
+
+**`nodemailer` chargé au premier envoi d'email** (résets de mot de passe, alertes) :
+encore ~15 Mo de mémoire rendus au démarrage, même recette que le lot 20.
+
+**Côté Gnomes & Licornes, rien à faire** : l'audit du rafraîchissement GL confirme
+qu'il est purement événementiel (Socket.IO + relectures après action), sans polling
+périodique — déjà optimal.
+
+### Le serveur travaille moins, sans rien perdre (lot 20)
+
+Mise en œuvre du plan de l'audit charge serveur
+(`docs/AUDIT_CHARGE_SERVEUR_2026-08.md`), quatre volets, aucun changement
+fonctionnel visible :
+
+**Le polling ne refait plus huit requêtes pour rien.** Avant chaque cycle de
+rafraîchissement périodique, le client interroge une nouvelle sonde ultra-légère
+`GET /api/sync-state` (compteur global d'écritures + identité du process) : si rien
+n'a été écrit en base depuis le dernier cycle réussi, le cycle est sauté — une
+requête au lieu de huit dans le cas courant « personne n'a rien changé ». Toute
+écriture, un redémarrage serveur, une erreur de sonde ou un plafond de sauts
+consécutifs redéclenchent un cycle complet : la fraîcheur perçue est inchangée.
+
+**~30 Mo de mémoire rendus au serveur.** Les bibliothèques d'export/import
+(tableur, PDF, ZIP, vignettes images) ne sont plus chargées au démarrage mais au
+premier usage — sur mutualisé, la mémoire est le premier critère d'arrêt forcé du
+process, et chaque arrêt était un redémarrage avec sa fenêtre d'indisponibilité.
+
+**Deux requêtes SQL de moins sur chaque appel authentifié.** Le périmètre de
+groupes de l'utilisateur est désormais mis en cache comme le sont déjà rôles et
+permissions (invalidation garantie à la moindre écriture sur les tables de
+groupes).
+
+**Un commit de documentation ne redémarre plus la prod.** Le cron de déploiement
+saute désormais le redémarrage par défaut quand le lot ne touche que docs/CHANGELOG
+(revenir en arrière : `DEPLOY_SKIP_RESTART_IF_SOFT_ONLY=0` dans `.env`). Les
+réglages restants côté hébergeur (Passenger mono-instance, keepalive, statique
+servi par le frontal) sont documentés pas à pas dans `docs/EXPLOITATION.md`.
+
+### « Service momentanément indisponible » ne s'affiche presque plus (lot 19)
+
+**Le message d'erreur sortait à presque chaque redémarrage du serveur**, même avec un
+seul utilisateur connecté : le client abandonnait après 4 tentatives étalées sur ~4
+secondes, alors qu'un redémarrage réel (relance Passenger + initialisation de la base)
+en dure couramment 10 à 30. L'application réessaie désormais jusqu'à **8 fois sur une
+fenêtre d'environ 25 secondes** (backoff progressif), respecte l'en-tête `Retry-After`
+que le serveur envoie maintenant avec ses 503 transitoires, et traverse donc un
+redémarrage complet sans afficher d'erreur. Les 503 « métier » (module désactivé…)
+gardent leur comportement immédiat.
+
+Au passage, la panne de base transitoire pendant la vérification de session (ForetMap
+et G&L) est désormais marquée `SERVICE_UNAVAILABLE` : le client sait qu'il peut
+rejouer la requête sans risque, mutations comprises, au lieu d'échouer du premier coup.
+
+### Une pastille d'état sticky en bas d'écran (lot 19)
+
+**Les messages « Enregistrement… / Enregistré ✓ » vivaient au fil du contenu** : dès
+qu'on scrollait, plus aucun retour visuel. Une **pastille discrète et fixe en bas
+d'écran** (ForetMap et G&L) relaie désormais en permanence ce qui se passe :
+enregistrement en cours, confirmation fugace, erreur persistante tant qu'elle n'est
+pas résolue, et **« reconnexion en cours… (tentative n/8) »** pendant que le client
+retente de joindre un serveur qui redémarre, suivie de « connexion rétablie ✓ ».
+Elle ne bloque aucun clic, respecte les lecteurs d'écran (`aria-live`) et se place
+au-dessus des toasts pour ne jamais les masquer. Les indicateurs inline existants
+gagnent en lisibilité (couleurs dédiées enregistrement / succès / erreur).
+
+En complément, un **audit de la charge serveur** (mesures mémoire/boot, profil des
+requêtes, sources de redémarrage) et ses pistes de réduction sans perte
+fonctionnelle : `docs/AUDIT_CHARGE_SERVEUR_2026-08.md`.
 ### Les boutons de Gnomes & Licornes retrouvent la police du jeu (lot 18)
 
 **Ils s'affichaient en Arial 13 pixels**, la police par défaut du navigateur, alors que tout
