@@ -92,6 +92,7 @@ const {
   upsertGlQcmLoreQuestion,
 } = require('../../lib/glQcmLoreCrud');
 const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../lib/glQcmChoices');
+const { consumePresentationJti } = require('../../lib/glQcmPresentationUse');
 const { buildLorePresentation } = require('../../lib/glQcmLoreQuestionQuery');
 const { previewLoreQuestionPool } = require('../../lib/glMarkerLoreQuestionPool');
 const { normalizeLoreQuestionPool } = require('../../lib/glMarkerEventConfig');
@@ -1456,6 +1457,17 @@ router.post(
         code,
         req.body?.choiceId,
       );
+      // Même filet que le QCM biomes hors partie : sans consommation, un seul jeton
+      // permettait d'essayer tous les choiceId jusqu'à `correct:true` (et d'écrire une
+      // tentative juste qui débloque le conditionnement). La PK (jti) arbitre l'unicité
+      // — y compris hors partie (game_id NULL, migration 197).
+      const consumption = await consumePresentationJti(
+        { execute },
+        { jti: result.jti, gameId: null, teamId: null, questionCode: code },
+      );
+      if (consumption === 'already_used') {
+        return res.status(409).json({ error: 'Présentation déjà utilisée' });
+      }
       const glossaryByKey = await loadLoreGlossaryLookupForQcm();
       const loreGlossaryTerms = await enrichLoreQuestionWithGlossary(row, glossaryByKey);
       const dbHandle = { queryAll, queryOne, execute };

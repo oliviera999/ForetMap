@@ -63,6 +63,13 @@ L'échange est désormais **refusé** (comme un solde insuffisant) : personne ne
 perd rien, personne n'en gagne. Les récompenses de cases et de feuillets
 continuent d'ignorer un gain au-delà du plafond — là, rien n'est pris à
 personne.
+### Un QCM d'entraînement ne se brute-force plus (lore + quiz ForetMap)
+
+Le catalogue biomes consommait déjà le jeton de présentation à la première réponse.
+Le QCM **lore** hors partie et le **quiz ForetMap** laissaient rejouer le même jeton :
+cinq requêtes suffisaient à révéler la bonne réponse, et à enregistrer une tentative
+juste qui débloque un conditionnement. Même filet désormais : rejeu → 409, il faut
+une nouvelle présentation (choix remélangés).
 
 ### Les commandes GL en icône seule s'expliquent enfin (lot 11)
 
