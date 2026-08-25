@@ -112,9 +112,18 @@ describe('FMLearningLinksPanel', () => {
   test('ne propose pas au rattachement une question déjà liée', async () => {
     render(<FMLearningLinksPanel />);
     const picker = await screen.findByLabelText('Question à rattacher');
-    const values = [...picker.querySelectorAll('option')].map((o) => o.value);
-    expect(values).toContain('QF0002');
-    expect(values).not.toContain('QF0001');
+    // Le `<select>` existe dès que le tutoriel est sélectionné, mais le filtrage dépend d'un
+    // **second** appel (`/api/learning-links`) : entre les deux, aucune question n'est encore
+    // connue comme liée et QF0001 figure toujours dans la liste. Lire les options tout de suite
+    // observait donc un état transitoire — vert sur une machine rapide, rouge sur un runner
+    // chargé. On attend l'état que le test décrit.
+    await waitFor(() => {
+      const values = [...picker.querySelectorAll('option')].map((o) => o.value);
+      // Les deux assertions dans la même attente : sans la première, un `<select>` vide
+      // satisferait la seconde et le test passerait pour la mauvaise raison.
+      expect(values).toContain('QF0002');
+      expect(values).not.toContain('QF0001');
+    });
   });
 
   test('rattache une question via POST puis recharge la liste', async () => {
