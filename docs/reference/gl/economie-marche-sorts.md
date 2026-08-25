@@ -93,6 +93,9 @@ notamment par la résolution d'actions — il ne se confond pas avec la vitalit�
   - Si l'équipe du camarade **a déjà** ce feuillet, elle **garde le sien** : la copie ne
     l'efface pas davantage, et une découverte faite sur la carte ne se transforme pas en
     simple échange.
+  - Si **un joueur** de cette équipe a déjà le feuillet dans **son** carnet (trouvé lors
+    d'un chapitre précédent, ou dans une autre équipe), l'échange n'efface pas davantage
+    sa copie personnelle. Il offre une lecture à ses camarades qui ne l'avaient pas.
   - Le receveur doit **participer à une partie en cours** : sans équipe active, l'échange
     est refusé avec un message explicite (le feuillet n'aurait nulle part où atterrir).
   - Réglage **« Feuillets échangeables sur le Marché »** (actif par défaut, nécessite le
@@ -245,7 +248,10 @@ avaient déjà la valeur demandée, ils sont comptés à part — ce n'est pas u
 
 Selon les réglages, la consultation ou l'« effacement » d'un feuillet peut **coûter des
 gemmes**, et certaines découvertes **rapportent des cœurs** — c'est le troisième
-circuit de l'économie, qui relie la lecture du lore à la vitalité.
+circuit de l'économie, qui relie la lecture du lore à la vitalité. Par défaut, une
+équipe n'encaisse cette récompense **qu'une fois** par feuillet : deux élèves qui
+découvrent le même feuillet au même instant ne doublent ni les cœurs ni la dépense
+de gemmes.
 
 ## ⚠️ Points d'attention
 
