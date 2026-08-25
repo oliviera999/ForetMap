@@ -167,13 +167,14 @@ app.use('/api', (req, res, next) => {
   const pathname = String(req.originalUrl || req.url || '').split('?')[0];
   if (isApiAvailabilityExemptPath(pathname)) return next();
   if (shutdownInProgress) {
-    return res.status(503).type('application/json').json({
+    // Retry-After guide la boucle de retry du client (plancher de délai entre tentatives).
+    return res.status(503).set('Retry-After', '2').type('application/json').json({
       error: 'Service en redémarrage — réessayez dans quelques secondes.',
       code: 'SERVICE_RESTARTING',
     });
   }
   if (!isApplicationDatabaseReady()) {
-    return res.status(503).type('application/json').json({
+    return res.status(503).set('Retry-After', '2').type('application/json').json({
       error: 'Service non prêt — initialisation en cours.',
       code: 'SERVICE_NOT_READY',
     });

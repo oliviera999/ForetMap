@@ -125,7 +125,12 @@ async function resolveAuthOrRespond(req, res, { product } = {}) {
     req.auth = await hydrateAuthFromTokenClaims(claims);
   } catch (err) {
     logger.error({ err, msg: 'auth_hydration_failed' }, 'Échec hydratation auth (infra)');
-    res.status(503).json({ error: 'Service momentanément indisponible' });
+    // Code transitoire : la requête n'a pas été traitée, le client peut la
+    // réessayer sans risque (mutations comprises) pendant un redémarrage BDD.
+    res
+      .status(503)
+      .set('Retry-After', '2')
+      .json({ error: 'Service momentanément indisponible', code: 'SERVICE_UNAVAILABLE' });
     return null;
   }
   if (!req.auth) {

@@ -20,6 +20,8 @@ test('GET /api/zones renvoie 503 JSON SERVICE_RESTARTING pendant shutdown', asyn
     const res = await request(app).get('/api/zones').expect(503);
     assert.strictEqual(res.body.code, 'SERVICE_RESTARTING');
     assert.match(String(res.headers['content-type'] || ''), /application\/json/i);
+    // Retry-After sert de plancher de délai à la boucle de retry du client.
+    assert.strictEqual(res.headers['retry-after'], '2');
   } finally {
     setShutdownInProgressForTests(false);
   }

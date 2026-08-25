@@ -7,7 +7,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Les boutons flottants ne se marchent plus dessus (lot 12)
+### « Service momentanément indisponible » ne s'affiche presque plus (lot 14)
+
+**Le message d'erreur sortait à presque chaque redémarrage du serveur**, même avec un
+seul utilisateur connecté : le client abandonnait après 4 tentatives étalées sur ~4
+secondes, alors qu'un redémarrage réel (relance Passenger + initialisation de la base)
+en dure couramment 10 à 30. L'application réessaie désormais jusqu'à **8 fois sur une
+fenêtre d'environ 25 secondes** (backoff progressif), respecte l'en-tête `Retry-After`
+que le serveur envoie maintenant avec ses 503 transitoires, et traverse donc un
+redémarrage complet sans afficher d'erreur. Les 503 « métier » (module désactivé…)
+gardent leur comportement immédiat.
+
+Au passage, la panne de base transitoire pendant la vérification de session (ForetMap
+et G&L) est désormais marquée `SERVICE_UNAVAILABLE` : le client sait qu'il peut
+rejouer la requête sans risque, mutations comprises, au lieu d'échouer du premier coup.
+
+### Une pastille d'état sticky en bas d'écran (lot 14)
+
+**Les messages « Enregistrement… / Enregistré ✓ » vivaient au fil du contenu** : dès
+qu'on scrollait, plus aucun retour visuel. Une **pastille discrète et fixe en bas
+d'écran** (ForetMap et G&L) relaie désormais en permanence ce qui se passe :
+enregistrement en cours, confirmation fugace, erreur persistante tant qu'elle n'est
+pas résolue, et **« reconnexion en cours… (tentative n/8) »** pendant que le client
+retente de joindre un serveur qui redémarre, suivie de « connexion rétablie ✓ ».
+Elle ne bloque aucun clic, respecte les lecteurs d'écran (`aria-live`) et se place
+au-dessus des toasts pour ne jamais les masquer. Les indicateurs inline existants
+gagnent en lisibilité (couleurs dédiées enregistrement / succès / erreur).
 
 **Deux d'entre eux tombaient dans la barre de navigation du bas.** Côté Gnomes & Licornes,
 la cloche de notifications se posait par-dessus et masquait un onglet. Côté ForetMap, le

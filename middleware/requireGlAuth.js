@@ -70,7 +70,14 @@ async function authenticateGl(req) {
     // Panne d'infrastructure : surtout pas un 401, qui ferait boucler les reconnexions.
     if (err instanceof GlAuthInfraError) {
       logger.error({ err: err.cause, msg: 'gl_auth_hydration_failed' }, 'Échec hydratation GL');
-      return { ok: false, status: 503, error: 'Service momentanément indisponible' };
+      // Code transitoire réessayable côté client (requête jamais traitée).
+      return {
+        ok: false,
+        status: 503,
+        error: 'Service momentanément indisponible',
+        code: 'SERVICE_UNAVAILABLE',
+        retryAfterSeconds: 2,
+      };
     }
     throw err;
   }
@@ -81,6 +88,14 @@ async function authenticateGl(req) {
   return { ok: true, glAuth };
 }
 
+/** Envoie l'échec d'authenticateGl (statut + code transitoire et Retry-After éventuels). */
+function sendGlAuthFailure(res, result) {
+  if (result.retryAfterSeconds) res.set('Retry-After', String(result.retryAfterSeconds));
+  return res
+    .status(result.status)
+    .json({ error: result.error, ...(result.code ? { code: result.code } : {}) });
+}
+
 async function requireGlAuth(req, res, next) {
   let result;
   try {
@@ -89,7 +104,7 @@ async function requireGlAuth(req, res, next) {
     return next(err);
   }
   if (!result.ok) {
-    return res.status(result.status).json({ error: result.error });
+    return sendGlAuthFailure(res, result);
   }
   req.glAuth = result.glAuth;
   if (isGlGuest(req.glAuth)) {
@@ -116,7 +131,7 @@ function requireGlPermission(permission) {
       return next(err);
     }
     if (!result.ok) {
-      return res.status(result.status).json({ error: result.error });
+      return sendGlAuthFailure(res, result);
     }
     req.glAuth = result.glAuth;
     if (!hasGlPermission(req.glAuth, permission)) {

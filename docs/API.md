@@ -562,11 +562,13 @@ Sans `LOAD_TEST_SECRET`, le comportement reste inchangé : le rate limiting s'ap
 
 ### Client HTTP (SPA)
 
-Les requêtes **`GET`** sans corps émises par **`api()`** / **`apiGL()`** (`src/services/api.js`, `src/services/apiTransport.js`) réessayent automatiquement jusqu’à **4** tentatives (backoff avec jitter) en cas de réponse **502**, **503**, **504** ou d’échec réseau typique (`TypeError`, ex. _Failed to fetch_), afin d’absorber de courtes indisponibilités proxy / hébergeur.
+Les requêtes **`GET`** sans corps émises par **`api()`** / **`apiGL()`** (`src/services/api.js`, `src/services/apiTransport.js`) réessayent automatiquement jusqu’à **8** tentatives (backoff progressif avec jitter, fenêtre cumulée d’environ **25 s** — de quoi couvrir un redémarrage applicatif complet, Passenger + init BDD) en cas de réponse **passerelle** **502**, **503**, **504** ou d’échec réseau typique (`TypeError`, ex. _Failed to fetch_). Les 503 **JSON métier** sur `GET` gardent la fenêtre courte historique (4 tentatives).
 
-Les **mutations** (**`POST`**, **`PUT`**, **`PATCH`**, **`DELETE`**) réessayent jusqu’à **4** tentatives uniquement lorsque la réponse ressemble à une **panne passerelle** (corps HTML, `Content-Type` non JSON, ou JSON transitoire avec `code: SERVICE_RESTARTING` / `SERVICE_NOT_READY`). Les **503 JSON métier** (ex. forum désactivé, module indisponible) ne sont **pas** réessayées. En-tête **`Accept: application/json`** sur toutes les requêtes.
+Les **mutations** (**`POST`**, **`PUT`**, **`PATCH`**, **`DELETE`**) réessayent jusqu’à **8** tentatives uniquement lorsque la réponse ressemble à une **panne passerelle** (corps HTML, `Content-Type` non JSON, ou JSON transitoire avec `code: SERVICE_RESTARTING` / `SERVICE_NOT_READY` / `SERVICE_UNAVAILABLE`) : dans tous ces cas la requête n’a **pas** été traitée par la route, la rejouer est sans danger. Les **503 JSON métier** (ex. forum désactivé, module indisponible) ne sont **pas** réessayées. En-tête **`Accept: application/json`** sur toutes les requêtes. Si la réponse transitoire porte un en-tête **`Retry-After`** (secondes), il sert de **plancher** au délai avant réessai (plafonné à 10 s).
 
-Pendant un **redémarrage** applicatif (`POST /api/admin/restart`, deploy cron), les routes **`/api/*`** (hors **`/api/health`**, **`/api/health/db`**, **`/api/ready`**) renvoient **503** JSON `{ error, code: SERVICE_RESTARTING }`. Pendant l’**init BDD** au boot, **503** JSON `{ code: SERVICE_NOT_READY }` sur le même périmètre.
+Pendant un réessai, le client publie l’état sur la **pastille sticky** de bas d’écran (« reconnexion en cours… », voir composant partagé `AppStatusSticky`) puis « connexion rétablie ✓ » en cas de succès — l’utilisateur est informé sans toast bloquant ni erreur prématurée.
+
+Pendant un **redémarrage** applicatif (`POST /api/admin/restart`, deploy cron), les routes **`/api/*`** (hors **`/api/health`**, **`/api/health/db`**, **`/api/ready`**) renvoient **503** JSON `{ error, code: SERVICE_RESTARTING }` + `Retry-After: 2`. Pendant l’**init BDD** au boot, **503** JSON `{ code: SERVICE_NOT_READY }` + `Retry-After: 2` sur le même périmètre. En cas de **panne BDD transitoire** pendant l’hydratation d’une session (ForetMap ou GL), **503** JSON `{ error, code: SERVICE_UNAVAILABLE }` + `Retry-After: 2`.
 
 Les réponses **429** ne sont pas réessayées automatiquement.
 
