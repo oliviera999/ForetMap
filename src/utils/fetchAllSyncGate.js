@@ -42,3 +42,39 @@ export function canSkipFetchAllCycle({ prev, next, contextKey, consecutiveSkips 
   if (prev.bootId !== next.bootId) return false;
   return prev.writes === next.writes;
 }
+
+/** Domaines du cycle fetchAll (alignés sur les compteurs serveur de /api/sync-state). */
+export const ALL_SYNC_DOMAINS = [
+  'maps',
+  'zones',
+  'tasks',
+  'plants',
+  'markers',
+  'tutorials',
+  'authMe',
+];
+
+function isValidDomainMap(domains) {
+  if (!domains || typeof domains !== 'object') return false;
+  return ALL_SYNC_DOMAINS.every((domain) => Number.isFinite(domains[domain]));
+}
+
+/**
+ * Refetch ciblé : ensemble des domaines dont le compteur serveur a bougé depuis la
+ * baseline. Retourne `null` (= tout refetcher) dès qu'une information manque ou ne
+ * peut pas être comparée : pas de baseline, sonde invalide, contexte client différent,
+ * redémarrage serveur, compteurs par domaine absents d'un côté (serveur plus ancien).
+ *
+ * @returns {Set<string>|null} domaines à refetcher, ou null pour un cycle complet
+ */
+export function resolveChangedSyncDomains({ prev, next, contextKey }) {
+  if (!prev || !isValidSyncState(next)) return null;
+  if (prev.key !== contextKey) return null;
+  if (prev.bootId !== next.bootId) return null;
+  if (!isValidDomainMap(prev.domains) || !isValidDomainMap(next.domains)) return null;
+  const changed = new Set();
+  for (const domain of ALL_SYNC_DOMAINS) {
+    if (prev.domains[domain] !== next.domains[domain]) changed.add(domain);
+  }
+  return changed;
+}

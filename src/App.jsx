@@ -24,7 +24,14 @@ import {
   GUEST_VISIT_MASCOT_CONFIRMED_KEY,
 } from './constants/app-runtime';
 import { MASCOT_PACK_UNSAVED_LEAVE_MSG } from './constants/mascotPackEditor.js';
-import { canSkipFetchAllCycle, isValidSyncState } from './utils/fetchAllSyncGate.js';
+import {
+  canSkipFetchAllCycle,
+  isValidSyncState,
+  resolveChangedSyncDomains,
+} from './utils/fetchAllSyncGate.js';
+
+/** Sentinelle « domaine non rechargé » du refetch ciblé de fetchAll (état conservé). */
+const FETCH_DOMAIN_SKIPPED = Symbol('foretmap-fetch-domain-skipped');
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TimedToast as Toast } from './shared/components/TimedToast.jsx';
 import { AppStatusSticky } from './shared/components/AppStatusSticky.jsx';
@@ -477,6 +484,22 @@ function App() {
               : fallbackMap;
             const mapQuery = resolvedMapId ? `map_id=${encodeURIComponent(resolvedMapId)}` : '';
 
+            // Refetch ciblé (compteurs par domaine de /api/sync-state) : seuls les
+            // domaines dont le compteur a bougé sont rechargés — `/api/maps` reste
+            // toujours rechargée (minuscule, et nécessaire à la résolution de carte).
+            // Un changement de carte pendant le cycle invalide le ciblage : les
+            // domaines non rechargés porteraient encore les données de l'ancienne carte.
+            const changedDomains =
+              resolvedMapId !== mapIdState
+                ? null
+                : resolveChangedSyncDomains({
+                    prev: lastSyncStateRef.current,
+                    next: syncState,
+                    contextKey: syncContextKey,
+                  });
+            const needsDomain = (domain) => !changedDomains || changedDomains.has(domain);
+            const skipDomain = () => Promise.resolve(FETCH_DOMAIN_SKIPPED);
+
             const tutorialsEndpoint = canTutorialsSnap
               ? '/api/tutorials?include_inactive=1'
               : '/api/tutorials';
@@ -484,25 +507,38 @@ function App() {
             // vue « Archivés » ; côté élève/visiteur le backend force la portée active.
             const archivedQuery = isTeacherSnap ? '&archived=all' : '';
             const [z, t, taskProjectsRes, p, m, tu] = await Promise.all([
-              safeApi(() => (mapQuery ? api(`/api/zones?${mapQuery}`) : Promise.resolve([])), []),
-              safeApi(
-                () =>
-                  mapQuery ? api(`/api/tasks?${mapQuery}${archivedQuery}`) : Promise.resolve([]),
-                [],
-              ),
-              safeApi(
-                () =>
-                  mapQuery
-                    ? api(`/api/task-projects?${mapQuery}${archivedQuery}`)
-                    : Promise.resolve([]),
-                [],
-              ),
-              safeApi(() => api('/api/plants'), []),
-              safeApi(
-                () => (mapQuery ? api(`/api/map/markers?${mapQuery}`) : Promise.resolve([])),
-                [],
-              ),
-              safeApi(() => api(tutorialsEndpoint), []),
+              needsDomain('zones')
+                ? safeApi(
+                    () => (mapQuery ? api(`/api/zones?${mapQuery}`) : Promise.resolve([])),
+                    [],
+                  )
+                : skipDomain(),
+              needsDomain('tasks')
+                ? safeApi(
+                    () =>
+                      mapQuery
+                        ? api(`/api/tasks?${mapQuery}${archivedQuery}`)
+                        : Promise.resolve([]),
+                    [],
+                  )
+                : skipDomain(),
+              needsDomain('tasks')
+                ? safeApi(
+                    () =>
+                      mapQuery
+                        ? api(`/api/task-projects?${mapQuery}${archivedQuery}`)
+                        : Promise.resolve([]),
+                    [],
+                  )
+                : skipDomain(),
+              needsDomain('plants') ? safeApi(() => api('/api/plants'), []) : skipDomain(),
+              needsDomain('markers')
+                ? safeApi(
+                    () => (mapQuery ? api(`/api/map/markers?${mapQuery}`) : Promise.resolve([])),
+                    [],
+                  )
+                : skipDomain(),
+              needsDomain('tutorials') ? safeApi(() => api(tutorialsEndpoint), []) : skipDomain(),
             ]);
 
             if (resolvedMapId !== mapIdState) {
@@ -510,23 +546,30 @@ function App() {
             }
             // keepPrevIfEqual : conserve la référence quand le contenu n'a pas
             // changé → pas de re-render global du DataContext à chaque poll.
-            setZones((prev) => keepPrevIfEqual(prev, z));
-            if (Array.isArray(t)) {
-              // Séparer actives / archivées : seules les actives alimentent l'état partagé.
-              const { active: activeTasks, archived: archTasks } = partitionByArchived(t);
-              setTasks((prev) => keepPrevIfEqual(prev, activeTasks));
-              setArchivedTasks((prev) => keepPrevIfEqual(prev, archTasks));
-            } else
-              console.warn('[ForetMap] GET /api/tasks : réponse non tableau, état tâches inchangé');
-            const { active: activeProjects, archived: archProjects } = partitionByArchived(
-              Array.isArray(taskProjectsRes) ? taskProjectsRes : [],
-            );
-            setTaskProjects((prev) => keepPrevIfEqual(prev, activeProjects));
-            setArchivedTaskProjects((prev) => keepPrevIfEqual(prev, archProjects));
-            setPlants((prev) => keepPrevIfEqual(prev, p));
-            setMarkers((prev) => keepPrevIfEqual(prev, m));
-            setTutorials((prev) => keepPrevIfEqual(prev, tu));
-            if (!isTeacherSnap) {
+            // FETCH_DOMAIN_SKIPPED : domaine non rechargé (compteur inchangé) → état conservé.
+            if (z !== FETCH_DOMAIN_SKIPPED) setZones((prev) => keepPrevIfEqual(prev, z));
+            if (t !== FETCH_DOMAIN_SKIPPED) {
+              if (Array.isArray(t)) {
+                // Séparer actives / archivées : seules les actives alimentent l'état partagé.
+                const { active: activeTasks, archived: archTasks } = partitionByArchived(t);
+                setTasks((prev) => keepPrevIfEqual(prev, activeTasks));
+                setArchivedTasks((prev) => keepPrevIfEqual(prev, archTasks));
+              } else
+                console.warn(
+                  '[ForetMap] GET /api/tasks : réponse non tableau, état tâches inchangé',
+                );
+            }
+            if (taskProjectsRes !== FETCH_DOMAIN_SKIPPED) {
+              const { active: activeProjects, archived: archProjects } = partitionByArchived(
+                Array.isArray(taskProjectsRes) ? taskProjectsRes : [],
+              );
+              setTaskProjects((prev) => keepPrevIfEqual(prev, activeProjects));
+              setArchivedTaskProjects((prev) => keepPrevIfEqual(prev, archProjects));
+            }
+            if (p !== FETCH_DOMAIN_SKIPPED) setPlants((prev) => keepPrevIfEqual(prev, p));
+            if (m !== FETCH_DOMAIN_SKIPPED) setMarkers((prev) => keepPrevIfEqual(prev, m));
+            if (tu !== FETCH_DOMAIN_SKIPPED) setTutorials((prev) => keepPrevIfEqual(prev, tu));
+            if (!isTeacherSnap && needsDomain('authMe')) {
               const sess = studentRef.current;
               if (sess?.id && !sess.preview_mode) {
                 const sid = sess.id;
@@ -552,7 +595,12 @@ function App() {
             // sondé AVANT les refetchs — une écriture arrivée pendant le cycle rendra
             // donc le prochain compteur différent → refetch (conservateur, jamais stale).
             lastSyncStateRef.current = syncState
-              ? { key: syncContextKey, bootId: syncState.bootId, writes: syncState.writes }
+              ? {
+                  key: syncContextKey,
+                  bootId: syncState.bootId,
+                  writes: syncState.writes,
+                  domains: syncState.domains,
+                }
               : null;
           } catch (e) {
             if (e instanceof AccountDeletedError) forceLogout();
