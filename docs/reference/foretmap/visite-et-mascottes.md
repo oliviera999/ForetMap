@@ -83,9 +83,27 @@ familles.
   de catalogue reprend celui d'une mascotte existante, c'est le pack qui est affiché : la
   liste ne montre pas deux entrées, elle montre la version animée. C'est le moyen de
   donner ses animations à une mascotte dont l'application n'a que la silhouette — **OLU**
-  est aujourd'hui dans ce cas : sa planche d'animation n'est pas livrée avec
-  l'application, il apparaît donc en silhouette dessinée tant qu'aucun pack
+  est aujourd'hui dans ce cas : il apparaît en silhouette dessinée tant qu'aucun pack
   `olu-spritesheet` n'a été publié.
+- **Une archive OLU prête à importer est fournie.** Elle couvre ses **vingt et un états**
+  (repos, marche, course, parole, désignation, joie, saut, célébration, tour sur soi,
+  examen de carte, recherche, salut, mise en garde, surprise, gravité, affection,
+  contrariété, sommeil, repas, danse). Une fois **importée puis publiée** depuis l'onglet
+  « Packs mascotte », OLU cesse d'être une silhouette et s'anime partout où il apparaît.
+  L'archive se refabrique à la demande à partir du dépôt ; demander à l'équipe technique.
+- **Gérer les mascottes livrées, depuis le studio.** L'onglet « Packs mascotte » a un volet
+  **Mascottes livrées** qui présente les seize mascottes fournies avec l'application. Pour
+  chacune : un aperçu, un badge disant si elle porte une **vraie animation** ou seulement une
+  image fixe, un bouton **Cloner pour modifier**, un bouton **Exporter ZIP** (sans avoir à la
+  cloner d'abord) et la case **« proposée aux visiteurs »**.
+- **Quatre mascottes livrées sur seize sont réellement animées** (OLU, Gnome 1, Renard 2,
+  Renard sac). Les douze autres n'ont qu'une image fixe et s'affichent en silhouette dessinée ;
+  le badge le dit désormais au lieu de les présenter à égalité.
+- **La case « proposée aux visiteurs » est le même réglage** que celui de
+  **Paramètres → Mascottes de visite** : un seul réglage, visible à deux endroits. Décocher une
+  mascotte la retire du choix des visiteurs sans rien supprimer — il suffit de recocher pour la
+  rétablir. Modifier ce réglage demande un rôle d'administration ; un professeur qui ne gère que
+  les packs voit la case grisée et l'explication.
 - **Suivre la fréquentation** : un tableau de bord donne sessions, lieux vus et taux de
   parcours complets, en séparant élèves connectés et visiteurs anonymes.
 

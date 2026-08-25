@@ -8,6 +8,7 @@
     @import './shared/styles/visit-map-mascot.css';
     @import './shared/styles/guided-tour.css';
     @import './shared/styles/tour-editor.css';
+    @import './shared/styles/shared-controls.css';
 
     @font-face {
       font-family: 'ForetMapColorEmoji';
@@ -1013,6 +1014,38 @@
       .edit-pt:hover .edit-pt-cross {
         opacity: 1;
       }
+    }
+
+    /* Poignées « fantômes » (milieu d'arête) : discrètes, plus visibles au survol. */
+    .edit-mid .edit-mid-dot {
+      opacity: 0.55;
+      transition: opacity 0.12s ease, r 0.12s ease;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .edit-mid:hover .edit-mid-dot {
+        opacity: 1;
+      }
+    }
+    /* Sommet sélectionné : le viseur reste visible pour repérer la sélection au doigt. */
+    .edit-pt.edit-pt--selected .edit-pt-cross {
+      opacity: 1;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .edit-pt-cross,
+      .edit-mid .edit-mid-dot {
+        transition: none;
+      }
+    }
+
+    /* Curseur de rayon de l'aimant de contour (barre d'outils carte). */
+    .map-snap-radius {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:3px 8px; border:1.5px solid var(--mint); border-radius:8px;
+      background:#f0fdf4; color:#166534; font-size:.72rem; font-weight:700;
+      white-space:nowrap; flex-shrink:0;
+    }
+    .map-snap-radius input[type="range"] {
+      width:88px; accent-color:var(--leaf); cursor:pointer; margin:0;
     }
 
     /* ── TASK CARDS ── */
@@ -2157,6 +2190,14 @@
       min-height:30px !important;
       font-size:0.7rem !important;
     }
+    .main.main--map-visible .map-view-toolbar .map-snap-radius,
+    .teacher-main.teacher-main--map-visible .map-view-toolbar .map-snap-radius,
+    .map-view-root--solo .map-view-toolbar .map-snap-radius {
+      padding:2px 6px; min-height:30px; font-size:0.68rem;
+    }
+    .main.main--map-visible .map-view-toolbar .map-snap-radius input[type="range"],
+    .teacher-main.teacher-main--map-visible .map-view-toolbar .map-snap-radius input[type="range"],
+    .map-view-root--solo .map-view-toolbar .map-snap-radius input[type="range"] { width:64px; }
     /* Le « ? » était exclu de la compaction (48px) : en portrait il impose une barre plus haute que sur les autres onglets. */
     .main.main--map-visible .map-view-toolbar .fm-help-btn,
     .teacher-main.teacher-main--map-visible .map-view-toolbar .fm-help-btn,
@@ -3272,10 +3313,17 @@
       margin-top:3px;
       flex-shrink:0;
     }
+    .learning-gating-quiz__photo {
+      margin:0 0 10px;
+    }
     .learning-gating-quiz__photo img {
       max-width:100%;
       border-radius:8px;
-      margin-bottom:10px;
+    }
+    .learning-gating-quiz__photo-credit {
+      font-size:0.75rem;
+      color:#8aa193;
+      margin-top:4px;
     }
     .learning-gating-quiz__feedback {
       margin:0 0 12px;
@@ -6990,6 +7038,21 @@
   border-radius: 10px;
   background: #fff;
 }
+.qcm-preview__photo { margin: 0 0 12px; }
+.qcm-preview__photo-img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+}
+.qcm-preview__photo-caption {
+  font-size: 0.75rem;
+  color: #8aa193;
+  margin-top: 4px;
+  line-height: 1.35;
+}
+.qcm-preview__photo-caption .qcm-photo__legende { font-weight: 600; color: #64766c; }
+
 .pedago-qcm-admin__preview {
   margin-top: 16px;
   padding: 14px;
@@ -7656,4 +7719,82 @@ header .lock-btn::after,
   width: max(100%, 44px);
   height: max(100%, 44px);
   transform: translate(-50%, -50%);
+}
+
+/* Onglet « Mascottes livrées » du studio (MascotCatalogModelsView).
+   Grille à trois colonnes : vignette, identité, actions — la colonne d'actions passe sous
+   les deux autres en dessous de 720px, sinon les trois commandes se marchent dessus. */
+.mascot-catalog-models__list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 8px;
+}
+.mascot-catalog-models__row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border, #e2e2e2);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+}
+.mascot-catalog-models__preview {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.mascot-catalog-models__preview > * {
+  max-width: 100%;
+  max-height: 100%;
+}
+.mascot-catalog-models__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.mascot-catalog-models__badge {
+  font-size: 0.76rem;
+  opacity: 0.75;
+}
+.mascot-catalog-models__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.mascot-catalog-models__visibility {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  /* Cible tactile : la case seule fait 13px, le libellé porte le reste de la surface. */
+  min-height: 44px;
+  cursor: pointer;
+}
+.mascot-catalog-models__visibility input:disabled {
+  cursor: not-allowed;
+}
+.mascot-catalog-models__visibility:has(input:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+@media (max-width: 720px) {
+  .mascot-catalog-models__row {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+  .mascot-catalog-models__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+  .mascot-catalog-models__preview {
+    width: 48px;
+    height: 48px;
+  }
 }

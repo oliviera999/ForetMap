@@ -12,6 +12,7 @@ export const SECTION_DEFS = {
   content: { title: 'Contenus du site', order: 22 },
   tasks: { title: 'Tâches & inscriptions n3beurs', order: 23 },
   progression: { title: 'Progression n3beurs', order: 25 },
+  learning: { title: 'Validation des lectures (contrôle de compréhension)', order: 26 },
   security: { title: 'Sécurité', order: 30 },
   operations: { title: 'Exploitation', order: 40 },
   other: { title: 'Autres paramètres', order: 90 },
@@ -310,6 +311,34 @@ export const KEY_META = {
   'integration.google.enabled': {
     label: 'Autoriser OAuth Google côté serveur',
     section: 'security',
+    order: 50,
+  },
+
+  // Verrou pédagogique « lu / appris » : sans ces libellés, la grille affichait le dernier
+  // segment de la clé — un interrupteur nommé « Enabled » perdu dans « Autres paramètres ».
+  'learning.gating.enabled': {
+    label: 'Exiger des questions avant de valider une lecture',
+    section: 'learning',
+    order: 10,
+  },
+  'learning.gating.default_mode': {
+    label: 'Exigence par défaut (une / toutes / seuil)',
+    section: 'learning',
+    order: 20,
+  },
+  'learning.gating.default_required_correct': {
+    label: 'Nombre de bonnes réponses attendues (mode « seuil »)',
+    section: 'learning',
+    order: 30,
+  },
+  'learning.gating.retry_cooldown_days': {
+    label: 'Délai avant nouvelle tentative après une erreur (jours, 0 = aucun)',
+    section: 'learning',
+    order: 40,
+  },
+  'learning.gating.auto_mark_on_correct': {
+    label: 'Réservé (sans effet aujourd’hui) : marquage automatique sur bonne réponse',
+    section: 'learning',
     order: 50,
   },
 

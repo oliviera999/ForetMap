@@ -45,13 +45,19 @@ body.gl-body {
   overflow-x: hidden;
 }
 
+/* `button` inclus : les contrôles de formulaire n'héritent PAS de la police du body (feuille de
+   style du navigateur). Sans cette ligne, tous les boutons G&L s'affichent en Arial 13,3 px alors
+   que le reste de l'app est en Caudex 16 px — c'est la cause de leur « apparence ancienne ». */
 input,
 select,
-textarea {
+textarea,
+button {
   font-size: 0.95rem;
   font-family: inherit;
 }
 
+/* `button` volontairement exclu ici : le 16px !important existe pour empêcher le zoom iOS à la
+   saisie, ce qui ne concerne pas les boutons — l'y ajouter casserait `.gl-btn--sm`. */
 @media (max-width: 1023px), (hover: none), (pointer: coarse) {
   input,
   select,

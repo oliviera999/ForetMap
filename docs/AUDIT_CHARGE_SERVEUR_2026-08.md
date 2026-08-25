@@ -2,7 +2,7 @@
 
 État des lieux de la charge générée par ForetMap + GL sur l'hébergement mutualisé
 (o2switch : CloudLinux LVE, Passenger, proxy Tiger Protect), et pistes de réduction
-**sans perte de fonctionnalité**. Mesures faites sur la révision du lot 14 (v1.117.0),
+**sans perte de fonctionnalité**. Mesures faites sur la révision du lot 19,
 Node 22, base MariaDB locale.
 
 ## 1) Profil de charge constaté (un utilisateur actif)
@@ -52,7 +52,7 @@ donc surtout du spawn Passenger + du chargement de ~1000 modules depuis le disqu
 mutualisé — c'est-à-dire de la **fréquence** des cold starts plus que de leur coût
 unitaire côté code.
 
-### Redémarrages (source majeure des 503 traités au lot 14)
+### Redémarrages (source majeure des 503 traités au lot 19)
 
 - `scripts/auto-deploy-cron.sh` appelle `POST /api/admin/restart` **à chaque commit
   poussé sur `main`** (y compris docs-only si l'opt-in n'est pas activé).
@@ -128,7 +128,7 @@ mono-utilisateur → petite classe.
   _augmenterait_ la charge et dégraderait l'UX.
 - **Toucher aux logs** : déjà au minimum utile en prod.
 
-## 4) Ordre de mise en œuvre suggéré — et état de réalisation (lot 15)
+## 4) Ordre de mise en œuvre suggéré — et état de réalisation (lots 20–21)
 
 | Étape | Pistes                                  | Effort           | Gain principal                | État                                                                                                       |
 | ----- | --------------------------------------- | ---------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------- |

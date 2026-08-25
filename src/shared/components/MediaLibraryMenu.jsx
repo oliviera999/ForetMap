@@ -274,16 +274,16 @@ export function MediaLibraryMenu({
       className={`media-library-menu${effectiveLayout === 'gallery' ? ' media-library-menu--gallery' : ''}`}
     >
       {showToggle ? (
-        <button type="button" className="btn btn-secondary btn-sm" onClick={ensureOpen}>
+        <button type="button" className="shared-btn shared-btn--sm" onClick={ensureOpen}>
           {open ? 'Fermer bibliothèque média' : 'Ouvrir bibliothèque média'}
         </button>
       ) : null}
       {open ? (
         <div className={panelClassName}>
           <h4 style={{ marginTop: 0 }}>{title}</h4>
-          {error ? <p className="gl-error">{error}</p> : null}
-          {notice ? <p className="gl-success">{notice}</p> : null}
-          {manageHint ? <p className="gl-hint">{manageHint}</p> : null}
+          {error ? <p className="shared-error">{error}</p> : null}
+          {notice ? <p className="shared-success">{notice}</p> : null}
+          {manageHint ? <p className="shared-hint">{manageHint}</p> : null}
           <div className="media-library-menu__toolbar">
             <div className="media-library-menu__filters">
               <label className="media-library-menu__search">
@@ -330,7 +330,7 @@ export function MediaLibraryMenu({
                 <>
                   <button
                     type="button"
-                    className="btn btn-secondary btn-sm"
+                    className="shared-btn shared-btn--sm"
                     disabled={busy}
                     onClick={() => openPicker(fileInputRef)}
                   >
@@ -338,7 +338,7 @@ export function MediaLibraryMenu({
                   </button>
                   <button
                     type="button"
-                    className="btn btn-secondary btn-sm"
+                    className="shared-btn shared-btn--sm"
                     disabled={busy}
                     onClick={() => openPicker(cameraInputRef)}
                   >
@@ -362,13 +362,13 @@ export function MediaLibraryMenu({
                   />
                 </>
               ) : (
-                <button type="button" className="btn btn-secondary btn-sm" disabled>
+                <button type="button" className="shared-btn shared-btn--sm" disabled>
                   📁 Importer
                 </button>
               )}
               <button
                 type="button"
-                className="btn btn-secondary btn-sm"
+                className="shared-btn shared-btn--sm"
                 disabled={busy}
                 onClick={reload}
               >
@@ -388,13 +388,13 @@ export function MediaLibraryMenu({
               onClearLibrary={clearLibrary}
             />
           ) : null}
-          <p className="media-library-menu__count gl-hint">
+          <p className="media-library-menu__count shared-hint">
             {countLabel}
             {galleryBulkEnabled && selectedCount > 0
               ? ` · ${selectedCount} sélectionné${selectedCount > 1 ? 's' : ''}`
               : ''}
           </p>
-          {busy ? <p className="gl-hint">Chargement…</p> : null}
+          {busy ? <p className="shared-hint">Chargement…</p> : null}
           {effectiveLayout === 'gallery' ? (
             <ul className="media-library-menu__gallery">
               {visibleItems.map((item) => (
@@ -425,7 +425,7 @@ export function MediaLibraryMenu({
                 </li>
               ))}
               {visibleItems.length === 0 && !busy ? (
-                <li className="media-library-menu__gallery-empty gl-hint">
+                <li className="media-library-menu__gallery-empty shared-hint">
                   Aucun média ne correspond aux filtres.
                 </li>
               ) : null}
@@ -436,21 +436,21 @@ export function MediaLibraryMenu({
                 <li key={item.relativePath}>
                   <button
                     type="button"
-                    className="gl-marker-row-btn"
+                    className="shared-btn shared-btn--row"
                     onClick={() => onPickUrl?.(item.url)}
                   >
                     {mediaEmoji(item.mediaType)} <strong>{item.filename}</strong>
                     {item.stableKey ? (
-                      <span className="gl-hint"> · slug : {item.stableKey}</span>
+                      <span className="shared-hint"> · slug : {item.stableKey}</span>
                     ) : null}
-                    <span className="gl-hint"> — {item.url}</span>
+                    <span className="shared-hint"> — {item.url}</span>
                     {item.size ? (
-                      <span className="gl-hint"> ({formatMediaLibrarySize(item.size)})</span>
+                      <span className="shared-hint"> ({formatMediaLibrarySize(item.size)})</span>
                     ) : null}
                   </button>
                   <button
                     type="button"
-                    className="gl-danger"
+                    className="shared-btn shared-btn--danger shared-btn--sm"
                     onClick={() => onDelete(item)}
                     disabled={busy || !canRemove}
                   >
@@ -468,7 +468,7 @@ export function MediaLibraryMenu({
                 </li>
               ))}
               {visibleItems.length === 0 && !busy ? (
-                <li className="gl-hint">Aucun média ne correspond aux filtres.</li>
+                <li className="shared-hint">Aucun média ne correspond aux filtres.</li>
               ) : null}
             </ul>
           )}
