@@ -7,9 +7,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Le rafraîchissement ne recharge plus que ce qui a changé (lot 16)
+### Le rafraîchissement ne recharge plus que ce qui a changé (lot 21)
 
-Prolongement du lot 15, toujours sans changement fonctionnel visible :
+Prolongement du lot 20, toujours sans changement fonctionnel visible :
 
 **Refetch ciblé par domaine.** `GET /api/sync-state` expose désormais un compteur par
 domaine de données (cartes, zones, tâches, plantes, repères, tutoriels, session) ;
@@ -20,13 +20,13 @@ rechargé ; activité sans rapport (forum, jeu G&L) → rien ne l'est ; changeme
 carte, redémarrage serveur ou sonde en échec → cycle complet, comme avant.
 
 **`nodemailer` chargé au premier envoi d'email** (résets de mot de passe, alertes) :
-encore ~15 Mo de mémoire rendus au démarrage, même recette que le lot 15.
+encore ~15 Mo de mémoire rendus au démarrage, même recette que le lot 20.
 
 **Côté Gnomes & Licornes, rien à faire** : l'audit du rafraîchissement GL confirme
 qu'il est purement événementiel (Socket.IO + relectures après action), sans polling
 périodique — déjà optimal.
 
-### Le serveur travaille moins, sans rien perdre (lot 15)
+### Le serveur travaille moins, sans rien perdre (lot 20)
 
 Mise en œuvre du plan de l'audit charge serveur
 (`docs/AUDIT_CHARGE_SERVEUR_2026-08.md`), quatre volets, aucun changement
@@ -56,7 +56,7 @@ saute désormais le redémarrage par défaut quand le lot ne touche que docs/CHA
 réglages restants côté hébergeur (Passenger mono-instance, keepalive, statique
 servi par le frontal) sont documentés pas à pas dans `docs/EXPLOITATION.md`.
 
-### « Service momentanément indisponible » ne s'affiche presque plus (lot 14)
+### « Service momentanément indisponible » ne s'affiche presque plus (lot 19)
 
 **Le message d'erreur sortait à presque chaque redémarrage du serveur**, même avec un
 seul utilisateur connecté : le client abandonnait après 4 tentatives étalées sur ~4
@@ -71,7 +71,7 @@ Au passage, la panne de base transitoire pendant la vérification de session (Fo
 et G&L) est désormais marquée `SERVICE_UNAVAILABLE` : le client sait qu'il peut
 rejouer la requête sans risque, mutations comprises, au lieu d'échouer du premier coup.
 
-### Une pastille d'état sticky en bas d'écran (lot 14)
+### Une pastille d'état sticky en bas d'écran (lot 19)
 
 **Les messages « Enregistrement… / Enregistré ✓ » vivaient au fil du contenu** : dès
 qu'on scrollait, plus aucun retour visuel. Une **pastille discrète et fixe en bas
@@ -86,6 +86,282 @@ gagnent en lisibilité (couleurs dédiées enregistrement / succès / erreur).
 En complément, un **audit de la charge serveur** (mesures mémoire/boot, profil des
 requêtes, sources de redémarrage) et ses pistes de réduction sans perte
 fonctionnelle : `docs/AUDIT_CHARGE_SERVEUR_2026-08.md`.
+### Les boutons de Gnomes & Licornes retrouvent la police du jeu (lot 18)
+
+**Ils s'affichaient en Arial 13 pixels**, la police par défaut du navigateur, alors que tout
+le reste de l'application est composé en Caudex 16 pixels. C'est ce décalage qu'on lisait
+comme une « apparence ancienne ». La cause tenait à une ligne : le remise à zéro des styles
+donnait la police du jeu aux champs de saisie, mais avait oublié les boutons — un bouton
+n'hérite pas de la police de son conteneur.
+
+**Et dans les formulaires, tous les boutons se ressemblaient.** « Annuler » était aussi
+sombre que « Valider », et surtout **« Supprimer » avait perdu son rouge** : un bouton
+destructeur déguisé en bouton de confirmation, sur une trentaine d'écrans. Les variantes
+sont rétablies. Les boutons gagnent au passage un état désactivé lisible, un survol qui se
+voit aussi sur les fonds clairs, et l'alignement correct des libellés à pictogramme.
+
+**Des pans entiers de l'interface ignoraient les couleurs choisies par le MJ.** Vingt-sept
+variables de style étaient appelées sans avoir jamais été définies — le plus souvent une
+faute de frappe dans leur nom. Le carnet de Séléné, plusieurs panneaux d'administration et
+la vue plateau s'affichaient donc en turquoise figé, insensibles au thème de marque. Les
+noms sont corrigés, les rôles qui manquaient vraiment sont ajoutés au système.
+
+**L'administration ressemblait à un back-office générique.** Deux cents teintes de gris et
+de bleu venues d'une palette par défaut se mêlaient au thème médiéval ; il en reste deux.
+Les états de sélection, qui viraient au bleu système, reprennent le turquoise du produit.
+
+**Enfin, l'harmonie avec ForetMap est rétablie** : mêmes rayons, mêmes ombres, même
+géométrie de contrôles, seule la palette diffère. La bibliothèque de médias, partagée par
+les deux produits, affichait des boutons non stylés d'un côté ou de l'autre selon la
+commande — elle utilise désormais des contrôles neutres que chaque produit habille.
+
+Environ 80 lignes de styles morts ont été supprimées et un conflit de sélecteur corrigé.
+Audit complet et mesures : `docs/AUDIT_UI_BOUTONS_GL_2026-08.md`.
+### Un contour de zone se retouche vraiment : on peut enfin ajouter et retirer des sommets (lot 15)
+
+**Jusqu'ici, « Modifier le contour » ne savait que déplacer.** Les sommets posés au dessin
+initial étaient définitifs : impossible d'en ajouter un pour épouser un décrochement de
+parcelle, impossible d'en retirer un devenu inutile. La seule issue était de redessiner la
+zone entière et de supprimer l'ancienne — en perdant au passage ses photos, ses tâches et
+son historique.
+
+Le mode d'édition affiche désormais une **poignée pointillée au milieu de chaque côté** :
+on la tire, un sommet naît là et suit le doigt dans le même geste — sans changer d'outil,
+et sans que rien ne clignote sur la carte. Pour viser un point précis d'un long côté, la
+bascule « ＋ Sommet » rend le contour lui-même cliquable : le sommet se pose exactement sur
+le trait, projeté sur l'arête la plus proche. La suppression se fait par la touche Suppr ou
+le bouton « 🗑 », avec le garde-fou des **trois sommets minimum** déjà imposé par l'API.
+
+- **Nouveaux utilitaires** — `findEditEdgeInsertion`, `insertEditPointAt`,
+  `editEdgeMidpoints`, `removeEditPointsAt` et `canRemoveEditPoints` dans
+  `src/utils/zoneEditGeometry.js`. La projection sur l'arête réutilise les helpers déjà
+  partagés avec la carte du royaume de Gnomes & Licornes (`src/shared/pct-map/`) plutôt
+  que d'en écrire une seconde version.
+- **Tolérance constante à l'écran** — la distance « assez proche du bord pour insérer »
+  est dérivée de 28 pixels écran, pas d'un pourcentage fixe : viser une arête reste aussi
+  facile en zoom fort qu'en vue d'ensemble.
+- **Historique** — chaque ajout et chaque retrait entre dans la pile d'annulation : « ↩
+  Annuler » et Ctrl+Z reviennent en arrière pas à pas comme pour un déplacement.
+- **Tests** — 30 cas ajoutés sur les utilitaires purs, 16 sur le hook d'édition et 10 sur
+  le calque SVG (insertion enchaînée sur un glissement, insertion refusée, garde des trois
+  sommets).
+- **Documentation** — nouvelle section « Retoucher le contour d'une zone » dans
+  `docs/reference/foretmap/carte-et-zones.md`. Contrat HTTP inchangé : `PUT /api/zones/:id`
+  reçoit toujours le même tableau de `{ xp, yp }`, `docs/API.md` n'évolue pas.
+
+### Les sommets se sélectionnent à plusieurs et se déplacent d'un bloc (lot 16)
+
+**Recaler un côté entier d'une zone demandait de déplacer ses sommets un par un**, en
+espérant conserver leurs écarts. Sur un contour à quinze sommets, l'opération était longue
+et le résultat approximatif.
+
+On peut maintenant **désigner plusieurs sommets** : Maj+clic pour les prendre un à un, ou
+un **rectangle tracé sur le fond de carte** pour attraper tout ce qu'il contient. Les
+sommets retenus s'entourent d'un cercle orange, et glisser l'un d'eux **déplace tout le
+groupe** en conservant sa forme — le groupe glisse le long du bord de l'image au lieu de
+s'écraser dessus quand il l'atteint. Suppr retire toute la sélection d'un coup. Sur
+tablette, où la touche Maj n'existe pas, une bascule « Multi » rend chaque appui additif.
+
+- **Sélection** — état porté par `useZoneEditPoints`, réindexé après chaque suppression et
+  après une annulation, pour qu'aucun index ne pointe vers un sommet disparu.
+- **Déplacement groupé borné** — `clampEditMoveDelta` limite le déplacement au lieu de
+  borner chaque sommet séparément : la forme de la sélection est préservée.
+- **Gestes tactiles** — le lasso s'abandonne dès qu'un second doigt se pose, pour ne pas
+  transformer un zoom à deux doigts en sélection involontaire.
+- **Tests** — Maj+clic (ajout puis retrait), lasso, clic sur le fond qui désélectionne,
+  déplacement de groupe borné, suppression multiple, réindexation.
+- **Documentation** — décrit dans la même section du guide « La carte et les zones ».
+
+### Un aimant colle les sommets sur les limites visibles du plan (lot 17)
+
+**Suivre à la souris le bord d'une parcelle demande une main sûre.** Sur un plan dessiné,
+la limite est pourtant parfaitement visible : c'est un trait franc, un changement d'aplat.
+
+La bascule « 🧲 Aimant » analyse l'image de fond de la carte — détection de contours par
+l'opérateur de Sobel sur la luminance — et **colle le sommet déplacé sur le contraste le
+plus marqué autour de lui**, exactement comme l'aimantation d'un logiciel de retouche
+photo. Un curseur règle la distance d'accroche, en pixels écran (donc constante quel que
+soit le zoom) ; « 🧲 Coller » applique l'aimant d'un coup aux sommets sélectionnés, ou à
+tout le contour si rien n'est sélectionné ; **Alt maintenu** le suspend le temps d'un geste.
+
+- **Analyse à la demande** — rien n'est calculé tant que l'aimant n'est pas allumé, l'image
+  est sous-échantillonnée à 1400 px de côté au maximum, et le résultat est mis en cache par
+  URL de plan : rallumer l'aimant est instantané.
+- **Repli explicite** — si l'image du plan vient d'un autre domaine, le navigateur interdit
+  d'en lire les pixels : le bouton affiche « Indispo. » et l'édition continue sans aimant,
+  au lieu d'échouer en silence.
+- **Limite assumée** — sur une photo aérienne peu contrastée, l'aimant peut accrocher une
+  ombre plutôt que la vraie limite ; c'est signalé comme point d'attention dans le guide.
+- **Tests** — 16 cas sur la détection de contours (`src/utils/edgeSnap.js`) avec des images
+  de synthèse, plus la couverture du branchement dans le hook d'édition.
+- **Documentation** — mode d'emploi et point d'attention dans « Retoucher le contour d'une
+  zone » ; aucune route ni table modifiée.
+### Les mascottes livrées se gèrent depuis le studio (lot 14)
+
+Visualiser, modifier, exporter ou retirer une **mascotte livrée avec l'application** demandait
+jusqu'ici de savoir où chercher : un peu dans « Packs mascotte », un peu dans « Paramètres », et
+l'export imposait de cloner d'abord — créer un pack pour le jeter aussitôt.
+
+Un volet **Mascottes livrées** rassemble tout ça. Pour chaque mascotte : un aperçu, un bouton
+**Cloner pour modifier**, un bouton **Exporter ZIP** direct, et la case **« proposée aux
+visiteurs »**.
+
+**Le volet dit enfin la vérité sur ce qu'il propose.** Quatre des seize mascottes livrées portent
+une vraie animation ; les douze autres n'ont qu'une image fixe et s'affichent en silhouette. Un
+badge le signale, et l'archive d'un de ces modèles part avec son avertissement — plutôt que de
+laisser croire qu'on a exporté une animation.
+
+La case de visibilité écrit **le réglage qui existait déjà** (Paramètres → Mascottes de visite) :
+un seul réglage, deux endroits où le voir, aucune mécanique parallèle. Elle demande un rôle
+d'administration ; un professeur qui ne gère que les packs la voit grisée, avec l'explication.
+
+### Les mascottes livrées se clonent enfin avec leurs vraies animations (lot 13b)
+
+Le studio proposait de partir d'une **mascotte livrée avec l'application** comme modèle. Sauf que
+pour la plupart d'entre elles, la copie obtenue faisait pointer **les vingt et un états sur une
+seule et même image fixe**. On pouvait la cloner, on n'y voyait aucune animation, et l'exporter
+n'exportait que ce figurant.
+
+**OLU se clone désormais avec ses 88 vraies trames.** Le visualiser, le modifier ou l'exporter
+depuis le studio ne demande plus d'importer quoi que ce soit.
+
+**Gnome 1 réapparaît dans la liste des modèles.** L'application savait déjà le construire, mais il
+manquait de la liste : clonable par appel direct, introuvable dans le studio.
+
+### OLU s'anime : ses vingt et un états, prêts à importer (lot 13)
+
+OLU n'avait pas de planche d'animation : il apparaissait en **silhouette dessinée**. Les dix-neuf
+planches manquantes ont été générées, découpées, et assemblées en une **archive importable** depuis
+l'onglet « Packs mascotte ». Une fois importée puis publiée, OLU s'anime partout où il apparaît.
+
+**Les vingt et un états sont couverts** — repos, marche, course, parole, désignation, joie, saut,
+célébration, tour sur soi, examen de carte, recherche, salut, mise en garde, surprise, gravité,
+affection, contrariété, sommeil, repas, danse. Aucun ne retombe plus sur `idle` faute d'images :
+c'était le cas de neuf d'entre eux.
+
+Le découpage se fait **par contenu et non par grille** — les modèles d'image alignent mal les cases
+d'une bande, et les dix-neuf planches ont été segmentées correctement du premier coup malgré des
+espacements inégaux. Deux points méritaient de l'attention :
+
+- **la ligne de sol est celle de la planche, pas celle du sujet** : caler chaque trame sur ses
+  propres pieds aurait aplati les sauts de `happy_jump`, `celebrate` et `dance` ;
+- **l'échelle est ramenée à une hauteur commune** planche par planche : OLU y sortait de 335 à
+  523 px de haut selon la planche, il aurait changé de taille en changeant d'humeur.
+
+Deux planches (`alert`, `surprise`) viennent d'une passe où le personnage a dérivé — le poitrail
+crème y disparaît. Elles sont livrées telles quelles et **signalées comme à régénérer** :
+`docs/MASCOT_OLU_PLANCHES_SPRITES.md` §5.5.
+
+Outils : `npm run mascot:olu-cut` (découpage), `npm run mascot:olu-pack` (archive).
+Prompts de génération : `docs/MASCOT_OLU_PROMPTS_A_COLLER.md`.
+
+### Doc — Audit UI : pourquoi les boutons de G&L paraissent d'un autre âge
+
+L'impression n'était pas subjective. Mesures faites dans Chromium sur du markup G&L réel :
+**tous** les boutons du jeu s'affichent en **Arial 13,3 px** — la feuille de style du
+navigateur — au lieu du Caudex 16 px de l'application, parce que `.gl-btn` est une copie
+appauvrie du `.btn` de ForetMap à qui il manque `font-family` et `font-size`. Sur 84 règles
+CSS ciblant des boutons, une seule fixe la police.
+
+Second défaut mesuré : dans un `.gl-form`, les variantes `secondary`, `ghost` et `danger`
+s'affichent toutes en primaire foncé. S'ajoutent 80 lignes de CSS bouton mort et 27 variables
+CSS jamais définies (dont `--gl-primary`, 28 usages — ces zones ignorent donc le thème de
+marque).
+
+L'audit décrivait les remèdes sans les appliquer ; **ils l'ont été depuis, au lot 14
+ci-dessus**. Deux de ses constats se sont révélés surévalués à la vérification et sont
+corrigés dans le document : le nombre de sélecteurs dupliqués (1, et non 27 — le comptage
+confondait surcharges `@media` et doublons) et les cibles tactiles, déjà conformes grâce au
+pseudo-élément du lot 4. Détail : `docs/AUDIT_UI_BOUTONS_GL_2026-08.md`.
+
+### Les questions redeviennent lisibles, côté fiche comme côté écran (lot 13)
+
+**La fiche d'une question du Quiz s'intitulait par ses noms de colonnes.** Le panneau
+d'édition affichait le champ brut, underscores remplacés par des espaces : « numero dans
+categorie », « reponse texte », « photo legende », « notes pedagogiques ». Les six champs
+`feedback_*` étaient les plus coûteux : rien ne disait qu'ils correspondent chacun à un
+choix précis. Chaque champ porte désormais un libellé français explicite — « Explication
+si l'élève choisit B », « Photo — légende (affichée sous l'image) » — dans les trois
+éditeurs (Quiz ForetMap, QCM biomes et QCM lore de Gnomes & Licornes).
+
+**L'aperçu « Présenter » ne montrait pas l'illustration.** Un professeur qui renseignait
+une photo ne pouvait la vérifier nulle part : ni dans la fiche, ni dans l'aperçu. L'aperçu
+affiche maintenant l'image avec sa légende et son crédit. La légende reste réservée à
+l'administration : dans le catalogue livré, elle nomme le sujet photographié — l'afficher
+à l'élève donnerait la réponse.
+
+**La question du contrôle de compréhension affichait sa photo sans crédit.** Le crédit et
+la licence apparaissaient dans l'onglet Quiz, mais pas dans la fenêtre de validation d'un
+tutoriel. C'est corrigé, et le code de la question y est annoncé comme ailleurs
+(« Question QF0351 »).
+
+**Les réglages du contrôle de compréhension n'avaient pas de nom.** Les cinq réglages
+`learning.gating.*` tombaient dans « Autres paramètres » sous le dernier segment de leur
+clé : un interrupteur nommé « Enabled » commandait, sans le dire, l'obligation de répondre
+à des questions avant de valider une lecture. Ils forment désormais leur propre section,
+« Validation des lectures (contrôle de compréhension) », chacun sous un libellé qui décrit
+son effet — le délai de blocage après une erreur (3 jours par défaut) compris.
+
+La documentation de référence explique en clair ce que ce dispositif fait, ce qu'il exige
+pour fonctionner, et pourquoi il reste aujourd'hui sans effet visible côté ForetMap : les
+questions ne peuvent pas encore être rattachées aux tutoriels depuis l'interface.
+### Cinq mises à jour de dépendances npm (lot d'intégration)
+
+Les montées de version proposées automatiquement et restées en attente sont reprises
+d'un bloc : `better-sqlite3` 12 → **13.0.3**, `jsdom` 29 → **30.0.1**,
+`@testing-library/jest-dom` 6 → **7.0.1**, `google-auth-library` 10 → **11.0.2** et
+`artillery` 2.0.33 → **2.0.34**.
+
+Les quatre premières sont des versions **majeures** : `better-sqlite3` et `jsdom` ne
+servent qu'aux tests (fork SQLite d'import de carte, rendu React), `jest-dom` aux
+assertions d'interface, et `google-auth-library` à la connexion Google. Le verrou
+(`package-lock.json`) a été régénéré d'un seul tenant pour que les cinq montées
+cohabitent.
+
+### Un feuillet découvert deux fois en même temps ne double plus les cœurs
+
+Deux élèves de la même équipe (ou un double clic) qui présentaient le même feuillet
+au même instant encaissaient **deux fois** les cœurs et/ou payaient **deux fois** les
+gemmes. La garde « déjà présenté » lisait le journal **avant** la transaction, et
+l'événement n'était écrit **qu'après** le commit : les deux requêtes voyaient un
+carnet encore vide.
+
+Même garde que pour une zone-feuillet : on verrouille l'équipe, on relit, et on
+journalise dans la même transaction. La seconde requête reçoit `409` et la vitalité
+n'a bougé que d'un cran.
+
+### Un échange au plafond ne fait plus disparaître des gemmes
+
+Depuis le plafond de jeu (cœurs/gemmes max), finaliser un troc alors que le
+receveur était déjà au maximum **débitait le donneur et jetait la monnaie** :
+le plafond rognait le gain, pas la dépense. Deux élèves qui s'accordent
+« je te donne 2 gemmes » voyaient les 2 gemmes s'évaporer.
+
+L'échange est désormais **refusé** (comme un solde insuffisant) : personne ne
+perd rien, personne n'en gagne. Les récompenses de cases et de feuillets
+continuent d'ignorer un gain au-delà du plafond — là, rien n'est pris à
+personne.
+
+### Un QCM d'entraînement ne se brute-force plus (lore + quiz ForetMap)
+
+Le catalogue biomes consommait déjà le jeton de présentation à la première réponse.
+Le QCM **lore** hors partie et le **quiz ForetMap** laissaient rejouer le même jeton :
+cinq requêtes suffisaient à révéler la bonne réponse, et à enregistrer une tentative
+juste qui débloque un conditionnement. Même filet désormais : rejeu → 409, il faut
+une nouvelle présentation (choix remélangés).
+
+### Un échange ne mange plus un feuillet déjà lu dans le carnet personnel
+
+Le Marché savait déjà ne pas écraser l'état **d'équipe** : si les receveurs avaient
+trouvé un feuillet intact, une copie très effacée ne l'opacifiait pas. La trace
+**personnelle** — celle qui survit à un changement de partie ou d'équipe — n'avait pas
+cette garde. Un élève qui avait lu un feuillet au chapitre 1, puis recevait la même
+page « mangée » dans une nouvelle partie, voyait son carnet s'obscurcir.
+
+L'instantané personnel garde désormais le moins effacé, comme la lecture du carnet le
+faisait déjà. Les camarades qui n'avaient pas le feuillet reçoivent bien la copie.
+
+### Les boutons flottants ne se marchent plus dessus (lot 12)
 
 **Deux d'entre eux tombaient dans la barre de navigation du bas.** Côté Gnomes & Licornes,
 la cloche de notifications se posait par-dessus et masquait un onglet. Côté ForetMap, le
@@ -206,7 +482,6 @@ Marché serait le contournement évident — mais laisse souverain l'ajustement 
 
 L'audit complet et les options de finition, pensées pour une classe de 6ème, sont dans
 [docs/reference/gl/audit-mecaniques-2026-08.md](docs/reference/gl/audit-mecaniques-2026-08.md).
-
 
 ### Les visites guidées GL atteignent enfin les écrans où l'on arrive (lot 10)
 
