@@ -14,6 +14,7 @@ const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { getSettingValue } = require('../lib/settings');
 const core = require('../lib/shared/resourceQuestionGatingCore');
+const tutorialMatch = require('../lib/shared/tutorialQuestionMatch');
 
 const router = express.Router();
 const managePermission = requirePermission('plants.manage');
@@ -243,6 +244,207 @@ router.get(
   managePermission,
   asyncHandler(async (req, res) => {
     return res.json({ gating: await getSiteGating(), resource_types: ALLOWED });
+  }),
+);
+
+/** Plafonds de l'appariement automatique : bornent le travail et la reponse. */
+const SUGGEST_MAX_PER_QUESTION = 10;
+const SUGGEST_MAX_CANDIDATES = 2000;
+
+/**
+ * GET /api/learning-links/resources?type=tutorial
+ * Ressources rattachables, avec leur nombre de liens — de quoi peupler un menu
+ * deroulant cote prof plutot que de lui faire saisir un identifiant a la main.
+ */
+router.get(
+  '/resources',
+  managePermission,
+  asyncHandler(async (req, res) => {
+    const type = core.normalizeResourceType(req.query.type, ALLOWED) || 'tutorial';
+    if (type !== 'tutorial') {
+      // Les autres types (plante, glossaire) ont deja leurs propres ecrans de
+      // catalogue ; seul le tutoriel manquait d'un point d'entree.
+      return res.status(400).json({ error: 'Seul le type « tutorial » est listé ici' });
+    }
+    const rows = await queryAll(
+      `SELECT t.id, t.title, t.type, t.is_active,
+              COUNT(l.id) AS links_count,
+              SUM(CASE WHEN l.status = 'approved' AND l.is_gating = 1 THEN 1 ELSE 0 END) AS gating_count,
+              SUM(CASE WHEN l.status = 'suggested' THEN 1 ELSE 0 END) AS suggested_count
+         FROM tutorials t
+         LEFT JOIN resource_question_links l
+           ON l.resource_type = 'tutorial'
+          -- CAST(... AS CHAR) sort en utf8mb4_general_ci alors que resource_ref est en
+          -- utf8mb4_unicode_ci : sans COLLATE explicite, MariaDB refuse la comparaison
+          -- (ER_CANT_AGGREGATE_2COLLATIONS) des que la connexion applicative s'en mele.
+          AND l.resource_ref = CAST(t.id AS CHAR) COLLATE utf8mb4_unicode_ci
+        GROUP BY t.id
+        ORDER BY t.sort_order ASC, t.title ASC`,
+    );
+    return res.json({
+      resource_type: 'tutorial',
+      resources: rows.map((r) => ({
+        ref: String(r.id),
+        label: r.title,
+        tutorial_type: r.type,
+        is_active: Number(r.is_active) === 1,
+        links_count: Number(r.links_count) || 0,
+        gating_count: Number(r.gating_count) || 0,
+        suggested_count: Number(r.suggested_count) || 0,
+      })),
+    });
+  }),
+);
+
+/** Cle d'unicite d'un couple ressource/question, alignee sur l'index unique. */
+function linkKey(resourceType, resourceRef, questionCode) {
+  return `${resourceType}|${resourceRef}|${questionCode}`;
+}
+
+/** Couples deja lies, tous statuts confondus (y compris rejetes : ne pas re-proposer). */
+async function loadExistingTutorialLinks() {
+  const rows = await queryAll(
+    `SELECT resource_ref, question_code FROM resource_question_links
+      WHERE resource_type = 'tutorial'`,
+  );
+  return new Set(rows.map((r) => linkKey('tutorial', r.resource_ref, r.question_code)));
+}
+
+/**
+ * Liens editoriaux quiz_question_tutorials pas encore repris dans le modele unifie.
+ *
+ * La migration 144 a fait cette reprise UNE FOIS ; tout rattachement editorial
+ * cree depuis est reste invisible du conditionnement. Ces liens-la sont saisis a
+ * la main par un professeur : ils valent bien mieux qu'une correspondance
+ * textuelle, d'ou origin='import' et confiance maximale.
+ */
+async function loadUnmirroredEditorialLinks(existing) {
+  const rows = await queryAll(
+    `SELECT qqt.tutorial_id, qqt.question_code, t.title
+       FROM quiz_question_tutorials qqt
+       JOIN tutorials t ON t.id = qqt.tutorial_id
+       JOIN quiz_questions q ON q.question_code = qqt.question_code`,
+  );
+  const out = [];
+  for (const row of rows) {
+    const ref = String(row.tutorial_id);
+    if (existing.has(linkKey('tutorial', ref, row.question_code))) continue;
+    out.push({
+      resource_type: 'tutorial',
+      resource_ref: ref,
+      question_code: row.question_code,
+      confidence: 1,
+      origin: 'import',
+      status: 'suggested',
+      reason: 'lien éditorial « questions liées » déjà saisi',
+      matched_terms: [],
+      resource_label: row.title,
+    });
+  }
+  return out;
+}
+
+/**
+ * POST /api/learning-links/suggest
+ * Rapproche automatiquement questions et tutoriels a partir de leurs CONTENUS.
+ *
+ * Simulation par defaut (`apply` absent ou faux) : rien n'est ecrit, le prof voit
+ * d'abord ce qui serait cree. Avec `apply: true`, les candidats sont inseres en
+ * status='suggested' — ils restent donc sans effet sur les eleves tant qu'ils
+ * n'ont pas ete approuves.
+ *
+ * Corps : { apply?, minConfidence?, maxPerQuestion?, includeEditorial?, questionCodes?, resourceRefs? }
+ */
+router.post(
+  '/suggest',
+  managePermission,
+  asyncHandler(async (req, res) => {
+    const body = req.body || {};
+    const apply = body.apply === true || body.apply === 'true';
+    const includeEditorial = body.includeEditorial !== false;
+
+    const rawMin = Number(body.minConfidence);
+    const minConfidence = Number.isFinite(rawMin) ? Math.min(1, Math.max(0, rawMin)) : 0.5;
+    const rawMax = Number(body.maxPerQuestion);
+    const maxPerQuestion = Number.isFinite(rawMax)
+      ? Math.min(SUGGEST_MAX_PER_QUESTION, Math.max(1, Math.floor(rawMax)))
+      : 3;
+
+    const questionCodes = (Array.isArray(body.questionCodes) ? body.questionCodes : [])
+      .map((c) => core.normalizeQuestionCode(c))
+      .filter(Boolean);
+    const resourceRefs = (Array.isArray(body.resourceRefs) ? body.resourceRefs : [])
+      .map((r) => core.normalizeResourceRef(r))
+      .filter(Boolean);
+
+    const tutorials = await queryAll(
+      `SELECT id, title, summary, html_content FROM tutorials
+        WHERE is_active = 1
+        ${resourceRefs.length ? `AND id IN (${resourceRefs.map(() => '?').join(', ')})` : ''}`,
+      resourceRefs,
+    );
+    const questions = await queryAll(
+      `SELECT question_code AS code, question AS text, reponse_texte, tags, feedback_correct
+         FROM quiz_questions
+        WHERE statut = 'actif'
+        ${questionCodes.length ? `AND question_code IN (${questionCodes.map(() => '?').join(', ')})` : ''}`,
+      questionCodes,
+    );
+
+    const existing = await loadExistingTutorialLinks();
+    const editorial = includeEditorial ? await loadUnmirroredEditorialLinks(existing) : [];
+    // Un couple repris de l'editorial ne doit pas etre re-propose par le texte.
+    const seen = new Set(existing);
+    for (const link of editorial) {
+      seen.add(linkKey('tutorial', link.resource_ref, link.question_code));
+    }
+
+    const textual = tutorialMatch.suggestTutorialLinks({
+      questions,
+      tutorials,
+      existing: seen,
+      minConfidence,
+      maxPerQuestion,
+    });
+
+    const candidates = [...editorial, ...textual].slice(0, SUGGEST_MAX_CANDIDATES);
+    const truncated = editorial.length + textual.length > candidates.length;
+
+    let inserted = 0;
+    if (apply) {
+      for (const c of candidates) {
+        const result = await execute(
+          `INSERT IGNORE INTO resource_question_links
+            (resource_type, resource_ref, question_code, is_gating, weight, origin, confidence, status, note,
+             created_by_user_type, created_by_user_id)
+           VALUES ('tutorial', ?, ?, 1, 1, ?, ?, 'suggested', ?, ?, ?)`,
+          [
+            c.resource_ref,
+            c.question_code,
+            c.origin,
+            c.confidence,
+            String(c.reason || '').slice(0, 255) || null,
+            actor(req).userType,
+            actor(req).userId,
+          ],
+        );
+        inserted += result.affectedRows ? 1 : 0;
+      }
+    }
+
+    return res.json({
+      applied: apply,
+      inserted,
+      truncated,
+      stats: {
+        tutorials: tutorials.length,
+        questions: questions.length,
+        existing_links: existing.size,
+        editorial_candidates: editorial.length,
+        textual_candidates: textual.length,
+      },
+      candidates,
+    });
   }),
 );
 

@@ -1639,6 +1639,8 @@ Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_
 | GET     | `/api/learning-links/policy?resourceType=&resourceRef=` | Politique brute + **effective** (fusion avec les défauts du site).                                               |
 | PUT     | `/api/learning-links/policy`                            | Définit la politique d'une ressource (`mode`, `required_correct`, `enabled`).                                    |
 | GET     | `/api/learning-links/config`                            | Réglages site effectifs (lecture seule ; écriture via `/api/settings`).                                          |
+| GET     | `/api/learning-links/resources?type=tutorial`           | Tutoriels rattachables + compteurs (`links_count`, `gating_count`, `suggested_count`). `400` pour un autre type. |
+| POST    | `/api/learning-links/suggest`                           | Rattachement automatique tutoriel ↔ question **par le contenu** (voir ci-dessous). Simulation par défaut.        |
 
 Réglages site (table `app_settings`, scope `teacher`, modifiables via `/api/settings`) :
 `learning.gating.enabled` (def. `false`), `learning.gating.auto_mark_on_correct` (**déprécié**, ignoré),
@@ -1698,6 +1700,50 @@ lorsque la réponse est fausse et que le corps inclut `{ resourceType, resourceR
 | POST    | `/api/gl/learning/mark/:resourceType/:ref`                     | JWT GL | Accusé **générique** (`lore_glossary`, `feuillet`, `content_page`, `ecosystem`). Même garde de quiz-gating.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 > **Isolement** : un JWT `product:'gl'` est rejeté sur `/api/learning-links` et inversement (couvert par tests).
+
+### Rattachement automatique tutoriel ↔ question par le contenu
+
+`POST /api/learning-links/suggest` (prof, `plants.manage`) rapproche les questions du Quiz et les
+tutoriels **en comparant leurs deux contenus en base** — l'énoncé, la réponse rédigée, les tags et
+l'explication de la question, contre le titre, le résumé et le corps HTML du tutoriel.
+
+Moteur pur `lib/shared/tutorialQuestionMatch.js`. Il complète `resourceQuestionMatch`, qui cherche le
+_libellé_ d'une ressource dans l'énoncé : cette direction fonctionne pour un terme de glossaire ou un
+nom d'espèce, mais rate l'essentiel pour un tutoriel, dont le seul libellé est le titre (« Le
+compostage » n'apparaît pas dans « Que met-on dans le compost ? »).
+
+Principe du score, entre 0 et 1 :
+
+- radicalisation française légère (pluriel puis un suffixe dérivationnel) : `compost` ≈ `compostage` ;
+- pondération **IDF** sur le corpus des tutoriels : un terme présent partout ne désigne aucune fiche ;
+- **couverture** (part du vocabulaire de la question reprise par la fiche) × **preuve absolue**
+  (masse IDF partagée, saturée) : sans ce second facteur, une question pauvre en vocabulaire
+  (« Quelle espèce reconnais-tu sur cette photo ? ») décrochait le score maximal ;
+- bonus si les termes partagés figurent dans le **titre** ; plafond lié au nombre de termes partagés
+  (deux mots communs ne valent jamais une confiance haute).
+
+| Corps              | Défaut  | Effet                                                                    |
+| ------------------ | ------- | ------------------------------------------------------------------------ |
+| `apply`            | `false` | `false` = simulation, **aucune écriture**. `true` insère les candidats.  |
+| `minConfidence`    | `0.5`   | Seuil de retenue, borné à `[0,1]`.                                       |
+| `maxPerQuestion`   | `3`     | Propositions maximales par question (plafonné à 10).                     |
+| `includeEditorial` | `true`  | Reprend aussi les liens `quiz_question_tutorials` non encore répercutés. |
+| `questionCodes[]`  | —       | Restreint l'analyse à ces questions.                                     |
+| `resourceRefs[]`   | —       | Restreint l'analyse à ces tutoriels.                                     |
+
+Réponse : `{ applied, inserted, truncated, stats, candidates[] }`, chaque candidat portant
+`confidence`, `reason` (les radicaux qui ont motivé le rapprochement), `matched_terms[]` et
+`resource_label`.
+
+Deux garanties : l'insertion se fait en **`status='suggested'`** — donc sans effet sur les élèves tant
+qu'un professeur n'a pas approuvé — et l'opération est **idempotente** (un couple déjà lié, quel que
+soit son statut, n'est jamais re-proposé).
+
+`includeEditorial` couvre un angle mort : la migration 144 a copié `quiz_question_tutorials` vers
+`resource_question_links` **une seule fois**. Tout rattachement éditorial créé depuis restait invisible
+du conditionnement ; il remonte ici en `origin='import'`, confiance `1`.
+
+Écran professeur : `src/components/pedago/admin/FMLearningLinksPanel.jsx`, dans l'onglet Quiz côté prof.
 
 ### Suggestion automatique de liens (phase 2)
 
