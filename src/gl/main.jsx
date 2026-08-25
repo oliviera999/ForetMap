@@ -5,6 +5,7 @@ import '../shared/styles/speech-bubble.css';
 import '../shared/styles/mascot-speaker.css';
 import '../shared/styles/guided-tour.css';
 import '../shared/styles/tooltip.css';
+import '../shared/styles/floating-dock.css';
 import '../shared/styles/tour-editor.css';
 import '../shared/styles/modal-shell.css';
 import '../shared/styles/toast-shell.css';

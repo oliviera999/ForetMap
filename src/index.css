@@ -42,6 +42,8 @@
       --shadow:   0 4px 24px rgba(26,71,49,.13);
       --radius:   14px;
       --bottom-nav-height: 72px;
+      /* L'échelle ForetMap place sa barre basse à 99 : on déclare l'existant. */
+      --fm-z-nav: 99;
       --bottom-nav-height-desktop: 62px;
       /* Barre d’onglets n3boss (parchemin) : une seule hauteur sur tous les écrans et tous les onglets (carte, tâches, etc.). */
       --top-tabs-pad-y: clamp(3px, 0.55vw, 5px);
@@ -545,6 +547,9 @@
     /* Chaîne flex : #app → main/teacher-main → contenu (flex:1; min-height:0) pour que la carte
        remplisse l'espace sous l'en-tête / onglets sans 100dvh + défilement parasite sur laptop. */
     .main {
+      /* Ce que les commandes flottantes doivent dégager (src/shared/styles/floating-dock.css) :
+         la vue élève porte une barre basse, la vue prof n'en a pas. */
+      --fm-safe-bottom-nav:calc(var(--bottom-nav-height) + var(--safe-bottom));
       flex:1;
       min-width:0;
       min-height:0;
@@ -4858,11 +4863,17 @@
       }
     }
 
+/*
+ * Le bandeau se posait à `bottom:16px; z-index:40`, c'est-à-dire **dans** les 56–72 px de
+ * la navigation basse (`.bottom-nav`, z-index 99) et **au-dessous** d'elle : il ne
+ * s'affichait donc jamais pour un élève. Il se pose maintenant au-dessus de la barre, par
+ * calcul, et son empilement est nommé (cf. src/shared/styles/floating-dock.css).
+ */
 .app-inline-toast {
   position:fixed;
-  right:16px;
-  bottom:16px;
-  z-index:40;
+  right:var(--fm-dock-inset);
+  bottom:calc(var(--fm-safe-bottom-nav) + var(--fm-dock-inset));
+  z-index:var(--fm-z-toast);
   background:rgba(26,71,49,.95);
   color:#fff;
   border-radius:8px;
@@ -7611,4 +7622,37 @@ a.fm-glossary-inline-link:focus-visible,
   .fm-glossary-popover__skeleton {
     animation: none;
   }
+}
+
+/* ── CIBLES TACTILES ≥ 44 px ────────────────────────────────────────────────
+ * Règle projet (CLAUDE.md) et lot 4 de `docs/AUDIT_GENERAL_2026-08.md`.
+ *
+ * La zone **cliquable** est portée à 44 px sans toucher au visuel : un pseudo-élément
+ * centré s'étend à `max(100%, 44px)`, hors flux, donc aucune mise en page ne bouge. Grossir
+ * les boutons eux-mêmes aurait cassé les barres denses.
+ *
+ * Portée volontairement limitée aux commandes **en icône seule**, où la cible est petite
+ * parce que le pictogramme l'est : ce sont celles qu'on rate. Les boutons génériques
+ * (`.btn-sm`) portent un libellé, donc une largeur ; les élargir en hauteur seule ne
+ * réglerait rien et risquerait de voler le clic du voisin dans une rangée serrée.
+ *
+ * L'expansion reste inférieure à la gouttière des conteneurs visés, de sorte que deux
+ * cibles voisines ne se recouvrent pas.
+ */
+.modal-close,
+header .lock-btn,
+.editorial-photo-lightbox__close {
+  position: relative;
+}
+
+.modal-close::after,
+header .lock-btn::after,
+.editorial-photo-lightbox__close::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
 }
