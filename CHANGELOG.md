@@ -7,6 +7,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Le rafraîchissement ne recharge plus que ce qui a changé (lot 16)
+
+Prolongement du lot 15, toujours sans changement fonctionnel visible :
+
+**Refetch ciblé par domaine.** `GET /api/sync-state` expose désormais un compteur par
+domaine de données (cartes, zones, tâches, plantes, repères, tutoriels, session) ;
+quand quelque chose a changé, le client ne recharge que les domaines concernés au
+lieu des huit appels systématiques — valider une tâche ne refait plus recharger
+plantes et tutoriels. La sûreté prime : table inconnue du mapping → tout est
+rechargé ; activité sans rapport (forum, jeu G&L) → rien ne l'est ; changement de
+carte, redémarrage serveur ou sonde en échec → cycle complet, comme avant.
+
+**`nodemailer` chargé au premier envoi d'email** (résets de mot de passe, alertes) :
+encore ~15 Mo de mémoire rendus au démarrage, même recette que le lot 15.
+
+**Côté Gnomes & Licornes, rien à faire** : l'audit du rafraîchissement GL confirme
+qu'il est purement événementiel (Socket.IO + relectures après action), sans polling
+périodique — déjà optimal.
+
 ### Le serveur travaille moins, sans rien perdre (lot 15)
 
 Mise en œuvre du plan de l'audit charge serveur

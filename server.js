@@ -15,6 +15,7 @@ const {
   isApplicationDatabaseReady,
   endPool,
   getDataWriteVersion,
+  getSyncDomainVersions,
 } = require('./database');
 const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
@@ -310,7 +311,13 @@ app.get('/api/version', (req, res) => {
 // complet). Aucune donnée métier, aucune requête SQL : coût quasi nul.
 const serverBootId = `${Date.now().toString(36)}-${process.pid}`;
 app.get('/api/sync-state', (req, res) => {
-  res.json({ bootId: serverBootId, writes: getDataWriteVersion() });
+  // `domains` : compteurs par domaine du cycle fetchAll — le client ne refetche que
+  // les domaines dont le compteur a bougé (repli : tout refetcher si absent/invalide).
+  res.json({
+    bootId: serverBootId,
+    writes: getDataWriteVersion(),
+    domains: getSyncDomainVersions(),
+  });
 });
 
 // Endpoints d'exploitation admin protégés par DEPLOY_SECRET (extraits dans routes/admin-ops.js —

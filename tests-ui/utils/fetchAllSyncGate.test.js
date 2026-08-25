@@ -1,11 +1,19 @@
 import { describe, expect, test } from 'vitest';
 import {
+  ALL_SYNC_DOMAINS,
   canSkipFetchAllCycle,
   isValidSyncState,
   MAX_CONSECUTIVE_SYNC_SKIPS,
+  resolveChangedSyncDomains,
 } from '../../src/utils/fetchAllSyncGate.js';
 
 const baseline = { key: 'ctx-1', bootId: 'boot-a', writes: 42 };
+
+function domainMap(overrides = {}) {
+  const out = {};
+  for (const domain of ALL_SYNC_DOMAINS) out[domain] = 5;
+  return { ...out, ...overrides };
+}
 
 describe('fetchAllSyncGate (polling différentiel)', () => {
   test('isValidSyncState exige bootId non vide et compteur fini', () => {
@@ -67,6 +75,43 @@ describe('fetchAllSyncGate (polling différentiel)', () => {
         consecutiveSkips: 0,
       }),
     ).toBe(false);
+  });
+
+  test('resolveChangedSyncDomains cible les domaines dont le compteur a bougé', () => {
+    const prev = { ...baseline, domains: domainMap() };
+    const next = { bootId: 'boot-a', writes: 44, domains: domainMap({ tasks: 6, zones: 7 }) };
+    const changed = resolveChangedSyncDomains({ prev, next, contextKey: 'ctx-1' });
+    expect([...changed].sort()).toEqual(['tasks', 'zones']);
+
+    const unchanged = resolveChangedSyncDomains({
+      prev,
+      next: { bootId: 'boot-a', writes: 43, domains: domainMap() },
+      contextKey: 'ctx-1',
+    });
+    expect(unchanged.size).toBe(0);
+  });
+
+  test('resolveChangedSyncDomains retombe sur null (tout refetcher) sans info fiable', () => {
+    const prev = { ...baseline, domains: domainMap() };
+    const next = { bootId: 'boot-a', writes: 44, domains: domainMap({ tasks: 6 }) };
+    expect(resolveChangedSyncDomains({ prev: null, next, contextKey: 'ctx-1' })).toBeNull();
+    expect(resolveChangedSyncDomains({ prev, next, contextKey: 'ctx-AUTRE' })).toBeNull();
+    expect(
+      resolveChangedSyncDomains({
+        prev,
+        next: { ...next, bootId: 'boot-B' },
+        contextKey: 'ctx-1',
+      }),
+    ).toBeNull();
+    // Compteurs par domaine absents d'un côté (serveur ou baseline plus ancien).
+    expect(resolveChangedSyncDomains({ prev: baseline, next, contextKey: 'ctx-1' })).toBeNull();
+    expect(
+      resolveChangedSyncDomains({
+        prev,
+        next: { bootId: 'boot-a', writes: 44 },
+        contextKey: 'ctx-1',
+      }),
+    ).toBeNull();
   });
 
   test('le plafond de sauts consécutifs force un cycle complet périodique', () => {
