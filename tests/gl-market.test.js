@@ -43,6 +43,18 @@ async function setMarketHearts(enabled) {
   invalidateGameplayCache();
 }
 
+/** Plafonds de jeu : 0 = illimité (défaut). */
+async function setVitalityCaps(maxHealth, maxPower) {
+  await execute(
+    `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
+     VALUES ('gameplay.max_health_points', ?, NOW()),
+            ('gameplay.max_power_points', ?, NOW())
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
+    [JSON.stringify(maxHealth), JSON.stringify(maxPower)],
+  );
+  invalidateGameplayCache();
+}
+
 before(async () => {
   await initSchema();
   await setVitalityAndMarket(true);
@@ -346,5 +358,67 @@ test('cœurs non échangeables : une offre posée avant la bascule ne se finalis
     await request(app)
       .post(`/api/gl/market/trades/${tradeId}/cancel`)
       .set('Authorization', `Bearer ${tokenA}`);
+  }
+});
+
+test('plafond de jeu : un échange qui ferait dépasser est refusé, les soldes inchangés', async () => {
+  // A à 5 gemmes, B lui en donne 2, plafond gemmes = 5 → avant le correctif,
+  // B perdait 2 gemmes et A n'en recevait aucune (monnaie détruite).
+  await execute('UPDATE gl_players SET health_points = 5, power_points = 5 WHERE id = ?', [
+    playerAId,
+  ]);
+  await execute('UPDATE gl_players SET health_points = 3, power_points = 4 WHERE id = ?', [
+    playerBId,
+  ]);
+  await setVitalityCaps(5, 5);
+  try {
+    const createRes = await request(app)
+      .post('/api/gl/market/trades')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ peerPlayerId: playerBId });
+    assert.strictEqual(createRes.status, 201);
+    const tradeId = createRes.body.id;
+
+    const gemOffer = await request(app)
+      .patch(`/api/gl/market/trades/${tradeId}/offer`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ offerHealth: 0, offerPower: 2 });
+    assert.strictEqual(gemOffer.status, 200);
+
+    await request(app)
+      .patch(`/api/gl/market/trades/${tradeId}/accept`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ accepted: true });
+
+    const failRes = await request(app)
+      .patch(`/api/gl/market/trades/${tradeId}/accept`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ accepted: true });
+    assert.strictEqual(failRes.status, 409);
+    assert.match(String(failRes.body.error || ''), /plafond/i);
+
+    const rowA = await queryOne('SELECT health_points, power_points FROM gl_players WHERE id = ?', [
+      playerAId,
+    ]);
+    const rowB = await queryOne('SELECT health_points, power_points FROM gl_players WHERE id = ?', [
+      playerBId,
+    ]);
+    assert.strictEqual(Number(rowA.power_points), 5, 'A ne reçoit rien au-dessus du plafond');
+    assert.strictEqual(Number(rowB.power_points), 4, 'B ne perd pas les gemmes refusées');
+    assert.strictEqual(Number(rowA.health_points), 5);
+    assert.strictEqual(Number(rowB.health_points), 3);
+
+    await request(app)
+      .post(`/api/gl/market/trades/${tradeId}/cancel`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+  } finally {
+    await setVitalityCaps(0, 0);
+    await execute('UPDATE gl_players SET health_points = 5, power_points = 4 WHERE id = ?', [
+      playerAId,
+    ]);
+    await execute('UPDATE gl_players SET health_points = 3, power_points = 3 WHERE id = ?', [
+      playerBId,
+    ]);
   }
 });
