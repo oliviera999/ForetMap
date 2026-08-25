@@ -1,0 +1,71 @@
+/*
+ * Zone flottante bas-droite — feuille partagée ForetMap + G&L.
+ *
+ * ## Le problème qu'elle règle
+ *
+ * Chaque commande flottante choisissait jusqu'ici son `bottom` et son `z-index` dans son
+ * coin de feuille, sans connaître les autres : 16px/205 pour la cloche GL, 72px/90 pour la
+ * musique, 16px/40 pour le bandeau ForetMap, 12px/12 pour la barre du plateau. Rien ne
+ * garantissait qu'elles s'empilent — et deux d'entre elles ne s'empilaient pas :
+ *
+ * - la cloche GL tombait **dans** les 64 px de la navigation basse, au-dessus d'elle ;
+ * - le bandeau ForetMap tombait dans les 56–72 px de la sienne, **au-dessous** (z 40 < 99),
+ *   donc invisible.
+ *
+ * ## Les deux invariants
+ *
+ * 1. **Rien ne se pose sur une barre de navigation.** `--fm-safe-bottom-nav` vaut la hauteur
+ *    de la barre basse **là où elle existe**, et zéro ailleurs. Une commande fixe se place
+ *    sur `calc(var(--fm-safe-bottom-nav) + var(--fm-dock-inset))`, jamais sur un nombre en
+ *    dur : le jour où la barre change de hauteur, tout suit.
+ * 2. **L'ordre d'empilement est nommé, pas deviné.** `--fm-z-dock` est au-dessus de
+ *    `--fm-z-nav`, `--fm-z-toast` au-dessus des deux. Les valeurs numériques restent celles
+ *    déjà en place produit par produit — on déclare l'ordre existant, on ne renumérote pas
+ *    une échelle qui va de 12 à 99 999.
+ */
+
+:root {
+  /* Marge au bord de l'écran, et espace entre deux commandes empilées. */
+  --fm-dock-inset: 16px;
+  --fm-dock-gap: 12px;
+
+  /*
+   * Hauteur à réserver au-dessus d'une barre de navigation basse. Zéro par défaut :
+   * seules les vues qui en portent une la redéfinissent (`.main` côté ForetMap,
+   * `.gl-app--has-bottom-nav` côté G&L). Une valeur globale sur-réserverait chez le prof,
+   * qui n'a pas de barre basse.
+   */
+  --fm-safe-bottom-nav: 0px;
+
+  --fm-z-nav: 110;
+  --fm-z-dock: 205;
+  --fm-z-toast: 260;
+}
+
+/*
+ * Empilement des commandes flottantes.
+ *
+ * `column-reverse` : les enfants s'empilent **vers le haut** depuis le bas de l'écran, donc
+ * le premier déclaré dans le JSX est le plus proche du pouce. L'ordre et l'espacement sont
+ * portés par le flex — un enfant ne se positionne plus lui-même, et deux enfants ne peuvent
+ * plus se chevaucher.
+ */
+.fm-floating-dock {
+  position: fixed;
+  right: var(--fm-dock-inset);
+  bottom: calc(var(--fm-safe-bottom-nav) + var(--fm-dock-inset));
+  z-index: var(--fm-z-dock);
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: var(--fm-dock-gap);
+  /*
+   * Le conteneur couvre une colonne entière, gouttières comprises : s'il captait le
+   * pointeur, il volerait les clics du contenu situé derrière. Seuls les enfants le captent.
+   */
+  pointer-events: none;
+}
+
+.fm-floating-dock > * {
+  pointer-events: auto;
+}
