@@ -8,6 +8,7 @@ const {
   normalizeVitalityCap,
   resolveVitalityCaps,
   applyDeltaWithCap,
+  wouldGainExceedCap,
   getDefaultVitalityFromSettings,
   applyPlayerVitalityDelta,
 } = require('../lib/glVitality');
@@ -56,6 +57,19 @@ test('applyDeltaWithCap ne confisque jamais un solde déjà au-dessus du plafond
 test('applyDeltaWithCap ne descend jamais sous zéro', () => {
   assert.strictEqual(applyDeltaWithCap(0, -1, 5), 0);
   assert.strictEqual(applyDeltaWithCap(2, -5, 5), 0);
+});
+
+test('wouldGainExceedCap refuse le gain qui dépasserait le plafond, pas la dépense', () => {
+  assert.strictEqual(wouldGainExceedCap(5, 1, 5), true, 'déjà au plafond : +1 refusé');
+  assert.strictEqual(wouldGainExceedCap(4, 2, 5), true, '4+2=6 > 5');
+  assert.strictEqual(wouldGainExceedCap(4, 1, 5), false, '4+1=5 tenant');
+  assert.strictEqual(wouldGainExceedCap(5, -1, 5), false, 'dépense jamais bloquée');
+  assert.strictEqual(wouldGainExceedCap(5, 0, 5), false);
+  // Solde déjà au-dessus : on ne confisque pas, mais on n'accepte plus de gain.
+  assert.strictEqual(wouldGainExceedCap(9, 1, 5), true);
+  assert.strictEqual(wouldGainExceedCap(9, -2, 5), false);
+  // Pas de plafond de jeu (0 → technique 99).
+  assert.strictEqual(wouldGainExceedCap(5, 2, 0), false);
 });
 
 test('clampVitality accepte un plafond explicite', () => {
