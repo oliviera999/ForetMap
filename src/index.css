@@ -7679,3 +7679,81 @@ header .lock-btn::after,
   height: max(100%, 44px);
   transform: translate(-50%, -50%);
 }
+
+/* Onglet « Mascottes livrées » du studio (MascotCatalogModelsView).
+   Grille à trois colonnes : vignette, identité, actions — la colonne d'actions passe sous
+   les deux autres en dessous de 720px, sinon les trois commandes se marchent dessus. */
+.mascot-catalog-models__list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 8px;
+}
+.mascot-catalog-models__row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border, #e2e2e2);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+}
+.mascot-catalog-models__preview {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.mascot-catalog-models__preview > * {
+  max-width: 100%;
+  max-height: 100%;
+}
+.mascot-catalog-models__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.mascot-catalog-models__badge {
+  font-size: 0.76rem;
+  opacity: 0.75;
+}
+.mascot-catalog-models__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.mascot-catalog-models__visibility {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  /* Cible tactile : la case seule fait 13px, le libellé porte le reste de la surface. */
+  min-height: 44px;
+  cursor: pointer;
+}
+.mascot-catalog-models__visibility input:disabled {
+  cursor: not-allowed;
+}
+.mascot-catalog-models__visibility:has(input:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+@media (max-width: 720px) {
+  .mascot-catalog-models__row {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+  .mascot-catalog-models__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+  .mascot-catalog-models__preview {
+    width: 48px;
+    height: 48px;
+  }
+}
