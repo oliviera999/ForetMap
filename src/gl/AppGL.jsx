@@ -24,6 +24,7 @@ import { computePlayerVitality, findPlayerMascotId } from './utils/glGameplayRul
 import { resolvePlateauMapVisibility } from './utils/glPlateauMapVisibility.js';
 import { markerBackgroundStyleFromSettings } from './utils/glMarkerBackgrounds.js';
 import { GLAuthView } from './components/GLAuthView.jsx';
+import { AppStatusSticky } from '../shared/components/AppStatusSticky.jsx';
 import { GLTopBar, GL_TAB_ID_PREFIX, GL_TABPANEL_ID_PREFIX } from './components/GLTopBar.jsx';
 import { useGlCompactNav } from './hooks/useGlCompactNav.js';
 import { useGLOverlays } from './hooks/useGLOverlays.js';
@@ -665,6 +666,7 @@ export function AppGL() {
   if (!session?.token) {
     return (
       <div className="gl-app gl-app--guest" style={glAppStyle}>
+        <AppStatusSticky />
         <GLAuthView
           config={glConfig}
           oauthNotice={oauthNotice}
@@ -697,6 +699,7 @@ export function AppGL() {
             className={`gl-app${compactNav ? ' gl-app--has-bottom-nav' : ''}${isGuest ? ' gl-app--discovery' : ''}`}
             style={glAppStyle}
           >
+            <AppStatusSticky />
             <GLPasswordResetGate
               open={!isGuest && !isAdmin && auth?.passwordMustReset === true}
               onCompleted={() => {

@@ -3,6 +3,7 @@
     @import './shared/styles/mascot-speaker.css';
     @import './shared/styles/modal-shell.css';
     @import './shared/styles/toast-shell.css';
+    @import './shared/styles/status-sticky.css';
     @import './shared/styles/map-fullscreen.css';
     @import './shared/styles/visit-map-mascot.css';
     @import './shared/styles/guided-tour.css';

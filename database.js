@@ -117,9 +117,147 @@ function getRbacWriteVersion() {
   return rbacWriteVersion;
 }
 
+// --- Versions d'écriture données (audit charge serveur, pistes 3 et 4) -------------------
+// Même principe que le versionnage RBAC ci-dessus : toute écriture SQL passée par les
+// helpers (queryAll/queryOne/execute/withTransaction) incrémente une version globale
+// (`dataWriteVersion`, exposée par GET /api/sync-state pour le polling différentiel du
+// client) et, si elle touche une table du scope groupes, une version dédiée
+// (`groupScopeWriteVersion`, clé du cache de lib/groupScope.js). Les écritures hors
+// process (scripts CLI, SQL direct) ne sont pas vues : le client force donc un cycle
+// complet périodique, et les écritures en connexion brute dans le process appellent
+// noteExternalDataWrite().
+let dataWriteVersion = 0;
+let groupScopeWriteVersion = 0;
+const SQL_WRITE_RE = /^\s*(?:INSERT|UPDATE|DELETE|REPLACE|TRUNCATE)\b/i;
+// Tables dont dépendent getAllGroups() / getUserDirectGroupIds() (jointures comprises).
+const GROUP_SCOPE_WRITE_RE =
+  /^\s*(?:INSERT|UPDATE|DELETE|REPLACE|TRUNCATE)\b[\s\S]*\b(?:groups|group_members|roles|gl_classes)\b/i;
+function isSqlWrite(sql) {
+  return typeof sql === 'string' && SQL_WRITE_RE.test(sql);
+}
+
+// --- Compteurs par domaine pour GET /api/sync-state (refetch ciblé côté client) ----------
+// Chaque domaine = un endpoint du cycle fetchAll() du client ; sa liste de tables est
+// l'UNION LARGE des tables que le fichier de route correspondant référence (jointures et
+// sous-requêtes comprises) — le recouvrement entre domaines est voulu : il ne coûte qu'un
+// refetch de trop, jamais une fraîcheur perdue. Règle de sûreté : une écriture qui ne
+// matche AUCUN domaine et n'appartient pas aux familles explicitement sans rapport
+// (GL hors gl_classes, forum, commentaires contextuels) bumpe TOUS les domaines.
+const SYNC_DOMAIN_TABLES = {
+  maps: ['maps'],
+  zones: ['zones', 'zone_photos', 'zone_history', 'visit_zones', 'maps'],
+  // Couvre /api/tasks ET /api/task-projects (routes/tasks.js + routes/task-projects.js).
+  tasks: [
+    'tasks',
+    'task_assignments',
+    'task_logs',
+    'task_markers',
+    'task_projects',
+    'task_referents',
+    'task_species',
+    'task_tutorials',
+    'task_zones',
+    'project_markers',
+    'project_tutorials',
+    'project_zones',
+    'users',
+    'roles',
+    'user_roles',
+    'groups',
+    'group_members',
+    'maps',
+    'zones',
+    'map_markers',
+    'tutorials',
+  ],
+  plants: [
+    'plants',
+    'species_interactions',
+    'glossary_terms',
+    'glossary_term_species',
+    'quiz_questions',
+    'quiz_question_species',
+    'user_plant_observation_events',
+  ],
+  markers: ['map_markers', 'marker_photos', 'visit_markers', 'maps'],
+  tutorials: [
+    'tutorials',
+    'tutorial_markers',
+    'tutorial_zones',
+    'user_tutorial_reads',
+    'glossary_terms',
+    'glossary_term_tutorials',
+    'quiz_questions',
+    'quiz_question_tutorials',
+    'tasks',
+    'task_tutorials',
+    'task_markers',
+    'task_zones',
+    'zones',
+    'maps',
+    'map_markers',
+  ],
+  authMe: ['users', 'roles', 'user_roles', 'groups', 'group_members', 'gl_classes'],
+};
+const SYNC_DOMAIN_RES = Object.fromEntries(
+  Object.entries(SYNC_DOMAIN_TABLES).map(([domain, tables]) => [
+    domain,
+    new RegExp(`\\b(?:${tables.join('|')})\\b`, 'i'),
+  ]),
+);
+/** Familles jamais lues par les endpoints du cycle fetchAll (gl_classes reste suivi : scope auth). */
+const SYNC_IGNORED_TABLES_RE =
+  /\b(?:gl_(?!classes\b)[a-z0-9_]+|forum_[a-z0-9_]+|context_comment[a-z0-9_]*)\b/i;
+const syncDomainVersions = Object.fromEntries(
+  Object.keys(SYNC_DOMAIN_TABLES).map((domain) => [domain, 0]),
+);
+/** Accumule dans `acc` (Set + bumpAll) les domaines concernés par une écriture SQL. */
+function collectSyncDomainsForWriteSql(sql, acc) {
+  let matched = false;
+  for (const [domain, re] of Object.entries(SYNC_DOMAIN_RES)) {
+    if (re.test(sql)) {
+      acc.domains.add(domain);
+      matched = true;
+    }
+  }
+  if (!matched && !SYNC_IGNORED_TABLES_RE.test(sql)) acc.bumpAll = true;
+}
+function applySyncDomainBumps(acc) {
+  if (acc.bumpAll) {
+    for (const domain of Object.keys(syncDomainVersions)) syncDomainVersions[domain] += 1;
+    return;
+  }
+  for (const domain of acc.domains) syncDomainVersions[domain] += 1;
+}
+function getSyncDomainVersions() {
+  return { ...syncDomainVersions };
+}
+
+function bumpDataVersionsForSql(sql) {
+  if (!isSqlWrite(sql)) return;
+  dataWriteVersion += 1;
+  if (GROUP_SCOPE_WRITE_RE.test(sql)) groupScopeWriteVersion += 1;
+  const acc = { domains: new Set(), bumpAll: false };
+  collectSyncDomainsForWriteSql(sql, acc);
+  applySyncDomainBumps(acc);
+}
+/** Écriture faite hors helpers (connexion brute) : périme caches et sync-state. */
+function noteExternalDataWrite() {
+  dataWriteVersion += 1;
+  groupScopeWriteVersion += 1;
+  applySyncDomainBumps({ domains: new Set(), bumpAll: true });
+}
+function getDataWriteVersion() {
+  return dataWriteVersion;
+}
+function getGroupScopeWriteVersion() {
+  return groupScopeWriteVersion;
+}
+
 /** Exécute une requête et retourne les lignes (tableau). */
 async function queryAll(sql, params = []) {
   const [rows] = await pool.execute(sql, params);
+  bumpDataVersionsForSql(sql);
   return Array.isArray(rows) ? rows : [];
 }
 
@@ -136,6 +274,7 @@ async function queryOne(sql, params = []) {
 async function execute(sql, params = []) {
   const [result] = await pool.execute(sql, params);
   bumpRbacVersionIfRbacWrite(sql);
+  bumpDataVersionsForSql(sql);
   return {
     insertId: result.insertId,
     affectedRows: result.affectedRows,
@@ -148,20 +287,33 @@ async function withTransaction(work) {
   // passent par le pool (état committé, sans voir les écritures en cours) — bumper avant commit
   // pourrait cacher une valeur pré-commit à la nouvelle version. On bumpe une fois, post-commit.
   let rbacDirty = false;
+  // Bump données/scope groupes/domaines également différé post-commit, pour la même raison.
+  let dataDirty = false;
+  let scopeDirty = false;
+  const txSyncAcc = { domains: new Set(), bumpAll: false };
+  const noteTxWrite = (sql) => {
+    if (!isSqlWrite(sql)) return;
+    dataDirty = true;
+    if (GROUP_SCOPE_WRITE_RE.test(sql)) scopeDirty = true;
+    collectSyncDomainsForWriteSql(sql, txSyncAcc);
+  };
   try {
     await conn.beginTransaction();
     const tx = {
       queryAll: async (sql, params = []) => {
         const [rows] = await conn.execute(sql, params);
+        noteTxWrite(sql);
         return Array.isArray(rows) ? rows : [];
       },
       queryOne: async (sql, params = []) => {
         const [rows] = await conn.execute(sql, params);
+        noteTxWrite(sql);
         return Array.isArray(rows) ? rows[0] : undefined;
       },
       execute: async (sql, params = []) => {
         const [result] = await conn.execute(sql, params);
         if (isRbacWriteSql(sql)) rbacDirty = true;
+        noteTxWrite(sql);
         return {
           insertId: result.insertId,
           affectedRows: result.affectedRows,
@@ -171,6 +323,9 @@ async function withTransaction(work) {
     const result = await work(tx);
     await conn.commit();
     if (rbacDirty) rbacWriteVersion += 1;
+    if (dataDirty) dataWriteVersion += 1;
+    if (scopeDirty) groupScopeWriteVersion += 1;
+    if (dataDirty) applySyncDomainBumps(txSyncAcc);
     return result;
   } catch (err) {
     try {
@@ -719,6 +874,10 @@ module.exports = {
   withTransaction,
   getRbacWriteVersion,
   isRbacWriteSql,
+  getDataWriteVersion,
+  getGroupScopeWriteVersion,
+  getSyncDomainVersions,
+  noteExternalDataWrite,
   ping,
   initSchema,
   seedData,
