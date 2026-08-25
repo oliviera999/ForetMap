@@ -20,7 +20,7 @@
   margin: 12px 0 0;
   padding: 12px 14px;
   border: 1px solid rgba(15, 23, 42, 0.1);
-  border-radius: 10px;
+  border-radius: var(--gl-radius-control);
 }
 
 .gl-marker-bg-settings h5 {
@@ -46,14 +46,14 @@
   min-width: 52px;
   min-height: 28px;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--gl-radius-pill);
   font-size: 0.72rem;
   border: 1px solid rgba(15, 23, 42, 0.12);
 }
 
 .gl-marker-appearance-editor {
   border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 10px;
+  border-radius: var(--gl-radius-control);
   padding: 12px 14px;
   margin: 12px 0;
 }
@@ -105,17 +105,17 @@
 }
 
 .gl-content-admin-list button {
-  border: 1px solid #bfdbfe;
-  border-radius: 999px;
-  background: #eff6ff;
+  border: 1px solid var(--gl-select-border);
+  border-radius: var(--gl-radius-pill);
+  background: var(--gl-select-surface-soft);
   color: #1e3a8a;
   padding: 6px 10px;
   cursor: pointer;
 }
 
 .gl-content-admin-list button.is-active {
-  border-color: #1d4ed8;
-  background: #1d4ed8;
+  border-color: var(--gl-select-ink);
+  background: var(--gl-select-ink);
   color: #ffffff;
 }
 
@@ -132,7 +132,7 @@
   gap: 4px;
   padding: 8px 10px;
   border: 1px solid #d1fae5;
-  border-radius: 10px;
+  border-radius: var(--gl-radius-control);
   background: #f0fdf4;
 }
 
@@ -148,7 +148,7 @@
 
 .gl-gameplay-toggle-hint {
   font-size: 0.82rem;
-  color: #475569;
+  color: var(--gl-color-text-muted);
 }
 
 .gl-gameplay-presets {
@@ -165,9 +165,9 @@
 
 .gl-gameplay-preset-card {
   padding: 10px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background: #f8fafc;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-sm);
+  background: var(--gl-surface-muted);
 }
 
 .gl-gameplay-preset-head {
@@ -182,7 +182,7 @@
   margin-top: 14px;
   padding: 12px;
   border: 1px solid var(--gl-border);
-  border-radius: 12px;
+  border-radius: var(--gl-radius-md);
   background: var(--gl-accent-info);
 }
 
@@ -193,9 +193,9 @@
 .gl-team-selector {
   margin-top: 14px;
   padding: 10px;
-  border: 1px dashed #94a3b8;
-  border-radius: 12px;
-  background: #f8fafc;
+  border: 1px dashed var(--gl-color-text-muted);
+  border-radius: var(--gl-radius-md);
+  background: var(--gl-surface-muted);
 }
 
 .gl-team-selector-list {
@@ -210,8 +210,8 @@
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  border-radius: 999px;
-  border: 2px solid #94a3b8;
+  border-radius: var(--gl-radius-pill);
+  border: 2px solid var(--gl-color-text-muted);
   background: #ffffff;
   cursor: pointer;
 }
@@ -236,7 +236,7 @@
   background: #16a34a;
   color: white;
   padding: 1px 6px;
-  border-radius: 999px;
+  border-radius: var(--gl-radius-pill);
 }
 
 .gl-pending-actions {
@@ -250,7 +250,7 @@
 .gl-pending-action {
   padding: 8px 10px;
   border: 1px solid #fde68a;
-  border-radius: 10px;
+  border-radius: var(--gl-radius-control);
   background: #fffbeb;
 }
 
@@ -264,7 +264,7 @@
 .gl-spell-effect-queue__effect {
   margin: 6px 0;
   padding: 6px 8px;
-  border-left: 3px solid var(--gl-accent, #047c8c);
+  border-left: 3px solid var(--gl-color-accent);
   background: #ffffff;
   border-radius: 0 6px 6px 0;
   font-size: 0.9rem;
@@ -272,7 +272,7 @@
 }
 
 .gl-pending-action-payload {
-  background: #f1f5f9;
+  background: var(--gl-surface-muted);
   padding: 6px;
   border-radius: 6px;
   font-size: 0.78rem;
@@ -293,14 +293,14 @@
   align-items: center;
   gap: 10px;
   padding: 6px 10px;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-control);
   background: #ffffff;
 }
 
 .gl-scoreboard-team {
   padding: 4px 8px;
-  border-radius: 8px;
+  border-radius: var(--gl-radius-sm);
   border: 2px solid;
   font-weight: 600;
 }
@@ -308,7 +308,7 @@
 .gl-scoreboard-score {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #1d4ed8;
+  color: var(--gl-select-ink);
 }
 
 .gl-vitality-team-panel {
@@ -343,7 +343,7 @@
 }
 
 .gl-active-game-banner.is-status-draft {
-  border-left-color: #94a3b8;
+  border-left-color: var(--gl-color-text-muted);
 }
 
 .gl-active-game-banner.is-status-live {
@@ -351,7 +351,7 @@
 }
 
 .gl-active-game-banner.is-status-paused {
-  border-left-color: #2563eb;
+  border-left-color: var(--gl-select-ink);
 }
 
 .gl-active-game-banner.is-status-ended {
@@ -375,7 +375,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px 14px;
-  color: #475569;
+  color: var(--gl-color-text-muted);
   font-size: 0.92rem;
 }
 
@@ -398,10 +398,10 @@
   justify-items: center;
   text-align: center;
   padding: 28px 16px;
-  border: 1px dashed #cbd5e1;
-  border-radius: 12px;
-  background: #f8fafc;
-  color: #475569;
+  border: 1px dashed var(--gl-border);
+  border-radius: var(--gl-radius-md);
+  background: var(--gl-surface-muted);
+  color: var(--gl-color-text-muted);
 }
 
 .gl-empty-state-icon {
@@ -416,7 +416,7 @@
 .gl-team-chip-color {
   width: 12px;
   height: 12px;
-  border-radius: 999px;
+  border-radius: var(--gl-radius-pill);
   flex-shrink: 0;
   border: 1px solid rgba(0, 0, 0, 0.12);
 }
@@ -436,8 +436,8 @@
 }
 
 .gl-brand-editor-card {
-  border: 1px solid #dbeafe;
-  border-radius: 12px;
+  border: 1px solid var(--gl-select-surface);
+  border-radius: var(--gl-radius-md);
   padding: 10px;
   background: #fff;
 }
@@ -460,7 +460,7 @@
   padding: 8px 10px;
   border: 1px solid var(--gl-border, rgba(1, 58, 64, 0.18));
   border-radius: var(--gl-radius-sm, 8px);
-  background: var(--gl-surface, #fff);
+  background: var(--gl-surface);
 }
 
 .gl-color-editor-label {
@@ -496,14 +496,14 @@
 .gl-theme-preview {
   margin: 12px 0 16px;
   border: 1px solid var(--gl-border, rgba(1, 58, 64, 0.18));
-  border-radius: var(--gl-radius-md, 12px);
+  border-radius: var(--gl-radius-md);
   overflow: hidden;
   min-height: 120px;
 }
 
 .gl-theme-preview-topbar {
   background: var(--gl-color-topbar);
-  color: #f8fafc;
+  color: var(--gl-color-on-dark);
   padding: 10px 14px;
   font-weight: 600;
 }
@@ -519,7 +519,7 @@
 
 .gl-theme-preview-chip {
   padding: 6px 12px;
-  border-radius: 999px;
+  border-radius: var(--gl-radius-pill);
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -574,8 +574,8 @@
   width: 100%;
   text-align: left;
   padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border-radius: var(--gl-radius-sm);
+  border: 1px solid var(--gl-border);
   background: white;
   cursor: pointer;
   display: grid;
@@ -583,13 +583,13 @@
 }
 
 .gl-chapters-admin-list button.is-active {
-  background: #eff6ff;
+  background: var(--gl-select-surface-soft);
   border-color: #93c5fd;
 }
 
 .gl-chapters-admin-list .gl-hint {
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--gl-color-text-muted);
 }
 
 /* Éditeur des feuillets (carnet de Sélène) : barre de filtres + formulaire. */
@@ -608,7 +608,7 @@
 
 .gl-feuillet-editor-form {
   margin-top: 16px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--gl-border);
   padding-top: 12px;
 }
 
@@ -617,9 +617,9 @@
 .gl-spells-bulk {
   margin: 12px 0;
   padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--gl-primary, #047c8c) 30%, transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--gl-primary, #047c8c) 6%, white);
+  border: 1px solid color-mix(in srgb, var(--gl-color-primary) 30%, transparent);
+  border-radius: var(--gl-radius-control);
+  background: color-mix(in srgb, var(--gl-color-primary) 6%, white);
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -637,7 +637,7 @@
   /* Cible tactile : 44px de haut minimum comme les autres contrôles GL. */
   min-height: 44px;
   font-size: 0.85rem;
-  color: #475569;
+  color: var(--gl-color-text-muted);
 }
 
 .gl-spells-bulk__row {
@@ -661,9 +661,9 @@
 .gl-feuillets-bulk {
   margin: 12px 0;
   padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--gl-primary, #047c8c) 30%, transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--gl-primary, #047c8c) 6%, white);
+  border: 1px solid color-mix(in srgb, var(--gl-color-primary) 30%, transparent);
+  border-radius: var(--gl-radius-control);
+  background: color-mix(in srgb, var(--gl-color-primary) 6%, white);
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -685,8 +685,8 @@
   flex: 1 1 120px;
   min-width: 100px;
   padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border-radius: var(--gl-radius-md);
+  border: 1px solid var(--gl-border);
   background: #fff;
   display: flex;
   flex-direction: column;
@@ -699,11 +699,11 @@
 .gl-kpi-card__value {
   font-size: 1.6rem;
   font-weight: 800;
-  color: var(--gl-primary, #047c8c);
+  color: var(--gl-color-primary);
 }
 .gl-kpi-card__label {
   font-size: 0.85rem;
-  color: #475569;
+  color: var(--gl-color-text-muted);
 }
 .gl-feuillets-overview__grids {
   display: grid;
@@ -724,14 +724,14 @@
   justify-content: space-between;
   gap: 8px;
   padding: 6px 10px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-sm);
   background: #fff;
   min-height: 44px;
 }
 .gl-feuillets-overview__coverage button.is-active {
-  border-color: var(--gl-primary, #047c8c);
-  background: color-mix(in srgb, var(--gl-primary, #047c8c) 12%, white);
+  border-color: var(--gl-color-primary);
+  background: color-mix(in srgb, var(--gl-color-primary) 12%, white);
   font-weight: 700;
 }
 
@@ -743,8 +743,8 @@
   display: grid;
   gap: 10px;
   padding: 10px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-sm);
   background: #f9fafb;
 }
 
@@ -798,7 +798,7 @@
   width: 100%;
   padding: 8px 10px;
   border: 1px solid #d1d5db;
-  border-radius: 8px;
+  border-radius: var(--gl-radius-sm);
   background: #fff;
   text-align: left;
   cursor: pointer;
@@ -818,7 +818,7 @@
 }
 
 .gl-multi-check-dropdown__chevron {
-  color: #6b7280;
+  color: var(--gl-color-text-muted);
   font-size: 0.75rem;
 }
 
@@ -831,7 +831,7 @@
   max-height: 240px;
   overflow: auto;
   border: 1px solid #d1d5db;
-  border-radius: 8px;
+  border-radius: var(--gl-radius-sm);
   background: #fff;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
 }
@@ -852,7 +852,7 @@
   padding: 2px 6px;
   border: 0;
   background: transparent;
-  color: var(--gl-color-primary, #16a34a);
+  color: var(--gl-color-primary);
   cursor: pointer;
 }
 
@@ -882,7 +882,7 @@
 .gl-multi-check-dropdown__option-hint {
   grid-column: 2;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--gl-color-text-muted);
 }
 
 .gl-marker-question-list {
@@ -903,8 +903,8 @@
   padding: 0;
   max-height: 280px;
   overflow: auto;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-sm);
   background: #fff;
 }
 
@@ -922,7 +922,7 @@
 
 .gl-marker-question-list__row.is-fixed-selected {
   background: #dcfce7;
-  border-left: 3px solid var(--gl-color-primary, #22c55e);
+  border-left: 3px solid var(--gl-color-primary);
 }
 
 .gl-marker-question-list__pick {
@@ -937,7 +937,7 @@
   width: 1.25rem;
   height: 1.25rem;
   line-height: 1;
-  color: var(--gl-color-primary, #22c55e);
+  color: var(--gl-color-primary);
   cursor: pointer;
 }
 
@@ -962,7 +962,7 @@
 
 .gl-marker-question-list__meta {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--gl-color-text-muted);
 }
 
 .gl-marker-question-list__text {
@@ -997,7 +997,7 @@
   border: 1px dashed color-mix(in srgb, var(--gl-color-primary) 40%, var(--gl-border) 60%);
   background: color-mix(in srgb, #fff 88%, var(--gl-color-secondary) 12%);
   color: var(--gl-color-primary);
-  border-radius: 10px;
+  border-radius: var(--gl-radius-control);
   min-height: 44px;
   padding: 8px 12px;
   cursor: pointer;
@@ -1017,7 +1017,7 @@
   border: 1px solid var(--gl-border);
   background: #fff;
   color: var(--gl-color-primary);
-  border-radius: 10px;
+  border-radius: var(--gl-radius-control);
   min-height: 38px;
   padding: 6px 12px;
   cursor: pointer;
@@ -1044,12 +1044,12 @@
   gap: 8px;
 }
 
-.gl-kingdom-map-zones > li > button.gl-danger {
+/* Le bouton de suppression est un `GLButton variant="danger" size="sm"` : la règle ciblait
+   `button.gl-danger`, qui n'a jamais existé dans ce markup. Retargetée sur la vraie classe, elle
+   ne garde que l'intention de mise en page (le dimensionnement vient de `.gl-btn--sm`). */
+.gl-kingdom-map-zones > li > .gl-btn {
   flex-shrink: 0;
   align-self: center;
-  min-height: 38px;
-  padding: 6px 12px;
-  font-size: 0.875rem;
 }
 
 @media (max-width: 1024px) {
@@ -1085,7 +1085,7 @@
   border: 1px solid color-mix(in srgb, #fff 55%, var(--gl-color-primary) 45%);
   background: color-mix(in srgb, #fff 76%, var(--gl-color-secondary) 24%);
   color: var(--gl-color-primary);
-  border-radius: 999px;
+  border-radius: var(--gl-radius-pill);
   cursor: pointer;
   font-weight: 600;
   font-size: 0.875rem;
@@ -1118,8 +1118,8 @@
   display: flex;
   gap: 10px;
   padding: 10px;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  border: 2px solid var(--gl-border);
+  border-radius: var(--gl-radius-md);
   background: white;
   align-items: flex-start;
 }
@@ -1144,7 +1144,7 @@
 .gl-mascot-card-body p {
   margin: 0;
   font-size: 0.85rem;
-  color: #475569;
+  color: var(--gl-color-text-muted);
 }
 
 .gl-mascot-card-body button {
@@ -1153,7 +1153,7 @@
   border: 1px solid var(--gl-border);
   background: #fff;
   color: var(--gl-color-primary);
-  border-radius: 10px;
+  border-radius: var(--gl-radius-control);
   min-height: 40px;
   padding: 6px 12px;
   cursor: pointer;
@@ -1171,9 +1171,9 @@
 
 .gl-mascot-card-body button:disabled {
   cursor: not-allowed;
-  background: #f1f5f9;
-  border-color: #94a3b8;
-  color: #64748b;
+  background: var(--gl-surface-muted);
+  border-color: var(--gl-color-text-muted);
+  color: var(--gl-color-text-muted);
   transform: none;
   box-shadow: none;
 }
@@ -1183,9 +1183,9 @@
   margin-left: 4px;
   padding: 1px 6px;
   font-size: 0.7rem;
-  background: #e2e8f0;
-  color: #1e293b;
-  border-radius: 999px;
+  background: var(--gl-surface-muted);
+  color: var(--gl-color-text);
+  border-radius: var(--gl-radius-pill);
 }
 
 .gl-users-admin {
@@ -1286,15 +1286,15 @@
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  border: 1px solid #dbeafe;
-  border-radius: 10px;
-  background: #eff6ff;
+  border: 1px solid var(--gl-select-surface);
+  border-radius: var(--gl-radius-control);
+  background: var(--gl-select-surface-soft);
   padding: 8px 10px;
 }
 
 .gl-kingdom-map-zones li.is-selected {
   border-color: #60a5fa;
-  background: #dbeafe;
+  background: var(--gl-select-surface);
 }
 
 .gl-kingdom-zone-polygon {
@@ -1321,10 +1321,10 @@
 .gl-shape-edit-badge {
   font-size: 0.82rem;
   font-weight: 700;
-  color: #1d4ed8;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 8px;
+  color: var(--gl-select-ink);
+  background: var(--gl-select-surface-soft);
+  border: 1px solid var(--gl-select-border);
+  border-radius: var(--gl-radius-sm);
   padding: 6px 10px;
 }
 
@@ -1368,7 +1368,7 @@
 
 .gl-zone-content-fieldset {
   border: 1px solid #d1fae5;
-  border-radius: 10px;
+  border-radius: var(--gl-radius-control);
   padding: 0.75rem 1rem;
   margin: 0.5rem 0 1rem;
 }
@@ -1397,12 +1397,12 @@
   height: 54px;
   object-fit: cover;
   border-radius: 6px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--gl-border);
 }
 
 .gl-zone-music-fieldset {
-  border: 1px solid #dbeafe;
-  border-radius: 10px;
+  border: 1px solid var(--gl-select-surface);
+  border-radius: var(--gl-radius-control);
   padding: 0.75rem 1rem;
   margin: 0.5rem 0 1rem;
 }
@@ -1499,8 +1499,8 @@
   gap: 1rem;
   align-items: flex-start;
   padding: 0.75rem;
-  border: 1px solid var(--gl-color-border, #e2e8f0);
-  border-radius: 10px;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-control);
 }
 
 .gl-qcm-editor__grid {
@@ -1524,15 +1524,15 @@
   width: 100%;
   text-align: left;
   padding: 0.65rem 0.75rem;
-  border: 1px solid var(--gl-color-border, #e2e8f0);
-  border-radius: 10px;
-  background: var(--gl-color-surface, #fff);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-control);
+  background: var(--gl-surface);
   cursor: pointer;
 }
 
 .gl-qcm-editor__list-item.is-selected {
-  border-color: var(--gl-color-accent, #0d9488);
-  box-shadow: 0 0 0 1px var(--gl-color-accent, #0d9488);
+  border-color: var(--gl-color-accent);
+  box-shadow: 0 0 0 1px var(--gl-color-accent);
 }
 
 .gl-qcm-editor__list-item p {
@@ -1543,9 +1543,9 @@
 .gl-qcm-editor__form {
   min-width: 0;
   padding: 0.75rem;
-  border: 1px solid var(--gl-color-border, #e2e8f0);
-  border-radius: 10px;
-  background: var(--gl-color-surface-muted, #f8fafc);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-control);
+  background: var(--gl-surface-muted);
 }
 
 .gl-qcm-editor__fields {
@@ -1576,8 +1576,8 @@
 }
 
 .gl-marker-effects-branch {
-  border: 1px solid color-mix(in srgb, var(--gl-texte, #262626) 12%, transparent);
-  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--gl-color-text) 12%, transparent);
+  border-radius: var(--gl-radius-sm);
   padding: 0.65rem 0.75rem;
 }
 
@@ -1604,15 +1604,15 @@
 .gl-feuillet-anchor {
   margin: 0.75rem 0;
   padding: 0.75rem;
-  border: 1px dashed color-mix(in srgb, var(--gl-primary, #047c8c) 30%, #cbd5e1);
-  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--gl-color-primary) 30%, var(--gl-border));
+  border-radius: var(--gl-radius-control);
 }
 
 /* --- Bibliothèque contenu (admin) --- */
 .gl-content-library__section {
   margin-top: 1.25rem;
   padding-top: 1rem;
-  border-top: 1px solid color-mix(in srgb, var(--gl-primary, #047c8c) 18%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--gl-color-primary) 18%, transparent);
 }
 
 .gl-content-library__section h3 {
@@ -1620,10 +1620,10 @@
 }
 
 .gl-content-library__dropzone {
-  border: 1px dashed color-mix(in srgb, var(--gl-primary, #047c8c) 35%, #cbd5e1);
-  border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--gl-color-primary) 35%, var(--gl-border));
+  border-radius: var(--gl-radius-md);
   padding: 0.85rem 1rem;
-  background: color-mix(in srgb, #fff 92%, var(--gl-primary, #047c8c) 8%);
+  background: color-mix(in srgb, #fff 92%, var(--gl-color-primary) 8%);
 }
 
 .gl-content-library__actions {
@@ -1651,7 +1651,7 @@
 
 .gl-content-library__table th,
 .gl-content-library__table td {
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--gl-border);
   padding: 0.55rem 0.45rem;
   vertical-align: top;
   text-align: left;
@@ -1661,14 +1661,14 @@
 .gl-content-library-kind {
   display: inline-block;
   padding: 0.15rem 0.45rem;
-  border-radius: 999px;
+  border-radius: var(--gl-radius-pill);
   font-size: 0.78rem;
   font-weight: 600;
 }
 
 .gl-content-library-kind--media {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--gl-select-surface);
+  color: var(--gl-select-ink);
 }
 
 .gl-content-library-kind--catalog {
@@ -1690,8 +1690,8 @@
 .gl-content-library__limits-banner {
   margin: 0.35rem 0 0.75rem;
   padding: 0.45rem 0.65rem;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--gl-primary, #047c8c) 10%, #f8fafc);
+  border-radius: var(--gl-radius-sm);
+  background: color-mix(in srgb, var(--gl-color-primary) 10%, var(--gl-surface-muted));
   font-size: 0.88rem;
 }
 
@@ -1709,15 +1709,15 @@
 .gl-content-library__progress {
   margin-top: 0.35rem;
   height: 6px;
-  border-radius: 999px;
-  background: #e5e7eb;
+  border-radius: var(--gl-radius-pill);
+  background: var(--gl-surface-muted);
   overflow: hidden;
 }
 
 .gl-content-library__progress-bar {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--gl-primary, #047c8c), #0ea5e9);
+  background: linear-gradient(90deg, var(--gl-color-primary), #0ea5e9);
   transition: width 0.15s ease;
 }
 
@@ -1727,9 +1727,9 @@
 }
 
 .gl-content-library .media-library-menu__panel--gallery {
-  border: 1px solid color-mix(in srgb, var(--gl-primary, #047c8c) 16%, #e5e7eb);
-  border-radius: 12px;
-  background: color-mix(in srgb, #fff 94%, var(--gl-primary, #047c8c) 6%);
+  border: 1px solid color-mix(in srgb, var(--gl-color-primary) 16%, var(--gl-border));
+  border-radius: var(--gl-radius-md);
+  background: color-mix(in srgb, #fff 94%, var(--gl-color-primary) 6%);
 }
 
 .gl-content-library .media-library-menu__filters {
@@ -1738,8 +1738,8 @@
 
 .gl-content-library .media-library-menu__filter select:focus,
 .gl-content-library .media-library-menu__search input:focus {
-  outline: 2px solid color-mix(in srgb, var(--gl-primary, #047c8c) 35%, transparent);
-  border-color: var(--gl-primary, #047c8c);
+  outline: 2px solid color-mix(in srgb, var(--gl-color-primary) 35%, transparent);
+  border-color: var(--gl-color-primary);
 }
 
 .gl-feuillet-zone-plateau-panel {
@@ -1760,15 +1760,15 @@
 .gl-intro-admin__section {
   margin-top: 1.25rem;
   padding-top: 0.5rem;
-  border-top: 1px solid color-mix(in srgb, var(--gl-primary, #013a40) 12%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--gl-color-primary) 12%, transparent);
 }
 
 .gl-intro-admin__scene {
   margin: 0.75rem 0;
   padding: 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--gl-primary, #013a40) 10%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--gl-background, #f4fff5) 70%, white);
+  border: 1px solid color-mix(in srgb, var(--gl-color-primary) 10%, transparent);
+  border-radius: var(--gl-radius-sm);
+  background: color-mix(in srgb, var(--gl-color-background) 70%, white);
 }
 
 .gl-intro-admin__scene summary {

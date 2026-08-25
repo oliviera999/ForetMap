@@ -1,0 +1,113 @@
+/*
+ * Contrôles partagés ForetMap / G&L.
+ *
+ * Les composants de `src/shared/components/` sont rendus par LES DEUX produits, mais utilisaient
+ * jusqu'ici des classes propres à un seul : `.btn*` (définie dans `src/index.css`, donc absente
+ * de G&L) et `.gl-hint` / `.gl-danger` (définies dans `gl-theme.css`, donc absentes de ForetMap).
+ * Résultat : la bibliothèque de médias affichait des boutons non stylés d'un côté ou de l'autre.
+ *
+ * Ces classes-ci sont neutres et chargées par les deux entrées. Elles n'imposent aucune
+ * typographie (`font: inherit`) et lisent les tokens du produit hôte avec un repli : chaque
+ * produit les habille donc avec sa propre palette, sans que le composant ait à savoir où il est.
+ */
+
+.shared-hint {
+  font-size: 0.85rem;
+  color: var(--gl-color-text-muted, #5b6b66);
+  margin: 4px 0;
+}
+
+.shared-error {
+  color: var(--gl-ink-danger, #991b1b);
+}
+
+.shared-success {
+  color: var(--gl-ink-success, #14663f);
+}
+
+.shared-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--gl-tap-target, 44px);
+  padding: 8px 16px;
+  border: 1px solid var(--gl-border, rgba(26, 71, 49, 0.18));
+  border-radius: var(--gl-radius-control, 10px);
+  background: var(--gl-surface, #fff);
+  color: var(--gl-color-primary, #1a4731);
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform var(--motion-base, 0.18s) var(--spring, ease),
+    background var(--motion-fast, 0.12s) var(--ease-out, ease),
+    border-color var(--motion-fast, 0.12s) var(--ease-out, ease),
+    box-shadow var(--motion-fast, 0.12s) var(--ease-out, ease);
+}
+
+@media (hover: hover) {
+  .shared-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--gl-shadow-sm, 0 5px 16px rgba(26, 71, 49, 0.12));
+  }
+}
+
+.shared-btn:active {
+  transform: scale(0.95);
+  box-shadow: none;
+}
+
+.shared-btn:focus-visible {
+  outline: 2px solid var(--gl-border-focus, #2d6a4f);
+  outline-offset: 2px;
+}
+
+.shared-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.shared-btn--danger {
+  border-color: #dc2626;
+  background: var(--gl-accent-danger, #fee2e2);
+  color: var(--gl-ink-danger, #991b1b);
+}
+
+.shared-btn--sm {
+  padding: 6px 12px;
+  font-size: 0.875rem;
+}
+
+/* Ligne cliquable pleine largeur (élément de liste : média, entrée de catalogue…). */
+.shared-btn--row {
+  flex: 1;
+  width: auto;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  padding: 8px 10px;
+  border-color: transparent;
+  background: transparent;
+  color: inherit;
+  font-weight: inherit;
+  text-align: left;
+}
+
+@media (hover: hover) {
+  .shared-btn--row:hover {
+    transform: none;
+    box-shadow: none;
+    background: var(--gl-surface-muted, rgba(0, 0, 0, 0.04));
+  }
+}
+
+.shared-btn--row:active {
+  transform: none;
+}
