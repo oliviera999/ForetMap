@@ -34,6 +34,10 @@ Elle ne bloque aucun clic, respecte les lecteurs d'écran (`aria-live`) et se pl
 au-dessus des toasts pour ne jamais les masquer. Les indicateurs inline existants
 gagnent en lisibilité (couleurs dédiées enregistrement / succès / erreur).
 
+En complément, un **audit de la charge serveur** (mesures mémoire/boot, profil des
+requêtes, sources de redémarrage) et ses pistes de réduction sans perte
+fonctionnelle : `docs/AUDIT_CHARGE_SERVEUR_2026-08.md`.
+
 **Deux d'entre eux tombaient dans la barre de navigation du bas.** Côté Gnomes & Licornes,
 la cloche de notifications se posait par-dessus et masquait un onglet. Côté ForetMap, le
 bandeau de message se posait par-dessous : il ne s'affichait **jamais** pour un élève.
