@@ -7001,6 +7001,89 @@
 @media (max-width: 960px) {
   .pedago-quiz-editor__grid { grid-template-columns: 1fr; }
 }
+/* Écran de rattachement tutoriel ↔ questions (FMLearningLinksPanel). */
+.pedago-quiz-admin__links .pedago-links { padding: 14px; }
+.pedago-links__warning {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #92400e;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.pedago-links__grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(320px, 2fr);
+  gap: 16px;
+  margin-top: 12px;
+}
+.pedago-links__aside { min-width: 0; }
+.pedago-links__main { min-width: 0; }
+.pedago-links__list {
+  display: grid;
+  gap: 8px;
+  max-height: min(60vh, 640px);
+  overflow: auto;
+}
+.pedago-links__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid #e2ebe5;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  min-height: 44px;
+}
+.pedago-links__item.is-selected {
+  border-color: #5a9a72;
+  background: #f3faf6;
+  box-shadow: inset 0 0 0 1px #5a9a72;
+}
+.pedago-links__item span { display: block; margin-top: 2px; }
+.pedago-links__policy,
+.pedago-links__add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  margin: 12px 0;
+}
+.pedago-links__picker { flex: 1 1 320px; min-width: 0; }
+.pedago-links__picker select { max-width: 100%; }
+.pedago-links__auto { margin: 12px 0; }
+.pedago-links__suggestions {
+  margin-top: 10px;
+  border: 1px solid #e2ebe5;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fafcfa;
+}
+.pedago-links__suggestion-list {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  max-height: 320px;
+  overflow: auto;
+}
+.pedago-links__suggestion-list p { margin: 2px 0 0; }
+.pedago-links__table-wrap { overflow-x: auto; }
+.pedago-links__table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.pedago-links__table th,
+.pedago-links__table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e2ebe5;
+  vertical-align: top;
+}
+.pedago-links__table p { margin: 4px 0 0; }
+@media (max-width: 960px) {
+  .pedago-links__grid { grid-template-columns: 1fr; }
+  .pedago-links__list { max-height: 260px; }
+}
+
 .pedago-qcm-admin__error { color: #b42318; }
 .pedago-qcm-admin__actions {
   display: flex;
