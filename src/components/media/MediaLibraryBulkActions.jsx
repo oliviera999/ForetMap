@@ -32,7 +32,7 @@ export function MediaLibraryBulkActions({
     <div className="media-library-menu__bulk">
       <button
         type="button"
-        className="btn btn-secondary btn-sm"
+        className="shared-btn shared-btn--sm"
         disabled={busy || visibleCount === 0}
         onClick={onSelectAll}
       >
@@ -40,7 +40,7 @@ export function MediaLibraryBulkActions({
       </button>
       <button
         type="button"
-        className="btn btn-secondary btn-sm"
+        className="shared-btn shared-btn--sm"
         disabled={busy || selectedCount === 0}
         onClick={onDeselectAll}
       >
@@ -48,7 +48,7 @@ export function MediaLibraryBulkActions({
       </button>
       <button
         type="button"
-        className="btn btn-secondary btn-sm"
+        className="shared-btn shared-btn--sm"
         disabled={busy || selectedCount === 0}
         onClick={onDeleteSelected}
       >
@@ -56,7 +56,7 @@ export function MediaLibraryBulkActions({
       </button>
       <button
         type="button"
-        className="btn btn-secondary btn-sm gl-danger"
+        className="shared-btn shared-btn--danger shared-btn--sm"
         disabled={busy || totalCount === 0}
         onClick={onClearLibrary}
       >
