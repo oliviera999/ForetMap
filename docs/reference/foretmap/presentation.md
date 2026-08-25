@@ -165,6 +165,25 @@ actions sensibles.
 > affiche la carte et les tâches côte à côte ; et un onglet disparaît si son module
 > est désactivé dans les réglages.
 
+### La pastille d'état en bas d'écran
+
+Une petite **pastille discrète**, fixe en bas d'écran (dans ForetMap comme dans
+Gnomes & Licornes), tient l'utilisateur informé en permanence, **sans avoir à
+scroller** :
+
+- **« Enregistrement… »** pendant qu'un formulaire à sauvegarde automatique écrit,
+  puis **« Enregistré ✓ »** quelques secondes (vert) ; en cas d'échec, le message
+  d'erreur reste affiché (rouge) tant que le problème persiste.
+- **« Serveur momentanément indisponible — reconnexion en cours… (tentative n/8) »**
+  quand le serveur redémarre ou ne répond plus : l'application réessaie toute seule
+  pendant environ 25 secondes (de quoi traverser un redémarrage complet), puis affiche
+  **« Connexion au serveur rétablie ✓ »**. L'erreur « Service momentanément
+  indisponible » ne s'affiche plus que si le serveur reste réellement injoignable
+  au-delà de cette fenêtre.
+
+La pastille ne bloque rien (on peut cliquer au travers) et se place juste au-dessus
+de l'emplacement des messages éphémères pour ne jamais les masquer.
+
 ## ⚠️ Points d'attention sur l'existant
 
 État des lieux honnête, relevé en examinant le fonctionnement actuel :

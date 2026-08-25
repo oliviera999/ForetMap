@@ -9,6 +9,7 @@ import '../shared/styles/floating-dock.css';
 import '../shared/styles/tour-editor.css';
 import '../shared/styles/modal-shell.css';
 import '../shared/styles/toast-shell.css';
+import '../shared/styles/status-sticky.css';
 import '../shared/styles/shared-controls.css';
 import '../shared/styles/visit-map-mascot.css';
 import './styles/gl-base.css';

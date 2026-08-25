@@ -7,10 +7,22 @@ export const API_FETCH_TIMEOUT_MS = 40000;
 /** Réponses « passerelle / origine temporairement indisponible ». */
 export const TRANSIENT_HTTP_STATUSES = new Set([502, 503, 504]);
 
-const MAX_IDEMPOTENT_GET_ATTEMPTS = 4;
-const MAX_GATEWAY_MUTATION_ATTEMPTS = 4;
+/**
+ * Un redémarrage applicatif réel (Passenger + init BDD au boot) dure couramment
+ * 10 à 30 s : la fenêtre de retry couvre ~25 s (voir transientRetryDelayMs) au
+ * lieu des ~4 s historiques qui faisaient échouer presque chaque redémarrage.
+ */
+const MAX_IDEMPOTENT_GET_ATTEMPTS = 8;
+const MAX_GATEWAY_MUTATION_ATTEMPTS = 8;
 /** Réessais réseau (TypeError) pour POST/PUT/PATCH/DELETE — hors GET idempotent. */
 const MAX_MUTATION_NETWORK_ATTEMPTS = 3;
+/**
+ * Les 503 transitoires SANS marqueur passerelle (JSON métier : forum désactivé,
+ * module indisponible…) gardent la fenêtre courte historique sur GET idempotent.
+ */
+const MAX_NON_GATEWAY_TRANSIENT_GET_ATTEMPTS = 4;
+/** Plafond appliqué à l'en-tête Retry-After renvoyé par le serveur. */
+const MAX_RETRY_AFTER_MS = 10000;
 
 export function isHtmlLikeApiPayload(raw) {
   const s = String(raw || '')
@@ -32,6 +44,9 @@ export function isGatewayStyleResponse(res, parsedBody) {
   if (parsedBody?.error && typeof parsedBody.error === 'string') {
     const code = String(parsedBody.code || '').trim();
     if (code === 'SERVICE_RESTARTING' || code === 'SERVICE_NOT_READY') return true;
+    // 503 d'hydratation auth (panne BDD transitoire) : la requête n'a pas été
+    // traitée par la route, la réessayer est donc sans danger, mutations comprises.
+    if (code === 'SERVICE_UNAVAILABLE') return true;
     if (ct.includes('application/json')) return false;
   }
   if (ct.includes('application/json')) return false;
@@ -56,16 +71,38 @@ export function shouldRetryAfterNetworkError(method, body, attempt, maxAttempts)
 
 export function shouldRetryAfterHttpError(method, body, res, parsedBody, attempt, maxAttempts) {
   if (attempt >= maxAttempts - 1) return false;
+  // Réponse passerelle / redémarrage : requête jamais traitée → fenêtre longue
+  // pour toutes les méthodes (couvre un redémarrage applicatif complet).
+  if (isGatewayStyleResponse(res, parsedBody)) return true;
   if (isIdempotentGet(method, body)) {
-    return TRANSIENT_HTTP_STATUSES.has(res.status);
+    return (
+      TRANSIENT_HTTP_STATUSES.has(res.status) &&
+      attempt < MAX_NON_GATEWAY_TRANSIENT_GET_ATTEMPTS - 1
+    );
   }
-  return isGatewayStyleResponse(res, parsedBody);
+  return false;
 }
 
 export function transientRetryDelayMs(attemptIndex) {
-  const bases = [400, 1200, 2800];
+  const bases = [400, 800, 1500, 2500, 4000, 6000, 8000];
   const base = bases[Math.min(attemptIndex, bases.length - 1)];
   return base + Math.floor(Math.random() * 250);
+}
+
+/** Délai (ms) demandé par l'en-tête Retry-After (secondes), plafonné ; 0 si absent/invalide. */
+export function retryAfterDelayMs(res) {
+  const raw =
+    (typeof res?.headers?.get === 'function' &&
+      (res.headers.get('Retry-After') || res.headers.get('retry-after'))) ||
+    '';
+  const seconds = Number(String(raw).trim());
+  if (!Number.isFinite(seconds) || seconds <= 0) return 0;
+  return Math.min(Math.round(seconds * 1000), MAX_RETRY_AFTER_MS);
+}
+
+/** Délai effectif avant réessai HTTP : backoff progressif, sans descendre sous Retry-After. */
+export function resolveTransientRetryDelayMs(attemptIndex, res) {
+  return Math.max(transientRetryDelayMs(attemptIndex), retryAfterDelayMs(res));
 }
 
 export function sleepMs(ms) {

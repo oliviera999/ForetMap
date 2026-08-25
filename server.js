@@ -10,7 +10,13 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const path = require('path');
-const { initDatabase, isApplicationDatabaseReady, endPool } = require('./database');
+const {
+  initDatabase,
+  isApplicationDatabaseReady,
+  endPool,
+  getDataWriteVersion,
+  getSyncDomainVersions,
+} = require('./database');
 const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
 const { runRecurringTaskSpawnJob } = require('./lib/recurringTasks');
@@ -167,13 +173,14 @@ app.use('/api', (req, res, next) => {
   const pathname = String(req.originalUrl || req.url || '').split('?')[0];
   if (isApiAvailabilityExemptPath(pathname)) return next();
   if (shutdownInProgress) {
-    return res.status(503).type('application/json').json({
+    // Retry-After guide la boucle de retry du client (plancher de délai entre tentatives).
+    return res.status(503).set('Retry-After', '2').type('application/json').json({
       error: 'Service en redémarrage — réessayez dans quelques secondes.',
       code: 'SERVICE_RESTARTING',
     });
   }
   if (!isApplicationDatabaseReady()) {
-    return res.status(503).type('application/json').json({
+    return res.status(503).set('Retry-After', '2').type('application/json').json({
       error: 'Service non prêt — initialisation en cours.',
       code: 'SERVICE_NOT_READY',
     });
@@ -296,6 +303,21 @@ app.get('/api/version', (req, res) => {
   // `startupVersion` est lu une fois au boot ; le process redemarre a chaque deploy,
   // donc pas de relecture disque (fs.readFileSync) sur ce endpoint appele a chaque page.
   res.json({ version: startupVersion });
+});
+
+// Sonde de fraîcheur pour le polling différentiel du client (audit charge serveur,
+// piste 4) : `writes` = compteur global d'écritures SQL du process, `bootId` = identité
+// du process (un redémarrage remet le compteur à zéro → le client refait un cycle
+// complet). Aucune donnée métier, aucune requête SQL : coût quasi nul.
+const serverBootId = `${Date.now().toString(36)}-${process.pid}`;
+app.get('/api/sync-state', (req, res) => {
+  // `domains` : compteurs par domaine du cycle fetchAll — le client ne refetche que
+  // les domaines dont le compteur a bougé (repli : tout refetcher si absent/invalide).
+  res.json({
+    bootId: serverBootId,
+    writes: getDataWriteVersion(),
+    domains: getSyncDomainVersions(),
+  });
 });
 
 // Endpoints d'exploitation admin protégés par DEPLOY_SECRET (extraits dans routes/admin-ops.js —
