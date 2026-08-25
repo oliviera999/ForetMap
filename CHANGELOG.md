@@ -7,6 +7,22 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Doc — Audit UI : pourquoi les boutons de G&L paraissent d'un autre âge
+
+L'impression n'était pas subjective. Mesures faites dans Chromium sur du markup G&L réel :
+**tous** les boutons du jeu s'affichent en **Arial 13,3 px** — la feuille de style du
+navigateur — au lieu du Caudex 16 px de l'application, parce que `.gl-btn` est une copie
+appauvrie du `.btn` de ForetMap à qui il manque `font-family` et `font-size`. Sur 84 règles
+CSS ciblant des boutons, une seule fixe la police.
+
+Second défaut mesuré : dans un `.gl-form`, les variantes `secondary`, `ghost` et `danger`
+s'affichent toutes en primaire foncé. S'ajoutent 80 lignes de CSS bouton mort, 27 variables
+CSS jamais définies (dont `--gl-primary`, 28 usages — ces zones ignorent donc le thème de
+marque), et `.gl-btn--sm` à 36 px, sous la cible tactile de 44 px que le projet s'impose.
+
+**Aucune correction n'est appliquée** : l'audit décrit les remèdes et les laisse à arbitrage.
+Détail : `docs/AUDIT_UI_BOUTONS_GL_2026-08.md`.
+
 ### Les questions redeviennent lisibles, côté fiche comme côté écran (lot 13)
 
 **La fiche d'une question du Quiz s'intitulait par ses noms de colonnes.** Le panneau
