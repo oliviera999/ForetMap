@@ -7,6 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Les mascottes livrées deviennent des packs éditables (fusion catalogue/packs, étape 2)
+
+Les seize mascottes fournies avec l'application vivaient dans le code : ni modifiables, ni
+supprimables, ni exportables autrement qu'en les clonant. Elles sont désormais **semées dans la
+même table que les packs** au démarrage, et se gèrent exactement comme eux.
+
+Concrètement : modifier une mascotte livrée fonctionne enfin, et la modification est celle qui
+s'affiche. Supprimer une mascotte livrée est possible — et un redémarrage la **remet en place
+telle qu'elle a été fournie**, ce qui donne un « réinitialiser depuis l'origine » gratuit.
+
+**Ce qui protège l'existant :**
+
+- une ligne modifiée n'est **jamais** écrasée par un redémarrage ;
+- le catalogue en code reste en **filet** : si le semis échoue, les mascottes continuent d'être
+  proposées. Vidage complet de la table testé — le sélecteur reste peuplé ;
+- une mascotte qui ne se convertit pas est **écartée et nommée**, pas semée à moitié.
+
+Aucune action requise : le semis se fait au démarrage, sans rien demander.
+
+Migration `198_visit_mascot_packs_origin.sql` (ajout de la colonne `origin`).
+
+
 ### Le format de pack mascotte décrit les trois moteurs (fusion catalogue/packs, étape 1)
 
 Arbitrage rendu sur l'audit : c'est la piste radicale qui est suivie — **fusionner le catalogue

@@ -159,8 +159,15 @@ publiés dans six mois.
 > | Étape | Contenu                                                                           | État      |
 > | ----- | --------------------------------------------------------------------------------- | --------- |
 > | 1     | **Le format décrit les trois moteurs** (`sprite_cut`, `spritesheet`, `rive`)      | ✅ livrée |
-> | 2     | Migration `origin`, semis des mascottes livrées, registre unique en lecture       | à faire   |
+> | 2     | Migration `origin`, semis des mascottes livrées, registre unique en lecture       | ✅ livrée |
 > | 3     | Studio : une seule liste, « réinitialiser depuis l'origine » remplace le masquage | à faire   |
+>
+> **Étape 2, vérifiée sur une vraie base.** L'environnement de session n'avait pas de MySQL ;
+> `apt-get update` puis `apt-get install mariadb-server` a suffi à en obtenir un. Le semis a donc
+> été exercé pour de bon — et ce n'était pas du luxe : un premier jet posait un `created_by`
+> inexistant sous `INSERT IGNORE`, ce qui transformait une violation de clé étrangère en
+> avertissement muet. Le semis annonçait « 16 insérées » et la table restait vide. Sans base, ce
+> défaut serait parti en production.
 >
 > **Pourquoi l'étape 1 d'abord.** Onze mascottes livrées sont `rive` et quatre `spritesheet` ;
 > tant que le format ne savait décrire que `sprite_cut`, elles ne _pouvaient pas_ devenir des

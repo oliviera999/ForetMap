@@ -104,6 +104,15 @@ familles.
   mascotte la retire du choix des visiteurs sans rien supprimer — il suffit de recocher pour la
   rétablir. Modifier ce réglage demande un rôle d'administration ; un professeur qui ne gère que
   les packs voit la case grisée et l'explication.
+- **Les mascottes livrées se modifient comme les autres.** Elles ne vivent plus « dans
+  l'application » à part : elles apparaissent dans la liste des packs au même titre que celles
+  que vous créez, et s'y modifient, s'y exportent et s'y suppriment de la même façon.
+- **Supprimer une mascotte livrée n'est pas définitif** : au prochain démarrage, l'application la
+  remet en place telle qu'elle a été fournie. C'est la façon de « repartir de zéro » sur une
+  mascotte qu'on a trop modifiée. En revanche, une mascotte que **vous** avez créée et supprimée
+  est perdue.
+- **Vos modifications sont conservées** : un redémarrage ne réécrit jamais une mascotte que vous
+  avez retouchée.
 - **Suivre la fréquentation** : un tableau de bord donne sessions, lieux vus et taux de
   parcours complets, en séparant élèves connectés et visiteurs anonymes.
 
