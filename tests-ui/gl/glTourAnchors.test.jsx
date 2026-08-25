@@ -1,13 +1,25 @@
 import React from 'react';
-import { describe, test, expect } from 'vitest';
-import { render } from '@testing-library/react';
+import { describe, test, expect, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 
 import { GLNatureView } from '../../src/gl/components/GLNatureView.jsx';
 import { GLAdventureView } from '../../src/gl/components/GLAdventureView.jsx';
 import { GLMondeView } from '../../src/gl/components/GLMondeView.jsx';
 import { GLJoueursView } from '../../src/gl/components/GLJoueursView.jsx';
+import { GLHelpDialog } from '../../src/gl/components/GLHelpDialog.jsx';
 import { GL_MODULE_DEFAULTS } from '../../src/gl/constants/modules.js';
-import { GL_DISCOVERY_TOURS, GL_HUB_STEPS } from '../../src/gl/constants/glDiscoveryTour.js';
+
+// L'aide GL vient du réseau ; le bouton « ? » n'existe qu'une fois une entrée connue.
+vi.mock('../../src/gl/services/apiGL.js', () => ({
+  apiGL: vi.fn(async () => ({
+    entries: { 'tab:maps': { title: 'Les cartes', body: 'La carte du chapitre en cours.' } },
+  })),
+}));
+import {
+  GL_DISCOVERY_TOURS,
+  GL_HUB_STEPS,
+  GL_RELAUNCH_STEP,
+} from '../../src/gl/constants/glDiscoveryTour.js';
 
 /**
  * Les ancres `data-gl-tour` **rendues**, pas seulement écrites.
@@ -89,6 +101,21 @@ describe('ancres de visite guidée GL', () => {
       />,
     );
     expect(container.querySelector(anchorOf(GL_HUB_STEPS.joueurs))).not.toBeNull();
+  });
+
+  test('le bouton « ? » reste atteignable par son sélecteur malgré l’enrobage', async () => {
+    /*
+     * `GL_RELAUNCH_STEP` vise `.gl-help-btn` — l'étape finale de **toutes** les visites
+     * GL. Le bouton est depuis enrobé dans une infobulle, qui insère un `<span>` autour
+     * de lui : si la classe avait migré sur l'enrobage, la dernière bulle de chaque
+     * parcours aurait disparu en silence, sans qu'aucun test de contenu ne bronche.
+     */
+    const { container } = render(<GLHelpDialog helpKey="tab:maps" />);
+    await waitFor(() => expect(screen.getByRole('button', { name: /aide/i })).toBeInTheDocument());
+
+    const anchor = container.querySelector(GL_RELAUNCH_STEP.target);
+    expect(anchor, `cible « ${GL_RELAUNCH_STEP.target} » introuvable`).not.toBeNull();
+    expect(anchor.tagName).toBe('BUTTON');
   });
 
   test('chaque étape d’orientation est bien partagée par les sous-onglets de son groupe', () => {

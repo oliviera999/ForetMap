@@ -58,7 +58,13 @@ son chapitre** à sa création.
    combine :
    - **Tours de jeu** (optionnels) : le MJ clique « Tour suivant » ; le compteur de
      tours réarme ce que chaque équipe peut faire une fois par tour (déplacement,
-     lancer de dé).
+     lancer de dé). Chaque « tour suivant » ouvre un round où **toutes les équipes
+     rejouent** — le moteur ne met pas une seule équipe « au trait » ; l'alternance
+     stricte est une convention d'animation tenue par le MJ.
+   - **Le dé virtuel** (module optionnel `virtual_dice_enabled`) : quand il est activé,
+     une équipe peut lancer un dé une fois par tour ; le résultat sert à cadencer les
+     déplacements sur le plateau. C'est un outil d'animation — le MJ garde la main sur
+     l'application du déplacement.
    - **Narration** (optionnelle) : le MJ écrit des messages narratifs (avec image
      possible) qui alimentent le **journal de partie**, où s'inscrivent aussi tous
      les événements (déplacements, scores, questions, sorts, découvertes…).

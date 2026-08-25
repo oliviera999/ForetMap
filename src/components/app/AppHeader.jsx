@@ -1,7 +1,7 @@
 import React from 'react';
 import { NotificationCenter } from '../notifications-center';
 import { StudentAvatar } from '../student-avatar';
-import { Tooltip } from '../Tooltip';
+import { Tooltip } from '../../shared/components/Tooltip.jsx';
 import { withAppBase } from '../../services/api';
 import { resolveRealtimeTooltip } from '../../utils/helpResolve';
 

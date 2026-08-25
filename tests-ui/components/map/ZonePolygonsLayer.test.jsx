@@ -85,6 +85,18 @@ describe('ZonePolygonsLayer', () => {
     expect(onZoneOpen.mock.calls[0][0].id).toBe(1);
   });
 
+  it('zone accessible au clavier en mode view (role/aria-label + Entrée)', () => {
+    const onZoneOpen = vi.fn();
+    const { container } = renderLayer({ onZoneOpen });
+    const g = container.querySelector('g.map-zone-hit');
+    expect(g).toHaveAttribute('role', 'button');
+    expect(g).toHaveAttribute('tabindex', '0');
+    expect(g).toHaveAttribute('aria-label', 'Verger');
+    fireEvent.keyDown(g, { key: 'Enter' });
+    expect(onZoneOpen).toHaveBeenCalledTimes(1);
+    expect(onZoneOpen.mock.calls[0][0].id).toBe(1);
+  });
+
   it('affiche les pastilles tâche et tutoriel comme avant', () => {
     const { container, getByText } = renderLayer({
       zoneTaskVisualById: new Map([[1, 'todo']]),

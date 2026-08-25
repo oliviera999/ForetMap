@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tooltip } from '../Tooltip';
+import { Tooltip } from '../../shared/components/Tooltip.jsx';
 import { resolveTooltipKey } from '../../utils/helpResolve';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { visitMediaImgSrc, reorderVisitMediaRows } from '../../utils/visitMediaGallery.js';

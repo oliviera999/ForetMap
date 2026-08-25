@@ -57,16 +57,17 @@ Il poursuit trois objectifs, dans l'ordre :
 
 ### Gnomes & Licornes (GL)
 
-| Document                                                         | Contenu                                                                                                | Statut    |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | --------- |
-| [gl/presentation.md](gl/presentation.md)                         | Vue d'ensemble : concept du jeu, rôles, tour des modules                                               | ✅ Rédigé |
-| [gl/lore-deux-peuples.md](gl/lore-deux-peuples.md)               | Socle narratif « Les deux peuples du seuil » : textes prêts à coller (page monde, feuillets, QCM lore) | ✅ Rédigé |
-| [gl/roles-et-connexion.md](gl/roles-et-connexion.md)             | Joueur, invité, MJ, admin : qui peut faire quoi                                                        | ✅ Rédigé |
-| [gl/chapitres-et-progression.md](gl/chapitres-et-progression.md) | Chapitres, déroulement d'une partie, progression                                                       | ✅ Rédigé |
-| [gl/carte-du-royaume.md](gl/carte-du-royaume.md)                 | La carte du royaume, zones, repères et effets gnome/licorne                                            | ✅ Rédigé |
-| [gl/economie-marche-sorts.md](gl/economie-marche-sorts.md)       | Cœurs et gemmes, schéma des flux, marché, sortilèges                                                   | ✅ Rédigé |
-| [gl/qcm-et-pedagogie.md](gl/qcm-et-pedagogie.md)                 | QCM biomes et lore, conditionnement du « marquer appris »                                              | ✅ Rédigé |
-| [gl/guide-du-mj.md](gl/guide-du-mj.md)                           | Guide pratique du MJ : avant/pendant/après + incidents courants                                        | ✅ Rédigé |
+| Document                                                         | Contenu                                                                                                                    | Statut    |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------- |
+| [gl/presentation.md](gl/presentation.md)                         | Vue d'ensemble : concept du jeu, rôles, tour des modules                                                                   | ✅ Rédigé |
+| [gl/lore-deux-peuples.md](gl/lore-deux-peuples.md)               | Socle narratif « Les deux peuples du seuil » : textes prêts à coller (page monde, feuillets, QCM lore)                     | ✅ Rédigé |
+| [gl/roles-et-connexion.md](gl/roles-et-connexion.md)             | Joueur, invité, MJ, admin : qui peut faire quoi                                                                            | ✅ Rédigé |
+| [gl/chapitres-et-progression.md](gl/chapitres-et-progression.md) | Chapitres, déroulement d'une partie, progression                                                                           | ✅ Rédigé |
+| [gl/carte-du-royaume.md](gl/carte-du-royaume.md)                 | La carte du royaume, zones, repères et effets gnome/licorne                                                                | ✅ Rédigé |
+| [gl/economie-marche-sorts.md](gl/economie-marche-sorts.md)       | Cœurs et gemmes, schéma des flux, marché, sortilèges                                                                       | ✅ Rédigé |
+| [gl/qcm-et-pedagogie.md](gl/qcm-et-pedagogie.md)                 | QCM biomes et lore, conditionnement du « marquer appris »                                                                  | ✅ Rédigé |
+| [gl/guide-du-mj.md](gl/guide-du-mj.md)                           | Guide pratique du MJ : avant/pendant/après + incidents courants                                                            | ✅ Rédigé |
+| [gl/audit-mecaniques-2026-08.md](gl/audit-mecaniques-2026-08.md) | **Audit des mécaniques de jeu (23/08/2026) et options de finition** : état certifié, écarts corrigés, décisions à trancher | ✅ Rédigé |
 
 _Le sommaire est complet ; il peut évoluer (fusion, découpage, ajout) selon les
 besoins. Vos éditions directes dans ces documents (marqueur `🔧 À implémenter`)
