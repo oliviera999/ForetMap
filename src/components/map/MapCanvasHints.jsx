@@ -16,7 +16,7 @@ export function MapCanvasHints({
     drawZoneMin = '🖊️ Touche la carte (min. 3 pts)',
     drawZoneReady = `✅ ${drawPointsCount} pts — Terminer`,
     addMarker = '📍 Touche la carte pour placer',
-    editPoints = "✋ Glisse un point ou l'intérieur · limites carte · Ctrl+Z annule",
+    editPoints = "✋ Glisse un sommet ou l'intérieur · poignée pointillée = nouveau sommet · Maj+clic ou lasso = sélection · Suppr retire · Ctrl+Z annule",
     pageScroll = '📱 1 doigt: page · 2 doigts: zoom carte',
     gesturesActive = '✋ Gestes carte actifs',
   } = hintTexts;
@@ -60,7 +60,9 @@ export function MapCanvasHints({
             fontSize: '.82rem',
             fontWeight: 600,
             pointerEvents: 'none',
-            whiteSpace: 'nowrap',
+            maxWidth: 'min(92vw, 620px)',
+            textAlign: 'center',
+            lineHeight: 1.35,
             zIndex: 20,
           }}
         >
