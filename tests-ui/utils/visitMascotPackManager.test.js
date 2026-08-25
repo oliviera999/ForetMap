@@ -8,8 +8,6 @@ import {
   isMascotPackEditorDirty,
   isJsonDraftDirty,
   resolvePackDialogMascotId,
-  findPacksForCatalogModel,
-  pickPreferredCatalogModelPack,
   getPackStrictValidation,
   buildUnifiedMascotImageEntries,
   buildPackAssetPreviewByFilename,
@@ -349,38 +347,6 @@ describe('isJsonDraftDirty', () => {
 
   test('JSON invalide non vide → dirty', () => {
     expect(isJsonDraftDirty('{oops', {})).toBe(true);
-  });
-});
-
-describe('findPacksForCatalogModel / pickPreferredCatalogModelPack', () => {
-  const packs = [
-    {
-      id: 'a',
-      updated_at: '2026-01-01',
-      pack: { clonedFromCatalogId: 'sprout' },
-    },
-    {
-      id: 'b',
-      updated_at: '2026-06-01',
-      pack: { clonedFromCatalogId: 'sprout' },
-    },
-    { id: 'c', pack: { clonedFromCatalogId: 'fox' } },
-  ];
-
-  test('findPacksForCatalogModel filtre par modèle', () => {
-    expect(findPacksForCatalogModel(packs, 'sprout').map((p) => p.id)).toEqual(['a', 'b']);
-  });
-
-  test('pickPreferredCatalogModelPack préfère le pack sélectionné', () => {
-    const picked = pickPreferredCatalogModelPack(findPacksForCatalogModel(packs, 'sprout'), 'a');
-    expect(picked?.pack?.id).toBe('a');
-    expect(picked?.ambiguous).toBe(true);
-  });
-
-  test('pickPreferredCatalogModelPack prend le plus récent sinon', () => {
-    const picked = pickPreferredCatalogModelPack(findPacksForCatalogModel(packs, 'sprout'), null);
-    expect(picked?.pack?.id).toBe('b');
-    expect(picked?.ambiguous).toBe(true);
   });
 });
 

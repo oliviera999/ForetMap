@@ -51,10 +51,15 @@ familles.
   la visite est enregistré dans le compte, donc retrouvé sur un autre poste ou téléphone —
   et une tablette partagée ne transmet plus le choix d'un élève au suivant. Sans compte,
   le choix est simplement mémorisé sur l'appareil.
-- L'administrateur règle tout cela dans **Paramètres → Mascottes de visite** : chaque
-  mascotte s'y présente avec sa vignette animée, une case « proposée aux visiteurs » et un
-  bouton « par défaut ». Par défaut aucune restriction n'est posée : toute mascotte
-  ajoutée ensuite (y compris un nouveau pack publié) est automatiquement proposée.
+- L'administrateur choisit la **mascotte par défaut** dans **Paramètres → Mascottes de
+  visite** : la page présente les mascottes proposées avec leur vignette animée, et un bouton
+  « par défaut ». Si la mascotte par défaut choisie a depuis été retirée de la visite, la page
+  le signale plutôt que de laisser deviner pourquoi les visiteurs en voient une autre.
+- **Proposer une mascotte aux visiteurs, c'est la publier**, et cela se fait au studio, là où
+  on la modifie. Il n'y a plus de liste de mascottes autorisées à tenir à jour : toute mascotte
+  publiée est proposée, y compris celles ajoutées plus tard. C'est ce qui corrige un défaut
+  ancien — une mascotte importée pouvait rester invisible parce qu'elle ne figurait pas dans une
+  liste posée avant son arrivée.
 
 ## Ce que gère le professeur
 
@@ -79,40 +84,39 @@ familles.
   packs** et **une seule bibliothèque d'images**, communes à toutes les cartes. Une
   mascotte créée ici est disponible partout dès sa publication — inutile de la
   recréer, de la dupliquer ou de l'exporter/réimporter pour une autre carte.
-- **Un pack peut compléter une mascotte livrée avec l'application.** Si son identifiant
-  de catalogue reprend celui d'une mascotte existante, c'est le pack qui est affiché : la
-  liste ne montre pas deux entrées, elle montre la version animée. C'est le moyen de
-  donner ses animations à une mascotte dont l'application n'a que la silhouette — **OLU**
-  est aujourd'hui dans ce cas : il apparaît en silhouette dessinée tant qu'aucun pack
-  `olu-spritesheet` n'a été publié.
+- **Une archive peut remplacer une mascotte livrée.** C'est le moyen de donner ses animations
+  à une mascotte dont l'application n'a que la silhouette. À l'import, choisissez
+  **« remplacer »** et désignez la mascotte livrée : c'est bien **elle** qui change, sous le même
+  nom et au même endroit dans la liste — pas une dix-septième mascotte créée à côté. Si le
+  résultat ne convient pas, **« Réinitialiser depuis l'origine »** défait l'import.
 - **Une archive OLU prête à importer est fournie.** Elle couvre ses **vingt et un états**
   (repos, marche, course, parole, désignation, joie, saut, célébration, tour sur soi,
   examen de carte, recherche, salut, mise en garde, surprise, gravité, affection,
-  contrariété, sommeil, repas, danse). Une fois **importée puis publiée** depuis l'onglet
-  « Packs mascotte », OLU cesse d'être une silhouette et s'anime partout où il apparaît.
-  L'archive se refabrique à la demande à partir du dépôt ; demander à l'équipe technique.
-- **Gérer les mascottes livrées, depuis le studio.** L'onglet « Packs mascotte » a un volet
-  **Mascottes livrées** qui présente les seize mascottes fournies avec l'application. Pour
-  chacune : un aperçu, un badge disant si elle porte une **vraie animation** ou seulement une
-  image fixe, un bouton **Cloner pour modifier**, un bouton **Exporter ZIP** (sans avoir à la
-  cloner d'abord) et la case **« proposée aux visiteurs »**.
-- **Quatre mascottes livrées sur seize sont réellement animées** (OLU, Gnome 1, Renard 2,
-  Renard sac). Les douze autres n'ont qu'une image fixe et s'affichent en silhouette dessinée ;
-  le badge le dit désormais au lieu de les présenter à égalité.
-- **La case « proposée aux visiteurs » est le même réglage** que celui de
-  **Paramètres → Mascottes de visite** : un seul réglage, visible à deux endroits. Décocher une
-  mascotte la retire du choix des visiteurs sans rien supprimer — il suffit de recocher pour la
-  rétablir. Modifier ce réglage demande un rôle d'administration ; un professeur qui ne gère que
-  les packs voit la case grisée et l'explication.
-- **Les mascottes livrées se modifient comme les autres.** Elles ne vivent plus « dans
-  l'application » à part : elles apparaissent dans la liste des packs au même titre que celles
-  que vous créez, et s'y modifient, s'y exportent et s'y suppriment de la même façon.
-- **Supprimer une mascotte livrée n'est pas définitif** : au prochain démarrage, l'application la
-  remet en place telle qu'elle a été fournie. C'est la façon de « repartir de zéro » sur une
-  mascotte qu'on a trop modifiée. En revanche, une mascotte que **vous** avez créée et supprimée
-  est perdue.
+  contrariété, sommeil, repas, danse). Importée **en remplacement** de la mascotte livrée
+  « OLU » depuis l'onglet « Packs mascotte », OLU cesse d'être une silhouette et s'anime partout
+  où il apparaît. L'archive se refabrique à la demande à partir du dépôt ; demander à l'équipe
+  technique.
+- **Une seule liste, mascottes livrées comprises.** Le studio ne montre plus « les modèles
+  intégrés » d'un côté et « les packs » de l'autre : toutes les mascottes sont dans la même
+  liste et se modifient de la même façon. Chacune indique son origine — **Livrée** (fournie avec
+  l'application) ou **Créée ici** — parce que c'est elle qui décide de ce qu'on peut en faire.
+- **Une mascotte livrée s'ouvre et se modifie directement.** Plus besoin de « cloner pour
+  modifier » : on peut l'essayer sans rien perdre, puisque **« Réinitialiser depuis l'origine »**
+  lui rend à tout moment son apparence d'origine. Cette réinitialisation ne touche pas à sa
+  publication : rendre l'apparence d'origine et remettre la mascotte en visite sont deux
+  décisions distinctes.
+- **Une mascotte livrée ne se supprime pas** — l'application la remettrait en place au prochain
+  démarrage, et le bouton donnerait une réussite qui s'annule toute seule. Deux gestes font
+  vraiment quelque chose : la **retirer de la visite** (elle disparaît du choix des visiteurs
+  sans rien perdre, il suffit de la republier) ou la **réinitialiser**. Une mascotte que
+  **vous** avez créée, elle, se supprime pour de bon.
 - **Vos modifications sont conservées** : un redémarrage ne réécrit jamais une mascotte que vous
   avez retouchée.
+- **Partir d'un modèle livré** pour créer une nouvelle mascotte reste possible, par un menu
+  déroulant en haut de la liste. Les modèles qui n'ont **qu'une image fixe** y sont signalés
+  comme tels : douze des seize mascottes fournies sont dans ce cas, et partir de l'une d'elles
+  promettrait sinon une animation qui n'existe pas. Quatre sont réellement animées (OLU,
+  Gnome 1, Renard 2, Renard sac).
 - **Suivre la fréquentation** : un tableau de bord donne sessions, lieux vus et taux de
   parcours complets, en séparant élèves connectés et visiteurs anonymes.
 

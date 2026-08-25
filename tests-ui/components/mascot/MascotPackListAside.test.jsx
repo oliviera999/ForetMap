@@ -9,9 +9,7 @@ function setup(extra = {}) {
     catalogModelOptions: [{ id: 'sprout', label: 'SPR0UT' }],
     selectedCatalogModelId: 'sprout',
     onSelectCatalogModel: vi.fn(),
-    findPacksForCatalogModel: vi.fn(() => []),
     onNewDraft: vi.fn(),
-    onOpenCatalogModelForEdit: vi.fn(),
     onNewFromCatalog: vi.fn(),
     onRefresh: vi.fn(),
     onDuplicateSelected: vi.fn(),
@@ -26,6 +24,7 @@ function setup(extra = {}) {
     onSave: vi.fn(),
     onTogglePublish: vi.fn(),
     onDelete: vi.fn(),
+    onResetFromOrigin: vi.fn(),
     selectedValidation: { ok: false },
     editorWarnings: [],
     actionError: '',
@@ -39,7 +38,7 @@ function setup(extra = {}) {
 describe('MascotPackListAside', () => {
   test('liste vide : message d’invitation et bouton de brouillon', () => {
     const props = setup();
-    expect(screen.getByText(/Aucun pack pour l’instant/)).toBeTruthy();
+    expect(screen.getByText(/Aucune mascotte pour l’instant/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Nouveau brouillon' }));
     expect(props.onNewDraft).toHaveBeenCalledTimes(1);
   });
@@ -60,35 +59,53 @@ describe('MascotPackListAside', () => {
     expect(props.onSelectPack).toHaveBeenCalledWith('p1');
   });
 
-  test('« Éditer une copie » ouvre le modèle catalogue', () => {
+  test('les modèles livrés ne servent qu’à créer, plus à « éditer une copie »', () => {
+    // Le flux « Éditer une copie » a disparu avec la seconde liste : une mascotte livrée
+    // s'ouvre directement dans **la** liste, comme les autres. Ne reste ici qu'un point de
+    // départ pour en créer une nouvelle.
     const props = setup();
-    fireEvent.click(screen.getByRole('button', { name: 'Éditer une copie' }));
-    expect(props.onOpenCatalogModelForEdit).toHaveBeenCalledWith('sprout');
+    expect(screen.queryByRole('button', { name: /Éditer (une|la) copie/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Nouvelle mascotte depuis ce modèle' }));
+    expect(props.onNewFromCatalog).toHaveBeenCalledTimes(1);
   });
 
-  test('copie catalogue unique : libellé affiché sous le modèle', () => {
+  test('l’origine de chaque mascotte se lit dans la liste', () => {
+    // C'est elle qui dit ce qu'on peut faire de la ligne : réinitialiser une livrée,
+    // supprimer une mascotte créée ici.
     setup({
-      findPacksForCatalogModel: vi.fn(() => [
-        {
-          id: 'p1',
-          label: 'SPR0UT copie',
-          catalog_id: 'srv-1',
-          pack: { clonedFromCatalogId: 'sprout' },
-        },
-      ]),
+      packs: [
+        { id: 'p1', label: 'SPR0UT', catalog_id: 'sprout', is_published: 1, origin: 'builtin' },
+        { id: 'p2', label: 'Abeille', catalog_id: 'srv-x', is_published: 0, origin: 'custom' },
+      ],
     });
-    expect(screen.getByText(/Copie existante : SPR0UT copie/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Éditer la copie' })).toBeTruthy();
+    expect(screen.getByText(/Livrée · Publiée/)).toBeTruthy();
+    expect(screen.getByText(/Créée ici · Brouillon/)).toBeTruthy();
   });
 
-  test('plusieurs copies catalogue : mention du nombre', () => {
-    setup({
-      findPacksForCatalogModel: vi.fn(() => [
-        { id: 'p1', label: 'A', pack: { clonedFromCatalogId: 'sprout' } },
-        { id: 'p2', label: 'B', pack: { clonedFromCatalogId: 'sprout' } },
-      ]),
+  test('mascotte livrée : réinitialiser remplace supprimer', () => {
+    // Supprimer une livrée serait une réussite qui s'annule toute seule — le semis la recrée au
+    // démarrage suivant. Le bouton proposé fait quelque chose de réel.
+    const props = setup({
+      selectedId: 'p1',
+      selectedRow: { id: 'p1', is_published: 1, origin: 'builtin' },
+      selectedValidation: { ok: true },
     });
-    expect(screen.getByText(/2 copies/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Supprimer…' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Réinitialiser depuis l’origine…' }));
+    expect(props.onResetFromOrigin).toHaveBeenCalledTimes(1);
+    expect(props.onDelete).not.toHaveBeenCalled();
+  });
+
+  test('mascotte créée ici : supprimer, et pas de réinitialisation', () => {
+    const props = setup({
+      selectedId: 'p2',
+      selectedRow: { id: 'p2', is_published: 0, origin: 'custom' },
+      selectedValidation: { ok: true },
+    });
+    expect(screen.queryByRole('button', { name: 'Réinitialiser depuis l’origine…' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer…' }));
+    expect(props.onDelete).toHaveBeenCalledTimes(1);
+    expect(props.onResetFromOrigin).not.toHaveBeenCalled();
   });
 
   test('pack sélectionné invalide : enregistrer et publier désactivés', () => {
@@ -112,7 +129,7 @@ describe('MascotPackListAside', () => {
   test('pack sélectionné : enregistrer/publier/supprimer câblés et libellé édité', () => {
     const props = setup({
       selectedId: 'p1',
-      selectedRow: { id: 'p1', is_published: 0 },
+      selectedRow: { id: 'p1', is_published: 0, origin: 'custom' },
       selectedValidation: { ok: true },
       labelDraft: 'Mon pack',
     });

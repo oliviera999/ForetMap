@@ -1,11 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const {
-  parseVisitMascotAllowedIds,
-  isValidVisitMascotId,
-  SETTINGS_REGISTRY,
-} = require('../lib/settings');
+const { isValidVisitMascotId, SETTINGS_REGISTRY } = require('../lib/settings');
 const {
   listStaticVisitMascots,
   getBuiltinDefaultVisitMascotId,
@@ -14,8 +10,10 @@ const {
 // Registre des mascottes de visite : le serveur ne tient plus de liste blanche d'ids.
 // Les mascottes livrées et les packs publiés (`srv-…`) sont traités à égalité.
 
-test('aucune liste d’ids figée dans les défauts des réglages mascotte', () => {
-  assert.equal(SETTINGS_REGISTRY['ui.visit.mascot.allowed_ids'].default, '');
+test('la liste blanche de mascottes n’est plus un réglage', () => {
+  // Elle se figeait sur les mascottes existant le jour où on la posait. La retirer du registre
+  // est ce qui ferme la classe de défaut : sans clé, rien ne peut la reposer.
+  assert.equal(SETTINGS_REGISTRY['ui.visit.mascot.allowed_ids'], undefined);
   assert.equal(SETTINGS_REGISTRY['ui.visit.mascot.default_id'].default, '');
 });
 
@@ -27,15 +25,6 @@ test('isValidVisitMascotId : forme seulement, packs serveur acceptés', () => {
   assert.equal(isValidVisitMascotId('id avec espace'), false);
   assert.equal(isValidVisitMascotId('-commence-par-tiret'), false);
   assert.equal(isValidVisitMascotId('a'.repeat(81)), false);
-});
-
-test('parseVisitMascotAllowedIds : séparateurs, dédoublonnage, formes invalides écartées', () => {
-  assert.deepEqual(parseVisitMascotAllowedIds('gnome1, srv-pack-x ; gnome1\nbad id'), [
-    'gnome1',
-    'srv-pack-x',
-  ]);
-  assert.deepEqual(parseVisitMascotAllowedIds(''), []);
-  assert.deepEqual(parseVisitMascotAllowedIds(null), []);
 });
 
 test('registre statique : toutes les mascottes livrées sont exposées, gnome1 compris', async () => {

@@ -22,8 +22,6 @@ import {
   createMascotPackEditorSnapshot,
   isJsonDraftDirty,
   resolvePackDialogMascotId,
-  findPacksForCatalogModel,
-  pickPreferredCatalogModelPack,
   buildPackAssetPreviewByFilename,
   listMissingPackFrameFilenames,
   resolveCatalogStaticFramesBase,
@@ -39,7 +37,6 @@ import {
 import { DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE } from '../utils/visitMascotInteractionEvents.js';
 import VisitMascotDialogEditor from './VisitMascotDialogEditor.jsx';
 import VisitMascotDialogStudioView from './VisitMascotDialogStudioView.jsx';
-import MascotCatalogModelsView from './mascot/MascotCatalogModelsView.jsx';
 import VisitMascotStudioPreviewSection from './mascot/VisitMascotStudioPreviewSection.jsx';
 import MascotPackListAside from './mascot/MascotPackListAside.jsx';
 import MascotPackImagesPanel from './mascot/MascotPackImagesPanel.jsx';
@@ -67,9 +64,12 @@ const RIGHT_TABS = [
   { id: 'preview', label: 'Aperçu global' },
 ];
 
+// Deux modes, plus trois. L'onglet « Mascottes livrées » listait le catalogue en code à côté de
+// la liste des packs ; depuis que les livrées **sont** des lignes de cette liste (étape 2 de la
+// fusion), il montrait les mêmes seize mascottes une seconde fois, avec d'autres boutons. Une
+// seule liste, c'était tout l'objet de l'étape 3.
 const STUDIO_MODES = [
-  { id: 'packs', label: 'Packs' },
-  { id: 'livrees', label: 'Mascottes livrées' },
+  { id: 'packs', label: 'Mascottes' },
   { id: 'dialogues', label: 'Dialogues' },
 ];
 
@@ -139,12 +139,16 @@ export default function VisitMascotPackManager({
     /** @type {{ playInteraction?: (k: string) => void } | null} */ (null),
   );
   const [insertFeedback, showInsertFeedback] = useTransientMessage(2800);
-  const [catalogCopyHint, setCatalogCopyHint] = useState('');
   const [catalogModelIds, setCatalogModelIds] = useState(() =>
     getVisitMascotCatalog()
       .map((m) => String(m?.id || '').trim())
       .filter(Boolean),
   );
+  // Douze des seize modèles livrés font pointer leurs vingt et un états sur la même image : ils
+  // n'ont pas d'animation propre. Partir de l'un d'eux sans le dire promet un mouvement qui
+  // n'existe pas, et la déception arrive bien plus tard, à l'aperçu. Le serveur le **mesure**
+  // (`has_real_animation`) plutôt que de le deviner.
+  const [staticModelIds, setStaticModelIds] = useState(() => new Set());
   const catalogModelOptions = useMemo(() => {
     const labelById = new Map(
       getVisitMascotCatalog()
@@ -158,8 +162,11 @@ export default function VisitMascotPackManager({
     return catalogModelIds
       .map((id) => String(id || '').trim())
       .filter(Boolean)
-      .map((id) => ({ id, label: labelById.get(id) || id }));
-  }, [catalogModelIds]);
+      .map((id) => ({
+        id,
+        label: `${labelById.get(id) || id}${staticModelIds.has(id) ? ' — image fixe' : ''}`,
+      }));
+  }, [catalogModelIds, staticModelIds]);
   const [selectedCatalogModelId, setSelectedCatalogModelId] = useState(
     () => getVisitMascotCatalog()[0]?.id || '',
   );
@@ -168,8 +175,22 @@ export default function VisitMascotPackManager({
     setLoading(true);
     setListError('');
     try {
-      const res = await api('/api/visit/mascot-packs');
+      const [res, modelsRes] = await Promise.all([
+        api('/api/visit/mascot-packs'),
+        // Information d'appoint : son indisponibilité ne doit pas empêcher la liste de s'afficher.
+        api('/api/visit/mascot-catalog/models').catch(() => null),
+      ]);
       const list = Array.isArray(res?.packs) ? res.packs : [];
+      if (Array.isArray(modelsRes?.models)) {
+        setStaticModelIds(
+          new Set(
+            modelsRes.models
+              .filter((m) => !m?.has_real_animation)
+              .map((m) => String(m?.catalog_id || '').trim())
+              .filter(Boolean),
+          ),
+        );
+      }
       const allowedCatalogIds = Array.isArray(res?.allowed_catalog_ids)
         ? res.allowed_catalog_ids.map((id) => String(id || '').trim()).filter(Boolean)
         : [];
@@ -384,45 +405,6 @@ export default function VisitMascotPackManager({
     await postNewPack({ clone_from_catalog_id: modelId });
   }, [postNewPack, selectedCatalogModelId, confirmLeaveIfDirty]);
 
-  const findPacksForCatalogModelCb = useCallback(
-    (modelId) => findPacksForCatalogModel(packs, modelId),
-    [packs],
-  );
-
-  /** Ouvre une copie modifiable du modèle catalogue sur la carte (réutilise le pack existant si déjà cloné). */
-  const openCatalogModelForEdit = useCallback(
-    async (modelId) => {
-      const mid = String(modelId || '').trim();
-      if (!mid) return;
-      setSelectedCatalogModelId(mid);
-      const copies = findPacksForCatalogModel(packs, mid);
-      if (copies.length > 0) {
-        const picked = pickPreferredCatalogModelPack(copies, selectedId);
-        if (!picked?.pack?.id) return;
-        if (picked.pack.id !== selectedId && !confirmLeaveIfDirty()) return;
-        setSelectedId(picked.pack.id);
-        setEditorTab('workspace');
-        setActionError('');
-        setCatalogCopyHint(
-          picked.ambiguous
-            ? 'Plusieurs copies existent pour ce modèle — la plus récente (ou celle sélectionnée) est ouverte.'
-            : '',
-        );
-        return;
-      }
-      if (!confirmLeaveIfDirty()) return;
-      setCatalogCopyHint('');
-      await postNewPack(
-        { clone_from_catalog_id: mid },
-        {
-          errorMessage: 'Impossible d’ouvrir ce modèle pour édition',
-          onCreated: () => setEditorTab('workspace'),
-        },
-      );
-    },
-    [packs, postNewPack, selectedId, confirmLeaveIfDirty, setEditorTab],
-  );
-
   const onDuplicateSelected = useCallback(async () => {
     if (!selectedId) return;
     if (!confirmLeaveIfDirty()) return;
@@ -566,6 +548,36 @@ export default function VisitMascotPackManager({
       setActionBusy(false);
     }
   }, [selectedId, refreshFromServer, onForceLogout, isDirty]);
+
+  /**
+   * Rend à une mascotte **livrée** son apparence d'origine. Le catalogue en code n'est plus servi
+   * à l'écran depuis l'étape 2 (la ligne en base l'emporte), mais il reste la référence à laquelle
+   * revenir : c'est ce qui rend l'édition des livrées sans risque.
+   *
+   * L'avertissement dit ce qui est perdu — les modifications — et le confirme avant d'agir : le
+   * geste n'est pas réversible, contrairement à « retirer de la visite ».
+   */
+  const onResetFromOrigin = useCallback(async () => {
+    if (!selectedId) return;
+    if (
+      !window.confirm(
+        'Rendre à cette mascotte livrée son état d’origine ? Les modifications enregistrées ici seront perdues. Sa publication n’est pas touchée.',
+      )
+    )
+      return;
+    setActionBusy(true);
+    setActionError('');
+    setActionIssues([]);
+    try {
+      await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}/reset`, 'POST');
+      await refreshFromServer();
+    } catch (e) {
+      if (e instanceof AccountDeletedError) onForceLogout?.();
+      else setActionError(e.message || 'Réinitialisation impossible');
+    } finally {
+      setActionBusy(false);
+    }
+  }, [selectedId, refreshFromServer, onForceLogout]);
 
   const upgradePackToV2 = useCallback(
     (nextTab = 'interaction') => {
@@ -856,17 +868,6 @@ export default function VisitMascotPackManager({
           onForceLogout={onForceLogout}
           catalogModelOptions={catalogModelOptions}
         />
-      ) : studioMode === 'livrees' ? (
-        <MascotCatalogModelsView
-          onForceLogout={onForceLogout}
-          actionBusy={actionBusy}
-          onCloneModel={(id) => {
-            // Le clone s'ouvre dans l'éditeur, qui vit sous l'onglet « Packs » : rester ici
-            // laisserait croire que le clic n'a rien fait.
-            void openCatalogModelForEdit(id);
-            setStudioMode('packs');
-          }}
-        />
       ) : (
         <div className="visit-mascot-pack-manager__layout">
           <MascotPackListAside
@@ -874,10 +875,7 @@ export default function VisitMascotPackManager({
             catalogModelOptions={catalogModelOptions}
             selectedCatalogModelId={selectedCatalogModelId}
             onSelectCatalogModel={setSelectedCatalogModelId}
-            findPacksForCatalogModel={findPacksForCatalogModelCb}
-            catalogCopyHint={catalogCopyHint}
             onNewDraft={() => void onNewDraft()}
-            onOpenCatalogModelForEdit={(id) => void openCatalogModelForEdit(id)}
             onNewFromCatalog={() => void onNewFromCatalog()}
             onRefresh={() => void onRefresh()}
             onDuplicateSelected={() => void onDuplicateSelected()}
@@ -896,6 +894,7 @@ export default function VisitMascotPackManager({
             onSave={() => void onSave()}
             onTogglePublish={() => void onTogglePublish()}
             onDelete={() => void onDelete()}
+            onResetFromOrigin={() => void onResetFromOrigin()}
             selectedValidation={selectedValidation}
             editorWarnings={editorWarnings}
             actionError={actionError}

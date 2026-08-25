@@ -589,6 +589,16 @@ async function initSchema() {
   } catch (err) {
     logger.warn({ err }, 'Semis des mascottes livrées ignoré');
   }
+  try {
+    // **Après** le semis, et pas avant : la traduction dépublie des lignes, il faut donc
+    // qu'elles existent. Elle lève la « liste figée » — `ui.visit.mascot.allowed_ids`, une liste
+    // blanche d'identifiants qui rendait invisible toute mascotte ajoutée après coup — en
+    // reportant la restriction sur `is_published`, puis en effaçant le réglage.
+    const { migrateVisitMascotVisibilityToColumn } = require('./lib/visitMascotVisibility');
+    await migrateVisitMascotVisibilityToColumn();
+  } catch (err) {
+    logger.warn({ err }, 'Bascule de la visibilité des mascottes ignorée');
+  }
 }
 
 // Doublons de numéros HISTORIQUES (021_add_new_tutorials_seed / 021_visit_public_flow,

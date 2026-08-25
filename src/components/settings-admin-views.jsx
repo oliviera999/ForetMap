@@ -543,10 +543,9 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
             </div>
           )}
 
-          {/* Réglages mascottes : panneau dédié (vignettes + cases) — les deux clés
-              correspondantes sont retirées de la grille texte libre ci-dessus. */}
+          {/* Réglages mascottes : panneau dédié (vignettes + choix du défaut) — la clé
+              correspondante est retirée de la grille texte libre ci-dessus. */}
           <VisitMascotSettingsPanel
-            allowedValue={get('ui.visit.mascot.allowed_ids', '')}
             defaultValue={get('ui.visit.mascot.default_id', '')}
             onSave={(key, value) => saveSetting(key, value, 'Réglages mascottes enregistrés')}
           />

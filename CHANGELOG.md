@@ -7,6 +7,39 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Une seule liste de mascottes, et la « liste figée » disparaît (fusion catalogue/packs, étape 3)
+
+Le studio n'affiche plus qu'**une** liste de mascottes, livrées comprises, chacune portant son
+origine (**Livrée** / **Créée ici**). Le volet séparé « Mascottes livrées » et le détour par
+« Éditer une copie » disparaissent : une mascotte livrée s'ouvre et se modifie directement.
+
+**Le défaut de fond est fermé.** Une mascotte importée pouvait rester invisible aux visiteurs
+sans que rien ne le signale : le réglage `ui.visit.mascot.allowed_ids` était une **liste blanche
+d'identifiants**, qui ignorait par construction toute mascotte ajoutée après sa pose. Ce réglage
+est **supprimé**. Proposer une mascotte aux visiteurs, c'est la **publier**, là où on la modifie.
+Une restriction existante est reportée automatiquement au démarrage, puis le réglage est effacé.
+
+**Ce qui change pour un professeur :**
+
+- une mascotte livrée se modifie, s'exporte et se retire de la visite comme les autres ;
+- **« Réinitialiser depuis l'origine »** lui rend son apparence d'origine à tout moment — on peut
+  donc l'essayer sans rien perdre. La réinitialisation ne touche pas à sa publication ;
+- **supprimer** une mascotte livrée est refusé, avec l'explication : l'application la recréerait
+  au démarrage suivant. Les deux gestes qui durent sont nommés (la retirer de la visite, ou la
+  réinitialiser) ;
+- **importer une archive « en remplacement » sur une mascotte livrée la change vraiment**, sous
+  son identifiant — c'était impossible auparavant, l'archive créait une mascotte à côté ;
+- partir d'un modèle livré reste possible ; ceux qui n'ont **qu'une image fixe** y sont signalés.
+
+**Ce qui change pour un administrateur :** **Paramètres → Mascottes de visite** ne règle plus que
+la **mascotte par défaut**, et signale le cas où celle-ci a été retirée de la visite.
+
+Correctif au passage : un pack `rive` ou `spritesheet` était refusé par le serveur au nom d'un
+champ `framesBase` qu'il ne porte pas — quinze des seize mascottes livrées étaient en réalité
+inenregistrables — et, s'il passait, la ligne écrite ne pouvait plus être relue.
+
+Aucune migration. Aucune action requise.
+
 ### Les mascottes livrées deviennent des packs éditables (fusion catalogue/packs, étape 2)
 
 Les seize mascottes fournies avec l'application vivaient dans le code : ni modifiables, ni
