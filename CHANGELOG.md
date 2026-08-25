@@ -7,6 +7,36 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Le serveur travaille moins, sans rien perdre (lot 15)
+
+Mise en œuvre du plan de l'audit charge serveur
+(`docs/AUDIT_CHARGE_SERVEUR_2026-08.md`), quatre volets, aucun changement
+fonctionnel visible :
+
+**Le polling ne refait plus huit requêtes pour rien.** Avant chaque cycle de
+rafraîchissement périodique, le client interroge une nouvelle sonde ultra-légère
+`GET /api/sync-state` (compteur global d'écritures + identité du process) : si rien
+n'a été écrit en base depuis le dernier cycle réussi, le cycle est sauté — une
+requête au lieu de huit dans le cas courant « personne n'a rien changé ». Toute
+écriture, un redémarrage serveur, une erreur de sonde ou un plafond de sauts
+consécutifs redéclenchent un cycle complet : la fraîcheur perçue est inchangée.
+
+**~30 Mo de mémoire rendus au serveur.** Les bibliothèques d'export/import
+(tableur, PDF, ZIP, vignettes images) ne sont plus chargées au démarrage mais au
+premier usage — sur mutualisé, la mémoire est le premier critère d'arrêt forcé du
+process, et chaque arrêt était un redémarrage avec sa fenêtre d'indisponibilité.
+
+**Deux requêtes SQL de moins sur chaque appel authentifié.** Le périmètre de
+groupes de l'utilisateur est désormais mis en cache comme le sont déjà rôles et
+permissions (invalidation garantie à la moindre écriture sur les tables de
+groupes).
+
+**Un commit de documentation ne redémarre plus la prod.** Le cron de déploiement
+saute désormais le redémarrage par défaut quand le lot ne touche que docs/CHANGELOG
+(revenir en arrière : `DEPLOY_SKIP_RESTART_IF_SOFT_ONLY=0` dans `.env`). Les
+réglages restants côté hébergeur (Passenger mono-instance, keepalive, statique
+servi par le frontal) sont documentés pas à pas dans `docs/EXPLOITATION.md`.
+
 ### « Service momentanément indisponible » ne s'affiche presque plus (lot 14)
 
 **Le message d'erreur sortait à presque chaque redémarrage du serveur**, même avec un

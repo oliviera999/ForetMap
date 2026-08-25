@@ -73,10 +73,12 @@ mono-utilisateur → petite classe.
 
 ### A. Mémoire (réduit kills et cold starts)
 
-1. **Lazy-require des bibliothèques lourdes** (`exceljs`, `pdfkit`, `adm-zip`) au
-   premier usage dans les handlers plutôt qu'au boot. Gain mesuré : **−55 à −60 Mo
-   RSS** (~ −50 %) et un boot plus rapide. Aucun impact fonctionnel (premier export
-   ~200 ms plus lent, une fois par vie de process).
+1. **Lazy-require des bibliothèques lourdes** (`exceljs`, `pdfkit`, `adm-zip`, et
+   `sharp`) au premier usage dans les handlers plutôt qu'au boot. Gain **mesuré après
+   mise en œuvre : −31 Mo de RSS** (~ −25 % du process) — les coûts unitaires du §1 se
+   recouvrent partiellement (dépendances et pages V8 partagées), leur somme surestimait.
+   Aucun impact fonctionnel (premier export ~200 ms plus lent, une fois par vie de
+   process).
 2. **Config Passenger côté hébergeur** : viser **1 instance** (`passenger_max_pool_size 1`
    — le socket temps réel suppose déjà une instance unique, cf. EXPLOITATION §temps réel)
    et allonger `passenger_pool_idle_time`. Moins d'instances = moins de RAM totale et
@@ -126,12 +128,18 @@ mono-utilisateur → petite classe.
   _augmenterait_ la charge et dégraderait l'UX.
 - **Toucher aux logs** : déjà au minimum utile en prod.
 
-## 4) Ordre de mise en œuvre suggéré
+## 4) Ordre de mise en œuvre suggéré — et état de réalisation (lot 15)
 
-| Étape | Pistes                                  | Effort           | Gain principal                |
-| ----- | --------------------------------------- | ---------------- | ----------------------------- |
-| 1     | 6 (opt-in cron) + 2 (config Passenger)  | config seule     | moins de restarts/cold starts |
-| 2     | 1 (lazy-require)                        | petit lot code   | −50 % RSS                     |
-| 3     | 3 (cache groupes)                       | petit lot code   | −2 SQL/req auth               |
-| 4     | 8 (keepalive) puis 9 (statique frontal) | config hébergeur | cold starts, CPU Node         |
-| 5     | 4 (endpoint fraîcheur) ± 5              | lot dédié        | −85 % du volume de polling    |
+| Étape | Pistes                                  | Effort           | Gain principal                | État                                                                                                       |
+| ----- | --------------------------------------- | ---------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 1     | 6 (opt-in cron) + 2 (config Passenger)  | config seule     | moins de restarts/cold starts | ✅ 6 : défaut du cron passé à 1 · 2 : documenté EXPLOITATION                                               |
+| 2     | 1 (lazy-require)                        | petit lot code   | −31 Mo RSS (mesuré)           | ✅ réalisé (exceljs, pdfkit, adm-zip, sharp)                                                               |
+| 3     | 3 (cache groupes)                       | petit lot code   | −2 SQL/req auth               | ✅ réalisé (cache versionné, lib/groupScope.js)                                                            |
+| 4     | 8 (keepalive) puis 9 (statique frontal) | config hébergeur | cold starts, CPU Node         | 📋 documenté (EXPLOITATION §Charge serveur) — à faire cPanel                                               |
+| 5     | 4 (endpoint fraîcheur) ± 5              | lot dédié        | −85 % du volume de polling    | ✅ 4 : `GET /api/sync-state` + saut de cycle client · 5 : sans objet (le cycle sauté coûte déjà 1 requête) |
+
+Mise en œuvre retenue pour la piste 4 : un **compteur global d'écritures SQL** (plus
+`bootId` du process) plutôt qu'un compteur par domaine — toute écriture, connue ou non,
+déclenche un cycle complet (aucun risque de fraîcheur perdue) ; les écritures hors
+process (scripts CLI) sont couvertes par un **plafond de sauts consécutifs** qui force
+un cycle complet périodique. Détail : `docs/API.md` §Client HTTP.

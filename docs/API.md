@@ -568,6 +568,8 @@ Les **mutations** (**`POST`**, **`PUT`**, **`PATCH`**, **`DELETE`**) réessayent
 
 Pendant un réessai, le client publie l’état sur la **pastille sticky** de bas d’écran (« reconnexion en cours… », voir composant partagé `AppStatusSticky`) puis « connexion rétablie ✓ » en cas de succès — l’utilisateur est informé sans toast bloquant ni erreur prématurée.
 
+**Polling différentiel** : avant chaque cycle de rafraîchissement périodique, le client interroge **`GET /api/sync-state`** → `{ bootId, writes }` (identité du process Node + compteur global d’écritures SQL ; aucune donnée métier, aucune requête SQL). Si rien n’a été écrit depuis le dernier cycle complet réussi dans le même contexte client (même carte, même rôle…), le cycle est **sauté** : 1 requête légère au lieu de ~8. Garde-fous : toute erreur de sonde, un `bootId` différent (redémarrage) ou un plafond de sauts consécutifs (couvre les écritures hors process, ex. scripts CLI) déclenchent un cycle complet. La route est exclue des logs/métriques HTTP comme `/api/health`.
+
 Pendant un **redémarrage** applicatif (`POST /api/admin/restart`, deploy cron), les routes **`/api/*`** (hors **`/api/health`**, **`/api/health/db`**, **`/api/ready`**) renvoient **503** JSON `{ error, code: SERVICE_RESTARTING }` + `Retry-After: 2`. Pendant l’**init BDD** au boot, **503** JSON `{ code: SERVICE_NOT_READY }` + `Retry-After: 2` sur le même périmètre. En cas de **panne BDD transitoire** pendant l’hydratation d’une session (ForetMap ou GL), **503** JSON `{ error, code: SERVICE_UNAVAILABLE }` + `Retry-After: 2`.
 
 Les réponses **429** ne sont pas réessayées automatiquement.

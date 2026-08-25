@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const https = require('https');
 const crypto = require('crypto');
-const { pool, queryAll, queryOne, execute } = require('../database');
+const { pool, queryAll, queryOne, execute, noteExternalDataWrite } = require('../database');
 const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const { requirePermission, requireAuth } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
@@ -411,6 +411,9 @@ router.post(
         }
       }
       await conn.commit();
+      // Import en connexion brute : signaler l'écriture aux caches / sync-state
+      // (les helpers database.js ne l'ont pas vue passer).
+      noteExternalDataWrite();
     } catch (err) {
       await conn.rollback();
       throw err;
