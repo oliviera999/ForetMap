@@ -72,6 +72,9 @@ before(async () => {
      VALUES (?, ?, ?, NOW())`,
     [gameId, teamId, player.id],
   );
+  // L'équipe est posée sur le repère : depuis l'anti-farm de present-question, un joueur ne
+  // peut présenter la question d'un repère que si sa mascotte y est (le MJ, lui, reste libre).
+  await execute('UPDATE gl_teams SET position_marker_id = ? WHERE id = ?', [markerId, teamId]);
 
   const tokens = await signTokens({
     adminId: admin.id,
@@ -140,6 +143,20 @@ test('POST present-question pour joueur membre', async () => {
   assert.strictEqual(res.body.questionCode, 'QCM0001');
   assert.ok(res.body.presentation?.question);
   assert.ok(res.body.presentation?.presentationToken);
+});
+
+test('POST present-question refusé si le joueur n’est pas sur le repère', async () => {
+  await execute('UPDATE gl_teams SET position_marker_id = NULL WHERE id = ?', [teamId]);
+  try {
+    const res = await request(app)
+      .post(`/api/gl/games/${gameId}/markers/${markerId}/present-question`)
+      .set('Authorization', `Bearer ${playerToken}`)
+      .send({})
+      .expect(409);
+    assert.match(String(res.body?.error || ''), /pas sur ce repère/i);
+  } finally {
+    await execute('UPDATE gl_teams SET position_marker_id = ? WHERE id = ?', [markerId, teamId]);
+  }
 });
 
 test('POST qcm/answer pour joueur membre après présentation', async () => {

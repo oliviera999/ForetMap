@@ -1,6 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { queryAll, queryOne, execute } = require('../../database');
+const { queryAll, queryOne, execute, withTransaction } = require('../../database');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const { logAudit } = require('../audit');
 const {
@@ -35,6 +35,7 @@ const {
 const { collectMediaLibraryUsage } = require('../../lib/mediaLibraryUsage');
 const { loadMediaKeyIndex } = require('../../lib/glAssetManifest');
 const { auditGlMediaKeys } = require('../../lib/glMediaKeysAudit');
+const { auditMarkerPromises } = require('../../lib/glMarkerPromiseAudit');
 const { listChapterRecitScenes, updateChapterSceneMeta } = require('../../lib/glChapterScenes');
 const {
   INTRO_SETTINGS_KEY,
@@ -499,8 +500,29 @@ router.delete(
         .json({ error: 'Suppression refusée : joueur engagé dans une partie en cours' });
     }
 
-    await execute('DELETE FROM gl_team_members WHERE player_id = ?', [id]);
-    await execute('DELETE FROM gl_players WHERE id = ?', [id]);
+    try {
+      await withTransaction(async (tx) => {
+        await tx.execute('DELETE FROM gl_team_members WHERE player_id = ?', [id]);
+        // Les jetons de réinitialisation du joueur ne portent pas de FK (table polymorphe) :
+        // purge applicative, comme pour les élèves (lib/studentDeletion.js).
+        await tx.execute(
+          `DELETE FROM password_reset_tokens WHERE user_type = 'gl_player' AND user_id = ?`,
+          [id],
+        );
+        await tx.execute('DELETE FROM gl_players WHERE id = ?', [id]);
+      });
+    } catch (err) {
+      // Une contribution à un sortilège dans une partie TERMINÉE référence encore le joueur via
+      // `fk_gl_spell_cast_contrib_player` (ON DELETE RESTRICT) : sans capture, l'erreur devenait
+      // un 500. On répond un 409 explicite plutôt que de supprimer l'historique de partie.
+      if (err && (err.errno === 1451 || err.code === 'ER_ROW_IS_REFERENCED_2')) {
+        return res.status(409).json({
+          error:
+            'Suppression refusée : ce joueur a contribué à un sortilège dans une partie terminée. Supprimez d’abord cette partie.',
+        });
+      }
+      throw err;
+    }
     return res.json({ ok: true });
   }),
 );
@@ -593,6 +615,54 @@ router.get(
       await buildQcmExportWorkbook(data),
       'foretmap-gl-export-qcm.xlsx',
     );
+  }),
+);
+
+/*
+ * Cohérence des plateaux : ce que chaque case **annonce** à l'élève contre ce que le moteur
+ * **applique**. Les deux champs (`effet_mecanique`, texte libre, et `event_config_json`,
+ * seule config exécutée) sont saisis séparément et rien ne les relie — une case peut donc
+ * afficher « Bonne réponse : +2 gemmes » sans qu'une seule gemme ne soit créditée.
+ *
+ * Diagnostic pur : rien n'est modifié, aucune case n'est corrigée. Le MJ voit l'écart et
+ * décide — soit câbler l'effet, soit retirer la promesse du texte.
+ */
+router.get(
+  '/plateaux/coherence',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const chapterId = req.query?.chapterId != null ? Number(req.query.chapterId) : null;
+    const onlyIssues = String(req.query?.onlyIssues ?? 'true') !== 'false';
+    const params = [];
+    let where = '';
+    if (Number.isFinite(chapterId) && chapterId > 0) {
+      where = 'WHERE m.chapter_id = ?';
+      params.push(chapterId);
+    }
+    const markers = await queryAll(
+      `SELECT m.id, m.chapter_id, m.label, m.event_type, m.effet_mecanique,
+              m.event_config_json, m.qcm_categorie_slug, m.qcm_question_code,
+              m.order_index, c.slug AS chapter_slug, c.title AS chapter_title
+         FROM gl_chapter_markers m
+         LEFT JOIN gl_chapters c ON c.id = m.chapter_id
+         ${where}
+        ORDER BY m.chapter_id ASC, m.order_index ASC, m.id ASC`,
+      params,
+    );
+    const report = auditMarkerPromises(markers);
+    const chapterLabels = {};
+    for (const m of markers) {
+      if (m.chapter_id == null) continue;
+      chapterLabels[String(m.chapter_id)] = m.chapter_title || m.chapter_slug || null;
+    }
+    return res.json({
+      total: report.total,
+      counts: report.counts,
+      byCode: report.byCode,
+      byChapter: report.byChapter,
+      chapterLabels,
+      markers: onlyIssues ? report.rows.filter((r) => r.severity !== 'ok') : report.rows,
+    });
   }),
 );
 
@@ -739,6 +809,16 @@ const vitalityPointsSettingValidator = (value) => {
 
 // Map (et non objet littéral) pour éviter toute collision avec Object.prototype
 // (`:key` est contrôlé par le client : constructor, __proto__, …).
+// Plafond de jeu : 0 = illimité (défaut historique), sinon 1..99. Le plafond technique
+// de la colonne reste 99 quoi qu'il arrive.
+const vitalityCapSettingValidator = (value) => {
+  const n = Number(value);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0 || n > 99) {
+    return { error: 'La valeur doit être 0 (illimité) ou un entier entre 1 et 99' };
+  }
+  return { value: n };
+};
+
 const SETTINGS_VALUE_VALIDATORS = new Map([
   [
     'gameplay.marker_question_retrigger',
@@ -790,6 +870,8 @@ const SETTINGS_VALUE_VALIDATORS = new Map([
   ],
   ['gameplay.default_health_points', vitalityPointsSettingValidator],
   ['gameplay.default_power_points', vitalityPointsSettingValidator],
+  ['gameplay.max_health_points', vitalityCapSettingValidator],
+  ['gameplay.max_power_points', vitalityCapSettingValidator],
   [
     'gameplay.player_journal_max_chars',
     (value) => {

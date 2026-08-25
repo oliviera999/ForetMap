@@ -212,6 +212,8 @@ body.gl-body {
 /* —— Navigation mobile (bottom bar + drawer) —— */
 .gl-app--has-bottom-nav {
   --gl-bottom-nav-height: 64px;
+  /* Ce que l'empilement flottant doit dégager (cf. src/shared/styles/floating-dock.css). */
+  --fm-safe-bottom-nav: calc(var(--gl-bottom-nav-height) + var(--safe-bottom, 0px));
 }
 
 .gl-app--has-bottom-nav .gl-main {
@@ -1405,12 +1407,11 @@ a.gl-glossary-inline-link:hover,
   right: max(12px, env(safe-area-inset-right, 0px));
 }
 
-.gl-zone-music-global-dock {
-  position: fixed;
-  right: max(12px, env(safe-area-inset-right, 0px));
-  bottom: max(72px, calc(env(safe-area-inset-bottom, 0px) + 56px));
-  z-index: 90;
-}
+/*
+ * Ancien dock du bouton musique. Il se posait à `bottom: 72px` — une valeur calée à la main
+ * pour dégager les 64 px de la navigation basse, donc à recaler à chaque changement de
+ * hauteur. L'empilement partagé (`.fm-floating-dock`) le fait désormais par calcul.
+ */
 
 .gl-board-turn-hud {
   position: absolute;
@@ -2908,16 +2909,30 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   --fm-tour-muted: var(--gl-color-primary, #047c8c);
 }
 
+/* ── INFOBULLES — thématisation GL ──────────────────────────────────────────
+ * Placement et comportement viennent de `src/shared/styles/tooltip.css` ; seules les
+ * couleurs changent. Contrairement à l'overlay de visite, l'infobulle est rendue **en
+ * place**, à côté de sa cible : elle reste donc sous `.gl-app` et se scope normalement.
+ */
+.gl-app {
+  --fm-tooltip-bg: color-mix(in srgb, #04222a 88%, var(--gl-color-primary, #047c8c) 12%);
+  --fm-tooltip-text: #f2fbfd;
+  --fm-tooltip-border: color-mix(in srgb, #fff 22%, transparent);
+}
+
 /* ── AIDE CONTEXTUELLE APPELÉE (bouton « ? » + modale) ──────────────────────
  * Pendant GL du `HelpPanel` ForetMap. L'encadré replié en bas de page ne se lisait
  * que si l'on descendait jusqu'à lui ; le bouton, lui, se voit et se demande.
  * L'encadré inline (`gl-help-panel`) subsiste là où l'aide fait partie de la page.
  */
 
+/*
+ * Le « ? » vit désormais dans l'empilement flottant, et non plus en fin de contenu : sa
+ * place ne dépend donc plus de la longueur de l'onglet affiché. Le conteneur ne sert plus
+ * qu'à le grouper avec sa modale.
+ */
 .gl-help-dock {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 12px;
 }
 
 .gl-help-btn {
@@ -3042,11 +3057,13 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   white-space: pre-wrap;
 }
 
+/*
+ * La cloche ne se positionne plus : elle est un enfant de `.fm-floating-dock`, qui porte
+ * l'ancrage et l'empilement. Elle garde `relative` parce que son panneau s'ancre sur elle
+ * (`.gl-notifications-panel { bottom: calc(100% + 8px) }`).
+ */
 .gl-notifications {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 205;
+  position: relative;
 }
 
 .gl-notifications-bell {
@@ -6459,4 +6476,39 @@ fieldset .media-library-menu__gallery {
 .gl-intro-overlay__skip:hover {
   color: #e6c074;
   border-color: #e6c074;
+}
+
+/* ── CIBLES TACTILES ≥ 44 px ────────────────────────────────────────────────
+ * Règle projet (CLAUDE.md) et lot 4 de `docs/AUDIT_GENERAL_2026-08.md`.
+ *
+ * La zone **cliquable** est portée à 44 px sans toucher au visuel : un pseudo-élément
+ * centré s'étend à `max(100%, 44px)`, hors flux, donc aucune mise en page ne bouge. Grossir
+ * les boutons eux-mêmes aurait cassé les barres denses.
+ *
+ * Portée volontairement limitée aux commandes **en icône seule**, où la cible est petite
+ * parce que le pictogramme l'est : ce sont celles qu'on rate. Les boutons génériques
+ * (`.btn-sm`) portent un libellé, donc une largeur ; les élargir en hauteur seule ne
+ * réglerait rien et risquerait de voler le clic du voisin dans une rangée serrée.
+ *
+ * L'expansion reste inférieure à la gouttière des conteneurs visés, de sorte que deux
+ * cibles voisines ne se recouvrent pas.
+ */
+.gl-subtabs button,
+.gl-glossary-popover__close,
+.gl-help-panel > header button,
+.gl-forum-thread > header > button {
+  position: relative;
+}
+
+.gl-subtabs button::after,
+.gl-glossary-popover__close::after,
+.gl-help-panel > header button::after,
+.gl-forum-thread > header > button::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
 }

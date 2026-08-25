@@ -6,7 +6,28 @@ import React from 'react';
  * Composant feuille purement piloté par props : l'onglet actif, les drapeaux
  * de modules et le compteur de tâches assignées restent calculés dans `App`
  * (aucun état déplacé, `onTabChange` = setTab).
+ *
+ * Accessibilité : l'onglet actif porte `aria-current="page"` (sinon l'état actif
+ * n'était signalé que par la classe CSS) et l'emoji d'icône est `aria-hidden`
+ * (sinon les lecteurs d'écran lisent « carte du monde Carte »).
  */
+function NavButton({ id, tab, onTabChange, icon, children }) {
+  const isActive = tab === id;
+  return (
+    <button
+      className={`nav-btn ${isActive ? 'active' : ''}`}
+      type="button"
+      aria-current={isActive ? 'page' : undefined}
+      onClick={() => onTabChange(id)}
+    >
+      <span className="nav-icon" aria-hidden="true">
+        {icon}
+      </span>{' '}
+      {children}
+    </button>
+  );
+}
+
 export function StudentBottomNav({
   tab,
   onTabChange,
@@ -21,113 +42,70 @@ export function StudentBottomNav({
   canAccessForum,
 }) {
   const visitButton = visitEnabled ? (
-    <button
-      className={`nav-btn ${tab === 'visit' ? 'active' : ''}`}
-      onClick={() => onTabChange('visit')}
-    >
-      <span className="nav-icon">🧭</span> Visite
-    </button>
+    <NavButton id="visit" tab={tab} onTabChange={onTabChange} icon="🧭">
+      Visite
+    </NavButton>
   ) : null;
+
+  const assignedSuffix =
+    studentActiveAssignedTasksCount > 0 ? ` (${studentActiveAssignedTasksCount})` : '';
 
   return (
     <nav className="bottom-nav">
       {isVisitor && visitButton}
       {canAccessStudentMapTasks && shouldUseDesktopSplit && (
-        <button
-          className={`nav-btn ${tab === 'maptasks' ? 'active' : ''}`}
-          onClick={() => onTabChange('maptasks')}
-        >
-          <span className="nav-icon">🗺️</span>
+        <NavButton id="maptasks" tab={tab} onTabChange={onTabChange} icon="🗺️">
           {tutorialsModuleEnabled ? 'Cartes & tâches · tuto' : 'Cartes & tâches'}
-          {studentActiveAssignedTasksCount > 0 && ` (${studentActiveAssignedTasksCount})`}
-        </button>
+          {assignedSuffix}
+        </NavButton>
       )}
       {canAccessStudentMapTasks && (
-        <button
-          className={`nav-btn ${tab === 'map' ? 'active' : ''}`}
-          onClick={() => onTabChange('map')}
-        >
-          <span className="nav-icon">🗺️</span> Carte
-        </button>
+        <NavButton id="map" tab={tab} onTabChange={onTabChange} icon="🗺️">
+          Carte
+        </NavButton>
       )}
       {canAccessStudentMapTasks && (
-        <button
-          className={`nav-btn ${tab === 'tasks' ? 'active' : ''}`}
-          type="button"
-          onClick={() => onTabChange('tasks')}
-        >
-          <span className="nav-icon">✅</span>
+        <NavButton id="tasks" tab={tab} onTabChange={onTabChange} icon="✅">
           {tutorialsModuleEnabled ? 'Tâches · tuto' : 'Tâches'}
-          {studentActiveAssignedTasksCount > 0 && ` (${studentActiveAssignedTasksCount})`}
-        </button>
+          {assignedSuffix}
+        </NavButton>
       )}
-      <button
-        className={`nav-btn ${tab === 'plants' ? 'active' : ''}`}
-        onClick={() => onTabChange('plants')}
-      >
-        <span className="nav-icon">🌱</span> Biodiversité
-      </button>
-      <button
-        className={`nav-btn ${tab === 'quiz' ? 'active' : ''}`}
-        type="button"
-        onClick={() => onTabChange('quiz')}
-      >
-        <span className="nav-icon">❓</span> Quiz
-      </button>
-      <button
-        className={`nav-btn ${tab === 'glossary' ? 'active' : ''}`}
-        type="button"
-        onClick={() => onTabChange('glossary')}
-      >
-        <span className="nav-icon">📖</span> Glossaire
-      </button>
-      <button
-        className={`nav-btn ${tab === 'foodweb' ? 'active' : ''}`}
-        type="button"
-        onClick={() => onTabChange('foodweb')}
-      >
-        <span className="nav-icon">🕸️</span> Réseau
-      </button>
+      <NavButton id="plants" tab={tab} onTabChange={onTabChange} icon="🌱">
+        Biodiversité
+      </NavButton>
+      <NavButton id="quiz" tab={tab} onTabChange={onTabChange} icon="❓">
+        Quiz
+      </NavButton>
+      <NavButton id="glossary" tab={tab} onTabChange={onTabChange} icon="📖">
+        Glossaire
+      </NavButton>
+      <NavButton id="foodweb" tab={tab} onTabChange={onTabChange} icon="🕸️">
+        Réseau
+      </NavButton>
       {tutorialsModuleEnabled && canAccessStudentMapTasks && (
-        <button
-          className={`nav-btn ${tab === 'tuto' ? 'active' : ''}`}
-          type="button"
-          onClick={() => onTabChange('tuto')}
-        >
-          <span className="nav-icon">📘</span> Tuto
-        </button>
+        <NavButton id="tuto" tab={tab} onTabChange={onTabChange} icon="📘">
+          Tuto
+        </NavButton>
       )}
       {canViewGeneralStats && (
-        <button
-          className={`nav-btn ${tab === 'stats' ? 'active' : ''}`}
-          onClick={() => onTabChange('stats')}
-        >
-          <span className="nav-icon">📊</span> Stats
-        </button>
+        <NavButton id="stats" tab={tab} onTabChange={onTabChange} icon="📊">
+          Stats
+        </NavButton>
       )}
       {observationsEnabled && (
-        <button
-          className={`nav-btn ${tab === 'notebook' ? 'active' : ''}`}
-          onClick={() => onTabChange('notebook')}
-        >
-          <span className="nav-icon">📓</span> Carnet
-        </button>
+        <NavButton id="notebook" tab={tab} onTabChange={onTabChange} icon="📓">
+          Carnet
+        </NavButton>
       )}
       {!isVisitor && visitButton}
       {canAccessForum && (
-        <button
-          className={`nav-btn ${tab === 'forum' ? 'active' : ''}`}
-          onClick={() => onTabChange('forum')}
-        >
-          <span className="nav-icon">💬</span> Forum
-        </button>
+        <NavButton id="forum" tab={tab} onTabChange={onTabChange} icon="💬">
+          Forum
+        </NavButton>
       )}
-      <button
-        className={`nav-btn ${tab === 'about' ? 'active' : ''}`}
-        onClick={() => onTabChange('about')}
-      >
-        <span className="nav-icon">ℹ️</span> À propos
-      </button>
+      <NavButton id="about" tab={tab} onTabChange={onTabChange} icon="ℹ️">
+        À propos
+      </NavButton>
     </nav>
   );
 }

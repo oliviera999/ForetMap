@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { DialogShell } from '../DialogShell';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
-import { Tooltip } from '../Tooltip';
+import { Tooltip } from '../../shared/components/Tooltip.jsx';
 import { resolveTooltipKey } from '../../utils/helpResolve';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { buildUserEditInitialFields } from '../../utils/profilesUserFields.js';

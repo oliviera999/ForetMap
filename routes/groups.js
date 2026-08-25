@@ -450,8 +450,20 @@ router.delete(
         WHERE gm.group_id = ? AND u.user_type = 'student' AND u.is_active = 1`,
       [id],
     );
-    await execute('UPDATE `groups` SET parent_group_id = NULL WHERE parent_group_id = ?', [id]);
-    await execute('DELETE FROM `groups` WHERE id = ?', [id]);
+    // Suppression atomique + détachement des références sans FK. `tasks.group_id`,
+    // `forum_threads.group_id` et `observation_logs.group_id` ne portent aucune contrainte
+    // vers `groups` : sans ce NULLage, ils restaient rattachés à un groupe fantôme après la
+    // suppression (effets de filtrage/visibilité). Le tout dans une transaction : le
+    // détachement des sous-groupes et la suppression ne peuvent plus diverger.
+    await withTransaction(async (tx) => {
+      await tx.execute('UPDATE tasks SET group_id = NULL WHERE group_id = ?', [id]);
+      await tx.execute('UPDATE forum_threads SET group_id = NULL WHERE group_id = ?', [id]);
+      await tx.execute('UPDATE observation_logs SET group_id = NULL WHERE group_id = ?', [id]);
+      await tx.execute('UPDATE `groups` SET parent_group_id = NULL WHERE parent_group_id = ?', [
+        id,
+      ]);
+      await tx.execute('DELETE FROM `groups` WHERE id = ?', [id]);
+    });
     for (const row of studentMembers) {
       await syncStudentRoleFromGroups(row.user_id);
     }
