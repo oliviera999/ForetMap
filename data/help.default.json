@@ -112,7 +112,7 @@
     "drawZoneMin": "🖊️ Touche la carte (min. 3 pts)",
     "drawZoneReady": "✅ {count} pts — Terminer",
     "addMarker": "📍 Touche la carte pour placer",
-    "editPoints": "✋ Glisse un point ou l'intérieur · limites carte · Ctrl+Z annule",
+    "editPoints": "✋ Glisse un sommet ou l'intérieur · poignée pointillée = nouveau sommet · Maj+clic ou lasso = sélection · Suppr retire · Ctrl+Z annule",
     "pageScroll": "📱 1 doigt: page · 2 doigts: zoom carte",
     "gesturesActive": "✋ Gestes carte actifs"
   },

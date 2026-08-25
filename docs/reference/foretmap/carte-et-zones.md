@@ -125,8 +125,8 @@ pouvoir les faire glisser, puis reverrouille.
    ensuite nom, emoji et note.
 3. **Modifier une fiche** : ouvrir la zone ou le repère, onglet « Modifier ». On y
    change tout (nom, espèces, état, couleur, description, textes visite, emoji). Un
-   bouton dédié permet de **retoucher le contour** de la zone point par point (avec
-   annulation, y compris au clavier), puis de sauvegarder.
+   bouton dédié permet de **retoucher le contour** de la zone (voir « Retoucher le
+   contour d'une zone » plus bas), puis de sauvegarder.
 4. **Dupliquer une zone** : un bouton dans l'en-tête de la fiche crée une copie, utile
    pour des parcelles semblables.
 5. **Gérer les photos** : onglet Photos — ajout avec légende, réorganisation par
@@ -136,6 +136,46 @@ pouvoir les faire glisser, puis reverrouille.
    retrouvent ensuite au même endroit.
 7. **Supprimer** une zone ou un repère : la fiche, ses photos et son contenu de visite
    sont retirés ensemble.
+
+### Retoucher le contour d'une zone
+
+Depuis la fiche d'une zone, le bouton « Modifier le contour » ouvre un mode d'édition
+sur la carte. Le contour apparaît alors avec **une poignée par sommet** (les coins du
+tracé), et une petite **poignée pointillée au milieu de chaque côté**. Tout se fait
+directement sur le plan ; rien n'est enregistré tant qu'on n'a pas cliqué « Sauver ».
+
+- **Déplacer un sommet** : le faire glisser. **Déplacer la zone entière** : glisser
+  l'intérieur du contour.
+- **Ajouter un sommet** : tirer (ou toucher) une **poignée pointillée** au milieu d'un
+  côté — le nouveau sommet naît là et suit le doigt dans le même geste. Pour viser un
+  endroit précis d'un côté, activer « ＋ Sommet » puis cliquer sur le contour : le
+  sommet se pose exactement sur le trait.
+- **Supprimer des sommets** : sélectionner puis appuyer sur la touche Suppr, ou
+  utiliser le bouton « 🗑 ». Un contour garde toujours **au moins trois sommets** : en
+  dessous, la suppression est refusée.
+- **Sélectionner plusieurs sommets** : Maj+clic pour en ajouter un à un, ou **tracer un
+  rectangle** en glissant sur le fond de carte pour attraper tous les sommets qu'il
+  contient. Sur tablette, la bascule « Multi » remplace Maj : chaque appui ajoute ou
+  retire un sommet. Les sommets sélectionnés sont entourés d'un cercle orange, et
+  **glisser l'un d'eux déplace tout le groupe** d'un bloc. Un clic sur le fond
+  désélectionne ; Échap aussi.
+- **Aimanter le contour sur l'image** : la bascule « 🧲 Aimant » analyse l'image de
+  fond du plan (l'analyse prend un instant la première fois) et **colle le sommet
+  déplacé sur la limite visible la plus proche** — un bord de parcelle, un chemin, une
+  haie — comme l'aimantation d'un logiciel de retouche photo. Un curseur règle la
+  distance d'accroche. Le bouton « 🧲 Coller » applique l'aimantation d'un coup aux
+  sommets sélectionnés (ou à tout le contour si rien n'est sélectionné). Maintenir la
+  touche Alt suspend l'aimant le temps d'un geste, pour placer un sommet à la main.
+- **Se tromper n'est pas grave** : « ↩ Annuler » (ou Ctrl+Z / Cmd+Z) revient en arrière
+  pas à pas, et fermer par « ✕ » abandonne toutes les retouches sans rien enregistrer.
+
+> ⚠️ **Point d'attention** — L'aimant s'appuie sur les **contrastes de l'image de
+> fond**. Sur un plan dessiné (traits nets, aplats de couleur), il tombe juste ; sur
+> une photo aérienne où deux parcelles voisines se ressemblent, il peut accrocher une
+> ombre ou un feuillage plutôt que la limite réelle. Il reste une aide : le tracé final
+> est celui qu'on valide à l'œil. Par ailleurs, si l'image de fond du plan est
+> hébergée sur un autre site, le navigateur interdit d'en lire les couleurs : le bouton
+> affiche alors « Indispo. » et l'édition continue normalement sans aimant.
 
 Toute modification est visible **en temps réel** chez les autres utilisateurs
 connectés, sans recharger la page.
