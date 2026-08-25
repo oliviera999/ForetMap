@@ -18,6 +18,51 @@ L'échange est désormais **refusé** (comme un solde insuffisant) : personne ne
 perd rien, personne n'en gagne. Les récompenses de cases et de feuillets
 continuent d'ignorer un gain au-delà du plafond — là, rien n'est pris à
 personne.
+### Les boutons flottants ne se marchent plus dessus (lot 12)
+
+**Deux d'entre eux tombaient dans la barre de navigation du bas.** Côté Gnomes & Licornes,
+la cloche de notifications se posait par-dessus et masquait un onglet. Côté ForetMap, le
+bandeau de message se posait par-dessous : il ne s'affichait **jamais** pour un élève.
+
+**Et le « ? » d'aide changeait de place selon l'onglet** : il vivait en fin de contenu, donc
+sa position dépendait de la longueur de la page. Sur un onglet court il restait haut, sur un
+onglet long il venait buter contre la cloche.
+
+Les commandes du coin bas-droit tiennent désormais dans **un seul empilement** : elles ne
+choisissent plus leur place, l'ordre et l'espacement leur sont donnés, et la hauteur à
+dégager au-dessus de la barre est calculée au lieu d'être recopiée à la main. Le « ? » y
+gagne une place fixe, la même d'un onglet à l'autre.
+
+**Sept commandes en pictogramme étaient trop petites pour le doigt** (36 à 40 px au lieu des
+44 px que le projet s'impose), dont la barre de sous-onglets de G&L. Leur zone cliquable est
+portée à 44 px sans que rien ne grossisse à l'écran.
+
+Audit complet : `docs/AUDIT_ICONES_FLOTTANTES_2026-08.md`.
+
+### Les filtres de tâches libèrent le haut de l'écran sur téléphone (lot 12)
+
+**Sur smartphone, l'écran Tâches n'affichait pas de tâche.** Les sept contrôles de la
+barre de filtres — mode d'affichage, carte, recherche, lieu, projet, catégorie, statut,
+plus le groupe côté professeur — passaient chacun en pleine largeur : **331 px** mesurés
+sur un écran de 390 px de large, soit deux tiers de la hauteur utile. Avec le titre, le
+sous-titre et le bandeau de missions actives, la première tâche commençait sous la ligne
+de flottaison.
+
+La barre tient désormais sur **une seule ligne** : recherche, bouton « ⚙️ Filtres » et
+choix d'affichage en pictogrammes. Les filtres eux-mêmes s'ouvrent dans un panneau — sous
+la barre sur ordinateur, en feuille refermable sur « Voir les N tâches » sur téléphone.
+**Aucun filtre n'a été retiré** ; ils sont rangés, et le bouton porte le compte de ceux
+qui sont posés.
+
+Ce compte se lit aussi sous la barre, en étiquettes : « Lieu : 🐝 Ruche », « Statut :
+Terminée ». Un appui les retire une à une, « Tout effacer » d'un coup — de quoi
+comprendre enfin pourquoi une liste paraît vide.
+
+Le haut de page a maigri en conséquence : sur écran étroit, le sous-titre et le bandeau
+de missions actives passent en version courte (le texte complet reste sur grand écran).
+Et sans préférence enregistrée, un téléphone démarre en affichage **condensé**, une ligne
+par tâche. Bilan sur un écran de 390 × 844 : **58 px de filtres au lieu de 331**, et
+quatre tâches lisibles sans faire défiler la page, contre une seule auparavant.
 
 ### Les commandes GL en icône seule s'expliquent enfin (lot 11)
 
