@@ -18,6 +18,20 @@ d'observation** pour l'écriture naturaliste libre.
 - **Le professeur** administre le catalogue de questions : création, édition,
   activation. Les questions peuvent être reliées aux termes du glossaire, ce qui aide
   l'élève à réviser le vocabulaire au passage.
+- **La fiche question** se remplit champ par champ, chacun nommé en clair : énoncé,
+  choix A à E, bonne réponse, et une explication propre à **chaque** choix possible
+  (« Explication si l'élève choisit B »), plus l'explication affichée après une bonne
+  réponse.
+- **L'aperçu « Présenter »** montre la question telle que l'élève la verra —
+  **illustration comprise**, avec sa légende et son crédit — et permet de répondre pour
+  vérifier le retour pédagogique.
+- **Légende de la photo** : elle est visible **du professeur seulement** (fiche et
+  aperçu). Dans le catalogue livré, cette légende nomme le plus souvent le sujet
+  photographié : l'afficher à l'élève donnerait la réponse. Ce qui accompagne l'image
+  côté élève, c'est le **crédit et la licence**, affichés partout où la photo apparaît.
+- Les questions du Quiz servent aussi de **contrôle de compréhension** avant de valider
+  un tutoriel ou une fiche espèce, si le dispositif est activé : voir
+  [Tâches, tutoriels et validation](taches-tutoriels-et-validation.md).
 
 ## Le Glossaire
 
