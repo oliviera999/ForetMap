@@ -101,3 +101,30 @@ describe('filterSettingSections + countSectionRows', () => {
     expect(countSectionRows([])).toBe(0);
   });
 });
+
+describe('réglages du verrou pédagogique (learning.gating.*)', () => {
+  const KEYS = [
+    'learning.gating.enabled',
+    'learning.gating.default_mode',
+    'learning.gating.default_required_correct',
+    'learning.gating.retry_cooldown_days',
+    'learning.gating.auto_mark_on_correct',
+  ];
+
+  test('chaque clé a un libellé explicite (et non le dernier segment humanisé)', () => {
+    for (const key of KEYS) {
+      const label = resolveSettingLabel(key, ROLE_TERMS);
+      expect(label).not.toBe('Enabled');
+      expect(label.length).toBeGreaterThan(10);
+    }
+    expect(resolveSettingLabel('learning.gating.enabled', ROLE_TERMS)).toMatch(/questions/i);
+  });
+
+  test('elles sont regroupées dans leur propre section, hors « Autres paramètres »', () => {
+    const sections = buildSettingSections(KEYS.map((key) => ({ key, scope: 'teacher' })));
+    expect(sections).toHaveLength(1);
+    expect(sections[0].id).toBe('learning');
+    expect(sections[0].rows).toHaveLength(KEYS.length);
+    expect(sections[0].rows[0].key).toBe('learning.gating.enabled');
+  });
+});

@@ -4,6 +4,7 @@ import { GLGlossaryInlineText } from '../../gl/components/GLGlossaryMarkdown.jsx
 import { GLLoreGlossaryInlineText } from '../../gl/components/GLLoreGlossaryMarkdown.jsx';
 import { mergeGlossaryLinkItems } from '../../utils/glGlossaryAutolink.js';
 import { mergeLoreGlossaryLinkItems } from '../../utils/glLoreGlossaryAutolink.js';
+import { QcmQuestionPhoto } from './QcmQuestionPhoto.jsx';
 
 function isLoreQcmCode(code) {
   return /^LQCM\d+$/i.test(String(code || '').trim());
@@ -43,6 +44,9 @@ export function QcmPreviewModal({
     hint = 'gl-hint',
     error = 'gl-error',
     glossary = 'gl-qcm-modal__glossary',
+    photoFigure = 'qcm-preview__photo',
+    photoImg = 'qcm-preview__photo-img',
+    photoCaption = 'qcm-preview__photo-caption',
   } = classNames;
 
   const resolvedQcmSet = qcmSet || (isLoreQcmCode(previewCode) ? 'lore' : 'biome');
@@ -132,6 +136,13 @@ export function QcmPreviewModal({
                 <p className={question}>{presentation.question}</p>
               )
             ) : null}
+            <QcmQuestionPhoto
+              presentation={presentation}
+              showLegende
+              figureClassName={photoFigure}
+              imgClassName={photoImg}
+              captionClassName={photoCaption}
+            />
             {presentation?.choices?.length ? (
               <div className={choices}>
                 {presentation.choices.map((c) => (
