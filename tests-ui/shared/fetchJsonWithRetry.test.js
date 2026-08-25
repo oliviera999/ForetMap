@@ -3,6 +3,7 @@ import {
   fetchJsonWithRetry,
   REQUEST_TIMEOUT_USER_MESSAGE,
 } from '../../src/shared/fetchJsonWithRetry.js';
+import { subscribeAppStatus } from '../../src/shared/appStatusEvents.js';
 
 function jsonRes(status, body, { ok = status < 400 } = {}) {
   return {
@@ -73,6 +74,37 @@ describe('fetchJsonWithRetry (boucle partagée)', () => {
     const data = await fetchJsonWithRetry('/api/test', { method: 'POST' }, { buildHttpError });
     expect(data).toEqual({ done: true });
     expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  test('publie retrying puis recovered sur le bus de statut pendant un réessai passerelle', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(html503())
+      .mockResolvedValueOnce(jsonRes(200, { done: true }));
+    const events = [];
+    const unsubscribe = subscribeAppStatus((detail) => events.push(detail));
+    try {
+      await fetchJsonWithRetry('/api/test', { method: 'POST' }, { buildHttpError });
+    } finally {
+      unsubscribe();
+    }
+    const kinds = events.map((e) => e.kind);
+    expect(kinds).toContain('retrying');
+    expect(kinds).toContain('recovered');
+    const retrying = events.find((e) => e.kind === 'retrying');
+    expect(retrying.id).toBeTruthy();
+    expect(retrying.maxAttempts).toBe(8);
+  });
+
+  test('ne publie aucun événement de statut pour une requête sans réessai', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonRes(200, { ok: true }));
+    const events = [];
+    const unsubscribe = subscribeAppStatus((detail) => events.push(detail));
+    try {
+      await fetchJsonWithRetry('/api/test', { method: 'GET' }, { buildHttpError });
+    } finally {
+      unsubscribe();
+    }
+    expect(events).toEqual([]);
   });
 
   test('ne réessaie pas un 4xx et lève l’erreur produite par buildHttpError', async () => {

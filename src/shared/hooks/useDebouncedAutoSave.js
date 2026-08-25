@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { emitAppStatus } from '../appStatusEvents.js';
 
 export const DEFAULT_AUTO_SAVE_DEBOUNCE_MS = 800;
 const SAVED_CLEAR_MS = 2000;
+
+let autoSaveStatusSeq = 0;
 
 /** Sérialise une valeur pour comparaison de snapshot (JSON stable). */
 export function serializeAutoSaveValue(value) {
@@ -32,6 +35,8 @@ export function useDebouncedAutoSave({
   const useJson = !isEqual;
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
+  const statusIdRef = useRef('');
+  if (!statusIdRef.current) statusIdRef.current = `autosave-${++autoSaveStatusSeq}`;
   const baselineRef = useRef(null);
   const resetKeyRef = useRef(resetKey);
   const valueRef = useRef(value);
@@ -95,6 +100,26 @@ export function useDebouncedAutoSave({
       resetBaseline(value);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Relaie l'état vers la pastille sticky globale (AppStatusSticky) : l'indicateur
+  // inline peut sortir de l'écran au scroll, la pastille reste toujours visible.
+  useEffect(() => {
+    const id = statusIdRef.current;
+    if (status === 'saving' || status === 'pending') {
+      emitAppStatus({ id, kind: 'saving', message: 'Enregistrement…' });
+    } else if (status === 'saved') {
+      emitAppStatus({ id, kind: 'saved', message: 'Enregistré ✓' });
+    } else if (status === 'error') {
+      emitAppStatus({ id, kind: 'error', message: error || 'Enregistrement impossible' });
+    } else {
+      emitAppStatus({ id, kind: 'clear' });
+    }
+  }, [status, error]);
+
+  useEffect(() => {
+    const id = statusIdRef.current;
+    return () => emitAppStatus({ id, kind: 'clear' });
   }, []);
 
   const executeSave = useCallback(async () => {
@@ -167,7 +192,11 @@ export function useDebouncedAutoSave({
         clearTimeout(timerRef.current);
         timerRef.current = null;
       }
-      void onSaveRef.current();
+      // Best-effort après démontage : plus aucun état à mettre à jour, un échec
+      // ne doit pas remonter en rejet non géré.
+      Promise.resolve()
+        .then(() => onSaveRef.current())
+        .catch(() => {});
     };
   }, [enabled, equalsBaseline]);
 

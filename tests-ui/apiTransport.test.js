@@ -5,15 +5,23 @@ import {
   isGatewayStyleResponse,
   isParsedApiJsonObject,
   parseApiBody,
+  resolveMaxAttempts,
+  resolveTransientRetryDelayMs,
+  retryAfterDelayMs,
   shouldRetryAfterHttpError,
+  transientRetryDelayMs,
   tryParseJsonText,
 } from '../src/services/apiTransport.js';
 
-function mockRes(status, contentType) {
+function mockRes(status, contentType, extraHeaders = {}) {
   return {
     status,
     headers: {
-      get: (name) => (String(name).toLowerCase() === 'content-type' ? contentType : null),
+      get: (name) => {
+        const key = String(name).toLowerCase();
+        if (key === 'content-type') return contentType;
+        return extraHeaders[key] ?? null;
+      },
     },
   };
 }
@@ -39,11 +47,55 @@ describe('apiTransport', () => {
     ).toBe(true);
   });
 
+  test('isGatewayStyleResponse accepte SERVICE_UNAVAILABLE en JSON (503 hydratation auth)', () => {
+    const res = mockRes(503, 'application/json');
+    expect(
+      isGatewayStyleResponse(res, {
+        error: 'Service momentanément indisponible',
+        code: 'SERVICE_UNAVAILABLE',
+      }),
+    ).toBe(true);
+  });
+
   test('shouldRetryAfterHttpError pour POST sur passerelle HTML', () => {
     const res = mockRes(503, 'text/html');
     const body = { raw: '<html></html>' };
     expect(shouldRetryAfterHttpError('POST', null, res, body, 0, 4)).toBe(true);
     expect(shouldRetryAfterHttpError('POST', null, res, body, 3, 4)).toBe(false);
+  });
+
+  test('fenêtre longue (8 tentatives) réservée aux réponses passerelle', () => {
+    expect(resolveMaxAttempts('GET', undefined)).toBe(8);
+    expect(resolveMaxAttempts('POST', {})).toBe(8);
+    const gateway = mockRes(503, 'text/html');
+    const gatewayBody = { raw: '<html></html>' };
+    expect(shouldRetryAfterHttpError('POST', null, gateway, gatewayBody, 6, 8)).toBe(true);
+    expect(shouldRetryAfterHttpError('POST', null, gateway, gatewayBody, 7, 8)).toBe(false);
+    // 503 JSON métier sur GET idempotent : fenêtre courte historique (4 tentatives max).
+    const business = mockRes(503, 'application/json');
+    const businessBody = { error: 'Forum désactivé' };
+    expect(shouldRetryAfterHttpError('GET', undefined, business, businessBody, 2, 8)).toBe(true);
+    expect(shouldRetryAfterHttpError('GET', undefined, business, businessBody, 3, 8)).toBe(false);
+    // …et jamais de réessai métier pour une mutation.
+    expect(shouldRetryAfterHttpError('POST', null, business, businessBody, 0, 8)).toBe(false);
+  });
+
+  test('transientRetryDelayMs couvre un redémarrage applicatif (~25 s cumulées)', () => {
+    let total = 0;
+    for (let attempt = 0; attempt < 7; attempt += 1) total += transientRetryDelayMs(attempt);
+    expect(total).toBeGreaterThanOrEqual(23200);
+  });
+
+  test('retryAfterDelayMs lit et plafonne l’en-tête Retry-After', () => {
+    expect(retryAfterDelayMs(mockRes(503, 'text/html', { 'retry-after': '2' }))).toBe(2000);
+    expect(retryAfterDelayMs(mockRes(503, 'text/html', { 'retry-after': '9999' }))).toBe(10000);
+    expect(retryAfterDelayMs(mockRes(503, 'text/html'))).toBe(0);
+    expect(retryAfterDelayMs(mockRes(503, 'text/html', { 'retry-after': 'jeudi' }))).toBe(0);
+  });
+
+  test('resolveTransientRetryDelayMs ne descend pas sous Retry-After', () => {
+    const res = mockRes(503, 'text/html', { 'retry-after': '3' });
+    expect(resolveTransientRetryDelayMs(0, res)).toBeGreaterThanOrEqual(3000);
   });
 
   test('gatewayUnavailableUserMessage est actionnable', () => {

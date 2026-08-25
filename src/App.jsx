@@ -26,6 +26,7 @@ import {
 import { MASCOT_PACK_UNSAVED_LEAVE_MSG } from './constants/mascotPackEditor.js';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TimedToast as Toast } from './shared/components/TimedToast.jsx';
+import { AppStatusSticky } from './shared/components/AppStatusSticky.jsx';
 import { AuthScreen, PinModal } from './components/auth-views';
 const StudentStatsLazy = lazy(() =>
   import('./components/stats-views').then((m) => ({ default: m.StudentStats })),
@@ -1095,6 +1096,7 @@ function App() {
     return (
       <PublicSettingsProvider value={publicSettings}>
         <>
+          <AppStatusSticky />
           {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
           {showPublicVisit ? (
             <div id="app">
@@ -1260,6 +1262,7 @@ function App() {
                   tu peux explorer la Visite et la Biodiversité.
                 </NoticeBanner>
               )}
+              <AppStatusSticky />
               {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
               {profilePromotion &&
                 !effectiveIsTeacher &&
