@@ -121,12 +121,25 @@ export function TasksViewHeader({
           </div>
         )}
       </div>
-      <p className="section-sub">
-        {isTeacher
-          ? 'Piloter les missions, valider les retours et traiter les idées du terrain'
-          : canSelfAssignTasks
-            ? "Choisis une mission ou propose la tienne, tout le monde peut la lire. Il faut t'inscrire seulement au moment où tu commences la mission pour de vrai."
-            : 'Tu consultes la liste en lecture seule'}
+      <p className="section-sub tasks-header-sub">
+        {isTeacher ? (
+          'Piloter les missions, valider les retours et traiter les idées du terrain'
+        ) : canSelfAssignTasks ? (
+          <>
+            {/* Version courte sur écran compact : le haut de page doit laisser les tâches
+                visibles sans défiler (le texte complet reste affiché sur écran large). */}
+            <span className="tasks-header-sub__compact">
+              Choisis une mission ou propose la tienne. Inscris-toi seulement quand tu la commences
+              vraiment.
+            </span>
+            <span className="tasks-header-sub__wide">
+              Choisis une mission ou propose la tienne, tout le monde peut la lire. Il faut
+              t&apos;inscrire seulement au moment où tu commences la mission pour de vrai.
+            </span>
+          </>
+        ) : (
+          'Tu consultes la liste en lecture seule'
+        )}
       </p>
       {isHelpEnabled && showContextHints && tasksQuickTip ? (
         <p className="section-sub" style={{ marginTop: 6 }}>
@@ -146,9 +159,17 @@ export function TasksViewHeader({
             lineHeight: 1.45,
           }}
         >
-          {student.taskEnrollment?.atLimit
-            ? `Tu es déjà sur le paquet max de missions en cours (${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments}, pas encore validées) : libère une place ou attends qu’une mission soit cochée côté n3boss.`
-            : `Missions actives pour toi : ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} (en attente de validation n3boss, toutes cartes).`}
+          {/* Écran compact : une ligne suffit — le détail reste affiché sur écran large. */}
+          <span className="tasks-quota__compact">
+            {student.taskEnrollment?.atLimit
+              ? `⚠️ ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} missions en cours : libère une place.`
+              : `🎒 Missions actives : ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments}`}
+          </span>
+          <span className="tasks-quota__wide">
+            {student.taskEnrollment?.atLimit
+              ? `Tu es déjà sur le paquet max de missions en cours (${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments}, pas encore validées) : libère une place ou attends qu’une mission soit cochée côté n3boss.`
+              : `Missions actives pour toi : ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} (en attente de validation n3boss, toutes cartes).`}
+          </span>
         </p>
       )}
     </>

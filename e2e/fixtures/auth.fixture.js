@@ -626,7 +626,20 @@ async function openFirstZoneModalFromMap(page) {
 
 /** Réinitialise les filtres liste tâches (évite les listes vides e2e après vue élève + filtres carte/statut). */
 async function resetTaskFiltersInTasksView(page) {
+  let openedFiltersSheet = false;
   try {
+    // Écran compact : les champs vivent dans la feuille de filtres, à ouvrir d'abord.
+    const filtersToggle = page.locator('.task-filters-toggle');
+    if (
+      (await page.locator('.task-filters select').count()) === 0 &&
+      (await filtersToggle.isVisible({ timeout: 400 }).catch(() => false))
+    ) {
+      await filtersToggle.click().catch(() => {});
+      openedFiltersSheet = await page
+        .locator('.task-filters-sheet')
+        .isVisible({ timeout: 1000 })
+        .catch(() => false);
+    }
     const filters = page.locator('.task-filters select');
     const n = await filters.count();
     if (n === 0) return;
@@ -636,6 +649,14 @@ async function resetTaskFiltersInTasksView(page) {
     if (n > 3) await filters.nth(3).selectOption('');
   } catch (_) {
     /* pas de barre de filtres */
+  } finally {
+    if (openedFiltersSheet) {
+      await page
+        .locator('.task-filters-sheet')
+        .getByRole('button', { name: /Voir/ })
+        .click({ timeout: 2000 })
+        .catch(() => {});
+    }
   }
   const search = page.getByPlaceholder('🔍 Rechercher une tâche...');
   if (await search.isVisible({ timeout: 2500 }).catch(() => false)) {
