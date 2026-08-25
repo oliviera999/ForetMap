@@ -221,11 +221,46 @@ un **document PDF joint**, affiché tel quel.
 - Un tutoriel se **relie** aux tâches et aux zones/repères concernés : l'élève le trouve
   directement depuis la tâche ou le lieu.
 - **Accusé de lecture** : l'élève confirme « j'ai lu et compris » ; l'application retient
-  ses lectures. En option, un **verrou pédagogique** peut exiger la réussite de questions
-  de quiz avant de pouvoir confirmer la lecture (désactivé par défaut).
+  ses lectures.
 - Le professeur crée, modifie, réordonne et retire les fiches (un retrait les masque sans
   rien détruire). Le module Tutoriels entier peut être désactivé dans les réglages —
   l'onglet disparaît alors.
+
+### Le contrôle de compréhension (questions avant validation)
+
+**Par défaut, non : un tutoriel se valide d'une simple case à cocher.** L'élève clique
+« Marquer comme lu », coche « je confirme avoir lu et compris », et c'est terminé —
+aucune question ne lui est posée.
+
+Un **contrôle de compréhension** existe cependant, et peut être allumé. Une fois activé,
+l'élève qui veut valider un tutoriel doit d'abord répondre juste à une ou plusieurs
+questions du Quiz **avant** de pouvoir cocher la case de confirmation. Le même mécanisme
+s'applique aux fiches espèces (« Espèce découverte »).
+
+Ce qu'il faut réunir pour qu'un tutoriel soit réellement soumis à questions :
+
+1. **L'interrupteur du site** est allumé — Réglages → « Validation des lectures
+   (contrôle de compréhension) » → _Exiger des questions avant de valider une lecture_.
+   Éteint (valeur par défaut), rien ne change nulle part : c'est l'interrupteur maître,
+   aucun réglage plus fin ne peut le contourner.
+2. **Des questions du Quiz sont rattachées au tutoriel** et marquées comme bloquantes.
+   Sans question rattachée, le tutoriel se valide comme avant, même interrupteur allumé.
+
+Les réglages qui accompagnent l'interrupteur :
+
+| Réglage                                         | Effet                                                                                                                                                                      |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Exigence par défaut                             | **une** question réussie suffit (défaut), **toutes** les questions rattachées, ou un **seuil** de N réussites.                                                             |
+| Nombre de bonnes réponses attendues             | Le N du mode « seuil ».                                                                                                                                                    |
+| Délai avant nouvelle tentative après une erreur | **3 jours par défaut.** Une seule mauvaise réponse verrouille la validation de ce tutoriel pour la durée indiquée. `0` supprime le verrou et autorise le réessai immédiat. |
+
+Ce que l'élève voit, dans l'ordre : un écran d'annonce (« une question sera posée… », qui
+prévient du délai en cas d'erreur), puis la question — énoncé, illustration éventuelle
+avec son crédit, choix mélangés —, puis le résultat. Bonne réponse : il passe à la
+confirmation de lecture. Mauvaise réponse : le message de verrou, avec le nombre de jours
+avant de pouvoir réessayer. **Abandonner ne coûte rien** tant qu'aucune réponse n'a été
+envoyée. Les bonnes réponses déjà données ailleurs (dans l'onglet Quiz, par exemple)
+comptent : une question déjà réussie n'est pas reposée.
 
 ## ⚠️ Points d'attention sur l'existant
 
@@ -254,6 +289,17 @@ un **document PDF joint**, affiché tel quel.
 > ⚠️ **Point d'attention** — Pour les tutoriels, le professeur voit **combien** de
 > fiches chaque élève a lues (statistiques), mais pas **lesquelles** : pas de liste
 > nominative « qui a lu tel tutoriel ».
+
+> ⚠️ **Point d'attention** — Le **contrôle de compréhension n'a pas encore d'écran de
+> rattachement** côté ForetMap : allumer l'interrupteur ne suffit pas, il faut relier des
+> questions aux tutoriels, et cette liaison ne se fait aujourd'hui que hors interface. En
+> pratique, le dispositif reste donc sans effet visible tant que ce rattachement n'existe
+> pas — l'élève valide ses lectures d'une simple case à cocher. (Le jeu Gnomes & Licornes,
+> lui, dispose de cet écran.)
+
+> ⚠️ **Point d'attention** — Le réglage _marquage automatique sur bonne réponse_ est un
+> **reliquat sans effet** : répondre juste à une question ne marque aucune ressource comme
+> lue. Seul le bouton « Marquer comme lu » valide une lecture.
 
 > ⚠️ **Point d'attention** — La progression des paliers reconnaît aussi les élèves par
 > **prénom + nom** (héritage des anciennes inscriptions sans compte) : deux homonymes

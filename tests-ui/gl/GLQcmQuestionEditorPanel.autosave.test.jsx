@@ -113,7 +113,7 @@ describe('éditeurs QCM GL — autosave de création', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Nouvelle question' }));
     await screen.findByDisplayValue('QF999');
 
-    fireEvent.change(screen.getByLabelText(/^question$/i), {
+    fireEvent.change(screen.getByLabelText('Énoncé de la question'), {
       target: { value: 'Question initiale' },
     });
 
@@ -125,7 +125,7 @@ describe('éditeurs QCM GL — autosave de création', () => {
       );
     });
 
-    fireEvent.change(screen.getByLabelText(/^question$/i), {
+    fireEvent.change(screen.getByLabelText('Énoncé de la question'), {
       target: { value: 'Question initiale complétée' },
     });
 
@@ -169,7 +169,7 @@ describe('éditeurs QCM GL — autosave de création', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Nouvelle question' }));
     await screen.findByDisplayValue('QL999');
 
-    fireEvent.change(screen.getByLabelText(/^question$/i), {
+    fireEvent.change(screen.getByLabelText('Énoncé de la question'), {
       target: { value: 'Question lore initiale' },
     });
 
@@ -181,7 +181,7 @@ describe('éditeurs QCM GL — autosave de création', () => {
       );
     });
 
-    fireEvent.change(screen.getByLabelText(/^question$/i), {
+    fireEvent.change(screen.getByLabelText('Énoncé de la question'), {
       target: { value: 'Question lore initiale complétée' },
     });
 
