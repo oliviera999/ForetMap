@@ -12,6 +12,22 @@ import {
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { MAP_VIEW_SCALE_MIN, MAP_VIEW_SCALE_MAX } from '../../hooks/useMapGestures.js';
 
+/** Style « pilule » des bascules d'édition de contour (aligné sur le verrou repères). */
+function editTogglePillStyle(on) {
+  return {
+    background: on ? '#ecfdf3' : 'transparent',
+    border: '1.5px solid var(--mint)',
+    color: on ? '#166534' : 'var(--forest)',
+    borderRadius: 8,
+    padding: '6px 10px',
+    cursor: 'pointer',
+    fontSize: '.78rem',
+    fontWeight: 700,
+    minHeight: 36,
+    whiteSpace: 'nowrap',
+  };
+}
+
 /**
  * Barre d'outils de `MapView` + astuce contextuelle : sélecteur de carte, modes
  * (navigation / tracé de zone / repère), contrôles du tracé et de l'édition de
@@ -35,6 +51,20 @@ export function MapViewToolbar({
   onUndoEditPoints,
   onSaveEditPoints,
   onExitEditPoints,
+  editPointsCount = 0,
+  selectedPointsCount = 0,
+  insertVertexMode = false,
+  onToggleInsertVertexMode,
+  canRemoveSelection = false,
+  onRemoveSelectedPoints,
+  multiSelectMode = false,
+  onToggleMultiSelectMode,
+  snapEnabled = false,
+  snapStatus = 'idle',
+  onToggleSnap,
+  snapRadiusPx = 18,
+  onSnapRadiusChange,
+  onSnapSelectedPoints,
   canManageMarkerPositions,
   markerPositionUnlocked,
   onToggleMarkerPositionLock,
@@ -191,7 +221,12 @@ export function MapViewToolbar({
           </div>
         )}
         {mode === 'edit-points' && (
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <div
+            className="map-edit-points-toolbar"
+            role="toolbar"
+            aria-label="Édition du contour"
+            style={{ display: 'flex', gap: 6, alignItems: 'center' }}
+          >
             <span
               style={{
                 fontSize: '.8rem',
@@ -201,10 +236,78 @@ export function MapViewToolbar({
                 padding: '5px 10px',
                 borderRadius: 8,
                 border: '1px solid var(--mint)',
+                whiteSpace: 'nowrap',
               }}
             >
               ✏️ {editZoneName}
+              {editPointsCount ? ` · ${editPointsCount} pts` : ''}
+              {selectedPointsCount ? ` (${selectedPointsCount} sél.)` : ''}
             </span>
+            <button
+              type="button"
+              style={editTogglePillStyle(insertVertexMode)}
+              aria-pressed={insertVertexMode}
+              onClick={onToggleInsertVertexMode}
+              title="Ajouter un sommet : cliquez ensuite sur un bord du contour. Sans ce mode, tirez une poignée pointillée au milieu d’une arête."
+            >
+              {insertVertexMode ? '✕ Ajout' : '＋ Sommet'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={!canRemoveSelection}
+              onClick={onRemoveSelectedPoints}
+              title="Retirer les sommets sélectionnés (touche Suppr). Un contour garde au moins 3 sommets."
+            >
+              🗑 {selectedPointsCount > 1 ? `${selectedPointsCount} sommets` : 'Sommet'}
+            </button>
+            <button
+              type="button"
+              style={editTogglePillStyle(multiSelectMode)}
+              aria-pressed={multiSelectMode}
+              onClick={onToggleMultiSelectMode}
+              title="Sélection multiple : chaque appui ajoute ou retire un sommet (équivaut à Maj+clic, pratique au doigt)."
+            >
+              {multiSelectMode ? '☑ Multi' : '⬚ Multi'}
+            </button>
+            <button
+              type="button"
+              style={editTogglePillStyle(snapEnabled && snapStatus !== 'unavailable')}
+              aria-pressed={snapEnabled}
+              onClick={onToggleSnap}
+              title="Aimant : le sommet déplacé se colle au contour le plus contrasté de l’image de fond. Maintenir Alt le désactive le temps d’un geste."
+            >
+              🧲{' '}
+              {snapEnabled && snapStatus === 'loading'
+                ? 'Analyse…'
+                : snapEnabled && snapStatus === 'unavailable'
+                  ? 'Indispo.'
+                  : 'Aimant'}
+            </button>
+            {snapEnabled && snapStatus === 'ready' && (
+              <>
+                <label className="map-snap-radius" title="Rayon d’accroche de l’aimant">
+                  <input
+                    type="range"
+                    min={6}
+                    max={48}
+                    step={2}
+                    value={snapRadiusPx}
+                    aria-label={`Rayon d’accroche de l’aimant : ${snapRadiusPx} pixels`}
+                    onChange={(e) => onSnapRadiusChange?.(Number(e.target.value))}
+                  />
+                  <span>{snapRadiusPx}px</span>
+                </label>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={onSnapSelectedPoints}
+                  title="Coller les sommets sélectionnés — ou tout le contour si rien n’est sélectionné — sur les contours de l’image."
+                >
+                  🧲 Coller
+                </button>
+              </>
+            )}
             <button
               type="button"
               className="btn btn-ghost btn-sm"
