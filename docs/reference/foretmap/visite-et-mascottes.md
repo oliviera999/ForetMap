@@ -83,9 +83,14 @@ familles.
   de catalogue reprend celui d'une mascotte existante, c'est le pack qui est affiché : la
   liste ne montre pas deux entrées, elle montre la version animée. C'est le moyen de
   donner ses animations à une mascotte dont l'application n'a que la silhouette — **OLU**
-  est aujourd'hui dans ce cas : sa planche d'animation n'est pas livrée avec
-  l'application, il apparaît donc en silhouette dessinée tant qu'aucun pack
+  est aujourd'hui dans ce cas : il apparaît en silhouette dessinée tant qu'aucun pack
   `olu-spritesheet` n'a été publié.
+- **Une archive OLU prête à importer est fournie.** Elle couvre ses **vingt et un états**
+  (repos, marche, course, parole, désignation, joie, saut, célébration, tour sur soi,
+  examen de carte, recherche, salut, mise en garde, surprise, gravité, affection,
+  contrariété, sommeil, repas, danse). Une fois **importée puis publiée** depuis l'onglet
+  « Packs mascotte », OLU cesse d'être une silhouette et s'anime partout où il apparaît.
+  L'archive se refabrique à la demande à partir du dépôt ; demander à l'équipe technique.
 - **Suivre la fréquentation** : un tableau de bord donne sessions, lieux vus et taux de
   parcours complets, en séparant élèves connectés et visiteurs anonymes.
 
