@@ -1,8 +1,4 @@
-<<<<<<<< HEAD:dist/assets/mascotPackTool-Dnl1mkwJ.js
-import{r as e}from"./rolldown-runtime-hePW80VL.js";import"./spriteCutCatalogEntry-Dp1s0Twg.js";import{i as t,n,t as r}from"./react-vendor-D0Ec-185.js";import"./visitMascotPackExtras-CB-3V_6o.js";import{l as i,o as a}from"./mascotPackEditorModel-Dve7rHvz.js";import{a as o,t as s}from"./MascotPackWysiwygEditor-xgFtut-c.js";var c=e(n()),l=e(t()),u=r(),d=`{
-========
-import{r as e}from"./rolldown-runtime-hePW80VL.js";import"./spriteCutCatalogEntry-BTtrjCWe.js";import{i as t,n,t as r}from"./react-vendor-D0Ec-185.js";import"./visitMascotPackExtras-CbxNk8xM.js";import{l as i,o as a}from"./mascotPackEditorModel-D6Ea7wOv.js";import{a as o,t as s}from"./MascotPackWysiwygEditor-DGBGzv74.js";var c=e(n()),l=e(t()),u=r(),d=`{
->>>>>>>> origin/main:dist/assets/mascotPackTool-Dxe1TcqU.js
+import{r as e}from"./rolldown-runtime-hePW80VL.js";import"./spriteCutCatalogEntry-Dp1s0Twg.js";import{i as t,n,t as r}from"./react-vendor-D0Ec-185.js";import"./visitMascotPackExtras-CY-Q7R94.js";import{l as i,o as a}from"./mascotPackEditorModel-Dve7rHvz.js";import{a as o,t as s}from"./MascotPackWysiwygEditor-DHhkUelw.js";var c=e(n()),l=e(t()),u=r(),d=`{
   "mascotPackVersion": 1,
   "id": "exemple-pack",
   "label": "Exemple pack (documentation)",
