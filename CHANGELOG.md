@@ -7,6 +7,31 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Les filtres de tâches libèrent le haut de l'écran sur téléphone (lot 12)
+
+**Sur smartphone, l'écran Tâches n'affichait pas de tâche.** Les sept contrôles de la
+barre de filtres — mode d'affichage, carte, recherche, lieu, projet, catégorie, statut,
+plus le groupe côté professeur — passaient chacun en pleine largeur : **331 px** mesurés
+sur un écran de 390 px de large, soit deux tiers de la hauteur utile. Avec le titre, le
+sous-titre et le bandeau de missions actives, la première tâche commençait sous la ligne
+de flottaison.
+
+La barre tient désormais sur **une seule ligne** : recherche, bouton « ⚙️ Filtres » et
+choix d'affichage en pictogrammes. Les filtres eux-mêmes s'ouvrent dans un panneau — sous
+la barre sur ordinateur, en feuille refermable sur « Voir les N tâches » sur téléphone.
+**Aucun filtre n'a été retiré** ; ils sont rangés, et le bouton porte le compte de ceux
+qui sont posés.
+
+Ce compte se lit aussi sous la barre, en étiquettes : « Lieu : 🐝 Ruche », « Statut :
+Terminée ». Un appui les retire une à une, « Tout effacer » d'un coup — de quoi
+comprendre enfin pourquoi une liste paraît vide.
+
+Le haut de page a maigri en conséquence : sur écran étroit, le sous-titre et le bandeau
+de missions actives passent en version courte (le texte complet reste sur grand écran).
+Et sans préférence enregistrée, un téléphone démarre en affichage **condensé**, une ligne
+par tâche. Bilan sur un écran de 390 × 844 : **58 px de filtres au lieu de 331**, et
+quatre tâches lisibles sans faire défiler la page, contre une seule auparavant.
+
 ### Les commandes GL en icône seule s'expliquent enfin (lot 11)
 
 **GL n'avait aucune infobulle.** Ses boutons en pictogramme — les dés, la musique, le
