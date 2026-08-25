@@ -107,7 +107,8 @@ réinitialiser (voir [presentation.md](presentation.md)).
   d'abord le feuillet dédié à cette espèce, puis ceux de son pays, puis **bascule sur
   le pool du chapitre** — étudier la biodiversité rapporte donc autant dans le premier
   chapitre que dans le dernier. Une découverte peut **coûter des gemmes** et **rapporter des
-  cœurs** (réglable), et le texte peut être partiellement « mangé par le Souffle »
+  cœurs** (réglable) — une seule fois par équipe par défaut, même si deux
+  camarades tapent en même temps. Le texte peut être partiellement « mangé par le Souffle »
   (effacement progressif, réglable). L'équipe passe ensuite du feuillet « découvert »
   à « lu », voire « tenu » — cela ne restaure pas le texte déjà mangé : l'effacement
   reste celui de la découverte. Le MJ, lui, voit tous les feuillets en texte intégral.

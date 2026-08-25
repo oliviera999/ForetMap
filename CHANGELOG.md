@@ -129,6 +129,17 @@ Marché serait le contournement évident — mais laisse souverain l'ajustement 
 L'audit complet et les options de finition, pensées pour une classe de 6ème, sont dans
 [docs/reference/gl/audit-mecaniques-2026-08.md](docs/reference/gl/audit-mecaniques-2026-08.md).
 
+### Un feuillet découvert deux fois en même temps ne double plus les cœurs
+
+Deux élèves de la même équipe (ou un double clic) qui présentaient le même feuillet
+au même instant encaissaient **deux fois** les cœurs et/ou payaient **deux fois** les
+gemmes. La garde « déjà présenté » lisait le journal **avant** la transaction, et
+l'événement n'était écrit **qu'après** le commit : les deux requêtes voyaient un
+carnet encore vide.
+
+Même garde que pour une zone-feuillet : on verrouille l'équipe, on relit, et on
+journalise dans la même transaction. La seconde requête reçoit `409` et la vitalité
+n'a bougé que d'un cran.
 
 ### Les visites guidées GL atteignent enfin les écrans où l'on arrive (lot 10)
 
