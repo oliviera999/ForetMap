@@ -13,9 +13,12 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { upsertFeuilletState } = require('../lib/glLoreFeuillets');
 
-function makeDeps({ existing, executeLog, members = [{ player_id: 7 }] }) {
+function makeDeps({ existing, executeLog, members = [{ player_id: 7 }], playerExisting }) {
   return {
-    async queryOne() {
+    async queryOne(sql) {
+      if (/gl_player_feuillet_states/.test(sql)) {
+        return playerExisting !== undefined ? playerExisting : existing;
+      }
       return existing;
     },
     async queryAll() {
@@ -112,6 +115,56 @@ test('upsertFeuilletState : un pct explicite à 0 (liasse offerte) s’écrit bi
     effacementPct: 0,
   });
   assert.strictEqual(teamWritePct(executeLog), 0);
+});
+
+test('upsertFeuilletState : une copie plus effacée ne dégrade pas le carnet personnel', async () => {
+  // L'équipe courante n'a pas le feuillet (nouvelle partie) ; le joueur, lui, l'a
+  // déjà trouvé intact. Livrer une copie à 90 % doit écrire l'état d'équipe, pas
+  // opacifier la trace personnelle qui survit aux changements de partie.
+  const executeLog = [];
+  await upsertFeuilletState(
+    makeDeps({
+      existing: null,
+      playerExisting: { status: 'discovered', effacement_pct: 0, acquired_via: 'decouverte' },
+      executeLog,
+    }),
+    {
+      gameId: 1,
+      teamId: 2,
+      feuilletCode: 'ep-I-01',
+      status: 'effaced',
+      effacementPct: 90,
+      acquiredVia: 'echange',
+    },
+  );
+  assert.strictEqual(teamWritePct(executeLog), 90);
+  assert.strictEqual(playerWritePct(executeLog), 0);
+  const playerWrite = executeLog.find((c) => /INSERT INTO gl_player_feuillet_states/.test(c.sql));
+  assert.strictEqual(playerWrite.params[2], 'discovered');
+  assert.strictEqual(playerWrite.params[4], 'decouverte');
+});
+
+test('upsertFeuilletState : une copie plus lisible améliore le carnet personnel', async () => {
+  const executeLog = [];
+  await upsertFeuilletState(
+    makeDeps({
+      existing: null,
+      playerExisting: { status: 'effaced', effacement_pct: 90, acquired_via: 'echange' },
+      executeLog,
+    }),
+    {
+      gameId: 1,
+      teamId: 2,
+      feuilletCode: 'ep-I-01',
+      status: 'discovered',
+      effacementPct: 0,
+      acquiredVia: 'decouverte',
+    },
+  );
+  assert.strictEqual(playerWritePct(executeLog), 0);
+  const playerWrite = executeLog.find((c) => /INSERT INTO gl_player_feuillet_states/.test(c.sql));
+  assert.strictEqual(playerWrite.params[2], 'discovered');
+  assert.strictEqual(playerWrite.params[4], 'decouverte');
 });
 
 test('upsertFeuilletState : sans état existant, l’omission du pct pose 0 (insert)', async () => {
