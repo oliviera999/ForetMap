@@ -19,6 +19,7 @@ import { TasksTeacherSections } from './TasksTeacherSections.jsx';
 import { TasksStudentSections } from './TasksStudentSections.jsx';
 
 import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../utils/browserStorage.js';
+import { resolveInitialTaskViewMode } from '../utils/taskViewMode.js';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { TEACHER_STATUS_ACTIONS } from './tasks/taskViewHelpers.js';
 import {
@@ -149,12 +150,11 @@ function TasksViewImpl({
     filterUrgentCategory,
     setFilterUrgentCategory,
   } = useTaskFilters(activeMapId, mapLocationFocus);
-  const [viewMode, setViewMode] = useState(() => {
-    const saved = safeLocalStorageGetItem('foretmap:tasks:viewMode', 'tiles');
-    if (saved === 'list') return 'list';
-    if (saved === 'condensed') return 'condensed';
-    return 'tiles';
-  });
+  // Sans préférence mémorisée, les petits écrans démarrent en « condensé » : une tâche
+  // y tient en ~48 px, donc la liste reste visible sans défiler (O6bis).
+  const [viewMode, setViewMode] = useState(() =>
+    resolveInitialTaskViewMode(safeLocalStorageGetItem('foretmap:tasks:viewMode', '')),
+  );
   const { teacherStudents, groupOptions, referentCandidates, loadingTeacherStudents } =
     useTeacherTaskData(isTeacher, filterGroupId, setToast);
   /** Préremplit le sélecteur « Projet » à l’ouverture de « Nouvelle tâche » (y compris projet en attente). */
@@ -928,6 +928,7 @@ function TasksViewImpl({
         filterStatus={filterStatus}
         setFilterStatus={setFilterStatus}
         setHasTouchedStatusFilter={setHasTouchedStatusFilter}
+        resultCount={allFiltered.length}
       />
 
       {filterZone && tutorialsModuleEnabled && (

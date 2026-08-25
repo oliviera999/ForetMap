@@ -68,6 +68,28 @@ parce que son projet a été validé) : elle rejoint alors « ✅ Validées » c
 « Proposée » reste, elle, dans l'encart : quelque chose est encore attendu de l'équipe
 pédagogique.
 
+## Retrouver une tâche : recherche, filtres et affichage
+
+L'écran Tâches propose une **barre de recherche**, un **bouton « ⚙️ Filtres »** et un
+**choix d'affichage** (tuiles 🧩, liste 📄, condensé 📋). Ces trois éléments tiennent sur
+une seule ligne : les tâches restent visibles dès l'ouverture de l'écran, sans avoir à
+faire défiler la page.
+
+- **Les filtres** (carte, lieu, projet, groupe pour le professeur, catégorie « Urgent ! »,
+  statut) s'ouvrent d'un appui sur « ⚙️ Filtres ». Sur ordinateur ils se déplient sous la
+  barre ; sur téléphone et tablette ils s'affichent dans un panneau qui se referme sur
+  « Voir les N tâches ». Aucun filtre n'a disparu : ils sont simplement rangés.
+- **Le nombre de filtres posés** s'affiche sur le bouton, et chaque filtre actif apparaît
+  en **étiquette** sous la barre (« Lieu : 🐝 Ruche », « Statut : Terminée »…). Un appui
+  sur l'étiquette retire ce filtre ; « Tout effacer » les retire tous. C'est le garde-fou
+  contre la liste qui semble vide alors qu'un filtre oublié la restreint.
+- **L'affichage** est mémorisé d'une visite à l'autre. À la toute première visite, les
+  écrans étroits (téléphone) démarrent en **condensé** — une ligne par tâche — pour en
+  montrer davantage d'un coup ; les grands écrans démarrent en **tuiles**. Chacun peut en
+  changer à tout moment.
+- Sur ordinateur, le panneau de filtres reste **déplié par défaut** ; s'il est replié, ce
+  choix est retenu.
+
 ## Le cycle de vie d'une tâche
 
 Une tâche passe par des états visibles de tous : **Disponible** → **En cours** →

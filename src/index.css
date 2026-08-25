@@ -2637,6 +2637,166 @@
     .task-filters input:focus, .task-filters select:focus {
       border-color:var(--sage); box-shadow:0 0 0 3px rgba(82,183,136,.12);
     }
+
+    /* ── BARRE DE FILTRES COMPACTE (vue Tâches) ──
+       `.task-filters--compactable` n'est utilisée que par la vue Tâches : la vue
+       Tutoriels garde la barre `.task-filters` historique (empilement simple).
+       Objectif : une seule ligne toujours visible (recherche + Filtres + mode
+       d'affichage) pour que les tâches restent lisibles sans défiler. */
+    .task-filters--compactable {
+      flex-direction:column;
+      align-items:stretch;
+      gap:8px;
+      min-width:0;
+      max-width:100%;
+    }
+    .task-filters-bar {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:nowrap;
+      width:100%;
+      min-width:0;
+    }
+    /* `flex-basis:0` (et non `auto`) : sinon la largeur intrinsèque de l'input
+       — placeholder compris — pousse la barre au-delà de l'écran. */
+    .task-filters-search {
+      flex:1 1 0%;
+      min-width:0;
+    }
+    .task-filters-toggle {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      flex:0 0 auto;
+      white-space:nowrap;
+    }
+    .task-filters-count {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:18px;
+      height:18px;
+      padding:0 5px;
+      border-radius:9px;
+      background:var(--forest);
+      color:#fff;
+      font-size:.7rem;
+      font-weight:700;
+      line-height:1;
+    }
+    .btn-primary .task-filters-count {
+      background:rgba(255,255,255,.9);
+      color:var(--forest);
+    }
+    .task-filters-chips {
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      min-width:0;
+    }
+    .task-filters-chip {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      max-width:100%;
+      padding:5px 10px;
+      border:1px solid var(--mint);
+      border-radius:999px;
+      background:var(--parchment, #f6f7f2);
+      color:var(--forest);
+      font-family:var(--font-sans);
+      font-size:.76rem;
+      line-height:1.3;
+      cursor:pointer;
+      transition:border-color .18s, background .18s;
+    }
+    .task-filters-chip > span:first-child {
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .task-filters-chip:hover,
+    .task-filters-chip:focus-visible {
+      border-color:var(--sage);
+      background:#fff;
+    }
+    .task-filters-chip--reset {
+      background:transparent;
+      border-style:dashed;
+      color:var(--soil, #6b7280);
+    }
+    .task-filters-panel {
+      display:block;
+      animation:fadeIn .18s var(--ease-out);
+    }
+    .task-filters-fields {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      min-width:0;
+    }
+    .task-filters-fields select {
+      flex:1 1 160px;
+      min-width:0;
+    }
+    .task-filters-field-with-help {
+      display:flex;
+      align-items:center;
+      gap:6px;
+      flex:1 1 160px;
+      min-width:0;
+    }
+    .task-filters-field-with-help select {
+      flex:1 1 auto;
+    }
+    /* Feuille de filtres (écran compact) : ancrée en bas, au pouce. */
+    .task-filters-sheet-overlay {
+      align-items:flex-end;
+    }
+    .modal-overlay.task-filters-sheet-overlay > .task-filters-sheet {
+      width:100%;
+      max-width:100%;
+      border-radius:20px 20px 0 0;
+      max-height:min(80dvh, calc(100dvh - var(--safe-top) - 24px));
+      overflow-y:auto;
+    }
+    .task-filters-sheet__head {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom:12px;
+    }
+    .task-filters-sheet__title {
+      font-size:1rem;
+      font-weight:700;
+      color:var(--forest);
+      margin:0;
+    }
+    .task-filters-sheet .task-filters-fields {
+      flex-direction:column;
+    }
+    .task-filters-sheet .task-filters-fields select,
+    .task-filters-sheet .task-filters-field-with-help {
+      flex:1 1 auto;
+      width:100%;
+      min-height:44px;
+    }
+    .task-filters-sheet__actions {
+      display:flex;
+      gap:8px;
+      margin-top:14px;
+    }
+    .task-filters-sheet__actions .btn {
+      flex:1 1 0%;
+      min-height:44px;
+    }
+    /* En-tête Tâches : le texte long n'apparaît que sur écran large. */
+    .tasks-header-sub__compact,
+    .tasks-quota__compact {
+      display:none;
+    }
     .tasks-view {
       display:grid;
       gap:8px;
@@ -4763,6 +4923,51 @@
   .tasks-view-switch .btn {
     flex:1 1 0%;
   }
+  /* Vue Tâches : la barre reste sur une ligne (recherche + Filtres + affichage),
+     les champs de filtrage passent dans la feuille modale. Le mode d'affichage
+     se réduit à ses icônes (le libellé reste dans `aria-label` / `title`). */
+  .task-filters--compactable {
+    gap:6px;
+    margin-bottom:10px;
+  }
+  .task-filters--compactable .task-filters-search {
+    flex:1 1 0%;
+    min-width:0;
+    min-height:42px;
+  }
+  .task-filters--compactable .task-filters-toggle,
+  .task-filters--compactable .tasks-view-switch .btn {
+    min-height:42px;
+  }
+  .task-filters--compactable .tasks-view-switch {
+    width:auto;
+    flex:0 0 auto;
+    gap:2px;
+  }
+  .task-filters--compactable .tasks-view-switch .btn {
+    flex:0 0 auto;
+    padding:9px 10px;
+  }
+  .tasks-view-switch__label,
+  .task-filters-toggle__label {
+    display:none;
+  }
+  /* Feuille de filtres : champs pleine largeur, cibles tactiles ≥ 44 px. */
+  .task-filters-sheet .task-filters-fields select {
+    flex:1 1 100%;
+    min-width:0;
+    min-height:44px;
+    border-radius:10px;
+    padding:10px 12px;
+  }
+  .tasks-header-sub__compact,
+  .tasks-quota__compact {
+    display:inline;
+  }
+  .tasks-header-sub__wide,
+  .tasks-quota__wide {
+    display:none;
+  }
   .tasks-section {
     margin-bottom:18px;
   }
@@ -4783,6 +4988,17 @@
   }
   .visit-map-switch .btn {
     min-height:40px;
+  }
+}
+
+/* Très petits écrans : la ligne de filtres des tâches doit tenir sur une ligne. */
+@media (max-width:400px) {
+  .task-filters--compactable .tasks-view-switch .btn,
+  .task-filters--compactable .task-filters-toggle {
+    padding:9px 8px;
+  }
+  .task-filters--compactable .task-filters-search {
+    font-size:.8rem;
   }
 }
 
