@@ -291,9 +291,27 @@ describe('visitMascotPackHelpers — templates de packs', () => {
     const fox = buildVisitCatalogPackTemplate('fox-backpack-spritesheet', 'mon-pack');
     assert.equal(fox.fallbackSilhouette, 'backpackFox');
     assert.equal(fox.framesBase, '/assets/mascots/fox-backpack/cells/');
-    const single = buildVisitCatalogPackTemplate('olu-spritesheet', 'mon-pack');
-    assert.equal(single.label, 'OLU (modèle)');
-    assert.deepEqual(single.stateFrames.idle.srcs, ['/assets/mascots/olu/olu-spritesheet.png']);
+    // OLU a rejoint les modèles à **vraies** trames (lot 13b) : il ne sert donc plus d'exemple
+    // du repli à image fixe. Les deux branches restent couvertes, chacune par un modèle qui la
+    // représente vraiment.
+    const olu = buildVisitCatalogPackTemplate('olu-spritesheet', 'mon-pack');
+    assert.equal(olu.label, 'OLU (copie modèle)');
+    assert.equal(olu.framesBase, '/assets/mascots/olu-planches/frames/');
+    assert.equal(Object.keys(olu.stateFrames).length, 21);
+    assert.deepEqual(olu.stateFrames.idle.files, [
+      'idle-0.png',
+      'idle-1.png',
+      'idle-2.png',
+      'idle-3.png',
+    ]);
+
+    // Repli `buildSingleFrameMascotTemplate` : les mascottes Rive n'ont pas de trames PNG, leurs
+    // vingt et un états partagent une seule image.
+    const single = buildVisitCatalogPackTemplate('sprout-rive', 'mon-pack');
+    assert.equal(single.label, 'SPR0UT (modèle)');
+    assert.deepEqual(single.stateFrames.idle.srcs, [
+      '/assets/mascots/renard2-cut/frames/cell-r0-c0.png',
+    ]);
   });
 
   it('buildVisitCatalogPackTemplate renvoie null si id inconnu ou vide, slug de repli sinon', () => {
