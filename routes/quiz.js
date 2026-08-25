@@ -16,6 +16,7 @@ const {
   verifyPresentationAnswer,
   resolveQcmAnswerFeedback,
 } = require('../lib/glQcmChoices');
+const { consumePresentationJti } = require('../lib/glQcmPresentationUse');
 const {
   loadAdminQuestionDetail,
   allocateNextQuizQuestionCode,
@@ -311,6 +312,16 @@ router.post(
         req.body?.choiceId,
         QCM_OPTIONS,
       );
+      // Usage unique du jeton : sans cela, le même `presentationToken` permettait
+      // d'essayer tous les `choiceId` jusqu'à trouver la bonne réponse — y compris
+      // pour débloquer un conditionnement (fiche / tutoriel) sans l'avoir apprise.
+      const consumption = await consumePresentationJti(
+        { execute },
+        { jti: result.jti, gameId: null, teamId: null, questionCode: code },
+      );
+      if (consumption === 'already_used') {
+        return res.status(409).json({ error: 'Présentation déjà utilisée' });
+      }
       const glossaryByKey = await loadGlossaryLookup();
       const glossaryTerms = enrichQuestionWithGlossary(row, glossaryByKey);
 

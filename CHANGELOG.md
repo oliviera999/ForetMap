@@ -7,6 +7,62 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Cinq mises à jour de dépendances npm (lot d'intégration)
+
+Les montées de version proposées automatiquement et restées en attente sont reprises
+d'un bloc : `better-sqlite3` 12 → **13.0.3**, `jsdom` 29 → **30.0.1**,
+`@testing-library/jest-dom` 6 → **7.0.1**, `google-auth-library` 10 → **11.0.2** et
+`artillery` 2.0.33 → **2.0.34**.
+
+Les quatre premières sont des versions **majeures** : `better-sqlite3` et `jsdom` ne
+servent qu'aux tests (fork SQLite d'import de carte, rendu React), `jest-dom` aux
+assertions d'interface, et `google-auth-library` à la connexion Google. Le verrou
+(`package-lock.json`) a été régénéré d'un seul tenant pour que les cinq montées
+cohabitent.
+
+### Un feuillet découvert deux fois en même temps ne double plus les cœurs
+
+Deux élèves de la même équipe (ou un double clic) qui présentaient le même feuillet
+au même instant encaissaient **deux fois** les cœurs et/ou payaient **deux fois** les
+gemmes. La garde « déjà présenté » lisait le journal **avant** la transaction, et
+l'événement n'était écrit **qu'après** le commit : les deux requêtes voyaient un
+carnet encore vide.
+
+Même garde que pour une zone-feuillet : on verrouille l'équipe, on relit, et on
+journalise dans la même transaction. La seconde requête reçoit `409` et la vitalité
+n'a bougé que d'un cran.
+
+### Un échange au plafond ne fait plus disparaître des gemmes
+
+Depuis le plafond de jeu (cœurs/gemmes max), finaliser un troc alors que le
+receveur était déjà au maximum **débitait le donneur et jetait la monnaie** :
+le plafond rognait le gain, pas la dépense. Deux élèves qui s'accordent
+« je te donne 2 gemmes » voyaient les 2 gemmes s'évaporer.
+
+L'échange est désormais **refusé** (comme un solde insuffisant) : personne ne
+perd rien, personne n'en gagne. Les récompenses de cases et de feuillets
+continuent d'ignorer un gain au-delà du plafond — là, rien n'est pris à
+personne.
+
+### Un QCM d'entraînement ne se brute-force plus (lore + quiz ForetMap)
+
+Le catalogue biomes consommait déjà le jeton de présentation à la première réponse.
+Le QCM **lore** hors partie et le **quiz ForetMap** laissaient rejouer le même jeton :
+cinq requêtes suffisaient à révéler la bonne réponse, et à enregistrer une tentative
+juste qui débloque un conditionnement. Même filet désormais : rejeu → 409, il faut
+une nouvelle présentation (choix remélangés).
+
+### Un échange ne mange plus un feuillet déjà lu dans le carnet personnel
+
+Le Marché savait déjà ne pas écraser l'état **d'équipe** : si les receveurs avaient
+trouvé un feuillet intact, une copie très effacée ne l'opacifiait pas. La trace
+**personnelle** — celle qui survit à un changement de partie ou d'équipe — n'avait pas
+cette garde. Un élève qui avait lu un feuillet au chapitre 1, puis recevait la même
+page « mangée » dans une nouvelle partie, voyait son carnet s'obscurcir.
+
+L'instantané personnel garde désormais le moins effacé, comme la lecture du carnet le
+faisait déjà. Les camarades qui n'avaient pas le feuillet reçoivent bien la copie.
+
 ### Les boutons flottants ne se marchent plus dessus (lot 12)
 
 **Deux d'entre eux tombaient dans la barre de navigation du bas.** Côté Gnomes & Licornes,
@@ -128,7 +184,6 @@ Marché serait le contournement évident — mais laisse souverain l'ajustement 
 
 L'audit complet et les options de finition, pensées pour une classe de 6ème, sont dans
 [docs/reference/gl/audit-mecaniques-2026-08.md](docs/reference/gl/audit-mecaniques-2026-08.md).
-
 
 ### Les visites guidées GL atteignent enfin les écrans où l'on arrive (lot 10)
 

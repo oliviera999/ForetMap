@@ -145,7 +145,8 @@ coûter (gemmes) ou en rapporter (cœurs).
 Les **feuillets** se troquent aussi au marché : un feuillet donné est recopié (le donneur
 garde le sien) et devient lisible par toute l'équipe du receveur. Le carnet d'un joueur lui
 appartient durablement : il le suit d'une partie à l'autre et ne dépend plus de l'équipe où
-il se trouve.
+il se trouve. Une copie reçue plus tard, plus « mangée » par le Souffle, n'efface pas une
+lecture déjà acquise — le carnet garde toujours le texte le plus lisible.
 
 À côté de cette « vitalité » individuelle existe un **score d'équipe**, cumulé par
 partie, alimenté notamment par la résolution d'actions — c'est un compteur distinct,
