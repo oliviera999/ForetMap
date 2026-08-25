@@ -41,6 +41,8 @@ import {
 import { ZonePolygonsLayer, parseZonesForLayer } from './map/ZonePolygonsLayer.jsx';
 import { DrawingLayer } from './map/DrawingLayer.jsx';
 import { EditPointsLayer } from './map/EditPointsLayer.jsx';
+import useMapImageEdgeSnap from '../hooks/useMapImageEdgeSnap.js';
+import { EDGE_SNAP_DEFAULTS } from '../utils/edgeSnap.js';
 import { ZoneDrawModal } from './map/ZoneDrawModal.jsx';
 import { PhotoGallery } from './map/PhotoGallery.jsx';
 import { LocationTutorialPreviewList } from './map/mapModalShared.jsx';
@@ -210,6 +212,20 @@ function MapViewImpl({
     mapLayoutOuterRef,
     mapFullscreen,
   });
+  const { s: cs } = committed;
+  const { w: iw, h: ih } = imgSize;
+  const inv = 1 / cs;
+  // Aimant de contour (lot « ancrage magnétique ») : analyse de l'image de fond à la demande.
+  const [snapEnabled, setSnapEnabled] = useState(false);
+  const [snapRadiusPx, setSnapRadiusPx] = useState(EDGE_SNAP_DEFAULTS.radiusScreenPx);
+  const edgeSnap = useMapImageEdgeSnap({
+    src: mapImageSrc,
+    active: snapEnabled && mode === 'edit-points',
+  });
+  // Rayons exprimés à l'écran → convertis en % d'image (constants visuellement au zoom).
+  const snapRadiusPct = iw > 0 ? Math.max(0.05, ((snapRadiusPx * inv) / iw) * 100) : 1;
+  const edgeTolerancePct = iw > 0 ? Math.min(8, Math.max(0.3, ((28 * inv) / iw) * 100)) : 3;
+
   // Édition du contour d'une zone (mode edit-points) : session, historique Ctrl+Z, translation.
   const {
     editZone,
@@ -227,7 +243,31 @@ function MapViewImpl({
     onEditPointPointerDown,
     onEditPointPointerMove,
     onEditPointPointerUp,
-  } = useZoneEditPoints({ mode, setMode, toImagePct, onRefresh, setToast });
+    insertVertexMode,
+    toggleInsertVertexMode,
+    insertPointFromPct,
+    insertPointAtMidpoint,
+    removeSelectedPoints,
+    canRemoveSelection,
+    selectedPtIdxs,
+    multiSelectMode,
+    toggleMultiSelectMode,
+    lassoRect,
+    onLassoPointerDown,
+    onLassoPointerMove,
+    onLassoPointerUp,
+    onLassoLostPointerCapture,
+    snapSelectedPoints,
+  } = useZoneEditPoints({
+    mode,
+    setMode,
+    toImagePct,
+    onRefresh,
+    setToast,
+    snapPoint: edgeSnap.snapPoint,
+    snapRadiusPct,
+    edgeTolerancePct,
+  });
   const {
     mascotId: mapMascotId,
     showMascot: showMapMascot,
@@ -388,9 +428,6 @@ function MapViewImpl({
     });
   };
 
-  const { s: cs } = committed;
-  const { w: iw, h: ih } = imgSize;
-  const inv = 1 / cs;
   const mapMascotFitScale = Math.max(1, inv);
   // Hauteur affichée du plan AU REPOS (ajusté), indépendante du zoom : dimensionne les étiquettes
   // à une taille stable, le grossissement au zoom étant porté séparément par `mapZoomRatio`.
@@ -633,6 +670,29 @@ function MapViewImpl({
           onCancelDraw={cancelDraw}
           editZoneName={editZone?.name}
           editCanUndo={editCanUndo}
+          editPointsCount={editPoints.length}
+          selectedPointsCount={selectedPtIdxs.size}
+          insertVertexMode={insertVertexMode}
+          onToggleInsertVertexMode={toggleInsertVertexMode}
+          canRemoveSelection={canRemoveSelection}
+          onRemoveSelectedPoints={() => {
+            if (!removeSelectedPoints()) setToast('Un contour garde au moins 3 sommets');
+          }}
+          multiSelectMode={multiSelectMode}
+          onToggleMultiSelectMode={toggleMultiSelectMode}
+          snapEnabled={snapEnabled}
+          snapStatus={edgeSnap.status}
+          onToggleSnap={() => setSnapEnabled((v) => !v)}
+          snapRadiusPx={snapRadiusPx}
+          onSnapRadiusChange={setSnapRadiusPx}
+          onSnapSelectedPoints={() => {
+            const moved = snapSelectedPoints();
+            setToast(
+              moved > 0
+                ? `${moved} sommet${moved > 1 ? 's' : ''} collé${moved > 1 ? 's' : ''} au contour`
+                : 'Aucun contour trouvé à proximité',
+            );
+          }}
           onUndoEditPoints={undoEditPoints}
           onSaveEditPoints={saveEditPoints}
           onExitEditPoints={() => {
@@ -738,9 +798,19 @@ function MapViewImpl({
                       mode={mode}
                       editPoints={editPoints}
                       draggingPtIdx={draggingPtIdx}
+                      selectedPtIdxs={selectedPtIdxs}
+                      insertVertexMode={insertVertexMode}
+                      lassoRect={lassoRect}
                       iw={iw}
                       ih={ih}
                       inv={inv}
+                      toImagePct={toImagePct}
+                      onInsertPointFromPct={insertPointFromPct}
+                      onInsertPointAtMidpoint={insertPointAtMidpoint}
+                      onLassoPointerDown={onLassoPointerDown}
+                      onLassoPointerMove={onLassoPointerMove}
+                      onLassoPointerUp={onLassoPointerUp}
+                      onLassoLostPointerCapture={onLassoLostPointerCapture}
                       onTranslatePointerDown={onTranslatePointerDown}
                       onTranslatePointerMove={onTranslatePointerMove}
                       endEditZoneTranslate={endEditZoneTranslate}

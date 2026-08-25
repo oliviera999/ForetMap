@@ -7,6 +7,86 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Un contour de zone se retouche vraiment : on peut enfin ajouter et retirer des sommets (lot 15)
+
+**Jusqu'ici, « Modifier le contour » ne savait que déplacer.** Les sommets posés au dessin
+initial étaient définitifs : impossible d'en ajouter un pour épouser un décrochement de
+parcelle, impossible d'en retirer un devenu inutile. La seule issue était de redessiner la
+zone entière et de supprimer l'ancienne — en perdant au passage ses photos, ses tâches et
+son historique.
+
+Le mode d'édition affiche désormais une **poignée pointillée au milieu de chaque côté** :
+on la tire, un sommet naît là et suit le doigt dans le même geste — sans changer d'outil,
+et sans que rien ne clignote sur la carte. Pour viser un point précis d'un long côté, la
+bascule « ＋ Sommet » rend le contour lui-même cliquable : le sommet se pose exactement sur
+le trait, projeté sur l'arête la plus proche. La suppression se fait par la touche Suppr ou
+le bouton « 🗑 », avec le garde-fou des **trois sommets minimum** déjà imposé par l'API.
+
+- **Nouveaux utilitaires** — `findEditEdgeInsertion`, `insertEditPointAt`,
+  `editEdgeMidpoints`, `removeEditPointsAt` et `canRemoveEditPoints` dans
+  `src/utils/zoneEditGeometry.js`. La projection sur l'arête réutilise les helpers déjà
+  partagés avec la carte du royaume de Gnomes & Licornes (`src/shared/pct-map/`) plutôt
+  que d'en écrire une seconde version.
+- **Tolérance constante à l'écran** — la distance « assez proche du bord pour insérer »
+  est dérivée de 28 pixels écran, pas d'un pourcentage fixe : viser une arête reste aussi
+  facile en zoom fort qu'en vue d'ensemble.
+- **Historique** — chaque ajout et chaque retrait entre dans la pile d'annulation : « ↩
+  Annuler » et Ctrl+Z reviennent en arrière pas à pas comme pour un déplacement.
+- **Tests** — 30 cas ajoutés sur les utilitaires purs, 16 sur le hook d'édition et 10 sur
+  le calque SVG (insertion enchaînée sur un glissement, insertion refusée, garde des trois
+  sommets).
+- **Documentation** — nouvelle section « Retoucher le contour d'une zone » dans
+  `docs/reference/foretmap/carte-et-zones.md`. Contrat HTTP inchangé : `PUT /api/zones/:id`
+  reçoit toujours le même tableau de `{ xp, yp }`, `docs/API.md` n'évolue pas.
+
+### Les sommets se sélectionnent à plusieurs et se déplacent d'un bloc (lot 16)
+
+**Recaler un côté entier d'une zone demandait de déplacer ses sommets un par un**, en
+espérant conserver leurs écarts. Sur un contour à quinze sommets, l'opération était longue
+et le résultat approximatif.
+
+On peut maintenant **désigner plusieurs sommets** : Maj+clic pour les prendre un à un, ou
+un **rectangle tracé sur le fond de carte** pour attraper tout ce qu'il contient. Les
+sommets retenus s'entourent d'un cercle orange, et glisser l'un d'eux **déplace tout le
+groupe** en conservant sa forme — le groupe glisse le long du bord de l'image au lieu de
+s'écraser dessus quand il l'atteint. Suppr retire toute la sélection d'un coup. Sur
+tablette, où la touche Maj n'existe pas, une bascule « Multi » rend chaque appui additif.
+
+- **Sélection** — état porté par `useZoneEditPoints`, réindexé après chaque suppression et
+  après une annulation, pour qu'aucun index ne pointe vers un sommet disparu.
+- **Déplacement groupé borné** — `clampEditMoveDelta` limite le déplacement au lieu de
+  borner chaque sommet séparément : la forme de la sélection est préservée.
+- **Gestes tactiles** — le lasso s'abandonne dès qu'un second doigt se pose, pour ne pas
+  transformer un zoom à deux doigts en sélection involontaire.
+- **Tests** — Maj+clic (ajout puis retrait), lasso, clic sur le fond qui désélectionne,
+  déplacement de groupe borné, suppression multiple, réindexation.
+- **Documentation** — décrit dans la même section du guide « La carte et les zones ».
+
+### Un aimant colle les sommets sur les limites visibles du plan (lot 17)
+
+**Suivre à la souris le bord d'une parcelle demande une main sûre.** Sur un plan dessiné,
+la limite est pourtant parfaitement visible : c'est un trait franc, un changement d'aplat.
+
+La bascule « 🧲 Aimant » analyse l'image de fond de la carte — détection de contours par
+l'opérateur de Sobel sur la luminance — et **colle le sommet déplacé sur le contraste le
+plus marqué autour de lui**, exactement comme l'aimantation d'un logiciel de retouche
+photo. Un curseur règle la distance d'accroche, en pixels écran (donc constante quel que
+soit le zoom) ; « 🧲 Coller » applique l'aimant d'un coup aux sommets sélectionnés, ou à
+tout le contour si rien n'est sélectionné ; **Alt maintenu** le suspend le temps d'un geste.
+
+- **Analyse à la demande** — rien n'est calculé tant que l'aimant n'est pas allumé, l'image
+  est sous-échantillonnée à 1400 px de côté au maximum, et le résultat est mis en cache par
+  URL de plan : rallumer l'aimant est instantané.
+- **Repli explicite** — si l'image du plan vient d'un autre domaine, le navigateur interdit
+  d'en lire les pixels : le bouton affiche « Indispo. » et l'édition continue sans aimant,
+  au lieu d'échouer en silence.
+- **Limite assumée** — sur une photo aérienne peu contrastée, l'aimant peut accrocher une
+  ombre plutôt que la vraie limite ; c'est signalé comme point d'attention dans le guide.
+- **Tests** — 16 cas sur la détection de contours (`src/utils/edgeSnap.js`) avec des images
+  de synthèse, plus la couverture du branchement dans le hook d'édition.
+- **Documentation** — mode d'emploi et point d'attention dans « Retoucher le contour d'une
+  zone » ; aucune route ni table modifiée.
+
 ### Doc — Audit UI : pourquoi les boutons de G&L paraissent d'un autre âge
 
 L'impression n'était pas subjective. Mesures faites dans Chromium sur du markup G&L réel :
