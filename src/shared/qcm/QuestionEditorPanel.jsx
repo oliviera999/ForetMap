@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AutoSaveStatus } from '../components/AutoSaveStatus.jsx';
 import { useAdminCrud } from '../hooks/useAdminCrud.js';
+import { questionFieldLabel } from './questionFieldLabels.js';
 
 // Panneau générique d'édition de questions QCM/Quiz (liste filtrable + fiche).
 // Les trois éditeurs (QCM biomes GL, QCM lore GL, Quiz ForetMap) sont des adaptateurs
@@ -151,7 +152,7 @@ export function QuestionEditorPanel({ config, initialQuestionCode = null, onQues
     if (custom) return React.cloneElement(custom(fieldCtx), { key });
     if (key === 'categorie_slug') {
       return (
-        <Field key={key} label="Catégorie">
+        <Field key={key} label={questionFieldLabel('categorie_slug')}>
           <Select
             value={form.categorie_slug}
             onChange={(e) => setField('categorie_slug', e.target.value)}
@@ -169,7 +170,7 @@ export function QuestionEditorPanel({ config, initialQuestionCode = null, onQues
     }
     if (key === 'statut') {
       return (
-        <Field key={key} label="Statut">
+        <Field key={key} label={questionFieldLabel('statut')}>
           <Select value={form.statut} onChange={(e) => setField('statut', e.target.value)}>
             <option value="actif">Actif</option>
             <option value="inactif">Inactif</option>
@@ -179,7 +180,7 @@ export function QuestionEditorPanel({ config, initialQuestionCode = null, onQues
     }
     if (key === 'reponse_correcte') {
       return (
-        <Field key={key} label="Bonne réponse">
+        <Field key={key} label={questionFieldLabel('reponse_correcte')}>
           <Select
             value={form.reponse_correcte}
             onChange={(e) => setField('reponse_correcte', e.target.value)}
@@ -193,7 +194,7 @@ export function QuestionEditorPanel({ config, initialQuestionCode = null, onQues
         </Field>
       );
     }
-    const label = key.replace(/_/g, ' ');
+    const label = questionFieldLabel(key);
     return (
       <Field key={key} label={label}>
         {TEXTAREA_FIELDS.has(key) ? (

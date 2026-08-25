@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { getQcmFeedbackText, shouldShowQcmAnswerPhase } from '../qcm/qcmFeedback.js';
+import { QcmQuestionPhoto } from '../qcm/QcmQuestionPhoto.jsx';
 import {
   isCooldownLocked,
   buildCooldownLockMessage,
@@ -97,13 +98,15 @@ export function LearningGatingQuestionPanel({
       {error ? <p className="tuto-read-ack-error">{error}</p> : null}
       {!loading && !showAnswer && presentation ? (
         <>
-          {questionCode ? <p className="learning-gating-quiz__code">{questionCode}</p> : null}
-          <p className="learning-gating-quiz__question">{presentation.question}</p>
-          {presentation.photoUrl ? (
-            <figure className="learning-gating-quiz__photo">
-              <img src={presentation.photoUrl} alt="" />
-            </figure>
+          {questionCode ? (
+            <p className="learning-gating-quiz__code">Question {questionCode}</p>
           ) : null}
+          <p className="learning-gating-quiz__question">{presentation.question}</p>
+          <QcmQuestionPhoto
+            presentation={presentation}
+            figureClassName="learning-gating-quiz__photo"
+            captionClassName="learning-gating-quiz__photo-credit"
+          />
           <div className="learning-gating-quiz__choices">
             {(presentation.choices || []).map((choice) => (
               <label key={choice.id} className={choiceClassName}>

@@ -66,6 +66,53 @@ crème y disparaît. Elles sont livrées telles quelles et **signalées comme à
 Outils : `npm run mascot:olu-cut` (découpage), `npm run mascot:olu-pack` (archive).
 Prompts de génération : `docs/MASCOT_OLU_PROMPTS_A_COLLER.md`.
 
+### Doc — Audit UI : pourquoi les boutons de G&L paraissent d'un autre âge
+
+L'impression n'était pas subjective. Mesures faites dans Chromium sur du markup G&L réel :
+**tous** les boutons du jeu s'affichent en **Arial 13,3 px** — la feuille de style du
+navigateur — au lieu du Caudex 16 px de l'application, parce que `.gl-btn` est une copie
+appauvrie du `.btn` de ForetMap à qui il manque `font-family` et `font-size`. Sur 84 règles
+CSS ciblant des boutons, une seule fixe la police.
+
+Second défaut mesuré : dans un `.gl-form`, les variantes `secondary`, `ghost` et `danger`
+s'affichent toutes en primaire foncé. S'ajoutent 80 lignes de CSS bouton mort, 27 variables
+CSS jamais définies (dont `--gl-primary`, 28 usages — ces zones ignorent donc le thème de
+marque), et `.gl-btn--sm` à 36 px, sous la cible tactile de 44 px que le projet s'impose.
+
+**Aucune correction n'est appliquée** : l'audit décrit les remèdes et les laisse à arbitrage.
+Détail : `docs/AUDIT_UI_BOUTONS_GL_2026-08.md`.
+
+### Les questions redeviennent lisibles, côté fiche comme côté écran (lot 13)
+
+**La fiche d'une question du Quiz s'intitulait par ses noms de colonnes.** Le panneau
+d'édition affichait le champ brut, underscores remplacés par des espaces : « numero dans
+categorie », « reponse texte », « photo legende », « notes pedagogiques ». Les six champs
+`feedback_*` étaient les plus coûteux : rien ne disait qu'ils correspondent chacun à un
+choix précis. Chaque champ porte désormais un libellé français explicite — « Explication
+si l'élève choisit B », « Photo — légende (affichée sous l'image) » — dans les trois
+éditeurs (Quiz ForetMap, QCM biomes et QCM lore de Gnomes & Licornes).
+
+**L'aperçu « Présenter » ne montrait pas l'illustration.** Un professeur qui renseignait
+une photo ne pouvait la vérifier nulle part : ni dans la fiche, ni dans l'aperçu. L'aperçu
+affiche maintenant l'image avec sa légende et son crédit. La légende reste réservée à
+l'administration : dans le catalogue livré, elle nomme le sujet photographié — l'afficher
+à l'élève donnerait la réponse.
+
+**La question du contrôle de compréhension affichait sa photo sans crédit.** Le crédit et
+la licence apparaissaient dans l'onglet Quiz, mais pas dans la fenêtre de validation d'un
+tutoriel. C'est corrigé, et le code de la question y est annoncé comme ailleurs
+(« Question QF0351 »).
+
+**Les réglages du contrôle de compréhension n'avaient pas de nom.** Les cinq réglages
+`learning.gating.*` tombaient dans « Autres paramètres » sous le dernier segment de leur
+clé : un interrupteur nommé « Enabled » commandait, sans le dire, l'obligation de répondre
+à des questions avant de valider une lecture. Ils forment désormais leur propre section,
+« Validation des lectures (contrôle de compréhension) », chacun sous un libellé qui décrit
+son effet — le délai de blocage après une erreur (3 jours par défaut) compris.
+
+La documentation de référence explique en clair ce que ce dispositif fait, ce qu'il exige
+pour fonctionner, et pourquoi il reste aujourd'hui sans effet visible côté ForetMap : les
+questions ne peuvent pas encore être rattachées aux tutoriels depuis l'interface.
 ### Cinq mises à jour de dépendances npm (lot d'intégration)
 
 Les montées de version proposées automatiquement et restées en attente sont reprises
