@@ -383,48 +383,98 @@ mouvement avec un temps de retard. Grand sourire et yeux plissés dans les six c
 
 ---
 
-## 5. Découpage et fabrication du pack
+## 5. Découpage et fabrication du pack — fait
 
-### 5.1 Géométrie cible
+Les dix-neuf planches ont été générées et découpées. Ce que le dépôt contient désormais :
 
-- **Génération** : ce que rend le modèle, sans contrainte de taille (typiquement 1024 à 2048 px
-  de large pour une bande de 4 à 6 cases).
-- **Case finale** : **256 × 256 px**, transparente, personnage centré horizontalement et calé
-  sur une ligne de pieds commune à **toutes les planches** (sinon OLU « saute » au changement
-  d'état).
-- **Feuille finale** : une seule image, une **rangée par état**, cases contiguës, sans marge.
-- **`pixelated: false`** — contrairement à `fox-backpack`, ce pack est en illustration HD.
-
-### 5.2 Le découpeur
-
-Un script `scripts/olu-sheets-cut.cjs` est à écrire sur le modèle de
-`scripts/fox-backpack-extract-and-compose.cjs`. Étapes :
-
-1. clé chromatique magenta → alpha, seuil resserré (vigilance oreilles rosées, §1) ;
-2. suppression des composantes isolées de moins de ~0,5 % de l'aire (l'éclat parasite du §0) ;
-3. segmentation par colonnes vides pour isoler les cases — **pas de grille fixe**, cf. §2.2 ;
-   toutes les planches étant sur une seule rangée, il n'y a pas de découpage vertical à faire ;
-4. pour chaque sujet : boîte englobante, recentrage horizontal, calage du bas de boîte sur la
-   ligne de pieds commune, mise à l'échelle vers 256 × 256 avec une marge de sécurité de 4 px ;
-5. composition de la feuille finale et écriture du manifeste.
-
-### 5.3 Le manifeste
-
-Même forme que les autres packs (`docs/MASCOT_PACK.md`) : `framesBase`, `frameWidth`/`frameHeight`
-à 256, `pixelated: false`, `fallbackSilhouette`, et un `stateFrames.<état>` par ligne du tableau
-du §3 — `running` pointant sur les trames de `walking` avec `fps: 14`, `map_read` sur celles
-d'`inspect`.
-
-Un pack publié l'emporte sur l'entrée catalogue de même `id` : le pack OLU issu de ces planches
-remplacera donc `olu-spritesheet` sans qu'il y ait besoin de toucher
-`src/utils/visitMascotCatalog.js`.
-
-### 5.4 Recette
+| Élément                                      | Où                                                         |
+| -------------------------------------------- | ---------------------------------------------------------- |
+| Découpeur                                    | `scripts/olu-sheets-cut.cjs` — `npm run mascot:olu-cut`    |
+| Trames découpées (88 PNG, 256 × 256, 1,4 Mo) | `public/assets/mascots/olu-planches/frames/`               |
+| Pack                                         | `docs/packs/olu-planches-pack.json`                        |
+| Fabrication de l'archive importable          | `scripts/olu-pack-archive.cjs` — `npm run mascot:olu-pack` |
+| Garde-fous                                   | `tests/olu-mascot-pack.test.js` (9 cas, sans base)         |
 
 ```bash
-npm run mascot:pack:validate
+npm run mascot:olu-cut -- --in <dossier-planches> --out public/assets/mascots/olu-planches/frames
+npm run mascot:pack:validate -- docs/packs/olu-planches-pack.json
+npm run mascot:olu-pack -- --out mascot-pack-olu.zip
 ```
 
-Puis, dans l'application : parcourir les 21 états et vérifier qu'aucun ne retombe sur la
-silhouette SVG, qu'OLU ne change pas de taille entre deux états, et qu'il ne se déplace pas
-verticalement au changement d'état (défaut de ligne de pieds, §5.1).
+### 5.1 Ce que fait le découpeur
+
+1. **Clé chromatique.** Le fond n'est pas le `#FF00FF` demandé : il sort autour de `(247, 6, 233)`
+   et varie d'une planche à l'autre. On ne compare donc pas à une couleur de référence mais à un
+   **écart** : `min(R, B) − G`. Sur la palette d'OLU (roux, crème, brun, kaki, sauge) cet écart est
+   toujours négatif ; sur le fond il dépasse 200. Le seuil est à 60, très loin des deux populations
+   — ce qui rend la clé insensible à la dérive du fond **et** au bruit JPEG. Résidu mesuré après
+   coup : au pire **5 pixels sur 15 000** (0,03 %), sur une seule trame.
+2. **Rognage de 2 px** du masque, ce qui emporte le liseré d'anticrénelage. À ~500 px de côté
+   source pour 256 px de sortie, deux pixels source valent un pixel de sortie : la silhouette ne
+   maigrit pas visiblement.
+3. **Retrait des composantes isolées** sous 0,12 % de l'aire — l'éclat blanc que le générateur pose
+   en bas à droite (retiré sur `inspect`), un point de compression.
+4. **Segmentation par colonnes vides**, pas par grille. Les dix-neuf planches ont été segmentées
+   correctement **du premier coup**, y compris celles dont les cases sont inégalement espacées.
+5. **Échelle par planche.** Chaque planche ayant été générée séparément, OLU n'y a pas la même
+   taille en pixels : de 335 px de haut sur `walking` à 523 px sur `alert`. La hauteur médiane de
+   chaque planche est ramenée à une hauteur commune (206 px), d'où des facteurs de 0,37 à 0,62.
+6. **Ligne de sol par planche, pas par sujet.** Le calage se fait sur le bas le plus bas de la
+   planche. Un calage individuel aurait aplati les sauts : sur `happy_jump`, `celebrate` et `dance`,
+   les trames où les pieds décollent gardent ainsi leur hauteur relative.
+7. **Palette de 256 couleurs.** 3,4× plus léger que le PNG vraie couleur (16 Ko au lieu de 45 Ko par
+   trame), sans différence visible sur cet aplat cel-shaded. À 128 couleurs, en revanche, un
+   tramage apparaît sur le poitrail crème : comparé image à image avant d'être retenu.
+
+> Le nombre de sujets attendu est **déclaré** planche par planche dans `SHEETS`, et un écart est une
+> **erreur**, pas un avertissement : une planche mal segmentée doit arrêter la chaîne, pas produire
+> un état amputé d'une trame que personne ne remarquera.
+
+### 5.2 La seule valeur posée à la main
+
+OLU assis (`sleep`) occupe moins de hauteur que debout, et sa planche ne contient aucun sujet
+debout : son échelle ne peut pas se déduire de sa seule hauteur. Le rapport est posé à **0,74** de
+la hauteur debout (`SEATED_HEIGHT_RATIO`). C'est la seule valeur du découpeur qui relève du jugement
+et non de la mesure ; elle se vérifie sur la planche de contrôle (`--contact`).
+
+### 5.3 Le pack
+
+`id: 'olu-spritesheet'` — **l'identifiant de la mascotte livrée**, volontairement. Un pack publié
+dont le `catalog_id` reprend celui d'une mascotte du catalogue **remplace** cette mascotte dans le
+sélecteur au lieu de s'ajouter à côté. L'entrée `olu-spritesheet` déclare un spritesheet dont le PNG
+n'est pas versionné : OLU n'y apparaît qu'en silhouette SVG. Reprendre cet identifiant, c'est donner
+ses animations à cette mascotte-là.
+
+Le dossier des trames, lui, s'appelle `olu-planches` : ce sont des trames découpées (`sprite_cut`),
+pas un spritesheet — les nommer ainsi induirait en erreur.
+
+`pixelated: false` (illustration HD, contrairement à `fox-backpack`), `frameWidth`/`frameHeight` à
+256, `fallbackSilhouette: 'olu'`. **Vingt et un états pour 88 trames** : `running` réutilise les
+trames de `walking` à 14 fps, `map_read` celles d'`inspect`. Plus aucun état ne retombe sur `idle`.
+
+### 5.4 L'archive importable
+
+`npm run mascot:olu-pack` produit `mascot-pack-olu.zip` au format `foretmap-mascot-pack-archive`
+(`manifest.json` + `pack.json` + `assets/`), **1,1 Mo**, importable tel quel :
+
+- studio prof → onglet **Packs mascotte** → **Importer ZIP** ;
+- ou `POST /api/visit/mascot-packs/import`.
+
+L'archive a été relue par le **parseur d'import du serveur lui-même**
+(`lib/mascotPackArchive.parseMascotPackZipBuffer`) et par la validation Zod servie au runtime
+(`lib/visit-pack/mascotPack.parseMascotPack`) : 88 trames citées, 88 présentes, aucune manquante,
+aucune orpheline.
+
+Il reste à **publier** le pack après import — seuls les packs publiés apparaissent en visite.
+
+### 5.5 Ce qui reste à reprendre
+
+- **`alert` et `surprise`** viennent des deux seules planches au format 1792 × 592, générées dans
+  une passe où le personnage a dérivé : tête plus ronde, membres plus fins, et surtout **le
+  poitrail crème disparaît**. Une fois normalisées elles tiennent, mais OLU n'y est pas tout à fait
+  le même. À régénérer avec le retournement joint, prompts 12 et 13 de
+  `MASCOT_OLU_PROMPTS_A_COLLER.md` — puis relancer le découpeur, rien d'autre à faire.
+- Une planche livrée n'était pas une animation mais un **échantillon d'expressions** (cinq humeurs
+  différentes côte à côte) : inutilisable telle quelle, et écartée.
+- Le générateur a produit **deux prises de `dance`** ; c'est celle de 2064 × 512 qui est retenue,
+  ses sujets étant plus grands donc mieux définis.
