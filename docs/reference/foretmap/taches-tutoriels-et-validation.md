@@ -243,7 +243,8 @@ Ce qu'il faut réunir pour qu'un tutoriel soit réellement soumis à questions :
    (contrôle de compréhension) » → _Exiger des questions avant de valider une lecture_.
    Éteint (valeur par défaut), rien ne change nulle part : c'est l'interrupteur maître,
    aucun réglage plus fin ne peut le contourner.
-2. **Des questions du Quiz sont rattachées au tutoriel** et marquées comme bloquantes.
+2. **Des questions du Quiz sont rattachées au tutoriel** et marquées comme bloquantes,
+   dans l'écran « Rattacher des questions aux tutoriels » (onglet Quiz, côté professeur).
    Sans question rattachée, le tutoriel se valide comme avant, même interrupteur allumé.
 
 Les réglages qui accompagnent l'interrupteur :
@@ -261,6 +262,46 @@ confirmation de lecture. Mauvaise réponse : le message de verrou, avec le nombr
 avant de pouvoir réessayer. **Abandonner ne coûte rien** tant qu'aucune réponse n'a été
 envoyée. Les bonnes réponses déjà données ailleurs (dans l'onglet Quiz, par exemple)
 comptent : une question déjà réussie n'est pas reposée.
+
+### Rattacher les questions aux tutoriels
+
+L'écran se trouve dans l'onglet **Quiz** côté professeur, sous le catalogue et l'éditeur de
+questions : **« Rattacher des questions aux tutoriels »**. Il est organisé par tutoriel — la
+liste de gauche indique pour chacun combien de questions bloquantes il porte, et combien de
+propositions attendent une validation.
+
+Pour un tutoriel choisi, on peut :
+
+- **Rattacher une question** : un champ de recherche filtre le catalogue par code ou par
+  texte ; les questions déjà rattachées n'y sont plus proposées.
+- **Rendre une question bloquante ou non** : une question non bloquante reste associée à la
+  fiche (elle l'enrichit) sans conditionner la validation.
+- **Changer le statut** : seules les questions **approuvées** comptent. Une question
+  « proposée » n'a aucun effet tant qu'un professeur ne l'a pas approuvée ; « rejetée » la
+  met de côté sans l'effacer.
+- **Fixer l'exigence propre à ce tutoriel** : suivre le réglage du site, ou bien exiger une
+  bonne réponse, toutes, un nombre minimum — ou **dispenser** cette fiche.
+
+### Le rattachement automatique
+
+Le bouton **« Proposer des rattachements (par le contenu) »** compare le texte des questions
+et celui des tutoriels, et propose les rapprochements qu'il trouve. Il tient compte du
+**contenu réel des fiches**, pas seulement de leur titre : une question sur le compost est
+rapprochée de la fiche compostage même si le mot exact du titre n'y figure pas.
+
+Chaque proposition est accompagnée d'un **pourcentage de confiance** et des **mots qui l'ont
+motivée**, pour juger d'un coup d'œil. Deux précautions :
+
+- Rien n'est enregistré tant que vous n'avez pas cliqué sur **« Enregistrer ces
+  propositions »** : le premier clic ne fait que montrer ce qui serait créé.
+- Une fois enregistrées, les propositions arrivent en statut **« proposé »** : elles restent
+  sans effet sur les élèves jusqu'à ce que vous les approuviez une par une.
+
+L'outil récupère aussi les **« questions liées »** que vous auriez déjà saisies sur une fiche
+question : elles ne remontaient pas d'elles-mêmes dans le contrôle de compréhension.
+
+Le rapprochement automatique reste une aide, pas un verdict : il propose, vous décidez.
+Relisez avant d'approuver — c'est ce qui déterminera si un élève peut valider sa lecture.
 
 ## ⚠️ Points d'attention sur l'existant
 
@@ -289,13 +330,6 @@ comptent : une question déjà réussie n'est pas reposée.
 > ⚠️ **Point d'attention** — Pour les tutoriels, le professeur voit **combien** de
 > fiches chaque élève a lues (statistiques), mais pas **lesquelles** : pas de liste
 > nominative « qui a lu tel tutoriel ».
-
-> ⚠️ **Point d'attention** — Le **contrôle de compréhension n'a pas encore d'écran de
-> rattachement** côté ForetMap : allumer l'interrupteur ne suffit pas, il faut relier des
-> questions aux tutoriels, et cette liaison ne se fait aujourd'hui que hors interface. En
-> pratique, le dispositif reste donc sans effet visible tant que ce rattachement n'existe
-> pas — l'élève valide ses lectures d'une simple case à cocher. (Le jeu Gnomes & Licornes,
-> lui, dispose de cet écran.)
 
 > ⚠️ **Point d'attention** — Le réglage _marquage automatique sur bonne réponse_ est un
 > **reliquat sans effet** : répondre juste à une question ne marque aucune ressource comme
