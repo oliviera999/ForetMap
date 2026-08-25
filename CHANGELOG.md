@@ -7,6 +7,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### OLU s'anime : ses vingt et un états, prêts à importer (lot 13)
+
+OLU n'avait pas de planche d'animation : il apparaissait en **silhouette dessinée**. Les dix-neuf
+planches manquantes ont été générées, découpées, et assemblées en une **archive importable** depuis
+l'onglet « Packs mascotte ». Une fois importée puis publiée, OLU s'anime partout où il apparaît.
+
+**Les vingt et un états sont couverts** — repos, marche, course, parole, désignation, joie, saut,
+célébration, tour sur soi, examen de carte, recherche, salut, mise en garde, surprise, gravité,
+affection, contrariété, sommeil, repas, danse. Aucun ne retombe plus sur `idle` faute d'images :
+c'était le cas de neuf d'entre eux.
+
+Le découpage se fait **par contenu et non par grille** — les modèles d'image alignent mal les cases
+d'une bande, et les dix-neuf planches ont été segmentées correctement du premier coup malgré des
+espacements inégaux. Deux points méritaient de l'attention :
+
+- **la ligne de sol est celle de la planche, pas celle du sujet** : caler chaque trame sur ses
+  propres pieds aurait aplati les sauts de `happy_jump`, `celebrate` et `dance` ;
+- **l'échelle est ramenée à une hauteur commune** planche par planche : OLU y sortait de 335 à
+  523 px de haut selon la planche, il aurait changé de taille en changeant d'humeur.
+
+Deux planches (`alert`, `surprise`) viennent d'une passe où le personnage a dérivé — le poitrail
+crème y disparaît. Elles sont livrées telles quelles et **signalées comme à régénérer** :
+`docs/MASCOT_OLU_PLANCHES_SPRITES.md` §5.5.
+
+Outils : `npm run mascot:olu-cut` (découpage), `npm run mascot:olu-pack` (archive).
+Prompts de génération : `docs/MASCOT_OLU_PROMPTS_A_COLLER.md`.
+
+
 ### Les boutons flottants ne se marchent plus dessus (lot 12)
 
 **Deux d'entre eux tombaient dans la barre de navigation du bas.** Côté Gnomes & Licornes,
