@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { FMQuizCatalogPanel } from './admin/FMQuizCatalogPanel.jsx';
 import { FMQuizQuestionEditorPanel } from './admin/FMQuizQuestionEditorPanel.jsx';
+import { FMLearningLinksPanel } from './admin/FMLearningLinksPanel.jsx';
 import { QuizView } from './QuizView.jsx';
 
 /**
@@ -32,6 +33,9 @@ export function QuizAdminView({
               initialQuestionCode={editorQuestionCode ?? initialQuestionCode}
               key={editorQuestionCode ?? initialQuestionCode ?? 'new'}
             />
+          </section>
+          <section className="pedago-quiz-admin__links">
+            <FMLearningLinksPanel />
           </section>
         </>
       ) : (

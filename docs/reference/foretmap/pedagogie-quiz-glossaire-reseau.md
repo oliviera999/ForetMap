@@ -32,7 +32,9 @@ d'observation** pour l'écriture naturaliste libre.
   photographié : l'afficher à l'élève donnerait la réponse. Ce qui accompagne l'image
   côté élève, c'est le **crédit et la licence**, affichés partout où la photo apparaît.
 - Les questions du Quiz servent aussi de **contrôle de compréhension** avant de valider
-  un tutoriel ou une fiche espèce, si le dispositif est activé : voir
+  un tutoriel ou une fiche espèce, si le dispositif est activé. L'écran « Rattacher des
+  questions aux tutoriels », sous l'éditeur, relie les deux — à la main ou par
+  rapprochement automatique des contenus : voir
   [Tâches, tutoriels et validation](taches-tutoriels-et-validation.md).
 
 ## Le Glossaire

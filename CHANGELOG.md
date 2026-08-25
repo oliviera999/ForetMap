@@ -27,6 +27,38 @@ Les packs `sprite_cut` déjà enregistrés valident **à l'identique**.
 puis le studio à liste unique où « réinitialiser depuis l'origine » remplace le masquage.
 
 
+### Les questions se rattachent enfin aux tutoriels, à la main ou toutes seules (lot 22)
+
+**Le contrôle de compréhension était injoignable.** Le serveur savait exiger des questions
+avant de valider la lecture d'un tutoriel — modes, seuils, délai après erreur — mais aucun
+écran ne permettait de relier une question à une fiche. Allumer l'interrupteur ne changeait
+donc rien : sans lien, la validation restait une simple case à cocher. Seul Gnomes & Licornes
+disposait de cet écran.
+
+**Nouvel écran professeur** « Rattacher des questions aux tutoriels », dans l'onglet Quiz,
+organisé par tutoriel. On y rattache une question (recherche par code ou par texte), on la
+rend bloquante ou non, on approuve ou rejette, et on fixe l'exigence propre à la fiche —
+jusqu'à la dispenser. La liste de gauche annonce, pour chaque tutoriel, le nombre de
+questions bloquantes et de propositions en attente.
+
+**Rattachement automatique par le contenu.** Un bouton compare le texte des questions et
+celui des tutoriels — énoncé, réponse rédigée, tags et explication d'un côté ; titre, résumé
+et corps de la fiche de l'autre — et propose les rapprochements trouvés, avec un pourcentage
+de confiance et les mots qui les ont motivés. Le moteur existant ne cherchait que le *titre*
+de la ressource dans l'énoncé : il convenait à un terme de glossaire, pas à un tutoriel
+(« Le compostage » n'apparaît pas dans « Que met-on dans le compost ? »).
+
+Deux garde-fous : le premier clic **ne fait que simuler** — rien n'est écrit tant que le
+professeur n'a pas confirmé —, et les propositions enregistrées arrivent en statut
+« proposé », donc **sans effet sur les élèves** avant approbation une par une.
+
+L'outil récupère au passage les **« questions liées »** saisies sur une fiche question depuis
+la mise en place du modèle unifié : elles n'avaient jamais été répercutées dans le
+conditionnement, la reprise initiale n'ayant eu lieu qu'une fois.
+
+Mesuré sur le catalogue réel (10 tutoriels, 131 questions actives) : 48 rattachements
+proposés, les mieux notés étant justes — compost → Compostage, mycorhize → Sol vivant,
+paillage → Eau au jardin, tomate et basilic → Associations de plantes.
 ### Audit du système de mascottes — pourquoi la mascotte importée n'apparaît pas (documentaire)
 
 Signalement : « la mascotte importée OLU n'est pas utilisable dans la carte ou les visites, j'ai
