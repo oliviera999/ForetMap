@@ -1,0 +1,132 @@
+{
+  "mascotPackVersion": 1,
+  "id": "olu-spritesheet",
+  "label": "OLU (planches d'animation)",
+  "renderer": "sprite_cut",
+  "framesBase": "/assets/mascots/olu-planches/frames/",
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "pixelated": false,
+  "displayScale": 1,
+  "fallbackSilhouette": "olu",
+  "stateFrames": {
+    "idle": {
+      "files": ["idle-0.png", "idle-1.png", "idle-2.png", "idle-3.png"],
+      "fps": 4
+    },
+    "walking": {
+      "files": [
+        "walking-0.png",
+        "walking-1.png",
+        "walking-2.png",
+        "walking-3.png",
+        "walking-4.png",
+        "walking-5.png"
+      ],
+      "fps": 10
+    },
+    "running": {
+      "files": [
+        "walking-0.png",
+        "walking-1.png",
+        "walking-2.png",
+        "walking-3.png",
+        "walking-4.png",
+        "walking-5.png"
+      ],
+      "fps": 14
+    },
+    "talk": {
+      "files": ["talk-0.png", "talk-1.png", "talk-2.png", "talk-3.png"],
+      "fps": 8
+    },
+    "point": {
+      "files": ["point-0.png", "point-1.png", "point-2.png", "point-3.png"],
+      "fps": 6
+    },
+    "happy": {
+      "files": ["happy-0.png", "happy-1.png", "happy-2.png", "happy-3.png", "happy-4.png"],
+      "fps": 10
+    },
+    "happy_jump": {
+      "files": [
+        "happy_jump-0.png",
+        "happy_jump-1.png",
+        "happy_jump-2.png",
+        "happy_jump-3.png",
+        "happy_jump-4.png"
+      ],
+      "fps": 10
+    },
+    "celebrate": {
+      "files": [
+        "celebrate-0.png",
+        "celebrate-1.png",
+        "celebrate-2.png",
+        "celebrate-3.png",
+        "celebrate-4.png",
+        "celebrate-5.png"
+      ],
+      "fps": 12
+    },
+    "spin": {
+      "files": ["spin-0.png", "spin-1.png", "spin-2.png", "spin-3.png", "spin-4.png", "spin-5.png"],
+      "fps": 12
+    },
+    "inspect": {
+      "files": ["inspect-0.png", "inspect-1.png", "inspect-2.png", "inspect-3.png"],
+      "fps": 3
+    },
+    "map_read": {
+      "files": ["inspect-0.png", "inspect-1.png", "inspect-2.png", "inspect-3.png"],
+      "fps": 3
+    },
+    "search": {
+      "files": ["search-0.png", "search-1.png", "search-2.png", "search-3.png", "search-4.png"],
+      "fps": 6
+    },
+    "wave": {
+      "files": ["wave-0.png", "wave-1.png", "wave-2.png", "wave-3.png", "wave-4.png", "wave-5.png"],
+      "fps": 8
+    },
+    "alert": {
+      "files": ["alert-0.png", "alert-1.png", "alert-2.png"],
+      "fps": 11
+    },
+    "surprise": {
+      "files": ["surprise-0.png", "surprise-1.png", "surprise-2.png"],
+      "fps": 9
+    },
+    "sad": {
+      "files": ["sad-0.png", "sad-1.png", "sad-2.png", "sad-3.png"],
+      "fps": 4
+    },
+    "love": {
+      "files": ["love-0.png", "love-1.png", "love-2.png", "love-3.png"],
+      "fps": 6
+    },
+    "angry": {
+      "files": ["angry-0.png", "angry-1.png", "angry-2.png", "angry-3.png"],
+      "fps": 8
+    },
+    "sleep": {
+      "files": ["sleep-0.png", "sleep-1.png", "sleep-2.png", "sleep-3.png"],
+      "fps": 3
+    },
+    "eat": {
+      "files": ["eat-0.png", "eat-1.png", "eat-2.png", "eat-3.png", "eat-4.png"],
+      "fps": 6
+    },
+    "dance": {
+      "files": [
+        "dance-0.png",
+        "dance-1.png",
+        "dance-2.png",
+        "dance-3.png",
+        "dance-4.png",
+        "dance-5.png"
+      ],
+      "fps": 10
+    }
+  }
+}

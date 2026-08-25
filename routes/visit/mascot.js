@@ -39,11 +39,14 @@ const {
   mascotPackAllowedFramesPrefixes,
   mapVisitMascotSpriteLibSqlError,
   buildVisitCatalogPackTemplate,
+  visitMascotCatalogModelInfo,
+  listVisitMascotCatalogModels,
 } = require('../../lib/visitMascotPackHelpers');
 const {
   parseMascotPackZipBuffer,
   buildMascotPackZipBuffer,
   buildVisitExportArchive,
+  buildCatalogExportArchive,
   analyzeVisitArchive,
   rewriteVisitPackForServerImport,
   slugifyArchiveFilename,
@@ -607,6 +610,78 @@ router.get('/mascot-packs/:id/export.zip', requirePermission('visit.manage'), as
     return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
   }
 });
+
+/**
+ * Fiches des **modèles catalogue** proposés au studio.
+ *
+ * `has_real_animation` distingue les quatre mascottes qui portent de vraies trames des douze qui
+ * retombent sur un modèle à image fixe. Sans cette information le studio propose les seize à
+ * égalité, et « cloner pour modifier » rend un figurant sans le dire.
+ */
+router.get('/mascot-catalog/models', requirePermission('visit.manage'), async (req, res) => {
+  try {
+    return res.json({
+      models: listVisitMascotCatalogModels().map((m) => ({
+        catalog_id: m.id,
+        label: m.label,
+        fallback_silhouette: m.fallbackSilhouette,
+        frame_count: m.frameCount,
+        has_real_animation: m.hasRealAnimation,
+      })),
+      // Masquer une mascotte du sélecteur écrit `ui.visit.mascot.allowed_ids`, réglage
+      // d'administration. Le studio tourne sous `visit.manage` : les deux permissions sont
+      // distinctes. On le dit au client plutôt que de lui laisser découvrir un 403 au clic —
+      // et surtout plutôt que d'ouvrir une route qui élargirait `visit.manage`.
+      can_manage_visibility: hasPermission(req.auth, 'admin.settings.write'),
+    });
+  } catch (err) {
+    logRouteError(err, req);
+    return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+  }
+});
+
+/**
+ * Archive ZIP d'un modèle catalogue, **sans passer par un pack serveur**.
+ *
+ * Jusqu'ici, exporter une mascotte livrée demandait de la cloner d'abord : on créait un pack pour
+ * le jeter aussitôt. Le modèle se suffit à lui-même — ses trames sont sous `public/assets/`.
+ */
+router.get(
+  '/mascot-catalog/:catalogId/export.zip',
+  requirePermission('visit.manage'),
+  async (req, res) => {
+    try {
+      const catalogId = String(req.params.catalogId || '').trim();
+      const modelInfo = visitMascotCatalogModelInfo(catalogId);
+      if (!modelInfo) {
+        return res.status(404).json({
+          error: 'Modèle catalogue inconnu',
+          allowed_catalog_ids: listVisitMascotCatalogTemplateIds(),
+          requestId: req.requestId || null,
+        });
+      }
+      const pack = buildVisitCatalogPackTemplate(catalogId, catalogId);
+      const built = buildCatalogExportArchive({ catalogId, pack, modelInfo });
+      const zipBuffer = buildMascotPackZipBuffer({
+        manifest: built.manifest,
+        pack: built.pack,
+        assetFiles: built.assetFiles,
+      });
+      const filename = `mascot-pack-${slugifyArchiveFilename(modelInfo.label)}.zip`;
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.send(zipBuffer);
+    } catch (err) {
+      logRouteError(err, req);
+      if (Number.isFinite(err?.status)) {
+        return res
+          .status(err.status)
+          .json({ error: err.message, requestId: req.requestId || null });
+      }
+      return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    }
+  },
+);
 
 router.post(
   '/mascot-packs/import/analyze',

@@ -531,6 +531,7 @@ const CATALOG_STATIC_FRAMES_BASE = {
   gnome1: '/assets/mascots/gnome1/frames/',
   'renard2-cut-spritesheet': '/assets/mascots/renard2-cut/frames/',
   'fox-backpack-spritesheet': '/assets/mascots/fox-backpack/cells/',
+  'olu-spritesheet': '/assets/mascots/olu-planches/frames/',
 };
 
 /**

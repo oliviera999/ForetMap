@@ -39,6 +39,7 @@ import {
 import { DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE } from '../utils/visitMascotInteractionEvents.js';
 import VisitMascotDialogEditor from './VisitMascotDialogEditor.jsx';
 import VisitMascotDialogStudioView from './VisitMascotDialogStudioView.jsx';
+import MascotCatalogModelsView from './mascot/MascotCatalogModelsView.jsx';
 import VisitMascotStudioPreviewSection from './mascot/VisitMascotStudioPreviewSection.jsx';
 import MascotPackListAside from './mascot/MascotPackListAside.jsx';
 import MascotPackImagesPanel from './mascot/MascotPackImagesPanel.jsx';
@@ -68,6 +69,7 @@ const RIGHT_TABS = [
 
 const STUDIO_MODES = [
   { id: 'packs', label: 'Packs' },
+  { id: 'livrees', label: 'Mascottes livrées' },
   { id: 'dialogues', label: 'Dialogues' },
 ];
 
@@ -853,6 +855,17 @@ export default function VisitMascotPackManager({
         <VisitMascotDialogStudioView
           onForceLogout={onForceLogout}
           catalogModelOptions={catalogModelOptions}
+        />
+      ) : studioMode === 'livrees' ? (
+        <MascotCatalogModelsView
+          onForceLogout={onForceLogout}
+          actionBusy={actionBusy}
+          onCloneModel={(id) => {
+            // Le clone s'ouvre dans l'éditeur, qui vit sous l'onglet « Packs » : rester ici
+            // laisserait croire que le clic n'a rien fait.
+            void openCatalogModelForEdit(id);
+            setStudioMode('packs');
+          }}
         />
       ) : (
         <div className="visit-mascot-pack-manager__layout">

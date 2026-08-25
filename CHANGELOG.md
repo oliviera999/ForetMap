@@ -7,6 +7,65 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Les mascottes livrées se gèrent depuis le studio (lot 14)
+
+Visualiser, modifier, exporter ou retirer une **mascotte livrée avec l'application** demandait
+jusqu'ici de savoir où chercher : un peu dans « Packs mascotte », un peu dans « Paramètres », et
+l'export imposait de cloner d'abord — créer un pack pour le jeter aussitôt.
+
+Un volet **Mascottes livrées** rassemble tout ça. Pour chaque mascotte : un aperçu, un bouton
+**Cloner pour modifier**, un bouton **Exporter ZIP** direct, et la case **« proposée aux
+visiteurs »**.
+
+**Le volet dit enfin la vérité sur ce qu'il propose.** Quatre des seize mascottes livrées portent
+une vraie animation ; les douze autres n'ont qu'une image fixe et s'affichent en silhouette. Un
+badge le signale, et l'archive d'un de ces modèles part avec son avertissement — plutôt que de
+laisser croire qu'on a exporté une animation.
+
+La case de visibilité écrit **le réglage qui existait déjà** (Paramètres → Mascottes de visite) :
+un seul réglage, deux endroits où le voir, aucune mécanique parallèle. Elle demande un rôle
+d'administration ; un professeur qui ne gère que les packs la voit grisée, avec l'explication.
+
+### Les mascottes livrées se clonent enfin avec leurs vraies animations (lot 13b)
+
+Le studio proposait de partir d'une **mascotte livrée avec l'application** comme modèle. Sauf que
+pour la plupart d'entre elles, la copie obtenue faisait pointer **les vingt et un états sur une
+seule et même image fixe**. On pouvait la cloner, on n'y voyait aucune animation, et l'exporter
+n'exportait que ce figurant.
+
+**OLU se clone désormais avec ses 88 vraies trames.** Le visualiser, le modifier ou l'exporter
+depuis le studio ne demande plus d'importer quoi que ce soit.
+
+**Gnome 1 réapparaît dans la liste des modèles.** L'application savait déjà le construire, mais il
+manquait de la liste : clonable par appel direct, introuvable dans le studio.
+
+### OLU s'anime : ses vingt et un états, prêts à importer (lot 13)
+
+OLU n'avait pas de planche d'animation : il apparaissait en **silhouette dessinée**. Les dix-neuf
+planches manquantes ont été générées, découpées, et assemblées en une **archive importable** depuis
+l'onglet « Packs mascotte ». Une fois importée puis publiée, OLU s'anime partout où il apparaît.
+
+**Les vingt et un états sont couverts** — repos, marche, course, parole, désignation, joie, saut,
+célébration, tour sur soi, examen de carte, recherche, salut, mise en garde, surprise, gravité,
+affection, contrariété, sommeil, repas, danse. Aucun ne retombe plus sur `idle` faute d'images :
+c'était le cas de neuf d'entre eux.
+
+Le découpage se fait **par contenu et non par grille** — les modèles d'image alignent mal les cases
+d'une bande, et les dix-neuf planches ont été segmentées correctement du premier coup malgré des
+espacements inégaux. Deux points méritaient de l'attention :
+
+- **la ligne de sol est celle de la planche, pas celle du sujet** : caler chaque trame sur ses
+  propres pieds aurait aplati les sauts de `happy_jump`, `celebrate` et `dance` ;
+- **l'échelle est ramenée à une hauteur commune** planche par planche : OLU y sortait de 335 à
+  523 px de haut selon la planche, il aurait changé de taille en changeant d'humeur.
+
+Deux planches (`alert`, `surprise`) viennent d'une passe où le personnage a dérivé — le poitrail
+crème y disparaît. Elles sont livrées telles quelles et **signalées comme à régénérer** :
+`docs/MASCOT_OLU_PLANCHES_SPRITES.md` §5.5.
+
+Outils : `npm run mascot:olu-cut` (découpage), `npm run mascot:olu-pack` (archive).
+Prompts de génération : `docs/MASCOT_OLU_PROMPTS_A_COLLER.md`.
+
 ### Doc — Audit UI : pourquoi les boutons de G&L paraissent d'un autre âge
 
 L'impression n'était pas subjective. Mesures faites dans Chromium sur du markup G&L réel :
