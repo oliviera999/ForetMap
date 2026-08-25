@@ -7,6 +7,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Le format de pack mascotte décrit les trois moteurs (fusion catalogue/packs, étape 1)
+
+Arbitrage rendu sur l'audit : c'est la piste radicale qui est suivie — **fusionner le catalogue
+livré et les packs en un registre unique**. Première étape, celle qui débloque tout le reste.
+
+Le format de pack ne savait décrire qu'un moteur sur trois. Or **onze** mascottes livrées sont en
+`rive` et **quatre** en `spritesheet` : tant que le format les ignorait, elles ne pouvaient pas
+devenir des packs, et le catalogue en code restait un univers parallèle — avec ses droits, son
+outillage et ses incohérences propres.
+
+Un pack peut désormais annoncer `sprite_cut`, `spritesheet` ou `rive`, et porter le bloc
+correspondant. **Un pack en décrit un seul** : porter les champs d'un autre est refusé, avec le
+champ nommé, plutôt qu'arbitré en silence — un pack à moitié converti ne doit pas passer.
+
+Les packs `sprite_cut` déjà enregistrés valident **à l'identique**.
+
+Étapes suivantes, à livrer séparément : le semis des mascottes livrées dans la table (migration),
+puis le studio à liste unique où « réinitialiser depuis l'origine » remplace le masquage.
+
+
 ### Audit du système de mascottes — pourquoi la mascotte importée n'apparaît pas (documentaire)
 
 Signalement : « la mascotte importée OLU n'est pas utilisable dans la carte ou les visites, j'ai

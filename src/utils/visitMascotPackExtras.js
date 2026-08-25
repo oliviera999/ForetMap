@@ -1,5 +1,5 @@
 import { validateMascotPackV1 } from './mascotPack.js';
-import { buildSpriteCutCatalogEntry } from '../shared/mascot-pack/spriteCutCatalogEntry.js';
+import { buildMascotCatalogEntry } from '../shared/mascot-pack/spriteCutCatalogEntry.js';
 
 /**
  * Une entrée catalogue visite à partir d’un pack déjà validé (studio / aperçu live).
@@ -13,11 +13,15 @@ export function buildVisitMascotCatalogExtraFromValidated(validated, catalogId, 
   if (!id) return null;
   const ver = Number(validated.pack.mascotPackVersion) === 2 ? 2 : 1;
   // Profils d'interaction/dialogue : réservés aux packs v2 (un pack v1 n'en porte pas).
-  return buildSpriteCutCatalogEntry({
+  // `renderer`/`animation` plutôt que `spriteCut` : un pack peut désormais décrire les trois
+  // moteurs, et n'en poser qu'un — se limiter à `spriteCut` rendrait `null` pour les deux autres,
+  // donc une mascotte publiée qui n'arrive jamais au sélecteur, sans message.
+  return buildMascotCatalogEntry({
     id,
+    renderer: validated.renderer || validated.pack.renderer,
+    animation: validated.animation ?? validated.spriteCut,
     label: label || validated.pack.label || id,
     fallbackSilhouette: validated.pack.fallbackSilhouette,
-    spriteCut: validated.spriteCut,
     interactionProfile: ver === 2 ? validated.pack.interactionProfile : null,
     dialogProfile: ver === 2 ? validated.pack.dialogProfile : null,
     customStates: validated.pack.customStates,
