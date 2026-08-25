@@ -40,11 +40,14 @@ la gestion de son capital réellement intéressante.
   jour où vous fixez le plafond à 5 **ne perd pas 4 cœurs**. Il ne peut simplement plus
   monter ; son solde ne redescend que par ses propres dépenses. Une sanction rétroactive
   et invisible serait incompréhensible pour un élève de 6ème — le jeu ne le fait pas.
-- **Le plafond s'applique au jeu, pas au MJ.** Les effets de cases, les récompenses de
-  feuillets et les échanges du Marché le respectent (sans quoi le Marché serait le
-  contournement évident : « donne-moi tes cœurs, je suis au maximum »). Un **ajustement
-  manuel du MJ** reste souverain : vous pouvez toujours accorder un dépassement
-  exceptionnel.
+- **Le plafond s'applique au jeu, pas au MJ.** Les effets de cases et les
+  récompenses de feuillets le respectent (un gain qui ferait dépasser est tout
+  simplement ignoré : rien n'est pris à personne). Sur le **Marché**, un échange
+  qui ferait dépasser le plafond d'un des deux joueurs est **refusé** — personne
+  ne perd rien, personne n'en gagne. Sans cela, le Marché serait le contournement
+  évident (« donne-moi tes cœurs, je suis au maximum ») _ou_ ferait disparaître
+  la monnaie du donneur. Un **ajustement manuel du MJ** reste souverain : vous
+  pouvez toujours accorder un dépassement exceptionnel.
 
 **Le triple rôle, assumé** : les mêmes points servent de jauge de vie/pouvoir, de
 monnaie d'échange et de récompense. C'est voulu — un seul système simple plutôt que
@@ -90,6 +93,9 @@ notamment par la résolution d'actions — il ne se confond pas avec la vitalit�
   - Si l'équipe du camarade **a déjà** ce feuillet, elle **garde le sien** : la copie ne
     l'efface pas davantage, et une découverte faite sur la carte ne se transforme pas en
     simple échange.
+  - Si **un joueur** de cette équipe a déjà le feuillet dans **son** carnet (trouvé lors
+    d'un chapitre précédent, ou dans une autre équipe), l'échange n'efface pas davantage
+    sa copie personnelle. Il offre une lecture à ses camarades qui ne l'avaient pas.
   - Le receveur doit **participer à une partie en cours** : sans équipe active, l'échange
     est refusé avec un message explicite (le feuillet n'aurait nulle part où atterrir).
   - Réglage **« Feuillets échangeables sur le Marché »** (actif par défaut, nécessite le
@@ -100,7 +106,9 @@ notamment par la résolution d'actions — il ne se confond pas avec la vitalit�
   et l'échange n'aboutit que lorsque **les deux ont coché « J'accepte »**.
 - Sous chaque champ, le joueur voit ce qu'il lui restera après l'échange ; à la
   finalisation, le serveur vérifie les soldes (un échange impossible est refusé avec
-  un message de solde insuffisant).
+  un message de solde insuffisant). Si un plafond de cœurs ou de gemmes est en
+  vigueur, un échange qui ferait dépasser ce plafond chez l'un des deux est
+  **refusé de la même façon** : rien n'est transféré.
 - Le Marché est un **module** à activer — et il exige que la **vitalité** soit active
   aussi : les réglages l'indiquent désormais clairement, avec un bouton pour activer
   les deux d'un coup.
@@ -240,7 +248,10 @@ avaient déjà la valeur demandée, ils sont comptés à part — ce n'est pas u
 
 Selon les réglages, la consultation ou l'« effacement » d'un feuillet peut **coûter des
 gemmes**, et certaines découvertes **rapportent des cœurs** — c'est le troisième
-circuit de l'économie, qui relie la lecture du lore à la vitalité.
+circuit de l'économie, qui relie la lecture du lore à la vitalité. Par défaut, une
+équipe n'encaisse cette récompense **qu'une fois** par feuillet : deux élèves qui
+découvrent le même feuillet au même instant ne doublent ni les cœurs ni la dépense
+de gemmes.
 
 ## ⚠️ Points d'attention
 

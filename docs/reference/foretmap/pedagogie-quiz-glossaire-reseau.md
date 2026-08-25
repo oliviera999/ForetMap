@@ -14,7 +14,9 @@ d'observation** pour l'écriture naturaliste libre.
 ## Le Quiz
 
 - **L'élève** répond à des questions à choix multiples depuis son onglet Quiz ; il voit
-  immédiatement si sa réponse est juste et progresse à son rythme.
+  immédiatement si sa réponse est juste et progresse à son rythme. **Chaque question
+  présentée n'autorise qu'un essai** : un second choix sur la même présentation est
+  refusé, il faut en relancer une (les propositions sont alors remélangées).
 - **Le professeur** administre le catalogue de questions : création, édition,
   activation. Les questions peuvent être reliées aux termes du glossaire, ce qui aide
   l'élève à réviser le vocabulaire au passage.

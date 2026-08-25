@@ -213,6 +213,57 @@ test('jets de dés simultanés : un seul consomme le tour', async () => {
   assert.strictEqual(events.length, 1, 'un seul événement dice_roll pour ce tour');
 });
 
+test('présentations simultanées d’un feuillet (carnet) : une seule crédite l’équipe', async () => {
+  const feuilletCode = `concu-present-${stamp}`;
+  await execute(
+    `INSERT INTO gl_lore_feuillets (
+       feuillet_code, type, titre, ordre_voyage, statut,
+       cout_gemme, gain_coeur, created_at, updated_at
+     ) VALUES (?, 'feuillet', 'Feuillet concurrence', 1, 'actif', 0, 1, NOW(), NOW())`,
+    [feuilletCode],
+  );
+
+  const before = await queryOne('SELECT health_points FROM gl_players WHERE id = ? LIMIT 1', [
+    playerId,
+  ]);
+
+  const fire = () =>
+    request(app)
+      .post(`/api/gl/lore/games/${gameId}/feuillets/${feuilletCode}/present`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ teamId });
+  const results = await Promise.all([fire(), fire()]);
+
+  assert.deepStrictEqual(
+    statusesOf(results),
+    [200, 409],
+    'une seule découverte doit aboutir ; la seconde voit le journal sous verrou',
+  );
+
+  const after = await queryOne('SELECT health_points FROM gl_players WHERE id = ? LIMIT 1', [
+    playerId,
+  ]);
+  assert.strictEqual(
+    Number(after.health_points),
+    Number(before.health_points) + 1,
+    'le cœur du feuillet ne doit être encaissé qu’une fois',
+  );
+
+  const events = await queryAll(
+    `SELECT payload_json FROM gl_game_events
+      WHERE game_id = ? AND team_id = ? AND event_type = 'feuillet_discovered'`,
+    [gameId, teamId],
+  );
+  const forCode = events.filter((evt) => {
+    try {
+      return String(JSON.parse(evt.payload_json || '{}').feuilletCode || '') === feuilletCode;
+    } catch (_) {
+      return false;
+    }
+  });
+  assert.strictEqual(forCode.length, 1, 'un seul événement feuillet_discovered pour ce code');
+});
+
 test('présentations simultanées d’une zone feuillet : une seule aboutit', async () => {
   const fire = () =>
     request(app)
