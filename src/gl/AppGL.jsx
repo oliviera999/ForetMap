@@ -65,6 +65,7 @@ const GLJournalView = lazy(() =>
 const GLPlayerJournalView = lazy(() =>
   import('./components/GLPlayerJournalView.jsx').then((m) => ({ default: m.GLPlayerJournalView })),
 );
+import { FloatingDock } from '../shared/components/FloatingDock.jsx';
 import { GLNotificationsCenter } from './components/GLNotificationsCenter.jsx';
 import { GLButton } from './components/ui/GLButton.jsx';
 import { GLAppBanners } from './components/GLAppBanners.jsx';
@@ -994,17 +995,6 @@ export function AppGL() {
                       onNavigateTab={handleNavigateFromImport}
                     />
                   )}
-                  {isModuleEnabled(modules, 'helpEnabled') && tab !== 'my-journal' ? (
-                    <GLHelpDock tab={tab} isStaff={showStaffAdminUi} />
-                  ) : null}
-                  {isModuleEnabled(modules, 'notificationsEnabled') && !isGuest ? (
-                    <GLNotificationsCenter
-                      items={notifications.items}
-                      unreadCount={notifications.unreadCount}
-                      onMarkAllRead={notifications.markAllRead}
-                      onClear={notifications.clear}
-                    />
-                  ) : null}
                 </Suspense>
               </div>
             </main>
@@ -1108,15 +1098,36 @@ export function AppGL() {
               introActive={chapterPlateauNumber == null && Boolean(gameState?.game)}
               biomeSlug={chapterMusicBiomeSlug}
             />
-            {zoneMusicEnabled && zoneMusicRuntimeActive && tab !== 'maps' && musicActiveZone ? (
-              <div className="gl-zone-music-global-dock" aria-hidden>
+            {/*
+             * Les commandes flottantes du coin bas-droit tiennent dans **un seul**
+             * empilement : leur ordre et leur espacement viennent du flex, plus d'un
+             * `bottom` choisi par chacune. Voir `src/shared/styles/floating-dock.css`.
+             *
+             * L'ordre du bas vers le haut suit celui que les joueurs connaissent déjà —
+             * la cloche au plus près du pouce, la musique au-dessus. Le « ? », qui vivait
+             * jusqu'ici en fin de contenu et changeait donc de place selon la longueur de
+             * l'onglet, prend le cran resté libre.
+             */}
+            <FloatingDock label="Commandes rapides">
+              {isModuleEnabled(modules, 'notificationsEnabled') && !isGuest ? (
+                <GLNotificationsCenter
+                  items={notifications.items}
+                  unreadCount={notifications.unreadCount}
+                  onMarkAllRead={notifications.markAllRead}
+                  onClear={notifications.clear}
+                />
+              ) : null}
+              {zoneMusicEnabled && zoneMusicRuntimeActive && tab !== 'maps' && musicActiveZone ? (
                 <GLZoneMusicMuteButton
                   visible
                   muted={zoneMusicMuted}
                   onToggle={handleZoneMusicToggle}
                 />
-              </div>
-            ) : null}
+              ) : null}
+              {isModuleEnabled(modules, 'helpEnabled') && tab !== 'my-journal' ? (
+                <GLHelpDock tab={tab} isStaff={showStaffAdminUi} />
+              ) : null}
+            </FloatingDock>
           </div>
         </GLTourProvider>
       </GLMascotCatalogProvider>
