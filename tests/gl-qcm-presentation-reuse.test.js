@@ -86,6 +86,8 @@ before(async () => {
      VALUES (?, ?, ?, NOW())`,
     [gameId, teamId, player.id],
   );
+  // L'équipe est posée sur le repère : present-question côté joueur exige d'y être (anti-farm).
+  await execute('UPDATE gl_teams SET position_marker_id = ? WHERE id = ?', [markerId, teamId]);
 
   const tokens = await signTokens({
     adminId: admin.id,

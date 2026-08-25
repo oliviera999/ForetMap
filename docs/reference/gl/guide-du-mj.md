@@ -24,8 +24,12 @@
 
 ## Pendant la séance — la console MJ
 
-- **Les tours** : passer au tour suivant fait tourner les équipes (et restreint QCM,
-  actions et sorts à l'équipe active si les tours sont activés).
+- **Les tours** : passer au tour suivant ouvre un nouveau round où **toutes les équipes
+  rejouent** — le moteur ne désigne pas d'équipe « au trait ». Le tour réarme seulement ce
+  que chaque équipe peut faire une fois par tour (déplacement, lancer de dé) ; l'alternance
+  stricte entre équipes reste une convention d'animation que vous tenez. Les **sortilèges ne
+  sont pas liés au tour** : ce qui les régule, c'est la validation du MJ (voir
+  [l'économie](economie-marche-sorts.md)).
 - **Les déplacements** : selon le réglage, le MJ déplace les mascottes ou laisse la
   main aux joueurs. À l'arrivée sur un repère, les effets s'appliquent — parfois
   différemment pour un gnome et une licorne : c'est le moment de la phrase-clé,
@@ -139,6 +143,17 @@ prévoit une.
 > Les visites sont **désactivées pour les invités** : leur passage est éphémère, leur
 > imposer un parcours à chaque venue serait une porte qui claque. Elles suivent aussi
 > l'interrupteur du module d'aide : éteindre l'aide éteint les visites.
+
+## Les boutons en pictogramme s'expliquent au survol
+
+Les commandes qui n'affichent qu'une icône — les dés, la musique, le plein écran, le
+« ? », la cloche de notifications — montrent leur libellé quand on les survole, qu'on
+les atteint au clavier, ou qu'on garde le doigt dessus sur tablette. Ce n'est plus
+l'infobulle du navigateur : elle mettait une à deux secondes, ne réagissait pas au
+clavier, et n'apparaissait jamais au toucher.
+
+Les boutons qui affichent déjà leur libellé n'en reçoivent pas : ils n'ont rien de plus
+à dire.
 
 ## À la première connexion, OLU se présente
 

@@ -1,5 +1,7 @@
 import React, { forwardRef } from 'react';
 
+import { Tooltip } from '../../shared/components/Tooltip.jsx';
+
 function joinClassNames(...parts) {
   return parts.filter(Boolean).join(' ');
 }
@@ -7,6 +9,15 @@ function joinClassNames(...parts) {
 /**
  * Bouton d'action superposé à la carte plateau GL.
  * Rôles : primary (gameplay), display (plein écran), tool (dés, musique).
+ *
+ * **Point de passage unique des commandes en icône seule du plateau** — dés, musique,
+ * plein écran, actions de tour. C'est pourquoi l'infobulle se pose ici et pas sur
+ * chaque appelant : une commande qui n'affiche qu'un pictogramme est indéchiffrable
+ * pour qui la découvre.
+ *
+ * Elle remplace l'attribut `title` **sur ces boutons-là seulement** : l'infobulle
+ * native met une à deux secondes à venir, ne s'affiche pas à la prise de focus clavier,
+ * et jamais au toucher. Les deux ne coexistent pas — elles se superposeraient.
  */
 export const GLBoardActionButton = forwardRef(function GLBoardActionButton(
   {
@@ -30,7 +41,7 @@ export const GLBoardActionButton = forwardRef(function GLBoardActionButton(
 ) {
   const roleClass = `gl-board-action--${role}`;
   const hasIcon = icon != null;
-  // Boutons du plateau : icône seule (le libellé reste en title/aria pour l'accessibilité).
+  // Boutons du plateau : icône seule — le libellé passe par l’infobulle et `aria-label`.
   const iconOnly = hasIcon && children == null;
   const stateClasses = [
     active ? 'is-active' : '',
@@ -38,13 +49,16 @@ export const GLBoardActionButton = forwardRef(function GLBoardActionButton(
     iconOnly ? 'gl-board-action--icon-only' : '',
   ].filter(Boolean);
 
-  return (
+  const hint = title ?? label;
+
+  const button = (
     <button
       ref={ref}
       type="button"
       className={joinClassNames('gl-board-action', roleClass, ...stateClasses, className)}
       data-testid={testId}
-      title={title ?? label}
+      // Le `title` natif ne subsiste que là où l'infobulle ne prend pas le relais.
+      title={iconOnly ? undefined : hint}
       aria-label={ariaLabel ?? label}
       aria-expanded={ariaExpanded}
       aria-pressed={ariaPressed}
@@ -77,5 +91,14 @@ export const GLBoardActionButton = forwardRef(function GLBoardActionButton(
           </>
         ))}
     </button>
+  );
+
+  // Un bouton qui porte son libellé n'a rien à expliquer de plus : pas d'enrobage,
+  // donc pas de nœud supplémentaire dans une barre d'outils déjà dense.
+  if (!iconOnly || !hint) return button;
+  return (
+    <Tooltip text={hint} position="top">
+      {button}
+    </Tooltip>
   );
 });

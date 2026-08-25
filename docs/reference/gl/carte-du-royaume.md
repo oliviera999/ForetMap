@@ -33,9 +33,11 @@ avance. Chaque chapitre (chaque biome) a sa propre carte.
 ## Qui déplace les mascottes
 
 C'est un **réglage de gameplay** : soit les joueurs déplacent eux-mêmes leur mascotte,
-soit le MJ garde la main (mode animation). Avec les **tours** activés, seule l'équipe
-dont c'est le tour agit. Un réglage optionnel déplace automatiquement la mascotte
-lorsqu'un effet de repère l'exige.
+soit le MJ garde la main (mode animation). Avec les **tours** activés, chaque « tour
+suivant » ouvre un round où **toutes les équipes rejouent** (le moteur ne désigne pas
+d'équipe « au trait ») ; le tour réarme simplement le quota par tour — un déplacement et
+un lancer de dé par équipe. Un réglage optionnel déplace automatiquement la mascotte
+lorsqu'un effet de repère l'exige (parcours numéroté).
 
 ## Ce que règle et construit le MJ/admin
 
@@ -49,6 +51,36 @@ lorsqu'un effet de repère l'exige.
   étiquette, emoji).
 - **L'import en masse** : chapitres, repères et zones s'importent depuis un tableur
   pour préparer un plateau complet hors de l'écran.
+
+## Vérifier qu'un plateau tient ses promesses
+
+Chaque repère porte **deux choses distinctes** qui se ressemblent beaucoup :
+
+1. un **texte d'effet** (« Bonne réponse : +1 gemme », « Avance de 2 cases ») — c'est ce
+   que l'élève **lit** ;
+2. des **effets machine** (cœurs, gemmes, déplacement, passe-ton-tour) — c'est ce que le
+   jeu **applique**.
+
+Rien ne relie automatiquement les deux : on peut écrire une promesse dans le texte sans
+la câbler dans les effets, et l'application ne signalera aucune erreur. L'élève lit
+« +1 gemme », son compteur ne bouge pas, et personne ne s'en aperçoit. Pour une classe
+de 6ème, c'est le pire des cas : une règle affichée qui ne s'applique pas apprend que le
+jeu n'est pas fiable.
+
+Le **contrôle de cohérence des plateaux** compare les deux et liste les écarts, par
+chapitre et par repère. Il ne corrige rien : il vous montre où le texte et le moteur
+divergent, à vous de décider — câbler l'effet, ou retirer la promesse du texte.
+
+Quatre types d'écart :
+
+- **Promesse conditionnelle non câblée** — la case annonce un gain qui dépend d'une
+  issue (« Bonne réponse : +1 gemme », « Si réussi : +1 gemme, sinon −1 cœur », « la
+  première équipe arrivée gagne 3 gemmes »). Le jeu ne sait pas exprimer ce genre de
+  condition : ses effets se déclinent en neutre / gnome / licorne, jamais en
+  bonne réponse / mauvaise réponse. **Rien ne sera appliqué**, quoi qu'il arrive.
+- **Promesse non tenue** — la case annonce un effet simple, le moteur n'applique rien.
+- **Promesse divergente** — la case annonce un montant, le moteur en applique un autre.
+- **Effet non annoncé** — le moteur agit sans que rien ne l'explique à l'élève.
 
 ## ⚠️ Points d'attention
 

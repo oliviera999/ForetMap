@@ -29,12 +29,13 @@ Le jeu se déroule chapitre par chapitre : **un chapitre correspond à un biome*
 carte (le « plateau » ou « carte du royaume »), ses zones, ses espèces, ses questions et
 ses feuillets du carnet de Sélène à redécouvrir.
 
-> ⚠️ **Point d'attention** — Le titre « Gnomes & Licornes » est surtout un habillage
-> merveilleux : il n'existe pas, dans le contenu actuel, de récit mettant vraiment en
-> scène des gnomes, des licornes ou un royaume. Le fond du jeu est écologique (Sélène,
-> les biomes, l'effacement des noms du vivant). Ce décalage entre le nom du jeu et son
-> contenu mérite d'être assumé ou corrigé (enrichir le lore, ou expliquer l'habillage
-> aux professeurs).
+> ⚠️ **Point d'attention** — Le fond du jeu reste écologique (Sélène, les biomes,
+> l'effacement des noms du vivant). Le récit merveilleux existe désormais — le corpus
+> **« Les deux peuples du seuil »** met en scène gnomes et licornes et articule le
+> changement de forme aux seuils de biome (voir
+> [lore-deux-peuples.md](lore-deux-peuples.md)) ; il **reste à mettre en scène dans les
+> contenus** du jeu (édition MJ/admin). Là où ce peuplement n'est pas fait, expliquer
+> l'habillage aux professeurs.
 
 ## Qui utilise le jeu ? Les quatre rôles
 

@@ -18,6 +18,108 @@ page « mangée » dans une nouvelle partie, voyait son carnet s'obscurcir.
 L'instantané personnel garde désormais le moins effacé, comme la lecture du carnet le
 faisait déjà. Les camarades qui n'avaient pas le feuillet reçoivent bien la copie.
 
+### Les filtres de tâches libèrent le haut de l'écran sur téléphone (lot 12)
+
+**Sur smartphone, l'écran Tâches n'affichait pas de tâche.** Les sept contrôles de la
+barre de filtres — mode d'affichage, carte, recherche, lieu, projet, catégorie, statut,
+plus le groupe côté professeur — passaient chacun en pleine largeur : **331 px** mesurés
+sur un écran de 390 px de large, soit deux tiers de la hauteur utile. Avec le titre, le
+sous-titre et le bandeau de missions actives, la première tâche commençait sous la ligne
+de flottaison.
+
+La barre tient désormais sur **une seule ligne** : recherche, bouton « ⚙️ Filtres » et
+choix d'affichage en pictogrammes. Les filtres eux-mêmes s'ouvrent dans un panneau — sous
+la barre sur ordinateur, en feuille refermable sur « Voir les N tâches » sur téléphone.
+**Aucun filtre n'a été retiré** ; ils sont rangés, et le bouton porte le compte de ceux
+qui sont posés.
+
+Ce compte se lit aussi sous la barre, en étiquettes : « Lieu : 🐝 Ruche », « Statut :
+Terminée ». Un appui les retire une à une, « Tout effacer » d'un coup — de quoi
+comprendre enfin pourquoi une liste paraît vide.
+
+Le haut de page a maigri en conséquence : sur écran étroit, le sous-titre et le bandeau
+de missions actives passent en version courte (le texte complet reste sur grand écran).
+Et sans préférence enregistrée, un téléphone démarre en affichage **condensé**, une ligne
+par tâche. Bilan sur un écran de 390 × 844 : **58 px de filtres au lieu de 331**, et
+quatre tâches lisibles sans faire défiler la page, contre une seule auparavant.
+
+### Les commandes GL en icône seule s'expliquent enfin (lot 11)
+
+**GL n'avait aucune infobulle.** Ses boutons en pictogramme — les dés, la musique, le
+plein écran, le « ? », la cloche — comptaient sur l'infobulle du navigateur : une à deux
+secondes d'attente, rien à la prise de focus au clavier, **rien du tout au doigt**.
+
+ForetMap avait déjà le bon composant. Il n'avait rien de propre à ForetMap : il rejoint
+le socle partagé et sert désormais les deux produits, avec les couleurs du royaume côté
+GL. Ouverture temporisée au survol, immédiate au focus clavier, appui long sur écran
+tactile, et retournement quand la bulle déborderait de la fenêtre.
+
+Un bouton qui affiche déjà son libellé n'en reçoit pas : il n'a rien à expliquer.
+
+**Une visite guidée perdait sa dernière bulle sur le premier onglet ouvert.** En
+verrouillant tout cela par des tests, une course est apparue : le bouton « ? » n'est
+affiché qu'une fois l'aide reçue du serveur, alors que la visite démarre 650 ms après
+l'affichage de l'onglet. Sur un premier onglet à froid, la bulle finale — celle qui
+montre où retrouver OLU — disparaissait sans un mot, et l'onglet étant compté comme vu,
+elle ne revenait plus. La visite attend désormais que l'aide soit là.
+### Correctifs d'audit sans arbitrage (sécurité, BDD, a11y, docs)
+
+Suite de l'audit général (`docs/AUDIT_GENERAL_2026-08.md`), les correctifs qui ne
+demandaient aucune décision de conception :
+
+- **Sécurité & intégrité GL** : rate-limit sur les endpoints prof forgot/reset-password ;
+  `/api/site-issues` réservé à `admin.settings.read` ; jeton de présentation QCM
+  d'entraînement à usage unique (fin du brute-force des réponses, migration `197`) ;
+  `present-question` exige que le joueur soit sur le repère (anti-farm) ; validation des
+  coordonnées de repères ; `connectTimeout` sur le pool MySQL.
+- **Intégrité base de données** : inscription de groupe aux tâches sous verrou
+  (`FOR UPDATE`, plus de dépassement de capacité en concurrence) ; suppressions de tâche
+  et de groupe transactionnelles ; détachement (`NULL`) des `group_id` orphelins ;
+  suppression de joueur GL transactionnelle + purge des jetons + `409` explicite sur FK
+  RESTRICT ; `FOREIGN_KEY_CHECKS` réarmé après `initSchema`.
+- **Accessibilité** : contrastes des textes secondaires conformes WCAG AA ;
+  `aria-current` sur l'onglet actif ; zones de la carte accessibles au clavier.
+- **Documentation de référence** : contradiction sur les « tours » levée, encadré « pas
+  de lore » actualisé, dé virtuel documenté, renvois et terminologie corrigés.
+### Le jeu tenait des promesses qu'il n'appliquait pas (audit des mécaniques G&L)
+
+**Aucun élève n'a jamais gagné un cœur ni une gemme en jouant.** Les quatre parties
+réelles de juin 2026 ont produit 483 événements : douze effets de case, tous à
+`healthDelta: 0` et `powerDelta: 0`, quinze réponses de QCM, zéro gemme créditée. Les
+seuls mouvements de vitalité du corpus sont sept ajustements manuels du MJ. Les compteurs
+sont décoratifs — ce qui invalide au passage le diagnostic d'économie inflationniste sur
+lequel reposait la refonte prévue : le jeu n'est pas déséquilibré, il est inerte.
+
+La cause est une divergence silencieuse. Chaque case porte deux champs indépendants : un
+texte d'effet, que l'élève lit, et une configuration machine, seule exécutée. Rien ne les
+relie et aucune erreur n'est levée quand ils s'écartent. **103 des 217 cases (47 %)
+annoncent un effet que le moteur n'applique pas** : 96 promesses conditionnelles
+(« Bonne réponse : +1 gemme ») que le moteur ne sait pas exprimer — ses branches sont
+neutre/gnome/licorne, jamais bonne/mauvaise réponse — et 7 « Passe ton tour » sans effet.
+Un contrôle de cohérence les liste désormais par chapitre et par repère
+(`GET /api/gl/admin/plateaux/coherence`). Il ne corrige rien : câbler l'effet ou retirer
+la promesse est une décision de conception, pas une réparation mécanique.
+
+**Un avantage scolaire ne s'achète plus au comptant.** Le réglage global d'approbation des
+sortilèges vaut `per_spell`, et les 31 sorts étaient en `auto` : *Consécration*, qui vaut
+un « vert + » au bulletin, partait donc sans qu'aucun adulte soit consulté, dès qu'un élève
+réunissait huit gemmes. Les cinq sortilèges à effet scolaire réel — Esquive, Révélation,
+Mentorat, Annulation, Consécration — exigent maintenant une validation du MJ. Les coûts
+sont inchangés, aucun sort n'est supprimé, et les sortilèges fictionnels restent en
+lancement libre.
+
+**Un plafond de vitalité réglable** (« Cœurs maximum », « Gemmes maximum », 0 à 99) permet
+de rendre les cœurs de nouveau rares — sans quoi les sortilèges de soin répondent à une
+pénurie qui n'existe pas. La valeur par défaut est 0, soit aucun plafond : rien ne change
+tant qu'elle n'est pas fixée. Deux règles le gouvernent : il **bloque les gains sans jamais
+confisquer** un solde déjà supérieur (un élève à 9 cœurs le jour où le plafond passe à 5
+n'en perd aucun), et il s'applique aux cases, aux feuillets et au Marché — sans quoi le
+Marché serait le contournement évident — mais laisse souverain l'ajustement manuel du MJ.
+
+L'audit complet et les options de finition, pensées pour une classe de 6ème, sont dans
+[docs/reference/gl/audit-mecaniques-2026-08.md](docs/reference/gl/audit-mecaniques-2026-08.md).
+
+
 ### Les visites guidées GL atteignent enfin les écrans où l'on arrive (lot 10)
 
 **Quatre des douze visites du lot 9 ne pouvaient pas se déclencher.** La navigation GL

@@ -8,6 +8,7 @@ import {
   GL_SHARED_STEP_KEYS,
   GL_WELCOME_TOUR_KEY,
 } from '../constants/glDiscoveryTour.js';
+import { useGlHelpReady } from '../hooks/useGlHelpContent.js';
 import { useGlNarrator } from '../hooks/useGlNarrator.js';
 import { useGlTourOverrides } from '../hooks/useGlTourOverrides.js';
 
@@ -44,6 +45,12 @@ export function GLTourProvider({ tab, isStaff = false, enabled = false, children
     [isStaff, overrides],
   );
   const tour = useGuidedTour({ getSteps, storageKey: GL_SEEN_STORAGE_KEY });
+  /*
+   * L'étape de relance de **tous** les parcours vise le bouton « ? », qui n'est rendu
+   * qu'une fois l'aide chargée. Démarrer avant, c'est perdre cette bulle sans erreur ni
+   * trace — et l'onglet étant alors marqué vu, la perte est définitive.
+   */
+  const helpReady = useGlHelpReady();
   const { startTour, hasSeenTour, isActive } = tour;
   const timerRef = useRef(0);
 
@@ -64,7 +71,7 @@ export function GLTourProvider({ tab, isStaff = false, enabled = false, children
    */
   useEffect(() => {
     clearTimeout(timerRef.current);
-    if (!enabled || !tab) return undefined;
+    if (!enabled || !tab || !helpReady) return undefined;
     if (isActive) return undefined;
     const target = hasSeenTour(GL_WELCOME_TOUR_KEY) ? tab : GL_WELCOME_TOUR_KEY;
     if (hasSeenTour(target)) return undefined;
@@ -72,7 +79,7 @@ export function GLTourProvider({ tab, isStaff = false, enabled = false, children
       startTour(target);
     }, AUTO_START_DELAY_MS);
     return () => clearTimeout(timerRef.current);
-  }, [tab, enabled, isActive, hasSeenTour, startTour]);
+  }, [tab, enabled, helpReady, isActive, hasSeenTour, startTour]);
 
   const value = useMemo(
     () => ({
