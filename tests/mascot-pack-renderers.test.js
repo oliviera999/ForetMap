@@ -158,6 +158,34 @@ test('l’entrée catalogue loge la config sous la clé que lit le renderer', as
   assert.equal(buildMascotCatalogEntry({ id: 'x', renderer: 'rive', animation: null }), null);
 });
 
+test('framesBase ne concerne que sprite_cut — aller-retour serveur', async () => {
+  // Deux défauts qui se cumulaient, et que seul le chemin **serveur** (`relax = false`)
+  // révélait :
+  //
+  // 1. `framesBase` était normalisé pour tous les moteurs. Un pack `rive` n'en a pas ;
+  //    `normalizeFramesBase(undefined)` rendait `'/'`, qui ne commence par aucun préfixe
+  //    autorisé — quinze des seize mascottes livrées devenaient **inenregistrables**, refusées
+  //    au nom d'un champ qu'elles n'ont pas.
+  // 2. Ce `framesBase: '/'` fantôme était **écrit dans la ligne**. La relecture le refusait
+  //    ensuite comme « champ réservé aux packs sprite_cut » : une ligne qu'on ne peut plus
+  //    rouvrir.
+  const { parseMascotPack } = await mod();
+  const prefixes = { allowedFramesBasePrefixes: ['/assets/mascots/'] };
+
+  for (const pack of [PACK_RIVE, PACK_SPRITESHEET]) {
+    const res = parseMascotPack(pack, prefixes);
+    assert.ok(res.success, `${pack.renderer} refusé côté serveur`);
+    assert.equal(res.data.framesBase, undefined, `${pack.renderer} : framesBase fantôme`);
+    // L'aller-retour : ce qui est écrit doit pouvoir être relu.
+    assert.ok(parseMascotPack(res.data, prefixes).success, `${pack.renderer} : ligne illisible`);
+  }
+
+  // Et le garde-fou de `sprite_cut` reste entier : hors préfixe autorisé, c'est refusé.
+  const horsPrefixe = { ...PACK_SPRITE_CUT, framesBase: '/ailleurs/' };
+  assert.equal(parseMascotPack(horsPrefixe, prefixes).success, false);
+  assert.ok(parseMascotPack(PACK_SPRITE_CUT, prefixes).success);
+});
+
 test('un pack publié de chaque moteur devient une entrée catalogue', async () => {
   // Le chemin réel : `GET /api/visit/content` → `mascot_packs` → entrées fusionnées au sélecteur.
   const { buildVisitMascotCatalogExtrasFromContent } =

@@ -1,48 +1,38 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import VisitMapMascotRenderer from '../VisitMapMascotRenderer.jsx';
 import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
-import { parseVisitMascotAllowedIds } from '../../utils/visitViewStatus.js';
-import {
-  registryMascotIds,
-  isMascotProposed,
-  toggleProposedMascotId,
-  chooseDefaultMascotId,
-  findOrphanMascotIds,
-} from '../../utils/visitMascotAdminSelection.js';
+import { registryMascotIds, findOrphanMascotIds } from '../../utils/visitMascotAdminSelection.js';
 import useVisitMascotCatalogExtras, {
   invalidateVisitMascotCatalogExtras,
 } from '../../hooks/useVisitMascotCatalogExtras.js';
 import { api } from '../../services/api';
 
-const ALLOWED_KEY = 'ui.visit.mascot.allowed_ids';
 const DEFAULT_KEY = 'ui.visit.mascot.default_id';
 
 /**
- * Réglage des mascottes de visite, en remplacement des deux champs texte bruts
- * (`ui.visit.mascot.allowed_ids` / `default_id`) qui obligeaient l'admin à saisir des
- * identifiants à la main.
+ * Réglage des mascottes de visite : **la mascotte par défaut**, et rien d'autre.
  *
- * Une seule liste : mascottes livrées avec l'application **et** packs publiés au studio,
- * traités à égalité (`GET /api/visit/mascots`). Une case « proposée aux visiteurs » par
- * mascotte, un bouton radio pour la mascotte par défaut — celle-ci s'applique à **toutes
- * les cartes**, chaque utilisateur restant libre d'en changer.
+ * Ce panneau portait aussi une case « proposée aux visiteurs » par mascotte, qui écrivait
+ * `ui.visit.mascot.allowed_ids`. Ce réglage était une liste blanche d'identifiants : dès qu'on
+ * en décochait une, la liste se figeait sur les mascottes existant ce jour-là, et toute mascotte
+ * ajoutée ensuite — un pack importé — en était absente, donc invisible sans que rien ne le dise.
  *
- * @param {string|string[]} allowedValue valeur courante de `ui.visit.mascot.allowed_ids`.
+ * Depuis l'étape 3 de la fusion catalogue / packs, « proposée aux visiteurs » est **l'état de
+ * publication de la mascotte**, réglé au studio là où on la modifie. La liste ci-dessous le
+ * montre, mais ne l'édite plus : un seul endroit pour un seul geste, et plus de liste à tenir
+ * à jour à la main. Voir `lib/visitMascotVisibility.js`.
+ *
  * @param {string} defaultValue valeur courante de `ui.visit.mascot.default_id`.
  * @param {(key: string, value: string) => Promise<unknown>} onSave persistance d'un réglage.
  */
-export function VisitMascotSettingsPanel({ allowedValue, defaultValue, onSave }) {
+export function VisitMascotSettingsPanel({ defaultValue, onSave }) {
   const packExtras = useVisitMascotCatalogExtras();
   const [registry, setRegistry] = useState([]);
   const [registryError, setRegistryError] = useState('');
-  const [allowedIds, setAllowedIds] = useState(() => parseVisitMascotAllowedIds(allowedValue));
   const [defaultId, setDefaultId] = useState(() => String(defaultValue || '').trim());
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
 
-  useEffect(() => {
-    setAllowedIds(parseVisitMascotAllowedIds(allowedValue));
-  }, [allowedValue]);
   useEffect(() => {
     setDefaultId(String(defaultValue || '').trim());
   }, [defaultValue]);
@@ -62,31 +52,24 @@ export function VisitMascotSettingsPanel({ allowedValue, defaultValue, onSave })
   }, [loadRegistry]);
 
   const registryIds = useMemo(() => registryMascotIds(registry), [registry]);
-  const unrestricted = allowedIds.length === 0;
+  // Le registre ne liste que les mascottes proposées : un défaut absent d'ici est un défaut
+  // orphelin (mascotte dépubliée ou supprimée), et les visiteurs retombent sur la livrée.
   const orphanIds = useMemo(
-    () => findOrphanMascotIds(registryIds, allowedIds, defaultId),
-    [registryIds, allowedIds, defaultId],
+    () => findOrphanMascotIds(registryIds, [], defaultId),
+    [registryIds, defaultId],
   );
-
-  const onToggleProposed = (id) => {
-    setSavedMsg('');
-    setAllowedIds((prev) => toggleProposedMascotId(prev, registryIds, id));
-  };
 
   const onChooseDefault = (id) => {
     setSavedMsg('');
-    const next = chooseDefaultMascotId(allowedIds, id);
-    setDefaultId(next.defaultId);
-    setAllowedIds(next.allowedIds);
+    setDefaultId(String(id || '').trim());
   };
 
   const save = async () => {
     setSaving(true);
     setSavedMsg('');
     try {
-      await onSave(ALLOWED_KEY, allowedIds.join(','));
       await onSave(DEFAULT_KEY, defaultId);
-      setSavedMsg('Réglages mascottes enregistrés.');
+      setSavedMsg('Mascotte par défaut enregistrée.');
     } finally {
       setSaving(false);
     }
@@ -110,44 +93,20 @@ export function VisitMascotSettingsPanel({ allowedValue, defaultValue, onSave })
     >
       <h3 style={{ marginTop: 0 }}>🦊 Mascottes de visite</h3>
       <p style={{ fontSize: '.82rem', color: '#6b7280', marginBottom: 10, lineHeight: 1.45 }}>
-        Les mascottes livrées avec l’application et les packs publiés au studio figurent dans la
-        même liste. La mascotte <strong>par défaut</strong> s’applique à toutes les cartes ; chaque
-        utilisateur peut en changer depuis la visite ou son profil.
+        Voici les mascottes <strong>proposées aux visiteurs</strong>. La mascotte{' '}
+        <strong>par défaut</strong> s’applique à toutes les cartes ; chaque utilisateur peut en
+        changer depuis la visite ou son profil.
+        <br />
+        Pour en proposer une de plus ou en retirer une, ouvrez-la dans le{' '}
+        <strong>studio mascotte</strong> et publiez-la ou retirez-la de la visite. Toute mascotte
+        publiée est proposée, y compris celles ajoutées plus tard.
       </p>
 
       {registryError ? <div className="auth-error">⚠️ {registryError}</div> : null}
 
-      <div
-        style={{
-          display: 'flex',
-          gap: 8,
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          marginBottom: 10,
-        }}
-      >
-        <button
-          type="button"
-          className={`btn btn-sm ${unrestricted ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => {
-            setSavedMsg('');
-            setAllowedIds([]);
-          }}
-          disabled={unrestricted}
-        >
-          Proposer toutes les mascottes
-        </button>
-        <span style={{ fontSize: '.8rem', color: '#6b7280' }}>
-          {unrestricted
-            ? 'Aucune restriction : toute nouvelle mascotte est proposée automatiquement.'
-            : `${allowedIds.length} mascotte(s) proposée(s) aux visiteurs.`}
-        </span>
-      </div>
-
       <div className="visit-mascot-admin-grid" data-testid="visit-mascot-admin-grid">
         {registry.map((entry) => {
           const id = String(entry?.id || '').trim();
-          const proposed = isMascotProposed(allowedIds, id);
           return (
             <div
               key={id}
@@ -162,18 +121,7 @@ export function VisitMascotSettingsPanel({ allowedValue, defaultValue, onSave })
               </div>
               <div className="visit-mascot-admin-card__body">
                 <div className="visit-mascot-admin-card__label">{entry.label || id}</div>
-                <div className="visit-mascot-admin-card__source">
-                  {entry.source === 'pack' ? 'Pack publié' : 'Livrée avec l’app'}
-                </div>
-                <label className="visit-mascot-admin-card__check">
-                  <input
-                    type="checkbox"
-                    checked={proposed}
-                    onChange={() => onToggleProposed(id)}
-                    aria-label={`Proposer ${entry.label || id} aux visiteurs`}
-                  />
-                  <span>Proposée</span>
-                </label>
+                <div className="visit-mascot-admin-card__source">Proposée aux visiteurs</div>
                 <label className="visit-mascot-admin-card__check">
                   <input
                     type="radio"
@@ -192,9 +140,10 @@ export function VisitMascotSettingsPanel({ allowedValue, defaultValue, onSave })
 
       {orphanIds.length > 0 ? (
         <p style={{ fontSize: '.8rem', color: '#b45309', marginTop: 8 }}>
-          ⚠️ Identifiants réglés mais introuvables dans le registre (pack dépublié ou supprimé) :{' '}
-          <code>{orphanIds.join(', ')}</code>. Les visiteurs voient alors la mascotte livrée par
-          défaut.
+          ⚠️ La mascotte par défaut n’est pas proposée aux visiteurs (
+          <code>{orphanIds.join(', ')}</code>) : elle a été retirée de la visite ou supprimée. Les
+          visiteurs voient la mascotte livrée par défaut. Republiez-la au studio, ou choisissez-en
+          une autre ci-dessus.
         </p>
       ) : null}
 
@@ -207,7 +156,7 @@ export function VisitMascotSettingsPanel({ allowedValue, defaultValue, onSave })
           className="btn btn-secondary btn-sm"
           onClick={refresh}
           disabled={saving}
-          title="Recharger les packs publiés"
+          title="Recharger la liste des mascottes proposées"
         >
           Actualiser
         </button>

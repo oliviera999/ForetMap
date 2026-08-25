@@ -23,10 +23,7 @@ export const SECTION_DEFS = {
  * (aperçu, cases à cocher, validation) — cf. `VisitMascotSettingsPanel`. Les laisser
  * en double exposerait deux éditeurs contradictoires pour le même réglage.
  */
-export const KEYS_HANDLED_BY_PANEL = new Set([
-  'ui.visit.mascot.allowed_ids',
-  'ui.visit.mascot.default_id',
-]);
+export const KEYS_HANDLED_BY_PANEL = new Set(['ui.visit.mascot.default_id']);
 
 export const KEY_META = {
   'ui.auth.allow_register': { label: 'Afficher "Créer un compte"', section: 'auth', order: 10 },

@@ -1,32 +1,9 @@
 import { describe, test, expect } from 'vitest';
 import {
-  parseVisitMascotAllowedIds,
   computeVisitCartographyProgress,
   buildVisitNetworkStatusLabel,
 } from '../../src/utils/visitViewStatus.js';
 import { itemSeenKey } from '../../src/utils/visitMediaGallery.js';
-
-describe('parseVisitMascotAllowedIds', () => {
-  test('tableau : trim + entrées vides ignorées', () => {
-    expect(parseVisitMascotAllowedIds([' renard ', '', null, 'hibou'])).toEqual([
-      'renard',
-      'hibou',
-    ]);
-  });
-  test('chaîne : séparateurs virgule, point-virgule et saut de ligne', () => {
-    expect(parseVisitMascotAllowedIds('renard, hibou;loup\n cerf,,')).toEqual([
-      'renard',
-      'hibou',
-      'loup',
-      'cerf',
-    ]);
-  });
-  test('valeurs non gérées → liste vide (aucune restriction)', () => {
-    expect(parseVisitMascotAllowedIds(undefined)).toEqual([]);
-    expect(parseVisitMascotAllowedIds(null)).toEqual([]);
-    expect(parseVisitMascotAllowedIds(42)).toEqual([]);
-  });
-});
 
 describe('computeVisitCartographyProgress', () => {
   const triangle = JSON.stringify([

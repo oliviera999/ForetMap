@@ -160,7 +160,30 @@ publiés dans six mois.
 > | ----- | --------------------------------------------------------------------------------- | --------- |
 > | 1     | **Le format décrit les trois moteurs** (`sprite_cut`, `spritesheet`, `rive`)      | ✅ livrée |
 > | 2     | Migration `origin`, semis des mascottes livrées, registre unique en lecture       | ✅ livrée |
-> | 3     | Studio : une seule liste, « réinitialiser depuis l'origine » remplace le masquage | à faire   |
+> | 3     | Studio : une seule liste, « réinitialiser depuis l'origine » remplace le masquage | ✅ livrée |
+>
+> **Étape 3, et ce qu'elle ferme.** Le studio n'affiche plus qu'une liste, chaque mascotte
+> portant son origine (**Livrée** / **Créée ici**). Trois conséquences, dans l'ordre d'importance :
+>
+> 1. **`ui.visit.mascot.allowed_ids` est supprimé.** C'était la liste figée : une liste blanche
+>    d'identifiants ignore par construction toute mascotte ajoutée après sa pose. Être proposée
+>    aux visiteurs est désormais `is_published` sur la ligne. La clé est retirée du registre des
+>    réglages — donc irréinscriptible — et une restriction héritée est reportée sur `is_published`
+>    au démarrage puis effacée (`lib/visitMascotVisibility.js`).
+> 2. **Le repli catalogue est borné aux mascottes sans ligne.** Le filet de l'étape 2 aurait sinon
+>    ramené aussitôt toute livrée qu'on venait de retirer de la visite : le masquage n'aurait eu
+>    aucun effet visible sur les seize. Ligne absente : le code parle. Ligne présente : elle seule
+>    décide — et le filet du semis raté tient toujours, parce qu'il porte sur l'autre cas.
+> 3. **Le cas d'usage d'origine fonctionne.** Importer une archive « en remplacement » sur une
+>    mascotte livrée la change vraiment, sous son identifiant — ce qui était **impossible** avant
+>    la fusion (§2.2 : l'import forçait un `catalog_id` en `srv-…`, l'archive créait une mascotte
+>    à côté et la livrée restait inchangée). `tests/visit-mascot-single-list.test.js` le fige.
+>
+> **Un défaut de l'étape 1 corrigé au passage.** `parseMascotPack` normalisait `framesBase` pour
+> tous les moteurs. Un pack `rive` ou `spritesheet` n'en a pas : côté serveur il était refusé au
+> nom d'un champ qu'il ne porte pas — quinze des seize livrées étaient **inenregistrables** — et
+> côté relâché, un `framesBase: '/'` fantôme était écrit dans la ligne, que la relecture refusait
+> ensuite comme « champ réservé aux packs sprite_cut ». Une ligne qu'on ne pouvait plus rouvrir.
 >
 > **Étape 2, vérifiée sur une vraie base.** L'environnement de session n'avait pas de MySQL ;
 > `apt-get update` puis `apt-get install mariadb-server` a suffi à en obtenir un. Le semis a donc

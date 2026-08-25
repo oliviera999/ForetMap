@@ -58,8 +58,13 @@ const {
 const {
   resolveVisitMascotSpriteLibraryRelPath,
 } = require('../../lib/visitMascotSpriteLibraryFiles');
-const { listVisitMascotRegistry } = require('../../lib/visitMascotRegistry');
-const { getVisitMascotSettings, isValidVisitMascotId } = require('../../lib/settings');
+const {
+  listVisitMascotRegistry,
+  listStaticVisitMascotEntries,
+  isVisitMascotOffered,
+} = require('../../lib/visitMascotRegistry');
+const { catalogEntryToPack } = require('../../lib/visitMascotBuiltinSeed');
+const { isValidVisitMascotId } = require('../../lib/settings');
 
 const router = express.Router();
 
@@ -370,8 +375,11 @@ router.put('/mascot-preference', authenticate, async (req, res) => {
       if (!isValidVisitMascotId(value)) {
         return res.status(400).json({ error: 'Mascotte indisponible pour la visite' });
       }
-      const { allowedIds } = await getVisitMascotSettings();
-      if (allowedIds.length > 0 && !allowedIds.includes(value)) {
+      // La question est posée **au registre**, la même source que le sélecteur : une mascotte
+      // visible est donc toujours choisissable, et une mascotte retirée de la visite l'est
+      // vraiment. L'ancien contrôle interrogeait `ui.visit.mascot.allowed_ids`, qui pouvait
+      // diverger du sélecteur — d'où des refus incompréhensibles.
+      if (!(await isVisitMascotOffered(value))) {
         return res.status(400).json({ error: 'Mascotte indisponible pour la visite' });
       }
     }
@@ -395,9 +403,9 @@ router.put('/mascot-preference', authenticate, async (req, res) => {
 router.get('/mascot-packs', requirePermission('visit.manage'), async (req, res) => {
   try {
     const rows = await queryAll(
-      `SELECT id, catalog_id, label, pack_json, is_published, created_at, updated_at, created_by
+      `SELECT id, catalog_id, label, pack_json, is_published, origin, created_at, updated_at, created_by
        FROM visit_mascot_packs
-       ORDER BY updated_at DESC, id ASC`,
+       ORDER BY origin = 'builtin' ASC, updated_at DESC, id ASC`,
     );
     res.json({
       packs: rows.map(serializeVisitMascotPackRow),
@@ -612,11 +620,16 @@ router.get('/mascot-packs/:id/export.zip', requirePermission('visit.manage'), as
 });
 
 /**
- * Fiches des **modèles catalogue** proposés au studio.
+ * Fiches des **modèles catalogue** proposés au studio comme point de départ.
  *
- * `has_real_animation` distingue les quatre mascottes qui portent de vraies trames des douze qui
- * retombent sur un modèle à image fixe. Sans cette information le studio propose les seize à
- * égalité, et « cloner pour modifier » rend un figurant sans le dire.
+ * `has_real_animation` distingue les mascottes qui portent de vraies trames de celles qui
+ * retombent sur un modèle à image fixe — douze des seize font pointer leurs vingt et un états
+ * sur la même image. Sans cette information, le studio les propose toutes à égalité et « partir
+ * de ce modèle » promet une animation qui n'existe pas ; la déception n'arrive qu'à l'aperçu.
+ *
+ * `can_manage_visibility` a disparu de la réponse avec le réglage qu'il gardait
+ * (`ui.visit.mascot.allowed_ids`) : proposer une mascotte aux visiteurs, c'est la publier, et
+ * publier relève de `visit.manage` comme le reste du studio. Plus deux permissions pour un geste.
  */
 router.get('/mascot-catalog/models', requirePermission('visit.manage'), async (req, res) => {
   try {
@@ -628,11 +641,6 @@ router.get('/mascot-catalog/models', requirePermission('visit.manage'), async (r
         frame_count: m.frameCount,
         has_real_animation: m.hasRealAnimation,
       })),
-      // Masquer une mascotte du sélecteur écrit `ui.visit.mascot.allowed_ids`, réglage
-      // d'administration. Le studio tourne sous `visit.manage` : les deux permissions sont
-      // distinctes. On le dit au client plutôt que de lui laisser découvrir un 403 au clic —
-      // et surtout plutôt que d'ouvrir une route qui élargirait `visit.manage`.
-      can_manage_visibility: hasPermission(req.auth, 'admin.settings.write'),
     });
   } catch (err) {
     logRouteError(err, req);
@@ -880,12 +888,29 @@ router.post(
   },
 );
 
+/**
+ * Suppression d'un pack. **Refusée sur une mascotte livrée** (`origin = 'builtin'`), et c'est
+ * délibéré : le catalogue en code la re-sèmerait au prochain démarrage. Accepter la suppression
+ * donnerait une réussite qui s'annule toute seule — le pire des retours. Les deux gestes qui
+ * font vraiment quelque chose sont nommés dans la réponse : dépublier (elle disparaît du
+ * sélecteur, réversible) ou réinitialiser (elle retrouve son état d'origine).
+ */
 router.delete('/mascot-packs/:id', requirePermission('visit.manage'), async (req, res) => {
   try {
     const packId = String(req.params.id || '').trim();
     if (!/^[0-9a-f-]{36}$/i.test(packId)) return res.status(400).json({ error: 'Pack invalide' });
-    const row = await queryOne('SELECT id FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
+    const row = await queryOne('SELECT id, origin FROM visit_mascot_packs WHERE id = ? LIMIT 1', [
+      packId,
+    ]);
     if (!row) return res.status(404).json({ error: 'Pack introuvable' });
+    if (String(row.origin || 'custom') === 'builtin') {
+      return res.status(409).json({
+        error:
+          'Cette mascotte est livrée avec l’application : la supprimer ne durerait pas, elle serait recréée au prochain démarrage. Retirez-la de la visite pour la masquer, ou réinitialisez-la pour revenir à son état d’origine.',
+        code: 'visit_mascot_pack_builtin',
+        requestId: req.requestId || null,
+      });
+    }
     await removeVisitMascotPackUploadDir(packId);
     await execute('DELETE FROM visit_mascot_packs WHERE id = ?', [packId]);
     res.json({ ok: true });
@@ -894,6 +919,63 @@ router.delete('/mascot-packs/:id', requirePermission('visit.manage'), async (req
     const mapped = mapVisitMascotPackSqlError(err);
     if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
     res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+  }
+});
+
+/**
+ * **Réinitialiser une mascotte livrée depuis son origine.**
+ *
+ * C'est le geste qui rend l'édition des mascottes livrées sans risque : on peut tout casser et
+ * revenir en arrière. Le catalogue en code reste la **graine** — il n'est plus servi à l'écran
+ * (la ligne en base l'emporte depuis l'étape 2), mais il reste la référence à laquelle revenir.
+ *
+ * On **met à jour** la ligne plutôt que de la supprimer pour la re-semer : l'identifiant du pack
+ * ne change pas, les images téléversées dessus survivent, et un `is_published` à 0 (mascotte
+ * masquée) n'est pas réactivé dans le dos de l'administrateur. Réinitialiser rend l'apparence
+ * d'origine, pas la visibilité d'origine — ce sont deux décisions distinctes.
+ */
+router.post('/mascot-packs/:id/reset', requirePermission('visit.manage'), async (req, res) => {
+  try {
+    const packId = String(req.params.id || '').trim();
+    if (!/^[0-9a-f-]{36}$/i.test(packId)) return res.status(400).json({ error: 'Pack invalide' });
+    const row = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
+    if (!row) return res.status(404).json({ error: 'Pack introuvable' });
+    if (String(row.origin || 'custom') !== 'builtin') {
+      return res.status(409).json({
+        error:
+          'Cette mascotte n’a pas d’origine à laquelle revenir : elle a été créée ou importée ici.',
+        code: 'visit_mascot_pack_not_builtin',
+        requestId: req.requestId || null,
+      });
+    }
+
+    const catalogId = String(row.catalog_id || '').trim();
+    const entries = await listStaticVisitMascotEntries();
+    const entry = entries.find((e) => String(e?.id || '').trim() === catalogId);
+    const pack = entry ? catalogEntryToPack(entry) : null;
+    if (!pack) {
+      // Le cas où la graine a disparu : mascotte retirée du catalogue par une mise à jour. On
+      // ne touche à rien — la ligne en base est alors la **seule** copie qui reste.
+      return res.status(409).json({
+        error:
+          'Aucune version d’origine disponible pour cette mascotte : elle ne figure plus dans le catalogue livré. La version enregistrée ici est désormais la seule.',
+        code: 'visit_mascot_pack_origin_gone',
+        requestId: req.requestId || null,
+      });
+    }
+
+    const now = nowIso();
+    await execute(
+      'UPDATE visit_mascot_packs SET label = ?, pack_json = ?, updated_at = ? WHERE id = ?',
+      [String(pack.label || catalogId), JSON.stringify(pack), now, packId],
+    );
+    const fresh = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
+    return res.json(serializeVisitMascotPackRow(fresh));
+  } catch (err) {
+    logRouteError(err, req);
+    const mapped = mapVisitMascotPackSqlError(err);
+    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+    return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
   }
 });
 

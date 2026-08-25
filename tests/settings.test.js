@@ -178,76 +178,57 @@ test('GET /api/settings/public renvoie les réglages publics', async () => {
   assert.strictEqual(uiMap.overlay_emoji_size_percent, 100);
   assert.strictEqual(uiMap.overlay_label_size_percent, 100);
   assert.strictEqual(uiMap.plateau_marker_size_percent, 100);
-  assert.ok(Array.isArray(res.body.settings.ui?.visit?.mascot?.allowed_ids));
+  // `allowed_ids` a disparu de la charge publique avec le réglage : le client retombe donc sur
+  // son défaut `[]`, c'est-à-dire « aucune restriction », par construction.
+  assert.strictEqual(res.body.settings.ui?.visit?.mascot?.allowed_ids, undefined);
   assert.strictEqual(typeof res.body.settings.ui?.visit?.mascot?.default_id, 'string');
 });
 
-test('réglages mascotte visite : liste autorisée + défaut global normalisés', async () => {
+test('la liste blanche de mascottes n’existe plus, seul le défaut se règle', async () => {
+  // `ui.visit.mascot.allowed_ids` a été **retiré du registre des réglages**, et c'est le geste
+  // qui ferme la classe de défaut : une liste blanche d'identifiants se fige sur les mascottes
+  // existant le jour où on la pose, et rend invisible toute mascotte ajoutée ensuite. Le test
+  // vérifie que la clé est bien refusée — la laisser inscriptible remettrait le piège en place.
   const token = await getAdminToken();
-  const allowedIds = 'renard2-cut-spritesheet,sprout-rive';
-  await request(app)
+  const refus = await request(app)
     .put('/api/settings/admin/ui.visit.mascot.allowed_ids')
     .set('Authorization', `Bearer ${token}`)
-    .send({ value: allowedIds })
-    .expect(200);
+    .send({ value: 'gnome1' })
+    .expect(400);
+  assert.match(String(refus.body?.error || ''), /inconnue/i);
+
   await request(app)
     .put('/api/settings/admin/ui.visit.mascot.default_id')
     .set('Authorization', `Bearer ${token}`)
     .send({ value: 'sprout-rive' })
     .expect(200);
-
   const pub = await request(app).get('/api/settings/public').expect(200);
-  assert.deepStrictEqual(pub.body?.settings?.ui?.visit?.mascot?.allowed_ids, [
-    'renard2-cut-spritesheet',
-    'sprout-rive',
-  ]);
   assert.strictEqual(pub.body?.settings?.ui?.visit?.mascot?.default_id, 'sprout-rive');
+  assert.strictEqual(pub.body?.settings?.ui?.visit?.mascot?.allowed_ids, undefined);
 
-  // Un pack publié (id `srv-…`) est une mascotte comme une autre : autorisable et
-  // désignable comme défaut, sans liste blanche codée en dur côté serveur.
-  await request(app)
-    .put('/api/settings/admin/ui.visit.mascot.allowed_ids')
-    .set('Authorization', `Bearer ${token}`)
-    .send({ value: 'gnome1,srv-pack-demo' })
-    .expect(200);
+  // Un pack publié (id `srv-…`) reste désignable comme défaut : aucune liste blanche côté serveur.
   await request(app)
     .put('/api/settings/admin/ui.visit.mascot.default_id')
     .set('Authorization', `Bearer ${token}`)
     .send({ value: 'srv-pack-demo' })
     .expect(200);
-  const withPack = await request(app).get('/api/settings/public').expect(200);
-  assert.deepStrictEqual(withPack.body?.settings?.ui?.visit?.mascot?.allowed_ids, [
-    'gnome1',
+  assert.strictEqual(
+    (await request(app).get('/api/settings/public').expect(200)).body?.settings?.ui?.visit?.mascot
+      ?.default_id,
     'srv-pack-demo',
-  ]);
-  assert.strictEqual(withPack.body?.settings?.ui?.visit?.mascot?.default_id, 'srv-pack-demo');
+  );
 
-  // Invariant : la mascotte par défaut est toujours proposée (ajoutée à la liste au besoin).
-  await request(app)
-    .put('/api/settings/admin/ui.visit.mascot.allowed_ids')
-    .set('Authorization', `Bearer ${token}`)
-    .send({ value: 'gnome1' })
-    .expect(200);
-  const invariant = await request(app).get('/api/settings/public').expect(200);
-  assert.deepStrictEqual(invariant.body?.settings?.ui?.visit?.mascot?.allowed_ids, [
-    'gnome1',
-    'srv-pack-demo',
-  ]);
-
-  // Retour aux valeurs livrées : listes vides = aucune restriction, défaut du catalogue.
+  // Retour à la valeur livrée : vide = mascotte par défaut du catalogue.
   await request(app)
     .put('/api/settings/admin/ui.visit.mascot.default_id')
     .set('Authorization', `Bearer ${token}`)
     .send({ value: '' })
     .expect(200);
-  await request(app)
-    .put('/api/settings/admin/ui.visit.mascot.allowed_ids')
-    .set('Authorization', `Bearer ${token}`)
-    .send({ value: '' })
-    .expect(200);
-  const reset = await request(app).get('/api/settings/public').expect(200);
-  assert.deepStrictEqual(reset.body?.settings?.ui?.visit?.mascot?.allowed_ids, []);
-  assert.strictEqual(reset.body?.settings?.ui?.visit?.mascot?.default_id, '');
+  assert.strictEqual(
+    (await request(app).get('/api/settings/public').expect(200)).body?.settings?.ui?.visit?.mascot
+      ?.default_id,
+    '',
+  );
 });
 
 test('PUT /api/visit/mascot-preference : choix mascotte enregistré dans le compte', async () => {
@@ -275,14 +256,6 @@ test('PUT /api/visit/mascot-preference : choix mascotte enregistré dans le comp
   assert.strictEqual(saved.body?.visit_mascot_catalog_id, 'gnome1');
   assert.strictEqual(await readPreference(), 'gnome1');
 
-  // Un pack publié est une mascotte comme une autre (aucune liste blanche serveur).
-  await request(app)
-    .put('/api/visit/mascot-preference')
-    .set('Authorization', `Bearer ${token}`)
-    .send({ visit_mascot_catalog_id: 'srv-pack-demo' })
-    .expect(200);
-  assert.strictEqual(await readPreference(), 'srv-pack-demo');
-
   // Forme invalide refusée.
   await request(app)
     .put('/api/visit/mascot-preference')
@@ -290,22 +263,27 @@ test('PUT /api/visit/mascot-preference : choix mascotte enregistré dans le comp
     .send({ visit_mascot_catalog_id: 'id invalide' })
     .expect(400);
 
-  // Hors liste autorisée non vide : refus.
-  await request(app)
-    .put('/api/settings/admin/ui.visit.mascot.allowed_ids')
-    .set('Authorization', `Bearer ${token}`)
-    .send({ value: 'gnome1' })
-    .expect(200);
+  // **La question est posée au registre**, plus à une liste de réglages : une mascotte de forme
+  // valide mais que le sélecteur ne propose pas est refusée. C'est aussi ce qui garantit
+  // l'inverse — toute mascotte visible est choisissable, la divergence signalée entre le studio
+  // et le sélecteur n'a plus où se loger.
   await request(app)
     .put('/api/visit/mascot-preference')
     .set('Authorization', `Bearer ${token}`)
-    .send({ visit_mascot_catalog_id: 'sprout-rive' })
+    .send({ visit_mascot_catalog_id: 'srv-mascotte-qui-nexiste-pas' })
     .expect(400);
+  assert.strictEqual(await readPreference(), 'gnome1', 'la préférence a bougé sur un refus');
+
+  // Toute mascotte listée par le registre est acceptée, quelle que soit son origine.
+  const registre = (await request(app).get('/api/visit/mascots').expect(200)).body?.mascots || [];
+  const uneAutre = registre.map((m) => m.id).find((id) => id && id !== 'gnome1');
+  assert.ok(uneAutre, 'registre trop court pour le test');
   await request(app)
-    .put('/api/settings/admin/ui.visit.mascot.allowed_ids')
+    .put('/api/visit/mascot-preference')
     .set('Authorization', `Bearer ${token}`)
-    .send({ value: '' })
+    .send({ visit_mascot_catalog_id: uneAutre })
     .expect(200);
+  assert.strictEqual(await readPreference(), uneAutre);
 
   // Valeur vide : la préférence est effacée (retour au défaut de l'application).
   const cleared = await request(app)
