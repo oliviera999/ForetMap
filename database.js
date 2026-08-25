@@ -117,9 +117,45 @@ function getRbacWriteVersion() {
   return rbacWriteVersion;
 }
 
+// --- Versions d'écriture données (audit charge serveur, pistes 3 et 4) -------------------
+// Même principe que le versionnage RBAC ci-dessus : toute écriture SQL passée par les
+// helpers (queryAll/queryOne/execute/withTransaction) incrémente une version globale
+// (`dataWriteVersion`, exposée par GET /api/sync-state pour le polling différentiel du
+// client) et, si elle touche une table du scope groupes, une version dédiée
+// (`groupScopeWriteVersion`, clé du cache de lib/groupScope.js). Les écritures hors
+// process (scripts CLI, SQL direct) ne sont pas vues : le client force donc un cycle
+// complet périodique, et les écritures en connexion brute dans le process appellent
+// noteExternalDataWrite().
+let dataWriteVersion = 0;
+let groupScopeWriteVersion = 0;
+const SQL_WRITE_RE = /^\s*(?:INSERT|UPDATE|DELETE|REPLACE|TRUNCATE)\b/i;
+// Tables dont dépendent getAllGroups() / getUserDirectGroupIds() (jointures comprises).
+const GROUP_SCOPE_WRITE_RE =
+  /^\s*(?:INSERT|UPDATE|DELETE|REPLACE|TRUNCATE)\b[\s\S]*\b(?:groups|group_members|roles|gl_classes)\b/i;
+function isSqlWrite(sql) {
+  return typeof sql === 'string' && SQL_WRITE_RE.test(sql);
+}
+function bumpDataVersionsForSql(sql) {
+  if (!isSqlWrite(sql)) return;
+  dataWriteVersion += 1;
+  if (GROUP_SCOPE_WRITE_RE.test(sql)) groupScopeWriteVersion += 1;
+}
+/** Écriture faite hors helpers (connexion brute) : périme caches et sync-state. */
+function noteExternalDataWrite() {
+  dataWriteVersion += 1;
+  groupScopeWriteVersion += 1;
+}
+function getDataWriteVersion() {
+  return dataWriteVersion;
+}
+function getGroupScopeWriteVersion() {
+  return groupScopeWriteVersion;
+}
+
 /** Exécute une requête et retourne les lignes (tableau). */
 async function queryAll(sql, params = []) {
   const [rows] = await pool.execute(sql, params);
+  bumpDataVersionsForSql(sql);
   return Array.isArray(rows) ? rows : [];
 }
 
@@ -136,6 +172,7 @@ async function queryOne(sql, params = []) {
 async function execute(sql, params = []) {
   const [result] = await pool.execute(sql, params);
   bumpRbacVersionIfRbacWrite(sql);
+  bumpDataVersionsForSql(sql);
   return {
     insertId: result.insertId,
     affectedRows: result.affectedRows,
@@ -148,20 +185,31 @@ async function withTransaction(work) {
   // passent par le pool (état committé, sans voir les écritures en cours) — bumper avant commit
   // pourrait cacher une valeur pré-commit à la nouvelle version. On bumpe une fois, post-commit.
   let rbacDirty = false;
+  // Bump données/scope groupes également différé post-commit, pour la même raison.
+  let dataDirty = false;
+  let scopeDirty = false;
+  const noteTxWrite = (sql) => {
+    if (!isSqlWrite(sql)) return;
+    dataDirty = true;
+    if (GROUP_SCOPE_WRITE_RE.test(sql)) scopeDirty = true;
+  };
   try {
     await conn.beginTransaction();
     const tx = {
       queryAll: async (sql, params = []) => {
         const [rows] = await conn.execute(sql, params);
+        noteTxWrite(sql);
         return Array.isArray(rows) ? rows : [];
       },
       queryOne: async (sql, params = []) => {
         const [rows] = await conn.execute(sql, params);
+        noteTxWrite(sql);
         return Array.isArray(rows) ? rows[0] : undefined;
       },
       execute: async (sql, params = []) => {
         const [result] = await conn.execute(sql, params);
         if (isRbacWriteSql(sql)) rbacDirty = true;
+        noteTxWrite(sql);
         return {
           insertId: result.insertId,
           affectedRows: result.affectedRows,
@@ -171,6 +219,8 @@ async function withTransaction(work) {
     const result = await work(tx);
     await conn.commit();
     if (rbacDirty) rbacWriteVersion += 1;
+    if (dataDirty) dataWriteVersion += 1;
+    if (scopeDirty) groupScopeWriteVersion += 1;
     return result;
   } catch (err) {
     try {
@@ -719,6 +769,9 @@ module.exports = {
   withTransaction,
   getRbacWriteVersion,
   isRbacWriteSql,
+  getDataWriteVersion,
+  getGroupScopeWriteVersion,
+  noteExternalDataWrite,
   ping,
   initSchema,
   seedData,

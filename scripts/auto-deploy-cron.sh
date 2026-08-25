@@ -14,9 +14,9 @@ set -euo pipefail
 # - DEPLOY_LOCK_DIR     : dossier lock anti-concurrence
 # - DEPLOY_ENV_FILE     : fichier env à charger (défaut: $APP_DIR/.env)
 # - DEPLOY_AUTO_MIGRATE : 1 pour lancer npm run db:migrate après pull
-# - DEPLOY_SKIP_RESTART_IF_SOFT_ONLY : 1 pour ne pas appeler /api/admin/restart
-#   lorsque tous les fichiers du déploiement matchent DEPLOY_SOFT_CHANGE_REGEX
-#   (ex. docs seulement) — opt-in, défaut 0 = toujours redémarrer après pull
+# - DEPLOY_SKIP_RESTART_IF_SOFT_ONLY : ne pas appeler /api/admin/restart lorsque tous
+#   les fichiers du déploiement matchent DEPLOY_SOFT_CHANGE_REGEX (ex. docs seulement).
+#   Défaut 1 depuis l'audit charge serveur ; mettre 0 pour toujours redémarrer après pull
 # - DEPLOY_SOFT_CHANGE_REGEX : ERE grep (défaut: CHANGELOG, README, LICENSE, docs/, .github/, .cursor/)
 # - DEPLOY_SKIP_SYNC_VISIT_PACK_LIB : 1 pour ne pas exécuter scripts/sync-visit-pack-server-lib.js après pull
 # - DEPLOY_AUTO_ROLLBACK : 1 (défaut) pour revenir au commit précédent si post-deploy-check
@@ -46,7 +46,10 @@ DEPLOY_BASE_URL="${DEPLOY_BASE_URL:-https://foretmap.olution.info}"
 DEPLOY_LOCK_DIR="${DEPLOY_LOCK_DIR:-/tmp/foretmap-auto-deploy.lock}"
 DEPLOY_ENV_FILE="${DEPLOY_ENV_FILE:-$APP_DIR/.env}"
 DEPLOY_AUTO_MIGRATE="${DEPLOY_AUTO_MIGRATE:-0}"
-DEPLOY_SKIP_RESTART_IF_SOFT_ONLY="${DEPLOY_SKIP_RESTART_IF_SOFT_ONLY:-0}"
+# Défaut 1 depuis l'audit charge serveur (docs/AUDIT_CHARGE_SERVEUR_2026-08.md, piste 6) :
+# un commit docs/méta seul ne redémarre plus l'app (moins de fenêtres 503). Remettre 0
+# via .env ou l'environnement du cron pour retrouver le redémarrage systématique.
+DEPLOY_SKIP_RESTART_IF_SOFT_ONLY="${DEPLOY_SKIP_RESTART_IF_SOFT_ONLY:-1}"
 DEPLOY_SOFT_CHANGE_REGEX="${DEPLOY_SOFT_CHANGE_REGEX:-^(CHANGELOG\.md|README\.md|LICENSE(\.txt)?|\.gitattributes|docs/|\.github/|\.cursor/)}"
 DEPLOY_SKIP_SYNC_VISIT_PACK_LIB="${DEPLOY_SKIP_SYNC_VISIT_PACK_LIB:-0}"
 DEPLOY_AUTO_ROLLBACK="${DEPLOY_AUTO_ROLLBACK:-1}"

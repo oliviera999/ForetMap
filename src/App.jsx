@@ -24,6 +24,7 @@ import {
   GUEST_VISIT_MASCOT_CONFIRMED_KEY,
 } from './constants/app-runtime';
 import { MASCOT_PACK_UNSAVED_LEAVE_MSG } from './constants/mascotPackEditor.js';
+import { canSkipFetchAllCycle, isValidSyncState } from './utils/fetchAllSyncGate.js';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TimedToast as Toast } from './shared/components/TimedToast.jsx';
 import { AppStatusSticky } from './shared/components/AppStatusSticky.jsx';
@@ -175,6 +176,9 @@ function App() {
   const fetchAllRunPromiseRef = useRef(null);
   const fetchAllPendingRef = useRef(false);
   const initialFetchDoneRef = useRef(false);
+  /** Sync-state `{ key, bootId, writes }` du dernier cycle fetchAll complet réussi (polling différentiel). */
+  const lastSyncStateRef = useRef(null);
+  const syncSkipCountRef = useRef(0);
   const mascotPackDirtyRef = useRef(false);
   /** Incrémenté après succès modale PIN / login prof : déclenche un `fetchAll` sans s’accrocher à chaque changement de `authClaims`. */
   const [pinSuccessFetchAllTick, setPinSuccessFetchAllTick] = useState(0);
@@ -397,6 +401,42 @@ function App() {
             defaultMapVisit,
           } = snap;
 
+          // Polling différentiel (audit charge serveur, piste 4) : si aucune écriture
+          // en base depuis le dernier cycle complet réussi dans le même contexte
+          // client, on saute le cycle (1 requête légère au lieu de ~8). Toute erreur
+          // de sonde ou redémarrage serveur → cycle complet (comportement historique).
+          const syncContextKey = JSON.stringify({
+            snap,
+            studentId: studentRef.current?.id ?? null,
+          });
+          let syncState = null;
+          // Pas de sonde au tout premier chargement : elle ajouterait un aller-retour
+          // avant les premières données. La baseline s'établit au cycle suivant.
+          if (initialFetchDoneRef.current) {
+            try {
+              const probed = await api('/api/sync-state');
+              if (isValidSyncState(probed)) syncState = probed;
+            } catch (_) {
+              syncState = null;
+            }
+          }
+          if (
+            canSkipFetchAllCycle({
+              prev: lastSyncStateRef.current,
+              next: syncState,
+              contextKey: syncContextKey,
+              consecutiveSkips: syncSkipCountRef.current,
+            })
+          ) {
+            syncSkipCountRef.current += 1;
+            // Le serveur a répondu : l'état « serveur indisponible » n'a plus lieu d'être.
+            failCountRef.current = 0;
+            setServerDown(false);
+            if (!fetchAllPendingRef.current) break;
+            continue;
+          }
+          syncSkipCountRef.current = 0;
+
           try {
             const safeApi = async (request, fallbackValue) => {
               try {
@@ -508,6 +548,12 @@ function App() {
             failCountRef.current = 0;
             setRefreshMs(DATA_REFRESH_INTERVAL_MS);
             setServerDown(false);
+            // Cycle complet réussi : baseline du polling différentiel. `syncState` a été
+            // sondé AVANT les refetchs — une écriture arrivée pendant le cycle rendra
+            // donc le prochain compteur différent → refetch (conservateur, jamais stale).
+            lastSyncStateRef.current = syncState
+              ? { key: syncContextKey, bootId: syncState.bootId, writes: syncState.writes }
+              : null;
           } catch (e) {
             if (e instanceof AccountDeletedError) forceLogout();
             else {
