@@ -74,6 +74,34 @@ const stateFrameSchemaV1 = z
     }
   });
 
+/**
+ * Bloc `spritesheet` : une image unique découpée en grille, un état = une rangée (et une colonne
+ * de départ optionnelle). C'est la forme des mascottes livrées `fox-backpack`, `tan-bird`, `olu`.
+ */
+const spritesheetBlockSchema = z.object({
+  src: z.string().min(1).max(400),
+  frameWidth: z.number().int().positive().max(2048),
+  frameHeight: z.number().int().positive().max(2048),
+  stateFrames: z.record(
+    z.string(),
+    z.object({
+      row: z.number().int().min(0).max(64),
+      col: z.number().int().min(0).max(64).optional(),
+      frames: z.number().int().positive().max(64),
+      fps: z.number().positive().max(60).optional(),
+    }),
+  ),
+});
+
+/**
+ * Bloc `rive` : l'animation vit dans un fichier `.riv`, un état vise une ou plusieurs animations
+ * par leur nom (plusieurs noms = tolérance à la casse et aux variantes de nommage de l'auteur).
+ */
+const riveBlockSchema = z.object({
+  src: z.string().min(1).max(400),
+  stateAnimations: z.record(z.string(), z.array(z.string().min(1).max(80)).min(1).max(12)),
+});
+
 /** Corps commun (sans superRefine) : le merge Zod ne propage pas toujours les refinements du 2e opérande. */
 const packBodyObjectSchema = z.object({
   id: z
@@ -81,17 +109,23 @@ const packBodyObjectSchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
     .max(64),
   label: z.string().min(1).max(120),
-  renderer: z.literal('sprite_cut'),
-  framesBase: z.string().min(8).max(220),
-  frameWidth: z.number().int().positive().max(2048),
-  frameHeight: z.number().int().positive().max(2048),
+  // Les trois moteurs de rendu du catalogue. `sprite_cut` garde exactement sa forme historique :
+  // les champs qui lui sont propres deviennent optionnels **au niveau du schéma**, et
+  // `refineMascotPackBody` exige la bonne combinaison selon le moteur. Un pack existant valide
+  // donc à l'identique, avec les mêmes messages d'erreur.
+  renderer: z.enum(['sprite_cut', 'spritesheet', 'rive']),
+  framesBase: z.string().min(8).max(220).optional(),
+  frameWidth: z.number().int().positive().max(2048).optional(),
+  frameHeight: z.number().int().positive().max(2048).optional(),
+  spritesheet: spritesheetBlockSchema.optional(),
+  rive: riveBlockSchema.optional(),
   pixelated: z.boolean().optional(),
   displayScale: z.number().positive().max(4).optional(),
   fallbackSilhouette: z.string().min(1).max(40),
   /** Modèle catalogue d’origine (`visitMascotCatalog.js`) lors d’un clonage studio. */
   clonedFromCatalogId: z.string().max(64).optional(),
   stateAliases: z.record(z.string(), z.string()).optional(),
-  stateFrames: z.record(z.string(), stateFrameSchemaV1),
+  stateFrames: z.record(z.string(), stateFrameSchemaV1).optional(),
   /** États d'animation personnalisés (au-delà de la palette canonique VISIT_MASCOT_STATE). */
   customStates: z.array(customStateSchema).max(24).optional(),
   /** Déclencheurs personnalisés (comportements ambiants / au tap) pilotés par le pack. */
@@ -109,7 +143,45 @@ function collectAllowedStateKeys(data) {
   return allowed;
 }
 
+/**
+ * Champs propres à chaque moteur. Un pack ne décrit **qu'un** moteur : porter les blocs des
+ * autres serait ambigu à la lecture (lequel fait foi ?) et laisserait passer des packs à moitié
+ * convertis. On l'interdit plutôt que d'arbitrer en silence.
+ */
+const RENDERER_FIELDS = {
+  sprite_cut: ['framesBase', 'frameWidth', 'frameHeight', 'stateFrames'],
+  spritesheet: ['spritesheet'],
+  rive: ['rive'],
+};
+
+function refineRendererShape(data, ctx) {
+  const renderer = data.renderer;
+  const required = RENDERER_FIELDS[renderer] || [];
+  for (const field of required) {
+    if (data[field] == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [field],
+        message: `Champ requis pour un pack « ${renderer} » : ${field}.`,
+      });
+    }
+  }
+  for (const [other, fields] of Object.entries(RENDERER_FIELDS)) {
+    if (other === renderer) continue;
+    for (const field of fields) {
+      if (data[field] != null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field],
+          message: `Champ « ${field} » réservé aux packs « ${other} » : ce pack est « ${renderer} ».`,
+        });
+      }
+    }
+  }
+}
+
 function refineMascotPackBody(data, ctx) {
+  refineRendererShape(data, ctx);
   const allowedStates = collectAllowedStateKeys(data);
 
   // États personnalisés : pas de collision avec la palette canonique, clés uniques.
@@ -134,7 +206,10 @@ function refineMascotPackBody(data, ctx) {
     });
   }
 
-  for (const key of Object.keys(data.stateFrames)) {
+  // `spritesheet` et `rive` décrivent leurs états dans leur propre bloc : les contrôles qui
+  // suivent ne portent que sur la forme `sprite_cut`.
+  const spriteCutFrames = data.stateFrames || {};
+  for (const key of Object.keys(spriteCutFrames)) {
     if (!allowedStates.has(key)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -151,7 +226,7 @@ function refineMascotPackBody(data, ctx) {
           path: ['stateAliases', alias],
           message: `Alias inconnu: ${alias}`,
         });
-      } else if (!data.stateFrames[target]) {
+      } else if (!spriteCutFrames[target]) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['stateAliases', alias],
@@ -446,6 +521,10 @@ export function parseMascotPackV1(raw, opts = {}) {
  * @param {z.infer<typeof mascotPackSchemaV1> & { framesBase: string } | z.infer<typeof mascotPackSchemaV2> & { framesBase: string }} pack
  */
 export function expandMascotPackToSpriteCut(pack) {
+  // Depuis que le format décrit trois moteurs, l'appeler sur un pack `spritesheet` ou `rive`
+  // n'a pas de sens : ces packs n'ont pas de `stateFrames` à expanser. On rend `null` plutôt
+  // que de lever, pour que les appelants historiques testent une valeur au lieu d'un jet.
+  if (pack?.renderer !== 'sprite_cut' || !pack?.stateFrames) return null;
   const base = normalizeFramesBase(pack.framesBase);
   const stateFrames = {};
   for (const [state, spec] of Object.entries(pack.stateFrames)) {
@@ -495,7 +574,18 @@ export function validateMascotPack(raw, opts = {}) {
   return {
     ok: true,
     pack: parsed.data,
+    renderer: parsed.data.renderer,
+    // `spriteCut` reste ce qu'il a toujours été — non nul pour ce seul moteur. Les appelants qui
+    // ne connaissent que lui continuent donc de fonctionner, et cessent simplement de construire
+    // une entrée pour les deux autres moteurs, ce qui est le bon comportement.
     spriteCut,
+    /** Configuration d'animation du moteur effectif, à poser telle quelle sur l'entrée catalogue. */
+    animation:
+      parsed.data.renderer === 'sprite_cut'
+        ? spriteCut
+        : parsed.data.renderer === 'spritesheet'
+          ? parsed.data.spritesheet
+          : parsed.data.rive,
     autoDeclaredStates: Array.isArray(parsed.autoDeclaredStates) ? parsed.autoDeclaredStates : [],
   };
 }

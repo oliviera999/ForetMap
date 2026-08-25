@@ -152,6 +152,21 @@ publiés dans six mois.
 
 ### P3 — Fusionner catalogue et packs en un seul registre _(gros, c'est la piste de fond)_
 
+> **Retenue.** Arbitrage rendu : c'est cette piste qui est suivie. Elle se livre en trois étapes,
+> parce que son cœur — une migration et un semis au démarrage — ne peut pas être exercé sans base
+> de données, et qu'un semis qui rate vide le sélecteur.
+>
+> | Étape | Contenu                                                                           | État      |
+> | ----- | --------------------------------------------------------------------------------- | --------- |
+> | 1     | **Le format décrit les trois moteurs** (`sprite_cut`, `spritesheet`, `rive`)      | ✅ livrée |
+> | 2     | Migration `origin`, semis des mascottes livrées, registre unique en lecture       | à faire   |
+> | 3     | Studio : une seule liste, « réinitialiser depuis l'origine » remplace le masquage | à faire   |
+>
+> **Pourquoi l'étape 1 d'abord.** Onze mascottes livrées sont `rive` et quatre `spritesheet` ;
+> tant que le format ne savait décrire que `sprite_cut`, elles ne _pouvaient pas_ devenir des
+> packs. Aucune fusion n'était possible avant d'ouvrir le format. C'est fait, et c'est vérifiable
+> sans base : `tests/mascot-pack-renderers.test.js`.
+
 Aujourd'hui « mascotte livrée » et « pack » sont deux mondes parallèles. Proposition : au
 démarrage, **semer** les seize mascottes livrées dans `visit_mascot_packs` avec
 `origin = 'builtin'`. Ensuite, il n'existe plus qu'**une** liste, **un** éditeur, **un** export,
