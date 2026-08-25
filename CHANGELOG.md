@@ -7,6 +7,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit du système de mascottes — pourquoi la mascotte importée n'apparaît pas (documentaire)
+
+Signalement : « la mascotte importée OLU n'est pas utilisable dans la carte ou les visites, j'ai
+une liste figée à la place ». Deux causes, indépendantes, toutes deux dans le code :
+
+- **L'import réécrit l'identifiant du pack.** Le pack OLU déclare `olu-spritesheet` pour
+  remplacer la mascotte livrée ; à l'import cet identifiant est écrasé par un `srv-<uuid>`. Le
+  pack devient donc une mascotte **de plus**, à côté d'un OLU silhouette. Plus largement, aucun
+  chemin de code ne permet aujourd'hui de créer un pack qui remplace une mascotte livrée — la
+  fonctionnalité existe côté lecture et est documentée, mais elle est inatteignable.
+- **La liste d'autorisation fige le registre.** Tant qu'on n'a rien décoché, tout nouveau pack
+  publié est proposé ; au **premier décochage**, la liste est gelée, et tout pack publié ensuite
+  en est absent — sans message.
+
+Contournement immédiat, sans livraison : recocher toutes les mascottes dans Paramètres →
+Mascottes de visite.
+
+L'audit décrit aussi ce qui rend l'ensemble difficile à lire — quatre portes avant qu'une
+mascotte atteigne un visiteur, dont trois échouent en silence ; trois notions de « mascotte » aux
+droits et outillages différents ; trois magasins d'images — et propose six pistes, de l'ajustement
+à la fusion du catalogue et des packs en un registre unique.
+
+Audit complet : `docs/AUDIT_MASCOTTES_2026-08.md`. Documentaire : aucune correction appliquée,
+aucun comportement modifié, pas de montée de version.
+
+
 ### Le rafraîchissement ne recharge plus que ce qui a changé (lot 21)
 
 Prolongement du lot 20, toujours sans changement fonctionnel visible :
