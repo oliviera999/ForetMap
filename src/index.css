@@ -1015,6 +1015,38 @@
       }
     }
 
+    /* Poignées « fantômes » (milieu d'arête) : discrètes, plus visibles au survol. */
+    .edit-mid .edit-mid-dot {
+      opacity: 0.55;
+      transition: opacity 0.12s ease, r 0.12s ease;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .edit-mid:hover .edit-mid-dot {
+        opacity: 1;
+      }
+    }
+    /* Sommet sélectionné : le viseur reste visible pour repérer la sélection au doigt. */
+    .edit-pt.edit-pt--selected .edit-pt-cross {
+      opacity: 1;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .edit-pt-cross,
+      .edit-mid .edit-mid-dot {
+        transition: none;
+      }
+    }
+
+    /* Curseur de rayon de l'aimant de contour (barre d'outils carte). */
+    .map-snap-radius {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:3px 8px; border:1.5px solid var(--mint); border-radius:8px;
+      background:#f0fdf4; color:#166534; font-size:.72rem; font-weight:700;
+      white-space:nowrap; flex-shrink:0;
+    }
+    .map-snap-radius input[type="range"] {
+      width:88px; accent-color:var(--leaf); cursor:pointer; margin:0;
+    }
+
     /* ── TASK CARDS ── */
     .tasks-section {
       margin-bottom:24px;
@@ -2157,6 +2189,14 @@
       min-height:30px !important;
       font-size:0.7rem !important;
     }
+    .main.main--map-visible .map-view-toolbar .map-snap-radius,
+    .teacher-main.teacher-main--map-visible .map-view-toolbar .map-snap-radius,
+    .map-view-root--solo .map-view-toolbar .map-snap-radius {
+      padding:2px 6px; min-height:30px; font-size:0.68rem;
+    }
+    .main.main--map-visible .map-view-toolbar .map-snap-radius input[type="range"],
+    .teacher-main.teacher-main--map-visible .map-view-toolbar .map-snap-radius input[type="range"],
+    .map-view-root--solo .map-view-toolbar .map-snap-radius input[type="range"] { width:64px; }
     /* Le « ? » était exclu de la compaction (48px) : en portrait il impose une barre plus haute que sur les autres onglets. */
     .main.main--map-visible .map-view-toolbar .fm-help-btn,
     .teacher-main.teacher-main--map-visible .map-view-toolbar .fm-help-btn,

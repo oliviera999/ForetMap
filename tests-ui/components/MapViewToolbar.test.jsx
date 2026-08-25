@@ -25,6 +25,12 @@ function renderToolbar(overrides = {}) {
     onUndoEditPoints: vi.fn(),
     onSaveEditPoints: vi.fn(),
     onExitEditPoints: vi.fn(),
+    onToggleInsertVertexMode: vi.fn(),
+    onRemoveSelectedPoints: vi.fn(),
+    onToggleMultiSelectMode: vi.fn(),
+    onToggleSnap: vi.fn(),
+    onSnapRadiusChange: vi.fn(),
+    onSnapSelectedPoints: vi.fn(),
     onToggleMarkerPositionLock: vi.fn(),
     onToggleMapInteraction: vi.fn(),
     onToggleLabels: vi.fn(),
@@ -130,5 +136,74 @@ describe('MapViewToolbar', () => {
     renderToolbar();
     expect(screen.getByText(/Astuce :/)).toBeTruthy();
     expect(screen.getByText(/actions guidées/)).toBeTruthy();
+  });
+
+  test('mode edit-points : compteurs de sommets et de sélection dans le badge', () => {
+    renderToolbar({
+      mode: 'edit-points',
+      editZoneName: 'Mare',
+      editPointsCount: 7,
+      selectedPointsCount: 2,
+    });
+    expect(screen.getByText(/✏️ Mare · 7 pts \(2 sél\.\)/)).toBeTruthy();
+  });
+
+  test('mode edit-points : bascule « ＋ Sommet »', () => {
+    const h = renderToolbar({ mode: 'edit-points' });
+    const btn = screen.getByRole('button', { name: '＋ Sommet' });
+    expect(btn.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(btn);
+    expect(h.onToggleInsertVertexMode).toHaveBeenCalled();
+
+    renderToolbar({ mode: 'edit-points', insertVertexMode: true });
+    expect(screen.getByRole('button', { name: '✕ Ajout' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+  });
+
+  test('mode edit-points : suppression désactivée sans sélection supprimable', () => {
+    const h = renderToolbar({ mode: 'edit-points' });
+    expect(screen.getByRole('button', { name: '🗑 Sommet' }).disabled).toBe(true);
+
+    renderToolbar({ mode: 'edit-points', canRemoveSelection: true, selectedPointsCount: 3 });
+    const btn = screen.getByRole('button', { name: '🗑 3 sommets' });
+    expect(btn.disabled).toBe(false);
+    fireEvent.click(btn);
+    expect(h.onRemoveSelectedPoints).not.toHaveBeenCalled();
+  });
+
+  test('mode edit-points : bascule de sélection multiple', () => {
+    const h = renderToolbar({ mode: 'edit-points' });
+    fireEvent.click(screen.getByRole('button', { name: '⬚ Multi' }));
+    expect(h.onToggleMultiSelectMode).toHaveBeenCalled();
+    renderToolbar({ mode: 'edit-points', multiSelectMode: true });
+    expect(screen.getByRole('button', { name: '☑ Multi' })).toBeTruthy();
+  });
+
+  test('mode edit-points : états de l’aimant (éteint, analyse, indisponible, prêt)', () => {
+    const h = renderToolbar({ mode: 'edit-points' });
+    fireEvent.click(screen.getByRole('button', { name: '🧲 Aimant' }));
+    expect(h.onToggleSnap).toHaveBeenCalled();
+    expect(screen.queryByLabelText(/Rayon d’accroche/)).toBeNull();
+
+    renderToolbar({ mode: 'edit-points', snapEnabled: true, snapStatus: 'loading' });
+    expect(screen.getByRole('button', { name: '🧲 Analyse…' })).toBeTruthy();
+
+    renderToolbar({ mode: 'edit-points', snapEnabled: true, snapStatus: 'unavailable' });
+    expect(screen.getByRole('button', { name: '🧲 Indispo.' })).toBeTruthy();
+  });
+
+  test('mode edit-points : aimant prêt → curseur de rayon et collage de la sélection', () => {
+    const h = renderToolbar({
+      mode: 'edit-points',
+      snapEnabled: true,
+      snapStatus: 'ready',
+      snapRadiusPx: 18,
+    });
+    const slider = screen.getByLabelText(/Rayon d’accroche de l’aimant : 18 pixels/);
+    fireEvent.change(slider, { target: { value: '30' } });
+    expect(h.onSnapRadiusChange).toHaveBeenCalledWith(30);
+    fireEvent.click(screen.getByRole('button', { name: '🧲 Coller' }));
+    expect(h.onSnapSelectedPoints).toHaveBeenCalled();
   });
 });

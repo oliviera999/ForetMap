@@ -23,7 +23,7 @@ describe('MapCanvasHints', () => {
 
   test('edit-points : consigne de glissement avec Ctrl+Z', () => {
     render(<MapCanvasHints mode="edit-points" />);
-    expect(screen.getByText(/Glisse un point ou l'intérieur/)).toBeTruthy();
+    expect(screen.getByText(/Glisse un sommet ou l'intérieur/)).toBeTruthy();
   });
 
   test('défilement page préféré : rappel 1 doigt / 2 doigts (prioritaire sur gestes actifs)', () => {
