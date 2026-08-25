@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Un QCM d'entraînement ne se brute-force plus (lore + quiz ForetMap)
+
+Le catalogue biomes consommait déjà le jeton de présentation à la première réponse.
+Le QCM **lore** hors partie et le **quiz ForetMap** laissaient rejouer le même jeton :
+cinq requêtes suffisaient à révéler la bonne réponse, et à enregistrer une tentative
+juste qui débloque un conditionnement. Même filet désormais : rejeu → 409, il faut
+une nouvelle présentation (choix remélangés).
+
 ### Les commandes GL en icône seule s'expliquent enfin (lot 11)
 
 **GL n'avait aucune infobulle.** Ses boutons en pictogramme — les dés, la musique, le
