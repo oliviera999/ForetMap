@@ -17,6 +17,26 @@ page « mangée » dans une nouvelle partie, voyait son carnet s'obscurcir.
 
 L'instantané personnel garde désormais le moins effacé, comme la lecture du carnet le
 faisait déjà. Les camarades qui n'avaient pas le feuillet reçoivent bien la copie.
+### Les boutons flottants ne se marchent plus dessus (lot 12)
+
+**Deux d'entre eux tombaient dans la barre de navigation du bas.** Côté Gnomes & Licornes,
+la cloche de notifications se posait par-dessus et masquait un onglet. Côté ForetMap, le
+bandeau de message se posait par-dessous : il ne s'affichait **jamais** pour un élève.
+
+**Et le « ? » d'aide changeait de place selon l'onglet** : il vivait en fin de contenu, donc
+sa position dépendait de la longueur de la page. Sur un onglet court il restait haut, sur un
+onglet long il venait buter contre la cloche.
+
+Les commandes du coin bas-droit tiennent désormais dans **un seul empilement** : elles ne
+choisissent plus leur place, l'ordre et l'espacement leur sont donnés, et la hauteur à
+dégager au-dessus de la barre est calculée au lieu d'être recopiée à la main. Le « ? » y
+gagne une place fixe, la même d'un onglet à l'autre.
+
+**Sept commandes en pictogramme étaient trop petites pour le doigt** (36 à 40 px au lieu des
+44 px que le projet s'impose), dont la barre de sous-onglets de G&L. Leur zone cliquable est
+portée à 44 px sans que rien ne grossisse à l'écran.
+
+Audit complet : `docs/AUDIT_ICONES_FLOTTANTES_2026-08.md`.
 
 ### Les filtres de tâches libèrent le haut de l'écran sur téléphone (lot 12)
 
