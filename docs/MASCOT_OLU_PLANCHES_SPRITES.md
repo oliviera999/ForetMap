@@ -5,6 +5,10 @@
 > Ce document-ci traite de l'autre famille d'assets : les **planches de sprites `body`**,
 > découpées en trames et animées par `VisitMapMascotSpritesheet`.
 >
+> **Pour produire les planches sans rien avoir à assembler**, aller directement à
+> [`MASCOT_OLU_PROMPTS_A_COLLER.md`](./MASCOT_OLU_PROMPTS_A_COLLER.md) : les seize prompts y sont
+> déjà complétés, prêts à copier-coller. Le présent document explique d'où ils viennent.
+>
 > Les deux familles sont indépendantes : on peut livrer les portraits sans jamais toucher aux
 > planches, et inversement. Rien ici n'est bloquant — sans asset, le fallback SVG reste actif.
 
@@ -138,7 +142,7 @@ les deux formes indifféremment.
 | 10  | `search`         | `search`               | 5                 | trois quarts      | 6 fps   |
 | 11  | `wave`           | `wave`                 | 5                 | face              | 8 fps   |
 | 12  | `alert_surprise` | `alert` / `surprise`   | 3 + 3 (2 rangées) | face              | 11 / 9  |
-| 13  | `sad_love`       | `sad` / `love`         | 3 + 4 (2 rangées) | trois quarts      | 4 / 6   |
+| 13  | `sad_love`       | `sad` / `love`         | 4 + 4 (2 rangées) | trois quarts      | 4 / 6   |
 | 14  | `angry_sleep`    | `angry` / `sleep`      | 4 + 4 (2 rangées) | trois quarts      | 8 / 3   |
 | 15  | `eat`            | `eat`                  | 5                 | trois quarts      | 6 fps   |
 | 16  | `dance`          | `dance`                | 6                 | face              | 10 fps  |
@@ -289,15 +293,16 @@ surprise pleine, yeux très écarquillés, gueule ouverte en rond, les deux main
 devant la poitrine, queue gonflée. Aucun trait de mouvement, aucun point d'exclamation.
 ```
 
-### 13 — `sad_love` (rangées de 3 et 4 cases, trois quarts, 4 et 6 fps)
+### 13 — `sad_love` (2 rangées de 4 cases, trois quarts, 4 et 6 fps)
 
 ```
 Deux animations distinctes sur deux rangées, même taille de personnage partout.
 
-RANGÉE DU HAUT — gravité, 3 cases. Case 1 : posture neutre. Case 2 : les épaules
+RANGÉE DU HAUT — gravité, 4 cases. Case 1 : posture neutre. Case 2 : les épaules
 s'affaissent, la tête commence à descendre, les oreilles retombent. Case 3 : regard baissé
 et lointain, bouche en ligne neutre, oreilles retombantes, épaules abaissées, queue basse.
-Recueilli et lucide — surtout pas larmoyant, aucune larme.
+Case 4 : maintien de la pose, la tête se redresse d'un cheveu. Recueilli et lucide —
+surtout pas larmoyant, aucune larme.
 
 RANGÉE DU BAS — affection, 4 cases. Case 1 : posture neutre. Case 2 : les deux mains
 remontent et se joignent devant la poitrine, la tête s'incline sur le côté. Case 3 : mains
