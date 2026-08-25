@@ -440,6 +440,11 @@ on ne débite pas le donneur pour jeter la monnaie.
   réécrits. Une copie très effacée ne rend pas illisible un feuillet trouvé intact, et une
   découverte sur la carte ne se transforme pas en simple échange. Le compteur `delivered` de la
   finalisation ne compte donc que les feuillets réellement nouveaux pour l’équipe.
+- Même garde sur la **possession personnelle** (`gl_player_feuillet_states`) : si un membre de
+  l’équipe destinataire a déjà ce feuillet dans son carnet (chapitre précédent, autre équipe),
+  l’instantané d’équipe n’augmente pas son `effacement_pct` ni ne rétrograde son statut. Les
+  camarades qui ne l’avaient pas reçoivent bien la copie ; le joueur qui l’avait déjà garde
+  sa lecture. `acquired_via` n’est jamais rétrogradé (`decouverte` gagne sur `echange`).
 - Le feuillet reçu — lorsqu’il est nouveau pour l’équipe — porte `unlocked_via = 'echange'` et
   `acquired_via = 'echange'` : un feuillet reçu n’est pas un feuillet trouvé, distinction
   nécessaire à un futur bonus de complétion de chapitre. L’attribution d’origine
@@ -454,7 +459,9 @@ joueur s'octroyait n'importe quel code du corpus, contournant la garde de porté
 écrite à chaque acquisition, pour chaque membre présent de l’équipe. Auparavant la possession était
 seulement _dérivée_ de l’appartenance à une équipe : retirer un joueur d’une partie, le changer
 d’équipe ou supprimer la partie lui retirait rétroactivement des feuillets qu’il avait découverts.
-La règle de partage est inchangée (une découverte profite à toute l’équipe).
+La règle de partage est inchangée (une découverte profite à toute l’équipe). Une réécriture
+ultérieure (échange, redécouverte plus effacée) **n’opacifie pas** une copie personnelle déjà plus
+lisible : on garde le moins effacé, comme `loadPlayerFeuilletStates` le fait déjà à la lecture.
 
 | GET | `/api/gl/tutorials` | `?chapterId=` optionnel | Auth GL |
 | GET | `/api/gl/tutorials/me/read-ids` | — | Auth GL (IDs lus — source `gl_learning_acknowledgements`, aligné sur `GET /api/gl/learning/me`) |
