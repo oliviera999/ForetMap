@@ -6512,3 +6512,19 @@ fieldset .media-library-menu__gallery {
   height: max(100%, 44px);
   transform: translate(-50%, -50%);
 }
+
+/* Illustration dans l'aperçu QCM d'administration (modale partagée QcmPreviewModal). */
+.qcm-preview__photo { margin: 0 0 12px; }
+.qcm-preview__photo-img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+}
+.qcm-preview__photo-caption {
+  font-size: 0.75rem;
+  color: var(--gl-muted, #8aa193);
+  margin-top: 4px;
+  line-height: 1.35;
+}
+.qcm-preview__photo-caption .qcm-photo__legende { font-weight: 600; }
