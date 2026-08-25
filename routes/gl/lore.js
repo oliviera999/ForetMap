@@ -25,6 +25,8 @@ const { isFeuilletInChapterPool } = require('../../lib/glFeuilletChapterPool');
 const { FEUILLET_BUNDLES, grantFeuilletBundleForGame } = require('../../lib/glFeuilletBundleGrant');
 const { resolveTeamContext } = require('../../lib/glTeamContext');
 const { recordFeuilletEvent } = require('../../lib/glLoreFeuilletEvents');
+const { insertGameEvent } = require('../../lib/glGameEvents');
+const { emitGlGameEvent } = require('../../lib/realtime');
 const {
   FEUILLET_SELECT,
   FEUILLET_ZONE_ORDER_SQL,
@@ -48,7 +50,7 @@ const {
   computeEffacementPct,
   canHoldFeuillet,
 } = require('../../lib/glLoreFeuilletEffects');
-const { resolveVitalityError } = require('../../lib/glVitality');
+const { lockGlTeamRow, resolveVitalityError } = require('../../lib/glVitality');
 const {
   parseFeuilletsWorkbook,
   resolveFeuilletsImportBody,
@@ -90,6 +92,7 @@ const {
   upsertGlQcmLoreQuestion,
 } = require('../../lib/glQcmLoreCrud');
 const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../lib/glQcmChoices');
+const { consumePresentationJti } = require('../../lib/glQcmPresentationUse');
 const { buildLorePresentation } = require('../../lib/glQcmLoreQuestionQuery');
 const { previewLoreQuestionPool } = require('../../lib/glMarkerLoreQuestionPool');
 const { normalizeLoreQuestionPool } = require('../../lib/glMarkerEventConfig');
@@ -425,6 +428,8 @@ router.post(
     const loreSettings = resolveLoreSettings(game, gameplaySettings);
 
     const kingdomZoneId = parseId(req.body?.kingdomZoneId ?? req.body?.zoneId);
+    // Contrôle rapide hors transaction : évite d'ouvrir une tx pour un doublon
+    // évident. Il ne suffit pas — voir le re-contrôle sous verrou plus bas.
     const canPresent = await canPresentFeuillet(db, {
       gameId,
       teamId,
@@ -446,9 +451,33 @@ router.post(
       effacementPct = computeEffacementPct(feuillet, existing?.effacement_pct || 0);
     }
 
+    // Même classe de course que `presentFeuilletZone` : `canPresentFeuillet` lit
+    // `gl_game_events` sans verrou. Deux clics simultanés (deux onglets, deux
+    // membres) passaient tous deux, appliquaient deux fois les cœurs/gemmes, puis
+    // journalisaient *après* le commit — trop tard pour que la seconde tx voie
+    // l'événement. On verrouille l'équipe, on relit, et on écrit l'événement
+    // dans la même transaction.
+    const actorType = actorTypeOf(req);
     let vitalityPayload = null;
+    let discoveredEvent = null;
+    let alreadyPresented = false;
     try {
       await withTransaction(async (tx) => {
+        await lockGlTeamRow(tx, teamId);
+        const stillAvailable = await canPresentFeuillet(
+          { queryAll: tx.queryAll.bind(tx) },
+          {
+            gameId,
+            teamId,
+            feuilletCode: code,
+            retriggerMode: loreSettings.retrigger,
+          },
+        );
+        if (!stillAvailable) {
+          alreadyPresented = true;
+          return;
+        }
+
         vitalityPayload = await applyFeuilletVitalityEffects(tx, {
           gameId,
           teamId,
@@ -467,6 +496,20 @@ router.post(
           unlockedVia: kingdomZoneId ? 'zone' : 'story',
           kingdomZoneId,
         });
+        discoveredEvent = await insertGameEvent(tx, {
+          gameId,
+          teamId,
+          actorType,
+          actorId: String(req.glAuth.userId),
+          eventType: 'feuillet_discovered',
+          payload: {
+            feuilletCode: code,
+            titre: feuillet.titre,
+            kingdomZoneId,
+            effacementPct,
+            vitality: vitalityPayload,
+          },
+        });
       });
     } catch (err) {
       const mapped = resolveVitalityError(err);
@@ -474,21 +517,13 @@ router.post(
       throw err;
     }
 
-    const actorType = actorTypeOf(req);
-    await recordFeuilletEvent(
-      gameId,
-      teamId,
-      actorType,
-      String(req.glAuth.userId),
-      'feuillet_discovered',
-      {
-        feuilletCode: code,
-        titre: feuillet.titre,
-        kingdomZoneId,
-        effacementPct,
-        vitality: vitalityPayload,
-      },
-    );
+    if (alreadyPresented) {
+      return res
+        .status(409)
+        .json({ error: 'Feuillet déjà présenté selon les règles de re-déclenchement' });
+    }
+
+    if (discoveredEvent) emitGlGameEvent(gameId, discoveredEvent);
 
     return res.json({
       feuillet: formatFeuilletRow(feuillet, {
@@ -1422,6 +1457,17 @@ router.post(
         code,
         req.body?.choiceId,
       );
+      // Même filet que le QCM biomes hors partie : sans consommation, un seul jeton
+      // permettait d'essayer tous les choiceId jusqu'à `correct:true` (et d'écrire une
+      // tentative juste qui débloque le conditionnement). La PK (jti) arbitre l'unicité
+      // — y compris hors partie (game_id NULL, migration 197).
+      const consumption = await consumePresentationJti(
+        { execute },
+        { jti: result.jti, gameId: null, teamId: null, questionCode: code },
+      );
+      if (consumption === 'already_used') {
+        return res.status(409).json({ error: 'Présentation déjà utilisée' });
+      }
       const glossaryByKey = await loadLoreGlossaryLookupForQcm();
       const loreGlossaryTerms = await enrichLoreQuestionWithGlossary(row, glossaryByKey);
       const dbHandle = { queryAll, queryOne, execute };

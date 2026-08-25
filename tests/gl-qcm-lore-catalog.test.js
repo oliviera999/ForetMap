@@ -163,6 +163,48 @@ test('POST /api/gl/lore/qcm/questions/:code/answer valide une réponse', async (
   assert.ok(String(answer.body.feedback || '').trim().length > 0);
 });
 
+test('POST /api/gl/lore/qcm/questions/:code/answer refuse un jeton déjà utilisé', async () => {
+  const present = await request(app)
+    .get('/api/gl/lore/qcm/questions/LQCM0001/present')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  const token = present.body.presentationToken;
+
+  await request(app)
+    .post('/api/gl/lore/qcm/questions/LQCM0001/answer')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ presentationToken: token, choiceId: 0 })
+    .expect(200);
+
+  const replay = await request(app)
+    .post('/api/gl/lore/qcm/questions/LQCM0001/answer')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ presentationToken: token, choiceId: 1 })
+    .expect(409);
+  assert.match(String(replay.body?.error || ''), /déjà utilisée/i);
+});
+
+test('POST /api/gl/lore/qcm/questions/:code/answer bloque le brute-force sur un seul jeton', async () => {
+  const present = await request(app)
+    .get('/api/gl/lore/qcm/questions/LQCM0001/present')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  const token = present.body.presentationToken;
+
+  let firstStatus = null;
+  let extraAccepted = 0;
+  for (let choiceId = 0; choiceId < present.body.choices.length; choiceId += 1) {
+    const res = await request(app)
+      .post('/api/gl/lore/qcm/questions/LQCM0001/answer')
+      .set('Authorization', `Bearer ${playerToken}`)
+      .send({ presentationToken: token, choiceId });
+    if (firstStatus == null) firstStatus = res.status;
+    else if (res.status === 200) extraAccepted += 1;
+  }
+  assert.strictEqual(firstStatus, 200, 'la première tentative est traitée');
+  assert.strictEqual(extraAccepted, 0, 'aucune tentative supplémentaire ne doit être acceptée');
+});
+
 test('GET /api/gl/lore/qcm/pool-preview admin', async () => {
   const res = await request(app)
     .get('/api/gl/lore/qcm/pool-preview?chapitreSlugs=tous')
