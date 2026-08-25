@@ -6,7 +6,7 @@
 > découpées en trames et animées par `VisitMapMascotSpritesheet`.
 >
 > **Pour produire les planches sans rien avoir à assembler**, aller directement à
-> [`MASCOT_OLU_PROMPTS_A_COLLER.md`](./MASCOT_OLU_PROMPTS_A_COLLER.md) : les seize prompts y sont
+> [`MASCOT_OLU_PROMPTS_A_COLLER.md`](./MASCOT_OLU_PROMPTS_A_COLLER.md) : les dix-neuf prompts y sont
 > déjà complétés, prêts à copier-coller. Le présent document explique d'où ils viennent.
 >
 > Les deux familles sont indépendantes : on peut livrer les portraits sans jamais toucher aux
@@ -101,6 +101,21 @@ autre que ceux du personnage. Un seul personnage par case.
 ANIMATION : {ANIMATION}
 ```
 
+### 2.0 Trois blocs ne se substituent pas mécaniquement
+
+Le prompt maître interdit tout objet en plus des accessoires du personnage, et interdit que quoi
+que ce soit disparaisse d'une case à l'autre. Trois planches contredisent ces deux lignes et
+demandent donc une exception nommée dans le prompt final :
+
+| Planche       | Ce qu'il faut lever                                                                                      |
+| ------------- | -------------------------------------------------------------------------------------------------------- |
+| 9 — `inspect` | La **carte** est autorisée (et interdite de toute écriture — c'est là qu'un modèle glisse du faux texte) |
+| 18 — `eat`    | La **baie** est autorisée, et elle disparaît volontairement à partir de la case 3                        |
+| 8 — `spin`    | La **boussole** de poitrine est logiquement masquée sur la vue de dos                                    |
+
+`MASCOT_OLU_PROMPTS_A_COLLER.md` intègre déjà ces exceptions ; elles ne concernent qu'une
+substitution faite à la main.
+
 ### 2.1 Si le personnage dérive
 
 Joindre **en plus** la planche `idle` déjà validée comme seconde référence, et ajouter en fin de
@@ -122,35 +137,40 @@ Ce qui n'est **pas** rattrapable au découpage, en revanche, et impose de relanc
 
 ---
 
-## 3. Les seize planches
+## 3. Les dix-neuf planches
 
-Trois planches regroupent deux animations courtes sur **deux rangées** (haut / bas). Si le modèle
-mélange les rangées, les scinder en deux générations d'une rangée chacune : le découpeur traite
-les deux formes indifféremment.
+**Une planche, une animation, une rangée.** Une première version regroupait les six animations
+les plus courtes sur trois planches à deux rangées, pour économiser des générations. À l'essai,
+elles rendent mal : le modèle mélange les rangées, reprend une pose de l'une dans l'autre, ou
+change l'échelle du personnage de l'une à l'autre. Trois générations de plus coûtent moins cher
+qu'une planche à retoucher — la règle est donc sans exception.
 
-| #   | Planche          | État(s) du pack        | Cases             | Vue               | Cadence |
-| --- | ---------------- | ---------------------- | ----------------- | ----------------- | ------- |
-| 1   | `idle`           | `idle`                 | 4                 | trois quarts face | 4 fps   |
-| 2   | `walking`        | `walking` + `running`  | 6                 | profil droit      | 10 / 14 |
-| 3   | `talk`           | `talk`                 | 4                 | trois quarts face | 8 fps   |
-| 4   | `point`          | `point`                | 4                 | trois quarts face | 6 fps   |
-| 5   | `happy`          | `happy`                | 5                 | face              | 10 fps  |
-| 6   | `happy_jump`     | `happy_jump`           | 5                 | trois quarts face | 10 fps  |
-| 7   | `celebrate`      | `celebrate`            | 6                 | face              | 12 fps  |
-| 8   | `spin`           | `spin`                 | 6                 | tour complet      | 12 fps  |
-| 9   | `inspect`        | `inspect` + `map_read` | 4                 | trois quarts face | 3 fps   |
-| 10  | `search`         | `search`               | 5                 | trois quarts      | 6 fps   |
-| 11  | `wave`           | `wave`                 | 5                 | face              | 8 fps   |
-| 12  | `alert_surprise` | `alert` / `surprise`   | 3 + 3 (2 rangées) | face              | 11 / 9  |
-| 13  | `sad_love`       | `sad` / `love`         | 4 + 4 (2 rangées) | trois quarts      | 4 / 6   |
-| 14  | `angry_sleep`    | `angry` / `sleep`      | 4 + 4 (2 rangées) | trois quarts      | 8 / 3   |
-| 15  | `eat`            | `eat`                  | 5                 | trois quarts      | 6 fps   |
-| 16  | `dance`          | `dance`                | 6                 | face              | 10 fps  |
+| #   | Planche      | État(s) du pack        | Cases | Vue                 | Cadence |
+| --- | ------------ | ---------------------- | ----- | ------------------- | ------- |
+| 1   | `idle`       | `idle`                 | 4     | trois quarts face   | 4 fps   |
+| 2   | `walking`    | `walking` + `running`  | 6     | profil droit        | 10 / 14 |
+| 3   | `talk`       | `talk`                 | 4     | trois quarts face   | 8 fps   |
+| 4   | `point`      | `point`                | 4     | trois quarts face   | 6 fps   |
+| 5   | `happy`      | `happy`                | 5     | face                | 10 fps  |
+| 6   | `happy_jump` | `happy_jump`           | 5     | trois quarts face   | 10 fps  |
+| 7   | `celebrate`  | `celebrate`            | 6     | face                | 12 fps  |
+| 8   | `spin`       | `spin`                 | 6     | tour complet        | 12 fps  |
+| 9   | `inspect`    | `inspect` + `map_read` | 4     | trois quarts face   | 3 fps   |
+| 10  | `search`     | `search`               | 5     | trois quarts        | 6 fps   |
+| 11  | `wave`       | `wave`                 | 5     | face                | 8 fps   |
+| 12  | `alert`      | `alert`                | 3     | face                | 11 fps  |
+| 13  | `surprise`   | `surprise`             | 3     | face                | 9 fps   |
+| 14  | `sad`        | `sad`                  | 4     | trois quarts face   | 4 fps   |
+| 15  | `love`       | `love`                 | 4     | trois quarts face   | 6 fps   |
+| 16  | `angry`      | `angry`                | 4     | trois quarts face   | 8 fps   |
+| 17  | `sleep`      | `sleep`                | 4     | trois quarts, assis | 3 fps   |
+| 18  | `eat`        | `eat`                  | 5     | trois quarts        | 6 fps   |
+| 19  | `dance`      | `dance`                | 6     | face                | 10 fps  |
 
-**Soit 19 animations distinctes pour 21 états déclarés** : `running` réutilise les trames de
-`walking` à cadence plus élevée, `map_read` réutilise celles d'`inspect`. C'est exactement le jeu
-d'états que gèle `tests/visit-mascot-catalog-states.test.js` — aucun état ne retombe plus sur
-`idle` par défaut une fois ces planches livrées.
+**Soit 19 animations pour 21 états déclarés** : `running` réutilise les trames de `walking` à
+cadence plus élevée, `map_read` réutilise celles d'`inspect`. C'est exactement le jeu d'états que
+gèle `tests/visit-mascot-catalog-states.test.js` — aucun état ne retombe plus sur `idle` par
+défaut une fois ces planches livrées.
 
 ---
 
@@ -277,60 +297,68 @@ sourire — c'est le va-et-vient du salut. Case 5 : la main est de nouveau incli
 gauche. Le reste du corps ne bouge pas, seul l'avant-bras et le poignet travaillent.
 ```
 
-### 12 — `alert_surprise` (2 rangées de 3 cases, face, 11 et 9 fps)
+### 12 — `alert` (3 cases, face, 11 fps)
 
 ```
-Deux animations distinctes sur deux rangées, même taille de personnage partout.
-
-RANGÉE DU HAUT — mise en garde, 3 cases. Case 1 : posture neutre. Case 2 : le personnage se
-redresse, une main ouverte se lève paume vers l'avant. Case 3 : main levée bien visible en
-signe de « attention », regard direct et soutenu vers le spectateur, sourcils abaissés,
-bouche fermée et ferme. Sérieux et posé, jamais apeuré.
-
-RANGÉE DU BAS — surprise, 3 cases. Case 1 : posture neutre. Case 2 : sursaut, le corps se
-raidit et se redresse, les oreilles se dressent d'un coup, les yeux s'agrandissent. Case 3 :
-surprise pleine, yeux très écarquillés, gueule ouverte en rond, les deux mains remontées
-devant la poitrine, queue gonflée. Aucun trait de mouvement, aucun point d'exclamation.
+Mise en garde. Case 1 : posture neutre, bras le long du corps, regard vers le spectateur.
+Case 2 : le personnage se redresse, une main ouverte commence à se lever, paume vers
+l'avant. Case 3 : main levée bien visible en signe de « attention », bras tendu vers
+l'avant, regard direct et soutenu vers le spectateur, sourcils abaissés, bouche fermée et
+ferme, oreilles dressées. Sérieux et posé, jamais apeuré ni menaçant.
 ```
 
-### 13 — `sad_love` (2 rangées de 4 cases, trois quarts, 4 et 6 fps)
+### 13 — `surprise` (3 cases, face, 9 fps)
 
 ```
-Deux animations distinctes sur deux rangées, même taille de personnage partout.
-
-RANGÉE DU HAUT — gravité, 4 cases. Case 1 : posture neutre. Case 2 : les épaules
-s'affaissent, la tête commence à descendre, les oreilles retombent. Case 3 : regard baissé
-et lointain, bouche en ligne neutre, oreilles retombantes, épaules abaissées, queue basse.
-Case 4 : maintien de la pose, la tête se redresse d'un cheveu. Recueilli et lucide —
-surtout pas larmoyant, aucune larme.
-
-RANGÉE DU BAS — affection, 4 cases. Case 1 : posture neutre. Case 2 : les deux mains
-remontent et se joignent devant la poitrine, la tête s'incline sur le côté. Case 3 : mains
-jointes sur la poitrine, yeux fermés en deux arcs souriants, museau relevé, expression
-attendrie. Case 4 : léger balancement du buste, même expression. Aucun cœur, aucune étoile,
-aucun pictogramme flottant.
+Sursaut de surprise. Case 1 : posture neutre, expression calme. Case 2 : le corps se raidit
+et se redresse d'un coup, les oreilles se dressent, les yeux s'agrandissent, les épaules
+montent. Case 3 : surprise pleine, yeux très écarquillés, gueule ouverte en rond, les deux
+mains remontées ouvertes devant la poitrine, queue gonflée et relevée.
 ```
 
-### 14 — `angry_sleep` (2 rangées de 4 cases, trois quarts, 8 et 3 fps)
+### 14 — `sad` (4 cases, trois quarts face, 4 fps)
 
 ```
-Deux animations distinctes sur deux rangées, même taille de personnage partout.
-
-RANGÉE DU HAUT — contrariété, 4 cases. Case 1 : posture neutre. Case 2 : les sourcils
-s'abaissent, les poings se ferment le long du corps. Case 3 : buste penché en avant, poings
-serrés remontés, babines légèrement retroussées, oreilles rabattues en arrière. Case 4 :
-même pose, le buste se redresse d'un cran en soufflant. Contrarié et boudeur, jamais
-menaçant ni effrayant — c'est une mascotte pour des élèves. Aucune veine, aucun symbole de
-colère.
-
-RANGÉE DU BAS — sommeil, 4 cases. Le personnage est assis en tailleur au sol, dos rond, tête
-penchée en avant, yeux fermés en deux traits, queue enroulée autour de lui. Case 1 : tête
-basse, respiration au plus bas. Case 2 : la tête et les épaules remontent d'un cheveu.
-Case 3 : point haut de la respiration, la tête glisse un peu sur le côté. Case 4 : la tête
-retombe doucement. Aucune bulle de sommeil, aucune lettre Z.
+Gravité, très retenue. Case 1 : posture neutre. Case 2 : les épaules s'affaissent, la tête
+commence à descendre, les oreilles retombent. Case 3 : regard baissé et lointain, bouche en
+ligne neutre, oreilles retombantes, épaules abaissées, queue basse. Case 4 : maintien de la
+pose, la tête se redresse d'un cheveu. Recueilli et lucide — jamais larmoyant, aucune larme.
 ```
 
-### 15 — `eat` (5 cases, trois quarts, 6 fps)
+### 15 — `love` (4 cases, trois quarts face, 6 fps)
+
+```
+Élan d'affection. Case 1 : posture neutre, léger sourire. Case 2 : les deux mains remontent
+et se joignent devant la poitrine, la tête commence à s'incliner sur le côté. Case 3 : mains
+jointes sur la poitrine, tête inclinée, yeux fermés en deux arcs souriants, museau relevé,
+expression attendrie. Case 4 : léger balancement du buste vers l'autre côté, même expression.
+```
+
+### 16 — `angry` (4 cases, trois quarts face, 8 fps)
+
+```
+Contrariété. Case 1 : posture neutre. Case 2 : les sourcils s'abaissent, les poings se
+ferment le long du corps. Case 3 : buste penché en avant, poings serrés remontés à hauteur
+de taille, babines légèrement retroussées, oreilles rabattues en arrière. Case 4 : même pose,
+le buste se redresse d'un cran en soufflant. Contrarié et boudeur, jamais menaçant ni
+effrayant : c'est une mascotte destinée à des élèves.
+```
+
+### 17 — `sleep` (4 cases, trois quarts, assis, 3 fps)
+
+```
+Sommeil paisible. Le personnage est assis en tailleur au sol, dos rond, tête penchée en
+avant, yeux fermés en deux traits, queue enroulée autour de lui, et garde exactement cette
+position dans les quatre cases — seule la respiration bouge. Case 1 : tête basse,
+respiration au plus bas. Case 2 : la tête et les épaules remontent d'un cheveu. Case 3 :
+point haut de la respiration, la tête glisse un peu sur le côté. Case 4 : la tête retombe
+doucement vers l'avant.
+```
+
+> ⚠️ Seule planche où le personnage est **assis** : la contrainte de ligne commune porte sur le bas
+> du corps, pas sur les pieds. Le prompt final en tient compte.
+
+### 18 — `eat` (5 cases, trois quarts, 6 fps)
 
 ```
 Le personnage mange une petite baie rouge sombre qu'il tient entre deux doigts. Case 1 : il
@@ -342,7 +370,7 @@ du corps. La baie a exactement la même taille et la même couleur dans les case
 visible, et n'apparaît plus à partir de la case 3.
 ```
 
-### 16 — `dance` (6 cases, face, 10 fps)
+### 19 — `dance` (6 cases, face, 10 fps)
 
 ```
 Petite danse en boucle, joyeuse et simple. Case 1 : appui sur la jambe droite, hanche à
@@ -374,8 +402,8 @@ Un script `scripts/olu-sheets-cut.cjs` est à écrire sur le modèle de
 
 1. clé chromatique magenta → alpha, seuil resserré (vigilance oreilles rosées, §1) ;
 2. suppression des composantes isolées de moins de ~0,5 % de l'aire (l'éclat parasite du §0) ;
-3. segmentation par colonnes vides pour isoler les cases, puis par rangées si la planche en a
-   deux — **pas de grille fixe**, cf. §2.2 ;
+3. segmentation par colonnes vides pour isoler les cases — **pas de grille fixe**, cf. §2.2 ;
+   toutes les planches étant sur une seule rangée, il n'y a pas de découpage vertical à faire ;
 4. pour chaque sujet : boîte englobante, recentrage horizontal, calage du bas de boîte sur la
    ligne de pieds commune, mise à l'échelle vers 256 × 256 avec une marge de sécurité de 4 px ;
 5. composition de la feuille finale et écriture du manifeste.
