@@ -52,6 +52,17 @@ de missions actives passent en version courte (le texte complet reste sur grand 
 Et sans préférence enregistrée, un téléphone démarre en affichage **condensé**, une ligne
 par tâche. Bilan sur un écran de 390 × 844 : **58 px de filtres au lieu de 331**, et
 quatre tâches lisibles sans faire défiler la page, contre une seule auparavant.
+### Un échange au plafond ne fait plus disparaître des gemmes
+
+Depuis le plafond de jeu (cœurs/gemmes max), finaliser un troc alors que le
+receveur était déjà au maximum **débitait le donneur et jetait la monnaie** :
+le plafond rognait le gain, pas la dépense. Deux élèves qui s'accordent
+« je te donne 2 gemmes » voyaient les 2 gemmes s'évaporer.
+
+L'échange est désormais **refusé** (comme un solde insuffisant) : personne ne
+perd rien, personne n'en gagne. Les récompenses de cases et de feuillets
+continuent d'ignorer un gain au-delà du plafond — là, rien n'est pris à
+personne.
 
 ### Les commandes GL en icône seule s'expliquent enfin (lot 11)
 
