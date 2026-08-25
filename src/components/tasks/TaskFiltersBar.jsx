@@ -1,17 +1,24 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
-import { HelpPanel } from '../HelpPanel';
-import { resolveHelpPanelSection } from '../../utils/helpResolve';
-import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
-import { TASK_STATUS_FILTER_OPTIONS } from './taskViewHelpers.js';
-import { filterProjectsByMapChoice } from '../../utils/taskSectioning.js';
-import { projectStatusLabel, mapLabelFromMaps } from '../../utils/taskListHelpers.js';
+import { DialogShell } from '../DialogShell.jsx';
+import { TaskFiltersFields } from './TaskFiltersFields.jsx';
+import { useTaskFiltersPanel } from '../../hooks/useTaskFiltersPanel.js';
+import { activeTaskFilterChips } from '../../utils/taskFilterSummary.js';
+
+const VIEW_MODE_BUTTONS = [
+  { value: 'tiles', icon: '🧩', label: 'Tuiles', ariaLabel: 'Affichage en tuiles' },
+  { value: 'list', icon: '📄', label: 'Liste', ariaLabel: 'Affichage en liste' },
+  { value: 'condensed', icon: '📋', label: 'Condensé', ariaLabel: 'Affichage condensé' },
+];
 
 /**
- * Barre de filtres de la vue Tâches (extraite de `tasks-views.jsx`, O6) :
- * mode d'affichage (tuiles / liste / condensé), carte, recherche texte, lieu
- * (zones + repères utilisés), projet, groupe (n3boss, avec aide contextuelle),
- * catégorie urgent et statut. Composant contrôlé : l'état reste dans TasksView.
+ * Barre de filtres de la vue Tâches, compacte sur mobile (O6bis) : une seule
+ * ligne toujours visible — recherche, bouton « Filtres » (badge du nombre de
+ * filtres actifs) et mode d'affichage — puis les chips des filtres posés.
+ * Les champs de filtrage vivent dans `TaskFiltersFields`, affichés en panneau
+ * inline sur écran large (ouvert par défaut, comme avant) et en feuille modale
+ * sur écran compact, pour que les tâches restent visibles sans défiler.
+ * Composant contrôlé : l'état des filtres reste dans TasksView.
  */
 export function TaskFiltersBar({
   viewMode,
@@ -50,161 +57,218 @@ export function TaskFiltersBar({
   filterStatus,
   setFilterStatus,
   setHasTouchedStatusFilter,
+  resultCount = null,
 }) {
-  const publicSettings = usePublicSettings();
-  const helpGroupFilters = resolveHelpPanelSection('groupFilters', publicSettings);
+  const { compact, open, toggle, close } = useTaskFiltersPanel();
+
+  const chips = useMemo(
+    () =>
+      activeTaskFilterChips({
+        filterMap,
+        maps,
+        filterZone,
+        zones,
+        markers,
+        filterProject,
+        taskProjects,
+        isTeacher,
+        filterGroupId,
+        groupOptions,
+        filterUrgentCategory,
+        filterStatus,
+      }),
+    [
+      filterMap,
+      maps,
+      filterZone,
+      zones,
+      markers,
+      filterProject,
+      taskProjects,
+      isTeacher,
+      filterGroupId,
+      groupOptions,
+      filterUrgentCategory,
+      filterStatus,
+    ],
+  );
+
+  const clearFilter = (key) => {
+    if (key === 'map') setFilterMap('active');
+    if (key === 'zone') {
+      setFilterZone('');
+      onMapLocationFocusChange?.(null);
+    }
+    if (key === 'project') setFilterProject('');
+    if (key === 'group') setFilterGroupId('');
+    if (key === 'urgent') setFilterUrgentCategory('');
+    if (key === 'status') {
+      setFilterStatus('');
+      setHasTouchedStatusFilter(true);
+    }
+  };
+
+  const clearAllFilters = () => {
+    chips.forEach((chip) => clearFilter(chip.key));
+  };
+
+  const fields = (
+    <TaskFiltersFields
+      filterMap={filterMap}
+      setFilterMap={setFilterMap}
+      maps={maps}
+      activeMapId={activeMapId}
+      filterZone={filterZone}
+      setFilterZone={setFilterZone}
+      onMapLocationFocusChange={onMapLocationFocusChange}
+      usedZones={usedZones}
+      usedMarkers={usedMarkers}
+      zones={zones}
+      markers={markers}
+      filterProject={filterProject}
+      setFilterProject={setFilterProject}
+      taskProjects={taskProjects}
+      isTeacher={isTeacher}
+      filterGroupId={filterGroupId}
+      setFilterGroupId={setFilterGroupId}
+      groupOptions={groupOptions}
+      isHelpEnabled={isHelpEnabled}
+      pulseUnseenPanels={pulseUnseenPanels}
+      hasSeenSection={hasSeenSection}
+      markSectionSeen={markSectionSeen}
+      trackPanelOpen={trackPanelOpen}
+      trackPanelDismiss={trackPanelDismiss}
+      helpPanelTitlePrefix={helpPanelTitlePrefix}
+      helpPanelCloseCta={helpPanelCloseCta}
+      helpPanelDismissCta={helpPanelDismissCta}
+      filterUrgentCategory={filterUrgentCategory}
+      setFilterUrgentCategory={setFilterUrgentCategory}
+      filterStatus={filterStatus}
+      setFilterStatus={setFilterStatus}
+      setHasTouchedStatusFilter={setHasTouchedStatusFilter}
+    />
+  );
+
   return (
-    <div className="task-filters">
-      <div className="tasks-view-switch" role="group" aria-label="Mode d'affichage des tâches">
+    <div className="task-filters task-filters--compactable">
+      <div className="task-filters-bar">
+        <input
+          className="task-filters-search"
+          value={filterText}
+          onChange={(e) => setFilterText(e.target.value)}
+          placeholder="🔍 Rechercher une tâche..."
+          aria-label="Rechercher une tâche"
+        />
         <button
-          className={`btn btn-sm ${viewMode === 'tiles' ? 'btn-primary' : 'btn-ghost'}`}
-          onClick={() => setViewMode('tiles')}
           type="button"
-        >
-          🧩 Tuiles
-        </button>
-        <button
-          className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-ghost'}`}
-          onClick={() => setViewMode('list')}
-          type="button"
-        >
-          📄 Liste
-        </button>
-        <button
-          className={`btn btn-sm ${viewMode === 'condensed' ? 'btn-primary' : 'btn-ghost'}`}
-          onClick={() => setViewMode('condensed')}
-          type="button"
-        >
-          📋 Condensé
-        </button>
-      </div>
-      <select value={filterMap} onChange={(e) => setFilterMap(e.target.value)}>
-        <option value="active">Carte active ({mapLabelFromMaps(activeMapId, maps)})</option>
-        <option value="all">Toutes cartes</option>
-        {maps.map((mp) => (
-          <option key={mp.id} value={mp.id}>
-            {mp.label}
-          </option>
-        ))}
-      </select>
-      <input
-        value={filterText}
-        onChange={(e) => setFilterText(e.target.value)}
-        placeholder="🔍 Rechercher une tâche..."
-      />
-      <select
-        value={filterZone}
-        onChange={(e) => {
-          const v = e.target.value;
-          setFilterZone(v);
-          if (!v) {
-            onMapLocationFocusChange?.(null);
-          } else {
-            const colon = v.indexOf(':');
-            if (colon > 0) {
-              const k = v.slice(0, colon);
-              const idPart = v.slice(colon + 1);
-              if ((k === 'zone' || k === 'marker') && idPart) {
-                onMapLocationFocusChange?.({ kind: k, id: idPart });
-              } else {
-                onMapLocationFocusChange?.(null);
-              }
-            } else {
-              onMapLocationFocusChange?.(null);
-            }
+          className={`btn btn-sm task-filters-toggle ${chips.length > 0 ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={toggle}
+          aria-expanded={open}
+          aria-controls={!compact && open ? 'task-filters-panel' : undefined}
+          aria-label={
+            chips.length > 0
+              ? `Filtres (${chips.length} actif${chips.length > 1 ? 's' : ''})`
+              : 'Filtres'
           }
-        }}
-      >
-        <option value="">Toutes les zones</option>
-        {usedZones.map((zId) => {
-          const z = zones.find((zz) => zz.id === zId);
-          return (
-            <option key={`zone:${zId}`} value={`zone:${zId}`}>
-              {z ? z.name : zId}
-            </option>
-          );
-        })}
-        {usedMarkers.length > 0 && (
-          <option value="" disabled>
-            -- Repères --
-          </option>
-        )}
-        {usedMarkers.map((mId) => {
-          const marker = markers.find((mm) => mm.id === mId);
-          const markerLabel = marker
-            ? `${marker.emoji ? `${marker.emoji} ` : '📍 '}${marker.label}`
-            : `📍 ${mId}`;
-          return (
-            <option key={`marker:${mId}`} value={`marker:${mId}`}>
-              {markerLabel}
-            </option>
-          );
-        })}
-      </select>
-      <select value={filterProject} onChange={(e) => setFilterProject(e.target.value)}>
-        <option value="">Tous les projets</option>
-        {filterProjectsByMapChoice(taskProjects, filterMap, activeMapId).map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.title}
-            {projectStatusLabel(p.status)}
-          </option>
-        ))}
-      </select>
-      {isTeacher && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <select
-            value={filterGroupId}
-            onChange={(e) => setFilterGroupId(e.target.value)}
-            aria-label="Filtrer les tâches par groupe"
-          >
-            <option value="">Tous les groupes</option>
-            {groupOptions.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.name}
-              </option>
-            ))}
-          </select>
-          {isHelpEnabled && (
-            <HelpPanel
-              sectionId="tasks-group-filter"
-              title={helpGroupFilters.title}
-              entries={helpGroupFilters.items}
-              isTeacher={isTeacher}
-              isPulsing={pulseUnseenPanels && !hasSeenSection('tasks-group-filter')}
-              panelTitlePrefix={helpPanelTitlePrefix}
-              closeButtonText={helpPanelCloseCta}
-              dismissButtonText={helpPanelDismissCta}
-              onMarkSeen={markSectionSeen}
-              onOpen={trackPanelOpen}
-              onDismiss={trackPanelDismiss}
-            />
+        >
+          <span aria-hidden="true">⚙️</span>
+          <span className="task-filters-toggle__label" aria-hidden="true">
+            Filtres
+          </span>
+          {chips.length > 0 && (
+            <span className="task-filters-count" aria-hidden="true">
+              {chips.length}
+            </span>
           )}
+        </button>
+        <div className="tasks-view-switch" role="group" aria-label="Mode d'affichage des tâches">
+          {VIEW_MODE_BUTTONS.map((mode) => (
+            <button
+              key={mode.value}
+              className={`btn btn-sm ${viewMode === mode.value ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setViewMode(mode.value)}
+              type="button"
+              aria-label={mode.ariaLabel}
+              aria-pressed={viewMode === mode.value}
+              title={mode.label}
+            >
+              <span aria-hidden="true">{mode.icon}</span>
+              <span className="tasks-view-switch__label" aria-hidden="true">
+                {mode.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {chips.length > 0 && (
+        <div className="task-filters-chips" role="group" aria-label="Filtres actifs">
+          {chips.map((chip) => (
+            <button
+              key={chip.key}
+              type="button"
+              className="task-filters-chip"
+              onClick={() => clearFilter(chip.key)}
+              aria-label={chip.removeLabel}
+              title={chip.removeLabel}
+            >
+              <span>{chip.label}</span>
+              <span aria-hidden="true">✕</span>
+            </button>
+          ))}
+          <button
+            type="button"
+            className="task-filters-chip task-filters-chip--reset"
+            onClick={clearAllFilters}
+          >
+            Tout effacer
+          </button>
         </div>
       )}
-      <select
-        value={filterUrgentCategory}
-        onChange={(e) => setFilterUrgentCategory(e.target.value)}
-        aria-label="Filtrer par catégorie urgent"
-      >
-        <option value="">Toutes les catégories</option>
-        <option value="urgent">Urgent ! uniquement</option>
-        <option value="non_urgent">Hors urgent</option>
-      </select>
-      <select
-        value={filterStatus}
-        onChange={(e) => {
-          setFilterStatus(e.target.value);
-          setHasTouchedStatusFilter(true);
-        }}
-      >
-        <option value="">Tous les statuts</option>
-        {TASK_STATUS_FILTER_OPTIONS.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-        {isTeacher && <option value="archived">📦 Archivés</option>}
-      </select>
+
+      {compact ? (
+        <DialogShell
+          open={open}
+          onClose={close}
+          overlayClassName="modal-overlay task-filters-sheet-overlay"
+          dialogClassName="log-modal task-filters-sheet fade-in"
+          ariaLabel="Filtres des tâches"
+        >
+          <div className="task-filters-sheet__head">
+            <h3 className="task-filters-sheet__title">⚙️ Filtres</h3>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={close}
+              aria-label="Fermer les filtres"
+            >
+              ✕
+            </button>
+          </div>
+          {fields}
+          <div className="task-filters-sheet__actions">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={clearAllFilters}
+              disabled={chips.length === 0}
+            >
+              Réinitialiser
+            </button>
+            <button type="button" className="btn btn-primary btn-sm" onClick={close}>
+              {Number.isFinite(resultCount)
+                ? `Voir ${resultCount} tâche${resultCount > 1 ? 's' : ''}`
+                : 'Voir les tâches'}
+            </button>
+          </div>
+        </DialogShell>
+      ) : (
+        open && (
+          <div className="task-filters-panel" id="task-filters-panel">
+            {fields}
+          </div>
+        )
+      )}
     </div>
   );
 }
