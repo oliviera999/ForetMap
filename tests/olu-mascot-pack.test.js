@@ -143,3 +143,46 @@ test('le pack passe la validation Zod servie au runtime', async () => {
   assert.ok(parsed, 'parseMascotPack a refusé le pack');
   assert.ok(!parsed.error, `parseMascotPack : ${parsed.error}`);
 });
+
+test('le modèle catalogue du studio ne diverge pas du pack', () => {
+  // `lib/visitMascotPackHelpers` recopie les états du pack : en exploitation « runtime » le dépôt
+  // n'est pas déployé, `docs/` n'existe pas, le lire serait impossible. La duplication est donc
+  // subie — mais elle se figera ici plutôt que de dériver en silence.
+  const { buildOluCatalogPackTemplate } = require('../lib/visitMascotPackHelpers');
+  const modele = buildOluCatalogPackTemplate('srv-exemple');
+  assert.deepEqual(modele.stateFrames, pack.stateFrames);
+  assert.equal(modele.framesBase, pack.framesBase);
+  assert.equal(modele.frameWidth, pack.frameWidth);
+  assert.equal(modele.frameHeight, pack.frameHeight);
+  assert.equal(modele.pixelated, pack.pixelated);
+  assert.equal(modele.fallbackSilhouette, pack.fallbackSilhouette);
+});
+
+test('OLU et Gnome 1 sont proposés comme modèles au studio', () => {
+  // Un modèle absent de cette liste est **introuvable au studio** même si le serveur sait le
+  // construire : c'était le cas de `gnome1`, clonable par appel direct et invisible dans la liste.
+  const { listVisitMascotCatalogTemplateIds } = require('../lib/visitMascotPackHelpers');
+  const ids = listVisitMascotCatalogTemplateIds();
+  assert.ok(ids.includes('olu-spritesheet'), 'OLU absent de la liste des modèles');
+  assert.ok(ids.includes('gnome1'), 'Gnome 1 absent de la liste des modèles');
+});
+
+test('les modèles catalogue à vraies trames en ont vraiment', () => {
+  // Les autres modèles retombent sur `buildSingleFrameMascotTemplate` : tous les états y pointent
+  // la même image fixe. Ces quatre-là doivent porter de vraies animations, sinon les cloner ne
+  // donne qu'un figurant — et l'exporter n'exporte qu'un figurant.
+  const { buildVisitCatalogPackTemplate } = require('../lib/visitMascotPackHelpers');
+  for (const id of [
+    'olu-spritesheet',
+    'gnome1',
+    'renard2-cut-spritesheet',
+    'fox-backpack-spritesheet',
+  ]) {
+    const modele = buildVisitCatalogPackTemplate(id, 'srv-exemple');
+    assert.ok(modele, `${id} : aucun modèle`);
+    const trames = new Set(
+      Object.values(modele.stateFrames).flatMap((s) => s.files || s.srcs || []),
+    );
+    assert.ok(trames.size > 1, `${id} : ${trames.size} trame(s) — modèle à image fixe`);
+  }
+});

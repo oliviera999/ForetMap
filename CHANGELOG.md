@@ -7,6 +7,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Les mascottes livrées se clonent enfin avec leurs vraies animations (lot 13b)
+
+Le studio proposait de partir d'une **mascotte livrée avec l'application** comme modèle. Sauf que
+pour la plupart d'entre elles, la copie obtenue faisait pointer **les vingt et un états sur une
+seule et même image fixe**. On pouvait la cloner, on n'y voyait aucune animation, et l'exporter
+n'exportait que ce figurant.
+
+**OLU se clone désormais avec ses 88 vraies trames.** Le visualiser, le modifier ou l'exporter
+depuis le studio ne demande plus d'importer quoi que ce soit.
+
+**Gnome 1 réapparaît dans la liste des modèles.** L'application savait déjà le construire, mais il
+manquait de la liste : clonable par appel direct, introuvable dans le studio.
+
 ### OLU s'anime : ses vingt et un états, prêts à importer (lot 13)
 
 OLU n'avait pas de planche d'animation : il apparaissait en **silhouette dessinée**. Les dix-neuf
