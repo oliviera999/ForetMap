@@ -7,6 +7,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Les mascottes livrées se gèrent depuis le studio (lot 14)
+
+Visualiser, modifier, exporter ou retirer une **mascotte livrée avec l'application** demandait
+jusqu'ici de savoir où chercher : un peu dans « Packs mascotte », un peu dans « Paramètres », et
+l'export imposait de cloner d'abord — créer un pack pour le jeter aussitôt.
+
+Un volet **Mascottes livrées** rassemble tout ça. Pour chaque mascotte : un aperçu, un bouton
+**Cloner pour modifier**, un bouton **Exporter ZIP** direct, et la case **« proposée aux
+visiteurs »**.
+
+**Le volet dit enfin la vérité sur ce qu'il propose.** Quatre des seize mascottes livrées portent
+une vraie animation ; les douze autres n'ont qu'une image fixe et s'affichent en silhouette. Un
+badge le signale, et l'archive d'un de ces modèles part avec son avertissement — plutôt que de
+laisser croire qu'on a exporté une animation.
+
+La case de visibilité écrit **le réglage qui existait déjà** (Paramètres → Mascottes de visite) :
+un seul réglage, deux endroits où le voir, aucune mécanique parallèle. Elle demande un rôle
+d'administration ; un professeur qui ne gère que les packs la voit grisée, avec l'explication.
+
 ### Les mascottes livrées se clonent enfin avec leurs vraies animations (lot 13b)
 
 Le studio proposait de partir d'une **mascotte livrée avec l'application** comme modèle. Sauf que
