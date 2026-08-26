@@ -50,6 +50,40 @@ restent inchangés.
 Détail : `lib/bootJournal.js`, `docs/EXPLOITATION.md` (§ Indisponibilités récurrentes),
 `docs/CRONTAB.md`, `docs/API.md`, `docs/AUDIT_CHARGE_SERVEUR_2026-08.md` §2.E ;
 tests `tests/boot-journal.test.js`, `tests/api-availability.test.js`.
+### Correctif — le délai après une erreur ne tombait jamais dans Gnomes & Licornes
+
+Une mauvaise réponse au contrôle de compréhension, dans le flux « marquer appris » de
+Gnomes & Licornes, devait verrouiller la fiche pendant le délai réglé (3 jours par
+défaut). L'écriture du verrou était refusée par la base (nombre de colonnes et de
+valeurs différent), l'erreur était avalée, et l'élève pouvait réessayer tout de suite.
+ForetMap n'était pas touché. Le verrou se pose à nouveau côté Gnomes & Licornes.
+
+### La sensibilité de l'aimant de contour se règle, elle aussi (lot 29)
+
+**Le rayon d'accroche était réglable, pas le seuil de contraste.** L'aimant qui colle un
+sommet de zone sur les limites visibles du plan exigeait un contraste figé dans le code :
+sur un plan dessiné il tombait juste, mais sur une photo aérienne où deux parcelles se
+ressemblent, la limite réelle passait sous le seuil et l'aimant restait muet — sans qu'on
+puisse rien y faire. À l'inverse, personne ne pouvait le rendre plus strict quand il
+accrochait une ombre plutôt qu'un bord de parcelle.
+
+Un second curseur, **« sensibilité »**, apparaît à côté du rayon quand l'aimant est prêt.
+Il parcourt dix niveaux, du plus exigeant — seules les limites franches attirent le sommet
+— au plus permissif, qui accroche aussi les transitions ténues. Le niveau par défaut
+reproduit exactement le comportement précédent : rien ne change pour qui n'y touche pas.
+
+- **Nouvel utilitaire** — `sensitivityToMinStrength` dans `src/utils/edgeSnap.js` traduit
+  le niveau choisi en contraste minimal, sur une échelle explicite de dix valeurs. Un
+  niveau hors bornes est ramené dans l'échelle, une valeur illisible retombe sur le défaut
+  plutôt que de désactiver l'aimant.
+- **Réglage transmis partout** — le glissement d'un sommet et le bouton « 🧲 Coller »
+  (recalage groupé) utilisent le même seuil.
+- **Tests** — 4 cas sur l'échelle, dont la vérification qu'un contour ténu est ignoré au
+  niveau le plus strict et accroché au plus permissif ; 1 cas sur la barre d'outils ;
+  1 cas sur la transmission du réglage jusqu'à l'aimant.
+- **Documentation** — les deux réglages sont décrits dans « Retoucher le contour d'une
+  zone » (`docs/reference/foretmap/carte-et-zones.md`), et le point d'attention sur les
+  photos peu contrastées indique désormais quoi régler.
 ### Le glossaire se valide, et ne donne plus la réponse (lot 28, suite)
 
 **Le glossaire ForetMap porte un bouton « J'ai appris ce terme ».** Il était purement

@@ -30,6 +30,7 @@ function renderToolbar(overrides = {}) {
     onToggleMultiSelectMode: vi.fn(),
     onToggleSnap: vi.fn(),
     onSnapRadiusChange: vi.fn(),
+    onSnapSensitivityChange: vi.fn(),
     onSnapSelectedPoints: vi.fn(),
     onToggleMarkerPositionLock: vi.fn(),
     onToggleMapInteraction: vi.fn(),
@@ -191,6 +192,21 @@ describe('MapViewToolbar', () => {
 
     renderToolbar({ mode: 'edit-points', snapEnabled: true, snapStatus: 'unavailable' });
     expect(screen.getByRole('button', { name: '🧲 Indispo.' })).toBeTruthy();
+  });
+
+  test('mode edit-points : aimant prêt → curseur de sensibilité réglable', () => {
+    const h = renderToolbar({
+      mode: 'edit-points',
+      snapEnabled: true,
+      snapStatus: 'ready',
+      snapSensitivity: 6,
+    });
+    const slider = screen.getByLabelText(/Sensibilité de l’aimant : niveau 6 sur 10/);
+    expect(slider.getAttribute('min')).toBe('1');
+    expect(slider.getAttribute('max')).toBe('10');
+    fireEvent.change(slider, { target: { value: '9' } });
+    expect(h.onSnapSensitivityChange).toHaveBeenCalledWith(9);
+    expect(screen.getByText('6/10')).toBeTruthy();
   });
 
   test('mode edit-points : aimant prêt → curseur de rayon et collage de la sélection', () => {

@@ -11,6 +11,11 @@ import {
 } from '../../utils/helpResolve';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { MAP_VIEW_SCALE_MIN, MAP_VIEW_SCALE_MAX } from '../../hooks/useMapGestures.js';
+import {
+  EDGE_SNAP_DEFAULTS,
+  EDGE_SNAP_SENSITIVITY_MAX,
+  EDGE_SNAP_SENSITIVITY_MIN,
+} from '../../utils/edgeSnap.js';
 
 /** Style « pilule » des bascules d'édition de contour (aligné sur le verrou repères). */
 function editTogglePillStyle(on) {
@@ -64,6 +69,8 @@ export function MapViewToolbar({
   onToggleSnap,
   snapRadiusPx = 18,
   onSnapRadiusChange,
+  snapSensitivity = EDGE_SNAP_DEFAULTS.sensitivity,
+  onSnapSensitivityChange,
   onSnapSelectedPoints,
   canManageMarkerPositions,
   markerPositionUnlocked,
@@ -286,7 +293,11 @@ export function MapViewToolbar({
             </button>
             {snapEnabled && snapStatus === 'ready' && (
               <>
-                <label className="map-snap-radius" title="Rayon d’accroche de l’aimant">
+                <label
+                  className="map-snap-setting map-snap-radius"
+                  title="Rayon d’accroche : jusqu’à quelle distance l’aimant va chercher un contour."
+                >
+                  <span aria-hidden>◎</span>
                   <input
                     type="range"
                     min={6}
@@ -297,6 +308,24 @@ export function MapViewToolbar({
                     onChange={(e) => onSnapRadiusChange?.(Number(e.target.value))}
                   />
                   <span>{snapRadiusPx}px</span>
+                </label>
+                <label
+                  className="map-snap-setting map-snap-sensitivity"
+                  title="Sensibilité : à quel point un contour doit être marqué pour attirer le sommet. Bas = seules les limites franches ; haut = les transitions ténues aussi (au risque d’accrocher une ombre)."
+                >
+                  <span aria-hidden>🎚️</span>
+                  <input
+                    type="range"
+                    min={EDGE_SNAP_SENSITIVITY_MIN}
+                    max={EDGE_SNAP_SENSITIVITY_MAX}
+                    step={1}
+                    value={snapSensitivity}
+                    aria-label={`Sensibilité de l’aimant : niveau ${snapSensitivity} sur ${EDGE_SNAP_SENSITIVITY_MAX}`}
+                    onChange={(e) => onSnapSensitivityChange?.(Number(e.target.value))}
+                  />
+                  <span>
+                    {snapSensitivity}/{EDGE_SNAP_SENSITIVITY_MAX}
+                  </span>
                 </label>
                 <button
                   type="button"
