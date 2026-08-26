@@ -23,6 +23,7 @@ const { runRecurringTaskSpawnJob } = require('./lib/recurringTasks');
 const { runAutoArchiveJob } = require('./lib/autoArchive');
 const { initRealtime, shutdownRealtime } = require('./lib/realtime');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
+const { recordBoot, recordStop, recordCrash } = require('./lib/bootJournal');
 const { assignRequestId } = require('./lib/requestId');
 const { createHttpRequestLogMiddleware } = require('./lib/httpRequestLog');
 const { parseBearerToken, JWT_SECRET, requirePermission } = require('./middleware/requireTeacher');
@@ -169,6 +170,17 @@ function isApiAvailabilityExemptPath(originalUrl) {
   return p === '/api/health' || p === '/api/health/db' || p === '/api/ready';
 }
 
+/**
+ * Endpoints d'exploitation en **lecture seule** (secret `DEPLOY_SECRET`) exemptés du seul
+ * verrou de readiness BDD : quand MySQL est indisponible, c'est précisément le moment où
+ * l'opérateur a besoin de lire les diagnostics et les logs. Leurs handlers savent déjà
+ * répondre sans base (`database: { ok: false }`). Le verrou de redémarrage, lui, reste
+ * appliqué : le process est en train de disparaître.
+ */
+function isApiDatabaseGateExemptPath(pathname) {
+  return pathname === '/api/admin/diagnostics' || pathname === '/api/admin/logs';
+}
+
 app.use('/api', (req, res, next) => {
   const pathname = String(req.originalUrl || req.url || '').split('?')[0];
   if (isApiAvailabilityExemptPath(pathname)) return next();
@@ -179,7 +191,7 @@ app.use('/api', (req, res, next) => {
       code: 'SERVICE_RESTARTING',
     });
   }
-  if (!isApplicationDatabaseReady()) {
+  if (!isApplicationDatabaseReady() && !isApiDatabaseGateExemptPath(pathname)) {
     return res.status(503).set('Retry-After', '2').type('application/json').json({
       error: 'Service non prêt — initialisation en cours.',
       code: 'SERVICE_NOT_READY',
@@ -512,6 +524,9 @@ function gracefulShutdown(reason) {
   if (shutdownInProgress) return;
   shutdownInProgress = true;
   const signal = typeof reason === 'string' ? reason : 'shutdown';
+  // Trace persistante AVANT toute fermeture : c'est elle qui distingue plus tard un
+  // redémarrage de déploiement d'un arrêt subi (voir lib/bootJournal.js).
+  recordStop(signal);
   logger.info({ signal, msg: 'graceful_shutdown_start' }, 'Arrêt gracieux');
 
   const forceTimer = setTimeout(() => {
@@ -557,6 +572,9 @@ function startServer() {
     registerGracefulShutdownHandlersOnce();
   });
   httpServer.on('error', (err) => {
+    // Tracé comme un arrêt maîtrisé : sans cela, le démarrage suivant conclurait à tort
+    // à un process tué sans signal (voir lib/bootJournal.js).
+    recordStop('listen_error');
     logger.error({ err }, 'Impossible de démarrer le serveur HTTP');
     process.exit(1);
   });
@@ -564,10 +582,12 @@ function startServer() {
 }
 
 process.on('uncaughtException', (err) => {
+  recordCrash('uncaughtException', err);
   logger.fatal({ err }, 'Exception non capturée — arrêt du process');
   setTimeout(() => process.exit(1), 50);
 });
 process.on('unhandledRejection', (reason) => {
+  recordCrash('unhandledRejection', reason);
   logger.fatal({ reason }, 'Promesse rejetée non gérée — arrêt du process');
   setTimeout(() => process.exit(1), 50);
 });
@@ -628,11 +648,30 @@ function boot() {
   ];
   fs.writeFileSync(diagPath, diagLines.join('\n') + '\n', 'utf8');
 
+  // `startup.log` ci-dessus est écrasé à chaque démarrage : il ne garde aucune histoire.
+  // Le journal de cycle de vie, lui, est cumulatif — il qualifie l'arrêt précédent
+  // (déploiement / arrêt hébergeur / crash / process tué) et alimente le verdict de
+  // GET /api/admin/diagnostics (champ `restarts`).
+  const bootEntry = recordBoot({ version: startupVersion });
+  if (bootEntry) {
+    logger.info(
+      {
+        previousStop: bootEntry.previousStop,
+        previousStopReason: bootEntry.previousStopReason,
+        downtimeMs: bootEntry.downtimeMs,
+        msg: 'boot_journal',
+      },
+      'Démarrage enregistré au journal de cycle de vie',
+    );
+  }
+
   try {
     validateEnv();
     fs.appendFileSync(diagPath, 'validateEnv: OK\n');
   } catch (e) {
     fs.appendFileSync(diagPath, `validateEnv ERREUR: ${e.message}\n`);
+    // Idem : une configuration invalide est une cause connue, pas un process tué.
+    recordStop('env_invalid');
     logger.error({ err: e }, "Variables d'environnement invalides");
     process.exit(1);
   }
