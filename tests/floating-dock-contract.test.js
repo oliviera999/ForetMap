@@ -72,7 +72,10 @@ test('aucune commande flottante ne se repositionne dans son coin', () => {
 });
 
 test('l’empilement nommé garde le bandeau au-dessus du dock, et le dock au-dessus de la barre', () => {
-  const root = read('src/shared/styles/floating-dock.css');
+  // Les paliers étaient déclarés dans `floating-dock.css` : ils vivent désormais dans
+  // l'échelle commune aux deux produits (`z-layers.css`), qui a remplacé les deux
+  // échelles parallèles. Le contrat vérifié ici est inchangé — seule sa source l'est.
+  const root = read('src/shared/styles/z-layers.css');
   const num = (name) => {
     const m = new RegExp(`--fm-z-${name}:\\s*(\\d+)`).exec(root);
     assert.ok(m, `--fm-z-${name} non déclaré`);

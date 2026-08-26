@@ -79,7 +79,6 @@ body.gl-body {
   --fm-modal-panel-bg: var(--gl-surface);
   --fm-modal-panel-border: var(--gl-border);
   --fm-modal-panel-shadow: var(--gl-shadow-md);
-  --fm-modal-overlay-z: 1200;
   /* Conditionnement des lectures : la coque et les pastilles sont partagées avec ForetMap
      (src/shared/styles/learning-gating.css) ; seules ces variables les rehabillent, plutôt
      que de dupliquer le composant et sa feuille. */
@@ -210,7 +209,7 @@ body.gl-body {
   flex-wrap: wrap;
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: var(--fm-z-sticky);
   box-sizing: border-box;
   transition:
     background-color var(--motion-base) var(--ease-out),
@@ -343,7 +342,7 @@ body.gl-body {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 110;
+  z-index: var(--fm-z-nav);
   display: flex;
   align-items: stretch;
   justify-content: space-around;
@@ -406,7 +405,7 @@ body.gl-body {
 .gl-nav-drawer-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1300;
+  z-index: var(--fm-z-drawer);
   background: var(--fm-modal-overlay-bg, rgba(15, 23, 42, 0.55));
   display: flex;
   align-items: flex-end;
@@ -1605,7 +1604,7 @@ a.gl-glossary-inline-link:hover,
 .gl-board-shell--fullscreen {
   position: fixed;
   inset: 0;
-  z-index: 1400;
+  z-index: var(--fm-z-fullscreen);
   width: 100vw;
   height: 100vh;
   height: 100dvh;
@@ -1628,7 +1627,7 @@ a.gl-glossary-inline-link:hover,
   position: absolute;
   top: max(12px, env(safe-area-inset-top, 0px));
   right: max(12px, env(safe-area-inset-right, 0px));
-  z-index: 1410;
+  z-index: calc(var(--fm-z-fullscreen) + 1);
   border: 0;
   border-radius: var(--gl-radius-pill);
   background: rgba(15, 23, 42, 0.82);
@@ -1655,7 +1654,7 @@ body.gl-map-fullscreen-active {
 body.gl-map-fullscreen-active > .gl-board-shell--fullscreen {
   position: fixed;
   inset: 0;
-  z-index: 1400;
+  z-index: var(--fm-z-fullscreen);
 }
 
 .gl-panel--map-fullscreen-active {
@@ -1666,17 +1665,13 @@ body.gl-map-fullscreen-active > .gl-board-shell--fullscreen {
   pointer-events: none;
 }
 
-body.gl-map-fullscreen-active .fm-modal-overlay {
-  z-index: 1450;
-}
-
-body.gl-map-fullscreen-active .gl-glossary-popover {
-  z-index: 1600;
-}
-
-body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
-  z-index: 1550;
-}
+/*
+ * Les trois règles qui remontaient ici la coque de modale, la fiche glossaire et
+ * le popover de QCM au-dessus du plateau en plein écran ont été retirées : dans
+ * l'échelle commune (`src/shared/styles/z-layers.css`), le plein écran est un
+ * conteneur de vue, donc déjà sous toute couche de dialogue. ForetMap portait le
+ * même patch, mot pour mot, dans `map-fullscreen.css`.
+ */
 
 .gl-board {
   position: relative;
@@ -2566,7 +2561,7 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   color: var(--gl-color-text);
   position: fixed;
   inset: 0;
-  z-index: 1450;
+  z-index: var(--fm-z-popover);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3640,7 +3635,7 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   color: var(--gl-color-text);
   position: fixed;
   inset: 0;
-  z-index: 1440;
+  z-index: var(--fm-z-popover);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3728,7 +3723,7 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 /* —— Dés virtuels (popover) —— */
 .gl-dice-popover {
   position: fixed;
-  z-index: 10050;
+  z-index: var(--fm-z-popover);
   width: min(320px, calc(100vw - 24px));
   padding: 0.85rem 1rem 1rem;
   border: 1px solid var(--gl-border);
@@ -4268,7 +4263,7 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 .gl-spell-popover {
   position: fixed;
   inset: 0;
-  z-index: 12000;
+  z-index: var(--fm-z-popover);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4638,8 +4633,10 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
 }
 
+/* Pas de `z-index` ici : la fiche est une `.fm-modal-overlay`, elle prend le
+   palier de modale de l'échelle commune. La surcharge à 55 qui traînait la
+   faisait passer sous la barre de navigation G&L (110). */
 .gl-species-detail-modal {
-  z-index: 55;
   box-sizing: border-box;
   padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px))
     max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
@@ -4960,9 +4957,8 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   border-radius: var(--gl-radius-pill);
 }
 
-.gl-learning-ack-overlay {
-  z-index: 80;
-}
+/* Pas de `z-index` ici non plus : la coque est le `.fm-quiz-popover` partagé.
+   La surcharge à 80 l'enterrait sous la barre du haut (100) et la navigation (110). */
 
 .gl-learning-ack-modal {
   width: min(420px, 100%);
@@ -5008,7 +5004,7 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 .gl-qcm-modal {
   position: fixed;
   inset: 0;
-  z-index: 1200;
+  z-index: var(--fm-z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -5124,7 +5120,7 @@ body.gl-glossary-popover-open {
 .gl-glossary-popover {
   position: fixed;
   inset: 0;
-  z-index: 1600;
+  z-index: var(--fm-z-glossary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -5676,7 +5672,7 @@ body.gl-glossary-popover-open {
 .gl-spell-cast-overlay {
   position: fixed;
   inset: 0;
-  z-index: 12000;
+  z-index: var(--fm-z-popover);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -6278,7 +6274,7 @@ body.gl-glossary-popover-open {
 .gl-feui-discovery__coupe { margin-top: 0.75rem; padding-top: 0.65rem; border-top: 1px dashed #c4b5a0; }
 .gl-selene-carnet__coupe summary,
 .gl-feui-discovery__coupe summary { cursor: pointer; font-weight: 600; margin-bottom: 0.5rem; }
-.gl-feui-discovery-overlay { position: fixed; inset: 0; z-index: 12000; background: rgba(15, 23, 42, 0.45); display: grid; place-items: center; padding: 1rem; }
+.gl-feui-discovery-overlay { position: fixed; inset: 0; z-index: var(--fm-z-popover); background: rgba(15, 23, 42, 0.45); display: grid; place-items: center; padding: 1rem; }
 .gl-feui-discovery { width: min(640px, 100%); max-height: min(86vh, 900px); overflow: auto; background: #fffaf0; border: 2px solid #d6c4a8; border-radius: var(--gl-radius-lg); padding: 1rem 1.1rem; box-shadow: 0 18px 50px rgba(0,0,0,0.25); }
 .gl-feui-discovery.gl-feui-marginalia { transform: rotate(-0.6deg); }
 .gl-feui-discovery.gl-feui-pole { border-top: 8px solid var(--gl-color-primary); }
@@ -6286,7 +6282,7 @@ body.gl-glossary-popover-open {
 .gl-feui-discovery__head { position: relative; padding-right: 2rem; }
 .gl-feui-discovery__close { position: absolute; top: 0; right: 0; border: 0; background: transparent; font-size: 1.1rem; cursor: pointer; }
 .gl-feui-discovery__foot { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
-.gl-lore-glossary-popover-overlay { position: fixed; inset: 0; z-index: 12050; background: rgba(15, 23, 42, 0.4); display: grid; place-items: center; padding: 1rem; }
+.gl-lore-glossary-popover-overlay { position: fixed; inset: 0; z-index: var(--fm-z-glossary); background: rgba(15, 23, 42, 0.4); display: grid; place-items: center; padding: 1rem; }
 .gl-lore-glossary-popover { width: min(520px, 100%); background: #fff; border-radius: var(--gl-radius-card); border-top: 5px solid var(--gl-lore-accent, #047c8c); padding: 1rem; box-shadow: 0 16px 40px rgba(0,0,0,0.2); }
 .gl-lore-glossary-link { color: var(--gl-lore-accent, #6d28d9); text-decoration: underline dotted; cursor: pointer; }
 .gl-lore-glossary-popover__close { float: right; border: 0; background: transparent; cursor: pointer; }
@@ -6386,7 +6382,7 @@ fieldset .media-library-menu__gallery {
   position: fixed;
   right: 12px;
   bottom: 12px;
-  z-index: 120;
+  z-index: var(--fm-z-dock);
   width: min(320px, calc(100vw - 24px));
   max-height: 50vh;
   overflow: auto;
@@ -6550,7 +6546,7 @@ fieldset .media-library-menu__gallery {
 .gl-intro-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1200;
+  z-index: var(--fm-z-modal);
   background: #000;
 }
 
@@ -6566,7 +6562,7 @@ fieldset .media-library-menu__gallery {
   position: fixed;
   top: max(16px, env(safe-area-inset-top));
   right: max(16px, env(safe-area-inset-right));
-  z-index: 1201;
+  z-index: calc(var(--fm-z-modal) + 1);
   border: 1px solid color-mix(in srgb, var(--gl-color-secondary) 35%, transparent);
   background: rgba(0, 0, 0, 0.45);
   color: var(--gl-color-secondary);

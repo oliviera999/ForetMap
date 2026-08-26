@@ -1,25 +1,18 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React from 'react';
 import {
   renderGlMarkdownWithGlossaryLinks,
   renderGlPlainTextWithGlossaryLinks,
 } from '../../utils/glGlossaryAutolink.js';
 import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
-
-function bindGlossaryClick(container, onOpenGlossaryTerm) {
-  if (!container || typeof onOpenGlossaryTerm !== 'function') return () => {};
-  const handler = (event) => {
-    const link = event.target.closest('[data-gl-glossary-code]');
-    if (!link || !container.contains(link)) return;
-    event.preventDefault();
-    const code = String(link.getAttribute('data-gl-glossary-code') || '').trim();
-    if (code) onOpenGlossaryTerm(code);
-  };
-  container.addEventListener('click', handler);
-  return () => container.removeEventListener('click', handler);
-}
+import { GL_GLOSSARY_CODE_ATTR } from '../../shared/utils/glossaryLinkClick.js';
+import { useGlossaryLinkedHtml } from '../../shared/hooks/useGlossaryLinkedHtml.js';
 
 /**
  * Markdown GL avec termes glossaire hyperliés (popover au clic).
+ *
+ * Pendant de `GlossaryMarkdown` côté ForetMap : la mécanique commune (repli si
+ * l'auto-lien échoue, délégation de clic) vit dans `useGlossaryLinkedHtml`, seuls
+ * les rendus et l'attribut de données sont propres à G&L.
  */
 export function GLGlossaryMarkdown({
   markdown,
@@ -30,28 +23,18 @@ export function GLGlossaryMarkdown({
   allowJournalEmbeds = false,
   tag: Tag = 'div',
 }) {
-  const containerRef = useRef(null);
-  const hasGlossary = Array.isArray(glossaryItems) && glossaryItems.length > 0;
-  const html = useMemo(() => {
-    const raw = String(markdown ?? '').trim();
-    if (!raw) return '';
-    if (!hasGlossary) {
-      return renderMarkdownToSafeHtml(raw, { allowImages, allowJournalEmbeds });
-    }
-    try {
-      return renderGlMarkdownWithGlossaryLinks(raw, glossaryItems, {
-        allowImages,
-        allowJournalEmbeds,
-      });
-    } catch (err) {
-      console.warn('GLGlossaryMarkdown: auto-lien glossaire désactivé', err);
-      return renderMarkdownToSafeHtml(raw, { allowImages, allowJournalEmbeds });
-    }
-  }, [markdown, glossaryItems, hasGlossary, allowImages, allowJournalEmbeds]);
-
-  useEffect(() => {
-    return bindGlossaryClick(containerRef.current, onOpenGlossaryTerm);
-  }, [html, onOpenGlossaryTerm]);
+  const source = String(markdown ?? '').trim();
+  const { html, containerRef } = useGlossaryLinkedHtml({
+    source,
+    glossaryItems,
+    renderLinked: (text, items) =>
+      renderGlMarkdownWithGlossaryLinks(text, items, { allowImages, allowJournalEmbeds }),
+    renderPlain: (text) => renderMarkdownToSafeHtml(text, { allowImages, allowJournalEmbeds }),
+    onOpenGlossaryTerm,
+    codeAttribute: GL_GLOSSARY_CODE_ATTR,
+    label: 'GLGlossaryMarkdown',
+    renderDeps: [allowImages, allowJournalEmbeds],
+  });
 
   if (!html) return null;
 
@@ -70,25 +53,17 @@ export function GLGlossaryInlineText({
   className = '',
   tag: Tag = 'span',
 }) {
-  const containerRef = useRef(null);
-  const hasGlossary = Array.isArray(glossaryItems) && glossaryItems.length > 0;
-  const html = useMemo(() => {
-    const raw = String(text ?? '');
-    if (!raw) return '';
-    if (!hasGlossary) return '';
-    try {
-      return renderGlPlainTextWithGlossaryLinks(raw, glossaryItems);
-    } catch (err) {
-      console.warn('GLGlossaryInlineText: auto-lien glossaire désactivé', err);
-      return '';
-    }
-  }, [text, glossaryItems, hasGlossary]);
+  const raw = String(text ?? '');
+  const { html, containerRef, hasGlossary } = useGlossaryLinkedHtml({
+    source: raw,
+    glossaryItems,
+    renderLinked: renderGlPlainTextWithGlossaryLinks,
+    onOpenGlossaryTerm,
+    codeAttribute: GL_GLOSSARY_CODE_ATTR,
+    label: 'GLGlossaryInlineText',
+  });
 
-  useEffect(() => {
-    return bindGlossaryClick(containerRef.current, onOpenGlossaryTerm);
-  }, [html, onOpenGlossaryTerm]);
-
-  if (!String(text ?? '')) return null;
+  if (!raw) return null;
 
   if (!hasGlossary || !html) {
     return <Tag className={className}>{text}</Tag>;

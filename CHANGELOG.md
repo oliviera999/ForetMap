@@ -7,6 +7,58 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Les fiches ne s'ouvrent plus derrière ce qui les appelle (lot 31)
+
+Constat de départ : **des fiches demandées, mais invisibles**. Cliquer un terme de
+glossaire depuis un quiz ouvert en fenêtre ouvrait bien la définition — derrière le quiz.
+Le diagnostic a montré que ce n'était pas un cas isolé mais un symptôme : les deux
+applications avaient dérivé sur **deux échelles d'empilement sans rapport** (ForetMap de
+80 à 99 999, G&L de 55 à 12 050), et les surfaces *partagées* par les deux portaient une
+valeur en dur, donc calibrée pour une seule d'entre elles.
+
+**Ce qui était cassé, et qui est réparé :**
+
+- La **fiche glossaire ForetMap** s'ouvrait sous le popover de quiz qui l'appelait.
+- La **fiche glossaire G&L** s'ouvrait sous la découverte de feuillet qui l'appelait.
+- La **question de contrôle de compréhension G&L** était enterrée sous la barre du haut
+  et la barre de navigation.
+- La **fiche espèce G&L** passait sous la barre de navigation.
+- L'**accueil des mascottes** (ForetMap) passait sous la barre de navigation basse.
+
+**L'onglet Glossaire est enfin accessible aux professeurs.** Il était rendu pour les deux
+branches, mais seule la barre élève l'exposait : un professeur ne pouvait l'atteindre
+qu'en cliquant un terme dans un contenu, puis « Voir la fiche complète ».
+
+**Une seule échelle, partagée par les deux produits** (`src/shared/styles/z-layers.css`).
+Une couche y vaut pour un *rôle* — modale, popover de contenu, fiche, validation, visite
+guidée — et non pour un composant. L'invariant qui ferme les inversions ci-dessus est
+l'ordre dans lequel les surfaces s'appellent : *un contenu ouvre une fiche de glossaire, et
+depuis cette fiche on peut demander à valider le terme — jamais l'inverse.* La validation
+(« j'ai lu ce tutoriel », « j'ai appris ce terme ») est donc la couche réellement terminale,
+au-dessus des fiches ; elle se distingue de la simple *fenêtre* du quiz, qui reste sous les
+fiches qu'elle ouvre.
+
+**Ce que la refonte supprime plutôt qu'elle n'ajoute :**
+
+- Les **deux patchs identiques** qui remontaient les modales au-dessus du plein écran,
+  écrits mot pour mot de chaque côté (`map-fullscreen.css` et `gl-theme.css`) : dans
+  l'échelle commune, le plein écran est un conteneur de vue, donc déjà sous les dialogues.
+- Les **deux surcharges G&L** qui rabaissaient une coque partagée sous la navigation.
+- Le **doublon de jetons** `--fm-toast-z` / `--fm-z-toast` (deux noms, deux valeurs, un
+  seul rôle) et la double déclaration de `--fm-z-nav`.
+- G&L ne recalibre plus aucun palier : `--fm-modal-overlay-z` disparaît de son thème.
+
+**Davantage de code commun aux deux applications.** La délégation de clic sur un terme
+auto-lié était écrite deux fois à l'attribut de données près : elle devient
+`bindGlossaryLinkClick`. La mécanique de rendu qui l'entoure — produire le HTML lié,
+**retomber sur un texte sans liens plutôt que casser l'écran** si l'auto-lien échoue,
+brancher l'écouteur — était répétée dans quatre composants : elle devient le hook
+`useGlossaryLinkedHtml`. Un terme mal formé en base ne peut plus faire disparaître le
+texte que l'élève est en train de lire, et ce repli n'est écrit qu'une fois.
+
+Un garde-fou (`tests-ui/utils/zLayers.test.js`) verrouille l'ordre des paliers, interdit
+qu'une feuille redéclare l'un d'eux ou rechoisisse un `z-index` global en dur, et vérifie
+que les patchs de plein écran ne reviennent pas.
 ### Une seule liste, vraiment : plus de modèles, et tout se supprime
 
 Deux restes de l'ancienne organisation traînaient encore au studio, et se lisaient exactement

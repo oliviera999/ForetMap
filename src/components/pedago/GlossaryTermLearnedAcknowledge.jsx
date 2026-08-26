@@ -61,7 +61,7 @@ export function GlossaryTermLearnedAcknowledgeButton({
       gatingSummary={gatingSummary}
       enableGating={!isLearned}
       Shell={LearningQuizPopover}
-      overlayClassName="fm-quiz-popover"
+      overlayClassName="fm-quiz-popover fm-quiz-popover--ack"
       dialogClassName="fm-quiz-popover__panel animate-pop"
       onSubmit={async () => {
         try {
