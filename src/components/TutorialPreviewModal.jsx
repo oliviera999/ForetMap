@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { TutorialReadAcknowledgeButton } from './TutorialReadAcknowledge';
 import { DialogShell } from './DialogShell';
+import { useGatingSummary } from '../hooks/useGatingSummary';
 
 /**
  * Vrai si le chemin de fichier local pointe vers un document que `/api/tutorials/:id/view`
@@ -71,6 +72,13 @@ export function tutorialPreviewCanEmbed(t) {
  * @param {{ isRead: boolean, onAcknowledged: (id: number) => void, onForceLogout?: () => void }|null} [props.readAcknowledge] — pied de modale : marquage « lu » avec confirmation (même flux que l’onglet Tutoriels).
  */
 export function TutorialPreviewModal({ tutorial, onClose, readAcknowledge = null }) {
+  // L'aperçu ne disait rien du contrôle de compréhension : l'élève cliquait
+  // « Marquer comme lu » sans savoir qu'une question l'attendait.
+  const previewTutorialIds = useMemo(() => {
+    const n = Number(tutorial?.id);
+    return Number.isFinite(n) && n > 0 ? [n] : [];
+  }, [tutorial?.id]);
+  const { summaries: gatingSummaries } = useGatingSummary('tutorial', previewTutorialIds);
   useOverlayHistoryBack(!!tutorial, onClose);
   if (!tutorial) return null;
   const source =
@@ -123,6 +131,7 @@ export function TutorialPreviewModal({ tutorial, onClose, readAcknowledge = null
             tutorialId={tutoIdNum}
             tutorialTitle={tutorial.title}
             isRead={readAcknowledge.isRead}
+            gatingSummary={gatingSummaries.get(String(tutoIdNum)) || null}
             onAcknowledged={readAcknowledge.onAcknowledged}
             onForceLogout={readAcknowledge.onForceLogout}
           />

@@ -17,6 +17,7 @@ const { getFmGatingSite } = require('../lib/learningGatingRuntime');
 const gatingAdmin = require('../lib/learningGatingAdmin');
 const tutorialMatch = require('../lib/shared/tutorialQuestionMatch');
 const labelMatch = require('../lib/shared/resourceQuestionMatch');
+const linksBulk = require('../lib/learningLinksBulk');
 
 const router = express.Router();
 const managePermission = requirePermission('plants.manage');
@@ -90,6 +91,14 @@ router.post(
     if (!(await questionExists(v.question_code))) {
       return res.status(404).json({ error: 'Question introuvable' });
     }
+    // Garde-fou : un lien BLOQUANT sur un type que ForetMap ne sait pas valider ne
+    // conditionnera jamais rien. Il etait accepte sans un mot, et le professeur croyait
+    // avoir conditionne la fiche. Le lien non bloquant, lui, reste permis.
+    if (v.is_gating && !linksBulk.isMarkableResourceType('fm', v.resource_type)) {
+      return res
+        .status(400)
+        .json({ error: linksBulk.nonMarkableGatingError('fm', v.resource_type) });
+    }
     const who = actor(req);
     await execute(
       `INSERT INTO resource_question_links
@@ -135,6 +144,18 @@ router.patch(
     const params = [];
     const body = req.body || {};
     if (body.is_gating !== undefined) {
+      if (body.is_gating) {
+        const existing = await queryOne(
+          'SELECT resource_type FROM resource_question_links WHERE id = ? LIMIT 1',
+          [id],
+        );
+        if (!existing) return res.status(404).json({ error: 'Lien introuvable' });
+        if (!linksBulk.isMarkableResourceType('fm', existing.resource_type)) {
+          return res
+            .status(400)
+            .json({ error: linksBulk.nonMarkableGatingError('fm', existing.resource_type) });
+        }
+      }
       sets.push('is_gating = ?');
       params.push(body.is_gating ? 1 : 0);
     }
@@ -303,33 +324,67 @@ router.get(
   managePermission,
   asyncHandler(async (req, res) => {
     const type = core.normalizeResourceType(req.query.type, ALLOWED) || 'tutorial';
-    if (type !== 'tutorial') {
-      // Les autres types (plante, glossaire) ont deja leurs propres ecrans de
-      // catalogue ; seul le tutoriel manquait d'un point d'entree.
-      return res.status(400).json({ error: 'Seul le type « tutorial » est listé ici' });
-    }
+
+    // L'ecran ne listait QUE les tutoriels, et cette route refusait tout autre type :
+    // impossible d'y rendre bloquant un lien vers une fiche espece ou un terme de
+    // glossaire, alors que le moteur d'appariement les couvre. Les trois types sont
+    // desormais servis, avec les memes compteurs.
+    const SOURCES = {
+      tutorial: {
+        table: 'tutorials',
+        select: `SELECT t.id AS ref, t.title AS label, t.type AS kind, t.is_active AS active`,
+        from: 'FROM tutorials t',
+        join: `LEFT JOIN resource_question_links l
+                 ON l.resource_type = 'tutorial'
+                -- CAST(... AS CHAR) sort en utf8mb4_general_ci alors que resource_ref est en
+                -- utf8mb4_unicode_ci : sans COLLATE explicite, MariaDB refuse la comparaison
+                -- (ER_CANT_AGGREGATE_2COLLATIONS) des que la connexion applicative s'en mele.
+                AND l.resource_ref = CAST(t.id AS CHAR) COLLATE utf8mb4_unicode_ci`,
+        group: 'GROUP BY t.id',
+        order: 'ORDER BY t.sort_order ASC, t.title ASC',
+      },
+      plant: {
+        select: `SELECT p.id AS ref, p.name AS label, p.scientific_name AS kind, 1 AS active`,
+        from: 'FROM plants p',
+        join: `LEFT JOIN resource_question_links l
+                 ON l.resource_type = 'plant'
+                AND l.resource_ref = CAST(p.id AS CHAR) COLLATE utf8mb4_unicode_ci`,
+        group: 'GROUP BY p.id',
+        order: 'ORDER BY p.name ASC',
+      },
+      glossary: {
+        select: `SELECT g.glossary_code AS ref, g.terme AS label, g.categorie AS kind, 1 AS active`,
+        from: 'FROM glossary_terms g',
+        join: `LEFT JOIN resource_question_links l
+                 ON l.resource_type = 'glossary'
+                AND l.resource_ref = g.glossary_code COLLATE utf8mb4_unicode_ci`,
+        group: "WHERE g.statut = 'actif' GROUP BY g.glossary_code",
+        order: 'ORDER BY g.terme ASC',
+      },
+    };
+    const src = SOURCES[type];
+    if (!src) return res.status(400).json({ error: 'Type de ressource invalide' });
+
     const rows = await queryAll(
-      `SELECT t.id, t.title, t.type, t.is_active,
+      `${src.select},
               COUNT(l.id) AS links_count,
               SUM(CASE WHEN l.status = 'approved' AND l.is_gating = 1 THEN 1 ELSE 0 END) AS gating_count,
               SUM(CASE WHEN l.status = 'suggested' THEN 1 ELSE 0 END) AS suggested_count
-         FROM tutorials t
-         LEFT JOIN resource_question_links l
-           ON l.resource_type = 'tutorial'
-          -- CAST(... AS CHAR) sort en utf8mb4_general_ci alors que resource_ref est en
-          -- utf8mb4_unicode_ci : sans COLLATE explicite, MariaDB refuse la comparaison
-          -- (ER_CANT_AGGREGATE_2COLLATIONS) des que la connexion applicative s'en mele.
-          AND l.resource_ref = CAST(t.id AS CHAR) COLLATE utf8mb4_unicode_ci
-        GROUP BY t.id
-        ORDER BY t.sort_order ASC, t.title ASC`,
+         ${src.from}
+         ${src.join}
+        ${src.group}
+        ${src.order}`,
     );
     return res.json({
-      resource_type: 'tutorial',
+      resource_type: type,
+      // Un type non validable peut porter des liens documentaires, jamais de lien
+      // bloquant : l'ecran le dit au lieu de laisser croire a un conditionnement.
+      markable: linksBulk.isMarkableResourceType('fm', type),
       resources: rows.map((r) => ({
-        ref: String(r.id),
-        label: r.title,
-        tutorial_type: r.type,
-        is_active: Number(r.is_active) === 1,
+        ref: String(r.ref),
+        label: r.label,
+        tutorial_type: r.kind,
+        is_active: Number(r.active) === 1,
         links_count: Number(r.links_count) || 0,
         gating_count: Number(r.gating_count) || 0,
         suggested_count: Number(r.suggested_count) || 0,
@@ -579,14 +634,31 @@ router.post(
     const ids = (Array.isArray(body.ids) ? body.ids : [])
       .map((n) => Number(n))
       .filter((n) => Number.isFinite(n) && n > 0);
-    if (!ids.length) return res.status(400).json({ error: 'Aucun identifiant fourni' });
     const status = action === 'approve' ? 'approved' : 'rejected';
-    const placeholders = ids.map(() => '?').join(', ');
-    const result = await execute(
-      `UPDATE resource_question_links SET status = ?, updated_at = NOW() WHERE id IN (${placeholders})`,
-      [status, ...ids],
-    );
-    return res.json({ success: true, status, updated: result.affectedRows });
+
+    // Toute une ressource d'un coup. Le rattachement automatique insere en
+    // `status = 'suggested'`, que le conditionnement n'accepte pas : sans cette forme, il
+    // fallait quarante changements de liste deroulante pour quarante propositions, et
+    // personne n'allait au bout — l'ecran produisait des liens que rien n'activait.
+    // N'agit que sur le statut : le caractere bloquant reste la decision explicite du
+    // professeur, ligne par ligne. Approuver n'est pas conditionner.
+    if (!ids.length) {
+      const rt = core.normalizeResourceType(body.resourceType ?? body.resource_type, ALLOWED);
+      const ref = core.normalizeResourceRef(body.resourceRef ?? body.resource_ref);
+      if (!rt || !ref) {
+        return res.status(400).json({
+          error: 'Aucun identifiant fourni (ou indiquez resourceType + resourceRef)',
+        });
+      }
+      const bulk = await linksBulk.reviewSuggestedLinks(
+        { execute },
+        { product: 'fm', status, resourceType: rt, resourceRef: ref },
+      );
+      return res.json({ success: true, status, updated: bulk.updated });
+    }
+
+    const bulk = await linksBulk.reviewSuggestedLinks({ execute }, { product: 'fm', status, ids });
+    return res.json({ success: true, status, updated: bulk.updated });
   }),
 );
 
