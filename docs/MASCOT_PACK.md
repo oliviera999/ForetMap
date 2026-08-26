@@ -1,6 +1,6 @@
 # Mascotte visite — format « mascot pack » v1 / v2 (`sprite_cut`)
 
-Ce document décrit le JSON **mascot pack** versions **1** et **2** : source de vérité pour une mascotte **`renderer: sprite_cut`** (images PNG par frame), alignée sur le catalogue [`src/utils/visitMascotCatalog.js`](../src/utils/visitMascotCatalog.js) et le moteur [`VisitMapMascotSpriteCut.jsx`](../src/components/VisitMapMascotSpriteCut.jsx).
+Ce document décrit le JSON **mascot pack** versions **1** et **2** : source de vérité pour une mascotte, quel que soit son moteur de rendu — **`sprite_cut`** (un PNG par trame), **`spritesheet`** (une image en grille) ou **`rive`** (fichier `.riv`) —, alignée sur le catalogue [`src/utils/visitMascotCatalog.js`](../src/utils/visitMascotCatalog.js) et le moteur [`VisitMapMascotSpriteCut.jsx`](../src/components/VisitMapMascotSpriteCut.jsx).
 
 **Prod / runtime sans `src/` :** la validation Zod côté API et les clés d’**`interactionProfile`** sont servies depuis le miroir **`lib/visit-pack/`** (`mascotPack.js`, `visitMascotState.js`, `visitMascotInteractionEvents.js` — synchronisés par **`npm run build`** ou **`npm run sync:visit-pack-lib`**). Les liens ci-dessous vers `src/utils/` restent la référence **développement** ; en exploitation, vérifier la présence des mêmes noms sous **`lib/visit-pack/`** (sonde **`mascotPackLibProbe`** dans **`GET /api/admin/diagnostics`**).
 
@@ -47,20 +47,80 @@ canoniques (déclarées en `customStates`) et **porte** les `triggers` vers `cus
 
 ## Champs racine (v1 et v2)
 
-| Champ                | Type                | Description                                                                                                                                                                                                                                    |
-| -------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `mascotPackVersion`  | `1` ou `2`          | Version du schéma.                                                                                                                                                                                                                             |
-| `id`                 | string              | Identifiant catalogue (`kebab-case`, lettres minuscules et chiffres).                                                                                                                                                                          |
-| `label`              | string              | Libellé affiché dans le sélecteur prof.                                                                                                                                                                                                        |
-| `renderer`           | `"sprite_cut"`      | Seule valeur supportée par ce format.                                                                                                                                                                                                          |
-| `framesBase`         | string              | URL-prefix des frames, ex. `/assets/mascots/mon-id/frames/` (slash final recommandé) **ou** `/api/visit/mascot-packs/{uuid}/assets/` **ou** `/api/visit/mascot-sprite-library/assets/` (forme historique `…/{mapId}/assets/` encore acceptée). |
-| `frameWidth`         | entier              | Largeur logique d’une cellule (px).                                                                                                                                                                                                            |
-| `frameHeight`        | entier              | Hauteur logique (px).                                                                                                                                                                                                                          |
-| `pixelated`          | booléen (optionnel) | Défaut `true` : rendu pixelated.                                                                                                                                                                                                               |
-| `displayScale`       | nombre (optionnel)  | Facteur d’affichage `0.25`–`4` (défaut `1`).                                                                                                                                                                                                   |
-| `fallbackSilhouette` | string              | Silhouette SVG existante (ex. `gnome`, `backpackFox2`, …).                                                                                                                                                                                     |
-| `stateAliases`       | objet (optionnel)   | Map `état_alias → état_cible` (clés = états canoniques).                                                                                                                                                                                       |
-| `stateFrames`        | objet               | Clés = **états visite canoniques** uniquement (voir `VISIT_MASCOT_STATE` dans [`visitMascotState.js`](../src/utils/visitMascotState.js)).                                                                                                      |
+| Champ                | Type                                          | Description                                                                                                                                                                                                                                    |
+| -------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mascotPackVersion`  | `1` ou `2`                                    | Version du schéma.                                                                                                                                                                                                                             |
+| `id`                 | string                                        | Identifiant catalogue (`kebab-case`, lettres minuscules et chiffres).                                                                                                                                                                          |
+| `label`              | string                                        | Libellé affiché dans le sélecteur prof.                                                                                                                                                                                                        |
+| `renderer`           | `"sprite_cut"` \| `"spritesheet"` \| `"rive"` | Moteur de rendu. Il commande les champs requis (§ _Champs par moteur_) : un pack en décrit **un seul**, porter les champs d'un autre est refusé.                                                                                               |
+| `framesBase`         | string                                        | URL-prefix des frames, ex. `/assets/mascots/mon-id/frames/` (slash final recommandé) **ou** `/api/visit/mascot-packs/{uuid}/assets/` **ou** `/api/visit/mascot-sprite-library/assets/` (forme historique `…/{mapId}/assets/` encore acceptée). |
+| `frameWidth`         | entier                                        | Largeur logique d’une cellule (px).                                                                                                                                                                                                            |
+| `frameHeight`        | entier                                        | Hauteur logique (px).                                                                                                                                                                                                                          |
+| `pixelated`          | booléen (optionnel)                           | Défaut `true` : rendu pixelated.                                                                                                                                                                                                               |
+| `displayScale`       | nombre (optionnel)                            | Facteur d’affichage `0.25`–`4` (défaut `1`).                                                                                                                                                                                                   |
+| `fallbackSilhouette` | string                                        | Silhouette SVG existante (ex. `gnome`, `backpackFox2`, …).                                                                                                                                                                                     |
+| `stateAliases`       | objet (optionnel)                             | Map `état_alias → état_cible` (clés = états canoniques).                                                                                                                                                                                       |
+| `stateFrames`        | objet                                         | Clés = **états visite canoniques** uniquement (voir `VISIT_MASCOT_STATE` dans [`visitMascotState.js`](../src/utils/visitMascotState.js)).                                                                                                      |
+
+## Champs par moteur
+
+Le format a longtemps été réservé à `sprite_cut`. Il décrit désormais les trois moteurs du
+catalogue — sans quoi les onze mascottes livrées en `rive` et les quatre en `spritesheet` ne
+pouvaient pas devenir des packs, et le catalogue en code restait un univers parallèle
+(`docs/AUDIT_MASCOTTES_2026-08.md`, piste P3).
+
+| Moteur        | Champs requis                                            | Champs interdits                       |
+| ------------- | -------------------------------------------------------- | -------------------------------------- |
+| `sprite_cut`  | `framesBase`, `frameWidth`, `frameHeight`, `stateFrames` | `spritesheet`, `rive`                  |
+| `spritesheet` | `spritesheet`                                            | les champs `sprite_cut`, `rive`        |
+| `rive`        | `rive`                                                   | les champs `sprite_cut`, `spritesheet` |
+
+Un pack `sprite_cut` déjà enregistré valide **à l'identique** : ses champs restent requis, avec
+les mêmes messages de refus. Ce sont les combinaisons impossibles qui sont désormais nommées.
+
+### Bloc `spritesheet`
+
+```json
+{
+  "renderer": "spritesheet",
+  "spritesheet": {
+    "src": "/assets/mascots/fox-backpack/fox-backpack-spritesheet.png",
+    "frameWidth": 153,
+    "frameHeight": 160,
+    "stateFrames": {
+      "idle": { "row": 0, "frames": 3, "fps": 3 },
+      "talk": { "row": 2, "col": 0, "frames": 4, "fps": 8 }
+    }
+  }
+}
+```
+
+Une image unique découpée en grille : un état vise une **rangée**, une **colonne de départ**
+optionnelle et un nombre de trames.
+
+### Bloc `rive`
+
+```json
+{
+  "renderer": "rive",
+  "rive": {
+    "src": "/assets/rive/sprout.riv",
+    "stateAnimations": {
+      "idle": ["idle", "Idle", "IDLE"],
+      "walking": ["move", "Move", "walk", "Walk"]
+    }
+  }
+}
+```
+
+L'animation vit dans le `.riv` ; un état vise une ou plusieurs animations **par leur nom**.
+Plusieurs noms valent tolérance à la casse et aux variantes de nommage de l'auteur.
+
+> **API.** `validateMascotPack` rend désormais `renderer` et `animation` — la configuration du
+> moteur effectif, à poser telle quelle sur l'entrée catalogue via `buildMascotCatalogEntry`.
+> `spriteCut` reste rendu **pour ce seul moteur** (`null` pour les deux autres), afin que les
+> appelants historiques continuent de fonctionner. `expandMascotPackToSpriteCut` rend `null`
+> hors `sprite_cut` plutôt que de lever.
 
 ## Entrée `stateFrames.<état>`
 

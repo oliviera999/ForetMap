@@ -13,7 +13,6 @@ import {
   saveVisitMascotPositionPct,
 } from '../utils/visitMascotPositionPersistence.js';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
-import { parseVisitMascotAllowedIds } from '../utils/visitViewStatus.js';
 import { clampVisitMascotPctForViewport } from '../utils/visitMascotGeometry.js';
 
 export const VISIT_MAP_MASCOT_MOVE_MS = 560;
@@ -57,10 +56,6 @@ export function useVisitMapMascotController({
   setSelectedType,
 }) {
   const publicSettings = usePublicSettings();
-  const visitMascotAllowedIds = useMemo(
-    () => parseVisitMascotAllowedIds(publicSettings?.visit?.mascot?.allowed_ids),
-    [publicSettings?.visit?.mascot?.allowed_ids],
-  );
   // Vide = mascotte par défaut livrée : `normalizeVisitMascotId` s'en charge (pas d'id en dur ici).
   const visitMascotDefaultId = String(publicSettings?.visit?.mascot?.default_id || '').trim();
 
@@ -109,7 +104,6 @@ export function useVisitMapMascotController({
     extraCatalogEntries: visitMascotCatalogExtras,
     preferredMascotId: profileVisitMascotId,
     onPersistPreferredMascotId: onPersistVisitMascotId,
-    allowedMascotIds: visitMascotAllowedIds,
     defaultMascotId: visitMascotDefaultId,
   });
 
