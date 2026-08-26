@@ -2,9 +2,15 @@ import React, { useCallback, useMemo } from 'react';
 import { LearningAcknowledgeButton } from '../../shared/components/LearningAcknowledgeButton.jsx';
 import { apiGL } from '../services/apiGL.js';
 import { createGlGatingHandlers } from '../../shared/utils/learningGatingChallengeClient.js';
+import { LearningQuizPopover } from '../../shared/components/LearningQuizPopover.jsx';
+import { useGlGatingSummary } from '../hooks/useGlGatingSummary.js';
 
 /**
  * Accusé de progression GL (espèce, glossaire, tutoriel) avec confirmation explicite.
+ *
+ * Le popover du contrôle de compréhension était réservé à ForetMap : G&L ouvrait une
+ * modale pleine largeur, alors que le composant sous-jacent est le même. Il est désormais
+ * partagé (`LearningQuizPopover`), rhabillé par variables CSS dans `gl-theme.css`.
  */
 export function GLLearningAcknowledgeButton({
   acknowledgePath,
@@ -28,12 +34,29 @@ export function GLLearningAcknowledgeButton({
     return { resourceType, resourceRef: String(resourceRef) };
   }, [resourceType, resourceRef]);
 
+  // Annonce AVANT le clic, comme côté ForetMap. Chacun des quatre points d'entrée G&L
+  // n'affiche qu'un bouton pour la ressource ouverte : le résumé est donc demandé ici,
+  // une fois par écran, plutôt que d'être câblé quatre fois de la même façon.
+  const summaryRefs = useMemo(
+    () => (gatingResource ? [gatingResource.resourceRef] : []),
+    [gatingResource],
+  );
+  const { summaries: gatingSummaries } = useGlGatingSummary(
+    gatingResource?.resourceType || '',
+    summaryRefs,
+    !!gatingResource && enableGating,
+  );
+  const gatingSummary = gatingResource
+    ? gatingSummaries.get(gatingResource.resourceRef) || null
+    : null;
+
   return (
     <LearningAcknowledgeButton
       buttonClassName="gl-btn gl-btn--secondary gl-btn--sm gl-learning-ack__btn"
       doneClassName="gl-badge gl-learning-badge"
-      overlayClassName="fm-modal-overlay gl-learning-ack-overlay"
-      dialogClassName="fm-modal-panel gl-learning-ack-modal fade-in"
+      Shell={LearningQuizPopover}
+      overlayClassName="fm-quiz-popover gl-learning-ack-overlay"
+      dialogClassName="fm-quiz-popover__panel gl-learning-ack-modal animate-pop"
       submitLabel="Confirmer"
       submittingLabel="Enregistrement…"
       choiceClassName="gl-qcm-choice learning-gating-quiz__choice"
@@ -41,6 +64,7 @@ export function GLLearningAcknowledgeButton({
       ghostBtnClassName="gl-btn gl-btn--ghost gl-btn--sm"
       gatingHandlers={gatingHandlers}
       gatingResource={gatingResource}
+      gatingSummary={gatingSummary}
       enableGating={enableGating}
       onSubmit={submit}
       {...rest}

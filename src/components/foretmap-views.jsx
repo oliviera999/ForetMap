@@ -9,6 +9,7 @@ import { HelpPanel } from './HelpPanel';
 import { ContextComments } from './context-comments';
 import { PlantSpeciesDiscoveryAcknowledgeButton } from './PlantSpeciesDiscoveryAcknowledge';
 import { usePlantObservationCounts } from '../hooks/usePlantObservationCounts';
+import { useGatingSummary } from '../hooks/useGatingSummary';
 import {
   resolveHelpPanelSection,
   resolveHelpChrome,
@@ -73,6 +74,12 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
   // PlantManager et PlantViewer) ; clé stable = ids joints + plants.length (historique).
   const { counts: plantObservationCounts, applyAcknowledged: applyObservationAcknowledged } =
     usePlantObservationCounts(biodivObservationPlantIds, plants.length);
+  // Annonce du contrôle de compréhension AVANT le clic : le bouton « Espèce découverte »
+  // ne laissait rien deviner, contrairement à celui des tutoriels.
+  const { summaries: plantGatingSummaries, refresh: refreshPlantGating } = useGatingSummary(
+    'plant',
+    biodivObservationPlantIds,
+  );
 
   // Liens carte pré-calculés une fois par changement de données (au lieu d'un
   // balayage O(zones + repères) par carte à chaque rendu).
@@ -360,7 +367,11 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
                         offerPlantCommentAfterObservation={
                           contextCommentsEnabled && canParticipateContextComments
                         }
-                        onAcknowledged={applyObservationAcknowledged}
+                        gatingSummary={plantGatingSummaries.get(String(p.id)) || null}
+                        onAcknowledged={(id, next) => {
+                          applyObservationAcknowledged(id, next);
+                          refreshPlantGating();
+                        }}
                         onForceLogout={onForceLogout}
                       />
                     </div>
@@ -636,6 +647,10 @@ function PlantViewer({
   // Même hook mutualisé que côté PlantManager (fetch + abonnement + cleanup).
   const { counts: plantObservationCounts, applyAcknowledged: applyObservationAcknowledged } =
     usePlantObservationCounts(biodivObservationPlantIdsStudent, plants.length);
+  const { summaries: plantGatingSummaries, refresh: refreshPlantGating } = useGatingSummary(
+    'plant',
+    biodivObservationPlantIdsStudent,
+  );
 
   return (
     <div className="fade-in">
@@ -685,7 +700,11 @@ function PlantViewer({
               siteObservationCount={
                 plantObservationCounts[String(p.id)]?.site_observation_count ?? 0
               }
-              onObservationAcknowledged={applyObservationAcknowledged}
+              gatingSummary={plantGatingSummaries.get(String(p.id)) || null}
+              onObservationAcknowledged={(id, next) => {
+                applyObservationAcknowledged(id, next);
+                refreshPlantGating();
+              }}
               contextCommentsEnabled={contextCommentsEnabled}
               canParticipateContextComments={canParticipateContextComments}
               onForceLogout={onForceLogout}

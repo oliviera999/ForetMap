@@ -120,9 +120,24 @@ test('GET /resources liste les tutoriels avec leurs compteurs', async () => {
   assert.equal(typeof mine.gating_count, 'number');
 });
 
-test('GET /resources refuse un type non listable', async () => {
-  const res = await request(app).get('/api/learning-links/resources?type=plant').set(auth());
-  assert.equal(res.status, 400);
+test('GET /resources sert les plantes, et refuse un type inconnu', async () => {
+  // La route ne servait QUE les tutoriels : fiches espèces et glossaire n'avaient
+  // aucun point d'entrée dans l'écran de rattachement. Elle sert désormais les trois.
+  const plantes = await request(app).get('/api/learning-links/resources?type=plant').set(auth());
+  assert.equal(plantes.status, 200);
+  assert.equal(plantes.body.resource_type, 'plant');
+  assert.equal(plantes.body.markable, true);
+
+  // Le glossaire est listable mais pas validable : l'écran doit pouvoir le dire.
+  const glossaire = await request(app)
+    .get('/api/learning-links/resources?type=glossary')
+    .set(auth());
+  assert.equal(glossaire.status, 200);
+  assert.equal(glossaire.body.markable, false);
+
+  // Un type hors du domaine ForetMap reste refusé (repli sur 'tutorial' impossible).
+  const inconnu = await request(app).get('/api/learning-links/resources?type=feuillet').set(auth());
+  assert.equal(inconnu.body.resource_type, 'tutorial', 'type inconnu → repli documenté');
 });
 
 test('POST /suggest simule par défaut : rien n’est écrit', async () => {

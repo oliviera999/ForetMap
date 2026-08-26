@@ -119,3 +119,24 @@ describe('pendingChallengeQuestions — plafond par session', () => {
     expect(asked.every((q) => !q.already_correct)).toBe(true);
   });
 });
+
+describe('annonce et réglage de présentation', () => {
+  test('le réglage prof « annoncer sur le bouton » éteint l’annonce', () => {
+    // `announce` est recopié sur chaque ligne de résumé par le serveur : le front ne
+    // lit pas les réglages prof, mais doit les respecter.
+    const summary = { required: true, ask_count: 2, pending_count: 2 };
+    expect(buildButtonAnnounce(summary, 'Le compostage').announceBadge).toBe('2 questions');
+    expect(buildButtonAnnounce({ ...summary, announce: false }, 'Le compostage')).toEqual({
+      announceBadge: '',
+      announceTitle: '',
+    });
+  });
+
+  test('rien à annoncer quand le contrôle est déjà acquis', () => {
+    // La pastille d'état, elle, montre encore le « ✓ » : c'est une information,
+    // pas un avertissement.
+    expect(
+      buildButtonAnnounce({ required: true, satisfied: true, pending_count: 0 }, 'Fiche'),
+    ).toEqual({ announceBadge: '', announceTitle: '' });
+  });
+});

@@ -19,6 +19,7 @@ const asyncHandler = require('../../lib/asyncHandler');
 const { getGlGatingSettings, setGlGatingSetting, GATING_KEYS } = require('../../lib/glSettings');
 const core = require('../../lib/shared/resourceQuestionGatingCore');
 const gatingAdmin = require('../../lib/learningGatingAdmin');
+const linksBulk = require('../../lib/learningLinksBulk');
 
 const router = express.Router();
 const ALLOWED = core.GL_RESOURCE_TYPES;
@@ -103,6 +104,13 @@ router.post(
     if (!(await glQuestionExists(v.question_dataset, v.question_code))) {
       return res.status(404).json({ error: 'Question introuvable' });
     }
+    // Meme garde-fou que cote ForetMap : un lien bloquant sur un type que le produit ne
+    // sait pas valider resterait inerte, sans que rien ne le dise.
+    if (v.is_gating && !linksBulk.isMarkableResourceType('gl', v.resource_type)) {
+      return res
+        .status(400)
+        .json({ error: linksBulk.nonMarkableGatingError('gl', v.resource_type) });
+    }
     const who = actor(req);
     await execute(
       `INSERT INTO gl_resource_question_links
@@ -150,6 +158,18 @@ router.patch(
     const params = [];
     const body = req.body || {};
     if (body.is_gating !== undefined) {
+      if (body.is_gating) {
+        const existing = await queryOne(
+          'SELECT resource_type FROM gl_resource_question_links WHERE id = ? LIMIT 1',
+          [id],
+        );
+        if (!existing) return res.status(404).json({ error: 'Lien introuvable' });
+        if (!linksBulk.isMarkableResourceType('gl', existing.resource_type)) {
+          return res
+            .status(400)
+            .json({ error: linksBulk.nonMarkableGatingError('gl', existing.resource_type) });
+        }
+      }
       sets.push('is_gating = ?');
       params.push(body.is_gating ? 1 : 0);
     }
@@ -400,14 +420,27 @@ router.post(
     const ids = (Array.isArray(body.ids) ? body.ids : [])
       .map((n) => Number(n))
       .filter((n) => Number.isFinite(n) && n > 0);
-    if (!ids.length) return res.status(400).json({ error: 'Aucun identifiant fourni' });
     const status = action === 'approve' ? 'approved' : 'rejected';
-    const placeholders = ids.map(() => '?').join(', ');
-    const result = await execute(
-      `UPDATE gl_resource_question_links SET status = ?, updated_at = NOW() WHERE id IN (${placeholders})`,
-      [status, ...ids],
-    );
-    return res.json({ success: true, status, updated: result.affectedRows });
+
+    // Forme « toute une ressource », commune aux deux produits (lib/learningLinksBulk) :
+    // sans elle, chaque proposition du rattachement automatique demandait un geste.
+    if (!ids.length) {
+      const rt = core.normalizeResourceType(body.resourceType ?? body.resource_type, ALLOWED);
+      const ref = core.normalizeResourceRef(body.resourceRef ?? body.resource_ref);
+      if (!rt || !ref) {
+        return res.status(400).json({
+          error: 'Aucun identifiant fourni (ou indiquez resourceType + resourceRef)',
+        });
+      }
+      const bulk = await linksBulk.reviewSuggestedLinks(
+        { execute },
+        { product: 'gl', status, resourceType: rt, resourceRef: ref },
+      );
+      return res.json({ success: true, status, updated: bulk.updated });
+    }
+
+    const bulk = await linksBulk.reviewSuggestedLinks({ execute }, { product: 'gl', status, ids });
+    return res.json({ success: true, status, updated: bulk.updated });
   }),
 );
 
