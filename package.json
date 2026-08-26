@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.127.0",
+  "version": "1.127.1",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "engines": {
@@ -75,6 +75,10 @@
     "db:plants:photos:direct": "node scripts/resolve-plants-photo-direct-links.js --write",
     "db:plants:sources:consolidate:dry": "node scripts/consolidate-plants-sources.js",
     "db:plants:sources:consolidate": "node scripts/consolidate-plants-sources.js --write",
+    "help:compact:dry": "node scripts/compact-help-registry.js",
+    "help:compact": "node scripts/compact-help-registry.js --apply",
+    "gl:help:compact:dry": "node scripts/compact-gl-help-registry.js",
+    "gl:help:compact": "node scripts/compact-gl-help-registry.js --apply",
     "migrate:sqlite-to-mysql": "node scripts/migrate-sqlite-to-mysql.js",
     "export:sqlite-garden": "node scripts/export-sqlite-garden-sql.js",
     "bump:patch": "npm version patch --no-git-tag-version",
