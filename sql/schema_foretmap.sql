@@ -865,6 +865,14 @@ CREATE TABLE IF NOT EXISTS visit_mascot_packs (
   CONSTRAINT fk_visit_mascot_packs_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- visite : mascottes livrées supprimées pour de bon (le semis ne les réinsère plus)
+CREATE TABLE IF NOT EXISTS visit_mascot_pack_deletions (
+  catalog_id VARCHAR(80) NOT NULL PRIMARY KEY,
+  deleted_at VARCHAR(32) DEFAULT NULL,
+  deleted_by VARCHAR(64) DEFAULT NULL,
+  CONSTRAINT fk_visit_mascot_pack_deletions_user FOREIGN KEY (deleted_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- visite : sprites partagés (bibliothèque unique réutilisable entre packs)
 CREATE TABLE IF NOT EXISTS visit_mascot_sprite_library (
   id CHAR(36) NOT NULL PRIMARY KEY,
