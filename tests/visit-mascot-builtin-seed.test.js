@@ -115,16 +115,50 @@ test('le semis écrit vraiment les lignes annoncées', async () => {
   assert.deepEqual(manquantes, [], `mascottes annoncées mais absentes : ${manquantes.join(', ')}`);
 });
 
-test('les lignes semées sont publiées et marquées builtin', async () => {
+test('les lignes semées sont marquées builtin, sans auteur, et publiées selon leur fichier', async () => {
+  // La version d'avant lisait `WHERE origin = 'builtin' LIMIT 1` **sans ORDER BY** et exigeait
+  // `is_published = 1`. Elle est tombée le jour où le semis a cessé de publier les mascottes
+  // dont le fichier d'animation manque : la ligne arbitraire retenue par le `LIMIT` était l'une
+  // d'elles. Un test qui dépend d'un ordre non garanti ne dit pas ce qu'il croit dire.
+  //
+  // Il pinne maintenant les **deux** branches, sur des identifiants nommés — ce qui le rend
+  // plus fort qu'avant, pas plus permissif.
+  const { builtinAssetIsMissing } = require('../lib/visitMascotBuiltinSeed');
+  const entries = await listStaticVisitMascotEntries();
+
+  const avecFichier = entries.find((e) => !builtinAssetIsMissing(e));
+  const sansFichier = entries.find((e) => builtinAssetIsMissing(e));
+  assert.ok(avecFichier && sansFichier, 'le catalogue ne couvre plus les deux cas');
+
+  // **Le test possède son fixture.** Les fichiers de cette suite partagent une base et se
+  // passent l'état de publication : un autre fichier peut avoir republié délibérément une
+  // mascotte livrée. Mesurer la décision du **semis** exige donc de repartir de lignes
+  // absentes, sinon on mesure ce que le voisin a laissé.
+  for (const entry of [avecFichier, sansFichier]) {
+    await execute('DELETE FROM visit_mascot_packs WHERE catalog_id = ?', [entry.id]);
+  }
   await seedBuiltinMascotPacks();
-  const row = await queryOne(
-    "SELECT origin, is_published, created_by FROM visit_mascot_packs WHERE origin = 'builtin' LIMIT 1",
-  );
-  assert.ok(row, 'aucune ligne semée');
-  assert.equal(row.origin, 'builtin');
-  assert.equal(Number(row.is_published), 1, 'une mascotte livrée doit rester proposée');
-  // `created_by` est une FK vers `users` : une ligne semée n'a pas d'auteur.
-  assert.equal(row.created_by, null);
+
+  for (const [entry, publieeAttendue] of [
+    [avecFichier, 1],
+    [sansFichier, 0],
+  ]) {
+    const row = await queryOne(
+      'SELECT origin, is_published, created_by FROM visit_mascot_packs WHERE catalog_id = ?',
+      [entry.id],
+    );
+    assert.ok(row, `${entry.id} n’a pas été semée`);
+    assert.equal(row.origin, 'builtin');
+    // `created_by` est une FK vers `users` : une ligne semée n'a pas d'auteur.
+    assert.equal(row.created_by, null);
+    assert.equal(
+      Number(row.is_published),
+      publieeAttendue,
+      publieeAttendue
+        ? `${entry.id} a un fichier : elle doit être proposée`
+        : `${entry.id} n’a pas de fichier d’animation : elle ne doit pas être proposée`,
+    );
+  }
 });
 
 test('le semis est idempotent', async () => {

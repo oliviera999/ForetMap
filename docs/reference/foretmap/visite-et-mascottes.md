@@ -112,6 +112,12 @@ familles.
   **vous** avez créée, elle, se supprime pour de bon.
 - **Vos modifications sont conservées** : une mise à jour de l'application ne réécrit jamais une
   mascotte que vous avez retouchée.
+- **Dix mascottes livrées ne sont pas proposées aux visiteurs**, et c'est volontaire : leur
+  fichier d'animation n'existe pas et n'a jamais été fourni avec l'application. Proposées, elles
+  s'affichaient en dessin **parfaitement immobile**, sans que rien à l'écran ne l'explique — dix
+  personnages promis animés dont pas un ne bougeait. Elles restent présentes au studio, marquées
+  **Livrée**, modifiables et exportables ; il suffit de **les publier** pour les remettre au
+  sélecteur le jour où les fichiers arrivent. Les six restantes sont réellement animées.
 - **Partir d'un modèle livré** pour créer une nouvelle mascotte reste possible, par un menu
   déroulant en haut de la liste. Les modèles qui n'ont **qu'une image fixe** y sont signalés
   comme tels : douze des seize mascottes fournies sont dans ce cas, et partir de l'une d'elles
