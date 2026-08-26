@@ -30,10 +30,13 @@ branches, mais seule la barre élève l'exposait : un professeur ne pouvait l'at
 qu'en cliquant un terme dans un contenu, puis « Voir la fiche complète ».
 
 **Une seule échelle, partagée par les deux produits** (`src/shared/styles/z-layers.css`).
-Une couche y vaut pour un *rôle* — modale, popover de contenu, fiche terminale, visite
-guidée — et non pour un composant. L'invariant qui ferme les inversions ci-dessus tient en
-une phrase : *une fiche de glossaire est terminale, elle est toujours ouverte depuis autre
-chose et n'ouvre jamais rien à son tour ; elle passe donc au-dessus*.
+Une couche y vaut pour un *rôle* — modale, popover de contenu, fiche, validation, visite
+guidée — et non pour un composant. L'invariant qui ferme les inversions ci-dessus est
+l'ordre dans lequel les surfaces s'appellent : *un contenu ouvre une fiche de glossaire, et
+depuis cette fiche on peut demander à valider le terme — jamais l'inverse.* La validation
+(« j'ai lu ce tutoriel », « j'ai appris ce terme ») est donc la couche réellement terminale,
+au-dessus des fiches ; elle se distingue de la simple *fenêtre* du quiz, qui reste sous les
+fiches qu'elle ouvre.
 
 **Ce que la refonte supprime plutôt qu'elle n'ajoute :**
 
@@ -56,6 +59,28 @@ texte que l'élève est en train de lire, et ce repli n'est écrit qu'une fois.
 Un garde-fou (`tests-ui/utils/zLayers.test.js`) verrouille l'ordre des paliers, interdit
 qu'une feuille redéclare l'un d'eux ou rechoisisse un `z-index` global en dur, et vérifie
 que les patchs de plein écran ne reviennent pas.
+### Le glossaire se valide, et ne donne plus la réponse (lot 28, suite)
+
+**Le glossaire ForetMap porte un bouton « J'ai appris ce terme ».** Il était purement
+consultatif : rien ne distinguait un terme travaillé d'un terme jamais ouvert et, surtout, le
+contrôle de compréhension n'avait aucun geste auquel se rattacher — une question rattachée à un
+terme ne conditionnait rien du tout, et rien ne le signalait. Gnomes & Licornes savait valider un
+terme depuis longtemps ; ForetMap le fait maintenant aussi, avec le même bouton, le même popover
+et les mêmes pastilles d'état. Le cœur des accusés d'apprentissage devient commun aux deux
+applications : une seule différence subsiste, celle que les produits imposent — G&L identifie son
+lecteur par un couple (type, identifiant), ForetMap par son compte.
+
+En conséquence, **les trois types de contenus ForetMap sont désormais validables**, et un lien
+bloquant sur un terme de glossaire a enfin un sens.
+
+**Le glossaire ne donne plus la réponse.** Les termes reconnus dans l'énoncé d'une question et
+dans les propositions de réponse étaient cliquables : sur une question du type « Comment
+appelle-t-on le processus par lequel… ? », ouvrir le terme lié **donnait la réponse**. Ce qui
+devait aider à comprendre servait à deviner. Le texte reste affiché tel quel — aucun mot n'est
+masqué —, mais rien ne s'ouvre tant que l'élève n'a pas répondu ; la liste « Glossaire utile »
+suit la même règle, pour la même raison. Après la réponse, tout revient : c'est le moment où
+aller lire la définition est utile. La règle est commune aux deux applications et vaut aussi pour
+l'aperçu du professeur ou du MJ, qui doit montrer ce que l'élève verra.
 
 ### Le conditionnement devient visible, et enfin armable (lot 28)
 

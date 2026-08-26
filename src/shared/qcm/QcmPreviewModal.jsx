@@ -5,6 +5,7 @@ import { GLLoreGlossaryInlineText } from '../../gl/components/GLLoreGlossaryMark
 import { mergeGlossaryLinkItems } from '../../utils/glGlossaryAutolink.js';
 import { mergeLoreGlossaryLinkItems } from '../../utils/glLoreGlossaryAutolink.js';
 import { QcmQuestionPhoto } from './QcmQuestionPhoto.jsx';
+import { glossaryPropsWhileAnswering } from './quizGlossaryReveal.js';
 
 function isLoreQcmCode(code) {
   return /^LQCM\d+$/i.test(String(code || '').trim());
@@ -75,6 +76,12 @@ export function QcmPreviewModal({
   const linkedTerms = isLore
     ? presentation?.loreGlossaryTerms || feedback?.loreGlossaryTerms || []
     : presentation?.glossaryTerms || feedback?.glossaryTerms || [];
+  // Aperçu prof : il doit montrer ce que l'élève verra, y compris le fait que le
+  // glossaire n'est pas consultable avant la réponse (cf. `quizGlossaryReveal`).
+  const answeringGlossaryProps = glossaryPropsWhileAnswering(
+    inlineGlossaryProps,
+    hasQcmAnswerFeedback(feedback),
+  );
 
   if (!previewCode) return null;
   return (
@@ -129,7 +136,7 @@ export function QcmPreviewModal({
                 <InlineText
                   className={question}
                   text={presentation.question}
-                  {...inlineGlossaryProps}
+                  {...answeringGlossaryProps}
                   tag="p"
                 />
               ) : (
@@ -154,7 +161,7 @@ export function QcmPreviewModal({
                       onChange={() => onSelectChoice(c.id)}
                     />
                     {hasGlossaryUi ? (
-                      <InlineText text={c.text} {...inlineGlossaryProps} />
+                      <InlineText text={c.text} {...answeringGlossaryProps} />
                     ) : (
                       <span>{c.text}</span>
                     )}

@@ -2,6 +2,12 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../services/api';
 import { GlossaryMarkdown } from '../GlossaryMarkdown.jsx';
 import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
+import { useGatingSummary } from '../../hooks/useGatingSummary';
+import { LearningGatingStateIcon } from '../../shared/components/LearningGatingStateIcon.jsx';
+import {
+  GlossaryTermLearnedAcknowledgeButton,
+  fetchLearnedGlossaryCodes,
+} from './GlossaryTermLearnedAcknowledge.jsx';
 
 const NIVEAU_OPTIONS = [
   { value: '', label: 'Tous niveaux' },
@@ -15,6 +21,8 @@ export function GlossaryView({
   onOpenQuizQuestion,
   selectedCode = null,
   onSelectedCodeChange = null,
+  /** Déconnexion forcée si le compte a été supprimé pendant la session. */
+  onForceLogout = null,
 }) {
   const [search, setSearch] = useState('');
   const [niveau, setNiveau] = useState('');
@@ -26,6 +34,26 @@ export function GlossaryView({
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeCode, setActiveCode] = useState(selectedCode || '');
+  // Termes déjà appris, et contrôle de compréhension attaché à chacun : le glossaire
+  // était purement consultatif, rien ne distinguait un terme travaillé d'un terme
+  // jamais ouvert.
+  const [learnedCodes, setLearnedCodes] = useState(() => new Set());
+  const listedCodes = useMemo(() => items.map((i) => i?.glossary_code).filter(Boolean), [items]);
+  const { summaries: gatingSummaries, refresh: refreshGating } = useGatingSummary(
+    'glossary',
+    listedCodes,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const codes = await fetchLearnedGlossaryCodes();
+      if (!cancelled) setLearnedCodes(new Set(codes));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (selectedCode) setActiveCode(selectedCode);
@@ -185,6 +213,10 @@ export function GlossaryView({
                     onClick={() => selectTerm(item.glossary_code)}
                   >
                     <strong>{item.terme}</strong>
+                    <LearningGatingStateIcon
+                      summary={gatingSummaries.get(String(item.glossary_code)) || null}
+                      done={learnedCodes.has(String(item.glossary_code))}
+                    />
                     {item.categorie ? (
                       <span className="task-chip pedago-term-btn__chip">{item.categorie}</span>
                     ) : null}
@@ -209,6 +241,19 @@ export function GlossaryView({
               <div className="task-meta" style={{ marginBottom: 10 }}>
                 {detail.categorie ? <span className="task-chip">{detail.categorie}</span> : null}
                 {detail.niveau ? <span className="task-chip">{detail.niveau}</span> : null}
+                <GlossaryTermLearnedAcknowledgeButton
+                  glossaryCode={detail.glossary_code || activeCode}
+                  termLabel={detail.terme}
+                  isLearned={learnedCodes.has(String(detail.glossary_code || activeCode))}
+                  gatingSummary={
+                    gatingSummaries.get(String(detail.glossary_code || activeCode)) || null
+                  }
+                  onAcknowledged={(code) => {
+                    setLearnedCodes((prev) => new Set(prev).add(String(code)));
+                    refreshGating();
+                  }}
+                  onForceLogout={onForceLogout}
+                />
               </div>
               {detail.definition_courte ? (
                 <p className="plant-row-desc">{detail.definition_courte}</p>

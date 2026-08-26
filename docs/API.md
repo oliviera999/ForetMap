@@ -1707,18 +1707,34 @@ validation). La réponse renvoie alors `cooldown: { locked, locked_until, retry_
 Types de ressources : `species|glossary|lore_glossary|tutorial|feuillet`. `question_dataset` obligatoire
 (`qcm` | `qcm_lore`). Permission `gl.content.manage` (liens/politique), `gl.settings.manage` (réglages).
 
-| Méthode        | Route                                        | Description                                                                                                                                                                                  |
-| -------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET            | `/api/gl/learning-links`                     | Liste filtrable (`questionDataset`, `resourceType`, `resourceRef`, `questionCode`, `status`).                                                                                                |
-| POST           | `/api/gl/learning-links`                     | Crée/MAJ un lien (idempotent). `404` si la question n'existe pas dans le dataset visé.                                                                                                       |
-| PATCH / DELETE | `/api/gl/learning-links/:id`                 | Modifie / supprime un lien.                                                                                                                                                                  |
-| GET / PUT      | `/api/gl/learning-links/policy`              | Politique de conditionnement par ressource (idem ForetMap).                                                                                                                                  |
-| GET            | `/api/gl/learning-links/settings`            | Réglages de gating GL effectifs.                                                                                                                                                             |
-| GET / DELETE   | `/api/gl/learning-links/locks`               | Lecteurs bloqués / levée d'un verrou. Même forme qu'en ForetMap ; le lecteur s'identifie par `reader_user_type` + `reader_user_id`.                                                          |
-| GET            | `/api/gl/learning/gating/summary`            | **Nouveau (lot 28)** — résumé groupé (`resourceType`, `resourceRefs=a,b,c`, 60 max), corps identique à celui de ForetMap. Une ressource déjà apprise par le lecteur n'est plus conditionnée. |
-| PUT            | `/api/gl/learning-links/settings`            | Modifie un réglage (`gl.settings.manage`) : `{ key, value }`.                                                                                                                                |
-| PUT            | `/api/gl/learning-links/chapter-granularity` | Surcharge granularité d'un chapitre de jeu (`{ chapterId, granularity }`, `null` = hérite).                                                                                                  |
-| PUT            | `/api/gl/learning-links/scope-granularity`   | Surcharge granularité d'un scope lore (`{ scopeSlug, granularity }`).                                                                                                                        |
+| Méthode        | Route                             | Description                                                                                                                                                                                  |
+| -------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET            | `/api/gl/learning-links`          | Liste filtrable (`questionDataset`, `resourceType`, `resourceRef`, `questionCode`, `status`).                                                                                                |
+| POST           | `/api/gl/learning-links`          | Crée/MAJ un lien (idempotent). `404` si la question n'existe pas dans le dataset visé.                                                                                                       |
+| PATCH / DELETE | `/api/gl/learning-links/:id`      | Modifie / supprime un lien.                                                                                                                                                                  |
+| GET / PUT      | `/api/gl/learning-links/policy`   | Politique de conditionnement par ressource (idem ForetMap).                                                                                                                                  |
+| GET            | `/api/gl/learning-links/settings` | Réglages de gating GL effectifs.                                                                                                                                                             |
+| GET / DELETE   | `/api/gl/learning-links/locks`    | Lecteurs bloqués / levée d'un verrou. Même forme qu'en ForetMap ; le lecteur s'identifie par `reader_user_type` + `reader_user_id`.                                                          |
+| GET            | `/api/gl/learning/gating/summary` | **Nouveau (lot 28)** — résumé groupé (`resourceType`, `resourceRefs=a,b,c`, 60 max), corps identique à celui de ForetMap. Une ressource déjà apprise par le lecteur n'est plus conditionnée. |
+
+### ForetMap — glossaire validable (« j'ai appris ce terme »)
+
+Le glossaire ForetMap était purement consultatif : aucune notion d'« appris », donc aucun geste
+auquel subordonner un conditionnement — un lien bloquant sur un terme restait inerte à jamais.
+Gnomes & Licornes savait valider un terme depuis la migration 107 ; ForetMap depuis la **201**
+(table `learning_acknowledgements`, un compte par ligne, supprimée avec le compte).
+
+| Méthode | Route                                   | Auth          | Description                                                                                                                                                                                         |
+| ------- | --------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/glossary/me/learned-codes`        | `requireAuth` | Codes des termes déjà appris par l'utilisateur connecté.                                                                                                                                            |
+| POST    | `/api/glossary/terms/:code/acknowledge` | `requireAuth` | `{ confirm: true }`. Même garde que les tutoriels : **403** `{ error, missing_question_codes, cooldown }` si le conditionnement l'exige. `404` si le terme n'existe pas ou est inactif. Idempotent. |
+
+`glossary` rejoint donc `tutorial` et `plant` parmi les types **validables** côté ForetMap : un lien
+bloquant y est désormais accepté, et `GET /api/learning-links/resources?type=glossary` renvoie
+`markable: true`.
+| PUT | `/api/gl/learning-links/settings` | Modifie un réglage (`gl.settings.manage`) : `{ key, value }`. |
+| PUT | `/api/gl/learning-links/chapter-granularity` | Surcharge granularité d'un chapitre de jeu (`{ chapterId, granularity }`, `null` = hérite). |
+| PUT | `/api/gl/learning-links/scope-granularity` | Surcharge granularité d'un scope lore (`{ scopeSlug, granularity }`). |
 
 Réglages site GL (table `gl_settings`) : `gating.enabled` (def. `false`),
 `gating.granularity` (`player|team`, def. `player` — **appliquée** ; `per_resource` est accepté par

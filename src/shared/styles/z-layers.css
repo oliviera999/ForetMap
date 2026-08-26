@@ -29,11 +29,13 @@
  * 2. **Une couche = un rôle, pas un composant.** On choisit son palier en
  *    répondant à « qu'est-ce que c'est ? » (une modale, un popover de contenu,
  *    une fiche terminale), jamais en cherchant un nombre libre.
- * 3. **Ce qui appelle est sous ce qui est appelé.** Une fiche glossaire est
- *    *terminale* : toujours ouverte depuis autre chose, jamais l'inverse. Elle
- *    est donc au-dessus des popovers de contenu et du contrôle de compréhension.
- *    C'est cet invariant qui ferme les inversions ci-dessus, et le seul à
- *    respecter en ajoutant une surface.
+ * 3. **Ce qui appelle est sous ce qui est appelé.** La chaîne réelle va du
+ *    contenu à la fiche, puis de la fiche à sa validation : un popover de contenu
+ *    ouvre une fiche de glossaire, et depuis cette fiche on peut demander à
+ *    valider le terme — jamais l'inverse. D'où l'ordre
+ *    `popover < quiz-popover < glossary < learning-ack`. C'est cet invariant qui
+ *    ferme les inversions ci-dessus, et le seul à respecter en ajoutant une
+ *    surface : demandez-vous ce qui peut ouvrir quoi, pas quel nombre est libre.
  *
  * Les paliers sont espacés de 10 en 10 au minimum : une surface qui doit se
  * poser juste au-dessus d'une autre utilise `calc(var(--…) + 1)` plutôt qu'un
@@ -88,11 +90,19 @@
   /* Contrôle de compréhension : se pose sur le contenu qu'il évalue. */
   --fm-z-quiz-popover: 600;
   /*
-   * Fiche terminale — glossaire scientifique et lexique du lore. Au-dessus de
-   * toute surface pédagogique : c'est toujours elle qu'on appelle, jamais elle
-   * qui appelle (invariant 3).
+   * Fiche de glossaire — scientifique ou lexique du lore. Au-dessus des surfaces
+   * de contenu : c'est depuis elles qu'on l'ouvre.
    */
   --fm-z-glossary: 700;
+  /*
+   * Contrôle de compréhension déclenché *depuis* un contenu ou une fiche
+   * (« j'ai lu ce tutoriel », « j'ai appris ce terme »). C'est lui, et non la
+   * fiche de glossaire, qui est réellement terminal : depuis la fiche d'un terme
+   * on peut demander à le valider, jamais l'inverse. À distinguer de la surface
+   * `--fm-z-quiz-popover`, qui n'est qu'une seconde fenêtre pour le quiz lui-même
+   * et depuis laquelle on ouvre au contraire des fiches.
+   */
+  --fm-z-learning-ack: 750;
 
   /* ── Signalement et médias ───────────────────────────────────────── */
   /* Bandeau d'état collant : sous les toasts, pour ne jamais masquer un message. */

@@ -8,6 +8,7 @@ import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
 import { GLLoreGlossaryInlineText } from './GLLoreGlossaryMarkdown.jsx';
 import { mergeGlossaryLinkItems } from '../../utils/glGlossaryAutolink.js';
 import { mergeLoreGlossaryLinkItems } from '../../utils/glLoreGlossaryAutolink.js';
+import { glossaryPropsWhileAnswering } from '../../shared/qcm/quizGlossaryReveal.js';
 
 function isLoreQcmCode(code) {
   return /^LQCM\d+$/i.test(String(code || '').trim());
@@ -127,6 +128,9 @@ export function GLQcmPopover({
   const inlineGlossaryProps = isLore
     ? { loreGlossaryItems: mergedLoreGlossaryItems, onOpenLoreTerm: onOpenLoreTerm }
     : { glossaryItems: mergedGlossaryItems, onOpenGlossaryTerm: onOpenGlossaryTerm };
+  // Même règle que partout ailleurs : rien de consultable tant que l'élève n'a pas
+  // répondu (cf. `quizGlossaryReveal`).
+  const answeringGlossaryProps = glossaryPropsWhileAnswering(inlineGlossaryProps, showAnswer);
 
   return createPortal(
     <div
@@ -155,7 +159,7 @@ export function GLQcmPopover({
                 <InlineText
                   className="gl-qcm-modal__question"
                   text={presentation.question}
-                  {...inlineGlossaryProps}
+                  {...answeringGlossaryProps}
                   tag="p"
                 />
                 {presentation.photoUrl ? (
@@ -179,7 +183,7 @@ export function GLQcmPopover({
                         checked={selectedChoiceId === choice.id}
                         onChange={() => setSelectedChoiceId(choice.id)}
                       />
-                      <InlineText text={choice.text} {...inlineGlossaryProps} />
+                      <InlineText text={choice.text} {...answeringGlossaryProps} />
                     </label>
                   ))}
                 </div>

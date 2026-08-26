@@ -88,6 +88,11 @@ tutoriel, feuillet…) comme apprise.
   n'est pas conditionner : le caractère bloquant reste une décision explicite, lien par lien.
 - **Un lien bloquant n'est plus accepté sur un type non validable** : le message dit lesquels
   le sont, et rappelle que le lien reste possible en non bloquant.
+- **Le glossaire n'est plus consultable pendant une question.** Les termes reconnus dans
+  l'énoncé et dans les propositions étaient cliquables : ouvrir le terme lié pouvait donner
+  la réponse. Le texte ne change pas, mais rien ne s'ouvre tant que le joueur n'a pas
+  répondu ; après la réponse, l'auto-liaison revient. Vaut pour le QCM biome comme pour le
+  QCM lore, et pour l'aperçu du MJ.
 - **Les bonnes réponses comptent toujours**, même données avant l'activation du
   conditionnement et même ailleurs (sur le plateau, à l'entraînement) : allumer
   l'interrupteur ne fait pas repasser à l'élève une question qu'il a déjà réussie.
