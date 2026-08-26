@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.129.0",
+  "version": "1.131.0",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "engines": {
@@ -170,6 +170,7 @@
     "prod:admin-tail": "node scripts/prod-admin-tail.js",
     "prod:admin-diagnostics": "node scripts/prod-admin-diagnostics.js",
     "prod:remote-debug": "node scripts/prod-remote-debug.js",
+    "prod:uptime-report": "node scripts/prod-uptime-report.js",
     "prod:transport-probe": "node scripts/prod-transport-probe.mjs",
     "db:import:biodiv": "node scripts/import-biodiv-pedago.js && node scripts/import-plants-enriched.js",
     "db:seed:biodiv:extract": "node scripts/extract-biodiv-pedago-seed.js"

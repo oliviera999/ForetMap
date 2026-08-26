@@ -14,6 +14,7 @@ const { ping: dbPing, queryAll } = require('../database');
 const logger = require('../lib/logger');
 const logMetrics = require('../lib/logMetrics');
 const { getRuntimeProcessSnapshot } = require('../lib/runtimeDiagnostics');
+const { summarizeBootJournal } = require('../lib/bootJournal');
 const { getMascotPackLibProbe } = require('../lib/mascotPackValidatorResolve');
 const { getVisitMascotHintSnapshot } = require('../lib/visitMascotDiagnostics');
 const { tailLogLines, getBufferedLineCount, getMaxLines } = require('../lib/logBuffer');
@@ -85,6 +86,11 @@ function createAdminOpsRouter({ gracefulShutdown }) {
 
   // Instantané d’exploitation (secret requis) : version, uptime, mémoire, latence BDD, tampon logs — pour diag à distance / MCP
   router.get('/api/admin/diagnostics', requireDeploySecret(), async (req, res) => {
+    // Fenêtre d'analyse des redémarrages : 24 h par défaut, jusqu'à 30 jours sur demande
+    // (`?restartsWindowHours=168` pour une semaine).
+    const rawWindow = parseInt(req.query.restartsWindowHours, 10);
+    const restartsWindowHours =
+      Number.isFinite(rawWindow) && rawWindow >= 1 && rawWindow <= 720 ? rawWindow : 24;
     const mem = process.memoryUsage();
     const toMb = (n) => Math.round((n / 1024 / 1024) * 100) / 100;
     let database = { ok: false };
@@ -151,6 +157,13 @@ function createAdminOpsRouter({ gracefulShutdown }) {
       metrics: logMetrics.getMetrics(),
       // Processus courant uniquement ; le nombre d’instances Passenger/PM2 se lit au panneau hébergeur.
       runtimeProcess: getRuntimeProcessSnapshot(),
+      /**
+       * Historique des redémarrages (journal persistant `logs/boot-journal.ndjson`) :
+       * `counts` par nature (déploiement / arrêt hébergeur / crash / process tué), `verdict`
+       * et `advice`. C'est ce champ qui répond à « pourquoi le service est-il indisponible ? »
+       * — voir `lib/bootJournal.js` et `docs/EXPLOITATION.md`.
+       */
+      restarts: summarizeBootJournal({ windowHours: restartsWindowHours }),
       /** Par carte : volumes alignés sur GET /api/visit/content (mascotte si au moins un compteur public > 0). */
       visitMascotHint,
       /** Présence des fichiers `lib/visit-pack/*` (validation POST/PUT packs) — voir docs/EXPLOITATION.md si `libMirrorOk` est false. */
