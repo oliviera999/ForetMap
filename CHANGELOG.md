@@ -64,6 +64,19 @@ type et la feuille de style — que Gnomes & Licornes ne chargeait pas, alors qu
 les composants. G&L gagne au passage la route de résumé par lot qu'il n'avait pas.
 
 Aucun changement de comportement à réglages par défaut.
+### Lancer un script de maintenance depuis cPanel, sans terminal
+
+Le terminal cPanel n'est pas toujours disponible, et plusieurs opérations d'exploitation n'avaient
+alors aucun chemin documenté. `docs/EXPLOITATION.md` décrit désormais les deux voies qui marchent
+sans lui — le bouton **Run JS Script** de *Setup Node.js App*, et une tâche **cron à usage unique**
+qu'on supprime après passage — avec le piège qui fait échouer la seconde neuf fois sur dix : le
+script lit `.env` **relativement à la racine du dépôt**, donc le `cd` préalable n'est pas
+décoratif.
+
+Le bouton *Run JS Script* attend un **nom de script npm**, pas un chemin de fichier : quatre alias
+sont ajoutés pour que le compactage des registres d'aide y soit accessible en un clic —
+`gl:help:compact:dry` / `gl:help:compact` et `help:compact:dry` / `help:compact`, la variante
+« dry » ne touchant à rien.
 
 
 ### Le conditionnement devient une brique commune aux deux applications (lot 27)
