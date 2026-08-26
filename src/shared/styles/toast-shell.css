@@ -6,7 +6,6 @@
   --fm-toast-border: rgba(255, 255, 255, 0.18);
   --fm-toast-shadow: 0 16px 30px rgba(26, 71, 49, 0.26);
   --fm-toast-bottom: calc(var(--bottom-nav-height, 72px) + var(--safe-bottom) + 12px);
-  --fm-toast-z: 500;
 }
 
 .fm-toast-anchor {
@@ -14,7 +13,7 @@
   left: 50%;
   bottom: var(--fm-toast-bottom);
   transform: translateX(-50%);
-  z-index: var(--fm-toast-z);
+  z-index: var(--fm-z-toast);
   pointer-events: none;
   width: min(90vw, 560px);
   max-width: min(90vw, 560px);
@@ -65,7 +64,7 @@
   left: 50%;
   bottom: var(--fm-toast-bottom);
   transform: translateX(-50%);
-  z-index: var(--fm-toast-z);
+  z-index: var(--fm-z-toast);
   pointer-events: none;
   max-width: min(90vw, 560px);
 }

@@ -246,6 +246,8 @@ lecture, et un test dédié vérifie que `../secret` et `a/b` ne lisent rien.
 | **B1** | Noyau d'édition riche : configuration Turndown + aller-retour Markdown ↔ HTML assaini, partagé par les deux éditeurs | ~53         | M      | Moyen  | à faire       |
 | **B2** | `quiz.js` ↔ `gl/qcm.js` : analyse ligne à ligne — occasion réelle ~6 lignes, pas 109                                 | ~6          | S      | Faible | ✅ **livré**  |
 | **B3** | Libellés d'erreur d'authentification — analyse : 8 chaînes seulement sur 97 lignes communes                          | ~8          | S      | —      | ❌ **écarté** |
+| **B4** | Échelle d'empilement commune (`z-layers.css`) — remplace deux échelles produit divergentes                           | ~40         | M      | Moyen  | ✅ **livré**  |
+| **B5** | Auto-lien de glossaire : délégation de clic + mécanique de rendu, partagées                                          | ~45         | S      | Faible | ✅ **livré**  |
 
 #### B0 — `jsonDefaultsStore` ✅ livré
 
@@ -359,6 +361,72 @@ moins dans la zone la plus sensible du projet. Le bénéfice invoqué — « une
 formulation ne s'applique aujourd'hui qu'à un produit » — reste vrai, mais se traite mieux par une
 relecture ponctuelle que par un module partagé qui n'aurait que ce contenu.
 
+#### B4 — Échelle d'empilement commune ✅ livré
+
+**Objectif.** Une seule échelle de `z-index` pour les deux produits, au lieu de deux
+échelles sans rapport (ForetMap de 80 à 99 999, G&L de 55 à 12 050).
+
+**Pourquoi ce n'était pas cosmétique.** Les surfaces _partagées_ — coque de modale,
+popover de contrôle de compréhension, visite guidée — portaient une valeur en dur, donc
+calibrée pour un seul des deux produits. Cinq surfaces s'ouvraient derrière ce qui venait
+de les appeler, dont la fiche glossaire des deux côtés. Et faute de pouvoir raisonner sur
+l'ordre, **deux patchs identiques** avaient été écrits de chaque côté pour remonter les
+modales au-dessus du plein écran.
+
+**Ce qui a été fait.** `src/shared/styles/z-layers.css` déclare les paliers par _rôle_
+(chrome, conteneur de vue, dialogue, popover, fiche terminale, signalement, média). Toutes
+les surfaces globales des deux produits s'y rattachent ; `gl-theme.css` ne redéfinit plus
+aucun palier. Le plein écran devient un conteneur de vue, sous les dialogues — ce qui rend
+les deux patchs inutiles, et ils sont supprimés. Les jetons doublons (`--fm-toast-z` /
+`--fm-z-toast`, double déclaration de `--fm-z-nav`) sont fusionnés.
+
+**L'invariant qui ferme les inversions** : _une fiche de glossaire est terminale — toujours
+ouverte depuis autre chose, elle n'ouvre jamais rien à son tour — donc elle passe au-dessus
+des popovers de contenu et du contrôle de compréhension._
+
+**Acceptation.** `tests-ui/utils/zLayers.test.js` (5 cas) verrouille l'ordre des paliers,
+interdit qu'une feuille redéclare l'un d'eux ou rechoisisse un `z-index` global en dur, et
+vérifie que les patchs de plein écran ne reviennent pas. Vérifié aussi sur le **CSS
+compilé** : plus aucun `z-index` en dur au-dessus de 30 dans `dist/`.
+
+⚠️ **Piège.** Les `z-index` **locaux** (petits entiers ordonnant des éléments dans un même
+composant : marqueurs de carte, pastilles) ne relèvent pas de l'échelle et restent en dur.
+Le test le formalise par un seuil à 30 : au-delà, la valeur arbitre entre surfaces et doit
+passer par un palier.
+
+#### B5 — Auto-lien de glossaire ✅ livré
+
+**Objectif.** Les deux produits liaient les termes de glossaire dans un texte rendu avec la
+même mécanique, écrite deux fois.
+
+**Ce qui a été fait.** La délégation de clic (un écouteur sur le conteneur, `preventDefault`
+pour ne pas naviguer vers `#` ni basculer le bouton radio d'un choix de quiz) était
+identique **à l'attribut de données près** — `data-glossary-code` contre
+`data-gl-glossary-code`. Elle devient `src/shared/utils/glossaryLinkClick.js`, l'attribut
+passant en paramètre. La mécanique qui l'entoure — produire le HTML lié, **retomber sur un
+texte sans liens plutôt que casser l'écran** si l'auto-lien échoue, brancher l'écouteur —
+était répétée dans quatre composants (`GlossaryMarkdown`, `GlossaryInlineText`,
+`GLGlossaryMarkdown`, `GLGlossaryInlineText`) : elle devient le hook
+`src/shared/hooks/useGlossaryLinkedHtml.js`.
+
+Ce repli méritait d'être écrit une seule fois : un terme mal formé en base ne doit jamais
+faire disparaître le texte que l'élève est en train de lire.
+
+**Acceptation.** `tests-ui/shared/glossaryLinkClick.test.js` (5 cas) ; les tests des quatre
+composants au vert sans réécriture.
+
+⚠️ **Piège rencontré.** En déplaçant le rendu dans un hook, les options de rendu
+(`allowImages`, `allowJournalEmbeds`) sortent des dépendances du `useMemo` puisqu'elles sont
+capturées par une fermeture. Elles sont réinjectées explicitement via `renderDeps` : sans
+cela, changer l'option n'aurait plus recalculé le HTML.
+
+**Non retenu.** Fusionner `GlossaryPopover` et `GLGlossaryPopover` : 502 lignes de
+différence sur 753 (API, actions de pied de fiche, catégories et palette propres à chaque
+produit). Le gain serait faible au regard du risque, et le mélanger à B4 aurait rendu toute
+régression difficile à imputer. À réévaluer isolément si les deux fiches se rapprochent.
+
+---
+
 ### Axe C — Ce qu'on ne partage pas (décidé, à ne pas rouvrir)
 
 | Sujet                                                       | Raison                                                                          |
@@ -437,6 +505,8 @@ c'est le signal que les deux cas ne sont pas le même problème.
 | --- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------- |
 | A1  | `src/shared/hooks/useAdminCrud.js` + `useGlAdminCrud` réduit à un adaptateur de 4 lignes | `tests-ui/shared/useAdminCrud.test.jsx` (8 cas)          |
 | B0  | `lib/shared/jsonDefaultsStore.js` consommé par `helpContent.js` et `glHelp.js`           | `tests/json-defaults-store.test.js` (9 cas)              |
+| B4  | `src/shared/styles/z-layers.css` — échelle commune ; 2 patchs et 2 surcharges supprimés  | `tests-ui/utils/zLayers.test.js` (5 cas)                 |
+| B5  | `glossaryLinkClick.js` + `useGlossaryLinkedHtml.js` — 4 composants allégés               | `tests-ui/shared/glossaryLinkClick.test.js` (5 cas)      |
 | —   | `scripts/audit-duplication-fm-gl.mjs` — audit reproductible                              | —                                                        |
 | —   | **Correctif** `compactVisitSeenQueue` — repli d'horodatage stable (§9.1)                 | `tests-ui/utils/visitSeenQueueStability.test.js` (9 cas) |
 

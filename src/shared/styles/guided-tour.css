@@ -10,7 +10,7 @@
 .discovery-tour {
   position: fixed;
   inset: 0;
-  z-index: 4000;
+  z-index: var(--fm-z-tour);
   pointer-events: none;
 }
 .discovery-tour__backdrop {

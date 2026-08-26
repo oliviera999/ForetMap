@@ -35,6 +35,16 @@ describe('TeacherTopTabs', () => {
     expect(onTabChange).toHaveBeenCalledWith('plants');
   });
 
+  test('expose l’onglet Glossaire, comme la barre élève', () => {
+    // `PedagoTabs` rend `tab === 'glossary'` pour les deux branches, mais seule la
+    // barre élève l'exposait : côté prof le glossaire n'était atteignable qu'en
+    // cliquant un terme auto-lié.
+    const onTabChange = vi.fn();
+    render(<TeacherTopTabs {...baseProps} onTabChange={onTabChange} />);
+    fireEvent.click(screen.getByText('📖 Glossaire'));
+    expect(onTabChange).toHaveBeenCalledWith('glossary');
+  });
+
   test('affiche le compteur « à valider » sur Tâches et l’onglet split', () => {
     render(
       <TeacherTopTabs {...baseProps} shouldUseDesktopSplit teacherPendingValidationCount={3} />,

@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import '../shared/styles/z-layers.css';
 import '../shared/styles/motion.css';
 import '../shared/styles/speech-bubble.css';
 import '../shared/styles/mascot-speaker.css';

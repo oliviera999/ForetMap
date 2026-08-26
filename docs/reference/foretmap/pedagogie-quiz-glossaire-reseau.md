@@ -48,6 +48,10 @@ d'observation** pour l'écriture naturaliste libre.
   terme a sa définition, et peut être relié à des plantes du catalogue et à des
   questions de quiz.
 - Le professeur enrichit le glossaire au fil de l'année.
+- **L'onglet Glossaire est accessible aux professeurs comme aux élèves.** Il figurait
+  jusqu'ici dans la seule barre élève : un professeur ne pouvait ouvrir le glossaire
+  qu'en cliquant un terme dans un contenu, puis « Voir la fiche complète ». Sans terme
+  sous la main, l'onglet restait hors d'atteinte.
 - **Fiche rapide en surimpression.** Partout où un terme du glossaire est cité et
   cliquable — dans un tutoriel ouvert en lecture, sur une fiche plante, dans un quiz ou
   dans le réseau trophique — le clic ouvre une **petite fiche par-dessus l'écran en
@@ -61,6 +65,9 @@ d'observation** pour l'écriture naturaliste libre.
   volontairement, sur l'onglet Glossaire et y explorer le terme en grand.
 - La fiche se ferme par la croix, par le bouton Fermer, par la touche Échap ou par un
   clic à côté.
+- **La fiche rapide passe toujours devant ce qui l'a ouverte.** Ouverte depuis un quiz
+  affiché en fenêtre, elle apparaissait derrière lui : la définition était demandée mais
+  invisible, et il fallait refermer le quiz pour la lire.
 - Dans les tutoriels, les termes du glossaire sont désormais **repérables à l'œil** :
   ils apparaissent en vert, soulignés d'un pointillé. Ce marquage reste discret pour ne
   pas dénaturer la mise en page des fiches ; une fiche qui impose sa propre charte de
