@@ -2,8 +2,7 @@
    + lisibilité des indicateurs d'auto-enregistrement inline (AutoSaveStatus). */
 
 :root {
-  /* Sous les toasts (--fm-toast-z: 500) pour ne jamais masquer un message ponctuel. */
-  --fm-status-z: 490;
+  /* Palier d'empilement : `--fm-z-status`, sous les toasts (cf. z-layers.css). */
   /* Décalée au-dessus de l'ancre des toasts : les deux restent lisibles ensemble. */
   --fm-status-bottom: calc(var(--fm-toast-bottom, 16px) + 52px);
 }
@@ -13,7 +12,7 @@
   left: 50%;
   bottom: var(--fm-status-bottom);
   transform: translateX(-50%);
-  z-index: var(--fm-status-z);
+  z-index: var(--fm-z-status);
   pointer-events: none;
   display: inline-flex;
   align-items: center;

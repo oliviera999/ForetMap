@@ -51,6 +51,10 @@ La mécanique la plus pédagogique du jeu : exiger qu'un élève **réussisse un
 avant de pouvoir marquer une ressource (espèce, terme du glossaire scientifique,
 tutoriel, feuillet…) comme apprise.
 
+- **La question de contrôle s'affiche désormais par-dessus le jeu.** Sa fenêtre passait
+  sous la barre du haut et sous la barre de navigation : elle s'ouvrait bien, mais restait
+  enterrée sous l'interface. Même correction pour la **fiche espèce**, qui passait elle
+  aussi sous la barre de navigation.
 - **Relier ressources et questions** : dans **Contenus → Conditionnement QCM**, on crée
   des liens « cette ressource ↔ cette question », avec un interrupteur « bloquant » par
   lien, un statut et des filtres pour s'y retrouver.
