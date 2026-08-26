@@ -47,6 +47,14 @@
   -webkit-backdrop-filter: blur(4px);
   animation: learningGatingOverlayIn 0.22s var(--ease-out, ease) both;
 }
+/*
+ * Le contrôle déclenché depuis un contenu ou une fiche passe au-dessus d'elle :
+ * on demande « j'ai appris ce terme » *depuis* la fiche du terme, qui reste
+ * ouverte derrière. Sans ce palier, la question s'ouvrirait sous la fiche.
+ */
+.fm-quiz-popover--ack {
+  z-index: var(--fm-z-learning-ack);
+}
 .fm-quiz-popover__panel {
   position: relative;
   width: min(480px, 100%);

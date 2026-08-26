@@ -55,7 +55,7 @@ export function GLLearningAcknowledgeButton({
       buttonClassName="gl-btn gl-btn--secondary gl-btn--sm gl-learning-ack__btn"
       doneClassName="gl-badge gl-learning-badge"
       Shell={LearningQuizPopover}
-      overlayClassName="fm-quiz-popover gl-learning-ack-overlay"
+      overlayClassName="fm-quiz-popover fm-quiz-popover--ack gl-learning-ack-overlay"
       dialogClassName="fm-quiz-popover__panel gl-learning-ack-modal animate-pop"
       submitLabel="Confirmer"
       submittingLabel="Enregistrement…"

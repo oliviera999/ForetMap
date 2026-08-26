@@ -222,7 +222,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
       enableGating
       // Même popover que le tutoriel : la question surgit par-dessus la fiche.
       Shell={LearningQuizPopover}
-      overlayClassName="fm-quiz-popover"
+      overlayClassName="fm-quiz-popover fm-quiz-popover--ack"
       dialogClassName="fm-quiz-popover__panel animate-pop"
       onSubmit={async () => {
         try {

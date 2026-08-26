@@ -48,14 +48,33 @@ describe('z-layers.css — échelle d’empilement commune', () => {
     }
   });
 
-  test('une fiche de glossaire passe au-dessus de ce qui peut l’ouvrir', () => {
+  test('chaque surface passe au-dessus de celle qui peut l’ouvrir', () => {
     const scale = readScale();
-    // Invariant 3 : le glossaire est terminal. Il est appelé depuis un popover de
-    // contenu (réseau trophique, feuillet, QCM) ou depuis le contrôle de
-    // compréhension, et n'ouvre jamais rien à son tour.
-    expect(scale.get('--fm-z-glossary')).toBeGreaterThan(scale.get('--fm-z-quiz-popover'));
-    expect(scale.get('--fm-z-glossary')).toBeGreaterThan(scale.get('--fm-z-popover'));
+    // Invariant 3, dans l'ordre où les surfaces s'appellent : un contenu ouvre une
+    // fiche de glossaire, et depuis cette fiche on peut demander à valider le terme
+    // (« j'ai appris ce terme »). C'est la validation qui est terminale, pas la fiche.
     expect(scale.get('--fm-z-quiz-popover')).toBeGreaterThan(scale.get('--fm-z-modal'));
+    expect(scale.get('--fm-z-glossary')).toBeGreaterThan(scale.get('--fm-z-popover'));
+    expect(scale.get('--fm-z-glossary')).toBeGreaterThan(scale.get('--fm-z-quiz-popover'));
+    expect(scale.get('--fm-z-learning-ack')).toBeGreaterThan(scale.get('--fm-z-glossary'));
+  });
+
+  test('tout accusé de lecture porte le palier qui le place au-dessus des fiches', () => {
+    // Le contrôle déclenché depuis une fiche partage la classe `.fm-quiz-popover`
+    // avec la *surface* du quiz, qui elle doit rester sous les fiches qu'elle ouvre.
+    // Seul le modificateur les distingue : un accusé qui l'oublierait se rouvrirait
+    // derrière la fiche d'où on l'a demandé.
+    const ackSites = [
+      'src/components/pedago/GlossaryTermLearnedAcknowledge.jsx',
+      'src/components/TutorialReadAcknowledge.jsx',
+      'src/components/PlantSpeciesDiscoveryAcknowledge.jsx',
+      'src/gl/components/GLLearningAcknowledgeButton.jsx',
+    ];
+    for (const site of ackSites) {
+      const source = readCss(site);
+      const overlay = source.match(/overlayClassName="([^"]*fm-quiz-popover[^"]*)"/);
+      expect(`${site} → ${overlay?.[1]}`).toContain('fm-quiz-popover--ack');
+    }
   });
 
   test('le plein écran reste sous les dialogues, sinon il faut le patcher', () => {

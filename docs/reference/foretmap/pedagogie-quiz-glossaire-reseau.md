@@ -31,6 +31,16 @@ d'observation** pour l'écriture naturaliste libre.
   aperçu). Dans le catalogue livré, cette légende nomme le plus souvent le sujet
   photographié : l'afficher à l'élève donnerait la réponse. Ce qui accompagne l'image
   côté élève, c'est le **crédit et la licence**, affichés partout où la photo apparaît.
+- **Le glossaire n'est pas consultable pendant la question.** Les termes reconnus dans
+  l'énoncé et dans les propositions de réponse étaient cliquables : sur une question du
+  type « Comment appelle-t-on le processus par lequel… ? », ouvrir le terme lié **donnait
+  la réponse**. Ce qui devait aider à comprendre servait à deviner. Le texte reste affiché
+  tel quel — on ne masque aucun mot —, mais rien ne s'ouvre tant que l'élève n'a pas
+  répondu. La liste « Glossaire utile » suit la même règle, pour la même raison : elle
+  désignait le sujet de la question aussi sûrement qu'un lien. **Après la réponse**,
+  l'auto-liaison et la liste reviennent : c'est le moment où aller lire la définition est
+  utile. La règle vaut aussi pour Gnomes & Licornes et pour l'aperçu du professeur, qui
+  doit montrer ce que l'élève verra.
 - **Ouvrir la question en fenêtre** : un bouton « ⤢ Ouvrir en fenêtre » affiche la
   question courante dans un petit panneau par-dessus la page, sans rien changer à
   l'affichage habituel. Utile pour se concentrer sur l'énoncé, et surtout côté professeur,
@@ -52,10 +62,19 @@ d'observation** pour l'écriture naturaliste libre.
   jusqu'ici dans la seule barre élève : un professeur ne pouvait ouvrir le glossaire
   qu'en cliquant un terme dans un contenu, puis « Voir la fiche complète ». Sans terme
   sous la main, l'onglet restait hors d'atteinte.
+- **« J'ai appris ce terme ».** La fiche d'un terme porte un bouton de validation, comme
+  un tutoriel ou une fiche espèce. Le glossaire était jusqu'ici purement consultatif :
+  rien ne distinguait un terme travaillé d'un terme jamais ouvert, et surtout, le contrôle
+  de compréhension n'avait aucun geste auquel se rattacher — une question rattachée à un
+  terme ne conditionnait rien du tout. Si le contrôle est actif et qu'une question
+  bloquante est rattachée au terme, il faut la réussir avant de pouvoir valider. Dans la
+  liste des termes, une **pastille d'état** dit où en est l'élève (✓ acquis, ? en attente,
+  🔒 bloqué).
 - **Fiche rapide en surimpression.** Partout où un terme du glossaire est cité et
-  cliquable — dans un tutoriel ouvert en lecture, sur une fiche plante, dans un quiz ou
-  dans le réseau trophique — le clic ouvre une **petite fiche par-dessus l'écran en
-  cours**. L'élève lit la définition, puis referme : il retrouve exactement sa page et sa
+  cliquable — dans un tutoriel ouvert en lecture, sur une fiche plante ou dans le réseau
+  trophique — le clic ouvre une **petite fiche par-dessus l'écran en cours**. Une
+  exception : pendant une question de quiz non encore répondue, les termes ne sont pas
+  cliquables (voir plus haut). L'élève lit la définition, puis referme : il retrouve exactement sa page et sa
   position de lecture. Il ne quitte plus son tutoriel pour consulter un mot.
 - La fiche rapide affiche la définition courte, la définition détaillée, l'exemple et
   l'étymologie, ainsi que les espèces et tutoriels rattachés au terme. Les **termes
@@ -67,7 +86,9 @@ d'observation** pour l'écriture naturaliste libre.
   clic à côté.
 - **La fiche rapide passe toujours devant ce qui l'a ouverte.** Ouverte depuis un quiz
   affiché en fenêtre, elle apparaissait derrière lui : la définition était demandée mais
-  invisible, et il fallait refermer le quiz pour la lire.
+  invisible, et il fallait refermer le quiz pour la lire. Symétriquement, la question de
+  contrôle demandée depuis la fiche d'un terme (« j'ai appris ce terme ») s'affiche
+  par-dessus cette fiche, qui reste ouverte derrière.
 - Dans les tutoriels, les termes du glossaire sont désormais **repérables à l'œil** :
   ils apparaissent en vert, soulignés d'un pointillé. Ce marquage reste discret pour ne
   pas dénaturer la mise en page des fiches ; une fiche qui impose sa propre charte de

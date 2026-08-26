@@ -380,11 +380,19 @@ aucun palier. Le plein écran devient un conteneur de vue, sous les dialogues �
 les deux patchs inutiles, et ils sont supprimés. Les jetons doublons (`--fm-toast-z` /
 `--fm-z-toast`, double déclaration de `--fm-z-nav`) sont fusionnés.
 
-**L'invariant qui ferme les inversions** : _une fiche de glossaire est terminale — toujours
-ouverte depuis autre chose, elle n'ouvre jamais rien à son tour — donc elle passe au-dessus
-des popovers de contenu et du contrôle de compréhension._
+**L'invariant qui ferme les inversions** : _ce qui appelle est sous ce qui est appelé._ La
+chaîne réelle va du contenu à la fiche, puis de la fiche à sa validation — d'où l'ordre
+`popover < quiz-popover < glossary < learning-ack`.
 
-**Acceptation.** `tests-ui/utils/zLayers.test.js` (5 cas) verrouille l'ordre des paliers,
+⚠️ **Piège découvert en intégrant `main`.** La validation (« j'ai appris ce terme ») et la
+simple _fenêtre_ du quiz partagent la classe `.fm-quiz-popover` alors qu'elles sont aux deux
+bouts de cette chaîne : la fenêtre du quiz ouvre des fiches, la validation est ouverte depuis
+une fiche. Seule la seconde doit passer au-dessus des fiches. Le modificateur
+`.fm-quiz-popover--ack` les distingue, et un test vérifie qu'aucun des quatre sites de
+validation ne l'oublie — sans quoi la question se rouvrirait derrière la fiche d'où on l'a
+demandée.
+
+**Acceptation.** `tests-ui/utils/zLayers.test.js` (6 cas) verrouille l'ordre des paliers,
 interdit qu'une feuille redéclare l'un d'eux ou rechoisisse un `z-index` global en dur, et
 vérifie que les patchs de plein écran ne reviennent pas. Vérifié aussi sur le **CSS
 compilé** : plus aucun `z-index` en dur au-dessus de 30 dans `dist/`.
@@ -505,7 +513,7 @@ c'est le signal que les deux cas ne sont pas le même problème.
 | --- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------- |
 | A1  | `src/shared/hooks/useAdminCrud.js` + `useGlAdminCrud` réduit à un adaptateur de 4 lignes | `tests-ui/shared/useAdminCrud.test.jsx` (8 cas)          |
 | B0  | `lib/shared/jsonDefaultsStore.js` consommé par `helpContent.js` et `glHelp.js`           | `tests/json-defaults-store.test.js` (9 cas)              |
-| B4  | `src/shared/styles/z-layers.css` — échelle commune ; 2 patchs et 2 surcharges supprimés  | `tests-ui/utils/zLayers.test.js` (5 cas)                 |
+| B4  | `src/shared/styles/z-layers.css` — échelle commune ; 2 patchs et 2 surcharges supprimés  | `tests-ui/utils/zLayers.test.js` (6 cas)                 |
 | B5  | `glossaryLinkClick.js` + `useGlossaryLinkedHtml.js` — 4 composants allégés               | `tests-ui/shared/glossaryLinkClick.test.js` (5 cas)      |
 | —   | `scripts/audit-duplication-fm-gl.mjs` — audit reproductible                              | —                                                        |
 | —   | **Correctif** `compactVisitSeenQueue` — repli d'horodatage stable (§9.1)                 | `tests-ui/utils/visitSeenQueueStability.test.js` (9 cas) |
