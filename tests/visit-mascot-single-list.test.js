@@ -33,6 +33,7 @@ const { signAuthToken } = require('../middleware/requireTeacher');
 const {
   seedBuiltinMascotPacks,
   buildBuiltinMascotPacks,
+  UNRENDERABLE_ALIGNED_KEY,
 } = require('../lib/visitMascotBuiltinSeed');
 const {
   migrateVisitMascotVisibilityToColumn,
@@ -384,6 +385,72 @@ test('importer une archive « en remplacement » sur une mascotte livrée la fai
       cible.id,
     ]);
   }
+});
+
+// ---------------------------------------------------------------------------
+// Les mascottes livrées sans fichier d'animation ne sont pas proposées
+// ---------------------------------------------------------------------------
+
+test('une mascotte livrée dont le fichier d’animation manque n’est pas proposée', async () => {
+  // Dix des seize livrées déclarent `renderer: 'rive'` et pointent vers `/assets/rive/*.riv`.
+  // Aucun de ces fichiers n'existe, et aucun n'a jamais été versionné. À l'écran, l'échec est
+  // silencieux : `onLoadError` bascule sur la silhouette SVG, et le visiteur voit un dessin
+  // parfaitement immobile sans rien pour le lui dire. Les proposer, c'est promettre dix
+  // personnages animés dont pas un ne bougera.
+  const { builtinAssetIsMissing } = require('../lib/visitMascotBuiltinSeed');
+  const entries = await listStaticVisitMascotEntries();
+  const sansFichier = entries.filter((e) => builtinAssetIsMissing(e)).map((e) => e.id);
+  assert.ok(sansFichier.length >= 10, `attendu ≥ 10 sans fichier, vu ${sansFichier.length}`);
+
+  // La règle se **mesure** : une entrée dont le fichier existe n'est jamais écartée.
+  const avecFichier = entries.filter((e) => !builtinAssetIsMissing(e)).map((e) => e.id);
+  assert.ok(avecFichier.includes('renard2-cut-spritesheet'));
+  assert.ok(avecFichier.includes('olu-spritesheet'));
+
+  // Et le sélecteur ne les propose pas.
+  await execute("DELETE FROM visit_mascot_packs WHERE origin = 'builtin'");
+  await execute('DELETE FROM app_settings WHERE `key` = ?', [UNRENDERABLE_ALIGNED_KEY]);
+  const bilan = await seedBuiltinMascotPacks();
+  assert.deepEqual(
+    [...bilan.unpublished].sort(),
+    [...sansFichier].sort(),
+    'le semis n’a pas retenu exactement les mascottes sans fichier',
+  );
+  const registre = await listVisitMascotRegistry();
+  const proposees = new Set(registre.map((e) => e.id));
+  for (const id of sansFichier) {
+    assert.equal(proposees.has(id), false, `${id} est proposée alors qu’elle ne peut pas rendre`);
+  }
+  assert.ok(proposees.has('renard2-cut-spritesheet'), 'la mascotte par défaut a disparu');
+});
+
+test('le rattrapage des installations déjà semées ne passe qu’une fois', async () => {
+  // Deux exigences contradictoires : corriger les bases semées avant cette règle, sans jamais
+  // reprendre la main sur un administrateur qui republie délibérément. D'où la marque de
+  // passage — sans elle, on ne distingue pas « pas encore fait » de « fait, puis défait exprès ».
+  const { alignUnrenderableBuiltinMascots } = require('../lib/visitMascotBuiltinSeed');
+  await execute("DELETE FROM visit_mascot_packs WHERE origin = 'builtin'");
+  await execute('DELETE FROM app_settings WHERE `key` = ?', [UNRENDERABLE_ALIGNED_KEY]);
+  await seedBuiltinMascotPacks();
+  // On remet l'état d'avant la règle : tout publié, aucune marque.
+  await execute("UPDATE visit_mascot_packs SET is_published = 1 WHERE origin = 'builtin'");
+  await execute('DELETE FROM app_settings WHERE `key` = ?', [UNRENDERABLE_ALIGNED_KEY]);
+
+  const premier = await alignUnrenderableBuiltinMascots();
+  assert.equal(premier.applied, true);
+  assert.ok(premier.hidden.length >= 10, `retirées : ${premier.hidden.length}`);
+
+  // Un administrateur republie délibérément l'une d'elles.
+  const rendue = premier.hidden[0];
+  await execute('UPDATE visit_mascot_packs SET is_published = 1 WHERE catalog_id = ?', [rendue]);
+
+  const second = await alignUnrenderableBuiltinMascots();
+  assert.equal(second.applied, false, 'le rattrapage a rejoué');
+  assert.equal(second.reason, 'deja_aligne');
+  const row = await queryOne('SELECT is_published FROM visit_mascot_packs WHERE catalog_id = ?', [
+    rendue,
+  ]);
+  assert.equal(Number(row.is_published), 1, 'le rattrapage a défait un choix d’administrateur');
 });
 
 // ---------------------------------------------------------------------------
