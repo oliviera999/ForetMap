@@ -46,6 +46,35 @@ test('remainingCooldownDays — arrondi superieur', () => {
   assert.equal(cooldown.remainingCooldownDays(3 * DAY), 3);
 });
 
+/** Colonnes d'un INSERT vs expressions de VALUES — échoue si un `?` a été oublié. */
+function assertInsertArity(sql, expectedColumns) {
+  const colPart = sql.match(/INSERT INTO \S+\s*\(([^)]+)\)/)?.[1];
+  assert.ok(colPart, 'INSERT sans liste de colonnes');
+  const cols = colPart
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  assert.equal(
+    cols.length,
+    expectedColumns,
+    `attendu ${expectedColumns} colonnes, obtenu ${cols.length}`,
+  );
+  const valPart = sql.match(/VALUES\s*\(([\s\S]*?)\)\s*ON DUPLICATE/)?.[1];
+  assert.ok(valPart, 'INSERT sans VALUES');
+  const normalized = valPart
+    .replace(/DATE_ADD\(NOW\(\),\s*INTERVAL \? DAY\)/g, '?')
+    .replace(/\bNOW\(\)/g, '?');
+  const values = normalized
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  assert.equal(
+    values.length,
+    cols.length,
+    `colonnes (${cols.length}) != valeurs (${values.length}) — le verrou serait refusé par MariaDB`,
+  );
+}
+
 // Fabrique un faux `db` capturant les requetes et renvoyant des lignes programmables.
 function fakeDb({ linkRow = { ok: 1 }, cooldownRow = null } = {}) {
   const calls = { execute: [], queryOne: [] };
@@ -124,6 +153,7 @@ test('maybeRegisterCooldownOnWrong — pose le verrou FM sur erreur liee', async
   const inserted = db.calls.execute[0];
   assert.match(inserted.sql, /INSERT INTO resource_gating_cooldowns/);
   assert.match(inserted.sql, /INTERVAL \? DAY/);
+  assertInsertArity(inserted.sql, 7);
   assert.deepEqual(inserted.params.slice(0, 3), ['7', 'tutorial', '12']);
   // La clé porte désormais le code de question ('' = verrou de portée ressource) ;
   // on vérifie la présence des valeurs plutôt que leur position, qui bougera encore.
@@ -145,8 +175,26 @@ test('maybeRegisterCooldownOnWrong — pose le verrou GL avec le reader', async 
     retryDays: 3,
   });
   assert.equal(db.calls.execute.length, 1);
-  assert.match(db.calls.execute[0].sql, /INSERT INTO gl_resource_gating_cooldowns/);
-  assert.deepEqual(db.calls.execute[0].params.slice(0, 4), ['gl_player', '42', 'species', 'SP001']);
+  const inserted = db.calls.execute[0];
+  assert.match(inserted.sql, /INSERT INTO gl_resource_gating_cooldowns/);
+  // 8 colonnes (dont question_code) : sans le ? de la clé, MariaDB refuse
+  // ER_WRONG_VALUE_COUNT_ON_ROW et le verrou n'est jamais posé (try/catch silencieux).
+  assertInsertArity(inserted.sql, 8);
+  assert.match(
+    inserted.sql,
+    /VALUES \(\?, \?, \?, \?, \?, DATE_ADD\(NOW\(\), INTERVAL \? DAY\), \?, \?\)/,
+  );
+  assert.deepEqual(inserted.params, [
+    'gl_player',
+    '42',
+    'species',
+    'SP001',
+    '',
+    3,
+    'GQCM0001',
+    1,
+    3,
+  ]);
   assert.ok(res === null || typeof res === 'object');
 });
 

@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctif — le délai après une erreur ne tombait jamais dans Gnomes & Licornes
+
+Une mauvaise réponse au contrôle de compréhension, dans le flux « marquer appris » de
+Gnomes & Licornes, devait verrouiller la fiche pendant le délai réglé (3 jours par
+défaut). L'écriture du verrou était refusée par la base (nombre de colonnes et de
+valeurs différent), l'erreur était avalée, et l'élève pouvait réessayer tout de suite.
+ForetMap n'était pas touché. Le verrou se pose à nouveau côté Gnomes & Licornes.
+
 ### Le conditionnement devient une brique commune aux deux applications (lot 27)
 
 Suite de l'audit [docs/AUDIT_GATING_2026-08.md](docs/AUDIT_GATING_2026-08.md). Trois constats de
