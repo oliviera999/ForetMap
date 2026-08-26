@@ -1,10 +1,14 @@
 import { describe, test, expect } from 'vitest';
 import {
+  EDGE_SNAP_DEFAULTS,
+  EDGE_SNAP_SENSITIVITY_MAX,
+  EDGE_SNAP_SENSITIVITY_SCALE,
   boxBlur3,
   computeEdgeMap,
   edgeMapTargetSize,
   edgeStrengthAt,
   findSnapTargetPx,
+  sensitivityToMinStrength,
   snapPctToEdgeMap,
   toLuminance,
 } from '../../src/utils/edgeSnap.js';
@@ -157,5 +161,51 @@ describe('edgeMapTargetSize', () => {
 
   test('valeurs absurdes → dimensions minimales', () => {
     expect(edgeMapTargetSize(0, 0).width).toBe(1);
+  });
+});
+
+describe('sensitivityToMinStrength', () => {
+  test('l’échelle va du plus exigeant au plus permissif', () => {
+    expect(sensitivityToMinStrength(1)).toBe(EDGE_SNAP_SENSITIVITY_SCALE[0]);
+    expect(sensitivityToMinStrength(EDGE_SNAP_SENSITIVITY_MAX)).toBe(
+      EDGE_SNAP_SENSITIVITY_SCALE[EDGE_SNAP_SENSITIVITY_MAX - 1],
+    );
+    for (let level = 2; level <= EDGE_SNAP_SENSITIVITY_MAX; level += 1) {
+      expect(sensitivityToMinStrength(level)).toBeLessThan(sensitivityToMinStrength(level - 1));
+    }
+  });
+
+  test('le niveau par défaut conserve le seuil historique', () => {
+    expect(sensitivityToMinStrength(EDGE_SNAP_DEFAULTS.sensitivity)).toBe(
+      EDGE_SNAP_DEFAULTS.minStrength,
+    );
+  });
+
+  test('valeurs hors bornes ramenées dans l’échelle, valeur illisible → défaut', () => {
+    expect(sensitivityToMinStrength(0)).toBe(sensitivityToMinStrength(1));
+    expect(sensitivityToMinStrength(99)).toBe(sensitivityToMinStrength(EDGE_SNAP_SENSITIVITY_MAX));
+    expect(sensitivityToMinStrength(3.4)).toBe(sensitivityToMinStrength(3));
+    expect(sensitivityToMinStrength('abc')).toBe(EDGE_SNAP_DEFAULTS.minStrength);
+  });
+
+  test('un niveau bas ignore un contour que le niveau haut accroche', () => {
+    // Image à faible contraste : la frontière n’a pas la force d’un noir/blanc.
+    const faint = makeImageData(20, 20, (x) => (x < 10 ? [120, 120, 120] : [150, 150, 150]));
+    const strong = makeImageData(20, 20, (x) => (x < 10 ? [0, 0, 0] : [255, 255, 255]));
+    const mixed = makeImageData(20, 20, (x, y) => {
+      const base = y < 10 ? faint : strong;
+      const p = (y * 20 + x) * 4;
+      return [base.data[p], base.data[p + 1], base.data[p + 2]];
+    });
+    const edgeMap = computeEdgeMap(mixed);
+    // Ligne du haut (contour ténu) : accrochée seulement à sensibilité élevée.
+    const strict = findSnapTargetPx(edgeMap, 13, 4, 5, {
+      minStrength: sensitivityToMinStrength(1),
+    });
+    const loose = findSnapTargetPx(edgeMap, 13, 4, 5, {
+      minStrength: sensitivityToMinStrength(EDGE_SNAP_SENSITIVITY_MAX),
+    });
+    expect(strict).toBeNull();
+    expect(loose).not.toBeNull();
   });
 });

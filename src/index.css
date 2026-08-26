@@ -1039,13 +1039,13 @@
     }
 
     /* Curseur de rayon de l'aimant de contour (barre d'outils carte). */
-    .map-snap-radius {
+    .map-snap-setting {
       display:inline-flex; align-items:center; gap:6px;
       padding:3px 8px; border:1.5px solid var(--mint); border-radius:8px;
       background:#f0fdf4; color:#166534; font-size:.72rem; font-weight:700;
       white-space:nowrap; flex-shrink:0;
     }
-    .map-snap-radius input[type="range"] {
+    .map-snap-setting input[type="range"] {
       width:88px; accent-color:var(--leaf); cursor:pointer; margin:0;
     }
 
@@ -2191,14 +2191,14 @@
       min-height:30px !important;
       font-size:0.7rem !important;
     }
-    .main.main--map-visible .map-view-toolbar .map-snap-radius,
-    .teacher-main.teacher-main--map-visible .map-view-toolbar .map-snap-radius,
-    .map-view-root--solo .map-view-toolbar .map-snap-radius {
+    .main.main--map-visible .map-view-toolbar .map-snap-setting,
+    .teacher-main.teacher-main--map-visible .map-view-toolbar .map-snap-setting,
+    .map-view-root--solo .map-view-toolbar .map-snap-setting {
       padding:2px 6px; min-height:30px; font-size:0.68rem;
     }
-    .main.main--map-visible .map-view-toolbar .map-snap-radius input[type="range"],
-    .teacher-main.teacher-main--map-visible .map-view-toolbar .map-snap-radius input[type="range"],
-    .map-view-root--solo .map-view-toolbar .map-snap-radius input[type="range"] { width:64px; }
+    .main.main--map-visible .map-view-toolbar .map-snap-setting input[type="range"],
+    .teacher-main.teacher-main--map-visible .map-view-toolbar .map-snap-setting input[type="range"],
+    .map-view-root--solo .map-view-toolbar .map-snap-setting input[type="range"] { width:58px; }
     /* Le « ? » était exclu de la compaction (48px) : en portrait il impose une barre plus haute que sur les autres onglets. */
     .main.main--map-visible .map-view-toolbar .fm-help-btn,
     .teacher-main.teacher-main--map-visible .map-view-toolbar .fm-help-btn,
