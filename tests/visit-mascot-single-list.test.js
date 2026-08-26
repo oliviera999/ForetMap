@@ -30,12 +30,18 @@ const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne, queryAll, execute } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
-const { seedBuiltinMascotPacks } = require('../lib/visitMascotBuiltinSeed');
+const {
+  seedBuiltinMascotPacks,
+  buildBuiltinMascotPacks,
+} = require('../lib/visitMascotBuiltinSeed');
 const {
   migrateVisitMascotVisibilityToColumn,
   ALLOWED_KEY,
 } = require('../lib/visitMascotVisibility');
-const { listVisitMascotRegistry } = require('../lib/visitMascotRegistry');
+const {
+  listVisitMascotRegistry,
+  listStaticVisitMascotEntries,
+} = require('../lib/visitMascotRegistry');
 const { buildMascotPackZipBuffer } = require('../lib/mascotPackArchive');
 
 test.before(async () => {
@@ -95,6 +101,48 @@ async function uneLivree() {
   assert.ok(row, 'aucune mascotte livrée semée');
   return row;
 }
+
+// ---------------------------------------------------------------------------
+// Schéma en retard : le studio doit le dire, pas rendre « Erreur serveur »
+// ---------------------------------------------------------------------------
+
+test('colonne `origin` absente : le studio nomme la migration au lieu d’un 500 muet', async () => {
+  // Le serveur **n'applique pas les migrations au démarrage** : `initDatabase()` ne fait qu'un
+  // ping, et `initSchema()` — donc la migration 198 — ne tourne que via `npm run db:migrate`.
+  // Un déploiement qui remplace les fichiers sans jouer cette étape met le studio devant un
+  // schéma en retard, et `SELECT … origin …` échoue en `ER_BAD_FIELD_ERROR`.
+  //
+  // Sans mappage, ça retombait sur le 500 générique : « Erreur serveur [requête … ] » — un
+  // message qui ne dit ni ce qui manque ni quoi faire. C'est exactement le reproche fait à ce
+  // système. On vérifie ici que la réponse nomme la colonne et la commande.
+  const token = await studioToken();
+  await execute('ALTER TABLE visit_mascot_packs DROP COLUMN origin');
+  try {
+    const res = await request(app)
+      .get('/api/visit/mascot-packs')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(503);
+    assert.equal(res.body?.code, 'visit_mascot_packs_schema_outdated');
+    assert.match(String(res.body?.error || ''), /origin/);
+    assert.match(String(res.body?.error || ''), /db:migrate/);
+    assert.doesNotMatch(String(res.body?.error || ''), /^Erreur serveur$/);
+  } finally {
+    // Recréer la colonne remet **toutes** les lignes à `custom` : le semis ne les rattrape pas
+    // (elles existent déjà, il ne réécrit rien). Sans cette remise en état, le fichier laissait
+    // seize mascottes livrées déguisées en mascottes créées ici, et huit tests tombaient
+    // ensuite pour une raison sans rapport avec ce qu'ils vérifient.
+    await execute(
+      "ALTER TABLE visit_mascot_packs ADD COLUMN origin VARCHAR(16) NOT NULL DEFAULT 'custom'",
+    );
+    const { packs } = buildBuiltinMascotPacks(await listStaticVisitMascotEntries());
+    for (const { catalogId } of packs) {
+      await execute("UPDATE visit_mascot_packs SET origin = 'builtin' WHERE catalog_id = ?", [
+        catalogId,
+      ]);
+    }
+    await seedBuiltinMascotPacks();
+  }
+});
 
 // ---------------------------------------------------------------------------
 // La liste unique
