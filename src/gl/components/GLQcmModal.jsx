@@ -7,6 +7,7 @@ import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
 import { GLLoreGlossaryInlineText } from './GLLoreGlossaryMarkdown.jsx';
 import { mergeGlossaryLinkItems } from '../../utils/glGlossaryAutolink.js';
 import { mergeLoreGlossaryLinkItems } from '../../utils/glLoreGlossaryAutolink.js';
+import { glossaryPropsWhileAnswering } from '../../shared/qcm/quizGlossaryReveal.js';
 
 function isLoreQcmCode(code) {
   return /^LQCM\d+$/i.test(String(code || '').trim());
@@ -153,6 +154,9 @@ export function GLQcmModal({
   const inlineGlossaryProps = isLore
     ? { loreGlossaryItems: mergedLoreGlossaryItems, onOpenLoreTerm }
     : { glossaryItems: mergedGlossaryItems, onOpenGlossaryTerm };
+  // Énoncé et propositions : le glossaire n'y est consultable qu'APRÈS la réponse —
+  // ouvrir le terme lié donnait la réponse (cf. `quizGlossaryReveal`).
+  const answeringGlossaryProps = glossaryPropsWhileAnswering(inlineGlossaryProps, showAnswer);
 
   return (
     <div className="gl-qcm-modal" role="dialog" aria-label="Quiz">
@@ -169,7 +173,7 @@ export function GLQcmModal({
               <InlineText
                 className="gl-qcm-modal__question"
                 text={presentation.question}
-                {...inlineGlossaryProps}
+                {...answeringGlossaryProps}
                 tag="p"
               />
               {presentation.photoUrl ? (
@@ -193,7 +197,7 @@ export function GLQcmModal({
                       checked={selectedChoiceId === choice.id}
                       onChange={() => setSelectedChoiceId(choice.id)}
                     />
-                    <InlineText text={choice.text} {...inlineGlossaryProps} />
+                    <InlineText text={choice.text} {...answeringGlossaryProps} />
                   </label>
                 ))}
               </div>

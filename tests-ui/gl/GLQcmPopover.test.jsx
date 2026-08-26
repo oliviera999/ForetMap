@@ -76,8 +76,10 @@ describe('GLQcmPopover', () => {
     expect(screen.queryByLabelText('Désert')).not.toBeInTheDocument();
   });
 
-  test('ouvre le glossaire au clic sur un terme lié', async () => {
-    const user = userEvent.setup();
+  test('le glossaire n’est pas consultable tant que le joueur n’a pas répondu', async () => {
+    // Ce test vérifiait l'inverse : les termes de l'énoncé étaient cliquables. Sur
+    // « Quel biome abrite le fennec ? », ouvrir « Biome » mène droit à la réponse — ce qui
+    // devait aider à comprendre servait à deviner (cf. `quizGlossaryReveal`).
     const onOpenGlossaryTerm = vi.fn();
 
     render(
@@ -100,11 +102,11 @@ describe('GLQcmPopover', () => {
       />,
     );
 
-    await user.click(screen.getByRole('link', { name: /biome/i }));
-    expect(onOpenGlossaryTerm).toHaveBeenCalledWith('GL0001');
-
-    await user.click(screen.getByRole('button', { name: /^Biome$/i }));
-    expect(onOpenGlossaryTerm).toHaveBeenCalledWith('GL0001');
+    // L'énoncé reste affiché tel quel : on ne masque aucun mot, on retire seulement la
+    // possibilité de l'ouvrir.
+    expect(screen.getByText(/Quel biome abrite le fennec/)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /biome/i })).not.toBeInTheDocument();
+    expect(onOpenGlossaryTerm).not.toHaveBeenCalled();
   });
 
   test('applique themeStyle sur le portail (hors .gl-app)', () => {
