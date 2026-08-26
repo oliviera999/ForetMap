@@ -310,6 +310,41 @@ question : elles ne remontaient pas d'elles-mêmes dans le contrôle de compréh
 Le rapprochement automatique reste une aide, pas un verdict : il propose, vous décidez.
 Relisez avant d'approuver — c'est ce qui déterminera si un élève peut valider sa lecture.
 
+### Voir et débloquer les élèves bloqués
+
+L'écran **« Élèves bloqués »** se trouve sous le rattachement, dans l'onglet Quiz. Il répond à la
+question qu'on se pose forcément une fois le dispositif allumé : _qui n'arrive pas à valider, et
+pourquoi ?_
+
+Chaque ligne dit l'élève, la fiche concernée, la question sur laquelle il a buté, le nombre
+d'erreurs et le temps restant. Un bouton **« Débloquer »** lève le verrou immédiatement — l'élève
+peut retenter aussitôt. Une case permet d'afficher aussi les blocages déjà expirés, utile pour voir
+si une fiche bloque tout le monde.
+
+Sans cet écran, un élève bloqué qui ne dit rien restait bloqué, et personne ne le savait.
+
+### Choisir ce que bloque une erreur
+
+Le réglage **« Portée du blocage après erreur »** décide de ce qu'une erreur de trop condamne :
+
+- **La fiche entière** (par défaut) — l'élève ne peut plus rien valider sur cette fiche.
+- **La question seule** — il peut continuer sur les autres questions de la fiche, et ne rebutera
+  que sur celle qu'il a ratée.
+
+Le second choix est plus doux, et souvent plus juste quand une fiche porte plusieurs questions :
+se tromper sur l'une ne dit rien de ce qu'on sait des autres.
+
+### Repérer les questions mal formulées
+
+Toujours dans l'onglet Quiz, les **taux de réussite par question** classent les questions de la
+plus ratée à la mieux réussie. Une question que presque tout le monde rate est rarement
+« difficile » : le plus souvent, son énoncé laisse deux lectures possibles, ou la bonne réponse
+prête à discussion. Les questions signalées ont assez de tentatives pour que le chiffre veuille
+dire quelque chose — sur deux essais, 0 % ne prouve rien.
+
+C'est particulièrement à surveiller pour les questions **bloquantes** : une question défectueuse
+qui conditionne une validation bloque toute une classe sans raison.
+
 ## ⚠️ Points d'attention sur l'existant
 
 État des lieux honnête, relevé en examinant le fonctionnement actuel :
@@ -338,15 +373,10 @@ Relisez avant d'approuver — c'est ce qui déterminera si un élève peut valid
 > fiches chaque élève a lues (statistiques), mais pas **lesquelles** : pas de liste
 > nominative « qui a lu tel tutoriel ».
 
-> ⚠️ **Point d'attention** — Le professeur **ne voit pas quels élèves sont bloqués**. Si un
-> élève épuise sa tolérance d'erreurs, la validation lui est refusée pendant plusieurs jours,
-> et rien ne le signale côté professeur : ni liste, ni alerte. En attendant un écran dédié,
-> mieux vaut annoncer le dispositif à la classe et rester joignable — un élève bloqué qui ne
-> dit rien reste bloqué.
-
-> ⚠️ **Point d'attention** — Le réglage _marquage automatique sur bonne réponse_ est un
-> **reliquat sans effet** : répondre juste à une question ne marque aucune ressource comme
-> lue. Seul le bouton « Marquer comme lu » valide une lecture.
+> ⚠️ **Point d'attention** — Le contrôle **ignore le niveau des questions**. Une question
+> pensée pour le lycée peut bloquer un élève de collège si elle est rattachée à sa fiche.
+> L'application ne sait pas en quelle classe est un élève : cette information n'existe nulle
+> part. En attendant, c'est au moment du rattachement qu'il faut y veiller.
 
 > ⚠️ **Point d'attention** — La progression des paliers reconnaît aussi les élèves par
 > **prénom + nom** (héritage des anciennes inscriptions sans compte) : deux homonymes

@@ -59,6 +59,10 @@ tutoriel, feuillet…) comme apprise.
   effet), le **mode** (une réussite suffit / toutes les questions / un nombre minimum), le
   **nombre de réussites** du mode « minimum », la **granularité du suivi** (par joueur ou
   par équipe) et le **délai avant nouvelle tentative** après une erreur (3 jours par défaut).
+  S'y ajoutent, depuis le lot 27, les réglages jusque-là réservés à ForetMap : les **erreurs
+  tolérées avant blocage**, le **nombre de questions posées d'affilée**, l'**annonce du
+  contrôle sur le bouton**, et la **portée du blocage** (toute la fiche, ou la seule question
+  ratée). Les deux applications partagent désormais le même jeu de réglages.
 - **Assouplir une ressource en particulier** : une ressource peut porter sa propre politique
   (son propre mode, ou une dispense complète), qui l'emporte sur le réglage général. Mais
   l'interrupteur général reste **maître** : éteint, rien n'est demandé nulle part.
@@ -73,6 +77,17 @@ tutoriel, feuillet…) comme apprise.
   l'interrupteur ne fait pas repasser à l'élève une question qu'il a déjà réussie.
 - **Un contenu désactivé n'est plus marquable** : un feuillet ou un terme retiré du jeu
   (statut « inactif ») ne peut plus être marqué appris ni importé dans le carnet.
+
+## Voir et débloquer les lecteurs bloqués
+
+Dans **Contenus**, sous l'écran des liens, la liste **« Lecteurs bloqués »** montre qui ne
+peut plus valider : le lecteur (joueur, invité ou MJ), la fiche concernée, la question sur
+laquelle il a buté, le nombre d'erreurs et le temps restant. Un bouton **« Débloquer »** lève
+le verrou immédiatement.
+
+C'est le même écran que côté ForetMap — les deux applications le partagent.
+
+Sans lui, un lecteur bloqué qui ne dit rien restait bloqué, et personne ne le savait.
 
 ## Le marquage « appris » et le carnet
 
@@ -104,9 +119,10 @@ Autrement dit : le QCM ne garde pas la porte du feuillet, il garde la porte du
 > global est éteint**, même si des liens existent : l'écran des liens le rappelle en
 > bandeau. C'est le premier réflexe si « le blocage ne marche pas ».
 
-> ⚠️ **Point d'attention** — Le délai de nouvelle tentative s'applique à **toute la
-> ressource** après une erreur : un élève verrouillé n'est pas un bug. Le délai se
-> règle (jusqu'à l'annuler, à 0 jour).
+> ⚠️ **Point d'attention** — Le délai de nouvelle tentative s'applique par défaut à
+> **toute la ressource** après une erreur : un lecteur verrouillé n'est pas un bug. Le
+> délai se règle (jusqu'à l'annuler, à 0 jour), on peut désormais **tolérer une ou deux
+> erreurs** avant qu'il ne tombe, et limiter le blocage à la **seule question ratée**.
 
 > ⚠️ **Point d'attention** — Le **mode** choisi change beaucoup la charge de travail : sur une
 > ressource reliée à huit questions, « toutes les questions » en demande huit, « une réussite

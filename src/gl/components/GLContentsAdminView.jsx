@@ -24,6 +24,7 @@ import { GLIntroAdminPanel } from './admin/GLIntroAdminPanel.jsx';
 import { GLHelpContentAdminPanel } from './admin/GLHelpContentAdminPanel.jsx';
 import { GLTourContentAdminPanel } from './admin/GLTourContentAdminPanel.jsx';
 import { GLLearningLinksPanel } from './admin/GLLearningLinksPanel.jsx';
+import { GLLearningLocksPanel } from './admin/GLLearningLocksPanel.jsx';
 import { GLReferenceDocsPanel } from './admin/GLReferenceDocsPanel.jsx';
 
 export function GLContentsAdminView({
@@ -243,7 +244,10 @@ export function GLContentsAdminView({
           ImportPanel={GLLoreFeuilletsImportPanel}
         />
       ) : section === 'gating' ? (
-        <GLLearningLinksPanel />
+        <>
+          <GLLearningLinksPanel />
+          <GLLearningLocksPanel />
+        </>
       ) : section === 'lore-glossary' ? (
         <GLLoreGlossaryImportPanel />
       ) : section === 'intro' ? (

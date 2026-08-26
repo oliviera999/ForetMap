@@ -109,9 +109,9 @@ describe('réglages du verrou pédagogique (learning.gating.*)', () => {
     'learning.gating.default_required_correct',
     'learning.gating.allowed_wrong_attempts',
     'learning.gating.retry_cooldown_days',
+    'learning.gating.cooldown_scope',
     'learning.gating.max_questions_per_session',
     'learning.gating.announce_on_button',
-    'learning.gating.auto_mark_on_correct',
   ];
 
   test('chaque clé a un libellé explicite (et non le dernier segment humanisé)', () => {
