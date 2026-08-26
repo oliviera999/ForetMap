@@ -7,6 +7,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit général du 26/08 — après fusion des quatre dernières PR
+
+`docs/AUDIT_GENERAL_2026-08-26.md`. Relecture transversale menée **avec une base MariaDB
+réelle**, donc en exécutant l'application plutôt qu'en la lisant : suites backend et UI
+complètes, `db:init` sur base vierge, et sondage des endpoints contre un serveur en
+`NODE_ENV=production`. Aucun fichier de code applicatif n'est modifié par ce lot.
+
+Trois constats reproduits appellent une correction rapide : les photos de tâches sont servies
+sans authentification alors que la liste publique des tâches en fournit les identifiants ;
+une URL `/api/…` inconnue renvoie `200 text/html` (l'index de la SPA) au lieu d'un `404`
+JSON ; huit vulnérabilités npm subsistent en dépendances de production, dont deux `high` sur
+Socket.IO corrigeables sans changement cassant.
+
+Le rapport chiffre par ailleurs le coût du versionnement de `dist/` : sur les quatre PR
+fusionnées, **80 des 88 conflits portaient sur des fichiers générés**. Et il vérifie ce que
+l'audit du 23/08 signalait — quatre de ses cinq points les plus graves sont fermés.
+
 ### Les fiches ne s'ouvrent plus derrière ce qui les appelle (lot 31)
 
 Constat de départ : **des fiches demandées, mais invisibles**. Cliquer un terme de
