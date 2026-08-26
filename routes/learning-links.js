@@ -12,9 +12,11 @@ const express = require('express');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
-const { getSettingValue } = require('../lib/settings');
 const core = require('../lib/shared/resourceQuestionGatingCore');
+const { getFmGatingSite } = require('../lib/learningGatingRuntime');
+const gatingAdmin = require('../lib/learningGatingAdmin');
 const tutorialMatch = require('../lib/shared/tutorialQuestionMatch');
+const labelMatch = require('../lib/shared/resourceQuestionMatch');
 
 const router = express.Router();
 const managePermission = requirePermission('plants.manage');
@@ -26,13 +28,9 @@ function actor(req) {
   return { userType: a.userType || 'teacher', userId: a.userId || a.canonicalUserId || null };
 }
 
+/** Reglages de conditionnement du site (catalogue commun). */
 async function getSiteGating() {
-  return {
-    enabled: await getSettingValue('learning.gating.enabled', false),
-    autoMarkOnCorrect: await getSettingValue('learning.gating.auto_mark_on_correct', true),
-    defaultMode: await getSettingValue('learning.gating.default_mode', 'any'),
-    defaultRequiredCorrect: await getSettingValue('learning.gating.default_required_correct', 1),
-  };
+  return getFmGatingSite();
 }
 
 async function questionExists(code) {
@@ -165,6 +163,50 @@ router.patch(
     if (!result.affectedRows) return res.status(404).json({ error: 'Lien introuvable' });
     const row = await queryOne('SELECT * FROM resource_question_links WHERE id = ? LIMIT 1', [id]);
     return res.json({ link: row });
+  }),
+);
+
+/**
+ * GET /api/learning-links/locks?includeExpired=&resourceType=
+ * Eleves actuellement bloques par le conditionnement (constat C4 de l'audit :
+ * le dispositif pouvait punir sans que personne ne le voie).
+ */
+router.get(
+  '/locks',
+  managePermission,
+  asyncHandler(async (req, res) => {
+    const includeExpired = String(req.query.includeExpired || '') === '1';
+    const rt = req.query.resourceType
+      ? core.normalizeResourceType(req.query.resourceType, ALLOWED)
+      : null;
+    if (req.query.resourceType && !rt) {
+      return res.status(400).json({ error: 'Type de ressource invalide' });
+    }
+    const locks = await gatingAdmin.listFmLocks({ queryAll }, { includeExpired, resourceType: rt });
+    return res.json({ locks, max_rows: gatingAdmin.MAX_ROWS });
+  }),
+);
+
+/**
+ * DELETE /api/learning-links/locks — leve un verrou.
+ * Sans ce geste, l'ecran ne ferait que constater les degats.
+ */
+router.delete(
+  '/locks',
+  managePermission,
+  asyncHandler(async (req, res) => {
+    const body = req.body || {};
+    const rt = core.normalizeResourceType(body.resource_type ?? body.resourceType, ALLOWED);
+    const ref = core.normalizeResourceRef(body.resource_ref ?? body.resourceRef);
+    const userId = String(body.user_id ?? body.userId ?? '').trim();
+    if (!rt || !ref || !userId) return res.status(400).json({ error: 'Verrou invalide' });
+    const questionCode = core.normalizeQuestionCode(body.question_code ?? body.questionCode) || '';
+    const result = await gatingAdmin.releaseFmLock(
+      { execute },
+      { userId, resourceType: rt, resourceRef: ref, questionCode },
+    );
+    if (!result.released) return res.status(404).json({ error: 'Verrou introuvable' });
+    return res.json({ success: true, released: result.released });
   }),
 );
 
@@ -302,12 +344,53 @@ function linkKey(resourceType, resourceRef, questionCode) {
 }
 
 /** Couples deja lies, tous statuts confondus (y compris rejetes : ne pas re-proposer). */
-async function loadExistingTutorialLinks() {
+async function loadExistingLinks() {
   const rows = await queryAll(
-    `SELECT resource_ref, question_code FROM resource_question_links
-      WHERE resource_type = 'tutorial'`,
+    'SELECT resource_type, resource_ref, question_code FROM resource_question_links',
   );
-  return new Set(rows.map((r) => linkKey('tutorial', r.resource_ref, r.question_code)));
+  return new Set(rows.map((r) => linkKey(r.resource_type, r.resource_ref, r.question_code)));
+}
+
+/**
+ * Ressources a LIBELLE court et specifique : plantes et termes de glossaire.
+ *
+ * Pour celles-la, le bon moteur est `resourceQuestionMatch`, qui cherche le libelle
+ * DANS l'enonce — « Menthe », « photosynthese » y apparaissent tels quels. Le moteur
+ * de contenu (`tutorialQuestionMatch`) n'a de sens que pour un tutoriel, dont le
+ * corps est long et le titre peu present dans les questions.
+ */
+async function loadLabelledResources(types, refs) {
+  const out = [];
+  const refFilter = (col) =>
+    refs.length ? `AND ${col} IN (${refs.map(() => '?').join(', ')})` : '';
+  if (types.includes('plant')) {
+    const rows = await queryAll(
+      `SELECT id, name, second_name, scientific_name FROM plants WHERE 1=1 ${refFilter('id')}`,
+      refs.length ? refs : [],
+    );
+    out.push(
+      ...rows.map((r) => ({
+        type: 'plant',
+        ref: String(r.id),
+        labels: [r.name, r.second_name, r.scientific_name],
+      })),
+    );
+  }
+  if (types.includes('glossary')) {
+    const rows = await queryAll(
+      `SELECT glossary_code, terme, variantes FROM glossary_terms
+        WHERE statut = 'actif' ${refFilter('glossary_code')}`,
+      refs.length ? refs : [],
+    );
+    out.push(
+      ...rows.map((r) => ({
+        type: 'glossary',
+        ref: String(r.glossary_code),
+        labels: [r.terme, r.variantes],
+      })),
+    );
+  }
+  return out;
 }
 
 /**
@@ -376,13 +459,21 @@ router.post(
     const resourceRefs = (Array.isArray(body.resourceRefs) ? body.resourceRefs : [])
       .map((r) => core.normalizeResourceRef(r))
       .filter(Boolean);
+    // Par defaut les trois types : le rattachement automatique ne couvrait que les
+    // tutoriels, laissant fiches especes et glossaire au seul script en ligne de commande.
+    const requestedTypes = Array.isArray(body.resourceTypes)
+      ? body.resourceTypes.map((t) => core.normalizeResourceType(t, ALLOWED)).filter(Boolean)
+      : [...ALLOWED];
+    const types = requestedTypes.length ? [...new Set(requestedTypes)] : [...ALLOWED];
 
-    const tutorials = await queryAll(
-      `SELECT id, title, summary, html_content FROM tutorials
+    const tutorials = types.includes('tutorial')
+      ? await queryAll(
+          `SELECT id, title, summary, html_content FROM tutorials
         WHERE is_active = 1
         ${resourceRefs.length ? `AND id IN (${resourceRefs.map(() => '?').join(', ')})` : ''}`,
-      resourceRefs,
-    );
+          resourceRefs,
+        )
+      : [];
     const questions = await queryAll(
       `SELECT question_code AS code, question AS text, reponse_texte, tags, feedback_correct
          FROM quiz_questions
@@ -391,7 +482,7 @@ router.post(
       questionCodes,
     );
 
-    const existing = await loadExistingTutorialLinks();
+    const existing = await loadExistingLinks();
     const editorial = includeEditorial ? await loadUnmirroredEditorialLinks(existing) : [];
     // Un couple repris de l'editorial ne doit pas etre re-propose par le texte.
     const seen = new Set(existing);
@@ -399,16 +490,40 @@ router.post(
       seen.add(linkKey('tutorial', link.resource_ref, link.question_code));
     }
 
-    const textual = tutorialMatch.suggestTutorialLinks({
-      questions,
-      tutorials,
-      existing: seen,
-      minConfidence,
-      maxPerQuestion,
-    });
+    // Tutoriels : rapprochement de CONTENU (le titre seul ne suffit pas).
+    const textual = tutorials.length
+      ? tutorialMatch.suggestTutorialLinks({
+          questions,
+          tutorials,
+          existing: seen,
+          minConfidence,
+          maxPerQuestion,
+        })
+      : [];
 
-    const candidates = [...editorial, ...textual].slice(0, SUGGEST_MAX_CANDIDATES);
-    const truncated = editorial.length + textual.length > candidates.length;
+    // Plantes et glossaire : recherche du LIBELLE dans l'enonce — court et specifique,
+    // c'est la direction qui convient a « Menthe » ou « photosynthese ».
+    const labelledTypes = types.filter((t) => t !== 'tutorial');
+    const labelled = labelledTypes.length
+      ? labelMatch
+          .suggestLinks({
+            questions: questions.map((q) => ({
+              code: q.code,
+              text: q.text,
+              tags: q.tags,
+              extra: q.reponse_texte,
+            })),
+            resources: await loadLabelledResources(labelledTypes, resourceRefs),
+            existing: seen,
+            minConfidence,
+            maxPerQuestion,
+          })
+          .map((link) => ({ ...link, matched_terms: [], resource_label: null }))
+      : [];
+
+    const found = [...editorial, ...textual, ...labelled];
+    const candidates = found.slice(0, SUGGEST_MAX_CANDIDATES);
+    const truncated = found.length > candidates.length;
 
     let inserted = 0;
     if (apply) {
@@ -417,8 +532,9 @@ router.post(
           `INSERT IGNORE INTO resource_question_links
             (resource_type, resource_ref, question_code, is_gating, weight, origin, confidence, status, note,
              created_by_user_type, created_by_user_id)
-           VALUES ('tutorial', ?, ?, 1, 1, ?, ?, 'suggested', ?, ?, ?)`,
+           VALUES (?, ?, ?, 1, 1, ?, ?, 'suggested', ?, ?, ?)`,
           [
+            c.resource_type,
             c.resource_ref,
             c.question_code,
             c.origin,
@@ -437,11 +553,13 @@ router.post(
       inserted,
       truncated,
       stats: {
+        resource_types: types,
         tutorials: tutorials.length,
         questions: questions.length,
         existing_links: existing.size,
         editorial_candidates: editorial.length,
         textual_candidates: textual.length,
+        labelled_candidates: labelled.length,
       },
       candidates,
     });

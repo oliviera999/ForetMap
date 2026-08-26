@@ -333,6 +333,11 @@ export const KEY_META = {
     section: 'learning',
     order: 35,
   },
+  'learning.gating.cooldown_scope': {
+    label: 'Portée du blocage après erreur (fiche entière ou question seule)',
+    section: 'learning',
+    order: 42,
+  },
   'learning.gating.max_questions_per_session': {
     label: 'Questions posées d’affilée au maximum',
     section: 'learning',
@@ -347,11 +352,6 @@ export const KEY_META = {
     label: 'Délai avant nouvelle tentative après une erreur (jours, 0 = aucun)',
     section: 'learning',
     order: 40,
-  },
-  'learning.gating.auto_mark_on_correct': {
-    label: 'Réservé (sans effet aujourd’hui) : marquage automatique sur bonne réponse',
-    section: 'learning',
-    order: 50,
   },
 
   'system.maintenance_mode': {

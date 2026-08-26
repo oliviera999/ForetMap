@@ -18,6 +18,7 @@ const { requireGlAuth, requireGlPermission } = require('../../middleware/require
 const asyncHandler = require('../../lib/asyncHandler');
 const { getGlGatingSettings, setGlGatingSetting, GATING_KEYS } = require('../../lib/glSettings');
 const core = require('../../lib/shared/resourceQuestionGatingCore');
+const gatingAdmin = require('../../lib/learningGatingAdmin');
 
 const router = express.Router();
 const ALLOWED = core.GL_RESOURCE_TYPES;
@@ -179,6 +180,55 @@ router.patch(
       id,
     ]);
     return res.json({ link: row });
+  }),
+);
+
+/**
+ * GET /api/gl/learning-links/locks — lecteurs actuellement bloques par le
+ * conditionnement. Meme forme de sortie que cote ForetMap (lib/learningGatingAdmin.js) :
+ * un seul ecran sert les deux produits.
+ */
+router.get(
+  '/locks',
+  requireGlAuth,
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const includeExpired = String(req.query.includeExpired || '') === '1';
+    const rt = req.query.resourceType
+      ? core.normalizeResourceType(req.query.resourceType, core.GL_RESOURCE_TYPES)
+      : null;
+    if (req.query.resourceType && !rt) {
+      return res.status(400).json({ error: 'Type de ressource invalide' });
+    }
+    const locks = await gatingAdmin.listGlLocks({ queryAll }, { includeExpired, resourceType: rt });
+    return res.json({ locks, max_rows: gatingAdmin.MAX_ROWS });
+  }),
+);
+
+/** DELETE /api/gl/learning-links/locks — leve un verrou. */
+router.delete(
+  '/locks',
+  requireGlAuth,
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const body = req.body || {};
+    const rt = core.normalizeResourceType(
+      body.resource_type ?? body.resourceType,
+      core.GL_RESOURCE_TYPES,
+    );
+    const ref = core.normalizeResourceRef(body.resource_ref ?? body.resourceRef);
+    const readerUserType = String(body.reader_user_type ?? body.readerUserType ?? '').trim();
+    const readerUserId = String(body.reader_user_id ?? body.readerUserId ?? '').trim();
+    if (!rt || !ref || !readerUserType || !readerUserId) {
+      return res.status(400).json({ error: 'Verrou invalide' });
+    }
+    const questionCode = core.normalizeQuestionCode(body.question_code ?? body.questionCode) || '';
+    const result = await gatingAdmin.releaseGlLock(
+      { execute },
+      { readerUserType, readerUserId, resourceType: rt, resourceRef: ref, questionCode },
+    );
+    if (!result.released) return res.status(404).json({ error: 'Verrou introuvable' });
+    return res.json({ success: true, released: result.released });
   }),
 );
 

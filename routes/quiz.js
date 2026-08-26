@@ -41,6 +41,11 @@ const {
   normalizeResourceRef,
   FORETMAP_RESOURCE_TYPES,
 } = require('../lib/shared/resourceQuestionGatingCore');
+const {
+  listFmQuestionStats,
+  MIN_ATTEMPTS_FOR_FLAG,
+  SUSPECT_SUCCESS_RATE,
+} = require('../lib/quizQuestionStats');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 
@@ -124,6 +129,7 @@ async function maybeRegisterCooldownForFmAnswer(req, { userId, questionCode, isC
       isCorrect,
       retryDays: site.retryCooldownDays,
       allowedWrongAttempts: site.allowedWrongAttempts,
+      cooldownScope: site.cooldownScope,
     },
   );
 }
@@ -431,6 +437,31 @@ router.get(
 );
 
 const quizManagePermission = requirePermission('plants.manage');
+
+/**
+ * GET /api/quiz/admin/questions/stats?onlyGating=1&minAttempts=5
+ * Taux de reussite par question, les plus ratees d'abord. Une question que tout le
+ * monde rate est plus souvent mal formulee que difficile — et si elle est bloquante,
+ * elle bloque toute une classe sans raison.
+ */
+router.get(
+  '/admin/questions/stats',
+  quizManagePermission,
+  asyncHandler(async (req, res) => {
+    const stats = await listFmQuestionStats(
+      { queryAll },
+      {
+        onlyGating: String(req.query.onlyGating || '') === '1',
+        minAttempts: req.query.minAttempts,
+      },
+    );
+    return res.json({
+      stats,
+      min_attempts_for_flag: MIN_ATTEMPTS_FOR_FLAG,
+      suspect_success_rate: SUSPECT_SUCCESS_RATE,
+    });
+  }),
+);
 
 /** GET /api/quiz/admin/questions — liste complète (catalogue admin). */
 router.get(

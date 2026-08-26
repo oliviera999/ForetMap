@@ -7,6 +7,46 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Le conditionnement devient une brique commune aux deux applications (lot 27)
+
+Suite de l'audit [docs/AUDIT_GATING_2026-08.md](docs/AUDIT_GATING_2026-08.md). Trois constats de
+plus corrigés, un quatrième bloqué faute de donnée — et l'ensemble du dispositif mutualisé entre
+ForetMap et Gnomes & Licornes.
+
+**Chaque application redéfinissait les mêmes réglages de son côté**, avec ses propres bornes, et
+les deux avaient fini par diverger : GL avait la granularité que ForetMap n'avait pas, ForetMap
+avait la tolérance d'erreurs et le plafond de questions que GL n'avait pas. Un réglage ajouté d'un
+côté restait invisible de l'autre. Il existe désormais un **catalogue commun** : un descripteur par
+réglage, dont les deux tables sont dérivées. Ajouter une ligne l'ajoute aux deux applications, avec
+la même sémantique. GL hérite du coup de tous les réglages nés côté ForetMap.
+
+**Le professeur voit enfin qui est bloqué.** Un élève pouvait rester plusieurs jours sans pouvoir
+valider, sans que personne ne le sache ni ne puisse le débloquer. Nouvel écran **« Élèves
+bloqués »** : qui, quelle fiche, quelle question ratée, combien d'erreurs, jusqu'à quand — et un
+bouton pour lever le verrou. Le même écran sert les deux applications.
+
+**Une erreur ne condamne plus forcément toute la fiche.** Nouveau réglage de **portée du blocage** :
+la fiche entière (comme avant) ou la seule question ratée, l'élève pouvant alors poursuivre sur les
+autres. Se tromper sur une question ne dit rien de ce qu'on sait des autres.
+
+**Les questions mal formulées se repèrent.** Nouveau tableau des **taux de réussite par question**,
+les plus ratées en tête. Une question que presque tout le monde rate est rarement difficile — le
+plus souvent son énoncé laisse deux lectures. Le signalement n'apparaît qu'avec assez de tentatives :
+sur deux essais, 0 % ne prouve rien.
+
+**Le rattachement automatique couvre les trois types de ressources.** Il ne servait que les
+tutoriels ; fiches espèces et termes de glossaire attendaient une ligne de commande. Chacun est
+traité par le moteur qui lui convient : rapprochement de **contenu** pour un tutoriel, recherche du
+**libellé** dans l'énoncé pour une espèce ou un terme.
+
+**Le réglage « marquage automatique sur bonne réponse » a disparu.** Lu et exposé des deux côtés,
+il n'était consulté par aucune décision depuis le retrait de l'auto-marquage.
+
+**Un constat n'a pas pu être corrigé** : le contrôle ignore toujours le niveau des questions, parce
+que l'application ne sait pas en quelle classe est un élève — cette information n'existe nulle part
+en base. Livrer l'interrupteur sans la donnée aurait fait un second réglage sans effet. L'audit dit
+ce qu'il faut trancher avant de l'implémenter.
+
 ### Un schéma en retard se dit, au lieu de rendre « Erreur serveur »
 
 Signalé en production juste après la mise à jour : le studio mascotte répondait
