@@ -10,9 +10,35 @@ export function sanitizeFrameEntries(values) {
   return values.map((v) => String(v || '').trim()).filter(Boolean);
 }
 
+/** Moteurs auxquels `stateFrames` est interdit (cf. `RENDERER_FIELDS`, `src/utils/mascotPack.js`). */
+const RENDERERS_SANS_STATE_FRAMES = new Set(['rive', 'spritesheet']);
+
 export function sanitizeMascotPackDraft(pack) {
   if (!pack || typeof pack !== 'object') return {};
   const next = { ...pack };
+
+  // `stateFrames` **n'appartient qu'à `sprite_cut`** : la table `RENDERER_FIELDS` de
+  // `src/utils/mascotPack.js` pose qu'un pack ne décrit qu'un moteur, et refuse les blocs des
+  // autres. Or la suite de cette fonction écrit `next.stateFrames` **sans condition** : pour
+  // un pack `rive` ou `spritesheet`, elle y posait un `{}`, que la validation rejetait aussitôt —
+  // « Champ « stateFrames » réservé aux packs « sprite_cut » : ce pack est « rive ». »
+  //
+  // Le pack était pourtant valide en base : c'est le passage par le studio qui l'invalidait. Ces
+  // packs devenaient donc **impossibles à enregistrer**, l'erreur s'affichant à l'ouverture sans
+  // que personne ait rien modifié.
+  //
+  // Même défaut, même forme que celui déjà fermé sur `framesBase` : un champ propre à un moteur
+  // écrit pour tous.
+  //
+  // Le test porte sur les moteurs **explicitement** autres, pas sur « tout sauf `sprite_cut` » :
+  // un brouillon en cours de création n'a pas encore de `renderer`, et lui retirer ses états
+  // serait détruire le travail en cours pour un champ qu'aucune règle ne lui interdit encore.
+  // Un `renderer` manquant est une erreur que la validation signale pour ce qu'elle est.
+  if (RENDERERS_SANS_STATE_FRAMES.has(String(next.renderer || '').trim())) {
+    delete next.stateFrames;
+    return next;
+  }
+
   const rawStates =
     next.stateFrames && typeof next.stateFrames === 'object' && !Array.isArray(next.stateFrames)
       ? next.stateFrames
