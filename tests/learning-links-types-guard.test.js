@@ -47,10 +47,12 @@ after(async () => {
 });
 
 test('GET /resources sert les trois types, et dit lesquels sont validables', async () => {
+  // Les trois types ForetMap sont validables depuis que le glossaire porte un bouton
+  // « j'ai appris ce terme » (migration 201).
   for (const [type, markable] of [
     ['tutorial', true],
     ['plant', true],
-    ['glossary', false],
+    ['glossary', true],
   ]) {
     const res = await request(app)
       .get(`/api/learning-links/resources?type=${type}`)
@@ -70,8 +72,10 @@ test('GET /resources sert les trois types, et dit lesquels sont validables', asy
   }
 });
 
-test('POST refuse un lien BLOQUANT sur un type non validable, et l’accepte sinon', async () => {
-  const refuse = await request(app)
+test('un lien bloquant sur un terme de glossaire est désormais accepté', async () => {
+  // C'était l'impasse : le glossaire ForetMap ne se validait pas, donc un lien bloquant y
+  // restait inerte pour toujours — sans que rien ne le dise. Le terme se valide maintenant.
+  const accepte = await request(app)
     .post('/api/learning-links')
     .set(auth())
     .send({
@@ -80,25 +84,11 @@ test('POST refuse un lien BLOQUANT sur un type non validable, et l’accepte sin
       question_code: qcode,
       is_gating: true,
     })
-    .expect(400);
-  assert.match(refuse.body.error, /glossary/);
-  assert.match(refuse.body.error, /non bloquant/, 'le refus doit dire ce qui reste possible');
-
-  // Le même lien, documentaire, reste permis : il dit quelle question parle de quel terme.
-  const accepte = await request(app)
-    .post('/api/learning-links')
-    .set(auth())
-    .send({
-      resource_type: 'glossary',
-      resource_ref: `GL${stamp}`.slice(0, 64),
-      question_code: qcode,
-      is_gating: false,
-    })
     .expect(201);
-  assert.equal(Number(accepte.body.link.is_gating), 0);
+  assert.equal(Number(accepte.body.link.is_gating), 1);
 });
 
-test('PATCH refuse de rendre bloquant un lien sur un type non validable', async () => {
+test('PATCH peut rendre bloquant un lien de glossaire', async () => {
   const ref = `GP${stamp}`.slice(0, 64);
   const created = await request(app)
     .post('/api/learning-links')
@@ -111,18 +101,16 @@ test('PATCH refuse de rendre bloquant un lien sur un type non validable', async 
     })
     .expect(201);
 
-  const refuse = await request(app)
+  await request(app)
     .patch(`/api/learning-links/${created.body.link.id}`)
     .set(auth())
     .send({ is_gating: true })
-    .expect(400);
-  assert.match(refuse.body.error, /glossary/);
+    .expect(200);
 
-  // La ligne n'a pas bougé : un refus ne doit rien écrire au passage.
   const row = await queryOne('SELECT is_gating FROM resource_question_links WHERE id = ?', [
     created.body.link.id,
   ]);
-  assert.equal(Number(row.is_gating), 0);
+  assert.equal(Number(row.is_gating), 1);
 });
 
 test('POST /review approuve toutes les propositions d’une ressource en un geste', async () => {

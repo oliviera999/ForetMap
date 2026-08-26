@@ -50,6 +50,28 @@ restent inchangés.
 Détail : `lib/bootJournal.js`, `docs/EXPLOITATION.md` (§ Indisponibilités récurrentes),
 `docs/CRONTAB.md`, `docs/API.md`, `docs/AUDIT_CHARGE_SERVEUR_2026-08.md` §2.E ;
 tests `tests/boot-journal.test.js`, `tests/api-availability.test.js`.
+### Le glossaire se valide, et ne donne plus la réponse (lot 28, suite)
+
+**Le glossaire ForetMap porte un bouton « J'ai appris ce terme ».** Il était purement
+consultatif : rien ne distinguait un terme travaillé d'un terme jamais ouvert et, surtout, le
+contrôle de compréhension n'avait aucun geste auquel se rattacher — une question rattachée à un
+terme ne conditionnait rien du tout, et rien ne le signalait. Gnomes & Licornes savait valider un
+terme depuis longtemps ; ForetMap le fait maintenant aussi, avec le même bouton, le même popover
+et les mêmes pastilles d'état. Le cœur des accusés d'apprentissage devient commun aux deux
+applications : une seule différence subsiste, celle que les produits imposent — G&L identifie son
+lecteur par un couple (type, identifiant), ForetMap par son compte.
+
+En conséquence, **les trois types de contenus ForetMap sont désormais validables**, et un lien
+bloquant sur un terme de glossaire a enfin un sens.
+
+**Le glossaire ne donne plus la réponse.** Les termes reconnus dans l'énoncé d'une question et
+dans les propositions de réponse étaient cliquables : sur une question du type « Comment
+appelle-t-on le processus par lequel… ? », ouvrir le terme lié **donnait la réponse**. Ce qui
+devait aider à comprendre servait à deviner. Le texte reste affiché tel quel — aucun mot n'est
+masqué —, mais rien ne s'ouvre tant que l'élève n'a pas répondu ; la liste « Glossaire utile »
+suit la même règle, pour la même raison. Après la réponse, tout revient : c'est le moment où
+aller lire la définition est utile. La règle est commune aux deux applications et vaut aussi pour
+l'aperçu du professeur ou du MJ, qui doit montrer ce que l'élève verra.
 
 ### Le conditionnement devient visible, et enfin armable (lot 28)
 

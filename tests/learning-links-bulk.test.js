@@ -31,17 +31,22 @@ function recorder(affectedRows = 0) {
 test('isMarkableResourceType distingue les types réellement validables', () => {
   assert.equal(bulk.isMarkableResourceType('fm', 'tutorial'), true);
   assert.equal(bulk.isMarkableResourceType('fm', 'plant'), true);
-  // Le glossaire est LIABLE côté ForetMap, mais pas validable : aucun bouton « marquer »
-  // ne l'accompagne, donc aucun conditionnement ne peut s'y appliquer.
-  assert.equal(bulk.isMarkableResourceType('fm', 'glossary'), false);
-  assert.equal(bulk.isMarkableResourceType('gl', 'glossary'), true, 'G&L, lui, sait le valider');
+  // Le glossaire ForetMap se valide depuis la migration 201 (« j'ai appris ce terme ») :
+  // un lien bloquant y a donc enfin un sens. Il ne l'avait pas avant.
+  assert.equal(bulk.isMarkableResourceType('fm', 'glossary'), true);
+  assert.equal(bulk.isMarkableResourceType('gl', 'glossary'), true);
   assert.equal(bulk.isMarkableResourceType('gl', 'species'), true);
+  // Le contrôle reste utile comme INVARIANT : un type sans geste de validation doit être
+  // refusé le jour où quelqu'un en ajoute un, sans quoi on retombe dans l'impasse.
+  assert.equal(bulk.isMarkableResourceType('fm', 'feuillet'), false, 'type inconnu de ForetMap');
+  assert.equal(bulk.isMarkableResourceType('fm', ''), false);
 });
 
 test('le message de refus dit ce qui manque, pas seulement que c’est interdit', () => {
-  const msg = bulk.nonMarkableGatingError('fm', 'glossary');
-  assert.match(msg, /glossary/);
+  const msg = bulk.nonMarkableGatingError('fm', 'feuillet');
+  assert.match(msg, /feuillet/);
   assert.match(msg, /tutorial/, 'les types acceptés doivent être nommés');
+  assert.match(msg, /glossary/, 'le glossaire fait maintenant partie des validables');
   assert.match(msg, /non bloquant/, 'l’issue possible doit être dite');
 });
 
