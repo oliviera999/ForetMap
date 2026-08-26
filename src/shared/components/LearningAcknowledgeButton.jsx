@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
 import { DialogShell } from './DialogShell.jsx';
 import { LearningGatingQuestionPanel } from './LearningGatingQuestionPanel.jsx';
+import { LearningGatingStateIcon } from './LearningGatingStateIcon.jsx';
+import { gatingState } from '../utils/learningGatingState.js';
 import {
   pendingChallengeQuestions,
   buildGatingQuizIntroMessage,
@@ -14,13 +16,24 @@ import {
  * Texte d'annonce du bouton, d'après le résumé de conditionnement de la ressource.
  * Renvoie une pastille courte (lue visuellement) et un intitulé complet (infobulle
  * et lecteurs d'écran). Rien à annoncer → deux chaînes vides.
+ *
+ * L'état vient du module commun `learningGatingState`, partagé avec la pastille d'icône :
+ * les deux ne peuvent donc pas raconter deux histoires différentes sur la même ressource.
+ *
+ * `summary.announce === false` (réglage prof « Annoncer le contrôle sur le bouton »,
+ * résolu côté serveur) éteint l'annonce sans rien changer au conditionnement lui-même.
  */
 export function buildButtonAnnounce(summary, itemTitle = '') {
   const none = { announceBadge: '', announceTitle: '' };
-  if (!summary || !summary.required || summary.satisfied) return none;
+  if (!summary || summary.announce === false) return none;
+
+  const state = gatingState(summary);
+  // Rien à annoncer sur une ressource non conditionnée ou déjà acquise : la pastille
+  // d'état, elle, montre encore le « ✓ » — c'est une information, pas un avertissement.
+  if (state.kind === 'none' || state.kind === 'acquired') return none;
 
   const label = itemTitle ? `« ${itemTitle} »` : 'ce contenu';
-  if (summary.locked) {
+  if (state.kind === 'locked') {
     const days = Math.max(1, Number(summary.remaining_days) || 1);
     return {
       announceBadge: '🔒',
@@ -215,7 +228,12 @@ export function LearningAcknowledgeButton({
           <span className="learning-gating-announce" aria-hidden="true">
             {announceBadge}
           </span>
-        ) : null}
+        ) : (
+          // Pas d'annonce à faire : reste la pastille d'état, qui dit le « déjà acquis »
+          // (que l'annonce ne dit jamais) et prend le relais si l'annonce est éteinte.
+          // Les afficher toutes les deux ferait doublon sur le même bouton.
+          <LearningGatingStateIcon summary={gatingSummary} done={isDone} />
+        )}
       </button>
       {announceTitle ? <span className="sr-only">{announceTitle}</span> : null}
       {modalOpen ? (

@@ -31,9 +31,14 @@ d'observation** pour l'écriture naturaliste libre.
   aperçu). Dans le catalogue livré, cette légende nomme le plus souvent le sujet
   photographié : l'afficher à l'élève donnerait la réponse. Ce qui accompagne l'image
   côté élève, c'est le **crédit et la licence**, affichés partout où la photo apparaît.
+- **Ouvrir la question en fenêtre** : un bouton « ⤢ Ouvrir en fenêtre » affiche la
+  question courante dans un petit panneau par-dessus la page, sans rien changer à
+  l'affichage habituel. Utile pour se concentrer sur l'énoncé, et surtout côté professeur,
+  où la question de test est noyée sous le catalogue et l'éditeur. C'est la même surface
+  d'affichage et le même état : répondre dans la fenêtre ou dans la page revient au même.
 - Les questions du Quiz servent aussi de **contrôle de compréhension** avant de valider
   un tutoriel ou une fiche espèce, si le dispositif est activé. L'écran « Rattacher des
-  questions aux tutoriels », sous l'éditeur, relie les deux — à la main ou par
+  questions aux contenus », sous l'éditeur, relie les deux — à la main ou par
   rapprochement automatique des contenus : voir
   [Tâches, tutoriels et validation](taches-tutoriels-et-validation.md).
 

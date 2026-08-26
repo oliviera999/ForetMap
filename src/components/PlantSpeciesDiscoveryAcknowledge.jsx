@@ -6,6 +6,7 @@ import { DialogShell } from './DialogShell';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { PlantDiscoveryObservedCounts } from './PlantDiscoveryObservedCounts.jsx';
 import { LearningAcknowledgeButton } from '../shared/components/LearningAcknowledgeButton.jsx';
+import { LearningQuizPopover } from '../shared/components/LearningQuizPopover.jsx';
 import { createFmGatingHandlers } from '../shared/utils/learningGatingChallengeClient.js';
 
 const MIN_CONTEXT_COMMENT_CHARS = 2;
@@ -24,13 +25,10 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
   onAcknowledged,
   onForceLogout,
   offerPlantCommentAfterObservation = false,
+  /** Résumé du conditionnement pour cette fiche (chargé en lot par la vue). */
+  gatingSummary = null,
 }) {
   const [enrichOpen, setEnrichOpen] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [phase, setPhase] = useState('confirm');
-  const [checked, setChecked] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
   const [enrichBody, setEnrichBody] = useState('');
   const [enrichImages, setEnrichImages] = useState([]);
   const [enrichSaving, setEnrichSaving] = useState(false);
@@ -47,23 +45,20 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
   const site = Math.max(0, Number(siteObservationCount) || 0);
   const hasObserved = my > 0;
 
-  const busy = saving || enrichSaving;
+  const busy = enrichSaving;
 
-  useOverlayHistoryBack(modalOpen, () => {
-    if (!busy) setModalOpen(false);
+  useOverlayHistoryBack(enrichOpen, () => {
+    if (!busy) setEnrichOpen(false);
   });
 
   useEffect(() => {
-    if (!modalOpen) {
-      setPhase('confirm');
-      setChecked(false);
-      setError('');
+    if (!enrichOpen) {
       setEnrichBody('');
       setEnrichImages([]);
       setEnrichError('');
       setEnrichToast('');
     }
-  }, [modalOpen]);
+  }, [enrichOpen]);
 
   useEffect(() => {
     if (!enrichToast) return undefined;
@@ -85,39 +80,6 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
       site_observation_count: Number(res.site_observation_count) || 0,
     });
   }, [plantId, onAcknowledged]);
-
-  const submit = useCallback(async () => {
-    if (!checked) return;
-    const pid = Number(plantId);
-    if (!Number.isFinite(pid) || pid <= 0) {
-      setError('Fiche espèce invalide — recharge la page ou rouvre le catalogue.');
-      return;
-    }
-    setSaving(true);
-    setError('');
-    try {
-      const res = await api(`/api/plants/${pid}/acknowledge-discovery`, 'POST', { confirm: true });
-      if (!res || res.success !== true) {
-        setError('Réponse serveur inattendue. Réessayez ou recharge la page.');
-        return;
-      }
-      onAcknowledged?.(pid, {
-        my_observation_count: Number(res.my_observation_count) || 0,
-        site_observation_count: Number(res.site_observation_count) || 0,
-      });
-      setChecked(false);
-      if (offerPlantCommentAfterObservation) {
-        setPhase('enrich');
-      } else {
-        setModalOpen(false);
-      }
-    } catch (e) {
-      if (e instanceof AccountDeletedError) onForceLogout?.();
-      setError(e?.message || 'Erreur');
-    } finally {
-      setSaving(false);
-    }
-  }, [checked, plantId, onAcknowledged, onForceLogout, offerPlantCommentAfterObservation]);
 
   const submitEnrichment = useCallback(
     async (onClose) => {
@@ -148,10 +110,6 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
     },
     [enrichBody, enrichImages, plantId, onForceLogout],
   );
-
-  const skipEnrichmentLegacy = useCallback(() => {
-    setModalOpen(false);
-  }, []);
 
   if (!hasToken) return null;
 
@@ -224,109 +182,72 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
     </DialogShell>
   );
 
-  if (hasObserved) {
-    return (
-      <>
-        <div className="plant-discovery-observed-wrap">
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm plant-discovery-observed-btn"
-            onClick={() => setModalOpen(true)}
-            title="Enregistrer une nouvelle observation (même engagement : terrain + fiche)"
-          >
-            Espèce observée
-          </button>
-          <PlantDiscoveryObservedCounts my={my} site={site} />
-        </div>
-        {modalOpen &&
-          (phase === 'enrich' ? (
-            renderEnrichStep(modalOpen, skipEnrichmentLegacy)
-          ) : (
-            <DialogShell
-              open={modalOpen}
-              onClose={() => !saving && setModalOpen(false)}
-              overlayClassName="modal-overlay"
-              dialogClassName="log-modal fade-in tuto-read-ack-modal"
-              ariaLabelledBy="plant-discovery-ack-title-new"
-              closeOnOverlay={!saving}
-              showCloseButton
-              closeButtonLabel="Fermer"
-              closeButtonDisabled={saving}
-            >
-              <h3 id="plant-discovery-ack-title-new">Nouvelle observation</h3>
-              <p className="tuto-read-ack-intro">
-                Tu confirmes une observation supplémentaire pour l&apos;espèce{' '}
-                <strong>« {speciesName || 'cette fiche'} »</strong> : observation réelle sur le
-                terrain et prise de connaissance des informations de la fiche.
-              </p>
-              <label className="tuto-read-ack-check">
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={(e) => setChecked(e.target.checked)}
-                  disabled={saving}
-                />
-                <span>
-                  J&apos;ai observé réellement l&apos;espèce sur le terrain et pris connaissance des
-                  informations de la fiche.
-                </span>
-              </label>
-              {error ? <p className="tuto-read-ack-error">{error}</p> : null}
-              <div className="tuto-read-ack-actions">
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  disabled={saving}
-                  onClick={() => setModalOpen(false)}
-                >
-                  Annuler
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  disabled={!checked || saving}
-                  onClick={submit}
-                >
-                  {saving ? 'Enregistrement…' : 'Confirmer'}
-                </button>
-              </div>
-            </DialogShell>
-          ))}
-      </>
-    );
-  }
-
-  return (
-    <>
-      <LearningAcknowledgeButton
-        labelAction="Espèce découverte"
-        labelDone="✓ Observée"
-        titleDone="Tu as confirmé cette observation"
-        itemTitle={speciesName}
-        confirmIntro={
+  // Bouton commun aux deux cas — première observation ET ré-observation.
+  //
+  // La ré-observation empruntait auparavant une branche entièrement séparée : une modale
+  // maison, sans conditionnement ni popover. Dès qu'un élève avait observé l'espèce une
+  // fois, plus aucune question ne lui était jamais posée sur cette fiche. Ce n'était pas
+  // une décision, c'était une divergence de code.
+  const ackButton = (
+    <LearningAcknowledgeButton
+      labelAction={hasObserved ? 'Espèce observée' : 'Espèce découverte'}
+      labelDone="✓ Observée"
+      titleDone="Tu as confirmé cette observation"
+      itemTitle={speciesName}
+      buttonClassName={
+        hasObserved
+          ? 'btn btn-secondary btn-sm plant-discovery-observed-btn'
+          : 'btn btn-secondary btn-sm'
+      }
+      confirmIntro={
+        hasObserved ? (
+          <>
+            Tu confirmes une observation supplémentaire pour l&apos;espèce{' '}
+            <strong>« {speciesName || 'cette fiche'} »</strong> : observation réelle sur le terrain
+            et prise de connaissance des informations de la fiche.
+          </>
+        ) : (
           <>
             En validant, tu confirmes pour l&apos;espèce{' '}
             <strong>« {speciesName || 'cette fiche'} »</strong> que tu as réellement observé
             l&apos;être vivant sur le terrain et pris connaissance des informations présentées sur
             la fiche.
           </>
+        )
+      }
+      confirmCheckboxLabel="J'ai observé réellement l'espèce sur le terrain et pris connaissance des informations de la fiche."
+      gatingHandlers={gatingHandlers}
+      gatingResource={gatingResource}
+      gatingSummary={gatingSummary}
+      enableGating
+      // Même popover que le tutoriel : la question surgit par-dessus la fiche.
+      Shell={LearningQuizPopover}
+      overlayClassName="fm-quiz-popover"
+      dialogClassName="fm-quiz-popover__panel animate-pop"
+      onSubmit={async () => {
+        try {
+          await submitDiscovery();
+        } catch (e) {
+          if (e instanceof AccountDeletedError) onForceLogout?.();
+          throw e;
         }
-        confirmCheckboxLabel="J'ai observé réellement l'espèce sur le terrain et pris connaissance des informations de la fiche."
-        gatingHandlers={gatingHandlers}
-        gatingResource={gatingResource}
-        enableGating
-        onSubmit={async () => {
-          try {
-            await submitDiscovery();
-          } catch (e) {
-            if (e instanceof AccountDeletedError) onForceLogout?.();
-            throw e;
-          }
-        }}
-        onDone={() => {
-          if (offerPlantCommentAfterObservation) setEnrichOpen(true);
-        }}
-      />
+      }}
+      onDone={() => {
+        if (offerPlantCommentAfterObservation) setEnrichOpen(true);
+      }}
+    />
+  );
+
+  return (
+    <>
+      {hasObserved ? (
+        <div className="plant-discovery-observed-wrap">
+          {ackButton}
+          <PlantDiscoveryObservedCounts my={my} site={site} />
+        </div>
+      ) : (
+        ackButton
+      )}
       {enrichOpen ? renderEnrichStep(enrichOpen, () => setEnrichOpen(false)) : null}
     </>
   );
