@@ -451,6 +451,11 @@ test('le rattrapage des installations déjà semées ne passe qu’une fois', as
     rendue,
   ]);
   assert.equal(Number(row.is_published), 1, 'le rattrapage a défait un choix d’administrateur');
+
+  // Remise en état : ce fichier partage sa base avec les autres. Laisser une mascotte sans
+  // fichier d'animation publiée ferait échouer, ailleurs, une assertion sur la décision du
+  // semis — pour une raison sans rapport avec ce qu'elle vérifie.
+  await execute('UPDATE visit_mascot_packs SET is_published = 0 WHERE catalog_id = ?', [rendue]);
 });
 
 // ---------------------------------------------------------------------------
