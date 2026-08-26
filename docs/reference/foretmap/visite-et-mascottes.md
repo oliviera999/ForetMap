@@ -105,13 +105,13 @@ familles.
   lui rend à tout moment son apparence d'origine. Cette réinitialisation ne touche pas à sa
   publication : rendre l'apparence d'origine et remettre la mascotte en visite sont deux
   décisions distinctes.
-- **Une mascotte livrée ne se supprime pas** — l'application la remettrait en place au prochain
-  démarrage, et le bouton donnerait une réussite qui s'annule toute seule. Deux gestes font
+- **Une mascotte livrée ne se supprime pas** — l'application la remettrait en place à la
+  prochaine mise à jour, et le bouton donnerait une réussite qui s'annule toute seule. Deux gestes font
   vraiment quelque chose : la **retirer de la visite** (elle disparaît du choix des visiteurs
   sans rien perdre, il suffit de la republier) ou la **réinitialiser**. Une mascotte que
   **vous** avez créée, elle, se supprime pour de bon.
-- **Vos modifications sont conservées** : un redémarrage ne réécrit jamais une mascotte que vous
-  avez retouchée.
+- **Vos modifications sont conservées** : une mise à jour de l'application ne réécrit jamais une
+  mascotte que vous avez retouchée.
 - **Partir d'un modèle livré** pour créer une nouvelle mascotte reste possible, par un menu
   déroulant en haut de la liste. Les modèles qui n'ont **qu'une image fixe** y sont signalés
   comme tels : douze des seize mascottes fournies sont dans ce cas, et partir de l'une d'elles

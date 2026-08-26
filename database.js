@@ -591,7 +591,8 @@ async function initSchema() {
   }
   try {
     // **Après** le semis, et pas avant : la traduction dépublie des lignes, il faut donc
-    // qu'elles existent. Elle lève la « liste figée » — `ui.visit.mascot.allowed_ids`, une liste
+    // qu'elles existent. Comme le semis, elle vit dans `initSchema()` — donc dans l'étape de
+    // migration du déploiement, pas au démarrage du serveur. Elle lève la « liste figée » — `ui.visit.mascot.allowed_ids`, une liste
     // blanche d'identifiants qui rendait invisible toute mascotte ajoutée après coup — en
     // reportant la restriction sur `is_published`, puis en effaçant le réglage.
     const { migrateVisitMascotVisibilityToColumn } = require('./lib/visitMascotVisibility');

@@ -47,6 +47,30 @@ que l'application ne sait pas en quelle classe est un élève — cette informat
 en base. Livrer l'interrupteur sans la donnée aurait fait un second réglage sans effet. L'audit dit
 ce qu'il faut trancher avant de l'implémenter.
 
+### Un schéma en retard se dit, au lieu de rendre « Erreur serveur »
+
+Signalé en production juste après la mise à jour : le studio mascotte répondait
+**« Erreur serveur [requête … ] »**, un message qui ne dit ni ce qui manque ni quoi faire.
+
+**Cause.** Le serveur **n'applique pas les migrations à son démarrage** — `initDatabase()` ne
+fait qu'un ping ; la colonne `origin`, le semis des mascottes livrées et la bascule de
+visibilité vivent dans `initSchema()`, donc dans `npm run db:migrate` (l'étape de migration du
+déploiement, conditionnée à `DEPLOY_AUTO_MIGRATE=1`). Un déploiement qui remplace les fichiers
+sans jouer cette étape met le nouveau code devant l'ancien schéma : la requête du studio demande
+une colonne absente, et l'erreur SQL retombait sur le 500 générique.
+
+**Ce qui change.** Une colonne absente sur `visit_mascot_packs` répond désormais **503** en
+nommant la colonne et la commande : « Schéma MySQL en retard sur le code : colonne `origin`
+absente. Appliquer les migrations (`npm run db:migrate`) puis redémarrer — le démarrage ne les
+applique pas tout seul. » Même traitement que la table absente, qui était déjà expliquée.
+
+**Correction de documentation.** Le lot précédent annonçait « le semis se fait au démarrage » et
+« aucune action requise » : c'était faux, et c'est précisément ce qui pouvait faire sauter
+l'étape de migration. CHANGELOG, `docs/API.md`, doc de référence et en-têtes des trois modules
+concernés disent maintenant que ces trois opérations font partie des **migrations**.
+
+Aucune migration. Aucun changement de comportement du studio lui-même : ses routes ont été
+exercées une à une contre une base à jour, sans aucun 5xx.
 ### Le contrôle de compréhension prévient avant de frapper (lot 26)
 
 **Audit du dispositif** dans [docs/AUDIT_GATING_2026-08.md](docs/AUDIT_GATING_2026-08.md). Trois
@@ -91,7 +115,8 @@ origine (**Livrée** / **Créée ici**). Le volet séparé « Mascottes livrées
 sans que rien ne le signale : le réglage `ui.visit.mascot.allowed_ids` était une **liste blanche
 d'identifiants**, qui ignorait par construction toute mascotte ajoutée après sa pose. Ce réglage
 est **supprimé**. Proposer une mascotte aux visiteurs, c'est la **publier**, là où on la modifie.
-Une restriction existante est reportée automatiquement au démarrage, puis le réglage est effacé.
+Une restriction existante est reportée sur les publications **quand les migrations sont appliquées**
+(`npm run db:migrate`, joué par le déploiement), puis le réglage est effacé.
 
 **Ce qui change pour un professeur :**
 
@@ -118,7 +143,8 @@ Aucune migration. Aucune action requise.
 
 Les seize mascottes fournies avec l'application vivaient dans le code : ni modifiables, ni
 supprimables, ni exportables autrement qu'en les clonant. Elles sont désormais **semées dans la
-même table que les packs** au démarrage, et se gèrent exactement comme eux.
+même table que les packs** — au moment où les migrations sont appliquées — et se gèrent
+exactement comme eux.
 
 Concrètement : modifier une mascotte livrée fonctionne enfin, et la modification est celle qui
 s'affiche. Supprimer une mascotte livrée est possible — et un redémarrage la **remet en place
@@ -131,7 +157,11 @@ telle qu'elle a été fournie**, ce qui donne un « réinitialiser depuis l'orig
   proposées. Vidage complet de la table testé — le sélecteur reste peuplé ;
 - une mascotte qui ne se convertit pas est **écartée et nommée**, pas semée à moitié.
 
-Aucune action requise : le semis se fait au démarrage, sans rien demander.
+**Le semis fait partie des migrations, pas du démarrage** : `initDatabase()` ne fait qu'un ping,
+c'est `npm run db:migrate` (étape de déploiement) qui pose la colonne, sème les mascottes et
+reporte la visibilité. Un déploiement qui remplace les fichiers sans jouer cette étape laisse le
+studio devant un schéma en retard ; il le dit maintenant explicitement au lieu de rendre
+« Erreur serveur ».
 
 Migration `198_visit_mascot_packs_origin.sql` (ajout de la colonne `origin`).
 
