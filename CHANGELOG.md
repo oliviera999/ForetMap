@@ -7,6 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Les mascottes livrées qui ne peuvent pas s'animer ne sont plus proposées
+
+Dix des seize mascottes livrées déclarent une animation **Rive** et pointent vers
+`/assets/rive/*.riv`. Aucun de ces fichiers n'existe, et l'historique du dépôt montre qu'**aucun
+n'a jamais été versionné** : ces entrées ont toujours décrit des animations absentes.
+
+À l'écran, l'échec était **silencieux par conception** : le chargement échouait, le rendu basculait
+sur la silhouette dessinée, et un visiteur voyait un joli dessin parfaitement immobile sans aucun
+moyen de comprendre que ce n'était pas prévu. Le sélecteur promettait dix personnages animés dont
+pas un ne bougerait jamais.
+
+Elles ne sont donc plus proposées aux visiteurs. Elles **restent au studio**, marquées « Livrée »,
+modifiables et exportables : les republier est un clic, le jour où les fichiers arrivent. Le
+sélecteur ne propose plus que des mascottes réellement animées.
+
+La règle se **mesure** — le fichier existe-t-il ? — plutôt que de figer une liste de dix
+identifiants : déposer les `.riv` suffira à les faire revenir sur une installation neuve. Les
+installations déjà en service sont rattrapées **une seule fois** au démarrage, avec une marque de
+passage : republier délibérément une de ces mascottes est un choix légitime, qu'aucun redémarrage
+ne doit défaire en silence.
+
+
 ### Lancer un script de maintenance depuis cPanel, sans terminal
 
 Le terminal cPanel n'est pas toujours disponible, et plusieurs opérations d'exploitation n'avaient
