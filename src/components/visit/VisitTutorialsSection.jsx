@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError } from '../../services/api';
 import { TutorialReadAcknowledgeButton } from '../TutorialReadAcknowledge';
 import { tutorialPreviewPayload, tutorialPreviewCanEmbed } from '../TutorialPreviewModal';
 import { ContextComments } from '../context-comments';
+import { useGatingSummary } from '../../hooks/useGatingSummary';
 
 /**
  * Section « Tutoriels de la visite » sous la carte (réservée prof en édition),
@@ -33,6 +34,17 @@ export function VisitTutorialsSection({
     (tutorials || []).map((t) => t.id),
   );
   const [savingTutorials, setSavingTutorials] = useState(false);
+
+  // La visite n'annonçait rien, contrairement à l'onglet Tutoriels : le même bouton
+  // s'y comportait donc différemment selon l'écran où on le rencontrait.
+  const visitTutorialIds = useMemo(
+    () => (tutorials || []).map((t) => Number(t.id)).filter((n) => Number.isFinite(n) && n > 0),
+    [tutorials],
+  );
+  const { summaries: gatingSummaries, refresh: refreshGating } = useGatingSummary(
+    'tutorial',
+    visitTutorialIds,
+  );
 
   useEffect(() => {
     setTutorialSelection((tutorials || []).map((t) => t.id));
@@ -123,7 +135,11 @@ export function VisitTutorialsSection({
                   tutorialId={t.id}
                   tutorialTitle={t.title}
                   isRead={tutorialReadIds.has(Number(t.id))}
-                  onAcknowledged={onTutorialAcknowledged}
+                  gatingSummary={gatingSummaries.get(String(t.id)) || null}
+                  onAcknowledged={(id) => {
+                    onTutorialAcknowledged?.(id);
+                    refreshGating();
+                  }}
                   onForceLogout={onForceLogout}
                 />
               </div>

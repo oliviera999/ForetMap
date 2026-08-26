@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
@@ -8,6 +8,7 @@ import {
   PlantSpeciesDiscoveryAcknowledgeButton,
   fetchPlantObservationCounts,
 } from '../PlantSpeciesDiscoveryAcknowledge';
+import { useGatingSummary } from '../../hooks/useGatingSummary';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../../contexts/SessionContext.jsx';
 import { useData } from '../../contexts/DataContext.jsx';
@@ -36,6 +37,8 @@ export function PlantBiodiversityCatalogPreviewCard({
   myObservationCount = 0,
   siteObservationCount = 0,
   onObservationAcknowledged = null,
+  /** Résumé du conditionnement pour cette fiche (chargé en lot par la vue). */
+  gatingSummary = null,
   contextCommentsEnabled = true,
   canParticipateContextComments = true,
   onForceLogout = null,
@@ -153,6 +156,7 @@ export function PlantBiodiversityCatalogPreviewCard({
             speciesName={plant.name}
             myObservationCount={myObservationCount}
             siteObservationCount={siteObservationCount}
+            gatingSummary={gatingSummary}
             offerPlantCommentAfterObservation={
               contextCommentsEnabled && canParticipateContextComments
             }
@@ -193,6 +197,9 @@ export function PlantCatalogPreviewModal({
   useOverlayHistoryBack(!!plant, onClose);
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [obs, setObs] = useState({ my: 0, site: 0 });
+  // L'aperçu plein écran n'annonçait rien : l'élève y découvrait le contrôle après coup.
+  const plantIds = useMemo(() => (plant?.id ? [plant.id] : []), [plant?.id]);
+  const { summaries: gatingSummaries } = useGatingSummary('plant', plantIds);
 
   useEffect(() => {
     if (!plant?.id) {
@@ -241,6 +248,7 @@ export function PlantCatalogPreviewModal({
           zones={zones}
           markers={markers}
           maps={maps}
+          gatingSummary={gatingSummaries.get(String(plant.id)) || null}
           myObservationCount={obs.my}
           siteObservationCount={obs.site}
           onObservationAcknowledged={(_id, next) => {

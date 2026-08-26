@@ -243,9 +243,22 @@ Ce qu'il faut réunir pour qu'un tutoriel soit réellement soumis à questions :
    (contrôle de compréhension) » → _Exiger des questions avant de valider une lecture_.
    Éteint (valeur par défaut), rien ne change nulle part : c'est l'interrupteur maître,
    aucun réglage plus fin ne peut le contourner.
-2. **Des questions du Quiz sont rattachées au tutoriel** et marquées comme bloquantes,
-   dans l'écran « Rattacher des questions aux tutoriels » (onglet Quiz, côté professeur).
-   Sans question rattachée, le tutoriel se valide comme avant, même interrupteur allumé.
+2. **Des questions du Quiz sont rattachées au tutoriel**, **approuvées** ET cochées
+   **bloquantes**, dans l'écran « Rattacher des questions aux contenus » (onglet Quiz, côté
+   professeur). Ces trois conditions vont ensemble : une question rattachée mais laissée en
+   « proposée », ou non cochée bloquante, ne conditionne rien. Sans question bloquante
+   approuvée, le tutoriel se valide comme avant, même interrupteur allumé.
+
+   > **À savoir** : les rattachements créés automatiquement (à l'import d'un lot de
+   > questions, ou par le rapprochement de contenu) sont **volontairement non bloquants**.
+   > Personne ne les a demandés un par un ; les rendre bloquants d'office conditionnerait
+   > des dizaines de fiches d'un coup le jour où l'interrupteur s'allume. Un conditionnement
+   > ne s'applique que là où un professeur a explicitement coché « bloquant ».
+
+   L'écran affiche en permanence **où en est le dispositif** : interrupteur allumé ou éteint,
+   nombre de questions bloquantes, nombre de contenus couverts, propositions en attente. S'il
+   annonce « 0 question bloquante » alors que l'interrupteur est allumé, aucun élève ne verra
+   jamais de question — c'est le cas le plus fréquent quand « rien ne se passe ».
 
 Les réglages qui accompagnent l'interrupteur :
 
@@ -257,6 +270,8 @@ Les réglages qui accompagnent l'interrupteur :
 | Délai avant nouvelle tentative après une erreur | **3 jours par défaut.** Une fois la tolérance épuisée, la validation de ce tutoriel est verrouillée pour la durée indiquée. `0` supprime le verrou et autorise le réessai immédiat. |
 | Questions posées d'affilée au maximum           | **3 par défaut.** En mode « toutes », l'élève avance par paliers plutôt que d'enchaîner huit questions : ses bonnes réponses sont gardées d'une fois sur l'autre.                   |
 | Annoncer le contrôle sur le bouton              | **Oui par défaut.** Le bouton « Marquer comme lu » porte alors une pastille (« 1 question », « 🔒 ») pour prévenir l'élève avant qu'il ne clique.                                   |
+| Portée du blocage                               | **La fiche entière par défaut** (comportement historique), ou la **seule question ratée** — l'élève poursuit alors sur les autres questions de la fiche.                            |
+| Afficher les pastilles d'état                   | **Oui par défaut.** Une petite marque à côté du bouton : **✓** contrôle réussi, **?** questions restantes, **🔒** bloqué. Rien ne s'affiche là où rien n'est conditionné.           |
 
 Ce que l'élève voit, dans l'ordre. **Avant même de cliquer**, le bouton indique ce qui
 l'attend : « 1 question », ou un cadenas si la validation est encore bloquée. Au clic, un
@@ -270,14 +285,39 @@ avant de pouvoir réessayer. **Abandonner ne coûte rien** tant qu'aucune répon
 envoyée. Les bonnes réponses déjà données ailleurs (dans l'onglet Quiz, par exemple)
 comptent : une question déjà réussie n'est pas reposée.
 
-### Rattacher les questions aux tutoriels
+### Les pastilles d'état
+
+À côté de chaque bouton de validation, une petite marque dit où en est l'élève, sans qu'il
+ait à cliquer :
+
+| Marque | Signification                                                       |
+| ------ | ------------------------------------------------------------------- |
+| **✓**  | Le contrôle est réussi : la validation est ouverte.                 |
+| **?**  | Il reste des questions à réussir (le nombre est indiqué au survol). |
+| **🔒** | Une erreur a posé un verrou ; l'échéance est indiquée.              |
+
+Rien ne s'affiche sur un contenu non conditionné, ni sur un contenu déjà validé : une marque
+partout ne signalerait plus rien. La forme suffit à distinguer les trois cas — la couleur ne
+fait que la renforcer, pour rester lisible en cas de daltonisme ou à l'impression. En tête de
+la liste des tutoriels, un décompte récapitule l'ensemble (« ✓ 3 acquis · ? 2 en attente »).
+
+Le réglage **« Afficher les pastilles d'état »** permet de les éteindre entièrement.
+
+### Rattacher les questions aux contenus
 
 L'écran se trouve dans l'onglet **Quiz** côté professeur, sous le catalogue et l'éditeur de
-questions : **« Rattacher des questions aux tutoriels »**. Il est organisé par tutoriel — la
-liste de gauche indique pour chacun combien de questions bloquantes il porte, et combien de
-propositions attendent une validation.
+questions : **« Rattacher des questions aux contenus »**. Trois onglets — **Tutoriels**,
+**Fiches espèces**, **Glossaire** — donnent accès aux trois types de contenus ; l'écran ne
+servait auparavant que les tutoriels. La liste de gauche indique pour chacun combien de
+questions bloquantes il porte, et combien de propositions attendent une validation.
 
-Pour un tutoriel choisi, on peut :
+**Le glossaire est un cas à part.** ForetMap n'a pas de bouton « terme appris » : un terme de
+glossaire ne se valide pas, donc rien ne peut y être conditionné. Les liens y sont
+**documentaires** — ils disent quelle question parle de quel terme, ce qui reste utile — et
+la case « bloquante » y est désactivée. (Gnomes & Licornes, lui, sait valider un terme : le
+conditionnement y fonctionne.)
+
+Pour un contenu choisi, on peut :
 
 - **Rattacher une question** : un champ de recherche filtre le catalogue par code ou par
   texte ; les questions déjà rattachées n'y sont plus proposées.
@@ -286,15 +326,21 @@ Pour un tutoriel choisi, on peut :
 - **Changer le statut** : seules les questions **approuvées** comptent. Une question
   « proposée » n'a aucun effet tant qu'un professeur ne l'a pas approuvée ; « rejetée » la
   met de côté sans l'effacer.
-- **Fixer l'exigence propre à ce tutoriel** : suivre le réglage du site, ou bien exiger une
+- **Fixer l'exigence propre à ce contenu** : suivre le réglage du site, ou bien exiger une
   bonne réponse, toutes, un nombre minimum — ou **dispenser** cette fiche.
+- **Approuver toutes les propositions d'un coup** : un bouton reprend l'ensemble des
+  rattachements « proposés » du contenu courant. Approuver n'est pas conditionner — le
+  caractère bloquant reste à cocher ligne par ligne.
 
 ### Le rattachement automatique
 
 Le bouton **« Proposer des rattachements (par le contenu) »** compare le texte des questions
-et celui des tutoriels, et propose les rapprochements qu'il trouve. Il tient compte du
-**contenu réel des fiches**, pas seulement de leur titre : une question sur le compost est
-rapprochée de la fiche compostage même si le mot exact du titre n'y figure pas.
+et celui des contenus, et propose les rapprochements qu'il trouve. Il s'applique désormais aux
+trois types, chacun traité par la méthode qui lui convient : pour un **tutoriel**, le
+rapprochement porte sur le **contenu réel de la fiche**, pas seulement sur son titre (une
+question sur le compost est rapprochée de la fiche compostage même si le mot exact du titre n'y
+figure pas) ; pour une **fiche espèce** ou un **terme de glossaire**, c'est la présence du
+libellé dans l'énoncé qui compte — « Menthe », « photosynthèse » y apparaissent tels quels.
 
 Chaque proposition est accompagnée d'un **pourcentage de confiance** et des **mots qui l'ont
 motivée**, pour juger d'un coup d'œil. Deux précautions :
@@ -302,7 +348,10 @@ motivée**, pour juger d'un coup d'œil. Deux précautions :
 - Rien n'est enregistré tant que vous n'avez pas cliqué sur **« Enregistrer ces
   propositions »** : le premier clic ne fait que montrer ce qui serait créé.
 - Une fois enregistrées, les propositions arrivent en statut **« proposé »** : elles restent
-  sans effet sur les élèves jusqu'à ce que vous les approuviez une par une.
+  sans effet sur les élèves jusqu'à ce que vous les approuviez — une par une, ou toutes
+  ensemble avec le bouton d'approbation groupée. C'était le piège principal : sur quarante
+  propositions, personne n'allait au bout des quarante changements, et le rattachement
+  automatique ne débouchait sur rien.
 
 L'outil récupère aussi les **« questions liées »** que vous auriez déjà saisies sur une fiche
 question : elles ne remontaient pas d'elles-mêmes dans le contrôle de compréhension.
