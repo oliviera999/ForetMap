@@ -43,6 +43,7 @@ const EMPTY_SELECTION = new Set();
  * @param {(point: {xp:number,yp:number}, opts?: object) => ({xp:number,yp:number}|null)} [params.snapPoint]
  *   ancrage magnétique (aimant de contour) ; renvoie `null` si aucun contour proche
  * @param {number} [params.snapRadiusPct] rayon d'accroche de l'aimant, en % de largeur d'image
+ * @param {number} [params.snapMinStrength] contraste minimal exigé par l'aimant (sensibilité)
  * @param {number} [params.edgeTolerancePct] distance max. à une arête pour y insérer un sommet
  */
 function useZoneEditPoints({
@@ -53,6 +54,7 @@ function useZoneEditPoints({
   setToast,
   snapPoint,
   snapRadiusPct = 1,
+  snapMinStrength,
   edgeTolerancePct = 3,
 }) {
   const [editZone, setEditZone] = useState(null);
@@ -72,8 +74,13 @@ function useZoneEditPoints({
   const lassoRef = useRef(null);
   // Réglages de l'aimant lus au moment du geste : évite de recréer les handlers
   // (et donc de re-rendre le calque SVG mémoïsé) à chaque changement de zoom.
-  const snapRef = useRef({ snapPoint: null, snapRadiusPct: 1, edgeTolerancePct: 3 });
-  snapRef.current = { snapPoint, snapRadiusPct, edgeTolerancePct };
+  const snapRef = useRef({
+    snapPoint: null,
+    snapRadiusPct: 1,
+    snapMinStrength: undefined,
+    edgeTolerancePct: 3,
+  });
+  snapRef.current = { snapPoint, snapRadiusPct, snapMinStrength, edgeTolerancePct };
 
   useEffect(() => {
     if (mode !== 'edit-points') {
@@ -204,7 +211,11 @@ function useZoneEditPoints({
 
   /** Colle les sommets sélectionnés (ou tous) sur les contours de l'image de fond. */
   const snapSelectedPoints = useCallback(() => {
-    const { snapPoint: snap, snapRadiusPct: radiusPct } = snapRef.current;
+    const {
+      snapPoint: snap,
+      snapRadiusPct: radiusPct,
+      snapMinStrength: minStrength,
+    } = snapRef.current;
     if (typeof snap !== 'function') return 0;
     const pts = editPointsRef.current;
     const targets = selectedPtIdxsRef.current.size
@@ -213,7 +224,7 @@ function useZoneEditPoints({
     let moved = 0;
     const next = pts.map((p, i) => {
       if (!targets.has(i)) return p;
-      const hit = snap(p, { radiusPct });
+      const hit = snap(p, { radiusPct, minStrength });
       if (!hit) return p;
       moved += 1;
       return clampEditZonePct(hit);
@@ -424,8 +435,12 @@ function useZoneEditPoints({
         return;
       }
       groupDragLastRef.current = p2;
-      const { snapPoint: snap, snapRadiusPct: radiusPct } = snapRef.current;
-      const target = (typeof snap === 'function' && snap(p2, { radiusPct })) || p2;
+      const {
+        snapPoint: snap,
+        snapRadiusPct: radiusPct,
+        snapMinStrength: minStrength,
+      } = snapRef.current;
+      const target = (typeof snap === 'function' && snap(p2, { radiusPct, minStrength })) || p2;
       setEditPoints((pts) => pts.map((pt, j) => (j === i ? clampEditZonePct(target) : pt)));
     },
     [draggingPtIdx, toImagePct],
