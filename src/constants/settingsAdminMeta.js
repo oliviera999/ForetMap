@@ -328,6 +328,21 @@ export const KEY_META = {
     section: 'learning',
     order: 30,
   },
+  'learning.gating.allowed_wrong_attempts': {
+    label: 'Erreurs tolérées avant blocage',
+    section: 'learning',
+    order: 35,
+  },
+  'learning.gating.max_questions_per_session': {
+    label: 'Questions posées d’affilée au maximum',
+    section: 'learning',
+    order: 45,
+  },
+  'learning.gating.announce_on_button': {
+    label: 'Annoncer le contrôle sur le bouton « Marquer comme lu »',
+    section: 'learning',
+    order: 48,
+  },
   'learning.gating.retry_cooldown_days': {
     label: 'Délai avant nouvelle tentative après une erreur (jours, 0 = aucun)',
     section: 'learning',

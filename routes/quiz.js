@@ -123,6 +123,7 @@ async function maybeRegisterCooldownForFmAnswer(req, { userId, questionCode, isC
       questionCode,
       isCorrect,
       retryDays: site.retryCooldownDays,
+      allowedWrongAttempts: site.allowedWrongAttempts,
     },
   );
 }
