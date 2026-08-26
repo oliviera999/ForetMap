@@ -19,6 +19,23 @@ const LUMA_R = 0.299;
 const LUMA_G = 0.587;
 const LUMA_B = 0.114;
 
+/**
+ * Échelle de sensibilité de l'aimant, du plus exigeant au plus permissif.
+ *
+ * Chaque niveau est un **contraste minimal** (0..1 sur le gradient normalisé) en dessous
+ * duquel un pixel n'est pas considéré comme un contour. Un niveau bas ne retient donc que
+ * les limites franches (traits d'un plan dessiné) ; un niveau haut accroche aussi les
+ * transitions ténues (bord de parcelle sur une photo aérienne) — au risque de s'accrocher
+ * à une ombre ou à un feuillage.
+ */
+export const EDGE_SNAP_SENSITIVITY_SCALE = Object.freeze([
+  0.45, 0.38, 0.32, 0.27, 0.22, 0.18, 0.14, 0.1, 0.07, 0.04,
+]);
+
+/** Niveaux extrêmes proposés dans l'interface. */
+export const EDGE_SNAP_SENSITIVITY_MIN = 1;
+export const EDGE_SNAP_SENSITIVITY_MAX = EDGE_SNAP_SENSITIVITY_SCALE.length;
+
 /** Valeurs par défaut de l'aimant (réglages « raisonnables » sur un plan dessiné). */
 export const EDGE_SNAP_DEFAULTS = Object.freeze({
   /** Contraste minimal (0..1) pour qu'un pixel soit considéré comme un contour. */
@@ -27,7 +44,26 @@ export const EDGE_SNAP_DEFAULTS = Object.freeze({
   distanceWeight: 0.55,
   /** Rayon d'accroche par défaut, en pixels écran. */
   radiusScreenPx: 18,
+  /** Niveau de sensibilité par défaut (6 → `minStrength` 0,18, valeur historique). */
+  sensitivity: 6,
 });
+
+/**
+ * Traduit un niveau de sensibilité (1..10) en contraste minimal.
+ * Les valeurs hors bornes sont ramenées dans l'échelle ; une valeur illisible
+ * retombe sur le niveau par défaut plutôt que de désactiver l'aimant.
+ *
+ * @param {number} level niveau choisi dans l'interface
+ * @returns {number} `minStrength` à passer aux fonctions d'accroche
+ */
+export function sensitivityToMinStrength(level) {
+  const n = Math.round(Number(level));
+  if (!Number.isFinite(n)) {
+    return EDGE_SNAP_SENSITIVITY_SCALE[EDGE_SNAP_DEFAULTS.sensitivity - 1];
+  }
+  const bounded = Math.min(EDGE_SNAP_SENSITIVITY_MAX, Math.max(EDGE_SNAP_SENSITIVITY_MIN, n));
+  return EDGE_SNAP_SENSITIVITY_SCALE[bounded - 1];
+}
 
 /**
  * Luminance de chaque pixel (0..255).
