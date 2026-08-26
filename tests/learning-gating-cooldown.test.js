@@ -125,7 +125,10 @@ test('maybeRegisterCooldownOnWrong — pose le verrou FM sur erreur liee', async
   assert.match(inserted.sql, /INSERT INTO resource_gating_cooldowns/);
   assert.match(inserted.sql, /INTERVAL \? DAY/);
   assert.deepEqual(inserted.params.slice(0, 3), ['7', 'tutorial', '12']);
-  assert.equal(inserted.params[3], 3); // days
+  // La clé porte désormais le code de question ('' = verrou de portée ressource) ;
+  // on vérifie la présence des valeurs plutôt que leur position, qui bougera encore.
+  assert.equal(inserted.params[3], '', 'portée ressource par défaut');
+  assert.ok(inserted.params.includes(3), 'le délai en jours est bien transmis');
   // res reflete l'etat relu (cooldownRow=null ici => non verrouille, mais l'INSERT a bien eu lieu)
   assert.ok(res === null || typeof res === 'object');
 });
@@ -283,4 +286,62 @@ test('getResourceCooldownState — le compteur ne remonte que si le verrou court
   );
   assert.equal(expired.locked, false);
   assert.equal(expired.wrong_attempts, 0);
+});
+
+test('portée « question » — le verrou ne bloque que la question ratée', async () => {
+  const db = fakeDb();
+  await cooldown.maybeRegisterCooldownOnWrong(db, {
+    product: 'fm',
+    userId: '7',
+    resourceType: 'tutorial',
+    resourceRef: '12',
+    questionCode: 'QF0001',
+    isCorrect: false,
+    retryDays: 3,
+    cooldownScope: 'question',
+  });
+  const inserted = db.calls.execute[0];
+  assert.equal(inserted.params[3], 'QF0001', 'la clé porte le code de la question');
+});
+
+test('portée « ressource » — la clé reste vide, comportement historique', async () => {
+  const db = fakeDb();
+  await cooldown.maybeRegisterCooldownOnWrong(db, {
+    product: 'fm',
+    userId: '7',
+    resourceType: 'tutorial',
+    resourceRef: '12',
+    questionCode: 'QF0001',
+    isCorrect: false,
+    retryDays: 3,
+    cooldownScope: 'resource',
+  });
+  assert.equal(db.calls.execute[0].params[3], '');
+});
+
+test('cooldownKeyQuestionCode — la portée décide de la clé', () => {
+  assert.equal(cooldown.cooldownKeyQuestionCode({ cooldownScope: 'question' }, 'QF1'), 'QF1');
+  assert.equal(cooldown.cooldownKeyQuestionCode({ cooldownScope: 'resource' }, 'QF1'), '');
+  assert.equal(cooldown.cooldownKeyQuestionCode({}, 'QF1'), '', 'défaut = ressource entière');
+});
+
+test('la lecture prend le verrou le plus contraignant des deux portées', async () => {
+  // Une ressource peut porter à la fois un verrou global et un verrou de question :
+  // la requête trie par date de déblocage décroissante et garde le plus long.
+  const db = fakeDb({
+    cooldownRow: { locked_until: new Date(Date.now() + 2 * DAY), wrong_attempts: 1 },
+  });
+  const state = await cooldown.getResourceCooldownState(db, {
+    product: 'fm',
+    userId: '7',
+    resourceType: 'tutorial',
+    resourceRef: '12',
+    retryDays: 3,
+    questionCode: 'QF0001',
+  });
+  assert.equal(state.locked, true);
+  const read = db.calls.queryOne.find((c) => /gating_cooldowns/.test(c.sql));
+  assert.match(read.sql, /question_code IN/);
+  assert.match(read.sql, /ORDER BY locked_until DESC/);
+  assert.ok(read.params.includes('QF0001') && read.params.includes(''));
 });

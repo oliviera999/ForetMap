@@ -213,3 +213,50 @@ test('POST /suggest restreint aux questions demandées', async () => {
     assert.equal(c.question_code, codeHorsSujet);
   }
 });
+
+test('POST /suggest couvre aussi plantes et glossaire, chacun avec son moteur', async () => {
+  // Le rattachement automatique ne couvrait que les tutoriels : fiches espèces et
+  // termes de glossaire n'étaient servis que par le script en ligne de commande.
+  const res = await request(app)
+    .post('/api/learning-links/suggest')
+    .set(auth())
+    .send({ includeEditorial: false, minConfidence: 0.5 });
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.stats.resource_types.sort(), ['glossary', 'plant', 'tutorial']);
+  assert.equal(typeof res.body.stats.labelled_candidates, 'number');
+});
+
+test('POST /suggest restreint aux types demandés', async () => {
+  const res = await request(app)
+    .post('/api/learning-links/suggest')
+    .set(auth())
+    .send({ resourceTypes: ['tutorial'], includeEditorial: false });
+  assert.deepEqual(res.body.stats.resource_types, ['tutorial']);
+  for (const c of res.body.candidates) assert.equal(c.resource_type, 'tutorial');
+  // Aucun candidat par libellé quand les tutoriels sont seuls demandés.
+  assert.equal(res.body.stats.labelled_candidates, 0);
+});
+
+test('POST /suggest — un type inconnu est ignoré, pas fatal', async () => {
+  const res = await request(app)
+    .post('/api/learning-links/suggest')
+    .set(auth())
+    .send({ resourceTypes: ['chaussette'], includeEditorial: false });
+  assert.equal(res.status, 200);
+  // Liste vide après filtrage → on retombe sur les trois types plutôt que de ne rien faire.
+  assert.deepEqual(res.body.stats.resource_types.sort(), ['glossary', 'plant', 'tutorial']);
+});
+
+test('POST /suggest — les candidats hors tutoriel portent bien leur type', async () => {
+  const res = await request(app)
+    .post('/api/learning-links/suggest')
+    .set(auth())
+    .send({ resourceTypes: ['plant', 'glossary'], includeEditorial: false, minConfidence: 0.4 });
+  assert.equal(res.status, 200);
+  for (const c of res.body.candidates) {
+    assert.ok(
+      ['plant', 'glossary'].includes(c.resource_type),
+      `type inattendu : ${c.resource_type}`,
+    );
+  }
+});

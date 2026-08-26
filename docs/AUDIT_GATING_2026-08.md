@@ -57,7 +57,7 @@ Une ressource portant huit questions bloquantes les enchaînait sans plafond.
 renvoie désormais `ask_count` (ce qui sera posé maintenant) à côté de `pending_count` (ce qu'il
 reste au total) ; le client respecte le premier.
 
-### C4 — Le professeur ne voit rien des verrous · **non corrigé**
+### C4 — Le professeur ne voit rien des verrous · **corrigé (lot 27)**
 
 Aucune route, aucun écran n'expose `resource_gating_cooldowns`. Un élève bloqué trois jours est
 **invisible** : le professeur ne peut ni le constater, ni comprendre pourquoi l'élève ne valide
@@ -66,24 +66,38 @@ peut bloquer un élève sans que personne ne le sache.
 
 Le contournement actuel est une requête SQL directe. Voir _Évolutions_, piste 1.
 
-### C5 — `auto_mark_on_correct` est un réglage mort · **non corrigé**
+### C5 — `auto_mark_on_correct` est un réglage mort · **corrigé (lot 27)**
 
-Lu (`getFmGatingSite`, `routes/learning-links.js`) et exposé dans la console, mais **aucune
-décision ne le consulte**. L'auto-marquage a été retiré ; le réglage est resté. Il est désormais
-libellé comme réservé, mais il devrait disparaître.
+Lu et exposé des deux côtés, mais **aucune décision ne le consultait**. L'auto-marquage avait été
+retiré ; le réglage était resté. → **Supprimé du catalogue**, donc des deux consoles. Un réglage
+visible qui ne fait rien use la confiance dans tous les autres.
 
-### C6 — Aucun filtrage par niveau · **non corrigé**
+### C6 — Aucun filtrage par niveau · **bloqué : la donnée n'existe pas**
 
 Le conditionnement ne regarde ni `niveau` ni `difficulte` de la question. Une question marquée
-« lycée » peut bloquer un élève de collège si elle est rattachée au tutoriel. Le professeur doit
-y veiller à la main au moment du rattachement.
+« lycée » peut bloquer un élève de collège.
 
-### C7 — Divergence silencieuse ForetMap / GL sur la granularité · **non corrigé**
+**Ce constat n'a pas pu être corrigé** : la table `users` ne porte aucun niveau scolaire — ni
+colonne, ni groupe qui en tienne lieu. Les paliers RBAC (novice / avancé / chevronné) mesurent les
+tâches validées, pas le niveau. Livrer l'interrupteur sans la donnée aurait fait un second réglage
+sans effet, exactement ce que C5 vient de retirer.
 
-`resolveEffectivePolicy` attend une `granularity` (`player` / `team`). GL la fournit
-(`gl.gating.granularity`), ForetMap non : `getFmGatingSite` ne la lit pas, et le cœur retombe
-sur `player`. Sans effet visible aujourd'hui — ForetMap n'a pas d'équipes — mais c'est un
-paramètre attendu par le cœur partagé qu'un seul des deux produits alimente.
+**Ce qu'il faut décider avant de l'implémenter** : d'où vient le niveau d'un élève ? Une colonne sur
+le compte, renseignée à l'inscription ? Un attribut de groupe-classe ? Une correspondance depuis
+`affiliation` ? Le filtrage lui-même est ensuite une clause de quelques lignes.
+
+### C7 — Divergence silencieuse ForetMap / GL sur la granularité · **corrigé (lot 27)**
+
+Symptôme d'un mal plus large : **chaque produit définissait les mêmes réglages de son côté**, avec
+ses propres bornes. GL avait la granularité que ForetMap n'avait pas ; ForetMap avait la tolérance
+d'essais et le plafond par session que GL n'avait pas. Un réglage ajouté d'un côté restait invisible
+de l'autre.
+
+→ **Catalogue commun** `lib/shared/gatingSettingsCore.js` : un descripteur par réglage (type, bornes,
+défaut, clé de chaque produit). Les deux tables de réglages en sont désormais dérivées — ajouter une
+ligne l'ajoute aux deux, avec la même sémantique. Seul le stockage reste distinct (`app_settings` /
+`gl_settings`). La granularité reste propre à GL, mais **explicitement** : ForetMap n'a pas d'équipes,
+et l'exposer y serait un réglage sans effet.
 
 ### C8 — Ce qui tient bien
 
@@ -121,3 +135,18 @@ Plusieurs points méritent d'être notés comme sains, pour ne pas les défaire 
   pas indéfiniment.
 - **Mode « toutes » + plafond par session** → l'élève valide en plusieurs passages. Prévenir
   les élèves, sans quoi le refus après une session complète paraît arbitraire.
+
+## Ce que le lot 27 a mutualisé
+
+| Brique                              | Fichier                                              | Sert          |
+| ----------------------------------- | ---------------------------------------------------- | ------------- |
+| Catalogue des réglages              | `lib/shared/gatingSettingsCore.js`                   | ForetMap + GL |
+| Verrou et tolérance d'essais        | `lib/learningGatingCooldown.js`                      | ForetMap + GL |
+| Vue enseignante des verrous         | `lib/learningGatingAdmin.js`                         | ForetMap + GL |
+| Écran « lecteurs bloqués »          | `src/shared/components/LearningGatingLocksPanel.jsx` | ForetMap + GL |
+| Taux de réussite par question       | `lib/quizQuestionStats.js`                           | ForetMap + GL |
+| Cœur du challenge et des politiques | `lib/learningGatingAcknowledge.js`                   | ForetMap + GL |
+
+Le principe retenu : **la sémantique est commune, le stockage reste propre à chaque produit**. GL
+garde ses tables `gl_*`, son authentification et son isolement ; ce qui est partagé, c'est la
+décision — quels réglages existent, ce qu'ils valent, comment un verrou se pose et se lève.
