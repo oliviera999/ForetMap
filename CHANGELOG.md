@@ -31,6 +31,39 @@ concernés disent maintenant que ces trois opérations font partie des **migrati
 
 Aucune migration. Aucun changement de comportement du studio lui-même : ses routes ont été
 exercées une à une contre une base à jour, sans aucun 5xx.
+### Le contrôle de compréhension prévient avant de frapper (lot 26)
+
+**Audit du dispositif** dans [docs/AUDIT_GATING_2026-08.md](docs/AUDIT_GATING_2026-08.md). Trois
+constats corrigés ici, quatre documentés.
+
+**Il n'existait aucun entre-deux.** La première mauvaise réponse verrouillait la ressource entière
+pour trois jours — en mode « toutes », une erreur à la quatrième question sur cinq annulait tout.
+Et régler le délai à zéro supprimait toute vérification : rien ne limitait les tentatives, il
+suffisait de réessayer jusqu'à tomber juste. Nouveau réglage **« Erreurs tolérées avant blocage »**
+(0 par défaut, comportement inchangé) : le professeur peut accorder une ou deux erreurs avant que
+le verrou ne tombe. Le compteur repart à zéro dès que le verrou expire.
+
+**L'élève découvrait l'épreuve après s'être engagé.** Le bouton disait « ✓ Marquer comme lu », rien
+de plus ; l'annonce n'arrivait qu'une fois la fenêtre ouverte. Un élève pouvait déclencher trois
+jours de blocage sans avoir su qu'il jouait quelque chose. Le bouton porte désormais une pastille
+(« 1 question », « 🔒 » si la validation est bloquée), alimentée par un **résumé groupé** — une
+seule requête pour toute la liste des tutoriels, pas une par carte.
+
+**Les règles sont énoncées avant de commencer** : combien de questions maintenant, combien il en
+restera, combien d'erreurs sont permises, ce que coûte une erreur de trop, et le rappel
+qu'abandonner ne coûte rien.
+
+**La question s'affiche maintenant dans un panneau qui surgit par-dessus la page**, au vocabulaire
+visuel du popover de glossaire, plutôt que dans une modale pleine largeur : le tutoriel qu'on vient
+de lire reste visible derrière, et l'exercice ressemble moins à un examen.
+
+**Plus de marathon** : nouveau réglage **« Questions posées d'affilée au maximum »** (3 par défaut).
+En mode « toutes », une ressource portant huit questions bloquantes les enchaînait sans plafond ;
+l'élève avance désormais par paliers, ses bonnes réponses restant acquises.
+
+Restent documentés comme points d'attention, non corrigés : le professeur **ne voit pas** quels
+élèves sont bloqués, le conditionnement **ignore le niveau** des questions, et le réglage
+_marquage automatique sur bonne réponse_ demeure un reliquat sans effet.
 
 ### Une seule liste de mascottes, et la « liste figée » disparaît (fusion catalogue/packs, étape 3)
 

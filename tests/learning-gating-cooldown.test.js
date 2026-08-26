@@ -172,3 +172,115 @@ test('getResourceCooldownState — non verrouille sans ligne', async () => {
   });
   assert.equal(state.locked, false);
 });
+
+// ---------------------------------------------------------------------------
+// Tolérance d'essais avant verrou (lot 23). Sans elle, le conditionnement n'avait
+// que deux régimes : verrou dès la première erreur, ou aucun contrôle du tout.
+// ---------------------------------------------------------------------------
+
+test('clampAllowedWrongAttempts — bornage 0..10', () => {
+  assert.equal(cooldown.clampAllowedWrongAttempts(2), 2);
+  assert.equal(cooldown.clampAllowedWrongAttempts(-3), 0);
+  assert.equal(cooldown.clampAllowedWrongAttempts(99), 10);
+  assert.equal(cooldown.clampAllowedWrongAttempts('2'), 2);
+  assert.equal(cooldown.clampAllowedWrongAttempts('abc', 1), 1);
+  assert.equal(cooldown.clampAllowedWrongAttempts(undefined), 0);
+});
+
+test('tolérance 0 — le verrou tombe dès la première erreur (comportement historique)', async () => {
+  const db = fakeDb();
+  await cooldown.maybeRegisterCooldownOnWrong(db, {
+    product: 'fm',
+    userId: '7',
+    resourceType: 'tutorial',
+    resourceRef: '12',
+    questionCode: 'QF0001',
+    isCorrect: false,
+    retryDays: 3,
+    allowedWrongAttempts: 0,
+  });
+  assert.equal(db.calls.execute.length, 1);
+  assert.match(db.calls.execute[0].sql, /INTERVAL \? DAY/, 'la date de déblocage est posée');
+});
+
+test('sous la tolérance — la faute est comptée, la ressource reste ouverte', async () => {
+  const db = fakeDb();
+  const res = await cooldown.maybeRegisterCooldownOnWrong(db, {
+    product: 'fm',
+    userId: '7',
+    resourceType: 'tutorial',
+    resourceRef: '12',
+    questionCode: 'QF0001',
+    isCorrect: false,
+    retryDays: 3,
+    allowedWrongAttempts: 2,
+  });
+  assert.equal(res.locked, false, 'première faute sur deux tolérées : pas de verrou');
+  assert.equal(res.wrong_attempts, 1);
+  assert.equal(res.attempts_left, 1);
+  assert.equal(db.calls.execute.length, 1);
+  assert.ok(
+    !/INTERVAL \? DAY/.test(db.calls.execute[0].sql),
+    'aucune date de déblocage future ne doit être posée tant que la tolérance tient',
+  );
+});
+
+test('tolérance épuisée — le verrou tombe', async () => {
+  // Une ligne existante porte déjà deux fautes, verrou encore courant.
+  const db = fakeDb({
+    cooldownRow: {
+      wrong_attempts: 2,
+      locked_until: new Date(Date.now() + DAY).toISOString(),
+    },
+  });
+  const res = await cooldown.maybeRegisterCooldownOnWrong(db, {
+    product: 'fm',
+    userId: '7',
+    resourceType: 'tutorial',
+    resourceRef: '12',
+    questionCode: 'QF0001',
+    isCorrect: false,
+    retryDays: 3,
+    allowedWrongAttempts: 2,
+  });
+  assert.match(db.calls.execute[0].sql, /INTERVAL \? DAY/);
+  assert.equal(res?.attempts_left, 0);
+});
+
+test('un verrou expiré remet le compteur d’essais à zéro', async () => {
+  // Sans cette remise à zéro, la faute suivant l'expiration re-verrouillerait aussitôt.
+  const db = fakeDb({
+    cooldownRow: {
+      wrong_attempts: 5,
+      locked_until: new Date(Date.now() - DAY).toISOString(),
+    },
+  });
+  const res = await cooldown.maybeRegisterCooldownOnWrong(db, {
+    product: 'fm',
+    userId: '7',
+    resourceType: 'tutorial',
+    resourceRef: '12',
+    questionCode: 'QF0001',
+    isCorrect: false,
+    retryDays: 3,
+    allowedWrongAttempts: 2,
+  });
+  assert.equal(res.locked, false, 'la série précédente est soldée');
+  assert.equal(res.wrong_attempts, 1);
+});
+
+test('getResourceCooldownState — le compteur ne remonte que si le verrou court', async () => {
+  const locked = await cooldown.getResourceCooldownState(
+    fakeDb({ cooldownRow: { wrong_attempts: 4, locked_until: new Date(Date.now() + DAY) } }),
+    { product: 'fm', userId: '7', resourceType: 'tutorial', resourceRef: '12', retryDays: 3 },
+  );
+  assert.equal(locked.locked, true);
+  assert.equal(locked.wrong_attempts, 4);
+
+  const expired = await cooldown.getResourceCooldownState(
+    fakeDb({ cooldownRow: { wrong_attempts: 4, locked_until: new Date(Date.now() - DAY) } }),
+    { product: 'fm', userId: '7', resourceType: 'tutorial', resourceRef: '12', retryDays: 3 },
+  );
+  assert.equal(expired.locked, false);
+  assert.equal(expired.wrong_attempts, 0);
+});

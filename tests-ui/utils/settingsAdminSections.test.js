@@ -107,7 +107,10 @@ describe('réglages du verrou pédagogique (learning.gating.*)', () => {
     'learning.gating.enabled',
     'learning.gating.default_mode',
     'learning.gating.default_required_correct',
+    'learning.gating.allowed_wrong_attempts',
     'learning.gating.retry_cooldown_days',
+    'learning.gating.max_questions_per_session',
+    'learning.gating.announce_on_button',
     'learning.gating.auto_mark_on_correct',
   ];
 

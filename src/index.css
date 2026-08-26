@@ -7591,6 +7591,114 @@ a.fm-glossary-inline-link:focus-visible,
 /* ── Glossaire : fiche rapide (popover) ────────────────────────────────────
    Rendue par portail sous `body`, au-dessus de l'aperçu de tutoriel (400) et de
    sa confirmation « lu » (460), sous le mode découverte (4000). */
+/* ── Popover du contrôle de compréhension ────────────────────────────────────
+ * Même vocabulaire visuel que le popover de glossaire : la question surgit
+ * par-dessus le tutoriel sans le masquer entièrement ni faire « examen ».
+ */
+.fm-quiz-popover {
+  position: fixed;
+  inset: 0;
+  z-index: 910;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(12px, var(--safe-top)) 12px max(12px, var(--safe-bottom));
+  background: rgba(12, 30, 20, 0.52);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fmGlossaryOverlayIn 0.22s var(--ease-out, ease) both;
+}
+.fm-quiz-popover__panel {
+  position: relative;
+  width: min(480px, 100%);
+  max-height: min(88dvh, 720px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--cream, #fefae0);
+  border: 1px solid var(--mint, #b7e4c7);
+  border-radius: var(--radius, 14px);
+  box-shadow: var(--shadow-strong, 0 18px 42px rgba(20, 54, 37, 0.16));
+}
+.fm-quiz-popover__strip {
+  flex-shrink: 0;
+  height: 4px;
+  background: var(--leaf, #2d6a4f);
+}
+.fm-quiz-popover__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #4b5d51;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.fm-quiz-popover__close:hover { background: rgba(45, 106, 79, 0.08); }
+.fm-quiz-popover__body {
+  overflow: auto;
+  padding: 16px 18px 18px;
+}
+.fm-quiz-popover__body h3 { margin: 0 0 4px; padding-right: 40px; font-size: 1.05rem; }
+
+/* Règles annoncées avant de commencer : ce que l'élève risque, en clair. */
+.learning-gating-rules {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  color: #3d4a3d;
+}
+.learning-gating-rules li {
+  padding-left: 18px;
+  position: relative;
+}
+.learning-gating-rules li::before {
+  content: '·';
+  position: absolute;
+  left: 6px;
+  font-weight: 700;
+  color: var(--leaf, #2d6a4f);
+}
+
+/* Pastille d'annonce portée par le bouton « Marquer comme lu ». */
+.learning-gating-announce {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(45, 106, 79, 0.12);
+  color: #1b4332;
+  vertical-align: middle;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fm-quiz-popover { animation: none; }
+}
+
+/* Texte réservé aux lecteurs d'écran (l'annonce du bouton, notamment) : cette
+ * utilitaire n'existait pas encore dans la feuille ForetMap. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .fm-glossary-popover {
   position: fixed;
   inset: 0;
