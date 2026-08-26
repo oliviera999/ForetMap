@@ -578,6 +578,27 @@ async function initSchema() {
   } catch (err) {
     logger.warn({ err }, 'Normalisation des horodatages hérités ignorée');
   }
+  try {
+    // Fusion catalogue / packs : les mascottes livrées deviennent des lignes de
+    // `visit_mascot_packs` (`origin = 'builtin'`), donc éditables et exportables comme les
+    // autres. N'insère que ce qui est absent — une ligne modifiée par un prof n'est jamais
+    // écrasée. `seedBuiltinMascotPacks` avale déjà ses erreurs ; le `try` est une seconde
+    // ceinture, parce qu'un semis ne doit en aucun cas empêcher l'application de démarrer.
+    const { seedBuiltinMascotPacks } = require('./lib/visitMascotBuiltinSeed');
+    await seedBuiltinMascotPacks();
+  } catch (err) {
+    logger.warn({ err }, 'Semis des mascottes livrées ignoré');
+  }
+  try {
+    // **Après** le semis, et pas avant : la traduction dépublie des lignes, il faut donc
+    // qu'elles existent. Elle lève la « liste figée » — `ui.visit.mascot.allowed_ids`, une liste
+    // blanche d'identifiants qui rendait invisible toute mascotte ajoutée après coup — en
+    // reportant la restriction sur `is_published`, puis en effaçant le réglage.
+    const { migrateVisitMascotVisibilityToColumn } = require('./lib/visitMascotVisibility');
+    await migrateVisitMascotVisibilityToColumn();
+  } catch (err) {
+    logger.warn({ err }, 'Bascule de la visibilité des mascottes ignorée');
+  }
 }
 
 // Doublons de numéros HISTORIQUES (021_add_new_tutorials_seed / 021_visit_public_flow,

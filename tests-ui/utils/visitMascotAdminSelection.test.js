@@ -1,9 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import {
   registryMascotIds,
-  isMascotProposed,
-  toggleProposedMascotId,
-  chooseDefaultMascotId,
   findOrphanMascotIds,
 } from '../../src/utils/visitMascotAdminSelection.js';
 
@@ -12,53 +9,25 @@ const REGISTRY = [
   { id: 'gnome1', label: 'Gnome 1', source: 'catalog' },
   { id: 'srv-abeille', label: 'Abeille du verger', source: 'pack' },
 ];
-const IDS = registryMascotIds(REGISTRY);
 
 describe('visitMascotAdminSelection', () => {
-  test('liste vide = toutes les mascottes proposées', () => {
-    expect(IDS).toEqual(['renard2-cut-spritesheet', 'gnome1', 'srv-abeille']);
-    for (const id of IDS) expect(isMascotProposed([], id)).toBe(true);
-    expect(isMascotProposed(['gnome1'], 'srv-abeille')).toBe(false);
-  });
-
-  test('première décoche : la liste complète est matérialisée moins la mascotte', () => {
-    expect(toggleProposedMascotId([], IDS, 'gnome1')).toEqual([
+  test('le registre se lit dans l’ordre d’affichage, entrées vides écartées', () => {
+    expect(registryMascotIds(REGISTRY)).toEqual([
       'renard2-cut-spritesheet',
-      'srv-abeille',
-    ]);
-  });
-
-  test('recocher ajoute, décocher la dernière revient à « toutes proposées »', () => {
-    expect(toggleProposedMascotId(['gnome1'], IDS, 'srv-abeille')).toEqual([
       'gnome1',
       'srv-abeille',
     ]);
-    expect(toggleProposedMascotId(['gnome1'], IDS, 'gnome1')).toEqual([]);
+    expect(registryMascotIds([{ id: '  ' }, null, { id: ' gnome1 ' }])).toEqual(['gnome1']);
+    expect(registryMascotIds(null)).toEqual([]);
   });
 
-  test('un pack se coche et se décoche comme une mascotte livrée', () => {
-    const withoutPack = toggleProposedMascotId([], IDS, 'srv-abeille');
-    expect(withoutPack).toEqual(['renard2-cut-spritesheet', 'gnome1']);
-    expect(toggleProposedMascotId(withoutPack, IDS, 'srv-abeille')).toContain('srv-abeille');
-  });
-
-  test('la mascotte par défaut est toujours proposée', () => {
-    expect(chooseDefaultMascotId(['gnome1'], 'srv-abeille')).toEqual({
-      defaultId: 'srv-abeille',
-      allowedIds: ['gnome1', 'srv-abeille'],
-    });
-    // Liste vide : aucune restriction, rien à ajouter.
-    expect(chooseDefaultMascotId([], 'srv-abeille')).toEqual({
-      defaultId: 'srv-abeille',
-      allowedIds: [],
-    });
-  });
-
-  test('ids orphelins : réglés mais absents du registre', () => {
-    expect(findOrphanMascotIds(IDS, ['gnome1', 'srv-supprime'], 'srv-parti')).toEqual([
-      'srv-supprime',
-      'srv-parti',
-    ]);
-    expect(findOrphanMascotIds(IDS, [], 'gnome1')).toEqual([]);
+  test('une mascotte par défaut retirée de la visite est signalée', () => {
+    // Le cas réel depuis l'étape 3 : un administrateur retire au studio la mascotte qu'il avait
+    // désignée par défaut. Les visiteurs retombent alors sur la livrée par défaut ; sans ce
+    // repérage, rien à l'écran ne l'expliquerait.
+    const ids = registryMascotIds(REGISTRY);
+    expect(findOrphanMascotIds(ids, [], 'srv-disparue')).toEqual(['srv-disparue']);
+    expect(findOrphanMascotIds(ids, [], 'gnome1')).toEqual([]);
+    expect(findOrphanMascotIds(ids, [], '')).toEqual([]);
   });
 });

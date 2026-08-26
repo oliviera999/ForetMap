@@ -2,23 +2,6 @@ import { parseVisitZonePoints } from './visitMapGeometry.js';
 import { itemSeenKey } from './visitMediaGallery.js';
 
 /**
- * IDs de mascottes autorisées pour la visite, depuis le réglage public
- * `visit.mascot.allowed_ids` : tableau d'IDs ou chaîne séparée par virgules,
- * points-virgules ou sauts de ligne. Entrées vides ignorées.
- * @returns {string[]} liste nettoyée (vide = aucune restriction).
- */
-export function parseVisitMascotAllowedIds(raw) {
-  if (Array.isArray(raw)) return raw.map((id) => String(id || '').trim()).filter(Boolean);
-  if (typeof raw === 'string') {
-    return raw
-      .split(/[,\n;]+/g)
-      .map((id) => String(id || '').trim())
-      .filter(Boolean);
-  }
-  return [];
-}
-
-/**
  * Progression cartographique de la visite : zones affichées sur le plan
  * (polygone valide, ≥ 3 points) + repères, alignée sur ce que l'utilisateur
  * peut parcourir sur la carte courante.

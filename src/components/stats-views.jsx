@@ -257,7 +257,6 @@ function StudentStats({ student }) {
 }
 
 function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
-  const publicSettings = usePublicSettings();
   const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
   const fallbackDisplayName = String(
@@ -280,10 +279,12 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
   );
   // Packs publiés inclus : le profil propose exactement les mêmes mascottes que le plan.
   const visitMascotPackExtras = useVisitMascotCatalogExtras();
+  // Aucune restriction passée : « proposée aux visiteurs » se règle sur la mascotte elle-même
+  // (publication au studio), plus par une liste blanche de réglages. Le profil montre donc
+  // exactement ce que montre le plan.
   const visitMascotOptions = useMemo(
-    () =>
-      buildVisitMascotOptions(publicSettings?.visit?.mascot?.allowed_ids, visitMascotPackExtras),
-    [publicSettings?.visit?.mascot?.allowed_ids, visitMascotPackExtras],
+    () => buildVisitMascotOptions(null, visitMascotPackExtras),
+    [visitMascotPackExtras],
   );
   const [avatarPreview, setAvatarPreview] = useState(getStudentAvatarUrl(student));
   const [avatarData, setAvatarData] = useState(null);

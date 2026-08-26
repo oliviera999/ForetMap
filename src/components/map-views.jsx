@@ -27,7 +27,6 @@ import useMapCrudActions from '../hooks/useMapCrudActions.js';
 import useMascotGpsFollow from '../hooks/useMascotGpsFollow.js';
 import { MascotGpsStatusBanner } from './MascotGpsStatusBanner.jsx';
 import useVisitMascotCatalogExtras from '../hooks/useVisitMascotCatalogExtras.js';
-import { parseVisitMascotAllowedIds } from '../utils/visitViewStatus.js';
 import { useMapGestures } from '../hooks/useMapGestures.js';
 
 import { TimedToast } from '../shared/components/TimedToast.jsx';
@@ -154,10 +153,6 @@ function MapViewImpl({
   const markerEmojis = useMemo(
     () => parseEmojiListSetting(configuredLocationEmojis, MARKER_EMOJIS),
     [configuredLocationEmojis],
-  );
-  const visitMascotAllowedIds = useMemo(
-    () => parseVisitMascotAllowedIds(publicSettings?.visit?.mascot?.allowed_ids),
-    [publicSettings?.visit?.mascot?.allowed_ids],
   );
   const visitMascotDefaultId = String(publicSettings?.visit?.mascot?.default_id || '').trim();
   // Registre global des packs publiés → la mascotte peut être un pack importé (srv-…),
@@ -289,7 +284,6 @@ function MapViewImpl({
     enabled: mode === 'view',
     extraCatalogEntries: visitMascotCatalogExtras,
     preferredMascotId: student?.visit_mascot_catalog_id,
-    allowedMascotIds: visitMascotAllowedIds,
     defaultMascotId: visitMascotDefaultId,
     onPersistPreferredMascotId: onPersistVisitMascotId,
     mascotDialogSettings: publicSettings?.visit?.mascot?.dialog,

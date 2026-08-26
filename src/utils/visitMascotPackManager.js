@@ -160,42 +160,6 @@ export function resolvePackDialogMascotId(editorPack, selectedRow) {
 }
 
 /**
- * Packs serveur clonés depuis un modèle catalogue intégré.
- * @param {Array<Record<string, unknown>>} packs
- * @param {string} modelId
- */
-export function findPacksForCatalogModel(packs, modelId) {
-  const mid = String(modelId || '').trim();
-  if (!mid) return [];
-  return (Array.isArray(packs) ? packs : []).filter(
-    (p) => String(p?.pack?.clonedFromCatalogId || '').trim() === mid,
-  );
-}
-
-/**
- * Choisit la copie catalogue à ouvrir (pack sélectionné, unique, ou la plus récente).
- * @param {Array<Record<string, unknown>>} copies
- * @param {string | null | undefined} selectedId
- * @returns {{ pack: Record<string, unknown>, ambiguous: boolean } | null}
- */
-export function pickPreferredCatalogModelPack(copies, selectedId) {
-  const list = Array.isArray(copies) ? copies : [];
-  if (list.length === 0) return null;
-  const sel = String(selectedId || '').trim();
-  const selectedMatch = sel ? list.find((p) => String(p?.id || '') === sel) : null;
-  if (selectedMatch) {
-    return { pack: selectedMatch, ambiguous: list.length > 1 };
-  }
-  if (list.length === 1) return { pack: list[0], ambiguous: false };
-  const sorted = [...list].sort((a, b) => {
-    const ta = String(a?.updated_at || a?.created_at || '').trim();
-    const tb = String(b?.updated_at || b?.created_at || '').trim();
-    return tb.localeCompare(ta);
-  });
-  return { pack: sorted[0], ambiguous: true };
-}
-
-/**
  * Insère une image dans l’état ciblé : fichier relatif si `framesBase` correspond, sinon URL absolue.
  * @param {Record<string, unknown> | null | undefined} prevPack
  * @param {string} targetState

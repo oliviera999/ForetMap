@@ -7,6 +7,81 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Une seule liste de mascottes, et la « liste figée » disparaît (fusion catalogue/packs, étape 3)
+
+Le studio n'affiche plus qu'**une** liste de mascottes, livrées comprises, chacune portant son
+origine (**Livrée** / **Créée ici**). Le volet séparé « Mascottes livrées » et le détour par
+« Éditer une copie » disparaissent : une mascotte livrée s'ouvre et se modifie directement.
+
+**Le défaut de fond est fermé.** Une mascotte importée pouvait rester invisible aux visiteurs
+sans que rien ne le signale : le réglage `ui.visit.mascot.allowed_ids` était une **liste blanche
+d'identifiants**, qui ignorait par construction toute mascotte ajoutée après sa pose. Ce réglage
+est **supprimé**. Proposer une mascotte aux visiteurs, c'est la **publier**, là où on la modifie.
+Une restriction existante est reportée automatiquement au démarrage, puis le réglage est effacé.
+
+**Ce qui change pour un professeur :**
+
+- une mascotte livrée se modifie, s'exporte et se retire de la visite comme les autres ;
+- **« Réinitialiser depuis l'origine »** lui rend son apparence d'origine à tout moment — on peut
+  donc l'essayer sans rien perdre. La réinitialisation ne touche pas à sa publication ;
+- **supprimer** une mascotte livrée est refusé, avec l'explication : l'application la recréerait
+  au démarrage suivant. Les deux gestes qui durent sont nommés (la retirer de la visite, ou la
+  réinitialiser) ;
+- **importer une archive « en remplacement » sur une mascotte livrée la change vraiment**, sous
+  son identifiant — c'était impossible auparavant, l'archive créait une mascotte à côté ;
+- partir d'un modèle livré reste possible ; ceux qui n'ont **qu'une image fixe** y sont signalés.
+
+**Ce qui change pour un administrateur :** **Paramètres → Mascottes de visite** ne règle plus que
+la **mascotte par défaut**, et signale le cas où celle-ci a été retirée de la visite.
+
+Correctif au passage : un pack `rive` ou `spritesheet` était refusé par le serveur au nom d'un
+champ `framesBase` qu'il ne porte pas — quinze des seize mascottes livrées étaient en réalité
+inenregistrables — et, s'il passait, la ligne écrite ne pouvait plus être relue.
+
+Aucune migration. Aucune action requise.
+
+### Les mascottes livrées deviennent des packs éditables (fusion catalogue/packs, étape 2)
+
+Les seize mascottes fournies avec l'application vivaient dans le code : ni modifiables, ni
+supprimables, ni exportables autrement qu'en les clonant. Elles sont désormais **semées dans la
+même table que les packs** au démarrage, et se gèrent exactement comme eux.
+
+Concrètement : modifier une mascotte livrée fonctionne enfin, et la modification est celle qui
+s'affiche. Supprimer une mascotte livrée est possible — et un redémarrage la **remet en place
+telle qu'elle a été fournie**, ce qui donne un « réinitialiser depuis l'origine » gratuit.
+
+**Ce qui protège l'existant :**
+
+- une ligne modifiée n'est **jamais** écrasée par un redémarrage ;
+- le catalogue en code reste en **filet** : si le semis échoue, les mascottes continuent d'être
+  proposées. Vidage complet de la table testé — le sélecteur reste peuplé ;
+- une mascotte qui ne se convertit pas est **écartée et nommée**, pas semée à moitié.
+
+Aucune action requise : le semis se fait au démarrage, sans rien demander.
+
+Migration `198_visit_mascot_packs_origin.sql` (ajout de la colonne `origin`).
+
+
+### Le format de pack mascotte décrit les trois moteurs (fusion catalogue/packs, étape 1)
+
+Arbitrage rendu sur l'audit : c'est la piste radicale qui est suivie — **fusionner le catalogue
+livré et les packs en un registre unique**. Première étape, celle qui débloque tout le reste.
+
+Le format de pack ne savait décrire qu'un moteur sur trois. Or **onze** mascottes livrées sont en
+`rive` et **quatre** en `spritesheet` : tant que le format les ignorait, elles ne pouvaient pas
+devenir des packs, et le catalogue en code restait un univers parallèle — avec ses droits, son
+outillage et ses incohérences propres.
+
+Un pack peut désormais annoncer `sprite_cut`, `spritesheet` ou `rive`, et porter le bloc
+correspondant. **Un pack en décrit un seul** : porter les champs d'un autre est refusé, avec le
+champ nommé, plutôt qu'arbitré en silence — un pack à moitié converti ne doit pas passer.
+
+Les packs `sprite_cut` déjà enregistrés valident **à l'identique**.
+
+Étapes suivantes, à livrer séparément : le semis des mascottes livrées dans la table (migration),
+puis le studio à liste unique où « réinitialiser depuis l'origine » remplace le masquage.
+
+
 ### Les questions se rattachent enfin aux tutoriels, à la main ou toutes seules (lot 22)
 
 **Le contrôle de compréhension était injoignable.** Le serveur savait exiger des questions

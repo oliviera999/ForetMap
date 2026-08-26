@@ -2,20 +2,26 @@ import React from 'react';
 import { toMascotPackIssueLines } from '../../utils/mascotPackValidationUi.js';
 
 /**
- * Colonne de gauche du gestionnaire de packs mascotte : présentation/aide,
- * création (brouillon, modèles catalogue, copie), liste des packs, panneau du
- * pack sélectionné (libellé, enregistrer/publier/supprimer, validation,
- * avertissements) et bloc d'erreur d'action. Présentation pure prop-driven :
- * tout l'état et les actions (api) restent dans le parent.
+ * Colonne de gauche du gestionnaire de packs mascotte : présentation/aide, création
+ * (brouillon, copie d'un modèle), **la** liste des mascottes, panneau de la mascotte
+ * sélectionnée (libellé, enregistrer/publier/réinitialiser ou supprimer, validation,
+ * avertissements) et bloc d'erreur d'action. Présentation pure prop-driven : tout l'état et
+ * les actions (api) restent dans le parent.
+ *
+ * **Une seule liste** (étape 3 de la fusion catalogue / packs). Jusqu'ici cette colonne en
+ * affichait deux : les « modèles intégrés », ni modifiables ni supprimables, et les packs. Un
+ * prof y lisait une même mascotte à deux endroits avec deux jeux de droits, et devait passer par
+ * « Éditer une copie » pour toucher une mascotte livrée. Depuis que les livrées sont des lignes
+ * comme les autres (`origin = 'builtin'`), elles s'ouvrent et se modifient directement ; le
+ * catalogue en code n'est plus qu'un **point de départ** pour en créer une nouvelle, et un
+ * **retour en arrière** pour les livrées.
+ *
  * @param {{
  *   actionBusy: boolean,
  *   catalogModelOptions: Array<{ id: string, label: string }>,
  *   selectedCatalogModelId: string,
  *   onSelectCatalogModel: (id: string) => void,
- *   findPacksForCatalogModel: (modelId: string) => Array<Record<string, unknown>>,
- *   catalogCopyHint?: string,
  *   onNewDraft: () => void,
- *   onOpenCatalogModelForEdit: (modelId: string) => void,
  *   onNewFromCatalog: () => void,
  *   onRefresh: () => void,
  *   onDuplicateSelected: () => void,
@@ -33,6 +39,7 @@ import { toMascotPackIssueLines } from '../../utils/mascotPackValidationUi.js';
  *   onSave: () => void,
  *   onTogglePublish: () => void,
  *   onDelete: () => void,
+ *   onResetFromOrigin?: () => void,
  *   selectedValidation: { ok: boolean },
  *   editorWarnings: string[],
  *   isDirty?: boolean,
@@ -45,10 +52,7 @@ export default function MascotPackListAside({
   catalogModelOptions,
   selectedCatalogModelId,
   onSelectCatalogModel,
-  findPacksForCatalogModel,
-  catalogCopyHint = '',
   onNewDraft,
-  onOpenCatalogModelForEdit,
   onNewFromCatalog,
   onRefresh,
   onDuplicateSelected,
@@ -66,6 +70,7 @@ export default function MascotPackListAside({
   onSave,
   onTogglePublish,
   onDelete,
+  onResetFromOrigin = null,
   selectedValidation,
   editorWarnings,
   isDirty = false,
@@ -82,14 +87,13 @@ export default function MascotPackListAside({
         paddingRight: 12,
       }}
     >
-      <h2 style={{ fontSize: '1.05rem', marginTop: 0 }}>Packs mascotte</h2>
+      <h2 style={{ fontSize: '1.05rem', marginTop: 0 }}>Mascottes</h2>
       <p className="section-sub" style={{ fontSize: '0.82rem', marginBottom: 10 }}>
-        Les packs <strong>publiés</strong> apparaissent sur la visite (sélecteur mascotte), sur
-        toutes les cartes.
+        Toutes les mascottes sont ici, livrées comprises, et se modifient de la même façon. Celles
+        qui sont <strong>publiées</strong> sont proposées aux visiteurs, sur toutes les cartes.
         <br />
-        Les <strong>modèles intégrés</strong> (SPR0UT, Renard 2, …) ne se modifient pas directement
-        : utilisez <strong>Éditer une copie</strong> pour ouvrir une copie modifiable (sprites,
-        comportements).
+        Une mascotte <strong>livrée</strong> se réinitialise à tout moment : on peut l’essayer sans
+        rien perdre.
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
         <button
@@ -100,90 +104,33 @@ export default function MascotPackListAside({
         >
           Nouveau brouillon
         </button>
-        <div style={{ width: '100%' }}>
-          <p className="section-sub" style={{ fontSize: '0.78rem', margin: '4px 0 6px' }}>
-            Modèles intégrés (catalogue)
-          </p>
-          <ul
-            style={{
-              listStyle: 'none',
-              padding: 0,
-              margin: 0,
-              display: 'grid',
-              gap: 8,
-              maxHeight: 220,
-              overflowY: 'auto',
-            }}
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label className="section-sub" style={{ fontSize: '0.78rem', margin: '4px 0 0' }}>
+            Partir d’un modèle livré
+            <select
+              className="form-input"
+              style={{ marginTop: 4 }}
+              value={selectedCatalogModelId}
+              disabled={actionBusy || catalogModelOptions.length === 0}
+              onChange={(ev) => onSelectCatalogModel(ev.target.value)}
+            >
+              {catalogModelOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            disabled={actionBusy || !selectedCatalogModelId}
+            onClick={onNewFromCatalog}
+            title="Créer une nouvelle mascotte à partir de ce modèle, sans toucher à l’originale"
           >
-            {catalogModelOptions.map((opt) => {
-              const linkedCopies = findPacksForCatalogModel(opt.id);
-              const linkedPack = linkedCopies.length === 1 ? linkedCopies[0] : null;
-              return (
-                <li key={opt.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${selectedCatalogModelId === opt.id ? 'btn-primary' : 'btn-ghost'}`}
-                    style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }}
-                    aria-pressed={selectedCatalogModelId === opt.id}
-                    onClick={() => onSelectCatalogModel(opt.id)}
-                    disabled={actionBusy}
-                  >
-                    {opt.label}
-                    {linkedCopies.length === 1 ? (
-                      <span
-                        style={{
-                          display: 'block',
-                          fontSize: '0.72rem',
-                          opacity: 0.85,
-                          fontWeight: 400,
-                        }}
-                      >
-                        Copie existante : {linkedPack?.label || linkedPack?.catalog_id}
-                      </span>
-                    ) : linkedCopies.length > 1 ? (
-                      <span
-                        style={{
-                          display: 'block',
-                          fontSize: '0.72rem',
-                          opacity: 0.85,
-                          fontWeight: 400,
-                        }}
-                      >
-                        {linkedCopies.length} copies — sélectionnez dans la liste ou « Éditer la
-                        copie »
-                      </span>
-                    ) : null}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    style={{ width: '100%' }}
-                    disabled={actionBusy}
-                    onClick={() => onOpenCatalogModelForEdit(opt.id)}
-                    title={
-                      linkedCopies.length > 0
-                        ? linkedCopies.length === 1
-                          ? 'Ouvrir la copie modifiable déjà créée'
-                          : 'Ouvrir la copie la plus récente (ou celle sélectionnée si elle correspond)'
-                        : 'Créer puis ouvrir une copie modifiable de ce modèle'
-                    }
-                  >
-                    {linkedCopies.length > 0 ? 'Éditer la copie' : 'Éditer une copie'}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+            Nouvelle mascotte depuis ce modèle
+          </button>
         </div>
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm"
-          disabled={actionBusy || !selectedCatalogModelId}
-          onClick={onNewFromCatalog}
-          title="Créer un second pack indépendant depuis le modèle sélectionné"
-        >
-          Nouvelle copie depuis ce modèle
-        </button>
         <button
           type="button"
           className="btn btn-ghost btn-sm"
@@ -248,11 +195,6 @@ export default function MascotPackListAside({
           Importer ZIP…
         </button>
       ) : null}
-      {catalogCopyHint ? (
-        <p className="section-sub" role="status" style={{ fontSize: '0.78rem', marginTop: 8 }}>
-          {catalogCopyHint}
-        </p>
-      ) : null}
       {listError ? (
         <p className="text-danger" role="alert" style={{ fontSize: '0.85rem' }}>
           {listError}
@@ -261,7 +203,7 @@ export default function MascotPackListAside({
       {loading ? <p className="section-sub">Chargement…</p> : null}
       {!loading && packs.length === 0 ? (
         <p className="section-sub">
-          Aucun pack pour l’instant — créez un brouillon ou partez d’un modèle intégré.
+          Aucune mascotte pour l’instant — créez un brouillon ou partez d’un modèle livré.
         </p>
       ) : null}
       <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
@@ -277,7 +219,11 @@ export default function MascotPackListAside({
             >
               <span style={{ display: 'block', fontWeight: 600 }}>{p.label || p.catalog_id}</span>
               <span style={{ display: 'block', fontSize: '0.75rem', opacity: 0.85 }}>
-                {p.is_published ? 'Publié' : 'Brouillon'}
+                {/* L'origine d'abord : c'est elle qui dit ce qu'on peut faire de la ligne
+                    (réinitialiser une livrée, supprimer une mascotte créée ici). */}
+                {p.origin === 'builtin' ? 'Livrée' : 'Créée ici'}
+                {' · '}
+                {p.is_published ? 'Publiée' : 'Brouillon'}
                 {' · v'}
                 {Number(p.pack?.mascotPackVersion) === 2 ? '2' : '1'}
                 {' · '}
@@ -335,6 +281,12 @@ export default function MascotPackListAside({
           >
             {selectedRow?.is_published ? 'Retirer de la visite publique' : 'Publier sur la visite'}
           </button>
+          {selectedRow?.is_published ? (
+            <p className="section-sub" style={{ fontSize: '0.75rem', margin: 0 }}>
+              La retirer la masque du sélecteur des visiteurs. C’est réversible, et rien n’est
+              perdu.
+            </p>
+          ) : null}
           {selectedValidation.ok ? (
             <p className="section-sub" style={{ fontSize: '0.78rem', margin: '2px 0 0' }}>
               Validation prête pour sauvegarde/publication.
@@ -351,14 +303,30 @@ export default function MascotPackListAside({
               ))}
             </ul>
           ) : null}
-          <button
-            type="button"
-            className="btn btn-danger btn-sm"
-            disabled={actionBusy}
-            onClick={onDelete}
-          >
-            Supprimer…
-          </button>
+          {/* Une mascotte livrée ne se supprime pas : le catalogue en code la recréerait au
+              prochain démarrage, et le bouton donnerait une réussite qui s'annule toute seule.
+              Ce qu'on lui propose à la place fait vraiment quelque chose — revenir à l'état
+              d'origine. Masquer, c'est « Retirer de la visite » juste au-dessus. */}
+          {selectedRow?.origin === 'builtin' ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={actionBusy || !onResetFromOrigin}
+              onClick={() => onResetFromOrigin && onResetFromOrigin()}
+              title="Rendre à cette mascotte livrée son apparence et ses comportements d’origine"
+            >
+              Réinitialiser depuis l’origine…
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-danger btn-sm"
+              disabled={actionBusy}
+              onClick={onDelete}
+            >
+              Supprimer…
+            </button>
+          )}
         </div>
       ) : null}
       {actionError ? (
