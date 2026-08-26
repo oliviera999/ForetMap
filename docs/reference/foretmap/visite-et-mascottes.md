@@ -105,11 +105,14 @@ familles.
   lui rend à tout moment son apparence d'origine. Cette réinitialisation ne touche pas à sa
   publication : rendre l'apparence d'origine et remettre la mascotte en visite sont deux
   décisions distinctes.
-- **Une mascotte livrée ne se supprime pas** — l'application la remettrait en place à la
-  prochaine mise à jour, et le bouton donnerait une réussite qui s'annule toute seule. Deux gestes font
-  vraiment quelque chose : la **retirer de la visite** (elle disparaît du choix des visiteurs
-  sans rien perdre, il suffit de la republier) ou la **réinitialiser**. Une mascotte que
-  **vous** avez créée, elle, se supprime pour de bon.
+- **Toutes les mascottes se suppriment, livrées comprises.** La suppression est retenue :
+  l'application ne remet plus en place une mascotte livrée que vous avez effacée, même après une
+  mise à jour. C'est donc **définitif** — ses images téléversées partent avec elle, et le studio
+  n'offre pas de corbeille. Si vous voulez seulement la faire disparaître du choix des visiteurs,
+  **retirez-la de la visite** : rien n'est perdu, il suffit de la republier.
+  Un retour en arrière existe malgré tout, mais il passe par l'équipe technique (commande
+  `npm run visit:mascots:restore`) : il rend aux mascottes livrées effacées leur **apparence
+  d'origine**, pas les modifications que vous leur aviez apportées.
 - **Vos modifications sont conservées** : une mise à jour de l'application ne réécrit jamais une
   mascotte que vous avez retouchée.
 - **Dix mascottes livrées ne sont pas proposées aux visiteurs**, et c'est volontaire : leur
@@ -118,11 +121,12 @@ familles.
   personnages promis animés dont pas un ne bougeait. Elles restent présentes au studio, marquées
   **Livrée**, modifiables et exportables ; il suffit de **les publier** pour les remettre au
   sélecteur le jour où les fichiers arrivent. Les six restantes sont réellement animées.
-- **Partir d'un modèle livré** pour créer une nouvelle mascotte reste possible, par un menu
-  déroulant en haut de la liste. Les modèles qui n'ont **qu'une image fixe** y sont signalés
-  comme tels : douze des seize mascottes fournies sont dans ce cas, et partir de l'une d'elles
-  promettrait sinon une animation qui n'existe pas. Quatre sont réellement animées (OLU,
-  Gnome 1, Renard 2, Renard sac).
+- **Pour créer une mascotte**, deux gestes, et plus aucune liste de modèles à côté : partir d'un
+  **nouveau brouillon**, ou sélectionner une mascotte de la liste et la **dupliquer**. Dupliquer
+  part de la mascotte telle qu'elle est réellement — images téléversées comprises — là où
+  l'ancien menu « Partir d'un modèle livré » repartait de la version d'usine. Ce menu affichait
+  en haut de la liste seize noms qu'on ne pouvait ni ouvrir ni supprimer : c'était, à l'écran,
+  une seconde liste. Il a disparu.
 - **Suivre la fréquentation** : un tableau de bord donne sessions, lieux vus et taux de
   parcours complets, en séparant élèves connectés et visiteurs anonymes.
 
