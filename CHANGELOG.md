@@ -7,7 +7,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Les fiches ne s'ouvrent plus derrière ce qui les appelle (lot 29)
+### Les fiches ne s'ouvrent plus derrière ce qui les appelle (lot 31)
 
 Constat de départ : **des fiches demandées, mais invisibles**. Cliquer un terme de
 glossaire depuis un quiz ouvert en fenêtre ouvrait bien la définition — derrière le quiz.
