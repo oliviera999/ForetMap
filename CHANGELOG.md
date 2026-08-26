@@ -59,6 +59,61 @@ texte que l'élève est en train de lire, et ce repli n'est écrit qu'une fois.
 Un garde-fou (`tests-ui/utils/zLayers.test.js`) verrouille l'ordre des paliers, interdit
 qu'une feuille redéclare l'un d'eux ou rechoisisse un `z-index` global en dur, et vérifie
 que les patchs de plein écran ne reviennent pas.
+### Une seule liste, vraiment : plus de modèles, et tout se supprime
+
+Deux restes de l'ancienne organisation traînaient encore au studio, et se lisaient exactement
+comme ce que la fusion catalogue / packs devait supprimer : **une liste de choses qu'on ne peut
+pas toucher**.
+
+**Le menu « Partir d'un modèle livré »** affichait seize noms au-dessus de la liste — donc, à
+l'écran, une seconde liste. Il faisait doublon avec « Dupliquer le pack sélectionné », qui part de
+la ligne en base et copie **aussi les images téléversées** là où le clone catalogue repartait de
+la version d'usine. Il a disparu : pour créer une mascotte, on part d'un brouillon, ou on en
+duplique une.
+
+**Les mascottes livrées ne se supprimaient pas.** Le refus avait une raison réelle — le semis
+réinsère toute livrée absente, donc la suppression se serait annulée au prochain
+`npm run db:migrate`, des semaines plus tard, sans prévenir. Ce n'était pourtant pas une
+fatalité, seulement une mémoire qui manquait : la suppression est désormais **inscrite en base**
+(migration 202), et le semis la respecte. Toutes les lignes de la liste se suppriment donc de la
+même façon.
+
+Deux conséquences valaient d'être traitées avant de livrer, pas après :
+
+- Une livrée supprimée n'a **plus de ligne** — et le repli catalogue sert justement les mascottes
+  sans ligne. Sans filtrage, la suppression aurait réussi au studio **sans rien changer pour les
+  visiteurs**. C'est le même piège que celui déjà rencontré sur la dépublication, et il est
+  refermé de la même façon.
+- La confirmation dit maintenant ce que la suppression coûte, avant le clic : elle est définitive,
+  les images partent avec, et le retour en arrière passe par `npm run visit:mascots:restore` —
+  qui rend l'apparence d'origine, pas les modifications.
+
+Les mascottes livrées gardent « Réinitialiser depuis l'origine » **en plus** de « Supprimer » :
+c'est ce qui rend leur édition sans risque.
+
+### Le studio peut à nouveau ouvrir — et enregistrer — les packs Rive et spritesheet
+
+Ouvrir au studio une mascotte à moteur **Rive** ou **spritesheet** affichait aussitôt une erreur,
+sans que personne ait rien modifié :
+
+> Champ « stateFrames » réservé aux packs « sprite_cut » : ce pack est « rive ».
+
+Le pack était pourtant valide tel qu'il était enregistré. C'est **le passage par le studio qui
+l'invalidait** : la fonction qui met le brouillon au propre écrivait `stateFrames` sans regarder le
+moteur, et posait donc un objet vide sur des packs auxquels ce champ est interdit. L'enregistrement
+devenait impossible, et le message désignait un champ que l'utilisateur n'avait jamais saisi.
+
+Quatre des six mascottes proposées étaient concernées, ainsi que les dix mascottes Rive laissées au
+studio par le lot précédent — c'est-à-dire, en pratique, presque tout ce qu'on pouvait y ouvrir.
+
+`stateFrames` n'est désormais écrit que pour les packs `sprite_cut`, et un `stateFrames` hérité d'un
+JSON écrit à la main est retiré du brouillon plutôt que conservé — sans quoi le pack resterait
+inenregistrable sans qu'on sache quoi corriger.
+
+C'est le même défaut, sous la même forme, que celui déjà fermé sur `framesBase` : un champ propre à
+un moteur écrit pour tous. Le nouveau test porte donc sur la **propriété générale** — un pack valide
+le reste après le studio, quel que soit son moteur — de façon à attraper la prochaine fuite quel que
+soit le champ en cause.
 ### Savoir enfin pourquoi le serveur tombe (lot 30)
 
 Constat de départ : des indisponibilités régulières, y compris avec un seul utilisateur et
