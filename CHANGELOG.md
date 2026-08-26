@@ -7,6 +7,38 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Une seule liste, vraiment : plus de modèles, et tout se supprime
+
+Deux restes de l'ancienne organisation traînaient encore au studio, et se lisaient exactement
+comme ce que la fusion catalogue / packs devait supprimer : **une liste de choses qu'on ne peut
+pas toucher**.
+
+**Le menu « Partir d'un modèle livré »** affichait seize noms au-dessus de la liste — donc, à
+l'écran, une seconde liste. Il faisait doublon avec « Dupliquer le pack sélectionné », qui part de
+la ligne en base et copie **aussi les images téléversées** là où le clone catalogue repartait de
+la version d'usine. Il a disparu : pour créer une mascotte, on part d'un brouillon, ou on en
+duplique une.
+
+**Les mascottes livrées ne se supprimaient pas.** Le refus avait une raison réelle — le semis
+réinsère toute livrée absente, donc la suppression se serait annulée au prochain
+`npm run db:migrate`, des semaines plus tard, sans prévenir. Ce n'était pourtant pas une
+fatalité, seulement une mémoire qui manquait : la suppression est désormais **inscrite en base**
+(migration 201), et le semis la respecte. Toutes les lignes de la liste se suppriment donc de la
+même façon.
+
+Deux conséquences valaient d'être traitées avant de livrer, pas après :
+
+- Une livrée supprimée n'a **plus de ligne** — et le repli catalogue sert justement les mascottes
+  sans ligne. Sans filtrage, la suppression aurait réussi au studio **sans rien changer pour les
+  visiteurs**. C'est le même piège que celui déjà rencontré sur la dépublication, et il est
+  refermé de la même façon.
+- La confirmation dit maintenant ce que la suppression coûte, avant le clic : elle est définitive,
+  les images partent avec, et le retour en arrière passe par `npm run visit:mascots:restore` —
+  qui rend l'apparence d'origine, pas les modifications.
+
+Les mascottes livrées gardent « Réinitialiser depuis l'origine » **en plus** de « Supprimer » :
+c'est ce qui rend leur édition sans risque.
+
 ### Le studio peut à nouveau ouvrir — et enregistrer — les packs Rive et spritesheet
 
 Ouvrir au studio une mascotte à moteur **Rive** ou **spritesheet** affichait aussitôt une erreur,

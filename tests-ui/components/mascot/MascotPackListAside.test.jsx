@@ -6,11 +6,7 @@ import MascotPackListAside from '../../../src/components/mascot/MascotPackListAs
 function setup(extra = {}) {
   const props = {
     actionBusy: false,
-    catalogModelOptions: [{ id: 'sprout', label: 'SPR0UT' }],
-    selectedCatalogModelId: 'sprout',
-    onSelectCatalogModel: vi.fn(),
     onNewDraft: vi.fn(),
-    onNewFromCatalog: vi.fn(),
     onRefresh: vi.fn(),
     onDuplicateSelected: vi.fn(),
     listError: '',
@@ -59,14 +55,17 @@ describe('MascotPackListAside', () => {
     expect(props.onSelectPack).toHaveBeenCalledWith('p1');
   });
 
-  test('les modèles livrés ne servent qu’à créer, plus à « éditer une copie »', () => {
-    // Le flux « Éditer une copie » a disparu avec la seconde liste : une mascotte livrée
-    // s'ouvre directement dans **la** liste, comme les autres. Ne reste ici qu'un point de
-    // départ pour en créer une nouvelle.
-    const props = setup();
+  test('plus aucune liste de modèles à côté de la liste des mascottes', () => {
+    // Le dernier reste de la seconde liste : un menu « Partir d'un modèle livré » qui affichait
+    // les seize noms du catalogue au-dessus de la liste — donc, à l'écran, des mascottes qu'on ne
+    // pouvait ni ouvrir ni supprimer. Il faisait doublon avec « Dupliquer », qui part de la ligne
+    // en base et copie aussi les images téléversées.
+    setup({
+      packs: [{ id: 'p1', label: 'SPR0UT', catalog_id: 'sprout', is_published: 1 }],
+    });
+    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(screen.queryByRole('button', { name: /modèle/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /Éditer (une|la) copie/ })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Nouvelle mascotte depuis ce modèle' }));
-    expect(props.onNewFromCatalog).toHaveBeenCalledTimes(1);
   });
 
   test('l’origine de chaque mascotte se lit dans la liste', () => {
@@ -82,18 +81,18 @@ describe('MascotPackListAside', () => {
     expect(screen.getByText(/Créée ici · Brouillon/)).toBeTruthy();
   });
 
-  test('mascotte livrée : réinitialiser remplace supprimer', () => {
-    // Supprimer une livrée serait une réussite qui s'annule toute seule — le semis la recrée au
-    // démarrage suivant. Le bouton proposé fait quelque chose de réel.
+  test('mascotte livrée : réinitialiser **et** supprimer', () => {
+    // Une seule liste veut dire un seul jeu de droits : la livrée se supprime comme les autres.
+    // Elle garde « Réinitialiser » en plus — c'est ce qui rend son édition sans risque.
     const props = setup({
       selectedId: 'p1',
       selectedRow: { id: 'p1', is_published: 1, origin: 'builtin' },
       selectedValidation: { ok: true },
     });
-    expect(screen.queryByRole('button', { name: 'Supprimer…' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Réinitialiser depuis l’origine…' }));
     expect(props.onResetFromOrigin).toHaveBeenCalledTimes(1);
-    expect(props.onDelete).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer…' }));
+    expect(props.onDelete).toHaveBeenCalledTimes(1);
   });
 
   test('mascotte créée ici : supprimer, et pas de réinitialisation', () => {
