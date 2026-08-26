@@ -29,7 +29,7 @@
 .fm-map-fullscreen-layer {
   position: fixed;
   inset: 0;
-  z-index: 1400;
+  z-index: var(--fm-z-fullscreen);
   width: 100vw;
   height: 100vh;
   height: 100dvh;
@@ -46,7 +46,7 @@
   position: absolute;
   top: max(12px, env(safe-area-inset-top, 0px));
   right: max(12px, env(safe-area-inset-right, 0px));
-  z-index: 1410;
+  z-index: calc(var(--fm-z-fullscreen) + 1);
   min-height: 44px;
   padding: 8px 16px;
   border: 0;
@@ -76,13 +76,15 @@ body.fm-map-fullscreen-active {
 body.fm-map-fullscreen-active > .fm-map-fullscreen-layer {
   position: fixed;
   inset: 0;
-  z-index: 1400;
+  z-index: var(--fm-z-fullscreen);
 }
 
-body.fm-map-fullscreen-active .fm-modal-overlay,
-body.fm-map-fullscreen-active .modal-overlay {
-  z-index: 1450;
-}
+/*
+ * Les modales n'ont plus besoin d'être remontées ici : le plein écran est un
+ * conteneur de vue, donc sous toute couche de dialogue dans l'échelle commune
+ * (cf. z-layers.css). Le patch qui existait à l'identique côté G&L a disparu
+ * des deux feuilles.
+ */
 
 /* Visite */
 .visit-map-stage--fullscreen {

@@ -1,33 +1,18 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React from 'react';
 import {
   renderMarkdownWithGlossaryLinks,
   renderPlainTextWithGlossaryLinks,
 } from '../utils/foretmapGlossaryAutolink.js';
 import { renderMarkdownToSafeHtml } from '../utils/markdown.js';
-
-/**
- * Délégation d'événement sur le conteneur : un seul écouteur, quel que soit le
- * nombre de termes auto-liés. `preventDefault()` évite la navigation vers `#`
- * (et, dans un `<label>` de quiz, la bascule du bouton radio).
- */
-function bindGlossaryClick(container, onOpenGlossaryTerm) {
-  if (!container || typeof onOpenGlossaryTerm !== 'function') return () => {};
-  const handler = (event) => {
-    const link = event.target?.closest?.('[data-glossary-code]');
-    if (!link || !container.contains(link)) return;
-    event.preventDefault();
-    const code = String(link.getAttribute('data-glossary-code') || '').trim();
-    if (code) onOpenGlossaryTerm(code);
-  };
-  container.addEventListener('click', handler);
-  return () => container.removeEventListener('click', handler);
-}
+import { FORETMAP_GLOSSARY_CODE_ATTR } from '../shared/utils/glossaryLinkClick.js';
+import { useGlossaryLinkedHtml } from '../shared/hooks/useGlossaryLinkedHtml.js';
 
 /**
  * Markdown ForetMap avec les termes du glossaire hyperliés (pendant de
  * `GLGlossaryMarkdown`). Sans `glossaryItems`, le rendu est **exactement** celui
  * de `MarkdownContent`. Si l'auto-lien échoue, on retombe sur le markdown normal
- * plutôt que de casser l'écran.
+ * plutôt que de casser l'écran — repli assuré par `useGlossaryLinkedHtml`, qui
+ * porte cette mécanique pour les deux applications.
  *
  * @param {{
  *   markdown?: string, children?: string,
@@ -48,24 +33,17 @@ export function GlossaryMarkdown({
   emptyFallback = null,
   style = undefined,
 }) {
-  const containerRef = useRef(null);
   const source = String(markdown ?? children ?? '').trim();
-  const hasGlossary = Array.isArray(glossaryItems) && glossaryItems.length > 0;
-
-  const html = useMemo(() => {
-    if (!source) return '';
-    if (!hasGlossary) return renderMarkdownToSafeHtml(source, { allowImages });
-    try {
-      return renderMarkdownWithGlossaryLinks(source, glossaryItems, { allowImages });
-    } catch (err) {
-      console.warn('GlossaryMarkdown : auto-lien glossaire désactivé', err);
-      return renderMarkdownToSafeHtml(source, { allowImages });
-    }
-  }, [source, glossaryItems, hasGlossary, allowImages]);
-
-  useEffect(() => {
-    return bindGlossaryClick(containerRef.current, onOpenGlossaryTerm);
-  }, [html, onOpenGlossaryTerm]);
+  const { html, containerRef } = useGlossaryLinkedHtml({
+    source,
+    glossaryItems,
+    renderLinked: (text, items) => renderMarkdownWithGlossaryLinks(text, items, { allowImages }),
+    renderPlain: (text) => renderMarkdownToSafeHtml(text, { allowImages }),
+    onOpenGlossaryTerm,
+    codeAttribute: FORETMAP_GLOSSARY_CODE_ATTR,
+    label: 'GlossaryMarkdown',
+    renderDeps: [allowImages],
+  });
 
   if (!source) {
     return emptyFallback != null ? <>{emptyFallback}</> : null;
@@ -108,23 +86,15 @@ export function GlossaryInlineText({
   className = '',
   tag: Tag = 'span',
 }) {
-  const containerRef = useRef(null);
   const raw = String(text ?? '');
-  const hasGlossary = Array.isArray(glossaryItems) && glossaryItems.length > 0;
-
-  const html = useMemo(() => {
-    if (!raw || !hasGlossary) return '';
-    try {
-      return renderPlainTextWithGlossaryLinks(raw, glossaryItems);
-    } catch (err) {
-      console.warn('GlossaryInlineText : auto-lien glossaire désactivé', err);
-      return '';
-    }
-  }, [raw, glossaryItems, hasGlossary]);
-
-  useEffect(() => {
-    return bindGlossaryClick(containerRef.current, onOpenGlossaryTerm);
-  }, [html, onOpenGlossaryTerm]);
+  const { html, containerRef, hasGlossary } = useGlossaryLinkedHtml({
+    source: raw,
+    glossaryItems,
+    renderLinked: renderPlainTextWithGlossaryLinks,
+    onOpenGlossaryTerm,
+    codeAttribute: FORETMAP_GLOSSARY_CODE_ATTR,
+    label: 'GlossaryInlineText',
+  });
 
   if (!raw) return null;
 

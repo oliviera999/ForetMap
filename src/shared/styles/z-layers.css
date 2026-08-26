@@ -1,0 +1,116 @@
+/* =====================================================================
+ * Échelle d'empilement — feuille COMMUNE ForetMap + Gnomes & Licornes.
+ *
+ * ## Le problème qu'elle règle
+ *
+ * Chaque surface choisissait son `z-index` dans son coin de feuille, sans
+ * connaître les autres. Les deux produits avaient dérivé sur deux échelles sans
+ * rapport — ForetMap de 80 à 99 999, G&L de 55 à 12 050 — et les composants
+ * *partagés* (coque de modale, popover de contrôle de compréhension, visite
+ * guidée) portaient une valeur en dur, donc calibrée pour un seul des deux.
+ * D'où des surfaces qui s'ouvraient derrière ce qui venait de les appeler :
+ *
+ * - la fiche glossaire (900) sous le popover de quiz qui l'appelait (910) ;
+ * - le popover de compréhension partagé (910) sous toute l'échelle G&L (1200+) ;
+ * - la fiche glossaire G&L (1600) sous la découverte de feuillet (12 000) ;
+ * - la fiche espèce G&L rabaissée à 55, sous sa propre barre de navigation ;
+ * - le popover de compréhension G&L rabaissé à 80, sous la barre du haut.
+ *
+ * Et, faute de pouvoir raisonner sur l'ordre, deux **patchs identiques** avaient
+ * été écrits de chaque côté pour remonter les modales au-dessus du plein écran
+ * (`body.*-map-fullscreen-active .fm-modal-overlay { z-index: … }`).
+ *
+ * ## Les trois invariants
+ *
+ * 1. **Une seule échelle, les deux produits.** Les surfaces communes n'ont plus
+ *    à être recalibrées par produit : `gl-theme.css` ne redéfinit plus aucun
+ *    palier. Un produit qui n'utilise pas une couche l'ignore, il ne la décale
+ *    pas.
+ * 2. **Une couche = un rôle, pas un composant.** On choisit son palier en
+ *    répondant à « qu'est-ce que c'est ? » (une modale, un popover de contenu,
+ *    une fiche terminale), jamais en cherchant un nombre libre.
+ * 3. **Ce qui appelle est sous ce qui est appelé.** La chaîne réelle va du
+ *    contenu à la fiche, puis de la fiche à sa validation : un popover de contenu
+ *    ouvre une fiche de glossaire, et depuis cette fiche on peut demander à
+ *    valider le terme — jamais l'inverse. D'où l'ordre
+ *    `popover < quiz-popover < glossary < learning-ack`. C'est cet invariant qui
+ *    ferme les inversions ci-dessus, et le seul à respecter en ajoutant une
+ *    surface : demandez-vous ce qui peut ouvrir quoi, pas quel nombre est libre.
+ *
+ * Les paliers sont espacés de 10 en 10 au minimum : une surface qui doit se
+ * poser juste au-dessus d'une autre utilise `calc(var(--…) + 1)` plutôt qu'un
+ * nouveau palier.
+ *
+ * ## Où ça ne s'applique pas
+ *
+ * Les `z-index` **locaux** — ceux qui ordonnent des éléments à l'intérieur d'un
+ * même composant (marqueurs de carte, pastilles, bandeaux internes) — restent
+ * des petits entiers en dur. Ils vivent dans un contexte d'empilement propre et
+ * n'ont rien à arbitrer avec les couches ci-dessous.
+ * ===================================================================== */
+
+:root {
+  /* ── Chrome de l'application ─────────────────────────────────────── */
+  /* Infobulle : suit son ancre, doit passer devant le contenu voisin. */
+  --fm-z-tooltip: 80;
+  /* En-têtes collants (barre du haut ForetMap et G&L). */
+  --fm-z-sticky: 100;
+  /* Barres de navigation (basse côté élève et G&L, onglets prof). */
+  --fm-z-nav: 110;
+  /* Commandes flottantes empilées (cf. floating-dock.css). */
+  --fm-z-dock: 200;
+
+  /* ── Conteneurs de vue ───────────────────────────────────────────── */
+  /*
+   * Plein écran carte / plateau, et panneaux qui occupent tout le viewport.
+   * Ce sont des *vues*, pas des dialogues : au-dessus du chrome, mais sous
+   * toute couche de dialogue — sinon il faut un patch pour remonter les
+   * modales dès qu'on passe en plein écran, ce qui était exactement le cas.
+   */
+  --fm-z-fullscreen: 250;
+  --fm-z-panel: 260;
+
+  /* ── Dialogues ───────────────────────────────────────────────────── */
+  /* Modale ordinaire (coque partagée `.fm-modal-overlay` / `.modal-overlay`). */
+  --fm-z-modal: 300;
+  /* Modale ouverte depuis une modale (aperçu de tutoriel, outil de pack…). */
+  --fm-z-modal-nested: 340;
+  /* Troisième niveau (confirmation « lu » ouverte depuis l'aperçu). */
+  --fm-z-modal-nested-2: 380;
+  /* Tiroir de navigation G&L : recouvre les dialogues ouverts. */
+  --fm-z-drawer: 420;
+
+  /* ── Surfaces pédagogiques ───────────────────────────────────────── */
+  /*
+   * Popover de contenu : QCM, zone du plateau, sort, découverte de feuillet,
+   * dés, panneau de notifications. Tout ce qui s'ouvre par-dessus une vue ou
+   * une modale pour montrer un contenu.
+   */
+  --fm-z-popover: 500;
+  /* Contrôle de compréhension : se pose sur le contenu qu'il évalue. */
+  --fm-z-quiz-popover: 600;
+  /*
+   * Fiche de glossaire — scientifique ou lexique du lore. Au-dessus des surfaces
+   * de contenu : c'est depuis elles qu'on l'ouvre.
+   */
+  --fm-z-glossary: 700;
+  /*
+   * Contrôle de compréhension déclenché *depuis* un contenu ou une fiche
+   * (« j'ai lu ce tutoriel », « j'ai appris ce terme »). C'est lui, et non la
+   * fiche de glossaire, qui est réellement terminal : depuis la fiche d'un terme
+   * on peut demander à le valider, jamais l'inverse. À distinguer de la surface
+   * `--fm-z-quiz-popover`, qui n'est qu'une seconde fenêtre pour le quiz lui-même
+   * et depuis laquelle on ouvre au contraire des fiches.
+   */
+  --fm-z-learning-ack: 750;
+
+  /* ── Signalement et médias ───────────────────────────────────────── */
+  /* Bandeau d'état collant : sous les toasts, pour ne jamais masquer un message. */
+  --fm-z-status: 800;
+  /* Messages ponctuels : visibles quelle que soit la surface ouverte. */
+  --fm-z-toast: 850;
+  /* Visite guidée : désigne n'importe quel élément, donc au-dessus de tout. */
+  --fm-z-tour: 900;
+  /* Agrandissement d'image : dernière couche, y compris par-dessus la visite. */
+  --fm-z-lightbox: 1000;
+}

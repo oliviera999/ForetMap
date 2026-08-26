@@ -112,6 +112,9 @@ réinitialiser (voir [presentation.md](presentation.md)).
   (effacement progressif, réglable). L'équipe passe ensuite du feuillet « découvert »
   à « lu », voire « tenu » — cela ne restaure pas le texte déjà mangé : l'effacement
   reste celui de la découverte. Le MJ, lui, voit tous les feuillets en texte intégral.
+  Les **termes du glossaire scientifique cités dans un feuillet** sont cliquables : leur
+  fiche s'ouvre maintenant par-dessus le feuillet. Elle s'ouvrait derrière lui, donc
+  invisible tant que le feuillet n'était pas refermé.
 
 Deux notions de « feuillet acquis » coexistent dans le carnet, désormais **distinguées
 visuellement** :

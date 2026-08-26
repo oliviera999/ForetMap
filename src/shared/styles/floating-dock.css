@@ -19,9 +19,9 @@
  *    sur `calc(var(--fm-safe-bottom-nav) + var(--fm-dock-inset))`, jamais sur un nombre en
  *    dur : le jour où la barre change de hauteur, tout suit.
  * 2. **L'ordre d'empilement est nommé, pas deviné.** `--fm-z-dock` est au-dessus de
- *    `--fm-z-nav`, `--fm-z-toast` au-dessus des deux. Les valeurs numériques restent celles
- *    déjà en place produit par produit — on déclare l'ordre existant, on ne renumérote pas
- *    une échelle qui va de 12 à 99 999.
+ *    `--fm-z-nav`, `--fm-z-toast` au-dessus des deux. Ces paliers ne sont plus déclarés ici :
+ *    ils font partie de l'échelle commune aux deux produits (`z-layers.css`), qui a remplacé
+ *    les deux échelles parallèles allant de 12 à 99 999.
  */
 
 :root {
@@ -36,10 +36,6 @@
    * qui n'a pas de barre basse.
    */
   --fm-safe-bottom-nav: 0px;
-
-  --fm-z-nav: 110;
-  --fm-z-dock: 205;
-  --fm-z-toast: 260;
 }
 
 /*

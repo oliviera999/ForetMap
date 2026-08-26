@@ -63,6 +63,12 @@ export function TeacherTopTabs({
       <TopTab id="quiz" tab={tab} onTabChange={onTabChange}>
         ❓ Quiz
       </TopTab>
+      {/* Le glossaire est rendu pour les deux branches par `PedagoTabs`, mais seule la
+          barre élève l'exposait : côté prof, l'onglet n'était atteignable qu'en cliquant
+          un terme auto-lié (`openPedagoGlossaryTerm`). */}
+      <TopTab id="glossary" tab={tab} onTabChange={onTabChange}>
+        📖 Glossaire
+      </TopTab>
       <TopTab id="foodweb" tab={tab} onTabChange={onTabChange}>
         🕸️ Réseau trophique
       </TopTab>
