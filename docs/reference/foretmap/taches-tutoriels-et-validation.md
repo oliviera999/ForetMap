@@ -311,11 +311,11 @@ questions : **« Rattacher des questions aux contenus »**. Trois onglets — **
 servait auparavant que les tutoriels. La liste de gauche indique pour chacun combien de
 questions bloquantes il porte, et combien de propositions attendent une validation.
 
-**Le glossaire est un cas à part.** ForetMap n'a pas de bouton « terme appris » : un terme de
-glossaire ne se valide pas, donc rien ne peut y être conditionné. Les liens y sont
-**documentaires** — ils disent quelle question parle de quel terme, ce qui reste utile — et
-la case « bloquante » y est désactivée. (Gnomes & Licornes, lui, sait valider un terme : le
-conditionnement y fonctionne.)
+**Le glossaire se valide lui aussi**, depuis que la fiche d'un terme porte un bouton
+**« J'ai appris ce terme »** (voir plus bas). Un lien bloquant sur un terme a donc un sens :
+l'élève devra réussir la question rattachée avant de pouvoir confirmer qu'il a appris le
+terme. Ce n'était pas le cas avant : le glossaire était purement consultatif, et un lien
+bloquant y restait sans effet pour toujours, sans que rien ne le signale.
 
 Pour un contenu choisi, on peut :
 

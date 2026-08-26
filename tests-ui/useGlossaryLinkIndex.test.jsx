@@ -5,6 +5,10 @@ import { render, renderHook, waitFor, fireEvent } from '@testing-library/react';
 const apiMock = vi.fn();
 vi.mock('../src/services/api', () => ({
   api: (...args) => apiMock(...args),
+  // La vue Glossaire porte désormais un bouton de validation : sans jeton, il ne s'affiche
+  // pas, ce qui laisse ces tests sur leur sujet (les auto-liens de la fiche).
+  getAuthToken: () => '',
+  AccountDeletedError: class AccountDeletedError extends Error {},
 }));
 
 import {

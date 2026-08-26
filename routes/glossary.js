@@ -1,9 +1,19 @@
 'use strict';
 
 const express = require('express');
-const { queryAll, queryOne } = require('../database');
+const { queryAll, queryOne, execute } = require('../database');
+const { requireAuth } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
+const {
+  parseConfirmBody,
+  normalizeTargetCode,
+  buildFmReaderKey,
+  upsertLearningAckIn,
+  listLearningAcksIn,
+  FM_ACK_STORE,
+} = require('../lib/shared/learningAckCore');
+const { assertGatingSatisfiedForAcknowledge } = require('../lib/learningGatingAcknowledge');
 
 const { glossaryTermMatchesQuery } = require('../lib/glossarySearch');
 
@@ -143,6 +153,69 @@ router.get(
         ORDER BY categorie ASC`,
     );
     return res.json({ categories: rows.map((row) => row.categorie).filter(Boolean) });
+  }),
+);
+
+/**
+ * GET /api/glossary/me/learned-codes — termes deja appris par l'utilisateur connecte.
+ *
+ * Le glossaire ForetMap etait purement consultatif : rien ne distinguait un terme
+ * travaille d'un terme jamais ouvert, et le conditionnement n'avait aucun geste de
+ * validation auquel se rattacher. Gnomes & Licornes savait le faire depuis longtemps.
+ */
+router.get(
+  '/me/learned-codes',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const reader = buildFmReaderKey(req.auth?.userId);
+    if (!reader) return res.status(403).json({ error: 'Profil utilisateur invalide' });
+    const rows = await listLearningAcksIn({ queryAll }, FM_ACK_STORE, reader, 'glossary');
+    return res.json({ glossary_codes: rows.map((r) => r.target_code) });
+  }),
+);
+
+/**
+ * POST /api/glossary/terms/:code/acknowledge — « j'ai appris ce terme ».
+ *
+ * Meme garde que les tutoriels et les fiches especes : si le conditionnement est actif et
+ * que des questions bloquantes sont rattachees au terme, il faut les avoir reussies. C'est
+ * ce geste-la qui manquait pour qu'un lien bloquant sur un terme veuille dire quelque chose.
+ */
+router.post(
+  '/terms/:code/acknowledge',
+  requireAuth,
+  validate({ params: glossaryCodeParamsSchema }),
+  asyncHandler(async (req, res) => {
+    const confirm = parseConfirmBody(req.body);
+    if (!confirm.ok) return res.status(400).json({ error: confirm.error });
+
+    const code = normalizeTargetCode(req.params.code);
+    if (!code) return res.status(400).json({ error: 'Code invalide' });
+
+    const userId = req.auth?.userId;
+    const reader = buildFmReaderKey(userId);
+    if (!reader) return res.status(403).json({ error: 'Profil utilisateur invalide' });
+
+    const term = await queryOne(
+      "SELECT glossary_code FROM glossary_terms WHERE glossary_code = ? AND statut = 'actif' LIMIT 1",
+      [code],
+    );
+    if (!term) return res.status(404).json({ error: 'Terme introuvable' });
+
+    const gating = await assertGatingSatisfiedForAcknowledge(
+      { queryAll, queryOne, execute },
+      { product: 'fm', resourceType: 'glossary', resourceRef: code, userId },
+    );
+    if (!gating.ok) {
+      return res.status(gating.status || 403).json({
+        error: gating.error,
+        missing_question_codes: gating.missing_question_codes || [],
+        ...(gating.cooldown ? { cooldown: gating.cooldown } : {}),
+      });
+    }
+
+    await upsertLearningAckIn({ execute }, FM_ACK_STORE, reader, 'glossary', code);
+    return res.json({ success: true, glossary_code: code, learned: true });
   }),
 );
 

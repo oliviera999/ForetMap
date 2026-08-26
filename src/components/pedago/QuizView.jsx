@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { LearningQuizPopover } from '../../shared/components/LearningQuizPopover.jsx';
+import {
+  glossaryPropsWhileAnswering,
+  showLinkedGlossaryTerms,
+} from '../../shared/qcm/quizGlossaryReveal.js';
 import { api } from '../../services/api';
 import {
   PedagoQcmFeedbackBlock,
@@ -161,6 +165,13 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
     () => mergeGlossaryLinkItems(glossaryIndex, remediationTerms),
     [glossaryIndex, remediationTerms],
   );
+  // Énoncé et propositions : consultables seulement APRÈS la réponse (cf.
+  // `quizGlossaryReveal`) — sinon le glossaire donne la réponse.
+  const answeringGlossaryProps = useMemo(
+    () =>
+      glossaryPropsWhileAnswering({ glossaryItems: autolinkItems, onOpenGlossaryTerm }, showAnswer),
+    [autolinkItems, onOpenGlossaryTerm, showAnswer],
+  );
 
   useEffect(() => {
     if (!showAnswer) return;
@@ -234,12 +245,13 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
 
       {showChoices ? (
         <>
+          {/* Auto-liaison neutralisée tant que l'élève n'a pas répondu : consulter le
+              terme lié donnait la réponse. Le texte, lui, ne change pas. */}
           <GlossaryInlineText
             tag="p"
             className="pedago-quiz__question"
             text={presentation.question}
-            glossaryItems={autolinkItems}
-            onOpenGlossaryTerm={onOpenGlossaryTerm}
+            {...answeringGlossaryProps}
           />
           {presentation.photoUrl ? (
             <figure className="pedago-quiz__photo-wrap">
@@ -263,16 +275,12 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
                   checked={selectedChoiceId === choice.id}
                   onChange={() => setSelectedChoiceId(choice.id)}
                 />
-                <GlossaryInlineText
-                  text={choice.text}
-                  glossaryItems={autolinkItems}
-                  onOpenGlossaryTerm={onOpenGlossaryTerm}
-                />
+                <GlossaryInlineText text={choice.text} {...answeringGlossaryProps} />
               </label>
             ))}
           </div>
 
-          {presentation.glossaryTerms?.length > 0 ? (
+          {showLinkedGlossaryTerms(showAnswer) && presentation.glossaryTerms?.length > 0 ? (
             <div className="pedago-remediation">
               <strong>Glossaire utile</strong>
               <div className="pedago-chip-row">
