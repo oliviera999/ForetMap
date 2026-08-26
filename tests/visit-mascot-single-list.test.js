@@ -17,9 +17,11 @@
  * 2. **Dépublier masque vraiment.** Le repli catalogue de l'étape 2 protège d'un semis raté ;
  *    mal borné, il ramènerait aussitôt toute livrée qu'on vient de retirer de la visite, et le
  *    geste n'aurait aucun effet visible.
- * 3. **Réinitialiser rend l'état d'origine, et supprimer une livrée est refusé.** Accepter la
- *    suppression donnerait une réussite qui s'annule d'elle-même : le semis la recrée au
- *    démarrage suivant.
+ * 3. **Réinitialiser rend l'état d'origine ; supprimer une livrée est définitif.** La suppression
+ *    était refusée parce que le semis la recréait au démarrage suivant — une réussite qui
+ *    s'annule d'elle-même. Elle est désormais enregistrée (`visit_mascot_pack_deletions`), donc
+ *    elle dure ; et comme une livrée supprimée n'a plus de ligne, le repli catalogue doit
+ *    l'écarter, sinon elle resterait proposée aux visiteurs.
  */
 
 require('./helpers/setup');
@@ -33,6 +35,7 @@ const { signAuthToken } = require('../middleware/requireTeacher');
 const {
   seedBuiltinMascotPacks,
   buildBuiltinMascotPacks,
+  clearBuiltinMascotDeletions,
   UNRENDERABLE_ALIGNED_KEY,
 } = require('../lib/visitMascotBuiltinSeed');
 const {
@@ -508,21 +511,96 @@ test('réinitialiser une mascotte créée ici est refusé : elle n’a pas d’o
   }
 });
 
-test('supprimer une mascotte livrée est refusé, et la réponse nomme quoi faire à la place', async () => {
-  // Une suppression acceptée serait annulée par le semis au démarrage suivant : une réussite
-  // qui ne dure pas est pire qu'un refus expliqué.
+test('supprimer une mascotte livrée est accepté, et la suppression tient', async () => {
+  // La suppression était refusée pour une raison réelle : le semis réinsère toute livrée absente,
+  // donc elle se serait annulée au prochain `db:migrate`. Ce que ce test vérifie n'est pas que le
+  // bouton rend la main — c'est que **la suppression survit au semis**. Sans la trace en base,
+  // l'assertion du milieu tombe.
   const token = await studioToken();
   const livree = await uneLivree();
-  const res = await request(app)
-    .delete(`/api/visit/mascot-packs/${livree.id}`)
-    .set('Authorization', `Bearer ${token}`)
-    .expect(409);
-  assert.equal(res.body?.code, 'visit_mascot_pack_builtin');
-  assert.match(String(res.body?.error || ''), /Retirez-la de la visite|réinitialisez/i);
-  assert.ok(
-    await queryOne('SELECT id FROM visit_mascot_packs WHERE id = ?', [livree.id]),
-    'la ligne a été supprimée malgré le refus',
-  );
+  const catalogId = String(livree.catalog_id || '').trim();
+  try {
+    await request(app)
+      .delete(`/api/visit/mascot-packs/${livree.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    assert.equal(
+      await queryOne('SELECT id FROM visit_mascot_packs WHERE id = ?', [livree.id]),
+      undefined,
+      'la ligne est encore là',
+    );
+
+    const trace = await queryOne(
+      'SELECT catalog_id FROM visit_mascot_pack_deletions WHERE catalog_id = ?',
+      [catalogId],
+    );
+    assert.ok(trace, 'la suppression n’a pas été enregistrée');
+
+    await seedBuiltinMascotPacks();
+    assert.equal(
+      await queryOne('SELECT id FROM visit_mascot_packs WHERE catalog_id = ?', [catalogId]),
+      undefined,
+      'le semis a ressuscité une mascotte supprimée',
+    );
+  } finally {
+    await execute('DELETE FROM visit_mascot_pack_deletions WHERE catalog_id = ?', [catalogId]);
+    await seedBuiltinMascotPacks();
+  }
+});
+
+test('une mascotte livrée supprimée quitte aussi le sélecteur des visiteurs', async () => {
+  // Le piège que ce test ferme : une livrée supprimée n'a **plus de ligne**, et le repli
+  // catalogue sert justement les mascottes sans ligne. Sans filtrage, la suppression aurait l'air
+  // de réussir au studio sans rien changer pour les visiteurs — exactement le défaut déjà
+  // rencontré sur la dépublication.
+  const token = await studioToken();
+  const livree = await uneLivree();
+  const catalogId = String(livree.catalog_id || '').trim();
+  try {
+    assert.ok(
+      (await listVisitMascotRegistry()).some((e) => e.id === catalogId),
+      `${catalogId} n’était pas proposée avant la suppression`,
+    );
+
+    await request(app)
+      .delete(`/api/visit/mascot-packs/${livree.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    assert.ok(
+      !(await listVisitMascotRegistry()).some((e) => e.id === catalogId),
+      `${catalogId} reste proposée aux visiteurs après suppression`,
+    );
+  } finally {
+    await execute('DELETE FROM visit_mascot_pack_deletions WHERE catalog_id = ?', [catalogId]);
+    await seedBuiltinMascotPacks();
+  }
+});
+
+test('la restauration rend les mascottes livrées supprimées', async () => {
+  const token = await studioToken();
+  const livree = await uneLivree();
+  const catalogId = String(livree.catalog_id || '').trim();
+  try {
+    await request(app)
+      .delete(`/api/visit/mascot-packs/${livree.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const oubliees = await clearBuiltinMascotDeletions();
+    assert.ok(oubliees.includes(catalogId), 'la trace n’a pas été oubliée');
+    await seedBuiltinMascotPacks();
+
+    const revenue = await queryOne(
+      'SELECT origin FROM visit_mascot_packs WHERE catalog_id = ? LIMIT 1',
+      [catalogId],
+    );
+    assert.ok(revenue, `${catalogId} n’est pas revenue`);
+    assert.equal(revenue.origin, 'builtin', 'elle est revenue sans son origine');
+  } finally {
+    await execute('DELETE FROM visit_mascot_pack_deletions WHERE catalog_id = ?', [catalogId]);
+    await seedBuiltinMascotPacks();
+  }
 });
 
 test('supprimer une mascotte créée ici reste possible', async () => {
