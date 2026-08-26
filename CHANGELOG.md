@@ -7,6 +7,63 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Le conditionnement devient visible, et enfin armable (lot 28)
+
+Constat de départ : **rien n'apparaissait jamais**. Le diagnostic a montré que le mécanisme
+n'était pas cassé — il n'était jamais armé. Trois conditions doivent être réunies (interrupteur
+allumé, lien **approuvé**, lien **coché bloquant**) et aucune ne l'était par défaut, sans que
+rien ne le dise.
+
+**L'écran de rattachement dit maintenant où on en est** : interrupteur allumé ou éteint, nombre
+de questions bloquantes, contenus couverts, propositions en attente. Un avertissement distinct
+prévient quand l'interrupteur est allumé mais qu'aucun lien n'est bloquant — le cas le plus
+fréquent derrière « rien ne se passe ».
+
+**Les propositions s'approuvent d'un geste.** Le rattachement automatique enregistre en
+« proposé », statut sans effet ; il fallait quarante changements de liste déroulante pour
+quarante propositions, et personne n'allait au bout. Approuver n'est pas conditionner : le
+caractère bloquant reste coché ligne par ligne.
+
+**L'écran couvre les trois types de contenus.** Il ne servait que les tutoriels ; fiches
+espèces et glossaire n'avaient aucun point d'entrée, alors que le moteur d'appariement les
+couvre. Chacun est traité par la méthode qui lui convient : rapprochement de contenu pour un
+tutoriel, recherche du libellé pour une espèce ou un terme.
+
+**Un lien bloquant sur un type non validable est refusé, avec un message qui dit pourquoi.**
+Côté ForetMap, un terme de glossaire ne se valide pas : un lien bloquant y restait inerte pour
+toujours, sans un mot, et le professeur croyait avoir conditionné la fiche.
+
+**Des pastilles d'état** accompagnent les boutons de validation : **✓** acquis, **?** questions
+restantes, **🔒** bloqué. Rien ne s'affiche là où rien n'est conditionné ni sur un contenu déjà
+validé — une marque partout ne signalerait plus rien. La forme porte l'information, la couleur
+ne fait que la renforcer.
+
+**L'annonce, les pastilles et le popover sont désormais partout.** L'aperçu de tutoriel, la
+section visite et le bouton « Espèce découverte » n'annonçaient rien ; le popover n'existait
+qu'à un seul endroit. Les quatre points d'entrée de Gnomes & Licornes en héritent aussi : le
+produit n'avait ni annonce ni popover.
+
+**La ré-observation d'une espèce est conditionnée comme la première.** Elle empruntait une
+branche de code entièrement séparée : une fois l'espèce observée, plus aucune question n'était
+jamais posée sur cette fiche. Ce n'était pas une décision, c'était une divergence.
+
+**L'onglet Quiz peut ouvrir la question en fenêtre**, en complément de l'affichage pleine page.
+
+**Deux réglages corrigés.** « Annoncer le contrôle sur le bouton » était un réglage **mort** :
+exposé dans les deux grilles, consulté par aucun code. Il prend effet. S'y ajoute « Afficher les
+pastilles d'état ». Les deux valent pour les deux applications.
+
+**Un défaut de sérialisation corrigé** : les routes `challenge` calculaient `ask_count` et
+`allowed_wrong_attempts` sans les transmettre. Le plafond de questions par session ne
+s'appliquait donc jamais, et les règles annoncées promettaient un blocage dès la première erreur
+même quand des essais étaient tolérés.
+
+**Ce qui a été mutualisé** : le calcul d'état (`learningGatingState`), la pastille d'icône, le
+popover, le hook de résumé, la sérialisation des réponses, l'approbation en lot, le garde-fou de
+type et la feuille de style — que Gnomes & Licornes ne chargeait pas, alors qu'il utilisait déjà
+les composants. G&L gagne au passage la route de résumé par lot qu'il n'avait pas.
+
+Aucun changement de comportement à réglages par défaut.
 ### Les mascottes livrées qui ne peuvent pas s'animer ne sont plus proposées
 
 Dix des seize mascottes livrées déclarent une animation **Rive** et pointent vers

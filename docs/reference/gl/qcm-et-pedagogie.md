@@ -66,12 +66,24 @@ tutoriel, feuillet…) comme apprise.
 - **Assouplir une ressource en particulier** : une ressource peut porter sa propre politique
   (son propre mode, ou une dispense complète), qui l'emporte sur le réglage général. Mais
   l'interrupteur général reste **maître** : éteint, rien n'est demandé nulle part.
-- **Ce que vit l'élève** : au moment de marquer « appris », l'écran annonce combien de
-  questions seront posées **et ce qu'une erreur coûterait** (« une erreur bloquera la
-  validation pendant 3 jours ») ; il peut abandonner sans rien risquer. On ne lui pose que
-  le nombre de questions réellement exigé par le mode : en mode « une réussite suffit », une
-  seule question, même si la ressource en compte cinq. Bonne réponse → il peut confirmer ;
-  mauvaise réponse → la ressource est verrouillée le temps du délai, puis il peut réessayer.
+- **Ce que vit l'élève** : **avant même de cliquer**, le bouton « marquer appris » porte une
+  pastille annonçant ce qui l'attend (« 1 question », « 🔒 ») — G&L n'avait aucune annonce
+  jusqu'au lot 28, alors que ForetMap en avait une. Au clic, un **petit panneau surgit
+  par-dessus la page** (le même popover que ForetMap, aux couleurs du royaume, à la place de
+  l'ancienne fenêtre pleine largeur) et annonce combien de questions seront posées **et ce
+  qu'une erreur coûterait** (« une erreur bloquera la validation pendant 3 jours ») ; il peut
+  abandonner sans rien risquer. On ne lui pose que le nombre de questions réellement exigé par
+  le mode : en mode « une réussite suffit », une seule question, même si la ressource en
+  compte cinq. Bonne réponse → il peut confirmer ; mauvaise réponse → la ressource est
+  verrouillée le temps du délai, puis il peut réessayer.
+- **Des pastilles d'état** accompagnent le bouton : **✓** contrôle réussi, **?** questions
+  restantes, **🔒** bloqué. Rien ne s'affiche là où rien n'est conditionné, ni sur un contenu
+  déjà appris. Le réglage « Afficher les pastilles d'état » permet de les éteindre.
+- **Approuver les propositions d'un coup** : dans l'écran des liens, les rattachements
+  « proposés » d'une ressource peuvent être approuvés ensemble plutôt qu'un par un. Approuver
+  n'est pas conditionner : le caractère bloquant reste une décision explicite, lien par lien.
+- **Un lien bloquant n'est plus accepté sur un type non validable** : le message dit lesquels
+  le sont, et rappelle que le lien reste possible en non bloquant.
 - **Les bonnes réponses comptent toujours**, même données avant l'activation du
   conditionnement et même ailleurs (sur le plateau, à l'entraînement) : allumer
   l'interrupteur ne fait pas repasser à l'élève une question qu'il a déjà réussie.
