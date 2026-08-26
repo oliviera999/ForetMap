@@ -23,7 +23,7 @@ duplique une.
 réinsère toute livrée absente, donc la suppression se serait annulée au prochain
 `npm run db:migrate`, des semaines plus tard, sans prévenir. Ce n'était pourtant pas une
 fatalité, seulement une mémoire qui manquait : la suppression est désormais **inscrite en base**
-(migration 201), et le semis la respecte. Toutes les lignes de la liste se suppriment donc de la
+(migration 202), et le semis la respecte. Toutes les lignes de la liste se suppriment donc de la
 même façon.
 
 Deux conséquences valaient d'être traitées avant de livrer, pas après :
@@ -62,6 +62,105 @@ C'est le même défaut, sous la même forme, que celui déjà fermé sur `frames
 un moteur écrit pour tous. Le nouveau test porte donc sur la **propriété générale** — un pack valide
 le reste après le studio, quel que soit son moteur — de façon à attraper la prochaine fuite quel que
 soit le champ en cause.
+### Savoir enfin pourquoi le serveur tombe (lot 30)
+
+Constat de départ : des indisponibilités régulières, y compris avec un seul utilisateur et
+sans manipulation lourde — et **aucun moyen de savoir pourquoi**. `startup.log` et
+`startup-diag.log` sont écrasés à chaque démarrage : ils décrivent le démarrage courant, pas
+l'histoire. Après coup, il ne restait rien.
+
+**Un journal de cycle de vie survit maintenant aux redémarrages.** À chaque démarrage,
+chaque arrêt maîtrisé et chaque crash, une ligne est ajoutée à `logs/boot-journal.ndjson`
+(hors dépôt, borné, écriture best-effort). L'information décisive n'est pas le nombre de
+redémarrages mais **leur nature** : un démarrage qui n'est précédé d'aucun arrêt tracé
+signifie que le process a été tué sans signal — c'est la signature d'un plafond mémoire ou
+processus de l'hébergeur, indiscernable jusqu'ici d'un simple redémarrage de déploiement.
+
+**Quatre causes, quatre traitements.** Le champ `restarts` de `GET /api/admin/diagnostics`
+(fenêtre réglable par `?restartsWindowHours=`) rend un verdict et la conduite à tenir :
+redémarrages de déploiement (`deploy_churn`), arrêts d'inactivité Passenger
+(`host_idle_stops`), crash applicatif (`crashes`), process tué par LVE (`hard_kills`) — ou
+`stable`, auquel cas l'application n'est pas en cause et il faut chercher côté réseau,
+navigateur ou frontal. Lecture en clair depuis le poste de travail :
+**`npm run prod:uptime-report`** (`-- --hours=168`, `-- --json`).
+
+**Une rafale de merges ne fait plus qu'un redémarrage.** Le cron de déploiement attend
+désormais une accalmie (`DEPLOY_QUIET_SECONDS`, défaut 180 s) avant d'appliquer une tête
+distante : plusieurs PR fusionnées d'affilée produisaient auparavant autant de fenêtres
+d'indisponibilité que de commits.
+
+**Le keepalive passe à `*/3`.** La cadence de 5 minutes documentée jusqu'ici tombait pile sur
+le seuil d'inactivité par défaut de Passenger (300 s) et laissait passer un arrêt sur deux.
+La ligne est ajoutée au mémo `docs/CRONTAB.md`, qui compte désormais quatre lignes ; la sonde
+`uptime-check.sh` reste ce qu'elle est — elle constate et alerte, elle ne maintient pas
+éveillé.
+
+**Les diagnostics ne se taisent plus quand la base tombe.** `GET /api/admin/diagnostics` et
+`GET /api/admin/logs` étaient soumis au verrou de readiness qui renvoie `503
+SERVICE_NOT_READY` sur tout `/api/*` : en cas de panne MySQL, l'outil qui sert à
+diagnostiquer était donc muet exactement quand il fallait le lire. Ils sont désormais
+exemptés de ce seul verrou — la garde `DEPLOY_SECRET` et le refus pendant un redémarrage
+restent inchangés.
+
+Détail : `lib/bootJournal.js`, `docs/EXPLOITATION.md` (§ Indisponibilités récurrentes),
+`docs/CRONTAB.md`, `docs/API.md`, `docs/AUDIT_CHARGE_SERVEUR_2026-08.md` §2.E ;
+tests `tests/boot-journal.test.js`, `tests/api-availability.test.js`.
+### Correctif — le délai après une erreur ne tombait jamais dans Gnomes & Licornes
+
+Une mauvaise réponse au contrôle de compréhension, dans le flux « marquer appris » de
+Gnomes & Licornes, devait verrouiller la fiche pendant le délai réglé (3 jours par
+défaut). L'écriture du verrou était refusée par la base (nombre de colonnes et de
+valeurs différent), l'erreur était avalée, et l'élève pouvait réessayer tout de suite.
+ForetMap n'était pas touché. Le verrou se pose à nouveau côté Gnomes & Licornes.
+
+### La sensibilité de l'aimant de contour se règle, elle aussi (lot 29)
+
+**Le rayon d'accroche était réglable, pas le seuil de contraste.** L'aimant qui colle un
+sommet de zone sur les limites visibles du plan exigeait un contraste figé dans le code :
+sur un plan dessiné il tombait juste, mais sur une photo aérienne où deux parcelles se
+ressemblent, la limite réelle passait sous le seuil et l'aimant restait muet — sans qu'on
+puisse rien y faire. À l'inverse, personne ne pouvait le rendre plus strict quand il
+accrochait une ombre plutôt qu'un bord de parcelle.
+
+Un second curseur, **« sensibilité »**, apparaît à côté du rayon quand l'aimant est prêt.
+Il parcourt dix niveaux, du plus exigeant — seules les limites franches attirent le sommet
+— au plus permissif, qui accroche aussi les transitions ténues. Le niveau par défaut
+reproduit exactement le comportement précédent : rien ne change pour qui n'y touche pas.
+
+- **Nouvel utilitaire** — `sensitivityToMinStrength` dans `src/utils/edgeSnap.js` traduit
+  le niveau choisi en contraste minimal, sur une échelle explicite de dix valeurs. Un
+  niveau hors bornes est ramené dans l'échelle, une valeur illisible retombe sur le défaut
+  plutôt que de désactiver l'aimant.
+- **Réglage transmis partout** — le glissement d'un sommet et le bouton « 🧲 Coller »
+  (recalage groupé) utilisent le même seuil.
+- **Tests** — 4 cas sur l'échelle, dont la vérification qu'un contour ténu est ignoré au
+  niveau le plus strict et accroché au plus permissif ; 1 cas sur la barre d'outils ;
+  1 cas sur la transmission du réglage jusqu'à l'aimant.
+- **Documentation** — les deux réglages sont décrits dans « Retoucher le contour d'une
+  zone » (`docs/reference/foretmap/carte-et-zones.md`), et le point d'attention sur les
+  photos peu contrastées indique désormais quoi régler.
+### Le glossaire se valide, et ne donne plus la réponse (lot 28, suite)
+
+**Le glossaire ForetMap porte un bouton « J'ai appris ce terme ».** Il était purement
+consultatif : rien ne distinguait un terme travaillé d'un terme jamais ouvert et, surtout, le
+contrôle de compréhension n'avait aucun geste auquel se rattacher — une question rattachée à un
+terme ne conditionnait rien du tout, et rien ne le signalait. Gnomes & Licornes savait valider un
+terme depuis longtemps ; ForetMap le fait maintenant aussi, avec le même bouton, le même popover
+et les mêmes pastilles d'état. Le cœur des accusés d'apprentissage devient commun aux deux
+applications : une seule différence subsiste, celle que les produits imposent — G&L identifie son
+lecteur par un couple (type, identifiant), ForetMap par son compte.
+
+En conséquence, **les trois types de contenus ForetMap sont désormais validables**, et un lien
+bloquant sur un terme de glossaire a enfin un sens.
+
+**Le glossaire ne donne plus la réponse.** Les termes reconnus dans l'énoncé d'une question et
+dans les propositions de réponse étaient cliquables : sur une question du type « Comment
+appelle-t-on le processus par lequel… ? », ouvrir le terme lié **donnait la réponse**. Ce qui
+devait aider à comprendre servait à deviner. Le texte reste affiché tel quel — aucun mot n'est
+masqué —, mais rien ne s'ouvre tant que l'élève n'a pas répondu ; la liste « Glossaire utile »
+suit la même règle, pour la même raison. Après la réponse, tout revient : c'est le moment où
+aller lire la définition est utile. La règle est commune aux deux applications et vaut aussi pour
+l'aperçu du professeur ou du MJ, qui doit montrer ce que l'élève verra.
 
 ### Le conditionnement devient visible, et enfin armable (lot 28)
 

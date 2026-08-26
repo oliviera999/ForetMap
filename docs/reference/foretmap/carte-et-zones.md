@@ -162,18 +162,24 @@ directement sur le plan ; rien n'est enregistré tant qu'on n'a pas cliqué « S
 - **Aimanter le contour sur l'image** : la bascule « 🧲 Aimant » analyse l'image de
   fond du plan (l'analyse prend un instant la première fois) et **colle le sommet
   déplacé sur la limite visible la plus proche** — un bord de parcelle, un chemin, une
-  haie — comme l'aimantation d'un logiciel de retouche photo. Un curseur règle la
-  distance d'accroche. Le bouton « 🧲 Coller » applique l'aimantation d'un coup aux
-  sommets sélectionnés (ou à tout le contour si rien n'est sélectionné). Maintenir la
-  touche Alt suspend l'aimant le temps d'un geste, pour placer un sommet à la main.
+  haie — comme l'aimantation d'un logiciel de retouche photo. Deux curseurs le règlent :
+  le **rayon**, jusqu'à quelle distance l'aimant va chercher une limite, et la
+  **sensibilité**, à quel point cette limite doit être marquée pour attirer le sommet.
+  Une sensibilité basse ne retient que les traits francs ; une sensibilité haute accroche
+  aussi les transitions ténues — pratique sur une photo peu contrastée, mais l'aimant y
+  devient bavard. Le bouton « 🧲 Coller » applique l'aimantation d'un coup aux sommets
+  sélectionnés (ou à tout le contour si rien n'est sélectionné). Maintenir la touche Alt
+  suspend l'aimant le temps d'un geste, pour placer un sommet à la main.
 - **Se tromper n'est pas grave** : « ↩ Annuler » (ou Ctrl+Z / Cmd+Z) revient en arrière
   pas à pas, et fermer par « ✕ » abandonne toutes les retouches sans rien enregistrer.
 
 > ⚠️ **Point d'attention** — L'aimant s'appuie sur les **contrastes de l'image de
 > fond**. Sur un plan dessiné (traits nets, aplats de couleur), il tombe juste ; sur
 > une photo aérienne où deux parcelles voisines se ressemblent, il peut accrocher une
-> ombre ou un feuillage plutôt que la limite réelle. Il reste une aide : le tracé final
-> est celui qu'on valide à l'œil. Par ailleurs, si l'image de fond du plan est
+> ombre ou un feuillage plutôt que la limite réelle — c'est là que **baisser la
+> sensibilité** aide : l'aimant ne retient alors que les limites franches, quitte à ne
+> rien accrocher du tout. Il reste une aide : le tracé final est celui qu'on valide à
+> l'œil. Par ailleurs, si l'image de fond du plan est
 > hébergée sur un autre site, le navigateur interdit d'en lire les couleurs : le bouton
 > affiche alors « Indispo. » et l'édition continue normalement sans aimant.
 

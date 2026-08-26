@@ -128,12 +128,13 @@ test('GET /resources sert les plantes, et refuse un type inconnu', async () => {
   assert.equal(plantes.body.resource_type, 'plant');
   assert.equal(plantes.body.markable, true);
 
-  // Le glossaire est listable mais pas validable : l'écran doit pouvoir le dire.
+  // Le glossaire est listable ET validable depuis la migration 201 (« j'ai appris ce
+  // terme ») : un lien bloquant y a enfin un sens.
   const glossaire = await request(app)
     .get('/api/learning-links/resources?type=glossary')
     .set(auth());
   assert.equal(glossaire.status, 200);
-  assert.equal(glossaire.body.markable, false);
+  assert.equal(glossaire.body.markable, true);
 
   // Un type hors du domaine ForetMap reste refusé (repli sur 'tutorial' impossible).
   const inconnu = await request(app).get('/api/learning-links/resources?type=feuillet').set(auth());
