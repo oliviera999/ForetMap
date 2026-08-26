@@ -14,6 +14,10 @@ set -euo pipefail
 # - DEPLOY_LOCK_DIR     : dossier lock anti-concurrence
 # - DEPLOY_ENV_FILE     : fichier env à charger (défaut: $APP_DIR/.env)
 # - DEPLOY_AUTO_MIGRATE : 1 pour lancer npm run db:migrate après pull
+# - DEPLOY_QUIET_SECONDS : n'applique un commit distant qu'après N secondes d'accalmie
+#   (défaut 180). Une rafale de merges sur main (cas courant quand plusieurs PR sont
+#   fusionnées d'affilée) est ainsi déployée en UN seul redémarrage au lieu d'un par
+#   commit — chaque redémarrage étant une fenêtre d'indisponibilité. 0 pour désactiver.
 # - DEPLOY_SKIP_RESTART_IF_SOFT_ONLY : ne pas appeler /api/admin/restart lorsque tous
 #   les fichiers du déploiement matchent DEPLOY_SOFT_CHANGE_REGEX (ex. docs seulement).
 #   Défaut 1 depuis l'audit charge serveur ; mettre 0 pour toujours redémarrer après pull
@@ -46,6 +50,7 @@ DEPLOY_BASE_URL="${DEPLOY_BASE_URL:-https://foretmap.olution.info}"
 DEPLOY_LOCK_DIR="${DEPLOY_LOCK_DIR:-/tmp/foretmap-auto-deploy.lock}"
 DEPLOY_ENV_FILE="${DEPLOY_ENV_FILE:-$APP_DIR/.env}"
 DEPLOY_AUTO_MIGRATE="${DEPLOY_AUTO_MIGRATE:-0}"
+DEPLOY_QUIET_SECONDS="${DEPLOY_QUIET_SECONDS:-180}"
 # Défaut 1 depuis l'audit charge serveur (docs/AUDIT_CHARGE_SERVEUR_2026-08.md, piste 6) :
 # un commit docs/méta seul ne redémarre plus l'app (moins de fenêtres 503). Remettre 0
 # via .env ou l'environnement du cron pour retrouver le redémarrage systématique.
@@ -129,6 +134,20 @@ if [[ "$LOCAL_SHA" == "$REMOTE_SHA" ]]; then
 fi
 
 log "Mise à jour détectée: $LOCAL_SHA -> $REMOTE_SHA"
+
+# Fusion des rafales de commits : tant que la tête distante est plus jeune que la
+# période d'accalmie, on repasse au prochain tick du cron. Objectif = un redémarrage
+# par rafale de merges, pas un par commit (audit charge serveur, piste 7).
+if [[ "$DEPLOY_QUIET_SECONDS" -gt 0 ]]; then
+  REMOTE_COMMIT_TS="$(git show -s --format=%ct "origin/$DEPLOY_BRANCH" 2>/dev/null || echo 0)"
+  NOW_TS="$(date +%s)"
+  COMMIT_AGE=$((NOW_TS - REMOTE_COMMIT_TS))
+  # Un âge négatif = horloge serveur en retard sur celle du commit : on ne bloque pas.
+  if [[ "$REMOTE_COMMIT_TS" -gt 0 ]] && [[ "$COMMIT_AGE" -ge 0 ]] && [[ "$COMMIT_AGE" -lt "$DEPLOY_QUIET_SECONDS" ]]; then
+    log "Accalmie non atteinte (commit vieux de ${COMMIT_AGE}s < ${DEPLOY_QUIET_SECONDS}s) : déploiement reporté au prochain passage."
+    exit 0
+  fi
+fi
 PREV_SHA="$LOCAL_SHA" # cible de rollback si le déploiement échoue
 
 # Détermine les fichiers changés pour déclencher les étapes utiles.

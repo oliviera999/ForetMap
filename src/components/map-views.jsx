@@ -41,7 +41,7 @@ import { ZonePolygonsLayer, parseZonesForLayer } from './map/ZonePolygonsLayer.j
 import { DrawingLayer } from './map/DrawingLayer.jsx';
 import { EditPointsLayer } from './map/EditPointsLayer.jsx';
 import useMapImageEdgeSnap from '../hooks/useMapImageEdgeSnap.js';
-import { EDGE_SNAP_DEFAULTS } from '../utils/edgeSnap.js';
+import { EDGE_SNAP_DEFAULTS, sensitivityToMinStrength } from '../utils/edgeSnap.js';
 import { ZoneDrawModal } from './map/ZoneDrawModal.jsx';
 import { PhotoGallery } from './map/PhotoGallery.jsx';
 import { LocationTutorialPreviewList } from './map/mapModalShared.jsx';
@@ -213,6 +213,7 @@ function MapViewImpl({
   // Aimant de contour (lot « ancrage magnétique ») : analyse de l'image de fond à la demande.
   const [snapEnabled, setSnapEnabled] = useState(false);
   const [snapRadiusPx, setSnapRadiusPx] = useState(EDGE_SNAP_DEFAULTS.radiusScreenPx);
+  const [snapSensitivity, setSnapSensitivity] = useState(EDGE_SNAP_DEFAULTS.sensitivity);
   const edgeSnap = useMapImageEdgeSnap({
     src: mapImageSrc,
     active: snapEnabled && mode === 'edit-points',
@@ -261,6 +262,7 @@ function MapViewImpl({
     setToast,
     snapPoint: edgeSnap.snapPoint,
     snapRadiusPct,
+    snapMinStrength: sensitivityToMinStrength(snapSensitivity),
     edgeTolerancePct,
   });
   const {
@@ -679,6 +681,8 @@ function MapViewImpl({
           onToggleSnap={() => setSnapEnabled((v) => !v)}
           snapRadiusPx={snapRadiusPx}
           onSnapRadiusChange={setSnapRadiusPx}
+          snapSensitivity={snapSensitivity}
+          onSnapSensitivityChange={setSnapSensitivity}
           onSnapSelectedPoints={() => {
             const moved = snapSelectedPoints();
             setToast(
