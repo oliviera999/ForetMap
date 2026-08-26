@@ -118,6 +118,19 @@ mono-utilisateur → petite classe.
    autorisation applicative) et les en-têtes actuels (immutable, CSP des SVG).
    À valider avec la config hébergeur ; le comportement applicatif ne change pas.
 
+### E. Savoir pourquoi (lot 30)
+
+10. **Journal persistant du cycle de vie du process** (`lib/bootJournal.js`). Constat qui
+    manquait à cet audit : `startup.log` est **écrasé** à chaque démarrage, donc aucune des
+    quatre causes d'indisponibilité (redémarrage de déploiement, arrêt d'inactivité
+    Passenger, crash applicatif, process tué par LVE) n'était distinguable **après coup**.
+    Le journal enregistre à chaque démarrage la **nature de l'arrêt précédent** — un
+    démarrage non précédé d'un arrêt tracé vaut SIGKILL. Exposé en `restarts` dans
+    `GET /api/admin/diagnostics`, lisible via `npm run prod:uptime-report`.
+11. **Fusion des rafales de déploiement** (`DEPLOY_QUIET_SECONDS`, défaut 180 s) :
+    plusieurs PR fusionnées d'affilée ne produisent plus qu'un seul redémarrage. Complète
+    la piste 7, qui reposait jusqu'ici sur une habitude humaine.
+
 ## 3) Ce que l'audit écarte
 
 - **Réduire la fréquence de polling par défaut (60 s)** sans l'endpoint « fraîcheur »
@@ -130,13 +143,13 @@ mono-utilisateur → petite classe.
 
 ## 4) Ordre de mise en œuvre suggéré — et état de réalisation (lots 20–21)
 
-| Étape | Pistes                                  | Effort           | Gain principal                | État                                                                                                       |
-| ----- | --------------------------------------- | ---------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| 1     | 6 (opt-in cron) + 2 (config Passenger)  | config seule     | moins de restarts/cold starts | ✅ 6 : défaut du cron passé à 1 · 2 : documenté EXPLOITATION                                               |
-| 2     | 1 (lazy-require)                        | petit lot code   | −31 Mo RSS (mesuré)           | ✅ réalisé (exceljs, pdfkit, adm-zip, sharp)                                                               |
-| 3     | 3 (cache groupes)                       | petit lot code   | −2 SQL/req auth               | ✅ réalisé (cache versionné, lib/groupScope.js)                                                            |
-| 4     | 8 (keepalive) puis 9 (statique frontal) | config hébergeur | cold starts, CPU Node         | 📋 documenté (EXPLOITATION §Charge serveur) — à faire cPanel                                               |
-| 5     | 4 (endpoint fraîcheur) ± 5              | lot dédié        | −85 % du volume de polling    | ✅ 4 : `GET /api/sync-state` + saut de cycle client · 5 : sans objet (le cycle sauté coûte déjà 1 requête) |
+| Étape | Pistes                                  | Effort           | Gain principal                | État                                                                                                                                                     |
+| ----- | --------------------------------------- | ---------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | 6 (opt-in cron) + 2 (config Passenger)  | config seule     | moins de restarts/cold starts | ✅ 6 : défaut du cron passé à 1 · 2 : documenté EXPLOITATION                                                                                             |
+| 2     | 1 (lazy-require)                        | petit lot code   | −31 Mo RSS (mesuré)           | ✅ réalisé (exceljs, pdfkit, adm-zip, sharp)                                                                                                             |
+| 3     | 3 (cache groupes)                       | petit lot code   | −2 SQL/req auth               | ✅ réalisé (cache versionné, lib/groupScope.js)                                                                                                          |
+| 4     | 8 (keepalive) puis 9 (statique frontal) | config hébergeur | cold starts, CPU Node         | ✅ 8 : ligne crontab dédiée (`*/3`, `docs/CRONTAB.md`) — le `*/5` initial tombait pile sur le seuil d'inactivité Passenger · 9 : toujours à faire cPanel |
+| 5     | 4 (endpoint fraîcheur) ± 5              | lot dédié        | −85 % du volume de polling    | ✅ 4 : `GET /api/sync-state` + saut de cycle client · 5 : sans objet (le cycle sauté coûte déjà 1 requête)                                               |
 
 Mise en œuvre retenue pour la piste 4 : un **compteur global d'écritures SQL** (plus
 `bootId` du process) plutôt qu'un compteur par domaine — toute écriture, connue ou non,
