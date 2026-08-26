@@ -38,6 +38,11 @@ par le code.
 3. **Huit vulnérabilités npm en dépendances de production**, dont quatre de gravité _high_,
    deux corrigeables sans changement cassant.
 
+S'y ajoute un défaut de chaîne de publication qu'aucune suite de tests ne pouvait voir :
+**le workflow « Release tag » n'a jamais publié une seule release** — 134 tags, zéro release,
+rouge à chaque push sur `main`. Une interpolation `${{ … }}` du CHANGELOG dans un script
+shell fait relire les notes de version comme du code (§4.4). Correctif : trois lignes.
+
 Le reste relève de la **dette de process** — et c'est là que se trouve le vrai coût récurrent :
 `dist/` est versionné, ce qui a produit **64 conflits sur la seule PR #366**, tous dans des
 fichiers générés.
@@ -288,7 +293,70 @@ identiques. Elles auraient tout aussi bien pu diverger sur le numéro de version
 un `main` incohérent. Piste : une convention de réservation de branche, ou au minimum un
 `git fetch` + comparaison de tête **avant** toute résolution de conflit.
 
-### 4.4 — MINEUR · 79 branches distantes, dont 46 non fusionnées
+### 4.4 — MAJEUR · Le workflow « Release tag » n'a jamais publié une seule release
+
+`.github/workflows/release-tag.yml:76` :
+
+```yaml
+printf '%s\n' "${{ steps.notes.outputs.body }}" >/tmp/notes.md
+```
+
+Une expression `${{ … }}` est substituée **dans le texte du script** avant que bash ne
+l'analyse. Le corps injecté ici est un extrait de `CHANGELOG.md` — donc du Markdown
+contenant des accents graves, des guillemets, des astérisques et des sauts de ligne. Bash
+le relit comme du **code**.
+
+Extrait du journal du run 158 (fusion de #369) :
+
+```
+docs/MASCOT_NARRATEUR_OLU.md: Permission denied
+GLFeuilletPopover: command not found
+/api/gl/*: No such file or directory
+command substitution: line 7: syntax error near unexpected token `newline'
+##[error]Process completed with exit code 2.
+```
+
+Les accents graves du CHANGELOG sont exécutés comme substitutions de commande, les `>` comme
+redirections — le nom de fichier « Permission denied » est un chemin cité dans une note de
+version, que bash a tenté d'écraser.
+
+**Ce que ça casse.** Les lignes 74-75 créent et poussent le tag **avant** la ligne qui
+échoue. Le tag part donc, la release non — et l'étape suivante n'est jamais atteinte.
+Constat mesuré sur le dépôt :
+
+|                                              |                    |
+| -------------------------------------------- | ------------------ |
+| Tags `v*` présents                           | **134**            |
+| Releases GitHub publiées                     | **0**              |
+| Six derniers runs du workflow (n° 153 à 158) | **6 échecs sur 6** |
+
+Le workflow est donc rouge à **chaque** push sur `main` — y compris les quatre fusions de
+cette session — et il l'était bien avant elles. Ce rouge permanent a un second coût : il
+banalise l'échec, et un vrai défaut de release passerait inaperçu au milieu.
+
+**Correctif** — passer le corps par l'environnement plutôt que par interpolation dans le
+script, ce qui le rend opaque à bash :
+
+```yaml
+- name: Créer le tag + la release
+  if: steps.check.outputs.exists == 'false'
+  env:
+    GH_TOKEN: ${{ github.token }}
+    NOTES_BODY: ${{ steps.notes.outputs.body }} # ← ajouté
+  run: |
+    ...
+    printf '%s\n' "$NOTES_BODY" >/tmp/notes.md    # ← au lieu de ${{ … }}
+```
+
+C'est aussi la bonne pratique de sécurité : sous sa forme actuelle, **tout ce qui entre dans
+`CHANGELOG.md` devient du shell exécuté** avec `contents: write` et `GH_TOKEN`. Sur ce dépôt
+le CHANGELOG n'est écrit que par des mainteneurs, donc la surface d'attaque est nulle en
+pratique — mais c'est la même classe de défaut, et le correctif la ferme en même temps.
+
+Une fois le workflow réparé, les 134 tags existants resteront sans release : à traiter à
+part si l'historique compte (un `gh release create` rétroactif), ou à assumer.
+
+### 4.5 — MINEUR · 79 branches distantes, dont 46 non fusionnées
 
 32 branches entièrement fusionnées dans `main` peuvent être supprimées immédiatement. Parmi
 les 46 non fusionnées, les plus anciennes remontent au **8 juillet** (`claude/app-docs-reference-bhzs5c`,
@@ -296,7 +364,7 @@ les 46 non fusionnées, les plus anciennes remontent au **8 juillet** (`claude/a
 Chacune porte un travail qui, s'il compte encore, ne se rebasera qu'au prix fort ; s'il ne
 compte plus, il encombre. Un tri est à faire, branche par branche.
 
-### 4.5 — MINEUR · La suite e2e ne bloque pas la CI
+### 4.6 — MINEUR · La suite e2e ne bloque pas la CI
 
 `.github/workflows/ci.yml` : `continue-on-error: true` sur l'étape Playwright, avec une
 justification honnête sur place (instabilité en headless, budget de temps). 43 scénarios e2e
@@ -305,13 +373,13 @@ signifie qu'aucun test de bout en bout ne garde `main` : les portes réelles son
 backend, Vitest et build. À rendre bloquant au moins pour un sous-ensemble « smoke »
 stabilisé (connexion, chargement de la carte, ouverture d'une tâche).
 
-### 4.6 — MINEUR · Couverture mesurée mais sans seuil
+### 4.7 — MINEUR · Couverture mesurée mais sans seuil
 
 `npm run test:coverage` s'exécute en CI (`--experimental-test-coverage`) et **aucun seuil
 n'est appliqué** : la couverture ne peut donc pas régresser de façon visible. Un plancher,
 même bas et posé au niveau actuel, transforme la mesure en garde-fou.
 
-### 4.7 — INFO · 522 avertissements ESLint
+### 4.8 — INFO · 522 avertissements ESLint
 
 492 `no-unused-vars`, 30 `react-hooks/exhaustive-deps`. Zéro erreur. Le volume de
 `no-unused-vars` est en grande partie un artefact des tests (jetons préparés puis inutilisés) ;
@@ -467,26 +535,29 @@ décrivent le mécanisme lui-même (`README.md`, `guide-du-mj.md`). Rien à repr
 2. **Rendre `404` les chemins `/api` inconnus** (§2.2) — un `app.use('/api', …)` avant le
    fallback SPA. _Cinq lignes, un test dans `tests/spa-fallback.test.js`._
 3. **`npm audit fix`** sur les deux `high` Socket.IO (§2.3) — sans changement cassant.
+4. **Réparer « Release tag »** (§4.4) — passer les notes par `env:` au lieu d'une
+   interpolation `${{ … }}` dans le script. _Trois lignes ; supprime un rouge permanent sur
+   `main` et débloque la publication des releases._
 
 ### Court terme (supprime du travail récurrent)
 
-4. **Sortir `dist/` du dépôt** (§4.1) — build au déploiement, ou artefact de release.
+5. **Sortir `dist/` du dépôt** (§4.1) — build au déploiement, ou artefact de release.
    _~80 conflits en moins par lot, 188 Mo de `.git` en moins._
-5. **Bumper la version à la fusion, pas dans la PR** (§4.2) — supprime les 2 conflits
+6. **Bumper la version à la fusion, pas dans la PR** (§4.2) — supprime les 2 conflits
    restants de chaque PR.
-6. **Contrôle CI de collision de numéro de migration** (§3.1) — au moment de l'ouverture
+7. **Contrôle CI de collision de numéro de migration** (§3.1) — au moment de l'ouverture
    de la PR, pas à la fusion.
-7. **Appliquer la configuration o2switch du lot 30** (§5.2) — une ligne de crontab plus la
+8. **Appliquer la configuration o2switch du lot 30** (§5.2) — une ligne de crontab plus la
    vérification d'instance unique, puis lire `npm run prod:uptime-report`.
 
 ### Moyen terme
 
-8. **Plancher de mot de passe différencié** — 12 caractères pour `teacher`/`admin` (§2.4).
-9. **Abaisser la limite de corps JSON** à 2 Mo par défaut, relevée route par route (§5.1).
-10. **CSP `default-src 'self'`** en `Report-Only` d'abord (§2.5).
-11. **Rendre bloquant un sous-ensemble e2e smoke** et **poser un seuil de couverture**
-    (§4.5, §4.6).
-12. **Trier les 79 branches** — 32 sont fusionnées et supprimables sur-le-champ (§4.4).
+9. **Plancher de mot de passe différencié** — 12 caractères pour `teacher`/`admin` (§2.4).
+10. **Abaisser la limite de corps JSON** à 2 Mo par défaut, relevée route par route (§5.1).
+11. **CSP `default-src 'self'`** en `Report-Only` d'abord (§2.5).
+12. **Rendre bloquant un sous-ensemble e2e smoke** et **poser un seuil de couverture**
+    (§4.6, §4.7).
+13. **Trier les 79 branches** — 32 sont fusionnées et supprimables sur-le-champ (§4.5).
 
 ---
 

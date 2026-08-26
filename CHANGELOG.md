@@ -20,6 +20,11 @@ une URL `/api/…` inconnue renvoie `200 text/html` (l'index de la SPA) au lieu 
 JSON ; huit vulnérabilités npm subsistent en dépendances de production, dont deux `high` sur
 Socket.IO corrigeables sans changement cassant.
 
+Un quatrième constat ne relève d'aucune suite de tests : **le workflow « Release tag » n'a
+jamais publié une seule release** — 134 tags pour zéro release, et un échec à chaque push sur
+`main`. Une interpolation `${{ … }}` du CHANGELOG dans un script shell fait relire les notes
+de version comme du code. Le correctif tient en trois lignes.
+
 Le rapport chiffre par ailleurs le coût du versionnement de `dist/` : sur les quatre PR
 fusionnées, **80 des 88 conflits portaient sur des fichiers générés**. Et il vérifie ce que
 l'audit du 23/08 signalait — quatre de ses cinq points les plus graves sont fermés.
