@@ -2,6 +2,7 @@ import React, { useCallback, useMemo } from 'react';
 import { api, AccountDeletedError, getAuthToken } from '../services/api';
 import { LearningAcknowledgeButton } from '../shared/components/LearningAcknowledgeButton.jsx';
 import { createFmGatingHandlers } from '../shared/utils/learningGatingChallengeClient.js';
+import { FMQuizPopover } from './pedago/FMQuizPopover.jsx';
 
 /**
  * Bouton + modal pour marquer un tutoriel comme lu après confirmation explicite.
@@ -13,6 +14,8 @@ export function TutorialReadAcknowledgeButton({
   isRead,
   onAcknowledged,
   onForceLogout,
+  /** Résumé du conditionnement pour ce tutoriel (chargé en lot par la vue). */
+  gatingSummary = null,
 }) {
   const hasToken = typeof getAuthToken === 'function' && !!getAuthToken();
   const gatingHandlers = useMemo(() => createFmGatingHandlers(api), []);
@@ -52,7 +55,11 @@ export function TutorialReadAcknowledgeButton({
       isDone={isRead}
       gatingHandlers={gatingHandlers}
       gatingResource={gatingResource}
+      gatingSummary={gatingSummary}
       enableGating={!isRead}
+      Shell={FMQuizPopover}
+      overlayClassName="fm-quiz-popover"
+      dialogClassName="fm-quiz-popover__panel animate-pop"
       onSubmit={async () => {
         try {
           await submit();

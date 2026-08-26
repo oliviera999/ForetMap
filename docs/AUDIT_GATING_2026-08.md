@@ -1,0 +1,123 @@
+# Audit — conditionnement des lectures par question (ForetMap)
+
+> Août 2026. Porte sur le dispositif qui subordonne la validation d'une lecture
+> (« Marquer comme lu », « Espèce découverte ») à la réussite de questions du Quiz.
+> Périmètre : `lib/learningGating*.js`, `routes/learning-gating.js`,
+> `routes/learning-links.js`, `routes/quiz.js`, le flux d'accusé côté élève.
+> Gnomes & Licornes partage le cœur mais a ses propres réglages : signalé au cas par cas.
+
+## Ce que le dispositif fait aujourd'hui
+
+L'élève clique « Marquer comme lu ». Le serveur regarde si des questions du Quiz sont
+**rattachées** au tutoriel et marquées **bloquantes** et **approuvées**. Si oui, et si
+l'interrupteur du site est allumé, l'élève doit y répondre juste avant de pouvoir cocher
+la case de confirmation.
+
+Trois modes : une bonne réponse suffit (`any`, défaut), toutes (`all`), ou un seuil (`threshold`).
+Chaque ressource peut surcharger le mode ou se dispenser. **L'interrupteur global reste maître** :
+éteint, aucune surcharge ne peut rallumer le conditionnement.
+
+Les bonnes réponses données ailleurs comptent : `user_quiz_attempts` enregistre toute réponse,
+y compris en entraînement libre, et le conditionnement les relit. L'activation est donc
+rétroactive — un choix délibéré et bien documenté.
+
+## Constats
+
+### C1 — Deux régimes possibles, aucun entre-deux · **corrigé dans ce lot**
+
+La première mauvaise réponse verrouillait la ressource **entière** pour trois jours. En mode
+« toutes », une erreur à la quatrième question sur cinq annulait tout. À l'inverse, régler le
+délai à `0` supprimait toute vérification : rien ne limitait les tentatives, il suffisait de
+réessayer jusqu'à tomber juste.
+
+Le dispositif n'avait donc que deux régimes : brutal, ou nul.
+
+→ Nouveau réglage **« Erreurs tolérées avant blocage »** (`learning.gating.allowed_wrong_attempts`,
+0 à 10, défaut **0** = comportement inchangé). Le compteur vit dans `resource_gating_cooldowns`
+(migration 199) et repart à zéro dès que le verrou expire — sans quoi la faute suivante
+re-verrouillerait aussitôt.
+
+### C2 — L'élève découvrait l'épreuve après s'être engagé · **corrigé dans ce lot**
+
+Le bouton disait « ✓ Marquer comme lu ». Rien n'indiquait qu'un contrôle suivrait ; l'annonce
+n'arrivait qu'après le clic, la fenêtre ouverte. Un élève pouvait déclencher un verrou de trois
+jours sans avoir jamais su qu'il jouait quelque chose.
+
+→ Nouvelle route `GET /api/learning/gating/summary` (résumé groupé, une requête pour toute la
+liste), pastille sur le bouton (« 1 question », « 🔒 »), et **règles énoncées avant de commencer** :
+combien de questions, combien d'erreurs permises, ce que coûte une erreur, et le rappel que
+l'abandon ne coûte rien.
+
+### C3 — Marathon de questions en mode « toutes » · **corrigé dans ce lot**
+
+Une ressource portant huit questions bloquantes les enchaînait sans plafond.
+
+→ Réglage **« Questions posées d'affilée au maximum »** (`learning.gating.max_questions_per_session`,
+1 à 10, défaut 3). Les bonnes réponses restant acquises, l'élève avance par paliers. Le serveur
+renvoie désormais `ask_count` (ce qui sera posé maintenant) à côté de `pending_count` (ce qu'il
+reste au total) ; le client respecte le premier.
+
+### C4 — Le professeur ne voit rien des verrous · **non corrigé**
+
+Aucune route, aucun écran n'expose `resource_gating_cooldowns`. Un élève bloqué trois jours est
+**invisible** : le professeur ne peut ni le constater, ni comprendre pourquoi l'élève ne valide
+pas, ni lever le verrou. En classe, c'est le constat le plus gênant de cet audit : le dispositif
+peut bloquer un élève sans que personne ne le sache.
+
+Le contournement actuel est une requête SQL directe. Voir _Évolutions_, piste 1.
+
+### C5 — `auto_mark_on_correct` est un réglage mort · **non corrigé**
+
+Lu (`getFmGatingSite`, `routes/learning-links.js`) et exposé dans la console, mais **aucune
+décision ne le consulte**. L'auto-marquage a été retiré ; le réglage est resté. Il est désormais
+libellé comme réservé, mais il devrait disparaître.
+
+### C6 — Aucun filtrage par niveau · **non corrigé**
+
+Le conditionnement ne regarde ni `niveau` ni `difficulte` de la question. Une question marquée
+« lycée » peut bloquer un élève de collège si elle est rattachée au tutoriel. Le professeur doit
+y veiller à la main au moment du rattachement.
+
+### C7 — Divergence silencieuse ForetMap / GL sur la granularité · **non corrigé**
+
+`resolveEffectivePolicy` attend une `granularity` (`player` / `team`). GL la fournit
+(`gl.gating.granularity`), ForetMap non : `getFmGatingSite` ne la lit pas, et le cœur retombe
+sur `player`. Sans effet visible aujourd'hui — ForetMap n'a pas d'équipes — mais c'est un
+paramètre attendu par le cœur partagé qu'un seul des deux produits alimente.
+
+### C8 — Ce qui tient bien
+
+Plusieurs points méritent d'être notés comme sains, pour ne pas les défaire par mégarde :
+
+- **Le jeton de présentation ne porte jamais la bonne réponse** : il porte une empreinte HMAC et
+  un `nonce`. Un `atob()` dans la console ne révèle rien.
+- **Anti-rejeu** : le `jti` du jeton est consommé à la première réponse.
+- **L'interrupteur global est réellement maître** : une surcharge par ressource ne peut
+  qu'assouplir, jamais rallumer derrière lui.
+- **Le verrou ne se pose que depuis le flux de validation** : répondre faux en entraînement libre
+  ne bloque rien, parce que le contexte ressource n'est pas transmis.
+- **Le conditionnement ne s'applique qu'au premier marquage** : une re-observation d'espèce n'est
+  pas re-conditionnée.
+
+## Réglages du dispositif après ce lot
+
+| Réglage                                           | Défaut  | Rôle                                             |
+| ------------------------------------------------- | ------- | ------------------------------------------------ |
+| Exiger des questions avant de valider une lecture | **non** | Interrupteur maître.                             |
+| Exigence par défaut                               | une     | `any` / `all` / `threshold` / `off`.             |
+| Nombre de bonnes réponses attendues               | 1       | Le N du mode « seuil ».                          |
+| **Erreurs tolérées avant blocage**                | **0**   | Nouveau (C1). 0 = verrou dès la première erreur. |
+| Délai avant nouvelle tentative après une erreur   | 3 j     | 0 = pas de verrou.                               |
+| **Questions posées d'affilée au maximum**         | **3**   | Nouveau (C3).                                    |
+| **Annoncer le contrôle sur le bouton**            | **oui** | Nouveau (C2).                                    |
+| Marquage automatique sur bonne réponse            | oui     | **Sans effet** (C5).                             |
+
+## Combinaisons à connaître
+
+- **Délai 0 + tolérance 0** → aucune limite de tentative : le contrôle devient une formalité.
+  C'est le réglage le plus permissif possible, à réserver à l'entraînement.
+- **Délai 3 + tolérance 0** → réglage historique, le plus sévère. Une erreur, trois jours.
+- **Délai 3 + tolérance 2** → l'entre-deux recommandé pour une classe : on peut se tromper,
+  pas indéfiniment.
+- **Mode « toutes » + plafond par session** → l'élève valide en plusieurs passages. Prévenir
+  les élèves, sans quoi le refus après une session complète paraît arbitraire.

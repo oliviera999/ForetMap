@@ -90,9 +90,14 @@ export function pendingChallengeQuestions(challenge) {
   if (!challenge?.required) return [];
   const list = Array.isArray(challenge.questions) ? challenge.questions : [];
   const notCorrect = list.filter((q) => !q.already_correct);
+  // `ask_count` = ce que le serveur accepte de poser MAINTENANT (plafond par
+  // session appliqué) ; `pending_count` = ce qu'il reste au total. Un serveur
+  // antérieur n'envoie pas `ask_count` : on retombe alors sur `pending_count`.
+  const askCount = Number(challenge.ask_count);
   const pendingCount = Number(challenge.pending_count);
-  if (!Number.isFinite(pendingCount) || pendingCount < 0) return notCorrect;
-  return notCorrect.slice(0, Math.min(pendingCount, notCorrect.length));
+  const limit = Number.isFinite(askCount) && askCount >= 0 ? askCount : pendingCount;
+  if (!Number.isFinite(limit) || limit < 0) return notCorrect;
+  return notCorrect.slice(0, Math.min(limit, notCorrect.length));
 }
 
 /**
@@ -122,4 +127,57 @@ export function buildGatingQuizIntroMessage(pendingCount, itemTitle = '', retryD
     `Pour valider que tu as bien compris ${label}, ${questionWord} ${verb} ` +
     `avant de pouvoir confirmer. ${consequence}`
   );
+}
+
+/**
+ * Règles du contrôle, énoncées AVANT que l'élève ne commence.
+ *
+ * L'intro précédente disait le nombre de questions et le délai encouru. Elle
+ * ignorait deux choses désormais réglables et qui changent tout pour l'élève :
+ * les essais ratés tolérés avant que le verrou ne tombe, et le fait que la
+ * session puisse ne poser qu'une partie des questions restantes.
+ *
+ * @param {object} challenge réponse de /api/learning/gating/challenge
+ * @returns {string[]} une ligne par règle, dans l'ordre où elles s'appliquent
+ */
+export function buildGatingRules(challenge) {
+  if (!challenge?.required) return [];
+  const rules = [];
+
+  const ask = Math.max(0, Number(challenge.ask_count ?? challenge.pending_count) || 0);
+  const pending = Math.max(ask, Number(challenge.pending_count) || ask);
+  if (ask > 0) {
+    rules.push(
+      ask === 1 ? 'Une question va t’être posée.' : `${ask} questions vont t’être posées.`,
+    );
+  }
+  if (pending > ask) {
+    rules.push(
+      `Il en restera ${pending - ask} à réussir plus tard : tes bonnes réponses sont gardées ` +
+        'd’une fois sur l’autre.',
+    );
+  }
+
+  const tolerance = Math.max(0, Number(challenge.allowed_wrong_attempts) || 0);
+  const days = Math.max(0, Number(challenge.cooldown?.retry_days) || 0);
+  if (days <= 0) {
+    rules.push('En cas d’erreur, tu peux réessayer tout de suite.');
+  } else if (tolerance <= 0) {
+    rules.push(
+      `Une seule erreur et la validation sera bloquée ${days === 1 ? '1 jour' : `${days} jours`}.`,
+    );
+  } else {
+    const already = Math.max(0, Number(challenge.cooldown?.wrong_attempts) || 0);
+    const left = Math.max(0, tolerance - already);
+    rules.push(
+      left === 1
+        ? `Il te reste 1 erreur possible ; au-delà, la validation sera bloquée ${days === 1 ? '1 jour' : `${days} jours`}.`
+        : `Tu as droit à ${left} erreurs ; au-delà, la validation sera bloquée ${days === 1 ? '1 jour' : `${days} jours`}.`,
+    );
+  }
+
+  rules.push(
+    'Abandonner maintenant ne coûte rien : rien n’est compté tant que tu n’as pas répondu.',
+  );
+  return rules;
 }
