@@ -15,6 +15,149 @@ défaut). L'écriture du verrou était refusée par la base (nombre de colonnes 
 valeurs différent), l'erreur était avalée, et l'élève pouvait réessayer tout de suite.
 ForetMap n'était pas touché. Le verrou se pose à nouveau côté Gnomes & Licornes.
 
+### La sensibilité de l'aimant de contour se règle, elle aussi (lot 29)
+
+**Le rayon d'accroche était réglable, pas le seuil de contraste.** L'aimant qui colle un
+sommet de zone sur les limites visibles du plan exigeait un contraste figé dans le code :
+sur un plan dessiné il tombait juste, mais sur une photo aérienne où deux parcelles se
+ressemblent, la limite réelle passait sous le seuil et l'aimant restait muet — sans qu'on
+puisse rien y faire. À l'inverse, personne ne pouvait le rendre plus strict quand il
+accrochait une ombre plutôt qu'un bord de parcelle.
+
+Un second curseur, **« sensibilité »**, apparaît à côté du rayon quand l'aimant est prêt.
+Il parcourt dix niveaux, du plus exigeant — seules les limites franches attirent le sommet
+— au plus permissif, qui accroche aussi les transitions ténues. Le niveau par défaut
+reproduit exactement le comportement précédent : rien ne change pour qui n'y touche pas.
+
+- **Nouvel utilitaire** — `sensitivityToMinStrength` dans `src/utils/edgeSnap.js` traduit
+  le niveau choisi en contraste minimal, sur une échelle explicite de dix valeurs. Un
+  niveau hors bornes est ramené dans l'échelle, une valeur illisible retombe sur le défaut
+  plutôt que de désactiver l'aimant.
+- **Réglage transmis partout** — le glissement d'un sommet et le bouton « 🧲 Coller »
+  (recalage groupé) utilisent le même seuil.
+- **Tests** — 4 cas sur l'échelle, dont la vérification qu'un contour ténu est ignoré au
+  niveau le plus strict et accroché au plus permissif ; 1 cas sur la barre d'outils ;
+  1 cas sur la transmission du réglage jusqu'à l'aimant.
+- **Documentation** — les deux réglages sont décrits dans « Retoucher le contour d'une
+  zone » (`docs/reference/foretmap/carte-et-zones.md`), et le point d'attention sur les
+  photos peu contrastées indique désormais quoi régler.
+### Le glossaire se valide, et ne donne plus la réponse (lot 28, suite)
+
+**Le glossaire ForetMap porte un bouton « J'ai appris ce terme ».** Il était purement
+consultatif : rien ne distinguait un terme travaillé d'un terme jamais ouvert et, surtout, le
+contrôle de compréhension n'avait aucun geste auquel se rattacher — une question rattachée à un
+terme ne conditionnait rien du tout, et rien ne le signalait. Gnomes & Licornes savait valider un
+terme depuis longtemps ; ForetMap le fait maintenant aussi, avec le même bouton, le même popover
+et les mêmes pastilles d'état. Le cœur des accusés d'apprentissage devient commun aux deux
+applications : une seule différence subsiste, celle que les produits imposent — G&L identifie son
+lecteur par un couple (type, identifiant), ForetMap par son compte.
+
+En conséquence, **les trois types de contenus ForetMap sont désormais validables**, et un lien
+bloquant sur un terme de glossaire a enfin un sens.
+
+**Le glossaire ne donne plus la réponse.** Les termes reconnus dans l'énoncé d'une question et
+dans les propositions de réponse étaient cliquables : sur une question du type « Comment
+appelle-t-on le processus par lequel… ? », ouvrir le terme lié **donnait la réponse**. Ce qui
+devait aider à comprendre servait à deviner. Le texte reste affiché tel quel — aucun mot n'est
+masqué —, mais rien ne s'ouvre tant que l'élève n'a pas répondu ; la liste « Glossaire utile »
+suit la même règle, pour la même raison. Après la réponse, tout revient : c'est le moment où
+aller lire la définition est utile. La règle est commune aux deux applications et vaut aussi pour
+l'aperçu du professeur ou du MJ, qui doit montrer ce que l'élève verra.
+
+### Le conditionnement devient visible, et enfin armable (lot 28)
+
+Constat de départ : **rien n'apparaissait jamais**. Le diagnostic a montré que le mécanisme
+n'était pas cassé — il n'était jamais armé. Trois conditions doivent être réunies (interrupteur
+allumé, lien **approuvé**, lien **coché bloquant**) et aucune ne l'était par défaut, sans que
+rien ne le dise.
+
+**L'écran de rattachement dit maintenant où on en est** : interrupteur allumé ou éteint, nombre
+de questions bloquantes, contenus couverts, propositions en attente. Un avertissement distinct
+prévient quand l'interrupteur est allumé mais qu'aucun lien n'est bloquant — le cas le plus
+fréquent derrière « rien ne se passe ».
+
+**Les propositions s'approuvent d'un geste.** Le rattachement automatique enregistre en
+« proposé », statut sans effet ; il fallait quarante changements de liste déroulante pour
+quarante propositions, et personne n'allait au bout. Approuver n'est pas conditionner : le
+caractère bloquant reste coché ligne par ligne.
+
+**L'écran couvre les trois types de contenus.** Il ne servait que les tutoriels ; fiches
+espèces et glossaire n'avaient aucun point d'entrée, alors que le moteur d'appariement les
+couvre. Chacun est traité par la méthode qui lui convient : rapprochement de contenu pour un
+tutoriel, recherche du libellé pour une espèce ou un terme.
+
+**Un lien bloquant sur un type non validable est refusé, avec un message qui dit pourquoi.**
+Côté ForetMap, un terme de glossaire ne se valide pas : un lien bloquant y restait inerte pour
+toujours, sans un mot, et le professeur croyait avoir conditionné la fiche.
+
+**Des pastilles d'état** accompagnent les boutons de validation : **✓** acquis, **?** questions
+restantes, **🔒** bloqué. Rien ne s'affiche là où rien n'est conditionné ni sur un contenu déjà
+validé — une marque partout ne signalerait plus rien. La forme porte l'information, la couleur
+ne fait que la renforcer.
+
+**L'annonce, les pastilles et le popover sont désormais partout.** L'aperçu de tutoriel, la
+section visite et le bouton « Espèce découverte » n'annonçaient rien ; le popover n'existait
+qu'à un seul endroit. Les quatre points d'entrée de Gnomes & Licornes en héritent aussi : le
+produit n'avait ni annonce ni popover.
+
+**La ré-observation d'une espèce est conditionnée comme la première.** Elle empruntait une
+branche de code entièrement séparée : une fois l'espèce observée, plus aucune question n'était
+jamais posée sur cette fiche. Ce n'était pas une décision, c'était une divergence.
+
+**L'onglet Quiz peut ouvrir la question en fenêtre**, en complément de l'affichage pleine page.
+
+**Deux réglages corrigés.** « Annoncer le contrôle sur le bouton » était un réglage **mort** :
+exposé dans les deux grilles, consulté par aucun code. Il prend effet. S'y ajoute « Afficher les
+pastilles d'état ». Les deux valent pour les deux applications.
+
+**Un défaut de sérialisation corrigé** : les routes `challenge` calculaient `ask_count` et
+`allowed_wrong_attempts` sans les transmettre. Le plafond de questions par session ne
+s'appliquait donc jamais, et les règles annoncées promettaient un blocage dès la première erreur
+même quand des essais étaient tolérés.
+
+**Ce qui a été mutualisé** : le calcul d'état (`learningGatingState`), la pastille d'icône, le
+popover, le hook de résumé, la sérialisation des réponses, l'approbation en lot, le garde-fou de
+type et la feuille de style — que Gnomes & Licornes ne chargeait pas, alors qu'il utilisait déjà
+les composants. G&L gagne au passage la route de résumé par lot qu'il n'avait pas.
+
+Aucun changement de comportement à réglages par défaut.
+### Les mascottes livrées qui ne peuvent pas s'animer ne sont plus proposées
+
+Dix des seize mascottes livrées déclarent une animation **Rive** et pointent vers
+`/assets/rive/*.riv`. Aucun de ces fichiers n'existe, et l'historique du dépôt montre qu'**aucun
+n'a jamais été versionné** : ces entrées ont toujours décrit des animations absentes.
+
+À l'écran, l'échec était **silencieux par conception** : le chargement échouait, le rendu basculait
+sur la silhouette dessinée, et un visiteur voyait un joli dessin parfaitement immobile sans aucun
+moyen de comprendre que ce n'était pas prévu. Le sélecteur promettait dix personnages animés dont
+pas un ne bougerait jamais.
+
+Elles ne sont donc plus proposées aux visiteurs. Elles **restent au studio**, marquées « Livrée »,
+modifiables et exportables : les republier est un clic, le jour où les fichiers arrivent. Le
+sélecteur ne propose plus que des mascottes réellement animées.
+
+La règle se **mesure** — le fichier existe-t-il ? — plutôt que de figer une liste de dix
+identifiants : déposer les `.riv` suffira à les faire revenir sur une installation neuve. Les
+installations déjà en service sont rattrapées **une seule fois** au démarrage, avec une marque de
+passage : republier délibérément une de ces mascottes est un choix légitime, qu'aucun redémarrage
+ne doit défaire en silence.
+
+
+### Lancer un script de maintenance depuis cPanel, sans terminal
+
+Le terminal cPanel n'est pas toujours disponible, et plusieurs opérations d'exploitation n'avaient
+alors aucun chemin documenté. `docs/EXPLOITATION.md` décrit désormais les deux voies qui marchent
+sans lui — le bouton **Run JS Script** de *Setup Node.js App*, et une tâche **cron à usage unique**
+qu'on supprime après passage — avec le piège qui fait échouer la seconde neuf fois sur dix : le
+script lit `.env` **relativement à la racine du dépôt**, donc le `cd` préalable n'est pas
+décoratif.
+
+Le bouton *Run JS Script* attend un **nom de script npm**, pas un chemin de fichier : quatre alias
+sont ajoutés pour que le compactage des registres d'aide y soit accessible en un clic —
+`gl:help:compact:dry` / `gl:help:compact` et `help:compact:dry` / `help:compact`, la variante
+« dry » ne touchant à rien.
+
+
 ### Le conditionnement devient une brique commune aux deux applications (lot 27)
 
 Suite de l'audit [docs/AUDIT_GATING_2026-08.md](docs/AUDIT_GATING_2026-08.md). Trois constats de

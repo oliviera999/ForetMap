@@ -1,4 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { LearningQuizPopover } from '../../shared/components/LearningQuizPopover.jsx';
+import {
+  glossaryPropsWhileAnswering,
+  showLinkedGlossaryTerms,
+} from '../../shared/qcm/quizGlossaryReveal.js';
 import { api } from '../../services/api';
 import {
   PedagoQcmFeedbackBlock,
@@ -63,6 +68,7 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
   const [answerResult, setAnswerResult] = useState(null);
   const [remediationPlants, setRemediationPlants] = useState([]);
   const [error, setError] = useState('');
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   const loadCategories = useCallback(async () => {
     setLoadingCategories(true);
@@ -159,6 +165,13 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
     () => mergeGlossaryLinkItems(glossaryIndex, remediationTerms),
     [glossaryIndex, remediationTerms],
   );
+  // Énoncé et propositions : consultables seulement APRÈS la réponse (cf.
+  // `quizGlossaryReveal`) — sinon le glossaire donne la réponse.
+  const answeringGlossaryProps = useMemo(
+    () =>
+      glossaryPropsWhileAnswering({ glossaryItems: autolinkItems, onOpenGlossaryTerm }, showAnswer),
+    [autolinkItems, onOpenGlossaryTerm, showAnswer],
+  );
 
   useEffect(() => {
     if (!showAnswer) return;
@@ -225,6 +238,133 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
     setRemediationPlants([]);
     setError('');
   }
+
+  const renderQuizBody = (surface) => (
+    <>
+      {questionCode ? <p className="section-sub">Question {questionCode}</p> : null}
+
+      {showChoices ? (
+        <>
+          {/* Auto-liaison neutralisée tant que l'élève n'a pas répondu : consulter le
+              terme lié donnait la réponse. Le texte, lui, ne change pas. */}
+          <GlossaryInlineText
+            tag="p"
+            className="pedago-quiz__question"
+            text={presentation.question}
+            {...answeringGlossaryProps}
+          />
+          {presentation.photoUrl ? (
+            <figure className="pedago-quiz__photo-wrap">
+              <img src={presentation.photoUrl} alt="" className="pedago-quiz__photo" />
+              {presentation.photoCredit || presentation.photoLicence ? (
+                <figcaption className="pedago-quiz__photo-credit">
+                  {[presentation.photoCredit, presentation.photoLicence]
+                    .filter(Boolean)
+                    .join(' — ')}
+                </figcaption>
+              ) : null}
+            </figure>
+          ) : null}
+
+          <div className="pedago-quiz__choices">
+            {presentation.choices.map((choice) => (
+              <label key={choice.id} className="pedago-quiz__choice">
+                <input
+                  type="radio"
+                  name={`pedago-quiz-choice-${surface}`}
+                  checked={selectedChoiceId === choice.id}
+                  onChange={() => setSelectedChoiceId(choice.id)}
+                />
+                <GlossaryInlineText text={choice.text} {...answeringGlossaryProps} />
+              </label>
+            ))}
+          </div>
+
+          {showLinkedGlossaryTerms(showAnswer) && presentation.glossaryTerms?.length > 0 ? (
+            <div className="pedago-remediation">
+              <strong>Glossaire utile</strong>
+              <div className="pedago-chip-row">
+                {presentation.glossaryTerms.map((term) => (
+                  <button
+                    key={term.glossary_code}
+                    type="button"
+                    className="pedago-chip-btn"
+                    onClick={() => onOpenGlossaryTerm?.(term.glossary_code)}
+                  >
+                    {term.terme}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="pedago-quiz__actions">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={submitAnswer}
+              disabled={submitting || selectedChoiceId == null}
+            >
+              {submitting ? 'Envoi…' : 'Valider ma réponse'}
+            </button>
+          </div>
+        </>
+      ) : null}
+
+      {showAnswer ? (
+        <>
+          <PedagoQcmFeedbackBlock
+            result={answerResult}
+            glossaryItems={autolinkItems}
+            onOpenGlossaryTerm={onOpenGlossaryTerm}
+          />
+          {remediationTerms.length > 0 ? (
+            <div className="pedago-remediation">
+              <strong>Pour approfondir — glossaire</strong>
+              <div className="pedago-chip-row">
+                {remediationTerms.map((term) => (
+                  <button
+                    key={term.glossary_code}
+                    type="button"
+                    className="pedago-chip-btn"
+                    onClick={() => onOpenGlossaryTerm?.(term.glossary_code)}
+                  >
+                    {term.terme}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {remediationPlants.length > 0 ? (
+            <div className="pedago-remediation">
+              <strong>Pour approfondir — espèces</strong>
+              <div className="pedago-chip-row">
+                {remediationPlants.map((plant) => (
+                  <button
+                    key={plant.id}
+                    type="button"
+                    className="pedago-chip-btn"
+                    onClick={() => onOpenPlant?.(plant.id)}
+                  >
+                    {plant.emoji ? `${plant.emoji} ` : ''}
+                    {plant.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <div className="pedago-quiz__actions">
+            <button type="button" className="btn btn-secondary" onClick={resetQuestion}>
+              Nouvelle question
+            </button>
+            <button type="button" className="btn btn-primary" onClick={drawQuestion}>
+              Re-tirer
+            </button>
+          </div>
+        </>
+      ) : null}
+    </>
+  );
 
   return (
     <div className="pedago-view pedago-quiz">
@@ -315,133 +455,34 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
 
       {(showChoices || showAnswer) && (
         <article className="card pedago-quiz__card">
-          {questionCode ? <p className="section-sub">Question {questionCode}</p> : null}
-
-          {showChoices ? (
-            <>
-              <GlossaryInlineText
-                tag="p"
-                className="pedago-quiz__question"
-                text={presentation.question}
-                glossaryItems={autolinkItems}
-                onOpenGlossaryTerm={onOpenGlossaryTerm}
-              />
-              {presentation.photoUrl ? (
-                <figure className="pedago-quiz__photo-wrap">
-                  <img src={presentation.photoUrl} alt="" className="pedago-quiz__photo" />
-                  {presentation.photoCredit || presentation.photoLicence ? (
-                    <figcaption className="pedago-quiz__photo-credit">
-                      {[presentation.photoCredit, presentation.photoLicence]
-                        .filter(Boolean)
-                        .join(' — ')}
-                    </figcaption>
-                  ) : null}
-                </figure>
-              ) : null}
-
-              <div className="pedago-quiz__choices">
-                {presentation.choices.map((choice) => (
-                  <label key={choice.id} className="pedago-quiz__choice">
-                    <input
-                      type="radio"
-                      name="pedago-quiz-choice"
-                      checked={selectedChoiceId === choice.id}
-                      onChange={() => setSelectedChoiceId(choice.id)}
-                    />
-                    <GlossaryInlineText
-                      text={choice.text}
-                      glossaryItems={autolinkItems}
-                      onOpenGlossaryTerm={onOpenGlossaryTerm}
-                    />
-                  </label>
-                ))}
-              </div>
-
-              {presentation.glossaryTerms?.length > 0 ? (
-                <div className="pedago-remediation">
-                  <strong>Glossaire utile</strong>
-                  <div className="pedago-chip-row">
-                    {presentation.glossaryTerms.map((term) => (
-                      <button
-                        key={term.glossary_code}
-                        type="button"
-                        className="pedago-chip-btn"
-                        onClick={() => onOpenGlossaryTerm?.(term.glossary_code)}
-                      >
-                        {term.terme}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="pedago-quiz__actions">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={submitAnswer}
-                  disabled={submitting || selectedChoiceId == null}
-                >
-                  {submitting ? 'Envoi…' : 'Valider ma réponse'}
-                </button>
-              </div>
-            </>
-          ) : null}
-
-          {showAnswer ? (
-            <>
-              <PedagoQcmFeedbackBlock
-                result={answerResult}
-                glossaryItems={autolinkItems}
-                onOpenGlossaryTerm={onOpenGlossaryTerm}
-              />
-              {remediationTerms.length > 0 ? (
-                <div className="pedago-remediation">
-                  <strong>Pour approfondir — glossaire</strong>
-                  <div className="pedago-chip-row">
-                    {remediationTerms.map((term) => (
-                      <button
-                        key={term.glossary_code}
-                        type="button"
-                        className="pedago-chip-btn"
-                        onClick={() => onOpenGlossaryTerm?.(term.glossary_code)}
-                      >
-                        {term.terme}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-              {remediationPlants.length > 0 ? (
-                <div className="pedago-remediation">
-                  <strong>Pour approfondir — espèces</strong>
-                  <div className="pedago-chip-row">
-                    {remediationPlants.map((plant) => (
-                      <button
-                        key={plant.id}
-                        type="button"
-                        className="pedago-chip-btn"
-                        onClick={() => onOpenPlant?.(plant.id)}
-                      >
-                        {plant.emoji ? `${plant.emoji} ` : ''}
-                        {plant.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-              <div className="pedago-quiz__actions">
-                <button type="button" className="btn btn-secondary" onClick={resetQuestion}>
-                  Nouvelle question
-                </button>
-                <button type="button" className="btn btn-primary" onClick={drawQuestion}>
-                  Re-tirer
-                </button>
-              </div>
-            </>
-          ) : null}
+          {/* Bouton d'ouverture en popover : l'affichage pleine page reste le mode
+              normal, la fenêtre sert à se concentrer sur la question — notamment
+              depuis l'écran prof, où la carte est noyée sous le catalogue. */}
+          <div className="pedago-quiz__surface-switch">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => setPopoverOpen(true)}
+            >
+              ⤢ Ouvrir en fenêtre
+            </button>
+          </div>
+          {renderQuizBody('page')}
         </article>
       )}
+
+      {/* Même contenu, même état : le popover n'est qu'une seconde surface d'affichage.
+          Le nom des boutons radio est distinct par surface, sinon les deux jeux de
+          boutons se disputeraient le même groupe HTML. */}
+      {popoverOpen && (showChoices || showAnswer) ? (
+        <LearningQuizPopover
+          open
+          onClose={() => setPopoverOpen(false)}
+          ariaLabel="Question du quiz"
+        >
+          {renderQuizBody('popover')}
+        </LearningQuizPopover>
+      ) : null}
     </div>
   );
 }

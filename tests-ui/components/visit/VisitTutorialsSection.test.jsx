@@ -5,6 +5,9 @@ import { api } from '../../../src/services/api.js';
 
 vi.mock('../../../src/services/api.js', () => ({
   api: vi.fn(async () => ({})),
+  // La section annonce désormais le contrôle de compréhension (useGatingSummary) :
+  // sans jeton, le hook n'appelle rien — c'est le comportement voulu ici.
+  getAuthToken: () => '',
   AccountDeletedError: class AccountDeletedError extends Error {},
 }));
 

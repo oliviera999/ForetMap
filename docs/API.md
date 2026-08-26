@@ -1631,20 +1631,20 @@ Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_
 
 ### ForetMap — `/api/learning-links` (prof, permission `plants.manage`)
 
-| Méthode | Route                                                      | Description                                                                                                             |
-| ------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/learning-links`                                      | Liste filtrable (`resourceType`, `resourceRef`, `questionCode`, `status`).                                              |
-| POST    | `/api/learning-links`                                      | Crée/MAJ un lien (idempotent sur `resource_type+resource_ref+question_code`). `404` si la question n'existe pas.        |
-| PATCH   | `/api/learning-links/:id`                                  | Modifie `is_gating` / `weight` / `status` / `note`.                                                                     |
-| DELETE  | `/api/learning-links/:id`                                  | Supprime un lien.                                                                                                       |
-| GET     | `/api/learning-links/policy?resourceType=&resourceRef=`    | Politique brute + **effective** (fusion avec les défauts du site).                                                      |
-| PUT     | `/api/learning-links/policy`                               | Définit la politique d'une ressource (`mode`, `required_correct`, `enabled`).                                           |
-| GET     | `/api/learning-links/config`                               | Réglages site effectifs (lecture seule ; écriture via `/api/settings`).                                                 |
-| GET     | `/api/learning-links/resources?type=tutorial`              | Tutoriels rattachables + compteurs (`links_count`, `gating_count`, `suggested_count`). `400` pour un autre type.        |
-| POST    | `/api/learning-links/suggest`                              | Rattachement automatique tutoriel ↔ question **par le contenu** (voir ci-dessous). Simulation par défaut.               |
-| GET     | `/api/learning-links/locks?includeExpired=&resourceType=`  | **Élèves bloqués** par le conditionnement : qui, quelle fiche, quelle question ratée, combien d'erreurs, jusqu'à quand. |
-| DELETE  | `/api/learning-links/locks`                                | Lève un verrou (`user_id`, `resource_type`, `resource_ref`, `question_code` optionnel). `404` si absent.                |
-| GET     | `/api/quiz/admin/questions/stats?onlyGating=&minAttempts=` | Taux de réussite par question, les plus ratées d'abord ; `suspect` signale celles qui méritent relecture.               |
+| Méthode | Route                                                          | Description                                                                                                                                      |
+| ------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET     | `/api/learning-links`                                          | Liste filtrable (`resourceType`, `resourceRef`, `questionCode`, `status`).                                                                       |
+| POST    | `/api/learning-links`                                          | Crée/MAJ un lien (idempotent sur `resource_type+resource_ref+question_code`). `404` si la question n'existe pas.                                 |
+| PATCH   | `/api/learning-links/:id`                                      | Modifie `is_gating` / `weight` / `status` / `note`.                                                                                              |
+| DELETE  | `/api/learning-links/:id`                                      | Supprime un lien.                                                                                                                                |
+| GET     | `/api/learning-links/policy?resourceType=&resourceRef=`        | Politique brute + **effective** (fusion avec les défauts du site).                                                                               |
+| PUT     | `/api/learning-links/policy`                                   | Définit la politique d'une ressource (`mode`, `required_correct`, `enabled`).                                                                    |
+| GET     | `/api/learning-links/config`                                   | Réglages site effectifs (lecture seule ; écriture via `/api/settings`).                                                                          |
+| GET     | `/api/learning-links/resources?type=tutorial\|plant\|glossary` | Ressources rattachables + compteurs (`links_count`, `gating_count`, `suggested_count`) et `markable` (le produit sait-il **valider** ce type ?). |
+| POST    | `/api/learning-links/suggest`                                  | Rattachement automatique tutoriel ↔ question **par le contenu** (voir ci-dessous). Simulation par défaut.                                        |
+| GET     | `/api/learning-links/locks?includeExpired=&resourceType=`      | **Élèves bloqués** par le conditionnement : qui, quelle fiche, quelle question ratée, combien d'erreurs, jusqu'à quand.                          |
+| DELETE  | `/api/learning-links/locks`                                    | Lève un verrou (`user_id`, `resource_type`, `resource_ref`, `question_code` optionnel). `404` si absent.                                         |
+| GET     | `/api/quiz/admin/questions/stats?onlyGating=&minAttempts=`     | Taux de réussite par question, les plus ratées d'abord ; `suspect` signale celles qui méritent relecture.                                        |
 
 Réglages site (table `app_settings`, scope `teacher`, modifiables via `/api/settings`) :
 `learning.gating.enabled` (def. `false`), `learning.gating.auto_mark_on_correct` (**déprécié**, ignoré),
@@ -1655,7 +1655,11 @@ Réglages site (table `app_settings`, scope `teacher`, modifiables via `/api/set
 ne tombe ; `0` conserve le comportement historique (verrou dès la première),
 `learning.gating.max_questions_per_session` (1–10, def. `3`) — questions posées d'affilée au maximum
 (les bonnes réponses restent acquises d'une session à l'autre),
-`learning.gating.announce_on_button` (bool, def. `true`) — annoncer le contrôle sur le bouton,
+`learning.gating.announce_on_button` (bool, def. `true`) — annoncer le contrôle sur le bouton
+(**réglage mort jusqu'au lot 28** : exposé dans les deux grilles, consulté par aucun code ; il est
+désormais résolu par les routes `challenge`/`summary` et respecté par le front),
+`learning.gating.state_icons` (bool, def. `true`, **nouveau lot 28**) — afficher les pastilles d'état
+(acquis `✓` / en attente `?` / bloqué `🔒`) à côté des boutons de validation,
 `learning.gating.cooldown_scope` (`resource` | `question`, def. `resource`) — le verrou porte sur la
 fiche entière ou sur la seule question ratée.
 
@@ -1668,10 +1672,20 @@ fiche entière ou sur la seule question ratée.
 > `auto_mark_on_correct` a été **supprimé** : lu et exposé des deux côtés, il n'était consulté par
 > aucune décision.
 
-`GET /api/learning/gating/challenge` renvoie désormais `ask_count` (ce qui sera posé **maintenant**,
-plafond par session appliqué) à côté de `pending_count` (ce qu'il reste au total pour valider), plus
-`allowed_wrong_attempts` et `max_questions_per_session`. Le bloc `cooldown` porte `wrong_attempts`
-(fautes déjà comptées, remis à zéro dès que le verrou expire).
+`GET /api/learning/gating/challenge` renvoie `ask_count` (ce qui sera posé **maintenant**, plafond par
+session appliqué) à côté de `pending_count` (ce qu'il reste au total pour valider), plus
+`allowed_wrong_attempts`, `max_questions_per_session` et `cooldown_scope`. Le bloc `cooldown` porte
+`wrong_attempts` (fautes déjà comptées, remis à zéro dès que le verrou expire).
+
+> **Correction (lot 28).** Ces champs étaient calculés mais **non sérialisés** par les deux routes
+> `challenge` : le client retombait sur `pending_count` (le plafond par session ne s'appliquait donc
+> jamais) et annonçait un blocage dès la première erreur même quand des essais étaient tolérés. La
+> sérialisation est désormais commune aux deux produits (`lib/learningGatingSummary.js`).
+
+`challenge` et `summary` renvoient aussi, des deux côtés, le bloc de **présentation** résolu côté
+serveur : `announce_on_button` et `state_icons`. Ces réglages sont de portée prof, donc illisibles
+par un élève ; les routes les résolvent pour que le front les respecte sans accéder aux réglages.
+Chaque ligne de `summary` les recopie sous `announce` et `show_icon`.
 
 Audit détaillé du dispositif : [AUDIT_GATING_2026-08.md](AUDIT_GATING_2026-08.md).
 
@@ -1693,23 +1707,41 @@ validation). La réponse renvoie alors `cooldown: { locked, locked_until, retry_
 Types de ressources : `species|glossary|lore_glossary|tutorial|feuillet`. `question_dataset` obligatoire
 (`qcm` | `qcm_lore`). Permission `gl.content.manage` (liens/politique), `gl.settings.manage` (réglages).
 
-| Méthode        | Route                                        | Description                                                                                                                         |
-| -------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| GET            | `/api/gl/learning-links`                     | Liste filtrable (`questionDataset`, `resourceType`, `resourceRef`, `questionCode`, `status`).                                       |
-| POST           | `/api/gl/learning-links`                     | Crée/MAJ un lien (idempotent). `404` si la question n'existe pas dans le dataset visé.                                              |
-| PATCH / DELETE | `/api/gl/learning-links/:id`                 | Modifie / supprime un lien.                                                                                                         |
-| GET / PUT      | `/api/gl/learning-links/policy`              | Politique de conditionnement par ressource (idem ForetMap).                                                                         |
-| GET            | `/api/gl/learning-links/settings`            | Réglages de gating GL effectifs.                                                                                                    |
-| GET / DELETE   | `/api/gl/learning-links/locks`               | Lecteurs bloqués / levée d'un verrou. Même forme qu'en ForetMap ; le lecteur s'identifie par `reader_user_type` + `reader_user_id`. |
-| PUT            | `/api/gl/learning-links/settings`            | Modifie un réglage (`gl.settings.manage`) : `{ key, value }`.                                                                       |
-| PUT            | `/api/gl/learning-links/chapter-granularity` | Surcharge granularité d'un chapitre de jeu (`{ chapterId, granularity }`, `null` = hérite).                                         |
-| PUT            | `/api/gl/learning-links/scope-granularity`   | Surcharge granularité d'un scope lore (`{ scopeSlug, granularity }`).                                                               |
+| Méthode        | Route                             | Description                                                                                                                                                                                  |
+| -------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET            | `/api/gl/learning-links`          | Liste filtrable (`questionDataset`, `resourceType`, `resourceRef`, `questionCode`, `status`).                                                                                                |
+| POST           | `/api/gl/learning-links`          | Crée/MAJ un lien (idempotent). `404` si la question n'existe pas dans le dataset visé.                                                                                                       |
+| PATCH / DELETE | `/api/gl/learning-links/:id`      | Modifie / supprime un lien.                                                                                                                                                                  |
+| GET / PUT      | `/api/gl/learning-links/policy`   | Politique de conditionnement par ressource (idem ForetMap).                                                                                                                                  |
+| GET            | `/api/gl/learning-links/settings` | Réglages de gating GL effectifs.                                                                                                                                                             |
+| GET / DELETE   | `/api/gl/learning-links/locks`    | Lecteurs bloqués / levée d'un verrou. Même forme qu'en ForetMap ; le lecteur s'identifie par `reader_user_type` + `reader_user_id`.                                                          |
+| GET            | `/api/gl/learning/gating/summary` | **Nouveau (lot 28)** — résumé groupé (`resourceType`, `resourceRefs=a,b,c`, 60 max), corps identique à celui de ForetMap. Une ressource déjà apprise par le lecteur n'est plus conditionnée. |
+
+### ForetMap — glossaire validable (« j'ai appris ce terme »)
+
+Le glossaire ForetMap était purement consultatif : aucune notion d'« appris », donc aucun geste
+auquel subordonner un conditionnement — un lien bloquant sur un terme restait inerte à jamais.
+Gnomes & Licornes savait valider un terme depuis la migration 107 ; ForetMap depuis la **201**
+(table `learning_acknowledgements`, un compte par ligne, supprimée avec le compte).
+
+| Méthode | Route                                   | Auth          | Description                                                                                                                                                                                         |
+| ------- | --------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/glossary/me/learned-codes`        | `requireAuth` | Codes des termes déjà appris par l'utilisateur connecté.                                                                                                                                            |
+| POST    | `/api/glossary/terms/:code/acknowledge` | `requireAuth` | `{ confirm: true }`. Même garde que les tutoriels : **403** `{ error, missing_question_codes, cooldown }` si le conditionnement l'exige. `404` si le terme n'existe pas ou est inactif. Idempotent. |
+
+`glossary` rejoint donc `tutorial` et `plant` parmi les types **validables** côté ForetMap : un lien
+bloquant y est désormais accepté, et `GET /api/learning-links/resources?type=glossary` renvoie
+`markable: true`.
+| PUT | `/api/gl/learning-links/settings` | Modifie un réglage (`gl.settings.manage`) : `{ key, value }`. |
+| PUT | `/api/gl/learning-links/chapter-granularity` | Surcharge granularité d'un chapitre de jeu (`{ chapterId, granularity }`, `null` = hérite). |
+| PUT | `/api/gl/learning-links/scope-granularity` | Surcharge granularité d'un scope lore (`{ scopeSlug, granularity }`). |
 
 Réglages site GL (table `gl_settings`) : `gating.enabled` (def. `false`),
 `gating.granularity` (`player|team`, def. `player` — **appliquée** ; `per_resource` est accepté par
 compatibilité et se comporte comme `player`), `gating.auto_mark_on_correct` (**déprécié**, ignoré,
 retiré de l'écran d'administration), `gating.default_mode` et `gating.default_required_correct`
-(**appliqués**), `gating.retry_cooldown_days` (0–365, def. `3` ; `0` = pas de verrou après
+(**appliqués**), `gating.announce_on_button` et `gating.state_icons` (bool, def. `true` — dérivés du catalogue commun,
+appliqués depuis le lot 28), `gating.retry_cooldown_days` (0–365, def. `3` ; `0` = pas de verrou après
 erreur). La politique par ressource (`GET/PUT /policy`) est **appliquée** elle aussi, avec deux règles :
 l'interrupteur global est **maître** (site éteint → aucun quiz, même sur une ressource `enabled = 1`) et
 un seuil `threshold` est **borné** au nombre de questions liées. Les surcharges de granularité
@@ -1800,10 +1832,10 @@ idée-clé/incipit de feuillet, identité de plante) + le lien `origin='generate
 
 Validation par le prof/MJ via les suggestions (`GET …/learning-links?status=suggested`) puis en masse :
 
-| Méthode | Route                           | Description                                                                              |
-| ------- | ------------------------------- | ---------------------------------------------------------------------------------------- |
-| POST    | `/api/learning-links/review`    | `{ ids:[…], action:'approve'\|'reject' }` → bascule le `status` (prof, `plants.manage`). |
-| POST    | `/api/gl/learning-links/review` | Idem côté GL (`gl.content.manage`).                                                      |
+| Méthode | Route                           | Description                                                                                                                                                                                                                                                                                               |
+| ------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST    | `/api/learning-links/review`    | `{ ids:[…], action:'approve'\|'reject' }` → bascule le `status` (prof, `plants.manage`). Sans `ids`, `{ resourceType, resourceRef, action }` traite **toutes les propositions** (`status='suggested'`) de la ressource, en un geste. N'agit que sur le statut : `is_gating` reste une décision explicite. |
+| POST    | `/api/gl/learning-links/review` | Idem côté GL (`gl.content.manage`), mêmes deux formes.                                                                                                                                                                                                                                                    |
 
 > **Runtime (phase 3)** : les bonnes réponses QCM **n'auto-marquent plus** les ressources. Elles sont
 > enregistrées (`user_quiz_attempts` / `gl_qcm_attempts`, y compris QCM en partie GL) et vérifiées

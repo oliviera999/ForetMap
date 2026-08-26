@@ -22,6 +22,8 @@ const {
   assertGatingSatisfiedForAcknowledge,
   getChallengeState,
 } = require('../../lib/learningGatingAcknowledge');
+const { serializeChallenge, buildGatingSummary } = require('../../lib/learningGatingSummary');
+const { getGatingPresentation } = require('../../lib/learningGatingPresentation');
 const {
   normalizeResourceType,
   normalizeResourceRef,
@@ -100,17 +102,38 @@ router.get(
     if (!state.ok) {
       return res.status(state.status || 400).json({ error: state.error || 'Challenge invalide' });
     }
-    return res.json({
-      gating_enabled: state.gating_enabled,
-      required: state.required,
-      mode: state.mode,
-      required_correct: state.required_correct,
-      granularity: state.granularity,
-      questions: state.questions,
-      pending_count: state.pending_count,
-      satisfied: state.satisfied,
-      cooldown: state.cooldown,
+    const presentation = await getGatingPresentation('gl');
+    return res.json({ ...serializeChallenge(state), ...presentation });
+  }),
+);
+
+/**
+ * GET /api/gl/learning/gating/summary?resourceType=&resourceRefs=a,b,c
+ *
+ * Résumé par lot, jusqu'ici réservé à ForetMap : aucun écran G&L ne pouvait annoncer le
+ * contrôle avant le clic. Même corps de réponse des deux côtés (`lib/learningGatingSummary`).
+ */
+router.get(
+  '/gating/summary',
+  requireGlAuth,
+  asyncHandler(async (req, res) => {
+    const resourceType = normalizeResourceType(req.query.resourceType, GL_RESOURCE_TYPES);
+    if (!resourceType || !GL_MARKABLE.has(resourceType)) {
+      return res.status(400).json({ error: 'Type de ressource invalide' });
+    }
+    const reader = buildReaderKey(req.glAuth);
+    if (!reader) return res.status(403).json({ error: 'Profil invalide' });
+
+    const summary = await buildGatingSummary(db, {
+      product: 'gl',
+      resourceType,
+      rawRefs: req.query.resourceRefs,
+      glAuth: req.glAuth,
+      // Une ressource déjà apprise n'a plus rien à conditionner : sans cette garde, un
+      // joueur verrait « 1 question » sur une fiche qu'il a déjà validée.
+      isAlreadyDone: (type, ref) => hasExistingLearningAck(reader, type, ref),
     });
+    return res.json(summary);
   }),
 );
 

@@ -584,8 +584,15 @@ async function initSchema() {
     // autres. N'insère que ce qui est absent — une ligne modifiée par un prof n'est jamais
     // écrasée. `seedBuiltinMascotPacks` avale déjà ses erreurs ; le `try` est une seconde
     // ceinture, parce qu'un semis ne doit en aucun cas empêcher l'application de démarrer.
-    const { seedBuiltinMascotPacks } = require('./lib/visitMascotBuiltinSeed');
+    const {
+      seedBuiltinMascotPacks,
+      alignUnrenderableBuiltinMascots,
+    } = require('./lib/visitMascotBuiltinSeed');
     await seedBuiltinMascotPacks();
+    // Rattrapage **unique** des installations semées avant que le semis ne sache retenir une
+    // mascotte livrée dont le fichier d'animation manque. Après le semis : il corrige des
+    // lignes, il faut donc qu'elles existent.
+    await alignUnrenderableBuiltinMascots();
   } catch (err) {
     logger.warn({ err }, 'Semis des mascottes livrées ignoré');
   }
