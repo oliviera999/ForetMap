@@ -63,7 +63,10 @@ const {
   listStaticVisitMascotEntries,
   isVisitMascotOffered,
 } = require('../../lib/visitMascotRegistry');
-const { catalogEntryToPack } = require('../../lib/visitMascotBuiltinSeed');
+const {
+  catalogEntryToPack,
+  recordBuiltinMascotDeletion,
+} = require('../../lib/visitMascotBuiltinSeed');
 const { isValidVisitMascotId } = require('../../lib/settings');
 
 const router = express.Router();
@@ -889,31 +892,55 @@ router.post(
 );
 
 /**
- * Suppression d'un pack. **Refusée sur une mascotte livrée** (`origin = 'builtin'`), et c'est
- * délibéré : le catalogue en code la re-sèmerait au prochain démarrage. Accepter la suppression
- * donnerait une réussite qui s'annule toute seule — le pire des retours. Les deux gestes qui
- * font vraiment quelque chose sont nommés dans la réponse : dépublier (elle disparaît du
- * sélecteur, réversible) ou réinitialiser (elle retrouve son état d'origine).
+ * Suppression d'un pack — **y compris une mascotte livrée**.
+ *
+ * Elle était refusée sur `origin = 'builtin'`, pour une raison réelle : le semis réinsère toute
+ * mascotte livrée absente de la table, donc la suppression se serait annulée toute seule au
+ * prochain `npm run db:migrate`. Un bouton qui rend la main puis défait son effet des semaines
+ * plus tard est pire qu'un bouton absent.
+ *
+ * Ce n'était pourtant pas une fatalité, seulement une mémoire qui manquait : la suppression est
+ * désormais **enregistrée** (`visit_mascot_pack_deletions`), et le semis la respecte. Le studio
+ * n'a donc plus qu'une seule liste, dont toutes les lignes se suppriment de la même façon.
+ *
+ * Ce que la suppression coûte, elle le coûte pour de bon : les images téléversées partent avec.
+ * `npm run visit:mascots:restore` rend les mascottes livrées effacées — leur apparence d'origine,
+ * pas les modifications qu'on leur avait apportées.
  */
 router.delete('/mascot-packs/:id', requirePermission('visit.manage'), async (req, res) => {
   try {
     const packId = String(req.params.id || '').trim();
     if (!/^[0-9a-f-]{36}$/i.test(packId)) return res.status(400).json({ error: 'Pack invalide' });
-    const row = await queryOne('SELECT id, origin FROM visit_mascot_packs WHERE id = ? LIMIT 1', [
-      packId,
-    ]);
+    const row = await queryOne(
+      'SELECT id, origin, catalog_id FROM visit_mascot_packs WHERE id = ? LIMIT 1',
+      [packId],
+    );
     if (!row) return res.status(404).json({ error: 'Pack introuvable' });
-    if (String(row.origin || 'custom') === 'builtin') {
-      return res.status(409).json({
-        error:
-          'Cette mascotte est livrée avec l’application : la supprimer ne durerait pas, elle serait recréée au prochain démarrage. Retirez-la de la visite pour la masquer, ou réinitialisez-la pour revenir à son état d’origine.',
-        code: 'visit_mascot_pack_builtin',
-        requestId: req.requestId || null,
-      });
+    const estLivree = String(row.origin || 'custom') === 'builtin';
+    // La pierre tombale **avant** la suppression : si elle échoue (table absente sur une base en
+    // retard de migration), on refuse plutôt que de supprimer une ligne que le semis ferait
+    // revenir. Mieux vaut ne rien faire et le dire que réussir à moitié.
+    if (estLivree) {
+      // `deleted_by` est une **clé étrangère vers `users`** : le même piège que `created_by` sur
+      // le semis. Le résolveur rend `null` plutôt qu'un identifiant qui n'existe plus en base.
+      const supprimePar = await resolveVisitMascotPackCreatedBy(req.auth);
+      try {
+        await recordBuiltinMascotDeletion(String(row.catalog_id || '').trim(), supprimePar);
+      } catch (err) {
+        if (err?.errno === 1146) {
+          return res.status(503).json({
+            error:
+              'Le schéma de la base est en retard : la table qui retient les suppressions de mascottes livrées manque. Lancez « npm run db:migrate » puis redémarrez avant de réessayer.',
+            code: 'visit_mascot_pack_deletions_missing',
+            requestId: req.requestId || null,
+          });
+        }
+        throw err;
+      }
     }
     await removeVisitMascotPackUploadDir(packId);
     await execute('DELETE FROM visit_mascot_packs WHERE id = ?', [packId]);
-    res.json({ ok: true });
+    res.json({ ok: true, origin: estLivree ? 'builtin' : 'custom' });
   } catch (err) {
     logRouteError(err, req);
     const mapped = mapVisitMascotPackSqlError(err);

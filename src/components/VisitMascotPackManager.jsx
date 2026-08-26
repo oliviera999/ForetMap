@@ -167,9 +167,6 @@ export default function VisitMascotPackManager({
         label: `${labelById.get(id) || id}${staticModelIds.has(id) ? ' — image fixe' : ''}`,
       }));
   }, [catalogModelIds, staticModelIds]);
-  const [selectedCatalogModelId, setSelectedCatalogModelId] = useState(
-    () => getVisitMascotCatalog()[0]?.id || '',
-  );
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -210,15 +207,6 @@ export default function VisitMascotPackManager({
       setLoading(false);
     }
   }, [onForceLogout]);
-
-  useEffect(() => {
-    if (!catalogModelOptions.length) {
-      setSelectedCatalogModelId('');
-      return;
-    }
-    if (catalogModelOptions.some((opt) => opt.id === selectedCatalogModelId)) return;
-    setSelectedCatalogModelId(catalogModelOptions[0].id);
-  }, [catalogModelOptions, selectedCatalogModelId]);
 
   useEffect(() => {
     void loadList();
@@ -398,13 +386,6 @@ export default function VisitMascotPackManager({
     await postNewPack({});
   }, [postNewPack, confirmLeaveIfDirty]);
 
-  const onNewFromCatalog = useCallback(async () => {
-    const modelId = String(selectedCatalogModelId || '').trim();
-    if (!modelId) return;
-    if (!confirmLeaveIfDirty()) return;
-    await postNewPack({ clone_from_catalog_id: modelId });
-  }, [postNewPack, selectedCatalogModelId, confirmLeaveIfDirty]);
-
   const onDuplicateSelected = useCallback(async () => {
     if (!selectedId) return;
     if (!confirmLeaveIfDirty()) return;
@@ -532,8 +513,14 @@ export default function VisitMascotPackManager({
       const leaveOk = window.confirm(UNSAVED_LEAVE_MSG);
       if (!leaveOk) return;
     }
-    if (!window.confirm('Supprimer définitivement ce pack (y compris les fichiers uploadés) ?'))
-      return;
+    // Une mascotte livrée se supprime comme les autres, mais elle ne se récupère pas au studio :
+    // la confirmation doit le dire avant, pas la déception après. Le retour en arrière existe,
+    // il passe par une commande d'administration — autant la nommer ici.
+    const estLivree = String(selectedRow?.origin || '') === 'builtin';
+    const question = estLivree
+      ? 'Supprimer définitivement cette mascotte livrée, images comprises ?\n\nElle ne reviendra pas d’elle-même : la restaurer demande la commande d’administration « npm run visit:mascots:restore », et rend son apparence d’origine, pas vos modifications.'
+      : 'Supprimer définitivement ce pack (y compris les fichiers uploadés) ?';
+    if (!window.confirm(question)) return;
     setActionBusy(true);
     setActionError('');
     setActionIssues([]);
@@ -547,7 +534,7 @@ export default function VisitMascotPackManager({
     } finally {
       setActionBusy(false);
     }
-  }, [selectedId, refreshFromServer, onForceLogout, isDirty]);
+  }, [selectedId, selectedRow, refreshFromServer, onForceLogout, isDirty]);
 
   /**
    * Rend à une mascotte **livrée** son apparence d'origine. Le catalogue en code n'est plus servi
@@ -872,11 +859,7 @@ export default function VisitMascotPackManager({
         <div className="visit-mascot-pack-manager__layout">
           <MascotPackListAside
             actionBusy={actionBusy}
-            catalogModelOptions={catalogModelOptions}
-            selectedCatalogModelId={selectedCatalogModelId}
-            onSelectCatalogModel={setSelectedCatalogModelId}
             onNewDraft={() => void onNewDraft()}
-            onNewFromCatalog={() => void onNewFromCatalog()}
             onRefresh={() => void onRefresh()}
             onDuplicateSelected={() => void onDuplicateSelected()}
             onExportZip={() => void onExportZip()}
@@ -907,15 +890,15 @@ export default function VisitMascotPackManager({
             {!selectedId ? (
               <div className="section-sub" role="tabpanel" id="mascot-pack-tabpanel-empty">
                 <p style={{ marginTop: 0 }}>
-                  Sélectionnez un <strong>pack de la liste</strong> (brouillon ou publié), ou
-                  choisissez un <strong>modèle intégré</strong> à gauche puis{' '}
-                  <strong>Éditer sur cette carte</strong>.
+                  Sélectionnez une <strong>mascotte de la liste</strong> à gauche pour l’ouvrir.
+                  Pour en créer une, partez d’un <strong>nouveau brouillon</strong>, ou
+                  sélectionnez-en une et <strong>dupliquez-la</strong>.
                 </p>
                 <p style={{ fontSize: '0.82rem', opacity: 0.9, marginBottom: 0 }}>
-                  L’onglet <strong>Aperçu global</strong> permet de comparer les modèles ; les
-                  onglets <strong>Édition guidée</strong>, <strong>JSON</strong> et{' '}
-                  <strong>Comportements visite</strong> modifient uniquement le pack sélectionné
-                  dans la colonne de gauche.
+                  L’onglet <strong>Aperçu global</strong> permet de comparer les mascottes entre
+                  elles ; les onglets <strong>Édition guidée</strong>, <strong>JSON</strong> et{' '}
+                  <strong>Comportements visite</strong> modifient uniquement la mascotte
+                  sélectionnée dans la colonne de gauche.
                 </p>
               </div>
             ) : (
