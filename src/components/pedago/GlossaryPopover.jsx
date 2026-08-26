@@ -6,6 +6,11 @@ import { lockBodyScroll } from '../../utils/body-scroll-lock.js';
 import { api } from '../../services/api';
 import { GlossaryMarkdown } from '../GlossaryMarkdown.jsx';
 import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
+import { useGatingSummary } from '../../hooks/useGatingSummary';
+import {
+  GlossaryTermLearnedAcknowledgeButton,
+  fetchLearnedGlossaryCodes,
+} from './GlossaryTermLearnedAcknowledge.jsx';
 
 /**
  * Fiche rapide d'un terme du glossaire, affichée **par-dessus** l'écran courant.
@@ -93,10 +98,15 @@ export function GlossaryPopover({
   onClose,
   onOpenFullGlossary = null,
   showFullGlossaryLink = true,
+  /** Déconnexion forcée si le compte a été supprimé pendant la session. */
+  onForceLogout = null,
 }) {
   const titleId = useId();
   const [activeCode, setActiveCode] = useState(null);
   const [detail, setDetail] = useState(null);
+  // Le glossaire était purement consultatif : rien ne disait ce qui avait déjà été
+  // travaillé, et le conditionnement n'avait aucun geste auquel se rattacher.
+  const [learnedCodes, setLearnedCodes] = useState(() => new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isClosing, setIsClosing] = useState(false);
@@ -134,6 +144,25 @@ export function GlossaryPopover({
     setIsClosing(false);
     setActiveCode(String(glossaryCode || '').trim() || null);
   }, [open, glossaryCode]);
+
+  // Termes déjà appris : chargés à l'ouverture, pas à chaque terme consulté.
+  useEffect(() => {
+    if (!open) return undefined;
+    let cancelled = false;
+    (async () => {
+      const codes = await fetchLearnedGlossaryCodes();
+      if (!cancelled) setLearnedCodes(new Set(codes));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  const gatingRefs = useMemo(() => (activeCode ? [activeCode] : []), [activeCode]);
+  const { summaries: gatingSummaries, refresh: refreshGating } = useGatingSummary(
+    'glossary',
+    gatingRefs,
+  );
 
   useEffect(() => {
     if (!open || !activeCode) {
@@ -388,6 +417,19 @@ export function GlossaryPopover({
         ) : null}
 
         <footer className="fm-glossary-popover__footer">
+          {hasDetail ? (
+            <GlossaryTermLearnedAcknowledgeButton
+              glossaryCode={activeCode}
+              termLabel={detail.terme}
+              isLearned={learnedCodes.has(String(activeCode))}
+              gatingSummary={gatingSummaries.get(String(activeCode)) || null}
+              onAcknowledged={(code) => {
+                setLearnedCodes((prev) => new Set(prev).add(String(code)));
+                refreshGating();
+              }}
+              onForceLogout={onForceLogout}
+            />
+          ) : null}
           {showFullGlossaryLink && onOpenFullGlossary ? (
             <button type="button" className="btn btn-ghost btn-sm" onClick={openFullGlossary}>
               Voir la fiche complète

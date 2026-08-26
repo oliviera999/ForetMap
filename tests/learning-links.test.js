@@ -137,8 +137,7 @@ test('POST /review — approbation en masse (phase 2)', async () => {
     .post('/api/learning-links')
     .set(auth())
     .send({
-      // `tutorial` et non `glossary` : depuis le garde-fou de type, un lien BLOQUANT
-      // (valeur par defaut) n'est accepte que sur un type que ForetMap sait valider.
+      // Un type validable par ForetMap : le lien est bloquant par defaut.
       resource_type: 'tutorial',
       resource_ref: ref,
       question_code: qcode,
