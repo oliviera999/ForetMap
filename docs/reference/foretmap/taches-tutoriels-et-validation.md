@@ -249,15 +249,22 @@ Ce qu'il faut réunir pour qu'un tutoriel soit réellement soumis à questions :
 
 Les réglages qui accompagnent l'interrupteur :
 
-| Réglage                                         | Effet                                                                                                                                                                      |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Exigence par défaut                             | **une** question réussie suffit (défaut), **toutes** les questions rattachées, ou un **seuil** de N réussites.                                                             |
-| Nombre de bonnes réponses attendues             | Le N du mode « seuil ».                                                                                                                                                    |
-| Délai avant nouvelle tentative après une erreur | **3 jours par défaut.** Une seule mauvaise réponse verrouille la validation de ce tutoriel pour la durée indiquée. `0` supprime le verrou et autorise le réessai immédiat. |
+| Réglage                                         | Effet                                                                                                                                                                               |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Exigence par défaut                             | **une** question réussie suffit (défaut), **toutes** les questions rattachées, ou un **seuil** de N réussites.                                                                      |
+| Nombre de bonnes réponses attendues             | Le N du mode « seuil ».                                                                                                                                                             |
+| Erreurs tolérées avant blocage                  | **0 par défaut** : la première mauvaise réponse bloque. Le porter à 1 ou 2 laisse à l'élève le droit de se tromper sans tout perdre.                                                |
+| Délai avant nouvelle tentative après une erreur | **3 jours par défaut.** Une fois la tolérance épuisée, la validation de ce tutoriel est verrouillée pour la durée indiquée. `0` supprime le verrou et autorise le réessai immédiat. |
+| Questions posées d'affilée au maximum           | **3 par défaut.** En mode « toutes », l'élève avance par paliers plutôt que d'enchaîner huit questions : ses bonnes réponses sont gardées d'une fois sur l'autre.                   |
+| Annoncer le contrôle sur le bouton              | **Oui par défaut.** Le bouton « Marquer comme lu » porte alors une pastille (« 1 question », « 🔒 ») pour prévenir l'élève avant qu'il ne clique.                                   |
 
-Ce que l'élève voit, dans l'ordre : un écran d'annonce (« une question sera posée… », qui
-prévient du délai en cas d'erreur), puis la question — énoncé, illustration éventuelle
-avec son crédit, choix mélangés —, puis le résultat. Bonne réponse : il passe à la
+Ce que l'élève voit, dans l'ordre. **Avant même de cliquer**, le bouton indique ce qui
+l'attend : « 1 question », ou un cadenas si la validation est encore bloquée. Au clic, un
+**petit panneau surgit par-dessus la page** — il ne masque pas le tutoriel qu'on vient de
+lire — et énonce les règles noir sur blanc : combien de questions vont être posées, combien
+il en restera après, combien d'erreurs sont permises, ce que coûte une erreur de trop, et le
+rappel qu'abandonner maintenant ne coûte rien. Vient ensuite la question — énoncé,
+illustration éventuelle avec son crédit, choix mélangés —, puis le résultat. Bonne réponse : il passe à la
 confirmation de lecture. Mauvaise réponse : le message de verrou, avec le nombre de jours
 avant de pouvoir réessayer. **Abandonner ne coûte rien** tant qu'aucune réponse n'a été
 envoyée. Les bonnes réponses déjà données ailleurs (dans l'onglet Quiz, par exemple)
@@ -330,6 +337,12 @@ Relisez avant d'approuver — c'est ce qui déterminera si un élève peut valid
 > ⚠️ **Point d'attention** — Pour les tutoriels, le professeur voit **combien** de
 > fiches chaque élève a lues (statistiques), mais pas **lesquelles** : pas de liste
 > nominative « qui a lu tel tutoriel ».
+
+> ⚠️ **Point d'attention** — Le professeur **ne voit pas quels élèves sont bloqués**. Si un
+> élève épuise sa tolérance d'erreurs, la validation lui est refusée pendant plusieurs jours,
+> et rien ne le signale côté professeur : ni liste, ni alerte. En attendant un écran dédié,
+> mieux vaut annoncer le dispositif à la classe et rester joignable — un élève bloqué qui ne
+> dit rien reste bloqué.
 
 > ⚠️ **Point d'attention** — Le réglage _marquage automatique sur bonne réponse_ est un
 > **reliquat sans effet** : répondre juste à une question ne marque aucune ressource comme

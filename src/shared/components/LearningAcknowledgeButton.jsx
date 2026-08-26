@@ -5,9 +5,40 @@ import { LearningGatingQuestionPanel } from './LearningGatingQuestionPanel.jsx';
 import {
   pendingChallengeQuestions,
   buildGatingQuizIntroMessage,
+  buildGatingRules,
   isCooldownLocked,
   buildCooldownLockMessage,
 } from '../utils/learningGatingChallengeClient.js';
+
+/**
+ * Texte d'annonce du bouton, d'après le résumé de conditionnement de la ressource.
+ * Renvoie une pastille courte (lue visuellement) et un intitulé complet (infobulle
+ * et lecteurs d'écran). Rien à annoncer → deux chaînes vides.
+ */
+export function buildButtonAnnounce(summary, itemTitle = '') {
+  const none = { announceBadge: '', announceTitle: '' };
+  if (!summary || !summary.required || summary.satisfied) return none;
+
+  const label = itemTitle ? `« ${itemTitle} »` : 'ce contenu';
+  if (summary.locked) {
+    const days = Math.max(1, Number(summary.remaining_days) || 1);
+    return {
+      announceBadge: '🔒',
+      announceTitle: `Validation de ${label} bloquée encore ${days === 1 ? '1 jour' : `${days} jours`} après une erreur.`,
+    };
+  }
+
+  const ask = Math.max(0, Number(summary.ask_count) || 0);
+  if (ask <= 0) return none;
+  const total = Math.max(ask, Number(summary.pending_count) || ask);
+  const badge = ask === 1 ? '1 question' : `${ask} questions`;
+  const reste =
+    total > ask ? ` (${total} au total pour valider ${label})` : ` avant de valider ${label}`;
+  return {
+    announceBadge: badge,
+    announceTitle: `Contrôle de compréhension : ${badge} à réussir${reste}.`,
+  };
+}
 
 /**
  * Bouton + modal de confirmation pour marquer un contenu comme lu / appris / étudié.
@@ -15,6 +46,10 @@ import {
  */
 export function LearningAcknowledgeButton({
   itemTitle = '',
+  /** Coque d'affichage — même interface que `DialogShell`. ForetMap injecte son popover. */
+  Shell = DialogShell,
+  /** Résumé du contrôle connu AVANT le clic (route /api/learning/gating/summary). */
+  gatingSummary = null,
   labelAction = 'Marquer comme lu',
   labelDone = '✓ Lu',
   titleDone = 'Contenu confirmé',
@@ -42,6 +77,7 @@ export function LearningAcknowledgeButton({
   const [pendingQuestions, setPendingQuestions] = useState([]);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [cooldown, setCooldown] = useState(null);
+  const [challenge, setChallenge] = useState(null);
   const [checked, setChecked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -58,6 +94,7 @@ export function LearningAcknowledgeButton({
     setPendingQuestions([]);
     setQuestionIndex(0);
     setCooldown(null);
+    setChallenge(null);
     setFlowPhase('loading');
   }, []);
 
@@ -87,6 +124,7 @@ export function LearningAcknowledgeButton({
         gatingResource.resourceType,
         gatingResource.resourceRef,
       );
+      setChallenge(challenge || null);
       if (challenge?.required && isCooldownLocked(challenge.cooldown)) {
         setCooldown(challenge.cooldown);
         setFlowPhase('locked');
@@ -152,7 +190,12 @@ export function LearningAcknowledgeButton({
     </>
   );
 
+  // Annonce portée par le bouton : sans elle, l'élève ne découvrait le contrôle
+  // qu'une fois la fenêtre ouverte — il s'engageait sans savoir ce qui l'attendait.
+  const { announceBadge, announceTitle } = buildButtonAnnounce(gatingSummary, itemTitle);
+
   const currentQuestion = pendingQuestions[questionIndex] || null;
+  const gatingRules = buildGatingRules(challenge);
   const quizIntroMessage = buildGatingQuizIntroMessage(
     pendingQuestions.length,
     itemTitle,
@@ -161,11 +204,22 @@ export function LearningAcknowledgeButton({
 
   return (
     <>
-      <button type="button" className={buttonClassName} onClick={openModal}>
+      <button
+        type="button"
+        className={buttonClassName}
+        onClick={openModal}
+        title={announceTitle || undefined}
+      >
         {labelAction}
+        {announceBadge ? (
+          <span className="learning-gating-announce" aria-hidden="true">
+            {announceBadge}
+          </span>
+        ) : null}
       </button>
+      {announceTitle ? <span className="sr-only">{announceTitle}</span> : null}
       {modalOpen ? (
-        <DialogShell
+        <Shell
           open={modalOpen}
           onClose={closeModal}
           overlayClassName={overlayClassName}
@@ -205,11 +259,11 @@ export function LearningAcknowledgeButton({
             <>
               <h3 id="learning-ack-title">Contrôle de compréhension</h3>
               <p className="tuto-read-ack-intro learning-gating-quiz-intro">{quizIntroMessage}</p>
-              <p className="learning-gating-quiz-intro__hint">
-                {pendingQuestions.length === 1
-                  ? '1 question à réussir'
-                  : `${pendingQuestions.length} questions à réussir`}
-              </p>
+              <ul className="learning-gating-rules">
+                {gatingRules.map((rule) => (
+                  <li key={rule}>{rule}</li>
+                ))}
+              </ul>
               <div className="tuto-read-ack-actions">
                 <button
                   type="button"
@@ -286,7 +340,7 @@ export function LearningAcknowledgeButton({
               </div>
             </>
           ) : null}
-        </DialogShell>
+        </Shell>
       ) : null}
     </>
   );

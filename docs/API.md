@@ -1647,15 +1647,28 @@ Réglages site (table `app_settings`, scope `teacher`, modifiables via `/api/set
 `learning.gating.enabled` (def. `false`), `learning.gating.auto_mark_on_correct` (**déprécié**, ignoré),
 `learning.gating.default_mode` (`off|any|all|threshold`, def. `any` — **appliqué** à l'accusé),
 `learning.gating.default_required_correct` (1–50, def. `1`),
-`learning.gating.retry_cooldown_days` (0–365, def. `3` ; `0` = pas de verrou après erreur).
+`learning.gating.retry_cooldown_days` (0–365, def. `3` ; `0` = pas de verrou après erreur),
+`learning.gating.allowed_wrong_attempts` (0–10, def. `0`) — erreurs tolérées **avant** que le verrou
+ne tombe ; `0` conserve le comportement historique (verrou dès la première),
+`learning.gating.max_questions_per_session` (1–10, def. `3`) — questions posées d'affilée au maximum
+(les bonnes réponses restent acquises d'une session à l'autre),
+`learning.gating.announce_on_button` (bool, def. `true`) — annoncer le contrôle sur le bouton.
+
+`GET /api/learning/gating/challenge` renvoie désormais `ask_count` (ce qui sera posé **maintenant**,
+plafond par session appliqué) à côté de `pending_count` (ce qu'il reste au total pour valider), plus
+`allowed_wrong_attempts` et `max_questions_per_session`. Le bloc `cooldown` porte `wrong_attempts`
+(fautes déjà comptées, remis à zéro dès que le verrou expire).
+
+Audit détaillé du dispositif : [AUDIT_GATING_2026-08.md](AUDIT_GATING_2026-08.md).
 
 ### Challenge & accusé (phase 3 — runtime pull)
 
-| Méthode | Route                                                       | Auth                       | Description                                                                                                                                                                                          |
-| ------- | ----------------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/learning/gating/challenge?resourceType=&resourceRef=` | élève/prof (`requireAuth`) | État du quiz requis avant accusé (`required`, `mode` effectif, `required_correct`, `questions[]`, `pending_count`, `satisfied`, `cooldown`). Types : `tutorial`, `plant`.                            |
-| POST    | `/api/tutorials/:id/acknowledge-read`                       | `requireAuth`              | Marque le tutoriel lu. **403** `{ error, missing_question_codes, cooldown }` si gating ON et questions non réussies (`user_quiz_attempts`), ou si la ressource est **verrouillée** après une erreur. |
-| POST    | `/api/plants/:id/acknowledge-discovery`                     | `requireAuth`              | Première observation : même garde gating ; ré-observations ultérieures : confirmation seule.                                                                                                         |
+| Méthode | Route                                                           | Auth                       | Description                                                                                                                                                                                          |
+| ------- | --------------------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/learning/gating/challenge?resourceType=&resourceRef=`     | élève/prof (`requireAuth`) | État du quiz requis avant accusé (`required`, `mode` effectif, `required_correct`, `questions[]`, `pending_count`, `satisfied`, `cooldown`). Types : `tutorial`, `plant`.                            |
+| GET     | `/api/learning/gating/summary?resourceType=&resourceRefs=1,2,3` | élève/prof (`requireAuth`) | Résumé groupé (60 refs max) pour **annoncer le contrôle avant le clic** : `required`, `ask_count`, `pending_count`, `satisfied`, `locked`, `remaining_days`, `allowed_wrong_attempts`.               |
+| POST    | `/api/tutorials/:id/acknowledge-read`                           | `requireAuth`              | Marque le tutoriel lu. **403** `{ error, missing_question_codes, cooldown }` si gating ON et questions non réussies (`user_quiz_attempts`), ou si la ressource est **verrouillée** après une erreur. |
+| POST    | `/api/plants/:id/acknowledge-discovery`                         | `requireAuth`              | Première observation : même garde gating ; ré-observations ultérieures : confirmation seule.                                                                                                         |
 
 Le verrou est posé par `POST /api/quiz/questions/:code/answer` lorsque la réponse est **fausse** et que
 le corps inclut le contexte ressource `{ resourceType, resourceRef }` (envoyé uniquement par le flux de
