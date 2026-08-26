@@ -7,6 +7,30 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Le studio peut à nouveau ouvrir — et enregistrer — les packs Rive et spritesheet
+
+Ouvrir au studio une mascotte à moteur **Rive** ou **spritesheet** affichait aussitôt une erreur,
+sans que personne ait rien modifié :
+
+> Champ « stateFrames » réservé aux packs « sprite_cut » : ce pack est « rive ».
+
+Le pack était pourtant valide tel qu'il était enregistré. C'est **le passage par le studio qui
+l'invalidait** : la fonction qui met le brouillon au propre écrivait `stateFrames` sans regarder le
+moteur, et posait donc un objet vide sur des packs auxquels ce champ est interdit. L'enregistrement
+devenait impossible, et le message désignait un champ que l'utilisateur n'avait jamais saisi.
+
+Quatre des six mascottes proposées étaient concernées, ainsi que les dix mascottes Rive laissées au
+studio par le lot précédent — c'est-à-dire, en pratique, presque tout ce qu'on pouvait y ouvrir.
+
+`stateFrames` n'est désormais écrit que pour les packs `sprite_cut`, et un `stateFrames` hérité d'un
+JSON écrit à la main est retiré du brouillon plutôt que conservé — sans quoi le pack resterait
+inenregistrable sans qu'on sache quoi corriger.
+
+C'est le même défaut, sous la même forme, que celui déjà fermé sur `framesBase` : un champ propre à
+un moteur écrit pour tous. Le nouveau test porte donc sur la **propriété générale** — un pack valide
+le reste après le studio, quel que soit son moteur — de façon à attraper la prochaine fuite quel que
+soit le champ en cause.
+
 ### Les mascottes livrées qui ne peuvent pas s'animer ne sont plus proposées
 
 Dix des seize mascottes livrées déclarent une animation **Rive** et pointent vers
