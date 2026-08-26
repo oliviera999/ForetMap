@@ -7,7 +7,14 @@ import {
   readGlossaryTermMessage,
 } from '../src/components/pedago/GlossaryPopover.jsx';
 
-vi.mock('../src/services/api', () => ({ api: vi.fn() }));
+// Le popover porte désormais le bouton « J'ai appris ce terme » et l'annonce du contrôle
+// de compréhension : sans jeton, ni l'un ni l'autre ne se déclenche — c'est ce qu'on veut
+// ici, ces tests portent sur la navigation entre fiches.
+vi.mock('../src/services/api', () => ({
+  api: vi.fn(),
+  getAuthToken: () => '',
+  AccountDeletedError: class AccountDeletedError extends Error {},
+}));
 
 import { api } from '../src/services/api';
 

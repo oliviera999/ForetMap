@@ -370,9 +370,40 @@ describe('useZoneEditPoints — aimant de contour', () => {
     startSquare(result);
     act(() => result.current.onEditPointPointerDown(0, modifierPointerEvent(0, 0)));
     act(() => result.current.onEditPointPointerMove(0, modifierPointerEvent(40, 10)));
-    expect(snapPoint).toHaveBeenCalledWith({ xp: 40, yp: 10 }, { radiusPct: 2 });
+    expect(snapPoint).toHaveBeenCalledWith(
+      { xp: 40, yp: 10 },
+      {
+        radiusPct: 2,
+        minStrength: undefined,
+      },
+    );
     expect(result.current.editPoints[0]).toEqual({ xp: 42, yp: 8 });
     act(() => result.current.onEditPointPointerUp(modifierPointerEvent(40, 10)));
+  });
+
+  it('la sensibilité choisie est transmise à l’aimant', () => {
+    const snapPoint = vi.fn(() => null);
+    const { result } = setup({
+      toImagePct: pctFromClient,
+      snapPoint,
+      snapRadiusPct: 2,
+      snapMinStrength: 0.32,
+    });
+    startSquare(result);
+    act(() => result.current.onEditPointPointerDown(0, modifierPointerEvent(0, 0)));
+    act(() => result.current.onEditPointPointerMove(0, modifierPointerEvent(40, 10)));
+    expect(snapPoint).toHaveBeenCalledWith({ xp: 40, yp: 10 }, { radiusPct: 2, minStrength: 0.32 });
+
+    // Le recalage groupé utilise le même réglage.
+    snapPoint.mockClear();
+    act(() => result.current.onEditPointPointerUp(modifierPointerEvent(40, 10)));
+    act(() => {
+      result.current.snapSelectedPoints();
+    });
+    expect(snapPoint).toHaveBeenCalledWith(expect.anything(), {
+      radiusPct: 2,
+      minStrength: 0.32,
+    });
   });
 
   it('sans contour proche, le sommet suit exactement le pointeur', () => {

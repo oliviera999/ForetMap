@@ -148,6 +148,15 @@ describe('Auth', () => {
   });
 
   it('PATCH /api/auth/me/profile met à jour la mascotte préférée du compte connecté', async () => {
+    // La mascotte est choisie **dans la base**, pas en dur : depuis que les mascottes livrées
+    // sans fichier d'animation ne sont plus proposées, un identifiant écrit en dur dans le test
+    // peut cesser d'être choisissable sans que le test ne dise pourquoi. Le fixture appartient
+    // donc au test, et l'assertion porte sur la règle, pas sur une mascotte précise.
+    const offerte = await queryOne(
+      'SELECT catalog_id FROM visit_mascot_packs WHERE is_published = 1 ORDER BY catalog_id LIMIT 1',
+    );
+    assert.ok(offerte?.catalog_id, 'aucune mascotte proposée : le sélecteur serait vide');
+
     const login = await request(app)
       .post('/api/auth/login')
       .send({ identifier: email, password })
@@ -156,17 +165,37 @@ describe('Auth', () => {
       .patch('/api/auth/me/profile')
       .set('Authorization', `Bearer ${login.body.authToken}`)
       .send({
-        visit_mascot_catalog_id: 'sprout-rive',
+        visit_mascot_catalog_id: offerte.catalog_id,
         currentPassword: password,
       })
       .expect(200);
-    assert.strictEqual(res.body.visit_mascot_catalog_id, 'sprout-rive');
+    assert.strictEqual(res.body.visit_mascot_catalog_id, offerte.catalog_id);
 
     const row = await queryOne(
       "SELECT visit_mascot_catalog_id FROM users WHERE id = ? AND user_type = 'student' LIMIT 1",
       [login.body.id],
     );
-    assert.strictEqual(row?.visit_mascot_catalog_id, 'sprout-rive');
+    assert.strictEqual(row?.visit_mascot_catalog_id, offerte.catalog_id);
+  });
+
+  it('PATCH /api/auth/me/profile refuse une mascotte qui n’est plus proposée', async () => {
+    // Symétrique du test précédent : une mascotte dépubliée ne doit pas pouvoir être
+    // choisie par une requête directe, même si elle existe encore au catalogue. Sans cette
+    // assertion, retirer une mascotte du sélecteur ne la retirerait que de l'interface.
+    const retiree = await queryOne(
+      'SELECT catalog_id FROM visit_mascot_packs WHERE is_published = 0 ORDER BY catalog_id LIMIT 1',
+    );
+    if (!retiree?.catalog_id) return; // toutes les mascottes livrées sont rendues : rien à vérifier
+
+    const login = await request(app)
+      .post('/api/auth/login')
+      .send({ identifier: email, password })
+      .expect(200);
+    await request(app)
+      .patch('/api/auth/me/profile')
+      .set('Authorization', `Bearer ${login.body.authToken}`)
+      .send({ visit_mascot_catalog_id: retiree.catalog_id, currentPassword: password })
+      .expect(400);
   });
 
   it('POST /api/auth/login refuse firstName+lastName (users-only identifier)', async () => {

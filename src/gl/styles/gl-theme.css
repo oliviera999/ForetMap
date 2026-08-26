@@ -80,6 +80,16 @@ body.gl-body {
   --fm-modal-panel-border: var(--gl-border);
   --fm-modal-panel-shadow: var(--gl-shadow-md);
   --fm-modal-overlay-z: 1200;
+  /* Conditionnement des lectures : la coque et les pastilles sont partagées avec ForetMap
+     (src/shared/styles/learning-gating.css) ; seules ces variables les rehabillent, plutôt
+     que de dupliquer le composant et sa feuille. */
+  --learning-gating-accent: var(--gl-color-accent);
+  --learning-gating-ink: var(--gl-color-text);
+  --learning-gating-muted: var(--gl-color-text-muted, var(--gl-color-text));
+  --learning-gating-chip-bg: color-mix(in srgb, var(--gl-color-accent) 16%, transparent);
+  --learning-gating-panel-bg: var(--gl-surface);
+  --learning-gating-panel-border: var(--gl-border);
+  --learning-gating-overlay-bg: rgba(15, 23, 42, 0.55);
   --fm-toast-bottom: 16px;
   /* Pulsation d'attention alignée sur l'accent du produit (elle était en bleu Tailwind). */
   --attention-pulse-color: color-mix(in srgb, var(--gl-color-accent) 18%, transparent);
