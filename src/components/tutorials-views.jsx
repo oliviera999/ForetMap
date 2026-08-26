@@ -4,6 +4,7 @@ import { useDebouncedAutoSave } from '../shared/hooks/useDebouncedAutoSave.js';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { useTutorialReadIds } from '../hooks/useTutorialReadIds';
 import { TutorialReadAcknowledgeButton } from './TutorialReadAcknowledge';
+import { useGatingSummary } from '../hooks/useGatingSummary';
 import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
 import { ContextComments } from './context-comments';
 import { DialogShell } from './DialogShell';
@@ -104,6 +105,11 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
   // Fetch + abonnement `foretmap_session_changed` mutualisés ; clé stable (ids joints)
   // au lieu de la référence `tutorials`, qui refetchait à chaque poll global.
   const { readIds: tutorialReadIds, markRead: markTutorialRead } = useTutorialReadIds(tutorials);
+  // Annonce du contrôle de compréhension sur chaque carte, en un seul appel.
+  const { summaries: gatingSummaries, refresh: refreshGatingSummaries } = useGatingSummary(
+    'tutorial',
+    (tutorials || []).map((t) => t?.id),
+  );
   const [linkedTasksModal, setLinkedTasksModal] = useState(null);
 
   const closeLinkedTasks = useCallback(() => setLinkedTasksModal(null), []);
@@ -681,7 +687,11 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
                         tutorialId={t.id}
                         tutorialTitle={t.title}
                         isRead={tutorialReadIds.has(Number(t.id))}
-                        onAcknowledged={markTutorialRead}
+                        gatingSummary={gatingSummaries.get(String(t.id)) || null}
+                        onAcknowledged={(id) => {
+                          markTutorialRead(id);
+                          refreshGatingSummaries();
+                        }}
                         onForceLogout={onForceLogout}
                       />
                     </>
