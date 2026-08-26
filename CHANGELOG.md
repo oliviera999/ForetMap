@@ -7,6 +7,49 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Savoir enfin pourquoi le serveur tombe (lot 30)
+
+Constat de départ : des indisponibilités régulières, y compris avec un seul utilisateur et
+sans manipulation lourde — et **aucun moyen de savoir pourquoi**. `startup.log` et
+`startup-diag.log` sont écrasés à chaque démarrage : ils décrivent le démarrage courant, pas
+l'histoire. Après coup, il ne restait rien.
+
+**Un journal de cycle de vie survit maintenant aux redémarrages.** À chaque démarrage,
+chaque arrêt maîtrisé et chaque crash, une ligne est ajoutée à `logs/boot-journal.ndjson`
+(hors dépôt, borné, écriture best-effort). L'information décisive n'est pas le nombre de
+redémarrages mais **leur nature** : un démarrage qui n'est précédé d'aucun arrêt tracé
+signifie que le process a été tué sans signal — c'est la signature d'un plafond mémoire ou
+processus de l'hébergeur, indiscernable jusqu'ici d'un simple redémarrage de déploiement.
+
+**Quatre causes, quatre traitements.** Le champ `restarts` de `GET /api/admin/diagnostics`
+(fenêtre réglable par `?restartsWindowHours=`) rend un verdict et la conduite à tenir :
+redémarrages de déploiement (`deploy_churn`), arrêts d'inactivité Passenger
+(`host_idle_stops`), crash applicatif (`crashes`), process tué par LVE (`hard_kills`) — ou
+`stable`, auquel cas l'application n'est pas en cause et il faut chercher côté réseau,
+navigateur ou frontal. Lecture en clair depuis le poste de travail :
+**`npm run prod:uptime-report`** (`-- --hours=168`, `-- --json`).
+
+**Une rafale de merges ne fait plus qu'un redémarrage.** Le cron de déploiement attend
+désormais une accalmie (`DEPLOY_QUIET_SECONDS`, défaut 180 s) avant d'appliquer une tête
+distante : plusieurs PR fusionnées d'affilée produisaient auparavant autant de fenêtres
+d'indisponibilité que de commits.
+
+**Le keepalive passe à `*/3`.** La cadence de 5 minutes documentée jusqu'ici tombait pile sur
+le seuil d'inactivité par défaut de Passenger (300 s) et laissait passer un arrêt sur deux.
+La ligne est ajoutée au mémo `docs/CRONTAB.md`, qui compte désormais quatre lignes ; la sonde
+`uptime-check.sh` reste ce qu'elle est — elle constate et alerte, elle ne maintient pas
+éveillé.
+
+**Les diagnostics ne se taisent plus quand la base tombe.** `GET /api/admin/diagnostics` et
+`GET /api/admin/logs` étaient soumis au verrou de readiness qui renvoie `503
+SERVICE_NOT_READY` sur tout `/api/*` : en cas de panne MySQL, l'outil qui sert à
+diagnostiquer était donc muet exactement quand il fallait le lire. Ils sont désormais
+exemptés de ce seul verrou — la garde `DEPLOY_SECRET` et le refus pendant un redémarrage
+restent inchangés.
+
+Détail : `lib/bootJournal.js`, `docs/EXPLOITATION.md` (§ Indisponibilités récurrentes),
+`docs/CRONTAB.md`, `docs/API.md`, `docs/AUDIT_CHARGE_SERVEUR_2026-08.md` §2.E ;
+tests `tests/boot-journal.test.js`, `tests/api-availability.test.js`.
 ### Correctif — le délai après une erreur ne tombait jamais dans Gnomes & Licornes
 
 Une mauvaise réponse au contrôle de compréhension, dans le flux « marquer appris » de
