@@ -348,6 +348,11 @@ export const KEY_META = {
     section: 'learning',
     order: 48,
   },
+  'learning.gating.state_icons': {
+    label: 'Afficher les pastilles d’état (acquis / en attente / bloqué)',
+    section: 'learning',
+    order: 49,
+  },
   'learning.gating.retry_cooldown_days': {
     label: 'Délai avant nouvelle tentative après une erreur (jours, 0 = aucun)',
     section: 'learning',

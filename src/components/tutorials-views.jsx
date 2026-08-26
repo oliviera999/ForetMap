@@ -5,6 +5,7 @@ import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { useTutorialReadIds } from '../hooks/useTutorialReadIds';
 import { TutorialReadAcknowledgeButton } from './TutorialReadAcknowledge';
 import { useGatingSummary } from '../hooks/useGatingSummary';
+import { countGatingStates } from '../shared/utils/learningGatingState';
 import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
 import { ContextComments } from './context-comments';
 import { DialogShell } from './DialogShell';
@@ -110,6 +111,9 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
     'tutorial',
     (tutorials || []).map((t) => t?.id),
   );
+  // Vue d'ensemble de la liste : une carte à la fois dit où en est CE tutoriel, mais
+  // rien ne disait combien il en restait à travailler. Trois nombres suffisent.
+  const gatingCounts = useMemo(() => countGatingStates(gatingSummaries), [gatingSummaries]);
   const [linkedTasksModal, setLinkedTasksModal] = useState(null);
 
   const closeLinkedTasks = useCallback(() => setLinkedTasksModal(null), []);
@@ -562,7 +566,18 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
             gap: 8,
           }}
         >
-          <h2 className="section-title">📘 Tutoriels</h2>
+          <h2 className="section-title">
+            📘 Tutoriels
+            {gatingCounts.total > 0 ? (
+              <span className="section-sub tutorials-gating-counts">
+                {gatingCounts.acquired > 0 ? `✓ ${gatingCounts.acquired} acquis` : ''}
+                {gatingCounts.acquired > 0 && gatingCounts.pending > 0 ? ' · ' : ''}
+                {gatingCounts.pending > 0 ? `? ${gatingCounts.pending} en attente` : ''}
+                {gatingCounts.locked > 0 ? ` · 🔒 ${gatingCounts.locked} bloqué` : ''}
+                {gatingCounts.locked > 1 ? 's' : ''}
+              </span>
+            ) : null}
+          </h2>
           {isTeacher && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {tutorials.length > 0 && (
