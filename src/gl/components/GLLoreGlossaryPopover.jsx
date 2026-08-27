@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDialogA11y } from '../../hooks/useDialogA11y.js';
 import { apiGL } from '../services/apiGL.js';

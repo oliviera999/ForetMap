@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
 import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
 import { GLButton } from '../ui/GLButton.jsx';

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import VisitMapMascotRenderer from '../VisitMapMascotRenderer.jsx';
 import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
 import { registryMascotIds, findOrphanMascotIds } from '../../utils/visitMascotAdminSelection.js';

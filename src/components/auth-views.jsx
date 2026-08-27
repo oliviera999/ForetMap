@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { api, saveLegacyStudentSnapshot, saveStoredSession, withAppBase } from '../services/api';
 import { safeLocalStorageRemoveItem, safeLocalStorageSetItem } from '../utils/browserStorage.js';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';

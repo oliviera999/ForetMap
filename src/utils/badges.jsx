@@ -1,4 +1,3 @@
-import React from 'react';
 import { STAGE_LABELS, STAGE_CLASS } from '../constants/garden';
 import { getRoleTerms } from './n3-terminology';
 

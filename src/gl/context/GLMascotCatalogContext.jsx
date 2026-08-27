@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { buildGlMascotExtraCatalogEntries } from '../utils/glMascotCatalogExtras.js';
 

@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Lignes de permissions d'un profil — extraites de `ProfilesAdminView` (O5/O6).
  *

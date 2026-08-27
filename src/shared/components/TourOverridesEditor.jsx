@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { AutoSaveStatus } from './AutoSaveStatus.jsx';
 import { useDebouncedAutoSave } from '../hooks/useDebouncedAutoSave.js';

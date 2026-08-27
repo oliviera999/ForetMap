@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ZONE_COLORS } from '../../constants/garden';
 import {
   MARKER_EMOJIS,

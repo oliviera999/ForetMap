@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { resolveRoleText } from '../constants/help';
 import { hasDiscoveryTour } from '../constants/discoveryTour';

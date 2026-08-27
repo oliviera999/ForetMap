@@ -1,4 +1,3 @@
-import React from 'react';
 import { GLPctMapCanvas } from '../../GLPctMapCanvas.jsx';
 import { GLBoardMarkers } from '../../GLBoardMarkers.jsx';
 

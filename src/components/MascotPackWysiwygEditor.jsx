@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { validateMascotPackV1 } from '../utils/mascotPack.js';
 import {
   ensureServerFramesBase,

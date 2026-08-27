@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { FMQuizCatalogPanel } from './admin/FMQuizCatalogPanel.jsx';
 import { FMQuizQuestionEditorPanel } from './admin/FMQuizQuestionEditorPanel.jsx';
 import { FMLearningLinksPanel } from './admin/FMLearningLinksPanel.jsx';

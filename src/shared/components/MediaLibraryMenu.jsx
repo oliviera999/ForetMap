@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MediaUsageInfo } from '../../components/media/MediaUsageInfo.jsx';
 import { MediaLibraryGalleryTile } from '../../components/media/MediaLibraryGalleryTile.jsx';
 import { MediaLibraryBulkActions } from '../../components/media/MediaLibraryBulkActions.jsx';

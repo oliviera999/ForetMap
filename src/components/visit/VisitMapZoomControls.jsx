@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Boutons superposés au plan de visite : zoom avant/arrière (interpolation
  * centrée côté parent) et recentrage. Chaque clic stoppe la propagation pour

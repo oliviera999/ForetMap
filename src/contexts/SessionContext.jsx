@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import { createContext, useContext } from 'react';
 
 /**
  * Contexte de session — 2ᵉ étage d'O5 (après `PublicSettingsContext`) pour casser le prop-drilling

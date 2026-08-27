@@ -1,4 +1,3 @@
-import React from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { QuestionEditorPanel } from '../../../shared/qcm/QuestionEditorPanel.jsx';
 import {

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
 import { useGlAdminCrud } from '../../hooks/useGlAdminCrud.js';

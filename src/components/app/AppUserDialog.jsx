@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import { Suspense } from 'react';
 import { DialogShell } from '../DialogShell';
 
 /** Hauteur max des modales utilisateur (constante de module : évite un objet recréé à chaque rendu). */

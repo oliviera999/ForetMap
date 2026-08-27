@@ -1,5 +1,3 @@
-import React from 'react';
-
 function joinClassNames(...parts) {
   return parts.filter(Boolean).join(' ');
 }

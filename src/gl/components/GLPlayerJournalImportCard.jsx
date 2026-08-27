@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { GLButton } from './ui/GLButton.jsx';
 import { importTypeMeta, importTargetNav } from '../utils/glJournalImportMeta.js';
 

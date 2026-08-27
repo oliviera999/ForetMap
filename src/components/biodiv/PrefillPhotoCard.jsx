@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Carte (présentation) d'une photo proposée par la pré-saisie — extrait de `PlantPrefillPanel`
  * (O6). Affiche la case d'inclusion, le menu « Associer au champ », l'aperçu (avec repli en cas

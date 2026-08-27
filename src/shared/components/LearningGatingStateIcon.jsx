@@ -1,4 +1,3 @@
-import React from 'react';
 import { gatingState } from '../utils/learningGatingState.js';
 
 /**

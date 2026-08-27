@@ -1,4 +1,3 @@
-import React from 'react';
 import { GLBrandPageBanner } from './GLBrandHub.jsx';
 import { GLSpellCatalog } from './GLSpellCatalog.jsx';
 import { GLButton } from './ui/GLButton.jsx';

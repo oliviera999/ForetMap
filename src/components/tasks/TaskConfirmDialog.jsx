@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { DialogShell } from '../DialogShell';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';

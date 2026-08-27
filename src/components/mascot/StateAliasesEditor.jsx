@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
 import { buildStateOptions } from '../../utils/visitMascotBehaviorRegistry.js';
 

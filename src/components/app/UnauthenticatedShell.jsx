@@ -1,4 +1,4 @@
-import React, { lazy } from 'react';
+import { lazy } from 'react';
 import { PublicSettingsProvider } from '../../contexts/PublicSettingsContext.jsx';
 import { AppStatusSticky } from '../../shared/components/AppStatusSticky.jsx';
 import { TimedToast as Toast } from '../../shared/components/TimedToast.jsx';

@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Indicateur d'état d'enregistrement automatique (ForetMap + GL).
  * @param {'idle'|'pending'|'saving'|'saved'|'error'} status

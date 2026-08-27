@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Config rapide du profil sélectionné (colonne gauche de l'admin des profils) — extraite de
  * `ProfilesAdminView` (O5/O6). Résumé de progression + champ emoji (aperçu + enregistrement).

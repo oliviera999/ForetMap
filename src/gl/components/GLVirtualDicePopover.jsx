@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLDiceCube } from './GLDiceCube.jsx';
 import { computeGlDicePopoverPosition } from '../utils/glDicePopoverPosition.js';

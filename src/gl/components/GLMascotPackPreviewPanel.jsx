@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { GLMascotRenderer } from './GLMascotRenderer.jsx';
 import { validateGlMascotPackForUi } from '../../shared/mascot-pack/glPackValidationUi.js';
 import { MascotPackSpriteCutPreview } from '../../shared/mascot-pack/MascotPackSpriteCutPreview.jsx';

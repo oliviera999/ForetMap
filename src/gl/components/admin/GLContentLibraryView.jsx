@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { apiGLMultipart, formatBytesLabel } from '../../services/apiGLUpload.js';
 import {

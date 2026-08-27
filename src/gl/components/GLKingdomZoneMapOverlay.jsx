@@ -1,4 +1,3 @@
-import React from 'react';
 import { pointsToSvgPolygon } from '../../shared/pct-map/pctPolygon.js';
 import { PctPolygonEditOverlay } from '../../shared/pct-map/PctPolygonEditOverlay.jsx';
 import { GL_KINGDOM_ZONE_DEFAULT_COLOR } from '../hooks/useGLKingdomZoneEditor.js';

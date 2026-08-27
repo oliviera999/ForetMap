@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   buildStateOptions,
   INTERACTION_EVENT_OPTIONS,

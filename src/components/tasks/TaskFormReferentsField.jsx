@@ -1,4 +1,3 @@
-import React from 'react';
 import { referentCandidateLabel, referentRoleHint } from '../../utils/taskFormHelpers.js';
 
 function ReferentCheckboxItem({ candidate, selectedIds, terms, onToggle }) {

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { api, AccountDeletedError } from '../../services/api';
 import { compressImage } from '../../utils/image';
 import {

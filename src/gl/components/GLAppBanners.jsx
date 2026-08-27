@@ -1,4 +1,3 @@
-import React from 'react';
 import { GLButton } from './ui/GLButton.jsx';
 import { FixedToast } from '../../shared/components/FixedToast.jsx';
 

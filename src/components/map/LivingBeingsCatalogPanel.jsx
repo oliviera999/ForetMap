@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 /** Emoji catalogue plantes pour un nom d'être vivant (fiches Info zone/repère). */
 export function livingBeingEmoji(plants, name) {

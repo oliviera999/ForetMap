@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Bulle d'un repère sur la carte (présentation) — extrait de `MapView` (O6).
  *

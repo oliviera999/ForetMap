@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * SVG de secours pour les mascottes Gnomes & Licornes (Lot 2C).
  *

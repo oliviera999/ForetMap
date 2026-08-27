@@ -1,4 +1,3 @@
-import React from 'react';
 import { GLBoardActionButton } from './GLBoardActionButton.jsx';
 import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
 import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';

@@ -1,4 +1,4 @@
-import React, { useEffect, useId } from 'react';
+import { useEffect, useId } from 'react';
 import { useDialogA11y } from '../../hooks/useDialogA11y.js';
 
 function GlNavTabButton({
