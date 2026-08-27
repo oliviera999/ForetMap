@@ -7,6 +7,49 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Le versionnage, les branches et deux noyaux communs (v1.136.0)
+
+**Le numéro de version s'incrémente désormais après la fusion, plus dans la PR.** Une branche
+qui bumpait revendiquait un numéro *avant* de savoir quand elle fusionnerait : deux PR
+ouvertes en parallèle prenaient le même, et le conflit était garanti sur `package.json` **et**
+`package-lock.json`. Mesuré sur les quatre PR du 26/08 : 8 des 88 conflits portaient sur cette
+seule ligne, pour trois renumérotations manuelles. `.github/workflows/version-bump.yml` déduit
+le niveau SemVer du message de fusion (`feat` → mineur, `type!:` → majeur, le reste →
+correctif), et le commit de bump déclenche à son tour la création du tag et de la release.
+Bumper explicitement dans une PR reste possible pour forcer un niveau — le workflow le détecte
+et s'abstient, donc rien n'est à désapprendre en urgence.
+
+**Le tri des branches reposait sur un chiffre faux.** L'audit du 26/08 annonçait « 79 branches,
+32 fusionnées, 46 non fusionnées ». Ces chiffres venaient d'un **clone superficiel** : sur un
+tel clone, une branche ancienne n'a pas d'ancêtre commun visible, `git branch --merged` la
+classe « non fusionnée », et `git diff main...branche` échoue en renvoyant un diff **vide** —
+qu'un tri automatique lit volontiers comme « n'apporte rien ». Sur l'historique complet :
+**53 fusionnées, 26 non fusionnées**. `scripts/prune-merged-branches.sh` refuse désormais de
+tourner sur un clone superficiel plutôt que de produire un tri faux, et revérifie chaque
+branche avec `merge-base --is-ancestor` avant toute suppression.
+
+**Les 26 branches non fusionnées sont toutes superséquées**, vérifié défaut par défaut plutôt
+que par la date : récurrence des tâches archivées, `validated` écrasé par un recalcul
+concurrent, `reponse_correcte` exposée, jeton de QCM rejouable, usurpation d'identité, photos
+de journaux de tâche, cloisonnement de la médiathèque, double vitalité, exports XLSX — tous
+fermés dans `main`, souvent par une réimplémentation **meilleure** que la proposition d'origine.
+Aucune n'est à fusionner.
+
+**Deux noyaux communs de plus entre ForetMap et Gnomes & Licornes.** Les deux paires les plus
+dupliquées du rapport sont traitées : commentaires contextuels (bornes de saisie, normaliseur
+de type, décision de réaction) et filtre des liens ressource ↔ question. Le compteur ne bouge
+que modestement — ce qui restait, ce sont les handlers CRUD, qui diffèrent là où les produits
+diffèrent. Ce qui a été extrait était la duplication coûteuse : des bornes portant des **noms
+différents pour des valeurs identiques**, qu'aucun `grep` ne rapprochait, et l'ordre des
+critères d'un filtre SQL, qui fixe l'ordre des `?`. Les 12 tests livrés n'éprouvent pas
+seulement les noyaux : ils **interdisent le retour de la duplication**, et vérifient que les
+types de contexte des deux produits restent disjoints.
+
+**Documentation** — `docs/VERSIONING.md`, `CLAUDE.md` et le skill `foretmap-release` décrivent
+le nouveau flux ; `docs/PARTAGE_FM_GL.md` §9.2 explique pourquoi le gain mesuré est modeste et
+pourquoi c'est le bon résultat ; l'audit corrige ses chiffres de branches plutôt que de les
+effacer.
+
 ### Durcissements issus de l'audit du 26/08 (v1.135.0)
 
 **La chaîne de publication des releases était cassée depuis toujours.**

@@ -1,0 +1,145 @@
+name: Version bump on merge
+
+# Incrémente `package.json` **après** la fusion sur `main`, au lieu de le faire dans chaque PR.
+#
+# ## Le problème que ça règle
+#
+# Une PR qui bumpe revendique un numéro **avant** de savoir quand elle fusionnera. Deux PR
+# ouvertes en parallèle revendiquent le même, et le conflit est garanti — sur `package.json`
+# ET `package-lock.json`, à chaque fois. Constat mesuré le 26/08/2026 sur quatre PR fusionnées :
+# 8 des 88 conflits portaient sur cette seule ligne, et trois renumérotations manuelles ont été
+# nécessaires (1.130.0 et 1.131.0 étaient déjà prises, 1.132.0 l'est devenue en cours de route).
+# La règle anti-conflit de `CLAUDE.md` demandait de vérifier les autres PR à la main : une
+# vigilance que rien n'outillait.
+#
+# En bumpant ici, la ligne `version` ne figure plus jamais dans le diff d'une branche, donc
+# elle ne peut plus entrer en conflit.
+#
+# ## Rétrocompatible
+#
+# Si une PR a quand même bumpé (ancienne habitude, ou lot qui veut choisir son niveau), l'étape
+# « version déjà bumpée ? » le détecte et le job ne fait rien. Rien à désapprendre en urgence.
+#
+# ## Pas de boucle
+#
+# Trois gardes indépendantes, parce qu'une boucle de commits sur `main` coûterait cher :
+#   1. le commit de bump est signé `github-actions[bot]` et le job ignore cet auteur ;
+#   2. il porte `[skip bump]` dans son message, également filtré ;
+#   3. surtout, l'étape de détection voit que `version` a changé dans ce push et sort.
+# La troisième suffirait seule : les deux autres évitent même de démarrer le job.
+#
+# ## Enchaînement avec « Release tag »
+#
+# Le commit de bump déclenche un nouveau `push` sur `main`, donc `release-tag.yml`, qui crée le
+# tag `vX.Y.Z` et la release. C'est voulu : le tag suit le bump, dans cet ordre.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: version-bump
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    # Gardes 1 et 2 (cf. en-tête). La garde décisive est l'étape `changed` ci-dessous.
+    if: >
+      github.event.head_commit.author.name != 'github-actions[bot]' &&
+      !contains(github.event.head_commit.message, '[skip bump]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # il faut le commit précédent pour comparer `version`
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: La version a-t-elle déjà été bumpée dans ce push ?
+        id: changed
+        run: |
+          # `HEAD^` n'existe pas sur un tout premier commit : on considère alors « pas bumpée ».
+          if git rev-parse -q --verify HEAD^ >/dev/null; then
+            before="$(git show HEAD^:package.json | node -p 'JSON.parse(require("fs").readFileSync(0,"utf8")).version')"
+          else
+            before=""
+          fi
+          after="$(node -p 'require("./package.json").version')"
+          if [ "$before" != "$after" ]; then
+            echo "La PR a bumpé elle-même ($before → $after) — rien à faire."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "current=$after" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Choisir le niveau SemVer d'après le message de fusion
+        id: level
+        if: steps.changed.outputs.skip == 'false'
+        env:
+          # Par l'environnement, jamais par interpolation dans le script : un message de commit
+          # est du texte libre, et `${{ … }}` est substitué dans le TEXTE du script avant que
+          # bash ne l'analyse (même défaut que celui réparé dans release-tag.yml le 26/08).
+          MSG: ${{ github.event.head_commit.message }}
+        run: |
+          level=patch
+          # Conventional commits, tels que le dépôt les écrit : `feat(...)`, `fix(...)`, `chore(...)`.
+          # Le message de fusion GitHub reprend le titre de la PR sur sa deuxième ligne, d'où le
+          # `grep` sur l'ensemble du message plutôt que sur la seule première ligne.
+          if printf '%s' "$MSG" | grep -qiE 'BREAKING[ -]CHANGE|^[a-z]+(\([^)]*\))?!:'; then
+            level=major
+          elif printf '%s' "$MSG" | grep -qE '(^|[^a-z])feat(\([^)]*\))?:'; then
+            level=minor
+          fi
+          echo "level=$level" >> "$GITHUB_OUTPUT"
+          echo "Niveau retenu : $level"
+
+      - name: Bump + push
+        if: steps.changed.outputs.skip == 'false'
+        env:
+          LEVEL: ${{ steps.level.outputs.level }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          npm version "$LEVEL" --no-git-tag-version
+          new="$(node -p 'require("./package.json").version')"
+          git add package.json package-lock.json
+          git commit -m "chore(release): v$new [skip bump]"
+
+          # `main` peut avoir bougé pendant le job (auto-commit `dist/`, autre fusion). On rejoue
+          # le bump par-dessus plutôt que d'échouer : `--rebase` garde le commit de bump en tête.
+          pushed=0
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then pushed=1; break; fi
+            echo "Push refusé (tentative $attempt) — rebase sur la tête courante puis nouvel essai."
+            git pull --rebase origin main || break
+          done
+
+          if [ "$pushed" -ne 1 ]; then
+            {
+              echo "### Bump de version non appliqué"
+              echo
+              echo "Le push de \`chore(release): v$new\` sur \`main\` a été refusé."
+              echo
+              echo "Cause la plus probable : une **protection de branche** sur \`main\` qui n'autorise"
+              echo "pas \`github-actions[bot]\` à pousser. Deux sorties :"
+              echo
+              echo "- ajouter l'app GitHub Actions aux dérogations de la règle de protection ;"
+              echo "- ou désactiver ce workflow et revenir au bump dans la PR"
+              echo "  (\`npm run bump:*\`, cf. \`docs/VERSIONING.md\`)."
+              echo
+              echo "En attendant, \`main\` reste en **$(node -p 'require("./package.json").version' 2>/dev/null || echo "$new")**"
+              echo "côté dépôt : aucun commit n'a été créé à distance."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Bump non poussé — voir le résumé du job."
+            exit 1
+          fi
+
+          echo "Version portée à $new."
