@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import {
   api,
-  AccountDeletedError,
   getAuthClaims,
   getStoredSession,
   saveStoredSession,
@@ -16,26 +15,13 @@ import { usePlantCatalogPreview } from './hooks/usePlantCatalogPreview';
 import { useViewportLayout } from './hooks/useViewportLayout';
 import { resolveTooltipKey } from './utils/helpResolve';
 import {
-  FETCH_ALL_AUTO_DEBOUNCE_MS,
-  getFetchAllLoopAbortReason,
-  DATA_REFRESH_INTERVAL_MS,
-  POLLING_COARSE_TABS,
   IOS_INSTALL_HINT_DISMISSED_KEY,
   GUEST_VISIT_MASCOT_CONFIRMED_KEY,
 } from './constants/app-runtime';
 import { MASCOT_PACK_UNSAVED_LEAVE_MSG } from './constants/mascotPackEditor.js';
-import {
-  canSkipFetchAllCycle,
-  isValidSyncState,
-  resolveChangedSyncDomains,
-} from './utils/fetchAllSyncGate.js';
-
-/** Sentinelle « domaine non rechargé » du refetch ciblé de fetchAll (état conservé). */
-const FETCH_DOMAIN_SKIPPED = Symbol('foretmap-fetch-domain-skipped');
-import { ErrorBoundary } from './components/ErrorBoundary';
 import { TimedToast as Toast } from './shared/components/TimedToast.jsx';
 import { AppStatusSticky } from './shared/components/AppStatusSticky.jsx';
-import { AuthScreen, PinModal } from './components/auth-views';
+import { PinModal } from './components/auth-views';
 const StudentStatsLazy = lazy(() =>
   import('./components/stats-views').then((m) => ({ default: m.StudentStats })),
 );
@@ -45,9 +31,6 @@ const StudentProfileEditorLazy = lazy(() =>
 import { TabSuspense } from './components/TabSuspense.jsx';
 import { GlossaryPopover, readGlossaryTermMessage } from './components/pedago/GlossaryPopover.jsx';
 
-const VisitViewLazy = lazy(() =>
-  import('./components/visit-views').then((m) => ({ default: m.VisitView })),
-);
 const PlantManagerLazy = lazy(() =>
   import('./components/foretmap-views').then((m) => ({ default: m.PlantManager })),
 );
@@ -83,30 +66,38 @@ const ForumViewLazy = lazy(() =>
   import('./components/forum-views').then((m) => ({ default: m.ForumView })),
 );
 const VisitMascotPackManagerLazy = lazy(() => import('./components/VisitMascotPackManager.jsx'));
+
+/** Style du loader de l'éditeur packs mascotte (constante : évite un objet recréé à chaque rendu). */
+const MASCOT_PACK_LOADER_STYLE = { padding: '24px 16px', minHeight: 120 };
 import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
-import { allowedMapIdsFromAffiliation, mapsForAffiliationScope } from './utils/mapAffiliation';
+import { visibleMapsForScope } from './utils/appMapScope';
+import { canManagePedagoContent, resolveParticipationFlag } from './utils/appAccess';
+import { DEFAULT_USER_LABEL, formatFullName, resolveSessionDisplayName } from './utils/appIdentity';
 import { getContentText } from './utils/content';
 import { safeLocalStorageGetItem, safeLocalStorageSetItem } from './utils/browserStorage.js';
 import { saveVisitMascotPreference } from './services/visitMascotPreference.js';
 import { useOverlayHistoryBack } from './hooks/useOverlayHistoryBack';
 import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
-import { keepPrevIfEqual } from './utils/stableCollection';
-import { partitionByArchived } from './utils/taskArchive';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
+import { AppFooter } from './components/app/AppFooter.jsx';
 import { AppHeader } from './components/app/AppHeader.jsx';
+import { AppLoader, FULL_PAGE_LOADER_STYLE } from './components/app/AppLoader.jsx';
+import { AppUserDialog } from './components/app/AppUserDialog.jsx';
+import { UnauthenticatedShell } from './components/app/UnauthenticatedShell.jsx';
 import { MapTasksArea } from './components/app/MapTasksArea.jsx';
 import { NoticeBanner } from './components/app/NoticeBanner.jsx';
 import { PedagoTabs } from './components/app/PedagoTabs.jsx';
 import { TeacherTopTabs } from './components/app/TeacherTopTabs.jsx';
 import { StudentBottomNav } from './components/app/StudentBottomNav.jsx';
 import { RolePreviewBanners } from './components/app/RolePreviewBanners.jsx';
-import { DialogShell } from './components/DialogShell';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
 import { SessionProvider } from './contexts/SessionContext.jsx';
 import { DataProvider } from './contexts/DataContext.jsx';
 import { TourProvider } from './contexts/TourContext.jsx';
 import { readStoredTab } from './utils/appShellHelpers';
 import { useAppBootstrap } from './hooks/useAppBootstrap';
+import { useAppDataSync } from './hooks/useAppDataSync';
+import { useAppDataPolling } from './hooks/useAppDataPolling';
 import { useTabNavigationGuards } from './hooks/useTabNavigationGuards';
 import { useAppStoragePersistence } from './hooks/useAppStoragePersistence';
 import { useSessionWindowSync } from './hooks/useSessionWindowSync';
@@ -117,8 +108,6 @@ import { useDefaultActiveMapFromSettings } from './hooks/useDefaultActiveMapFrom
 import { useActiveMapVisibilityReconciler } from './hooks/useActiveMapVisibilityReconciler';
 import { useStudentSessionRef } from './hooks/useStudentSessionRef';
 
-const DEFAULT_MAPS = [];
-
 // ── APP ───────────────────────────────────────────────────────────────────────
 function App() {
   const initialSession = useMemo(() => getStoredSession(), []);
@@ -126,8 +115,6 @@ function App() {
   const studentRef = useStudentSessionRef(initialSession?.student || null, student);
   /** Pendant les modales de la vue Tâches : pas de rafraîchissement données (évite la perte du clavier virtuel mobile). */
   const pauseDataRefreshForTaskOverlaysRef = useRef(false);
-  /** Instantané des paramètres lus par fetchAll (évite de recréer fetchAll à chaque rendu). */
-  const fetchAllContextRef = useRef({});
   const [sessionUser, setSessionUser] = useState(() => initialSession?.user || null);
   const [showPin, setShowPin] = useState(false);
   const [showPublicVisit, setShowPublicVisit] = useState(false);
@@ -137,29 +124,9 @@ function App() {
   const [tab, setTab] = useState(() => readStoredTab());
   /** Synchronise le filtre lieu de l’onglet tâches avec la zone/repère ouvert(e) sur la carte. */
   const [tasksLocationFocus, setTasksLocationFocus] = useState(null);
-  const [maps, setMaps] = useState(DEFAULT_MAPS);
-  const [activeMapId, setActiveMapId] = useState(() =>
-    String(safeLocalStorageGetItem('foretmap_active_map', '') || '').trim(),
-  );
-  const [zones, setZones] = useState([]);
-  const [tasks, setTasks] = useState([]);
-  const [taskProjects, setTaskProjects] = useState([]);
-  // Archives isolées (prof) : hors listes actives partagées pour ne pas polluer carte/modales.
-  const [archivedTasks, setArchivedTasks] = useState([]);
-  const [archivedTaskProjects, setArchivedTaskProjects] = useState([]);
-  const [plants, setPlants] = useState([]);
-  const [tutorials, setTutorials] = useState([]);
-  const [markers, setMarkers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const [profilePromotion, setProfilePromotion] = useState(null);
   const [sessionValidationError, setSessionValidationError] = useState(false);
-  const [refreshMs, setRefreshMs] = useState(DATA_REFRESH_INTERVAL_MS);
-  const [serverDown, setServerDown] = useState(false);
-  // Vrai pendant une relance manuelle déclenchée par « Réessayer maintenant » :
-  // désactive brièvement le bouton pour éviter les doubles clics (le rafraîchissement
-  // automatique toutes les 2 min n'est pas affecté).
-  const [retryingServer, setRetryingServer] = useState(false);
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
   /** Dérivé d'authClaims (remplace l'ancien état jumeau et ses ~9 setIsTeacher). */
   const isTeacher = useMemo(
@@ -177,15 +144,6 @@ function App() {
     handleInstallClick,
     setShowIosInstallHint,
   } = usePwaInstall({ onToast: setToast });
-  const failCountRef = useRef(0);
-  const prevTabForPollingRef = useRef(tab);
-  /** Promesse du chargement global en cours ; les appels suivants s’y accrochent et peuvent demander une nouvelle passe. */
-  const fetchAllRunPromiseRef = useRef(null);
-  const fetchAllPendingRef = useRef(false);
-  const initialFetchDoneRef = useRef(false);
-  /** Sync-state `{ key, bootId, writes }` du dernier cycle fetchAll complet réussi (polling différentiel). */
-  const lastSyncStateRef = useRef(null);
-  const syncSkipCountRef = useRef(0);
   const mascotPackDirtyRef = useRef(false);
   /** Incrémenté après succès modale PIN / login prof : déclenche un `fetchAll` sans s’accrocher à chaque changement de `authClaims`. */
   const [pinSuccessFetchAllTick, setPinSuccessFetchAllTick] = useState(0);
@@ -212,16 +170,6 @@ function App() {
     [effectiveIsTeacher, publicSettings],
   );
 
-  // Auto-démarrage du mode visite/découverte : modules activés, app prête,
-  // session établie et pas d'onboarding mascotte invité en attente.
-  const discoveryTourAutoEnabled =
-    publicSettingsReady &&
-    !loading &&
-    publicSettings?.modules?.help_enabled !== false &&
-    publicSettings?.help?.discovery_tour !== false &&
-    !guestVisitNeedsMascotChoice &&
-    !!(sessionUser || student || showPublicVisit);
-
   const hasPermission = useCallback(
     (perm) => {
       return effectiveRoleContext.activePerms.includes(perm);
@@ -236,12 +184,16 @@ function App() {
     [effectiveRoleContext.activePerms],
   );
 
-  const canManageTutorials = useMemo(() => {
-    const roleSlug = effectiveRoleContext.roleSlug;
-    const nativePrivileged = !!authClaims?.nativePrivileged;
-    const allowedRole = roleSlug === 'prof' || roleSlug === 'admin' || nativePrivileged;
-    return allowedRole && hasPermissionInRole('tutorials.manage');
-  }, [effectiveRoleContext.roleSlug, hasPermissionInRole, authClaims?.nativePrivileged]);
+  const canManageTutorials = useMemo(
+    () =>
+      canManagePedagoContent({
+        roleSlug: effectiveRoleContext.roleSlug,
+        nativePrivileged: authClaims?.nativePrivileged,
+        permission: 'tutorials.manage',
+        hasPermission: hasPermissionInRole,
+      }),
+    [effectiveRoleContext.roleSlug, hasPermissionInRole, authClaims?.nativePrivileged],
+  );
 
   /* isTeacher est désormais dérivé d'authClaims : le `setIsTeacher` attendu par le hook OAuth
      réaligne authClaims sur le jeton fraîchement stocké. Indispensable pour la branche élève,
@@ -255,16 +207,6 @@ function App() {
     setAuthClaims,
     setIsTeacher: syncAuthClaimsFromStoredToken,
     setStudent,
-  });
-
-  useAppStoragePersistence({ activeMapId, tab, onToast: setToast });
-
-  useDefaultActiveMapFromSettings({
-    publicSettingsReady,
-    publicSettings,
-    effectiveIsTeacher,
-    showPublicVisit,
-    setActiveMapId,
   });
 
   // Called from anywhere when a 401-deleted is detected
@@ -356,12 +298,11 @@ function App() {
     [authClaims?.roleDisplayName],
   );
 
-  // Snapshot lu par fetchAll : posé en effet (pas pendant le rendu — fragile en
-  // rendu concurrent, un rendu interrompu pourrait laisser un snapshot jamais
-  // commité). Le décalage d'un tick est absorbé par la boucle fetchAllPendingRef.
-  useEffect(() => {
-    fetchAllContextRef.current = {
-      activeMapId,
+  const hasAuthenticatedShell = !!(student || isTeacher);
+
+  // Contexte lu par `fetchAll` (mémoïsé : il pilote aussi le debounce du rechargement auto).
+  const dataSyncContext = useMemo(
+    () => ({
       effectiveIsTeacher,
       showPublicVisit,
       studentAffiliation: student?.affiliation,
@@ -369,287 +310,78 @@ function App() {
       defaultMapStudent: publicSettings?.map?.default_map_student,
       defaultMapTeacher: publicSettings?.map?.default_map_teacher,
       defaultMapVisit: publicSettings?.map?.default_map_visit,
-    };
+    }),
+    [
+      effectiveIsTeacher,
+      showPublicVisit,
+      student?.affiliation,
+      canManageTutorials,
+      publicSettings?.map?.default_map_student,
+      publicSettings?.map?.default_map_teacher,
+      publicSettings?.map?.default_map_visit,
+    ],
+  );
+
+  // D4 — données partagées et cycle de rechargement (fetchAll, polling différentiel,
+  // refetch ciblé, bandeau « serveur indisponible »).
+  const {
+    maps,
+    activeMapId,
+    setActiveMapId,
+    zones,
+    setZones,
+    tasks,
+    setTasks,
+    taskProjects,
+    setTaskProjects,
+    archivedTasks,
+    setArchivedTasks,
+    archivedTaskProjects,
+    setArchivedTaskProjects,
+    plants,
+    setPlants,
+    markers,
+    setMarkers,
+    tutorials,
+    loading,
+    refreshMs,
+    serverDown,
+    retryingServer,
+    fetchAll,
+    retryServerNow,
+  } = useAppDataSync({
+    context: dataSyncContext,
+    contextReady: publicSettingsReady,
+    hasAuthenticatedShell,
+    studentRef,
+    forceLogout,
+    mergeAuthMeResponse,
   });
 
-  const fetchAll = useCallback(() => {
-    if (fetchAllRunPromiseRef.current) {
-      fetchAllPendingRef.current = true;
-      return fetchAllRunPromiseRef.current;
-    }
-    const job = (async () => {
-      const jobStartedAt = Date.now();
-      let loopIterations = 0;
-      try {
-        // Tant qu’une action (ex. changement de statut) a demandé un rafraîchissement pendant la passe en cours, on relit le ref à jour.
-        while (true) {
-          loopIterations += 1;
-          const abortReason = getFetchAllLoopAbortReason({ loopIterations, jobStartedAt });
-          if (abortReason === 'iterations') {
-            console.warn('[ForetMap] fetchAll : plafond d’itérations atteint');
-            break;
-          }
-          if (abortReason === 'wall') {
-            console.warn('[ForetMap] fetchAll : délai maximal dépassé');
-            setServerDown(true);
-            setRefreshMs(120000);
-            break;
-          }
-          fetchAllPendingRef.current = false;
-          const snap = fetchAllContextRef.current;
-          const {
-            activeMapId: mapIdState,
-            effectiveIsTeacher: isTeacherSnap,
-            showPublicVisit: visitSnap,
-            studentAffiliation,
-            canManageTutorials: canTutorialsSnap,
-            defaultMapStudent,
-            defaultMapTeacher,
-            defaultMapVisit,
-          } = snap;
+  useAppStoragePersistence({ activeMapId, tab, onToast: setToast });
 
-          // Polling différentiel (audit charge serveur, piste 4) : si aucune écriture
-          // en base depuis le dernier cycle complet réussi dans le même contexte
-          // client, on saute le cycle (1 requête légère au lieu de ~8). Toute erreur
-          // de sonde ou redémarrage serveur → cycle complet (comportement historique).
-          const syncContextKey = JSON.stringify({
-            snap,
-            studentId: studentRef.current?.id ?? null,
-          });
-          let syncState = null;
-          // Pas de sonde au tout premier chargement : elle ajouterait un aller-retour
-          // avant les premières données. La baseline s'établit au cycle suivant.
-          if (initialFetchDoneRef.current) {
-            try {
-              const probed = await api('/api/sync-state');
-              if (isValidSyncState(probed)) syncState = probed;
-            } catch (_) {
-              syncState = null;
-            }
-          }
-          if (
-            canSkipFetchAllCycle({
-              prev: lastSyncStateRef.current,
-              next: syncState,
-              contextKey: syncContextKey,
-              consecutiveSkips: syncSkipCountRef.current,
-            })
-          ) {
-            syncSkipCountRef.current += 1;
-            // Le serveur a répondu : l'état « serveur indisponible » n'a plus lieu d'être.
-            failCountRef.current = 0;
-            setServerDown(false);
-            if (!fetchAllPendingRef.current) break;
-            continue;
-          }
-          syncSkipCountRef.current = 0;
+  useDefaultActiveMapFromSettings({
+    publicSettingsReady,
+    publicSettings,
+    effectiveIsTeacher,
+    showPublicVisit,
+    setActiveMapId,
+  });
 
-          try {
-            const safeApi = async (request, fallbackValue) => {
-              try {
-                return await request();
-              } catch (err) {
-                if (err instanceof AccountDeletedError) throw err;
-                console.error(err);
-                return fallbackValue;
-              }
-            };
-
-            const restrictedMapIds =
-              !isTeacherSnap && !visitSnap
-                ? allowedMapIdsFromAffiliation(studentAffiliation)
-                : null;
-
-            const mapsRes = await safeApi(() => api('/api/maps'), DEFAULT_MAPS);
-            const safeMaps = Array.isArray(mapsRes) && mapsRes.length > 0 ? mapsRes : DEFAULT_MAPS;
-            setMaps(safeMaps);
-
-            const visibleAllowedMaps = mapsForAffiliationScope(safeMaps, restrictedMapIds);
-            const requestedMapId =
-              restrictedMapIds && !restrictedMapIds.includes(mapIdState)
-                ? restrictedMapIds[0]
-                : mapIdState;
-            const defaultMap = visitSnap
-              ? defaultMapVisit
-              : isTeacherSnap
-                ? defaultMapTeacher
-                : defaultMapStudent;
-            const fallbackMap =
-              visibleAllowedMaps.find((mp) => mp.id === defaultMap)?.id ||
-              visibleAllowedMaps[0]?.id ||
-              requestedMapId ||
-              '';
-            const resolvedMapId = visibleAllowedMaps.some((mp) => mp.id === requestedMapId)
-              ? requestedMapId
-              : fallbackMap;
-            const mapQuery = resolvedMapId ? `map_id=${encodeURIComponent(resolvedMapId)}` : '';
-
-            // Refetch ciblé (compteurs par domaine de /api/sync-state) : seuls les
-            // domaines dont le compteur a bougé sont rechargés — `/api/maps` reste
-            // toujours rechargée (minuscule, et nécessaire à la résolution de carte).
-            // Un changement de carte pendant le cycle invalide le ciblage : les
-            // domaines non rechargés porteraient encore les données de l'ancienne carte.
-            const changedDomains =
-              resolvedMapId !== mapIdState
-                ? null
-                : resolveChangedSyncDomains({
-                    prev: lastSyncStateRef.current,
-                    next: syncState,
-                    contextKey: syncContextKey,
-                  });
-            const needsDomain = (domain) => !changedDomains || changedDomains.has(domain);
-            const skipDomain = () => Promise.resolve(FETCH_DOMAIN_SKIPPED);
-
-            const tutorialsEndpoint = canTutorialsSnap
-              ? '/api/tutorials?include_inactive=1'
-              : '/api/tutorials';
-            // Les profs récupèrent aussi les tâches/projets archivés (portée `all`) pour la
-            // vue « Archivés » ; côté élève/visiteur le backend force la portée active.
-            const archivedQuery = isTeacherSnap ? '&archived=all' : '';
-            const [z, t, taskProjectsRes, p, m, tu] = await Promise.all([
-              needsDomain('zones')
-                ? safeApi(
-                    () => (mapQuery ? api(`/api/zones?${mapQuery}`) : Promise.resolve([])),
-                    [],
-                  )
-                : skipDomain(),
-              needsDomain('tasks')
-                ? safeApi(
-                    () =>
-                      mapQuery
-                        ? api(`/api/tasks?${mapQuery}${archivedQuery}`)
-                        : Promise.resolve([]),
-                    [],
-                  )
-                : skipDomain(),
-              needsDomain('tasks')
-                ? safeApi(
-                    () =>
-                      mapQuery
-                        ? api(`/api/task-projects?${mapQuery}${archivedQuery}`)
-                        : Promise.resolve([]),
-                    [],
-                  )
-                : skipDomain(),
-              needsDomain('plants') ? safeApi(() => api('/api/plants'), []) : skipDomain(),
-              needsDomain('markers')
-                ? safeApi(
-                    () => (mapQuery ? api(`/api/map/markers?${mapQuery}`) : Promise.resolve([])),
-                    [],
-                  )
-                : skipDomain(),
-              needsDomain('tutorials') ? safeApi(() => api(tutorialsEndpoint), []) : skipDomain(),
-            ]);
-
-            if (resolvedMapId !== mapIdState) {
-              setActiveMapId(resolvedMapId);
-            }
-            // keepPrevIfEqual : conserve la référence quand le contenu n'a pas
-            // changé → pas de re-render global du DataContext à chaque poll.
-            // FETCH_DOMAIN_SKIPPED : domaine non rechargé (compteur inchangé) → état conservé.
-            if (z !== FETCH_DOMAIN_SKIPPED) setZones((prev) => keepPrevIfEqual(prev, z));
-            if (t !== FETCH_DOMAIN_SKIPPED) {
-              if (Array.isArray(t)) {
-                // Séparer actives / archivées : seules les actives alimentent l'état partagé.
-                const { active: activeTasks, archived: archTasks } = partitionByArchived(t);
-                setTasks((prev) => keepPrevIfEqual(prev, activeTasks));
-                setArchivedTasks((prev) => keepPrevIfEqual(prev, archTasks));
-              } else
-                console.warn(
-                  '[ForetMap] GET /api/tasks : réponse non tableau, état tâches inchangé',
-                );
-            }
-            if (taskProjectsRes !== FETCH_DOMAIN_SKIPPED) {
-              const { active: activeProjects, archived: archProjects } = partitionByArchived(
-                Array.isArray(taskProjectsRes) ? taskProjectsRes : [],
-              );
-              setTaskProjects((prev) => keepPrevIfEqual(prev, activeProjects));
-              setArchivedTaskProjects((prev) => keepPrevIfEqual(prev, archProjects));
-            }
-            if (p !== FETCH_DOMAIN_SKIPPED) setPlants((prev) => keepPrevIfEqual(prev, p));
-            if (m !== FETCH_DOMAIN_SKIPPED) setMarkers((prev) => keepPrevIfEqual(prev, m));
-            if (tu !== FETCH_DOMAIN_SKIPPED) setTutorials((prev) => keepPrevIfEqual(prev, tu));
-            if (!isTeacherSnap && needsDomain('authMe')) {
-              const sess = studentRef.current;
-              if (sess?.id && !sess.preview_mode) {
-                const sid = sess.id;
-                api('/api/auth/me')
-                  .then((d) => {
-                    if (studentRef.current?.id !== sid) return;
-                    const hasSideEffects =
-                      d?.taskEnrollment != null ||
-                      typeof d?.forumParticipate === 'boolean' ||
-                      typeof d?.contextCommentParticipate === 'boolean' ||
-                      typeof d?.refreshedToken === 'string' ||
-                      d?.autoProfilePromotion;
-                    if (!hasSideEffects) return;
-                    mergeAuthMeResponse(d, { studentIdForMatch: sid });
-                  })
-                  .catch(() => {});
-              }
-            }
-            failCountRef.current = 0;
-            setRefreshMs(DATA_REFRESH_INTERVAL_MS);
-            setServerDown(false);
-            // Cycle complet réussi : baseline du polling différentiel. `syncState` a été
-            // sondé AVANT les refetchs — une écriture arrivée pendant le cycle rendra
-            // donc le prochain compteur différent → refetch (conservateur, jamais stale).
-            lastSyncStateRef.current = syncState
-              ? {
-                  key: syncContextKey,
-                  bootId: syncState.bootId,
-                  writes: syncState.writes,
-                  domains: syncState.domains,
-                }
-              : null;
-          } catch (e) {
-            if (e instanceof AccountDeletedError) forceLogout();
-            else {
-              console.error(e);
-              const isServerSide = e.status == null || e.status >= 500;
-              if (isServerSide) {
-                failCountRef.current += 1;
-                if (failCountRef.current >= 3) {
-                  setServerDown(true);
-                  setRefreshMs(120000);
-                }
-              }
-            }
-          }
-          if (!fetchAllPendingRef.current) break;
-        }
-      } finally {
-        fetchAllRunPromiseRef.current = null;
-        initialFetchDoneRef.current = true;
-        setLoading(false);
-      }
-    })();
-    fetchAllRunPromiseRef.current = job;
-    return job;
-  }, [forceLogout, mergeAuthMeResponse, studentRef]);
+  // Auto-démarrage du mode visite/découverte : modules activés, app prête,
+  // session établie et pas d'onboarding mascotte invité en attente.
+  const discoveryTourAutoEnabled =
+    publicSettingsReady &&
+    !loading &&
+    publicSettings?.modules?.help_enabled !== false &&
+    publicSettings?.help?.discovery_tour !== false &&
+    !guestVisitNeedsMascotChoice &&
+    !!(sessionUser || student || showPublicVisit);
 
   useEffect(() => {
     if (pinSuccessFetchAllTick === 0) return;
     void fetchAll();
   }, [pinSuccessFetchAllTick, fetchAll]);
-
-  /**
-   * Relance immédiate des données depuis le bandeau « Serveur indisponible » : réarme
-   * le compteur d'échecs et l'intervalle nominal, puis attend `fetchAll`. Le bandeau
-   * reste visible et le bouton désactivé le temps de la tentative ; `fetchAll` pilote
-   * lui-même la sortie de l'état `serverDown` (succès → masqué, échec → toujours affiché).
-   */
-  const handleRetryServerNow = useCallback(async () => {
-    if (retryingServer) return;
-    setRetryingServer(true);
-    failCountRef.current = 0;
-    setRefreshMs(DATA_REFRESH_INTERVAL_MS);
-    try {
-      await fetchAll();
-    } finally {
-      setRetryingServer(false);
-    }
-  }, [retryingServer, fetchAll]);
 
   const tasksForActiveMap = useMemo(
     () =>
@@ -664,13 +396,15 @@ function App() {
     () => tasksForActiveMap.filter((t) => t.status === 'done').length,
     [tasksForActiveMap],
   );
-  const visibleMaps = useMemo(() => {
-    const allowedMapIds =
-      effectiveIsTeacher || showPublicVisit
-        ? null
-        : allowedMapIdsFromAffiliation(student?.affiliation);
-    return mapsForAffiliationScope(maps, allowedMapIds);
-  }, [maps, effectiveIsTeacher, showPublicVisit, student?.affiliation]);
+  const visibleMaps = useMemo(
+    () =>
+      visibleMapsForScope(maps, {
+        isTeacher: effectiveIsTeacher,
+        isPublicVisit: showPublicVisit,
+        affiliation: student?.affiliation,
+      }),
+    [maps, effectiveIsTeacher, showPublicVisit, student?.affiliation],
+  );
   useActiveMapVisibilityReconciler({
     activeMapId,
     visibleMaps,
@@ -698,9 +432,10 @@ function App() {
   }, [setTab]);
   const previewStudent = useMemo(() => {
     if (!isTeacher || roleViewMode !== 'student') return null;
-    const fallbackName = String(
-      sessionUser?.displayName || authClaims?.roleDisplayName || 'Utilisateur',
-    ).trim();
+    const fallbackName = resolveSessionDisplayName(
+      sessionUser?.displayName,
+      authClaims?.roleDisplayName,
+    );
     return {
       id: `preview-${authClaims?.userId || 'teacher'}`,
       first_name: fallbackName,
@@ -754,31 +489,39 @@ function App() {
     setTasksLocationFocus(focus);
   }, []);
   const canAccessForum = !isVisitor && publicSettings?.modules?.forum_enabled !== false;
-  const canParticipateForum = useMemo(() => {
-    if (effectiveIsTeacher) return true;
-    const s = studentForUi;
-    if (!s) return true;
-    if (typeof s.forumParticipate === 'boolean') return s.forumParticipate;
-    if (s.forum_participate != null) return Number(s.forum_participate) !== 0;
-    return true;
-  }, [effectiveIsTeacher, studentForUi]);
+  const canParticipateForum = useMemo(
+    () =>
+      resolveParticipationFlag({
+        isTeacher: effectiveIsTeacher,
+        user: studentForUi,
+        camelKey: 'forumParticipate',
+        snakeKey: 'forum_participate',
+      }),
+    [effectiveIsTeacher, studentForUi],
+  );
   const canManageMediaLibrary = hasPermissionInRole('teacher.access');
-  const canManageQuiz = useMemo(() => {
-    const roleSlug = effectiveRoleContext.roleSlug;
-    const nativePrivileged = !!authClaims?.nativePrivileged;
-    const allowedRole = roleSlug === 'prof' || roleSlug === 'admin' || nativePrivileged;
-    return allowedRole && hasPermissionInRole('plants.manage');
-  }, [effectiveRoleContext.roleSlug, hasPermissionInRole, authClaims?.nativePrivileged]);
+  const canManageQuiz = useMemo(
+    () =>
+      canManagePedagoContent({
+        roleSlug: effectiveRoleContext.roleSlug,
+        nativePrivileged: authClaims?.nativePrivileged,
+        permission: 'plants.manage',
+        hasPermission: hasPermissionInRole,
+      }),
+    [effectiveRoleContext.roleSlug, hasPermissionInRole, authClaims?.nativePrivileged],
+  );
   const canManageFoodWeb = hasPermission('plants.manage');
 
-  const canParticipateContextComments = useMemo(() => {
-    if (effectiveIsTeacher) return true;
-    const s = studentForUi;
-    if (!s) return true;
-    if (typeof s.contextCommentParticipate === 'boolean') return s.contextCommentParticipate;
-    if (s.context_comment_participate != null) return Number(s.context_comment_participate) !== 0;
-    return true;
-  }, [effectiveIsTeacher, studentForUi]);
+  const canParticipateContextComments = useMemo(
+    () =>
+      resolveParticipationFlag({
+        isTeacher: effectiveIsTeacher,
+        user: studentForUi,
+        camelKey: 'contextCommentParticipate',
+        snakeKey: 'context_comment_participate',
+      }),
+    [effectiveIsTeacher, studentForUi],
+  );
   const canSelfAssignTasks = !isVisitor;
   const canSelfAssignMoreTasks =
     canSelfAssignTasks && !studentForUi?.preview_mode && !studentForUi?.taskEnrollment?.atLimit;
@@ -792,9 +535,10 @@ function App() {
   const profileTargetUser = useMemo(() => {
     if (!canOpenUserDialogs) return null;
     if (!effectiveIsTeacher && student) return student;
-    const fallbackName = String(
-      sessionUser?.displayName || authClaims?.roleDisplayName || 'Utilisateur',
-    ).trim();
+    const fallbackName = resolveSessionDisplayName(
+      sessionUser?.displayName,
+      authClaims?.roleDisplayName,
+    );
     return {
       id: profileTargetUserId,
       user_type: 'teacher',
@@ -822,6 +566,9 @@ function App() {
     sessionUser?.avatar_path,
     sessionUser?.displayName,
     sessionUser?.email,
+    // Le sélecteur de mascotte du plan met à jour `sessionUser` : sans cette dépendance,
+    // « Mon profil » rouvrait sur la mascotte précédente jusqu'au rechargement de session.
+    sessionUser?.visit_mascot_catalog_id,
     student,
   ]);
   const canOpenTeacherStatsFromBadge =
@@ -840,9 +587,53 @@ function App() {
 
   // ── Callbacks du header (AppHeader) ─────────────────────────────────────────
   const handleOpenStatsDialog = useCallback(() => setShowStats(true), []);
+  const handleCloseStatsDialog = useCallback(() => setShowStats(false), []);
   const handleOpenTeacherStatsTab = useCallback(() => setTab('stats'), []);
   const handleOpenProfileDialog = useCallback(() => setShowProfile(true), []);
+  const handleCloseProfileDialog = useCallback(() => setShowProfile(false), []);
   const handleRequestPin = useCallback(() => setShowPin(true), []);
+
+  /** Session prof en mémoire après édition du profil (nom affiché, avatar, mascotte). */
+  const updateTeacherSession = useCallback(
+    (updatedUser) => {
+      setSessionUser((prev) => {
+        const nextDisplayName =
+          updatedUser?.pseudo ||
+          updatedUser?.display_name ||
+          formatFullName(updatedUser) ||
+          prev?.displayName ||
+          DEFAULT_USER_LABEL;
+        const next = {
+          id: updatedUser?.id || prev?.id || authClaims?.userId || null,
+          userType: 'teacher',
+          displayName: nextDisplayName,
+          email: updatedUser?.email ?? prev?.email ?? null,
+          avatar_path:
+            updatedUser?.avatar_path ?? updatedUser?.avatarPath ?? prev?.avatar_path ?? null,
+          visit_mascot_catalog_id:
+            updatedUser?.visit_mascot_catalog_id ?? prev?.visit_mascot_catalog_id ?? null,
+        };
+        saveStoredSession({ user: next });
+        return next;
+      });
+    },
+    [authClaims?.userId],
+  );
+
+  /** Cible mémoïsée de la modale statistiques (un littéral casserait le memo de StudentStats). */
+  const statsDialogTarget = useMemo(() => ({ id: profileTargetUserId }), [profileTargetUserId]);
+
+  /** Profil enregistré : la session prof et la session élève ne se mettent pas à jour pareil. */
+  const handleProfileUpdated = useCallback(
+    (updated) => {
+      if (effectiveIsTeacher) {
+        updateTeacherSession(updated);
+        return;
+      }
+      updateStudentSession(updated);
+    },
+    [effectiveIsTeacher, updateStudentSession, updateTeacherSession],
+  );
 
   /** Bascule de vue rôle (natif / élève / prof) : réinitialise onglet et dialogues. */
   const handleRoleViewModeSelect = useCallback((mode) => {
@@ -850,6 +641,48 @@ function App() {
     setTab('map');
     setShowStats(false);
     setShowProfile(false);
+  }, []);
+
+  const handleToastDone = useCallback(() => setToast(null), []);
+
+  /** Connexion réussie depuis l'écran d'accueil : pose la session (prof ou élève) et les claims. */
+  const handleAuthScreenLogin = useCallback(
+    (session) => {
+      const userType = String(
+        session?.auth?.userType || session?.user_type || 'student',
+      ).toLowerCase();
+      if (userType === 'teacher') {
+        setStudent(null);
+        setSessionUser({
+          id: session?.auth?.canonicalUserId || session?.id || null,
+          userType: 'teacher',
+          displayName:
+            session?.display_name || session?.auth?.roleDisplayName || DEFAULT_USER_LABEL,
+          email: session?.email || null,
+          avatar_path: session?.avatar_path || null,
+          visit_mascot_catalog_id: session?.visit_mascot_catalog_id || null,
+        });
+      } else {
+        updateStudentSession(session);
+      }
+      const claims = getAuthClaims();
+      setAuthClaims(claims);
+      const roleSlug = String(claims?.roleSlug || '').toLowerCase();
+      if (userType !== 'teacher' && roleSlug === 'visiteur') {
+        const visitOk = publicSettings?.modules?.visit_enabled !== false;
+        setTab(visitOk ? 'visit' : 'plants');
+      }
+    },
+    [publicSettings?.modules?.visit_enabled, updateStudentSession],
+  );
+
+  /** Entrée en visite publique invitée (avec onboarding mascotte si jamais confirmé). */
+  const handleVisitAsGuest = useCallback(() => {
+    pushOverlayClose(() => setShowPublicVisit(false));
+    const guestAlreadyConfirmedMascot =
+      safeLocalStorageGetItem(GUEST_VISIT_MASCOT_CONFIRMED_KEY, null) === '1';
+    setGuestVisitNeedsMascotChoice(!guestAlreadyConfirmedMascot);
+    setShowPublicVisit(true);
   }, []);
 
   /** Déconnexion complète (session locale + états React). */
@@ -861,9 +694,10 @@ function App() {
     setAuthClaims(null);
   }, [studentRef]);
 
-  useOverlayHistoryBack(showStats && canOpenUserDialogs, () => setShowStats(false));
-  useOverlayHistoryBack(showProfile && canOpenUserDialogs && !!profileTargetUser, () =>
-    setShowProfile(false),
+  useOverlayHistoryBack(showStats && canOpenUserDialogs, handleCloseStatsDialog);
+  useOverlayHistoryBack(
+    showProfile && canOpenUserDialogs && !!profileTargetUser,
+    handleCloseProfileDialog,
   );
 
   const isCombinedMapTasksTab = tab === 'maptasks';
@@ -984,43 +818,6 @@ function App() {
     : rtStatus;
   const isAdmin = effectiveRoleContext.roleSlug === 'admin';
 
-  const hasAuthenticatedShell = !!(student || isTeacher);
-
-  useEffect(() => {
-    if (!hasAuthenticatedShell) return undefined;
-    if (initialFetchDoneRef.current) return undefined;
-    void fetchAll();
-    return undefined;
-  }, [hasAuthenticatedShell, fetchAll]);
-
-  useEffect(() => {
-    if (!hasAuthenticatedShell) return undefined;
-    let cancelled = false;
-    const id = window.setTimeout(() => {
-      if (!cancelled) void fetchAll();
-    }, FETCH_ALL_AUTO_DEBOUNCE_MS);
-    // Debounce standard : sur changement de deps, on annule le fetch en attente et on
-    // reprogramme. Le fetch initial est déjà garanti par l'effet ci-dessus (fetchAll
-    // immédiat tant que initialFetchDoneRef est faux) ; ne pas annuler ici accumulait
-    // des timers et déclenchait plusieurs fetchAll pendant les rafales de deps au boot.
-    return () => {
-      cancelled = true;
-      window.clearTimeout(id);
-    };
-  }, [
-    hasAuthenticatedShell,
-    activeMapId,
-    publicSettingsReady,
-    effectiveIsTeacher,
-    showPublicVisit,
-    canManageTutorials,
-    student?.affiliation,
-    publicSettings?.map?.default_map_student,
-    publicSettings?.map?.default_map_teacher,
-    publicSettings?.map?.default_map_visit,
-    fetchAll,
-  ]);
-
   useTabNavigationGuards({
     tab,
     setTab,
@@ -1041,31 +838,14 @@ function App() {
     }
   }, [effectiveIsTeacher, isVisitor, student, tab, publicSettings?.modules?.visit_enabled, setTab]);
 
-  // Auto-refresh adaptatif (ralenti quand le push est actif, ralenti en arrière-plan).
-  const pollingIntervalMs = useMemo(() => {
-    const coarse = POLLING_COARSE_TABS.has(tab) ? 2 : 1;
-    const liveAdjusted = rtStatus === 'live' ? Math.max(refreshMs, 90000) : refreshMs * coarse;
-    return isTabVisible ? liveAdjusted : Math.max(liveAdjusted, 120000);
-  }, [isTabVisible, refreshMs, rtStatus, tab]);
-
-  useEffect(() => {
-    if (rtStatus === 'live') return undefined;
-    const id = setInterval(() => {
-      if (pauseDataRefreshForTaskOverlaysRef.current) return;
-      if (document.visibilityState === 'hidden') return;
-      fetchAll();
-    }, pollingIntervalMs);
-    return () => clearInterval(id);
-  }, [fetchAll, pollingIntervalMs, rtStatus]);
-
-  /** En quittant un onglet « secondaire », on refetch une fois pour éviter des données trop vieilles à l’arrivée sur carte / tâches / visite. */
-  useEffect(() => {
-    const prev = prevTabForPollingRef.current;
-    prevTabForPollingRef.current = tab;
-    const wasCoarse = POLLING_COARSE_TABS.has(prev);
-    const isCoarse = POLLING_COARSE_TABS.has(tab);
-    if (wasCoarse && !isCoarse) void fetchAll();
-  }, [tab, fetchAll]);
+  useAppDataPolling({
+    fetchAll,
+    tab,
+    rtStatus,
+    refreshMs,
+    isTabVisible,
+    pauseRef: pauseDataRefreshForTaskOverlaysRef,
+  });
 
   const updateZone = useCallback(
     async (id, data) => {
@@ -1073,31 +853,6 @@ function App() {
       await fetchAll();
     },
     [fetchAll],
-  );
-  const updateTeacherSession = useCallback(
-    (updatedUser) => {
-      setSessionUser((prev) => {
-        const nextDisplayName =
-          updatedUser?.pseudo ||
-          updatedUser?.display_name ||
-          `${updatedUser?.first_name || ''} ${updatedUser?.last_name || ''}`.trim() ||
-          prev?.displayName ||
-          'Utilisateur';
-        const next = {
-          id: updatedUser?.id || prev?.id || authClaims?.userId || null,
-          userType: 'teacher',
-          displayName: nextDisplayName,
-          email: updatedUser?.email ?? prev?.email ?? null,
-          avatar_path:
-            updatedUser?.avatar_path ?? updatedUser?.avatarPath ?? prev?.avatar_path ?? null,
-          visit_mascot_catalog_id:
-            updatedUser?.visit_mascot_catalog_id ?? prev?.visit_mascot_catalog_id ?? null,
-        };
-        saveStoredSession({ user: next });
-        return next;
-      });
-    },
-    [authClaims?.userId],
   );
   const {
     roleKey: notificationRoleKey,
@@ -1188,78 +943,29 @@ function App() {
 
   if (!student && !isTeacher)
     return (
-      <PublicSettingsProvider value={publicSettings}>
-        <>
-          <AppStatusSticky />
-          {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
-          {showPublicVisit ? (
-            <div id="app">
-              <div className="main main--guest-visit">
-                <TabSuspense>
-                  <VisitViewLazy
-                    student={null}
-                    isTeacher={false}
-                    initialMapId={publicSettings?.map?.default_map_visit || activeMapId}
-                    onBackToAuth={onGuestBackToAuth}
-                    availableTutorials={[]}
-                    requireGuestMascotChoice={guestVisitNeedsMascotChoice}
-                    onGuestMascotChoiceDone={onGuestMascotChoiceDone}
-                  />
-                </TabSuspense>
-              </div>
-              <footer className="app-footer">
-                {appFooterVersionPrefix} {appVersion != null ? appVersion : '…'}
-              </footer>
-            </div>
-          ) : (
-            <AuthScreen
-              onLogin={(s) => {
-                const userType = String(
-                  s?.auth?.userType || s?.user_type || 'student',
-                ).toLowerCase();
-                if (userType === 'teacher') {
-                  setStudent(null);
-                  setSessionUser({
-                    id: s?.auth?.canonicalUserId || s?.id || null,
-                    userType: 'teacher',
-                    displayName: s?.display_name || s?.auth?.roleDisplayName || 'Utilisateur',
-                    email: s?.email || null,
-                    avatar_path: s?.avatar_path || null,
-                    visit_mascot_catalog_id: s?.visit_mascot_catalog_id || null,
-                  });
-                } else {
-                  updateStudentSession(s);
-                }
-                const claims = getAuthClaims();
-                setAuthClaims(claims);
-                const roleSlug = String(claims?.roleSlug || '').toLowerCase();
-                if (userType !== 'teacher' && roleSlug === 'visiteur') {
-                  const visitOk = publicSettings?.modules?.visit_enabled !== false;
-                  setTab(visitOk ? 'visit' : 'plants');
-                }
-              }}
-              appVersion={appVersion}
-              uiSettings={publicSettings}
-              onVisitGuest={() => {
-                pushOverlayClose(() => setShowPublicVisit(false));
-                const guestAlreadyConfirmedMascot =
-                  safeLocalStorageGetItem(GUEST_VISIT_MASCOT_CONFIRMED_KEY, null) === '1';
-                setGuestVisitNeedsMascotChoice(!guestAlreadyConfirmedMascot);
-                setShowPublicVisit(true);
-              }}
-              isN3Affiliated={isN3Affiliated}
-            />
-          )}
-        </>
-      </PublicSettingsProvider>
+      <UnauthenticatedShell
+        publicSettings={publicSettings}
+        toast={toast}
+        onToastDone={handleToastDone}
+        showPublicVisit={showPublicVisit}
+        visitInitialMapId={publicSettings?.map?.default_map_visit || activeMapId}
+        guestVisitNeedsMascotChoice={guestVisitNeedsMascotChoice}
+        onGuestBackToAuth={onGuestBackToAuth}
+        onGuestMascotChoiceDone={onGuestMascotChoiceDone}
+        onLogin={handleAuthScreenLogin}
+        onVisitGuest={handleVisitAsGuest}
+        appVersion={appVersion}
+        footerVersionPrefix={appFooterVersionPrefix}
+        isN3Affiliated={isN3Affiliated}
+      />
     );
   const currentUser =
     (effectiveIsTeacher ? sessionUser : studentForUi) || sessionUser || fallbackUser;
   const currentUserLabel =
     currentUser?.pseudo ||
     currentUser?.displayName ||
-    `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() ||
-    'Utilisateur';
+    formatFullName(currentUser) ||
+    DEFAULT_USER_LABEL;
 
   return (
     <PublicSettingsProvider value={publicSettings}>
@@ -1320,7 +1026,7 @@ function App() {
                     type="button"
                     className="btn btn-sm"
                     style={{ marginLeft: 10, verticalAlign: 'middle', minHeight: 44 }}
-                    onClick={handleRetryServerNow}
+                    onClick={retryServerNow}
                     disabled={retryingServer}
                   >
                     {appRetryNow}
@@ -1357,7 +1063,7 @@ function App() {
                 </NoticeBanner>
               )}
               <AppStatusSticky />
-              {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
+              {toast && <Toast msg={toast} onDone={handleToastDone} />}
               {profilePromotion &&
                 !effectiveIsTeacher &&
                 studentForUi &&
@@ -1382,69 +1088,29 @@ function App() {
                 />
               )}
               {showStats && canOpenUserDialogs && (
-                <DialogShell
+                <AppUserDialog
                   open={showStats}
-                  onClose={() => setShowStats(false)}
-                  overlayClassName="modal-overlay"
-                  dialogClassName="log-modal log-modal--with-close fade-in"
-                  dialogStyle={{ maxHeight: '88vh' }}
+                  onClose={handleCloseStatsDialog}
                   ariaLabel="Statistiques utilisateur"
-                  closeOnOverlay
+                  closeLabel="Fermer la fenêtre des statistiques"
                 >
-                  <div className="log-modal__head">
-                    <button
-                      type="button"
-                      className="modal-close"
-                      aria-label="Fermer la fenêtre des statistiques"
-                      onClick={() => setShowStats(false)}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div className="log-modal__scroll">
-                    <Suspense fallback={null}>
-                      <StudentStatsLazy student={{ id: profileTargetUserId }} />
-                    </Suspense>
-                  </div>
-                </DialogShell>
+                  <StudentStatsLazy student={statsDialogTarget} />
+                </AppUserDialog>
               )}
               {showProfile && canOpenUserDialogs && profileTargetUser && (
-                <DialogShell
+                <AppUserDialog
                   open={showProfile}
-                  onClose={() => setShowProfile(false)}
-                  overlayClassName="modal-overlay"
-                  dialogClassName="log-modal log-modal--with-close fade-in"
-                  dialogStyle={{ maxHeight: '88vh' }}
+                  onClose={handleCloseProfileDialog}
                   ariaLabel="Profil utilisateur"
-                  closeOnOverlay
+                  closeLabel="Fermer la fenêtre du profil"
                 >
-                  <div className="log-modal__head">
-                    <button
-                      type="button"
-                      className="modal-close"
-                      aria-label="Fermer la fenêtre du profil"
-                      onClick={() => setShowProfile(false)}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div className="log-modal__scroll">
-                    <Suspense fallback={null}>
-                      <StudentProfileEditorLazy
-                        student={profileTargetUser}
-                        maps={maps}
-                        onUpdated={(updated) => {
-                          if (effectiveIsTeacher) {
-                            updateTeacherSession(updated);
-                            return;
-                          }
-                          updateStudentSession(updated);
-                        }}
-                        onClose={() => setShowProfile(false)}
-                      />
-                    </Suspense>
-                  </div>
-                </DialogShell>
+                  <StudentProfileEditorLazy
+                    student={profileTargetUser}
+                    maps={maps}
+                    onUpdated={handleProfileUpdated}
+                    onClose={handleCloseProfileDialog}
+                  />
+                </AppUserDialog>
               )}
 
               <AppHeader
@@ -1514,10 +1180,7 @@ function App() {
                     hasPermissionInRole={hasPermissionInRole}
                   />
                   {loading ? (
-                    <div className="loader" style={{ height: '60vh' }}>
-                      <div className="loader-leaf">🌿</div>
-                      <p>{appLoaderText}</p>
-                    </div>
+                    <AppLoader text={appLoaderText} style={FULL_PAGE_LOADER_STYLE} />
                   ) : (
                     <>
                       <MapTasksArea
@@ -1546,6 +1209,7 @@ function App() {
                         mapLocationFocus={tasksLocationFocus}
                         onMapLocationFocusChange={setTasksLocationFocus}
                         onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                        onPersistVisitMascotId={onPersistVisitMascotId}
                       />
                       {tab === 'plants' && (
                         <TabSuspense>
@@ -1612,15 +1276,11 @@ function App() {
                             </p>
                             <Suspense
                               fallback={
-                                <div
-                                  className="loader"
-                                  style={{ padding: '24px 16px', minHeight: 120 }}
-                                >
-                                  <div className="loader-leaf">🌿</div>
-                                  <p className="section-sub">
-                                    Chargement de l’éditeur packs mascotte…
-                                  </p>
-                                </div>
+                                <AppLoader
+                                  text="Chargement de l’éditeur packs mascotte…"
+                                  style={MASCOT_PACK_LOADER_STYLE}
+                                  textClassName="section-sub"
+                                />
                               }
                             >
                               <VisitMascotPackManagerLazy
@@ -1663,6 +1323,7 @@ function App() {
                         onForceLogout={forceLogout}
                         onOpenMascotPackStudioTab={openMascotPackStudioTab}
                         onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                        onPersistVisitMascotId={onPersistVisitMascotId}
                         onOpenGlossaryTerm={openGlossaryPopover}
                         onOpenQuizQuestion={openPedagoQuizQuestion}
                         glossarySelectedCode={pedagoGlossaryCode}
@@ -1683,10 +1344,7 @@ function App() {
                     className={`main app-main-shell app-main-shell--student ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}
                   >
                     {loading ? (
-                      <div className="loader" style={{ height: '60vh' }}>
-                        <div className="loader-leaf">🌿</div>
-                        <p>{appLoaderText}</p>
-                      </div>
+                      <AppLoader text={appLoaderText} style={FULL_PAGE_LOADER_STYLE} />
                     ) : (
                       <>
                         <MapTasksArea
@@ -1711,6 +1369,7 @@ function App() {
                           mapLocationFocus={tasksLocationFocus}
                           onMapLocationFocusChange={setTasksLocationFocus}
                           onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                          onPersistVisitMascotId={onPersistVisitMascotId}
                         />
                         {tab === 'plants' && (
                           <TabSuspense>
@@ -1766,6 +1425,7 @@ function App() {
                           markers={markers}
                           onForceLogout={forceLogout}
                           onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                          onPersistVisitMascotId={onPersistVisitMascotId}
                           onOpenGlossaryTerm={openGlossaryPopover}
                           onOpenQuizQuestion={openPedagoQuizQuestion}
                           glossarySelectedCode={pedagoGlossaryCode}
@@ -1794,9 +1454,7 @@ function App() {
                   />
                 </>
               )}
-              <footer className="app-footer">
-                {appFooterVersionPrefix} {appVersion != null ? appVersion : '…'}
-              </footer>
+              <AppFooter versionPrefix={appFooterVersionPrefix} appVersion={appVersion} />
             </div>
           </TourProvider>
         </DataProvider>

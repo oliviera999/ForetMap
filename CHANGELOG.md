@@ -7,6 +7,80 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit de refactoring : `src/App.jsx` remis à hauteur de vue
+
+**`src/App.jsx` passe de 1 808 à 1 457 lignes, sans changement de comportement.** Le shell de
+l'application avait ré-accumulé quatre responsabilités qui n'y appartiennent pas : le cycle de
+rechargement des données, l'écran d'accueil non authentifié, trois copies du même loader, et
+quatre dérivations de droits écrites deux fois chacune. Rien de ce lot ne modifie l'UI ni l'API —
+c'est un déplacement de code, appuyé par 30 tests unitaires neufs sur les parties devenues pures.
+
+**Le cycle de données quitte le composant.** `fetchAll` (≈ 250 lignes : polling différentiel via
+`/api/sync-state`, refetch ciblé par domaine, boucle de rafraîchissements concurrents, bandeau
+« serveur indisponible ») vit désormais dans `src/hooks/useAppDataSync.js` avec les quatorze états
+de domaine qu'il pilote. La cadence de rafraîchissement — intervalle adaptatif selon le temps réel,
+l'onglet navigateur et les onglets « calmes », plus le refetch en quittant un onglet secondaire —
+part dans `src/hooks/useAppDataPolling.js`. `App.jsx` n'en garde que deux appels et un objet de
+contexte mémoïsé ; les seuils codés en dur (90 s en temps réel, 120 s en arrière-plan) deviennent
+des constantes nommées.
+
+**Trois dérivations dupliquées deviennent des helpers purs testés.** `canManageTutorials` et
+`canManageQuiz` étaient le même bloc à un nom de permission près (`src/utils/appAccess.js`) ;
+`canParticipateForum` et `canParticipateContextComments` aussi (même fichier) ; la portée des
+cartes selon le rôle était écrite une fois dans le mémo `visibleMaps` et une fois à l'intérieur de
+`fetchAll`, avec la résolution de carte active qui va avec (`src/utils/appMapScope.js`). Le
+calcul du nom affiché, recopié à quatre endroits, rejoint `src/utils/appIdentity.js`.
+
+**Le JSX répété devient quatre composants.** `AppLoader` (trois copies du loader « feuille »),
+`AppFooter` (deux copies du pied de page « Version »), `AppUserDialog` (les modales statistiques
+et profil partageaient overlay, croix et zone défilante au caractère près) et
+`UnauthenticatedShell` (écran de connexion + visite invitée, avec ses deux gestionnaires jusque-là
+écrits en flèches inline dans le rendu). Trois objets de style et un tableau vide passent en
+constantes de module, et la cible de la modale statistiques est mémoïsée : autant de props qui
+cassaient les `React.memo` des vues à chaque rendu du shell.
+
+### La mascotte de visite suit enfin le compte, et `App` gagne ses premiers tests de rendu
+
+**Le choix de mascotte d'un compte connecté n'était jamais enregistré.** `App.jsx` calculait bien
+un persisteur (`onPersistVisitMascotId`) mais ne le passait à personne, alors que `MapTasksArea`,
+`PedagoTabs` et `VisitView` acceptent tous la prop, que la route `PUT /api/visit/mascot-preference`
+existe, est testée et documentée, et que la doc de référence promet déjà que « avec un compte, la
+mascotte suit la personne, pas l'appareil ». Le choix retombait donc sur le stockage local : il ne
+suivait pas l'élève d'un appareil à l'autre, et une tablette partagée le transmettait à l'élève
+suivant. Quatre props branchées, rien d'autre à écrire — tout le mécanisme était déjà là.
+
+**Effet de bord à connaître :** un compte qui avait un choix mémorisé dans son navigateur repart
+sur la mascotte par défaut à la première visite, jusqu'à ce qu'il rechoisisse — le stockage local
+n'est plus lu dès lors que la mascotte vit dans le compte.
+
+**Au passage, `profileTargetUser` ne se recalculait pas sur la mascotte.** La dépendance
+`sessionUser?.visit_mascot_catalog_id` manquait : « Mon profil » rouvrait sur la mascotte
+précédente juste après un changement depuis le plan.
+
+**`App` n'avait aucun test de rendu — il en a quatre.** Le nouveau
+`tests-ui/AppShellWiring.test.jsx` monte réellement le composant, avec de simples sondes à la
+place des grosses vues, et couvre les deux branches (session élève, session prof, shell invité)
+plus le fait que le persisteur appelle bien la route du compte. Ce test a immédiatement rattrapé
+une **zone morte temporelle introduite par le lot de refactoring ci-dessus** : `handleProfileUpdated`
+listait `updateTeacherSession` dans ses dépendances alors que ce `const` était déclaré plus bas
+dans le corps du composant — un `ReferenceError` à chaque rendu de l'écran authentifié, invisible
+pour le lint, le build et les 3 153 tests existants, puisque aucun ne montait `App`.
+
+### Le lint attrape désormais la zone morte temporelle
+
+**Le bug qui a cassé l'écran authentifié était détectable par une règle ESLint standard.** Un
+`const` déclaré plus bas dans le corps d'un composant, référencé depuis un tableau de dépendances
+de hook, lève un `ReferenceError` à **chaque rendu** — et ni le build, ni le lint tel qu'il était
+configuré, ni 3 153 tests ne le voyaient. `no-use-before-define` (variables uniquement ; les
+déclarations de fonction restent hissées, donc libres d'ordre) est activée en **erreur** sur
+`src/**` : elle signale exactement ce motif, et fait donc échouer la CI.
+
+**Coût d'activation : cinq réordonnancements.** `settings-admin-views.jsx` référençait `saveSetting`
+depuis quatre points de rendu situés avant sa déclaration, et `quizGlossaryReveal.js` sa constante
+`EMPTY_ITEMS`. Aucun des deux ne plantait — les appels arrivaient après l'évaluation — mais les
+deux étaient à un déplacement de ligne du même accident. `load` et `saveSetting` remontent avant
+`renderSettingField`, l'ordre du source suit maintenant celui des dépendances.
+
 ### Le versionnage, les branches et deux noyaux communs (v1.136.0)
 
 **Le numéro de version s'incrémente désormais après la fusion, plus dans la PR.** Une branche
