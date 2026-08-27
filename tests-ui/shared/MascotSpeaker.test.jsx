@@ -1,4 +1,3 @@
-import React from 'react';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, test, expect } from 'vitest';

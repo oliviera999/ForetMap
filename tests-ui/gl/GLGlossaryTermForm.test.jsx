@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { GLGlossaryTermForm } from '../../src/gl/components/admin/GLGlossaryTermForm.jsx';

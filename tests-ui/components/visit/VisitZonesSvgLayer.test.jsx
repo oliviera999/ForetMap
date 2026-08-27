@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import React from 'react';
 import { describe, test, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import { VisitZonesSvgLayer } from '../../../src/components/visit/VisitZonesSvgLayer.jsx';

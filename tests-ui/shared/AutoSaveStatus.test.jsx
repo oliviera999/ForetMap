@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, test, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { AutoSaveStatus } from '../../src/shared/components/AutoSaveStatus.jsx';

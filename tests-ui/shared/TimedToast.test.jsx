@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, expect, test, vi, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { TimedToast } from '../../src/shared/components/TimedToast.jsx';

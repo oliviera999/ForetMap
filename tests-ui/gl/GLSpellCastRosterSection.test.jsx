@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { GLSpellCastRosterSection } from '../../src/gl/components/spell-cast/GLSpellCastRosterSection.jsx';
