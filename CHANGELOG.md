@@ -39,10 +39,32 @@ et profil partageaient overlay, croix et zone défilante au caractère près) et
 constantes de module, et la cible de la modale statistiques est mémoïsée : autant de props qui
 cassaient les `React.memo` des vues à chaque rendu du shell.
 
-**Repéré, pas corrigé (hors périmètre d'un lot de refactoring).** `onPersistVisitMascotId` est
-calculé dans `App.jsx` mais n'est passé à personne : le choix de mascotte d'un **compte connecté**
-n'est donc jamais enregistré côté serveur, alors que `PedagoTabs`, `MapTasksArea` et `VisitView`
-acceptent tous la prop. À trancher dans un lot dédié, puisque le brancher change un comportement.
+### La mascotte de visite suit enfin le compte, et `App` gagne ses premiers tests de rendu
+
+**Le choix de mascotte d'un compte connecté n'était jamais enregistré.** `App.jsx` calculait bien
+un persisteur (`onPersistVisitMascotId`) mais ne le passait à personne, alors que `MapTasksArea`,
+`PedagoTabs` et `VisitView` acceptent tous la prop, que la route `PUT /api/visit/mascot-preference`
+existe, est testée et documentée, et que la doc de référence promet déjà que « avec un compte, la
+mascotte suit la personne, pas l'appareil ». Le choix retombait donc sur le stockage local : il ne
+suivait pas l'élève d'un appareil à l'autre, et une tablette partagée le transmettait à l'élève
+suivant. Quatre props branchées, rien d'autre à écrire — tout le mécanisme était déjà là.
+
+**Effet de bord à connaître :** un compte qui avait un choix mémorisé dans son navigateur repart
+sur la mascotte par défaut à la première visite, jusqu'à ce qu'il rechoisisse — le stockage local
+n'est plus lu dès lors que la mascotte vit dans le compte.
+
+**Au passage, `profileTargetUser` ne se recalculait pas sur la mascotte.** La dépendance
+`sessionUser?.visit_mascot_catalog_id` manquait : « Mon profil » rouvrait sur la mascotte
+précédente juste après un changement depuis le plan.
+
+**`App` n'avait aucun test de rendu — il en a quatre.** Le nouveau
+`tests-ui/AppShellWiring.test.jsx` monte réellement le composant, avec de simples sondes à la
+place des grosses vues, et couvre les deux branches (session élève, session prof, shell invité)
+plus le fait que le persisteur appelle bien la route du compte. Ce test a immédiatement rattrapé
+une **zone morte temporelle introduite par le lot de refactoring ci-dessus** : `handleProfileUpdated`
+listait `updateTeacherSession` dans ses dépendances alors que ce `const` était déclaré plus bas
+dans le corps du composant — un `ReferenceError` à chaque rendu de l'écran authentifié, invisible
+pour le lint, le build et les 3 153 tests existants, puisque aucun ne montait `App`.
 
 ### Le versionnage, les branches et deux noyaux communs (v1.136.0)
 
