@@ -23,6 +23,7 @@ const {
   createPasswordResetToken,
   consumePasswordResetToken,
   getPasswordMinLength,
+  getPasswordMinLengthFor,
   makeResetUrl,
 } = require('../lib/passwordReset');
 const {
@@ -1005,7 +1006,7 @@ router.post(
     const token = normalizeOptionalString(req.body?.token);
     const password = req.body?.password;
     if (!token || !password) return res.status(400).json({ error: 'Champs requis' });
-    const minPasswordLen = await getPasswordMinLength();
+    const minPasswordLen = await getPasswordMinLengthFor('teacher');
     if (String(password).length < minPasswordLen) {
       return res
         .status(400)

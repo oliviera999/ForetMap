@@ -80,4 +80,51 @@ describe('Tâches — image illustrative', () => {
     const row = await queryOne('SELECT image_path FROM tasks WHERE id = ?', [taskId]);
     assert.strictEqual(row.image_path, null);
   });
+
+  // Le repli `GET /api/tasks/:id/image` est public par conception (docs/API.md), au même
+  // titre que `/uploads/tasks/…`. Ce qui ne doit PAS être public, c'est une famille
+  // d'`uploads/` que le montage statique refuse : `createPrivateUploadsGuard` bloque
+  // `observations/` et `task-logs/` précisément pour que « l'autorisation portée par les
+  // routes API ne soit pas contournable ». Ce repli lisait pourtant `image_path` sans
+  // vérifier la famille — la garde contournée par l'API au lieu de l'inverse.
+  it('le repli refuse un image_path pointant vers une famille privée d’uploads', async () => {
+    const taskId = `task-priv-img-${Date.now()}`;
+    await execute(
+      `INSERT INTO tasks (id, title, description, image_path, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, status, recurrence, created_at)
+       VALUES (?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, 1, 'single_done', NULL, NULL, NULL, 'available', NULL, ?)`,
+      [taskId, 'Chemin privé', '', 'observations/secret-eleve.jpg', new Date().toISOString()],
+    );
+
+    // Sans authentification : c'est le cas qui compte, la route étant publique.
+    const res = await request(app).get(`/api/tasks/${taskId}/image`);
+    assert.strictEqual(res.status, 404);
+    assert.strictEqual(res.body.error, 'Aucune image');
+
+    // Et le montage statique refuse toujours le même chemin (403), donc les deux
+    // portes disent la même chose.
+    const direct = await request(app).get('/uploads/observations/secret-eleve.jpg');
+    assert.strictEqual(direct.status, 403);
+  });
+
+  it('le repli sert toujours un image_path d’une famille publique', async () => {
+    const taskId = `task-pub-img-${Date.now()}`;
+    await execute(
+      `INSERT INTO tasks (id, title, description, image_path, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, status, recurrence, created_at)
+       VALUES (?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, 1, 'single_done', NULL, NULL, NULL, 'available', NULL, ?)`,
+      [
+        taskId,
+        'Chemin public absent du disque',
+        '',
+        'tasks/inexistant-mais-public.jpg',
+        new Date().toISOString(),
+      ],
+    );
+
+    // Le fichier n'existe pas sur le disque : on attend « Fichier introuvable » (le refus
+    // de famille privée, lui, répond « Aucune image ») — ce qui prouve que la garde a
+    // laissé passer le chemin public et que c'est bien `sendFile` qui a tranché.
+    const res = await request(app).get(`/api/tasks/${taskId}/image`);
+    assert.strictEqual(res.status, 404);
+    assert.strictEqual(res.body.error, 'Fichier introuvable');
+  });
 });

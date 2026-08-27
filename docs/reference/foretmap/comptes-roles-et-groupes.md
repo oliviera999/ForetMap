@@ -28,6 +28,14 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   Visite et la Biodiversité.
 - **Mot de passe oublié** : procédure par e-mail, pour les élèves comme pour les
   professeurs.
+- **Longueur minimale du mot de passe** : le réglage « Sécurité » fixe le minimum pour
+  les **élèves** (4 caractères par défaut — un choix assumé pour des sixièmes qui
+  saisissent leur mot de passe en classe). Les comptes **professeur et administrateur**
+  ont un minimum propre de **12 caractères**, qui ne descend jamais en dessous quel que
+  soit le réglage : ce sont eux qui peuvent voir l'application « comme » n'importe quel
+  utilisateur, donc leur mot de passe protège bien plus que leur seul compte. Les mots
+  de passe déjà en place continuent de fonctionner : la règle ne s'applique qu'à une
+  création de compte ou à un changement de mot de passe.
 
 ## Les rôles et les paliers
 

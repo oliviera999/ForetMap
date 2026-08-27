@@ -7,6 +7,57 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Durcissements issus de l'audit du 26/08 (v1.135.0)
+
+**La chaîne de publication des releases était cassée depuis toujours.**
+`.github/workflows/release-tag.yml` interpolait le corps des notes — un extrait de ce fichier —
+directement dans un script shell. GitHub substitue une expression `${{ … }}` dans le **texte du
+script** avant que bash ne l'analyse : le Markdown était relu comme du code, l'étape échouait, et
+comme le tag est poussé juste avant, le dépôt accumulait les tags sans jamais publier de release
+(**134 tags, 0 release**). Les notes passent désormais par l'environnement, donc opaques à bash —
+ce qui ferme du même coup un sink d'injection alimenté par le CHANGELOG, sous `contents: write`.
+Un second défaut aurait maintenu l'étape rouge : `[Non publié]` est un accumulateur, il pesait
+731 Ko, soit six fois le plafond GitHub. Le corps est borné à 60 000 octets avec un lien vers le
+journal complet.
+
+**Une URL `/api/…` inconnue renvoyait `200 text/html`.** Le fallback SPA attrapait aussi les
+chemins d'API : un client appelant un endpoint supprimé ou mal orthographié recevait un
+**succès**, puis échouait au `res.json()` sur du HTML, avec un message qui ne désignait pas la
+cause. La supervision, elle, ne pouvait plus distinguer « endpoint disparu » de « tout va bien ».
+Réponse désormais `404 { "error": "Route introuvable" }`, toutes méthodes ; les chemins hors
+`/api` retombent toujours sur l'application (`/apiculture` reste une route d'application).
+
+**Mot de passe des comptes à privilèges.** Le réglage `security.password_min_length` vaut 4 par
+défaut — assumé pour des élèves de sixième, hors de proportion pour un compte qui porte
+`admin.impersonate`, c'est-à-dire la prise de contrôle de n'importe quel compte. Le réglage garde
+son sens (plancher **élève**) ; les comptes professeur et administrateur reçoivent un plancher
+propre de **12 caractères**, jamais inférieur. Les mots de passe déjà en place restent valides :
+la règle ne joue qu'à la création ou au changement. Le point était signalé depuis juin (G8).
+
+**Dépendances.** `npm audit fix` sans changement cassant : **8 vulnérabilités → 2**, les
+**quatre `high` fermées** — dont deux sur Socket.IO (épuisement de connexions et de mémoire),
+exactement la classe de défaut visée par le journal de cycle de vie du lot 30. Seul
+`package-lock.json` change. Restent deux `moderate` sur la chaîne `exceljs` → `uuid`, dont la
+correction exigerait une rétrogradation cassante : assumées.
+
+**Garde de profondeur sur l'image de tâche.** Le repli `GET /api/tasks/:id/image` est public par
+conception, comme `/uploads/tasks/…`. Il lisait cependant `image_path` sans vérifier la
+**famille** d'`uploads/` visée : un chemin pointant vers `observations/` ou `task-logs/` aurait
+servi sans authentification un média que le montage statique refuse — la garde contournée par
+une route API, alors que sa raison d'être écrite est l'inverse. Aucun chemin d'écriture actuel ne
+produit une telle valeur ; l'invariant est fermé plutôt que le seul cas connu.
+
+**Collision de numéros de migration : échec plus rapide.** Le contrôle existait déjà et il est
+correct ; ce qui manque n'est pas un garde-fou mais sa fraîcheur (deux PR parallèles peuvent
+apporter le même numéro sans qu'aucune ne soit en collision au moment de sa propre CI). Il est
+désormais rejoué dans le job `quality`, sans base : la collision tombe en une minute au lieu
+d'être noyée derrière la suite backend.
+
+**L'audit se corrige.** Deux de ses constats étaient inexacts et sont rectifiés dans
+`docs/AUDIT_GENERAL_2026-08-26.md` plutôt qu'effacés : la prétendue exposition des photos de
+tâches (§2.1, en réalité un choix documenté et arbitré à l'audit B2) et la recommandation d'un
+contrôle CI de collision de migrations (§3.1, qui existait déjà).
+
 ### Audit général du 26/08 — après fusion des quatre dernières PR
 
 `docs/AUDIT_GENERAL_2026-08-26.md`. Relecture transversale menée **avec une base MariaDB

@@ -481,7 +481,9 @@ describe('Auth', () => {
   it('POST /api/auth/teacher/reset-password met à jour le mot de passe prof', async () => {
     const teacherEmail = `prof_reset_${Date.now()}@example.com`;
     const oldPassword = 'oldPass1';
-    const newPassword = 'newPass2';
+    // Un compte prof porte `admin.impersonate` : son plancher est relevé à 12 caractères,
+    // indépendamment du réglage `security.password_min_length` (qui reste le plancher élève).
+    const newPassword = 'nouveauMotDePasseProf2026';
     const hash = await bcrypt.hash(oldPassword, 10);
     const now = new Date().toISOString();
     const teacherId = crypto.randomUUID();
@@ -509,6 +511,37 @@ describe('Auth', () => {
       .send({ identifier: teacherEmail, password: newPassword })
       .expect(200);
     assert.ok(login.body.authToken);
+  });
+
+  it('POST /api/auth/teacher/reset-password refuse un mot de passe sous le plancher prof', async () => {
+    const teacherEmail = `prof_court_${Date.now()}@example.com`;
+    const hash = await bcrypt.hash('oldPass1', 10);
+    const now = new Date().toISOString();
+    const teacherId = crypto.randomUUID();
+    await execute(
+      `INSERT INTO users
+        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
+      [teacherId, teacherEmail, teacherEmail.split('@')[0], 'Prof Court', hash, now],
+    );
+
+    const resetToken = `teacher-court-${Date.now()}`;
+    const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    await execute(
+      'INSERT INTO password_reset_tokens (id, user_type, user_id, token_hash, expires_at, used_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), NULL)',
+      [crypto.randomUUID(), 'teacher', teacherId, tokenHash],
+    );
+
+    // 8 caractères : accepté sous l'ancienne règle (plancher élève à 4), refusé désormais.
+    const res = await request(app)
+      .post('/api/auth/teacher/reset-password')
+      .send({ token: resetToken, password: 'newPass2' })
+      .expect(400);
+    assert.match(String(res.body.error || ''), /12 caractères/);
+
+    // Le mot de passe n'a pas bougé.
+    const row = await queryOne('SELECT password_hash FROM users WHERE id = ?', [teacherId]);
+    assert.strictEqual(await bcrypt.compare('oldPass1', row.password_hash), true);
   });
 
   it('POST /api/auth/elevate et /api/auth/teacher : endpoints supprimés (410)', async () => {
