@@ -566,6 +566,9 @@ function App() {
     sessionUser?.avatar_path,
     sessionUser?.displayName,
     sessionUser?.email,
+    // Le sélecteur de mascotte du plan met à jour `sessionUser` : sans cette dépendance,
+    // « Mon profil » rouvrait sur la mascotte précédente jusqu'au rechargement de session.
+    sessionUser?.visit_mascot_catalog_id,
     student,
   ]);
   const canOpenTeacherStatsFromBadge =
@@ -589,6 +592,33 @@ function App() {
   const handleOpenProfileDialog = useCallback(() => setShowProfile(true), []);
   const handleCloseProfileDialog = useCallback(() => setShowProfile(false), []);
   const handleRequestPin = useCallback(() => setShowPin(true), []);
+
+  /** Session prof en mémoire après édition du profil (nom affiché, avatar, mascotte). */
+  const updateTeacherSession = useCallback(
+    (updatedUser) => {
+      setSessionUser((prev) => {
+        const nextDisplayName =
+          updatedUser?.pseudo ||
+          updatedUser?.display_name ||
+          formatFullName(updatedUser) ||
+          prev?.displayName ||
+          DEFAULT_USER_LABEL;
+        const next = {
+          id: updatedUser?.id || prev?.id || authClaims?.userId || null,
+          userType: 'teacher',
+          displayName: nextDisplayName,
+          email: updatedUser?.email ?? prev?.email ?? null,
+          avatar_path:
+            updatedUser?.avatar_path ?? updatedUser?.avatarPath ?? prev?.avatar_path ?? null,
+          visit_mascot_catalog_id:
+            updatedUser?.visit_mascot_catalog_id ?? prev?.visit_mascot_catalog_id ?? null,
+        };
+        saveStoredSession({ user: next });
+        return next;
+      });
+    },
+    [authClaims?.userId],
+  );
 
   /** Cible mémoïsée de la modale statistiques (un littéral casserait le memo de StudentStats). */
   const statsDialogTarget = useMemo(() => ({ id: profileTargetUserId }), [profileTargetUserId]);
@@ -823,31 +853,6 @@ function App() {
       await fetchAll();
     },
     [fetchAll],
-  );
-  const updateTeacherSession = useCallback(
-    (updatedUser) => {
-      setSessionUser((prev) => {
-        const nextDisplayName =
-          updatedUser?.pseudo ||
-          updatedUser?.display_name ||
-          formatFullName(updatedUser) ||
-          prev?.displayName ||
-          DEFAULT_USER_LABEL;
-        const next = {
-          id: updatedUser?.id || prev?.id || authClaims?.userId || null,
-          userType: 'teacher',
-          displayName: nextDisplayName,
-          email: updatedUser?.email ?? prev?.email ?? null,
-          avatar_path:
-            updatedUser?.avatar_path ?? updatedUser?.avatarPath ?? prev?.avatar_path ?? null,
-          visit_mascot_catalog_id:
-            updatedUser?.visit_mascot_catalog_id ?? prev?.visit_mascot_catalog_id ?? null,
-        };
-        saveStoredSession({ user: next });
-        return next;
-      });
-    },
-    [authClaims?.userId],
   );
   const {
     roleKey: notificationRoleKey,
@@ -1204,6 +1209,7 @@ function App() {
                         mapLocationFocus={tasksLocationFocus}
                         onMapLocationFocusChange={setTasksLocationFocus}
                         onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                        onPersistVisitMascotId={onPersistVisitMascotId}
                       />
                       {tab === 'plants' && (
                         <TabSuspense>
@@ -1317,6 +1323,7 @@ function App() {
                         onForceLogout={forceLogout}
                         onOpenMascotPackStudioTab={openMascotPackStudioTab}
                         onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                        onPersistVisitMascotId={onPersistVisitMascotId}
                         onOpenGlossaryTerm={openGlossaryPopover}
                         onOpenQuizQuestion={openPedagoQuizQuestion}
                         glossarySelectedCode={pedagoGlossaryCode}
@@ -1362,6 +1369,7 @@ function App() {
                           mapLocationFocus={tasksLocationFocus}
                           onMapLocationFocusChange={setTasksLocationFocus}
                           onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                          onPersistVisitMascotId={onPersistVisitMascotId}
                         />
                         {tab === 'plants' && (
                           <TabSuspense>
@@ -1417,6 +1425,7 @@ function App() {
                           markers={markers}
                           onForceLogout={forceLogout}
                           onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                          onPersistVisitMascotId={onPersistVisitMascotId}
                           onOpenGlossaryTerm={openGlossaryPopover}
                           onOpenQuizQuestion={openPedagoQuizQuestion}
                           glossarySelectedCode={pedagoGlossaryCode}
