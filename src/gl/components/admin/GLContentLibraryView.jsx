@@ -135,9 +135,7 @@ export function GLContentLibraryView({ onOpenSubTab }) {
 
   function selectAllApplyable() {
     setSelectedKeys(
-      new Set(
-        applyableEntries.map((entry, index) => entryKey(entry, analysisEntries.indexOf(entry))),
-      ),
+      new Set(applyableEntries.map((entry) => entryKey(entry, analysisEntries.indexOf(entry)))),
     );
   }
 

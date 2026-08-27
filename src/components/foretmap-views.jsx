@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { api, AccountDeletedError } from '../services/api';
-import { SPECIAL_EMOJI, SPECIAL_DESC, TREE_LEGEND, TREE_DOTS } from '../constants/garden';
 import { compressImage } from '../utils/image';
 import { useHelp } from '../hooks/useHelp';
 import { CatalogRemarksSection } from './map-views';
@@ -10,11 +9,7 @@ import { ContextComments } from './context-comments';
 import { PlantSpeciesDiscoveryAcknowledgeButton } from './PlantSpeciesDiscoveryAcknowledge';
 import { usePlantObservationCounts } from '../hooks/usePlantObservationCounts';
 import { useGatingSummary } from '../hooks/useGatingSummary';
-import {
-  resolveHelpPanelSection,
-  resolveHelpChrome,
-  resolveTooltipKey,
-} from '../utils/helpResolve';
+import { resolveHelpPanelSection, resolveTooltipKey } from '../utils/helpResolve';
 import { plantLinkedToMapMarker, plantLinkedToMapZone } from '../utils/plantFilters';
 import { usePlantCatalogFilters } from '../hooks/usePlantCatalogFilters';
 import { MarkdownContent } from './MarkdownContent.jsx';

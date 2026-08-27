@@ -190,7 +190,7 @@ function preprocessWpHtmlForMarkdown(html) {
       const srcMatch = match.match(/\ssrc=["']([^"']+)["']/i);
       if (srcMatch?.[1]) return match;
       const largest = [...match.matchAll(/\s(\d+)w/gi)]
-        .map((item, index, list) => ({
+        .map((item, index) => ({
           width: Number(item[1]),
           index,
         }))

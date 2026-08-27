@@ -53,7 +53,7 @@ function ZoneDrawModal({
         living_beings: living,
       });
       onClose();
-    } catch (e) {
+    } catch (_) {
       setSaving(false);
     }
   };

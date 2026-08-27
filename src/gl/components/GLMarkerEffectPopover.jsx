@@ -73,7 +73,7 @@ export function GLMarkerEffectPopover({
       });
       onApplied?.();
       onClose?.();
-    } catch (err) {
+    } catch (_) {
       onClose?.();
     }
   }

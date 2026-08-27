@@ -66,6 +66,30 @@ listait `updateTeacherSession` dans ses dépendances alors que ce `const` était
 dans le corps du composant — un `ReferenceError` à chaque rendu de l'écran authentifié, invisible
 pour le lint, le build et les 3 153 tests existants, puisque aucun ne montait `App`.
 
+### Code mort : la moitié du reste part, l'autre moitié est signalée plutôt que masquée
+
+**33 avertissements de plus en moins, sans rien masquer.** Une fois le bruit `React` retiré, les
+100 variables réellement mortes sont devenues lisibles. Celles dont la suppression ne peut rien
+changer sont traitées : dix `catch` dont l'erreur n'était pas lue passent à `catch (_)` (la
+convention déjà en place dans le dépôt), onze imports morts disparaissent, et sept paramètres
+conservés pour la signature sont préfixés `_` — dont le `next` du gestionnaire d'erreurs Express,
+qui **doit** garder ses quatre arguments pour être reconnu comme tel.
+
+**Le reste n'est pas du bruit, et n'est donc pas supprimé.** Plusieurs de ces variables mortes
+ressemblent à du comportement perdu, pas à de l'oubli — exactement le profil du persisteur de
+mascotte jamais branché. Les faire taire les enterrerait une seconde fois. Les cas repérés,
+laissés visibles dans le lint et à trancher :
+
+- `lib/glJournalPresent.js` — quatre valeurs calculées puis jamais rendues (`xp`, `yp`,
+  `deltaStr`, `reasonPart`) dans le module qui **met en forme** les entrées de journal.
+- `GLFeuilletZonePlateauPanel` reçoit `mapImageFrame` de `GLChaptersAdminView` et ne s'en sert
+  pas, alors que `GLChapterMapStudio` l'applique bien via `glImageFrameToStyle` : l'aperçu du
+  plateau ignore donc probablement le cadrage configuré du plan de chapitre.
+- `useGLKingdomZoneEditor` déclare et documente une option `onDeleteZone` qu'il ne lit jamais
+  (la suppression passe en fait par `GLKingdomZoneSidePanels`).
+- `GLGameMasterConsoleLive` reçoit `currentTeamId` et ne l'utilise pas, contrairement à
+  `GLGameBoard` et `GLMapView`.
+
 ### 394 imports `React` morts en moins : le lint redevient lisible
 
 **Trois quarts des avertissements du lint étaient un seul faux problème.** Sur 523
