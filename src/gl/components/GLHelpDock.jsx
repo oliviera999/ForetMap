@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { GLHelpDialog } from './GLHelpDialog.jsx';
 import { useGLTour } from '../context/GLTourContext.jsx';
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { GLBrandColorEditor } from '../../GLBrandColorEditor.jsx';
 
 /**

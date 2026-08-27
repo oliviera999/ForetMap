@@ -1,4 +1,3 @@
-import React from 'react';
 import { GLBoardActionButton } from './GLBoardActionButton.jsx';
 
 export function GLGameBoardHud({ chapterTitle, canSpellCast, onLaunchSpell, onOpenFullscreen }) {

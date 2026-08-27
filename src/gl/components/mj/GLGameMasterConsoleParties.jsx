@@ -1,4 +1,3 @@
-import React from 'react';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLDataList } from '../ui/GLDataList.jsx';
 import { GLField } from '../ui/GLField.jsx';

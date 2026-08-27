@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Illustration d'une question QCM : image + mention de crédit/licence (et, en contexte
  * d'administration seulement, la légende saisie par le professeur).

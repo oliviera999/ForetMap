@@ -66,6 +66,25 @@ listait `updateTeacherSession` dans ses dépendances alors que ce `const` était
 dans le corps du composant — un `ReferenceError` à chaque rendu de l'écran authentifié, invisible
 pour le lint, le build et les 3 153 tests existants, puisque aucun ne montait `App`.
 
+### 394 imports `React` morts en moins : le lint redevient lisible
+
+**Trois quarts des avertissements du lint étaient un seul faux problème.** Sur 523
+avertissements, **394** disaient `'React' is defined but never used` — le vestige de l'ancien
+runtime JSX, que `@vitejs/plugin-react` a rendu inutile (runtime *automatic* : le compilateur
+injecte lui-même `jsx()`, plus besoin de `React` dans la portée). Sept fichiers du dépôt
+écrivaient déjà du JSX sans aucun import `react` et étaient livrés sans problème : la preuve
+était sous les yeux.
+
+Ce bruit avait un coût réel : c'est exactement ce qui a permis à un `onPersistVisitMascotId`
+jamais branché de passer inaperçu pendant des mois dans la même liste d'avertissements. **Le lint
+passe de 523 à 129 avertissements**, et les 100 variables réellement mortes qui restent
+deviennent enfin visibles.
+
+Suppression purement mécanique : seul le binding `React` disparaît de l'import (les imports
+nommés `useState`, `useMemo`… sont conservés), et uniquement dans les fichiers où plus aucune
+ligne de **code** ne référence l'identifiant — les mentions `React.ReactNode` en JSDoc ne
+comptent pas, celles en code (`React.memo`, `React.Fragment`) gardent leur import.
+
 ### Le lint attrape désormais la zone morte temporelle
 
 **Le bug qui a cassé l'écran authentifié était détectable par une règle ESLint standard.** Un

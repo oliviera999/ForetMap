@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { withAppBase } from '../../shared/appBase.js';
 import { apiGL } from '../services/apiGL.js';
 import { getRuntimeFeuilletZonesForPlateau } from '../data/glFeuilletZonesBundle.js';

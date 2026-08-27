@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { FixedToast } from './FixedToast.jsx';
 
 /** Toast auto-dismiss (2,4 s) — remplace les implémentations locales dupliquées. */

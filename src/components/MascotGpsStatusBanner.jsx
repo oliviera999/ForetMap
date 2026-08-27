@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Légende textuelle du statut de suivi GPS de la mascotte, affichée sous la barre d'outils carte.
  * Ne s'affiche que lorsque le suivi est actif. Chaque état a une icône distincte et un libellé clair.

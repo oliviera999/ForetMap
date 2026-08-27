@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { MapView } from '../map-views';
 import { TasksView } from '../tasks-views';
 

@@ -1,5 +1,3 @@
-import React from 'react';
-
 export function GLDataList({ columns = [], rows = [], emptyLabel = 'Aucune donnée.' }) {
   return (
     <div className="gl-data-list">

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import { useGeolocation } from '../../hooks/useGeolocation.js';
 import { isValidAnchors, pctToGeo } from '../../utils/mapGeoTransform.js';

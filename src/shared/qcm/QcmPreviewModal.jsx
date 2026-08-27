@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { hasQcmAnswerFeedback } from '../../gl/utils/glQcmDisplay.js';
 import { GLGlossaryInlineText } from '../../gl/components/GLGlossaryMarkdown.jsx';
 import { GLLoreGlossaryInlineText } from '../../gl/components/GLLoreGlossaryMarkdown.jsx';

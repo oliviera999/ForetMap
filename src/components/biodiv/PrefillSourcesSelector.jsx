@@ -1,5 +1,3 @@
-import React from 'react';
-
 /** Sources externes pré-saisie (ids alignés sur `GET /api/plants/autofill?sources=`). */
 export const SPECIES_PREFILL_SOURCE_CHECKBOXES = [
   { id: 'wikipedia', label: 'Wikipedia (FR)' },

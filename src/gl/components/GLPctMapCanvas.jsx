@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useGlBoardImageFit } from '../hooks/useGlBoardImageFit.js';
 import { useGlMapOverlaySettings } from '../context/GlMapOverlaySettingsContext.jsx';
 import {

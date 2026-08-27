@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { GLSelect } from '../ui/GLSelect.jsx';
 import { GLInput } from '../ui/GLInput.jsx';

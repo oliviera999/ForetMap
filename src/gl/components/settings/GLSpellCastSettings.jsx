@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   SPELL_CAST_CONTRIBUTION_OPTIONS,
   SPELL_CAST_TEAM_SCOPE_OPTIONS,

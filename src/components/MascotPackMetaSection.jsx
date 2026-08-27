@@ -1,4 +1,3 @@
-import React from 'react';
 import { MASCOT_PACK_FALLBACK_SILHOUETTES } from '../utils/mascotPackEditorModel.js';
 
 /**

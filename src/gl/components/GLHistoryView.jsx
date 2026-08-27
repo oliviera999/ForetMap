@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
 import { GLChapterScenes } from './GLChapterIllustration.jsx';
 import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';

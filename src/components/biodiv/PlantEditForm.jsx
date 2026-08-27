@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { api } from '../../services/api';
 import { PLANT_EMOJIS } from '../../constants/emojis';

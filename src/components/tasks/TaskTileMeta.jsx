@@ -1,4 +1,3 @@
-import React from 'react';
 import { dueDateChip, TaskDifficultyAndRiskChips } from '../../utils/badges';
 import { normalizeDateOnly } from '../../utils/taskListHelpers.js';
 import { completionModeLabel } from '../../utils/taskComputations.js';

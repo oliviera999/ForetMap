@@ -1,4 +1,3 @@
-import React from 'react';
 import VisitMapMascotRenderer from '../../components/VisitMapMascotRenderer.jsx';
 import { GLMascotAvatar } from './GLMascotAvatar.jsx';
 import { useGLMascotCatalog } from '../context/GLMascotCatalogContext.jsx';

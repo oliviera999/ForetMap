@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Liste des profils RBAC (colonne gauche de l'admin des profils) — extraite de `ProfilesAdminView` (O5/O6).
  *

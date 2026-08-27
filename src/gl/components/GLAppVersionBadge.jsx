@@ -1,5 +1,3 @@
-import React from 'react';
-
 /** Pastille version (staff GL) — réutilise les styles ForetMap `.app-version-badge`. */
 export function GLAppVersionBadge({ appVersion }) {
   const label = appVersion != null ? appVersion : '…';

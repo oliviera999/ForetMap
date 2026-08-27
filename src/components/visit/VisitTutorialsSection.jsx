@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError } from '../../services/api';
 import { TutorialReadAcknowledgeButton } from '../TutorialReadAcknowledge';
 import { tutorialPreviewPayload, tutorialPreviewCanEmbed } from '../TutorialPreviewModal';

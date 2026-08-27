@@ -1,4 +1,3 @@
-import React from 'react';
 import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
 
 function formatWhen(createdAt) {

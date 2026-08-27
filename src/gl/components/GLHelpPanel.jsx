@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { MascotSpeaker } from '../../shared/components/MascotSpeaker.jsx';
 import { useGlNarrator } from '../hooks/useGlNarrator.js';

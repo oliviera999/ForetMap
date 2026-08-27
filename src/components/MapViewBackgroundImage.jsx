@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Image de fond de la carte (présentation) — extrait de `MapView` (O6).
  *

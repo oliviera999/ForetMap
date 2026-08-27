@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   GL_SPECIES_FIELD_LABELS,
   GL_SPECIES_TYPE_LABELS,

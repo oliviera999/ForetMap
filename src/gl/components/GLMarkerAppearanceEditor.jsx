@@ -1,4 +1,3 @@
-import React from 'react';
 import { MediaLibraryMenu } from '../../components/MediaLibraryMenu.jsx';
 import {
   DEFAULT_QUESTION_MARKER_EMOJI,

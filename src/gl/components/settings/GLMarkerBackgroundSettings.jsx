@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   CLASSIC_MARKER_BACKGROUNDS,
   MARKER_BACKGROUND_MODES,

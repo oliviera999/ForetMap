@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useStickyHeaderScrolled } from '../../shared/hooks/useStickyHeaderScrolled.js';
 import { GL_MOBILE_PRIMARY_TAB_IDS } from '../constants/app-runtime.js';
 import { useGlCompactNav } from '../hooks/useGlCompactNav.js';

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { usePrefersReducedMotion } from '../shared/hooks/usePrefersReducedMotion.js';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 

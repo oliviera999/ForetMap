@@ -1,5 +1,3 @@
-import React from 'react';
-
 /** Diagramme circulaire de progression visite (viewBox carré, cercle centré). */
 const VISIT_PROGRESS_DONUT_VB = 40;
 const VISIT_PROGRESS_DONUT_R = 14;

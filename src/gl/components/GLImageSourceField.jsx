@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import { useId } from 'react';
 
 /**
  * Saisie d’image par URL et/ou fichier local (galerie ou appareil photo).

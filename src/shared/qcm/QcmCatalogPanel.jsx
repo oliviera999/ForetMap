@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { fileToDataUrl } from '../../utils/fileToDataUrl.js';
 import { buildExportQuery, buildQuestionsListQuery } from './qcmCatalogPanelQuery.js';
 import { QcmPreviewModal } from './QcmPreviewModal.jsx';

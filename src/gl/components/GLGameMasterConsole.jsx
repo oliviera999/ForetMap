@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState, Suspense, lazy } from 'react';
+import { useCallback, useEffect, useMemo, useState, Suspense, lazy } from 'react';
 // Styles admin/MJ : extraits de gl-theme.css, livrés avec le chunk lazy de cette vue.
 import '../styles/gl-admin.css';
 import { apiGL } from '../services/apiGL.js';

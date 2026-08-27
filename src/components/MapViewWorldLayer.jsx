@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Calque « monde » de la carte (présentation) — extrait de `MapView` (O6).
  *
