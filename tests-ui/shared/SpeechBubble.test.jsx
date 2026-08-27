@@ -1,4 +1,4 @@
-import React, { createRef } from 'react';
+import { createRef } from 'react';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, act, fireEvent } from '@testing-library/react';
 import { SpeechBubble } from '../../src/shared/components/SpeechBubble.jsx';

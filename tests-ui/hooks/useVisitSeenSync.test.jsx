@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, act } from '@testing-library/react';
-import React from 'react';
 import { api } from '../../src/services/api';
 import { useVisitSeenSync } from '../../src/hooks/useVisitSeenSync.js';
 import { VISIT_SEEN_QUEUE_STORAGE_KEY } from '../../src/utils/visitProgressClient.js';
@@ -64,7 +63,6 @@ async function settle(assertion, { maxTicks = 50 } = {}) {
       lastError = err;
     }
     if (tick === maxTicks) break;
-    // eslint-disable-next-line no-await-in-loop
     await act(async () => {
       await Promise.resolve();
     });

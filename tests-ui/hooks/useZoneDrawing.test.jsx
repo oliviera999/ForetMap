@@ -2,7 +2,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { render } from '@testing-library/react';
-import React from 'react';
 import useZoneDrawing from '../../src/hooks/useZoneDrawing.js';
 import { DrawingLayer } from '../../src/components/map/DrawingLayer.jsx';
 

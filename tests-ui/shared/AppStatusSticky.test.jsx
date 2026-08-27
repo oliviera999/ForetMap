@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, test, expect } from 'vitest';
 import { render, screen, act, waitFor } from '@testing-library/react';
 import { AppStatusSticky } from '../../src/shared/components/AppStatusSticky.jsx';

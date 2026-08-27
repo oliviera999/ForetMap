@@ -1,5 +1,4 @@
 /** @vitest-environment jsdom */
-import React from 'react';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { GLBrandHub } from '../../src/gl/components/GLBrandHub.jsx';

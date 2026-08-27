@@ -66,6 +66,22 @@ listait `updateTeacherSession` dans ses dépendances alors que ce `const` était
 dans le corps du composant — un `ReferenceError` à chaque rendu de l'écran authentifié, invisible
 pour le lint, le build et les 3 153 tests existants, puisque aucun ne montait `App`.
 
+### Les 460 fichiers de tests React n'étaient lintés par personne
+
+**`tests-ui/**` n'apparaissait dans aucun bloc `files:` d'`eslint.config.cjs`** : ESLint répondait
+`File ignored because no matching configuration was supplied` et passait son chemin. Un tiers du
+code du dépôt échappait donc à `no-undef`, `no-unused-vars` et aux garde-fous ajoutés cette
+semaine — dont l'interdiction de la zone morte temporelle.
+
+Le trou se comble presque sans bruit : sur 253 avertissements révélés, **247 étaient encore des
+imports `React` morts** (même cause que côté `src/`) et **six seulement** étaient réels — trois
+déstructurations `form` jamais lues, un paramètre de mock, deux imports morts. Après nettoyage,
+`tests-ui` linte à **zéro avertissement**, et la règle qui a rattrapé le plantage d'`App.jsx`
+couvre désormais aussi les tests.
+
+Le bloc reprend les règles de `src/**` sans celles des Hooks : un test **monte** des composants,
+il n'en déclare pas.
+
 ### Code mort : la moitié du reste part, l'autre moitié est signalée plutôt que masquée
 
 **33 avertissements de plus en moins, sans rien masquer.** Une fois le bruit `React` retiré, les

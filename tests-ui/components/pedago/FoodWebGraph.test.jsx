@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, test, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import { FoodWebGraph } from '../../../src/components/pedago/FoodWebGraph.jsx';

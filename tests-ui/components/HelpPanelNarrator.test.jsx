@@ -1,5 +1,4 @@
 // Lot 5 — portrait d'en-tête du narrateur dans le panneau d'aide.
-import React from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
