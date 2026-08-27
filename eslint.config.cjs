@@ -112,6 +112,15 @@ module.exports = [
       // dependances manquantes en avertissement pour guider la stabilisation (useCallback/useMemo).
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      // Zone morte temporelle : un `const` declare plus bas dans le corps d'un composant,
+      // reference depuis un tableau de dependances de hook, leve un ReferenceError a CHAQUE
+      // rendu — invisible pour le build et pour les tests qui ne montent pas le composant.
+      // Cas rencontre le 27/08 sur App.jsx (ecran authentifie entierement casse).
+      // `functions: false` : les declarations de fonction sont hissees, l'ordre y est libre.
+      'no-use-before-define': [
+        'error',
+        { functions: false, classes: false, variables: true, allowNamedExports: true },
+      ],
     },
   },
   {
