@@ -47,32 +47,13 @@ router.get(
   '/',
   managePermission,
   asyncHandler(async (req, res) => {
-    const where = [];
-    const params = [];
-    const rt = core.normalizeResourceType(req.query.resourceType, ALLOWED);
-    if (req.query.resourceType && !rt)
-      return res.status(400).json({ error: 'Type de ressource invalide' });
-    if (rt) {
-      where.push('resource_type = ?');
-      params.push(rt);
-      const ref = core.normalizeResourceRef(req.query.resourceRef);
-      if (ref) {
-        where.push('resource_ref = ?');
-        params.push(ref);
-      }
-    }
-    const qc = core.normalizeQuestionCode(req.query.questionCode);
-    if (qc) {
-      where.push('question_code = ?');
-      params.push(qc);
-    }
-    const status = req.query.status ? core.normalizeStatus(req.query.status, null) : null;
-    if (status) {
-      where.push('status = ?');
-      params.push(status);
-    }
+    // Filtre commun aux deux produits (`lib/shared/resourceQuestionGatingCore.js`) : seule la
+    // table diffère, et c'est la frontière d'isolement produit — elle reste ici.
+    const filtre = core.buildLinksFilter(req.query, { allowedTypes: ALLOWED });
+    if (filtre.error) return res.status(400).json({ error: filtre.error });
+    const { where, params } = filtre;
     const sql = `SELECT * FROM resource_question_links
-                 ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+                 ${core.linksWhereClause(where)}
                  ORDER BY resource_type, resource_ref, question_code
                  LIMIT 1000`;
     const rows = await queryAll(sql, params);

@@ -509,18 +509,50 @@ c'est le signal que les deux cas ne sont pas le même problème.
 
 ## 9. Livré à ce jour
 
-| Lot | Livrable                                                                                 | Tests                                                    |
-| --- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| A1  | `src/shared/hooks/useAdminCrud.js` + `useGlAdminCrud` réduit à un adaptateur de 4 lignes | `tests-ui/shared/useAdminCrud.test.jsx` (8 cas)          |
-| B0  | `lib/shared/jsonDefaultsStore.js` consommé par `helpContent.js` et `glHelp.js`           | `tests/json-defaults-store.test.js` (9 cas)              |
-| B4  | `src/shared/styles/z-layers.css` — échelle commune ; 2 patchs et 2 surcharges supprimés  | `tests-ui/utils/zLayers.test.js` (6 cas)                 |
-| B5  | `glossaryLinkClick.js` + `useGlossaryLinkedHtml.js` — 4 composants allégés               | `tests-ui/shared/glossaryLinkClick.test.js` (5 cas)      |
-| —   | `scripts/audit-duplication-fm-gl.mjs` — audit reproductible                              | —                                                        |
-| —   | **Correctif** `compactVisitSeenQueue` — repli d'horodatage stable (§9.1)                 | `tests-ui/utils/visitSeenQueueStability.test.js` (9 cas) |
+| Lot | Livrable                                                                                                          | Tests                                                    |
+| --- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| A1  | `src/shared/hooks/useAdminCrud.js` + `useGlAdminCrud` réduit à un adaptateur de 4 lignes                          | `tests-ui/shared/useAdminCrud.test.jsx` (8 cas)          |
+| B0  | `lib/shared/jsonDefaultsStore.js` consommé par `helpContent.js` et `glHelp.js`                                    | `tests/json-defaults-store.test.js` (9 cas)              |
+| B4  | `src/shared/styles/z-layers.css` — échelle commune ; 2 patchs et 2 surcharges supprimés                           | `tests-ui/utils/zLayers.test.js` (6 cas)                 |
+| B5  | `glossaryLinkClick.js` + `useGlossaryLinkedHtml.js` — 4 composants allégés                                        | `tests-ui/shared/glossaryLinkClick.test.js` (5 cas)      |
+| —   | `scripts/audit-duplication-fm-gl.mjs` — audit reproductible                                                       | —                                                        |
+| —   | **Correctif** `compactVisitSeenQueue` — repli d'horodatage stable (§9.1)                                          | `tests-ui/utils/visitSeenQueueStability.test.js` (9 cas) |
+| B6  | `CONTEXT_COMMENT_LIMITS` + `makeContextTypeNormalizer` + `resolveReactionToggle` (noyau commentaires contextuels) | `tests/shared-cores-fm-gl.test.js` (6 cas)               |
+| B7  | `buildLinksFilter` + `linksWhereClause` (noyau liens ressource ↔ question)                                        | `tests/shared-cores-fm-gl.test.js` (6 cas)               |
 
 Non-régression vérifiée : suite UI complète (397 fichiers, 2580 tests) au vert ; tests backend
 sans base de données au vert ; panneaux GL consommateurs (`GLSpeciesEditorPanel`,
 `GLGlossaryEditorPanel`, `GLSpellsEditorPanel`) au vert ; ESLint sans erreur ; Prettier conforme.
+
+### 9.2 Lots B6 et B7 — ce que la mesure ne dit pas
+
+Les deux paires les plus dupliquées du rapport (`context-comments`, 102 lignes communes ;
+`learning-links`, 104) ont été traitées le 27/08/2026. Le compteur ne bouge pourtant que
+modestement — 102 → 97 sur la première.
+
+**C'est attendu, et c'est le point.** Ce qui restait après extraction, ce sont les handlers
+CRUD eux-mêmes : ils se ressemblent parce qu'ils font le même métier, mais ils diffèrent là où
+les produits diffèrent — modèle d'authentification (compte ForetMap contre couple
+type/identifiant G&L), journal d'audit présent d'un seul côté, événements temps réel distincts.
+Les fusionner demanderait une fabrique de routes générique, exactement ce que le §7.1 de ce
+document écarte.
+
+Ce qui a été extrait, en revanche, était de la duplication **coûteuse** :
+
+- **Les bornes de saisie portaient des noms différents pour des valeurs identiques**
+  (`MIN_COMMENT_LEN`/`MAX_COMMENT_LEN` contre `MIN_BODY`/`MAX_BODY`). C'est la pire forme :
+  un `grep` sur l'un ne trouve pas l'autre, donc relever un plafond d'un côté laisse l'autre
+  en place sans que rien ne le signale.
+- **L'ordre des critères du filtre de liens** fixe l'ordre des `?` dans `params`. Recopié,
+  il pouvait diverger en silence et produire un filtre faux plutôt qu'une erreur.
+
+D'où la forme des tests livrés : ils ne vérifient pas seulement que le noyau marche, ils
+**interdisent le retour de la duplication** — aucun routeur ne peut redéclarer une borne, ni
+réécrire son normaliseur. Un test qui n'échouerait qu'au moment où les deux valeurs divergent
+arriverait trop tard.
+
+Un test vérifie aussi que les ensembles de types de contexte des deux produits restent
+**disjoints** : mutualiser le normaliseur ne doit pas relâcher l'isolement produit (§7.4).
 
 ### 9.1 Un bug de production démasqué par la stabilisation d'un test
 

@@ -15,12 +15,12 @@ const { z, validate } = require('../../lib/validate');
 const asyncHandler = require('../../lib/asyncHandler');
 const {
   AUTO_BODY_WITH_PHOTOS: CORE_AUTO_BODY_WITH_PHOTOS,
-  getAllowedReactionSet,
-  normalizeEmoji,
   loadContextCommentReactions,
   listContextComments,
-  toggleContextCommentReaction,
   softDeleteContextComment,
+  CONTEXT_COMMENT_LIMITS,
+  makeContextTypeNormalizer,
+  resolveReactionToggle,
 } = require('../../lib/shared/contextCommentsCore');
 const { isReportsEnabled } = require('../../lib/settings');
 
@@ -29,18 +29,19 @@ const router = express.Router();
 const ALLOWED_CONTEXT_TYPES = new Set(['gl_chapter', 'gl_scene', 'gl_game', 'gl_mascot_pack']);
 
 const AUTO_BODY_WITH_PHOTOS = CORE_AUTO_BODY_WITH_PHOTOS;
-const MIN_BODY = 2;
-const MAX_BODY = 4000;
-const MIN_REPORT_REASON_LEN = 3;
-const MAX_REPORT_REASON_LEN = 500;
-const DEFAULT_PAGE_SIZE = 20;
-const MAX_PAGE_SIZE = 50;
-function normalizeContextType(value) {
-  const t = String(value || '')
-    .trim()
-    .toLowerCase();
-  return ALLOWED_CONTEXT_TYPES.has(t) ? t : '';
-}
+
+// Bornes de saisie : lues au noyau partagé. Elles étaient écrites ici avec des noms différents
+// de ceux de ForetMap pour des valeurs identiques — un `grep` sur l'un ne trouvait pas l'autre.
+const {
+  MIN_BODY,
+  MAX_BODY,
+  MIN_REPORT_REASON: MIN_REPORT_REASON_LEN,
+  MAX_REPORT_REASON: MAX_REPORT_REASON_LEN,
+  DEFAULT_PAGE_SIZE,
+  MAX_PAGE_SIZE,
+} = CONTEXT_COMMENT_LIMITS;
+
+const normalizeContextType = makeContextTypeNormalizer(ALLOWED_CONTEXT_TYPES);
 
 // O7 — query de GET / : coercition permissive (jamais de 400 issu du schéma) reproduisant
 // exactement l'ancienne lecture manuelle : `contextType` via normalizeContextType (type
@@ -205,15 +206,9 @@ router.post(
   asyncHandler(async (req, res) => {
     const actor = getActor(req.glAuth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
-    const allowedReactions = await getAllowedReactionSet();
-    const emoji = normalizeEmoji(req.body?.emoji, allowedReactions);
-    if (!emoji) return res.status(400).json({ error: 'Emoji non supporté' });
-
-    const toggle = await toggleContextCommentReaction(req.params.id, actor, emoji);
-    if (toggle.error === 'not_found')
-      return res.status(404).json({ error: 'Commentaire introuvable' });
-    if (toggle.error === 'deleted') return res.status(409).json({ error: 'Commentaire supprimé' });
-    const { comment, reacted } = toggle;
+    const toggle = await resolveReactionToggle(req.params.id, actor, req.body?.emoji);
+    if (toggle.status !== 200) return res.status(toggle.status).json({ error: toggle.error });
+    const { comment, reacted, emoji } = toggle;
     emitContextCommentsChanged({
       reason: 'comment_reaction_changed',
       contextType: comment.context_type,
