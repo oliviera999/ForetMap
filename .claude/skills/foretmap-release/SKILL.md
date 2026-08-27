@@ -8,14 +8,18 @@ description: Versionnage SemVer, CHANGELOG et workflow Git ForetMap (bump, commi
 ## Fin de chaque lot livrable (obligatoire)
 
 1. **CHANGELOG** : entrée sous `[Non publié]` décrivant le changement.
-2. **Bump** selon le type :
-   ```bash
-   npm run bump:patch   # correctif / refactor (défaut)
-   npm run bump:minor   # nouvelle fonctionnalité rétrocompatible
-   npm run bump:major   # changement cassant (rare)
-   ```
-3. **Commit** : `git add -A` (exclure `tmp/`, dumps SQL, secrets, `.bak`) puis commit.
-4. **Push** immédiat. → Chaque lot livré sur `main` = commit poussé avec version incrémentée.
+2. **Commit** : `git add -A` (exclure `tmp/`, dumps SQL, secrets, `.bak`) puis commit, en
+   **Conventional Commits** — le niveau SemVer en est déduit à la fusion (`feat` → mineur,
+   `type!:` / `BREAKING CHANGE` → majeur, le reste → correctif).
+3. **Push** immédiat.
+
+> **Ne pas bumper dans la PR.** Depuis le 27/08/2026, `.github/workflows/version-bump.yml`
+> incrémente `package.json` **après** la fusion sur `main`, puis `release-tag.yml` crée le tag
+> et la release. Bumper dans la branche revendiquait un numéro avant de savoir quand elle
+> fusionnerait : deux PR parallèles prenaient le même, et le conflit était garanti.
+>
+> **Forcer un niveau** (rare) : `npm run bump:minor` dans la PR. Le workflow détecte que la
+> version a déjà changé et s'abstient — les scripts `bump:*` restent donc utiles.
 
 ## Convention
 

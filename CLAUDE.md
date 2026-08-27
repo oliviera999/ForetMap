@@ -90,15 +90,24 @@ npm run bump:patch|minor|major  # incrémente package.json (sans tag)
 
 ## Workflow Git / versionnage
 
-- Après chaque lot livrable : `CHANGELOG.md` sous `[Non publié]`, `npm run bump:*`, `git add -A`,
-  commit, **push**. Détail : `docs/VERSIONING.md` et skill `foretmap-release`.
+- Après chaque lot livrable : `CHANGELOG.md` sous `[Non publié]`, `git add -A`, commit, **push**.
+  **Ne pas toucher au champ `version`** : il est incrémenté automatiquement après la fusion
+  (`.github/workflows/version-bump.yml`), ce qui supprime le conflit systématique entre PR.
+  Bumper explicitement dans la PR reste possible pour forcer un niveau SemVer — le workflow
+  le détecte et s'abstient. Détail : `docs/VERSIONING.md` et skill `foretmap-release`.
 - Commits GL exclusifs : préfixe `feat(gl)` / `fix(gl)` / `chore(gl)`.
 - CI (`.github/workflows/ci.yml`) : `lint` → `format:check` → `test` → `test:ui` → `test:coverage`.
   Faire passer `npm run lint` et `npm run format:check` avant de pousser.
 - **Cohérence inter-PR (anti-conflit de merge)** : à **chaque publication ou mise à jour d'une PR**,
-  vérifier les autres PR ouvertes qui bumpent aussi (`package.json` `version`, tête de `CHANGELOG.md`,
-  migrations `migrations/NNN_*.sql`) et rebaser/renuméroter pour éviter les conflits. Règle détaillée :
+  vérifier les autres PR ouvertes qui touchent la tête de `CHANGELOG.md` ou ajoutent une migration
+  `migrations/NNN_*.sql`, et rebaser/renuméroter pour éviter les conflits. Le champ `version` ne
+  fait plus partie de cette vérification depuis que le bump se fait à la fusion. Règle détaillée :
   `.cursor/rules/foretmap-pr-merge-conflict.mdc`.
+- **Collision de numéro de migration** : deux PR parallèles peuvent apporter le même `NNN_` sans
+  qu'aucune ne soit en conflit au moment de sa propre CI — et un doublon fait **échouer le
+  démarrage** (`assertNoNewDuplicateMigrationNumbers`). Le contrôle est rejoué tôt dans le job
+  `quality`, mais la garde décisive est le réglage GitHub « Require branches to be up to date
+  before merging ».
 
 ## Skills Claude Code (`.claude/skills/`)
 

@@ -19,11 +19,45 @@ Pendant le développement, ajouter les changements notables sous **`[Non publié
 
 ### Lots livrés sur `main` (incrément continu)
 
-Sur ce dépôt, chaque **lot livré** (correctif ou fonctionnalité prête à être intégrée sur `main`) inclut en général :
+> **Depuis le 27/08/2026, l’incrément est automatique et se fait à la fusion.** Une PR **ne
+> doit plus toucher au champ `version`**. Voir « Le bump se fait à la fusion » ci-dessous.
+
+Sur ce dépôt, chaque **lot livré** (correctif ou fonctionnalité prête à être intégrée sur `main`) inclut :
 
 1. une ou plusieurs entrées sous **`[Non publié]`** dans `CHANGELOG.md` lorsque c’est pertinent pour les humains ;
-2. une incrémentation du numéro dans **`package.json`** via **`npm run bump:patch`** (défaut), **`bump:minor`** ou **`bump:major`** selon SemVer ;
-3. un **commit** puis un **`git push`** de tous les fichiers concernés.
+2. un **commit** puis un **`git push`** de tous les fichiers concernés.
+
+L’incrément de **`package.json`** n’est plus à faire à la main : le workflow
+**`.github/workflows/version-bump.yml`** s’en charge après la fusion.
+
+### Le bump se fait à la fusion
+
+**Pourquoi.** Une PR qui bumpe revendique un numéro _avant_ de savoir quand elle fusionnera.
+Deux PR ouvertes en parallèle revendiquent le même, et le conflit est garanti — sur
+`package.json` **et** `package-lock.json`. Mesuré le 26/08/2026 sur quatre PR fusionnées :
+8 des 88 conflits portaient sur cette seule ligne, et trois renumérotations manuelles ont été
+nécessaires. La règle anti-conflit de `CLAUDE.md` demandait de vérifier les autres PR à la
+main : une vigilance que rien n’outillait.
+
+**Comment.** Sur `push` vers `main`, le workflow :
+
+1. sort si la version a **déjà** changé dans ce push (une PR qui bumpe encore reste donc
+   valable — rien à désapprendre en urgence) ;
+2. choisit le niveau SemVer d’après le message de fusion — `feat` → **mineur**,
+   `BREAKING CHANGE` ou `type!:` → **majeur**, tout le reste → **correctif** ;
+3. commite `chore(release): vX.Y.Z [skip bump]` et le pousse sur `main`.
+
+Ce commit déclenche à son tour **`release-tag.yml`**, qui crée le tag `vX.Y.Z` et la release.
+
+**Choisir un autre niveau que celui déduit** — bumper explicitement dans la PR
+(`npm run bump:minor`) : le workflow voit que la version a bougé et ne fait rien. Les scripts
+`bump:*` restent donc utiles.
+
+**Pas de boucle** : trois gardes indépendantes (auteur `github-actions[bot]`, marqueur
+`[skip bump]`, et surtout la détection « version déjà changée dans ce push »).
+
+**Si le push est refusé** (protection de branche sur `main`), le job échoue avec un résumé qui
+nomme le réglage à changer — il ne se tait pas.
 
 Cela garde **`GET /api/version`**, les tickets et le suivi alignés sur le dernier état publié de la branche. Ce flux est **complémentaire** d’une **release formelle** (tag **`vX.Y.Z`**) : la release « fige » une portion d’historique en renommant la section **`[Non publié]`** en **`[X.Y.Z] - AAAA-MM-JJ`** puis en créant le tag (voir ci-dessous), sans obliger à une coupe à chaque correctif.
 
@@ -104,7 +138,7 @@ Si le dépôt englobe plusieurs dossiers, travailler depuis **`ForetMap/`** ; le
 ## Rappel pour l’IA / contributeurs
 
 - Toujours refléter les changements utilisateur dans **`[Non publié]`** du CHANGELOG quand c’est pertinent.
-- Après chaque **lot livré** sur `main` : voir la sous-section **Lots livrés sur `main`** ci-dessus (**CHANGELOG** + **`bump:*`** + commit + push).
+- Après chaque **lot livré** sur `main` : voir la sous-section **Lots livrés sur `main`** ci-dessus (**CHANGELOG** + commit + push ; le bump est fait par la CI après la fusion).
 - Pour une **release** nommée : **CHANGELOG d’abord** (renommer `[Non publié]` en section datée), puis **`bump:*` + commit groupé + tag**, sauf si on utilise volontairement **`release:*`** (deux commits possibles).
 - Le fichier **`CHANGELOG.md`** peut conserver une longue section **`[Non publié]`** entre deux releases datées : ce n’est pas une incohérence avec **`package.json`** tant que la version du manifeste suit les **`bump:*`** successifs.
 
