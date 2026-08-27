@@ -66,6 +66,21 @@ listait `updateTeacherSession` dans ses dépendances alors que ce `const` était
 dans le corps du composant — un `ReferenceError` à chaque rendu de l'écran authentifié, invisible
 pour le lint, le build et les 3 153 tests existants, puisque aucun ne montait `App`.
 
+### Le lint attrape désormais la zone morte temporelle
+
+**Le bug qui a cassé l'écran authentifié était détectable par une règle ESLint standard.** Un
+`const` déclaré plus bas dans le corps d'un composant, référencé depuis un tableau de dépendances
+de hook, lève un `ReferenceError` à **chaque rendu** — et ni le build, ni le lint tel qu'il était
+configuré, ni 3 153 tests ne le voyaient. `no-use-before-define` (variables uniquement ; les
+déclarations de fonction restent hissées, donc libres d'ordre) est activée en **erreur** sur
+`src/**` : elle signale exactement ce motif, et fait donc échouer la CI.
+
+**Coût d'activation : cinq réordonnancements.** `settings-admin-views.jsx` référençait `saveSetting`
+depuis quatre points de rendu situés avant sa déclaration, et `quizGlossaryReveal.js` sa constante
+`EMPTY_ITEMS`. Aucun des deux ne plantait — les appels arrivaient après l'évaluation — mais les
+deux étaient à un déplacement de ligne du même accident. `load` et `saveSetting` remontent avant
+`renderSettingField`, l'ordre du source suit maintenant celui des dépendances.
+
 ### Le versionnage, les branches et deux noyaux communs (v1.136.0)
 
 **Le numéro de version s'incrémente désormais après la fusion, plus dans la PR.** Une branche

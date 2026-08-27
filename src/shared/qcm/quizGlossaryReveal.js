@@ -17,6 +17,9 @@
  * les tableaux sont vidés, les gestionnaires d'ouverture retirés.
  */
 
+/** Référence stable : évite de recréer un tableau à chaque rendu (et donc de re-rendre). */
+const EMPTY_ITEMS = Object.freeze([]);
+
 /**
  * @param {object|null} inlineGlossaryProps propriétés d'auto-liaison de la surface.
  * @param {boolean} answered l'élève a-t-il déjà répondu à cette question ?
@@ -34,9 +37,6 @@ export function glossaryPropsWhileAnswering(inlineGlossaryProps, answered) {
   }
   return neutral;
 }
-
-/** Référence stable : évite de recréer un tableau à chaque rendu (et donc de re-rendre). */
-const EMPTY_ITEMS = Object.freeze([]);
 
 /**
  * Faut-il proposer la liste des « termes utiles » à côté de la question ?
