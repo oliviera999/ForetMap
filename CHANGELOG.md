@@ -7,6 +7,43 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit de refactoring : `src/App.jsx` remis à hauteur de vue
+
+**`src/App.jsx` passe de 1 808 à 1 457 lignes, sans changement de comportement.** Le shell de
+l'application avait ré-accumulé quatre responsabilités qui n'y appartiennent pas : le cycle de
+rechargement des données, l'écran d'accueil non authentifié, trois copies du même loader, et
+quatre dérivations de droits écrites deux fois chacune. Rien de ce lot ne modifie l'UI ni l'API —
+c'est un déplacement de code, appuyé par 30 tests unitaires neufs sur les parties devenues pures.
+
+**Le cycle de données quitte le composant.** `fetchAll` (≈ 250 lignes : polling différentiel via
+`/api/sync-state`, refetch ciblé par domaine, boucle de rafraîchissements concurrents, bandeau
+« serveur indisponible ») vit désormais dans `src/hooks/useAppDataSync.js` avec les quatorze états
+de domaine qu'il pilote. La cadence de rafraîchissement — intervalle adaptatif selon le temps réel,
+l'onglet navigateur et les onglets « calmes », plus le refetch en quittant un onglet secondaire —
+part dans `src/hooks/useAppDataPolling.js`. `App.jsx` n'en garde que deux appels et un objet de
+contexte mémoïsé ; les seuils codés en dur (90 s en temps réel, 120 s en arrière-plan) deviennent
+des constantes nommées.
+
+**Trois dérivations dupliquées deviennent des helpers purs testés.** `canManageTutorials` et
+`canManageQuiz` étaient le même bloc à un nom de permission près (`src/utils/appAccess.js`) ;
+`canParticipateForum` et `canParticipateContextComments` aussi (même fichier) ; la portée des
+cartes selon le rôle était écrite une fois dans le mémo `visibleMaps` et une fois à l'intérieur de
+`fetchAll`, avec la résolution de carte active qui va avec (`src/utils/appMapScope.js`). Le
+calcul du nom affiché, recopié à quatre endroits, rejoint `src/utils/appIdentity.js`.
+
+**Le JSX répété devient quatre composants.** `AppLoader` (trois copies du loader « feuille »),
+`AppFooter` (deux copies du pied de page « Version »), `AppUserDialog` (les modales statistiques
+et profil partageaient overlay, croix et zone défilante au caractère près) et
+`UnauthenticatedShell` (écran de connexion + visite invitée, avec ses deux gestionnaires jusque-là
+écrits en flèches inline dans le rendu). Trois objets de style et un tableau vide passent en
+constantes de module, et la cible de la modale statistiques est mémoïsée : autant de props qui
+cassaient les `React.memo` des vues à chaque rendu du shell.
+
+**Repéré, pas corrigé (hors périmètre d'un lot de refactoring).** `onPersistVisitMascotId` est
+calculé dans `App.jsx` mais n'est passé à personne : le choix de mascotte d'un **compte connecté**
+n'est donc jamais enregistré côté serveur, alors que `PedagoTabs`, `MapTasksArea` et `VisitView`
+acceptent tous la prop. À trancher dans un lot dédié, puisque le brancher change un comportement.
+
 ### Le versionnage, les branches et deux noyaux communs (v1.136.0)
 
 **Le numéro de version s'incrémente désormais après la fusion, plus dans la PR.** Une branche
