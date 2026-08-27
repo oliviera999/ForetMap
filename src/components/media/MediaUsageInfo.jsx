@@ -1,5 +1,3 @@
-import React from 'react';
-
 export function formatUsageLocation(loc) {
   const kind = String(loc?.kind || 'Référence');
   const label = loc?.label ? ` — ${loc.label}` : '';

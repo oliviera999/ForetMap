@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
 import { DialogShell } from './DialogShell.jsx';
 import { LearningGatingQuestionPanel } from './LearningGatingQuestionPanel.jsx';

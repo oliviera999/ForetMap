@@ -1,4 +1,3 @@
-import React from 'react';
 import { formatBytesLabel } from '../../../services/apiGLUpload.js';
 import { FILE_STATUS_LABEL } from '../../../utils/glContentLibraryDisplay.js';
 

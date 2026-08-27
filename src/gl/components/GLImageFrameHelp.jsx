@@ -1,5 +1,3 @@
-import React from 'react';
-
 export function GLImageFrameHelp({ context = 'generic' }) {
   const labelByContext = {
     'brand-hero': 'Banniere hero',

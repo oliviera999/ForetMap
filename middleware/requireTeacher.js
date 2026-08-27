@@ -151,7 +151,7 @@ async function authenticate(req, res, next) {
   try {
     const claims = verifyJwtToken(token, JWT_SECRET);
     req.auth = await hydrateAuthFromTokenClaims(claims);
-  } catch (e) {
+  } catch (_) {
     req.auth = null;
   }
   return next();

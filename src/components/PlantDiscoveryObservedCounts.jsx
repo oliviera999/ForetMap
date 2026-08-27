@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Compteurs d'observations (présentation) extraits de
  * `PlantSpeciesDiscoveryAcknowledge` (O6). Affiche le nombre d'observations de

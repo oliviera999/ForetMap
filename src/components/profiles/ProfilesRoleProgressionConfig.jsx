@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Configuration de progression/participation d'un profil « palier n3beur » — extraite de
  * `ProfilesAdminView` (O5/O6). Regroupe : montée de niveau automatique + seuil de tâches validées,

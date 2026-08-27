@@ -1,5 +1,3 @@
-import React from 'react';
-
 // Libellés d'aide adaptés aux enfants (9–12 ans) : expliquent « ce que c'est »
 // derrière les cœurs et les gemmes, réutilisés en title + aria-label.
 const HEALTH_HELP = 'Cœurs : tes points de vie';

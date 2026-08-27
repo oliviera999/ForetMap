@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useId } from 'react';
+import { useState, useEffect, useRef, useId } from 'react';
 import { api, AccountDeletedError } from '../../services/api';
 import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image';
 import { useDialogA11y } from '../../hooks/useDialogA11y';

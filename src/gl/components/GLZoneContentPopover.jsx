@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
 import { GLButton } from './ui/GLButton.jsx';

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../services/api';
 import { HelpPanel } from './HelpPanel';
 import { resolveHelpPanelSection } from '../utils/helpResolve';

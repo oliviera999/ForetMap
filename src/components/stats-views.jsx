@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { api } from '../services/api';
 import { statusBadge } from '../utils/badges';
 import { getDicebearAvatarUrl, getStudentAvatarUrl } from '../utils/avatar';

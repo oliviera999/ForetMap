@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Surcharge d'affichage de la carte en partie (repères / zones feuillets),
  * optionnelle par rapport aux défauts plateforme.

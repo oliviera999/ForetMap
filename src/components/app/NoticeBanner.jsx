@@ -1,5 +1,3 @@
-import React from 'react';
-
 /** Palettes des bandeaux d'app (mêmes valeurs que les anciens styles inline d'App.jsx). */
 const TONE_STYLES = {
   warning: { background: '#fef3c7', border: '1px solid #f59e0b', color: '#78350f' },

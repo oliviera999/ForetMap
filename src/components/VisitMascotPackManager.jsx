@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, AccountDeletedError, withAppBase } from '../services/api';
 import MascotPackWysiwygEditor from './MascotPackWysiwygEditor.jsx';
 import {

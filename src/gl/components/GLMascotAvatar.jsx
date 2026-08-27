@@ -1,4 +1,3 @@
-import React from 'react';
 import { getGlMascotById } from '../../utils/glMascotCatalog.js';
 import { GLMascotFallbackSvg } from './GLMascotFallbackSvg.jsx';
 

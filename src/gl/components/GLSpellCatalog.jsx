@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { glSpellCasterKindBadge, GL_SPELL_CATEGORY_LABELS } from '../utils/glSpellFieldLabels.js';
 

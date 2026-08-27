@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getQcmFeedbackText, shouldShowQcmAnswerPhase } from '../qcm/qcmFeedback.js';
 import { QcmQuestionPhoto } from '../qcm/QcmQuestionPhoto.jsx';
 import {

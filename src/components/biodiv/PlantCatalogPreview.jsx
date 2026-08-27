@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';

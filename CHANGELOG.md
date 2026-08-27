@@ -66,6 +66,86 @@ listait `updateTeacherSession` dans ses dépendances alors que ce `const` était
 dans le corps du composant — un `ReferenceError` à chaque rendu de l'écran authentifié, invisible
 pour le lint, le build et les 3 153 tests existants, puisque aucun ne montait `App`.
 
+### L'audit de refactoring est documenté, et ce qu'il a coûté aussi
+
+**`docs/AUDIT_REFACTORING_APP_2026-08.md`** rend compte du chantier : l'inventaire de ce que
+contenait `src/App.jsx`, la carte de ce qui en est sorti, le défaut fonctionnel trouvé (la
+mascotte qui ne suivait pas le compte) — et le post-mortem de la régression que le refactoring a
+lui-même introduite. Ce dernier point est le plus utile du document : un `ReferenceError` levé à
+**chaque rendu** de l'écran authentifié a été poussé, sa CI est passée au vert, et ni le lint, ni
+le build, ni 3 153 tests ne l'ont vu — parce qu'aucun ne montait `App`. C'est un test écrit
+ensuite, pour une correction sans rapport, qui l'a rattrapé.
+
+**Les quatre valeurs GL calculées puis ignorées entrent au registre d'arbitrage**
+(`docs/reference/INCOHERENCES.md`, entrée **G15**), rédigées pour leur public : ce que chaque cas
+donne probablement à l'écran, et deux options à trancher. Elles ne sont pas « nettoyées » — les
+supprimer effacerait la trace de ce qui manque.
+
+**Les acquis passent dans les règles plutôt que dans un document qu'on oublie de rouvrir.**
+`CLAUDE.md`, `.cursor/rules/foretmap-conventions.mdc` et les skills `foretmap-context` /
+`foretmap-testing` portent désormais les trois consignes issues du chantier : pas d'`import React`
+pour du JSX, `no-use-before-define` bloquant sur la zone morte temporelle, et **poser un test de
+montage avant** de refactorer un composant racine — pas après.
+
+### Les 460 fichiers de tests React n'étaient lintés par personne
+
+**`tests-ui/**` n'apparaissait dans aucun bloc `files:` d'`eslint.config.cjs`** : ESLint répondait
+`File ignored because no matching configuration was supplied` et passait son chemin. Un tiers du
+code du dépôt échappait donc à `no-undef`, `no-unused-vars` et aux garde-fous ajoutés cette
+semaine — dont l'interdiction de la zone morte temporelle.
+
+Le trou se comble presque sans bruit : sur 253 avertissements révélés, **247 étaient encore des
+imports `React` morts** (même cause que côté `src/`) et **six seulement** étaient réels — trois
+déstructurations `form` jamais lues, un paramètre de mock, deux imports morts. Après nettoyage,
+`tests-ui` linte à **zéro avertissement**, et la règle qui a rattrapé le plantage d'`App.jsx`
+couvre désormais aussi les tests.
+
+Le bloc reprend les règles de `src/**` sans celles des Hooks : un test **monte** des composants,
+il n'en déclare pas.
+
+### Code mort : la moitié du reste part, l'autre moitié est signalée plutôt que masquée
+
+**33 avertissements de plus en moins, sans rien masquer.** Une fois le bruit `React` retiré, les
+100 variables réellement mortes sont devenues lisibles. Celles dont la suppression ne peut rien
+changer sont traitées : dix `catch` dont l'erreur n'était pas lue passent à `catch (_)` (la
+convention déjà en place dans le dépôt), onze imports morts disparaissent, et sept paramètres
+conservés pour la signature sont préfixés `_` — dont le `next` du gestionnaire d'erreurs Express,
+qui **doit** garder ses quatre arguments pour être reconnu comme tel.
+
+**Le reste n'est pas du bruit, et n'est donc pas supprimé.** Plusieurs de ces variables mortes
+ressemblent à du comportement perdu, pas à de l'oubli — exactement le profil du persisteur de
+mascotte jamais branché. Les faire taire les enterrerait une seconde fois. Les cas repérés,
+laissés visibles dans le lint et à trancher :
+
+- `lib/glJournalPresent.js` — quatre valeurs calculées puis jamais rendues (`xp`, `yp`,
+  `deltaStr`, `reasonPart`) dans le module qui **met en forme** les entrées de journal.
+- `GLFeuilletZonePlateauPanel` reçoit `mapImageFrame` de `GLChaptersAdminView` et ne s'en sert
+  pas, alors que `GLChapterMapStudio` l'applique bien via `glImageFrameToStyle` : l'aperçu du
+  plateau ignore donc probablement le cadrage configuré du plan de chapitre.
+- `useGLKingdomZoneEditor` déclare et documente une option `onDeleteZone` qu'il ne lit jamais
+  (la suppression passe en fait par `GLKingdomZoneSidePanels`).
+- `GLGameMasterConsoleLive` reçoit `currentTeamId` et ne l'utilise pas, contrairement à
+  `GLGameBoard` et `GLMapView`.
+
+### 394 imports `React` morts en moins : le lint redevient lisible
+
+**Trois quarts des avertissements du lint étaient un seul faux problème.** Sur 523
+avertissements, **394** disaient `'React' is defined but never used` — le vestige de l'ancien
+runtime JSX, que `@vitejs/plugin-react` a rendu inutile (runtime *automatic* : le compilateur
+injecte lui-même `jsx()`, plus besoin de `React` dans la portée). Sept fichiers du dépôt
+écrivaient déjà du JSX sans aucun import `react` et étaient livrés sans problème : la preuve
+était sous les yeux.
+
+Ce bruit avait un coût réel : c'est exactement ce qui a permis à un `onPersistVisitMascotId`
+jamais branché de passer inaperçu pendant des mois dans la même liste d'avertissements. **Le lint
+passe de 523 à 129 avertissements**, et les 100 variables réellement mortes qui restent
+deviennent enfin visibles.
+
+Suppression purement mécanique : seul le binding `React` disparaît de l'import (les imports
+nommés `useState`, `useMemo`… sont conservés), et uniquement dans les fichiers où plus aucune
+ligne de **code** ne référence l'identifiant — les mentions `React.ReactNode` en JSDoc ne
+comptent pas, celles en code (`React.memo`, `React.Fragment`) gardent leur import.
+
 ### Le lint attrape désormais la zone morte temporelle
 
 **Le bug qui a cassé l'écran authentifié était détectable par une règle ESLint standard.** Un

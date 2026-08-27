@@ -1,4 +1,3 @@
-import React from 'react';
 import { withAppBase } from '../../services/api.js';
 import { formatMediaLibrarySize } from '../../utils/mediaLibraryView.js';
 import { MediaUsageInfo } from './MediaUsageInfo.jsx';

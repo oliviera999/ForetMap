@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { apiGL } from '../../services/apiGL.js';
 import { TourOverridesEditor } from '../../../shared/components/TourOverridesEditor.jsx';

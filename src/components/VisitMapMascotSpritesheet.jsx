@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 
 function resolveStateSpec(spritesheetConfig = null, mascotState = VISIT_MASCOT_STATE.IDLE) {

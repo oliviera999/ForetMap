@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { DialogShell } from '../../components/DialogShell.jsx';
 import { JOURNAL_EMBED_TYPE_LABELS } from '../utils/glPlayerJournalEmbed.js';
 import { GLButton } from './ui/GLButton.jsx';

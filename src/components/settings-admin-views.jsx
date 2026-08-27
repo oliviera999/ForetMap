@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api';
 import { compressImageWithPreset } from '../utils/image';
 import { scopeLabel, buildConstraintHelp } from '../utils/settingDisplay.js';

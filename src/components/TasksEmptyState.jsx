@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * État vide de la vue Tâches (O6, extrait de `tasks-views.jsx`).
  *

@@ -1,4 +1,3 @@
-import React from 'react';
 import { getQcmFeedbackText, shouldShowQcmAnswerPhase } from '../../shared/qcm/qcmFeedback.js';
 import { GlossaryInlineText } from '../GlossaryMarkdown.jsx';
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';

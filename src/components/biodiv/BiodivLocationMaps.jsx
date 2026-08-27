@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { groupPlantLocationsByMap } from '../../utils/plantCatalogHelpers.js';
 import { buildMapImageCandidates } from '../../utils/mapImageCandidates';
 import { parseZonePointsJson, computeBiodivMapFitRect } from '../../utils/biodivMapGeometry.js';

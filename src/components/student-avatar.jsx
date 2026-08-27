@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getDicebearAvatarUrl, getStudentAvatarUrl, resolveAvatarPath } from '../utils/avatar';
 
 function StudentAvatar({ student, size = 28, style = {}, className = '' }) {

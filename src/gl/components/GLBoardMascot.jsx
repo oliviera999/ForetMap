@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { resolveVisitMascotState } from '../../utils/visitMascotState.js';
 import { GLMascotRenderer } from './GLMascotRenderer.jsx';
 

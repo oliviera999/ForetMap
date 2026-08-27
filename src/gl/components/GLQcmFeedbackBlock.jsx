@@ -1,4 +1,3 @@
-import React from 'react';
 import { getQcmFeedbackText } from '../utils/glQcmDisplay.js';
 import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
 import { GLLoreGlossaryInlineText } from './GLLoreGlossaryMarkdown.jsx';

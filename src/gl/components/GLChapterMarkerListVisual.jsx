@@ -1,4 +1,3 @@
-import React from 'react';
 import { resolveMarkerAppearance } from '../utils/glMarkerAppearance.js';
 import { useResolveGlMarkerIconDisplayUrl } from '../hooks/useResolveGlMarkerIconDisplayUrl.js';
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { ProfilesRoleList } from './ProfilesRoleList.jsx';
 import { ProfilesPermissionRows } from './ProfilesPermissionRows.jsx';
 import { ProfilesUserAssignmentList } from './ProfilesUserAssignmentList.jsx';

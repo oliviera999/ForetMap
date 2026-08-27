@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { api, AccountDeletedError, getAuthToken } from '../services/api';
 import { LearningAcknowledgeButton } from '../shared/components/LearningAcknowledgeButton.jsx';
 import { createFmGatingHandlers } from '../shared/utils/learningGatingChallengeClient.js';

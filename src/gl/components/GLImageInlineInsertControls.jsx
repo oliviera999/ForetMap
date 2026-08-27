@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image.js';
 import { MediaLibraryMenu } from '../../components/MediaLibraryMenu.jsx';

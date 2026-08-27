@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Liste de toggles à cocher (gameplay ou modules) de la vue réglages GL.
  * Composant feuille prop-driven : aucun état interne, tout vient du parent.

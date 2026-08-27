@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import VisitMapMascotRenderer from '../VisitMapMascotRenderer.jsx';
 import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
 

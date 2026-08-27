@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import { Suspense } from 'react';
 
 /** Fallback commun pour les onglets chargés en lazy. */
 export function TabSuspense({ children }) {

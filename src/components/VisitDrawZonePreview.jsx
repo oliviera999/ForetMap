@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Aperçu (présentation) du polygone en cours de tracé d'une zone de visite —
  * extrait de `VisitView` (O6). Rendu à l'intérieur du calque SVG de la carte

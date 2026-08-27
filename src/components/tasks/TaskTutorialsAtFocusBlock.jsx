@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 
 import { api } from '../../services/api';
 import { tutorialPreviewCanEmbed } from '../TutorialPreviewModal';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { AttachmentImagesPicker } from '../attachment-images-picker';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 

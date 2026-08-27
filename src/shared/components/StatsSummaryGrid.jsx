@@ -1,4 +1,3 @@
-import React from 'react';
 import { useCountUp } from '../hooks/useCountUp.js';
 
 function parseCountValue(value) {

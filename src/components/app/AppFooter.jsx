@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Pied de page « Version X » de l'app, affiché aussi bien sur l'écran d'accueil
  * invité que sur le shell authentifié (deux copies identiques dans App.jsx).

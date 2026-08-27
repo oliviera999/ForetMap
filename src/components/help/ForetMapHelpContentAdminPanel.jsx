@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { api } from '../../services/api';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';

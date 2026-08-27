@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 
 // G3 — réglages du conditionnement par QCM (gating.*). Écrit via l'endpoint dédié

@@ -1,4 +1,3 @@
-import React from 'react';
 import { TaskTileSection } from './tasks/TaskTileSection.jsx';
 import { TaskProjectsBlock } from './tasks/TaskProjectsBlock.jsx';
 

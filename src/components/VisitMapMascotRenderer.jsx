@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import { resolveVisitMascotEntry, getDefaultVisitMascotId } from '../utils/visitMascotCatalog.js';
 import VisitMascotFallbackSvg from './VisitMascotFallbackSvg.jsx';

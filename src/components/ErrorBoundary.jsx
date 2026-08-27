@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { Component } from 'react';
 
 /** Évite la page blanche en cas d'erreur de rendu */
 export class ErrorBoundary extends Component {
