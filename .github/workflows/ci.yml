@@ -26,6 +26,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Numéros de migration : le contrôle vit aussi dans `npm test` (job `test`), mais il y
+      # est noyé derrière ~18 min de suite backend et de service MariaDB. Or une collision de
+      # numéros ne casse pas un test : elle casse le **démarrage** de l'application
+      # (`assertNoNewDuplicateMigrationNumbers` refuse tout doublon hors 021/037 hérités).
+      # Le rejouer ici le fait tomber en une minute, sans base — et il n'est pas redondant en
+      # pratique : c'est un contrôle de l'arbre *fusionné*, donc sa valeur dépend de sa
+      # fraîcheur. Cas vécu le 26/08 : deux PR ouvertes en parallèle apportaient chacune un
+      # `201_`, aucune des deux n'étant en collision au moment de sa propre CI.
+      - name: Vérifier l'unicité des numéros de migration
+        run: node --test --test-force-exit tests/migrations-unique-numbers.test.js
+
       - name: Run lint
         run: npm run lint
 

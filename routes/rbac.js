@@ -6,7 +6,7 @@ const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { setPrimaryRole, getPrimaryRoleForUser } = require('../lib/rbac');
 const { getSettingValue, setSetting } = require('../lib/settings');
-const { getPasswordMinLength } = require('../lib/passwordReset');
+const { getPasswordMinLengthFor } = require('../lib/passwordReset');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 
@@ -113,7 +113,12 @@ router.post(
     const pseudo = normalizeOptionalString(req.body?.pseudo);
     const email = normalizeEmail(req.body?.email);
     const description = normalizeOptionalString(req.body?.description);
-    const minPasswordLen = await getPasswordMinLength();
+    // Le type de compte se déduit du rôle demandé, et il décide du plancher de mot de passe :
+    // 4 caractères conviennent à un élève de sixième, pas à un compte qui porte
+    // `admin.impersonate`. Le calcul est remonté ici — il vivait plus bas — pour être
+    // disponible au moment de la validation.
+    const userType = roleSlug === 'eleve_novice' ? 'student' : 'teacher';
+    const minPasswordLen = await getPasswordMinLengthFor(userType);
     if (!firstName || !lastName) return res.status(400).json({ error: 'Prénom et nom requis' });
     if (!password || password.length < minPasswordLen) {
       return res
@@ -134,7 +139,6 @@ router.post(
         .json({ error: `Description trop longue (max ${MAX_DESCRIPTION_LEN} caractères)` });
     }
 
-    const userType = roleSlug === 'eleve_novice' ? 'student' : 'teacher';
     let affiliation = 'both';
     if (userType === 'student') {
       const affRes = await resolveStudentAffiliationForPersist(req.body?.affiliation, queryOne);
@@ -799,7 +803,7 @@ router.patch(
 
     let passwordHash = user.password_hash;
     if (passwordWillChange) {
-      const minPasswordLen = await getPasswordMinLength();
+      const minPasswordLen = await getPasswordMinLengthFor(resolvedUserType);
       if (passwordRaw.length < minPasswordLen) {
         return res
           .status(400)

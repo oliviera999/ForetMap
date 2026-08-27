@@ -30,10 +30,12 @@ jobs:
 
       - name: Tag déjà présent ?
         id: check
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
-          if git rev-parse -q --verify "refs/tags/v${{ steps.ver.outputs.version }}" >/dev/null; then
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "Tag v${{ steps.ver.outputs.version }} déjà présent — rien à faire."
+            echo "Tag v$VERSION déjà présent — rien à faire."
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
@@ -41,8 +43,9 @@ jobs:
       - name: Extraire les notes du CHANGELOG
         if: steps.check.outputs.exists == 'false'
         id: notes
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
-          VERSION="${{ steps.ver.outputs.version }}"
           # Priorité à une section datée « ## [X.Y.Z] - … » ; sinon « ## [Non publié] ».
           notes="$(awk -v ver="$VERSION" '
             $0 ~ "^## \\[" ver "\\]" {grab=1; next}
@@ -57,6 +60,24 @@ jobs:
             ' CHANGELOG.md)"
           fi
           [ -z "$(printf '%s' "$notes" | tr -d '[:space:]')" ] && notes="Release v$VERSION."
+
+          # Borne la taille du corps. `[Non publié]` est un **accumulateur** : il court
+          # jusqu'à la prochaine release formelle, donc il grossit sans limite (731 Ko au
+          # 26/08/2026, soit ~6× le plafond). Sans ce garde-fou, `gh release create`
+          # échouerait en 422 sur le corps — l'étape resterait rouge alors même que
+          # l'interpolation est réparée.
+          # `iconv -c` retire la séquence multi-octets que `head -c` peut couper en deux.
+          MAX_BYTES=60000
+          if [ "$(printf '%s' "$notes" | wc -c)" -gt "$MAX_BYTES" ]; then
+            tronque="$(printf '%s' "$notes" | head -c "$MAX_BYTES" | iconv -c -f UTF-8 -t UTF-8)"
+            notes="$tronque
+
+          ---
+
+          _Notes tronquées à $MAX_BYTES octets (plafond GitHub : 125 000). Journal complet :
+          [CHANGELOG.md]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/v$VERSION/CHANGELOG.md)._"
+          fi
+
           {
             echo "body<<__NOTES__"
             printf '%s\n' "$notes"
@@ -67,11 +88,22 @@ jobs:
         if: steps.check.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
+          # Le corps des notes passe par l'ENVIRONNEMENT, jamais par une interpolation
+          # `${{ … }}` dans le `run:`. GitHub substitue une expression dans le **texte du
+          # script** avant que bash ne l'analyse : le corps étant un extrait de CHANGELOG.md
+          # (accents graves, guillemets, `>`, `*`), bash le relisait comme du code. D'où
+          # l'échec systématique de cette étape — « command not found », « Permission
+          # denied » sur des chemins cités dans les notes, puis une erreur de syntaxe. Le
+          # tag partait (lignes ci-dessous), la release jamais : 134 tags pour 0 release.
+          # Par l'environnement, la valeur est une donnée opaque à bash. C'est aussi ce qui
+          # ferme le sink d'injection : tout ce qui entrait dans CHANGELOG.md s'exécutait
+          # ici avec `contents: write` et `GH_TOKEN`.
+          NOTES_BODY: ${{ steps.notes.outputs.body }}
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
-          VERSION="${{ steps.ver.outputs.version }}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "v$VERSION" -m "v$VERSION"
           git push origin "v$VERSION"
-          printf '%s\n' "${{ steps.notes.outputs.body }}" >/tmp/notes.md
+          printf '%s\n' "$NOTES_BODY" >/tmp/notes.md
           gh release create "v$VERSION" --title "v$VERSION" --notes-file /tmp/notes.md

@@ -77,3 +77,51 @@ test('resolveSpaIndexPath choisit gl.html sur produit gl en prod', () => {
   );
   assert.strictEqual(indexPath, distGlIndex);
 });
+
+// ── Garde `/api` : un chemin d'API inconnu ne doit pas retomber sur l'index de la SPA ──
+// Sans elle, le wildcard renvoyait `200 text/html` pour un endpoint supprimé ou mal
+// orthographié : le client recevait un succès, la supervision ne distinguait plus
+// « endpoint disparu » de « tout va bien », et un sondage de l'API concluait à tort qu'une
+// route inexistante était exposée sans authentification (audit du 26/08, §2.2).
+
+function miniAppWithFallback() {
+  const mini = express();
+  mini.get('/api/existe', (req, res) => res.json({ ok: true }));
+  registerSpaFallbackRoutes(
+    mini,
+    createSpaFallbackHandler({
+      serveDist: false,
+      distSpaIndex: '',
+      distGlIndex: '',
+      deployHelpPath: path.join(__dirname, '..', 'public', 'deploy-help.html'),
+      resolveProductFromRequest,
+      logger: { error: () => {} },
+    }),
+  );
+  return mini;
+}
+
+test('GET /api inconnu → 404 JSON, pas l’index de la SPA', async () => {
+  const res = await request(miniAppWithFallback()).get('/api/nimporte-quoi');
+  assert.strictEqual(res.status, 404);
+  assert.match(String(res.headers['content-type'] || ''), /json/i);
+  assert.strictEqual(res.body.error, 'Route introuvable');
+});
+
+test('POST /api inconnu → 404 JSON (la garde est montée en use, pas en get)', async () => {
+  const res = await request(miniAppWithFallback()).post('/api/nimporte-quoi');
+  assert.strictEqual(res.status, 404);
+  assert.match(String(res.headers['content-type'] || ''), /json/i);
+});
+
+test('la garde ne masque pas une route /api réellement montée', async () => {
+  const res = await request(miniAppWithFallback()).get('/api/existe');
+  assert.strictEqual(res.status, 200);
+  assert.deepStrictEqual(res.body, { ok: true });
+});
+
+test('un chemin hors /api retombe toujours sur la SPA', async () => {
+  const res = await request(miniAppWithFallback()).get('/apiculture');
+  assert.strictEqual(res.status, 200);
+  assert.match(String(res.headers['content-type'] || ''), /html/i);
+});
