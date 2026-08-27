@@ -595,7 +595,7 @@ router.post(
         }
         try {
           htmlContent = fs.readFileSync(abs, 'utf8');
-        } catch (e) {
+        } catch (_) {
           return res.status(400).json({ error: 'Lecture du fichier source impossible' });
         }
         sourceFilePath = null;
@@ -842,7 +842,7 @@ router.put(
         }
         try {
           nextHtml = fs.readFileSync(abs, 'utf8');
-        } catch (e) {
+        } catch (_) {
           return res.status(400).json({ error: 'Lecture du fichier source impossible' });
         }
         nextSourceFilePath = null;

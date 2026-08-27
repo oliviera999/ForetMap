@@ -214,7 +214,7 @@ function ZoneInfoModal({
       );
       setToast('Sauvegardé ✓');
       setTab('info');
-    } catch (e) {
+    } catch (_) {
       setToast('Erreur');
     }
     setSaving(false);

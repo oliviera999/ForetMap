@@ -149,7 +149,7 @@ function MarkerModal({
     try {
       await onSave(buildPayload());
       onClose();
-    } catch (e) {
+    } catch (_) {
       setSaving(false);
     }
   };
@@ -162,7 +162,7 @@ function MarkerModal({
       await onUpdate(marker.id, buildPayload());
       setToast('Sauvegardé ✓');
       setTab('info');
-    } catch (e) {
+    } catch (_) {
       setToast('Erreur');
     }
     setSaving(false);

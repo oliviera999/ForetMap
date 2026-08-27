@@ -15,7 +15,6 @@ import { GLMascotMoveSettings } from './settings/GLMascotMoveSettings.jsx';
 import { GLPlateauMarkerScaleSettings } from './settings/GLPlateauMarkerScaleSettings.jsx';
 import { GLVitalityDefaultsSettings } from './settings/GLVitalityDefaultsSettings.jsx';
 import { GLLoreRetriggerSettings } from './settings/GLLoreRetriggerSettings.jsx';
-import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
 import { GLSurface } from './ui/GLSurface.jsx';
@@ -26,7 +25,6 @@ import {
   MAP_DISPLAY_TOGGLES,
   MODULE_TOGGLES,
   readGameplayFlag,
-  readPlateauMarkersVisibleSetting,
   settingsToIdentityFields,
   areVitalityValuesValid,
   gameplayPresetChanges,
