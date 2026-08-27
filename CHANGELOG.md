@@ -7,6 +7,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Le verrou après erreurs tolérées ne tombait jamais
+
+Le réglage « erreurs tolérées avant blocage » (`allowed_wrong_attempts`) comptait une
+faute, puis **oubliait** la suivante. Pour porter le compteur sans verrouiller, la ligne
+recevait `locked_until = NOW()` — déjà échue. La lecture suivante traitait toute date
+passée comme « série soldée, on recommence à zéro » : avec une tolérance à 2, la 2ᵉ, la
+3ᵉ et la 20ᵉ faute restaient la « première ». L’annonce promise à l’élève (« 2 erreurs
+permises, puis 3 jours ») n’avait donc aucun effet. Le comptage utilise désormais une
+date sentinelle (1970), distincte d’un vrai verrou expiré.
+
 ### Le versionnage, les branches et deux noyaux communs (v1.136.0)
 
 **Le numéro de version s'incrémente désormais après la fusion, plus dans la PR.** Une branche
