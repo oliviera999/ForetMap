@@ -29,14 +29,24 @@ Le SQL est systématiquement paramétré ; les seules interpolations de chaînes
 `LIMIT`/`OFFSET` issus de schémas Zod ou de constantes, et sur des listes de `?` construites
 par le code.
 
-**Trois constats méritent une correction rapide**, tous petits en volume :
+**Trois constats méritaient une correction rapide** — dont un qui s'est révélé faux à
+l'exécution du plan (§2.1) :
 
-1. **Les photos de tâches sont servies sans aucune authentification** — et la liste publique
-   des tâches fournit les identifiants nécessaires. _Reproduit._
+1. ~~**Les photos de tâches sont servies sans aucune authentification.**~~ **Constat retiré**
+   le 26/08 : le caractère public est documenté (`docs/API.md`) et arbitré (audit B2), et le
+   chemin canonique est de toute façon un fichier statique public. Ce qui subsistait — le
+   repli ne vérifiait pas la **famille** d'`uploads/` visée, contournant la garde des médias
+   privés — a été corrigé. Détail et post-mortem en §2.1.
 2. **Une URL `/api/…` inconnue renvoie `200 text/html`** (l'index de la SPA) au lieu d'un
-   `404` JSON. _Reproduit._
+   `404` JSON. _Reproduit._ **Corrigé.**
 3. **Huit vulnérabilités npm en dépendances de production**, dont quatre de gravité _high_,
-   deux corrigeables sans changement cassant.
+   deux corrigeables sans changement cassant. **Corrigé** : 8 → 2, les quatre `high` fermées.
+
+> **Ce que le premier point enseigne.** Il avait été « reproduit » — un témoin déposé, un
+> `200` obtenu sans jeton. La reproduction était juste ; l'interprétation, non. Un audit qui
+> exécute l'application voit plus de choses qu'une lecture, mais il gagne aussi le pouvoir de
+> se convaincre lui-même. Ce qui manquait ici n'était pas une preuve, c'était la lecture de
+> l'arbitrage déjà écrit dans `lib/uploadsPrivatePaths.js` et dans `docs/API.md`.
 
 S'y ajoute un défaut de chaîne de publication qu'aucune suite de tests ne pouvait voir :
 **le workflow « Release tag » n'a jamais publié une seule release** — 134 tags, zéro release,
@@ -59,30 +69,51 @@ fichiers générés.
 
 ## 2. Sécurité & exposition
 
-### 2.1 — MAJEUR · Les photos de tâches sont accessibles sans authentification
+### 2.1 — ~~MAJEUR~~ **CONSTAT ERRONÉ, RETIRÉ** · « Les photos de tâches sont accessibles sans authentification »
 
-`routes/tasks/media.js:8` monte `GET /api/tasks/:id/image` **sans aucune garde** : ni
-`requireAuth`, ni vérification de portée. Le routeur parent n'en pose pas non plus
-(`server.js:398` → `app.use('/api/tasks', tasksRouter)`).
+> **Correction du 26/08, apportée en traitant le plan d'action.** Ce constat était **faux** et
+> ne doit pas être traité. Il est conservé ici, barré, plutôt que supprimé : un audit qui
+> efface ses erreurs n'apprend rien à celui qui le relit.
 
-L'asymétrie est frappante avec la route homologue : `routes/observations.js:164` protège
-l'image d'une observation par `requireAuth` **et** un contrôle de propriété
-(`isOwner`/`observations.read.all`). La même donnée — une photo prise par un élève —
-est donc protégée d'un côté et publique de l'autre.
+Ce que disait le constat : `routes/tasks/media.js` sert `GET /api/tasks/:id/image` sans garde,
+alors que `routes/observations.js:164` protège son homologue par `requireAuth` et un contrôle
+de propriété — donc « la même donnée protégée d'un côté et publique de l'autre ».
 
-**Le chaînage qui rend l'exposition directement exploitable :** `GET /api/tasks` est
-volontairement public (`parseOptionalAuth`) et retourne **`id` et `image_url` pour toutes
-les tâches**. Un visiteur anonyme n'a donc rien à deviner — l'UUID n'est pas un secret,
-il est publié. Mesuré sur la base de test : 245 tâches listées, dont 2 avec une image.
+**Pourquoi c'est faux.** Les deux données ne sont pas la même, et la frontière entre elles a
+déjà été arbitrée. `lib/uploadsPrivatePaths.js` tient la liste explicite des familles
+d'`uploads/` soumises à autorisation — `observations/` et `task-logs/` — et documente que
+« `uploads/` est volontairement public pour les familles documentées dans `docs/API.md`
+(`zones/`, `markers/`, `tasks/`, `forum-posts/`…) ». L'arbitrage remonte à l'audit B2
+(`docs/AUDIT_BUGS_2026-07.md`). Une photo de couverture de tâche est du contenu illustratif,
+au même titre qu'une photo de zone ; la photo d'observation est la page d'un carnet personnel.
 
-> **Reproduit** contre un serveur en `NODE_ENV=production`, sans en-tête `Authorization` :
-> une valeur témoin déposée dans `uploads/tasks/` puis référencée par `tasks.image_path`
-> est renvoyée en `200` avec son contenu. Trace nettoyée après vérification.
+Trois éléments que l'audit initial avait manqués, et qui rendent le constat sans objet :
 
-**Correctif proposé** — aligner sur `observations.js` : `requireAuth` plus un contrôle de
-portée (créateur, assigné, ou permission `tasks.manage`). Si l'exposition publique est un
-choix produit assumé pour l'onglet Visite, alors c'est `image_url` qui doit disparaître de
-la réponse anonyme de `GET /api/tasks` — pas la garde qui doit rester absente.
+1. **`docs/API.md:1210` documente la route avec authentification « non »**, en la qualifiant
+   de repli. Le caractère public est écrit, pas subi.
+2. **Le chemin canonique n'est pas cette route.** `attachTaskImagePublicFields`
+   (`lib/taskRouteHelpers.js:194`) sert `/uploads/tasks/<id>.<ext>` — un fichier **statique**,
+   déjà public par le même arbitrage. La route API n'est qu'un repli pour les chemins disque
+   atypiques. Y ajouter `requireAuth` n'aurait donc **rien fermé** : les mêmes octets restent
+   servis par le montage statique.
+3. **Le repli est en pratique inatteignable pour les données courantes** : `routes/tasks.js`
+   écrit toujours `tasks/<taskId>.<ext>`, forme que `isSafePublicTaskImageRelativePath`
+   accepte. Seules des lignes héritées y passent.
+
+**Ce que la reproduction prouvait réellement.** Le témoin déposé dans `uploads/tasks/` était
+public par conception ; le `200` obtenu ne démontrait pas une fuite, seulement que le repli
+sert ce que le montage statique sert déjà. Une reproduction qui réussit ne valide pas
+l'interprétation qu'on en fait.
+
+**Ce qui subsistait, et qui a été corrigé.** Un seul point tenait, et dans l'autre sens que
+l'énoncé initial : le repli lisait `image_path` sans vérifier la **famille**. `getAbsolutePath`
+n'assure que le confinement sous `uploads/`. Un `tasks.image_path` pointant vers
+`observations/…` aurait donc servi, sans authentification, un média que `createPrivateUploadsGuard`
+refuse — la garde du montage statique contournée **par** une route API, alors que sa raison
+d'être écrite est que « l'autorisation portée par les routes API ne soit pas contournable ».
+Aucun chemin d'écriture actuel ne produit une telle valeur : c'est une garde de profondeur.
+Ajoutée avec deux tests (`tests/tasks-image.test.js`), dont l'un vérifie que le refus et le
+`403` du montage statique disent la même chose.
 
 ### 2.2 — MAJEUR · Une route `/api` inconnue renvoie `200 text/html`
 
@@ -201,11 +232,29 @@ Résolu à la fusion (renumérotation en `202_…`, CHANGELOG aligné), puis vé
 `npm run db:init` sur base vierge : schéma en version 202, table `visit_mascot_pack_deletions`
 et `learning_acknowledgements` toutes deux présentes.
 
-**Ce qui reste à traiter, c'est le moment où le défaut est détecté.** Le garde-fou est un test
-qui ne s'exécute qu'à la migration ; la règle `.cursor/rules/foretmap-pr-merge-conflict.mdc`
-demande la vérification manuellement. Ni l'un ni l'autre ne se déclenche à l'**ouverture**
-d'une PR. Un contrôle CI qui compare les numéros de migration de la branche à ceux de `main`
-signalerait la collision au moment où elle se crée, et non à la fusion.
+**Ce qui reste à traiter, c'est le moment où le défaut est détecté.**
+
+> **Correction du 26/08.** La formulation initiale — « le garde-fou est un test qui ne
+> s'exécute qu'à la migration », « un contrôle CI […] signalerait la collision » — était
+> inexacte : `tests/migrations-unique-numbers.test.js` **existe déjà**, il est purement
+> fichier (aucune base requise) et il tourne à chaque PR dans `npm test`, sur la **réf de
+> fusion** avec la base. Il n'y avait pas de contrôle à créer.
+
+Ce qui a réellement manqué n'est pas le contrôle mais sa **fraîcheur** : deux PR ouvertes en
+parallèle apportaient chacune un `201_`, et **aucune des deux n'était en collision au moment
+où sa propre CI a tourné**. La collision n'existe que dans l'arbre fusionné des deux, état que
+rien n'a réévalué avant la fusion. Un contrôle dont la valeur dépend de la fraîcheur ne vaut
+que ce que vaut sa dernière exécution.
+
+Deux leviers, de natures différentes :
+
+- **Réglage GitHub (à appliquer par un administrateur, hors code)** — « Require branches to be
+  up to date before merging » sur la protection de `main`. C'est le seul qui ferme vraiment le
+  cas : il force une CI sur l'arbre fusionné courant avant tout merge.
+- **Échec rapide (fait)** — le contrôle est désormais rejoué dans le job `quality`
+  (`.github/workflows/ci.yml`), qui n'a ni base ni suite backend : la collision tombe en une
+  minute au lieu d'être noyée derrière ~18 min de job `test`. Cela ne remplace pas le réglage
+  ci-dessus, cela réduit le coût de chaque détection.
 
 ### 3.2 — MINEUR · 193 migrations jamais compactées
 
@@ -525,39 +574,36 @@ décrivent le mécanisme lui-même (`README.md`, `guide-du-mj.md`). Rien à repr
 
 ---
 
-## 7. Plan d'action proposé
+## 7. Plan d'action — état
 
-### Immédiat (petit volume, effet direct)
+### Traité (lot du 26/08, v1.135.0)
 
-1. **Fermer `GET /api/tasks/:id/image`** (§2.1) — ou retirer `image_url` de la réponse
-   anonyme de `GET /api/tasks`. Aligner sur `routes/observations.js:164`. _Une route,
-   un test._
-2. **Rendre `404` les chemins `/api` inconnus** (§2.2) — un `app.use('/api', …)` avant le
-   fallback SPA. _Cinq lignes, un test dans `tests/spa-fallback.test.js`._
-3. **`npm audit fix`** sur les deux `high` Socket.IO (§2.3) — sans changement cassant.
-4. **Réparer « Release tag »** (§4.4) — passer les notes par `env:` au lieu d'une
-   interpolation `${{ … }}` dans le script. _Trois lignes ; supprime un rouge permanent sur
-   `main` et débloque la publication des releases._
+| #   | Point                                        | Ce qui a été fait                                                                                                                                                             |
+| --- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | ~~Fermer `GET /api/tasks/:id/image`~~ (§2.1) | **Constat retiré** — le caractère public est documenté et voulu. Remplacé par la garde de profondeur qui tenait réellement : le repli refuse une famille privée d'`uploads/`. |
+| 2   | `404` sur `/api` inconnu (§2.2)              | Garde `app.use('/api', …)` avant le fallback, dans `lib/spaFallback.js` ; 4 tests dont le cas `/apiculture`.                                                                  |
+| 3   | `npm audit fix` (§2.3)                       | **8 vulnérabilités → 2** ; les **quatre `high` sont fermées**. Seul `package-lock.json` change.                                                                               |
+| 4   | Réparer « Release tag » (§4.4)               | Notes passées par `env:` ; **et** corps borné à 60 000 octets, sans quoi l'étape restait rouge en 422.                                                                        |
+| 7   | Collision de numéro de migration (§3.1)      | **Constat corrigé** — le contrôle existait déjà. Rejoué dans le job `quality` (échec en 1 min au lieu de 18).                                                                 |
+| 9   | Plancher de mot de passe différencié (§2.4)  | `getPasswordMinLengthFor(userType)` : **12** pour `teacher`, réglage inchangé pour les élèves. Signalé depuis juin (G8 de l'audit 2026-06).                                   |
 
-### Court terme (supprime du travail récurrent)
+### Laissé ouvert — décision nécessaire
 
-5. **Sortir `dist/` du dépôt** (§4.1) — build au déploiement, ou artefact de release.
-   _~80 conflits en moins par lot, 188 Mo de `.git` en moins._
-6. **Bumper la version à la fusion, pas dans la PR** (§4.2) — supprime les 2 conflits
-   restants de chaque PR.
-7. **Contrôle CI de collision de numéro de migration** (§3.1) — au moment de l'ouverture
-   de la PR, pas à la fusion.
-8. **Appliquer la configuration o2switch du lot 30** (§5.2) — une ligne de crontab plus la
-   vérification d'instance unique, puis lire `npm run prod:uptime-report`.
-
-### Moyen terme
-
-9. **Plancher de mot de passe différencié** — 12 caractères pour `teacher`/`admin` (§2.4).
-10. **Abaisser la limite de corps JSON** à 2 Mo par défaut, relevée route par route (§5.1).
-11. **CSP `default-src 'self'`** en `Report-Only` d'abord (§2.5).
-12. **Rendre bloquant un sous-ensemble e2e smoke** et **poser un seuil de couverture**
-    (§4.6, §4.7).
-13. **Trier les 79 branches** — 32 sont fusionnées et supprimables sur-le-champ (§4.5).
+5. **Sortir `dist/` du dépôt** (§4.1) — reste la meilleure économie du rapport (~80 conflits
+   par lot, 188 Mo de `.git`), mais **change la chaîne de déploiement** : le cron
+   `scripts/auto-deploy-cron.sh` fait un `git pull` sans build. Il faut choisir entre
+   « construire sur le serveur au déploiement » et « publier `dist/` en artefact de release ».
+   Ce n'est pas un correctif, c'est un arbitrage d'exploitation — d'où sa mise à l'écart de ce
+   lot.
+6. **Bumper la version à la fusion** (§4.2) — même nature : modifie le processus de release.
+7. **Configuration o2switch du lot 30** (§5.2) — deux gestes **hors code** : une ligne de
+   crontab (`*/3`) et la vérification d'instance unique dans cPanel.
+8. **Abaisser la limite de corps JSON** (§5.1) — 25 Mo → 2 Mo casserait les imports qui en
+   dépendent tant que les routes concernées n'ont pas été relevées une par une.
+9. **CSP `default-src 'self'`** (§2.5) — à mesurer en `Report-Only` avant d'appliquer.
+10. **e2e bloquant / seuil de couverture** (§4.6, §4.7) — l'un demande de stabiliser les
+    scénarios headless, l'autre de figer une base de mesure.
+11. **Trier les 79 branches** (§4.5) — 32 sont fusionnées et supprimables sur-le-champ.
 
 ---
 
