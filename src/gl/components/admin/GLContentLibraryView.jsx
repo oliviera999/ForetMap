@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { apiGLMultipart, formatBytesLabel } from '../../services/apiGLUpload.js';
 import {
@@ -135,9 +135,7 @@ export function GLContentLibraryView({ onOpenSubTab }) {
 
   function selectAllApplyable() {
     setSelectedKeys(
-      new Set(
-        applyableEntries.map((entry, index) => entryKey(entry, analysisEntries.indexOf(entry))),
-      ),
+      new Set(applyableEntries.map((entry) => entryKey(entry, analysisEntries.indexOf(entry)))),
     );
   }
 

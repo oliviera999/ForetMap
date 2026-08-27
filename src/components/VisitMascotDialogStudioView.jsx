@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import VisitMascotDialogEditor from './VisitMascotDialogEditor.jsx';
 import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';

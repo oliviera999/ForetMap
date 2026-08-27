@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Bandeaux d'état superposés au canevas de `MapView` (présentation pure) :
  * consignes du mode courant (tracé de zone / pose de repère / édition de

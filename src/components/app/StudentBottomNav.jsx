@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Navigation basse du chemin n3beur — extraite de `src/App.jsx` (O6).
  *

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, act } from '@testing-library/react';
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import {
   useVisitMapTransform,
   VISIT_MAP_TRANSFORM_COMMIT_DEBOUNCE_MS,

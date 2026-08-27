@@ -1,4 +1,3 @@
-import React from 'react';
 import { clampEmojiInput } from '../../constants/emojis';
 
 /**

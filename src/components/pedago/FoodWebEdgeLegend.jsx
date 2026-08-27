@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { LEGEND_ENTRIES, edgeStyleForType } from '../../shared/foodWebEdgeStyle.js';
 import { interactionTypeLabel } from '../../shared/foodWebTypes.js';
 

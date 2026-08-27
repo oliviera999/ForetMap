@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-canvas';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import { configureRiveRuntime } from '../utils/riveRuntime.js';

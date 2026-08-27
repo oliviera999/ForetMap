@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Liste d'attribution des profils aux comptes — extraite de `ProfilesAdminView` (O5/O6).
  *

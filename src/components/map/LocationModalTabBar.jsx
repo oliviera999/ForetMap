@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Barre d'onglets présentationnelle commune aux modales de lieu (MarkerModal /
  * ZoneInfoModal) : rend la liste des onglets (Tâches / Tutoriels / Info / Photos /

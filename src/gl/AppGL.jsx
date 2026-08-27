@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react';
+import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import { apiGL } from './services/apiGL.js';
 import { useGLSession } from './hooks/useGLSession.js';
 import { useGlSessionState } from './hooks/useGlSessionState.js';

@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Barre d'actions groupées (présentation) de la bibliothèque média en mode
  * galerie — extraite de `MediaLibraryMenu` (O6). Affiche les quatre boutons

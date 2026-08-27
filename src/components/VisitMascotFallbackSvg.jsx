@@ -1,4 +1,3 @@
-import React from 'react';
 import VisitMascotSproutSvg from './VisitMascotSproutSvg.jsx';
 import VisitMascotScrapSvg from './VisitMascotScrapSvg.jsx';
 

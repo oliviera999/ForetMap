@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { TutorialReadAcknowledgeButton } from './TutorialReadAcknowledge';
 import { DialogShell } from './DialogShell';

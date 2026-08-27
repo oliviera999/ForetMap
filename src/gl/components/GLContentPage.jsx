@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiGL, clearGlSession } from '../services/apiGL.js';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';

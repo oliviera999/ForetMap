@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api, AccountDeletedError } from '../../services/api';
 import { toggleIdInList } from '../../utils/visitSyncSelection.js';
 

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { daysUntil } from '../../utils/badges';
 import { studentUrgentDueTasks } from '../../utils/taskSectioning.js';
 

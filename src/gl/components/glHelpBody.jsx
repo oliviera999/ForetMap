@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Rend un corps d'aide GL : une ligne unique devient un paragraphe, plusieurs lignes
  * une liste à puces. Partagé par l'encadré inline (`GLHelpPanel`) et la modale

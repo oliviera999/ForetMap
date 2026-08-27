@@ -1,4 +1,3 @@
-import React from 'react';
 import { GLQcmCatalogPanel } from './GLQcmCatalogPanel.jsx';
 
 export function GLQcmLoreImportPanel({ loreGlossaryLinkItems = [], onOpenLoreTerm }) {

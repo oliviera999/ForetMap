@@ -1,4 +1,3 @@
-import React from 'react';
 import { useHelp } from '../hooks/useHelp';
 import { getContentText } from '../utils/content';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';

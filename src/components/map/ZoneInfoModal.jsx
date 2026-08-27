@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   MARKER_EMOJIS,
   ZONE_NAME_PREFIX_EMOJI_MAX_CHARS,
@@ -214,7 +214,7 @@ function ZoneInfoModal({
       );
       setToast('Sauvegardé ✓');
       setTab('info');
-    } catch (e) {
+    } catch (_) {
       setToast('Erreur');
     }
     setSaving(false);

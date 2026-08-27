@@ -1,4 +1,3 @@
-import React from 'react';
 import { formatDateTimeFr } from '../../utils/datetime-fr';
 import { UserContentImagesGrid } from '../attachment-images-picker';
 import { MarkdownContent } from '../MarkdownContent.jsx';

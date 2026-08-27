@@ -1,5 +1,3 @@
-import React from 'react';
-
 /** Hauteur du loader plein écran des vues prof / élève (ancien style inline d'App.jsx). */
 export const FULL_PAGE_LOADER_STYLE = { height: '60vh' };
 

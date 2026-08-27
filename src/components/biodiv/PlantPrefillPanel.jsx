@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { api } from '../../services/api';
 import { prefillPhotoSlotKey } from '../../utils/biodivPlantForm.js';
 import {

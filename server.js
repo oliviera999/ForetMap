@@ -468,7 +468,7 @@ registerSpaFallbackRoutes(
 );
 
 // Gestion d'erreurs centralisée (pour les routes qui font next(err))
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   logger.error(
     { err, path: req.path, method: req.method, requestId: req.requestId },
     'Erreur serveur',

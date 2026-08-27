@@ -1,4 +1,3 @@
-import React from 'react';
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
 
 /**

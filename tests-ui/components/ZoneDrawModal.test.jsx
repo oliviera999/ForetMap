@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ZoneDrawModal } from '../../src/components/map/ZoneDrawModal.jsx';

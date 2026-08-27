@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { GLQcmQuestionEditorPanel } from '../../src/gl/components/admin/GLQcmQuestionEditorPanel.jsx';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { GLUsersAdminView } from '../../src/gl/components/GLUsersAdminView.jsx';
@@ -76,7 +75,7 @@ describe('GLUsersAdminView', () => {
 
   test('permet la prise de contrôle joueur pour un MJ GL', async () => {
     const onImpersonationApplied = vi.fn();
-    apiGlMock.mockImplementation(async (path, method, body) => {
+    apiGlMock.mockImplementation(async (path, method, _body) => {
       if (path === '/api/gl/admin/classes')
         return [{ id: 1, name: '6e A', players_count: 1, is_active: 1 }];
       if (String(path).startsWith('/api/gl/admin/players'))

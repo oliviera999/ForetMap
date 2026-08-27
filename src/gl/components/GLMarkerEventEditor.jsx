@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { normalizeQuestionPool, normalizeLoreQuestionPool } from '../utils/glMarkerEventConfig.js';
 import {

@@ -553,6 +553,38 @@ et son passage à « lancé » n'a lieu qu'une fois : deux clics simultanés don
 et un message « ce sortilège a déjà été lancé », jamais deux débits. Même verrouillage pour la
 soumission au MJ et pour le refus. Test de concurrence à l'appui.
 
+### G15 — 🟠 Quatre valeurs que l'application calcule ou reçoit, puis ignore
+
+**Constat.** Un audit de refactoring (27/08) a mis au jour quatre endroits où GL prépare une
+information, la transmet à l'écran qui doit s'en servir… et où cet écran ne s'en sert pas. Ce
+n'est pas du code décoratif : dans chaque cas, quelqu'un a écrit le nécessaire pour que ça
+marche, et le dernier fil n'a pas été branché. Le même défaut venait d'être trouvé côté ForetMap
+— le choix de mascotte d'un compte n'était jamais enregistré — et il était bien réel pour les
+utilisateurs.
+
+Ces quatre-là n'ont **pas** été « nettoyés » : les supprimer effacerait la trace de ce qui
+manque. Ils demandent une décision sur le comportement attendu.
+
+| #   | Où                                      | Ce qui est ignoré                           | Ce que ça donne probablement à l'écran                                                                     |
+| --- | --------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| a   | Mise en forme du **journal**            | Points d'expérience, position, écart, motif | Des lignes de journal plus pauvres que prévu : le gain ou la perte et sa raison ne s'affichent pas         |
+| b   | Aperçu du **plateau** (admin chapitres) | Le cadrage de l'image du plan               | L'aperçu ne montre pas le plan cadré comme l'éditeur de carte le montre — deux vues du même plan divergent |
+| c   | Éditeur de **zones du royaume**         | La commande « supprimer une zone »          | Aucun effet visible : la suppression fonctionne, mais par un autre chemin. Vestige à retirer               |
+| d   | Console MJ, volet **en direct**         | L'équipe dont c'est le tour                 | Le volet n'a pas de quoi mettre en évidence l'équipe active, contrairement au plateau et à la carte        |
+
+**Option A (recommandée).** Traiter cas par cas, en commençant par (a) : le journal est ce que
+les joueurs relisent, une ligne amputée de son motif perd l'essentiel. Puis (b), qui fait
+diverger deux aperçus du même plan. (c) est un simple retrait de vestige. (d) n'est à faire que
+si l'on veut effectivement signaler l'équipe active dans ce volet.
+
+**Option B.** Ne rien changer au comportement et retirer les quatre valeurs inutilisées : le
+code redevient cohérent avec ce qu'il fait, au prix d'acter que ces fonctions n'existeront pas.
+
+**Décision :** _(à arbitrer)_
+
+Détail technique et fichiers concernés :
+[`docs/AUDIT_REFACTORING_APP_2026-08.md`](../AUDIT_REFACTORING_APP_2026-08.md) §8.1.
+
 ---
 
 ## Arbitrage du 2026-07-08

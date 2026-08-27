@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { validateMascotPackV1 } from '../../utils/mascotPack.js';
 import { estimateStateDurationMs } from '../../utils/visitMascotPackTiming.js';
 import { STATE_LABELS } from '../../constants/mascotStateLabels.js';

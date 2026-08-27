@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { GLLoreGlossaryMarkdown } from './GLLoreGlossaryMarkdown.jsx';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';

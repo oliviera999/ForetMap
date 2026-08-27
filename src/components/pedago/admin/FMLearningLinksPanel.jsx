@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../../services/api.js';
 
 // Écran de rattachement « ressource ↔ questions » (professeur, permission plants.manage).

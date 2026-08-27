@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { isModuleEnabled } from '../constants/modules.js';
 import { GL_MONDE_SUB_TABS } from '../constants/app-runtime.js';
 import { GLWorldView } from './GLWorldView.jsx';

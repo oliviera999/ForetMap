@@ -1,4 +1,3 @@
-import React from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { LearningGatingLocksPanel } from '../../../shared/components/LearningGatingLocksPanel.jsx';
 

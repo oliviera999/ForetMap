@@ -1,4 +1,4 @@
-import React, { useId, useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { normalizeEditorialBlocks } from '../../utils/visitEditorialBlocks.js';
 import { computeVisitLocationAside } from '../../utils/visitLocationAside.js';

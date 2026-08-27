@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { DialogShell } from '../DialogShell';
 import { MediaLibraryMenu } from '../MediaLibraryMenu.jsx';
 

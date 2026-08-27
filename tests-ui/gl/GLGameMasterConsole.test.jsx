@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, test, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { GLGameMasterConsole } from '../../src/gl/components/GLGameMasterConsole.jsx';

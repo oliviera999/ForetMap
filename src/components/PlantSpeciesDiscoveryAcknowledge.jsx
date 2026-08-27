@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError, createContextComment, getAuthToken } from '../services/api';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { AttachmentImagesPicker } from './attachment-images-picker';

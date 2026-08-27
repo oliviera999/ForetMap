@@ -1,4 +1,3 @@
-import React from 'react';
 import { useScrollProgress } from '../hooks/useScrollProgress.js';
 
 /** Barre de progression de scroll en haut de page (pattern index_olution). */

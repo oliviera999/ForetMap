@@ -1,4 +1,3 @@
-import React from 'react';
 import { formatBytesLabel } from '../../services/apiGLUpload.js';
 import { entryKey, kindBadgeClass, previewSummary } from '../../utils/glContentLibraryDisplay.js';
 

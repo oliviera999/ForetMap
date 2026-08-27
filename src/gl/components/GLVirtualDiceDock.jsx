@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useGLVirtualDice } from '../hooks/useGLVirtualDice.js';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';

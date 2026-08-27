@@ -1,4 +1,3 @@
-import React from 'react';
 import { DialogShell } from '../../components/DialogShell.jsx';
 import { GLPasswordChangeForm } from './GLPasswordChangeForm.jsx';
 

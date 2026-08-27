@@ -1,4 +1,3 @@
-import React from 'react';
 import { GLButton } from '../ui/GLButton.jsx';
 import { moveBiomeSlug } from '../../utils/glChapterAdminForm.js';
 

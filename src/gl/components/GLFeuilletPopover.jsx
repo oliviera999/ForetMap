@@ -1,4 +1,3 @@
-import React from 'react';
 import { DialogShell } from '../../components/DialogShell.jsx';
 import { MascotSpeaker } from '../../shared/components/MascotSpeaker.jsx';
 import { SpeechBubble } from '../../shared/components/SpeechBubble.jsx';

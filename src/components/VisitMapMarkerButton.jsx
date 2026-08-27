@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Bouton (présentation) d'un repère de visite positionné sur le plan — extrait
  * de `VisitView` (O6). Affiche l'emoji du repère (ou une pastille de repli quand

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
 import { DialogShell } from '../../components/DialogShell.jsx';
 import {

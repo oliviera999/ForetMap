@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Badge (présentation) indiquant la source d'un champ proposé par la pré-saisie — extrait de
  * `PlantPrefillPanel` (O6). Affiche « 🧠 OpenAI » pour les sources OpenAI (`openai`/`openai_gap`)

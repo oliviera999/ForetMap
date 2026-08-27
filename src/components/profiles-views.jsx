@@ -362,7 +362,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
       let detail = null;
       try {
         detail = await api(`/api/rbac/users/${ut}/${uid}`);
-      } catch (fetchErr) {
+      } catch (_) {
         detail = null;
       }
       const merged = mergeRbacUserRowsForEdit(u, isLikelyApiUserPayload(detail) ? detail : null);

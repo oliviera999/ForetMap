@@ -28,6 +28,7 @@ sous **`.claude/skills/`**.
 | Auth prof / GL                                     | `middleware/requireTeacher.js`, `middleware/requireGlAuth.js`                                                                                                                           |
 | Utilitaires backend                                | `lib/` (`logger.js`, `routeLog.js`, `requestId.js`, `env.js`, `uploads.js`, `speciesAutofill*.js`, `glSettings.js`) ; helpers métier par domaine (`lib/tasks/`, `lib/*RouteHelpers.js`) |
 | Front ForetMap                                     | `index.vite.html` → `src/main.jsx` ; `src/components/`, `src/hooks/`, `src/services/`                                                                                                   |
+| Shell applicatif (orchestration seule)             | `src/App.jsx` + `src/components/app/` ; données `hooks/useAppDataSync.js` & `useAppDataPolling.js` ; dérivations `utils/appAccess.js`, `appMapScope.js`, `appIdentity.js`               |
 | Front GL                                           | `gl.html` → `src/gl/main.jsx` → `src/gl/AppGL.jsx`                                                                                                                                      |
 | Migrations                                         | `migrations/NNN_*.sql` (idempotentes) + `sql/schema_foretmap.sql`                                                                                                                       |
 | Tests                                              | `tests/*.test.js` (node:test), `tests-ui/**` (vitest), `e2e/*.spec.js` (Playwright)                                                                                                     |
@@ -57,7 +58,15 @@ npm run bump:patch|minor|major  # incrémente package.json (sans tag)
   pour compte supprimé (front : déconnexion + toast).
 - **Auth prof** : middleware JWT `requireTeacher` sur toute route prof. PIN jamais en dur côté client.
 - **Front** : composants fonctionnels + hooks ; locale fr-FR ; thème forêt (`--forest`, `--leaf`…)
-  dans `src/index.css` ; cibles tactiles ≥ 44px.
+  dans `src/index.css` ; cibles tactiles ≥ 44px. Runtime JSX **automatic** : pas d'`import React`
+  pour écrire du JSX (ne l'importer que pour `React.memo`, `React.Fragment`…).
+- **Lint bloquant sur la zone morte temporelle** : `no-use-before-define` est **en erreur** sur
+  `src/**` et `tests-ui/**`. Un `const` déclaré plus bas dans le corps d'un composant, référencé
+  depuis un tableau de dépendances de hook, lève un `ReferenceError` à _chaque_ rendu — invisible
+  pour le build et pour les tests qui ne montent pas le composant.
+- **Refactorer un composant racine → poser d'abord un test de montage** (patron
+  `tests-ui/AppShellWiring.test.jsx`). Contexte et post-mortem :
+  `docs/AUDIT_REFACTORING_APP_2026-08.md`.
 - **Tests dans le même lot que le code** : toute nouvelle route/règle/utilitaire → `tests/*.test.js` ;
   flux UI critique → scénario `e2e/`. Lancer au minimum `npm test` avant commit.
 - **Doc API** : toute route publique nouvelle/modifiée → `docs/API.md` dans le même lot.

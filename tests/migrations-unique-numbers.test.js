@@ -16,7 +16,7 @@ test('chaque préfixe numérique migrations/NNN_ est unique', () => {
     list.push(file);
     byNum.set(num, list);
   }
-  const duplicates = [...byNum.entries()].filter(([num, files]) => files.length > 1);
+  const duplicates = [...byNum.entries()].filter(([, files]) => files.length > 1);
   /** Doublons historiques déjà appliqués en prod avant garde-fou CI — ne pas renommer sans plan de migration. */
   const legacyDuplicateNums = new Set(['021', '037']);
   const blocking = duplicates.filter(([num]) => !legacyDuplicateNums.has(num));

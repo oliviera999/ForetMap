@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { TaskTileCard } from './TaskTileCard.jsx';
 
 /**

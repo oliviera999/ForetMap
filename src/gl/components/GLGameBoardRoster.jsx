@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { GLVitalityCounts } from './GLVitalityDisplay.jsx';
 import { buildMapRosterGroups, formatPlayerLabel } from '../utils/glSpellCastRules.js';
 
