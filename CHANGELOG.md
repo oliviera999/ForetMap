@@ -66,6 +66,27 @@ listait `updateTeacherSession` dans ses dépendances alors que ce `const` était
 dans le corps du composant — un `ReferenceError` à chaque rendu de l'écran authentifié, invisible
 pour le lint, le build et les 3 153 tests existants, puisque aucun ne montait `App`.
 
+### L'audit de refactoring est documenté, et ce qu'il a coûté aussi
+
+**`docs/AUDIT_REFACTORING_APP_2026-08.md`** rend compte du chantier : l'inventaire de ce que
+contenait `src/App.jsx`, la carte de ce qui en est sorti, le défaut fonctionnel trouvé (la
+mascotte qui ne suivait pas le compte) — et le post-mortem de la régression que le refactoring a
+lui-même introduite. Ce dernier point est le plus utile du document : un `ReferenceError` levé à
+**chaque rendu** de l'écran authentifié a été poussé, sa CI est passée au vert, et ni le lint, ni
+le build, ni 3 153 tests ne l'ont vu — parce qu'aucun ne montait `App`. C'est un test écrit
+ensuite, pour une correction sans rapport, qui l'a rattrapé.
+
+**Les quatre valeurs GL calculées puis ignorées entrent au registre d'arbitrage**
+(`docs/reference/INCOHERENCES.md`, entrée **G15**), rédigées pour leur public : ce que chaque cas
+donne probablement à l'écran, et deux options à trancher. Elles ne sont pas « nettoyées » — les
+supprimer effacerait la trace de ce qui manque.
+
+**Les acquis passent dans les règles plutôt que dans un document qu'on oublie de rouvrir.**
+`CLAUDE.md`, `.cursor/rules/foretmap-conventions.mdc` et les skills `foretmap-context` /
+`foretmap-testing` portent désormais les trois consignes issues du chantier : pas d'`import React`
+pour du JSX, `no-use-before-define` bloquant sur la zone morte temporelle, et **poser un test de
+montage avant** de refactorer un composant racine — pas après.
+
 ### Les 460 fichiers de tests React n'étaient lintés par personne
 
 **`tests-ui/**` n'apparaissait dans aucun bloc `files:` d'`eslint.config.cjs`** : ESLint répondait

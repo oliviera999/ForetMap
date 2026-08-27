@@ -25,7 +25,22 @@ node --test tests/<fichier>.test.js   # cibler un fichier
 - Pour les tests qui mockent `global.fetch` : `{ concurrency: false }`.
 - Helper GL : `tests/helpers/glFixtures.js` (admin, classe, joueur, partie, tokens).
 
-## UI (`tests-ui/**`) — Vitest + RTL (jsdom).
+## UI (`tests-ui/**`) — Vitest + RTL (jsdom)
+
+- **Lintés depuis le 27/08** : `tests-ui/**` n'apparaissait dans aucun bloc `files:`
+  d'`eslint.config.cjs` — ~460 fichiers échappaient à `no-undef` / `no-unused-vars`. Le bloc
+  reprend les règles de `src/**` sans celles des Hooks (un test _monte_ des composants, il n'en
+  déclare pas) ; `no-console` y est autorisé.
+- **Tester un composant racine** — patron `tests-ui/AppShellWiring.test.jsx` : monter le vrai
+  composant, avec des **sondes** (`vi.mock` qui empile les props reçues) à la place des grosses
+  vues, et neutraliser les hooks de données/temps réel. Sert autant à vérifier un câblage de prop
+  qu'à garantir que l'écran rend sans lever. Même patron de sondes dans
+  `tests-ui/components/app/PedagoTabs.test.jsx`.
+  > Un composant racine sans test de montage est une zone aveugle : lint, build et 3 153 tests
+  > n'ont pas vu un `ReferenceError` levé à chaque rendu de l'écran authentifié
+  > (`docs/AUDIT_REFACTORING_APP_2026-08.md` §5).
+- Mock partiel d'un module : `vi.mock(chemin, async (importOriginal) => ({ ...(await importOriginal()), … }))`
+  — un mock exhaustif casse les imports secondaires (`withAppBase` dans `services/api`, par exemple).
 
 ## e2e (`e2e/*.spec.js`) — Playwright
 
