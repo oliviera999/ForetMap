@@ -405,13 +405,51 @@ pratique — mais c'est la même classe de défaut, et le correctif la ferme en 
 Une fois le workflow réparé, les 134 tags existants resteront sans release : à traiter à
 part si l'historique compte (un `gh release create` rétroactif), ou à assumer.
 
-### 4.5 — MINEUR · 79 branches distantes, dont 46 non fusionnées
+### 4.5 — MINEUR · 80 branches distantes, dont 26 non fusionnées
 
-32 branches entièrement fusionnées dans `main` peuvent être supprimées immédiatement. Parmi
-les 46 non fusionnées, les plus anciennes remontent au **8 juillet** (`claude/app-docs-reference-bhzs5c`,
-`claude/github-best-practices-inspiration-k8jfpr`, `claude/pr-merge-conflict-rule-5sdifu`).
-Chacune porte un travail qui, s'il compte encore, ne se rebasera qu'au prix fort ; s'il ne
-compte plus, il encombre. Un tri est à faire, branche par branche.
+> **Correction du 27/08.** Les chiffres publiés le 26/08 — « 79 branches, 32 fusionnées,
+> 46 non fusionnées » — étaient **faux**. Ils ont été calculés sur un **clone superficiel**
+> (`git rev-parse --is-shallow-repository` → `true`, 9 coupures d'historique, 284 commits
+> visibles sur 2263). Sur un tel clone, une branche ancienne n'a **pas d'ancêtre commun
+> visible** avec `main` : `git branch --merged` la classe « non fusionnée », et
+> `git diff main...branche` échoue avec « no merge base » en renvoyant un diff **vide** —
+> qu'un tri automatique interprète volontiers comme « n'apporte rien ».
+>
+> Autrement dit, la même commande donnait une réponse et son contraire selon la profondeur du
+> clone, sans rien signaler. Après `git fetch --unshallow` : **53 fusionnées, 26 non
+> fusionnées, aucune orpheline**.
+>
+> Leçon retenue dans `scripts/prune-merged-branches.sh` : le script **refuse de tourner** sur
+> un clone superficiel plutôt que de produire un tri faux.
+
+**Les 53 fusionnées** sont supprimables sans perte : le sommet de chacune est littéralement un
+ancêtre de `main`. Script fourni : `./scripts/prune-merged-branches.sh --delete`.
+
+**Les 26 non fusionnées** sont toutes des branches de bots `cursor/*`, et toutes **superséquées**
+— vérifié une par une, non par la date mais par le contenu :
+
+| Défaut proposé par la branche                        | Où il est fermé dans `main`                                                 |
+| ---------------------------------------------------- | --------------------------------------------------------------------------- |
+| Récurrence des tâches archivées (#266)               | `AND archived_at IS NULL` (`lib/recurringTasks.js`)                         |
+| `validated` écrasé par un recalcul concurrent (#274) | `lib/taskStatusRecalc.js` + garde `status !== 'validated'`                  |
+| `reponse_correcte` exposée en public (#284)          | filtre `canSeeAnswers` (`routes/quiz.js`)                                   |
+| Score QCM infini, jeton rejouable (#275)             | jeton de présentation à usage unique (`consumePresentationJti`)             |
+| Usurpation d'identité n3beur (#270)                  | identité dérivée du JWT (`lib/tasks/studentActionContext.js`, « audit B1 ») |
+| Photos de journaux de tâche non authentifiées (#272) | `task-logs/` en famille privée + garde de route                             |
+| Suppressions médiathèque non cloisonnées (#286)      | portée `app` sur la suppression en masse                                    |
+| Double vitalité / double jet (#279)                  | verrous `FOR UPDATE` (`lib/glVitality.js`)                                  |
+| Exports XLSX lore bloqués (#262, #265)               | `wrapXlsxRoute` (`lib/glXlsxAttachment.js`)                                 |
+
+Ce n'est pas un hasard : plusieurs PR de `main` disent explicitement reprendre ces correctifs
+(#328 « cinq correctifs **repris de PR en attente** », #330 « reprend les 21 mises à jour npm
+de #287, sur une branche fusionnable »). La réimplémentation est souvent **meilleure** que la
+proposition d'origine — la photo de journal de tâche, par exemple, est gardée par
+`parseOptionalAuth` + exclusion des visiteurs, avec la justification écrite qu'un journal est
+un compte rendu collaboratif, là où la branche appliquait une authentification uniforme qui
+aurait cassé son affichage.
+
+**Aucune n'est donc à fusionner.** Elles peuvent être supprimées (leurs PR sont closes), mais
+c'est une décision de propriétaire : ce lot ne les touche pas.
 
 ### 4.6 — MINEUR · La suite e2e ne bloque pas la CI
 
@@ -524,8 +562,14 @@ produit ». Le lot 31 (#370) vient d'en ajouter deux (`glossaryLinkClick`,
 — 502 lignes de différence sur 753, un gain faible pour un risque réel. Ce refus est le bon
 réflexe et mérite d'être cité en exemple : **un ratio élevé signale une piste, pas une dette.**
 
-Les deux paires qui valent un examen sérieux sont `context-comments` (102 lignes communes
-sur 229/165, pour un domaine sans divergence produit apparente) et `learning-links`.
+Les deux paires qui valaient un examen sérieux — `context-comments` (102 lignes communes) et
+`learning-links` (104) — ont été **traitées le 27/08**. Le compteur ne bouge que modestement
+(102 → 97), et c'est le résultat attendu : ce qui reste, ce sont les handlers CRUD, qui
+diffèrent là où les produits diffèrent (authentification, journal d'audit, temps réel). Ce qui
+a été extrait était la duplication **coûteuse** — des bornes de saisie portant des **noms
+différents pour des valeurs identiques**, qu'aucun `grep` ne rapprochait, et l'ordre des
+critères d'un filtre SQL, qui fixe l'ordre des `?`. Détail et tests : `docs/PARTAGE_FM_GL.md`
+§9.2.
 
 ### 6.2 — MINEUR · 24 fichiers au-dessus de 800 lignes
 
@@ -576,7 +620,7 @@ décrivent le mécanisme lui-même (`README.md`, `guide-du-mj.md`). Rien à repr
 
 ## 7. Plan d'action — état
 
-### Traité (lot du 26/08, v1.135.0)
+### Traité (lots des 26 et 27/08, v1.135.0 puis v1.136.0)
 
 | #   | Point                                        | Ce qui a été fait                                                                                                                                                             |
 | --- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -585,6 +629,9 @@ décrivent le mécanisme lui-même (`README.md`, `guide-du-mj.md`). Rien à repr
 | 3   | `npm audit fix` (§2.3)                       | **8 vulnérabilités → 2** ; les **quatre `high` sont fermées**. Seul `package-lock.json` change.                                                                               |
 | 4   | Réparer « Release tag » (§4.4)               | Notes passées par `env:` ; **et** corps borné à 60 000 octets, sans quoi l'étape restait rouge en 422.                                                                        |
 | 7   | Collision de numéro de migration (§3.1)      | **Constat corrigé** — le contrôle existait déjà. Rejoué dans le job `quality` (échec en 1 min au lieu de 18).                                                                 |
+| 6   | Bump de version à la fusion (§4.2)           | `version-bump.yml` : niveau SemVer déduit du message de fusion, trois gardes anti-boucle, échec explicite si `main` est protégée. Une PR ne touche plus au champ `version`.   |
+| 11  | Tri des branches (§4.5)                      | 53 fusionnées (script `scripts/prune-merged-branches.sh`), 26 non fusionnées **toutes vérifiées superséquées**, défaut par défaut. Suppression à exécuter : droit manquant.   |
+| —   | Mutualisation FM ↔ G&L (§6.1)                | Deux noyaux partagés livrés (commentaires contextuels, filtre des liens) + 12 tests qui **interdisent le retour** de la duplication. Détail : `docs/PARTAGE_FM_GL.md` §9.2.   |
 | 9   | Plancher de mot de passe différencié (§2.4)  | `getPasswordMinLengthFor(userType)` : **12** pour `teacher`, réglage inchangé pour les élèves. Signalé depuis juin (G8 de l'audit 2026-06).                                   |
 
 ### Laissé ouvert — décision nécessaire
@@ -595,15 +642,13 @@ décrivent le mécanisme lui-même (`README.md`, `guide-du-mj.md`). Rien à repr
    « construire sur le serveur au déploiement » et « publier `dist/` en artefact de release ».
    Ce n'est pas un correctif, c'est un arbitrage d'exploitation — d'où sa mise à l'écart de ce
    lot.
-6. **Bumper la version à la fusion** (§4.2) — même nature : modifie le processus de release.
-7. **Configuration o2switch du lot 30** (§5.2) — deux gestes **hors code** : une ligne de
+6. **Configuration o2switch du lot 30** (§5.2) — deux gestes **hors code** : une ligne de
    crontab (`*/3`) et la vérification d'instance unique dans cPanel.
-8. **Abaisser la limite de corps JSON** (§5.1) — 25 Mo → 2 Mo casserait les imports qui en
+7. **Abaisser la limite de corps JSON** (§5.1) — 25 Mo → 2 Mo casserait les imports qui en
    dépendent tant que les routes concernées n'ont pas été relevées une par une.
-9. **CSP `default-src 'self'`** (§2.5) — à mesurer en `Report-Only` avant d'appliquer.
-10. **e2e bloquant / seuil de couverture** (§4.6, §4.7) — l'un demande de stabiliser les
-    scénarios headless, l'autre de figer une base de mesure.
-11. **Trier les 79 branches** (§4.5) — 32 sont fusionnées et supprimables sur-le-champ.
+8. **CSP `default-src 'self'`** (§2.5) — à mesurer en `Report-Only` avant d'appliquer.
+9. **e2e bloquant / seuil de couverture** (§4.6, §4.7) — l'un demande de stabiliser les
+   scénarios headless, l'autre de figer une base de mesure.
 
 ---
 

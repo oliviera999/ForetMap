@@ -23,12 +23,12 @@ const {
 const { normalizeOptionalString, parsePageQuery } = require('../lib/shared/httpHelpers');
 const {
   AUTO_BODY_WITH_PHOTOS: CORE_AUTO_BODY_WITH_PHOTOS,
-  getAllowedReactionSet,
-  normalizeEmoji,
   loadContextCommentReactions,
   listContextComments,
-  toggleContextCommentReaction,
   softDeleteContextComment,
+  CONTEXT_COMMENT_LIMITS,
+  makeContextTypeNormalizer,
+  resolveReactionToggle,
 } = require('../lib/shared/contextCommentsCore');
 
 const router = express.Router();
@@ -36,20 +36,23 @@ const router = express.Router();
 const AUTO_BODY_WITH_PHOTOS = CORE_AUTO_BODY_WITH_PHOTOS;
 
 const ALLOWED_CONTEXT_TYPES = new Set(['task', 'project', 'zone', 'marker', 'plant', 'tutorial']);
-const DEFAULT_PAGE_SIZE = 20;
-const MAX_PAGE_SIZE = 50;
-const MIN_COMMENT_LEN = 2;
-const MAX_COMMENT_LEN = 4000;
-const MIN_REPORT_REASON_LEN = 3;
-const MAX_REPORT_REASON_LEN = 500;
+
+// Bornes de saisie : communes aux deux produits, donc lues au noyau partagé plutôt que
+// redéclarées ici. Les alias locaux gardent les noms historiques, pour que le reste du fichier
+// se lise sans changement.
+const {
+  DEFAULT_PAGE_SIZE,
+  MAX_PAGE_SIZE,
+  MIN_BODY: MIN_COMMENT_LEN,
+  MAX_BODY: MAX_COMMENT_LEN,
+  MIN_REPORT_REASON: MIN_REPORT_REASON_LEN,
+  MAX_REPORT_REASON: MAX_REPORT_REASON_LEN,
+} = CONTEXT_COMMENT_LIMITS;
+
+// Propre à ForetMap : G&L n'a pas de délai anti-rafale sur les commentaires contextuels.
 const COMMENT_COOLDOWN_MS = 3_000;
 
-function normalizeContextType(value) {
-  const type = String(value || '')
-    .trim()
-    .toLowerCase();
-  return ALLOWED_CONTEXT_TYPES.has(type) ? type : '';
-}
+const normalizeContextType = makeContextTypeNormalizer(ALLOWED_CONTEXT_TYPES);
 
 // O7 — query de GET / : coercition permissive (jamais de 400 issu du schéma) reproduisant
 // exactement l'ancienne lecture manuelle : `contextType` via normalizeContextType (type
@@ -186,15 +189,9 @@ router.post(
     if (!(await requireContextCommentParticipation(req, res))) return;
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
-    const allowedReactions = await getAllowedReactionSet();
-    const emoji = normalizeEmoji(req.body?.emoji, allowedReactions);
-    if (!emoji) return res.status(400).json({ error: 'Emoji non supporté' });
-
-    const toggle = await toggleContextCommentReaction(req.params.id, actor, emoji);
-    if (toggle.error === 'not_found')
-      return res.status(404).json({ error: 'Commentaire introuvable' });
-    if (toggle.error === 'deleted') return res.status(409).json({ error: 'Commentaire supprimé' });
-    const { comment, reacted } = toggle;
+    const toggle = await resolveReactionToggle(req.params.id, actor, req.body?.emoji);
+    if (toggle.status !== 200) return res.status(toggle.status).json({ error: toggle.error });
+    const { comment, reacted, emoji } = toggle;
 
     await logAudit(
       'context_comment_reaction_toggle',

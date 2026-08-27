@@ -43,44 +43,14 @@ router.get(
   requireGlAuth,
   requireGlPermission('gl.content.manage'),
   asyncHandler(async (req, res) => {
-    const where = [];
-    const params = [];
-    const ds = req.query.questionDataset
-      ? core.normalizeQuestionDataset(req.query.questionDataset)
-      : null;
-    if (req.query.questionDataset && !ds) {
-      return res.status(400).json({ error: 'Jeu de questions invalide' });
-    }
-    if (ds) {
-      where.push('question_dataset = ?');
-      params.push(ds);
-    }
-    const rt = core.normalizeResourceType(req.query.resourceType, ALLOWED);
-    if (req.query.resourceType && !rt) {
-      return res.status(400).json({ error: 'Type de ressource invalide' });
-    }
-    if (rt) {
-      where.push('resource_type = ?');
-      params.push(rt);
-      const ref = core.normalizeResourceRef(req.query.resourceRef);
-      if (ref) {
-        where.push('resource_ref = ?');
-        params.push(ref);
-      }
-    }
-    const qc = core.normalizeQuestionCode(req.query.questionCode);
-    if (qc) {
-      where.push('question_code = ?');
-      params.push(qc);
-    }
-    const status = req.query.status ? core.normalizeStatus(req.query.status, null) : null;
-    if (status) {
-      where.push('status = ?');
-      params.push(status);
-    }
+    // Même filtre que ForetMap, avec le critère `question_dataset` propre à G&L
+    // (`lib/shared/resourceQuestionGatingCore.js`). Seule la table reste ici.
+    const filtre = core.buildLinksFilter(req.query, { allowedTypes: ALLOWED, withDataset: true });
+    if (filtre.error) return res.status(400).json({ error: filtre.error });
+    const { where, params } = filtre;
     const rows = await queryAll(
       `SELECT * FROM gl_resource_question_links
-       ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+       ${core.linksWhereClause(where)}
        ORDER BY question_dataset, resource_type, resource_ref, question_code
        LIMIT 1000`,
       params,
