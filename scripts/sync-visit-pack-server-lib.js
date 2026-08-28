@@ -9,6 +9,7 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 const outDir = path.join(root, 'lib', 'visit-pack');
+const VISIT_PACK_PACKAGE_JSON = JSON.stringify({ type: 'module' }, null, 2) + '\n';
 const files = [
   ['src/utils/mascotPack.js', 'mascotPack.js'],
   ['src/utils/visitMascotState.js', 'visitMascotState.js'],
@@ -49,6 +50,7 @@ function main() {
     process.exit(1);
   }
   fs.mkdirSync(outDir, { recursive: true });
+  fs.writeFileSync(path.join(outDir, 'package.json'), VISIT_PACK_PACKAGE_JSON, 'utf8');
   for (const [relSrc, name] of files) {
     const from = path.join(root, relSrc);
     const to = path.join(outDir, name);

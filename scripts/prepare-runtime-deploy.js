@@ -45,6 +45,7 @@ const REQUIRED_RUNTIME_BASE = [
   'package-lock.json',
   'dist',
   /** Validation packs mascotte visite sans dossier `src/` (voir `npm run sync:visit-pack-lib`). */
+  'lib/visit-pack/package.json',
   'lib/visit-pack/mascotPack.js',
   'lib/visit-pack/visitMascotState.js',
   'lib/visit-pack/visitMascotInteractionEvents.js',
