@@ -7,6 +7,7 @@ const { app } = require('../server');
 const { initSchema, queryOne, execute } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
 const { setSetting, resolveDefaultMapId } = require('../lib/settings');
+const { seedBuiltinMascotPacks } = require('../lib/visitMascotBuiltinSeed');
 
 test.before(async () => {
   for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -18,6 +19,8 @@ test.before(async () => {
       await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
     }
   }
+  await seedBuiltinMascotPacks();
+  await execute("DELETE FROM visit_mascot_pack_deletions WHERE catalog_id = 'gnome1'");
 });
 
 async function getAdminToken() {

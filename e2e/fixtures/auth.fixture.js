@@ -157,6 +157,7 @@ async function dismissProfilePromotionModalIfPresent(page) {
 
 /** Clés d'onglets du tour de découverte (`foretmap_discovery_seen_v1`). */
 const DISCOVERY_TOUR_TAB_KEYS = [
+  'welcome',
   'map',
   'tasks',
   'plants',
@@ -301,8 +302,9 @@ async function enableTeacherMode(page, _legacyPin, _legacyOptions = {}) {
     await loginBtn.scrollIntoViewIfNeeded().catch(() => {});
     await loginBtn.evaluate((el) => el.click());
     await page.locator('.pin-card').waitFor({ state: 'visible', timeout: 25_000 });
-    await page.getByLabel('Email n3boss').fill(teacherEmail);
-    await page.getByLabel('Mot de passe').fill(teacherPassword);
+    const pinCard = page.locator('.pin-card');
+    await pinCard.getByLabel('Email n3boss').fill(teacherEmail);
+    await pinCard.getByRole('textbox', { name: 'Mot de passe', exact: true }).fill(teacherPassword);
     const [loginResp] = await Promise.all([
       page.waitForResponse(
         (r) => r.url().includes('/api/auth/login') && r.request().method() === 'POST',
@@ -345,6 +347,7 @@ async function enableTeacherMode(page, _legacyPin, _legacyOptions = {}) {
     { timeout: 90_000 },
   );
   await dismissProfilePromotionModalIfPresent(page);
+  await dismissDiscoveryTourIfPresent(page);
   await page.locator('.teacher-main .top-tabs').waitFor({ state: 'attached', timeout: 45_000 });
   await page
     .locator('.teacher-main .loader')
@@ -670,8 +673,8 @@ async function resetTaskFiltersInTasksView(page) {
 function tasksTabButton(page) {
   return page
     .locator('nav.bottom-nav')
-    .getByRole('button', { name: /✅.*Tâches/ })
-    .or(page.locator('.top-tabs').getByRole('button', { name: /✅.*Tâches/ }));
+    .getByRole('button', { name: /Tâches/i })
+    .or(page.locator('.top-tabs').getByRole('button', { name: /Tâches/i }));
 }
 
 async function clickTasksTab(page) {
@@ -694,7 +697,7 @@ async function clickTasksTab(page) {
 
   const topTab = page
     .locator('.top-tabs')
-    .getByRole('button', { name: /✅.*Tâches/ })
+    .getByRole('button', { name: /Tâches/i })
     .first();
   if ((await topTab.count()) > 0) {
     await topTab.scrollIntoViewIfNeeded().catch(() => {});
@@ -715,6 +718,19 @@ async function fillTaskTitle(dialog, title) {
     return;
   }
   await dialog.getByLabel('Titre *').fill(title);
+}
+
+async function openVisitTab(page) {
+  await dismissProfilePromotionModalIfPresent(page);
+  await dismissDiscoveryTourIfPresent(page);
+  const teacherVisit = page
+    .locator('.teacher-main .top-tabs')
+    .getByRole('button', { name: /Visite/i });
+  if ((await teacherVisit.count()) > 0) {
+    await teacherVisit.first().click({ timeout: 25_000 });
+    return;
+  }
+  await page.getByRole('button', { name: 'Visite', exact: true }).click({ timeout: 25_000 });
 }
 
 async function openTeacherTasksTab(page) {
@@ -1205,6 +1221,7 @@ module.exports = {
   dismissProfilePromotionModalIfPresent,
   dismissDiscoveryTourIfPresent,
   markAllDiscoveryToursSeen,
+  openVisitTab,
   enableTeacherMode,
   disableTeacherMode,
   syncStudentSessionToken,
