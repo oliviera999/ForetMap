@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Barre d’actions groupées du panneau Images mascotte (sélection multiple).
  * Présentation pure : état et logique dans le parent.

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { withAppBase } from '../../../shared/appBase.js';
 import { getGlToken } from '../../services/apiGL.js';
 import { GLButton } from '../ui/GLButton.jsx';

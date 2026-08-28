@@ -1,4 +1,3 @@
-import React from 'react';
 import { GL_NATURE_SUB_TABS } from '../constants/app-runtime.js';
 import { GLEcosystemsView } from './GLEcosystemsView.jsx';
 import { GLBiodiversityView } from './GLBiodiversityView.jsx';

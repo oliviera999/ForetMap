@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Bouton d'en-tête (présentation) qui replie/déplie une section de commentaires
  * contextuels — extrait de `ContextComments` (O6). Affiche le chevron, le titre,

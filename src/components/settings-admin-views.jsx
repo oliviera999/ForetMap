@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../services/api';
 import { compressImageWithPreset } from '../utils/image';
 import { scopeLabel, buildConstraintHelp } from '../utils/settingDisplay.js';
@@ -70,6 +70,54 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
     () => countSectionRows(filteredSettingSections),
     [filteredSettingSections],
   );
+
+  const load = async () => {
+    setErr('');
+    setLoading(true);
+    // Sans `admin.settings.read`, cet appel répondrait 403 : on ne le tente pas, et
+    // l'écran se limite au(x) sous-onglet(s) que le droit délégué autorise.
+    if (!canReadSettings) {
+      setSettings([]);
+      setMaps([]);
+      setLoading(false);
+      return;
+    }
+    try {
+      const data = await api('/api/settings/admin');
+      setSettings(Array.isArray(data?.settings) ? data.settings : []);
+      setMaps(Array.isArray(data?.maps) ? data.maps : []);
+    } catch (e) {
+      setErr(e.message || 'Impossible de charger les paramètres');
+    }
+    setLoading(false);
+  };
+
+  const saveSetting = async (key, value, okMsg = 'Paramètre enregistré') => {
+    setErr('');
+    setMsg('');
+    setSavingKey(key);
+    try {
+      // PUT /api/settings/admin/:key renvoie { ok, key, value } avec la valeur
+      // normalisée côté serveur : on met à jour la ligne localement plutôt que de
+      // recharger tous les paramètres (et repasser par l'écran de chargement).
+      const data = await api(`/api/settings/admin/${encodeURIComponent(key)}`, 'PUT', { value });
+      if (data && Object.prototype.hasOwnProperty.call(data, 'value')) {
+        setSettings((prev) =>
+          prev.map((row) => (row.key === key ? { ...row, value: data.value } : row)),
+        );
+      } else {
+        await load();
+      }
+      setMsg(okMsg);
+    } catch (e) {
+      // La validation croisée peut échouer après persistance : on resynchronise
+      // l'état complet depuis le serveur avant d'afficher l'erreur.
+      await load();
+      setErr(e.message || 'Échec enregistrement');
+    } finally {
+      setSavingKey('');
+    }
+  };
 
   const renderSettingField = (row) => {
     const key = String(row.key || '');
@@ -169,27 +217,6 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
     );
   };
 
-  const load = async () => {
-    setErr('');
-    setLoading(true);
-    // Sans `admin.settings.read`, cet appel répondrait 403 : on ne le tente pas, et
-    // l'écran se limite au(x) sous-onglet(s) que le droit délégué autorise.
-    if (!canReadSettings) {
-      setSettings([]);
-      setMaps([]);
-      setLoading(false);
-      return;
-    }
-    try {
-      const data = await api('/api/settings/admin');
-      setSettings(Array.isArray(data?.settings) ? data.settings : []);
-      setMaps(Array.isArray(data?.maps) ? data.maps : []);
-    } catch (e) {
-      setErr(e.message || 'Impossible de charger les paramètres');
-    }
-    setLoading(false);
-  };
-
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -209,33 +236,6 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
             String(a.label || '').localeCompare(String(b.label || ''), 'fr'),
         ),
     );
-  };
-
-  const saveSetting = async (key, value, okMsg = 'Paramètre enregistré') => {
-    setErr('');
-    setMsg('');
-    setSavingKey(key);
-    try {
-      // PUT /api/settings/admin/:key renvoie { ok, key, value } avec la valeur
-      // normalisée côté serveur : on met à jour la ligne localement plutôt que de
-      // recharger tous les paramètres (et repasser par l'écran de chargement).
-      const data = await api(`/api/settings/admin/${encodeURIComponent(key)}`, 'PUT', { value });
-      if (data && Object.prototype.hasOwnProperty.call(data, 'value')) {
-        setSettings((prev) =>
-          prev.map((row) => (row.key === key ? { ...row, value: data.value } : row)),
-        );
-      } else {
-        await load();
-      }
-      setMsg(okMsg);
-    } catch (e) {
-      // La validation croisée peut échouer après persistance : on resynchronise
-      // l'état complet depuis le serveur avant d'afficher l'erreur.
-      await load();
-      setErr(e.message || 'Échec enregistrement');
-    } finally {
-      setSavingKey('');
-    }
   };
 
   const saveMap = async (mapId, patch, okMsg = 'Carte mise à jour') => {

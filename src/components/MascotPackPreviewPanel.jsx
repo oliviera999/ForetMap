@@ -1,4 +1,3 @@
-import React from 'react';
 import MascotPackRenderPreview from './mascot/MascotPackRenderPreview.jsx';
 
 /**

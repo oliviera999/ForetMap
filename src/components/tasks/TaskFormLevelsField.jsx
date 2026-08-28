@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Ligne « Niveaux » du formulaire de tâche (feuille prop-driven).
  *

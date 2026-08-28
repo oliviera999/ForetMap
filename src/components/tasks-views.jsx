@@ -12,7 +12,6 @@ import { useTeacherTaskData } from '../hooks/useTeacherTaskData';
 import { useTutorialReadIds } from '../hooks/useTutorialReadIds';
 
 import { resolveHelpChrome, resolveHelpQuickTip, resolveTooltipKey } from '../utils/helpResolve';
-import { getContentText } from '../utils/content';
 import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
 import { TasksEmptyState } from './TasksEmptyState.jsx';
 import { TasksTeacherSections } from './TasksTeacherSections.jsx';

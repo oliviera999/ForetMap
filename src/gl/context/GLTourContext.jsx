@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 
 import { GuidedTourOverlay } from '../../shared/components/GuidedTourOverlay.jsx';
 import { useGuidedTour } from '../../shared/hooks/useGuidedTour.js';

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { describe, expect, it, vi, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
 import { useGeolocation } from '../../src/hooks/useGeolocation.js';

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { withAppBase } from '../../services/api';
 import { isSpriteLibraryPreviewableUrl } from '../../utils/visitMascotPackTiming.js';
 import { buildStateOptions, getStateLabel } from '../../utils/visitMascotBehaviorRegistry.js';

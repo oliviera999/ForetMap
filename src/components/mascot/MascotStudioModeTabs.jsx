@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Liste d'onglets (présentation) des modes du studio mascotte (Packs / Dialogues),
  * extraite de `VisitMascotPackManager` (O6). Rend une barre de boutons `role="tab"`

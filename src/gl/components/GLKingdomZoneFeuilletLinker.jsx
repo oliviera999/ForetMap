@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 

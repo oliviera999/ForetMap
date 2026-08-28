@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { GLLoreGlossaryPopover } from '../../src/gl/components/GLLoreGlossaryPopover.jsx';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { TaskFiltersBar } from '../../src/components/tasks/TaskFiltersBar.jsx';

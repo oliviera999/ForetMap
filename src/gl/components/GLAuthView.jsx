@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 
 import { withAppBase } from '../../shared/appBase.js';
 import { apiGL } from '../services/apiGL.js';

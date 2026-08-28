@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   DEFAULT_GL_BRAND_COLORS,
   GL_BRAND_COLOR_KEYS,

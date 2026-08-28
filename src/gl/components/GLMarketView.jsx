@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useGLMarketTrade } from '../hooks/useGLMarketTrade.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';

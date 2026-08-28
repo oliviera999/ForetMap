@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 /**
  * Sous-onglets « Saisie manuelle » / « Import XLSX » pour un catalogue GL (glossaire, espèces, etc.).

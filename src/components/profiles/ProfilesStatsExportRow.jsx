@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Ligne d'export CSV des statistiques de la vue « Profils & utilisateurs ».
  * Extrait de profiles-views.jsx (O6) — présentationnel pur. DOM/classes/textes inchangés.

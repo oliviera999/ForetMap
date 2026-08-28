@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { HelpPanel } from '../HelpPanel';
 import { resolveHelpPanelSection } from '../../utils/helpResolve';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';

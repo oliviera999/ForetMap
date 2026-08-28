@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { GLHelpPanel } from './GLHelpPanel.jsx';
 import { useGlHelpContent } from '../hooks/useGlHelpContent.js';
 

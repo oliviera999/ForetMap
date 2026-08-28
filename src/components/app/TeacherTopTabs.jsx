@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Barre d'onglets haute du chemin n3boss — extraite de `src/App.jsx` (O6).
  *

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { withAppBase } from '../services/api';
 import { ImageLightbox } from '../shared/components/ImageLightbox.jsx';
 

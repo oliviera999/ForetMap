@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MARKER_EMOJIS } from '../../constants/emojis';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
@@ -149,7 +149,7 @@ function MarkerModal({
     try {
       await onSave(buildPayload());
       onClose();
-    } catch (e) {
+    } catch (_) {
       setSaving(false);
     }
   };
@@ -162,7 +162,7 @@ function MarkerModal({
       await onUpdate(marker.id, buildPayload());
       setToast('Sauvegardé ✓');
       setTab('info');
-    } catch (e) {
+    } catch (_) {
       setToast('Erreur');
     }
     setSaving(false);

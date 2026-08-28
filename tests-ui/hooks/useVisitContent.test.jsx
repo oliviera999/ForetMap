@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, act, waitFor } from '@testing-library/react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { api } from '../../src/services/api';
 import { useVisitContent } from '../../src/hooks/useVisitContent.js';
 

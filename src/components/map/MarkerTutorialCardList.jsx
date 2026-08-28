@@ -1,4 +1,3 @@
-import React from 'react';
 import { tutorialPreviewCanEmbed, tutorialPreviewPayload } from '../TutorialPreviewModal';
 
 /**

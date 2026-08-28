@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Sélecteur d'emoji de l'éditeur de visite (zone / repère), extrait de
  * `VisitEditorPanel` (O6). Présentation pure : l'état du formulaire reste dans le

@@ -1,4 +1,3 @@
-import React from 'react';
 import { DialogShell } from '../../components/DialogShell.jsx';
 import { GLProfileEditor } from './GLProfileEditor.jsx';
 import { GLButton } from './ui/GLButton.jsx';

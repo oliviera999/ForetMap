@@ -1,4 +1,3 @@
-import React from 'react';
 import { GL_SPELL_FIELD_LABELS } from '../../utils/glSpellFieldLabels.js';
 import { SELECT_FIELD_OPTIONS, TEXTAREA_FIELDS } from '../../utils/glSpellsEditorForm.js';
 import { GLField } from '../ui/GLField.jsx';

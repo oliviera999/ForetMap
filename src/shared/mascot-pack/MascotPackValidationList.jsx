@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Liste d’erreurs de validation pack (visite ou GL).
  * @param {{ issueLines?: string[], className?: string, title?: string }} props

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { api } from '../../services/api';
 import { validateUserIdentityFields } from '../../utils/profilesUserFields.js';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';

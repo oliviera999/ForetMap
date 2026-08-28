@@ -112,6 +112,15 @@ module.exports = [
       // dependances manquantes en avertissement pour guider la stabilisation (useCallback/useMemo).
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      // Zone morte temporelle : un `const` declare plus bas dans le corps d'un composant,
+      // reference depuis un tableau de dependances de hook, leve un ReferenceError a CHAQUE
+      // rendu — invisible pour le build et pour les tests qui ne montent pas le composant.
+      // Cas rencontre le 27/08 sur App.jsx (ecran authentifie entierement casse).
+      // `functions: false` : les declarations de fonction sont hissees, l'ordre y est libre.
+      'no-use-before-define': [
+        'error',
+        { functions: false, classes: false, variables: true, allowNamedExports: true },
+      ],
     },
   },
   {
@@ -124,8 +133,42 @@ module.exports = [
     },
   },
   {
+    // Tests UI React (Vitest, jsdom) : ils n'etaient couverts par AUCUN bloc `files:`,
+    // donc pas lintes du tout (~460 fichiers). Memes garde-fous que `src/**`, sans les
+    // regles de Hooks : un test monte les composants, il n'en declare pas.
+    files: ['tests-ui/**/*.{js,jsx}'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+    },
+    rules: {
+      'no-debugger': 'error',
+      'no-duplicate-case': 'error',
+      'no-func-assign': 'error',
+      'no-undef': 'error',
+      'no-unreachable': 'warn',
+      'no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
+      'no-use-before-define': [
+        'error',
+        { functions: false, classes: false, variables: true, allowNamedExports: true },
+      ],
+    },
+  },
+  {
     // Outils CLI (scripts/**) et tests : l'usage de console y est légitime.
-    files: ['scripts/**/*.js', 'tests/**/*.js'],
+    files: ['scripts/**/*.js', 'tests/**/*.js', 'tests-ui/**/*.{js,jsx}'],
     rules: { 'no-console': 'off' },
   },
 ];

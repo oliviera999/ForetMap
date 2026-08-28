@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   DEFAULT_VISIT_MASCOT_DIALOG_PROFILE,
   VISIT_MASCOT_DIALOG_EVENT_KEYS,

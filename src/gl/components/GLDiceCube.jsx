@@ -1,5 +1,3 @@
-import React from 'react';
-
 const PIP_POSITIONS = {
   1: ['center'],
   2: ['tl', 'br'],

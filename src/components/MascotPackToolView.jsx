@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { parsePackJson, stringifyPack } from '../utils/mascotPackEditorModel.js';
 import MascotPackWysiwygEditor from './MascotPackWysiwygEditor.jsx';
 import MascotPackRenderPreview from './mascot/MascotPackRenderPreview.jsx';

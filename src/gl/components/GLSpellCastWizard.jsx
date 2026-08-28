@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDialogA11y } from '../../hooks/useDialogA11y.js';
 import { GLButton } from './ui/GLButton.jsx';

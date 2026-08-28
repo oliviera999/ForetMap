@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Lightbox } from '../map-views';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import {

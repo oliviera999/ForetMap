@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { normalizeMarkerEffects } from '../utils/glMarkerEventConfig.js';
 
 function branchFromConfig(effects, key) {

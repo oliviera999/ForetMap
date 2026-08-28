@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { withAppBase } from '../services/api';
 import { isLikelyImageFile } from '../utils/image';
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';

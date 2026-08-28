@@ -1,4 +1,3 @@
-import React from 'react';
 import { GLInput } from '../ui/GLInput.jsx';
 import {
   canEditContributionRow,

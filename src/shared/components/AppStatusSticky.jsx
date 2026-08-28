@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { subscribeAppStatus } from '../appStatusEvents.js';
 
 /** Durée d'affichage des états transitoires (confirmation) avant effacement. */

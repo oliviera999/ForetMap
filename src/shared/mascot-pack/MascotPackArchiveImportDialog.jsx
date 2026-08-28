@@ -1,4 +1,4 @@
-import React, { useId, useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { DialogShell } from '../components/DialogShell.jsx';
 import { api } from '../../services/api.js';
 import { apiGL } from '../../gl/services/apiGL.js';

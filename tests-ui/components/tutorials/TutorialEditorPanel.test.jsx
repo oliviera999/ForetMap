@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { TutorialEditorPanel } from '../../../src/components/tutorials/TutorialEditorPanel.jsx';
@@ -61,13 +60,13 @@ describe('TutorialEditorPanel', () => {
   });
 
   test('saisie du titre : setForm met à jour le champ title', () => {
-    const { form, handlers } = renderPanel();
+    const { handlers } = renderPanel();
     fireEvent.change(fieldControl('Titre *'), { target: { value: 'Greffe' } });
     expect(lastFormUpdate(handlers.setForm).title).toBe('Greffe');
   });
 
   test('sans filtre carte : zones non spéciales + repères listés ; cocher une zone l’ajoute', () => {
-    const { form, handlers } = renderPanel();
+    const { handlers } = renderPanel();
     expect(screen.getByText('Mare')).toBeTruthy();
     expect(screen.getByText('Potager')).toBeTruthy();
     expect(screen.queryByText(/Spéciale/)).toBeNull();
@@ -76,7 +75,7 @@ describe('TutorialEditorPanel', () => {
   });
 
   test('changement de carte : map_id mis à jour et lieux hors carte décochés', () => {
-    const { form, handlers } = renderPanel({ zone_ids: ['z1', 'z2'], marker_ids: ['m1'] });
+    const { handlers } = renderPanel({ zone_ids: ['z1', 'z2'], marker_ids: ['m1'] });
     fireEvent.change(fieldControl('Carte (filtre zones / repères)', 'select'), {
       target: { value: 'jardin' },
     });

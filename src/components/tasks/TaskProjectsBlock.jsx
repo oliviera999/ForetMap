@@ -1,4 +1,3 @@
-import React from 'react';
 import { mapLabelFromMaps, normalizeProjectUiStatus } from '../../utils/taskListHelpers.js';
 import { ContextComments } from '../context-comments';
 import { MarkdownContent } from '../MarkdownContent.jsx';

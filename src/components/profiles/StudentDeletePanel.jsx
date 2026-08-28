@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Panneau « Suppression de {studentPlural} » (administration des profils).
  * Extrait de profiles-views.jsx (O6) — présentationnel pur : tout l’état et les

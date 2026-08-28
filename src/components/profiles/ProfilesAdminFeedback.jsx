@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Bandeaux de retour (erreur / succès) de la vue « Profils & utilisateurs ».
  * Extrait de profiles-views.jsx (O6) — présentationnel pur. DOM/classes/textes inchangés.
