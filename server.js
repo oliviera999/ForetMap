@@ -30,6 +30,8 @@ const { parseBearerToken, JWT_SECRET, requirePermission } = require('./middlewar
 const { verifyJwtToken } = require('./lib/auth/jwtPipeline');
 const { resolveProductFromRequest } = require('./lib/productResolver');
 const { generalLimiter, authLimiter } = require('./lib/rateLimit');
+const { CSP_REPORT_PATH, buildEnforcedPolicy, buildReportOnlyPolicy } = require('./lib/csp');
+const { cspReportHandler, BODY_LIMIT: CSP_BODY_LIMIT } = require('./lib/cspReport');
 
 const healthRouter = require('./routes/health');
 const { createAdminOpsRouter } = require('./routes/admin-ops');
@@ -167,7 +169,11 @@ app.use('/api/gl/auth/reset-password', authLimiter);
 /** Santé / readiness : toujours joignables pendant boot ou redémarrage. */
 function isApiAvailabilityExemptPath(originalUrl) {
   const p = String(originalUrl || '').split('?')[0];
-  return p === '/api/health' || p === '/api/health/db' || p === '/api/ready';
+  // Le collecteur CSP est exempté du verrou de readiness : il ne touche pas la base, et un
+  // navigateur qui reçoit 503 réessaie — on ajouterait du trafic pendant une panne.
+  return (
+    p === '/api/health' || p === '/api/health/db' || p === '/api/ready' || p === CSP_REPORT_PATH
+  );
 }
 
 /**
@@ -200,6 +206,22 @@ app.use('/api', (req, res, next) => {
   return next();
 });
 
+// Collecteur des signalements CSP. **La position compte** : après le limiteur `/api/` (un
+// navigateur emballé reste borné) et après le verrou de readiness (dont il est exempté ci-dessus),
+// mais **avant** les parseurs de corps généraux — sinon un signalement envoyé en
+// `application/json` serait lu avec la limite de 25 Mo au lieu de 16 ko, sur un endpoint sans
+// authentification. Les navigateurs postent en `application/csp-report` ou
+// `application/reports+json`, qu'`express.json()` ne reconnaît pas par défaut : d'où le parseur
+// dédié, qui couvre ici les trois types.
+app.post(
+  CSP_REPORT_PATH,
+  express.json({
+    type: ['application/csp-report', 'application/reports+json', 'application/json'],
+    limit: CSP_BODY_LIMIT,
+  }),
+  cspReportHandler,
+);
+
 // JSON volumineux (ex. photos base64 forum). Défaut 25mb ; surcharge : FORETMAP_JSON_BODY_LIMIT (ex. 100mb).
 const jsonBodyLimit = String(process.env.FORETMAP_JSON_BODY_LIMIT || '25mb').trim() || '25mb';
 app.use(express.json({ limit: jsonBodyLimit }));
@@ -217,9 +239,15 @@ app.use((err, req, res, next) => {
   }
   return next(err);
 });
+// Deux en-têtes, deux rôles (cf. `lib/csp.js`) :
+//  - `Content-Security-Policy` — ce qui est **imposé**, inchangé (le `img-src` historique) ;
+//  - `Content-Security-Policy-Report-Only` — la politique **candidate**, qui signale sans bloquer.
+// Ce lot ne durcit donc rien : il produit la mesure qui manquait pour décider (audit §2.5).
+const CSP_ENFORCED = buildEnforcedPolicy();
+const CSP_REPORT_ONLY = buildReportOnlyPolicy({ reportPath: CSP_REPORT_PATH });
 app.use((req, res, next) => {
-  // Limite les sources d'images (photos externes + base64 locales).
-  res.setHeader('Content-Security-Policy', "img-src 'self' https: data: blob:;");
+  res.setHeader('Content-Security-Policy', CSP_ENFORCED);
+  res.setHeader('Content-Security-Policy-Report-Only', CSP_REPORT_ONLY);
   next();
 });
 
