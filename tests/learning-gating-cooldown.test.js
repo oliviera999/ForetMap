@@ -274,6 +274,11 @@ test('sous la tolérance — la faute est comptée, la ressource reste ouverte',
     !/INTERVAL \? DAY/.test(db.calls.execute[0].sql),
     'aucune date de déblocage future ne doit être posée tant que la tolérance tient',
   );
+  assert.match(
+    db.calls.execute[0].sql,
+    /1970-01-01 00:00:00/,
+    'sentinelle de comptage, pas NOW() — sinon le compteur se remet à zéro à la lecture suivante',
+  );
 });
 
 test('tolérance épuisée — le verrou tombe', async () => {
@@ -296,6 +301,90 @@ test('tolérance épuisée — le verrou tombe', async () => {
   });
   assert.match(db.calls.execute[0].sql, /INTERVAL \? DAY/);
   assert.equal(res?.attempts_left, 0);
+});
+
+test('isCountingOnlyLockedUntil — sentinelle 1970, pas une date réelle', () => {
+  assert.equal(cooldown.isCountingOnlyLockedUntil(cooldown.COUNTING_LOCK_UNTIL), true);
+  assert.equal(cooldown.isCountingOnlyLockedUntil(new Date('1970-01-01T00:00:00Z')), true);
+  assert.equal(cooldown.isCountingOnlyLockedUntil(new Date(Date.now() - DAY)), false);
+  assert.equal(cooldown.isCountingOnlyLockedUntil(new Date(Date.now() + DAY)), false);
+  assert.equal(cooldown.isCountingOnlyLockedUntil(null), false);
+});
+
+test('readWrongAttempts — une ligne de comptage conserve le compteur', async () => {
+  const db = fakeDb({
+    cooldownRow: { wrong_attempts: 2, locked_until: cooldown.COUNTING_LOCK_UNTIL },
+  });
+  const n = await cooldown.readWrongAttempts(db, {
+    product: 'fm',
+    userId: '7',
+    resourceType: 'tutorial',
+    resourceRef: '12',
+    keyCode: '',
+  });
+  assert.equal(n, 2, 'NOW() à l’écriture aurait été lu comme « verrou échu → 0 »');
+});
+
+test('readWrongAttempts — un vrai verrou expiré remet à zéro', async () => {
+  const db = fakeDb({
+    cooldownRow: { wrong_attempts: 5, locked_until: new Date(Date.now() - DAY).toISOString() },
+  });
+  const n = await cooldown.readWrongAttempts(db, {
+    product: 'fm',
+    userId: '7',
+    resourceType: 'tutorial',
+    resourceRef: '12',
+    keyCode: '',
+  });
+  assert.equal(n, 0);
+});
+
+test('tolérance 2 — deux fautes successives s’accumulent, la troisième verrouille', async () => {
+  // Le défaut réel : fakeDb statique ne relisait pas ce que touchWrongAttempts venait d'écrire.
+  // Ici la ligne persistée porte la sentinelle 1970, comme en production.
+  let stored = null;
+  const db = {
+    calls: { execute: [] },
+    async queryOne(sql) {
+      if (/resource_question_links/.test(sql)) return { ok: 1 };
+      if (/gating_cooldowns/.test(sql)) return stored;
+      return null;
+    },
+    async execute(sql, params) {
+      this.calls.execute.push({ sql, params });
+      if (/INTERVAL \? DAY/.test(sql)) {
+        stored = {
+          wrong_attempts: params[params.length - 2],
+          locked_until: new Date(Date.now() + Number(params[params.length - 1]) * DAY),
+        };
+      } else {
+        stored = {
+          wrong_attempts: params[params.length - 1],
+          locked_until: cooldown.COUNTING_LOCK_UNTIL,
+        };
+      }
+      return { affectedRows: 1 };
+    },
+  };
+  const payload = {
+    product: 'fm',
+    userId: '7',
+    resourceType: 'tutorial',
+    resourceRef: '12',
+    questionCode: 'QF0001',
+    isCorrect: false,
+    retryDays: 3,
+    allowedWrongAttempts: 2,
+  };
+  const first = await cooldown.maybeRegisterCooldownOnWrong(db, payload);
+  assert.equal(first.locked, false);
+  assert.equal(first.wrong_attempts, 1);
+  const second = await cooldown.maybeRegisterCooldownOnWrong(db, payload);
+  assert.equal(second.locked, false, 'deuxième faute encore tolérée');
+  assert.equal(second.wrong_attempts, 2);
+  const third = await cooldown.maybeRegisterCooldownOnWrong(db, payload);
+  assert.match(db.calls.execute[2].sql, /INTERVAL \? DAY/, 'la troisième faute pose le verrou');
+  assert.equal(third?.attempts_left, 0);
 });
 
 test('un verrou expiré remet le compteur d’essais à zéro', async () => {
