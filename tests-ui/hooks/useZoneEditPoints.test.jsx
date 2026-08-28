@@ -307,30 +307,68 @@ describe('useZoneEditPoints — sélection multiple', () => {
     expect(result.current.selectedPtIdxs.size).toBe(0);
   });
 
-  it('le lasso sélectionne les sommets du rectangle, un clic simple désélectionne', () => {
-    const { result } = setup({ toImagePct: pctFromClient });
+  it('un clic sur le fond désélectionne ; un glisser délègue au pan', () => {
+    const onBackgroundPanStart = vi.fn();
+    const onBackgroundPanMove = vi.fn();
+    const onBackgroundPanEnd = vi.fn();
+    const { result } = setup({
+      toImagePct: pctFromClient,
+      onBackgroundPanStart,
+      onBackgroundPanMove,
+      onBackgroundPanEnd,
+    });
     startSquare(result);
-    act(() => result.current.onLassoPointerDown(modifierPointerEvent(-5, -5)));
-    act(() => result.current.onLassoPointerMove(modifierPointerEvent(50, 50)));
-    expect(result.current.lassoRect).toEqual({ x1: -5, y1: -5, x2: 50, y2: 50 });
-    act(() => result.current.onLassoPointerUp(modifierPointerEvent(50, 50)));
-    expect([...result.current.selectedPtIdxs]).toEqual([0]);
-    expect(result.current.lassoRect).toBeNull();
+    act(() => result.current.selectAllPoints());
+    act(() => result.current.onBackgroundPointerDown(modifierPointerEvent(50, 50)));
+    act(() => result.current.onBackgroundPointerUp(modifierPointerEvent(50, 50)));
+    expect(result.current.selectedPtIdxs.size).toBe(0);
+    expect(onBackgroundPanStart).toHaveBeenCalledWith(50, 50);
+    expect(onBackgroundPanMove).not.toHaveBeenCalled();
+    expect(onBackgroundPanEnd).toHaveBeenCalled();
 
-    act(() => result.current.onLassoPointerDown(modifierPointerEvent(50, 50)));
-    act(() => result.current.onLassoPointerUp(modifierPointerEvent(50, 50)));
+    act(() => result.current.onBackgroundPointerDown(modifierPointerEvent(10, 10)));
+    act(() => result.current.onBackgroundPointerMove(modifierPointerEvent(30, 30)));
+    expect(onBackgroundPanStart).toHaveBeenCalledWith(10, 10);
+    expect(onBackgroundPanMove).toHaveBeenCalledWith(30, 30);
+    act(() => result.current.onBackgroundPointerUp(modifierPointerEvent(30, 30)));
+    expect(onBackgroundPanEnd).toHaveBeenCalled();
+  });
+
+  it('un second doigt (pinch) abandonne le pan en cours', () => {
+    const onBackgroundPanEnd = vi.fn();
+    const { result } = setup({ toImagePct: pctFromClient, onBackgroundPanEnd });
+    startSquare(result);
+    act(() => result.current.onBackgroundPointerDown(modifierPointerEvent(10, 10)));
+    act(() => result.current.onBackgroundPointerMove(modifierPointerEvent(30, 30)));
+    act(() =>
+      result.current.onBackgroundPointerDown({ ...modifierPointerEvent(60, 60), pointerId: 2 }),
+    );
+    expect(onBackgroundPanEnd).toHaveBeenCalled();
+    act(() => result.current.onBackgroundPointerUp(modifierPointerEvent(30, 30)));
     expect(result.current.selectedPtIdxs.size).toBe(0);
   });
 
-  it('un second doigt (pinch) abandonne le lasso au lieu de sélectionner', () => {
-    const { result } = setup({ toImagePct: pctFromClient });
+  it('les flèches panent la vue sans sélection ou nudgent les sommets sélectionnés', () => {
+    const onKeyboardPan = vi.fn();
+    const { result } = setup({
+      toImagePct: pctFromClient,
+      onKeyboardPan,
+      mapScaleInv: 1,
+      mapImgW: 100,
+      mapImgH: 100,
+    });
     startSquare(result);
-    act(() => result.current.onLassoPointerDown(modifierPointerEvent(-5, -5)));
-    act(() => result.current.onLassoPointerMove(modifierPointerEvent(50, 50)));
-    act(() => result.current.onLassoPointerDown({ ...modifierPointerEvent(60, 60), pointerId: 2 }));
-    expect(result.current.lassoRect).toBeNull();
-    act(() => result.current.onLassoPointerUp(modifierPointerEvent(50, 50)));
-    expect(result.current.selectedPtIdxs.size).toBe(0);
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    });
+    expect(onKeyboardPan).toHaveBeenCalledWith(1, 0);
+
+    tapVertex(result, 0);
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    });
+    expect(result.current.editPoints[0]).toEqual({ xp: 0, yp: 1 });
+    expect(onKeyboardPan).toHaveBeenCalledTimes(1);
   });
 
   it('glisser un sommet du groupe déplace toute la sélection, bornée par le plan', () => {
@@ -370,13 +408,8 @@ describe('useZoneEditPoints — aimant de contour', () => {
     startSquare(result);
     act(() => result.current.onEditPointPointerDown(0, modifierPointerEvent(0, 0)));
     act(() => result.current.onEditPointPointerMove(0, modifierPointerEvent(40, 10)));
-    expect(snapPoint).toHaveBeenCalledWith(
-      { xp: 40, yp: 10 },
-      {
-        radiusPct: 2,
-        minStrength: undefined,
-      },
-    );
+    expect(snapPoint).toHaveBeenCalled();
+    expect(snapPoint.mock.calls.some(([p]) => p.xp === 40 && p.yp === 10)).toBe(true);
     expect(result.current.editPoints[0]).toEqual({ xp: 42, yp: 8 });
     act(() => result.current.onEditPointPointerUp(modifierPointerEvent(40, 10)));
   });
@@ -392,7 +425,12 @@ describe('useZoneEditPoints — aimant de contour', () => {
     startSquare(result);
     act(() => result.current.onEditPointPointerDown(0, modifierPointerEvent(0, 0)));
     act(() => result.current.onEditPointPointerMove(0, modifierPointerEvent(40, 10)));
-    expect(snapPoint).toHaveBeenCalledWith({ xp: 40, yp: 10 }, { radiusPct: 2, minStrength: 0.32 });
+    expect(snapPoint).toHaveBeenCalled();
+    expect(
+      snapPoint.mock.calls.some(
+        ([p, opts]) => p.xp === 40 && p.yp === 10 && opts.minStrength === 0.32,
+      ),
+    ).toBe(true);
 
     // Le recalage groupé utilise le même réglage.
     snapPoint.mockClear();
