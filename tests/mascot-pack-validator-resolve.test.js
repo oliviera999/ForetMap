@@ -19,6 +19,10 @@ test('mascotPackValidatorResolve : miroir lib présent dans le dépôt', () => {
   assert.ok(probe.candidatesCount >= 1);
   const root = path.resolve(__dirname, '..');
   assert.ok(fs.existsSync(path.join(root, 'lib', 'visit-pack', 'mascotPack.js')));
+  const pkg = JSON.parse(
+    fs.readFileSync(path.join(root, 'lib', 'visit-pack', 'package.json'), 'utf8'),
+  );
+  assert.equal(pkg.type, 'module');
 });
 
 test('mascotPackValidatorResolve : au moins un candidat importable', () => {
