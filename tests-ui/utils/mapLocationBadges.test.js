@@ -35,6 +35,20 @@ describe('computeTaskVisualByLocation', () => {
     expect(markerTaskVisualById.size).toBe(0);
   });
 
+  test('ignore les tâches archivées ou d’un projet clos', () => {
+    const tasks = [
+      { id: 1, status: 'available', archived_at: '2026-01-01', zone_ids: ['z1'] },
+      {
+        id: 2,
+        status: 'in_progress',
+        project_status: 'validated',
+        zone_ids: ['z2'],
+      },
+    ];
+    const { zoneTaskVisualById } = computeTaskVisualByLocation(tasks);
+    expect(zoneTaskVisualById.size).toBe(0);
+  });
+
   test('fusionne les statuts d’un même lieu selon la priorité visuelle (todo > progress)', () => {
     const tasks = [
       { id: 1, status: 'in_progress', zone_ids: ['z1'] },
@@ -124,6 +138,28 @@ describe('computeTutorialCountByLocation', () => {
     const tasks = [
       { id: 1, status: 'done', zone_ids: ['z1'], tutorial_ids: [7] },
       { id: 2, status: 'todo', zone_ids: ['z1'], tutorial_ids: [8] },
+    ];
+    const { zoneTutorialCountById } = computeTutorialCountByLocation({ ...base, tutorials, tasks });
+    expect(zoneTutorialCountById.size).toBe(0);
+  });
+
+  test('ignore les tâches archivées ou d’un projet clos pour l’héritage tutoriel', () => {
+    const tutorials = [{ id: 7, zone_ids: [], marker_ids: [] }];
+    const tasks = [
+      {
+        id: 1,
+        status: 'available',
+        archived_at: '2026-01-01',
+        zone_ids: ['z1'],
+        tutorial_ids: [7],
+      },
+      {
+        id: 2,
+        status: 'in_progress',
+        project_status: 'completed',
+        zone_ids: ['z1'],
+        tutorial_ids: [7],
+      },
     ];
     const { zoneTutorialCountById } = computeTutorialCountByLocation({ ...base, tutorials, tasks });
     expect(zoneTutorialCountById.size).toBe(0);
