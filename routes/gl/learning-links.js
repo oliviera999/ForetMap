@@ -20,6 +20,8 @@ const { getGlGatingSettings, setGlGatingSetting, GATING_KEYS } = require('../../
 const core = require('../../lib/shared/resourceQuestionGatingCore');
 const gatingAdmin = require('../../lib/learningGatingAdmin');
 const linksBulk = require('../../lib/learningLinksBulk');
+const policyHelpers = require('../../lib/gatingPolicyRouteHelpers');
+const layers = require('../../lib/shared/gatingPolicyLayersCore');
 
 const router = express.Router();
 const ALLOWED = core.GL_RESOURCE_TYPES;
@@ -246,29 +248,20 @@ router.get(
     const rt = core.normalizeResourceType(req.query.resourceType, ALLOWED);
     const ref = core.normalizeResourceRef(req.query.resourceRef);
     if (!rt || !ref) return res.status(400).json({ error: 'Ressource invalide' });
-    const perResource = await queryOne(
-      'SELECT * FROM gl_resource_gating_policy WHERE resource_type = ? AND resource_ref = ? LIMIT 1',
-      [rt, ref],
-    );
     const g = await getGlGatingSettings();
-    const site = {
-      enabled: g.enabled,
-      granularity: g.granularity,
-      defaultMode: g.defaultMode,
-      defaultRequiredCorrect: g.defaultRequiredCorrect,
-    };
     const chapterGranularity = core.normalizeGranularity(req.query.chapterGranularity);
-    const typePolicy = await queryOne(
-      'SELECT * FROM gl_resource_gating_policy WHERE resource_type = ? AND resource_ref = ? LIMIT 1',
-      [rt, '*'],
+    const bundle = await policyHelpers.loadPolicyBundle(
+      { queryOne },
+      {
+        table: 'gl_resource_gating_policy',
+        resourceType: rt,
+        resourceRef: ref,
+        site: g,
+        product: 'gl',
+        chapterGranularity,
+      },
     );
-    const effective = core.resolveEffectivePolicy({
-      perResource,
-      typePolicy,
-      chapterGranularity,
-      site,
-    });
-    return res.json({ policy: perResource || null, effective, site });
+    return res.json(bundle);
   }),
 );
 
@@ -282,49 +275,120 @@ router.put(
     const rt = core.normalizeResourceType(body.resource_type ?? body.resourceType, ALLOWED);
     const ref = core.normalizeResourceRef(body.resource_ref ?? body.resourceRef);
     if (!rt || !ref) return res.status(400).json({ error: 'Ressource invalide' });
-    const mode = core.normalizeMode(body.mode) || 'inherit';
     const existing = await queryOne(
       'SELECT * FROM gl_resource_gating_policy WHERE resource_type = ? AND resource_ref = ? LIMIT 1',
       [rt, ref],
     );
-    const requiredCorrect = core.clampRequiredCorrect(
-      body.required_correct ?? body.requiredCorrect ?? existing?.required_correct,
-      1,
-    );
-    let enabled = existing?.enabled ?? 1;
-    if (body.enabled !== undefined && body.enabled !== null) {
-      enabled = body.enabled ? 1 : 0;
-    }
     const who = actor(req);
-    await execute(
-      `INSERT INTO gl_resource_gating_policy
-        (resource_type, resource_ref, mode, required_correct, enabled, updated_by_user_type, updated_by_user_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         mode = VALUES(mode), required_correct = VALUES(required_correct), enabled = VALUES(enabled),
-         updated_by_user_type = VALUES(updated_by_user_type), updated_by_user_id = VALUES(updated_by_user_id),
-         updated_at = NOW()`,
-      [rt, ref, mode, requiredCorrect, enabled, who.userType, who.userId],
-    );
-    const perResource = await queryOne(
-      'SELECT * FROM gl_resource_gating_policy WHERE resource_type = ? AND resource_ref = ? LIMIT 1',
-      [rt, ref],
+    const perResource = await policyHelpers.upsertGatingPolicy(
+      { execute, queryOne },
+      {
+        table: 'gl_resource_gating_policy',
+        resourceType: rt,
+        resourceRef: ref,
+        body,
+        existing,
+        actor: who,
+      },
     );
     const g = await getGlGatingSettings();
-    const site = {
-      enabled: g.enabled,
-      granularity: g.granularity,
-      defaultMode: g.defaultMode,
-      defaultRequiredCorrect: g.defaultRequiredCorrect,
-    };
     const typePolicy = await queryOne(
       'SELECT * FROM gl_resource_gating_policy WHERE resource_type = ? AND resource_ref = ? LIMIT 1',
       [rt, '*'],
     );
-    return res.json({
-      policy: perResource,
-      effective: core.resolveEffectivePolicy({ perResource, typePolicy, site }),
-    });
+    const chapterGranularity = core.normalizeGranularity(body.chapterGranularity);
+    return res.json(
+      layers.formatPolicyResponse({
+        policy: perResource,
+        typePolicy,
+        site: g,
+        product: 'gl',
+        resourceType: rt,
+        effective: layers.resolveEffectiveGatingPolicy({
+          perResource,
+          typePolicy,
+          site: g,
+          product: 'gl',
+          resourceType: rt,
+          chapterGranularity,
+        }),
+      }),
+    );
+  }),
+);
+
+/** GET /api/gl/learning-links/type-policy?resourceType= */
+router.get(
+  '/type-policy',
+  requireGlAuth,
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const rt = core.normalizeResourceType(req.query.resourceType, ALLOWED);
+    if (!rt) return res.status(400).json({ error: 'Type de ressource invalide' });
+    const g = await getGlGatingSettings();
+    const policy = await queryOne(
+      'SELECT * FROM gl_resource_gating_policy WHERE resource_type = ? AND resource_ref = ? LIMIT 1',
+      [rt, '*'],
+    );
+    return res.json(
+      layers.formatPolicyResponse({
+        policy,
+        typePolicy: policy,
+        site: g,
+        product: 'gl',
+        resourceType: rt,
+        effective: layers.resolveEffectiveGatingPolicy({
+          typePolicy: policy,
+          site: g,
+          product: 'gl',
+          resourceType: rt,
+        }),
+      }),
+    );
+  }),
+);
+
+/** PUT /api/gl/learning-links/type-policy */
+router.put(
+  '/type-policy',
+  requireGlAuth,
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const body = req.body || {};
+    const rt = core.normalizeResourceType(body.resource_type ?? body.resourceType, ALLOWED);
+    if (!rt) return res.status(400).json({ error: 'Type de ressource invalide' });
+    const existing = await queryOne(
+      'SELECT * FROM gl_resource_gating_policy WHERE resource_type = ? AND resource_ref = ? LIMIT 1',
+      [rt, '*'],
+    );
+    const who = actor(req);
+    const perResource = await policyHelpers.upsertGatingPolicy(
+      { execute, queryOne },
+      {
+        table: 'gl_resource_gating_policy',
+        resourceType: rt,
+        resourceRef: '*',
+        body,
+        existing,
+        actor: who,
+      },
+    );
+    const g = await getGlGatingSettings();
+    return res.json(
+      layers.formatPolicyResponse({
+        policy: perResource,
+        typePolicy: perResource,
+        site: g,
+        product: 'gl',
+        resourceType: rt,
+        effective: layers.resolveEffectiveGatingPolicy({
+          typePolicy: perResource,
+          site: g,
+          product: 'gl',
+          resourceType: rt,
+        }),
+      }),
+    );
   }),
 );
 

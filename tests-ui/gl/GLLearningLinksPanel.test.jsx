@@ -133,21 +133,12 @@ describe('GLLearningLinksPanel', () => {
     fireEvent.change(screen.getByPlaceholderText('code ressource…'), {
       target: { value: 'ESP001' },
     });
-    const modeSelect = await screen.findByLabelText('Mode');
+    await screen.findByRole('button', { name: /Enregistrer la politique/i });
+    const modeSelect = screen.getByLabelText(/^Mode$/i);
     fireEvent.change(modeSelect, { target: { value: 'threshold' } });
-    await waitFor(() => {
-      expect(
-        apiGlMock.mock.calls.some(
-          ([path, method, payload]) =>
-            path === '/api/gl/learning-links/policy' &&
-            method === 'PUT' &&
-            payload?.mode === 'threshold',
-        ),
-      ).toBe(true);
-    });
-    const nInput = await screen.findByLabelText(/Bonnes réponses attendues/i);
+    const nInput = await screen.findByLabelText(/Nombre de bonnes réponses \(seuil N\)/i);
     fireEvent.change(nInput, { target: { value: '2' } });
-    fireEvent.blur(nInput);
+    fireEvent.click(screen.getByRole('button', { name: /Enregistrer la politique/i }));
     await waitFor(() => {
       expect(
         apiGlMock.mock.calls.some(

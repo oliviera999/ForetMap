@@ -176,7 +176,10 @@ export function buildGatingRules(challenge) {
   }
 
   const tolerance = Math.max(0, Number(challenge.allowed_wrong_attempts) || 0);
-  const days = Math.max(0, Number(challenge.cooldown?.retry_days) || 0);
+  const days = Math.max(
+    0,
+    Number(challenge.retry_cooldown_days ?? challenge.cooldown?.retry_days) || 0,
+  );
   if (days <= 0) {
     rules.push('En cas d’erreur, tu peux réessayer tout de suite.');
   } else if (tolerance <= 0) {
