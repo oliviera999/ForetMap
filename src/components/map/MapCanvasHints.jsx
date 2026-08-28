@@ -1,111 +1,64 @@
 /**
+
  * Bandeaux d'état superposés au canevas de `MapView` (présentation pure) :
+
  * consignes du mode courant (tracé de zone / pose de repère / édition de
+
  * contour) en bas, et rappel des gestes tactiles en haut.
+
  */
+
 export function MapCanvasHints({
   mode,
+
   drawPointsCount = 0,
+
   prefersPageScroll,
+
   isCoarsePointer,
+
   hintTexts = {},
 }) {
   const {
     drawZoneMin = '🖊️ Touche la carte (min. 3 pts)',
+
     drawZoneReady = `✅ ${drawPointsCount} pts — Terminer`,
+
     addMarker = '📍 Touche la carte pour placer',
-    editPoints = "✋ Glisse un sommet ou l'intérieur · poignée pointillée = nouveau sommet · Maj+clic ou lasso = sélection · Suppr retire · Ctrl+Z annule",
+
+    editPoints = "✋ Glisse un sommet ou l'intérieur · glisser le fond = déplacer la vue · flèches = ajuster (ou pan) · Maj+clic = sélection · Suppr retire · Ctrl+Z annule",
+
     pageScroll = '📱 1 doigt: page · 2 doigts: zoom carte',
+
     gesturesActive = '✋ Gestes carte actifs',
   } = hintTexts;
 
   return (
     <>
       {mode !== 'view' && mode !== 'edit-points' && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 14,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'rgba(26,71,49,.9)',
-            color: 'white',
-            borderRadius: 22,
-            padding: '9px 20px',
-            fontSize: '.82rem',
-            fontWeight: 600,
-            pointerEvents: 'none',
-            whiteSpace: 'nowrap',
-            zIndex: 20,
-          }}
-        >
+        <div className="map-canvas-hint map-canvas-hint--mode map-canvas-hint--bottom">
           {mode === 'draw-zone' && drawPointsCount < 3 && drawZoneMin}
+
           {mode === 'draw-zone' && drawPointsCount >= 3 && drawZoneReady}
+
           {mode === 'add-marker' && addMarker}
         </div>
       )}
+
       {mode === 'edit-points' && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 14,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'rgba(82,183,136,.92)',
-            color: 'white',
-            borderRadius: 22,
-            padding: '9px 20px',
-            fontSize: '.82rem',
-            fontWeight: 600,
-            pointerEvents: 'none',
-            maxWidth: 'min(92vw, 620px)',
-            textAlign: 'center',
-            lineHeight: 1.35,
-            zIndex: 20,
-          }}
-        >
+        <div className="map-canvas-hint map-canvas-hint--edit map-canvas-hint--bottom">
           {editPoints}
         </div>
       )}
+
       {prefersPageScroll && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 10,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'rgba(26,71,49,.9)',
-            color: 'white',
-            borderRadius: 18,
-            padding: '6px 12px',
-            fontSize: '.72rem',
-            fontWeight: 600,
-            pointerEvents: 'none',
-            whiteSpace: 'nowrap',
-            zIndex: 20,
-          }}
-        >
+        <div className="map-canvas-hint map-canvas-hint--gesture map-canvas-hint--top">
           {pageScroll}
         </div>
       )}
+
       {isCoarsePointer && mode === 'view' && !prefersPageScroll && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 10,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'rgba(26,71,49,.82)',
-            color: 'white',
-            borderRadius: 18,
-            padding: '6px 12px',
-            fontSize: '.72rem',
-            fontWeight: 600,
-            pointerEvents: 'none',
-            whiteSpace: 'nowrap',
-            zIndex: 20,
-          }}
-        >
+        <div className="map-canvas-hint map-canvas-hint--gesture map-canvas-hint--top">
           {gesturesActive}
         </div>
       )}

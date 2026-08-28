@@ -42,6 +42,8 @@ export const EDGE_SNAP_DEFAULTS = Object.freeze({
   minStrength: 0.18,
   /** Pénalité de distance : 0 = on ignore la distance, 1 = on la pénalise fortement. */
   distanceWeight: 0.55,
+  /** Bonus accordé aux contours horizontaux/verticaux (angles droits sur le plan). */
+  orthogonalWeight: 0.35,
   /** Rayon d'accroche par défaut, en pixels écran. */
   radiusScreenPx: 18,
   /** Niveau de sensibilité par défaut (6 → `minStrength` 0,18, valeur historique). */
@@ -116,14 +118,17 @@ export function boxBlur3(src, width, height) {
  *
  * @param {{data: Uint8ClampedArray|number[], width: number, height: number}} imageData
  * @param {{ blur?: boolean }} [options]
- * @returns {{ width: number, height: number, magnitude: Float32Array, max: number }}
+ * @returns {{ width: number, height: number, magnitude: Float32Array, gxNorm: Float32Array, gyNorm: Float32Array, max: number }}
  */
 export function computeEdgeMap(imageData, options = {}) {
   const { blur = true } = options;
   const w = Number(imageData?.width) || 0;
   const h = Number(imageData?.height) || 0;
-  const magnitude = new Float32Array(Math.max(0, w * h));
-  if (w < 3 || h < 3) return { width: w, height: h, magnitude, max: 0 };
+  const len = Math.max(0, w * h);
+  const magnitude = new Float32Array(len);
+  const gxNorm = new Float32Array(len);
+  const gyNorm = new Float32Array(len);
+  if (w < 3 || h < 3) return { width: w, height: h, magnitude, gxNorm, gyNorm, max: 0 };
 
   const luma = blur ? boxBlur3(toLuminance(imageData), w, h) : toLuminance(imageData);
   let max = 0;
@@ -146,9 +151,30 @@ export function computeEdgeMap(imageData, options = {}) {
     }
   }
   if (max > 0) {
-    for (let i = 0; i < magnitude.length; i += 1) magnitude[i] /= max;
+    for (let y = 1; y < h - 1; y += 1) {
+      for (let x = 1; x < w - 1; x += 1) {
+        const i = y * w + x;
+        const m = magnitude[i];
+        if (m <= 0) continue;
+        const tl = luma[i - w - 1];
+        const tc = luma[i - w];
+        const tr = luma[i - w + 1];
+        const ml = luma[i - 1];
+        const mr = luma[i + 1];
+        const bl = luma[i + w - 1];
+        const bc = luma[i + w];
+        const br = luma[i + w + 1];
+        const gx = tl + 2 * ml + bl - (tr + 2 * mr + br);
+        const gy = tl + 2 * tc + tr - (bl + 2 * bc + br);
+        const invM = 1 / m;
+        const norm = m / max;
+        magnitude[i] = norm;
+        gxNorm[i] = gx * invM * norm;
+        gyNorm[i] = gy * invM * norm;
+      }
+    }
   }
-  return { width: w, height: h, magnitude, max };
+  return { width: w, height: h, magnitude, gxNorm, gyNorm, max };
 }
 
 /** Force du contour (0..1) en un pixel entier, 0 hors image. */
@@ -169,7 +195,12 @@ export function edgeStrengthAt(edgeMap, x, y) {
  * @returns {{ x: number, y: number, strength: number, distance: number } | null}
  */
 export function findSnapTargetPx(edgeMap, x, y, radius, options = {}) {
-  const { minStrength = EDGE_SNAP_DEFAULTS.minStrength, distanceWeight = 0.55 } = options;
+  const {
+    minStrength = EDGE_SNAP_DEFAULTS.minStrength,
+    distanceWeight = 0.55,
+    preferOrthogonal = true,
+    orthogonalWeight = EDGE_SNAP_DEFAULTS.orthogonalWeight,
+  } = options;
   const w = edgeMap?.width || 0;
   const h = edgeMap?.height || 0;
   const r = Number(radius) || 0;
@@ -182,6 +213,7 @@ export function findSnapTargetPx(edgeMap, x, y, radius, options = {}) {
   const y0 = Math.max(0, Math.floor(cy - r));
   const y1 = Math.min(h - 1, Math.ceil(cy + r));
   const rSq = r * r;
+  const hasOrtho = preferOrthogonal && edgeMap.gxNorm && edgeMap.gyNorm;
 
   let best = null;
   for (let py = y0; py <= y1; py += 1) {
@@ -194,7 +226,13 @@ export function findSnapTargetPx(edgeMap, x, y, radius, options = {}) {
       const strength = edgeMap.magnitude[rowBase + px] || 0;
       if (strength < minStrength) continue;
       const distance = Math.sqrt(dSq);
-      const score = strength * (1 - distanceWeight * (distance / r));
+      let score = strength * (1 - distanceWeight * (distance / r));
+      if (hasOrtho) {
+        const gxN = Math.abs(edgeMap.gxNorm[rowBase + px] || 0);
+        const gyN = Math.abs(edgeMap.gyNorm[rowBase + px] || 0);
+        const ortho = Math.max(gxN, gyN);
+        score *= 1 + orthogonalWeight * ortho;
+      }
       if (!best || score > best.score) best = { x: px, y: py, strength, distance, score };
     }
   }

@@ -89,6 +89,7 @@ function useMapGestures({
   const commitRef = useRef(null);
   const draggingMarkerRef = useRef(null);
   const draggingMarkerEl = useRef(null);
+  const panCommitTimerRef = useRef(null);
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
   const [mapInteractionEnabled, setMapInteractionEnabled] = useState(true);
   // Échelle « ajustée » (zoom au repos) : ne change qu’au fit/remesure, jamais au zoom.
@@ -402,6 +403,77 @@ function useMapGestures({
     );
   }, []);
 
+  const beginPan = useCallback(
+    (clientX, clientY) => {
+      cancelToolbarZoomAnim();
+      isPanning.current = true;
+      panStart.current = { x: clientX - tx.current.x, y: clientY - tx.current.y };
+    },
+    [cancelToolbarZoomAnim],
+  );
+
+  const updatePan = useCallback(
+    (clientX, clientY) => {
+      if (!isPanning.current) return;
+      setWorldWillChange(true);
+      tx.current.x = clientX - panStart.current.x;
+      tx.current.y = clientY - panStart.current.y;
+      scheduleApply();
+    },
+    [scheduleApply, setWorldWillChange],
+  );
+
+  const endPan = useCallback(() => {
+    if (!isPanning.current) return;
+    isPanning.current = false;
+    commit();
+  }, [commit]);
+
+  const panByScreenDelta = useCallback(
+    (dxPx, dyPx) => {
+      cancelToolbarZoomAnim();
+      setWorldWillChange(true);
+      tx.current.x += Number(dxPx) || 0;
+      tx.current.y += Number(dyPx) || 0;
+      scheduleApply();
+      if (panCommitTimerRef.current) clearTimeout(panCommitTimerRef.current);
+      panCommitTimerRef.current = setTimeout(() => {
+        panCommitTimerRef.current = null;
+        commit();
+      }, 80);
+    },
+    [cancelToolbarZoomAnim, commit, scheduleApply, setWorldWillChange],
+  );
+
+  useEffect(
+    () => () => {
+      if (panCommitTimerRef.current) clearTimeout(panCommitTimerRef.current);
+    },
+    [],
+  );
+
+  /** Flèches clavier : pan de la vue en mode consultation (hors champs de saisie). */
+  useEffect(() => {
+    if (mode !== 'view') return undefined;
+    const ARROW_DELTA = {
+      ArrowUp: [0, -1],
+      ArrowDown: [0, 1],
+      ArrowLeft: [-1, 0],
+      ArrowRight: [1, 0],
+    };
+    const onKey = (e) => {
+      const t = e.target;
+      if (t?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+      const dir = ARROW_DELTA[e.key];
+      if (!dir) return;
+      e.preventDefault();
+      const stepPx = e.shiftKey ? 40 : 8;
+      panByScreenDelta(dir[0] * stepPx, dir[1] * stepPx);
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [mode, panByScreenDelta]);
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -606,6 +678,10 @@ function useMapGestures({
     prefersPageScroll,
     touchAction,
     animateZoomTowardScale,
+    beginPan,
+    updatePan,
+    endPan,
+    panByScreenDelta,
   };
 }
 

@@ -29,6 +29,7 @@ export function MapViewMarkerBubble({
   showLabels,
   isCoarsePointer,
   draggable,
+  dimmed = false,
   emojiFontSize,
   labelFontSize,
   labelMarginTop,
@@ -42,9 +43,10 @@ export function MapViewMarkerBubble({
   const markerStatusDotSize = isCoarsePointer ? 17 : 12;
   const markerStatusDotBorder = isCoarsePointer ? 2 : 1.5;
   const markerStatusDotOffset = isCoarsePointer ? -2 : -1;
+  const interactive = !dimmed;
   return (
     <button
-      className="map-bubble"
+      className={`map-bubble${dimmed ? ' map-bubble--dimmed' : ''}`}
       type="button"
       style={{
         position: 'absolute',
@@ -52,7 +54,7 @@ export function MapViewMarkerBubble({
         top: m.y_pct + '%',
         transform: 'translate(-50%,-50%)',
         zIndex: 10,
-        cursor: draggable ? 'grab' : 'pointer',
+        cursor: dimmed ? 'default' : draggable ? 'grab' : 'pointer',
         border: 'none',
         background: 'transparent',
         display: 'flex',
@@ -64,16 +66,22 @@ export function MapViewMarkerBubble({
         padding: isCoarsePointer ? 6 : 0,
         boxSizing: 'border-box',
       }}
-      aria-label={ariaLabel}
-      title={ariaLabel}
-      onClick={onOpen}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onOpen(e);
-        }
-      }}
-      onPointerDown={onPointerDown}
+      aria-label={interactive ? ariaLabel : undefined}
+      title={interactive ? ariaLabel : undefined}
+      aria-hidden={dimmed || undefined}
+      tabIndex={dimmed ? -1 : undefined}
+      onClick={interactive ? onOpen : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onOpen(e);
+              }
+            }
+          : undefined
+      }
+      onPointerDown={interactive ? onPointerDown : undefined}
       onPointerUp={(e) => e.stopPropagation()}
     >
       <div

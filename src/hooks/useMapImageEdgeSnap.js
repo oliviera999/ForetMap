@@ -176,6 +176,8 @@ function useMapImageEdgeSnap({ src, active }) {
         radiusPct: options.radiusPct,
         minStrength: options.minStrength ?? EDGE_SNAP_DEFAULTS.minStrength,
         distanceWeight: options.distanceWeight ?? EDGE_SNAP_DEFAULTS.distanceWeight,
+        preferOrthogonal: options.preferOrthogonal ?? true,
+        orthogonalWeight: options.orthogonalWeight ?? EDGE_SNAP_DEFAULTS.orthogonalWeight,
       });
     },
     [active, altBypass],
