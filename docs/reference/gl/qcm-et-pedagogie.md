@@ -67,9 +67,10 @@ tutoriel, feuillet…) comme apprise.
   tolérées avant blocage**, le **nombre de questions posées d'affilée**, l'**annonce du
   contrôle sur le bouton**, et la **portée du blocage** (toute la fiche, ou la seule question
   ratée). Les deux applications partagent désormais le même jeu de réglages.
-- **Assouplir une ressource en particulier** : une ressource peut porter sa propre politique
-  (son propre mode, ou une dispense complète), qui l'emporte sur le réglage général. Mais
-  l'interrupteur général reste **maître** : éteint, rien n'est demandé nulle part.
+- **Assouplir une ressource en particulier** : dans **Contenus → Conditionnement QCM**, saisir
+  le type et la référence de la ressource puis choisir le mode (y compris « un nombre minimum »
+  avec le champ **N**). Une ressource peut aussi être **dispensée** (« aucune question exigée »).
+  La politique propre l'emporte sur le réglage général. L'interrupteur global reste **maître**.
 - **Ce que vit l'élève** : **avant même de cliquer**, le bouton « marquer appris » porte une
   pastille annonçant ce qui l'attend (« 1 question », « 🔒 ») — G&L n'avait aucune annonce
   jusqu'au lot 28, alors que ForetMap en avait une. Au clic, un **petit panneau surgit

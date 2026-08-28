@@ -15,6 +15,7 @@ const asyncHandler = require('../lib/asyncHandler');
 const core = require('../lib/shared/resourceQuestionGatingCore');
 const { getFmGatingSite } = require('../lib/learningGatingRuntime');
 const gatingAdmin = require('../lib/learningGatingAdmin');
+const gatingProgress = require('../lib/learningGatingProgress');
 const tutorialMatch = require('../lib/shared/tutorialQuestionMatch');
 const labelMatch = require('../lib/shared/resourceQuestionMatch');
 const linksBulk = require('../lib/learningLinksBulk');
@@ -239,7 +240,11 @@ router.get(
       [rt, ref],
     );
     const site = await getSiteGating();
-    const effective = core.resolveEffectivePolicy({ perResource, site });
+    const typePolicy = await queryOne(
+      'SELECT * FROM resource_gating_policy WHERE resource_type = ? AND resource_ref = ? LIMIT 1',
+      [rt, '*'],
+    );
+    const effective = core.resolveEffectivePolicy({ perResource, typePolicy, site });
     return res.json({ policy: perResource || null, effective, site });
   }),
 );
@@ -254,11 +259,18 @@ router.put(
     const ref = core.normalizeResourceRef(body.resource_ref ?? body.resourceRef);
     if (!rt || !ref) return res.status(400).json({ error: 'Ressource invalide' });
     const mode = core.normalizeMode(body.mode) || 'inherit';
+    const existing = await queryOne(
+      'SELECT * FROM resource_gating_policy WHERE resource_type = ? AND resource_ref = ? LIMIT 1',
+      [rt, ref],
+    );
     const requiredCorrect = core.clampRequiredCorrect(
-      body.required_correct ?? body.requiredCorrect,
+      body.required_correct ?? body.requiredCorrect ?? existing?.required_correct,
       1,
     );
-    const enabled = body.enabled ? 1 : 0;
+    let enabled = existing?.enabled ?? 1;
+    if (body.enabled !== undefined && body.enabled !== null) {
+      enabled = body.enabled ? 1 : 0;
+    }
     const who = actor(req);
     await execute(
       `INSERT INTO resource_gating_policy
@@ -275,10 +287,91 @@ router.put(
       [rt, ref],
     );
     const site = await getSiteGating();
+    const typePolicy = await queryOne(
+      'SELECT * FROM resource_gating_policy WHERE resource_type = ? AND resource_ref = ? LIMIT 1',
+      [rt, '*'],
+    );
     return res.json({
       policy: perResource,
-      effective: core.resolveEffectivePolicy({ perResource, site }),
+      effective: core.resolveEffectivePolicy({ perResource, typePolicy, site }),
     });
+  }),
+);
+
+/** GET /api/learning-links/type-policy?resourceType= — préréglage par type (resource_ref='*'). */
+router.get(
+  '/type-policy',
+  managePermission,
+  asyncHandler(async (req, res) => {
+    const rt = core.normalizeResourceType(req.query.resourceType, ALLOWED);
+    if (!rt) return res.status(400).json({ error: 'Type de ressource invalide' });
+    const policy = await queryOne(
+      'SELECT * FROM resource_gating_policy WHERE resource_type = ? AND resource_ref = ? LIMIT 1',
+      [rt, '*'],
+    );
+    const site = await getSiteGating();
+    const effective = core.resolveEffectivePolicy({ typePolicy: policy, site });
+    return res.json({ policy: policy || null, effective, site });
+  }),
+);
+
+/** PUT /api/learning-links/type-policy — préréglage par type (resource_ref='*'). */
+router.put(
+  '/type-policy',
+  managePermission,
+  asyncHandler(async (req, res) => {
+    const body = req.body || {};
+    const rt = core.normalizeResourceType(body.resource_type ?? body.resourceType, ALLOWED);
+    if (!rt) return res.status(400).json({ error: 'Type de ressource invalide' });
+    const mode = core.normalizeMode(body.mode) || 'inherit';
+    const existing = await queryOne(
+      'SELECT * FROM resource_gating_policy WHERE resource_type = ? AND resource_ref = ? LIMIT 1',
+      [rt, '*'],
+    );
+    const requiredCorrect = core.clampRequiredCorrect(
+      body.required_correct ?? body.requiredCorrect ?? existing?.required_correct,
+      1,
+    );
+    let enabled = existing?.enabled ?? 1;
+    if (body.enabled !== undefined && body.enabled !== null) {
+      enabled = body.enabled ? 1 : 0;
+    }
+    const who = actor(req);
+    await execute(
+      `INSERT INTO resource_gating_policy
+        (resource_type, resource_ref, mode, required_correct, enabled, updated_by_user_type, updated_by_user_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         mode = VALUES(mode), required_correct = VALUES(required_correct), enabled = VALUES(enabled),
+         updated_by_user_type = VALUES(updated_by_user_type), updated_by_user_id = VALUES(updated_by_user_id),
+         updated_at = NOW()`,
+      [rt, '*', mode, requiredCorrect, enabled, who.userType, who.userId],
+    );
+    const perResource = await queryOne(
+      'SELECT * FROM resource_gating_policy WHERE resource_type = ? AND resource_ref = ? LIMIT 1',
+      [rt, '*'],
+    );
+    const site = await getSiteGating();
+    return res.json({
+      policy: perResource,
+      effective: core.resolveEffectivePolicy({ typePolicy: perResource, site }),
+    });
+  }),
+);
+
+/** GET /api/learning-links/progress?resourceType=&resourceRef= — agrégats prof (sans noms). */
+router.get(
+  '/progress',
+  managePermission,
+  asyncHandler(async (req, res) => {
+    const rt = core.normalizeResourceType(req.query.resourceType, ALLOWED);
+    const ref = core.normalizeResourceRef(req.query.resourceRef);
+    if (!rt || !ref) return res.status(400).json({ error: 'Ressource invalide' });
+    const result = await gatingProgress.getFmResourceProgressSummary(
+      { queryAll, queryOne, execute },
+      { resourceType: rt, resourceRef: ref },
+    );
+    return res.json(result);
   }),
 );
 

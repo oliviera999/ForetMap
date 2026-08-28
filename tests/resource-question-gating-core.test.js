@@ -113,6 +113,29 @@ test('resolveEffectivePolicy — defauts site, surcharge ressource, granularite 
   // Granularite surchargee par le chapitre/scope.
   const d = core.resolveEffectivePolicy({ chapterGranularity: 'team', site });
   assert.equal(d.granularity, 'team');
+
+  // inherit + ancien required_correct en BDD : le site threshold prime.
+  const stale = core.resolveEffectivePolicy({
+    perResource: { enabled: 1, mode: 'inherit', required_correct: 5 },
+    site: { ...site, enabled: true, defaultMode: 'threshold', defaultRequiredCorrect: 2 },
+  });
+  assert.equal(stale.mode, 'threshold');
+  assert.equal(stale.requiredCorrect, 2);
+
+  // Mode threshold explicite sur la ressource.
+  const explicit = core.resolveEffectivePolicy({
+    perResource: { enabled: 1, mode: 'threshold', required_correct: 3 },
+    site: { enabled: true, defaultMode: 'any', defaultRequiredCorrect: 1 },
+  });
+  assert.equal(explicit.requiredCorrect, 3);
+
+  // Préréglage par type (resource_ref='*').
+  const byType = core.resolveEffectivePolicy({
+    typePolicy: { enabled: 1, mode: 'threshold', required_correct: 4 },
+    site: { enabled: true, defaultMode: 'any', defaultRequiredCorrect: 1 },
+  });
+  assert.equal(byType.mode, 'threshold');
+  assert.equal(byType.requiredCorrect, 4);
 });
 
 test('evaluateUnlock — modes any / all / threshold / off / sans lien bloquant', () => {

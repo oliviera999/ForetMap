@@ -13,6 +13,7 @@ import { MediaLibraryMenu } from './MediaLibraryMenu.jsx';
 import { AdminTextSettingField, AdminNumberSettingField } from './settings/AdminSettingFields.jsx';
 import { MapGeorefPanel } from './settings/MapGeorefPanel.jsx';
 import { VisitMascotSettingsPanel } from './settings/VisitMascotSettingsPanel.jsx';
+import { FMLearningGatingSettings } from './settings/FMLearningGatingSettings.jsx';
 import { ForetMapHelpContentAdminPanel } from './help/ForetMapHelpContentAdminPanel.jsx';
 import { HelpNarratorAdminPanel } from './help/HelpNarratorAdminPanel.jsx';
 import { ForetMapReferenceDocsPanel } from './help/ForetMapReferenceDocsPanel.jsx';
@@ -221,6 +222,28 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canReadSettings]);
+
+  useEffect(() => {
+    if (loading || adminSection !== 'general') return;
+    let focus = null;
+    try {
+      focus = sessionStorage.getItem('foretmap:settings:focus');
+    } catch (_) {
+      /* ignore */
+    }
+    if (focus !== 'learning-gating') return;
+    try {
+      sessionStorage.removeItem('foretmap:settings:focus');
+    } catch (_) {
+      /* ignore */
+    }
+    requestAnimationFrame(() => {
+      document.getElementById('settings-learning-gating')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+  }, [loading, adminSection]);
 
   /**
    * Remplace une carte dans l'état local avec la version renvoyée par le serveur,
@@ -519,6 +542,8 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
               )}
             </div>
           </div>
+
+          <FMLearningGatingSettings get={get} saveSetting={saveSetting} savingKey={savingKey} />
 
           <div className="settings-admin-grid">
             {filteredSettingSections.map((section) => (

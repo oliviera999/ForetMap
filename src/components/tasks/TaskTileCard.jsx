@@ -80,6 +80,7 @@ function TaskTileCardImpl({
   teacherTaskPerms = null,
   tooltipText,
   openTasksTutorialPreview,
+  tutorialReadIds = null,
   onOpenBiodiversityFromTaskName,
   enableTaskDrag = false,
   onTaskDragStart = null,
@@ -126,6 +127,9 @@ function TaskTileCardImpl({
   const referentBriefing = taskRequiresReferentBriefingBeforeStart(t);
   const referentsLinked = t.referents_linked || [];
   const coverSrc = t.image_url ? withAppBase(t.image_url) : null;
+  const unreadLinkedTutorials = (t.tutorials_linked || []).filter(
+    (tu) => tu.is_active !== false && !(tutorialReadIds && tutorialReadIds.has(Number(tu.id))),
+  );
   const toggleCondensedHead = () => {
     setCondensedExpanded((prev) => {
       const next = !prev;
@@ -232,23 +236,35 @@ function TaskTileCardImpl({
                   {taskLivingBeingEmoji(plants, name)} {name}
                 </button>
               ))}
-              {(t.tutorials_linked || []).map((tu) =>
-                tutorialPreviewCanEmbed(tu) ? (
+              {(t.tutorials_linked || []).map((tu) => {
+                const unread =
+                  tu.is_active !== false &&
+                  !(tutorialReadIds && tutorialReadIds.has(Number(tu.id)));
+                return tutorialPreviewCanEmbed(tu) ? (
                   <button
                     key={tu.id}
                     type="button"
-                    className="task-chip task-tutorial-chip"
-                    title={`Ouvrir le tutoriel « ${tu.title || ''} »`}
+                    className={`task-chip task-tutorial-chip${unread ? ' task-tutorial-chip--unread' : ''}`}
+                    title={
+                      unread
+                        ? `Tutoriel à lire avant de terminer : ${tu.title || ''}`
+                        : `Ouvrir le tutoriel « ${tu.title || ''} »`
+                    }
                     onClick={() => openTasksTutorialPreview(tu)}
                   >
                     📘 {tu.title}
+                    {unread ? ' · à lire' : ''}
                   </button>
                 ) : (
-                  <span key={tu.id} className="task-chip">
+                  <span
+                    key={tu.id}
+                    className={`task-chip${unread ? ' task-tutorial-chip--unread' : ''}`}
+                  >
                     📘 {tu.title}
+                    {unread ? ' · à lire' : ''}
                   </span>
-                ),
-              )}
+                );
+              })}
             </div>
           )}
           {referentsLinked.length > 0 && (
@@ -394,6 +410,12 @@ function TaskTileCardImpl({
               t.status !== 'validated' &&
               !hasCompletedOwnAssignment && (
                 <>
+                  {unreadLinkedTutorials.length > 0 ? (
+                    <p className="section-sub task-tutorial-prereq-hint" role="status">
+                      Lis d’abord {unreadLinkedTutorials.map((tu) => `« ${tu.title} »`).join(', ')}{' '}
+                      avant de marquer la tâche terminée.
+                    </p>
+                  ) : null}
                   <button className="btn btn-secondary btn-sm" onClick={() => setLogTask(t)}>
                     ✅ Marquer terminée
                   </button>

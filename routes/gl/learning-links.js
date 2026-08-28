@@ -258,7 +258,16 @@ router.get(
       defaultRequiredCorrect: g.defaultRequiredCorrect,
     };
     const chapterGranularity = core.normalizeGranularity(req.query.chapterGranularity);
-    const effective = core.resolveEffectivePolicy({ perResource, chapterGranularity, site });
+    const typePolicy = await queryOne(
+      'SELECT * FROM gl_resource_gating_policy WHERE resource_type = ? AND resource_ref = ? LIMIT 1',
+      [rt, '*'],
+    );
+    const effective = core.resolveEffectivePolicy({
+      perResource,
+      typePolicy,
+      chapterGranularity,
+      site,
+    });
     return res.json({ policy: perResource || null, effective, site });
   }),
 );
@@ -274,11 +283,18 @@ router.put(
     const ref = core.normalizeResourceRef(body.resource_ref ?? body.resourceRef);
     if (!rt || !ref) return res.status(400).json({ error: 'Ressource invalide' });
     const mode = core.normalizeMode(body.mode) || 'inherit';
+    const existing = await queryOne(
+      'SELECT * FROM gl_resource_gating_policy WHERE resource_type = ? AND resource_ref = ? LIMIT 1',
+      [rt, ref],
+    );
     const requiredCorrect = core.clampRequiredCorrect(
-      body.required_correct ?? body.requiredCorrect,
+      body.required_correct ?? body.requiredCorrect ?? existing?.required_correct,
       1,
     );
-    const enabled = body.enabled ? 1 : 0;
+    let enabled = existing?.enabled ?? 1;
+    if (body.enabled !== undefined && body.enabled !== null) {
+      enabled = body.enabled ? 1 : 0;
+    }
     const who = actor(req);
     await execute(
       `INSERT INTO gl_resource_gating_policy
@@ -294,7 +310,21 @@ router.put(
       'SELECT * FROM gl_resource_gating_policy WHERE resource_type = ? AND resource_ref = ? LIMIT 1',
       [rt, ref],
     );
-    return res.json({ policy: perResource });
+    const g = await getGlGatingSettings();
+    const site = {
+      enabled: g.enabled,
+      granularity: g.granularity,
+      defaultMode: g.defaultMode,
+      defaultRequiredCorrect: g.defaultRequiredCorrect,
+    };
+    const typePolicy = await queryOne(
+      'SELECT * FROM gl_resource_gating_policy WHERE resource_type = ? AND resource_ref = ? LIMIT 1',
+      [rt, '*'],
+    );
+    return res.json({
+      policy: perResource,
+      effective: core.resolveEffectivePolicy({ perResource, typePolicy, site }),
+    });
   }),
 );
 

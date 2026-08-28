@@ -12,6 +12,7 @@ export function QuizAdminView({
   canManageQuiz = false,
   onOpenPlant,
   onOpenGlossaryTerm,
+  onOpenSettingsLearning = null,
   initialQuestionCode = null,
 }) {
   const editorRef = useRef(null);
@@ -36,7 +37,7 @@ export function QuizAdminView({
             />
           </section>
           <section className="pedago-quiz-admin__links">
-            <FMLearningLinksPanel />
+            <FMLearningLinksPanel onOpenSettingsLearning={onOpenSettingsLearning} />
           </section>
           <section className="pedago-quiz-admin__locks">
             <FMLearningLocksPanel />

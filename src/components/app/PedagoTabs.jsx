@@ -51,6 +51,7 @@ export function PedagoTabs({
   foodWebHighlightPlantId,
   canManageFoodWeb,
   appVersion,
+  onOpenSettingsLearning = null,
 }) {
   return (
     <>
@@ -89,6 +90,7 @@ export function PedagoTabs({
               canManageQuiz={canManageQuiz}
               onOpenPlant={onOpenPlantCatalogPreview}
               onOpenGlossaryTerm={onOpenGlossaryTerm}
+              onOpenSettingsLearning={onOpenSettingsLearning}
               initialQuestionCode={quizInitialQuestionCode}
             />
           </TabSuspense>

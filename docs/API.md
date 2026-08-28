@@ -1653,20 +1653,23 @@ Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_
 
 ### ForetMap — `/api/learning-links` (prof, permission `plants.manage`)
 
-| Méthode | Route                                                          | Description                                                                                                                                      |
-| ------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| GET     | `/api/learning-links`                                          | Liste filtrable (`resourceType`, `resourceRef`, `questionCode`, `status`).                                                                       |
-| POST    | `/api/learning-links`                                          | Crée/MAJ un lien (idempotent sur `resource_type+resource_ref+question_code`). `404` si la question n'existe pas.                                 |
-| PATCH   | `/api/learning-links/:id`                                      | Modifie `is_gating` / `weight` / `status` / `note`.                                                                                              |
-| DELETE  | `/api/learning-links/:id`                                      | Supprime un lien.                                                                                                                                |
-| GET     | `/api/learning-links/policy?resourceType=&resourceRef=`        | Politique brute + **effective** (fusion avec les défauts du site).                                                                               |
-| PUT     | `/api/learning-links/policy`                                   | Définit la politique d'une ressource (`mode`, `required_correct`, `enabled`).                                                                    |
-| GET     | `/api/learning-links/config`                                   | Réglages site effectifs (lecture seule ; écriture via `/api/settings`).                                                                          |
-| GET     | `/api/learning-links/resources?type=tutorial\|plant\|glossary` | Ressources rattachables + compteurs (`links_count`, `gating_count`, `suggested_count`) et `markable` (le produit sait-il **valider** ce type ?). |
-| POST    | `/api/learning-links/suggest`                                  | Rattachement automatique tutoriel ↔ question **par le contenu** (voir ci-dessous). Simulation par défaut.                                        |
-| GET     | `/api/learning-links/locks?includeExpired=&resourceType=`      | **Élèves bloqués** par le conditionnement : qui, quelle fiche, quelle question ratée, combien d'erreurs, jusqu'à quand.                          |
-| DELETE  | `/api/learning-links/locks`                                    | Lève un verrou (`user_id`, `resource_type`, `resource_ref`, `question_code` optionnel). `404` si absent.                                         |
-| GET     | `/api/quiz/admin/questions/stats?onlyGating=&minAttempts=`     | Taux de réussite par question, les plus ratées d'abord ; `suspect` signale celles qui méritent relecture.                                        |
+| Méthode | Route                                                          | Description                                                                                                                                           |
+| ------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/learning-links`                                          | Liste filtrable (`resourceType`, `resourceRef`, `questionCode`, `status`).                                                                            |
+| POST    | `/api/learning-links`                                          | Crée/MAJ un lien (idempotent sur `resource_type+resource_ref+question_code`). `404` si la question n'existe pas.                                      |
+| PATCH   | `/api/learning-links/:id`                                      | Modifie `is_gating` / `weight` / `status` / `note`.                                                                                                   |
+| DELETE  | `/api/learning-links/:id`                                      | Supprime un lien.                                                                                                                                     |
+| GET     | `/api/learning-links/policy?resourceType=&resourceRef=`        | Politique brute + **effective** (fusion site → type `resource_ref='*'` → ressource). Inclut `typePolicy` si défini.                                   |
+| PUT     | `/api/learning-links/policy`                                   | Définit la politique d'une ressource (`mode`, `required_correct`, `enabled`). Si `enabled` est **absent**, la valeur existante est conservée (merge). |
+| GET     | `/api/learning-links/type-policy?resourceType=`                | Préréglage par type de contenu (`resource_ref='*'`) : politique brute + effective.                                                                    |
+| PUT     | `/api/learning-links/type-policy`                              | Définit le préréglage par type (`resource_type`, `mode`, `required_correct`, `enabled`).                                                              |
+| GET     | `/api/learning-links/progress?resourceType=&resourceRef=`      | Agrégats prof pour une ressource (`pending_count`, `satisfied_count`, `locked_count`) — **sans noms d'élèves**.                                       |
+| GET     | `/api/learning-links/config`                                   | Réglages site effectifs (lecture seule ; écriture via `/api/settings`).                                                                               |
+| GET     | `/api/learning-links/resources?type=tutorial\|plant\|glossary` | Ressources rattachables + compteurs (`links_count`, `gating_count`, `suggested_count`) et `markable` (le produit sait-il **valider** ce type ?).      |
+| POST    | `/api/learning-links/suggest`                                  | Rattachement automatique tutoriel ↔ question **par le contenu** (voir ci-dessous). Simulation par défaut.                                             |
+| GET     | `/api/learning-links/locks?includeExpired=&resourceType=`      | **Élèves bloqués** par le conditionnement : qui, quelle fiche, quelle question ratée, combien d'erreurs, jusqu'à quand.                               |
+| DELETE  | `/api/learning-links/locks`                                    | Lève un verrou (`user_id`, `resource_type`, `resource_ref`, `question_code` optionnel). `404` si absent.                                              |
+| GET     | `/api/quiz/admin/questions/stats?onlyGating=&minAttempts=`     | Taux de réussite par question, les plus ratées d'abord ; `suspect` signale celles qui méritent relecture.                                             |
 
 Réglages site (table `app_settings`, scope `teacher`, modifiables via `/api/settings`) :
 `learning.gating.enabled` (def. `false`), `learning.gating.auto_mark_on_correct` (**déprécié**, ignoré),
@@ -1684,6 +1687,8 @@ désormais résolu par les routes `challenge`/`summary` et respecté par le fron
 (acquis `✓` / en attente `?` / bloqué `🔒`) à côté des boutons de validation,
 `learning.gating.cooldown_scope` (`resource` | `question`, def. `resource`) — le verrou porte sur la
 fiche entière ou sur la seule question ratée.
+`learning.gating.require_linked_tutorials_before_task_done` (bool, def. `false`) — exige la lecture
+des tutoriels liés à une tâche avant `POST /api/tasks/:id/done` (`403` + `missing_tutorials[]`).
 
 > **Catalogue commun.** Depuis le lot 27, ces réglages sont décrits une seule fois dans
 > `lib/shared/gatingSettingsCore.js` (type, bornes, défaut, clé de chaque produit) et **dérivés** vers
