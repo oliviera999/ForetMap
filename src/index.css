@@ -3393,6 +3393,17 @@
     button.task-chip.task-tutorial-chip:hover {
       filter:brightness(0.97);
     }
+    .task-chip.task-tutorial-chip--unread,
+    button.task-chip.task-tutorial-chip--unread {
+      outline:2px solid var(--amber,#f59e0b);
+      outline-offset:1px;
+      border-radius:999px;
+    }
+    .task-tutorial-prereq-hint {
+      margin:0 0 8px;
+      font-size:.82rem;
+      color:var(--amber,#b45309);
+    }
     button.task-chip.tuto-linked-tasks-pill {
       cursor:pointer;
       font:inherit;

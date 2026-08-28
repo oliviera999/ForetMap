@@ -125,6 +125,33 @@ test('PUT policy + GET policy effective (threshold, active par ressource)', asyn
   assert.equal(get.body.effective.mode, 'threshold');
 });
 
+test('PUT policy sans enabled ne désactive pas une politique existante', async () => {
+  await request(app)
+    .put('/api/learning-links/policy')
+    .set(auth())
+    .send({
+      resource_type: 'tutorial',
+      resource_ref: `${resourceRef}E`,
+      mode: 'any',
+      enabled: true,
+    })
+    .expect(200);
+
+  const put = await request(app)
+    .put('/api/learning-links/policy')
+    .set(auth())
+    .send({
+      resource_type: 'tutorial',
+      resource_ref: `${resourceRef}E`,
+      mode: 'threshold',
+      required_correct: 2,
+    })
+    .expect(200);
+  assert.equal(put.body.effective.enabled, true);
+  assert.equal(put.body.effective.mode, 'threshold');
+  assert.equal(put.body.effective.requiredCorrect, 2);
+});
+
 test('GET config — gating desactive par defaut (site)', async () => {
   const res = await request(app).get('/api/learning-links/config').set(auth()).expect(200);
   assert.equal(res.body.gating.enabled, false);

@@ -113,19 +113,23 @@ export function GLGatingSettings() {
         </label>
         <label>
           Réussites requises (mode « threshold »)
-          <input
-            type="number"
-            min={1}
-            max={50}
-            defaultValue={gating.defaultRequiredCorrect}
-            disabled={savingKey === 'gating.default_required_correct'}
-            onBlur={(event) => {
-              const n = Number(event.target.value);
-              if (Number.isFinite(n) && n !== gating.defaultRequiredCorrect) {
-                save('gating.default_required_correct', n);
-              }
-            }}
-          />
+          {gating.defaultMode === 'threshold' ? (
+            <input
+              type="number"
+              min={1}
+              max={50}
+              defaultValue={gating.defaultRequiredCorrect}
+              disabled={savingKey === 'gating.default_required_correct'}
+              onBlur={(event) => {
+                const n = Number(event.target.value);
+                if (Number.isFinite(n) && n !== gating.defaultRequiredCorrect) {
+                  save('gating.default_required_correct', n);
+                }
+              }}
+            />
+          ) : (
+            <span className="gl-hint"> — visible quand le mode par défaut est « threshold »</span>
+          )}
         </label>
         <label>
           Délai avant nouvelle tentative (jours, 0 = aucun)

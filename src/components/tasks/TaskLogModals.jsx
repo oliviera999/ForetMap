@@ -79,7 +79,17 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
         onForceLogout?.();
         return;
       }
-      setErr(e.message);
+      const missing = e?.body?.missing_tutorials;
+      if (Array.isArray(missing) && missing.length > 0) {
+        const titles = missing.map((m) => m.title).filter(Boolean);
+        setErr(
+          titles.length
+            ? `${e.message || 'Tutoriels requis'} : ${titles.map((t) => `« ${t} »`).join(', ')}.`
+            : e.message,
+        );
+      } else {
+        setErr(e.message);
+      }
       setSaving(false);
     }
   };
