@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Conditionnement granulaire FM/GL (cascade site → type → fiche)
+
+Les paramètres de session et de verrou (erreurs tolérées, questions par session, délai et
+portée du verrou, granularité GL) ne sont plus figés au site : ils s’héritent et se
+surchargent par type de contenu puis par fiche (et, en GL, par chapitre/scope). Éditeur
+commun, parité API `type-policy` GL, runtime et doc de référence alignés.
+
 ### Lisibilité carte — unification Visite et GL
 
 Variables CSS `--map-overlay-*` partagées sur le plan visite et les plateaux GL ;

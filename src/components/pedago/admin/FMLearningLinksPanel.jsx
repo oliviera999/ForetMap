@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../../services/api.js';
-import {
-  describeGatingPolicy,
-  describeSiteGatingMode,
-  MODE_LABELS,
-} from '../../../shared/utils/learningGatingPolicyText.js';
+import { describeSiteGatingMode } from '../../../shared/utils/learningGatingPolicyText.js';
+import { GatingPolicyEditor } from '../../../shared/components/GatingPolicyEditor.jsx';
 
 // Écran de rattachement « ressource ↔ questions » (professeur, permission plants.manage).
 //
@@ -55,7 +52,7 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [progress, setProgress] = useState(null);
-  const [requiredCorrectDraft, setRequiredCorrectDraft] = useState('1');
+  const [policyBusy, setPolicyBusy] = useState(false);
 
   const questionsByCode = useMemo(() => {
     const map = new Map();
@@ -165,11 +162,6 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
     setSuggestions(null);
   }, [loadLinks, loadPolicy, loadProgress]);
 
-  useEffect(() => {
-    const n = policy?.policy?.required_correct ?? policy?.effective?.requiredCorrect ?? 1;
-    setRequiredCorrectDraft(String(n));
-  }, [policy, selectedRef]);
-
   const linkedCodes = useMemo(() => new Set(links.map((l) => l.question_code)), [links]);
 
   const questionOptions = useMemo(() => {
@@ -267,42 +259,16 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
   );
 
   function savePolicy(patch) {
+    setPolicyBusy(true);
     return run(async () => {
-      const current = policy?.policy || {};
-      const nextMode = patch.mode ?? current.mode ?? 'inherit';
-      const nextEnabled =
-        patch.enabled !== undefined ? patch.enabled : current.enabled == null ? 1 : current.enabled;
       await api('/api/learning-links/policy', 'PUT', {
         resource_type: resourceType,
         resource_ref: String(selectedRef),
-        mode: nextMode,
-        required_correct:
-          patch.required_correct ??
-          current.required_correct ??
-          policy?.effective?.requiredCorrect ??
-          1,
-        enabled: nextEnabled,
+        ...patch,
       });
       await loadPolicy();
-    }, 'Exigence enregistrée.');
+    }, 'Politique enregistrée.').finally(() => setPolicyBusy(false));
   }
-
-  function saveThresholdDraft() {
-    const max = Math.max(1, approvedGatingCount || 1);
-    const n = Math.max(1, Math.min(max, Math.floor(Number(requiredCorrectDraft) || 1)));
-    setRequiredCorrectDraft(String(n));
-    return savePolicy({ mode: 'threshold', required_correct: n });
-  }
-
-  const policyMode = policy?.policy?.mode || 'inherit';
-  const showThresholdInput = policyMode === 'threshold';
-  const effectiveDescription = policy?.effective
-    ? describeGatingPolicy({
-        mode: policy.effective.mode,
-        requiredCorrect: policy.effective.requiredCorrect,
-        gatingCount: approvedGatingCount,
-      })
-    : '';
 
   const gatingOff = config && !config.enabled;
   const tab = RESOURCE_TABS.find((t) => t.type === resourceType) || RESOURCE_TABS[0];
@@ -410,68 +376,41 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
             <>
               <h4>{selected.label}</h4>
 
-              <div className="pedago-links__policy">
-                <label className="pedago-filter-field">
-                  <span>Exigence pour ce {tab.one}</span>
-                  <select
-                    className="form-select"
-                    value={policyMode}
-                    disabled={busy}
-                    onChange={(e) => savePolicy({ mode: e.target.value })}
-                  >
-                    {Object.entries(MODE_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {policyMode === 'off' ? (
-                  <p className="section-sub">
-                    Cette fiche est <strong>dispensée</strong> : aucune question ne sera exigée pour
-                    la valider, même si le contrôle de compréhension est actif sur le site.
-                  </p>
-                ) : null}
-                {policyMode === 'inherit' && policy?.site ? (
-                  <p className="section-sub">
-                    Réglage du site : <strong>{describeSiteGatingMode(policy.site)}</strong>
-                    {onOpenSettingsLearning ? (
-                      <>
-                        {' '}
-                        ·{' '}
-                        <button type="button" className="btn-link" onClick={onOpenSettingsLearning}>
-                          Modifier dans Réglages → Validation des lectures
-                        </button>
-                      </>
-                    ) : (
-                      ' — modifiable dans Réglages → Validation des lectures.'
-                    )}
-                  </p>
-                ) : null}
-                {showThresholdInput ? (
-                  <label className="pedago-filter-field">
-                    <span>
-                      Nombre de bonnes réponses attendues (sur {approvedGatingCount || '—'}{' '}
-                      bloquante{approvedGatingCount > 1 ? 's' : ''})
-                    </span>
-                    <input
-                      type="number"
-                      className="form-input"
-                      min={1}
-                      max={Math.max(1, approvedGatingCount || 50)}
-                      value={requiredCorrectDraft}
-                      disabled={busy || approvedGatingCount === 0}
-                      onChange={(e) => setRequiredCorrectDraft(e.target.value)}
-                      onBlur={() => saveThresholdDraft()}
-                    />
-                  </label>
-                ) : null}
-                {effectiveDescription ? (
-                  <p className="section-sub" role="status">
-                    <strong>Appliqué :</strong> {effectiveDescription}
-                  </p>
-                ) : null}
-              </div>
+              {policy?.typePolicy || policy?.site ? (
+                <p className="section-sub pedago-links__type-banner">
+                  Préréglage type « {tab.label} » :{' '}
+                  <strong>
+                    {describeSiteGatingMode({
+                      defaultMode: policy?.effective?.mode,
+                      defaultRequiredCorrect: policy?.effective?.requiredCorrect,
+                    }) || describeSiteGatingMode(policy?.site)}
+                  </strong>
+                  {onOpenSettingsLearning ? (
+                    <>
+                      {' '}
+                      ·{' '}
+                      <button type="button" className="btn-link" onClick={onOpenSettingsLearning}>
+                        Modifier le préréglage type
+                      </button>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+
+              <GatingPolicyEditor
+                key={`${resourceType}-${selectedRef}`}
+                product="fm"
+                layer="resource"
+                site={policy?.site}
+                typePolicy={policy?.typePolicy}
+                policy={policy?.policy}
+                effective={policy?.effective}
+                effectiveSources={policy?.effectiveSources}
+                gatingCount={approvedGatingCount}
+                resourceType={resourceType}
+                busy={policyBusy || busy}
+                onSave={savePolicy}
+              />
 
               {progress?.summary ? (
                 <p className="section-sub pedago-links__progress" role="status">

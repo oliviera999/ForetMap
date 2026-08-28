@@ -66,7 +66,10 @@ tutoriel, feuillet…) comme apprise.
   S'y ajoutent, depuis le lot 27, les réglages jusque-là réservés à ForetMap : les **erreurs
   tolérées avant blocage**, le **nombre de questions posées d'affilée**, l'**annonce du
   contrôle sur le bouton**, et la **portée du blocage** (toute la fiche, ou la seule question
-  ratée). Les deux applications partagent désormais le même jeu de réglages.
+  ratée). Les deux applications partagent désormais le même jeu de réglages. **Depuis le lot
+  Option D**, chacun de ces paramètres (mode, seuil N, session, verrou, granularité) peut se
+  surcharger **par type de ressource** puis **par fiche**, comme en ForetMap ; une **4e couche**
+  (chapitre de jeu ou scope lore) peut encore ajuster **qui répond** (joueur ou équipe).
 - **Assouplir une ressource en particulier** : dans **Contenus → Conditionnement QCM**, saisir
   le type et la référence de la ressource puis choisir le mode (y compris « un nombre minimum »
   avec le champ **N**). Une ressource peut aussi être **dispensée** (« aucune question exigée »).

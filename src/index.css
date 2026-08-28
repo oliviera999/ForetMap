@@ -7405,6 +7405,32 @@
   align-items: flex-end;
   margin: 12px 0;
 }
+.gating-policy-editor {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--border, #d8e4d0);
+  border-radius: 8px;
+  background: var(--surface-muted, rgba(255, 255, 255, 0.5));
+}
+.gating-policy-editor__section {
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.gating-policy-editor__section legend {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.gating-policy-editor__applied {
+  margin: 0;
+}
+.gating-policy-editor--compact .gating-policy-editor__section {
+  gap: 6px;
+}
 .pedago-links__picker { flex: 1 1 320px; min-width: 0; }
 .pedago-links__picker select { max-width: 100%; }
 .pedago-links__auto { margin: 12px 0; }

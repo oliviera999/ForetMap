@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../services/api.js';
 
-// Panneau dédié — réglages site du conditionnement par QCM (ForetMap).
+import { GatingPolicyEditor } from '../../shared/components/GatingPolicyEditor.jsx';
 
 const MODE_OPTIONS = [
   { value: 'any', label: 'Une question réussie suffit' },
@@ -34,7 +34,7 @@ function readNumber(value, fallback) {
 }
 
 export function FMLearningGatingSettings({ get, saveSetting, savingKey = '' }) {
-  const [typePolicies, setTypePolicies] = useState({});
+  const [typeBundle, setTypeBundle] = useState({});
   const [typeBusy, setTypeBusy] = useState('');
   const [typeError, setTypeError] = useState('');
 
@@ -49,10 +49,10 @@ export function FMLearningGatingSettings({ get, saveSetting, savingKey = '' }) {
           const res = await api(
             `/api/learning-links/type-policy?resourceType=${encodeURIComponent(t.type)}`,
           );
-          return [t.type, res?.policy || null];
+          return [t.type, res || null];
         }),
       );
-      setTypePolicies(Object.fromEntries(entries));
+      setTypeBundle(Object.fromEntries(entries));
       setTypeError('');
     } catch (err) {
       setTypeError(err.message || 'Chargement des préréglages par type impossible');
@@ -67,12 +67,9 @@ export function FMLearningGatingSettings({ get, saveSetting, savingKey = '' }) {
     setTypeBusy(resourceType);
     setTypeError('');
     try {
-      const current = typePolicies[resourceType] || {};
       await api('/api/learning-links/type-policy', 'PUT', {
         resource_type: resourceType,
-        mode: patch.mode ?? current.mode ?? 'inherit',
-        required_correct: patch.required_correct ?? current.required_correct ?? 1,
-        enabled: patch.enabled ?? (current.enabled == null ? 1 : current.enabled),
+        ...patch,
       });
       await loadTypePolicies();
     } catch (err) {
@@ -252,44 +249,41 @@ export function FMLearningGatingSettings({ get, saveSetting, savingKey = '' }) {
         S&apos;appliquent aux fiches en « Réglage du site » sans exigence propre.
       </p>
       {TYPE_TABS.map((tab) => {
-        const pol = typePolicies[tab.type] || {};
-        const mode = pol.mode || 'inherit';
+        const bundle = typeBundle[tab.type] || {};
         return (
-          <div key={tab.type} className="pedago-links__policy" style={{ marginBottom: 12 }}>
-            <strong>{tab.label}</strong>
-            <label className="pedago-filter-field">
-              <span>Mode par défaut pour ce type</span>
-              <select
-                className="form-select"
-                value={mode}
-                disabled={typeBusy === tab.type}
-                onChange={(e) => saveTypePolicy(tab.type, { mode: e.target.value })}
-              >
-                <option value="inherit">Hériter du site</option>
-                {MODE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {mode === 'threshold' ? (
-              <label className="pedago-filter-field">
-                <span>Seuil N pour ce type</span>
-                <input
-                  type="number"
-                  className="form-input"
-                  min={1}
-                  max={50}
-                  defaultValue={pol.required_correct ?? 1}
-                  disabled={typeBusy === tab.type}
-                  onBlur={(e) => {
-                    const n = readNumber(e.target.value, 1);
-                    saveTypePolicy(tab.type, { mode: 'threshold', required_correct: n });
-                  }}
-                />
-              </label>
-            ) : null}
+          <div key={tab.type} style={{ marginBottom: 16 }}>
+            <h5 style={{ margin: '0 0 8px' }}>{tab.label}</h5>
+            <GatingPolicyEditor
+              product="fm"
+              layer="type"
+              site={
+                bundle.site || {
+                  defaultMode,
+                  defaultRequiredCorrect: defaultRequired,
+                  enabled,
+                  allowedWrongAttempts: readNumber(
+                    get('learning.gating.allowed_wrong_attempts', 0),
+                    0,
+                  ),
+                  maxQuestionsPerSession: readNumber(
+                    get('learning.gating.max_questions_per_session', 3),
+                    3,
+                  ),
+                  retryCooldownDays: readNumber(get('learning.gating.retry_cooldown_days', 3), 3),
+                  cooldownScope: String(
+                    get('learning.gating.cooldown_scope', 'resource') || 'resource',
+                  ),
+                }
+              }
+              typePolicy={bundle.policy}
+              policy={bundle.policy}
+              effective={bundle.effective}
+              effectiveSources={bundle.effectiveSources}
+              resourceType={tab.type}
+              busy={typeBusy === tab.type}
+              onSave={(patch) => saveTypePolicy(tab.type, patch)}
+              compact
+            />
           </div>
         );
       })}

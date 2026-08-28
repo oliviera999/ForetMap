@@ -110,9 +110,11 @@ test('resolveEffectivePolicy — defauts site, surcharge ressource, granularite 
   });
   assert.equal(c.mode, 'all');
 
-  // Granularite surchargee par le chapitre/scope.
-  const d = core.resolveEffectivePolicy({ chapterGranularity: 'team', site });
-  assert.equal(d.granularity, 'team');
+  // Granularite surchargee par le chapitre/scope (GL uniquement ; FM force player).
+  const dGl = core.resolveEffectivePolicy({ chapterGranularity: 'team', site, product: 'gl' });
+  assert.equal(dGl.granularity, 'team');
+  const dFm = core.resolveEffectivePolicy({ chapterGranularity: 'team', site, product: 'fm' });
+  assert.equal(dFm.granularity, 'player');
 
   // inherit + ancien required_correct en BDD : le site threshold prime.
   const stale = core.resolveEffectivePolicy({

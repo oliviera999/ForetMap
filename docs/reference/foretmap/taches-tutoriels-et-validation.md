@@ -275,6 +275,14 @@ Les réglages qui accompagnent l'interrupteur (panneau dédié **Validation des 
 | Afficher les pastilles d'état                   | **Oui par défaut.** Une petite marque à côté du bouton : **✓** contrôle réussi, **?** questions restantes, **🔒** bloqué. Rien ne s'affiche là où rien n'est conditionné.                                                 |
 | Tutoriels liés avant tâche « faite »            | **Non par défaut.** Si activé, l'élève doit avoir **lu** (validé) tous les tutoriels rattachés à la tâche avant de pouvoir la marquer comme faite.                                                                        |
 
+**Où s'appliquent ces réglages (cascade)** — du plus général au plus précis :
+
+| Niveau        | Où le configurer                               | Ce qu'il couvre                                                                                                                                       |
+| ------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Site**      | Réglages → Validation des lectures             | Mode, seuil N, erreurs tolérées, questions par session, délai et portée du verrou (valeurs par défaut pour toute l'application).                      |
+| **Par type**  | Même panneau, section « Préréglages par type » | Tutoriels, fiches espèces ou glossaire : surcharge optionnelle de chaque paramètre ci-dessus (`Hériter` = reprendre le site).                         |
+| **Par fiche** | Quiz → Rattacher des questions → fiche choisie | Exception pour un tutoriel, une espèce ou un terme précis ; peut aussi dispenser la fiche. L'écran indique la règle **effective** et d'où elle vient. |
+
 Ce que l'élève voit, dans l'ordre. **Avant même de cliquer**, le bouton indique ce qui
 l'attend : « 1 question », ou un cadenas si la validation est encore bloquée. Au clic, un
 **petit panneau surgit par-dessus la page** — il ne masque pas le tutoriel qu'on vient de

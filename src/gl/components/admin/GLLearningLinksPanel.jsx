@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
-import {
-  describeGatingPolicy,
-  MODE_LABELS,
-} from '../../../shared/utils/learningGatingPolicyText.js';
+import { GatingPolicyEditor } from '../../../shared/components/GatingPolicyEditor.jsx';
+import { describeSiteGatingMode } from '../../../shared/utils/learningGatingPolicyText.js';
 
 // G3 — écran admin du conditionnement par QCM (« marquer appris » soumis à la
 // réussite d'une question). CRUD des liens ressource ↔ question sur
@@ -43,7 +41,7 @@ export function GLLearningLinksPanel() {
   const [policyRef, setPolicyRef] = useState('');
   const [policyType, setPolicyType] = useState('species');
   const [policyState, setPolicyState] = useState(null);
-  const [requiredCorrectDraft, setRequiredCorrectDraft] = useState('1');
+  const [policyBusy, setPolicyBusy] = useState(false);
 
   const loadSettings = useCallback(async () => {
     try {
@@ -92,8 +90,6 @@ export function GLLearningLinksPanel() {
       });
       const res = await apiGL(`/api/gl/learning-links/policy?${params.toString()}`);
       setPolicyState(res || null);
-      const n = res?.policy?.required_correct ?? res?.effective?.requiredCorrect ?? 1;
-      setRequiredCorrectDraft(String(n));
     } catch (_) {
       setPolicyState(null);
     }
@@ -105,27 +101,20 @@ export function GLLearningLinksPanel() {
 
   async function savePolicy(patch) {
     if (!policyRef.trim()) return;
-    setBusy(true);
+    setPolicyBusy(true);
     setError('');
     try {
-      const current = policyState?.policy || {};
       await apiGL('/api/gl/learning-links/policy', 'PUT', {
         resource_type: policyType,
         resource_ref: policyRef.trim(),
-        mode: patch.mode ?? current.mode ?? 'inherit',
-        required_correct:
-          patch.required_correct ??
-          current.required_correct ??
-          policyState?.effective?.requiredCorrect ??
-          1,
-        enabled: patch.enabled ?? (current.enabled == null ? 1 : current.enabled),
+        ...patch,
       });
-      setInfo('Exigence enregistrée.');
+      setInfo('Politique enregistrée.');
       await loadPolicy();
     } catch (err) {
       setError(err.message || 'Enregistrement de la politique impossible');
     } finally {
-      setBusy(false);
+      setPolicyBusy(false);
     }
   }
 
@@ -136,7 +125,6 @@ export function GLLearningLinksPanel() {
       l.status === 'approved' &&
       Number(l.is_gating),
   );
-  const policyMode = policyState?.policy?.mode || 'inherit';
 
   async function createLink(event) {
     event.preventDefault();
@@ -227,7 +215,7 @@ export function GLLearningLinksPanel() {
       {info ? <p className="gl-hint">{info}</p> : null}
 
       <div className="gl-admin-form" style={{ marginBottom: 16 }}>
-        <h4>Exigence pour une ressource</h4>
+        <h4>Politique pour une ressource</h4>
         <div className="gl-admin-form-grid">
           <label>
             Type
@@ -248,52 +236,31 @@ export function GLLearningLinksPanel() {
               placeholder="code ressource…"
             />
           </label>
-          <label>
-            Mode
-            <select
-              value={policyMode}
-              disabled={busy || !policyRef.trim()}
-              onChange={(e) => savePolicy({ mode: e.target.value })}
-            >
-              {Object.entries(MODE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {policyMode === 'threshold' ? (
-            <label>
-              Bonnes réponses attendues (sur {policyLinks.length || '—'})
-              <input
-                type="number"
-                min={1}
-                max={Math.max(1, policyLinks.length || 50)}
-                value={requiredCorrectDraft}
-                disabled={busy || !policyRef.trim()}
-                onChange={(e) => setRequiredCorrectDraft(e.target.value)}
-                onBlur={() => {
-                  const max = Math.max(1, policyLinks.length || 1);
-                  const n = Math.max(
-                    1,
-                    Math.min(max, Math.floor(Number(requiredCorrectDraft) || 1)),
-                  );
-                  setRequiredCorrectDraft(String(n));
-                  savePolicy({ mode: 'threshold', required_correct: n });
-                }}
-              />
-            </label>
-          ) : null}
         </div>
-        {policyState?.effective ? (
+        {policyState?.typePolicy || gating ? (
           <p className="gl-hint">
-            {describeGatingPolicy({
-              mode: policyState.effective.mode,
-              requiredCorrect: policyState.effective.requiredCorrect,
-              gatingCount: policyLinks.length,
-            })}
+            Préréglage type :{' '}
+            <strong>{describeSiteGatingMode(gating) || policyState?.site?.defaultMode}</strong>
           </p>
         ) : null}
+        {policyRef.trim() ? (
+          <GatingPolicyEditor
+            key={`${policyType}-${policyRef.trim()}`}
+            product="gl"
+            layer="resource"
+            site={policyState?.site || gating}
+            typePolicy={policyState?.typePolicy}
+            policy={policyState?.policy}
+            effective={policyState?.effective}
+            effectiveSources={policyState?.effectiveSources}
+            gatingCount={policyLinks.length}
+            resourceType={policyType}
+            busy={policyBusy || busy}
+            onSave={savePolicy}
+          />
+        ) : (
+          <p className="gl-hint">Indiquez une référence pour éditer la politique.</p>
+        )}
       </div>
 
       <form onSubmit={createLink} className="gl-admin-form">

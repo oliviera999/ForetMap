@@ -286,18 +286,11 @@ describe('FMLearningLinksPanel', () => {
     });
     render(<FMLearningLinksPanel />);
     await screen.findByRole('button', { name: /Le compostage/ });
-    const modeSelect = screen.getByLabelText(/Exigence pour ce tutoriel/i);
+    const modeSelect = screen.getByLabelText(/^Mode$/i);
     fireEvent.change(modeSelect, { target: { value: 'threshold' } });
-    await waitFor(() => {
-      expect(apiMock).toHaveBeenCalledWith(
-        '/api/learning-links/policy',
-        'PUT',
-        expect.objectContaining({ mode: 'threshold' }),
-      );
-    });
-    const nInput = await screen.findByLabelText(/Nombre de bonnes réponses attendues/i);
+    const nInput = screen.getByLabelText(/Nombre de bonnes réponses \(seuil N\)/i);
     fireEvent.change(nInput, { target: { value: '2' } });
-    fireEvent.blur(nInput);
+    fireEvent.click(screen.getByRole('button', { name: /Enregistrer la politique/i }));
     await waitFor(() => {
       expect(apiMock).toHaveBeenCalledWith(
         '/api/learning-links/policy',
