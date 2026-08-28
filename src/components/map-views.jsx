@@ -8,6 +8,7 @@ import {
   resolveMapOverlayTypography,
   resolveMapOverlayCssVariables,
 } from '../utils/mapOverlayTypography';
+import { resolveMapOverlayLabelLayout } from '../utils/mapOverlayZoneLabels.js';
 import { useMapOverlayTextSizePreference } from '../hooks/useMapOverlayTextSizePreference.js';
 
 import { TASK_VISUAL_LABEL } from '../utils/taskEnrollment.js';
@@ -491,6 +492,10 @@ function MapViewImpl({
       isCoarsePointer,
       userTextSizePercent: mapTextSizePercent,
     });
+  const mapOverlayLabelLayout = useMemo(
+    () => resolveMapOverlayLabelLayout(mapSettings, { inv, isCoarsePointer }),
+    [mapSettings, inv, isCoarsePointer],
+  );
   const mapOverlayCssVars = useMemo(
     () =>
       resolveMapOverlayCssVariables(mapSettings, mapFitHeightPx, {
@@ -977,6 +982,9 @@ function MapViewImpl({
                       emojiFontPx={mapEmojiFontPx}
                       labelFontPx={mapLabelFontPx}
                       emojiLabelCenterGap={mapEmojiLabelCenterGap}
+                      minSideFactor={mapOverlayLabelLayout.minSideFactor}
+                      labelMaxWorldLength={mapOverlayLabelLayout.maxWorldLength}
+                      labelCompressChars={mapOverlayLabelLayout.compressChars}
                       onZoneOpen={openZoneFromMap}
                     />
                     <DrawingLayer drawPoints={drawPoints} iw={iw} ih={ih} inv={inv} />
@@ -1053,6 +1061,7 @@ function MapViewImpl({
                       emojiFontSize={`${mapEmojiFontPx}px`}
                       labelFontSize={`${mapLabelFontPx}px`}
                       labelMarginTop={markerLabelMarginTop}
+                      labelMaxWidthPx={mapOverlayLabelLayout.maxScreenPx}
                       taskVisual={markerTaskVisual}
                       taskLabel={markerTaskLabel}
                       tutorialCount={markerTutorialCount}

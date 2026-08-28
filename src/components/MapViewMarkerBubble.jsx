@@ -16,6 +16,7 @@
  * @param {string} props.emojiFontSize taille de police de l'épingle emoji (ex. « 16px »)
  * @param {string} props.labelFontSize taille de police de l'étiquette (ex. « 14px »)
  * @param {number} props.labelMarginTop marge supérieure de l'étiquette
+ * @param {number} [props.labelMaxWidthPx] largeur max du libellé (px écran)
  * @param {string} [props.taskVisual] identifiant du visuel de tâche (ajoute la pastille de tâche)
  * @param {string} props.taskLabel libellé accessible de la pastille de tâche
  * @param {number} props.tutorialCount nombre de tutoriels liés (pastille si > 0)
@@ -33,6 +34,7 @@ export function MapViewMarkerBubble({
   emojiFontSize,
   labelFontSize,
   labelMarginTop,
+  labelMaxWidthPx,
   taskVisual,
   taskLabel,
   tutorialCount,
@@ -85,7 +87,7 @@ export function MapViewMarkerBubble({
       onPointerUp={(e) => e.stopPropagation()}
     >
       <div
-        className="map-bubble-pin"
+        className="map-bubble-pin map-overlay-emoji-label"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -95,7 +97,6 @@ export function MapViewMarkerBubble({
           border: 'none',
           borderRadius: 0,
           fontSize: emojiFontSize,
-          lineHeight: 1,
           minWidth: m.emoji ? undefined : 10,
           minHeight: m.emoji ? undefined : 10,
         }}
@@ -151,25 +152,12 @@ export function MapViewMarkerBubble({
       </div>
       {showLabels && (
         <div
+          className="map-overlay-name-label map-overlay-name-label--html"
           style={{
             flexShrink: 0,
             marginTop: labelMarginTop,
-            background: 'transparent',
-            color: '#1a4731',
-            borderRadius: 0,
-            padding: 0,
             fontSize: labelFontSize,
-            fontWeight: 700,
-            fontFamily: 'DM Sans,sans-serif',
-            lineHeight: 1,
-            whiteSpace: 'nowrap',
-            maxWidth: isCoarsePointer ? 128 : 96,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            pointerEvents: 'none',
-            textAlign: 'center',
-            textShadow:
-              '0 0 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.85), 0 1px 0 rgba(255,255,255,.92)',
+            maxWidth: labelMaxWidthPx ?? (isCoarsePointer ? 128 : 96),
           }}
         >
           {m.label}

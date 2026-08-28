@@ -271,13 +271,18 @@ toute l'établissement :
   rapport à un affichage de référence) ;
 - **écart entre emoji et nom** ;
 - **grossissement des étiquettes au zoom** (0 % = taille constante quand on zoome,
-  100 % = grossit linéairement avec le zoom ; la valeur par défaut est intermédiaire).
+  100 % = grossit linéairement avec le zoom ; la valeur par défaut est intermédiaire) ;
+- **masquage adaptatif des noms de zone** : sur une zone très petite à l'écran, seul
+  l'emoji peut rester visible ; le nom complet reste accessible en ouvrant la fiche.
+  Le seuil est réglable (côté minimal en × hauteur du libellé ; **2,5 par défaut** —
+  plus bas = noms affichés plus souvent, plus haut = masquage plus strict).
 
 Pour un **tableau interactif** ou des élèves ayant besoin de caractères plus grands,
 monter les pourcentages emoji/nom (par exemple 150 %) dans les réglages admin.
 
 Sur les **petites zones**, seul l'emoji peut rester visible si le nom ne tiendrait pas
-de façon lisible ; le nom complet reste accessible en ouvrant la fiche.
+de façon lisible ; le nom complet reste accessible en ouvrant la fiche. Un administrateur
+peut ajuster ce comportement dans les réglages (seuil « masquage nom de zone »).
 
 ## Pour aller plus loin
 
