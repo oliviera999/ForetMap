@@ -90,6 +90,7 @@ for (const vp of VIEWPORTS) {
       const pinCard = page.locator('.pin-card');
       await expect(pinCard).toBeVisible({ timeout: 25_000 });
       await expectDialogStableAndFitting(pinCard, vp.height, { pinCard: true });
+      await dismissDiscoveryTourIfPresent(page);
       await pinCard.getByRole('button', { name: 'Annuler' }).click();
       await enableTeacherMode(page);
 
