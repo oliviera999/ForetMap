@@ -7,6 +7,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Lisibilité carte — unification Visite et GL
+
+Variables CSS `--map-overlay-*` partagées sur le plan visite et les plateaux GL ;
+libellés optionnels sur les repères visite, alignés sur le moteur typographique ForetMap.
+
 ### Le verrou après erreurs tolérées ne tombait jamais
 
 Le réglage « erreurs tolérées avant blocage » (`allowed_wrong_attempts`) comptait une
