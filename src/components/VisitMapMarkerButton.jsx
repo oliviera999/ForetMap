@@ -12,7 +12,7 @@ export function VisitMapMarkerButton({ marker, isSeen, onClick }) {
       onClick={onClick}
     >
       {marker.emoji ? (
-        <span className="visit-marker-emoji">{marker.emoji}</span>
+        <span className="visit-marker-emoji map-overlay-emoji-label">{marker.emoji}</span>
       ) : (
         <span
           className="visit-marker-emoji visit-marker-emoji--empty"
@@ -27,7 +27,11 @@ export function VisitMapMarkerButton({ marker, isSeen, onClick }) {
           }}
         />
       )}
-      {label ? <span className="visit-marker-label">{label}</span> : null}
+      {label ? (
+        <span className="visit-marker-label map-overlay-name-label map-overlay-name-label--html">
+          {label}
+        </span>
+      ) : null}
       <span className={`visit-marker-indicator ${isSeen ? 'is-seen' : 'is-unseen'}`} />
     </button>
   );

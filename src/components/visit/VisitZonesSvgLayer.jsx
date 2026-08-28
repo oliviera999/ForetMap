@@ -3,6 +3,11 @@ import { parseVisitZonePoints } from '../../utils/visitMapGeometry.js';
 import { detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../../constants/emojis';
 import { itemSeenKey } from '../../utils/visitMediaGallery.js';
 import { visitZoneSvgTextUniformYTransform } from '../../utils/visitMascotGeometry.js';
+import {
+  shouldCompressOverlayLabel,
+  shouldShowZoneEmojiLabel,
+  shouldShowZoneNameLabel,
+} from '../../utils/mapOverlayZoneLabels.js';
 import { VisitDrawZonePreview } from '../VisitDrawZonePreview.jsx';
 
 /**
@@ -18,7 +23,7 @@ import { VisitDrawZonePreview } from '../VisitDrawZonePreview.jsx';
  * @param {Array<object>} props.zones zones de la visite (`content.zones`).
  * @param {Set<string>} props.seen clés `itemSeenKey` des éléments vus.
  * @param {Array<string>} props.markerEmojis emojis « lieu » configurés (détection préfixe).
- * @param {{ emojiU: number, labelU: number, gapU: number, strokeU: number }} props.typography tailles en unités SVG.
+ * @param {{ emojiU: number, labelU: number, gapU: number, strokeU: number, labelFontPx: number, emojiFontPx: number, minSideFactor: number, labelMaxWorldLength: number, labelCompressChars: number, inv: number }} props.typography tailles en unités SVG + seuils masquage.
  * @param {number} props.fitWidth largeur du rect « contain » (px).
  * @param {number} props.fitHeight hauteur du rect « contain » (px).
  * @param {string} props.mode mode courant (`view` | `draw-zone` | `add-marker`).
@@ -36,6 +41,19 @@ function VisitZonesSvgLayerImpl({
   drawPoints,
   onZoneClick,
 }) {
+  const {
+    emojiU,
+    labelU,
+    gapU,
+    strokeU,
+    labelFontPx,
+    emojiFontPx,
+    minSideFactor,
+    labelMaxTextLengthU,
+    labelCompressChars,
+    inv,
+  } = typography;
+
   /** Géométrie pré-parsée par zone (points, attribut polygon, centre du libellé). */
   const parsedZones = useMemo(
     () =>
@@ -43,8 +61,10 @@ function VisitZonesSvgLayerImpl({
         .map((z) => {
           const points = parseVisitZonePoints(z.points);
           if (points.length < 3) return null;
+          const ptsPct = points.map((pt) => ({ xp: pt.xp, yp: pt.yp }));
           return {
             zone: z,
+            ptsPct,
             pointsAttr: points.map((pt) => `${pt.xp},${pt.yp}`).join(' '),
             mx: points.reduce((s, pt) => s + pt.xp, 0) / points.length,
             my: points.reduce((s, pt) => s + pt.yp, 0) / points.length,
@@ -54,16 +74,38 @@ function VisitZonesSvgLayerImpl({
     [zones],
   );
 
+  const iw = fitWidth > 0 ? fitWidth : 360;
+  const ih = fitHeight > 0 ? fitHeight : 480;
+
   return (
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="visit-map-zones">
-      {parsedZones.map(({ zone: z, pointsAttr, mx, my }) => {
+      {parsedZones.map(({ zone: z, ptsPct, pointsAttr, mx, my }) => {
         const isSeen = seen.has(itemSeenKey('zone', z.id));
         const zoneEmoji = detectLeadingMarkerEmoji(z.name || '', markerEmojis);
         const zoneLabel = stripLeadingMarkerEmoji(z.name || '', markerEmojis);
-        const { emojiU, labelU, gapU, strokeU } = typography;
+        const zoneNameText = zoneLabel || z.name || '';
         const titleY = my;
         const titleUniform = visitZoneSvgTextUniformYTransform(mx, titleY, fitWidth, fitHeight);
-        const showZoneLabel = Boolean(String(zoneLabel || '').trim() || z.name);
+        const showZoneEmoji =
+          Boolean(zoneEmoji) &&
+          shouldShowZoneEmojiLabel({
+            pts: ptsPct,
+            iw,
+            ih,
+            inv,
+            emojiFontPx,
+            minSideFactor,
+          });
+        const showZoneName =
+          shouldShowZoneNameLabel({
+            pts: ptsPct,
+            iw,
+            ih,
+            inv,
+            labelFontPx,
+            minSideFactor,
+          }) && Boolean(String(zoneNameText).trim());
+        const compressLongName = shouldCompressOverlayLabel(zoneNameText, labelCompressChars);
         return (
           <g
             key={z.id}
@@ -75,36 +117,33 @@ function VisitZonesSvgLayerImpl({
               points={pointsAttr}
               className={`visit-zone-poly ${isSeen ? 'is-seen' : 'is-unseen'}`}
             />
-            {zoneEmoji || showZoneLabel ? (
+            {showZoneEmoji || showZoneName ? (
               <g transform={titleUniform}>
-                {zoneEmoji ? (
+                {showZoneEmoji ? (
                   <text
                     x={mx}
                     y={titleY}
                     textAnchor="middle"
                     dominantBaseline="middle"
                     fontSize={emojiU}
-                    className="visit-zone-label visit-zone-label--emoji"
+                    className="visit-zone-label visit-zone-label--emoji map-overlay-emoji-label"
                   >
                     {zoneEmoji}
                   </text>
                 ) : null}
-                {showZoneLabel ? (
+                {showZoneName ? (
                   <text
                     x={mx}
-                    y={titleY + (zoneEmoji ? gapU : 0)}
+                    y={titleY + (showZoneEmoji ? gapU : 0)}
                     textAnchor="middle"
                     dominantBaseline="middle"
                     fontSize={labelU}
-                    fontWeight="700"
-                    fontFamily="DM Sans, sans-serif"
-                    fill="#1a4731"
-                    stroke="rgba(255,255,255,0.88)"
+                    className="visit-zone-label visit-zone-label--title map-overlay-name-label map-overlay-name-label--svg"
                     strokeWidth={strokeU}
-                    paintOrder="stroke"
-                    className="visit-zone-label visit-zone-label--title"
+                    textLength={compressLongName ? labelMaxTextLengthU : undefined}
+                    lengthAdjust={compressLongName ? 'spacingAndGlyphs' : undefined}
                   >
-                    {zoneLabel || z.name}
+                    {zoneNameText}
                   </text>
                 ) : null}
               </g>

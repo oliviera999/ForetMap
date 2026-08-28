@@ -3,6 +3,8 @@ import {
   MAP_OVERLAY_BASE_LABEL_AT_REF,
   MAP_OVERLAY_CHROME_LABEL_MIN_RATIO,
   MAP_OVERLAY_COARSE_POINTER_MULTIPLIER,
+  MAP_OVERLAY_LABEL_MAX_SCREEN_PX,
+  MAP_OVERLAY_LABEL_MAX_SCREEN_PX_COARSE,
   MAP_OVERLAY_MIN_ONSCREEN_EMOJI_PX,
   MAP_OVERLAY_MIN_ONSCREEN_LABEL_PX,
   MAP_OVERLAY_REFERENCE_BOARD_HEIGHT_PX,
@@ -148,11 +150,15 @@ export function resolveMapOverlayMarkerCssTypography(mapSettings, fitHeightPx, o
  */
 export function resolveMapOverlayCssVariables(mapSettings, fitHeightPx, options = {}) {
   const css = resolveMapOverlayMarkerCssTypography(mapSettings, fitHeightPx, options);
+  const maxScreenPx = options.isCoarsePointer
+    ? MAP_OVERLAY_LABEL_MAX_SCREEN_PX_COARSE
+    : MAP_OVERLAY_LABEL_MAX_SCREEN_PX;
   return {
     '--map-overlay-scale': css.overlayScale,
     '--map-overlay-emoji-font-size': `${css.emojiFontSizePx}px`,
     '--map-overlay-label-font-size': `${css.labelFontSizePx}px`,
     '--map-overlay-label-gap': `${css.labelGapPx}px`,
     '--map-overlay-label-margin-top': `${css.labelMarginTopPx}px`,
+    '--map-overlay-label-max-width': `${maxScreenPx}px`,
   };
 }

@@ -273,6 +273,12 @@ export const KEY_META = {
     section: 'modules',
     order: 73.5,
   },
+  'ui.map.zone_label_min_side_factor': {
+    label:
+      'Carte — masquage nom de zone : côté minimal (× hauteur du libellé ; 2,5 = défaut, plus bas = noms plus souvent visibles)',
+    section: 'modules',
+    order: 73.6,
+  },
   'ui.map.plateau_marker_size_percent': {
     label: 'Carte / plateau GL — taille des repères (% du plateau, ForetMap + GL)',
     section: 'modules',

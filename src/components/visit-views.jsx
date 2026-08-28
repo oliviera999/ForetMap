@@ -10,6 +10,7 @@ import {
   resolveHelpQuickTip,
 } from '../utils/helpResolve';
 import { getContentText } from '../utils/content';
+import { resolveMapOverlayLabelLayout } from '../utils/mapOverlayZoneLabels.js';
 import {
   resolveMapOverlayTypography,
   resolveMapOverlayCssVariables,
@@ -354,12 +355,21 @@ function VisitViewImpl({
       userTextSizePercent: mapTextSizePercent,
     };
     const t = resolveMapOverlayTypography(mapSettings, fitH, typoOpts);
+    const inv = 1 / worldScale;
+    const labelLayout = resolveMapOverlayLabelLayout(mapSettings, { inv, isCoarsePointer });
     const overlayCssVars = resolveMapOverlayCssVariables(mapSettings, fitH, typoOpts);
     return {
       emojiU: t.mapEmojiFontPx * uPerPx,
       labelU: t.mapLabelFontPx * uPerPx,
       gapU: t.mapEmojiLabelCenterGap * uPerPx,
       strokeU: Math.max(0.06, (3 / worldScale) * uPerPx),
+      labelFontPx: t.mapLabelFontPx,
+      emojiFontPx: t.mapEmojiFontPx,
+      minSideFactor: labelLayout.minSideFactor,
+      labelMaxWorldLength: labelLayout.maxWorldLength,
+      labelMaxTextLengthU: labelLayout.maxWorldLength * uPerPx,
+      labelCompressChars: labelLayout.compressChars,
+      inv,
       overlayCssVars,
     };
   }, [
