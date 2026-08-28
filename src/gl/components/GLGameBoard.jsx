@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { clampMapMascotPctForViewport } from '../../utils/mapViewMascotMotion.js';
 import { isQuestionMarker } from '../utils/glMarkerEventConfig.js';

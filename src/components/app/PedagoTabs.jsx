@@ -1,4 +1,4 @@
-import React, { lazy } from 'react';
+import { lazy } from 'react';
 
 import { TabSuspense } from '../TabSuspense.jsx';
 

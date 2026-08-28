@@ -16,6 +16,159 @@ passée comme « série soldée, on recommence à zéro » : avec une tolérance
 3ᵉ et la 20ᵉ faute restaient la « première ». L’annonce promise à l’élève (« 2 erreurs
 permises, puis 3 jours ») n’avait donc aucun effet. Le comptage utilise désormais une
 date sentinelle (1970), distincte d’un vrai verrou expiré.
+### Audit de refactoring : `src/App.jsx` remis à hauteur de vue
+
+**`src/App.jsx` passe de 1 808 à 1 457 lignes, sans changement de comportement.** Le shell de
+l'application avait ré-accumulé quatre responsabilités qui n'y appartiennent pas : le cycle de
+rechargement des données, l'écran d'accueil non authentifié, trois copies du même loader, et
+quatre dérivations de droits écrites deux fois chacune. Rien de ce lot ne modifie l'UI ni l'API —
+c'est un déplacement de code, appuyé par 30 tests unitaires neufs sur les parties devenues pures.
+
+**Le cycle de données quitte le composant.** `fetchAll` (≈ 250 lignes : polling différentiel via
+`/api/sync-state`, refetch ciblé par domaine, boucle de rafraîchissements concurrents, bandeau
+« serveur indisponible ») vit désormais dans `src/hooks/useAppDataSync.js` avec les quatorze états
+de domaine qu'il pilote. La cadence de rafraîchissement — intervalle adaptatif selon le temps réel,
+l'onglet navigateur et les onglets « calmes », plus le refetch en quittant un onglet secondaire —
+part dans `src/hooks/useAppDataPolling.js`. `App.jsx` n'en garde que deux appels et un objet de
+contexte mémoïsé ; les seuils codés en dur (90 s en temps réel, 120 s en arrière-plan) deviennent
+des constantes nommées.
+
+**Trois dérivations dupliquées deviennent des helpers purs testés.** `canManageTutorials` et
+`canManageQuiz` étaient le même bloc à un nom de permission près (`src/utils/appAccess.js`) ;
+`canParticipateForum` et `canParticipateContextComments` aussi (même fichier) ; la portée des
+cartes selon le rôle était écrite une fois dans le mémo `visibleMaps` et une fois à l'intérieur de
+`fetchAll`, avec la résolution de carte active qui va avec (`src/utils/appMapScope.js`). Le
+calcul du nom affiché, recopié à quatre endroits, rejoint `src/utils/appIdentity.js`.
+
+**Le JSX répété devient quatre composants.** `AppLoader` (trois copies du loader « feuille »),
+`AppFooter` (deux copies du pied de page « Version »), `AppUserDialog` (les modales statistiques
+et profil partageaient overlay, croix et zone défilante au caractère près) et
+`UnauthenticatedShell` (écran de connexion + visite invitée, avec ses deux gestionnaires jusque-là
+écrits en flèches inline dans le rendu). Trois objets de style et un tableau vide passent en
+constantes de module, et la cible de la modale statistiques est mémoïsée : autant de props qui
+cassaient les `React.memo` des vues à chaque rendu du shell.
+
+### La mascotte de visite suit enfin le compte, et `App` gagne ses premiers tests de rendu
+
+**Le choix de mascotte d'un compte connecté n'était jamais enregistré.** `App.jsx` calculait bien
+un persisteur (`onPersistVisitMascotId`) mais ne le passait à personne, alors que `MapTasksArea`,
+`PedagoTabs` et `VisitView` acceptent tous la prop, que la route `PUT /api/visit/mascot-preference`
+existe, est testée et documentée, et que la doc de référence promet déjà que « avec un compte, la
+mascotte suit la personne, pas l'appareil ». Le choix retombait donc sur le stockage local : il ne
+suivait pas l'élève d'un appareil à l'autre, et une tablette partagée le transmettait à l'élève
+suivant. Quatre props branchées, rien d'autre à écrire — tout le mécanisme était déjà là.
+
+**Effet de bord à connaître :** un compte qui avait un choix mémorisé dans son navigateur repart
+sur la mascotte par défaut à la première visite, jusqu'à ce qu'il rechoisisse — le stockage local
+n'est plus lu dès lors que la mascotte vit dans le compte.
+
+**Au passage, `profileTargetUser` ne se recalculait pas sur la mascotte.** La dépendance
+`sessionUser?.visit_mascot_catalog_id` manquait : « Mon profil » rouvrait sur la mascotte
+précédente juste après un changement depuis le plan.
+
+**`App` n'avait aucun test de rendu — il en a quatre.** Le nouveau
+`tests-ui/AppShellWiring.test.jsx` monte réellement le composant, avec de simples sondes à la
+place des grosses vues, et couvre les deux branches (session élève, session prof, shell invité)
+plus le fait que le persisteur appelle bien la route du compte. Ce test a immédiatement rattrapé
+une **zone morte temporelle introduite par le lot de refactoring ci-dessus** : `handleProfileUpdated`
+listait `updateTeacherSession` dans ses dépendances alors que ce `const` était déclaré plus bas
+dans le corps du composant — un `ReferenceError` à chaque rendu de l'écran authentifié, invisible
+pour le lint, le build et les 3 153 tests existants, puisque aucun ne montait `App`.
+
+### L'audit de refactoring est documenté, et ce qu'il a coûté aussi
+
+**`docs/AUDIT_REFACTORING_APP_2026-08.md`** rend compte du chantier : l'inventaire de ce que
+contenait `src/App.jsx`, la carte de ce qui en est sorti, le défaut fonctionnel trouvé (la
+mascotte qui ne suivait pas le compte) — et le post-mortem de la régression que le refactoring a
+lui-même introduite. Ce dernier point est le plus utile du document : un `ReferenceError` levé à
+**chaque rendu** de l'écran authentifié a été poussé, sa CI est passée au vert, et ni le lint, ni
+le build, ni 3 153 tests ne l'ont vu — parce qu'aucun ne montait `App`. C'est un test écrit
+ensuite, pour une correction sans rapport, qui l'a rattrapé.
+
+**Les quatre valeurs GL calculées puis ignorées entrent au registre d'arbitrage**
+(`docs/reference/INCOHERENCES.md`, entrée **G15**), rédigées pour leur public : ce que chaque cas
+donne probablement à l'écran, et deux options à trancher. Elles ne sont pas « nettoyées » — les
+supprimer effacerait la trace de ce qui manque.
+
+**Les acquis passent dans les règles plutôt que dans un document qu'on oublie de rouvrir.**
+`CLAUDE.md`, `.cursor/rules/foretmap-conventions.mdc` et les skills `foretmap-context` /
+`foretmap-testing` portent désormais les trois consignes issues du chantier : pas d'`import React`
+pour du JSX, `no-use-before-define` bloquant sur la zone morte temporelle, et **poser un test de
+montage avant** de refactorer un composant racine — pas après.
+
+### Les 460 fichiers de tests React n'étaient lintés par personne
+
+**`tests-ui/**` n'apparaissait dans aucun bloc `files:` d'`eslint.config.cjs`** : ESLint répondait
+`File ignored because no matching configuration was supplied` et passait son chemin. Un tiers du
+code du dépôt échappait donc à `no-undef`, `no-unused-vars` et aux garde-fous ajoutés cette
+semaine — dont l'interdiction de la zone morte temporelle.
+
+Le trou se comble presque sans bruit : sur 253 avertissements révélés, **247 étaient encore des
+imports `React` morts** (même cause que côté `src/`) et **six seulement** étaient réels — trois
+déstructurations `form` jamais lues, un paramètre de mock, deux imports morts. Après nettoyage,
+`tests-ui` linte à **zéro avertissement**, et la règle qui a rattrapé le plantage d'`App.jsx`
+couvre désormais aussi les tests.
+
+Le bloc reprend les règles de `src/**` sans celles des Hooks : un test **monte** des composants,
+il n'en déclare pas.
+
+### Code mort : la moitié du reste part, l'autre moitié est signalée plutôt que masquée
+
+**33 avertissements de plus en moins, sans rien masquer.** Une fois le bruit `React` retiré, les
+100 variables réellement mortes sont devenues lisibles. Celles dont la suppression ne peut rien
+changer sont traitées : dix `catch` dont l'erreur n'était pas lue passent à `catch (_)` (la
+convention déjà en place dans le dépôt), onze imports morts disparaissent, et sept paramètres
+conservés pour la signature sont préfixés `_` — dont le `next` du gestionnaire d'erreurs Express,
+qui **doit** garder ses quatre arguments pour être reconnu comme tel.
+
+**Le reste n'est pas du bruit, et n'est donc pas supprimé.** Plusieurs de ces variables mortes
+ressemblent à du comportement perdu, pas à de l'oubli — exactement le profil du persisteur de
+mascotte jamais branché. Les faire taire les enterrerait une seconde fois. Les cas repérés,
+laissés visibles dans le lint et à trancher :
+
+- `lib/glJournalPresent.js` — quatre valeurs calculées puis jamais rendues (`xp`, `yp`,
+  `deltaStr`, `reasonPart`) dans le module qui **met en forme** les entrées de journal.
+- `GLFeuilletZonePlateauPanel` reçoit `mapImageFrame` de `GLChaptersAdminView` et ne s'en sert
+  pas, alors que `GLChapterMapStudio` l'applique bien via `glImageFrameToStyle` : l'aperçu du
+  plateau ignore donc probablement le cadrage configuré du plan de chapitre.
+- `useGLKingdomZoneEditor` déclare et documente une option `onDeleteZone` qu'il ne lit jamais
+  (la suppression passe en fait par `GLKingdomZoneSidePanels`).
+- `GLGameMasterConsoleLive` reçoit `currentTeamId` et ne l'utilise pas, contrairement à
+  `GLGameBoard` et `GLMapView`.
+
+### 394 imports `React` morts en moins : le lint redevient lisible
+
+**Trois quarts des avertissements du lint étaient un seul faux problème.** Sur 523
+avertissements, **394** disaient `'React' is defined but never used` — le vestige de l'ancien
+runtime JSX, que `@vitejs/plugin-react` a rendu inutile (runtime *automatic* : le compilateur
+injecte lui-même `jsx()`, plus besoin de `React` dans la portée). Sept fichiers du dépôt
+écrivaient déjà du JSX sans aucun import `react` et étaient livrés sans problème : la preuve
+était sous les yeux.
+
+Ce bruit avait un coût réel : c'est exactement ce qui a permis à un `onPersistVisitMascotId`
+jamais branché de passer inaperçu pendant des mois dans la même liste d'avertissements. **Le lint
+passe de 523 à 129 avertissements**, et les 100 variables réellement mortes qui restent
+deviennent enfin visibles.
+
+Suppression purement mécanique : seul le binding `React` disparaît de l'import (les imports
+nommés `useState`, `useMemo`… sont conservés), et uniquement dans les fichiers où plus aucune
+ligne de **code** ne référence l'identifiant — les mentions `React.ReactNode` en JSDoc ne
+comptent pas, celles en code (`React.memo`, `React.Fragment`) gardent leur import.
+
+### Le lint attrape désormais la zone morte temporelle
+
+**Le bug qui a cassé l'écran authentifié était détectable par une règle ESLint standard.** Un
+`const` déclaré plus bas dans le corps d'un composant, référencé depuis un tableau de dépendances
+de hook, lève un `ReferenceError` à **chaque rendu** — et ni le build, ni le lint tel qu'il était
+configuré, ni 3 153 tests ne le voyaient. `no-use-before-define` (variables uniquement ; les
+déclarations de fonction restent hissées, donc libres d'ordre) est activée en **erreur** sur
+`src/**` : elle signale exactement ce motif, et fait donc échouer la CI.
+
+**Coût d'activation : cinq réordonnancements.** `settings-admin-views.jsx` référençait `saveSetting`
+depuis quatre points de rendu situés avant sa déclaration, et `quizGlossaryReveal.js` sa constante
+`EMPTY_ITEMS`. Aucun des deux ne plantait — les appels arrivaient après l'évaluation — mais les
+deux étaient à un déplacement de ligne du même accident. `load` et `saveSetting` remontent avant
+`renderSettingField`, l'ordre du source suit maintenant celui des dépendances.
 
 ### Le versionnage, les branches et deux noyaux communs (v1.136.0)
 

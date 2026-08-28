@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { getGlAvatarUrl } from '../utils/glAvatar.js';
 import { GLImageFrameEditor } from './GLImageFrameEditor.jsx';
 import { cropImageDataUrl, normalizeGlImageFrame } from '../../utils/glImageFrame.js';

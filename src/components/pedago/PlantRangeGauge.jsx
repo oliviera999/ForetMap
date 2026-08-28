@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Jauge visuelle min–max (pH, température °C, etc.).
  * @param {{ label: string, unit?: string, min: number, max: number, domainMin?: number, domainMax?: number, icon?: string }} props

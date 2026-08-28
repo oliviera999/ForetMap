@@ -1,4 +1,3 @@
-import React from 'react';
 import { TaskDifficultyAndRiskChips } from '../../utils/badges';
 import { isStudentAssignedToTask } from '../../utils/task-assignments';
 import { canStudentAssignTask, taskEnrollmentMeta } from '../../utils/taskEnrollment.js';

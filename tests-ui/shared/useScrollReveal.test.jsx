@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { useScrollReveal } from '../../src/shared/hooks/useScrollReveal.js';

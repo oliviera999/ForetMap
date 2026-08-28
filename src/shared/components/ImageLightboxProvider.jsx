@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { handleImageLightboxClick } from '../utils/imageLightboxClick.js';
 import { ImageLightbox } from './ImageLightbox.jsx';
 

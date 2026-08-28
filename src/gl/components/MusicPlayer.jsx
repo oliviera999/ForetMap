@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useGLPlateauMusic } from '../hooks/useGLPlateauMusic.js';
 import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';
 

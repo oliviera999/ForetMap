@@ -1,4 +1,3 @@
-import React from 'react';
 import { MASCOT_MOVE_ACTOR_OPTIONS, readSelectSetting } from '../../utils/glSettingsForm.js';
 
 /**

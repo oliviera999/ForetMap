@@ -1,4 +1,3 @@
-import React from 'react';
 import { GLMultiCheckDropdown } from './GLMultiCheckDropdown.jsx';
 
 /**

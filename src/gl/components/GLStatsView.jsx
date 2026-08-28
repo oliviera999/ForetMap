@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { StatCard, StatsSummaryGrid } from '../../shared/components/StatsSummaryGrid.jsx';
 import { useGLPlayerStats } from '../hooks/useGLPlayerStats.js';
 import { GLButton } from './ui/GLButton.jsx';

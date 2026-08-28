@@ -1,4 +1,3 @@
-import React from 'react';
 import { MAP_MARKER_EMOJI_MAX_CHARS } from '../../constants/emojis';
 import { nextLivingBeingsFromMultiSelect } from '../../utils/livingBeings';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';

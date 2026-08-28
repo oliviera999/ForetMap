@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { withAppBase } from '../../shared/appBase.js';
 import { DEFAULT_PUBLIC_SETTINGS, mergePublicSettings } from '../../utils/appPublicSettings.js';
 

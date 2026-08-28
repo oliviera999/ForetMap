@@ -1,4 +1,3 @@
-import React from 'react';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
 import { GLBadge } from '../ui/GLBadge.jsx';
 import { GLButton } from '../ui/GLButton.jsx';

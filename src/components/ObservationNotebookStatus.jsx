@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Placeholder de statut du carnet d'observations élève (O6, extrait de
  * `ObservationNotebook` dans `foretmap-views.jsx`).

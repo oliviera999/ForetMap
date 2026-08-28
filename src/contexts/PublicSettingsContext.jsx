@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import { createContext, useContext } from 'react';
 
 /**
  * Contexte des réglages publics (`publicSettings`) — fondation O5 pour casser le prop-drilling.

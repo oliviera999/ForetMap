@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, test, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MediaLibraryMenu } from '../../src/components/MediaLibraryMenu.jsx';

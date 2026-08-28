@@ -1,4 +1,3 @@
-import React from 'react';
 import { NotificationCenter } from '../notifications-center';
 import { StudentAvatar } from '../student-avatar';
 import { Tooltip } from '../../shared/components/Tooltip.jsx';

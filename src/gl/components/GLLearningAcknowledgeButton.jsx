@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { LearningAcknowledgeButton } from '../../shared/components/LearningAcknowledgeButton.jsx';
 import { apiGL } from '../services/apiGL.js';
 import { createGlGatingHandlers } from '../../shared/utils/learningGatingChallengeClient.js';

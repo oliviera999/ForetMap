@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ZONE_COLORS } from '../../constants/garden';
 import {
   MARKER_EMOJIS,
@@ -53,7 +53,7 @@ function ZoneDrawModal({
         living_beings: living,
       });
       onClose();
-    } catch (e) {
+    } catch (_) {
       setSaving(false);
     }
   };

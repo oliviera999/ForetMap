@@ -1,5 +1,3 @@
-import React from 'react';
-
 /** SCR4P: robot analyste compact avec écran et balayage. */
 function VisitMascotScrapSvg() {
   return (

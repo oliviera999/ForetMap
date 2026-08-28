@@ -1,5 +1,3 @@
-import React from 'react';
-
 /** SPR0UT: hybride bio-punk capsule + feuilles. */
 function VisitMascotSproutSvg() {
   return (

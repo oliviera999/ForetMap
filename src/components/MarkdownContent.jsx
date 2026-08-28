@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { renderMarkdownToSafeHtml } from '../utils/markdown.js';
 import { GlossaryMarkdown } from './GlossaryMarkdown.jsx';
 

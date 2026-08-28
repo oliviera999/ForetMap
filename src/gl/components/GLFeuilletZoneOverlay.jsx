@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { pointsToSvgPolygon } from '../../shared/pct-map/pctPolygon.js';
 
 const NEAR_THRESHOLD_PCT = 4;

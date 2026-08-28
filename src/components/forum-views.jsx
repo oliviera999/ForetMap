@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, toggleForumPostReaction } from '../services/api';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { formatDateTimeFr } from '../utils/datetime-fr';

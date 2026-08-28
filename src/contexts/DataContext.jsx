@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import { createContext, useContext } from 'react';
 
 /**
  * Contexte de données — 3ᵉ étage d'O5 : casse le prop-drilling des grands tableaux de données

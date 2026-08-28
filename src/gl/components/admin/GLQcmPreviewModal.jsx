@@ -1,4 +1,3 @@
-import React from 'react';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLQcmFeedbackBlock } from '../GLQcmFeedbackBlock.jsx';
 import { QcmPreviewModal } from '../../../shared/qcm/QcmPreviewModal.jsx';

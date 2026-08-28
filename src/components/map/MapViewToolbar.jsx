@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { Tooltip } from '../../shared/components/Tooltip.jsx';
 import { HelpPanel } from '../HelpPanel';
 import { useHelp } from '../../hooks/useHelp';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { GLLoreGlossaryMarkdown } from '../GLLoreGlossaryMarkdown.jsx';
 import { GLGlossaryMarkdown } from '../GLGlossaryMarkdown.jsx';
 import { GLFeuilletIllustration } from '../GLFeuilletIllustration.jsx';

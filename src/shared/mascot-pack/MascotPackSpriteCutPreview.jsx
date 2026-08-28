@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import VisitMapMascotSpriteCut from '../../components/VisitMapMascotSpriteCut.jsx';
 import VisitMascotFallbackSvg from '../../components/VisitMascotFallbackSvg.jsx';
 import { STATE_LABELS } from '../../constants/mascotStateLabels.js';

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 
 import { DialogShell } from '../DialogShell.jsx';
 import { TaskFiltersFields } from './TaskFiltersFields.jsx';

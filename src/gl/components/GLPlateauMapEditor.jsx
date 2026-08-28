@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { translateFeuilletZoneToPoint } from '../../shared/pct-map/pctPolygon.js';
 import { buildFeuilletZonesExportJson } from '../utils/glFeuilletZoneExport.js';
 import {

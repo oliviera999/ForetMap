@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { filterGlJoueursSubTabs } from '../utils/glAppShellHelpers.js';
 import { GLStatsView } from './GLStatsView.jsx';
 
