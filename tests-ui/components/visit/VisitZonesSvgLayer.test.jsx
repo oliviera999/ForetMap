@@ -9,7 +9,19 @@ vi.mock('../../../src/utils/visitMapGeometry.js', async (importOriginal) => {
   return { ...actual, parseVisitZonePoints: vi.fn(actual.parseVisitZonePoints) };
 });
 
-const TYPO = { emojiU: 4, labelU: 2, gapU: 3, strokeU: 0.5 };
+// Tailles SVG + seuils de masquage adaptatif (shouldShowZoneEmoji/NameLabel).
+const TYPO = {
+  emojiU: 4,
+  labelU: 2,
+  gapU: 3,
+  strokeU: 0.5,
+  labelFontPx: 12,
+  emojiFontPx: 16,
+  minSideFactor: 1.5,
+  labelMaxTextLengthU: 40,
+  labelCompressChars: 18,
+  inv: 1,
+};
 
 const zone = (
   id,
