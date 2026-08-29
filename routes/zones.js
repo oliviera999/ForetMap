@@ -144,14 +144,35 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
   );
 }
 
+/** Liste polling : sans `visit_body_json` (LONGTEXT) — flag `has_visit_body` pour fetch détail. */
 const ZONES_LIST_SQL = `SELECT z.*,
   vz.subtitle AS visit_subtitle,
   vz.short_description AS visit_short_description,
   vz.details_title AS visit_details_title,
   vz.details_text AS visit_details_text,
-  vz.body_json AS visit_body_json
+  CASE
+    WHEN vz.body_json IS NOT NULL AND CHAR_LENGTH(vz.body_json) > 2 THEN 1
+    ELSE 0
+  END AS has_visit_body
 FROM zones z
 LEFT JOIN visit_zones vz ON vz.id = z.id`;
+
+/** Détail / mutations : inclut le corps éditorial visite. */
+const ZONES_DETAIL_SQL = `SELECT z.*,
+  vz.subtitle AS visit_subtitle,
+  vz.short_description AS visit_short_description,
+  vz.details_title AS visit_details_title,
+  vz.details_text AS visit_details_text,
+  vz.body_json AS visit_body_json,
+  CASE
+    WHEN vz.body_json IS NOT NULL AND CHAR_LENGTH(vz.body_json) > 2 THEN 1
+    ELSE 0
+  END AS has_visit_body
+FROM zones z
+LEFT JOIN visit_zones vz ON vz.id = z.id`;
+
+/** Historique affiché sur la liste carte (le reste via GET /api/zones/:id). */
+const ZONE_LIST_HISTORY_LIMIT = 5;
 
 router.get(
   '/',
@@ -163,8 +184,6 @@ router.get(
     const zones = mapId
       ? await queryAll(`${ZONES_LIST_SQL} WHERE z.map_id = ?`, [mapId])
       : await queryAll(ZONES_LIST_SQL);
-    // Historique restreint aux zones retournées + regroupement en Map :
-    // l'ancien SELECT chargeait toute la table puis filtrait en O(zones × historique).
     const zoneIds = zones.map((z) => z.id);
     const history = zoneIds.length
       ? await queryAll(
@@ -175,23 +194,34 @@ router.get(
         )
       : [];
     const historyByZoneId = new Map();
+    const historyTotalByZoneId = new Map();
     for (const h of history) {
       const key = String(h.zone_id);
+      historyTotalByZoneId.set(key, (historyTotalByZoneId.get(key) || 0) + 1);
       if (!historyByZoneId.has(key)) historyByZoneId.set(key, []);
-      historyByZoneId.get(key).push(h);
+      const bucket = historyByZoneId.get(key);
+      if (bucket.length < ZONE_LIST_HISTORY_LIMIT) bucket.push(h);
     }
     const speciesMap = await loadZoneSpeciesMap(db, zoneIds);
-    const result = zones.map((z) =>
-      attachSpeciesToEntity(
+    const result = zones.map((z) => {
+      const key = String(z.id);
+      const totalHist = historyTotalByZoneId.get(key) || 0;
+      return attachSpeciesToEntity(
         {
           ...z,
           special: !!z.special,
-          history: historyByZoneId.get(String(z.id)) || [],
+          has_visit_body: !!Number(z.has_visit_body),
+          visit_body_json: undefined,
+          history: historyByZoneId.get(key) || [],
+          history_truncated: totalHist > ZONE_LIST_HISTORY_LIMIT,
         },
-        speciesMap.get(String(z.id)) || [],
+        speciesMap.get(key) || [],
         { legacySingleName: z.current_plant },
-      ),
-    );
+      );
+    });
+    for (const row of result) {
+      delete row.visit_body_json;
+    }
     res.json(result);
   }),
 );
@@ -199,7 +229,7 @@ router.get(
 router.get(
   '/:id',
   asyncHandler(async (req, res) => {
-    const zone = await queryOne(`${ZONES_LIST_SQL} WHERE z.id = ?`, [req.params.id]);
+    const zone = await queryOne(`${ZONES_DETAIL_SQL} WHERE z.id = ?`, [req.params.id]);
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
     const history = await queryAll(
       'SELECT * FROM zone_history WHERE zone_id = ? ORDER BY harvested_at DESC',
@@ -208,7 +238,13 @@ router.get(
     const speciesRows = await loadZoneSpeciesMap(db, [zone.id]);
     res.json(
       attachSpeciesToEntity(
-        { ...zone, special: !!zone.special, history },
+        {
+          ...zone,
+          special: !!zone.special,
+          has_visit_body: !!Number(zone.has_visit_body),
+          history,
+          history_truncated: false,
+        },
         speciesRows.get(String(zone.id)) || [],
         { legacySingleName: zone.current_plant },
       ),
@@ -308,7 +344,7 @@ router.put(
     if (living_beings !== undefined || species_ids !== undefined) {
       await syncZoneSpecies(db, zone.id, species_ids, nextLiving);
     }
-    const updated = await queryOne(`${ZONES_LIST_SQL} WHERE z.id = ?`, [zone.id]);
+    const updated = await queryOne(`${ZONES_DETAIL_SQL} WHERE z.id = ?`, [zone.id]);
     const history = await queryAll(
       'SELECT * FROM zone_history WHERE zone_id=? ORDER BY harvested_at DESC',
       [zone.id],
@@ -316,7 +352,7 @@ router.put(
     if (hasVisitZoneContentPatch(req.body)) {
       await upsertVisitZoneEditorial(req.body, updated);
     }
-    const updatedWithVisit = await queryOne(`${ZONES_LIST_SQL} WHERE z.id = ?`, [zone.id]);
+    const updatedWithVisit = await queryOne(`${ZONES_DETAIL_SQL} WHERE z.id = ?`, [zone.id]);
     const speciesRows = await loadZoneSpeciesMap(db, [zone.id]);
     emitGardenChanged({ reason: 'update_zone', zoneId: zone.id, mapId: updatedWithVisit.map_id });
     res.json(

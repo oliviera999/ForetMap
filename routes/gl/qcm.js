@@ -1,11 +1,10 @@
 const express = require('express');
-const { queryAll, queryOne, execute, withTransaction } = require('../../database');
+const { queryAll, queryOne, execute } = require('../../database');
 const {
   recordGlQcmAttemptForReader,
   registerGlCooldownOnWrongIfGating,
 } = require('../../lib/learningGatingRuntime');
 const { requireGlPermission, hasGlPermission } = require('../../middleware/requireGlAuth');
-const { getGameplaySettings } = require('../../lib/glSettings');
 const {
   resolveImportRows,
   applyQcmImport,
@@ -61,12 +60,23 @@ const QUESTION_SELECT = `
     FROM gl_qcm_questions
 `;
 
+const { getNamedMemoryTtlCache } = require('../../lib/memoryTtlCache');
+
+const glGlossaryLookupCache = getNamedMemoryTtlCache('gl-glossary-lookup', {
+  ttlMs: 60_000,
+  maxEntries: 4,
+});
+
 async function loadGlossaryLookup() {
+  const cached = glGlossaryLookupCache.get('actif');
+  if (cached) return cached;
   const rows = await queryAll(
     `SELECT glossary_code, terme, variantes, categorie, definition_courte
        FROM gl_glossary_terms WHERE statut = 'actif'`,
   );
-  return buildGlossaryLookupMap(rows);
+  const map = buildGlossaryLookupMap(rows);
+  glGlossaryLookupCache.set('actif', map);
+  return map;
 }
 
 async function enrichQuestionWithGlossary(questionRow, glossaryByKey) {

@@ -95,6 +95,7 @@ function TasksViewImpl({
     tutorials = [],
     plants = [],
     activeMapId = 'foret',
+    loadArchivedTasks = null,
   } = useData();
   const canEnrollNewTask = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const roleTerms = getRoleTerms(isN3Affiliated);
@@ -184,9 +185,14 @@ function TasksViewImpl({
   // au lieu de la référence `tutorials`, qui refetchait à chaque poll global.
   const { readIds: tasksTutorialReadIds, markRead: markTasksTutorialRead } =
     useTutorialReadIds(tutorials);
-  const openTasksTutorialPreview = useCallback((tu) => {
-    setTasksTutorialPreview(tutorialPreviewPayload(tu));
-  }, []);
+  const openTasksTutorialPreview = useCallback(
+    (tu) => {
+      // Liste tâches allégée : pas de source_url/source_file_path — compléter via catalogue.
+      const fromCatalog = (tutorials || []).find((t) => Number(t.id) === Number(tu?.id));
+      setTasksTutorialPreview(tutorialPreviewPayload({ ...(fromCatalog || {}), ...(tu || {}) }));
+    },
+    [tutorials],
+  );
 
   useEffect(() => {
     safeLocalStorageSetItem('foretmap:tasks:viewMode', viewMode);
@@ -459,6 +465,12 @@ function TasksViewImpl({
   const sourceTasks = isArchivedView ? archivedTasks : tasks;
   const sourceProjects = isArchivedView ? archivedTaskProjects : taskProjects;
   const effectiveFilterStatus = isArchivedView ? '' : filterStatus;
+
+  // Charge les archives à l'ouverture de la vue (hors poll pour limiter la pression LVE).
+  useEffect(() => {
+    if (!isArchivedView || typeof loadArchivedTasks !== 'function') return;
+    loadArchivedTasks();
+  }, [isArchivedView, activeMapId, loadArchivedTasks]);
 
   // Chaîne mémoïsée : allFiltered/visibleProjects recalculés à chaque rendu
   // invalidaient tous les useMemo en aval (chaque frappe de filtre, chaque toast

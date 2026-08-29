@@ -130,7 +130,7 @@ Une tâche passe par des états visibles de tous : **Disponible** → **En cours
   l'avancement automatique de son projet. C'est le geste à privilégier plutôt que la
   suppression 🗑️ pour un travail terminé qu'on veut garder en mémoire sans encombrer
   l'écran. On retrouve les archives via le filtre de statut « 📦 Archivés » (réservé aux
-  professeurs), d'où l'on peut **désarchiver** (♻️) pour les remettre en circulation.
+  professeurs) — la liste se charge alors à la demande — d'où l'on peut **désarchiver** (♻️) pour les remettre en circulation.
   Tant qu'elle est archivée, la tâche est **hors jeu** : ni inscription, ni marquage
   « terminée » ne sont acceptés, même depuis un écran resté ouvert avant l'archivage.
 
