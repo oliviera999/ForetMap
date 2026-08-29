@@ -7,6 +7,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Le verrou ForetMap ignorait les surcharges type/fiche
+
+La cascade site → type → fiche (erreurs tolérées, délai, portée du verrou) était
+annoncée dans le challenge et appliquée côté GL, mais l’écriture du verrou
+ForetMap (`POST /api/quiz/questions/:code/answer`) relisait uniquement les
+réglages du site. Un professeur qui assouplissait une fiche (2 erreurs permises)
+ou au contraire y posait un délai alors que le site était à 0 voyait l’élève
+verrouillé trop tôt — ou jamais. L’écriture utilise désormais la même politique
+effective que l’annonce.
+
 ### Conditionnement granulaire FM/GL (cascade site → type → fiche)
 
 Les paramètres de session et de verrou (erreurs tolérées, questions par session, délai et
