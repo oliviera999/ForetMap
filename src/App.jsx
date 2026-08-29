@@ -589,6 +589,14 @@ function App() {
   const handleOpenStatsDialog = useCallback(() => setShowStats(true), []);
   const handleCloseStatsDialog = useCallback(() => setShowStats(false), []);
   const handleOpenTeacherStatsTab = useCallback(() => setTab('stats'), []);
+  const handleOpenSettingsLearning = useCallback(() => {
+    try {
+      sessionStorage.setItem('foretmap:settings:focus', 'learning-gating');
+    } catch (_) {
+      /* ignore */
+    }
+    setTab('settings');
+  }, [setTab]);
   const handleOpenProfileDialog = useCallback(() => setShowProfile(true), []);
   const handleCloseProfileDialog = useCallback(() => setShowProfile(false), []);
   const handleRequestPin = useCallback(() => setShowPin(true), []);
@@ -1334,6 +1342,7 @@ function App() {
                         foodWebHighlightPlantId={foodWebHighlightPlantId}
                         canManageFoodWeb={canManageFoodWeb}
                         appVersion={appVersion}
+                        onOpenSettingsLearning={handleOpenSettingsLearning}
                       />
                     </>
                   )}

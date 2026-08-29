@@ -68,6 +68,9 @@ function installApi(overrides = {}) {
     if (path.startsWith('/api/learning-links/policy')) {
       return Promise.resolve({ policy: null, effective: { mode: 'any', requiredCorrect: 1 } });
     }
+    if (path.startsWith('/api/learning-links/progress')) {
+      return Promise.resolve({ summary: null });
+    }
     if (path.startsWith('/api/learning-links/suggest')) {
       return Promise.resolve(overrides.suggest ?? { candidates: [], stats: {}, inserted: 0 });
     }
@@ -227,6 +230,73 @@ describe('FMLearningLinksPanel', () => {
       expect(apiMock).toHaveBeenCalledWith('/api/learning-links/10', 'PATCH', {
         is_gating: false,
       });
+    });
+  });
+
+  test('enregistre un seuil N en mode threshold', async () => {
+    const linksWithTwoGating = {
+      links: [
+        ...LINKS.links,
+        {
+          id: 11,
+          resource_type: 'tutorial',
+          resource_ref: '1',
+          question_code: 'QF0002',
+          is_gating: 1,
+          status: 'approved',
+          origin: 'manual',
+          confidence: null,
+          note: null,
+        },
+      ],
+    };
+    apiMock.mockImplementation((path, method = 'GET', body) => {
+      if (path.startsWith('/api/learning-links/config')) {
+        return Promise.resolve({ gating: { enabled: true, defaultMode: 'any' } });
+      }
+      if (path.startsWith('/api/learning-links/resources')) {
+        return Promise.resolve({
+          ...RESOURCES,
+          resources: RESOURCES.resources.map((r) =>
+            r.ref === '1' ? { ...r, links_count: 2, gating_count: 2 } : r,
+          ),
+        });
+      }
+      if (path.startsWith('/api/learning-links/progress')) {
+        return Promise.resolve({
+          summary: { pending_count: 0, satisfied_count: 0, locked_count: 0 },
+        });
+      }
+      if (path.startsWith('/api/learning-links/policy')) {
+        if (method === 'PUT') {
+          return Promise.resolve({
+            policy: body,
+            effective: { mode: 'threshold', requiredCorrect: 2 },
+          });
+        }
+        return Promise.resolve({
+          policy: { mode: 'threshold', required_correct: 1 },
+          effective: { mode: 'threshold', requiredCorrect: 1 },
+          site: { defaultMode: 'any' },
+        });
+      }
+      if (path.startsWith('/api/learning-links')) return Promise.resolve(linksWithTwoGating);
+      if (path.startsWith('/api/quiz/admin/questions')) return Promise.resolve(QUESTIONS);
+      return Promise.resolve({});
+    });
+    render(<FMLearningLinksPanel />);
+    await screen.findByRole('button', { name: /Le compostage/ });
+    const modeSelect = screen.getByLabelText(/^Mode$/i);
+    fireEvent.change(modeSelect, { target: { value: 'threshold' } });
+    const nInput = screen.getByLabelText(/Nombre de bonnes réponses \(seuil N\)/i);
+    fireEvent.change(nInput, { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: /Enregistrer la politique/i }));
+    await waitFor(() => {
+      expect(apiMock).toHaveBeenCalledWith(
+        '/api/learning-links/policy',
+        'PUT',
+        expect.objectContaining({ mode: 'threshold', required_correct: 2 }),
+      );
     });
   });
 

@@ -5,6 +5,7 @@ const {
   disableTeacherMode,
   logoutToAuth,
   dismissProfilePromotionModalIfPresent,
+  openVisitTab,
 } = require('./fixtures/auth.fixture');
 const {
   seedVisitMascotContent,
@@ -98,9 +99,8 @@ async function expectVisitMascotPaintReady(stage) {
 }
 
 async function openVisitMap(page, mapId = 'n3') {
-  await dismissProfilePromotionModalIfPresent(page);
   await clearVisitMascotPositionStorage(page, mapId);
-  await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+  await openVisitTab(page);
   await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
   const mapSelect = page.getByRole('combobox', { name: 'Sélection de carte visite' });
   if (mapId && (await mapSelect.isVisible({ timeout: 5000 }).catch(() => false))) {
@@ -390,7 +390,7 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
           .getAttribute('data-mascot-id'),
       )
       .toBe('sprout-rive');
-    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+    await page.getByRole('button', { name: 'Visite', exact: true }).click();
     await expect
       .poll(async () =>
         page.locator('.visit-map-stage [data-mascot-id]').first().getAttribute('data-mascot-id'),
@@ -415,7 +415,7 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
           .getAttribute('data-mascot-shape'),
       )
       .toBe('scrap');
-    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+    await page.getByRole('button', { name: 'Visite', exact: true }).click();
     await expect
       .poll(async () =>
         page
@@ -435,7 +435,7 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
           .getAttribute('data-mascot-id'),
       )
       .toBe('olu-spritesheet');
-    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+    await page.getByRole('button', { name: 'Visite', exact: true }).click();
     await expect
       .poll(async () =>
         page
@@ -455,7 +455,7 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
           .getAttribute('data-mascot-id'),
       )
       .toBe('tan-bird-spritesheet');
-    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+    await page.getByRole('button', { name: 'Visite', exact: true }).click();
     await expect
       .poll(async () =>
         page
@@ -475,7 +475,7 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
           .getAttribute('data-mascot-id'),
       )
       .toBe('fox-backpack-spritesheet');
-    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+    await page.getByRole('button', { name: 'Visite', exact: true }).click();
     await expect
       .poll(async () =>
         page
@@ -495,7 +495,7 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
           .getAttribute('data-mascot-id'),
       )
       .toBe('renard2-cut-spritesheet');
-    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+    await page.getByRole('button', { name: 'Visite', exact: true }).click();
     await expect
       .poll(async () =>
         page
@@ -513,7 +513,7 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
           .getAttribute('data-renderer'),
       )
       .toBe('sprite-cut');
-    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+    await page.getByRole('button', { name: 'Visite', exact: true }).click();
     await expect
       .poll(async () =>
         page.locator('.visit-map-stage [data-renderer]').first().getAttribute('data-renderer'),
@@ -656,7 +656,7 @@ test.describe('pack mascotte serveur (GUI)', () => {
       )
       .toBe(catalogId);
 
-    await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+    await page.getByRole('button', { name: 'Visite', exact: true }).click();
     const visitPicker = page.locator('.visit-view .visit-mascot-picker select').first();
     await expect(visitPicker).toBeVisible({ timeout: 20_000 });
     const visitOptionCount = await visitPicker.locator(`option[value="${catalogId}"]`).count();

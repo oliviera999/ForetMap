@@ -123,11 +123,10 @@ describe('réglages du verrou pédagogique (learning.gating.*)', () => {
     expect(resolveSettingLabel('learning.gating.enabled', ROLE_TERMS)).toMatch(/questions/i);
   });
 
-  test('elles sont regroupées dans leur propre section, hors « Autres paramètres »', () => {
+  test('elles sont exclues de la grille générique (panneau dédié FMLearningGatingSettings)', () => {
+    // Les clés learning.gating.* figurent dans KEYS_HANDLED_BY_PANEL : un panneau
+    // dédié les édite ; les laisser dans buildSettingSections exposerait deux UI.
     const sections = buildSettingSections(KEYS.map((key) => ({ key, scope: 'teacher' })));
-    expect(sections).toHaveLength(1);
-    expect(sections[0].id).toBe('learning');
-    expect(sections[0].rows).toHaveLength(KEYS.length);
-    expect(sections[0].rows[0].key).toBe('learning.gating.enabled');
+    expect(sections).toEqual([]);
   });
 });

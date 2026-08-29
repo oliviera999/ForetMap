@@ -6,6 +6,8 @@
  * `currentLocalDateOnly`/`isBeforeTaskStartDate`/`taskEffectiveStatus` qui lisent l'horloge locale).
  */
 
+import { isArchived } from './taskArchive.js';
+
 // ── Tri par importance puis date limite ──────────────────────────────────────
 export const TASK_IMPORTANCE_SORT_WEIGHT = {
   not_important: 1,
@@ -76,6 +78,24 @@ export function taskEffectiveStatus(task) {
     return 'on_hold';
   }
   return baseStatus;
+}
+
+/** Statuts effectifs pour lesquels une tâche ne compte plus sur la carte ni dans les tutoriels hérités. */
+const MAP_DETACHED_TASK_STATUSES = new Set([
+  'done',
+  'validated',
+  'project_completed',
+  'project_validated',
+]);
+
+/**
+ * Une tâche est « détachée » d'un lieu pour l'affichage carte / modales / visite :
+ * validée, terminée (en attente de validation), archivée, ou rattachée à un projet clos.
+ */
+export function isTaskDetachedFromLocation(task) {
+  if (!task) return false;
+  if (isArchived(task)) return true;
+  return MAP_DETACHED_TASK_STATUSES.has(taskEffectiveStatus(task));
 }
 
 // ── Libellés ──────────────────────────────────────────────────────────────────
@@ -188,7 +208,7 @@ export function tutorialRefsFromTasksAtLocationFilter(filterZone, tasks, tutoria
   if (!filterZone) return [];
   const refs = [];
   for (const t of tasks || []) {
-    if (t.status === 'done' || t.status === 'validated') continue;
+    if (isTaskDetachedFromLocation(t)) continue;
     if (!taskHasLocation(t, filterZone)) continue;
     refs.push(...taskLinkedTutorialRefsForPicker(t, tutorialsCatalog));
   }

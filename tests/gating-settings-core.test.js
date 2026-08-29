@@ -9,10 +9,12 @@ const core = require('../lib/shared/gatingSettingsCore');
 test('les deux produits partagent le même catalogue', () => {
   const fm = core.gatingKeysFor('fm');
   const gl = core.gatingKeysFor('gl');
-  // GL a la granularité en plus : ForetMap n'a pas d'équipes.
-  assert.equal(gl.length, fm.length + 1);
+  // Même cardinalité : chaque produit a un réglage propre (granularité GL, tutoriels liés FM).
+  assert.equal(gl.length, fm.length);
   assert.ok(gl.includes('gating.granularity'));
   assert.ok(!fm.includes('learning.gating.granularity'));
+  assert.ok(fm.includes('learning.gating.require_linked_tutorials_before_task_done'));
+  assert.ok(!gl.some((k) => k.includes('require_linked_tutorials')));
   // Toutes les clés ForetMap sont préfixées, toutes les clés GL le sont aussi.
   for (const key of fm) assert.match(key, /^learning\.gating\./);
   for (const key of gl) assert.match(key, /^gating\./);

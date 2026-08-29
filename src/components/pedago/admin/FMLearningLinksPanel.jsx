@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../../services/api.js';
+import { describeSiteGatingMode } from '../../../shared/utils/learningGatingPolicyText.js';
+import { GatingPolicyEditor } from '../../../shared/components/GatingPolicyEditor.jsx';
 
 // Écran de rattachement « ressource ↔ questions » (professeur, permission plants.manage).
 //
@@ -23,13 +25,8 @@ const RESOURCE_TABS = [
 ];
 
 const STATUS_LABELS = { approved: 'Approuvé', suggested: 'Proposé', rejected: 'Rejeté' };
-const MODE_LABELS = {
-  inherit: 'Réglage du site',
-  off: 'Aucune question exigée',
-  any: 'Une bonne réponse suffit',
-  all: 'Toutes les questions',
-  threshold: 'Un nombre minimum',
-};
+
+const NIVEAU_LABELS = { college: 'Collège', lycee: 'Lycée' };
 
 /** Confiance en pourcentage, pour un tableau lisible. */
 function formatConfidence(value) {
@@ -38,7 +35,7 @@ function formatConfidence(value) {
   return `${Math.round(n * 100)} %`;
 }
 
-export function FMLearningLinksPanel() {
+export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
   const [config, setConfig] = useState(null);
   const [resourceType, setResourceType] = useState('tutorial');
   const [markable, setMarkable] = useState(true);
@@ -54,6 +51,8 @@ export function FMLearningLinksPanel() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const [progress, setProgress] = useState(null);
+  const [policyBusy, setPolicyBusy] = useState(false);
 
   const questionsByCode = useMemo(() => {
     const map = new Map();
@@ -139,11 +138,29 @@ export function FMLearningLinksPanel() {
     })();
   }, [loadResources]);
 
+  const loadProgress = useCallback(async () => {
+    if (!selectedRef) {
+      setProgress(null);
+      return;
+    }
+    try {
+      const params = new URLSearchParams({
+        resourceType,
+        resourceRef: String(selectedRef),
+      });
+      const res = await api(`/api/learning-links/progress?${params.toString()}`);
+      setProgress(res || null);
+    } catch (_) {
+      setProgress(null);
+    }
+  }, [selectedRef, resourceType]);
+
   useEffect(() => {
     loadLinks();
     loadPolicy();
+    loadProgress();
     setSuggestions(null);
-  }, [loadLinks, loadPolicy]);
+  }, [loadLinks, loadPolicy, loadProgress]);
 
   const linkedCodes = useMemo(() => new Set(links.map((l) => l.question_code)), [links]);
 
@@ -236,18 +253,21 @@ export function FMLearningLinksPanel() {
     );
   }
 
+  const approvedGatingCount = useMemo(
+    () => links.filter((l) => l.status === 'approved' && Number(l.is_gating)).length,
+    [links],
+  );
+
   function savePolicy(patch) {
+    setPolicyBusy(true);
     return run(async () => {
-      const current = policy?.policy || {};
       await api('/api/learning-links/policy', 'PUT', {
         resource_type: resourceType,
         resource_ref: String(selectedRef),
-        mode: patch.mode ?? current.mode ?? 'inherit',
-        required_correct: patch.required_correct ?? current.required_correct ?? 1,
-        enabled: patch.enabled ?? (current.enabled == null ? 1 : current.enabled),
+        ...patch,
       });
       await loadPolicy();
-    }, 'Exigence enregistrée.');
+    }, 'Politique enregistrée.').finally(() => setPolicyBusy(false));
   }
 
   const gatingOff = config && !config.enabled;
@@ -356,32 +376,49 @@ export function FMLearningLinksPanel() {
             <>
               <h4>{selected.label}</h4>
 
-              <div className="pedago-links__policy">
-                <label className="pedago-filter-field">
-                  <span>Exigence pour ce tutoriel</span>
-                  <select
-                    className="form-select"
-                    value={policy?.policy?.mode || 'inherit'}
-                    disabled={busy}
-                    onChange={(e) => savePolicy({ mode: e.target.value, enabled: 1 })}
-                  >
-                    {Object.entries(MODE_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {policy?.effective ? (
-                  <p className="section-sub">
-                    Appliqué :{' '}
-                    <strong>{MODE_LABELS[policy.effective.mode] || policy.effective.mode}</strong>
-                    {policy.effective.mode === 'threshold'
-                      ? ` (${policy.effective.requiredCorrect})`
-                      : ''}
-                  </p>
-                ) : null}
-              </div>
+              {policy?.typePolicy || policy?.site ? (
+                <p className="section-sub pedago-links__type-banner">
+                  Préréglage type « {tab.label} » :{' '}
+                  <strong>
+                    {describeSiteGatingMode({
+                      defaultMode: policy?.effective?.mode,
+                      defaultRequiredCorrect: policy?.effective?.requiredCorrect,
+                    }) || describeSiteGatingMode(policy?.site)}
+                  </strong>
+                  {onOpenSettingsLearning ? (
+                    <>
+                      {' '}
+                      ·{' '}
+                      <button type="button" className="btn-link" onClick={onOpenSettingsLearning}>
+                        Modifier le préréglage type
+                      </button>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+
+              <GatingPolicyEditor
+                key={`${resourceType}-${selectedRef}`}
+                product="fm"
+                layer="resource"
+                site={policy?.site}
+                typePolicy={policy?.typePolicy}
+                policy={policy?.policy}
+                effective={policy?.effective}
+                effectiveSources={policy?.effectiveSources}
+                gatingCount={approvedGatingCount}
+                resourceType={resourceType}
+                busy={policyBusy || busy}
+                onSave={savePolicy}
+              />
+
+              {progress?.summary ? (
+                <p className="section-sub pedago-links__progress" role="status">
+                  Suivi : {progress.summary.pending_count} élève(s) en attente ·{' '}
+                  {progress.summary.satisfied_count} contrôle(s) réussi(s) ·{' '}
+                  {progress.summary.locked_count} verrou(s) actif(s)
+                </p>
+              ) : null}
 
               <form className="pedago-links__add" onSubmit={addLink}>
                 <label className="pedago-filter-field">
@@ -481,6 +518,7 @@ export function FMLearningLinksPanel() {
                     <thead>
                       <tr>
                         <th>Question</th>
+                        <th>Niveau</th>
                         <th>Bloquante</th>
                         <th>Statut</th>
                         <th>Origine</th>
@@ -488,81 +526,95 @@ export function FMLearningLinksPanel() {
                       </tr>
                     </thead>
                     <tbody>
-                      {links.map((link) => (
-                        <tr key={link.id}>
-                          <td>
-                            <code>{link.question_code}</code>
-                            <p className="section-sub">
-                              {questionsByCode.get(link.question_code)?.question || ''}
-                            </p>
-                            {link.note ? <p className="section-sub">{link.note}</p> : null}
-                          </td>
-                          <td>
-                            <input
-                              type="checkbox"
-                              checked={!!Number(link.is_gating)}
-                              // Type sans validation de lecture : la case serait un leurre,
-                              // le serveur refuse de toute façon un lien bloquant.
-                              disabled={busy || !markable}
-                              title={
-                                markable
-                                  ? undefined
-                                  : 'Ce type n’a pas de validation de lecture : le lien reste documentaire.'
-                              }
-                              aria-label={`Bloquante pour ${link.question_code}`}
-                              onChange={() =>
-                                run(() =>
-                                  api(`/api/learning-links/${link.id}`, 'PATCH', {
-                                    is_gating: !Number(link.is_gating),
-                                  }),
-                                )
-                              }
-                            />
-                          </td>
-                          <td>
-                            <select
-                              className="form-select"
-                              value={link.status}
-                              disabled={busy}
-                              aria-label={`Statut de ${link.question_code}`}
-                              onChange={(e) =>
-                                run(() =>
-                                  api(`/api/learning-links/${link.id}`, 'PATCH', {
-                                    status: e.target.value,
-                                  }),
-                                )
-                              }
-                            >
-                              {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                                <option key={value} value={value}>
-                                  {label}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="section-sub">
-                            {link.origin}
-                            {link.confidence != null
-                              ? ` · ${formatConfidence(link.confidence)}`
-                              : ''}
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="btn-ghost"
-                              disabled={busy}
-                              onClick={() =>
-                                run(
-                                  () => api(`/api/learning-links/${link.id}`, 'DELETE'),
-                                  'Rattachement supprimé.',
-                                )
-                              }
-                            >
-                              Retirer
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {links.map((link) => {
+                        const qMeta = questionsByCode.get(link.question_code);
+                        const niveau = qMeta?.niveau;
+                        const lyceeBlocking =
+                          niveau === 'lycee' &&
+                          Number(link.is_gating) &&
+                          link.status === 'approved';
+                        return (
+                          <tr key={link.id}>
+                            <td>
+                              <code>{link.question_code}</code>
+                              <p className="section-sub">{qMeta?.question || ''}</p>
+                              {link.note ? <p className="section-sub">{link.note}</p> : null}
+                              {lyceeBlocking ? (
+                                <p className="section-sub pedago-links__warning">
+                                  ⚠️ Question niveau lycée : peut bloquer des élèves de collège.
+                                </p>
+                              ) : null}
+                            </td>
+                            <td className="section-sub">
+                              {NIVEAU_LABELS[niveau] || niveau || '—'}
+                            </td>
+                            <td>
+                              <input
+                                type="checkbox"
+                                checked={!!Number(link.is_gating)}
+                                // Type sans validation de lecture : la case serait un leurre,
+                                // le serveur refuse de toute façon un lien bloquant.
+                                disabled={busy || !markable}
+                                title={
+                                  markable
+                                    ? undefined
+                                    : 'Ce type n’a pas de validation de lecture : le lien reste documentaire.'
+                                }
+                                aria-label={`Bloquante pour ${link.question_code}`}
+                                onChange={() =>
+                                  run(() =>
+                                    api(`/api/learning-links/${link.id}`, 'PATCH', {
+                                      is_gating: !Number(link.is_gating),
+                                    }),
+                                  )
+                                }
+                              />
+                            </td>
+                            <td>
+                              <select
+                                className="form-select"
+                                value={link.status}
+                                disabled={busy}
+                                aria-label={`Statut de ${link.question_code}`}
+                                onChange={(e) =>
+                                  run(() =>
+                                    api(`/api/learning-links/${link.id}`, 'PATCH', {
+                                      status: e.target.value,
+                                    }),
+                                  )
+                                }
+                              >
+                                {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                                  <option key={value} value={value}>
+                                    {label}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="section-sub">
+                              {link.origin}
+                              {link.confidence != null
+                                ? ` · ${formatConfidence(link.confidence)}`
+                                : ''}
+                            </td>
+                            <td>
+                              <button
+                                type="button"
+                                className="btn-ghost"
+                                disabled={busy}
+                                onClick={() =>
+                                  run(
+                                    () => api(`/api/learning-links/${link.id}`, 'DELETE'),
+                                    'Rattachement supprimé.',
+                                  )
+                                }
+                              >
+                                Retirer
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

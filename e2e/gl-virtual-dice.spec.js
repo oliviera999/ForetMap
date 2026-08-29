@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { seedGlScenario } = require('./fixtures/gl.fixture');
+const { seedGlScenario, mountGlSession } = require('./fixtures/gl.fixture');
 
 test.describe('GL dés virtuels', () => {
   test('UI — lanceur visible et jet affiche un total', async ({ request, page }) => {
@@ -11,25 +11,17 @@ test.describe('GL dés virtuels', () => {
     });
     expect(enableDice.ok()).toBeTruthy();
 
-    await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
-    await page.goto('/');
-    await page.evaluate(
-      (payload) => {
-        localStorage.setItem('gl_session', JSON.stringify(payload));
-        localStorage.setItem('gl_active_tab', 'maps');
+    await mountGlSession(page, {
+      token: seeded.playerToken,
+      auth: {
+        userType: 'gl_player',
+        roleSlug: 'gl_player',
+        displayName: seeded.playerPseudo,
+        teamId: seeded.teamId,
+        gameId: seeded.gameId,
       },
-      {
-        token: seeded.playerToken,
-        auth: {
-          userType: 'gl_player',
-          roleSlug: 'gl_player',
-          displayName: seeded.playerPseudo,
-          teamId: seeded.teamId,
-          gameId: seeded.gameId,
-        },
-      },
-    );
-    await page.reload();
+      tab: 'maps',
+    });
 
     const fab = page.getByTestId('gl-virtual-dice-fab');
     await expect(fab).toBeVisible();

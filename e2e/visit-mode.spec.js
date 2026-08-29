@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { loginAsNewStudent, enableTeacherMode } = require('./fixtures/auth.fixture');
+const { loginAsNewStudent, enableTeacherMode, openVisitTab } = require('./fixtures/auth.fixture');
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
 
@@ -51,7 +51,7 @@ test('visite publique : choix mascotte obligatoire au premier lancement puis mé
 test('visite connectée : onglet Visite affiche la vue visite', async ({ page }) => {
   await loginAsNewStudent(page);
 
-  const visitTab = page.getByRole('button', { name: /^🧭 Visite$/ });
+  const visitTab = page.getByRole('button', { name: 'Visite', exact: true });
   await expect(visitTab).toBeVisible({ timeout: 30_000 });
   await visitTab.click();
 
@@ -62,7 +62,7 @@ test('visite connectée : onglet Visite affiche la vue visite', async ({ page })
 test('visite connectée : plein écran carte puis Échap pour quitter', async ({ page }) => {
   await loginAsNewStudent(page);
 
-  await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+  await openVisitTab(page);
   await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
 
   const stage = page.locator('.visit-map-stage');
@@ -85,7 +85,7 @@ test('visite connectée : plein écran carte puis Échap pour quitter', async ({
 test('visite connectée : scène carte, image chargée et contrôles zoom', async ({ page }) => {
   await loginAsNewStudent(page);
 
-  await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+  await openVisitTab(page);
   await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
 
   const stage = page.locator('.visit-map-stage');
@@ -114,7 +114,7 @@ test('visite connectée : mascotte visible si au moins une zone ou un repère su
 }) => {
   await loginAsNewStudent(page);
 
-  await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+  await openVisitTab(page);
   await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
 
   const stage = page.locator('.visit-map-stage');
@@ -133,7 +133,7 @@ test('visite connectée : bouton Présentation du lieu (animation si parcours ca
   page,
 }) => {
   await loginAsNewStudent(page);
-  await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+  await openVisitTab(page);
   await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
   const pres = page.getByTestId('visit-presentation-link');
   if ((await pres.count()) === 0) {
@@ -152,7 +152,7 @@ test('visite connectée : bouton Présentation du lieu (animation si parcours ca
 
 test('visite connectée : clic sur une zone ouvre le panneau détail', async ({ page }) => {
   await loginAsNewStudent(page);
-  await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+  await openVisitTab(page);
   await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
 
   const stage = page.locator('.visit-map-stage');
@@ -173,7 +173,7 @@ test('visite connectée : clic sur une zone ouvre le panneau détail', async ({ 
 test('visite prof : aperçu comme élève masque le panneau d’édition', async ({ page }) => {
   await loginAsNewStudent(page);
   await enableTeacherMode(page);
-  await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+  await openVisitTab(page);
   await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
 
   const stage = page.locator('.visit-map-stage');

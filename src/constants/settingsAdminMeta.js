@@ -23,7 +23,19 @@ export const SECTION_DEFS = {
  * (aperçu, cases à cocher, validation) — cf. `VisitMascotSettingsPanel`. Les laisser
  * en double exposerait deux éditeurs contradictoires pour le même réglage.
  */
-export const KEYS_HANDLED_BY_PANEL = new Set(['ui.visit.mascot.default_id']);
+export const KEYS_HANDLED_BY_PANEL = new Set([
+  'ui.visit.mascot.default_id',
+  'learning.gating.enabled',
+  'learning.gating.default_mode',
+  'learning.gating.default_required_correct',
+  'learning.gating.allowed_wrong_attempts',
+  'learning.gating.retry_cooldown_days',
+  'learning.gating.cooldown_scope',
+  'learning.gating.max_questions_per_session',
+  'learning.gating.announce_on_button',
+  'learning.gating.state_icons',
+  'learning.gating.require_linked_tutorials_before_task_done',
+]);
 
 export const KEY_META = {
   'ui.auth.allow_register': { label: 'Afficher "Créer un compte"', section: 'auth', order: 10 },
@@ -261,6 +273,12 @@ export const KEY_META = {
     section: 'modules',
     order: 73.5,
   },
+  'ui.map.zone_label_min_side_factor': {
+    label:
+      'Carte — masquage nom de zone : côté minimal (× hauteur du libellé ; 2,5 = défaut, plus bas = noms plus souvent visibles)',
+    section: 'modules',
+    order: 73.6,
+  },
   'ui.map.plateau_marker_size_percent': {
     label: 'Carte / plateau GL — taille des repères (% du plateau, ForetMap + GL)',
     section: 'modules',
@@ -352,6 +370,11 @@ export const KEY_META = {
     label: 'Afficher les pastilles d’état (acquis / en attente / bloqué)',
     section: 'learning',
     order: 49,
+  },
+  'learning.gating.require_linked_tutorials_before_task_done': {
+    label: 'Exiger tutoriels liés lus avant tâche « faite »',
+    section: 'learning',
+    order: 55,
   },
   'learning.gating.retry_cooldown_days': {
     label: 'Délai avant nouvelle tentative après une erreur (jours, 0 = aucun)',

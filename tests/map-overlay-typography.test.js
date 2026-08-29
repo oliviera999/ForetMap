@@ -11,7 +11,6 @@ const REF = MAP_OVERLAY_REFERENCE_BOARD_HEIGHT_PX;
 
 describe('mapOverlayTypography', () => {
   test('à hauteur de référence, au repos → tailles de référence (px-écran)', () => {
-    // worldScale = 1 ⇒ zoomFactor = 1^g = 1 quel que soit le grossissement.
     const t = resolveMapOverlayTypography({}, REF);
     assert.strictEqual(t.mapEmojiFontPx, 19);
     assert.strictEqual(t.mapLabelFontPx, 14);
@@ -23,7 +22,6 @@ describe('mapOverlayTypography', () => {
       const t = resolveMapOverlayTypography({ overlay_zoom_growth_percent: 0 }, REF, {
         worldScale,
       });
-      // Taille apparente (px-écran) = fontPx × worldScale → identique au repos.
       assert.ok(Math.abs(t.mapEmojiFontPx * worldScale - ref.mapEmojiFontPx) < 1e-9);
       assert.ok(Math.abs(t.mapLabelFontPx * worldScale - ref.mapLabelFontPx) < 1e-9);
     }
@@ -34,30 +32,53 @@ describe('mapOverlayTypography', () => {
       worldScale: 2,
       zoomRatio: 2,
     });
-    // apparent = base × zoomRatio^1 = 19 × 2 = 38.
     assert.ok(Math.abs(t.mapEmojiFontPx * 2 - 38) < 1e-9);
     assert.ok(Math.abs(t.mapLabelFontPx * 2 - 28) < 1e-9);
   });
 
   test('grossissement par défaut : grossit au zoom mais reste sous le linéaire', () => {
-    const base = resolveMapOverlayTypography({}, REF).mapEmojiFontPx; // 19 au repos
+    const base = resolveMapOverlayTypography({}, REF).mapEmojiFontPx;
     const t = resolveMapOverlayTypography({}, REF, { worldScale: 4, zoomRatio: 4 });
     const apparent = t.mapEmojiFontPx * 4;
     assert.ok(apparent > base, 'doit grossir au zoom');
     assert.ok(apparent < base * 4, 'doit rester sous la croissance linéaire');
-    // base × 4^(35/100) ≈ 30.86
     assert.ok(Math.abs(apparent - base * 4 ** (DEFAULT_ZOOM_GROWTH_PERCENT / 100)) < 1e-6);
   });
 
-  test('fitHeightPx moitié → tailles réduites', () => {
+  test('fitHeightPx moitié → tailles réduites avec planchers relevés', () => {
     const t = resolveMapOverlayTypography({}, REF / 2);
-    assert.strictEqual(t.mapEmojiFontPx, 10);
-    assert.strictEqual(t.mapLabelFontPx, 7);
+    assert.strictEqual(t.mapEmojiFontPx, 13);
+    assert.strictEqual(t.mapLabelFontPx, 11);
+  });
+
+  test('petit plateau : libellé ≥ plancher chrome (toolbar ref)', () => {
+    const t = resolveMapOverlayTypography({}, 120);
+    assert.ok(t.baseLabelApparentPx >= 11);
+    assert.ok(t.baseEmojiApparentPx >= 13);
   });
 
   test('overlay_emoji_size_percent augmente la taille emoji', () => {
     const t = resolveMapOverlayTypography({ overlay_emoji_size_percent: 150 }, REF);
     assert.strictEqual(t.mapEmojiFontPx, 29);
+  });
+
+  test('isCoarsePointer grossit les étiquettes', () => {
+    const base = resolveMapOverlayTypography({}, REF);
+    const coarse = resolveMapOverlayTypography({}, REF, { isCoarsePointer: true });
+    assert.ok(coarse.mapEmojiFontPx > base.mapEmojiFontPx);
+    assert.ok(coarse.mapLabelFontPx >= base.mapLabelFontPx);
+  });
+
+  test('userTextSizePercent 125 % grossit les étiquettes', () => {
+    const base = resolveMapOverlayTypography({}, REF);
+    const large = resolveMapOverlayTypography({}, REF, { userTextSizePercent: 125 });
+    assert.ok(large.mapLabelFontPx >= base.mapLabelFontPx);
+  });
+
+  test('fitWidthPx contraignant réduit la taille vs hauteur seule', () => {
+    const heightOnly = resolveMapOverlayTypography({}, REF, { fitWidthPx: REF });
+    const narrow = resolveMapOverlayTypography({}, REF, { fitWidthPx: REF / 2 });
+    assert.ok(narrow.mapLabelFontPx <= heightOnly.mapLabelFontPx);
   });
 });
 

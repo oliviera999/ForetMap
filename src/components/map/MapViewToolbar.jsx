@@ -24,7 +24,6 @@ function editTogglePillStyle(on) {
     borderRadius: 8,
     padding: '6px 10px',
     cursor: 'pointer',
-    fontSize: '.78rem',
     fontWeight: 700,
     minHeight: 36,
     whiteSpace: 'nowrap',
@@ -78,6 +77,8 @@ export function MapViewToolbar({
   onToggleMapInteraction,
   showLabels,
   onToggleLabels,
+  mapTextSizeLabel = 'Aa',
+  onCycleMapTextSize,
   gps,
   containerRef,
   txRef,
@@ -147,17 +148,10 @@ export function MapViewToolbar({
               {maps.map((mp) => (
                 <button
                   key={mp.id}
+                  className="map-toolbar-mode-btn"
                   style={{
                     background: activeMapId === mp.id ? 'var(--forest)' : 'transparent',
                     color: activeMapId === mp.id ? 'white' : 'var(--soil)',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '7px 11px',
-                    cursor: 'pointer',
-                    fontFamily: 'DM Sans,sans-serif',
-                    fontSize: '.82rem',
-                    fontWeight: 700,
-                    whiteSpace: 'nowrap',
                   }}
                   onClick={() => onMapChange?.(mp.id)}
                 >
@@ -190,18 +184,10 @@ export function MapViewToolbar({
           ].map(([m, label]) => (
             <button
               key={m}
+              className="map-toolbar-mode-btn map-toolbar-mode-btn--nav"
               style={{
                 background: mode === m ? 'var(--forest)' : 'transparent',
                 color: mode === m ? 'white' : 'var(--soil)',
-                border: 'none',
-                borderRadius: 8,
-                padding: '7px 11px',
-                cursor: 'pointer',
-                fontFamily: 'DM Sans,sans-serif',
-                fontSize: '.82rem',
-                fontWeight: 600,
-                transition: 'all .15s',
-                whiteSpace: 'nowrap',
               }}
               onClick={() => onModeButtonClick(m)}
             >
@@ -232,24 +218,14 @@ export function MapViewToolbar({
             aria-label="Édition du contour"
             style={{ display: 'flex', gap: 6, alignItems: 'center' }}
           >
-            <span
-              style={{
-                fontSize: '.8rem',
-                color: 'var(--leaf)',
-                fontWeight: 700,
-                background: '#f0fdf4',
-                padding: '5px 10px',
-                borderRadius: 8,
-                border: '1px solid var(--mint)',
-                whiteSpace: 'nowrap',
-              }}
-            >
+            <span className="map-edit-zone-badge">
               ✏️ {editZoneName}
               {editPointsCount ? ` · ${editPointsCount} pts` : ''}
               {selectedPointsCount ? ` (${selectedPointsCount} sél.)` : ''}
             </span>
             <button
               type="button"
+              className="map-toolbar-pill"
               style={editTogglePillStyle(insertVertexMode)}
               aria-pressed={insertVertexMode}
               onClick={onToggleInsertVertexMode}
@@ -268,6 +244,7 @@ export function MapViewToolbar({
             </button>
             <button
               type="button"
+              className="map-toolbar-pill"
               style={editTogglePillStyle(multiSelectMode)}
               aria-pressed={multiSelectMode}
               onClick={onToggleMultiSelectMode}
@@ -277,10 +254,11 @@ export function MapViewToolbar({
             </button>
             <button
               type="button"
+              className="map-toolbar-pill"
               style={editTogglePillStyle(snapEnabled && snapStatus !== 'unavailable')}
               aria-pressed={snapEnabled}
               onClick={onToggleSnap}
-              title="Aimant : le sommet déplacé se colle au contour le plus contrasté de l’image de fond. Maintenir Alt le désactive le temps d’un geste."
+              title="Aimant : le sommet déplacé se colle au contour le plus contrasté de l'image de fond, en privilégiant les angles droits. Maintenir Alt le désactive le temps d'un geste."
             >
               🧲{' '}
               {snapEnabled && snapStatus === 'loading'
@@ -372,17 +350,12 @@ export function MapViewToolbar({
                   ? 'Verrouiller la position des repères'
                   : 'Déverrouiller la position des repères'
               }
+              className="map-toolbar-pill"
               onClick={onToggleMarkerPositionLock}
               style={{
                 background: markerPositionUnlocked ? '#ecfdf3' : 'transparent',
                 border: '1.5px solid var(--mint)',
                 color: markerPositionUnlocked ? '#166534' : 'var(--forest)',
-                borderRadius: 8,
-                padding: '6px 10px',
-                cursor: 'pointer',
-                fontSize: '.78rem',
-                fontWeight: 700,
-                minHeight: 36,
               }}
             >
               {markerPositionUnlocked ? '🔓 Repères' : '🔒 Repères'}
@@ -407,7 +380,7 @@ export function MapViewToolbar({
             <Tooltip text="Faire suivre votre position GPS par la mascotte">
               <button
                 type="button"
-                className={`map-gps-follow-toggle ${gps.active ? 'is-on' : ''}`}
+                className={`map-gps-follow-toggle map-toolbar-pill ${gps.active ? 'is-on' : ''}`}
                 onClick={gps.toggle}
                 aria-pressed={gps.active}
                 aria-label={
@@ -428,15 +401,7 @@ export function MapViewToolbar({
                 }
                 style={{
                   background: gps.active ? 'var(--forest)' : 'transparent',
-                  border: '1.5px solid var(--mint)',
                   color: gps.active ? 'white' : 'var(--forest)',
-                  borderRadius: 8,
-                  padding: '6px 10px',
-                  cursor: 'pointer',
-                  fontSize: '.78rem',
-                  fontWeight: 700,
-                  minHeight: 36,
-                  whiteSpace: 'nowrap',
                 }}
               >
                 {!gps.active
@@ -449,32 +414,27 @@ export function MapViewToolbar({
               </button>
             </Tooltip>
           ) : null}
+          <Tooltip text="Taille du texte sur la carte (Normal / Grand / Très grand)">
+            <button
+              type="button"
+              className="map-toolbar-text-size-btn"
+              aria-label="Changer la taille du texte sur la carte"
+              onClick={onCycleMapTextSize ?? (() => {})}
+            >
+              {mapTextSizeLabel}
+            </button>
+          </Tooltip>
           <Tooltip text={tooltipText('map.toggleLabels')}>
             <button
+              type="button"
+              className={`map-toolbar-labels-btn ${showLabels ? 'is-on' : ''}`}
               aria-label={showLabels ? 'Masquer les noms' : 'Afficher les noms'}
               onClick={onToggleLabels}
-              style={{
-                background: showLabels ? 'var(--mint)' : 'transparent',
-                border: '1.5px solid var(--mint)',
-                color: 'var(--forest)',
-                borderRadius: 8,
-                padding: '6px 10px',
-                cursor: 'pointer',
-                fontSize: '.9rem',
-              }}
             >
               🏷️
             </button>
           </Tooltip>
-          <div
-            style={{
-              display: 'flex',
-              background: 'var(--parchment)',
-              borderRadius: 10,
-              padding: 3,
-              gap: 2,
-            }}
-          >
+          <div className="map-toolbar-zoom-group">
             {[
               ['＋', 1.28, 'map.zoomIn', 'Zoomer la carte'],
               ['－', 0.78, 'map.zoomOut', 'Dézoomer la carte'],
@@ -482,6 +442,8 @@ export function MapViewToolbar({
             ].map(([label, factor, helpEntry, ariaLabel]) => (
               <Tooltip key={label} text={tooltipText(helpEntry)}>
                 <button
+                  type="button"
+                  className="map-toolbar-zoom-btn"
                   onClick={() => {
                     if (factor === 0) {
                       fitMap();
@@ -498,15 +460,6 @@ export function MapViewToolbar({
                     animateZoomTowardScale(ns, mx, my);
                   }}
                   aria-label={ariaLabel}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--soil)',
-                    padding: '6px 10px',
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    borderRadius: 7,
-                  }}
                 >
                   {label}
                 </button>

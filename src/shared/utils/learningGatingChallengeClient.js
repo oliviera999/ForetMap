@@ -144,6 +144,23 @@ export function buildGatingRules(challenge) {
   if (!challenge?.required) return [];
   const rules = [];
 
+  const gatingTotal = Math.max(
+    0,
+    Number(challenge.gating_questions_count ?? challenge.questions?.length) || 0,
+  );
+  const mode = String(challenge.mode || 'any').toLowerCase();
+  const requiredN = Math.max(1, Number(challenge.required_correct) || 1);
+
+  if (mode === 'threshold' && gatingTotal > 0) {
+    rules.push(
+      `Il te faut ${Math.min(requiredN, gatingTotal)} bonne(s) réponse(s) sur ${gatingTotal} question(s) liée(s).`,
+    );
+  } else if (mode === 'all' && gatingTotal > 0) {
+    rules.push(`Il te faut réussir toutes les questions liées (${gatingTotal}).`);
+  } else if (mode === 'any' && gatingTotal > 1) {
+    rules.push(`Une bonne réponse suffit (sur ${gatingTotal} questions liées).`);
+  }
+
   const ask = Math.max(0, Number(challenge.ask_count ?? challenge.pending_count) || 0);
   const pending = Math.max(ask, Number(challenge.pending_count) || ask);
   if (ask > 0) {
@@ -159,7 +176,10 @@ export function buildGatingRules(challenge) {
   }
 
   const tolerance = Math.max(0, Number(challenge.allowed_wrong_attempts) || 0);
-  const days = Math.max(0, Number(challenge.cooldown?.retry_days) || 0);
+  const days = Math.max(
+    0,
+    Number(challenge.retry_cooldown_days ?? challenge.cooldown?.retry_days) || 0,
+  );
   if (days <= 0) {
     rules.push('En cas d’erreur, tu peux réessayer tout de suite.');
   } else if (tolerance <= 0) {

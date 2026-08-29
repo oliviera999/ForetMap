@@ -87,6 +87,13 @@ describe('computeEdgeMap', () => {
     const edgeMap = computeEdgeMap(makeImageData(2, 2, () => [0, 0, 0]));
     expect(edgeMap.max).toBe(0);
   });
+
+  test('expose gxNorm et gyNorm', () => {
+    const edgeMap = computeEdgeMap(verticalEdgeImage());
+    expect(edgeMap.gxNorm).toBeInstanceOf(Float32Array);
+    expect(edgeMap.gyNorm).toBeInstanceOf(Float32Array);
+    expect(edgeMap.gxNorm.length).toBe(edgeMap.magnitude.length);
+  });
 });
 
 describe('edgeStrengthAt', () => {
@@ -121,13 +128,21 @@ describe('findSnapTargetPx', () => {
     expect(findSnapTargetPx(edgeMap, 10, 10, 0)).toBeNull();
     expect(findSnapTargetPx(null, 10, 10, 5)).toBeNull();
   });
+
+  test('préfère un contour horizontal/vertical quand preferOrthogonal est actif', () => {
+    const withOrtho = findSnapTargetPx(edgeMap, 12, 8, 5, { preferOrthogonal: true });
+    const withoutOrtho = findSnapTargetPx(edgeMap, 12, 8, 5, { preferOrthogonal: false });
+    expect(withOrtho).not.toBeNull();
+    expect(withoutOrtho).not.toBeNull();
+    expect(withOrtho.x).toBeGreaterThanOrEqual(9);
+    expect(withOrtho.x).toBeLessThanOrEqual(11);
+  });
 });
 
 describe('snapPctToEdgeMap', () => {
   const edgeMap = computeEdgeMap(verticalEdgeImage());
 
   test('travaille en pourcentages d’image', () => {
-    // x = 13 px sur 19 intervalles ≈ 68,4 % ; rayon 25 % ≈ 5 px.
     const hit = snapPctToEdgeMap(
       edgeMap,
       { xp: (13 / 19) * 100, yp: (10 / 19) * 100 },
@@ -189,7 +204,6 @@ describe('sensitivityToMinStrength', () => {
   });
 
   test('un niveau bas ignore un contour que le niveau haut accroche', () => {
-    // Image à faible contraste : la frontière n’a pas la force d’un noir/blanc.
     const faint = makeImageData(20, 20, (x) => (x < 10 ? [120, 120, 120] : [150, 150, 150]));
     const strong = makeImageData(20, 20, (x) => (x < 10 ? [0, 0, 0] : [255, 255, 255]));
     const mixed = makeImageData(20, 20, (x, y) => {
@@ -197,12 +211,11 @@ describe('sensitivityToMinStrength', () => {
       const p = (y * 20 + x) * 4;
       return [base.data[p], base.data[p + 1], base.data[p + 2]];
     });
-    const edgeMap = computeEdgeMap(mixed);
-    // Ligne du haut (contour ténu) : accrochée seulement à sensibilité élevée.
-    const strict = findSnapTargetPx(edgeMap, 13, 4, 5, {
+    const edgeMapMixed = computeEdgeMap(mixed);
+    const strict = findSnapTargetPx(edgeMapMixed, 13, 4, 5, {
       minStrength: sensitivityToMinStrength(1),
     });
-    const loose = findSnapTargetPx(edgeMap, 13, 4, 5, {
+    const loose = findSnapTargetPx(edgeMapMixed, 13, 4, 5, {
       minStrength: sensitivityToMinStrength(EDGE_SNAP_SENSITIVITY_MAX),
     });
     expect(strict).toBeNull();

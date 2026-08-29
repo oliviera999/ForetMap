@@ -10,10 +10,9 @@ import {
   insertEditPointAt,
   moveEditPointsBy,
   normalizeEditSelection,
-  normalizeSelectionRect,
   removeEditPointsAt,
-  selectEditPointsInRect,
   shiftSelectionAfterRemove,
+  snapEditPointOrthogonal,
 } from '../utils/zoneEditGeometry.js';
 
 /** Profondeur maximale de l'historique d'édition de contour (annulations Ctrl+Z). */
@@ -30,7 +29,7 @@ const EMPTY_SELECTION = new Set();
  * d'annulation (Ctrl/Cmd+Z), la translation du polygone entier et la sauvegarde.
  *
  * Depuis les lots « édition avancée » : ajout/suppression de sommets, sélection
- * multiple (Maj+clic, lasso, déplacement et suppression groupés) et ancrage
+ * multiple (Maj+clic, déplacement et suppression groupés) et ancrage
  * magnétique des sommets sur les contours de l'image de fond.
  *
  * @param {object} params
@@ -45,6 +44,13 @@ const EMPTY_SELECTION = new Set();
  * @param {number} [params.snapRadiusPct] rayon d'accroche de l'aimant, en % de largeur d'image
  * @param {number} [params.snapMinStrength] contraste minimal exigé par l'aimant (sensibilité)
  * @param {number} [params.edgeTolerancePct] distance max. à une arête pour y insérer un sommet
+ * @param {number} [params.mapScaleInv] inverse de l'échelle carte (nudge clavier scale-aware)
+ * @param {number} [params.mapImgW] largeur naturelle du plan (px)
+ * @param {number} [params.mapImgH] hauteur naturelle du plan (px)
+ * @param {(dxPx: number, dyPx: number) => void} [params.onKeyboardPan] pan clavier quand rien n'est sélectionné
+ * @param {(clientX: number, clientY: number) => void} [params.onBackgroundPanStart]
+ * @param {(clientX: number, clientY: number) => void} [params.onBackgroundPanMove]
+ * @param {() => void} [params.onBackgroundPanEnd]
  */
 function useZoneEditPoints({
   mode,
@@ -56,6 +62,13 @@ function useZoneEditPoints({
   snapRadiusPct = 1,
   snapMinStrength,
   edgeTolerancePct = 3,
+  mapScaleInv = 1,
+  mapImgW = 1,
+  mapImgH = 1,
+  onKeyboardPan,
+  onBackgroundPanStart,
+  onBackgroundPanMove,
+  onBackgroundPanEnd,
 }) {
   const [editZone, setEditZone] = useState(null);
   const [editPoints, setEditPoints] = useState([]);
@@ -64,14 +77,13 @@ function useZoneEditPoints({
   const [selectedPtIdxs, setSelectedPtIdxs] = useState(EMPTY_SELECTION);
   const [insertVertexMode, setInsertVertexMode] = useState(false);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
-  const [lassoRect, setLassoRect] = useState(null);
   const editZoneTranslateLastRef = useRef(null);
   const editPointsHistoryRef = useRef([]);
   const editPointsRef = useRef([]);
   const selectedPtIdxsRef = useRef(EMPTY_SELECTION);
   const groupDragLastRef = useRef(null);
   const pointerDownInfoRef = useRef(null);
-  const lassoRef = useRef(null);
+  const bgPointerRef = useRef(null);
   // Réglages de l'aimant lus au moment du geste : évite de recréer les handlers
   // (et donc de re-rendre le calque SVG mémoïsé) à chaque changement de zoom.
   const snapRef = useRef({
@@ -86,8 +98,7 @@ function useZoneEditPoints({
     if (mode !== 'edit-points') {
       editZoneTranslateLastRef.current = null;
       groupDragLastRef.current = null;
-      lassoRef.current = null;
-      setLassoRect(null);
+      bgPointerRef.current = null;
       setInsertVertexMode(false);
       setMultiSelectMode(false);
     }
@@ -222,10 +233,16 @@ function useZoneEditPoints({
       ? new Set(normalizeEditSelection([...selectedPtIdxsRef.current], pts.length))
       : new Set(pts.map((_p, i) => i));
     let moved = 0;
+    const n = pts.length;
     const next = pts.map((p, i) => {
       if (!targets.has(i)) return p;
-      const hit = snap(p, { radiusPct, minStrength });
-      if (!hit) return p;
+      const prev = pts[(i - 1 + n) % n];
+      const neighborNext = pts[(i + 1) % n];
+      const hit = snapEditPointOrthogonal(p, prev, neighborNext, radiusPct, snap, {
+        radiusPct,
+        minStrength,
+      });
+      if (hit.xp === p.xp && hit.yp === p.yp) return p;
       moved += 1;
       return clampEditZonePct(hit);
     });
@@ -238,12 +255,46 @@ function useZoneEditPoints({
 
   // ——— Raccourcis clavier (hors champs de saisie) ———
 
+  const ARROW_KEY_DELTA = useMemo(
+    () => ({
+      ArrowUp: [0, -1],
+      ArrowDown: [0, 1],
+      ArrowLeft: [-1, 0],
+      ArrowRight: [1, 0],
+    }),
+    [],
+  );
+
   useEffect(() => {
     if (mode !== 'edit-points') return undefined;
     const onKey = (e) => {
       const t = e.target;
       if (t?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
       const key = e.key;
+      const arrowDir = ARROW_KEY_DELTA[key];
+      if (arrowDir) {
+        e.preventDefault();
+        const stepPx = e.shiftKey ? 10 : 1;
+        const [ax, ay] = arrowDir;
+        if (selectedPtIdxsRef.current.size > 0) {
+          const inv = mapScaleInv || 1;
+          const iw = mapImgW || 1;
+          const ih = mapImgH || 1;
+          const dxPct = ((stepPx * ax * inv) / iw) * 100;
+          const dyPct = ((stepPx * ay * inv) / ih) * 100;
+          const pts = editPointsRef.current;
+          const selection = [...selectedPtIdxsRef.current];
+          const moved = moveEditPointsBy(pts, selection, dxPct, dyPct);
+          if (!editPtsSnapshotEqual(pts, moved)) {
+            editPointsRef.current = moved;
+            setEditPoints(moved);
+            scheduleRecordEditHistory();
+          }
+        } else {
+          onKeyboardPan?.(stepPx * ax, stepPx * ay);
+        }
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && key.toLowerCase() === 'z' && !e.shiftKey) {
         e.preventDefault();
         undoEditPoints();
@@ -278,12 +329,18 @@ function useZoneEditPoints({
     return () => window.removeEventListener('keydown', onKey, true);
   }, [
     mode,
+    ARROW_KEY_DELTA,
+    mapScaleInv,
+    mapImgW,
+    mapImgH,
+    onKeyboardPan,
     undoEditPoints,
     selectAllPoints,
     removeSelectedPoints,
     clearSelection,
     insertVertexMode,
     multiSelectMode,
+    scheduleRecordEditHistory,
     setToast,
   ]);
 
@@ -294,8 +351,7 @@ function useZoneEditPoints({
     setEditCanUndo(false);
     editZoneTranslateLastRef.current = null;
     groupDragLastRef.current = null;
-    lassoRef.current = null;
-    setLassoRect(null);
+    bgPointerRef.current = null;
     setSelectedPtIdxs(EMPTY_SELECTION);
     setInsertVertexMode(false);
     setMultiSelectMode(false);
@@ -317,7 +373,6 @@ function useZoneEditPoints({
       setSelectedPtIdxs(EMPTY_SELECTION);
       setInsertVertexMode(false);
       setMultiSelectMode(false);
-      setLassoRect(null);
       setMode('edit-points');
     },
     [setMode],
@@ -440,8 +495,15 @@ function useZoneEditPoints({
         snapRadiusPct: radiusPct,
         snapMinStrength: minStrength,
       } = snapRef.current;
-      const target = (typeof snap === 'function' && snap(p2, { radiusPct, minStrength })) || p2;
-      setEditPoints((pts) => pts.map((pt, j) => (j === i ? clampEditZonePct(target) : pt)));
+      const pts = editPointsRef.current;
+      const n = pts.length;
+      const prev = pts[(i - 1 + n) % n];
+      const next = pts[(i + 1) % n];
+      const target =
+        typeof snap === 'function'
+          ? snapEditPointOrthogonal(p2, prev, next, radiusPct, snap, { radiusPct, minStrength })
+          : p2;
+      setEditPoints((cur) => cur.map((pt, j) => (j === i ? clampEditZonePct(target) : pt)));
     },
     [draggingPtIdx, toImagePct],
   );
@@ -476,81 +538,60 @@ function useZoneEditPoints({
     [scheduleRecordEditHistory],
   );
 
-  // ——— Lasso de sélection (glisser sur le fond, hors polygone) ———
+  // ——— Pan sur le fond (glisser pour déplacer la vue ; clic simple = désélection) ———
 
-  const onLassoPointerDown = useCallback(
+  const onBackgroundPointerDown = useCallback(
     (e) => {
-      // Deuxième doigt (pinch de zoom, toujours actif en édition) : on abandonne le
-      // lasso en cours au lieu de sélectionner par accident au relâchement.
-      if (lassoRef.current && lassoRef.current.pointerId !== e.pointerId) {
-        lassoRef.current = null;
-        setLassoRect(null);
+      if (bgPointerRef.current && bgPointerRef.current.pointerId !== e.pointerId) {
+        bgPointerRef.current = null;
+        onBackgroundPanEnd?.();
         return;
       }
       if (e.isPrimary === false) return;
-      const p0 = toImagePct(e.clientX, e.clientY);
-      if (!p0) return;
       e.stopPropagation();
-      lassoRef.current = {
-        start: p0,
-        additive: e.shiftKey || multiSelectMode,
-        moved: false,
-        pointerId: e.pointerId,
-      };
-      setLassoRect(normalizeSelectionRect(p0, p0));
+      bgPointerRef.current = { moved: false, pointerId: e.pointerId };
+      onBackgroundPanStart?.(e.clientX, e.clientY);
       try {
         e.currentTarget.setPointerCapture(e.pointerId);
       } catch (_e) {}
     },
-    [multiSelectMode, toImagePct],
+    [onBackgroundPanStart, onBackgroundPanEnd],
   );
 
-  const onLassoPointerMove = useCallback(
+  const onBackgroundPointerMove = useCallback(
     (e) => {
-      const state = lassoRef.current;
+      const state = bgPointerRef.current;
       if (!state || state.pointerId !== e.pointerId) return;
-      const p2 = toImagePct(e.clientX, e.clientY);
-      if (!p2) return;
       state.moved = true;
-      setLassoRect(normalizeSelectionRect(state.start, p2));
+      onBackgroundPanMove?.(e.clientX, e.clientY);
       e.preventDefault();
     },
-    [toImagePct],
+    [onBackgroundPanMove],
   );
 
-  const onLassoPointerUp = useCallback(
+  const onBackgroundPointerUp = useCallback(
     (e) => {
-      const state = lassoRef.current;
+      const state = bgPointerRef.current;
       if (state && state.pointerId !== e.pointerId) return;
-      lassoRef.current = null;
-      setLassoRect(null);
+      bgPointerRef.current = null;
       if (e?.currentTarget?.hasPointerCapture?.(e.pointerId)) {
         try {
           e.currentTarget.releasePointerCapture(e.pointerId);
         } catch (_e) {}
       }
       if (!state) return;
-      const p2 = toImagePct(e.clientX, e.clientY) || state.start;
-      if (!state.moved) {
-        // Simple clic sur le fond : on désélectionne (sauf appui additif).
-        if (!state.additive) clearSelection();
-        return;
+      if (!state.moved && !(e.shiftKey || multiSelectMode)) {
+        clearSelection();
       }
-      const rect = normalizeSelectionRect(state.start, p2);
-      const hits = selectEditPointsInRect(editPointsRef.current, rect);
-      setSelectedPtIdxs((cur) => {
-        const next = state.additive ? new Set(cur) : new Set();
-        for (const i of hits) next.add(i);
-        return next;
-      });
+      onBackgroundPanEnd?.();
     },
-    [clearSelection, toImagePct],
+    [clearSelection, multiSelectMode, onBackgroundPanEnd],
   );
 
-  const onLassoLostPointerCapture = useCallback(() => {
-    lassoRef.current = null;
-    setLassoRect(null);
-  }, []);
+  const onBackgroundLostPointerCapture = useCallback(() => {
+    bgPointerRef.current = null;
+    onBackgroundPanEnd?.();
+  }, [onBackgroundPanEnd]);
 
   return {
     editZone,
@@ -581,11 +622,10 @@ function useZoneEditPoints({
     toggleMultiSelectMode,
     clearSelection,
     selectAllPoints,
-    lassoRect,
-    onLassoPointerDown,
-    onLassoPointerMove,
-    onLassoPointerUp,
-    onLassoLostPointerCapture,
+    onBackgroundPointerDown,
+    onBackgroundPointerMove,
+    onBackgroundPointerUp,
+    onBackgroundLostPointerCapture,
     // Lot « aimant de contour »
     snapSelectedPoints,
   };

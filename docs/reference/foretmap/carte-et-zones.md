@@ -102,8 +102,10 @@ pouvoir les faire glisser, puis reverrouille.
 ## Comment ça se passe — côté élève
 
 1. L'élève ouvre l'onglet **Carte**. Il peut zoomer, se déplacer, afficher ou masquer
-   les noms des zones, passer en plein écran. Sur téléphone, un bouton « Gestes »
-   évite de déclencher la carte en faisant défiler la page.
+   les noms des zones, **ajuster la taille du texte sur la carte** (bouton « Aa » dans
+   la barre d'outils : Normal, Grand, Très grand — mémorisé sur l'appareil), passer en
+   plein écran. Sur téléphone, un bouton « Gestes » évite de déclencher la carte en
+   faisant défiler la page.
 2. Il **touche une zone ou un repère** : la fiche s'ouvre avec ses onglets — Tâches,
    Tutoriels, Info, Photos (l'onglet Tâches ou Tutoriels n'apparaît que s'il y a
    quelque chose à montrer).
@@ -153,23 +155,27 @@ directement sur le plan ; rien n'est enregistré tant qu'on n'a pas cliqué « S
 - **Supprimer des sommets** : sélectionner puis appuyer sur la touche Suppr, ou
   utiliser le bouton « 🗑 ». Un contour garde toujours **au moins trois sommets** : en
   dessous, la suppression est refusée.
-- **Sélectionner plusieurs sommets** : Maj+clic pour en ajouter un à un, ou **tracer un
-  rectangle** en glissant sur le fond de carte pour attraper tous les sommets qu'il
-  contient. Sur tablette, la bascule « Multi » remplace Maj : chaque appui ajoute ou
-  retire un sommet. Les sommets sélectionnés sont entourés d'un cercle orange, et
-  **glisser l'un d'eux déplace tout le groupe** d'un bloc. Un clic sur le fond
-  désélectionne ; Échap aussi.
+- **Sélectionner plusieurs sommets** : Maj+clic pour en ajouter un à un. Sur tablette,
+  la bascule « Multi » remplace Maj : chaque appui ajoute ou retire un sommet. Les
+  sommets sélectionnés sont entourés d'un cercle orange, et **glisser l'un d'eux
+  déplace tout le groupe** d'un bloc. Un clic sur le fond désélectionne ; Échap aussi.
+- **Déplacer la vue pendant l'édition** : glisser le doigt ou la souris sur le fond
+  de carte (hors du contour) déplace le plan, comme en mode consultation. Les **flèches
+  du clavier** déplacent la vue lorsqu'aucun sommet n'est sélectionné ; avec une
+  sélection, elles ajustent finement la position des sommets (Maj+flèche = pas plus
+  large).
 - **Aimanter le contour sur l'image** : la bascule « 🧲 Aimant » analyse l'image de
   fond du plan (l'analyse prend un instant la première fois) et **colle le sommet
   déplacé sur la limite visible la plus proche** — un bord de parcelle, un chemin, une
-  haie — comme l'aimantation d'un logiciel de retouche photo. Deux curseurs le règlent :
-  le **rayon**, jusqu'à quelle distance l'aimant va chercher une limite, et la
-  **sensibilité**, à quel point cette limite doit être marquée pour attirer le sommet.
-  Une sensibilité basse ne retient que les traits francs ; une sensibilité haute accroche
-  aussi les transitions ténues — pratique sur une photo peu contrastée, mais l'aimant y
-  devient bavard. Le bouton « 🧲 Coller » applique l'aimantation d'un coup aux sommets
-  sélectionnés (ou à tout le contour si rien n'est sélectionné). Maintenir la touche Alt
-  suspend l'aimant le temps d'un geste, pour placer un sommet à la main.
+  haie — en **privilégiant les angles droits** (traits horizontaux ou verticaux du plan,
+  alignement sur le sommet voisin). Deux curseurs le règlent : le **rayon**, jusqu'à
+  quelle distance l'aimant va chercher une limite, et la **sensibilité**, à quel point
+  cette limite doit être marquée pour attirer le sommet. Une sensibilité basse ne
+  retient que les traits francs ; une sensibilité haute accroche aussi les transitions
+  ténues — pratique sur une photo peu contrastée, mais l'aimant y devient bavard. Le
+  bouton « 🧲 Coller » applique l'aimantation d'un coup aux sommets sélectionnés (ou à
+  tout le contour si rien n'est sélectionné). Maintenir la touche Alt suspend l'aimant
+  le temps d'un geste, pour placer un sommet à la main.
 - **Se tromper n'est pas grave** : « ↩ Annuler » (ou Ctrl+Z / Cmd+Z) revient en arrière
   pas à pas, et fermer par « ✕ » abandonne toutes les retouches sans rien enregistrer.
 
@@ -185,6 +191,38 @@ directement sur le plan ; rien n'est enregistré tant qu'on n'a pas cliqué « S
 
 Toute modification est visible **en temps réel** chez les autres utilisateurs
 connectés, sans recharger la page.
+
+## Retrouver une zone ou un repère
+
+En **mode consultation** (carte ouverte sans tracé ni édition de contour), une
+**barre de recherche** apparaît au-dessus du plan. Elle permet de filtrer les
+**zones** et les **repères** déjà chargés sur la carte active :
+
+- **Recherche libre** : tapez un nom, un mot de la description, une espèce, un mot
+  des textes visite… Plusieurs mots peuvent être combinés (tous doivent correspondre).
+- **Filtres** (bouton ⚙️) : type (zones seules, repères seuls), état des zones
+  (Vide, En croissance, Prêt, Spéciale), zones d'infrastructure uniquement, espèce
+  présente, présence de **tâches actives** ou de tutoriels liés.
+
+> Seules les tâches **encore en jeu** comptent sur la carte : terminées (en attente
+> de validation), validées, archivées, ou rattachées à un projet terminé/validé n'affichent
+> plus de pastille de tâche et ne font plus hériter leurs tutoriels au lieu. Les tutoriels
+> **directement** liés à une zone ou un repère restent visibles.
+
+- **Raccourci clavier** : touche **/** ou **Ctrl+K** (Cmd+K sur Mac) place le curseur
+  dans le champ de recherche.
+
+Quand un filtre est actif :
+
+- les lieux **correspondants** restent visibles normalement ;
+- les autres lieux sont **atténués** sur le plan (ils restent visibles mais moins
+  lisibles, et ne s'ouvrent plus au clic) ;
+- une **liste de résultats** sous la barre permet de **cliquer** sur un lieu : la
+  fiche s'ouvre et la carte se **centre** doucement sur ce point.
+
+Le compteur indique combien de zones et de repères correspondent. Un bouton ✕ ou
+« Tout effacer » remet la carte en vue complète. Élèves et professeurs utilisent
+la même recherche en lecture seule.
 
 ## La vue grand écran « Cartes & tâches »
 
@@ -214,6 +252,37 @@ les onglets restent séparés.
 > administrateur a calé le plan sur trois points GPS **et** activé la géolocalisation
 > pour ce plan. Sans ce calage, rien ne signale que la fonction existe — pensez à le
 > faire pour les plans utilisés sur le terrain.
+
+## Lisibilité des noms sur la carte
+
+Les **emojis et noms** affichés sur le plan s'adaptent à la **taille du plateau** à
+l'écran : plus la carte est petite (téléphone, vue « Cartes & tâches » avec panneau
+latéral), plus l'application garantit un **minimum de lisibilité** plutôt que de réduire
+le texte jusqu'à l'illisible. Sur tablette et téléphone, les étiquettes sont légèrement
+**agrandies** automatiquement.
+
+**Côté utilisateur** : le bouton **Aa** de la barre d'outils carte permet trois niveaux
+locaux (Normal / Grand / Très grand), mémorisés sur l'appareil.
+
+**Côté administrateur** (Réglages → modules), des curseurs permettent d'ajuster pour
+toute l'établissement :
+
+- **taille des emojis** et **taille des noms** sur zones et repères (pourcentage par
+  rapport à un affichage de référence) ;
+- **écart entre emoji et nom** ;
+- **grossissement des étiquettes au zoom** (0 % = taille constante quand on zoome,
+  100 % = grossit linéairement avec le zoom ; la valeur par défaut est intermédiaire) ;
+- **masquage adaptatif des noms de zone** : sur une zone très petite à l'écran, seul
+  l'emoji peut rester visible ; le nom complet reste accessible en ouvrant la fiche.
+  Le seuil est réglable (côté minimal en × hauteur du libellé ; **2,5 par défaut** —
+  plus bas = noms affichés plus souvent, plus haut = masquage plus strict).
+
+Pour un **tableau interactif** ou des élèves ayant besoin de caractères plus grands,
+monter les pourcentages emoji/nom (par exemple 150 %) dans les réglages admin.
+
+Sur les **petites zones**, seul l'emoji peut rester visible si le nom ne tiendrait pas
+de façon lisible ; le nom complet reste accessible en ouvrant la fiche. Un administrateur
+peut ajuster ce comportement dans les réglages (seuil « masquage nom de zone »).
 
 ## Pour aller plus loin
 

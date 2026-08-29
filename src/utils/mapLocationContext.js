@@ -2,6 +2,10 @@
  * Liens tâches / tutoriels ↔ lieux (zones, repères) — logique partagée carte, tâches, visite.
  */
 
+import { isTaskDetachedFromLocation } from './taskListHelpers.js';
+
+export { isTaskDetachedFromLocation };
+
 /** IDs zones/repères liés à une tâche (API multi + champs legacy). */
 export function taskLocationIds(t) {
   if (!t) return { zoneIds: [], markerIds: [] };
@@ -20,11 +24,6 @@ export function tutorialLocationIds(tu) {
     ...new Set((tu.marker_ids || []).map((id) => String(id || '').trim()).filter(Boolean)),
   ];
   return { zoneIds, markerIds };
-}
-
-export function isTaskDetachedFromLocation(task) {
-  if (!task) return false;
-  return task.status === 'done' || task.status === 'validated';
 }
 
 /** Tutoriels référencés par une tâche (`tutorials_linked` ou `tutorial_ids` + catalogue). */
