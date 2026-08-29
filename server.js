@@ -200,10 +200,11 @@ app.use('/api', (req, res, next) => {
   return next();
 });
 
-// JSON volumineux (ex. photos base64 forum). Défaut 25mb ; surcharge : FORETMAP_JSON_BODY_LIMIT (ex. 100mb).
-const jsonBodyLimit = String(process.env.FORETMAP_JSON_BODY_LIMIT || '25mb').trim() || '25mb';
-app.use(express.json({ limit: jsonBodyLimit }));
-app.use(express.urlencoded({ extended: true, limit: jsonBodyLimit }));
+// JSON : défaut bas (2mb) pour limiter les pics LVE ; préfixes médias/imports à 25mb
+// montés d'abord (voir lib/jsonBodyLimit.js). Surcharges :
+// FORETMAP_JSON_BODY_LIMIT, FORETMAP_JSON_BODY_LIMIT_LARGE.
+const { mountJsonBodyParsers } = require('./lib/jsonBodyLimit');
+mountJsonBodyParsers(app);
 app.use((err, req, res, next) => {
   if (err?.type === 'entity.too.large' || err?.status === 413 || err?.statusCode === 413) {
     return res.status(413).json({

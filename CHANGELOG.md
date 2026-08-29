@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Anti-kills LVE — allègement mémoire polling
+
+Réduction des pics RSS (SIGKILL CloudLinux) sans retirer de fonctionnalité visible :
+listes `GET /api/tasks` et `GET /api/zones` allégées, archives tâches chargées à la demande
+(vue « Archivés »), corps JSON global à **2 Mo** (préfixes médias/imports à **25 Mo**),
+batch gating summary, cache glossaire quiz, liste packs mascotte sans `pack_json` plein.
+
 ### Conditionnement granulaire FM/GL (cascade site → type → fiche)
 
 Les paramètres de session et de verrou (erreurs tolérées, questions par session, délai et
