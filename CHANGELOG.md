@@ -37,6 +37,17 @@ par épuisement de ressources, un `report-uri` sans ces gardes aurait ajouté au
 Reste une décision, pas un développement : **promouvoir** la politique candidate en politique
 imposée quand les signalements se seront tus en usage réel. `tests/csp.test.js` (15 tests) contient
 un test qui échoue si quelqu'un le fait sans le décider.
+### Conditionnement granulaire FM/GL (cascade site → type → fiche)
+
+Les paramètres de session et de verrou (erreurs tolérées, questions par session, délai et
+portée du verrou, granularité GL) ne sont plus figés au site : ils s’héritent et se
+surchargent par type de contenu puis par fiche (et, en GL, par chapitre/scope). Éditeur
+commun, parité API `type-policy` GL, runtime et doc de référence alignés.
+
+### Lisibilité carte — unification Visite et GL
+
+Variables CSS `--map-overlay-*` partagées sur le plan visite et les plateaux GL ;
+libellés optionnels sur les repères visite, alignés sur le moteur typographique ForetMap.
 
 ### Le verrou après erreurs tolérées ne tombait jamais
 

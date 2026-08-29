@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
+import { GatingPolicyEditor } from '../../../shared/components/GatingPolicyEditor.jsx';
+import { describeSiteGatingMode } from '../../../shared/utils/learningGatingPolicyText.js';
 
 // G3 — écran admin du conditionnement par QCM (« marquer appris » soumis à la
 // réussite d'une question). CRUD des liens ressource ↔ question sur
@@ -36,6 +38,10 @@ export function GLLearningLinksPanel() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const [policyRef, setPolicyRef] = useState('');
+  const [policyType, setPolicyType] = useState('species');
+  const [policyState, setPolicyState] = useState(null);
+  const [policyBusy, setPolicyBusy] = useState(false);
 
   const loadSettings = useCallback(async () => {
     try {
@@ -71,6 +77,54 @@ export function GLLearningLinksPanel() {
   useEffect(() => {
     loadLinks();
   }, [loadLinks]);
+
+  const loadPolicy = useCallback(async () => {
+    if (!policyRef.trim()) {
+      setPolicyState(null);
+      return;
+    }
+    try {
+      const params = new URLSearchParams({
+        resourceType: policyType,
+        resourceRef: policyRef.trim(),
+      });
+      const res = await apiGL(`/api/gl/learning-links/policy?${params.toString()}`);
+      setPolicyState(res || null);
+    } catch (_) {
+      setPolicyState(null);
+    }
+  }, [policyRef, policyType]);
+
+  useEffect(() => {
+    loadPolicy();
+  }, [loadPolicy]);
+
+  async function savePolicy(patch) {
+    if (!policyRef.trim()) return;
+    setPolicyBusy(true);
+    setError('');
+    try {
+      await apiGL('/api/gl/learning-links/policy', 'PUT', {
+        resource_type: policyType,
+        resource_ref: policyRef.trim(),
+        ...patch,
+      });
+      setInfo('Politique enregistrée.');
+      await loadPolicy();
+    } catch (err) {
+      setError(err.message || 'Enregistrement de la politique impossible');
+    } finally {
+      setPolicyBusy(false);
+    }
+  }
+
+  const policyLinks = links.filter(
+    (l) =>
+      l.resource_type === policyType &&
+      l.resource_ref === policyRef.trim() &&
+      l.status === 'approved' &&
+      Number(l.is_gating),
+  );
 
   async function createLink(event) {
     event.preventDefault();
@@ -159,6 +213,55 @@ export function GLLearningLinksPanel() {
       ) : null}
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}
+
+      <div className="gl-admin-form" style={{ marginBottom: 16 }}>
+        <h4>Politique pour une ressource</h4>
+        <div className="gl-admin-form-grid">
+          <label>
+            Type
+            <select value={policyType} onChange={(e) => setPolicyType(e.target.value)}>
+              {resourceTypes.map((t) => (
+                <option key={t} value={t}>
+                  {RESOURCE_TYPE_LABELS[t] || t}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Référence
+            <input
+              type="text"
+              value={policyRef}
+              onChange={(e) => setPolicyRef(e.target.value)}
+              placeholder="code ressource…"
+            />
+          </label>
+        </div>
+        {policyState?.typePolicy || gating ? (
+          <p className="gl-hint">
+            Préréglage type :{' '}
+            <strong>{describeSiteGatingMode(gating) || policyState?.site?.defaultMode}</strong>
+          </p>
+        ) : null}
+        {policyRef.trim() ? (
+          <GatingPolicyEditor
+            key={`${policyType}-${policyRef.trim()}`}
+            product="gl"
+            layer="resource"
+            site={policyState?.site || gating}
+            typePolicy={policyState?.typePolicy}
+            policy={policyState?.policy}
+            effective={policyState?.effective}
+            effectiveSources={policyState?.effectiveSources}
+            gatingCount={policyLinks.length}
+            resourceType={policyType}
+            busy={policyBusy || busy}
+            onSave={savePolicy}
+          />
+        ) : (
+          <p className="gl-hint">Indiquez une référence pour éditer la politique.</p>
+        )}
+      </div>
 
       <form onSubmit={createLink} className="gl-admin-form">
         <h4>Ajouter un lien ressource ↔ question</h4>

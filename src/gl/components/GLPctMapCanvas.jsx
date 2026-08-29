@@ -1,10 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useGlBoardImageFit } from '../hooks/useGlBoardImageFit.js';
 import { useGlMapOverlaySettings } from '../context/GlMapOverlaySettingsContext.jsx';
-import {
-  readPlateauMarkerSizePercent,
-  resolveMapOverlayScaleCssValue,
-} from '../../shared/mapOverlayScale.js';
+import { resolveMapOverlayCssVariables } from '../../utils/mapOverlayTypography.js';
 
 export function GLPctMapCanvas({
   imageUrl,
@@ -25,18 +22,21 @@ export function GLPctMapCanvas({
   const imageRef = mapGestures?.imageRef;
   const { fitLayerStyle, onImageLoad, fitHeightPx } = useGlBoardImageFit(containerRef, imageRef);
   const { mapSettings } = useGlMapOverlaySettings();
-  const markerSizePercent = markerSizePercentProp ?? readPlateauMarkerSizePercent(mapSettings);
 
   const fitLayerStyleWithScale = useMemo(() => {
-    const overlayScale = resolveMapOverlayScaleCssValue({
-      fitHeightPx,
-      sizePercent: markerSizePercent,
+    const fitW = Number(fitLayerStyle?.width) || 0;
+    const settingsForOverlay =
+      markerSizePercentProp != null
+        ? { ...(mapSettings || {}), plateau_marker_size_percent: markerSizePercentProp }
+        : mapSettings;
+    const overlayCssVars = resolveMapOverlayCssVariables(settingsForOverlay, fitHeightPx, {
+      fitWidthPx: fitW,
     });
     return {
       ...fitLayerStyle,
-      '--map-overlay-scale': overlayScale,
+      ...overlayCssVars,
     };
-  }, [fitLayerStyle, fitHeightPx, markerSizePercent]);
+  }, [fitLayerStyle, fitHeightPx, mapSettings, markerSizePercentProp]);
 
   useEffect(() => {
     onMapReady?.(mapGestures);

@@ -4,7 +4,12 @@ import { api } from '../services/api';
 
 import { MARKER_EMOJIS, parseEmojiListSetting } from '../constants/emojis';
 
-import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
+import {
+  resolveMapOverlayTypography,
+  resolveMapOverlayCssVariables,
+} from '../utils/mapOverlayTypography';
+import { resolveMapOverlayLabelLayout } from '../utils/mapOverlayZoneLabels.js';
+import { useMapOverlayTextSizePreference } from '../hooks/useMapOverlayTextSizePreference.js';
 
 import { TASK_VISUAL_LABEL } from '../utils/taskEnrollment.js';
 import {
@@ -49,6 +54,19 @@ import { ZoneInfoModal } from './map/ZoneInfoModal.jsx';
 import { MarkerModal } from './map/MarkerModal.jsx';
 import { MapViewToolbar } from './map/MapViewToolbar.jsx';
 import { MapCanvasHints } from './map/MapCanvasHints.jsx';
+import { MapLocationFiltersBar } from './map/MapLocationFiltersBar.jsx';
+import { MapLocationFilterResults } from './map/MapLocationFilterResults.jsx';
+import {
+  MAP_LOCATION_FILTER_DEFAULTS,
+  applyMapLocationFilters,
+  collectMapSpeciesOptions,
+  isMapLocationFilterActive,
+} from '../utils/mapLocationFilters.js';
+import {
+  focusMapOnPct,
+  markerFocusPct,
+  zoneFocusPctFromPoints,
+} from '../utils/mapFocusLocation.js';
 import { useMapFullscreen } from '../shared/hooks/useMapFullscreen.js';
 import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
@@ -141,6 +159,10 @@ function MapViewImpl({
   const [mapTutorialPreview, setMapTutorialPreview] = useState(null);
   const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
   const [markerPositionUnlocked, setMarkerPositionUnlocked] = useState(false);
+  const [mapLocationFilters, setMapLocationFilters] = useState(() => ({
+    ...MAP_LOCATION_FILTER_DEFAULTS,
+  }));
+  const mapLocationSearchRef = useRef(null);
   const { mapFullscreen, setMapFullscreen, openMapFullscreen, closeMapFullscreen } =
     useMapFullscreen({
       escapeBlocked: Boolean(
@@ -198,6 +220,10 @@ function MapViewImpl({
     prefersPageScroll,
     touchAction,
     animateZoomTowardScale,
+    beginPan,
+    updatePan,
+    endPan,
+    panByScreenDelta,
   } = useMapGestures({
     mapImageSrc,
     activeMapId,
@@ -248,11 +274,10 @@ function MapViewImpl({
     selectedPtIdxs,
     multiSelectMode,
     toggleMultiSelectMode,
-    lassoRect,
-    onLassoPointerDown,
-    onLassoPointerMove,
-    onLassoPointerUp,
-    onLassoLostPointerCapture,
+    onBackgroundPointerDown,
+    onBackgroundPointerMove,
+    onBackgroundPointerUp,
+    onBackgroundLostPointerCapture,
     snapSelectedPoints,
   } = useZoneEditPoints({
     mode,
@@ -264,6 +289,13 @@ function MapViewImpl({
     snapRadiusPct,
     snapMinStrength: sensitivityToMinStrength(snapSensitivity),
     edgeTolerancePct,
+    mapScaleInv: inv,
+    mapImgW: iw,
+    mapImgH: ih,
+    onKeyboardPan: panByScreenDelta,
+    onBackgroundPanStart: beginPan,
+    onBackgroundPanMove: updatePan,
+    onBackgroundPanEnd: endPan,
   });
   const {
     mascotId: mapMascotId,
@@ -363,6 +395,7 @@ function MapViewImpl({
     setPendingZone(null);
     setPendingMarker(null);
     setMarkerPositionUnlocked(false);
+    setMapLocationFilters({ ...MAP_LOCATION_FILTER_DEFAULTS });
     discardEditPointsSession();
     resetMapMascotMotion?.();
   }, [activeMapId, resetMapMascotMotion, resetDrawPoints, discardEditPointsSession]);
@@ -429,7 +462,13 @@ function MapViewImpl({
   // à une taille stable, le grossissement au zoom étant porté séparément par `mapZoomRatio`.
   const safeFitScale = fitScale > 0 ? fitScale : 1;
   const mapFitHeightPx = ih * safeFitScale;
+  const mapFitWidthPx = iw * safeFitScale;
   const mapZoomRatio = cs / safeFitScale;
+  const {
+    percent: mapTextSizePercent,
+    label: mapTextSizeLabel,
+    cycle: cycleMapTextSize,
+  } = useMapOverlayTextSizePreference();
   const mapSettings =
     publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
   const mapCanvasHintTexts = useMemo(
@@ -449,7 +488,23 @@ function MapViewImpl({
     resolveMapOverlayTypography(mapSettings, mapFitHeightPx, {
       worldScale: cs,
       zoomRatio: mapZoomRatio,
+      fitWidthPx: mapFitWidthPx,
+      isCoarsePointer,
+      userTextSizePercent: mapTextSizePercent,
     });
+  const mapOverlayLabelLayout = useMemo(
+    () => resolveMapOverlayLabelLayout(mapSettings, { inv, isCoarsePointer }),
+    [mapSettings, inv, isCoarsePointer],
+  );
+  const mapOverlayCssVars = useMemo(
+    () =>
+      resolveMapOverlayCssVariables(mapSettings, mapFitHeightPx, {
+        fitWidthPx: mapFitWidthPx,
+        isCoarsePointer,
+        userTextSizePercent: mapTextSizePercent,
+      }),
+    [mapSettings, mapFitHeightPx, mapFitWidthPx, isCoarsePointer, mapTextSizePercent],
+  );
 
   // Zones pré-parsées (JSON.parse des points + emoji/nom d'étiquette) : recalculées uniquement
   // quand les données changent, plus à chaque rendu de la carte (zoom, pan, mascotte…).
@@ -457,6 +512,120 @@ function MapViewImpl({
     () => parseZonesForLayer(zones, emojiParsingList),
     [zones, emojiParsingList],
   );
+
+  const mapSpeciesOptions = useMemo(
+    () => collectMapSpeciesOptions(zones, mapMarkersOnActiveMap),
+    [zones, mapMarkersOnActiveMap],
+  );
+
+  const mapFilterContext = useMemo(
+    () => ({
+      zoneTaskVisualById,
+      markerTaskVisualById,
+      zoneTutorialCountById,
+      markerTutorialCountById,
+      emojiParsingList,
+      speciesOptions: mapSpeciesOptions,
+    }),
+    [
+      zoneTaskVisualById,
+      markerTaskVisualById,
+      zoneTutorialCountById,
+      markerTutorialCountById,
+      emojiParsingList,
+      mapSpeciesOptions,
+    ],
+  );
+
+  const {
+    matchingZoneIds,
+    matchingMarkerIds,
+    resultItems: mapFilterResultItems,
+    filterActive: mapFilterActive,
+  } = useMemo(
+    () =>
+      applyMapLocationFilters({
+        zones,
+        markers: mapMarkersOnActiveMap,
+        filters: mapLocationFilters,
+        context: mapFilterContext,
+      }),
+    [zones, mapMarkersOnActiveMap, mapLocationFilters, mapFilterContext],
+  );
+
+  const dimmedZoneIds = useMemo(() => {
+    if (!mapFilterActive) return null;
+    const set = new Set();
+    for (const parsed of parsedZones) {
+      const id = String(parsed.zone.id);
+      if (!matchingZoneIds.has(id)) set.add(id);
+    }
+    return set;
+  }, [mapFilterActive, parsedZones, matchingZoneIds]);
+
+  const dimmedMarkerIds = useMemo(() => {
+    if (!mapFilterActive) return null;
+    const set = new Set();
+    for (const m of mapMarkersOnActiveMap) {
+      const id = String(m.id);
+      if (!matchingMarkerIds.has(id)) set.add(id);
+    }
+    return set;
+  }, [mapFilterActive, mapMarkersOnActiveMap, matchingMarkerIds]);
+
+  const focusMapOnLocation = useCallback(
+    (focusPct) => {
+      focusMapOnPct(focusPct, {
+        containerRef,
+        txRef: tx,
+        imgSize,
+        animateZoomTowardScale,
+        commit,
+        fitScale,
+      });
+    },
+    [containerRef, tx, imgSize, animateZoomTowardScale, commit, fitScale],
+  );
+
+  const onSelectMapFilterResult = useCallback(
+    (row) => {
+      if (!row?.item) return;
+      if (row.kind === 'zone') {
+        if (showMapMascot) onMapMascotZoneClick(row.item, setSelectedZone);
+        else setSelectedZone(row.item);
+        focusMapOnLocation(zoneFocusPctFromPoints(row.item.points));
+      } else {
+        if (showMapMascot) onMapMascotMarkerClick(row.item, setSelectedMarker);
+        else setSelectedMarker(row.item);
+        focusMapOnLocation(markerFocusPct(row.item));
+      }
+    },
+    [showMapMascot, onMapMascotZoneClick, onMapMascotMarkerClick, focusMapOnLocation],
+  );
+
+  useEffect(() => {
+    if (mode !== 'view') return undefined;
+    const onKeyDown = (e) => {
+      if (e.defaultPrevented) return;
+      const tag = String(e.target?.tagName || '').toLowerCase();
+      if (
+        tag === 'input' ||
+        tag === 'textarea' ||
+        tag === 'select' ||
+        e.target?.isContentEditable
+      ) {
+        return;
+      }
+      const slash = e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey;
+      const ctrlK = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k';
+      if (slash || ctrlK) {
+        e.preventDefault();
+        mapLocationSearchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [mode]);
 
   const openZoneFromMap = useCallback(
     (z, e) => {
@@ -705,6 +874,8 @@ function MapViewImpl({
           onToggleMapInteraction={toggleMapInteraction}
           showLabels={showLabels}
           onToggleLabels={() => setShowLabels((l) => !l)}
+          mapTextSizeLabel={mapTextSizeLabel}
+          onCycleMapTextSize={cycleMapTextSize}
           gps={mascotGps}
           containerRef={containerRef}
           txRef={tx}
@@ -740,15 +911,34 @@ function MapViewImpl({
               : { padding: mapFramePaddingPx }),
           }}
         >
+          {mode === 'view' && (
+            <>
+              <MapLocationFiltersBar
+                filters={mapLocationFilters}
+                setFilters={setMapLocationFilters}
+                speciesOptions={mapSpeciesOptions}
+                zoneMatchCount={matchingZoneIds.size}
+                markerMatchCount={matchingMarkerIds.size}
+                searchInputRef={mapLocationSearchRef}
+              />
+              {isMapLocationFilterActive(mapLocationFilters) && mapFilterResultItems.length > 0 ? (
+                <MapLocationFilterResults
+                  items={mapFilterResultItems}
+                  onSelectItem={onSelectMapFilterResult}
+                />
+              ) : null}
+            </>
+          )}
           <div className="map-view-canvas-slot">
             <div
               ref={containerRef}
-              className="map-view-canvas"
+              className="map-view-canvas map-viewport"
               style={{
                 cursor,
                 touchAction,
                 userSelect: 'none',
                 WebkitUserSelect: 'none',
+                ...mapOverlayCssVars,
               }}
               onClick={onMapClick}
             >
@@ -765,6 +955,7 @@ function MapViewImpl({
                 />
 
                 <svg
+                  className="map-zone-svg-layer"
                   style={{
                     position: 'absolute',
                     left: 0,
@@ -773,6 +964,7 @@ function MapViewImpl({
                     height: ih,
                     overflow: 'visible',
                     pointerEvents: 'none',
+                    textRendering: 'optimizeLegibility',
                   }}
                 >
                   <g style={{ pointerEvents: 'all' }}>
@@ -784,11 +976,15 @@ function MapViewImpl({
                       mode={mode}
                       showLabels={showLabels}
                       editZoneId={editZone?.id ?? null}
+                      dimmedZoneIds={dimmedZoneIds}
                       zoneTaskVisualById={zoneTaskVisualById}
                       zoneTutorialCountById={zoneTutorialCountById}
                       emojiFontPx={mapEmojiFontPx}
                       labelFontPx={mapLabelFontPx}
                       emojiLabelCenterGap={mapEmojiLabelCenterGap}
+                      minSideFactor={mapOverlayLabelLayout.minSideFactor}
+                      labelMaxWorldLength={mapOverlayLabelLayout.maxWorldLength}
+                      labelCompressChars={mapOverlayLabelLayout.compressChars}
                       onZoneOpen={openZoneFromMap}
                     />
                     <DrawingLayer drawPoints={drawPoints} iw={iw} ih={ih} inv={inv} />
@@ -798,17 +994,16 @@ function MapViewImpl({
                       draggingPtIdx={draggingPtIdx}
                       selectedPtIdxs={selectedPtIdxs}
                       insertVertexMode={insertVertexMode}
-                      lassoRect={lassoRect}
                       iw={iw}
                       ih={ih}
                       inv={inv}
                       toImagePct={toImagePct}
                       onInsertPointFromPct={insertPointFromPct}
                       onInsertPointAtMidpoint={insertPointAtMidpoint}
-                      onLassoPointerDown={onLassoPointerDown}
-                      onLassoPointerMove={onLassoPointerMove}
-                      onLassoPointerUp={onLassoPointerUp}
-                      onLassoLostPointerCapture={onLassoLostPointerCapture}
+                      onBackgroundPointerDown={onBackgroundPointerDown}
+                      onBackgroundPointerMove={onBackgroundPointerMove}
+                      onBackgroundPointerUp={onBackgroundPointerUp}
+                      onBackgroundLostPointerCapture={onBackgroundLostPointerCapture}
                       onTranslatePointerDown={onTranslatePointerDown}
                       onTranslatePointerMove={onTranslatePointerMove}
                       endEditZoneTranslate={endEditZoneTranslate}
@@ -858,6 +1053,7 @@ function MapViewImpl({
                     <MapViewMarkerBubbleMemo
                       key={m.id}
                       marker={m}
+                      dimmed={dimmedMarkerIds?.has(String(m.id))}
                       ariaLabel={markerAriaLabel}
                       showLabels={showLabels}
                       isCoarsePointer={isCoarsePointer}
@@ -865,6 +1061,7 @@ function MapViewImpl({
                       emojiFontSize={`${mapEmojiFontPx}px`}
                       labelFontSize={`${mapLabelFontPx}px`}
                       labelMarginTop={markerLabelMarginTop}
+                      labelMaxWidthPx={mapOverlayLabelLayout.maxScreenPx}
                       taskVisual={markerTaskVisual}
                       taskLabel={markerTaskLabel}
                       tutorialCount={markerTutorialCount}

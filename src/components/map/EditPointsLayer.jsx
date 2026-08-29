@@ -13,7 +13,7 @@ const MIDPOINT_HANDLES_MAX_POINTS = 60;
  * - poignées « fantômes » au milieu de chaque arête (appui = nouveau sommet, que l'on
  *   peut glisser dans le même geste) ;
  * - bande d'arête cliquable quand le mode « ＋ Sommet » est actif ;
- * - fond capteur pour le lasso de sélection multiple ;
+ * - fond capteur pour le pan de la vue et la désélection au clic ;
  * - rendu des sommets sélectionnés et du rectangle de lasso.
  *
  * @param {object} props
@@ -22,7 +22,6 @@ const MIDPOINT_HANDLES_MAX_POINTS = 60;
  * @param {number} props.draggingPtIdx index du sommet en cours de glissement (-1 sinon)
  * @param {Set<number>} [props.selectedPtIdxs] indices des sommets sélectionnés
  * @param {boolean} [props.insertVertexMode] mode « cliquer sur un bord pour ajouter »
- * @param {{x1:number,y1:number,x2:number,y2:number}|null} [props.lassoRect] lasso en cours (% image)
  * @param {number} props.iw largeur naturelle du plan (px monde)
  * @param {number} props.ih hauteur naturelle du plan (px monde)
  * @param {number} props.inv inverse de l'échelle commitée (traits constants à l'écran)
@@ -36,10 +35,10 @@ const MIDPOINT_HANDLES_MAX_POINTS = 60;
  * @param {(e: React.PointerEvent) => void} props.onEditPointPointerUp fin glissement sommet
  * @param {(pct: {xp:number,yp:number}) => number} [props.onInsertPointFromPct] insertion sur l'arête la plus proche
  * @param {(index: number, point: {xp:number,yp:number}) => number} [props.onInsertPointAtMidpoint] insertion au milieu d'une arête
- * @param {(e: React.PointerEvent) => void} [props.onLassoPointerDown]
- * @param {(e: React.PointerEvent) => void} [props.onLassoPointerMove]
- * @param {(e: React.PointerEvent) => void} [props.onLassoPointerUp]
- * @param {() => void} [props.onLassoLostPointerCapture]
+ * @param {(e: React.PointerEvent) => void} [props.onBackgroundPointerDown]
+ * @param {(e: React.PointerEvent) => void} [props.onBackgroundPointerMove]
+ * @param {(e: React.PointerEvent) => void} [props.onBackgroundPointerUp]
+ * @param {() => void} [props.onBackgroundLostPointerCapture]
  */
 export const EditPointsLayer = React.memo(function EditPointsLayer({
   mode,
@@ -47,7 +46,6 @@ export const EditPointsLayer = React.memo(function EditPointsLayer({
   draggingPtIdx,
   selectedPtIdxs,
   insertVertexMode = false,
-  lassoRect = null,
   iw,
   ih,
   inv,
@@ -61,10 +59,10 @@ export const EditPointsLayer = React.memo(function EditPointsLayer({
   onEditPointPointerUp,
   onInsertPointFromPct,
   onInsertPointAtMidpoint,
-  onLassoPointerDown,
-  onLassoPointerMove,
-  onLassoPointerUp,
-  onLassoLostPointerCapture,
+  onBackgroundPointerDown,
+  onBackgroundPointerMove,
+  onBackgroundPointerUp,
+  onBackgroundLostPointerCapture,
 }) {
   // Index du sommet créé par une poignée fantôme : le glissement se poursuit sur lui.
   const midDragIdxRef = useRef(-1);
@@ -120,21 +118,21 @@ export const EditPointsLayer = React.memo(function EditPointsLayer({
 
   return (
     <g>
-      {/* Fond capteur : glisser hors du polygone = lasso de sélection ; clic simple = désélection. */}
-      {typeof onLassoPointerDown === 'function' && (
+      {/* Fond capteur : glisser = pan de la vue ; clic simple = désélection. */}
+      {typeof onBackgroundPointerDown === 'function' && (
         <rect
-          className="edit-lasso-capture"
+          className="edit-bg-capture"
           x={0}
           y={0}
           width={iw}
           height={ih}
           fill="transparent"
-          style={{ cursor: 'crosshair', touchAction: 'none' }}
-          onPointerDown={onLassoPointerDown}
-          onPointerMove={onLassoPointerMove}
-          onPointerUp={onLassoPointerUp}
-          onPointerCancel={onLassoPointerUp}
-          onLostPointerCapture={onLassoLostPointerCapture}
+          style={{ cursor: 'grab', touchAction: 'none' }}
+          onPointerDown={onBackgroundPointerDown}
+          onPointerMove={onBackgroundPointerMove}
+          onPointerUp={onBackgroundPointerUp}
+          onPointerCancel={onBackgroundPointerUp}
+          onLostPointerCapture={onBackgroundLostPointerCapture}
         />
       )}
 
@@ -271,22 +269,6 @@ export const EditPointsLayer = React.memo(function EditPointsLayer({
           </g>
         );
       })}
-
-      {lassoRect && (
-        <rect
-          className="edit-lasso"
-          data-testid="edit-lasso"
-          x={(lassoRect.x1 / 100) * iw}
-          y={(lassoRect.y1 / 100) * ih}
-          width={((lassoRect.x2 - lassoRect.x1) / 100) * iw}
-          height={((lassoRect.y2 - lassoRect.y1) / 100) * ih}
-          fill="rgba(82,183,136,0.16)"
-          stroke="#1a4731"
-          strokeWidth={Math.max(1, 1.2 * inv)}
-          strokeDasharray={`${Math.max(3, 4 * inv)} ${Math.max(3, 4 * inv)}`}
-          style={{ pointerEvents: 'none' }}
-        />
-      )}
     </g>
   );
 });

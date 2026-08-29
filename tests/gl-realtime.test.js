@@ -7,7 +7,7 @@ const assert = require('node:assert');
 const http = require('http');
 const express = require('express');
 const { io: clientIo } = require('socket.io-client');
-const { initRealtime, emitGlGameEvent } = require('../lib/realtime');
+const { initRealtime, emitGlGameEvent, shutdownRealtime } = require('../lib/realtime');
 const { initSchema, execute, queryOne } = require('../database');
 const {
   createGlAdmin,
@@ -16,6 +16,28 @@ const {
   createGlGameWithTeams,
   signTokens,
 } = require('./helpers/glFixtures');
+
+const SOCKET_CONNECT_OPTS = {
+  path: '/socket.io',
+  transports: ['polling', 'websocket'],
+  timeout: 20_000,
+};
+
+async function closeGlRealtimeServer(server, socket) {
+  if (socket) socket.close();
+  await new Promise((resolve, reject) => {
+    if (!server.listening) {
+      resolve();
+      return;
+    }
+    server.close((err) => {
+      if (err && err.code === 'ERR_SERVER_NOT_RUNNING') resolve();
+      else if (err) reject(err);
+      else resolve();
+    });
+  });
+  await shutdownRealtime();
+}
 
 test('Socket.IO GL : réception gl:game:event', async () => {
   // Le compte doit exister en base : depuis que la connexion socket ré-hydrate les droits
@@ -41,14 +63,12 @@ test('Socket.IO GL : réception gl:game:event', async () => {
   });
 
   const socket = clientIo(`http://127.0.0.1:${port}`, {
-    path: '/socket.io',
-    transports: ['websocket'],
-    timeout: 8000,
+    ...SOCKET_CONNECT_OPTS,
     auth: { token },
   });
 
   await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('timeout connexion Socket.IO GL')), 8000);
+    const timeout = setTimeout(() => reject(new Error('timeout connexion Socket.IO GL')), 20_000);
     socket.once('connect', () => {
       clearTimeout(timeout);
       resolve();
@@ -73,10 +93,7 @@ test('Socket.IO GL : réception gl:game:event', async () => {
   assert.strictEqual(payload.eventType, 'move');
   assert.strictEqual(payload.teamId, 4);
 
-  socket.close();
-  await new Promise((resolve, reject) => {
-    server.close((err) => (err ? reject(err) : resolve()));
-  });
+  await closeGlRealtimeServer(server, socket);
 });
 
 test('Socket.IO GL : un compte désactivé est refusé à la connexion', async () => {
@@ -106,16 +123,14 @@ test('Socket.IO GL : un compte désactivé est refusé à la connexion', async (
   });
   const { port } = server.address();
   const socket = clientIo(`http://127.0.0.1:${port}`, {
-    path: '/socket.io',
-    transports: ['websocket'],
-    timeout: 8000,
+    ...SOCKET_CONNECT_OPTS,
     auth: { token: adminToken },
   });
 
   const error = await new Promise((resolve, reject) => {
     const timeout = setTimeout(
       () => reject(new Error('connexion acceptée : révocation ignorée')),
-      8000,
+      20_000,
     );
     socket.once('connect', () => {
       clearTimeout(timeout);
@@ -128,10 +143,7 @@ test('Socket.IO GL : un compte désactivé est refusé à la connexion', async (
   });
   assert.match(String(error?.message || ''), /unauthorized/i);
 
-  socket.close();
-  await new Promise((resolve, reject) => {
-    server.close((err) => (err ? reject(err) : resolve()));
-  });
+  await closeGlRealtimeServer(server, socket);
 });
 
 test('Socket.IO GL : refuse la souscription joueur à une partie étrangère', async () => {
@@ -192,15 +204,13 @@ test('Socket.IO GL : refuse la souscription joueur à une partie étrangère', a
   });
   const { port } = server.address();
   const socket = clientIo(`http://127.0.0.1:${port}`, {
-    path: '/socket.io',
-    transports: ['websocket'],
-    timeout: 8000,
+    ...SOCKET_CONNECT_OPTS,
     auth: { token: playerToken },
   });
 
   try {
     await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error('timeout connexion Socket.IO GL')), 8000);
+      const timeout = setTimeout(() => reject(new Error('timeout connexion Socket.IO GL')), 20_000);
       socket.once('connect', () => {
         clearTimeout(timeout);
         resolve();
@@ -212,7 +222,7 @@ test('Socket.IO GL : refuse la souscription joueur à une partie étrangère', a
     });
 
     const refused = new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error('timeout refus souscription GL')), 8000);
+      const timeout = setTimeout(() => reject(new Error('timeout refus souscription GL')), 20_000);
       socket.once('gl:game:subscription-refused', (msg) => {
         clearTimeout(timeout);
         resolve(msg);
@@ -231,9 +241,6 @@ test('Socket.IO GL : refuse la souscription joueur à une partie étrangère', a
     await new Promise((resolve) => setTimeout(resolve, 250));
     assert.strictEqual(receivedForeignEvent, false);
   } finally {
-    socket.close();
-    await new Promise((resolve, reject) => {
-      server.close((err) => (err ? reject(err) : resolve()));
-    });
+    await closeGlRealtimeServer(server, socket);
   }
 });

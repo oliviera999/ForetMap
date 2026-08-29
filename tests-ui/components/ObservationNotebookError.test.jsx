@@ -49,7 +49,7 @@ describe('ObservationNotebook — échec de chargement du carnet', () => {
     fireEvent.click(retry);
 
     await waitFor(() => expect(screen.queryByText('Réseau indisponible')).not.toBeInTheDocument());
-    expect(screen.getByText(/Ton carnet est vide/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/Ton carnet est vide/)).toBeInTheDocument());
     expect(api).toHaveBeenCalledTimes(2);
   });
 });

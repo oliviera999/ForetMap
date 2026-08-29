@@ -106,6 +106,52 @@ describe('GLLearningLinksPanel', () => {
     });
   });
 
+  test('enregistre un seuil N pour une ressource (PUT policy threshold)', async () => {
+    const linksTwo = [LINK, { ...LINK, id: 8, question_code: 'QF002' }];
+    let savedMode = 'inherit';
+    apiGlMock.mockImplementation(async (path, method, body) => {
+      if (path === '/api/gl/learning-links/settings') return SETTINGS;
+      if (path.startsWith('/api/gl/learning-links/policy') && method === 'PUT') {
+        savedMode = body?.mode || savedMode;
+        return {
+          policy: body,
+          effective: { mode: savedMode, requiredCorrect: body?.required_correct ?? 1 },
+        };
+      }
+      if (path.startsWith('/api/gl/learning-links/policy')) {
+        const mode = savedMode === 'inherit' ? 'any' : savedMode;
+        return {
+          policy: { mode: savedMode, required_correct: 1 },
+          effective: { mode, requiredCorrect: 1 },
+        };
+      }
+      if (path.startsWith('/api/gl/learning-links')) return { links: linksTwo };
+      throw new Error(`appel inattendu: ${path}`);
+    });
+    render(<GLLearningLinksPanel />);
+    await waitFor(() => expect(screen.getByText('QF001')).toBeInTheDocument());
+    fireEvent.change(screen.getByPlaceholderText('code ressource…'), {
+      target: { value: 'ESP001' },
+    });
+    await screen.findByRole('button', { name: /Enregistrer la politique/i });
+    const modeSelect = screen.getByLabelText(/^Mode$/i);
+    fireEvent.change(modeSelect, { target: { value: 'threshold' } });
+    const nInput = await screen.findByLabelText(/Nombre de bonnes réponses \(seuil N\)/i);
+    fireEvent.change(nInput, { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: /Enregistrer la politique/i }));
+    await waitFor(() => {
+      expect(
+        apiGlMock.mock.calls.some(
+          ([path, method, payload]) =>
+            path === '/api/gl/learning-links/policy' &&
+            method === 'PUT' &&
+            payload?.mode === 'threshold' &&
+            payload?.required_correct === 2,
+        ),
+      ).toBe(true);
+    });
+  });
+
   test('supprime un lien (DELETE)', async () => {
     apiGlMock.mockImplementation(async (path, method) => {
       if (path === '/api/gl/learning-links/settings') return SETTINGS;

@@ -260,18 +260,28 @@ Ce qu'il faut réunir pour qu'un tutoriel soit réellement soumis à questions :
    annonce « 0 question bloquante » alors que l'interrupteur est allumé, aucun élève ne verra
    jamais de question — c'est le cas le plus fréquent quand « rien ne se passe ».
 
-Les réglages qui accompagnent l'interrupteur :
+Les réglages qui accompagnent l'interrupteur (panneau dédié **Validation des lectures** dans
+**Paramètres administrateur**, plus préréglages par type tutoriel / fiche espèce / glossaire) :
 
-| Réglage                                         | Effet                                                                                                                                                                               |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Exigence par défaut                             | **une** question réussie suffit (défaut), **toutes** les questions rattachées, ou un **seuil** de N réussites.                                                                      |
-| Nombre de bonnes réponses attendues             | Le N du mode « seuil ».                                                                                                                                                             |
-| Erreurs tolérées avant blocage                  | **0 par défaut** : la première mauvaise réponse bloque. Le porter à 1 ou 2 laisse à l'élève le droit de se tromper sans tout perdre.                                                |
-| Délai avant nouvelle tentative après une erreur | **3 jours par défaut.** Une fois la tolérance épuisée, la validation de ce tutoriel est verrouillée pour la durée indiquée. `0` supprime le verrou et autorise le réessai immédiat. |
-| Questions posées d'affilée au maximum           | **3 par défaut.** En mode « toutes », l'élève avance par paliers plutôt que d'enchaîner huit questions : ses bonnes réponses sont gardées d'une fois sur l'autre.                   |
-| Annoncer le contrôle sur le bouton              | **Oui par défaut.** Le bouton « Marquer comme lu » porte alors une pastille (« 1 question », « 🔒 ») pour prévenir l'élève avant qu'il ne clique.                                   |
-| Portée du blocage                               | **La fiche entière par défaut** (comportement historique), ou la **seule question ratée** — l'élève poursuit alors sur les autres questions de la fiche.                            |
-| Afficher les pastilles d'état                   | **Oui par défaut.** Une petite marque à côté du bouton : **✓** contrôle réussi, **?** questions restantes, **🔒** bloqué. Rien ne s'affiche là où rien n'est conditionné.           |
+| Réglage                                         | Effet                                                                                                                                                                                                                     |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Exigence par défaut                             | **une** question réussie suffit (défaut), **toutes** les questions rattachées, ou un **seuil** de N réussites.                                                                                                            |
+| Nombre de bonnes réponses attendues             | Le N du mode « seuil » (visible dans **Réglages → Validation des lectures** uniquement lorsque le mode site est « seuil », et dans **Rattacher des questions** lorsque l'exigence d'une fiche est « un nombre minimum »). |
+| Erreurs tolérées avant blocage                  | **0 par défaut** : la première mauvaise réponse bloque. Le porter à 1 ou 2 laisse à l'élève le droit de se tromper sans tout perdre.                                                                                      |
+| Délai avant nouvelle tentative après une erreur | **3 jours par défaut.** Une fois la tolérance épuisée, la validation de ce tutoriel est verrouillée pour la durée indiquée. `0` supprime le verrou et autorise le réessai immédiat.                                       |
+| Questions posées d'affilée au maximum           | **3 par défaut.** En mode « toutes », l'élève avance par paliers plutôt que d'enchaîner huit questions : ses bonnes réponses sont gardées d'une fois sur l'autre.                                                         |
+| Annoncer le contrôle sur le bouton              | **Oui par défaut.** Le bouton « Marquer comme lu » porte alors une pastille (« 1 question », « 🔒 ») pour prévenir l'élève avant qu'il ne clique.                                                                         |
+| Portée du blocage                               | **La fiche entière par défaut** (comportement historique), ou la **seule question ratée** — l'élève poursuit alors sur les autres questions de la fiche.                                                                  |
+| Afficher les pastilles d'état                   | **Oui par défaut.** Une petite marque à côté du bouton : **✓** contrôle réussi, **?** questions restantes, **🔒** bloqué. Rien ne s'affiche là où rien n'est conditionné.                                                 |
+| Tutoriels liés avant tâche « faite »            | **Non par défaut.** Si activé, l'élève doit avoir **lu** (validé) tous les tutoriels rattachés à la tâche avant de pouvoir la marquer comme faite.                                                                        |
+
+**Où s'appliquent ces réglages (cascade)** — du plus général au plus précis :
+
+| Niveau        | Où le configurer                               | Ce qu'il couvre                                                                                                                                       |
+| ------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Site**      | Réglages → Validation des lectures             | Mode, seuil N, erreurs tolérées, questions par session, délai et portée du verrou (valeurs par défaut pour toute l'application).                      |
+| **Par type**  | Même panneau, section « Préréglages par type » | Tutoriels, fiches espèces ou glossaire : surcharge optionnelle de chaque paramètre ci-dessus (`Hériter` = reprendre le site).                         |
+| **Par fiche** | Quiz → Rattacher des questions → fiche choisie | Exception pour un tutoriel, une espèce ou un terme précis ; peut aussi dispenser la fiche. L'écran indique la règle **effective** et d'où elle vient. |
 
 Ce que l'élève voit, dans l'ordre. **Avant même de cliquer**, le bouton indique ce qui
 l'attend : « 1 question », ou un cadenas si la validation est encore bloquée. Au clic, un
@@ -327,7 +337,17 @@ Pour un contenu choisi, on peut :
   « proposée » n'a aucun effet tant qu'un professeur ne l'a pas approuvée ; « rejetée » la
   met de côté sans l'effacer.
 - **Fixer l'exigence propre à ce contenu** : suivre le réglage du site, ou bien exiger une
-  bonne réponse, toutes, un nombre minimum — ou **dispenser** cette fiche.
+  bonne réponse, toutes, un **nombre minimum** (avec un champ numérique lorsque vous choisissez
+  ce mode) — ou **dispenser** cette fiche (« Aucune question exigée » : la validation reste
+  une simple confirmation pour ce contenu, même si le contrôle est actif ailleurs).
+- Une phrase récapitule la règle appliquée (ex. « L'élève devra répondre correctement à 2
+  questions sur 5 bloquantes »). Un bandeau rappelle le réglage du site quand la fiche hérite
+  du site.
+- Le tableau des questions rattachées indique le **niveau scolaire** de chaque question
+  (collège / lycée) et signale les questions lycée bloquantes qui pourraient surprendre un
+  collégien.
+- Un **suivi agrégé** (sans noms) indique combien d'élèves sont en attente, ont réussi le
+  contrôle ou sont verrouillés après une erreur.
 - **Approuver toutes les propositions d'un coup** : un bouton reprend l'ensemble des
   rattachements « proposés » du contenu courant. Approuver n'est pas conditionner — le
   caractère bloquant reste à cocher ligne par ligne.

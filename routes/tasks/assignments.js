@@ -29,6 +29,7 @@ const {
 } = require('../../lib/taskRouteHelpers');
 const { resolveStudentActionContext } = require('../../lib/tasks/studentActionContext');
 const { claimAssignmentSeat, SEAT_REFUSAL } = require('../../lib/tasks/assignmentSeat');
+const { assertLinkedTutorialsRead } = require('../../lib/taskTutorialPrerequisites');
 
 const router = express.Router();
 
@@ -261,6 +262,17 @@ router.post(
       return res
         .status(400)
         .json({ error: 'Tu dois être inscrit à cette tâche avant de la terminer' });
+    }
+
+    const tutorialsGate = await assertLinkedTutorialsRead(
+      { queryAll, queryOne, execute },
+      { taskId: task.id, userId: action.studentId },
+    );
+    if (!tutorialsGate.ok) {
+      return res.status(403).json({
+        error: 'Lis d’abord les tutoriels liés à cette tâche avant de la marquer comme faite.',
+        missing_tutorials: tutorialsGate.missing,
+      });
     }
 
     if (comment || imageData) {

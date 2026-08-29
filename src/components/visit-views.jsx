@@ -10,12 +10,13 @@ import {
   resolveHelpQuickTip,
 } from '../utils/helpResolve';
 import { getContentText } from '../utils/content';
-import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
+import { resolveMapOverlayLabelLayout } from '../utils/mapOverlayZoneLabels.js';
 import {
-  MAP_OVERLAY_REFERENCE_BOARD_HEIGHT_PX,
-  readPlateauMarkerSizePercent,
-  resolveMapOverlayScaleCssValue,
-} from '../shared/mapOverlayScale.js';
+  resolveMapOverlayTypography,
+  resolveMapOverlayCssVariables,
+} from '../utils/mapOverlayTypography';
+import { useMapOverlayTextSizePreference } from '../hooks/useMapOverlayTextSizePreference.js';
+import { MAP_OVERLAY_REFERENCE_BOARD_HEIGHT_PX } from '../shared/mapOverlayScale.js';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import {
   TutorialPreviewModal,
@@ -148,6 +149,15 @@ function VisitViewImpl({
   const [mode, setMode] = useState('view');
   const [drawPoints, setDrawPoints] = useState([]);
   const [creating, setCreating] = useState(false);
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
+  const { percent: mapTextSizePercent } = useMapOverlayTextSizePreference();
+  useEffect(() => {
+    const media = window.matchMedia('(pointer: coarse)');
+    const update = () => setIsCoarsePointer(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
   const stageRef = useRef(null);
   // Calque monde + minuterie de retombée : `will-change: transform` actif pendant les
   // gestes (fluidité), retiré au repos pour que le contenu se re-pixellise net à l'échelle
@@ -338,19 +348,38 @@ function VisitViewImpl({
     const fw = visitMapFit.width > 0 ? visitMapFit.width : 360;
     const uPerPx = 100 / Math.max(1, fw);
     const worldScale = Math.max(Number(mapTransform.s) || 1, 0.001);
-    const t = resolveMapOverlayTypography(mapSettings, fitH, { worldScale });
-    const overlayScale = resolveMapOverlayScaleCssValue({
-      fitHeightPx: fitH,
-      sizePercent: readPlateauMarkerSizePercent(mapSettings),
-    });
+    const typoOpts = {
+      worldScale,
+      fitWidthPx: fw,
+      isCoarsePointer,
+      userTextSizePercent: mapTextSizePercent,
+    };
+    const t = resolveMapOverlayTypography(mapSettings, fitH, typoOpts);
+    const inv = 1 / worldScale;
+    const labelLayout = resolveMapOverlayLabelLayout(mapSettings, { inv, isCoarsePointer });
+    const overlayCssVars = resolveMapOverlayCssVariables(mapSettings, fitH, typoOpts);
     return {
       emojiU: t.mapEmojiFontPx * uPerPx,
       labelU: t.mapLabelFontPx * uPerPx,
       gapU: t.mapEmojiLabelCenterGap * uPerPx,
       strokeU: Math.max(0.06, (3 / worldScale) * uPerPx),
-      overlayScale,
+      labelFontPx: t.mapLabelFontPx,
+      emojiFontPx: t.mapEmojiFontPx,
+      minSideFactor: labelLayout.minSideFactor,
+      labelMaxWorldLength: labelLayout.maxWorldLength,
+      labelMaxTextLengthU: labelLayout.maxWorldLength * uPerPx,
+      labelCompressChars: labelLayout.compressChars,
+      inv,
+      overlayCssVars,
     };
-  }, [publicSettings, visitMapFit.width, visitMapFit.height, mapTransform.s]);
+  }, [
+    publicSettings,
+    visitMapFit.width,
+    visitMapFit.height,
+    mapTransform.s,
+    isCoarsePointer,
+    mapTextSizePercent,
+  ]);
 
   const clampTransform = useCallback((next, rectLike = null) => {
     const stage = stageRef.current;
@@ -1065,7 +1094,7 @@ function VisitViewImpl({
                             height: visitMapFit.height,
                           }
                         : { left: 0, top: 0, width: '100%', height: '100%' }),
-                      '--map-overlay-scale': visitZoneSvgTypography.overlayScale,
+                      ...visitZoneSvgTypography.overlayCssVars,
                     }}
                   >
                     <img

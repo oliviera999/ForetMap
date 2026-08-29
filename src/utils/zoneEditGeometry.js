@@ -182,6 +182,68 @@ export function moveEditPointsBy(pts, indices, dx, dy) {
   );
 }
 
+/** Distance euclidienne entre deux points (% image). */
+function pctDistance(a, b) {
+  const dx = (Number(a?.xp) || 0) - (Number(b?.xp) || 0);
+  const dy = (Number(a?.yp) || 0) - (Number(b?.yp) || 0);
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
+ * Accroche un sommet en privilégiant les angles droits avec ses voisins du polygone.
+ * Combine l'aimant image (contours) et l'alignement horizontal/vertical sur prev/next.
+ *
+ * @param {{xp:number,yp:number}} point position du curseur (% image)
+ * @param {{xp:number,yp:number}|null|undefined} prev sommet précédent
+ * @param {{xp:number,yp:number}|null|undefined} next sommet suivant
+ * @param {number} radiusPct rayon d'accroche (% largeur image)
+ * @param {(p: object, opts?: object) => ({xp:number,yp:number,strength?:number}|null)} snapFn aimant image
+ * @param {{ minStrength?: number, neighborAlignWeight?: number, preferOrthogonal?: boolean, orthogonalWeight?: number, distanceWeight?: number }} [options]
+ * @returns {{xp:number,yp:number}}
+ */
+export function snapEditPointOrthogonal(point, prev, next, radiusPct, snapFn, options = {}) {
+  if (!point) return clampEditZonePct({ xp: 0, yp: 0 });
+  if (typeof snapFn !== 'function') return clampEditZonePct(point);
+
+  const radius = Number(radiusPct) || 1;
+  const { neighborAlignWeight = 0.25, ...snapOpts } = options;
+  const mergedOpts = { radiusPct, ...snapOpts };
+
+  const baselineHit = snapFn(point, mergedOpts);
+  let best = {
+    point: clampEditZonePct(baselineHit || point),
+    score: baselineHit?.strength ?? 0,
+  };
+
+  const candidates = [point];
+  for (const n of [prev, next]) {
+    if (!n) continue;
+    candidates.push(clampEditZonePct({ xp: point.xp, yp: n.yp }));
+    candidates.push(clampEditZonePct({ xp: n.xp, yp: point.yp }));
+  }
+
+  const seen = new Set();
+  for (const cand of candidates) {
+    const key = `${cand.xp},${cand.yp}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (pctDistance(cand, point) > radius) continue;
+
+    const hit = snapFn(cand, mergedOpts);
+    const aligned = clampEditZonePct(hit || cand);
+    let score = hit?.strength ?? 0;
+    for (const n of [prev, next]) {
+      if (!n) continue;
+      if (Math.abs(aligned.xp - n.xp) < 0.01 || Math.abs(aligned.yp - n.yp) < 0.01) {
+        score += neighborAlignWeight;
+      }
+    }
+    if (score > best.score) best = { point: aligned, score };
+  }
+
+  return best.point;
+}
+
 /** Rectangle de lasso ordonné à partir de deux coins (% image). */
 export function normalizeSelectionRect(a, b) {
   const ax = Number(a?.xp) || 0;

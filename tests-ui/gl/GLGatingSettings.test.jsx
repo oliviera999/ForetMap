@@ -32,7 +32,8 @@ describe('GLGatingSettings', () => {
     });
     expect(screen.getByRole('checkbox', { name: /Activer le conditionnement/ })).not.toBeChecked();
     expect(screen.getByLabelText('Mode par défaut')).toHaveValue('any');
-    expect(screen.getByLabelText('Granularité du suivi')).toHaveValue('player');
+    // Libellé « (site) » depuis la cascade de politiques (type / chapitre / scope).
+    expect(screen.getByLabelText('Granularité du suivi (site)')).toHaveValue('player');
     // « Marquer automatiquement » a été retiré : le réglage est déprécié et ignoré par le
     // runtime, l'afficher revenait à promettre un effet inexistant (audit F1, 2026-08).
     expect(screen.queryByRole('checkbox', { name: /Marquer automatiquement/ })).toBeNull();
@@ -42,9 +43,9 @@ describe('GLGatingSettings', () => {
     apiGlMock.mockResolvedValue({ gating: { ...GATING, granularity: 'per_resource' } });
     render(<GLGatingSettings />);
     await waitFor(() => {
-      expect(screen.getByLabelText('Granularité du suivi')).toBeInTheDocument();
+      expect(screen.getByLabelText('Granularité du suivi (site)')).toBeInTheDocument();
     });
-    expect(screen.getByLabelText('Granularité du suivi')).toHaveValue('per_resource');
+    expect(screen.getByLabelText('Granularité du suivi (site)')).toHaveValue('per_resource');
     expect(screen.getByRole('option', { name: /ancien réglage/ })).toBeInTheDocument();
   });
 

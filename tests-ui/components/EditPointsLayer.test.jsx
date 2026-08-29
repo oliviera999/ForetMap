@@ -20,10 +20,10 @@ function renderLayer(overrides = {}) {
     onEditPointPointerUp: vi.fn(),
     onInsertPointFromPct: vi.fn(() => 1),
     onInsertPointAtMidpoint: vi.fn(() => 1),
-    onLassoPointerDown: vi.fn(),
-    onLassoPointerMove: vi.fn(),
-    onLassoPointerUp: vi.fn(),
-    onLassoLostPointerCapture: vi.fn(),
+    onBackgroundPointerDown: vi.fn(),
+    onBackgroundPointerMove: vi.fn(),
+    onBackgroundPointerUp: vi.fn(),
+    onBackgroundLostPointerCapture: vi.fn(),
   };
   const utils = render(
     <svg>
@@ -99,24 +99,15 @@ describe('EditPointsLayer', () => {
     expect(handlers.onInsertPointFromPct).toHaveBeenCalledWith({ xp: 30, yp: 0 });
   });
 
-  test('le fond capteur relaie les gestes de lasso', () => {
+  test('le fond capteur relaie les gestes de pan / désélection', () => {
     const { container, handlers } = renderLayer();
-    const capture = container.querySelector('.edit-lasso-capture');
+    const capture = container.querySelector('.edit-bg-capture');
     fireEvent.pointerDown(capture);
     fireEvent.pointerMove(capture);
     fireEvent.pointerUp(capture);
-    expect(handlers.onLassoPointerDown).toHaveBeenCalled();
-    expect(handlers.onLassoPointerMove).toHaveBeenCalled();
-    expect(handlers.onLassoPointerUp).toHaveBeenCalled();
-  });
-
-  test('le rectangle de lasso est dessiné aux bonnes coordonnées monde', () => {
-    renderLayer({ lassoRect: { x1: 10, y1: 20, x2: 40, y2: 60 } });
-    const rect = screen.getByTestId('edit-lasso');
-    expect(rect.getAttribute('x')).toBe('100');
-    expect(rect.getAttribute('y')).toBe('200');
-    expect(rect.getAttribute('width')).toBe('300');
-    expect(rect.getAttribute('height')).toBe('400');
+    expect(handlers.onBackgroundPointerDown).toHaveBeenCalled();
+    expect(handlers.onBackgroundPointerMove).toHaveBeenCalled();
+    expect(handlers.onBackgroundPointerUp).toHaveBeenCalled();
   });
 
   test('sans callback d’insertion, aucune poignée fantôme (calque en lecture)', () => {

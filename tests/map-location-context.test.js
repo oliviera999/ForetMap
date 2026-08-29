@@ -25,6 +25,25 @@ test('tutorialsFromTasksAtLocation ignore les tâches terminées', async () => {
   assert.equal(out[0].id, 9);
 });
 
+test('tutorialsFromTasksAtLocation ignore les tâches archivées et projets clos', async () => {
+  const { tutorialsFromTasksAtLocation } = await load();
+  const tu = { id: 9, title: 'T', is_active: true };
+  const tasks = [
+    { id: 1, zone_id: 'z1', status: 'available', archived_at: '2026-01-01', tutorial_ids: [9] },
+    {
+      id: 2,
+      zone_id: 'z1',
+      status: 'in_progress',
+      project_status: 'validated',
+      tutorial_ids: [9],
+    },
+    { id: 3, zone_id: 'z1', status: 'available', tutorial_ids: [9] },
+  ];
+  const out = tutorialsFromTasksAtLocation('zone', 'z1', tasks, [tu]);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].id, 9);
+});
+
 test('livingBeingNamesFromTasksAtLocation dédoublonne et respecte l’ordre', async () => {
   const { livingBeingNamesFromTasksAtLocation } = await load();
   const tasks = [

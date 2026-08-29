@@ -107,6 +107,41 @@ async function seedGlGlossaryTerm(label = 'journal-import') {
   return { code, terme };
 }
 
+/** Clés des parcours guidés GL (`gl_discovery_seen_v1`). */
+const GL_DISCOVERY_TOUR_TAB_KEYS = [
+  'welcome',
+  'discovery',
+  'maps',
+  'ecosystemes',
+  'biodiversite',
+  'glossary',
+  'history',
+  'selene-carnet',
+  'spells',
+  'world',
+  'rules',
+  'lore-glossary',
+  'tutorials',
+  'forum',
+  'market',
+  'stats',
+  'journal',
+  'my-journal',
+  'mj',
+];
+
+async function markGlDiscoveryToursSeen(page) {
+  await page.evaluate((keys) => {
+    try {
+      const seen = {};
+      for (const key of keys) seen[key] = true;
+      localStorage.setItem('gl_discovery_seen_v1', JSON.stringify(seen));
+    } catch (_) {
+      /* ignore */
+    }
+  }, GL_DISCOVERY_TOUR_TAB_KEYS);
+}
+
 /** Prépare localStorage GL (intro passée) puis recharge la page. */
 async function mountGlSession(page, { token, auth, tab = null, skipIntro = true } = {}) {
   await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
@@ -118,14 +153,26 @@ async function mountGlSession(page, { token, auth, tab = null, skipIntro = true 
         localStorage.setItem('gl_session', JSON.stringify(payload.session));
       }
       if (payload.tab) localStorage.setItem('gl_active_tab', payload.tab);
+      if (payload.glDiscoverySeen) {
+        const seen = {};
+        for (const key of payload.glDiscoverySeen) seen[key] = true;
+        localStorage.setItem('gl_discovery_seen_v1', JSON.stringify(seen));
+      }
     },
     {
       skipIntro,
       session: token ? { token, auth } : null,
       tab,
+      glDiscoverySeen: GL_DISCOVERY_TOUR_TAB_KEYS,
     },
   );
   await page.reload();
 }
 
-module.exports = { seedGlScenario, mountGlSession, seedGlGlossaryTerm };
+module.exports = {
+  seedGlScenario,
+  mountGlSession,
+  seedGlGlossaryTerm,
+  markGlDiscoveryToursSeen,
+  GL_DISCOVERY_TOUR_TAB_KEYS,
+};

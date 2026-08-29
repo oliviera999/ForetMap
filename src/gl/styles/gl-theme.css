@@ -1701,10 +1701,11 @@ body.gl-map-fullscreen-active > .gl-board-shell--fullscreen {
   background: var(--gl-marker-bg-label, transparent);
   color: #111827;
   padding: 2px 8px;
-  font-size: 0.72rem;
+  font-size: var(--map-overlay-label-font-size, 0.72rem);
   cursor: pointer;
   z-index: 4;
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-width: 28px;
@@ -1727,7 +1728,7 @@ body.gl-map-fullscreen-active > .gl-board-shell--fullscreen {
 }
 
 .gl-board-marker__emoji {
-  font-size: 1.15rem;
+  font-size: var(--map-overlay-emoji-font-size, 1.15rem);
   line-height: 1;
   font-family: var(--font-emoji-stack);
   font-variant-emoji: emoji;

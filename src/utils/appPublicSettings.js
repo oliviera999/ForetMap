@@ -23,6 +23,7 @@ export const DEFAULT_PUBLIC_SETTINGS = {
     overlay_emoji_size_percent: 100,
     overlay_label_size_percent: 100,
     overlay_zoom_growth_percent: 35,
+    zone_label_min_side_factor: 2.5,
     plateau_marker_size_percent: 100,
   },
   modules: {

@@ -15,7 +15,12 @@ import { describe, test, expect } from 'vitest';
 const STYLE_DIRS = ['src/shared/styles', 'src/gl/styles'];
 const Z_LAYERS_PATH = 'src/shared/styles/z-layers.css';
 
+const normalizeRelPath = (relPath) => String(relPath).replace(/\\/g, '/');
+
 const readCss = (relPath) => readFileSync(resolve(process.cwd(), relPath), 'utf8');
+
+/** Retire les commentaires CSS pour ne pas confondre documentation et règles actives. */
+const stripCssComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, '');
 
 /** Paliers déclarés dans l'échelle commune, dans leur ordre de lecture. */
 function readScale() {
@@ -36,7 +41,7 @@ function listStylesheets() {
     }
   }
   files.push('src/index.css');
-  return files.filter((f) => f !== Z_LAYERS_PATH);
+  return files.map((f) => normalizeRelPath(f)).filter((f) => f !== Z_LAYERS_PATH);
 }
 
 describe('z-layers.css — échelle d’empilement commune', () => {
@@ -85,7 +90,9 @@ describe('z-layers.css — échelle d’empilement commune', () => {
     expect(scale.get('--fm-z-fullscreen')).toBeGreaterThan(scale.get('--fm-z-nav'));
 
     for (const file of listStylesheets()) {
-      expect(readCss(file)).not.toMatch(/map-fullscreen-active\s+\.(fm-)?modal-overlay/);
+      expect(stripCssComments(readCss(file))).not.toMatch(
+        /map-fullscreen-active\s+\.(fm-)?modal-overlay/,
+      );
     }
   });
 
