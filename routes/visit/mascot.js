@@ -32,6 +32,7 @@ const {
   listVisitMascotCatalogTemplateIds,
   resolveVisitMascotImportPublishState,
   serializeVisitMascotPackRow,
+  serializeVisitMascotPackListRow,
   classifyMascotPackModuleError,
   mapVisitMascotPackSqlError,
   visitMascotSpriteLibraryRelativeDir,
@@ -411,9 +412,30 @@ router.get('/mascot-packs', requirePermission('visit.manage'), async (req, res) 
        ORDER BY origin = 'builtin' ASC, updated_at DESC, id ASC`,
     );
     res.json({
-      packs: rows.map(serializeVisitMascotPackRow),
+      packs: rows.map(serializeVisitMascotPackListRow),
       allowed_catalog_ids: listVisitMascotCatalogTemplateIds(),
     });
+  } catch (err) {
+    logRouteError(err, req);
+    const mapped = mapVisitMascotPackSqlError(err);
+    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+  }
+});
+
+router.get('/mascot-packs/:id', requirePermission('visit.manage'), async (req, res) => {
+  try {
+    const packId = String(req.params.id || '').trim();
+    if (!/^[0-9a-f-]{36}$/i.test(packId)) {
+      return res.status(400).json({ error: 'Identifiant de pack invalide' });
+    }
+    const row = await queryOne(
+      `SELECT id, catalog_id, label, pack_json, is_published, origin, created_at, updated_at, created_by
+       FROM visit_mascot_packs WHERE id = ? LIMIT 1`,
+      [packId],
+    );
+    if (!row) return res.status(404).json({ error: 'Pack introuvable' });
+    res.json(serializeVisitMascotPackRow(row));
   } catch (err) {
     logRouteError(err, req);
     const mapped = mapVisitMascotPackSqlError(err);

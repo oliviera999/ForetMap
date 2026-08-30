@@ -219,9 +219,9 @@ export function useAppDataSync({
             const tutorialsEndpoint = canTutorialsSnap
               ? '/api/tutorials?include_inactive=1'
               : '/api/tutorials';
-            // Les profs récupèrent aussi les tâches/projets archivés (portée `all`) pour la
-            // vue « Archivés » ; côté élève/visiteur le backend force la portée active.
-            const archivedQuery = isTeacherSnap ? '&archived=all' : '';
+            // Polling / sync : tâches et projets **actifs** seulement. Les archives
+            // (prof) se chargent à l'ouverture de la vue « Archivés » via loadArchivedTasks
+            // — évite de sérialiser tout l'historique à chaque cycle (pression LVE).
             const [z, t, taskProjectsRes, p, m, tu] = await Promise.all([
               needsDomain('zones')
                 ? safeApi(
@@ -231,19 +231,13 @@ export function useAppDataSync({
                 : skipDomain(),
               needsDomain('tasks')
                 ? safeApi(
-                    () =>
-                      mapQuery
-                        ? api(`/api/tasks?${mapQuery}${archivedQuery}`)
-                        : Promise.resolve([]),
+                    () => (mapQuery ? api(`/api/tasks?${mapQuery}`) : Promise.resolve([])),
                     [],
                   )
                 : skipDomain(),
               needsDomain('tasks')
                 ? safeApi(
-                    () =>
-                      mapQuery
-                        ? api(`/api/task-projects?${mapQuery}${archivedQuery}`)
-                        : Promise.resolve([]),
+                    () => (mapQuery ? api(`/api/task-projects?${mapQuery}`) : Promise.resolve([])),
                     [],
                   )
                 : skipDomain(),
@@ -266,21 +260,20 @@ export function useAppDataSync({
             if (z !== FETCH_DOMAIN_SKIPPED) setZones((prev) => keepPrevIfEqual(prev, z));
             if (t !== FETCH_DOMAIN_SKIPPED) {
               if (Array.isArray(t)) {
-                // Séparer actives / archivées : seules les actives alimentent l'état partagé.
-                const { active: activeTasks, archived: archTasks } = partitionByArchived(t);
+                // Actives seules (le backend force déjà active hors ?archived=) ;
+                // partition de sécurité si un client envoie encore archived=all.
+                const { active: activeTasks } = partitionByArchived(t);
                 setTasks((prev) => keepPrevIfEqual(prev, activeTasks));
-                setArchivedTasks((prev) => keepPrevIfEqual(prev, archTasks));
               } else
                 console.warn(
                   '[ForetMap] GET /api/tasks : réponse non tableau, état tâches inchangé',
                 );
             }
             if (taskProjectsRes !== FETCH_DOMAIN_SKIPPED) {
-              const { active: activeProjects, archived: archProjects } = partitionByArchived(
+              const { active: activeProjects } = partitionByArchived(
                 Array.isArray(taskProjectsRes) ? taskProjectsRes : [],
               );
               setTaskProjects((prev) => keepPrevIfEqual(prev, activeProjects));
-              setArchivedTaskProjects((prev) => keepPrevIfEqual(prev, archProjects));
             }
             if (p !== FETCH_DOMAIN_SKIPPED) setPlants((prev) => keepPrevIfEqual(prev, p));
             if (m !== FETCH_DOMAIN_SKIPPED) setMarkers((prev) => keepPrevIfEqual(prev, m));
@@ -386,6 +379,39 @@ export function useAppDataSync({
     };
   }, [hasAuthenticatedShell, activeMapId, contextReady, context, fetchAll]);
 
+  /**
+   * Charge les tâches/projets archivés de la carte active (prof, vue « Archivés »).
+   * Séparé du poll pour ne pas sérialiser l'historique à chaque cycle.
+   */
+  const loadArchivedTasks = useCallback(async () => {
+    const mapId = String(activeMapId || '').trim();
+    if (!mapId) return;
+    if (!context?.effectiveIsTeacher) return;
+    try {
+      const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
+      const [t, projects] = await Promise.all([
+        api(`/api/tasks?${mapQuery}&archived=archived`),
+        api(`/api/task-projects?${mapQuery}&archived=archived`).catch(() => []),
+      ]);
+      const archTasks = Array.isArray(t) ? partitionByArchived(t).archived : [];
+      // Si le backend a déjà filtré archived=archived, partition peut tout mettre en archived
+      // ou tout en active selon archived_at — partitionByArchived trie sur archived_at.
+      const listTasks = Array.isArray(t)
+        ? t.filter((row) => row && row.archived_at != null && String(row.archived_at).trim() !== '')
+        : [];
+      const listProjects = Array.isArray(projects)
+        ? projects.filter(
+            (row) => row && row.archived_at != null && String(row.archived_at).trim() !== '',
+          )
+        : [];
+      setArchivedTasks((prev) => keepPrevIfEqual(prev, listTasks.length ? listTasks : archTasks));
+      setArchivedTaskProjects((prev) => keepPrevIfEqual(prev, listProjects));
+    } catch (e) {
+      if (e instanceof AccountDeletedError) forceLogout();
+      else console.error('[ForetMap] chargement archives tâches', e);
+    }
+  }, [activeMapId, context?.effectiveIsTeacher, forceLogout]);
+
   return {
     maps,
     activeMapId,
@@ -411,5 +437,6 @@ export function useAppDataSync({
     retryingServer,
     fetchAll,
     retryServerNow,
+    loadArchivedTasks,
   };
 }

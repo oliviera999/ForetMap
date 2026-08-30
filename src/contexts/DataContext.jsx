@@ -5,7 +5,8 @@ import { createContext, useContext } from 'react';
  * dérivés de l'état d'`App.jsx` et passés à l'identique (même variable) dans tous les chemins.
  *
  * Porte uniquement les valeurs à RHS unique vérifié : `zones`, `markers`, `plants`, `tasks`,
- * `tutorials`, `taskProjects`, `archivedTasks`, `archivedTaskProjects`, `activeMapId`.
+ * `tutorials`, `taskProjects`, `archivedTasks`, `archivedTaskProjects`, `activeMapId`,
+ * `loadArchivedTasks` (chargement à la demande de la vue Archivés).
  * (`archivedTasks`/`archivedTaskProjects` : archives isolées, alimentées côté prof uniquement,
  * consommées par le seul écran Tâches — jamais par la carte/les modales.) **Exclus volontairement** :
  *  - `maps` — deux variantes selon le consommateur (`visibleMaps` filtré par affiliation vs `maps`

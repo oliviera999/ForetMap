@@ -515,6 +515,12 @@ permettra de confirmer ou d'écarter cette piste** — c'est le premier endroit 
 la prochaine indisponibilité. Piste de durcissement : abaisser le défaut global (2 Mo) et ne
 relever la limite que sur les routes d'import qui en ont besoin.
 
+> **Traité sur `main` le 29/08** (`659bd001`, hors de ce lot). `lib/jsonBodyLimit.js` fait
+> exactement cela : défaut global abaissé à **2 Mo** (`FORETMAP_JSON_BODY_LIMIT`), et treize
+> préfixes médias/imports relevés à **25 Mo** (`FORETMAP_JSON_BODY_LIMIT_LARGE`), montés **avant**
+> le parseur global — body-parser pose `req._body` et saute le second passage, c'est ce qui rend
+> l'ordre significatif. Le point 7 du reste-à-faire est donc clos.
+
 ### 5.2 — MAJEUR · La configuration serveur du lot 30 reste à appliquer
 
 Le lot 30 est fusionné, mais son bénéfice dépend de **deux gestes côté o2switch qui ne sont
@@ -661,8 +667,10 @@ décrivent le mécanisme lui-même (`README.md`, `guide-du-mj.md`). Rien à repr
    lot.
 6. **Configuration o2switch du lot 30** (§5.2) — deux gestes **hors code** : une ligne de
    crontab (`*/3`) et la vérification d'instance unique dans cPanel.
-7. **Abaisser la limite de corps JSON** (§5.1) — 25 Mo → 2 Mo casserait les imports qui en
-   dépendent tant que les routes concernées n'ont pas été relevées une par une.
+7. ~~**Abaisser la limite de corps JSON** (§5.1) — 25 Mo → 2 Mo casserait les imports qui en
+   dépendent tant que les routes concernées n'ont pas été relevées une par une.~~ **Fait sur
+   `main` le 29/08** : `lib/jsonBodyLimit.js` abaisse le défaut à 2 Mo et relève les treize
+   préfixes d'import à 25 Mo, montés avant le parseur global.
 8. **CSP `default-src 'self'`** (§2.5) — ~~à mesurer en `Report-Only` avant d'appliquer~~ **la
    mesure est en place depuis le 28/08** (en-tête `Report-Only` + collecteur `/api/csp-report`).
    Ce qui reste est une décision, pas un développement : **promouvoir** la politique candidate en

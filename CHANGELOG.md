@@ -37,6 +37,13 @@ par épuisement de ressources, un `report-uri` sans ces gardes aurait ajouté au
 Reste une décision, pas un développement : **promouvoir** la politique candidate en politique
 imposée quand les signalements se seront tus en usage réel. `tests/csp.test.js` (15 tests) contient
 un test qui échoue si quelqu'un le fait sans le décider.
+### Anti-kills LVE — allègement mémoire polling
+
+Réduction des pics RSS (SIGKILL CloudLinux) sans retirer de fonctionnalité visible :
+listes `GET /api/tasks` et `GET /api/zones` allégées, archives tâches chargées à la demande
+(vue « Archivés »), corps JSON global à **2 Mo** (préfixes médias/imports à **25 Mo**),
+batch gating summary, cache glossaire quiz, liste packs mascotte sans `pack_json` plein.
+
 ### Conditionnement granulaire FM/GL (cascade site → type → fiche)
 
 Les paramètres de session et de verrou (erreurs tolérées, questions par session, délai et

@@ -208,8 +208,8 @@ app.use('/api', (req, res, next) => {
 
 // Collecteur des signalements CSP. **La position compte** : après le limiteur `/api/` (un
 // navigateur emballé reste borné) et après le verrou de readiness (dont il est exempté ci-dessus),
-// mais **avant** les parseurs de corps généraux — sinon un signalement envoyé en
-// `application/json` serait lu avec la limite de 25 Mo au lieu de 16 ko, sur un endpoint sans
+// mais **avant** les parseurs de corps généraux — sinon un signalement serait lu avec la limite
+// générale (2 Mo par défaut, 25 Mo sur les préfixes médias) au lieu de 16 ko, sur un endpoint sans
 // authentification. Les navigateurs postent en `application/csp-report` ou
 // `application/reports+json`, qu'`express.json()` ne reconnaît pas par défaut : d'où le parseur
 // dédié, qui couvre ici les trois types.
@@ -222,10 +222,11 @@ app.post(
   cspReportHandler,
 );
 
-// JSON volumineux (ex. photos base64 forum). Défaut 25mb ; surcharge : FORETMAP_JSON_BODY_LIMIT (ex. 100mb).
-const jsonBodyLimit = String(process.env.FORETMAP_JSON_BODY_LIMIT || '25mb').trim() || '25mb';
-app.use(express.json({ limit: jsonBodyLimit }));
-app.use(express.urlencoded({ extended: true, limit: jsonBodyLimit }));
+// JSON : défaut bas (2mb) pour limiter les pics LVE ; préfixes médias/imports à 25mb
+// montés d'abord (voir lib/jsonBodyLimit.js). Surcharges :
+// FORETMAP_JSON_BODY_LIMIT, FORETMAP_JSON_BODY_LIMIT_LARGE.
+const { mountJsonBodyParsers } = require('./lib/jsonBodyLimit');
+mountJsonBodyParsers(app);
 app.use((err, req, res, next) => {
   if (err?.type === 'entity.too.large' || err?.status === 413 || err?.statusCode === 413) {
     return res.status(413).json({
