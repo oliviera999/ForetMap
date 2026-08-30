@@ -7,6 +7,36 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### CSP : mesurer avant de durcir
+
+L'application ne posait qu'un `img-src` — **ni `default-src`, ni `script-src`** : aucune
+atténuation d'XSS par CSP sur la SPA (audit du 26/08, §2.5). Poser d'un coup une politique
+complète aurait été le geste risqué : une CSP trop stricte casse l'application **en silence**,
+côté navigateur, sans qu'aucun test serveur ne s'en aperçoive.
+
+**Ce lot ne durcit donc rien : il mesure.** La politique imposée reste le `img-src` historique,
+strictement inchangée. À côté d'elle, une politique candidate complète (`default-src 'self'`,
+`script-src 'self' 'wasm-unsafe-eval'`, `object-src 'none'`, `base-uri`, `form-action`,
+`frame-ancestors`…) part en `Content-Security-Policy-Report-Only` : le navigateur ne bloque rien,
+il **signale** ce qui serait bloqué. C'est la donnée qui manquait pour décider.
+
+Chaque directive a été établie par inspection du build, pas par recopie d'un modèle : le HTML
+construit ne contient aucun script inline ; le runtime Rive est servi **depuis notre origine**
+(`src/utils/riveRuntime.js` remplace les URL unpkg/jsdelivr), donc `'wasm-unsafe-eval'` suffit et
+aucun CDN tiers n'est nécessaire ; `frame-src 'self' https:` parce qu'un tutoriel de type « lien »
+embarque une URL externe saisie par un professeur. `lib/csp.js` porte ce raisonnement en
+commentaire, directive par directive.
+
+**Le collecteur ne peut pas noyer les journaux.** `POST /api/csp-report` (`lib/cspReport.js`)
+regroupe les signalements par (directive violée, origine bloquée), vide ses compteurs toutes les
+60 s et écrit alors **une seule ligne** portant les totaux, avec au plus 40 signatures distinctes
+suivies. Corps borné à 16 ko, réponse toujours `204`. Sur un hébergement mutualisé qui tombe déjà
+par épuisement de ressources, un `report-uri` sans ces gardes aurait ajouté au problème qu'il sert
+à comprendre.
+
+Reste une décision, pas un développement : **promouvoir** la politique candidate en politique
+imposée quand les signalements se seront tus en usage réel. `tests/csp.test.js` (15 tests) contient
+un test qui échoue si quelqu'un le fait sans le décider.
 ### Anti-kills LVE — allègement mémoire polling
 
 Réduction des pics RSS (SIGKILL CloudLinux) sans retirer de fonctionnalité visible :

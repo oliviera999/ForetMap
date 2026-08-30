@@ -20,6 +20,7 @@ description: Observabilité ForetMap (Pino, X-Request-Id, logs HTTP, métriques 
 | `lib/httpRequestLog.js` | Fin de requête ; `FORETMAP_HTTP_LOG`, `FORETMAP_HTTP_SLOW_MS`                          |
 | `lib/logMetrics.js`     | Compteurs + `recentHttp5xx`, `http429` + `recentHttp429` pour `/api/admin/diagnostics` |
 | `lib/routeLog.js`       | `logRouteError` (+ `requestId`, incrément métriques)                                   |
+| `lib/cspReport.js`      | Signalements CSP `Report-Only` regroupés (1 ligne `csp_report_window` / 60 s)          |
 
 ## Checks rapides (local → prod)
 
@@ -50,6 +51,17 @@ npm run prod:remote-debug
 ```
 
 Helper partagé : `scripts/lib/deploy-secret-from-env.js`.
+
+## Signalements CSP
+
+Politique **imposée** = `img-src` historique (inchangée) ; politique **candidate** complète servie en `Content-Security-Policy-Report-Only` avec `report-uri /api/csp-report` (`lib/csp.js`, chaque directive justifiée en commentaire).
+
+```bash
+curl -sI https://<domaine>/api/health | grep -i content-security-policy
+grep csp_report_window logs/*.log | tail -20
+```
+
+Rien n’est journalisé par signalement : regroupement par (directive, origine bloquée), fenêtre de 60 s, plafond de 40 signatures (`droppedSignatures` = surplus). Silence prolongé en usage réel ⇒ la candidate peut être **promue** en imposée (échanger les en-têtes dans `server.js` **et** mettre à jour le test dédié de `tests/csp.test.js`, qui verrouille ce choix). Détail : `docs/EXPLOITATION.md` (§5), `docs/API.md` (§ Sécurité du contenu).
 
 ## Corrélation support
 
