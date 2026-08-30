@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctif — sauvegarde de zone n’efface plus le corps visite
+
+La liste carte n’envoie plus le JSON éditorial visite (anti-LVE). Enregistrer la fiche
+avant le chargement du détail — ou après un poll qui renvoyait la liste allégée —
+réécrivait un corps vide et effaçait paragraphes / titres. La sauvegarde omet désormais
+ces blocs tant que le détail n’est pas chargé, et un poll ne remplace plus un détail déjà lu.
+
 ### Anti-kills LVE — allègement mémoire polling
 
 Réduction des pics RSS (SIGKILL CloudLinux) sans retirer de fonctionnalité visible :
