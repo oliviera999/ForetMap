@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { api } from '../../services/api';
 import {
   MARKER_EMOJIS,
   ZONE_NAME_PREFIX_EMOJI_MAX_CHARS,
@@ -60,6 +61,26 @@ function ZoneInfoModal({
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
+
+  // Liste zones allégée : corps visite / historique complet via GET /api/zones/:id.
+  const [zoneDetail, setZoneDetail] = useState(zone);
+  useEffect(() => {
+    setZoneDetail(zone);
+    const needsDetail =
+      (!!zone.has_visit_body && (zone.visit_body_json == null || zone.visit_body_json === '')) ||
+      !!zone.history_truncated;
+    if (!needsDetail || !zone?.id) return undefined;
+    let cancelled = false;
+    api(`/api/zones/${encodeURIComponent(zone.id)}`)
+      .then((detail) => {
+        if (!cancelled && detail && typeof detail === 'object') setZoneDetail(detail);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [zone]);
+
   const [tab, setTab] = useState('tasks');
   const [zoneName, setZoneName] = useState(
     stripLeadingMarkerEmoji(zone.name || '', emojiParsingList),
@@ -98,7 +119,7 @@ function ZoneInfoModal({
     targetType: 'zone',
     targetId: zone.id,
     mapId: zone.map_id,
-    visitBodyJson: zone.visit_body_json,
+    visitBodyJson: zoneDetail.visit_body_json ?? zone.visit_body_json,
     onToast: setToast,
   });
 
@@ -318,10 +339,10 @@ function ZoneInfoModal({
               onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
             />
           )}
-          {zone.history?.length > 0 && (
+          {(zoneDetail.history || zone.history)?.length > 0 && (
             <div className="history-list">
               <h4>Historique cultures</h4>
-              {zone.history.map((h, i) => (
+              {(zoneDetail.history || zone.history).map((h, i) => (
                 <div
                   key={`${h?.harvested_at ?? ''}-${h?.plant ?? ''}-${i}`}
                   className="history-item"
@@ -339,7 +360,7 @@ function ZoneInfoModal({
             ).length === 0 &&
             livingBeingsOnlyOnTasks.length === 0 &&
             !zone.description &&
-            zone.history?.length === 0 &&
+            !(zoneDetail.history || zone.history)?.length &&
             !showVisitAsideBlock && (
               <p
                 style={{
