@@ -38,13 +38,46 @@ export function buildZoneName(
 }
 
 /**
+ * Liste polling (`GET /api/zones`) : `has_visit_body` sans `visit_body_json`.
+ * Tant que le détail n'est pas chargé, envoyer `visit_editorial_blocks` vides
+ * (reconstruits depuis les photos) écraserait le corps visite en base.
+ */
+export function isZoneVisitBodyReadyForSave(listZone, detailZone) {
+  if (!listZone?.has_visit_body) return true;
+  const raw = detailZone?.visit_body_json ?? listZone?.visit_body_json;
+  return raw != null && String(raw).trim() !== '';
+}
+
+/**
+ * Fusionne un instantané de liste (sans `visit_body_json`) avec un détail déjà
+ * chargé : ne pas replacer le corps visite par `undefined` à chaque poll.
+ */
+export function mergeZoneListIntoDetail(prevDetail, listZone) {
+  if (!listZone) return prevDetail;
+  const prevHasBody =
+    prevDetail &&
+    String(prevDetail.id) === String(listZone.id) &&
+    prevDetail.visit_body_json != null &&
+    String(prevDetail.visit_body_json).trim() !== '';
+  const listLacksBody =
+    listZone.visit_body_json == null || String(listZone.visit_body_json).trim() === '';
+  if (prevHasBody && listLacksBody) {
+    return { ...prevDetail, ...listZone, visit_body_json: prevDetail.visit_body_json };
+  }
+  return listZone;
+}
+
+/**
  * Payload de sauvegarde de la zone (champs de formulaire + blocs éditoriaux normalisés).
  * `name` est le nom complet déjà calculé par `buildZoneName`. `current_plant` est forcé vide
  * (l'édition passe désormais par `living_beings`). `special` est normalisé en bit (0/1) pour
  * le drapeau « zone spéciale » (bâtiment / infrastructure).
+ *
+ * `omitVisitEditorialBlocks` : ne pas envoyer la clé — le PUT conserve le `body_json`
+ * existant (liste allégée / détail pas encore chargé).
  */
-export function buildZonePayload(name, form, visitEditorialBlocks) {
-  return {
+export function buildZonePayload(name, form, visitEditorialBlocks, options = {}) {
+  const payload = {
     name,
     current_plant: '',
     living_beings: form.livingBeings,
@@ -58,4 +91,8 @@ export function buildZonePayload(name, form, visitEditorialBlocks) {
     visit_details_text: form.visitDetailsText,
     visit_editorial_blocks: normalizeVisitEditorialBlocksForSave(visitEditorialBlocks),
   };
+  if (options.omitVisitEditorialBlocks) {
+    delete payload.visit_editorial_blocks;
+  }
+  return payload;
 }
