@@ -542,6 +542,41 @@ Outils MCP exposés (`scripts/mcp-foretmap-diagnostics.mjs`) :
 
 ---
 
+## Sécurité du contenu (CSP)
+
+L'application sert **deux** en-têtes CSP, qui n'ont pas le même rôle :
+
+| En-tête                               | Rôle                                                                                                                         |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `Content-Security-Policy`             | Politique **imposée**. Aujourd'hui le `img-src` historique uniquement — le navigateur bloque effectivement ce qu'elle refuse |
+| `Content-Security-Policy-Report-Only` | Politique **candidate** (complète : `default-src`, `script-src`…). Le navigateur **ne bloque rien**, il signale              |
+
+La politique candidate est construite par `lib/csp.js`, qui documente directive par directive
+_pourquoi_ elle est ce qu'elle est (Rive et `'wasm-unsafe-eval'`, tutoriels « lien » et
+`frame-src https:`, styles React et `'unsafe-inline'`…). Tant qu'elle produit des signalements en
+usage réel, elle n'est pas prête à devenir la politique imposée ; la promotion consiste à échanger
+les deux en-têtes, et `tests/csp.test.js` échoue si elle est faite sans décision explicite.
+
+| Méthode | URL               | Auth | Description                                                           |
+| ------- | ----------------- | ---- | --------------------------------------------------------------------- |
+| POST    | `/api/csp-report` | non  | Collecteur de signalements CSP. Répond **toujours `204`**, sans corps |
+
+- Accepte les deux formats des navigateurs : `application/csp-report` (CSP 2) et
+  `application/reports+json` (Reporting API), tableau ou objet.
+- Corps **borné à 16 ko** ; au plus 20 signalements traités par requête.
+- Un corps illisible ou incomplet est ignoré silencieusement — un navigateur ne lit pas cette
+  réponse, et renvoyer une erreur ne provoquerait que des réessais.
+- **Exempté du verrou de disponibilité** (comme `/api/health`) : il ne touche pas la base, et
+  répondre `503` ferait réessayer les navigateurs pendant une panne. Il reste soumis au rate limit
+  `/api/`.
+- **Rien n'est journalisé par signalement.** `lib/cspReport.js` regroupe par
+  (directive violée, origine bloquée), vide ses compteurs toutes les **60 s** et écrit alors **une
+  seule ligne** `csp_report_window` portant les totaux, avec au plus **40 signatures** distinctes
+  suivies (le surplus est compté dans `droppedSignatures`, pas stocké). Sur un hébergement
+  mutualisé, un `report-uri` sans ces gardes est un amplificateur de journal.
+
+---
+
 ## Diagnostic public (site)
 
 Ces endpoints exposent un inventaire des problèmes techniques potentiels déjà identifiés.
