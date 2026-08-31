@@ -10,16 +10,25 @@ import {
   mapSearchTokens,
   markerMatchesMapFilters,
   normalizeMapSearchText,
-  zoneEffectiveStage,
   zoneMatchesMapFilters,
 } from '../../src/utils/mapLocationFilters.js';
+
+const CAT_POTAGER = { id: 'cat-potager', label: 'Potager', emoji: '🥕', sort_order: 10 };
+const CAT_INFRA = {
+  id: 'cat-infrastructure',
+  label: 'Infrastructure',
+  emoji: '🏗️',
+  is_infrastructure: true,
+  sort_order: 20,
+};
 
 const ZONE_A = {
   id: 'z1',
   name: '🌿 Butte nord',
   description: 'Culture de tomates en permaculture',
-  stage: 'growing',
-  special: 0,
+  categories: [CAT_POTAGER],
+  category_ids: [CAT_POTAGER.id],
+  is_infrastructure: false,
   species_ids: [10],
   species: [{ id: 10, name: 'Tomate' }],
   living_beings_list: ['Tomate cerise'],
@@ -34,8 +43,9 @@ const ZONE_INFRA = {
   id: 'z2',
   name: 'Mare',
   description: 'Point d eau',
-  stage: 'empty',
-  special: 1,
+  categories: [CAT_INFRA],
+  category_ids: [CAT_INFRA.id],
+  is_infrastructure: true,
   points: JSON.stringify([
     { xp: 30, yp: 30 },
     { xp: 40, yp: 30 },
@@ -48,6 +58,9 @@ const MARKER_M = {
   label: 'Olivier centenaire',
   emoji: '🌳',
   note: 'Arbre remarquable côté sud',
+  categories: [CAT_POTAGER],
+  category_ids: [CAT_POTAGER.id],
+  is_infrastructure: false,
   species_ids: [20],
   species: [{ id: 20, name: 'Olivier' }],
   x_pct: 55,
@@ -80,16 +93,18 @@ describe('zoneMatchesMapFilters', () => {
     expect(zoneMatchesMapFilters(ZONE_A, { text: 'tomate olivier' }, CTX)).toBe(false);
   });
 
-  test('filtre état', () => {
-    expect(zoneMatchesMapFilters(ZONE_A, { stages: ['growing'] }, CTX)).toBe(true);
-    expect(zoneMatchesMapFilters(ZONE_A, { stages: ['empty'] }, CTX)).toBe(false);
+  test('filtre catégorie', () => {
+    expect(zoneMatchesMapFilters(ZONE_A, { categoryIds: [CAT_POTAGER.id] }, CTX)).toBe(true);
+    expect(zoneMatchesMapFilters(ZONE_A, { categoryIds: [CAT_INFRA.id] }, CTX)).toBe(false);
+    // Plusieurs catégories cochées : OU logique.
+    expect(
+      zoneMatchesMapFilters(ZONE_A, { categoryIds: [CAT_INFRA.id, CAT_POTAGER.id] }, CTX),
+    ).toBe(true);
   });
 
-  test('infra specialOnly et stage special', () => {
-    expect(zoneEffectiveStage(ZONE_INFRA)).toBe('special');
-    expect(zoneMatchesMapFilters(ZONE_INFRA, { specialOnly: true }, CTX)).toBe(true);
-    expect(zoneMatchesMapFilters(ZONE_A, { specialOnly: true }, CTX)).toBe(false);
-    expect(zoneMatchesMapFilters(ZONE_INFRA, { stages: ['special'] }, CTX)).toBe(true);
+  test('filtre infrastructures uniquement', () => {
+    expect(zoneMatchesMapFilters(ZONE_INFRA, { infrastructureOnly: true }, CTX)).toBe(true);
+    expect(zoneMatchesMapFilters(ZONE_A, { infrastructureOnly: true }, CTX)).toBe(false);
   });
 
   test('filtre tâches et tutoriels', () => {
@@ -118,9 +133,10 @@ describe('markerMatchesMapFilters', () => {
     expect(markerMatchesMapFilters(MARKER_M, { kinds: 'zones' }, CTX)).toBe(false);
   });
 
-  test('stages et specialOnly excluent les repères', () => {
-    expect(markerMatchesMapFilters(MARKER_M, { stages: ['growing'] }, CTX)).toBe(false);
-    expect(markerMatchesMapFilters(MARKER_M, { specialOnly: true }, CTX)).toBe(false);
+  test('les repères sont filtrables par catégorie (et non plus exclus en bloc)', () => {
+    expect(markerMatchesMapFilters(MARKER_M, { categoryIds: [CAT_POTAGER.id] }, CTX)).toBe(true);
+    expect(markerMatchesMapFilters(MARKER_M, { categoryIds: [CAT_INFRA.id] }, CTX)).toBe(false);
+    expect(markerMatchesMapFilters(MARKER_M, { infrastructureOnly: true }, CTX)).toBe(false);
   });
 
   test('tutoriels sur repère', () => {

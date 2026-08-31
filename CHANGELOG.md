@@ -7,6 +7,43 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Catégories de zones et de repères
+
+Deux mécanismes hétérogènes classaient les lieux de la carte : un **état de culture**
+(`zones.stage` : Vide / En croissance / Prêt à récolter) et une **case « zone spéciale »**
+(`zones.special`). Le filtre carte les mélangeait en un axe unique — une zone d'infrastructure
+ne pouvait pas être « en croissance » — l'état était de toute façon dérivé automatiquement des
+espèces saisies (`empty` = aucune espèce, `growing` = au moins une) et n'était consommé nulle
+part : ni statistique, ni alerte. Les repères, eux, n'avaient **aucune classification**, et
+cocher une case d'état les faisait **tous disparaître** de la carte.
+
+Ces deux champs sont remplacés par de **vraies catégories**, partagées par les zones et les
+repères :
+
+- une catégorie est **globale** (toutes les cartes) ou **propre à une carte** ; elle peut être
+  restreinte aux zones, aux repères, ou valoir pour les deux ;
+- un lieu peut en porter **plusieurs** ; la carte se filtre dessus (OU logique), repères
+  compris ;
+- une case **« Infrastructure »** reprend intégralement le comportement de l'ancienne case
+  « zone spéciale » : pas de section Biodiversité en visite, lieu jamais proposé comme cible
+  de mission, contour en pointillés ;
+- gestion dans **Réglages administrateur → « Catégories de lieux »** (permission
+  `zones.manage`) : libellé, emoji, couleur, description, ordre, portée, activation.
+
+**Reprise des données** : la migration `204` crée une catégorie **Infrastructure** globale et y
+rattache toutes les zones qui portaient `special = 1`. Aucun historique de récolte n'est touché
+— `zone_history` dépend de `current_plant`, jamais de `stage`.
+
+**Contrat d'API** : les zones et les repères exposent désormais `categories`, `category_ids` et
+`is_infrastructure`, et acceptent `category_ids` en écriture. `special` reste en **réponse**
+comme miroir déprécié de `is_infrastructure` mais **n'est plus accepté en entrée** ; la colonne
+`stage` n'est plus ni lue ni écrite par l'application. Nouveau routeur `/api/map-categories`.
+
+Nettoyage au passage des constantes mortes de `src/constants/garden.js` (`SPECIAL_EMOJI`,
+`SPECIAL_DESC` : des catégories codées en dur sur les identifiants de zones du Lyautey, sans
+aucun consommateur) et de `stageBadge`.
+
+
 ### CSP : mesurer avant de durcir
 
 L'application ne posait qu'un `img-src` — **ni `default-src`, ni `script-src`** : aucune
