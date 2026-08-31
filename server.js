@@ -248,10 +248,23 @@ app.post(
 // JSON : défaut bas (2mb) pour limiter les pics LVE ; préfixes médias/imports à 25mb
 // montés d'abord (voir lib/jsonBodyLimit.js). Surcharges :
 // FORETMAP_JSON_BODY_LIMIT, FORETMAP_JSON_BODY_LIMIT_LARGE.
-const { mountJsonBodyParsers } = require('./lib/jsonBodyLimit');
+const { mountJsonBodyParsers, resolveJsonBodyTier } = require('./lib/jsonBodyLimit');
 mountJsonBodyParsers(app);
 app.use((err, req, res, next) => {
   if (err?.type === 'entity.too.large' || err?.status === 413 || err?.statusCode === 413) {
+    // Tracé avec le niveau appliqué : si une route légitime a besoin de plus que son
+    // niveau, la ligne de log donne directement le chemin et le palier à corriger
+    // (voir `lib/jsonBodyLimit.js`) au lieu d'un 413 inexplicable.
+    logger.warn(
+      {
+        requestId: req.requestId,
+        path: req.path,
+        method: req.method,
+        tier: resolveJsonBodyTier(req.originalUrl || req.url),
+        msg: 'json_body_too_large',
+      },
+      'Corps de requête au-delà de la limite du niveau',
+    );
     return res.status(413).json({
       error: 'Fichier ou lot trop volumineux pour le serveur.',
       code: 'PAYLOAD_TOO_LARGE',
@@ -375,9 +388,24 @@ app.get('/api/version', (req, res) => {
 // complet). Aucune donnée métier, aucune requête SQL : coût quasi nul.
 const serverBootId = `${Date.now().toString(36)}-${process.pid}`;
 app.get('/api/sync-state', (req, res) => {
+  // Sonde réservée aux sessions : elle expose l'identité du process et le rythme des
+  // écritures, alors que toutes les autres routes de données exigent un jeton. La
+  // vérification s'arrête à la **signature** — pas d'hydratation rôles/permissions/groupes,
+  // qui coûterait les requêtes SQL que cette sonde existe précisément pour éviter.
+  const token = parseBearerToken(req);
+  if (!token) return res.status(401).json({ error: 'Token requis' });
+  try {
+    const claims = verifyJwtToken(token, JWT_SECRET);
+    // Isolement produit : un jeton GL n'a rien à lire des compteurs ForetMap.
+    if (String(claims?.product || 'foret').toLowerCase() === 'gl') {
+      return res.status(403).json({ error: 'Jeton hors produit' });
+    }
+  } catch (_) {
+    return res.status(401).json({ error: 'Token invalide' });
+  }
   // `domains` : compteurs par domaine du cycle fetchAll — le client ne refetche que
   // les domaines dont le compteur a bougé (repli : tout refetcher si absent/invalide).
-  res.json({
+  return res.json({
     bootId: serverBootId,
     writes: getDataWriteVersion(),
     domains: getSyncDomainVersions(),
