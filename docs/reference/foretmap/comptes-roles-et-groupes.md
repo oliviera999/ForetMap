@@ -56,6 +56,12 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   tâches, gérer les plantes, lire les statistiques, exporter, modérer le forum…).
 - Chaque action d'élève est faite **au nom du compte connecté**, vérifié par le
   serveur : impossible d'agir au nom d'un camarade.
+- L'onglet **À propos** propose à tout le monde la documentation publique du projet
+  (présentation, journal des versions, guide d'installation). Les **rapports d'audit
+  interne** du site, eux, ne s'affichent que pour les comptes ayant le droit de lecture
+  des réglages — administrateurs en pratique — et s'ouvrent directement dans la page.
+  Ils recensent des faiblesses techniques connues : ce n'est pas une lecture destinée
+  aux élèves.
 
 ## Les groupes
 
