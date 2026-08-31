@@ -7,6 +7,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Runbook LVE — profiler les parcours mémoire
+
+Documentation du script `npm run test:profile:memory` dans `docs/LOCAL_DEV.md` et raccord dans la
+checklist `hard_kills` de `docs/EXPLOITATION.md` : prérequis locaux, scénarios couverts, options de
+concurrence/itérations et lecture des signaux `ΔRSS`, `Δheap`, `Mo resp` et `413`.
+
 ### CSP : mesurer avant de durcir
 
 L'application ne posait qu'un `img-src` — **ni `default-src`, ni `script-src`** : aucune
