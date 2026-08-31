@@ -2,7 +2,6 @@
  * Chips des filtres actifs sur la carte (zones / repères).
  */
 
-import { STAGE_LABELS } from '../constants/garden.js';
 import { MAP_LOCATION_FILTER_DEFAULTS } from './mapLocationFilters.js';
 
 const KIND_LABELS = {
@@ -19,9 +18,14 @@ const TRI_LABELS = {
 /**
  * @param {typeof MAP_LOCATION_FILTER_DEFAULTS} filters
  * @param {Array<{id:string,label:string}>} [speciesOptions]
+ * @param {Array<{id:string,label:string}>} [categoryOptions]
  * @returns {Array<{key:string,label:string,removeLabel:string}>}
  */
-export function activeMapLocationFilterChips(filters = {}, speciesOptions = []) {
+export function activeMapLocationFilterChips(
+  filters = {},
+  speciesOptions = [],
+  categoryOptions = [],
+) {
   const f = { ...MAP_LOCATION_FILTER_DEFAULTS, ...filters };
   const chips = [];
 
@@ -33,20 +37,22 @@ export function activeMapLocationFilterChips(filters = {}, speciesOptions = []) 
     });
   }
 
-  if (f.stages?.length) {
-    const labels = f.stages.map((s) => STAGE_LABELS[s] || s).join(', ');
+  if (f.categoryIds?.length) {
+    const labels = f.categoryIds
+      .map((id) => categoryOptions.find((o) => String(o.id) === String(id))?.label || id)
+      .join(', ');
     chips.push({
-      key: 'stages',
-      label: `État : ${labels}`,
-      removeLabel: 'Retirer le filtre état',
+      key: 'categoryIds',
+      label: `Catégorie : ${labels}`,
+      removeLabel: 'Retirer le filtre catégorie',
     });
   }
 
-  if (f.specialOnly) {
+  if (f.infrastructureOnly) {
     chips.push({
-      key: 'specialOnly',
-      label: 'Infra uniquement',
-      removeLabel: 'Retirer le filtre infra',
+      key: 'infrastructureOnly',
+      label: 'Infrastructures uniquement',
+      removeLabel: 'Retirer le filtre infrastructures',
     });
   }
 
@@ -82,8 +88,8 @@ export function activeMapLocationFilterChips(filters = {}, speciesOptions = []) 
 export function clearMapLocationFilterKey(filters, key) {
   const next = { ...MAP_LOCATION_FILTER_DEFAULTS, ...filters };
   if (key === 'kinds') next.kinds = 'both';
-  if (key === 'stages') next.stages = [];
-  if (key === 'specialOnly') next.specialOnly = false;
+  if (key === 'categoryIds') next.categoryIds = [];
+  if (key === 'infrastructureOnly') next.infrastructureOnly = false;
   if (key === 'speciesId') next.speciesId = '';
   if (key === 'hasTasks') next.hasTasks = '';
   if (key === 'hasTutorials') next.hasTutorials = '';

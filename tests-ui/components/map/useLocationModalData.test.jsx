@@ -69,7 +69,11 @@ describe('useLocationModalData', () => {
   });
 
   test('zone spéciale : pas de section Biodiversité (visitAsideSpecies false)', () => {
-    const { result } = renderData('zone', { ...ZONE, special: 1 }, { isTeacher: true });
+    const { result } = renderData(
+      'zone',
+      { ...ZONE, is_infrastructure: true, categories: [{ id: 'c2', is_infrastructure: true }] },
+      { isTeacher: true },
+    );
     expect(result.current.visitAsideSpecies).toBe(false);
     expect(result.current.showVisitAsideBlock).toBe(true); // tutoriels liés restent affichés
   });

@@ -1,4 +1,5 @@
 import { orderedLivingBeingsForForm } from './livingBeings';
+import { isInfrastructureLocation } from './locationCategories.js';
 import {
   tutorialLocationIds,
   tutorialsFromTasksAtLocation,
@@ -46,7 +47,7 @@ export function computeVisitLocationAside(
     const mapZone = (mapZones || []).find(
       (z) => String(z.id) === String(selected.id) && String(z.map_id || '') === String(mapId),
     );
-    const zoneSpecial = !!mapZone?.special;
+    const zoneIsInfrastructure = isInfrastructureLocation(mapZone);
     const primaryLivingNames = mapZone
       ? orderedLivingBeingsForForm(
           mapZone.living_beings_list || mapZone.living_beings,
@@ -56,7 +57,8 @@ export function computeVisitLocationAside(
     const livingFromTasks = livingBeingNamesFromTasksAtLocation('zone', selected.id, taskList);
     const livingBeingsOnlyOnTasks = livingFromTasks.filter((n) => !primaryLivingNames.includes(n));
     const showBiodiversity =
-      !zoneSpecial && (primaryLivingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0);
+      !zoneIsInfrastructure &&
+      (primaryLivingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0);
     const linkedTutorialsDirect = catalog.filter((tu) =>
       tutorialLocationIds(tu).zoneIds.some((id) => String(id) === String(selected.id)),
     );
