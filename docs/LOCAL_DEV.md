@@ -199,6 +199,7 @@ Le script force `DB_NAME=foretmap_test` ; le schéma est (re)créé par les fich
 | `npm run test:snapshot:gl`         | Snapshot DB ciblé Gnomes & Licornes (`FORETMAP_SNAPSHOT_GL=1`)                                        |
 | `npm run test:load` (et variantes) | Charge Artillery (`LOAD_TEST_SECRET`, voir § **5quinquies**)                                          |
 | `npm run test:load:gl`             | Charge Artillery ciblée GL (`load/artillery-gl.yml`)                                                  |
+| `npm run test:profile:memory`      | Profil mémoire local des parcours suspects LVE (`/api/admin/diagnostics`, voir § **5sexies**)         |
 
 Après une modification **frontend** : **`npm run build`** si le serveur sert **`dist/`** (`NODE_ENV=production`), avant **`npm run test:e2e`**. Le build Vite applique un **code-splitting** par onglet (`React.lazy` dans `App.jsx`) et des chunks vendor (`react-vendor`, `socket-io`, `rive`, `markdown` — voir `vite.config.js`).
 
@@ -457,6 +458,43 @@ Après `npm run test:load:all`, vous obtenez aussi :
 - `load/reports/light-summary.md`
 - `load/reports/normal-summary.md`
 - `load/reports/stress-summary.md`
+
+## 5sexies. Profil mémoire LVE (parcours suspects)
+
+`npm run test:profile:memory` sert à reproduire en local ou préprod les rafales qui peuvent faire
+monter le RSS sur un hébergement CloudLinux/LVE. Le script démarre lui-même un serveur enfant
+(`NODE_ENV=production`, rate limit e2e désactivé), puis interroge
+`/api/admin/diagnostics` avant/après chaque scénario.
+
+Pré-requis :
+
+- MariaDB locale démarrée et schéma initialisé (`npm run docker:up`, puis `npm run db:init` si
+  nécessaire) ;
+- `.env` avec `DB_*`, `DEPLOY_SECRET` (ou alias lu par les scripts de debug) ;
+- `TEACHER_ADMIN_EMAIL` et `TEACHER_ADMIN_PASSWORD` pour obtenir un JWT professeur ; si le compte
+  n'existe pas, le script le crée/met à jour dans la base locale ;
+- `dist/` à jour si vous voulez profiler le comportement proche production après une évolution
+  frontend (`npm run build`).
+
+Exemples :
+
+```bash
+npm run test:profile:memory
+npm run test:profile:memory -- --concurrency=12 --iters=8 --settle-ms=1000
+```
+
+Scénarios couverts : santé, contenu visite, liste/export packs mascotte, conditionnement
+pédagogique, quiz, tutoriels, rafale type `fetchAll` (`maps`, `zones`, `tasks`, `plants`,
+`markers`), actions GL si le contexte de test peut être préparé, puis corps JSON de 1, 4 et 8 Mo
+sur une route hors préfixe média.
+
+Lecture du tableau :
+
+- `ΔRSS` élevé sous rafale = candidat LVE à inspecter en priorité ;
+- `Δheap` élevé mais RSS stable = pression JavaScript plutôt que mémoire native persistante ;
+- `Mo resp` élevé = réponse à alléger, paginer ou charger à la demande ;
+- statuts `413` attendus sur les gros JSON hors médias/imports confirment que la limite globale
+  basse (`FORETMAP_JSON_BODY_LIMIT`, défaut **2 Mo**) protège les routes ordinaires.
 
 ## 6. Vérifier l’environnement local
 
