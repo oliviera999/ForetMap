@@ -7,6 +7,53 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Les réessais réseau ne se retournent plus contre la classe
+
+Suite du diagnostic précédent : la boucle de réessai était bien dimensionnée pour un
+redémarrage serveur, mais chaque requête la parcourait **pour son compte**, sans jamais
+rien apprendre des autres.
+
+**Une fenêtre de réessai partagée.** Un cycle de rafraîchissement lance neuf requêtes en
+parallèle ; pendant une coupure, chacune retentait donc jusqu'à huit fois — près de
+soixante-dix requêtes par poste. Dans une salle, tous les postes sortent par la **même IP
+publique** : le plafond de l'API (1200 requêtes/minute) était atteint par les réessais
+eux-mêmes, et un `429` n'est pas réessayé — l'élève récoltait « Trop de requêtes » au
+moment précis où le serveur revenait. Désormais, la première requête qui constate
+l'indisponibilité ouvre une pause que les autres attendent (plafonnée à 5 s pour ne jamais
+bloquer une action), et la première réponse correcte la referme pour tout le monde. Un
+`429` ouvre la même pause, au lieu de laisser les requêtes sœurs creuser le trou.
+
+**Un serveur qui « pend » n'échoue plus du premier coup.** Le délai d'attente de 40 s
+levait une erreur immédiate, sans aucun réessai : la fenêtre de reprise ne couvrait que les
+coupures franches et les réponses de passerelle, pas un démarrage à froid qui traîne. Une
+seconde tentative est accordée — aux seules lectures, un délai dépassé ne disant pas si le
+serveur a traité la requête (rejouer un enregistrement pourrait le dupliquer), et deux
+tentatives au maximum, chacune coûtant déjà 40 s d'attente.
+
+**Et ce délai couvre enfin la réponse entière.** Il était désarmé dès l'arrivée des
+en-têtes : une réponse tronquée en cours de route laissait la requête pendante
+indéfiniment, sans plus aucune limite de temps.
+
+**Le temps réel cesse de marteler avec un jeton refusé.** Quand la session expire, le
+serveur refuse la connexion Socket.IO ; le client, réglé pour se reconnecter indéfiniment,
+rejouait le même jeton toutes les 1 à 5 secondes — et le transport étant du long-polling,
+chaque tentative était une requête HTTP. La reconnexion s'arrête maintenant sur un refus
+d'authentification (le rafraîchissement périodique prend le relais) et repart d'elle-même
+dès qu'un nouveau jeton est disponible. Une base momentanément injoignable, elle, reste
+traitée comme une panne passagère : la reconnexion continue.
+
+**Un compte supprimé est enfin vu par la sonde de synchronisation.** Le `401` remonté par
+`GET /api/sync-state` était traité comme une sonde muette ; la session restait ouverte
+jusqu'à ce qu'un autre appel remonte la même réponse.
+
+Détail : `src/shared/apiRetryGate.js` et `src/utils/realtimeAuthRejection.js` (nouveaux),
+`src/shared/fetchJsonWithRetry.js`, `src/services/apiTransport.js`,
+`src/hooks/useForetmapRealtime.js`, `src/hooks/useAppDataSync.js` ; tests
+`tests-ui/shared/apiRetryGate.test.js`, `tests-ui/utils/realtimeAuthRejection.test.js`,
+`tests-ui/hooks/useForetmapRealtime.test.jsx`, `tests-ui/shared/fetchJsonWithRetry.test.js`,
+`tests-ui/apiTransport.test.js`, `tests-ui/hooks/useAppDataSync.test.jsx` ; docs
+`docs/EXPLOITATION.md`, `docs/reference/foretmap/presentation.md`.
+
 ### Le serveur ne reste plus en panne tout seul (déconnexions à répétition)
 
 Diagnostic parti d'un symptôme simple : des « déconnexions » et des tentatives de

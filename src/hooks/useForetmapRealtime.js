@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { api, AccountDeletedError, API, withAppBase, getAuthToken } from '../services/api';
 import { partitionByArchived } from '../utils/taskArchive';
+import { isSocketAuthRejection } from '../utils/realtimeAuthRejection';
 
 /** Après notification Socket.IO : tâches = refetch léger côté API (priorité fraîcheur). */
 const TASKS_RT_DEBOUNCE_MS = 220;
@@ -65,6 +66,8 @@ export function useForetmapRealtime({
   /** Pendant la fenêtre de debounce jardin : true si au moins un événement exige un refetch plantes. */
   const gardenRtPlantsPendingRef = useRef(false);
   const socketRef = useRef(null);
+  /** Vrai quand le serveur a refusé le jeton : on ne relance plus de connexion avec celui-ci. */
+  const authRejectedRef = useRef(false);
   const offlineTimerRef = useRef(null);
   const subscribedMapIdRef = useRef(null);
   const activeMapIdRef = useRef(activeMapId);
@@ -195,6 +198,9 @@ export function useForetmapRealtime({
       return undefined;
     }
     setRtStatus('connecting');
+    // Nouveau socket (jeton renouvelé, élévation, changement de session) : le refus
+    // précédent ne vaut plus.
+    authRejectedRef.current = false;
     const origin =
       API && String(API).trim()
         ? new URL(API, window.location.href).origin
@@ -252,6 +258,17 @@ export function useForetmapRealtime({
     };
     const onConnectError = (err) => {
       console.warn('[ForetMap] Socket.IO connect_error', err?.message || err);
+      if (isSocketAuthRejection(err)) {
+        // Jeton refusé : la reconnexion automatique (infinie, toutes les 1 à 5 s, en
+        // long-polling donc une requête HTTP par tentative) rejouerait éternellement le
+        // même jeton. On coupe ; le polling REST prend le relais, et une nouvelle session
+        // (`foretmap_session_changed` → `authToken`) relance cet effet avec un jeton neuf.
+        authRejectedRef.current = true;
+        clearOfflineTimer();
+        setRtStatus('off');
+        socket.disconnect();
+        return;
+      }
       setRtStatus('connecting');
       scheduleOfflineFallback();
     };
@@ -269,6 +286,8 @@ export function useForetmapRealtime({
       scheduleOfflineFallback();
     };
     const onBrowserOnline = () => {
+      // Retour du réseau : inutile de relancer une connexion que le serveur refuse.
+      if (authRejectedRef.current) return;
       if (!socket.connected) {
         setRtStatus('connecting');
         socket.connect();

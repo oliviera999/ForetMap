@@ -22,7 +22,7 @@ vi.mock('../../src/services/api', () => ({
   },
 }));
 
-import { api } from '../../src/services/api';
+import { api, AccountDeletedError } from '../../src/services/api';
 import { useAppDataSync } from '../../src/hooks/useAppDataSync.js';
 
 const MAPS = [{ id: 'm1', name: 'Forêt' }];
@@ -164,6 +164,34 @@ describe('useAppDataSync — coupure serveur', () => {
     await waitFor(() => expect(result.current.serverDown).toBe(false));
     expect(result.current.refreshMs).toBe(60000);
     expect(result.current.zones).toEqual(ZONES);
+  });
+
+  it('un compte supprimé détecté par la sonde /api/sync-state déconnecte la session', async () => {
+    const forceLogout = vi.fn();
+    const studentRef = { current: null };
+    const { result } = renderHook(() =>
+      useAppDataSync({
+        context: CONTEXT,
+        contextReady: true,
+        hasAuthenticatedShell: true,
+        studentRef,
+        forceLogout,
+        mergeAuthMeResponse: () => {},
+      }),
+    );
+    await waitFor(() => expect(result.current.zones).toEqual(ZONES));
+
+    // La sonde est le premier appel du cycle : un 401 « compte supprimé » y était traité
+    // comme une simple sonde muette, et la session restait ouverte.
+    api.mockImplementation(async (path) => {
+      if (path.startsWith('/api/sync-state')) throw new AccountDeletedError();
+      return nominalResponse(path);
+    });
+    await act(async () => {
+      await result.current.fetchAll();
+    });
+
+    expect(forceLogout).toHaveBeenCalled();
   });
 
   it('un vide légitime (aucune carte active) reste appliqué', async () => {
