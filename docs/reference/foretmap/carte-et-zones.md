@@ -75,9 +75,9 @@ qu'on veut). Sa fiche rassemble :
 - une **couleur** de remplissage (palette de dix couleurs) ;
 - la liste des **êtres vivants** présents (choisis dans le catalogue biodiversité —
   plusieurs espèces possibles, l'ordre choisi est conservé à l'affichage) ;
-- un **état** : Vide, En croissance, ou Prêt à récolter ;
-- une case **« Zone spéciale »** pour les bâtiments et infrastructures (mare, ruches,
-  compostage, pergola…) plutôt que les cultures ;
+- une ou plusieurs **catégories** (Verger, Compostage, Zone pédagogique…), créées par
+  l'administrateur et utilisables comme filtre sur la carte — voir « Catégories de
+  lieux » plus bas ;
 - une **description** libre (avec mise en forme) ;
 - des **photos** avec légende, que le professeur peut réordonner et supprimer ;
 - un **historique des cultures** : quand une espèce est retirée de la zone, elle est
@@ -92,12 +92,46 @@ qu'on veut). Sa fiche rassemble :
 
 Un repère est un **point** posé sur le plan, complémentaire des zones. Il porte un
 **emoji**, un **nom**, une **note** libre, ses **photos** (mêmes possibilités que les
-zones), ses **espèces associées** et, comme les zones, ses textes pour le mode Visite,
-ses tâches et tutoriels liés.
+zones), ses **espèces associées**, ses **catégories** (mêmes catégories que les zones)
+et, comme les zones, ses textes pour le mode Visite, ses tâches et tutoriels liés.
 
 Pour éviter les déplacements accidentels, la position des repères est **verrouillée**
 par défaut : le professeur clique sur le cadenas « Repères » de la barre d'outils pour
 pouvoir les faire glisser, puis reverrouille.
+
+## Catégories de lieux
+
+Les catégories classent les zones **et** les repères, et servent de filtre sur la carte.
+Elles remplacent l'ancien couple « état de culture » (Vide / En croissance / Prêt à
+récolter) et case « zone spéciale ».
+
+Une catégorie porte un **libellé**, un **emoji**, une **couleur**, une **description**
+(infobulle) et un **ordre d'affichage**. Elle est :
+
+- soit **globale** — utilisable sur toutes les cartes (cas le plus courant : Compostage,
+  Verger, Zone pédagogique) ;
+- soit **rattachée à une carte** — proposée uniquement sur ce plan (ex. « Salles » sur un
+  plan de bâtiment).
+
+Elle peut aussi être restreinte aux **zones seules**, aux **repères seuls**, ou valoir
+pour **les deux** (par défaut).
+
+Une case **« Infrastructure »** distingue les lieux qui ne sont pas des cultures (mare,
+ruches, compostage, cuve…). Elle reprend exactement le comportement de l'ancienne case
+« zone spéciale » : ces lieux n'affichent pas de section Biodiversité en mode Visite, ne
+sont jamais proposés comme cible de mission ou de tutoriel, et leur contour apparaît en
+pointillés sur la carte. Les zones qui étaient marquées « spéciales » ont été
+automatiquement reprises dans une catégorie **Infrastructure**.
+
+Une catégorie peut être **désactivée** plutôt que supprimée : elle reste posée sur les
+lieux mais disparaît des filtres et des formulaires. La supprimer la retire en revanche
+de toutes les zones et de tous les repères qui la portaient.
+
+**Où les créer** : Réglages administrateur → « Catégories de lieux ». Il faut la
+permission « Gestion zones ».
+
+**Où les poser** : dans la fiche d'une zone ou d'un repère, onglet « Modifier », bloc
+« Catégories » (cases à cocher — plusieurs catégories possibles sur un même lieu).
 
 ## Comment ça se passe — côté élève
 
@@ -122,11 +156,11 @@ pouvoir les faire glisser, puis reverrouille.
 1. **Dessiner une zone** : bouton « Zone » de la barre d'outils, puis clics successifs
    sur le plan pour poser les points du contour (avec annulation du dernier point).
    À partir de trois points, « Terminer » ouvre la fenêtre de création : nom, êtres
-   vivants, état, couleur, case « zone spéciale »…
+   vivants, catégories, couleur…
 2. **Poser un repère** : bouton « Repère », puis clic à l'endroit voulu ; on renseigne
    ensuite nom, emoji et note.
 3. **Modifier une fiche** : ouvrir la zone ou le repère, onglet « Modifier ». On y
-   change tout (nom, espèces, état, couleur, description, textes visite, emoji). Un
+   change tout (nom, espèces, catégories, couleur, description, textes visite, emoji). Un
    bouton dédié permet de **retoucher le contour** de la zone (voir « Retoucher le
    contour d'une zone » plus bas), puis de sauvegarder.
 4. **Dupliquer une zone** : un bouton dans l'en-tête de la fiche crée une copie, utile
@@ -200,9 +234,11 @@ En **mode consultation** (carte ouverte sans tracé ni édition de contour), une
 
 - **Recherche libre** : tapez un nom, un mot de la description, une espèce, un mot
   des textes visite… Plusieurs mots peuvent être combinés (tous doivent correspondre).
-- **Filtres** (bouton ⚙️) : type (zones seules, repères seuls), état des zones
-  (Vide, En croissance, Prêt, Spéciale), zones d'infrastructure uniquement, espèce
-  présente, présence de **tâches actives** ou de tutoriels liés.
+- **Filtres** (bouton ⚙️) : type (zones seules, repères seuls), **catégories** (plusieurs
+  cases cochables — un lieu sort dès qu'il porte l'une d'elles), infrastructures
+  uniquement, espèce présente, présence de **tâches actives** ou de tutoriels liés.
+  Contrairement à l'ancien filtre « état », les catégories s'appliquent **aussi aux
+  repères** : cocher une catégorie ne fait plus disparaître les repères de la carte.
 
 > Seules les tâches **encore en jeu** comptent sur la carte : terminées (en attente
 > de validation), validées, archivées, ou rattachées à un projet terminé/validé n'affichent

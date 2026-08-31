@@ -39,6 +39,7 @@ const authRouter = require('./routes/auth');
 const zonesRouter = require('./routes/zones');
 const mapsRouter = require('./routes/maps');
 const mapRouter = require('./routes/map');
+const mapCategoriesRouter = require('./routes/map-categories');
 const plantsRouter = require('./routes/plants');
 const tasksRouter = require('./routes/tasks');
 const taskProjectsRouter = require('./routes/task-projects');
@@ -417,6 +418,7 @@ app.use('/api', (req, res, next) => {
 app.use('/api/auth', authRouter);
 app.use('/api/zones', zonesRouter);
 app.use('/api/maps', mapsRouter);
+app.use('/api/map-categories', mapCategoriesRouter);
 app.use('/api/map', mapRouter);
 app.use('/api/plants', plantsRouter);
 app.use('/api/glossary', glossaryRouter);

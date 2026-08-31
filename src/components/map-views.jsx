@@ -62,6 +62,8 @@ import {
   collectMapSpeciesOptions,
   isMapLocationFilterActive,
 } from '../utils/mapLocationFilters.js';
+import { collectMapCategoryOptions } from '../utils/locationCategories.js';
+import { useMapCategories } from '../hooks/useMapCategories.js';
 import {
   focusMapOnPct,
   markerFocusPct,
@@ -513,9 +515,19 @@ function MapViewImpl({
     [zones, emojiParsingList],
   );
 
+  // Catalogue des catégories de la carte active (globales + propres à la carte).
+  const { categories: mapCategoryCatalog } = useMapCategories(activeMapId);
+
   const mapSpeciesOptions = useMemo(
     () => collectMapSpeciesOptions(zones, mapMarkersOnActiveMap),
     [zones, mapMarkersOnActiveMap],
+  );
+
+  // Options du filtre « Catégories » : celles réellement portées par les lieux affichés,
+  // complétées par le catalogue de la carte (une catégorie encore inutilisée reste visible).
+  const mapCategoryOptions = useMemo(
+    () => collectMapCategoryOptions(zones, mapMarkersOnActiveMap, mapCategoryCatalog),
+    [zones, mapMarkersOnActiveMap, mapCategoryCatalog],
   );
 
   const mapFilterContext = useMemo(
@@ -681,6 +693,7 @@ function MapViewImpl({
         <ZoneInfoModal
           zone={selectedZone}
           plants={plants}
+          categoryCatalog={mapCategoryCatalog}
           tasks={tasks}
           tutorials={tutorials}
           isTeacher={isTeacher}
@@ -736,6 +749,7 @@ function MapViewImpl({
         <MarkerModal
           marker={selectedMarker}
           plants={plants}
+          categoryCatalog={mapCategoryCatalog}
           tasks={tasks}
           tutorials={tutorials}
           isTeacher={isTeacher}
@@ -785,6 +799,7 @@ function MapViewImpl({
         <ZoneDrawModal
           points_pct={pendingZone}
           plants={plants}
+          categoryCatalog={mapCategoryCatalog}
           markerEmojis={markerEmojis}
           emojiParsingList={emojiParsingList}
           onClose={() => setPendingZone(null)}
@@ -807,6 +822,7 @@ function MapViewImpl({
             map_id: activeMapId,
           }}
           plants={plants}
+          categoryCatalog={mapCategoryCatalog}
           isTeacher={isTeacher}
           markerEmojis={markerEmojis}
           onClose={() => setPendingMarker(null)}
@@ -917,6 +933,7 @@ function MapViewImpl({
                 filters={mapLocationFilters}
                 setFilters={setMapLocationFilters}
                 speciesOptions={mapSpeciesOptions}
+                categoryOptions={mapCategoryOptions}
                 zoneMatchCount={matchingZoneIds.size}
                 markerMatchCount={matchingMarkerIds.size}
                 searchInputRef={mapLocationSearchRef}

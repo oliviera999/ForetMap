@@ -6,6 +6,7 @@ import {
   VisitEditorialMediaIdPicker,
 } from '../VisitEditorialPhotoUi.jsx';
 import { LivingBeingsCatalogPanel } from './LivingBeingsCatalogPanel.jsx';
+import { LocationCategoryPicker } from './LocationCategoryPicker.jsx';
 import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
 
 /**
@@ -14,7 +15,7 @@ import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
  * Feuille pilotée par props ; état détenu par le parent (`form`/`setForm`).
  * Extrait de `MarkerModal.jsx` (O6, 2e niveau).
  */
-export function MarkerCommonFormFields({ form, setForm, plants, set }) {
+export function MarkerCommonFormFields({ form, setForm, plants, set, categoryCatalog = [] }) {
   return (
     <>
       <div className="field">
@@ -48,6 +49,12 @@ export function MarkerCommonFormFields({ form, setForm, plants, set }) {
       {form.living_beings.length > 0 && (
         <LivingBeingsCatalogPanel plants={plants} names={form.living_beings} showHeading={false} />
       )}
+      <LocationCategoryPicker
+        kind="marker"
+        catalog={categoryCatalog}
+        value={form.category_ids || []}
+        onChange={(next) => setForm((f) => ({ ...f, category_ids: next }))}
+      />
       <div className="field">
         <label>Description</label>
         <MarkdownTextarea

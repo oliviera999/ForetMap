@@ -999,11 +999,15 @@
 
     /* ── ZONE INFO ── */
     .zone-info { background:var(--parchment); border-radius:12px; padding:16px; border:1.5px solid var(--mint); }
-    .stage-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:.73rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
-    .stage-growing { background:#dcfce7; color:#166534; }
-    .stage-ready   { background:#fef9c3; color:#854d0e; }
-    .stage-empty   { background:#f1f5f9; color:#475569; }
-    .stage-special { background:#dbeafe; color:#1e40af; }
+    /* Catégories de lieux (zones et repères) — pastilles et sélecteur. */
+    .location-category-badges { display:inline-flex; flex-wrap:wrap; gap:6px; }
+    .location-category-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:.73rem; font-weight:700; letter-spacing:.03em; background:#f1f5f9; color:#1f2937; }
+    .location-category-badge--empty { font-size:.73rem; color:#94a3b8; }
+    .location-category-picker { display:flex; flex-direction:column; gap:6px; }
+    .location-category-picker__option { display:flex; align-items:center; gap:8px; min-height:44px; cursor:pointer; }
+    .location-category-picker__option input { width:18px; height:18px; flex-shrink:0; }
+    .location-category-picker__swatch { width:14px; height:14px; border-radius:4px; border:1px solid #cbd5e1; flex-shrink:0; }
+    .location-category-picker__infra { color:#64748b; font-size:.78rem; }
     .history-list { margin-top:12px; }
     .history-list h4 { font-size:.75rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
     .history-item { display:flex; justify-content:space-between; font-size:.82rem; padding:6px 0; border-bottom:1px solid var(--mint); color:#555; }
