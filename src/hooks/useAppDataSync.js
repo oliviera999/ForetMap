@@ -158,7 +158,14 @@ export function useAppDataSync({
             try {
               const probed = await api('/api/sync-state');
               if (isValidSyncState(probed)) syncState = probed;
-            } catch (_) {
+            } catch (err) {
+              // Un compte supprimé se voit aussi depuis la sonde : sans ce cas, l'échec
+              // était traité comme une simple sonde muette et la session restait ouverte
+              // jusqu'à ce qu'un autre appel remonte le même 401.
+              if (err instanceof AccountDeletedError) {
+                forceLogout();
+                return;
+              }
               syncState = null;
             }
           }

@@ -199,6 +199,16 @@ Au-delà de la pastille, l'application protège ce qui est déjà affiché :
   reprend.
 - **Les données affichées peuvent donc dater** de quelques minutes le temps d'un
   incident : c'est volontaire, et le bandeau le signale.
+- **Une classe entière ne se bloque plus elle-même.** Quand tout un groupe utilise le site
+  depuis le même établissement, les appareils sortent sur Internet avec **une seule adresse
+  visible** par le serveur, qui limite le nombre de requêtes par adresse. Les tentatives de
+  reconnexion de trente postes suffisaient à atteindre cette limite et à produire un « Trop
+  de requêtes » au pire moment. L'application coordonne désormais ces tentatives : le
+  premier appareil qui constate l'absence du serveur fait patienter les autres, et la
+  première réponse correcte les relance tous.
+- **Session expirée** : la connexion temps réel s'arrête proprement au lieu de réessayer
+  sans fin. Les données continuent d'arriver par le rafraîchissement périodique, et le
+  temps réel revient de lui-même à la reconnexion.
 
 ## ⚠️ Points d'attention sur l'existant
 
