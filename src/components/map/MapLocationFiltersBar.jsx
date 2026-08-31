@@ -20,6 +20,7 @@ export function MapLocationFiltersBar({
   filters,
   setFilters,
   speciesOptions = [],
+  categoryOptions = [],
   zoneMatchCount = 0,
   markerMatchCount = 0,
   searchInputRef = null,
@@ -44,8 +45,8 @@ export function MapLocationFiltersBar({
   }, [draftText, setFilters]);
 
   const chips = useMemo(
-    () => activeMapLocationFilterChips(filters, speciesOptions),
-    [filters, speciesOptions],
+    () => activeMapLocationFilterChips(filters, speciesOptions, categoryOptions),
+    [filters, speciesOptions, categoryOptions],
   );
   const structuredCount = countActiveMapLocationFilters(filters);
   const filterActive = isMapLocationFilterActive(filters);
@@ -64,6 +65,7 @@ export function MapLocationFiltersBar({
       filters={filters}
       setFilters={setFilters}
       speciesOptions={speciesOptions}
+      categoryOptions={categoryOptions}
     />
   );
 

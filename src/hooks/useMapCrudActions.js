@@ -3,6 +3,7 @@ import { api } from '../services/api';
 import { taskLocationIds, tutorialLocationIds } from '../utils/mapLocationContext';
 import { offsetDuplicateZonePoints } from '../utils/zoneEditGeometry.js';
 import { orderedLivingBeingsForForm } from '../utils/livingBeings';
+import { locationCategoryIds } from '../utils/locationCategories.js';
 
 /**
  * Actions CRUD de la carte (repères, zones, liens tâches/tutoriels, inscription) —
@@ -144,8 +145,7 @@ function useMapCrudActions({
         color: z.color || '#86efac80',
         current_plant: '',
         living_beings: living,
-        stage: z.stage || 'empty',
-        special: z.special ? 1 : 0,
+        category_ids: locationCategoryIds(z),
         map_id: z.map_id || activeMapId,
         description: z.description || '',
       });
@@ -178,6 +178,7 @@ function useMapCrudActions({
         living_beings: living,
         note: m.note || '',
         emoji: String(m.emoji ?? '').trim(),
+        category_ids: locationCategoryIds(m),
         visit_subtitle: m.visit_subtitle,
         visit_short_description: m.visit_short_description,
         visit_details_title: m.visit_details_title,
