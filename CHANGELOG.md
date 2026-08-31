@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation gating GL — cascade effective
+
+Correction des docs techniques GL sur le conditionnement QCM : `docs/GL_QCM_SETS.md`,
+`docs/API.md` et l'audit feuillets distinguent désormais clairement les constats initiaux des
+comportements livrés (cascade site → type → ressource, granularité chapitre/scope GL, signaux
+`effective_sources`, `pending_count` et `ask_count`).
+
 ### Runbook LVE — profiler les parcours mémoire
 
 Documentation du script `npm run test:profile:memory` dans `docs/LOCAL_DEV.md` et raccord dans la
