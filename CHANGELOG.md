@@ -7,6 +7,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Les rapports d'audit s'ouvrent enfin — et seulement pour qui de droit
+
+Cliquer sur **SITE_ISSUES** depuis l'onglet « À propos » ouvrait un onglet affichant
+`{"error":"Token requis"}`. Ce n'était ni une régression ni un problème de droits : les
+deux entrées étaient de simples `<a href>` pointant vers des routes protégées par
+`admin.settings.read`. Une navigation de navigateur n'emporte aucun en-tête
+`Authorization`, et le jeton vit dans le stockage local, pas dans un cookie — **ces liens
+ne pouvaient donc fonctionner pour personne**, administrateur compris, depuis leur
+création.
+
+Second défaut, plus discret : ils étaient proposés à **tout le monde, élèves compris**,
+alors qu'ils annoncent un inventaire des faiblesses connues du site.
+
+Les deux rapports quittent donc la liste des liens publics. Ils apparaissent maintenant
+dans un encart **« Audit interne »** visible des seuls détenteurs du droit de lecture des
+réglages, et le clic récupère le document avec le jeton de session puis l'affiche dans la
+page — plus d'onglet, plus de JSON brut. Un refus affiche une phrase lisible qui rappelle
+le droit nécessaire et le cas de la session expirée.
+
+Le reste de la carte « Documentation » (présentation, journal des versions, guide
+d'installation, API…) reste public et inchangé.
+
+Détail : `src/components/about-views.jsx`, `src/components/app/PedagoTabs.jsx`,
+`src/App.jsx` ; doc `docs/reference/foretmap/comptes-roles-et-groupes.md` ;
+tests `tests-ui/AboutView.test.jsx`.
+
 ### CSP : mesurer avant de durcir
 
 L'application ne posait qu'un `img-src` — **ni `default-src`, ni `script-src`** : aucune
