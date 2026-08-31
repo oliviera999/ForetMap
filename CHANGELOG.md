@@ -7,6 +7,60 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Le serveur encaisse mieux les pics (audit charge & bugs)
+
+Audit complet du code — bugs, incohérences, postes de charge — dont les constats sont
+consignés dans `docs/AUDIT_CHARGE_ET_BUGS_2026-08.md`. Le premier audit mesurait le régime
+nominal ; celui-ci regarde les **cas dégradés et les pics**, là où se produisent justement
+les arrêts forcés du process que personne n'arrivait à expliquer.
+
+**Un envoi volumineux ne peut plus faire tomber le serveur.** La limite de 25 Mo par
+requête était appliquée à des **familles entières d'adresses** : valider une tâche, poster
+un commentaire ou enregistrer un réglage ouvrait la même porte que l'import d'un tableur.
+Or le serveur met tout le contenu reçu en mémoire avant de le lire — une seule requête de
+cette taille pouvait tripler sa consommation, et deux simultanées suffisaient
+vraisemblablement à provoquer l'arrêt forcé, donc la coupure. Trois paliers remplacent ce
+réglage unique : 2 Mo pour les échanges ordinaires, 8 Mo pour les contenus illustrés,
+25 Mo pour les seuls imports. S'y ajoute une limite **par photo** (8 Mo), qui n'existait
+pas du tout : un message pouvait en porter trois de n'importe quelle taille.
+
+**L'enregistrement d'une photo ne fige plus le site.** L'écriture du fichier sur le disque
+était **bloquante** : pendant toute sa durée, le serveur ne répondait plus à personne — ni
+aux autres élèves, ni à la surveillance, ni au temps réel. Elle est désormais asynchrone.
+
+**Trois pages coûtaient beaucoup plus cher qu'il n'y paraissait.** La liste des zones
+rapatriait **tout** l'historique de récolte de toutes les zones pour n'en afficher que cinq
+lignes par zone ; la liste des tutoriels chargeait le contenu HTML complet de chaque fiche
+alors qu'elle ne l'affiche jamais ; la page de visite publique — accessible sans compte —
+enchaînait huit requêtes à chaque consultation, sans jamais rien mémoriser. Les trois sont
+corrigées : historique découpé côté base, colonnes limitées à l'utile, et contenu de visite
+mis en cache jusqu'à la prochaine modification.
+
+**Une classe entière ne se bouscule plus au même instant.** Quand un professeur valide une
+tâche, tous les postes de la salle étaient prévenus et rechargeaient **exactement en même
+temps**. Un léger décalage aléatoire étale désormais ces rechargements, sans que personne
+ne voie la différence.
+
+**Deux expositions refermées.** La sonde de synchronisation, qui révèle l'identité du
+processus et le rythme d'activité du site, était accessible **sans être connecté** : elle
+exige un jeton (vérifié au coût le plus faible, pour ne pas alourdir ce qu'elle sert à
+alléger). Et le mot de passe chiffré était masqué « à la main » à huit endroits avant
+l'envoi au navigateur : c'est maintenant une liste blanche unique — une colonne sensible
+ajoutée demain ne partira pas au navigateur par simple oubli.
+
+**Enfin, le jeu Gnomes & Licornes reçoit la protection déjà posée côté ForetMap** : ses
+connexions temps réel cessent de réessayer indéfiniment quand la session a expiré.
+
+Détail : `lib/jsonBodyLimit.js`, `lib/publicUser.js`, `lib/visitContentCache.js` (nouveaux),
+`lib/uploads.js`, `lib/userContentImages.js`, `lib/profileUpdate.js`, `lib/mediaLibrary.js`,
+`routes/zones.js`, `routes/tutorials.js`, `routes/visit.js`, `routes/auth.js`,
+`routes/students.js`, `routes/rbac.js`, `server.js`, `src/utils/realtimeRefreshDelay.js`,
+`src/hooks/useForetmapRealtime.js`, `src/gl/hooks/useGLMarketTrade.js`,
+`src/gl/hooks/useGLSpellCast.js` ; tests `tests/server-load-hardening.test.js`,
+`tests/sync-state-and-scope-cache.test.js`, `tests-ui/utils/realtimeRefreshDelay.test.js` ;
+docs `docs/AUDIT_CHARGE_ET_BUGS_2026-08.md`, `docs/AUDIT_CHARGE_SERVEUR_2026-08.md`,
+`docs/API.md`, `docs/EXPLOITATION.md`, `docs/reference/foretmap/stats-forum-et-suivi.md`.
+
 ### Les réessais réseau ne se retournent plus contre la classe
 
 Suite du diagnostic précédent : la boucle de réessai était bien dimensionnée pour un

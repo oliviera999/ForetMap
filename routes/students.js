@@ -8,6 +8,7 @@ const { queryAll, queryOne, execute } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
+const { toPublicUserRow } = require('../lib/publicUser');
 const { logAudit } = require('./audit');
 const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
 const { getAbsolutePath, ensureDir } = require('../lib/uploads');
@@ -326,7 +327,7 @@ router.post(
       nowIsoUtc(),
       askedStudentId,
     ]);
-    res.json({ ...s, password_hash: undefined });
+    res.json(toPublicUserRow(s));
   }),
 );
 
@@ -460,8 +461,7 @@ router.post(
     });
     emitStudentsChanged({ reason: 'duplicate_student', studentId: newId });
     res.status(201).json({
-      ...created,
-      password_hash: undefined,
+      ...toPublicUserRow(created),
       role_slug: roleRow?.slug,
       role_display_name: roleRow?.display_name,
       source_student_id: sourceId,
@@ -544,7 +544,7 @@ router.patch(
         .status(400)
         .json({ error: `Description trop longue (max ${MAX_DESCRIPTION_LEN} caractères)` });
     }
-    const avatarRes = applyAvatarUpdate({
+    const avatarRes = await applyAvatarUpdate({
       hasAvatarData,
       avatarDataRaw: body.avatarData,
       removeAvatar,
@@ -592,7 +592,7 @@ router.patch(
       },
     );
     emitStudentsChanged({ reason: 'student_profile_update', studentId: student.id });
-    res.json({ ...updated, password_hash: undefined });
+    res.json(toPublicUserRow(updated));
   }),
 );
 

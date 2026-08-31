@@ -9,6 +9,7 @@ import { io } from 'socket.io-client';
 import { api, AccountDeletedError, API, withAppBase, getAuthToken } from '../services/api';
 import { partitionByArchived } from '../utils/taskArchive';
 import { isSocketAuthRejection } from '../utils/realtimeAuthRejection';
+import { jitteredRefreshDelay } from '../utils/realtimeRefreshDelay';
 
 /** Après notification Socket.IO : tâches = refetch léger côté API (priorité fraîcheur). */
 const TASKS_RT_DEBOUNCE_MS = 220;
@@ -158,7 +159,7 @@ export function useForetmapRealtime({
     tasksRtDebounceRef.current = setTimeout(() => {
       tasksRtDebounceRef.current = null;
       refreshTasksFromServer();
-    }, TASKS_RT_DEBOUNCE_MS);
+    }, jitteredRefreshDelay(TASKS_RT_DEBOUNCE_MS));
   }, [refreshTasksFromServer]);
 
   const scheduleGardenRefresh = useCallback(
@@ -171,7 +172,7 @@ export function useForetmapRealtime({
         const includePlants = gardenRtPlantsPendingRef.current;
         gardenRtPlantsPendingRef.current = false;
         refreshGardenFromServer({ includePlants });
-      }, GARDEN_RT_DEBOUNCE_MS);
+      }, jitteredRefreshDelay(GARDEN_RT_DEBOUNCE_MS));
     },
     [refreshGardenFromServer],
   );
