@@ -978,8 +978,8 @@ protocole-relatif, chemin relatif) est écartée à l’enregistrement.
 | ------- | --------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | GET     | `/api/zones`                      | non                | Liste des zones                                                                                                                                  |
 | GET     | `/api/zones/:id`                  | non                | Détail zone                                                                                                                                      |
-| PUT     | `/api/zones/:id`                  | oui                | Modifier zone (dont le drapeau **`special`** : `true`/`1` = zone spéciale bâtiment/infra, `false`/`0` = zone normale ; omis = valeur inchangée)  |
-| POST    | `/api/zones`                      | oui                | Créer zone (champ **`special`** optionnel, défaut `0`)                                                                                           |
+| PUT     | `/api/zones/:id`                  | oui                | Modifier zone (dont **`category_ids`** : liste des catégories du lieu ; omis = affectations inchangées)                                          |
+| POST    | `/api/zones`                      | oui                | Créer zone (champ **`category_ids`** optionnel)                                                                                                  |
 | DELETE  | `/api/zones/:id`                  | oui                | Supprimer zone                                                                                                                                   |
 | GET     | `/api/zones/:id/photos`           | non                | Liste des photos (méta, tri `sort_order` croissant)                                                                                              |
 | GET     | `/api/zones/:id/photos/:pid/data` | non (token requis) | Données image : **`302`** vers **`/uploads/zones/...`** si le chemin disque est au format public ; sinon `sendFile` direct                       |
@@ -989,7 +989,9 @@ protocole-relatif, chemin relatif) est écartée à l’enregistrement.
 
 - **`GET /api/zones/:id/photos`** : chaque entrée inclut **`image_url`** (URL **`/uploads/zones/{id}/{photoId}.jpg`** pour les fichiers créés par l’API — pas de passage par `/api` pour le chargement navigateur) et **`thumb_url`** (`*.thumb.jpg`, **absent** ou `null` si la vignette n’existe pas, p. ex. module **`sharp`** indisponible sur l’hôte). Le champ **`image_path`** (relatif à `uploads/`) reste exposé.
 - Le champ `name` peut commencer par un **emoji de zone** : préfixe (séquence emoji) suivi d’un **espace** puis le libellé ; l’UI carte permet de choisir l’emoji dans une grille ou de coller un pictogramme.
-- **`POST /api/zones`** : corps JSON `name`, `points` (≥ 3 sommets `{ xp, yp }` en pourcentage de l’image — format **validé**, 400 si `points` n’est pas un tableau de sommets numériques, idem sur `PUT` quand `points` est fourni), `map_id` ; optionnellement `color`, **`living_beings`** (tableau de noms du catalogue, ordre conservé), `current_plant` (colonne legacy, ignorée en persistance si `living_beings` est non vide — alors `current_plant` est stocké vide), `stage`, **`description`** (texte, chaîne vide si absent).
+- **`POST /api/zones`** : corps JSON `name`, `points` (≥ 3 sommets `{ xp, yp }` en pourcentage de l’image — format **validé**, 400 si `points` n’est pas un tableau de sommets numériques, idem sur `PUT` quand `points` est fourni), `map_id` ; optionnellement `color`, **`living_beings`** (tableau de noms du catalogue, ordre conservé), `current_plant` (colonne legacy, ignorée en persistance si `living_beings` est non vide — alors `current_plant` est stocké vide), **`category_ids`**, **`description`** (texte, chaîne vide si absent).
+- **Catégories de lieu** : chaque zone expose **`categories`** (objets complets, triés par `sort_order` puis `label`), **`category_ids`** et **`is_infrastructure`** (vrai dès qu’une catégorie affectée porte ce drapeau). Sur `POST` / `PUT`, **`category_ids`** remplace l’ensemble des affectations ; les identifiants qui ne sont pas assignables (catégorie inactive, propre à une autre carte, ou `applies_to` incompatible) sont **silencieusement ignorés**. Sur `PUT`, omettre `category_ids` conserve les affectations existantes — mais un changement de `map_id` retire celles devenues hors périmètre.
+- **Champs dépréciés** : **`special`** reste en réponse comme miroir de `is_infrastructure` (et reste écrit en base pour la synchronisation carte → visite et l’export SQL), mais **n’est plus accepté en entrée** — passer par `category_ids` et une catégorie `is_infrastructure`. La colonne **`stage`** (`empty` / `growing` / `ready`) n’est plus ni lue ni écrite par l’application : l’état de culture a été remplacé par les catégories.
 - **`GET /api/zones`** et **`GET /api/zones/:id`** : chaque zone expose **`living_beings_list`** (tableau dérivé de `living_beings` JSON, ordre conservé). La colonne brute `living_beings` n’est pas renvoyée. **`current_plant`** reste en réponse pour compatibilité mais est vide dès qu’au moins un être vivant est listé dans `living_beings_list`.
 - **Liste vs détail (anti-LVE)** : `GET /api/zones` (polling carte) **n’inclut pas** `visit_body_json` ; flag **`has_visit_body`** + historique borné (**5** entrées, `history_truncated` si plus). Corps éditorial et historique complet : **`GET /api/zones/:id`**.
 - **`PUT /api/zones/:id`** : si le corps contient au moins une des clés **`visit_subtitle`**, **`visit_short_description`**, **`visit_details_title`**, **`visit_details_text`**, **`visit_body_json`** (ou alias **`visit_editorial_blocks`**), une ligne **`visit_zones`** est créée ou mise à jour pour ce même `id` (textes visite alignés sur le mode visite), sans modifier `is_active` / `sort_order` d’une ligne déjà présente.
@@ -1014,8 +1016,41 @@ protocole-relatif, chemin relatif) est écartée à l’enregistrement.
 
 - Corps JSON : notamment `emoji` (pictogramme du repère, **optionnel** : chaîne vide `""` pour aucun emoji ; omission à la création = pas d’emoji). Valeur **tronquée à 16 caractères** côté serveur si besoin (colonne `map_markers.emoji`). **`living_beings`** : tableau de noms (ordre conservé) ; **`plant_name`** est une colonne legacy laissée **vide** dès que la liste est non vide (comme **`current_plant`** pour les zones).
 - **`GET /api/map/markers`** : chaque repère inclut **`living_beings_list`** (même principe que les zones ; **`plant_name`** vide si la liste est non vide) et, si une ligne existe dans `visit_markers` avec le même `id`, **`visit_subtitle`**, **`visit_short_description`**, **`visit_details_title`**, **`visit_details_text`**, **`visit_body_json`** (sinon `null` pour ces champs visite).
+- **Catégories de lieu** : comme les zones, chaque repère expose **`categories`**, **`category_ids`** et **`is_infrastructure`**, et accepte **`category_ids`** sur `POST` / `PUT` (même règle : les identifiants non assignables sont ignorés, l'omission sur `PUT` conserve les affectations, un changement de `map_id` retire celles devenues hors périmètre). Voir la section **Catégories de lieux**.
 - **`POST`** / **`PUT /api/map/markers/:id`** : si le corps contient au moins une des clés **`visit_subtitle`**, **`visit_short_description`**, **`visit_details_title`**, **`visit_details_text`**, **`visit_body_json`** (ou alias **`visit_editorial_blocks`**), une ligne **`visit_markers`** est créée ou mise à jour pour ce même `id`, sans modifier `is_active` / `sort_order` d’une ligne déjà présente.
 - **`DELETE /api/map/markers/:id`** : supprime aussi la **cible visite** de même `id` si elle existe — ligne **`visit_markers`**, médias **`visit_media`** (fichiers disque + lignes) et progression vue (**`visit_seen_students`**, **`visit_seen_anonymous`**). Évite qu’un repère retiré de la carte subsiste comme repère « fantôme » obsolète dans **`GET /api/visit/content`**.
+
+---
+
+## Catégories de lieux
+
+Classement partagé par les zones et les repères. Une catégorie est **globale** (`map_id: null`,
+valable sur toutes les cartes) ou **propre à une carte**. `applies_to` restreint son usage
+(`zone`, `marker` ou `both`). `is_infrastructure` reprend l'ancien drapeau `zones.special` :
+pas de section Biodiversité en visite, lieu jamais proposé comme cible de mission, contour en
+pointillés sur la carte.
+
+| Méthode | URL                          | n3boss | Description                                                                        |
+| ------- | ---------------------------- | ------ | ---------------------------------------------------------------------------------- |
+| GET     | `/api/map-categories`        | non    | Catalogue **public** : catégories **actives**, filtrables par `map_id` et `kind`   |
+| GET     | `/api/map-categories/manage` | oui    | Vue de gestion : inclut les catégories **désactivées** (permission `zones.manage`) |
+| POST    | `/api/map-categories`        | oui    | Créer une catégorie                                                                |
+| PUT     | `/api/map-categories/:id`    | oui    | Modifier une catégorie                                                             |
+| DELETE  | `/api/map-categories/:id`    | oui    | Supprimer une catégorie (les affectations partent en cascade)                      |
+
+- **`GET /api/map-categories`** : paramètres `map_id` (renvoie les catégories globales **et**
+  celles de la carte ; **400** si la carte n'existe pas) et `kind` (`zone` ou `marker` ; **400**
+  sinon). Réponse triée par `sort_order` puis `label`.
+- **Corps JSON** (`POST` / `PUT`) : `label` (requis, ≤ 120 caractères), `slug` (dérivé du label
+  si absent), `emoji`, `color` (`#rrggbb`, `#rrggbbaa`… — **400** si le format est invalide),
+  `description` (≤ 512 caractères), `map_id` (`null` ou vide = toutes les cartes ; **400** si la
+  carte n'existe pas), `applies_to` (**400** hors `zone` / `marker` / `both`),
+  `is_infrastructure`, `sort_order`, `is_active`.
+- **409** si le `slug` est déjà pris **sur le même périmètre** (même carte, ou parmi les
+  catégories globales) ; le même slug reste libre sur une autre carte.
+- **`PUT`** : restreindre la portée (`map_id`) ou `applies_to` **retire** les affectations
+  devenues invalides. Basculer `is_infrastructure`, comme supprimer une catégorie qui le porte,
+  réaligne la colonne dépréciée `zones.special`.
 
 ---
 

@@ -13,6 +13,7 @@ import {
   MarkerEmojiField,
   MarkerVisitImageBuilder,
 } from './MarkerFormSections.jsx';
+import { LocationCategoryBadges } from './LocationCategoryPicker.jsx';
 import { LocationModalTabBar } from './LocationModalTabBar.jsx';
 import { MarkerTutorialCardList } from './MarkerTutorialCardList.jsx';
 import { PhotoGallery } from './PhotoGallery.jsx';
@@ -25,6 +26,7 @@ import { useVisitMediaBlocks } from './useVisitMediaBlocks.js';
 function MarkerModal({
   marker,
   plants,
+  categoryCatalog = [],
   tasks,
   tutorials = [],
   onClose,
@@ -196,7 +198,13 @@ function MarkerModal({
         </div>
         {isTeacher ? (
           <>
-            <MarkerCommonFormFields form={form} setForm={setForm} plants={plants} set={set} />
+            <MarkerCommonFormFields
+              form={form}
+              setForm={setForm}
+              plants={plants}
+              set={set}
+              categoryCatalog={categoryCatalog}
+            />
             <MarkerEmojiField
               id="marker-new-emoji-custom"
               form={form}
@@ -243,6 +251,11 @@ function MarkerModal({
           <div style={{ marginTop: 3, fontSize: '.72rem', color: '#64748b', fontWeight: 600 }}>
             Repère
           </div>
+          {(marker.categories || []).length > 0 && (
+            <div style={{ marginTop: 4 }}>
+              <LocationCategoryBadges item={marker} />
+            </div>
+          )}
         </div>
         {isTeacher && (
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
@@ -448,7 +461,13 @@ function MarkerModal({
       )}
       {tab === 'edit' && isTeacher && (
         <div className="fade-in">
-          <MarkerCommonFormFields form={form} setForm={setForm} plants={plants} set={set} />
+          <MarkerCommonFormFields
+            form={form}
+            setForm={setForm}
+            plants={plants}
+            set={set}
+            categoryCatalog={categoryCatalog}
+          />
           <MarkerVisitImageBuilder
             imageBlocks={imageBlocks}
             visitMediaOptions={visitMediaOptions}

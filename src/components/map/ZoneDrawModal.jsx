@@ -12,12 +12,14 @@ import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
 import { DialogShell } from '../DialogShell';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
+import { LocationCategoryPicker } from './LocationCategoryPicker.jsx';
 
 function ZoneDrawModal({
   points_pct,
   onClose,
   onSave,
   plants,
+  categoryCatalog = [],
   markerEmojis = MARKER_EMOJIS,
   emojiParsingList = MARKER_EMOJIS,
 }) {
@@ -27,8 +29,7 @@ function ZoneDrawModal({
     name: '',
     zone_emoji: markerEmojis[0] || '📍',
     living_beings: [],
-    stage: 'empty',
-    special: false,
+    category_ids: [],
     description: '',
     color: ZONE_COLORS[0],
   });
@@ -90,13 +91,10 @@ function ZoneDrawModal({
             value={form.living_beings}
             onChange={(e) => {
               const picked = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-              setForm((f) => {
-                const next = nextLivingBeingsFromMultiSelect(f.living_beings, picked, plants);
-                let stage = f.stage;
-                if (next.length === 0) stage = 'empty';
-                else if (f.stage === 'empty') stage = 'growing';
-                return { ...f, living_beings: next, stage };
-              });
+              setForm((f) => ({
+                ...f,
+                living_beings: nextLivingBeingsFromMultiSelect(f.living_beings, picked, plants),
+              }));
             }}
           >
             {plants.map((p) => (
@@ -106,29 +104,13 @@ function ZoneDrawModal({
             ))}
           </select>
         </div>
-        <div className="field">
-          <label>État</label>
-          <select value={form.stage} onChange={set('stage')}>
-            <option value="empty">Vide</option>
-            <option value="growing">En croissance</option>
-            <option value="ready">Prêt à récolter</option>
-          </select>
-        </div>
       </div>
-      <div className="field">
-        <label
-          style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-          title="Une zone spéciale représente un bâtiment ou une infrastructure (mare, ruches, compostage…) plutôt qu'une culture."
-        >
-          <input
-            type="checkbox"
-            checked={form.special}
-            onChange={(e) => setForm((f) => ({ ...f, special: e.target.checked }))}
-            style={{ width: 18, height: 18 }}
-          />
-          Zone spéciale (bâtiment / infrastructure)
-        </label>
-      </div>
+      <LocationCategoryPicker
+        kind="zone"
+        catalog={categoryCatalog}
+        value={form.category_ids}
+        onChange={(next) => setForm((f) => ({ ...f, category_ids: next }))}
+      />
       <div className="field">
         <label>Description</label>
         <MarkdownTextarea
