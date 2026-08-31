@@ -11,6 +11,7 @@ import {
 import { getRoleTerms } from '../utils/n3-terminology';
 import { MediaLibraryMenu } from './MediaLibraryMenu.jsx';
 import { AdminTextSettingField, AdminNumberSettingField } from './settings/AdminSettingFields.jsx';
+import { MapCategoriesPanel } from './settings/MapCategoriesPanel.jsx';
 import { MapGeorefPanel } from './settings/MapGeorefPanel.jsx';
 import { VisitMascotSettingsPanel } from './settings/VisitMascotSettingsPanel.jsx';
 import { FMLearningGatingSettings } from './settings/FMLearningGatingSettings.jsx';
@@ -790,6 +791,15 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
               ))}
             </div>
           </div>
+
+          <MapCategoriesPanel
+            maps={maps}
+            onMessage={(okMsg) => {
+              setMsg(okMsg);
+              setErr('');
+            }}
+            onError={(errMsg) => setErr(errMsg)}
+          />
 
           <div
             className="settings-admin-grid settings-admin-grid--single-on-mobile"

@@ -21,6 +21,11 @@ const {
   attachSpeciesToEntity,
 } = require('../lib/speciesJunction');
 const { normalizeMarkerEmoji } = require('../lib/markerEmoji');
+const {
+  loadCategoriesMap,
+  attachCategoriesToEntity,
+  syncEntityCategories,
+} = require('../lib/locationCategories');
 const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const {
   registerEntityPhotoRoutes,
@@ -172,15 +177,17 @@ router.get(
     const rows = mapId
       ? await queryAll(`${MARKERS_LIST_SQL} WHERE m.map_id = ? ORDER BY m.created_at`, [mapId])
       : await queryAll(`${MARKERS_LIST_SQL} ORDER BY m.created_at`);
-    const speciesMap = await loadMarkerSpeciesMap(
-      db,
-      rows.map((row) => row.id),
-    );
+    const markerIds = rows.map((row) => row.id);
+    const speciesMap = await loadMarkerSpeciesMap(db, markerIds);
+    const categoriesMap = await loadCategoriesMap(db, 'marker', markerIds);
     res.json(
       rows.map((row) =>
-        attachSpeciesToEntity(row, speciesMap.get(String(row.id)) || [], {
-          legacySingleName: row.plant_name,
-        }),
+        attachCategoriesToEntity(
+          attachSpeciesToEntity(row, speciesMap.get(String(row.id)) || [], {
+            legacySingleName: row.plant_name,
+          }),
+          categoriesMap.get(String(row.id)) || [],
+        ),
       ),
     );
   }),
@@ -190,8 +197,18 @@ router.post(
   '/markers',
   requirePermission('map.manage_markers'),
   asyncHandler(async (req, res) => {
-    const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id, species_ids } =
-      req.body;
+    const {
+      x_pct,
+      y_pct,
+      label,
+      plant_name,
+      living_beings,
+      note,
+      emoji,
+      map_id,
+      species_ids,
+      category_ids,
+    } = req.body;
     const mapId = String(map_id || '').trim() || (await resolveDefaultMapId('teacher'));
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
@@ -224,17 +241,27 @@ router.post(
       ],
     );
     await syncMarkerSpecies(db, id, species_ids, nextLiving);
+    await syncEntityCategories(db, {
+      kind: 'marker',
+      entityId: id,
+      mapId,
+      categoryIds: category_ids,
+    });
     let row = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [id]);
     if (hasVisitMarkerContentPatch(req.body)) {
       await upsertVisitMarkerEditorial(req.body, row);
       row = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [id]);
     }
     const speciesRows = await loadMarkerSpeciesMap(db, [id]);
+    const categoriesRows = await loadCategoriesMap(db, 'marker', [id]);
     emitGardenChanged({ reason: 'create_marker', markerId: id, mapId });
     res.status(201).json(
-      attachSpeciesToEntity(row, speciesRows.get(String(id)) || [], {
-        legacySingleName: row.plant_name,
-      }),
+      attachCategoriesToEntity(
+        attachSpeciesToEntity(row, speciesRows.get(String(id)) || [], {
+          legacySingleName: row.plant_name,
+        }),
+        categoriesRows.get(String(id)) || [],
+      ),
     );
   }),
 );
@@ -245,8 +272,18 @@ router.put(
   asyncHandler(async (req, res) => {
     const m = await queryOne('SELECT * FROM map_markers WHERE id = ?', [req.params.id]);
     if (!m) return res.status(404).json({ error: 'Repère introuvable' });
-    const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id, species_ids } =
-      req.body;
+    const {
+      x_pct,
+      y_pct,
+      label,
+      plant_name,
+      living_beings,
+      note,
+      emoji,
+      map_id,
+      species_ids,
+      category_ids,
+    } = req.body;
     if (label !== undefined && !String(label).trim()) {
       return res.status(400).json({ error: 'Label requis' });
     }
@@ -273,10 +310,11 @@ router.put(
         : plant_name !== undefined
           ? String(plant_name || '').trim()
           : String(m.plant_name || '').trim();
+    const nextMapIdForMarker = map_id != null ? String(map_id).trim() : m.map_id;
     await execute(
       'UPDATE map_markers SET map_id=?, x_pct=?, y_pct=?, label=?, plant_name=?, note=?, emoji=? WHERE id=?',
       [
-        map_id != null ? String(map_id).trim() : m.map_id,
+        nextMapIdForMarker,
         x_pct ?? m.x_pct,
         y_pct ?? m.y_pct,
         label !== undefined ? String(label).trim() : m.label,
@@ -291,17 +329,35 @@ router.put(
     if (living_beings !== undefined || species_ids !== undefined) {
       await syncMarkerSpecies(db, m.id, species_ids, nextLiving);
     }
+    // `category_ids` absent ⇒ affectations conservées, mais réévaluées si la carte change
+    // (une catégorie propre à l'ancienne carte n'est plus assignable).
+    const currentCategoryIds =
+      category_ids !== undefined
+        ? category_ids
+        : (
+            await queryAll('SELECT category_id FROM marker_categories WHERE marker_id = ?', [m.id])
+          ).map((row) => String(row.category_id));
+    await syncEntityCategories(db, {
+      kind: 'marker',
+      entityId: m.id,
+      mapId: nextMapIdForMarker,
+      categoryIds: currentCategoryIds,
+    });
     let updated = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [m.id]);
     if (hasVisitMarkerContentPatch(req.body)) {
       await upsertVisitMarkerEditorial(req.body, updated);
       updated = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [m.id]);
     }
     const speciesRows = await loadMarkerSpeciesMap(db, [m.id]);
+    const categoriesRows = await loadCategoriesMap(db, 'marker', [m.id]);
     emitGardenChanged({ reason: 'update_marker', markerId: m.id, mapId: updated.map_id });
     res.json(
-      attachSpeciesToEntity(updated, speciesRows.get(String(m.id)) || [], {
-        legacySingleName: updated.plant_name,
-      }),
+      attachCategoriesToEntity(
+        attachSpeciesToEntity(updated, speciesRows.get(String(m.id)) || [], {
+          legacySingleName: updated.plant_name,
+        }),
+        categoriesRows.get(String(m.id)) || [],
+      ),
     );
   }),
 );
