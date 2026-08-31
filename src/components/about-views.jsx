@@ -1,9 +1,61 @@
+import { useState } from 'react';
 import { useHelp } from '../hooks/useHelp';
 import { getContentText } from '../utils/content';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { getAuthToken, withAppBase } from '../services/api';
 
-function AboutView({ appVersion, isTeacher = false }) {
+/**
+ * Rapports d'audit interne, servis par des routes protégées par `admin.settings.read`
+ * (`server.js`). Un `<a href>` ordinaire ne peut pas les ouvrir : la navigation du
+ * navigateur n'emporte aucun en-tête `Authorization`, et le jeton vit dans le stockage
+ * local, pas dans un cookie — le lien retournait donc `401 {"error":"Token requis"}`
+ * pour tout le monde, administrateur compris. On les récupère avec le jeton et on les
+ * affiche sur place.
+ */
+const SITE_ISSUES_DOCS = [
+  {
+    label: 'SITE_ISSUES',
+    href: '/api/site-issues',
+    desc: 'Rapport markdown des problèmes connus du site',
+  },
+  {
+    label: 'SITE_ISSUES JSON',
+    href: '/api/site-issues.json',
+    desc: 'Version JSON du rapport de suivi QA',
+  },
+];
+
+function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false }) {
   const publicSettings = usePublicSettings();
+  // Rapport d'audit affiché en place (pas d'onglet : voir SITE_ISSUES_DOCS).
+  const [siteIssuesDoc, setSiteIssuesDoc] = useState(null);
+  const [siteIssuesError, setSiteIssuesError] = useState('');
+  const [siteIssuesLoading, setSiteIssuesLoading] = useState('');
+
+  async function openSiteIssuesDoc(entry) {
+    setSiteIssuesError('');
+    setSiteIssuesLoading(entry.label);
+    try {
+      const token = getAuthToken();
+      const res = await fetch(withAppBase(entry.href), {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        throw new Error(
+          res.status === 401 || res.status === 403
+            ? 'Accès refusé : ce rapport demande le droit de lecture des réglages. Si la session a expiré, reconnecte-toi.'
+            : `Lecture impossible (HTTP ${res.status}).`,
+        );
+      }
+      // `res.text()` couvre les deux formats servis (markdown et JSON brut).
+      setSiteIssuesDoc({ label: entry.label, text: await res.text() });
+    } catch (err) {
+      setSiteIssuesDoc(null);
+      setSiteIssuesError(err?.message || 'Lecture impossible.');
+    } finally {
+      setSiteIssuesLoading('');
+    }
+  }
   const { resetHelp, metrics, resetHelpMetrics } = useHelp({ publicSettings, isTeacher });
   const aboutTitle = getContentText(publicSettings, 'about.title', 'ℹ️ À propos');
   const aboutSubtitle = getContentText(
@@ -22,6 +74,11 @@ function AboutView({ appVersion, isTeacher = false }) {
     'ForetMap aide les n3beurs et les n3boss du Lycée Lyautey à organiser les activités de la forêt comestible: suivi des zones, de la biodiversité, des tâches et des observations.',
   );
   const aboutDocsTitle = getContentText(publicSettings, 'about.docs_title', 'Documentation');
+  const aboutSiteIssuesTitle = getContentText(
+    publicSettings,
+    'about.site_issues_title',
+    'Audit interne (réservé aux administrateurs)',
+  );
   const aboutHelpTitle = getContentText(publicSettings, 'about.help_title', 'Aide contextuelle');
   const aboutHelpBody = getContentText(
     publicSettings,
@@ -42,16 +99,6 @@ function AboutView({ appVersion, isTeacher = false }) {
     { label: 'CHANGELOG', href: '/CHANGELOG.md', desc: 'Historique des modifications publiées' },
     { label: 'README', href: '/README.md', desc: 'Présentation du projet et installation' },
     { label: 'API', href: '/docs/API.md', desc: 'Routes backend et formats JSON' },
-    {
-      label: 'SITE_ISSUES',
-      href: '/api/site-issues',
-      desc: 'Rapport markdown des problèmes connus du site',
-    },
-    {
-      label: 'SITE_ISSUES JSON',
-      href: '/api/site-issues.json',
-      desc: 'Version JSON du rapport de suivi QA',
-    },
     {
       label: 'LOCAL_DEV',
       href: '/docs/LOCAL_DEV.md',
@@ -94,6 +141,63 @@ function AboutView({ appVersion, isTeacher = false }) {
               </a>
             ))}
           </div>
+
+          {/* Réservé aux détenteurs de `admin.settings.read` : ces rapports recensent des
+              faiblesses connues du site et n'ont rien à faire sous les yeux d'un élève. */}
+          {canReadSiteIssues && (
+            <div style={{ marginTop: 12 }}>
+              <h4 style={{ margin: '0 0 6px', fontSize: '.86rem', color: 'var(--leaf)' }}>
+                {aboutSiteIssuesTitle}
+              </h4>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {SITE_ISSUES_DOCS.map((entry) => (
+                  <button
+                    key={entry.label}
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => openSiteIssuesDoc(entry)}
+                    disabled={siteIssuesLoading === entry.label}
+                    title={entry.desc}
+                  >
+                    {siteIssuesLoading === entry.label ? 'Chargement…' : entry.label}
+                  </button>
+                ))}
+                {siteIssuesDoc && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setSiteIssuesDoc(null)}
+                  >
+                    Fermer
+                  </button>
+                )}
+              </div>
+              {siteIssuesError && (
+                <p role="alert" style={{ marginTop: 8, fontSize: '.82rem', color: '#a4161a' }}>
+                  {siteIssuesError}
+                </p>
+              )}
+              {siteIssuesDoc && (
+                <pre
+                  aria-label={siteIssuesDoc.label}
+                  style={{
+                    marginTop: 8,
+                    maxHeight: 320,
+                    overflow: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    fontSize: '.76rem',
+                    background: 'var(--surface-soft)',
+                    color: 'var(--forest)',
+                    padding: 8,
+                    borderRadius: 8,
+                  }}
+                >
+                  {siteIssuesDoc.text}
+                </pre>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="about-card">
