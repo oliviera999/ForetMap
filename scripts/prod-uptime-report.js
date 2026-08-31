@@ -88,6 +88,7 @@ function describeEntry(entry) {
   if (entry.event === 'stop') {
     const reason = String(entry.reason || '').toLowerCase();
     if (reason === 'restart') return `${at}  ARRÊT    déploiement (POST /api/admin/restart)`;
+    if (reason === 'restart-gui') return `${at}  ARRÊT    redémarrage demandé depuis l'IHM admin`;
     if (reason === 'env_invalid')
       return `${at}  ARRÊT    refus de démarrage : variables d'environnement invalides`;
     if (reason === 'listen_error') return `${at}  ARRÊT    refus de démarrage : port indisponible`;
@@ -137,6 +138,23 @@ async function main() {
   );
   console.log('');
 
+  // Cas que le journal de cycle de vie ne peut PAS voir : le process est bien debout
+  // (donc aucun redémarrage à raconter) mais n'a jamais réussi à joindre MySQL — tout
+  // /api/* répond alors 503 et le client réessaie en boucle.
+  const dbInit = res.body?.databaseInit;
+  if (dbInit && dbInit.ready === false) {
+    console.log('⚠ BASE DE DONNÉES NON INITIALISÉE sur le process en cours.');
+    console.log(
+      `  ${dbInit.attempts} tentative(s), dernière erreur : ${dbInit.lastError || 'inconnue'}`,
+    );
+    console.log(
+      dbInit.stopped
+        ? '  Reprise abandonnée (arrêt en cours) — le prochain démarrage rejouera l’initialisation.'
+        : `  Nouvelle tentative dans ${formatDuration(dbInit.nextRetryMs)}. Tout /api/* répond 503 en attendant : vérifier MySQL (cPanel), puis GET /api/admin/logs.`,
+    );
+    console.log('');
+  }
+
   if (!restarts) {
     console.log(
       'Champ `restarts` absent : la version déployée est antérieure au journal de cycle de vie. Déployer le lot en cours, puis relancer.',
@@ -171,8 +189,17 @@ async function main() {
   console.log(`VERDICT : ${restarts.verdict}`);
   console.log(restarts.advice);
   console.log('');
-  console.log('Derniers évènements :');
-  for (const entry of restarts.recent || []) console.log(`  ${describeEntry(entry)}`);
+  const recent = restarts.recent || [];
+  console.log(`Derniers évènements (fenêtre de ${restarts.windowHours} h) :`);
+  if (recent.length === 0) {
+    console.log('  aucun — le process n’a ni démarré ni été arrêté sur la fenêtre.');
+  }
+  for (const entry of recent) console.log(`  ${describeEntry(entry)}`);
+  if (restarts.entriesBeforeWindow > 0) {
+    console.log(
+      `  (+ ${restarts.entriesBeforeWindow} évènement(s) plus ancien(s) — élargir avec --hours=)`,
+    );
+  }
 }
 
 main().catch((err) => {

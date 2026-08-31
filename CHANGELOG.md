@@ -7,6 +7,47 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Le serveur ne reste plus en panne tout seul (déconnexions à répétition)
+
+Diagnostic parti d'un symptôme simple : des « déconnexions » et des tentatives de
+reconnexion qui s'enchaînent sans fin. La boucle de réessai (8 tentatives sur ~25 s)
+n'était pas en cause — elle faisait son travail. Trois défauts en amont l'étaient.
+
+**Une panne MySQL au démarrage n'est plus définitive.** Si `initDatabase()` échouait au
+boot, l'erreur était seulement journalisée : le process restait debout avec sa base
+marquée « non prête », donc **tout `/api/*` répondait `503` jusqu'à un redémarrage
+manuel** — pendant que `/api/health` répondait `200`, si bien que le keepalive
+entretenait un service inutilisable. Une indisponibilité MySQL de deux secondes au
+mauvais moment coûtait ainsi une demi-journée. L'initialisation est désormais **reprise
+automatiquement** (2 s, 5 s, 10 s… jusqu'à une tentative par minute) et son état est
+exposé dans `GET /api/admin/diagnostics` (champ `databaseInit`), en tête du rapport
+`npm run prod:uptime-report`.
+
+**Une coupure passagère ne vide plus l'écran.** Chaque domaine du rafraîchissement
+(zones, tâches, plantes, repères, tutoriels, cartes) repliait son échec sur une liste
+**vide**, appliquée telle quelle à l'affichage : la carte et les tâches disparaissaient
+le temps d'une coupure, ce qui se lit comme une perte de données. Les données du dernier
+chargement réussi sont maintenant conservées. Corollaire : comme l'erreur était avalée,
+le compteur d'échecs ne montait jamais et le bandeau **« Serveur indisponible »** ainsi
+que le repli du polling à 2 minutes n'étaient quasiment jamais atteints — ils
+fonctionnent à nouveau.
+
+**Le diagnostic dit enfin la vérité sur deux points.** Un redémarrage demandé depuis
+l'IHM admin (`restart-gui`) était compté comme un arrêt de l'hébergeur : trois clics
+suffisaient à produire le verdict `host_idle_stops` et à conseiller un keepalive
+Passenger sans rapport. Et un `SIGTERM` reçu **avant** l'ouverture du port ne laissait
+aucune trace d'arrêt — le démarrage suivant était alors classé « process tué sans
+signal », verdict `hard_kills`, qui envoie l'opérateur vers les quotas LVE d'o2switch
+pour rien. Les gestionnaires de signaux sont désormais posés dès la première ligne du
+démarrage. Enfin, la liste « derniers évènements » du rapport respecte la fenêtre
+demandée (`--hours=`) au lieu de piocher dans tout le journal.
+
+Détail : `lib/databaseInitRetry.js` (nouveau), `server.js`, `routes/admin-ops.js`,
+`src/hooks/useAppDataSync.js`, `lib/bootJournal.js`, `scripts/prod-uptime-report.js` ;
+tests `tests/database-init-retry.test.js`, `tests/boot-journal.test.js`,
+`tests-ui/hooks/useAppDataSync.test.jsx` ; docs `docs/API.md`, `docs/EXPLOITATION.md`,
+`docs/reference/foretmap/presentation.md`.
+
 ### Les rapports d'audit s'ouvrent enfin — et seulement pour qui de droit
 
 Cliquer sur **SITE_ISSUES** depuis l'onglet « À propos » ouvrait un onglet affichant
