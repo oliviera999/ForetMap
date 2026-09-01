@@ -51,6 +51,62 @@ test('mapGeoTransform: ancres colinéaires ou invalides → null', async () => {
   assert.strictEqual(isValidAnchors(ANCHORS), true);
 });
 
+test('mapGeoTransform: applyGeoTransform réutilise une transformation pré-calculée', async () => {
+  const { applyGeoTransform, geoToPct, solveAffineFromAnchors } =
+    await import('../src/utils/mapGeoTransform.js');
+  const t = solveAffineFromAnchors(ANCHORS);
+  assert.ok(t);
+  const direct = geoToPct(48.847, 2.305, ANCHORS);
+  const applied = applyGeoTransform(t, 48.847, 2.305);
+  assert.deepStrictEqual(applied, direct);
+  assert.strictEqual(applyGeoTransform(null, 48.847, 2.305), null);
+});
+
+test('mapGeoTransform: points GPS quasi colinéaires → transformation refusée (test relatif)', async () => {
+  const { solveAffineFromAnchors, geoToPct } = await import('../src/utils/mapGeoTransform.js');
+  // Triangle net sur le plan, points GPS sur une quasi-droite (écart 1e-12°) : un seuil
+  // absolu de déterminant laissait passer ce genre de système quasi singulier.
+  const nearCollinear = [
+    { xp: 10, yp: 10, lat: 48.85, lng: 2.3 },
+    { xp: 90, yp: 10, lat: 48.85, lng: 2.301 },
+    { xp: 10, yp: 90, lat: 48.85 + 1e-12, lng: 2.302 },
+  ];
+  assert.strictEqual(solveAffineFromAnchors(nearCollinear), null);
+  assert.strictEqual(geoToPct(48.85, 2.301, nearCollinear), null);
+});
+
+test('mapGeoTransform: assessAnchorsGeoPlausibility tranche cohérent / aligné / échelles', async () => {
+  const { assessAnchorsGeoPlausibility } = await import('../src/utils/mapGeoTransform.js');
+  assert.strictEqual(assessAnchorsGeoPlausibility(ANCHORS).ok, true);
+
+  const geoCollinear = [
+    { xp: 10, yp: 10, lat: 48.85, lng: 2.3 },
+    { xp: 90, yp: 10, lat: 48.851, lng: 2.3 },
+    { xp: 10, yp: 90, lat: 48.852, lng: 2.3 },
+  ];
+  assert.strictEqual(assessAnchorsGeoPlausibility(geoCollinear).reason, 'geo_collinear');
+
+  // Cas type audit BDD §3.1 : 80 % du plan ≈ 3,7 m sur un axe, ≈ 55 m sur l'autre.
+  const mismatched = [
+    { xp: 10, yp: 10, lat: 48.85, lng: 2.3 },
+    { xp: 90, yp: 10, lat: 48.85, lng: 2.30005 },
+    { xp: 10, yp: 90, lat: 48.8495, lng: 2.3 },
+  ];
+  const res = assessAnchorsGeoPlausibility(mismatched);
+  assert.strictEqual(res.reason, 'scale_mismatch');
+  assert.ok(res.scaleRatio > 8);
+});
+
+test('mapGeoTransform: planSizeMeters donne des dimensions réalistes', async () => {
+  const { planSizeMeters } = await import('../src/utils/mapGeoTransform.js');
+  // ANCHORS : 80 % ↔ 0,01° → plan complet ≈ 916 m × 1392 m (avec cos(48.85°) en longitude).
+  const size = planSizeMeters(ANCHORS);
+  assert.ok(size);
+  assert.ok(Math.abs(size.widthM - 916) < 20, `largeur ≈ 916 m (obtenu ${size.widthM})`);
+  assert.ok(Math.abs(size.heightM - 1392) < 20, `hauteur ≈ 1392 m (obtenu ${size.heightM})`);
+  assert.strictEqual(planSizeMeters(ANCHORS.slice(0, 2)), null);
+});
+
 test('mapGeoTransform: isPctWithinMap respecte les bornes', async () => {
   const { isPctWithinMap } = await import('../src/utils/mapGeoTransform.js');
   assert.strictEqual(isPctWithinMap({ xp: 50, yp: 50 }), true);

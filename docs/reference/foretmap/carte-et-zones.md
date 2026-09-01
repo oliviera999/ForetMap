@@ -62,6 +62,17 @@ conservée telle quelle pour être corrigée.
 > Les trois points ne doivent pas être **alignés** : il faut un vrai triangle sur le plan,
 > sinon le calage est refusé.
 
+Une fois les trois points complets, l'outil affiche l'**échelle déduite** du calage
+(« plan ≈ L m × H m ») : si ces dimensions ne ressemblent pas au terrain (un plan de
+collège annoncé à 4 mètres de large…), un point est mal renseigné. Deux incohérences sont
+**refusées à l'enregistrement**, avec un message explicite :
+
+- des points **GPS alignés ou confondus** (il faut un vrai triangle sur le terrain aussi,
+  pas seulement sur le plan) ;
+- des **distances GPS incompatibles avec les distances sur le plan** (par exemple deux
+  points à 80 % du plan l'un de l'autre mais à 4 mètres sur le terrain, quand une autre
+  paire implique 50 mètres) — signe typique d'une coordonnée mal saisie.
+
 > ⚠️ **Point d'attention** — Il n'existe pas de bouton pour **supprimer** un plan :
 > on peut seulement le désactiver. C'est prudent (les zones existantes ne sont pas
 > perdues), mais un plan créé par erreur reste visible dans la liste des réglages.
@@ -288,6 +299,14 @@ les onglets restent séparés.
 > administrateur a calé le plan sur trois points GPS **et** activé la géolocalisation
 > pour ce plan. Sans ce calage, rien ne signale que la fonction existe — pensez à le
 > faire pour les plans utilisés sur le terrain.
+
+Pendant le suivi, une bannière sous la barre d'outils indique l'état : suivi actif (avec
+la précision en mètres), localisation refusée, **position indisponible ou délai dépassé**
+(le message d'échec s'affiche au lieu d'un « Acquisition… » sans fin), position hors du
+plan, signal trop imprécis, ou **calage du plan incohérent** — dans ce dernier cas, le
+message invite à le signaler à un professeur : c'est le calage qui est à refaire, pas la
+position de l'élève qui est en cause. La position reste entièrement sur l'appareil : elle
+n'est jamais envoyée au serveur.
 
 ## Lisibilité des noms sur la carte
 

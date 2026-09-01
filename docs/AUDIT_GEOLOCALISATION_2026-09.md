@@ -1,6 +1,8 @@
 # Audit du système de géolocalisation (septembre 2026)
 
-> **Statut : audit seul, sans modification de code.** Relevé effectué sur la tête de la
+> **Statut : audit, puis exécution.** Le relevé (§1 à §4) a été établi sans rien
+> modifier ; le plan d'action (§5) a ensuite été appliqué **en totalité** — état point
+> par point en **§6**. Relevé initial effectué sur la tête de la
 > branche d'audit (base `main`, merge PR #386, `package.json` 1.137.4), par lecture
 > exhaustive du code, des migrations, des tests et de la documentation. Chaque constat
 > porte une référence `fichier:ligne` vérifiable. Ce que le système fait bien est signalé
@@ -282,3 +284,34 @@ les mains du propriétaire du projet.
 Les points 1 à 4 tiennent dans un seul lot cohérent « robustesse du calage GPS » ; le
 point 1 devrait précéder tout recalage terrain de la carte `foret`, pour que la nouvelle
 saisie soit contrôlée par la machine au moment où elle est faite.
+
+---
+
+## 6. Ce qui a été exécuté
+
+Les 7 points du plan ont été appliqués dans le lot qui suit cet audit (même branche).
+
+| #   | État | Livré                                                                                                                                                                                                                                                                                                                                   |
+| --- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | fait | `assessAnchorsGeoPlausibility` (miroirs ESM `mapGeoTransform.js` / CJS `lib/mapGeoref.js`) : colinéarité **relative** du triangle GPS (aplatissement ≥ 0,05) + cohérence des échelles m/% (ratio ≤ 8, le cas prod était à 26) ; rejet 400 à l'écriture (`routes/settings.js`), blocage + message et **échelle déduite** dans le panneau |
+| 2   | fait | la bannière affiche `gps.error` quand l'acquisition échoue (`MascotGpsStatusBanner.jsx`), la barre d'outils aussi ; tests bannière + hook                                                                                                                                                                                               |
+| 3   | fait | feedback `bad_georef` distinct (transformation insoluble **ou** calage stocké invraisemblable) avec message dédié « signalez-le à un professeur »                                                                                                                                                                                       |
+| 4   | fait | `useGeolocation.stop()` purge position + erreur ; `toggle()` off purge le feedback — plus de point périmé rejoué à la réactivation                                                                                                                                                                                                      |
+| 5   | fait | `e2e/map-gps-follow.spec.js` : calage admin par API, `context.setGeolocation`, bouton « Me suivre », bannière active, sortie de zone, désactivation — passé en local                                                                                                                                                                    |
+| 6   | fait | `docs/API.md` : exposition publique des ancres actée (GET), contrôle de plausibilité documenté (PUT) ; doc de référence `carte-et-zones.md` mise à jour (échelle affichée, refus expliqués, états de la bannière)                                                                                                                       |
+| 7   | fait | résolution affine par différences au premier point (test de singularité **relatif**, plus d'epsilon absolu), transformation résolue une fois par jeu d'ancres (`useMemo` + `applyGeoTransform`), objets stabilisés (`useGeolocation` mémoïsé, état dérivé du panneau en un seul `useMemo`)                                              |
+
+Deux choix d'implémentation à connaître :
+
+- **Le contrôle de plausibilité ne s'applique qu'à l'écriture.** Un calage déjà stocké
+  (dont celui, cassé, de la carte `foret` en production) reste servi tel quel — le
+  désactiver d'office à la lecture aurait changé un comportement en production sans
+  demande. En compensation, le **client** évalue la plausibilité du calage reçu : sur un
+  plan au calage invraisemblable, le suivi affiche `bad_georef` (« calage incohérent —
+  signalez-le à un professeur ») au lieu de projeter la mascotte n'importe où ou d'un
+  faux « hors zone ». Le prochain réenregistrement du calage passera, lui, par le
+  contrôle serveur.
+- **Le seuil d'échelle est volontairement large (ratio 8).** Les distances m/% mélangent
+  les axes du plan (le repère % est anisotrope tant que l'image n'est pas carrée) : un
+  plan très allongé produit légitimement un ratio ~3. Le seuil 8 laisse cette marge tout
+  en rejetant nettement le cas pathologique observé (26).
