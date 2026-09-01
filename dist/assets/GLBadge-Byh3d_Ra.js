@@ -1,0 +1,1 @@
+import{t as e}from"./react-vendor-Bx0o5n3G.js";var t=e(),n=`/home/user/ForetMap/src/gl/components/ui/GLBadge.jsx`;function r(...e){return e.filter(Boolean).join(` `)}function i({tone:e=`neutral`,className:i=``,children:a}){return(0,t.jsxDEV)(`span`,{className:r(`gl-badge`,`gl-badge--${e}`,i),children:a},void 0,!1,{fileName:n,lineNumber:7,columnNumber:5},this)}export{i as t};
