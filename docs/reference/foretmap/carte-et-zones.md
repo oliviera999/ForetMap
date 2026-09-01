@@ -260,6 +260,29 @@ Le compteur indique combien de zones et de repères correspondent. Un bouton ✕
 « Tout effacer » remet la carte en vue complète. Élèves et professeurs utilisent
 la même recherche en lecture seule.
 
+## L'inventaire admin « Zones & repères »
+
+Dans **Réglages administrateur → sous-onglet « Zones & repères »**, un inventaire
+liste **toutes les zones et tous les repères, toutes cartes confondues** — là où la
+recherche de la carte ne couvre que le plan affiché. C'est l'outil de relecture
+d'ensemble : repérer les doublons, les fiches sans description, les lieux restés sur
+la mauvaise carte.
+
+- **Recherche libre** : même moteur que la barre de la carte (nom, espèces,
+  catégories, textes de visite, note d'un repère — plusieurs mots combinables).
+- **Filtres** : type (zones seules / repères seuls) et carte.
+- Chaque ligne affiche l'emoji, le nom, le type, la carte, les catégories et le
+  nombre d'espèces associées.
+
+Un bouton **« Modifier »** ouvre une **édition rapide** limitée aux champs
+textuels : **nom et description** pour une zone, **libellé, emoji et note** pour un
+repère. Tout le reste (tracé, position, photos, espèces, catégories, contenus de
+visite, suppression) s'édite comme d'habitude dans la fiche du lieu, sur la carte.
+
+L'accès au sous-onglet suit celui des Réglages administrateur (permission « Lecture
+paramètres admin ») ; l'enregistrement demande en plus « Gestion zones » pour une
+zone et « Gestion repères » pour un repère.
+
 ## La vue grand écran « Cartes & tâches »
 
 Sur un écran suffisamment large (ordinateur, tableau interactif), les onglets Carte et
