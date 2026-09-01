@@ -18,6 +18,7 @@ import {
 import { VisitEditorialBuilder } from './VisitEditorialBuilder.jsx';
 import { VisitMediaEditor } from './VisitMediaEditor.jsx';
 import { VisitEditorEmojiPicker } from './VisitEditorEmojiPicker.jsx';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 
 /**
  * Panneau d'édition visite (zone / repère) réservé enseignant, extrait de `visit-views.jsx` (O6).
@@ -33,6 +34,7 @@ export function VisitEditorPanel({
   roleTerms,
   markerEmojis = MARKER_EMOJIS,
 }) {
+  const { confirm, prompt, notify } = useAppDialogs();
   const [form, setForm] = useState({
     title: '',
     subtitle: '',
@@ -145,7 +147,7 @@ export function VisitEditorPanel({
       await onSaved?.();
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
-      else alert(err.message || 'Erreur enregistrement');
+      else notify(err.message || 'Erreur enregistrement');
     } finally {
       setSaving(false);
     }
@@ -166,7 +168,7 @@ export function VisitEditorPanel({
       await onSaved?.();
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
-      else alert(err.message || 'Erreur ajout photo');
+      else notify(err.message || 'Erreur ajout photo');
     } finally {
       setMediaSaving(false);
     }
@@ -178,7 +180,7 @@ export function VisitEditorPanel({
     if (!files.length) return;
     for (const file of files) {
       if (!String(file.type || '').startsWith('image/')) {
-        alert('Format image invalide (image requise)');
+        notify('Format image invalide (image requise)');
         return;
       }
     }
@@ -198,33 +200,36 @@ export function VisitEditorPanel({
       await onSaved?.();
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
-      else alert(err.message || 'Erreur envoi photo');
+      else notify(err.message || 'Erreur envoi photo');
     } finally {
       setMediaUploading(false);
     }
   };
 
   const deleteMedia = async (id) => {
-    if (!confirm('Supprimer cette photo ?')) return;
+    if (!(await confirm({ message: 'Supprimer cette photo ?', danger: true }))) return;
     try {
       await api(`/api/visit/media/${id}`, 'DELETE');
       await onSaved?.();
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
-      else alert(err.message || 'Erreur suppression photo');
+      else notify(err.message || 'Erreur suppression photo');
     }
   };
 
   const editMediaCaption = async (media) => {
     const currentCaption = String(media?.caption || '');
-    const nextCaption = window.prompt('Nouvelle légende de la photo', currentCaption);
+    const nextCaption = await prompt({
+      message: 'Nouvelle légende de la photo',
+      defaultValue: currentCaption,
+    });
     if (nextCaption == null) return;
     try {
       await api(`/api/visit/media/${media.id}`, 'PUT', { caption: String(nextCaption).trim() });
       await onSaved?.();
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
-      else alert(err.message || 'Erreur mise à jour légende');
+      else notify(err.message || 'Erreur mise à jour légende');
     }
   };
 
@@ -240,7 +245,7 @@ export function VisitEditorPanel({
       await onSaved?.();
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
-      else alert(err.message || 'Erreur association photo');
+      else notify(err.message || 'Erreur association photo');
     }
   };
 
@@ -256,7 +261,7 @@ export function VisitEditorPanel({
       await onSaved?.();
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
-      else alert(err.message || 'Impossible de réordonner les photos');
+      else notify(err.message || 'Impossible de réordonner les photos');
     } finally {
       setMediaReorderBusy(false);
     }
@@ -373,9 +378,10 @@ export function VisitEditorPanel({
         style={{ marginLeft: 8 }}
         onClick={async () => {
           if (
-            !confirm(
-              `Supprimer ce ${selectedType === 'zone' ? 'zone de visite' : 'repère de visite'} ?`,
-            )
+            !(await confirm({
+              message: `Supprimer ce ${selectedType === 'zone' ? 'zone de visite' : 'repère de visite'} ?`,
+              danger: true,
+            }))
           )
             return;
           try {
@@ -386,7 +392,7 @@ export function VisitEditorPanel({
             await onSaved?.();
           } catch (err) {
             if (err instanceof AccountDeletedError) onForceLogout?.();
-            else alert(err.message || 'Erreur suppression');
+            else notify(err.message || 'Erreur suppression');
           }
         }}
       >

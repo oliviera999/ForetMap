@@ -15,6 +15,7 @@ import {
   armNativeFilePickerGuard,
   disarmNativeFilePickerGuard,
 } from '../../utils/overlayHistory.js';
+import { useAppDialogs } from './AppDialogsProvider.jsx';
 
 function mediaEmoji(type) {
   if (type === 'audio') return '🎧';
@@ -39,6 +40,7 @@ export function MediaLibraryMenu({
   enableGalleryBulkActions = false,
   fetchUsage = null,
 }) {
+  const { confirm } = useAppDialogs();
   const effectiveLayout = resolveMediaLibraryLayout({ layout, onPickUrl });
   const [open, setOpen] = useState(defaultOpen);
   const [items, setItems] = useState([]);
@@ -177,7 +179,8 @@ export function MediaLibraryMenu({
   }
 
   async function onDelete(item) {
-    if (!window.confirm('Supprimer ce média de la bibliothèque ?')) return;
+    if (!(await confirm({ message: 'Supprimer ce média de la bibliothèque ?', danger: true })))
+      return;
     setBusy(true);
     setError('');
     setNotice('');
@@ -212,7 +215,7 @@ export function MediaLibraryMenu({
   async function deletePaths(paths, confirmMessage) {
     const list = [...paths].filter(Boolean);
     if (list.length === 0) return;
-    if (!window.confirm(confirmMessage)) return;
+    if (!(await confirm({ message: confirmMessage, danger: true }))) return;
 
     setBusy(true);
     setError('');
