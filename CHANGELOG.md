@@ -7,6 +7,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Temps réel : filet REST, un socket GL, observations
+
+Sur l’hébergement mutualisé (o2switch / Passenger), le canal live reste un **signal** :
+les données passent par un rechargement REST. Le filet de rafraîchissement global
+tourne aussi **quand le live est vert** (toutes les 90 s), pour rattraper un événement
+manqué. Gnomes & Licornes n’ouvre plus qu’**une** connexion par jeton (au lieu de
+jusqu’à quatre). Le carnet d’observations notifie enfin les autres écrans. Un compte
+supprimé n’est plus accepté sur le canal live (le jeton est revérifié en base).
+
+Couverture : `tests/realtime.test.js`, `tests-ui/hooks/useAppDataPolling.test.jsx`,
+`tests-ui/gl/glSocketClient.test.jsx`.
+
 ### Documentation gating GL — cascade effective
 
 Correction des docs techniques GL sur le conditionnement QCM : `docs/GL_QCM_SETS.md`,
