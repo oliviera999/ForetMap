@@ -24,7 +24,14 @@ export function MarkerCommonFormFields({ form, setForm, plants, set, categoryCat
       </div>
       <div className="field">
         <label>Êtres vivants</label>
-        <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
+        <p
+          style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--ink-soft)',
+            margin: '0 0 8px',
+            lineHeight: 'var(--lh-normal)',
+          }}
+        >
           Ctrl / Cmd + clic pour plusieurs ; l’ordre choisi est conservé.
         </p>
         <select
@@ -64,7 +71,14 @@ export function MarkerCommonFormFields({ form, setForm, plants, set, categoryCat
           placeholder="Observations, entretien..."
         />
       </div>
-      <p style={{ fontSize: '.78rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
+      <p
+        style={{
+          fontSize: 'var(--text-sm)',
+          color: 'var(--ink-soft)',
+          margin: '0 0 10px',
+          lineHeight: 'var(--lh-normal)',
+        }}
+      >
         Textes ci-dessous : même contenu qu’en mode visite (sous-titre, accroche, bloc dépliable).
       </p>
       <div className="field">

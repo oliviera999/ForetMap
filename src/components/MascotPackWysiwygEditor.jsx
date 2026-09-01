@@ -166,7 +166,7 @@ export default function MascotPackWysiwygEditor({
   return (
     <div className="mascot-pack-wysiwyg">
       {catalogId ? (
-        <p className="section-sub" style={{ fontSize: '0.82rem', marginTop: 0 }}>
+        <p className="section-sub" style={{ fontSize: 'var(--text-sm)', marginTop: 0 }}>
           Identifiant catalogue (serveur) : <code>{catalogId}</code>
         </p>
       ) : null}
@@ -184,7 +184,7 @@ export default function MascotPackWysiwygEditor({
 
       <section className="mascot-pack-wysiwyg__states">
         <h3 className="mascot-pack-wysiwyg__h">États d’animation</h3>
-        <p className="section-sub" style={{ fontSize: '0.82rem' }}>
+        <p className="section-sub" style={{ fontSize: 'var(--text-sm)' }}>
           Cochez les états utilisés, puis ordonnez les images. La validation Zod exige au moins une
           image par état activé avant enregistrement. Les images se gèrent dans le panneau{' '}
           <strong>Images</strong> ci-dessous.
@@ -219,7 +219,7 @@ export default function MascotPackWysiwygEditor({
 
       <section className="mascot-pack-wysiwyg__aliases">
         <h3 className="mascot-pack-wysiwyg__h">Alias d’états (optionnel)</h3>
-        <p className="section-sub" style={{ fontSize: '0.8rem' }}>
+        <p className="section-sub" style={{ fontSize: 'var(--text-sm)' }}>
           Mappe un état (canonique ou personnalisé) vers un autre possédant des images.
         </p>
         <StateAliasesEditor
@@ -244,13 +244,13 @@ export default function MascotPackWysiwygEditor({
         <button type="button" className="btn btn-ghost btn-sm" onClick={runValidate}>
           Revalider maintenant
         </button>
-        <span className="section-sub" style={{ fontSize: '0.8rem' }}>
+        <span className="section-sub" style={{ fontSize: 'var(--text-sm)' }}>
           Validation automatique active (300 ms).
         </span>
       </div>
 
       {validated ? (
-        <p className="section-sub" style={{ marginTop: 10, fontSize: '0.82rem' }}>
+        <p className="section-sub" style={{ marginTop: 10, fontSize: 'var(--text-sm)' }}>
           Pack valide: <code>{validated.pack.id}</code> (
           {Object.keys(validated.pack.stateFrames || {}).length} état(s)).
         </p>
@@ -265,7 +265,7 @@ export default function MascotPackWysiwygEditor({
             borderRadius: 8,
             border: '1px solid rgba(185,28,28,0.28)',
             background: 'rgba(254,242,242,0.95)',
-            fontSize: 12,
+            fontSize: 'var(--text-xs)',
           }}
         >
           <strong>Corrections nécessaires</strong>
@@ -280,10 +280,10 @@ export default function MascotPackWysiwygEditor({
       ) : null}
 
       <details className="mascot-pack-wysiwyg__unified" style={{ marginTop: 14 }}>
-        <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 'var(--fw-semibold)' }}>
           Forme unifiée <code>states[]</code> (aperçu, aligné GL)
         </summary>
-        <p className="section-sub" style={{ fontSize: '0.8rem', marginTop: 8 }}>
+        <p className="section-sub" style={{ fontSize: 'var(--text-sm)', marginTop: 8 }}>
           Représentation du pack en tableau <code>states[]</code> : réintégrable telle quelle à l’
           <strong>import d’archive</strong> ou dans l’onglet <strong>JSON</strong>. Le modèle
           interne de l’éditeur et la persistance restent en forme canonique (
@@ -308,7 +308,7 @@ export default function MascotPackWysiwygEditor({
             borderRadius: 8,
             border: '1px solid rgba(26,71,49,0.18)',
             background: 'rgba(248,250,245,0.95)',
-            fontSize: 12,
+            fontSize: 'var(--text-xs)',
             whiteSpace: 'pre',
           }}
         >

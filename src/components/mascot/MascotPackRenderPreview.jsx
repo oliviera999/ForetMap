@@ -231,7 +231,7 @@ function MascotPackRenderPreview(
         aria-label="Rendu final du pack"
       >
         <h3 className="mascot-pack-render-preview__title">Rendu final</h3>
-        <p className="section-sub" style={{ fontSize: '0.85rem', margin: 0 }}>
+        <p className="section-sub" style={{ fontSize: 'var(--text-sm)', margin: 0 }}>
           Corrigez le pack pour afficher l’aperçu animé (au moins un état avec images valides).
         </p>
       </section>
@@ -253,7 +253,7 @@ function MascotPackRenderPreview(
           État affiché :{' '}
           <strong>
             {STATE_LABELS[displayState] || displayState}{' '}
-            <code style={{ fontWeight: 500 }}>({displayState})</code>
+            <code style={{ fontWeight: 'var(--fw-medium)' }}>({displayState})</code>
           </strong>
         </p>
       </div>

@@ -25,7 +25,9 @@ export const SPECIES_PREFILL_SOURCE_CHECKBOXES = [
 export function PrefillSourcesSelector({ sources, onToggle }) {
   return (
     <details className="plant-more" style={{ marginBottom: 8 }}>
-      <summary style={{ cursor: 'pointer', fontSize: '.88rem' }}>Sources à interroger</summary>
+      <summary style={{ cursor: 'pointer', fontSize: 'var(--text-sm)' }}>
+        Sources à interroger
+      </summary>
       <div
         style={{
           display: 'grid',
@@ -41,13 +43,13 @@ export function PrefillSourcesSelector({ sources, onToggle }) {
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              fontSize: '.8rem',
+              fontSize: 'var(--text-sm)',
               color: '#333',
             }}
           >
             <input type="checkbox" checked={!!sources[row.id]} onChange={() => onToggle(row.id)} />
             <span>{row.label}</span>
-            <small style={{ color: '#888' }}>({row.id})</small>
+            <small style={{ color: 'var(--ink-faint)' }}>({row.id})</small>
           </label>
         ))}
       </div>

@@ -23,7 +23,7 @@ function ZoneInfoModalHeader({
       <div style={{ flex: 1, minWidth: 0 }}>
         {/* Emoji rendu dans la pile emoji (plus via Playfair Display avec le nom brut) —
             colonne `zones.emoji` en priorité, repli sur le préfixe du nom (audit C4). */}
-        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
+        <h3 style={{ margin: 0, fontSize: 'var(--text-md)' }}>
           {zoneEmojiOf(zone) ? (
             <>
               <span className="emoji-glyph" aria-hidden>

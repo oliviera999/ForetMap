@@ -51,7 +51,7 @@ export function MascotPackSpriteCutPreview({
 
   return (
     <section className={previewClassName} style={{ marginTop: 20 }}>
-      <h3 style={{ fontSize: '1.05rem', marginTop: 0 }}>{title}</h3>
+      <h3 style={{ fontSize: 'var(--text-md)', marginTop: 0 }}>{title}</h3>
       <div
         style={{ marginBottom: 8, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}
       >
@@ -70,7 +70,7 @@ export function MascotPackSpriteCutPreview({
             ))}
           </select>
         </label>
-        <span style={{ fontSize: '0.85rem', opacity: 0.85 }}>
+        <span style={{ fontSize: 'var(--text-sm)', opacity: 0.85 }}>
           Silhouette secours : {mascotConfig.fallbackSilhouette}
         </span>
       </div>

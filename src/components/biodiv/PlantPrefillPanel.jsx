@@ -201,7 +201,7 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            fontSize: '.8rem',
+            fontSize: 'var(--text-sm)',
             color: '#444',
           }}
         >
@@ -214,7 +214,7 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
         </label>
       </div>
       {prefillError && (
-        <p style={{ marginTop: -4, marginBottom: 8, color: '#a94442', fontSize: '.83rem' }}>
+        <p style={{ marginTop: -4, marginBottom: 8, color: '#a94442', fontSize: 'var(--text-sm)' }}>
           Pré-saisie indisponible: {prefillError}
         </p>
       )}
@@ -228,7 +228,7 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
             {Array.isArray(prefillResult?.warnings) && prefillResult.warnings.length > 0 && (
               <div
                 style={{
-                  fontSize: '.8rem',
+                  fontSize: 'var(--text-sm)',
                   color: '#7a5a13',
                   background: '#fff9e5',
                   borderRadius: 8,
@@ -256,12 +256,12 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
                       <strong>{SPECIES_PREFILL_FIELD_LABELS[key] || key}</strong>
                       <PrefillSourceBadge sourceMeta={sourceMeta} />
                       {sourceMeta?.source && (
-                        <small style={{ color: '#666' }}>
+                        <small style={{ color: 'var(--ink-soft)' }}>
                           ({Math.round(Number(sourceMeta.confidence || 0) * 100)}%)
                         </small>
                       )}
                     </span>
-                    <span style={{ fontSize: '.83rem', color: '#333', paddingLeft: 24 }}>
+                    <span style={{ fontSize: 'var(--text-sm)', color: '#333', paddingLeft: 24 }}>
                       {value}
                     </span>
                   </label>
@@ -276,7 +276,14 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
               const labels = empty.slice(0, 14).map((k) => SPECIES_PREFILL_FIELD_LABELS[k] || k);
               const extra = empty.length > 14 ? ` (+${empty.length - 14} autres)` : '';
               return (
-                <p style={{ fontSize: '.76rem', color: '#666', margin: 0, lineHeight: 1.35 }}>
+                <p
+                  style={{
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--ink-soft)',
+                    margin: 0,
+                    lineHeight: 1.35,
+                  }}
+                >
                   Sans proposition automatique pour : {labels.join(', ')}
                   {extra}. Les sources publiques ne couvrent pas toujours ces champs ; complément
                   possible via saisie manuelle ou extensions documentées (voir la doc API).
@@ -286,14 +293,14 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
             {Object.keys(groupedPrefillPhotos).length > 0 && (
               <div style={{ display: 'grid', gap: 6 }}>
                 <div>
-                  <strong style={{ fontSize: '.9rem' }}>
+                  <strong style={{ fontSize: 'var(--text-base)' }}>
                     Photos proposées (aperçu + crédit / licence)
                   </strong>
                   <p
                     style={{
                       margin: '4px 0 0',
-                      fontSize: '.78rem',
-                      color: '#555',
+                      fontSize: 'var(--text-sm)',
+                      color: 'var(--ink-soft)',
                       lineHeight: 1.35,
                     }}
                   >

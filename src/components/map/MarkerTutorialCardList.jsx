@@ -10,7 +10,11 @@ import { tutorialPreviewCanEmbed, tutorialPreviewPayload } from '../TutorialPrev
  */
 function MarkerTutorialCardList({ tutorials = [], currentMarkerId, onOpenTutorialPreview = null }) {
   if (tutorials.length === 0) {
-    return <p style={{ color: '#999', fontSize: '.85rem' }}>Aucun tutoriel lié à ce repère.</p>;
+    return (
+      <p style={{ color: 'var(--ink-faint)', fontSize: 'var(--text-sm)' }}>
+        Aucun tutoriel lié à ce repère.
+      </p>
+    );
   }
 
   return (
@@ -28,19 +32,30 @@ function MarkerTutorialCardList({ tutorials = [], currentMarkerId, onOpenTutoria
               background: 'var(--parchment)',
             }}
           >
-            <div style={{ fontWeight: 700, color: 'var(--forest)' }}>{tu.title}</div>
+            <div style={{ fontWeight: 'var(--fw-bold)', color: 'var(--forest)' }}>{tu.title}</div>
             {tu.summary && (
-              <p style={{ margin: '8px 0 0', fontSize: '.82rem', color: '#555', lineHeight: 1.45 }}>
+              <p
+                style={{
+                  margin: '8px 0 0',
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--ink-soft)',
+                  lineHeight: 'var(--lh-normal)',
+                }}
+              >
                 {tu.summary}
               </p>
             )}
             {zones.length > 0 && (
-              <p style={{ margin: '10px 0 0', fontSize: '.76rem', color: '#64748b' }}>
+              <p
+                style={{ margin: '10px 0 0', fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}
+              >
                 <strong>Zones</strong> : {zones.map((z) => z.name).join(', ')}
               </p>
             )}
             {otherMarkers.length > 0 && (
-              <p style={{ margin: '6px 0 0', fontSize: '.76rem', color: '#64748b' }}>
+              <p
+                style={{ margin: '6px 0 0', fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}
+              >
                 <strong>Autres repères</strong> : {otherMarkers.map((m) => m.label).join(', ')}
               </p>
             )}

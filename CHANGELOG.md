@@ -7,6 +7,30 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Un seul système typographique (audit homogénéité UI — B2/B3)
+
+Migration mécanique de la typographie vers les tokens posés au lot précédent —
+**1 340 remplacements**, aucun littéral restant hors allowlist :
+
+- **Tailles** : les 85 valeurs littérales de `font-size` (500 en CSS, 335 en styles inline
+  JSX) sont regroupées sur l'échelle fluide `--text-2xs` → `--text-2xl` (8 crans, nouveau
+  cran `--text-2xs` pour les badges) ; seules deux tailles « display » (2.5/3 rem) restent
+  littérales. Le « petit texte » écrit de 14 façons entre 0.68 et 0.88 rem tient désormais
+  sur deux crans.
+- **Graisses** : 271 `font-weight` littéraux → `--fw-regular/medium/semibold/bold`
+  (descripteurs `@font-face` exclus).
+- **Interlignes** : les grappes 1.4/1.45/1.5/1.52 → `--lh-normal`, 1.55–1.74 →
+  `--lh-relaxed`, 1.2 → `--lh-tight` (119 remplacements) ; les interlignes d'alignement
+  fin (1, 1.25 des boutons…) restent explicites.
+- **Gris secondaires** : les six gris inline (`#64748b`, `#6b7280`, `#555`, `#666`,
+  `#999`, `#888` — 120 occurrences) convergent sur `--ink-soft` / `--ink-faint`
+  (`#8a94a0`, plus lisible que l'ancien `#999`).
+- Les tokens sont définis **par produit** (`src/index.css` et `gl-base.css`, mêmes
+  valeurs) car les pages GL ne chargent pas `index.css`.
+- **Garde-fou** : `tests/typography-tokens-guard.test.js` échoue si un `font-size` littéral
+  rem (CSS), un `fontSize`/gris inline littéral (JSX) ou un token manquant réapparaît —
+  la dispersion mesurée par l'audit ne peut plus se reconstituer silencieusement.
+
 ### L'inventaire « Zones & repères » devient une grille d'édition directe avec actions par lot
 
 Refonte du sous-onglet **Réglages administrateur → « Zones & repères »** livré au lot
