@@ -348,6 +348,11 @@ locaux (Normal / Grand / Très grand), mémorisés sur l'appareil. Le même bout
 disponible dans le bandeau du plan de **Visite**, et le niveau choisi s'applique aussi
 aux libellés des plateaux Gnomes & Licornes.
 
+L'**emoji d'une zone** est désormais enregistré à part du nom (le sélecteur d'emoji du
+formulaire fait foi) : son affichage sur le plan et dans la fiche ne dépend plus de la
+présence d'une espace après l'emoji ni de la liste d'emojis configurée. Les zones
+existantes continuent d'afficher l'emoji écrit en tête de leur nom.
+
 Un **nom de zone trop long** pour la place disponible n'est plus « compressé » en
 déformant les lettres : il est d'abord légèrement réduit, puis coupé avec « … » si
 nécessaire — le nom complet reste lisible en ouvrant la fiche de la zone (et au survol

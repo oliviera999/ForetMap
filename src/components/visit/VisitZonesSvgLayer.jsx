@@ -80,7 +80,8 @@ function VisitZonesSvgLayerImpl({
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="visit-map-zones">
       {parsedZones.map(({ zone: z, ptsPct, pointsAttr, mx, my }) => {
         const isSeen = seen.has(itemSeenKey('zone', z.id));
-        const zoneEmoji = detectLeadingMarkerEmoji(z.name || '', markerEmojis);
+        const zoneEmoji =
+          String(z.emoji || '').trim() || detectLeadingMarkerEmoji(z.name || '', markerEmojis);
         const zoneLabel = stripLeadingMarkerEmoji(z.name || '', markerEmojis);
         const zoneNameText = zoneLabel || z.name || '';
         const titleY = my;

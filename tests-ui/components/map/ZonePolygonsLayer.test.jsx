@@ -63,6 +63,19 @@ describe('parseZonesForLayer', () => {
     expect(parsed[0].zoneEmoji).toBe('🌳');
     expect(parsed[0].zoneName).toBe('Verger');
   });
+
+  it('préfère la colonne zones.emoji au préfixe du nom (audit C4)', () => {
+    // Colonne présente : elle gagne, même si le nom porte un autre préfixe.
+    const withColumn = parseZonesForLayer([zoneFixture({ emoji: '💧' })], EMOJIS);
+    expect(withColumn[0].zoneEmoji).toBe('💧');
+    expect(withColumn[0].zoneName).toBe('Verger');
+    // Colonne vide/absente : repli sur le préfixe détecté (lignes non migrées).
+    const legacy = parseZonesForLayer([zoneFixture({ emoji: '' })], EMOJIS);
+    expect(legacy[0].zoneEmoji).toBe('🌳');
+    // Préfixe indétectable (pas d'espace) mais colonne renseignée : l'emoji s'affiche quand même.
+    const noSpace = parseZonesForLayer([zoneFixture({ name: '🌳Verger', emoji: '🌳' })], EMOJIS);
+    expect(noSpace[0].zoneEmoji).toBe('🌳');
+  });
 });
 
 describe('ZonePolygonsLayer', () => {
