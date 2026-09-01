@@ -32,6 +32,7 @@ const {
   syncEntityCategories,
   categoriesCarryInfrastructure,
 } = require('../lib/locationCategories');
+const { resolveZoneEmojiForWrite } = require('../lib/zoneEmoji');
 
 const db = { queryAll, queryOne, execute, withTransaction };
 
@@ -293,6 +294,7 @@ router.put(
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
     const {
       name,
+      emoji,
       current_plant,
       living_beings,
       description,
@@ -305,6 +307,13 @@ router.put(
     if (name !== undefined && !String(name).trim()) {
       return res.status(400).json({ error: 'Nom requis' });
     }
+    // Colonne `zones.emoji` (audit C4) : valeur explicite du corps ('' = effacer), sinon
+    // dérivée du préfixe du nom soumis, sinon valeur existante conservée.
+    const nextEmoji = resolveZoneEmojiForWrite(
+      emoji,
+      name !== undefined ? String(name) : '',
+      zone.emoji || '',
+    );
     // Même garde que le POST : `points` fourni doit être un polygone valide.
     if (
       points !== undefined &&
@@ -369,10 +378,11 @@ router.put(
       categoryIds: await nextCategoryIdsForZone(zone.id, category_ids),
     });
     await execute(
-      'UPDATE zones SET map_id=?, name=?, current_plant=?, special=?, description=?, points=?, color=? WHERE id=?',
+      'UPDATE zones SET map_id=?, name=?, emoji=?, current_plant=?, special=?, description=?, points=?, color=? WHERE id=?',
       [
         nextMapIdForZone,
         name !== undefined ? String(name).trim() : zone.name,
+        nextEmoji,
         nextCurrentPlant,
         (await categoriesCarryInfrastructure(db, nextCategoryIds)) ? 1 : 0,
         description !== undefined ? description : (zone.description ?? ''),
@@ -439,6 +449,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const {
       name,
+      emoji,
       points,
       color,
       current_plant,
@@ -464,12 +475,15 @@ router.post(
     const nextCurrentPlant = nextLiving.length > 0 ? '' : String(current_plant || '').trim();
     const desc = description !== undefined && description !== null ? String(description) : '';
     const id = 'zone-' + crypto.randomUUID().slice(0, 8);
+    // Colonne `zones.emoji` (audit C4) : explicite, sinon dérivée du préfixe du nom.
+    const zoneEmoji = resolveZoneEmojiForWrite(emoji, String(name), '');
     await execute(
-      'INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, points, color, description) VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?)',
+      'INSERT INTO zones (id, map_id, name, emoji, x, y, width, height, current_plant, points, color, description) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?)',
       [
         id,
         mapId,
         name.trim(),
+        zoneEmoji,
         nextCurrentPlant,
         JSON.stringify(points),
         color || '#86efac80',
