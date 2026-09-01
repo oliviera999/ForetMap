@@ -15,6 +15,7 @@ Le même motif venait d'être sécurisé pour Gnomes & Licornes. Une interruptio
 (timeout, kill mémoire) laissait le catalogue à jour et **tous** ces rattachements
 effacés — le contrôle de compréhension rattaché au glossaire ne se déclenchait
 plus. L'import passe désormais en une seule transaction : échec = rien n'a changé.
+
 ### Le verrou ForetMap ignorait les surcharges type/fiche
 
 La cascade site → type → fiche (erreurs tolérées, délai, portée du verrou) était
