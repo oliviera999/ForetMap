@@ -14,6 +14,31 @@ avant le chargement du détail — ou après un poll qui renvoyait la liste all�
 réécrivait un corps vide et effaçait paragraphes / titres. La sauvegarde omet désormais
 ces blocs tant que le détail n’est pas chargé, et un poll ne remplace plus un détail déjà lu.
 
+### Temps réel : filet REST, un socket GL, observations
+
+Sur l’hébergement mutualisé (o2switch / Passenger), le canal live reste un **signal** :
+les données passent par un rechargement REST. Le filet de rafraîchissement global
+tourne aussi **quand le live est vert** (toutes les 90 s), pour rattraper un événement
+manqué. Gnomes & Licornes n’ouvre plus qu’**une** connexion par jeton (au lieu de
+jusqu’à quatre). Le carnet d’observations notifie enfin les autres écrans. Un compte
+supprimé n’est plus accepté sur le canal live (le jeton est revérifié en base).
+
+Couverture : `tests/realtime.test.js`, `tests-ui/hooks/useAppDataPolling.test.jsx`,
+`tests-ui/gl/glSocketClient.test.jsx`.
+
+### Documentation gating GL — cascade effective
+
+Correction des docs techniques GL sur le conditionnement QCM : `docs/GL_QCM_SETS.md`,
+`docs/API.md` et l'audit feuillets distinguent désormais clairement les constats initiaux des
+comportements livrés (cascade site → type → ressource, granularité chapitre/scope GL, signaux
+`effective_sources`, `pending_count` et `ask_count`).
+
+### Runbook LVE — profiler les parcours mémoire
+
+Documentation du script `npm run test:profile:memory` dans `docs/LOCAL_DEV.md` et raccord dans la
+checklist `hard_kills` de `docs/EXPLOITATION.md` : prérequis locaux, scénarios couverts, options de
+concurrence/itérations et lecture des signaux `ΔRSS`, `Δheap`, `Mo resp` et `413`.
+
 ### Import quiz : rattachements glossaire plus effacés si l'import est interrompu
 
 L'import tableur du catalogue Quiz (ForetMap) vidait tous les rattachements

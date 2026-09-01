@@ -19,7 +19,8 @@ const {
 
 const SOCKET_CONNECT_OPTS = {
   path: '/socket.io',
-  transports: ['polling', 'websocket'],
+  transports: ['polling'],
+  upgrade: false,
   timeout: 20_000,
 };
 
