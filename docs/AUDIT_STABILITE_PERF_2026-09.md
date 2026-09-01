@@ -8,16 +8,16 @@ point d'entrée les deux audits précédents, qui restent consultables pour leur
 | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | [`AUDIT_CHARGE_SERVEUR_2026-08.md`](AUDIT_CHARGE_SERVEUR_2026-08.md) | régime **nominal** ForetMap : cadence de polling, mémoire au boot, coût par requête | pistes 1 à 9 traitées (lots 20-21, 30), §5 = seconde passe |
 | [`AUDIT_CHARGE_ET_BUGS_2026-08.md`](AUDIT_CHARGE_ET_BUGS_2026-08.md) | **cas dégradés et pics** ForetMap : coupures, redémarrages, classe entière          | tous les constats traités                                  |
-| **Ce document**                                                      | **GL + composants communs**, et synthèse générale                                   | G1–G5, C1–C4 **traités** ; C5 en attente d'arbitrage       |
+| **Ce document**                                                      | **GL + composants communs**, et synthèse générale                                   | tous les constats **traités** (C1–C5, G1–G5)               |
 
 ## 0. Comment lire ce document
 
 Les sections 1 à 3 exposent les constats relevés par l'audit ; chaque constat traité porte
-la mention **« Traité »** avec le correctif et sa couverture de test. Reste ouvert : **C5**
-(bac à sable des tutoriels), qui demande un arbitrage produit — trois options possibles,
-présentées au §C5. La section 4 récapitule ce que les audits précédents avaient déjà
-traité (pour ne pas le réauditer), la section 5 ce qui a été vérifié **et jugé sain**, la
-section 6 l'ordre de traitement suggéré (suivi).
+la mention **« Traité »** avec le correctif et sa couverture de test. Tous les constats
+sont traités — y compris **C5** (bac à sable des tutoriels), après arbitrage produit en
+faveur de l'assainissement serveur. La section 4 récapitule ce que les audits précédents
+avaient déjà traité (pour ne pas le réauditer), la section 5 ce qui a été vérifié **et
+jugé sain**, la section 6 l'ordre de traitement suggéré (suivi).
 
 **Périmètre et limites.** Lecture de `routes/gl/**`, `lib/gl*`, `lib/auth/**`, `lib/rbac.js`,
 `lib/shared/**`, `middleware/**`, `database.js`, et des hooks temps réel des deux produits.
@@ -221,10 +221,31 @@ Le correctif n'est pas un attribut à retirer : `readGlossaryTermMessage`
 (`script-src 'self'`) bloquerait aussi le script inline que l'application injecte elle-même.
 Trois pièces liées, à traiter ensemble.
 
-**En attente d'arbitrage produit** (seul constat encore ouvert) : trois options —
-origine dédiée pour le contenu riche, sandbox strict avec passerelle glossaire repensée,
-ou assainissement serveur du HTML — ont des coûts et des renoncements différents ; le
-choix est présenté au mainteneur dans la PR de traitement de cet audit.
+**Traité** (arbitrage produit rendu : option « assainissement serveur »). Quatre pièces :
+
+1. le HTML importé est **assaini côté serveur avant enrichissement**
+   (`lib/tutorialViewSanitize.js`, DOMPurify — dépendance déjà présente, même moteur que
+   l'assainissement Markdown client) : scripts, gestionnaires `on*`, URL `javascript:`,
+   iframes/objets et formulaires retirés ; structure, styles, images, liens et `data-*`
+   conservés, doctype restitué ;
+2. l'iframe d'aperçu d'une fiche de **notre origine** perd `allow-scripts` (et
+   `allow-forms`) — la combinaison qui annulait le bac à sable disparaît ; un site
+   externe (`type = 'link'`) garde ses scripts, isolé par son origine propre ;
+3. les clics dans la fiche (auto-liens de glossaire, `target="_blank"`) sont interceptés
+   par le **parent** (`TutorialPreviewModal`), qui relaie le même message
+   `foretmap:glossary` — le récepteur (`readGlossaryTermMessage`, origine exigée) ne
+   change pas ;
+4. un `.html` demandé **directement sous `/tutos/`** n'est plus rendu brut sur notre
+   origine : redirection vers la vue assainie quand la fiche existe, téléchargement
+   sinon (`server.js`).
+
+Couverture : `tests/tutorial-view-sanitize.test.js` (vecteurs retirés / contenu conservé,
+seuls les scripts de l'application dans la sortie servie, conventions route + garde
+`/tutos`) et `tests-ui/components/TutorialPreviewSandbox.test.jsx` (sandbox sans
+`allow-scripts` pour notre origine, scripts conservés pour un site externe, relais des
+clics par le parent). Impact assumé : une fiche importée qui reposait sur son propre
+JavaScript pour s'afficher doit être reprise ou proposée en lien externe
+(`docs/reference/foretmap/taches-tutoriels-et-validation.md`).
 
 ## 3. Dépendances
 
@@ -279,10 +300,10 @@ Reprise condensée des deux audits précédents, tous points livrés :
 | 2        | **C1** cache `getRoleBySlug`                                                         | quelques lignes       | **traité** (lot 2)                                         |
 | 3        | **G4** transaction et lotissement des imports                                        | lot moyen             | **traité** (lot 3)                                         |
 | 4        | **C3** purge `gl_game_events` / `zone_history` + ligne crontab                       | script + exploitation | **traité** (lot 4) — reste à installer la ligne de crontab |
-| 5        | **C5** bac à sable des tutoriels                                                     | lot dédié             | **ouvert** — décision produit à prendre (cf. §C5)          |
+| 5        | **C5** bac à sable des tutoriels                                                     | lot dédié             | **traité** (lot 5 — assainissement serveur, cf. §C5)       |
 | 6        | **C2** octets de contrôle, **G5** `LIMIT` paramétré, **C4** garde-fou de transaction | petits                | **traité** (lot 6)                                         |
 
-Les points 1 à 4 et 6 sont livrés sans changement fonctionnel visible. Le point 5 demande
-un arbitrage : la correction la plus simple (retirer `allow-same-origin`) casse le
-glossaire dans les fiches — les options et leurs coûts sont présentés au mainteneur dans
-la PR de traitement de cet audit.
+Les points 1 à 4 et 6 sont livrés sans changement fonctionnel visible. Le point 5 a fait
+l'objet d'un arbitrage produit (assainissement serveur, retenu parmi trois options) : le
+seul changement visible est qu'une fiche importée ne peut plus exécuter son propre
+JavaScript — voir §C5 et `docs/reference/foretmap/taches-tutoriels-et-validation.md`.
