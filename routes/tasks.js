@@ -693,7 +693,7 @@ router.post(
       if (decodedTaskImage) {
         const rel = `tasks/${id}.${decodedTaskImage.ext}`;
         try {
-          writeBufferToDisk(rel, decodedTaskImage.buffer);
+          await writeBufferToDisk(rel, decodedTaskImage.buffer);
           await tx.execute('UPDATE tasks SET image_path = ? WHERE id = ?', [rel, id]);
         } catch (imgErr) {
           try {
@@ -1030,7 +1030,7 @@ router.put('/:id', async (req, res) => {
         const oldPath = task.image_path || null;
         const rel = `tasks/${task.id}.${decodedImage.ext}`;
         try {
-          writeBufferToDisk(rel, decodedImage.buffer);
+          await writeBufferToDisk(rel, decodedImage.buffer);
           await tx.execute('UPDATE tasks SET image_path = ? WHERE id = ?', [rel, task.id]);
           if (oldPath && oldPath !== rel) obsoleteImagePath = oldPath;
         } catch (imgErr) {

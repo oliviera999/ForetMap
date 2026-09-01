@@ -248,3 +248,46 @@ test('FORETMAP_BOOT_JOURNAL=0 coupe l’écriture même avec un chemin défini',
   assert.strictEqual(journal.isBootJournalEnabled(), false);
   assert.strictEqual(journal.recordBoot({}), null);
 });
+
+test('summarizeBootJournal : un redémarrage depuis l’IHM admin n’est pas un arrêt hébergeur', () => {
+  const now = Date.now();
+  const iso = (secondsAgo) => new Date(now - secondsAgo * 1000).toISOString();
+  useTempJournal([
+    { event: 'stop', at: iso(600), reason: 'restart-gui' },
+    { event: 'boot', at: iso(590), previousStop: 'graceful', previousStopReason: 'restart-gui' },
+    { event: 'stop', at: iso(300), reason: 'restart-gui' },
+    { event: 'boot', at: iso(290), previousStop: 'graceful', previousStopReason: 'restart-gui' },
+    { event: 'stop', at: iso(120), reason: 'restart-gui' },
+  ]);
+  const s = journal.summarizeBootJournal({ now });
+  assert.strictEqual(s.counts.deployRestarts, 3);
+  // Sans cette distinction, trois redémarrages volontaires suffisaient à rendre le
+  // verdict `host_idle_stops` et à conseiller un keepalive Passenger inutile.
+  assert.strictEqual(s.counts.hostStops, 0);
+  assert.notStrictEqual(s.verdict, 'host_idle_stops');
+});
+
+test('summarizeBootJournal : `recent` ne sort pas de la fenêtre demandée', () => {
+  const now = Date.now();
+  const hoursAgo = (h) => new Date(now - h * 3600 * 1000).toISOString();
+  useTempJournal([
+    { event: 'stop', at: hoursAgo(72), reason: 'SIGTERM' },
+    { event: 'boot', at: hoursAgo(71), previousStop: 'graceful' },
+    { event: 'stop', at: hoursAgo(0.5), reason: 'restart' },
+  ]);
+  const s = journal.summarizeBootJournal({ now, windowHours: 1 });
+  assert.strictEqual(s.recent.length, 1);
+  assert.strictEqual(s.recent[0].reason, 'restart');
+  assert.strictEqual(s.entriesBeforeWindow, 2);
+});
+
+test('summarizeBootJournal : fenêtre sans évènement -> recent vide, historique signalé', () => {
+  const now = Date.now();
+  useTempJournal([
+    { event: 'stop', at: new Date(now - 72 * 3600 * 1000).toISOString(), reason: 'restart' },
+  ]);
+  const s = journal.summarizeBootJournal({ now, windowHours: 24 });
+  assert.deepStrictEqual(s.recent, []);
+  assert.strictEqual(s.entriesBeforeWindow, 1);
+  assert.strictEqual(s.verdict, 'stable');
+});

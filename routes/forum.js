@@ -267,7 +267,7 @@ router.post(
     const postId = crypto.randomUUID();
     let pathsJson = null;
     if (imageList.length > 0) {
-      const persisted = persistUserContentImages('forum-posts', postId, imageList);
+      const persisted = await persistUserContentImages('forum-posts', postId, imageList);
       if (persisted.error) {
         return res.status(400).json({ error: persisted.error });
       }
@@ -477,7 +477,7 @@ router.post(
     const postId = crypto.randomUUID();
     let pathsJson = null;
     if (imageList.length > 0) {
-      const persisted = persistUserContentImages('forum-posts', postId, imageList);
+      const persisted = await persistUserContentImages('forum-posts', postId, imageList);
       if (persisted.error) {
         return res.status(400).json({ error: persisted.error });
       }

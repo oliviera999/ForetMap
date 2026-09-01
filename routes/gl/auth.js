@@ -1079,7 +1079,7 @@ router.patch(
           return res.status(400).json({ error: 'Image trop lourde (max 2 Mo)' });
         }
         const relativePath = `gl_players/${account.id}/avatar-${Date.now()}.${ext}`;
-        saveBase64ToDisk(relativePath, avatarData);
+        await saveBase64ToDisk(relativePath, avatarData);
         if (account.avatar_path && account.avatar_path !== relativePath) {
           deleteFile(account.avatar_path);
         }
@@ -1173,7 +1173,7 @@ router.patch(
         return res.status(400).json({ error: 'Image trop lourde (max 2 Mo)' });
       }
       const relativePath = `gl_admins/${admin.id}/avatar-${Date.now()}.${ext}`;
-      saveBase64ToDisk(relativePath, avatarData);
+      await saveBase64ToDisk(relativePath, avatarData);
       if (admin.avatar_path && admin.avatar_path !== relativePath) {
         deleteFile(admin.avatar_path);
       }

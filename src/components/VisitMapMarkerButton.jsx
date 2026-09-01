@@ -19,8 +19,8 @@ export function VisitMapMarkerButton({ marker, isSeen, onClick }) {
           aria-hidden
           style={{
             display: 'inline-block',
-            width: 8,
-            height: 8,
+            width: 'calc(8px * var(--map-overlay-world-inv, 1))',
+            height: 'calc(8px * var(--map-overlay-world-inv, 1))',
             borderRadius: '50%',
             background: '#1a4731',
             opacity: 0.55,

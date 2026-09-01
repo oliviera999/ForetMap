@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LearningQuizPopover } from '../../shared/components/LearningQuizPopover.jsx';
 import {
   glossaryPropsWhileAnswering,
@@ -69,8 +69,11 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
   const [remediationPlants, setRemediationPlants] = useState([]);
   const [error, setError] = useState('');
   const [popoverOpen, setPopoverOpen] = useState(false);
+  /** Invalide une réponse de catégories périmée (changement de thème/niveau pendant le fetch). */
+  const loadCategoriesSeqRef = useRef(0);
 
   const loadCategories = useCallback(async () => {
+    const seq = ++loadCategoriesSeqRef.current;
     setLoadingCategories(true);
     try {
       const params = new URLSearchParams();
@@ -78,16 +81,21 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
       if (niveau) params.set('niveau', niveau);
       const qs = params.toString();
       const data = await api(`/api/quiz/categories${qs ? `?${qs}` : ''}`);
+      if (seq !== loadCategoriesSeqRef.current) return;
       setCategories(Array.isArray(data?.categories) ? data.categories : []);
     } catch (_) {
+      if (seq !== loadCategoriesSeqRef.current) return;
       setCategories([]);
     } finally {
-      setLoadingCategories(false);
+      if (seq === loadCategoriesSeqRef.current) setLoadingCategories(false);
     }
   }, [theme, niveau]);
 
   useEffect(() => {
     loadCategories();
+    return () => {
+      loadCategoriesSeqRef.current += 1;
+    };
   }, [loadCategories]);
 
   useEffect(() => {

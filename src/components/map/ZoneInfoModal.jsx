@@ -20,6 +20,7 @@ import {
   isZoneVisitBodyReadyForSave,
   mergeZoneListIntoDetail,
 } from '../../utils/zoneModalForm.js';
+import { isInfrastructureLocation, locationCategoryIds } from '../../utils/locationCategories.js';
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
@@ -30,6 +31,7 @@ import { PhotoGallery } from './PhotoGallery.jsx';
 import { ZoneInfoModalHeader } from './ZoneInfoModalHeader.jsx';
 import { LocationModalTabBar } from './LocationModalTabBar.jsx';
 import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
+import { LocationCategoryPicker } from './LocationCategoryPicker.jsx';
 import { ZoneTasksStudentPanel, ZoneTasksTeacherPanel } from './ZoneTasksPanel.jsx';
 import { ZoneTutorialsStudentPanel, ZoneTutorialsTeacherPanel } from './ZoneTutorialsPanel.jsx';
 import { LocationVisitAside } from './mapModalShared.jsx';
@@ -39,6 +41,7 @@ import { useVisitMediaBlocks } from './useVisitMediaBlocks.js';
 function ZoneInfoModal({
   zone,
   plants,
+  categoryCatalog = [],
   tasks,
   tutorials = [],
   isTeacher,
@@ -91,13 +94,20 @@ function ZoneInfoModal({
     stripLeadingMarkerEmoji(zone.name || '', emojiParsingList),
   );
   const [zoneEmoji, setZoneEmoji] = useState(
-    () => detectLeadingMarkerEmoji(zone.name || '', emojiParsingList) || markerEmojis[0] || '📍',
+    () =>
+      String(zone.emoji || '').trim() ||
+      detectLeadingMarkerEmoji(zone.name || '', emojiParsingList) ||
+      markerEmojis[0] ||
+      '📍',
   );
   const [livingBeings, setLivingBeings] = useState(() =>
     orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant),
   );
-  const [stage, setStage] = useState(zone.stage || 'empty');
-  const [special, setSpecial] = useState(!!zone.special);
+  const [categoryIds, setCategoryIds] = useState(() => locationCategoryIds(zone));
+  // Clé stable des catégories de la zone : l'effet de resynchronisation ci-dessous ne doit
+  // pas se rejouer à chaque polling (le tableau `category_ids` change d'identité à chaque
+  // réponse) et écraser une sélection en cours d'édition.
+  const zoneCategoryIdsKey = locationCategoryIds(zone).join('|');
   const [zoneColor, setZoneColor] = useState(zone.color || ZONE_COLORS[0]);
   const [desc, setDesc] = useState(zone.description || '');
   const [visitSubtitle, setVisitSubtitle] = useState(zone.visit_subtitle || '');
@@ -128,12 +138,11 @@ function ZoneInfoModal({
     onToast: setToast,
   });
 
-  const displayStage = zone.special ? 'special' : zone.stage;
   const zoneLivingNames = orderedLivingBeingsForForm(
     zone.living_beings_list || zone.living_beings,
     zone.current_plant,
   );
-  const zoneTitleDisplay = zone.special
+  const zoneTitleDisplay = isInfrastructureLocation(zone)
     ? zone.name || ''
     : stripLeadingMarkerEmoji(zone.name || '', emojiParsingList) || zone.name || '';
   // Dérivations tâches / tutoriels / biodiversité / bloc visite mutualisées avec
@@ -176,8 +185,7 @@ function ZoneInfoModal({
     setLivingBeings(
       orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant),
     );
-    setStage(zone.stage || 'empty');
-    setSpecial(!!zone.special);
+    setCategoryIds(zoneCategoryIdsKey ? zoneCategoryIdsKey.split('|') : []);
     setZoneColor(zone.color || ZONE_COLORS[0]);
     setDesc(zone.description || '');
     setVisitSubtitle(zone.visit_subtitle || '');
@@ -190,8 +198,7 @@ function ZoneInfoModal({
     zone.living_beings,
     zone.living_beings_list,
     zone.current_plant,
-    zone.stage,
-    zone.special,
+    zoneCategoryIdsKey,
     zone.color,
     zone.description,
     zone.visit_subtitle,
@@ -225,9 +232,9 @@ function ZoneInfoModal({
         buildZonePayload(
           name,
           {
+            zoneEmoji,
             livingBeings,
-            stage,
-            special,
+            categoryIds,
             zoneColor,
             desc,
             visitSubtitle,
@@ -269,13 +276,12 @@ function ZoneInfoModal({
       dialogRef={dialogRef}
     >
       {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
-      <button className="modal-close" onClick={onClose}>
+      <button className="modal-close" aria-label="Fermer" onClick={onClose}>
         ✕
       </button>
 
       <ZoneInfoModalHeader
         zone={zone}
-        displayStage={displayStage}
         isTeacher={isTeacher}
         duplicating={duplicating}
         onDuplicate={
@@ -309,7 +315,14 @@ function ZoneInfoModal({
           >
             ✅ Ouvrir l’onglet Tâches filtré sur cette zone
           </button>
-          <p style={{ fontSize: '.74rem', color: '#64748b', margin: '6px 0 0', lineHeight: 1.4 }}>
+          <p
+            style={{
+              fontSize: 'var(--text-xs)',
+              color: 'var(--ink-soft)',
+              margin: '6px 0 0',
+              lineHeight: 'var(--lh-normal)',
+            }}
+          >
             Affiche les tâches et tutoriels rattachés à ce lieu dans la liste des tâches.
           </p>
         </div>
@@ -325,9 +338,9 @@ function ZoneInfoModal({
                 padding: '10px 14px',
                 marginBottom: 12,
                 border: '1px solid var(--mint)',
-                fontSize: '.88rem',
+                fontSize: 'var(--text-sm)',
                 color: '#333',
-                lineHeight: 1.6,
+                lineHeight: 'var(--lh-relaxed)',
               }}
             >
               <MarkdownContent>{zone.description}</MarkdownContent>
@@ -356,12 +369,14 @@ function ZoneInfoModal({
                   className="history-item"
                 >
                   <span>{h.plant}</span>
-                  <span style={{ color: '#aaa', fontSize: '.76rem' }}>{h.harvested_at}</span>
+                  <span style={{ color: '#aaa', fontSize: 'var(--text-xs)' }}>
+                    {h.harvested_at}
+                  </span>
                 </div>
               ))}
             </div>
           )}
-          {!zone.special &&
+          {!isInfrastructureLocation(zone) &&
             orderedLivingBeingsForForm(
               zone.living_beings_list || zone.living_beings,
               zone.current_plant,
@@ -373,7 +388,7 @@ function ZoneInfoModal({
               <p
                 style={{
                   color: '#bbb',
-                  fontSize: '.85rem',
+                  fontSize: 'var(--text-sm)',
                   fontStyle: 'italic',
                   textAlign: 'center',
                   padding: '20px 0',
@@ -413,7 +428,12 @@ function ZoneInfoModal({
           <div className="field">
             <label>Êtres vivants</label>
             <p
-              style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}
+              style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--ink-soft)',
+                margin: '0 0 8px',
+                lineHeight: 'var(--lh-normal)',
+              }}
             >
               Maintenez Ctrl (Windows) ou Cmd (Mac) pour en choisir plusieurs. L’ordre de la liste
               est conservé pour l’affichage. Retirer un être vivant de la liste peut l’enregistrer
@@ -425,10 +445,7 @@ function ZoneInfoModal({
               value={livingBeings}
               onChange={(e) => {
                 const picked = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-                const next = nextLivingBeingsFromMultiSelect(livingBeings, picked, plants);
-                setLivingBeings(next);
-                if (next.length === 0) setStage('empty');
-                else if (stage === 'empty') setStage('growing');
+                setLivingBeings(nextLivingBeingsFromMultiSelect(livingBeings, picked, plants));
               }}
             >
               {plants.map((p) => (
@@ -441,34 +458,12 @@ function ZoneInfoModal({
           {livingBeings.length > 0 && (
             <LivingBeingsCatalogPanel plants={plants} names={livingBeings} showHeading={false} />
           )}
-          <div className="field">
-            <label>État</label>
-            <select value={stage} onChange={(e) => setStage(e.target.value)}>
-              <option value="empty">Vide</option>
-              <option value="growing">En croissance</option>
-              <option value="ready">Prêt à récolter</option>
-            </select>
-          </div>
-          <div className="field">
-            <label
-              style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-              title="Une zone spéciale représente un bâtiment ou une infrastructure (mare, ruches, compostage…) plutôt qu'une culture."
-            >
-              <input
-                type="checkbox"
-                checked={special}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  setSpecial(checked);
-                  // Évite un `stage` résiduel « special » (zones seedées) qui, une fois la
-                  // case décochée, afficherait à tort la pastille « Zone spéciale ».
-                  if (!checked && stage === 'special') setStage('empty');
-                }}
-                style={{ width: 18, height: 18 }}
-              />
-              Zone spéciale (bâtiment / infrastructure)
-            </label>
-          </div>
+          <LocationCategoryPicker
+            kind="zone"
+            catalog={categoryCatalog}
+            value={categoryIds}
+            onChange={setCategoryIds}
+          />
           <div className="field">
             <label>Description</label>
             <MarkdownTextarea
@@ -507,7 +502,14 @@ function ZoneInfoModal({
               ))}
             </div>
           </div>
-          <p style={{ fontSize: '.78rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
+          <p
+            style={{
+              fontSize: 'var(--text-sm)',
+              color: 'var(--ink-soft)',
+              margin: '0 0 10px',
+              lineHeight: 'var(--lh-normal)',
+            }}
+          >
             Textes ci-dessous : même contenu qu’en mode visite (sous-titre, accroche, bloc
             dépliable).
           </p>

@@ -32,7 +32,7 @@ export function ZoneTasksTeacherPanel({
     <div className="fade-in">
       <div style={{ marginTop: 12 }}>
         {linkedTasks.length === 0 ? (
-          <p style={{ color: '#999', fontSize: '.85rem' }}>
+          <p style={{ color: 'var(--ink-faint)', fontSize: 'var(--text-sm)' }}>
             {emptyLinkedTasksMessage(locationKind)}
           </p>
         ) : (
@@ -83,14 +83,16 @@ export function ZoneTasksStudentPanel({
   if (linkedTasks.length === 0) {
     return (
       <div className="fade-in">
-        <p style={{ color: '#999', fontSize: '.85rem' }}>{emptyLinkedTasksMessage(locationKind)}</p>
+        <p style={{ color: 'var(--ink-faint)', fontSize: 'var(--text-sm)' }}>
+          {emptyLinkedTasksMessage(locationKind)}
+        </p>
       </div>
     );
   }
   return (
     <div className="fade-in">
       <TaskEnrollmentLegend />
-      <p style={{ color: '#666', fontSize: '.84rem', marginBottom: 10 }}>
+      <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--text-sm)', marginBottom: 10 }}>
         {canSelfAssignTasks
           ? 'Sélectionne une ou plusieurs tâches puis inscris-toi directement.'
           : 'Profil visiteur : consultation en lecture seule.'}
@@ -98,10 +100,10 @@ export function ZoneTasksStudentPanel({
       {canSelfAssignTasks && Number(student?.taskEnrollment?.maxActiveAssignments) > 0 && (
         <p
           style={{
-            fontSize: '.78rem',
+            fontSize: 'var(--text-sm)',
             color: student?.taskEnrollment?.atLimit ? '#92400e' : '#166534',
             marginBottom: 10,
-            lineHeight: 1.45,
+            lineHeight: 'var(--lh-normal)',
           }}
         >
           {student.taskEnrollment?.atLimit
@@ -140,7 +142,13 @@ export function ZoneTasksStudentPanel({
                 }}
               />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, color: 'var(--forest)', fontSize: '.9rem' }}>
+                <div
+                  style={{
+                    fontWeight: 'var(--fw-bold)',
+                    color: 'var(--forest)',
+                    fontSize: 'var(--text-base)',
+                  }}
+                >
                   {t.title}
                 </div>
                 <div style={{ marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap' }}>

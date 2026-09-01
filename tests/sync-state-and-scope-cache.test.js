@@ -13,9 +13,50 @@ const {
   withTransaction,
 } = require('../database');
 const { getUserAccessibleGroupIds } = require('../lib/groupScope');
+const { signAuthToken } = require('../middleware/requireTeacher');
+
+/**
+ * La sonde expose l'identité du process et le rythme des écritures : elle exige désormais
+ * un jeton, comme toute autre route de données. La vérification s'arrête à la signature
+ * (aucune hydratation SQL), pour ne pas réintroduire le coût que cette sonde évite.
+ */
+let syncProbeToken = null;
+let glProbeToken = null;
+
+/** GET /api/sync-state avec le jeton de session (cas nominal du client). */
+function getSyncState() {
+  return request(app).get('/api/sync-state').set('Authorization', `Bearer ${syncProbeToken}`);
+}
 
 test.before(async () => {
   await initSchema();
+  syncProbeToken = await signAuthToken({
+    userType: 'student',
+    userId: 'sync-probe-user',
+    roleSlug: 'eleve',
+    permissions: [],
+    displayName: 'Sonde',
+  });
+  glProbeToken = await signAuthToken({
+    product: 'gl',
+    userType: 'gl_player',
+    userId: '1',
+    roleSlug: 'gl_player',
+    permissions: ['gl.read'],
+    displayName: 'Joueur GL',
+  });
+});
+
+test('GET /api/sync-state exige un jeton de session', async () => {
+  await request(app).get('/api/sync-state').expect(401);
+  await request(app).get('/api/sync-state').set('Authorization', 'Bearer jeton-bidon').expect(401);
+});
+
+test('GET /api/sync-state refuse un jeton GL (isolement produit)', async () => {
+  await request(app)
+    .get('/api/sync-state')
+    .set('Authorization', `Bearer ${glProbeToken}`)
+    .expect(403);
 });
 
 function uniqueSlug(prefix) {
@@ -47,7 +88,7 @@ async function createGroup(slug) {
 const SYNC_DOMAINS = ['maps', 'zones', 'tasks', 'plants', 'markers', 'tutorials', 'authMe'];
 
 test('GET /api/sync-state expose bootId + compteur, et le compteur suit les écritures', async () => {
-  const first = await request(app).get('/api/sync-state').expect(200);
+  const first = await getSyncState().expect(200);
   assert.ok(typeof first.body.bootId === 'string' && first.body.bootId.length > 0);
   assert.ok(Number.isFinite(first.body.writes));
   for (const domain of SYNC_DOMAINS) {
@@ -55,23 +96,23 @@ test('GET /api/sync-state expose bootId + compteur, et le compteur suit les écr
   }
 
   // Lecture pure : le compteur ne bouge pas.
-  const second = await request(app).get('/api/sync-state').expect(200);
+  const second = await getSyncState().expect(200);
   assert.strictEqual(second.body.bootId, first.body.bootId);
   assert.strictEqual(second.body.writes, first.body.writes);
   assert.deepStrictEqual(second.body.domains, first.body.domains);
 
   // Écriture via execute() : le compteur avance.
   await createStudent('SyncProbe');
-  const third = await request(app).get('/api/sync-state').expect(200);
+  const third = await getSyncState().expect(200);
   assert.ok(third.body.writes > second.body.writes);
 });
 
 test('les compteurs par domaine ciblent les tables concernées', async () => {
-  const before = (await request(app).get('/api/sync-state').expect(200)).body.domains;
+  const before = (await getSyncState().expect(200)).body.domains;
 
   // Écriture plants : seul le domaine plants bouge (tasks/zones/markers inchangés).
   await execute(`DELETE FROM plants WHERE 1 = 0`);
-  const afterPlants = (await request(app).get('/api/sync-state').expect(200)).body.domains;
+  const afterPlants = (await getSyncState().expect(200)).body.domains;
   assert.ok(afterPlants.plants > before.plants, 'plants doit bumper');
   assert.strictEqual(afterPlants.tasks, before.tasks);
   assert.strictEqual(afterPlants.zones, before.zones);
@@ -80,13 +121,13 @@ test('les compteurs par domaine ciblent les tables concernées', async () => {
   // Famille sans rapport avec fetchAll (forum) : aucun domaine ne bouge, le global si.
   const globalBefore = getDataWriteVersion();
   await execute(`DELETE FROM forum_posts WHERE 1 = 0`);
-  const afterForum = (await request(app).get('/api/sync-state').expect(200)).body.domains;
+  const afterForum = (await getSyncState().expect(200)).body.domains;
   assert.deepStrictEqual(afterForum, afterPlants);
   assert.ok(getDataWriteVersion() > globalBefore, 'le compteur global doit bumper');
 
   // Table hors mapping (app_settings) : repli conservateur, tous les domaines bumpent.
   await execute(`DELETE FROM app_settings WHERE 1 = 0`);
-  const afterUnknown = (await request(app).get('/api/sync-state').expect(200)).body.domains;
+  const afterUnknown = (await getSyncState().expect(200)).body.domains;
   for (const domain of SYNC_DOMAINS) {
     assert.ok(afterUnknown[domain] > afterForum[domain], `${domain} doit bumper (repli)`);
   }

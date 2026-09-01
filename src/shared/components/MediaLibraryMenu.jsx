@@ -419,7 +419,7 @@ export function MediaLibraryMenu({
                       disabled={busy}
                       onClick={() => onDelete(item)}
                     >
-                      ×
+                      ✕
                     </button>
                   ) : null}
                 </li>

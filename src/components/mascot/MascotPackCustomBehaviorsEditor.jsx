@@ -126,7 +126,7 @@ export default function MascotPackCustomBehaviorsEditor({ pack, patchPack }) {
     <div className="mascot-pack-custom-behaviors">
       <section className="mascot-pack-custom-behaviors__states">
         <h3 className="mascot-pack-wysiwyg__h">États personnalisés</h3>
-        <p className="section-sub" style={{ fontSize: '0.82rem' }}>
+        <p className="section-sub" style={{ fontSize: 'var(--text-sm)' }}>
           Ajoutez vos propres états d’animation (au-delà de la palette standard). Donnez-leur
           ensuite des images dans la section <strong>États d’animation</strong>. Clé en minuscules
           (lettres/chiffres/tiret/underscore), unique et différente des états standards.
@@ -180,7 +180,7 @@ export default function MascotPackCustomBehaviorsEditor({ pack, patchPack }) {
 
       <section className="mascot-pack-custom-behaviors__triggers" style={{ marginTop: 18 }}>
         <h3 className="mascot-pack-wysiwyg__h">Déclencheurs personnalisés</h3>
-        <p className="section-sub" style={{ fontSize: '0.82rem' }}>
+        <p className="section-sub" style={{ fontSize: 'var(--text-sm)' }}>
           Créez de nouveaux comportements : <strong>périodique</strong> (la mascotte joue un état de
           temps en temps) ou <strong>au tap</strong> (au clic direct sur la mascotte). Une bulle
           optionnelle peut accompagner le comportement.

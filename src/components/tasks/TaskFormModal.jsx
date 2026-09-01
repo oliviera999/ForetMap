@@ -431,7 +431,9 @@ function TaskFormModal({
               ? 'Proposer une tâche'
               : 'Nouvelle tâche'}
       </h3>
-      {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
+      {err && (
+        <p style={{ color: var_alert, marginBottom: 12, fontSize: 'var(--text-sm)' }}>{err}</p>
+      )}
       <div className="field">
         <label htmlFor="task-form-title">Titre *</label>
         <input
@@ -501,7 +503,14 @@ function TaskFormModal({
       </div>
       <div className="field">
         <label>Êtres vivants (biodiversité)</label>
-        <p style={{ fontSize: '.74rem', color: '#64748b', margin: '0 0 6px', lineHeight: 1.4 }}>
+        <p
+          style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--ink-soft)',
+            margin: '0 0 6px',
+            lineHeight: 'var(--lh-normal)',
+          }}
+        >
           Optionnel — comme pour les zones et les repères. Ctrl / Cmd + clic pour en choisir
           plusieurs.
         </p>
@@ -584,7 +593,14 @@ function TaskFormModal({
       {enableInitialAssignment && !isProposal && !editTask && !isDuplicate && (
         <div className="field">
           <label>Attribuer dès la création (optionnel)</label>
-          <p style={{ fontSize: '.8rem', color: '#555', margin: '0 0 8px', lineHeight: 1.45 }}>
+          <p
+            style={{
+              fontSize: 'var(--text-sm)',
+              color: 'var(--ink-soft)',
+              margin: '0 0 8px',
+              lineHeight: 'var(--lh-normal)',
+            }}
+          >
             Tu peux inscrire plusieurs {terms.studentPlural} dès la création. Si besoin, le nombre
             de places requis est relevé automatiquement pour correspondre à ta sélection.
           </p>
@@ -604,7 +620,7 @@ function TaskFormModal({
                   flexWrap: 'wrap',
                 }}
               >
-                <span style={{ fontSize: '.8rem', color: '#666' }}>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
                   {normalizedAssignStudentIds.length} sélectionné
                   {normalizedAssignStudentIds.length > 1 ? 's' : ''}
                 </span>
@@ -681,7 +697,9 @@ function TaskFormModal({
         </div>
       )}
       {canAutoSave && autoSaveError ? (
-        <p style={{ color: var_alert, marginBottom: 8, fontSize: '.85rem' }}>{autoSaveError}</p>
+        <p style={{ color: var_alert, marginBottom: 8, fontSize: 'var(--text-sm)' }}>
+          {autoSaveError}
+        </p>
       ) : null}
       {/* Édition seule : rien n'est affiché en création ni en duplication. */}
       {canAutoSave ? (

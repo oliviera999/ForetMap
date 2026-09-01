@@ -194,6 +194,23 @@ Le durcissement raisonnable n'est pas « rallumer helmet » mais poser un `defau
 avec les exceptions déjà connues (`style-src 'unsafe-inline'`, `font-src fonts.gstatic.com`),
 en `Content-Security-Policy-Report-Only` d'abord pour mesurer avant d'appliquer.
 
+> **Traité le 28/08 — la mesure, pas le durcissement.** `lib/csp.js` construit désormais deux
+> politiques : celle **imposée** reste le `img-src` historique, **strictement inchangée** ; une
+> politique candidate complète (`default-src 'self'`, `script-src 'self' 'wasm-unsafe-eval'`…) est
+> servie en `Content-Security-Policy-Report-Only`. Le navigateur ne bloque donc rien de plus
+> qu'avant : **ce lot ne durcit rien, il produit la donnée qui manquait**. Chaque directive a été
+> établie par inspection du build (aucun script inline dans `dist/*.html` ; le runtime Rive est
+> servi depuis notre origine, d'où `'wasm-unsafe-eval'` sans CDN ; `frame-src https:` parce qu'un
+> tutoriel « lien » embarque une URL saisie par un professeur), pas par recopie d'un modèle.
+> `lib/cspReport.js` collecte les signalements sur `POST /api/csp-report` en les **regroupant**
+> (une ligne de journal par fenêtre de 60 s, 40 signatures au plus) : un `report-uri` sans garde
+> serait un amplificateur de journal, exactement le contraire de ce qu'il faut sur l'hébergement
+> décrit au §5.2.
+>
+> **La décision restante est la promotion** de la politique candidate en politique imposée, quand
+> les signalements se seront tus en usage réel. `tests/csp.test.js` contient un test qui échoue si
+> quelqu'un promeut sans le décider.
+
 ### 2.6 — MINEUR · `SELECT *` puis retrait manuel des champs sensibles
 
 Motif présent à 138 emplacements, dont `SELECT * FROM users` suivi de
@@ -498,6 +515,12 @@ permettra de confirmer ou d'écarter cette piste** — c'est le premier endroit 
 la prochaine indisponibilité. Piste de durcissement : abaisser le défaut global (2 Mo) et ne
 relever la limite que sur les routes d'import qui en ont besoin.
 
+> **Traité sur `main` le 29/08** (`659bd001`, hors de ce lot). `lib/jsonBodyLimit.js` fait
+> exactement cela : défaut global abaissé à **2 Mo** (`FORETMAP_JSON_BODY_LIMIT`), et treize
+> préfixes médias/imports relevés à **25 Mo** (`FORETMAP_JSON_BODY_LIMIT_LARGE`), montés **avant**
+> le parseur global — body-parser pose `req._body` et saute le second passage, c'est ce qui rend
+> l'ordre significatif. Le point 7 du reste-à-faire est donc clos.
+
 ### 5.2 — MAJEUR · La configuration serveur du lot 30 reste à appliquer
 
 Le lot 30 est fusionné, mais son bénéfice dépend de **deux gestes côté o2switch qui ne sont
@@ -644,9 +667,14 @@ décrivent le mécanisme lui-même (`README.md`, `guide-du-mj.md`). Rien à repr
    lot.
 6. **Configuration o2switch du lot 30** (§5.2) — deux gestes **hors code** : une ligne de
    crontab (`*/3`) et la vérification d'instance unique dans cPanel.
-7. **Abaisser la limite de corps JSON** (§5.1) — 25 Mo → 2 Mo casserait les imports qui en
-   dépendent tant que les routes concernées n'ont pas été relevées une par une.
-8. **CSP `default-src 'self'`** (§2.5) — à mesurer en `Report-Only` avant d'appliquer.
+7. ~~**Abaisser la limite de corps JSON** (§5.1) — 25 Mo → 2 Mo casserait les imports qui en
+   dépendent tant que les routes concernées n'ont pas été relevées une par une.~~ **Fait sur
+   `main` le 29/08** : `lib/jsonBodyLimit.js` abaisse le défaut à 2 Mo et relève les treize
+   préfixes d'import à 25 Mo, montés avant le parseur global.
+8. **CSP `default-src 'self'`** (§2.5) — ~~à mesurer en `Report-Only` avant d'appliquer~~ **la
+   mesure est en place depuis le 28/08** (en-tête `Report-Only` + collecteur `/api/csp-report`).
+   Ce qui reste est une décision, pas un développement : **promouvoir** la politique candidate en
+   politique imposée une fois les signalements taris en usage réel.
 9. **e2e bloquant / seuil de couverture** (§4.6, §4.7) — l'un demande de stabiliser les
    scénarios headless, l'autre de figer une base de mesure.
 

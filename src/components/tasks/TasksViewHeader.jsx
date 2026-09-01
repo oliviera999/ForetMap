@@ -153,8 +153,8 @@ export function TasksViewHeader({
             borderRadius: 10,
             background: student.taskEnrollment?.atLimit ? '#fef3c7' : '#f0fdf4',
             color: student.taskEnrollment?.atLimit ? '#92400e' : '#166534',
-            fontSize: '.88rem',
-            lineHeight: 1.45,
+            fontSize: 'var(--text-sm)',
+            lineHeight: 'var(--lh-normal)',
           }}
         >
           {/* Écran compact : une ligne suffit — le détail reste affiché sur écran large. */}

@@ -74,7 +74,7 @@ export function LearningQuizPopover({
             aria-label={closeButtonLabel}
             disabled={closeButtonDisabled}
           >
-            ×
+            ✕
           </button>
         ) : null}
         <div className="fm-quiz-popover__body">{children}</div>

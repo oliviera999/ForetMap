@@ -24,7 +24,7 @@ function editTogglePillStyle(on) {
     borderRadius: 8,
     padding: '6px 10px',
     cursor: 'pointer',
-    fontWeight: 700,
+    fontWeight: 'var(--fw-bold)',
     minHeight: 36,
     whiteSpace: 'nowrap',
   };
@@ -240,7 +240,7 @@ export function MapViewToolbar({
               onClick={onRemoveSelectedPoints}
               title="Retirer les sommets sélectionnés (touche Suppr). Un contour garde au moins 3 sommets."
             >
-              🗑 {selectedPointsCount > 1 ? `${selectedPointsCount} sommets` : 'Sommet'}
+              🗑️ {selectedPointsCount > 1 ? `${selectedPointsCount} sommets` : 'Sommet'}
             </button>
             <button
               type="button"
@@ -250,7 +250,7 @@ export function MapViewToolbar({
               onClick={onToggleMultiSelectMode}
               title="Sélection multiple : chaque appui ajoute ou retire un sommet (équivaut à Maj+clic, pratique au doigt)."
             >
-              {multiSelectMode ? '☑ Multi' : '⬚ Multi'}
+              {multiSelectMode ? '☑️ Multi' : '⬜ Multi'}
             </button>
             <button
               type="button"
@@ -391,13 +391,17 @@ export function MapViewToolbar({
                     ? 'Suivre ma position'
                     : gps.status === 'denied'
                       ? 'Localisation refusée — autorisez l’accès'
-                      : gps.feedback === 'out_of_bounds'
-                        ? 'Vous semblez hors de la zone du plan'
-                        : gps.feedback === 'low_accuracy'
-                          ? 'Signal GPS faible'
-                          : gps.status === 'prompt'
-                            ? 'Acquisition de la position…'
-                            : 'Suivi GPS actif'
+                      : gps.feedback === 'bad_georef'
+                        ? 'Calage GPS du plan incohérent'
+                        : gps.feedback === 'out_of_bounds'
+                          ? 'Vous semblez hors de la zone du plan'
+                          : gps.feedback === 'low_accuracy'
+                            ? 'Signal GPS faible'
+                            : !gps.feedback && gps.error
+                              ? gps.error
+                              : gps.status === 'prompt'
+                                ? 'Acquisition de la position…'
+                                : 'Suivi GPS actif'
                 }
                 style={{
                   background: gps.active ? 'var(--forest)' : 'transparent',
@@ -406,7 +410,10 @@ export function MapViewToolbar({
               >
                 {!gps.active
                   ? '📍 Me suivre'
-                  : gps.status === 'denied' || gps.feedback === 'out_of_bounds'
+                  : gps.status === 'denied' ||
+                      gps.feedback === 'out_of_bounds' ||
+                      gps.feedback === 'bad_georef' ||
+                      (!gps.feedback && gps.error)
                     ? '📍 ⚠️'
                     : gps.feedback === 'low_accuracy'
                       ? '📍 📶'

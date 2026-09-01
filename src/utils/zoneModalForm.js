@@ -70,8 +70,8 @@ export function mergeZoneListIntoDetail(prevDetail, listZone) {
 /**
  * Payload de sauvegarde de la zone (champs de formulaire + blocs éditoriaux normalisés).
  * `name` est le nom complet déjà calculé par `buildZoneName`. `current_plant` est forcé vide
- * (l'édition passe désormais par `living_beings`). `special` est normalisé en bit (0/1) pour
- * le drapeau « zone spéciale » (bâtiment / infrastructure).
+ * (l'édition passe désormais par `living_beings`). Le caractère « infrastructure » d'une zone
+ * n'est plus un drapeau propre : il découle des catégories affectées (`category_ids`).
  *
  * `omitVisitEditorialBlocks` : ne pas envoyer la clé — le PUT conserve le `body_json`
  * existant (liste allégée / détail pas encore chargé).
@@ -79,10 +79,11 @@ export function mergeZoneListIntoDetail(prevDetail, listZone) {
 export function buildZonePayload(name, form, visitEditorialBlocks, options = {}) {
   const payload = {
     name,
+    // Colonne dédiée `zones.emoji` (audit C4) — le nom garde son préfixe pour compat.
+    emoji: clampEmojiInput((form.zoneEmoji || '').trim(), ZONE_NAME_PREFIX_EMOJI_MAX_CHARS),
     current_plant: '',
     living_beings: form.livingBeings,
-    stage: form.stage,
-    special: form.special ? 1 : 0,
+    category_ids: form.categoryIds || [],
     color: form.zoneColor,
     description: form.desc,
     visit_subtitle: form.visitSubtitle,

@@ -53,7 +53,7 @@ export function TaskImportPanel({ setToast, onRefresh }) {
       variant="details"
       title="Import tâches/projets (CSV / XLSX)"
       intro={
-        <p style={{ margin: 0, fontSize: '.85rem', color: '#6b7280' }}>
+        <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
           Le fichier peut contenir des lignes de type <strong>project</strong> et{' '}
           <strong>task</strong>.
         </p>
@@ -64,7 +64,7 @@ export function TaskImportPanel({ setToast, onRefresh }) {
       ]}
       templatesDisabledWhenBusy
       importBusyLabel="Import..."
-      selectedFileStyle={{ margin: 0, fontSize: '.8rem', color: '#6b7280' }}
+      selectedFileStyle={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}
       reportBoxStyle={{
         background: '#f8fafc',
         border: '1px solid #e2e8f0',

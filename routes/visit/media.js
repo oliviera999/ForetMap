@@ -142,7 +142,7 @@ router.post(
       insertedId = result.insertId;
       const relativePath = `visit_media/${insertedId}.jpg`;
       try {
-        saveBase64ToDisk(relativePath, imageData);
+        await saveBase64ToDisk(relativePath, imageData);
       } catch (fileErr) {
         await execute('DELETE FROM visit_media WHERE id = ?', [insertedId]);
         logRouteError(fileErr, req);
@@ -189,7 +189,7 @@ router.put(
       if (exists.image_path) deleteFile(exists.image_path);
       const relativePath = `visit_media/${mediaId}.jpg`;
       try {
-        saveBase64ToDisk(relativePath, imageData);
+        await saveBase64ToDisk(relativePath, imageData);
       } catch (fileErr) {
         logRouteError(fileErr, req);
         return res.status(400).json({ error: 'Image invalide ou trop volumineuse' });

@@ -36,7 +36,14 @@ export function ProfilesRoleProgressionConfig({
           marginBottom: 14,
         }}
       >
-        <div style={{ fontSize: '.88rem', fontWeight: 700, color: '#1e3a5f', marginBottom: 8 }}>
+        <div
+          style={{
+            fontSize: 'var(--text-sm)',
+            fontWeight: 'var(--fw-bold)',
+            color: '#1e3a5f',
+            marginBottom: 8,
+          }}
+        >
           Progression par tâches validées
         </div>
         <label
@@ -44,7 +51,7 @@ export function ProfilesRoleProgressionConfig({
             display: 'flex',
             alignItems: 'flex-start',
             gap: 10,
-            fontSize: '.84rem',
+            fontSize: 'var(--text-sm)',
             cursor: loading ? 'default' : 'pointer',
             marginBottom: 8,
           }}
@@ -61,17 +68,36 @@ export function ProfilesRoleProgressionConfig({
             nombre de tâches validées selon les seuils définis pour chaque palier.
           </span>
         </label>
-        <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
+        <p
+          style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--ink-soft)',
+            margin: '0 0 10px',
+            lineHeight: 'var(--lh-normal)',
+          }}
+        >
           Si cette option est désactivée, aucun changement automatique de profil ne s’applique :
           utilisez la section « Attribution des profils » pour les niveaux.
         </p>
         {isTier && (
           <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10 }}>
-            <div style={{ fontSize: '.8rem', fontWeight: 600, color: '#334155', marginBottom: 6 }}>
+            <div
+              style={{
+                fontSize: 'var(--text-sm)',
+                fontWeight: 'var(--fw-semibold)',
+                color: '#334155',
+                marginBottom: 6,
+              }}
+            >
               Seuil pour « {role.display_name} »
             </div>
             <label
-              style={{ fontSize: '.76rem', color: '#64748b', display: 'block', marginBottom: 6 }}
+              style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--ink-soft)',
+                display: 'block',
+                marginBottom: 6,
+              }}
             >
               Nombre de tâches validées requises pour atteindre ce niveau (palier suivant = seuil
               supérieur ou égal).
@@ -115,7 +141,14 @@ export function ProfilesRoleProgressionConfig({
             marginBottom: 14,
           }}
         >
-          <div style={{ fontSize: '.88rem', fontWeight: 700, color: '#1b4332', marginBottom: 8 }}>
+          <div
+            style={{
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--fw-bold)',
+              color: '#1b4332',
+              marginBottom: 8,
+            }}
+          >
             Proposition de tâches
           </div>
           <label
@@ -123,7 +156,7 @@ export function ProfilesRoleProgressionConfig({
               display: 'flex',
               alignItems: 'flex-start',
               gap: 10,
-              fontSize: '.84rem',
+              fontSize: 'var(--text-sm)',
               cursor: loading ? 'default' : 'pointer',
               marginBottom: 8,
             }}
@@ -140,9 +173,17 @@ export function ProfilesRoleProgressionConfig({
               (statut « proposée », validation par un {roleTerms.teacherShort}).
             </span>
           </label>
-          <p style={{ fontSize: '.72rem', color: '#64748b', margin: '10px 0 0', lineHeight: 1.45 }}>
-            Correspond à la permission <code style={{ fontSize: '.7rem' }}>tasks.propose</code>{' '}
-            (retirée de la liste ci-dessous pour éviter le doublon).
+          <p
+            style={{
+              fontSize: 'var(--text-xs)',
+              color: 'var(--ink-soft)',
+              margin: '10px 0 0',
+              lineHeight: 'var(--lh-normal)',
+            }}
+          >
+            Correspond à la permission{' '}
+            <code style={{ fontSize: 'var(--text-xs)' }}>tasks.propose</code> (retirée de la liste
+            ci-dessous pour éviter le doublon).
           </p>
         </div>
       )}
@@ -156,7 +197,14 @@ export function ProfilesRoleProgressionConfig({
             marginBottom: 14,
           }}
         >
-          <div style={{ fontSize: '.88rem', fontWeight: 700, color: '#1e3a5f', marginBottom: 8 }}>
+          <div
+            style={{
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--fw-bold)',
+              color: '#1e3a5f',
+              marginBottom: 8,
+            }}
+          >
             Forum et commentaires (tâches, zones…)
           </div>
           <label
@@ -164,7 +212,7 @@ export function ProfilesRoleProgressionConfig({
               display: 'flex',
               alignItems: 'flex-start',
               gap: 10,
-              fontSize: '.84rem',
+              fontSize: 'var(--text-sm)',
               cursor: loading || !canEditRoleDefinition ? 'default' : 'pointer',
               marginBottom: 8,
             }}
@@ -186,7 +234,7 @@ export function ProfilesRoleProgressionConfig({
               display: 'flex',
               alignItems: 'flex-start',
               gap: 10,
-              fontSize: '.84rem',
+              fontSize: 'var(--text-sm)',
               cursor: loading || !canEditRoleDefinition ? 'default' : 'pointer',
               marginBottom: 0,
             }}
@@ -204,7 +252,14 @@ export function ProfilesRoleProgressionConfig({
               ci-dessus).
             </span>
           </label>
-          <p style={{ fontSize: '.72rem', color: '#64748b', margin: '10px 0 0', lineHeight: 1.45 }}>
+          <p
+            style={{
+              fontSize: 'var(--text-xs)',
+              color: 'var(--ink-soft)',
+              margin: '10px 0 0',
+              lineHeight: 'var(--lh-normal)',
+            }}
+          >
             Réglages communs à tous les comptes ayant ce profil principal. Le profil visiteur reste
             sans accès forum / commentaires de contexte.
           </p>
@@ -220,15 +275,30 @@ export function ProfilesRoleProgressionConfig({
             marginBottom: 14,
           }}
         >
-          <div style={{ fontSize: '.88rem', fontWeight: 700, color: '#92400e', marginBottom: 8 }}>
+          <div
+            style={{
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--fw-bold)',
+              color: '#92400e',
+              marginBottom: 8,
+            }}
+          >
             Inscriptions simultanées aux tâches
           </div>
-          <p style={{ fontSize: '.76rem', color: '#78350f', margin: '0 0 10px', lineHeight: 1.45 }}>
+          <p
+            style={{
+              fontSize: 'var(--text-xs)',
+              color: '#78350f',
+              margin: '0 0 10px',
+              lineHeight: 'var(--lh-normal)',
+            }}
+          >
             Nombre maximum de tâches <strong>non validées</strong> auxquelles un{' '}
             {roleTerms.studentSingular} peut s’inscrire en même temps (toutes cartes). Une tâche{' '}
             <strong>validée</strong> par un {roleTerms.teacherShort} ne compte plus : le compteur se
             libère. Champ vide = utiliser le plafond défini dans <strong>Paramètres n3boss</strong>{' '}
-            (<code style={{ fontSize: '.72rem' }}>tasks.student_max_active_assignments</code>
+            (
+            <code style={{ fontSize: 'var(--text-xs)' }}>tasks.student_max_active_assignments</code>
             ). <strong>0</strong> = pas de limite pour ce profil (même si le réglage global est
             actif).
           </p>

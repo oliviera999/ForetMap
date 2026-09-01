@@ -35,7 +35,7 @@
 
 .fm-tour-editor__step > legend {
   padding: 0 6px;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .fm-tour-editor__field {

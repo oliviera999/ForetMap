@@ -10,7 +10,7 @@ import {
 const ZONES = [
   { id: 'z1', name: 'Mare', map_id: 'foret' },
   { id: 'z2', name: 'Potager', map_id: 'jardin' },
-  { id: 'z3', name: 'Spéciale', map_id: 'foret', special: true },
+  { id: 'z3', name: 'Infrastructure', map_id: 'foret', is_infrastructure: true },
 ];
 const MARKERS = [
   { id: 'm1', label: 'Ruche', emoji: '🐝', map_id: 'foret' },

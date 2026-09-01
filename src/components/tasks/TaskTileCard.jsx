@@ -274,7 +274,7 @@ function TaskTileCardImpl({
                 marginTop: 8,
                 borderLeft: '3px solid var(--leaf, #22c55e)',
                 paddingLeft: 10,
-                lineHeight: 1.5,
+                lineHeight: 'var(--lh-normal)',
               }}
             >
               {referentBriefing ? (
@@ -302,7 +302,7 @@ function TaskTileCardImpl({
                 marginTop: 8,
                 borderLeft: '3px solid #dc2626',
                 paddingLeft: 10,
-                lineHeight: 1.5,
+                lineHeight: 'var(--lh-normal)',
                 color: '#7f1d1d',
               }}
             >
@@ -491,7 +491,7 @@ function TaskTileCardImpl({
             {isTeacher && isQuickAssignOpen && (
               <div style={{ display: 'grid', gap: 8, width: '100%' }}>
                 {loadingTeacherStudents ? (
-                  <p style={{ margin: 0, fontSize: '.82rem', color: '#666' }}>
+                  <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
                     Chargement n3beurs...
                   </p>
                 ) : (
@@ -505,7 +505,7 @@ function TaskTileCardImpl({
                         flexWrap: 'wrap',
                       }}
                     >
-                      <span style={{ fontSize: '.8rem', color: '#666' }}>
+                      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
                         {quickAssignStudentIds.length} coché
                         {quickAssignStudentIds.length > 1 ? 's' : ''}
                         {quickAssignDelta.toRemove.length > 0 || quickAssignDelta.toAdd.length > 0
@@ -514,7 +514,7 @@ function TaskTileCardImpl({
                       </span>
                       <span
                         style={{
-                          fontSize: '.8rem',
+                          fontSize: 'var(--text-sm)',
                           color:
                             quickAssignDelta.toAdd.length > quickAssignSlotsAfterRemovals
                               ? '#b45309'
@@ -594,7 +594,9 @@ function TaskTileCardImpl({
                                 );
                               }}
                             />
-                            <span style={{ fontSize: '.88rem', textAlign: 'left', flex: 1 }}>
+                            <span
+                              style={{ fontSize: 'var(--text-sm)', textAlign: 'left', flex: 1 }}
+                            >
                               {fullName || 'n3beur'}
                             </span>
                           </label>
