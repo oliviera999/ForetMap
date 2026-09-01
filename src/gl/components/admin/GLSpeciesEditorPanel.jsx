@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { useGlAdminCrud } from '../../hooks/useGlAdminCrud.js';
 import { GL_SPECIES_DETAIL_SECTIONS } from '../../utils/glSpeciesFieldLabels.js';
 import {
@@ -16,6 +17,7 @@ import { GLSelect } from '../ui/GLSelect.jsx';
 import { GLSpeciesField } from './GLSpeciesField.jsx';
 
 export function GLSpeciesEditorPanel() {
+  const { confirm } = useAppDialogs();
   const [biomes, setBiomes] = useState([]);
   const [biomeSlug, setBiomeSlug] = useState('');
   const [filterQ, setFilterQ] = useState('');
@@ -89,7 +91,14 @@ export function GLSpeciesEditorPanel() {
 
   async function archiveSpecies() {
     if (!selectedCode) return;
-    if (!window.confirm('Archiver cette espèce (statut inactif) ?')) return;
+    if (
+      !(await confirm({
+        message: 'Archiver cette espèce (statut inactif) ?',
+        confirmLabel: 'Archiver',
+        danger: true,
+      }))
+    )
+      return;
     await runAction(async () => {
       await apiGL(itemPath(selectedCode), 'PATCH', { statut: 'inactif' });
       setInfo('Espèce archivée.');

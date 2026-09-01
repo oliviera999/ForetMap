@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiGL } from '../../services/apiGL.js';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
@@ -41,6 +42,7 @@ function downloadMarkdown(slug, bodyMarkdown) {
  * surcouche enregistrée en base, réversible (« Réinitialiser ») et exportable en `.md`.
  */
 export function GLReferenceDocsPanel({ glossaryLinkItems = [], onOpenGlossaryTerm }) {
+  const { confirm } = useAppDialogs();
   const [docs, setDocs] = useState([]);
   const [activeSlug, setActiveSlug] = useState('');
   const [doc, setDoc] = useState(null);
@@ -159,9 +161,11 @@ export function GLReferenceDocsPanel({ glossaryLinkItems = [], onOpenGlossaryTer
 
   async function resetDoc() {
     if (!loadReady || !doc?.edited) return;
-    const confirmed = window.confirm(
-      `Réinitialiser « ${doc.title} » ?\n\nLes modifications faites depuis l’application seront supprimées et le document reviendra au texte du dépôt.`,
-    );
+    const confirmed = await confirm({
+      message: `Réinitialiser « ${doc.title} » ?\n\nLes modifications faites depuis l’application seront supprimées et le document reviendra au texte du dépôt.`,
+      confirmLabel: 'Réinitialiser',
+      danger: true,
+    });
     if (!confirmed) return;
     setBusy(true);
     setError('');

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
+import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLBadge } from '../ui/GLBadge.jsx';
 import { DialogShell } from '../../../components/DialogShell.jsx';
@@ -46,6 +47,7 @@ export function GLFeuilletEditorDialog({
   onClose,
   onSaved,
 }) {
+  const { confirm } = useAppDialogs();
   const [mode, setMode] = useState(initialMode === 'preview' ? 'preview' : 'edit');
   const [form, setForm] = useState(EMPTY_FORM);
   const [biomes, setBiomes] = useState([]);
@@ -161,7 +163,11 @@ export function GLFeuilletEditorDialog({
     const nextStatut = form.statut === 'actif' ? 'inactif' : 'actif';
     if (
       nextStatut === 'inactif' &&
-      !window.confirm('Archiver ce feuillet ? Il ne sera plus servi en jeu.')
+      !(await confirm({
+        message: 'Archiver ce feuillet ? Il ne sera plus servi en jeu.',
+        confirmLabel: 'Archiver',
+        danger: true,
+      }))
     ) {
       return;
     }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
+import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
 import { GLVitalityAdjustButtons, GLVitalityCounts } from '../GLVitalityDisplay.jsx';
@@ -13,6 +14,7 @@ export function GLGameRosterPanel({
   canImpersonate = false,
   onImpersonationApplied = null,
 }) {
+  const { confirm } = useAppDialogs();
   const [rows, setRows] = useState([]);
   const [selectedTeams, setSelectedTeams] = useState({});
   const [busy, setBusy] = useState(false);
@@ -117,11 +119,12 @@ export function GLGameRosterPanel({
       return;
     }
     if (mode === 'reset') {
-      const confirmed =
-        typeof window === 'undefined' ||
-        window.confirm(
+      const confirmed = await confirm({
+        message:
           'Redistribuer aléatoirement TOUS les joueurs ? Les équipes actuelles seront recomposées.',
-        );
+        confirmLabel: 'Redistribuer',
+        danger: true,
+      });
       if (!confirmed) return;
     }
     setBusy(true);

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image.js';
 import { GLChapterMapStudio } from './GLChapterMapStudio.jsx';
@@ -36,6 +37,7 @@ import { chapterIllustration, plateauBoardImg, GL_ASSET_PLACEHOLDER_URL } from '
 import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
 
 export function GLChaptersAdminView() {
+  const { confirm } = useAppDialogs();
   const [chapters, setChapters] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [detail, setDetail] = useState(null);
@@ -196,7 +198,7 @@ export function GLChaptersAdminView() {
 
   async function deleteChapter() {
     if (!selectedId) return;
-    if (typeof window !== 'undefined' && !window.confirm('Supprimer ce chapitre ?')) return;
+    if (!(await confirm({ message: 'Supprimer ce chapitre ?', danger: true }))) return;
     setError('');
     setInfo('');
     try {

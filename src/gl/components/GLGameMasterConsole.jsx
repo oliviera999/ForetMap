@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState, Suspense, lazy } from 'react
 import '../styles/gl-admin.css';
 import { apiGL } from '../services/apiGL.js';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { GLBadge } from './ui/GLBadge.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { useGLMascotCatalog } from '../context/GLMascotCatalogContext.jsx';
@@ -55,6 +56,7 @@ export function GLGameMasterConsole({
   canSpellCast = false,
   onLaunchSpell = null,
 }) {
+  const { confirm } = useAppDialogs();
   const [mjSection, setMjSection] = useState('parties');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createName, setCreateName] = useState('Partie découverte');
@@ -372,9 +374,10 @@ export function GLGameMasterConsole({
   }
 
   async function removeGame(gameId) {
-    const ok = window.confirm(
-      'Supprimer cette partie ? (autorisé uniquement pour brouillon/terminée)',
-    );
+    const ok = await confirm({
+      message: 'Supprimer cette partie ? (autorisé uniquement pour brouillon/terminée)',
+      danger: true,
+    });
     if (!ok) return;
     setActionError('');
     setBusy(true);
@@ -454,7 +457,7 @@ export function GLGameMasterConsole({
   }
 
   async function removeTeam(team) {
-    const ok = window.confirm(`Supprimer l'équipe « ${team.name} » ?`);
+    const ok = await confirm({ message: `Supprimer l'équipe « ${team.name} » ?`, danger: true });
     if (!ok) return;
     setBusy(true);
     setActionError('');
