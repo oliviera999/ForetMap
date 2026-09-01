@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import { FoodWebGraph } from './FoodWebGraph.jsx';
 import {
@@ -34,11 +34,14 @@ export function FoodWebView({
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [adminError, setAdminError] = useState('');
+  /** Invalide une réponse de graphe périmée (changement de carte/zone pendant le fetch). */
+  const loadFoodWebSeqRef = useRef(0);
 
   // Auto-liens des descriptions d'interaction (texte brut).
   const glossaryIndex = useGlossaryLinkIndex();
 
   const loadFoodWeb = useCallback(async () => {
+    const seq = ++loadFoodWebSeqRef.current;
     setLoading(true);
     setError('');
     try {
@@ -47,17 +50,22 @@ export function FoodWebView({
       else if (mapId) params.set('mapId', mapId);
       const qs = params.toString() ? `?${params}` : '';
       const data = await api(`/api/food-web${qs}`);
+      if (seq !== loadFoodWebSeqRef.current) return;
       setItems(Array.isArray(data?.items) ? data.items : []);
     } catch (err) {
+      if (seq !== loadFoodWebSeqRef.current) return;
       setError(err.message || 'Chargement impossible');
       setItems([]);
     } finally {
-      setLoading(false);
+      if (seq === loadFoodWebSeqRef.current) setLoading(false);
     }
   }, [zoneId, mapId]);
 
   useEffect(() => {
     loadFoodWeb();
+    return () => {
+      loadFoodWebSeqRef.current += 1;
+    };
   }, [loadFoodWeb]);
 
   useEffect(() => {
