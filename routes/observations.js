@@ -138,7 +138,7 @@ router.post(
     if (imageData) {
       const relativePath = `observations/${resolvedStudentId}_${logId}.jpg`;
       try {
-        saveBase64ToDisk(relativePath, imageData);
+        await saveBase64ToDisk(relativePath, imageData);
         await execute('UPDATE observation_logs SET image_path = ? WHERE id = ?', [
           relativePath,
           logId,

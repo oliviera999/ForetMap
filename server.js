@@ -24,6 +24,7 @@ const { runAutoArchiveJob } = require('./lib/autoArchive');
 const { initRealtime, shutdownRealtime } = require('./lib/realtime');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
 const { recordBoot, recordStop, recordCrash } = require('./lib/bootJournal');
+const { createDatabaseInitRetry } = require('./lib/databaseInitRetry');
 const { assignRequestId } = require('./lib/requestId');
 const { createHttpRequestLogMiddleware } = require('./lib/httpRequestLog');
 const { parseBearerToken, JWT_SECRET, requirePermission } = require('./middleware/requireTeacher');
@@ -88,6 +89,27 @@ const app = express();
 
 /** Arrêt gracieux en cours (redémarrage deploy, SIGTERM, etc.). */
 let shutdownInProgress = false;
+
+/** Boucle de reprise de `initDatabase()` (voir `lib/databaseInitRetry.js`), posée par `boot()`. */
+let databaseInitRetry = null;
+
+/**
+ * État de l'initialisation BDD pour `GET /api/admin/diagnostics` : c'est lui qui distingue
+ * « le service redémarre » (transitoire) de « le service est debout mais n'a jamais réussi à
+ * joindre MySQL » — deux situations que l'utilisateur voit pareil, et que le journal de cycle
+ * de vie ne peut pas départager puisque le process, lui, n'est jamais tombé.
+ */
+function getDatabaseInitState() {
+  if (databaseInitRetry) return databaseInitRetry.getState();
+  return {
+    ready: isApplicationDatabaseReady(),
+    attempts: 0,
+    lastError: null,
+    lastAttemptAt: null,
+    nextRetryMs: null,
+    stopped: false,
+  };
+}
 
 /** Derrière nginx / Passenger / load balancer : IP client pour rate-limit et logs. */
 function configureTrustProxy() {
@@ -226,10 +248,23 @@ app.post(
 // JSON : défaut bas (2mb) pour limiter les pics LVE ; préfixes médias/imports à 25mb
 // montés d'abord (voir lib/jsonBodyLimit.js). Surcharges :
 // FORETMAP_JSON_BODY_LIMIT, FORETMAP_JSON_BODY_LIMIT_LARGE.
-const { mountJsonBodyParsers } = require('./lib/jsonBodyLimit');
+const { mountJsonBodyParsers, resolveJsonBodyTier } = require('./lib/jsonBodyLimit');
 mountJsonBodyParsers(app);
 app.use((err, req, res, next) => {
   if (err?.type === 'entity.too.large' || err?.status === 413 || err?.statusCode === 413) {
+    // Tracé avec le niveau appliqué : si une route légitime a besoin de plus que son
+    // niveau, la ligne de log donne directement le chemin et le palier à corriger
+    // (voir `lib/jsonBodyLimit.js`) au lieu d'un 413 inexplicable.
+    logger.warn(
+      {
+        requestId: req.requestId,
+        path: req.path,
+        method: req.method,
+        tier: resolveJsonBodyTier(req.originalUrl || req.url),
+        msg: 'json_body_too_large',
+      },
+      'Corps de requête au-delà de la limite du niveau',
+    );
     return res.status(413).json({
       error: 'Fichier ou lot trop volumineux pour le serveur.',
       code: 'PAYLOAD_TOO_LARGE',
@@ -353,9 +388,24 @@ app.get('/api/version', (req, res) => {
 // complet). Aucune donnée métier, aucune requête SQL : coût quasi nul.
 const serverBootId = `${Date.now().toString(36)}-${process.pid}`;
 app.get('/api/sync-state', (req, res) => {
+  // Sonde réservée aux sessions : elle expose l'identité du process et le rythme des
+  // écritures, alors que toutes les autres routes de données exigent un jeton. La
+  // vérification s'arrête à la **signature** — pas d'hydratation rôles/permissions/groupes,
+  // qui coûterait les requêtes SQL que cette sonde existe précisément pour éviter.
+  const token = parseBearerToken(req);
+  if (!token) return res.status(401).json({ error: 'Token requis' });
+  try {
+    const claims = verifyJwtToken(token, JWT_SECRET);
+    // Isolement produit : un jeton GL n'a rien à lire des compteurs ForetMap.
+    if (String(claims?.product || 'foret').toLowerCase() === 'gl') {
+      return res.status(403).json({ error: 'Jeton hors produit' });
+    }
+  } catch (_) {
+    return res.status(401).json({ error: 'Token invalide' });
+  }
   // `domains` : compteurs par domaine du cycle fetchAll — le client ne refetche que
   // les domaines dont le compteur a bougé (repli : tout refetcher si absent/invalide).
-  res.json({
+  return res.json({
     bootId: serverBootId,
     writes: getDataWriteVersion(),
     domains: getSyncDomainVersions(),
@@ -364,7 +414,7 @@ app.get('/api/sync-state', (req, res) => {
 
 // Endpoints d'exploitation admin protégés par DEPLOY_SECRET (extraits dans routes/admin-ops.js —
 // chemins absolus, ordre inchangé) : restart, logs, diagnostics, oauth-debug.
-app.use(createAdminOpsRouter({ gracefulShutdown }));
+app.use(createAdminOpsRouter({ gracefulShutdown, getDatabaseInitState }));
 
 app.use('/api/gl/auth', glAuthRouter);
 // Avant glAdminRouter : préfixe plus spécifique, monté à part pour ne pas alourdir routes/gl/admin.js.
@@ -596,11 +646,15 @@ function gracefulShutdown(reason) {
 }
 
 function startServer() {
+  // AVANT listen() : un SIGTERM reçu pendant le démarrage (Passenger recycle un process
+  // qui met du temps à ouvrir son port) trouvait sinon le gestionnaire par défaut — arrêt
+  // sans trace, donc démarrage suivant classé « process tué sans signal » et verdict
+  // `hard_kills` mensonger dans prod:uptime-report (voir lib/bootJournal.js).
+  registerGracefulShutdownHandlersOnce();
   httpServer = http.createServer(app);
   initRealtime(httpServer);
   httpServer.listen(port, '0.0.0.0', () => {
     logger.info(`ForêtMap lancé sur port ${port}`);
-    registerGracefulShutdownHandlersOnce();
   });
   httpServer.on('error', (err) => {
     // Tracé comme un arrêt maîtrisé : sans cela, le démarrage suivant conclurait à tort
@@ -659,6 +713,10 @@ function boot() {
   if (booted) return;
   booted = true;
 
+  // Dès la première ligne du démarrage : la fenêtre « process lancé, port pas encore
+  // ouvert » doit elle aussi laisser une trace d'arrêt (voir startServer ci-dessus).
+  registerGracefulShutdownHandlersOnce();
+
   const diagPath = path.join(__dirname, 'startup.log');
   const diagLines = [
     `=== DÉMARRAGE ${new Date().toISOString()} ===`,
@@ -710,10 +768,15 @@ function boot() {
   startServer();
   fs.appendFileSync(diagPath, `startServer appelé sur PORT=${process.env.PORT || 3000}\n`);
 
-  initDatabase()
-    .then(() => {
-      fs.appendFileSync(diagPath, 'initDatabase: OK\n');
-      logger.info('BDD initialisée');
+  // Un échec ici n'est plus définitif : sans reprise, le process restait en vie avec
+  // `applicationDatabaseReady` faux, donc tout /api/* en 503 SERVICE_NOT_READY jusqu'à un
+  // redémarrage manuel (cf. lib/databaseInitRetry.js).
+  databaseInitRetry = createDatabaseInitRetry({
+    initDatabase,
+    shouldStop: () => shutdownInProgress,
+    onReady: ({ attempts }) => {
+      fs.appendFileSync(diagPath, `initDatabase: OK (tentative ${attempts})\n`);
+      logger.info({ attempts }, 'BDD initialisée');
       scheduleRecurringTaskSpawn();
       checkCriticalAdminAccount()
         .then((state) => {
@@ -726,11 +789,23 @@ function boot() {
         .catch((err) => {
           logger.warn({ err }, 'Contrôle admin critique en échec');
         });
-    })
-    .catch((err) => {
-      fs.appendFileSync(diagPath, `initDatabase ERREUR: ${err.message}\n`);
-      logger.error({ err }, 'Erreur init BDD — routes DB indisponibles');
-    });
+    },
+    onAttemptFailed: ({ attempts, error, nextRetryMs }) => {
+      // `startup.log` est écrasé à chaque démarrage : on n'y écrit que le premier échec
+      // (la boucle peut durer). La suite passe par Pino, échantillonnée pour ne pas noyer
+      // le tampon de `GET /api/admin/logs` avec une ligne par minute.
+      if (attempts === 1) {
+        fs.appendFileSync(diagPath, `initDatabase ERREUR: ${error?.message || error}\n`);
+      }
+      const noisy = attempts <= 5 || attempts % 10 === 0;
+      if (!noisy) return;
+      logger.error(
+        { err: error, attempts, nextRetryMs, msg: 'database_init_retry' },
+        'Init BDD en échec — /api/* en 503 tant que la base est injoignable ; nouvelle tentative programmée',
+      );
+    },
+  });
+  void databaseInitRetry.start();
 }
 
 if (require.main === module) {

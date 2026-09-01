@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { isSocketAuthRejection } from '../../utils/realtimeAuthRejection';
 import { apiGL } from '../services/apiGL.js';
 import { withAppBase } from '../../shared/appBase.js';
 
@@ -114,6 +115,11 @@ export function useGLSpellCast({ token, gameId, enabled, onCastComplete }) {
       });
       socket.on('connect', () => {
         socket.emit('subscribe:gl-game', { gameId });
+      });
+      socket.on('connect_error', (err) => {
+        // Voir `useGLMarketTrade` : un jeton refusé ne devient pas une boucle de requêtes.
+        if (!isSocketAuthRejection(err)) return;
+        socket.disconnect();
       });
       socket.on('gl:spell_cast:draft', (evt) => {
         if (Number(evt?.gameId) !== Number(gameId)) return;

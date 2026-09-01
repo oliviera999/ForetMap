@@ -60,6 +60,12 @@ donc de mineurs — s'accumulent sans limite (audit `docs/AUDIT_BDD_2026-08.md` 
 Le script est **à blanc par défaut** : le lancer une première fois à la main pour valider
 le volume et la durée retenue, puis seulement l'ajouter au crontab.
 
+> **Cette ligne n'est optionnelle que sur le plan technique.** Sans elle, `security_events`
+> conserve indéfiniment adresse IP et user-agent de chaque connexion — des données
+> personnelles d'élèves mineurs. L'audit `docs/AUDIT_STABILITE_PERF_2026-09.md` (§C3)
+> recommande de l'installer, et d'étendre le script à `gl_game_events` et `zone_history`,
+> qui croissent elles aussi sans borne.
+
 ```bash
 cd /home/USER/foretmap
 npm run logs:purge -- --days=365            # à blanc : compte, ne supprime rien

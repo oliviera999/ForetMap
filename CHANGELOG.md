@@ -7,6 +7,171 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Un audit de stabilité qui couvre enfin le jeu et les briques partagées
+
+Les deux audits précédents portaient sur ForetMap. Celui-ci étend l'examen à **Gnomes &
+Licornes** et aux **composants communs aux deux produits**, et devient le point d'entrée
+unique sur la tenue en charge : `docs/AUDIT_STABILITE_PERF_2026-09.md`. Aucun code n'est
+modifié dans ce lot — c'est un état des lieux, avec l'ordre de traitement suggéré.
+
+Ce qu'il relève, résumé : **l'affichage du marché du jeu coûte jusqu'à quatre-vingts requêtes
+à la base**, et comme un échange modifié prévient toute la classe en même temps et sans
+décalage, une seule action peut en déclencher deux mille d'un coup. **Les imports de contenu
+du jeu** (chapitres, QCM, espèces, sortilèges) écrivent ligne à ligne, sans transaction : un
+import long dépasse le délai d'attente côté navigateur pendant que le serveur continue, et
+l'import des chapitres — le seul qui supprime avant de réécrire — peut laisser un chapitre
+amputé si on l'interrompt. Côté briques communes, **une vérification de rôle échappe au cache**
+sur le seul chemin qu'emprunte le jeu, et **deux tables de journal grossissent sans purge**.
+
+L'audit note aussi, pour ne pas les réauditer, les points **vérifiés et sains** (bornes des
+tampons mémoire, caches de réglages, calculs de gating sans accès base, index des chemins
+chauds) et récapitule tout ce que les lots précédents ont déjà corrigé.
+
+Détail : `docs/AUDIT_STABILITE_PERF_2026-09.md` (nouveau) ; renvois depuis
+`docs/AUDIT_CHARGE_SERVEUR_2026-08.md`, `docs/AUDIT_CHARGE_ET_BUGS_2026-08.md`,
+`docs/EXPLOITATION.md`, `docs/CRONTAB.md` et `CLAUDE.md`.
+
+### Le serveur encaisse mieux les pics (audit charge & bugs)
+
+Audit complet du code — bugs, incohérences, postes de charge — dont les constats sont
+consignés dans `docs/AUDIT_CHARGE_ET_BUGS_2026-08.md`. Le premier audit mesurait le régime
+nominal ; celui-ci regarde les **cas dégradés et les pics**, là où se produisent justement
+les arrêts forcés du process que personne n'arrivait à expliquer.
+
+**Un envoi volumineux ne peut plus faire tomber le serveur.** La limite de 25 Mo par
+requête était appliquée à des **familles entières d'adresses** : valider une tâche, poster
+un commentaire ou enregistrer un réglage ouvrait la même porte que l'import d'un tableur.
+Or le serveur met tout le contenu reçu en mémoire avant de le lire — une seule requête de
+cette taille pouvait tripler sa consommation, et deux simultanées suffisaient
+vraisemblablement à provoquer l'arrêt forcé, donc la coupure. Trois paliers remplacent ce
+réglage unique : 2 Mo pour les échanges ordinaires, 8 Mo pour les contenus illustrés,
+25 Mo pour les seuls imports. S'y ajoute une limite **par photo** (8 Mo), qui n'existait
+pas du tout : un message pouvait en porter trois de n'importe quelle taille.
+
+**L'enregistrement d'une photo ne fige plus le site.** L'écriture du fichier sur le disque
+était **bloquante** : pendant toute sa durée, le serveur ne répondait plus à personne — ni
+aux autres élèves, ni à la surveillance, ni au temps réel. Elle est désormais asynchrone.
+
+**Trois pages coûtaient beaucoup plus cher qu'il n'y paraissait.** La liste des zones
+rapatriait **tout** l'historique de récolte de toutes les zones pour n'en afficher que cinq
+lignes par zone ; la liste des tutoriels chargeait le contenu HTML complet de chaque fiche
+alors qu'elle ne l'affiche jamais ; la page de visite publique — accessible sans compte —
+enchaînait huit requêtes à chaque consultation, sans jamais rien mémoriser. Les trois sont
+corrigées : historique découpé côté base, colonnes limitées à l'utile, et contenu de visite
+mis en cache jusqu'à la prochaine modification.
+
+**Une classe entière ne se bouscule plus au même instant.** Quand un professeur valide une
+tâche, tous les postes de la salle étaient prévenus et rechargeaient **exactement en même
+temps**. Un léger décalage aléatoire étale désormais ces rechargements, sans que personne
+ne voie la différence.
+
+**Deux expositions refermées.** La sonde de synchronisation, qui révèle l'identité du
+processus et le rythme d'activité du site, était accessible **sans être connecté** : elle
+exige un jeton (vérifié au coût le plus faible, pour ne pas alourdir ce qu'elle sert à
+alléger). Et le mot de passe chiffré était masqué « à la main » à huit endroits avant
+l'envoi au navigateur : c'est maintenant une liste blanche unique — une colonne sensible
+ajoutée demain ne partira pas au navigateur par simple oubli.
+
+**Enfin, le jeu Gnomes & Licornes reçoit la protection déjà posée côté ForetMap** : ses
+connexions temps réel cessent de réessayer indéfiniment quand la session a expiré.
+
+Détail : `lib/jsonBodyLimit.js`, `lib/publicUser.js`, `lib/visitContentCache.js` (nouveaux),
+`lib/uploads.js`, `lib/userContentImages.js`, `lib/profileUpdate.js`, `lib/mediaLibrary.js`,
+`routes/zones.js`, `routes/tutorials.js`, `routes/visit.js`, `routes/auth.js`,
+`routes/students.js`, `routes/rbac.js`, `server.js`, `src/utils/realtimeRefreshDelay.js`,
+`src/hooks/useForetmapRealtime.js`, `src/gl/hooks/useGLMarketTrade.js`,
+`src/gl/hooks/useGLSpellCast.js` ; tests `tests/server-load-hardening.test.js`,
+`tests/sync-state-and-scope-cache.test.js`, `tests-ui/utils/realtimeRefreshDelay.test.js` ;
+docs `docs/AUDIT_CHARGE_ET_BUGS_2026-08.md`, `docs/AUDIT_CHARGE_SERVEUR_2026-08.md`,
+`docs/API.md`, `docs/EXPLOITATION.md`, `docs/reference/foretmap/stats-forum-et-suivi.md`.
+
+### Les réessais réseau ne se retournent plus contre la classe
+
+Suite du diagnostic précédent : la boucle de réessai était bien dimensionnée pour un
+redémarrage serveur, mais chaque requête la parcourait **pour son compte**, sans jamais
+rien apprendre des autres.
+
+**Une fenêtre de réessai partagée.** Un cycle de rafraîchissement lance neuf requêtes en
+parallèle ; pendant une coupure, chacune retentait donc jusqu'à huit fois — près de
+soixante-dix requêtes par poste. Dans une salle, tous les postes sortent par la **même IP
+publique** : le plafond de l'API (1200 requêtes/minute) était atteint par les réessais
+eux-mêmes, et un `429` n'est pas réessayé — l'élève récoltait « Trop de requêtes » au
+moment précis où le serveur revenait. Désormais, la première requête qui constate
+l'indisponibilité ouvre une pause que les autres attendent (plafonnée à 5 s pour ne jamais
+bloquer une action), et la première réponse correcte la referme pour tout le monde. Un
+`429` ouvre la même pause, au lieu de laisser les requêtes sœurs creuser le trou.
+
+**Un serveur qui « pend » n'échoue plus du premier coup.** Le délai d'attente de 40 s
+levait une erreur immédiate, sans aucun réessai : la fenêtre de reprise ne couvrait que les
+coupures franches et les réponses de passerelle, pas un démarrage à froid qui traîne. Une
+seconde tentative est accordée — aux seules lectures, un délai dépassé ne disant pas si le
+serveur a traité la requête (rejouer un enregistrement pourrait le dupliquer), et deux
+tentatives au maximum, chacune coûtant déjà 40 s d'attente.
+
+**Et ce délai couvre enfin la réponse entière.** Il était désarmé dès l'arrivée des
+en-têtes : une réponse tronquée en cours de route laissait la requête pendante
+indéfiniment, sans plus aucune limite de temps.
+
+**Le temps réel cesse de marteler avec un jeton refusé.** Quand la session expire, le
+serveur refuse la connexion Socket.IO ; le client, réglé pour se reconnecter indéfiniment,
+rejouait le même jeton toutes les 1 à 5 secondes — et le transport étant du long-polling,
+chaque tentative était une requête HTTP. La reconnexion s'arrête maintenant sur un refus
+d'authentification (le rafraîchissement périodique prend le relais) et repart d'elle-même
+dès qu'un nouveau jeton est disponible. Une base momentanément injoignable, elle, reste
+traitée comme une panne passagère : la reconnexion continue.
+
+**Un compte supprimé est enfin vu par la sonde de synchronisation.** Le `401` remonté par
+`GET /api/sync-state` était traité comme une sonde muette ; la session restait ouverte
+jusqu'à ce qu'un autre appel remonte la même réponse.
+
+Détail : `src/shared/apiRetryGate.js` et `src/utils/realtimeAuthRejection.js` (nouveaux),
+`src/shared/fetchJsonWithRetry.js`, `src/services/apiTransport.js`,
+`src/hooks/useForetmapRealtime.js`, `src/hooks/useAppDataSync.js` ; tests
+`tests-ui/shared/apiRetryGate.test.js`, `tests-ui/utils/realtimeAuthRejection.test.js`,
+`tests-ui/hooks/useForetmapRealtime.test.jsx`, `tests-ui/shared/fetchJsonWithRetry.test.js`,
+`tests-ui/apiTransport.test.js`, `tests-ui/hooks/useAppDataSync.test.jsx` ; docs
+`docs/EXPLOITATION.md`, `docs/reference/foretmap/presentation.md`.
+
+### Le serveur ne reste plus en panne tout seul (déconnexions à répétition)
+
+Diagnostic parti d'un symptôme simple : des « déconnexions » et des tentatives de
+reconnexion qui s'enchaînent sans fin. La boucle de réessai (8 tentatives sur ~25 s)
+n'était pas en cause — elle faisait son travail. Trois défauts en amont l'étaient.
+
+**Une panne MySQL au démarrage n'est plus définitive.** Si `initDatabase()` échouait au
+boot, l'erreur était seulement journalisée : le process restait debout avec sa base
+marquée « non prête », donc **tout `/api/*` répondait `503` jusqu'à un redémarrage
+manuel** — pendant que `/api/health` répondait `200`, si bien que le keepalive
+entretenait un service inutilisable. Une indisponibilité MySQL de deux secondes au
+mauvais moment coûtait ainsi une demi-journée. L'initialisation est désormais **reprise
+automatiquement** (2 s, 5 s, 10 s… jusqu'à une tentative par minute) et son état est
+exposé dans `GET /api/admin/diagnostics` (champ `databaseInit`), en tête du rapport
+`npm run prod:uptime-report`.
+
+**Une coupure passagère ne vide plus l'écran.** Chaque domaine du rafraîchissement
+(zones, tâches, plantes, repères, tutoriels, cartes) repliait son échec sur une liste
+**vide**, appliquée telle quelle à l'affichage : la carte et les tâches disparaissaient
+le temps d'une coupure, ce qui se lit comme une perte de données. Les données du dernier
+chargement réussi sont maintenant conservées. Corollaire : comme l'erreur était avalée,
+le compteur d'échecs ne montait jamais et le bandeau **« Serveur indisponible »** ainsi
+que le repli du polling à 2 minutes n'étaient quasiment jamais atteints — ils
+fonctionnent à nouveau.
+
+**Le diagnostic dit enfin la vérité sur deux points.** Un redémarrage demandé depuis
+l'IHM admin (`restart-gui`) était compté comme un arrêt de l'hébergeur : trois clics
+suffisaient à produire le verdict `host_idle_stops` et à conseiller un keepalive
+Passenger sans rapport. Et un `SIGTERM` reçu **avant** l'ouverture du port ne laissait
+aucune trace d'arrêt — le démarrage suivant était alors classé « process tué sans
+signal », verdict `hard_kills`, qui envoie l'opérateur vers les quotas LVE d'o2switch
+pour rien. Les gestionnaires de signaux sont désormais posés dès la première ligne du
+démarrage. Enfin, la liste « derniers évènements » du rapport respecte la fenêtre
+demandée (`--hours=`) au lieu de piocher dans tout le journal.
+
+Détail : `lib/databaseInitRetry.js` (nouveau), `server.js`, `routes/admin-ops.js`,
+`src/hooks/useAppDataSync.js`, `lib/bootJournal.js`, `scripts/prod-uptime-report.js` ;
+tests `tests/database-init-retry.test.js`, `tests/boot-journal.test.js`,
+`tests-ui/hooks/useAppDataSync.test.jsx` ; docs `docs/API.md`, `docs/EXPLOITATION.md`,
+`docs/reference/foretmap/presentation.md`.
 ### Catégories de zones et de repères
 
 Deux mécanismes hétérogènes classaient les lieux de la carte : un **état de culture**
