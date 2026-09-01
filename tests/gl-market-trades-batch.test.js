@@ -409,3 +409,12 @@ test('listTradesForPlayer — page vide : payload identique, aucune requête de 
   assert.deepStrictEqual(result.items, []);
   assert.ok(queries <= 2, `une page vide coûte au plus 2 requêtes (mesuré : ${queries})`);
 });
+
+// G5 : LIMIT/OFFSET sont désormais des paramètres SQL — la pagination doit rester exacte.
+test('listTradesForPlayer — pagination identique à la référence (page 2, pageSize 2)', async () => {
+  const { result, reference } = await runListForTradeCount(5, { page: 2, pageSize: 2 });
+  assert.strictEqual(result.items.length, 2);
+  assert.strictEqual(result.page, 2);
+  assert.strictEqual(result.total, 5);
+  assert.deepStrictEqual(result, reference);
+});
