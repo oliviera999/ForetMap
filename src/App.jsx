@@ -817,10 +817,7 @@ function App() {
   const tutorialsModuleEnabled = publicSettings?.modules?.tutorials_enabled !== false;
   // F3 (option A) : la fusion contextuelle Tâches/Tuto est supprimée — les onglets
   // restent stables ; seule l'adaptation grand écran (vue « Cartes & tâches ») subsiste.
-  const tasksTabLabel = tutorialsModuleEnabled ? '✅ Tâches et tuto' : '✅ Tâches';
-  const mapTasksSplitLabel = tutorialsModuleEnabled
-    ? '🗺️ Cartes, tâches et tuto'
-    : '🗺️ Cartes & tâches';
+  // Les libellés d'onglets prof sont dérivés dans TeacherTopTabs (pôles, audit D-4).
 
   const rtStatus = useForetmapRealtime({
     enabled: !!(student || effectiveIsTeacher),
@@ -1199,8 +1196,6 @@ function App() {
                       tab={tab}
                       onTabChange={handleTeacherTabChange}
                       shouldUseDesktopSplit={shouldUseDesktopSplit}
-                      mapTasksSplitLabel={mapTasksSplitLabel}
-                      tasksTabLabel={tasksTabLabel}
                       teacherPendingValidationCount={teacherPendingValidationCount}
                       tutorialsModuleEnabled={tutorialsModuleEnabled}
                       statsEnabled={publicSettings?.modules?.stats_enabled !== false}

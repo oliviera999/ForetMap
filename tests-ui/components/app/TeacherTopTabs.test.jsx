@@ -6,8 +6,6 @@ const baseProps = {
   tab: 'map',
   onTabChange: () => {},
   shouldUseDesktopSplit: false,
-  mapTasksSplitLabel: '🗺️ Cartes & tâches',
-  tasksTabLabel: '✅ Tâches',
   teacherPendingValidationCount: 0,
   tutorialsModuleEnabled: true,
   statsEnabled: true,
@@ -18,44 +16,69 @@ const baseProps = {
   hasPermissionInRole: () => false,
 };
 
-describe('TeacherTopTabs', () => {
-  test('rend les onglets de base, marque l’actif et notifie le clic', () => {
+describe('TeacherTopTabs — navigation en 3 pôles (audit D-4)', () => {
+  test('rend les pôles, les onglets du pôle actif, marque l’actif et notifie le clic', () => {
     const onTabChange = vi.fn();
     render(<TeacherTopTabs {...baseProps} onTabChange={onTabChange} />);
-    expect(screen.getByText('🗺️ Carte & Zones')).toHaveClass('active');
-    expect(screen.getByText('📘 Tuto')).toBeInTheDocument();
-    expect(screen.getByText('💬 Forum')).toBeInTheDocument();
-    // Sans permissions : pas d’onglets admin, pas d’onglet split.
-    expect(screen.queryByText(/Profils & utilisateurs/)).toBeNull();
-    expect(screen.queryByText('⚙️ Paramètres')).toBeNull();
-    expect(screen.queryByText('📜 Audit')).toBeNull();
+    // Les trois pôles sont là ; « Contenus » est actif (tab = map).
+    expect(screen.getByRole('button', { name: 'Contenus' })).toHaveClass('active');
+    expect(screen.getByRole('button', { name: 'Suivi' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Administration' })).toBeInTheDocument();
+    // Rangée secondaire = onglets du pôle Contenus uniquement.
+    expect(screen.getByRole('button', { name: 'Carte & Zones' })).toHaveClass('active');
+    expect(screen.getByRole('button', { name: 'Tuto' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Forum' })).toBeNull(); // pôle Suivi
+    // Sans permissions : pas d’onglet split, et le pôle Administration ne montre rien tant
+    // qu'on n'y va pas — mais Profils/Paramètres n'existeraient pas non plus.
     expect(screen.queryByText(/Cartes & tâches/)).toBeNull();
-    fireEvent.click(screen.getByText('🌱 Biodiversité'));
+    fireEvent.click(screen.getByRole('button', { name: 'Biodiversité' }));
     expect(onTabChange).toHaveBeenCalledWith('plants');
   });
 
-  test('expose l’onglet Glossaire, comme la barre élève', () => {
-    // `PedagoTabs` rend `tab === 'glossary'` pour les deux branches, mais seule la
-    // barre élève l'exposait : côté prof le glossaire n'était atteignable qu'en
-    // cliquant un terme auto-lié.
+  test('cliquer un pôle ouvre son premier onglet visible', () => {
     const onTabChange = vi.fn();
     render(<TeacherTopTabs {...baseProps} onTabChange={onTabChange} />);
-    fireEvent.click(screen.getByText('📖 Glossaire'));
+    fireEvent.click(screen.getByRole('button', { name: 'Suivi' }));
+    expect(onTabChange).toHaveBeenCalledWith('tasks');
+    fireEvent.click(screen.getByRole('button', { name: 'Administration' }));
+    // Sans permissions admin, le premier onglet visible du pôle est « À propos ».
+    expect(onTabChange).toHaveBeenCalledWith('about');
+  });
+
+  test('expose l’onglet Glossaire, comme la barre élève', () => {
+    const onTabChange = vi.fn();
+    render(<TeacherTopTabs {...baseProps} onTabChange={onTabChange} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Glossaire' }));
     expect(onTabChange).toHaveBeenCalledWith('glossary');
   });
 
-  test('affiche le compteur « à valider » sur Tâches et l’onglet split', () => {
+  test('le compteur « à valider » devient un badge (pôle Suivi + onglet Tâches)', () => {
     render(
-      <TeacherTopTabs {...baseProps} shouldUseDesktopSplit teacherPendingValidationCount={3} />,
+      <TeacherTopTabs
+        {...baseProps}
+        tab="tasks"
+        shouldUseDesktopSplit
+        teacherPendingValidationCount={3}
+      />,
     );
-    expect(screen.getByText('✅ Tâches (3 à valider)')).toBeInTheDocument();
-    expect(screen.getByText('🗺️ Cartes & tâches (3 à valider)')).toBeInTheDocument();
+    // Badge sur le pôle Suivi et sur l'onglet Tâches (pôle actif) : deux occurrences.
+    expect(screen.getAllByText('3')).toHaveLength(2);
+    expect(screen.getAllByLabelText('3 à valider')).toHaveLength(2);
+    // Le libellé n'est plus allongé par le suffixe.
+    expect(screen.queryByText(/à valider\)/)).toBeNull();
+  });
+
+  test('l’onglet split apparaît dans Contenus quand le grand écran le permet', () => {
+    render(<TeacherTopTabs {...baseProps} tab="maptasks" shouldUseDesktopSplit />);
+    expect(screen.getByRole('button', { name: 'Cartes, tâches et tuto' })).toHaveClass('active');
+    expect(screen.getByRole('button', { name: 'Contenus' })).toHaveClass('active');
   });
 
   test('les permissions ouvrent les onglets admin (terminologie N3 comprise)', () => {
     render(
       <TeacherTopTabs
         {...baseProps}
+        tab="settings"
         isN3Affiliated
         hasPermission={(perm) => perm === 'audit.read'}
         hasPermissionInRole={(perm) =>
@@ -63,9 +86,11 @@ describe('TeacherTopTabs', () => {
         }
       />,
     );
+    // tab=settings → pôle Administration actif : ses onglets sont rendus.
     expect(screen.getByText(/n3boss & utilisateurs/)).toBeInTheDocument();
-    expect(screen.getByText('⚙️ Paramètres')).toBeInTheDocument();
-    expect(screen.getByText('📜 Audit')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Paramètres' })).toHaveClass('active');
+    // Audit vit dans le pôle Suivi : absent ici, mais le pôle sait l'ouvrir.
+    expect(screen.queryByRole('button', { name: 'Audit' })).toBeNull();
   });
 
   test('modules coupés → onglets stats/visite/forum/tuto masqués', () => {
@@ -78,16 +103,16 @@ describe('TeacherTopTabs', () => {
         canAccessForum={false}
       />,
     );
-    expect(screen.queryByText('📘 Tuto')).toBeNull();
-    expect(screen.queryByText('📊 Stats')).toBeNull();
-    expect(screen.queryByText('🧭 Visite')).toBeNull();
-    expect(screen.queryByText('🎨 Packs mascotte')).toBeNull();
-    expect(screen.queryByText('💬 Forum')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Tuto' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Visite' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Packs mascotte' })).toBeNull();
   });
 
   test('F3 : Tâches et Tuto restent des onglets séparés (plus de fusion contextuelle)', () => {
     render(<TeacherTopTabs {...baseProps} tab="tuto" />);
-    expect(screen.getByText('📘 Tuto')).toBeInTheDocument();
-    expect(screen.getByText('📘 Tuto')).toHaveClass('active');
+    expect(screen.getByRole('button', { name: 'Tuto' })).toHaveClass('active');
+    // Sans module tutoriels, l'onglet Tâches (pôle Suivi) redevient « Tâches ».
+    render(<TeacherTopTabs {...baseProps} tab="tasks" tutorialsModuleEnabled={false} />);
+    expect(screen.getByRole('button', { name: 'Tâches' })).toHaveClass('active');
   });
 });

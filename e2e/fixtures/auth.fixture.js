@@ -668,6 +668,20 @@ async function resetTaskFiltersInTasksView(page) {
 }
 
 /**
+ * Navigation prof en 3 pôles (audit D-4) : ouvre le pôle demandé s'il existe, pour rendre
+ * visibles ses onglets avant de les cliquer. Sans effet côté élève (pas de pôles).
+ */
+async function openTeacherPole(page, poleName) {
+  const pole = page
+    .locator('.teacher-nav__poles')
+    .getByRole('button', { name: poleName, exact: true })
+    .first();
+  if ((await pole.count()) > 0) {
+    await pole.click({ timeout: 15_000 }).catch(() => {});
+  }
+}
+
+/**
  * Onglet Tâches : nav basse élève ou barre d’onglets prof (évite les boutons hors navigation).
  */
 function tasksTabButton(page) {
@@ -685,6 +699,7 @@ async function clickTasksTab(page) {
     .waitFor({ state: 'attached', timeout: 30_000 })
     .catch(() => {});
 
+  await openTeacherPole(page, 'Suivi');
   const teacherTasksTab = page
     .locator('.teacher-main .top-tabs')
     .getByRole('button', { name: /Tâches/i })
@@ -723,6 +738,7 @@ async function fillTaskTitle(dialog, title) {
 async function openVisitTab(page) {
   await dismissProfilePromotionModalIfPresent(page);
   await dismissDiscoveryTourIfPresent(page);
+  await openTeacherPole(page, 'Contenus');
   const teacherVisit = page
     .locator('.teacher-main .top-tabs')
     .getByRole('button', { name: /Visite/i });
@@ -739,6 +755,7 @@ async function openTeacherTasksTab(page) {
   await page.locator('.teacher-main .top-tabs').waitFor({ state: 'visible', timeout: 60_000 });
   const tasksView = teacherTasksViewLocator(page);
   if (!(await tasksView.isVisible().catch(() => false))) {
+    await openTeacherPole(page, 'Contenus');
     const splitTab = page
       .locator('.teacher-main .top-tabs')
       .getByRole('button', { name: /Cartes.*tâches/i })

@@ -42,6 +42,11 @@ function glShareMetaPlugin() {
 export default defineConfig({
   plugins: [react(), glShareMetaPlugin()],
   root: '.',
+  optimizeDeps: {
+    // lucide-react expose ~1500 modules ESM : pré-bundlé en dev pour éviter l'avalanche
+    // de requêtes au premier chargement.
+    include: ['lucide-react'],
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
@@ -65,6 +70,9 @@ export default defineConfig({
           }
           if (id.includes('node_modules/socket.io-client')) return 'socket-io';
           if (id.includes('node_modules/@rive-app')) return 'rive';
+          // Icônes du chrome (audit UI, D-2) : chunk dédié, sinon lucide-react serait
+          // dupliqué dans les chunks des entrées main et gl.
+          if (id.includes('node_modules/lucide-react')) return 'icons';
           if (
             id.includes('node_modules/marked') ||
             id.includes('node_modules/isomorphic-dompurify') ||
