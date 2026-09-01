@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 /**
  * Acquisition de la position GPS de l'appareil via `navigator.geolocation`.
@@ -7,6 +7,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  *   le navigateur n'a pas de capteur de géolocalisation.
  * - Le suivi (`watchPosition`) ne démarre que lorsque `start()` est appelé, et
  *   s'arrête proprement (`clearWatch`) au `stop()` ou au démontage — pas de fuite.
+ * - Le `stop()` purge la dernière position et l'erreur : une réactivation repart
+ *   d'un état neuf au lieu de rejouer un point périmé (audit C3).
  * - La position reste **100 % côté client** : elle n'est jamais envoyée au serveur.
  *
  * @typedef {{ lat: number, lng: number, accuracy: number, timestamp: number }} GeoPosition
@@ -42,6 +44,8 @@ export function useGeolocation({
   const stop = useCallback(() => {
     clearActiveWatch();
     setStatus(supported ? 'idle' : 'unavailable');
+    setPosition(null);
+    setError(null);
   }, [supported]);
 
   const start = useCallback(() => {
@@ -81,7 +85,12 @@ export function useGeolocation({
 
   useEffect(() => () => clearActiveWatch(), []);
 
-  return { supported, status, position, error, start, stop };
+  // Objet stable tant que rien ne change : les hooks consommateurs peuvent le mettre
+  // en dépendance d'effet sans re-déclenchement à chaque rendu (audit C7).
+  return useMemo(
+    () => ({ supported, status, position, error, start, stop }),
+    [supported, status, position, error, start, stop],
+  );
 }
 
 export default useGeolocation;

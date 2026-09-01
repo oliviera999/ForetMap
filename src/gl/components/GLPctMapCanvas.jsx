@@ -2,6 +2,8 @@ import { useEffect, useMemo } from 'react';
 import { useGlBoardImageFit } from '../hooks/useGlBoardImageFit.js';
 import { useGlMapOverlaySettings } from '../context/GlMapOverlaySettingsContext.jsx';
 import { resolveMapOverlayCssVariables } from '../../utils/mapOverlayTypography.js';
+import { useIsCoarsePointer } from '../../hooks/useIsCoarsePointer.js';
+import { useMapOverlayTextSizePreference } from '../../hooks/useMapOverlayTextSizePreference.js';
 
 export function GLPctMapCanvas({
   imageUrl,
@@ -22,6 +24,10 @@ export function GLPctMapCanvas({
   const imageRef = mapGestures?.imageRef;
   const { fitLayerStyle, onImageLoad, fitHeightPx } = useGlBoardImageFit(containerRef, imageRef);
   const { mapSettings } = useGlMapOverlaySettings();
+  // Mêmes ajustements que ForetMap/Visite : ×1,2 tactile et préférence « taille du texte »,
+  // qui étaient jusqu'ici ignorés sur les plateaux GL (libellés plus petits sur tablette).
+  const isCoarsePointer = useIsCoarsePointer();
+  const { percent: userTextSizePercent } = useMapOverlayTextSizePreference();
 
   const fitLayerStyleWithScale = useMemo(() => {
     const fitW = Number(fitLayerStyle?.width) || 0;
@@ -31,12 +37,25 @@ export function GLPctMapCanvas({
         : mapSettings;
     const overlayCssVars = resolveMapOverlayCssVariables(settingsForOverlay, fitHeightPx, {
       fitWidthPx: fitW,
+      isCoarsePointer,
+      userTextSizePercent,
     });
+    const fitH = Number(fitLayerStyle?.height) || 0;
     return {
       ...fitLayerStyle,
       ...overlayCssVars,
+      // Ratio du plateau : sert à dé-anamorphoser textes et cercles des SVG étirés
+      // (viewBox 100×100 + preserveAspectRatio="none") via transform-box: fill-box.
+      ...(fitW > 0 && fitH > 0 ? { '--map-fit-aspect': String(fitW / fitH) } : {}),
     };
-  }, [fitLayerStyle, fitHeightPx, mapSettings, markerSizePercentProp]);
+  }, [
+    fitLayerStyle,
+    fitHeightPx,
+    mapSettings,
+    markerSizePercentProp,
+    isCoarsePointer,
+    userTextSizePercent,
+  ]);
 
   useEffect(() => {
     onMapReady?.(mapGestures);

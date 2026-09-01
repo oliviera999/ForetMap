@@ -2,6 +2,27 @@ import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ZoneDrawModal } from '../../src/components/map/ZoneDrawModal.jsx';
 
+const CATEGORY_CATALOG = [
+  {
+    id: 'cat-infrastructure',
+    label: 'Infrastructure',
+    emoji: '🏗️',
+    color: '#dbeafe90',
+    applies_to: 'both',
+    is_infrastructure: true,
+    sort_order: 10,
+  },
+  {
+    id: 'cat-point-eau',
+    label: 'Point d’eau',
+    emoji: '💧',
+    color: '#a5f3fc90',
+    applies_to: 'marker',
+    is_infrastructure: false,
+    sort_order: 20,
+  },
+];
+
 function renderModal(overrides = {}) {
   const onSave = vi.fn(async () => {});
   const onClose = vi.fn();
@@ -48,24 +69,34 @@ describe('ZoneDrawModal', () => {
     expect(payload.current_plant).toBe('');
   });
 
-  test('permet de créer une zone spéciale (case cochée → special dans le payload)', async () => {
-    const { onSave } = renderModal();
+  test('les catégories cochées partent dans le payload', async () => {
+    const { onSave } = renderModal({ categoryCatalog: CATEGORY_CATALOG });
     fireEvent.change(screen.getByPlaceholderText('Ex: Potager Est'), {
       target: { value: 'Bâtiment G' },
     });
-    fireEvent.click(screen.getByLabelText(/Zone spéciale/));
+    fireEvent.click(screen.getByLabelText(/Infrastructure/));
     fireEvent.click(screen.getByRole('button', { name: /Créer la zone/ }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
-    expect(onSave.mock.calls[0][0].special).toBe(true);
+    expect(onSave.mock.calls[0][0].category_ids).toEqual(['cat-infrastructure']);
   });
 
-  test('par défaut la zone n’est pas spéciale', async () => {
-    const { onSave } = renderModal();
+  test('par défaut la zone ne porte aucune catégorie', async () => {
+    const { onSave } = renderModal({ categoryCatalog: CATEGORY_CATALOG });
     fireEvent.change(screen.getByPlaceholderText('Ex: Potager Est'), {
       target: { value: 'Potager Ouest' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Créer la zone/ }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
-    expect(onSave.mock.calls[0][0].special).toBe(false);
+    expect(onSave.mock.calls[0][0].category_ids).toEqual([]);
+  });
+
+  test('catalogue vide : message d’aide, pas de case à cocher', () => {
+    renderModal();
+    expect(screen.getByText(/Aucune catégorie disponible/)).toBeTruthy();
+  });
+
+  test('une catégorie « repères seuls » n’est pas proposée sur une zone', () => {
+    renderModal({ categoryCatalog: CATEGORY_CATALOG });
+    expect(screen.queryByLabelText(/Point d’eau/)).toBeNull();
   });
 });

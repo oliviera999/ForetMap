@@ -1,5 +1,5 @@
 const express = require('express');
-const { queryAll, queryOne, execute } = require('../../database');
+const { queryAll, queryOne, execute, withTransaction } = require('../../database');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const {
   resolveImportRows,
@@ -328,11 +328,14 @@ router.post(
       return res.status(400).json({ error: `Trop de lignes (max ${MAX_IMPORT_ROWS})` });
     }
     try {
-      const report = await applySpeciesImport({ queryAll, execute }, speciesRows, {
-        dryRun,
-        syncBiomes,
-        biomeRows,
-      });
+      // G4 (audit 2026-09) : import en transaction, cf. routes/gl/chapters.js.
+      const report = await withTransaction(async (tx) =>
+        applySpeciesImport({ queryAll: tx.queryAll, execute: tx.execute }, speciesRows, {
+          dryRun,
+          syncBiomes,
+          biomeRows,
+        }),
+      );
       return res.json({ report });
     } catch (err) {
       return res.status(400).json({ error: err.message || 'Import impossible' });

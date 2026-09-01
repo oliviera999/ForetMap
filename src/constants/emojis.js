@@ -1,3 +1,5 @@
+import { repairSupplementaryPlaneEmojiMojibake } from '../shared/emojiMojibakeCore.js';
+
 export const EMOJI_CATEGORIES = {
   biodiversite: [
     '🌱',
@@ -156,7 +158,7 @@ export function extractLeadingEmojiPrefix(str) {
 
 /** Emoji en tête du nom de zone : liste connue (ordre longueur décroissante) puis emoji libre. */
 export function detectLeadingMarkerEmoji(value, emojis = MARKER_EMOJIS) {
-  const raw = String(value || '').trim();
+  const raw = repairSupplementaryPlaneEmojiMojibake(String(value || '')).trim();
   const sorted = sortEmojisByLengthDesc(emojis);
   const fromList = sorted.find((emoji) => raw === emoji || raw.startsWith(`${emoji} `));
   if (fromList) return fromList;
@@ -164,7 +166,7 @@ export function detectLeadingMarkerEmoji(value, emojis = MARKER_EMOJIS) {
 }
 
 export function stripLeadingMarkerEmoji(value, emojis = MARKER_EMOJIS) {
-  const raw = String(value || '').trim();
+  const raw = repairSupplementaryPlaneEmojiMojibake(String(value || '')).trim();
   const sorted = sortEmojisByLengthDesc(emojis);
   for (const emoji of sorted) {
     if (raw === emoji) return '';
@@ -177,7 +179,16 @@ export function stripLeadingMarkerEmoji(value, emojis = MARKER_EMOJIS) {
   return raw;
 }
 
-/** Valeur saisie / collée pour champ emoji (troncature). */
+/**
+ * Valeur saisie / collée pour champ emoji (troncature).
+ * Coupe en POINTS DE CODE (comme le VARCHAR MySQL), jamais au milieu d'une paire de
+ * substitution, et retire un éventuel liant (ZWJ) ou sélecteur orphelin en fin de coupe —
+ * l'ancien `String.slice` (unités UTF-16) pouvait scinder une séquence 👩‍🏫 en deux glyphes.
+ */
 export function clampEmojiInput(value, maxChars) {
-  return String(value ?? '').slice(0, Math.max(0, Number(maxChars) || 0));
+  const max = Math.max(0, Number(maxChars) || 0);
+  const cps = Array.from(String(value ?? ''));
+  let kept = cps.slice(0, max);
+  while (kept.length > 0 && kept[kept.length - 1] === '\u200D') kept.pop();
+  return kept.join('');
 }

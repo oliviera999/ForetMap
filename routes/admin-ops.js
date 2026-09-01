@@ -54,10 +54,12 @@ function requireDeploySecret({
 }
 
 /**
- * @param {{ gracefulShutdown: (reason: string) => void }} deps
+ * @param {{ gracefulShutdown: (reason: string) => void, getDatabaseInitState?: () => object }} deps
+ *   `getDatabaseInitState` est injecté par server.js (état de la boucle de reprise BDD) ;
+ *   absent, le champ `databaseInit` des diagnostics vaut `null`.
  * @returns {import('express').Router}
  */
-function createAdminOpsRouter({ gracefulShutdown }) {
+function createAdminOpsRouter({ gracefulShutdown, getDatabaseInitState = () => null }) {
   const router = express.Router();
 
   // Redémarrage déclenché après déploiement (secret requis ; le gestionnaire de process relance l'app)
@@ -164,6 +166,12 @@ function createAdminOpsRouter({ gracefulShutdown }) {
        * — voir `lib/bootJournal.js` et `docs/EXPLOITATION.md`.
        */
       restarts: summarizeBootJournal({ windowHours: restartsWindowHours }),
+      /**
+       * Initialisation BDD du process courant (`lib/databaseInitRetry.js`) : `ready` faux avec
+       * `attempts` qui monte = le service est debout mais n'a jamais réussi à joindre MySQL,
+       * donc tout /api/* répond 503 — un cas que `restarts` ne peut pas voir (rien n'est tombé).
+       */
+      databaseInit: getDatabaseInitState(),
       /** Par carte : volumes alignés sur GET /api/visit/content (mascotte si au moins un compteur public > 0). */
       visitMascotHint,
       /** Présence des fichiers `lib/visit-pack/*` (validation POST/PUT packs) — voir docs/EXPLOITATION.md si `libMirrorOk` est false. */

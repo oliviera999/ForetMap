@@ -7,6 +7,502 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Chargement des données : onglets pédago et anti-course
+
+Le rafraîchissement global (`fetchAll`) traitait encore glossaire, quiz, réseau trophique
+et médiathèque comme des onglets « chauds » : polling à cadence nominale, et **aucun**
+rechargement en les quittant pour revenir à la carte ou aux plantes. Ils rejoignent les
+onglets calmes (`POLLING_COARSE_TABS`) — intervalle doublé hors temps réel, un `fetchAll`
+à la sortie.
+
+Les listes du glossaire, du réseau trophique et des catégories de quiz ignoraient une
+réponse plus récente au profit d'une requête plus lente (changement de filtre). Une
+garde de séquence conserve uniquement le chargement le plus récent, comme le carnet
+d'observations.
+
+Couverture : `tests-ui/hooks/useAppDataPolling.test.jsx`,
+`tests-ui/components/pedago/pedagoLoadRace.test.jsx`. Le scénario e2e glossaire
+seede un terme unique (la base e2e n’importe pas le contenu biodiv) puis filtre
+dessus — plus de recherche « photo » qui masquait une liste périmée.
+
+### Un seul système typographique (audit homogénéité UI — B2/B3)
+
+Migration mécanique de la typographie vers les tokens posés au lot précédent —
+**1 340 remplacements**, aucun littéral restant hors allowlist :
+
+- **Tailles** : les 85 valeurs littérales de `font-size` (500 en CSS, 335 en styles inline
+  JSX) sont regroupées sur l'échelle fluide `--text-2xs` → `--text-2xl` (8 crans, nouveau
+  cran `--text-2xs` pour les badges) ; seules deux tailles « display » (2.5/3 rem) restent
+  littérales. Le « petit texte » écrit de 14 façons entre 0.68 et 0.88 rem tient désormais
+  sur deux crans.
+- **Graisses** : 271 `font-weight` littéraux → `--fw-regular/medium/semibold/bold`
+  (descripteurs `@font-face` exclus).
+- **Interlignes** : les grappes 1.4/1.45/1.5/1.52 → `--lh-normal`, 1.55–1.74 →
+  `--lh-relaxed`, 1.2 → `--lh-tight` (119 remplacements) ; les interlignes d'alignement
+  fin (1, 1.25 des boutons…) restent explicites.
+- **Gris secondaires** : les six gris inline (`#64748b`, `#6b7280`, `#555`, `#666`,
+  `#999`, `#888` — 120 occurrences) convergent sur `--ink-soft` / `--ink-faint`
+  (`#8a94a0`, plus lisible que l'ancien `#999`).
+- Les tokens sont définis **par produit** (`src/index.css` et `gl-base.css`, mêmes
+  valeurs) car les pages GL ne chargent pas `index.css`.
+- **Garde-fou** : `tests/typography-tokens-guard.test.js` échoue si un `font-size` littéral
+  rem (CSS), un `fontSize`/gris inline littéral (JSX) ou un token manquant réapparaît —
+  la dispersion mesurée par l'audit ne peut plus se reconstituer silencieusement.
+
+### L'inventaire « Zones & repères » devient une grille d'édition directe avec actions par lot
+
+Refonte du sous-onglet **Réglages administrateur → « Zones & repères »** livré au lot
+précédent : plus de bouton « Modifier », chaque ligne est un mini-formulaire
+**toujours éditable** qui enregistre à la sortie du champ (Entrée valide, Échap
+annule).
+
+- **Champs exhaustifs** en édition directe : emoji, nom, carte (déplacement d'un
+  lieu vers un autre plan), description/note, **espèces** (pastilles + champ à
+  suggestions du catalogue), **catégories** (pastilles à activer/désactiver, seules
+  les applicables au type et à la carte sont proposées), et dans le dépliant
+  « Visite & détails » les quatre textes du mode Visite, la couleur d'une zone et la
+  position X/Y d'un repère. Seuls le tracé, les photos et les blocs d'images de
+  visite restent sur la carte.
+- **Édition par lot** sur la sélection (cases + « Tout sélectionner ») : ajouter /
+  retirer une catégorie ou une espèce, déplacer vers une carte, définir l'emoji,
+  **rechercher / remplacer** dans les noms (et sur option descriptions/notes),
+  **supprimer** après confirmation. Le bouton « Appliquer » annonce le nombre de
+  lieux réellement concernés, une progression s'affiche, et le bilan distingue mis à
+  jour / déjà conformes / échecs.
+- Logique pure extraite dans `src/utils/adminLocationsGrid.js` (26 nouveaux cas de
+  test). Toujours **aucune nouvelle route ni migration** : `PUT`/`DELETE` unitaires
+  existants, permissions « Gestion zones » / « Gestion repères » inchangées côté
+  serveur.
+
+Doc : `docs/reference/foretmap/carte-et-zones.md` (section réécrite).
+### Emoji de zone en colonne dédiée (audit homogénéité UI — C4)
+
+La colonne `zones.emoji` (migration `206`) remplace l'extraction fragile du préfixe du nom
+comme source de vérité de l'emoji de zone :
+
+- **API** : `POST`/`PUT /api/zones` acceptent `emoji` (normalisé, `''` = effacement) et le
+  dérivent du préfixe du nom quand il est omis (anciens clients) ; toutes les réponses zone
+  l'exposent.
+- **Affichage** : le plan (carte et Visite), la fiche zone et les filtres carte privilégient
+  la colonne et se replient sur le préfixe pour les lignes non migrées. L'en-tête de la
+  fiche rend l'emoji dans la pile emoji (nouvelle classe `.emoji-glyph`) au lieu de le
+  laisser passer par Playfair Display avec le nom brut.
+- **Formulaires** : les modales de création et d'édition envoient l'emoji du sélecteur en
+  champ dédié ; le nom conserve son préfixe pour la compatibilité des autres affichages.
+- Couverture : `tests/zone-emoji.test.js` (helper serveur, sans BDD),
+  `tests/zone-emoji-column.test.js` (POST/PUT/GET), tests UI `zoneDisplay` et
+  `parseZonesForLayer` (préférence colonne).
+
+### Homogénéité de l'interface : lots A et C de l'audit exécutés (+ socle du lot B)
+
+Mise en œuvre du plan de `docs/AUDIT_UI_HOMOGENEITE_2026-09.md` (état détaillé en §6 du
+document) :
+
+- **Fin de la déformation des noms de zones** (carte et Visite) : l'ancien
+  `textLength`/`lengthAdjust="spacingAndGlyphs"` étirait les noms courts et écrasait les
+  longs dès 13 caractères. Un nom trop large est désormais légèrement réduit (borné à
+  −20 %) puis coupé avec « … » — glyphes intacts, nom complet dans la fiche et en
+  info-bulle SVG. Nouvelle fonction testée `fitOverlayLabelToWidth`.
+- **SVG étirés dé-anamorphosés** : numéros/points des zones feuillets GL, éditeur de
+  sommets du royaume et aperçus biodiversité ne sont plus aplatis/étirés selon le ratio
+  du plan (`transform-box: fill-box` + `--map-fit-aspect`) ; tous les contours étirés
+  passent en `vector-effect: non-scaling-stroke` (trait identique sur les deux axes,
+  constant au zoom).
+- **Un seul rendu d'emoji partout** : pile de polices unifiée (`ForetMapColorEmoji` avant
+  les polices système dans toutes les piles, ForetMap et GL), `unicode-range` sur le
+  `@font-face` (les 5,5 Mo ne se téléchargent que si un emoji est rendu), préchargement
+  côté ForetMap comme côté GL (fin de la bascule visible au chargement),
+  `font-variant-emoji` sur les classes d'overlay, glyphes normalisés (`🗑️`, `☑️/⬜`,
+  `✕` remplace `×`). Migration `205` : réparation du sélecteur U+FE0F corrompu étendue
+  aux tables ForetMap (zones, repères carte/visite, catégories, plantes, rôles) ; la
+  réparation mojibake est aussi appliquée à l'affichage des noms de zones, et la saisie
+  d'emoji ne peut plus scinder une séquence (coupe en points de code).
+- **Vrai gras** : DM Sans est désormais chargée en 700 (le CSS en demandait ~100 usages
+  jamais chargés → gras synthétisé) ; les 4 usages de 800 sont rabattus sur 700.
+- **Un seul régime de zoom pour les trois cartes** : les repères de la Visite suivent la
+  même croissance douce que les noms de zones au lieu de doubler linéairement, leurs
+  pastilles gardent un rapport constant avec l'emoji pendant le zoom ; GL applique enfin
+  le multiplicateur tactile (×1,2) et la préférence « taille du texte », désormais
+  réglable aussi depuis le bandeau de la Visite (bouton « Aa »). Les planchers de taille
+  s'appliquent au couple emoji+libellé (ratio conservé sur les petits plans) et les
+  arrondis n'introduisent plus de sauts d'1 px au redimensionnement.
+- **Corrections avérées** : la feuille de filtres carte mobile retrouve son style
+  bottom-sheet (props `DialogShell` corrigées) et s'aligne sur la feuille des tâches ;
+  l'onglet Médiathèque est de nouveau restauré au rechargement ; `aria-label` sur les
+  4 boutons `✕` muets ; cibles tactiles ≥ 44 px dans la barre d'outils carte.
+- **Socle typographique (lot B)** : échelle étendue à 7 crans (`--text-xs`…`--text-2xl`),
+  tokens de graisse (`--fw-*`) et d'interligne (`--lh-*`), piles de polices dédupliquées,
+  petits boutons alignés (0.875rem / 36 px pour `.btn-sm`, `.gl-btn--sm`,
+  `.shared-btn--sm`) et `line-height` explicite sur `.btn`. La migration des tailles
+  littérales (B2/B3) et la colonne `zones.emoji` (C4) restent des lots dédiés.
+
+### Audit — homogénéité de l'interface (écrits, emojis sur les plans, densité)
+
+Nouveau document [`docs/AUDIT_UI_HOMOGENEITE_2026-09.md`](docs/AUDIT_UI_HOMOGENEITE_2026-09.md),
+en réponse au signalement « écrits et emojis hétérogènes sur les plans, déformation,
+tailles différentes, interface parfois chargée ». Audit sans modification de code :
+
+- **Écrits** — l'échelle typographique (`--text-*`) existe mais n'est utilisée que 3 fois
+  contre 879 tailles littérales (85 valeurs distinctes, dont 14 variantes de « petit
+  texte ») ; graisses 700/800 demandées ~100 fois mais jamais chargées (faux-gras) ;
+  1 114 styles inline sur 41 % des composants ; trois familles de boutons non alignées.
+- **Emojis sur les plans** — déformation des noms de zones par
+  `textLength`/`spacingAndGlyphs` au-delà de 12 caractères ; textes et cercles
+  anamorphosés dans les SVG étirés non compensés (feuillets GL, aperçus biodiversité) ;
+  emojis rasterisés à ~5 px puis agrandis au zoom ; trois régimes de zoom différents pour
+  le même concept de repère ; pile de polices emoji inversée selon la variable, préchargée
+  côté GL mais pas côté ForetMap ; réparation `U+FE0F` limitée aux tables GL.
+- **Densité** — 13/17 onglets en barres scrollables sans indicateur, 18 surfaces
+  superposables sur l'écran carte, 54 dialogues natifs `confirm/alert/prompt`,
+  formulaires admin sans replis ; deux bugs avérés consignés (bottom-sheet des filtres
+  carte jamais stylée par props ignorées, onglet Médiathèque jamais restauré).
+- **Plan d'amélioration** en 4 lots priorisés (A corrections ciblées → D désencombrement),
+  chaque constat référencé `fichier:ligne`.
+### Réglages : un sélecteur de couleur pour les catégories de lieux
+
+La couleur d'une catégorie ne se saisissait qu'en hexadécimal, à l'aveugle. Un **sélecteur
+de couleur natif** est ajouté à côté du champ, qui reste éditable pour ceux qui préfèrent
+coller un code.
+
+Les couleurs de catégories portent un canal **alpha** (`#86efac90`) — la transparence est ce
+qui laisse le plan visible sous la zone — alors que `<input type="color">` ne sait manipuler
+que du `#rrggbb`. Le sélecteur ne touche donc qu'à la teinte et **reconduit l'alpha** déjà
+saisi : `#86efac90` + teinte `#fca5a5` donne `#fca5a590`. Une saisie incomplète en cours de
+frappe ne fait pas retomber la pastille sur du noir. Logique isolée dans
+`src/utils/hexColorWithAlpha.js`, couverte par des tests unitaires et un test de montage du
+panneau.
+
+### Les constats de l'audit géolocalisation sont tous traités
+
+Suite directe de l'audit ci-dessous : les 7 points du plan d'action de
+`docs/AUDIT_GEOLOCALISATION_2026-09.md` sont appliqués (état point par point en §6 du
+document).
+
+- **Plausibilité géographique du calage (C1)** — le trou que l'audit BDD d'août avait
+  mesuré en production est fermé côté code : un calage dont les points GPS sont alignés
+  ou confondus, ou dont les échelles m/% sont incompatibles entre paires d'ancres
+  (ratio > 8 ; le cas prod était à 26), est **refusé à l'enregistrement** (400 explicite)
+  et **bloqué dans l'outil prof** avec un message détaillé. L'outil affiche désormais
+  l'**échelle déduite** (« plan ≈ L m × H m ») pour un contrôle à vue. La résolution de
+  la transformation passe par les différences au premier point avec un test de
+  singularité **relatif** (plus d'epsilon absolu inopérant à l'échelle d'un site). Les
+  calages déjà stockés ne sont pas invalidés à la lecture ; sur un plan au calage
+  invraisemblable, le suivi affiche « calage incohérent — signalez-le à un professeur »
+  (`bad_georef`) au lieu d'un faux « hors zone » (C4).
+- **Erreurs d'acquisition visibles (C2)** — « Position indisponible » et « Délai
+  dépassé » s'affichent dans la bannière et l'infobulle du bouton, au lieu d'un
+  « Acquisition… » sans fin.
+- **Pas de position périmée rejouée (C3)** — l'arrêt du suivi purge la dernière position
+  et l'erreur ; la réactivation attend un fix frais.
+- **e2e (C8)** — `e2e/map-gps-follow.spec.js` : calage d'un plan par l'API admin,
+  géolocalisation simulée Playwright, bouton « Me suivre », bannière, sortie de zone.
+- **Docs (C5)** — `docs/API.md` acte l'exposition publique des ancres `georef` (choix
+  assumé) et documente le nouveau 400 ; la doc de référence `carte-et-zones.md` décrit
+  l'échelle affichée, les refus expliqués et les états de la bannière.
+- **Micro-hygiène (C6, C7)** — transformation résolue une fois par jeu d'ancres
+  (`useMemo` + `applyGeoTransform`), objets des hooks stabilisés.
+
+### Audit du système de géolocalisation
+
+État des lieux complet du suivi GPS de la mascotte et du calage des plans, sans
+modification de code : **`docs/AUDIT_GEOLOCALISATION_2026-09.md`**. Le système est petit,
+bien découpé et bien testé, et la position de l'élève ne quitte jamais son appareil. Trois
+constats appellent une action — le principal (C1) reprend le §3.1 de l'audit BDD d'août :
+la validation des ancres ne contrôle toujours rien dans le repère géographique, et le
+garde-fou logiciel (plausibilité d'échelle), dissociable du recalage terrain resté
+réservé, n'a jamais été livré. S'y ajoutent deux erreurs d'acquisition invisibles pour
+l'élève (C2) et deux comportements mineurs (position périmée rejouée, calage dégénéré
+affiché comme « hors zone »). Plan d'action proposé en fin de document, points 1 à 4
+regroupables en un lot « robustesse du calage GPS ».
+### Un inventaire « Zones & repères » dans les Réglages administrateur
+
+Nouveau sous-onglet **Réglages administrateur → « Zones & repères »** : la liste de
+toutes les zones et de tous les repères, **toutes cartes confondues** — là où la
+recherche de la carte ne couvre que le plan affiché.
+
+- **Recherche libre** avec le même moteur que la barre de la carte (nom, espèces,
+  catégories, textes de visite, note d'un repère), plus des filtres **type**
+  (zones seules / repères seuls) et **carte**.
+- Chaque ligne montre l'emoji, le nom, le type, la carte, les catégories et le
+  nombre d'espèces associées.
+- **Édition rapide** des champs textuels : nom et description d'une zone ; libellé,
+  emoji et note d'un repère (`PUT` partiel sur les routes existantes — tracé,
+  position, photos, espèces, catégories et contenus de visite restent du ressort de
+  la fiche sur la carte, et les permissions « Gestion zones » / « Gestion repères »
+  restent exigées côté serveur).
+
+Aucune nouvelle route ni migration. Doc : `docs/reference/foretmap/carte-et-zones.md`
+(section « L'inventaire admin “Zones & repères” »).
+
+### Les constats de l'audit stabilité/performance de septembre sont traités (sauf un, à arbitrer)
+
+Suite directe de l'état des lieux ci-dessous : tous les constats ouverts de
+`docs/AUDIT_STABILITE_PERF_2026-09.md` sont corrigés — sans changement de comportement
+visible, à une exception près : le bac à sable des tutoriels (C5), tranché par arbitrage
+produit en faveur de l'assainissement serveur.
+
+- **Marché G&L (G1, G2)** : la page de marché se charge en requêtes groupées — une requête
+  par table au lieu de quatre par échange, soit un coût **constant** (6 requêtes) quelle
+  que soit la taille de page ; et les rafraîchissements déclenchés par les événements de
+  classe (`useGLMarketTrade`, `useGLSpellCast`) sont **étalés de 0 à 600 ms** comme côté
+  ForetMap. Le pic de ~2000 requêtes SQL dans la même seconde pour 25 postes disparaît.
+- **RBAC (C1)** : `getRoleBySlug` — le chemin qu'emprunte chaque requête G&L — passe par le
+  cache versionné : une requête SQL de moins par requête G&L.
+- **Imports G&L (G4)** : les cinq imports (chapitres, QCM, espèces, sortilèges, glossaire)
+  écrivent **en transaction** (une interruption ne laisse plus de contenu amputé) et **par
+  lots de 100 lignes** (un import de plusieurs centaines de lignes ne dépasse plus le délai
+  d'attente du navigateur).
+- **Purge (C3, G3)** : `scripts/purge-audit-logs.js` couvre désormais `gl_game_events` et
+  `zone_history`, avec une rétention distincte (`--history-days`, défaut un an) ;
+  `docs/CRONTAB.md` dit désormais franchement que la ligne de purge **n'est pas
+  optionnelle** (données personnelles d'élèves mineurs dans `security_events`).
+- **Fiches tutoriels (C5, arbitrage produit rendu)** : le contenu d'une fiche est
+  **assaini par le serveur avant affichage** (mise en page, styles, images et liens
+  conservés ; scripts, formulaires et pages embarquées retirés), l'aperçu s'affiche dans
+  un bac à sable **sans exécution de script** (les clics — définitions du glossaire,
+  liens « nouvel onglet » — sont relayés par l'application), et une fiche `.html`
+  demandée directement est redirigée vers cette vue assainie. Une fiche importée qui
+  reposait sur son propre code pour s'afficher doit être reprise ou proposée en lien
+  externe.
+- **Hygiène (C2, G5, C4)** : les séparateurs de `lib/tutorialViewCache.js` sont écrits en
+  échappements (le fichier redevient visible de `grep`) ; plus aucun `LIMIT` interpolé
+  (« SQL toujours paramétré », sans exception) ; `withTransaction` journalise les
+  transactions lentes (seuil `FORETMAP_TX_SLOW_WARN_MS`, défaut 10 s) avec un plafond dur
+  optionnel (`FORETMAP_TX_MAX_MS`, désactivé par défaut).
+
+Chaque lot embarque ses tests (compteur de requêtes constant du marché, rollback d'un
+import interrompu, cache de rôle périmé par une écriture RBAC, cibles de purge, garde-fou
+de durée…) ; l'audit `docs/AUDIT_STABILITE_PERF_2026-09.md` est mis à jour constat par
+constat et reste le point d'entrée fiable.
+
+
+### Un audit de stabilité qui couvre enfin le jeu et les briques partagées
+
+Les deux audits précédents portaient sur ForetMap. Celui-ci étend l'examen à **Gnomes &
+Licornes** et aux **composants communs aux deux produits**, et devient le point d'entrée
+unique sur la tenue en charge : `docs/AUDIT_STABILITE_PERF_2026-09.md`. Aucun code n'est
+modifié dans ce lot — c'est un état des lieux, avec l'ordre de traitement suggéré.
+
+Ce qu'il relève, résumé : **l'affichage du marché du jeu coûte jusqu'à quatre-vingts requêtes
+à la base**, et comme un échange modifié prévient toute la classe en même temps et sans
+décalage, une seule action peut en déclencher deux mille d'un coup. **Les imports de contenu
+du jeu** (chapitres, QCM, espèces, sortilèges) écrivent ligne à ligne, sans transaction : un
+import long dépasse le délai d'attente côté navigateur pendant que le serveur continue, et
+l'import des chapitres — le seul qui supprime avant de réécrire — peut laisser un chapitre
+amputé si on l'interrompt. Côté briques communes, **une vérification de rôle échappe au cache**
+sur le seul chemin qu'emprunte le jeu, et **deux tables de journal grossissent sans purge**.
+
+L'audit note aussi, pour ne pas les réauditer, les points **vérifiés et sains** (bornes des
+tampons mémoire, caches de réglages, calculs de gating sans accès base, index des chemins
+chauds) et récapitule tout ce que les lots précédents ont déjà corrigé.
+
+Détail : `docs/AUDIT_STABILITE_PERF_2026-09.md` (nouveau) ; renvois depuis
+`docs/AUDIT_CHARGE_SERVEUR_2026-08.md`, `docs/AUDIT_CHARGE_ET_BUGS_2026-08.md`,
+`docs/EXPLOITATION.md`, `docs/CRONTAB.md` et `CLAUDE.md`.
+
+### Le serveur encaisse mieux les pics (audit charge & bugs)
+
+Audit complet du code — bugs, incohérences, postes de charge — dont les constats sont
+consignés dans `docs/AUDIT_CHARGE_ET_BUGS_2026-08.md`. Le premier audit mesurait le régime
+nominal ; celui-ci regarde les **cas dégradés et les pics**, là où se produisent justement
+les arrêts forcés du process que personne n'arrivait à expliquer.
+
+**Un envoi volumineux ne peut plus faire tomber le serveur.** La limite de 25 Mo par
+requête était appliquée à des **familles entières d'adresses** : valider une tâche, poster
+un commentaire ou enregistrer un réglage ouvrait la même porte que l'import d'un tableur.
+Or le serveur met tout le contenu reçu en mémoire avant de le lire — une seule requête de
+cette taille pouvait tripler sa consommation, et deux simultanées suffisaient
+vraisemblablement à provoquer l'arrêt forcé, donc la coupure. Trois paliers remplacent ce
+réglage unique : 2 Mo pour les échanges ordinaires, 8 Mo pour les contenus illustrés,
+25 Mo pour les seuls imports. S'y ajoute une limite **par photo** (8 Mo), qui n'existait
+pas du tout : un message pouvait en porter trois de n'importe quelle taille.
+
+**L'enregistrement d'une photo ne fige plus le site.** L'écriture du fichier sur le disque
+était **bloquante** : pendant toute sa durée, le serveur ne répondait plus à personne — ni
+aux autres élèves, ni à la surveillance, ni au temps réel. Elle est désormais asynchrone.
+
+**Trois pages coûtaient beaucoup plus cher qu'il n'y paraissait.** La liste des zones
+rapatriait **tout** l'historique de récolte de toutes les zones pour n'en afficher que cinq
+lignes par zone ; la liste des tutoriels chargeait le contenu HTML complet de chaque fiche
+alors qu'elle ne l'affiche jamais ; la page de visite publique — accessible sans compte —
+enchaînait huit requêtes à chaque consultation, sans jamais rien mémoriser. Les trois sont
+corrigées : historique découpé côté base, colonnes limitées à l'utile, et contenu de visite
+mis en cache jusqu'à la prochaine modification.
+
+**Une classe entière ne se bouscule plus au même instant.** Quand un professeur valide une
+tâche, tous les postes de la salle étaient prévenus et rechargeaient **exactement en même
+temps**. Un léger décalage aléatoire étale désormais ces rechargements, sans que personne
+ne voie la différence.
+
+**Deux expositions refermées.** La sonde de synchronisation, qui révèle l'identité du
+processus et le rythme d'activité du site, était accessible **sans être connecté** : elle
+exige un jeton (vérifié au coût le plus faible, pour ne pas alourdir ce qu'elle sert à
+alléger). Et le mot de passe chiffré était masqué « à la main » à huit endroits avant
+l'envoi au navigateur : c'est maintenant une liste blanche unique — une colonne sensible
+ajoutée demain ne partira pas au navigateur par simple oubli.
+
+**Enfin, le jeu Gnomes & Licornes reçoit la protection déjà posée côté ForetMap** : ses
+connexions temps réel cessent de réessayer indéfiniment quand la session a expiré.
+
+Détail : `lib/jsonBodyLimit.js`, `lib/publicUser.js`, `lib/visitContentCache.js` (nouveaux),
+`lib/uploads.js`, `lib/userContentImages.js`, `lib/profileUpdate.js`, `lib/mediaLibrary.js`,
+`routes/zones.js`, `routes/tutorials.js`, `routes/visit.js`, `routes/auth.js`,
+`routes/students.js`, `routes/rbac.js`, `server.js`, `src/utils/realtimeRefreshDelay.js`,
+`src/hooks/useForetmapRealtime.js`, `src/gl/hooks/useGLMarketTrade.js`,
+`src/gl/hooks/useGLSpellCast.js` ; tests `tests/server-load-hardening.test.js`,
+`tests/sync-state-and-scope-cache.test.js`, `tests-ui/utils/realtimeRefreshDelay.test.js` ;
+docs `docs/AUDIT_CHARGE_ET_BUGS_2026-08.md`, `docs/AUDIT_CHARGE_SERVEUR_2026-08.md`,
+`docs/API.md`, `docs/EXPLOITATION.md`, `docs/reference/foretmap/stats-forum-et-suivi.md`.
+
+### Les réessais réseau ne se retournent plus contre la classe
+
+Suite du diagnostic précédent : la boucle de réessai était bien dimensionnée pour un
+redémarrage serveur, mais chaque requête la parcourait **pour son compte**, sans jamais
+rien apprendre des autres.
+
+**Une fenêtre de réessai partagée.** Un cycle de rafraîchissement lance neuf requêtes en
+parallèle ; pendant une coupure, chacune retentait donc jusqu'à huit fois — près de
+soixante-dix requêtes par poste. Dans une salle, tous les postes sortent par la **même IP
+publique** : le plafond de l'API (1200 requêtes/minute) était atteint par les réessais
+eux-mêmes, et un `429` n'est pas réessayé — l'élève récoltait « Trop de requêtes » au
+moment précis où le serveur revenait. Désormais, la première requête qui constate
+l'indisponibilité ouvre une pause que les autres attendent (plafonnée à 5 s pour ne jamais
+bloquer une action), et la première réponse correcte la referme pour tout le monde. Un
+`429` ouvre la même pause, au lieu de laisser les requêtes sœurs creuser le trou.
+
+**Un serveur qui « pend » n'échoue plus du premier coup.** Le délai d'attente de 40 s
+levait une erreur immédiate, sans aucun réessai : la fenêtre de reprise ne couvrait que les
+coupures franches et les réponses de passerelle, pas un démarrage à froid qui traîne. Une
+seconde tentative est accordée — aux seules lectures, un délai dépassé ne disant pas si le
+serveur a traité la requête (rejouer un enregistrement pourrait le dupliquer), et deux
+tentatives au maximum, chacune coûtant déjà 40 s d'attente.
+
+**Et ce délai couvre enfin la réponse entière.** Il était désarmé dès l'arrivée des
+en-têtes : une réponse tronquée en cours de route laissait la requête pendante
+indéfiniment, sans plus aucune limite de temps.
+
+**Le temps réel cesse de marteler avec un jeton refusé.** Quand la session expire, le
+serveur refuse la connexion Socket.IO ; le client, réglé pour se reconnecter indéfiniment,
+rejouait le même jeton toutes les 1 à 5 secondes — et le transport étant du long-polling,
+chaque tentative était une requête HTTP. La reconnexion s'arrête maintenant sur un refus
+d'authentification (le rafraîchissement périodique prend le relais) et repart d'elle-même
+dès qu'un nouveau jeton est disponible. Une base momentanément injoignable, elle, reste
+traitée comme une panne passagère : la reconnexion continue.
+
+**Un compte supprimé est enfin vu par la sonde de synchronisation.** Le `401` remonté par
+`GET /api/sync-state` était traité comme une sonde muette ; la session restait ouverte
+jusqu'à ce qu'un autre appel remonte la même réponse.
+
+Détail : `src/shared/apiRetryGate.js` et `src/utils/realtimeAuthRejection.js` (nouveaux),
+`src/shared/fetchJsonWithRetry.js`, `src/services/apiTransport.js`,
+`src/hooks/useForetmapRealtime.js`, `src/hooks/useAppDataSync.js` ; tests
+`tests-ui/shared/apiRetryGate.test.js`, `tests-ui/utils/realtimeAuthRejection.test.js`,
+`tests-ui/hooks/useForetmapRealtime.test.jsx`, `tests-ui/shared/fetchJsonWithRetry.test.js`,
+`tests-ui/apiTransport.test.js`, `tests-ui/hooks/useAppDataSync.test.jsx` ; docs
+`docs/EXPLOITATION.md`, `docs/reference/foretmap/presentation.md`.
+
+### Le serveur ne reste plus en panne tout seul (déconnexions à répétition)
+
+Diagnostic parti d'un symptôme simple : des « déconnexions » et des tentatives de
+reconnexion qui s'enchaînent sans fin. La boucle de réessai (8 tentatives sur ~25 s)
+n'était pas en cause — elle faisait son travail. Trois défauts en amont l'étaient.
+
+**Une panne MySQL au démarrage n'est plus définitive.** Si `initDatabase()` échouait au
+boot, l'erreur était seulement journalisée : le process restait debout avec sa base
+marquée « non prête », donc **tout `/api/*` répondait `503` jusqu'à un redémarrage
+manuel** — pendant que `/api/health` répondait `200`, si bien que le keepalive
+entretenait un service inutilisable. Une indisponibilité MySQL de deux secondes au
+mauvais moment coûtait ainsi une demi-journée. L'initialisation est désormais **reprise
+automatiquement** (2 s, 5 s, 10 s… jusqu'à une tentative par minute) et son état est
+exposé dans `GET /api/admin/diagnostics` (champ `databaseInit`), en tête du rapport
+`npm run prod:uptime-report`.
+
+**Une coupure passagère ne vide plus l'écran.** Chaque domaine du rafraîchissement
+(zones, tâches, plantes, repères, tutoriels, cartes) repliait son échec sur une liste
+**vide**, appliquée telle quelle à l'affichage : la carte et les tâches disparaissaient
+le temps d'une coupure, ce qui se lit comme une perte de données. Les données du dernier
+chargement réussi sont maintenant conservées. Corollaire : comme l'erreur était avalée,
+le compteur d'échecs ne montait jamais et le bandeau **« Serveur indisponible »** ainsi
+que le repli du polling à 2 minutes n'étaient quasiment jamais atteints — ils
+fonctionnent à nouveau.
+
+**Le diagnostic dit enfin la vérité sur deux points.** Un redémarrage demandé depuis
+l'IHM admin (`restart-gui`) était compté comme un arrêt de l'hébergeur : trois clics
+suffisaient à produire le verdict `host_idle_stops` et à conseiller un keepalive
+Passenger sans rapport. Et un `SIGTERM` reçu **avant** l'ouverture du port ne laissait
+aucune trace d'arrêt — le démarrage suivant était alors classé « process tué sans
+signal », verdict `hard_kills`, qui envoie l'opérateur vers les quotas LVE d'o2switch
+pour rien. Les gestionnaires de signaux sont désormais posés dès la première ligne du
+démarrage. Enfin, la liste « derniers évènements » du rapport respecte la fenêtre
+demandée (`--hours=`) au lieu de piocher dans tout le journal.
+
+Détail : `lib/databaseInitRetry.js` (nouveau), `server.js`, `routes/admin-ops.js`,
+`src/hooks/useAppDataSync.js`, `lib/bootJournal.js`, `scripts/prod-uptime-report.js` ;
+tests `tests/database-init-retry.test.js`, `tests/boot-journal.test.js`,
+`tests-ui/hooks/useAppDataSync.test.jsx` ; docs `docs/API.md`, `docs/EXPLOITATION.md`,
+`docs/reference/foretmap/presentation.md`.
+### Catégories de zones et de repères
+
+Deux mécanismes hétérogènes classaient les lieux de la carte : un **état de culture**
+(`zones.stage` : Vide / En croissance / Prêt à récolter) et une **case « zone spéciale »**
+(`zones.special`). Le filtre carte les mélangeait en un axe unique — une zone d'infrastructure
+ne pouvait pas être « en croissance » — l'état était de toute façon dérivé automatiquement des
+espèces saisies (`empty` = aucune espèce, `growing` = au moins une) et n'était consommé nulle
+part : ni statistique, ni alerte. Les repères, eux, n'avaient **aucune classification**, et
+cocher une case d'état les faisait **tous disparaître** de la carte.
+
+Ces deux champs sont remplacés par de **vraies catégories**, partagées par les zones et les
+repères :
+
+- une catégorie est **globale** (toutes les cartes) ou **propre à une carte** ; elle peut être
+  restreinte aux zones, aux repères, ou valoir pour les deux ;
+- un lieu peut en porter **plusieurs** ; la carte se filtre dessus (OU logique), repères
+  compris ;
+- une case **« Infrastructure »** reprend intégralement le comportement de l'ancienne case
+  « zone spéciale » : pas de section Biodiversité en visite, lieu jamais proposé comme cible
+  de mission, contour en pointillés ;
+- gestion dans **Réglages administrateur → « Catégories de lieux »** (permission
+  `zones.manage`) : libellé, emoji, couleur, description, ordre, portée, activation.
+
+**Reprise des données** : la migration `204` crée une catégorie **Infrastructure** globale et y
+rattache toutes les zones qui portaient `special = 1`. Aucun historique de récolte n'est touché
+— `zone_history` dépend de `current_plant`, jamais de `stage`.
+
+**Contrat d'API** : les zones et les repères exposent désormais `categories`, `category_ids` et
+`is_infrastructure`, et acceptent `category_ids` en écriture. `special` reste en **réponse**
+comme miroir déprécié de `is_infrastructure` mais **n'est plus accepté en entrée** ; la colonne
+`stage` n'est plus ni lue ni écrite par l'application. Nouveau routeur `/api/map-categories`.
+
+Nettoyage au passage des constantes mortes de `src/constants/garden.js` (`SPECIAL_EMOJI`,
+`SPECIAL_DESC` : des catégories codées en dur sur les identifiants de zones du Lyautey, sans
+aucun consommateur) et de `stageBadge`.
+
+### Les rapports d'audit s'ouvrent enfin — et seulement pour qui de droit
+
+Cliquer sur **SITE_ISSUES** depuis l'onglet « À propos » ouvrait un onglet affichant
+`{"error":"Token requis"}`. Ce n'était ni une régression ni un problème de droits : les
+deux entrées étaient de simples `<a href>` pointant vers des routes protégées par
+`admin.settings.read`. Une navigation de navigateur n'emporte aucun en-tête
+`Authorization`, et le jeton vit dans le stockage local, pas dans un cookie — **ces liens
+ne pouvaient donc fonctionner pour personne**, administrateur compris, depuis leur
+création.
+
+Second défaut, plus discret : ils étaient proposés à **tout le monde, élèves compris**,
+alors qu'ils annoncent un inventaire des faiblesses connues du site.
+
+Les deux rapports quittent donc la liste des liens publics. Ils apparaissent maintenant
+dans un encart **« Audit interne »** visible des seuls détenteurs du droit de lecture des
+réglages, et le clic récupère le document avec le jeton de session puis l'affiche dans la
+page — plus d'onglet, plus de JSON brut. Un refus affiche une phrase lisible qui rappelle
+le droit nécessaire et le cas de la session expirée.
+
+Le reste de la carte « Documentation » (présentation, journal des versions, guide
+d'installation, API…) reste public et inchangé.
+
+Détail : `src/components/about-views.jsx`, `src/components/app/PedagoTabs.jsx`,
+`src/App.jsx` ; doc `docs/reference/foretmap/comptes-roles-et-groupes.md` ;
+tests `tests-ui/AboutView.test.jsx`.
+
 ### CSP : mesurer avant de durcir
 
 L'application ne posait qu'un `img-src` — **ni `default-src`, ni `script-src`** : aucune

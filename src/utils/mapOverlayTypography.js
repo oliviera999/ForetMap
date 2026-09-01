@@ -86,17 +86,21 @@ export function resolveMapOverlayTypography(mapSettings, fitHeightPx, options = 
     MAP_TOOLBAR_REF_FONT_PX * MAP_OVERLAY_CHROME_LABEL_MIN_RATIO,
   );
 
-  const baseEmoji = Math.max(
-    MAP_OVERLAY_MIN_ONSCREEN_EMOJI_PX,
-    Math.round(MAP_OVERLAY_BASE_EMOJI_AT_REF * emScale),
+  // Plancher appliqué au couple (facteur commun) : le ratio emoji/libellé reste constant
+  // sur les petits plans. Pas d'arrondi ici : arrondir avant la division par worldScale
+  // faisait sauter les tailles d'1 px monde entier à chaque redimensionnement.
+  const rawEmoji = Math.max(0.001, MAP_OVERLAY_BASE_EMOJI_AT_REF * emScale);
+  const rawLabel = Math.max(0.001, MAP_OVERLAY_BASE_LABEL_AT_REF * lbScale);
+  const floorFactor = Math.max(
+    1,
+    MAP_OVERLAY_MIN_ONSCREEN_EMOJI_PX / rawEmoji,
+    MAP_OVERLAY_MIN_ONSCREEN_LABEL_PX / rawLabel,
+    minLabelFromChrome / rawLabel,
   );
-  const baseLabel = Math.max(
-    MAP_OVERLAY_MIN_ONSCREEN_LABEL_PX,
-    minLabelFromChrome,
-    Math.round(MAP_OVERLAY_BASE_LABEL_AT_REF * lbScale),
-  );
+  const baseEmoji = rawEmoji * floorFactor;
+  const baseLabel = rawLabel * floorFactor;
   const minCenterGapPx = baseEmoji / 2 + baseLabel / 2 + MIN_CENTER_GAP_EXTRA_PX;
-  const baseGap = Math.max(Math.round(gap * gapScale), minCenterGapPx);
+  const baseGap = Math.max(gap * gapScale, minCenterGapPx);
 
   const growth = clampZoomGrowthPercent(m.overlay_zoom_growth_percent) / 100;
   const zoomFactor = zoomRatio > 0 ? zoomRatio ** growth : 1;
@@ -112,6 +116,9 @@ export function resolveMapOverlayTypography(mapSettings, fitHeightPx, options = 
     markerLabelMarginTop,
     baseEmojiApparentPx: baseEmoji * zoomFactor,
     baseLabelApparentPx: baseLabel * zoomFactor,
+    /** Facteur px-écran → px-monde dans un calque zoomé (croissance douce incluse). */
+    zoomCompensation: zoomFactor / worldScale,
+    worldScale,
   };
 }
 
@@ -121,17 +128,21 @@ export function resolveMapOverlayTypography(mapSettings, fitHeightPx, options = 
  *
  * @param {Record<string, unknown>|null|undefined} mapSettings
  * @param {number} fitHeightPx
- * @param {Parameters<typeof resolveMapOverlayTypography>[2]} [options]
+ * @param {Parameters<typeof resolveMapOverlayTypography>[2] & { compensateWorldScale?: boolean }} [options]
  */
 export function resolveMapOverlayMarkerCssTypography(mapSettings, fitHeightPx, options = {}) {
   const fit = Number(fitHeightPx) > 0 ? Number(fitHeightPx) : MAP_OVERLAY_REFERENCE_BOARD_HEIGHT_PX;
   const sizePercent = readPlateauMarkerSizePercent(mapSettings);
   const overlayScale = resolveMapOverlayScaleCssValue({ fitHeightPx: fit, sizePercent });
   const scaleNum = Math.max(0.001, parseFloat(overlayScale) || 1);
+  // `compensateWorldScale` : les repères vivent DANS le calque zoomé (Visite) — on divise
+  // par l'échelle monde et on applique la même croissance douce que les noms de zones,
+  // au lieu de laisser les repères doubler linéairement pendant que les zones font ×1,27.
+  const compensate = Boolean(options.compensateWorldScale);
   const t = resolveMapOverlayTypography(mapSettings, fit, {
     ...options,
-    worldScale: 1,
-    zoomRatio: 1,
+    worldScale: compensate && Number(options.worldScale) > 0 ? Number(options.worldScale) : 1,
+    zoomRatio: compensate ? options.zoomRatio : 1,
   });
   return {
     overlayScale,
@@ -139,6 +150,8 @@ export function resolveMapOverlayMarkerCssTypography(mapSettings, fitHeightPx, o
     labelFontSizePx: t.mapLabelFontPx / scaleNum,
     labelGapPx: t.mapEmojiLabelCenterGap / scaleNum,
     labelMarginTopPx: t.markerLabelMarginTop / scaleNum,
+    zoomCompensation: t.zoomCompensation,
+    worldInv: t.worldScale > 0 ? 1 / t.worldScale : 1,
   };
 }
 
@@ -146,19 +159,25 @@ export function resolveMapOverlayMarkerCssTypography(mapSettings, fitHeightPx, o
  * Variables CSS `--map-overlay-*` pour calques fit (ForetMap repères optionnels, Visite, GL).
  * @param {Record<string, unknown>|null|undefined} mapSettings
  * @param {number} fitHeightPx
- * @param {Parameters<typeof resolveMapOverlayTypography>[2]} [options]
+ * @param {Parameters<typeof resolveMapOverlayMarkerCssTypography>[2]} [options]
  */
 export function resolveMapOverlayCssVariables(mapSettings, fitHeightPx, options = {}) {
   const css = resolveMapOverlayMarkerCssTypography(mapSettings, fitHeightPx, options);
   const maxScreenPx = options.isCoarsePointer
     ? MAP_OVERLAY_LABEL_MAX_SCREEN_PX_COARSE
     : MAP_OVERLAY_LABEL_MAX_SCREEN_PX;
+  // Dans un calque zoomé, la largeur max et les éléments à taille fixe (pastilles) suivent
+  // la même compensation que les polices, sinon leurs rapports changent pendant le zoom.
+  const maxWidthPx = options.compensateWorldScale
+    ? maxScreenPx * css.zoomCompensation
+    : maxScreenPx;
   return {
     '--map-overlay-scale': css.overlayScale,
     '--map-overlay-emoji-font-size': `${css.emojiFontSizePx}px`,
     '--map-overlay-label-font-size': `${css.labelFontSizePx}px`,
     '--map-overlay-label-gap': `${css.labelGapPx}px`,
     '--map-overlay-label-margin-top': `${css.labelMarginTopPx}px`,
-    '--map-overlay-label-max-width': `${maxScreenPx}px`,
+    '--map-overlay-label-max-width': `${maxWidthPx}px`,
+    '--map-overlay-world-inv': String(css.worldInv),
   };
 }

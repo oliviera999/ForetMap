@@ -20,6 +20,7 @@ export function MapLocationFiltersBar({
   filters,
   setFilters,
   speciesOptions = [],
+  categoryOptions = [],
   zoneMatchCount = 0,
   markerMatchCount = 0,
   searchInputRef = null,
@@ -44,8 +45,8 @@ export function MapLocationFiltersBar({
   }, [draftText, setFilters]);
 
   const chips = useMemo(
-    () => activeMapLocationFilterChips(filters, speciesOptions),
-    [filters, speciesOptions],
+    () => activeMapLocationFilterChips(filters, speciesOptions, categoryOptions),
+    [filters, speciesOptions, categoryOptions],
   );
   const structuredCount = countActiveMapLocationFilters(filters);
   const filterActive = isMapLocationFilterActive(filters);
@@ -64,6 +65,7 @@ export function MapLocationFiltersBar({
       filters={filters}
       setFilters={setFilters}
       speciesOptions={speciesOptions}
+      categoryOptions={categoryOptions}
     />
   );
 
@@ -139,7 +141,7 @@ export function MapLocationFiltersBar({
               title={chip.removeLabel}
             >
               <span>{chip.label}</span>
-              <span aria-hidden="true">×</span>
+              <span aria-hidden="true">✕</span>
             </button>
           ))}
           <button
@@ -166,14 +168,19 @@ export function MapLocationFiltersBar({
         <DialogShell
           open={open}
           onClose={close}
-          className="modal-overlay task-filters-sheet-overlay"
-          panelClassName="task-filters-sheet map-location-filters-sheet"
+          overlayClassName="modal-overlay task-filters-sheet-overlay"
+          dialogClassName="log-modal task-filters-sheet map-location-filters-sheet fade-in"
           ariaLabel="Filtres carte"
         >
           <div className="task-filters-sheet__head">
-            <h2 className="task-filters-sheet__title">Filtres carte</h2>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={close}>
-              Fermer
+            <h3 className="task-filters-sheet__title">⚙️ Filtres carte</h3>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={close}
+              aria-label="Fermer les filtres"
+            >
+              ✕
             </button>
           </div>
           {fields}

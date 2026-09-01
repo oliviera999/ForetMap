@@ -400,11 +400,14 @@ router.post(
       return res.status(400).json({ error: `Trop de lignes (max ${MAX_IMPORT_ROWS})` });
     }
     try {
-      const report = await applySpellsImport({ queryAll, execute }, spellRows, {
-        dryRun,
-        syncCategories,
-        categoryRows,
-      });
+      // G4 (audit 2026-09) : import en transaction, cf. routes/gl/chapters.js.
+      const report = await withTransaction(async (tx) =>
+        applySpellsImport({ queryAll: tx.queryAll, execute: tx.execute }, spellRows, {
+          dryRun,
+          syncCategories,
+          categoryRows,
+        }),
+      );
       return res.json({ report });
     } catch (err) {
       return res.status(400).json({ error: err.message || 'Import impossible' });

@@ -73,6 +73,44 @@ describe('useMascotGpsFollow', () => {
     expect(result.current.feedback).toBe('low_accuracy');
   });
 
+  it('signale un calage géographiquement incohérent (bad_georef, pas hors zone)', () => {
+    const { emit } = stubGeolocation();
+    const moveTo = vi.fn();
+    // Échelles incompatibles façon audit BDD §3.1 : 80 % du plan ≈ 3,7 m sur un axe,
+    // ≈ 55 m sur l'autre — transformation résoluble mais absurde.
+    const implausible = [
+      { xp: 10, yp: 10, lat: 48.85, lng: 2.3 },
+      { xp: 90, yp: 10, lat: 48.85, lng: 2.30005 },
+      { xp: 10, yp: 90, lat: 48.8495, lng: 2.3 },
+    ];
+    const { result } = renderHook(() =>
+      useMascotGpsFollow({ georef: implausible, gpsEnabled: true, moveTo }),
+    );
+    expect(result.current.available).toBe(true);
+    act(() => result.current.toggle());
+    act(() => emit(48.85, 2.3, 5));
+    expect(moveTo).not.toHaveBeenCalled();
+    expect(result.current.feedback).toBe('bad_georef');
+  });
+
+  it('ne rejoue pas une position périmée après désactivation/réactivation', () => {
+    const { emit } = stubGeolocation();
+    const moveTo = vi.fn();
+    const { result } = renderHook(() =>
+      useMascotGpsFollow({ georef: ANCHORS, gpsEnabled: true, moveTo }),
+    );
+    act(() => result.current.toggle());
+    act(() => emit(48.85, 2.3, 8));
+    expect(moveTo).toHaveBeenCalledTimes(1);
+
+    act(() => result.current.toggle());
+    expect(result.current.feedback).toBeNull();
+    act(() => result.current.toggle());
+    // Pas de nouveau fix : la mascotte ne bouge pas sur l'ancienne position.
+    expect(moveTo).toHaveBeenCalledTimes(1);
+    expect(result.current.feedback).toBeNull();
+  });
+
   it('signale une position hors zone du plan', () => {
     const { emit } = stubGeolocation();
     const moveTo = vi.fn();

@@ -15,7 +15,7 @@ export function ProfilesRoleQuickConfig({
   const isStudentTier = /^eleve_/i.test(String(role.slug || ''));
   return (
     <div style={{ marginTop: 8 }}>
-      <div style={{ fontSize: '.78rem', color: '#6b7280', marginBottom: 6 }}>
+      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', marginBottom: 6 }}>
         Progression: emoji {role.emoji || '—'} · niveau requis {role.min_done_tasks ?? '—'} · ordre{' '}
         {role.display_order ?? 0}
       </div>
@@ -36,12 +36,12 @@ export function ProfilesRoleQuickConfig({
               padding: '6px 8px',
               borderRadius: 8,
               border: '1px solid #cbd5e1',
-              fontSize: '1.2rem',
-              lineHeight: 1.2,
+              fontSize: 'var(--text-lg)',
+              lineHeight: 'var(--lh-tight)',
             }}
             aria-label={`Emoji pour le profil ${role.display_name}`}
           />
-          <span style={{ fontSize: '1.5rem', lineHeight: 1 }} title="Aperçu" aria-hidden>
+          <span style={{ fontSize: 'var(--text-xl)', lineHeight: 1 }} title="Aperçu" aria-hidden>
             {roleEmoji.trim() || '—'}
           </span>
           <button
@@ -53,7 +53,14 @@ export function ProfilesRoleQuickConfig({
             Enregistrer l’emoji
           </button>
         </div>
-        <p style={{ fontSize: '.72rem', color: '#6b7280', margin: '6px 0 0', lineHeight: 1.4 }}>
+        <p
+          style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--ink-soft)',
+            margin: '6px 0 0',
+            lineHeight: 'var(--lh-normal)',
+          }}
+        >
           {isStudentTier
             ? `Obligatoire pour un profil ${roleTerms.studentSingular} (max. 16 caractères).`
             : 'Optionnel pour les autres profils (max. 16 caractères).'}

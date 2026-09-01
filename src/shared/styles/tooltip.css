@@ -22,7 +22,7 @@
   border: 1px solid var(--fm-tooltip-border, rgba(255, 255, 255, 0.18));
   background: var(--fm-tooltip-bg, rgba(26, 71, 49, 0.95));
   color: var(--fm-tooltip-text, var(--cream, #f6f3e7));
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   line-height: 1.35;
   box-shadow: var(--shadow, 0 6px 18px rgba(0, 0, 0, 0.18));
   animation: fadeIn 0.16s ease-out;

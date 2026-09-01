@@ -23,7 +23,7 @@ export function ZoneTutorialsTeacherPanel({
     <div className="fade-in">
       <div style={{ marginTop: 12 }}>
         {linkedTutorialsDirect.length === 0 && tutorialsOnlyViaTasks.length === 0 ? (
-          <p style={{ color: '#999', fontSize: '.85rem' }}>
+          <p style={{ color: 'var(--ink-faint)', fontSize: 'var(--text-sm)' }}>
             {locationKind === 'marker'
               ? 'Aucun tutoriel lié à ce repère.'
               : 'Aucun tutoriel lié à cette zone.'}
@@ -51,10 +51,10 @@ export function ZoneTutorialsTeacherPanel({
               <div style={{ marginTop: linkedTutorialsDirect.length ? 16 : 0 }}>
                 <p
                   style={{
-                    fontSize: '.78rem',
-                    color: '#64748b',
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--ink-soft)',
                     margin: '0 0 8px',
-                    lineHeight: 1.45,
+                    lineHeight: 'var(--lh-normal)',
                   }}
                 >
                   Rattachés aux missions sur ce lieu (pour les retirer, modifie la tâche concernée).
@@ -90,7 +90,14 @@ export function ZoneTutorialsTeacherPanel({
             </option>
           ))}
         </select>
-        <p style={{ fontSize: '.74rem', color: '#64748b', margin: '6px 0 0', lineHeight: 1.4 }}>
+        <p
+          style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--ink-soft)',
+            margin: '6px 0 0',
+            lineHeight: 'var(--lh-normal)',
+          }}
+        >
           Tu peux lier plusieurs tutoriels en répétant l’opération pour chaque fiche.
         </p>
       </div>

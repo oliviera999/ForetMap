@@ -19,7 +19,14 @@ export function ProfilesRoleList({
   return (
     <>
       <h3 style={{ marginTop: 0 }}>Profils</h3>
-      <p style={{ margin: '0 0 10px', fontSize: '.8rem', color: '#6b7280', lineHeight: 1.45 }}>
+      <p
+        style={{
+          margin: '0 0 10px',
+          fontSize: 'var(--text-sm)',
+          color: 'var(--ink-soft)',
+          lineHeight: 'var(--lh-normal)',
+        }}
+      >
         Utilisez ↑ ↓ pour définir l’ordre d’affichage (liste ci-dessous, menus d’attribution et
         progression n3beur alignés sur cet ordre).
       </p>
@@ -91,7 +98,7 @@ export function ProfilesRoleList({
               Dupliquer
             </button>
           )}
-          <span style={{ fontSize: '.72rem', color: '#6b7280' }}>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}>
             ordre {Number.isFinite(Number(r.display_order)) ? Number(r.display_order) : 0}
           </span>
         </div>

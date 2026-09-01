@@ -16,13 +16,16 @@ import {
   assertJsonApiBody,
   isGatewayStyleResponse,
   parseApiBody,
+  RATE_LIMIT_PAUSE_MS,
   resolveMaxAttempts,
   resolveTransientRetryDelayMs,
+  retryAfterDelayMs,
   shouldRetryAfterHttpError,
   shouldRetryAfterNetworkError,
-  sleepMs,
+  shouldRetryAfterTimeout,
   transientRetryDelayMs,
 } from '../services/apiTransport.js';
+import { apiRetryGate } from './apiRetryGate.js';
 import { emitAppStatus } from './appStatusEvents.js';
 
 /** Message utilisateur commun aux deux produits quand la requête dépasse le timeout. */
@@ -98,6 +101,8 @@ async function runFetchJsonLoop(path, { method = 'GET', body } = {}, options = {
     onNetworkError,
     onUnauthorized,
     buildHttpError,
+    // Injectable pour les tests ; en production, une seule fenêtre partagée par onglet.
+    retryGate = apiRetryGate,
   } = options;
 
   const headers = {
@@ -110,62 +115,115 @@ async function runFetchJsonLoop(path, { method = 'GET', body } = {}, options = {
   // Ne pas utiliser `body ? …` : `0` ou `false` seraient omis à tort ; `{}` reste un corps JSON valide.
   const hasBody = body !== undefined && body !== null;
 
+  /**
+   * Pause avant réessai : ouverte sur la fenêtre **partagée** plutôt que dormie dans son
+   * coin, pour que les requêtes sœurs du même cycle n'aillent pas redécouvrir chacune que
+   * le serveur est indisponible (voir `apiRetryGate.js`).
+   */
+  const pauseBeforeRetry = async (delayMs) => {
+    retryGate.pauseFor(delayMs);
+    await retryGate.wait();
+  };
+
+  /** Expiration du délai : réessaie si la méthode le permet, sinon lève le message commun. */
+  const handleTimeout = async (attempt) => {
+    if (!shouldRetryAfterTimeout(method, body, attempt, maxAttempts)) {
+      throw new Error(REQUEST_TIMEOUT_USER_MESSAGE);
+    }
+    retryStatus.retrying(attempt, maxAttempts);
+    await pauseBeforeRetry(transientRetryDelayMs(attempt));
+  };
+
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_FETCH_TIMEOUT_MS);
-    let res;
+    // `timedOut` distingue notre expiration d'un abandon venu d'ailleurs, et reste lisible
+    // après la lecture du corps — que `parseApiBody` transforme sinon en « JSON invalide ».
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, API_FETCH_TIMEOUT_MS);
     let sawGatewayResponse = false;
     try {
-      res = await fetch(resolveUrl(path), {
-        method,
-        headers,
-        body: hasBody ? JSON.stringify(body) : undefined,
-        signal: controller.signal,
-      });
-    } catch (err) {
-      clearTimeout(timeoutId);
-      if (err?.name === 'AbortError') {
-        throw new Error(REQUEST_TIMEOUT_USER_MESSAGE);
+      // Le serveur est déjà connu comme indisponible : attendre la fenêtre partagée plutôt
+      // que d'ajouter une requête à celles qui échouent déjà.
+      await retryGate.wait();
+
+      let res;
+      try {
+        res = await fetch(resolveUrl(path), {
+          method,
+          headers,
+          body: hasBody ? JSON.stringify(body) : undefined,
+          signal: controller.signal,
+        });
+      } catch (err) {
+        if (timedOut || err?.name === 'AbortError') {
+          await handleTimeout(attempt);
+          continue;
+        }
+        if (
+          shouldRetryAfterNetworkError(method, body, attempt, maxAttempts) &&
+          err instanceof TypeError
+        ) {
+          retryStatus.retrying(attempt, maxAttempts);
+          await pauseBeforeRetry(transientRetryDelayMs(attempt));
+          continue;
+        }
+        if (typeof onNetworkError === 'function') {
+          const mapped = onNetworkError(err);
+          if (mapped) throw mapped;
+        }
+        throw err;
       }
-      if (
-        shouldRetryAfterNetworkError(method, body, attempt, maxAttempts) &&
-        err instanceof TypeError
-      ) {
-        retryStatus.retrying(attempt, maxAttempts);
-        await sleepMs(transientRetryDelayMs(attempt));
+
+      // Le minuteur reste armé pendant la lecture du corps : `fetch` résout dès les
+      // en-têtes reçus, si bien qu'une réponse tronquée laissait auparavant la requête
+      // pendante **sans aucun délai maximal**.
+      if (res.ok) {
+        const okBody = await parseApiBody(res);
+        if (timedOut) {
+          await handleTimeout(attempt);
+          continue;
+        }
+        assertJsonApiBody(okBody, { ok: true });
+        retryGate.clear();
+        return okBody;
+      }
+
+      const errBody = (await parseApiBody(res)) || {};
+      if (timedOut) {
+        await handleTimeout(attempt);
         continue;
       }
-      if (typeof onNetworkError === 'function') {
-        const mapped = onNetworkError(err);
-        if (mapped) throw mapped;
+      if (isGatewayStyleResponse(res, errBody)) {
+        sawGatewayResponse = true;
       }
-      throw err;
+
+      if (shouldRetryAfterHttpError(method, body, res, errBody, attempt, maxAttempts)) {
+        retryStatus.retrying(attempt, maxAttempts);
+        await pauseBeforeRetry(resolveTransientRetryDelayMs(attempt, res));
+        continue;
+      }
+
+      if (res.status === 429) {
+        // Un 429 n'est jamais réessayé — mais sans pause partagée, les requêtes sœurs
+        // continuent d'alimenter le plafond et prolongent le blocage de toute l'IP.
+        retryGate.pauseFor(retryAfterDelayMs(res) || RATE_LIMIT_PAUSE_MS);
+      } else {
+        // Réponse (même en erreur) d'un serveur qui répond : plus de raison de faire
+        // patienter les autres requêtes.
+        retryGate.clear();
+      }
+
+      if (res.status === 401 && typeof onUnauthorized === 'function') {
+        onUnauthorized({ res, errBody, token });
+      }
+
+      throw buildHttpError({ res, errBody, token, sawGatewayResponse });
     } finally {
       clearTimeout(timeoutId);
     }
-
-    if (res.ok) {
-      const okBody = await parseApiBody(res);
-      assertJsonApiBody(okBody, { ok: true });
-      return okBody;
-    }
-
-    const errBody = (await parseApiBody(res)) || {};
-    if (isGatewayStyleResponse(res, errBody)) {
-      sawGatewayResponse = true;
-    }
-
-    if (shouldRetryAfterHttpError(method, body, res, errBody, attempt, maxAttempts)) {
-      retryStatus.retrying(attempt, maxAttempts);
-      await sleepMs(resolveTransientRetryDelayMs(attempt, res));
-      continue;
-    }
-
-    if (res.status === 401 && typeof onUnauthorized === 'function') {
-      onUnauthorized({ res, errBody, token });
-    }
-
-    throw buildHttpError({ res, errBody, token, sawGatewayResponse });
   }
 
   throw new Error('Erreur serveur');

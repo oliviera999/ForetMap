@@ -1340,6 +1340,7 @@ function App() {
                         foodWebHighlightPlantId={foodWebHighlightPlantId}
                         canManageFoodWeb={canManageFoodWeb}
                         appVersion={appVersion}
+                        canReadSiteIssues={hasPermissionInRole('admin.settings.read')}
                         onOpenSettingsLearning={handleOpenSettingsLearning}
                       />
                     </>
