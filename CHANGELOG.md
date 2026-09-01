@@ -7,6 +7,30 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Un audit de stabilité qui couvre enfin le jeu et les briques partagées
+
+Les deux audits précédents portaient sur ForetMap. Celui-ci étend l'examen à **Gnomes &
+Licornes** et aux **composants communs aux deux produits**, et devient le point d'entrée
+unique sur la tenue en charge : `docs/AUDIT_STABILITE_PERF_2026-09.md`. Aucun code n'est
+modifié dans ce lot — c'est un état des lieux, avec l'ordre de traitement suggéré.
+
+Ce qu'il relève, résumé : **l'affichage du marché du jeu coûte jusqu'à quatre-vingts requêtes
+à la base**, et comme un échange modifié prévient toute la classe en même temps et sans
+décalage, une seule action peut en déclencher deux mille d'un coup. **Les imports de contenu
+du jeu** (chapitres, QCM, espèces, sortilèges) écrivent ligne à ligne, sans transaction : un
+import long dépasse le délai d'attente côté navigateur pendant que le serveur continue, et
+l'import des chapitres — le seul qui supprime avant de réécrire — peut laisser un chapitre
+amputé si on l'interrompt. Côté briques communes, **une vérification de rôle échappe au cache**
+sur le seul chemin qu'emprunte le jeu, et **deux tables de journal grossissent sans purge**.
+
+L'audit note aussi, pour ne pas les réauditer, les points **vérifiés et sains** (bornes des
+tampons mémoire, caches de réglages, calculs de gating sans accès base, index des chemins
+chauds) et récapitule tout ce que les lots précédents ont déjà corrigé.
+
+Détail : `docs/AUDIT_STABILITE_PERF_2026-09.md` (nouveau) ; renvois depuis
+`docs/AUDIT_CHARGE_SERVEUR_2026-08.md`, `docs/AUDIT_CHARGE_ET_BUGS_2026-08.md`,
+`docs/EXPLOITATION.md`, `docs/CRONTAB.md` et `CLAUDE.md`.
+
 ### Le serveur encaisse mieux les pics (audit charge & bugs)
 
 Audit complet du code — bugs, incohérences, postes de charge — dont les constats sont

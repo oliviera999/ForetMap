@@ -1,5 +1,8 @@
 # Audit charge serveur — août 2026
 
+> **Suite** : [`AUDIT_STABILITE_PERF_2026-09.md`](AUDIT_STABILITE_PERF_2026-09.md) consolide
+> cet audit et le suivant, et couvre en plus **GL et les composants communs**.
+
 État des lieux de la charge générée par ForetMap + GL sur l'hébergement mutualisé
 (o2switch : CloudLinux LVE, Passenger, proxy Tiger Protect), et pistes de réduction
 **sans perte de fonctionnalité**. Mesures faites sur la révision du lot 19,
