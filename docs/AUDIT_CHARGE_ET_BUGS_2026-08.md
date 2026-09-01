@@ -1,5 +1,9 @@
 # Audit — bugs, incohérences et charge serveur (août 2026)
 
+> **Suite** : [`AUDIT_STABILITE_PERF_2026-09.md`](AUDIT_STABILITE_PERF_2026-09.md) étend
+> l'analyse à **Gnomes & Licornes et aux composants communs**, et sert désormais de point
+> d'entrée. Le présent document garde le détail des constats ForetMap, tous traités.
+
 Seconde passe d'audit, partie d'un symptôme d'exploitation : des « déconnexions » et des
 tentatives de reconnexion qui s'enchaînent. Le premier audit
 ([`AUDIT_CHARGE_SERVEUR_2026-08.md`](AUDIT_CHARGE_SERVEUR_2026-08.md)) mesurait le **régime
