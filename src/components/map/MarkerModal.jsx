@@ -3,6 +3,7 @@ import { MARKER_EMOJIS } from '../../constants/emojis';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
 import { TimedToast } from '../../shared/components/TimedToast.jsx';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { orderedLivingBeingsForForm } from '../../utils/livingBeings';
 import { buildMarkerPayload, markerFormFromMarker } from '../../utils/markerModalForm.js';
 import { DialogShell } from '../DialogShell';
@@ -52,6 +53,7 @@ function MarkerModal({
   onOpenPlantCatalogPreview = null,
 }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
+  const { confirm } = useAppDialogs();
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
   const isNew = !marker.id;
@@ -288,8 +290,13 @@ function MarkerModal({
             <button
               type="button"
               className="btn btn-danger btn-sm"
-              onClick={() => {
-                if (confirm(`Supprimer le repère « ${marker.label} » ?`)) {
+              onClick={async () => {
+                if (
+                  await confirm({
+                    message: `Supprimer le repère « ${marker.label} » ?`,
+                    danger: true,
+                  })
+                ) {
                   onDelete(marker.id);
                   onClose();
                 }

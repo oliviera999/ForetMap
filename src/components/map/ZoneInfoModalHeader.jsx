@@ -1,4 +1,5 @@
 import { LocationCategoryBadges } from './LocationCategoryPicker.jsx';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { zoneEmojiOf, zoneTitleOf } from '../../utils/zoneDisplay.js';
 
 /**
@@ -16,6 +17,7 @@ function ZoneInfoModalHeader({
   onClose,
   onDuplicateError,
 }) {
+  const { confirm } = useAppDialogs();
   const showTeacherActions = isTeacher;
 
   return (
@@ -59,8 +61,8 @@ function ZoneInfoModalHeader({
           <button
             type="button"
             className="btn btn-danger btn-sm"
-            onClick={() => {
-              if (confirm(`Supprimer "${zone.name}" ?`)) {
+            onClick={async () => {
+              if (await confirm({ message: `Supprimer "${zone.name}" ?`, danger: true })) {
                 onDelete(zone.id);
                 onClose();
               }

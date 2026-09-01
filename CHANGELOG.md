@@ -7,6 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Fin des dialogues natifs du navigateur (audit homogénéité UI — lot D-1)
+
+Les 82 `window.confirm/alert/prompt` du front (64 ForetMap, 18 GL) passent sur un
+système de dialogues commun, `AppDialogsProvider` (`useAppDialogs()`) :
+
+- **confirmations** stylées au thème, promesses (`await confirm({...})`), CTA explicite
+  (Supprimer/Archiver/Réinitialiser/Redémarrer…) et variante danger — fini la boîte
+  système qui gèle le thread (animations, polling, Socket.IO) et peut être supprimée
+  silencieusement en PWA/WebView ;
+- **saisies** (`prompt`) avec valeur par défaut, champ requis et annulation propre — le
+  triple `prompt()` de création de groupe devient trois étapes du même dialogue, et les
+  éditeurs riches (FM et GL) préservent la sélection du texte autour de la saisie d'URL ;
+- **erreurs** (`alert`) converties en toasts non bloquants (`notify`) ;
+- file d'attente intégrée, repli natif hors provider (tests unitaires inchangés),
+  5 tests dédiés du provider + garde-fou `tests/native-dialogs-guard.test.js`
+  (tout `window.confirm/alert/prompt` réintroduit fait échouer la CI ; deux replis
+  documentés en allowlist).
+
+Vocabulaire unifié au passage : « Sauvegarder »/« Sauver » → **« Enregistrer »**,
+« ↩ Undo » → « ↩ Annuler », et le glyphe ↩️ ne sert plus deux actions différentes dans
+l'en-tête (Déconnexion → 🚪).
+
 ### Un seul système typographique (audit homogénéité UI — B2/B3)
 
 Migration mécanique de la typographie vers les tokens posés au lot précédent —

@@ -3,6 +3,7 @@ import { api } from '../../services/api';
 import { compressImage } from '../../utils/image';
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../../utils/overlayHistory';
 import { ImageLightbox } from '../../shared/components/ImageLightbox.jsx';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 
 const FORETMAP_PHOTO_DRAG_MIME = 'application/x-foretmap-zone-marker-photo-id';
 
@@ -18,6 +19,7 @@ export function reorderZoneMarkerPhotosByDrop(list, draggedId, dropTargetId) {
 }
 
 export function PhotoGallery({ zoneId, markerId, isTeacher }) {
+  const { confirm, notify } = useAppDialogs();
   const [photos, setPhotos] = useState([]);
   const [big, setBig] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -61,19 +63,19 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
       setCaption('');
       await load();
     } catch (err) {
-      alert(err.message);
+      notify(err.message);
     } finally {
       setUploading(false);
     }
   };
 
   const del = async (id) => {
-    if (!confirm('Supprimer cette photo ?')) return;
+    if (!(await confirm({ message: 'Supprimer cette photo ?', danger: true }))) return;
     try {
       await api(`${listBase}/${id}`, 'DELETE');
       await load();
     } catch (err) {
-      alert(err.message || 'Suppression impossible');
+      notify(err.message || 'Suppression impossible');
     }
   };
 
@@ -84,7 +86,7 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
       await api(`${listBase}/reorder`, 'PUT', { photo_ids: nextOrdered.map((x) => x.id) });
       await load();
     } catch (err) {
-      alert(err.message || 'Impossible de réordonner les photos');
+      notify(err.message || 'Impossible de réordonner les photos');
       await load();
     } finally {
       setReorderingPhotos(false);

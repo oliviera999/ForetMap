@@ -1,4 +1,5 @@
 import { MarkdownContent } from './MarkdownContent.jsx';
+import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 
 /**
  * Carte (présentation) d'une observation du carnet élève — extraite de
@@ -11,6 +12,7 @@ import { MarkdownContent } from './MarkdownContent.jsx';
  * @param {(id: number|string) => void} props.onDelete supprime l'observation d'id donné (déjà confirmée)
  */
 export function ObservationCard({ entry, onDelete }) {
+  const { confirm } = useAppDialogs();
   return (
     <div className="obs-card fade-in">
       <div className="obs-header">
@@ -26,8 +28,10 @@ export function ObservationCard({ entry, onDelete }) {
         <button
           className="btn btn-ghost btn-sm"
           style={{ padding: '2px 6px', minHeight: 'auto', fontSize: 'var(--text-xs)' }}
-          onClick={() => {
-            if (confirm('Supprimer cette observation ?')) onDelete(entry.id);
+          onClick={async () => {
+            if (await confirm({ message: 'Supprimer cette observation ?', danger: true })) {
+              onDelete(entry.id);
+            }
           }}
         >
           🗑️

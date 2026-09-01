@@ -11,6 +11,7 @@ import { ContextComments } from './context-comments';
 import { DialogShell } from './DialogShell';
 import { MarkdownContent } from './MarkdownContent.jsx';
 import { FixedToast } from '../shared/components/FixedToast.jsx';
+import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { TutorialEditorPanel } from './tutorials/TutorialEditorPanel.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
@@ -84,6 +85,7 @@ function TutorialLinkedTasksModal({ state, onClose }) {
 }
 
 function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
+  const { confirm } = useAppDialogs();
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
   const { tutorials = [], zones = [], markers = [], activeMapId = 'foret' } = useData();
@@ -338,7 +340,15 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
   });
 
   const archiveTutorial = async (row) => {
-    if (!confirm(`Archiver "${row.title}" ?`)) return;
+    if (
+      !(await confirm({
+        message: `Archiver "${row.title}" ?`,
+        confirmLabel: 'Archiver',
+        danger: true,
+      }))
+    ) {
+      return;
+    }
     try {
       await api(`/api/tutorials/${row.id}`, 'DELETE');
       await onRefresh?.();

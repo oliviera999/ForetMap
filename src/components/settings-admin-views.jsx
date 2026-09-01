@@ -21,6 +21,7 @@ import { HelpNarratorAdminPanel } from './help/HelpNarratorAdminPanel.jsx';
 import { ForetMapReferenceDocsPanel } from './help/ForetMapReferenceDocsPanel.jsx';
 import { DiscoveryTourAdminPanel } from './help/DiscoveryTourAdminPanel.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
+import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 
 /**
  * Console de réglages administrateur.
@@ -31,6 +32,7 @@ import { useSession } from '../contexts/SessionContext.jsx';
  * volontairement pour ne pas réafficher des contrôles prof en vue élève.
  */
 function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
+  const { confirm } = useAppDialogs();
   const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [loading, setLoading] = useState(true);
@@ -413,7 +415,15 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
   };
 
   const triggerRestart = async () => {
-    if (!window.confirm('Redémarrer l’application maintenant ?')) return;
+    if (
+      !(await confirm({
+        message: 'Redémarrer l’application maintenant ?',
+        confirmLabel: 'Redémarrer',
+        danger: true,
+      }))
+    ) {
+      return;
+    }
     setErr('');
     setMsg('');
     setSavingKey('restart');

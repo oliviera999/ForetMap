@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../services/api';
 import { downloadApiFile } from '../utils/downloadApiFile.js';
 import { getRoleTerms } from '../utils/n3-terminology';
@@ -8,6 +8,7 @@ import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions
 import { GroupsAdminView } from './groups-views.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
+import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import {
   pickUserField,
   mergeRbacUserRowsForEdit,
@@ -40,6 +41,12 @@ import {
 
 function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   const publicSettings = usePublicSettings();
+  const { prompt: appDialogPrompt } = useAppDialogs();
+  /** Adaptateur (texte, valeur par défaut) → dialogue applicatif, injecté dans les flux profilesRolePrompts. */
+  const promptFn = useCallback(
+    (text, defaultValue) => appDialogPrompt({ message: text, defaultValue }),
+    [appDialogPrompt],
+  );
   const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
   const affiliationOptions = useMemo(() => buildAffiliationSelectOptions(maps), [maps]);
@@ -180,7 +187,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
 
   /** `fields` : { roleEmoji, roleMinDoneTasks, roleDisplayOrder } saisis dans la section RBAC. */
   const saveRoleDetails = async (role, fields) => {
-    const result = promptRoleDetailsPatch(role, fields);
+    const result = await promptRoleDetailsPatch(role, fields, promptFn);
     if (!result) return;
     if (result.error) {
       setErr(result.error);
@@ -279,7 +286,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   };
 
   const createRoleProfile = async () => {
-    const result = promptNewRoleProfile();
+    const result = await promptNewRoleProfile(promptFn);
     if (!result) return;
     if (result.error) {
       setErr(result.error);
@@ -300,7 +307,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
 
   const duplicateRoleProfile = async (role) => {
     if (!role?.id) return;
-    const result = promptDuplicateRoleProfile(role);
+    const result = await promptDuplicateRoleProfile(role, promptFn);
     if (!result) return;
     setLoading(true);
     setErr('');
