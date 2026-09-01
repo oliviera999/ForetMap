@@ -25,7 +25,7 @@ export function ObservationCard({ entry, onDelete }) {
         </span>
         <button
           className="btn btn-ghost btn-sm"
-          style={{ padding: '2px 6px', minHeight: 'auto', fontSize: '.7rem' }}
+          style={{ padding: '2px 6px', minHeight: 'auto', fontSize: 'var(--text-xs)' }}
           onClick={() => {
             if (confirm('Supprimer cette observation ?')) onDelete(entry.id);
           }}

@@ -96,14 +96,21 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
       {big && <ImageLightbox src={big.src} caption={big.caption} onClose={() => setBig(null)} />}
 
       {loading ? (
-        <p style={{ color: '#aaa', fontSize: '.85rem', textAlign: 'center', padding: '16px 0' }}>
+        <p
+          style={{
+            color: '#aaa',
+            fontSize: 'var(--text-sm)',
+            textAlign: 'center',
+            padding: '16px 0',
+          }}
+        >
           Chargement...
         </p>
       ) : photos.length === 0 ? (
         <p
           style={{
             color: '#bbb',
-            fontSize: '.85rem',
+            fontSize: 'var(--text-sm)',
             fontStyle: 'italic',
             textAlign: 'center',
             padding: '12px 0',
@@ -115,7 +122,12 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
         <>
           {isTeacher && photos.length > 1 && (
             <p
-              style={{ color: '#64748b', fontSize: '.76rem', margin: '0 0 8px', lineHeight: 1.45 }}
+              style={{
+                color: 'var(--ink-soft)',
+                fontSize: 'var(--text-xs)',
+                margin: '0 0 8px',
+                lineHeight: 'var(--lh-normal)',
+              }}
             >
               Glisser-déposer une vignette pour changer l’ordre. La première sert de photo
               d’accroche sur la visite guidée.
@@ -187,7 +199,7 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '1.5rem',
+                        fontSize: 'var(--text-xl)',
                         animation: 'sway 1.5s infinite',
                       }}
                     >
@@ -203,7 +215,7 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
                         right: 0,
                         background: 'rgba(0,0,0,.55)',
                         color: 'white',
-                        fontSize: '.62rem',
+                        fontSize: 'var(--text-2xs)',
                         padding: '3px 5px',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -228,7 +240,7 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
                         borderRadius: '50%',
                         width: 22,
                         height: 22,
-                        fontSize: '.7rem',
+                        fontSize: 'var(--text-xs)',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',

@@ -20,7 +20,7 @@
   padding: 6px 14px;
   border-radius: 999px;
   max-width: min(92vw, 480px);
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   line-height: 1.3;
   text-align: center;
   color: #f3f7f4;
@@ -67,7 +67,7 @@
 /* Indicateur inline près des formulaires : couleurs lisibles, surchargées par
    thème via les variables --fm-autosave-*. */
 .auto-save-status {
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   line-height: 1.3;
 }
 
@@ -81,7 +81,7 @@
 
 .auto-save-status--error {
   color: var(--fm-autosave-error-color, #b3261e);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 @media (prefers-reduced-motion: reduce) {

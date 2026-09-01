@@ -27,7 +27,7 @@ export function TeacherObservationsPanel({
         </div>
         {obsError && <div className="auth-error">⚠️ {obsError}</div>}
         {!obsError && !obsLoading && observations.length === 0 && (
-          <p style={{ margin: 0, fontSize: '.84rem', color: '#6b7280' }}>
+          <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
             Aucune observation chargée (clique sur le bouton pour rafraîchir).
           </p>
         )}
@@ -54,14 +54,14 @@ export function TeacherObservationsPanel({
                   key={entry.id}
                   style={{ padding: '8px 6px', borderBottom: '1px solid #e2e8f0' }}
                 >
-                  <div style={{ fontSize: '.82rem', color: '#374151' }}>
+                  <div style={{ fontSize: 'var(--text-sm)', color: '#374151' }}>
                     <strong>{studentName}</strong>
                     {zoneLabel ? ` · ${zoneLabel}` : ''}
                     {dateLabel ? ` · ${dateLabel}` : ''}
                   </div>
                   <div
                     style={{
-                      fontSize: '.82rem',
+                      fontSize: 'var(--text-sm)',
                       color: '#4b5563',
                       marginTop: 4,
                       whiteSpace: 'pre-wrap',

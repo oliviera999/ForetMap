@@ -48,7 +48,14 @@ export function VisitMediaEditor({
   return (
     <div className="visit-media-editor">
       <h5>🖼️ Photos</h5>
-      <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
+      <p
+        style={{
+          fontSize: 'var(--text-xs)',
+          color: 'var(--ink-soft)',
+          margin: '0 0 10px',
+          lineHeight: 'var(--lh-normal)',
+        }}
+      >
         Envoi d’image (comme sur la carte) ou lien URL (ex. Wikimedia, fichier déjà sur le serveur).
         {sortedVisitMedia.length > 1
           ? ' Plusieurs photos : glisser-déposer une ligne pour réordonner.'

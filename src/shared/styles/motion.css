@@ -304,7 +304,7 @@ label img,
 .fm-lightbox-caption {
   color: rgba(255, 255, 255, 0.8);
   margin-top: 12px;
-  font-size: 0.9rem;
+  font-size: var(--text-base);
   max-width: 80vw;
   text-align: center;
 }
@@ -319,7 +319,7 @@ label img,
   border-radius: 50%;
   width: 44px;
   height: 44px;
-  font-size: 1.1rem;
+  font-size: var(--text-md);
   cursor: pointer;
   display: flex;
   align-items: center;

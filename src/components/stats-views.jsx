@@ -85,8 +85,8 @@ function StudentStats({ student }) {
             background: 'var(--parchment)',
             borderRadius: 20,
             padding: '4px 12px',
-            fontSize: '.8rem',
-            fontWeight: 600,
+            fontSize: 'var(--text-sm)',
+            fontWeight: 'var(--fw-semibold)',
             color: 'var(--soil)',
           }}
           title="Palier n3beur actuel"
@@ -116,8 +116,8 @@ function StudentStats({ student }) {
             background: '#fef9c3',
             borderRadius: 10,
             color: '#713f12',
-            fontSize: '.88rem',
-            lineHeight: 1.45,
+            fontSize: 'var(--text-sm)',
+            lineHeight: 'var(--lh-normal)',
           }}
         >
           La montée de palier auto est coupée : ton badge affiché suit un réglage manuel. La barre
@@ -126,31 +126,49 @@ function StudentStats({ student }) {
       )}
 
       {profileAheadOfTasks && (
-        <p className="section-sub" style={{ marginTop: 8, fontSize: '.85rem', color: '#555' }}>
+        <p
+          className="section-sub"
+          style={{ marginTop: 8, fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}
+        >
           Objectif tâches validées : {taskTier.icon} {taskTier.label} (ton profil attribué est plus
           avancé).
         </p>
       )}
       {profileBehindOfTasks && (
-        <p className="section-sub" style={{ marginTop: 8, fontSize: '.85rem', color: '#555' }}>
+        <p
+          className="section-sub"
+          style={{ marginTop: 8, fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}
+        >
           Objectif tâches validées : {taskTier.icon} {taskTier.label} — ton profil sera mis à jour
           automatiquement.
         </p>
       )}
       <div className="rank-progress">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <span style={{ fontSize: '.82rem', fontWeight: 600, color: 'var(--forest)' }}>
+          <span
+            style={{
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--fw-semibold)',
+              color: 'var(--forest)',
+            }}
+          >
             {showTaskObjective ? 'Objectif (tâches validées)' : 'Progression'} : {taskTier.icon}{' '}
             {taskTier.label}
           </span>
           {nextRank && (
-            <span style={{ fontSize: '.76rem', color: '#aaa' }}>
+            <span style={{ fontSize: 'var(--text-xs)', color: '#aaa' }}>
               Prochain palier : {nextRank.icon} {nextRank.label} ({tasksRemaining} tâche
               {tasksRemaining > 1 ? 's' : ''} restante{tasksRemaining > 1 ? 's' : ''})
             </span>
           )}
           {!nextRank && (
-            <span style={{ fontSize: '.76rem', color: taskTier.color, fontWeight: 600 }}>
+            <span
+              style={{
+                fontSize: 'var(--text-xs)',
+                color: taskTier.color,
+                fontWeight: 'var(--fw-semibold)',
+              }}
+            >
               Palier maximum atteint (tâches validées) !
             </span>
           )}
@@ -185,7 +203,7 @@ function StudentStats({ student }) {
       <h3
         style={{
           fontFamily: 'Playfair Display,serif',
-          fontSize: '1.05rem',
+          fontSize: 'var(--text-md)',
           margin: '20px 0 10px',
           color: 'var(--forest)',
         }}
@@ -213,7 +231,7 @@ function StudentStats({ student }) {
       <h3
         style={{
           fontFamily: 'Playfair Display,serif',
-          fontSize: '1.1rem',
+          fontSize: 'var(--text-md)',
           marginBottom: 12,
           color: 'var(--forest)',
         }}
@@ -449,7 +467,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
           </button>
         </div>
         {avatarProcessing && (
-          <div style={{ fontSize: '.82rem', color: '#4b5563', marginTop: 6 }}>
+          <div style={{ fontSize: 'var(--text-sm)', color: '#4b5563', marginTop: 6 }}>
             Traitement de la photo en cours...
           </div>
         )}
@@ -711,7 +729,7 @@ function TeacherStats() {
       </StatsSummaryGrid>
 
       <section className="card" style={{ marginBottom: 20, padding: 14 }}>
-        <h3 className="section-title" style={{ fontSize: '1.05rem', marginBottom: 8 }}>
+        <h3 className="section-title" style={{ fontSize: 'var(--text-md)', marginBottom: 8 }}>
           ❓ Quiz (QCM)
         </h3>
         {quizStatsError ? <p className="section-sub">{quizStatsError}</p> : null}

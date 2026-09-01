@@ -329,7 +329,9 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
                 maxLength={16}
                 onKeyDown={onKey}
               />
-              <p style={{ margin: '4px 0 0', fontSize: '.8rem', color: '#64748b' }}>
+              <p
+                style={{ margin: '4px 0 0', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}
+              >
                 Avec un bon code, ton compte rejoint directement ta classe. Sans code, un professeur
                 devra te rattacher à la main.
               </p>

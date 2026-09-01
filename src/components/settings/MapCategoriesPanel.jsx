@@ -122,7 +122,14 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
       }}
     >
       <h3 style={{ marginTop: 0 }}>Catégories de lieux</h3>
-      <p style={{ fontSize: '.82rem', color: '#6b7280', marginBottom: 10, lineHeight: 1.45 }}>
+      <p
+        style={{
+          fontSize: 'var(--text-sm)',
+          color: 'var(--ink-soft)',
+          marginBottom: 10,
+          lineHeight: 'var(--lh-normal)',
+        }}
+      >
         Les catégories classent les zones et les repères, et servent de filtre sur la carte. Une
         catégorie sans carte vaut pour toutes les cartes ; sinon elle n’est proposée que sur la
         carte choisie. « Infrastructure » marque les lieux qui ne sont pas des cultures (mare,
@@ -252,9 +259,13 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
       </div>
 
       <div style={{ marginTop: 14 }}>
-        {loading && <p style={{ fontSize: '.82rem', color: '#6b7280' }}>Chargement…</p>}
+        {loading && (
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>Chargement…</p>
+        )}
         {!loading && categories.length === 0 && (
-          <p style={{ fontSize: '.82rem', color: '#6b7280' }}>Aucune catégorie pour l’instant.</p>
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
+            Aucune catégorie pour l’instant.
+          </p>
         )}
         {categories.map((cat) => (
           <div
@@ -283,7 +294,7 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
                 {cat.emoji ? `${cat.emoji} ` : ''}
                 {cat.label}
               </strong>
-              <div style={{ fontSize: '.78rem', color: '#6b7280' }}>
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
                 {cat.map_id
                   ? maps.find((m) => m.id === cat.map_id)?.label || cat.map_id
                   : 'Toutes les cartes'}{' '}

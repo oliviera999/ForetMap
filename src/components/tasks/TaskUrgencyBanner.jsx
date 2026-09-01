@@ -25,9 +25,11 @@ export function TaskUrgencyBanner({ isTeacher = false, tasks = [], maxItems = 5 
       {urgentTasks.slice(0, maxItems).map((t) => (
         <div key={t.id} className="urgency-item">
           <span className="urgency-days">{urgencyDueLabel(daysUntil(t.due_date))}</span>
-          <span style={{ flex: 1, color: 'var(--forest)', fontWeight: 500 }}>{t.title}</span>
+          <span style={{ flex: 1, color: 'var(--forest)', fontWeight: 'var(--fw-medium)' }}>
+            {t.title}
+          </span>
           {(t.zones_linked?.[0]?.name || t.zone_name) && (
-            <span style={{ fontSize: '.76rem', color: '#aaa' }}>
+            <span style={{ fontSize: 'var(--text-xs)', color: '#aaa' }}>
               {t.zones_linked?.[0]?.name || t.zone_name}
             </span>
           )}

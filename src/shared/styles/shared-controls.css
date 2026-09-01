@@ -12,7 +12,7 @@
  */
 
 .shared-hint {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   color: var(--gl-color-text-muted, #5b6b66);
   margin: 4px 0;
 }
@@ -37,7 +37,7 @@
   background: var(--gl-surface, #fff);
   color: var(--gl-color-primary, #1a4731);
   font: inherit;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   line-height: 1.25;
   text-align: center;
   cursor: pointer;
@@ -82,7 +82,7 @@
 
 .shared-btn--sm {
   padding: 6px 12px;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   /* Aligné sur .btn-sm / .gl-btn--sm : sans ce plafond, le petit bouton partagé gardait
      la hauteur pleine (44px) à côté de petits boutons de 36px. */
   min-height: 36px;
