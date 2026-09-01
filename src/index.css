@@ -1031,6 +1031,14 @@
     .location-category-picker__swatch { width:14px; height:14px; border-radius:4px; border:1px solid #cbd5e1; flex-shrink:0; }
     .location-category-picker__infra { color:#64748b; font-size:.78rem; }
 
+    /* Grille admin « Zones & repères » : chips espèces et pastilles catégories. */
+    .admin-locations-chip { display:inline-flex; align-items:center; gap:4px; background:#f0fdf4; border:1px solid var(--sage); border-radius:999px; padding:2px 8px; font-size:.8rem; }
+    .admin-locations-chip button { border:none; background:none; cursor:pointer; color:#6b7280; font-size:.75rem; padding:2px 4px; min-height:0; }
+    .admin-locations-chip button:hover { color:#b91c1c; }
+    .admin-locations-cat { border:1px solid #cbd5e1; background:white; border-radius:999px; padding:2px 10px; font-size:.8rem; cursor:pointer; color:#475569; }
+    .admin-locations-cat.is-active { background:var(--forest, #14532d); border-color:var(--forest, #14532d); color:white; }
+    .admin-locations-cat:disabled { opacity:.6; cursor:default; }
+
     /* Réglages admin : couleur d'une catégorie — sélecteur natif + saisie hexadécimale. */
     .map-category-color-field { display:flex; align-items:center; gap:8px; }
     .map-category-color-field__picker { width:44px; height:44px; min-width:44px; padding:2px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; cursor:pointer; }
