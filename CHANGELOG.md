@@ -7,6 +7,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Réglages : un sélecteur de couleur pour les catégories de lieux
+
+La couleur d'une catégorie ne se saisissait qu'en hexadécimal, à l'aveugle. Un **sélecteur
+de couleur natif** est ajouté à côté du champ, qui reste éditable pour ceux qui préfèrent
+coller un code.
+
+Les couleurs de catégories portent un canal **alpha** (`#86efac90`) — la transparence est ce
+qui laisse le plan visible sous la zone — alors que `<input type="color">` ne sait manipuler
+que du `#rrggbb`. Le sélecteur ne touche donc qu'à la teinte et **reconduit l'alpha** déjà
+saisi : `#86efac90` + teinte `#fca5a5` donne `#fca5a590`. Une saisie incomplète en cours de
+frappe ne fait pas retomber la pastille sur du noir. Logique isolée dans
+`src/utils/hexColorWithAlpha.js`, couverte par des tests unitaires et un test de montage du
+panneau.
+
 ### Les constats de l'audit géolocalisation sont tous traités
 
 Suite directe de l'audit ci-dessous : les 7 points du plan d'action de
