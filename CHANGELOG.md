@@ -15,6 +15,7 @@ Le même motif venait d'être sécurisé pour Gnomes & Licornes. Une interruptio
 (timeout, kill mémoire) laissait le catalogue à jour et **tous** ces rattachements
 effacés — le contrôle de compréhension rattaché au glossaire ne se déclenchait
 plus. L'import passe désormais en une seule transaction : échec = rien n'a changé.
+
 ### Chargement des données : onglets pédago et anti-course
 
 Le rafraîchissement global (`fetchAll`) traitait encore glossaire, quiz, réseau trophique
