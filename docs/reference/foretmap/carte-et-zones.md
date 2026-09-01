@@ -344,7 +344,14 @@ le texte jusqu'à l'illisible. Sur tablette et téléphone, les étiquettes sont
 **agrandies** automatiquement.
 
 **Côté utilisateur** : le bouton **Aa** de la barre d'outils carte permet trois niveaux
-locaux (Normal / Grand / Très grand), mémorisés sur l'appareil.
+locaux (Normal / Grand / Très grand), mémorisés sur l'appareil. Le même bouton est
+disponible dans le bandeau du plan de **Visite**, et le niveau choisi s'applique aussi
+aux libellés des plateaux Gnomes & Licornes.
+
+Un **nom de zone trop long** pour la place disponible n'est plus « compressé » en
+déformant les lettres : il est d'abord légèrement réduit, puis coupé avec « … » si
+nécessaire — le nom complet reste lisible en ouvrant la fiche de la zone (et au survol
+du libellé sur ordinateur).
 
 **Côté administrateur** (Réglages → modules), des curseurs permettent d'ajuster pour
 toute l'établissement :
