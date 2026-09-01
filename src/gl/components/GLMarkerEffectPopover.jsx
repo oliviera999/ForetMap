@@ -95,7 +95,7 @@ export function GLMarkerEffectPopover({
         <header className="gl-marker-effect-popover__header">
           <h2 id="gl-marker-effect-title">{marker?.label || 'Repère'}</h2>
           <button type="button" className="gl-icon-btn" onClick={onClose} aria-label="Fermer">
-            ×
+            ✕
           </button>
         </header>
         {loading ? <p className="gl-hint">Chargement…</p> : null}

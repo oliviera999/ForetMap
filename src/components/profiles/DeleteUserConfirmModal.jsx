@@ -17,12 +17,26 @@ function DeleteUserConfirmModal({ confirmStudent, roleTerms, onConfirm, onCancel
       closeOnOverlay
     >
       <h3 style={{ marginBottom: 8 }}>Supprimer le/la {roleTerms.studentSingular} ?</h3>
-      <p style={{ fontSize: '.95rem', color: '#444', marginBottom: 6, lineHeight: 1.5 }}>
+      <p
+        style={{
+          fontSize: 'var(--text-base)',
+          color: '#444',
+          marginBottom: 6,
+          lineHeight: 'var(--lh-normal)',
+        }}
+      >
         <strong>
           {confirmStudent.first_name} {confirmStudent.last_name}
         </strong>
       </p>
-      <p style={{ fontSize: '.85rem', color: '#888', marginBottom: 20, lineHeight: 1.5 }}>
+      <p
+        style={{
+          fontSize: 'var(--text-sm)',
+          color: 'var(--ink-faint)',
+          marginBottom: 20,
+          lineHeight: 'var(--lh-normal)',
+        }}
+      >
         Ses assignations de tâches seront également supprimées.
       </p>
       <div style={{ display: 'flex', gap: 10 }}>

@@ -1,7 +1,3 @@
-import { STAGE_LABELS } from '../../constants/garden.js';
-
-const STAGE_OPTIONS = ['empty', 'growing', 'ready', 'special'];
-
 const KIND_OPTIONS = [
   { value: 'both', label: 'Tout' },
   { value: 'zones', label: 'Zones' },
@@ -17,14 +13,21 @@ const TRI_OPTIONS = [
 /**
  * Champs de filtrage zones / repères (panneau ou feuille modale).
  */
-export function MapLocationFilterFields({ filters, setFilters, speciesOptions = [] }) {
+export function MapLocationFilterFields({
+  filters,
+  setFilters,
+  speciesOptions = [],
+  categoryOptions = [],
+}) {
   const set = (patch) => setFilters((prev) => ({ ...prev, ...patch }));
 
-  const toggleStage = (stage) => {
+  const toggleCategory = (categoryId) => {
     setFilters((prev) => {
-      const cur = prev.stages || [];
-      const next = cur.includes(stage) ? cur.filter((s) => s !== stage) : [...cur, stage];
-      return { ...prev, stages: next };
+      const cur = prev.categoryIds || [];
+      const next = cur.includes(categoryId)
+        ? cur.filter((id) => id !== categoryId)
+        : [...cur, categoryId];
+      return { ...prev, categoryIds: next };
     });
   };
 
@@ -47,29 +50,34 @@ export function MapLocationFilterFields({ filters, setFilters, speciesOptions = 
         </div>
       </fieldset>
 
-      <fieldset className="map-location-filters-fieldset">
-        <legend>État des zones</legend>
-        <div className="map-location-filters-checks">
-          {STAGE_OPTIONS.map((stage) => (
-            <label key={stage} className="map-location-filters-check">
-              <input
-                type="checkbox"
-                checked={(filters.stages || []).includes(stage)}
-                onChange={() => toggleStage(stage)}
-              />
-              <span>{STAGE_LABELS[stage] || stage}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      {categoryOptions.length > 0 && (
+        <fieldset className="map-location-filters-fieldset">
+          <legend>Catégories</legend>
+          <div className="map-location-filters-checks">
+            {categoryOptions.map((cat) => (
+              <label key={cat.id} className="map-location-filters-check">
+                <input
+                  type="checkbox"
+                  checked={(filters.categoryIds || []).includes(cat.id)}
+                  onChange={() => toggleCategory(cat.id)}
+                />
+                <span>
+                  {cat.emoji ? <span aria-hidden="true">{cat.emoji} </span> : null}
+                  {cat.label}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
       <label className="map-location-filters-check map-location-filters-check--solo">
         <input
           type="checkbox"
-          checked={!!filters.specialOnly}
-          onChange={(e) => set({ specialOnly: e.target.checked })}
+          checked={!!filters.infrastructureOnly}
+          onChange={(e) => set({ infrastructureOnly: e.target.checked })}
         />
-        <span>Zones spéciales (infra) uniquement</span>
+        <span>Infrastructures uniquement</span>
       </label>
 
       <label className="map-location-filters-select-wrap">

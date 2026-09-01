@@ -501,7 +501,7 @@ router.post(
 
     const filename = `${chapter.slug || chapter.id}-${Date.now()}.jpg`;
     const relativePath = path.join('gl_chapters_maps', filename).replace(/\\/g, '/');
-    saveBase64ToDisk(relativePath, imageData);
+    await saveBase64ToDisk(relativePath, imageData);
     const nextUrl = `/uploads/${relativePath}`;
     const oldUrl = String(chapter.map_image_url || '').trim();
     await execute('UPDATE gl_chapters SET map_image_url = ?, updated_at = NOW() WHERE id = ?', [

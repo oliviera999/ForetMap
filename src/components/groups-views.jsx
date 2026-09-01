@@ -96,12 +96,12 @@ function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
   return (
     <div className="log-modal fade-in" style={{ marginBottom: 12 }}>
       <h3 style={{ marginTop: 0 }}>Profil par défaut — {group.name}</h3>
-      <p style={{ fontSize: '.82rem', color: '#64748b', marginTop: 0 }}>
+      <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', marginTop: 0 }}>
         Les membres sans groupe n3beur restent visiteurs. Un profil <code>eleve_*</code> ou le flag
         n3beur transforme le groupe en groupe n3beur.
       </p>
       {group?.gl_class_id && (
-        <p style={{ fontSize: '.82rem', color: '#0f766e' }}>
+        <p style={{ fontSize: 'var(--text-sm)', color: '#0f766e' }}>
           Lié GL : classe #{group.gl_class_id}
           {group.gl_class_name ? ` (${group.gl_class_name})` : ''}
         </p>
@@ -119,7 +119,7 @@ function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
           ))}
         </select>
       </div>
-      <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '.86rem' }}>
+      <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 'var(--text-sm)' }}>
         <input
           type="checkbox"
           checked={grantsN3beur}
@@ -127,18 +127,18 @@ function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
         />
         Accorde le statut n3beur (accès carte/tâches ForetMap)
       </label>
-      <div style={{ marginTop: 12, fontSize: '.86rem' }} data-testid="group-class-code">
+      <div style={{ marginTop: 12, fontSize: 'var(--text-sm)' }} data-testid="group-class-code">
         <strong>Code de classe (inscription autonome)</strong>
-        <p style={{ margin: '4px 0 6px', fontSize: '.8rem', color: '#64748b' }}>
+        <p style={{ margin: '4px 0 6px', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
           Un élève qui saisit ce code à l'inscription rejoint directement ce groupe (et devient
           n3beur si le groupe le confère). Régénérer le code invalide l'ancien.
         </p>
         {classCode ? (
           <p style={{ margin: '0 0 6px' }}>
-            Code actuel : <code style={{ fontSize: '1rem' }}>{classCode}</code>
+            Code actuel : <code style={{ fontSize: 'var(--text-base)' }}>{classCode}</code>
           </p>
         ) : (
-          <p style={{ margin: '0 0 6px', color: '#64748b' }}>Aucun code actif.</p>
+          <p style={{ margin: '0 0 6px', color: 'var(--ink-soft)' }}>Aucun code actif.</p>
         )}
         <span style={{ display: 'inline-flex', gap: 8 }}>
           <button
@@ -264,10 +264,10 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
                 marginBottom: 6,
               }}
             >
-              <div style={{ fontSize: '.86rem' }}>
-                {u.display_name} <span style={{ color: '#64748b' }}>({u.user_type})</span>
+              <div style={{ fontSize: 'var(--text-sm)' }}>
+                {u.display_name} <span style={{ color: 'var(--ink-soft)' }}>({u.user_type})</span>
               </div>
-              <label style={{ fontSize: '.78rem' }}>
+              <label style={{ fontSize: 'var(--text-sm)' }}>
                 <input
                   type="checkbox"
                   checked={memberChecked}
@@ -275,7 +275,7 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
                 />{' '}
                 membre
               </label>
-              <label style={{ fontSize: '.78rem' }}>
+              <label style={{ fontSize: 'var(--text-sm)' }}>
                 <input
                   type="checkbox"
                   checked={managerChecked}
@@ -469,7 +469,7 @@ export function GroupsAdminView() {
           isTeacher
         />
       </div>
-      <p style={{ marginTop: 0, fontSize: '.84rem', color: '#64748b' }}>
+      <p style={{ marginTop: 0, fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
         Module dédié: structure pédagogique, membres, responsables et périmètre carte/projet.
       </p>
 
@@ -488,12 +488,12 @@ export function GroupsAdminView() {
             🕓 {pendingVisitors.length} compte{pendingVisitors.length > 1 ? 's' : ''} en attente de
             rattachement
           </strong>
-          <p style={{ margin: '4px 0 8px', fontSize: '.82rem', color: '#1e3a8a' }}>
+          <p style={{ margin: '4px 0 8px', fontSize: 'var(--text-sm)', color: '#1e3a8a' }}>
             Ces élèves se sont inscrits seuls et n'ont encore accès qu'à la Visite. Choisis un
             groupe puis rattache-les en un clic (le rôle n3beur est attribué automatiquement si le
             groupe le confère).
           </p>
-          <label style={{ fontSize: '.84rem', display: 'block', marginBottom: 8 }}>
+          <label style={{ fontSize: 'var(--text-sm)', display: 'block', marginBottom: 8 }}>
             Groupe de rattachement{' '}
             <select
               value={pendingTargetGroup}
@@ -545,19 +545,19 @@ export function GroupsAdminView() {
             >
               <div>
                 <strong>{g.name}</strong>
-                <span style={{ color: '#64748b' }}> · {g.kind}</span>
+                <span style={{ color: 'var(--ink-soft)' }}> · {g.kind}</span>
                 {g.parent_group_id && <span style={{ color: '#94a3b8' }}> · sous-groupe</span>}
                 {g.gl_class_id && (
-                  <span style={{ color: '#0f766e', fontSize: '.76rem' }}> · Lié GL</span>
+                  <span style={{ color: '#0f766e', fontSize: 'var(--text-xs)' }}> · Lié GL</span>
                 )}
                 {g.default_role_display_name && (
-                  <span style={{ color: '#64748b', fontSize: '.76rem' }}>
+                  <span style={{ color: 'var(--ink-soft)', fontSize: 'var(--text-xs)' }}>
                     {' '}
                     · Profil : {g.default_role_display_name}
                   </span>
                 )}
                 {g.grants_n3beur_access && (
-                  <span style={{ color: '#0369a1', fontSize: '.76rem' }}> · n3beur</span>
+                  <span style={{ color: '#0369a1', fontSize: 'var(--text-xs)' }}> · n3beur</span>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -579,7 +579,7 @@ export function GroupsAdminView() {
                 </button>
               </div>
             </div>
-            <div style={{ fontSize: '.76rem', color: '#64748b', marginTop: 4 }}>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-soft)', marginTop: 4 }}>
               {Array.isArray(g.members) ? `${g.members.length} membre(s)` : '0 membre'} ·{' '}
               {Array.isArray(g.scopes) ? `${g.scopes.length} scope(s)` : '0 scope'}
             </div>

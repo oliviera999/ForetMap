@@ -156,7 +156,7 @@ router.post(
       if (proposalDecodedImage) {
         const rel = `tasks/${id}.${proposalDecodedImage.ext}`;
         try {
-          writeBufferToDisk(rel, proposalDecodedImage.buffer);
+          await writeBufferToDisk(rel, proposalDecodedImage.buffer);
           await tx.execute('UPDATE tasks SET image_path = ? WHERE id = ?', [rel, id]);
         } catch (imgErr) {
           try {

@@ -163,10 +163,10 @@ describe('MapViewToolbar', () => {
 
   test('mode edit-points : suppression désactivée sans sélection supprimable', () => {
     const h = renderToolbar({ mode: 'edit-points' });
-    expect(screen.getByRole('button', { name: '🗑 Sommet' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: '🗑️ Sommet' }).disabled).toBe(true);
 
     renderToolbar({ mode: 'edit-points', canRemoveSelection: true, selectedPointsCount: 3 });
-    const btn = screen.getByRole('button', { name: '🗑 3 sommets' });
+    const btn = screen.getByRole('button', { name: '🗑️ 3 sommets' });
     expect(btn.disabled).toBe(false);
     fireEvent.click(btn);
     expect(h.onRemoveSelectedPoints).not.toHaveBeenCalled();
@@ -174,10 +174,10 @@ describe('MapViewToolbar', () => {
 
   test('mode edit-points : bascule de sélection multiple', () => {
     const h = renderToolbar({ mode: 'edit-points' });
-    fireEvent.click(screen.getByRole('button', { name: '⬚ Multi' }));
+    fireEvent.click(screen.getByRole('button', { name: '⬜ Multi' }));
     expect(h.onToggleMultiSelectMode).toHaveBeenCalled();
     renderToolbar({ mode: 'edit-points', multiSelectMode: true });
-    expect(screen.getByRole('button', { name: '☑ Multi' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '☑️ Multi' })).toBeTruthy();
   });
 
   test('mode edit-points : états de l’aimant (éteint, analyse, indisponible, prêt)', () => {

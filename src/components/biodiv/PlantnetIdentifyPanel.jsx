@@ -187,11 +187,19 @@ export function PlantnetIdentifyPanel({
 
   return (
     <details className="plant-more" style={{ marginBottom: 10 }}>
-      <summary style={{ cursor: 'pointer', fontSize: '.88rem' }}>
+      <summary style={{ cursor: 'pointer', fontSize: 'var(--text-sm)' }}>
         Identifier une plante à partir de photos (Pl@ntNet)
       </summary>
-      <div style={{ marginTop: 8, display: 'grid', gap: 10, fontSize: '.82rem', color: '#444' }}>
-        <p style={{ margin: 0, lineHeight: 1.45 }}>
+      <div
+        style={{
+          marginTop: 8,
+          display: 'grid',
+          gap: 10,
+          fontSize: 'var(--text-sm)',
+          color: '#444',
+        }}
+      >
+        <p style={{ margin: 0, lineHeight: 'var(--lh-normal)' }}>
           Envoie 1 à 5 images de la <strong>même</strong> plante (feuille, fleur, fruit…), depuis la{' '}
           <strong>galerie</strong> ou en <strong>prenant une photo</strong> avec le téléphone
           (bouton « Appareil photo », caméra arrière si disponible). Le serveur appelle Pl@ntNet ;
@@ -236,7 +244,12 @@ export function PlantnetIdentifyPanel({
             >
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
                 <label
-                  style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '.78rem' }}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                    fontSize: 'var(--text-sm)',
+                  }}
                 >
                   <span>Organe</span>
                   <select
@@ -256,7 +269,7 @@ export function PlantnetIdentifyPanel({
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 6,
-                    fontSize: '.78rem',
+                    fontSize: 'var(--text-sm)',
                     flex: '1 1 220px',
                   }}
                 >

@@ -107,7 +107,14 @@ export function TutorialEditorPanel({
             </option>
           ))}
         </select>
-        <p style={{ fontSize: '.78rem', color: '#666', margin: '6px 0 0', lineHeight: 1.4 }}>
+        <p
+          style={{
+            fontSize: 'var(--text-sm)',
+            color: 'var(--ink-soft)',
+            margin: '6px 0 0',
+            lineHeight: 'var(--lh-normal)',
+          }}
+        >
           Lieux choisis : pastille violette sur la carte et détail dans la fiche zone ou repère.
         </p>
       </div>

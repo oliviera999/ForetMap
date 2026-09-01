@@ -150,7 +150,11 @@ function VisitViewImpl({
   const [drawPoints, setDrawPoints] = useState([]);
   const [creating, setCreating] = useState(false);
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
-  const { percent: mapTextSizePercent } = useMapOverlayTextSizePreference();
+  const {
+    percent: mapTextSizePercent,
+    label: mapTextSizeLabel,
+    cycle: cycleMapTextSize,
+  } = useMapOverlayTextSizePreference();
   useEffect(() => {
     const media = window.matchMedia('(pointer: coarse)');
     const update = () => setIsCoarsePointer(media.matches);
@@ -353,6 +357,8 @@ function VisitViewImpl({
       fitWidthPx: fw,
       isCoarsePointer,
       userTextSizePercent: mapTextSizePercent,
+      // Les repères Visite vivent dans le calque zoomé : même compensation que les zones.
+      compensateWorldScale: true,
     };
     const t = resolveMapOverlayTypography(mapSettings, fitH, typoOpts);
     const inv = 1 / worldScale;
@@ -368,7 +374,6 @@ function VisitViewImpl({
       minSideFactor: labelLayout.minSideFactor,
       labelMaxWorldLength: labelLayout.maxWorldLength,
       labelMaxTextLengthU: labelLayout.maxWorldLength * uPerPx,
-      labelCompressChars: labelLayout.compressChars,
       inv,
       overlayCssVars,
     };
@@ -1015,6 +1020,8 @@ function VisitViewImpl({
                 pendingSyncCount={pendingSyncCount}
                 visitImmersion={visitImmersion}
                 onToggleImmersion={toggleVisitImmersion}
+                mapTextSizeLabel={mapTextSizeLabel}
+                onCycleMapTextSize={cycleMapTextSize}
                 isTeacher={isTeacher}
                 teacherPreviewAsStudent={teacherPreviewAsStudent}
                 onToggleTeacherPreview={() => setTeacherPreviewAsStudent((v) => !v)}

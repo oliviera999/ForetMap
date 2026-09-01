@@ -42,7 +42,7 @@ test('parcours prof : ajouter puis retirer un sommet du contour d’une zone', a
   const zoneName = `E2E contour ${Date.now()}`;
   const created = await page.request.post('/api/zones', {
     headers,
-    data: { name: zoneName, points: SQUARE, stage: 'empty' },
+    data: { name: zoneName, points: SQUARE },
   });
   expect(created.ok()).toBeTruthy();
   const zone = await created.json();

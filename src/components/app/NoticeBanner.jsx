@@ -24,7 +24,7 @@ export function NoticeBanner({ tone = 'warning', children, action }) {
         margin: '8px 12px 0',
         padding: '10px 14px',
         borderRadius: 12,
-        fontSize: '.9rem',
+        fontSize: 'var(--text-base)',
         ...toneStyle,
       }}
     >

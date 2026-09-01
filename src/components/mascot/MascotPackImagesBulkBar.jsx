@@ -32,7 +32,7 @@ export default function MascotPackImagesBulkBar({
   return (
     <div className="mascot-pack-images-panel__bulk">
       <div className="mascot-pack-images-panel__bulk-select">
-        <span className="section-sub" style={{ fontSize: '0.78rem' }}>
+        <span className="section-sub" style={{ fontSize: 'var(--text-sm)' }}>
           Sélection{hasSelection ? ` (${selectedCount})` : ''}
         </span>
         <button

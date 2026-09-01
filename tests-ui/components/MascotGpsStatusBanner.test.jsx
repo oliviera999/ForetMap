@@ -39,6 +39,32 @@ describe('MascotGpsStatusBanner', () => {
     expect(screen.getByText(/hors de la zone/i)).toBeTruthy();
   });
 
+  test('échec d’acquisition : l’erreur du capteur est affichée (pas « Acquisition… » à vie)', () => {
+    render(
+      <MascotGpsStatusBanner
+        gps={{
+          active: true,
+          status: 'prompt',
+          feedback: null,
+          accuracy: null,
+          error: 'Position indisponible (signal GPS faible ?).',
+        }}
+      />,
+    );
+    expect(screen.getByText(/Position indisponible/i)).toBeTruthy();
+    expect(screen.queryByText(/Acquisition/i)).toBeNull();
+  });
+
+  test('calage incohérent : message dédié, pas « hors zone »', () => {
+    render(
+      <MascotGpsStatusBanner
+        gps={{ active: true, status: 'granted', feedback: 'bad_georef', accuracy: 8 }}
+      />,
+    );
+    expect(screen.getByText(/calage GPS de ce plan est incohérent/i)).toBeTruthy();
+    expect(screen.queryByText(/hors de la zone/i)).toBeNull();
+  });
+
   test('signal faible avec précision', () => {
     render(
       <MascotGpsStatusBanner

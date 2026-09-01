@@ -225,6 +225,14 @@ un **document PDF joint**, affiché tel quel.
 - Le professeur crée, modifie, réordonne et retire les fiches (un retrait les masque sans
   rien détruire). Le module Tutoriels entier peut être désactivé dans les réglages —
   l'onglet disparaît alors.
+- **Sécurité des fiches importées** : le contenu d'une fiche est **nettoyé par
+  l'application avant affichage** — la mise en page, les styles, les images et les liens
+  sont conservés, mais tout code exécutable (scripts, formulaires, pages embarquées)
+  qu'un fichier importé pourrait contenir est retiré. Une fiche qui reposait sur un tel
+  code pour son affichage doit être reprise en page simple ou proposée en **lien
+  externe** (elle s'ouvre alors avec les protections normales du navigateur). Les liens
+  « s'ouvrir dans un nouvel onglet » d'une fiche restent, comme avant, affichés dans la
+  fenêtre d'aperçu.
 
 ### Le contrôle de compréhension (questions avant validation)
 

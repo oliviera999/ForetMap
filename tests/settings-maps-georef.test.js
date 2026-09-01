@@ -62,6 +62,37 @@ test('PUT /admin/maps/:id/georef rejette des ancres invalides (400)', async () =
   await execute('DELETE FROM maps WHERE id = ?', [id]);
 });
 
+test('PUT /admin/maps/:id/georef rejette un calage géographiquement incohérent (400)', async () => {
+  const token = await ensureAdminTeacherAuthToken();
+  const id = await createTempMap(token);
+  // Points GPS alignés (même longitude) malgré un vrai triangle sur le plan.
+  const geoCollinear = [
+    { xp: 10, yp: 10, lat: 48.85, lng: 2.3 },
+    { xp: 90, yp: 10, lat: 48.851, lng: 2.3 },
+    { xp: 10, yp: 90, lat: 48.852, lng: 2.3 },
+  ];
+  const flat = await request(app)
+    .put(`/api/settings/admin/maps/${id}/georef`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ anchors: geoCollinear, gps_enabled: true })
+    .expect(400);
+  assert.match(String(flat.body?.error || ''), /alignés ou confondus/);
+
+  // Échelles incompatibles façon audit BDD §3.1 (facteur ~15 entre paires).
+  const mismatched = [
+    { xp: 10, yp: 10, lat: 48.85, lng: 2.3 },
+    { xp: 90, yp: 10, lat: 48.85, lng: 2.30005 },
+    { xp: 10, yp: 90, lat: 48.8495, lng: 2.3 },
+  ];
+  const scale = await request(app)
+    .put(`/api/settings/admin/maps/${id}/georef`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ anchors: mismatched, gps_enabled: true })
+    .expect(400);
+  assert.match(String(scale.body?.error || ''), /échelles incompatibles/);
+  await execute('DELETE FROM maps WHERE id = ?', [id]);
+});
+
 test('PUT /admin/maps/:id/georef enregistre le calage et l’expose via GET /api/maps', async () => {
   const token = await ensureAdminTeacherAuthToken();
   const id = await createTempMap(token);
