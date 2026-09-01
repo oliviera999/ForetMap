@@ -10,6 +10,7 @@ import {
   safeVisitProgressPayload,
 } from '../utils/visitProgressClient.js';
 import { itemSeenKey } from '../utils/visitMediaGallery.js';
+import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 
 /**
  * Progression « vu » de la visite avec support hors-ligne.
@@ -45,6 +46,7 @@ export function useVisitSeenSync({
   closeVisitSelection,
   onMascotSeenCelebration,
 }) {
+  const { notify } = useAppDialogs();
   const [seen, setSeen] = useState(new Set());
   const [savingSeen, setSavingSeen] = useState(false);
   const [isOnline, setIsOnline] = useState(() => isBrowserOnline());
@@ -198,7 +200,7 @@ export function useVisitSeenSync({
         if (nextSeen) onMascotSeenCelebration();
         return;
       }
-      alert(err.message || 'Erreur mise à jour');
+      notify(err.message || 'Erreur mise à jour');
       setSeen((prev) => {
         const revert = new Set(prev);
         if (wasSeen) revert.add(key);

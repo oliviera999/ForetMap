@@ -4,6 +4,7 @@ import { TutorialReadAcknowledgeButton } from '../TutorialReadAcknowledge';
 import { tutorialPreviewPayload, tutorialPreviewCanEmbed } from '../TutorialPreviewModal';
 import { ContextComments } from '../context-comments';
 import { useGatingSummary } from '../../hooks/useGatingSummary';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 
 /**
  * Section « Tutoriels de la visite » sous la carte (réservée prof en édition),
@@ -30,6 +31,7 @@ export function VisitTutorialsSection({
   studentId = null,
   canParticipateContextComments = true,
 }) {
+  const { notify } = useAppDialogs();
   const [tutorialSelection, setTutorialSelection] = useState(() =>
     (tutorials || []).map((t) => t.id),
   );
@@ -57,7 +59,7 @@ export function VisitTutorialsSection({
       await onSaved?.();
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
-      else alert(err.message || 'Erreur sauvegarde tutoriels');
+      else notify(err.message || 'Erreur sauvegarde tutoriels');
     } finally {
       setSavingTutorials(false);
     }

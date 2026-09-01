@@ -6,6 +6,7 @@ import {
   renameFilenameInPackStateFrames,
   collectPackReferencedFrameFilenames,
 } from '../../utils/mascotPackEditorFrames.js';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 
 /**
  * Actions en lot sur les sprites du studio packs mascotte (audit §6.1), extraites de
@@ -58,6 +59,7 @@ export function useMascotPackBulkImageActions({
     setLibMessage,
     setGlobalAssetsMessage,
   } = assets;
+  const { confirm } = useAppDialogs();
   const [imageBulkBusy, setImageBulkBusy] = useState(false);
 
   const bulkDeleteImages = useCallback(
@@ -82,7 +84,7 @@ export function useMascotPackBulkImageActions({
           .join(', ');
         confirmMsg += `\n\nAttention : ${referencedDeletes.length} fichier(s) sont encore référencés dans le pack (${names}${referencedDeletes.length > 5 ? '…' : ''}).`;
       }
-      if (!window.confirm(confirmMsg)) return;
+      if (!(await confirm({ message: confirmMsg, danger: true }))) return;
 
       setImageBulkBusy(true);
       setPackAssetsMessage('');
@@ -136,6 +138,7 @@ export function useMascotPackBulkImageActions({
       setPackAssetsMessage,
       setLibMessage,
       setGlobalAssetsMessage,
+      confirm,
     ],
   );
 
@@ -212,9 +215,11 @@ export function useMascotPackBulkImageActions({
       const files = Array.from(fileList || []);
       if (list.length === 0 || files.length === 0) return;
       if (
-        !window.confirm(
-          `Remplacer ${Math.min(list.length, files.length)} sprite(s) par de nouvelles images ?`,
-        )
+        !(await confirm({
+          message: `Remplacer ${Math.min(list.length, files.length)} sprite(s) par de nouvelles images ?`,
+          confirmLabel: 'Remplacer',
+          danger: true,
+        }))
       )
         return;
 
@@ -261,7 +266,7 @@ export function useMascotPackBulkImageActions({
       );
       setImageBulkBusy(false);
     },
-    [selectedId, loadPackAssets, loadLibrary, onForceLogout, showInsertFeedback],
+    [selectedId, loadPackAssets, loadLibrary, onForceLogout, showInsertFeedback, confirm],
   );
 
   return { imageBulkBusy, bulkDeleteImages, bulkRenameImages, bulkReplaceImages };

@@ -51,6 +51,7 @@ import { downloadApiFile } from '../utils/downloadApiFile.js';
 import { fileToPngDataUrl } from '../utils/image.js';
 import { MASCOT_PACK_UNSAVED_LEAVE_MSG } from '../constants/mascotPackEditor.js';
 import { useMascotPackEditorState } from '../hooks/useMascotPackEditorState.js';
+import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 
 import { STATE_LABELS } from '../constants/mascotStateLabels.js';
 
@@ -85,6 +86,7 @@ export default function VisitMascotPackManager({
   mascotDialogSettings = null,
   onDirtyChange,
 }) {
+  const { confirm } = useAppDialogs();
   const [packs, setPacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState('');
@@ -265,10 +267,10 @@ export default function VisitMascotPackManager({
     setActionIssues([]);
   }, [selectedId, packs]);
 
-  const confirmLeaveIfDirty = useCallback(() => {
+  const confirmLeaveIfDirty = useCallback(async () => {
     if (!isDirty) return true;
-    return window.confirm(UNSAVED_LEAVE_MSG);
-  }, [isDirty]);
+    return confirm({ message: UNSAVED_LEAVE_MSG });
+  }, [isDirty, confirm]);
 
   const refreshFromServer = useCallback(async () => {
     await loadList();
@@ -276,16 +278,16 @@ export default function VisitMascotPackManager({
   }, [loadList, onPacksChanged]);
 
   const onRefresh = useCallback(async () => {
-    if (!confirmLeaveIfDirty()) return;
+    if (!(await confirmLeaveIfDirty())) return;
     await refreshFromServer();
   }, [refreshFromServer, confirmLeaveIfDirty]);
 
   const requestEditorTab = useCallback(
-    (nextTab) => {
+    async (nextTab) => {
       if (nextTab === editorTab) return;
       if (editorTab === 'json' && isJsonDraftDirty(jsonDraft, editorPack)) {
-        if (!window.confirm(UNSAVED_LEAVE_MSG)) return;
-      } else if (!confirmLeaveIfDirty()) {
+        if (!(await confirm({ message: UNSAVED_LEAVE_MSG }))) return;
+      } else if (!(await confirmLeaveIfDirty())) {
         return;
       }
       setEditorTab(nextTab);
@@ -296,6 +298,7 @@ export default function VisitMascotPackManager({
       editorTab,
       jsonDraft,
       editorPack,
+      confirm,
       confirmLeaveIfDirty,
       setEditorTab,
       setJsonDraft,
@@ -304,18 +307,18 @@ export default function VisitMascotPackManager({
   );
 
   const requestSelectPack = useCallback(
-    (id) => {
+    async (id) => {
       if (id === selectedId) return;
-      if (!confirmLeaveIfDirty()) return;
+      if (!(await confirmLeaveIfDirty())) return;
       setSelectedId(id);
     },
     [selectedId, confirmLeaveIfDirty],
   );
 
   const requestStudioMode = useCallback(
-    (mode) => {
+    async (mode) => {
       if (mode === studioMode) return;
-      if (!confirmLeaveIfDirty()) return;
+      if (!(await confirmLeaveIfDirty())) return;
       setStudioMode(mode);
     },
     [studioMode, confirmLeaveIfDirty],
@@ -382,16 +385,22 @@ export default function VisitMascotPackManager({
   );
 
   const onNewDraft = useCallback(async () => {
-    if (!confirmLeaveIfDirty()) return;
+    if (!(await confirmLeaveIfDirty())) return;
     await postNewPack({});
   }, [postNewPack, confirmLeaveIfDirty]);
 
   const onDuplicateSelected = useCallback(async () => {
     if (!selectedId) return;
-    if (!confirmLeaveIfDirty()) return;
-    if (!window.confirm('Dupliquer ce pack (copie JSON et fichiers uploadés) ?')) return;
+    if (!(await confirmLeaveIfDirty())) return;
+    if (
+      !(await confirm({
+        message: 'Dupliquer ce pack (copie JSON et fichiers uploadés) ?',
+        confirmLabel: 'Dupliquer',
+      }))
+    )
+      return;
     await postNewPack({ clone_from_pack_id: selectedId });
-  }, [selectedId, postNewPack, confirmLeaveIfDirty]);
+  }, [selectedId, postNewPack, confirmLeaveIfDirty, confirm]);
 
   const onExportZip = useCallback(
     async ({ unified = false } = {}) => {
@@ -422,8 +431,8 @@ export default function VisitMascotPackManager({
     [selectedId, packs, onForceLogout],
   );
 
-  const onOpenImport = useCallback(() => {
-    if (!confirmLeaveIfDirty()) return;
+  const onOpenImport = useCallback(async () => {
+    if (!(await confirmLeaveIfDirty())) return;
     setImportDialogOpen(true);
   }, [confirmLeaveIfDirty]);
 
@@ -510,7 +519,7 @@ export default function VisitMascotPackManager({
   const onDelete = useCallback(async () => {
     if (!selectedId) return;
     if (isDirty) {
-      const leaveOk = window.confirm(UNSAVED_LEAVE_MSG);
+      const leaveOk = await confirm({ message: UNSAVED_LEAVE_MSG });
       if (!leaveOk) return;
     }
     // Une mascotte livrée se supprime comme les autres, mais elle ne se récupère pas au studio :
@@ -520,7 +529,7 @@ export default function VisitMascotPackManager({
     const question = estLivree
       ? 'Supprimer définitivement cette mascotte livrée, images comprises ?\n\nElle ne reviendra pas d’elle-même : la restaurer demande la commande d’administration « npm run visit:mascots:restore », et rend son apparence d’origine, pas vos modifications.'
       : 'Supprimer définitivement ce pack (y compris les fichiers uploadés) ?';
-    if (!window.confirm(question)) return;
+    if (!(await confirm({ message: question, danger: true }))) return;
     setActionBusy(true);
     setActionError('');
     setActionIssues([]);
@@ -534,7 +543,7 @@ export default function VisitMascotPackManager({
     } finally {
       setActionBusy(false);
     }
-  }, [selectedId, selectedRow, refreshFromServer, onForceLogout, isDirty]);
+  }, [selectedId, selectedRow, refreshFromServer, onForceLogout, isDirty, confirm]);
 
   /**
    * Rend à une mascotte **livrée** son apparence d'origine. Le catalogue en code n'est plus servi
@@ -547,9 +556,12 @@ export default function VisitMascotPackManager({
   const onResetFromOrigin = useCallback(async () => {
     if (!selectedId) return;
     if (
-      !window.confirm(
-        'Rendre à cette mascotte livrée son état d’origine ? Les modifications enregistrées ici seront perdues. Sa publication n’est pas touchée.',
-      )
+      !(await confirm({
+        message:
+          'Rendre à cette mascotte livrée son état d’origine ? Les modifications enregistrées ici seront perdues. Sa publication n’est pas touchée.',
+        confirmLabel: 'Réinitialiser',
+        danger: true,
+      }))
     )
       return;
     setActionBusy(true);
@@ -564,7 +576,7 @@ export default function VisitMascotPackManager({
     } finally {
       setActionBusy(false);
     }
-  }, [selectedId, refreshFromServer, onForceLogout]);
+  }, [selectedId, refreshFromServer, onForceLogout, confirm]);
 
   const upgradePackToV2 = useCallback(
     (nextTab = 'interaction') => {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api, AccountDeletedError } from '../../services/api';
 import { toggleIdInList } from '../../utils/visitSyncSelection.js';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 
 /**
  * Panneau d'import sélectif carte ↔ visite (réservé enseignant), extrait de `VisitView` (O6).
@@ -9,6 +10,7 @@ import { toggleIdInList } from '../../utils/visitSyncSelection.js';
  * (`/api/visit/rebuild-from-map`). Comportement inchangé (déplacement pur).
  */
 export function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
+  const { confirm, notify } = useAppDialogs();
   const [direction, setDirection] = useState('map_to_visit');
   const [options, setOptions] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -37,12 +39,12 @@ export function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
       setOptions(res || null);
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
-      else alert(err.message || 'Erreur chargement synchronisation');
+      else notify(err.message || 'Erreur chargement synchronisation');
       setOptions(null);
     } finally {
       setLoading(false);
     }
-  }, [isTeacher, mapId, onForceLogout]);
+  }, [isTeacher, mapId, onForceLogout, notify]);
 
   useEffect(() => {
     loadOptions();
@@ -70,7 +72,7 @@ export function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
 
   const runSync = async () => {
     if (!selectedZones.length && !selectedMarkers.length) {
-      alert('Sélectionne au moins une zone ou un repère.');
+      notify('Sélectionne au moins une zone ou un repère.');
       return;
     }
     setSyncing(true);
@@ -81,14 +83,14 @@ export function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
         zone_ids: selectedZones,
         marker_ids: selectedMarkers,
       });
-      alert(
+      notify(
         `Synchronisation terminée : ${res?.imported?.zones || 0} zone(s), ${res?.imported?.markers || 0} repère(s).`,
       );
       await onSynced?.();
       await loadOptions();
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
-      else alert(err.message || 'Erreur synchronisation');
+      else notify(err.message || 'Erreur synchronisation');
     } finally {
       setSyncing(false);
     }
@@ -96,23 +98,26 @@ export function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
 
   const rebuildVisitFromMap = async () => {
     if (
-      !window.confirm(
-        'Réaligner toute la visite sur cette carte ? Toutes les zones et repères visite du plan seront recréés à partir de la carte. Pour chaque élément encore présent sur la carte (même id), les textes, médias et ordre sont conservés ; les éléments visite sans équivalent carte sont supprimés.',
-      )
+      !(await confirm({
+        message:
+          'Réaligner toute la visite sur cette carte ? Toutes les zones et repères visite du plan seront recréés à partir de la carte. Pour chaque élément encore présent sur la carte (même id), les textes, médias et ordre sont conservés ; les éléments visite sans équivalent carte sont supprimés.',
+        confirmLabel: 'Réaligner',
+        danger: true,
+      }))
     ) {
       return;
     }
     setSyncing(true);
     try {
       const res = await api('/api/visit/rebuild-from-map', 'POST', { map_id: mapId });
-      alert(
+      notify(
         `Réalignement terminé : ${res?.imported?.zones ?? 0} zone(s), ${res?.imported?.markers ?? 0} repère(s) recréé(s). Retirés (hors carte) : ${res?.removed?.zones ?? 0} zone(s), ${res?.removed?.markers ?? 0} repère(s).`,
       );
       await onSynced?.();
       await loadOptions();
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
-      else alert(err.message || 'Erreur réalignement visite');
+      else notify(err.message || 'Erreur réalignement visite');
     } finally {
       setSyncing(false);
     }
