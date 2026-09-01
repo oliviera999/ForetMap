@@ -25,7 +25,7 @@ SMTP_HOST=… SMTP_PORT=587 SMTP_USER=… SMTP_PASS=… SMTP_FROM="ForetMap <no-
 OPS_ALERT_TO=admin@…
 ```
 
-## Les 4 lignes de crontab (`crontab -e`)
+## Les 5 lignes de crontab (`crontab -e`) — les 4 premières ci-dessous, la 5ᵉ (purge) plus bas
 
 ```cron
 # 1) Déploiement auto : pull + (migrate) + restart + post-deploy-check (+ rollback/alerte si échec) — toutes les 2 min
@@ -51,34 +51,41 @@ requêtes par jour, coût négligeable face aux démarrages à froid qu'il suppr
 Si le site est aussi utilisé le soir ou le week-end, élargir la plage (`*/3 * * * *` pour
 24 h/24).
 
-## Ligne optionnelle : purge des journaux (rétention RGPD)
+## Ligne 5 — purge des journaux (rétention RGPD) : **à installer, pas optionnelle**
 
-`security_events` conserve l'adresse IP et le user-agent de chaque connexion, `audit_log`
-l'historique des actions. Sans purge, ces données personnelles — sur des comptes d'élèves,
-donc de mineurs — s'accumulent sans limite (audit `docs/AUDIT_BDD_2026-08.md` §5.2).
+> **Cette ligne n'est pas optionnelle.** Tant qu'elle n'est pas installée,
+> `security_events` conserve **indéfiniment** l'adresse IP et le user-agent de chaque
+> connexion — des **données personnelles d'élèves mineurs**, dans un établissement
+> scolaire. La rétention RGPD n'existe que si cette purge tourne. Audits :
+> `docs/AUDIT_BDD_2026-08.md` §5.2 et `docs/AUDIT_STABILITE_PERF_2026-09.md` §C3.
+
+Le script couvre quatre tables, avec **deux rétentions distinctes et configurables** :
+
+| Tables                           | Contenu                                | Option           | Défaut |
+| -------------------------------- | -------------------------------------- | ---------------- | ------ |
+| `audit_log`, `security_events`   | journaux de sécurité (IP, user-agent…) | `--days`         | 365 j  |
+| `gl_game_events`, `zone_history` | historiques de jeu G&L et de récoltes  | `--history-days` | 365 j  |
+
+Sans purge, les deux tables d'historique croissent elles aussi sans borne (une ligne par
+action de jeu, une par récolte) et finissent par peser sur les sauvegardes
+(`db-backup.sh`), la durée des `mysqldump` et l'espace disque du compte.
 
 Le script est **à blanc par défaut** : le lancer une première fois à la main pour valider
-le volume et la durée retenue, puis seulement l'ajouter au crontab.
-
-> **Cette ligne n'est optionnelle que sur le plan technique.** Sans elle, `security_events`
-> conserve indéfiniment adresse IP et user-agent de chaque connexion — des données
-> personnelles d'élèves mineurs. L'audit `docs/AUDIT_STABILITE_PERF_2026-09.md` (§C3)
-> recommande de l'installer, et d'étendre le script à `gl_game_events` et `zone_history`,
-> qui croissent elles aussi sans borne.
+le volume et les durées retenues, puis l'ajouter au crontab.
 
 ```bash
 cd /home/USER/foretmap
-npm run logs:purge -- --days=365            # à blanc : compte, ne supprime rien
-npm run logs:purge -- --days=365 --apply    # applique
+npm run logs:purge -- --days=365 --history-days=365            # à blanc : compte, ne supprime rien
+npm run logs:purge -- --days=365 --history-days=365 --apply    # applique
 ```
 
 ```cron
-# 5) Purge des journaux au-delà de 365 jours — le 1er de chaque mois à 04:00
-0 4 1 * * cd /home/USER/foretmap && npm run logs:purge -- --days=365 --apply >> /home/USER/foretmap/logs/purge-logs.log 2>&1
+# 5) Purge des journaux (sécurité 365 j, historiques de jeu 365 j) — le 1er de chaque mois à 04:00
+0 4 1 * * cd /home/USER/foretmap && npm run logs:purge -- --days=365 --history-days=365 --apply >> /home/USER/foretmap/logs/purge-logs.log 2>&1
 ```
 
-Le minimum accepté est 30 jours : en deçà, le script refuse — une purge trop agressive
-effacerait des traces encore utiles à une investigation.
+Le minimum accepté est 30 jours (pour chacune des deux rétentions) : en deçà, le script
+refuse — une purge trop agressive effacerait des traces encore utiles à une investigation.
 
 ## Variables utiles (valeurs par défaut)
 
