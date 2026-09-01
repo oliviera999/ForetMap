@@ -13,6 +13,12 @@ Onze mises à jour groupées : `mysql2`, `nodemailer`, `pdfkit` (0.19 → 0.20, 
 PDF tutoriels côté Node), `sharp`, `@rive-app/react-canvas` (4.30 → 4.33),
 bibliothèques de test (`@testing-library/*`), `@vitejs/plugin-react`, `eslint`,
 `isomorphic-dompurify`, `marked`. Artefacts `dist/` régénérés (nouveaux wasm Rive).
+### Correctif — sauvegarde de zone n’efface plus le corps visite
+
+La liste carte n’envoie plus le JSON éditorial visite (anti-LVE). Enregistrer la fiche
+avant le chargement du détail — ou après un poll qui renvoyait la liste allégée —
+réécrivait un corps vide et effaçait paragraphes / titres. La sauvegarde omet désormais
+ces blocs tant que le détail n’est pas chargé, et un poll ne remplace plus un détail déjà lu.
 
 ### Temps réel : filet REST, un socket GL, observations
 
@@ -24,7 +30,9 @@ jusqu’à quatre). Le carnet d’observations notifie enfin les autres écrans.
 supprimé n’est plus accepté sur le canal live (le jeton est revérifié en base).
 
 Couverture : `tests/realtime.test.js`, `tests-ui/hooks/useAppDataPolling.test.jsx`,
-`tests-ui/gl/glSocketClient.test.jsx`.
+`tests-ui/gl/glSocketClient.test.jsx`. Le mock de `useGlGameRuntime` suit le socket
+mutualisé (`off` / `disconnect` + reset entre tests) — sans ça `test:ui` cassait
+après le merge du filet o2switch.
 
 ### Documentation gating GL — cascade effective
 
