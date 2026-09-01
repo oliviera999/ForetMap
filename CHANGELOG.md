@@ -10,9 +10,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### Les constats de l'audit stabilité/performance de septembre sont traités (sauf un, à arbitrer)
 
 Suite directe de l'état des lieux ci-dessous : tous les constats ouverts de
-`docs/AUDIT_STABILITE_PERF_2026-09.md` sont corrigés, **sans changement de comportement
-visible**, à l'exception du bac à sable des tutoriels (C5), qui demande une décision
-produit et reste ouvert.
+`docs/AUDIT_STABILITE_PERF_2026-09.md` sont corrigés — sans changement de comportement
+visible, à une exception près : le bac à sable des tutoriels (C5), tranché par arbitrage
+produit en faveur de l'assainissement serveur.
 
 - **Marché G&L (G1, G2)** : la page de marché se charge en requêtes groupées — une requête
   par table au lieu de quatre par échange, soit un coût **constant** (6 requêtes) quelle
@@ -29,6 +29,14 @@ produit et reste ouvert.
   `zone_history`, avec une rétention distincte (`--history-days`, défaut un an) ;
   `docs/CRONTAB.md` dit désormais franchement que la ligne de purge **n'est pas
   optionnelle** (données personnelles d'élèves mineurs dans `security_events`).
+- **Fiches tutoriels (C5, arbitrage produit rendu)** : le contenu d'une fiche est
+  **assaini par le serveur avant affichage** (mise en page, styles, images et liens
+  conservés ; scripts, formulaires et pages embarquées retirés), l'aperçu s'affiche dans
+  un bac à sable **sans exécution de script** (les clics — définitions du glossaire,
+  liens « nouvel onglet » — sont relayés par l'application), et une fiche `.html`
+  demandée directement est redirigée vers cette vue assainie. Une fiche importée qui
+  reposait sur son propre code pour s'afficher doit être reprise ou proposée en lien
+  externe.
 - **Hygiène (C2, G5, C4)** : les séparateurs de `lib/tutorialViewCache.js` sont écrits en
   échappements (le fichier redevient visible de `grep`) ; plus aucun `LIMIT` interpolé
   (« SQL toujours paramétré », sans exception) ; `withTransaction` journalise les

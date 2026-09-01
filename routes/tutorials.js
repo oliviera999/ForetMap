@@ -41,6 +41,7 @@ const {
   sharedTutorialViewCache,
   clearTutorialViewCache,
 } = require('../lib/tutorialViewCache');
+const { sanitizeTutorialViewHtml } = require('../lib/tutorialViewSanitize');
 
 let glossaryAutolinkCache = null;
 let glossaryAutolinkCacheAt = 0;
@@ -70,9 +71,15 @@ async function loadGlossaryAutolinkEntries() {
   return { entries: glossaryAutolinkCache, version: glossaryAutolinkVersion };
 }
 
-/** Calcul brut (CPU synchrone, ~100 ms sur une fiche de 30 ko) : à n'appeler qu'en cas de miss. */
+/**
+ * Calcul brut (CPU synchrone, ~100 ms sur une fiche de 30 ko) : à n'appeler qu'en cas de
+ * miss. L'ASSAINISSEMENT vient d'abord (C5) : le HTML importé perd tout vecteur
+ * d'exécution de script AVANT que l'application n'injecte les siens — l'ordre garantit
+ * que seuls les scripts de l'application survivent dans la sortie.
+ */
 function enrichTutorialHtmlWithGlossary(html, entries) {
-  const linked = autolinkHtmlTextNodes(html, entries);
+  const safe = sanitizeTutorialViewHtml(html);
+  const linked = autolinkHtmlTextNodes(safe, entries);
   return injectGlossaryAutolinkScript(injectTutorialViewIframeLinkScript(linked));
 }
 
