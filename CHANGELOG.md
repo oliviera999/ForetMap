@@ -21,6 +21,25 @@ frappe ne fait pas retomber la pastille sur du noir. Logique isolée dans
 `src/utils/hexColorWithAlpha.js`, couverte par des tests unitaires et un test de montage du
 panneau.
 
+### Un inventaire « Zones & repères » dans les Réglages administrateur
+
+Nouveau sous-onglet **Réglages administrateur → « Zones & repères »** : la liste de
+toutes les zones et de tous les repères, **toutes cartes confondues** — là où la
+recherche de la carte ne couvre que le plan affiché.
+
+- **Recherche libre** avec le même moteur que la barre de la carte (nom, espèces,
+  catégories, textes de visite, note d'un repère), plus des filtres **type**
+  (zones seules / repères seuls) et **carte**.
+- Chaque ligne montre l'emoji, le nom, le type, la carte, les catégories et le
+  nombre d'espèces associées.
+- **Édition rapide** des champs textuels : nom et description d'une zone ; libellé,
+  emoji et note d'un repère (`PUT` partiel sur les routes existantes — tracé,
+  position, photos, espèces, catégories et contenus de visite restent du ressort de
+  la fiche sur la carte, et les permissions « Gestion zones » / « Gestion repères »
+  restent exigées côté serveur).
+
+Aucune nouvelle route ni migration. Doc : `docs/reference/foretmap/carte-et-zones.md`
+(section « L'inventaire admin “Zones & repères” »).
 
 ### Les constats de l'audit stabilité/performance de septembre sont traités (sauf un, à arbitrer)
 
