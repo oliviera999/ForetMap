@@ -157,7 +157,7 @@ export function PlantImportPanel({ setToast, onRefresh }) {
               accept=".csv,.xlsx,.xls"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
             />
-            {file && <small style={{ color: '#666' }}>{file.name}</small>}
+            {file && <small style={{ color: 'var(--ink-soft)' }}>{file.name}</small>}
           </div>
         ) : (
           <div className="field">
@@ -176,7 +176,7 @@ export function PlantImportPanel({ setToast, onRefresh }) {
               display: 'flex',
               gap: 8,
               alignItems: 'center',
-              fontSize: '.85rem',
+              fontSize: 'var(--text-sm)',
               color: '#7a3a3a',
             }}
           >
@@ -239,10 +239,12 @@ export function PlantImportPanel({ setToast, onRefresh }) {
               padding: 10,
             }}
           >
-            <div style={{ fontWeight: 700, color: 'var(--forest)', marginBottom: 6 }}>
+            <div style={{ fontWeight: 'var(--fw-bold)', color: 'var(--forest)', marginBottom: 6 }}>
               Rapport d'import
             </div>
-            <div style={{ fontSize: '.85rem', color: '#444', lineHeight: 1.6 }}>
+            <div
+              style={{ fontSize: 'var(--text-sm)', color: '#444', lineHeight: 'var(--lh-relaxed)' }}
+            >
               Reçues: {report?.totals?.received ?? 0} · Valides: {report?.totals?.valid ?? 0} ·
               Créées: {report?.totals?.created ?? 0} · Mises à jour: {report?.totals?.updated ?? 0}{' '}
               · Ignorées (doublon): {report?.totals?.skipped_existing ?? 0} · Ignorées (invalides):{' '}
@@ -250,12 +252,21 @@ export function PlantImportPanel({ setToast, onRefresh }) {
             </div>
             {Array.isArray(report?.errors) && report.errors.length > 0 && (
               <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: '.8rem', fontWeight: 700, color: '#a94442' }}>
+                <div
+                  style={{
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 'var(--fw-bold)',
+                    color: '#a94442',
+                  }}
+                >
                   Erreurs (max 10 affichées)
                 </div>
                 <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
                   {report.errors.slice(0, 10).map((err, idx) => (
-                    <li key={`import-err-${idx}`} style={{ fontSize: '.8rem', color: '#a94442' }}>
+                    <li
+                      key={`import-err-${idx}`}
+                      style={{ fontSize: 'var(--text-sm)', color: '#a94442' }}
+                    >
                       Ligne {err.row} · {err.field}: {err.error}
                     </li>
                   ))}

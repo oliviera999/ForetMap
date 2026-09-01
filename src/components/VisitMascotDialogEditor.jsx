@@ -119,7 +119,7 @@ export default function VisitMascotDialogEditor({
           <div className={previewClassName} role="status" aria-live="polite">
             {previewText}
           </div>
-          <p className="section-sub" style={{ fontSize: '0.72rem', marginTop: 4 }}>
+          <p className="section-sub" style={{ fontSize: 'var(--text-xs)', marginTop: 4 }}>
             Aperçu — {VISIT_MASCOT_DIALOG_LABELS[previewEventKey] || previewEventKey}
           </p>
         </div>
@@ -151,13 +151,13 @@ export default function VisitMascotDialogEditor({
                   marginBottom: 8,
                 }}
               >
-                <strong style={{ fontSize: '0.88rem' }}>
+                <strong style={{ fontSize: 'var(--text-sm)' }}>
                   {VISIT_MASCOT_DIALOG_LABELS[eventKey] || eventKey}
                 </strong>
-                <code style={{ fontSize: '0.72rem', opacity: 0.8 }}>{eventKey}</code>
+                <code style={{ fontSize: 'var(--text-xs)', opacity: 0.8 }}>{eventKey}</code>
                 <span
                   style={{
-                    fontSize: '0.68rem',
+                    fontSize: 'var(--text-xs)',
                     padding: '2px 6px',
                     borderRadius: 4,
                     background: isRuntimeActive ? 'rgba(26,71,49,0.12)' : 'rgba(0,0,0,0.06)',
@@ -167,7 +167,7 @@ export default function VisitMascotDialogEditor({
                   {isRuntimeActive ? 'Actif au runtime' : 'Réservé'}
                 </span>
                 {allowInheritToggle ? (
-                  <label style={{ fontSize: '0.78rem', marginLeft: 'auto' }}>
+                  <label style={{ fontSize: 'var(--text-sm)', marginLeft: 'auto' }}>
                     <input
                       type="checkbox"
                       checked={!hasOverride}
@@ -178,7 +178,7 @@ export default function VisitMascotDialogEditor({
                 ) : null}
               </div>
               {allowInheritToggle && !hasOverride ? (
-                <p className="section-sub" style={{ fontSize: '0.78rem', marginTop: 0 }}>
+                <p className="section-sub" style={{ fontSize: 'var(--text-sm)', marginTop: 0 }}>
                   Messages effectifs hérités :{' '}
                   {(inheritedLines.length > 0 ? inheritedLines : ['—']).join(' · ')}
                 </p>
@@ -262,7 +262,7 @@ export default function VisitMascotDialogEditor({
           <h4 className="mascot-pack-wysiwyg__h" style={{ marginBottom: 6 }}>
             Bulles des comportements personnalisés
           </h4>
-          <p className="section-sub" style={{ fontSize: '0.78rem', marginTop: 0 }}>
+          <p className="section-sub" style={{ fontSize: 'var(--text-sm)', marginTop: 0 }}>
             Bulles jouées par vos déclencheurs personnalisés (priorité sur les bulles définies dans
             l’éditeur de comportements).
           </p>
@@ -292,11 +292,11 @@ export default function VisitMascotDialogEditor({
                         marginBottom: 8,
                       }}
                     >
-                      <strong style={{ fontSize: '0.88rem' }}>{trig.label || key}</strong>
-                      <code style={{ fontSize: '0.72rem', opacity: 0.8 }}>{key}</code>
+                      <strong style={{ fontSize: 'var(--text-sm)' }}>{trig.label || key}</strong>
+                      <code style={{ fontSize: 'var(--text-xs)', opacity: 0.8 }}>{key}</code>
                       <span
                         style={{
-                          fontSize: '0.68rem',
+                          fontSize: 'var(--text-xs)',
                           padding: '2px 6px',
                           borderRadius: 4,
                           background: 'rgba(26,71,49,0.12)',

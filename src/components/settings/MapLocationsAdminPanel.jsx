@@ -33,7 +33,7 @@ const CARD_STYLE = {
   padding: 12,
 };
 
-const HINT_STYLE = { fontSize: '.78rem', color: '#6b7280' };
+const HINT_STYLE = { fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' };
 
 /**
  * Champ à édition directe : la valeur serveur arrive en prop, la frappe reste
@@ -438,7 +438,9 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
               value={bulk.replace}
               onChange={(e) => setBulk((b) => ({ ...b, replace: e.target.value }))}
             />
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.82rem' }}>
+            <label
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-sm)' }}
+            >
               <input
                 type="checkbox"
                 checked={bulk.includeText}
@@ -456,7 +458,14 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
   return (
     <div style={CARD_STYLE}>
       <h3 style={{ marginTop: 0 }}>Zones & repères</h3>
-      <p style={{ ...HINT_STYLE, fontSize: '.82rem', marginBottom: 10, lineHeight: 1.45 }}>
+      <p
+        style={{
+          ...HINT_STYLE,
+          fontSize: 'var(--text-sm)',
+          marginBottom: 10,
+          lineHeight: 'var(--lh-normal)',
+        }}
+      >
         Inventaire de toutes les zones et de tous les repères, toutes cartes confondues. Chaque
         champ s’édite <strong>directement</strong> et s’enregistre à la sortie du champ (Entrée
         valide, Échap annule). Cochez plusieurs lieux pour les <strong>actions par lot</strong>. Le
@@ -513,7 +522,9 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
           margin: '4px 0 8px',
         }}
       >
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.82rem' }}>
+        <label
+          style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-sm)' }}
+        >
           <input
             type="checkbox"
             checked={allVisibleSelected}
@@ -543,7 +554,7 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
             marginBottom: 8,
           }}
         >
-          <strong style={{ fontSize: '.85rem' }}>{selectedKeys.size} sélectionné(s)</strong>
+          <strong style={{ fontSize: 'var(--text-sm)' }}>{selectedKeys.size} sélectionné(s)</strong>
           <select
             aria-label="Action par lot"
             value={bulk.action}
@@ -570,7 +581,7 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
       )}
 
       {!loading && resultItems.length === 0 && (
-        <p style={{ ...HINT_STYLE, fontSize: '.82rem' }}>
+        <p style={{ ...HINT_STYLE, fontSize: 'var(--text-sm)' }}>
           Aucune zone ni repère ne correspond aux filtres.
         </p>
       )}
@@ -610,7 +621,7 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
                 ariaLabel={`Nom de ${title}`}
                 placeholder="Nom *"
                 disabled={busy}
-                style={{ flex: '2 1 160px', minWidth: 120, fontWeight: 600 }}
+                style={{ flex: '2 1 160px', minWidth: 120, fontWeight: 'var(--fw-semibold)' }}
                 onSave={(next) => {
                   if (isZone) saveZoneName(item, next, zParts.emoji);
                   else if (!next.trim()) onError?.('Nom requis');

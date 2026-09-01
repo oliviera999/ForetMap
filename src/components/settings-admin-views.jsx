@@ -146,11 +146,11 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
               onChange={(e) => saveSetting(key, e.target.checked)}
             />{' '}
             {label}
-            <span style={{ marginLeft: 8, fontSize: '.74rem', color: '#6b7280' }}>
+            <span style={{ marginLeft: 8, fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}>
               ({scopeLabel(row.scope)})
             </span>
           </label>
-          <div style={{ fontSize: '.74rem', color: '#6b7280', marginTop: 3 }}>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-soft)', marginTop: 3 }}>
             {buildConstraintHelp(row)}
           </div>
         </div>
@@ -163,7 +163,7 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
         <div key={key} className="field">
           <label>
             {label}
-            <span style={{ marginLeft: 8, fontSize: '.74rem', color: '#6b7280' }}>
+            <span style={{ marginLeft: 8, fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}>
               ({scopeLabel(row.scope)})
             </span>
           </label>
@@ -180,7 +180,7 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
               </option>
             ))}
           </select>
-          <div style={{ fontSize: '.74rem', color: '#6b7280', marginTop: 3 }}>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-soft)', marginTop: 3 }}>
             {buildConstraintHelp(row)}
           </div>
         </div>
@@ -550,7 +550,7 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                 flexWrap: 'wrap',
               }}
             >
-              <div style={{ fontSize: '.82rem', color: '#6b7280' }}>
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
                 {filteredCount} paramètre(s) affiché(s) sur {settings.length}
               </div>
               {searchQuery && (
@@ -603,7 +603,14 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
             }}
           >
             <h3 style={{ marginTop: 0 }}>Cartes & plans</h3>
-            <p style={{ fontSize: '.82rem', color: '#6b7280', marginBottom: 10, lineHeight: 1.45 }}>
+            <p
+              style={{
+                fontSize: 'var(--text-sm)',
+                color: 'var(--ink-soft)',
+                marginBottom: 10,
+                lineHeight: 'var(--lh-normal)',
+              }}
+            >
               Nouveau plan : identifiant technique stable (ex. <code>potager</code>), libellé
               affiché dans l’app, puis image (URL ou upload). Les élèves « les deux espaces » voient
               toutes les cartes actives ; une affiliation peut cibler un seul plan (y compris ceux
@@ -664,8 +671,10 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                 >
                   <div className="settings-admin-map-row">
                     <div>
-                      <div style={{ fontWeight: 700 }}>{m.label}</div>
-                      <div style={{ fontSize: '.75rem', color: '#6b7280' }}>{m.id}</div>
+                      <div style={{ fontWeight: 'var(--fw-bold)' }}>{m.label}</div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}>
+                        {m.id}
+                      </div>
                     </div>
                     {/* Champs pilotés (resynchronisés si le serveur normalise la valeur). */}
                     <AdminTextSettingField
@@ -860,7 +869,9 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                   {savingKey === 'restart' ? '...' : 'Redémarrer'}
                 </button>
               </div>
-              <p style={{ margin: '8px 0 0', fontSize: '.78rem', color: '#6b7280' }}>
+              <p
+                style={{ margin: '8px 0 0', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}
+              >
                 Vérifie les clés <code>PLANTNET_API_KEY</code> et <code>OPENAI_API_KEY</code>{' '}
                 définies sur le serveur (variables d’environnement). Aucune clé n’est affichée ni
                 enregistrée ici.
@@ -885,7 +896,7 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                     whiteSpace: 'pre-wrap',
                     maxHeight: 280,
                     overflow: 'auto',
-                    fontSize: '.78rem',
+                    fontSize: 'var(--text-sm)',
                     background: '#eff6ff',
                     borderRadius: 8,
                     padding: 8,
@@ -901,7 +912,7 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                     whiteSpace: 'pre-wrap',
                     maxHeight: 280,
                     overflow: 'auto',
-                    fontSize: '.78rem',
+                    fontSize: 'var(--text-sm)',
                     background: '#f0fdf4',
                     borderRadius: 8,
                     padding: 8,
@@ -917,7 +928,7 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                     whiteSpace: 'pre-wrap',
                     maxHeight: 220,
                     overflow: 'auto',
-                    fontSize: '.78rem',
+                    fontSize: 'var(--text-sm)',
                     background: '#f9fafb',
                     borderRadius: 8,
                     padding: 8,
@@ -932,7 +943,7 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                     whiteSpace: 'pre-wrap',
                     maxHeight: 260,
                     overflow: 'auto',
-                    fontSize: '.75rem',
+                    fontSize: 'var(--text-xs)',
                     background: '#111827',
                     color: '#f9fafb',
                     borderRadius: 8,

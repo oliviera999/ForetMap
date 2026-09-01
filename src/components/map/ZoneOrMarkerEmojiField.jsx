@@ -24,14 +24,16 @@ export function ZoneOrMarkerEmojiField({
         placeholder={allowNone ? 'Emoji optionnel…' : 'Colle ou tape un emoji…'}
         value={value}
         onChange={(e) => onChange(clampEmojiInput(e.target.value, maxLen))}
-        style={{ fontSize: '1.2rem', width: '100%', maxWidth: 140 }}
+        style={{ fontSize: 'var(--text-lg)', width: '100%', maxWidth: 140 }}
       />
-      <div style={{ fontSize: '.78rem', color: '#777', margin: '8px 0 6px' }}>{gridLabel}</div>
+      <div style={{ fontSize: 'var(--text-sm)', color: '#777', margin: '8px 0 6px' }}>
+        {gridLabel}
+      </div>
       {allowNone ? (
         <button
           type="button"
           className={`emoji-btn ${!String(value || '').trim() ? 'sel' : ''}`}
-          style={{ marginBottom: 8, fontSize: '.78rem', padding: '6px 10px' }}
+          style={{ marginBottom: 8, fontSize: 'var(--text-sm)', padding: '6px 10px' }}
           onClick={() => onChange('')}
         >
           Sans emoji
