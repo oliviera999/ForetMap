@@ -465,6 +465,14 @@ function ObservationNotebook({ student, onForceLogout = null }) {
     };
   }, [load]);
 
+  useEffect(() => {
+    const onRealtime = (e) => {
+      if (e.detail && e.detail.domain === 'observations') load();
+    };
+    window.addEventListener('foretmap_realtime', onRealtime);
+    return () => window.removeEventListener('foretmap_realtime', onRealtime);
+  }, [load]);
+
   const handleFile = (e) => {
     const file = e.target.files[0];
     e.target.value = '';

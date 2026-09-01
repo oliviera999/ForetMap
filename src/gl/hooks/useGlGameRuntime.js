@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { withAppBase } from '../../shared/appBase.js';
 import { apiGL } from '../services/apiGL.js';
+import { acquireGlSocket, subscribeGlGame } from '../realtime/glSocketClient.js';
+import { jitteredRefreshDelay } from '../../utils/realtimeRefreshDelay.js';
 import { registerSkipMarkerArrival } from '../utils/glMarkerArrivalSkip.js';
 import { GL_MODULE_DEFAULTS, normalizeGlModules, isModuleEnabled } from '../constants/modules.js';
 import { toGameViewModel } from '../utils/glAppShellHelpers.js';
@@ -22,7 +23,7 @@ import { buildSpellCastResultViewModel } from '../utils/glSpellCastRules.js';
  *   référence (chapitres, classes, modules, config, profil, chapitre invité) ;
  * - chargement initial (chapitres/config/profil/classes, variante invité) et
  *   rechargements ciblés (reloadGame, reloadProfile, reloadGameplaySettings, reloadClasses) ;
- * - socket temps réel (import dynamique de socket.io-client, cleanup identique) ;
+ * - socket temps réel (connexion unique par jeton via `glSocketClient`, cleanup identique) ;
  * - dés / déplacements / tours et droits gameplay dérivés.
  *
  * Les toasts restent possédés par AppGL (useGlToasts) : leurs setters sont injectés
@@ -222,55 +223,47 @@ export function useGlGameRuntime({
 
   useEffect(() => {
     if (isGuest || !token || !activeGameId) return undefined;
-    let cancelled = false;
-    let socket = null;
-    // Import dynamique : socket.io-client (chunk `socket-io`) n'est nécessaire qu'une fois
-    // une partie active — il reste ainsi hors du chargement initial de la page GL.
-    (async () => {
-      const { io } = await import('socket.io-client');
-      if (cancelled) return;
-      socket = io(withAppBase(''), {
-        path: '/socket.io',
-        transports: ['polling', 'websocket'],
-        auth: { token },
-      });
-      socket.on('connect', () => {
-        socket.emit('subscribe:gl-game', { gameId: activeGameId });
-      });
-      socket.on('gl:game:event', (evt) => {
-        if (Number(evt?.gameId) !== Number(activeGameId)) return;
-        const type = String(evt?.eventType || '');
-        if (type === 'narration') {
-          const text = String(evt?.payload?.text || '').trim();
-          if (text) setNarrationToast({ text, ts: Date.now() });
-        } else if (type === 'turn_change') {
-          const nextTeamId = evt?.payload?.teamId != null ? Number(evt.payload.teamId) : null;
-          if (nextTeamId != null) setTurnToast({ teamId: nextTeamId, ts: Date.now() });
-        } else if (type === 'round_start') {
-          const roundNumber =
-            evt?.payload?.roundNumber != null ? Number(evt.payload.roundNumber) : null;
-          if (roundNumber != null) setRoundToast({ roundNumber, ts: Date.now() });
-        } else if (type === 'spell_cast') {
-          showSpellCastResult({ event: evt });
-        } else if (type === 'spell_cast_rejected') {
-          const spellName = String(
-            evt?.payload?.spellName || evt?.payload?.spellCode || 'sortilège',
-          );
-          setSpellRejectedToast({ spellName, ts: Date.now() });
-        } else if (type === 'move' && evt?.payload?.skipDestinationEffects) {
-          const targetMarkerId =
-            evt?.payload?.markerId != null ? Number(evt.payload.markerId) : null;
-          const moveTeamId = evt?.teamId != null ? Number(evt.teamId) : null;
-          if (moveTeamId != null && targetMarkerId != null) {
-            registerSkipMarkerArrival(moveTeamId, targetMarkerId);
-          }
+    const { socket, release } = acquireGlSocket(token);
+    if (!socket) return undefined;
+    const unsubGame = subscribeGlGame(token, activeGameId);
+    let reloadTimer = null;
+    const onEvent = (evt) => {
+      if (Number(evt?.gameId) !== Number(activeGameId)) return;
+      const type = String(evt?.eventType || '');
+      if (type === 'narration') {
+        const text = String(evt?.payload?.text || '').trim();
+        if (text) setNarrationToast({ text, ts: Date.now() });
+      } else if (type === 'turn_change') {
+        const nextTeamId = evt?.payload?.teamId != null ? Number(evt.payload.teamId) : null;
+        if (nextTeamId != null) setTurnToast({ teamId: nextTeamId, ts: Date.now() });
+      } else if (type === 'round_start') {
+        const roundNumber =
+          evt?.payload?.roundNumber != null ? Number(evt.payload.roundNumber) : null;
+        if (roundNumber != null) setRoundToast({ roundNumber, ts: Date.now() });
+      } else if (type === 'spell_cast') {
+        showSpellCastResult({ event: evt });
+      } else if (type === 'spell_cast_rejected') {
+        const spellName = String(evt?.payload?.spellName || evt?.payload?.spellCode || 'sortilège');
+        setSpellRejectedToast({ spellName, ts: Date.now() });
+      } else if (type === 'move' && evt?.payload?.skipDestinationEffects) {
+        const targetMarkerId = evt?.payload?.markerId != null ? Number(evt.payload.markerId) : null;
+        const moveTeamId = evt?.teamId != null ? Number(evt.teamId) : null;
+        if (moveTeamId != null && targetMarkerId != null) {
+          registerSkipMarkerArrival(moveTeamId, targetMarkerId);
         }
+      }
+      if (reloadTimer) clearTimeout(reloadTimer);
+      reloadTimer = setTimeout(() => {
+        reloadTimer = null;
         reloadGame();
-      });
-    })();
+      }, jitteredRefreshDelay(0));
+    };
+    socket.on('gl:game:event', onEvent);
     return () => {
-      cancelled = true;
-      if (socket) socket.close();
+      if (reloadTimer) clearTimeout(reloadTimer);
+      socket.off('gl:game:event', onEvent);
+      unsubGame();
+      release();
     };
     // Les setters issus de useGlToasts sont des setters useState : références stables.
   }, [
