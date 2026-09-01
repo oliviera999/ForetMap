@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useAppDataPolling } from '../../src/hooks/useAppDataPolling.js';
+import { LIVE_MIN_INTERVAL_MS, useAppDataPolling } from '../../src/hooks/useAppDataPolling.js';
 import { POLLING_COARSE_TABS } from '../../src/constants/app-runtime.js';
 
 /** Aligné sur `BACKGROUND_MIN_INTERVAL_MS` dans le hook (non exporté). */
@@ -63,13 +63,18 @@ describe('useAppDataPolling', () => {
     expect(fetchAll).toHaveBeenCalledTimes(1);
   });
 
-  it('n’installe pas d’intervalle quand rtStatus est live', () => {
-    const { fetchAll } = mountPolling({ tab: 'map', rtStatus: 'live' });
+  it('garde un filet fetchAll à 90 s quand rtStatus est live', () => {
+    const { fetchAll } = mountPolling({ tab: 'map', rtStatus: 'live', refreshMs: 1000 });
 
     act(() => {
-      vi.advanceTimersByTime(200000);
+      vi.advanceTimersByTime(LIVE_MIN_INTERVAL_MS - 1);
     });
     expect(fetchAll).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(fetchAll).toHaveBeenCalledTimes(1);
   });
 
   it('refetch en quittant un onglet coarse (glossary → map)', () => {

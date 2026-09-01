@@ -1827,6 +1827,8 @@ test('GET /api/admin/diagnostics avec bon secret → 200', async () => {
   assert.ok(
     res.body.runtimeProcess.envHints && typeof res.body.runtimeProcess.envHints === 'object',
   );
+  assert.ok(typeof res.body.runtimeProcess.realtime?.enabled === 'boolean');
+  assert.ok(typeof res.body.runtimeProcess.realtime?.clients === 'number');
   assert.ok(res.body.visitMascotHint && Array.isArray(res.body.visitMascotHint.maps));
   assert.ok(res.body.mascotPackLibProbe && typeof res.body.mascotPackLibProbe === 'object');
   assert.ok(Array.isArray(res.body.mascotPackLibProbe.roots));

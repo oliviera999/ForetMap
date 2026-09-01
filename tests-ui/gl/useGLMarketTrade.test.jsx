@@ -43,7 +43,9 @@ vi.mock('../../src/utils/realtimeRefreshDelay', () => ({
   RT_REFRESH_JITTER_MS: 600,
 }));
 
+import { io } from 'socket.io-client';
 import { useGLMarketTrade } from '../../src/gl/hooks/useGLMarketTrade.js';
+import { resetGlSocketClientForTests } from '../../src/gl/realtime/glSocketClient.js';
 
 function mountHook() {
   return renderHook(() =>
@@ -55,10 +57,12 @@ beforeEach(() => {
   fakeSocket = createFakeSocket();
   apiGLMock.mockClear();
   jitteredRefreshDelayMock.mockClear();
+  io.mockClear();
 });
 
 afterEach(() => {
   vi.useRealTimers();
+  resetGlSocketClientForTests();
 });
 
 describe('useGLMarketTrade — étalement des refetchs temps réel', () => {
@@ -66,6 +70,9 @@ describe('useGLMarketTrade — étalement des refetchs temps réel', () => {
     const { unmount } = mountHook();
     // Chargement initial (classmates + trades + feuillets) hors du champ du test.
     await waitFor(() => expect(apiGLMock).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(fakeSocket.on).toHaveBeenCalledWith('gl:market:trade-changed', expect.any(Function)),
+    );
     apiGLMock.mockClear();
 
     vi.useFakeTimers();
@@ -92,6 +99,9 @@ describe('useGLMarketTrade — étalement des refetchs temps réel', () => {
   it('coalesce une rafale d’événements en un seul refetch', async () => {
     const { unmount } = mountHook();
     await waitFor(() => expect(apiGLMock).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(fakeSocket.on).toHaveBeenCalledWith('gl:market:trade-changed', expect.any(Function)),
+    );
     apiGLMock.mockClear();
 
     vi.useFakeTimers();
@@ -111,6 +121,9 @@ describe('useGLMarketTrade — étalement des refetchs temps réel', () => {
   it('ignore les événements d’une autre classe', async () => {
     const { unmount } = mountHook();
     await waitFor(() => expect(apiGLMock).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(fakeSocket.on).toHaveBeenCalledWith('gl:market:trade-changed', expect.any(Function)),
+    );
     apiGLMock.mockClear();
 
     vi.useFakeTimers();
@@ -127,6 +140,9 @@ describe('useGLMarketTrade — étalement des refetchs temps réel', () => {
   it('démontage : le refetch programmé est annulé', async () => {
     const { unmount } = mountHook();
     await waitFor(() => expect(apiGLMock).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(fakeSocket.on).toHaveBeenCalledWith('gl:market:trade-changed', expect.any(Function)),
+    );
     apiGLMock.mockClear();
 
     vi.useFakeTimers();
@@ -138,5 +154,13 @@ describe('useGLMarketTrade — étalement des refetchs temps réel', () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
     expect(apiGLMock).not.toHaveBeenCalled();
+  });
+
+  it('partage une seule connexion io() pour deux hooks au même jeton', async () => {
+    const a = mountHook();
+    const b = mountHook();
+    await waitFor(() => expect(io).toHaveBeenCalledTimes(1));
+    a.unmount();
+    b.unmount();
   });
 });

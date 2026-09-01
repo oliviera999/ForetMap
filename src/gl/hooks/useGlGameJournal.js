@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { io } from 'socket.io-client';
-import { withAppBase } from '../../shared/appBase.js';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { jitteredRefreshDelay } from '../../utils/realtimeRefreshDelay';
 import { apiGL } from '../services/apiGL.js';
+import { acquireGlSocket, subscribeGlGame } from '../realtime/glSocketClient.js';
 
 export function useGlGameJournal({
   gameId,
@@ -39,28 +39,32 @@ export function useGlGameJournal({
     reload();
   }, [reload]);
 
+  const reloadDebounceRef = useRef(null);
+  useEffect(
+    () => () => {
+      if (reloadDebounceRef.current) clearTimeout(reloadDebounceRef.current);
+    },
+    [],
+  );
+
   useEffect(() => {
     if (!token || !gameId) return undefined;
-    const socket = io(withAppBase(''), {
-      path: '/socket.io',
-      transports: ['polling', 'websocket'],
-      auth: { token },
-    });
-    socket.on('connect', () => {
-      socket.emit('subscribe:gl-game', { gameId: Number(gameId) });
-    });
-    let debounceId = null;
-    socket.on('gl:game:event', (evt) => {
+    const { socket, release } = acquireGlSocket(token);
+    if (!socket) return undefined;
+    const unsubGame = subscribeGlGame(token, gameId);
+    const onEvent = (evt) => {
       if (Number(evt?.gameId) !== Number(gameId)) return;
-      if (debounceId) clearTimeout(debounceId);
-      debounceId = setTimeout(() => {
-        debounceId = null;
+      if (reloadDebounceRef.current) clearTimeout(reloadDebounceRef.current);
+      reloadDebounceRef.current = setTimeout(() => {
+        reloadDebounceRef.current = null;
         reload();
-      }, 350);
-    });
+      }, jitteredRefreshDelay(0));
+    };
+    socket.on('gl:game:event', onEvent);
     return () => {
-      if (debounceId) clearTimeout(debounceId);
-      socket.close();
+      socket.off('gl:game:event', onEvent);
+      unsubGame();
+      release();
     };
   }, [token, gameId, reload]);
 

@@ -126,7 +126,9 @@ existe, lui, sur la carte de travail des élèves.
   classement, progression, export tableur. L'accès des élèves aux statistiques
   générales est réglable.
 - **Notifications**, **visite guidée** de prise en main et **panneau d'aide** : l'écran
-  se met à jour en temps réel (une validation apparaît chez l'élève sans recharger).
+  se met à jour en temps réel (une validation, une observation, un message forum
+  apparaissent sans recharger). Si la connexion live est coupée, les listes se
+  rattrapent d'elles-mêmes en une à deux minutes.
 - Dans la **visite guidée**, le texte de chaque étape s'affiche **progressivement**, à la
   manière d'un dialogue de jeu, dans une bulle encadrée. Un **clic sur la bulle** — ou une
   première pression sur `Entrée` / `→` — affiche tout le texte immédiatement ; la pression
