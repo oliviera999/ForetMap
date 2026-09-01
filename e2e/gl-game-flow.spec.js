@@ -104,7 +104,8 @@ test.describe('Gnomes & Licornes game flow smoke', () => {
 
     const socket = clientIo(baseURL, {
       path: '/socket.io',
-      transports: ['websocket'],
+      transports: ['polling'],
+      upgrade: false,
       auth: { token: playerToken },
       timeout: 8000,
     });
@@ -245,7 +246,8 @@ test.describe('Gnomes & Licornes game flow smoke', () => {
 
     const socket = clientIo(baseURL, {
       path: '/socket.io',
-      transports: ['websocket'],
+      transports: ['polling'],
+      upgrade: false,
       auth: { token: playerToken },
       timeout: 8000,
     });

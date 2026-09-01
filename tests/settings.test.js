@@ -507,6 +507,8 @@ test('GET /api/settings/admin/system/diagnostics renvoie un snapshot runtime', a
   assert.ok(res.body?.database && typeof res.body.database === 'object');
   assert.ok(res.body?.metrics && typeof res.body.metrics === 'object');
   assert.ok(res.body?.runtimeProcess && typeof res.body.runtimeProcess === 'object');
+  assert.ok(typeof res.body.runtimeProcess.realtime?.enabled === 'boolean');
+  assert.ok(typeof res.body.runtimeProcess.realtime?.clients === 'number');
 });
 
 test('RBAC refuse la rétrogradation du dernier administrateur', async () => {
