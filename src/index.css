@@ -18,6 +18,9 @@
       font-weight: 400;
       font-display: swap;
       src: url('/fonts/noto-color-emoji.woff2') format('woff2');
+      /* Borne le téléchargement aux caractères emoji : la police (5,5 Mo) n'est récupérée
+         que si un emoji est effectivement rendu, même placée en tête de pile. */
+      unicode-range: U+200D, U+203C, U+2049, U+20E3, U+2122, U+2139, U+2194-21AA, U+231A-23FA, U+24C2, U+25AA-25FE, U+2600-27BF, U+2934-2935, U+2B00-2BFF, U+3030, U+303D, U+3297, U+3299, U+FE0F, U+1F000-1FAFF, U+E0020-E007F;
     }
 
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
@@ -30,14 +33,14 @@
       --leaf:     #2d6a4f;
       --sage:     #52b788;
       --mint:     #b7e4c7;
-      /* Noto Color Emoji auto-hébergé ('ForetMapColorEmoji') ajouté en dernier recours sur TOUT le
-         texte : garantit l'affichage des emojis quel que soit le périphérique (y compris ceux sans
-         police emoji native). Son cmap ne contient que des emojis → la police n'est téléchargée à la
-         demande que pour les emojis non couverts par une police système (cascade par caractère). */
-      --font-sans: 'DM Sans', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'ForetMapColorEmoji', sans-serif;
-      /* Stacks ciblés : la police auto-hébergée est prioritaire pour un rendu emoji homogène partout. */
+      /* Un SEUL ordre de pile emoji partout : 'ForetMapColorEmoji' (Noto auto-hébergé,
+         unicode-range emoji) AVANT les polices système → le même caractère sort de la même
+         fonte sur tous les appareils et dans tous les écrans. Avant, --font-sans le plaçait
+         en dernier : une épingle (pile emoji) et un emoji resté dans un nom de zone
+         (pile sans) affichaient deux dessins différents sur le même plan. */
+      --font-sans: 'DM Sans', 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
       --font-emoji-stack: 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
-      --font-sans-with-emoji: 'DM Sans', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+      --font-sans-with-emoji: var(--font-sans);
       --cream:    #fefae0;
       --parchment:#f4e9d0;
       --soil:     #6b4226;
@@ -64,10 +67,23 @@
       --space-card: clamp(12px, 3.2vw, 16px);
       --space-card-lg: clamp(18px, 5vw, 32px);
       --space-card-lg-x: clamp(16px, 5vw, 24px);
-      /* Échelle typographique fluide (UI + chrome carte). */
+      /* Échelle typographique fluide (UI + chrome carte) — 7 crans, à substituer
+         progressivement aux tailles littérales (cf. docs/AUDIT_UI_HOMOGENEITE_2026-09.md, B1-B2). */
       --text-xs: clamp(0.68rem, 0.64rem + 0.2vw, 0.74rem);
       --text-sm: clamp(0.78rem, 0.72rem + 0.25vw, 0.86rem);
       --text-base: clamp(0.88rem, 0.82rem + 0.3vw, 1rem);
+      --text-md: clamp(1rem, 0.94rem + 0.3vw, 1.1rem);
+      --text-lg: clamp(1.1rem, 1rem + 0.5vw, 1.3rem);
+      --text-xl: clamp(1.3rem, 1.15rem + 0.75vw, 1.6rem);
+      --text-2xl: clamp(1.6rem, 1.4rem + 1vw, 2rem);
+      /* Graisses et interlignes nommés (aucune valeur > 700 : DM Sans est chargée en 300-700). */
+      --fw-regular: 400;
+      --fw-medium: 500;
+      --fw-semibold: 600;
+      --fw-bold: 700;
+      --lh-tight: 1.2;
+      --lh-normal: 1.45;
+      --lh-relaxed: 1.6;
       --map-toolbar-font-size: var(--text-xs);
       --map-hint-font-size: clamp(0.72rem, 0.65rem + 0.4vw, 0.88rem);
       --map-hint-font-size-sm: clamp(0.68rem, 0.62rem + 0.35vw, 0.82rem);
@@ -92,7 +108,7 @@
       overflow-x:hidden;
       overflow-y:auto;
     }
-    h1,h2,h3 { font-family:'Playfair Display', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'ForetMapColorEmoji', serif; }
+    h1,h2,h3 { font-family:'Playfair Display', 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', serif; }
     /* min-width:0 sur la chaîne flex : évite qu’un enfant (grille, texte long) impose une largeur
        minimale au document et déclenche un scroll horizontal sur mobile. */
     #root { display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; width:100%; max-width:100%; min-width:0; overflow-x:hidden; }
@@ -142,7 +158,10 @@
       display:inline-flex; align-items:center; justify-content:center; gap:8px;
       padding:13px 20px; min-height:44px;
       border:none; border-radius:10px;
-      font-family:var(--font-sans); font-size:1rem; font-weight:600;
+      font-family:var(--font-sans); font-size:1rem; font-weight:var(--fw-semibold);
+      /* Interligne explicite, aligné sur .gl-btn / .shared-btn — sinon hérité du parent,
+         donc centrage du libellé variable selon l'écran. */
+      line-height:1.25;
       cursor:pointer;
       transition:
         transform var(--motion-fast) var(--spring),
@@ -170,7 +189,10 @@
     .btn-danger:active { background:#fca5a5; }
     .btn-ghost { background:rgba(255,255,255,.66); color:var(--forest); border:1.5px solid var(--mint); }
     .btn-ghost:active { background:var(--mint); }
-    .btn-sm { padding:9px 13px; font-size:.85rem; min-height:38px; border-radius:8px; }
+    /* Petit bouton aligné sur .gl-btn--sm / .shared-btn--sm : 0.875rem, 36px. */
+    .btn-sm { padding:8px 12px; font-size:.875rem; min-height:36px; border-radius:8px; }
+    /* Convention projet : cible tactile >= 44px sur pointeur grossier. */
+    @media (pointer:coarse) { .btn-sm { min-height:44px; } }
     .btn-full { width:100%; }
     @media(hover:hover) {
       .btn-primary:hover { background:var(--leaf); transform:translateY(-1px); box-shadow:0 10px 20px rgba(26,71,49,.26); }
@@ -2159,6 +2181,16 @@
       min-height:30px;
     }
     .map-toolbar-mode-btn { font-weight:700; transition:all .15s; }
+    /* Convention projet : cibles tactiles >= 44px. La barre carte descendait à 30/36px. */
+    @media (pointer:coarse) {
+      .map-toolbar-mode-btn,
+      .map-toolbar-pill,
+      .map-toolbar-text-size-btn,
+      .map-toolbar-labels-btn {
+        min-height:44px;
+        min-width:44px;
+      }
+    }
     .map-toolbar-pill {
       border:1.5px solid var(--mint);
       font-weight:700;
@@ -2250,6 +2282,9 @@
     }
     .map-zone-svg-layer { text-rendering:optimizeLegibility; }
     .map-overlay-emoji-label {
+      /* Force la présentation emoji (couleur) même sans U+FE0F dans la donnée — GL le
+         faisait déjà (gl-theme), ForetMap non : mêmes caractères, deux rendus. */
+      font-variant-emoji: emoji;
       font-family:var(--font-emoji-stack);
       line-height:1;
       pointer-events:none;
@@ -2605,6 +2640,7 @@
     .emoji-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
     .emoji-btn {
       font-family:var(--font-emoji-stack);
+      font-variant-emoji: emoji;
       font-size:1.3rem; padding:6px 10px;
       border:1.5px solid var(--mint); border-radius:8px;
       cursor:pointer; background:white;
@@ -3844,11 +3880,20 @@
       height:100%;
       pointer-events:none;
     }
+    .biodiv-location-map-svg polygon {
+      vector-effect:non-scaling-stroke;
+      stroke-width:1.5px;
+    }
     .biodiv-location-marker-dot {
       fill:#6366f1;
       stroke:#fff;
-      stroke-width:0.35;
+      vector-effect:non-scaling-stroke;
+      stroke-width:1px;
       filter:drop-shadow(0 0 3px rgba(99,102,241,.45));
+      /* Dé-anamorphose du viewBox étiré : le point reste un cercle, plus une ellipse. */
+      transform-box:fill-box;
+      transform-origin:center;
+      transform:scale(1, var(--map-fit-aspect, 1));
     }
     .biodiv-card-edit {
       padding:0;
@@ -4451,7 +4496,10 @@
     .visit-zone-poly {
       fill:rgba(22,163,74,.18);
       stroke:rgba(26,71,49,.52);
-      stroke-width:.3;
+      /* Trait en px écran (vector-effect) : constant au zoom et identique sur les deux axes,
+         comme les contours de la carte principale (strokeWidth × inv). */
+      vector-effect:non-scaling-stroke;
+      stroke-width:1.5px;
       cursor:pointer;
       transition:fill .16s ease, filter .16s ease;
     }
@@ -4493,12 +4541,17 @@
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
-      line-height:1.15;
+      /* line-height hérité de .map-overlay-name-label (1) — plus d'écrasement local à 1.15. */
       pointer-events:none;
     }
     .visit-marker-indicator {
-      position:absolute; top:-2px; right:-2px; width:10px; height:10px; border-radius:50%;
-      border:1.5px solid white;
+      /* Taille compensée par l'inverse de l'échelle monde : le rapport pastille/emoji
+         reste constant pendant le zoom (avant : pastille fixe qui grossissait avec lui). */
+      position:absolute; top:-2px; right:-2px;
+      width:calc(10px * var(--map-overlay-world-inv, 1));
+      height:calc(10px * var(--map-overlay-world-inv, 1));
+      border-radius:50%;
+      border:calc(1.5px * var(--map-overlay-world-inv, 1)) solid white;
       box-shadow:0 1px 4px rgba(0,0,0,.18);
     }
     .visit-marker-indicator.is-unseen {
@@ -5953,7 +6006,7 @@
   border: 1.5px solid var(--mint);
   background: var(--forest);
   color: var(--cream);
-  font-weight: 800;
+  font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
   box-shadow: var(--shadow);

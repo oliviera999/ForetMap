@@ -240,7 +240,7 @@ export function MapViewToolbar({
               onClick={onRemoveSelectedPoints}
               title="Retirer les sommets sélectionnés (touche Suppr). Un contour garde au moins 3 sommets."
             >
-              🗑 {selectedPointsCount > 1 ? `${selectedPointsCount} sommets` : 'Sommet'}
+              🗑️ {selectedPointsCount > 1 ? `${selectedPointsCount} sommets` : 'Sommet'}
             </button>
             <button
               type="button"
@@ -250,7 +250,7 @@ export function MapViewToolbar({
               onClick={onToggleMultiSelectMode}
               title="Sélection multiple : chaque appui ajoute ou retire un sommet (équivaut à Maj+clic, pratique au doigt)."
             >
-              {multiSelectMode ? '☑ Multi' : '⬚ Multi'}
+              {multiSelectMode ? '☑️ Multi' : '⬜ Multi'}
             </button>
             <button
               type="button"

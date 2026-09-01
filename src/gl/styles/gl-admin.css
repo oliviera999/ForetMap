@@ -698,7 +698,7 @@
 }
 .gl-kpi-card__value {
   font-size: 1.6rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--gl-color-primary);
 }
 .gl-kpi-card__label {

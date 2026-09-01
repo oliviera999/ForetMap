@@ -4,6 +4,11 @@
   font-weight: 400;
   font-display: swap;
   src: url('/fonts/noto-color-emoji.woff2') format('woff2');
+  /* Téléchargée uniquement si un emoji est rendu (cmap emoji), même en tête de pile. */
+  unicode-range:
+    U+200D, U+203C, U+2049, U+20E3, U+2122, U+2139, U+2194-21AA, U+231A-23FA, U+24C2, U+25AA-25FE,
+    U+2600-27BF, U+2934-2935, U+2B00-2BFF, U+3030, U+303D, U+3297, U+3299, U+FE0F, U+1F000-1FAFF,
+    U+E0020-E007F;
 }
 
 *,
@@ -21,10 +26,10 @@ html {
 }
 
 body.gl-body {
-  /* 'ForetMapColorEmoji' (Noto Color Emoji auto-hébergé) en dernier recours : emojis garantis sur
-     tout appareil, téléchargé à la demande uniquement si aucune police emoji native n'est présente. */
+  /* 'ForetMapColorEmoji' AVANT les polices système (unicode-range emoji) : même dessin
+     d'emoji sur tous les appareils, téléchargé seulement si un emoji est rendu. */
   font-family:
-    'Caudex', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'ForetMapColorEmoji', serif;
+    'Caudex', 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', serif;
   min-height: 100vh;
   min-height: 100dvh;
   width: 100%;
@@ -120,12 +125,11 @@ button {
 }
 
 :root {
-  /* 'ForetMapColorEmoji' en fallback universel : tout texte GL (héritant de --font-sans) affiche les
-     emojis quel que soit le périphérique. Chargement à la demande (cmap emoji uniquement). */
+  /* Un seul ordre de pile emoji (aligné sur src/index.css) : 'ForetMapColorEmoji' avant les
+     polices système, téléchargement borné aux emojis par l'unicode-range du @font-face. */
   --font-sans:
-    'Caudex', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'ForetMapColorEmoji', serif;
+    'Caudex', 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', serif;
   --font-emoji-stack:
     'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
-  --font-sans-with-emoji:
-    'Caudex', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', serif;
+  --font-sans-with-emoji: var(--font-sans);
 }
