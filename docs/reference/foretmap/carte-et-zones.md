@@ -117,7 +117,11 @@ Elles remplacent l'ancien couple « état de culture » (Vide / En croissance / 
 récolter) et case « zone spéciale ».
 
 Une catégorie porte un **libellé**, un **emoji**, une **couleur**, une **description**
-(infobulle) et un **ordre d'affichage**. Elle est :
+(infobulle) et un **ordre d'affichage**. La couleur se choisit soit avec la **pastille de
+sélection** (nuancier du système), soit en tapant directement le code hexadécimal dans le
+champ voisin. Les deux derniers caractères de ce code règlent la **transparence** — utile
+pour que le plan reste lisible sous la zone — et le sélecteur les conserve quand on change
+seulement la teinte. Une catégorie est :
 
 - soit **globale** — utilisable sur toutes les cartes (cas le plus courant : Compostage,
   Verger, Zone pédagogique) ;

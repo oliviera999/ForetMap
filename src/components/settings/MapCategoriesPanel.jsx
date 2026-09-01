@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 
 import { api } from '../../services/api';
 import { useApiResource } from '../../hooks/useApiResource.js';
+import { applyPickedHexColor, colorPickerValue } from '../../utils/hexColorWithAlpha.js';
 
 const APPLIES_TO_LABELS = {
   both: 'Zones et repères',
@@ -148,12 +149,30 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
           />
         </div>
         <div className="field" style={{ flex: 1, minWidth: 0 }}>
-          <label>Couleur</label>
-          <input
-            value={draft.color}
-            onChange={(e) => setField({ color: e.target.value })}
-            placeholder="#86efac90"
-          />
+          <label htmlFor="map-category-color-hex">Couleur</label>
+          <div className="map-category-color-field">
+            <input
+              type="color"
+              className="map-category-color-field__picker"
+              value={colorPickerValue(draft.color)}
+              aria-label="Choisir la teinte"
+              onChange={(e) =>
+                setField({ color: applyPickedHexColor(draft.color, e.target.value) })
+              }
+            />
+            <input
+              id="map-category-color-hex"
+              className="map-category-color-field__hex"
+              value={draft.color}
+              onChange={(e) => setField({ color: e.target.value })}
+              placeholder="#86efac90"
+              spellCheck={false}
+            />
+          </div>
+          <p className="map-category-color-field__hint">
+            Les deux derniers caractères règlent la transparence (<code>90</code> ≈ 56 %) et sont
+            conservés par le sélecteur.
+          </p>
         </div>
         <div className="field" style={{ flex: 1, minWidth: 0 }}>
           <label>Ordre</label>
