@@ -641,10 +641,11 @@ function TeacherStats() {
   useEffect(() => {
     const onRealtime = (e) => {
       if (e.detail && e.detail.domain === 'students') load();
+      if (e.detail && e.detail.domain === 'observations') loadObservations();
     };
     window.addEventListener('foretmap_realtime', onRealtime);
     return () => window.removeEventListener('foretmap_realtime', onRealtime);
-  }, [load]);
+  }, [load, loadObservations]);
 
   if (students === null)
     return (
