@@ -35,6 +35,9 @@ router.get('/games/:id', validate({ query: journalGameQuerySchema }), async (req
 
   const { teamFilter, limit } = req.validatedQuery;
 
+  // G5 (audit 2026-09) : LIMIT paramétré comme le reste. Passé en chaîne — le protocole
+  // préparé de mysql2 (`pool.execute`) encode un nombre JS en DOUBLE, que MySQL refuse
+  // pour LIMIT (« Incorrect arguments to mysqld_stmt_execute ») ; la chaîne est castée.
   const rows =
     teamFilter != null && Number.isFinite(teamFilter)
       ? await queryAll(
@@ -42,16 +45,16 @@ router.get('/games/:id', validate({ query: journalGameQuerySchema }), async (req
          FROM gl_game_events
         WHERE game_id = ? AND (team_id = ? OR team_id IS NULL)
         ORDER BY id DESC
-        LIMIT ${limit}`,
-          [gameId, teamFilter],
+        LIMIT ?`,
+          [gameId, teamFilter, String(limit)],
         )
       : await queryAll(
           `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
          FROM gl_game_events
         WHERE game_id = ?
         ORDER BY id DESC
-        LIMIT ${limit}`,
-          [gameId],
+        LIMIT ?`,
+          [gameId, String(limit)],
         );
 
   const teamRows = await queryAll(
