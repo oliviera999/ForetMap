@@ -5,8 +5,9 @@
  * @param {{ gps: {
  *   active: boolean,
  *   status: 'idle'|'prompt'|'granted'|'denied'|'unavailable',
- *   feedback: 'ok'|'out_of_bounds'|'low_accuracy'|null,
+ *   feedback: 'ok'|'out_of_bounds'|'low_accuracy'|'bad_georef'|null,
  *   accuracy: number|null,
+ *   error: string|null,
  * } | null }} props
  */
 export function MascotGpsStatusBanner({ gps }) {
@@ -29,6 +30,20 @@ export function MascotGpsStatusBanner({ gps }) {
     tone = '#b91c1c';
     background = '#fef2f2';
     border = '#fecaca';
+  } else if (gps.feedback === 'bad_georef') {
+    icon = '🛠️';
+    label = 'Le calage GPS de ce plan est incohérent — signalez-le à un professeur';
+    tone = '#b91c1c';
+    background = '#fef2f2';
+    border = '#fecaca';
+  } else if (!gps.feedback && gps.error) {
+    // Échec d'acquisition (position indisponible, délai dépassé) : sans cette branche,
+    // « Acquisition… » resterait affiché indéfiniment (audit C2).
+    icon = '⚠️';
+    label = gps.error;
+    tone = '#92400e';
+    background = '#fffbeb';
+    border = '#fde68a';
   } else if (gps.status === 'prompt' && !gps.feedback) {
     icon = '⏳';
     label = 'Acquisition de la position GPS…';
