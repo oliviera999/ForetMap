@@ -18,6 +18,7 @@ import { ObservationCard } from './ObservationCard.jsx';
 import { ObservationNotebookStatus } from './ObservationNotebookStatus.jsx';
 import { ObservationPhotoField } from './ObservationPhotoField.jsx';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
+import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../shared/hooks/useDebouncedAutoSave.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
@@ -44,6 +45,7 @@ import { PlantLocationPreviewMaps } from './biodiv/BiodivLocationMaps.jsx';
 // ── FILTRES CATALOGUE BIODIVERSITÉ (élève + prof) ─────────────────────────────
 // ── PLANT MANAGER (teacher) ───────────────────────────────────────────────────
 function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
+  const { confirm } = useAppDialogs();
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
   const { plants = [], zones = [], markers = [] } = useData();
@@ -141,7 +143,7 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
   });
 
   const del = async (p) => {
-    if (!confirm(`Supprimer "${p.name}" ?`)) return;
+    if (!(await confirm({ message: `Supprimer "${p.name}" ?`, danger: true }))) return;
     try {
       await api(`/api/plants/${p.id}`, 'DELETE');
       await onRefresh();

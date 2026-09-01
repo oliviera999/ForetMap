@@ -98,7 +98,7 @@ describe('MapViewToolbar', () => {
     expect(screen.getByText('✏️ Mare')).toBeTruthy();
     const undoBtn = screen.getByRole('button', { name: '↩ Annuler' });
     expect(undoBtn.disabled).toBe(true);
-    fireEvent.click(screen.getByRole('button', { name: '💾 Sauver' }));
+    fireEvent.click(screen.getByRole('button', { name: '💾 Enregistrer' }));
     expect(h.onSaveEditPoints).toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: '✕' }));
     expect(h.onExitEditPoints).toHaveBeenCalled();

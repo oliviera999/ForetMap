@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { api } from '../../services/api';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { MascotSpeaker } from '../../shared/components/MascotSpeaker.jsx';
 import { SpeechBubble } from '../../shared/components/SpeechBubble.jsx';
@@ -57,6 +58,7 @@ function formatKilobytes(size) {
  *    Enregistrement automatique, comme les autres studios prof.
  */
 export function HelpNarratorAdminPanel() {
+  const { confirm } = useAppDialogs();
   const [draft, setDraft] = useState(null);
   const [loadRevision, setLoadRevision] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -131,9 +133,12 @@ export function HelpNarratorAdminPanel() {
 
   async function resetNarrator() {
     if (
-      !window.confirm(
-        'Réinitialiser le narrateur ? Le nom, la silhouette et tous les portraits affectés reviennent aux valeurs par défaut. Les images restent dans la médiathèque.',
-      )
+      !(await confirm({
+        message:
+          'Réinitialiser le narrateur ? Le nom, la silhouette et tous les portraits affectés reviennent aux valeurs par défaut. Les images restent dans la médiathèque.',
+        confirmLabel: 'Réinitialiser',
+        danger: true,
+      }))
     ) {
       return;
     }

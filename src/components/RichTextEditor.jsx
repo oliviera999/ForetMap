@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../utils/markdown.js';
+import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import {
   createRichTextTurndownService,
   htmlToMarkdownWith,
@@ -55,6 +56,7 @@ export const RichTextEditor = React.forwardRef(function RichTextEditor(
 ) {
   const editableRef = useRef(null);
   const lastMarkdownRef = useRef(null);
+  const { prompt } = useAppDialogs();
 
   const setEditableRef = useCallback(
     (element) => {
@@ -123,11 +125,20 @@ export const RichTextEditor = React.forwardRef(function RichTextEditor(
   );
 
   const applyAction = useCallback(
-    (action) => {
+    async (action) => {
       if (action.link) {
-        const url =
-          typeof window !== 'undefined' ? window.prompt('URL du lien', 'https://') : 'https://';
+        // `createLink` agit sur la sélection courante du contenteditable : on la mémorise
+        // avant l'ouverture du dialogue (dont le champ prend le focus), puis on la
+        // restaure avant d'appliquer la commande — même patron que GLRichTextEditor.
+        const selection = typeof window !== 'undefined' ? window.getSelection() : null;
+        const savedRange =
+          selection && selection.rangeCount > 0 ? selection.getRangeAt(0).cloneRange() : null;
+        const url = await prompt({ message: 'URL du lien', defaultValue: 'https://' });
         if (!url) return;
+        if (selection && savedRange) {
+          selection.removeAllRanges();
+          selection.addRange(savedRange);
+        }
         applyCommand('createLink', url);
         return;
       }
@@ -137,7 +148,7 @@ export const RichTextEditor = React.forwardRef(function RichTextEditor(
       }
       applyCommand(action.command);
     },
-    [applyCommand],
+    [applyCommand, prompt],
   );
 
   const editorClassName = useMemo(

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { api } from '../../services/api';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import {
   applyMapLocationFilters,
   MAP_LOCATION_FILTER_DEFAULTS,
@@ -166,6 +167,7 @@ function RowCategoriesEditor({ kind, item, catalog, onSave, disabled }) {
  * l'écriture reste gardée côté serveur par `zones.manage` / `map.manage_markers`.
  */
 export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
+  const { confirm } = useAppDialogs();
   const [zones, setZones] = useState([]);
   const [markers, setMarkers] = useState([]);
   const [plants, setPlants] = useState([]);
@@ -316,10 +318,12 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
     const targets = selectedTargets;
     if (targets.length === 0) return;
     if (bulk.action === 'delete') {
-      const confirmed = confirm(
-        `Supprimer définitivement ${targets.length} lieu(x) sélectionné(s) ? ` +
+      const confirmed = await confirm({
+        message:
+          `Supprimer définitivement ${targets.length} lieu(x) sélectionné(s) ? ` +
           'Leurs photos et contenus de visite seront supprimés aussi. Action irréversible.',
-      );
+        danger: true,
+      });
       if (!confirmed) return;
     }
     setBulkRun({ done: 0, total: targets.length });

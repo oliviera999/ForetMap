@@ -3,6 +3,7 @@ import { api } from '../services/api';
 import { HelpPanel } from './HelpPanel';
 import { resolveHelpPanelSection } from '../utils/helpResolve';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { slugify } from '../utils/slugify';
 
 function normalizeIds(values = []) {
@@ -10,6 +11,7 @@ function normalizeIds(values = []) {
 }
 
 function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
+  const { confirm } = useAppDialogs();
   const [defaultRoleId, setDefaultRoleId] = useState('');
   const [grantsN3beur, setGrantsN3beur] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -73,7 +75,9 @@ function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
 
   const applyDefaultRole = async () => {
     if (
-      !window.confirm(`Appliquer le profil par défaut à tous les membres de « ${group.name} » ?`)
+      !(await confirm({
+        message: `Appliquer le profil par défaut à tous les membres de « ${group.name} » ?`,
+      }))
     ) {
       return;
     }
@@ -335,6 +339,7 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
 
 export function GroupsAdminView() {
   const publicSettings = usePublicSettings();
+  const { confirm, prompt } = useAppDialogs();
   const [groups, setGroups] = useState([]);
   const [users, setUsers] = useState([]);
   const [maps, setMaps] = useState([]);
@@ -393,12 +398,15 @@ export function GroupsAdminView() {
   }, []);
 
   const createGroup = async () => {
-    const name = window.prompt('Nom du groupe (ex: 2nde A)');
+    const name = await prompt({ message: 'Nom du groupe (ex: 2nde A)' });
     if (!name || !name.trim()) return;
     // slugify() translittère les accents au lieu de les supprimer : « 2nde A — Éco » donne
     // « 2nde-a-eco » et non « 2nde-a-co » (audit docs/AUDIT_BDD_2026-08.md §5.5).
-    const slug = window.prompt('Slug technique (optionnel)', slugify(name));
-    const kind = window.prompt('Type (class|team|unit|club)', 'class');
+    const slug = await prompt({
+      message: 'Slug technique (optionnel)',
+      defaultValue: slugify(name),
+    });
+    const kind = await prompt({ message: 'Type (class|team|unit|club)', defaultValue: 'class' });
     setLoading(true);
     setErr('');
     try {
@@ -431,7 +439,7 @@ export function GroupsAdminView() {
 
   const deleteGroup = async (g) => {
     if (!g?.id) return;
-    const ok = window.confirm(`Supprimer le groupe « ${g.name} » ?`);
+    const ok = await confirm({ message: `Supprimer le groupe « ${g.name} » ?`, danger: true });
     if (!ok) return;
     setLoading(true);
     setErr('');

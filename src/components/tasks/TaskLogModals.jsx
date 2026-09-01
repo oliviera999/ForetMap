@@ -11,6 +11,7 @@ import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { TimedToast } from '../../shared/components/TimedToast.jsx';
 import { ImageLightbox } from '../../shared/components/ImageLightbox.jsx';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 
 function Lightbox({ src, caption, onClose }) {
   return <ImageLightbox src={src} caption={caption} onClose={onClose} useOverlayHistory />;
@@ -202,6 +203,7 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
 }
 
 function TaskLogsViewer({ task, onClose }) {
+  const { confirm } = useAppDialogs();
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
   const [logs, setLogs] = useState([]);
@@ -277,8 +279,10 @@ function TaskLogsViewer({ task, onClose }) {
                 <button
                   className="btn btn-danger btn-sm"
                   style={{ padding: '4px 8px', minHeight: 'auto', fontSize: 'var(--text-xs)' }}
-                  onClick={() => {
-                    if (confirm('Supprimer ce rapport ?')) deleteLog(l.id);
+                  onClick={async () => {
+                    if (await confirm({ message: 'Supprimer ce rapport ?', danger: true })) {
+                      deleteLog(l.id);
+                    }
                   }}
                   title="Supprimer ce rapport"
                 >

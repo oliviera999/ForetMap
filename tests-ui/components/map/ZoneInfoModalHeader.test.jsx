@@ -54,10 +54,11 @@ describe('ZoneInfoModalHeader', () => {
     await waitFor(() => expect(h.onDuplicateError).toHaveBeenCalled());
   });
 
-  test('prof : suppression confirmée appelle onDelete puis onClose', () => {
+  test('prof : suppression confirmée appelle onDelete puis onClose', async () => {
     const h = renderHeader();
     fireEvent.click(screen.getByRole('button', { name: '🗑️' }));
-    expect(h.onDelete).toHaveBeenCalledWith(7);
+    // La confirmation passe par une promesse (dialogue applicatif) : microtâche à drainer.
+    await waitFor(() => expect(h.onDelete).toHaveBeenCalledWith(7));
     expect(h.onClose).toHaveBeenCalled();
   });
 

@@ -8,7 +8,9 @@
  * - `{ error }` → saisie invalide (message à afficher tel quel) ;
  * - `{ payload }` → corps prêt pour l'appel API correspondant.
  *
- * `promptFn` est injectable pour les tests ; par défaut `window.prompt`.
+ * Les trois flux sont asynchrones : `promptFn` peut être le `prompt` de `useAppDialogs`
+ * (dialogue applicatif, résout une promesse) ou une fonction synchrone. `promptFn` est
+ * injectable pour les tests ; par défaut `window.prompt` (repli hors provider).
  */
 
 const defaultPrompt = (text, defaultValue) => window.prompt(text, defaultValue);
@@ -31,17 +33,20 @@ function isInvalidDisplayOrder(parsedDisplayOrder) {
  * `drafts` fournit les valeurs en cours d'édition dans le formulaire (prioritaires sur le rôle).
  * Payload pour `PATCH /api/rbac/profiles/:id`.
  */
-export function promptRoleDetailsPatch(role, drafts = {}, promptFn = defaultPrompt) {
-  const displayName = promptFn('Nom du profil', role.display_name || '');
+export async function promptRoleDetailsPatch(role, drafts = {}, promptFn = defaultPrompt) {
+  const displayName = await promptFn('Nom du profil', role.display_name || '');
   if (!displayName || !displayName.trim()) return null;
-  const emojiInput = promptFn('Emoji du profil', (drafts.roleEmoji || role.emoji || '').trim());
+  const emojiInput = await promptFn(
+    'Emoji du profil',
+    (drafts.roleEmoji || role.emoji || '').trim(),
+  );
   if (emojiInput == null) return null;
-  const minDoneInput = promptFn(
+  const minDoneInput = await promptFn(
     'Niveau requis (nombre de tâches validées)',
     drafts.roleMinDoneTasks || (role.min_done_tasks == null ? '' : String(role.min_done_tasks)),
   );
   if (minDoneInput == null) return null;
-  const displayOrderInput = promptFn(
+  const displayOrderInput = await promptFn(
     "Ordre d'affichage (entier >= 0, plus petit = plus haut)",
     drafts.roleDisplayOrder || String(role.display_order ?? 0),
   );
@@ -69,22 +74,22 @@ export function promptRoleDetailsPatch(role, drafts = {}, promptFn = defaultProm
  * Création d'un nouveau profil personnalisé (rang fixe 150). Impose emoji + niveau requis pour les
  * slugs `eleve_*` (paliers n3beur). Payload pour `POST /api/rbac/profiles`.
  */
-export function promptNewRoleProfile(promptFn = defaultPrompt) {
-  const slug = promptFn(
+export async function promptNewRoleProfile(promptFn = defaultPrompt) {
+  const slug = await promptFn(
     'Slug technique du profil (ex. eleve_mentor, n3boss_lycee). Réservés et interdits : admin, prof, visiteur, eleve_novice, eleve_avance, eleve_chevronne. Le nom affiché peut être « Admin » ou « n3boss » avec un autre slug.',
     '',
   );
   if (!slug || !slug.trim()) return null;
-  const displayName = promptFn('Nom du profil', slug.trim());
+  const displayName = await promptFn('Nom du profil', slug.trim());
   if (!displayName || !displayName.trim()) return null;
-  const emojiInput = promptFn('Emoji du profil (obligatoire pour un profil n3beur)', '');
+  const emojiInput = await promptFn('Emoji du profil (obligatoire pour un profil n3beur)', '');
   if (emojiInput == null) return null;
-  const minDoneInput = promptFn(
+  const minDoneInput = await promptFn(
     'Niveau requis pour atteindre ce profil (nombre de tâches validées)',
     '',
   );
   if (minDoneInput == null) return null;
-  const displayOrderInput = promptFn(
+  const displayOrderInput = await promptFn(
     "Ordre d'affichage (entier >= 0, plus petit = plus haut)",
     '100',
   );
@@ -120,14 +125,14 @@ export function promptNewRoleProfile(promptFn = defaultPrompt) {
  * Duplication d'un profil existant (slug + nom affiché du clone).
  * Payload pour `POST /api/rbac/profiles/:id/duplicate`.
  */
-export function promptDuplicateRoleProfile(role, promptFn = defaultPrompt) {
+export async function promptDuplicateRoleProfile(role, promptFn = defaultPrompt) {
   const suggestedSlug = `${String(role.slug || 'profil').replace(/[^a-z0-9_]+/gi, '_')}_copie`;
-  const slugInput = promptFn(
+  const slugInput = await promptFn(
     'Slug technique (unique). Ne pas utiliser : admin, prof, visiteur, eleve_novice, eleve_avance, eleve_chevronne — préférez ex. prof_copie_lycee. Le nom affiché est demandé ensuite.',
     suggestedSlug,
   );
   if (!slugInput || !slugInput.trim()) return null;
-  const displayNameInput = promptFn(
+  const displayNameInput = await promptFn(
     'Nom affiché du nouveau profil',
     `${role.display_name || slugInput.trim()} (copie)`,
   );
