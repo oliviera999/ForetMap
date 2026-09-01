@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Chargement des données : onglets pédago et anti-course
+
+Le rafraîchissement global (`fetchAll`) traitait encore glossaire, quiz, réseau trophique
+et médiathèque comme des onglets « chauds » : polling à cadence nominale, et **aucun**
+rechargement en les quittant pour revenir à la carte ou aux plantes. Ils rejoignent les
+onglets calmes (`POLLING_COARSE_TABS`) — intervalle doublé hors temps réel, un `fetchAll`
+à la sortie.
+
+Les listes du glossaire, du réseau trophique et des catégories de quiz ignoraient une
+réponse plus récente au profit d'une requête plus lente (changement de filtre). Une
+garde de séquence conserve uniquement le chargement le plus récent, comme le carnet
+d'observations.
+
+Couverture : `tests-ui/hooks/useAppDataPolling.test.jsx`,
+`tests-ui/components/pedago/pedagoLoadRace.test.jsx`. Le scénario e2e glossaire
+seede un terme unique (la base e2e n’importe pas le contenu biodiv) puis filtre
+dessus — plus de recherche « photo » qui masquait une liste périmée.
+
 ### Un seul système typographique (audit homogénéité UI — B2/B3)
 
 Migration mécanique de la typographie vers les tokens posés au lot précédent —
