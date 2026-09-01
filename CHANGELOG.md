@@ -7,6 +7,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### L'inventaire « Zones & repères » devient une grille d'édition directe avec actions par lot
+
+Refonte du sous-onglet **Réglages administrateur → « Zones & repères »** livré au lot
+précédent : plus de bouton « Modifier », chaque ligne est un mini-formulaire
+**toujours éditable** qui enregistre à la sortie du champ (Entrée valide, Échap
+annule).
+
+- **Champs exhaustifs** en édition directe : emoji, nom, carte (déplacement d'un
+  lieu vers un autre plan), description/note, **espèces** (pastilles + champ à
+  suggestions du catalogue), **catégories** (pastilles à activer/désactiver, seules
+  les applicables au type et à la carte sont proposées), et dans le dépliant
+  « Visite & détails » les quatre textes du mode Visite, la couleur d'une zone et la
+  position X/Y d'un repère. Seuls le tracé, les photos et les blocs d'images de
+  visite restent sur la carte.
+- **Édition par lot** sur la sélection (cases + « Tout sélectionner ») : ajouter /
+  retirer une catégorie ou une espèce, déplacer vers une carte, définir l'emoji,
+  **rechercher / remplacer** dans les noms (et sur option descriptions/notes),
+  **supprimer** après confirmation. Le bouton « Appliquer » annonce le nombre de
+  lieux réellement concernés, une progression s'affiche, et le bilan distingue mis à
+  jour / déjà conformes / échecs.
+- Logique pure extraite dans `src/utils/adminLocationsGrid.js` (26 nouveaux cas de
+  test). Toujours **aucune nouvelle route ni migration** : `PUT`/`DELETE` unitaires
+  existants, permissions « Gestion zones » / « Gestion repères » inchangées côté
+  serveur.
+
+Doc : `docs/reference/foretmap/carte-et-zones.md` (section réécrite).
 ### Emoji de zone en colonne dédiée (audit homogénéité UI — C4)
 
 La colonne `zones.emoji` (migration `206`) remplace l'extraction fragile du préfixe du nom
