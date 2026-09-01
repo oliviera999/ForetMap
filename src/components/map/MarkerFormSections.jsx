@@ -6,6 +6,7 @@ import {
   VisitEditorialMediaIdPicker,
 } from '../VisitEditorialPhotoUi.jsx';
 import { LivingBeingsCatalogPanel } from './LivingBeingsCatalogPanel.jsx';
+import { LocationCategoryPicker } from './LocationCategoryPicker.jsx';
 import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
 
 /**
@@ -14,7 +15,7 @@ import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
  * Feuille pilotée par props ; état détenu par le parent (`form`/`setForm`).
  * Extrait de `MarkerModal.jsx` (O6, 2e niveau).
  */
-export function MarkerCommonFormFields({ form, setForm, plants, set }) {
+export function MarkerCommonFormFields({ form, setForm, plants, set, categoryCatalog = [] }) {
   return (
     <>
       <div className="field">
@@ -23,7 +24,14 @@ export function MarkerCommonFormFields({ form, setForm, plants, set }) {
       </div>
       <div className="field">
         <label>Êtres vivants</label>
-        <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
+        <p
+          style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--ink-soft)',
+            margin: '0 0 8px',
+            lineHeight: 'var(--lh-normal)',
+          }}
+        >
           Ctrl / Cmd + clic pour plusieurs ; l’ordre choisi est conservé.
         </p>
         <select
@@ -48,6 +56,12 @@ export function MarkerCommonFormFields({ form, setForm, plants, set }) {
       {form.living_beings.length > 0 && (
         <LivingBeingsCatalogPanel plants={plants} names={form.living_beings} showHeading={false} />
       )}
+      <LocationCategoryPicker
+        kind="marker"
+        catalog={categoryCatalog}
+        value={form.category_ids || []}
+        onChange={(next) => setForm((f) => ({ ...f, category_ids: next }))}
+      />
       <div className="field">
         <label>Description</label>
         <MarkdownTextarea
@@ -57,7 +71,14 @@ export function MarkerCommonFormFields({ form, setForm, plants, set }) {
           placeholder="Observations, entretien..."
         />
       </div>
-      <p style={{ fontSize: '.78rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
+      <p
+        style={{
+          fontSize: 'var(--text-sm)',
+          color: 'var(--ink-soft)',
+          margin: '0 0 10px',
+          lineHeight: 'var(--lh-normal)',
+        }}
+      >
         Textes ci-dessous : même contenu qu’en mode visite (sous-titre, accroche, bloc dépliable).
       </p>
       <div className="field">

@@ -32,7 +32,7 @@ export function AdminTextSettingField({ rowKey, label, row, serverValue, disable
     <div className="field">
       <label>
         {label}
-        <span style={{ marginLeft: 8, fontSize: '.74rem', color: '#6b7280' }}>
+        <span style={{ marginLeft: 8, fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}>
           ({scopeLabel(row.scope)})
         </span>
       </label>
@@ -55,7 +55,7 @@ export function AdminTextSettingField({ rowKey, label, row, serverValue, disable
           disabled={disabled}
         />
       )}
-      <div style={{ fontSize: '.74rem', color: '#6b7280', marginTop: 3 }}>
+      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-soft)', marginTop: 3 }}>
         {buildConstraintHelp(row)}
       </div>
     </div>
@@ -91,7 +91,7 @@ export function AdminNumberSettingField({
     <div className="field">
       <label>
         {label}
-        <span style={{ marginLeft: 8, fontSize: '.74rem', color: '#6b7280' }}>
+        <span style={{ marginLeft: 8, fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}>
           ({scopeLabel(row.scope)})
         </span>
       </label>
@@ -104,7 +104,7 @@ export function AdminNumberSettingField({
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
       />
-      <div style={{ fontSize: '.74rem', color: '#6b7280', marginTop: 3 }}>
+      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-soft)', marginTop: 3 }}>
         {buildConstraintHelp(row)}
       </div>
     </div>

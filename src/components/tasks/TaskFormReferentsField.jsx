@@ -12,7 +12,7 @@ function ReferentCheckboxItem({ candidate, selectedIds, terms, onToggle }) {
       />
       <span className="task-form-pick-text">
         👤 {referentCandidateLabel(candidate)}
-        <span style={{ opacity: 0.75, fontSize: '.78rem' }}>
+        <span style={{ opacity: 0.75, fontSize: 'var(--text-sm)' }}>
           {' '}
           — {referentRoleHint(candidate, terms)}
         </span>
@@ -43,7 +43,14 @@ export function TaskFormReferentsField({
   return (
     <div className="field">
       <label>Référents (optionnel)</label>
-      <p style={{ fontSize: '.8rem', color: '#555', margin: '0 0 8px', lineHeight: 1.45 }}>
+      <p
+        style={{
+          fontSize: 'var(--text-sm)',
+          color: 'var(--ink-soft)',
+          margin: '0 0 8px',
+          lineHeight: 'var(--lh-normal)',
+        }}
+      >
         Elles figurent sur la fiche : les {terms.studentPlural} savent vers qui se tourner en cas de
         question.
       </p>
@@ -63,7 +70,7 @@ export function TaskFormReferentsField({
               flexWrap: 'wrap',
             }}
           >
-            <span style={{ fontSize: '.8rem', color: '#666' }}>
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
               {selectedCount} sélectionné{selectedCount > 1 ? 's' : ''}
             </span>
             <button type="button" className="btn btn-ghost btn-sm" onClick={onClear}>

@@ -281,6 +281,84 @@ async function execute(sql, params = []) {
   };
 }
 
+/**
+ * Garde-fou de durée des transactions (C4, audit 2026-09) : `withTransaction` garde une
+ * connexion du pool (30) et ses verrous jusqu'au commit. Une transaction lente est donc
+ * journalisée (warn) au franchissement du seuil PUIS à sa fin avec la durée totale —
+ * assez pour diagnostiquer un pool qui s'assèche. Pas d'abandon d'office par défaut :
+ * tuer une transaction en vol (un import, typiquement) recréerait l'incohérence que la
+ * transaction existe à prévenir (G4). Un plafond dur optionnel reste disponible via
+ * FORETMAP_TX_MAX_MS (0 = désactivé) : au-delà, le travail est rejeté et la transaction
+ * annulée par le flux d'erreur normal.
+ */
+const TX_SLOW_WARN_MS = readPositiveIntEnv('FORETMAP_TX_SLOW_WARN_MS', 10000);
+const TX_MAX_MS = readPositiveIntEnv('FORETMAP_TX_MAX_MS', 0);
+
+function readPositiveIntEnv(name, fallback) {
+  const raw = process.env[name];
+  if (raw == null || String(raw).trim() === '') return fallback;
+  const n = Number.parseInt(String(raw).trim(), 10);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
+/**
+ * Enveloppe `work(tx)` avec le garde-fou : warn au seuil, warn de bilan au dépassement,
+ * rejet optionnel au plafond dur. Extrait de `withTransaction` pour être testable seul.
+ * @param {Function} run exécute le travail et renvoie sa promesse
+ * @param {{ slowWarnMs?: number, maxMs?: number, log?: object, now?: () => number }} [opts]
+ */
+async function runWithTxDurationGuard(run, opts = {}) {
+  const slowWarnMs = opts.slowWarnMs ?? TX_SLOW_WARN_MS;
+  const maxMs = opts.maxMs ?? TX_MAX_MS;
+  const log = opts.log ?? logger;
+  const now = opts.now ?? Date.now;
+
+  const startedAt = now();
+  let slowTimer = null;
+  if (slowWarnMs > 0) {
+    slowTimer = setTimeout(() => {
+      log.warn(
+        { tx_elapsed_ms: now() - startedAt, tx_slow_warn_ms: slowWarnMs },
+        'Transaction lente : une connexion du pool est monopolisée au-delà du seuil',
+      );
+    }, slowWarnMs);
+    if (typeof slowTimer.unref === 'function') slowTimer.unref();
+  }
+
+  let timeoutTimer = null;
+  const guarded =
+    maxMs > 0
+      ? Promise.race([
+          run(),
+          new Promise((_, reject) => {
+            timeoutTimer = setTimeout(() => {
+              if (typeof opts.onTimeout === 'function') opts.onTimeout();
+              reject(
+                new Error(
+                  `Transaction interrompue : durée maximale dépassée (FORETMAP_TX_MAX_MS=${maxMs} ms)`,
+                ),
+              );
+            }, maxMs);
+            if (typeof timeoutTimer.unref === 'function') timeoutTimer.unref();
+          }),
+        ])
+      : run();
+
+  try {
+    return await guarded;
+  } finally {
+    if (slowTimer) clearTimeout(slowTimer);
+    if (timeoutTimer) clearTimeout(timeoutTimer);
+    const elapsed = now() - startedAt;
+    if (slowWarnMs > 0 && elapsed >= slowWarnMs) {
+      log.warn(
+        { tx_elapsed_ms: elapsed, tx_slow_warn_ms: slowWarnMs },
+        'Transaction terminée au-delà du seuil de durée',
+      );
+    }
+  }
+}
+
 async function withTransaction(work) {
   const conn = await pool.getConnection();
   // Bump de version RBAC reporté APRÈS le commit (O3) : pendant la transaction, les lectures RBAC
@@ -297,20 +375,31 @@ async function withTransaction(work) {
     if (GROUP_SCOPE_WRITE_RE.test(sql)) scopeDirty = true;
     collectSyncDomainsForWriteSql(sql, txSyncAcc);
   };
+  // Levé par le plafond dur (FORETMAP_TX_MAX_MS) : la connexion va être rendue au pool,
+  // un travail « zombie » qui continuerait à requêter toucherait une connexion réattribuée.
+  let abortedByGuard = false;
+  const assertNotAborted = () => {
+    if (abortedByGuard) {
+      throw new Error('Transaction interrompue par le garde-fou de durée : requête refusée');
+    }
+  };
   try {
     await conn.beginTransaction();
     const tx = {
       queryAll: async (sql, params = []) => {
+        assertNotAborted();
         const [rows] = await conn.execute(sql, params);
         noteTxWrite(sql);
         return Array.isArray(rows) ? rows : [];
       },
       queryOne: async (sql, params = []) => {
+        assertNotAborted();
         const [rows] = await conn.execute(sql, params);
         noteTxWrite(sql);
         return Array.isArray(rows) ? rows[0] : undefined;
       },
       execute: async (sql, params = []) => {
+        assertNotAborted();
         const [result] = await conn.execute(sql, params);
         if (isRbacWriteSql(sql)) rbacDirty = true;
         noteTxWrite(sql);
@@ -320,8 +409,18 @@ async function withTransaction(work) {
         };
       },
     };
-    const result = await work(tx);
-    await conn.commit();
+    const result = await runWithTxDurationGuard(
+      async () => {
+        const value = await work(tx);
+        await conn.commit();
+        return value;
+      },
+      {
+        onTimeout: () => {
+          abortedByGuard = true;
+        },
+      },
+    );
     if (rbacDirty) rbacWriteVersion += 1;
     if (dataDirty) dataWriteVersion += 1;
     if (scopeDirty) groupScopeWriteVersion += 1;
@@ -901,6 +1000,8 @@ module.exports = {
   queryOne,
   execute,
   withTransaction,
+  // Exporté pour le test sans base du garde-fou de durée (C4, audit 2026-09).
+  runWithTxDurationGuard,
   getRbacWriteVersion,
   isRbacWriteSql,
   getDataWriteVersion,

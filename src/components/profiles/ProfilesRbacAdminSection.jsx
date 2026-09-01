@@ -127,7 +127,14 @@ export function ProfilesRbacAdminSection({
 
       <div style={{ ...cardStyle, marginTop: 12 }}>
         <h3 style={{ marginTop: 0 }}>Attribution des profils</h3>
-        <p style={{ margin: '0 0 10px', fontSize: '.78rem', color: '#64748b', lineHeight: 1.45 }}>
+        <p
+          style={{
+            margin: '0 0 10px',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--ink-soft)',
+            lineHeight: 'var(--lh-normal)',
+          }}
+        >
           Choisir le profil principal définit notamment forum et commentaires contextuels (réglés
           par profil dans la colonne de gauche, section Permissions). Utilisez « Modifier » pour
           changer prénom, nom, pseudo, email, description, affiliation ou mot de passe.

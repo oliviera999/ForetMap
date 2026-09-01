@@ -1,7 +1,12 @@
 import { useMemo, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import { useGeolocation } from '../../hooks/useGeolocation.js';
-import { isValidAnchors, pctToGeo } from '../../utils/mapGeoTransform.js';
+import {
+  assessAnchorsGeoPlausibility,
+  isValidAnchors,
+  pctToGeo,
+  planSizeMeters,
+} from '../../utils/mapGeoTransform.js';
 import {
   formatGeoCoordinate,
   parseGeoCoordinate,
@@ -79,16 +84,29 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
   const imgRef = useRef(null);
   const geo = useGeolocation();
 
-  const completePoints = points.filter(isPointComplete);
   const hasCalibrationDraft = hasAnyCalibrationValue(points);
-  const anchorsValid =
-    completePoints.length === 3 && isValidAnchors(toAnchorsArray(completePoints));
 
-  // Aperçu de contrôle : recalcule la position GPS du centre du plan via la transformation.
-  const centerPreview = useMemo(() => {
-    if (!anchorsValid) return null;
-    return pctToGeo(50, 50, toAnchorsArray(completePoints));
-  }, [anchorsValid, completePoints]);
+  // État dérivé du calage, recalculé uniquement quand la saisie change : validité,
+  // plausibilité géographique (échelles/alignement, audit C1) et aperçus de contrôle.
+  const { completePoints, anchorsValid, plausibility, planSize, centerPreview } = useMemo(() => {
+    const complete = points.filter(isPointComplete);
+    const anchors = toAnchorsArray(complete);
+    const valid = complete.length === 3 && isValidAnchors(anchors);
+    return {
+      completePoints: complete,
+      anchorsValid: valid,
+      plausibility: valid ? assessAnchorsGeoPlausibility(anchors) : null,
+      planSize: valid ? planSizeMeters(anchors) : null,
+      centerPreview: valid ? pctToGeo(50, 50, anchors) : null,
+    };
+  }, [points]);
+
+  const plausibilityError =
+    plausibility && !plausibility.ok
+      ? plausibility.reason === 'geo_collinear'
+        ? 'Calage incohérent : les trois points GPS sont alignés ou confondus — choisissez des repères formant un vrai triangle sur le terrain.'
+        : `Calage incohérent : les distances GPS ne correspondent pas aux distances sur le plan (échelles incompatibles, facteur ${Math.round(plausibility.scaleRatio)}). Vérifiez les coordonnées de chaque point.`
+      : null;
 
   const updatePoint = (index, patch) => {
     setPoints((prev) => prev.map((p, i) => (i === index ? { ...p, ...patch } : p)));
@@ -165,6 +183,10 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
       onError?.('3 points complets et distincts sont requis pour activer le suivi GPS.');
       return;
     }
+    if (plausibilityError) {
+      onError?.(plausibilityError);
+      return;
+    }
     setSaving(true);
     try {
       const anchors = anchorsValid ? toAnchorsArray(completePoints) : [];
@@ -189,13 +211,15 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
         borderTop: '1px dashed #d1d5db',
       }}
     >
-      <h4 style={{ margin: '0 0 6px', fontSize: '.92rem' }}>📍 Calage GPS (suivi mascotte)</h4>
-      <p style={{ margin: '0 0 8px', fontSize: '.75rem', color: '#6b7280' }}>
+      <h4 style={{ margin: '0 0 6px', fontSize: 'var(--text-base)' }}>
+        📍 Calage GPS (suivi mascotte)
+      </h4>
+      <p style={{ margin: '0 0 8px', fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}>
         Cliquez directement sur le plan pour placer les 3 repères (point suivant auto-sélectionné),
         puis indiquez leurs coordonnées GPS. « Point N » re-cible un repère précis ; « Ma position »
         renseigne les coordonnées du terrain.
       </p>
-      <p style={{ margin: '0 0 8px', fontSize: '.72rem', color: '#6b7280' }}>
+      <p style={{ margin: '0 0 8px', fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}>
         Formats acceptés : point <em>ou</em> virgule décimale (<code>48.8534</code>,{' '}
         <code>48,8534</code>), hémisphère (<code>48.8534 N</code>, <code>7.5898 O</code>) et
         degrés-minutes-secondes (<code>48°51&apos;12&quot;N</code>). Vous pouvez aussi coller la
@@ -234,8 +258,8 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
                 right: 8,
                 background: 'rgba(37, 99, 235, 0.92)',
                 color: 'white',
-                fontSize: '.78rem',
-                fontWeight: 700,
+                fontSize: 'var(--text-sm)',
+                fontWeight: 'var(--fw-bold)',
                 padding: '6px 10px',
                 borderRadius: 8,
                 pointerEvents: 'none',
@@ -261,8 +285,8 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
                   borderRadius: '50%',
                   background: '#2563eb',
                   color: 'white',
-                  fontSize: '.7rem',
-                  fontWeight: 700,
+                  fontSize: 'var(--text-xs)',
+                  fontWeight: 'var(--fw-bold)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -334,14 +358,14 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
                     📡 Ma position
                   </button>
                 ) : null}
-                <span style={{ fontSize: '.7rem', color: '#9ca3af' }}>
+                <span style={{ fontSize: 'var(--text-xs)', color: '#9ca3af' }}>
                   {p.xp != null ? `x${p.xp} y${p.yp}` : 'non placé'}
                 </span>
               </div>
               {latError || lngError ? (
                 <p
                   role="alert"
-                  style={{ margin: '0 0 2px 82px', fontSize: '.7rem', color: '#dc2626' }}
+                  style={{ margin: '0 0 2px 82px', fontSize: 'var(--text-xs)', color: '#dc2626' }}
                 >
                   {latError || lngError}
                 </p>
@@ -352,7 +376,13 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
       </div>
 
       <label
-        style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: '.82rem' }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          marginTop: 8,
+          fontSize: 'var(--text-sm)',
+        }}
       >
         <input
           type="checkbox"
@@ -364,14 +394,25 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
       </label>
 
       {geo.position ? (
-        <p style={{ margin: '6px 0 0', fontSize: '.72rem', color: '#16a34a' }}>
+        <p style={{ margin: '6px 0 0', fontSize: 'var(--text-xs)', color: '#16a34a' }}>
           Position actuelle : {geo.position.lat.toFixed(5)}, {geo.position.lng.toFixed(5)} (±
           {Math.round(geo.position.accuracy)} m)
         </p>
       ) : null}
       {centerPreview ? (
-        <p style={{ margin: '4px 0 0', fontSize: '.72rem', color: '#6b7280' }}>
+        <p style={{ margin: '4px 0 0', fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}>
           Contrôle : centre du plan ≈ {centerPreview.lat.toFixed(5)}, {centerPreview.lng.toFixed(5)}
+        </p>
+      ) : null}
+      {planSize ? (
+        <p style={{ margin: '4px 0 0', fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}>
+          Échelle déduite : plan ≈ {Math.round(planSize.widthM)} m × {Math.round(planSize.heightM)}{' '}
+          m — si ces dimensions ne ressemblent pas au terrain, un point est mal renseigné.
+        </p>
+      ) : null}
+      {plausibilityError ? (
+        <p role="alert" style={{ margin: '6px 0 0', fontSize: 'var(--text-xs)', color: '#dc2626' }}>
+          ⚠️ {plausibilityError}
         </p>
       ) : null}
 

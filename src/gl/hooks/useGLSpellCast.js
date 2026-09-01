@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { isSocketAuthRejection } from '../../utils/realtimeAuthRejection';
+import { jitteredRefreshDelay } from '../../utils/realtimeRefreshDelay';
 import { apiGL } from '../services/apiGL.js';
 import { withAppBase } from '../../shared/appBase.js';
 
@@ -48,6 +50,28 @@ export function useGLSpellCast({ token, gameId, enabled, onCastComplete }) {
       return data?.draft;
     },
     [gameId],
+  );
+
+  // Le refetch déclenché par `gl:spell_cast:draft` (émis à toute la partie) est étalé
+  // comme les autres refetchs temps réel (`src/utils/realtimeRefreshDelay.js`) pour ne
+  // pas faire recharger tous les postes dans la même seconde.
+  const draftRefreshDebounceRef = useRef(null);
+  const scheduleDraftRefresh = useCallback(
+    (draftId) => {
+      if (draftRefreshDebounceRef.current) clearTimeout(draftRefreshDebounceRef.current);
+      draftRefreshDebounceRef.current = setTimeout(() => {
+        draftRefreshDebounceRef.current = null;
+        refreshDraft(draftId);
+      }, jitteredRefreshDelay(0));
+    },
+    [refreshDraft],
+  );
+
+  useEffect(
+    () => () => {
+      if (draftRefreshDebounceRef.current) clearTimeout(draftRefreshDebounceRef.current);
+    },
+    [],
   );
 
   const saveContributions = useCallback(
@@ -115,11 +139,16 @@ export function useGLSpellCast({ token, gameId, enabled, onCastComplete }) {
       socket.on('connect', () => {
         socket.emit('subscribe:gl-game', { gameId });
       });
+      socket.on('connect_error', (err) => {
+        // Voir `useGLMarketTrade` : un jeton refusé ne devient pas une boucle de requêtes.
+        if (!isSocketAuthRejection(err)) return;
+        socket.disconnect();
+      });
       socket.on('gl:spell_cast:draft', (evt) => {
         if (Number(evt?.gameId) !== Number(gameId)) return;
         if (evt?.draft) setDraft(evt.draft);
         else if (evt?.draftId && draft?.id === evt.draftId) {
-          refreshDraft(evt.draftId);
+          scheduleDraftRefresh(evt.draftId);
         }
       });
     })();
@@ -127,7 +156,7 @@ export function useGLSpellCast({ token, gameId, enabled, onCastComplete }) {
       cancelled = true;
       if (socket) socket.close();
     };
-  }, [token, gameId, enabled, draft?.id, refreshDraft]);
+  }, [token, gameId, enabled, draft?.id, scheduleDraftRefresh]);
 
   return {
     draft,

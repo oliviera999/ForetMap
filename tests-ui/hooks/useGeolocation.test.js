@@ -83,4 +83,43 @@ describe('useGeolocation', () => {
     expect(geo.clearWatch).toHaveBeenCalledWith(99);
     expect(result.current.status).toBe('idle');
   });
+
+  it('purge la position et l’erreur au stop (pas de point périmé rejoué)', () => {
+    const geo = makeGeolocationMock();
+    let successCb;
+    geo.watchPosition.mockImplementation((onSuccess) => {
+      successCb = onSuccess;
+      return 5;
+    });
+    vi.stubGlobal('navigator', { geolocation: geo });
+
+    const { result } = renderHook(() => useGeolocation());
+    act(() => result.current.start());
+    act(() => {
+      successCb({ coords: { latitude: 48.85, longitude: 2.3, accuracy: 8 }, timestamp: 1000 });
+    });
+    expect(result.current.position).not.toBeNull();
+
+    act(() => result.current.stop());
+    expect(result.current.position).toBeNull();
+    expect(result.current.error).toBeNull();
+  });
+
+  it('expose l’erreur d’acquisition (position indisponible) sans changer le statut', () => {
+    const geo = makeGeolocationMock();
+    let errorCb;
+    geo.watchPosition.mockImplementation((_onSuccess, onError) => {
+      errorCb = onError;
+      return 7;
+    });
+    vi.stubGlobal('navigator', { geolocation: geo });
+
+    const { result } = renderHook(() => useGeolocation());
+    act(() => result.current.start());
+    act(() => {
+      errorCb({ code: 2, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 });
+    });
+    expect(result.current.status).toBe('prompt');
+    expect(result.current.error).toMatch(/indisponible/i);
+  });
 });

@@ -33,7 +33,7 @@ describe('buildZonePayload', () => {
   test('mappe les champs de formulaire, force current_plant vide et normalise les blocs', () => {
     const form = {
       livingBeings: ['Tomate'],
-      stage: 'growing',
+      categoryIds: ['cat-verger'],
       zoneColor: '#abc',
       desc: 'desc',
       visitSubtitle: 'st',
@@ -45,7 +45,7 @@ describe('buildZonePayload', () => {
     expect(payload.name).toBe('🌱 Potager');
     expect(payload.current_plant).toBe('');
     expect(payload.living_beings).toEqual(['Tomate']);
-    expect(payload.stage).toBe('growing');
+    expect(payload.category_ids).toEqual(['cat-verger']);
     expect(payload.color).toBe('#abc');
     expect(payload.description).toBe('desc');
     expect(payload.visit_subtitle).toBe('st');

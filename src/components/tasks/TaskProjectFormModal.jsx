@@ -153,7 +153,9 @@ function TaskProjectFormModal({
         ✕
       </button>
       <h3>{heading}</h3>
-      {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
+      {err && (
+        <p style={{ color: var_alert, marginBottom: 12, fontSize: 'var(--text-sm)' }}>{err}</p>
+      )}
       <div className="field">
         <label>Titre *</label>
         <input
@@ -217,13 +219,13 @@ function TaskProjectFormModal({
             <option value="on_hold">En attente (inscriptions fermées)</option>
           </select>
           {form.status === 'completed' && (
-            <p style={{ fontSize: '.82rem', color: '#555', marginTop: 6 }}>
+            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', marginTop: 6 }}>
               Choisis « Actif » ou « En attente » pour rouvrir le projet, ou ajoute une tâche non
               terminée (le projet repasse alors automatiquement en actif).
             </p>
           )}
           {form.status === 'validated' && (
-            <p style={{ fontSize: '.82rem', color: '#555', marginTop: 6 }}>
+            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', marginTop: 6 }}>
               Choisis « Actif » ou « En attente » pour rouvrir le projet après validation manuelle.
             </p>
           )}

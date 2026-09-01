@@ -30,7 +30,7 @@ export function VisitEditorEmojiPicker({
           <button
             type="button"
             className={`emoji-btn ${!String(selectedEmoji || '').trim() ? 'sel' : ''}`}
-            style={{ fontSize: '.78rem', padding: '6px 10px' }}
+            style={{ fontSize: 'var(--text-sm)', padding: '6px 10px' }}
             onClick={() => onClearEmoji?.()}
           >
             Sans emoji
