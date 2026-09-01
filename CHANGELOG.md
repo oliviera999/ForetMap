@@ -13,6 +13,15 @@ La liste carte n’envoie plus le JSON éditorial visite (anti-LVE). Enregistrer
 avant le chargement du détail — ou après un poll qui renvoyait la liste allégée —
 réécrivait un corps vide et effaçait paragraphes / titres. La sauvegarde omet désormais
 ces blocs tant que le détail n’est pas chargé, et un poll ne remplace plus un détail déjà lu.
+### Le verrou ForetMap ignorait les surcharges type/fiche
+
+La cascade site → type → fiche (erreurs tolérées, délai, portée du verrou) était
+annoncée dans le challenge et appliquée côté GL, mais l’écriture du verrou
+ForetMap (`POST /api/quiz/questions/:code/answer`) relisait uniquement les
+réglages du site. Un professeur qui assouplissait une fiche (2 erreurs permises)
+ou au contraire y posait un délai alors que le site était à 0 voyait l’élève
+verrouillé trop tôt — ou jamais. L’écriture utilise désormais la même politique
+effective que l’annonce.
 
 ### Chargement des données : onglets pédago et anti-course
 
