@@ -206,7 +206,7 @@ export function AppHeader({
         </Tooltip>
         <Tooltip text={helpText('header.logout')}>
           <button className="lock-btn" aria-label="Déconnexion" onClick={onLogout}>
-            ↩️
+            🚪
           </button>
         </Tooltip>
       </div>

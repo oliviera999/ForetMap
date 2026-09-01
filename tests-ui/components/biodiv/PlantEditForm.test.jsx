@@ -61,7 +61,7 @@ describe('PlantEditForm', () => {
     expect(screen.getByTestId('plantnet-panel')).toBeInTheDocument();
     expect(screen.getByTestId('prefill-panel')).toBeInTheDocument();
     expect(screen.getByText('Photo espèce (URL directe)')).toBeInTheDocument();
-    expect(screen.getByText('💾 Sauvegarder')).toBeInTheDocument();
+    expect(screen.getByText('💾 Enregistrer')).toBeInTheDocument();
     expect(screen.getByText('Annuler')).toBeInTheDocument();
   });
 
@@ -83,9 +83,9 @@ describe('PlantEditForm', () => {
     expect(applied.emoji).toBe(emojiBtn.textContent);
   });
 
-  test('boutons Sauvegarder/Annuler câblés ; Sauvegarder désactivé pendant saving', () => {
+  test('boutons Enregistrer/Annuler câblés ; Enregistrer désactivé pendant saving', () => {
     const { onSave, onCancel } = setup();
-    fireEvent.click(screen.getByText('💾 Sauvegarder'));
+    fireEvent.click(screen.getByText('💾 Enregistrer'));
     expect(onSave).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByText('Annuler'));
     expect(onCancel).toHaveBeenCalledTimes(1);

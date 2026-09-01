@@ -85,7 +85,7 @@ describe('MapViewToolbar', () => {
     expect(screen.getByRole('button', { name: '🖊️ Zone (3)' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '✅ Terminer' }));
     expect(h.onFinishZone).toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: '↩ Undo' }));
+    fireEvent.click(screen.getByRole('button', { name: '↩ Annuler' }));
     expect(h.onUndoPoint).toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: '✕' }));
     expect(h.onCancelDraw).toHaveBeenCalled();

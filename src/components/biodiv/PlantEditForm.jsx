@@ -445,7 +445,7 @@ function PlantEditForm({
       {autoSaveError ? <p className="form-error">{autoSaveError}</p> : null}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <button className="btn btn-primary btn-sm" onClick={onSave} disabled={saving}>
-          {saving ? '...' : '💾 Sauvegarder'}
+          {saving ? '...' : '💾 Enregistrer'}
         </button>
         <button className="btn btn-ghost btn-sm" onClick={onCancel}>
           Annuler
