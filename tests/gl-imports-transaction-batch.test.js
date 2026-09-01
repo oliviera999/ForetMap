@@ -18,9 +18,11 @@ const { applyChaptersImport } = require('../lib/glChaptersImport');
 const {
   IMPORT_INSERT_BATCH_SIZE,
   chunkRows,
+  isBatchableInsertSql,
   expandMultiRowInsertSql,
   executeQuestionUpserts,
 } = require('../lib/shared/xlsxImportCore');
+const { SPELL_UPSERT_SQL } = require('../lib/glSpellsImport');
 
 // ---------------------------------------------------------------------------------------
 // 1. Import de chapitres interrompu : la base reste inchangée.
@@ -217,6 +219,41 @@ test('chunkRows découpe par lots de 100 par défaut', () => {
     chunks.map((c) => c.length),
     [100, 100, 50],
   );
+});
+
+test('un SQL non lotissable (des ? dans ON DUPLICATE) repasse en exécution ligne à ligne', async () => {
+  // Cas réel : SPELL_UPSERT_SQL porte trois COALESCE(?, …) dans sa clause ON DUPLICATE —
+  // un paramètre unique par requête ne peut pas porter une valeur différente par ligne.
+  assert.strictEqual(isBatchableInsertSql(SPELL_UPSERT_SQL), false);
+  assert.throws(() => expandMultiRowInsertSql(SPELL_UPSERT_SQL, 2), /non lotissable/);
+  assert.doesNotThrow(() => expandMultiRowInsertSql(SPELL_UPSERT_SQL, 1));
+
+  const nonBatchableSql =
+    'INSERT INTO t (code, valeur) VALUES (?, ?) ON DUPLICATE KEY UPDATE valeur = COALESCE(?, valeur)';
+  const calls = [];
+  const deps = { execute: async (sql, params) => calls.push({ sql, params }) };
+  const validRows = [
+    { rowNumber: 2, payload: { code: 'C1', valeur: 1 } },
+    { rowNumber: 3, payload: { code: 'C2', valeur: 2 } },
+  ];
+  const totals = { created: 0, updated: 0 };
+  await executeQuestionUpserts(deps, validRows, {
+    sql: nonBatchableSql,
+    buildParams: (payload) => [payload.code, payload.valeur, payload.valeur],
+    existingCodes: new Set(['C1']),
+    totals,
+    codeOf: (payload) => payload.code,
+  });
+  assert.strictEqual(calls.length, 2, 'une requête PAR LIGNE, jamais un lot bancal');
+  for (const call of calls) {
+    assert.strictEqual(call.sql, nonBatchableSql);
+    assert.strictEqual(
+      (call.sql.match(/\?/g) || []).length,
+      call.params.length,
+      'placeholders et paramètres doivent rester alignés',
+    );
+  }
+  assert.deepStrictEqual(totals, { created: 1, updated: 1 });
 });
 
 test('executeQuestionUpserts : 250 lignes = 3 requêtes, comptage created/updated inchangé', async () => {
