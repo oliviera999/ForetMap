@@ -15,6 +15,170 @@ Le même motif venait d'être sécurisé pour Gnomes & Licornes. Une interruptio
 (timeout, kill mémoire) laissait le catalogue à jour et **tous** ces rattachements
 effacés — le contrôle de compréhension rattaché au glossaire ne se déclenchait
 plus. L'import passe désormais en une seule transaction : échec = rien n'a changé.
+### Chargement des données : onglets pédago et anti-course
+
+Le rafraîchissement global (`fetchAll`) traitait encore glossaire, quiz, réseau trophique
+et médiathèque comme des onglets « chauds » : polling à cadence nominale, et **aucun**
+rechargement en les quittant pour revenir à la carte ou aux plantes. Ils rejoignent les
+onglets calmes (`POLLING_COARSE_TABS`) — intervalle doublé hors temps réel, un `fetchAll`
+à la sortie.
+
+Les listes du glossaire, du réseau trophique et des catégories de quiz ignoraient une
+réponse plus récente au profit d'une requête plus lente (changement de filtre). Une
+garde de séquence conserve uniquement le chargement le plus récent, comme le carnet
+d'observations.
+
+Couverture : `tests-ui/hooks/useAppDataPolling.test.jsx`,
+`tests-ui/components/pedago/pedagoLoadRace.test.jsx`. Le scénario e2e glossaire
+seede un terme unique (la base e2e n’importe pas le contenu biodiv) puis filtre
+dessus — plus de recherche « photo » qui masquait une liste périmée.
+
+### Un seul système typographique (audit homogénéité UI — B2/B3)
+
+Migration mécanique de la typographie vers les tokens posés au lot précédent —
+**1 340 remplacements**, aucun littéral restant hors allowlist :
+
+- **Tailles** : les 85 valeurs littérales de `font-size` (500 en CSS, 335 en styles inline
+  JSX) sont regroupées sur l'échelle fluide `--text-2xs` → `--text-2xl` (8 crans, nouveau
+  cran `--text-2xs` pour les badges) ; seules deux tailles « display » (2.5/3 rem) restent
+  littérales. Le « petit texte » écrit de 14 façons entre 0.68 et 0.88 rem tient désormais
+  sur deux crans.
+- **Graisses** : 271 `font-weight` littéraux → `--fw-regular/medium/semibold/bold`
+  (descripteurs `@font-face` exclus).
+- **Interlignes** : les grappes 1.4/1.45/1.5/1.52 → `--lh-normal`, 1.55–1.74 →
+  `--lh-relaxed`, 1.2 → `--lh-tight` (119 remplacements) ; les interlignes d'alignement
+  fin (1, 1.25 des boutons…) restent explicites.
+- **Gris secondaires** : les six gris inline (`#64748b`, `#6b7280`, `#555`, `#666`,
+  `#999`, `#888` — 120 occurrences) convergent sur `--ink-soft` / `--ink-faint`
+  (`#8a94a0`, plus lisible que l'ancien `#999`).
+- Les tokens sont définis **par produit** (`src/index.css` et `gl-base.css`, mêmes
+  valeurs) car les pages GL ne chargent pas `index.css`.
+- **Garde-fou** : `tests/typography-tokens-guard.test.js` échoue si un `font-size` littéral
+  rem (CSS), un `fontSize`/gris inline littéral (JSX) ou un token manquant réapparaît —
+  la dispersion mesurée par l'audit ne peut plus se reconstituer silencieusement.
+
+### L'inventaire « Zones & repères » devient une grille d'édition directe avec actions par lot
+
+Refonte du sous-onglet **Réglages administrateur → « Zones & repères »** livré au lot
+précédent : plus de bouton « Modifier », chaque ligne est un mini-formulaire
+**toujours éditable** qui enregistre à la sortie du champ (Entrée valide, Échap
+annule).
+
+- **Champs exhaustifs** en édition directe : emoji, nom, carte (déplacement d'un
+  lieu vers un autre plan), description/note, **espèces** (pastilles + champ à
+  suggestions du catalogue), **catégories** (pastilles à activer/désactiver, seules
+  les applicables au type et à la carte sont proposées), et dans le dépliant
+  « Visite & détails » les quatre textes du mode Visite, la couleur d'une zone et la
+  position X/Y d'un repère. Seuls le tracé, les photos et les blocs d'images de
+  visite restent sur la carte.
+- **Édition par lot** sur la sélection (cases + « Tout sélectionner ») : ajouter /
+  retirer une catégorie ou une espèce, déplacer vers une carte, définir l'emoji,
+  **rechercher / remplacer** dans les noms (et sur option descriptions/notes),
+  **supprimer** après confirmation. Le bouton « Appliquer » annonce le nombre de
+  lieux réellement concernés, une progression s'affiche, et le bilan distingue mis à
+  jour / déjà conformes / échecs.
+- Logique pure extraite dans `src/utils/adminLocationsGrid.js` (26 nouveaux cas de
+  test). Toujours **aucune nouvelle route ni migration** : `PUT`/`DELETE` unitaires
+  existants, permissions « Gestion zones » / « Gestion repères » inchangées côté
+  serveur.
+
+Doc : `docs/reference/foretmap/carte-et-zones.md` (section réécrite).
+### Emoji de zone en colonne dédiée (audit homogénéité UI — C4)
+
+La colonne `zones.emoji` (migration `206`) remplace l'extraction fragile du préfixe du nom
+comme source de vérité de l'emoji de zone :
+
+- **API** : `POST`/`PUT /api/zones` acceptent `emoji` (normalisé, `''` = effacement) et le
+  dérivent du préfixe du nom quand il est omis (anciens clients) ; toutes les réponses zone
+  l'exposent.
+- **Affichage** : le plan (carte et Visite), la fiche zone et les filtres carte privilégient
+  la colonne et se replient sur le préfixe pour les lignes non migrées. L'en-tête de la
+  fiche rend l'emoji dans la pile emoji (nouvelle classe `.emoji-glyph`) au lieu de le
+  laisser passer par Playfair Display avec le nom brut.
+- **Formulaires** : les modales de création et d'édition envoient l'emoji du sélecteur en
+  champ dédié ; le nom conserve son préfixe pour la compatibilité des autres affichages.
+- Couverture : `tests/zone-emoji.test.js` (helper serveur, sans BDD),
+  `tests/zone-emoji-column.test.js` (POST/PUT/GET), tests UI `zoneDisplay` et
+  `parseZonesForLayer` (préférence colonne).
+
+### Homogénéité de l'interface : lots A et C de l'audit exécutés (+ socle du lot B)
+
+Mise en œuvre du plan de `docs/AUDIT_UI_HOMOGENEITE_2026-09.md` (état détaillé en §6 du
+document) :
+
+- **Fin de la déformation des noms de zones** (carte et Visite) : l'ancien
+  `textLength`/`lengthAdjust="spacingAndGlyphs"` étirait les noms courts et écrasait les
+  longs dès 13 caractères. Un nom trop large est désormais légèrement réduit (borné à
+  −20 %) puis coupé avec « … » — glyphes intacts, nom complet dans la fiche et en
+  info-bulle SVG. Nouvelle fonction testée `fitOverlayLabelToWidth`.
+- **SVG étirés dé-anamorphosés** : numéros/points des zones feuillets GL, éditeur de
+  sommets du royaume et aperçus biodiversité ne sont plus aplatis/étirés selon le ratio
+  du plan (`transform-box: fill-box` + `--map-fit-aspect`) ; tous les contours étirés
+  passent en `vector-effect: non-scaling-stroke` (trait identique sur les deux axes,
+  constant au zoom).
+- **Un seul rendu d'emoji partout** : pile de polices unifiée (`ForetMapColorEmoji` avant
+  les polices système dans toutes les piles, ForetMap et GL), `unicode-range` sur le
+  `@font-face` (les 5,5 Mo ne se téléchargent que si un emoji est rendu), préchargement
+  côté ForetMap comme côté GL (fin de la bascule visible au chargement),
+  `font-variant-emoji` sur les classes d'overlay, glyphes normalisés (`🗑️`, `☑️/⬜`,
+  `✕` remplace `×`). Migration `205` : réparation du sélecteur U+FE0F corrompu étendue
+  aux tables ForetMap (zones, repères carte/visite, catégories, plantes, rôles) ; la
+  réparation mojibake est aussi appliquée à l'affichage des noms de zones, et la saisie
+  d'emoji ne peut plus scinder une séquence (coupe en points de code).
+- **Vrai gras** : DM Sans est désormais chargée en 700 (le CSS en demandait ~100 usages
+  jamais chargés → gras synthétisé) ; les 4 usages de 800 sont rabattus sur 700.
+- **Un seul régime de zoom pour les trois cartes** : les repères de la Visite suivent la
+  même croissance douce que les noms de zones au lieu de doubler linéairement, leurs
+  pastilles gardent un rapport constant avec l'emoji pendant le zoom ; GL applique enfin
+  le multiplicateur tactile (×1,2) et la préférence « taille du texte », désormais
+  réglable aussi depuis le bandeau de la Visite (bouton « Aa »). Les planchers de taille
+  s'appliquent au couple emoji+libellé (ratio conservé sur les petits plans) et les
+  arrondis n'introduisent plus de sauts d'1 px au redimensionnement.
+- **Corrections avérées** : la feuille de filtres carte mobile retrouve son style
+  bottom-sheet (props `DialogShell` corrigées) et s'aligne sur la feuille des tâches ;
+  l'onglet Médiathèque est de nouveau restauré au rechargement ; `aria-label` sur les
+  4 boutons `✕` muets ; cibles tactiles ≥ 44 px dans la barre d'outils carte.
+- **Socle typographique (lot B)** : échelle étendue à 7 crans (`--text-xs`…`--text-2xl`),
+  tokens de graisse (`--fw-*`) et d'interligne (`--lh-*`), piles de polices dédupliquées,
+  petits boutons alignés (0.875rem / 36 px pour `.btn-sm`, `.gl-btn--sm`,
+  `.shared-btn--sm`) et `line-height` explicite sur `.btn`. La migration des tailles
+  littérales (B2/B3) et la colonne `zones.emoji` (C4) restent des lots dédiés.
+
+### Audit — homogénéité de l'interface (écrits, emojis sur les plans, densité)
+
+Nouveau document [`docs/AUDIT_UI_HOMOGENEITE_2026-09.md`](docs/AUDIT_UI_HOMOGENEITE_2026-09.md),
+en réponse au signalement « écrits et emojis hétérogènes sur les plans, déformation,
+tailles différentes, interface parfois chargée ». Audit sans modification de code :
+
+- **Écrits** — l'échelle typographique (`--text-*`) existe mais n'est utilisée que 3 fois
+  contre 879 tailles littérales (85 valeurs distinctes, dont 14 variantes de « petit
+  texte ») ; graisses 700/800 demandées ~100 fois mais jamais chargées (faux-gras) ;
+  1 114 styles inline sur 41 % des composants ; trois familles de boutons non alignées.
+- **Emojis sur les plans** — déformation des noms de zones par
+  `textLength`/`spacingAndGlyphs` au-delà de 12 caractères ; textes et cercles
+  anamorphosés dans les SVG étirés non compensés (feuillets GL, aperçus biodiversité) ;
+  emojis rasterisés à ~5 px puis agrandis au zoom ; trois régimes de zoom différents pour
+  le même concept de repère ; pile de polices emoji inversée selon la variable, préchargée
+  côté GL mais pas côté ForetMap ; réparation `U+FE0F` limitée aux tables GL.
+- **Densité** — 13/17 onglets en barres scrollables sans indicateur, 18 surfaces
+  superposables sur l'écran carte, 54 dialogues natifs `confirm/alert/prompt`,
+  formulaires admin sans replis ; deux bugs avérés consignés (bottom-sheet des filtres
+  carte jamais stylée par props ignorées, onglet Médiathèque jamais restauré).
+- **Plan d'amélioration** en 4 lots priorisés (A corrections ciblées → D désencombrement),
+  chaque constat référencé `fichier:ligne`.
+### Réglages : un sélecteur de couleur pour les catégories de lieux
+
+La couleur d'une catégorie ne se saisissait qu'en hexadécimal, à l'aveugle. Un **sélecteur
+de couleur natif** est ajouté à côté du champ, qui reste éditable pour ceux qui préfèrent
+coller un code.
+
+Les couleurs de catégories portent un canal **alpha** (`#86efac90`) — la transparence est ce
+qui laisse le plan visible sous la zone — alors que `<input type="color">` ne sait manipuler
+que du `#rrggbb`. Le sélecteur ne touche donc qu'à la teinte et **reconduit l'alpha** déjà
+saisi : `#86efac90` + teinte `#fca5a5` donne `#fca5a590`. Une saisie incomplète en cours de
+frappe ne fait pas retomber la pastille sur du noir. Logique isolée dans
+`src/utils/hexColorWithAlpha.js`, couverte par des tests unitaires et un test de montage du
+panneau.
 
 ### Les constats de l'audit géolocalisation sont tous traités
 

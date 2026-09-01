@@ -124,8 +124,8 @@ export default function VisitMascotDialogStudioView({ onForceLogout, catalogMode
 
   return (
     <div className="visit-mascot-dialog-studio">
-      <h2 style={{ fontSize: '1.05rem', marginTop: 0 }}>Bulles de dialogue</h2>
-      <p className="section-sub" style={{ fontSize: '0.82rem' }}>
+      <h2 style={{ fontSize: 'var(--text-md)', marginTop: 0 }}>Bulles de dialogue</h2>
+      <p className="section-sub" style={{ fontSize: 'var(--text-sm)' }}>
         Définissez les messages affichés selon la situation sur la carte visite. Les défauts globaux
         s’appliquent à toutes les mascottes ; vous pouvez surcharger par mascotte catalogue. Les
         packs publiés peuvent encore surcharger via l’onglet « Bulles de dialogue » du pack.
@@ -139,7 +139,7 @@ export default function VisitMascotDialogStudioView({ onForceLogout, catalogMode
           marginBottom: 12,
         }}
       >
-        <label style={{ fontSize: '0.85rem' }}>
+        <label style={{ fontSize: 'var(--text-sm)' }}>
           Périmètre{' '}
           <select
             className="form-select"

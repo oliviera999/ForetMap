@@ -101,7 +101,7 @@ export function GLVirtualDicePopover({
           aria-label="Fermer"
           onClick={onClose}
         >
-          ×
+          ✕
         </button>
       </header>
 

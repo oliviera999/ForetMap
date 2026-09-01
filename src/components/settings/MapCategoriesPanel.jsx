@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 
 import { api } from '../../services/api';
 import { useApiResource } from '../../hooks/useApiResource.js';
+import { applyPickedHexColor, colorPickerValue } from '../../utils/hexColorWithAlpha.js';
 
 const APPLIES_TO_LABELS = {
   both: 'Zones et repères',
@@ -121,7 +122,14 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
       }}
     >
       <h3 style={{ marginTop: 0 }}>Catégories de lieux</h3>
-      <p style={{ fontSize: '.82rem', color: '#6b7280', marginBottom: 10, lineHeight: 1.45 }}>
+      <p
+        style={{
+          fontSize: 'var(--text-sm)',
+          color: 'var(--ink-soft)',
+          marginBottom: 10,
+          lineHeight: 'var(--lh-normal)',
+        }}
+      >
         Les catégories classent les zones et les repères, et servent de filtre sur la carte. Une
         catégorie sans carte vaut pour toutes les cartes ; sinon elle n’est proposée que sur la
         carte choisie. « Infrastructure » marque les lieux qui ne sont pas des cultures (mare,
@@ -148,12 +156,30 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
           />
         </div>
         <div className="field" style={{ flex: 1, minWidth: 0 }}>
-          <label>Couleur</label>
-          <input
-            value={draft.color}
-            onChange={(e) => setField({ color: e.target.value })}
-            placeholder="#86efac90"
-          />
+          <label htmlFor="map-category-color-hex">Couleur</label>
+          <div className="map-category-color-field">
+            <input
+              type="color"
+              className="map-category-color-field__picker"
+              value={colorPickerValue(draft.color)}
+              aria-label="Choisir la teinte"
+              onChange={(e) =>
+                setField({ color: applyPickedHexColor(draft.color, e.target.value) })
+              }
+            />
+            <input
+              id="map-category-color-hex"
+              className="map-category-color-field__hex"
+              value={draft.color}
+              onChange={(e) => setField({ color: e.target.value })}
+              placeholder="#86efac90"
+              spellCheck={false}
+            />
+          </div>
+          <p className="map-category-color-field__hint">
+            Les deux derniers caractères règlent la transparence (<code>90</code> ≈ 56 %) et sont
+            conservés par le sélecteur.
+          </p>
         </div>
         <div className="field" style={{ flex: 1, minWidth: 0 }}>
           <label>Ordre</label>
@@ -233,9 +259,13 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
       </div>
 
       <div style={{ marginTop: 14 }}>
-        {loading && <p style={{ fontSize: '.82rem', color: '#6b7280' }}>Chargement…</p>}
+        {loading && (
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>Chargement…</p>
+        )}
         {!loading && categories.length === 0 && (
-          <p style={{ fontSize: '.82rem', color: '#6b7280' }}>Aucune catégorie pour l’instant.</p>
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
+            Aucune catégorie pour l’instant.
+          </p>
         )}
         {categories.map((cat) => (
           <div
@@ -264,7 +294,7 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
                 {cat.emoji ? `${cat.emoji} ` : ''}
                 {cat.label}
               </strong>
-              <div style={{ fontSize: '.78rem', color: '#6b7280' }}>
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
                 {cat.map_id
                   ? maps.find((m) => m.id === cat.map_id)?.label || cat.map_id
                   : 'Toutes les cartes'}{' '}

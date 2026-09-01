@@ -80,8 +80,8 @@ export default function MascotPackListAside({
         paddingRight: 12,
       }}
     >
-      <h2 style={{ fontSize: '1.05rem', marginTop: 0 }}>Mascottes</h2>
-      <p className="section-sub" style={{ fontSize: '0.82rem', marginBottom: 10 }}>
+      <h2 style={{ fontSize: 'var(--text-md)', marginTop: 0 }}>Mascottes</h2>
+      <p className="section-sub" style={{ fontSize: 'var(--text-sm)', marginBottom: 10 }}>
         Toutes les mascottes sont ici, livrées comprises, et se modifient — ou se suppriment — de la
         même façon. Celles qui sont <strong>publiées</strong> sont proposées aux visiteurs, sur
         toutes les cartes.
@@ -163,7 +163,7 @@ export default function MascotPackListAside({
         </button>
       ) : null}
       {listError ? (
-        <p className="text-danger" role="alert" style={{ fontSize: '0.85rem' }}>
+        <p className="text-danger" role="alert" style={{ fontSize: 'var(--text-sm)' }}>
           {listError}
         </p>
       ) : null}
@@ -182,8 +182,10 @@ export default function MascotPackListAside({
               aria-label={`Ouvrir le pack ${p.label || p.catalog_id}`}
               onClick={() => onSelectPack(p.id)}
             >
-              <span style={{ display: 'block', fontWeight: 600 }}>{p.label || p.catalog_id}</span>
-              <span style={{ display: 'block', fontSize: '0.75rem', opacity: 0.85 }}>
+              <span style={{ display: 'block', fontWeight: 'var(--fw-semibold)' }}>
+                {p.label || p.catalog_id}
+              </span>
+              <span style={{ display: 'block', fontSize: 'var(--text-xs)', opacity: 0.85 }}>
                 {/* L'origine d'abord : c'est elle qui dit ce qu'on peut faire de la ligne
                     (réinitialiser une livrée, supprimer une mascotte créée ici). */}
                 {p.origin === 'builtin' ? 'Livrée' : 'Créée ici'}
@@ -209,7 +211,7 @@ export default function MascotPackListAside({
           <label>
             <span
               className="section-sub"
-              style={{ fontSize: '0.75rem', display: 'block', marginBottom: 4 }}
+              style={{ fontSize: 'var(--text-xs)', display: 'block', marginBottom: 4 }}
             >
               Libellé (liste)
             </span>
@@ -247,22 +249,22 @@ export default function MascotPackListAside({
             {selectedRow?.is_published ? 'Retirer de la visite publique' : 'Publier sur la visite'}
           </button>
           {selectedRow?.is_published ? (
-            <p className="section-sub" style={{ fontSize: '0.75rem', margin: 0 }}>
+            <p className="section-sub" style={{ fontSize: 'var(--text-xs)', margin: 0 }}>
               La retirer la masque du sélecteur des visiteurs. C’est réversible, et rien n’est
               perdu.
             </p>
           ) : null}
           {selectedValidation.ok ? (
-            <p className="section-sub" style={{ fontSize: '0.78rem', margin: '2px 0 0' }}>
+            <p className="section-sub" style={{ fontSize: 'var(--text-sm)', margin: '2px 0 0' }}>
               Validation prête pour sauvegarde/publication.
             </p>
           ) : (
-            <p className="text-danger" style={{ fontSize: '0.78rem', margin: '2px 0 0' }}>
+            <p className="text-danger" style={{ fontSize: 'var(--text-sm)', margin: '2px 0 0' }}>
               Pack invalide: corrigez les erreurs avant publication.
             </p>
           )}
           {editorWarnings.length > 0 ? (
-            <ul style={{ margin: 0, paddingLeft: 16, fontSize: '0.78rem' }}>
+            <ul style={{ margin: 0, paddingLeft: 16, fontSize: 'var(--text-sm)' }}>
               {editorWarnings.map((w) => (
                 <li key={w}>{w}</li>
               ))}
@@ -298,7 +300,11 @@ export default function MascotPackListAside({
         </div>
       ) : null}
       {actionError ? (
-        <div className="text-danger" role="alert" style={{ fontSize: '0.82rem', marginTop: 10 }}>
+        <div
+          className="text-danger"
+          role="alert"
+          style={{ fontSize: 'var(--text-sm)', marginTop: 10 }}
+        >
           <p style={{ margin: 0 }}>{actionError}</p>
           {actionIssues.length > 0 ? (
             <ul style={{ margin: '6px 0 0', paddingLeft: 16 }}>
