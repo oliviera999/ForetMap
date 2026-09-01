@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 
 vi.mock('../../src/gl/services/apiGL.js', () => ({ apiGL: vi.fn() }));
@@ -7,17 +7,23 @@ vi.mock('socket.io-client', () => ({ io: vi.fn() }));
 import { apiGL } from '../../src/gl/services/apiGL.js';
 import { io } from 'socket.io-client';
 import { useGlGameRuntime } from '../../src/gl/hooks/useGlGameRuntime.js';
+import { resetGlSocketClientForTests } from '../../src/gl/realtime/glSocketClient.js';
 import { GL_DEFAULT_GAMEPLAY } from '../../src/gl/utils/glGameplayRules.js';
 
 function makeFakeSocket() {
   const handlers = {};
   return {
     handlers,
+    connected: false,
     on: vi.fn((event, cb) => {
       handlers[event] = cb;
     }),
+    off: vi.fn((event) => {
+      delete handlers[event];
+    }),
     emit: vi.fn(),
     close: vi.fn(),
+    disconnect: vi.fn(),
   };
 }
 
@@ -57,9 +63,14 @@ function renderRuntime(props) {
 
 describe('useGlGameRuntime', () => {
   beforeEach(() => {
+    resetGlSocketClientForTests();
     vi.mocked(apiGL).mockReset();
     vi.mocked(io).mockReset();
     vi.mocked(io).mockImplementation(() => makeFakeSocket());
+  });
+
+  afterEach(() => {
+    resetGlSocketClientForTests();
   });
 
   it('joueur connecté : charge chapitres/config/profil, pose la partie active et gameState', async () => {
@@ -129,9 +140,10 @@ describe('useGlGameRuntime', () => {
     await waitFor(() => expect(fakeSocket.handlers['gl:game:event']).toBeTypeOf('function'));
 
     act(() => {
+      fakeSocket.connected = true;
       fakeSocket.handlers.connect();
     });
-    expect(fakeSocket.emit).toHaveBeenCalledWith('subscribe:gl-game', { gameId: 42 });
+    expect(fakeSocket.emit).toHaveBeenCalledWith('subscribe:gl-game', { gameId: '42' });
 
     const gamesCallsBefore = vi
       .mocked(apiGL)
@@ -167,7 +179,7 @@ describe('useGlGameRuntime', () => {
 
     expect(result.current.activeGameId).toBe(42);
     unmount();
-    expect(fakeSocket.close).toHaveBeenCalledTimes(1);
+    expect(fakeSocket.disconnect).toHaveBeenCalledTimes(1);
   });
 
   it('socket : turn_change, round_start et spell_cast_rejected alimentent les bons toasts', async () => {
