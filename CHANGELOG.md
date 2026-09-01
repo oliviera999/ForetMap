@@ -31,6 +31,7 @@ comportements livrés (cascade site → type → ressource, granularité chapitr
 Documentation du script `npm run test:profile:memory` dans `docs/LOCAL_DEV.md` et raccord dans la
 checklist `hard_kills` de `docs/EXPLOITATION.md` : prérequis locaux, scénarios couverts, options de
 concurrence/itérations et lecture des signaux `ΔRSS`, `Δheap`, `Mo resp` et `413`.
+
 ### Import quiz : rattachements glossaire plus effacés si l'import est interrompu
 
 L'import tableur du catalogue Quiz (ForetMap) vidait tous les rattachements
