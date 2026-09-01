@@ -16,7 +16,7 @@ describe('NoticeBanner', () => {
     // `fontSize` se vérifie sur le style *inline* : depuis jsdom 30, `getComputedStyle`
     // convertit les unités relatives en pixels (`.9rem` → `14.4px`), une valeur qui
     // dépendrait de la taille de police racine plutôt que de ce que rend le composant.
-    expect(banner.style.fontSize).toBe('0.9rem');
+    expect(banner.style.fontSize).toBe('var(--text-base)');
   });
 
   test('tone=warning : palette ambre (identique à l’ancien bandeau serverDown)', () => {

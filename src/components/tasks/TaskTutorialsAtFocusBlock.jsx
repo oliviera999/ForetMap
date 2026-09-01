@@ -101,7 +101,7 @@ export function TaskTutorialsAtFocusBlock({
         <>
           <div style={{ marginTop: 8 }}>
             {linkedTutorialsAtFocus.length === 0 ? (
-              <p style={{ color: '#999', fontSize: '.85rem', margin: 0 }}>
+              <p style={{ color: 'var(--ink-faint)', fontSize: 'var(--text-sm)', margin: 0 }}>
                 Aucun tutoriel lié à ce lieu.
               </p>
             ) : (
@@ -121,7 +121,13 @@ export function TaskTutorialsAtFocusBlock({
                       Délier
                     </button>
                   ) : (
-                    <span style={{ fontSize: '.72rem', color: '#64748b', flexShrink: 0 }}>
+                    <span
+                      style={{
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--ink-soft)',
+                        flexShrink: 0,
+                      }}
+                    >
                       via mission
                     </span>
                   )}
@@ -158,7 +164,7 @@ export function TaskTutorialsAtFocusBlock({
       {!isTeacher && (
         <div style={{ marginTop: 8, display: 'grid', gap: 12 }}>
           {linkedTutorialsAtFocus.length === 0 ? (
-            <p style={{ color: '#999', fontSize: '.85rem', margin: 0 }}>
+            <p style={{ color: 'var(--ink-faint)', fontSize: 'var(--text-sm)', margin: 0 }}>
               Aucun tutoriel lié à ce lieu.
             </p>
           ) : (
@@ -180,26 +186,40 @@ export function TaskTutorialsAtFocusBlock({
                     background: 'var(--parchment)',
                   }}
                 >
-                  <div style={{ fontWeight: 700, color: 'var(--forest)' }}>{tu.title}</div>
+                  <div style={{ fontWeight: 'var(--fw-bold)', color: 'var(--forest)' }}>
+                    {tu.title}
+                  </div>
                   {tu.summary && (
                     <p
                       style={{
                         margin: '8px 0 0',
-                        fontSize: '.82rem',
-                        color: '#555',
-                        lineHeight: 1.45,
+                        fontSize: 'var(--text-sm)',
+                        color: 'var(--ink-soft)',
+                        lineHeight: 'var(--lh-normal)',
                       }}
                     >
                       {tu.summary}
                     </p>
                   )}
                   {otherZones.length > 0 && (
-                    <p style={{ margin: '10px 0 0', fontSize: '.76rem', color: '#64748b' }}>
+                    <p
+                      style={{
+                        margin: '10px 0 0',
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--ink-soft)',
+                      }}
+                    >
                       <strong>Autres zones</strong> : {otherZones.map((z) => z.name).join(', ')}
                     </p>
                   )}
                   {otherMarkers.length > 0 && (
-                    <p style={{ margin: '6px 0 0', fontSize: '.76rem', color: '#64748b' }}>
+                    <p
+                      style={{
+                        margin: '6px 0 0',
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--ink-soft)',
+                      }}
+                    >
                       <strong>Repères</strong> :{' '}
                       {otherMarkers
                         .map((m) => `${m.emoji ? `${m.emoji} ` : ''}${m.label}`)

@@ -56,13 +56,13 @@ function StudentImportPanel({ roleTerms, canImport, setErr, setMsg, onImported }
         opacity: canImport ? 1 : 0.65,
       }}
       title={`Import ${roleTerms.studentPlural} (CSV / XLSX)`}
-      titleStyle={{ margin: '0 0 8px', fontSize: '1rem', color: 'var(--forest)' }}
+      titleStyle={{ margin: '0 0 8px', fontSize: 'var(--text-base)', color: 'var(--forest)' }}
       intro={
         <>
-          <p style={{ margin: '0 0 10px', fontSize: '.85rem', color: '#6b7280' }}>
+          <p style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
             Téléchargez un modèle vierge, complétez-le puis importez le fichier.
           </p>
-          <p style={{ margin: '0 0 10px', fontSize: '.8rem', color: '#9a3412' }}>
+          <p style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: '#9a3412' }}>
             Le modèle contient une ligne d&apos;exemple: pensez à la remplacer ou la supprimer avant
             l&apos;import.
           </p>
@@ -75,7 +75,11 @@ function StudentImportPanel({ roleTerms, canImport, setErr, setMsg, onImported }
       templateRowStyle={{ marginBottom: 10 }}
       importBusyLabel="Import…"
       importDisabled={!canImport}
-      selectedFileStyle={{ margin: '8px 0 0', fontSize: '.8rem', color: '#6b7280' }}
+      selectedFileStyle={{
+        margin: '8px 0 0',
+        fontSize: 'var(--text-sm)',
+        color: 'var(--ink-soft)',
+      }}
       reportBoxStyle={{
         marginTop: 10,
         padding: 10,

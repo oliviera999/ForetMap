@@ -152,3 +152,61 @@ export function resolveMapOverlayLabelLayout(mapSettings, options = {}) {
 export function shouldCompressOverlayLabel(text, threshold = MAP_OVERLAY_LABEL_COMPRESS_CHARS) {
   return String(text || '').length > threshold;
 }
+
+/** Chasse moyenne estimée d'un caractère de libellé (em) — sans mesure DOM. */
+export const MAP_OVERLAY_LABEL_AVG_CHAR_EM = 0.6;
+
+/** Réduction maximale de la taille d'un nom trop long avant troncature (× la taille nominale). */
+export const MAP_OVERLAY_LABEL_MIN_SHRINK = 0.8;
+
+/**
+ * Largeur estimée d'un libellé (mêmes unités que `fontSize`).
+ * @param {string} text
+ * @param {number} fontSize
+ * @param {number} [avgCharEm]
+ */
+export function estimateOverlayLabelWidth(
+  text,
+  fontSize,
+  avgCharEm = MAP_OVERLAY_LABEL_AVG_CHAR_EM,
+) {
+  const size = Number(fontSize) > 0 ? Number(fontSize) : 0;
+  return Array.from(String(text || '')).length * size * avgCharEm;
+}
+
+/**
+ * Ajuste un nom de zone à une largeur maximale **sans déformer les glyphes** :
+ * 1) inchangé s'il tient ; 2) réduction de la taille, bornée à `minShrink` ;
+ * 3) troncature avec « … » à la taille plancher.
+ *
+ * En SVG, `textLength` impose la longueur (ce n'est pas un maximum) : l'ancien couple
+ * `textLength` + `lengthAdjust="spacingAndGlyphs"` étirait les noms courts et écrasait
+ * les longs dès 13 caractères — deux zones voisines n'avaient jamais la même chasse.
+ *
+ * @param {{ text: string, fontSize: number, maxWidth: number, avgCharEm?: number, minShrink?: number }} params
+ * @returns {{ text: string, fontSize: number, truncated: boolean }}
+ */
+export function fitOverlayLabelToWidth({
+  text,
+  fontSize,
+  maxWidth,
+  avgCharEm = MAP_OVERLAY_LABEL_AVG_CHAR_EM,
+  minShrink = MAP_OVERLAY_LABEL_MIN_SHRINK,
+}) {
+  const str = String(text || '');
+  const size = Number(fontSize) > 0 ? Number(fontSize) : 0;
+  const max = Number(maxWidth) > 0 ? Number(maxWidth) : 0;
+  if (!str || !(size > 0) || !(max > 0)) return { text: str, fontSize: size, truncated: false };
+  const chars = Array.from(str);
+  const naturalWidth = chars.length * size * avgCharEm;
+  if (naturalWidth <= max) return { text: str, fontSize: size, truncated: false };
+  const fittedSize = max / (chars.length * avgCharEm);
+  const floorSize = size * minShrink;
+  if (fittedSize >= floorSize) return { text: str, fontSize: fittedSize, truncated: false };
+  const maxChars = Math.max(2, Math.floor(max / (floorSize * avgCharEm)));
+  const kept = chars
+    .slice(0, maxChars - 1)
+    .join('')
+    .trimEnd();
+  return { text: `${kept}…`, fontSize: floorSize, truncated: true };
+}

@@ -26,7 +26,14 @@ export function TaskConfirmDialog({ confirmTask, onClose }) {
       dialogRef={confirmDialogRef}
     >
       <h3 style={{ marginBottom: 8 }}>Confirmation</h3>
-      <p style={{ fontSize: '.95rem', color: '#444', marginBottom: 20, lineHeight: 1.5 }}>
+      <p
+        style={{
+          fontSize: 'var(--text-base)',
+          color: '#444',
+          marginBottom: 20,
+          lineHeight: 'var(--lh-normal)',
+        }}
+      >
         {confirmTask.label}
       </p>
       <div style={{ display: 'flex', gap: 10 }}>

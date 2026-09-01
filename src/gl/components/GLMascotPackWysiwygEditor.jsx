@@ -130,7 +130,7 @@ export function GLMascotPackWysiwygEditor({ initialPack, onSave, onDelete }) {
           rows={14}
         />
       </label>
-      <p className="gl-hint" style={{ fontSize: '0.82rem' }}>
+      <p className="gl-hint" style={{ fontSize: 'var(--text-sm)' }}>
         États personnalisés : ajoutez des entrées <code>states</code> avec une clé libre (et un{' '}
         <code>label</code> optionnel). Comportements : tableau <code>triggers</code> —{' '}
         <code>{'{ key, label, type: "periodic"|"tap", state, durationMs, everyMs? }'}</code> (

@@ -30,7 +30,7 @@ function LocationModalTabBar({ tabs, activeTab, onSelect }) {
             borderRadius: 8,
             cursor: 'pointer',
             fontFamily: 'DM Sans,sans-serif',
-            fontSize: '.8rem',
+            fontSize: 'var(--text-sm)',
             fontWeight: activeTab === t.id ? 700 : 400,
             background: activeTab === t.id ? 'var(--forest)' : 'transparent',
             color: activeTab === t.id ? 'white' : 'var(--soil)',

@@ -146,7 +146,7 @@ function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false })
               faiblesses connues du site et n'ont rien à faire sous les yeux d'un élève. */}
           {canReadSiteIssues && (
             <div style={{ marginTop: 12 }}>
-              <h4 style={{ margin: '0 0 6px', fontSize: '.86rem', color: 'var(--leaf)' }}>
+              <h4 style={{ margin: '0 0 6px', fontSize: 'var(--text-sm)', color: 'var(--leaf)' }}>
                 {aboutSiteIssuesTitle}
               </h4>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -173,7 +173,10 @@ function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false })
                 )}
               </div>
               {siteIssuesError && (
-                <p role="alert" style={{ marginTop: 8, fontSize: '.82rem', color: '#a4161a' }}>
+                <p
+                  role="alert"
+                  style={{ marginTop: 8, fontSize: 'var(--text-sm)', color: '#a4161a' }}
+                >
                   {siteIssuesError}
                 </p>
               )}
@@ -186,7 +189,7 @@ function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false })
                     overflow: 'auto',
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-word',
-                    fontSize: '.76rem',
+                    fontSize: 'var(--text-xs)',
                     background: 'var(--surface-soft)',
                     color: 'var(--forest)',
                     padding: 8,

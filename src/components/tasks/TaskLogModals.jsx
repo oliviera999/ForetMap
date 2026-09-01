@@ -108,10 +108,12 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
         ✕
       </button>
       <h3>📋 Rapport de tâche</h3>
-      <p style={{ fontSize: '.85rem', color: '#777', marginBottom: 16 }}>
+      <p style={{ fontSize: 'var(--text-sm)', color: '#777', marginBottom: 16 }}>
         <strong>{task.title}</strong> — laisse un commentaire ou une photo avant de valider
       </p>
-      {err && <p style={{ color: 'var(--alert)', fontSize: '.82rem', marginBottom: 8 }}>{err}</p>}
+      {err && (
+        <p style={{ color: 'var(--alert)', fontSize: 'var(--text-sm)', marginBottom: 8 }}>{err}</p>
+      )}
 
       <div className="field">
         <label htmlFor={commentFieldId}>Commentaire (optionnel)</label>
@@ -132,8 +134,10 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
             role="group"
             aria-label="Photo du rapport : galerie ou appareil photo"
           >
-            <div style={{ fontSize: '2rem', marginBottom: 6 }}>📷</div>
-            <div style={{ fontSize: '.85rem', color: '#888', marginBottom: 10 }}>
+            <div style={{ fontSize: 'var(--text-2xl)', marginBottom: 6 }}>📷</div>
+            <div
+              style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-faint)', marginBottom: 10 }}
+            >
               Galerie ou appareil photo
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
@@ -272,7 +276,7 @@ function TaskLogsViewer({ task, onClose }) {
                 <span>{formatDateTimeFr(l.created_at)}</span>
                 <button
                   className="btn btn-danger btn-sm"
-                  style={{ padding: '4px 8px', minHeight: 'auto', fontSize: '.72rem' }}
+                  style={{ padding: '4px 8px', minHeight: 'auto', fontSize: 'var(--text-xs)' }}
                   onClick={() => {
                     if (confirm('Supprimer ce rapport ?')) deleteLog(l.id);
                   }}

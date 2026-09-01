@@ -46,11 +46,11 @@ export function PlantnetPredictionsList({
             }}
           >
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 600 }}>
+              <div style={{ fontWeight: 'var(--fw-semibold)' }}>
                 {label}
                 {scorePct != null ? ` — ${scorePct} %` : ''}
               </div>
-              {vern && <div style={{ color: '#555', marginTop: 2 }}>{vern}</div>}
+              {vern && <div style={{ color: 'var(--ink-soft)', marginTop: 2 }}>{vern}</div>}
             </div>
             <button
               type="button"

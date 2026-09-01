@@ -19,10 +19,12 @@ export function ProfilesPermissionRows({
       return (
         <div className="profiles-admin-perm-row" key={perm.key}>
           <div>
-            <div style={{ fontSize: '.86rem', fontWeight: 600 }}>{perm.label}</div>
-            <div style={{ fontSize: '.75rem', color: '#6b7280' }}>{perm.key}</div>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }}>
+              {perm.label}
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}>{perm.key}</div>
           </div>
-          <label style={{ fontSize: '.8rem' }}>
+          <label style={{ fontSize: 'var(--text-sm)' }}>
             <input
               type="checkbox"
               checked={!!current}

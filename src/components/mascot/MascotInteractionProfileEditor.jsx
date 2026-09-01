@@ -29,7 +29,7 @@ export default function MascotInteractionProfileEditor({
   const stateOptions = useMemo(() => buildStateOptions(pack), [pack]);
   return (
     <div>
-      <p className="section-sub" style={{ fontSize: '0.82rem', marginBottom: 10 }}>
+      <p className="section-sub" style={{ fontSize: 'var(--text-sm)', marginBottom: 10 }}>
         Réactions de la mascotte sur la carte (pack v2). Les valeurs par défaut reproduisent le
         comportement historique.
       </p>
@@ -60,7 +60,7 @@ export default function MascotInteractionProfileEditor({
                     justifyContent: 'space-between',
                   }}
                 >
-                  <strong style={{ fontSize: '0.88rem' }}>
+                  <strong style={{ fontSize: 'var(--text-sm)' }}>
                     {VISIT_MASCOT_INTERACTION_LABELS[key] || key}
                   </strong>
                   {onTestBehavior ? (
