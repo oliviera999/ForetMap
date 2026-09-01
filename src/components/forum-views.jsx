@@ -1,3 +1,4 @@
+import { AppInlineToast } from '../shared/components/AppInlineToast.jsx';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, toggleForumPostReaction } from '../services/api';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
@@ -467,7 +468,7 @@ function ForumView({ authClaims, canParticipateForum = true }) {
         </section>
       </div>
 
-      {toast && <div className="app-inline-toast">{toast}</div>}
+      <AppInlineToast>{toast}</AppInlineToast>
     </div>
   );
 }

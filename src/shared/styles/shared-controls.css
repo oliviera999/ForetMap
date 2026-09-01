@@ -121,3 +121,68 @@
 .shared-btn--row:active {
   transform: none;
 }
+
+/* Icônes du chrome (lucide, via src/shared/icons.jsx) : alignement optique dans du texte
+   et dans les boutons flex — audit UI, D-2. */
+.ui-icon {
+  vertical-align: -0.185em;
+  flex-shrink: 0;
+}
+
+/* Accordéons des écrans admin (AdminSection.jsx — audit UI, D-3), complément de `.plant-more`
+   (src/index.css). Sélecteurs `details.…` : `.plant-more` / `.plant-more > summary` arrivent
+   APRÈS ce fichier dans la cascade d'index.css (@import en tête), une spécificité supérieure
+   est donc nécessaire pour que ces compléments gagnent. */
+details.admin-section {
+  margin-top: 12px;
+}
+
+details.admin-section > summary {
+  font-weight: var(--fw-semibold);
+  font-size: var(--text-md);
+}
+
+/* Corps de section : même respiration que `.plant-meta-grid` dans les fiches biodiversité. */
+.admin-section__body {
+  border-top: 1px solid rgba(183, 228, 199, 0.6);
+  padding: 10px;
+}
+
+/* Sous-onglets pilule (barres secondaires). Historiquement définis dans gl-theme.css alors
+   que ForetMap les utilise aussi (console admin) : déplacés ici — chargé par les deux
+   produits — avec des replis sur la palette hôte (audit UI, D-3). */
+.gl-subtabs {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0 16px;
+  flex-wrap: wrap;
+}
+
+.gl-subtabs button {
+  padding: 6px 14px;
+  border: 1px solid
+    color-mix(in srgb, #fff 55%, var(--gl-color-primary, var(--forest, #1a4731)) 45%);
+  background: color-mix(
+    in srgb,
+    #fff 76%,
+    var(--gl-color-secondary, var(--parchment, #f2e8d5)) 24%
+  );
+  color: var(--gl-color-primary, var(--forest, #1a4731));
+  border-radius: var(--gl-radius-pill, 999px);
+  cursor: pointer;
+  min-height: 40px;
+  transition:
+    transform var(--motion-fast, 0.12s) var(--ease-out, ease),
+    box-shadow var(--motion-fast, 0.12s) var(--ease-out, ease);
+}
+
+.gl-subtabs button.is-active {
+  background: var(--gl-color-primary, var(--forest, #1a4731));
+  color: #fff;
+  border-color: var(--gl-color-primary, var(--forest, #1a4731));
+  box-shadow: var(--gl-shadow-sm, 0 5px 16px rgba(26, 71, 49, 0.12));
+}
+
+.gl-subtabs button:hover {
+  transform: translateY(-1px);
+}

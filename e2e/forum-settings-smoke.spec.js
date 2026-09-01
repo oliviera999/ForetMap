@@ -10,6 +10,9 @@ test('parcours prof: onglets Forum et Paramètres accessibles après élévation
   await enableTeacherMode(page);
   await dismissProfilePromotionModalIfPresent(page);
 
+  // Pôles (audit D-4) : Forum vit dans « Suivi ».
+  const suiviPole = page.locator('.teacher-nav__poles').getByRole('button', { name: 'Suivi' });
+  if (await suiviPole.isVisible({ timeout: 5000 }).catch(() => false)) await suiviPole.click();
   const forumTab = page.getByRole('button', { name: /^Forum/ });
   if (await forumTab.isVisible({ timeout: 5000 }).catch(() => false)) {
     await forumTab.click();
@@ -18,6 +21,10 @@ test('parcours prof: onglets Forum et Paramètres accessibles après élévation
     });
   }
 
+  const adminPole = page
+    .locator('.teacher-nav__poles')
+    .getByRole('button', { name: 'Administration' });
+  if (await adminPole.isVisible({ timeout: 5000 }).catch(() => false)) await adminPole.click();
   const settingsTab = page.getByRole('button', { name: /^Paramètres/ });
   if (await settingsTab.isVisible({ timeout: 5000 }).catch(() => false)) {
     await settingsTab.click();
@@ -26,6 +33,7 @@ test('parcours prof: onglets Forum et Paramètres accessibles après élévation
     });
   }
 
+  if (await suiviPole.isVisible({ timeout: 5000 }).catch(() => false)) await suiviPole.click();
   const auditTab = page.getByRole('button', { name: /Audit/ });
   if (await auditTab.isVisible({ timeout: 5000 }).catch(() => false)) {
     await auditTab.click();

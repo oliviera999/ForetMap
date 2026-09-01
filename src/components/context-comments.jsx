@@ -1,3 +1,4 @@
+import { AppInlineToast } from '../shared/components/AppInlineToast.jsx';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   api,
@@ -382,7 +383,7 @@ function ContextComments({
         </div>
       )}
 
-      {toast && <div className="app-inline-toast">{toast}</div>}
+      <AppInlineToast>{toast}</AppInlineToast>
     </section>
   );
 }
