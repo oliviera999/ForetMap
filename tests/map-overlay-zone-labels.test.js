@@ -78,3 +78,47 @@ test('resolveMapOverlayLabelLayout lit le réglage admin', async () => {
   assert.strictEqual(layout.minSideFactor, 3);
   assert.ok(layout.maxWorldLength > 96);
 });
+
+test('fitOverlayLabelToWidth : un nom court reste tel quel (pas de textLength imposé)', async () => {
+  const { fitOverlayLabelToWidth } = await load();
+  const fit = fitOverlayLabelToWidth({ text: 'Mare', fontSize: 14, maxWidth: 96 });
+  assert.deepStrictEqual(fit, { text: 'Mare', fontSize: 14, truncated: false });
+});
+
+test('fitOverlayLabelToWidth : un nom un peu long est réduit sans déformation des glyphes', async () => {
+  const { fitOverlayLabelToWidth } = await load();
+  // 13 caractères × 14px × 0,6 = 109,2 > 96 → réduction bornée, texte intact.
+  const fit = fitOverlayLabelToWidth({ text: 'Verger commun', fontSize: 14, maxWidth: 96 });
+  assert.strictEqual(fit.text, 'Verger commun');
+  assert.ok(fit.fontSize < 14 && fit.fontSize >= 14 * 0.8);
+  assert.strictEqual(fit.truncated, false);
+});
+
+test('fitOverlayLabelToWidth : un nom très long est tronqué avec « … » à la taille plancher', async () => {
+  const { fitOverlayLabelToWidth } = await load();
+  const fit = fitOverlayLabelToWidth({
+    text: 'Un nom de zone vraiment interminable',
+    fontSize: 14,
+    maxWidth: 96,
+  });
+  assert.ok(fit.truncated);
+  assert.ok(fit.text.endsWith('…'));
+  assert.ok(Math.abs(fit.fontSize - 14 * 0.8) < 1e-9);
+  // La largeur estimée du texte tronqué tient dans la largeur cible.
+  const width = Array.from(fit.text).length * fit.fontSize * 0.6;
+  assert.ok(width <= 96 + 1e-9);
+});
+
+test('fitOverlayLabelToWidth : entrées dégénérées → texte inchangé', async () => {
+  const { fitOverlayLabelToWidth } = await load();
+  assert.deepStrictEqual(fitOverlayLabelToWidth({ text: '', fontSize: 14, maxWidth: 96 }), {
+    text: '',
+    fontSize: 14,
+    truncated: false,
+  });
+  assert.deepStrictEqual(fitOverlayLabelToWidth({ text: 'Mare', fontSize: 0, maxWidth: 96 }), {
+    text: 'Mare',
+    fontSize: 0,
+    truncated: false,
+  });
+});

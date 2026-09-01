@@ -1117,6 +1117,13 @@ button.gl-brand-hub__card {
   font-size: 0.875rem;
 }
 
+/* Convention projet : cible tactile >= 44px sur pointeur grossier. */
+@media (pointer: coarse) {
+  .gl-btn--sm {
+    min-height: var(--gl-tap-target, 44px);
+  }
+}
+
 .gl-btn--full {
   width: 100%;
 }
@@ -3041,7 +3048,7 @@ body.gl-map-fullscreen-active > .gl-board-shell--fullscreen {
   background: #ffffff;
   color: var(--gl-color-primary);
   font-size: 1.15rem;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
   box-shadow: var(--gl-shadow-sm);
   transition:
@@ -6309,14 +6316,16 @@ fieldset .media-library-menu__gallery {
   fill: color-mix(in srgb, #b45309 55%, transparent);
   fill-opacity: 0.15;
   stroke: color-mix(in srgb, #b45309 80%, #fff);
-  stroke-width: 0.35;
+  /* Trait en px écran (vector-effect) : plus d'épaisseur différente selon l'axe du plateau. */
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1.5px;
   pointer-events: none;
   transition: fill-opacity 0.2s ease, stroke-width 0.2s ease;
 }
 
 .gl-feuillet-zone-polygon.is-near {
   fill-opacity: 0.28;
-  stroke-width: 0.55;
+  stroke-width: 2.5px;
 }
 
 .gl-feuillet-zone-polygon.is-read {
@@ -6331,14 +6340,25 @@ fieldset .media-library-menu__gallery {
 }
 
 .gl-feuillet-zone-polygon.is-selected {
-  stroke-width: 0.7;
+  stroke-width: 3px;
   fill-opacity: 0.25;
+}
+
+/* Dé-anamorphose (viewBox 100×100 étiré sur un plateau rectangulaire) : le scale Y par le
+   ratio du plateau, autour du centre de l'élément, rend cercles et glyphes à nouveau
+   uniformes — même correction que visitZoneSvgTextUniformYTransform côté Visite. */
+.gl-feuillet-zone-centre,
+.gl-feuillet-zone-label {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(1, var(--map-fit-aspect, 1));
 }
 
 .gl-feuillet-zone-centre {
   fill: #b45309;
   stroke: #fff;
-  stroke-width: 0.15;
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1px;
   pointer-events: none;
 }
 
@@ -6346,6 +6366,37 @@ fieldset .media-library-menu__gallery {
   font-size: 2px;
   fill: #1f2937;
   pointer-events: none;
+}
+
+/* Royaume : mêmes corrections pour les contours de zones et l'éditeur de sommets. */
+.gl-kingdom-zone-polygon,
+.gl-kingdom-zone-draft,
+.gl-pct-edit-zone-translate {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 2px;
+}
+
+.gl-kingdom-zone-polygon--dimmed {
+  stroke-width: 1.5px;
+}
+
+.gl-pct-edit-overlay circle {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(1, var(--map-fit-aspect, 1));
+}
+
+.gl-pct-edit-overlay circle,
+.gl-pct-edit-overlay line {
+  vector-effect: non-scaling-stroke;
+}
+
+.gl-pct-edit-pt-ring {
+  stroke-width: 2px;
+}
+
+.gl-pct-edit-pt-cross line {
+  stroke-width: 1.5px;
 }
 
 .gl-feuillet-zone-handle {

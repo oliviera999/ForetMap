@@ -49,6 +49,7 @@ export const KNOWN_TAB_VALUES = new Set([
   'stats',
   'visit',
   'mascot_packs',
+  'media_library',
   'notebook',
   'profiles',
   'settings',

@@ -83,6 +83,16 @@
 .shared-btn--sm {
   padding: 6px 12px;
   font-size: 0.875rem;
+  /* Aligné sur .btn-sm / .gl-btn--sm : sans ce plafond, le petit bouton partagé gardait
+     la hauteur pleine (44px) à côté de petits boutons de 36px. */
+  min-height: 36px;
+}
+
+/* Convention projet : cible tactile >= 44px sur pointeur grossier. */
+@media (pointer: coarse) {
+  .shared-btn--sm {
+    min-height: var(--gl-tap-target, 44px);
+  }
 }
 
 /* Ligne cliquable pleine largeur (élément de liste : média, entrée de catalogue…). */

@@ -27,6 +27,8 @@ export function VisitMapChrome({
   pendingSyncCount = 0,
   visitImmersion = false,
   onToggleImmersion,
+  mapTextSizeLabel = 'Aa',
+  onCycleMapTextSize = null,
   isTeacher = false,
   teacherPreviewAsStudent = false,
   onToggleTeacherPreview,
@@ -85,6 +87,18 @@ export function VisitMapChrome({
           >
             <span aria-hidden>⛶</span> Plein écran
           </button>
+          {onCycleMapTextSize ? (
+            <button
+              type="button"
+              className="map-toolbar-text-size-btn"
+              data-testid="visit-map-text-size"
+              title="Taille du texte sur la carte (Normal / Grand / Très grand)"
+              aria-label="Changer la taille du texte sur la carte"
+              onClick={onCycleMapTextSize}
+            >
+              {mapTextSizeLabel}
+            </button>
+          ) : null}
           {isTeacher ? (
             <button
               type="button"
