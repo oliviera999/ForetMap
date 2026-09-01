@@ -68,7 +68,7 @@ function ZoneDrawModal({
       closeOnOverlay
       dialogRef={dialogRef}
     >
-      <button className="modal-close" onClick={onClose}>
+      <button className="modal-close" aria-label="Fermer" onClick={onClose}>
         ✕
       </button>
       <h3>🖊️ Nouvelle zone</h3>

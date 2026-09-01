@@ -263,7 +263,7 @@ function ZoneInfoModal({
       dialogRef={dialogRef}
     >
       {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
-      <button className="modal-close" onClick={onClose}>
+      <button className="modal-close" aria-label="Fermer" onClick={onClose}>
         ✕
       </button>
 
