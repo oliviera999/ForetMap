@@ -7,6 +7,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit du système de géolocalisation
+
+État des lieux complet du suivi GPS de la mascotte et du calage des plans, sans
+modification de code : **`docs/AUDIT_GEOLOCALISATION_2026-09.md`**. Le système est petit,
+bien découpé et bien testé, et la position de l'élève ne quitte jamais son appareil. Trois
+constats appellent une action — le principal (C1) reprend le §3.1 de l'audit BDD d'août :
+la validation des ancres ne contrôle toujours rien dans le repère géographique, et le
+garde-fou logiciel (plausibilité d'échelle), dissociable du recalage terrain resté
+réservé, n'a jamais été livré. S'y ajoutent deux erreurs d'acquisition invisibles pour
+l'élève (C2) et deux comportements mineurs (position périmée rejouée, calage dégénéré
+affiché comme « hors zone »). Plan d'action proposé en fin de document, points 1 à 4
+regroupables en un lot « robustesse du calage GPS ».
+
 ### Les constats de l'audit stabilité/performance de septembre sont traités (sauf un, à arbitrer)
 
 Suite directe de l'état des lieux ci-dessous : tous les constats ouverts de
