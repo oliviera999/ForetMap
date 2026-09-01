@@ -102,6 +102,19 @@ after(async () => {
   await execute('DELETE FROM gl_qcm_attempts WHERE reader_user_id = ?', [reader.userId]).catch(
     () => {},
   );
+  if (tutorialId) {
+    await execute(
+      'DELETE FROM resource_gating_policy WHERE resource_type = ? AND resource_ref IN (?, ?)',
+      ['tutorial', String(tutorialId), '*'],
+    ).catch(() => {});
+  }
+  if (studentUserId) {
+    await execute('DELETE FROM resource_gating_cooldowns WHERE user_id = ?', [studentUserId]).catch(
+      () => {},
+    );
+  }
+  await setSetting('learning.gating.allowed_wrong_attempts', 0, {}).catch(() => {});
+  await setSetting('learning.gating.retry_cooldown_days', 3, {}).catch(() => {});
 });
 
 test('GL — gating ON : tentative enregistrée sans auto-marquage', async () => {
@@ -215,4 +228,108 @@ test('FM — gating OFF : challenge non requis', async () => {
     userId: studentUserId,
   });
   assert.equal(state.required, false);
+});
+
+async function resetFmCooldownFixture() {
+  await execute(
+    'DELETE FROM resource_gating_cooldowns WHERE user_id = ? AND resource_type = ? AND resource_ref = ?',
+    [studentUserId, 'tutorial', String(tutorialId)],
+  );
+}
+
+test('FM — l’écriture du verrou honore la tolérance de la fiche, pas celle du site', async () => {
+  // Site : verrou dès la 1re faute. Fiche : 2 erreurs tolérées.
+  // Avant le correctif, la 1re faute verrouillait quand même (réglages site seuls).
+  await setSetting('learning.gating.enabled', true, {});
+  await setSetting('learning.gating.allowed_wrong_attempts', 0, {});
+  await setSetting('learning.gating.retry_cooldown_days', 3, {});
+  await execute(
+    `INSERT INTO resource_gating_policy
+      (resource_type, resource_ref, mode, required_correct, enabled, allowed_wrong_attempts)
+     VALUES ('tutorial', ?, 'inherit', 1, 1, 2)
+     ON DUPLICATE KEY UPDATE allowed_wrong_attempts = 2, enabled = 1, retry_cooldown_days = NULL`,
+    [String(tutorialId)],
+  );
+  await resetFmCooldownFixture();
+
+  const first = await runtime.registerFmCooldownOnWrongIfGating(db, {
+    userId: studentUserId,
+    resourceType: 'tutorial',
+    resourceRef: String(tutorialId),
+    questionCode: qcode,
+    isCorrect: false,
+  });
+  assert.equal(first?.locked, false, 'la 1re faute sous tolérance fiche ne doit pas verrouiller');
+  assert.equal(first?.wrong_attempts, 1);
+  assert.equal(first?.attempts_left, 1);
+
+  const second = await runtime.registerFmCooldownOnWrongIfGating(db, {
+    userId: studentUserId,
+    resourceType: 'tutorial',
+    resourceRef: String(tutorialId),
+    questionCode: qcode,
+    isCorrect: false,
+  });
+  assert.equal(second?.locked, false);
+  assert.equal(second?.wrong_attempts, 2);
+
+  const third = await runtime.registerFmCooldownOnWrongIfGating(db, {
+    userId: studentUserId,
+    resourceType: 'tutorial',
+    resourceRef: String(tutorialId),
+    questionCode: qcode,
+    isCorrect: false,
+  });
+  assert.equal(third?.locked, true, 'la 3e faute doit poser le verrou');
+});
+
+test('FM — le délai de verrou de la fiche s’applique même si le site est à 0', async () => {
+  await setSetting('learning.gating.enabled', true, {});
+  await setSetting('learning.gating.allowed_wrong_attempts', 0, {});
+  await setSetting('learning.gating.retry_cooldown_days', 0, {});
+  await execute(
+    `INSERT INTO resource_gating_policy
+      (resource_type, resource_ref, mode, required_correct, enabled,
+       allowed_wrong_attempts, retry_cooldown_days)
+     VALUES ('tutorial', ?, 'inherit', 1, 1, 0, 3)
+     ON DUPLICATE KEY UPDATE allowed_wrong_attempts = 0, retry_cooldown_days = 3, enabled = 1`,
+    [String(tutorialId)],
+  );
+  await resetFmCooldownFixture();
+
+  const res = await runtime.registerFmCooldownOnWrongIfGating(db, {
+    userId: studentUserId,
+    resourceType: 'tutorial',
+    resourceRef: String(tutorialId),
+    questionCode: qcode,
+    isCorrect: false,
+  });
+  assert.equal(res?.locked, true, 'le délai de la fiche (3 j) doit poser le verrou malgré site=0');
+  assert.equal(res?.retry_days, 3);
+});
+
+test('FM — préréglage par type (resource_ref=*) appliqué à l’écriture du verrou', async () => {
+  await setSetting('learning.gating.enabled', true, {});
+  await setSetting('learning.gating.allowed_wrong_attempts', 0, {});
+  await setSetting('learning.gating.retry_cooldown_days', 3, {});
+  await execute(
+    `DELETE FROM resource_gating_policy WHERE resource_type = 'tutorial' AND resource_ref IN (?, '*')`,
+    [String(tutorialId)],
+  );
+  await execute(
+    `INSERT INTO resource_gating_policy
+      (resource_type, resource_ref, mode, required_correct, enabled, allowed_wrong_attempts)
+     VALUES ('tutorial', '*', 'inherit', 1, 1, 2)`,
+  );
+  await resetFmCooldownFixture();
+
+  const first = await runtime.registerFmCooldownOnWrongIfGating(db, {
+    userId: studentUserId,
+    resourceType: 'tutorial',
+    resourceRef: String(tutorialId),
+    questionCode: qcode,
+    isCorrect: false,
+  });
+  assert.equal(first?.locked, false, 'la tolérance du type tutoriel doit compter');
+  assert.equal(first?.attempts_left, 1);
 });

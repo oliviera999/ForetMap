@@ -1807,7 +1807,9 @@ Audit détaillé du dispositif : [AUDIT_GATING_2026-08.md](AUDIT_GATING_2026-08.
 
 Le verrou est posé par `POST /api/quiz/questions/:code/answer` lorsque la réponse est **fausse** et que
 le corps inclut le contexte ressource `{ resourceType, resourceRef }` (envoyé uniquement par le flux de
-validation). La réponse renvoie alors `cooldown: { locked, locked_until, retry_days, remaining_days }`.
+validation). La pose utilise la **politique effective** (cascade site → type → fiche : erreurs
+tolérées, délai, portée) — la même que `GET …/gating/challenge`. La réponse renvoie alors
+`cooldown: { locked, locked_until, retry_days, remaining_days }`.
 
 ### GL — `/api/gl/learning-links` (MJ/admin, JWT `product:'gl'`)
 
