@@ -1,7 +1,12 @@
 import { useMemo, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import { useGeolocation } from '../../hooks/useGeolocation.js';
-import { isValidAnchors, pctToGeo } from '../../utils/mapGeoTransform.js';
+import {
+  assessAnchorsGeoPlausibility,
+  isValidAnchors,
+  pctToGeo,
+  planSizeMeters,
+} from '../../utils/mapGeoTransform.js';
 import {
   formatGeoCoordinate,
   parseGeoCoordinate,
@@ -79,16 +84,29 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
   const imgRef = useRef(null);
   const geo = useGeolocation();
 
-  const completePoints = points.filter(isPointComplete);
   const hasCalibrationDraft = hasAnyCalibrationValue(points);
-  const anchorsValid =
-    completePoints.length === 3 && isValidAnchors(toAnchorsArray(completePoints));
 
-  // Aperçu de contrôle : recalcule la position GPS du centre du plan via la transformation.
-  const centerPreview = useMemo(() => {
-    if (!anchorsValid) return null;
-    return pctToGeo(50, 50, toAnchorsArray(completePoints));
-  }, [anchorsValid, completePoints]);
+  // État dérivé du calage, recalculé uniquement quand la saisie change : validité,
+  // plausibilité géographique (échelles/alignement, audit C1) et aperçus de contrôle.
+  const { completePoints, anchorsValid, plausibility, planSize, centerPreview } = useMemo(() => {
+    const complete = points.filter(isPointComplete);
+    const anchors = toAnchorsArray(complete);
+    const valid = complete.length === 3 && isValidAnchors(anchors);
+    return {
+      completePoints: complete,
+      anchorsValid: valid,
+      plausibility: valid ? assessAnchorsGeoPlausibility(anchors) : null,
+      planSize: valid ? planSizeMeters(anchors) : null,
+      centerPreview: valid ? pctToGeo(50, 50, anchors) : null,
+    };
+  }, [points]);
+
+  const plausibilityError =
+    plausibility && !plausibility.ok
+      ? plausibility.reason === 'geo_collinear'
+        ? 'Calage incohérent : les trois points GPS sont alignés ou confondus — choisissez des repères formant un vrai triangle sur le terrain.'
+        : `Calage incohérent : les distances GPS ne correspondent pas aux distances sur le plan (échelles incompatibles, facteur ${Math.round(plausibility.scaleRatio)}). Vérifiez les coordonnées de chaque point.`
+      : null;
 
   const updatePoint = (index, patch) => {
     setPoints((prev) => prev.map((p, i) => (i === index ? { ...p, ...patch } : p)));
@@ -163,6 +181,10 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
     }
     if (gpsEnabled && !anchorsValid) {
       onError?.('3 points complets et distincts sont requis pour activer le suivi GPS.');
+      return;
+    }
+    if (plausibilityError) {
+      onError?.(plausibilityError);
       return;
     }
     setSaving(true);
@@ -372,6 +394,17 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
       {centerPreview ? (
         <p style={{ margin: '4px 0 0', fontSize: '.72rem', color: '#6b7280' }}>
           Contrôle : centre du plan ≈ {centerPreview.lat.toFixed(5)}, {centerPreview.lng.toFixed(5)}
+        </p>
+      ) : null}
+      {planSize ? (
+        <p style={{ margin: '4px 0 0', fontSize: '.72rem', color: '#6b7280' }}>
+          Échelle déduite : plan ≈ {Math.round(planSize.widthM)} m × {Math.round(planSize.heightM)}{' '}
+          m — si ces dimensions ne ressemblent pas au terrain, un point est mal renseigné.
+        </p>
+      ) : null}
+      {plausibilityError ? (
+        <p role="alert" style={{ margin: '6px 0 0', fontSize: '.72rem', color: '#dc2626' }}>
+          ⚠️ {plausibilityError}
         </p>
       ) : null}
 
