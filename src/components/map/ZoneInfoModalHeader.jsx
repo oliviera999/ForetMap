@@ -1,4 +1,5 @@
 import { LocationCategoryBadges } from './LocationCategoryPicker.jsx';
+import { zoneEmojiOf, zoneTitleOf } from '../../utils/zoneDisplay.js';
 
 /**
  * En-tête présentationnel de ZoneInfoModal : titre de la zone, pastilles de
@@ -20,7 +21,18 @@ function ZoneInfoModalHeader({
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{zone.name}</h3>
+        {/* Emoji rendu dans la pile emoji (plus via Playfair Display avec le nom brut) —
+            colonne `zones.emoji` en priorité, repli sur le préfixe du nom (audit C4). */}
+        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
+          {zoneEmojiOf(zone) ? (
+            <>
+              <span className="emoji-glyph" aria-hidden>
+                {zoneEmojiOf(zone)}
+              </span>{' '}
+            </>
+          ) : null}
+          {zoneEmojiOf(zone) ? zoneTitleOf(zone) : zone.name}
+        </h3>
         <div style={{ marginTop: 3 }}>
           <LocationCategoryBadges item={zone} />
         </div>

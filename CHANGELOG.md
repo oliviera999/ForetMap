@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Emoji de zone en colonne dédiée (audit homogénéité UI — C4)
+
+La colonne `zones.emoji` (migration `206`) remplace l'extraction fragile du préfixe du nom
+comme source de vérité de l'emoji de zone :
+
+- **API** : `POST`/`PUT /api/zones` acceptent `emoji` (normalisé, `''` = effacement) et le
+  dérivent du préfixe du nom quand il est omis (anciens clients) ; toutes les réponses zone
+  l'exposent.
+- **Affichage** : le plan (carte et Visite), la fiche zone et les filtres carte privilégient
+  la colonne et se replient sur le préfixe pour les lignes non migrées. L'en-tête de la
+  fiche rend l'emoji dans la pile emoji (nouvelle classe `.emoji-glyph`) au lieu de le
+  laisser passer par Playfair Display avec le nom brut.
+- **Formulaires** : les modales de création et d'édition envoient l'emoji du sélecteur en
+  champ dédié ; le nom conserve son préfixe pour la compatibilité des autres affichages.
+- Couverture : `tests/zone-emoji.test.js` (helper serveur, sans BDD),
+  `tests/zone-emoji-column.test.js` (POST/PUT/GET), tests UI `zoneDisplay` et
+  `parseZonesForLayer` (préférence colonne).
+
 ### Homogénéité de l'interface : lots A et C de l'audit exécutés (+ socle du lot B)
 
 Mise en œuvre du plan de `docs/AUDIT_UI_HOMOGENEITE_2026-09.md` (état détaillé en §6 du

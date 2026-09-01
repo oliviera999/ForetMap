@@ -33,7 +33,9 @@ export function parseZonesForLayer(zones, emojiParsingList) {
       return {
         zone: z,
         pts,
-        zoneEmoji: detectLeadingMarkerEmoji(z.name || '', emojiParsingList),
+        // Colonne dédiée `zones.emoji` (audit C4) en priorité ; repli sur le préfixe du nom.
+        zoneEmoji:
+          String(z.emoji || '').trim() || detectLeadingMarkerEmoji(z.name || '', emojiParsingList),
         zoneName: stripLeadingMarkerEmoji(z.name || '', emojiParsingList),
       };
     })

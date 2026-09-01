@@ -2638,6 +2638,12 @@
     .plant-edit-form h4 { font-size:.9rem; font-weight:700; color:var(--forest); margin-bottom:12px; }
     .plant-form-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap:10px; }
     .emoji-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+    /* Glyphe emoji isolé dans du texte courant : pile emoji + présentation couleur,
+       quel que soit le contexte (titres Playfair compris). */
+    .emoji-glyph {
+      font-family:var(--font-emoji-stack);
+      font-variant-emoji: emoji;
+    }
     .emoji-btn {
       font-family:var(--font-emoji-stack);
       font-variant-emoji: emoji;
