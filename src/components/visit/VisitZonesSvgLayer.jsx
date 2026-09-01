@@ -4,7 +4,7 @@ import { detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../../constan
 import { itemSeenKey } from '../../utils/visitMediaGallery.js';
 import { visitZoneSvgTextUniformYTransform } from '../../utils/visitMascotGeometry.js';
 import {
-  shouldCompressOverlayLabel,
+  fitOverlayLabelToWidth,
   shouldShowZoneEmojiLabel,
   shouldShowZoneNameLabel,
 } from '../../utils/mapOverlayZoneLabels.js';
@@ -23,7 +23,7 @@ import { VisitDrawZonePreview } from '../VisitDrawZonePreview.jsx';
  * @param {Array<object>} props.zones zones de la visite (`content.zones`).
  * @param {Set<string>} props.seen clés `itemSeenKey` des éléments vus.
  * @param {Array<string>} props.markerEmojis emojis « lieu » configurés (détection préfixe).
- * @param {{ emojiU: number, labelU: number, gapU: number, strokeU: number, labelFontPx: number, emojiFontPx: number, minSideFactor: number, labelMaxWorldLength: number, labelCompressChars: number, inv: number }} props.typography tailles en unités SVG + seuils masquage.
+ * @param {{ emojiU: number, labelU: number, gapU: number, strokeU: number, labelFontPx: number, emojiFontPx: number, minSideFactor: number, labelMaxTextLengthU: number, inv: number }} props.typography tailles en unités SVG + seuils masquage.
  * @param {number} props.fitWidth largeur du rect « contain » (px).
  * @param {number} props.fitHeight hauteur du rect « contain » (px).
  * @param {string} props.mode mode courant (`view` | `draw-zone` | `add-marker`).
@@ -50,7 +50,6 @@ function VisitZonesSvgLayerImpl({
     emojiFontPx,
     minSideFactor,
     labelMaxTextLengthU,
-    labelCompressChars,
     inv,
   } = typography;
 
@@ -81,7 +80,8 @@ function VisitZonesSvgLayerImpl({
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="visit-map-zones">
       {parsedZones.map(({ zone: z, ptsPct, pointsAttr, mx, my }) => {
         const isSeen = seen.has(itemSeenKey('zone', z.id));
-        const zoneEmoji = detectLeadingMarkerEmoji(z.name || '', markerEmojis);
+        const zoneEmoji =
+          String(z.emoji || '').trim() || detectLeadingMarkerEmoji(z.name || '', markerEmojis);
         const zoneLabel = stripLeadingMarkerEmoji(z.name || '', markerEmojis);
         const zoneNameText = zoneLabel || z.name || '';
         const titleY = my;
@@ -105,7 +105,12 @@ function VisitZonesSvgLayerImpl({
             labelFontPx,
             minSideFactor,
           }) && Boolean(String(zoneNameText).trim());
-        const compressLongName = shouldCompressOverlayLabel(zoneNameText, labelCompressChars);
+        // Ajustement sans déformation : réduction bornée puis « … » (fini textLength/spacingAndGlyphs).
+        const nameFit = fitOverlayLabelToWidth({
+          text: zoneNameText,
+          fontSize: labelU,
+          maxWidth: labelMaxTextLengthU,
+        });
         return (
           <g
             key={z.id}
@@ -137,13 +142,12 @@ function VisitZonesSvgLayerImpl({
                     y={titleY + (showZoneEmoji ? gapU : 0)}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fontSize={labelU}
+                    fontSize={nameFit.fontSize}
                     className="visit-zone-label visit-zone-label--title map-overlay-name-label map-overlay-name-label--svg"
                     strokeWidth={strokeU}
-                    textLength={compressLongName ? labelMaxTextLengthU : undefined}
-                    lengthAdjust={compressLongName ? 'spacingAndGlyphs' : undefined}
                   >
-                    {zoneNameText}
+                    {nameFit.truncated ? <title>{zoneNameText}</title> : null}
+                    {nameFit.text}
                   </text>
                 ) : null}
               </g>

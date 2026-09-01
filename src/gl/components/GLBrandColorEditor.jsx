@@ -113,7 +113,7 @@ export function GLBrandColorEditor({
                     onClick={() => clearColor(key)}
                     title="Revenir à la charte plateforme"
                   >
-                    ×
+                    ✕
                   </GLButton>
                 ) : null}
               </span>

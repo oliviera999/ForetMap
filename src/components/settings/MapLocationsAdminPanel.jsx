@@ -13,10 +13,10 @@ import {
   BULK_ACTIONS,
   bulkPatchForItem,
   categoryOptionsForLocation,
-  composeZoneName,
   countBulkTargets,
   locationLivingBeings,
-  splitZoneName,
+  zoneNameEmojiPatch,
+  zoneParts,
 } from '../../utils/adminLocationsGrid.js';
 import { locationCategoryIds } from '../../utils/locationCategories.js';
 
@@ -266,12 +266,13 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
   };
 
   const saveZoneName = (item, cleanName, emoji) => {
-    const name = composeZoneName(cleanName, emoji);
-    if (!name) {
+    // Convention `buildZonePayload` : nom avec préfixe emoji + colonne `emoji` explicite.
+    const patch = zoneNameEmojiPatch(cleanName, emoji);
+    if (!patch) {
       onError?.('Nom requis');
       return;
     }
-    saveItem('zone', item, { name }, 'Zone mise à jour');
+    saveItem('zone', item, patch, 'Zone mise à jour');
   };
 
   const toggleKey = (key) => {
@@ -578,7 +579,7 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
         const key = `${kind}:${id}`;
         const isZone = kind === 'zone';
         const expanded = expandedKeys.has(key);
-        const zoneParts = isZone ? splitZoneName(item.name) : null;
+        const zParts = isZone ? zoneParts(item) : null;
         const names = locationLivingBeings(item);
         return (
           <div key={key} style={{ padding: '8px 0', borderTop: '1px solid #f1f5f9' }}>
@@ -591,27 +592,27 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
                 onChange={() => toggleKey(key)}
               />
               <InlineField
-                key={`${key}-emoji-${isZone ? item.name : item.emoji || ''}`}
-                value={isZone ? zoneParts.emoji : item.emoji || ''}
+                key={`${key}-emoji-${isZone ? `${item.emoji || ''}-${item.name}` : item.emoji || ''}`}
+                value={isZone ? zParts.emoji : item.emoji || ''}
                 ariaLabel={`Emoji de ${title}`}
                 placeholder="📍"
                 maxLength={isZone ? ZONE_NAME_PREFIX_EMOJI_MAX_CHARS : MAP_MARKER_EMOJI_MAX_CHARS}
                 disabled={busy}
                 style={{ width: 58 }}
                 onSave={(next) => {
-                  if (isZone) saveZoneName(item, zoneParts.cleanName, next);
+                  if (isZone) saveZoneName(item, zParts.cleanName, next);
                   else saveItem('marker', item, { emoji: next.trim() }, 'Repère mis à jour');
                 }}
               />
               <InlineField
                 key={`${key}-name-${isZone ? item.name : item.label}`}
-                value={isZone ? zoneParts.cleanName : item.label || ''}
+                value={isZone ? zParts.cleanName : item.label || ''}
                 ariaLabel={`Nom de ${title}`}
                 placeholder="Nom *"
                 disabled={busy}
                 style={{ flex: '2 1 160px', minWidth: 120, fontWeight: 600 }}
                 onSave={(next) => {
-                  if (isZone) saveZoneName(item, next, zoneParts.emoji);
+                  if (isZone) saveZoneName(item, next, zParts.emoji);
                   else if (!next.trim()) onError?.('Nom requis');
                   else saveItem('marker', item, { label: next.trim() }, 'Repère mis à jour');
                 }}

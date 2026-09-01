@@ -76,6 +76,7 @@ export function buildZoneSearchBlob(zone, emojiParsingList = []) {
   const parts = [];
   const name = zone?.name || '';
   appendParts(parts, name);
+  appendParts(parts, String(zone?.emoji || '').trim());
   appendParts(parts, stripLeadingMarkerEmoji(name, emojiParsingList));
   appendParts(parts, detectLeadingMarkerEmoji(name, emojiParsingList));
   appendParts(parts, zone?.description);
@@ -242,7 +243,10 @@ export function applyMapLocationFilters({
     const id = String(zone.id);
     matchingZoneIds.add(id);
     const emojiList = context.emojiParsingList || [];
-    const emoji = detectLeadingMarkerEmoji(zone.name || '', emojiList) || '🌿';
+    const emoji =
+      String(zone.emoji || '').trim() ||
+      detectLeadingMarkerEmoji(zone.name || '', emojiList) ||
+      '🌿';
     const title = stripLeadingMarkerEmoji(zone.name || '', emojiList) || zone.name || id;
     resultItems.push({
       kind: 'zone',

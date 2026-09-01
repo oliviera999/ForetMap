@@ -8,6 +8,8 @@ import {
   countBulkTargets,
   locationLivingBeings,
   splitZoneName,
+  zoneNameEmojiPatch,
+  zoneParts,
 } from '../../src/utils/adminLocationsGrid.js';
 
 const CATALOG = [
@@ -35,6 +37,23 @@ describe('splitZoneName / composeZoneName', () => {
 
   test('nom vide refusé à la recomposition', () => {
     expect(composeZoneName('   ', '🌳')).toBeNull();
+  });
+});
+
+describe('zoneParts / zoneNameEmojiPatch (colonne zones.emoji, audit C4)', () => {
+  test('la colonne emoji prime sur le préfixe du nom', () => {
+    expect(zoneParts({ emoji: '🌲', name: '🌳 Butte' })).toEqual({
+      emoji: '🌲',
+      cleanName: 'Butte',
+    });
+    expect(zoneParts({ emoji: '', name: '🌳 Butte' })).toEqual({ emoji: '🌳', cleanName: 'Butte' });
+  });
+
+  test('le patch envoie le nom préfixé ET la colonne emoji explicite', () => {
+    expect(zoneNameEmojiPatch('Butte', '🌳')).toEqual({ name: '🌳 Butte', emoji: '🌳' });
+    // Sans emoji : pas de préfixe ajouté, colonne effacée explicitement.
+    expect(zoneNameEmojiPatch('Butte', '')).toEqual({ name: 'Butte', emoji: '' });
+    expect(zoneNameEmojiPatch('   ', '🌳')).toBeNull();
   });
 });
 
@@ -153,7 +172,7 @@ describe('bulkPatchForItem', () => {
       bulkPatchForItem('set_emoji', { emoji: '🍎' }, { kind: 'marker', item: marker }),
     ).toEqual({ patch: { emoji: '🍎' } });
     expect(bulkPatchForItem('set_emoji', { emoji: '🍎' }, { kind: 'zone', item: zone })).toEqual({
-      patch: { name: '🍎 Butte aux pommiers' },
+      patch: { name: '🍎 Butte aux pommiers', emoji: '🍎' },
     });
     expect(
       bulkPatchForItem('set_emoji', { emoji: '🐝' }, { kind: 'marker', item: marker }).skip,
@@ -167,7 +186,7 @@ describe('bulkPatchForItem', () => {
         { find: 'pommiers', replace: 'poiriers' },
         { kind: 'zone', item: zone },
       ),
-    ).toEqual({ patch: { name: '🌳 Butte aux poiriers' } });
+    ).toEqual({ patch: { name: '🌳 Butte aux poiriers', emoji: '🌳' } });
     expect(
       bulkPatchForItem(
         'find_replace',
@@ -192,7 +211,7 @@ describe('bulkPatchForItem', () => {
         { find: 'aromatiques', replace: 'simples' },
         { kind: 'zone', item: noEmoji },
       ),
-    ).toEqual({ patch: { name: 'Carré des simples' } });
+    ).toEqual({ patch: { name: 'Carré des simples', emoji: '' } });
   });
 
   test('find_replace : remplacement qui viderait le nom → ignoré', () => {

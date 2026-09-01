@@ -4,7 +4,7 @@ import { detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../../constan
 import { TASK_VISUAL_LABEL } from '../../utils/taskEnrollment.js';
 import { isInfrastructureLocation } from '../../utils/locationCategories.js';
 import {
-  shouldCompressOverlayLabel,
+  fitOverlayLabelToWidth,
   shouldShowZoneEmojiLabel,
   shouldShowZoneNameLabel,
 } from '../../utils/mapOverlayZoneLabels.js';
@@ -33,7 +33,9 @@ export function parseZonesForLayer(zones, emojiParsingList) {
       return {
         zone: z,
         pts,
-        zoneEmoji: detectLeadingMarkerEmoji(z.name || '', emojiParsingList),
+        // Colonne dédiée `zones.emoji` (audit C4) en priorité ; repli sur le préfixe du nom.
+        zoneEmoji:
+          String(z.emoji || '').trim() || detectLeadingMarkerEmoji(z.name || '', emojiParsingList),
         zoneName: stripLeadingMarkerEmoji(z.name || '', emojiParsingList),
       };
     })
@@ -61,7 +63,6 @@ const ZonePolygon = React.memo(function ZonePolygon({
   emojiLabelCenterGap,
   minSideFactor,
   labelMaxWorldLength,
-  labelCompressChars,
   onZoneOpen,
 }) {
   const { zone: z, pts, zoneEmoji, zoneName } = parsed;
@@ -81,7 +82,12 @@ const ZonePolygon = React.memo(function ZonePolygon({
     showLabels &&
     shouldShowZoneNameLabel({ pts, iw, ih, inv, labelFontPx, minSideFactor }) &&
     Boolean(zoneNameText.trim());
-  const compressLongName = shouldCompressOverlayLabel(zoneNameText, labelCompressChars);
+  // Ajustement sans déformation : réduction bornée puis « … » (fini textLength/spacingAndGlyphs).
+  const nameFit = fitOverlayLabelToWidth({
+    text: zoneNameText,
+    fontSize: labelFontPx,
+    maxWidth: labelMaxWorldLength,
+  });
   return (
     <g
       className={hitClass || undefined}
@@ -130,14 +136,13 @@ const ZonePolygon = React.memo(function ZonePolygon({
           y={my + (showZoneEmoji ? emojiLabelCenterGap : 0)}
           textAnchor="middle"
           dominantBaseline="middle"
-          fontSize={labelFontPx}
+          fontSize={nameFit.fontSize}
           className="map-overlay-name-label map-overlay-name-label--svg"
           strokeWidth={3 * inv}
-          textLength={compressLongName ? labelMaxWorldLength : undefined}
-          lengthAdjust={compressLongName ? 'spacingAndGlyphs' : undefined}
           style={{ pointerEvents: 'none', userSelect: 'none' }}
         >
-          {zoneNameText}
+          {nameFit.truncated ? <title>{zoneNameText}</title> : null}
+          {nameFit.text}
         </text>
       )}
       {taskVisual && (
@@ -188,7 +193,6 @@ const ZonePolygon = React.memo(function ZonePolygon({
  * @param {number} props.emojiLabelCenterGap écart vertical emoji/nom (px monde)
  * @param {number} props.minSideFactor seuil masquage adaptatif (× hauteur libellé)
  * @param {number} props.labelMaxWorldLength largeur max nom long (unités monde SVG)
- * @param {number} props.labelCompressChars seuil caractères compression nom
  * @param {(zone: object, e: React.MouseEvent) => void} props.onZoneOpen clic zone (handler stable)
  */
 export const ZonePolygonsLayer = React.memo(function ZonePolygonsLayer({
@@ -207,7 +211,6 @@ export const ZonePolygonsLayer = React.memo(function ZonePolygonsLayer({
   emojiLabelCenterGap,
   minSideFactor,
   labelMaxWorldLength,
-  labelCompressChars,
   onZoneOpen,
 }) {
   return (
@@ -230,7 +233,6 @@ export const ZonePolygonsLayer = React.memo(function ZonePolygonsLayer({
           emojiLabelCenterGap={emojiLabelCenterGap}
           minSideFactor={minSideFactor}
           labelMaxWorldLength={labelMaxWorldLength}
-          labelCompressChars={labelCompressChars}
           onZoneOpen={onZoneOpen}
         />
       ))}

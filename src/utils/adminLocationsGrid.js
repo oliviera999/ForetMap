@@ -16,6 +16,7 @@ import {
   stripLeadingMarkerEmoji,
 } from '../constants/emojis.js';
 import { buildZoneName } from './zoneModalForm.js';
+import { zoneEmojiOf, zoneTitleOf } from './zoneDisplay.js';
 import { locationCategoryIds } from './locationCategories.js';
 import { orderedLivingBeingsForForm } from './livingBeings';
 
@@ -36,6 +37,30 @@ export function composeZoneName(cleanName, emoji, emojiList = MARKER_EMOJIS) {
     markerEmojis: emojiList,
     emojiParsingList: emojiList,
   });
+}
+
+/**
+ * Emoji et titre d'une zone : colonne dédiée `zones.emoji` (audit C4) en source
+ * de vérité, repli sur le préfixe du nom pour les lignes non migrées.
+ */
+export function zoneParts(item) {
+  return { emoji: zoneEmojiOf(item), cleanName: zoneTitleOf(item) };
+}
+
+/**
+ * Patch de renommage / changement d'emoji d'une zone, aligné sur la convention
+ * de `buildZonePayload` : le nom garde son préfixe emoji pour compatibilité, et
+ * la colonne `emoji` est envoyée explicitement ('' = effacer).
+ * Renvoie `null` si le nom résultant est vide (sauvegarde à bloquer).
+ */
+export function zoneNameEmojiPatch(cleanName, emoji) {
+  const trimmedEmoji = clampEmojiInput(String(emoji || '').trim(), MAP_MARKER_EMOJI_MAX_CHARS);
+  if (trimmedEmoji) {
+    const name = composeZoneName(cleanName, trimmedEmoji);
+    return name ? { name, emoji: trimmedEmoji } : null;
+  }
+  const name = String(cleanName || '').trim();
+  return name ? { name, emoji: '' } : null;
 }
 
 /** Liste ordonnée des êtres vivants d'un lieu (junction, JSON legacy, colonne legacy). */
@@ -147,11 +172,11 @@ export function bulkPatchForItem(actionId, params = {}, { kind, item }) {
         if (String(item.emoji || '').trim() === emoji) return skip('emoji déjà en place');
         return { patch: { emoji } };
       }
-      const { emoji: currentEmoji, cleanName } = splitZoneName(item.name);
+      const { emoji: currentEmoji, cleanName } = zoneParts(item);
       if (currentEmoji === emoji) return skip('emoji déjà en place');
-      const name = composeZoneName(cleanName, emoji);
-      if (!name) return skip('nom de zone vide');
-      return { patch: { name } };
+      const patch = zoneNameEmojiPatch(cleanName, emoji);
+      if (!patch) return skip('nom de zone vide');
+      return { patch };
     }
     case 'find_replace': {
       const find = String(params.find ?? '');
@@ -159,14 +184,12 @@ export function bulkPatchForItem(actionId, params = {}, { kind, item }) {
       const replace = String(params.replace ?? '');
       const patch = {};
       if (kind === 'zone') {
-        const { emoji, cleanName } = splitZoneName(item.name);
+        const { emoji, cleanName } = zoneParts(item);
         const nextClean = applyFindReplace(cleanName, find, replace);
         if (nextClean !== cleanName) {
-          // Sans emoji détecté en tête, on n'en ajoute pas un au passage :
-          // `composeZoneName` poserait le premier de la palette par défaut.
-          const name = emoji ? composeZoneName(nextClean, emoji) : nextClean.trim();
-          if (!name) return skip('le remplacement viderait le nom');
-          patch.name = name;
+          const renamed = zoneNameEmojiPatch(nextClean, emoji);
+          if (!renamed) return skip('le remplacement viderait le nom');
+          Object.assign(patch, renamed);
         }
         if (params.includeText) {
           const nextDesc = applyFindReplace(item.description || '', find, replace);

@@ -26,6 +26,7 @@ const ZONES = [
     id: 'z1',
     map_id: 'foret',
     name: '🌳 Butte aux pommiers',
+    emoji: '🌳',
     description: 'Butte plantée en 2023',
     species: [{ id: '1', name: 'Pommier' }],
     living_beings_list: ['Pommier'],
@@ -102,6 +103,7 @@ describe('MapLocationsAdminPanel (grille à édition directe)', () => {
     await waitFor(() =>
       expect(api).toHaveBeenCalledWith('/api/zones/z1', 'PUT', {
         name: '🌳 Butte aux poiriers',
+        emoji: '🌳',
       }),
     );
     expect(onMessage).toHaveBeenCalledWith('Zone mise à jour');
@@ -175,7 +177,10 @@ describe('MapLocationsAdminPanel (grille à édition directe)', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Appliquer (1 concerné(s))' }));
     await waitFor(() =>
-      expect(api).toHaveBeenCalledWith('/api/zones/z2', 'PUT', { name: 'Carré des simples' }),
+      expect(api).toHaveBeenCalledWith('/api/zones/z2', 'PUT', {
+        name: 'Carré des simples',
+        emoji: '',
+      }),
     );
   });
 

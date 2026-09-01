@@ -33,6 +33,89 @@ annule).
   serveur.
 
 Doc : `docs/reference/foretmap/carte-et-zones.md` (section réécrite).
+### Emoji de zone en colonne dédiée (audit homogénéité UI — C4)
+
+La colonne `zones.emoji` (migration `206`) remplace l'extraction fragile du préfixe du nom
+comme source de vérité de l'emoji de zone :
+
+- **API** : `POST`/`PUT /api/zones` acceptent `emoji` (normalisé, `''` = effacement) et le
+  dérivent du préfixe du nom quand il est omis (anciens clients) ; toutes les réponses zone
+  l'exposent.
+- **Affichage** : le plan (carte et Visite), la fiche zone et les filtres carte privilégient
+  la colonne et se replient sur le préfixe pour les lignes non migrées. L'en-tête de la
+  fiche rend l'emoji dans la pile emoji (nouvelle classe `.emoji-glyph`) au lieu de le
+  laisser passer par Playfair Display avec le nom brut.
+- **Formulaires** : les modales de création et d'édition envoient l'emoji du sélecteur en
+  champ dédié ; le nom conserve son préfixe pour la compatibilité des autres affichages.
+- Couverture : `tests/zone-emoji.test.js` (helper serveur, sans BDD),
+  `tests/zone-emoji-column.test.js` (POST/PUT/GET), tests UI `zoneDisplay` et
+  `parseZonesForLayer` (préférence colonne).
+
+### Homogénéité de l'interface : lots A et C de l'audit exécutés (+ socle du lot B)
+
+Mise en œuvre du plan de `docs/AUDIT_UI_HOMOGENEITE_2026-09.md` (état détaillé en §6 du
+document) :
+
+- **Fin de la déformation des noms de zones** (carte et Visite) : l'ancien
+  `textLength`/`lengthAdjust="spacingAndGlyphs"` étirait les noms courts et écrasait les
+  longs dès 13 caractères. Un nom trop large est désormais légèrement réduit (borné à
+  −20 %) puis coupé avec « … » — glyphes intacts, nom complet dans la fiche et en
+  info-bulle SVG. Nouvelle fonction testée `fitOverlayLabelToWidth`.
+- **SVG étirés dé-anamorphosés** : numéros/points des zones feuillets GL, éditeur de
+  sommets du royaume et aperçus biodiversité ne sont plus aplatis/étirés selon le ratio
+  du plan (`transform-box: fill-box` + `--map-fit-aspect`) ; tous les contours étirés
+  passent en `vector-effect: non-scaling-stroke` (trait identique sur les deux axes,
+  constant au zoom).
+- **Un seul rendu d'emoji partout** : pile de polices unifiée (`ForetMapColorEmoji` avant
+  les polices système dans toutes les piles, ForetMap et GL), `unicode-range` sur le
+  `@font-face` (les 5,5 Mo ne se téléchargent que si un emoji est rendu), préchargement
+  côté ForetMap comme côté GL (fin de la bascule visible au chargement),
+  `font-variant-emoji` sur les classes d'overlay, glyphes normalisés (`🗑️`, `☑️/⬜`,
+  `✕` remplace `×`). Migration `205` : réparation du sélecteur U+FE0F corrompu étendue
+  aux tables ForetMap (zones, repères carte/visite, catégories, plantes, rôles) ; la
+  réparation mojibake est aussi appliquée à l'affichage des noms de zones, et la saisie
+  d'emoji ne peut plus scinder une séquence (coupe en points de code).
+- **Vrai gras** : DM Sans est désormais chargée en 700 (le CSS en demandait ~100 usages
+  jamais chargés → gras synthétisé) ; les 4 usages de 800 sont rabattus sur 700.
+- **Un seul régime de zoom pour les trois cartes** : les repères de la Visite suivent la
+  même croissance douce que les noms de zones au lieu de doubler linéairement, leurs
+  pastilles gardent un rapport constant avec l'emoji pendant le zoom ; GL applique enfin
+  le multiplicateur tactile (×1,2) et la préférence « taille du texte », désormais
+  réglable aussi depuis le bandeau de la Visite (bouton « Aa »). Les planchers de taille
+  s'appliquent au couple emoji+libellé (ratio conservé sur les petits plans) et les
+  arrondis n'introduisent plus de sauts d'1 px au redimensionnement.
+- **Corrections avérées** : la feuille de filtres carte mobile retrouve son style
+  bottom-sheet (props `DialogShell` corrigées) et s'aligne sur la feuille des tâches ;
+  l'onglet Médiathèque est de nouveau restauré au rechargement ; `aria-label` sur les
+  4 boutons `✕` muets ; cibles tactiles ≥ 44 px dans la barre d'outils carte.
+- **Socle typographique (lot B)** : échelle étendue à 7 crans (`--text-xs`…`--text-2xl`),
+  tokens de graisse (`--fw-*`) et d'interligne (`--lh-*`), piles de polices dédupliquées,
+  petits boutons alignés (0.875rem / 36 px pour `.btn-sm`, `.gl-btn--sm`,
+  `.shared-btn--sm`) et `line-height` explicite sur `.btn`. La migration des tailles
+  littérales (B2/B3) et la colonne `zones.emoji` (C4) restent des lots dédiés.
+
+### Audit — homogénéité de l'interface (écrits, emojis sur les plans, densité)
+
+Nouveau document [`docs/AUDIT_UI_HOMOGENEITE_2026-09.md`](docs/AUDIT_UI_HOMOGENEITE_2026-09.md),
+en réponse au signalement « écrits et emojis hétérogènes sur les plans, déformation,
+tailles différentes, interface parfois chargée ». Audit sans modification de code :
+
+- **Écrits** — l'échelle typographique (`--text-*`) existe mais n'est utilisée que 3 fois
+  contre 879 tailles littérales (85 valeurs distinctes, dont 14 variantes de « petit
+  texte ») ; graisses 700/800 demandées ~100 fois mais jamais chargées (faux-gras) ;
+  1 114 styles inline sur 41 % des composants ; trois familles de boutons non alignées.
+- **Emojis sur les plans** — déformation des noms de zones par
+  `textLength`/`spacingAndGlyphs` au-delà de 12 caractères ; textes et cercles
+  anamorphosés dans les SVG étirés non compensés (feuillets GL, aperçus biodiversité) ;
+  emojis rasterisés à ~5 px puis agrandis au zoom ; trois régimes de zoom différents pour
+  le même concept de repère ; pile de polices emoji inversée selon la variable, préchargée
+  côté GL mais pas côté ForetMap ; réparation `U+FE0F` limitée aux tables GL.
+- **Densité** — 13/17 onglets en barres scrollables sans indicateur, 18 surfaces
+  superposables sur l'écran carte, 54 dialogues natifs `confirm/alert/prompt`,
+  formulaires admin sans replis ; deux bugs avérés consignés (bottom-sheet des filtres
+  carte jamais stylée par props ignorées, onglet Médiathèque jamais restauré).
+- **Plan d'amélioration** en 4 lots priorisés (A corrections ciblées → D désencombrement),
+  chaque constat référencé `fichier:ligne`.
 ### Réglages : un sélecteur de couleur pour les catégories de lieux
 
 La couleur d'une catégorie ne se saisissait qu'en hexadécimal, à l'aveugle. Un **sélecteur

@@ -1001,7 +1001,6 @@ function MapViewImpl({
                       emojiLabelCenterGap={mapEmojiLabelCenterGap}
                       minSideFactor={mapOverlayLabelLayout.minSideFactor}
                       labelMaxWorldLength={mapOverlayLabelLayout.maxWorldLength}
-                      labelCompressChars={mapOverlayLabelLayout.compressChars}
                       onZoneOpen={openZoneFromMap}
                     />
                     <DrawingLayer drawPoints={drawPoints} iw={iw} ih={ih} inv={inv} />

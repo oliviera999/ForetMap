@@ -89,7 +89,11 @@ function ZoneInfoModal({
     stripLeadingMarkerEmoji(zone.name || '', emojiParsingList),
   );
   const [zoneEmoji, setZoneEmoji] = useState(
-    () => detectLeadingMarkerEmoji(zone.name || '', emojiParsingList) || markerEmojis[0] || '📍',
+    () =>
+      String(zone.emoji || '').trim() ||
+      detectLeadingMarkerEmoji(zone.name || '', emojiParsingList) ||
+      markerEmojis[0] ||
+      '📍',
   );
   const [livingBeings, setLivingBeings] = useState(() =>
     orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant),
@@ -223,6 +227,7 @@ function ZoneInfoModal({
         buildZonePayload(
           name,
           {
+            zoneEmoji,
             livingBeings,
             categoryIds,
             zoneColor,
@@ -263,7 +268,7 @@ function ZoneInfoModal({
       dialogRef={dialogRef}
     >
       {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
-      <button className="modal-close" onClick={onClose}>
+      <button className="modal-close" aria-label="Fermer" onClick={onClose}>
         ✕
       </button>
 
