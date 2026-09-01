@@ -292,7 +292,7 @@ router.post(
       if (imageData) {
         const relativePath = `task-logs/${task.id}_${logId}.jpg`;
         try {
-          saveBase64ToDisk(relativePath, imageData);
+          await saveBase64ToDisk(relativePath, imageData);
         } catch (fileErr) {
           await execute('DELETE FROM task_logs WHERE id = ?', [logId]);
           throw fileErr;

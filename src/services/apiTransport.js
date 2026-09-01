@@ -23,6 +23,22 @@ const MAX_MUTATION_NETWORK_ATTEMPTS = 3;
 const MAX_NON_GATEWAY_TRANSIENT_GET_ATTEMPTS = 4;
 /** Plafond appliqué à l'en-tête Retry-After renvoyé par le serveur. */
 const MAX_RETRY_AFTER_MS = 10000;
+/**
+ * Tentatives quand la requête **expire** (`AbortError` au bout de API_FETCH_TIMEOUT_MS).
+ *
+ * Un serveur qui *pend* (démarrage à froid sous charge) au lieu de couper la connexion
+ * échouait du premier coup : la fenêtre de réessai ci-dessus ne couvrait que les coupures
+ * franches et les réponses passerelle. Deux tentatives seulement, et sur GET idempotent
+ * uniquement : chaque tentative coûte déjà 40 s d'attente (huit en feraient plus de cinq
+ * minutes), et un timeout ne dit **pas** si le serveur a traité la requête — rejouer une
+ * mutation risquerait de la dupliquer.
+ */
+const MAX_TIMEOUT_ATTEMPTS = 2;
+/**
+ * Pause partagée après un 429 quand le serveur n'envoie pas de `Retry-After` : le temps
+ * que les requêtes sœurs cessent d'alimenter le plafond (voir `src/shared/apiRetryGate.js`).
+ */
+export const RATE_LIMIT_PAUSE_MS = 5000;
 
 export function isHtmlLikeApiPayload(raw) {
   const s = String(raw || '')
@@ -69,6 +85,16 @@ export function shouldRetryAfterNetworkError(method, body, attempt, maxAttempts)
   return attempt < mutationMax - 1;
 }
 
+/**
+ * Réessai après expiration du délai (`AbortError`) : GET idempotent seulement, et au plus
+ * `MAX_TIMEOUT_ATTEMPTS` tentatives — voir le commentaire de cette constante.
+ */
+export function shouldRetryAfterTimeout(method, body, attempt, maxAttempts) {
+  if (attempt >= maxAttempts - 1) return false;
+  if (!isIdempotentGet(method, body)) return false;
+  return attempt < MAX_TIMEOUT_ATTEMPTS - 1;
+}
+
 export function shouldRetryAfterHttpError(method, body, res, parsedBody, attempt, maxAttempts) {
   if (attempt >= maxAttempts - 1) return false;
   // Réponse passerelle / redémarrage : requête jamais traitée → fenêtre longue
@@ -103,10 +129,6 @@ export function retryAfterDelayMs(res) {
 /** Délai effectif avant réessai HTTP : backoff progressif, sans descendre sous Retry-After. */
 export function resolveTransientRetryDelayMs(attemptIndex, res) {
   return Math.max(transientRetryDelayMs(attemptIndex), retryAfterDelayMs(res));
-}
-
-export function sleepMs(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export function gatewayUnavailableUserMessage() {

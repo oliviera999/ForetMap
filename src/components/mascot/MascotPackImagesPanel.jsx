@@ -280,14 +280,14 @@ export default function MascotPackImagesPanel({
       aria-label="Images mascotte"
     >
       <h3 className="mascot-pack-wysiwyg__h">Images</h3>
-      <p className="section-sub" style={{ fontSize: '0.82rem', marginTop: 0 }}>
+      <p className="section-sub" style={{ fontSize: 'var(--text-sm)', marginTop: 0 }}>
         Médiathèque du pack, bibliothèque de sprites partagée et catalogue du site — cochez des
         sprites puis utilisez les actions groupées, ou ajoutez une image via « + État ».
       </p>
 
       <div className="mascot-pack-images-panel__toolbar">
         <label className="mascot-pack-images-panel__target">
-          <span className="section-sub" style={{ fontSize: '0.78rem' }}>
+          <span className="section-sub" style={{ fontSize: 'var(--text-sm)' }}>
             État cible
           </span>
           <select
@@ -446,7 +446,10 @@ export default function MascotPackImagesPanel({
                       decoding="async"
                     />
                   ) : (
-                    <span className="section-sub" style={{ fontSize: '0.72rem', padding: 8 }}>
+                    <span
+                      className="section-sub"
+                      style={{ fontSize: 'var(--text-xs)', padding: 8 }}
+                    >
                       Pas d’aperçu
                     </span>
                   )}
@@ -455,7 +458,10 @@ export default function MascotPackImagesPanel({
                   <span className="mascot-pack-images-panel__badge">{entry.sourceLabel}</span>
                   <code>{entry.filename}</code>
                   {entry.meta ? (
-                    <span className="section-sub" style={{ display: 'block', fontSize: '0.72rem' }}>
+                    <span
+                      className="section-sub"
+                      style={{ display: 'block', fontSize: 'var(--text-xs)' }}
+                    >
                       {entry.meta}
                     </span>
                   ) : null}
@@ -521,7 +527,7 @@ export default function MascotPackImagesPanel({
             <h3 id="mascot-rename-title" className="mascot-pack-wysiwyg__h">
               Renommer la sélection ({selectedEntries.length})
             </h3>
-            <p className="section-sub" style={{ fontSize: '0.82rem' }}>
+            <p className="section-sub" style={{ fontSize: 'var(--text-sm)' }}>
               Pack ou bibliothèque uniquement. Les références dans le JSON du pack seront mises à
               jour.
             </p>

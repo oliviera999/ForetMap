@@ -1067,7 +1067,7 @@ router.post('/mascot-packs/:id/assets', requirePermission('visit.manage'), async
     }
     const rel = `${visitMascotPackAssetRelativeDir(packId)}/${filename}`;
     try {
-      saveBase64ToDisk(rel, imageData);
+      await saveBase64ToDisk(rel, imageData);
     } catch (fileErr) {
       logRouteError(fileErr, req);
       return res.status(400).json({ error: 'Image invalide ou trop volumineuse' });
@@ -1299,7 +1299,7 @@ router.post(
         resolveVisitMascotSpriteLibraryRelPath(filename) ||
         `${visitMascotSpriteLibraryRelativeDir()}/${filename}`;
       try {
-        saveBase64ToDisk(rel, imageData);
+        await saveBase64ToDisk(rel, imageData);
       } catch (fileErr) {
         logRouteError(fileErr, req);
         return res.status(400).json({ error: 'Image invalide ou trop volumineuse' });

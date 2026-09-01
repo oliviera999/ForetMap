@@ -1,5 +1,8 @@
 # Audit charge serveur — août 2026
 
+> **Suite** : [`AUDIT_STABILITE_PERF_2026-09.md`](AUDIT_STABILITE_PERF_2026-09.md) consolide
+> cet audit et le suivant, et couvre en plus **GL et les composants communs**.
+
 État des lieux de la charge générée par ForetMap + GL sur l'hébergement mutualisé
 (o2switch : CloudLinux LVE, Passenger, proxy Tiger Protect), et pistes de réduction
 **sans perte de fonctionnalité**. Mesures faites sur la révision du lot 19,
@@ -156,3 +159,31 @@ Mise en œuvre retenue pour la piste 4 : un **compteur global d'écritures SQL**
 déclenche un cycle complet (aucun risque de fraîcheur perdue) ; les écritures hors
 process (scripts CLI) sont couvertes par un **plafond de sauts consécutifs** qui force
 un cycle complet périodique. Détail : `docs/API.md` §Client HTTP.
+
+## 5) Seconde passe (lot « résilience & charge », août 2026)
+
+Cet audit visait le **profil nominal** : cadence de polling, mémoire au boot, coût par
+requête authentifiée. Une seconde lecture, partie du symptôme « déconnexions et réessais
+qui s'enchaînent », a montré que les postes de charge restants n'étaient pas dans le
+régime nominal mais dans les **cas dégradés** et les **pics** — précisément ce qui produit
+les kills LVE que la section 1 ne pouvait pas voir en mesurant un utilisateur au repos.
+
+| Constat                                                                                                                                         | Traitement                                                                            |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Corps JSON à **25 Mo sur des préfixes entiers** (`/api/tasks`, `/api/zones`, `/api/settings`…) : une requête suffit à faire un pic de 75–100 Mo | trois niveaux (2 / 8 / 25 Mo) posés par chemin réel, `lib/jsonBodyLimit.js`           |
+| Aucune borne de taille **par image** (3 images par message, taille libre)                                                                       | `FORETMAP_MAX_UPLOAD_BYTES` (8 Mo décodés), erreur 400 explicite                      |
+| Écriture des fichiers en **`fs.writeFileSync`** : boucle d'événements bloquée pendant l'écriture                                                | `fs.promises.writeFile` ; les 21 sites d'appel passent en `await`                     |
+| `GET /api/zones` rapatriait **tout `zone_history`** pour n'en afficher que 5 lignes par zone                                                    | fenêtrage SQL (`ROW_NUMBER()`) + comptage groupé                                      |
+| `GET /api/tutorials` chargeait le **LONGTEXT** `html_content` qu'il ne renvoie jamais                                                           | colonnes explicites (`TUTORIAL_PUBLIC_COLUMNS`)                                       |
+| `GET /api/visit/content` : **8 requêtes séquentielles**, endpoint **public**, sans cache                                                        | parallélisées + cache invalidé par la version d'écriture (`lib/visitContentCache.js`) |
+| Bibliothèque média : scan synchrone **O(n²)**, `limit` appliqué après coup                                                                      | index inverse par chemin (linéaire)                                                   |
+| Rafraîchissements temps réel **synchronisés** : toute une classe refetche dans la même fenêtre                                                  | jitter de 0–600 ms (`src/utils/realtimeRefreshDelay.js`)                              |
+| Réessais réseau non coordonnés : jusqu'à ~70 requêtes par poste pendant une coupure, plafond 1200/min/IP atteint par les réessais eux-mêmes     | fenêtre de réessai partagée (`src/shared/apiRetryGate.js`)                            |
+
+Deux expositions ont été refermées au passage : `GET /api/sync-state` était **public**
+(identité du process, rythme des écritures) et le masquage du hash de mot de passe se
+faisait par **liste noire** (`{ ...row, password_hash: undefined }`, huit endroits) —
+remplacé par la liste blanche de `lib/publicUser.js`.
+
+Détail complet, avec ce qui a été vérifié **et jugé sain**, dans
+[`AUDIT_CHARGE_ET_BUGS_2026-08.md`](AUDIT_CHARGE_ET_BUGS_2026-08.md).

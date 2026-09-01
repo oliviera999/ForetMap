@@ -339,7 +339,11 @@ function ContextComments({
           ) : (
             <p
               className="forum-muted"
-              style={{ margin: '0 0 10px', lineHeight: 1.5, fontSize: '.85rem' }}
+              style={{
+                margin: '0 0 10px',
+                lineHeight: 'var(--lh-normal)',
+                fontSize: 'var(--text-sm)',
+              }}
             >
               Lecture seule : tu peux consulter les commentaires ; la publication n’est pas activée
               sur ton compte.

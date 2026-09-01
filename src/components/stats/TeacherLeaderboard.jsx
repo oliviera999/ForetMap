@@ -55,7 +55,7 @@ export function TeacherLeaderboard({ students = [], search = '', roleTerms }) {
                 {s.pseudo && (
                   <div
                     className="lb-pseudo"
-                    style={{ fontSize: '.72rem', color: '#4b5563', marginTop: 1 }}
+                    style={{ fontSize: 'var(--text-xs)', color: '#4b5563', marginTop: 1 }}
                   >
                     @{s.pseudo}
                   </div>
@@ -64,8 +64,8 @@ export function TeacherLeaderboard({ students = [], search = '', roleTerms }) {
                   <div
                     className="lb-description"
                     style={{
-                      fontSize: '.72rem',
-                      color: '#6b7280',
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--ink-soft)',
                       marginTop: 2,
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
@@ -83,8 +83,8 @@ export function TeacherLeaderboard({ students = [], search = '', roleTerms }) {
                       className="lb-profile-badge"
                       style={{
                         display: 'inline-block',
-                        fontSize: '.7rem',
-                        fontWeight: 600,
+                        fontSize: 'var(--text-xs)',
+                        fontWeight: 'var(--fw-semibold)',
                         padding: '2px 8px',
                         borderRadius: 999,
                         background: '#ecfdf5',

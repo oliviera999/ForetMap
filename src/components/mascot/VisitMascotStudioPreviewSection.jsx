@@ -83,7 +83,7 @@ export default function VisitMascotStudioPreviewSection({
 
   return (
     <section className="visit-mascot-preview-card" aria-label="Aperçu de la mascotte">
-      <p className="section-sub" style={{ fontSize: '0.82rem' }}>
+      <p className="section-sub" style={{ fontSize: 'var(--text-sm)' }}>
         Tous les packs chargés (brouillons compris) pour prévisualiser les mascottes serveur.
       </p>
       <div

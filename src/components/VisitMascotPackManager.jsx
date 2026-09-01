@@ -894,7 +894,7 @@ export default function VisitMascotPackManager({
                   Pour en créer une, partez d’un <strong>nouveau brouillon</strong>, ou
                   sélectionnez-en une et <strong>dupliquez-la</strong>.
                 </p>
-                <p style={{ fontSize: '0.82rem', opacity: 0.9, marginBottom: 0 }}>
+                <p style={{ fontSize: 'var(--text-sm)', opacity: 0.9, marginBottom: 0 }}>
                   L’onglet <strong>Aperçu global</strong> permet de comparer les mascottes entre
                   elles ; les onglets <strong>Édition guidée</strong>, <strong>JSON</strong> et{' '}
                   <strong>Comportements visite</strong> modifient uniquement la mascotte
@@ -1003,7 +1003,7 @@ export default function VisitMascotPackManager({
                     id="mascot-pack-tabpanel-json"
                     aria-labelledby="mascot-pack-tab-json"
                   >
-                    <p className="section-sub" style={{ fontSize: '0.82rem' }}>
+                    <p className="section-sub" style={{ fontSize: 'var(--text-sm)' }}>
                       Modifiez le JSON puis « Appliquer ». La forme unifiée <code>states[]</code>{' '}
                       (alignée GL) est acceptée à l’application.
                     </p>
@@ -1018,7 +1018,7 @@ export default function VisitMascotPackManager({
                         width: '100%',
                         minHeight: 280,
                         fontFamily: 'ui-monospace, monospace',
-                        fontSize: 12,
+                        fontSize: 'var(--text-xs)',
                         borderRadius: 8,
                         border: '1px solid rgba(26,71,49,0.25)',
                         padding: 10,
@@ -1026,7 +1026,11 @@ export default function VisitMascotPackManager({
                       }}
                     />
                     {jsonError ? (
-                      <p className="text-danger" role="alert" style={{ fontSize: '0.82rem' }}>
+                      <p
+                        className="text-danger"
+                        role="alert"
+                        style={{ fontSize: 'var(--text-sm)' }}
+                      >
                         {jsonError}
                       </p>
                     ) : null}
@@ -1056,7 +1060,11 @@ export default function VisitMascotPackManager({
                         Copier
                       </button>
                       {jsonCopyFeedback ? (
-                        <span className="section-sub" role="status" style={{ fontSize: '0.8rem' }}>
+                        <span
+                          className="section-sub"
+                          role="status"
+                          style={{ fontSize: 'var(--text-sm)' }}
+                        >
                           {jsonCopyFeedback}
                         </span>
                       ) : null}
@@ -1095,7 +1103,10 @@ export default function VisitMascotPackManager({
                     id="mascot-pack-tabpanel-dialog"
                     aria-labelledby="mascot-pack-tab-dialog"
                   >
-                    <p className="section-sub" style={{ fontSize: '0.82rem', marginBottom: 10 }}>
+                    <p
+                      className="section-sub"
+                      style={{ fontSize: 'var(--text-sm)', marginBottom: 10 }}
+                    >
                       Messages de bulle pour ce pack (priorité maximale sur les défauts globaux et
                       catalogue).
                     </p>

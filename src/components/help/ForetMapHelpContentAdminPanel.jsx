@@ -168,11 +168,19 @@ export function ForetMapHelpContentAdminPanel() {
         {section === 'tooltips' &&
           TOOLTIP_SECTIONS.map(({ id, label }) => (
             <details key={id} open style={{ marginBottom: 10 }}>
-              <summary style={{ cursor: 'pointer', fontWeight: 600 }}>{label}</summary>
+              <summary style={{ cursor: 'pointer', fontWeight: 'var(--fw-semibold)' }}>
+                {label}
+              </summary>
               <div style={{ marginTop: 8, display: 'grid', gap: 10 }}>
                 {(tooltipGroups[id] || []).map(({ key, action, entry }) => (
                   <div key={key} style={{ borderTop: '1px solid #f1f5f9', paddingTop: 8 }}>
-                    <div style={{ fontSize: '.78rem', color: '#64748b', marginBottom: 4 }}>
+                    <div
+                      style={{
+                        fontSize: 'var(--text-sm)',
+                        color: 'var(--ink-soft)',
+                        marginBottom: 4,
+                      }}
+                    >
                       {action}
                     </div>
                     {'text' in entry || !entry.textTeacher ? (
@@ -210,7 +218,7 @@ export function ForetMapHelpContentAdminPanel() {
             const panel = draft.panels?.[panelId] || { title: '', items: [] };
             return (
               <details key={panelId} style={{ marginBottom: 10 }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 'var(--fw-semibold)' }}>
                   {PANEL_LABELS[panelId]}
                 </summary>
                 <div className="field" style={{ marginTop: 8 }}>
@@ -228,7 +236,9 @@ export function ForetMapHelpContentAdminPanel() {
                     key={`${panelId}-${index}`}
                     style={{ borderTop: '1px solid #f1f5f9', paddingTop: 8, marginTop: 8 }}
                   >
-                    <div style={{ fontSize: '.78rem', color: '#64748b' }}>Point {index + 1}</div>
+                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
+                      Point {index + 1}
+                    </div>
                     <div className="field">
                       <label>{roleTerms.studentSingular}</label>
                       <textarea

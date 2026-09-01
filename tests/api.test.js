@@ -480,8 +480,10 @@ test('GET /api/maps renvoie les cartes configurées', async () => {
   assert.ok(res.body.some((m) => m.id === 'n3'));
 });
 
-// ─── Zones spéciales (création + bascule du drapeau) ──────────────────────
-test('POST /api/zones peut créer une zone spéciale (special=true)', async () => {
+// ─── Zones d'infrastructure (via catégories) ──────────────────────────────
+// Le drapeau `special` n'est plus piloté par le client : il découle des catégories
+// portant `is_infrastructure` (cf. tests/location-categories.test.js pour le détail).
+test("POST /api/zones : une catégorie d'infrastructure marque la zone", async () => {
   const token = await getAdminAuthToken();
   const res = await request(app)
     .post('/api/zones')
@@ -494,15 +496,17 @@ test('POST /api/zones peut créer une zone spéciale (special=true)', async () =
         { xp: 20, yp: 20 },
       ],
       map_id: 'foret',
-      special: true,
+      category_ids: ['cat-infrastructure'],
     })
     .expect(201);
   assert.ok(res.body.id);
   const fetched = await request(app).get(`/api/zones/${res.body.id}`).expect(200);
+  assert.strictEqual(fetched.body.is_infrastructure, true);
   assert.strictEqual(fetched.body.special, true);
+  assert.deepStrictEqual(fetched.body.category_ids, ['cat-infrastructure']);
 });
 
-test('PUT /api/zones/:id peut basculer le drapeau special dans les deux sens', async () => {
+test('PUT /api/zones/:id bascule le caractère infrastructure dans les deux sens', async () => {
   const token = await getAdminAuthToken();
   const created = await request(app)
     .post('/api/zones')
@@ -518,24 +522,24 @@ test('PUT /api/zones/:id peut basculer le drapeau special dans les deux sens', a
     })
     .expect(201);
   const zoneId = created.body.id;
-  assert.strictEqual(created.body.special, false);
+  assert.strictEqual(created.body.is_infrastructure, false);
 
-  const toSpecial = await request(app)
+  const toInfrastructure = await request(app)
     .put(`/api/zones/${zoneId}`)
     .set('Authorization', `Bearer ${token}`)
-    .send({ special: true })
+    .send({ category_ids: ['cat-infrastructure'] })
     .expect(200);
-  assert.strictEqual(toSpecial.body.special, true);
+  assert.strictEqual(toInfrastructure.body.is_infrastructure, true);
 
   const backToNormal = await request(app)
     .put(`/api/zones/${zoneId}`)
     .set('Authorization', `Bearer ${token}`)
-    .send({ special: false })
+    .send({ category_ids: [] })
     .expect(200);
-  assert.strictEqual(backToNormal.body.special, false);
+  assert.strictEqual(backToNormal.body.is_infrastructure, false);
 });
 
-test('PUT /api/zones/:id sans champ special préserve le drapeau existant', async () => {
+test('PUT /api/zones/:id sans category_ids préserve les catégories existantes', async () => {
   const token = await getAdminAuthToken();
   const created = await request(app)
     .post('/api/zones')
@@ -548,15 +552,16 @@ test('PUT /api/zones/:id sans champ special préserve le drapeau existant', asyn
         { xp: 60, yp: 60 },
       ],
       map_id: 'foret',
-      special: true,
+      category_ids: ['cat-infrastructure'],
     })
     .expect(201);
   const updated = await request(app)
     .put(`/api/zones/${created.body.id}`)
     .set('Authorization', `Bearer ${token}`)
-    .send({ description: 'Modification sans toucher special' })
+    .send({ description: 'Modification sans toucher aux catégories' })
     .expect(200);
-  assert.strictEqual(updated.body.special, true);
+  assert.strictEqual(updated.body.is_infrastructure, true);
+  assert.deepStrictEqual(updated.body.category_ids, ['cat-infrastructure']);
 });
 
 // ─── Statuts tâches (assign / unassign) ───────────────────────────────────

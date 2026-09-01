@@ -89,10 +89,10 @@ function CreateUserPanel({
         opacity: canCreateUsers ? 1 : 0.65,
       }}
     >
-      <h3 style={{ margin: '0 0 8px', fontSize: '1rem', color: 'var(--forest)' }}>
+      <h3 style={{ margin: '0 0 8px', fontSize: 'var(--text-base)', color: 'var(--forest)' }}>
         Création unitaire d&apos;utilisateur
       </h3>
-      <p style={{ margin: '0 0 10px', fontSize: '.85rem', color: '#6b7280' }}>
+      <p style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
         Créez un compte sans import. Action réservée aux profils disposant de la permission de
         gestion des utilisateurs.
       </p>

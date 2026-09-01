@@ -13,6 +13,7 @@ import {
   MarkerEmojiField,
   MarkerVisitImageBuilder,
 } from './MarkerFormSections.jsx';
+import { LocationCategoryBadges } from './LocationCategoryPicker.jsx';
 import { LocationModalTabBar } from './LocationModalTabBar.jsx';
 import { MarkerTutorialCardList } from './MarkerTutorialCardList.jsx';
 import { PhotoGallery } from './PhotoGallery.jsx';
@@ -25,6 +26,7 @@ import { useVisitMediaBlocks } from './useVisitMediaBlocks.js';
 function MarkerModal({
   marker,
   plants,
+  categoryCatalog = [],
   tasks,
   tutorials = [],
   onClose,
@@ -188,7 +190,7 @@ function MarkerModal({
         dialogRef={dialogRef}
       >
         {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
-        <button className="modal-close" onClick={onClose}>
+        <button className="modal-close" aria-label="Fermer" onClick={onClose}>
           ✕
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
@@ -196,7 +198,13 @@ function MarkerModal({
         </div>
         {isTeacher ? (
           <>
-            <MarkerCommonFormFields form={form} setForm={setForm} plants={plants} set={set} />
+            <MarkerCommonFormFields
+              form={form}
+              setForm={setForm}
+              plants={plants}
+              set={set}
+              categoryCatalog={categoryCatalog}
+            />
             <MarkerEmojiField
               id="marker-new-emoji-custom"
               form={form}
@@ -213,7 +221,7 @@ function MarkerModal({
             </button>
           </>
         ) : (
-          <p style={{ color: '#64748b', fontSize: '.9rem' }}>
+          <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--text-base)' }}>
             Création de repère réservée au professeur.
           </p>
         )}
@@ -233,16 +241,28 @@ function MarkerModal({
       dialogRef={dialogRef}
     >
       {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
-      <button className="modal-close" onClick={onClose}>
+      <button className="modal-close" aria-label="Fermer" onClick={onClose}>
         ✕
       </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{marker.label}</h3>
-          <div style={{ marginTop: 3, fontSize: '.72rem', color: '#64748b', fontWeight: 600 }}>
+          <h3 style={{ margin: 0, fontSize: 'var(--text-md)' }}>{marker.label}</h3>
+          <div
+            style={{
+              marginTop: 3,
+              fontSize: 'var(--text-xs)',
+              color: 'var(--ink-soft)',
+              fontWeight: 'var(--fw-semibold)',
+            }}
+          >
             Repère
           </div>
+          {(marker.categories || []).length > 0 && (
+            <div style={{ marginTop: 4 }}>
+              <LocationCategoryBadges item={marker} />
+            </div>
+          )}
         </div>
         {isTeacher && (
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
@@ -295,7 +315,14 @@ function MarkerModal({
           >
             ✅ Ouvrir l’onglet Tâches filtré sur ce repère
           </button>
-          <p style={{ fontSize: '.74rem', color: '#64748b', margin: '6px 0 0', lineHeight: 1.4 }}>
+          <p
+            style={{
+              fontSize: 'var(--text-xs)',
+              color: 'var(--ink-soft)',
+              margin: '6px 0 0',
+              lineHeight: 'var(--lh-normal)',
+            }}
+          >
             Affiche les tâches et tutoriels rattachés à ce lieu dans la liste des tâches.
           </p>
         </div>
@@ -389,9 +416,9 @@ function MarkerModal({
                 padding: '10px 14px',
                 marginBottom: 12,
                 border: '1px solid var(--mint)',
-                fontSize: '.88rem',
+                fontSize: 'var(--text-sm)',
                 color: '#333',
-                lineHeight: 1.6,
+                lineHeight: 'var(--lh-relaxed)',
               }}
             >
               <MarkdownContent>{marker.note}</MarkdownContent>
@@ -421,7 +448,7 @@ function MarkerModal({
               <p
                 style={{
                   color: '#bbb',
-                  fontSize: '.85rem',
+                  fontSize: 'var(--text-sm)',
                   fontStyle: 'italic',
                   textAlign: 'center',
                   padding: '20px 0',
@@ -448,7 +475,13 @@ function MarkerModal({
       )}
       {tab === 'edit' && isTeacher && (
         <div className="fade-in">
-          <MarkerCommonFormFields form={form} setForm={setForm} plants={plants} set={set} />
+          <MarkerCommonFormFields
+            form={form}
+            setForm={setForm}
+            plants={plants}
+            set={set}
+            categoryCatalog={categoryCatalog}
+          />
           <MarkerVisitImageBuilder
             imageBlocks={imageBlocks}
             visitMediaOptions={visitMediaOptions}

@@ -12,9 +12,9 @@ export function livingBeingCatalogText(value) {
 }
 
 const CATALOG_PANEL_LABEL_STYLE = {
-  fontSize: '.72rem',
-  fontWeight: 700,
-  color: '#64748b',
+  fontSize: 'var(--text-xs)',
+  fontWeight: 'var(--fw-bold)',
+  color: 'var(--ink-soft)',
   textTransform: 'uppercase',
   marginBottom: 4,
   marginTop: 10,
@@ -38,9 +38,9 @@ export function CatalogRemarksSection({ plant }) {
         <p
           key={`remark-${idx}`}
           style={{
-            fontSize: '.83rem',
+            fontSize: 'var(--text-sm)',
             color: text ? '#555' : '#94a3b8',
-            lineHeight: 1.5,
+            lineHeight: 'var(--lh-normal)',
             margin: idx === 0 ? '0 0 4px' : '4px 0 0',
             whiteSpace: 'pre-wrap',
             fontStyle: text ? 'normal' : 'italic',
@@ -90,9 +90,9 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) 
       {showHeading && (
         <div
           style={{
-            fontSize: '.78rem',
-            fontWeight: 700,
-            color: '#64748b',
+            fontSize: 'var(--text-sm)',
+            fontWeight: 'var(--fw-bold)',
+            color: 'var(--ink-soft)',
             marginBottom: 8,
             textTransform: 'uppercase',
           }}
@@ -100,7 +100,14 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) 
           Êtres vivants
         </div>
       )}
-      <p style={{ fontSize: '.72rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
+      <p
+        style={{
+          fontSize: 'var(--text-xs)',
+          color: 'var(--ink-soft)',
+          margin: '0 0 8px',
+          lineHeight: 'var(--lh-normal)',
+        }}
+      >
         Touche ou clique un nom pour afficher la fiche du catalogue (description, rôle, utilité,
         remarques).
       </p>
@@ -119,7 +126,7 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) 
               aria-pressed={isSel}
               onClick={() => setSelectedName(name)}
               style={{
-                fontWeight: 500,
+                fontWeight: 'var(--fw-medium)',
                 border: isSel ? '2px solid var(--forest)' : '1px solid rgba(0,0,0,.12)',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
@@ -139,7 +146,14 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) 
           aria-label={`Fiche catalogue : ${selectedName}`}
         >
           {!selectedPlant ? (
-            <p style={{ fontSize: '.83rem', color: '#92400e', margin: 0, lineHeight: 1.5 }}>
+            <p
+              style={{
+                fontSize: 'var(--text-sm)',
+                color: '#92400e',
+                margin: 0,
+                lineHeight: 'var(--lh-normal)',
+              }}
+            >
               Aucune fiche catalogue ne correspond à «{selectedName}
               ». Un professeur peut mettre à jour la base biodiversité.
             </p>
@@ -149,9 +163,9 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) 
                 <div style={{ ...labelStyle, marginTop: 0 }}>Description</div>
                 <p
                   style={{
-                    fontSize: '.83rem',
+                    fontSize: 'var(--text-sm)',
                     color: desc ? '#555' : '#94a3b8',
-                    lineHeight: 1.5,
+                    lineHeight: 'var(--lh-normal)',
                     margin: 0,
                     whiteSpace: 'pre-wrap',
                     fontStyle: desc ? 'normal' : 'italic',
@@ -164,9 +178,9 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) 
                 <div style={labelStyle}>Rôle dans l&apos;écosystème</div>
                 <p
                   style={{
-                    fontSize: '.83rem',
+                    fontSize: 'var(--text-sm)',
                     color: role ? '#555' : '#94a3b8',
-                    lineHeight: 1.5,
+                    lineHeight: 'var(--lh-normal)',
                     margin: 0,
                     whiteSpace: 'pre-wrap',
                     fontStyle: role ? 'normal' : 'italic',
@@ -179,9 +193,9 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) 
                 <div style={labelStyle}>Utilité pour l&apos;être humain</div>
                 <p
                   style={{
-                    fontSize: '.83rem',
+                    fontSize: 'var(--text-sm)',
                     color: utility ? '#555' : '#94a3b8',
-                    lineHeight: 1.5,
+                    lineHeight: 'var(--lh-normal)',
                     margin: 0,
                     whiteSpace: 'pre-wrap',
                     fontStyle: utility ? 'normal' : 'italic',
@@ -232,9 +246,9 @@ export function BiodiversitySpeciesOpenLinks({
       {showHeading && (
         <div
           style={{
-            fontSize: '.78rem',
-            fontWeight: 700,
-            color: '#64748b',
+            fontSize: 'var(--text-sm)',
+            fontWeight: 'var(--fw-bold)',
+            color: 'var(--ink-soft)',
             marginBottom: 8,
             textTransform: 'uppercase',
           }}
@@ -242,7 +256,14 @@ export function BiodiversitySpeciesOpenLinks({
           {sectionTitle || 'Êtres vivants'}
         </div>
       )}
-      <p style={{ fontSize: '.72rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
+      <p
+        style={{
+          fontSize: 'var(--text-xs)',
+          color: 'var(--ink-soft)',
+          margin: '0 0 8px',
+          lineHeight: 'var(--lh-normal)',
+        }}
+      >
         Affiche la fiche catalogue dans une fenêtre (comme pour les tutoriels).
       </p>
       <div
@@ -269,7 +290,7 @@ export function BiodiversitySpeciesOpenLinks({
               }
               onClick={() => plant && canOpen && onOpenPlant(plant.id)}
               style={{
-                fontWeight: 500,
+                fontWeight: 'var(--fw-medium)',
                 border:
                   plant && canOpen ? '1px solid rgba(0,0,0,.12)' : '1px solid rgba(0,0,0,.08)',
                 cursor: plant && canOpen ? 'pointer' : 'not-allowed',

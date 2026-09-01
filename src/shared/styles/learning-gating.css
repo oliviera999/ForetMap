@@ -80,7 +80,7 @@
   min-height: 44px;
   border: none;
   background: transparent;
-  font-size: 1.5rem;
+  font-size: var(--text-xl);
   line-height: 1;
   color: #4b5d51;
   cursor: pointer;
@@ -96,7 +96,7 @@
 .fm-quiz-popover__body h3 {
   margin: 0 0 4px;
   padding-right: 40px;
-  font-size: 1.05rem;
+  font-size: var(--text-md);
 }
 
 /* Règles annoncées avant de commencer : ce que l'élève risque, en clair. */
@@ -106,8 +106,8 @@
   padding: 0;
   display: grid;
   gap: 6px;
-  font-size: 0.92rem;
-  line-height: 1.4;
+  font-size: var(--text-base);
+  line-height: var(--lh-normal);
   color: var(--learning-gating-muted);
 }
 .learning-gating-rules li {
@@ -118,7 +118,7 @@
   content: '·';
   position: absolute;
   left: 6px;
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--learning-gating-accent);
 }
 
@@ -128,8 +128,8 @@
   margin-left: 6px;
   padding: 1px 7px;
   border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--text-xs);
+  font-weight: var(--fw-semibold);
   background: var(--learning-gating-chip-bg);
   color: var(--learning-gating-ink);
   vertical-align: middle;
@@ -145,7 +145,7 @@
   gap: 4px;
   margin-left: 6px;
   vertical-align: middle;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   line-height: 1;
   white-space: nowrap;
 }
@@ -156,11 +156,11 @@
   min-width: 1.15em;
   height: 1.15em;
   border-radius: 999px;
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   font-size: 0.85em;
 }
 .learning-gating-state__label {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 .learning-gating-state--acquired {
   color: var(--learning-gating-ink);
@@ -184,8 +184,8 @@
 /* Vue d'ensemble d'une liste : discrète, à côté du titre de section. */
 .tutorials-gating-counts {
   margin-left: 10px;
-  font-size: 0.72rem;
-  font-weight: 500;
+  font-size: var(--text-xs);
+  font-weight: var(--fw-medium);
   white-space: nowrap;
 }
 
