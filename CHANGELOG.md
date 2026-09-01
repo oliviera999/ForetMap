@@ -7,6 +7,29 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit — homogénéité de l'interface (écrits, emojis sur les plans, densité)
+
+Nouveau document [`docs/AUDIT_UI_HOMOGENEITE_2026-09.md`](docs/AUDIT_UI_HOMOGENEITE_2026-09.md),
+en réponse au signalement « écrits et emojis hétérogènes sur les plans, déformation,
+tailles différentes, interface parfois chargée ». Audit sans modification de code :
+
+- **Écrits** — l'échelle typographique (`--text-*`) existe mais n'est utilisée que 3 fois
+  contre 879 tailles littérales (85 valeurs distinctes, dont 14 variantes de « petit
+  texte ») ; graisses 700/800 demandées ~100 fois mais jamais chargées (faux-gras) ;
+  1 114 styles inline sur 41 % des composants ; trois familles de boutons non alignées.
+- **Emojis sur les plans** — déformation des noms de zones par
+  `textLength`/`spacingAndGlyphs` au-delà de 12 caractères ; textes et cercles
+  anamorphosés dans les SVG étirés non compensés (feuillets GL, aperçus biodiversité) ;
+  emojis rasterisés à ~5 px puis agrandis au zoom ; trois régimes de zoom différents pour
+  le même concept de repère ; pile de polices emoji inversée selon la variable, préchargée
+  côté GL mais pas côté ForetMap ; réparation `U+FE0F` limitée aux tables GL.
+- **Densité** — 13/17 onglets en barres scrollables sans indicateur, 18 surfaces
+  superposables sur l'écran carte, 54 dialogues natifs `confirm/alert/prompt`,
+  formulaires admin sans replis ; deux bugs avérés consignés (bottom-sheet des filtres
+  carte jamais stylée par props ignorées, onglet Médiathèque jamais restauré).
+- **Plan d'amélioration** en 4 lots priorisés (A corrections ciblées → D désencombrement),
+  chaque constat référencé `fichier:ligne`.
+
 ### Les constats de l'audit géolocalisation sont tous traités
 
 Suite directe de l'audit ci-dessous : les 7 points du plan d'action de
