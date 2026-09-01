@@ -26,6 +26,13 @@ const {
   reorderPhotosBodySchema,
   addPhotoBodySchema,
 } = require('../lib/entityPhotoRoutes');
+const {
+  loadCategoriesMap,
+  attachCategoriesToEntity,
+  syncEntityCategories,
+  categoriesCarryInfrastructure,
+} = require('../lib/locationCategories');
+const { resolveZoneEmojiForWrite } = require('../lib/zoneEmoji');
 
 const db = { queryAll, queryOne, execute, withTransaction };
 
@@ -55,19 +62,16 @@ function normalizeLivingBeings(input, fallback = '') {
 }
 
 /**
- * Normalise le drapeau `special` d'une zone en bit MySQL (0/1).
- * Tolère booléen, nombre et chaîne ('0'/'false'/'' → 0, tout le reste → 1).
- * `fallback` (valeur courante) est renvoyé quand l'entrée est `undefined`
- * (champ non fourni dans un PATCH partiel).
+ * Catégories effectives d'une zone après application d'un patch partiel :
+ * `category_ids` absent du corps ⇒ affectations courantes conservées.
+ * @returns {Promise<string[]>}
  */
-function normalizeSpecialFlag(value, fallback = 0) {
-  if (value === undefined) return fallback ? 1 : 0;
-  if (value === null) return 0;
-  if (typeof value === 'string') {
-    const v = value.trim().toLowerCase();
-    return v === '' || v === '0' || v === 'false' ? 0 : 1;
-  }
-  return value ? 1 : 0;
+async function nextCategoryIdsForZone(zoneId, bodyCategoryIds) {
+  if (bodyCategoryIds !== undefined) return bodyCategoryIds;
+  const rows = await queryAll('SELECT category_id FROM zone_categories WHERE zone_id = ?', [
+    zoneId,
+  ]);
+  return rows.map((row) => String(row.category_id));
 }
 
 /** Champs éditoriaux visite (tables `visit_zones`, même `id` que `zones` après sync carte → visite). */
@@ -144,14 +148,35 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
   );
 }
 
+/** Liste polling : sans `visit_body_json` (LONGTEXT) — flag `has_visit_body` pour fetch détail. */
 const ZONES_LIST_SQL = `SELECT z.*,
   vz.subtitle AS visit_subtitle,
   vz.short_description AS visit_short_description,
   vz.details_title AS visit_details_title,
   vz.details_text AS visit_details_text,
-  vz.body_json AS visit_body_json
+  CASE
+    WHEN vz.body_json IS NOT NULL AND CHAR_LENGTH(vz.body_json) > 2 THEN 1
+    ELSE 0
+  END AS has_visit_body
 FROM zones z
 LEFT JOIN visit_zones vz ON vz.id = z.id`;
+
+/** Détail / mutations : inclut le corps éditorial visite. */
+const ZONES_DETAIL_SQL = `SELECT z.*,
+  vz.subtitle AS visit_subtitle,
+  vz.short_description AS visit_short_description,
+  vz.details_title AS visit_details_title,
+  vz.details_text AS visit_details_text,
+  vz.body_json AS visit_body_json,
+  CASE
+    WHEN vz.body_json IS NOT NULL AND CHAR_LENGTH(vz.body_json) > 2 THEN 1
+    ELSE 0
+  END AS has_visit_body
+FROM zones z
+LEFT JOIN visit_zones vz ON vz.id = z.id`;
+
+/** Historique affiché sur la liste carte (le reste via GET /api/zones/:id). */
+const ZONE_LIST_HISTORY_LIMIT = 5;
 
 router.get(
   '/',
@@ -163,35 +188,71 @@ router.get(
     const zones = mapId
       ? await queryAll(`${ZONES_LIST_SQL} WHERE z.map_id = ?`, [mapId])
       : await queryAll(ZONES_LIST_SQL);
-    // Historique restreint aux zones retournées + regroupement en Map :
-    // l'ancien SELECT chargeait toute la table puis filtrait en O(zones × historique).
     const zoneIds = zones.map((z) => z.id);
-    const history = zoneIds.length
-      ? await queryAll(
-          `SELECT * FROM zone_history
-            WHERE zone_id IN (${zoneIds.map(() => '?').join(',')})
-            ORDER BY harvested_at DESC`,
-          zoneIds,
-        )
-      : [];
+    // Historique : seules les `ZONE_LIST_HISTORY_LIMIT` dernières lignes par zone sont
+    // affichées, et le total ne sert qu'au drapeau `history_truncated`. On les demande
+    // donc à la base plutôt que de rapatrier tout `zone_history` pour le tronquer en
+    // mémoire — cette table grossit à chaque récolte, sans purge, et la liste des zones
+    // est dans le chemin du rafraîchissement périodique.
+    const placeholders = zoneIds.length ? zoneIds.map(() => '?').join(',') : '';
+    const [history, historyTotals] = zoneIds.length
+      ? await Promise.all([
+          queryAll(
+            `SELECT id, zone_id, plant, harvested_at
+               FROM (
+                 SELECT zh.*,
+                        ROW_NUMBER() OVER (
+                          PARTITION BY zh.zone_id ORDER BY zh.harvested_at DESC, zh.id DESC
+                        ) AS rn
+                   FROM zone_history zh
+                  WHERE zh.zone_id IN (${placeholders})
+               ) ranked
+              WHERE rn <= ?
+              ORDER BY zone_id ASC, harvested_at DESC, id DESC`,
+            [...zoneIds, ZONE_LIST_HISTORY_LIMIT],
+          ),
+          queryAll(
+            `SELECT zone_id, COUNT(*) AS total
+               FROM zone_history
+              WHERE zone_id IN (${placeholders})
+              GROUP BY zone_id`,
+            zoneIds,
+          ),
+        ])
+      : [[], []];
     const historyByZoneId = new Map();
+    const historyTotalByZoneId = new Map();
+    for (const row of historyTotals) {
+      historyTotalByZoneId.set(String(row.zone_id), Number(row.total) || 0);
+    }
     for (const h of history) {
       const key = String(h.zone_id);
       if (!historyByZoneId.has(key)) historyByZoneId.set(key, []);
       historyByZoneId.get(key).push(h);
     }
     const speciesMap = await loadZoneSpeciesMap(db, zoneIds);
-    const result = zones.map((z) =>
-      attachSpeciesToEntity(
-        {
-          ...z,
-          special: !!z.special,
-          history: historyByZoneId.get(String(z.id)) || [],
-        },
-        speciesMap.get(String(z.id)) || [],
-        { legacySingleName: z.current_plant },
-      ),
-    );
+    const categoriesMap = await loadCategoriesMap(db, 'zone', zoneIds);
+    const result = zones.map((z) => {
+      const key = String(z.id);
+      const totalHist = historyTotalByZoneId.get(key) || 0;
+      return attachCategoriesToEntity(
+        attachSpeciesToEntity(
+          {
+            ...z,
+            has_visit_body: !!Number(z.has_visit_body),
+            visit_body_json: undefined,
+            history: historyByZoneId.get(key) || [],
+            history_truncated: totalHist > ZONE_LIST_HISTORY_LIMIT,
+          },
+          speciesMap.get(key) || [],
+          { legacySingleName: z.current_plant },
+        ),
+        categoriesMap.get(key) || [],
+      );
+    });
+    for (const row of result) {
+      delete row.visit_body_json;
+    }
     res.json(result);
   }),
 );
@@ -199,18 +260,27 @@ router.get(
 router.get(
   '/:id',
   asyncHandler(async (req, res) => {
-    const zone = await queryOne(`${ZONES_LIST_SQL} WHERE z.id = ?`, [req.params.id]);
+    const zone = await queryOne(`${ZONES_DETAIL_SQL} WHERE z.id = ?`, [req.params.id]);
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
     const history = await queryAll(
       'SELECT * FROM zone_history WHERE zone_id = ? ORDER BY harvested_at DESC',
       [req.params.id],
     );
     const speciesRows = await loadZoneSpeciesMap(db, [zone.id]);
+    const categoriesRows = await loadCategoriesMap(db, 'zone', [zone.id]);
     res.json(
-      attachSpeciesToEntity(
-        { ...zone, special: !!zone.special, history },
-        speciesRows.get(String(zone.id)) || [],
-        { legacySingleName: zone.current_plant },
+      attachCategoriesToEntity(
+        attachSpeciesToEntity(
+          {
+            ...zone,
+            has_visit_body: !!Number(zone.has_visit_body),
+            history,
+            history_truncated: false,
+          },
+          speciesRows.get(String(zone.id)) || [],
+          { legacySingleName: zone.current_plant },
+        ),
+        categoriesRows.get(String(zone.id)) || [],
       ),
     );
   }),
@@ -224,19 +294,26 @@ router.put(
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
     const {
       name,
+      emoji,
       current_plant,
       living_beings,
-      stage,
       description,
       points,
       color,
       map_id,
       species_ids,
-      special,
+      category_ids,
     } = req.body;
     if (name !== undefined && !String(name).trim()) {
       return res.status(400).json({ error: 'Nom requis' });
     }
+    // Colonne `zones.emoji` (audit C4) : valeur explicite du corps ('' = effacer), sinon
+    // dérivée du préfixe du nom soumis, sinon valeur existante conservée.
+    const nextEmoji = resolveZoneEmojiForWrite(
+      emoji,
+      name !== undefined ? String(name) : '',
+      zone.emoji || '',
+    );
     // Même garde que le POST : `points` fourni doit être un polygone valide.
     if (
       points !== undefined &&
@@ -291,14 +368,23 @@ router.put(
         new Date().toISOString().split('T')[0],
       ]);
     }
+    const nextMapIdForZone = map_id != null ? String(map_id).trim() : zone.map_id;
+    // `special` n'est plus piloté par le client : c'est le miroir déprécié des catégories
+    // portant `is_infrastructure`. La colonne `stage` est dépréciée et laissée inchangée.
+    const nextCategoryIds = await syncEntityCategories(db, {
+      kind: 'zone',
+      entityId: zone.id,
+      mapId: nextMapIdForZone,
+      categoryIds: await nextCategoryIdsForZone(zone.id, category_ids),
+    });
     await execute(
-      'UPDATE zones SET map_id=?, name=?, current_plant=?, stage=?, special=?, description=?, points=?, color=? WHERE id=?',
+      'UPDATE zones SET map_id=?, name=?, emoji=?, current_plant=?, special=?, description=?, points=?, color=? WHERE id=?',
       [
-        map_id != null ? String(map_id).trim() : zone.map_id,
+        nextMapIdForZone,
         name !== undefined ? String(name).trim() : zone.name,
+        nextEmoji,
         nextCurrentPlant,
-        stage ?? zone.stage,
-        normalizeSpecialFlag(special, zone.special),
+        (await categoriesCarryInfrastructure(db, nextCategoryIds)) ? 1 : 0,
         description !== undefined ? description : (zone.description ?? ''),
         points !== undefined ? JSON.stringify(points) : zone.points,
         color ?? zone.color,
@@ -308,7 +394,7 @@ router.put(
     if (living_beings !== undefined || species_ids !== undefined) {
       await syncZoneSpecies(db, zone.id, species_ids, nextLiving);
     }
-    const updated = await queryOne(`${ZONES_LIST_SQL} WHERE z.id = ?`, [zone.id]);
+    const updated = await queryOne(`${ZONES_DETAIL_SQL} WHERE z.id = ?`, [zone.id]);
     const history = await queryAll(
       'SELECT * FROM zone_history WHERE zone_id=? ORDER BY harvested_at DESC',
       [zone.id],
@@ -316,18 +402,21 @@ router.put(
     if (hasVisitZoneContentPatch(req.body)) {
       await upsertVisitZoneEditorial(req.body, updated);
     }
-    const updatedWithVisit = await queryOne(`${ZONES_LIST_SQL} WHERE z.id = ?`, [zone.id]);
+    const updatedWithVisit = await queryOne(`${ZONES_DETAIL_SQL} WHERE z.id = ?`, [zone.id]);
     const speciesRows = await loadZoneSpeciesMap(db, [zone.id]);
+    const categoriesRows = await loadCategoriesMap(db, 'zone', [zone.id]);
     emitGardenChanged({ reason: 'update_zone', zoneId: zone.id, mapId: updatedWithVisit.map_id });
     res.json(
-      attachSpeciesToEntity(
-        {
-          ...updatedWithVisit,
-          special: !!updatedWithVisit.special,
-          history,
-        },
-        speciesRows.get(String(zone.id)) || [],
-        { legacySingleName: updatedWithVisit.current_plant },
+      attachCategoriesToEntity(
+        attachSpeciesToEntity(
+          {
+            ...updatedWithVisit,
+            history,
+          },
+          speciesRows.get(String(zone.id)) || [],
+          { legacySingleName: updatedWithVisit.current_plant },
+        ),
+        categoriesRows.get(String(zone.id)) || [],
       ),
     );
   }),
@@ -360,15 +449,15 @@ router.post(
   asyncHandler(async (req, res) => {
     const {
       name,
+      emoji,
       points,
       color,
       current_plant,
       living_beings,
-      stage,
       map_id,
       description,
       species_ids,
-      special,
+      category_ids,
     } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
     // `points` doit être un vrai polygone : tableau de sommets {xp, yp} numériques (en %)
@@ -386,32 +475,42 @@ router.post(
     const nextCurrentPlant = nextLiving.length > 0 ? '' : String(current_plant || '').trim();
     const desc = description !== undefined && description !== null ? String(description) : '';
     const id = 'zone-' + crypto.randomUUID().slice(0, 8);
-    const specialFlag = normalizeSpecialFlag(special, 0);
+    // Colonne `zones.emoji` (audit C4) : explicite, sinon dérivée du préfixe du nom.
+    const zoneEmoji = resolveZoneEmojiForWrite(emoji, String(name), '');
     await execute(
-      'INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, points, color, description) VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO zones (id, map_id, name, emoji, x, y, width, height, current_plant, points, color, description) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?)',
       [
         id,
         mapId,
         name.trim(),
+        zoneEmoji,
         nextCurrentPlant,
-        stage || 'empty',
-        specialFlag,
         JSON.stringify(points),
         color || '#86efac80',
         desc,
       ],
     );
     await syncZoneSpecies(db, id, species_ids, nextLiving);
+    // `special` est dérivé des catégories (drapeau `is_infrastructure`), jamais du corps.
+    const nextCategoryIds = await syncEntityCategories(db, {
+      kind: 'zone',
+      entityId: id,
+      mapId,
+      categoryIds: category_ids,
+    });
+    if (await categoriesCarryInfrastructure(db, nextCategoryIds)) {
+      await execute('UPDATE zones SET special = 1 WHERE id = ?', [id]);
+    }
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [id]);
     const speciesRows = await loadZoneSpeciesMap(db, [id]);
+    const categoriesRows = await loadCategoriesMap(db, 'zone', [id]);
     emitGardenChanged({ reason: 'create_zone', zoneId: id, mapId });
     res.status(201).json(
-      attachSpeciesToEntity(
-        { ...zone, special: !!zone.special, history: [] },
-        speciesRows.get(id) || [],
-        {
+      attachCategoriesToEntity(
+        attachSpeciesToEntity({ ...zone, history: [] }, speciesRows.get(id) || [], {
           legacySingleName: zone.current_plant,
-        },
+        }),
+        categoriesRows.get(id) || [],
       ),
     );
   }),

@@ -92,7 +92,14 @@ export function VisitMascotSettingsPanel({ defaultValue, onSave }) {
       }}
     >
       <h3 style={{ marginTop: 0 }}>🦊 Mascottes de visite</h3>
-      <p style={{ fontSize: '.82rem', color: '#6b7280', marginBottom: 10, lineHeight: 1.45 }}>
+      <p
+        style={{
+          fontSize: 'var(--text-sm)',
+          color: 'var(--ink-soft)',
+          marginBottom: 10,
+          lineHeight: 'var(--lh-normal)',
+        }}
+      >
         Voici les mascottes <strong>proposées aux visiteurs</strong>. La mascotte{' '}
         <strong>par défaut</strong> s’applique à toutes les cartes ; chaque utilisateur peut en
         changer depuis la visite ou son profil.
@@ -139,7 +146,7 @@ export function VisitMascotSettingsPanel({ defaultValue, onSave }) {
       </div>
 
       {orphanIds.length > 0 ? (
-        <p style={{ fontSize: '.8rem', color: '#b45309', marginTop: 8 }}>
+        <p style={{ fontSize: 'var(--text-sm)', color: '#b45309', marginTop: 8 }}>
           ⚠️ La mascotte par défaut n’est pas proposée aux visiteurs (
           <code>{orphanIds.join(', ')}</code>) : elle a été retirée de la visite ou supprimée. Les
           visiteurs voient la mascotte livrée par défaut. Republiez-la au studio, ou choisissez-en

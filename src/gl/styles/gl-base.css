@@ -4,6 +4,11 @@
   font-weight: 400;
   font-display: swap;
   src: url('/fonts/noto-color-emoji.woff2') format('woff2');
+  /* Téléchargée uniquement si un emoji est rendu (cmap emoji), même en tête de pile. */
+  unicode-range:
+    U+200D, U+203C, U+2049, U+20E3, U+2122, U+2139, U+2194-21AA, U+231A-23FA, U+24C2, U+25AA-25FE,
+    U+2600-27BF, U+2934-2935, U+2B00-2BFF, U+3030, U+303D, U+3297, U+3299, U+FE0F, U+1F000-1FAFF,
+    U+E0020-E007F;
 }
 
 *,
@@ -21,10 +26,10 @@ html {
 }
 
 body.gl-body {
-  /* 'ForetMapColorEmoji' (Noto Color Emoji auto-hébergé) en dernier recours : emojis garantis sur
-     tout appareil, téléchargé à la demande uniquement si aucune police emoji native n'est présente. */
+  /* 'ForetMapColorEmoji' AVANT les polices système (unicode-range emoji) : même dessin
+     d'emoji sur tous les appareils, téléchargé seulement si un emoji est rendu. */
   font-family:
-    'Caudex', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'ForetMapColorEmoji', serif;
+    'Caudex', 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', serif;
   min-height: 100vh;
   min-height: 100dvh;
   width: 100%;
@@ -52,7 +57,7 @@ input,
 select,
 textarea,
 button {
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   font-family: inherit;
 }
 
@@ -77,7 +82,7 @@ button {
   border: 1px solid rgba(245, 158, 11, 0.45);
   background: rgba(255, 251, 235, 0.96);
   color: #78350f;
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   line-height: 1.35;
   flex-shrink: 0;
 }
@@ -104,8 +109,8 @@ button {
 
 .role-preview-banner__icon {
   flex-shrink: 0;
-  font-size: 1.15rem;
-  line-height: 1.2;
+  font-size: var(--text-md);
+  line-height: var(--lh-tight);
 }
 
 .role-preview-banner__text {
@@ -116,16 +121,34 @@ button {
 }
 
 .role-preview-banner__text strong {
-  font-size: 0.86rem;
+  font-size: var(--text-sm);
 }
 
 :root {
-  /* 'ForetMapColorEmoji' en fallback universel : tout texte GL (héritant de --font-sans) affiche les
-     emojis quel que soit le périphérique. Chargement à la demande (cmap emoji uniquement). */
+  /* Un seul ordre de pile emoji (aligné sur src/index.css) : 'ForetMapColorEmoji' avant les
+     polices système, téléchargement borné aux emojis par l'unicode-range du @font-face. */
   --font-sans:
-    'Caudex', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'ForetMapColorEmoji', serif;
+    'Caudex', 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', serif;
   --font-emoji-stack:
     'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
-  --font-sans-with-emoji:
-    'Caudex', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', serif;
+  --font-sans-with-emoji: var(--font-sans);
+  /* Tokens typographiques communs (mêmes valeurs que src/index.css) : les feuilles GL et
+     partagées les consomment, et les pages GL ne chargent pas index.css. */
+  --text-2xs: clamp(0.58rem, 0.55rem + 0.15vw, 0.64rem);
+  --text-xs: clamp(0.68rem, 0.64rem + 0.2vw, 0.74rem);
+  --text-sm: clamp(0.78rem, 0.72rem + 0.25vw, 0.86rem);
+  --text-base: clamp(0.88rem, 0.82rem + 0.3vw, 1rem);
+  --text-md: clamp(1rem, 0.94rem + 0.3vw, 1.1rem);
+  --text-lg: clamp(1.1rem, 1rem + 0.5vw, 1.3rem);
+  --text-xl: clamp(1.3rem, 1.15rem + 0.75vw, 1.6rem);
+  --text-2xl: clamp(1.6rem, 1.4rem + 1vw, 2rem);
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --lh-tight: 1.2;
+  --lh-normal: 1.45;
+  --lh-relaxed: 1.6;
+  --ink-soft: #64748b;
+  --ink-faint: #8a94a0;
 }

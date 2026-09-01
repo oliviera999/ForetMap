@@ -41,6 +41,7 @@ const {
   sharedTutorialViewCache,
   clearTutorialViewCache,
 } = require('../lib/tutorialViewCache');
+const { sanitizeTutorialViewHtml } = require('../lib/tutorialViewSanitize');
 
 let glossaryAutolinkCache = null;
 let glossaryAutolinkCacheAt = 0;
@@ -70,9 +71,15 @@ async function loadGlossaryAutolinkEntries() {
   return { entries: glossaryAutolinkCache, version: glossaryAutolinkVersion };
 }
 
-/** Calcul brut (CPU synchrone, ~100 ms sur une fiche de 30 ko) : à n'appeler qu'en cas de miss. */
+/**
+ * Calcul brut (CPU synchrone, ~100 ms sur une fiche de 30 ko) : à n'appeler qu'en cas de
+ * miss. L'ASSAINISSEMENT vient d'abord (C5) : le HTML importé perd tout vecteur
+ * d'exécution de script AVANT que l'application n'injecte les siens — l'ordre garantit
+ * que seuls les scripts de l'application survivent dans la sortie.
+ */
 function enrichTutorialHtmlWithGlossary(html, entries) {
-  const linked = autolinkHtmlTextNodes(html, entries);
+  const safe = sanitizeTutorialViewHtml(html);
+  const linked = autolinkHtmlTextNodes(safe, entries);
   return injectGlossaryAutolinkScript(injectTutorialViewIframeLinkScript(linked));
 }
 
@@ -320,6 +327,17 @@ async function loadTutorialHtml(tutorial) {
   return null;
 }
 
+/**
+ * Colonnes exposées par `toPublicTutorialRow` — **`html_content` en est absent**.
+ *
+ * La liste et la fiche (hors `include_content=1`) faisaient un `SELECT t.*` : le LONGTEXT
+ * de chaque fiche (25 à 32 ko pour les contenus du dépôt) était lu depuis MySQL et alloué
+ * côté Node à chaque appel, pour être jeté au moment de la sérialisation. Sur mutualisé,
+ * la mémoire est le premier critère d'arrêt forcé du process.
+ */
+const TUTORIAL_PUBLIC_COLUMNS = `t.id, t.title, t.slug, t.type, t.summary, t.cover_image_url,
+       t.source_url, t.source_file_path, t.is_active, t.sort_order, t.created_at, t.updated_at`;
+
 router.get(
   '/',
   asyncHandler(async (req, res) => {
@@ -330,7 +348,7 @@ router.get(
     const includeInactive = includeInactiveRequested && canManageTutorials(req);
     const where = includeInactive ? '' : 'WHERE t.is_active = 1';
     const rows = await queryAll(
-      `SELECT t.*, COUNT(tt.task_id) AS linked_tasks_count
+      `SELECT ${TUTORIAL_PUBLIC_COLUMNS}, COUNT(tt.task_id) AS linked_tasks_count
        FROM tutorials t
        LEFT JOIN task_tutorials tt ON tt.tutorial_id = t.id
        ${where}
@@ -534,7 +552,8 @@ router.get(
     }
     const includeInactive = includeInactiveRequested && canManageTutorials(req);
     const row = await queryOne(
-      `SELECT t.*, COUNT(tt.task_id) AS linked_tasks_count
+      `SELECT ${TUTORIAL_PUBLIC_COLUMNS}${includeContent ? ', t.html_content' : ''},
+              COUNT(tt.task_id) AS linked_tasks_count
        FROM tutorials t
        LEFT JOIN task_tutorials tt ON tt.tutorial_id = t.id
       WHERE t.id = ?
@@ -695,7 +714,7 @@ router.post(
     }
 
     const relativePath = `tutorials/${tid}/cover-${Date.now()}.${ext}`;
-    saveBase64ToDisk(relativePath, imageData);
+    await saveBase64ToDisk(relativePath, imageData);
     const publicUrl = `/uploads/${relativePath}`;
 
     const previousRelativePath = extractUploadsRelativePath(tutorial.cover_image_url);

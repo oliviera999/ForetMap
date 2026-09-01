@@ -4,6 +4,7 @@
  */
 import { MAP_MARKER_EMOJI_MAX_CHARS, clampEmojiInput } from '../constants/emojis';
 import { orderedLivingBeingsForForm } from './livingBeings';
+import { locationCategoryIds } from './locationCategories.js';
 import {
   mergeDefaultVisitMediaImageBlocks,
   normalizeVisitEditorialBlocksForSave,
@@ -27,6 +28,7 @@ export function markerFormFromMarker(marker, { defaultEmoji = '' } = {}) {
     ),
     note: m.note || '',
     emoji,
+    category_ids: locationCategoryIds(m),
     visit_subtitle: m.visit_subtitle || '',
     visit_short_description: m.visit_short_description || '',
     visit_details_title: m.visit_details_title || 'Détails',
@@ -48,6 +50,7 @@ export function buildMarkerPayload(marker, form, visitEditorialBlocks) {
     ...form,
     emoji: emojiVal,
     living_beings: form.living_beings,
+    category_ids: form.category_ids || [],
     plant_name: '',
     visit_subtitle: form.visit_subtitle,
     visit_short_description: form.visit_short_description,

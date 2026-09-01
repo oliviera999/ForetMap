@@ -58,7 +58,7 @@ export default function MascotPackMetaSection({
         />
         <span
           className="section-sub"
-          style={{ display: 'block', marginTop: 4, fontSize: '0.78rem' }}
+          style={{ display: 'block', marginTop: 4, fontSize: 'var(--text-sm)' }}
         >
           Utilisez idéalement une URL serveur du type <code>/api/visit/mascot-packs/…/assets/</code>{' '}
           ou <code>/api/visit/mascot-sprite-library/…/assets/</code>.
@@ -140,7 +140,7 @@ export default function MascotPackMetaSection({
             borderRadius: 8,
             border: '1px solid rgba(217,119,6,0.35)',
             background: 'rgba(255,247,237,0.95)',
-            fontSize: 12,
+            fontSize: 'var(--text-xs)',
           }}
         >
           <strong>Avertissements non bloquants</strong>

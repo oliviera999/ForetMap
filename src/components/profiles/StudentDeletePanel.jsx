@@ -36,7 +36,7 @@ function StudentDeletePanel({
       </div>
       <div style={{ maxHeight: 280, overflow: 'auto' }}>
         {filteredStudents.length === 0 ? (
-          <p style={{ margin: 0, color: '#6b7280' }}>
+          <p style={{ margin: 0, color: 'var(--ink-soft)' }}>
             {searchStudent
               ? `Aucun(e) ${roleTerms.studentSingular} trouvé(e).`
               : `Aucun(e) ${roleTerms.studentSingular} disponible.`}
@@ -48,7 +48,7 @@ function StudentDeletePanel({
                 <strong>
                   {s.first_name} {s.last_name}
                 </strong>
-                <div style={{ fontSize: '.78rem', color: '#6b7280' }}>
+                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
                   {s.stats?.done || 0} validée(s) · {s.stats?.pending || 0} en cours
                 </div>
               </div>

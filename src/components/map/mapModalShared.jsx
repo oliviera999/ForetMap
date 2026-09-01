@@ -15,7 +15,7 @@ export function LocationTutorialPreviewList({
   const list = tutorials || [];
   if (!list.length) {
     return (
-      <p style={{ color: '#999', fontSize: '.85rem', margin: 0 }}>
+      <p style={{ color: 'var(--ink-faint)', fontSize: 'var(--text-sm)', margin: 0 }}>
         {locationKind === 'zone'
           ? 'Aucun tutoriel lié à cette zone.'
           : 'Aucun tutoriel lié à ce repère.'}
@@ -45,25 +45,39 @@ export function LocationTutorialPreviewList({
               background: 'var(--parchment)',
             }}
           >
-            <div style={{ fontWeight: 700, color: 'var(--forest)' }}>
+            <div style={{ fontWeight: 'var(--fw-bold)', color: 'var(--forest)' }}>
               {tu.title}
               {tu.is_active === false ? (
-                <span style={{ fontWeight: 400, color: '#94a3b8' }}> (archivé)</span>
+                <span style={{ fontWeight: 'var(--fw-regular)', color: '#94a3b8' }}>
+                  {' '}
+                  (archivé)
+                </span>
               ) : null}
             </div>
             {tu.summary ? (
-              <p style={{ margin: '8px 0 0', fontSize: '.82rem', color: '#555', lineHeight: 1.45 }}>
+              <p
+                style={{
+                  margin: '8px 0 0',
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--ink-soft)',
+                  lineHeight: 'var(--lh-normal)',
+                }}
+              >
                 {tu.summary}
               </p>
             ) : null}
             {showZones.length > 0 ? (
-              <p style={{ margin: '10px 0 0', fontSize: '.76rem', color: '#64748b' }}>
+              <p
+                style={{ margin: '10px 0 0', fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}
+              >
                 <strong>{locationKind === 'marker' ? 'Zones' : 'Autres zones'}</strong> :{' '}
                 {showZones.map((z) => z.name).join(', ')}
               </p>
             ) : null}
             {showMarkers.length > 0 ? (
-              <p style={{ margin: '6px 0 0', fontSize: '.76rem', color: '#64748b' }}>
+              <p
+                style={{ margin: '6px 0 0', fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}
+              >
                 <strong>{locationKind === 'zone' ? 'Repères' : 'Autres repères'}</strong> :{' '}
                 {showMarkers.map((m) => m.label).join(', ')}
               </p>
@@ -113,14 +127,14 @@ export function LocationVisitAside({
         </p>
       )}
       {entity.visit_short_description && (
-        <MarkdownContent style={{ margin: '0 0 8px', fontSize: '.88rem', color: '#333' }}>
+        <MarkdownContent style={{ margin: '0 0 8px', fontSize: 'var(--text-sm)', color: '#333' }}>
           {entity.visit_short_description}
         </MarkdownContent>
       )}
       {entity.visit_details_text && (
         <details className="visit-details" style={{ marginTop: 8 }}>
           <summary>{entity.visit_details_title || 'Détails'}</summary>
-          <MarkdownContent style={{ margin: '8px 0 0', fontSize: '.86rem' }}>
+          <MarkdownContent style={{ margin: '8px 0 0', fontSize: 'var(--text-sm)' }}>
             {entity.visit_details_text}
           </MarkdownContent>
         </details>
@@ -135,7 +149,7 @@ export function LocationVisitAside({
                   <h4
                     style={{
                       margin: '0 0 8px',
-                      fontSize: '.82rem',
+                      fontSize: 'var(--text-sm)',
                       color: 'var(--forest)',
                     }}
                   >
@@ -160,7 +174,9 @@ export function LocationVisitAside({
             )}
             {livingBeingsOnlyOnTasks.length > 0 && (
               <div>
-                <h4 style={{ margin: '0 0 8px', fontSize: '.82rem', color: 'var(--forest)' }}>
+                <h4
+                  style={{ margin: '0 0 8px', fontSize: 'var(--text-sm)', color: 'var(--forest)' }}
+                >
                   Également dans les missions
                 </h4>
                 {onOpenPlantCatalogPreview ? (
@@ -222,14 +238,14 @@ export function TaskEnrollmentLegend() {
         <span
           key={item.key}
           style={{
-            fontSize: '.78rem',
-            color: '#555',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--ink-soft)',
             display: 'inline-flex',
             alignItems: 'center',
             gap: 5,
           }}
         >
-          <span style={{ color: item.color, fontSize: '.9rem', lineHeight: 1 }}>●</span>
+          <span style={{ color: item.color, fontSize: 'var(--text-base)', lineHeight: 1 }}>●</span>
           {item.label}
         </span>
       ))}

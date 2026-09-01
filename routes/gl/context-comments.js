@@ -160,7 +160,7 @@ router.post(
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
     let pathsJson = null;
     if (imageList.length > 0) {
-      const persisted = persistUserContentImages('context-comments', id, imageList);
+      const persisted = await persistUserContentImages('context-comments', id, imageList);
       if (persisted.error) return res.status(400).json({ error: persisted.error });
       pathsJson = persisted.pathsJson;
     }

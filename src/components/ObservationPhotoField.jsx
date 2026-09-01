@@ -28,8 +28,8 @@ export function ObservationPhotoField({
       role="group"
       aria-label="Photo d'observation : galerie ou appareil photo"
     >
-      <div style={{ fontSize: '1.5rem', marginBottom: 4 }}>📷</div>
-      <div style={{ fontSize: '.82rem', color: '#888', marginBottom: 10 }}>
+      <div style={{ fontSize: 'var(--text-xl)', marginBottom: 4 }}>📷</div>
+      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-faint)', marginBottom: 10 }}>
         Galerie ou appareil photo
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>

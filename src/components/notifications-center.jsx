@@ -128,7 +128,7 @@ function NotificationCenter({
             aria-label="Fermer le centre de notifications"
             onClick={closePanel}
           >
-            ×
+            ✕
           </button>
         </div>
         <div className="notif-panel-actions">

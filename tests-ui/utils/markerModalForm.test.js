@@ -14,6 +14,7 @@ describe('markerFormFromMarker', () => {
       living_beings: [],
       note: '',
       emoji: '',
+      category_ids: [],
       visit_subtitle: '',
       visit_short_description: '',
       visit_details_title: 'Détails',

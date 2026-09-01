@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.136.12",
+  "version": "1.140.1",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "engines": {
@@ -107,6 +107,7 @@
     "test:load:socketio-smoke": "node scripts/load-socketio-polling-smoke.js",
     "test:load:all": "node scripts/run-load-scenarios.js",
     "test:load:report": "node scripts/render-load-report.js",
+    "test:profile:memory": "node scripts/profile-memory-scenarios.js",
     "test:e2e": "node scripts/e2e-kill-listen-port.js && npx playwright test",
     "test:e2e:clean": "npm run clean:tests && npm run test:e2e",
     "test:e2e:headed": "node scripts/e2e-kill-listen-port.js && npx playwright test --headed",

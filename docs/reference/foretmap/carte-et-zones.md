@@ -62,6 +62,17 @@ conservée telle quelle pour être corrigée.
 > Les trois points ne doivent pas être **alignés** : il faut un vrai triangle sur le plan,
 > sinon le calage est refusé.
 
+Une fois les trois points complets, l'outil affiche l'**échelle déduite** du calage
+(« plan ≈ L m × H m ») : si ces dimensions ne ressemblent pas au terrain (un plan de
+collège annoncé à 4 mètres de large…), un point est mal renseigné. Deux incohérences sont
+**refusées à l'enregistrement**, avec un message explicite :
+
+- des points **GPS alignés ou confondus** (il faut un vrai triangle sur le terrain aussi,
+  pas seulement sur le plan) ;
+- des **distances GPS incompatibles avec les distances sur le plan** (par exemple deux
+  points à 80 % du plan l'un de l'autre mais à 4 mètres sur le terrain, quand une autre
+  paire implique 50 mètres) — signe typique d'une coordonnée mal saisie.
+
 > ⚠️ **Point d'attention** — Il n'existe pas de bouton pour **supprimer** un plan :
 > on peut seulement le désactiver. C'est prudent (les zones existantes ne sont pas
 > perdues), mais un plan créé par erreur reste visible dans la liste des réglages.
@@ -75,9 +86,9 @@ qu'on veut). Sa fiche rassemble :
 - une **couleur** de remplissage (palette de dix couleurs) ;
 - la liste des **êtres vivants** présents (choisis dans le catalogue biodiversité —
   plusieurs espèces possibles, l'ordre choisi est conservé à l'affichage) ;
-- un **état** : Vide, En croissance, ou Prêt à récolter ;
-- une case **« Zone spéciale »** pour les bâtiments et infrastructures (mare, ruches,
-  compostage, pergola…) plutôt que les cultures ;
+- une ou plusieurs **catégories** (Verger, Compostage, Zone pédagogique…), créées par
+  l'administrateur et utilisables comme filtre sur la carte — voir « Catégories de
+  lieux » plus bas ;
 - une **description** libre (avec mise en forme) ;
 - des **photos** avec légende, que le professeur peut réordonner et supprimer ;
 - un **historique des cultures** : quand une espèce est retirée de la zone, elle est
@@ -92,12 +103,50 @@ qu'on veut). Sa fiche rassemble :
 
 Un repère est un **point** posé sur le plan, complémentaire des zones. Il porte un
 **emoji**, un **nom**, une **note** libre, ses **photos** (mêmes possibilités que les
-zones), ses **espèces associées** et, comme les zones, ses textes pour le mode Visite,
-ses tâches et tutoriels liés.
+zones), ses **espèces associées**, ses **catégories** (mêmes catégories que les zones)
+et, comme les zones, ses textes pour le mode Visite, ses tâches et tutoriels liés.
 
 Pour éviter les déplacements accidentels, la position des repères est **verrouillée**
 par défaut : le professeur clique sur le cadenas « Repères » de la barre d'outils pour
 pouvoir les faire glisser, puis reverrouille.
+
+## Catégories de lieux
+
+Les catégories classent les zones **et** les repères, et servent de filtre sur la carte.
+Elles remplacent l'ancien couple « état de culture » (Vide / En croissance / Prêt à
+récolter) et case « zone spéciale ».
+
+Une catégorie porte un **libellé**, un **emoji**, une **couleur**, une **description**
+(infobulle) et un **ordre d'affichage**. La couleur se choisit soit avec la **pastille de
+sélection** (nuancier du système), soit en tapant directement le code hexadécimal dans le
+champ voisin. Les deux derniers caractères de ce code règlent la **transparence** — utile
+pour que le plan reste lisible sous la zone — et le sélecteur les conserve quand on change
+seulement la teinte. Une catégorie est :
+
+- soit **globale** — utilisable sur toutes les cartes (cas le plus courant : Compostage,
+  Verger, Zone pédagogique) ;
+- soit **rattachée à une carte** — proposée uniquement sur ce plan (ex. « Salles » sur un
+  plan de bâtiment).
+
+Elle peut aussi être restreinte aux **zones seules**, aux **repères seuls**, ou valoir
+pour **les deux** (par défaut).
+
+Une case **« Infrastructure »** distingue les lieux qui ne sont pas des cultures (mare,
+ruches, compostage, cuve…). Elle reprend exactement le comportement de l'ancienne case
+« zone spéciale » : ces lieux n'affichent pas de section Biodiversité en mode Visite, ne
+sont jamais proposés comme cible de mission ou de tutoriel, et leur contour apparaît en
+pointillés sur la carte. Les zones qui étaient marquées « spéciales » ont été
+automatiquement reprises dans une catégorie **Infrastructure**.
+
+Une catégorie peut être **désactivée** plutôt que supprimée : elle reste posée sur les
+lieux mais disparaît des filtres et des formulaires. La supprimer la retire en revanche
+de toutes les zones et de tous les repères qui la portaient.
+
+**Où les créer** : Réglages administrateur → « Catégories de lieux ». Il faut la
+permission « Gestion zones ».
+
+**Où les poser** : dans la fiche d'une zone ou d'un repère, onglet « Modifier », bloc
+« Catégories » (cases à cocher — plusieurs catégories possibles sur un même lieu).
 
 ## Comment ça se passe — côté élève
 
@@ -122,11 +171,11 @@ pouvoir les faire glisser, puis reverrouille.
 1. **Dessiner une zone** : bouton « Zone » de la barre d'outils, puis clics successifs
    sur le plan pour poser les points du contour (avec annulation du dernier point).
    À partir de trois points, « Terminer » ouvre la fenêtre de création : nom, êtres
-   vivants, état, couleur, case « zone spéciale »…
+   vivants, catégories, couleur…
 2. **Poser un repère** : bouton « Repère », puis clic à l'endroit voulu ; on renseigne
    ensuite nom, emoji et note.
 3. **Modifier une fiche** : ouvrir la zone ou le repère, onglet « Modifier ». On y
-   change tout (nom, espèces, état, couleur, description, textes visite, emoji). Un
+   change tout (nom, espèces, catégories, couleur, description, textes visite, emoji). Un
    bouton dédié permet de **retoucher le contour** de la zone (voir « Retoucher le
    contour d'une zone » plus bas), puis de sauvegarder.
 4. **Dupliquer une zone** : un bouton dans l'en-tête de la fiche crée une copie, utile
@@ -200,9 +249,11 @@ En **mode consultation** (carte ouverte sans tracé ni édition de contour), une
 
 - **Recherche libre** : tapez un nom, un mot de la description, une espèce, un mot
   des textes visite… Plusieurs mots peuvent être combinés (tous doivent correspondre).
-- **Filtres** (bouton ⚙️) : type (zones seules, repères seuls), état des zones
-  (Vide, En croissance, Prêt, Spéciale), zones d'infrastructure uniquement, espèce
-  présente, présence de **tâches actives** ou de tutoriels liés.
+- **Filtres** (bouton ⚙️) : type (zones seules, repères seuls), **catégories** (plusieurs
+  cases cochables — un lieu sort dès qu'il porte l'une d'elles), infrastructures
+  uniquement, espèce présente, présence de **tâches actives** ou de tutoriels liés.
+  Contrairement à l'ancien filtre « état », les catégories s'appliquent **aussi aux
+  repères** : cocher une catégorie ne fait plus disparaître les repères de la carte.
 
 > Seules les tâches **encore en jeu** comptent sur la carte : terminées (en attente
 > de validation), validées, archivées, ou rattachées à un projet terminé/validé n'affichent
@@ -223,6 +274,62 @@ Quand un filtre est actif :
 Le compteur indique combien de zones et de repères correspondent. Un bouton ✕ ou
 « Tout effacer » remet la carte en vue complète. Élèves et professeurs utilisent
 la même recherche en lecture seule.
+
+## L'inventaire admin « Zones & repères »
+
+Dans **Réglages administrateur → sous-onglet « Zones & repères »**, un inventaire
+liste **toutes les zones et tous les repères, toutes cartes confondues** — là où la
+recherche de la carte ne couvre que le plan affiché. C'est l'outil de relecture
+d'ensemble : repérer les doublons, les fiches sans description, les lieux restés sur
+la mauvaise carte.
+
+- **Recherche libre** : même moteur que la barre de la carte (nom, espèces,
+  catégories, textes de visite, note d'un repère — plusieurs mots combinables).
+- **Filtres** : type (zones seules / repères seuls) et carte.
+
+### Édition directe, sans bouton « Modifier »
+
+Chaque ligne est un mini-formulaire **toujours éditable** : on clique dans un champ,
+on tape, et l'enregistrement part **à la sortie du champ** (Entrée valide, Échap
+annule la frappe en cours). On peut ainsi enchaîner un grand nombre de corrections
+sans jamais ouvrir de fiche :
+
+- **emoji** et **nom** (zone comme repère) ;
+- **carte** (liste déroulante — déplacer un lieu vers un autre plan) ;
+- **description** (zone) ou **note** (repère) ;
+- **espèces** : pastilles à retirer d'un ✕, champ « + espèce » avec suggestions du
+  catalogue biodiversité ;
+- **catégories** : pastilles à activer/désactiver d'un clic (seules les catégories
+  applicables au type et à la carte du lieu sont proposées) ;
+- dépliant **« Visite & détails »** : les quatre textes du mode Visite (sous-titre,
+  accroche, titre et contenu du bloc dépliable), plus la **couleur** d'une zone et la
+  **position X/Y (%)** d'un repère.
+
+Seuls le tracé des zones, le déplacement fin des repères à la souris, les photos et
+les blocs d'images de visite restent du ressort de la fiche, sur la carte.
+
+### Édition par lot
+
+Des **cases à cocher** (et un « Tout sélectionner » sur la liste filtrée) ouvrent une
+barre d'actions qui s'applique à toute la sélection :
+
+- **ajouter / retirer une catégorie** (les lieux qui la portent déjà, ou auxquels
+  elle ne s'applique pas, sont ignorés et comptés) ;
+- **ajouter / retirer une espèce** ;
+- **déplacer vers une carte** ;
+- **définir l'emoji** (champ emoji des repères, préfixe du nom des zones) ;
+- **rechercher / remplacer** dans les noms (et, sur option, dans les descriptions
+  et notes) — remplacement littéral de toutes les occurrences ;
+- **supprimer les lieux** sélectionnés, après confirmation explicite (photos et
+  contenus de visite partent avec — irréversible).
+
+Le bouton « Appliquer » annonce **combien de lieux sont réellement concernés** avant
+d'agir, une progression s'affiche pendant le traitement, et le bilan distingue les
+lieux mis à jour, ceux déjà conformes et les éventuels échecs.
+
+L'accès au sous-onglet suit celui des Réglages administrateur (permission « Lecture
+paramètres admin ») ; l'enregistrement demande en plus « Gestion zones » pour une
+zone et « Gestion repères » pour un repère.
 
 ## La vue grand écran « Cartes & tâches »
 
@@ -253,6 +360,14 @@ les onglets restent séparés.
 > pour ce plan. Sans ce calage, rien ne signale que la fonction existe — pensez à le
 > faire pour les plans utilisés sur le terrain.
 
+Pendant le suivi, une bannière sous la barre d'outils indique l'état : suivi actif (avec
+la précision en mètres), localisation refusée, **position indisponible ou délai dépassé**
+(le message d'échec s'affiche au lieu d'un « Acquisition… » sans fin), position hors du
+plan, signal trop imprécis, ou **calage du plan incohérent** — dans ce dernier cas, le
+message invite à le signaler à un professeur : c'est le calage qui est à refaire, pas la
+position de l'élève qui est en cause. La position reste entièrement sur l'appareil : elle
+n'est jamais envoyée au serveur.
+
 ## Lisibilité des noms sur la carte
 
 Les **emojis et noms** affichés sur le plan s'adaptent à la **taille du plateau** à
@@ -262,7 +377,19 @@ le texte jusqu'à l'illisible. Sur tablette et téléphone, les étiquettes sont
 **agrandies** automatiquement.
 
 **Côté utilisateur** : le bouton **Aa** de la barre d'outils carte permet trois niveaux
-locaux (Normal / Grand / Très grand), mémorisés sur l'appareil.
+locaux (Normal / Grand / Très grand), mémorisés sur l'appareil. Le même bouton est
+disponible dans le bandeau du plan de **Visite**, et le niveau choisi s'applique aussi
+aux libellés des plateaux Gnomes & Licornes.
+
+L'**emoji d'une zone** est désormais enregistré à part du nom (le sélecteur d'emoji du
+formulaire fait foi) : son affichage sur le plan et dans la fiche ne dépend plus de la
+présence d'une espace après l'emoji ni de la liste d'emojis configurée. Les zones
+existantes continuent d'afficher l'emoji écrit en tête de leur nom.
+
+Un **nom de zone trop long** pour la place disponible n'est plus « compressé » en
+déformant les lettres : il est d'abord légèrement réduit, puis coupé avec « … » si
+nécessaire — le nom complet reste lisible en ouvrant la fiche de la zone (et au survol
+du libellé sur ordinateur).
 
 **Côté administrateur** (Réglages → modules), des curseurs permettent d'ajuster pour
 toute l'établissement :

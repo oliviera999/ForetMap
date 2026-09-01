@@ -5,7 +5,6 @@ const {
   registerGlCooldownOnWrongIfGating,
 } = require('../../lib/learningGatingRuntime');
 const { requireGlPermission, hasGlPermission } = require('../../middleware/requireGlAuth');
-const { getGameplaySettings } = require('../../lib/glSettings');
 const {
   resolveImportRows,
   applyQcmImport,
@@ -61,12 +60,23 @@ const QUESTION_SELECT = `
     FROM gl_qcm_questions
 `;
 
+const { getNamedMemoryTtlCache } = require('../../lib/memoryTtlCache');
+
+const glGlossaryLookupCache = getNamedMemoryTtlCache('gl-glossary-lookup', {
+  ttlMs: 60_000,
+  maxEntries: 4,
+});
+
 async function loadGlossaryLookup() {
+  const cached = glGlossaryLookupCache.get('actif');
+  if (cached) return cached;
   const rows = await queryAll(
     `SELECT glossary_code, terme, variantes, categorie, definition_courte
        FROM gl_glossary_terms WHERE statut = 'actif'`,
   );
-  return buildGlossaryLookupMap(rows);
+  const map = buildGlossaryLookupMap(rows);
+  glGlossaryLookupCache.set('actif', map);
+  return map;
 }
 
 async function enrichQuestionWithGlossary(questionRow, glossaryByKey) {
@@ -388,9 +398,18 @@ router.post(
       return res.status(400).json({ error: `Trop de lignes (max ${MAX_IMPORT_ROWS})` });
     }
     try {
-      const report = await applyQcmImport({ queryAll, execute }, categoryRows || [], questionRows, {
-        dryRun,
-      });
+      // G4 (audit 2026-09) : l'import écrit en transaction — une interruption ne
+      // laisse pas un catalogue partiellement écrit (liens glossaire régénérés inclus).
+      const report = await withTransaction(async (tx) =>
+        applyQcmImport(
+          { queryAll: tx.queryAll, execute: tx.execute },
+          categoryRows || [],
+          questionRows,
+          {
+            dryRun,
+          },
+        ),
+      );
       return res.json({ report });
     } catch (err) {
       return res.status(400).json({ error: err.message || 'Import impossible' });

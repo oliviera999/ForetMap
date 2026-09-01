@@ -76,13 +76,13 @@ export default function MascotPackInteractionBulkDialog({
         <h3 id="mascot-interaction-bulk-title" className="mascot-pack-wysiwyg__h">
           Comportements visite (lot)
         </h3>
-        <p className="section-sub" style={{ fontSize: '0.82rem' }}>
+        <p className="section-sub" style={{ fontSize: 'var(--text-sm)' }}>
           Choisissez les événements à configurer avec le même mode et le même état d’animation.
         </p>
 
         {needsV2 ? (
           <div style={{ marginBottom: 12 }}>
-            <p className="section-sub" style={{ fontSize: '0.82rem' }}>
+            <p className="section-sub" style={{ fontSize: 'var(--text-sm)' }}>
               Ce pack est en version 1 — passez en v2 pour enregistrer un profil d’interaction.
             </p>
             <button type="button" className="btn btn-primary btn-sm" onClick={onUpgradeToV2}>
@@ -113,7 +113,10 @@ export default function MascotPackInteractionBulkDialog({
                   />
                   <span>
                     {VISIT_MASCOT_INTERACTION_LABELS[key] || key}
-                    <span className="section-sub" style={{ fontSize: '0.72rem', marginLeft: 6 }}>
+                    <span
+                      className="section-sub"
+                      style={{ fontSize: 'var(--text-xs)', marginLeft: 6 }}
+                    >
                       (déf. {def.mode})
                     </span>
                   </span>

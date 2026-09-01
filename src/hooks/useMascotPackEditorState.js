@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { api } from '../services/api';
 import { clonePackDeep, stringifyPack } from '../utils/mascotPackEditorModel.js';
 import { sanitizeMascotPackDraft } from '../utils/mascotPackValidationUi.js';
 import {
@@ -13,9 +14,6 @@ import {
  * brouillon JSON, le libellé, l'onglet actif, l'instantané enregistré et les
  * indicateurs « dirty » dérivés, ainsi que l'effet de resynchronisation quand la
  * sélection ou la liste de packs change.
- *
- * Comportement strictement identique à l'ancien code inline : mêmes valeurs
- * initiales, mêmes dépendances d'effets/mémos, même logique de brouillon JSON.
  *
  * @param {{ selectedId: string | null, packs: Array<Record<string, unknown>> }} params
  */
@@ -36,19 +34,42 @@ export function useMascotPackEditorState({ selectedId, packs }) {
       setJsonDraft('{}');
       setJsonError('');
       setSavedSnapshot(null);
-      return;
+      return undefined;
     }
     const label = String(row.label || '').trim();
     setLabelDraft(label);
-    const raw = row.pack && typeof row.pack === 'object' ? row.pack : {};
-    const packClone = clonePackDeep(raw);
-    setEditorPack(sanitizeMascotPackDraft(packClone));
-    setSavedSnapshot(createMascotPackEditorSnapshot(packClone, label));
-    setJsonError('');
-    setJsonDraft((prev) => {
-      if (isJsonDraftDirty(prev, packClone)) return prev;
-      return stringifyPack(packClone, 2);
-    });
+
+    const applyPack = (rawPack) => {
+      const raw = rawPack && typeof rawPack === 'object' ? rawPack : {};
+      const packClone = clonePackDeep(raw);
+      setEditorPack(sanitizeMascotPackDraft(packClone));
+      setSavedSnapshot(createMascotPackEditorSnapshot(packClone, label));
+      setJsonError('');
+      setJsonDraft((prev) => {
+        if (isJsonDraftDirty(prev, packClone)) return prev;
+        return stringifyPack(packClone, 2);
+      });
+    };
+
+    // Liste allégée : `pack` absent → fetch détail.
+    if (row.pack && typeof row.pack === 'object') {
+      applyPack(row.pack);
+      return undefined;
+    }
+
+    let cancelled = false;
+    api(`/api/visit/mascot-packs/${encodeURIComponent(row.id)}`)
+      .then((detail) => {
+        if (cancelled) return;
+        applyPack(detail?.pack);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        applyPack({});
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [selectedId, packs]);
 
   const editorDirty = useMemo(

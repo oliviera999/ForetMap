@@ -131,7 +131,7 @@ export default function MascotPackArchiveImportDialog({
     <DialogShell open={open} onClose={handleClose} ariaLabelledBy={titleId}>
       <div className="dialog-panel" style={{ maxWidth: 480 }}>
         <h3 id={titleId}>Importer un pack mascotte (ZIP)</h3>
-        <p className="section-sub" style={{ fontSize: '0.85rem' }}>
+        <p className="section-sub" style={{ fontSize: 'var(--text-sm)' }}>
           Archive portable ForetMap (JSON + images). Analysez d’abord pour vérifier le contenu.
         </p>
         <label style={{ display: 'block', marginBottom: 12 }}>
@@ -141,7 +141,7 @@ export default function MascotPackArchiveImportDialog({
           <input ref={fileRef} type="file" accept=".zip,application/zip" disabled={busy} />
         </label>
         <fieldset style={{ border: 'none', padding: 0, margin: '0 0 12px' }}>
-          <legend className="section-sub" style={{ fontSize: '0.8rem', marginBottom: 6 }}>
+          <legend className="section-sub" style={{ fontSize: 'var(--text-sm)', marginBottom: 6 }}>
             Mode d’import
           </legend>
           <label style={{ display: 'block', marginBottom: 6 }}>
@@ -188,7 +188,7 @@ export default function MascotPackArchiveImportDialog({
           <div
             role="status"
             style={{
-              fontSize: '0.82rem',
+              fontSize: 'var(--text-sm)',
               marginBottom: 10,
               padding: 8,
               background: 'rgba(26,71,49,0.06)',
@@ -211,7 +211,7 @@ export default function MascotPackArchiveImportDialog({
           </div>
         ) : null}
         {error ? (
-          <p className="text-danger" role="alert" style={{ fontSize: '0.85rem' }}>
+          <p className="text-danger" role="alert" style={{ fontSize: 'var(--text-sm)' }}>
             {error}
           </p>
         ) : null}

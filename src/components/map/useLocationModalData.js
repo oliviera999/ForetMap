@@ -4,7 +4,7 @@
  * êtres vivants et drapeaux du bloc « visite » de l'onglet Info. Logique copiée
  * quasi à l'identique dans les deux modales avant mutualisation (audit §5.3) —
  * seuls varient le type de lieu (`zoneIds` / `markerIds`, champ plante) et les
- * portes `isNew` (repère en création) / `special` (zone spéciale).
+ * portes `isNew` (repère en création) / catégorie d'infrastructure.
  */
 import { useMemo } from 'react';
 import { orderedLivingBeingsForForm } from '../../utils/livingBeings';
@@ -19,6 +19,7 @@ import {
 import { markerTaskMapId } from '../../utils/markerModalForm.js';
 import { canStudentAssignTask } from '../../utils/taskEnrollment.js';
 import { tutorialLinkedToSameMap } from './mapModalShared.jsx';
+import { isInfrastructureLocation } from '../../utils/locationCategories.js';
 
 /**
  * @param {'marker'|'zone'} kind - type de lieu
@@ -88,9 +89,9 @@ export function useLocationModalData(
 
   const visitAsideTutorials =
     !isNew && (isTeacher ? linkedTutorialsAll : linkedTutorialsVisible).length > 0;
-  // Zone spéciale (bâtiment / infrastructure) : pas de section Biodiversité.
+  // Lieu d'infrastructure (bâtiment, mare, compostage…) : pas de section Biodiversité.
   const visitAsideSpecies =
-    (kind === 'marker' ? !isNew : !entity.special) &&
+    (kind === 'marker' ? !isNew : !isInfrastructureLocation(entity)) &&
     (livingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0);
   const showVisitAsideBlock =
     !isNew &&

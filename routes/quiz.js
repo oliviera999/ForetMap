@@ -74,14 +74,25 @@ async function loadActiveQuestion(code) {
   ]);
 }
 
+const { getNamedMemoryTtlCache } = require('../lib/memoryTtlCache');
+
+const glossaryLookupCache = getNamedMemoryTtlCache('fm-glossary-lookup', {
+  ttlMs: 60_000,
+  maxEntries: 4,
+});
+
 // Affichage des termes glossaire RECALCULÉ à la volée via le matcher (zéro lecture de la table de
 // liens, iso-comportement avec l'écriture import/CRUD) — même patron que routes/gl/qcm.js.
 async function loadGlossaryLookup() {
+  const cached = glossaryLookupCache.get('actif');
+  if (cached) return cached;
   const rows = await queryAll(
     `SELECT glossary_code, terme, variantes, categorie, definition_courte
        FROM glossary_terms WHERE statut = 'actif'`,
   );
-  return buildGlossaryLookupMap(rows);
+  const map = buildGlossaryLookupMap(rows);
+  glossaryLookupCache.set('actif', map);
+  return map;
 }
 
 function enrichQuestionWithGlossary(questionRow, glossaryByKey) {

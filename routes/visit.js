@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
-const { queryAll, queryOne, execute } = require('../database');
+const { queryAll, queryOne, execute, getDataWriteVersion } = require('../database');
+const { createVisitContentCache } = require('../lib/visitContentCache');
 const { requirePermission, JWT_SECRET, authenticate } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
@@ -18,6 +19,9 @@ const {
 } = require('../lib/visitContentHelpers');
 
 const router = express.Router();
+
+/** Contenu public de visite : agrégat coûteux, non authentifié, éditorial (voir le module). */
+const visitContentCache = createVisitContentCache({ writeVersion: getDataWriteVersion });
 
 const ANON_COOKIE_NAME = 'anon_visit_token';
 const ANON_TTL_SECONDS = 24 * 60 * 60;
@@ -208,9 +212,14 @@ router.get(
   asyncHandler(async (req, res) => {
     const mapId = await resolveVisitMapId(req.query.map_id);
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
+    const cached = visitContentCache.get(mapId);
+    if (cached) return res.json(cached);
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
 
-    const zones = await queryAll(
+    // Requêtes indépendantes : lancées ensemble plutôt qu'en file (huit allers-retours
+    // séquentiels sur un endpoint public, c'est autant de latence et de temps de connexion
+    // MySQL retenue).
+    const zonesPromise = queryAll(
       `SELECT
        z.id, z.map_id, z.name, z.points,
        zm.description AS description,
@@ -228,7 +237,7 @@ router.get(
       [mapId],
     );
 
-    const markers = await queryAll(
+    const markersPromise = queryAll(
       `SELECT
        m.id, m.map_id, m.x_pct, m.y_pct, m.label, m.emoji,
        mm.note AS note,
@@ -246,7 +255,7 @@ router.get(
       [mapId],
     );
 
-    const media = await queryAll(
+    const mediaPromise = queryAll(
       `SELECT vm.id, vm.target_type, vm.target_id, vm.image_url, vm.image_path, vm.caption, vm.sort_order
      FROM visit_media vm
      WHERE (vm.target_type = 'zone' AND vm.target_id IN (SELECT id FROM visit_zones WHERE map_id = ?))
@@ -255,33 +264,23 @@ router.get(
       [mapId, mapId],
     );
 
-    const mediaByTarget = media.reduce((acc, row) => {
-      const key = `${row.target_type}:${row.target_id}`;
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(serializeVisitMedia(row));
-      return acc;
-    }, {});
-
-    const [zoneMapPhotoRows, markerMapPhotoRows] = await Promise.all([
-      queryAll(
-        `SELECT zp.zone_id AS target_id, zp.id, zp.caption, zp.uploaded_at, zp.sort_order, zp.image_path
+    const zoneMapPhotosPromise = queryAll(
+      `SELECT zp.zone_id AS target_id, zp.id, zp.caption, zp.uploaded_at, zp.sort_order, zp.image_path
        FROM zone_photos zp
        INNER JOIN visit_zones vz ON vz.id = zp.zone_id AND vz.map_id = ?
        ORDER BY zp.zone_id ASC, zp.sort_order ASC, zp.id ASC`,
-        [mapId],
-      ),
-      queryAll(
-        `SELECT mp.marker_id AS target_id, mp.id, mp.caption, mp.uploaded_at, mp.sort_order, mp.image_path
+      [mapId],
+    );
+
+    const markerMapPhotosPromise = queryAll(
+      `SELECT mp.marker_id AS target_id, mp.id, mp.caption, mp.uploaded_at, mp.sort_order, mp.image_path
        FROM marker_photos mp
        INNER JOIN visit_markers vm ON vm.id = mp.marker_id AND vm.map_id = ?
        ORDER BY mp.marker_id ASC, mp.sort_order ASC, mp.id ASC`,
-        [mapId],
-      ),
-    ]);
-    const zoneMapLeadById = pickNewestMapPhotoByTarget(zoneMapPhotoRows);
-    const markerMapLeadById = pickNewestMapPhotoByTarget(markerMapPhotoRows);
+      [mapId],
+    );
 
-    const tutorials = await queryAll(
+    const tutorialsPromise = queryAll(
       `SELECT
        t.id, t.title, t.slug, t.type, t.summary, t.cover_image_url, t.source_url, t.source_file_path,
        vt.sort_order
@@ -292,32 +291,50 @@ router.get(
       [mapId],
     );
 
-    let mascotPacks = [];
-    try {
-      // Packs publiés : **tous**, sans filtre de carte — une mascotte n'appartient plus
-      // à une carte (migration `176_visit_mascot_packs_drop_map.sql`), et le registre
-      // public `GET /api/visit/mascots` les expose déjà ainsi.
-      const packRows = await queryAll(
-        `SELECT catalog_id, label, pack_json
+    // Packs publiés : **tous**, sans filtre de carte — une mascotte n'appartient plus
+    // à une carte (migration `176_visit_mascot_packs_drop_map.sql`), et le registre
+    // public `GET /api/visit/mascots` les expose déjà ainsi. Un échec de cette seule
+    // requête ne doit pas priver le visiteur du reste du contenu (comportement d'origine).
+    const packRowsPromise = queryAll(
+      `SELECT catalog_id, label, pack_json
        FROM visit_mascot_packs
        WHERE is_published = 1
        ORDER BY updated_at DESC, id ASC`,
-      );
-      mascotPacks = (packRows || [])
-        .map((r) => {
-          let pack = {};
-          try {
-            pack = JSON.parse(r.pack_json);
-          } catch (_) {
-            pack = {};
-          }
-          return { catalog_id: r.catalog_id, label: r.label, pack };
-        })
-        .filter((x) => x.catalog_id && x.pack && typeof x.pack === 'object');
-    } catch (packErr) {
+    ).catch((packErr) => {
       logRouteError(packErr, req);
-      mascotPacks = [];
-    }
+      return null;
+    });
+
+    const [zones, markers, media, zoneMapPhotoRows, markerMapPhotoRows, tutorials, packRows] =
+      await Promise.all([
+        zonesPromise,
+        markersPromise,
+        mediaPromise,
+        zoneMapPhotosPromise,
+        markerMapPhotosPromise,
+        tutorialsPromise,
+        packRowsPromise,
+      ]);
+
+    const mediaByTarget = media.reduce((acc, row) => {
+      const key = `${row.target_type}:${row.target_id}`;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(serializeVisitMedia(row));
+      return acc;
+    }, {});
+    const zoneMapLeadById = pickNewestMapPhotoByTarget(zoneMapPhotoRows);
+    const markerMapLeadById = pickNewestMapPhotoByTarget(markerMapPhotoRows);
+    const mascotPacks = (packRows || [])
+      .map((r) => {
+        let pack = {};
+        try {
+          pack = JSON.parse(r.pack_json);
+        } catch (_) {
+          pack = {};
+        }
+        return { catalog_id: r.catalog_id, label: r.label, pack };
+      })
+      .filter((x) => x.catalog_id && x.pack && typeof x.pack === 'object');
 
     const payload = {
       map_id: mapId,
@@ -352,6 +369,7 @@ router.get(
         }),
       tutorials,
     };
+    visitContentCache.set(mapId, payload);
     res.json(payload);
   }),
 );

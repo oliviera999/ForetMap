@@ -76,7 +76,13 @@ export function BiodivLocationMapBlock({ mapId, maps, zones, markers }) {
           className="biodiv-location-map-fit-layer"
           style={
             fit.width > 0 && fit.height > 0
-              ? { left: fit.offsetX, top: fit.offsetY, width: fit.width, height: fit.height }
+              ? {
+                  left: fit.offsetX,
+                  top: fit.offsetY,
+                  width: fit.width,
+                  height: fit.height,
+                  '--map-fit-aspect': String(fit.width / fit.height),
+                }
               : { left: 0, top: 0, width: '100%', height: '100%' }
           }
         >

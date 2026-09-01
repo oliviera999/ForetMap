@@ -192,6 +192,30 @@ async function fetchTaskProposerMap(taskIds) {
   }
 }
 
+/** Colonnes assignations pour listes (évite SELECT * × N tâches). */
+const TASK_ASSIGNMENT_LIST_COLUMNS =
+  'id, task_id, student_id, student_first_name, student_last_name, done_at, assigned_at';
+
+/**
+ * Projection SQL liste polling — omet living_beings brut et recurrence_template_* (TEXT).
+ * Le détail `GET /api/tasks/:id` conserve `SELECT t.*` via getTaskWithAssignments.
+ */
+const TASK_LIST_SQL_BASE = `
+    SELECT t.id, t.title, t.description, t.image_path, t.map_id, t.project_id, t.group_id,
+           t.zone_id, t.marker_id, t.start_date, t.due_date, t.required_students, t.completion_mode,
+           t.danger_level, t.difficulty_level, t.importance_level, t.sort_order, t.status,
+           t.archived_at, t.archived_via_project, t.validated_at, t.created_at,
+           t.recurrence,
+           tp.map_id AS project_map_id, tp.title AS project_title, tp.status AS project_status,
+           m.id AS map_id_resolved_join, m.label AS map_label,
+           t.image_path AS task_cover_image_path
+      FROM tasks t
+      LEFT JOIN zones z ON t.zone_id = z.id
+      LEFT JOIN map_markers mkr ON t.marker_id = mkr.id
+      LEFT JOIN task_projects tp ON tp.id = t.project_id
+      LEFT JOIN maps m ON m.id = COALESCE(t.map_id, z.map_id, mkr.map_id)
+  `;
+
 /** Assignations pour GET /api/tasks (liste), selon le rôle. */
 async function fetchTaskListAssignments(auth, taskIds) {
   if (!taskIds.length) return [];
@@ -203,13 +227,16 @@ async function fetchTaskListAssignments(auth, taskIds) {
       perms.includes('tasks.validate');
     const ph = taskIds.map(() => '?').join(',');
     if (hasGlobalRead) {
-      return queryAll(`SELECT * FROM task_assignments WHERE task_id IN (${ph})`, taskIds);
+      return queryAll(
+        `SELECT ${TASK_ASSIGNMENT_LIST_COLUMNS} FROM task_assignments WHERE task_id IN (${ph})`,
+        taskIds,
+      );
     }
     const scope = await getScopedStudentIds(auth);
     if (!scope.studentIds.length) return [];
     const sph = scope.studentIds.map(() => '?').join(',');
     return queryAll(
-      `SELECT * FROM task_assignments
+      `SELECT ${TASK_ASSIGNMENT_LIST_COLUMNS} FROM task_assignments
         WHERE task_id IN (${ph})
           AND student_id IN (${sph})`,
       [...taskIds, ...scope.studentIds],
@@ -219,7 +246,7 @@ async function fetchTaskListAssignments(auth, taskIds) {
     const ph = taskIds.map(() => '?').join(',');
     if (isVisitorRole(auth)) {
       return queryAll(
-        `SELECT * FROM task_assignments WHERE task_id IN (${ph}) AND student_id = ?`,
+        `SELECT ${TASK_ASSIGNMENT_LIST_COLUMNS} FROM task_assignments WHERE task_id IN (${ph}) AND student_id = ?`,
         [...taskIds, auth.userId],
       );
     }
@@ -299,19 +326,7 @@ router.get(
     if (projectId && !(await getTaskProject(projectId))) {
       return res.status(400).json({ error: 'Projet introuvable' });
     }
-    const sqlBase = `
-    SELECT t.*,
-           tp.map_id AS project_map_id, tp.title AS project_title, tp.status AS project_status,
-           m.id AS map_id_resolved_join, m.label AS map_label,
-           t.image_path AS task_cover_image_path
-      FROM tasks t
-      -- F5 : task_zones/task_markers font foi (enrichTaskRow) ; les joins z/mkr ne
-      -- subsistent que pour résoudre la carte des lignes historiques sans map_id.
-      LEFT JOIN zones z ON t.zone_id = z.id
-      LEFT JOIN map_markers mkr ON t.marker_id = mkr.id
-      LEFT JOIN task_projects tp ON tp.id = t.project_id
-      LEFT JOIN maps m ON m.id = COALESCE(t.map_id, z.map_id, mkr.map_id)
-  `;
+    const sqlBase = TASK_LIST_SQL_BASE;
     const where = [];
     const params = [];
     if (mapId) {
@@ -394,7 +409,9 @@ router.get(
       row.assignees_total_count = row.assigned_count;
       row.assignees_done_count = doneCountByTask.get(t.id) || 0;
       row.proposed_by_student_id = proposerByTask.get(t.id) || null;
-      attachTaskLivingBeingsApiFields(row, taskSpeciesMap.get(t.id) || []);
+      attachTaskLivingBeingsApiFields(row, taskSpeciesMap.get(t.id) || [], {
+        includeSpeciesObjects: false,
+      });
       attachTaskImagePublicFields(row);
       return row;
     });
@@ -676,7 +693,7 @@ router.post(
       if (decodedTaskImage) {
         const rel = `tasks/${id}.${decodedTaskImage.ext}`;
         try {
-          writeBufferToDisk(rel, decodedTaskImage.buffer);
+          await writeBufferToDisk(rel, decodedTaskImage.buffer);
           await tx.execute('UPDATE tasks SET image_path = ? WHERE id = ?', [rel, id]);
         } catch (imgErr) {
           try {
@@ -1013,7 +1030,7 @@ router.put('/:id', async (req, res) => {
         const oldPath = task.image_path || null;
         const rel = `tasks/${task.id}.${decodedImage.ext}`;
         try {
-          writeBufferToDisk(rel, decodedImage.buffer);
+          await writeBufferToDisk(rel, decodedImage.buffer);
           await tx.execute('UPDATE tasks SET image_path = ? WHERE id = ?', [rel, task.id]);
           if (oldPath && oldPath !== rel) obsoleteImagePath = oldPath;
         } catch (imgErr) {
