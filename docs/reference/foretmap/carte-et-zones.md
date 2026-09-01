@@ -282,13 +282,46 @@ la mauvaise carte.
 - **Recherche libre** : même moteur que la barre de la carte (nom, espèces,
   catégories, textes de visite, note d'un repère — plusieurs mots combinables).
 - **Filtres** : type (zones seules / repères seuls) et carte.
-- Chaque ligne affiche l'emoji, le nom, le type, la carte, les catégories et le
-  nombre d'espèces associées.
 
-Un bouton **« Modifier »** ouvre une **édition rapide** limitée aux champs
-textuels : **nom et description** pour une zone, **libellé, emoji et note** pour un
-repère. Tout le reste (tracé, position, photos, espèces, catégories, contenus de
-visite, suppression) s'édite comme d'habitude dans la fiche du lieu, sur la carte.
+### Édition directe, sans bouton « Modifier »
+
+Chaque ligne est un mini-formulaire **toujours éditable** : on clique dans un champ,
+on tape, et l'enregistrement part **à la sortie du champ** (Entrée valide, Échap
+annule la frappe en cours). On peut ainsi enchaîner un grand nombre de corrections
+sans jamais ouvrir de fiche :
+
+- **emoji** et **nom** (zone comme repère) ;
+- **carte** (liste déroulante — déplacer un lieu vers un autre plan) ;
+- **description** (zone) ou **note** (repère) ;
+- **espèces** : pastilles à retirer d'un ✕, champ « + espèce » avec suggestions du
+  catalogue biodiversité ;
+- **catégories** : pastilles à activer/désactiver d'un clic (seules les catégories
+  applicables au type et à la carte du lieu sont proposées) ;
+- dépliant **« Visite & détails »** : les quatre textes du mode Visite (sous-titre,
+  accroche, titre et contenu du bloc dépliable), plus la **couleur** d'une zone et la
+  **position X/Y (%)** d'un repère.
+
+Seuls le tracé des zones, le déplacement fin des repères à la souris, les photos et
+les blocs d'images de visite restent du ressort de la fiche, sur la carte.
+
+### Édition par lot
+
+Des **cases à cocher** (et un « Tout sélectionner » sur la liste filtrée) ouvrent une
+barre d'actions qui s'applique à toute la sélection :
+
+- **ajouter / retirer une catégorie** (les lieux qui la portent déjà, ou auxquels
+  elle ne s'applique pas, sont ignorés et comptés) ;
+- **ajouter / retirer une espèce** ;
+- **déplacer vers une carte** ;
+- **définir l'emoji** (champ emoji des repères, préfixe du nom des zones) ;
+- **rechercher / remplacer** dans les noms (et, sur option, dans les descriptions
+  et notes) — remplacement littéral de toutes les occurrences ;
+- **supprimer les lieux** sélectionnés, après confirmation explicite (photos et
+  contenus de visite partent avec — irréversible).
+
+Le bouton « Appliquer » annonce **combien de lieux sont réellement concernés** avant
+d'agir, une progression s'affiche pendant le traitement, et le bilan distingue les
+lieux mis à jour, ceux déjà conformes et les éventuels échecs.
 
 L'accès au sous-onglet suit celui des Réglages administrateur (permission « Lecture
 paramètres admin ») ; l'enregistrement demande en plus « Gestion zones » pour une
