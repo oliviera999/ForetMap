@@ -8,13 +8,16 @@ point d'entrée les deux audits précédents, qui restent consultables pour leur
 | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | [`AUDIT_CHARGE_SERVEUR_2026-08.md`](AUDIT_CHARGE_SERVEUR_2026-08.md) | régime **nominal** ForetMap : cadence de polling, mémoire au boot, coût par requête | pistes 1 à 9 traitées (lots 20-21, 30), §5 = seconde passe |
 | [`AUDIT_CHARGE_ET_BUGS_2026-08.md`](AUDIT_CHARGE_ET_BUGS_2026-08.md) | **cas dégradés et pics** ForetMap : coupures, redémarrages, classe entière          | tous les constats traités                                  |
-| **Ce document**                                                      | **GL + composants communs**, et synthèse générale                                   | constats **ouverts**, non corrigés                         |
+| **Ce document**                                                      | **GL + composants communs**, et synthèse générale                                   | G1–G5, C1–C4 **traités** ; C5 en attente d'arbitrage       |
 
 ## 0. Comment lire ce document
 
-Les sections 1 à 3 exposent les constats **nouveaux**, non corrigés à ce jour. La section 4
-récapitule ce qui est déjà traité (pour ne pas le réauditer), la section 5 ce qui a été
-vérifié **et jugé sain**, la section 6 l'ordre de traitement suggéré.
+Les sections 1 à 3 exposent les constats relevés par l'audit ; chaque constat traité porte
+la mention **« Traité »** avec le correctif et sa couverture de test. Reste ouvert : **C5**
+(bac à sable des tutoriels), qui demande un arbitrage produit — trois options possibles,
+présentées au §C5. La section 4 récapitule ce que les audits précédents avaient déjà
+traité (pour ne pas le réauditer), la section 5 ce qui a été vérifié **et jugé sain**, la
+section 6 l'ordre de traitement suggéré (suivi).
 
 **Périmètre et limites.** Lecture de `routes/gl/**`, `lib/gl*`, `lib/auth/**`, `lib/rbac.js`,
 `lib/shared/**`, `middleware/**`, `database.js`, et des hooks temps réel des deux produits.
@@ -45,12 +48,25 @@ sur un pool de 30 connexions (`database.js:78`).
 quatre par échange, et ajouter le même jitter que celui posé côté ForetMap
 (`src/utils/realtimeRefreshDelay.js`, réutilisable tel quel).
 
+**Traité.** `listTradesForPlayer` charge la page en requêtes groupées — une requête par
+table (échanges, côtés, messages, feuillets, joueurs) quel que soit le nombre d'échanges,
+soit 6 requêtes constantes au lieu de 2 + 5N (`lib/glMarket.js`,
+`buildTradePayloadsByIds` ; `loadSideFeuilletsByTradeAndPlayer` dans
+`lib/glMarketFeuillets.js`). Le payload renvoyé est strictement identique. Couverture :
+`tests/gl-market-trades-batch.test.js` — payload comparé à l'algorithme historique recopié
+en référence, compteur de requêtes constant pour 1/5/20 échanges, pagination.
+
 ### G2. Les rafraîchissements temps réel GL n'ont pas de jitter
 
 Corollaire du précédent, mais valable pour tous les hooks GL : `useGLMarketTrade` et
 `useGLSpellCast` rechargent sur événement avec un délai **nul**, là où ForetMap étale
 désormais de 0 à 600 ms. Le module d'étalement est commun et déjà écrit : il n'y a qu'à
 l'appeler.
+
+**Traité.** Les deux hooks programment leur refetch via `jitteredRefreshDelay`
+(étalement 0–600 ms), avec coalescence des rafales et annulation au démontage
+(`src/gl/hooks/useGLMarketTrade.js`, `useGLSpellCast.js`). Couverture :
+`tests-ui/gl/useGLMarketTrade.test.jsx`, `tests-ui/gl/useGLSpellCast.test.jsx`.
 
 ### G3. `gl_game_events` grossit sans fin
 
@@ -64,6 +80,11 @@ sauvegardes (`db-backup.sh`), sur la durée des `mysqldump` et sur l'espace disq
 
 **Remède** : ajouter `gl_game_events` (et `zone_history`, cf. §2) aux cibles du script, avec
 une rétention distincte de celle des journaux de sécurité — un an de partie, par exemple.
+
+**Traité** (avec C3) : `scripts/purge-audit-logs.js` couvre `gl_game_events` et
+`zone_history` avec une rétention distincte `--history-days` (défaut 365 j, minimum 30 j) ;
+`docs/CRONTAB.md` ne présente plus la ligne de purge comme optionnelle. Couverture :
+`tests/purge-audit-logs-targets.test.js`.
 
 ### G4. Les imports GL ne sont ni transactionnels ni lotis
 
@@ -86,6 +107,18 @@ Deux conséquences distinctes :
 les boucles d'insertion par des `INSERT … VALUES (…), (…), …` par lots (100 lignes, par
 exemple) — un ordre de grandeur de moins en allers-retours.
 
+**Traité.** Précision d'abord : le constat était partiellement périmé — la route d'import
+des chapitres enveloppait déjà `applyChaptersImport` dans `withTransaction` (PR #327).
+Les quatre autres routes d'import (QCM, sortilèges, glossaire, espèces) le font désormais
+aussi ; c'est décisif pour le glossaire, qui vide puis reconstruit ses tables de liens.
+Côté durée, toutes les boucles d'insertion passent par lots de 100
+(`expandMultiRowInsertSql` + moteur commun `lib/shared/xlsxImportCore.js`, dont profitent
+aussi les imports QCM lore et quiz ForetMap ; repères et zones de chapitres inclus).
+Couverture : `tests/gl-imports-transaction-batch.test.js` — import de chapitres interrompu
+après les suppressions → base strictement inchangée ; test de convention sur le câblage
+`withTransaction` des cinq routes ; lotissement (250 lignes = 3 requêtes, comptages
+identiques).
+
 ### G5. `LIMIT` interpolé plutôt que paramétré
 
 `routes/gl/journal.js:45,53` et `lib/glMarket.js:377` composent `LIMIT ${limit}` /
@@ -93,6 +126,11 @@ exemple) — un ordre de grandeur de moins en allers-retours.
 journal, `Number()` pour le marché), donc **aucune injection n'est atteignable aujourd'hui**.
 C'est néanmoins la seule entorse à la règle « SQL toujours paramétré » du projet, et elle
 n'est protégée que par la vigilance de l'appelant.
+
+**Traité.** `LIMIT ?` / `OFFSET ?` paramétrés dans les deux fichiers, valeurs passées en
+chaîne (le protocole préparé de mysql2 encode un nombre JS en DOUBLE, refusé par MySQL
+pour LIMIT). Couverture : `tests/audit-2026-09-hygiene.test.js` (plus d'interpolation) et
+`tests/gl-market-trades-batch.test.js` (pagination inchangée).
 
 ## 2. Composants communs
 
@@ -114,6 +152,11 @@ parce que le chemin est différent.
 **Remède** : une clé `rs:<slug>` dans le même cache versionné — quelques lignes, invalidation
 déjà en place.
 
+**Traité.** `getRoleBySlug` passe par le cache versionné (clé `rs:<slug>`), un slug
+inconnu (null) est caché comme une valeur. Couverture :
+`tests/rbac-role-by-slug-cache.test.js` — second appel sans requête, écriture RBAC qui
+périme l'entrée.
+
 ### C2. `lib/tutorialViewCache.js` est invisible aux recherches de code
 
 Le fichier contient des **octets de contrôle bruts** (`\x00`, `\x01`, `\x02`, `\x03`) écrits
@@ -125,6 +168,12 @@ en `data`, et **`grep` sans `-a` le saute silencieusement**. Toute recherche dan
 **Remède** : écrire `'�'`, `''`… au lieu des octets bruts. Comportement identique,
 fichier redevenu texte.
 
+**Traité.** Séparateurs réécrits en échappements `\u0000`…`\u0003`, valeurs
+strictement identiques ; `file` reclasse le fichier en texte. Couverture :
+`tests/audit-2026-09-hygiene.test.js` (aucun octet de contrôle brut, valeurs
+préservées) ; les 18 tests existants de `tests/tutorial-view-cache.test.js` passent
+inchangés.
+
 ### C3. Le périmètre de purge ne couvre pas les tables de contenu à croissance continue
 
 `scripts/purge-audit-logs.js` traite `audit_log` et `security_events`. Restent hors
@@ -135,6 +184,13 @@ fenêtrage SQL a borné le **coût de lecture**, pas la croissance).
 dans `docs/CRONTAB.md`. Si elle n'a pas été installée, `security_events` accumule sans limite
 adresse IP et user-agent — donc des données personnelles d'élèves mineurs.
 
+**Traité.** `scripts/purge-audit-logs.js` couvre les quatre tables, avec deux rétentions
+distinctes et configurables : `--days` (sécurité, défaut 365 j) et `--history-days`
+(`gl_game_events` + `zone_history`, défaut 365 j — « un an de partie » —, minimum 30 j,
+chaque table filtrée dans son référentiel de temps). `docs/CRONTAB.md` réécrit : la ligne
+de purge y est désormais présentée comme **à installer, pas optionnelle**, avec le tableau
+des tables et rétentions. Couverture : `tests/purge-audit-logs-targets.test.js`.
+
 ### C4. Les transactions n'ont pas de garde-fou de durée
 
 `database.js:284` — `withTransaction` prend une connexion du pool et la garde jusqu'au
@@ -142,6 +198,13 @@ commit, sans délai maximal. Une transaction lente monopolise une connexion sur 
 et tient ses verrous d'autant. Aucun cas problématique n'a été identifié dans le code actuel
 (les imports, seuls candidats, sont hors transaction — cf. §G4), mais le garde-fou manque si
 l'un d'eux y entre un jour.
+
+**Traité** — et le besoin est devenu réel, puisque les imports sont désormais en
+transaction (§G4). `withTransaction` journalise (warn Pino) au franchissement du seuil
+`FORETMAP_TX_SLOW_WARN_MS` (défaut 10 s) puis au bilan avec la durée totale ; un plafond
+dur optionnel `FORETMAP_TX_MAX_MS` (0 = désactivé par défaut) rejette le travail, annule
+la transaction et neutralise les requêtes d'un travail « zombie » après restitution de la
+connexion. Couverture : `tests/audit-2026-09-hygiene.test.js`.
 
 ### C5. Rappel : le bac à sable des tutoriels est neutralisé
 
@@ -157,6 +220,11 @@ Le correctif n'est pas un attribut à retirer : `readGlossaryTermMessage`
 (`GlossaryPopover.jsx:80`) exige `event.origin === appOrigin`, et le CSP candidat
 (`script-src 'self'`) bloquerait aussi le script inline que l'application injecte elle-même.
 Trois pièces liées, à traiter ensemble.
+
+**En attente d'arbitrage produit** (seul constat encore ouvert) : trois options —
+origine dédiée pour le contenu riche, sandbox strict avec passerelle glossaire repensée,
+ou assainissement serveur du HTML — ont des coûts et des renoncements différents ; le
+choix est présenté au mainteneur dans la PR de traitement de cet audit.
 
 ## 3. Dépendances
 
@@ -203,16 +271,18 @@ Reprise condensée des deux audits précédents, tous points livrés :
 - **Index** : présents sur les colonnes de filtrage chaudes des deux produits.
 - **Isolement produit** : un jeton GL est refusé hors `/api/gl/*`, et réciproquement.
 
-## 6. Ordre de traitement suggéré
+## 6. Ordre de traitement suggéré (suivi)
 
-| Priorité | Constat                                                                              | Effort                | Gain                                                         |
-| -------- | ------------------------------------------------------------------------------------ | --------------------- | ------------------------------------------------------------ |
-| 1        | **G1** requêtes groupées du marché + **G2** jitter GL                                | petit lot             | supprime le pic de ~2000 requêtes par événement de classe    |
-| 2        | **C1** cache `getRoleBySlug`                                                         | quelques lignes       | −1 requête SQL par requête GL                                |
-| 3        | **G4** transaction et lotissement des imports                                        | lot moyen             | supprime le risque de chapitre amputé, divise la durée       |
-| 4        | **C3** purge `gl_game_events` / `zone_history` + ligne crontab                       | script + exploitation | borne la croissance et le poids des sauvegardes              |
-| 5        | **C5** bac à sable des tutoriels                                                     | lot dédié             | ferme une exfiltration de jeton (décision produit à prendre) |
-| 6        | **C2** octets de contrôle, **G5** `LIMIT` paramétré, **C4** garde-fou de transaction | petits                | hygiène, dette de convention                                 |
+| Priorité | Constat                                                                              | Effort                | Statut                                                     |
+| -------- | ------------------------------------------------------------------------------------ | --------------------- | ---------------------------------------------------------- |
+| 1        | **G1** requêtes groupées du marché + **G2** jitter GL                                | petit lot             | **traité** (lot 1)                                         |
+| 2        | **C1** cache `getRoleBySlug`                                                         | quelques lignes       | **traité** (lot 2)                                         |
+| 3        | **G4** transaction et lotissement des imports                                        | lot moyen             | **traité** (lot 3)                                         |
+| 4        | **C3** purge `gl_game_events` / `zone_history` + ligne crontab                       | script + exploitation | **traité** (lot 4) — reste à installer la ligne de crontab |
+| 5        | **C5** bac à sable des tutoriels                                                     | lot dédié             | **ouvert** — décision produit à prendre (cf. §C5)          |
+| 6        | **C2** octets de contrôle, **G5** `LIMIT` paramétré, **C4** garde-fou de transaction | petits                | **traité** (lot 6)                                         |
 
-Les points 1 à 4 sont sans changement fonctionnel visible. Le point 5 demande un arbitrage :
-la correction la plus simple (retirer `allow-same-origin`) casse le glossaire dans les fiches.
+Les points 1 à 4 et 6 sont livrés sans changement fonctionnel visible. Le point 5 demande
+un arbitrage : la correction la plus simple (retirer `allow-same-origin`) casse le
+glossaire dans les fiches — les options et leurs coûts sont présentés au mainteneur dans
+la PR de traitement de cet audit.
