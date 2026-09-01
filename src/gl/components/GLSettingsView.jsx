@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import '../styles/gl-admin.css';
 import { apiGL } from '../services/apiGL.js';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { GLBrandHub } from './GLBrandHub.jsx';
 import { GLBrandEditor } from './GLBrandEditor.jsx';
@@ -33,6 +34,7 @@ import { useGlMapOverlaySettings } from '../context/GlMapOverlaySettingsContext.
 import { readPlateauMarkerSizePercent } from '../../shared/mapOverlayScale.js';
 
 export function GLSettingsView() {
+  const { confirm } = useAppDialogs();
   const [settings, setSettings] = useState({});
   const [title, setTitle] = useState('Gnomes & Licornes');
   const [subtitle, setSubtitle] = useState('');
@@ -189,9 +191,10 @@ export function GLSettingsView() {
       setError('');
       return;
     }
-    const ok = window.confirm(
-      `Appliquer le profil « ${preset.label} » ?\n${changes.length} réglage(s) gameplay seront modifiés.`,
-    );
+    const ok = await confirm({
+      message: `Appliquer le profil « ${preset.label} » ?\n${changes.length} réglage(s) gameplay seront modifiés.`,
+      confirmLabel: 'Appliquer',
+    });
     if (!ok) return;
 
     setApplyingPresetId(preset.id);

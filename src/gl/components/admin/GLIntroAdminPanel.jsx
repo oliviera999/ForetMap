@@ -4,6 +4,7 @@ import { MediaLibraryMenu } from '../../../components/MediaLibraryMenu.jsx';
 import { withAppBase } from '../../../shared/appBase.js';
 import { apiGL } from '../../services/apiGL.js';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
@@ -27,6 +28,7 @@ function emptyDraft() {
 }
 
 export function GLIntroAdminPanel() {
+  const { confirm } = useAppDialogs();
   // `null` tant que le chargement n'a pas abouti — et non un brouillon vide. `emptyDraft()`
   // au montage servait de référence à l'enregistrement automatique : après un GET en échec,
   // `loadRevision` n'avançait pas, la référence restait ce brouillon vide, et la première
@@ -72,7 +74,11 @@ export function GLIntroAdminPanel() {
 
   async function resetDefaults() {
     if (
-      !window.confirm('Réinitialiser tous les textes et clés média depuis le modèle par défaut ?')
+      !(await confirm({
+        message: 'Réinitialiser tous les textes et clés média depuis le modèle par défaut ?',
+        confirmLabel: 'Réinitialiser',
+        danger: true,
+      }))
     )
       return;
     setBusy(true);

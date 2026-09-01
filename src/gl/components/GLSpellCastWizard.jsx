@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDialogA11y } from '../../hooks/useDialogA11y.js';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import {
   buildLocalContributions,
@@ -36,6 +37,7 @@ export function GLSpellCastWizard({
   chapterSpells = [],
   onPickSpell,
 }) {
+  const { confirm } = useAppDialogs();
   const titleId = useId();
   const [step, setStep] = useState('team');
   const [selectedTeamId, setSelectedTeamId] = useState(null);
@@ -225,9 +227,10 @@ export function GLSpellCastWizard({
       const label = formatPlayerLabel(rosterRow);
       const amount = Number(value) || 0;
       const unit = field === 'gems' ? '💎' : '❤️';
-      const ok = window.confirm(
-        `Utiliser ${amount} ${unit} du solde de ${label} pour ce sortilège ?`,
-      );
+      const ok = await confirm({
+        message: `Utiliser ${amount} ${unit} du solde de ${label} pour ce sortilège ?`,
+        confirmLabel: 'Utiliser',
+      });
       if (!ok) {
         setLocalContribs(
           buildLocalContributions(spellCast.draft.roster, spellCast.draft.contributions),

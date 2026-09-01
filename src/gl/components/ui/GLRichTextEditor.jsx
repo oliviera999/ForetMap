@@ -13,6 +13,7 @@ import {
   serializeGlImageFrameAttr,
 } from '../../../utils/glImageFrame.js';
 import { GLImageInlineInsertControls } from '../GLImageInlineInsertControls.jsx';
+import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { annotateEditorHtmlWithOriginalSrc } from '../../utils/glMarkdownEditorDisplay.js';
 
 function normalizeResolveDisplayResult(markdown, resolveDisplayMarkdown) {
@@ -114,6 +115,7 @@ export const GLRichTextEditor = React.forwardRef(function GLRichTextEditor(
   },
   forwardedRef,
 ) {
+  const { prompt } = useAppDialogs();
   const editableRef = useRef(null);
   const lastMarkdownRef = useRef(null);
   const [imageStatus, setImageStatus] = useState('');
@@ -269,10 +271,19 @@ export const GLRichTextEditor = React.forwardRef(function GLRichTextEditor(
         <button
           type="button"
           className="gl-rich-editor-tool"
-          onClick={() => {
-            const url =
-              typeof window !== 'undefined' ? window.prompt('URL du lien', 'https://') : 'https://';
+          onClick={async () => {
+            // `createLink` agit sur la sélection courante du contenteditable : on la
+            // mémorise avant l'ouverture du dialogue (dont le champ prend le focus),
+            // puis on la restaure avant d'appliquer la commande.
+            const selection = typeof window !== 'undefined' ? window.getSelection() : null;
+            const savedRange =
+              selection && selection.rangeCount > 0 ? selection.getRangeAt(0).cloneRange() : null;
+            const url = await prompt({ message: 'URL du lien', defaultValue: 'https://' });
             if (!url) return;
+            if (selection && savedRange) {
+              selection.removeAllRanges();
+              selection.addRange(savedRange);
+            }
             applyCommand('createLink', url);
           }}
           title="Insérer un lien"
