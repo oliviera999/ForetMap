@@ -443,7 +443,7 @@ router.post(
     if (!imageData) return res.status(400).json({ error: 'image_data requis' });
     const filename = `${map.id}-${Date.now()}.jpg`;
     const relativePath = path.join('maps', filename).replace(/\\/g, '/');
-    saveBase64ToDisk(relativePath, imageData);
+    await saveBase64ToDisk(relativePath, imageData);
     const nextUrl = `/uploads/${relativePath}`;
     const oldUrl = String(map.map_image_url || '').trim();
     await execute('UPDATE maps SET map_image_url = ? WHERE id = ?', [nextUrl, map.id]);

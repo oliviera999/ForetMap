@@ -54,6 +54,11 @@ commentaires) et rester informé (notifications, temps réel).
   et n'interrompt pas l'import des autres.
 - **Formats acceptés** : images JPEG, PNG, WebP, GIF, SVG ; audio MP3, WAV, OGG, M4A ;
   vidéo MP4, WebM, MOV. Taille maximale : 15 Mo par média.
+- **Photos jointes à un message** (forum, commentaires) : jusqu'à **trois** par message, et
+  **8 Mo par photo**. Au-delà, l'envoi est refusé avec un message qui le dit — l'allègement
+  automatique avant envoi fait que la limite n'est en pratique jamais atteinte depuis un
+  téléphone. Cette borne protège le serveur : quelques envois très lourds simultanés
+  suffisaient à le faire redémarrer, ce qui coupait le site pour tout le monde.
 
 ## ⚠️ Points d'attention
 

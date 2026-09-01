@@ -14,6 +14,7 @@ const {
 const { verifyJwtToken } = require('../lib/auth/jwtPipeline');
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
+const { toPublicUserRow } = require('../lib/publicUser');
 const logger = require('../lib/logger');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { sendPasswordResetEmail } = require('../lib/mailer');
@@ -349,7 +350,7 @@ router.patch(
 
     const profileError = validateProfileInput({ pseudo, email, description });
     if (profileError) return res.status(400).json({ error: profileError });
-    const avatarRes = applyAvatarUpdate({
+    const avatarRes = await applyAvatarUpdate({
       hasAvatarData,
       avatarDataRaw: body.avatarData,
       removeAvatar,
@@ -409,7 +410,7 @@ router.patch(
     if (String(account.user_type || '').toLowerCase() === 'student') {
       emitStudentsChanged({ reason: 'student_profile_update', studentId: account.id });
     }
-    res.json({ ...updated, password_hash: undefined });
+    res.json(toPublicUserRow(updated));
   }),
 );
 
@@ -514,8 +515,7 @@ router.post(
     });
     emitStudentsChanged({ reason: 'register', studentId: id });
     res.status(201).json({
-      ...student,
-      password_hash: undefined,
+      ...toPublicUserRow(student),
       authToken: token,
       auth: session ? exposeAuth(session.tokenPayload) : null,
     });
@@ -661,10 +661,8 @@ router.post(
       targetId: account.id,
       payload: { via: 'identifier' },
     });
-    const safeUser = { ...account };
-    delete safeUser.password_hash;
     res.json({
-      ...safeUser,
+      ...toPublicUserRow(account),
       authToken: token,
       auth: session ? exposeAuth(session.tokenPayload) : null,
     });
@@ -876,8 +874,7 @@ router.get('/google/callback', async (req, res) => {
       buildOAuthFrontendRedirect(cfg.frontendOrigin, {
         type: 'student',
         student: {
-          ...student,
-          password_hash: undefined,
+          ...toPublicUserRow(student),
           authToken: token,
           auth: session ? exposeAuth(session.tokenPayload) : null,
         },

@@ -9,6 +9,7 @@ import {
   resolveTransientRetryDelayMs,
   retryAfterDelayMs,
   shouldRetryAfterHttpError,
+  shouldRetryAfterTimeout,
   transientRetryDelayMs,
   tryParseJsonText,
 } from '../src/services/apiTransport.js';
@@ -127,5 +128,26 @@ describe('apiTransport', () => {
     expect(() => assertJsonApiBody({ raw: '<!DOCTYPE html>' }, { ok: true })).toThrow(
       /Impossible de charger le contenu/i,
     );
+  });
+
+  test('shouldRetryAfterTimeout : un GET idempotent obtient une seconde chance', () => {
+    // Un serveur qui *pend* au lieu de couper ne doit pas échouer du premier coup…
+    expect(shouldRetryAfterTimeout('GET', undefined, 0, 8)).toBe(true);
+    // …mais pas huit fois : chaque tentative coûte déjà 40 s d'attente.
+    expect(shouldRetryAfterTimeout('GET', undefined, 1, 8)).toBe(false);
+    expect(shouldRetryAfterTimeout('GET', undefined, 5, 8)).toBe(false);
+  });
+
+  test('shouldRetryAfterTimeout : jamais pour une mutation (risque de doublon)', () => {
+    // Un timeout ne dit pas si le serveur a traité la requête : rejouer un POST
+    // pourrait créer deux fois la même donnée.
+    expect(shouldRetryAfterTimeout('POST', { a: 1 }, 0, 8)).toBe(false);
+    expect(shouldRetryAfterTimeout('DELETE', undefined, 0, 8)).toBe(false);
+    // GET avec corps : pas idempotent au sens de cette politique.
+    expect(shouldRetryAfterTimeout('GET', { q: 1 }, 0, 8)).toBe(false);
+  });
+
+  test('shouldRetryAfterTimeout : respecte le plafond global de tentatives', () => {
+    expect(shouldRetryAfterTimeout('GET', undefined, 0, 1)).toBe(false);
   });
 });

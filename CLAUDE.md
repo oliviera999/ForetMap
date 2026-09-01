@@ -32,7 +32,7 @@ sous **`.claude/skills/`**.
 | Front GL                                           | `gl.html` → `src/gl/main.jsx` → `src/gl/AppGL.jsx`                                                                                                                                                 |
 | Migrations                                         | `migrations/NNN_*.sql` (idempotentes) + `sql/schema_foretmap.sql`                                                                                                                                  |
 | Tests                                              | `tests/*.test.js` (node:test), `tests-ui/**` (vitest), `e2e/*.spec.js` (Playwright)                                                                                                                |
-| Documentation                                      | `docs/` — `API.md`, `EVOLUTION.md`, `LOCAL_DEV.md`, `EXPLOITATION.md`, `VERSIONING.md`, `GL_*.md`                                                                                                  |
+| Documentation                                      | `docs/` — `API.md`, `EVOLUTION.md`, `LOCAL_DEV.md`, `EXPLOITATION.md`, `VERSIONING.md`, `GL_*.md` ; **stabilité / charge : `AUDIT_STABILITE_PERF_2026-09.md`** (consolidé, point d'entrée)         |
 
 ## Commandes essentielles
 

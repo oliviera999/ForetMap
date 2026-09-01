@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
+import { isSocketAuthRejection } from '../../utils/realtimeAuthRejection';
 import { apiGL } from '../services/apiGL.js';
 import { withAppBase } from '../../shared/appBase.js';
 
@@ -79,6 +80,14 @@ export function useGLMarketTrade({ token, classId, enabled, onTradeCompleted }) 
     });
     socket.on('connect', () => {
       socket.emit('subscribe:gl-class', { classId });
+    });
+    socket.on('connect_error', (err) => {
+      // Jeton refusé : la reconnexion automatique (infinie par défaut) rejouerait le même
+      // jeton toutes les quelques secondes — en long-polling, donc une requête HTTP par
+      // tentative. Même garde que côté ForetMap (`src/utils/realtimeAuthRejection.js`) ;
+      // une panne passagère (`unavailable`) laisse au contraire la reconnexion agir.
+      if (!isSocketAuthRejection(err)) return;
+      socket.disconnect();
     });
     socket.on('gl:market:trade-changed', (evt) => {
       if (Number(evt?.classId) !== Number(classId)) return;

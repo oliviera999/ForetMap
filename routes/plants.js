@@ -293,7 +293,7 @@ router.post(
     }
 
     const relativePath = `plants/${plant.id}/${field}-${Date.now()}.${ext}`;
-    saveBase64ToDisk(relativePath, imageData);
+    await saveBase64ToDisk(relativePath, imageData);
     const publicUrl = `/uploads/${relativePath}`;
     const position = asTrimmedString(req.body?.position) === 'prepend' ? 'prepend' : 'append';
     const nextPhotoValue = mergePlantPhotoUploadValue(plant[field], publicUrl, position);

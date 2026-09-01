@@ -188,22 +188,46 @@ router.get(
       ? await queryAll(`${ZONES_LIST_SQL} WHERE z.map_id = ?`, [mapId])
       : await queryAll(ZONES_LIST_SQL);
     const zoneIds = zones.map((z) => z.id);
-    const history = zoneIds.length
-      ? await queryAll(
-          `SELECT * FROM zone_history
-            WHERE zone_id IN (${zoneIds.map(() => '?').join(',')})
-            ORDER BY harvested_at DESC`,
-          zoneIds,
-        )
-      : [];
+    // Historique : seules les `ZONE_LIST_HISTORY_LIMIT` dernières lignes par zone sont
+    // affichées, et le total ne sert qu'au drapeau `history_truncated`. On les demande
+    // donc à la base plutôt que de rapatrier tout `zone_history` pour le tronquer en
+    // mémoire — cette table grossit à chaque récolte, sans purge, et la liste des zones
+    // est dans le chemin du rafraîchissement périodique.
+    const placeholders = zoneIds.length ? zoneIds.map(() => '?').join(',') : '';
+    const [history, historyTotals] = zoneIds.length
+      ? await Promise.all([
+          queryAll(
+            `SELECT id, zone_id, plant, harvested_at
+               FROM (
+                 SELECT zh.*,
+                        ROW_NUMBER() OVER (
+                          PARTITION BY zh.zone_id ORDER BY zh.harvested_at DESC, zh.id DESC
+                        ) AS rn
+                   FROM zone_history zh
+                  WHERE zh.zone_id IN (${placeholders})
+               ) ranked
+              WHERE rn <= ?
+              ORDER BY zone_id ASC, harvested_at DESC, id DESC`,
+            [...zoneIds, ZONE_LIST_HISTORY_LIMIT],
+          ),
+          queryAll(
+            `SELECT zone_id, COUNT(*) AS total
+               FROM zone_history
+              WHERE zone_id IN (${placeholders})
+              GROUP BY zone_id`,
+            zoneIds,
+          ),
+        ])
+      : [[], []];
     const historyByZoneId = new Map();
     const historyTotalByZoneId = new Map();
+    for (const row of historyTotals) {
+      historyTotalByZoneId.set(String(row.zone_id), Number(row.total) || 0);
+    }
     for (const h of history) {
       const key = String(h.zone_id);
-      historyTotalByZoneId.set(key, (historyTotalByZoneId.get(key) || 0) + 1);
       if (!historyByZoneId.has(key)) historyByZoneId.set(key, []);
-      const bucket = historyByZoneId.get(key);
-      if (bucket.length < ZONE_LIST_HISTORY_LIMIT) bucket.push(h);
+      historyByZoneId.get(key).push(h);
     }
     const speciesMap = await loadZoneSpeciesMap(db, zoneIds);
     const categoriesMap = await loadCategoriesMap(db, 'zone', zoneIds);
