@@ -244,7 +244,7 @@ router.post(
 
     const prefix = playerJournalUploadPrefix(playerId);
     const rel = `${prefix}/${articleId}-${Date.now()}-${current}.${decoded.ext}`;
-    writeBufferToDisk(rel, decoded.buffer);
+    await writeBufferToDisk(rel, decoded.buffer);
 
     const mimeType = decoded.ext === 'jpg' ? 'image/jpeg' : `image/${decoded.ext}`;
     const result = await execute(

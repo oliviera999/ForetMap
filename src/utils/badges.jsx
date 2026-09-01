@@ -1,13 +1,4 @@
-import { STAGE_LABELS, STAGE_CLASS } from '../constants/garden';
 import { getRoleTerms } from './n3-terminology';
-
-export function stageBadge(stage) {
-  return (
-    <span className={`stage-badge ${STAGE_CLASS[stage] || 'stage-empty'}`}>
-      {STAGE_LABELS[stage] || stage}
-    </span>
-  );
-}
 
 function taskStatusAria(status, isN3Affiliated) {
   const roleTerms = getRoleTerms(isN3Affiliated);

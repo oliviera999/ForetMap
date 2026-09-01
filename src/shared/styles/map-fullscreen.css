@@ -11,8 +11,8 @@
   border-radius: 999px;
   background: #eff6ff;
   color: var(--forest);
-  font-size: 0.88rem;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
   cursor: pointer;
   font-family: var(--font-sans);
 }
@@ -53,8 +53,8 @@
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.82);
   color: #f8fafc;
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: var(--text-base);
+  font-weight: var(--fw-bold);
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   font-family: var(--font-sans);

@@ -51,6 +51,7 @@ const {
   isValidAnchors,
   sanitizeAnchors,
   parseAnchors,
+  assessAnchorsGeoPlausibility,
 } = require('../lib/mapGeoref');
 const { MAP_SLUG_RE } = require('../lib/studentAffiliation');
 const { getRuntimeProcessSnapshot } = require('../lib/runtimeDiagnostics');
@@ -443,7 +444,7 @@ router.post(
     if (!imageData) return res.status(400).json({ error: 'image_data requis' });
     const filename = `${map.id}-${Date.now()}.jpg`;
     const relativePath = path.join('maps', filename).replace(/\\/g, '/');
-    saveBase64ToDisk(relativePath, imageData);
+    await saveBase64ToDisk(relativePath, imageData);
     const nextUrl = `/uploads/${relativePath}`;
     const oldUrl = String(map.map_image_url || '').trim();
     await execute('UPDATE maps SET map_image_url = ? WHERE id = ?', [nextUrl, map.id]);
@@ -484,7 +485,17 @@ router.put(
             error: 'Calage GPS invalide : 3 points distincts requis (xp/yp en %, lat/lng valides).',
           });
         }
-        anchorsJson = JSON.stringify(sanitizeAnchors(rawAnchors));
+        const sanitized = sanitizeAnchors(rawAnchors);
+        const plausibility = assessAnchorsGeoPlausibility(sanitized);
+        if (!plausibility.ok) {
+          return res.status(400).json({
+            error:
+              plausibility.reason === 'geo_collinear'
+                ? 'Calage GPS incohérent : les trois points GPS sont alignés ou confondus — choisissez des repères formant un vrai triangle sur le terrain.'
+                : `Calage GPS incohérent : les distances GPS ne correspondent pas aux distances sur le plan (échelles incompatibles, facteur ${Math.round(plausibility.scaleRatio)}). Vérifiez les coordonnées de chaque point.`,
+          });
+        }
+        anchorsJson = JSON.stringify(sanitized);
         hasValidAnchors = true;
       }
     }

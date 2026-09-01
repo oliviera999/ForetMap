@@ -20,6 +20,22 @@ import { safeLocalStorageGetItem } from '../utils/browserStorage.js';
 const DEFAULT_MAPS = [];
 /** Sentinelle « domaine non rechargé » du refetch ciblé de fetchAll (état conservé). */
 const FETCH_DOMAIN_SKIPPED = Symbol('foretmap-fetch-domain-skipped');
+/**
+ * Sentinelle « domaine en échec » : la requête a épuisé ses réessais.
+ *
+ * Auparavant l'échec retournait `[]`, qui était appliqué à l'état : une coupure serveur de
+ * quelques secondes **vidait la carte, les tâches et les plantes** à l'écran — lu par
+ * l'utilisateur comme une déconnexion et une perte de données. Et comme l'erreur était
+ * avalée, le compteur d'échecs ne montait jamais : le bandeau « Serveur indisponible » et
+ * le repli à 2 min n'étaient quasiment jamais atteints. On conserve désormais l'état
+ * précédent et on compte l'échec.
+ */
+const FETCH_DOMAIN_FAILED = Symbol('foretmap-fetch-domain-failed');
+
+/** Vrai si le résultat d'un domaine doit être appliqué à l'état (ni sauté, ni en échec). */
+function isApplicableDomainResult(value) {
+  return value !== FETCH_DOMAIN_SKIPPED && value !== FETCH_DOMAIN_FAILED;
+}
 /** Intervalle de repli quand le serveur est jugé indisponible (3 échecs consécutifs). */
 const SERVER_DOWN_REFRESH_MS = 120000;
 
@@ -72,6 +88,8 @@ export function useAppDataSync({
   const [retryingServer, setRetryingServer] = useState(false);
 
   const failCountRef = useRef(0);
+  /** Dernières cartes connues : repli quand `/api/maps` échoue (voir fetchAll). */
+  const lastMapsRef = useRef(DEFAULT_MAPS);
   /** Promesse du chargement global en cours ; les appels suivants s’y accrochent et peuvent demander une nouvelle passe. */
   const fetchAllRunPromiseRef = useRef(null);
   const fetchAllPendingRef = useRef(false);
@@ -140,7 +158,14 @@ export function useAppDataSync({
             try {
               const probed = await api('/api/sync-state');
               if (isValidSyncState(probed)) syncState = probed;
-            } catch (_) {
+            } catch (err) {
+              // Un compte supprimé se voit aussi depuis la sonde : sans ce cas, l'échec
+              // était traité comme une simple sonde muette et la session restait ouverte
+              // jusqu'à ce qu'un autre appel remonte le même 401.
+              if (err instanceof AccountDeletedError) {
+                forceLogout();
+                return;
+              }
               syncState = null;
             }
           }
@@ -161,14 +186,18 @@ export function useAppDataSync({
           }
           syncSkipCountRef.current = 0;
 
+          // Domaines dont la requête a échoué pendant CE cycle : pilote à la fois la
+          // conservation de l'état affiché et le comptage « serveur indisponible ».
+          let domainFailures = 0;
           try {
-            const safeApi = async (request, fallbackValue) => {
+            const safeApi = async (request) => {
               try {
                 return await request();
               } catch (err) {
                 if (err instanceof AccountDeletedError) throw err;
+                domainFailures += 1;
                 console.error(err);
-                return fallbackValue;
+                return FETCH_DOMAIN_FAILED;
               }
             };
 
@@ -179,9 +208,18 @@ export function useAppDataSync({
             };
             const restrictedMapIds = allowedMapIdsForScope(mapScope);
 
-            const mapsRes = await safeApi(() => api('/api/maps'), DEFAULT_MAPS);
-            const safeMaps = Array.isArray(mapsRes) && mapsRes.length > 0 ? mapsRes : DEFAULT_MAPS;
-            setMaps(safeMaps);
+            const mapsRes = await safeApi(() => api('/api/maps'));
+            // `/api/maps` en échec : on repart des cartes déjà connues. Sans elles,
+            // `resolvedMapId` deviendrait nul, `mapQuery` vide, et TOUS les autres domaines
+            // seraient « rechargés » à vide — l'écran se viderait pour une seule requête ratée.
+            const mapsFailed = mapsRes === FETCH_DOMAIN_FAILED;
+            const safeMaps = mapsFailed
+              ? lastMapsRef.current
+              : Array.isArray(mapsRes) && mapsRes.length > 0
+                ? mapsRes
+                : DEFAULT_MAPS;
+            if (!mapsFailed) setMaps(safeMaps);
+            lastMapsRef.current = safeMaps;
 
             const visibleAllowedMaps = mapsForAffiliationScope(safeMaps, restrictedMapIds);
             const resolvedMapId = resolveScopedMapId({
@@ -219,42 +257,30 @@ export function useAppDataSync({
             const tutorialsEndpoint = canTutorialsSnap
               ? '/api/tutorials?include_inactive=1'
               : '/api/tutorials';
-            // Les profs récupèrent aussi les tâches/projets archivés (portée `all`) pour la
-            // vue « Archivés » ; côté élève/visiteur le backend force la portée active.
-            const archivedQuery = isTeacherSnap ? '&archived=all' : '';
+            // Polling / sync : tâches et projets **actifs** seulement. Les archives
+            // (prof) se chargent à l'ouverture de la vue « Archivés » via loadArchivedTasks
+            // — évite de sérialiser tout l'historique à chaque cycle (pression LVE).
+            // `Promise.resolve([])` sans carte active reste un vide **légitime** (rien à
+            // afficher), à distinguer d'un échec réseau — d'où safeApi sans valeur de repli.
             const [z, t, taskProjectsRes, p, m, tu] = await Promise.all([
               needsDomain('zones')
-                ? safeApi(
-                    () => (mapQuery ? api(`/api/zones?${mapQuery}`) : Promise.resolve([])),
-                    [],
-                  )
+                ? safeApi(() => (mapQuery ? api(`/api/zones?${mapQuery}`) : Promise.resolve([])))
                 : skipDomain(),
               needsDomain('tasks')
-                ? safeApi(
-                    () =>
-                      mapQuery
-                        ? api(`/api/tasks?${mapQuery}${archivedQuery}`)
-                        : Promise.resolve([]),
-                    [],
-                  )
+                ? safeApi(() => (mapQuery ? api(`/api/tasks?${mapQuery}`) : Promise.resolve([])))
                 : skipDomain(),
               needsDomain('tasks')
-                ? safeApi(
-                    () =>
-                      mapQuery
-                        ? api(`/api/task-projects?${mapQuery}${archivedQuery}`)
-                        : Promise.resolve([]),
-                    [],
+                ? safeApi(() =>
+                    mapQuery ? api(`/api/task-projects?${mapQuery}`) : Promise.resolve([]),
                   )
                 : skipDomain(),
-              needsDomain('plants') ? safeApi(() => api('/api/plants'), []) : skipDomain(),
+              needsDomain('plants') ? safeApi(() => api('/api/plants')) : skipDomain(),
               needsDomain('markers')
-                ? safeApi(
-                    () => (mapQuery ? api(`/api/map/markers?${mapQuery}`) : Promise.resolve([])),
-                    [],
+                ? safeApi(() =>
+                    mapQuery ? api(`/api/map/markers?${mapQuery}`) : Promise.resolve([]),
                   )
                 : skipDomain(),
-              needsDomain('tutorials') ? safeApi(() => api(tutorialsEndpoint), []) : skipDomain(),
+              needsDomain('tutorials') ? safeApi(() => api(tutorialsEndpoint)) : skipDomain(),
             ]);
 
             if (resolvedMapId !== mapIdState) {
@@ -263,28 +289,28 @@ export function useAppDataSync({
             // keepPrevIfEqual : conserve la référence quand le contenu n'a pas
             // changé → pas de re-render global du DataContext à chaque poll.
             // FETCH_DOMAIN_SKIPPED : domaine non rechargé (compteur inchangé) → état conservé.
-            if (z !== FETCH_DOMAIN_SKIPPED) setZones((prev) => keepPrevIfEqual(prev, z));
-            if (t !== FETCH_DOMAIN_SKIPPED) {
+            // FETCH_DOMAIN_FAILED : requête en échec → état conservé aussi (jamais vidé).
+            if (isApplicableDomainResult(z)) setZones((prev) => keepPrevIfEqual(prev, z));
+            if (isApplicableDomainResult(t)) {
               if (Array.isArray(t)) {
-                // Séparer actives / archivées : seules les actives alimentent l'état partagé.
-                const { active: activeTasks, archived: archTasks } = partitionByArchived(t);
+                // Actives seules (le backend force déjà active hors ?archived=) ;
+                // partition de sécurité si un client envoie encore archived=all.
+                const { active: activeTasks } = partitionByArchived(t);
                 setTasks((prev) => keepPrevIfEqual(prev, activeTasks));
-                setArchivedTasks((prev) => keepPrevIfEqual(prev, archTasks));
               } else
                 console.warn(
                   '[ForetMap] GET /api/tasks : réponse non tableau, état tâches inchangé',
                 );
             }
-            if (taskProjectsRes !== FETCH_DOMAIN_SKIPPED) {
-              const { active: activeProjects, archived: archProjects } = partitionByArchived(
+            if (isApplicableDomainResult(taskProjectsRes)) {
+              const { active: activeProjects } = partitionByArchived(
                 Array.isArray(taskProjectsRes) ? taskProjectsRes : [],
               );
               setTaskProjects((prev) => keepPrevIfEqual(prev, activeProjects));
-              setArchivedTaskProjects((prev) => keepPrevIfEqual(prev, archProjects));
             }
-            if (p !== FETCH_DOMAIN_SKIPPED) setPlants((prev) => keepPrevIfEqual(prev, p));
-            if (m !== FETCH_DOMAIN_SKIPPED) setMarkers((prev) => keepPrevIfEqual(prev, m));
-            if (tu !== FETCH_DOMAIN_SKIPPED) setTutorials((prev) => keepPrevIfEqual(prev, tu));
+            if (isApplicableDomainResult(p)) setPlants((prev) => keepPrevIfEqual(prev, p));
+            if (isApplicableDomainResult(m)) setMarkers((prev) => keepPrevIfEqual(prev, m));
+            if (isApplicableDomainResult(tu)) setTutorials((prev) => keepPrevIfEqual(prev, tu));
             if (!isTeacherSnap && needsDomain('authMe')) {
               const sess = studentRef.current;
               if (sess?.id && !sess.preview_mode) {
@@ -304,20 +330,32 @@ export function useAppDataSync({
                   .catch(() => {});
               }
             }
-            failCountRef.current = 0;
-            setRefreshMs(DATA_REFRESH_INTERVAL_MS);
-            setServerDown(false);
-            // Cycle complet réussi : baseline du polling différentiel. `syncState` a été
-            // sondé AVANT les refetchs — une écriture arrivée pendant le cycle rendra
-            // donc le prochain compteur différent → refetch (conservateur, jamais stale).
-            lastSyncStateRef.current = syncState
-              ? {
-                  key: syncContextKey,
-                  bootId: syncState.bootId,
-                  writes: syncState.writes,
-                  domains: syncState.domains,
-                }
-              : null;
+            if (domainFailures > 0) {
+              // Cycle partiel : au moins un domaine porte encore des données d'avant la
+              // coupure. Pas de baseline — sans quoi le polling différentiel considérerait
+              // ces domaines à jour et ne les rechargerait qu'à la prochaine écriture.
+              lastSyncStateRef.current = null;
+              failCountRef.current += 1;
+              if (failCountRef.current >= 3) {
+                setServerDown(true);
+                setRefreshMs(SERVER_DOWN_REFRESH_MS);
+              }
+            } else {
+              failCountRef.current = 0;
+              setRefreshMs(DATA_REFRESH_INTERVAL_MS);
+              setServerDown(false);
+              // Cycle complet réussi : baseline du polling différentiel. `syncState` a été
+              // sondé AVANT les refetchs — une écriture arrivée pendant le cycle rendra
+              // donc le prochain compteur différent → refetch (conservateur, jamais stale).
+              lastSyncStateRef.current = syncState
+                ? {
+                    key: syncContextKey,
+                    bootId: syncState.bootId,
+                    writes: syncState.writes,
+                    domains: syncState.domains,
+                  }
+                : null;
+            }
           } catch (e) {
             if (e instanceof AccountDeletedError) forceLogout();
             else {
@@ -386,6 +424,39 @@ export function useAppDataSync({
     };
   }, [hasAuthenticatedShell, activeMapId, contextReady, context, fetchAll]);
 
+  /**
+   * Charge les tâches/projets archivés de la carte active (prof, vue « Archivés »).
+   * Séparé du poll pour ne pas sérialiser l'historique à chaque cycle.
+   */
+  const loadArchivedTasks = useCallback(async () => {
+    const mapId = String(activeMapId || '').trim();
+    if (!mapId) return;
+    if (!context?.effectiveIsTeacher) return;
+    try {
+      const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
+      const [t, projects] = await Promise.all([
+        api(`/api/tasks?${mapQuery}&archived=archived`),
+        api(`/api/task-projects?${mapQuery}&archived=archived`).catch(() => []),
+      ]);
+      const archTasks = Array.isArray(t) ? partitionByArchived(t).archived : [];
+      // Si le backend a déjà filtré archived=archived, partition peut tout mettre en archived
+      // ou tout en active selon archived_at — partitionByArchived trie sur archived_at.
+      const listTasks = Array.isArray(t)
+        ? t.filter((row) => row && row.archived_at != null && String(row.archived_at).trim() !== '')
+        : [];
+      const listProjects = Array.isArray(projects)
+        ? projects.filter(
+            (row) => row && row.archived_at != null && String(row.archived_at).trim() !== '',
+          )
+        : [];
+      setArchivedTasks((prev) => keepPrevIfEqual(prev, listTasks.length ? listTasks : archTasks));
+      setArchivedTaskProjects((prev) => keepPrevIfEqual(prev, listProjects));
+    } catch (e) {
+      if (e instanceof AccountDeletedError) forceLogout();
+      else console.error('[ForetMap] chargement archives tâches', e);
+    }
+  }, [activeMapId, context?.effectiveIsTeacher, forceLogout]);
+
   return {
     maps,
     activeMapId,
@@ -411,5 +482,6 @@ export function useAppDataSync({
     retryingServer,
     fetchAll,
     retryServerNow,
+    loadArchivedTasks,
   };
 }

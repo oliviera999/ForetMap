@@ -18,7 +18,14 @@ export function TaskFormImageField({
   return (
     <div className="field">
       <label>Photo illustrative (optionnel)</label>
-      <p style={{ fontSize: '.8rem', color: '#555', margin: '0 0 8px', lineHeight: 1.45 }}>
+      <p
+        style={{
+          fontSize: 'var(--text-sm)',
+          color: 'var(--ink-soft)',
+          margin: '0 0 8px',
+          lineHeight: 'var(--lh-normal)',
+        }}
+      >
         Depuis la galerie ou l’appareil photo : lieu, outil, plante… (JPEG/PNG/WebP, compressée à
         l’envoi)
       </p>
@@ -29,8 +36,8 @@ export function TaskFormImageField({
           aria-label="Photo illustrative : galerie ou appareil photo"
           style={busy ? { opacity: 0.7, pointerEvents: 'none' } : undefined}
         >
-          <div style={{ fontSize: '2rem', marginBottom: 6 }}>📷</div>
-          <div style={{ fontSize: '.85rem', color: '#888', marginBottom: 10 }}>
+          <div style={{ fontSize: 'var(--text-2xl)', marginBottom: 6 }}>📷</div>
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-faint)', marginBottom: 10 }}>
             {busy ? 'Traitement…' : 'Galerie ou appareil photo'}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>

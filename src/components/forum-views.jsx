@@ -297,7 +297,7 @@ function ForumView({ authClaims, canParticipateForum = true }) {
           className="forum-panel"
           style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}
         >
-          <p className="forum-muted" style={{ margin: 0, lineHeight: 1.5 }}>
+          <p className="forum-muted" style={{ margin: 0, lineHeight: 'var(--lh-normal)' }}>
             Tu consultes le forum en <strong>lecture seule</strong>. La participation (nouveaux
             sujets, réponses, réactions, signalements) n’est pas activée sur ton compte — contacte
             un n3boss si besoin.

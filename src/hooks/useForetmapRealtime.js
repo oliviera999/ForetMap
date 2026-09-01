@@ -8,6 +8,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { api, AccountDeletedError, API, withAppBase, getAuthToken } from '../services/api';
 import { partitionByArchived } from '../utils/taskArchive';
+import { isSocketAuthRejection } from '../utils/realtimeAuthRejection';
+import { jitteredRefreshDelay } from '../utils/realtimeRefreshDelay';
 
 /** Après notification Socket.IO : tâches = refetch léger côté API (priorité fraîcheur). */
 const TASKS_RT_DEBOUNCE_MS = 220;
@@ -50,10 +52,6 @@ export function useForetmapRealtime({
   setMarkers,
   /** Quand vrai : pas de `setTasks` / jardin via temps réel (modale formulaire ouverte — clavier mobile). */
   pauseDataRefreshRef = null,
-  /** Quand vrai (prof) : inclure les tâches/projets archivés (portée `all`) au rafraîchissement. */
-  includeArchivedTasks = false,
-  setArchivedTasks = null,
-  setArchivedTaskProjects = null,
 }) {
   const [rtStatus, setRtStatus] = useState('off');
   // Jeton réactif : après élévation PIN, refresh ou expiration, `foretmap_session_changed`
@@ -69,6 +67,8 @@ export function useForetmapRealtime({
   /** Pendant la fenêtre de debounce jardin : true si au moins un événement exige un refetch plantes. */
   const gardenRtPlantsPendingRef = useRef(false);
   const socketRef = useRef(null);
+  /** Vrai quand le serveur a refusé le jeton : on ne relance plus de connexion avec celui-ci. */
+  const authRejectedRef = useRef(false);
   const offlineTimerRef = useRef(null);
   const subscribedMapIdRef = useRef(null);
   const activeMapIdRef = useRef(activeMapId);
@@ -93,10 +93,10 @@ export function useForetmapRealtime({
       const mapId = String(activeMapIdRef.current || '').trim();
       if (!mapId) return;
       const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
-      const archivedQuery = includeArchivedTasks ? '&archived=all' : '';
+      // Actives seulement — les archives se rechargent via loadArchivedTasks (vue Archivés).
       const [t, projects] = await Promise.all([
-        api(`/api/tasks?${mapQuery}${archivedQuery}`),
-        api(`/api/task-projects?${mapQuery}${archivedQuery}`).catch(() => []),
+        api(`/api/tasks?${mapQuery}`),
+        api(`/api/task-projects?${mapQuery}`).catch(() => []),
       ]);
       if (!Array.isArray(t)) {
         console.warn(
@@ -105,27 +105,18 @@ export function useForetmapRealtime({
         );
         return;
       }
-      const { active: activeTasks, archived: archTasks } = partitionByArchived(t);
-      const { active: activeProjects, archived: archProjects } = partitionByArchived(
+      const { active: activeTasks } = partitionByArchived(t);
+      const { active: activeProjects } = partitionByArchived(
         Array.isArray(projects) ? projects : [],
       );
       setTasks(activeTasks);
       setTaskProjects(activeProjects);
-      if (setArchivedTasks) setArchivedTasks(archTasks);
-      if (setArchivedTaskProjects) setArchivedTaskProjects(archProjects);
       window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'tasks' } }));
     } catch (e) {
       if (e instanceof AccountDeletedError) forceLogoutRef.current();
       else console.error('[ForetMap] rafraîchissement tâches (temps réel)', e);
     }
-  }, [
-    pauseDataRefreshRef,
-    setTaskProjects,
-    setTasks,
-    includeArchivedTasks,
-    setArchivedTasks,
-    setArchivedTaskProjects,
-  ]);
+  }, [pauseDataRefreshRef, setTaskProjects, setTasks]);
 
   const refreshGardenFromServer = useCallback(
     async (options = {}) => {
@@ -168,7 +159,7 @@ export function useForetmapRealtime({
     tasksRtDebounceRef.current = setTimeout(() => {
       tasksRtDebounceRef.current = null;
       refreshTasksFromServer();
-    }, TASKS_RT_DEBOUNCE_MS);
+    }, jitteredRefreshDelay(TASKS_RT_DEBOUNCE_MS));
   }, [refreshTasksFromServer]);
 
   const scheduleGardenRefresh = useCallback(
@@ -181,7 +172,7 @@ export function useForetmapRealtime({
         const includePlants = gardenRtPlantsPendingRef.current;
         gardenRtPlantsPendingRef.current = false;
         refreshGardenFromServer({ includePlants });
-      }, GARDEN_RT_DEBOUNCE_MS);
+      }, jitteredRefreshDelay(GARDEN_RT_DEBOUNCE_MS));
     },
     [refreshGardenFromServer],
   );
@@ -208,6 +199,9 @@ export function useForetmapRealtime({
       return undefined;
     }
     setRtStatus('connecting');
+    // Nouveau socket (jeton renouvelé, élévation, changement de session) : le refus
+    // précédent ne vaut plus.
+    authRejectedRef.current = false;
     const origin =
       API && String(API).trim()
         ? new URL(API, window.location.href).origin
@@ -265,6 +259,17 @@ export function useForetmapRealtime({
     };
     const onConnectError = (err) => {
       console.warn('[ForetMap] Socket.IO connect_error', err?.message || err);
+      if (isSocketAuthRejection(err)) {
+        // Jeton refusé : la reconnexion automatique (infinie, toutes les 1 à 5 s, en
+        // long-polling donc une requête HTTP par tentative) rejouerait éternellement le
+        // même jeton. On coupe ; le polling REST prend le relais, et une nouvelle session
+        // (`foretmap_session_changed` → `authToken`) relance cet effet avec un jeton neuf.
+        authRejectedRef.current = true;
+        clearOfflineTimer();
+        setRtStatus('off');
+        socket.disconnect();
+        return;
+      }
       setRtStatus('connecting');
       scheduleOfflineFallback();
     };
@@ -282,6 +287,8 @@ export function useForetmapRealtime({
       scheduleOfflineFallback();
     };
     const onBrowserOnline = () => {
+      // Retour du réseau : inutile de relancer une connexion que le serveur refuse.
+      if (authRejectedRef.current) return;
       if (!socket.connected) {
         setRtStatus('connecting');
         socket.connect();

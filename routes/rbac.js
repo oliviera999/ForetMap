@@ -21,6 +21,7 @@ async function emitStudentsWithPrimaryRole(roleId) {
 }
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
+const { toPublicUserRow } = require('../lib/publicUser');
 const { rethrowSlugConflict } = require('../lib/slugConflict');
 const { logAudit } = require('./audit');
 const {
@@ -213,8 +214,7 @@ router.post(
       emitStudentsChanged({ reason: 'create_student_manual', studentId: id });
     }
     res.status(201).json({
-      ...created,
-      password_hash: undefined,
+      ...toPublicUserRow(created),
       role_slug: role.slug,
       role_display_name: role.display_name,
     });

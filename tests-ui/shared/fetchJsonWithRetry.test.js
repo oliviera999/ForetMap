@@ -4,6 +4,7 @@ import {
   REQUEST_TIMEOUT_USER_MESSAGE,
 } from '../../src/shared/fetchJsonWithRetry.js';
 import { subscribeAppStatus } from '../../src/shared/appStatusEvents.js';
+import { createApiRetryGate } from '../../src/shared/apiRetryGate.js';
 
 function jsonRes(status, body, { ok = status < 400 } = {}) {
   return {
@@ -167,14 +168,110 @@ describe('fetchJsonWithRetry (boucle partagée)', () => {
     ).rejects.toThrow('hors retry');
   });
 
-  test('AbortError produit le message de timeout commun', async () => {
+  test('AbortError produit le message de timeout commun (mutation : aucun réessai)', async () => {
     const abortErr = new Error('aborted');
     abortErr.name = 'AbortError';
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(abortErr);
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockRejectedValue(abortErr);
+
+    await expect(
+      fetchJsonWithRetry('/api/test', { method: 'POST', body: { a: 1 } }, { buildHttpError }),
+    ).rejects.toThrow(REQUEST_TIMEOUT_USER_MESSAGE);
+    // Un timeout ne dit pas si le serveur a traité la mutation : on ne la rejoue pas.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  test('un GET qui expire est rejoué une fois, puis réussit', async () => {
+    const abortErr = new Error('aborted');
+    abortErr.name = 'AbortError';
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValueOnce(abortErr)
+      .mockResolvedValueOnce(jsonRes(200, { ok: true }));
+
+    const data = await fetchJsonWithRetry('/api/test', { method: 'GET' }, { buildHttpError });
+    expect(data).toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  test('un GET qui expire deux fois s’arrête là (pas six minutes d’attente)', async () => {
+    const abortErr = new Error('aborted');
+    abortErr.name = 'AbortError';
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockRejectedValue(abortErr);
 
     await expect(
       fetchJsonWithRetry('/api/test', { method: 'GET' }, { buildHttpError }),
     ).rejects.toThrow(REQUEST_TIMEOUT_USER_MESSAGE);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  test('le délai d’abandon reste armé pendant la lecture du corps', async () => {
+    // `fetch` résout dès les **en-têtes** reçus : le minuteur était désarmé à cet instant,
+    // si bien qu'un corps qui n'arrivait jamais laissait la requête pendante sans aucun
+    // délai maximal. On vérifie donc qu'aucun `clearTimeout` n'a lieu avant la lecture.
+    const realClearTimeout = globalThis.clearTimeout;
+    let clearCount = 0;
+    let clearedBeforeBodyRead = null;
+    vi.spyOn(globalThis, 'clearTimeout').mockImplementation((id) => {
+      clearCount += 1;
+      return realClearTimeout(id);
+    });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      json: async () => {
+        clearedBeforeBodyRead = clearCount;
+        return { ok: true };
+      },
+      text: async () => '{"ok":true}',
+    });
+
+    await fetchJsonWithRetry('/api/test', { method: 'GET' }, { buildHttpError });
+    expect(clearedBeforeBodyRead).toBe(0);
+    // …et il est bien désarmé une fois la requête terminée.
+    expect(clearCount).toBeGreaterThan(0);
+  });
+
+  test('un 429 ouvre la pause partagée : les requêtes sœurs cessent d’alimenter le plafond', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonRes(429, { error: 'Trop de requêtes, réessayez dans une minute.' }),
+    );
+    const retryGate = createApiRetryGate();
+
+    await expect(
+      fetchJsonWithRetry('/api/test', { method: 'GET' }, { buildHttpError, retryGate }),
+    ).rejects.toMatchObject({ status: 429 });
+    expect(retryGate.remainingMs()).toBeGreaterThan(0);
+  });
+
+  test('une réponse correcte referme la pause partagée pour tout le monde', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonRes(200, { ok: true }));
+    const retryGate = createApiRetryGate();
+    retryGate.pauseFor(150);
+
+    await fetchJsonWithRetry('/api/test', { method: 'GET' }, { buildHttpError, retryGate });
+    expect(retryGate.remainingMs()).toBe(0);
+  });
+
+  test('un réessai passerelle ouvre la pause partagée au lieu de dormir dans son coin', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(html503())
+      .mockResolvedValueOnce(html503())
+      .mockResolvedValueOnce(jsonRes(200, { done: true }));
+    const pauses = [];
+    const retryGate = createApiRetryGate();
+    const spied = {
+      ...retryGate,
+      pauseFor: (ms) => {
+        pauses.push(ms);
+        retryGate.pauseFor(ms);
+      },
+    };
+
+    await fetchJsonWithRetry('/api/test', { method: 'GET' }, { buildHttpError, retryGate: spied });
+    expect(pauses).toHaveLength(2);
+    expect(pauses[0]).toBeGreaterThanOrEqual(400);
+    expect(pauses[1]).toBeGreaterThan(pauses[0]);
   });
 
   test('200 HTML lève un message de contenu inattendu (assertJsonApiBody)', async () => {

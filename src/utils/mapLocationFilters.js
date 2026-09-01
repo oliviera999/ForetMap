@@ -4,17 +4,22 @@
  */
 
 import { detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../constants/emojis.js';
-import { STAGE_LABELS } from '../constants/garden.js';
+import {
+  isInfrastructureLocation,
+  locationCategoriesSummary,
+  locationCategoryLabels,
+  locationHasAnyCategory,
+} from './locationCategories.js';
 
 /** État par défaut des filtres carte. */
 export const MAP_LOCATION_FILTER_DEFAULTS = Object.freeze({
   text: '',
   kinds: 'both',
-  stages: [],
+  categoryIds: [],
   speciesId: '',
   hasTasks: '',
   hasTutorials: '',
-  specialOnly: false,
+  infrastructureOnly: false,
 });
 
 /** Normalise une chaîne pour comparaison (minuscules, sans accents). */
@@ -40,14 +45,6 @@ function appendParts(parts, value) {
     return;
   }
   parts.push(String(value));
-}
-
-/** Zone effective pour le filtre d'état (infra = special). */
-export function zoneEffectiveStage(zone) {
-  if (!zone) return 'empty';
-  if (zone.special) return 'special';
-  const stage = String(zone.stage || 'empty').trim();
-  return stage || 'empty';
 }
 
 function speciesNamesFromLocation(item) {
@@ -79,12 +76,13 @@ export function buildZoneSearchBlob(zone, emojiParsingList = []) {
   const parts = [];
   const name = zone?.name || '';
   appendParts(parts, name);
+  appendParts(parts, String(zone?.emoji || '').trim());
   appendParts(parts, stripLeadingMarkerEmoji(name, emojiParsingList));
   appendParts(parts, detectLeadingMarkerEmoji(name, emojiParsingList));
   appendParts(parts, zone?.description);
   appendParts(parts, speciesNamesFromLocation(zone));
   appendParts(parts, visitTextParts(zone));
-  appendParts(parts, STAGE_LABELS[zoneEffectiveStage(zone)]);
+  appendParts(parts, locationCategoryLabels(zone));
   return normalizeMapSearchText(parts.join(' '));
 }
 
@@ -96,6 +94,7 @@ export function buildMarkerSearchBlob(marker) {
   appendParts(parts, marker?.note);
   appendParts(parts, speciesNamesFromLocation(marker));
   appendParts(parts, visitTextParts(marker));
+  appendParts(parts, locationCategoryLabels(marker));
   return normalizeMapSearchText(parts.join(' '));
 }
 
@@ -129,11 +128,8 @@ export function zoneMatchesMapFilters(zone, filters, context = {}) {
   if (!zone) return false;
   const f = { ...MAP_LOCATION_FILTER_DEFAULTS, ...filters };
   if (f.kinds === 'markers') return false;
-  if (f.specialOnly && !zone.special) return false;
-  if (f.stages?.length) {
-    const effective = zoneEffectiveStage(zone);
-    if (!f.stages.includes(effective)) return false;
-  }
+  if (f.infrastructureOnly && !isInfrastructureLocation(zone)) return false;
+  if (!locationHasAnyCategory(zone, f.categoryIds)) return false;
   if (!locationHasSpecies(zone, f.speciesId)) return false;
   const hasTasks = context.zoneTaskVisualById?.has?.(String(zone.id));
   if (!triStateMatches(hasTasks, f.hasTasks)) return false;
@@ -151,7 +147,8 @@ export function markerMatchesMapFilters(marker, filters, context = {}) {
   if (!marker) return false;
   const f = { ...MAP_LOCATION_FILTER_DEFAULTS, ...filters };
   if (f.kinds === 'zones') return false;
-  if (f.specialOnly || f.stages?.length) return false;
+  if (f.infrastructureOnly && !isInfrastructureLocation(marker)) return false;
+  if (!locationHasAnyCategory(marker, f.categoryIds)) return false;
   if (!locationHasSpecies(marker, f.speciesId)) return false;
   const hasTasks = context.markerTaskVisualById?.has?.(String(marker.id));
   if (!triStateMatches(hasTasks, f.hasTasks)) return false;
@@ -170,11 +167,11 @@ export function isMapLocationFilterActive(filters) {
   const f = { ...MAP_LOCATION_FILTER_DEFAULTS, ...filters };
   if (normalizeMapSearchText(f.text)) return true;
   if (f.kinds !== 'both') return true;
-  if (f.stages?.length) return true;
+  if (f.categoryIds?.length) return true;
   if (f.speciesId) return true;
   if (f.hasTasks) return true;
   if (f.hasTutorials) return true;
-  if (f.specialOnly) return true;
+  if (f.infrastructureOnly) return true;
   return false;
 }
 
@@ -183,11 +180,11 @@ export function countActiveMapLocationFilters(filters) {
   const f = { ...MAP_LOCATION_FILTER_DEFAULTS, ...filters };
   let n = 0;
   if (f.kinds !== 'both') n += 1;
-  if (f.stages?.length) n += 1;
+  if (f.categoryIds?.length) n += 1;
   if (f.speciesId) n += 1;
   if (f.hasTasks) n += 1;
   if (f.hasTutorials) n += 1;
-  if (f.specialOnly) n += 1;
+  if (f.infrastructureOnly) n += 1;
   return n;
 }
 
@@ -210,10 +207,12 @@ export function collectMapSpeciesOptions(zones = [], markers = []) {
 }
 
 function zoneResultSubtitle(zone) {
-  return STAGE_LABELS[zoneEffectiveStage(zone)] || '';
+  return locationCategoriesSummary(zone);
 }
 
 function markerResultSubtitle(marker) {
+  const categories = locationCategoriesSummary(marker);
+  if (categories) return categories;
   const note = String(marker?.note || '').trim();
   if (!note) return '';
   return note.length > 48 ? `${note.slice(0, 45)}…` : note;
@@ -244,7 +243,10 @@ export function applyMapLocationFilters({
     const id = String(zone.id);
     matchingZoneIds.add(id);
     const emojiList = context.emojiParsingList || [];
-    const emoji = detectLeadingMarkerEmoji(zone.name || '', emojiList) || '🌿';
+    const emoji =
+      String(zone.emoji || '').trim() ||
+      detectLeadingMarkerEmoji(zone.name || '', emojiList) ||
+      '🌿';
     const title = stripLeadingMarkerEmoji(zone.name || '', emojiList) || zone.name || id;
     resultItems.push({
       kind: 'zone',

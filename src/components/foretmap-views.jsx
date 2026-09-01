@@ -301,8 +301,8 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
                       <div>
                         <div
                           style={{
-                            fontSize: '.74rem',
-                            fontWeight: 700,
+                            fontSize: 'var(--text-xs)',
+                            fontWeight: 'var(--fw-bold)',
                             color: '#aaa',
                             textTransform: 'uppercase',
                             marginBottom: 4,
@@ -313,8 +313,8 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
                         <PlantLocationPreviewMaps maps={maps} zones={pZones} markers={pMarkers} />
                         <div
                           style={{
-                            fontSize: '.74rem',
-                            fontWeight: 700,
+                            fontSize: 'var(--text-xs)',
+                            fontWeight: 'var(--fw-bold)',
                             color: '#aaa',
                             textTransform: 'uppercase',
                             margin: '10px 0 4px',
@@ -336,7 +336,7 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
                         </div>
                       </div>
                     ) : (
-                      <p style={{ fontSize: '.82rem', color: '#bbb', fontStyle: 'italic' }}>
+                      <p style={{ fontSize: 'var(--text-sm)', color: '#bbb', fontStyle: 'italic' }}>
                         Pas encore associé à une zone ni à un repère sur la carte
                       </p>
                     )}

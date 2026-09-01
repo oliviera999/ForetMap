@@ -109,7 +109,7 @@ function TaskProjectsBlock({
                   }}
                 >
                   <div>
-                    <div className="task-title" style={{ fontSize: '1rem' }}>
+                    <div className="task-title" style={{ fontSize: 'var(--text-base)' }}>
                       📁 {p.title}
                     </div>
                     <div className="task-meta" style={{ marginTop: 6 }}>
@@ -141,7 +141,7 @@ function TaskProjectsBlock({
                         ),
                       )}
                     </div>
-                    <div style={{ fontSize: '.82rem', color: '#666' }}>
+                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
                       {p.map_label || mapLabelFromMaps(p.map_id, maps)} · {projectTasksCount} tâche
                       {projectTasksCount > 1 ? 's' : ''}
                     </div>
@@ -151,21 +151,21 @@ function TaskProjectsBlock({
                       </MarkdownContent>
                     )}
                     {p.status === 'on_hold' && (
-                      <div style={{ fontSize: '.82rem', color: '#92400e', marginTop: 4 }}>
+                      <div style={{ fontSize: 'var(--text-sm)', color: '#92400e', marginTop: 4 }}>
                         {isTeacher
                           ? '⏸️ Projet en pause : plus de nouvelles inscriptions n3beurs pour l’instant, les commentaires restent ouverts. Tu peux quand même ajouter des tâches ; elles attendront une réouverture des inscriptions avec le projet.'
                           : '⏸️ Projet en pause : inscriptions fermées pour l’instant, les commentaires restent ouverts.'}
                       </div>
                     )}
                     {p.status === 'completed' && (
-                      <div style={{ fontSize: '.82rem', color: '#166534', marginTop: 4 }}>
+                      <div style={{ fontSize: 'var(--text-sm)', color: '#166534', marginTop: 4 }}>
                         {isTeacher
                           ? 'Toutes les tâches du projet sont terminées ou validées (fin automatique). Tu peux valider le projet, le rouvrir ou ajouter une nouvelle tâche.'
                           : 'Toutes les tâches de ce projet sont terminées ou validées.'}
                       </div>
                     )}
                     {p.status === 'validated' && (
-                      <div style={{ fontSize: '.82rem', color: '#166534', marginTop: 4 }}>
+                      <div style={{ fontSize: 'var(--text-sm)', color: '#166534', marginTop: 4 }}>
                         {isTeacher
                           ? 'Projet validé manuellement : inscriptions fermées. Tu peux le rouvrir en « Actif » ou « En attente ».'
                           : 'Projet validé par les n3boss : inscriptions fermées.'}
@@ -332,7 +332,7 @@ function TaskProjectsBlock({
                 </div>
                 <div style={{ marginTop: 10 }}>
                   {projectTasksCount === 0 ? (
-                    <p style={{ fontSize: '.85rem', color: '#666', margin: 0 }}>
+                    <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', margin: 0 }}>
                       Aucune tâche liée à ce projet avec les filtres actuels.
                     </p>
                   ) : (

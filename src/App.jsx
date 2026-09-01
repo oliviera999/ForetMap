@@ -335,9 +335,7 @@ function App() {
     taskProjects,
     setTaskProjects,
     archivedTasks,
-    setArchivedTasks,
     archivedTaskProjects,
-    setArchivedTaskProjects,
     plants,
     setPlants,
     markers,
@@ -349,6 +347,7 @@ function App() {
     retryingServer,
     fetchAll,
     retryServerNow,
+    loadArchivedTasks,
   } = useAppDataSync({
     context: dataSyncContext,
     contextReady: publicSettingsReady,
@@ -815,9 +814,6 @@ function App() {
     setPlants,
     setMarkers,
     pauseDataRefreshRef: pauseDataRefreshForTaskOverlaysRef,
-    includeArchivedTasks: effectiveIsTeacher,
-    setArchivedTasks,
-    setArchivedTaskProjects,
   });
   const teacherSyncStatus = effectiveIsTeacher
     ? rtStatus === 'off'
@@ -935,6 +931,7 @@ function App() {
       archivedTasks,
       archivedTaskProjects,
       activeMapId,
+      loadArchivedTasks,
     }),
     [
       zones,
@@ -946,6 +943,7 @@ function App() {
       archivedTasks,
       archivedTaskProjects,
       activeMapId,
+      loadArchivedTasks,
     ],
   );
 
@@ -1342,6 +1340,7 @@ function App() {
                         foodWebHighlightPlantId={foodWebHighlightPlantId}
                         canManageFoodWeb={canManageFoodWeb}
                         appVersion={appVersion}
+                        canReadSiteIssues={hasPermissionInRole('admin.settings.read')}
                         onOpenSettingsLearning={handleOpenSettingsLearning}
                       />
                     </>

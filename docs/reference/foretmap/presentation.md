@@ -184,6 +184,32 @@ scroller** :
 La pastille ne bloque rien (on peut cliquer au travers) et se place juste au-dessus
 de l'emplacement des messages éphémères pour ne jamais les masquer.
 
+### Ce qui se passe quand le serveur ne répond plus
+
+Au-delà de la pastille, l'application protège ce qui est déjà affiché :
+
+- **Rien ne disparaît de l'écran.** Si le serveur ne répond pas pendant un
+  rafraîchissement automatique, la carte, les zones, les tâches et les plantes gardent
+  les données du dernier chargement réussi. Auparavant, une coupure de quelques secondes
+  pouvait vider ces listes à l'écran, ce qui se lisait à tort comme une perte de données.
+- **Au bout de trois cycles infructueux**, le bandeau **« Serveur indisponible. Nouvel
+  essai automatique toutes les 2 minutes »** apparaît, accompagné d'un bouton
+  **« Réessayer maintenant »**, et le rafraîchissement s'espace pour laisser le serveur
+  se remettre. Dès qu'une réponse arrive, le bandeau disparaît et la cadence normale
+  reprend.
+- **Les données affichées peuvent donc dater** de quelques minutes le temps d'un
+  incident : c'est volontaire, et le bandeau le signale.
+- **Une classe entière ne se bloque plus elle-même.** Quand tout un groupe utilise le site
+  depuis le même établissement, les appareils sortent sur Internet avec **une seule adresse
+  visible** par le serveur, qui limite le nombre de requêtes par adresse. Les tentatives de
+  reconnexion de trente postes suffisaient à atteindre cette limite et à produire un « Trop
+  de requêtes » au pire moment. L'application coordonne désormais ces tentatives : le
+  premier appareil qui constate l'absence du serveur fait patienter les autres, et la
+  première réponse correcte les relance tous.
+- **Session expirée** : la connexion temps réel s'arrête proprement au lieu de réessayer
+  sans fin. Les données continuent d'arriver par le rafraîchissement périodique, et le
+  temps réel revient de lui-même à la reconnexion.
+
 ## ⚠️ Points d'attention sur l'existant
 
 État des lieux honnête, relevé en examinant le fonctionnement actuel :

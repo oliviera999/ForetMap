@@ -1,14 +1,14 @@
-import { stageBadge } from '../../utils/badges';
+import { LocationCategoryBadges } from './LocationCategoryPicker.jsx';
+import { zoneEmojiOf, zoneTitleOf } from '../../utils/zoneDisplay.js';
 
 /**
- * En-tête présentationnel de ZoneInfoModal : titre de la zone, pastille d'état,
- * et (pour les profs) les actions Copie / Supprimer — y compris sur les zones
- * spéciales, désormais éditables. Composant sans état : la logique métier reste
- * dans ZoneInfoModal.
+ * En-tête présentationnel de ZoneInfoModal : titre de la zone, pastilles de
+ * catégories, et (pour les profs) les actions Copie / Supprimer — y compris sur
+ * les zones d'infrastructure, éditables. Composant sans état : la logique métier
+ * reste dans ZoneInfoModal.
  */
 function ZoneInfoModalHeader({
   zone,
-  displayStage,
   isTeacher,
   duplicating = false,
   onDuplicate = null,
@@ -21,8 +21,21 @@ function ZoneInfoModalHeader({
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{zone.name}</h3>
-        <div style={{ marginTop: 3 }}>{stageBadge(displayStage)}</div>
+        {/* Emoji rendu dans la pile emoji (plus via Playfair Display avec le nom brut) —
+            colonne `zones.emoji` en priorité, repli sur le préfixe du nom (audit C4). */}
+        <h3 style={{ margin: 0, fontSize: 'var(--text-md)' }}>
+          {zoneEmojiOf(zone) ? (
+            <>
+              <span className="emoji-glyph" aria-hidden>
+                {zoneEmojiOf(zone)}
+              </span>{' '}
+            </>
+          ) : null}
+          {zoneEmojiOf(zone) ? zoneTitleOf(zone) : zone.name}
+        </h3>
+        <div style={{ marginTop: 3 }}>
+          <LocationCategoryBadges item={zone} />
+        </div>
       </div>
       {showTeacherActions && (
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>

@@ -71,11 +71,13 @@ export default function MascotPackToolView({
       }}
     >
       {embedded ? (
-        <h2 style={{ fontSize: '1.15rem', marginTop: 0 }}>Mascotte pack v1 (`sprite_cut`)</h2>
+        <h2 style={{ fontSize: 'var(--text-md)', marginTop: 0 }}>
+          Mascotte pack v1 (`sprite_cut`)
+        </h2>
       ) : (
-        <h1 style={{ fontSize: '1.35rem' }}>Mascotte pack v1 (`sprite_cut`)</h1>
+        <h1 style={{ fontSize: 'var(--text-lg)' }}>Mascotte pack v1 (`sprite_cut`)</h1>
       )}
-      <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>
+      <p style={{ fontSize: 'var(--text-base)', opacity: 0.9 }}>
         Éditeur visuel (WYSIWYG) ou JSON pour export. Référence : <code>docs/MASCOT_PACK.md</code>
         {embedded && !hideIntegrationSection ? ' — page autonome : /mascot-pack-tool.html' : null}
       </p>
@@ -142,7 +144,7 @@ export default function MascotPackToolView({
               width: '100%',
               minHeight: 220,
               fontFamily: 'ui-monospace, monospace',
-              fontSize: 12,
+              fontSize: 'var(--text-xs)',
               borderRadius: 8,
               border: '1px solid rgba(26,71,49,0.25)',
               padding: 10,
@@ -150,7 +152,7 @@ export default function MascotPackToolView({
             }}
           />
           {jsonError ? (
-            <p className="text-danger" role="alert" style={{ fontSize: '0.82rem' }}>
+            <p className="text-danger" role="alert" style={{ fontSize: 'var(--text-sm)' }}>
               {jsonError}
             </p>
           ) : null}
@@ -187,9 +189,9 @@ export default function MascotPackToolView({
       )}
 
       {!hideIntegrationSection ? (
-        <section style={{ marginTop: 28, fontSize: '0.88rem', opacity: 0.9 }}>
-          <h2 style={{ fontSize: '1.05rem' }}>Intégration</h2>
-          <ol style={{ paddingLeft: 18, lineHeight: 1.5 }}>
+        <section style={{ marginTop: 28, fontSize: 'var(--text-sm)', opacity: 0.9 }}>
+          <h2 style={{ fontSize: 'var(--text-md)' }}>Intégration</h2>
+          <ol style={{ paddingLeft: 18, lineHeight: 'var(--lh-normal)' }}>
             <li>
               Déposer les PNG sous <code>public/assets/mascots/&lt;id&gt;/frames/</code> ou publier
               un pack avec images via l’API (voir <code>docs/MASCOT_PACK.md</code>).

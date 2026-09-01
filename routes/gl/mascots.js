@@ -567,7 +567,7 @@ router.post(
     const hashedPrefix = crypto.createHash('sha1').update(filename).digest('hex').slice(0, 12);
     const diskFilename = `${hashedPrefix}-${filename}`;
     const relativePath = `${folder}/${diskFilename}`;
-    saveBase64ToDisk(relativePath, dataBase64);
+    await saveBase64ToDisk(relativePath, dataBase64);
     await execute(
       `INSERT INTO gl_mascot_pack_assets (pack_id, filename, mime_type, asset_path, created_at)
      VALUES (?, ?, ?, ?, NOW())
@@ -666,7 +666,7 @@ router.post(
     const hashedPrefix = crypto.createHash('sha1').update(filename).digest('hex').slice(0, 12);
     const diskFilename = `${hashedPrefix}-${filename}`;
     const relativePath = `${folder}/${diskFilename}`;
-    saveBase64ToDisk(relativePath, dataBase64);
+    await saveBase64ToDisk(relativePath, dataBase64);
     await execute(
       `INSERT INTO gl_mascot_sprite_library (chapter_id, filename, mime_type, asset_path, created_by, created_at)
      VALUES (?, ?, ?, ?, ?, NOW())

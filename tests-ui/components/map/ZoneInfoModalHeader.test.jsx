@@ -2,7 +2,12 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ZoneInfoModalHeader } from '../../../src/components/map/ZoneInfoModalHeader.jsx';
 
-const ZONE = { id: 7, name: 'Potager Est', special: false };
+const ZONE = {
+  id: 7,
+  name: 'Potager Est',
+  categories: [{ id: 'c1', label: 'Verger', emoji: '🍎' }],
+  is_infrastructure: false,
+};
 
 function renderHeader(overrides = {}) {
   const handlers = {
@@ -12,14 +17,7 @@ function renderHeader(overrides = {}) {
     onClose: vi.fn(),
   };
   render(
-    <ZoneInfoModalHeader
-      zone={ZONE}
-      displayStage="growing"
-      isTeacher
-      duplicating={false}
-      {...handlers}
-      {...overrides}
-    />,
+    <ZoneInfoModalHeader zone={ZONE} isTeacher duplicating={false} {...handlers} {...overrides} />,
   );
   return handlers;
 }
@@ -32,10 +30,15 @@ describe('ZoneInfoModalHeader', () => {
     vi.restoreAllMocks();
   });
 
-  test("affiche le titre de la zone et la pastille d'état", () => {
+  test('affiche le titre de la zone et les pastilles de catégorie', () => {
     renderHeader();
     expect(screen.getByRole('heading', { name: 'Potager Est' })).toBeTruthy();
-    expect(screen.getByText('En croissance')).toBeTruthy();
+    expect(screen.getByText(/Verger/)).toBeTruthy();
+  });
+
+  test('zone sans catégorie : aucune pastille', () => {
+    renderHeader({ zone: { ...ZONE, categories: [] } });
+    expect(screen.queryByText(/Verger/)).toBeNull();
   });
 
   test('prof : bouton Copie déclenche onDuplicate avec la zone', async () => {
@@ -72,8 +75,14 @@ describe('ZoneInfoModalHeader', () => {
     expect(screen.queryByRole('button', { name: '🗑️' })).toBeNull();
   });
 
-  test('zone spéciale : actions de gestion disponibles pour un prof (désormais éditable)', () => {
-    renderHeader({ zone: { ...ZONE, special: true } });
+  test("zone d'infrastructure : actions de gestion disponibles pour un prof (éditable)", () => {
+    renderHeader({
+      zone: {
+        ...ZONE,
+        categories: [{ id: 'c2', label: 'Infrastructure', is_infrastructure: true }],
+        is_infrastructure: true,
+      },
+    });
     expect(screen.getByRole('button', { name: '📋 Copie' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '🗑️' })).toBeTruthy();
   });

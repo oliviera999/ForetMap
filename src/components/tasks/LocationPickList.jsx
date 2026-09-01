@@ -1,3 +1,5 @@
+import { isInfrastructureLocation } from '../../utils/locationCategories.js';
+
 /**
  * Pick-list « Zones et repères » partagée (cases à cocher, sous-titres conditionnels).
  *
@@ -8,9 +10,12 @@
  * et les toggles restent détenus par le parent.
  */
 
-/** Zones sélectionnables : non spéciales, limitées à la carte si `mapId` est renseigné. */
+/**
+ * Zones sélectionnables : hors infrastructure (une mare ou un composteur n'est pas une
+ * cible de mission), limitées à la carte si `mapId` est renseigné.
+ */
 export function filterSelectableZones(zones, mapId) {
-  return zones.filter((z) => !z.special && (!mapId || z.map_id === mapId));
+  return zones.filter((z) => !isInfrastructureLocation(z) && (!mapId || z.map_id === mapId));
 }
 
 /** Repères sélectionnables : limités à la carte si `mapId` est renseigné. */

@@ -114,7 +114,7 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
       ariaLabel={`Connexion ${roleTerms.teacherSingular}`}
       closeOnOverlay
     >
-      <div style={{ fontSize: '2rem', marginBottom: 8 }}>🔑</div>
+      <div style={{ fontSize: 'var(--text-2xl)', marginBottom: 8 }}>🔑</div>
       <h3>Connexion {roleTerms.teacherSingular}</h3>
       <p>Connecte-toi avec ton compte {roleTerms.teacherShort} (e-mail + mot de passe).</p>
       {info && <div className="auth-success">{info}</div>}

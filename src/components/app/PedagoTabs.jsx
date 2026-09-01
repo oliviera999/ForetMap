@@ -52,6 +52,7 @@ export function PedagoTabs({
   canManageFoodWeb,
   appVersion,
   onOpenSettingsLearning = null,
+  canReadSiteIssues = false,
 }) {
   return (
     <>
@@ -116,7 +117,11 @@ export function PedagoTabs({
       )}
       {tab === 'about' && (
         <TabSuspense>
-          <AboutViewLazy appVersion={appVersion} isTeacher={isTeacher} />
+          <AboutViewLazy
+            appVersion={appVersion}
+            isTeacher={isTeacher}
+            canReadSiteIssues={canReadSiteIssues}
+          />
         </TabSuspense>
       )}
     </>

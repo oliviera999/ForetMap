@@ -76,13 +76,20 @@ function UserEditModal({
     >
       <h3 style={{ marginBottom: 8 }}>Modifier le compte</h3>
       {loadState === 'loading' && (
-        <p style={{ margin: '12px 0', fontSize: '.9rem', color: '#64748b' }}>
+        <p style={{ margin: '12px 0', fontSize: 'var(--text-base)', color: 'var(--ink-soft)' }}>
           Chargement des données du compte…
         </p>
       )}
       {loadState === 'ready' && user && (
         <>
-          <p style={{ fontSize: '.82rem', color: '#64748b', marginBottom: 12, lineHeight: 1.45 }}>
+          <p
+            style={{
+              fontSize: 'var(--text-sm)',
+              color: 'var(--ink-soft)',
+              marginBottom: 12,
+              lineHeight: 'var(--lh-normal)',
+            }}
+          >
             <strong>{user.display_name}</strong>
             <span style={{ color: '#94a3b8' }}> ({user.user_type})</span>
           </p>
@@ -202,10 +209,10 @@ function UserEditModal({
                 </Tooltip>
                 <p
                   style={{
-                    fontSize: '.72rem',
-                    color: '#64748b',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--ink-soft)',
                     margin: '8px 0 0',
-                    lineHeight: 1.45,
+                    lineHeight: 'var(--lh-normal)',
                   }}
                 >
                   L’interface reflète le compte choisi (support ou diagnostic). Utilise le bandeau
