@@ -221,7 +221,7 @@ function MarkerModal({
             </button>
           </>
         ) : (
-          <p style={{ color: '#64748b', fontSize: '.9rem' }}>
+          <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--text-base)' }}>
             Création de repère réservée au professeur.
           </p>
         )}
@@ -247,8 +247,15 @@ function MarkerModal({
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{marker.label}</h3>
-          <div style={{ marginTop: 3, fontSize: '.72rem', color: '#64748b', fontWeight: 600 }}>
+          <h3 style={{ margin: 0, fontSize: 'var(--text-md)' }}>{marker.label}</h3>
+          <div
+            style={{
+              marginTop: 3,
+              fontSize: 'var(--text-xs)',
+              color: 'var(--ink-soft)',
+              fontWeight: 'var(--fw-semibold)',
+            }}
+          >
             Repère
           </div>
           {(marker.categories || []).length > 0 && (
@@ -308,7 +315,14 @@ function MarkerModal({
           >
             ✅ Ouvrir l’onglet Tâches filtré sur ce repère
           </button>
-          <p style={{ fontSize: '.74rem', color: '#64748b', margin: '6px 0 0', lineHeight: 1.4 }}>
+          <p
+            style={{
+              fontSize: 'var(--text-xs)',
+              color: 'var(--ink-soft)',
+              margin: '6px 0 0',
+              lineHeight: 'var(--lh-normal)',
+            }}
+          >
             Affiche les tâches et tutoriels rattachés à ce lieu dans la liste des tâches.
           </p>
         </div>
@@ -402,9 +416,9 @@ function MarkerModal({
                 padding: '10px 14px',
                 marginBottom: 12,
                 border: '1px solid var(--mint)',
-                fontSize: '.88rem',
+                fontSize: 'var(--text-sm)',
                 color: '#333',
-                lineHeight: 1.6,
+                lineHeight: 'var(--lh-relaxed)',
               }}
             >
               <MarkdownContent>{marker.note}</MarkdownContent>
@@ -434,7 +448,7 @@ function MarkerModal({
               <p
                 style={{
                   color: '#bbb',
-                  fontSize: '.85rem',
+                  fontSize: 'var(--text-sm)',
                   fontStyle: 'italic',
                   textAlign: 'center',
                   padding: '20px 0',

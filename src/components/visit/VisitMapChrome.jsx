@@ -118,7 +118,7 @@ export function VisitMapChrome({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                fontSize: '0.85rem',
+                fontSize: 'var(--text-sm)',
                 marginLeft: 4,
               }}
             >

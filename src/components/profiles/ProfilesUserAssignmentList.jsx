@@ -25,7 +25,7 @@ export function ProfilesUserAssignmentList({
         >
           <div style={{ flex: '1 1 180px', minWidth: 0 }}>
             <strong>{u.display_name}</strong>{' '}
-            <span style={{ color: '#6b7280' }}>({u.user_type})</span>
+            <span style={{ color: 'var(--ink-soft)' }}>({u.user_type})</span>
           </div>
           <select
             value={u.role_id || ''}

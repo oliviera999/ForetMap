@@ -57,7 +57,7 @@ input,
 select,
 textarea,
 button {
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   font-family: inherit;
 }
 
@@ -82,7 +82,7 @@ button {
   border: 1px solid rgba(245, 158, 11, 0.45);
   background: rgba(255, 251, 235, 0.96);
   color: #78350f;
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   line-height: 1.35;
   flex-shrink: 0;
 }
@@ -109,8 +109,8 @@ button {
 
 .role-preview-banner__icon {
   flex-shrink: 0;
-  font-size: 1.15rem;
-  line-height: 1.2;
+  font-size: var(--text-md);
+  line-height: var(--lh-tight);
 }
 
 .role-preview-banner__text {
@@ -121,7 +121,7 @@ button {
 }
 
 .role-preview-banner__text strong {
-  font-size: 0.86rem;
+  font-size: var(--text-sm);
 }
 
 :root {
@@ -132,4 +132,23 @@ button {
   --font-emoji-stack:
     'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
   --font-sans-with-emoji: var(--font-sans);
+  /* Tokens typographiques communs (mêmes valeurs que src/index.css) : les feuilles GL et
+     partagées les consomment, et les pages GL ne chargent pas index.css. */
+  --text-2xs: clamp(0.58rem, 0.55rem + 0.15vw, 0.64rem);
+  --text-xs: clamp(0.68rem, 0.64rem + 0.2vw, 0.74rem);
+  --text-sm: clamp(0.78rem, 0.72rem + 0.25vw, 0.86rem);
+  --text-base: clamp(0.88rem, 0.82rem + 0.3vw, 1rem);
+  --text-md: clamp(1rem, 0.94rem + 0.3vw, 1.1rem);
+  --text-lg: clamp(1.1rem, 1rem + 0.5vw, 1.3rem);
+  --text-xl: clamp(1.3rem, 1.15rem + 0.75vw, 1.6rem);
+  --text-2xl: clamp(1.6rem, 1.4rem + 1vw, 2rem);
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --lh-tight: 1.2;
+  --lh-normal: 1.45;
+  --lh-relaxed: 1.6;
+  --ink-soft: #64748b;
+  --ink-faint: #8a94a0;
 }

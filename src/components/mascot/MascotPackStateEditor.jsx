@@ -61,7 +61,7 @@ export default function MascotPackStateEditor({
           />
           <strong>
             {labelOverride || STATE_LABELS[stateKey] || stateKey}{' '}
-            <span className="section-sub" style={{ fontSize: '0.78rem' }}>
+            <span className="section-sub" style={{ fontSize: 'var(--text-sm)' }}>
               ({stateKey})
             </span>
           </strong>
@@ -205,7 +205,7 @@ export default function MascotPackStateEditor({
                   <span
                     className="section-sub"
                     style={{
-                      fontSize: '0.74rem',
+                      fontSize: 'var(--text-xs)',
                       alignSelf: 'center',
                       minWidth: 74,
                       textAlign: 'center',
@@ -241,7 +241,7 @@ export default function MascotPackStateEditor({
               </button>
               <p
                 className="section-sub"
-                style={{ fontSize: '0.76rem', marginTop: 6, marginBottom: 0 }}
+                style={{ fontSize: 'var(--text-xs)', marginTop: 6, marginBottom: 0 }}
               >
                 Formats conseillés: <code>https://...</code>, <code>blob:...</code> ou URL de
                 l’application (ex: <code>/api/visit/...</code>).

@@ -307,7 +307,14 @@ function ZoneInfoModal({
           >
             ✅ Ouvrir l’onglet Tâches filtré sur cette zone
           </button>
-          <p style={{ fontSize: '.74rem', color: '#64748b', margin: '6px 0 0', lineHeight: 1.4 }}>
+          <p
+            style={{
+              fontSize: 'var(--text-xs)',
+              color: 'var(--ink-soft)',
+              margin: '6px 0 0',
+              lineHeight: 'var(--lh-normal)',
+            }}
+          >
             Affiche les tâches et tutoriels rattachés à ce lieu dans la liste des tâches.
           </p>
         </div>
@@ -323,9 +330,9 @@ function ZoneInfoModal({
                 padding: '10px 14px',
                 marginBottom: 12,
                 border: '1px solid var(--mint)',
-                fontSize: '.88rem',
+                fontSize: 'var(--text-sm)',
                 color: '#333',
-                lineHeight: 1.6,
+                lineHeight: 'var(--lh-relaxed)',
               }}
             >
               <MarkdownContent>{zone.description}</MarkdownContent>
@@ -354,7 +361,9 @@ function ZoneInfoModal({
                   className="history-item"
                 >
                   <span>{h.plant}</span>
-                  <span style={{ color: '#aaa', fontSize: '.76rem' }}>{h.harvested_at}</span>
+                  <span style={{ color: '#aaa', fontSize: 'var(--text-xs)' }}>
+                    {h.harvested_at}
+                  </span>
                 </div>
               ))}
             </div>
@@ -371,7 +380,7 @@ function ZoneInfoModal({
               <p
                 style={{
                   color: '#bbb',
-                  fontSize: '.85rem',
+                  fontSize: 'var(--text-sm)',
                   fontStyle: 'italic',
                   textAlign: 'center',
                   padding: '20px 0',
@@ -411,7 +420,12 @@ function ZoneInfoModal({
           <div className="field">
             <label>Êtres vivants</label>
             <p
-              style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}
+              style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--ink-soft)',
+                margin: '0 0 8px',
+                lineHeight: 'var(--lh-normal)',
+              }}
             >
               Maintenez Ctrl (Windows) ou Cmd (Mac) pour en choisir plusieurs. L’ordre de la liste
               est conservé pour l’affichage. Retirer un être vivant de la liste peut l’enregistrer
@@ -480,7 +494,14 @@ function ZoneInfoModal({
               ))}
             </div>
           </div>
-          <p style={{ fontSize: '.78rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
+          <p
+            style={{
+              fontSize: 'var(--text-sm)',
+              color: 'var(--ink-soft)',
+              margin: '0 0 10px',
+              lineHeight: 'var(--lh-normal)',
+            }}
+          >
             Textes ci-dessous : même contenu qu’en mode visite (sous-titre, accroche, bloc
             dépliable).
           </p>

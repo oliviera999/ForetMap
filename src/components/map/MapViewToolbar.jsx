@@ -24,7 +24,7 @@ function editTogglePillStyle(on) {
     borderRadius: 8,
     padding: '6px 10px',
     cursor: 'pointer',
-    fontWeight: 700,
+    fontWeight: 'var(--fw-bold)',
     minHeight: 36,
     whiteSpace: 'nowrap',
   };

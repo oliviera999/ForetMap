@@ -74,7 +74,7 @@ function ZoneDrawModal({
         ✕
       </button>
       <h3>🖊️ Nouvelle zone</h3>
-      <p style={{ fontSize: '.83rem', color: '#888', marginBottom: 14 }}>
+      <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-faint)', marginBottom: 14 }}>
         {points_pct.length} points tracés
       </p>
       <div className="field">
@@ -84,7 +84,14 @@ function ZoneDrawModal({
       <div className="row">
         <div className="field" style={{ flex: 1, minWidth: 0 }}>
           <label>Êtres vivants</label>
-          <p style={{ fontSize: '.74rem', color: '#64748b', margin: '0 0 6px', lineHeight: 1.4 }}>
+          <p
+            style={{
+              fontSize: 'var(--text-xs)',
+              color: 'var(--ink-soft)',
+              margin: '0 0 6px',
+              lineHeight: 'var(--lh-normal)',
+            }}
+          >
             Ctrl / Cmd + clic pour plusieurs ; l’ordre choisi est conservé.
           </p>
           <select
