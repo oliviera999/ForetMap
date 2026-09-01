@@ -13,6 +13,7 @@ La liste carte n’envoie plus le JSON éditorial visite (anti-LVE). Enregistrer
 avant le chargement du détail — ou après un poll qui renvoyait la liste allégée —
 réécrivait un corps vide et effaçait paragraphes / titres. La sauvegarde omet désormais
 ces blocs tant que le détail n’est pas chargé, et un poll ne remplace plus un détail déjà lu.
+
 ### Le verrou ForetMap ignorait les surcharges type/fiche
 
 La cascade site → type → fiche (erreurs tolérées, délai, portée du verrou) était
