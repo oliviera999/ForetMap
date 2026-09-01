@@ -46,6 +46,8 @@ export function buildZoneName(
 export function buildZonePayload(name, form, visitEditorialBlocks) {
   return {
     name,
+    // Colonne dédiée `zones.emoji` (audit C4) — le nom garde son préfixe pour compat.
+    emoji: clampEmojiInput((form.zoneEmoji || '').trim(), ZONE_NAME_PREFIX_EMOJI_MAX_CHARS),
     current_plant: '',
     living_beings: form.livingBeings,
     category_ids: form.categoryIds || [],

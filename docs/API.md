@@ -974,6 +974,14 @@ protocole-relatif, chemin relatif) est écartée à l’enregistrement.
 
 ## Zones
 
+**Emoji de zone (colonne dédiée `zones.emoji`, migration 206 — audit UI 2026-09, C4).**
+Les réponses zone exposent `emoji` (chaîne, `''`/`NULL` = aucun). `POST` et `PUT` acceptent un
+champ `emoji` optionnel : fourni, il est normalisé (mojibake réparé, tronqué à 16 caractères) et
+stocké tel quel (`''` = effacement explicite) ; omis, il est **dérivé du préfixe emoji du nom**
+soumis (compatibilité anciens clients), sinon conservé (`PUT`). Le nom garde son préfixe pour la
+compatibilité d'affichage ; l'affichage (plan, fiche, filtres) privilégie la colonne et se replie
+sur le préfixe pour les lignes non migrées.
+
 | Méthode | URL                               | n3boss             | Description                                                                                                                                      |
 | ------- | --------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | GET     | `/api/zones`                      | non                | Liste des zones                                                                                                                                  |
