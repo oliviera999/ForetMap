@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Import quiz : rattachements glossaire plus effacés si l'import est interrompu
+
+L'import tableur du catalogue Quiz (ForetMap) vidait tous les rattachements
+automatiques questions ↔ glossaire, puis les reconstruisait, **hors transaction**.
+Le même motif venait d'être sécurisé pour Gnomes & Licornes. Une interruption
+(timeout, kill mémoire) laissait le catalogue à jour et **tous** ces rattachements
+effacés — le contrôle de compréhension rattaché au glossaire ne se déclenchait
+plus. L'import passe désormais en une seule transaction : échec = rien n'a changé.
+
 ### Les constats de l'audit géolocalisation sont tous traités
 
 Suite directe de l'audit ci-dessous : les 7 points du plan d'action de

@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { queryAll, queryOne, execute } = require('../database');
+const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const {
   requireAuth,
   requirePermission,
@@ -651,13 +651,19 @@ router.post(
       return res.status(400).json({ error: `Trop de lignes (max ${MAX_IMPORT_ROWS})` });
     }
     try {
-      const report = await applyFmQuizImport(
-        { queryAll, execute },
-        categoryRows || [],
-        questionRows,
-        {
-          dryRun,
-        },
+      // G4 (audit 2026-09) : même garde que les imports GL. L'import vide d'abord
+      // `resource_question_links` (origin=import) puis reconstruit. Sans transaction,
+      // une interruption (kill LVE, exception) laissait le catalogue de questions
+      // à jour et tous les rattachements glossaire auto-générés effacés.
+      const report = await withTransaction(async (tx) =>
+        applyFmQuizImport(
+          { queryAll: tx.queryAll, execute: tx.execute },
+          categoryRows || [],
+          questionRows,
+          {
+            dryRun,
+          },
+        ),
       );
       return res.json({ report });
     } catch (err) {
