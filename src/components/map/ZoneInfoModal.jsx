@@ -14,7 +14,12 @@ import {
   nextLivingBeingsFromMultiSelect,
   orderedLivingBeingsForForm,
 } from '../../utils/livingBeings';
-import { buildZoneName, buildZonePayload } from '../../utils/zoneModalForm.js';
+import {
+  buildZoneName,
+  buildZonePayload,
+  isZoneVisitBodyReadyForSave,
+  mergeZoneListIntoDetail,
+} from '../../utils/zoneModalForm.js';
 import { isInfrastructureLocation, locationCategoryIds } from '../../utils/locationCategories.js';
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
@@ -68,7 +73,7 @@ function ZoneInfoModal({
   // Liste zones allégée : corps visite / historique complet via GET /api/zones/:id.
   const [zoneDetail, setZoneDetail] = useState(zone);
   useEffect(() => {
-    setZoneDetail(zone);
+    setZoneDetail((prev) => mergeZoneListIntoDetail(prev, zone));
     const needsDetail =
       (!!zone.has_visit_body && (zone.visit_body_json == null || zone.visit_body_json === '')) ||
       !!zone.history_truncated;
@@ -238,6 +243,9 @@ function ZoneInfoModal({
             visitDetailsText,
           },
           visitEditorialBlocks,
+          {
+            omitVisitEditorialBlocks: !isZoneVisitBodyReadyForSave(zone, zoneDetail),
+          },
         ),
       );
       setToast('Sauvegardé ✓');
