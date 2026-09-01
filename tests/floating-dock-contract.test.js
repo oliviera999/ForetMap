@@ -61,14 +61,19 @@ test('aucune commande flottante ne se repositionne dans son coin', () => {
     'le dock musique ad hoc est revenu — son bouton appartient à l’empilement partagé',
   );
 
-  const toast = ruleBody(fm, '.app-inline-toast');
-  assert.ok(toast, '.app-inline-toast introuvable');
-  assert.doesNotMatch(
-    toast,
-    /bottom:\s*\d/,
-    'le bandeau ForetMap reprend un `bottom` en dur : il retomberait sous la barre basse',
+  // Le bandeau ForetMap ne se positionne plus lui-même du tout : il est monté DANS le
+  // FloatingDock partagé (AppInlineToast, audit D-3) — la classe positionnée `.app-inline-toast`
+  // a disparu, et le composant doit bien passer par le dock.
+  assert.ok(
+    !fm.includes('.app-inline-toast'),
+    'la classe positionnée .app-inline-toast est revenue — le bandeau doit passer par le dock',
   );
-  assert.match(toast, /z-index:\s*var\(--fm-z-toast\)/);
+  const inlineToast = read('src/shared/components/AppInlineToast.jsx');
+  assert.match(
+    inlineToast,
+    /<FloatingDock/,
+    'AppInlineToast ne rend plus le bandeau dans le FloatingDock partagé',
+  );
 });
 
 test('l’empilement nommé garde le bandeau au-dessus du dock, et le dock au-dessus de la barre', () => {
