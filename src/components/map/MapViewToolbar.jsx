@@ -391,13 +391,17 @@ export function MapViewToolbar({
                     ? 'Suivre ma position'
                     : gps.status === 'denied'
                       ? 'Localisation refusée — autorisez l’accès'
-                      : gps.feedback === 'out_of_bounds'
-                        ? 'Vous semblez hors de la zone du plan'
-                        : gps.feedback === 'low_accuracy'
-                          ? 'Signal GPS faible'
-                          : gps.status === 'prompt'
-                            ? 'Acquisition de la position…'
-                            : 'Suivi GPS actif'
+                      : gps.feedback === 'bad_georef'
+                        ? 'Calage GPS du plan incohérent'
+                        : gps.feedback === 'out_of_bounds'
+                          ? 'Vous semblez hors de la zone du plan'
+                          : gps.feedback === 'low_accuracy'
+                            ? 'Signal GPS faible'
+                            : !gps.feedback && gps.error
+                              ? gps.error
+                              : gps.status === 'prompt'
+                                ? 'Acquisition de la position…'
+                                : 'Suivi GPS actif'
                 }
                 style={{
                   background: gps.active ? 'var(--forest)' : 'transparent',
@@ -406,7 +410,10 @@ export function MapViewToolbar({
               >
                 {!gps.active
                   ? '📍 Me suivre'
-                  : gps.status === 'denied' || gps.feedback === 'out_of_bounds'
+                  : gps.status === 'denied' ||
+                      gps.feedback === 'out_of_bounds' ||
+                      gps.feedback === 'bad_georef' ||
+                      (!gps.feedback && gps.error)
                     ? '📍 ⚠️'
                     : gps.feedback === 'low_accuracy'
                       ? '📍 📶'
