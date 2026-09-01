@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS zones (
   id VARCHAR(64) PRIMARY KEY,
   map_id VARCHAR(32) NOT NULL DEFAULT 'foret',
   name VARCHAR(255) NOT NULL,
+  emoji VARCHAR(16) DEFAULT NULL,
   x DOUBLE DEFAULT NULL,
   y DOUBLE DEFAULT NULL,
   width DOUBLE DEFAULT NULL,
@@ -777,6 +778,52 @@ CREATE TABLE IF NOT EXISTS marker_photos (
   uploaded_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_marker_photos_marker_id (marker_id),
   CONSTRAINT fk_marker_photos_marker FOREIGN KEY (marker_id) REFERENCES map_markers(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- location_categories (catégories de zones et repères, globales ou par carte)
+-- Remplace `zones.special` (→ catégorie avec `is_infrastructure = 1`) et `zones.stage`.
+CREATE TABLE IF NOT EXISTS location_categories (
+  id VARCHAR(64) NOT NULL PRIMARY KEY,
+  map_id VARCHAR(32) DEFAULT NULL,
+  slug VARCHAR(120) NOT NULL,
+  label VARCHAR(120) NOT NULL,
+  emoji VARCHAR(16) NOT NULL DEFAULT '',
+  color VARCHAR(32) NOT NULL DEFAULT '#86efac90',
+  description VARCHAR(512) NOT NULL DEFAULT '',
+  applies_to ENUM('zone','marker','both') NOT NULL DEFAULT 'both',
+  is_infrastructure TINYINT(1) NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_location_categories_map (map_id),
+  INDEX idx_location_categories_slug (slug),
+  CONSTRAINT fk_location_categories_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+INSERT IGNORE INTO location_categories
+  (id, map_id, slug, label, emoji, color, description, applies_to, is_infrastructure, sort_order, is_active)
+VALUES
+  ('cat-infrastructure', NULL, 'infrastructure', 'Infrastructure', '🏗️', '#dbeafe90',
+   'Bâtiment ou aménagement (mare, ruches, compostage, cuve…) plutôt qu''une culture.',
+   'both', 1, 10, 1);
+
+CREATE TABLE IF NOT EXISTS zone_categories (
+  zone_id VARCHAR(64) NOT NULL,
+  category_id VARCHAR(64) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (zone_id, category_id),
+  INDEX idx_zone_categories_category (category_id),
+  CONSTRAINT fk_zone_categories_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE CASCADE,
+  CONSTRAINT fk_zone_categories_category FOREIGN KEY (category_id) REFERENCES location_categories(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS marker_categories (
+  marker_id VARCHAR(64) NOT NULL,
+  category_id VARCHAR(64) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (marker_id, category_id),
+  INDEX idx_marker_categories_category (category_id),
+  CONSTRAINT fk_marker_categories_marker FOREIGN KEY (marker_id) REFERENCES map_markers(id) ON DELETE CASCADE,
+  CONSTRAINT fk_marker_categories_category FOREIGN KEY (category_id) REFERENCES location_categories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- visite : contenus éditoriaux par zone (publics)

@@ -22,7 +22,7 @@ export default function PackBehaviorDetailTable({ pack }) {
   const ver = Number(validated.pack.mascotPackVersion) === 2 ? 2 : 1;
   return (
     <div className="visit-mascot-pack-detail">
-      <p className="section-sub" style={{ fontSize: '0.85rem' }}>
+      <p className="section-sub" style={{ fontSize: 'var(--text-sm)' }}>
         Version pack <strong>{ver}</strong>
         {' · '}
         <code>framesBase</code> {String(validated.pack.framesBase || '')}
@@ -33,7 +33,7 @@ export default function PackBehaviorDetailTable({ pack }) {
         silhouette <code>{String(validated.pack.fallbackSilhouette || '')}</code>
       </p>
       {validated.pack.stateAliases && Object.keys(validated.pack.stateAliases).length > 0 ? (
-        <p className="section-sub" style={{ fontSize: '0.82rem' }}>
+        <p className="section-sub" style={{ fontSize: 'var(--text-sm)' }}>
           Alias :{' '}
           {Object.entries(validated.pack.stateAliases)
             .map(([a, t]) => `${a}→${t}`)
@@ -43,7 +43,7 @@ export default function PackBehaviorDetailTable({ pack }) {
       <div style={{ overflowX: 'auto' }}>
         <table
           className="visit-mascot-pack-detail-table"
-          style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}
+          style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}
         >
           <thead>
             <tr style={{ textAlign: 'left', borderBottom: '1px solid rgba(26,71,49,0.2)' }}>

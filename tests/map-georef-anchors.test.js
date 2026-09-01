@@ -5,6 +5,7 @@ const {
   sanitizeAnchors,
   parseAnchors,
   withMapGeoref,
+  assessAnchorsGeoPlausibility,
 } = require('../lib/mapGeoref');
 
 const NUMERIC_ANCHORS = [
@@ -41,6 +42,42 @@ test('isValidAnchors rejette 3 points colinéaires ou un nombre de points ≠ 3'
   assert.strictEqual(isValidAnchors(collinear), false);
   assert.strictEqual(isValidAnchors(NUMERIC_ANCHORS.slice(0, 2)), false);
   assert.strictEqual(isValidAnchors(null), false);
+});
+
+test('assessAnchorsGeoPlausibility accepte un calage cohérent', () => {
+  assert.strictEqual(assessAnchorsGeoPlausibility(NUMERIC_ANCHORS).ok, true);
+});
+
+test('assessAnchorsGeoPlausibility rejette des points GPS alignés ou confondus', () => {
+  // Triangle net sur le plan, mais points GPS sur une même ligne nord-sud.
+  const geoCollinear = [
+    { xp: 10, yp: 10, lat: 48.85, lng: 2.3 },
+    { xp: 90, yp: 10, lat: 48.851, lng: 2.3 },
+    { xp: 10, yp: 90, lat: 48.852, lng: 2.3 },
+  ];
+  const flat = assessAnchorsGeoPlausibility(geoCollinear);
+  assert.strictEqual(flat.ok, false);
+  assert.strictEqual(flat.reason, 'geo_collinear');
+
+  const duplicated = [
+    { xp: 10, yp: 10, lat: 48.85, lng: 2.3 },
+    { xp: 90, yp: 10, lat: 48.85, lng: 2.3 },
+    { xp: 10, yp: 90, lat: 48.8495, lng: 2.3005 },
+  ];
+  assert.strictEqual(assessAnchorsGeoPlausibility(duplicated).ok, false);
+});
+
+test('assessAnchorsGeoPlausibility rejette des échelles incompatibles (cas audit BDD §3.1)', () => {
+  // 80 % du plan ≈ 3,7 m sur un axe, ≈ 55 m sur l'autre : facteur ~15.
+  const mismatched = [
+    { xp: 10, yp: 10, lat: 48.85, lng: 2.3 },
+    { xp: 90, yp: 10, lat: 48.85, lng: 2.30005 },
+    { xp: 10, yp: 90, lat: 48.8495, lng: 2.3 },
+  ];
+  const res = assessAnchorsGeoPlausibility(mismatched);
+  assert.strictEqual(res.ok, false);
+  assert.strictEqual(res.reason, 'scale_mismatch');
+  assert.ok(res.scaleRatio > 8, `ratio ${res.scaleRatio} > 8`);
 });
 
 test('parseAnchors normalise le JSON stocké et withMapGeoref expose georef/gps_enabled', () => {

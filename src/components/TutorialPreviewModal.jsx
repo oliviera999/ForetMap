@@ -1,8 +1,27 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { TutorialReadAcknowledgeButton } from './TutorialReadAcknowledge';
 import { DialogShell } from './DialogShell';
 import { useGatingSummary } from '../hooks/useGatingSummary';
+
+/**
+ * Vrai si la source de l'aperçu est servie par NOTRE origine (chemin relatif ou URL
+ * absolue de même origine). C'est le critère du bac à sable (C5, audit 2026-09) : le
+ * contenu de notre origine est assaini côté serveur et affiché SANS `allow-scripts` —
+ * la combinaison `allow-same-origin` + `allow-scripts` annulait le sandbox et donnait
+ * à une fiche importée l'origine de l'application (jeton en localStorage). Un site
+ * externe (`type = 'link'`), lui, garde ses scripts : le navigateur l'isole déjà par
+ * son origine propre.
+ */
+export function isAppOriginPreviewSource(source, appOrigin) {
+  const s = String(source || '').trim();
+  if (!s) return false;
+  try {
+    return new URL(s, appOrigin).origin === String(appOrigin || '');
+  } catch (_) {
+    return false;
+  }
+}
 
 /**
  * Vrai si le chemin de fichier local pointe vers un document que `/api/tutorials/:id/view`
@@ -80,6 +99,45 @@ export function TutorialPreviewModal({ tutorial, onClose, readAcknowledge = null
   }, [tutorial?.id]);
   const { summaries: gatingSummaries } = useGatingSummary('tutorial', previewTutorialIds);
   useOverlayHistoryBack(!!tutorial, onClose);
+
+  // Fiche de notre origine : les scripts sont désactivés dans l'iframe (cf.
+  // `isAppOriginPreviewSource`), c'est donc le PARENT qui intercepte les clics —
+  // auto-liens de glossaire (même message `foretmap:glossary` que l'ancien script
+  // injecté : le récepteur d'App.jsx ne change pas) et liens `target="_blank"` ramenés
+  // dans l'iframe (comportement historique de la modale).
+  const handleAppOriginFrameLoad = useCallback((event) => {
+    const frame = event.currentTarget;
+    let doc = null;
+    try {
+      doc = frame.contentDocument;
+    } catch (_) {
+      return; // Origine inattendue : rien à câbler.
+    }
+    if (!doc) return;
+    doc.addEventListener('click', (ev) => {
+      const anchor = ev.target && ev.target.closest ? ev.target.closest('a[href]') : null;
+      if (!anchor) return;
+      const glossaryCode = anchor.classList.contains('fm-glossary-inline-link')
+        ? anchor.getAttribute('data-glossary-code')
+        : null;
+      if (glossaryCode) {
+        ev.preventDefault();
+        window.postMessage(
+          { type: 'foretmap:glossary', code: glossaryCode },
+          window.location.origin,
+        );
+        return;
+      }
+      const href = (anchor.getAttribute('href') || '').trim();
+      if (!href || href.toLowerCase().startsWith('javascript:')) return;
+      const target = (anchor.getAttribute('target') || '').toLowerCase();
+      if (target === '_blank' || target === '_top') {
+        ev.preventDefault();
+        frame.contentWindow.location.href = anchor.href;
+      }
+    });
+  }, []);
+
   if (!tutorial) return null;
   const source =
     (tutorial.preview_url && String(tutorial.preview_url).trim()) ||
@@ -87,6 +145,7 @@ export function TutorialPreviewModal({ tutorial, onClose, readAcknowledge = null
     (tutorial.type === 'link' ? String(tutorial.source_url || '').trim() : '') ||
     '';
   const canEmbed = !!source;
+  const appOriginSource = isAppOriginPreviewSource(source, window.location.origin);
   const tutoIdNum = Number(tutorial.id);
   const showReadFooter = readAcknowledge && Number.isFinite(tutoIdNum) && tutoIdNum > 0;
   return (
@@ -115,7 +174,12 @@ export function TutorialPreviewModal({ tutorial, onClose, readAcknowledge = null
             title={`Aperçu : ${tutorial.title}`}
             src={source}
             className="tuto-preview-frame"
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+            sandbox={
+              appOriginSource
+                ? 'allow-same-origin allow-popups'
+                : 'allow-same-origin allow-scripts allow-popups allow-forms'
+            }
+            onLoad={appOriginSource ? handleAppOriginFrameLoad : undefined}
           />
         </div>
       ) : (

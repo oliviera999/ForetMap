@@ -39,7 +39,7 @@ export function TaskFormTutorialsField({
               flexWrap: 'wrap',
             }}
           >
-            <span style={{ fontSize: '.8rem', color: '#666' }}>
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
               {normalizedSelectedIds.length} sélectionné
               {normalizedSelectedIds.length > 1 ? 's' : ''}
             </span>

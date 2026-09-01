@@ -263,7 +263,7 @@ router.post(
     const commentId = crypto.randomUUID();
     let pathsJson = null;
     if (imageList.length > 0) {
-      const persisted = persistUserContentImages('context-comments', commentId, imageList);
+      const persisted = await persistUserContentImages('context-comments', commentId, imageList);
       if (persisted.error) {
         return res.status(400).json({ error: persisted.error });
       }

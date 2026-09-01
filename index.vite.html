@@ -32,8 +32,17 @@
     <link rel="apple-touch-icon" sizes="192x192" href="/pwa-icon-192.png" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <!-- Police emoji auto-hébergée : préchargée comme côté GL (gl.html) pour éviter le FOUT
+         (bascule visible police système → Noto) sur les épingles et emojis de zone. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&display=swap"
+      rel="preload"
+      href="/fonts/noto-color-emoji.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
   </head>

@@ -1,0 +1,21 @@
+{
+  "name": "ForetMap (dev)",
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "api",
+      "command": "npm run dev",
+      "description": "API Express + Socket.IO (port 3000, nodemon en watch)."
+    },
+    {
+      "name": "vite",
+      "command": "npm run dev:client",
+      "description": "Interface React via Vite (port 5173) avec proxy /api et /socket.io vers le port 3000. Ouvrir http://localhost:5173/index.vite.html (entrée SPA ForetMap ; GL sur /gl.html). Pour un mode « production » mono-port, faire plutôt `npm run build` puis servir dist/ via `NODE_ENV=production node server.js` sur http://localhost:3000."
+    }
+  ],
+  "ports": [
+    { "name": "api", "port": 3000 },
+    { "name": "vite", "port": 5173 }
+  ]
+}
