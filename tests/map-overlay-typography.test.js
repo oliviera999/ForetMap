@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { MAP_OVERLAY_REFERENCE_BOARD_HEIGHT_PX } from '../src/shared/mapOverlayScale.js';
 import {
   resolveMapOverlayTypography,
+  resolveMapOverlayMarkerCssTypography,
+  resolveMapOverlayCssVariables,
   clampZoomGrowthPercent,
   DEFAULT_ZOOM_GROWTH_PERCENT,
 } from '../src/utils/mapOverlayTypography.js';
@@ -45,10 +47,13 @@ describe('mapOverlayTypography', () => {
     assert.ok(Math.abs(apparent - base * 4 ** (DEFAULT_ZOOM_GROWTH_PERCENT / 100)) < 1e-6);
   });
 
-  test('fitHeightPx moitié → tailles réduites avec planchers relevés', () => {
+  test('fitHeightPx moitié → plancher appliqué au couple, ratio emoji/libellé conservé', () => {
     const t = resolveMapOverlayTypography({}, REF / 2);
-    assert.strictEqual(t.mapEmojiFontPx, 13);
-    assert.strictEqual(t.mapLabelFontPx, 11);
+    // Le libellé bute sur son plancher (11) ; l'emoji est relevé du même facteur,
+    // au lieu d'un plancher indépendant (13) qui écrasait le ratio 19/14.
+    assert.ok(Math.abs(t.mapLabelFontPx - 11) < 1e-9);
+    assert.ok(Math.abs(t.mapEmojiFontPx / t.mapLabelFontPx - 19 / 14) < 1e-9);
+    assert.ok(t.mapEmojiFontPx >= 13);
   });
 
   test('petit plateau : libellé ≥ plancher chrome (toolbar ref)', () => {
@@ -57,9 +62,10 @@ describe('mapOverlayTypography', () => {
     assert.ok(t.baseEmojiApparentPx >= 13);
   });
 
-  test('overlay_emoji_size_percent augmente la taille emoji', () => {
+  test('overlay_emoji_size_percent augmente la taille emoji (sans arrondi intermédiaire)', () => {
     const t = resolveMapOverlayTypography({ overlay_emoji_size_percent: 150 }, REF);
-    assert.strictEqual(t.mapEmojiFontPx, 29);
+    // 19 × 1,5 = 28,5 : plus d'arrondi avant la division par worldScale (sauts d'1 px monde).
+    assert.strictEqual(t.mapEmojiFontPx, 28.5);
   });
 
   test('isCoarsePointer grossit les étiquettes', () => {
@@ -90,5 +96,36 @@ describe('clampZoomGrowthPercent', () => {
     assert.strictEqual(clampZoomGrowthPercent(33.6), 34);
     assert.strictEqual(clampZoomGrowthPercent(undefined), DEFAULT_ZOOM_GROWTH_PERCENT);
     assert.strictEqual(clampZoomGrowthPercent('abc'), DEFAULT_ZOOM_GROWTH_PERCENT);
+  });
+});
+
+describe('resolveMapOverlayMarkerCssTypography — compensation du calque zoomé (Visite)', () => {
+  test('sans compensateWorldScale : identique quel que soit worldScale (GL, plateaux sans zoom)', () => {
+    const a = resolveMapOverlayMarkerCssTypography({}, REF, {});
+    const b = resolveMapOverlayMarkerCssTypography({}, REF, { worldScale: 3 });
+    assert.strictEqual(a.emojiFontSizePx, b.emojiFontSizePx);
+    assert.strictEqual(b.worldInv, 1);
+  });
+
+  test('compensateWorldScale : les repères suivent la croissance douce des zones, pas le zoom linéaire', () => {
+    const rest = resolveMapOverlayMarkerCssTypography({}, REF, { compensateWorldScale: true });
+    const zoomed = resolveMapOverlayMarkerCssTypography({}, REF, {
+      compensateWorldScale: true,
+      worldScale: 2,
+    });
+    // Taille apparente = fontPx × worldScale : doit croître comme 2^0,35, pas ×2.
+    const apparentGrowth = (zoomed.emojiFontSizePx * 2) / rest.emojiFontSizePx;
+    assert.ok(Math.abs(apparentGrowth - 2 ** (DEFAULT_ZOOM_GROWTH_PERCENT / 100)) < 1e-9);
+    assert.ok(Math.abs(zoomed.worldInv - 0.5) < 1e-9);
+  });
+
+  test('les variables CSS exposent worldInv et une largeur max compensée', () => {
+    const vars = resolveMapOverlayCssVariables({}, REF, {
+      compensateWorldScale: true,
+      worldScale: 2,
+    });
+    assert.strictEqual(vars['--map-overlay-world-inv'], '0.5');
+    const maxW = parseFloat(vars['--map-overlay-label-max-width']);
+    assert.ok(Math.abs(maxW - 96 * (2 ** (DEFAULT_ZOOM_GROWTH_PERCENT / 100) / 2)) < 1e-9);
   });
 });

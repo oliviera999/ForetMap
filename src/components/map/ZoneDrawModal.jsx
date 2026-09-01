@@ -49,6 +49,8 @@ function ZoneDrawModal({
       await onSave({
         ...rest,
         name: `${prefixEmoji} ${cleanName}`.trim(),
+        // Colonne dédiée `zones.emoji` (audit C4) — le nom garde son préfixe pour compat.
+        emoji: prefixEmoji,
         points: points_pct,
         current_plant: '',
         living_beings: living,
@@ -68,7 +70,7 @@ function ZoneDrawModal({
       closeOnOverlay
       dialogRef={dialogRef}
     >
-      <button className="modal-close" onClick={onClose}>
+      <button className="modal-close" aria-label="Fermer" onClick={onClose}>
         ✕
       </button>
       <h3>🖊️ Nouvelle zone</h3>
