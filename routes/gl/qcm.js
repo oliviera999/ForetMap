@@ -1,5 +1,5 @@
 const express = require('express');
-const { queryAll, queryOne, execute } = require('../../database');
+const { queryAll, queryOne, execute, withTransaction } = require('../../database');
 const {
   recordGlQcmAttemptForReader,
   registerGlCooldownOnWrongIfGating,
@@ -398,9 +398,18 @@ router.post(
       return res.status(400).json({ error: `Trop de lignes (max ${MAX_IMPORT_ROWS})` });
     }
     try {
-      const report = await applyQcmImport({ queryAll, execute }, categoryRows || [], questionRows, {
-        dryRun,
-      });
+      // G4 (audit 2026-09) : l'import écrit en transaction — une interruption ne
+      // laisse pas un catalogue partiellement écrit (liens glossaire régénérés inclus).
+      const report = await withTransaction(async (tx) =>
+        applyQcmImport(
+          { queryAll: tx.queryAll, execute: tx.execute },
+          categoryRows || [],
+          questionRows,
+          {
+            dryRun,
+          },
+        ),
+      );
       return res.json({ report });
     } catch (err) {
       return res.status(400).json({ error: err.message || 'Import impossible' });
