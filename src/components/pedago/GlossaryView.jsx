@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import { GlossaryMarkdown } from '../GlossaryMarkdown.jsx';
 import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
@@ -43,6 +43,8 @@ export function GlossaryView({
     'glossary',
     listedCodes,
   );
+  /** Invalide une réponse de liste périmée (changement de filtre pendant le fetch). */
+  const loadTermsSeqRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,6 +77,7 @@ export function GlossaryView({
   }, []);
 
   const loadTerms = useCallback(async () => {
+    const seq = ++loadTermsSeqRef.current;
     setLoading(true);
     setError('');
     try {
@@ -85,18 +88,23 @@ export function GlossaryView({
       if (categorie) params.set('categorie', categorie);
       const qs = params.toString();
       const data = await api(`/api/glossary/terms${qs ? `?${qs}` : ''}`);
+      if (seq !== loadTermsSeqRef.current) return;
       setItems(Array.isArray(data?.items) ? data.items : []);
     } catch (err) {
+      if (seq !== loadTermsSeqRef.current) return;
       setError(err.message || 'Chargement impossible');
       setItems([]);
     } finally {
-      setLoading(false);
+      if (seq === loadTermsSeqRef.current) setLoading(false);
     }
   }, [search, niveau, categorie]);
 
   useEffect(() => {
     const timer = setTimeout(loadTerms, search.trim() ? 280 : 0);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      loadTermsSeqRef.current += 1;
+    };
   }, [loadTerms, search]);
 
   const loadDetail = useCallback(async (code) => {
