@@ -19,7 +19,9 @@ d'observation** pour l'écriture naturaliste libre.
   refusé, il faut en relancer une (les propositions sont alors remélangées).
 - **Le professeur** administre le catalogue de questions : création, édition,
   activation. Les questions peuvent être reliées aux termes du glossaire, ce qui aide
-  l'élève à réviser le vocabulaire au passage.
+  l'élève à réviser le vocabulaire au passage. Un import du catalogue par fichier
+  tableur est **tout ou rien** : s'il est interrompu, les questions et les
+  rattachements au glossaire déjà en place restent tels quels.
 - **La fiche question** se remplit champ par champ, chacun nommé en clair : énoncé,
   choix A à E, bonne réponse, et une explication propre à **chaque** choix possible
   (« Explication si l'élève choisit B »), plus l'explication affichée après une bonne

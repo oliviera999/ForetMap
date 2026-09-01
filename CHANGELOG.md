@@ -31,6 +31,14 @@ comportements livrés (cascade site → type → ressource, granularité chapitr
 Documentation du script `npm run test:profile:memory` dans `docs/LOCAL_DEV.md` et raccord dans la
 checklist `hard_kills` de `docs/EXPLOITATION.md` : prérequis locaux, scénarios couverts, options de
 concurrence/itérations et lecture des signaux `ΔRSS`, `Δheap`, `Mo resp` et `413`.
+### Import quiz : rattachements glossaire plus effacés si l'import est interrompu
+
+L'import tableur du catalogue Quiz (ForetMap) vidait tous les rattachements
+automatiques questions ↔ glossaire, puis les reconstruisait, **hors transaction**.
+Le même motif venait d'être sécurisé pour Gnomes & Licornes. Une interruption
+(timeout, kill mémoire) laissait le catalogue à jour et **tous** ces rattachements
+effacés — le contrôle de compréhension rattaché au glossaire ne se déclenchait
+plus. L'import passe désormais en une seule transaction : échec = rien n'a changé.
 
 ### Le verrou ForetMap ignorait les surcharges type/fiche
 

@@ -1646,7 +1646,7 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | PUT | `/api/quiz/admin/questions/:code` | prof (`plants.manage`) | Mise à jour d’une question existante |
 | GET | `/api/quiz/admin/import/template` | prof (`plants.manage`) | Modèle XLSX (`categories` + `questions`) |
 | GET | `/api/quiz/admin/export` | prof (`plants.manage`) | Export ré-importable (`statut`, `theme`, `categorieSlug`) |
-| POST | `/api/quiz/admin/import` | prof (`plants.manage`) | Import XLSX (`dryRun` optionnel) |
+| POST | `/api/quiz/admin/import` | prof (`plants.manage`) | Import XLSX (`dryRun` optionnel) — transaction unique (tout ou rien, y compris reconstruction des rattachements glossaire `origin=import`) |
 | GET | `/api/food-web` | non | Réseau trophique (`?mapId=`, `?zoneId=` ; `zoneId` prime sur `mapId`) |
 | GET | `/api/food-web/interaction-types` | non | Catalogue des types d'interaction |
 | GET | `/api/food-web/interactions/:id/glossary` | non | Termes glossaire liés à une interaction |
