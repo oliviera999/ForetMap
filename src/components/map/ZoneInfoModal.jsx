@@ -584,7 +584,7 @@ function ZoneInfoModal({
             </div>
           </div>
           <button className="btn btn-primary btn-full" onClick={save} disabled={saving}>
-            {saving ? '...' : '💾 Sauvegarder'}
+            {saving ? '...' : '💾 Enregistrer'}
           </button>
           {onEditPoints && (
             <button

@@ -18,13 +18,16 @@ import './styles/gl-theme.css';
 import { AppGL } from './AppGL.jsx';
 import { ErrorBoundary } from '../components/ErrorBoundary.jsx';
 import { ImageLightboxProvider } from '../shared/components/ImageLightboxProvider.jsx';
+import { AppDialogsProvider } from '../shared/components/AppDialogsProvider.jsx';
 
 document.body.classList.add('gl-body');
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
-    <ImageLightboxProvider>
-      <AppGL />
-    </ImageLightboxProvider>
+    <AppDialogsProvider>
+      <ImageLightboxProvider>
+        <AppGL />
+      </ImageLightboxProvider>
+    </AppDialogsProvider>
   </ErrorBoundary>,
 );

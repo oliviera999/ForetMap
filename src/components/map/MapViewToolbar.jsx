@@ -204,7 +204,7 @@ export function MapViewToolbar({
               </button>
             )}
             <button className="btn btn-ghost btn-sm" onClick={onUndoPoint}>
-              ↩ Undo
+              ↩ Annuler
             </button>
             <button className="btn btn-danger btn-sm" onClick={onCancelDraw}>
               ✕
@@ -323,7 +323,7 @@ export function MapViewToolbar({
               ↩ Annuler
             </button>
             <button className="btn btn-primary btn-sm" onClick={onSaveEditPoints}>
-              💾 Sauver
+              💾 Enregistrer
             </button>
             <button className="btn btn-ghost btn-sm" onClick={onExitEditPoints}>
               ✕
