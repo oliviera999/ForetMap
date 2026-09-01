@@ -16,6 +16,7 @@ const {
   endPool,
   getDataWriteVersion,
   getSyncDomainVersions,
+  queryOne,
 } = require('./database');
 const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
@@ -369,6 +370,30 @@ app.use(
     },
   }),
 );
+// C5 (audit 2026-09) : une fiche `.html` sous `/tutos` servie telle quelle s'exécuterait
+// avec l'origine de l'application — en contournant l'assainissement de
+// `GET /api/tutorials/:id/view`. Une page HTML demandée directement est donc redirigée
+// vers sa vue assainie quand la fiche existe, et proposée en téléchargement sinon —
+// jamais rendue brute sur notre origine. Les autres fichiers (PDF, images…) sont servis
+// comme avant.
+app.use('/tutos', (req, res, next) => {
+  const cleanPath = String(req.path || '').split(/[?#]/)[0];
+  if (!/\.html?$/i.test(cleanPath)) return next();
+  const sourceFilePath = `/tutos${cleanPath}`;
+  Promise.resolve(
+    isApplicationDatabaseReady()
+      ? queryOne('SELECT id FROM tutorials WHERE source_file_path = ? AND is_active = 1 LIMIT 1', [
+          sourceFilePath,
+        ])
+      : null,
+  )
+    .catch(() => null)
+    .then((row) => {
+      if (row?.id) return res.redirect(302, `/api/tutorials/${row.id}/view`);
+      res.setHeader('Content-Disposition', 'attachment');
+      return next();
+    });
+});
 app.use('/tutos', express.static(path.join(__dirname, 'tutos')));
 
 // Routes de santé / readiness (extraites dans routes/health.js — chemins absolus, ordre inchangé)

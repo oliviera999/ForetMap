@@ -1,5 +1,5 @@
 const express = require('express');
-const { queryAll, queryOne, execute } = require('../../database');
+const { queryAll, queryOne, execute, withTransaction } = require('../../database');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const {
   resolveImportRows,
@@ -507,7 +507,14 @@ router.post(
       return res.status(400).json({ error: `Trop de lignes (max ${MAX_IMPORT_ROWS})` });
     }
     try {
-      const report = await applyGlossaryImport({ queryAll, execute }, glossaryRows, { dryRun });
+      // G4 (audit 2026-09) : l'import glossaire VIDE puis reconstruit les tables de
+      // liens (biomes, relations) — la transaction est indispensable : une
+      // interruption laisserait le glossaire sans liens, sans rollback possible.
+      const report = await withTransaction(async (tx) =>
+        applyGlossaryImport({ queryAll: tx.queryAll, execute: tx.execute }, glossaryRows, {
+          dryRun,
+        }),
+      );
       return res.json({ report });
     } catch (err) {
       return res.status(400).json({ error: err.message || 'Import impossible' });

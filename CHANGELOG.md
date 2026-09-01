@@ -7,6 +7,48 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Les constats de l'audit stabilité/performance de septembre sont traités (sauf un, à arbitrer)
+
+Suite directe de l'état des lieux ci-dessous : tous les constats ouverts de
+`docs/AUDIT_STABILITE_PERF_2026-09.md` sont corrigés — sans changement de comportement
+visible, à une exception près : le bac à sable des tutoriels (C5), tranché par arbitrage
+produit en faveur de l'assainissement serveur.
+
+- **Marché G&L (G1, G2)** : la page de marché se charge en requêtes groupées — une requête
+  par table au lieu de quatre par échange, soit un coût **constant** (6 requêtes) quelle
+  que soit la taille de page ; et les rafraîchissements déclenchés par les événements de
+  classe (`useGLMarketTrade`, `useGLSpellCast`) sont **étalés de 0 à 600 ms** comme côté
+  ForetMap. Le pic de ~2000 requêtes SQL dans la même seconde pour 25 postes disparaît.
+- **RBAC (C1)** : `getRoleBySlug` — le chemin qu'emprunte chaque requête G&L — passe par le
+  cache versionné : une requête SQL de moins par requête G&L.
+- **Imports G&L (G4)** : les cinq imports (chapitres, QCM, espèces, sortilèges, glossaire)
+  écrivent **en transaction** (une interruption ne laisse plus de contenu amputé) et **par
+  lots de 100 lignes** (un import de plusieurs centaines de lignes ne dépasse plus le délai
+  d'attente du navigateur).
+- **Purge (C3, G3)** : `scripts/purge-audit-logs.js` couvre désormais `gl_game_events` et
+  `zone_history`, avec une rétention distincte (`--history-days`, défaut un an) ;
+  `docs/CRONTAB.md` dit désormais franchement que la ligne de purge **n'est pas
+  optionnelle** (données personnelles d'élèves mineurs dans `security_events`).
+- **Fiches tutoriels (C5, arbitrage produit rendu)** : le contenu d'une fiche est
+  **assaini par le serveur avant affichage** (mise en page, styles, images et liens
+  conservés ; scripts, formulaires et pages embarquées retirés), l'aperçu s'affiche dans
+  un bac à sable **sans exécution de script** (les clics — définitions du glossaire,
+  liens « nouvel onglet » — sont relayés par l'application), et une fiche `.html`
+  demandée directement est redirigée vers cette vue assainie. Une fiche importée qui
+  reposait sur son propre code pour s'afficher doit être reprise ou proposée en lien
+  externe.
+- **Hygiène (C2, G5, C4)** : les séparateurs de `lib/tutorialViewCache.js` sont écrits en
+  échappements (le fichier redevient visible de `grep`) ; plus aucun `LIMIT` interpolé
+  (« SQL toujours paramétré », sans exception) ; `withTransaction` journalise les
+  transactions lentes (seuil `FORETMAP_TX_SLOW_WARN_MS`, défaut 10 s) avec un plafond dur
+  optionnel (`FORETMAP_TX_MAX_MS`, désactivé par défaut).
+
+Chaque lot embarque ses tests (compteur de requêtes constant du marché, rollback d'un
+import interrompu, cache de rôle périmé par une écriture RBAC, cibles de purge, garde-fou
+de durée…) ; l'audit `docs/AUDIT_STABILITE_PERF_2026-09.md` est mis à jour constat par
+constat et reste le point d'entrée fiable.
+
+
 ### Un audit de stabilité qui couvre enfin le jeu et les briques partagées
 
 Les deux audits précédents portaient sur ForetMap. Celui-ci étend l'examen à **Gnomes &
