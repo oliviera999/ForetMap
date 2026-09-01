@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { isSocketAuthRejection } from '../../utils/realtimeAuthRejection';
 import { jitteredRefreshDelay } from '../../utils/realtimeRefreshDelay';
 import { apiGL } from '../services/apiGL.js';
-import { withAppBase } from '../../shared/appBase.js';
+import { acquireGlSocket, subscribeGlGame } from '../realtime/glSocketClient.js';
 
 export function useGLSpellCast({ token, gameId, enabled, onCastComplete }) {
   const [draft, setDraft] = useState(null);
@@ -122,41 +121,30 @@ export function useGLSpellCast({ token, gameId, enabled, onCastComplete }) {
     setError('');
   }, []);
 
+  const draftRef = useRef(draft);
+  useEffect(() => {
+    draftRef.current = draft;
+  }, [draft]);
+
   useEffect(() => {
     if (!token || !gameId || !enabled) return undefined;
-    let cancelled = false;
-    let socket = null;
-    // Import dynamique : socket.io-client (chunk `socket-io`) n'est chargé que lorsque
-    // l'assistant de sort est actif — il reste hors du chargement initial de la page GL.
-    (async () => {
-      const { io } = await import('socket.io-client');
-      if (cancelled) return;
-      socket = io(withAppBase(''), {
-        path: '/socket.io',
-        transports: ['polling', 'websocket'],
-        auth: { token },
-      });
-      socket.on('connect', () => {
-        socket.emit('subscribe:gl-game', { gameId });
-      });
-      socket.on('connect_error', (err) => {
-        // Voir `useGLMarketTrade` : un jeton refusé ne devient pas une boucle de requêtes.
-        if (!isSocketAuthRejection(err)) return;
-        socket.disconnect();
-      });
-      socket.on('gl:spell_cast:draft', (evt) => {
-        if (Number(evt?.gameId) !== Number(gameId)) return;
-        if (evt?.draft) setDraft(evt.draft);
-        else if (evt?.draftId && draft?.id === evt.draftId) {
-          scheduleDraftRefresh(evt.draftId);
-        }
-      });
-    })();
-    return () => {
-      cancelled = true;
-      if (socket) socket.close();
+    const { socket, release } = acquireGlSocket(token);
+    if (!socket) return undefined;
+    const unsubGame = subscribeGlGame(token, gameId);
+    const onDraft = (evt) => {
+      if (Number(evt?.gameId) !== Number(gameId)) return;
+      if (evt?.draft) setDraft(evt.draft);
+      else if (evt?.draftId && draftRef.current?.id === evt.draftId) {
+        scheduleDraftRefresh(evt.draftId);
+      }
     };
-  }, [token, gameId, enabled, draft?.id, scheduleDraftRefresh]);
+    socket.on('gl:spell_cast:draft', onDraft);
+    return () => {
+      socket.off('gl:spell_cast:draft', onDraft);
+      unsubGame();
+      release();
+    };
+  }, [token, gameId, enabled, scheduleDraftRefresh]);
 
   return {
     draft,
