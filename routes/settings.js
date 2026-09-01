@@ -51,6 +51,7 @@ const {
   isValidAnchors,
   sanitizeAnchors,
   parseAnchors,
+  assessAnchorsGeoPlausibility,
 } = require('../lib/mapGeoref');
 const { MAP_SLUG_RE } = require('../lib/studentAffiliation');
 const { getRuntimeProcessSnapshot } = require('../lib/runtimeDiagnostics');
@@ -484,7 +485,17 @@ router.put(
             error: 'Calage GPS invalide : 3 points distincts requis (xp/yp en %, lat/lng valides).',
           });
         }
-        anchorsJson = JSON.stringify(sanitizeAnchors(rawAnchors));
+        const sanitized = sanitizeAnchors(rawAnchors);
+        const plausibility = assessAnchorsGeoPlausibility(sanitized);
+        if (!plausibility.ok) {
+          return res.status(400).json({
+            error:
+              plausibility.reason === 'geo_collinear'
+                ? 'Calage GPS incohérent : les trois points GPS sont alignés ou confondus — choisissez des repères formant un vrai triangle sur le terrain.'
+                : `Calage GPS incohérent : les distances GPS ne correspondent pas aux distances sur le plan (échelles incompatibles, facteur ${Math.round(plausibility.scaleRatio)}). Vérifiez les coordonnées de chaque point.`,
+          });
+        }
+        anchorsJson = JSON.stringify(sanitized);
         hasValidAnchors = true;
       }
     }
