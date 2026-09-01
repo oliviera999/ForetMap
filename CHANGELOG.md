@@ -13,6 +13,14 @@ La liste carte n’envoie plus le JSON éditorial visite (anti-LVE). Enregistrer
 avant le chargement du détail — ou après un poll qui renvoyait la liste allégée —
 réécrivait un corps vide et effaçait paragraphes / titres. La sauvegarde omet désormais
 ces blocs tant que le détail n’est pas chargé, et un poll ne remplace plus un détail déjà lu.
+### Import quiz : rattachements glossaire plus effacés si l'import est interrompu
+
+L'import tableur du catalogue Quiz (ForetMap) vidait tous les rattachements
+automatiques questions ↔ glossaire, puis les reconstruisait, **hors transaction**.
+Le même motif venait d'être sécurisé pour Gnomes & Licornes. Une interruption
+(timeout, kill mémoire) laissait le catalogue à jour et **tous** ces rattachements
+effacés — le contrôle de compréhension rattaché au glossaire ne se déclenchait
+plus. L'import passe désormais en une seule transaction : échec = rien n'a changé.
 
 ### Le verrou ForetMap ignorait les surcharges type/fiche
 

@@ -150,3 +150,88 @@ test('applyFmQuizImport écrit les liens glossaire dans resource_question_links 
   assert.match(ins.sql, /'import'/i);
   assert.deepStrictEqual(ins.params, ['GLFM01', 'QF9001']);
 });
+
+test('import quiz interrompu après le DELETE des liens : le rollback les restaure', async () => {
+  // Même contrat que l'import GL (G4) : vider `resource_question_links` origin=import
+  // puis reconstruire. Sans transaction, une panne à ce stade effaçait tous les
+  // rattachements auto-générés. On rejoue le flux avec une base factice.
+  const store = {
+    links: [{ question_code: 'QF0001', resource_ref: 'GLFM99', origin: 'import' }],
+  };
+  const initial = structuredClone(store);
+  let deleteApplied = false;
+
+  const deps = {
+    queryAll: async (sql) => {
+      if (/FROM glossary_terms/i.test(sql)) {
+        return [
+          {
+            glossary_code: 'GLFM01',
+            terme: 'Photosynthèse',
+            variantes: '',
+            categorie: 'flore',
+            definition_courte: 'Production de matière par la lumière',
+          },
+        ];
+      }
+      return [];
+    },
+    execute: async (sql) => {
+      if (/DELETE FROM resource_question_links/i.test(sql)) {
+        store.links = store.links.filter((row) => row.origin !== 'import');
+        deleteApplied = true;
+        return { insertId: 0 };
+      }
+      if (/INSERT IGNORE INTO resource_question_links/i.test(sql)) {
+        throw new Error('PANNE_INJECTEE_LIENS');
+      }
+      return { insertId: 0 };
+    },
+  };
+
+  async function fakeWithTransaction(work) {
+    const snapshot = structuredClone(store);
+    try {
+      return await work(deps);
+    } catch (err) {
+      store.links = snapshot.links;
+      throw err;
+    }
+  }
+
+  const categoryRows = [
+    {
+      categorie_slug: 'vivant_classification',
+      categorie_nom: 'Le vivant',
+      theme: 'sciences',
+      ordre: 1,
+    },
+  ];
+  const questionRows = [
+    {
+      id: 9001,
+      categorie_slug: 'vivant_classification',
+      numero_dans_categorie: 1,
+      question: 'Comment les plantes fabriquent-elles leur matière ?',
+      choix_a: 'Photosynthèse',
+      choix_b: 'Respiration',
+      choix_c: 'Digestion',
+      reponse_correcte: 'A',
+      niveau: 'college',
+      tags: 'photosynthese',
+    },
+  ];
+
+  await assert.rejects(
+    fakeWithTransaction((tx) =>
+      applyFmQuizImport(tx, categoryRows, questionRows, { dryRun: false }),
+    ),
+    /PANNE_INJECTEE_LIENS/,
+  );
+  assert.strictEqual(deleteApplied, true, 'la panne doit arriver APRÈS le DELETE des liens');
+  assert.deepStrictEqual(
+    store,
+    initial,
+    'après rollback, les rattachements glossaire origin=import doivent être restaurés',
+  );
+});
