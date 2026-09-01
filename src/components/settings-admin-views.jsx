@@ -12,6 +12,7 @@ import { getRoleTerms } from '../utils/n3-terminology';
 import { MediaLibraryMenu } from './MediaLibraryMenu.jsx';
 import { AdminTextSettingField, AdminNumberSettingField } from './settings/AdminSettingFields.jsx';
 import { MapCategoriesPanel } from './settings/MapCategoriesPanel.jsx';
+import { MapLocationsAdminPanel } from './settings/MapLocationsAdminPanel.jsx';
 import { MapGeorefPanel } from './settings/MapGeorefPanel.jsx';
 import { VisitMascotSettingsPanel } from './settings/VisitMascotSettingsPanel.jsx';
 import { FMLearningGatingSettings } from './settings/FMLearningGatingSettings.jsx';
@@ -453,6 +454,13 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
             </button>
             <button
               type="button"
+              className={adminSection === 'locations' ? 'is-active' : ''}
+              onClick={() => setAdminSection('locations')}
+            >
+              Zones & repères
+            </button>
+            <button
+              type="button"
               className={adminSection === 'help' ? 'is-active' : ''}
               onClick={() => setAdminSection('help')}
             >
@@ -498,6 +506,15 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
         <div className="empty">
           <p>Cette section demande la permission « Lecture paramètres admin ».</p>
         </div>
+      ) : adminSection === 'locations' ? (
+        <MapLocationsAdminPanel
+          maps={maps}
+          onMessage={(okMsg) => {
+            setMsg(okMsg);
+            setErr('');
+          }}
+          onError={(errMsg) => setErr(errMsg)}
+        />
       ) : adminSection === 'reference' ? (
         <ForetMapReferenceDocsPanel />
       ) : adminSection === 'narrator' ? (
