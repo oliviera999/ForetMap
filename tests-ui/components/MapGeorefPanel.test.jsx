@@ -115,6 +115,39 @@ describe('MapGeorefPanel', () => {
     expect(api).not.toHaveBeenCalled();
   });
 
+  test('affiche l’échelle déduite (dimensions du plan en mètres) pour un calage valide', () => {
+    render(
+      <MapGeorefPanel
+        map={{ ...MAP, georef: VALID_GEOREF, gps_enabled: true }}
+        imageUrl="/maps/map-foret.svg"
+      />,
+    );
+    // VALID_GEOREF : 80 % ↔ 0,01° → plan ≈ 916 m × ~1392 m (arrondi à l'unité).
+    expect(screen.getByText(/Échelle déduite/i).textContent).toMatch(/916 m × 139[12] m/);
+  });
+
+  test('bloque un calage aux échelles géographiquement incompatibles', () => {
+    const onError = vi.fn();
+    // 80 % du plan ≈ 3,7 m sur un axe, ≈ 55 m sur l'autre (cas audit BDD §3.1).
+    const implausible = [
+      { xp: 10, yp: 10, lat: 48.85, lng: 2.3 },
+      { xp: 90, yp: 10, lat: 48.85, lng: 2.30005 },
+      { xp: 10, yp: 90, lat: 48.8495, lng: 2.3 },
+    ];
+    render(
+      <MapGeorefPanel
+        map={{ ...MAP, georef: implausible, gps_enabled: false }}
+        imageUrl="/maps/map-foret.svg"
+        onError={onError}
+      />,
+    );
+
+    expect(screen.getByRole('alert').textContent).toMatch(/échelles incompatibles/i);
+    fireEvent.click(screen.getByRole('button', { name: /Enregistrer le calage GPS/i }));
+    expect(onError).toHaveBeenCalledWith(expect.stringMatching(/échelles incompatibles/i));
+    expect(api).not.toHaveBeenCalled();
+  });
+
   test('refuse un calage partiel au lieu d’envoyer un effacement implicite', () => {
     const onError = vi.fn();
     render(

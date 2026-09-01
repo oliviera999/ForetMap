@@ -7,6 +7,36 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Les constats de l'audit géolocalisation sont tous traités
+
+Suite directe de l'audit ci-dessous : les 7 points du plan d'action de
+`docs/AUDIT_GEOLOCALISATION_2026-09.md` sont appliqués (état point par point en §6 du
+document).
+
+- **Plausibilité géographique du calage (C1)** — le trou que l'audit BDD d'août avait
+  mesuré en production est fermé côté code : un calage dont les points GPS sont alignés
+  ou confondus, ou dont les échelles m/% sont incompatibles entre paires d'ancres
+  (ratio > 8 ; le cas prod était à 26), est **refusé à l'enregistrement** (400 explicite)
+  et **bloqué dans l'outil prof** avec un message détaillé. L'outil affiche désormais
+  l'**échelle déduite** (« plan ≈ L m × H m ») pour un contrôle à vue. La résolution de
+  la transformation passe par les différences au premier point avec un test de
+  singularité **relatif** (plus d'epsilon absolu inopérant à l'échelle d'un site). Les
+  calages déjà stockés ne sont pas invalidés à la lecture ; sur un plan au calage
+  invraisemblable, le suivi affiche « calage incohérent — signalez-le à un professeur »
+  (`bad_georef`) au lieu d'un faux « hors zone » (C4).
+- **Erreurs d'acquisition visibles (C2)** — « Position indisponible » et « Délai
+  dépassé » s'affichent dans la bannière et l'infobulle du bouton, au lieu d'un
+  « Acquisition… » sans fin.
+- **Pas de position périmée rejouée (C3)** — l'arrêt du suivi purge la dernière position
+  et l'erreur ; la réactivation attend un fix frais.
+- **e2e (C8)** — `e2e/map-gps-follow.spec.js` : calage d'un plan par l'API admin,
+  géolocalisation simulée Playwright, bouton « Me suivre », bannière, sortie de zone.
+- **Docs (C5)** — `docs/API.md` acte l'exposition publique des ancres `georef` (choix
+  assumé) et documente le nouveau 400 ; la doc de référence `carte-et-zones.md` décrit
+  l'échelle affichée, les refus expliqués et les états de la bannière.
+- **Micro-hygiène (C6, C7)** — transformation résolue une fois par jeu d'ancres
+  (`useMemo` + `applyGeoTransform`), objets des hooks stabilisés.
+
 ### Audit du système de géolocalisation
 
 État des lieux complet du suivi GPS de la mascotte et du calage des plans, sans
