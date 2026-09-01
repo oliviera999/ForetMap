@@ -34,13 +34,7 @@ const {
 } = require('../lib/fmQuizImport');
 const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../lib/glGlossaryMatch');
 const { normalizeQuestionCode } = require('../lib/shared/questionRouteHelpers');
-const { getFmGatingSite, FM_MARKABLE } = require('../lib/learningGatingRuntime');
-const { maybeRegisterCooldownOnWrong } = require('../lib/learningGatingCooldown');
-const {
-  normalizeResourceType,
-  normalizeResourceRef,
-  FORETMAP_RESOURCE_TYPES,
-} = require('../lib/shared/resourceQuestionGatingCore');
+const { registerFmCooldownOnWrongIfGating } = require('../lib/learningGatingRuntime');
 const {
   listFmQuestionStats,
   MIN_ATTEMPTS_FOR_FLAG,
@@ -123,24 +117,14 @@ async function tryHydrateAuth(req) {
  * acquis ». Le quiz libre n'envoie pas ce contexte : aucun verrou n'est jamais pose.
  */
 async function maybeRegisterCooldownForFmAnswer(req, { userId, questionCode, isCorrect }) {
-  if (isCorrect) return null;
-  const resourceType = normalizeResourceType(req.body?.resourceType, FORETMAP_RESOURCE_TYPES);
-  const resourceRef = normalizeResourceRef(req.body?.resourceRef);
-  if (!resourceType || !resourceRef || !FM_MARKABLE.has(resourceType)) return null;
-  const site = await getFmGatingSite();
-  if (!site.enabled) return null;
-  return maybeRegisterCooldownOnWrong(
+  return registerFmCooldownOnWrongIfGating(
     { queryAll, queryOne, execute },
     {
-      product: 'fm',
       userId,
-      resourceType,
-      resourceRef,
+      resourceType: req.body?.resourceType,
+      resourceRef: req.body?.resourceRef,
       questionCode,
       isCorrect,
-      retryDays: site.retryCooldownDays,
-      allowedWrongAttempts: site.allowedWrongAttempts,
-      cooldownScope: site.cooldownScope,
     },
   );
 }

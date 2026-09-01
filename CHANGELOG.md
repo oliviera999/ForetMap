@@ -15,6 +15,15 @@ Le même motif venait d'être sécurisé pour Gnomes & Licornes. Une interruptio
 (timeout, kill mémoire) laissait le catalogue à jour et **tous** ces rattachements
 effacés — le contrôle de compréhension rattaché au glossaire ne se déclenchait
 plus. L'import passe désormais en une seule transaction : échec = rien n'a changé.
+### Le verrou ForetMap ignorait les surcharges type/fiche
+
+La cascade site → type → fiche (erreurs tolérées, délai, portée du verrou) était
+annoncée dans le challenge et appliquée côté GL, mais l’écriture du verrou
+ForetMap (`POST /api/quiz/questions/:code/answer`) relisait uniquement les
+réglages du site. Un professeur qui assouplissait une fiche (2 erreurs permises)
+ou au contraire y posait un délai alors que le site était à 0 voyait l’élève
+verrouillé trop tôt — ou jamais. L’écriture utilise désormais la même politique
+effective que l’annonce.
 
 ### Chargement des données : onglets pédago et anti-course
 
