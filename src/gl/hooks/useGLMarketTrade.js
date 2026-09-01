@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { isSocketAuthRejection } from '../../utils/realtimeAuthRejection';
+import { jitteredRefreshDelay } from '../../utils/realtimeRefreshDelay';
 import { apiGL } from '../services/apiGL.js';
 import { withAppBase } from '../../shared/appBase.js';
 
@@ -71,6 +72,25 @@ export function useGLMarketTrade({ token, classId, enabled, onTradeCompleted }) 
     return undefined;
   }, [enabled, refreshAll]);
 
+  // `gl:market:trade-changed` part à toute la classe : sans étalement, chaque poste
+  // rechargeait sa page de marché dans la même seconde. Même remède que côté ForetMap
+  // (`src/utils/realtimeRefreshDelay.js`) : un délai aléatoire dans [0, 600 ms[.
+  const refreshDebounceRef = useRef(null);
+  const scheduleRefreshAll = useCallback(() => {
+    if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
+    refreshDebounceRef.current = setTimeout(() => {
+      refreshDebounceRef.current = null;
+      refreshAll();
+    }, jitteredRefreshDelay(0));
+  }, [refreshAll]);
+
+  useEffect(
+    () => () => {
+      if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
+    },
+    [],
+  );
+
   useEffect(() => {
     if (!token || !classId || !enabled) return undefined;
     const socket = io(withAppBase(''), {
@@ -91,12 +111,12 @@ export function useGLMarketTrade({ token, classId, enabled, onTradeCompleted }) 
     });
     socket.on('gl:market:trade-changed', (evt) => {
       if (Number(evt?.classId) !== Number(classId)) return;
-      refreshAll();
+      scheduleRefreshAll();
     });
     return () => {
       socket.close();
     };
-  }, [token, classId, enabled, refreshAll]);
+  }, [token, classId, enabled, scheduleRefreshAll]);
 
   const runAction = useCallback(async (action) => {
     setBusy(true);
