@@ -158,7 +158,10 @@ function createAdminOpsRouter({ gracefulShutdown, getDatabaseInitState = () => n
       },
       metrics: logMetrics.getMetrics(),
       // Processus courant uniquement ; le nombre d’instances Passenger/PM2 se lit au panneau hébergeur.
-      runtimeProcess: getRuntimeProcessSnapshot(),
+      runtimeProcess: {
+        ...getRuntimeProcessSnapshot(),
+        realtime: require('../lib/realtime').getRealtimeSnapshot(),
+      },
       /**
        * Historique des redémarrages (journal persistant `logs/boot-journal.ndjson`) :
        * `counts` par nature (déploiement / arrêt hébergeur / crash / process tué), `verdict`

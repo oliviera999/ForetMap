@@ -601,7 +601,10 @@ router.get(
         maxLines: getMaxLines(),
       },
       metrics: logMetrics.getMetrics(),
-      runtimeProcess: getRuntimeProcessSnapshot(),
+      runtimeProcess: {
+        ...getRuntimeProcessSnapshot(),
+        realtime: require('../lib/realtime').getRealtimeSnapshot(),
+      },
     });
   }),
 );
