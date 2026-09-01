@@ -31,6 +31,12 @@ export const POLLING_COARSE_TABS = new Set([
   'forum',
   'notebook',
   'mascot_packs',
+  // Onglets pédago / médiathèque : fetch autonome, pas de carte/tâches à l'écran.
+  // Les quitter déclenche un fetchAll (fraîcheur à l'arrivée sur carte / plantes).
+  'glossary',
+  'quiz',
+  'foodweb',
+  'media_library',
 ]);
 export const IOS_INSTALL_HINT_DISMISSED_KEY = 'foretmap_ios_install_hint_dismissed';
 export const GUEST_VISIT_MASCOT_CONFIRMED_KEY = 'foretmap_visit_guest_mascot_confirmed_v1';
