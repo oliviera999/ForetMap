@@ -37,7 +37,7 @@ accolades, parenthèses fermantes et lignes vides). Deux indicateurs sont produi
 
 | Emplacement      | Volume      | Contenu                                                                                                                                                                                                                                                                                                       |
 | ---------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lib/shared/`    | 23 modules  | Noyaux **métier** backend : `contextCommentsCore`, `resourceQuestionGatingCore`, `questionCrudCore`, `questionQueryFactory`, `questionPoolFiltering`, `xlsxImportCore`, `glossaryNormalization`, `learningAckCore`, `foodWebCore`, `oauthCommon`, `httpHelpers`, `stringHelpers`, `jsonDefaultsStore`…        |
+| `lib/shared/`    | 32 modules  | Noyaux **métier** backend : `contextCommentsCore`, `resourceQuestionGatingCore`, `questionCrudCore`, `questionQueryFactory`, `questionPoolFiltering`, `xlsxImportCore`, `glossaryNormalization`, `learningAckCore`, `foodWebCore`, `oauthCommon`, `httpHelpers`, `stringHelpers`, `jsonDefaultsStore`…        |
 | `src/shared/`    | 61 fichiers | Composants (`DialogShell`, `ImportPanel`, `MediaLibraryMenu`, `ImageLightbox`), hooks (`useAdminCrud`, `useDebouncedAutoSave`, `usePrefersReducedMotion`, `useMapFullscreen`), styles (`motion.css`, `visit-map-mascot.css`), et les dossiers `qcm/`, `mascot-pack/`, `pct-map/`, `image-frame/`, `markdown/` |
 | Système mascotte | 8 étapes    | **Convergence achevée** (étapes 0 à 7 de la note de convergence)                                                                                                                                                                                                                                              |
 
@@ -111,7 +111,7 @@ outil disponible, on ne refond rien.
 | Lot    | Contenu                                                                                                   | Effort | Risque      | État         |
 | ------ | --------------------------------------------------------------------------------------------------------- | ------ | ----------- | ------------ |
 | **A1** | `useAdminCrud` promu dans `src/shared/hooks/`, transport injecté ; `useGlAdminCrud` devient un adaptateur | S      | Très faible | ✅ **livré** |
-| **A2** | `QuestionEditorPanel` (partagé) consomme `useAdminCrud` au lieu de réécrire le CRUD                       | M      | Moyen       | à faire      |
+| **A2** | `QuestionEditorPanel` (partagé) consomme `useAdminCrud` au lieu de réécrire le CRUD                       | M      | Moyen       | ✅ **livré** |
 | **A3** | Autosave débouncé sur trois panneaux prof ForetMap, **en édition seule**                                  | M      | Faible      | ✅ **livré** |
 | **A4** | Doc de référence `docs/reference/foretmap/` **consultable** depuis l'app (lecture seule)                  | M      | Faible      | ✅ **livré** |
 
@@ -243,7 +243,7 @@ lecture, et un test dédié vérifie que `../secret` et `a/b` ne lisent rien.
 | Lot    | Contenu                                                                                                              | `comm` visé | Effort | Risque | État          |
 | ------ | -------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ------ | ------------- |
 | **B0** | `jsonDefaultsStore` — mécanisme « défauts JSON + surcharge en base » (`helpContent` / `glHelp`)                      | ~35         | S      | Faible | ✅ **livré**  |
-| **B1** | Noyau d'édition riche : configuration Turndown + aller-retour Markdown ↔ HTML assaini, partagé par les deux éditeurs | ~53         | M      | Moyen  | à faire       |
+| **B1** | Noyau d'édition riche : configuration Turndown + aller-retour Markdown ↔ HTML assaini, partagé par les deux éditeurs | ~53         | M      | Moyen  | ✅ **livré**  |
 | **B2** | `quiz.js` ↔ `gl/qcm.js` : analyse ligne à ligne — occasion réelle ~6 lignes, pas 109                                 | ~6          | S      | Faible | ✅ **livré**  |
 | **B3** | Libellés d'erreur d'authentification — analyse : 8 chaînes seulement sur 97 lignes communes                          | ~8          | S      | —      | ❌ **écarté** |
 | **B4** | Échelle d'empilement commune (`z-layers.css`) — remplace deux échelles produit divergentes                           | ~40         | M      | Moyen  | ✅ **livré**  |
@@ -509,16 +509,20 @@ c'est le signal que les deux cas ne sont pas le même problème.
 
 ## 9. Livré à ce jour
 
-| Lot | Livrable                                                                                                          | Tests                                                    |
-| --- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| A1  | `src/shared/hooks/useAdminCrud.js` + `useGlAdminCrud` réduit à un adaptateur de 4 lignes                          | `tests-ui/shared/useAdminCrud.test.jsx` (8 cas)          |
-| B0  | `lib/shared/jsonDefaultsStore.js` consommé par `helpContent.js` et `glHelp.js`                                    | `tests/json-defaults-store.test.js` (9 cas)              |
-| B4  | `src/shared/styles/z-layers.css` — échelle commune ; 2 patchs et 2 surcharges supprimés                           | `tests-ui/utils/zLayers.test.js` (6 cas)                 |
-| B5  | `glossaryLinkClick.js` + `useGlossaryLinkedHtml.js` — 4 composants allégés                                        | `tests-ui/shared/glossaryLinkClick.test.js` (5 cas)      |
-| —   | `scripts/audit-duplication-fm-gl.mjs` — audit reproductible                                                       | —                                                        |
-| —   | **Correctif** `compactVisitSeenQueue` — repli d'horodatage stable (§9.1)                                          | `tests-ui/utils/visitSeenQueueStability.test.js` (9 cas) |
-| B6  | `CONTEXT_COMMENT_LIMITS` + `makeContextTypeNormalizer` + `resolveReactionToggle` (noyau commentaires contextuels) | `tests/shared-cores-fm-gl.test.js` (6 cas)               |
-| B7  | `buildLinksFilter` + `linksWhereClause` (noyau liens ressource ↔ question)                                        | `tests/shared-cores-fm-gl.test.js` (6 cas)               |
+| Lot | Livrable                                                                                                           | Tests                                                    |
+| --- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| A1  | `src/shared/hooks/useAdminCrud.js` + `useGlAdminCrud` réduit à un adaptateur de 4 lignes                           | `tests-ui/shared/useAdminCrud.test.jsx` (8 cas)          |
+| B0  | `lib/shared/jsonDefaultsStore.js` consommé par `helpContent.js` et `glHelp.js`                                     | `tests/json-defaults-store.test.js` (9 cas)              |
+| B4  | `src/shared/styles/z-layers.css` — échelle commune ; 2 patchs et 2 surcharges supprimés                            | `tests-ui/utils/zLayers.test.js` (6 cas)                 |
+| B5  | `glossaryLinkClick.js` + `useGlossaryLinkedHtml.js` — 4 composants allégés                                         | `tests-ui/shared/glossaryLinkClick.test.js` (5 cas)      |
+| —   | `scripts/audit-duplication-fm-gl.mjs` — audit reproductible                                                        | —                                                        |
+| —   | **Correctif** `compactVisitSeenQueue` — repli d'horodatage stable (§9.1)                                           | `tests-ui/utils/visitSeenQueueStability.test.js` (9 cas) |
+| B6  | `CONTEXT_COMMENT_LIMITS` + `makeContextTypeNormalizer` + `resolveReactionToggle` (noyau commentaires contextuels)  | `tests/shared-cores-fm-gl.test.js` (6 cas)               |
+| B7  | `buildLinksFilter` + `linksWhereClause` (noyau liens ressource ↔ question)                                         | `tests/shared-cores-fm-gl.test.js` (6 cas)               |
+| A2  | `src/shared/qcm/QuestionEditorPanel.jsx` consomme `useAdminCrud` (`:3,71`)                                         | tests des panneaux appelants                             |
+| A3  | Autosave débouncé sur trois panneaux prof ForetMap, en édition seule                                               | `tests-ui/components/PlantEditFormAutoSave.test.jsx`     |
+| A4  | `lib/shared/referenceDocsFiles.js`, `lib/foretmapReferenceDocs.js`, `routes/reference-docs.js`, panneau de lecture | test de traversée de chemin                              |
+| B1  | `src/shared/richtext/richTextCore.js` consommé par les deux éditeurs riches                                        | test d'isolation des instances Turndown                  |
 
 Non-régression vérifiée : suite UI complète (397 fichiers, 2580 tests) au vert ; tests backend
 sans base de données au vert ; panneaux GL consommateurs (`GLSpeciesEditorPanel`,
@@ -587,6 +591,8 @@ pendant le flush reste en file ») est préservée et désormais couverte par un
 ---
 
 ## 10. Pour aller plus loin
+
+- [`AUDIT_CONVERGENCE_APPS_2026-09.md`](./AUDIT_CONVERGENCE_APPS_2026-09.md) — analyse de la couche plateforme, du kit d'interface et du moteur carte, plan d'action en dix lots (septembre 2026)
 
 - [`MASCOT_ARCHITECTURE_CONVERGENCE.md`](./MASCOT_ARCHITECTURE_CONVERGENCE.md) — convergence du système mascotte (achevée)
 - [`MASCOT_NARRATEUR_OLU.md`](./MASCOT_NARRATEUR_OLU.md) §15 — application de cette grille au chantier OLU
