@@ -102,6 +102,37 @@ describe('Anti-LVE — zones liste sans body_json', () => {
     assert.ok(detail.body.visit_body_json != null);
     assert.equal(detail.body.history_truncated, false);
   });
+
+  it('PUT sans visit_editorial_blocks conserve le corps visite', async () => {
+    const mapId = 'foret';
+    const zoneId = `z-keep-body-${Date.now()}`;
+    const bodyJson = JSON.stringify([
+      { id: 'p1', type: 'paragraph', markdown: 'Paragraphe à conserver' },
+    ]);
+    await execute(
+      `INSERT INTO zones (id, map_id, name, shape, points, color, stage)
+       VALUES (?, ?, 'Zone keep', 'poly', '[]', '#86efac80', 'empty')`,
+      [zoneId, mapId],
+    );
+    await execute(
+      `INSERT INTO visit_zones
+        (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json, is_active, sort_order, created_at, updated_at)
+       VALUES (?, ?, 'Zone keep', '[]', 'sous-titre', '', 'Détails', '', ?, 1, 0, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE body_json = VALUES(body_json)`,
+      [zoneId, mapId, bodyJson],
+    );
+
+    const res = await request(app)
+      .put(`/api/zones/${zoneId}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ name: 'Zone keep renommée', visit_subtitle: 'nouveau sous-titre' })
+      .expect(200);
+
+    const stored = await request(app).get(`/api/zones/${zoneId}`).expect(200);
+    assert.match(String(stored.body.visit_body_json || ''), /Paragraphe à conserver/);
+    assert.equal(stored.body.visit_subtitle, 'nouveau sous-titre');
+    assert.ok(res.body);
+  });
 });
 
 describe('Anti-LVE — limite JSON globale', () => {
