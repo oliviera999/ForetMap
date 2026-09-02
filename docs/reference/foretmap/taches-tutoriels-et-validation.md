@@ -223,6 +223,26 @@ description, lieux, dates, niveaux, places, image. Sa proposition apparaît avec
   nouvelle échéance, les mêmes lieux, tutoriels, référents et réglages. Cette
   automatisation peut être suspendue globalement dans les réglages.
 
+### Et pendant les vacances ?
+
+ForetMap **ne connaît aucun calendrier scolaire** : il n'existe ni période de vacances, ni
+jours fériés, ni week-ends dans l'application. Aucune date n'est décalée automatiquement,
+et le passage quotidien a lieu **tous les jours de l'année** — une échéance qui tombe
+pendant les congés reste telle quelle et la tâche apparaît « en retard » à la rentrée.
+
+La seule commande prévue pour les vacances est un **interrupteur manuel** dans les
+réglages : _« Duplication automatique des tâches récurrentes »_. Coupé, il suspend la
+création de nouvelles occurrences aussi longtemps qu'on le laisse coupé, sans toucher à la
+récurrence des tâches elles-mêmes ; il faut donc penser à le **rallumer** à la rentrée. Les
+occurrences non créées pendant la coupure peuvent être rattrapées ensuite par un
+administrateur (commande de rattrapage côté serveur).
+
+L'**archivage automatique** des éléments validés, lui, n'est pas concerné : il a ses
+propres réglages et son délai se compte en mois.
+
+À noter enfin : le jour de bascule des tâches récurrentes est calculé sur le fuseau
+**Europe/Paris** par défaut (réglable côté serveur), et non sur le fuseau de la machine.
+
 ## Les tutoriels
 
 Les tutoriels sont des **fiches pratiques** rédigées par les professeurs : un titre, un

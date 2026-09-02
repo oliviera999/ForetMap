@@ -51,6 +51,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `tests-ui/hooks/useNotificationCenter.test.jsx`. Doc :
   `docs/reference/foretmap/stats-forum-et-suivi.md`.
 
+### Documentation — audit des échéances
+
+- **`docs/AUDIT_ECHEANCES_2026-09.md`** (nouveau) : inventaire de tout ce qui dépend d'une
+  date côté tâches/projets (champs, affichage, notifications, date de départ, récurrence,
+  archivage automatique, job quotidien, validation à l'écriture, tri), avec les correctifs
+  du lot et les constats laissés en l'état (fuseau du calcul de `start_date`, absence de
+  contrôle de format et de cohérence `due_date >= start_date` à l'API, `setInterval`
+  quotidien calé sur le démarrage du process).
+- **`docs/reference/foretmap/taches-tutoriels-et-validation.md`** : nouvelle section
+  « Et pendant les vacances ? » — ForetMap ne connaît aucun calendrier scolaire ; le seul
+  levier est l'interrupteur manuel de duplication des tâches récurrentes.
+
 ### Couleurs de carte : une seule palette pour les zones et les catégories
 
 - **Champ couleur unifié** (`src/components/ColorPaletteField.jsx`, nouveau) : la palette
