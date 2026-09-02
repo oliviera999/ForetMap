@@ -6,6 +6,7 @@ import useVisitMascotCatalogExtras, {
   invalidateVisitMascotCatalogExtras,
 } from '../../hooks/useVisitMascotCatalogExtras.js';
 import { api } from '../../services/api';
+import { IconMascot, IconWarning } from '../../shared/icons.jsx';
 
 const DEFAULT_KEY = 'ui.visit.mascot.default_id';
 
@@ -91,7 +92,9 @@ export function VisitMascotSettingsPanel({ defaultValue, onSave }) {
         marginTop: 12,
       }}
     >
-      <h3 style={{ marginTop: 0 }}>🦊 Mascottes de visite</h3>
+      <h3 style={{ marginTop: 0 }}>
+        <IconMascot size={16} /> Mascottes de visite
+      </h3>
       <p
         style={{
           fontSize: 'var(--text-sm)',
@@ -109,7 +112,11 @@ export function VisitMascotSettingsPanel({ defaultValue, onSave }) {
         publiée est proposée, y compris celles ajoutées plus tard.
       </p>
 
-      {registryError ? <div className="auth-error">⚠️ {registryError}</div> : null}
+      {registryError ? (
+        <div className="auth-error">
+          <IconWarning size={14} /> {registryError}
+        </div>
+      ) : null}
 
       <div className="visit-mascot-admin-grid" data-testid="visit-mascot-admin-grid">
         {registry.map((entry) => {
@@ -147,7 +154,7 @@ export function VisitMascotSettingsPanel({ defaultValue, onSave }) {
 
       {orphanIds.length > 0 ? (
         <p style={{ fontSize: 'var(--text-sm)', color: '#b45309', marginTop: 8 }}>
-          ⚠️ La mascotte par défaut n’est pas proposée aux visiteurs (
+          <IconWarning size={14} /> La mascotte par défaut n’est pas proposée aux visiteurs (
           <code>{orphanIds.join(', ')}</code>) : elle a été retirée de la visite ou supprimée. Les
           visiteurs voient la mascotte livrée par défaut. Republiez-la au studio, ou choisissez-en
           une autre ci-dessus.

@@ -1,4 +1,5 @@
 import { tutorialPreviewCanEmbed, tutorialPreviewPayload } from '../TutorialPreviewModal';
+import { IconGlossary } from '../../shared/icons.jsx';
 
 /**
  * Liste en lecture seule des tutoriels liés à un repère, présentée côté élève.
@@ -66,7 +67,7 @@ function MarkerTutorialCardList({ tutorials = [], currentMarkerId, onOpenTutoria
                 style={{ marginTop: 10 }}
                 onClick={() => onOpenTutorialPreview(tutorialPreviewPayload(tu))}
               >
-                📖 Consulter
+                <IconGlossary size={14} /> Consulter
               </button>
             ) : null}
           </div>

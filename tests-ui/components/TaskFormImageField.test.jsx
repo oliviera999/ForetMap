@@ -32,14 +32,14 @@ describe('TaskFormImageField', () => {
 
   test('zone d’upload : deux boutons galerie / appareil photo', () => {
     renderField();
-    expect(screen.getByRole('button', { name: '📁 Choisir une photo' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '📸 Prendre une photo' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Choisir une photo' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Prendre une photo' })).toBeTruthy();
   });
 
   test('clic galerie : arme le guard et déclenche l’input', () => {
     const { galleryInputRef } = renderField();
     const click = vi.spyOn(galleryInputRef.current, 'click');
-    fireEvent.click(screen.getByRole('button', { name: '📁 Choisir une photo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choisir une photo' }));
     expect(armGuard).toHaveBeenCalledTimes(1);
     expect(click).toHaveBeenCalled();
   });
@@ -47,7 +47,7 @@ describe('TaskFormImageField', () => {
   test('busy : boutons désactivés et libellé « Traitement… »', () => {
     renderField({ busy: true });
     expect(screen.getByText('Traitement…')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '📁 Choisir une photo' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Choisir une photo' }).disabled).toBe(true);
   });
 
   test('changement d’input : appelle onFile', () => {

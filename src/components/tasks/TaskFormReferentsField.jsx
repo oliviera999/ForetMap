@@ -1,4 +1,5 @@
 import { referentCandidateLabel, referentRoleHint } from '../../utils/taskFormHelpers.js';
+import { IconUser } from '../../shared/icons.jsx';
 
 function ReferentCheckboxItem({ candidate, selectedIds, terms, onToggle }) {
   const cid = String(candidate.id || '').trim();
@@ -11,7 +12,7 @@ function ReferentCheckboxItem({ candidate, selectedIds, terms, onToggle }) {
         onChange={() => onToggle(cid)}
       />
       <span className="task-form-pick-text">
-        👤 {referentCandidateLabel(candidate)}
+        <IconUser size={14} /> {referentCandidateLabel(candidate)}
         <span style={{ opacity: 0.75, fontSize: 'var(--text-sm)' }}>
           {' '}
           — {referentRoleHint(candidate, terms)}
@@ -59,7 +60,7 @@ export function TaskFormReferentsField({
           <input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="🔍 Filtrer par nom…"
+            placeholder="Filtrer par nom…"
           />
           <div
             style={{

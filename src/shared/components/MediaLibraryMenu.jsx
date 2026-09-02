@@ -16,11 +16,13 @@ import {
   disarmNativeFilePickerGuard,
 } from '../../utils/overlayHistory.js';
 import { useAppDialogs } from './AppDialogsProvider.jsx';
+import { IconAudio, IconCamera, IconClose, IconFolder, IconImage, IconVideo } from '../icons.jsx';
 
-function mediaEmoji(type) {
-  if (type === 'audio') return '🎧';
-  if (type === 'video') return '🎬';
-  return '🖼️';
+/** Icône chrome du type de média (lucide, aria-hidden). */
+function MediaTypeIcon({ type }) {
+  if (type === 'audio') return <IconAudio size={14} />;
+  if (type === 'video') return <IconVideo size={14} />;
+  return <IconImage size={14} />;
 }
 
 export function MediaLibraryMenu({
@@ -337,7 +339,7 @@ export function MediaLibraryMenu({
                     disabled={busy}
                     onClick={() => openPicker(fileInputRef)}
                   >
-                    📁 Importer
+                    <IconFolder size={14} /> Importer
                   </button>
                   <button
                     type="button"
@@ -345,7 +347,7 @@ export function MediaLibraryMenu({
                     disabled={busy}
                     onClick={() => openPicker(cameraInputRef)}
                   >
-                    📸 Prendre une photo
+                    <IconCamera size={14} /> Prendre une photo
                   </button>
                   <input
                     ref={fileInputRef}
@@ -366,7 +368,7 @@ export function MediaLibraryMenu({
                 </>
               ) : (
                 <button type="button" className="shared-btn shared-btn--sm" disabled>
-                  📁 Importer
+                  <IconFolder size={14} /> Importer
                 </button>
               )}
               <button
@@ -422,7 +424,7 @@ export function MediaLibraryMenu({
                       disabled={busy}
                       onClick={() => onDelete(item)}
                     >
-                      ✕
+                      <IconClose size={16} />
                     </button>
                   ) : null}
                 </li>
@@ -442,7 +444,7 @@ export function MediaLibraryMenu({
                     className="shared-btn shared-btn--row"
                     onClick={() => onPickUrl?.(item.url)}
                   >
-                    {mediaEmoji(item.mediaType)} <strong>{item.filename}</strong>
+                    <MediaTypeIcon type={item.mediaType} /> <strong>{item.filename}</strong>
                     {item.stableKey ? (
                       <span className="shared-hint"> · slug : {item.stableKey}</span>
                     ) : null}

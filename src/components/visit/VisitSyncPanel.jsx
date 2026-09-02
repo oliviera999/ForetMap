@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api, AccountDeletedError } from '../../services/api';
 import { toggleIdInList } from '../../utils/visitSyncSelection.js';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
+import { IconRepeat } from '../../shared/icons.jsx';
 
 /**
  * Panneau d'import sélectif carte ↔ visite (réservé enseignant), extrait de `VisitView` (O6).
@@ -127,7 +128,9 @@ export function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
 
   return (
     <section className="visit-sync-card">
-      <h3>🔁 Import sélectif carte / visite</h3>
+      <h3>
+        <IconRepeat size={16} /> Import sélectif carte / visite
+      </h3>
       <p className="section-sub">
         Choisis le sens puis les éléments à importer (zones et/ou repères).
       </p>

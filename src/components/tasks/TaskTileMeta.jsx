@@ -1,6 +1,17 @@
 import { dueDateChip, TaskDifficultyAndRiskChips } from '../../utils/badges';
 import { normalizeDateOnly } from '../../utils/taskListHelpers.js';
 import { completionModeLabel } from '../../utils/taskComputations.js';
+import {
+  IconCheck,
+  IconClock,
+  IconFolder,
+  IconHand,
+  IconMarker,
+  IconPause,
+  IconPuzzle,
+  IconRepeat,
+  IconUser,
+} from '../../shared/icons.jsx';
 
 function startDateChip(startDate) {
   const normalized = normalizeDateOnly(startDate);
@@ -9,7 +20,11 @@ function startDateChip(startDate) {
   const label = Number.isNaN(parsed.getTime())
     ? normalized
     : parsed.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
-  return <span className="task-chip">🚦 Départ: {label}</span>;
+  return (
+    <span className="task-chip">
+      <IconClock size={12} /> Départ: {label}
+    </span>
+  );
 }
 
 /**
@@ -42,15 +57,23 @@ export function TaskTileMeta({
       )}
       {(t.markers_linked || []).map((m) => (
         <span key={m.id} className="task-chip">
-          📍 {m.label}
+          <IconMarker size={12} /> {m.label}
         </span>
       ))}
       {!(t.markers_linked || []).length && t.marker_label && (
-        <span className="task-chip">📍 {t.marker_label}</span>
+        <span className="task-chip">
+          <IconMarker size={12} /> {t.marker_label}
+        </span>
       )}
-      {t.project_title && <span className="task-chip">📁 {t.project_title}</span>}
+      {t.project_title && (
+        <span className="task-chip">
+          <IconFolder size={12} /> {t.project_title}
+        </span>
+      )}
       {t.project_title && t.project_status === 'on_hold' && (
-        <span className="task-chip">⏸️ Projet en attente</span>
+        <span className="task-chip">
+          <IconPause size={12} /> Projet en attente
+        </span>
       )}
       {t.project_title && t.project_status === 'completed' && (
         <span className="task-chip">Terminé (projet)</span>
@@ -60,25 +83,29 @@ export function TaskTileMeta({
       )}
       {startDateChip(t.start_date)}
       {isTeacher && t.status === 'proposed' && proposalMeta.proposer && (
-        <span className="task-chip proposal">🙋 Proposée par {proposalMeta.proposer}</span>
+        <span className="task-chip proposal">
+          <IconHand size={12} /> Proposée par {proposalMeta.proposer}
+        </span>
       )}
       {dueDateChip(t.due_date)}
       {!isTeacher && (
         <span className="task-chip">
-          👤 {t.required_students}{' '}
+          <IconUser size={12} /> {t.required_students}{' '}
           {t.required_students > 1 ? roleTerms.studentPlural : roleTerms.studentSingular}
         </span>
       )}
-      <span className="task-chip">🧩 {completionModeLabel(completionMode)}</span>
+      <span className="task-chip">
+        <IconPuzzle size={12} /> {completionModeLabel(completionMode)}
+      </span>
       <TaskDifficultyAndRiskChips task={t} />
       {isCollectiveCompletion && (
         <span className="task-chip">
-          ✅ {doneCount}/{totalCount} terminé{totalCount > 1 ? 's' : ''}
+          <IconCheck size={12} /> {doneCount}/{totalCount} terminé{totalCount > 1 ? 's' : ''}
         </span>
       )}
       {t.recurrence && (
         <span className="task-chip">
-          🔄{' '}
+          <IconRepeat size={12} />{' '}
           {t.recurrence === 'weekly'
             ? 'Hebdo'
             : t.recurrence === 'biweekly'

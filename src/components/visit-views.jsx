@@ -63,6 +63,7 @@ import { useVisitMapMascotController } from '../hooks/useVisitMapMascotControlle
 import { ImageLightbox } from '../shared/components/ImageLightbox.jsx';
 import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../utils/browserStorage.js';
 import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
+import { IconVisit } from '../shared/icons.jsx';
 
 function pointToPct(event, stageEl, transform = { x: 0, y: 0, s: 1 }, fit = null) {
   return pointToContainedRectPct(event, stageEl, transform, fit, { clamp: true, decimals: 2 });
@@ -969,7 +970,9 @@ function VisitViewImpl({
   if (loading) {
     return (
       <div className="loader">
-        <div className="loader-leaf">🧭</div>
+        <div className="loader-leaf">
+          <IconVisit size={48} />
+        </div>
         <p>Préparation de la visite...</p>
       </div>
     );

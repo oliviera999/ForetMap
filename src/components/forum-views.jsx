@@ -12,6 +12,7 @@ import {
   isForumModerator,
   parseReactionEmojiList,
 } from '../utils/forumHelpers.js';
+import { IconForum, IconLock } from '../shared/icons.jsx';
 
 const THREAD_PAGE_SIZE = 20;
 const POST_PAGE_SIZE = 50;
@@ -351,8 +352,16 @@ function ForumView({ authClaims, canParticipateForum = true }) {
                   {t.author_display_name} · {Number(t.posts_count || 0)} message(s)
                 </span>
                 <span className="forum-meta-line">
-                  {t.is_locked ? '🔒 Verrouillé' : '💬 Ouvert'} · maj{' '}
-                  {formatDateTimeFr(t.last_post_at)}
+                  {t.is_locked ? (
+                    <>
+                      <IconLock size={12} /> Verrouillé
+                    </>
+                  ) : (
+                    <>
+                      <IconForum size={12} /> Ouvert
+                    </>
+                  )}{' '}
+                  · maj {formatDateTimeFr(t.last_post_at)}
                 </span>
               </button>
             ))}

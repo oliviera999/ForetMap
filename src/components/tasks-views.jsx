@@ -68,6 +68,7 @@ import {
   normalizeProjectUiStatus,
 } from '../utils/taskListHelpers.js';
 import { teacherCollectiveAssigneeLoadKey } from '../utils/taskDisplayHelpers.js';
+import { IconCheck, IconPuzzle, IconSearch, IconUrgent } from '../shared/icons.jsx';
 
 function TasksViewImpl({
   maps = [],
@@ -966,7 +967,11 @@ function TasksViewImpl({
       <TaskUrgencyBanner isTeacher={isTeacher} tasks={regularFiltered} />
 
       <TaskTileSection
-        title={`🚨 Urgent ! (${urgentCategoryTasks.length})`}
+        title={
+          <>
+            <IconUrgent size={16} /> {`Urgent ! (${urgentCategoryTasks.length})`}
+          </>
+        }
         tasks={urgentCategoryTasks}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
@@ -974,7 +979,11 @@ function TasksViewImpl({
 
       {!isTeacher && (
         <TaskTileSection
-          title="🧩 Mes tâches"
+          title={
+            <>
+              <IconPuzzle size={16} /> Mes tâches
+            </>
+          }
           tasks={myTasks}
           sectionListClass={sectionListClass}
           taskTileProps={taskTileProps}
@@ -1000,7 +1009,11 @@ function TasksViewImpl({
           {showStudentFilteredResults ? (
             <>
               <TaskTileSection
-                title={`🔎 Résultats filtrés (${regularFiltered.length})`}
+                title={
+                  <>
+                    <IconSearch size={16} /> {`Résultats filtrés (${regularFiltered.length})`}
+                  </>
+                }
                 tasks={regularFiltered}
                 sectionListClass={sectionListClass}
                 taskTileProps={taskTileProps}
@@ -1028,7 +1041,11 @@ function TasksViewImpl({
       <TaskProjectsBlock
         {...taskProjectsBlockProps}
         visibleProjects={validatedProjects}
-        sectionTitle={`✅ Projets validés (${validatedProjects.length})`}
+        sectionTitle={
+          <>
+            <IconCheck size={16} /> {`Projets validés (${validatedProjects.length})`}
+          </>
+        }
       />
 
       <TasksEmptyState count={allFiltered.length} />

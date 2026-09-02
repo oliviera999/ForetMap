@@ -39,8 +39,8 @@ describe('PlantnetIdentifyPanel', () => {
       screen.getByText('Identifier une plante à partir de photos (Pl@ntNet)'),
     ).toBeInTheDocument();
     expect(screen.getByRole('combobox')).toBeInTheDocument(); // sélecteur d'organe
-    expect(screen.getByText('📁 Galerie / fichier')).toBeInTheDocument();
-    expect(screen.getByText('📸 Appareil photo')).toBeInTheDocument();
+    expect(screen.getByText('Galerie / fichier')).toBeInTheDocument();
+    expect(screen.getByText('Appareil photo')).toBeInTheDocument();
   });
 
   test('« + Ajouter une image » ajoute un slot (jusqu’à 5)', () => {
@@ -67,7 +67,7 @@ describe('PlantnetIdentifyPanel', () => {
     setup();
     // sélectionne un fichier sur l'input galerie (caché)
     const fileInput = document.getElementById(
-      screen.getByText('📁 Galerie / fichier').closest('div').querySelector('input[type=file]').id,
+      screen.getByText('Galerie / fichier').closest('div').querySelector('input[type=file]').id,
     );
     fireEvent.change(fileInput, {
       target: { files: [new File(['x'], 'feuille.jpg', { type: 'image/jpeg' })] },

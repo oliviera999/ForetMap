@@ -15,6 +15,14 @@ import {
   focusSubset,
   neighborIds,
 } from './foodWebGraphModel.js';
+import {
+  IconClose,
+  IconDownload,
+  IconImage,
+  IconLeaf,
+  IconStats,
+  IconTarget,
+} from '../../shared/icons.jsx';
 
 const BASE_W = 880;
 const BASE_H = 560;
@@ -390,7 +398,7 @@ export function FoodWebGraph({
             onClick={() => setLayout('circle')}
             aria-pressed={layout === 'circle'}
           >
-            ⭕ Cercle
+            <IconTarget size={14} /> Cercle
           </button>
           <button
             type="button"
@@ -399,7 +407,7 @@ export function FoodWebGraph({
             aria-pressed={layout === 'trophic'}
             title="Producteurs → consommateurs → décomposeurs"
           >
-            📊 Niveaux
+            <IconStats size={14} /> Niveaux
           </button>
         </div>
         <div className="pedago-foodweb-graph__tbgroup" role="group" aria-label="Zoom">
@@ -437,7 +445,7 @@ export function FoodWebGraph({
               aria-pressed={trophicVisible}
               title="Afficher ou masquer herbivorie, prédation et décomposition"
             >
-              🍃 Flux trophiques
+              <IconLeaf size={14} /> Flux trophiques
             </button>
           </div>
         ) : null}
@@ -447,15 +455,15 @@ export function FoodWebGraph({
             className="pedago-foodweb-graph__tbtn pedago-foodweb-graph__tbtn--focus"
             onClick={() => setFocusId(null)}
           >
-            ✕ Tout afficher
+            <IconClose size={14} /> Tout afficher
           </button>
         ) : null}
         <div className="pedago-foodweb-graph__tbgroup" role="group" aria-label="Export">
           <button type="button" className="pedago-foodweb-graph__tbtn" onClick={exportPng}>
-            🖼️ PNG
+            <IconImage size={14} /> PNG
           </button>
           <button type="button" className="pedago-foodweb-graph__tbtn" onClick={exportSvg}>
-            ⬇️ SVG
+            <IconDownload size={14} /> SVG
           </button>
         </div>
       </div>

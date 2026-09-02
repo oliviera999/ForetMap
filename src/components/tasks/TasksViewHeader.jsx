@@ -1,6 +1,7 @@
 import { HelpPanel } from '../HelpPanel';
 import { resolveHelpPanelSection } from '../../utils/helpResolve';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
+import { IconBackpack, IconTasks, IconWarning } from '../../shared/icons.jsx';
 
 /**
  * En-tête de la vue Tâches (extrait de `tasks-views.jsx`, O6) : titre, aide
@@ -45,7 +46,9 @@ export function TasksViewHeader({
           marginBottom: 4,
         }}
       >
-        <h2 className="section-title">✅ Tâches</h2>
+        <h2 className="section-title">
+          <IconTasks size={20} /> Tâches
+        </h2>
         {isTeacher && (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {isHelpEnabled && (
@@ -159,9 +162,17 @@ export function TasksViewHeader({
         >
           {/* Écran compact : une ligne suffit — le détail reste affiché sur écran large. */}
           <span className="tasks-quota__compact">
-            {student.taskEnrollment?.atLimit
-              ? `⚠️ ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} missions en cours : libère une place.`
-              : `🎒 Missions actives : ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments}`}
+            {student.taskEnrollment?.atLimit ? (
+              <>
+                <IconWarning size={14} />{' '}
+                {`${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} missions en cours : libère une place.`}
+              </>
+            ) : (
+              <>
+                <IconBackpack size={14} />{' '}
+                {`Missions actives : ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments}`}
+              </>
+            )}
           </span>
           <span className="tasks-quota__wide">
             {student.taskEnrollment?.atLimit

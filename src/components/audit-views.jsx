@@ -2,6 +2,16 @@ import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useSession } from '../contexts/SessionContext.jsx';
+import {
+  IconAudit,
+  IconCheck,
+  IconFootprints,
+  IconGoal,
+  IconLeaf,
+  IconStats,
+  IconTrend,
+  IconWarning,
+} from '../shared/icons.jsx';
 
 function AuditHistoryPanel({ roleTerms }) {
   const [entries, setEntries] = useState([]);
@@ -38,14 +48,18 @@ function AuditHistoryPanel({ roleTerms }) {
   if (loading)
     return (
       <div className="loader" style={{ height: '40vh' }}>
-        <div className="loader-leaf">🌿</div>
+        <div className="loader-leaf">
+          <IconLeaf size={48} />
+        </div>
         <p>Chargement...</p>
       </div>
     );
   if (error) {
     return (
       <div className="empty">
-        <div className="empty-icon">⚠️</div>
+        <div className="empty-icon">
+          <IconWarning size={28} />
+        </div>
         <p>{error}</p>
         <button className="btn btn-sm btn-ghost" onClick={loadEntries}>
           Réessayer
@@ -58,7 +72,9 @@ function AuditHistoryPanel({ roleTerms }) {
     <>
       {entries.length === 0 ? (
         <div className="empty">
-          <div className="empty-icon">📜</div>
+          <div className="empty-icon">
+            <IconAudit size={28} />
+          </div>
           <p>Aucune action enregistrée</p>
         </div>
       ) : (
@@ -112,14 +128,18 @@ function VisitStatsPanel({ roleTerms }) {
   if (loading)
     return (
       <div className="loader" style={{ height: '40vh' }}>
-        <div className="loader-leaf">📊</div>
+        <div className="loader-leaf">
+          <IconStats size={48} />
+        </div>
         <p>Chargement...</p>
       </div>
     );
   if (error) {
     return (
       <div className="empty">
-        <div className="empty-icon">⚠️</div>
+        <div className="empty-icon">
+          <IconWarning size={28} />
+        </div>
         <p>{error}</p>
         <button className="btn btn-sm btn-ghost" onClick={loadStats}>
           Réessayer
@@ -138,28 +158,36 @@ function VisitStatsPanel({ roleTerms }) {
     <div className="fade-in">
       <div className="stats-grid audit-stats-grid">
         <article className="stat-card highlight">
-          <div className="stat-icon">👣</div>
+          <div className="stat-icon">
+            <IconFootprints size={20} />
+          </div>
           <div className="stat-number">
             {Number(kpis.sessions_total || 0).toLocaleString('fr-FR')}
           </div>
           <div className="stat-label">Sessions de visite</div>
         </article>
         <article className="stat-card">
-          <div className="stat-icon">✅</div>
+          <div className="stat-icon">
+            <IconCheck size={20} />
+          </div>
           <div className="stat-number">
             {Number(kpis.completed_visits_total || 0).toLocaleString('fr-FR')}
           </div>
           <div className="stat-label">Visites terminées</div>
         </article>
         <article className="stat-card">
-          <div className="stat-icon">🎯</div>
+          <div className="stat-icon">
+            <IconGoal size={20} />
+          </div>
           <div className="stat-number">
             {Number(kpis.seen_actions_total || 0).toLocaleString('fr-FR')}
           </div>
           <div className="stat-label">Actions marquées vu</div>
         </article>
         <article className="stat-card">
-          <div className="stat-icon">📈</div>
+          <div className="stat-icon">
+            <IconTrend size={20} />
+          </div>
           <div className="stat-number">
             {Number(kpis.completion_rate_pct || 0).toLocaleString('fr-FR', {
               maximumFractionDigits: 1,
@@ -224,7 +252,9 @@ function AuditLog() {
 
   return (
     <div className="fade-in">
-      <h2 className="section-title">📜 Audit & Statistiques</h2>
+      <h2 className="section-title">
+        <IconAudit size={20} /> Audit & Statistiques
+      </h2>
       <p className="section-sub">
         Historique des actions {roleTerms.teacherShort} et indicateurs de visite.
       </p>
@@ -233,13 +263,13 @@ function AuditLog() {
           className={`top-tab ${subTab === 'history' ? 'active' : ''}`}
           onClick={() => setSubTab('history')}
         >
-          📜 Historique
+          <IconAudit size={14} /> Historique
         </button>
         <button
           className={`top-tab ${subTab === 'visit-stats' ? 'active' : ''}`}
           onClick={() => setSubTab('visit-stats')}
         >
-          📊 Stats visite
+          <IconStats size={14} /> Stats visite
         </button>
       </div>
       {subTab === 'history' ? (

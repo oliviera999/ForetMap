@@ -47,13 +47,13 @@ describe('StudentDeletePanel', () => {
 
   test('le bouton Supprimer appelle setConfirmStudent avec la ligne', () => {
     const { setConfirmStudent } = renderPanel();
-    fireEvent.click(screen.getAllByRole('button', { name: '🗑️ Supprimer' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Supprimer' })[0]);
     expect(setConfirmStudent).toHaveBeenCalledWith(STUDENTS[0]);
   });
 
   test('le bouton Dupliquer appelle duplicateStudent avec la ligne', () => {
     const { duplicateStudent } = renderPanel();
-    fireEvent.click(screen.getAllByRole('button', { name: '📄 Dupliquer' })[1]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Dupliquer' })[1]);
     expect(duplicateStudent).toHaveBeenCalledWith(STUDENTS[1]);
   });
 
@@ -69,7 +69,7 @@ describe('StudentDeletePanel', () => {
 
   test('boutons désactivés selon les permissions', () => {
     renderPanel({ canDeleteUi: false, canDuplicateStudents: false });
-    expect(screen.getAllByRole('button', { name: '🗑️ Supprimer' })[0].disabled).toBe(true);
-    expect(screen.getAllByRole('button', { name: '📄 Dupliquer' })[0].disabled).toBe(true);
+    expect(screen.getAllByRole('button', { name: 'Supprimer' })[0].disabled).toBe(true);
+    expect(screen.getAllByRole('button', { name: 'Dupliquer' })[0].disabled).toBe(true);
   });
 });

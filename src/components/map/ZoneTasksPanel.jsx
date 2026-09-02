@@ -2,6 +2,7 @@ import { TaskDifficultyAndRiskChips } from '../../utils/badges';
 import { isStudentAssignedToTask } from '../../utils/task-assignments';
 import { canStudentAssignTask, taskEnrollmentMeta } from '../../utils/taskEnrollment.js';
 import { TaskEnrollmentLegend } from './mapModalShared.jsx';
+import { IconHand, IconLink } from '../../shared/icons.jsx';
 
 /**
  * Onglet « Tâches » des modales de lieu (ZoneInfoModal / MarkerModal) — variantes
@@ -62,7 +63,7 @@ export function ZoneTasksTeacherPanel({
         disabled={!linkTaskId}
         onClick={() => onLinkTask?.(linkTaskId)}
       >
-        🔗 Lier la tâche
+        <IconLink size={14} /> Lier la tâche
       </button>
     </div>
   );
@@ -172,9 +173,13 @@ export function ZoneTasksStudentPanel({
         disabled={!canEnroll || assigning || selectedTaskIds.length === 0}
         onClick={onAssign}
       >
-        {assigning
-          ? 'Inscription...'
-          : `✋ M'inscrire à ${selectedTaskIds.length || '...'} tâche(s)`}
+        {assigning ? (
+          'Inscription...'
+        ) : (
+          <>
+            <IconHand size={14} /> {`M'inscrire à ${selectedTaskIds.length || '...'} tâche(s)`}
+          </>
+        )}
       </button>
     </div>
   );

@@ -68,7 +68,7 @@ describe('PlantBiodiversityCatalogPreviewCard', () => {
     const zones = [{ id: 1, name: 'Mare', living_beings_list: ['Tomate'] }];
     render(<PlantBiodiversityCatalogPreviewCard plant={PLANT} zones={zones} />);
     expect(screen.getByText('Sur la carte')).toBeInTheDocument();
-    expect(screen.getByText('📍 Mare')).toBeInTheDocument();
+    expect(screen.getByText('Mare')).toBeInTheDocument();
   });
 
   test('showContextComments=false masque les commentaires ; plant null → rien', () => {
@@ -87,7 +87,7 @@ describe('PlantCatalogPreviewModal', () => {
       7: { my_observation_count: 3, site_observation_count: 9 },
     });
     render(<PlantCatalogPreviewModal plant={PLANT} onClose={vi.fn()} />);
-    expect(screen.getByText('🌱 Tomate')).toBeInTheDocument();
+    expect(document.getElementById('plant-catalog-preview-title')).toHaveTextContent('Tomate');
     await waitFor(() => expect(fetchPlantObservationCounts).toHaveBeenCalledWith([7]));
     expect(await screen.findByText('obs:3')).toBeInTheDocument();
   });

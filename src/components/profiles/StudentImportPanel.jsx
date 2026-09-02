@@ -2,6 +2,7 @@ import { api } from '../../services/api';
 import { downloadApiFile } from '../../utils/downloadApiFile.js';
 import { fileToDataUrl } from '../../utils/fileToDataUrl.js';
 import { ImportPanel } from '../../shared/components/ImportPanel.jsx';
+import { IconFileSpreadsheet, IconFileText } from '../../shared/icons.jsx';
 
 /**
  * Panneau « Import {studentPlural} (CSV / XLSX) » (administration des profils).
@@ -69,8 +70,22 @@ function StudentImportPanel({ roleTerms, canImport, setErr, setMsg, onImported }
         </>
       }
       templateButtons={[
-        { label: '📄 Modèle CSV', onClick: () => downloadStudentsTemplate('csv') },
-        { label: '📗 Modèle XLSX', onClick: () => downloadStudentsTemplate('xlsx') },
+        {
+          label: (
+            <>
+              <IconFileText size={14} /> Modèle CSV
+            </>
+          ),
+          onClick: () => downloadStudentsTemplate('csv'),
+        },
+        {
+          label: (
+            <>
+              <IconFileSpreadsheet size={14} /> Modèle XLSX
+            </>
+          ),
+          onClick: () => downloadStudentsTemplate('xlsx'),
+        },
       ]}
       templateRowStyle={{ marginBottom: 10 }}
       importBusyLabel="Import…"

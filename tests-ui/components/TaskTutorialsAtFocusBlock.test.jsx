@@ -46,7 +46,7 @@ describe('TaskTutorialsAtFocusBlock', () => {
 
   test('n3boss sans tutoriel lié : message vide + sélecteur de liaison', () => {
     renderBlock();
-    expect(screen.getByText('📘 Tutoriels pour ce lieu')).toBeTruthy();
+    expect(screen.getByText('Tutoriels pour ce lieu')).toBeTruthy();
     expect(screen.getByText('Aucun tutoriel lié à ce lieu.')).toBeTruthy();
     expect(screen.getByLabelText('Lier un tutoriel existant')).toBeTruthy();
   });
@@ -84,7 +84,7 @@ describe('TaskTutorialsAtFocusBlock', () => {
     const select = screen.getByLabelText('Lier un tutoriel existant');
     expect(screen.getByRole('option', { name: 'Compost' })).toBeTruthy();
     fireEvent.change(select, { target: { value: '8' } });
-    fireEvent.click(screen.getByRole('button', { name: '🔗 Lier le tutoriel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lier le tutoriel' }));
     await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
     expect(api).toHaveBeenCalledWith('/api/tutorials/8', 'PUT', {
       zone_ids: ['z1'],
@@ -118,7 +118,7 @@ describe('TaskTutorialsAtFocusBlock', () => {
     expect(screen.getByText('Pas à pas')).toBeTruthy();
     expect(screen.getByText(/Verger/)).toBeTruthy();
     expect(screen.queryByText(/Mare/)).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: '📖 Consulter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Consulter' }));
     expect(openTasksTutorialPreview).toHaveBeenCalledWith(tu);
   });
 

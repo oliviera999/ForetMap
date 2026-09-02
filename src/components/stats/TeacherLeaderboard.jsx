@@ -7,6 +7,16 @@
  */
 import { useMemo } from 'react';
 import { StudentAvatar } from '../student-avatar';
+import {
+  IconCheck,
+  IconGlossary,
+  IconGoal,
+  IconHourglass,
+  IconLeaf,
+  IconReports,
+  IconTelescope,
+  IconUser,
+} from '../../shared/icons.jsx';
 
 export function TeacherLeaderboard({ students = [], search = '', roleTerms }) {
   const filtered = useMemo(
@@ -32,7 +42,9 @@ export function TeacherLeaderboard({ students = [], search = '', roleTerms }) {
     <div className="leaderboard">
       {filtered.length === 0 ? (
         <div className="empty" style={{ padding: 32 }}>
-          <div className="empty-icon">👤</div>
+          <div className="empty-icon">
+            <IconUser size={28} />
+          </div>
           <p>
             {search
               ? `Aucun ${roleTerms.studentSingular} ne correspond à ta recherche`
@@ -119,19 +131,25 @@ export function TeacherLeaderboard({ students = [], search = '', roleTerms }) {
                   <div className="lb-stat-num" style={{ color: 'var(--sage)' }}>
                     {s.stats.done}
                   </div>
-                  <div className="lb-stat-label">✅</div>
+                  <div className="lb-stat-label">
+                    <IconCheck size={14} />
+                  </div>
                 </div>
                 <div className="lb-stat lb-stat-submitted">
                   <div className="lb-stat-num" style={{ color: '#6366f1' }}>
                     {s.stats.submitted}
                   </div>
-                  <div className="lb-stat-label">📋</div>
+                  <div className="lb-stat-label">
+                    <IconReports size={14} />
+                  </div>
                 </div>
                 <div className="lb-stat lb-stat-pending">
                   <div className="lb-stat-num" style={{ color: '#f59e0b' }}>
                     {s.stats.pending}
                   </div>
-                  <div className="lb-stat-label">⏳</div>
+                  <div className="lb-stat-label">
+                    <IconHourglass size={14} />
+                  </div>
                 </div>
                 <div className="lb-stat lb-stat-total">
                   <div className="lb-stat-num">{s.stats.total}</div>
@@ -144,13 +162,17 @@ export function TeacherLeaderboard({ students = [], search = '', roleTerms }) {
                   <div className="lb-stat-num" style={{ color: '#0f766e' }}>
                     {completionRate}%
                   </div>
-                  <div className="lb-stat-label">🎯</div>
+                  <div className="lb-stat-label">
+                    <IconGoal size={14} />
+                  </div>
                 </div>
                 <div className="lb-stat" title="Espèces distinctes observées (fiches plantes)">
                   <div className="lb-stat-num" style={{ color: '#15803d' }}>
                     {Number(s.stats?.plant_species_observed ?? 0)}
                   </div>
-                  <div className="lb-stat-label">🌿</div>
+                  <div className="lb-stat-label">
+                    <IconLeaf size={14} />
+                  </div>
                 </div>
                 <div
                   className="lb-stat"
@@ -159,13 +181,17 @@ export function TeacherLeaderboard({ students = [], search = '', roleTerms }) {
                   <div className="lb-stat-num" style={{ color: '#0369a1' }}>
                     {Number(s.stats?.plant_observation_events ?? 0)}
                   </div>
-                  <div className="lb-stat-label">🔭</div>
+                  <div className="lb-stat-label">
+                    <IconTelescope size={14} />
+                  </div>
                 </div>
                 <div className="lb-stat" title="Tutoriels marqués comme lus">
                   <div className="lb-stat-num" style={{ color: '#7c3aed' }}>
                     {Number(s.stats?.tutorials_read ?? 0)}
                   </div>
-                  <div className="lb-stat-label">📖</div>
+                  <div className="lb-stat-label">
+                    <IconGlossary size={14} />
+                  </div>
                 </div>
                 <div style={{ width: 60, display: 'none' }} className="lb-bar-desktop">
                   <div className="lb-bar-bg">

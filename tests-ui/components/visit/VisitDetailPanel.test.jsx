@@ -151,12 +151,12 @@ describe('VisitDetailPanel', () => {
 
   test('bouton vu : libellé selon `seen`, clic → onToggleSeen, désactivé si savingSeen', () => {
     const { props } = setup();
-    const btn = screen.getByRole('button', { name: '🔴 Marquer comme vu' });
+    const btn = screen.getByRole('button', { name: 'Marquer comme vu' });
     fireEvent.click(btn);
     expect(props.onToggleSeen).toHaveBeenCalledTimes(1);
 
     setup({ seen: new Set(['zone:7']), savingSeen: true });
-    const seenBtn = screen.getByRole('button', { name: '✅ Marqué comme vu' });
+    const seenBtn = screen.getByRole('button', { name: 'Marqué comme vu' });
     expect(seenBtn).toBeDisabled();
   });
 

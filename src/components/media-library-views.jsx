@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../services/api';
 import { MediaLibraryMenu } from './MediaLibraryMenu.jsx';
+import { IconMediaLibrary, IconWarning } from '../shared/icons.jsx';
 
 function canUseClipboard() {
   return typeof navigator !== 'undefined' && !!navigator.clipboard?.writeText;
@@ -57,12 +58,18 @@ function MediaLibraryView({ canManage = false }) {
 
   return (
     <div className="fade-in settings-admin">
-      <h2 className="section-title">🗂️ Médiathèque ForetMap</h2>
+      <h2 className="section-title">
+        <IconMediaLibrary size={20} /> Médiathèque ForetMap
+      </h2>
       <p className="section-sub">
         Bibliothèque des médias ForetMap (images, audio, vidéos). Cloisonnée : séparée de la
         médiathèque Gnomes & Licornes.
       </p>
-      {err && <div className="auth-error">⚠️ {err}</div>}
+      {err && (
+        <div className="auth-error">
+          <IconWarning size={14} /> {err}
+        </div>
+      )}
       {msg && <div className="auth-success">{msg}</div>}
       <div
         style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}

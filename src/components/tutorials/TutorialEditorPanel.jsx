@@ -10,6 +10,7 @@ import {
   filterSelectableZones,
   filterSelectableMarkers,
 } from '../tasks/LocationPickList.jsx';
+import { IconSave } from '../../shared/icons.jsx';
 
 /** Libellé repère du tutoriel (comportement historique : pas de repli 📍). */
 function tutorialMarkerPickLabel(m) {
@@ -186,7 +187,13 @@ export function TutorialEditorPanel({
       {autoSaveError ? <p className="form-error">{autoSaveError}</p> : null}
       <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
         <button className="btn btn-primary btn-sm" disabled={saving} onClick={onSave}>
-          {saving ? 'Sauvegarde...' : '💾 Enregistrer'}
+          {saving ? (
+            'Sauvegarde...'
+          ) : (
+            <>
+              <IconSave size={14} /> Enregistrer
+            </>
+          )}
         </button>
         <button className="btn btn-ghost btn-sm" onClick={onCancel}>
           Annuler

@@ -42,7 +42,7 @@ describe('TaskUrgencyBanner', () => {
 
   test('rend le bandeau, un item par tâche et les libellés d’échéance', () => {
     render(<TaskUrgencyBanner tasks={TASKS} />);
-    expect(screen.getByText('🔥 Échéances proches')).toBeInTheDocument();
+    expect(screen.getByText('Échéances proches')).toBeInTheDocument();
     expect(screen.getByText('Pailler les fraisiers')).toBeInTheDocument();
     expect(screen.getByText('Tailler la haie')).toBeInTheDocument();
     expect(screen.getByText("Aujourd'hui")).toBeInTheDocument();

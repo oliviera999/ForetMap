@@ -1,4 +1,5 @@
 import { normalizeTutorialIds } from '../../utils/taskFormHelpers.js';
+import { IconTuto } from '../../shared/icons.jsx';
 
 /**
  * Champ « Tutoriels associés » du formulaire de tâche (feuille prop-driven).
@@ -28,7 +29,7 @@ export function TaskFormTutorialsField({
           <input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="🔍 Rechercher un tutoriel..."
+            placeholder="Rechercher un tutoriel..."
           />
           <div
             style={{
@@ -68,7 +69,9 @@ export function TaskFormTutorialsField({
                 checked={normalizedSelectedIds.includes(Number.parseInt(t.id, 10))}
                 onChange={() => onToggle(t.id)}
               />
-              <span className="task-form-pick-text">📘 {t.title}</span>
+              <span className="task-form-pick-text">
+                <IconTuto size={14} /> {t.title}
+              </span>
             </label>
           ))
         )}

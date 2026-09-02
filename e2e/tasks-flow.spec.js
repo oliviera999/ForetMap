@@ -12,7 +12,7 @@ test('parcours tâches: consultation élève puis consultation professeur', asyn
   await loginAsNewStudent(page);
 
   await openStudentTasksTab(page);
-  await expect(page.getByRole('heading', { name: '✅ Tâches' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tâches' })).toBeVisible();
 
   await enableTeacherMode(page);
   await openTeacherTasksTab(page);

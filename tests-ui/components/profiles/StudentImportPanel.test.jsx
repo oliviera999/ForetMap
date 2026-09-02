@@ -49,14 +49,14 @@ describe('StudentImportPanel', () => {
   test('affiche le titre avec le pluriel de rôle et les boutons modèles', () => {
     renderPanel();
     expect(screen.getByText('Import n3beurs (CSV / XLSX)')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '📄 Modèle CSV' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '📗 Modèle XLSX' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Modèle CSV' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Modèle XLSX' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Importer' })).toBeTruthy();
   });
 
   test('le bouton Modèle CSV télécharge le modèle CSV', async () => {
     renderPanel();
-    fireEvent.click(screen.getByRole('button', { name: '📄 Modèle CSV' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Modèle CSV' }));
     await waitFor(() =>
       expect(downloadApiFile).toHaveBeenCalledWith(
         '/api/students/import/template?format=csv',
@@ -67,7 +67,7 @@ describe('StudentImportPanel', () => {
 
   test('le bouton Modèle XLSX télécharge le modèle XLSX', async () => {
     renderPanel();
-    fireEvent.click(screen.getByRole('button', { name: '📗 Modèle XLSX' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Modèle XLSX' }));
     await waitFor(() =>
       expect(downloadApiFile).toHaveBeenCalledWith(
         '/api/students/import/template?format=xlsx',

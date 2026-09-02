@@ -11,13 +11,17 @@
 import {
   Archive,
   ArchiveRestore,
+  Backpack,
+  Ban,
   BarChart3,
   Bell,
   BookMarked,
   BookOpen,
   BoxSelect,
+  Brain,
   Camera,
   Check,
+  Clock,
   ChevronDown,
   ChevronRight,
   Circle,
@@ -25,16 +29,33 @@ import {
   Compass,
   Copy,
   CopyCheck,
+  Download,
+  ExternalLink,
+  Eye,
+  FileSpreadsheet,
+  FileText,
+  Film,
   Filter,
+  Flame,
+  FlaskConical,
+  Folder,
   Folders,
+  Footprints,
+  Globe,
   GraduationCap,
   Hand,
+  Headphones,
   HelpCircle,
+  Hourglass,
+  Image as ImageGlyph,
   Images,
   Info,
   KeyRound,
   LayoutGrid,
+  Leaf,
+  Lightbulb,
   LineChart,
+  Link as LinkGlyph,
   Lock,
   LocateFixed,
   LogOut,
@@ -47,25 +68,43 @@ import {
   Network,
   NotebookPen,
   Palette,
+  Paperclip,
+  Pause,
+  PawPrint,
   Pencil,
   PenLine,
+  Pin,
   Plus,
   Presentation,
+  Puzzle,
   RefreshCw,
+  Repeat,
   Save,
   Scan,
   ScrollText,
+  Search,
   Settings,
   Settings2,
+  Shield,
   SignalLow,
+  Siren,
   SlidersHorizontal,
+  Sparkles,
   Sprout,
   Tags,
+  Target,
+  Telescope,
+  Thermometer,
   Trash2,
+  Trees,
+  TrendingUp,
   TriangleAlert,
   Undo2,
   Unlock,
+  User,
   Users,
+  Utensils,
+  Wrench,
   X,
   Zap,
 } from 'lucide-react';
@@ -152,3 +191,45 @@ export const IconKey = ui(KeyRound);
 export const IconLogout = ui(LogOut);
 export const IconWarning = ui(TriangleAlert);
 export const IconSignalLow = ui(SignalLow);
+
+/* Ajouts sous-lot D-2 (écrans secondaires) — ordre alphabétique */
+export const IconAdd = ui(Plus);
+export const IconAttachment = ui(Paperclip);
+export const IconAudio = ui(Headphones);
+export const IconBackpack = ui(Backpack);
+export const IconBan = ui(Ban);
+export const IconBrain = ui(Brain);
+export const IconClock = ui(Clock);
+export const IconDownload = ui(Download);
+export const IconExternalLink = ui(ExternalLink);
+export const IconEye = ui(Eye);
+export const IconFileSpreadsheet = ui(FileSpreadsheet);
+export const IconFileText = ui(FileText);
+export const IconFlame = ui(Flame);
+export const IconFlask = ui(FlaskConical);
+export const IconFolder = ui(Folder);
+export const IconFootprints = ui(Footprints);
+export const IconGlobe = ui(Globe);
+export const IconGoal = ui(Target);
+export const IconHabitat = ui(Trees);
+export const IconHourglass = ui(Hourglass);
+export const IconIdea = ui(Lightbulb);
+export const IconImage = ui(ImageGlyph);
+export const IconLeaf = ui(Leaf);
+export const IconLink = ui(LinkGlyph);
+export const IconMascot = ui(PawPrint);
+export const IconPause = ui(Pause);
+export const IconPin = ui(Pin);
+export const IconPuzzle = ui(Puzzle);
+export const IconRepeat = ui(Repeat);
+export const IconSearch = ui(Search);
+export const IconShield = ui(Shield);
+export const IconSparkles = ui(Sparkles);
+export const IconTelescope = ui(Telescope);
+export const IconThermometer = ui(Thermometer);
+export const IconTrend = ui(TrendingUp);
+export const IconUrgent = ui(Siren);
+export const IconUser = ui(User);
+export const IconUtensils = ui(Utensils);
+export const IconVideo = ui(Film);
+export const IconWrench = ui(Wrench);

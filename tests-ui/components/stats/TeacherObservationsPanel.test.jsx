@@ -8,7 +8,7 @@ describe('TeacherObservationsPanel', () => {
   test('état initial : invite à charger, bouton actif qui déclenche onLoad', () => {
     const onLoad = vi.fn();
     render(<TeacherObservationsPanel roleTerms={ROLE_TERMS} onLoad={onLoad} />);
-    expect(screen.getByText('📓 Observations des n3beurs (max 100)')).toBeTruthy();
+    expect(screen.getByText('Observations des n3beurs (max 100)')).toBeTruthy();
     expect(
       screen.getByText('Aucune observation chargée (clique sur le bouton pour rafraîchir).'),
     ).toBeTruthy();
@@ -25,7 +25,7 @@ describe('TeacherObservationsPanel', () => {
 
   test('erreur affichée à la place du message vide', () => {
     render(<TeacherObservationsPanel roleTerms={ROLE_TERMS} obsError="Boum" onLoad={() => {}} />);
-    expect(screen.getByText('⚠️ Boum')).toBeTruthy();
+    expect(screen.getByText('Boum')).toBeTruthy();
     expect(screen.queryByText(/Aucune observation chargée/)).toBeNull();
   });
 

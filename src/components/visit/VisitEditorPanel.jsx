@@ -19,6 +19,7 @@ import { VisitEditorialBuilder } from './VisitEditorialBuilder.jsx';
 import { VisitMediaEditor } from './VisitMediaEditor.jsx';
 import { VisitEditorEmojiPicker } from './VisitEditorEmojiPicker.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
+import { IconDelete, IconSave, IconSlider } from '../../shared/icons.jsx';
 
 /**
  * Panneau d'édition visite (zone / repère) réservé enseignant, extrait de `visit-views.jsx` (O6).
@@ -286,7 +287,9 @@ export function VisitEditorPanel({
 
   return (
     <div className="visit-editor" data-testid="visit-editor-panel">
-      <h4>🎛️ Édition visite ({roleTerms.teacherShort})</h4>
+      <h4>
+        <IconSlider size={16} /> Édition visite ({roleTerms.teacherShort})
+      </h4>
       <div className="field">
         <label>{selectedType === 'zone' ? 'Titre de zone' : 'Titre du repère'}</label>
         <input
@@ -371,7 +374,13 @@ export function VisitEditorPanel({
         }}
       />
       <button className="btn btn-primary btn-sm" disabled={saving} onClick={save}>
-        {saving ? 'Enregistrement...' : '💾 Sauver'}
+        {saving ? (
+          'Enregistrement...'
+        ) : (
+          <>
+            <IconSave size={14} /> Sauver
+          </>
+        )}
       </button>
       <button
         className="btn btn-danger btn-sm"
@@ -396,7 +405,7 @@ export function VisitEditorPanel({
           }
         }}
       >
-        🗑️ Supprimer
+        <IconDelete size={14} /> Supprimer
       </button>
 
       <VisitMediaEditor

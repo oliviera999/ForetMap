@@ -12,6 +12,7 @@ import {
 import { normalizedPlantValue, parseLinkCandidates } from '../../utils/plantFormValues.js';
 import { findFirstBiodivHeroPhotoCandidate } from '../../utils/biodivPlantForm.js';
 import { PLANT_META_SECTIONS, PHOTO_FIELD_KEYS } from '../../constants/plantMetaSections.js';
+import { IconSearch } from '../../shared/icons.jsx';
 
 /**
  * Affichage des métadonnées d'une fiche plante — extrait de `foretmap-views.jsx` (O6).
@@ -86,7 +87,7 @@ export function PlantBiodivHeroPhoto({ plant }) {
           decoding="async"
         />
         <span className="biodiv-card-hero-photo-hint" aria-hidden="true">
-          🔍 Voir
+          <IconSearch size={14} /> Voir
         </span>
       </button>
     </>
@@ -149,7 +150,9 @@ export function PlantMetaSections({ plant }) {
           onClick={() => setBigPhoto({ src: entry.src, caption: item.label })}
         >
           <img src={entry.src} alt={item.label} loading="lazy" decoding="async" />
-          <span className="plant-photo-overlay">🔍 Voir</span>
+          <span className="plant-photo-overlay">
+            <IconSearch size={14} /> Voir
+          </span>
         </button>
       ))}
     </div>

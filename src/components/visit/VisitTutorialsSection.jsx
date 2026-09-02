@@ -5,6 +5,7 @@ import { tutorialPreviewPayload, tutorialPreviewCanEmbed } from '../TutorialPrev
 import { ContextComments } from '../context-comments';
 import { useGatingSummary } from '../../hooks/useGatingSummary';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
+import { IconDownload, IconEye, IconSave } from '../../shared/icons.jsx';
 
 /**
  * Section « Tutoriels de la visite » sous la carte (réservée prof en édition),
@@ -93,7 +94,13 @@ export function VisitTutorialsSection({
             onClick={saveTutorialSelection}
             disabled={savingTutorials}
           >
-            {savingTutorials ? 'Sauvegarde...' : '💾 Enregistrer la sélection des tutos'}
+            {savingTutorials ? (
+              'Sauvegarde...'
+            ) : (
+              <>
+                <IconSave size={14} /> Enregistrer la sélection des tutos
+              </>
+            )}
           </button>
         </div>
       )}
@@ -118,7 +125,7 @@ export function VisitTutorialsSection({
                   }
                   onClick={() => onOpenTutorialPreview(tutorialPreviewPayload(t))}
                 >
-                  👁️ Lire
+                  <IconEye size={14} /> Lire
                 </button>
                 <button
                   type="button"
@@ -131,7 +138,7 @@ export function VisitTutorialsSection({
                     )
                   }
                 >
-                  ⬇️ PDF
+                  <IconDownload size={14} /> PDF
                 </button>
                 <TutorialReadAcknowledgeButton
                   tutorialId={t.id}

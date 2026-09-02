@@ -1,3 +1,4 @@
+import { IconWarning } from '../../shared/icons.jsx';
 /**
  * Bandeaux de retour (erreur / succès) de la vue « Profils & utilisateurs ».
  * Extrait de profiles-views.jsx (O6) — présentationnel pur. DOM/classes/textes inchangés.
@@ -15,7 +16,9 @@ function ProfilesAdminFeedback({ err, msg, editModalOpen, editUserLoadState }) {
   return (
     <>
       {err && !(editModalOpen && editUserLoadState === 'ready') && (
-        <div className="auth-error">⚠️ {err}</div>
+        <div className="auth-error">
+          <IconWarning size={14} /> {err}
+        </div>
       )}
       {msg && <div className="auth-success">{msg}</div>}
     </>

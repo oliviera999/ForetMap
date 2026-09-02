@@ -1,4 +1,5 @@
 import { HelpPanel } from '../HelpPanel';
+import { IconShield } from '../../shared/icons.jsx';
 
 /**
  * En-tête de la vue « Profils & utilisateurs » (administration).
@@ -25,7 +26,7 @@ function ProfilesAdminHeader({
       }}
     >
       <h2 className="section-title" style={{ marginBottom: 0 }}>
-        🛡️ Profils & utilisateurs
+        <IconShield size={20} /> Profils & utilisateurs
       </h2>
       {isHelpEnabled && (
         <HelpPanel

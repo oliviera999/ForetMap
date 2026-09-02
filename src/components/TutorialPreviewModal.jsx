@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { TutorialReadAcknowledgeButton } from './TutorialReadAcknowledge';
 import { DialogShell } from './DialogShell';
+import { IconClose, IconTuto } from '../shared/icons.jsx';
 import { useGatingSummary } from '../hooks/useGatingSummary';
 
 /**
@@ -164,9 +165,11 @@ export function TutorialPreviewModal({ tutorial, onClose, readAcknowledge = null
           onClick={onClose}
           aria-label="Fermer l’aperçu"
         >
-          ✕
+          <IconClose size={16} />
         </button>
-        <h3 id="tuto-preview-title">📘 {tutorial.title}</h3>
+        <h3 id="tuto-preview-title">
+          <IconTuto size={18} /> {tutorial.title}
+        </h3>
       </div>
       {canEmbed ? (
         <div className="tuto-preview-modal__body">

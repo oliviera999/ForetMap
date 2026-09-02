@@ -1,4 +1,5 @@
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
+import { IconCamera, IconClose, IconFolder } from '../shared/icons.jsx';
 
 /**
  * Champ photo (présentation) du formulaire « Nouvelle observation » — extrait de
@@ -28,7 +29,9 @@ export function ObservationPhotoField({
       role="group"
       aria-label="Photo d'observation : galerie ou appareil photo"
     >
-      <div style={{ fontSize: 'var(--text-xl)', marginBottom: 4 }}>📷</div>
+      <div style={{ marginBottom: 4 }}>
+        <IconCamera size={24} />
+      </div>
       <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-faint)', marginBottom: 10 }}>
         Galerie ou appareil photo
       </div>
@@ -42,7 +45,7 @@ export function ObservationPhotoField({
             galleryFileRef.current?.click();
           }}
         >
-          📁 Choisir une photo
+          <IconFolder size={14} /> Choisir une photo
         </button>
         <button
           type="button"
@@ -53,7 +56,7 @@ export function ObservationPhotoField({
             cameraFileRef.current?.click();
           }}
         >
-          📸 Prendre une photo
+          <IconCamera size={14} /> Prendre une photo
         </button>
       </div>
       <input
@@ -79,8 +82,13 @@ export function ObservationPhotoField({
   ) : (
     <div className="img-preview-wrap">
       <img src={preview} className="img-preview" alt="preview" />
-      <button className="img-remove" onClick={onRemove}>
-        ✕
+      <button
+        className="img-remove"
+        aria-label="Retirer la photo"
+        title="Retirer la photo"
+        onClick={onRemove}
+      >
+        <IconClose size={16} />
       </button>
     </div>
   );

@@ -43,12 +43,12 @@ function renderSections(overrides = {}) {
 describe('TasksTeacherSections', () => {
   test('rend les sections n3boss avec leurs titres', () => {
     renderSections();
-    expect(screen.getByText('⚙️ En cours')).toBeInTheDocument();
-    expect(screen.getByText('🔥 À faire')).toBeInTheDocument();
-    expect(screen.getByText('💡 Propositions n3beurs (1)')).toBeInTheDocument();
-    expect(screen.getByText('⏳ En attente de validation (3)')).toBeInTheDocument();
-    expect(screen.getByText('⏸️ En attente (1)')).toBeInTheDocument();
-    expect(screen.getByText('✅ Validées')).toBeInTheDocument();
+    expect(screen.getByText('En cours')).toBeInTheDocument();
+    expect(screen.getByText('À faire')).toBeInTheDocument();
+    expect(screen.getByText('Propositions n3beurs (1)')).toBeInTheDocument();
+    expect(screen.getByText('En attente de validation (3)')).toBeInTheDocument();
+    expect(screen.getByText('En attente (1)')).toBeInTheDocument();
+    expect(screen.getByText('Validées')).toBeInTheDocument();
   });
 
   test('insère le bloc des projets actifs', () => {

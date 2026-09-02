@@ -18,7 +18,7 @@ describe('ProfilesAdminFeedback', () => {
     const { container } = renderFeedback({ err: 'Boom' });
     const banner = container.querySelector('.auth-error');
     expect(banner).toBeInTheDocument();
-    expect(banner).toHaveTextContent('⚠️ Boom');
+    expect(banner).toHaveTextContent('Boom');
   });
 
   test('affiche le bandeau de succès', () => {

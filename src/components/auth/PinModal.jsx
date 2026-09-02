@@ -5,6 +5,7 @@ import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
 import { getRoleTerms } from '../../utils/n3-terminology';
 import { DialogShell } from '../DialogShell';
 import { startGoogleAuth } from './startGoogleAuth.js';
+import { IconKey } from '../../shared/icons.jsx';
 
 /**
  * Modale « Connexion professeur » : connexion e-mail + mot de passe, réinitialisation de mot de
@@ -114,7 +115,9 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
       ariaLabel={`Connexion ${roleTerms.teacherSingular}`}
       closeOnOverlay
     >
-      <div style={{ fontSize: 'var(--text-2xl)', marginBottom: 8 }}>🔑</div>
+      <div style={{ marginBottom: 8 }}>
+        <IconKey size={28} />
+      </div>
       <h3>Connexion {roleTerms.teacherSingular}</h3>
       <p>Connecte-toi avec ton compte {roleTerms.teacherShort} (e-mail + mot de passe).</p>
       {info && <div className="auth-success">{info}</div>}

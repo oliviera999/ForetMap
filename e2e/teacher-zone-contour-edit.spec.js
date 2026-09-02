@@ -56,7 +56,7 @@ test('parcours prof : ajouter puis retirer un sommet du contour d’une zone', a
     const dialog = page.getByRole('dialog', { name: new RegExp(`^Zone ${zoneName}`) });
     await expect(dialog).toBeVisible();
 
-    await dialog.getByRole('button', { name: '✏️ Modifier', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Modifier', exact: true }).click();
     await dialog.getByRole('button', { name: /Modifier le contour de la zone/ }).click();
 
     // Mode d'édition : une poignée par sommet + une poignée fantôme par côté.
@@ -73,13 +73,13 @@ test('parcours prof : ajouter puis retirer un sommet du contour d’une zone', a
     await expect(page.locator('.edit-pt--selected')).toHaveCount(1);
 
     // Suppression : le bouton retire le sommet sélectionné et redevient inactif.
-    const removeBtn = toolbar.getByRole('button', { name: /^🗑/ });
+    const removeBtn = toolbar.getByRole('button', { name: /^Retirer/ });
     await expect(removeBtn).toBeEnabled();
     await removeBtn.click();
     await expect(page.locator('.edit-pt')).toHaveCount(4);
     await expect(removeBtn).toBeDisabled();
 
-    await toolbar.getByRole('button', { name: '💾 Sauver' }).click();
+    await toolbar.getByRole('button', { name: 'Enregistrer' }).click();
     await expect(page.getByText('Contour sauvegardé ✓')).toBeVisible();
 
     // Le contour sauvegardé est bien revenu à quatre sommets côté serveur.

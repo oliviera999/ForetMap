@@ -63,7 +63,7 @@ describe('TaskFormTutorialsField', () => {
 
   test('recherche déclenche onSearchChange', () => {
     const { onSearchChange } = renderField();
-    fireEvent.change(screen.getByPlaceholderText('🔍 Rechercher un tutoriel...'), {
+    fireEvent.change(screen.getByPlaceholderText('Rechercher un tutoriel...'), {
       target: { value: 'arr' },
     });
     expect(onSearchChange).toHaveBeenCalledWith('arr');

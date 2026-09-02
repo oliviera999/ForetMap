@@ -4,6 +4,7 @@ import { compressImage } from '../../utils/image';
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../../utils/overlayHistory';
 import { ImageLightbox } from '../../shared/components/ImageLightbox.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
+import { IconCamera, IconClose, IconFolder, IconLeaf } from '../../shared/icons.jsx';
 
 const FORETMAP_PHOTO_DRAG_MIME = 'application/x-foretmap-zone-marker-photo-id';
 
@@ -205,7 +206,7 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
                         animation: 'sway 1.5s infinite',
                       }}
                     >
-                      🌿
+                      <IconLeaf size={20} />
                     </div>
                   )}
                   {tileSrc && p.caption && (
@@ -230,6 +231,8 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
                   {isTeacher && tileSrc && (
                     <button
                       type="button"
+                      aria-label="Supprimer la photo"
+                      title="Supprimer la photo"
                       onMouseDown={(ev) => ev.stopPropagation()}
                       onClick={() => del(p.id)}
                       style={{
@@ -249,7 +252,7 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
                         justifyContent: 'center',
                       }}
                     >
-                      ✕
+                      <IconClose size={16} />
                     </button>
                   )}
                 </div>
@@ -287,7 +290,13 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
                 galleryFileRef.current?.click();
               }}
             >
-              {uploading ? 'Envoi...' : '📁 Galerie'}
+              {uploading ? (
+                'Envoi...'
+              ) : (
+                <>
+                  <IconFolder size={14} /> Galerie
+                </>
+              )}
             </button>
             <button
               type="button"
@@ -300,7 +309,13 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
                 cameraFileRef.current?.click();
               }}
             >
-              {uploading ? 'Envoi...' : '📸 Appareil photo'}
+              {uploading ? (
+                'Envoi...'
+              ) : (
+                <>
+                  <IconCamera size={14} /> Appareil photo
+                </>
+              )}
             </button>
           </div>
           <input

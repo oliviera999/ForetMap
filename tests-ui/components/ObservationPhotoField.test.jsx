@@ -34,15 +34,15 @@ describe('ObservationPhotoField', () => {
   test('sans aperçu → rend la zone d’upload avec les deux boutons', () => {
     const { container } = renderField();
     expect(container.querySelector('.img-upload-area--split')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '📁 Choisir une photo' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '📸 Prendre une photo' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Choisir une photo' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Prendre une photo' })).toBeTruthy();
     expect(container.querySelector('.img-preview-wrap')).toBeNull();
   });
 
   test('clic « Choisir une photo » arme le garde et clique l’input galerie', () => {
     const { props } = renderField();
     const clickSpy = vi.spyOn(props.galleryFileRef.current, 'click').mockImplementation(() => {});
-    fireEvent.click(screen.getByRole('button', { name: '📁 Choisir une photo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choisir une photo' }));
     expect(armNativeFilePickerGuard).toHaveBeenCalledTimes(1);
     expect(clickSpy).toHaveBeenCalledTimes(1);
   });
@@ -59,7 +59,7 @@ describe('ObservationPhotoField', () => {
     const { container, props } = renderField({ preview: 'data:image/png;base64,xxx' });
     expect(container.querySelector('.img-preview-wrap')).toBeTruthy();
     expect(screen.getByAltText('preview')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '✕' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer la photo' }));
     expect(props.onRemove).toHaveBeenCalledTimes(1);
   });
 });

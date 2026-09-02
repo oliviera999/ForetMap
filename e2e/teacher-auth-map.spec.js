@@ -26,7 +26,7 @@ test('parcours prof: activation mode prof, carte et modale zone', async ({ page 
   const zoneCount = await page.locator('.map-zone-hit').count();
   if (zoneCount > 0) {
     await openFirstZoneModalFromMap(page);
-    await page.getByRole('button', { name: '📷 Photos', exact: true }).click();
+    await page.getByRole('button', { name: 'Photos', exact: true }).click();
     await expect(page.getByPlaceholder('Légende (optionnel)')).toBeVisible();
     await page.locator('.modal-close').first().click();
   }
