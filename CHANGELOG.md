@@ -7,6 +7,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Couleurs de carte : une seule palette pour les zones et les catégories
+
+- **Champ couleur unifié** (`src/components/ColorPaletteField.jsx`, nouveau) : la palette
+  prédéfinie de dix teintes (`ZONE_COLORS`) est désormais proposée **à l'identique** au
+  dessin d'une zone, dans la fiche d'une zone et dans l'administration des **catégories de
+  zones/repères**. Chacun de ces trois écrans offre les mêmes trois façons de choisir :
+  pastilles de la palette, pastille de sélection du système, saisie hexadécimale directe
+  (la transparence des deux derniers caractères est conservée par le sélecteur).
+- Les pastilles de palette deviennent de vrais `<button>` (accessibles au clavier,
+  `aria-pressed`) et leurs styles passent en CSS partagé `.color-palette-field*`
+  (ex-`.map-category-color-field*`).
+- Tests : `tests-ui/components/ColorPaletteField.test.jsx` (nouveau) et cas couleur dans
+  `tests-ui/components/ZoneDrawModal.test.jsx`. Doc :
+  `docs/reference/foretmap/carte-et-zones.md`.
+
 ### Correctif — « Serveur indisponible » affiché alors que le voyant est au vert
 
 - **Notifications d'état closes à la reprise** : « Serveur indisponible — Synchronisation
