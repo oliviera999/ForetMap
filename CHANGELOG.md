@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctif — reprise Socket.IO et compte révoqué
+
+- **La reprise de session rejoue l'auth** : après une micro-coupure, Socket.IO
+  restaurait rooms et droits en mémoire sans relire le compte. Un MJ ou un
+  joueur désactivé (ou retiré de la partie) gardait le flux live jusqu'à 120 s.
+  L'hydratation tourne maintenant à chaque reprise ; un refus d'abonnement
+  quitte aussi la room restaurée.
+- Tests : `tests/realtime.test.js`, `tests/gl-realtime.test.js`.
+
 ### Correctif — « Serveur indisponible » affiché alors que le voyant est au vert
 
 - **Notifications d'état closes à la reprise** : « Serveur indisponible — Synchronisation
