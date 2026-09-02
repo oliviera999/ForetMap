@@ -1,6 +1,7 @@
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ZoneDrawModal } from '../../src/components/map/ZoneDrawModal.jsx';
+import { ZONE_COLORS } from '../../src/constants/garden.js';
 
 const CATEGORY_CATALOG = [
   {
@@ -98,5 +99,20 @@ describe('ZoneDrawModal', () => {
   test('une catégorie « repères seuls » n’est pas proposée sur une zone', () => {
     renderModal({ categoryCatalog: CATEGORY_CATALOG });
     expect(screen.queryByLabelText(/Point d’eau/)).toBeNull();
+  });
+  test('le choix de couleur offre la palette prédéfinie, le sélecteur et le code hexa', async () => {
+    const { onSave } = renderModal();
+    for (const c of ZONE_COLORS) {
+      expect(screen.getByRole('button', { name: `Couleur ${c}` })).toBeTruthy();
+    }
+    expect(screen.getByLabelText('Choisir la teinte')).toBeTruthy();
+
+    fireEvent.change(screen.getByPlaceholderText('Ex: Potager Est'), {
+      target: { value: 'Potager Ouest' },
+    });
+    fireEvent.change(screen.getByLabelText('Couleur'), { target: { value: '#123456cc' } });
+    fireEvent.click(screen.getByRole('button', { name: /Créer la zone/ }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0][0].color).toBe('#123456cc');
   });
 });
