@@ -2,7 +2,6 @@ import React from 'react';
 
 import { detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../../constants/emojis';
 import { TASK_VISUAL_LABEL } from '../../utils/taskEnrollment.js';
-import { isInfrastructureLocation } from '../../utils/locationCategories.js';
 import {
   fitOverlayLabelToWidth,
   shouldShowZoneEmojiLabel,
@@ -115,7 +114,6 @@ const ZonePolygon = React.memo(function ZonePolygon({
         fill={isEd ? 'rgba(82,183,136,0.35)' : z.color || '#86efac90'}
         stroke={isEd ? '#52b788' : 'rgba(26,71,49,0.5)'}
         strokeWidth={(isEd ? 2.5 : 1.5) * inv}
-        strokeDasharray={isInfrastructureLocation(z) ? `${5 * inv},${3 * inv}` : 'none'}
       />
       {showZoneEmoji && (
         <text
