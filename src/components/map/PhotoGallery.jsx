@@ -3,6 +3,8 @@ import { api } from '../../services/api';
 import { compressImage } from '../../utils/image';
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../../utils/overlayHistory';
 import { ImageLightbox } from '../../shared/components/ImageLightbox.jsx';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
+import { IconCamera, IconClose, IconFolder, IconLeaf } from '../../shared/icons.jsx';
 
 const FORETMAP_PHOTO_DRAG_MIME = 'application/x-foretmap-zone-marker-photo-id';
 
@@ -18,6 +20,7 @@ export function reorderZoneMarkerPhotosByDrop(list, draggedId, dropTargetId) {
 }
 
 export function PhotoGallery({ zoneId, markerId, isTeacher }) {
+  const { confirm, notify } = useAppDialogs();
   const [photos, setPhotos] = useState([]);
   const [big, setBig] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -61,19 +64,19 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
       setCaption('');
       await load();
     } catch (err) {
-      alert(err.message);
+      notify(err.message);
     } finally {
       setUploading(false);
     }
   };
 
   const del = async (id) => {
-    if (!confirm('Supprimer cette photo ?')) return;
+    if (!(await confirm({ message: 'Supprimer cette photo ?', danger: true }))) return;
     try {
       await api(`${listBase}/${id}`, 'DELETE');
       await load();
     } catch (err) {
-      alert(err.message || 'Suppression impossible');
+      notify(err.message || 'Suppression impossible');
     }
   };
 
@@ -84,7 +87,7 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
       await api(`${listBase}/reorder`, 'PUT', { photo_ids: nextOrdered.map((x) => x.id) });
       await load();
     } catch (err) {
-      alert(err.message || 'Impossible de réordonner les photos');
+      notify(err.message || 'Impossible de réordonner les photos');
       await load();
     } finally {
       setReorderingPhotos(false);
@@ -203,7 +206,7 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
                         animation: 'sway 1.5s infinite',
                       }}
                     >
-                      🌿
+                      <IconLeaf size={20} />
                     </div>
                   )}
                   {tileSrc && p.caption && (
@@ -228,6 +231,8 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
                   {isTeacher && tileSrc && (
                     <button
                       type="button"
+                      aria-label="Supprimer la photo"
+                      title="Supprimer la photo"
                       onMouseDown={(ev) => ev.stopPropagation()}
                       onClick={() => del(p.id)}
                       style={{
@@ -247,7 +252,7 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
                         justifyContent: 'center',
                       }}
                     >
-                      ✕
+                      <IconClose size={16} />
                     </button>
                   )}
                 </div>
@@ -285,7 +290,13 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
                 galleryFileRef.current?.click();
               }}
             >
-              {uploading ? 'Envoi...' : '📁 Galerie'}
+              {uploading ? (
+                'Envoi...'
+              ) : (
+                <>
+                  <IconFolder size={14} /> Galerie
+                </>
+              )}
             </button>
             <button
               type="button"
@@ -298,7 +309,13 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
                 cameraFileRef.current?.click();
               }}
             >
-              {uploading ? 'Envoi...' : '📸 Appareil photo'}
+              {uploading ? (
+                'Envoi...'
+              ) : (
+                <>
+                  <IconCamera size={14} /> Appareil photo
+                </>
+              )}
             </button>
           </div>
           <input

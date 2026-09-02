@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
+import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 
 /**
  * Chargement des données de la visite (cartes + contenu + progression serveur)
@@ -30,6 +31,7 @@ import { api, AccountDeletedError } from '../services/api';
  * }}
  */
 export function useVisitContent({ mapId, setMapId, onForceLogout, onProgressLoaded }) {
+  const { notify } = useAppDialogs();
   /** Dernière carte affichée : évite d’appliquer une réponse `/api/visit/content` obsolète après changement de `map_id`. */
   const visitLoadMapIdLiveRef = useRef(mapId);
   visitLoadMapIdLiveRef.current = mapId;
@@ -86,11 +88,11 @@ export function useVisitContent({ mapId, setMapId, onForceLogout, onProgressLoad
       onProgressLoadedRef.current?.(progressBody);
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
-      else alert(err.message || 'Erreur chargement visite');
+      else notify(err.message || 'Erreur chargement visite');
     } finally {
       setLoading(false);
     }
-  }, [mapId, setMapId, onForceLogout]);
+  }, [mapId, setMapId, onForceLogout, notify]);
 
   useEffect(() => {
     loadData();

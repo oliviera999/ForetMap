@@ -11,6 +11,7 @@ import { ContextComments } from './context-comments';
 import { DialogShell } from './DialogShell';
 import { MarkdownContent } from './MarkdownContent.jsx';
 import { FixedToast } from '../shared/components/FixedToast.jsx';
+import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { TutorialEditorPanel } from './tutorials/TutorialEditorPanel.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
@@ -24,6 +25,21 @@ import {
   filterAndSortTutorials,
 } from '../utils/tutorialListHelpers.js';
 import { tutorialFormFromDetail, buildTutorialSavePayload } from '../utils/tutorialFormHelpers.js';
+import {
+  IconCheck,
+  IconDelete,
+  IconDownload,
+  IconEdit,
+  IconExternalLink,
+  IconImage,
+  IconLink,
+  IconLock,
+  IconMap,
+  IconMarker,
+  IconRestore,
+  IconSave,
+  IconTuto,
+} from '../shared/icons.jsx';
 
 function downloadUrl(url) {
   const a = document.createElement('a');
@@ -66,12 +82,12 @@ function TutorialLinkedTasksModal({ state, onClose }) {
                 <span className="task-chip">{linkedTaskStatusLabel(task.status)}</span>
                 {task.map_label ? (
                   <span className="task-chip" title={task.map_id || ''}>
-                    🗺️ {task.map_label}
+                    <IconMap size={12} /> {task.map_label}
                   </span>
                 ) : null}
                 {task.location_hint ? (
                   <span className="task-chip" title="Lieu">
-                    📍 {task.location_hint}
+                    <IconMarker size={12} /> {task.location_hint}
                   </span>
                 ) : null}
               </div>
@@ -84,6 +100,7 @@ function TutorialLinkedTasksModal({ state, onClose }) {
 }
 
 function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
+  const { confirm } = useAppDialogs();
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
   const { tutorials = [], zones = [], markers = [], activeMapId = 'foret' } = useData();
@@ -338,7 +355,15 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
   });
 
   const archiveTutorial = async (row) => {
-    if (!confirm(`Archiver "${row.title}" ?`)) return;
+    if (
+      !(await confirm({
+        message: `Archiver "${row.title}" ?`,
+        confirmLabel: 'Archiver',
+        danger: true,
+      }))
+    ) {
+      return;
+    }
     try {
       await api(`/api/tutorials/${row.id}`, 'DELETE');
       await onRefresh?.();
@@ -459,7 +484,13 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
               disabled={reorderSaving}
               onClick={saveReorder}
             >
-              {reorderSaving ? 'Enregistrement…' : '💾 Enregistrer l’ordre'}
+              {reorderSaving ? (
+                'Enregistrement…'
+              ) : (
+                <>
+                  <IconSave size={14} /> Enregistrer l’ordre
+                </>
+              )}
             </button>
             <button
               type="button"
@@ -567,13 +598,26 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
           }}
         >
           <h2 className="section-title">
-            📘 Tutoriels
+            <IconTuto size={20} /> Tutoriels
             {gatingCounts.total > 0 ? (
               <span className="section-sub tutorials-gating-counts">
-                {gatingCounts.acquired > 0 ? `✓ ${gatingCounts.acquired} acquis` : ''}
+                {gatingCounts.acquired > 0 ? (
+                  <>
+                    <IconCheck size={12} /> {gatingCounts.acquired} acquis
+                  </>
+                ) : (
+                  ''
+                )}
                 {gatingCounts.acquired > 0 && gatingCounts.pending > 0 ? ' · ' : ''}
                 {gatingCounts.pending > 0 ? `? ${gatingCounts.pending} en attente` : ''}
-                {gatingCounts.locked > 0 ? ` · 🔒 ${gatingCounts.locked} bloqué` : ''}
+                {gatingCounts.locked > 0 ? (
+                  <>
+                    {' · '}
+                    <IconLock size={12} /> {gatingCounts.locked} bloqué
+                  </>
+                ) : (
+                  ''
+                )}
                 {gatingCounts.locked > 1 ? 's' : ''}
               </span>
             ) : null}
@@ -586,7 +630,7 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
                 </button>
               )}
               <button type="button" className="btn btn-ghost btn-sm" onClick={openImportModal}>
-                ⬇ Importer /tutos/
+                <IconDownload size={14} /> Importer /tutos/
               </button>
               <button type="button" className="btn btn-primary btn-sm" onClick={beginCreate}>
                 + Ajouter
@@ -600,7 +644,7 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="🔍 Rechercher un tutoriel..."
+            placeholder="Rechercher un tutoriel..."
           />
           <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
             <option value="all">Tous les types</option>
@@ -635,7 +679,9 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
 
         {filtered.length === 0 ? (
           <div className="empty">
-            <div className="empty-icon">📘</div>
+            <div className="empty-icon">
+              <IconTuto size={28} />
+            </div>
             <p>Aucun tutoriel pour le moment</p>
           </div>
         ) : (
@@ -664,10 +710,12 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
                       onClick={() => openLinkedTasks(t)}
                       title="Afficher les tâches liées à ce tutoriel"
                     >
-                      🔗 {t.linked_tasks_count} tâche(s) liée(s)
+                      <IconLink size={12} /> {t.linked_tasks_count} tâche(s) liée(s)
                     </button>
                   ) : (
-                    <span className="task-chip">🔗 0 tâche(s) liée(s)</span>
+                    <span className="task-chip">
+                      <IconLink size={12} /> 0 tâche(s) liée(s)
+                    </span>
                   )}
                   {(t.zones_linked || []).map((z) => (
                     <span key={`z-${z.id}`} className="task-chip" title="Zone sur la carte">
@@ -676,7 +724,7 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
                   ))}
                   {(t.markers_linked || []).map((m) => (
                     <span key={`m-${m.id}`} className="task-chip" title="Repère sur la carte">
-                      📍 {m.label}
+                      <IconMarker size={12} /> {m.label}
                     </span>
                   ))}
                 </div>
@@ -684,19 +732,19 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
                   {t.is_active && (
                     <>
                       <button className="btn btn-ghost btn-sm" onClick={() => openSource(t)}>
-                        🌐 Ouvrir
+                        <IconExternalLink size={14} /> Ouvrir
                       </button>
                       <button
                         className="btn btn-ghost btn-sm"
                         onClick={() => downloadUrl(`/api/tutorials/${t.id}/download/html`)}
                       >
-                        ⬇️ HTML
+                        <IconDownload size={14} /> HTML
                       </button>
                       <button
                         className="btn btn-primary btn-sm"
                         onClick={() => downloadUrl(`/api/tutorials/${t.id}/download/pdf`)}
                       >
-                        ⬇️ PDF
+                        <IconDownload size={14} /> PDF
                       </button>
                       <TutorialReadAcknowledgeButton
                         tutorialId={t.id}
@@ -713,29 +761,36 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
                   )}
                   {isTeacher && (
                     <>
-                      <button className="btn btn-ghost btn-sm" onClick={() => beginEdit(t)}>
-                        ✏️
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        aria-label="Modifier le tutoriel"
+                        title="Modifier le tutoriel"
+                        onClick={() => beginEdit(t)}
+                      >
+                        <IconEdit size={16} />
                       </button>
                       <button
                         className="btn btn-ghost btn-sm"
                         onClick={() => uploadCover(t)}
                         title="Uploader une image de couverture"
                       >
-                        🖼️ Couverture
+                        <IconImage size={14} /> Couverture
                       </button>
                       {t.is_active ? (
                         <button
                           className="btn btn-danger btn-sm"
+                          aria-label="Archiver le tutoriel"
+                          title="Archiver le tutoriel"
                           onClick={() => archiveTutorial(t)}
                         >
-                          🗑️
+                          <IconDelete size={16} />
                         </button>
                       ) : (
                         <button
                           className="btn btn-primary btn-sm"
                           onClick={() => restoreTutorial(t)}
                         >
-                          ♻️ Restaurer
+                          <IconRestore size={14} /> Restaurer
                         </button>
                       )}
                     </>

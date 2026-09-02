@@ -12,6 +12,7 @@ import {
 import { GlossaryInlineText } from '../GlossaryMarkdown.jsx';
 import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
 import { mergeGlossaryLinkItems } from '../../utils/foretmapGlossaryAutolink.js';
+import { IconQuiz } from '../../shared/icons.jsx';
 
 const THEME_OPTIONS = [
   { value: '', label: 'Tous thèmes' },
@@ -377,7 +378,9 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
   return (
     <div className="pedago-view pedago-quiz">
       <header className="pedago-view__head">
-        <h2 className="section-title">❓ Quiz</h2>
+        <h2 className="section-title">
+          <IconQuiz size={20} /> Quiz
+        </h2>
         <p className="section-sub">Questions sciences du vivant et jardinage.</p>
         {progress ? (
           <p className="section-sub pedago-quiz__progress">

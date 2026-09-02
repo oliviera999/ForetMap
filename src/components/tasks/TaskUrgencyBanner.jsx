@@ -1,5 +1,6 @@
 import { daysUntil } from '../../utils/badges';
 import { studentUrgentDueTasks } from '../../utils/taskSectioning.js';
+import { IconFlame } from '../../shared/icons.jsx';
 
 /** Libellé court d'échéance du bandeau urgence (retard, aujourd'hui, demain, J+x). */
 export function urgencyDueLabel(d) {
@@ -10,7 +11,7 @@ export function urgencyDueLabel(d) {
 }
 
 /**
- * Bandeau « 🔥 Échéances proches » côté n3beur (O6, extrait de tasks-views).
+ * Bandeau « Échéances proches » (icône flamme) côté n3beur (O6, extrait de tasks-views).
  *
  * Calcule lui-même les tâches dues entre J-2 et J+3 via `studentUrgentDueTasks`
  * et n'affiche rien côté n3boss ou sans échéance proche.
@@ -21,7 +22,9 @@ export function TaskUrgencyBanner({ isTeacher = false, tasks = [], maxItems = 5 
   if (urgentTasks.length === 0) return null;
   return (
     <div className="urgency-banner">
-      <h4>🔥 Échéances proches</h4>
+      <h4>
+        <IconFlame size={16} /> Échéances proches
+      </h4>
       {urgentTasks.slice(0, maxItems).map((t) => (
         <div key={t.id} className="urgency-item">
           <span className="urgency-days">{urgencyDueLabel(daysUntil(t.due_date))}</span>

@@ -81,3 +81,22 @@
     transform: none !important;
   }
 }
+
+/* Dialogues applicatifs communs (AppDialogsProvider) — remplacent confirm/prompt natifs. */
+.app-dialog {
+  max-width: 420px;
+}
+
+.app-dialog__message {
+  margin: 0 0 14px;
+  line-height: var(--lh-normal, 1.45);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.app-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}

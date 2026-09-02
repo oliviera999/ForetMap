@@ -66,7 +66,7 @@ describe('TaskFormReferentsField', () => {
 
   test('recherche et effacement déclenchent les callbacks', () => {
     const { onSearchChange, onClear } = renderField();
-    fireEvent.change(screen.getByPlaceholderText('🔍 Filtrer par nom…'), {
+    fireEvent.change(screen.getByPlaceholderText('Filtrer par nom…'), {
       target: { value: 'al' },
     });
     expect(onSearchChange).toHaveBeenCalledWith('al');

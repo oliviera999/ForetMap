@@ -2169,36 +2169,8 @@ body.gl-map-fullscreen-active > .gl-board-shell--fullscreen {
   margin-top: 0;
 }
 
-.gl-subtabs {
-  display: flex;
-  gap: 6px;
-  margin: 8px 0 16px;
-  flex-wrap: wrap;
-}
-
-.gl-subtabs button {
-  padding: 6px 14px;
-  border: 1px solid color-mix(in srgb, #fff 55%, var(--gl-color-primary) 45%);
-  background: color-mix(in srgb, #fff 76%, var(--gl-color-secondary) 24%);
-  color: var(--gl-color-primary);
-  border-radius: var(--gl-radius-pill);
-  cursor: pointer;
-  min-height: 40px;
-  transition:
-    transform var(--motion-fast) var(--ease-out),
-    box-shadow var(--motion-fast) var(--ease-out);
-}
-
-.gl-subtabs button.is-active {
-  background: var(--gl-color-primary);
-  color: #fff;
-  border-color: var(--gl-color-primary);
-  box-shadow: var(--gl-shadow-sm);
-}
-
-.gl-subtabs button:hover {
-  transform: translateY(-1px);
-}
+/* `.gl-subtabs` : règles déplacées vers src/shared/styles/shared-controls.css (chargé par
+   les deux produits) — ForetMap utilise aussi ces sous-onglets (audit UI, D-3). */
 
 /* Modale d'édition d'un feuillet (carnet de Sélène) : plein écran confortable,
    contenu et associations d'abord, en-tête/pied d'actions collants. */

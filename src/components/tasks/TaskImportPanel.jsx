@@ -2,6 +2,7 @@ import { api } from '../../services/api';
 import { downloadApiFile } from '../../utils/downloadApiFile.js';
 import { fileToDataUrl } from '../../utils/fileToDataUrl.js';
 import { ImportPanel } from '../../shared/components/ImportPanel.jsx';
+import { IconFileSpreadsheet, IconFileText } from '../../shared/icons.jsx';
 
 /**
  * Panneau n3boss « Import tâches/projets (CSV / XLSX) » de la vue Tâches.
@@ -59,8 +60,22 @@ export function TaskImportPanel({ setToast, onRefresh }) {
         </p>
       }
       templateButtons={[
-        { label: '📄 Modèle CSV', onClick: () => downloadImportTemplate('csv') },
-        { label: '📗 Modèle XLSX', onClick: () => downloadImportTemplate('xlsx') },
+        {
+          label: (
+            <>
+              <IconFileText size={14} /> Modèle CSV
+            </>
+          ),
+          onClick: () => downloadImportTemplate('csv'),
+        },
+        {
+          label: (
+            <>
+              <IconFileSpreadsheet size={14} /> Modèle XLSX
+            </>
+          ),
+          onClick: () => downloadImportTemplate('xlsx'),
+        },
       ]}
       templatesDisabledWhenBusy
       importBusyLabel="Import..."

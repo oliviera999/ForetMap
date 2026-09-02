@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
 import { GLBadge } from '../ui/GLBadge.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
@@ -26,6 +27,7 @@ export function GLPlayersPanel({
   onImpersonationApplied = null,
   impersonateGameId = null,
 }) {
+  const { confirm } = useAppDialogs();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -158,7 +160,10 @@ export function GLPlayersPanel({
   }
 
   async function deletePlayer(player) {
-    const ok = window.confirm(`Supprimer le joueur « ${player.pseudo} » ?`);
+    const ok = await confirm({
+      message: `Supprimer le joueur « ${player.pseudo} » ?`,
+      danger: true,
+    });
     if (!ok) return;
     setBusy(true);
     setError('');

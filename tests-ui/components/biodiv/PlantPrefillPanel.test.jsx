@@ -38,7 +38,7 @@ describe('PlantPrefillPanel', () => {
 
   test('requête trop courte → toast, aucun appel serveur', () => {
     const { onToast } = setup({ form: { name: 'T', scientific_name: '' } });
-    fireEvent.click(screen.getByText('✨ Pré-saisir depuis sources externes'));
+    fireEvent.click(screen.getByText('Pré-saisir depuis sources externes'));
     expect(onToast).toHaveBeenCalledWith(
       'Indique un nom (ou nom scientifique) avec au moins 2 caractères.',
     );
@@ -53,20 +53,20 @@ describe('PlantPrefillPanel', () => {
       photos: [],
     });
     setup();
-    fireEvent.click(screen.getByText('✨ Pré-saisir depuis sources externes'));
+    fireEvent.click(screen.getByText('Pré-saisir depuis sources externes'));
     await waitFor(() => {
       expect(api).toHaveBeenCalledWith('/api/plants/autofill?q=Tomate&hint_name=Tomate');
     });
     expect(await screen.findByText(/Pré-saisie proposée — confiance 80%/)).toBeInTheDocument();
     expect(screen.getByText('Potager ensoleillé')).toBeInTheDocument();
-    expect(screen.getByText('🔎 wikipedia')).toBeInTheDocument();
+    expect(screen.getByText('wikipedia')).toBeInTheDocument();
   });
 
   test('sources décochées partiellement → paramètre sources=… dans la requête', async () => {
     setup();
     // décoche OpenAI (label cliquable)
     fireEvent.click(screen.getByText('OpenAI'));
-    fireEvent.click(screen.getByText('✨ Pré-saisir depuis sources externes'));
+    fireEvent.click(screen.getByText('Pré-saisir depuis sources externes'));
     await waitFor(() => expect(api).toHaveBeenCalled());
     const url = api.mock.calls[0][0];
     expect(url).toContain('sources=');
@@ -80,7 +80,7 @@ describe('PlantPrefillPanel', () => {
       photos: [],
     });
     const { setForm, onToast } = setup();
-    fireEvent.click(screen.getByText('✨ Pré-saisir depuis sources externes'));
+    fireEvent.click(screen.getByText('Pré-saisir depuis sources externes'));
     await screen.findByText('Appliquer la sélection');
     fireEvent.click(screen.getByText('Appliquer la sélection'));
     expect(setForm).toHaveBeenCalledTimes(1);
@@ -105,7 +105,7 @@ describe('PlantPrefillPanel', () => {
       ],
     });
     setup();
-    fireEvent.click(screen.getByText('✨ Pré-saisir depuis sources externes'));
+    fireEvent.click(screen.getByText('Pré-saisir depuis sources externes'));
     await screen.findByText(/Photos proposées/);
     const check = document.querySelector('.plant-prefill-photo-check');
     expect(check.checked).toBe(false);
@@ -120,7 +120,7 @@ describe('PlantPrefillPanel', () => {
   test('erreur serveur → message « Pré-saisie indisponible »', async () => {
     api.mockRejectedValueOnce(new Error('autofill HS'));
     setup();
-    fireEvent.click(screen.getByText('✨ Pré-saisir depuis sources externes'));
+    fireEvent.click(screen.getByText('Pré-saisir depuis sources externes'));
     expect(await screen.findByText(/Pré-saisie indisponible: autofill HS/)).toBeInTheDocument();
   });
 });

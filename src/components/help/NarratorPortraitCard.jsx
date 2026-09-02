@@ -12,6 +12,7 @@ import {
   DEFAULT_MASCOT_EXPRESSION,
   DEFAULT_MASCOT_FRAMING,
 } from '../../utils/mascotExpressions.js';
+import { IconAttachment } from '../../shared/icons.jsx';
 
 /** Cadrages secondaires, repliés par défaut : `bust` suffit à faire fonctionner l'ensemble. */
 const SECONDARY_FRAMINGS = ['face', 'body'];
@@ -35,7 +36,9 @@ function FramingRow({ framing, url, busy, onPick, onUpload, onClear, expressionL
       </div>
       <p className="fm-narrator-framing__value">
         {url ? (
-          <span title={url}>📎 {fileNameFromUrl(url)}</span>
+          <span title={url}>
+            <IconAttachment size={12} /> {fileNameFromUrl(url)}
+          </span>
         ) : (
           <span className="fm-narrator-muted">Aucune image</span>
         )}

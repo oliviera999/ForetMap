@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { IconIdea, IconWarning } from '../../shared/icons.jsx';
 
 import { api } from '../../services/api';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { MascotSpeaker } from '../../shared/components/MascotSpeaker.jsx';
 import { SpeechBubble } from '../../shared/components/SpeechBubble.jsx';
@@ -57,6 +59,7 @@ function formatKilobytes(size) {
  *    Enregistrement automatique, comme les autres studios prof.
  */
 export function HelpNarratorAdminPanel() {
+  const { confirm } = useAppDialogs();
   const [draft, setDraft] = useState(null);
   const [loadRevision, setLoadRevision] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -131,9 +134,12 @@ export function HelpNarratorAdminPanel() {
 
   async function resetNarrator() {
     if (
-      !window.confirm(
-        'Réinitialiser le narrateur ? Le nom, la silhouette et tous les portraits affectés reviennent aux valeurs par défaut. Les images restent dans la médiathèque.',
-      )
+      !(await confirm({
+        message:
+          'Réinitialiser le narrateur ? Le nom, la silhouette et tous les portraits affectés reviennent aux valeurs par défaut. Les images restent dans la médiathèque.',
+        confirmLabel: 'Réinitialiser',
+        danger: true,
+      }))
     ) {
       return;
     }
@@ -167,8 +173,16 @@ export function HelpNarratorAdminPanel() {
         portrait par expression et son interrupteur — pas les textes, qui sont dans « Bulles d’aide
         ».
       </p>
-      {error ? <div className="auth-error">⚠️ {error}</div> : null}
-      {saveError ? <div className="auth-error">⚠️ {saveError}</div> : null}
+      {error ? (
+        <div className="auth-error">
+          <IconWarning size={14} /> {error}
+        </div>
+      ) : null}
+      {saveError ? (
+        <div className="auth-error">
+          <IconWarning size={14} /> {saveError}
+        </div>
+      ) : null}
       {info ? <div className="auth-success">{info}</div> : null}
 
       {/* ── Interrupteur global (§9.4) ─────────────────────────────────────── */}
@@ -297,7 +311,9 @@ export function HelpNarratorAdminPanel() {
                 {enabled ? (
                   <MascotSpeaker narrator={draft} expression="neutre" size="face" />
                 ) : null}
-                <span>💡 Aide de la page</span>
+                <span>
+                  <IconIdea size={14} /> Aide de la page
+                </span>
               </h4>
               <ul>
                 <li>{PREVIEW_TEXT}</li>

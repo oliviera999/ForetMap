@@ -6,6 +6,7 @@ import {
   swapFrames,
 } from '../../utils/mascotPackEditorFrames.js';
 import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
+import { IconClose } from '../../shared/icons.jsx';
 
 /**
  * Éditeur d'un état d'animation (feuille) : bascule actif, choix du mode
@@ -223,12 +224,14 @@ export default function MascotPackStateEditor({
                   <button
                     type="button"
                     className="btn btn-ghost btn-sm"
+                    aria-label="Retirer cette image"
+                    title="Retirer cette image"
                     onClick={() => {
                       const nextSrcs = srcs.filter((_, i) => i !== idx);
                       onUpdateStateEntry(stateKey, { ...spec, srcs: nextSrcs, fps });
                     }}
                   >
-                    ✕
+                    <IconClose size={16} />
                   </button>
                 </div>
               ))}

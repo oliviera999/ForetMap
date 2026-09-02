@@ -11,6 +11,7 @@ import {
   getEffectiveDialogProfile,
   pickRandomDialogLine,
 } from '../utils/visitMascotDialogApply.js';
+import { IconClose } from '../shared/icons.jsx';
 
 /**
  * @param {{
@@ -221,7 +222,7 @@ export default function VisitMascotDialogEditor({
                           patchEventLines(eventKey, nextLines);
                         }}
                       >
-                        ✕
+                        <IconClose size={16} />
                       </button>
                     </li>
                   ))}
@@ -344,7 +345,7 @@ export default function VisitMascotDialogEditor({
                               )
                             }
                           >
-                            ✕
+                            <IconClose size={16} />
                           </button>
                         </li>
                       ))}

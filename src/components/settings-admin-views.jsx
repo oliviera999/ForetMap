@@ -21,6 +21,9 @@ import { HelpNarratorAdminPanel } from './help/HelpNarratorAdminPanel.jsx';
 import { ForetMapReferenceDocsPanel } from './help/ForetMapReferenceDocsPanel.jsx';
 import { DiscoveryTourAdminPanel } from './help/DiscoveryTourAdminPanel.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
+import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
+import { AdminSection } from '../shared/components/AdminSection.jsx';
+import { IconCamera, IconGallery, IconSettings, IconWarning } from '../shared/icons.jsx';
 
 /**
  * Console de réglages administrateur.
@@ -31,6 +34,7 @@ import { useSession } from '../contexts/SessionContext.jsx';
  * volontairement pour ne pas réafficher des contrôles prof en vue élève.
  */
 function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
+  const { confirm } = useAppDialogs();
   const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [loading, setLoading] = useState(true);
@@ -73,6 +77,10 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
     () => countSectionRows(filteredSettingSections),
     [filteredSettingSections],
   );
+
+  // Recherche active → les sections de la grille sont forcées ouvertes (sans persister),
+  // pour que les résultats filtrés restent visibles.
+  const searchActive = searchQuery.trim().length > 0;
 
   const load = async () => {
     setErr('');
@@ -240,7 +248,12 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
       /* ignore */
     }
     requestAnimationFrame(() => {
-      document.getElementById('settings-learning-gating')?.scrollIntoView({
+      const target = document.getElementById('settings-learning-gating');
+      // Le panneau vit dans un accordéon (AdminSection) : on l'ouvre avant de
+      // défiler — l'événement toggle natif déclenche la persistance côté composant.
+      const details = target?.closest('details');
+      if (details && !details.open) details.open = true;
+      target?.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
       });
@@ -413,7 +426,15 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
   };
 
   const triggerRestart = async () => {
-    if (!window.confirm('Redémarrer l’application maintenant ?')) return;
+    if (
+      !(await confirm({
+        message: 'Redémarrer l’application maintenant ?',
+        confirmLabel: 'Redémarrer',
+        danger: true,
+      }))
+    ) {
+      return;
+    }
     setErr('');
     setMsg('');
     setSavingKey('restart');
@@ -436,11 +457,17 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
 
   return (
     <div className="fade-in settings-admin">
-      <h2 className="section-title">⚙️ Paramètres administrateur</h2>
+      <h2 className="section-title">
+        <IconSettings size={20} /> Paramètres administrateur
+      </h2>
       <p className="section-sub">
         Tout ce qui fait tourner l’app proprement : accueil, cartes, sécurité, exploitation.
       </p>
-      {err && <div className="auth-error">⚠️ {err}</div>}
+      {err && (
+        <div className="auth-error">
+          <IconWarning size={14} /> {err}
+        </div>
+      )}
       {msg && <div className="auth-success">{msg}</div>}
       <nav className="gl-subtabs" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
         {canReadSettings && (
@@ -523,15 +550,7 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
         <ForetMapHelpContentAdminPanel />
       ) : (
         <>
-          <div
-            style={{
-              background: 'white',
-              border: '1px solid #e5e7eb',
-              borderRadius: 12,
-              padding: 12,
-              marginBottom: 12,
-            }}
-          >
+          <div className="settings-admin-card" style={{ marginBottom: 12 }}>
             <div className="field" style={{ marginBottom: 8 }}>
               <label>Recherche dans les paramètres</label>
               <input
@@ -561,23 +580,21 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
             </div>
           </div>
 
-          <FMLearningGatingSettings get={get} saveSetting={saveSetting} savingKey={savingKey} />
+          <AdminSection id="gating" title="Conditionnement pédagogique" defaultOpen={false}>
+            <FMLearningGatingSettings get={get} saveSetting={saveSetting} savingKey={savingKey} />
+          </AdminSection>
 
           <div className="settings-admin-grid">
             {filteredSettingSections.map((section) => (
-              <div
+              <AdminSection
                 key={section.id}
-                style={{
-                  background: 'white',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: 12,
-                  padding: 12,
-                  minWidth: 0,
-                }}
+                id={section.id ?? section.title}
+                title={section.title}
+                defaultOpen={false}
+                forceOpen={searchActive}
               >
-                <h3 style={{ marginTop: 0 }}>{section.title}</h3>
                 {section.rows.map((row) => renderSettingField(row))}
-              </div>
+              </AdminSection>
             ))}
           </div>
           {filteredCount === 0 && (
@@ -588,21 +605,14 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
 
           {/* Réglages mascottes : panneau dédié (vignettes + choix du défaut) — la clé
               correspondante est retirée de la grille texte libre ci-dessus. */}
-          <VisitMascotSettingsPanel
-            defaultValue={get('ui.visit.mascot.default_id', '')}
-            onSave={(key, value) => saveSetting(key, value, 'Réglages mascottes enregistrés')}
-          />
+          <AdminSection id="mascots" title="Mascottes de visite" defaultOpen={false}>
+            <VisitMascotSettingsPanel
+              defaultValue={get('ui.visit.mascot.default_id', '')}
+              onSave={(key, value) => saveSetting(key, value, 'Réglages mascottes enregistrés')}
+            />
+          </AdminSection>
 
-          <div
-            style={{
-              background: 'white',
-              border: '1px solid #e5e7eb',
-              borderRadius: 12,
-              padding: 12,
-              marginTop: 12,
-            }}
-          >
-            <h3 style={{ marginTop: 0 }}>Cartes & plans</h3>
+          <AdminSection id="maps" title="Cartes & plans" defaultOpen={false}>
             <p
               style={{
                 fontSize: 'var(--text-sm)',
@@ -760,7 +770,13 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                         }}
                         disabled={savingKey === `map-image:${m.id}`}
                       >
-                        {savingKey === `map-image:${m.id}` ? 'Envoi…' : '📁 Galerie'}
+                        {savingKey === `map-image:${m.id}` ? (
+                          'Envoi…'
+                        ) : (
+                          <>
+                            <IconGallery size={15} /> Galerie
+                          </>
+                        )}
                       </button>
                       <button
                         type="button"
@@ -772,7 +788,13 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                         }}
                         disabled={savingKey === `map-image:${m.id}`}
                       >
-                        {savingKey === `map-image:${m.id}` ? 'Envoi…' : '📸 Appareil photo'}
+                        {savingKey === `map-image:${m.id}` ? (
+                          'Envoi…'
+                        ) : (
+                          <>
+                            <IconCamera size={15} /> Appareil photo
+                          </>
+                        )}
                       </button>
                       <input
                         ref={(el) => {
@@ -816,31 +838,24 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                 </div>
               ))}
             </div>
-          </div>
+          </AdminSection>
 
-          <MapCategoriesPanel
-            maps={maps}
-            onMessage={(okMsg) => {
-              setMsg(okMsg);
-              setErr('');
-            }}
-            onError={(errMsg) => setErr(errMsg)}
-          />
+          <AdminSection id="categories" title="Catégories de lieux" defaultOpen={false}>
+            <MapCategoriesPanel
+              maps={maps}
+              onMessage={(okMsg) => {
+                setMsg(okMsg);
+                setErr('');
+              }}
+              onError={(errMsg) => setErr(errMsg)}
+            />
+          </AdminSection>
 
           <div
             className="settings-admin-grid settings-admin-grid--single-on-mobile"
             style={{ marginTop: 12 }}
           >
-            <div
-              style={{
-                background: 'white',
-                border: '1px solid #e5e7eb',
-                borderRadius: 12,
-                padding: 12,
-                minWidth: 0,
-              }}
-            >
-              <h3 style={{ marginTop: 0 }}>Actions système</h3>
+            <AdminSection id="system" title="Actions système" defaultOpen={false}>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button className="btn btn-secondary btn-sm" onClick={fetchSystemDiagnostics}>
                   Diagnostic complet
@@ -876,20 +891,11 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                 définies sur le serveur (variables d’environnement). Aucune clé n’est affichée ni
                 enregistrée ici.
               </p>
-            </div>
+            </AdminSection>
           </div>
 
           {(logs.length > 0 || oauthDebug || speciesAutofillTest || systemDiagnostics) && (
-            <div
-              style={{
-                background: 'white',
-                border: '1px solid #e5e7eb',
-                borderRadius: 12,
-                padding: 12,
-                marginTop: 12,
-              }}
-            >
-              <h3 style={{ marginTop: 0 }}>Diagnostics</h3>
+            <AdminSection id="diagnostics" title="Diagnostics" defaultOpen={false}>
               {systemDiagnostics && (
                 <pre
                   style={{
@@ -953,7 +959,7 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                   {logs.join('\n')}
                 </pre>
               )}
-            </div>
+            </AdminSection>
           )}
         </>
       )}

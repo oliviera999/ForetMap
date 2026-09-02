@@ -1,4 +1,5 @@
 import { armNativeFilePickerGuard } from '../../utils/overlayHistory';
+import { IconCamera, IconClose, IconFolder } from '../../shared/icons.jsx';
 
 /**
  * Champ « Photo illustrative » du formulaire de tâche (feuille prop-driven).
@@ -36,7 +37,9 @@ export function TaskFormImageField({
           aria-label="Photo illustrative : galerie ou appareil photo"
           style={busy ? { opacity: 0.7, pointerEvents: 'none' } : undefined}
         >
-          <div style={{ fontSize: 'var(--text-2xl)', marginBottom: 6 }}>📷</div>
+          <div style={{ marginBottom: 6 }}>
+            <IconCamera size={28} />
+          </div>
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-faint)', marginBottom: 10 }}>
             {busy ? 'Traitement…' : 'Galerie ou appareil photo'}
           </div>
@@ -52,7 +55,7 @@ export function TaskFormImageField({
                 galleryInputRef.current?.click();
               }}
             >
-              📁 Choisir une photo
+              <IconFolder size={14} /> Choisir une photo
             </button>
             <button
               type="button"
@@ -65,7 +68,7 @@ export function TaskFormImageField({
                 cameraInputRef.current?.click();
               }}
             >
-              📸 Prendre une photo
+              <IconCamera size={14} /> Prendre une photo
             </button>
           </div>
           <input ref={galleryInputRef} type="file" accept="image/*" onChange={onFile} />
@@ -86,7 +89,7 @@ export function TaskFormImageField({
             onClick={onClear}
             aria-label="Retirer la photo"
           >
-            ✕
+            <IconClose size={16} />
           </button>
         </div>
       )}

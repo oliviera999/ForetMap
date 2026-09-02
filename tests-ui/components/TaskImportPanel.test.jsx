@@ -32,8 +32,8 @@ describe('TaskImportPanel', () => {
   test('affiche le panneau repliable et les boutons de modèles', () => {
     renderPanel();
     expect(screen.getByText('Import tâches/projets (CSV / XLSX)')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '📄 Modèle CSV' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '📗 Modèle XLSX' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Modèle CSV' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Modèle XLSX' })).toBeTruthy();
   });
 
   test('« Importer » sans fichier : toast d’aide, aucun appel API', () => {

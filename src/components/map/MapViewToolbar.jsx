@@ -14,6 +14,32 @@ import {
   EDGE_SNAP_SENSITIVITY_MAX,
   EDGE_SNAP_SENSITIVITY_MIN,
 } from '../../utils/edgeSnap.js';
+import {
+  IconCheck,
+  IconClose,
+  IconDelete,
+  IconDrawZone,
+  IconEdit,
+  IconFullscreen,
+  IconGps,
+  IconHand,
+  IconLabels,
+  IconLock,
+  IconMagnet,
+  IconMarker,
+  IconMultiOff,
+  IconMultiOn,
+  IconSave,
+  IconSignalLow,
+  IconSlider,
+  IconTarget,
+  IconUndo,
+  IconUnlock,
+  IconWarning,
+  IconZoomIn,
+  IconZoomOut,
+  IconZoomReset,
+} from '../../shared/icons.jsx';
 
 /** Style « pilule » des bascules d'édition de contour (aligné sur le verrou repères). */
 function editTogglePillStyle(on) {
@@ -171,14 +197,27 @@ export function MapViewToolbar({
           }}
         >
           {[
-            ['view', '🖐️ Nav'],
+            [
+              'view',
+              <>
+                <IconHand size={15} /> Nav
+              </>,
+            ],
             ...(isTeacher && mode !== 'edit-points'
               ? [
                   [
                     'draw-zone',
-                    `🖊️ Zone${mode === 'draw-zone' && drawPointsCount > 0 ? ` (${drawPointsCount})` : ''}`,
+                    <>
+                      <IconDrawZone size={15} /> Zone
+                      {mode === 'draw-zone' && drawPointsCount > 0 ? ` (${drawPointsCount})` : ''}
+                    </>,
                   ],
-                  ['add-marker', '📍 Repère'],
+                  [
+                    'add-marker',
+                    <>
+                      <IconMarker size={15} /> Repère
+                    </>,
+                  ],
                 ]
               : []),
           ].map(([m, label]) => (
@@ -200,14 +239,18 @@ export function MapViewToolbar({
           <div style={{ display: 'flex', gap: 4 }}>
             {drawPointsCount >= 3 && (
               <button className="btn btn-secondary btn-sm" onClick={onFinishZone}>
-                ✅ Terminer
+                <IconCheck size={15} /> Terminer
               </button>
             )}
             <button className="btn btn-ghost btn-sm" onClick={onUndoPoint}>
-              ↩ Undo
+              <IconUndo size={15} /> Annuler
             </button>
-            <button className="btn btn-danger btn-sm" onClick={onCancelDraw}>
-              ✕
+            <button
+              className="btn btn-danger btn-sm"
+              aria-label="Annuler le tracé"
+              onClick={onCancelDraw}
+            >
+              <IconClose size={15} />
             </button>
           </div>
         )}
@@ -219,7 +262,7 @@ export function MapViewToolbar({
             style={{ display: 'flex', gap: 6, alignItems: 'center' }}
           >
             <span className="map-edit-zone-badge">
-              ✏️ {editZoneName}
+              <IconEdit size={15} /> {editZoneName}
               {editPointsCount ? ` · ${editPointsCount} pts` : ''}
               {selectedPointsCount ? ` (${selectedPointsCount} sél.)` : ''}
             </span>
@@ -231,16 +274,30 @@ export function MapViewToolbar({
               onClick={onToggleInsertVertexMode}
               title="Ajouter un sommet : cliquez ensuite sur un bord du contour. Sans ce mode, tirez une poignée pointillée au milieu d’une arête."
             >
-              {insertVertexMode ? '✕ Ajout' : '＋ Sommet'}
+              {insertVertexMode ? (
+                <>
+                  <IconClose size={15} /> Ajout
+                </>
+              ) : (
+                <>
+                  <IconZoomIn size={15} /> Sommet
+                </>
+              )}
             </button>
             <button
               type="button"
               className="btn btn-ghost btn-sm"
               disabled={!canRemoveSelection}
               onClick={onRemoveSelectedPoints}
+              aria-label={
+                selectedPointsCount > 1
+                  ? `Retirer ${selectedPointsCount} sommets`
+                  : 'Retirer le sommet'
+              }
               title="Retirer les sommets sélectionnés (touche Suppr). Un contour garde au moins 3 sommets."
             >
-              🗑️ {selectedPointsCount > 1 ? `${selectedPointsCount} sommets` : 'Sommet'}
+              <IconDelete size={15} />{' '}
+              {selectedPointsCount > 1 ? `${selectedPointsCount} sommets` : 'Sommet'}
             </button>
             <button
               type="button"
@@ -250,7 +307,7 @@ export function MapViewToolbar({
               onClick={onToggleMultiSelectMode}
               title="Sélection multiple : chaque appui ajoute ou retire un sommet (équivaut à Maj+clic, pratique au doigt)."
             >
-              {multiSelectMode ? '☑️ Multi' : '⬜ Multi'}
+              {multiSelectMode ? <IconMultiOn size={15} /> : <IconMultiOff size={15} />} Multi
             </button>
             <button
               type="button"
@@ -260,7 +317,7 @@ export function MapViewToolbar({
               onClick={onToggleSnap}
               title="Aimant : le sommet déplacé se colle au contour le plus contrasté de l'image de fond, en privilégiant les angles droits. Maintenir Alt le désactive le temps d'un geste."
             >
-              🧲{' '}
+              <IconMagnet size={15} />{' '}
               {snapEnabled && snapStatus === 'loading'
                 ? 'Analyse…'
                 : snapEnabled && snapStatus === 'unavailable'
@@ -273,7 +330,7 @@ export function MapViewToolbar({
                   className="map-snap-setting map-snap-radius"
                   title="Rayon d’accroche : jusqu’à quelle distance l’aimant va chercher un contour."
                 >
-                  <span aria-hidden>◎</span>
+                  <IconTarget size={15} />
                   <input
                     type="range"
                     min={6}
@@ -289,7 +346,7 @@ export function MapViewToolbar({
                   className="map-snap-setting map-snap-sensitivity"
                   title="Sensibilité : à quel point un contour doit être marqué pour attirer le sommet. Bas = seules les limites franches ; haut = les transitions ténues aussi (au risque d’accrocher une ombre)."
                 >
-                  <span aria-hidden>🎚️</span>
+                  <IconSlider size={15} />
                   <input
                     type="range"
                     min={EDGE_SNAP_SENSITIVITY_MIN}
@@ -309,7 +366,7 @@ export function MapViewToolbar({
                   onClick={onSnapSelectedPoints}
                   title="Coller les sommets sélectionnés — ou tout le contour si rien n’est sélectionné — sur les contours de l’image."
                 >
-                  🧲 Coller
+                  <IconMagnet size={15} /> Coller
                 </button>
               </>
             )}
@@ -320,13 +377,17 @@ export function MapViewToolbar({
               onClick={onUndoEditPoints}
               title="Annuler la dernière modification (Ctrl+Z ou Cmd+Z)"
             >
-              ↩ Annuler
+              <IconUndo size={15} /> Annuler
             </button>
             <button className="btn btn-primary btn-sm" onClick={onSaveEditPoints}>
-              💾 Sauver
+              <IconSave size={15} /> Enregistrer
             </button>
-            <button className="btn btn-ghost btn-sm" onClick={onExitEditPoints}>
-              ✕
+            <button
+              className="btn btn-ghost btn-sm"
+              aria-label="Quitter l'édition"
+              onClick={onExitEditPoints}
+            >
+              <IconClose size={15} />
             </button>
           </div>
         )}
@@ -340,7 +401,7 @@ export function MapViewToolbar({
               aria-label="Afficher la carte en plein écran"
               onClick={onOpenFullscreen}
             >
-              <span aria-hidden>⛶</span> Plein écran
+              <IconFullscreen size={15} /> Plein écran
             </button>
           ) : null}
           {canManageMarkerPositions && (
@@ -358,7 +419,7 @@ export function MapViewToolbar({
                 color: markerPositionUnlocked ? '#166534' : 'var(--forest)',
               }}
             >
-              {markerPositionUnlocked ? '🔓 Repères' : '🔒 Repères'}
+              {markerPositionUnlocked ? <IconUnlock size={15} /> : <IconLock size={15} />} Repères
             </button>
           )}
           {isCoarsePointer && mode === 'view' && (
@@ -372,7 +433,8 @@ export function MapViewToolbar({
                     : 'Activer les gestes carte'
                 }
               >
-                {mobileInteractionsActive ? '🔓 Gestes' : '🔒 Gestes'}
+                {mobileInteractionsActive ? <IconUnlock size={15} /> : <IconLock size={15} />}{' '}
+                Gestes
               </button>
             </Tooltip>
           )}
@@ -408,16 +470,19 @@ export function MapViewToolbar({
                   color: gps.active ? 'white' : 'var(--forest)',
                 }}
               >
-                {!gps.active
-                  ? '📍 Me suivre'
-                  : gps.status === 'denied' ||
-                      gps.feedback === 'out_of_bounds' ||
-                      gps.feedback === 'bad_georef' ||
-                      (!gps.feedback && gps.error)
-                    ? '📍 ⚠️'
-                    : gps.feedback === 'low_accuracy'
-                      ? '📍 📶'
-                      : '📍 Suivi'}
+                <IconGps size={15} />{' '}
+                {!gps.active ? (
+                  'Me suivre'
+                ) : gps.status === 'denied' ||
+                  gps.feedback === 'out_of_bounds' ||
+                  gps.feedback === 'bad_georef' ||
+                  (!gps.feedback && gps.error) ? (
+                  <IconWarning size={15} />
+                ) : gps.feedback === 'low_accuracy' ? (
+                  <IconSignalLow size={15} />
+                ) : (
+                  'Suivi'
+                )}
               </button>
             </Tooltip>
           ) : null}
@@ -438,16 +503,16 @@ export function MapViewToolbar({
               aria-label={showLabels ? 'Masquer les noms' : 'Afficher les noms'}
               onClick={onToggleLabels}
             >
-              🏷️
+              <IconLabels size={15} />
             </button>
           </Tooltip>
           <div className="map-toolbar-zoom-group">
             {[
-              ['＋', 1.28, 'map.zoomIn', 'Zoomer la carte'],
-              ['－', 0.78, 'map.zoomOut', 'Dézoomer la carte'],
-              ['⊡', 0, 'map.zoomReset', 'Recentrer la carte'],
-            ].map(([label, factor, helpEntry, ariaLabel]) => (
-              <Tooltip key={label} text={tooltipText(helpEntry)}>
+              [IconZoomIn, 1.28, 'map.zoomIn', 'Zoomer la carte'],
+              [IconZoomOut, 0.78, 'map.zoomOut', 'Dézoomer la carte'],
+              [IconZoomReset, 0, 'map.zoomReset', 'Recentrer la carte'],
+            ].map(([ZoomGlyph, factor, helpEntry, ariaLabel]) => (
+              <Tooltip key={helpEntry} text={tooltipText(helpEntry)}>
                 <button
                   type="button"
                   className="map-toolbar-zoom-btn"
@@ -468,7 +533,7 @@ export function MapViewToolbar({
                   }}
                   aria-label={ariaLabel}
                 >
-                  {label}
+                  <ZoomGlyph size={15} />
                 </button>
               </Tooltip>
             ))}

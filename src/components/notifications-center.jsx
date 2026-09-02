@@ -7,6 +7,7 @@ import {
   NOTIFICATION_LEVEL_LABELS,
 } from '../constants/notifications';
 import { Tooltip } from '../shared/components/Tooltip.jsx';
+import { IconBell, IconClose } from '../shared/icons.jsx';
 
 const CATEGORY_LABELS = {
   [NOTIFICATION_CATEGORY.DEADLINES]: 'Échéances',
@@ -128,7 +129,7 @@ function NotificationCenter({
             aria-label="Fermer le centre de notifications"
             onClick={closePanel}
           >
-            ✕
+            <IconClose size={16} />
           </button>
         </div>
         <div className="notif-panel-actions">
@@ -224,7 +225,7 @@ function NotificationCenter({
           aria-expanded={open}
           onClick={openClose}
         >
-          🔔
+          <IconBell />
           {unreadCount > 0 && (
             <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
           )}

@@ -157,15 +157,34 @@ actions sensibles.
 - **L'élève** navigue par une barre d'onglets en bas d'écran : Carte, Tâches,
   Biodiversité, Quiz, Glossaire, Réseau, Tuto, Carnet, Visite, Forum… (l'application
   fonctionne très bien sur téléphone et peut s'installer comme une appli).
-- **Le professeur** navigue par une barre en haut, avec les mêmes rubriques plus ses
-  outils : Stats, Packs mascotte, Médiathèque, Profils & utilisateurs, Paramètres,
-  Audit.
+- **Le professeur** navigue par une barre en haut, organisée en **trois pôles** qui
+  déploient chacun leur rangée d'onglets :
+  - **Contenus** — Carte & Zones, Biodiversité, Quiz, Glossaire, Réseau trophique,
+    Tuto, Visite, Packs mascotte, Médiathèque ;
+  - **Suivi** — Tâches, Stats, Forum, Audit (le nombre de tâches « à valider »
+    s'affiche en pastille sur le pôle et sur l'onglet) ;
+  - **Administration** — Profils & utilisateurs, Paramètres, À propos.
+
+  Cliquer un pôle ouvre son premier onglet ; les onglets et les pôles portent des
+  icônes uniformes (fini les emojis d'interface, réservés désormais au contenu :
+  zones, plantes, repères…).
+
 - **Le visiteur** voit une version réduite, centrée sur la Visite et la Biodiversité.
 
 > ℹ️ **Navigation** — Les onglets sont stables : Tâches et Tuto sont toujours séparés.
 > Deux variations légitimes subsistent : sur grand écran, une vue « Cartes & tâches »
-> affiche la carte et les tâches côte à côte ; et un onglet disparaît si son module
-> est désactivé dans les réglages.
+> (pôle Contenus) affiche la carte et les tâches côte à côte ; et un onglet disparaît
+> si son module est désactivé dans les réglages.
+>
+> Les demandes de confirmation et de saisie (« Supprimer… ? », titre d'un élément…)
+> s'affichent désormais dans des fenêtres au thème de l'application, non bloquantes —
+> plus de boîtes grises du navigateur ; les messages d'erreur passent par des
+> notifications furtives en bas d'écran.
+>
+> Les grands écrans d'administration (Paramètres, fiche plante détaillée) se replient
+> en **sections dépliables** : chacun retrouve l'écran tel qu'il l'a laissé (l'état
+> ouvert/fermé est mémorisé sur l'appareil), et une recherche active déplie
+> automatiquement les sections contenant des résultats.
 
 ### La pastille d'état en bas d'écran
 

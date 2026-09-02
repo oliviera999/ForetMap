@@ -4,6 +4,7 @@ import {
   BiodiversitySpeciesOpenLinks,
   LivingBeingsCatalogPanel,
 } from './LivingBeingsCatalogPanel.jsx';
+import { IconGlossary } from '../../shared/icons.jsx';
 
 /** Liste cartes tutoriel (aperçu), alignée sur l’onglet « Tutoriels » des modales zone/repère. */
 export function LocationTutorialPreviewList({
@@ -89,7 +90,7 @@ export function LocationTutorialPreviewList({
                 style={{ marginTop: 10 }}
                 onClick={() => onOpenTutorialPreview(tutorialPreviewPayload(tu))}
               >
-                📖 Consulter
+                <IconGlossary size={14} /> Consulter
               </button>
             ) : null}
           </div>

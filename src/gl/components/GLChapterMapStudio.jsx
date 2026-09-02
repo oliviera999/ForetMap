@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { useGLKingdomZones } from '../hooks/useGLKingdomZones.js';
 import { useGLKingdomZoneEditor } from '../hooks/useGLKingdomZoneEditor.js';
@@ -41,6 +42,7 @@ export function GLChapterMapStudio({
   onInfo,
   zoneMusicEnabled = false,
 }) {
+  const { confirm } = useAppDialogs();
   const mapGestures = useGlPctMapGestures();
   const [isAddMode, setIsAddMode] = useState(false);
   const [selectedMarkerId, setSelectedMarkerId] = useState(null);
@@ -312,7 +314,7 @@ export function GLChapterMapStudio({
 
   async function deleteMarker() {
     if (selectedMarkerId == null) return;
-    if (typeof window !== 'undefined' && !window.confirm('Supprimer ce repère ?')) return;
+    if (!(await confirm({ message: 'Supprimer ce repère ?', danger: true }))) return;
     try {
       await apiGL(`/api/gl/chapters/admin/markers/${selectedMarkerId}`, 'DELETE');
       onInfo?.('Repère supprimé');

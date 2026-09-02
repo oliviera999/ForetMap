@@ -1,5 +1,7 @@
 import { LocationCategoryBadges } from './LocationCategoryPicker.jsx';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { zoneEmojiOf, zoneTitleOf } from '../../utils/zoneDisplay.js';
+import { IconDelete, IconDuplicate } from '../../shared/icons.jsx';
 
 /**
  * En-tête présentationnel de ZoneInfoModal : titre de la zone, pastilles de
@@ -16,6 +18,7 @@ function ZoneInfoModalHeader({
   onClose,
   onDuplicateError,
 }) {
+  const { confirm } = useAppDialogs();
   const showTeacherActions = isTeacher;
 
   return (
@@ -53,20 +56,27 @@ function ZoneInfoModalHeader({
                 }
               }}
             >
-              {duplicating ? '…' : '📋 Copie'}
+              {duplicating ? (
+                '…'
+              ) : (
+                <>
+                  <IconDuplicate size={15} /> Copie
+                </>
+              )}
             </button>
           )}
           <button
             type="button"
             className="btn btn-danger btn-sm"
-            onClick={() => {
-              if (confirm(`Supprimer "${zone.name}" ?`)) {
+            aria-label="Supprimer la zone"
+            onClick={async () => {
+              if (await confirm({ message: `Supprimer "${zone.name}" ?`, danger: true })) {
                 onDelete(zone.id);
                 onClose();
               }
             }}
           >
-            🗑️
+            <IconDelete />
           </button>
         </div>
       )}

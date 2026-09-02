@@ -3,6 +3,7 @@ import { api, AccountDeletedError, getAuthToken } from '../../services/api';
 import { LearningAcknowledgeButton } from '../../shared/components/LearningAcknowledgeButton.jsx';
 import { LearningQuizPopover } from '../../shared/components/LearningQuizPopover.jsx';
 import { createFmGatingHandlers } from '../../shared/utils/learningGatingChallengeClient.js';
+import { IconCheck } from '../../shared/icons.jsx';
 
 /**
  * Bouton « J'ai appris ce terme » sur une fiche du glossaire ForetMap.
@@ -45,8 +46,16 @@ export function GlossaryTermLearnedAcknowledgeButton({
   return (
     <LearningAcknowledgeButton
       itemTitle={termLabel}
-      labelAction="✓ J’ai appris ce terme"
-      labelDone="✓ Appris"
+      labelAction={
+        <>
+          <IconCheck size={14} /> J’ai appris ce terme
+        </>
+      }
+      labelDone={
+        <>
+          <IconCheck size={14} /> Appris
+        </>
+      }
       titleDone="Tu as confirmé avoir appris ce terme"
       confirmIntro={
         <>

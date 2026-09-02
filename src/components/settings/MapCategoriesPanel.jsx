@@ -2,7 +2,9 @@ import { useCallback, useState } from 'react';
 
 import { api } from '../../services/api';
 import { useApiResource } from '../../hooks/useApiResource.js';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { applyPickedHexColor, colorPickerValue } from '../../utils/hexColorWithAlpha.js';
+import { IconDelete } from '../../shared/icons.jsx';
 
 const APPLIES_TO_LABELS = {
   both: 'Zones et repères',
@@ -45,6 +47,7 @@ function draftFromCategory(category) {
  * de mission, contour en pointillés sur la carte.
  */
 export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
+  const { confirm } = useAppDialogs();
   const fetcher = useCallback(() => api('/api/map-categories/manage'), []);
   const { data, loading, reload } = useApiResource(fetcher, []);
   const categories = Array.isArray(data) ? data : [];
@@ -95,9 +98,10 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
   };
 
   const remove = async (category) => {
-    const confirmed = confirm(
-      `Supprimer la catégorie « ${category.label} » ? Elle sera retirée de toutes les zones et de tous les repères qui la portent.`,
-    );
+    const confirmed = await confirm({
+      message: `Supprimer la catégorie « ${category.label} » ? Elle sera retirée de toutes les zones et de tous les repères qui la portent.`,
+      danger: true,
+    });
     if (!confirmed) return;
     setBusy(true);
     try {
@@ -318,9 +322,11 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
               type="button"
               className="btn btn-danger btn-sm"
               disabled={busy}
+              aria-label="Supprimer la catégorie"
+              title="Supprimer la catégorie"
               onClick={() => remove(cat)}
             >
-              🗑️
+              <IconDelete size={16} />
             </button>
           </div>
         ))}

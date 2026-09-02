@@ -7,6 +7,50 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Interface désencombrée : icônes, navigation en pôles, accordéons (audit UI — D-2/D-3/D-4)
+
+Fin du lot D de l'audit homogénéité, selon les arbitrages validés :
+
+- **Icônes SVG lucide pour le chrome (D-2)** : barres d'outils, modales, en-têtes,
+  boutons et badges d'état abandonnent les emojis (tailles et rendus incohérents selon
+  l'OS) pour des icônes vectorielles [lucide](https://lucide.dev) (licence ISC), servies
+  par un point d'import unique `src/shared/icons.jsx` (taille et graisse uniformes,
+  `aria-hidden`, chunk de build dédié). Les emojis restent réservés au **contenu
+  métier** : emoji d'une plante ou d'une zone, palette de choix, organismes du réseau
+  trophique, mascottes.
+- **Navigation professeur en 3 pôles (D-4)** : les 17 onglets ne défilent plus dans une
+  barre unique — trois pôles (Contenus / Suivi / Administration) déploient chacun leur
+  rangée d'onglets ; le compteur « à valider » devient un badge sur le pôle Suivi et
+  l'onglet Tâches. Le pôle actif est dérivé de l'onglet courant (rien de nouveau n'est
+  persisté) ; l'onglet Glossaire devient atteignable côté prof.
+- **Écrans admin repliables (D-3)** : les grandes consoles (Paramètres administrateur,
+  fiche plante) se replient en accordéons qui mémorisent leur état (`localStorage`) et
+  s'ouvrent d'office pendant une recherche ; les bandeaux inline passent dans le dock
+  flottant commun ; premier filet e2e **mobile** (projet Playwright `mobile-chromium`,
+  390×844 tactile : carte, navigation basse, feuille de filtres).
+
+### Fin des dialogues natifs du navigateur (audit homogénéité UI — lot D-1)
+
+Les 82 `window.confirm/alert/prompt` du front (64 ForetMap, 18 GL) passent sur un
+système de dialogues commun, `AppDialogsProvider` (`useAppDialogs()`) :
+
+- **confirmations** stylées au thème, promesses (`await confirm({...})`), CTA explicite
+  (Supprimer/Archiver/Réinitialiser/Redémarrer…) et variante danger — fini la boîte
+  système qui gèle le thread (animations, polling, Socket.IO) et peut être supprimée
+  silencieusement en PWA/WebView ;
+- **saisies** (`prompt`) avec valeur par défaut, champ requis et annulation propre — le
+  triple `prompt()` de création de groupe devient trois étapes du même dialogue, et les
+  éditeurs riches (FM et GL) préservent la sélection du texte autour de la saisie d'URL ;
+- **erreurs** (`alert`) converties en toasts non bloquants (`notify`) ;
+- file d'attente intégrée, repli natif hors provider (tests unitaires inchangés),
+  5 tests dédiés du provider + garde-fou `tests/native-dialogs-guard.test.js`
+  (tout `window.confirm/alert/prompt` réintroduit fait échouer la CI ; deux replis
+  documentés en allowlist).
+
+Vocabulaire unifié au passage : « Sauvegarder »/« Sauver » → **« Enregistrer »**,
+« ↩ Undo » → « ↩ Annuler », et le glyphe ↩️ ne sert plus deux actions différentes dans
+l'en-tête (Déconnexion → 🚪).
+
 ### Dépendances npm (lot patch/mineur Dependabot)
 
 Onze mises à jour groupées : `mysql2`, `nodemailer`, `pdfkit` (0.19 → 0.20, export

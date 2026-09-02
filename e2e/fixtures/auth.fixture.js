@@ -210,7 +210,7 @@ async function loginByIdentifier(page, identifier, password) {
     (r) => r.url().includes('/api/auth/login') && r.request().method() === 'POST',
     { timeout: 90_000 },
   );
-  await page.getByRole('button', { name: 'Se connecter 🌱' }).click();
+  await page.getByRole('button', { name: 'Se connecter' }).click();
   const resp = await loginResp;
   if (!resp.ok()) {
     const snippet = await resp.text().catch(() => '');
@@ -661,9 +661,23 @@ async function resetTaskFiltersInTasksView(page) {
         .catch(() => {});
     }
   }
-  const search = page.getByPlaceholder('🔍 Rechercher une tâche...');
+  const search = page.getByPlaceholder('Rechercher une tâche...');
   if (await search.isVisible({ timeout: 2500 }).catch(() => false)) {
     await search.fill('', { timeout: 8000, force: true }).catch(() => {});
+  }
+}
+
+/**
+ * Navigation prof en 3 pôles (audit D-4) : ouvre le pôle demandé s'il existe, pour rendre
+ * visibles ses onglets avant de les cliquer. Sans effet côté élève (pas de pôles).
+ */
+async function openTeacherPole(page, poleName) {
+  const pole = page
+    .locator('.teacher-nav__poles')
+    .getByRole('button', { name: poleName, exact: true })
+    .first();
+  if ((await pole.count()) > 0) {
+    await pole.click({ timeout: 15_000 }).catch(() => {});
   }
 }
 
@@ -685,6 +699,7 @@ async function clickTasksTab(page) {
     .waitFor({ state: 'attached', timeout: 30_000 })
     .catch(() => {});
 
+  await openTeacherPole(page, 'Suivi');
   const teacherTasksTab = page
     .locator('.teacher-main .top-tabs')
     .getByRole('button', { name: /Tâches/i })
@@ -723,6 +738,7 @@ async function fillTaskTitle(dialog, title) {
 async function openVisitTab(page) {
   await dismissProfilePromotionModalIfPresent(page);
   await dismissDiscoveryTourIfPresent(page);
+  await openTeacherPole(page, 'Contenus');
   const teacherVisit = page
     .locator('.teacher-main .top-tabs')
     .getByRole('button', { name: /Visite/i });
@@ -739,6 +755,7 @@ async function openTeacherTasksTab(page) {
   await page.locator('.teacher-main .top-tabs').waitFor({ state: 'visible', timeout: 60_000 });
   const tasksView = teacherTasksViewLocator(page);
   if (!(await tasksView.isVisible().catch(() => false))) {
+    await openTeacherPole(page, 'Contenus');
     const splitTab = page
       .locator('.teacher-main .top-tabs')
       .getByRole('button', { name: /Cartes.*tâches/i })
@@ -757,7 +774,7 @@ async function openTeacherTasksTab(page) {
     .waitFor({ state: 'hidden', timeout: 120_000 })
     .catch(() => {});
   await page
-    .getByRole('heading', { name: '✅ Tâches' })
+    .getByRole('heading', { name: 'Tâches' })
     .waitFor({ state: 'visible', timeout: 45_000 })
     .catch(() => {});
   await resetTaskFiltersInTasksView(page);
@@ -786,7 +803,7 @@ async function openStudentTasksTab(page) {
     .waitFor({ state: 'visible', timeout: 15_000 })
     .catch(() => {});
   await clickTasksTab(page);
-  const tasksHeading = page.getByRole('heading', { name: '✅ Tâches' });
+  const tasksHeading = page.getByRole('heading', { name: 'Tâches' });
   await tasksHeading.waitFor({ state: 'attached', timeout: 25_000 });
   await tasksHeading.scrollIntoViewIfNeeded().catch(() => {});
   await tasksHeading.waitFor({ state: 'visible', timeout: 25_000 });
@@ -1015,7 +1032,7 @@ async function enrollOnTaskCard(page, taskCard, options = {}) {
   await dismissProfilePromotionModalIfPresent(page);
   if (taskTitle) {
     await resetTaskFiltersInTasksView(page);
-    const search = page.getByPlaceholder('🔍 Rechercher une tâche...');
+    const search = page.getByPlaceholder('Rechercher une tâche...');
     if (await search.isVisible({ timeout: 5000 }).catch(() => false)) {
       await search.fill(taskTitle, { force: true, timeout: 10_000 }).catch(() => {});
     }
@@ -1066,7 +1083,7 @@ async function enrollOnTaskCard(page, taskCard, options = {}) {
     await openStudentTasksTab(page);
     if (taskTitle) {
       await resetTaskFiltersInTasksView(page);
-      const search = page.getByPlaceholder('🔍 Rechercher une tâche...');
+      const search = page.getByPlaceholder('Rechercher une tâche...');
       if (await search.isVisible({ timeout: 5000 }).catch(() => false)) {
         await search.fill(taskTitle, { force: true, timeout: 10_000 }).catch(() => {});
       }
@@ -1095,7 +1112,7 @@ async function enrollOnTaskCard(page, taskCard, options = {}) {
 /** Attend qu’une carte tâche portant ce titre soit visible (filtres + recherche). */
 async function expectTaskCardWithTitle(page, taskTitle) {
   await resetTaskFiltersInTasksView(page);
-  const search = page.getByPlaceholder('🔍 Rechercher une tâche...');
+  const search = page.getByPlaceholder('Rechercher une tâche...');
   if (await search.isVisible({ timeout: 5000 }).catch(() => false)) {
     await search.fill(taskTitle, { force: true, timeout: 10_000 }).catch(() => {});
   }

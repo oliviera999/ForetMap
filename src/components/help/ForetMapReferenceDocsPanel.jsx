@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { IconWarning } from '../../shared/icons.jsx';
 
 import { api } from '../../services/api';
 import { MarkdownContent } from '../MarkdownContent.jsx';
@@ -56,7 +57,11 @@ export function ForetMapReferenceDocsPanel() {
         l’application, en français simple. Lecture seule : pour la faire évoluer, passez par une
         demande de développement.
       </p>
-      {error ? <div className="auth-error">⚠️ {error}</div> : null}
+      {error ? (
+        <div className="auth-error">
+          <IconWarning size={14} /> {error}
+        </div>
+      ) : null}
 
       {selectedSlug && doc ? (
         <div>

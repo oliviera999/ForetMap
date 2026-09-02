@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../../services/api.js';
 import { describeSiteGatingMode } from '../../../shared/utils/learningGatingPolicyText.js';
 import { GatingPolicyEditor } from '../../../shared/components/GatingPolicyEditor.jsx';
+import { IconCheck, IconPause, IconWarning } from '../../../shared/icons.jsx';
 
 // Écran de rattachement « ressource ↔ questions » (professeur, permission plants.manage).
 //
@@ -314,7 +315,13 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
       {/* État du dispositif, en une ligne : sans elle, rien ne distinguait « pas encore
           configuré » de « configuré mais éteint », ni de « configuré et actif ». */}
       <p className="section-sub pedago-links__state" role="status">
-        {gatingOff ? '⏸️ ' : armed ? '✅ ' : '⚠️ '}
+        {gatingOff ? (
+          <IconPause size={14} />
+        ) : armed ? (
+          <IconCheck size={14} />
+        ) : (
+          <IconWarning size={14} />
+        )}{' '}
         Contrôle de compréhension <strong>{gatingOff ? 'désactivé' : 'activé'}</strong> sur le site
         · {totals.gating} question(s) bloquante(s) sur {totals.covered} {tab.one}
         {totals.covered > 1 ? 's' : ''} — {resources.length} au total
@@ -323,15 +330,17 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
 
       {gatingOff ? (
         <p className="section-sub pedago-links__warning" role="status">
-          ⏸️ Le contrôle de compréhension est <strong>désactivé sur le site</strong> : ces
-          rattachements sont enregistrés mais restent sans effet pour les élèves. Il s&apos;active
-          dans <strong>Réglages → Validation des lectures</strong>.
+          <IconPause size={14} /> Le contrôle de compréhension est{' '}
+          <strong>désactivé sur le site</strong> : ces rattachements sont enregistrés mais restent
+          sans effet pour les élèves. Il s&apos;active dans{' '}
+          <strong>Réglages → Validation des lectures</strong>.
         </p>
       ) : totals.gating === 0 ? (
         <p className="section-sub pedago-links__warning" role="status">
-          ⚠️ L&apos;interrupteur est allumé, mais <strong>aucun lien n&apos;est bloquant</strong>{' '}
-          pour ce type : les élèves ne verront aucune question. Un lien ne conditionne une
-          validation que s&apos;il est <strong>approuvé</strong> ET coché <strong>bloquant</strong>.
+          <IconWarning size={14} /> L&apos;interrupteur est allumé, mais{' '}
+          <strong>aucun lien n&apos;est bloquant</strong> pour ce type : les élèves ne verront
+          aucune question. Un lien ne conditionne une validation que s&apos;il est{' '}
+          <strong>approuvé</strong> ET coché <strong>bloquant</strong>.
         </p>
       ) : null}
       {!markable ? (
@@ -541,7 +550,8 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
                               {link.note ? <p className="section-sub">{link.note}</p> : null}
                               {lyceeBlocking ? (
                                 <p className="section-sub pedago-links__warning">
-                                  ⚠️ Question niveau lycée : peut bloquer des élèves de collège.
+                                  <IconWarning size={12} /> Question niveau lycée : peut bloquer des
+                                  élèves de collège.
                                 </p>
                               ) : null}
                             </td>

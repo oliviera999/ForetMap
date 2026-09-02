@@ -12,6 +12,7 @@ import {
   activeMapLocationFilterChips,
   clearMapLocationFilterKey,
 } from '../../utils/mapLocationFilterSummary.js';
+import { IconClose, IconFilter } from '../../shared/icons.jsx';
 
 /**
  * Barre recherche + filtres pour zones et repères sur la carte (mode consultation).
@@ -101,7 +102,7 @@ export function MapLocationFiltersBar({
               : 'Filtres'
           }
         >
-          <span aria-hidden="true">⚙️</span>
+          <IconFilter size={14} />
           <span className="task-filters-toggle__label" aria-hidden="true">
             Filtres
           </span>
@@ -124,7 +125,7 @@ export function MapLocationFiltersBar({
             aria-label="Effacer recherche et filtres"
             title="Effacer"
           >
-            ✕
+            <IconClose size={14} />
           </button>
         )}
       </div>
@@ -141,7 +142,7 @@ export function MapLocationFiltersBar({
               title={chip.removeLabel}
             >
               <span>{chip.label}</span>
-              <span aria-hidden="true">✕</span>
+              <IconClose size={14} />
             </button>
           ))}
           <button
@@ -173,14 +174,16 @@ export function MapLocationFiltersBar({
           ariaLabel="Filtres carte"
         >
           <div className="task-filters-sheet__head">
-            <h3 className="task-filters-sheet__title">⚙️ Filtres carte</h3>
+            <h3 className="task-filters-sheet__title">
+              <IconFilter size={14} /> Filtres carte
+            </h3>
             <button
               type="button"
               className="btn btn-ghost btn-sm"
               onClick={close}
               aria-label="Fermer les filtres"
             >
-              ✕
+              <IconClose size={14} />
             </button>
           </div>
           {fields}

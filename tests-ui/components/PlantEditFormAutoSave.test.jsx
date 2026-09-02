@@ -3,7 +3,7 @@
 // A3 — enregistrement automatique de la fiche biodiversité, en **édition seule**.
 //
 // La garde vérifiée ici est la mitigation décidée pour A3 : en création, aucune
-// requête ne doit partir tant que l'utilisateur n'a pas cliqué « Sauvegarder »
+// requête ne doit partir tant que l'utilisateur n'a pas cliqué « Enregistrer »
 // (sinon une fiche à moitié remplie serait publiée). En édition, la fiche existe
 // déjà : l'autosave ne fait que la mettre à jour, sans refermer l'éditeur.
 

@@ -4,11 +4,18 @@ import { DialogShell } from '../DialogShell.jsx';
 import { TaskFiltersFields } from './TaskFiltersFields.jsx';
 import { useTaskFiltersPanel } from '../../hooks/useTaskFiltersPanel.js';
 import { activeTaskFilterChips } from '../../utils/taskFilterSummary.js';
+import {
+  IconClose,
+  IconFileText,
+  IconFilter,
+  IconPuzzle,
+  IconReports,
+} from '../../shared/icons.jsx';
 
 const VIEW_MODE_BUTTONS = [
-  { value: 'tiles', icon: '🧩', label: 'Tuiles', ariaLabel: 'Affichage en tuiles' },
-  { value: 'list', icon: '📄', label: 'Liste', ariaLabel: 'Affichage en liste' },
-  { value: 'condensed', icon: '📋', label: 'Condensé', ariaLabel: 'Affichage condensé' },
+  { value: 'tiles', icon: IconPuzzle, label: 'Tuiles', ariaLabel: 'Affichage en tuiles' },
+  { value: 'list', icon: IconFileText, label: 'Liste', ariaLabel: 'Affichage en liste' },
+  { value: 'condensed', icon: IconReports, label: 'Condensé', ariaLabel: 'Affichage condensé' },
 ];
 
 /**
@@ -156,7 +163,7 @@ export function TaskFiltersBar({
           className="task-filters-search"
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
-          placeholder="🔍 Rechercher une tâche..."
+          placeholder="Rechercher une tâche..."
           aria-label="Rechercher une tâche"
         />
         <button
@@ -171,7 +178,7 @@ export function TaskFiltersBar({
               : 'Filtres'
           }
         >
-          <span aria-hidden="true">⚙️</span>
+          <IconFilter size={14} />
           <span className="task-filters-toggle__label" aria-hidden="true">
             Filtres
           </span>
@@ -192,7 +199,9 @@ export function TaskFiltersBar({
               aria-pressed={viewMode === mode.value}
               title={mode.label}
             >
-              <span aria-hidden="true">{mode.icon}</span>
+              <span aria-hidden="true">
+                <mode.icon size={16} />
+              </span>
               <span className="tasks-view-switch__label" aria-hidden="true">
                 {mode.label}
               </span>
@@ -213,7 +222,7 @@ export function TaskFiltersBar({
               title={chip.removeLabel}
             >
               <span>{chip.label}</span>
-              <span aria-hidden="true">✕</span>
+              <IconClose size={14} />
             </button>
           ))}
           <button
@@ -235,14 +244,16 @@ export function TaskFiltersBar({
           ariaLabel="Filtres des tâches"
         >
           <div className="task-filters-sheet__head">
-            <h3 className="task-filters-sheet__title">⚙️ Filtres</h3>
+            <h3 className="task-filters-sheet__title">
+              <IconFilter size={14} /> Filtres
+            </h3>
             <button
               type="button"
               className="btn btn-ghost btn-sm"
               onClick={close}
               aria-label="Fermer les filtres"
             >
-              ✕
+              <IconClose size={14} />
             </button>
           </div>
           {fields}

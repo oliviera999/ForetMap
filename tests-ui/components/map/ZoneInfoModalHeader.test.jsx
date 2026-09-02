@@ -43,36 +43,37 @@ describe('ZoneInfoModalHeader', () => {
 
   test('prof : bouton Copie déclenche onDuplicate avec la zone', async () => {
     const h = renderHeader();
-    fireEvent.click(screen.getByRole('button', { name: '📋 Copie' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Copie' }));
     await waitFor(() => expect(h.onDuplicate).toHaveBeenCalledWith(ZONE));
     expect(h.onDuplicateError).not.toHaveBeenCalled();
   });
 
   test('prof : échec de duplication appelle onDuplicateError', async () => {
     const h = renderHeader({ onDuplicate: vi.fn().mockRejectedValue(new Error('boom')) });
-    fireEvent.click(screen.getByRole('button', { name: '📋 Copie' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Copie' }));
     await waitFor(() => expect(h.onDuplicateError).toHaveBeenCalled());
   });
 
-  test('prof : suppression confirmée appelle onDelete puis onClose', () => {
+  test('prof : suppression confirmée appelle onDelete puis onClose', async () => {
     const h = renderHeader();
-    fireEvent.click(screen.getByRole('button', { name: '🗑️' }));
-    expect(h.onDelete).toHaveBeenCalledWith(7);
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer la zone' }));
+    // La confirmation passe par une promesse (dialogue applicatif) : microtâche à drainer.
+    await waitFor(() => expect(h.onDelete).toHaveBeenCalledWith(7));
     expect(h.onClose).toHaveBeenCalled();
   });
 
   test('prof : suppression annulée ne supprime pas', () => {
     window.confirm.mockReturnValue(false);
     const h = renderHeader();
-    fireEvent.click(screen.getByRole('button', { name: '🗑️' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer la zone' }));
     expect(h.onDelete).not.toHaveBeenCalled();
     expect(h.onClose).not.toHaveBeenCalled();
   });
 
   test('élève : aucune action de gestion (ni Copie ni Supprimer)', () => {
     renderHeader({ isTeacher: false });
-    expect(screen.queryByRole('button', { name: '📋 Copie' })).toBeNull();
-    expect(screen.queryByRole('button', { name: '🗑️' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Copie' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Supprimer la zone' })).toBeNull();
   });
 
   test("zone d'infrastructure : actions de gestion disponibles pour un prof (éditable)", () => {
@@ -83,14 +84,14 @@ describe('ZoneInfoModalHeader', () => {
         is_infrastructure: true,
       },
     });
-    expect(screen.getByRole('button', { name: '📋 Copie' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '🗑️' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Copie' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Supprimer la zone' })).toBeTruthy();
   });
 
   test('bouton Copie absent si onDuplicate non fourni, Supprimer toujours présent', () => {
     renderHeader({ onDuplicate: null });
-    expect(screen.queryByRole('button', { name: '📋 Copie' })).toBeNull();
-    expect(screen.getByRole('button', { name: '🗑️' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Copie' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Supprimer la zone' })).toBeTruthy();
   });
 
   test('état duplicating : bouton désactivé et libellé de chargement', () => {

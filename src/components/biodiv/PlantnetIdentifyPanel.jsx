@@ -9,6 +9,7 @@ import {
 } from '../../utils/plantnetIdentify.js';
 import { mergePlantPhotoFieldValue } from '../../utils/plantFormValues.js';
 import { PlantnetPredictionsList } from './PlantnetPredictionsList.jsx';
+import { IconCamera, IconFolder } from '../../shared/icons.jsx';
 
 const PLANTNET_IDENTIFY_ORGAN_OPTIONS = [
   { id: 'auto', label: 'Auto' },
@@ -302,7 +303,7 @@ export function PlantnetIdentifyPanel({
                       disabled={identifyBusy}
                       onClick={() => triggerIdentifyFile(idGal)}
                     >
-                      📁 Galerie / fichier
+                      <IconFolder size={14} /> Galerie / fichier
                     </button>
                     <button
                       type="button"
@@ -310,7 +311,7 @@ export function PlantnetIdentifyPanel({
                       disabled={identifyBusy}
                       onClick={() => triggerIdentifyFile(idCam)}
                     >
-                      📸 Appareil photo
+                      <IconCamera size={14} /> Appareil photo
                     </button>
                   </div>
                 </div>

@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
+import { IconClose } from '../icons.jsx';
 
 function joinClassNames(...values) {
   return values
@@ -67,7 +68,7 @@ export function DialogShell({
             aria-label={closeButtonLabel}
             disabled={closeButtonDisabled}
           >
-            ✕
+            <IconClose size={16} />
           </button>
         ) : null}
         {children}

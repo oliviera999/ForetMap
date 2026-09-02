@@ -3,6 +3,7 @@ import { api, AccountDeletedError, getAuthToken } from '../services/api';
 import { LearningAcknowledgeButton } from '../shared/components/LearningAcknowledgeButton.jsx';
 import { createFmGatingHandlers } from '../shared/utils/learningGatingChallengeClient.js';
 import { LearningQuizPopover } from '../shared/components/LearningQuizPopover.jsx';
+import { IconCheck } from '../shared/icons.jsx';
 
 /**
  * Bouton + modal pour marquer un tutoriel comme lu après confirmation explicite.
@@ -42,8 +43,16 @@ export function TutorialReadAcknowledgeButton({
   return (
     <LearningAcknowledgeButton
       itemTitle={tutorialTitle}
-      labelAction="✓ Marquer comme lu"
-      labelDone="✓ Lu"
+      labelAction={
+        <>
+          <IconCheck size={14} /> Marquer comme lu
+        </>
+      }
+      labelDone={
+        <>
+          <IconCheck size={14} /> Lu
+        </>
+      }
       titleDone="Tu as confirmé avoir lu et compris ce tutoriel"
       confirmIntro={
         <>

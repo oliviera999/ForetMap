@@ -114,7 +114,7 @@ describe('TutorialEditorPanel', () => {
 
   test('Enregistrer appelle onSave quand saving=false', () => {
     const { handlers } = renderPanel();
-    fireEvent.click(screen.getByRole('button', { name: '💾 Enregistrer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect(handlers.onSave).toHaveBeenCalled();
   });
 });

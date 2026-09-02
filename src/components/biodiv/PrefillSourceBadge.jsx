@@ -1,7 +1,8 @@
+import { IconBrain, IconSearch } from '../../shared/icons.jsx';
 /**
  * Badge (présentation) indiquant la source d'un champ proposé par la pré-saisie — extrait de
- * `PlantPrefillPanel` (O6). Affiche « 🧠 OpenAI » pour les sources OpenAI (`openai`/`openai_gap`)
- * ou « 🔎 <source> » sinon. Ne rend rien quand aucune source n'est fournie. Composant pur, sans
+ * `PlantPrefillPanel` (O6). Affiche « OpenAI » (icône cerveau) pour les sources OpenAI
+ * (`openai`/`openai_gap`) ou « <source> » (icône loupe) sinon. Ne rend rien quand aucune source n'est fournie. Composant pur, sans
  * état : toute la logique de sélection reste gérée par le parent.
  *
  * @param {object} props
@@ -13,7 +14,6 @@ export function PrefillSourceBadge({ sourceMeta }) {
     .toLowerCase();
   if (!src) return null;
   const isOpenAi = src === 'openai' || src === 'openai_gap';
-  const label = isOpenAi ? '🧠 OpenAI' : `🔎 ${src}`;
   return (
     <span
       style={{
@@ -35,7 +35,8 @@ export function PrefillSourceBadge({ sourceMeta }) {
           : `Champ proposé par la source ${src}`
       }
     >
-      {label}
+      {isOpenAi ? <IconBrain size={12} /> : <IconSearch size={12} />}
+      {isOpenAi ? 'OpenAI' : src}
     </span>
   );
 }

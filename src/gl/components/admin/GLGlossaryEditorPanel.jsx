@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { useGlAdminCrud } from '../../hooks/useGlAdminCrud.js';
 import { GLGlossaryTermList } from './GLGlossaryTermList.jsx';
 import { GLGlossaryTermForm } from './GLGlossaryTermForm.jsx';
@@ -13,6 +14,7 @@ import {
 } from '../../utils/glGlossaryEditorForm.js';
 
 export function GLGlossaryEditorPanel() {
+  const { confirm } = useAppDialogs();
   const [meta, setMeta] = useState({ categories: [], niveaux: [], biomes: [] });
   const [filterQ, setFilterQ] = useState('');
   const [filterCategorie, setFilterCategorie] = useState('');
@@ -84,7 +86,14 @@ export function GLGlossaryEditorPanel() {
 
   async function archiveTerm() {
     if (!selectedCode) return;
-    if (!window.confirm('Archiver ce terme (statut inactif) ?')) return;
+    if (
+      !(await confirm({
+        message: 'Archiver ce terme (statut inactif) ?',
+        confirmLabel: 'Archiver',
+        danger: true,
+      }))
+    )
+      return;
     await runAction(async () => {
       await apiGL(itemPath(selectedCode), 'PATCH', { statut: 'inactif' });
       setInfo('Terme archivé.');

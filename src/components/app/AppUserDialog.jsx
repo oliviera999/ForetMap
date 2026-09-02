@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { DialogShell } from '../DialogShell';
+import { IconClose } from '../../shared/icons.jsx';
 
 /** Hauteur max des modales utilisateur (constante de module : évite un objet recréé à chaque rendu). */
 const USER_DIALOG_STYLE = { maxHeight: '88vh' };
@@ -29,7 +30,7 @@ export function AppUserDialog({ open, onClose, ariaLabel, closeLabel, children }
     >
       <div className="log-modal__head">
         <button type="button" className="modal-close" aria-label={closeLabel} onClick={onClose}>
-          ✕
+          <IconClose size={16} />
         </button>
       </div>
       <div className="log-modal__scroll">

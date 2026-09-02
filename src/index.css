@@ -28,6 +28,15 @@
        taille d’écran. Les règles dédiées (hauteur fixe, object-fit…) restent prioritaires (spécificité). */
     img, video { max-width:100%; }
 
+    /*
+     * BREAKPOINTS CANONIQUES (audit UI, D-3) — les media queries ne peuvent pas lire de
+     * var(), ces valeurs sont donc documentées ici et à écrire telles quelles :
+     *   480px  très petit mobile        640px  mobile (14 usages, pivot de fait)
+     *   720px  grand mobile / phablette (11 usages)
+     *   1023/1024px  bascule desktop — miroir JS : DESKTOP_SPLIT_MIN_WIDTH (app-runtime.js)
+     * Les paires min/max complémentaires (640/641, 700/701, 767/768, 1023/1024) sont
+     * volontaires. Éviter d'introduire de nouveaux seuils hors de cette liste.
+     */
     :root {
       --forest:   #1a4731;
       --leaf:     #2d6a4f;
@@ -647,15 +656,44 @@
       position:relative;
       z-index:1;
     }
-    .teacher-main > .top-tabs {
+    .teacher-main > .top-tabs,
+    .teacher-main > .teacher-nav {
       flex-shrink:0;
     }
-    .teacher-main > *:not(.top-tabs) {
+    /* Navigation prof en 3 pôles (audit D-4) : deux rangées dans un seul enfant flex. */
+    .teacher-nav {
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    .teacher-nav__poles .top-tab--pole {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-weight:var(--fw-bold);
+    }
+    .top-tabs--secondary .top-tab {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+    .top-tab__badge {
+      background:var(--alert);
+      color:#fff;
+      border-radius:999px;
+      font-size:var(--text-2xs);
+      font-weight:var(--fw-bold);
+      line-height:var(--lh-tight);
+      padding:1px 7px;
+      min-width:18px;
+      text-align:center;
+    }
+    .teacher-main > *:not(.top-tabs):not(.teacher-nav) {
       flex:1;
       min-height:0;
       min-width:0;
     }
-    .teacher-main > *:not(.top-tabs):not(.map-view-root):not(.desktop-split-view) {
+    .teacher-main > *:not(.top-tabs):not(.teacher-nav):not(.map-view-root):not(.desktop-split-view) {
       overflow-y:auto;
     }
     .map-view-root {
@@ -906,7 +944,8 @@
     .main--maptasks-split .desktop-split-view {
       gap:8px;
     }
-    .teacher-main.main--maptasks-split > .top-tabs {
+    .teacher-main.main--maptasks-split > .top-tabs,
+    .teacher-main.main--maptasks-split > .teacher-nav {
       margin-bottom:clamp(4px, 1.2vw, 8px);
     }
     .main--maptasks-split .map-view-root--embedded .map-view-canvas-slot {
@@ -936,7 +975,8 @@
         --fm-maptasks-map-max-h:calc(100dvh - 56px - var(--safe-top) - var(--bottom-nav-height) - var(--safe-bottom) - 32px);
       }
       .teacher-main.main--maptasks-split {
-        --fm-maptasks-teacher-tabs-h:calc(var(--top-tabs-row-inner-h) + 2 * var(--top-tabs-pad-y) + clamp(4px, 1.2vw, 8px));
+        /* Deux rangées (pôles + onglets du pôle) depuis la navigation D-4. */
+        --fm-maptasks-teacher-tabs-h:calc(2 * (var(--top-tabs-row-inner-h) + 2 * var(--top-tabs-pad-y)) + 2px + clamp(4px, 1.2vw, 8px));
         --fm-maptasks-sticky-top:calc(56px + var(--safe-top));
         --fm-maptasks-map-max-h:calc(100dvh - 56px - var(--safe-top) - var(--fm-maptasks-teacher-tabs-h) - 32px - 24px);
       }
@@ -5327,25 +5367,8 @@
       }
     }
 
-/*
- * Le bandeau se posait à `bottom:16px; z-index:40`, c'est-à-dire **dans** les 56–72 px de
- * la navigation basse (`.bottom-nav`) et **au-dessous** d'elle : il ne
- * s'affichait donc jamais pour un élève. Il se pose maintenant au-dessus de la barre, par
- * calcul, et son empilement est nommé (cf. src/shared/styles/floating-dock.css).
- */
-.app-inline-toast {
-  position:fixed;
-  right:var(--fm-dock-inset);
-  bottom:calc(var(--fm-safe-bottom-nav) + var(--fm-dock-inset));
-  z-index:var(--fm-z-toast);
-  background:rgba(26,71,49,.95);
-  color:#fff;
-  border-radius:8px;
-  padding:10px 12px;
-  font-size:var(--text-sm);
-  box-shadow:0 14px 28px rgba(0,0,0,.24);
-  border:1px solid rgba(255,255,255,.16);
-}
+/* Le bandeau contextuel (forum, commentaires) est désormais rendu par AppInlineToast
+   dans le FloatingDock partagé : plus de copie manuelle des constantes du dock ici. */
 @media (max-width:1023px) {
   .desktop-split-view {
     grid-template-columns:1fr;
@@ -6435,6 +6458,21 @@
   display: grid;
   gap: 12px;
   grid-template-columns: 1fr 1fr;
+}
+/* Les cellules (désormais des accordéons AdminSection) ne doivent pas faire déborder la
+   grille, et la gouttière de la grille suffit (pas de marge d'accordéon en plus). */
+.settings-admin-grid > * {
+  min-width: 0;
+}
+.settings-admin-grid > details.admin-section {
+  margin-top: 0;
+}
+/* Carte blanche de la console admin (remplace le style inline dupliqué — audit UI, D-3). */
+.settings-admin-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
 }
 /* Panneau « Mascottes de visite » : une carte par mascotte (livrée ou pack publié). */
 .visit-mascot-admin-grid {

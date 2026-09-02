@@ -8,6 +8,7 @@ import {
   GlossaryTermLearnedAcknowledgeButton,
   fetchLearnedGlossaryCodes,
 } from './GlossaryTermLearnedAcknowledge.jsx';
+import { IconGlossary } from '../../shared/icons.jsx';
 
 const NIVEAU_OPTIONS = [
   { value: '', label: 'Tous niveaux' },
@@ -158,7 +159,9 @@ export function GlossaryView({
   return (
     <div className="pedago-view pedago-glossary">
       <header className="pedago-view__head">
-        <h2 className="section-title">📖 Glossaire</h2>
+        <h2 className="section-title">
+          <IconGlossary size={20} /> Glossaire
+        </h2>
         <p className="section-sub">Termes scientifiques du vivant et du jardinage.</p>
       </header>
 

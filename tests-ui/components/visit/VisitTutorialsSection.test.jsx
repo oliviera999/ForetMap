@@ -71,7 +71,7 @@ describe('VisitTutorialsSection', () => {
     expect(screen.getByTestId('visit-map-tutorials-section')).toBeInTheDocument();
     expect(screen.getByText('Tuto un')).toBeInTheDocument();
     expect(screen.getByText('Résumé un')).toBeInTheDocument();
-    const [lire1, lire2] = screen.getAllByRole('button', { name: '👁️ Lire' });
+    const [lire1, lire2] = screen.getAllByRole('button', { name: 'Lire' });
     fireEvent.click(lire1);
     expect(props.onOpenTutorialPreview).toHaveBeenCalledWith(
       expect.objectContaining({ id: 1, preview_url: '/api/tutorials/1/view' }),
@@ -109,7 +109,7 @@ describe('VisitTutorialsSection', () => {
     expect(boxes.map((b) => b.checked)).toEqual([true, true, false]);
     fireEvent.click(boxes[2]);
     fireEvent.click(boxes[1]);
-    fireEvent.click(screen.getByRole('button', { name: '💾 Enregistrer la sélection des tutos' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer la sélection des tutos' }));
     await waitFor(() => expect(props.onSaved).toHaveBeenCalledTimes(1));
     expect(api).toHaveBeenCalledWith('/api/visit/tutorials', 'PUT', {
       map_id: 'foret',
@@ -120,7 +120,7 @@ describe('VisitTutorialsSection', () => {
   test('échec sauvegarde → alert, pas de onSaved', async () => {
     api.mockRejectedValueOnce(new Error('boom'));
     const { props } = setup({ isTeacher: true, availableTutorials: TUTOS });
-    fireEvent.click(screen.getByRole('button', { name: '💾 Enregistrer la sélection des tutos' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer la sélection des tutos' }));
     await waitFor(() => expect(window.alert).toHaveBeenCalledWith('boom'));
     expect(props.onSaved).not.toHaveBeenCalled();
   });

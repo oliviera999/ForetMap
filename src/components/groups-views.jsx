@@ -3,13 +3,16 @@ import { api } from '../services/api';
 import { HelpPanel } from './HelpPanel';
 import { resolveHelpPanelSection } from '../utils/helpResolve';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { slugify } from '../utils/slugify';
+import { IconClock, IconWarning } from '../shared/icons.jsx';
 
 function normalizeIds(values = []) {
   return [...new Set(values.map((v) => String(v || '').trim()).filter(Boolean))];
 }
 
 function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
+  const { confirm } = useAppDialogs();
   const [defaultRoleId, setDefaultRoleId] = useState('');
   const [grantsN3beur, setGrantsN3beur] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -73,7 +76,9 @@ function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
 
   const applyDefaultRole = async () => {
     if (
-      !window.confirm(`Appliquer le profil par défaut à tous les membres de « ${group.name} » ?`)
+      !(await confirm({
+        message: `Appliquer le profil par défaut à tous les membres de « ${group.name} » ?`,
+      }))
     ) {
       return;
     }
@@ -106,7 +111,11 @@ function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
           {group.gl_class_name ? ` (${group.gl_class_name})` : ''}
         </p>
       )}
-      {err && <div className="auth-error">⚠️ {err}</div>}
+      {err && (
+        <div className="auth-error">
+          <IconWarning size={14} /> {err}
+        </div>
+      )}
       {msg && <div className="auth-success">{msg}</div>}
       <div className="field">
         <label>Profil par défaut du groupe</label>
@@ -232,7 +241,11 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
   return (
     <div className="log-modal fade-in" style={{ marginBottom: 12 }}>
       <h3 style={{ marginTop: 0 }}>Membres et périmètre — {group.name}</h3>
-      {err && <div className="auth-error">⚠️ {err}</div>}
+      {err && (
+        <div className="auth-error">
+          <IconWarning size={14} /> {err}
+        </div>
+      )}
       <div className="field" style={{ marginBottom: 8 }}>
         <input
           value={search}
@@ -335,6 +348,7 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
 
 export function GroupsAdminView() {
   const publicSettings = usePublicSettings();
+  const { confirm, prompt } = useAppDialogs();
   const [groups, setGroups] = useState([]);
   const [users, setUsers] = useState([]);
   const [maps, setMaps] = useState([]);
@@ -393,12 +407,15 @@ export function GroupsAdminView() {
   }, []);
 
   const createGroup = async () => {
-    const name = window.prompt('Nom du groupe (ex: 2nde A)');
+    const name = await prompt({ message: 'Nom du groupe (ex: 2nde A)' });
     if (!name || !name.trim()) return;
     // slugify() translittère les accents au lieu de les supprimer : « 2nde A — Éco » donne
     // « 2nde-a-eco » et non « 2nde-a-co » (audit docs/AUDIT_BDD_2026-08.md §5.5).
-    const slug = window.prompt('Slug technique (optionnel)', slugify(name));
-    const kind = window.prompt('Type (class|team|unit|club)', 'class');
+    const slug = await prompt({
+      message: 'Slug technique (optionnel)',
+      defaultValue: slugify(name),
+    });
+    const kind = await prompt({ message: 'Type (class|team|unit|club)', defaultValue: 'class' });
     setLoading(true);
     setErr('');
     try {
@@ -431,7 +448,7 @@ export function GroupsAdminView() {
 
   const deleteGroup = async (g) => {
     if (!g?.id) return;
-    const ok = window.confirm(`Supprimer le groupe « ${g.name} » ?`);
+    const ok = await confirm({ message: `Supprimer le groupe « ${g.name} » ?`, danger: true });
     if (!ok) return;
     setLoading(true);
     setErr('');
@@ -485,8 +502,8 @@ export function GroupsAdminView() {
           }}
         >
           <strong>
-            🕓 {pendingVisitors.length} compte{pendingVisitors.length > 1 ? 's' : ''} en attente de
-            rattachement
+            <IconClock size={14} /> {pendingVisitors.length} compte
+            {pendingVisitors.length > 1 ? 's' : ''} en attente de rattachement
           </strong>
           <p style={{ margin: '4px 0 8px', fontSize: 'var(--text-sm)', color: '#1e3a8a' }}>
             Ces élèves se sont inscrits seuls et n'ont encore accès qu'à la Visite. Choisis un
@@ -526,7 +543,11 @@ export function GroupsAdminView() {
           </ul>
         </div>
       )}
-      {err && <div className="auth-error">⚠️ {err}</div>}
+      {err && (
+        <div className="auth-error">
+          <IconWarning size={14} /> {err}
+        </div>
+      )}
       {msg && <div className="auth-success">{msg}</div>}
       <button className="btn btn-secondary btn-sm" onClick={createGroup} disabled={loading}>
         + Nouveau groupe

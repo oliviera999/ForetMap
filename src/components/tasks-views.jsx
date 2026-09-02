@@ -20,6 +20,7 @@ import { TasksStudentSections } from './TasksStudentSections.jsx';
 import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../utils/browserStorage.js';
 import { resolveInitialTaskViewMode } from '../utils/taskViewMode.js';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
+import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { TEACHER_STATUS_ACTIONS } from './tasks/taskViewHelpers.js';
 import {
   isTaskUrgentPending,
@@ -67,6 +68,7 @@ import {
   normalizeProjectUiStatus,
 } from '../utils/taskListHelpers.js';
 import { teacherCollectiveAssigneeLoadKey } from '../utils/taskDisplayHelpers.js';
+import { IconCheck, IconPuzzle, IconSearch, IconUrgent } from '../shared/icons.jsx';
 
 function TasksViewImpl({
   maps = [],
@@ -84,6 +86,7 @@ function TasksViewImpl({
   hasPermissionInRole = () => false,
 }) {
   const publicSettings = usePublicSettings();
+  const { prompt } = useAppDialogs();
   const { isN3Affiliated = false, canParticipateContextComments = true } = useSession();
   const {
     tasks = [],
@@ -271,7 +274,7 @@ function TasksViewImpl({
   );
 
   const assignGroupToTask = useCallback(
-    (task) => {
+    async (task) => {
       const status = taskEffectiveStatus(task);
       if (['on_hold', 'project_completed', 'project_validated', 'validated'].includes(status)) {
         setToast('Affectation groupe indisponible pour ce statut.');
@@ -286,10 +289,10 @@ function TasksViewImpl({
         .slice(0, 12)
         .map((g) => `${g.id} : ${g.name}`)
         .join('\n');
-      const raw = window.prompt(
-        `ID du groupe à affecter sur « ${task.title} » :\n${hint}`,
-        suggested,
-      );
+      const raw = await prompt({
+        message: `ID du groupe à affecter sur « ${task.title} » :\n${hint}`,
+        defaultValue: suggested,
+      });
       if (raw == null) return;
       const groupId = String(raw).trim();
       if (!groupId) return;
@@ -303,7 +306,7 @@ function TasksViewImpl({
         );
       });
     },
-    [groupOptions, filterGroupId, withLoad],
+    [groupOptions, filterGroupId, withLoad, prompt],
   );
 
   const unassign = useCallback(
@@ -964,7 +967,11 @@ function TasksViewImpl({
       <TaskUrgencyBanner isTeacher={isTeacher} tasks={regularFiltered} />
 
       <TaskTileSection
-        title={`🚨 Urgent ! (${urgentCategoryTasks.length})`}
+        title={
+          <>
+            <IconUrgent size={16} /> {`Urgent ! (${urgentCategoryTasks.length})`}
+          </>
+        }
         tasks={urgentCategoryTasks}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
@@ -972,7 +979,11 @@ function TasksViewImpl({
 
       {!isTeacher && (
         <TaskTileSection
-          title="🧩 Mes tâches"
+          title={
+            <>
+              <IconPuzzle size={16} /> Mes tâches
+            </>
+          }
           tasks={myTasks}
           sectionListClass={sectionListClass}
           taskTileProps={taskTileProps}
@@ -998,7 +1009,11 @@ function TasksViewImpl({
           {showStudentFilteredResults ? (
             <>
               <TaskTileSection
-                title={`🔎 Résultats filtrés (${regularFiltered.length})`}
+                title={
+                  <>
+                    <IconSearch size={16} /> {`Résultats filtrés (${regularFiltered.length})`}
+                  </>
+                }
                 tasks={regularFiltered}
                 sectionListClass={sectionListClass}
                 taskTileProps={taskTileProps}
@@ -1026,7 +1041,11 @@ function TasksViewImpl({
       <TaskProjectsBlock
         {...taskProjectsBlockProps}
         visibleProjects={validatedProjects}
-        sectionTitle={`✅ Projets validés (${validatedProjects.length})`}
+        sectionTitle={
+          <>
+            <IconCheck size={16} /> {`Projets validés (${validatedProjects.length})`}
+          </>
+        }
       />
 
       <TasksEmptyState count={allFiltered.length} />

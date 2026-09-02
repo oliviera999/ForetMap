@@ -10,6 +10,7 @@ import { nextLivingBeingsFromMultiSelect } from '../../utils/livingBeings';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
 import { DialogShell } from '../DialogShell';
+import { IconCheck, IconClose, IconDrawZone } from '../../shared/icons.jsx';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
 import { LocationCategoryPicker } from './LocationCategoryPicker.jsx';
@@ -71,9 +72,11 @@ function ZoneDrawModal({
       dialogRef={dialogRef}
     >
       <button className="modal-close" aria-label="Fermer" onClick={onClose}>
-        ✕
+        <IconClose size={16} />
       </button>
-      <h3>🖊️ Nouvelle zone</h3>
+      <h3>
+        <IconDrawZone size={18} /> Nouvelle zone
+      </h3>
       <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-faint)', marginBottom: 14 }}>
         {points_pct.length} points tracés
       </p>
@@ -188,7 +191,13 @@ function ZoneDrawModal({
         disabled={saving}
         style={{ marginTop: 4 }}
       >
-        {saving ? '...' : '✅ Créer la zone'}
+        {saving ? (
+          '...'
+        ) : (
+          <>
+            <IconCheck size={15} /> Créer la zone
+          </>
+        )}
       </button>
     </DialogShell>
   );

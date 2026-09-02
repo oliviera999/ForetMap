@@ -24,6 +24,14 @@ import {
 } from './PlantSummaryBlocks.jsx';
 import { PlantBiodivHeroPhoto, PlantMetaSections } from './PlantMetaSections.jsx';
 import { PlantLocationPreviewMaps } from './BiodivLocationMaps.jsx';
+import {
+  IconBiodiv,
+  IconClose,
+  IconGlobe,
+  IconHabitat,
+  IconMarker,
+  IconPin,
+} from '../../shared/icons.jsx';
 
 /**
  * Carte fiche biodiversité (lecture seule), même contenu que le catalogue élève — réutilisée dans
@@ -88,11 +96,15 @@ export function PlantBiodiversityCatalogPreviewCard({
         <CatalogRemarksSection plant={plant} />
         <div className="task-meta">
           {normalizedPlantValue(plant.habitat) && !isGenericPotagerLabel(plant.habitat) && (
-            <span className="task-chip">🏡 {plant.habitat}</span>
+            <span className="task-chip">
+              <IconHabitat size={12} /> {plant.habitat}
+            </span>
           )}
           {normalizedPlantValue(plant.agroecosystem_category) &&
             !isGenericPotagerLabel(plant.agroecosystem_category) && (
-              <span className="task-chip">🌍 {plant.agroecosystem_category}</span>
+              <span className="task-chip">
+                <IconGlobe size={12} /> {plant.agroecosystem_category}
+              </span>
             )}
         </div>
         <PlantSummaryBadges plant={plant} />
@@ -132,12 +144,12 @@ export function PlantBiodiversityCatalogPreviewCard({
             <div className="plant-zones">
               {pZones.map((z) => (
                 <span key={`zone-${z.id}`} className="plant-zone-chip">
-                  📍 {z.name}
+                  <IconMarker size={12} /> {z.name}
                 </span>
               ))}
               {pMarkers.map((m) => (
                 <span key={`marker-${m.id}`} className="plant-zone-chip">
-                  📌 {m.label?.trim() ? m.label : 'Repère'}
+                  <IconPin size={12} /> {m.label?.trim() ? m.label : 'Repère'}
                 </span>
               ))}
             </div>
@@ -238,9 +250,11 @@ export function PlantCatalogPreviewModal({
           onClick={onClose}
           aria-label="Fermer l’aperçu"
         >
-          ✕
+          <IconClose size={16} />
         </button>
-        <h3 id="plant-catalog-preview-title">🌱 {plant.name}</h3>
+        <h3 id="plant-catalog-preview-title">
+          <IconBiodiv size={16} /> {plant.name}
+        </h3>
       </div>
       <div className="tuto-preview-modal__body tuto-preview-modal__body--biodiv-scroll">
         <PlantBiodiversityCatalogPreviewCard

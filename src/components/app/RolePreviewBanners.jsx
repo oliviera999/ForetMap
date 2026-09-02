@@ -1,4 +1,5 @@
 import { Tooltip } from '../../shared/components/Tooltip.jsx';
+import { IconStudentView, IconTeacherView, IconUser } from '../../shared/icons.jsx';
 
 /**
  * Bannières d'aperçu de rôle — extraites de `src/App.jsx` (O6).
@@ -27,7 +28,7 @@ export function RolePreviewBanners({
           role="status"
         >
           <span className="role-preview-banner__icon" aria-hidden>
-            👤
+            <IconUser size={18} />
           </span>
           <div className="role-preview-banner__text" style={{ flex: '1 1 200px' }}>
             <strong>Prise de contrôle (admin)</strong>
@@ -61,7 +62,7 @@ export function RolePreviewBanners({
       {isTeacher && roleViewMode === 'student' && (
         <div className="role-preview-banner fade-in" role="status">
           <span className="role-preview-banner__icon" aria-hidden>
-            🎓
+            <IconStudentView size={18} />
           </span>
           <div className="role-preview-banner__text">
             <strong>Vue n3beur (aperçu)</strong>
@@ -75,7 +76,7 @@ export function RolePreviewBanners({
       {isTeacher && roleViewMode === 'teacher' && (
         <div className="role-preview-banner role-preview-banner--teacher fade-in" role="status">
           <span className="role-preview-banner__icon" aria-hidden>
-            🧑‍🏫
+            <IconTeacherView size={18} />
           </span>
           <div className="role-preview-banner__text">
             <strong>Vue n3boss (aperçu)</strong>
