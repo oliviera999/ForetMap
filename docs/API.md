@@ -1036,8 +1036,8 @@ sur le préfixe pour les lignes non migrées.
 Classement partagé par les zones et les repères. Une catégorie est **globale** (`map_id: null`,
 valable sur toutes les cartes) ou **propre à une carte**. `applies_to` restreint son usage
 (`zone`, `marker` ou `both`). `is_infrastructure` reprend l'ancien drapeau `zones.special` :
-pas de section Biodiversité en visite, lieu jamais proposé comme cible de mission, contour en
-pointillés sur la carte.
+pas de section Biodiversité en visite, lieu jamais proposé comme cible de mission. Le contour
+sur la carte est tracé en trait continu, comme celui des autres zones.
 
 | Méthode | URL                          | n3boss | Description                                                                        |
 | ------- | ---------------------------- | ------ | ---------------------------------------------------------------------------------- |
