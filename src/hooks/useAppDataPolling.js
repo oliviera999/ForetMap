@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { POLLING_COARSE_TABS } from '../constants/app-runtime';
 
-/** Intervalle plancher quand le temps réel Socket.IO est actif (le push fait le gros du travail). */
-const LIVE_MIN_INTERVAL_MS = 90000;
+/** Intervalle plancher quand le temps réel Socket.IO est actif (filet REST si un événement a été manqué). */
+export const LIVE_MIN_INTERVAL_MS = 90000;
 /** Intervalle plancher quand l'onglet navigateur est en arrière-plan. */
 const BACKGROUND_MIN_INTERVAL_MS = 120000;
 
@@ -31,14 +31,13 @@ export function useAppDataPolling({ fetchAll, tab, rtStatus, refreshMs, isTabVis
   }, [isTabVisible, refreshMs, rtStatus, tab]);
 
   useEffect(() => {
-    if (rtStatus === 'live') return undefined;
     const id = setInterval(() => {
       if (pauseRef.current) return;
       if (document.visibilityState === 'hidden') return;
       fetchAll();
     }, pollingIntervalMs);
     return () => clearInterval(id);
-  }, [fetchAll, pollingIntervalMs, rtStatus, pauseRef]);
+  }, [fetchAll, pollingIntervalMs, pauseRef]);
 
   /** En quittant un onglet « secondaire », on refetch une fois pour éviter des données trop vieilles à l’arrivée sur carte / tâches / visite. */
   useEffect(() => {

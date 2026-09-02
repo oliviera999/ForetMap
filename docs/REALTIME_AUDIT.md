@@ -48,5 +48,16 @@
 
 ## Points de suivi
 
-- Réparer l’environnement Playwright local pour valider le scénario multi-session.
-- Étendre ensuite l’e2e à des cas de concurrence multi-élèves sur plusieurs cartes.
+- Points de suivi Playwright local (historique).
+
+## Addendum 2026-09 (o2switch / Passenger)
+
+Le canal Socket.IO reste un **signal** ; la donnée à jour passe par refetch REST.
+
+- **Filet** : `useAppDataPolling` continue `fetchAll` toutes les 90 s même si `rtStatus === 'live'` (un événement manqué n’attend plus un rechargement manuel).
+- **Transport client** : `src/utils/socketIoClientOptions.js` — `polling` + `upgrade: false` (ForetMap et GL).
+- **GL** : `src/gl/realtime/glSocketClient.js` — un `io()` par jeton, rooms à refcount.
+- **Auth ForetMap** : hydratation JWT en base à la connexion socket ; `subscribe:map` seulement si la carte existe.
+- **Observations** : `observations:changed` (B5 traité).
+- **Diagnostics** : `runtimeProcess.realtime.{enabled,clients}`.
+- **Hors code** : 1 instance Passenger, éventuellement HTTP/1.1 vhost (cPanel).

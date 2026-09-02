@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { queryAll, queryOne, execute } = require('../database');
+const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const {
   requireAuth,
   requirePermission,
@@ -34,13 +34,7 @@ const {
 } = require('../lib/fmQuizImport');
 const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../lib/glGlossaryMatch');
 const { normalizeQuestionCode } = require('../lib/shared/questionRouteHelpers');
-const { getFmGatingSite, FM_MARKABLE } = require('../lib/learningGatingRuntime');
-const { maybeRegisterCooldownOnWrong } = require('../lib/learningGatingCooldown');
-const {
-  normalizeResourceType,
-  normalizeResourceRef,
-  FORETMAP_RESOURCE_TYPES,
-} = require('../lib/shared/resourceQuestionGatingCore');
+const { registerFmCooldownOnWrongIfGating } = require('../lib/learningGatingRuntime');
 const {
   listFmQuestionStats,
   MIN_ATTEMPTS_FOR_FLAG,
@@ -123,24 +117,14 @@ async function tryHydrateAuth(req) {
  * acquis ». Le quiz libre n'envoie pas ce contexte : aucun verrou n'est jamais pose.
  */
 async function maybeRegisterCooldownForFmAnswer(req, { userId, questionCode, isCorrect }) {
-  if (isCorrect) return null;
-  const resourceType = normalizeResourceType(req.body?.resourceType, FORETMAP_RESOURCE_TYPES);
-  const resourceRef = normalizeResourceRef(req.body?.resourceRef);
-  if (!resourceType || !resourceRef || !FM_MARKABLE.has(resourceType)) return null;
-  const site = await getFmGatingSite();
-  if (!site.enabled) return null;
-  return maybeRegisterCooldownOnWrong(
+  return registerFmCooldownOnWrongIfGating(
     { queryAll, queryOne, execute },
     {
-      product: 'fm',
       userId,
-      resourceType,
-      resourceRef,
+      resourceType: req.body?.resourceType,
+      resourceRef: req.body?.resourceRef,
       questionCode,
       isCorrect,
-      retryDays: site.retryCooldownDays,
-      allowedWrongAttempts: site.allowedWrongAttempts,
-      cooldownScope: site.cooldownScope,
     },
   );
 }
@@ -651,13 +635,19 @@ router.post(
       return res.status(400).json({ error: `Trop de lignes (max ${MAX_IMPORT_ROWS})` });
     }
     try {
-      const report = await applyFmQuizImport(
-        { queryAll, execute },
-        categoryRows || [],
-        questionRows,
-        {
-          dryRun,
-        },
+      // G4 (audit 2026-09) : même garde que les imports GL. L'import vide d'abord
+      // `resource_question_links` (origin=import) puis reconstruit. Sans transaction,
+      // une interruption (kill LVE, exception) laissait le catalogue de questions
+      // à jour et tous les rattachements glossaire auto-générés effacés.
+      const report = await withTransaction(async (tx) =>
+        applyFmQuizImport(
+          { queryAll: tx.queryAll, execute: tx.execute },
+          categoryRows || [],
+          questionRows,
+          {
+            dryRun,
+          },
+        ),
       );
       return res.json({ report });
     } catch (err) {

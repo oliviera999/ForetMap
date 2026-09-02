@@ -23,7 +23,6 @@ Il consolide les constats des audits internes, notamment:
 - `G9` - JWT stocke en `localStorage` + CSP `script-src` absente (helmet `contentSecurityPolicy:false`) : defense en profondeur XSS a renforcer (cookie httpOnly + CSP stricte SPA).
 - `G6` - [wip] N+1 d'ecriture hors transaction sur tables de liaison : `task-projects.js`, la creation de tutoriel et `visit/sync.js` passent desormais par `withTransaction` ; restent les batchs residuels a convertir en INSERT multi-valeurs (cf. O10).
 - `G7` - Migrations sans lock ni transaction par fichier (`database.js:368`) : risque en deploiement concurrent / echec partiel.
-- `B5` - Temps reel incomplet sur les observations (creation/suppression non diffusees).
 - `R4` - Pipeline base64 JSON couteux en CPU/memoire pour les uploads.
 - `R5` - Logique de compression image dupliquee cote frontend.
 - `R6` - Gouvernance des URLs externes plantes a renforcer (allowlist / verifications periodiques).
@@ -47,6 +46,7 @@ Il consolide les constats des audits internes, notamment:
 - `B6` - Regle interne frontend mise a jour sur la stack Vite.
 - `B1` - Suppression d'observation protegee (proprietaire ou n3boss selon perimetre).
 - `B2` - Lecture observations protegee contre IDOR inter-eleves.
+- `B5` - Creation et suppression d'observations diffusees en temps reel (`observations:changed`) ; le carnet et le panneau prof se rechargent.
 - `B8` - `PATCH /api/students/:id/profile` protege par JWT et verification proprietaire.
 
 ## Optimisation (extensibilite / maintenabilite / performance)

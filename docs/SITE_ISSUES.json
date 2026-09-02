@@ -51,10 +51,6 @@
         "details": "database.js:368 ; risque en deploiement concurrent / echec partiel"
       },
       {
-        "id": "B5",
-        "summary": "Temps reel incomplet sur les observations"
-      },
-      {
         "id": "R4",
         "summary": "Pipeline base64 JSON couteux en CPU/memoire"
       },
@@ -200,6 +196,11 @@
       {
         "id": "B2",
         "summary": "Lecture observations protegee contre IDOR inter-eleves"
+      },
+      {
+        "id": "B5",
+        "summary": "Creation et suppression d'observations diffusees en temps reel",
+        "details": "Evenement observations:changed ; carnet eleve et panneau prof se rechargent"
       },
       {
         "id": "B8",

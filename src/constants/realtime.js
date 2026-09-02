@@ -4,6 +4,6 @@ export const RT_PROF_TOOLTIPS = {
   polling: 'Synchronisation par rafraîchissement automatique (mode secours).',
   connecting: 'Connexion au temps réel…',
   offline:
-    'Temps réel coupé — reconnexion automatique ou rafraîchissement environ toutes les 30 s.',
+    'Temps réel coupé — reconnexion automatique, ou rafraîchissement des listes environ toutes les 1 à 2 minutes.',
   'no-client': 'Module temps réel indisponible — mises à jour par rafraîchissement seulement.',
 };

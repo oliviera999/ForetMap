@@ -26,6 +26,11 @@
 > **F2**, ce qui emporte F4 et F5. Détail des corrections au **§5**. Les constats ci-dessous
 > restent rédigés **tels qu'observés à la rédaction** : ils décrivent le problème, le §5 dit ce
 > qui a été fait. Seuls **J1 et J3** restent ouverts.
+>
+> **Mise à jour documentaire du 2026-08-31** : les paragraphes de synthèse et le constat F1 sont
+> reformulés pour éviter une lecture hors contexte. L'état actuel est celui du §5 : mode, seuil,
+> politique par type/ressource, session, verrou et granularité GL sont appliqués par la politique
+> effective ; seul l'ancien auto-marquage est retiré/ignoré.
 
 ---
 
@@ -36,28 +41,27 @@ challenge → question → confirmation) est complet, cohérent de bout en bout,
 est refaite côté serveur — l'UI n'est jamais la seule barrière. Rien de cassé au sens strict :
 avec le conditionnement éteint (défaut), le comportement observable est correct.
 
-Les incohérences sont ailleurs, et elles sont de trois familles :
+Les incohérences constatées à la rédaction étaient ailleurs, en trois familles :
 
-1. **Des réglages qui ne règlent rien.** Sur les six réglages de l'écran « Conditionnement par
-   QCM », **quatre sont inertes** (mode, granularité, seuil, marquage automatique). Seuls
-   l'interrupteur global et le délai de nouvelle tentative agissent. L'écran, la doc de
-   référence et la fiche G3 de `INCOHERENCES.md` promettent tous les quatre. Seul `docs/API.md`
-   dit la vérité.
-2. **Un effet de bord dormant à l'allumage.** La migration 145 et chaque import de QCM créent
-   des liens **approuvés et bloquants** sur les termes de glossaire. Comme le mode réel est
-   figé à « toutes les questions », le jour où l'interrupteur global passera à ON, des termes
-   de glossaire deviendront conditionnés par _toutes_ leurs questions d'un coup — avec un
-   verrou de 3 jours à la première erreur. Les **feuillets**, eux, n'ont aucun lien
-   automatique : sur eux, le conditionnement ne se déclenchera jamais tant qu'un MJ n'aura pas
-   saisi les codes à la main.
-3. **Des angles morts d'exploitation.** Les tentatives ne sont enregistrées que si le
-   conditionnement est déjà actif (activation non rétroactive) ; en mode « QCM réservés au MJ »
-   les bonnes réponses sont créditées au MJ et jamais aux élèves ; la saisie d'un lien est un
+1. **Des réglages qui ne réglaient rien.** Sur les six réglages de l'écran « Conditionnement par
+   QCM », quatre étaient sans effet au 20/08 (mode, granularité, seuil, marquage automatique).
+   Depuis les corrections du §5 et la cascade ajoutée ensuite, mode, seuil, préréglage par type,
+   surcharge par ressource, session/verrou et granularité GL sont appliqués ; l'ancien
+   auto-marquage a été retiré de l'écran et reste déprécié.
+2. **Un effet de bord dormant à l'allumage.** La migration 145 et chaque import de QCM créaient
+   des liens **approuvés et bloquants** sur les termes de glossaire. Comme le mode réel était
+   alors figé à « toutes les questions », allumer l'interrupteur global aurait conditionné des
+   termes de glossaire par _toutes_ leurs questions d'un coup — avec un verrou de 3 jours à la
+   première erreur. Les **feuillets**, eux, n'avaient aucun lien automatique : sur eux, le
+   conditionnement ne se déclenchait pas tant qu'un MJ n'avait pas saisi les codes à la main.
+3. **Des angles morts d'exploitation.** Les tentatives n'étaient enregistrées que si le
+   conditionnement était déjà actif (activation non rétroactive) ; en mode « QCM réservés au MJ »
+   les bonnes réponses étaient créditées au MJ et jamais aux élèves ; la saisie d'un lien reste un
    champ libre sans contrôle d'existence.
 
-Classement : **2 points rouges**, **4 orange**, **5 jaunes**. Aucun ne demandait une correction
-en urgence (le conditionnement est éteint par défaut) ; **F1 et F2 devaient être traités avant
-toute activation en classe** — ils l'ont été (§5), avec le reste sauf J1 et J3.
+Classement initial : **2 points rouges**, **4 orange**, **5 jaunes**. Aucun ne demandait une
+correction en urgence (le conditionnement est éteint par défaut) ; **F1 et F2 devaient être
+traités avant toute activation en classe** — ils l'ont été (§5), avec le reste sauf J1 et J3.
 
 ---
 
@@ -116,24 +120,26 @@ MJ : Contenus → Conditionnement QCM        Admin : Réglages plateforme → Co
 
 ### 🔴 F1 — Quatre des six réglages de l'écran « Conditionnement par QCM » ne font rien ✅ corrigé
 
-**Constat.** `getChallengeState()` et `assertGatingSatisfiedForAcknowledge()` figent le mode à
-la constante `ACKNOWLEDGE_MODE = 'all'` (`lib/learningGatingAcknowledge.js:24`) et calculent
-les bonnes réponses par **lecteur** uniquement. Résultat, pour chaque réglage :
+**Constat initial.** Le 20/08, `getChallengeState()` et
+`assertGatingSatisfiedForAcknowledge()` figeaient le mode à la constante
+`ACKNOWLEDGE_MODE = 'all'` (`lib/learningGatingAcknowledge.js:24`) et calculaient les bonnes
+réponses par **lecteur** uniquement. Résultat, pour chaque réglage :
 
-| Réglage (écran admin)                              | Clé `gl_settings`                 | Effet réel                                                                          |
-| -------------------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------- |
-| Activer le conditionnement                         | `gating.enabled`                  | ✅ agit                                                                             |
-| Délai avant nouvelle tentative                     | `gating.retry_cooldown_days`      | ✅ agit                                                                             |
-| **Mode par défaut** (any / all / threshold / off)  | `gating.default_mode`             | ❌ **ignoré** — toujours « toutes les questions »                                   |
-| **Réussites requises** (threshold)                 | `gating.default_required_correct` | ❌ **ignoré**                                                                       |
-| **Granularité du suivi** (joueur/équipe/ressource) | `gating.granularity`              | ❌ **ignorée** — toujours par lecteur                                               |
-| **Marquer automatiquement après bonne réponse**    | `gating.auto_mark_on_correct`     | ❌ **ignoré** (auto-marquage retiré, cf. en-tête de `lib/learningGatingRuntime.js`) |
+| Réglage (écran admin au 20/08)                     | Clé `gl_settings`                 | Effet réel au constat initial                                          |
+| -------------------------------------------------- | --------------------------------- | ---------------------------------------------------------------------- |
+| Activer le conditionnement                         | `gating.enabled`                  | ✅ agissait                                                            |
+| Délai avant nouvelle tentative                     | `gating.retry_cooldown_days`      | ✅ agissait                                                            |
+| **Mode par défaut** (any / all / threshold / off)  | `gating.default_mode`             | ❌ sans effet initial — comportement figé sur « toutes les questions » |
+| **Réussites requises** (threshold)                 | `gating.default_required_correct` | ❌ sans effet initial                                                  |
+| **Granularité du suivi** (joueur/équipe/ressource) | `gating.granularity`              | ❌ sans effet initial — calcul par lecteur uniquement                  |
+| **Marquer automatiquement après bonne réponse**    | `gating.auto_mark_on_correct`     | ❌ sans effet initial (auto-marquage déjà retiré du runtime)           |
 
-`resolveEffectivePolicy()` — la fonction qui saurait résoudre mode/seuil/granularité — n'est
-appelée que par le `GET /api/gl/learning-links/policy`, en **lecture seule** : elle décrit une
-politique que le runtime n'applique jamais. Idem pour les surcharges par chapitre
-(`gl_chapters.gating_granularity`) et par scope lore (`gl_qcm_lore_scopes.gating_granularity`),
-écrites par deux endpoints dédiés et jamais relues.
+**État actuel.** La politique effective est désormais relue par le runtime
+(`getChallengeState()`), puis appliquée par `evaluateUnlock()` : le site sert de base, le
+préréglage par type (`resource_ref='*'`) peut la surcharger, la fiche peut à son tour surcharger
+le type, et GL peut encore remplacer la granularité par le chapitre ou le scope lore quand le
+contexte est connu. `effective_sources` indique quelle couche a fourni chaque valeur. L'ancien
+auto-marquage reste volontairement absent : seule l'action « Marquer comme… » valide la ressource.
 
 **Où la promesse est faite.**
 
@@ -167,7 +173,7 @@ intention. Combiné à F2, l'écart est massif.
 
 ### 🔴 F2 — À l'allumage, des dizaines de liens bloquants hérités se réveillent d'un coup ✅ corrigé
 
-**Constat.** Trois sources créent des liens `status='approved'`, `is_gating=1` **sans
+**Constat initial.** Trois sources créaient des liens `status='approved'`, `is_gating=1` **sans
 intervention humaine** :
 
 - `migrations/145_gl_learning_resource_links.sql:80-90` — reprise de **tout**
@@ -176,9 +182,9 @@ intervention humaine** :
   `question ↔ glossary` par rapprochement de mots-clés, en approuvé/bloquant ;
 - `lib/glQcmLoreImport.js:486` — idem pour `qcm_lore ↔ lore_glossary`.
 
-Comme le mode réel est **all** (F1), un terme de glossaire relié à _n_ questions exigera les
-_n_ bonnes réponses avant de pouvoir être marqué appris — avec, à la première erreur, un verrou
-de 3 jours **sur le terme entier** (`learningGatingCooldown.js`). Le rapprochement étant
+Comme le mode réel était alors **all** (F1), un terme de glossaire relié à _n_ questions aurait
+exigé les _n_ bonnes réponses avant de pouvoir être marqué appris — avec, à la première erreur, un
+verrou de 3 jours **sur le terme entier** (`learningGatingCooldown.js`). Le rapprochement étant
 textuel, _n_ peut être élevé pour un terme courant.
 
 Le contraste avec les feuillets est frappant : **aucun** lien n'est jamais créé
@@ -442,11 +448,10 @@ pour la granularité `per_resource`, qui n'a pas de sens distinct maintenant que
 ressource s'applique toujours : elle n'est plus proposée (et reste affichée, étiquetée « ancien
 réglage », si une base la porte encore).
 
-**Restent hors runtime, faute de contexte** : les surcharges de granularité **par chapitre**
-(`gl_chapters.gating_granularity`) et **par scope lore** (`gl_qcm_lore_scopes.gating_granularity`).
-L'accusé ne sait pas dans quel chapitre l'élève se trouve — une ressource n'appartient pas à un
-chapitre. Elles restent lisibles via `GET /policy`, qui reçoit `chapterGranularity` de l'appelant.
-`docs/API.md` le dit explicitement. À retirer si elles ne trouvent pas d'usage.
+**Granularité chapitre/scope GL.** Elle est appliquée par le runtime en best-effort : d'abord via
+le `gameId` porté par le JWT GL, puis, pour un feuillet ou un terme de lexique lore, via le premier
+lien lore approuvé de la ressource. `GET /policy` garde son paramètre `chapterGranularity` pour
+prévisualiser cette quatrième couche sans contexte joueur.
 
 **F2 — un conditionnement ne s'applique que là où un humain l'a demandé.** Les liens créés
 **automatiquement** (migration 144/145 et rapprochement de mots-clés à chaque import ou
