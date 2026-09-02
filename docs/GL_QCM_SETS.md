@@ -124,8 +124,9 @@ Modèle unifié qui relie n'importe quelle ressource aux questions des deux sets
   `resource_type ∈ {species, glossary, lore_glossary, tutorial, feuillet, content_page, ecosystem}` ;
   `resource_ref` = référence polymorphe (pas de FK, validation applicative).
 - **`gl_resource_gating_policy`** :
-  `(resource_type, resource_ref, mode, required_correct, enabled)` — politique par ressource,
-  résolue en cascade ressource → chapitre/scope → site.
+  `(resource_type, resource_ref, mode, required_correct, enabled, allowed_wrong_attempts, max_questions_per_session, retry_cooldown_days, cooldown_scope, granularity)` — préréglage par type
+  (`resource_ref='*'`) ou politique par ressource. Les champs nullable héritent de la couche
+  supérieure.
 - **`gl_qcm_attempts`** : tentatives **par lecteur** (`reader_user_type/id`, `is_correct`,
   `game_id`/`team_id` nullables) — nécessaire à la granularité `player` (les scores de partie
   ne vivaient jusque-là que par équipe dans `gl_game_events`).
@@ -133,9 +134,19 @@ Modèle unifié qui relie n'importe quelle ressource aux questions des deux sets
   `gl_qcm_lore_scopes` (NULL = hérite du site).
 
 Quand le gating est actif, l'élève ne peut « **Marquer comme appris** » une ressource (espèce,
-feuillet, glossaire…) qu'après avoir réussi **toutes** les questions `is_gating` approuvées qui
-y sont liées (`routes/gl/learning.js` → `assertGatingSatisfiedForAcknowledge`,
-cœur commun `lib/shared/resourceQuestionGatingCore.js`).
+feuillet, glossaire…) qu'après avoir satisfait la **politique effective** :
+
+1. réglages site GL (`gating.*`) ;
+2. préréglage du type de ressource (`resource_ref='*'`) ;
+3. surcharge de la ressource ;
+4. pour GL, granularité de chapitre/scope lore si le contexte permet de la retrouver.
+
+Le mode décide l'exigence : `any` = une bonne réponse, `all` = toutes les questions bloquantes,
+`threshold` = N bonnes réponses (borné au nombre de questions liées), `off` = pas de blocage. Le
+challenge renvoie `pending_count` (reste total à réussir), `ask_count` (questions posées dans la
+session) et `effective_sources` (couche ayant fourni chaque valeur). Le cœur commun est dans
+`lib/shared/resourceQuestionGatingCore.js` et `lib/shared/gatingPolicyLayersCore.js`, appelé depuis
+`routes/gl/learning.js` via `assertGatingSatisfiedForAcknowledge`.
 
 La migration 145 reprend automatiquement les liens glossaire existants des deux tables
 (`gl_qcm_question_glossary` → `resource_type='glossary'`,
@@ -143,10 +154,12 @@ La migration 145 reprend automatiquement les liens glossaire existants des deux 
 
 ## Fichiers clés
 
-- Migrations : `096`, `097`, `112`, `114`, `138`, `145`.
+- Migrations : `096`, `097`, `112`, `114`, `138`, `145`, `203`.
 - Libs : `lib/glQcmResolve.js`, `lib/glMarkerQuestionPool.js`, `lib/glMarkerLoreQuestionPool.js`,
   `lib/glQcmAttempts.js`, `lib/learningGatingRuntime.js`, `lib/learningGatingAcknowledge.js`,
-  `lib/shared/resourceQuestionGatingCore.js`, `lib/shared/resourceQuestionMatch.js`.
+  `lib/gatingPolicyLoad.js`, `lib/glGatingChapterGranularity.js`,
+  `lib/shared/resourceQuestionGatingCore.js`, `lib/shared/gatingPolicyLayersCore.js`,
+  `lib/shared/resourceQuestionMatch.js`.
 - Routes : `routes/gl/qcm.js`, `routes/gl/games/qcm.js`, `routes/gl/games/markers.js`,
   `routes/gl/learning.js`, `routes/gl/learning-links.js`.
 - Front : `src/gl/components/GLQcmModal.jsx`, `GLQcmPopover.jsx`,

@@ -3,6 +3,8 @@ import {
   buildZoneName,
   buildZonePayload,
   computeZoneVisitImageBlocks,
+  isZoneVisitBodyReadyForSave,
+  mergeZoneListIntoDetail,
   zoneTaskMapId,
 } from '../../src/utils/zoneModalForm.js';
 
@@ -53,6 +55,57 @@ describe('buildZonePayload', () => {
     expect(payload.visit_details_title).toBe('dt');
     expect(payload.visit_details_text).toBe('dtx');
     expect(Array.isArray(payload.visit_editorial_blocks)).toBe(true);
+  });
+
+  test('omitVisitEditorialBlocks : n’envoie pas la clé (PUT conserve body_json)', () => {
+    const form = {
+      livingBeings: [],
+      categoryIds: [],
+      zoneColor: '#abc',
+      desc: '',
+      visitSubtitle: 'st',
+      visitShortDesc: '',
+      visitDetailsTitle: 'Détails',
+      visitDetailsText: '',
+    };
+    const payload = buildZonePayload('🌱 Potager', form, [], { omitVisitEditorialBlocks: true });
+    expect(payload.visit_editorial_blocks).toBeUndefined();
+    expect(payload.visit_subtitle).toBe('st');
+  });
+});
+
+describe('isZoneVisitBodyReadyForSave / mergeZoneListIntoDetail', () => {
+  const body = JSON.stringify([{ type: 'paragraph', markdown: 'Texte visite' }]);
+
+  test('prêt si la liste n’annonce pas de corps visite', () => {
+    expect(isZoneVisitBodyReadyForSave({ has_visit_body: false }, {})).toBe(true);
+  });
+
+  test('pas prêt tant que le détail n’a pas le JSON (liste allégée)', () => {
+    expect(
+      isZoneVisitBodyReadyForSave({ has_visit_body: true, visit_body_json: undefined }, {}),
+    ).toBe(false);
+  });
+
+  test('prêt dès que le détail a chargé le corps', () => {
+    expect(isZoneVisitBodyReadyForSave({ has_visit_body: true }, { visit_body_json: body })).toBe(
+      true,
+    );
+  });
+
+  test('merge : un poll liste ne doit pas effacer un détail déjà chargé', () => {
+    const detail = { id: 'z1', name: 'A', visit_body_json: body, has_visit_body: true };
+    const list = { id: 'z1', name: 'A+', visit_body_json: undefined, has_visit_body: true };
+    expect(mergeZoneListIntoDetail(detail, list)).toEqual({
+      ...list,
+      visit_body_json: body,
+    });
+  });
+
+  test('merge : autre zone → on prend la liste telle quelle', () => {
+    const detail = { id: 'z1', visit_body_json: body };
+    const list = { id: 'z2', has_visit_body: true };
+    expect(mergeZoneListIntoDetail(detail, list)).toEqual(list);
   });
 });
 
