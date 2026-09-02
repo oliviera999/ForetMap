@@ -7,6 +7,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctif — « Serveur indisponible » affiché alors que le voyant est au vert
+
+- **Notifications d'état closes à la reprise** : « Serveur indisponible — Synchronisation
+  ralentie », « Temps réel hors ligne » et « Session non vérifiée » passent en lues dès
+  que leur cause retombe (y compris pour un item restauré du `localStorage`, persisté
+  7 jours). Auparavant l'item restait non lu et le bandeau critique d'`App.jsx` — rendu
+  précisément quand `serverDown` est redevenu faux — continuait d'afficher « Serveur
+  indisponible » avec le temps réel au vert, jusqu'à un clic manuel ou l'expiration.
+- **Comptage « serveur indisponible » aligné sur le catch global** : dans `fetchAll`, un
+  domaine qui échoue en **4xx** (403, 404, 429) conserve les données affichées et suspend
+  la baseline du polling différentiel, mais ne compte plus comme échec serveur — le
+  serveur répond. Seuls les échecs réseau et 5xx lèvent le bandeau après trois cycles.
+- Tests : `tests-ui/hooks/useNotificationCenter.test.jsx` (nouveau) et cas 4xx dans
+  `useAppDataSync.test.jsx`.
+
 ### Interface désencombrée : icônes, navigation en pôles, accordéons (audit UI — D-2/D-3/D-4)
 
 Fin du lot D de l'audit homogénéité, selon les arbitrages validés :
