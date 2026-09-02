@@ -141,6 +141,30 @@ describe('useAppDataSync — coupure serveur', () => {
     expect(result.current.zones).toEqual(ZONES);
   });
 
+  it('un domaine en 4xx persistant ne lève pas « serveur indisponible » (le serveur répond)', async () => {
+    const { result } = mountSync();
+    await waitFor(() => expect(result.current.plants).toEqual(PLANTS));
+
+    api.mockImplementation(async (path) => {
+      if (path.startsWith('/api/plants')) {
+        const err = new Error('Accès refusé (HTTP 403)');
+        err.status = 403;
+        throw err;
+      }
+      return nominalResponse(path);
+    });
+    for (let i = 0; i < 4; i += 1) {
+      await act(async () => {
+        await result.current.fetchAll();
+      });
+    }
+
+    expect(result.current.serverDown).toBe(false);
+    expect(result.current.refreshMs).toBe(60000);
+    // Les plantes d'avant l'échec sont conservées (jamais de vidage).
+    expect(result.current.plants).toEqual(PLANTS);
+  });
+
   it('le retour du serveur efface le bandeau et rétablit la cadence nominale', async () => {
     const { result } = mountSync();
     await waitFor(() => expect(result.current.zones).toEqual(ZONES));
