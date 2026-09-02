@@ -230,6 +230,20 @@ export function useNotificationCenter({
     setItems((prev) => prev.filter((item) => !item.read));
   }, []);
 
+  /**
+   * Clôt une notification « d'état » (serveur indisponible, temps réel hors ligne, session
+   * non vérifiée) quand la condition qui l'a produite a disparu : l'item reste dans
+   * l'historique mais passe en lu. Sans cela, l'item — persisté 7 jours en localStorage —
+   * restait non lu après la reprise, et le bandeau critique d'App.jsx (rendu quand
+   * `serverDown` est faux) continuait d'afficher « Serveur indisponible » voyant au vert.
+   */
+  const resolveNotificationsByKey = useCallback((key) => {
+    setItems((prev) => {
+      if (!prev.some((item) => item.key === key && !item.read)) return prev;
+      return prev.map((item) => (item.key === key && !item.read ? { ...item, read: true } : item));
+    });
+  }, []);
+
   const updatePreference = useCallback(
     (category, enabled) => {
       setPrefs((prev) => {
@@ -337,44 +351,59 @@ export function useNotificationCenter({
     }
   }, [addNotification, isTeacher, student, tasksForActiveMap]);
 
-  // Règles de génération: opérations
+  // Règles de génération: opérations. Chaque règle d'état clôt sa notification quand la
+  // condition retombe ; `notificationsStorageKey` en dépendance rejoue la clôture après
+  // l'hydratation depuis le storage (montage, changement de rôle) — un item restauré non
+  // lu alors que la condition est déjà retombée est clos immédiatement.
   useEffect(() => {
-    if (serverDown) {
-      addNotification({
-        key: 'server-down',
-        level: NOTIFICATION_LEVEL.CRITICAL,
-        category: NOTIFICATION_CATEGORY.OPERATIONS,
-        title: 'Serveur indisponible',
-        message: 'Synchronisation ralentie, réessai automatique en cours.',
-        action: { tab: 'map' },
-      });
+    if (!serverDown) {
+      resolveNotificationsByKey('server-down');
+      return;
     }
-  }, [addNotification, serverDown]);
+    addNotification({
+      key: 'server-down',
+      level: NOTIFICATION_LEVEL.CRITICAL,
+      category: NOTIFICATION_CATEGORY.OPERATIONS,
+      title: 'Serveur indisponible',
+      message: 'Synchronisation ralentie, réessai automatique en cours.',
+      action: { tab: 'map' },
+    });
+  }, [addNotification, notificationsStorageKey, resolveNotificationsByKey, serverDown]);
 
   useEffect(() => {
-    if (isTeacher && rtStatus === 'offline') {
-      addNotification({
-        key: 'teacher-realtime-offline',
-        level: NOTIFICATION_LEVEL.IMPORTANT,
-        category: NOTIFICATION_CATEGORY.OPERATIONS,
-        title: 'Temps réel hors ligne',
-        message: 'Le mode secours par rafraîchissement est actif.',
-      });
+    if (!isTeacher || rtStatus !== 'offline') {
+      resolveNotificationsByKey('teacher-realtime-offline');
+      return;
     }
-  }, [addNotification, isTeacher, rtStatus]);
+    addNotification({
+      key: 'teacher-realtime-offline',
+      level: NOTIFICATION_LEVEL.IMPORTANT,
+      category: NOTIFICATION_CATEGORY.OPERATIONS,
+      title: 'Temps réel hors ligne',
+      message: 'Le mode secours par rafraîchissement est actif.',
+    });
+  }, [addNotification, isTeacher, notificationsStorageKey, resolveNotificationsByKey, rtStatus]);
 
   useEffect(() => {
-    if (!isTeacher && sessionValidationError) {
-      addNotification({
-        key: 'student-session-unverified',
-        level: NOTIFICATION_LEVEL.IMPORTANT,
-        category: NOTIFICATION_CATEGORY.SECURITY,
-        title: 'Session non vérifiée',
-        message: 'Certaines informations peuvent être périmées.',
-        action: { type: 'retryStudentValidation' },
-      });
+    if (isTeacher || !sessionValidationError) {
+      resolveNotificationsByKey('student-session-unverified');
+      return;
     }
-  }, [addNotification, isTeacher, sessionValidationError]);
+    addNotification({
+      key: 'student-session-unverified',
+      level: NOTIFICATION_LEVEL.IMPORTANT,
+      category: NOTIFICATION_CATEGORY.SECURITY,
+      title: 'Session non vérifiée',
+      message: 'Certaines informations peuvent être périmées.',
+      action: { type: 'retryStudentValidation' },
+    });
+  }, [
+    addNotification,
+    isTeacher,
+    notificationsStorageKey,
+    resolveNotificationsByKey,
+    sessionValidationError,
+  ]);
 
   useEffect(() => {
     if (!isAdmin) return;
