@@ -38,7 +38,8 @@ commentaires) et rester informé (notifications, temps réel).
   s'affichent en bandeau.
 - L'application se met à jour **en temps réel** : une tâche validée par le professeur
   apparaît chez l'élève sans recharger la page ; les listes d'élèves et de tâches
-  restent synchrones entre les écrans ouverts.
+  restent synchrones entre les écrans ouverts. Une observation ajoutée ou retirée
+  du carnet se voit aussi tout de suite chez les autres personnes connectées.
 
 ## L'audit et la médiathèque
 

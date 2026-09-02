@@ -3,6 +3,7 @@ const { queryAll, queryOne, execute } = require('../database');
 const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const { requireAuth } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
+const { emitObservationsChanged } = require('../lib/realtime');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { canAccessStudentId, getScopedStudentIds } = require('../lib/groupScope');
@@ -155,6 +156,11 @@ router.post(
     }
 
     const obs = await queryOne('SELECT * FROM observation_logs WHERE id = ?', [logId]);
+    emitObservationsChanged({
+      reason: 'observation_created',
+      observationId: logId,
+      studentId: resolvedStudentId,
+    });
     res.status(201).json(obs);
   }),
 );
@@ -225,6 +231,11 @@ router.delete(
 
     if (obs.image_path) deleteFile(obs.image_path);
     await execute('DELETE FROM observation_logs WHERE id = ?', [req.params.id]);
+    emitObservationsChanged({
+      reason: 'observation_deleted',
+      observationId: obs.id,
+      studentId: obs.student_id,
+    });
     res.json({ success: true });
   }),
 );
