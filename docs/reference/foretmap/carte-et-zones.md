@@ -83,7 +83,9 @@ Une zone est une **forme libre** dessinée sur le plan (au moins trois points, a
 qu'on veut). Sa fiche rassemble :
 
 - un **nom** et un **emoji** (choisi dans une palette ou saisi librement) ;
-- une **couleur** de remplissage (palette de dix couleurs) ;
+- une **couleur** de remplissage : la **même palette prédéfinie de dix teintes** que pour
+  les catégories, complétée par la pastille de sélection du système et la saisie directe
+  du code hexadécimal (transparence comprise) — voir « Catégories de lieux » plus bas ;
 - la liste des **êtres vivants** présents (choisis dans le catalogue biodiversité —
   plusieurs espèces possibles, l'ordre choisi est conservé à l'affichage) ;
 - une ou plusieurs **catégories** (Verger, Compostage, Zone pédagogique…), créées par
@@ -117,11 +119,12 @@ Elles remplacent l'ancien couple « état de culture » (Vide / En croissance / 
 récolter) et case « zone spéciale ».
 
 Une catégorie porte un **libellé**, un **emoji**, une **couleur**, une **description**
-(infobulle) et un **ordre d'affichage**. La couleur se choisit soit avec la **pastille de
-sélection** (nuancier du système), soit en tapant directement le code hexadécimal dans le
-champ voisin. Les deux derniers caractères de ce code règlent la **transparence** — utile
-pour que le plan reste lisible sous la zone — et le sélecteur les conserve quand on change
-seulement la teinte. Une catégorie est :
+(infobulle) et un **ordre d'affichage**. La couleur se choisit de trois façons — les mêmes
+que pour une zone, le champ est identique partout : en cliquant sur une pastille de la
+**palette prédéfinie** (dix teintes), avec la **pastille de sélection** (nuancier du
+système), ou en tapant directement le code hexadécimal dans le champ voisin. Les deux
+derniers caractères de ce code règlent la **transparence** — utile pour que le plan reste
+lisible sous la zone — et le sélecteur les conserve quand on change seulement la teinte. Une catégorie est :
 
 - soit **globale** — utilisable sur toutes les cartes (cas le plus courant : Compostage,
   Verger, Zone pédagogique) ;

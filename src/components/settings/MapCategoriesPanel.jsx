@@ -3,7 +3,8 @@ import { useCallback, useState } from 'react';
 import { api } from '../../services/api';
 import { useApiResource } from '../../hooks/useApiResource.js';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
-import { applyPickedHexColor, colorPickerValue } from '../../utils/hexColorWithAlpha.js';
+import { ColorPaletteField } from '../ColorPaletteField.jsx';
+import { ZONE_COLORS } from '../../constants/garden';
 import { IconDelete } from '../../shared/icons.jsx';
 
 const APPLIES_TO_LABELS = {
@@ -15,7 +16,7 @@ const APPLIES_TO_LABELS = {
 const EMPTY_DRAFT = {
   label: '',
   emoji: '',
-  color: '#86efac90',
+  color: ZONE_COLORS[0],
   description: '',
   map_id: '',
   applies_to: 'both',
@@ -159,32 +160,12 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
             maxLength={8}
           />
         </div>
-        <div className="field" style={{ flex: 1, minWidth: 0 }}>
-          <label htmlFor="map-category-color-hex">Couleur</label>
-          <div className="map-category-color-field">
-            <input
-              type="color"
-              className="map-category-color-field__picker"
-              value={colorPickerValue(draft.color)}
-              aria-label="Choisir la teinte"
-              onChange={(e) =>
-                setField({ color: applyPickedHexColor(draft.color, e.target.value) })
-              }
-            />
-            <input
-              id="map-category-color-hex"
-              className="map-category-color-field__hex"
-              value={draft.color}
-              onChange={(e) => setField({ color: e.target.value })}
-              placeholder="#86efac90"
-              spellCheck={false}
-            />
-          </div>
-          <p className="map-category-color-field__hint">
-            Les deux derniers caractères règlent la transparence (<code>90</code> ≈ 56 %) et sont
-            conservés par le sélecteur.
-          </p>
-        </div>
+        <ColorPaletteField
+          id="map-category-color"
+          value={draft.color}
+          onChange={(next) => setField({ color: next })}
+          style={{ flex: 1, minWidth: 0 }}
+        />
         <div className="field" style={{ flex: 1, minWidth: 0 }}>
           <label>Ordre</label>
           <input
