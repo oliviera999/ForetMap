@@ -7,6 +7,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Contour continu pour les lieux « Infrastructure »
+
+- **Carte principale** : le contour des zones marquées « Infrastructure » (mare, ruches,
+  compostage, cuve…) est désormais tracé en **trait continu**, comme celui de toutes les
+  autres zones — le tiretage qui les distinguait est supprimé. Le reste du comportement
+  « Infrastructure » est inchangé (pas de section Biodiversité en visite, lieu jamais
+  proposé comme cible de mission ou de tutoriel).
+- Doc mise à jour : `docs/API.md` et `docs/reference/foretmap/carte-et-zones.md`.
+- Test : cas de non-régression dans `tests-ui/components/map/ZonePolygonsLayer.test.jsx`.
+
 ### Correctif — « Serveur indisponible » affiché alors que le voyant est au vert
 
 - **Notifications d'état closes à la reprise** : « Serveur indisponible — Synchronisation

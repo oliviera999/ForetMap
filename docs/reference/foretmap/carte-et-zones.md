@@ -133,9 +133,9 @@ pour **les deux** (par défaut).
 
 Une case **« Infrastructure »** distingue les lieux qui ne sont pas des cultures (mare,
 ruches, compostage, cuve…). Elle reprend exactement le comportement de l'ancienne case
-« zone spéciale » : ces lieux n'affichent pas de section Biodiversité en mode Visite, ne
-sont jamais proposés comme cible de mission ou de tutoriel, et leur contour apparaît en
-pointillés sur la carte. Les zones qui étaient marquées « spéciales » ont été
+« zone spéciale » : ces lieux n'affichent pas de section Biodiversité en mode Visite et ne
+sont jamais proposés comme cible de mission ou de tutoriel. Leur contour est tracé en trait
+continu sur la carte, comme celui de toutes les autres zones. Les zones qui étaient marquées « spéciales » ont été
 automatiquement reprises dans une catégorie **Infrastructure**.
 
 Une catégorie peut être **désactivée** plutôt que supprimée : elle reste posée sur les
