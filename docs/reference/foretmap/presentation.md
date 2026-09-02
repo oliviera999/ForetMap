@@ -217,7 +217,14 @@ Au-delà de la pastille, l'application protège ce qui est déjà affiché :
   essai automatique toutes les 2 minutes »** apparaît, accompagné d'un bouton
   **« Réessayer maintenant »**, et le rafraîchissement s'espace pour laisser le serveur
   se remettre. Dès qu'une réponse arrive, le bandeau disparaît et la cadence normale
-  reprend.
+  reprend. La notification **« Serveur indisponible — Synchronisation ralentie »** du
+  centre de notifications passe alors en **lue** d'elle-même : elle reste consultable
+  dans l'historique mais n'est plus mise en avant. Il en va de même pour « Temps réel
+  hors ligne » et « Session non vérifiée » quand leur cause disparaît.
+- **Une erreur d'accès n'est pas une panne.** Seules les absences de réponse et les
+  erreurs internes du serveur comptent pour ces trois cycles. Un refus (droit manquant,
+  page introuvable, trop de requêtes) prouve au contraire que le serveur répond : il
+  ne déclenche pas le bandeau.
 - **Les données affichées peuvent donc dater** de quelques minutes le temps d'un
   incident : c'est volontaire, et le bandeau le signale.
 - **Une classe entière ne se bloque plus elle-même.** Quand tout un groupe utilise le site

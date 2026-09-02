@@ -186,9 +186,13 @@ export function useAppDataSync({
           }
           syncSkipCountRef.current = 0;
 
-          // Domaines dont la requête a échoué pendant CE cycle : pilote à la fois la
-          // conservation de l'état affiché et le comptage « serveur indisponible ».
+          // Domaines dont la requête a échoué pendant CE cycle : pilote la conservation de
+          // l'état affiché (tout échec) et le comptage « serveur indisponible » (échecs
+          // réseau / 5xx seulement, comme le catch global plus bas). Un domaine en 4xx
+          // persistant (403, 404, 429) prouve au contraire que le serveur répond : il ne
+          // doit pas lever le bandeau alors que le temps réel est au vert.
           let domainFailures = 0;
+          let serverSideFailures = 0;
           try {
             const safeApi = async (request) => {
               try {
@@ -196,6 +200,7 @@ export function useAppDataSync({
               } catch (err) {
                 if (err instanceof AccountDeletedError) throw err;
                 domainFailures += 1;
+                if (err?.status == null || err.status >= 500) serverSideFailures += 1;
                 console.error(err);
                 return FETCH_DOMAIN_FAILED;
               }
@@ -335,15 +340,7 @@ export function useAppDataSync({
               // coupure. Pas de baseline — sans quoi le polling différentiel considérerait
               // ces domaines à jour et ne les rechargerait qu'à la prochaine écriture.
               lastSyncStateRef.current = null;
-              failCountRef.current += 1;
-              if (failCountRef.current >= 3) {
-                setServerDown(true);
-                setRefreshMs(SERVER_DOWN_REFRESH_MS);
-              }
             } else {
-              failCountRef.current = 0;
-              setRefreshMs(DATA_REFRESH_INTERVAL_MS);
-              setServerDown(false);
               // Cycle complet réussi : baseline du polling différentiel. `syncState` a été
               // sondé AVANT les refetchs — une écriture arrivée pendant le cycle rendra
               // donc le prochain compteur différent → refetch (conservateur, jamais stale).
@@ -355,6 +352,18 @@ export function useAppDataSync({
                     domains: syncState.domains,
                   }
                 : null;
+            }
+            if (serverSideFailures > 0) {
+              failCountRef.current += 1;
+              if (failCountRef.current >= 3) {
+                setServerDown(true);
+                setRefreshMs(SERVER_DOWN_REFRESH_MS);
+              }
+            } else {
+              // Le serveur a répondu à tout (même par un 4xx) : plus d'indisponibilité.
+              failCountRef.current = 0;
+              setRefreshMs(DATA_REFRESH_INTERVAL_MS);
+              setServerDown(false);
             }
           } catch (e) {
             if (e instanceof AccountDeletedError) forceLogout();
