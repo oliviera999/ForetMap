@@ -16,7 +16,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   expérience cible (carte plein écran, recherche d'abord, chips de catégories, feuille basse à
   crans, point bleu de position, PWA) ; plan de portage en troisième produit du monorepo sur le
   schéma GL (`plan.html` → `src/plan/`, host `planlyautey.*`, noyau carte partagé
-  `src/shared/pct-map/`) ; phasage en huit lots ; onze questions à trancher.
+  `src/shared/pct-map/`) ; décisions du propriétaire intégrées et propositions détaillées :
+  fond de plan (licence), désencombrement des repères superposés, visibilité par surface,
+  « Y aller » et mode boussole, parcours, garde d'accès, service worker et manifest par
+  produit (hors ligne pour ForetMap, GL et le plan), compteur d'usage anonyme, matrice des
+  bénéfices pour chaque application ; phasage en dix lots.
 
 ### Couleurs de carte : une seule palette pour les zones et les catégories
 
