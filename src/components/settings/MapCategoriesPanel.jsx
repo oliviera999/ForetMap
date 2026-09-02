@@ -45,7 +45,7 @@ function draftFromCategory(category) {
  * Une catégorie est soit globale (toutes les cartes), soit propre à une carte.
  * Cocher « Infrastructure » reprend le comportement de l'ancien drapeau « zone
  * spéciale » : pas de section Biodiversité en visite, lieu non proposé comme cible
- * de mission, contour en pointillés sur la carte.
+ * de mission. Le contour reste tracé en trait continu sur la carte.
  */
 export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
   const { confirm } = useAppDialogs();
