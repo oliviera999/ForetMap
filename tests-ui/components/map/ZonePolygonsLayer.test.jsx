@@ -119,6 +119,14 @@ describe('ZonePolygonsLayer', () => {
     expect(getByText('2 tutoriels liés')).toBeInTheDocument();
   });
 
+  it('trace le contour des lieux « Infrastructure » en trait continu', () => {
+    const { container } = renderLayer({
+      parsedZones: parseZonesForLayer([zoneFixture({ is_infrastructure: true })], EMOJIS),
+    });
+    const poly = container.querySelector('polygon');
+    expect(poly).not.toHaveAttribute('stroke-dasharray');
+  });
+
   it('met en surbrillance la zone en édition de contour', () => {
     const { container } = renderLayer({ mode: 'edit-points', editZoneId: 1 });
     const poly = container.querySelector('polygon');
