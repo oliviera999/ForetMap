@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
 import { GLBadge } from '../ui/GLBadge.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
@@ -9,6 +10,7 @@ import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 
 export function GLClassesPanel({ classes, onReload }) {
+  const { confirm } = useAppDialogs();
   const [name, setName] = useState('');
   const [school, setSchool] = useState('');
   const [editId, setEditId] = useState(null);
@@ -93,7 +95,7 @@ export function GLClassesPanel({ classes, onReload }) {
   }
 
   async function deleteClass(item) {
-    const ok = window.confirm(`Supprimer la classe « ${item.name} » ?`);
+    const ok = await confirm({ message: `Supprimer la classe « ${item.name} » ?`, danger: true });
     if (!ok) return;
     setBusy(true);
     setError('');

@@ -56,6 +56,21 @@ module.exports = defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      // Les specs mobiles dédiées tournent dans leur propre projet (viewport tactile).
+      testIgnore: /mobile-.*\.spec\.js/,
+    },
+    {
+      // Audit UI (D-3) : validation tactile 390×844 de l'écran carte et de la navigation.
+      // Périmètre volontairement restreint (specs `mobile-*`) : workers:1 + BDD partagée,
+      // dupliquer les 44 specs doublerait le temps de suite.
+      name: 'mobile-chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 390, height: 844 },
+        hasTouch: true,
+        isMobile: true,
+      },
+      testMatch: /mobile-.*\.spec\.js/,
     },
   ],
 });

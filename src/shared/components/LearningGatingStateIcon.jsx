@@ -1,4 +1,12 @@
 import { gatingState } from '../utils/learningGatingState.js';
+import { IconCheck, IconLock, IconQuiz } from '../icons.jsx';
+
+/** Icône SVG par état (chrome lucide) — le module pur, lui, continue d'exposer `state.icon` texte. */
+const STATE_ICON_COMPONENTS = {
+  acquired: IconCheck,
+  pending: IconQuiz,
+  locked: IconLock,
+};
 
 /**
  * Pastille d'état du conditionnement — COMMUNE aux deux applications.
@@ -9,7 +17,7 @@ import { gatingState } from '../utils/learningGatingState.js';
  *
  * Trois partis pris :
  *   - **discrète** : un seul caractère, pas de bloc coloré qui concurrencerait le titre ;
- *   - **lisible sans couleur** : la forme (`✓`, `?`, `🔒`) porte l'information à elle
+ *   - **lisible sans couleur** : la forme (coche, point d'interrogation, cadenas) porte l'information à elle
  *     seule — la couleur ne fait que la renforcer ;
  *   - **muette quand il n'y a rien à dire** : une ressource non conditionnée, ou déjà
  *     validée, n'affiche rien du tout. Une icône partout ne signalerait plus rien.
@@ -38,10 +46,12 @@ export function LearningGatingStateIcon({
     .filter(Boolean)
     .join(' ');
 
+  const StateIcon = STATE_ICON_COMPONENTS[state.kind] || null;
+
   return (
     <span className={classes} title={state.label}>
       <span className="learning-gating-state__icon" aria-hidden="true">
-        {state.icon}
+        {StateIcon ? <StateIcon size={12} /> : state.icon}
       </span>
       {withLabel ? (
         <span className="learning-gating-state__label" aria-hidden="true">

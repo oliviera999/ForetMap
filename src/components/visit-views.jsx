@@ -62,6 +62,8 @@ import { useVisitMapMascotController } from '../hooks/useVisitMapMascotControlle
 // de map-views) : évite de tirer tout le graphe carte dans le chunk visite.
 import { ImageLightbox } from '../shared/components/ImageLightbox.jsx';
 import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../utils/browserStorage.js';
+import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
+import { IconVisit } from '../shared/icons.jsx';
 
 function pointToPct(event, stageEl, transform = { x: 0, y: 0, s: 1 }, fit = null) {
   return pointToContainedRectPct(event, stageEl, transform, fit, { clamp: true, decimals: 2 });
@@ -88,6 +90,7 @@ function VisitViewImpl({
   onGuestMascotChoiceDone = null,
 }) {
   const publicSettings = usePublicSettings();
+  const { prompt, notify } = useAppDialogs();
   const { isN3Affiliated = false, canParticipateContextComments = true } = useSession();
   const { tasks = [], plants = [] } = useData();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
@@ -693,7 +696,7 @@ function VisitViewImpl({
 
   const createZoneFromPoints = async () => {
     if (!visitMapImageReady || drawPoints.length < 3) return;
-    const name = prompt('Titre de la zone de visite ?');
+    const name = await prompt({ message: 'Titre de la zone de visite ?', required: true });
     if (!name || !name.trim()) return;
     setCreating(true);
     try {
@@ -707,7 +710,7 @@ function VisitViewImpl({
       await loadData();
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
-      else alert(err.message || 'Erreur création zone');
+      else notify(err.message || 'Erreur création zone');
     } finally {
       setCreating(false);
     }
@@ -734,7 +737,7 @@ function VisitViewImpl({
     }
 
     if (mode === 'add-marker') {
-      const label = prompt('Titre du repère de visite ?');
+      const label = await prompt({ message: 'Titre du repère de visite ?', required: true });
       if (!label || !label.trim()) return;
       setCreating(true);
       try {
@@ -749,7 +752,7 @@ function VisitViewImpl({
         await loadData();
       } catch (err) {
         if (err instanceof AccountDeletedError) onForceLogout?.();
-        else alert(err.message || 'Erreur création repère');
+        else notify(err.message || 'Erreur création repère');
       } finally {
         setCreating(false);
       }
@@ -967,7 +970,9 @@ function VisitViewImpl({
   if (loading) {
     return (
       <div className="loader">
-        <div className="loader-leaf">🧭</div>
+        <div className="loader-leaf">
+          <IconVisit size={48} />
+        </div>
         <p>Préparation de la visite...</p>
       </div>
     );

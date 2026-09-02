@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { api, AccountDeletedError } from '../../services/api';
 import { fileToPngDataUrl } from '../../utils/image.js';
 import { sanitizeClientFilename } from '../../utils/mascotPackEditorFrames.js';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 
 /**
  * Sources d'images du studio packs mascotte (audit §6.1), extraites de
@@ -13,6 +14,7 @@ import { sanitizeClientFilename } from '../../utils/mascotPackEditorFrames.js';
  * @param {{ selectedId: string | null, onForceLogout?: () => void }} params
  */
 export function useMascotPackAssets({ selectedId, onForceLogout }) {
+  const { confirm } = useAppDialogs();
   const [libAssets, setLibAssets] = useState([]);
   const [libLoading, setLibLoading] = useState(false);
   const [libMessage, setLibMessage] = useState('');
@@ -111,7 +113,13 @@ export function useMascotPackAssets({ selectedId, onForceLogout }) {
 
   const onLibDelete = useCallback(
     async (filename) => {
-      if (!window.confirm(`Supprimer « ${filename} » de la bibliothèque ?`)) return;
+      if (
+        !(await confirm({
+          message: `Supprimer « ${filename} » de la bibliothèque ?`,
+          danger: true,
+        }))
+      )
+        return;
       setLibLoading(true);
       try {
         await api(
@@ -126,7 +134,7 @@ export function useMascotPackAssets({ selectedId, onForceLogout }) {
         setLibLoading(false);
       }
     },
-    [loadLibrary, onForceLogout],
+    [loadLibrary, onForceLogout, confirm],
   );
 
   const onDeletePublicAsset = useCallback(
@@ -134,9 +142,10 @@ export function useMascotPackAssets({ selectedId, onForceLogout }) {
       const assetUrl = String(url || '').trim();
       if (!assetUrl) return;
       if (
-        !window.confirm(
-          `Supprimer définitivement « ${assetUrl.split('/').pop() || assetUrl} » du catalogue site ?`,
-        )
+        !(await confirm({
+          message: `Supprimer définitivement « ${assetUrl.split('/').pop() || assetUrl} » du catalogue site ?`,
+          danger: true,
+        }))
       )
         return;
       setGlobalAssetsLoading(true);
@@ -152,7 +161,7 @@ export function useMascotPackAssets({ selectedId, onForceLogout }) {
         setGlobalAssetsLoading(false);
       }
     },
-    [loadGlobalAssets, onForceLogout],
+    [loadGlobalAssets, onForceLogout, confirm],
   );
 
   const onPackUpload = useCallback(
@@ -181,7 +190,13 @@ export function useMascotPackAssets({ selectedId, onForceLogout }) {
   const onPackDeleteAsset = useCallback(
     async (filename) => {
       if (!selectedId || !filename) return;
-      if (!window.confirm(`Supprimer « ${filename} » de la médiathèque du pack ?`)) return;
+      if (
+        !(await confirm({
+          message: `Supprimer « ${filename} » de la médiathèque du pack ?`,
+          danger: true,
+        }))
+      )
+        return;
       setPackAssetsLoading(true);
       try {
         await api(
@@ -197,7 +212,7 @@ export function useMascotPackAssets({ selectedId, onForceLogout }) {
         setPackAssetsLoading(false);
       }
     },
-    [selectedId, loadPackAssets, onForceLogout],
+    [selectedId, loadPackAssets, onForceLogout, confirm],
   );
 
   /** Suppressions « silencieuses » (sans confirm ni rechargement) pour les actions en lot. */

@@ -1,5 +1,13 @@
 import { TaskTileSection } from './tasks/TaskTileSection.jsx';
 import { TaskProjectsBlock } from './tasks/TaskProjectsBlock.jsx';
+import {
+  IconCheck,
+  IconFlame,
+  IconHourglass,
+  IconIdea,
+  IconPause,
+  IconSettings,
+} from '../shared/icons.jsx';
 
 /**
  * Sections par défaut de la vue Tâches côté élève — extrait de `tasks-views.jsx` (O6).
@@ -37,38 +45,62 @@ export function TasksStudentSections({
   return (
     <>
       <TaskTileSection
-        title="⚙️ En cours (déjà prises)"
+        title={
+          <>
+            <IconSettings size={16} /> En cours (déjà prises)
+          </>
+        }
         tasks={inProgressNotMine}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
       />
       <TaskTileSection
-        title="🔥 Tâches à faire"
+        title={
+          <>
+            <IconFlame size={16} /> Tâches à faire
+          </>
+        }
         tasks={availableNotMine}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
       />
       <TaskTileSection
-        title={`💡 Mes propositions (${myProposals.length})`}
+        title={
+          <>
+            <IconIdea size={16} /> {`Mes propositions (${myProposals.length})`}
+          </>
+        }
         tasks={myProposals}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
       />
       <TaskProjectsBlock {...taskProjectsBlockProps} visibleProjects={activeProjects} />
       <TaskTileSection
-        title="⏳ En attente de validation"
+        title={
+          <>
+            <IconHourglass size={16} /> En attente de validation
+          </>
+        }
         tasks={doneNotMine}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
       />
       <TaskTileSection
-        title="⏸️ En attente"
+        title={
+          <>
+            <IconPause size={16} /> En attente
+          </>
+        }
         tasks={onHoldNotMine}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
       />
       <TaskTileSection
-        title="✅ Récemment validées"
+        title={
+          <>
+            <IconCheck size={16} /> Récemment validées
+          </>
+        }
         tasks={recentlyValidatedForStudent}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}

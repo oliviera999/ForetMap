@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { useGlAdminCrud } from '../../hooks/useGlAdminCrud.js';
 import {
   EMPTY_FORM,
@@ -18,6 +19,7 @@ import { SPELL_BULK_FIELD_OPTIONS, useGlSpellsBulkEdit } from '../../hooks/useGl
 import { glSpellCasterKindBadge } from '../../utils/glSpellFieldLabels.js';
 
 export function GLSpellsEditorPanel() {
+  const { confirm } = useAppDialogs();
   const [categories, setCategories] = useState([]);
   const [categorySlug, setCategorySlug] = useState('');
   const [filterQ, setFilterQ] = useState('');
@@ -97,9 +99,11 @@ export function GLSpellsEditorPanel() {
   async function deleteSpell() {
     if (!selectedCode) return;
     if (
-      !window.confirm(
-        'Supprimer définitivement ce sort du catalogue ? Il sera aussi retiré des chapitres auxquels il est lié.',
-      )
+      !(await confirm({
+        message:
+          'Supprimer définitivement ce sort du catalogue ? Il sera aussi retiré des chapitres auxquels il est lié.',
+        danger: true,
+      }))
     )
       return;
     await runAction(async () => {

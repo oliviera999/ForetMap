@@ -30,13 +30,13 @@ describe('TaskTileMeta', () => {
     });
     expect(container.querySelector('.task-meta')).not.toBeNull();
     expect(screen.getByText('Verger')).toBeInTheDocument();
-    expect(screen.getByText('📍 Pommier')).toBeInTheDocument();
-    expect(screen.getByText('📁 Potager')).toBeInTheDocument();
+    expect(screen.getByText('Pommier')).toBeInTheDocument();
+    expect(screen.getByText('Potager')).toBeInTheDocument();
   });
 
   test('côté élève : chip du nombre requis avec le pluriel', () => {
     renderMeta({ required_students: 2 });
-    expect(screen.getByText('👤 2 n3beurs')).toBeInTheDocument();
+    expect(screen.getByText('2 n3beurs')).toBeInTheDocument();
   });
 
   test('côté formateur : pas de chip « élèves requis », chip proposant si proposée', () => {
@@ -45,12 +45,12 @@ describe('TaskTileMeta', () => {
       { isTeacher: true, proposalMeta: { proposer: 'Alice' } },
     );
     expect(screen.queryByText(/n3beurs$/)).not.toBeInTheDocument();
-    expect(screen.getByText('🙋 Proposée par Alice')).toBeInTheDocument();
+    expect(screen.getByText('Proposée par Alice')).toBeInTheDocument();
   });
 
   test('chip de départ depuis start_date (date normalisée FR)', () => {
     renderMeta({ start_date: '2026-03-04', required_students: 1 });
-    expect(screen.getByText(/🚦 Départ:/)).toBeInTheDocument();
+    expect(screen.getByText(/Départ:/)).toBeInTheDocument();
     expect(screen.getByText(/04 mars 2026/)).toBeInTheDocument();
   });
 
@@ -59,11 +59,11 @@ describe('TaskTileMeta', () => {
       { required_students: 1 },
       { isCollectiveCompletion: true, doneCount: 1, totalCount: 3 },
     );
-    expect(screen.getByText('✅ 1/3 terminés')).toBeInTheDocument();
+    expect(screen.getByText('1/3 terminés')).toBeInTheDocument();
   });
 
   test('récurrence hebdo affichée', () => {
     renderMeta({ required_students: 1, recurrence: 'weekly' });
-    expect(screen.getByText('🔄 Hebdo')).toBeInTheDocument();
+    expect(screen.getByText('Hebdo')).toBeInTheDocument();
   });
 });

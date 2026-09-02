@@ -3,6 +3,18 @@ import { ContextComments } from '../context-comments';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { tutorialPreviewCanEmbed } from '../TutorialPreviewModal';
 import { TaskTileCard } from './TaskTileCard.jsx';
+import {
+  IconArchive,
+  IconCheck,
+  IconDelete,
+  IconDuplicate,
+  IconEdit,
+  IconFolder,
+  IconMarker,
+  IconPause,
+  IconTuto,
+  IconUnarchive,
+} from '../../shared/icons.jsx';
 
 /**
  * Ordre d'affichage des projets dans le bloc : actif < en attente < terminé < validé,
@@ -60,7 +72,11 @@ function TaskProjectsBlock({
   return (
     <div className="tasks-section">
       <div className="tasks-section-title">
-        {sectionTitle || `📁 Projets (${visibleProjects.length})`}
+        {sectionTitle || (
+          <>
+            <IconFolder size={16} /> Projets ({visibleProjects.length})
+          </>
+        )}
       </div>
       <div style={{ display: 'grid', gap: 8 }}>
         {
@@ -110,7 +126,7 @@ function TaskProjectsBlock({
                 >
                   <div>
                     <div className="task-title" style={{ fontSize: 'var(--text-base)' }}>
-                      📁 {p.title}
+                      <IconFolder size={14} /> {p.title}
                     </div>
                     <div className="task-meta" style={{ marginTop: 6 }}>
                       {(p.zones_linked || []).map((z) => (
@@ -120,7 +136,7 @@ function TaskProjectsBlock({
                       ))}
                       {(p.markers_linked || []).map((m) => (
                         <span key={m.id} className="task-chip">
-                          📍 {m.label}
+                          <IconMarker size={12} /> {m.label}
                         </span>
                       ))}
                       {(p.tutorials_linked || []).map((tu) =>
@@ -132,11 +148,11 @@ function TaskProjectsBlock({
                             title={`Ouvrir le tutoriel « ${tu.title || ''} »`}
                             onClick={() => openTasksTutorialPreview(tu)}
                           >
-                            📘 {tu.title}
+                            <IconTuto size={14} /> {tu.title}
                           </button>
                         ) : (
                           <span key={tu.id} className="task-chip">
-                            📘 {tu.title}
+                            <IconTuto size={14} /> {tu.title}
                           </span>
                         ),
                       )}
@@ -152,9 +168,19 @@ function TaskProjectsBlock({
                     )}
                     {p.status === 'on_hold' && (
                       <div style={{ fontSize: 'var(--text-sm)', color: '#92400e', marginTop: 4 }}>
-                        {isTeacher
-                          ? '⏸️ Projet en pause : plus de nouvelles inscriptions n3beurs pour l’instant, les commentaires restent ouverts. Tu peux quand même ajouter des tâches ; elles attendront une réouverture des inscriptions avec le projet.'
-                          : '⏸️ Projet en pause : inscriptions fermées pour l’instant, les commentaires restent ouverts.'}
+                        {isTeacher ? (
+                          <>
+                            <IconPause size={14} /> Projet en pause : plus de nouvelles inscriptions
+                            n3beurs pour l’instant, les commentaires restent ouverts. Tu peux quand
+                            même ajouter des tâches ; elles attendront une réouverture des
+                            inscriptions avec le projet.
+                          </>
+                        ) : (
+                          <>
+                            <IconPause size={14} /> Projet en pause : inscriptions fermées pour
+                            l’instant, les commentaires restent ouverts.
+                          </>
+                        )}
                       </div>
                     )}
                     {p.status === 'completed' && (
@@ -190,7 +216,7 @@ function TaskProjectsBlock({
                         }}
                         title="Modifier titre, description, carte, zones, repères et tutoriels"
                       >
-                        ✏️ Modifier
+                        <IconEdit size={14} /> Modifier
                       </button>
                       <button
                         type="button"
@@ -199,7 +225,13 @@ function TaskProjectsBlock({
                         onClick={() => duplicateProject?.(p)}
                         title="Dupliquer le projet et ses tâches (structure uniquement)"
                       >
-                        {loadingDuplicate ? '...' : '📄 Dupliquer'}
+                        {loadingDuplicate ? (
+                          '...'
+                        ) : (
+                          <>
+                            <IconDuplicate size={14} /> Dupliquer
+                          </>
+                        )}
                       </button>
                       {archiveProject &&
                         (isArchivedView ? (
@@ -210,7 +242,13 @@ function TaskProjectsBlock({
                             onClick={() => archiveProject(p, false)}
                             title="Désarchiver le projet et ses tâches archivées avec lui"
                           >
-                            {loadingArchive ? '...' : '♻️ Désarchiver'}
+                            {loadingArchive ? (
+                              '...'
+                            ) : (
+                              <>
+                                <IconUnarchive size={14} /> Désarchiver
+                              </>
+                            )}
                           </button>
                         ) : (
                           <button
@@ -220,7 +258,13 @@ function TaskProjectsBlock({
                             onClick={() => archiveProject(p, true)}
                             title="Archiver le projet et ses tâches (masqués des vues actives)"
                           >
-                            {loadingArchive ? '...' : '📦 Archiver'}
+                            {loadingArchive ? (
+                              '...'
+                            ) : (
+                              <>
+                                <IconArchive size={14} /> Archiver
+                              </>
+                            )}
                           </button>
                         ))}
                       <button
@@ -230,7 +274,13 @@ function TaskProjectsBlock({
                         onClick={() => deleteProject?.(p)}
                         title="Supprimer le projet (les tâches sont conservées)"
                       >
-                        {loadingDelete ? '...' : '🗑️ Supprimer'}
+                        {loadingDelete ? (
+                          '...'
+                        ) : (
+                          <>
+                            <IconDelete size={14} /> Supprimer
+                          </>
+                        )}
                       </button>
                       <button
                         type="button"
@@ -268,7 +318,13 @@ function TaskProjectsBlock({
                             onClick={() => validateProject?.(p)}
                             title="Valider le projet (clôture manuelle n3boss)"
                           >
-                            {loadingValidate ? '...' : '✔️ Valider'}
+                            {loadingValidate ? (
+                              '...'
+                            ) : (
+                              <>
+                                <IconCheck size={14} /> Valider
+                              </>
+                            )}
                           </button>
                           <button
                             type="button"
@@ -286,14 +342,26 @@ function TaskProjectsBlock({
                             disabled={projectStatus === 'active' || loadingActive}
                             onClick={() => setProjectStatus(p, 'active')}
                           >
-                            {loadingActive ? '...' : '✅ Actif'}
+                            {loadingActive ? (
+                              '...'
+                            ) : (
+                              <>
+                                <IconCheck size={14} /> Actif
+                              </>
+                            )}
                           </button>
                           <button
                             className={`btn btn-sm ${projectStatus === 'on_hold' ? 'btn-primary' : 'btn-ghost'}`}
                             disabled={projectStatus === 'on_hold' || loadingHold}
                             onClick={() => setProjectStatus(p, 'on_hold')}
                           >
-                            {loadingHold ? '...' : '⏸️ En attente'}
+                            {loadingHold ? (
+                              '...'
+                            ) : (
+                              <>
+                                <IconPause size={14} /> En attente
+                              </>
+                            )}
                           </button>
                           <button
                             type="button"
@@ -302,20 +370,32 @@ function TaskProjectsBlock({
                             onClick={() => validateProject?.(p)}
                             title="Valider le projet (clôture manuelle n3boss)"
                           >
-                            {loadingValidate ? '...' : '✔️ Valider'}
+                            {loadingValidate ? (
+                              '...'
+                            ) : (
+                              <>
+                                <IconCheck size={14} /> Valider
+                              </>
+                            )}
                           </button>
                         </>
                       )}
                     </div>
                   ) : (
                     <span className="task-chip">
-                      {projectStatus === 'validated'
-                        ? 'Validé'
-                        : projectStatus === 'completed'
-                          ? 'Terminé'
-                          : projectStatus === 'on_hold'
-                            ? '⏸️ En attente'
-                            : '✅ Actif'}
+                      {projectStatus === 'validated' ? (
+                        'Validé'
+                      ) : projectStatus === 'completed' ? (
+                        'Terminé'
+                      ) : projectStatus === 'on_hold' ? (
+                        <>
+                          <IconPause size={14} /> En attente
+                        </>
+                      ) : (
+                        <>
+                          <IconCheck size={14} /> Actif
+                        </>
+                      )}
                     </span>
                   )}
                 </div>

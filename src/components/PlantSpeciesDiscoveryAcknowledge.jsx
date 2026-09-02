@@ -8,6 +8,7 @@ import { PlantDiscoveryObservedCounts } from './PlantDiscoveryObservedCounts.jsx
 import { LearningAcknowledgeButton } from '../shared/components/LearningAcknowledgeButton.jsx';
 import { LearningQuizPopover } from '../shared/components/LearningQuizPopover.jsx';
 import { createFmGatingHandlers } from '../shared/utils/learningGatingChallengeClient.js';
+import { IconCheck } from '../shared/icons.jsx';
 
 const MIN_CONTEXT_COMMENT_CHARS = 2;
 
@@ -191,7 +192,11 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
   const ackButton = (
     <LearningAcknowledgeButton
       labelAction={hasObserved ? 'Espèce observée' : 'Espèce découverte'}
-      labelDone="✓ Observée"
+      labelDone={
+        <>
+          <IconCheck size={14} /> Observée
+        </>
+      }
       titleDone="Tu as confirmé cette observation"
       itemTitle={speciesName}
       buttonClassName={

@@ -1,3 +1,4 @@
+import { IconDelete, IconDuplicate } from '../../shared/icons.jsx';
 /**
  * Panneau « Suppression de {studentPlural} » (administration des profils).
  * Extrait de profiles-views.jsx (O6) — présentationnel pur : tout l’état et les
@@ -30,7 +31,7 @@ function StudentDeletePanel({
         <input
           value={searchStudent}
           onChange={(e) => setSearchStudent(e.target.value)}
-          placeholder={`🔍 Rechercher un(e) ${roleTerms.studentSingular}...`}
+          placeholder={`Rechercher un(e) ${roleTerms.studentSingular}...`}
           style={{ background: 'white' }}
         />
       </div>
@@ -63,14 +64,14 @@ function StudentDeletePanel({
                       : 'Permission users.create requise'
                   }
                 >
-                  📄 Dupliquer
+                  <IconDuplicate size={14} /> Dupliquer
                 </button>
                 <button
                   className="btn btn-danger btn-sm"
                   disabled={!canDeleteUi}
                   onClick={() => setConfirmStudent(s)}
                 >
-                  🗑️ Supprimer
+                  <IconDelete size={14} /> Supprimer
                 </button>
               </div>
             </div>

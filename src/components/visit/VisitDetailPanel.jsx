@@ -15,6 +15,7 @@ import {
 } from '../map/LivingBeingsCatalogPanel.jsx';
 import { LocationTutorialPreviewList } from '../map/mapModalShared.jsx';
 import { VisitEditorPanel } from './VisitEditorPanel.jsx';
+import { IconCheck, IconEye } from '../../shared/icons.jsx';
 
 /** Vignette cliquable : aperçu sans rognage (CSS `object-fit: contain`) + lightbox plein écran. */
 function VisitMediaGalleryThumb({ media, onOpenLightbox }) {
@@ -321,9 +322,15 @@ export function VisitDetailPanel({
           </details>
         )}
         <button className="btn btn-primary btn-sm" disabled={savingSeen} onClick={onToggleSeen}>
-          {seen.has(itemSeenKey(selectedType, selected.id))
-            ? '✅ Marqué comme vu'
-            : '🔴 Marquer comme vu'}
+          {seen.has(itemSeenKey(selectedType, selected.id)) ? (
+            <>
+              <IconCheck size={14} /> Marqué comme vu
+            </>
+          ) : (
+            <>
+              <IconEye size={14} /> Marquer comme vu
+            </>
+          )}
         </button>
         <VisitEditorPanel
           selected={selected}

@@ -100,6 +100,10 @@ for (const vp of VIEWPORTS) {
       await expectDialogStableAndFitting(taskModal, vp.height, { allowTallModal: vp.width <= 720 });
       await closeDialogSafely(page, taskModal);
 
+      const contenusPole = page
+        .locator('.teacher-nav__poles')
+        .getByRole('button', { name: 'Contenus' });
+      if ((await contenusPole.count()) > 0) await contenusPole.first().click();
       await page
         .locator('.teacher-main .top-tabs')
         .getByRole('button', { name: /Carte & Zones/ })

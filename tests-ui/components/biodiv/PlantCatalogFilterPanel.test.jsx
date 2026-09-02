@@ -64,7 +64,7 @@ describe('PlantCatalogFilterPanel', () => {
 
   test('recherche → setSearch', () => {
     const { setSearch } = setup();
-    fireEvent.change(screen.getByPlaceholderText('🔍 Rechercher dans la biodiversité...'), {
+    fireEvent.change(screen.getByPlaceholderText('Rechercher dans la biodiversité...'), {
       target: { value: 'pomm' },
     });
     expect(setSearch).toHaveBeenCalledWith('pomm');

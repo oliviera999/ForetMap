@@ -1,0 +1,1 @@
+import{t as e}from"./react-vendor-Bnq5Y4Sb.js";var t=e();function n(...e){return e.filter(Boolean).join(` `)}function r({tone:e=`neutral`,className:r=``,children:i}){return(0,t.jsx)(`span`,{className:n(`gl-badge`,`gl-badge--${e}`,r),children:i})}export{r as t};

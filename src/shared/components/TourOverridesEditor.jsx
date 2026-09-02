@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { IconWarning } from '../icons.jsx';
 
 import { AutoSaveStatus } from './AutoSaveStatus.jsx';
+import { useAppDialogs } from './AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../hooks/useDebouncedAutoSave.js';
 import { TOUR_EDITABLE_FIELDS } from '../tour/tourRegistryCore.js';
 
@@ -39,6 +41,7 @@ export function TourOverridesEditor({
   maxTextLength = 500,
   intro = '',
 }) {
+  const { confirm } = useAppDialogs();
   const [registry, setRegistry] = useState(null);
   const [section, setSection] = useState(sections[0]?.key || '');
   const [loadRevision, setLoadRevision] = useState(0);
@@ -85,11 +88,14 @@ export function TourOverridesEditor({
 
   async function resetDefaults() {
     if (
-      !window.confirm(
-        'Effacer toutes les réécritures et revenir aux textes livrés avec l’application ?',
-      )
-    )
+      !(await confirm({
+        message: 'Effacer toutes les réécritures et revenir aux textes livrés avec l’application ?',
+        confirmLabel: 'Effacer',
+        danger: true,
+      }))
+    ) {
       return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -104,7 +110,12 @@ export function TourOverridesEditor({
     }
   }
 
-  if (error && !registry) return <div className="auth-error">⚠️ {error}</div>;
+  if (error && !registry)
+    return (
+      <div className="auth-error">
+        <IconWarning size={14} /> {error}
+      </div>
+    );
   if (!registry) {
     return (
       <div className="empty">
@@ -118,8 +129,16 @@ export function TourOverridesEditor({
   return (
     <div className="fade-in" data-tour-overrides-editor="">
       {intro ? <p className="section-sub">{intro}</p> : null}
-      {error && <div className="auth-error">⚠️ {error}</div>}
-      {saveError && <div className="auth-error">⚠️ {saveError}</div>}
+      {error && (
+        <div className="auth-error">
+          <IconWarning size={14} /> {error}
+        </div>
+      )}
+      {saveError && (
+        <div className="auth-error">
+          <IconWarning size={14} /> {saveError}
+        </div>
+      )}
       {info && <div className="auth-success">{info}</div>}
 
       <div className="fm-tour-editor__toolbar">

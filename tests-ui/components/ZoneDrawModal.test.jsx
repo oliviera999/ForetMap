@@ -45,7 +45,7 @@ function renderModal(overrides = {}) {
 describe('ZoneDrawModal', () => {
   test('affiche le titre, le nombre de points et le bouton de création', () => {
     renderModal();
-    expect(screen.getByText('🖊️ Nouvelle zone')).toBeTruthy();
+    expect(screen.getByText('Nouvelle zone')).toBeTruthy();
     expect(screen.getByText('3 points tracés')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Créer la zone/ })).toBeTruthy();
   });

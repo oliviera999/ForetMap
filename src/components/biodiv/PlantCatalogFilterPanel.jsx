@@ -14,7 +14,7 @@ import {
 export function PlantCatalogFilterPanel({
   plants,
   showZonePresence = false,
-  searchPlaceholder = '🔍 Rechercher dans la biodiversité...',
+  searchPlaceholder = 'Rechercher dans la biodiversité...',
   search,
   setSearch,
   group1,

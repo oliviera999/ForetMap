@@ -29,7 +29,7 @@ test('mobile : les filtres sont repliés et une tâche est visible sans défiler
   await dismissDiscoveryTourIfPresent(page);
 
   // La barre compacte tient sur une ligne : recherche + Filtres + mode d'affichage.
-  const search = page.getByPlaceholder('🔍 Rechercher une tâche...');
+  const search = page.getByPlaceholder('Rechercher une tâche...');
   const filtersToggle = page.getByRole('button', { name: /^Filtres/ });
   await expect(search).toBeVisible();
   await expect(filtersToggle).toBeVisible();

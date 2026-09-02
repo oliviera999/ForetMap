@@ -1,6 +1,7 @@
 import { withAppBase } from '../../services/api.js';
 import { formatMediaLibrarySize } from '../../utils/mediaLibraryView.js';
 import { MediaUsageInfo } from './MediaUsageInfo.jsx';
+import { IconAudio } from '../../shared/icons.jsx';
 
 export function resolveMediaUrl(url) {
   return withAppBase(String(url || ''));
@@ -50,7 +51,7 @@ export function MediaLibraryGalleryTile({
           ) : (
             <>
               <span className="media-library-menu__gallery-icon" aria-hidden="true">
-                🎧
+                <IconAudio size={16} />
               </span>
               <span className="media-library-menu__gallery-type">Audio</span>
             </>

@@ -7,6 +7,7 @@ import { api } from '../../services/api';
 import { GlossaryMarkdown } from '../GlossaryMarkdown.jsx';
 import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
 import { useGatingSummary } from '../../hooks/useGatingSummary';
+import { IconClose, IconGlossary } from '../../shared/icons.jsx';
 import {
   GlossaryTermLearnedAcknowledgeButton,
   fetchLearnedGlossaryCodes,
@@ -272,7 +273,13 @@ export function GlossaryPopover({
 
         <header className="fm-glossary-popover__header">
           <h3 id={titleId} className="fm-glossary-popover__title">
-            {hasDetail ? detail.terme : '📖 Glossaire'}
+            {hasDetail ? (
+              detail.terme
+            ) : (
+              <>
+                <IconGlossary size={16} /> Glossaire
+              </>
+            )}
           </h3>
           <button
             type="button"
@@ -280,7 +287,7 @@ export function GlossaryPopover({
             onClick={requestClose}
             aria-label="Fermer la fiche du glossaire"
           >
-            ✕
+            <IconClose size={16} />
           </button>
         </header>
 

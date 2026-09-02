@@ -12,11 +12,11 @@ test('parcours tâches: consultation élève puis consultation professeur', asyn
   await loginAsNewStudent(page);
 
   await openStudentTasksTab(page);
-  await expect(page.getByRole('heading', { name: '✅ Tâches' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tâches' })).toBeVisible();
 
   await enableTeacherMode(page);
   await openTeacherTasksTab(page);
   await expect(
-    page.locator('.teacher-main .top-tabs .top-tab.active').filter({ hasText: /^✅/ }),
+    page.locator('.teacher-main .top-tabs .top-tab.active').filter({ hasText: /Tâches/ }),
   ).toBeVisible({ timeout: 15_000 });
 });

@@ -181,7 +181,7 @@ export function TaskFiltersFields({
             {opt.label}
           </option>
         ))}
-        {isTeacher && <option value="archived">📦 Archivés</option>}
+        {isTeacher && <option value="archived">Archivés</option>}
       </select>
     </div>
   );

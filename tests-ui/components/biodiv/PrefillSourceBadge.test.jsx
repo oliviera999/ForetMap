@@ -3,21 +3,21 @@ import { render, screen } from '@testing-library/react';
 import { PrefillSourceBadge } from '../../../src/components/biodiv/PrefillSourceBadge.jsx';
 
 describe('PrefillSourceBadge', () => {
-  test('source openai → badge « 🧠 OpenAI »', () => {
+  test('source openai → badge « OpenAI »', () => {
     render(<PrefillSourceBadge sourceMeta={{ source: 'openai' }} />);
-    const badge = screen.getByText('🧠 OpenAI');
+    const badge = screen.getByText('OpenAI');
     expect(badge).toBeInTheDocument();
     expect(badge.getAttribute('title')).toMatch(/OpenAI à partir du contexte multi-sources/);
   });
 
-  test('source openai_gap → badge « 🧠 OpenAI »', () => {
+  test('source openai_gap → badge « OpenAI »', () => {
     render(<PrefillSourceBadge sourceMeta={{ source: 'openai_gap' }} />);
-    expect(screen.getByText('🧠 OpenAI')).toBeInTheDocument();
+    expect(screen.getByText('OpenAI')).toBeInTheDocument();
   });
 
-  test('autre source → badge « 🔎 <source> » (normalisé en minuscules)', () => {
+  test('autre source → badge « <source> » (normalisé en minuscules)', () => {
     render(<PrefillSourceBadge sourceMeta={{ source: 'GBIF' }} />);
-    const badge = screen.getByText('🔎 gbif');
+    const badge = screen.getByText('gbif');
     expect(badge).toBeInTheDocument();
     expect(badge.getAttribute('title')).toBe('Champ proposé par la source gbif');
   });

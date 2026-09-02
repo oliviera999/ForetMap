@@ -24,9 +24,9 @@ describe('PlantSummaryBadges', () => {
         }}
       />,
     );
-    expect(screen.getByText('🍽️ Autotrophe')).toBeInTheDocument();
-    expect(screen.getByText('🌡️ 18°C')).toBeInTheDocument();
-    expect(screen.getByText('🧪 pH 6.5')).toBeInTheDocument();
+    expect(screen.getByText('Autotrophe')).toBeInTheDocument();
+    expect(screen.getByText('18°C')).toBeInTheDocument();
+    expect(screen.getByText('pH 6.5')).toBeInTheDocument();
   });
   test('entrée « végétal » → préfère preferred_nutrients à nutrition', () => {
     render(
@@ -34,8 +34,8 @@ describe('PlantSummaryBadges', () => {
         plant={{ group_1: 'Végétal', nutrition: 'Autotrophe', preferred_nutrients: 'Azote' }}
       />,
     );
-    expect(screen.getByText('🍽️ Azote')).toBeInTheDocument();
-    expect(screen.queryByText('🍽️ Autotrophe')).not.toBeInTheDocument();
+    expect(screen.getByText('Azote')).toBeInTheDocument();
+    expect(screen.queryByText('Autotrophe')).not.toBeInTheDocument();
   });
   test('au plus 3 pastilles', () => {
     const { container } = render(

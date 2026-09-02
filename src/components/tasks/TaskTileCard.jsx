@@ -30,6 +30,36 @@ import { MarkdownContent } from '../MarkdownContent.jsx';
 import { Tooltip } from '../../shared/components/Tooltip.jsx';
 import { tutorialPreviewCanEmbed } from '../TutorialPreviewModal';
 import { ImageLightbox } from '../../shared/components/ImageLightbox.jsx';
+import {
+  IconArchive,
+  IconCheck,
+  IconChevronDown,
+  IconChevronRight,
+  IconDelete,
+  IconDuplicate,
+  IconEdit,
+  IconFlame,
+  IconGroup,
+  IconHand,
+  IconIdea,
+  IconPause,
+  IconQuickAssign,
+  IconReports,
+  IconSettings,
+  IconTuto,
+  IconUnarchive,
+  IconUndo,
+} from '../../shared/icons.jsx';
+
+/** Icônes chrome des actions de statut n3boss (le jeu de données reste pur, sans JSX). */
+const STATUS_ACTION_ICONS = {
+  in_progress: <IconSettings size={14} />,
+  available: <IconFlame size={14} />,
+  done: <IconCheck size={14} />,
+  validated: <IconCheck size={14} />,
+  proposed: <IconIdea size={14} />,
+  on_hold: <IconPause size={14} />,
+};
 
 function Lightbox({ src, caption, onClose }) {
   return <ImageLightbox src={src} caption={caption} onClose={onClose} useOverlayHistory />;
@@ -183,7 +213,7 @@ function TaskTileCardImpl({
           {isEntityArchived(t) && archivedChip()}
           {isCondensed && (
             <span className="task-condensed-chevron" aria-hidden>
-              {condensedExpanded ? '▼' : '▶'}
+              {condensedExpanded ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
             </span>
           )}
         </div>
@@ -252,7 +282,7 @@ function TaskTileCardImpl({
                     }
                     onClick={() => openTasksTutorialPreview(tu)}
                   >
-                    📘 {tu.title}
+                    <IconTuto size={14} /> {tu.title}
                     {unread ? ' · à lire' : ''}
                   </button>
                 ) : (
@@ -260,7 +290,7 @@ function TaskTileCardImpl({
                     key={tu.id}
                     className={`task-chip${unread ? ' task-tutorial-chip--unread' : ''}`}
                   >
-                    📘 {tu.title}
+                    <IconTuto size={14} /> {tu.title}
                     {unread ? ' · à lire' : ''}
                   </span>
                 );
@@ -400,7 +430,13 @@ function TaskTileCardImpl({
                   disabled={loading[t.id + 'assign']}
                   onClick={() => assign(t)}
                 >
-                  {loading[t.id + 'assign'] ? '...' : "✋ Je m'en occupe"}
+                  {loading[t.id + 'assign'] ? (
+                    '...'
+                  ) : (
+                    <>
+                      <IconHand size={15} /> Je m&apos;en occupe
+                    </>
+                  )}
                 </button>
               )}
             {!isTeacher &&
@@ -417,7 +453,7 @@ function TaskTileCardImpl({
                     </p>
                   ) : null}
                   <button className="btn btn-secondary btn-sm" onClick={() => setLogTask(t)}>
-                    ✅ Marquer terminée
+                    <IconCheck size={15} /> Marquer terminée
                   </button>
                   <button
                     className="btn btn-ghost btn-sm"
@@ -425,12 +461,20 @@ function TaskTileCardImpl({
                     onClick={() => unassign(t)}
                     title="Me retirer de cette tâche"
                   >
-                    {loading[t.id + 'unassign'] ? '...' : '↩️ Me retirer'}
+                    {loading[t.id + 'unassign'] ? (
+                      '...'
+                    ) : (
+                      <>
+                        <IconUndo size={15} /> Me retirer
+                      </>
+                    )}
                   </button>
                 </>
               )}
             {!isTeacher && hasCompletedOwnAssignment && (
-              <span className="task-chip">✅ Ta partie est déjà marquée terminée</span>
+              <span className="task-chip">
+                <IconCheck size={14} /> Ta partie est déjà marquée terminée
+              </span>
             )}
             {isTeacher && (
               <button
@@ -468,7 +512,13 @@ function TaskTileCardImpl({
                     : 'Afficher la liste des n3beurs';
                 })()}
               >
-                {quickAssignBusy ? '...' : '⚡ Affectation rapide'}
+                {quickAssignBusy ? (
+                  '...'
+                ) : (
+                  <>
+                    <IconQuickAssign size={15} /> Affectation rapide
+                  </>
+                )}
               </button>
             )}
             {isTeacher && (
@@ -485,7 +535,13 @@ function TaskTileCardImpl({
                 onClick={() => assignGroupToTask?.(t)}
                 title="Affecter en masse les membres d’un groupe"
               >
-                {loading[`${t.id}assign-group`] ? '...' : '👥 Affecter groupe'}
+                {loading[`${t.id}assign-group`] ? (
+                  '...'
+                ) : (
+                  <>
+                    <IconGroup size={15} /> Affecter groupe
+                  </>
+                )}
               </button>
             )}
             {isTeacher && isQuickAssignOpen && (
@@ -638,7 +694,13 @@ function TaskTileCardImpl({
                       onClick={() => setTaskStatus(t, opt.value)}
                       title={title}
                     >
-                      {isBusy ? '...' : `${opt.icon} ${opt.label}`}
+                      {isBusy ? (
+                        '...'
+                      ) : (
+                        <>
+                          {STATUS_ACTION_ICONS[opt.value] || null} {opt.label}
+                        </>
+                      )}
                     </button>
                   );
                 })}
@@ -646,7 +708,7 @@ function TaskTileCardImpl({
             )}
             {isTeacher && (t.status === 'done' || t.status === 'validated') && (
               <button className="btn btn-ghost btn-sm" onClick={() => setLogsTask(t)}>
-                📋 Rapports
+                <IconReports size={15} /> Rapports
               </button>
             )}
             {isTeacher && (
@@ -662,7 +724,7 @@ function TaskTileCardImpl({
                       setShowForm(true);
                     }}
                   >
-                    ✏️
+                    <IconEdit />
                   </button>
                 </Tooltip>
                 <Tooltip text={tooltipText('tasks.duplicate')}>
@@ -676,7 +738,7 @@ function TaskTileCardImpl({
                       setShowForm(true);
                     }}
                   >
-                    📄
+                    <IconDuplicate />
                   </button>
                 </Tooltip>
                 {archiveTask &&
@@ -688,7 +750,7 @@ function TaskTileCardImpl({
                       disabled={loading[t.id + 'archive']}
                       onClick={() => archiveTask(t, false)}
                     >
-                      ♻️
+                      <IconUnarchive />
                     </button>
                   ) : (
                     <button
@@ -698,7 +760,7 @@ function TaskTileCardImpl({
                       disabled={loading[t.id + 'archive']}
                       onClick={() => archiveTask(t, true)}
                     >
-                      📦
+                      <IconArchive />
                     </button>
                   ))}
                 <Tooltip text={tooltipText('tasks.delete')}>
@@ -708,7 +770,7 @@ function TaskTileCardImpl({
                     disabled={loading[t.id + 'del']}
                     onClick={() => deleteTask(t)}
                   >
-                    🗑️
+                    <IconDelete />
                   </button>
                 </Tooltip>
               </>
@@ -725,7 +787,7 @@ function TaskTileCardImpl({
                   setShowForm(true);
                 }}
               >
-                ✏️ Modifier ma proposition
+                <IconEdit size={15} /> Modifier ma proposition
               </button>
             )}
           </div>

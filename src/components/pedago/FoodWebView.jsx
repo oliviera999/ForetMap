@@ -9,6 +9,7 @@ import {
 import { edgeStyleForType } from '../../shared/foodWebEdgeStyle.js';
 import { GlossaryInlineText } from '../GlossaryMarkdown.jsx';
 import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
+import { IconAdd, IconDelete, IconFoodweb } from '../../shared/icons.jsx';
 
 const EMPTY_FORM = { fromId: '', toId: '', type: INTERACTION_TYPES[0], description: '' };
 
@@ -266,7 +267,7 @@ export function FoodWebView({
                         title="Supprimer cette interaction"
                         aria-label="Supprimer cette interaction"
                       >
-                        🗑️
+                        <IconDelete size={16} />
                       </button>
                     ) : null}
                   </div>
@@ -293,7 +294,11 @@ export function FoodWebView({
       className={showTitle ? 'card pedago-foodweb__admin' : 'pedago-foodweb__admin'}
       onSubmit={createInteraction}
     >
-      {showTitle ? <h3 className="pedago-panel-title">➕ Ajouter une interaction</h3> : null}
+      {showTitle ? (
+        <h3 className="pedago-panel-title">
+          <IconAdd size={16} /> Ajouter une interaction
+        </h3>
+      ) : null}
       <div className="pedago-foodweb__admin-fields">
         <label className="pedago-filter-field">
           <span>Espèce source</span>
@@ -372,7 +377,9 @@ export function FoodWebView({
       className={`pedago-view pedago-foodweb${graphLayout ? ' pedago-foodweb--graph-layout' : ''}${listLayout ? ' pedago-foodweb--list-layout' : ''}`}
     >
       <header className="pedago-view__head pedago-foodweb__head">
-        <h2 className="section-title">🕸️ Réseau trophique</h2>
+        <h2 className="section-title">
+          <IconFoodweb size={20} /> Réseau trophique
+        </h2>
         <p className="section-sub pedago-foodweb__intro">
           Relations entre espèces du site — clique une flèche pour le glossaire, une espèce pour sa
           fiche.
@@ -389,7 +396,7 @@ export function FoodWebView({
             compactControls ? (
               <details className="card pedago-foodweb__admin-details">
                 <summary className="pedago-foodweb__admin-summary">
-                  ➕ Ajouter une interaction
+                  <IconAdd size={14} /> Ajouter une interaction
                 </summary>
                 {adminForm(false)}
               </details>

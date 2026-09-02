@@ -5,6 +5,7 @@ import { Tooltip } from '../../shared/components/Tooltip.jsx';
 import { resolveTooltipKey } from '../../utils/helpResolve';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { buildUserEditInitialFields } from '../../utils/profilesUserFields.js';
+import { IconWarning } from '../../shared/icons.jsx';
 
 const EMPTY_FIELDS = {
   firstName: '',
@@ -95,7 +96,7 @@ function UserEditModal({
           </p>
           {err && (
             <div className="auth-error" style={{ marginBottom: 12 }} role="alert">
-              ⚠️ {err}
+              <IconWarning size={14} /> {err}
             </div>
           )}
           <form

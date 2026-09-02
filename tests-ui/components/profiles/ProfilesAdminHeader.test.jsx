@@ -25,7 +25,7 @@ describe('ProfilesAdminHeader', () => {
     const { container } = renderHeader();
     const title = container.querySelector('h2.section-title');
     expect(title).toBeInTheDocument();
-    expect(title).toHaveTextContent('🛡️ Profils & utilisateurs');
+    expect(title).toHaveTextContent('Profils & utilisateurs');
   });
 
   test('isHelpEnabled vrai (avec entrées) → rend le bouton d aide', () => {
@@ -36,6 +36,6 @@ describe('ProfilesAdminHeader', () => {
   test('isHelpEnabled faux → aucun panneau d aide', () => {
     renderHeader({ isHelpEnabled: false });
     expect(screen.queryByRole('button')).toBeNull();
-    expect(screen.getByText('🛡️ Profils & utilisateurs')).toBeInTheDocument();
+    expect(screen.getByText('Profils & utilisateurs')).toBeInTheDocument();
   });
 });

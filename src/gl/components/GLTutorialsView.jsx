@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
@@ -18,6 +19,7 @@ export function GLTutorialsView({
   focusTutorialId = null,
   onTutorialFocusHandled,
 }) {
+  const { confirm } = useAppDialogs();
   const [items, setItems] = useState([]);
   const [active, setActive] = useState(null);
   const [error, setError] = useState('');
@@ -124,7 +126,7 @@ export function GLTutorialsView({
   }
 
   async function removeTutorial(id) {
-    if (!window.confirm('Supprimer ce tutoriel GL ?')) return;
+    if (!(await confirm({ message: 'Supprimer ce tutoriel GL ?', danger: true }))) return;
     try {
       await apiGL(`/api/gl/tutorials/${id}`, 'DELETE');
       if (Number(active?.id) === Number(id)) setActive(null);

@@ -3,6 +3,7 @@ import { resolveTooltipKey } from '../../utils/helpResolve';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { visitMediaImgSrc, reorderVisitMediaRows } from '../../utils/visitMediaGallery.js';
 import { VisitEditorialMapPhotoImportList } from '../VisitEditorialPhotoUi.jsx';
+import { IconCamera, IconDelete, IconEdit, IconImage } from '../../shared/icons.jsx';
 
 const FORETMAP_VISIT_MEDIA_DRAG_MIME = 'application/x-foretmap-visit-media-id';
 
@@ -47,7 +48,9 @@ export function VisitMediaEditor({
   const tooltipText = (path) => resolveTooltipKey(path, publicSettings, true);
   return (
     <div className="visit-media-editor">
-      <h5>🖼️ Photos</h5>
+      <h5>
+        <IconImage size={16} /> Photos
+      </h5>
       <p
         style={{
           fontSize: 'var(--text-xs)',
@@ -85,7 +88,13 @@ export function VisitMediaEditor({
         disabled={mediaUploading}
         onClick={() => mediaFileRef.current?.click()}
       >
-        {mediaUploading ? 'Envoi...' : '📷 Ajouter des photos (fichiers, sélection multiple)'}
+        {mediaUploading ? (
+          'Envoi...'
+        ) : (
+          <>
+            <IconCamera size={14} /> Ajouter des photos (fichiers, sélection multiple)
+          </>
+        )}
       </button>
       <div className="field">
         <label>URL image</label>
@@ -157,7 +166,7 @@ export function VisitMediaEditor({
               onMouseDown={(ev) => ev.stopPropagation()}
               onClick={() => onEditCaption(m)}
             >
-              ✏️
+              <IconEdit size={16} />
             </button>
             <Tooltip text={tooltipText('visit.mediaDelete')}>
               <button
@@ -167,7 +176,7 @@ export function VisitMediaEditor({
                 onMouseDown={(ev) => ev.stopPropagation()}
                 onClick={() => onDeleteMedia(m.id)}
               >
-                🗑️
+                <IconDelete size={16} />
               </button>
             </Tooltip>
           </div>

@@ -1,3 +1,4 @@
+import { IconFullscreen } from '../../shared/icons.jsx';
 /** Diagramme circulaire de progression visite (viewBox carré, cercle centré). */
 const VISIT_PROGRESS_DONUT_VB = 40;
 const VISIT_PROGRESS_DONUT_R = 14;
@@ -85,7 +86,7 @@ export function VisitMapChrome({
               visitImmersion ? 'Quitter le plein écran' : 'Afficher la carte en plein écran'
             }
           >
-            <span aria-hidden>⛶</span> Plein écran
+            <IconFullscreen size={14} /> Plein écran
           </button>
           {onCycleMapTextSize ? (
             <button

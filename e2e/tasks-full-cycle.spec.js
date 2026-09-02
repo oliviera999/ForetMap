@@ -62,7 +62,7 @@ test('cycle complet tâche: création prof -> prise élève -> soumission -> val
   await openTeacherTasksTab(page);
   await tasksAfterElevate.catch(() => {});
 
-  const taskSearch = page.getByPlaceholder('🔍 Rechercher une tâche...');
+  const taskSearch = page.getByPlaceholder('Rechercher une tâche...');
   await taskSearch.waitFor({ state: 'visible', timeout: 20_000 });
   await taskSearch.fill(taskTitle);
 
@@ -73,7 +73,7 @@ test('cycle complet tâche: création prof -> prise élève -> soumission -> val
     (r) => r.url().includes('/validate') && r.request().method() === 'POST' && r.status() === 200,
     { timeout: 45_000 },
   );
-  await teacherPendingCard.getByRole('button', { name: '✔️ Validée' }).click({ force: true });
+  await teacherPendingCard.getByRole('button', { name: 'Validée' }).click({ force: true });
   await validateResp;
 
   await expect(page.locator('.task-card', { hasText: taskTitle }).first()).toBeVisible();

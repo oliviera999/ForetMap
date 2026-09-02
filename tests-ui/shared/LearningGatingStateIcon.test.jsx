@@ -23,22 +23,24 @@ describe('LearningGatingStateIcon', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('montre « ✓ » et une phrase lisible quand le contrôle est acquis', () => {
-    render(<LearningGatingStateIcon summary={{ required: true, satisfied: true }} />);
-    expect(screen.getByText('✓')).toBeInTheDocument();
+  it('montre la coche (SVG) et une phrase lisible quand le contrôle est acquis', () => {
+    const { container } = render(
+      <LearningGatingStateIcon summary={{ required: true, satisfied: true }} />,
+    );
+    expect(container.querySelector('.learning-gating-state--acquired svg')).not.toBeNull();
     // La phrase complète existe en texte : le title HTML n'est pas lu par tous les
     // lecteurs d'écran ni atteignable au clavier sur un span.
     expect(screen.getByText(/validation est ouverte/i)).toBeInTheDocument();
   });
 
-  it('montre « ? » et le nombre de questions en attente', () => {
-    render(
+  it('montre l’icône « question » et le nombre de questions en attente', () => {
+    const { container } = render(
       <LearningGatingStateIcon
         summary={{ required: true, ask_count: 2, pending_count: 2 }}
         withLabel
       />,
     );
-    expect(screen.getByText('?')).toBeInTheDocument();
+    expect(container.querySelector('.learning-gating-state--pending svg')).not.toBeNull();
     expect(screen.getByText('2 questions')).toBeInTheDocument();
   });
 
@@ -46,7 +48,7 @@ describe('LearningGatingStateIcon', () => {
     const { container } = render(
       <LearningGatingStateIcon summary={{ required: true, locked: true, remaining_days: 3 }} />,
     );
-    expect(screen.getByText('🔒')).toBeInTheDocument();
+    expect(container.querySelector('.learning-gating-state--locked svg')).not.toBeNull();
     expect(screen.getByText(/3 jours/)).toBeInTheDocument();
     // La classe porte l'état : la couleur ne fait que renforcer la forme.
     expect(container.querySelector('.learning-gating-state--locked')).not.toBeNull();

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { apiGL } from '../../services/apiGL.js';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
@@ -39,6 +40,7 @@ const TAB_LABELS = {
 };
 
 export function GLHelpContentAdminPanel() {
+  const { confirm } = useAppDialogs();
   // `null` tant que le chargement n'a pas abouti — et non un brouillon vide. Un GET en
   // échec laissait sinon un formulaire éditable rempli de valeurs par défaut, avec
   // l'enregistrement automatique armé : une frappe suffisait à écrire ces défauts en base
@@ -90,7 +92,14 @@ export function GLHelpContentAdminPanel() {
   });
 
   async function resetDefaults() {
-    if (!window.confirm('Réinitialiser tous les textes d’aide GL aux valeurs par défaut ?')) return;
+    if (
+      !(await confirm({
+        message: 'Réinitialiser tous les textes d’aide GL aux valeurs par défaut ?',
+        confirmLabel: 'Réinitialiser',
+        danger: true,
+      }))
+    )
+      return;
     setBusy(true);
     setError('');
     try {

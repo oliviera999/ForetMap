@@ -1,4 +1,5 @@
 import { LocationTutorialPreviewList } from './mapModalShared.jsx';
+import { IconLink } from '../../shared/icons.jsx';
 
 /**
  * Onglet « Tutoriels » des modales de lieu (ZoneInfoModal / MarkerModal) — variantes
@@ -107,7 +108,7 @@ export function ZoneTutorialsTeacherPanel({
         disabled={!linkTutorialId}
         onClick={() => onLinkTutorial?.(linkTutorialId)}
       >
-        🔗 Lier le tutoriel
+        <IconLink size={14} /> Lier le tutoriel
       </button>
     </div>
   );

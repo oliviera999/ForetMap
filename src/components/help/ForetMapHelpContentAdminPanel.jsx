@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import { IconWarning } from '../../shared/icons.jsx';
 
 import { api } from '../../services/api';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { getRoleTerms } from '../../utils/n3-terminology';
 import { useSession } from '../../contexts/SessionContext.jsx';
@@ -71,6 +73,7 @@ function updateNested(setDraft, path, value) {
 }
 
 export function ForetMapHelpContentAdminPanel() {
+  const { confirm } = useAppDialogs();
   const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [draft, setDraft] = useState(null);
@@ -106,8 +109,15 @@ export function ForetMapHelpContentAdminPanel() {
   });
 
   async function resetDefaults() {
-    if (!window.confirm('Réinitialiser tous les textes d’aide ForetMap aux valeurs par défaut ?'))
+    if (
+      !(await confirm({
+        message: 'Réinitialiser tous les textes d’aide ForetMap aux valeurs par défaut ?',
+        confirmLabel: 'Réinitialiser',
+        danger: true,
+      }))
+    ) {
       return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -132,8 +142,16 @@ export function ForetMapHelpContentAdminPanel() {
       <p className="section-sub" style={{ marginTop: 0 }}>
         Tooltips, panneaux ?, mini-astuces, bandeaux carte et infobulles temps réel prof.
       </p>
-      {error && <div className="auth-error">⚠️ {error}</div>}
-      {saveError ? <div className="auth-error">⚠️ {saveError}</div> : null}
+      {error && (
+        <div className="auth-error">
+          <IconWarning size={14} /> {error}
+        </div>
+      )}
+      {saveError ? (
+        <div className="auth-error">
+          <IconWarning size={14} /> {saveError}
+        </div>
+      ) : null}
       {info && <div className="auth-success">{info}</div>}
 
       <nav className="gl-subtabs" style={{ marginBottom: 12 }}>

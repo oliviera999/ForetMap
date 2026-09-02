@@ -306,7 +306,7 @@ describe('MediaLibraryMenu import mobile', () => {
 
   test('le bouton Importer déclenche le sélectionneur natif et arme la garde retour', async () => {
     renderMenu();
-    await screen.findByRole('button', { name: '📁 Importer' });
+    await screen.findByRole('button', { name: 'Importer' });
 
     const input = document.querySelector('input[type="file"]:not([capture])');
     const clickSpy = vi.spyOn(input, 'click').mockImplementation(() => {});
@@ -315,7 +315,7 @@ describe('MediaLibraryMenu import mobile', () => {
     const closeOverlay = vi.fn();
     pushOverlayClose(closeOverlay);
 
-    fireEvent.click(screen.getByRole('button', { name: '📁 Importer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Importer' }));
     expect(clickSpy).toHaveBeenCalled();
 
     window.dispatchEvent(new Event('popstate'));
@@ -324,13 +324,13 @@ describe('MediaLibraryMenu import mobile', () => {
 
   test('propose aussi la prise de photo (input capture) sur mobile', async () => {
     renderMenu();
-    expect(await screen.findByRole('button', { name: '📸 Prendre une photo' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Prendre une photo' })).toBeInTheDocument();
     expect(document.querySelector('input[type="file"][capture="environment"]')).toBeTruthy();
   });
 
   test('photo Android sans type MIME : envoyée en image/jpeg avec son nom d’origine', async () => {
     const { uploadDataUrl } = renderMenu();
-    await screen.findByRole('button', { name: '📁 Importer' });
+    await screen.findByRole('button', { name: 'Importer' });
     const input = document.querySelector('input[type="file"]:not([capture])');
     const file = new File([JPEG_BYTES], 'IMG_20260818_101500.jpg', { type: '' });
 
@@ -345,7 +345,7 @@ describe('MediaLibraryMenu import mobile', () => {
 
   test('un fichier refusé n’interrompt pas le lot et est nommé dans l’erreur', async () => {
     const { uploadDataUrl } = renderMenu({ allowMultiple: true });
-    await screen.findByRole('button', { name: '📁 Importer' });
+    await screen.findByRole('button', { name: 'Importer' });
     const input = document.querySelector('input[type="file"]:not([capture])');
 
     const ok = new File([JPEG_BYTES], 'photo.jpg', { type: 'image/jpeg' });

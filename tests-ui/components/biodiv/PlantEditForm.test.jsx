@@ -37,7 +37,7 @@ function setup(overrides = {}) {
   return props;
 }
 
-/** Input file caché du bouton (`📁 Galerie` ou `📸 Appareil photo`) du champ photo `label`. */
+/** Input file caché du bouton (`Galerie` ou `Appareil photo`, icônes lucide) du champ photo `label`. */
 function photoFileInput(buttonText, fieldLabel) {
   const field = screen.getByText(`${fieldLabel} (URL directe)`).closest('.field');
   const btn = Array.from(field.querySelectorAll('label.btn')).find((l) =>
@@ -61,7 +61,7 @@ describe('PlantEditForm', () => {
     expect(screen.getByTestId('plantnet-panel')).toBeInTheDocument();
     expect(screen.getByTestId('prefill-panel')).toBeInTheDocument();
     expect(screen.getByText('Photo espèce (URL directe)')).toBeInTheDocument();
-    expect(screen.getByText('💾 Sauvegarder')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enregistrer' })).toBeInTheDocument();
     expect(screen.getByText('Annuler')).toBeInTheDocument();
   });
 
@@ -83,9 +83,9 @@ describe('PlantEditForm', () => {
     expect(applied.emoji).toBe(emojiBtn.textContent);
   });
 
-  test('boutons Sauvegarder/Annuler câblés ; Sauvegarder désactivé pendant saving', () => {
+  test('boutons Enregistrer/Annuler câblés ; Enregistrer désactivé pendant saving', () => {
     const { onSave, onCancel } = setup();
-    fireEvent.click(screen.getByText('💾 Sauvegarder'));
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect(onSave).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByText('Annuler'));
     expect(onCancel).toHaveBeenCalledTimes(1);
@@ -94,7 +94,7 @@ describe('PlantEditForm', () => {
   test('appareil photo sur « Photo (générale) » → POST photo-upload en prepend + toast', async () => {
     api.mockResolvedValueOnce({ url: '/uploads/p.jpg' });
     const { onToast, setForm } = setup();
-    const input = photoFileInput('📸 Appareil photo', 'Photo (générale)');
+    const input = photoFileInput('Appareil photo', 'Photo (générale)');
     fireEvent.change(input, {
       target: { files: [new File(['x'], 'p.jpg', { type: 'image/jpeg' })] },
     });
@@ -111,7 +111,7 @@ describe('PlantEditForm', () => {
 
   test('upload sans plantId ni onEnsurePlantId → toast de garde, aucun appel serveur', async () => {
     const { onToast } = setup({ plantId: null });
-    const input = photoFileInput('📸 Appareil photo', 'Photo espèce');
+    const input = photoFileInput('Appareil photo', 'Photo espèce');
     fireEvent.change(input, {
       target: { files: [new File(['x'], 'p.jpg', { type: 'image/jpeg' })] },
     });
@@ -123,7 +123,7 @@ describe('PlantEditForm', () => {
 
   test('galerie multi-fichiers → répartition sur les champs suivants + toast pluriel', async () => {
     const { onToast } = setup();
-    const input = photoFileInput('📁 Galerie', 'Photo espèce');
+    const input = photoFileInput('Galerie', 'Photo espèce');
     const files = [
       new File(['a'], 'a.jpg', { type: 'image/jpeg' }),
       new File(['b'], 'b.jpg', { type: 'image/jpeg' }),

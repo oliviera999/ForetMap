@@ -7,6 +7,7 @@ import {
   pctToGeo,
   planSizeMeters,
 } from '../../utils/mapGeoTransform.js';
+import { IconGps, IconMarker, IconWarning } from '../../shared/icons.jsx';
 import {
   formatGeoCoordinate,
   parseGeoCoordinate,
@@ -212,7 +213,7 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
       }}
     >
       <h4 style={{ margin: '0 0 6px', fontSize: 'var(--text-base)' }}>
-        📍 Calage GPS (suivi mascotte)
+        <IconMarker size={16} /> Calage GPS (suivi mascotte)
       </h4>
       <p style={{ margin: '0 0 8px', fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}>
         Cliquez directement sur le plan pour placer les 3 repères (point suivant auto-sélectionné),
@@ -355,7 +356,7 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
                     disabled={disabled}
                     title="Renseigner avec la position GPS actuelle"
                   >
-                    📡 Ma position
+                    <IconGps size={14} /> Ma position
                   </button>
                 ) : null}
                 <span style={{ fontSize: 'var(--text-xs)', color: '#9ca3af' }}>
@@ -412,7 +413,7 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
       ) : null}
       {plausibilityError ? (
         <p role="alert" style={{ margin: '6px 0 0', fontSize: 'var(--text-xs)', color: '#dc2626' }}>
-          ⚠️ {plausibilityError}
+          <IconWarning size={14} /> {plausibilityError}
         </p>
       ) : null}
 

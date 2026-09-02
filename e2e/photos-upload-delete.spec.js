@@ -26,8 +26,8 @@ test('parcours photos zone: upload puis suppression', async ({ page }) => {
 
   await openFirstZoneModalFromMap(page);
   const zoneDialog = page.locator('[role="dialog"][aria-label^="Zone "]').first();
-  await zoneDialog.getByRole('button', { name: '📷 Photos', exact: true }).click();
-  await expect(zoneDialog.getByRole('button', { name: '📁 Galerie' })).toBeVisible({
+  await zoneDialog.getByRole('button', { name: 'Photos', exact: true }).click();
+  await expect(zoneDialog.getByRole('button', { name: 'Galerie' })).toBeVisible({
     timeout: 20_000,
   });
 
@@ -46,12 +46,14 @@ test('parcours photos zone: upload puis suppression', async ({ page }) => {
     timeout: 90_000,
   });
   await expect(caption).toHaveValue('');
-  await expect(zoneDialog.getByRole('button', { name: '📁 Galerie' })).toBeVisible();
+  await expect(zoneDialog.getByRole('button', { name: 'Galerie' })).toBeVisible();
 
-  const deleteButtons = zoneDialog.locator('button', { hasText: '✕' });
+  // Les boutons de suppression de photo sont désormais des icônes SVG : on les cible
+  // par leur nom accessible (aria-label « Supprimer la photo »).
+  const deleteButtons = zoneDialog.getByRole('button', { name: 'Supprimer la photo' });
   const deleteCount = await deleteButtons.count();
-  if (deleteCount > 1) {
+  if (deleteCount > 0) {
     page.once('dialog', (d) => d.accept());
-    await deleteButtons.nth(1).click();
+    await deleteButtons.first().click();
   }
 });
