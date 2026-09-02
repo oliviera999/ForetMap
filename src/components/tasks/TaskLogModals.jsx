@@ -12,6 +12,15 @@ import { MarkdownContent } from '../MarkdownContent.jsx';
 import { TimedToast } from '../../shared/components/TimedToast.jsx';
 import { ImageLightbox } from '../../shared/components/ImageLightbox.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
+import {
+  IconCamera,
+  IconCheck,
+  IconClose,
+  IconDelete,
+  IconFolder,
+  IconNotebook,
+  IconReports,
+} from '../../shared/icons.jsx';
 
 function Lightbox({ src, caption, onClose }) {
   return <ImageLightbox src={src} caption={caption} onClose={onClose} useOverlayHistory />;
@@ -106,9 +115,11 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
       dialogRef={dialogRef}
     >
       <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>
-        ✕
+        <IconClose size={16} />
       </button>
-      <h3>📋 Rapport de tâche</h3>
+      <h3>
+        <IconReports size={18} /> Rapport de tâche
+      </h3>
       <p style={{ fontSize: 'var(--text-sm)', color: '#777', marginBottom: 16 }}>
         <strong>{task.title}</strong> — laisse un commentaire ou une photo avant de valider
       </p>
@@ -135,7 +146,9 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
             role="group"
             aria-label="Photo du rapport : galerie ou appareil photo"
           >
-            <div style={{ fontSize: 'var(--text-2xl)', marginBottom: 6 }}>📷</div>
+            <div style={{ marginBottom: 6 }}>
+              <IconCamera size={28} />
+            </div>
             <div
               style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-faint)', marginBottom: 10 }}
             >
@@ -151,7 +164,7 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
                   galleryInputRef.current?.click();
                 }}
               >
-                📁 Choisir une photo
+                <IconFolder size={14} /> Choisir une photo
               </button>
               <button
                 type="button"
@@ -162,7 +175,7 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
                   cameraInputRef.current?.click();
                 }}
               >
-                📸 Prendre une photo
+                <IconCamera size={14} /> Prendre une photo
               </button>
             </div>
             <input ref={galleryInputRef} type="file" accept="image/*" onChange={handleFile} />
@@ -179,12 +192,13 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
             <img src={preview} className="img-preview" alt="preview" />
             <button
               className="img-remove"
+              aria-label="Retirer la photo"
               onClick={() => {
                 setImageData(null);
                 setPreview(null);
               }}
             >
-              ✕
+              <IconClose size={16} />
             </button>
           </div>
         )}
@@ -192,7 +206,13 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
 
       <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
         <button className="btn btn-primary" style={{ flex: 1 }} onClick={submit} disabled={saving}>
-          {saving ? 'Envoi...' : '✅ Marquer comme terminée'}
+          {saving ? (
+            'Envoi...'
+          ) : (
+            <>
+              <IconCheck size={15} /> Marquer comme terminée
+            </>
+          )}
         </button>
         <button className="btn btn-ghost" onClick={onClose}>
           Annuler
@@ -259,12 +279,16 @@ function TaskLogsViewer({ task, onClose }) {
       {big && <Lightbox src={big} caption="" onClose={() => setBig(null)} />}
       {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
       <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>
-        ✕
+        <IconClose size={16} />
       </button>
-      <h3>📋 Rapports — {task.title}</h3>
+      <h3>
+        <IconReports size={18} /> Rapports — {task.title}
+      </h3>
       {logs.length === 0 ? (
         <div className="empty">
-          <div className="empty-icon">📭</div>
+          <div className="empty-icon">
+            <IconNotebook size={28} />
+          </div>
           <p>Pas encore de retour sur cette mission — à toi d’ouvrir le bal !</p>
         </div>
       ) : (
@@ -284,9 +308,10 @@ function TaskLogsViewer({ task, onClose }) {
                       deleteLog(l.id);
                     }
                   }}
+                  aria-label="Supprimer ce rapport"
                   title="Supprimer ce rapport"
                 >
-                  🗑️
+                  <IconDelete size={15} />
                 </button>
               </div>
             </div>

@@ -39,6 +39,18 @@ import {
   PlantCatalogPreviewModal,
 } from './biodiv/PlantCatalogPreview.jsx';
 import { PlantLocationPreviewMaps } from './biodiv/BiodivLocationMaps.jsx';
+import {
+  IconBiodiv,
+  IconDelete,
+  IconEdit,
+  IconHabitat,
+  IconLeaf,
+  IconLink,
+  IconMarker,
+  IconNotebook,
+  IconPin,
+  IconSave,
+} from '../shared/icons.jsx';
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
 
@@ -164,7 +176,9 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
           marginBottom: 4,
         }}
       >
-        <h2 className="section-title">🌱 Base biodiversité</h2>
+        <h2 className="section-title">
+          <IconBiodiv size={20} /> Base biodiversité
+        </h2>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {isHelpEnabled && (
             <HelpPanel
@@ -291,10 +305,14 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
                     <CatalogRemarksSection plant={p} />
                     <div className="task-meta">
                       {normalizedPlantValue(p.habitat) && !isGenericPotagerLabel(p.habitat) && (
-                        <span className="task-chip">🏡 {p.habitat}</span>
+                        <span className="task-chip">
+                          <IconHabitat size={12} /> {p.habitat}
+                        </span>
                       )}
                       {normalizedPlantValue(p.trophic_role) && (
-                        <span className="task-chip">🔗 {p.trophic_role}</span>
+                        <span className="task-chip">
+                          <IconLink size={12} /> {p.trophic_role}
+                        </span>
                       )}
                     </div>
                     <PlantSummaryBadges plant={p} />
@@ -327,12 +345,12 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
                         <div className="plant-zones">
                           {pZones.map((z) => (
                             <span key={`zone-${z.id}`} className="plant-zone-chip">
-                              📍 {z.name}
+                              <IconMarker size={12} /> {z.name}
                             </span>
                           ))}
                           {pMarkers.map((m) => (
                             <span key={`marker-${m.id}`} className="plant-zone-chip">
-                              📌 {m.label?.trim() ? m.label : 'Repère'}
+                              <IconPin size={12} /> {m.label?.trim() ? m.label : 'Repère'}
                             </span>
                           ))}
                         </div>
@@ -391,7 +409,7 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
                         aria-label="Modifier la fiche biodiversité"
                         onClick={() => startEdit(p)}
                       >
-                        ✏️
+                        <IconEdit size={16} />
                       </button>
                     </Tooltip>
                     <Tooltip text={tooltipText('plants.delete')}>
@@ -400,7 +418,7 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
                         aria-label="Supprimer la fiche biodiversité"
                         onClick={() => del(p)}
                       >
-                        🗑️
+                        <IconDelete size={16} />
                       </button>
                     </Tooltip>
                   </div>
@@ -531,7 +549,9 @@ function ObservationNotebook({ student, onForceLogout = null }) {
           marginBottom: 4,
         }}
       >
-        <h2 className="section-title">📓 Mon carnet</h2>
+        <h2 className="section-title">
+          <IconNotebook size={20} /> Mon carnet
+        </h2>
         {!showForm && (
           <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>
             + Observation
@@ -583,7 +603,13 @@ function ObservationNotebook({ student, onForceLogout = null }) {
               onClick={submit}
               disabled={saving || !content.trim()}
             >
-              {saving ? '...' : '💾 Enregistrer'}
+              {saving ? (
+                '...'
+              ) : (
+                <>
+                  <IconSave size={14} /> Enregistrer
+                </>
+              )}
             </button>
             <button
               className="btn btn-ghost btn-sm"
@@ -654,7 +680,9 @@ function PlantViewer({
       <div
         style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
       >
-        <h2 className="section-title">🌱 Catalogue de biodiversité</h2>
+        <h2 className="section-title">
+          <IconBiodiv size={20} /> Catalogue de biodiversité
+        </h2>
         {isHelpEnabled && (
           <HelpPanel
             sectionId="plants"
@@ -675,13 +703,15 @@ function PlantViewer({
       <PlantCatalogFilterPanel
         plants={plants}
         showZonePresence
-        searchPlaceholder="🔍 Chercher un être vivant..."
+        searchPlaceholder="Chercher un être vivant..."
         {...filterPanelProps}
       />
 
       {filtered.length === 0 ? (
         <div className="empty">
-          <div className="empty-icon">🌿</div>
+          <div className="empty-icon">
+            <IconLeaf size={28} />
+          </div>
           <p>Aucun être vivant ne colle à ta recherche — essaie un autre mot.</p>
         </div>
       ) : (

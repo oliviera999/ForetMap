@@ -23,6 +23,19 @@ import { ZoneTutorialsTeacherPanel } from './ZoneTutorialsPanel.jsx';
 import { LocationVisitAside } from './mapModalShared.jsx';
 import { useLocationModalData } from './useLocationModalData.js';
 import { useVisitMediaBlocks } from './useVisitMediaBlocks.js';
+import {
+  IconAbout,
+  IconCamera,
+  IconCheck,
+  IconClose,
+  IconDelete,
+  IconDuplicate,
+  IconEdit,
+  IconMarker,
+  IconSave,
+  IconTasks,
+  IconTuto,
+} from '../../shared/icons.jsx';
 
 function MarkerModal({
   marker,
@@ -173,11 +186,58 @@ function MarkerModal({
   };
 
   const TABS_EXISTING = [
-    ...(showTasksTab ? [{ id: 'tasks', label: '✅ Tâches' }] : []),
-    ...(showTutorialsTab ? [{ id: 'tutorials', label: '📘 Tutoriels' }] : []),
-    { id: 'info', label: 'ℹ️ Info' },
-    { id: 'photos', label: '📷 Photos' },
-    ...(isTeacher ? [{ id: 'edit', label: '✏️ Modifier' }] : []),
+    ...(showTasksTab
+      ? [
+          {
+            id: 'tasks',
+            label: (
+              <>
+                <IconTasks size={14} /> Tâches
+              </>
+            ),
+          },
+        ]
+      : []),
+    ...(showTutorialsTab
+      ? [
+          {
+            id: 'tutorials',
+            label: (
+              <>
+                <IconTuto size={14} /> Tutoriels
+              </>
+            ),
+          },
+        ]
+      : []),
+    {
+      id: 'info',
+      label: (
+        <>
+          <IconAbout size={14} /> Info
+        </>
+      ),
+    },
+    {
+      id: 'photos',
+      label: (
+        <>
+          <IconCamera size={14} /> Photos
+        </>
+      ),
+    },
+    ...(isTeacher
+      ? [
+          {
+            id: 'edit',
+            label: (
+              <>
+                <IconEdit size={14} /> Modifier
+              </>
+            ),
+          },
+        ]
+      : []),
   ];
 
   if (isNew) {
@@ -193,7 +253,7 @@ function MarkerModal({
       >
         {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
         <button className="modal-close" aria-label="Fermer" onClick={onClose}>
-          ✕
+          <IconClose size={16} />
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
           <h3 style={{ margin: 0 }}>Nouveau repère</h3>
@@ -219,7 +279,13 @@ function MarkerModal({
               onClick={saveNew}
               disabled={saving}
             >
-              {saving ? '...' : '📍 Placer'}
+              {saving ? (
+                '...'
+              ) : (
+                <>
+                  <IconMarker size={15} /> Placer
+                </>
+              )}
             </button>
           </>
         ) : (
@@ -244,7 +310,7 @@ function MarkerModal({
     >
       {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
       <button className="modal-close" aria-label="Fermer" onClick={onClose}>
-        ✕
+        <IconClose size={16} />
       </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
@@ -284,12 +350,19 @@ function MarkerModal({
                   setDuplicating(false);
                 }}
               >
-                {duplicating ? '…' : '📋 Copie'}
+                {duplicating ? (
+                  '…'
+                ) : (
+                  <>
+                    <IconDuplicate size={15} /> Copie
+                  </>
+                )}
               </button>
             )}
             <button
               type="button"
               className="btn btn-danger btn-sm"
+              aria-label="Supprimer le repère"
               onClick={async () => {
                 if (
                   await confirm({
@@ -302,7 +375,7 @@ function MarkerModal({
                 }
               }}
             >
-              🗑️
+              <IconDelete />
             </button>
           </div>
         )}
@@ -320,7 +393,7 @@ function MarkerModal({
               onClose();
             }}
           >
-            ✅ Ouvrir l’onglet Tâches filtré sur ce repère
+            <IconCheck size={15} /> Ouvrir l’onglet Tâches filtré sur ce repère
           </button>
           <p
             style={{
@@ -505,7 +578,13 @@ function MarkerModal({
             markerEmojis={markerEmojis}
           />
           <button className="btn btn-primary btn-full" onClick={saveEdit} disabled={saving}>
-            {saving ? '...' : '💾 Sauvegarder'}
+            {saving ? (
+              '...'
+            ) : (
+              <>
+                <IconSave size={15} /> Sauvegarder
+              </>
+            )}
           </button>
           {onRequestAdjustMarkerPosition && (
             <button
@@ -517,7 +596,7 @@ function MarkerModal({
                 onClose();
               }}
             >
-              📍 Ajuster la position sur la carte
+              <IconMarker size={14} /> Ajuster la position sur la carte
             </button>
           )}
         </div>

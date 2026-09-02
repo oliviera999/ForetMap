@@ -4,6 +4,7 @@ import { api } from '../../services/api';
 import { useApiResource } from '../../hooks/useApiResource.js';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { applyPickedHexColor, colorPickerValue } from '../../utils/hexColorWithAlpha.js';
+import { IconDelete } from '../../shared/icons.jsx';
 
 const APPLIES_TO_LABELS = {
   both: 'Zones et repères',
@@ -321,9 +322,11 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
               type="button"
               className="btn btn-danger btn-sm"
               disabled={busy}
+              aria-label="Supprimer la catégorie"
+              title="Supprimer la catégorie"
               onClick={() => remove(cat)}
             >
-              🗑️
+              <IconDelete size={16} />
             </button>
           </div>
         ))}

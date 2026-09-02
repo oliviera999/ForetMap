@@ -25,6 +25,22 @@ import { TeacherObservationsPanel } from './stats/TeacherObservationsPanel.jsx';
 import { TeacherLeaderboard } from './stats/TeacherLeaderboard.jsx';
 import { deriveStudentProgressionView } from '../utils/studentStatsProgression.js';
 import { useSession } from '../contexts/SessionContext.jsx';
+import {
+  IconBiodiv,
+  IconCamera,
+  IconCheck,
+  IconFolder,
+  IconGlossary,
+  IconHourglass,
+  IconLeaf,
+  IconMarker,
+  IconQuiz,
+  IconReports,
+  IconStats,
+  IconTelescope,
+  IconUser,
+  IconWarning,
+} from '../shared/icons.jsx';
 
 function StudentStats({ student }) {
   const { isN3Affiliated = false } = useSession();
@@ -45,12 +61,16 @@ function StudentStats({ student }) {
   if (!data) {
     return error ? (
       <div className="empty" style={{ minHeight: '40vh' }}>
-        <div className="empty-icon">⚠️</div>
+        <div className="empty-icon">
+          <IconWarning size={28} />
+        </div>
         <p>{error}</p>
       </div>
     ) : (
       <div className="loader" style={{ height: '60vh' }}>
-        <div className="loader-leaf">🌿</div>
+        <div className="loader-leaf">
+          <IconLeaf size={48} />
+        </div>
         <p>Chargement...</p>
       </div>
     );
@@ -77,7 +97,7 @@ function StudentStats({ student }) {
         <div className="stats-title-left">
           <StudentAvatar student={data} size={34} />
           <h2 className="section-title" style={{ marginBottom: 0 }}>
-            📊 Mes statistiques
+            <IconStats size={20} /> Mes statistiques
           </h2>
         </div>
         <span
@@ -190,14 +210,19 @@ function StudentStats({ student }) {
       </div>
 
       <StatsSummaryGrid>
-        <StatCard icon="✅" value={stats.done} label="Tâches validées" highlight />
-        <StatCard icon="⏳" value={stats.pending} label="En cours" />
         <StatCard
-          icon="📋"
+          icon={<IconCheck size={20} />}
+          value={stats.done}
+          label="Tâches validées"
+          highlight
+        />
+        <StatCard icon={<IconHourglass size={20} />} value={stats.pending} label="En cours" />
+        <StatCard
+          icon={<IconReports size={20} />}
           value={stats.submitted}
           label={`En attente ${roleTerms.teacherShort}`}
         />
-        <StatCard icon="🌱" value={stats.total} label="Total prises" />
+        <StatCard icon={<IconBiodiv size={20} />} value={stats.total} label="Total prises" />
       </StatsSummaryGrid>
 
       <h3
@@ -212,17 +237,17 @@ function StudentStats({ student }) {
       </h3>
       <StatsSummaryGrid>
         <StatCard
-          icon="🌿"
+          icon={<IconLeaf size={20} />}
           value={Number(stats.plant_species_observed ?? 0).toLocaleString('fr-FR')}
           label="Espèces observées (fiches)"
         />
         <StatCard
-          icon="🔭"
+          icon={<IconTelescope size={20} />}
           value={Number(stats.plant_observation_events ?? 0).toLocaleString('fr-FR')}
           label="Observations fiches plantes"
         />
         <StatCard
-          icon="📖"
+          icon={<IconGlossary size={20} />}
           value={Number(stats.tutorials_read ?? 0).toLocaleString('fr-FR')}
           label="Tutoriels lus"
         />
@@ -241,7 +266,9 @@ function StudentStats({ student }) {
       <div className="activity-list">
         {assignments.length === 0 ? (
           <div className="empty">
-            <div className="empty-icon">🌿</div>
+            <div className="empty-icon">
+              <IconLeaf size={28} />
+            </div>
             <p>Aucune tâche prise pour l'instant</p>
           </div>
         ) : (
@@ -258,7 +285,11 @@ function StudentStats({ student }) {
               <div className="activity-info">
                 <div className="activity-title">{a.title}</div>
                 <div className="activity-meta">
-                  {a.zone_name && `📍 ${a.zone_name} · `}
+                  {a.zone_name && (
+                    <>
+                      <IconMarker size={12} /> {a.zone_name} ·{' '}
+                    </>
+                  )}
                   {new Date(a.assigned_at).toLocaleDateString('fr-FR', {
                     day: '2-digit',
                     month: 'short',
@@ -384,7 +415,9 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
 
   return (
     <div className="fade-in">
-      <h2 className="section-title">👤 Mon profil</h2>
+      <h2 className="section-title">
+        <IconUser size={20} /> Mon profil
+      </h2>
       <p className="section-sub">
         Modifie ton pseudo, ton mail et ta description. Ton mail reste privé.
       </p>
@@ -422,7 +455,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
             }}
             disabled={loading || avatarProcessing}
           >
-            📁 Choisir une photo
+            <IconFolder size={14} /> Choisir une photo
           </button>
           <button
             type="button"
@@ -433,7 +466,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
             }}
             disabled={loading || avatarProcessing}
           >
-            📸 Prendre une photo
+            <IconCamera size={14} /> Prendre une photo
           </button>
           <input
             ref={galleryInputRef}
@@ -541,7 +574,11 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
           placeholder="••••"
         />
       </div>
-      {err && <div className="auth-error">⚠️ {err}</div>}
+      {err && (
+        <div className="auth-error">
+          <IconWarning size={14} /> {err}
+        </div>
+      )}
       {okMsg && <div className="fm-toast fm-toast--inline">{okMsg}</div>}
       <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
         <button
@@ -649,7 +686,9 @@ function TeacherStats() {
   if (students === null)
     return (
       <div className="loader" style={{ height: '60vh' }}>
-        <div className="loader-leaf">🌿</div>
+        <div className="loader-leaf">
+          <IconLeaf size={48} />
+        </div>
         <p>Chargement...</p>
       </div>
     );
@@ -673,7 +712,9 @@ function TeacherStats() {
           marginBottom: 4,
         }}
       >
-        <h2 className="section-title">📊 Statistiques des {roleTerms.studentPlural}</h2>
+        <h2 className="section-title">
+          <IconStats size={20} /> Statistiques des {roleTerms.studentPlural}
+        </h2>
         {isHelpEnabled && (
           <HelpPanel
             sectionId="stats-group-filter"
@@ -693,16 +734,21 @@ function TeacherStats() {
       </p>
       {error && (
         <div className="auth-error" style={{ marginBottom: 10 }}>
-          ⚠️ {error}
+          <IconWarning size={14} /> {error}
         </div>
       )}
 
       <StatsSummaryGrid
         style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', marginBottom: 16 }}
       >
-        <StatCard icon="✅" value={totalValidated} label="Tâches validées" highlight />
-        <StatCard icon="⏳" value={totalPending} label="En cours" />
-        <StatCard icon="👤" value={activeStudents} label="Actifs" />
+        <StatCard
+          icon={<IconCheck size={20} />}
+          value={totalValidated}
+          label="Tâches validées"
+          highlight
+        />
+        <StatCard icon={<IconHourglass size={20} />} value={totalPending} label="En cours" />
+        <StatCard icon={<IconUser size={20} />} value={activeStudents} label="Actifs" />
       </StatsSummaryGrid>
 
       <p className="section-sub" style={{ marginTop: 0, marginBottom: 8 }}>
@@ -712,17 +758,17 @@ function TeacherStats() {
         style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', marginBottom: 20 }}
       >
         <StatCard
-          icon="🌿"
+          icon={<IconLeaf size={20} />}
           value={siteSpecies.toLocaleString('fr-FR')}
           label="Espèces observées (catalogue)"
         />
         <StatCard
-          icon="🔭"
+          icon={<IconTelescope size={20} />}
           value={siteObsEvents.toLocaleString('fr-FR')}
           label="Observations fiches plantes"
         />
         <StatCard
-          icon="📖"
+          icon={<IconGlossary size={20} />}
           value={siteTutorials.toLocaleString('fr-FR')}
           label="Marquages tutoriel lus"
         />
@@ -730,7 +776,7 @@ function TeacherStats() {
 
       <section className="card" style={{ marginBottom: 20, padding: 14 }}>
         <h3 className="section-title" style={{ fontSize: 'var(--text-md)', marginBottom: 8 }}>
-          ❓ Quiz (QCM)
+          <IconQuiz size={16} /> Quiz (QCM)
         </h3>
         {quizStatsError ? <p className="section-sub">{quizStatsError}</p> : null}
         {quizStats?.byCategory?.length > 0 ? (
@@ -770,7 +816,7 @@ function TeacherStats() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={`🔍 Rechercher un(e) ${roleTerms.studentSingular}...`}
+          placeholder={`Rechercher un(e) ${roleTerms.studentSingular}...`}
           style={{ background: 'white' }}
         />
       </div>

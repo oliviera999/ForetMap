@@ -35,19 +35,19 @@ function setup(overrides = {}) {
 describe('VisitProfToolsPanel', () => {
   test('bascule de mode : navigation/zone/repère → onSetMode avec le mode visé', () => {
     const { props } = setup();
-    fireEvent.click(screen.getByRole('button', { name: '🖊️ Zone visite' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zone visite' }));
     expect(props.onSetMode).toHaveBeenCalledWith('draw-zone');
-    fireEvent.click(screen.getByRole('button', { name: '📍 Repère visite' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Repère visite' }));
     expect(props.onSetMode).toHaveBeenCalledWith('add-marker');
-    fireEvent.click(screen.getByRole('button', { name: '🖐️ Navigation' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Navigation' }));
     expect(props.onSetMode).toHaveBeenCalledWith('view');
   });
 
   test('plan pas encore chargé : outils zone/repère désactivés + message d’attente', () => {
     const notReady = setup({ visitMapImageReady: false });
     expect(screen.getByText(/Chargement du plan/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: '🖊️ Zone visite' }).disabled).toBe(true);
-    expect(screen.getByRole('button', { name: '📍 Repère visite' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Zone visite' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Repère visite' }).disabled).toBe(true);
     notReady.unmount();
     // Pendant le chargement initial, pas de message (le plan arrive).
     setup({ visitMapImageReady: false, loading: true });
@@ -56,15 +56,15 @@ describe('VisitProfToolsPanel', () => {
 
   test('tracé en cours : terminer (≥3 points), retirer un point, annuler', () => {
     const { props } = setup({ mode: 'draw-zone', drawPointsCount: 2 });
-    const finish = screen.getByRole('button', { name: '✅ Terminer zone (2)' });
+    const finish = screen.getByRole('button', { name: 'Terminer zone (2)' });
     expect(finish.disabled).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: '↩️ Retirer point' }));
     expect(props.onUndoDrawPoint).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole('button', { name: '✕ Annuler' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
     expect(props.onClearDrawPoints).toHaveBeenCalledTimes(1);
 
     const ready = setup({ mode: 'draw-zone', drawPointsCount: 3 });
-    fireEvent.click(screen.getByRole('button', { name: '✅ Terminer zone (3)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Terminer zone (3)' }));
     expect(ready.props.onCreateZone).toHaveBeenCalledTimes(1);
   });
 

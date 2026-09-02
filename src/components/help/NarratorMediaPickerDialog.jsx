@@ -1,5 +1,6 @@
 import { DialogShell } from '../DialogShell';
 import { MediaLibraryMenu } from '../MediaLibraryMenu.jsx';
+import { IconImage } from '../../shared/icons.jsx';
 
 /**
  * Sélecteur d'image du studio narrateur : la médiathèque ForetMap en galerie,
@@ -39,7 +40,9 @@ export function NarratorMediaPickerDialog({
       showCloseButton
       closeButtonLabel="Fermer le sélecteur d’image"
     >
-      <h3 className="fm-narrator-picker__title">🖼️ Choisir une image</h3>
+      <h3 className="fm-narrator-picker__title">
+        <IconImage size={16} /> Choisir une image
+      </h3>
       <p className="section-sub fm-narrator-picker__slot">
         Emplacement : <strong>{slotLabel}</strong>
       </p>

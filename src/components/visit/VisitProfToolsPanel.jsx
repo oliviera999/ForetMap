@@ -1,4 +1,12 @@
 import { VisitSyncPanel } from './VisitSyncPanel.jsx';
+import {
+  IconCheck,
+  IconClose,
+  IconDrawZone,
+  IconHand,
+  IconMarker,
+  IconMascotPacks,
+} from '../../shared/icons.jsx';
 
 /**
  * Panneau repliable « Outils et synchronisation visite » (prof hors aperçu élève) :
@@ -43,7 +51,7 @@ export function VisitProfToolsPanel({
             className={`btn btn-sm ${mode === 'view' ? 'btn-primary' : 'btn-ghost'}`}
             onClick={() => onSetMode('view')}
           >
-            🖐️ Navigation
+            <IconHand size={14} /> Navigation
           </button>
           <button
             type="button"
@@ -52,7 +60,7 @@ export function VisitProfToolsPanel({
             title={!visitMapImageReady ? 'Disponible dès que le plan est chargé.' : undefined}
             onClick={() => onSetMode('draw-zone')}
           >
-            🖊️ Zone visite
+            <IconDrawZone size={14} /> Zone visite
           </button>
           <button
             type="button"
@@ -61,7 +69,7 @@ export function VisitProfToolsPanel({
             title={!visitMapImageReady ? 'Disponible dès que le plan est chargé.' : undefined}
             onClick={() => onSetMode('add-marker')}
           >
-            📍 Repère visite
+            <IconMarker size={14} /> Repère visite
           </button>
           {mode === 'draw-zone' && (
             <>
@@ -71,13 +79,13 @@ export function VisitProfToolsPanel({
                 disabled={drawPointsCount < 3 || creating}
                 onClick={onCreateZone}
               >
-                ✅ Terminer zone ({drawPointsCount})
+                <IconCheck size={14} /> Terminer zone ({drawPointsCount})
               </button>
               <button type="button" className="btn btn-ghost btn-sm" onClick={onUndoDrawPoint}>
                 ↩️ Retirer point
               </button>
               <button type="button" className="btn btn-danger btn-sm" onClick={onClearDrawPoints}>
-                ✕ Annuler
+                <IconClose size={14} /> Annuler
               </button>
             </>
           )}
@@ -91,7 +99,9 @@ export function VisitProfToolsPanel({
         {typeof onOpenMascotPackStudioTab === 'function' ? (
           <section className="visit-mascot-preview-card" aria-label="Studio packs mascotte">
             <div>
-              <h3>🧩 Studio packs mascotte</h3>
+              <h3>
+                <IconMascotPacks size={16} /> Studio packs mascotte
+              </h3>
               <p className="section-sub" style={{ marginBottom: 8 }}>
                 L’édition complète des mascottes (packs, bibliothèque, comportements) est
                 centralisée dans l’onglet dédié.

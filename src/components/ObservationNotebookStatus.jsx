@@ -1,3 +1,4 @@
+import { IconLeaf, IconNotebook, IconWarning } from '../shared/icons.jsx';
 /**
  * Placeholder de statut du carnet d'observations élève (O6, extrait de
  * `ObservationNotebook` dans `foretmap-views.jsx`).
@@ -17,7 +18,9 @@ export function ObservationNotebookStatus({ loading, loadError, entryCount = 0, 
   if (loading) {
     return (
       <div className="loader" style={{ height: '40vh' }}>
-        <div className="loader-leaf">🌿</div>
+        <div className="loader-leaf">
+          <IconLeaf size={48} />
+        </div>
         <p>Chargement...</p>
       </div>
     );
@@ -25,7 +28,9 @@ export function ObservationNotebookStatus({ loading, loadError, entryCount = 0, 
   if (loadError) {
     return (
       <div className="empty">
-        <div className="empty-icon">⚠️</div>
+        <div className="empty-icon">
+          <IconWarning size={28} />
+        </div>
         <p>{loadError}</p>
         <button className="btn btn-ghost btn-sm" style={{ marginTop: 10 }} onClick={onRetry}>
           Réessayer
@@ -36,7 +41,9 @@ export function ObservationNotebookStatus({ loading, loadError, entryCount = 0, 
   if (entryCount === 0) {
     return (
       <div className="empty">
-        <div className="empty-icon">📓</div>
+        <div className="empty-icon">
+          <IconNotebook size={28} />
+        </div>
         <p>Ton carnet est vide. Ajoute ta première observation !</p>
       </div>
     );

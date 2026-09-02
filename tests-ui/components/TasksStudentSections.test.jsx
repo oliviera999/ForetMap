@@ -42,12 +42,12 @@ function renderSections(overrides = {}) {
 describe('TasksStudentSections', () => {
   test('rend les sections élève avec leurs titres', () => {
     renderSections();
-    expect(screen.getByText('⚙️ En cours (déjà prises)')).toBeInTheDocument();
-    expect(screen.getByText('🔥 Tâches à faire')).toBeInTheDocument();
-    expect(screen.getByText('💡 Mes propositions (1)')).toBeInTheDocument();
-    expect(screen.getByText('⏳ En attente de validation')).toBeInTheDocument();
-    expect(screen.getByText('⏸️ En attente')).toBeInTheDocument();
-    expect(screen.getByText('✅ Récemment validées')).toBeInTheDocument();
+    expect(screen.getByText('En cours (déjà prises)')).toBeInTheDocument();
+    expect(screen.getByText('Tâches à faire')).toBeInTheDocument();
+    expect(screen.getByText('Mes propositions (1)')).toBeInTheDocument();
+    expect(screen.getByText('En attente de validation')).toBeInTheDocument();
+    expect(screen.getByText('En attente')).toBeInTheDocument();
+    expect(screen.getByText('Récemment validées')).toBeInTheDocument();
   });
 
   test('insère le bloc des projets actifs', () => {

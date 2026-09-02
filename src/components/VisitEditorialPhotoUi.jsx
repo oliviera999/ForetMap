@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { withAppBase } from '../services/api';
 import { ImageLightbox } from '../shared/components/ImageLightbox.jsx';
+import { IconLeaf } from '../shared/icons.jsx';
 
 /** Vignette (préfère thumb_url). */
 export function editorialPhotoThumbSrc(photo) {
@@ -41,7 +42,7 @@ export function VisitEditorialPhotoThumb({
         className={`visit-editorial-photo-thumb visit-editorial-photo-thumb--empty ${className}`.trim()}
         aria-hidden
       >
-        🌿
+        <IconLeaf size={20} />
       </div>
     );
   }

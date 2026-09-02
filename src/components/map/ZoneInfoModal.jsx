@@ -32,6 +32,17 @@ import { ZoneTutorialsStudentPanel, ZoneTutorialsTeacherPanel } from './ZoneTuto
 import { LocationVisitAside } from './mapModalShared.jsx';
 import { useLocationModalData } from './useLocationModalData.js';
 import { useVisitMediaBlocks } from './useVisitMediaBlocks.js';
+import {
+  IconAbout,
+  IconCamera,
+  IconCheck,
+  IconClose,
+  IconDrawZone,
+  IconEdit,
+  IconSave,
+  IconTasks,
+  IconTuto,
+} from '../../shared/icons.jsx';
 
 function ZoneInfoModal({
   zone,
@@ -249,11 +260,58 @@ function ZoneInfoModal({
   };
 
   const TABS = [
-    ...(showTasksTab ? [{ id: 'tasks', label: '✅ Tâches' }] : []),
-    ...(showTutorialsTab ? [{ id: 'tutorials', label: '📘 Tutoriels' }] : []),
-    { id: 'info', label: 'ℹ️ Info' },
-    { id: 'photos', label: '📷 Photos' },
-    ...(isTeacher ? [{ id: 'edit', label: '✏️ Modifier' }] : []),
+    ...(showTasksTab
+      ? [
+          {
+            id: 'tasks',
+            label: (
+              <>
+                <IconTasks size={14} /> Tâches
+              </>
+            ),
+          },
+        ]
+      : []),
+    ...(showTutorialsTab
+      ? [
+          {
+            id: 'tutorials',
+            label: (
+              <>
+                <IconTuto size={14} /> Tutoriels
+              </>
+            ),
+          },
+        ]
+      : []),
+    {
+      id: 'info',
+      label: (
+        <>
+          <IconAbout size={14} /> Info
+        </>
+      ),
+    },
+    {
+      id: 'photos',
+      label: (
+        <>
+          <IconCamera size={14} /> Photos
+        </>
+      ),
+    },
+    ...(isTeacher
+      ? [
+          {
+            id: 'edit',
+            label: (
+              <>
+                <IconEdit size={14} /> Modifier
+              </>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -269,7 +327,7 @@ function ZoneInfoModal({
     >
       {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
       <button className="modal-close" aria-label="Fermer" onClick={onClose}>
-        ✕
+        <IconClose size={16} />
       </button>
 
       <ZoneInfoModalHeader
@@ -305,7 +363,7 @@ function ZoneInfoModal({
               onClose();
             }}
           >
-            ✅ Ouvrir l’onglet Tâches filtré sur cette zone
+            <IconCheck size={15} /> Ouvrir l’onglet Tâches filtré sur cette zone
           </button>
           <p
             style={{
@@ -584,7 +642,13 @@ function ZoneInfoModal({
             </div>
           </div>
           <button className="btn btn-primary btn-full" onClick={save} disabled={saving}>
-            {saving ? '...' : '💾 Enregistrer'}
+            {saving ? (
+              '...'
+            ) : (
+              <>
+                <IconSave size={15} /> Enregistrer
+              </>
+            )}
           </button>
           {onEditPoints && (
             <button
@@ -595,7 +659,7 @@ function ZoneInfoModal({
                 onClose();
               }}
             >
-              🔷 Modifier le contour de la zone
+              <IconDrawZone size={14} /> Modifier le contour de la zone
             </button>
           )}
         </div>

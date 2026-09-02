@@ -178,6 +178,11 @@ actions sensibles.
 > s'affichent désormais dans des fenêtres au thème de l'application, non bloquantes —
 > plus de boîtes grises du navigateur ; les messages d'erreur passent par des
 > notifications furtives en bas d'écran.
+>
+> Les grands écrans d'administration (Paramètres, fiche plante détaillée) se replient
+> en **sections dépliables** : chacun retrouve l'écran tel qu'il l'a laissé (l'état
+> ouvert/fermé est mémorisé sur l'appareil), et une recherche active déplie
+> automatiquement les sections contenant des résultats.
 
 ### La pastille d'état en bas d'écran
 

@@ -1,5 +1,6 @@
 import { MarkdownContent } from './MarkdownContent.jsx';
 import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
+import { IconDelete, IconMarker } from '../shared/icons.jsx';
 
 /**
  * Carte (présentation) d'une observation du carnet élève — extraite de
@@ -27,6 +28,8 @@ export function ObservationCard({ entry, onDelete }) {
         </span>
         <button
           className="btn btn-ghost btn-sm"
+          aria-label="Supprimer l’observation"
+          title="Supprimer l’observation"
           style={{ padding: '2px 6px', minHeight: 'auto', fontSize: 'var(--text-xs)' }}
           onClick={async () => {
             if (await confirm({ message: 'Supprimer cette observation ?', danger: true })) {
@@ -34,11 +37,15 @@ export function ObservationCard({ entry, onDelete }) {
             }
           }}
         >
-          🗑️
+          <IconDelete size={16} />
         </button>
       </div>
       <MarkdownContent className="obs-content">{entry.content}</MarkdownContent>
-      {entry.zone_name && <div className="obs-zone">📍 {entry.zone_name}</div>}
+      {entry.zone_name && (
+        <div className="obs-zone">
+          <IconMarker size={12} /> {entry.zone_name}
+        </div>
+      )}
       {entry.image_url && (
         <img
           src={entry.image_url}

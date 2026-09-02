@@ -3,6 +3,7 @@ import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
 import { DialogShell } from './DialogShell.jsx';
 import { LearningGatingQuestionPanel } from './LearningGatingQuestionPanel.jsx';
 import { LearningGatingStateIcon } from './LearningGatingStateIcon.jsx';
+import { IconCheck, IconLock } from '../icons.jsx';
 import { gatingState } from '../utils/learningGatingState.js';
 import {
   pendingChallengeQuestions,
@@ -64,7 +65,11 @@ export function LearningAcknowledgeButton({
   /** Résumé du contrôle connu AVANT le clic (route /api/learning/gating/summary). */
   gatingSummary = null,
   labelAction = 'Marquer comme lu',
-  labelDone = '✓ Lu',
+  labelDone = (
+    <>
+      <IconCheck size={14} /> Lu
+    </>
+  ),
   titleDone = 'Contenu confirmé',
   confirmIntro,
   confirmCheckboxLabel = 'Je confirme avoir lu et compris ce contenu.',
@@ -226,7 +231,8 @@ export function LearningAcknowledgeButton({
         {labelAction}
         {announceBadge ? (
           <span className="learning-gating-announce" aria-hidden="true">
-            {announceBadge}
+            {/* Le module pur annonce « 🔒 » (chaîne testée/partagée) : le chrome le rend en SVG. */}
+            {announceBadge === '🔒' ? <IconLock size={12} /> : announceBadge}
           </span>
         ) : (
           // Pas d'annonce à faire : reste la pastille d'état, qui dit le « déjà acquis »

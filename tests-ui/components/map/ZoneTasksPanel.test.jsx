@@ -42,9 +42,9 @@ describe('ZoneTasksTeacherPanel', () => {
   test('« Lier la tâche » désactivé sans sélection, actif sinon', () => {
     const onLink = vi.fn();
     const { rerender } = render(<ZoneTasksTeacherPanel {...baseProps} onLinkTask={onLink} />);
-    expect(screen.getByText('🔗 Lier la tâche').disabled).toBe(true);
+    expect(screen.getByText('Lier la tâche').disabled).toBe(true);
     rerender(<ZoneTasksTeacherPanel {...baseProps} linkTaskId="5" onLinkTask={onLink} />);
-    fireEvent.click(screen.getByText('🔗 Lier la tâche'));
+    fireEvent.click(screen.getByText('Lier la tâche'));
     expect(onLink).toHaveBeenCalledWith('5');
   });
 });

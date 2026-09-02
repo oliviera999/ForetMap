@@ -3,6 +3,15 @@ import { StudentAvatar } from '../student-avatar';
 import { Tooltip } from '../../shared/components/Tooltip.jsx';
 import { withAppBase } from '../../services/api';
 import { resolveRealtimeTooltip } from '../../utils/helpResolve';
+import {
+  IconDownload,
+  IconEdit,
+  IconKey,
+  IconLogout,
+  IconStudentView,
+  IconTeacherView,
+  IconUndo,
+} from '../../shared/icons.jsx';
 
 /**
  * En-tête applicatif — extrait de `src/App.jsx` (audit §6.1, étape 1).
@@ -80,7 +89,7 @@ export function AppHeader({
             title="Installer l'application"
             onClick={onInstallClick}
           >
-            ⬇️ <span className="lock-label">Installer</span>
+            <IconDownload size={16} /> <span className="lock-label">Installer</span>
           </button>
         )}
         {isTeacher && (
@@ -154,7 +163,7 @@ export function AppHeader({
         {canOpenUserDialogs && (
           <Tooltip text={helpText('header.profileEdit')}>
             <button className="lock-btn" aria-label="Modifier mon profil" onClick={onOpenProfile}>
-              ✏️
+              <IconEdit />
             </button>
           </Tooltip>
         )}
@@ -167,7 +176,7 @@ export function AppHeader({
                   aria-label="Revenir au rôle normal"
                   onClick={() => onRoleViewModeSelect('native')}
                 >
-                  ↩️
+                  <IconUndo />
                 </button>
               </Tooltip>
             )}
@@ -178,7 +187,7 @@ export function AppHeader({
                   aria-label={`Passer en vue ${roleTerms.studentSingular}`}
                   onClick={() => onRoleViewModeSelect('student')}
                 >
-                  🎓
+                  <IconStudentView />
                 </button>
               </Tooltip>
             )}
@@ -189,7 +198,7 @@ export function AppHeader({
                   aria-label={`Passer en vue ${roleTerms.teacherShort}`}
                   onClick={() => onRoleViewModeSelect('teacher')}
                 >
-                  🧑‍🏫
+                  <IconTeacherView />
                 </button>
               </Tooltip>
             )}
@@ -201,12 +210,12 @@ export function AppHeader({
             aria-label="Connexion professeur"
             onClick={() => onRequestPin()}
           >
-            🔑
+            <IconKey />
           </button>
         </Tooltip>
         <Tooltip text={helpText('header.logout')}>
           <button className="lock-btn" aria-label="Déconnexion" onClick={onLogout}>
-            🚪
+            <IconLogout />
           </button>
         </Tooltip>
       </div>

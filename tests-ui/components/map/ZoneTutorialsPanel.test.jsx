@@ -47,11 +47,11 @@ describe('ZoneTutorialsTeacherPanel', () => {
     const { rerender } = render(
       <ZoneTutorialsTeacherPanel {...baseProps} onLinkTutorial={onLink} />,
     );
-    expect(screen.getByText('🔗 Lier le tutoriel').disabled).toBe(true);
+    expect(screen.getByText('Lier le tutoriel').disabled).toBe(true);
     rerender(
       <ZoneTutorialsTeacherPanel {...baseProps} linkTutorialId="7" onLinkTutorial={onLink} />,
     );
-    const btn = screen.getByText('🔗 Lier le tutoriel');
+    const btn = screen.getByText('Lier le tutoriel');
     expect(btn.disabled).toBe(false);
     fireEvent.click(btn);
     expect(onLink).toHaveBeenCalledWith('7');

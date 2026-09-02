@@ -1,3 +1,4 @@
+import { IconLeaf } from '../../shared/icons.jsx';
 /** Hauteur du loader plein écran des vues prof / élève (ancien style inline d'App.jsx). */
 export const FULL_PAGE_LOADER_STYLE = { height: '60vh' };
 
@@ -13,7 +14,9 @@ export const FULL_PAGE_LOADER_STYLE = { height: '60vh' };
 export function AppLoader({ text, style, textClassName }) {
   return (
     <div className="loader" style={style}>
-      <div className="loader-leaf">🌿</div>
+      <div className="loader-leaf">
+        <IconLeaf size={48} />
+      </div>
       <p className={textClassName}>{text}</p>
     </div>
   );

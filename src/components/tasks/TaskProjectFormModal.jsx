@@ -16,6 +16,7 @@ import {
   toggledLocationIds,
 } from './LocationPickList.jsx';
 import { useTutorialSearch } from './useTutorialSearch.js';
+import { IconClose } from '../../shared/icons.jsx';
 
 const var_alert = 'var(--alert)';
 
@@ -150,7 +151,7 @@ function TaskProjectFormModal({
       dialogRef={dialogRef}
     >
       <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>
-        ✕
+        <IconClose size={16} />
       </button>
       <h3>{heading}</h3>
       {err && (

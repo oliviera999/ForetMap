@@ -22,7 +22,7 @@ describe('ProfilesStatsExportRow', () => {
     const { container } = renderRow({ canExport: true });
     const button = container.querySelector('button');
     expect(button).not.toBeDisabled();
-    expect(button).toHaveTextContent('📥 Exporter CSV');
+    expect(button).toHaveTextContent('Exporter CSV');
     expect(button).not.toHaveTextContent('(permission requise)');
   });
 
@@ -30,7 +30,7 @@ describe('ProfilesStatsExportRow', () => {
     const { container } = renderRow({ canExport: false });
     const button = container.querySelector('button');
     expect(button).toBeDisabled();
-    expect(button).toHaveTextContent('📥 Exporter CSV (permission requise)');
+    expect(button).toHaveTextContent('Exporter CSV (permission requise)');
   });
 
   test('clic → déclenche onExport', () => {

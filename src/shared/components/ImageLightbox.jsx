@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useDialogA11y } from '../../hooks/useDialogA11y.js';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack.js';
 import { lockBodyScroll } from '../../utils/body-scroll-lock.js';
+import { IconClose } from '../icons.jsx';
 
 /**
  * Lightbox image partagée (ForetMap + GL) avec overlay fade + popIn.
@@ -50,7 +51,7 @@ export function ImageLightbox({ src, caption = '', onClose, useOverlayHistory = 
           aria-label="Fermer l'aperçu"
           onClick={onClose}
         >
-          ✕
+          <IconClose size={16} />
         </button>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { IconDownload } from '../../shared/icons.jsx';
 /**
  * Ligne d'export CSV des statistiques de la vue « Profils & utilisateurs ».
  * Extrait de profiles-views.jsx (O6) — présentationnel pur. DOM/classes/textes inchangés.
@@ -13,7 +14,7 @@ function ProfilesStatsExportRow({ canExport, onExport }) {
   return (
     <div className="export-row" style={{ marginTop: 12 }}>
       <button className="btn btn-secondary btn-sm" disabled={!canExport} onClick={onExport}>
-        📥 Exporter CSV {canExport ? '' : '(permission requise)'}
+        <IconDownload size={14} /> Exporter CSV {canExport ? '' : '(permission requise)'}
       </button>
     </div>
   );

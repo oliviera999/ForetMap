@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { IconClose } from '../../shared/icons.jsx';
 
 import { api } from '../../services/api';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
@@ -98,7 +99,7 @@ function RowSpeciesEditor({ rowKey, names, onSave, disabled }) {
             disabled={disabled}
             onClick={() => onSave(names.filter((n) => n !== name))}
           >
-            ✕
+            <IconClose size={16} />
           </button>
         </span>
       ))}

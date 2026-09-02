@@ -74,15 +74,15 @@ describe('VisitEditorPanel', () => {
 
   test('préremplit le formulaire depuis la sélection (zone)', () => {
     setup();
-    expect(screen.getByText('🎛️ Édition visite (n3boss)')).toBeInTheDocument();
+    expect(screen.getByText('Édition visite (n3boss)')).toBeInTheDocument();
     expect(screen.getByDisplayValue('🌳 Verger')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Sous-titre')).toBeInTheDocument();
     expect(screen.getByDisplayValue('3')).toBeInTheDocument();
   });
 
-  test('💾 Sauver → PUT /api/visit/zones/:id avec le payload du formulaire puis onSaved', async () => {
+  test('Sauver → PUT /api/visit/zones/:id avec le payload du formulaire puis onSaved', async () => {
     const { onSaved } = setup();
-    fireEvent.click(screen.getByText('💾 Sauver'));
+    fireEvent.click(screen.getByRole('button', { name: 'Sauver' }));
     await waitFor(() => {
       expect(api).toHaveBeenCalledWith(
         '/api/visit/zones/7',
@@ -101,9 +101,9 @@ describe('VisitEditorPanel', () => {
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
   });
 
-  test('🗑️ Supprimer (confirmé) → DELETE /api/visit/zones/:id', async () => {
+  test('Supprimer (confirmé) → DELETE /api/visit/zones/:id', async () => {
     const { onSaved } = setup();
-    fireEvent.click(screen.getByText('🗑️ Supprimer'));
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }));
     await waitFor(() => {
       expect(api).toHaveBeenCalledWith('/api/visit/zones/7', 'DELETE');
     });
@@ -173,7 +173,7 @@ describe('VisitEditorPanel', () => {
       selected: { ...ZONE, id: 9, label: 'Pommier', emoji: '🍎', name: undefined },
       selectedType: 'marker',
     });
-    fireEvent.click(screen.getByText('💾 Sauver'));
+    fireEvent.click(screen.getByRole('button', { name: 'Sauver' }));
     await waitFor(() => {
       expect(api).toHaveBeenCalledWith(
         '/api/visit/markers/9',

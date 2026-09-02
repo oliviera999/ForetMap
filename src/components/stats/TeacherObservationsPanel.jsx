@@ -1,3 +1,4 @@
+import { IconNotebook, IconWarning } from '../../shared/icons.jsx';
 /**
  * Panneau repliable « Observations des élèves » de TeacherStats :
  * chargement à la demande (bouton), erreurs et liste déroulante (max 100).
@@ -13,7 +14,9 @@ export function TeacherObservationsPanel({
 }) {
   return (
     <details className="plant-more" style={{ marginBottom: 14 }}>
-      <summary>📓 Observations des {roleTerms.studentPlural} (max 100)</summary>
+      <summary>
+        <IconNotebook size={16} /> Observations des {roleTerms.studentPlural} (max 100)
+      </summary>
       <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           <button
@@ -25,7 +28,11 @@ export function TeacherObservationsPanel({
             {obsLoading ? 'Chargement…' : 'Charger les observations'}
           </button>
         </div>
-        {obsError && <div className="auth-error">⚠️ {obsError}</div>}
+        {obsError && (
+          <div className="auth-error">
+            <IconWarning size={14} /> {obsError}
+          </div>
+        )}
         {!obsError && !obsLoading && observations.length === 0 && (
           <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
             Aucune observation chargée (clique sur le bouton pour rafraîchir).

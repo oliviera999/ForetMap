@@ -31,6 +31,7 @@ import {
   buildTaskSavePayload,
 } from '../../utils/taskFormHelpers.js';
 import { projectStatusLabel } from '../../utils/taskListHelpers.js';
+import { IconClose, IconUser } from '../../shared/icons.jsx';
 
 const var_alert = 'var(--alert)';
 
@@ -420,7 +421,7 @@ function TaskFormModal({
       dialogRef={dialogRef}
     >
       <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>
-        ✕
+        <IconClose size={16} />
       </button>
       <h3>
         {isDuplicate
@@ -466,7 +467,7 @@ function TaskFormModal({
         <div className="field">
           <label>Carte</label>
           <select value={form.map_id} onChange={set('map_id')}>
-            <option value="">🌐 Globale (toutes cartes)</option>
+            <option value="">Globale (toutes cartes)</option>
             {maps.map((mp) => (
               <option key={mp.id} value={mp.id}>
                 {mp.label}
@@ -482,7 +483,7 @@ function TaskFormModal({
             <option value="">Aucun projet</option>
             {selectableProjects.map((p) => (
               <option key={p.id} value={p.id}>
-                📁 {p.title}
+                {p.title}
                 {projectStatusLabel(p.status)}
               </option>
             ))}
@@ -609,7 +610,7 @@ function TaskFormModal({
               <input
                 value={assignInitialSearch}
                 onChange={(e) => setAssignInitialSearch(e.target.value)}
-                placeholder={`🔍 Filtrer les ${terms.studentPlural}…`}
+                placeholder={`Filtrer les ${terms.studentPlural}…`}
               />
               <div
                 style={{
@@ -653,7 +654,7 @@ function TaskFormModal({
                       onChange={() => toggleAssignStudentId(sid)}
                     />
                     <span className="task-form-pick-text">
-                      👤 {`${s.first_name || ''} ${s.last_name || ''}`.trim()}
+                      <IconUser size={14} /> {`${s.first_name || ''} ${s.last_name || ''}`.trim()}
                     </span>
                   </label>
                 );

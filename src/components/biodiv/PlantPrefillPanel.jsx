@@ -14,6 +14,7 @@ import {
 } from './PrefillSourcesSelector.jsx';
 import { PrefillPhotoCard } from './PrefillPhotoCard.jsx';
 import { PrefillSourceBadge } from './PrefillSourceBadge.jsx';
+import { IconSparkles } from '../../shared/icons.jsx';
 
 const SPECIES_PREFILL_FIELDS = [
   'name',
@@ -194,7 +195,13 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
           onClick={requestPrefill}
           disabled={saving || prefillLoading}
         >
-          {prefillLoading ? 'Pré-saisie…' : '✨ Pré-saisir depuis sources externes'}
+          {prefillLoading ? (
+            'Pré-saisie…'
+          ) : (
+            <>
+              <IconSparkles size={14} /> Pré-saisir depuis sources externes
+            </>
+          )}
         </button>
         <label
           style={{

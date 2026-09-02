@@ -13,6 +13,7 @@ import {
   tutorialLocationIdsAfterLink,
   tutorialLocationIdsAfterUnlink,
 } from '../../utils/taskLocationPicker.js';
+import { IconGlossary, IconLink, IconTuto } from '../../shared/icons.jsx';
 
 /**
  * Bloc « 📘 Tutoriels pour ce lieu » de la vue Tâches (affiché quand un lieu est filtré).
@@ -96,7 +97,9 @@ export function TaskTutorialsAtFocusBlock({
 
   return (
     <div className="tasks-section" style={{ marginTop: 14, marginBottom: 8 }}>
-      <div className="tasks-section-title">📘 Tutoriels pour ce lieu</div>
+      <div className="tasks-section-title">
+        <IconTuto size={16} /> Tutoriels pour ce lieu
+      </div>
       {isTeacher && (
         <>
           <div style={{ marginTop: 8 }}>
@@ -157,7 +160,7 @@ export function TaskTutorialsAtFocusBlock({
             disabled={!quickTutoLinkId || !!loading[`tuto-link-${quickTutoLinkId}`]}
             onClick={() => linkTutorialAtFocus(quickTutoLinkId)}
           >
-            🔗 Lier le tutoriel
+            <IconLink size={14} /> Lier le tutoriel
           </button>
         </>
       )}
@@ -233,7 +236,7 @@ export function TaskTutorialsAtFocusBlock({
                       style={{ marginTop: 10 }}
                       onClick={() => openTasksTutorialPreview(tu)}
                     >
-                      📖 Consulter
+                      <IconGlossary size={14} /> Consulter
                     </button>
                   ) : null}
                 </div>

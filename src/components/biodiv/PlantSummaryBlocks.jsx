@@ -6,6 +6,15 @@ import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
 import { PlantRangeGauge } from '../pedago/PlantRangeGauge.jsx';
 import { normalizedPlantValue } from '../../utils/plantFormValues.js';
 import { isVegetalCatalogEntry } from '../../utils/plantCatalogHelpers.js';
+import {
+  IconBan,
+  IconFlask,
+  IconFoodweb,
+  IconHabitat,
+  IconLink,
+  IconThermometer,
+  IconUtensils,
+} from '../../shared/icons.jsx';
 
 const TROPHIC_LABELS = {
   producteur: 'Producteur',
@@ -45,18 +54,18 @@ export function PlantPedagoTraitBadges({ plant }) {
     .trim()
     .toLowerCase();
   if (trophic && TROPHIC_LABELS[trophic]) {
-    chips.push({ key: 'trophic', label: TROPHIC_LABELS[trophic], icon: '🔗' });
+    chips.push({ key: 'trophic', label: TROPHIC_LABELS[trophic], icon: <IconLink size={12} /> });
   }
   if (plant?.is_edible === 1 || plant?.is_edible === true) {
-    chips.push({ key: 'edible', label: 'Comestible', icon: '🍽️' });
+    chips.push({ key: 'edible', label: 'Comestible', icon: <IconUtensils size={12} /> });
   } else if (plant?.is_edible === 0 || plant?.is_edible === false) {
-    chips.push({ key: 'not-edible', label: 'Non comestible', icon: '⛔' });
+    chips.push({ key: 'not-edible', label: 'Non comestible', icon: <IconBan size={12} /> });
   }
   const habitat = String(plant?.habitat_type || '')
     .trim()
     .toLowerCase();
   if (habitat && HABITAT_LABELS[habitat]) {
-    chips.push({ key: 'habitat', label: HABITAT_LABELS[habitat], icon: '🏞️' });
+    chips.push({ key: 'habitat', label: HABITAT_LABELS[habitat], icon: <IconHabitat size={12} /> });
   }
   if (chips.length === 0) return null;
   return (
@@ -85,7 +94,7 @@ export function PlantRangeGauges({ plant }) {
           max={ph.max}
           domainMin={0}
           domainMax={14}
-          icon="🧪"
+          icon={<IconFlask size={14} />}
         />
       ) : null}
       {temp ? (
@@ -96,7 +105,7 @@ export function PlantRangeGauges({ plant }) {
           max={temp.max}
           domainMin={-5}
           domainMax={45}
-          icon="🌡️"
+          icon={<IconThermometer size={14} />}
         />
       ) : null}
     </div>
@@ -167,7 +176,7 @@ export function PlantPedagoFetchedSections({
             className="btn btn-secondary btn-sm"
             onClick={() => onNavigateToFoodWeb?.(plantId)}
           >
-            🕸️ Voir le réseau trophique
+            <IconFoodweb size={14} /> Voir le réseau trophique
           </button>
         </div>
       ) : null}
@@ -277,18 +286,19 @@ export function PlantSummaryBadges({ plant }) {
   const temp = formatPlantNumericRange(plant.temp_min_c, plant.temp_max_c);
   const ph = formatPlantNumericRange(plant.ph_min, plant.ph_max);
   if (isVegetalCatalogEntry(plant)) {
-    if (preferredNutrients) chips.push(`🍽️ ${preferredNutrients}`);
+    if (preferredNutrients)
+      chips.push({ icon: <IconUtensils size={12} />, text: preferredNutrients });
   } else if (nutrition) {
-    chips.push(`🍽️ ${nutrition}`);
+    chips.push({ icon: <IconUtensils size={12} />, text: nutrition });
   }
-  if (temp) chips.push(`🌡️ ${temp}°C`);
-  if (ph) chips.push(`🧪 pH ${ph}`);
+  if (temp) chips.push({ icon: <IconThermometer size={12} />, text: `${temp}°C` });
+  if (ph) chips.push({ icon: <IconFlask size={12} />, text: `pH ${ph}` });
   if (chips.length === 0) return null;
   return (
     <div className="plant-badges">
       {chips.slice(0, 3).map((chip, idx) => (
-        <span key={`plant-badge-${idx}-${chip}`} className="plant-badge">
-          {chip}
+        <span key={`plant-badge-${idx}-${chip.text}`} className="plant-badge">
+          {chip.icon} {chip.text}
         </span>
       ))}
     </div>

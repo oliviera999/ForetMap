@@ -7,6 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Interface désencombrée : icônes, navigation en pôles, accordéons (audit UI — D-2/D-3/D-4)
+
+Fin du lot D de l'audit homogénéité, selon les arbitrages validés :
+
+- **Icônes SVG lucide pour le chrome (D-2)** : barres d'outils, modales, en-têtes,
+  boutons et badges d'état abandonnent les emojis (tailles et rendus incohérents selon
+  l'OS) pour des icônes vectorielles [lucide](https://lucide.dev) (licence ISC), servies
+  par un point d'import unique `src/shared/icons.jsx` (taille et graisse uniformes,
+  `aria-hidden`, chunk de build dédié). Les emojis restent réservés au **contenu
+  métier** : emoji d'une plante ou d'une zone, palette de choix, organismes du réseau
+  trophique, mascottes.
+- **Navigation professeur en 3 pôles (D-4)** : les 17 onglets ne défilent plus dans une
+  barre unique — trois pôles (Contenus / Suivi / Administration) déploient chacun leur
+  rangée d'onglets ; le compteur « à valider » devient un badge sur le pôle Suivi et
+  l'onglet Tâches. Le pôle actif est dérivé de l'onglet courant (rien de nouveau n'est
+  persisté) ; l'onglet Glossaire devient atteignable côté prof.
+- **Écrans admin repliables (D-3)** : les grandes consoles (Paramètres administrateur,
+  fiche plante) se replient en accordéons qui mémorisent leur état (`localStorage`) et
+  s'ouvrent d'office pendant une recherche ; les bandeaux inline passent dans le dock
+  flottant commun ; premier filet e2e **mobile** (projet Playwright `mobile-chromium`,
+  390×844 tactile : carte, navigation basse, feuille de filtres).
+
 ### Fin des dialogues natifs du navigateur (audit homogénéité UI — lot D-1)
 
 Les 82 `window.confirm/alert/prompt` du front (64 ForetMap, 18 GL) passent sur un

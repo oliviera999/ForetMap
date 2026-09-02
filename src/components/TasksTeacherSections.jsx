@@ -1,5 +1,13 @@
 import { TaskTileSection } from './tasks/TaskTileSection.jsx';
 import { TaskProjectsBlock } from './tasks/TaskProjectsBlock.jsx';
+import {
+  IconCheck,
+  IconFlame,
+  IconHourglass,
+  IconIdea,
+  IconPause,
+  IconSettings,
+} from '../shared/icons.jsx';
 
 /**
  * Sections de la vue Tâches côté n3boss (prof/admin) — extrait de `tasks-views.jsx` (O6).
@@ -38,38 +46,62 @@ export function TasksTeacherSections({
   return (
     <>
       <TaskTileSection
-        title="⚙️ En cours"
+        title={
+          <>
+            <IconSettings size={16} /> En cours
+          </>
+        }
         tasks={inProgress}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
       />
       <TaskTileSection
-        title="🔥 À faire"
+        title={
+          <>
+            <IconFlame size={16} /> À faire
+          </>
+        }
         tasks={available}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
       />
       <TaskProjectsBlock {...taskProjectsBlockProps} visibleProjects={activeProjects} />
       <TaskTileSection
-        title={`💡 Propositions ${roleTerms.studentPlural} (${proposed.length})`}
+        title={
+          <>
+            <IconIdea size={16} /> {`Propositions ${roleTerms.studentPlural} (${proposed.length})`}
+          </>
+        }
         tasks={proposed}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
       />
       <TaskTileSection
-        title={`⏳ En attente de validation (${done.length})`}
+        title={
+          <>
+            <IconHourglass size={16} /> {`En attente de validation (${done.length})`}
+          </>
+        }
         tasks={done}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
       />
       <TaskTileSection
-        title={`⏸️ En attente (${onHold.length})`}
+        title={
+          <>
+            <IconPause size={16} /> {`En attente (${onHold.length})`}
+          </>
+        }
         tasks={onHold}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
       />
       <TaskTileSection
-        title="✅ Validées"
+        title={
+          <>
+            <IconCheck size={16} /> Validées
+          </>
+        }
         tasks={validated}
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}

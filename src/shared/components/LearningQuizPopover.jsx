@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
+import { IconClose } from '../icons.jsx';
 
 /**
  * Popover du contrôle de compréhension — COMMUN aux deux applications.
@@ -74,7 +75,7 @@ export function LearningQuizPopover({
             aria-label={closeButtonLabel}
             disabled={closeButtonDisabled}
           >
-            ✕
+            <IconClose size={16} />
           </button>
         ) : null}
         <div className="fm-quiz-popover__body">{children}</div>

@@ -5,6 +5,7 @@ import { resolveHelpPanelSection } from '../utils/helpResolve';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { slugify } from '../utils/slugify';
+import { IconClock, IconWarning } from '../shared/icons.jsx';
 
 function normalizeIds(values = []) {
   return [...new Set(values.map((v) => String(v || '').trim()).filter(Boolean))];
@@ -110,7 +111,11 @@ function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
           {group.gl_class_name ? ` (${group.gl_class_name})` : ''}
         </p>
       )}
-      {err && <div className="auth-error">⚠️ {err}</div>}
+      {err && (
+        <div className="auth-error">
+          <IconWarning size={14} /> {err}
+        </div>
+      )}
       {msg && <div className="auth-success">{msg}</div>}
       <div className="field">
         <label>Profil par défaut du groupe</label>
@@ -236,7 +241,11 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
   return (
     <div className="log-modal fade-in" style={{ marginBottom: 12 }}>
       <h3 style={{ marginTop: 0 }}>Membres et périmètre — {group.name}</h3>
-      {err && <div className="auth-error">⚠️ {err}</div>}
+      {err && (
+        <div className="auth-error">
+          <IconWarning size={14} /> {err}
+        </div>
+      )}
       <div className="field" style={{ marginBottom: 8 }}>
         <input
           value={search}
@@ -493,8 +502,8 @@ export function GroupsAdminView() {
           }}
         >
           <strong>
-            🕓 {pendingVisitors.length} compte{pendingVisitors.length > 1 ? 's' : ''} en attente de
-            rattachement
+            <IconClock size={14} /> {pendingVisitors.length} compte
+            {pendingVisitors.length > 1 ? 's' : ''} en attente de rattachement
           </strong>
           <p style={{ margin: '4px 0 8px', fontSize: 'var(--text-sm)', color: '#1e3a8a' }}>
             Ces élèves se sont inscrits seuls et n'ont encore accès qu'à la Visite. Choisis un
@@ -534,7 +543,11 @@ export function GroupsAdminView() {
           </ul>
         </div>
       )}
-      {err && <div className="auth-error">⚠️ {err}</div>}
+      {err && (
+        <div className="auth-error">
+          <IconWarning size={14} /> {err}
+        </div>
+      )}
       {msg && <div className="auth-success">{msg}</div>}
       <button className="btn btn-secondary btn-sm" onClick={createGroup} disabled={loading}>
         + Nouveau groupe

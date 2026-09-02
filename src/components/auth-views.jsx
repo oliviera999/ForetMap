@@ -8,6 +8,7 @@ import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions
 import { getAuthSubmitError } from '../utils/authRegisterValidation.js';
 import { PinModal } from './auth/PinModal.jsx';
 import { startGoogleAuth } from './auth/startGoogleAuth.js';
+import { IconWarning } from '../shared/icons.jsx';
 
 function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affiliated = false }) {
   const roleTerms = getRoleTerms(isN3Affiliated);
@@ -260,7 +261,11 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
         </div>
 
         {info && <div className="auth-success">{info}</div>}
-        {err && <div className="auth-error">⚠️ {err}</div>}
+        {err && (
+          <div className="auth-error">
+            <IconWarning size={14} /> {err}
+          </div>
+        )}
 
         {mode === 'login' ? (
           <div className="field">
@@ -405,7 +410,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
           disabled={loading}
           style={{ marginTop: 4 }}
         >
-          {loading ? '...' : mode === 'login' ? 'Se connecter 🌱' : 'Créer le compte'}
+          {loading ? '...' : mode === 'login' ? 'Se connecter' : 'Créer le compte'}
         </button>
         {allowGoogleStudent && (
           <button

@@ -30,7 +30,7 @@ describe('ObservationNotebookStatus', () => {
     const { container } = render(
       <ObservationNotebookStatus loading={false} entryCount={0} onRetry={vi.fn()} />,
     );
-    expect(container.querySelector('.empty-icon')).toHaveTextContent('📓');
+    expect(container.querySelector('.empty-icon svg')).toBeTruthy();
     expect(screen.getByText(/Ton carnet est vide/)).toBeInTheDocument();
   });
 
