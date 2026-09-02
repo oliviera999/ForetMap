@@ -72,20 +72,20 @@ vivre dans `src/shared/`.
 
 ### Chiffres qui comptent
 
-| Mesure                                                               | Valeur                                               | Source          |
-| -------------------------------------------------------------------- | ---------------------------------------------------- | --------------- |
-| Modules `src/shared/` réellement consommés par les deux produits     | 43 sur 100                                           | inventaire §4.1 |
-| Modules `src/shared/` consommés par un seul produit                  | 24 (11 ForetMap, 13 GL)                              | idem            |
-| Dépendances inversées `src/shared/` → code produit                   | 20                                                   | §4.2            |
-| Noyaux en double ESM / CJS sans synchronisation                      | 6 (≈ 1 090 lignes)                                   | §4.3            |
-| Modules de fait partagés hors de `src/shared/`                       | 22 (dont `utils/markdown.js`, 421 l.)                | §4.2            |
-| Modules `lib/` requis directement par des routes des deux produits   | 36                                                   | §3.5            |
-| Tables réellement partagées entre produits                           | 6 (+ RBAC, audit, packs mascotte)                    | §3.6            |
-| Tables miroir `x` ↔ `gl_x`                                           | 14 paires                                            | §3.6            |
-| Systèmes de boutons / d'aide / de notifications / de fiche glossaire | 3 / 2 / 2 / 2                                        | §4.4            |
-| Moteurs de carte                                                     | 4                                                    | §4.5            |
-| Tests UI GL / e2e GL vs ForetMap                                     | 164 fichiers, 21 specs / — , 12 specs                | §3.7            |
-| Composants partagés les plus consommés sans test direct              | `DialogShell` (33), `icons.jsx` (98), `Tooltip` (11) | §4.6            |
+| Mesure                                                               | Valeur                                               | Source |
+| -------------------------------------------------------------------- | ---------------------------------------------------- | ------ |
+| Modules `src/shared/` réellement consommés par les deux produits     | 43 sur 100                                           | §4.1   |
+| Modules `src/shared/` consommés par un seul produit                  | 24 (11 ForetMap, 13 GL)                              | idem   |
+| Dépendances inversées `src/shared/` → code produit                   | 20                                                   | §4.2   |
+| Noyaux en double ESM / CJS sans synchronisation                      | 6 (≈ 1 090 lignes)                                   | §4.3   |
+| Modules de fait partagés hors de `src/shared/`                       | 22 (dont `utils/markdown.js`, 421 l.)                | §4.2   |
+| Modules `lib/` requis directement par des routes des deux produits   | 36                                                   | §4.6   |
+| Tables réellement partagées entre produits                           | 6 (+ RBAC, audit, packs mascotte)                    | §4.6   |
+| Tables miroir `x` ↔ `gl_x`                                           | 14 paires                                            | §4.6   |
+| Systèmes de boutons / d'aide / de notifications / de fiche glossaire | 3 / 2 / 2 / 2                                        | §4.4   |
+| Moteurs de carte                                                     | 4                                                    | §4.5   |
+| Tests UI GL / e2e GL vs ForetMap                                     | 164 fichiers, 21 specs / — , 12 specs                | §4.6   |
+| Composants partagés les plus consommés sans test direct              | `DialogShell` (33), `icons.jsx` (98), `Tooltip` (11) | §4.6   |
 
 ---
 
