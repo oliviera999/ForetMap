@@ -1,6 +1,7 @@
 # Audit — « Plan Lyautey » (`planlyautey.olution.info`) : un plan de repérage mobile dérivé de ForetMap (septembre 2026)
 
-> **Statut : audit et cadrage, sans aucune modification de code.** Relevé effectué sur la tête de
+> **Statut : audit et cadrage, sans aucune modification de code — décisions du propriétaire intégrées
+> (§8).** Relevé effectué sur la tête de
 > `main` (`package.json` 1.142.0, merge PR #401) par lecture du code, des migrations, des tests et
 > de la documentation. Chaque constat porte une référence `fichier:ligne` vérifiable.
 >
@@ -14,7 +15,8 @@
 >
 > Le document se lit dans l'ordre : ce qu'on construit (§1), ce que ForetMap offre déjà (§2), ce
 > qui coince aujourd'hui sur mobile (§3), l'expérience cible (§4), le portage (§5), le phasage (§6),
-> les risques (§7) et **les questions à trancher avant d'écrire une ligne** (§8).
+> les risques (§7), **les décisions prises et les propositions détaillées** (§8) et ce que chaque
+> application y gagne (§8.10).
 
 ---
 
@@ -48,12 +50,13 @@ recherche en premier, chips de catégories, fiche en **bottom sheet** à trois c
 position avec cap, PWA hors ligne. Les corrections de fond du noyau (bornes, double-tap, inertie,
 légende, bug de centrage) **profitent à ForetMap** au passage.
 
-**Sept décisions conditionnent le travail** (détail §8) : les étages et l'intérieur des
-bâtiments ; le fond de plan (capture OSM à attribuer, ou plan dessiné) ; la source de vérité des
-lieux (tables carte ou couche visite) ; l'itinéraire (simple « y aller » ou vrai routage) ;
-l'accès (public ou restreint) ; les langues ; les parcours pour les formations. La volumétrie
-réelle de la carte `lyautey` en production (nombre de zones, repères, catégories, salles) manque
-au dépôt : elle décide de la densité d'étiquettes et donc de la moitié des choix d'affichage.
+**Les décisions sont prises** (§8.1) : sol seulement en v1, français, accès paramétrable, QR codes et
+liens profonds, hors ligne si possible **pour toutes les apps**, compteur d'usage anonyme, parcours pour
+les formations à développer, host `planlyautey.olution.info`. Deux informations du propriétaire pèsent
+sur la suite : le fond actuel est **extrait de Google Maps** (risque de licence à lever, §8.2) et la carte
+`lyautey` porte **de nombreux types de repères fortement superposés** (le désencombrement devient un lot
+à part entière, §8.3). Enfin, une exigence transverse : **chaque brique construite doit profiter à
+ForetMap, à la Visite et à GL** (matrice §8.10).
 
 ---
 
@@ -101,7 +104,7 @@ maîtresse pour un plan de lycée : libellé, emoji, couleur, description, restr
 globales ou propres à une carte (« Salles » sur un plan de bâtiment est l'exemple donné dans la
 doc, `docs/reference/foretmap/carte-et-zones.md:131`), case « Infrastructure ». Elles n'existent
 que sur les tables **carte** (`zones`/`map_markers`), pas sur la couche visite — ce qui oriente le
-choix de la source de vérité (§8, Q3).
+choix de la source de vérité (§8.4).
 
 **Volumétrie connue.** Le dépôt ne contient pour `lyautey` que 12 bâtiments tracés en % sur une
 capture OpenStreetMap (`sql/zones_lyautey_batiments.sql`, générés par
@@ -109,7 +112,7 @@ capture OpenStreetMap (`sql/zones_lyautey_batiments.sql`, générés par
 s'alignent **que** si le fond de la carte est cette même image, au même cadrage. La carte `foret`
 compte 36 zones et 21 repères (`data/import/foret-comestible-garden.sql:3`). L'audit BDD d'août
 donne 108 lignes pour toute la couche visite en prod. Le contenu réel de `lyautey` en production
-n'est pas dans le dépôt (§8, Q2).
+n'est pas dans le dépôt ; le propriétaire signale de nombreux types de repères fortement superposés (§8.3).
 
 ### 2.3 Recherche et filtres : un moteur solide, une restitution timide
 
@@ -247,20 +250,22 @@ exception), pas de `srcset`, pas de niveau de détail. Sur le réseau d'un lycé
 intermittente, un plan doit s'ouvrir en **une** requête agrégée et rester utilisable hors ligne
 (l'image et le JSON tiennent en cache).
 
-### U11 — Fond de plan : capture OSM et alignement fragile (moyen, à décider)
+### U11 — Fond de plan : capture d'un service tiers et alignement fragile (majeur)
 
-Le tracé Lyautey suit une capture OpenStreetMap « étiquetée » (`gen-zones-lyautey-batiments.js:6-9`),
-avec le nom des bâtiments **imprimé dans l'image** — donc redondant avec les étiquettes, et
-illisible au zoom. Toute nouvelle capture au cadrage différent décale toutes les zones
+Le tracé Lyautey versionné suit une capture OpenStreetMap « étiquetée »
+(`gen-zones-lyautey-batiments.js:6-9`) ; le fond réellement en place est, selon le propriétaire,
+**extrait de Google Maps** (§8.2). Dans les deux cas le nom des bâtiments est **imprimé dans
+l'image** — donc redondant avec les étiquettes, et illisible au zoom. Toute nouvelle capture au cadrage différent décale toutes les zones
 (`:12-15`). Une image OSM publiée doit porter l'attribution ODbL « © les contributeurs
-OpenStreetMap » — aucune mention n'existe dans le code aujourd'hui.
+OpenStreetMap » ; une capture Google Maps pose un problème de licence plus sérieux (§8.2). Aucune
+mention d'attribution n'existe dans le code aujourd'hui.
 
-### U12 — Le modèle est plat : une image par carte, pas d'étages (bloquant à cadrer)
+### U12 — Le modèle est plat : une image par carte, pas d'étages (tranché : sol en v1)
 
 `maps` porte **une** `map_image_url` ; zones et repères sont 2D. Un lycée a des étages, et « se
 repérer dans les lieux » signifie souvent trouver une salle au 2ᵉ. Le modèle peut l'absorber
 (une carte par niveau, par exemple `lyautey`, `lyautey-1`, `lyautey-2`, et un sélecteur d'étage
-dans le plan), mais c'est une décision de contenu et de saisie (§8, Q1).
+dans le plan), mais la décision est prise : sol seulement en v1, étages en lot 10 (§8.1).
 
 ---
 
@@ -305,7 +310,7 @@ Cran mi-hauteur : photo principale, sous-titre, accroche (`visit_short_descripti
 pertinent. Cran plein : description, bloc dépliable (`visit_details_*`), galerie, **lieux
 voisins** (par proximité géométrique), bouton **Partager** (lien profond `?lieu=<id>`). « Y
 aller » : centre la carte à mi-chemin entre ma position et le lieu, trace une ligne droite avec la
-distance ; le vrai routage est une phase ultérieure (§8, Q4).
+distance ; le mode boussole et le vrai routage sont détaillés en §8.5.
 
 **Filtres.** Les chips suffisent pour l'usage courant ; un bouton « Filtres » ouvre la feuille avec
 les options rares (type zone/repère, infrastructures, étage). Un compteur « 14 lieux » est toujours
@@ -329,7 +334,7 @@ comme déjà fait pour `/api/maps` et `/api/visit/content` dans `public/sw.js`).
 
 **Accès rapide sur site.** QR codes aux entrées et sur les portes principales pointant vers
 `https://planlyautey.olution.info/?lieu=<id>` : le visiteur ouvre directement la fiche et sait
-où il est même sans GPS (§8, Q9).
+où il est même sans GPS (décision prise, §8.1).
 
 ### 4.3 Améliorations générales du noyau carte (profitent aussi à ForetMap)
 
@@ -365,7 +370,7 @@ où il est même sans GPS (§8, Q9).
   `visit_details_*` que `GET /api/zones` sert déjà. Raisons : seules ces tables portent les
   catégories ; la couche visite est une **copie ponctuelle** à resynchroniser
   (`docs/reference/foretmap/visite-et-mascottes.md:270-274`) ; l'édition reste dans les fiches
-  ForetMap que les profs connaissent. À trancher en §8, Q3.
+  ForetMap que les profs connaissent. Détail et proposition de visibilité en §8.4.
 - **Un endpoint agrégé public** `GET /api/plan/content?map_id=lyautey` (`routes/plan/content.js`) :
   carte (`label`, `map_image_url`, `frame_padding_px`, `georef`, `gps_enabled`), catégories, zones et
   repères **allégés** (pas d'historique de cultures, pas de `species`, pas de `visit_body_json`),
@@ -373,10 +378,8 @@ où il est même sans GPS (§8, Q9).
   (le mécanisme existe : `lib/visitContentCache.js`), `ETag`, `Cache-Control: max-age=60,
 stale-while-revalidate`. Une requête au lieu de quatre, et un contrat stable pour le SW.
 - **Visibilité par lieu** : aujourd'hui rien ne permet de cacher une zone de la carte de travail
-  sans la supprimer (aucun champ `is_public` ni `archived` sur `zones` et `map_markers` ; la visibilité publique n'est portée que par `maps.is_active`, `visit_zones.is_active`, `visit_markers.is_active` et `location_categories.is_active`). Deux voies : réutiliser
-  `visit_zones.is_active` (implique la couche visite), ou une catégorie « Interne » exclue par le
-  plan. Le plus simple et le plus explicite : un réglage public `ui.plan.hidden_category_ids`.
-  À trancher en §8, Q3.
+  sans la supprimer (aucun champ `is_public` ni `archived` sur `zones` et `map_markers`). La
+  proposition retenue est la **visibilité par surface** (catégorie et lieu), détaillée en §8.4.
 - **Alias de recherche** : nouveau champ `search_aliases` (TEXT, liste `;`) sur `zones` et
   `map_markers` par migration idempotente, éditable dans la fiche « Modifier » et dans l'inventaire
   admin « Zones & repères ». Sans lui, « CDI » ne trouve pas « Centre de documentation ».
@@ -384,8 +387,8 @@ stale-while-revalidate`. Une requête au lieu de quatre, et un contrat stable po
   `ui.plan.category_order`, `ui.plan.hidden_category_ids`, `ui.plan.attribution` (texte OSM) —
   scope `public`, dans `lib/settings.js`, éditables depuis Paramètres admin.
 - **Aucune écriture, aucune authentification** : pas de `/api/plan/auth`, pas de JWT, pas de
-  session. Le rate limiter global suffit. Si l'accès doit être restreint (§8, Q5), un code
-  établissement en cookie signé (le pattern HMAC de `routes/visit.js:26-83`) est le plus léger.
+  session. Le rate limiter global suffit. L'accès est paramétrable (§8.7) : public par
+  défaut, ou code établissement en cookie signé (le pattern HMAC de `routes/visit.js:26-83`).
 
 ### 5.3 Front : un noyau partagé, un shell neuf
 
@@ -409,7 +412,7 @@ et l'édition de polygones), sans changer le comportement de ForetMap — avec, 
 feuilles partagées + `plan/styles/plan.css`), `AppPlan.jsx` (orchestration seule),
 `hooks/usePlanContent.js` (fetch agrégé, cache, hors ligne), `components/PlanSearchBar.jsx`,
 `PlanCategoryChips.jsx`, `PlanResultsList.jsx`, `PlanPlaceSheet.jsx`, `PlanLocateButton.jsx`,
-`PlanFloorSwitch.jsx` (si Q1), `PlanOfflineBanner.jsx`. Lien profond `?lieu=<id>` et
+`PlanRouteSheet.jsx` (parcours), `PlanCompassSheet.jsx` (« Y aller »), `PlanOfflineBanner.jsx`. Lien profond `?lieu=<id>` et
 `?q=<texte>` lus au montage, historique navigateur géré par `useOverlayHistoryBack` (existant).
 
 Ce que le plan **n'importe pas** : `App.jsx`, les contextes `Session`/`Data`/`Tour`, `index.css`
@@ -446,28 +449,29 @@ revalide).
   visiteur pressé), une photo par lieu (reconnaissable depuis l'extérieur).
 - Vérifier le **calage GPS** de `lyautey` sur le terrain (trois points aux angles du site, échelle
   déduite affichée par le panneau admin) ; c'est ce qui rend « Me situer » crédible.
-- Décider du **fond** (§8, Q2) et, si la capture OSM est conservée, en produire une version sans
-  étiquettes imprimées, au même cadrage, avec l'attribution.
+- Remplacer le **fond extrait de Google Maps** (§8.2) par un plan dessiné ou un export OSM sans
+  étiquettes imprimées, au même cadrage, avec l'attribution due.
 
 ---
 
-## 6. Phasage proposé
+## 6. Phasage proposé (révisé après décisions)
 
-| Lot | Contenu                                                                                                                                                                                                                                                    | Dépend de | Effort indicatif |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------- |
-| 0   | **Socle produit** : résolveur host généralisé, `plan.html` + `src/plan/main.jsx` « coquille », favicon/manifest/SW par produit, `FRONTEND_ORIGINS`, tests de routage, doc d'exploitation. Livrable : le host répond avec une page vide et le bon manifest. | Q5        | 2 j              |
-| 1   | **Noyau carte partagé** : test de montage préalable, extraction `PctMapViewport` / layers, N1 (bornes), N2 (double-tap, pinch+pan), N3 (inertie), N8, N9, N10 ; ForetMap et Visite rebranchés, non-régression e2e mobile.                                  | —         | 4 à 5 j          |
-| 2   | **Endpoint agrégé** `/api/plan/content` + réglages `ui.plan.*` + migration `search_aliases` + doc API.                                                                                                                                                     | Q3        | 1,5 j            |
-| 3   | **Shell plan v1** : carte plein écran, recherche, chips, liste de résultats avec tris, feuille basse à crans, fiche, lien profond, « Y aller » en ligne droite. e2e `plan-search.spec.js`, `plan-sheet.spec.js`.                                           | 1, 2, Q1  | 5 à 6 j          |
-| 4   | **Position** : point bleu, halo, cap, quatre états du bouton, toasts d'état, hors plan au bord. e2e avec `setGeolocation`.                                                                                                                                 | 3         | 2 j              |
-| 5   | **Lisibilité** : N4 (pôle d'inaccessibilité), N5 (priorité et collisions), N6 (halo, emoji net), légende (N7) — bénéfices ForetMap inclus.                                                                                                                 | 1         | 3 j              |
-| 6   | **Hors ligne et accès** : SW dédié (précache image + JSON), bandeau hors ligne, QR / liens profonds, éventuel code d'accès.                                                                                                                                | 3, Q5, Q9 | 2 j              |
-| 7   | **Contenu Lyautey** : catégories, alias, photos, calage GPS terrain, fond de plan ; doc `docs/reference/plan/`.                                                                                                                                            | Q1, Q2    | hors dev         |
-| 8   | (Option) **Étages** : cartes par niveau + sélecteur ; (option) **routage** sur graphe de chemins.                                                                                                                                                          | Q1, Q4    | 3 j / 5 j        |
+| Lot | Contenu                                                                                                                                                                                                                                                                                              | Dépend de | Effort indicatif |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------- |
+| 0   | **Socle multi-produit** : registre des produits (`lib/products.js`) alimentant le résolveur de host, le fallback SPA, le favicon, le manifest et le service worker **par produit** (§8.8) ; `plan.html` + `src/plan/main.jsx` coquille ; `FRONTEND_ORIGINS` ; tests de routage ; doc d'exploitation. | —         | 3 j              |
+| 1   | **Noyau carte partagé** `src/shared/pct-map/` : test de montage préalable, extraction viewport/couches, N1 bornes, N2 double-tap et pinch+pan, N3 inertie, N8, N9, N10 ; ForetMap et Visite rebranchés ; e2e mobile verts.                                                                           | —         | 4 à 5 j          |
+| 2   | **Données** : migration `search_aliases` + visibilité par surface (§8.4), endpoint agrégé `GET /api/plan/content`, réglages `ui.plan.*`, doc API.                                                                                                                                                    | —         | 2 j              |
+| 3   | **Shell plan v1** : carte plein écran, recherche, chips, résultats et tris, feuille basse à crans, fiche, lien profond `?lieu=`, « Y aller » en ligne droite. e2e `plan-*.spec.js` sur `mobile-chromium`.                                                                                            | 1, 2      | 5 à 6 j          |
+| 4   | **Désencombrement des repères** (§8.3) : regroupement au dézoom, priorité par catégorie, éventail au tap, étiquettes de repères au zoom seulement — livré dans le noyau, donc aussi sur la carte ForetMap.                                                                                           | 1, 3      | 3 j              |
+| 5   | **Position** : point bleu, halo, cap, mode boussole de « Y aller » (§8.5), toasts d'état, hors plan au bord. e2e avec `setGeolocation`.                                                                                                                                                              | 3         | 2 j              |
+| 6   | **Lisibilité** : N4 pôle d'inaccessibilité, N5 collisions et priorité des étiquettes de zones, N6 halo, légende N7.                                                                                                                                                                                  | 1         | 3 j              |
+| 7   | **Hors ligne, accès, compteur** : SW et manifest par produit branchés sur le plan (§8.8), garde d'accès paramétrable (§8.7), compteur d'usage (§8.9), QR codes.                                                                                                                                      | 0, 3      | 3 j              |
+| 8   | **Parcours** (§8.6) : tables, API, panneau admin dans ForetMap, mode « suivant » dans le plan, export PDF avec QR.                                                                                                                                                                                   | 2, 3      | 4 j              |
+| 9   | **Contenu Lyautey** (hors dev) : rapport de densité, fond de plan (§8.2), catégories, alias, sous-titres, photos, calage GPS terrain ; doc `docs/reference/plan/`.                                                                                                                                   | 2         | —                |
+| 10  | (Suite) PWA GL, graphe de chemins et vrai routage (§8.5), étages.                                                                                                                                                                                                                                    | 0, 5, 8   | à cadrer         |
 
-Ordre conseillé : 0 → 1 → 2 → 3 → 4 → 5 → 6, avec le lot 7 mené en parallèle dès que Q1–Q3 sont
-tranchées. Le lot 1 est le seul risqué pour l'existant ; il se livre seul, sur sa PR, avec le test
-de montage et les e2e mobiles verts avant tout le reste.
+Ordre conseillé : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8, le lot 9 en parallèle dès le lot 2. Le lot 1
+reste le seul risqué pour l'existant et se livre seul, sur sa PR.
 
 ---
 
@@ -476,80 +480,312 @@ de montage et les e2e mobiles verts avant tout le reste.
 - **Refactor du noyau carte** : `map-views.jsx` et `useMapGestures.js` sont au cœur de ForetMap.
   Le post-mortem d'août (`docs/AUDIT_REFACTORING_APP_2026-08.md` §5) impose le test de montage
   préalable et l'attention à `no-use-before-define`. Pas de lot 1 sans ces deux garde-fous.
-- **Alignement du fond** : tout changement d'image de fond au cadrage différent décale toutes les
-  géométries en %. Figer le cadrage avant la saisie de contenu (lot 7) ; en cas de changement,
-  écrire un script de remappage plutôt que de retracer.
-- **Surfaces partagées** : SW, manifest et CSP sont servis à tous les hosts. Un SW ForetMap
-  enregistré par erreur sur le host plan servirait `index.vite.html` hors ligne. Traiter au lot 0,
-  tester en e2e.
-- **Densité d'étiquettes** : sans N4–N5, une carte de lycée avec des dizaines de salles devient
-  illisible au dézoom ; le masquage adaptatif actuel ne suffit qu'à un niveau.
-- **GPS en intérieur et précision** : 5 à 30 m dehors, inutilisable dedans. Le point bleu doit
-  afficher son halo honnêtement et le seuil 50 m rester ; les QR codes compensent en intérieur.
+- **Fond de plan issu de Google Maps** : risque de licence (§8.2). Toute image de fond publiée
+  dans une application doit avoir un droit d'usage clair ; le remplacement est peu coûteux tant
+  que le cadrage est conservé ou remappé par script.
+- **Alignement du fond** : tout changement d'image au cadrage différent décale toutes les
+  géométries en %. Figer le cadrage avant la saisie de contenu ; en cas de changement, écrire un
+  script de remappage plutôt que de retracer.
+- **Repères superposés** : sans le lot 4, un plan avec de nombreux repères empilés est illisible
+  au dézoom et ambigu au tap. C'est le risque UX numéro un signalé par le propriétaire.
+- **Surfaces partagées** : SW, manifest et CSP sont servis à tous les hosts aujourd'hui. Le
+  registre des produits du lot 0 doit les rendre conscients du produit avant tout déploiement du
+  troisième host, sinon le SW ForetMap peut servir `index.vite.html` hors ligne sur le plan.
+- **GPS en intérieur et précision** : 5 à 30 m dehors, inutilisable dedans. Le point bleu affiche
+  son halo honnêtement ; les QR codes compensent en intérieur.
 - **Données publiques** : l'endpoint sert le plan détaillé d'un établissement scolaire et ses
-  ancres GPS. Le choix « public » est déjà celui de `GET /api/maps` (audit géoloc C5), mais il doit
-  être **acté** pour ce produit (Q5).
-- **Licence du fond OSM** : attribution ODbL obligatoire si la capture est conservée ; à afficher
-  dans la fiche « À propos » du plan et dans les réglages.
-- **Maintenance à deux vitesses** : trois produits sur un noyau commun exigent que toute évolution
-  du noyau passe les e2e des trois. Prévoir un projet Playwright `plan-mobile` dès le lot 3.
+  ancres GPS. Le mode d'accès est paramétrable (§8.7) ; le choix par défaut doit être acté à la
+  mise en production.
+- **Maintenance à trois produits** : toute évolution du noyau passe les e2e des trois. Prévoir un
+  projet Playwright `plan-mobile` dès le lot 3.
 
 ---
 
-## 8. Questions à trancher
+## 8. Décisions prises et propositions détaillées
 
-Chaque question donne l'option recommandée en premier ; la réponse change le périmètre des lots.
+### 8.1 Récapitulatif des décisions
 
-1. **Étages et intérieur des bâtiments.** Le plan doit-il permettre de trouver une **salle** à un
-   étage donné, ou seulement les bâtiments, entrées et services au sol ?
-   _Recommandation_ : v1 au sol (bâtiments, services, entrées, extérieurs) ; étages en lot 8 avec
-   une carte par niveau. Si les salles par étage sont indispensables dès la v1, le lot 3 grossit et
-   le lot 7 (saisie) devient le chemin critique.
+| #   | Question                       | Décision                                                                        | Conséquence                                                                                  |
+| --- | ------------------------------ | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 1   | Étages                         | **Sol seulement en v1**                                                         | Pas de sélecteur d'étage ; le modèle « une image par carte » suffit ; étages en lot 10       |
+| 2   | Fond de plan                   | **Extrait de Google Maps** ; nombreux types de repères, **forte superposition** | Alerte licence (§8.2) ; lot 4 « désencombrement » devient prioritaire (§8.3)                 |
+| 3   | Source de vérité et visibilité | **À creuser** → proposition §8.4                                                | Tables carte + visibilité par surface                                                        |
+| 4   | Itinéraire                     | **Simple**, proposition attendue → §8.5                                         | « Y aller » en ligne droite + mode boussole ; graphe de chemins en lot 10                    |
+| 5   | Accès                          | **Paramétrable**                                                                | Garde d'accès partagée, public ou code (§8.7)                                                |
+| 6   | Langues                        | **Français**                                                                    | Aucun champ bilingue ; locale fr-FR                                                          |
+| 7   | Parcours pour les formations   | **À développer** → §8.6                                                         | Lot 8, bénéficie aussi à la Visite et aux séances ForetMap                                   |
+| 8   | Host                           | **`planlyautey.olution.info`**                                                  | Préfixe `planlyautey.` dans le registre des produits, `www.` accepté comme pour GL           |
+| 9   | QR codes et liens profonds     | **Oui**                                                                         | `?lieu=<id>` et `?parcours=<id>` dès la v1 ; identifiants stables                            |
+| 10  | Hors ligne                     | **Si possible**, et pour les autres apps                                        | SW et manifest par produit (§8.8), ForetMap déjà partiellement équipé, GL à équiper          |
+| 11  | Mesure d'usage                 | **Compteur**                                                                    | Compteur anonyme partagé (§8.9)                                                              |
+| —   | Bénéfice pour toutes les apps  | **Exigence transverse**                                                         | Matrice §8.10 ; chaque brique nouvelle vit dans `src/shared/`, `lib/` ou le registre produit |
 
-2. **Fond de plan et volumétrie réelle.** Combien de zones, repères et catégories porte `lyautey`
-   en production aujourd'hui ? Le fond est-il toujours la capture OSM étiquetée ? Existe-t-il un
-   plan dessiné de l'établissement (plan d'évacuation, plan architecte) exploitable ?
-   _Recommandation_ : un fond **dessiné, sans texte imprimé**, à fort contraste, au même cadrage
-   que l'existant (ou remappé par script) ; à défaut, capture OSM sans étiquettes avec attribution.
-   Un export anonymisé de `zones`/`map_markers`/`location_categories` pour `lyautey` permettrait de
-   dimensionner N5 et les tris.
+### 8.2 Le fond extrait de Google Maps : un risque à lever avant la mise en ligne
 
-3. **Source de vérité des lieux et visibilité.** Tables carte (recommandé, catégories incluses,
-   édition dans les fiches habituelles) ou couche visite (éditorial riche, `is_active`, mais copie
-   à resynchroniser et sans catégories) ? Comment cacher un lieu du plan sans le supprimer de
-   ForetMap : catégorie exclue par réglage (recommandé), ou nouveau champ ?
+Les conditions d'utilisation de Google Maps (Google Maps Platform Terms of Service et les « Geo
+Guidelines » de Google) interdisent en principe deux usages qui correspondent exactement au cas
+présent : **réutiliser une capture d'écran comme fond de carte dans une application ou un site**
+(hors des API Maps, qui ne sont pas utilisées ici) et **dériver des données par tracé** sur
+l'imagerie Google (les polygones de bâtiments sont précisément un tracé). Le risque est faible en
+pratique pour un lycée, mais il est réel pour une application publique, et il est **gratuit à
+éviter** :
 
-4. **Itinéraire.** « Y aller » en ligne droite avec distance (recommandé pour la v1), ou vrai
-   routage sur un réseau de chemins à dessiner (accessibilité PMR, portes fermées, sens) ? Le
-   routage exige un nouvel outil de saisie prof et un graphe à entretenir.
+- **La géométrie ne dépend pas du fond.** Zones et repères sont en % de l'image ; changer d'image
+  au **même cadrage** ne déplace rien. Si le cadrage change, un script de remappage (une affine
+  entre les deux cadrages, calculée sur trois points communs, comme le calage GPS) déplace tout
+  d'un coup — c'est le pendant, côté image, de `src/utils/mapGeoTransform.js`.
+- **Options de remplacement, par ordre de préférence** :
+  1. **Plan dessiné de l'établissement** (plan d'évacuation, plan architecte, plan d'accueil) :
+     contraste choisi, aucun texte imprimé, aucun problème de droit ; c'est ce que font tous les
+     plans de campus. À exporter en PNG ou SVG au cadrage de l'existant.
+  2. **Export OpenStreetMap** (ODbL, tracé autorisé) avec la mention « © les contributeurs
+     OpenStreetMap » affichée dans « À propos » — le script `gen-zones-lyautey-batiments.js` a
+     d'ailleurs été tracé sur une vue OSM. Un rendu **sans étiquettes** est possible avec un style
+     personnalisé.
+  3. **Photo aérienne** dont l'établissement détient les droits (drone, prestataire).
+- **Ce qu'il faut de toute façon** : figer le cadrage de référence (largeur, hauteur, emprise)
+  dans la fiche de la carte, et écrire dans le réglage `ui.plan.attribution` la mention due.
 
-5. **Accès.** Entièrement public (recommandé, cohérent avec `GET /api/maps` déjà public et avec
-   des QR codes affichés sur site), ou protégé par un code établissement (cookie signé, léger) ?
-   Question liée : peut-on publier les ancres GPS et le plan détaillé d'un lycée ?
+Recommandation : lancer la production d'un fond dessiné dès le lot 9, et remplacer la capture
+Google avant toute mise en ligne publique.
 
-6. **Langues.** Français seul (recommandé pour la v1, locale fr-FR du projet), ou aussi arabe et
-   anglais pour les parents et les visiteurs ? Le bilinguisme touche les fiches (deux champs par
-   texte) et la recherche (alias par langue).
+### 8.3 Repères nombreux et superposés : la stratégie de désencombrement
 
-7. **Parcours pour les formations.** Faut-il des **listes ordonnées de lieux** (« Accueil des
-   nouveaux professeurs : entrée, vie scolaire, salle des profs, CDI… »), sans validation, juste
-   pour enchaîner « suivant » ? Léger à faire si oui (un réglage JSON), mais c'est une fonctionnalité
-   de plus à documenter.
+Le signalement « de nombreux types de repères, avec une forte superposition » change une
+priorité : sans traitement, le plan ressemble à un tas d'emojis empilés au dézoom, et un tap sur
+la pile ouvre le mauvais lieu. Le noyau partagé (lot 1) doit donc inclure, dès le lot 4 :
 
-8. **Nom de code et hosts.** `plan` comme identifiant de produit (dossier `src/plan/`, préfixe
-   `/api/plan`, réglages `ui.plan.*`) et `planlyautey.` comme préfixe de host — avec `www.` accepté
-   comme pour GL ? Un domaine de préproduction est-il souhaité ?
+1. **Regroupement au dézoom** (clustering) : à chaque commit de transformation, les repères dont
+   les pastilles se recouvrent à l'écran sont fusionnés en une **pastille de groupe** (compteur +
+   emoji dominant + couleur de la catégorie majoritaire). Algorithme simple par grille écran
+   (cellule ≈ 44 px), sans dépendance, pur et testable (`shared/pct-map/clusterMarkers.js`).
+   Seuil réglable par produit ; sur ForetMap, désactivable par la barre d'outils.
+2. **Un tap sur un groupe** : si le groupe se sépare en zoomant, zoom animé sur son enveloppe ;
+   sinon (repères réellement au même endroit), **éventail** : les repères s'écartent en cercle
+   autour du point pour être touchés un par un (le « spiderfy » des cartes web), ou, plus simple
+   et plus accessible, la **liste des lieux du groupe** monte dans la feuille basse.
+3. **Priorité par catégorie** : chaque catégorie porte un rang (nouveau champ `priority` ou
+   réutilisation de `sort_order`) ; au dézoom, les catégories de faible priorité disparaissent
+   avant les autres (les sanitaires avant les entrées). Une catégorie peut être marquée « visible
+   seulement au zoom ».
+4. **Étiquettes de repères** : jamais toutes affichées. Au dézoom, l'emoji seul ; au zoom, le nom
+   des repères prioritaires ; toujours le nom du repère sélectionné et de ses voisins immédiats.
+   Le masquage adaptatif existant (`mapOverlayZoneLabels.js`) s'étend aux repères.
+5. **Couches par défaut** : un réglage `ui.plan.default_category_ids` définit ce qui est visible à
+   l'ouverture ; les chips permettent d'ajouter le reste. Un plan lisible commence par montrer
+   peu.
+6. **Rapport de densité** (lot 9, script en lecture seule) : nombre de repères par catégorie, par
+   cellule de 2 % du plan, paires distantes de moins de 1 % — pour régler les seuils sur les
+   données réelles au lieu de deviner. Le script est aussi utile à l'inventaire admin ForetMap
+   (doublons, empilements).
 
-9. **QR codes et liens profonds.** Souhaités dès la v1 ? Si oui, les identifiants de lieux doivent
-   être **stables** (ils le sont : `VARCHAR(64)` posés à la création) et le format d'URL figé avant
-   impression.
+Sur la carte ForetMap, 1 à 4 s'appliquent à l'identique et corrigent le même problème de
+lisibilité signalé par l'audit d'homogénéité (E4, D2).
 
-10. **Hors ligne.** Requis (PWA installable, plan mémorisé) ou simple cache navigateur ? Le coût est
-    faible (lot 6) mais engage le SW par produit dès le lot 0.
+### 8.4 Source de vérité et visibilité : une proposition
 
-11. **Mesure d'usage.** Aucune (recommandé : rien n'est envoyé au serveur, comme pour la position),
-    ou un compteur anonyme d'ouvertures et de recherches sans résultat (utile pour enrichir les
-    alias) ?
+**Source de vérité : les tables carte** (`zones`, `map_markers`, `location_categories`,
+`zone_photos`, `marker_photos`), pour trois raisons : elles seules portent les **catégories** ;
+elles sont éditées dans les fiches que les professeurs utilisent déjà (et dans l'inventaire admin
+« Zones & repères », qui permet l'édition en masse) ; la couche visite est une copie ponctuelle
+qui se désynchronise (`docs/reference/foretmap/visite-et-mascottes.md:270-274`).
+
+**Textes** : les champs `visit_subtitle`, `visit_short_description`, `visit_details_title`,
+`visit_details_text`, déjà servis par `GET /api/zones` et `GET /api/map/markers`, deviennent les
+**« textes publics »** d'un lieu, lus par la Visite **et** par le plan. Aucun changement de
+schéma ; un simple renommage des libellés dans les formulaires (« Textes visite » → « Textes
+publics (visite et plan) ») et dans la doc de référence.
+
+**Visibilité par surface** — la vraie question, et la brique qui profite à toutes les apps.
+Aujourd'hui trois mécanismes disjoints existent : `maps.is_active` (carte entière),
+`visit_zones.is_active` / `visit_markers.is_active` (Visite seule), et « Infrastructure » sur les
+catégories (comportement, pas visibilité). Proposition : introduire la notion de **surface**
+(`map` = carte de travail ForetMap, `visit` = Visite, `plan` = Plan Lyautey), et la poser à deux
+niveaux :
+
+- sur **`location_categories`** : un champ `surfaces` (SET `map,visit,plan`, défaut les trois).
+  Décocher `plan` sur la catégorie « Zones de culture » retire d'un coup tout le jardin du plan ;
+  décocher `map` sur « Salles » évite d'encombrer la carte de travail des élèves ;
+- sur **chaque lieu** : un champ `hidden_surfaces` (SET, défaut vide) pour l'exception (une salle
+  fermée cette année, un repère de chantier). Une case à cocher par surface dans la fiche
+  « Modifier » et dans l'inventaire admin, avec l'édition par lot.
+
+Règle : un lieu est visible sur une surface s'il n'y est pas masqué **et** qu'au moins une de ses
+catégories y est visible (un lieu sans catégorie est visible partout). Migration idempotente,
+deux colonnes, valeurs par défaut rétrocompatibles ; `visit_*.is_active` reste en place pour la
+Visite jusqu'à ce qu'on décide de l'y rabattre. Chaque endpoint de lecture prend `?surface=` et
+filtre côté serveur, pour que le plan ne reçoive jamais ce qu'il ne doit pas montrer.
+
+**Alias de recherche** : champ `search_aliases` (TEXT, liste séparée par `;`) sur `zones` et
+`map_markers`, éditable dans la fiche et l'inventaire, indexé par le moteur de recherche
+partagé — utile au plan (« CDI », « infirmerie », « G12 ») comme à la carte ForetMap (« mare » /
+« bassin »).
+
+### 8.5 Itinéraire : simple en v1, un graphe partagé ensuite
+
+**v1 — « Y aller » sans graphe.** Quand un lieu est sélectionné et que la position est connue :
+
+- la carte se recadre sur l'enveloppe « moi + lieu » ; une **ligne droite** discrète les relie,
+  avec la **distance** (« 120 m ») et, sur un site scolaire, un temps indicatif (à 4 km/h) ;
+- un **mode boussole** en plein écran de la feuille basse : une grande flèche qui pointe vers le
+  lieu en tenant compte du cap de l'appareil (`DeviceOrientation`, permission explicite sur iOS),
+  la distance dessous, qui décroît en marchant. C'est le pattern « Localiser » d'Apple et il est
+  remarquablement efficace sur un campus ouvert, sans aucune donnée de chemins ;
+- sans cap disponible, la flèche est absolue (nord en haut) et la carte suffit.
+
+Coût : ~150 lignes dans `PctPositionLayer` et un composant `PlanCompassSheet`. Aucune saisie
+prof.
+
+**v2 (lot 10) — graphe de chemins partagé.** Si l'usage montre des visiteurs perdus entre deux
+bâtiments (le compteur de « Y aller » abandonnés le dira), on ajoute une couche **chemins** :
+polylignes en % tracées par un professeur avec l'éditeur de polygones existant
+(`src/shared/pct-map/PctPolygonEditOverlay.jsx`, mode « ligne ouverte »), nœuds partagés aux
+intersections, attributs (escalier, PMR, fermé le soir). Routage par Dijkstra sur les nœuds, avec
+accrochage du départ et de l'arrivée au segment le plus proche ; tout en pur JavaScript, testable.
+La même couche sert ForetMap (chemins du jardin, distances entre zones pour les tâches) et
+prolonge le concept de **chemin numéroté** que GL a déjà sur ses plateaux
+(`src/shared/glBoardPathCore.js`) : un seul modèle de « chemin en % » pour les trois produits.
+
+### 8.6 Parcours : des listes ordonnées de lieux, sans validation
+
+**Ce que c'est.** Un parcours est une liste ordonnée de lieux avec un titre, une description,
+un public (« Nouveaux professeurs », « Journée portes ouvertes », « Formation sécurité »), et pour
+chaque étape un texte court facultatif (« Ici, on récupère son badge »). Aucune validation :
+l'utilisateur avance avec « suivant » / « précédent », peut sauter, peut quitter.
+
+**Modèle** (migration idempotente) : `map_routes` (`id`, `map_id`, `slug`, `title`,
+`description`, `audience`, `surfaces` SET, `is_published`, `sort_order`, `created_at`,
+`updated_at`) et `map_route_steps` (`route_id`, `position`, `target_type` zone|marker,
+`target_id`, `step_title`, `step_text`). Réutilise le couple `target_type`/`target_id` déjà
+employé par `visit_media` et `visit_seen_*`.
+
+**Côté plan.** Entrée par lien profond `?parcours=<slug>` (QR à l'accueil) ou par une chip
+« Parcours » qui liste ceux publiés pour la surface `plan`. En mode parcours, la feuille basse
+montre l'étape courante (titre, texte, distance si GPS), la carte recadre sur l'étape, les autres
+lieux sont masqués sauf les étapes (numérotées 1, 2, 3 sur le plan). « Y aller » pointe vers
+l'étape courante. Rien n'est enregistré ; la position dans le parcours est mémorisée sur
+l'appareil seulement.
+
+**Côté ForetMap (administration).** Un sous-onglet « Parcours » dans Réglages → Carte : liste,
+création, réordonnancement des étapes par glisser-déposer (le pattern existe pour les photos),
+choix des lieux par la recherche partagée, cases « visible sur : plan / visite », bouton
+**« Exporter en PDF »** — une page par parcours avec la liste des étapes et un **QR code** vers le
+lien profond, imprimable pour l'accueil (`pdfkit` est déjà une dépendance, utilisée pour les
+tutoriels ; un générateur de QR sans dépendance externe ou une petite bibliothèque MIT est à
+citer au moment du choix). Permission : `zones.manage`.
+
+**Ce que gagnent les autres apps.** La Visite peut proposer un parcours comme **visite guidée
+ordonnée** (aujourd'hui elle n'a que des cibles plates, `docs/VISIT_MAP_GEOMETRY.md`), la mascotte
+marchant d'étape en étape ; ForetMap peut ouvrir un parcours comme **feuille de séance** (« les
+cinq zones à voir aujourd'hui ») dans la vue Cartes & tâches. Les tables, l'API et l'éditeur
+sont les mêmes ; seul le rendu diffère.
+
+### 8.7 Accès paramétrable : une garde partagée
+
+Réglage `ui.plan.access_mode` = `public` (défaut) ou `code`. En mode `code`, un code
+d'établissement (quelques caractères, changeable) est stocké **haché** dans les réglages admin ;
+le visiteur le saisit une fois, reçoit un cookie signé HMAC (le mécanisme existe déjà pour la
+progression anonyme de la Visite, `routes/visit.js:26-83`, avec `VISIT_COOKIE_SECRET`), valable
+30 jours, et l'endpoint agrégé refuse sans cookie. Un lien profond peut porter le code
+(`?code=…`) pour que les QR codes internes fonctionnent sans saisie.
+
+Généralisation : `lib/accessGate.js` (création et vérification du cookie, comparaison du code en
+temps constant, limitation des essais par `lib/rateLimit.js`) et un composant
+`shared/components/AccessCodeGate.jsx`. La **Visite invitée** de ForetMap peut alors passer du
+tout-ou-rien `allow_guest_visit` à `public` / `code` / `off`, et GL dispose du même verrou pour
+une partie ouverte aux invités.
+
+### 8.8 Hors ligne pour toutes les apps : ce qui existe, ce qu'il faut
+
+**État réel.**
+
+| Produit  | Manifest                                         | Service worker                                                                                                                                                                                                                                                                                                         | Verdict                                        |
+| -------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| ForetMap | `public/manifest.json` (nom, icônes, raccourcis) | `public/sw.js` v8, écrit à la main : précache statique, HTML network-first avec `offline.html`, API zones/plantes/repères/tâches network-first, `/api/maps` et `/api/visit/content` stale-while-revalidate, JS/CSS network-first, images cache-first ; enregistré dans `src/main.jsx:19-50` avec rechargement contrôlé | installable, consultation hors ligne partielle |
+| GL       | aucun                                            | aucun (`src/gl/` ne référence ni `serviceWorker` ni `manifest.json`)                                                                                                                                                                                                                                                   | rien                                           |
+| Plan     | à créer                                          | à créer                                                                                                                                                                                                                                                                                                                | —                                              |
+
+Le SW ForetMap est servi **à tous les hosts** (`server.js:302-310`, `Service-Worker-Allowed: /`)
+mais n'est enregistré que par `src/main.jsx` ; comme chaque host est une origine distincte, le
+cache du navigateur est déjà cloisonné par produit. Le vrai problème est que sa liste de
+précache est statique et que la stratégie est codée en dur pour ForetMap.
+
+**Proposition : un service worker généré par produit à partir d'un gabarit commun.**
+
+- Un gabarit `src/shared/pwa/sw-template.js` paramétré par un objet `{ product, cacheName,
+precache[], htmlEntry, apiStrategies[] }` ; la stratégie « HTML network-first + `offline.html` »,
+  « JS/CSS network-first », « images cache-first » et « API stale-while-revalidate » sont les
+  fonctions déjà écrites dans `public/sw.js`, extraites telles quelles.
+- Au build, un script `scripts/build-pwa.js` (enchaîné par `build-safe.js`, comme les
+  `sync-*-lib`) lit le manifeste Vite (`build.manifest: true`) et produit `dist/sw-foret.js`,
+  `dist/sw-gl.js`, `dist/sw-plan.js` avec la **liste exacte des bundles hachés** de chaque entrée
+  — fini la liste manuelle et le network-first sur JS/CSS (des fichiers hachés peuvent passer en
+  cache-first), et `dist/manifest-<product>.webmanifest` avec nom, icônes, `start_url`, `scope`
+  et couleur de thème propres.
+- Côté serveur, `/sw.js` et `/manifest.json` deviennent des routes qui choisissent le fichier
+  selon le produit résolu par le host (`lib/productResolver.js`), avec `no-store` sur le SW.
+  L'enregistrement dans chaque `main.jsx` reste identique (`withAppBase('/sw.js')`).
+- Par produit, ce qui est mis en cache :
+  - **Plan** : l'image du plan, `GET /api/plan/content`, les photos principales (cache-first
+    borné en nombre), les parcours publiés. Bandeau « Hors ligne — plan mémorisé ».
+  - **ForetMap** : l'existant, plus les images de cartes, moins le network-first sur les bundles
+    hachés. Les écritures hors ligne (tâches, observations) restent hors périmètre ; la file
+    « vu » de la Visite (`src/utils/visitProgressClient.js`) est le modèle si un jour on veut
+    les mettre en file.
+  - **GL** : les plateaux, sprites et musiques de la partie en cours, `/api/gl/*` en lecture
+    (chapitres, lore, marché) en stale-while-revalidate ; les actions de jeu (dés, achats, QCM)
+    exigent le réseau et l'affichent clairement. Une PWA GL installable sur tablette est un gain
+    immédiat en classe, même sans écriture hors ligne.
+
+Réponse à la question posée : **oui, c'est possible pour les autres apps**, et c'est même plus
+simple de le faire une fois pour trois que de laisser un SW manuel par produit. Le lot 0 pose
+le gabarit et les routes ; chaque produit branche sa configuration quand il est prêt.
+
+### 8.9 Compteur d'usage : anonyme, partagé, utile aux contenus
+
+**Principe.** Aucun identifiant, aucun cookie, aucune adresse IP conservée. Le client envoie des
+**événements nommés** par `navigator.sendBeacon('/api/usage', …)` (ne bloque rien, part même à
+la fermeture de l'onglet) ; le serveur **agrège par jour** dans une table
+`usage_counters (day, product, event, key, count)` avec `INSERT … ON DUPLICATE KEY UPDATE
+count = count + 1`. Limitation par `lib/rateLimit.js`, corps borné, liste blanche des noms
+d'événements par produit (sinon 400), `key` limité à 64 caractères et normalisé.
+
+**Événements du plan** : `open` (ouverture), `search` (une recherche, sans le texte),
+`search_empty` (**avec** le texte normalisé, c'est ce qui alimente les alias : « bibli » sans
+résultat trois fois par semaine devient un alias de « CDI »), `place_open` (`key` = id du lieu),
+`locate` (bouton « Me situer »), `go` (« Y aller »), `route_start` / `route_step` (parcours),
+`offline_view`.
+
+**Pour les autres apps** : ForetMap compte les ouvertures d'onglets et de fiches (quel écran est
+réellement utilisé — l'audit d'homogénéité en avait besoin pour arbitrer les 13 entrées de la
+navigation), GL compte les entrées de chapitres et les usages de sorts. Le tableau de bord admin
+(Réglages → Usage) montre les compteurs par jour et par produit, avec export CSV via `exceljs`
+déjà présent ; la liste des `search_empty` du plan devient un bouton « créer l'alias ».
+
+Ce compteur ne remplace pas `GET /api/visit/stats` (qui mesure des sessions et des parcours
+complets, avec identité élève) : il est plus pauvre par construction, et c'est ce qui le rend
+acceptable partout sans consentement.
+
+### 8.10 Ce que chaque app gagne
+
+| Brique (où elle vit)                                                       | ForetMap (carte de travail)                        | Visite                                         | GL                                                                        | Plan Lyautey                     |
+| -------------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------- |
+| Noyau carte `src/shared/pct-map/` : bornes, double-tap, inertie, pinch+pan | oui, remplace `useMapGestures` (688 l.)            | oui, remplace le pan/zoom de `visit-views.jsx` | pinch-zoom sur les plateaux (`GLPctMapCanvas.jsx`, sans zoom aujourd'hui) | cœur                             |
+| Désencombrement des repères (§8.3)                                         | oui (E4, D2 de l'audit UI)                         | oui                                            | plateaux denses                                                           | cœur                             |
+| Étiquettes : pôle d'inaccessibilité, collisions, halo                      | oui                                                | oui                                            | feuillets zones                                                           | oui                              |
+| Feuille basse à crans (`shared/components/BottomSheet`)                    | fiche de lieu sur mobile à la place de la modale   | fiche de lieu                                  | fiches de repères, marché                                                 | cœur                             |
+| Visibilité par surface et alias (§8.4)                                     | carte moins encombrée, recherche plus tolérante    | remplace à terme `visit_*.is_active`           | —                                                                         | cœur                             |
+| Registre des produits, SW et manifest par produit (§8.8)                   | SW à jour automatiquement, bundles hachés en cache | idem                                           | **PWA installable**, plateaux hors ligne                                  | PWA hors ligne                   |
+| Garde d'accès (§8.7)                                                       | Visite invitée : public / code / off               | idem                                           | parties invitées sous code                                                | accès paramétrable               |
+| Parcours (§8.6)                                                            | feuille de séance                                  | visite guidée ordonnée                         | —                                                                         | cœur                             |
+| Compteur d'usage (§8.9)                                                    | usage réel des onglets                             | ouvertures de fiches                           | chapitres, sorts                                                          | recherches sans résultat → alias |
+| Graphe de chemins (§8.5, lot 10)                                           | chemins du jardin, distances                       | —                                              | unifie le « chemin numéroté » des plateaux                                | vrai routage                     |
+| Position GPS découplée de la mascotte                                      | « Me suivre » sans mascotte visible                | guidage sur le terrain (aujourd'hui absent)    | —                                                                         | point bleu                       |
+
+Règle de construction pour tenir cette promesse : **aucune brique nouvelle ne vit dans
+`src/plan/`** si elle n'est pas spécifique au plan. Le shell plan assemble ; tout ce qui se
+généralise part dans `src/shared/`, `lib/` ou le registre des produits, avec ses tests, et
+ForetMap l'adopte dans le même lot ou le suivant.
 
 ---
 
@@ -582,6 +818,7 @@ licences :
 
 - Aucune modification de code, de schéma ni de réglage. Aucun chiffre de production n'a été
   consulté (le dépôt n'en contient pas pour `lyautey`).
-- Pas de maquette visuelle : elle a plus de valeur une fois Q1, Q2 et Q3 tranchées, et se fera
-  sur le canevas de design partagé pour être retouchée à la main.
-- Pas de décision à la place du propriétaire du projet sur les onze questions du §8.
+- Pas de maquette visuelle : les décisions étant prises, c'est l'étape suivante, sur le canevas de
+  design partagé pour être retouchée à la main.
+- Les décisions du §8.1 sont celles du propriétaire du projet ; les propositions §8.2 à §8.9 restent
+  à valider avant le lot correspondant.
