@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Dépendances npm (lot patch/mineur Dependabot)
+
+Onze mises à jour groupées : `mysql2`, `nodemailer`, `pdfkit` (0.19 → 0.20, export
+PDF tutoriels côté Node), `sharp`, `@rive-app/react-canvas` (4.30 → 4.33),
+bibliothèques de test (`@testing-library/*`), `@vitejs/plugin-react`, `eslint`,
+`isomorphic-dompurify`, `marked`. Artefacts `dist/` régénérés (nouveaux wasm Rive).
+
 ### Correctif — sauvegarde de zone n’efface plus le corps visite
 
 La liste carte n’envoie plus le JSON éditorial visite (anti-LVE). Enregistrer la fiche
