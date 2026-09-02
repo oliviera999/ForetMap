@@ -7,6 +7,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit — « Plan Lyautey » : cadrage d'un plan de repérage mobile dérivé de ForetMap
+
+- **Nouveau document `docs/AUDIT_PLAN_LYAUTEY_2026-09.md`** (audit seul, aucun code modifié) :
+  état des lieux des deux moteurs de carte, des API publiques, de la recherche et du calage GPS ;
+  douze constats d'ergonomie mobile (bornes de pan absentes, gestes incomplets, détail en modale
+  plein cadre, filtre sans tri ni légende, bug de centrage des repères `mapFocusLocation.js`) ;
+  expérience cible (carte plein écran, recherche d'abord, chips de catégories, feuille basse à
+  crans, point bleu de position, PWA) ; plan de portage en troisième produit du monorepo sur le
+  schéma GL (`plan.html` → `src/plan/`, host `planlyautey.*`, noyau carte partagé
+  `src/shared/pct-map/`) ; phasage en huit lots ; onze questions à trancher.
+
 ### Couleurs de carte : une seule palette pour les zones et les catégories
 
 - **Champ couleur unifié** (`src/components/ColorPaletteField.jsx`, nouveau) : la palette
