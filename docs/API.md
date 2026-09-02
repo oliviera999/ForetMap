@@ -1855,13 +1855,16 @@ retiré de l'écran d'administration), `gating.default_mode` et `gating.default_
 appliqués depuis le lot 28), `gating.retry_cooldown_days` (0–365, def. `3` ; `0` = pas de verrou après
 erreur). La politique par ressource (`GET/PUT /policy`) est **appliquée** elle aussi, avec deux règles :
 l'interrupteur global est **maître** (site éteint → aucun quiz, même sur une ressource `enabled = 1`) et
-un seuil `threshold` est **borné** au nombre de questions liées. Les surcharges de granularité
-**chapitre/scope** restent hors runtime (l'accusé ne connaît pas le chapitre courant) : elles ne sont
-lues que par `GET /policy`, qui reçoit `chapterGranularity` de l'appelant. Persistance des tentatives QCM par lecteur :
-table `gl_qcm_attempts`, alimentée par les réponses plateau **et** catalogue, **sans condition** sur
-`gating.enabled` (activation rétroactive). Le verrou
-de re-tentative est posé par `POST /api/gl/qcm/questions/:code/answer` et `POST /api/gl/lore/qcm/questions/:code/answer`
-lorsque la réponse est fausse et que le corps inclut `{ resourceType, resourceRef }`.
+un seuil `threshold` est **borné** au nombre de questions liées. Les préréglages par type
+(`resource_ref='*'`) s'intercalent entre le site et la ressource ; `effectiveSources` indique la
+couche qui a fourni chaque champ. Les surcharges de granularité **chapitre/scope** sont appliquées
+par le runtime GL en best-effort : d'abord via le `gameId` du JWT, sinon via le premier lien lore
+approuvé de la ressource. `GET /policy` peut aussi recevoir `chapterGranularity` pour prévisualiser
+cette quatrième couche sans contexte joueur. Persistance des tentatives QCM par lecteur : table
+`gl_qcm_attempts`, alimentée par les réponses plateau **et** catalogue, **sans condition** sur
+`gating.enabled` (activation rétroactive). Le verrou de re-tentative est posé par
+`POST /api/gl/qcm/questions/:code/answer` et `POST /api/gl/lore/qcm/questions/:code/answer` lorsque
+la réponse est fausse et que le corps inclut `{ resourceType, resourceRef }`.
 
 | Méthode | Route                                                          | Auth   | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ------- | -------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
