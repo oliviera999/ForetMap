@@ -50,7 +50,7 @@ recherche en premier, chips de catégories, fiche en **bottom sheet** à trois c
 position avec cap, PWA hors ligne. Les corrections de fond du noyau (bornes, double-tap, inertie,
 légende, bug de centrage) **profitent à ForetMap** au passage.
 
-**Les décisions sont prises** (§8.1) : sol seulement en v1, français, accès paramétrable, QR codes et
+**Les décisions sont prises** (§8.1 ; plan d'action consolidé dans `AUDIT_CONVERGENCE_APPS_2026-09.md`) : sol seulement en v1, français, accès paramétrable, QR codes et
 liens profonds, hors ligne si possible **pour toutes les apps**, compteur d'usage anonyme, parcours pour
 les formations à développer, host `planlyautey.olution.info`. Deux informations du propriétaire pèsent
 sur la suite : le fond actuel est **extrait de Google Maps** (risque de licence à lever, §8.2) et la carte
@@ -455,6 +455,13 @@ revalide).
 ---
 
 ## 6. Phasage proposé (révisé après décisions)
+
+> **Remplacé par le plan d'action consolidé** de
+> [`AUDIT_CONVERGENCE_APPS_2026-09.md`](AUDIT_CONVERGENCE_APPS_2026-09.md) §6, qui intègre ces
+> lots à la convergence des applications (socle plateforme multi-produit, noyau carte unique,
+> kit d'interface commun) après analyse comparative de ForetMap, de la Visite et de GL. Le tableau
+> ci-dessous est conservé pour le détail du contenu propre au plan ; l'ordre, les dépendances et
+> les bénéficiaires font foi dans le document de convergence.
 
 | Lot | Contenu                                                                                                                                                                                                                                                                                              | Dépend de | Effort indicatif |
 | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------- |
