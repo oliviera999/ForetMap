@@ -134,6 +134,22 @@ Une tâche passe par des états visibles de tous : **Disponible** → **En cours
   Tant qu'elle est archivée, la tâche est **hors jeu** : ni inscription, ni marquage
   « terminée » ne sont acceptés, même depuis un écran resté ouvert avant l'archivage.
 
+## Les éléments validés sont masqués par défaut
+
+Une tâche **validée** et un **projet validé** n'attendent plus rien de personne. Ils ne
+sont donc **plus affichés** dans l'écran Tâches à l'ouverture — ni la section « Validées »
+(professeur) / « Récemment validées » (élève), ni le bloc « Projets validés ». Les tâches
+rattachées à un projet validé disparaissent avec lui.
+
+Rien n'est archivé ni supprimé pour autant : c'est un simple masquage d'affichage, sur le
+même principe que les archives. Une ligne discrète en bas de la liste annonce ce qui est
+masqué (« 2 tâches validées masquées et 1 projet validé masqué ») avec un bouton
+**« Afficher les validés »** ; le filtre de statut « Validée » ou « Projet validé » produit
+le même effet. Les compteurs de résultats et l'état vide tiennent compte de ce masquage.
+
+Le filtre « 📦 Archivés » (professeur) continue, lui, d'afficher tout son contenu : les
+éléments qui s'y trouvent sont validés pour la plupart, c'est bien leur raison d'être.
+
 ## Archiver un projet
 
 Comme les tâches, un **projet** peut être **archivé** (📦) : il quitte la liste des projets
