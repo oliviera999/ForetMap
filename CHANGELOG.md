@@ -7,6 +7,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit — Convergence des applications ForetMap / Visite / GL / Plan et plan d'action final
+
+- **Nouveau document `docs/AUDIT_CONVERGENCE_APPS_2026-09.md`** (audit seul, aucun code
+  modifié) : inventaire de `src/shared/` (43 modules réellement partagés, 24 consommés par un
+  seul produit, 20 dépendances inversées vers du code produit, 6 noyaux en double ESM/CJS sans
+  synchronisation), comparaison des quatre surfaces, ce que chaque application fait de mieux
+  (bouton retour, dialogues et notifications ForetMap ; thème de marque, dock d'aide, bouton
+  d'action carte et navigation compacte GL ; transformation bornée et file hors ligne de la
+  Visite), doublons et dettes (trois systèmes de boutons, deux aides, quatre moteurs de carte,
+  réglages et caches non product-aware, écart d'échappement HTML dans le glossaire lore GL),
+  architecture cible du socle commun et **plan d'action en dix lots** qui remplace le phasage
+  de l'audit Plan Lyautey.
+
 ### Audit — « Plan Lyautey » : cadrage d'un plan de repérage mobile dérivé de ForetMap
 
 - **Nouveau document `docs/AUDIT_PLAN_LYAUTEY_2026-09.md`** (audit seul, aucun code modifié) :
