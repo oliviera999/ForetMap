@@ -1,15 +1,247 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import {
+  safeLocalStorageReadJson,
+  safeLocalStorageWriteJson,
+} from '../shared/platform/browserStorage.js';
+import { buildPlaceIndex, searchPlaces } from '../shared/search/placeSearch.js';
+import { PlanCategoryChips } from './components/PlanCategoryChips.jsx';
+import { PlanMapStage } from './components/PlanMapStage.jsx';
+import { PlanPlaceSheet } from './components/PlanPlaceSheet.jsx';
+import { PlanResultsSheet } from './components/PlanResultsSheet.jsx';
+import { PlanTopBar } from './components/PlanTopBar.jsx';
+import { usePlanContent } from './hooks/usePlanContent.js';
+import { reportPlanUsage } from './planApi.js';
+import {
+  buildPlaceUrl,
+  countPlacesByCategory,
+  filterPlacesByCategories,
+  readPlaceIdFromLocation,
+} from './utils/planPlaces.js';
+
+/** Catégories retenues d'une visite à l'autre (le plan n'a pas de compte). */
+const CATEGORIES_STORAGE_KEY = 'plan:categories';
+/** Message d'accueil : montré une seule fois par appareil. */
+const WELCOME_STORAGE_KEY = 'plan:welcome-seen';
+/** Nombre de résultats affichés (au-delà, affiner la recherche est plus rapide que défiler). */
+const RESULTS_LIMIT = 40;
+
 /**
- * Coquille du Plan Lyautey (lot 1 du socle multi-produit) : aucune logique métier ici,
- * le lot 4 (docs/AUDIT_PLAN_LYAUTEY_2026-09.md) remplit `<main>`.
+ * Plan Lyautey (lot 4 du plan de convergence, `docs/AUDIT_PLAN_LYAUTEY_2026-09.md`).
+ *
+ * Un seul écran : la carte en plein écran, une barre de recherche en haut, des puces de
+ * catégories, et deux feuilles basses (résultats, fiche du lieu). Aucun compte, aucune
+ * validation de visite, aucune donnée personnelle — seul le compteur d'usage anonyme
+ * (`POST /api/usage`) sait qu'un lieu a été ouvert.
  */
 export function AppPlan() {
+  const { content, places, categories, settings, map, loading, error, reload } = usePlanContent();
+  const [query, setQuery] = useState('');
+  const [resultsOpen, setResultsOpen] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState(() => new Set());
+  const [welcomeVisible, setWelcomeVisible] = useState(false);
+  const deepLinkAppliedRef = useRef(false);
+  const openedOnceRef = useRef(false);
+
+  const title = settings?.title || 'Plan Lyautey';
+  const categoriesById = useMemo(
+    () => new Map((categories || []).map((c) => [String(c.id), c])),
+    [categories],
+  );
+
+  // Catégories : choix mémorisé sur l'appareil, sinon défauts d'établissement.
+  useEffect(() => {
+    if (!settings) return;
+    const stored = safeLocalStorageReadJson(CATEGORIES_STORAGE_KEY, null);
+    const initial = Array.isArray(stored) ? stored : settings.default_category_ids || [];
+    const known = initial.map(String).filter((id) => categoriesById.has(id));
+    setSelectedCategoryIds(new Set(known));
+  }, [settings, categoriesById]);
+
+  useEffect(() => {
+    if (!settings?.welcome_hint) return;
+    if (safeLocalStorageReadJson(WELCOME_STORAGE_KEY, false)) return;
+    setWelcomeVisible(true);
+  }, [settings]);
+
+  // Compteur d'usage : une ouverture par chargement de plan.
+  useEffect(() => {
+    if (!content || openedOnceRef.current) return;
+    openedOnceRef.current = true;
+    reportPlanUsage('open', String(map?.id || ''));
+  }, [content, map]);
+
+  const filteredPlaces = useMemo(
+    () => filterPlacesByCategories(places, selectedCategoryIds),
+    [places, selectedCategoryIds],
+  );
+  const counts = useMemo(() => countPlacesByCategory(places), [places]);
+  const searchIndex = useMemo(
+    () =>
+      buildPlaceIndex(filteredPlaces, {
+        getCategoryLabels: (place) =>
+          (place.category_ids || [])
+            .map((id) => categoriesById.get(String(id))?.label || '')
+            .filter(Boolean),
+      }),
+    [filteredPlaces, categoriesById],
+  );
+  const results = useMemo(() => {
+    if (!query.trim()) {
+      return filteredPlaces.slice(0, RESULTS_LIMIT).map((place) => ({ place }));
+    }
+    return searchPlaces(searchIndex, query, { limit: RESULTS_LIMIT });
+  }, [query, searchIndex, filteredPlaces]);
+
+  const categoriesOf = useCallback(
+    (place) =>
+      (place?.category_ids || []).map((id) => categoriesById.get(String(id))).filter(Boolean),
+    [categoriesById],
+  );
+
+  const openPlace = useCallback(
+    (place) => {
+      setSelectedPlace(place);
+      setResultsOpen(false);
+      reportPlanUsage('place_open', String(place?.id || ''));
+      if (typeof window !== 'undefined' && window.history?.replaceState) {
+        window.history.replaceState(null, '', buildPlaceUrl(window.location, String(place.id)));
+      }
+    },
+    [setSelectedPlace],
+  );
+
+  const closePlace = useCallback(() => {
+    setSelectedPlace(null);
+    if (typeof window !== 'undefined' && window.history?.replaceState) {
+      window.history.replaceState(null, '', buildPlaceUrl(window.location, ''));
+    }
+  }, []);
+
+  // Lien profond `?lieu=` : une seule fois, au premier contenu reçu.
+  useEffect(() => {
+    if (deepLinkAppliedRef.current || places.length === 0) return;
+    deepLinkAppliedRef.current = true;
+    const wanted = readPlaceIdFromLocation(
+      typeof window === 'undefined' ? '' : window.location.search,
+    );
+    if (!wanted) return;
+    const found = places.find((place) => String(place.id) === wanted);
+    if (found) setSelectedPlace(found);
+  }, [places]);
+
+  // Recherche sans résultat : signalé au compteur (quels mots manquent au plan).
+  const emptyReportedRef = useRef('');
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!trimmed || results.length > 0 || emptyReportedRef.current === trimmed) return;
+    emptyReportedRef.current = trimmed;
+    reportPlanUsage('search_empty', trimmed.slice(0, 60));
+  }, [query, results]);
+
+  const onQueryChange = useCallback((next) => {
+    setQuery(next);
+    setResultsOpen(Boolean(next.trim()));
+  }, []);
+
+  const toggleCategory = useCallback((id) => {
+    setSelectedCategoryIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      safeLocalStorageWriteJson(CATEGORIES_STORAGE_KEY, [...next]);
+      return next;
+    });
+  }, []);
+
+  const resetCategories = useCallback(() => {
+    setSelectedCategoryIds(new Set());
+    safeLocalStorageWriteJson(CATEGORIES_STORAGE_KEY, []);
+  }, []);
+
+  const dismissWelcome = useCallback(() => {
+    setWelcomeVisible(false);
+    safeLocalStorageWriteJson(WELCOME_STORAGE_KEY, true);
+  }, []);
+
+  if (loading && !content) {
+    return (
+      <div className="plan-shell plan-shell--state">
+        <p className="plan-state">Chargement du plan…</p>
+      </div>
+    );
+  }
+
+  if (error && !content) {
+    return (
+      <div className="plan-shell plan-shell--state">
+        <p className="plan-state plan-state--error">Le plan n’a pas pu être chargé.</p>
+        <button type="button" className="shared-btn shared-btn--primary" onClick={reload}>
+          Réessayer
+        </button>
+      </div>
+    );
+  }
+
+  const hasMapImage = Boolean(map?.map_image_url);
+
   return (
     <div className="plan-shell">
-      <header className="plan-header">
-        <h1 className="plan-title">Plan Lyautey</h1>
-        <p className="plan-intro">Le plan arrive bientôt.</p>
-      </header>
-      <main className="plan-main" role="main" />
+      <PlanTopBar
+        title={title}
+        query={query}
+        onQueryChange={onQueryChange}
+        onFocusSearch={() => setResultsOpen(true)}
+        resultCount={results.length}
+      />
+
+      <PlanCategoryChips
+        categories={categories}
+        selectedIds={selectedCategoryIds}
+        onToggle={toggleCategory}
+        onReset={resetCategories}
+        counts={counts}
+      />
+
+      <main className="plan-main" role="main">
+        {hasMapImage ? (
+          <PlanMapStage
+            map={map}
+            zones={filteredPlaces.filter((p) => p.kind === 'zone')}
+            markers={filteredPlaces.filter((p) => p.kind === 'marker')}
+            selectedPlace={selectedPlace}
+            onSelectPlace={openPlace}
+            attribution={settings?.attribution || ''}
+          />
+        ) : (
+          <p className="plan-state">Aucun fond de plan n’est encore publié pour ce lieu.</p>
+        )}
+      </main>
+
+      {welcomeVisible && settings?.welcome_hint ? (
+        <div className="plan-welcome" role="status">
+          <p className="plan-welcome__text">{settings.welcome_hint}</p>
+          <button type="button" className="plan-welcome__close" onClick={dismissWelcome}>
+            J’ai compris
+          </button>
+        </div>
+      ) : null}
+
+      <PlanResultsSheet
+        open={resultsOpen}
+        onClose={() => setResultsOpen(false)}
+        query={query}
+        results={results}
+        onSelect={openPlace}
+        categoriesOf={categoriesOf}
+      />
+
+      <PlanPlaceSheet
+        place={selectedPlace}
+        onClose={closePlace}
+        categories={categoriesOf(selectedPlace)}
+      />
     </div>
   );
 }

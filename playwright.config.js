@@ -56,8 +56,8 @@ module.exports = defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      // Les specs mobiles dédiées tournent dans leur propre projet (viewport tactile).
-      testIgnore: /mobile-.*\.spec\.js/,
+      // Les specs mobiles dédiées et le plan tournent dans leurs propres projets.
+      testIgnore: /(mobile-|plan-).*\.spec\.js/,
     },
     {
       // Audit UI (D-3) : validation tactile 390×844 de l'écran carte et de la navigation.
@@ -71,6 +71,21 @@ module.exports = defineConfig({
         isMobile: true,
       },
       testMatch: /mobile-.*\.spec\.js/,
+      testIgnore: /plan-.*\.spec\.js/,
+    },
+    {
+      // Plan Lyautey (lot 4) : produit servi par host, ciblé ici avec l'en-tête de surcharge
+      // `X-Foretmap-Product` (`lib/productResolver.js`) — pas de sous-domaine en local.
+      // Téléphone tactile : c'est le seul usage réel du plan.
+      name: 'plan-mobile',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 390, height: 844 },
+        hasTouch: true,
+        isMobile: true,
+        extraHTTPHeaders: { 'X-Foretmap-Product': 'plan' },
+      },
+      testMatch: /plan-.*\.spec\.js/,
     },
   ],
 });
