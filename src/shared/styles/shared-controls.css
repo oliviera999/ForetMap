@@ -74,10 +74,37 @@
   box-shadow: none;
 }
 
+.shared-btn--primary {
+  border-color: var(--gl-color-primary, #1a4731);
+  background: var(--gl-color-primary, #1a4731);
+  color: #fff;
+}
+
+/* `secondary` = apparence de base (bordure, fond surface, encre primaire). */
+
+.shared-btn--ghost {
+  border-color: transparent;
+  background: transparent;
+}
+
 .shared-btn--danger {
   border-color: #dc2626;
-  background: var(--gl-accent-danger, #fee2e2);
-  color: var(--gl-ink-danger, #991b1b);
+  background: var(--accent-danger, #fee2e2);
+  color: var(--ink-danger, #991b1b);
+}
+
+.shared-btn--block {
+  display: flex;
+  width: 100%;
+}
+
+.shared-btn__icon {
+  display: inline-flex;
+  line-height: 1;
+}
+
+.shared-btn.is-loading {
+  cursor: progress;
 }
 
 .shared-btn--sm {
@@ -185,4 +212,18 @@ details.admin-section > summary {
 
 .gl-subtabs button:hover {
   transform: translateY(-1px);
+}
+
+/* Texte réservé aux lecteurs d'écran (légendes de tableau, libellés cachés). */
+.fm-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }

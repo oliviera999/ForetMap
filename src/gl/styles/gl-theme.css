@@ -30,15 +30,15 @@ body.gl-body {
   --gl-radius-card: 14px;
   --gl-shadow-sm: 0 5px 16px rgba(1, 58, 64, 0.1);
   --gl-shadow-md: 0 10px 28px rgba(1, 58, 64, 0.16);
-  --gl-accent-info: #d9f0ff;
-  --gl-accent-success: #d9f9ea;
-  --gl-accent-warning: #fff4d6;
-  --gl-accent-danger: #ffe2e2;
+  --gl-accent-info: var(--accent-info);
+  --gl-accent-success: var(--accent-success);
+  --gl-accent-warning: var(--accent-warning);
+  --gl-accent-danger: var(--accent-danger);
   /* Teintes d'encre associées aux fonds d'état ci-dessus (contraste AA sur ces lavis). */
-  --gl-ink-info: #075985;
-  --gl-ink-success: #14663f;
-  --gl-ink-warning: #8a5a10;
-  --gl-ink-danger: #991b1b;
+  --gl-ink-info: var(--ink-info);
+  --gl-ink-success: var(--ink-success);
+  --gl-ink-warning: var(--ink-warning);
+  --gl-ink-danger: var(--ink-danger);
   /* Accent : le turquoise servait déjà d'anneau de focus et se retrouvait codé en dur à 57
      endroits. Le promouvoir en token nomme l'existant au lieu d'inventer une teinte de plus. */
   --gl-color-accent: #047c8c;
@@ -62,14 +62,14 @@ body.gl-body {
   --gl-shadow-lg: 0 18px 42px rgba(1, 58, 64, 0.2);
   --gl-radius-pill: 999px;
   /* Échelle d'espacement : les 8 416 lignes de CSS G&L n'en avaient aucune. */
-  --gl-space-1: 4px;
-  --gl-space-2: 8px;
-  --gl-space-3: 12px;
-  --gl-space-4: 16px;
-  --gl-space-5: 24px;
-  --gl-space-6: 32px;
+  --gl-space-1: var(--space-1);
+  --gl-space-2: var(--space-2);
+  --gl-space-3: var(--space-3);
+  --gl-space-4: var(--space-4);
+  --gl-space-5: var(--space-5);
+  --gl-space-6: var(--space-6);
   /* Hauteur de cible tactile minimale imposée par le projet (cf. CLAUDE.md). */
-  --gl-tap-target: 44px;
+  --gl-tap-target: var(--tap-target);
   --gl-font-body: var(--font-sans);
   --gl-font-heading: var(--font-sans);
   /* G&L n'a qu'un thème clair : le déclarer évite que le mode sombre du système repeigne les
