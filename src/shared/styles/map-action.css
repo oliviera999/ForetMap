@@ -1,0 +1,80 @@
+/* Bouton d'action superposé à une carte (kit d'interface, lot 3 — issu de `.gl-board-action`).
+   Classes neutres pour la carte ForetMap et le plan ; G&L garde ses classes `gl-board-action*`
+   (mêmes règles, thème G&L dans gl-theme.css). Tokens avec repli : chaque produit habille. */
+
+.fm-map-action {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap-target, 44px);
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--gl-surface, #fff);
+  color: var(--gl-color-primary, #1a4731);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+  transition:
+    background-color var(--motion-fast, 0.12s) var(--ease-out, ease),
+    box-shadow var(--motion-fast, 0.12s) var(--ease-out, ease),
+    transform var(--motion-base, 0.18s) var(--spring, ease);
+}
+
+.fm-map-action:focus-visible {
+  outline: 2px solid var(--gl-border-focus, #2d6a4f);
+  outline-offset: 2px;
+}
+
+.fm-map-action--primary {
+  background: var(--gl-color-primary, #1a4731);
+  color: #fff;
+}
+
+.fm-map-action--display {
+  background: rgba(15, 23, 42, 0.82);
+  color: #f8fafc;
+}
+
+.fm-map-action.is-active {
+  box-shadow: 0 0 0 2px var(--gl-border-focus, #2d6a4f);
+}
+
+.fm-map-action.is-muted {
+  opacity: 0.6;
+}
+
+.fm-map-action__icon {
+  line-height: 1;
+  font-size: var(--text-md);
+}
+
+.fm-map-action__label--short {
+  display: none;
+}
+
+/* Boutons réduits à leur icône (libellé en infobulle et aria-label). */
+.fm-map-action--icon-only {
+  gap: 0;
+  min-width: var(--tap-target, 44px);
+  padding: 8px;
+  justify-content: center;
+}
+
+.fm-map-action--icon-only .fm-map-action__icon {
+  font-size: var(--text-lg);
+}
+
+@media (max-width: 480px) {
+  .fm-map-action__label--long {
+    display: none;
+  }
+
+  .fm-map-action__label--short {
+    display: inline;
+  }
+}

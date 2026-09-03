@@ -1,26 +1,32 @@
+import { forwardRef } from 'react';
+
+import { Button } from '../../../shared/ui/Button.jsx';
+
 function joinClassNames(...parts) {
   return parts.filter(Boolean).join(' ');
 }
 
-export function GLButton({
-  variant = 'primary',
-  size = 'md',
-  loading = false,
-  className = '',
-  children,
-  type = 'button',
-  ...props
-}) {
-  const variantClass = `gl-btn--${variant}`;
-  const sizeClass = size === 'sm' ? 'gl-btn--sm' : '';
+/**
+ * Bouton G&L — enveloppe du `Button` partagé (lot 3) : même API (`variant`, `size`,
+ * `loading`, `className`), classes `gl-btn gl-btn--<variante>` conservées pour le thème G&L
+ * (gl-theme.css), posées en plus des classes neutres `shared-btn…`.
+ */
+export const GLButton = forwardRef(function GLButton(
+  { variant = 'primary', size = 'md', className = '', ...props },
+  ref,
+) {
   return (
-    <button
-      type={type}
-      className={joinClassNames('gl-btn', variantClass, sizeClass, className)}
-      disabled={loading || props.disabled}
+    <Button
+      ref={ref}
+      variant={variant}
+      size={size}
+      className={joinClassNames(
+        'gl-btn',
+        `gl-btn--${variant}`,
+        size === 'sm' ? 'gl-btn--sm' : '',
+        className,
+      )}
       {...props}
-    >
-      {loading ? 'Chargement…' : children}
-    </button>
+    />
   );
-}
+});

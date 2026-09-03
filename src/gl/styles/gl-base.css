@@ -71,58 +71,7 @@ button {
   }
 }
 
-/* Bannières aperçu rôle / impersonation (partagées avec ForetMap) */
-.role-preview-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin: 0 12px 0;
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(245, 158, 11, 0.45);
-  background: rgba(255, 251, 235, 0.96);
-  color: #78350f;
-  font-size: var(--text-sm);
-  line-height: 1.35;
-  flex-shrink: 0;
-}
-
-.role-preview-banner--teacher {
-  border-color: rgba(59, 130, 246, 0.38);
-  background: rgba(239, 246, 255, 0.96);
-  color: #1e3a8a;
-}
-
-.role-preview-banner--impersonation {
-  border-color: rgba(234, 88, 12, 0.5);
-  background: rgba(255, 247, 237, 0.98);
-  color: #9a3412;
-  flex-wrap: wrap;
-}
-
-.role-preview-banner--impersonation .impersonation-banner-actions {
-  margin-left: auto;
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.role-preview-banner__icon {
-  flex-shrink: 0;
-  font-size: var(--text-md);
-  line-height: var(--lh-tight);
-}
-
-.role-preview-banner__text {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.role-preview-banner__text strong {
-  font-size: var(--text-sm);
-}
+/* Bannières aperçu rôle / impersonation : shared/styles/role-preview-banner.css (commune). */
 
 :root {
   /* Un seul ordre de pile emoji (aligné sur src/index.css) : 'ForetMapColorEmoji' avant les
