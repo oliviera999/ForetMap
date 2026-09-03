@@ -45,6 +45,8 @@ import { computeContainRect } from './pctMapFit.js';
  * @param {string} [options.imageSrc] source de l'image (remesure quand elle change).
  * @param {'image'|'stage'} [options.contentMode='image']
  * @param {boolean} [options.enabled=true] gestes pan/zoom actifs.
+ * @param {boolean} [options.panEnabled=true] pan au pointeur (un doigt / souris) ; à `false`, la
+ *   molette, le pinch et les pilotes externes restent actifs (modes d'édition de la carte).
  * @param {number|((fitScale: number) => number)} [options.minScale] échelle minimale (absolue ou
  *   dérivée de l'échelle d'ajustement). Défaut : 0,15 en mode image, 0,5 × ajustement en mode scène.
  * @param {number} [options.maxScale=8]
@@ -76,6 +78,7 @@ export function usePctMapViewport({
   imageSrc = '',
   contentMode = 'image',
   enabled = true,
+  panEnabled = true,
   minScale,
   maxScale = PCT_MAP_SCALE_MAX_DEFAULT,
   bounds = true,
@@ -128,6 +131,7 @@ export function usePctMapViewport({
   const optionsRef = useRef({});
   optionsRef.current = {
     enabled,
+    panEnabled,
     minScale,
     maxScale,
     bounds,
@@ -673,6 +677,7 @@ export function usePctMapViewport({
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       if (!singlePointerAllowed(e)) return;
       if (pinching.current) return;
+      if (!opt.panEnabled) return;
       isPanning.current = true;
       panStart.current = { x: e.clientX - tx.current.x, y: e.clientY - tx.current.y };
       panSamples.current = [{ x: e.clientX, y: e.clientY, t: performance.now() }];

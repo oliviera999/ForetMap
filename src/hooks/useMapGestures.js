@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { api } from '../services/api';
-import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
-import { pointToContainedRectPct } from '../shared/pct-map/pctMapPointer.js';
+import { usePctMapViewport } from '../shared/pct-map/usePctMapViewport.js';
 
 const FM_MAP_FULLSCREEN_LAYER_SELECTOR = '.fm-map-fullscreen-layer';
 const EMBEDDED_H_FLOOR = 96;
@@ -63,6 +62,22 @@ function resolveMapLayoutAvailBox(
   return { availW, availH };
 }
 
+/** Cibles qui ne démarrent jamais un pan de la carte (poignées d'édition, bulles de repère). */
+function isMapGestureTarget(target) {
+  return Boolean(target?.closest?.('.edit-pt, .map-bubble'));
+}
+
+/**
+ * Gestes de la carte de travail ForetMap — adaptateur mince du moteur partagé
+ * `usePctMapViewport` (lot 2 du plan de convergence). Ce hook ne garde que ce qui est propre
+ * à ForetMap : la mesure du cadre dans `map-view-canvas-outer` (`resolveMapLayoutAvailBox`),
+ * la variable CSS `--fm-map-canvas-w` de la barre d'outils, et la persistance du glisser d'un
+ * repère (PUT `/api/map/markers/:id`). Tout le reste (pan, molette, pinch + déplacement,
+ * double-tap, inertie, bornes, verrou tactile, flèches clavier) vit dans le moteur.
+ *
+ * L'API retournée est celle consommée historiquement par `MapView`, `MapViewToolbar` et
+ * `useZoneEditPoints` : identités stables (mémoïsées) pour `React.memo` en aval.
+ */
 function useMapGestures({
   mapImageSrc,
   activeMapId,
@@ -72,590 +87,77 @@ function useMapGestures({
   mapLayoutOuterRef = null,
   mapFullscreen = false,
 }) {
-  const containerRef = useRef(null);
-  const worldRef = useRef(null);
-  const imgRef = useRef(null);
-  const tx = useRef({ x: 0, y: 0, s: 1 });
-  const [committed, setCommitted] = useState({ x: 0, y: 0, s: 1 });
-  const [imgSize, setImgSize] = useState({ w: 1, h: 1 });
-  const imgSizeRef = useRef({ w: 1, h: 1 });
-  const moved = useRef(false);
-  const isPanning = useRef(false);
-  const panStart = useRef({ x: 0, y: 0 });
-  const pinching = useRef(false);
-  const zoomAnimRafRef = useRef(null);
-  const reducedMotionRef = useRef(false);
-  const rafId = useRef(null);
-  const commitRef = useRef(null);
-  const draggingMarkerRef = useRef(null);
-  const draggingMarkerEl = useRef(null);
-  const panCommitTimerRef = useRef(null);
-  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
-  const [mapInteractionEnabled, setMapInteractionEnabled] = useState(true);
-  // Échelle « ajustée » (zoom au repos) : ne change qu’au fit/remesure, jamais au zoom.
-  // Sert à dimensionner les étiquettes par rapport à la taille au repos (cf. mapOverlayTypography).
-  const [fitScale, setFitScale] = useState(1);
+  const optionsRef = useRef({});
+  optionsRef.current = { embedded, mapLayoutOuterRef, mapFullscreen };
 
-  // Fonctions mémoïsées (useCallback, deps stables) : elles ne lisent que des refs, donc
-  // l'identité reste constante → les effets/écouteurs qui en dépendent ne se remontent pas
-  // à chaque rendu et l'API retournée par le hook est stable pour React.memo en aval.
-  const applyTransform = useCallback(() => {
-    if (!worldRef.current) return;
-    const { x, y, s } = tx.current;
-    worldRef.current.style.transform = `translate(${x}px,${y}px) scale(${s})`;
+  /** Largeur du cadre → `--fm-map-canvas-w` sur `.map-view-root` (barre d'outils alignée). */
+  const syncToolbarWidth = useCallback((container, cw) => {
+    const root = container?.closest?.('.map-view-root');
+    if (!root) return;
+    if (cw > 0) root.style.setProperty('--fm-map-canvas-w', `${cw}px`);
+    else root.style.removeProperty('--fm-map-canvas-w');
   }, []);
 
   /**
-   * Active `will-change: transform` pendant les gestes (fluidité GPU) et le retire au repos.
-   * Au repos, le calque n'est plus mis en cache à 1× : le navigateur re-pixellise son contenu
-   * (texte SVG + repères + emojis) à l'échelle affichée → étiquettes nettes même à fort zoom.
+   * Cadre = toute la zone disponible de `map-view-canvas-outer` (le « contain » de l'image
+   * est porté par la transformation) ; sans conteneur externe, la boîte client du cadre.
    */
-  const setWorldWillChange = useCallback((on) => {
-    const el = worldRef.current;
-    if (el) el.style.willChange = on ? 'transform' : 'auto';
-  }, []);
-
-  const commit = useCallback(() => {
-    const snap = { ...tx.current };
-    setCommitted(snap);
-    setWorldWillChange(false);
-    cancelAnimationFrame(commitRef.current);
-    commitRef.current = requestAnimationFrame(applyTransform);
-  }, [applyTransform, setWorldWillChange]);
-
-  const scheduleApply = useCallback(() => {
-    if (rafId.current) return;
-    rafId.current = requestAnimationFrame(() => {
-      applyTransform();
-      rafId.current = null;
-    });
-  }, [applyTransform]);
-
-  /** Ajuste la carte au conteneur sans forcer un re-render si rien n’a changé (évite le gel mobile quand la barre d’adresse redimensionne la vue en boucle). */
-  const commitFitLayout = useCallback(
-    (x, y, s) => {
-      tx.current = { x, y, s };
-      applyTransform();
-      setWorldWillChange(false);
-      // `commitFitLayout` n’est appelé que pour un ajustement (fit/remesure), jamais au zoom :
-      // `s` est donc toujours l’échelle au repos.
-      setFitScale((prev) => (Math.abs(prev - s) < 1e-4 ? prev : s));
-      setCommitted((prev) => {
-        if (Math.abs(prev.x - x) < 0.5 && Math.abs(prev.y - y) < 0.5 && Math.abs(prev.s - s) < 1e-4)
-          return prev;
-        return { x, y, s };
-      });
-    },
-    [applyTransform, setWorldWillChange],
-  );
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const apply = () => {
-      reducedMotionRef.current = !!mq.matches;
-    };
-    apply();
-    mq.addEventListener('change', apply);
-    return () => mq.removeEventListener('change', apply);
-  }, []);
-
-  const cancelToolbarZoomAnim = useCallback(() => {
-    if (zoomAnimRafRef.current != null) {
-      cancelAnimationFrame(zoomAnimRafRef.current);
-      zoomAnimRafRef.current = null;
-    }
-  }, []);
-
-  // Annulation de l'animation de zoom UNIQUEMENT au démontage du hook : auparavant elle vivait
-  // dans le cleanup de l'effet des écouteurs, qui se démontait/remontait à chaque rendu
-  // (enableMapInteraction non mémoïsé) et pouvait donc interrompre une animation en cours.
-  useEffect(() => () => cancelToolbarZoomAnim(), [cancelToolbarZoomAnim]);
-
-  /** Zoom boutons +/− : interpolation courte : même cible que l’ancien saut, sans effet « par paliers ». */
-  const animateZoomTowardScale = useCallback(
-    (targetS, pivotLocalX, pivotLocalY) => {
-      cancelToolbarZoomAnim();
-      const start = { ...tx.current };
-      const clampedTarget = Math.min(Math.max(targetS, MAP_VIEW_SCALE_MIN), MAP_VIEW_SCALE_MAX);
-      if (!Number.isFinite(clampedTarget) || Math.abs(clampedTarget - start.s) < 1e-6) return;
-      setWorldWillChange(true);
-      const duration = reducedMotionRef.current ? 0 : 200;
-      const easeOutCubic = (u) => 1 - (1 - u) ** 3;
-      if (duration <= 0) {
-        const ns = clampedTarget;
-        tx.current.x = pivotLocalX - (pivotLocalX - start.x) * (ns / start.s);
-        tx.current.y = pivotLocalY - (pivotLocalY - start.y) * (ns / start.s);
-        tx.current.s = ns;
-        applyTransform();
-        commit();
-        return;
-      }
-      const t0 = performance.now();
-      const step = (now) => {
-        const t = Math.min(1, (now - t0) / duration);
-        const u = easeOutCubic(t);
-        const curS = start.s + (clampedTarget - start.s) * u;
-        tx.current.x = pivotLocalX - (pivotLocalX - start.x) * (curS / start.s);
-        tx.current.y = pivotLocalY - (pivotLocalY - start.y) * (curS / start.s);
-        tx.current.s = curS;
-        applyTransform();
-        if (t < 1) {
-          zoomAnimRafRef.current = requestAnimationFrame(step);
-        } else {
-          zoomAnimRafRef.current = null;
-          commit();
-        }
-      };
-      zoomAnimRafRef.current = requestAnimationFrame(step);
-    },
-    [applyTransform, cancelToolbarZoomAnim, commit, setWorldWillChange],
-  );
-
-  const enableMapInteraction = useCallback(() => {
-    setMapInteractionEnabled(true);
-  }, []);
-
-  const toggleMapInteraction = useCallback(() => {
-    setMapInteractionEnabled((prev) => {
-      const next = !prev;
-      return next;
-    });
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-    const media = window.matchMedia('(pointer: coarse)');
-    const update = () => setIsCoarsePointer(media.matches);
-    update();
-    if (typeof media.addEventListener === 'function') {
-      media.addEventListener('change', update);
-      return () => media.removeEventListener('change', update);
-    }
-    media.addListener(update);
-    return () => media.removeListener(update);
-  }, []);
-
-  useEffect(() => {
-    setMapInteractionEnabled(true);
-  }, [activeMapId]);
-
-  useEffect(() => {
-    const img = imgRef.current;
-    if (!img) return;
-    const onLoad = () => {
-      const w = img.naturalWidth;
-      const h = img.naturalHeight;
-      imgSizeRef.current = { w, h };
-      // Ne crée pas un nouvel objet à dimensions égales : évite un re-render (et le
-      // remontage de l'effet de mesure keyé sur `imgSize`) quand l'image est identique.
-      setImgSize((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
-    };
-    if (img.complete) onLoad();
-    else img.addEventListener('load', onLoad);
-    return () => img.removeEventListener('load', onLoad);
-  }, [mapImageSrc]);
-
-  useEffect(() => {
-    const c = containerRef.current;
-    if (!c) return;
-
-    const syncToolbarWidth = (cw) => {
-      const root = c.closest('.map-view-root');
-      if (!root) return;
-      if (cw > 0) root.style.setProperty('--fm-map-canvas-w', `${cw}px`);
-      else root.style.removeProperty('--fm-map-canvas-w');
-    };
-
-    const measureAndFit = () => {
-      if (imgSizeRef.current.w < 2 || imgSizeRef.current.h < 2) {
-        syncToolbarWidth(0);
-        return;
-      }
-      const { w: iw, h: ih } = imgSizeRef.current;
-      const outer = mapLayoutOuterRef?.current;
-
+  const resolveStageBox = useCallback(
+    (container) => {
+      const { embedded: emb, mapLayoutOuterRef: outerRef, mapFullscreen: fs } = optionsRef.current;
+      const outer = outerRef?.current;
       if (!outer) {
-        const cw = Math.max(1, c.clientWidth);
-        const ch = Math.max(1, c.clientHeight);
-        const s = Math.min(cw / iw, ch / ih, 1);
-        const x = (cw - iw * s) / 2;
-        const y = (ch - ih * s) / 2;
-        commitFitLayout(x, y, s);
-        syncToolbarWidth(cw);
-        return;
+        syncToolbarWidth(container, Math.max(1, container.clientWidth));
+        return null;
       }
-
       const st = getComputedStyle(outer);
       const padL = parseFloat(st.paddingLeft) || 0;
       const padR = parseFloat(st.paddingRight) || 0;
       const padT = parseFloat(st.paddingTop) || 0;
       const padB = parseFloat(st.paddingBottom) || 0;
       const { availW, availH } = resolveMapLayoutAvailBox(outer, {
-        embedded,
+        embedded: emb,
         padL,
         padR,
         padT,
         padB,
-        mapFullscreen,
+        mapFullscreen: fs,
       });
-
-      /* Cadre = toute la zone disponible ; le « contain » de l’image reste assuré par s, x, y sur le monde (zoom mobile / plans larges ex. N3). */
-      const cw = availW;
-      const ch = availH;
-
-      c.style.width = `${cw}px`;
-      c.style.height = `${ch}px`;
-
-      const s = Math.min(cw / iw, ch / ih, 1);
-      const x = (cw - iw * s) / 2;
-      const y = (ch - ih * s) / 2;
-      commitFitLayout(x, y, s);
-      syncToolbarWidth(cw);
-    };
-
-    measureAndFit();
-    let resizeDebounce = null;
-    const schedule = () => {
-      if (resizeDebounce != null) clearTimeout(resizeDebounce);
-      resizeDebounce = window.setTimeout(() => {
-        resizeDebounce = null;
-        measureAndFit();
-      }, 120);
-    };
-
-    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(schedule) : null;
-    if (ro) {
-      ro.observe(c);
-      const outerEl = mapLayoutOuterRef?.current;
-      if (outerEl) {
-        ro.observe(outerEl);
-        const layerEl = outerEl.closest(FM_MAP_FULLSCREEN_LAYER_SELECTOR);
-        if (layerEl) ro.observe(layerEl);
-      }
-    }
-
-    window.addEventListener('resize', schedule);
-    const vv = window.visualViewport;
-    if (vv) vv.addEventListener('resize', schedule);
-
-    return () => {
-      if (resizeDebounce != null) clearTimeout(resizeDebounce);
-      if (ro) ro.disconnect();
-      window.removeEventListener('resize', schedule);
-      if (vv) vv.removeEventListener('resize', schedule);
-      c.style.width = '';
-      c.style.height = '';
-      const root = c.closest('.map-view-root');
-      if (root) root.style.removeProperty('--fm-map-canvas-w');
-    };
-  }, [imgSize, embedded, mapLayoutOuterRef, mapFullscreen, commitFitLayout]);
-
-  const remeasureMap = useCallback(() => {
-    const c = containerRef.current;
-    const outer = mapLayoutOuterRef?.current;
-    if (!c || imgSizeRef.current.w < 2 || imgSizeRef.current.h < 2) return;
-
-    const { w: iw, h: ih } = imgSizeRef.current;
-
-    if (!outer) {
-      const cw = Math.max(1, c.clientWidth);
-      const ch = Math.max(1, c.clientHeight);
-      const s = Math.min(cw / iw, ch / ih, 1);
-      const x = (cw - iw * s) / 2;
-      const y = (ch - ih * s) / 2;
-      commitFitLayout(x, y, s);
-      return;
-    }
-
-    const st = getComputedStyle(outer);
-    const padL = parseFloat(st.paddingLeft) || 0;
-    const padR = parseFloat(st.paddingRight) || 0;
-    const padT = parseFloat(st.paddingTop) || 0;
-    const padB = parseFloat(st.paddingBottom) || 0;
-    const { availW, availH } = resolveMapLayoutAvailBox(outer, {
-      embedded,
-      padL,
-      padR,
-      padT,
-      padB,
-      mapFullscreen,
-    });
-    c.style.width = `${availW}px`;
-    c.style.height = `${availH}px`;
-    const s = Math.min(availW / iw, availH / ih, 1);
-    const x = (availW - iw * s) / 2;
-    const y = (availH - ih * s) / 2;
-    commitFitLayout(x, y, s);
-  }, [embedded, mapLayoutOuterRef, mapFullscreen, commitFitLayout]);
-
-  const toImagePct = useCallback((clientX, clientY) => {
-    const c = containerRef.current;
-    if (!c) return null;
-    const { x, y, s } = tx.current;
-    const { w, h } = imgSizeRef.current;
-    return pointToContainedRectPct(
-      { clientX, clientY },
-      c,
-      { x, y, s },
-      { offsetX: 0, offsetY: 0, width: w, height: h },
-      { clamp: false },
-    );
-  }, []);
-
-  const beginPan = useCallback(
-    (clientX, clientY) => {
-      cancelToolbarZoomAnim();
-      isPanning.current = true;
-      panStart.current = { x: clientX - tx.current.x, y: clientY - tx.current.y };
+      syncToolbarWidth(container, availW);
+      return { w: availW, h: availH };
     },
-    [cancelToolbarZoomAnim],
+    [syncToolbarWidth],
   );
 
-  const updatePan = useCallback(
-    (clientX, clientY) => {
-      if (!isPanning.current) return;
-      setWorldWillChange(true);
-      tx.current.x = clientX - panStart.current.x;
-      tx.current.y = clientY - panStart.current.y;
-      scheduleApply();
-    },
-    [scheduleApply, setWorldWillChange],
+  const fullscreenLayerRef = useRef(null);
+  fullscreenLayerRef.current =
+    mapLayoutOuterRef?.current?.closest?.(FM_MAP_FULLSCREEN_LAYER_SELECTOR) || null;
+  const observeRefs = useMemo(
+    () => [mapLayoutOuterRef, fullscreenLayerRef],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mapLayoutOuterRef, mapFullscreen],
   );
 
-  const endPan = useCallback(() => {
-    if (!isPanning.current) return;
-    isPanning.current = false;
-    commit();
-  }, [commit]);
+  const viewport = usePctMapViewport({
+    imageSrc: mapImageSrc,
+    contentMode: 'image',
+    enabled: true,
+    panEnabled: mode === 'view',
+    minScale: MAP_VIEW_SCALE_MIN,
+    maxScale: MAP_VIEW_SCALE_MAX,
+    bounds: true,
+    doubleTapZoom: mode === 'view',
+    inertia: true,
+    keyboardPan: mode === 'view',
+    coarsePointerScrollLock: true,
+    onResize: 'fit',
+    isGestureTarget: isMapGestureTarget,
+    resolveStageBox: mapLayoutOuterRef ? resolveStageBox : null,
+    observeRefs,
+    resetKey: `${activeMapId}|${embedded ? 1 : 0}|${mapFullscreen ? 1 : 0}`,
+  });
 
-  const panByScreenDelta = useCallback(
-    (dxPx, dyPx) => {
-      cancelToolbarZoomAnim();
-      setWorldWillChange(true);
-      tx.current.x += Number(dxPx) || 0;
-      tx.current.y += Number(dyPx) || 0;
-      scheduleApply();
-      if (panCommitTimerRef.current) clearTimeout(panCommitTimerRef.current);
-      panCommitTimerRef.current = setTimeout(() => {
-        panCommitTimerRef.current = null;
-        commit();
-      }, 80);
-    },
-    [cancelToolbarZoomAnim, commit, scheduleApply, setWorldWillChange],
-  );
-
-  useEffect(
-    () => () => {
-      if (panCommitTimerRef.current) clearTimeout(panCommitTimerRef.current);
-    },
-    [],
-  );
-
-  /** Flèches clavier : pan de la vue en mode consultation (hors champs de saisie). */
-  useEffect(() => {
-    if (mode !== 'view') return undefined;
-    const ARROW_DELTA = {
-      ArrowUp: [0, -1],
-      ArrowDown: [0, 1],
-      ArrowLeft: [-1, 0],
-      ArrowRight: [1, 0],
-    };
-    const onKey = (e) => {
-      const t = e.target;
-      if (t?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
-      const dir = ARROW_DELTA[e.key];
-      if (!dir) return;
-      e.preventDefault();
-      const stepPx = e.shiftKey ? 40 : 8;
-      panByScreenDelta(dir[0] * stepPx, dir[1] * stepPx);
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-  }, [mode, panByScreenDelta]);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const onPD = (e) => {
-      if (e.target.closest('.edit-pt') || e.target.closest('.map-bubble')) return;
-      cancelToolbarZoomAnim();
-      moved.current = false;
-      if (mode !== 'view') return;
-      const touchLike = e.pointerType === 'touch' || e.pointerType === 'pen';
-      const interactionActive = mapInteractionEnabled || tx.current.s > 1.05;
-      if (touchLike && isCoarsePointer && !interactionActive) return;
-      isPanning.current = true;
-      panStart.current = { x: e.clientX - tx.current.x, y: e.clientY - tx.current.y };
-    };
-
-    const onPM = (e) => {
-      if (isPanning.current) {
-        if (!moved.current) {
-          moved.current = true;
-          setWorldWillChange(true);
-          try {
-            el.setPointerCapture(e.pointerId);
-          } catch (_) {}
-        }
-        tx.current.x = e.clientX - panStart.current.x;
-        tx.current.y = e.clientY - panStart.current.y;
-        scheduleApply();
-        e.preventDefault();
-        return;
-      }
-      if (draggingMarkerRef.current && draggingMarkerEl.current) {
-        if (!moved.current) moved.current = true;
-        const p = toImagePct(e.clientX, e.clientY);
-        if (!p) return;
-        const mel = draggingMarkerEl.current;
-        mel.style.left = p.xp + '%';
-        mel.style.top = p.yp + '%';
-        mel._pct = p;
-        e.preventDefault();
-      }
-    };
-
-    const onPU = () => {
-      if (isPanning.current) {
-        isPanning.current = false;
-        commit();
-      }
-      if (draggingMarkerRef.current) {
-        const id = draggingMarkerRef.current;
-        const mel = draggingMarkerEl.current;
-        if (mel?._pct) {
-          api(`/api/map/markers/${id}`, 'PUT', { x_pct: mel._pct.xp, y_pct: mel._pct.yp }).then(
-            onRefresh,
-          );
-          delete mel._pct;
-        }
-        draggingMarkerRef.current = null;
-        draggingMarkerEl.current = null;
-      }
-      setTimeout(() => {
-        moved.current = false;
-      }, 0);
-    };
-
-    const onWH = (e) => {
-      e.preventDefault();
-      cancelToolbarZoomAnim();
-      setWorldWillChange(true);
-      const r = el.getBoundingClientRect();
-      const mx = e.clientX - r.left;
-      const my = e.clientY - r.top;
-      const d = wheelZoomScaleFactor(e, { containerClientHeight: el.clientHeight });
-      const ns = Math.min(Math.max(tx.current.s * d, MAP_VIEW_SCALE_MIN), MAP_VIEW_SCALE_MAX);
-      tx.current.x = mx - (mx - tx.current.x) * (ns / tx.current.s);
-      tx.current.y = my - (my - tx.current.y) * (ns / tx.current.s);
-      tx.current.s = ns;
-      scheduleApply();
-      clearTimeout(onWH._t);
-      onWH._t = setTimeout(commit, 80);
-    };
-
-    const touchRef2 = {};
-    const onTS = (e) => {
-      if (e.touches.length !== 2) return;
-      cancelToolbarZoomAnim();
-      isPanning.current = false;
-      pinching.current = true;
-      setWorldWillChange(true);
-      const t0 = e.touches[0];
-      const t1 = e.touches[1];
-      const rect = el.getBoundingClientRect();
-      touchRef2.dist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
-      touchRef2.s = tx.current.s;
-      touchRef2.ox = tx.current.x;
-      touchRef2.oy = tx.current.y;
-      touchRef2.mx = (t0.clientX + t1.clientX) / 2 - rect.left;
-      touchRef2.my = (t0.clientY + t1.clientY) / 2 - rect.top;
-      enableMapInteraction();
-      e.preventDefault();
-    };
-
-    const onTM = (e) => {
-      if (!pinching.current || e.touches.length !== 2) return;
-      const t0 = e.touches[0];
-      const t1 = e.touches[1];
-      const dist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
-      // Bornes alignées sur la molette et les boutons +/− (MAP_VIEW_SCALE_MIN/MAX) :
-      // le pinch clampait en dur (0.15, 6) → le plafond du pinch passe de 6 à 8.
-      const ns = Math.min(
-        Math.max(touchRef2.s * (dist / touchRef2.dist), MAP_VIEW_SCALE_MIN),
-        MAP_VIEW_SCALE_MAX,
-      );
-      tx.current.x = touchRef2.mx - (touchRef2.mx - touchRef2.ox) * (ns / touchRef2.s);
-      tx.current.y = touchRef2.my - (touchRef2.my - touchRef2.oy) * (ns / touchRef2.s);
-      tx.current.s = ns;
-      scheduleApply();
-      e.preventDefault();
-    };
-
-    const onTE = (e) => {
-      if (pinching.current && e.touches.length < 2) {
-        pinching.current = false;
-        commit();
-      }
-    };
-
-    el.addEventListener('pointerdown', onPD, { passive: true });
-    el.addEventListener('pointermove', onPM, { passive: false });
-    el.addEventListener('pointerup', onPU, { passive: true });
-    el.addEventListener('pointerleave', onPU, { passive: true });
-    el.addEventListener('wheel', onWH, { passive: false });
-    el.addEventListener('touchstart', onTS, { passive: false });
-    el.addEventListener('touchmove', onTM, { passive: false });
-    el.addEventListener('touchend', onTE, { passive: true });
-
-    return () => {
-      // Pas de cancelToolbarZoomAnim() ici : ce cleanup s'exécute à chaque changement de deps
-      // (ex. mapInteractionEnabled pendant un pinch) et couperait une animation de zoom en cours.
-      // L'annulation au démontage est portée par l'effet dédié plus haut.
-      el.removeEventListener('pointerdown', onPD);
-      el.removeEventListener('pointermove', onPM);
-      el.removeEventListener('pointerup', onPU);
-      el.removeEventListener('pointerleave', onPU);
-      el.removeEventListener('wheel', onWH);
-      el.removeEventListener('touchstart', onTS);
-      el.removeEventListener('touchmove', onTM);
-      el.removeEventListener('touchend', onTE);
-    };
-  }, [
-    cancelToolbarZoomAnim,
-    commit,
-    enableMapInteraction,
-    isCoarsePointer,
-    mapInteractionEnabled,
-    mode,
-    onRefresh,
-    scheduleApply,
-    setWorldWillChange,
-    toImagePct,
-  ]);
-
-  const fitMap = useCallback(() => {
-    cancelToolbarZoomAnim();
-    remeasureMap();
-  }, [cancelToolbarZoomAnim, remeasureMap]);
-
-  const beginMarkerDrag = useCallback(
-    (id, target, pointerId) => {
-      draggingMarkerRef.current = id;
-      draggingMarkerEl.current = target;
-      target.setPointerCapture(pointerId);
-      enableMapInteraction();
-    },
-    [enableMapInteraction],
-  );
-
-  const prefersPageScroll =
-    isCoarsePointer && mode === 'view' && committed.s <= 1.05 && !mapInteractionEnabled;
-  const touchAction = prefersPageScroll ? 'pan-y' : 'none';
-
-  return {
+  const {
     containerRef,
     worldRef,
     imgRef,
@@ -668,21 +170,117 @@ function useMapGestures({
     applyTransform,
     commit,
     fitMap,
-    remeasureMap,
+    remeasure,
     toImagePct,
-    beginMarkerDrag,
-    isCoarsePointer,
-    mapInteractionEnabled,
-    setMapInteractionEnabled,
-    toggleMapInteraction,
-    prefersPageScroll,
-    touchAction,
     animateZoomTowardScale,
+    focusOnPct,
     beginPan,
     updatePan,
     endPan,
     panByScreenDelta,
-  };
+    beginExternalDrag,
+    isCoarsePointer,
+    interactionEnabled,
+    setInteractionEnabled,
+    toggleInteraction,
+    prefersPageScroll,
+    touchAction,
+  } = viewport;
+
+  // Variable CSS de la barre d'outils retirée au démontage (comme avant).
+  useEffect(() => {
+    const c = containerRef.current;
+    return () => {
+      const root = c?.closest?.('.map-view-root');
+      if (root) root.style.removeProperty('--fm-map-canvas-w');
+    };
+  }, [containerRef]);
+
+  const onRefreshRef = useRef(onRefresh);
+  onRefreshRef.current = onRefresh;
+
+  /**
+   * Glisser d'un repère (prof, position déverrouillée) : suit le pointeur en % image puis
+   * persiste la position finale — la vue ne bouge pas pendant le glisser.
+   */
+  const beginMarkerDrag = useCallback(
+    (id, target, pointerId) => {
+      beginExternalDrag(target, pointerId, {
+        onMove: (p) => {
+          target.style.left = `${p.xp}%`;
+          target.style.top = `${p.yp}%`;
+        },
+        onEnd: (p) => {
+          if (!p) return;
+          api(`/api/map/markers/${id}`, 'PUT', { x_pct: p.xp, y_pct: p.yp }).then(() =>
+            onRefreshRef.current?.(),
+          );
+        },
+      });
+    },
+    [beginExternalDrag],
+  );
+
+  return useMemo(
+    () => ({
+      containerRef,
+      worldRef,
+      imgRef,
+      tx,
+      committed,
+      fitScale,
+      imgSize,
+      imgSizeRef,
+      moved,
+      applyTransform,
+      commit,
+      fitMap,
+      remeasureMap: remeasure,
+      toImagePct,
+      focusOnPct,
+      beginMarkerDrag,
+      isCoarsePointer,
+      mapInteractionEnabled: interactionEnabled,
+      setMapInteractionEnabled: setInteractionEnabled,
+      toggleMapInteraction: toggleInteraction,
+      prefersPageScroll,
+      touchAction,
+      animateZoomTowardScale,
+      beginPan,
+      updatePan,
+      endPan,
+      panByScreenDelta,
+    }),
+    [
+      containerRef,
+      worldRef,
+      imgRef,
+      tx,
+      committed,
+      fitScale,
+      imgSize,
+      imgSizeRef,
+      moved,
+      applyTransform,
+      commit,
+      fitMap,
+      remeasure,
+      toImagePct,
+      focusOnPct,
+      beginMarkerDrag,
+      isCoarsePointer,
+      interactionEnabled,
+      setInteractionEnabled,
+      toggleInteraction,
+      prefersPageScroll,
+      touchAction,
+      animateZoomTowardScale,
+      beginPan,
+      updatePan,
+      endPan,
+      panByScreenDelta,
+    ],
+  );
 }
 
 export { useMapGestures, resolveMapLayoutAvailBox, MAP_VIEW_SCALE_MIN, MAP_VIEW_SCALE_MAX };
