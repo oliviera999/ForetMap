@@ -10,6 +10,9 @@ import {
   sortedVisibleProjects,
   partitionTasksByEffectiveStatus,
   studentUrgentDueTasks,
+  isTaskValidated,
+  filterStatusShowsValidated,
+  partitionTasksByValidated,
 } from '../../src/utils/taskSectioning.js';
 
 const BASE_FILTERS = { filterMap: 'all', activeMapId: 'foret' };
@@ -255,5 +258,41 @@ describe('studentUrgentDueTasks', () => {
     const plainSooner = { id: 'plain', status: 'available', due_date: inDays(1) };
     const out = studentUrgentDueTasks([plainSooner, absoluteLater]);
     expect(out.map((t) => t.id)).toEqual(['abs', 'plain']);
+  });
+});
+
+describe('masquage par défaut des éléments validés', () => {
+  test('isTaskValidated : validée pour elle-même ou via un projet validé', () => {
+    expect(isTaskValidated({ status: 'validated' })).toBe(true);
+    expect(isTaskValidated({ status: 'available', project_status: 'validated' })).toBe(true);
+    expect(isTaskValidated({ status: 'done' })).toBe(false);
+    expect(isTaskValidated({ status: 'available', project_status: 'completed' })).toBe(false);
+    expect(isTaskValidated({ status: 'proposed' })).toBe(false);
+    expect(isTaskValidated(null)).toBe(false);
+  });
+
+  test('filterStatusShowsValidated : seuls les statuts validés révèlent les validés', () => {
+    expect(filterStatusShowsValidated('validated')).toBe(true);
+    expect(filterStatusShowsValidated('project_validated')).toBe(true);
+    expect(filterStatusShowsValidated('')).toBe(false);
+    expect(filterStatusShowsValidated('done')).toBe(false);
+    expect(filterStatusShowsValidated('archived')).toBe(false);
+    expect(filterStatusShowsValidated(null)).toBe(false);
+  });
+
+  test('partitionTasksByValidated : scinde en conservant l’ordre d’origine', () => {
+    const list = [
+      { id: 'a', status: 'available' },
+      { id: 'b', status: 'validated' },
+      { id: 'c', status: 'in_progress' },
+      { id: 'd', status: 'available', project_status: 'validated' },
+    ];
+    const { visible, validated } = partitionTasksByValidated(list);
+    expect(visible.map((t) => t.id)).toEqual(['a', 'c']);
+    expect(validated.map((t) => t.id)).toEqual(['b', 'd']);
+  });
+
+  test('partitionTasksByValidated : entrée non tableau → deux listes vides', () => {
+    expect(partitionTasksByValidated(null)).toEqual({ visible: [], validated: [] });
   });
 });
