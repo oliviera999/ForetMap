@@ -1,4 +1,10 @@
-/** Pastille version (staff GL) — réutilise les styles ForetMap `.app-version-badge`. */
+import '../../shared/styles/version-badge.css';
+
+/**
+ * Pastille version (staff G&L) — même style `.app-version-badge` que ForetMap,
+ * porté par la feuille partagée `src/shared/styles/version-badge.css` importée
+ * ici (le point d'entrée G&L ne charge pas `src/index.css`).
+ */
 export function GLAppVersionBadge({ appVersion }) {
   const label = appVersion != null ? appVersion : '…';
   return (

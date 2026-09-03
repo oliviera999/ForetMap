@@ -24,12 +24,9 @@ const {
   presentQuestion,
   verifyPresentationAnswer,
   resolveQcmAnswerFeedback,
-} = require('../../lib/glQcmChoices');
-const { consumePresentationJti } = require('../../lib/glQcmPresentationUse');
-const {
-  buildGlossaryLookupMap,
-  matchGlossaryTermsForSpecies,
-} = require('../../lib/glGlossaryMatch');
+} = require('../../lib/qcmChoices');
+const { consumePresentationJti } = require('../../lib/qcmPresentationUse');
+const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../../lib/glossaryMatch');
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 const { normalizeQuestionCode } = require('../../lib/shared/questionRouteHelpers');
 const { validate } = require('../../lib/validate');

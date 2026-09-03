@@ -1,23 +1,19 @@
-import { useEffect, useMemo, useRef } from 'react';
 import {
   renderGlMarkdownWithLoreGlossaryLinks,
   renderGlPlainTextWithLoreGlossaryLinks,
 } from '../../utils/glLoreGlossaryAutolink.js';
 import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
+import { GL_LORE_GLOSSARY_CODE_ATTR } from '../../shared/utils/glossaryLinkClick.js';
+import { useGlossaryLinkedHtml } from '../../shared/hooks/useGlossaryLinkedHtml.js';
 
-function bindLoreClick(container, onOpenLoreTerm) {
-  if (!container || typeof onOpenLoreTerm !== 'function') return () => {};
-  const handler = (event) => {
-    const link = event.target.closest('[data-gl-lore-code]');
-    if (!link || !container.contains(link)) return;
-    event.preventDefault();
-    const code = String(link.getAttribute('data-gl-lore-code') || '').trim();
-    if (code) onOpenLoreTerm(code);
-  };
-  container.addEventListener('click', handler);
-  return () => container.removeEventListener('click', handler);
-}
-
+/**
+ * Markdown G&L avec termes du glossaire **lore** hyperliés (popover au clic).
+ *
+ * Pendant de `GLGlossaryMarkdown` (glossaire SVT) : la mécanique commune (repli
+ * sans liens si l'auto-lien échoue, délégation de clic) vit dans
+ * `useGlossaryLinkedHtml`, seuls les rendus et l'attribut de données
+ * (`data-gl-lore-code`) sont propres au lore.
+ */
 export function GLLoreGlossaryMarkdown({
   markdown,
   loreGlossaryItems = [],
@@ -26,27 +22,30 @@ export function GLLoreGlossaryMarkdown({
   allowImages = true,
   tag: Tag = 'div',
 }) {
-  const containerRef = useRef(null);
-  const hasLore = Array.isArray(loreGlossaryItems) && loreGlossaryItems.length > 0;
-  const html = useMemo(() => {
-    const raw = String(markdown ?? '').trim();
-    if (!raw) return '';
-    if (!hasLore) return renderMarkdownToSafeHtml(raw, { allowImages });
-    try {
-      return renderGlMarkdownWithLoreGlossaryLinks(raw, loreGlossaryItems, { allowImages });
-    } catch {
-      return renderMarkdownToSafeHtml(raw, { allowImages });
-    }
-  }, [markdown, loreGlossaryItems, hasLore, allowImages]);
-
-  useEffect(() => bindLoreClick(containerRef.current, onOpenLoreTerm), [html, onOpenLoreTerm]);
+  const source = String(markdown ?? '').trim();
+  const { html, containerRef } = useGlossaryLinkedHtml({
+    source,
+    glossaryItems: loreGlossaryItems,
+    renderLinked: (text, items) =>
+      renderGlMarkdownWithLoreGlossaryLinks(text, items, { allowImages }),
+    renderPlain: (text) => renderMarkdownToSafeHtml(text, { allowImages }),
+    onOpenGlossaryTerm: onOpenLoreTerm,
+    codeAttribute: GL_LORE_GLOSSARY_CODE_ATTR,
+    label: 'GLLoreGlossaryMarkdown',
+    renderDeps: [allowImages],
+  });
 
   if (!html) return null;
+
   return (
     <Tag ref={containerRef} className={className} dangerouslySetInnerHTML={{ __html: html }} />
   );
 }
 
+/**
+ * Texte brut G&L avec termes du glossaire lore hyperliés — le HTML saisi est
+ * échappé puis assaini (`renderGlPlainTextWithLoreGlossaryLinks`).
+ */
 export function GLLoreGlossaryInlineText({
   text,
   loreGlossaryItems = [],
@@ -54,16 +53,20 @@ export function GLLoreGlossaryInlineText({
   className = '',
   tag: Tag = 'span',
 }) {
-  const containerRef = useRef(null);
-  const html = useMemo(() => {
-    const raw = String(text ?? '');
-    if (!raw || !loreGlossaryItems?.length) return '';
-    return renderGlPlainTextWithLoreGlossaryLinks(raw, loreGlossaryItems);
-  }, [text, loreGlossaryItems]);
+  const raw = String(text ?? '');
+  const { html, containerRef, hasGlossary } = useGlossaryLinkedHtml({
+    source: raw,
+    glossaryItems: loreGlossaryItems,
+    renderLinked: renderGlPlainTextWithLoreGlossaryLinks,
+    onOpenGlossaryTerm: onOpenLoreTerm,
+    codeAttribute: GL_LORE_GLOSSARY_CODE_ATTR,
+    label: 'GLLoreGlossaryInlineText',
+  });
 
-  useEffect(() => bindLoreClick(containerRef.current, onOpenLoreTerm), [html, onOpenLoreTerm]);
+  if (!hasGlossary || !html) {
+    return <Tag className={className}>{text}</Tag>;
+  }
 
-  if (!html) return <Tag className={className}>{text}</Tag>;
   return (
     <Tag ref={containerRef} className={className} dangerouslySetInnerHTML={{ __html: html }} />
   );

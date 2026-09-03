@@ -12,7 +12,7 @@ import {
   shouldRetryAfterTimeout,
   transientRetryDelayMs,
   tryParseJsonText,
-} from '../src/services/apiTransport.js';
+} from '../src/shared/apiTransport.js';
 
 function mockRes(status, contentType, extraHeaders = {}) {
   return {
