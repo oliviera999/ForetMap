@@ -12,6 +12,7 @@ import { getRoleTerms } from '../utils/n3-terminology';
 import { MediaLibraryMenu } from './MediaLibraryMenu.jsx';
 import { AdminTextSettingField, AdminNumberSettingField } from './settings/AdminSettingFields.jsx';
 import { MapCategoriesPanel } from './settings/MapCategoriesPanel.jsx';
+import { UsagePanel } from './settings/UsagePanel.jsx';
 import { MapLocationsAdminPanel } from './settings/MapLocationsAdminPanel.jsx';
 import { MapGeorefPanel } from './settings/MapGeorefPanel.jsx';
 import { VisitMascotSettingsPanel } from './settings/VisitMascotSettingsPanel.jsx';
@@ -838,6 +839,10 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                 </div>
               ))}
             </div>
+          </AdminSection>
+
+          <AdminSection id="usage" title="Usage (compteurs anonymes)" defaultOpen={false}>
+            <UsagePanel onError={(errMsg) => setErr(errMsg)} />
           </AdminSection>
 
           <AdminSection id="categories" title="Catégories de lieux" defaultOpen={false}>

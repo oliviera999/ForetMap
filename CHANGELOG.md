@@ -7,6 +7,35 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Lot 8 — Parcours, hors ligne, QR, accès et compteur (plan de convergence §6)
+
+- **Parcours de carte** (migration `210`, `map_routes` / `map_route_steps`, API
+  `/api/map-routes`) : listes ordonnées de lieux, sans validation ni progression enregistrée.
+  Les étapes pointent vers les lieux existants — aucun lieu n'est dupliqué. Publication par
+  surface (plan, visite, carte), brouillon par défaut, étapes remplacées en bloc.
+- **Mode parcours du plan** : puce « Parcours », étape courante en feuille basse avec
+  « Précédent » / « Suivant », recadrage de la carte sur l'étape, « Y aller » qui vise l'étape,
+  lien profond `?parcours=<slug>`. L'avancement vit sur l'appareil, rien n'est envoyé.
+- **Export PDF avec QR code** (`GET /api/map-routes/:id/pdf`) : une page imprimable avec les
+  étapes et un QR code vers le lien profond, à afficher à l'accueil. QR généré localement
+  (`qrcode`, licence MIT — https://github.com/soldair/node-qrcode) : une affiche
+  d'établissement ne doit dépendre d'aucun service tiers.
+- **Accès du plan par code** (`ui.plan.access_mode = 'code'`) : `POST /api/plan/access` vérifie
+  le code (bcrypt, limiteur d'authentification) et pose un cookie signé de 30 jours ; la charge
+  publique répond 401 `access_required` sans laissez-passer, et un lien profond `?code=` ouvre
+  le plan sans saisie. Composant partagé `AccessCodeGate`. Mode `code` sans code configuré : le
+  plan reste ouvert plutôt que muré.
+- **Hors ligne** : les service workers du **plan** (charge publique, réglages, parcours) et de
+  **G&L** (contenus éditoriaux, chapitres) branchent enfin leurs lectures ; bandeau
+  « Hors ligne — plan mémorisé » côté plan.
+- **Compteur d'usage sur les trois produits** : envoi partagé (`src/shared/usage/reportUsage.js`),
+  ouvertures et onglets côté ForetMap et G&L, parcours et hors ligne côté plan. Nouvel écran
+  admin **« Usage »** (compteurs par produit et événement, et la liste des **recherches sans
+  résultat** — les mots à ajouter en alias de recherche).
+- Tests : `tests/map-routes.test.js` (dont l'export PDF et la publication sur le plan), garde
+  d'accès dans `tests/plan-content.test.js`, `tests-ui/plan/planRoutes.test.js`, mode parcours
+  et écran de code dans le montage de `AppPlan`.
+
 ### Lot 7 — Aide, thème et notifications convergés (plan de convergence §6)
 
 - **Dock d'aide partagé** (`src/shared/help/HelpDock.jsx`), généralisé depuis `GLHelpDialog` :

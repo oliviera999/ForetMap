@@ -812,6 +812,36 @@ VALUES
    'Bâtiment ou aménagement (mare, ruches, compostage, cuve…) plutôt qu''une culture.',
    'both', 1, 10, 1);
 
+-- map_routes / map_route_steps (parcours : listes ordonnées de lieux, lot 8)
+CREATE TABLE IF NOT EXISTS map_routes (
+  id VARCHAR(64) NOT NULL PRIMARY KEY,
+  map_id VARCHAR(32) NOT NULL,
+  slug VARCHAR(120) NOT NULL,
+  title VARCHAR(180) NOT NULL,
+  description TEXT DEFAULT NULL,
+  audience VARCHAR(120) NOT NULL DEFAULT '',
+  surfaces SET('map','visit','plan') NOT NULL DEFAULT 'plan',
+  is_published TINYINT(1) NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 100,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_map_routes_map_slug (map_id, slug),
+  INDEX idx_map_routes_map (map_id),
+  CONSTRAINT fk_map_routes_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS map_route_steps (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  route_id VARCHAR(64) NOT NULL,
+  position INT NOT NULL DEFAULT 0,
+  target_type ENUM('zone','marker') NOT NULL,
+  target_id VARCHAR(64) NOT NULL,
+  step_title VARCHAR(180) NOT NULL DEFAULT '',
+  step_text TEXT DEFAULT NULL,
+  INDEX idx_map_route_steps_route_position (route_id, position),
+  CONSTRAINT fk_map_route_steps_route FOREIGN KEY (route_id) REFERENCES map_routes(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS zone_categories (
   zone_id VARCHAR(64) NOT NULL,
   category_id VARCHAR(64) NOT NULL,

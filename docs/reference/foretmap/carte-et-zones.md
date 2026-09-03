@@ -199,6 +199,19 @@ permission « Gestion zones ».
 7. **Supprimer** une zone ou un repère : la fiche, ses photos et son contenu de visite
    sont retirés ensemble.
 
+### Les parcours
+
+Un **parcours** enchaîne des lieux dans un ordre choisi, avec un titre, un public visé et, pour
+chaque étape, un texte court facultatif. Ils se gèrent dans _Réglages → Carte_, et servent de
+feuille de séance côté ForetMap comme de visite fléchée sur le Plan Lyautey.
+
+- Un parcours naît **brouillon** : il n'apparaît nulle part tant qu'il n'est pas publié.
+- Les cases **« visible sur »** décident des surfaces, comme pour les lieux.
+- Le bouton **« Exporter en PDF »** produit une page imprimable : la liste des étapes et un
+  **QR code** vers le parcours, à afficher à l'accueil.
+- Rien n'est enregistré du côté des personnes qui suivent un parcours : aucune validation,
+  aucune progression, aucun suivi individuel.
+
 ### Se situer sur la carte
 
 Quand le plan affiché est **calé** (points de repère GPS posés par un professeur), le bouton
