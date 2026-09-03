@@ -13,23 +13,14 @@
 
 /**
  * Points d'un polygone de zone (JSON stocké), normalisés en pourcentages 0–100.
- * @param {string} raw
- * @returns {{ xp: number, yp: number }[]}
+ *
+ * L'implémentation vit désormais dans le noyau carte partagé
+ * (`src/shared/pct-map/pctPolygon.js`, lot 4) : le calque de zones partagé en a besoin et
+ * `src/shared` ne peut pas importer de code produit. Nom public inchangé ici.
+ *
+ * @type {(raw: string) => { xp: number, yp: number }[]}
  */
-export function parseZonePoints(raw) {
-  try {
-    const points = JSON.parse(raw || '[]');
-    if (!Array.isArray(points)) return [];
-    return points
-      .map((p) => ({
-        xp: Number(p?.xp),
-        yp: Number(p?.yp),
-      }))
-      .filter((p) => Number.isFinite(p.xp) && Number.isFinite(p.yp));
-  } catch (_) {
-    return [];
-  }
-}
+export { parsePctPolygonPoints as parseZonePoints } from '../shared/pct-map/pctPolygon.js';
 
 /**
  * Rectangle (px, espace « monde » carte) où l'image du plan est réellement dessinée

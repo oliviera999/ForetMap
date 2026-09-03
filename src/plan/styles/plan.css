@@ -1,4 +1,4 @@
-/* Plan Lyautey — tokens et règles de base (le lot 4 apportera la feuille métier).
+/* Plan Lyautey — feuille du produit (lot 4 : carte plein écran, recherche, feuilles basses).
    `--font-sans` est PAR PRODUIT (cf. typography-tokens.css) : même DM Sans que ForetMap. */
 :root {
   color-scheme: light;
@@ -25,31 +25,452 @@ body.plan-body {
 }
 
 .plan-shell {
+  position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0)
-    env(safe-area-inset-left, 0);
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
-.plan-header {
-  padding: 1.25rem 1rem 0.75rem;
+.plan-shell--state {
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3, 12px);
+  padding: var(--space-4, 16px);
+  text-align: center;
+}
+
+.plan-state {
+  margin: 0;
+  color: var(--plan-muted);
+  font-size: var(--text-md, 1.05rem);
+}
+
+.plan-state--error {
+  color: #9f1239;
+}
+
+/* --- Barre haute flottante : titre + recherche ---------------------------------------- */
+
+.plan-topbar {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+  padding: calc(env(safe-area-inset-top, 0px) + var(--space-3, 12px)) var(--space-3, 12px)
+    var(--space-2, 8px);
   background: var(--forest);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+}
+
+.plan-topbar__title {
+  margin: 0;
+  font-size: var(--text-lg, 1.2rem);
+  font-weight: var(--fw-bold, 700);
+  line-height: var(--lh-tight, 1.2);
+}
+
+.plan-topbar__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  min-height: var(--tap-target);
+  padding: 0 var(--space-3, 12px);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--plan-ink);
+}
+
+.plan-topbar__search-icon {
+  flex: 0 0 auto;
+  font-size: var(--text-md, 1.05rem);
+}
+
+.plan-topbar__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--tap-target);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--text-base, 1rem);
+}
+
+.plan-topbar__input:focus {
+  outline: none;
+}
+
+.plan-topbar__search:focus-within {
+  outline: 2px solid var(--leaf);
+  outline-offset: 2px;
+}
+
+.plan-topbar__clear {
+  flex: 0 0 auto;
+  width: var(--tap-target);
+  height: var(--tap-target);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--plan-muted);
+  font-size: var(--text-md, 1.05rem);
+  cursor: pointer;
+}
+
+/* --- Puces de catégories -------------------------------------------------------------- */
+
+.plan-chips {
+  z-index: 2;
+  display: flex;
+  gap: var(--space-2, 8px);
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  overflow-x: auto;
+  background: var(--plan-bg);
+  border-bottom: 1px solid rgba(26, 71, 49, 0.12);
+  scrollbar-width: none;
+}
+
+.plan-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.plan-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap-target);
+  padding: 0 var(--space-3, 12px);
+  border: 1px solid rgba(26, 71, 49, 0.25);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--plan-ink);
+  font: inherit;
+  font-size: var(--text-sm, 0.9rem);
+  cursor: pointer;
+}
+
+.plan-chip.is-active {
+  background: var(--leaf);
+  border-color: var(--leaf);
+  color: #fff;
+  font-weight: var(--fw-semibold, 600);
+}
+
+.plan-chip:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}
+
+.plan-chip__count {
+  opacity: 0.75;
+  font-size: var(--text-xs, 0.8rem);
+}
+
+/* --- Carte plein écran ---------------------------------------------------------------- */
+
+.plan-main {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.plan-map {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #e6ece6;
+  cursor: grab;
+}
+
+.plan-map__world {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+.plan-map__fit {
+  position: absolute;
+}
+
+.plan-map__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.plan-map__zones,
+.fm-pct-zones {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.fm-pct-zone {
+  cursor: pointer;
+}
+
+.fm-pct-zone__poly {
+  fill: rgba(74, 124, 89, 0.28);
+  stroke: var(--forest);
+  stroke-width: 0.35;
+  vector-effect: non-scaling-stroke;
+}
+
+.fm-pct-zone.is-active .fm-pct-zone__poly {
+  fill: rgba(74, 124, 89, 0.5);
+  stroke-width: 0.8;
+}
+
+.fm-pct-zone__emoji {
+  font-size: 3.4px;
+  dominant-baseline: middle;
+}
+
+.fm-pct-zone__name {
+  fill: var(--plan-ink);
+  font-size: 2.4px;
+  font-weight: var(--fw-semibold, 600);
+  paint-order: stroke;
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 0.6px;
+  dominant-baseline: middle;
+}
+
+.fm-pct-marker {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--plan-ink);
+  font: inherit;
+  cursor: pointer;
+  transform: translate(-50%, -100%);
+}
+
+.fm-pct-marker__pin {
+  font-size: 1.3rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
+
+.fm-pct-marker__label {
+  max-width: 9rem;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  font-size: var(--text-2xs, 0.7rem);
+  font-weight: var(--fw-semibold, 600);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fm-pct-marker.is-active .fm-pct-marker__label {
+  background: var(--leaf);
   color: #fff;
 }
 
-.plan-title {
+.fm-pct-marker:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}
+
+.plan-map-controls {
+  position: absolute;
+  right: var(--space-3, 12px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-4, 16px));
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.plan-map__attribution {
+  position: absolute;
+  left: var(--space-2, 8px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 4px);
   margin: 0;
-  font-size: var(--text-xl, 1.4rem);
-  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--plan-muted);
+  font-size: var(--text-2xs, 0.7rem);
 }
 
-.plan-intro {
-  margin: 0.25rem 0 0;
-  opacity: 0.85;
+/* --- Message d'accueil ---------------------------------------------------------------- */
+
+.plan-welcome {
+  position: absolute;
+  left: var(--space-3, 12px);
+  right: var(--space-3, 12px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-4, 16px));
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  padding: var(--space-3, 12px);
+  border-radius: 14px;
+  background: var(--forest);
+  color: #fff;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.24);
 }
 
-.plan-main {
-  flex: 1;
-  padding: 1rem;
+.plan-welcome__text {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: var(--text-sm, 0.9rem);
+}
+
+.plan-welcome__close {
+  flex: 0 0 auto;
+  min-height: var(--tap-target);
+  padding: 0 var(--space-3, 12px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* --- Feuilles basses (résultats, fiche) ----------------------------------------------- */
+
+.plan-results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-results__item + .plan-results__item {
+  border-top: 1px solid rgba(26, 71, 49, 0.12);
+}
+
+.plan-results__btn {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3, 12px);
+  width: 100%;
+  min-height: var(--tap-target);
+  padding: var(--space-3, 12px) var(--space-2, 8px);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.plan-results__btn:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: -2px;
+}
+
+.plan-results__emoji {
+  flex: 0 0 auto;
+  font-size: var(--text-lg, 1.2rem);
+}
+
+.plan-results__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.plan-results__name {
+  font-weight: var(--fw-semibold, 600);
+}
+
+.plan-results__subtitle,
+.plan-results__categories {
+  color: var(--plan-muted);
+  font-size: var(--text-sm, 0.9rem);
+}
+
+.plan-results__empty {
+  margin: 0;
+  padding: var(--space-4, 16px) var(--space-2, 8px);
+  color: var(--plan-muted);
+}
+
+.plan-place__heading {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.plan-place__subtitle {
+  margin: 0 0 var(--space-2, 8px);
+  color: var(--plan-muted);
+}
+
+.plan-place__categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+  margin: 0 0 var(--space-3, 12px);
+  padding: 0;
+  list-style: none;
+}
+
+.plan-place__category {
+  padding: 2px 10px;
+  border: 1px solid rgba(26, 71, 49, 0.25);
+  border-radius: 999px;
+  font-size: var(--text-xs, 0.8rem);
+}
+
+.plan-place__photo {
+  display: block;
+  width: 100%;
+  max-height: 40vh;
+  margin-bottom: var(--space-3, 12px);
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.plan-place__lead,
+.plan-place__details-text {
+  margin: 0 0 var(--space-3, 12px);
+  line-height: var(--lh-relaxed, 1.6);
+}
+
+.plan-place__details-title {
+  margin: 0 0 var(--space-2, 8px);
+  font-size: var(--text-md, 1.05rem);
+}
+
+.plan-place__aliases,
+.plan-place__share {
+  margin: 0 0 var(--space-2, 8px);
+  color: var(--plan-muted);
+  font-size: var(--text-sm, 0.9rem);
+  overflow-wrap: anywhere;
+}
+
+.plan-place__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.plan-place__go-hint {
+  margin: 0;
+  color: var(--plan-muted);
+  font-size: var(--text-xs, 0.8rem);
+  text-align: center;
 }
