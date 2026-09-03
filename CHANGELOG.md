@@ -7,6 +7,40 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Lot 5 — Désencombrement et lisibilité (plan de convergence §6)
+
+- **Regroupement des repères au dézoom** (`src/shared/pct-map/clusterMarkers.js`, grille écran
+  d'une cible tactile) : les repères qui se chevauchent deviennent une **pastille chiffrée**
+  (emoji du repère le plus prioritaire, couleur de sa catégorie). Un tap zoome sur l'enveloppe
+  du groupe s'il se sépare ; sinon le **plan** ouvre la liste des lieux du groupe en feuille
+  basse, et la **carte de travail** ouvre la fiche du repère principal. Actif sur le plan et
+  sur la carte ForetMap, où un bouton de la barre d'outils le débraye (et où le mode édition
+  le désactive toujours).
+- **Priorité par catégorie** : `sort_order` sert de rang, sans nouveau champ à saisir — les
+  catégories de tête sont nommées en premier et regroupées en dernier.
+- **Catégories « visibles seulement au zoom »** (migration `209`, `location_categories.zoom_only`,
+  case dans le panneau Catégories de lieux) : leurs lieux disparaissent tant que la carte est
+  vue en entier.
+- **Étiquettes de repères adaptatives** sur le plan : l'emoji seul au dézoom, le nom au zoom
+  en commençant par les catégories prioritaires, toujours le nom du lieu sélectionné. Le nom
+  **accessible** du bouton reste complet quand l'étiquette visible est masquée.
+- **Étiquettes de zones au pôle d'inaccessibilité** (`pctPolylabel.js`, d'après *polylabel* de
+  Mapbox, licence ISC) au lieu du centroïde : sur une zone en L ou en croissant, le nom
+  tombait hors de sa zone. Appliqué à la carte de travail **et** à la Visite.
+- **Priorité et collisions d'étiquettes** (`mapOverlayLabelCollision.js`) : module pur de
+  placement glouton, épinglage du lieu sélectionné, estimation de boîte sans mesure DOM.
+- **Légende** : chaque puce de catégorie du plan porte la pastille de couleur de sa catégorie
+  — la couleur des contours n'était expliquée nulle part à l'écran.
+- **Catégories par défaut par surface** : nouveaux réglages publics
+  `ui.map.default_category_ids` et `ui.visit.default_category_ids`, à côté de
+  `ui.plan.default_category_ids`.
+- **Rapport de densité** (`scripts/report-marker-density.js`, lecture seule) : repères par
+  catégorie, cellules du plan qui en contiennent plusieurs, paires de repères pratiquement
+  superposées — pour régler les seuils sur les données réelles.
+- Tests : `tests-ui/shared/clusterMarkers.test.js`, `pctPolylabel.test.js`,
+  `mapOverlayLabelCollision.test.js`, scénario de groupe dans le montage `AppPlan`, et
+  `tests/plan-content.test.js` pour `zoom_only`.
+
 ### Lot 4 — Plan Lyautey v1 (plan de convergence §6)
 
 - **Surfaces d'affichage des lieux** (migration `208`) : un même lieu — zone ou repère — est

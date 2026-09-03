@@ -1,4 +1,4 @@
-import{r as e}from"./rolldown-runtime-hePW80VL.js";import{n as t}from"./usePrefersReducedMotion-nYJyyXmv.js";import{n,t as r}from"./react-vendor-Bnq5Y4Sb.js";import{Gt as i}from"./icons-BYRl22YG.js";import"./visitMascotPackExtras-CDOHmchL.js";import{l as a,o}from"./mascotPackEditorModel-YrE1Iaaf.js";import{a as s,t as c}from"./MascotPackWysiwygEditor-DgaGVMDB.js";var l=e(n()),u=e(i()),d=r(),f=`{
+import{r as e}from"./rolldown-runtime-hePW80VL.js";import{n as t}from"./usePrefersReducedMotion-nYJyyXmv.js";import{n,t as r}from"./react-vendor-Bnq5Y4Sb.js";import{Gt as i}from"./icons-BYRl22YG.js";import"./visitMascotPackExtras--nDE4Lsz.js";import{l as a,o}from"./mascotPackEditorModel-YrE1Iaaf.js";import{a as s,t as c}from"./MascotPackWysiwygEditor-EZQggy4O.js";var l=e(n()),u=e(i()),d=r(),f=`{
   "mascotPackVersion": 1,
   "id": "exemple-pack",
   "label": "Exemple pack (documentation)",
