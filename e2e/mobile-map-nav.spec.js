@@ -47,3 +47,35 @@ test('mobile : carte, navigation basse et feuille de filtres', async ({ page }) 
     await expect(page.locator('.map-view-canvas').first()).toBeVisible({ timeout: 60_000 });
   }
 });
+
+/** Lot 2 — moteur de carte partagé : double-tap tactile et recentrage sur la carte élève. */
+test('mobile : double-tap zoome la carte, le bouton recentrer la réajuste', async ({ page }) => {
+  test.setTimeout(240_000);
+  await loginAsNewStudent(page);
+  await dismissDiscoveryTourIfPresent(page);
+  const bottomNav = page.locator('nav.bottom-nav');
+  await expect(bottomNav).toBeVisible({ timeout: 60_000 });
+  const mapBtn = bottomNav.getByRole('button', { name: 'Carte', exact: true });
+  if ((await mapBtn.count()) > 0) await mapBtn.click();
+  const canvas = page.locator('.map-view-canvas').first();
+  await expect(canvas).toBeVisible({ timeout: 60_000 });
+  const world = canvas.locator(':scope > div').first();
+  const readScale = async () => {
+    const t = await world.evaluate((el) => el.style.transform || '');
+    const m = /scale\(([\d.]+)\)/.exec(t);
+    return m ? Number(m[1]) : 0;
+  };
+  await expect.poll(readScale, { timeout: 15_000 }).toBeGreaterThan(0);
+  const fitScale = await readScale();
+
+  const box = await canvas.boundingBox();
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.touchscreen.tap(x, y);
+  await page.waitForTimeout(80);
+  await page.touchscreen.tap(x, y);
+  await expect.poll(readScale, { timeout: 5_000 }).toBeGreaterThan(fitScale * 1.8);
+
+  await page.getByRole('button', { name: 'Recentrer la carte', exact: true }).click();
+  await expect.poll(readScale, { timeout: 5_000 }).toBeCloseTo(fitScale, 2);
+});
