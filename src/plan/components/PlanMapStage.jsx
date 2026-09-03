@@ -1,15 +1,29 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { MapActionButton } from '../../shared/ui/MapActionButton.jsx';
+import { PctClusterLayer } from '../../shared/pct-map/PctClusterLayer.jsx';
 import { PctImageLayer } from '../../shared/pct-map/PctImageLayer.jsx';
-import { PctMarkersLayer } from '../../shared/pct-map/PctMarkersLayer.jsx';
+import { PctMarkerButton } from '../../shared/pct-map/PctMarkersLayer.jsx';
 import { PctZonesLayer } from '../../shared/pct-map/PctZonesLayer.jsx';
 import { usePctMapViewport } from '../../shared/pct-map/usePctMapViewport.js';
 import { parsePctPolygonPoints } from '../../shared/pct-map/pctPolygon.js';
+import {
+  clusterCenterPct,
+  clusterMarkers,
+  clusterSeparatesOnZoom,
+  clusterZoomTargetScale,
+} from '../../shared/pct-map/clusterMarkers.js';
+import { shouldShowMarkerLabel } from '../../shared/pct-map/mapOverlayLabelCollision.js';
 import { planPlaceFocusPct } from '../utils/planPlaces.js';
 
 /** Cibles qui ne démarrent pas un déplacement de carte (commandes superposées). */
 const PLAN_GESTURE_TARGET = '.plan-map-controls, .plan-map-controls *';
+
+/**
+ * Rang de catégorie (`sort_order`) au-delà duquel le nom d'un repère n'apparaît qu'à fort
+ * zoom : les entrées et les bâtiments se nomment avant les sanitaires.
+ */
+const PLAN_LABEL_PRIORITY_CUTOFF = 50;
 
 /**
  * Carte plein écran du Plan Lyautey (lot 4) : moteur de carte partagé en mode « scène »
@@ -25,6 +39,10 @@ const PLAN_GESTURE_TARGET = '.plan-map-controls, .plan-map-controls *';
  * @param {Array<object>} props.markers
  * @param {object|null} props.selectedPlace lieu dont la fiche est ouverte (mis en avant, centré).
  * @param {(place: object) => void} props.onSelectPlace
+ * @param {(markers: Array<object>) => void} [props.onOpenGroup] tap sur un groupe qui ne se
+ *   sépare pas au zoom : le produit montre la liste de ses lieux (feuille basse).
+ * @param {Map<string, object>} [props.categoriesById] catalogue des catégories (priorités,
+ *   couleur de la pastille de groupe).
  * @param {string} [props.attribution] mention de source du fond de plan (`ui.plan.attribution`).
  */
 export function PlanMapStage({
@@ -33,6 +51,8 @@ export function PlanMapStage({
   markers,
   selectedPlace,
   onSelectPlace,
+  onOpenGroup = null,
+  categoriesById = null,
   attribution = '',
 }) {
   const imageSrc = String(map?.map_image_url || '');
@@ -49,6 +69,8 @@ export function PlanMapStage({
     imgRef,
     committed,
     fitRect,
+    fitScale,
+    stageSize,
     fitMap,
     fitMapAnimated,
     zoomBy,
@@ -70,6 +92,61 @@ export function PlanMapStage({
       onSelectPlace({ ...marker, kind: 'marker', name: String(marker.label || '').trim() });
     },
     [consumeSkipClick, onSelectPlace],
+  );
+
+  // Désencombrement (lot 5) : au dézoom, les repères dont les pastilles se recouvrent sont
+  // fusionnés en une pastille de groupe. Recalculé au commit de transformation seulement.
+  const clusters = useMemo(
+    () =>
+      clusterMarkers(markers, {
+        contentWidthPx: fitRect.width,
+        contentHeightPx: fitRect.height,
+        scale: committed.s,
+        categoriesById,
+      }),
+    [markers, fitRect.width, fitRect.height, committed.s, categoriesById],
+  );
+
+  const onClusterClick = useCallback(
+    (cluster) => {
+      if (consumeSkipClick()) return;
+      // Le groupe se sépare en zoomant : on zoome sur son enveloppe. Sinon (repères
+      // réellement au même endroit), la liste de ses lieux monte dans la feuille basse —
+      // l'option accessible de l'éventail « spiderfy » (§8.3).
+      if (clusterSeparatesOnZoom(cluster)) {
+        focusOnPct(clusterCenterPct(cluster), {
+          targetScale: clusterZoomTargetScale(cluster, {
+            stageWidthPx: stageSize.w,
+            stageHeightPx: stageSize.h,
+            contentWidthPx: fitRect.width,
+            contentHeightPx: fitRect.height,
+          }),
+        });
+        return;
+      }
+      onOpenGroup?.(cluster.markers);
+    },
+    [
+      consumeSkipClick,
+      focusOnPct,
+      onOpenGroup,
+      stageSize.w,
+      stageSize.h,
+      fitRect.width,
+      fitRect.height,
+    ],
+  );
+
+  const clusterColorOf = useCallback(
+    (cluster) => {
+      const ids = cluster?.lead?.category_ids || [];
+      for (const id of ids) {
+        const color = categoriesById?.get?.(String(id))?.color;
+        if (color) return color;
+      }
+      return '';
+    },
+    [categoriesById],
   );
 
   // Centrage sur le lieu sélectionné : une fois par lieu, jamais pendant que l'on manipule
@@ -103,6 +180,43 @@ export function PlanMapStage({
   const selectedZoneId = selectedPlace?.kind === 'zone' ? selectedPlace.id : null;
   const selectedMarkerId = selectedPlace?.kind === 'marker' ? selectedPlace.id : null;
 
+  // Étiquettes de repères : jamais toutes. L'emoji seul au dézoom, le nom au zoom, et
+  // toujours le nom du lieu sélectionné (§8.3, point 4).
+  const markerLabelOf = useCallback(
+    (marker) => {
+      const label = String(marker?.label ?? marker?.name ?? '').trim();
+      if (!label) return '';
+      const selected = selectedMarkerId != null && String(selectedMarkerId) === String(marker.id);
+      const priority = (marker?.category_ids || []).reduce((best, id) => {
+        const rank = Number(categoriesById?.get?.(String(id))?.sort_order);
+        return Number.isFinite(rank) && rank < best ? rank : best;
+      }, Number.POSITIVE_INFINITY);
+      return shouldShowMarkerLabel({
+        scale: committed.s,
+        fitScale,
+        priority,
+        selected,
+        priorityCutoff: PLAN_LABEL_PRIORITY_CUTOFF,
+      })
+        ? label
+        : '';
+    },
+    [committed.s, fitScale, selectedMarkerId, categoriesById],
+  );
+
+  const renderMarker = useCallback(
+    (marker) => (
+      <PctMarkerButton
+        key={marker.id}
+        marker={marker}
+        isActive={selectedMarkerId != null && String(selectedMarkerId) === String(marker.id)}
+        onMarkerClick={onMarkerClick}
+        labelOf={markerLabelOf}
+      />
+    ),
+    [onMarkerClick, selectedMarkerId, markerLabelOf],
+  );
+
   return (
     <div className="plan-map" ref={containerRef} style={{ touchAction }}>
       <div
@@ -127,10 +241,11 @@ export function PlanMapStage({
             activeZoneId={selectedZoneId}
             className="fm-pct-zones plan-map__zones"
           />
-          <PctMarkersLayer
-            markers={markers}
-            onMarkerClick={onMarkerClick}
-            activeMarkerId={selectedMarkerId}
+          <PctClusterLayer
+            clusters={clusters}
+            onClusterClick={onClusterClick}
+            renderMarker={renderMarker}
+            colorOf={clusterColorOf}
           />
         </div>
       </div>
