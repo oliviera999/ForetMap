@@ -1,4 +1,5 @@
 import { getRoleTerms } from './n3-terminology';
+import { normalizeDateOnly } from './taskListHelpers.js';
 
 function taskStatusAria(status, isN3Affiliated) {
   const roleTerms = getRoleTerms(isN3Affiliated);
@@ -62,10 +63,26 @@ export function archivedChip() {
   );
 }
 
+/**
+ * Nombre de jours (entier) entre AUJOURD'HUI et une échéance, dans le fuseau de
+ * l'utilisateur : 0 = aujourd'hui, 1 = demain, -1 = un jour de retard.
+ *
+ * Comparaison de dates NUES, minuit local à minuit local. La version précédente
+ * soustrayait deux instants (`new Date('2026-09-02') - new Date()`) : une date nue est
+ * parsée à minuit **UTC**, si bien qu'à l'est de Greenwich une tâche due le jour même
+ * s'affichait « Demain » entre minuit et le décalage horaire (2 h l'été à Paris).
+ * `Math.round` plutôt qu'un quotient brut : les jours de changement d'heure durent
+ * 23 ou 25 h et fausseraient une division sèche.
+ */
 export function daysUntil(date) {
   if (!date) return null;
-  const diff = Math.ceil((new Date(date) - new Date()) / 86400000);
-  return diff;
+  const iso = normalizeDateOnly(date);
+  if (!iso) return null;
+  const [y, m, d] = iso.split('-').map(Number);
+  const target = new Date(y, m - 1, d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target.getTime() - today.getTime()) / 86400000);
 }
 
 export function dueDateChip(date) {

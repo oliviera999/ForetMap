@@ -125,3 +125,73 @@ describe('useNotificationCenter — notifications d’état', () => {
     expect(findByKey(result, 'autre')?.read).toBe(false);
   });
 });
+
+describe('useNotificationCenter — échéances n3beur', () => {
+  const student = { id: 's1', first_name: 'Lina', last_name: 'B' };
+  const STUDENT_STORAGE_KEY = 'foretmap_notifications_items_student';
+
+  function isoDaysFromToday(days) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + days);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function mountStudent(tasks) {
+    return renderHook((props) => useNotificationCenter(props), {
+      initialProps: { isTeacher: false, isAdmin: false, student, tasksForActiveMap: tasks },
+    });
+  }
+
+  function taskDue(id, offsetDays) {
+    return {
+      id,
+      status: 'in_progress',
+      due_date: isoDaysFromToday(offsetDays),
+      assignments: [{ student_id: 's1' }],
+    };
+  }
+
+  beforeEach(() => {
+    window.localStorage.removeItem(STUDENT_STORAGE_KEY);
+  });
+
+  it('une tâche due AUJOURD’HUI est « proche », pas « en retard »', () => {
+    const { result } = mountStudent([taskDue('t1', 0)]);
+    expect(findByKey(result, 'student-deadline-soon')?.read).toBe(false);
+    expect(findByKey(result, 'student-deadline-overdue')).toBeNull();
+  });
+
+  it('une tâche dépassée déclenche « en retard »', () => {
+    const { result } = mountStudent([taskDue('t1', -1)]);
+    expect(findByKey(result, 'student-deadline-overdue')?.read).toBe(false);
+  });
+
+  it('la notification est CLOSE quand plus aucune échéance ne la justifie', () => {
+    const { result, rerender } = mountStudent([taskDue('t1', -1)]);
+    expect(result.current.unreadCount).toBe(1);
+
+    rerender({
+      isTeacher: false,
+      isAdmin: false,
+      student,
+      tasksForActiveMap: [taskDue('t1', 10)],
+    });
+    expect(findByKey(result, 'student-deadline-overdue')?.read).toBe(true);
+    expect(result.current.unreadCount).toBe(0);
+  });
+
+  it('la clé est stable : un changement de compte n’empile pas un second item', () => {
+    const { result, rerender } = mountStudent([taskDue('t1', -1)]);
+    rerender({
+      isTeacher: false,
+      isAdmin: false,
+      student,
+      tasksForActiveMap: [taskDue('t1', -1), taskDue('t2', -2)],
+    });
+    const overdueItems = result.current.items.filter(
+      (item) => item.key === 'student-deadline-overdue',
+    );
+    expect(overdueItems).toHaveLength(1);
+  });
+});
