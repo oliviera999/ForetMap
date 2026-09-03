@@ -269,3 +269,14 @@ Documents spécifiques (produits au fur et à mesure — voir le
 [sommaire](../README.md)) : carte et zones · plantes et biodiversité · tâches,
 tutoriels et validation · comptes, rôles et groupes · visite et mascottes · pédagogie
 (quiz, glossaire, réseau trophique) · stats, forum et suivi.
+
+## Identité visuelle de l'établissement
+
+Depuis le lot 7 du plan de convergence, ForetMap peut porter les **couleurs et le logo** de
+l'établissement, comme le font déjà Gnomes & Licornes et le Plan Lyautey. Le réglage tient en
+huit couleurs, deux polices et deux images ; sans réglage, l'apparence forêt d'origine est
+conservée à l'identique.
+
+Par sécurité, un logo ou un favicon ne peut désigner qu'un fichier **déjà déposé dans
+l'application** : une adresse extérieure est refusée, pour qu'un réglage d'apparence ne
+serve pas à appeler un site tiers depuis toutes les pages.

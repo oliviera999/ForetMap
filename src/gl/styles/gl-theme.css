@@ -6635,3 +6635,47 @@ fieldset .media-library-menu__gallery {
   line-height: 1.35;
 }
 .qcm-preview__photo-caption .qcm-photo__legende { font-weight: var(--fw-semibold); }
+
+/* Centre de notifications : groupes, niveaux et dates (lot 7 du plan de convergence). */
+.gl-notifications-group + .gl-notifications-group {
+  margin-top: var(--gl-space-3, 12px);
+}
+
+.gl-notifications-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gl-color-text);
+  opacity: 0.75;
+}
+
+.gl-notifications-group-unread {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--gl-color-primary);
+  color: #fff;
+  font-size: var(--text-2xs);
+  text-align: center;
+}
+
+.gl-notifications-date {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-2xs);
+  opacity: 0.7;
+}
+
+.gl-notifications-panel li.is-important {
+  border-left: 3px solid var(--gl-ink-warning, #b45309);
+  padding-left: 8px;
+}
+
+.gl-notifications-panel li.is-critical {
+  border-left: 3px solid var(--gl-ink-danger, #b91c1c);
+  padding-left: 8px;
+}

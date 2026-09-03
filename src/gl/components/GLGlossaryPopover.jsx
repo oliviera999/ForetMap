@@ -8,8 +8,16 @@ import { GLButton } from './ui/GLButton.jsx';
 import { GLLearningAcknowledgeButton } from './GLLearningAcknowledgeButton.jsx';
 import { GLJournalImportButton } from './GLJournalImportButton.jsx';
 import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
+import {
+  GLOSSARY_CLOSE_MS,
+  GLOSSARY_NIVEAU_LABELS,
+  createGlossaryDetailCache,
+  glossaryCacheKey,
+  glossaryCategoryAccent,
+} from '../../shared/glossary/glossaryCardCore.js';
 
-const CLOSE_MS = 200;
+// Mécanique commune aux deux fiches de glossaire (ForetMap et G&L) : noyau partagé du lot 7.
+const CLOSE_MS = GLOSSARY_CLOSE_MS;
 
 const CATEGORY_ACCENT = {
   ecologie: '#059669',
@@ -25,21 +33,16 @@ const CATEGORY_ACCENT = {
   methode_svt: '#4f46e5',
 };
 
-const NIVEAU_LABELS = {
-  base: 'Base',
-  approfondissement: 'Approfondissement',
-  avance: 'Avancé',
-};
+const NIVEAU_LABELS = GLOSSARY_NIVEAU_LABELS;
 
-const detailCache = new Map();
+const detailCache = createGlossaryDetailCache();
 
 function cacheKey(code, biomeSlugs) {
-  const slugs = Array.isArray(biomeSlugs) ? biomeSlugs.filter(Boolean).join(',') : '';
-  return `${code}|${slugs}`;
+  return glossaryCacheKey(code, biomeSlugs);
 }
 
 function categoryAccent(categorie) {
-  return CATEGORY_ACCENT[String(categorie || '').toLowerCase()] || '#047c8c';
+  return glossaryCategoryAccent(categorie, CATEGORY_ACCENT, '#047c8c');
 }
 
 export function GLGlossaryPopover({

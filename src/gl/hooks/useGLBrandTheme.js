@@ -1,6 +1,12 @@
 import { useEffect, useMemo } from 'react';
 import { normalizeGlImageFrame } from '../../shared/image-frame/glImageFrame.js';
 import { mergeBrandWithChapterTheme } from '../utils/glBrandTheme.js';
+import {
+  brandCssVariables,
+  googleFontsHref,
+  normalizeBrandAssetUrl as normalizeAssetUrl,
+  normalizeBrandCore,
+} from '../../shared/brand/brandThemeCore.js';
 
 export const GL_CONTENT_PAGE_SLOT_BY_SLUG = {
   world: 'card_world',
@@ -54,13 +60,6 @@ export const DEFAULT_GL_BRAND = {
   },
 };
 
-function normalizeAssetUrl(value) {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  if (raw.startsWith('/uploads/') || raw.startsWith('/maps/')) return raw;
-  return '';
-}
-
 function normalizeSlot(rawSlot, defaults) {
   const source = rawSlot && typeof rawSlot === 'object' ? rawSlot : {};
   const base = defaults && typeof defaults === 'object' ? defaults : {};
@@ -88,54 +87,17 @@ function normalizeSlots(rawSlots) {
   };
 }
 
-function safeColor(value, fallback) {
-  const raw = String(value || '').trim();
-  return /^#[0-9a-f]{6}$/i.test(raw) ? raw : fallback;
-}
-
-function safeFontName(value, fallback) {
-  const raw = String(value || '').trim();
-  return raw || fallback;
-}
-
+/**
+ * Couleurs, polices, logo et favicon viennent du noyau partagé
+ * (`src/shared/brand/brandThemeCore.js`, lot 7) ; les **emplacements d'images** (héros,
+ * cartes de contenu) restent propres à G&L, aucun autre produit n'en a.
+ */
 export function normalizeBrand(rawBrand) {
   const source = rawBrand && typeof rawBrand === 'object' ? rawBrand : {};
-  const sourceColors = source.colors && typeof source.colors === 'object' ? source.colors : {};
-  const sourceFonts = source.fonts && typeof source.fonts === 'object' ? source.fonts : {};
-  const googleFamilies = Array.isArray(sourceFonts.googleFamilies)
-    ? sourceFonts.googleFamilies
-        .map((item) => String(item || '').trim())
-        .filter(Boolean)
-        .slice(0, 6)
-    : DEFAULT_GL_BRAND.fonts.googleFamilies;
   return {
-    colors: {
-      primary: safeColor(sourceColors.primary, DEFAULT_GL_BRAND.colors.primary),
-      secondary: safeColor(sourceColors.secondary, DEFAULT_GL_BRAND.colors.secondary),
-      tertiary: safeColor(sourceColors.tertiary, DEFAULT_GL_BRAND.colors.tertiary),
-      text: safeColor(sourceColors.text, DEFAULT_GL_BRAND.colors.text),
-      link: safeColor(sourceColors.link, DEFAULT_GL_BRAND.colors.link),
-      linkHover: safeColor(sourceColors.linkHover, DEFAULT_GL_BRAND.colors.linkHover),
-      topbar: safeColor(sourceColors.topbar, DEFAULT_GL_BRAND.colors.topbar),
-      background: safeColor(sourceColors.background, DEFAULT_GL_BRAND.colors.background),
-    },
-    fonts: {
-      body: safeFontName(sourceFonts.body, DEFAULT_GL_BRAND.fonts.body),
-      heading: safeFontName(sourceFonts.heading, DEFAULT_GL_BRAND.fonts.heading),
-      googleFamilies:
-        googleFamilies.length > 0 ? googleFamilies : DEFAULT_GL_BRAND.fonts.googleFamilies,
-    },
-    logoUrl: normalizeAssetUrl(source.logoUrl),
-    faviconUrl: normalizeAssetUrl(source.faviconUrl),
+    ...normalizeBrandCore(source, DEFAULT_GL_BRAND),
     slots: normalizeSlots(source.slots),
   };
-}
-
-function toCssFontFamily(value, fallbackStack = 'serif') {
-  const raw = String(value || '').trim();
-  if (!raw) return fallbackStack;
-  if (raw.includes(',')) return raw;
-  return `"${raw}", ${fallbackStack}`;
 }
 
 function upsertBrandFaviconLink(href) {
@@ -156,12 +118,8 @@ function upsertBrandFaviconLink(href) {
 
 function upsertFontLink(families) {
   if (typeof document === 'undefined') return;
-  const uniqueFamilies = [
-    ...new Set((families || []).map((item) => String(item || '').trim()).filter(Boolean)),
-  ];
-  if (uniqueFamilies.length === 0) return;
-  const encoded = uniqueFamilies.map((item) => item.replace(/\s+/g, '+')).join('&family=');
-  const href = `https://fonts.googleapis.com/css2?family=${encoded}:wght@400;500;600;700&display=swap`;
+  const href = googleFontsHref(families);
+  if (!href) return;
   let node = document.getElementById('gl-brand-fonts');
   if (!node) {
     node = document.createElement('link');
@@ -185,21 +143,8 @@ export function useGLBrandTheme(rawBrand, chapterTheme) {
     if (brand.faviconUrl) upsertBrandFaviconLink(brand.faviconUrl);
   }, [brand.faviconUrl]);
 
-  const style = useMemo(
-    () => ({
-      '--gl-color-primary': brand.colors.primary,
-      '--gl-color-secondary': brand.colors.secondary,
-      '--gl-color-tertiary': brand.colors.tertiary,
-      '--gl-color-text': brand.colors.text,
-      '--gl-color-link': brand.colors.link,
-      '--gl-color-link-hover': brand.colors.linkHover,
-      '--gl-color-topbar': brand.colors.topbar,
-      '--gl-color-background': brand.colors.background,
-      '--gl-font-body': toCssFontFamily(brand.fonts.body, 'serif'),
-      '--gl-font-heading': toCssFontFamily(brand.fonts.heading, 'serif'),
-    }),
-    [brand],
-  );
+  // Mêmes variables qu'avant (`--gl-color-*`, `--gl-font-*`) : le préfixe est celui du produit.
+  const style = useMemo(() => brandCssVariables(brand, { prefix: 'gl' }), [brand]);
 
   return { brand, style };
 }

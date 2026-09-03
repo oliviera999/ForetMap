@@ -6,11 +6,14 @@ import {
 } from '../shared/platform/browserStorage.js';
 import { buildPlaceIndex, searchPlaces } from '../shared/search/placeSearch.js';
 import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
+import { useBrandTheme } from '../shared/brand/useBrandTheme.js';
+import { PLAN_BRAND_DEFAULTS } from './utils/planBrand.js';
 import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
 import { parsePctPolygonPoints } from '../shared/pct-map/pctPolygon.js';
 import { FixedToast } from '../shared/components/FixedToast.jsx';
 import { useTimedToastState } from '../shared/hooks/useTimedToastState.js';
 import { PlanCategoryChips } from './components/PlanCategoryChips.jsx';
+import { PlanHelp } from './components/PlanHelp.jsx';
 import { PlanMapStage } from './components/PlanMapStage.jsx';
 import { PlanPlaceSheet } from './components/PlanPlaceSheet.jsx';
 import { PlanResultsSheet } from './components/PlanResultsSheet.jsx';
@@ -56,6 +59,16 @@ export function AppPlan() {
   const openedOnceRef = useRef(false);
 
   const title = settings?.title || 'Plan Lyautey';
+
+  /**
+   * Identité visuelle de l'établissement (lot 7) : réglage `ui.plan.brand`, même mécanique
+   * que G&L et ForetMap. Sans réglage, l'apparence par défaut du plan est conservée.
+   */
+  const { brand, style: brandStyle } = useBrandTheme(settings?.brand, {
+    prefix: 'plan-brand',
+    defaults: PLAN_BRAND_DEFAULTS,
+    fontFallback: "'DM Sans', sans-serif",
+  });
 
   /**
    * Position de la personne sur le plan (lot 6) : le point bleu, son halo de précision et le
@@ -274,13 +287,20 @@ export function AppPlan() {
   const hasMapImage = Boolean(map?.map_image_url);
 
   return (
-    <div className="plan-shell">
+    <div className="plan-shell" style={brandStyle}>
       <PlanTopBar
         title={title}
+        logoUrl={brand.logoUrl}
         query={query}
         onQueryChange={onQueryChange}
         onFocusSearch={() => setResultsOpen(true)}
         resultCount={results.length}
+      />
+
+      <PlanHelp
+        welcomeHint={settings?.welcome_hint || ''}
+        canLocate={position.available}
+        onOpen={() => reportPlanUsage('help_open', 'plan')}
       />
 
       <PlanCategoryChips

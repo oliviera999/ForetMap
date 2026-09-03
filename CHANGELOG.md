@@ -7,6 +7,33 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Lot 7 — Aide, thème et notifications convergés (plan de convergence §6)
+
+- **Dock d'aide partagé** (`src/shared/help/HelpDock.jsx`), généralisé depuis `GLHelpDialog` :
+  bouton « ? » qui pulse jusqu'à la première ouverture, modale, rappel de la visite guidée,
+  mémoire par clé. G&L le consomme sans changer une classe ni un comportement (ses classes
+  de thème sont passées en `classNames`, comme pour `MapActionButton`), et le **Plan Lyautey
+  gagne une aide** : chercher, filtrer, se déplacer, comprendre les pastilles de groupe, se
+  situer.
+- **Thème de marque par produit** (`src/shared/brand/`) : noyau pur extrait de
+  `useGLBrandTheme` — huit couleurs validées, deux polices, logo et favicon, variables CSS
+  préfixées par produit. Nouveaux réglages publics **`ui.foret.brand`** et **`ui.plan.brand`**
+  (objets JSON) ; ForetMap et le plan peuvent désormais porter l'identité de l'établissement,
+  et sans réglage leur apparence est **inchangée au pixel près**. Les URL de logo et de
+  favicon restent bornées à `/uploads/` et `/maps/` (garde anti-exfiltration de G&L).
+- **Centre de notifications** : noyau partagé (`notificationCenterCore.js`) — dates relatives
+  en français, niveaux, regroupement par catégorie, comptage des non-lues. ForetMap y délègue
+  ses helpers ; **G&L gagne** les dates lisibles, les niveaux et le regroupement, les groupes
+  porteurs de non-lues en tête.
+- **Fiche de glossaire** : noyau commun aux deux fiches (`glossaryCardCore.js`) — durée de
+  fermeture, libellés de niveau, cache mémoire et accent de catégorie. Les deux composants
+  restent distincts, chacun avec sa palette.
+- **Éditeur de cadre d'image** promu dans le socle (`src/shared/image-frame/ImageFrameEditor.jsx`,
+  avec son aide) : l'outil n'avait rien de propre au jeu et sert aux photos de lieux. Les
+  anciens noms G&L restent en alias, classes CSS inchangées.
+- Tests : `tests-ui/shared/HelpDock.test.jsx`, `brandThemeCore.test.js`,
+  `notificationCenterCore.test.js`.
+
 ### Lot 6 — Position (plan de convergence §6)
 
 - **Point de position partagé** (`src/shared/pct-map/useMapPosition.js` +
