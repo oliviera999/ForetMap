@@ -43,7 +43,6 @@ export function GLChapterMapStudio({
   zoneMusicEnabled = false,
 }) {
   const { confirm } = useAppDialogs();
-  const mapGestures = useGlPctMapGestures();
   const [isAddMode, setIsAddMode] = useState(false);
   const [selectedMarkerId, setSelectedMarkerId] = useState(null);
   const [markerForm, setMarkerForm] = useState(EMPTY_MARKER_FORM);
@@ -112,6 +111,11 @@ export function GLChapterMapStudio({
     selectZone,
     mode: zoneMode,
   } = zoneEditor;
+  // Pan/zoom du moteur coupés pendant un glisser de repère ou l'édition d'une zone.
+  const mapGestures = useGlPctMapGestures({
+    imageSrc: mapImageUrl,
+    enabled: !dragState && !zoneEditActive,
+  });
 
   const fetchMediaLibraryWithInfo = useCallback(async () => {
     const items = await fetchMediaLibrary();

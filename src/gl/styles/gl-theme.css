@@ -1237,6 +1237,48 @@ a.gl-glossary-inline-link:hover,
   width: 100%;
 }
 
+/* Calque monde transformé par le moteur de carte partagé (pan/zoom, transform-origin 0 0). */
+.gl-board-world {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+  will-change: auto;
+}
+
+/* Boutons zoom superposés (+ / − / recentrer), cibles ≥ 44 px. */
+.gl-board-zoom-controls {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gl-board-zoom-btn {
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--gl-radius-pill);
+  background: rgba(15, 23, 42, 0.78);
+  color: var(--gl-color-on-dark);
+  font-size: var(--text-lg);
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.gl-board-zoom-btn:hover {
+  background: rgba(30, 41, 59, 0.92);
+}
+
+.gl-board-zoom-btn:focus-visible {
+  outline: 2px solid var(--gl-color-on-dark);
+  outline-offset: 2px;
+}
+
 /* Calque % aligné sur l’image réelle (object-fit: contain), pas sur la boîte carte */
 .gl-board-fit-layer {
   position: absolute;
@@ -1609,15 +1651,24 @@ a.gl-glossary-inline-link:hover,
 }
 
 .gl-board-shell--fullscreen {
-  position: fixed;
-  inset: 0;
-  z-index: var(--fm-z-fullscreen);
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   margin: 0;
   max-width: none;
   background: var(--gl-surface-dark);
+}
+
+/* Couche plein écran partagée (`MapFullscreenShell`) habillée aux couleurs G&L ; le bouton
+   Fermer du shell est masqué au profit de celui de `GLBoardChrome` (testid gl-map-fullscreen-close). */
+.gl-board-fullscreen-shell {
+  background: var(--gl-surface-dark);
+}
+
+.gl-board-fullscreen-shell > .fm-map-fullscreen-close {
+  display: none;
 }
 
 .gl-board-shell--fullscreen .gl-board,
@@ -1651,17 +1702,6 @@ a.gl-glossary-inline-link:hover,
 .gl-map-fullscreen-close:focus-visible {
   outline: 2px solid var(--gl-color-on-dark);
   outline-offset: 2px;
-}
-
-body.gl-map-fullscreen-active {
-  overflow: hidden;
-}
-
-/* Carte portée sur body : évite le piège transform de .gl-main-inner.fade-in */
-body.gl-map-fullscreen-active > .gl-board-shell--fullscreen {
-  position: fixed;
-  inset: 0;
-  z-index: var(--fm-z-fullscreen);
 }
 
 .gl-panel--map-fullscreen-active {
