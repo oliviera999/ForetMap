@@ -10,26 +10,40 @@ const GL_SHARE_TITLE = 'Gnomes & Licornes';
 const GL_SHARE_DESCRIPTION = GL_AUTH_BACK_COVER.join(' ');
 
 /**
- * Injecte les métadonnées de partage (description, Open Graph, Twitter Card) dans
- * la seule SPA GL (gl.html), en dev comme au build. Les autres entrées HTML
- * (index.vite.html, mascot-pack-tool.html) ne sont pas modifiées.
+ * Métadonnées de partage par entrée HTML (clé = nom de fichier de l'entrée). Les entrées
+ * absentes de cette table (index.vite.html, mascot-pack-tool.html) ne sont pas modifiées.
  */
-function glShareMetaPlugin() {
+const SHARE_META_BY_ENTRY = {
+  'gl.html': { title: GL_SHARE_TITLE, description: GL_SHARE_DESCRIPTION },
+  'plan.html': {
+    title: 'Plan Lyautey',
+    description: 'Plan du Lycée Lyautey : se repérer dans les lieux avec son smartphone',
+  },
+};
+
+/**
+ * Injecte les métadonnées de partage (description, Open Graph, Twitter Card) dans les
+ * entrées HTML déclarées, en dev comme au build.
+ * @param {Record<string, { title: string, description: string }>} metaByEntry
+ */
+function shareMetaPlugin(metaByEntry) {
   return {
-    name: 'gl-share-meta',
+    name: 'share-meta',
     transformIndexHtml(html, ctx) {
       const target = ctx?.path || ctx?.filename || '';
-      if (!target.endsWith('gl.html')) return html;
+      const entryName = Object.keys(metaByEntry).find((name) => target.endsWith(name));
+      if (!entryName) return html;
+      const { title, description } = metaByEntry[entryName];
       const meta = [
-        { name: 'description', content: GL_SHARE_DESCRIPTION },
+        { name: 'description', content: description },
         { property: 'og:type', content: 'website' },
-        { property: 'og:site_name', content: GL_SHARE_TITLE },
+        { property: 'og:site_name', content: title },
         { property: 'og:locale', content: 'fr_FR' },
-        { property: 'og:title', content: GL_SHARE_TITLE },
-        { property: 'og:description', content: GL_SHARE_DESCRIPTION },
+        { property: 'og:title', content: title },
+        { property: 'og:description', content: description },
         { name: 'twitter:card', content: 'summary' },
-        { name: 'twitter:title', content: GL_SHARE_TITLE },
-        { name: 'twitter:description', content: GL_SHARE_DESCRIPTION },
+        { name: 'twitter:title', content: title },
+        { name: 'twitter:description', content: description },
       ];
       return {
         html,
@@ -40,7 +54,7 @@ function glShareMetaPlugin() {
 }
 
 export default defineConfig({
-  plugins: [react(), glShareMetaPlugin()],
+  plugins: [react(), shareMetaPlugin(SHARE_META_BY_ENTRY)],
   root: '.',
   optimizeDeps: {
     // lucide-react expose ~1500 modules ESM : pré-bundlé en dev pour éviter l'avalanche
@@ -54,11 +68,16 @@ export default defineConfig({
     // ~6 MB de `.map` versionnes a chaque deploy. Le serveur de dev Vite garde ses sourcemaps
     // (esbuild) inchanges. Repasser a 'hidden' si un agregateur d'erreurs est ajoute plus tard.
     sourcemap: false,
+    // Manifeste Rollup (`dist/.vite/manifest.json`) : liste des bundles hachés par entrée,
+    // consommée par `scripts/build-pwa.js` pour précacher exactement les fichiers de chaque
+    // produit dans son service worker.
+    manifest: true,
     rollupOptions: {
       input: {
         main: path.resolve(process.cwd(), 'index.vite.html'),
         mascotPackTool: path.resolve(process.cwd(), 'mascot-pack-tool.html'),
         gl: path.resolve(process.cwd(), 'gl.html'),
+        plan: path.resolve(process.cwd(), 'plan.html'),
       },
       output: {
         manualChunks(id) {
