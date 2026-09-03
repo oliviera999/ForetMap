@@ -5,7 +5,7 @@ const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { emitGardenChanged } = require('../lib/realtime');
 const { normalizeMarkerEmoji } = require('../lib/markerEmoji');
-const { logAudit } = require('./audit');
+const { logAudit } = require('../lib/auditLog');
 const {
   APPLIES_TO_VALUES,
   normalizeAppliesTo,

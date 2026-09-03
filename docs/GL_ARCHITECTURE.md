@@ -46,13 +46,24 @@ de la v1.90.1 (récupérable dans l’historique Git). Câbler l’UI reste à f
 
 ## Routage produit
 
-- La résolution de produit se fait via `lib/productResolver.js`.
+- **Registre des produits** : `lib/products.js` (lot 1 du plan de convergence) déclare chaque
+  produit — `foret`, `gl`, `plan` (Plan Lyautey, host `planlyautey.*`) — avec ses préfixes de
+  host, son entrée HTML Vite, son dossier d'assets `public/<dir>/`, son préfixe d'API, ses
+  chemins d'authentification soumis au limiteur strict et les noms de ses fichiers PWA
+  générés. Ajouter un produit = ajouter une entrée ici.
+- La résolution de produit se fait via `lib/productResolver.js`, qui lit le registre.
 - Source de vérité :
-  - `req.hostname` (`gl.*` => produit `gl`)
-  - surcharge possible via header `X-Foretmap-Product` (tests/e2e).
-- Fallback SPA :
-  - ForetMap => `dist/index.vite.html`
-  - GL => `dist/gl.html`
+  - `req.hostname` normalisé (minuscules, sans port, sans `www.`) : premier préfixe de host du
+    registre qui correspond (`gl.` => `gl`, `planlyautey.` => `plan`), sinon `foret` ;
+  - surcharge possible via header `X-Foretmap-Product` (tests/e2e), limitée aux identifiants du
+    registre.
+- Ce que le host décide (et rien d'autre) : l'index SPA servi (`lib/spaFallback.js`, entrée
+  du produit si présente dans `dist/`, sinon `index.vite.html`), le favicon (`public/<dir>/`),
+  le service worker et le manifest PWA (`/sw.js`, `/manifest.json` → `dist/sw-<produit>.js`,
+  `dist/manifest-<produit>.webmanifest`, générés par `scripts/build-pwa.js`), et la garde qui
+  redirige vers `/` l'entrée HTML d'un produit demandée sur le host d'un autre.
+- L'isolement des sessions reste porté par le claim JWT `product` et le préfixe `/api/gl`,
+  orthogonaux au host (ci-dessous).
 
 ### Pipeline JWT et frontière produit
 

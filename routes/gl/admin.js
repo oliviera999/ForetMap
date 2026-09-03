@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { queryAll, queryOne, execute, withTransaction } = require('../../database');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
-const { logAudit } = require('../audit');
+const { logAudit } = require('../../lib/auditLog');
 const {
   invalidateGameplayCache,
   invalidateModulesCache,
