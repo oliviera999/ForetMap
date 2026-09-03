@@ -13,10 +13,6 @@ import {
   pinchPctMapTransform,
   zoomPctMapTransformToScale,
 } from '../../src/shared/pct-map/pctMapTransform.js';
-import {
-  clampVisitMapTransform,
-  zoomVisitTransformToScale,
-} from '../../src/utils/visitMapTransform.js';
 
 const stage = { w: 400, h: 300 };
 /** Mode « scène » (Visite / plateaux G&L) : contenu = cadre. */
@@ -69,16 +65,24 @@ describe('clampPctMapTransform (bornes « contain »)', () => {
     });
   });
 
-  test('équivaut à clampVisitMapTransform quand contenu = cadre et échelle ≥ 1', () => {
-    const rect = { width: 400, height: 300 };
-    for (const next of [
-      { x: 30, y: -40, s: 1 },
-      { x: -900, y: 20, s: 3 },
-      { x: -100, y: -100, s: 1.5 },
-      { x: 0, y: 0, s: 12 },
-    ]) {
-      expect(clampPctMapTransform(next, sceneBounds)).toEqual(clampVisitMapTransform(next, rect));
-    }
+  test('reproduit les bornes historiques de la Visite (contenu = cadre, échelle ≥ 1)', () => {
+    // Valeurs de l'ancien `clampVisitMapTransform` (src/utils/visitMapTransform.js, supprimé).
+    expect(clampPctMapTransform({ x: 30, y: -40, s: 1 }, sceneBounds)).toEqual({
+      x: 0,
+      y: 0,
+      s: 1,
+    });
+    expect(clampPctMapTransform({ x: -900, y: 20, s: 3 }, sceneBounds)).toEqual({
+      x: -800,
+      y: 0,
+      s: 3,
+    });
+    expect(clampPctMapTransform({ x: -100, y: -100, s: 1.5 }, sceneBounds)).toEqual({
+      x: -100,
+      y: -100,
+      s: 1.5,
+    });
+    expect(clampPctMapTransform({ x: 0, y: 0, s: 12 }, sceneBounds)).toEqual({ x: 0, y: 0, s: 8 });
   });
 
   test('élastique : une fraction du dépassement est restituée pendant le geste', () => {
@@ -102,7 +106,6 @@ describe('zoomPctMapTransformToScale / pinchPctMapTransform', () => {
     expect(t.s).toBe(4);
     expect(t.x).toBeCloseTo(-400);
     expect(t.y).toBeCloseTo(-250);
-    expect(t).toEqual(zoomVisitTransformToScale(from, 200, 150, 4, { width: 400, height: 300 }));
   });
 
   test('dézoom complet en mode scène → recentrage à l’échelle 1', () => {
