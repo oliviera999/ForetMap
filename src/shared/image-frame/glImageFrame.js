@@ -2,7 +2,7 @@ import {
   getGlImageFrameDefaults,
   normalizeGlImageFrame,
   parseGlImageFrameAttr,
-} from '../shared/image-frame/glImageFrameCore.js';
+} from './glImageFrameCore.js';
 
 export { getGlImageFrameDefaults, normalizeGlImageFrame };
 

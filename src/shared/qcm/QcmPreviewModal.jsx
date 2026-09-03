@@ -1,9 +1,5 @@
 import { useMemo } from 'react';
-import { hasQcmAnswerFeedback } from '../../gl/utils/glQcmDisplay.js';
-import { GLGlossaryInlineText } from '../../gl/components/GLGlossaryMarkdown.jsx';
-import { GLLoreGlossaryInlineText } from '../../gl/components/GLLoreGlossaryMarkdown.jsx';
-import { mergeGlossaryLinkItems } from '../../utils/glGlossaryAutolink.js';
-import { mergeLoreGlossaryLinkItems } from '../../utils/glLoreGlossaryAutolink.js';
+import { hasQcmAnswerFeedback } from './qcmFeedback.js';
 import { QcmQuestionPhoto } from './QcmQuestionPhoto.jsx';
 import { glossaryPropsWhileAnswering } from './quizGlossaryReveal.js';
 
@@ -11,8 +7,34 @@ function isLoreQcmCode(code) {
   return /^LQCM\d+$/i.test(String(code || '').trim());
 }
 
+/** Rendu inline neutre (texte brut) quand aucun adaptateur glossaire produit n'est fourni. */
+function PlainInlineText({ text, className = '', tag: Tag = 'span' }) {
+  return <Tag className={className}>{text}</Tag>;
+}
+
+/** Fusion neutre : concaténation simple (les adaptateurs produit dédoublonnent par code). */
+function concatGlossaryItems(baseItems = [], extraTerms = []) {
+  return [
+    ...(Array.isArray(baseItems) ? baseItems : []),
+    ...(Array.isArray(extraTerms) ? extraTerms : []),
+  ];
+}
+
+/**
+ * Adaptateur glossaire injecté par le produit (autoliens G&L : cf.
+ * `src/gl/components/admin/glQcmPreviewGlossaryUi.js`). Sans adaptateur, le texte est rendu brut.
+ * @typedef {{
+ *   GlossaryInlineText?: import('react').ComponentType<any>,
+ *   LoreGlossaryInlineText?: import('react').ComponentType<any>,
+ *   mergeGlossaryLinkItems?: (baseItems: any[], extraTerms: any[]) => any[],
+ *   mergeLoreGlossaryLinkItems?: (baseItems: any[], extraTerms: any[]) => any[],
+ * }} QcmPreviewGlossaryUi
+ */
+
 /**
  * Modale d'aperçu QCM partagée (GL + ForetMap pédagogie).
+ * @param {object} props
+ * @param {QcmPreviewGlossaryUi|null} [props.glossaryUi] adaptateur glossaire du produit
  */
 export function QcmPreviewModal({
   previewCode,
@@ -34,6 +56,7 @@ export function QcmPreviewModal({
   loreGlossaryLinkItems = [],
   onOpenGlossaryTerm,
   onOpenLoreTerm,
+  glossaryUi = null,
 }) {
   const {
     root = 'gl-qcm-modal gl-qcm-modal--inline',
@@ -53,14 +76,23 @@ export function QcmPreviewModal({
   const resolvedQcmSet = qcmSet || (isLoreQcmCode(previewCode) ? 'lore' : 'biome');
   const isLore = resolvedQcmSet === 'lore';
   const hasGlossaryUi = Boolean(onOpenGlossaryTerm || onOpenLoreTerm);
-  const InlineText = isLore ? GLLoreGlossaryInlineText : GLGlossaryInlineText;
+  const InlineText =
+    (isLore ? glossaryUi?.LoreGlossaryInlineText : glossaryUi?.GlossaryInlineText) ||
+    PlainInlineText;
+  const mergeGlossaryLinkItems = glossaryUi?.mergeGlossaryLinkItems || concatGlossaryItems;
+  const mergeLoreGlossaryLinkItems = glossaryUi?.mergeLoreGlossaryLinkItems || concatGlossaryItems;
   const mergedGlossaryItems = useMemo(
     () =>
       mergeGlossaryLinkItems(glossaryLinkItems, [
         ...(presentation?.glossaryTerms || []),
         ...(feedback?.glossaryTerms || []),
       ]),
-    [glossaryLinkItems, presentation?.glossaryTerms, feedback?.glossaryTerms],
+    [
+      mergeGlossaryLinkItems,
+      glossaryLinkItems,
+      presentation?.glossaryTerms,
+      feedback?.glossaryTerms,
+    ],
   );
   const mergedLoreGlossaryItems = useMemo(
     () =>
@@ -68,7 +100,12 @@ export function QcmPreviewModal({
         ...(presentation?.loreGlossaryTerms || []),
         ...(feedback?.loreGlossaryTerms || []),
       ]),
-    [loreGlossaryLinkItems, presentation?.loreGlossaryTerms, feedback?.loreGlossaryTerms],
+    [
+      mergeLoreGlossaryLinkItems,
+      loreGlossaryLinkItems,
+      presentation?.loreGlossaryTerms,
+      feedback?.loreGlossaryTerms,
+    ],
   );
   const inlineGlossaryProps = isLore
     ? { loreGlossaryItems: mergedLoreGlossaryItems, onOpenLoreTerm }

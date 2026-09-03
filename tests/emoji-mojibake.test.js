@@ -43,7 +43,7 @@ test('normalizeMarkerEmoji répare le mojibake plateau', async () => {
 });
 
 test('renderMarkdownToSafeHtml répare le mojibake dans le grimoire', async () => {
-  const { renderMarkdownToSafeHtml } = await import('../src/utils/markdown.js');
+  const { renderMarkdownToSafeHtml } = await import('../src/shared/platform/markdown.js');
   const corrupted = String.fromCodePoint(0xf9f5);
   const html = renderMarkdownToSafeHtml(`Trame (${corrupted})`);
   assert.ok(html.includes('🧵'));

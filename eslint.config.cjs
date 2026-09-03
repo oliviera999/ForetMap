@@ -150,14 +150,15 @@ module.exports = [
   },
   {
     // Étanchéité de src/shared (code commun ForetMap + GL) : un module partagé ne doit pas
-    // remonter vers du code produit. En avertissement pour l'instant (dette recensée),
-    // le script `lint` ne passe pas `--max-warnings`, la CI n'est donc pas bloquée.
+    // remonter vers du code produit. En erreur depuis le lot 3 (plateforme front,
+    // `docs/AUDIT_CONVERGENCE_APPS_2026-09.md` §5.2) : la dette recensée a été résorbée
+    // (promotions dans `src/shared/platform/`, `media/`, `mascot/`, dépendances injectées).
     // Motifs distincts par profondeur : depuis `src/shared/components/`, `../utils/*` désigne
     // `src/shared/utils/` (légitime) alors que `../../utils/*` désigne `src/utils/` (produit).
     files: ['src/shared/*.{js,jsx}'],
     rules: {
       'no-restricted-imports': [
-        'warn',
+        'error',
         {
           patterns: [
             {
@@ -173,7 +174,7 @@ module.exports = [
     files: ['src/shared/*/*.{js,jsx}'],
     rules: {
       'no-restricted-imports': [
-        'warn',
+        'error',
         {
           patterns: [
             {

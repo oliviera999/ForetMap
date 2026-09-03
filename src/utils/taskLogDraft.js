@@ -7,7 +7,7 @@ import {
   safeSessionStorageGetItem,
   safeSessionStorageSetItem,
   safeSessionStorageRemoveItem,
-} from './browserStorage.js';
+} from '../shared/platform/browserStorage.js';
 
 export function taskLogCommentDraftKey(taskId) {
   return `foretmap:taskLogCommentDraft:${String(taskId ?? '')}`;

@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 
 const armNativeFilePickerGuard = vi.fn();
 const disarmNativeFilePickerGuard = vi.fn();
-vi.mock('../../src/utils/overlayHistory', () => ({
+vi.mock('../../src/shared/platform/overlayHistory', () => ({
   armNativeFilePickerGuard: (...args) => armNativeFilePickerGuard(...args),
   disarmNativeFilePickerGuard: (...args) => disarmNativeFilePickerGuard(...args),
 }));

@@ -1,4 +1,4 @@
-import { formatDateTimeFr } from '../../utils/datetime-fr';
+import { formatDateTimeFr } from '../../shared/platform/datetime-fr';
 import { UserContentImagesGrid } from '../attachment-images-picker';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 

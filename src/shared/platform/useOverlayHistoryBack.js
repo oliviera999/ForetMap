@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { pushOverlayClose, removeOverlayClose } from '../utils/overlayHistory';
+import { pushOverlayClose, removeOverlayClose } from './overlayHistory';
 
 /**
  * Associe isOpen à une entrée history : le retour navigateur appelle onRequestClose

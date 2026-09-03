@@ -2,8 +2,8 @@
  * Convertit un pack mascotte GL (`sprite_cut`) vers le format visite
  * pour réutiliser `expandMascotPackToSpriteCut` / le renderer ForetMap.
  */
-import { VISIT_MASCOT_STATE } from './visitMascotState.js';
-import { expandMascotPackToSpriteCut, validateMascotPack } from './mascotPack.js';
+import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
+import { expandMascotPackToSpriteCut, validateMascotPack } from '../../utils/mascotPack.js';
 
 const GL_STATE_ALIASES = {
   idle: VISIT_MASCOT_STATE.IDLE,

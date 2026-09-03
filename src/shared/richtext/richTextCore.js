@@ -21,7 +21,7 @@
 //     machinerie, pas une abstraction (cf. `docs/PARTAGE_FM_GL.md` §8).
 
 import TurndownService from 'turndown';
-import { sanitizeRichHtml } from '../../utils/markdown.js';
+import { sanitizeRichHtml } from '../platform/markdown.js';
 
 /** Options Turndown communes aux deux éditeurs. */
 export const RICH_TEXT_TURNDOWN_OPTIONS = Object.freeze({

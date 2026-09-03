@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DialogShell } from '../../components/DialogShell.jsx';
-import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
+import {
+  glImageFrameToStyle,
+  normalizeGlImageFrame,
+} from '../../shared/image-frame/glImageFrame.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLImageFrameHelp } from './GLImageFrameHelp.jsx';
 

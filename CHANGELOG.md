@@ -7,6 +7,40 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Lot 3 — Kit d'interface commun (plan de convergence §6)
+
+- **Plateforme front `src/shared/platform/`** : `useDialogA11y`, `overlayHistory` +
+  `useOverlayHistoryBack`, `browserStorage`, `markdown`, `datetime-fr` promus (imports réécrits,
+  anciens chemins supprimés, shim `services/apiTransport` retiré) ; nouveau `bodyScrollLock`
+  (verrou à compteur + `useBodyScrollLock`) adopté par la visionneuse d'images et les popovers
+  G&L. `src/shared` n'importe plus de code produit : la règle ESLint `no-restricted-imports`
+  passe en **erreur** ; `MascotPackArchiveImportDialog` reçoit son transport en prop ; les
+  modules G&L seuls de `src/utils/` (`glImageFrame`, `glMascotCatalog`, `glMascotPackToVisit`)
+  rejoignent `src/gl/utils/`.
+- **`BottomSheet`** (`src/shared/ui/`) : feuille basse à crans (aperçu / mi-hauteur / plein),
+  poignée glissable (aimantation, fermeture par glisser bas), piège de focus, Échap, retour
+  Android, verrou du défilement, `inert` sur le reste de la page, zone sûre basse. Adoptée par
+  les **filtres des tâches**, les **filtres de la carte** (pied « Réinitialiser / Voir la
+  carte ») et le tiroir « Plus » de la navigation G&L ; feuilles maison et CSS morts supprimés.
+- **`useCompactPanelState`** : fusion des états de panneau compact tâches / carte (mêmes clés
+  de stockage, mêmes défauts) ; les deux anciens hooks délèguent.
+- **`Button`**, **`MapActionButton`**, **`DataList`** (`src/shared/ui/`) issus de `GLButton`,
+  `GLBoardActionButton`, `GLDataList`, qui deviennent des enveloppes iso-thème (classes
+  neutres `shared-btn…`, `fm-map-action…`, `fm-data-*` posées en plus des classes G&L) ; feuilles
+  `map-action.css` et `data-list.css` chargées par les deux entrées. `.btn` (ForetMap) reste
+  la classe de thème historique : l'adoption de `Button` côté ForetMap se fait écran par écran
+  (lot 4 pour le plan).
+- **Tokens communs** `spacing-tokens.css` (`--space-1..6`, `--tap-target`) et `state-inks.css`
+  (`--ink-*`, `--accent-*`) — G&L les aliasse (`--gl-space-*`, `--gl-ink-*`…) ; garde
+  `tests-ui/utils/sharedTokens.test.js`.
+- **Dédoublonnage CSS** : bannière « aperçu rôle / impersonation » dans
+  `shared/styles/role-preview-banner.css` (copiée jusqu'ici dans `index.css` et `gl-base.css`) ;
+  `.modal` / `.log-modal` deviennent des alias du panneau partagé `.fm-modal-panel`.
+- **`useTimedToastState`** partagé (`useGlToasts` s'y branche) ; icône SVG partagée sur le
+  bouton Fermer du plateau G&L.
+- Reporté au lot 7 (convergence des écrans d'administration) : accordéons `AdminSection` sur les
+  panneaux d'administration G&L.
+
 ### Lot 2 — Noyau carte partagé (plan de convergence §6)
 
 - **Un seul moteur de carte** `src/shared/pct-map/` : géométrie pure `pctMapTransform.js`

@@ -3,13 +3,13 @@
  */
 import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
-import { repairSupplementaryPlaneEmojiMojibake } from '../shared/emojiMojibakeCore.js';
+import { repairSupplementaryPlaneEmojiMojibake } from '../emojiMojibakeCore.js';
 import {
   glImageFrameToImgFillStyle,
   glImageFrameToWrapStyle,
   parseGlImageFrameAttr,
   serializeGlImageFrameAttr,
-} from './glImageFrame.js';
+} from '../image-frame/glImageFrame.js';
 
 const ALLOWED_TAGS = [
   'p',

@@ -6,11 +6,11 @@ const fs = require('fs');
 const path = require('path');
 const { getGlMascotPackLibProbe } = require('../lib/glPackValidatorResolve');
 
-test('gl-pack : miroir lib présent et aligné sur src/utils/glMascotPack.js', () => {
+test('gl-pack : miroir lib présent et aligné sur src/gl/utils/glMascotPack.js', () => {
   const probe = getGlMascotPackLibProbe();
   assert.ok(probe.libMirrorOk, 'lib/gl-pack/mascotPack.js attendu');
   const root = path.resolve(__dirname, '..');
-  const srcPath = path.join(root, 'src', 'utils', 'glMascotPack.js');
+  const srcPath = path.join(root, 'src', 'gl', 'utils', 'glMascotPack.js');
   const libPath = path.join(root, 'lib', 'gl-pack', 'mascotPack.js');
   assert.ok(fs.existsSync(srcPath));
   assert.ok(fs.existsSync(libPath));

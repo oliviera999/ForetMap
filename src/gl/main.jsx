@@ -13,6 +13,7 @@ import '../shared/styles/tooltip.css';
 import '../shared/styles/floating-dock.css';
 import '../shared/styles/tour-editor.css';
 import '../shared/styles/modal-shell.css';
+import '../shared/styles/bottom-sheet.css';
 import '../shared/styles/toast-shell.css';
 import '../shared/styles/status-sticky.css';
 import '../shared/styles/learning-gating.css';

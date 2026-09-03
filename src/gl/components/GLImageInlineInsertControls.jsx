@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
-import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image.js';
+import { compressImageWithPreset, isLikelyImageFile } from '../../shared/platform/image.js';
 import { MediaLibraryMenu } from '../../components/MediaLibraryMenu.jsx';
 import { GLImageFrameEditor } from './GLImageFrameEditor.jsx';
-import { normalizeGlImageFrame } from '../../utils/glImageFrame.js';
+import { normalizeGlImageFrame } from '../../shared/image-frame/glImageFrame.js';
 
 export function GLImageInlineInsertControls({
   onInsert,

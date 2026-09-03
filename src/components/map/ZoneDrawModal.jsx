@@ -8,8 +8,8 @@ import {
   clampEmojiInput,
 } from '../../constants/emojis';
 import { nextLivingBeingsFromMultiSelect } from '../../utils/livingBeings';
-import { useDialogA11y } from '../../hooks/useDialogA11y';
-import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
+import { useDialogA11y } from '../../shared/platform/useDialogA11y';
+import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import { DialogShell } from '../DialogShell';
 import { IconCheck, IconClose, IconDrawZone } from '../../shared/icons.jsx';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';

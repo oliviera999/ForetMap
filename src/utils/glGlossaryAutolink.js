@@ -1,7 +1,7 @@
 /**
  * Auto-liens glossaire GL dans texte / HTML markdown.
  */
-import { renderMarkdownToSafeHtml, sanitizeRichHtml } from './markdown.js';
+import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../shared/platform/markdown.js';
 import { createTermAutolink } from './glTermAutolink.js';
 
 const autolink = createTermAutolink({

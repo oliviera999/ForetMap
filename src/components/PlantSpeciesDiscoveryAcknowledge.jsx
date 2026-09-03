@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError, createContextComment, getAuthToken } from '../services/api';
-import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
+import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { AttachmentImagesPicker } from './attachment-images-picker';
 import { DialogShell } from './DialogShell';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';

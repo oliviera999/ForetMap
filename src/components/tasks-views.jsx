@@ -17,7 +17,10 @@ import { TasksEmptyState } from './TasksEmptyState.jsx';
 import { TasksTeacherSections } from './TasksTeacherSections.jsx';
 import { TasksStudentSections } from './TasksStudentSections.jsx';
 
-import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../utils/browserStorage.js';
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageSetItem,
+} from '../shared/platform/browserStorage.js';
 import { resolveInitialTaskViewMode } from '../utils/taskViewMode.js';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';

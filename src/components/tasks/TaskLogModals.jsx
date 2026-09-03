@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef, useId } from 'react';
 import { api, AccountDeletedError } from '../../services/api';
-import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image';
-import { useDialogA11y } from '../../hooks/useDialogA11y';
-import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
-import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../../utils/overlayHistory';
-import { formatDateTimeFr } from '../../utils/datetime-fr';
+import { compressImageWithPreset, isLikelyImageFile } from '../../shared/platform/image';
+import { useDialogA11y } from '../../shared/platform/useDialogA11y';
+import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
+import {
+  armNativeFilePickerGuard,
+  disarmNativeFilePickerGuard,
+} from '../../shared/platform/overlayHistory';
+import { formatDateTimeFr } from '../../shared/platform/datetime-fr';
 import { readTaskLogCommentDraft, writeTaskLogCommentDraft } from '../../utils/taskLogDraft.js';
 import { DialogShell } from '../DialogShell';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';

@@ -7,6 +7,7 @@
     @import './shared/styles/speech-bubble.css';
     @import './shared/styles/mascot-speaker.css';
     @import './shared/styles/modal-shell.css';
+    @import './shared/styles/bottom-sheet.css';
     @import './shared/styles/toast-shell.css';
     @import './shared/styles/status-sticky.css';
     @import './shared/styles/map-fullscreen.css';
@@ -2966,46 +2967,16 @@
     .task-filters-field-with-help select {
       flex:1 1 auto;
     }
-    /* Feuille de filtres (écran compact) : ancrée en bas, au pouce. */
-    .task-filters-sheet-overlay {
-      align-items:flex-end;
-    }
-    .modal-overlay.task-filters-sheet-overlay > .task-filters-sheet {
-      width:100%;
-      max-width:100%;
-      border-radius:20px 20px 0 0;
-      max-height:min(80dvh, calc(100dvh - var(--safe-top) - 24px));
-      overflow-y:auto;
-    }
-    .task-filters-sheet__head {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:8px;
-      margin-bottom:12px;
-    }
-    .task-filters-sheet__title {
-      font-size:var(--text-base);
-      font-weight:var(--fw-bold);
-      color:var(--forest);
-      margin:0;
-    }
+    /* Feuille de filtres (écran compact) : coque partagée `BottomSheet` (bottom-sheet.css) ;
+       ici seulement la mise en forme des champs à l'intérieur de la feuille. */
     .task-filters-sheet .task-filters-fields {
       flex-direction:column;
+      padding-top:4px;
     }
     .task-filters-sheet .task-filters-fields select,
     .task-filters-sheet .task-filters-field-with-help {
       flex:1 1 auto;
       width:100%;
-      min-height:44px;
-    }
-    .task-filters-sheet__actions {
-      display:flex;
-      gap:8px;
-      margin-top:14px;
-    }
-    .task-filters-sheet__actions .btn {
-      flex:1 1 0%;
       min-height:44px;
     }
 

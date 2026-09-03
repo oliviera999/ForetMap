@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MediaUsageInfo } from '../../components/media/MediaUsageInfo.jsx';
-import { MediaLibraryGalleryTile } from '../../components/media/MediaLibraryGalleryTile.jsx';
-import { MediaLibraryBulkActions } from '../../components/media/MediaLibraryBulkActions.jsx';
+import { MediaUsageInfo } from '../media/MediaUsageInfo.jsx';
+import { MediaLibraryGalleryTile } from '../media/MediaLibraryGalleryTile.jsx';
+import { MediaLibraryBulkActions } from '../media/MediaLibraryBulkActions.jsx';
 import {
   filterAndSortMediaLibraryItems,
   formatMediaLibrarySize,
@@ -9,12 +9,12 @@ import {
   MEDIA_LIBRARY_TYPE_FILTERS,
   pruneMediaLibrarySelection,
   resolveMediaLibraryLayout,
-} from '../../utils/mediaLibraryView.js';
-import { prepareMediaImport } from '../../utils/mediaImport.js';
+} from '../media/mediaLibraryView.js';
+import { prepareMediaImport } from '../media/mediaImport.js';
 import {
   armNativeFilePickerGuard,
   disarmNativeFilePickerGuard,
-} from '../../utils/overlayHistory.js';
+} from '../platform/overlayHistory.js';
 import { useAppDialogs } from './AppDialogsProvider.jsx';
 import { IconAudio, IconCamera, IconClose, IconFolder, IconImage, IconVideo } from '../icons.jsx';
 

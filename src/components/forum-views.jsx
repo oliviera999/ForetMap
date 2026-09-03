@@ -2,7 +2,7 @@ import { AppInlineToast } from '../shared/components/AppInlineToast.jsx';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, toggleForumPostReaction } from '../services/api';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
-import { formatDateTimeFr } from '../utils/datetime-fr';
+import { formatDateTimeFr } from '../shared/platform/datetime-fr';
 import { AttachmentImagesPicker } from './attachment-images-picker';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { ForumPostCard } from './forum/ForumPostCard.jsx';

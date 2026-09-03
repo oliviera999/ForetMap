@@ -6,7 +6,7 @@ import {
   renderMarkdownWithGlossaryLinks,
   renderPlainTextWithGlossaryLinks,
 } from '../src/utils/foretmapGlossaryAutolink.js';
-import { sanitizeRichHtml } from '../src/utils/markdown.js';
+import { sanitizeRichHtml } from '../src/shared/platform/markdown.js';
 
 const GLOSSARY_ITEMS = [
   { glossary_code: 'FM0001', terme: 'Biocénose', variantes: 'biocénoses' },

@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { api, AccountDeletedError } from '../../services/api';
-import { compressImage } from '../../utils/image';
+import { compressImage } from '../../shared/platform/image';
 import {
   MARKER_EMOJIS,
   detectLeadingMarkerEmoji,
