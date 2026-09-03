@@ -1604,7 +1604,9 @@ filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
   `ui.plan.map_id` s'il désigne une carte **active**, sinon la première carte active
   (**404** s'il n'y en a aucune) — le plan doit toujours pouvoir s'afficher.
 - **Réponse** : `{ map, settings, categories, zones, markers }`.
-  - `map` : `{ id, label, map_image_url, frame_padding_px, gps_enabled, geo_anchors }`.
+  - `map` : `{ id, label, map_image_url, frame_padding_px, gps_enabled, geo_anchors }` —
+    `gps_enabled` et `geo_anchors` servent au **point de position** du plan (lot 6) ; la
+    position est calculée dans le navigateur et n'est **jamais** envoyée au serveur.
   - `categories` porte aussi `zoom_only` : le client n'affiche ces lieux qu'une fois zoomé.
   - `settings` : `title`, `welcome_hint`, `access_mode` (`public` | `code`), `attribution`,
     `default_category_ids` (restreint aux catégories réellement servies), `hidden_category_ids`.
@@ -1620,7 +1622,7 @@ filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
 - **Cache** : charge agrégée mise en cache par carte, invalidée par la **version d'écriture
   globale** (`lib/shared/writeVersionCache.js`, mécanique partagée avec
   `GET /api/visit/content`) ; en-tête `Cache-Control: public, max-age=60`.
-- **Compteur d'usage** : le plan émet `open`, `search_empty` et `place_open` via
+- **Compteur d'usage** : le plan émet `open`, `search_empty`, `place_open` et `go` via
   `POST /api/usage` (produit `plan`) — voir **Compteur d'usage anonyme**.
 
 ### Surfaces d'affichage des lieux

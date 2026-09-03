@@ -1,6 +1,6 @@
 /* Service worker « gl » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-gl-c31895fd";
+const CACHE_NAME = "foretmap-gl-ee34f395";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -9,7 +9,7 @@ const PRECACHE_URLS = [
   "/manifest.json",
   "/gl/favicon.svg",
   "/gl/logo.png",
-  "/assets/gl-BJDbR4_x.js",
+  "/assets/gl-c2wg_-WN.js",
   "/assets/gl-Tr0HPRcJ.css",
   "/assets/rolldown-runtime-hePW80VL.js",
   "/assets/usePrefersReducedMotion-nYJyyXmv.js",
@@ -23,10 +23,10 @@ const PRECACHE_URLS = [
   "/assets/markdown-B5dU4qij.js",
   "/assets/socket-io-D_2T_oRH.js",
   "/assets/GuidedTourOverlay-DsPk-BKa.js",
-  "/assets/MapActionButton-DkxMxMJ4.js",
-  "/assets/MapActionButton-B71Xr5QT.css",
+  "/assets/useTimedToastState-CVou85dA.js",
+  "/assets/useTimedToastState-B71Xr5QT.css",
   "/assets/StatsSummaryGrid-DrI_5fO6.js",
-  "/assets/GLButton-D3L3p3pC.js",
+  "/assets/GLButton-Bcui-6vY.js",
   "/assets/quizGlossaryReveal-aeOpCJbU.js",
   "/assets/mascotBehaviorEngine-BBSXSC0Z.js",
   "/assets/MediaLibraryMenu-WyVGacd1.js",

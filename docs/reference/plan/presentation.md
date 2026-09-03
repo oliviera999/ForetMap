@@ -37,9 +37,29 @@ restent dans ForetMap et dans la Visite.
    ouverte. Ce lien peut être partagé ou transformé en QR code pour amener quelqu'un
    directement sur le bon lieu.
 
-Le bouton **« Y aller »** est présent sur chaque fiche mais **désactivé** : la position du
-visiteur sur le plan arrive dans un prochain lot. Il est affiché pour annoncer la
-fonctionnalité, jamais pour la simuler.
+### Se situer sur le plan
+
+Quand le plan est **calé** (un professeur a posé ses points de repère GPS, voir la
+documentation ForetMap), un bouton **« Me situer »** apparaît en bas à droite. Il a quatre
+états successifs :
+
+1. **inactif** : rien n'est affiché ;
+2. **recherche** : le navigateur demande la position ;
+3. **position affichée** : un point bleu, entouré d'un **halo** d'autant plus large que le
+   signal est imprécis, et d'une flèche de direction si le téléphone a une boussole ;
+4. **suivi** : la carte se recentre à chaque nouvelle position. Déplacer la carte à la main
+   quitte le suivi sans éteindre le point.
+
+Si le visiteur est **hors du plan**, le point ne disparaît pas : il se colle au bord le plus
+proche avec une flèche vers l'endroit réel. Les messages d'état (autorisation refusée, signal
+faible, calage incohérent, hors plan) s'affichent en petit message passager, pas en bandeau.
+
+Le bouton **« Y aller »** d'une fiche trace alors une **ligne droite** entre la position et le
+lieu, et affiche la distance. Ce n'est pas un itinéraire : le plan ne connaît pas encore les
+chemins de l'établissement, et une direction honnête vaut mieux qu'un trajet inventé. Sans
+calage, le bouton reste désactivé et dit pourquoi.
+
+La position est calculée **dans le téléphone** et n'est jamais envoyée au serveur.
 
 ## Ce que voit un professeur (dans ForetMap)
 
@@ -125,8 +145,13 @@ dit quels mots les gens emploient et que le plan ne connaît pas encore — donc
 
 ## ⚠️ Points d'attention
 
-- **La position n'existe pas encore.** « Y aller » est désactivé et le restera jusqu'au lot
-  dédié. Aucun itinéraire n'est calculé.
+- **Aucun itinéraire n'est calculé.** « Y aller » donne une direction à vol d'oiseau et une
+  distance, pas un chemin : les couloirs, les escaliers et les portes ne sont pas connus du
+  plan.
+- **Sans calage GPS, pas de position.** Le bouton « Me situer » n'apparaît pas tant qu'un
+  professeur n'a pas posé les points de repère du plan.
+- **En intérieur, le signal est mauvais.** Le halo le dit honnêtement ; les QR codes aux
+  portes restent le moyen le plus fiable de savoir où l'on est.
 - **Le code d'accès n'est pas encore branché.** Le réglage `Mode d'accès` accepte la valeur
   `code`, mais la demande du code arrive dans un lot ultérieur : aujourd'hui le plan est
   public dès qu'on connaît l'adresse.
