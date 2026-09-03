@@ -7,6 +7,37 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Lot 2 — Noyau carte partagé (plan de convergence §6)
+
+- **Un seul moteur de carte** `src/shared/pct-map/` : géométrie pure `pctMapTransform.js`
+  (bornes « contain », élasticité, zoom à pivot, pinch à médian vivant, centrage, inertie) et
+  hook `usePctMapViewport.js` (modes image / scène, pan avec capture, molette, pinch +
+  déplacement, double-tap, inertie, retour en butée, flèches clavier, verrou tactile, mesure
+  `ResizeObserver`, glisser externe sans réseau). Molette (`pctMapWheelZoom`) et rectangle
+  « contain » (`pctMapFit`) promus dans `src/shared` (anciens chemins ré-exportés).
+- **Carte de travail** : `useMapGestures` devient un adaptateur mince (mesure du cadre,
+  `--fm-map-canvas-w`, persistance du repère glissé). Visible : le plan **ne sort plus du
+  cadre** (butée souple), **double-tap** tactile, **inertie** au relâchement, pinch qui déplace
+  en même temps qu'il zoome ; le verrou « Gestes » sur téléphone se relâche dès que la carte
+  est zoomée par rapport à son ajustement (et non plus au-delà de la taille naturelle de
+  l'image). Corrections : les repères des autres cartes n'étaient pas filtrés à l'affichage ;
+  le centrage sur un repère depuis la recherche lisait `yp` au lieu de `y_pct` (toujours en
+  haut du plan).
+- **Visite** : scène rebranchée sur le moteur en mode scène ; bornes inchangées à l'échelle
+  ≥ 1, **dézoom possible jusqu'à 0,5×**, mêmes gestes ; le glisser peut démarrer sur une zone
+  ou un repère (le clic qui suit n'est pas pris pour un tap). `useVisitMapTransform` et
+  `visitMapTransform.js` supprimés.
+- **Gnomes & Licornes** : `useGlPctMapGestures` sur le moteur — les plateaux gagnent **pan,
+  molette, pinch-zoom, double-tap**, des boutons **+ / − / ⊡** (`GLPctMapCanvas`,
+  `showZoomControls`) ; le **plein écran** passe par `MapFullscreenShell` / `useMapFullscreen`
+  partagés (`map-fullscreen.css` chargé par l'entrée GL, testids e2e conservés) ; gestes
+  suspendus pendant l'édition d'un plateau. `useGlBoardImageFit` supprimé. Correction : des
+  défauts de props tableau (`[]`) recréés à chaque rendu faisaient boucler `GLGameBoard` dès
+  qu'un état changeait après le montage.
+- **Tests de montage** (posés avant les refontes) : `MapViewMount`, `VisitViewMount`,
+  `GLGameBoardMount` sur le moteur réel ; tests du noyau (`pctMapTransform`,
+  `usePctMapViewport`) ; docs de référence carte, visite et plateau mises à jour.
+
 ### Lot 1 — Socle plateforme multi-produit (plan de convergence §6)
 
 - **Registre des produits** `lib/products.js` (`foret`, `gl`, `plan` — Plan Lyautey, host
