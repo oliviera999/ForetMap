@@ -132,8 +132,9 @@ Rien n'est enregistré : personne ne coche, personne n'est suivi. On peut sauter
 quitter le parcours à tout moment. Un lien direct par parcours (`?parcours=…`) permet d'imprimer
 un **QR code** à l'accueil : le visiteur scanne et démarre le parcours.
 
-Les parcours se créent dans ForetMap (voir la documentation de la carte) ; un bouton
-**« Exporter en PDF »** produit une page imprimable avec la liste des étapes et ce QR code.
+Les parcours se créent dans ForetMap, dans _Réglages → Parcours_ (voir la documentation de la
+carte) : on cherche les lieux, on les ordonne au glisser-déposer, on publie. Le bouton
+**« Affiche PDF »** produit la page imprimable avec la liste des étapes et ce QR code.
 
 ### Le plan hors ligne
 

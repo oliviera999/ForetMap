@@ -32,9 +32,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   ouvertures et onglets côté ForetMap et G&L, parcours et hors ligne côté plan. Nouvel écran
   admin **« Usage »** (compteurs par produit et événement, et la liste des **recherches sans
   résultat** — les mots à ajouter en alias de recherche).
-- Tests : `tests/map-routes.test.js` (dont l'export PDF et la publication sur le plan), garde
-  d'accès dans `tests/plan-content.test.js`, `tests-ui/plan/planRoutes.test.js`, mode parcours
-  et écran de code dans le montage de `AppPlan`.
+- **Éditeur de parcours** dans la console ForetMap (_Réglages → Parcours_) : liste des parcours
+  d'une carte (brouillons compris), création et édition, choix des lieux par le **moteur de
+  recherche partagé** du plan (alias compris), réordonnancement au **glisser-déposer** avec
+  boutons ↑/↓ comme voie clavier, titre et texte propres par étape, publication et surfaces,
+  suppression, et téléchargement de l'**affiche PDF**. Une étape dont le lieu a été supprimé est
+  signalée au lieu de rendre une ligne vide.
+- Nouveau réglage **`ui.plan.public_base_url`** : base des liens profonds imprimés. L'affiche est
+  exportée depuis la console, servie par un autre domaine que le plan — sans ce réglage, le QR
+  code renverrait le visiteur vers un écran de connexion. Ordre retenu : `?base_url=`, puis le
+  réglage, puis l'hôte de la requête.
+- Tests : `tests/map-routes.test.js` (dont l'export PDF, la publication sur le plan et la
+  résolution de la base du lien), garde d'accès dans `tests/plan-content.test.js`,
+  `tests-ui/plan/planRoutes.test.js`, mode parcours et écran de code dans le montage de
+  `AppPlan`, `tests-ui/utils/mapRoutesEditor.test.js` et
+  `tests-ui/components/settings/MapRoutesPanel.test.jsx` pour l'éditeur.
 
 ### Lot 7 — Aide, thème et notifications convergés (plan de convergence §6)
 
