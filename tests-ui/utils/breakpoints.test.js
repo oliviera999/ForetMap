@@ -19,7 +19,7 @@ import { DESKTOP_SPLIT_MIN_WIDTH } from '../../src/constants/app-runtime.js';
  * par les deux entrées ; une redéclaration côté produit est exactement ce qui les ferait
  * diverger à nouveau.
  */
-const STYLE_DIRS = ['src/shared/styles', 'src/gl/styles'];
+const STYLE_DIRS = ['src/shared/styles', 'src/gl/styles', 'src/plan/styles'];
 const ROOT_STYLESHEETS = ['src/index.css'];
 
 /**
@@ -70,7 +70,11 @@ const TYPOGRAPHY_TOKENS = [
   '--font-sans-with-emoji',
 ];
 /** Feuilles racines de chaque produit : elles gardent `--font-sans` et rien d'autre. */
-const PRODUCT_ROOT_SHEETS = ['src/index.css', 'src/gl/styles/gl-base.css'];
+const PRODUCT_ROOT_SHEETS = [
+  'src/index.css',
+  'src/gl/styles/gl-base.css',
+  'src/plan/styles/plan.css',
+];
 
 const normalizeRelPath = (relPath) => String(relPath).replace(/\\/g, '/');
 

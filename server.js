@@ -33,6 +33,7 @@ const { verifyJwtToken } = require('./lib/auth/jwtPipeline');
 const { resolveProductFromRequest } = require('./lib/productResolver');
 const { PRODUCT_IDS, getProduct, listAuthRateLimitPaths } = require('./lib/products');
 const usageRouters = require('./routes/usage');
+const { registerPwaRoutes } = require('./lib/pwaRoutes');
 const { generalLimiter, authLimiter } = require('./lib/rateLimit');
 const { CSP_REPORT_PATH, buildEnforcedPolicy, buildReportOnlyPolicy } = require('./lib/csp');
 const { cspReportHandler, BODY_LIMIT: CSP_BODY_LIMIT } = require('./lib/cspReport');
@@ -298,25 +299,17 @@ const distIndexByProduct = Object.fromEntries(
 );
 const serveDist = process.env.NODE_ENV === 'production' && fs.existsSync(distSpaIndex);
 const staticRoot = serveDist ? distDir : path.join(__dirname, 'public');
-const serviceWorkerPath = path.join(staticRoot, 'sw.js');
-if (fs.existsSync(serviceWorkerPath)) {
-  app.get('/sw.js', (req, res) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.setHeader('Service-Worker-Allowed', '/');
-    res.sendFile(serviceWorkerPath);
-  });
-}
-
-const manifestPath = path.join(staticRoot, 'manifest.json');
-if (fs.existsSync(manifestPath)) {
-  app.get('/manifest.json', (req, res) => {
-    res.setHeader('Content-Type', 'application/manifest+json');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.sendFile(manifestPath);
-  });
-}
+// Service worker et manifest PWA par produit (lot 1) : `/sw.js` et `/manifest.json` servent
+// `dist/sw-<produit>.js` / `dist/manifest-<produit>.webmanifest` selon le host (générés par
+// `scripts/build-pwa.js`), voir `lib/pwaRoutes.js`.
+registerPwaRoutes(app, {
+  staticRoot,
+  distDir,
+  serveDist,
+  resolveProductFromRequest,
+  getProduct,
+  logger,
+});
 const { createDistStaticServeOptions } = require('./lib/staticCacheHeaders');
 const staticServeOptions = serveDist ? createDistStaticServeOptions(distDir) : undefined;
 // L'entrée HTML d'un produit demandée sur le host d'un autre (ex. /index.vite.html sur gl.*,

@@ -24,6 +24,18 @@ function runViteBuild() {
   return child.status === 0;
 }
 
+/** SW + manifest PWA par produit depuis le manifeste Vite (voir scripts/build-pwa.js). */
+function buildPwa() {
+  const script = path.join(root, 'scripts', 'build-pwa.js');
+  if (!fs.existsSync(script)) return true;
+  const child = spawnSync(process.execPath, [script], {
+    cwd: root,
+    stdio: 'inherit',
+    env: process.env,
+  });
+  return child.status === 0;
+}
+
 function syncVisitPackServerLib() {
   const script = path.join(root, 'scripts', 'sync-visit-pack-server-lib.js');
   if (!fs.existsSync(script)) return true;
@@ -84,6 +96,7 @@ function main() {
     if (!syncGlAssetManifests()) process.exit(1);
     const ok = runViteBuild();
     if (!ok) process.exit(1);
+    if (!buildPwa()) process.exit(1);
     if (!syncVisitPackServerLib()) process.exit(1);
     if (!syncGlPackServerLib()) process.exit(1);
     if (!syncTermAutolinkLib()) process.exit(1);
