@@ -50,16 +50,4 @@ export function parseZonePoints(raw) {
  * @param {number} ch hauteur du conteneur (px)
  * @returns {{ offsetX: number, offsetY: number, width: number, height: number }}
  */
-export function computeMapImageContainRect(nw, nh, cw, ch) {
-  const boxW = Math.max(1, cw);
-  const boxH = Math.max(1, ch);
-  if (!nw || !nh) {
-    return { offsetX: 0, offsetY: 0, width: boxW, height: boxH };
-  }
-  const scale = Math.min(boxW / nw, boxH / nh);
-  const width = nw * scale;
-  const height = nh * scale;
-  const offsetX = (boxW - width) / 2;
-  const offsetY = (boxH - height) / 2;
-  return { offsetX, offsetY, width, height };
-}
+export { computeMapImageContainRect } from '../shared/pct-map/pctMapFit.js';
