@@ -45,6 +45,37 @@ export function isTaskUrgentPending(task) {
 }
 
 /**
+ * Tâche « validée » au sens de l'affichage : validée pour elle-même, ou rattachée à un
+ * projet validé (`project_validated`). Ces deux cas sont masqués par défaut de la vue
+ * Tâches, exactement comme les archives — plus rien n'est attendu dessus.
+ */
+export function isTaskValidated(task) {
+  return TERMINAL_EFFECTIVE_STATUSES.has(taskEffectiveStatus(task));
+}
+
+/**
+ * Le filtre de statut courant demande-t-il explicitement les éléments validés ?
+ *
+ * Même logique de révélation que la vue « Archivés » : masqués par défaut, affichés
+ * quand l'utilisateur choisit le statut correspondant dans le filtre.
+ */
+export function filterStatusShowsValidated(filterStatus) {
+  const v = String(filterStatus || '').trim();
+  return v === 'validated' || v === 'project_validated';
+}
+
+/** Sépare une liste de tâches en `{ visible, validated }` selon `isTaskValidated`. */
+export function partitionTasksByValidated(list) {
+  const visible = [];
+  const validated = [];
+  for (const t of Array.isArray(list) ? list : []) {
+    if (isTaskValidated(t)) validated.push(t);
+    else visible.push(t);
+  }
+  return { visible, validated };
+}
+
+/**
  * Statut de section d'une tâche affichée HORS bloc projet.
  *
  * `taskEffectiveStatus` renvoie `project_completed`/`project_validated` dès que le projet

@@ -6,6 +6,7 @@ import {
 } from '../constants/notifications';
 import { readJsonStorage, writeJsonStorage } from '../shared/notifications/storage.js';
 import { assignmentMatchesStudent } from '../utils/task-assignments.js';
+import { daysUntil } from '../utils/badges.jsx';
 
 const MAX_ITEMS = 80;
 const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
@@ -322,34 +323,50 @@ export function useNotificationCenter({
     let soonCount = 0;
     let overdueCount = 0;
     for (const task of mine) {
-      if (!task?.due_date) continue;
-      const due = new Date(task.due_date);
-      if (Number.isNaN(due.getTime())) continue;
-      const diffDays = Math.floor((due.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+      // Même compte à rebours que les puces d'échéance des tuiles (`daysUntil`) : dates
+      // nues comparées en heure locale. Une tâche due AUJOURD'HUI (0) est « proche », pas
+      // « en retard » — l'ancien calcul en millisecondes la déclarait en retard dès minuit.
+      const diffDays = daysUntil(task?.due_date);
+      if (diffDays == null) continue;
       if (diffDays < 0) overdueCount += 1;
       else if (diffDays <= 1) soonCount += 1;
     }
+    // Règles d'ÉTAT (comme les notifications d'exploitation) : clé stable, et clôture dès
+    // que la condition retombe. Avec une clé porteuse du compte, chaque variation créait un
+    // item de plus et aucun n'était jamais refermé — la pile restait « 2 tâches en retard »
+    // longtemps après leur validation.
     if (soonCount > 0) {
       addNotification({
-        key: `student-deadline-soon-${soonCount}`,
+        key: 'student-deadline-soon',
         level: NOTIFICATION_LEVEL.IMPORTANT,
         category: NOTIFICATION_CATEGORY.DEADLINES,
         title: 'Échéance proche',
         message: `${soonCount} tâche(s) à faire d'ici demain.`,
         action: { tab: 'tasks' },
       });
+    } else {
+      resolveNotificationsByKey('student-deadline-soon');
     }
     if (overdueCount > 0) {
       addNotification({
-        key: `student-deadline-overdue-${overdueCount}`,
+        key: 'student-deadline-overdue',
         level: NOTIFICATION_LEVEL.CRITICAL,
         category: NOTIFICATION_CATEGORY.DEADLINES,
         title: 'Tâches en retard',
         message: `${overdueCount} tâche(s) sont déjà en retard.`,
         action: { tab: 'tasks' },
       });
+    } else {
+      resolveNotificationsByKey('student-deadline-overdue');
     }
-  }, [addNotification, isTeacher, student, tasksForActiveMap]);
+  }, [
+    addNotification,
+    isTeacher,
+    notificationsStorageKey,
+    resolveNotificationsByKey,
+    student,
+    tasksForActiveMap,
+  ]);
 
   // Règles de génération: opérations. Chaque règle d'état clôt sa notification quand la
   // condition retombe ; `notificationsStorageKey` en dépendance rejoue la clôture après
