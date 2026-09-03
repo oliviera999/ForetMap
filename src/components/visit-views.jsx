@@ -23,7 +23,7 @@ import {
   tutorialPreviewPayload,
   tutorialPreviewCanEmbed,
 } from './TutorialPreviewModal';
-import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
+import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import { visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
 import { VisitDetailPanel } from './visit/VisitDetailPanel.jsx';
@@ -57,7 +57,10 @@ import { useVisitMapMascotController } from '../hooks/useVisitMapMascotControlle
 // Import direct (même défaut useOverlayHistory=false que l'ancien wrapper Lightbox
 // de map-views) : évite de tirer tout le graphe carte dans le chunk visite.
 import { ImageLightbox } from '../shared/components/ImageLightbox.jsx';
-import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../utils/browserStorage.js';
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageSetItem,
+} from '../shared/platform/browserStorage.js';
 import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { IconVisit } from '../shared/icons.jsx';
 

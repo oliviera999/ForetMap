@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../utils/markdown.js';
+import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../shared/platform/markdown.js';
 import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import {
   createRichTextTurndownService,

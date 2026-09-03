@@ -1,6 +1,9 @@
 import { renard2CutManifest, RENARD2_FRAMES_BASE } from '../data/renard2-cut-manifest.js';
 import { gnome1CutManifest, GNOME1_FRAMES_BASE } from '../data/gnome1-cut-manifest.js';
-import { safeLocalStorageGetItem, safeLocalStorageSetItem } from './browserStorage.js';
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageSetItem,
+} from '../shared/platform/browserStorage.js';
 
 const VISIT_MASCOT_STORAGE_KEY = 'foretmap_visit_mascot_id';
 

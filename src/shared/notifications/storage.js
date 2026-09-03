@@ -1,4 +1,4 @@
-import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../../utils/browserStorage.js';
+import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../platform/browserStorage.js';
 
 export function readJsonStorage(key, fallbackValue) {
   try {

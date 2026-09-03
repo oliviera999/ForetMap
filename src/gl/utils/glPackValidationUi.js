@@ -1,5 +1,8 @@
-import { validateGlMascotPack } from '../../utils/glMascotPack.js';
-import { extractZodValidationIssues, toValidationIssueLines } from './validationUi.js';
+import { validateGlMascotPack } from './glMascotPack.js';
+import {
+  extractZodValidationIssues,
+  toValidationIssueLines,
+} from '../../shared/mascot-pack/validationUi.js';
 
 export function validateGlMascotPackForUi(payload) {
   const parsed = validateGlMascotPack(payload);

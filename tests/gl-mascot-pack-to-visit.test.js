@@ -7,7 +7,7 @@ const path = require('path');
 
 test('glMascotPackToVisit : map sprite_cut GL vers validation visite', async () => {
   const mod = await import(
-    pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPackToVisit.js')).href
+    pathToFileURL(path.join(__dirname, '..', 'src', 'gl', 'utils', 'glMascotPackToVisit.js')).href
   );
   const glPack = {
     id: 'gl-pack-test',
@@ -28,7 +28,7 @@ test('glMascotPackToVisit : map sprite_cut GL vers validation visite', async () 
 
 test('glMascotPackToVisit : préserve un état GL personnalisé + porte les triggers', async () => {
   const mod = await import(
-    pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPackToVisit.js')).href
+    pathToFileURL(path.join(__dirname, '..', 'src', 'gl', 'utils', 'glMascotPackToVisit.js')).href
   );
   const glPack = {
     id: 'gl-custom',
@@ -66,7 +66,7 @@ test('glMascotPackToVisit : préserve un état GL personnalisé + porte les trig
 
 test('glMascotPack : refuse un trigger périodique sans everyMs', async () => {
   const mod = await import(
-    pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPack.js')).href
+    pathToFileURL(path.join(__dirname, '..', 'src', 'gl', 'utils', 'glMascotPack.js')).href
   );
   const r = mod.validateGlMascotPack({
     id: 'gl-bad-trig',
@@ -81,7 +81,7 @@ test('glMascotPack : refuse un trigger périodique sans everyMs', async () => {
 
 test('glMascotPackToVisit : refuse renderer non sprite_cut', async () => {
   const mod = await import(
-    pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPackToVisit.js')).href
+    pathToFileURL(path.join(__dirname, '..', 'src', 'gl', 'utils', 'glMascotPackToVisit.js')).href
   );
   const mapped = mod.glMascotPackSpriteCutToVisitValidation({
     id: 'x',
@@ -95,7 +95,7 @@ test('glMascotPackToVisit : refuse renderer non sprite_cut', async () => {
 
 test('glMascotPackToVisit : collision de clé custom — dernière occurrence gagne (libellé + frames), comme l’ancien pont', async () => {
   const mod = await import(
-    pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPackToVisit.js')).href
+    pathToFileURL(path.join(__dirname, '..', 'src', 'gl', 'utils', 'glMascotPackToVisit.js')).href
   );
   // « cast spell » et « cast_spell » sont sanitizés vers la même clé visite « cast_spell ».
   const glPack = {
@@ -124,7 +124,7 @@ test('glMascotPackToVisit : collision de clé custom — dernière occurrence ga
 
 test('glMascotPackToVisit : defaults d’animation viennent du seul chemin visite (fps/pixelated/displayScale)', async () => {
   const mod = await import(
-    pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPackToVisit.js')).href
+    pathToFileURL(path.join(__dirname, '..', 'src', 'gl', 'utils', 'glMascotPackToVisit.js')).href
   );
   // Aucun fps / pixelated / displayScale fourni : tout doit être défauté par le cœur visite.
   const mapped = mod.glMascotPackSpriteCutToVisitValidation(
@@ -147,7 +147,7 @@ test('glMascotPackToVisit : defaults d’animation viennent du seul chemin visit
 
 test('glMascotPackToVisit : clamp displayScale appliqué par le cœur visite (un seul chemin)', async () => {
   const mod = await import(
-    pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPackToVisit.js')).href
+    pathToFileURL(path.join(__dirname, '..', 'src', 'gl', 'utils', 'glMascotPackToVisit.js')).href
   );
   // displayScale < 0.25 : accepté par le schéma (positif) puis clampé à 0.25 par l’expansion.
   const mapped = mod.glMascotPackSpriteCutToVisitValidation(

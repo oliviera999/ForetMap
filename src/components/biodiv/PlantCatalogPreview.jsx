@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
+import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { ContextComments } from '../context-comments';

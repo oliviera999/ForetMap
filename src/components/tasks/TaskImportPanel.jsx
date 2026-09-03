@@ -1,6 +1,6 @@
 import { api } from '../../services/api';
 import { downloadApiFile } from '../../utils/downloadApiFile.js';
-import { fileToDataUrl } from '../../utils/fileToDataUrl.js';
+import { fileToDataUrl } from '../../shared/platform/fileToDataUrl.js';
 import { ImportPanel } from '../../shared/components/ImportPanel.jsx';
 import { IconFileSpreadsheet, IconFileText } from '../../shared/icons.jsx';
 

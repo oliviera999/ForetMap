@@ -13,8 +13,8 @@
  * l'image, et produit un message d'erreur explicite en français plutôt qu'un 400/413.
  */
 
-import { fileToDataUrl } from './fileToDataUrl.js';
-import { compressImage, fileToPngDataUrl } from './image.js';
+import { fileToDataUrl } from '../platform/fileToDataUrl.js';
+import { compressImage, fileToPngDataUrl } from '../platform/image.js';
 
 /** Types acceptés par le serveur — miroir de `ALLOWED_MEDIA_TYPES` (`lib/mediaLibrary.js`). */
 export const SERVER_MEDIA_MIMES = Object.freeze({

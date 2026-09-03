@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { fileToDataUrl } from '../../src/utils/fileToDataUrl.js';
+import { fileToDataUrl } from '../../src/shared/platform/fileToDataUrl.js';
 
 describe('fileToDataUrl', () => {
   test('lit un Blob en data URL base64', async () => {

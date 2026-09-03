@@ -13,7 +13,7 @@ import {
   safeLocalStorageGetItem,
   safeLocalStorageRemoveItem,
   safeLocalStorageSetItem,
-} from '../utils/browserStorage.js';
+} from '../shared/platform/browserStorage.js';
 
 /**
  * Cycle de vie de la session utilisateur (extrait de App.jsx, D3) : restauration

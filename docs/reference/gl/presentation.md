@@ -65,6 +65,11 @@ Quelques mécanismes utiles à connaître :
 Presque tout dans GL est un **module que l'admin peut activer ou désactiver** dans les
 réglages. Voici ce que contient le jeu, regroupé comme dans la navigation :
 
+> Sur téléphone, les onglets principaux tiennent dans la barre du bas ; le bouton « Plus »
+> ouvre les autres dans une **feuille basse** commune à toutes les applications de la
+> plateforme (poignée pour l'agrandir, glisser vers le bas ou bouton retour pour la
+> refermer).
+
 ### Cartes (le plateau de jeu)
 
 L'écran central du jeu : la carte du chapitre en cours, avec les **zones** du royaume,

@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
+import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { TutorialReadAcknowledgeButton } from './TutorialReadAcknowledge';
 import { DialogShell } from './DialogShell';
 import { IconClose, IconTuto } from '../shared/icons.jsx';

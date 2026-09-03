@@ -1,4 +1,4 @@
-import { normalizeGlImageFrame } from '../../utils/glImageFrame.js';
+import { normalizeGlImageFrame } from '../../shared/image-frame/glImageFrame.js';
 import { normalizeChapterTheme } from './glBrandTheme.js';
 import { GL_SPELL_CATEGORY_LABELS } from './glSpellFieldLabels.js';
 

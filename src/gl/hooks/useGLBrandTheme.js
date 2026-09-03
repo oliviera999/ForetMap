@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { normalizeGlImageFrame } from '../../utils/glImageFrame.js';
+import { normalizeGlImageFrame } from '../../shared/image-frame/glImageFrame.js';
 import { mergeBrandWithChapterTheme } from '../utils/glBrandTheme.js';
 
 export const GL_CONTENT_PAGE_SLOT_BY_SLUG = {

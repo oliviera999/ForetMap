@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { renderMarkdownToSafeHtml } from '../utils/markdown.js';
+import { renderMarkdownToSafeHtml } from '../shared/platform/markdown.js';
 import { GlossaryMarkdown } from './GlossaryMarkdown.jsx';
 
 /**

@@ -1,4 +1,7 @@
-import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
+import {
+  armNativeFilePickerGuard,
+  disarmNativeFilePickerGuard,
+} from '../shared/platform/overlayHistory';
 import { IconCamera, IconClose, IconFolder } from '../shared/icons.jsx';
 
 /**

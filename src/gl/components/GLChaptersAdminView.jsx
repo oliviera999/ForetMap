@@ -3,14 +3,17 @@ import { apiGL } from '../services/apiGL.js';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
-import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image.js';
+import { compressImageWithPreset, isLikelyImageFile } from '../../shared/platform/image.js';
 import { GLChapterMapStudio } from './GLChapterMapStudio.jsx';
 import { isModuleEnabled } from '../constants/modules.js';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { MediaLibraryMenu } from '../../components/MediaLibraryMenu.jsx';
 import { GLImageSourceField } from './GLImageSourceField.jsx';
 import { GLImageFrameEditor } from './GLImageFrameEditor.jsx';
-import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
+import {
+  glImageFrameToStyle,
+  normalizeGlImageFrame,
+} from '../../shared/image-frame/glImageFrame.js';
 import { GLRichTextEditor } from './ui/GLRichTextEditor.jsx';
 import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
 import { brandToCssVars, mergeBrandWithChapterTheme } from '../utils/glBrandTheme.js';

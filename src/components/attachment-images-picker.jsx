@@ -1,7 +1,10 @@
 import { useCallback, useRef } from 'react';
 import { withAppBase } from '../services/api';
-import { isLikelyImageFile } from '../utils/image';
-import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
+import { isLikelyImageFile } from '../shared/platform/image';
+import {
+  armNativeFilePickerGuard,
+  disarmNativeFilePickerGuard,
+} from '../shared/platform/overlayHistory';
 
 /** Aligné sur le serveur : lib/userContentImages.js */
 export const MAX_ATTACHMENT_IMAGES = 3;

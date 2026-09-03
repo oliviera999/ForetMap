@@ -15,7 +15,10 @@ import {
   appearanceFormFromMarker,
   appearanceDefaultsForEventType,
 } from './GLMarkerAppearanceEditor.jsx';
-import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
+import {
+  glImageFrameToStyle,
+  normalizeGlImageFrame,
+} from '../../shared/image-frame/glImageFrame.js';
 import { defaultEventConfigForQuestion } from '../utils/glMarkerEventConfig.js';
 import { GLChapterMarkerList } from './GLChapterMarkerList.jsx';
 import { GLChapterMarkerForm } from './GLChapterMarkerForm.jsx';

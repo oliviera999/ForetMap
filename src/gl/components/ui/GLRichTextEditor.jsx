@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../../../utils/markdown.js';
+import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../../../shared/platform/markdown.js';
 import {
   createRichTextTurndownService,
   htmlToMarkdownWith,
@@ -11,7 +11,7 @@ import {
   glImageFrameToWrapStyle,
   normalizeGlImageFrame,
   serializeGlImageFrameAttr,
-} from '../../../utils/glImageFrame.js';
+} from '../../../shared/image-frame/glImageFrame.js';
 import { GLImageInlineInsertControls } from '../GLImageInlineInsertControls.jsx';
 import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { annotateEditorHtmlWithOriginalSrc } from '../../utils/glMarkdownEditorDisplay.js';

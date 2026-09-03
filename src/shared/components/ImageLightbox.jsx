@@ -1,8 +1,8 @@
 import { useLayoutEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { useDialogA11y } from '../../hooks/useDialogA11y.js';
-import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack.js';
-import { lockBodyScroll } from '../../utils/body-scroll-lock.js';
+import { useDialogA11y } from '../platform/useDialogA11y.js';
+import { useOverlayHistoryBack } from '../platform/useOverlayHistoryBack.js';
+import { lockBodyScroll } from '../platform/bodyScrollLock.js';
 import { IconClose } from '../icons.jsx';
 
 /**

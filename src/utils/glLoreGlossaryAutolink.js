@@ -6,7 +6,7 @@
  * données). Comme lui, ce module balaie des **chaînes** — aucune dépendance au DOM,
  * il reste exécutable côté serveur ou dans un test sans `document`.
  */
-import { renderMarkdownToSafeHtml, sanitizeRichHtml } from './markdown.js';
+import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../shared/platform/markdown.js';
 import { createTermAutolink } from './glTermAutolink.js';
 
 const autolink = createTermAutolink({

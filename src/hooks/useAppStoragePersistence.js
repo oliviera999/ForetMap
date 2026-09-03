@@ -4,7 +4,7 @@ import {
   safeLocalStorageSetItem,
   safeSessionStorageGetItem,
   safeSessionStorageRemoveItem,
-} from '../utils/browserStorage.js';
+} from '../shared/platform/browserStorage.js';
 
 /**
  * Persistance des préférences d'interface dans le stockage navigateur (O5).

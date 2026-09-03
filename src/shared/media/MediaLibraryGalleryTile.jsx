@@ -1,7 +1,7 @@
-import { withAppBase } from '../../services/api.js';
-import { formatMediaLibrarySize } from '../../utils/mediaLibraryView.js';
+import { withAppBase } from '../appBase.js';
+import { formatMediaLibrarySize } from './mediaLibraryView.js';
 import { MediaUsageInfo } from './MediaUsageInfo.jsx';
-import { IconAudio } from '../../shared/icons.jsx';
+import { IconAudio } from '../icons.jsx';
 
 export function resolveMediaUrl(url) {
   return withAppBase(String(url || ''));

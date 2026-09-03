@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { DialogShell } from '../DialogShell.jsx';
+import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
 import { MapLocationFilterFields } from './MapLocationFilterFields.jsx';
 import { useMapLocationFiltersPanel } from '../../hooks/useMapLocationFiltersPanel.js';
 import {
@@ -166,33 +166,36 @@ export function MapLocationFiltersBar({
       )}
 
       {compact && (
-        <DialogShell
+        <BottomSheet
           open={open}
           onClose={close}
-          overlayClassName="modal-overlay task-filters-sheet-overlay"
-          dialogClassName="log-modal task-filters-sheet map-location-filters-sheet fade-in"
+          title={
+            <>
+              <IconFilter size={14} /> Filtres
+            </>
+          }
           ariaLabel="Filtres carte"
+          closeLabel="Fermer les filtres"
+          className="task-filters-sheet map-location-filters-sheet"
+          initialSnap="half"
+          footer={
+            <>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={clearAll}
+                disabled={!filterActive}
+              >
+                Réinitialiser
+              </button>
+              <button type="button" className="btn btn-primary btn-sm" onClick={close}>
+                Voir la carte
+              </button>
+            </>
+          }
         >
-          <div className="task-filters-sheet__head">
-            <h3 className="task-filters-sheet__title">
-              <IconFilter size={14} /> Filtres carte
-            </h3>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={close}
-              aria-label="Fermer les filtres"
-            >
-              <IconClose size={14} />
-            </button>
-          </div>
           {fields}
-          <div className="task-filters-sheet__actions">
-            <button type="button" className="btn btn-primary" onClick={close}>
-              Appliquer
-            </button>
-          </div>
-        </DialogShell>
+        </BottomSheet>
       )}
     </div>
   );

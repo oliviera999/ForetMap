@@ -134,6 +134,7 @@ export function GLMascotPackManager() {
       <MascotPackArchiveImportDialog
         open={importOpen}
         variant="gl"
+        transport={apiGL}
         chapterId={selectedPack?.chapter_id ?? null}
         targetPackId={selectedPack?.id ?? null}
         targetPackLabel={selectedPack?.name ?? ''}
