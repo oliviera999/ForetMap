@@ -27,6 +27,8 @@ import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { TEACHER_STATUS_ACTIONS } from './tasks/taskViewHelpers.js';
 import {
   isTaskUrgentPending,
+  filterStatusShowsValidated,
+  partitionTasksByValidated,
   applyTaskFilters,
   sortedVisibleProjects,
   partitionTasksByEffectiveStatus,
@@ -50,6 +52,7 @@ import { TaskImportPanel } from './tasks/TaskImportPanel.jsx';
 import { TaskTutorialsAtFocusBlock } from './tasks/TaskTutorialsAtFocusBlock.jsx';
 import { TaskFiltersBar } from './tasks/TaskFiltersBar.jsx';
 import { TasksViewHeader } from './tasks/TasksViewHeader.jsx';
+import { TasksValidatedHiddenNotice } from './tasks/TasksValidatedHiddenNotice.jsx';
 import {
   prepareTaskSavePayload,
   executeInitialAssignments,
@@ -72,6 +75,9 @@ import {
 } from '../utils/taskListHelpers.js';
 import { teacherCollectiveAssigneeLoadKey } from '../utils/taskDisplayHelpers.js';
 import { IconCheck, IconPuzzle, IconSearch, IconUrgent } from '../shared/icons.jsx';
+
+/** Référence stable pour « aucun projet validé à rendre » (évite un tableau neuf par rendu). */
+const EMPTY_PROJECT_LIST = Object.freeze([]);
 
 function TasksViewImpl({
   maps = [],
@@ -472,6 +478,16 @@ function TasksViewImpl({
   const sourceProjects = isArchivedView ? archivedTaskProjects : taskProjects;
   const effectiveFilterStatus = isArchivedView ? '' : filterStatus;
 
+  /**
+   * Éléments validés : masqués par défaut, exactement comme les archives.
+   *
+   * Une tâche validée (ou rattachée à un projet validé) et un projet validé n'attendent
+   * plus rien : ils encombraient le bas de l'écran à chaque ouverture. Ils redeviennent
+   * visibles quand l'utilisateur choisit le statut « Validée » / « Projet validé » dans
+   * le filtre — la vue « Archivés » les montre elle aussi (c'est tout son contenu).
+   */
+  const showValidated = isArchivedView || filterStatusShowsValidated(filterStatus);
+
   // Charge les archives à l'ouverture de la vue (hors poll pour limiter la pression LVE).
   useEffect(() => {
     if (!isArchivedView || typeof loadArchivedTasks !== 'function') return;
@@ -496,7 +512,9 @@ function TasksViewImpl({
       ).sort(compareProjectsForDisplay),
     [visibleProjects, isArchivedView],
   );
-  const validatedProjects = useMemo(
+  // Projets validés du périmètre courant : rendus seulement quand `showValidated`
+  // (le compte alimente sinon l'invite « … masqués » en bas de vue).
+  const validatedProjectsInScope = useMemo(
     () =>
       isArchivedView
         ? []
@@ -505,7 +523,8 @@ function TasksViewImpl({
             .sort(compareProjectsForDisplay),
     [visibleProjects, isArchivedView],
   );
-  const allFiltered = useMemo(
+  const validatedProjects = showValidated ? validatedProjectsInScope : EMPTY_PROJECT_LIST;
+  const filteredTasks = useMemo(
     () =>
       applyTaskFilters(sourceTasks, {
         filterMap,
@@ -529,6 +548,24 @@ function TasksViewImpl({
       filterUrgentCategory,
     ],
   );
+  /**
+   * Scission « à traiter » / « validées » (ordre d'origine conservé de part et d'autre).
+   * `allFiltered` — source de toutes les sections, du compteur de résultats et de l'état
+   * vide — ne reprend les validées que si elles sont demandées ; sinon leur nombre
+   * alimente l'invite « … masquées » en bas de vue.
+   */
+  const { visible: nonValidatedFiltered, validated: validatedFiltered } = useMemo(
+    () => partitionTasksByValidated(filteredTasks),
+    [filteredTasks],
+  );
+  const allFiltered = showValidated ? filteredTasks : nonValidatedFiltered;
+  const hiddenValidatedTasksCount = showValidated ? 0 : validatedFiltered.length;
+  const hiddenValidatedProjectsCount = showValidated ? 0 : validatedProjectsInScope.length;
+  /** Bouton de l'invite « … masqués » : bascule le filtre de statut sur « Validée ». */
+  const showValidatedItems = useCallback(() => {
+    setFilterStatus('validated');
+    setHasTouchedStatusFilter(true);
+  }, [setFilterStatus, setHasTouchedStatusFilter]);
   // La section « 🚨 Urgent ! » ne retient que les tâches urgentes ENCORE en cours de vie :
   // une tâche urgente validée doit repartir dans « ✅ Validées » / « ✅ Récemment validées »
   // (avant, elle restait piégée dans l'encart urgence, retirée de toutes les autres sections).
@@ -1049,6 +1086,12 @@ function TasksViewImpl({
             <IconCheck size={16} /> {`Projets validés (${validatedProjects.length})`}
           </>
         }
+      />
+
+      <TasksValidatedHiddenNotice
+        tasksCount={hiddenValidatedTasksCount}
+        projectsCount={hiddenValidatedProjectsCount}
+        onShowValidated={showValidatedItems}
       />
 
       <TasksEmptyState count={allFiltered.length} />
