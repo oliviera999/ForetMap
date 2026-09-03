@@ -7,16 +7,27 @@ import { useId } from 'react';
  *
  * @param {object} props
  * @param {string} props.title titre du plan (réglage `ui.plan.title`).
+ * @param {string} [props.logoUrl] logo de l'établissement (réglage `ui.plan.brand`, lot 7).
  * @param {string} props.query saisie courante.
  * @param {(next: string) => void} props.onQueryChange
  * @param {() => void} [props.onFocusSearch] ouverture de la feuille de résultats.
  * @param {number} [props.resultCount] nombre de résultats (annonce vocale).
  */
-export function PlanTopBar({ title, query, onQueryChange, onFocusSearch, resultCount = null }) {
+export function PlanTopBar({
+  title,
+  query,
+  onQueryChange,
+  onFocusSearch,
+  resultCount = null,
+  logoUrl = '',
+}) {
   const inputId = useId();
   return (
     <header className="plan-topbar">
-      <h1 className="plan-topbar__title">{title}</h1>
+      <div className="plan-topbar__identity">
+        {logoUrl ? <img className="plan-topbar__logo" src={logoUrl} alt="" /> : null}
+        <h1 className="plan-topbar__title">{title}</h1>
+      </div>
       <div className="plan-topbar__search">
         <label className="fm-visually-hidden" htmlFor={inputId}>
           Rechercher un lieu

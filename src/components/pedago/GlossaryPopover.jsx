@@ -9,6 +9,12 @@ import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
 import { useGatingSummary } from '../../hooks/useGatingSummary';
 import { IconClose, IconGlossary } from '../../shared/icons.jsx';
 import {
+  GLOSSARY_CLOSE_MS,
+  GLOSSARY_NIVEAU_LABELS,
+  createGlossaryDetailCache,
+  glossaryCategoryAccent,
+} from '../../shared/glossary/glossaryCardCore.js';
+import {
   GlossaryTermLearnedAcknowledgeButton,
   fetchLearnedGlossaryCodes,
 } from './GlossaryTermLearnedAcknowledge.jsx';
@@ -28,13 +34,11 @@ import {
  */
 
 /** Durée de l'animation de fermeture, alignée sur `.fm-glossary-popover.is-closing`. */
-const CLOSE_MS = 200;
-
-const NIVEAU_LABELS = {
-  base: 'Base',
-  approfondissement: 'Approfondissement',
-  avance: 'Avancé',
-};
+// Durée de fermeture, libellés de niveau et cache viennent du noyau partagé des fiches de
+// glossaire (`src/shared/glossary/glossaryCardCore.js`, lot 7) : les deux fiches — ForetMap et
+// G&L — restent distinctes, seule leur mécanique commune est mutualisée.
+const CLOSE_MS = GLOSSARY_CLOSE_MS;
+const NIVEAU_LABELS = GLOSSARY_NIVEAU_LABELS;
 
 /** Accent de couleur par catégorie, dans la palette forêt (défaut : vert feuille). */
 const CATEGORY_ACCENT = {
@@ -51,7 +55,7 @@ const CATEGORY_ACCENT = {
 };
 
 /** Cache mémoire des fiches déjà chargées (évite un aller-retour par ouverture). */
-const detailCache = new Map();
+const detailCache = createGlossaryDetailCache();
 
 /** Vide le cache mémoire des fiches (tests, et rechargement forcé côté appelant). */
 export function clearGlossaryDetailCache() {
@@ -59,7 +63,7 @@ export function clearGlossaryDetailCache() {
 }
 
 function categoryAccent(categorie) {
-  return CATEGORY_ACCENT[String(categorie || '').toLowerCase()] || 'var(--leaf, #2d6a4f)';
+  return glossaryCategoryAccent(categorie, CATEGORY_ACCENT, 'var(--leaf, #2d6a4f)');
 }
 
 /**
