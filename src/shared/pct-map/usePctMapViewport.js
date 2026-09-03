@@ -69,6 +69,24 @@ import { computeContainRect } from './pctMapFit.js';
  * @param {(kind: string) => void} [options.onGestureStart]
  * @param {() => void} [options.onGestureEnd]
  */
+/**
+ * Ref « de rappel » à identité stable, lisible comme un objet (`ref.current`) et qui expose
+ * l'élément en état React : les écouteurs et la mesure se (ré)attachent quand l'élément
+ * apparaît après le montage (vue derrière un loader) ou change de nœud (portail plein écran).
+ */
+function useElementRef() {
+  const [el, setEl] = useState(null);
+  const ref = useMemo(() => {
+    const fn = (node) => {
+      fn.current = node;
+      setEl(node);
+    };
+    fn.current = null;
+    return fn;
+  }, []);
+  return [ref, el];
+}
+
 /** Annulation d'un rAF tolérante aux environnements sans `cancelAnimationFrame` (SSR, jsdom nu). */
 function cancelRaf(id) {
   if (id != null && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(id);
@@ -96,9 +114,9 @@ export function usePctMapViewport({
   onGestureStart = null,
   onGestureEnd = null,
 } = {}) {
-  const containerRef = useRef(null);
-  const worldRef = useRef(null);
-  const imgRef = useRef(null);
+  const [containerRef, containerEl] = useElementRef();
+  const [worldRef, worldEl] = useElementRef();
+  const [imgRef, imgEl] = useElementRef();
 
   const tx = useRef({ x: 0, y: 0, s: 1 });
   const [committed, setCommitted] = useState({ x: 0, y: 0, s: 1 });
@@ -190,12 +208,15 @@ export function usePctMapViewport({
     if (lastAppliedRef.current === next && el.style.transform === next) return;
     lastAppliedRef.current = next;
     el.style.transform = next;
-  }, []);
+  }, [worldRef]);
 
-  const setWorldWillChange = useCallback((on) => {
-    const el = worldRef.current;
-    if (el) el.style.willChange = on ? 'transform' : 'auto';
-  }, []);
+  const setWorldWillChange = useCallback(
+    (on) => {
+      const el = worldRef.current;
+      if (el) el.style.willChange = on ? 'transform' : 'auto';
+    },
+    [worldRef],
+  );
 
   const scheduleApply = useCallback(() => {
     if (applyRafRef.current != null) return;
@@ -404,9 +425,9 @@ export function usePctMapViewport({
     setInteractionEnabled(true);
   }, [resetKey]);
 
-  /* Dimensions naturelles de l'image. */
+  /* Dimensions naturelles de l'image (re-écoute si l'élément image change). */
   useEffect(() => {
-    const img = imgRef.current;
+    const img = imgEl;
     if (!img) return undefined;
     const onLoad = () => {
       const w = Math.max(1, img.naturalWidth || 0);
@@ -417,12 +438,12 @@ export function usePctMapViewport({
     if (img.complete && img.naturalWidth > 0) onLoad();
     else img.addEventListener('load', onLoad);
     return () => img.removeEventListener('load', onLoad);
-  }, [imageSrc]);
+  }, [imageSrc, imgEl]);
 
   /* Mesure du cadre : au montage, à chaque image, à chaque carte, et sur redimensionnement. */
   const observeRefsList = observeRefs || null;
   useLayoutEffect(() => {
-    const c = containerRef.current;
+    const c = containerEl;
     if (!c) return undefined;
     measure('fit');
     let debounce = null;
@@ -454,12 +475,17 @@ export function usePctMapViewport({
       }
     };
     // `imgSize` et `resetKey` : remesure quand l'image ou la carte change.
-  }, [imgSize, resetKey, contentMode, measure, remeasure, observeRefsList]);
+  }, [containerEl, imgSize, resetKey, contentMode, measure, remeasure, observeRefsList]);
 
-  // Un re-render pendant un geste ne doit pas réécrire le style avec l'état commité en retard.
+  // Un re-render pendant un geste ne doit pas réécrire le style avec l'état commité en retard ;
+  // un nouveau nœud monde (portail plein écran) reçoit la transformation courante.
   useLayoutEffect(() => {
     applyTransform();
   });
+  useLayoutEffect(() => {
+    lastAppliedRef.current = '';
+    applyTransform();
+  }, [worldEl, applyTransform]);
 
   useEffect(
     () => () => {
@@ -472,25 +498,31 @@ export function usePctMapViewport({
   );
 
   /** Pointeur (client) → % du rectangle image ; `clamp: false` par défaut (édition hors cadre). */
-  const toImagePct = useCallback((clientX, clientY, options = {}) => {
-    const c = containerRef.current;
-    if (!c) return null;
-    const fr = fitRectRef.current;
-    const fit =
-      optionsRef.current.contentMode === 'stage'
-        ? fr
-        : { offsetX: 0, offsetY: 0, width: imgSizeRef.current.w, height: imgSizeRef.current.h };
-    return pointToContainedRectPct({ clientX, clientY }, c, tx.current, fit, {
-      clamp: options.clamp === true,
-      decimals: options.decimals ?? null,
-    });
-  }, []);
+  const toImagePct = useCallback(
+    (clientX, clientY, options = {}) => {
+      const c = containerRef.current;
+      if (!c) return null;
+      const fr = fitRectRef.current;
+      const fit =
+        optionsRef.current.contentMode === 'stage'
+          ? fr
+          : { offsetX: 0, offsetY: 0, width: imgSizeRef.current.w, height: imgSizeRef.current.h };
+      return pointToContainedRectPct({ clientX, clientY }, c, tx.current, fit, {
+        clamp: options.clamp === true,
+        decimals: options.decimals ?? null,
+      });
+    },
+    [containerRef],
+  );
 
-  const localPoint = useCallback((clientX, clientY) => {
-    const c = containerRef.current;
-    const r = c ? c.getBoundingClientRect() : { left: 0, top: 0 };
-    return { x: clientX - r.left, y: clientY - r.top };
-  }, []);
+  const localPoint = useCallback(
+    (clientX, clientY) => {
+      const c = containerRef.current;
+      const r = c ? c.getBoundingClientRect() : { left: 0, top: 0 };
+      return { x: clientX - r.left, y: clientY - r.top };
+    },
+    [containerRef],
+  );
 
   /** Zoom animé vers une échelle autour d'un pivot (px cadre) — boutons +/−, double-tap, focus. */
   const animateZoomTowardScale = useCallback(
@@ -657,7 +689,7 @@ export function usePctMapViewport({
 
   /* Écouteurs natifs (passif: false pour pouvoir prévenir le défilement). */
   useEffect(() => {
-    const el = containerRef.current;
+    const el = containerEl;
     if (!el) return undefined;
 
     const gesturesAllowed = () => {
@@ -860,6 +892,7 @@ export function usePctMapViewport({
       el.removeEventListener('dblclick', onDoubleClick);
     };
   }, [
+    containerEl,
     animateZoomTowardScale,
     applyLive,
     cancelAnimation,
@@ -945,6 +978,9 @@ export function usePctMapViewport({
       touchAction,
     }),
     [
+      containerRef,
+      worldRef,
+      imgRef,
       committed,
       fitScale,
       imgSize,
