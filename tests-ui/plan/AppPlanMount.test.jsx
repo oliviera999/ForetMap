@@ -38,6 +38,7 @@ const content = vi.hoisted(() => ({
       visit_details_text: '8 h – 17 h',
     },
   ],
+  routes: [],
   markers: [
     {
       id: 'm-gym',
@@ -55,6 +56,7 @@ const content = vi.hoisted(() => ({
 const planApiMock = vi.hoisted(() => ({
   fetchPlanContent: vi.fn(async () => content),
   reportPlanUsage: vi.fn(),
+  submitPlanAccessCode: vi.fn(async () => ({ ok: true })),
 }));
 vi.mock('../../src/plan/planApi.js', () => planApiMock);
 
@@ -115,6 +117,7 @@ beforeEach(() => {
   planApiMock.fetchPlanContent.mockClear();
   planApiMock.reportPlanUsage.mockClear();
   positionStub.toggle.mockClear();
+  planApiMock.submitPlanAccessCode.mockClear();
   window.localStorage.clear();
   window.history.replaceState(null, '', '/');
 });
@@ -244,6 +247,61 @@ describe('AppPlan — montage', () => {
     expect(sheet.textContent).toContain('Lieux regroupés (2)');
     expect(sheet.textContent).toContain('Vestiaire A');
     expect(sheet.textContent).toContain('Vestiaire B');
+  });
+
+  test('parcours (lot 8) : puce, démarrage, étapes et sortie', async () => {
+    planApiMock.fetchPlanContent.mockResolvedValueOnce({
+      ...content,
+      routes: [
+        {
+          id: 'r1',
+          slug: 'tour',
+          title: 'Tour du lycée',
+          audience: 'Nouveaux professeurs',
+          description: '',
+          steps: [
+            { position: 0, target_type: 'zone', target_id: 'z-cdi', step_title: 'Le CDI' },
+            { position: 1, target_type: 'marker', target_id: 'm-gym', step_title: '' },
+          ],
+        },
+      ],
+    });
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: /Parcours/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Tour du lycée/ }));
+
+    const sheet = await screen.findByTestId('plan-route-sheet');
+    expect(sheet.textContent).toContain('Le CDI');
+    expect(sheet.textContent).toContain('Étape 1 sur 2');
+    expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith('route_start', 'tour');
+    expect(window.location.search).toContain('parcours=tour');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Suivant' }));
+    await waitFor(() => expect(sheet.textContent).toContain('Étape 2 sur 2'));
+    expect(screen.getByRole('button', { name: 'Suivant' }).disabled).toBe(true);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Quitter le parcours' })[0]);
+    await waitFor(() => expect(screen.queryByTestId('plan-route-sheet')).toBeNull());
+    expect(window.location.search).not.toContain('parcours=');
+  });
+
+  test('accès par code : écran de saisie quand le serveur l’exige', async () => {
+    const denied = Object.assign(new Error('Code requis'), {
+      status: 401,
+      body: { access_required: true },
+    });
+    planApiMock.fetchPlanContent.mockRejectedValueOnce(denied);
+    render(<AppPlan />);
+    expect(await screen.findByLabelText('Code d’accès')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Entrer' })).toBeTruthy();
+
+    planApiMock.submitPlanAccessCode.mockResolvedValueOnce({ ok: true });
+    fireEvent.change(screen.getByLabelText('Code d’accès'), { target: { value: 'OUVRE-TOI' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Entrer' }));
+    await waitFor(() => expect(planApiMock.submitPlanAccessCode).toHaveBeenCalledWith('OUVRE-TOI'));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
   });
 
   test('erreur de chargement : message et bouton Réessayer', async () => {

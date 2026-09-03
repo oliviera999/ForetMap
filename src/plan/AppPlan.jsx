@@ -14,12 +14,15 @@ import { FixedToast } from '../shared/components/FixedToast.jsx';
 import { useTimedToastState } from '../shared/hooks/useTimedToastState.js';
 import { PlanCategoryChips } from './components/PlanCategoryChips.jsx';
 import { PlanHelp } from './components/PlanHelp.jsx';
+import { PlanRoutePicker } from './components/PlanRoutePicker.jsx';
+import { PlanRouteSheet } from './components/PlanRouteSheet.jsx';
+import { AccessCodeGate } from '../shared/components/AccessCodeGate.jsx';
 import { PlanMapStage } from './components/PlanMapStage.jsx';
 import { PlanPlaceSheet } from './components/PlanPlaceSheet.jsx';
 import { PlanResultsSheet } from './components/PlanResultsSheet.jsx';
 import { PlanTopBar } from './components/PlanTopBar.jsx';
 import { usePlanContent } from './hooks/usePlanContent.js';
-import { reportPlanUsage } from './planApi.js';
+import { reportPlanUsage, submitPlanAccessCode } from './planApi.js';
 import {
   buildPlaceUrl,
   countPlacesByCategory,
@@ -28,6 +31,12 @@ import {
   readPlaceIdFromLocation,
 } from './utils/planPlaces.js';
 import { PLAN_POSITION_MESSAGES } from './utils/planPositionMessages.js';
+import {
+  buildRouteUrl,
+  nextRouteIndex,
+  readRouteSlugFromLocation,
+  resolveRouteSteps,
+} from './utils/planRoutes.js';
 
 /** Catégories retenues d'une visite à l'autre (le plan n'a pas de compte). */
 const CATEGORIES_STORAGE_KEY = 'plan:categories';
@@ -45,7 +54,31 @@ const RESULTS_LIMIT = 40;
  * (`POST /api/usage`) sait qu'un lieu a été ouvert.
  */
 export function AppPlan() {
-  const { content, places, categories, settings, map, loading, error, reload } = usePlanContent();
+  /** Code d'accès porté par un lien profond (`?code=`, QR interne) — lot 8. */
+  const [accessCode, setAccessCode] = useState(() =>
+    typeof window === 'undefined'
+      ? ''
+      : String(new URLSearchParams(window.location.search).get('code') || '').trim(),
+  );
+  const {
+    content,
+    places,
+    routes,
+    categories,
+    settings,
+    map,
+    loading,
+    error,
+    accessRequired,
+    reload,
+  } = usePlanContent('', accessCode);
+  /** Parcours en cours (lot 8) : slug actif et position, mémorisés sur l'appareil seulement. */
+  const [activeRouteSlug, setActiveRouteSlug] = useState('');
+  const [routeIndex, setRouteIndex] = useState(0);
+  const [routePickerOpen, setRoutePickerOpen] = useState(false);
+  const [offline, setOffline] = useState(
+    () => typeof navigator !== 'undefined' && navigator.onLine === false,
+  );
   const [query, setQuery] = useState('');
   const [resultsOpen, setResultsOpen] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState(null);
@@ -229,15 +262,27 @@ export function AppPlan() {
     safeLocalStorageWriteJson(CATEGORIES_STORAGE_KEY, []);
   }, []);
 
+  /** Parcours actif et ses étapes résolues en lieux réels. */
+  const activeRoute = useMemo(
+    () => (activeRouteSlug ? routes.find((r) => r.slug === activeRouteSlug) || null : null),
+    [activeRouteSlug, routes],
+  );
+  const routeSteps = useMemo(
+    () => (activeRoute ? resolveRouteSteps(activeRoute, places) : []),
+    [activeRoute, places],
+  );
+  const currentRouteEntry = routeSteps[routeIndex] || null;
+
   /**
    * « Y aller » : la carte trace une **ligne droite** entre la position et le lieu, avec la
    * distance. Ce n'est pas un itinéraire — le plan ne connaît pas encore les chemins, et
    * mieux vaut une direction honnête qu'un trajet inventé.
    */
-  const targetPlace = useMemo(
-    () => (targetPlaceId ? places.find((p) => String(p.id) === targetPlaceId) || null : null),
-    [targetPlaceId, places],
-  );
+  const targetPlace = useMemo(() => {
+    // En mode parcours, la cible est l'étape courante : « Y aller » suit le parcours.
+    if (currentRouteEntry) return currentRouteEntry.place;
+    return targetPlaceId ? places.find((p) => String(p.id) === targetPlaceId) || null : null;
+  }, [currentRouteEntry, targetPlaceId, places]);
   const targetPct = useMemo(
     () => (targetPlace ? planPlaceFocusPct(targetPlace, parsePctPolygonPoints) : null),
     [targetPlace],
@@ -260,10 +305,98 @@ export function AppPlan() {
     [position],
   );
 
+  const startRoute = useCallback((route) => {
+    setActiveRouteSlug(route.slug);
+    setRouteIndex(0);
+    setRoutePickerOpen(false);
+    setResultsOpen(false);
+    setGroupPlaces(null);
+    reportPlanUsage('route_start', route.slug);
+    if (typeof window !== 'undefined' && window.history?.replaceState) {
+      window.history.replaceState(null, '', buildRouteUrl(window.location, route.slug));
+    }
+  }, []);
+
+  const exitRoute = useCallback(() => {
+    setActiveRouteSlug('');
+    setRouteIndex(0);
+    setSelectedPlace(null);
+    if (typeof window !== 'undefined' && window.history?.replaceState) {
+      window.history.replaceState(null, '', buildRouteUrl(window.location, ''));
+    }
+  }, []);
+
+  const goToRouteIndex = useCallback(
+    (next) => {
+      const index = nextRouteIndex(next, routeSteps.length, 0);
+      setRouteIndex(index);
+      reportPlanUsage('route_step', `${activeRouteSlug}#${index + 1}`);
+    },
+    [routeSteps.length, activeRouteSlug],
+  );
+
+  // L'étape courante est le lieu sélectionné : la carte recadre dessus et sa fiche suit.
+  useEffect(() => {
+    if (!currentRouteEntry) return;
+    setSelectedPlace(currentRouteEntry.place);
+  }, [currentRouteEntry]);
+
+  // Lien profond `?parcours=` : ouvre le parcours dès que le contenu est là.
+  const routeLinkAppliedRef = useRef(false);
+  useEffect(() => {
+    if (routeLinkAppliedRef.current || routes.length === 0) return;
+    routeLinkAppliedRef.current = true;
+    const wanted = readRouteSlugFromLocation(
+      typeof window === 'undefined' ? '' : window.location.search,
+    );
+    if (!wanted) return;
+    const found = routes.find((route) => route.slug === wanted);
+    if (found) {
+      setActiveRouteSlug(found.slug);
+      setRouteIndex(0);
+    }
+  }, [routes]);
+
+  // Bandeau « hors ligne » : le plan reste consultable grâce au service worker.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const goOnline = () => setOffline(false);
+    const goOffline = () => {
+      setOffline(true);
+      reportPlanUsage('offline_view', String(map?.id || ''));
+    };
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, [map]);
+
+  const submitAccessCode = useCallback(async (code) => {
+    await submitPlanAccessCode(code);
+    // Le laissez-passer est posé : on relance la charge avec le code, pour ne pas dépendre
+    // de l'ordre d'écriture du cookie.
+    setAccessCode(code);
+  }, []);
+
   const dismissWelcome = useCallback(() => {
     setWelcomeVisible(false);
     safeLocalStorageWriteJson(WELCOME_STORAGE_KEY, true);
   }, []);
+
+  if (accessRequired) {
+    return (
+      <div className="plan-shell plan-shell--state">
+        <AccessCodeGate
+          className="plan-access-gate"
+          title={title}
+          intro="Ce plan est réservé à l’établissement. Saisissez le code qui vous a été communiqué."
+          onSubmit={submitAccessCode}
+        />
+      </div>
+    );
+  }
 
   if (loading && !content) {
     return (
@@ -303,6 +436,13 @@ export function AppPlan() {
         onOpen={() => reportPlanUsage('help_open', 'plan')}
       />
 
+      <PlanRoutePicker
+        routes={routes}
+        onStart={startRoute}
+        open={routePickerOpen}
+        onToggle={setRoutePickerOpen}
+      />
+
       <PlanCategoryChips
         categories={categories}
         selectedIds={selectedCategoryIds}
@@ -339,6 +479,25 @@ export function AppPlan() {
         </div>
       ) : null}
 
+      {offline ? (
+        <p className="plan-offline" role="status">
+          Hors ligne — plan mémorisé sur cet appareil.
+        </p>
+      ) : null}
+
+      {activeRoute ? (
+        <PlanRouteSheet
+          route={activeRoute}
+          steps={routeSteps}
+          index={routeIndex}
+          onGoToIndex={goToRouteIndex}
+          onExit={exitRoute}
+          distanceLabel={
+            currentRouteEntry && position.positionPct ? formatDistanceFr(targetDistanceM) : ''
+          }
+        />
+      ) : null}
+
       <PlanResultsSheet
         open={resultsOpen}
         onClose={() => {
@@ -353,7 +512,7 @@ export function AppPlan() {
       />
 
       <PlanPlaceSheet
-        place={selectedPlace}
+        place={activeRoute ? null : selectedPlace}
         onClose={closePlace}
         categories={categoriesOf(selectedPlace)}
         canLocate={position.available}

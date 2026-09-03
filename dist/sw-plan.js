@@ -1,6 +1,6 @@
 /* Service worker « plan » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-plan-77d30631";
+const CACHE_NAME = "foretmap-plan-6e2050d3";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -15,17 +15,18 @@ const PRECACHE_URLS = [
   "/plan/apple-touch-icon.png",
   "/plan/favicon-32.png",
   "/plan/favicon-16.png",
-  "/assets/plan-BlGP4Yzk.js",
-  "/assets/plan-BvNJOL4O.css",
+  "/assets/plan-Dqyb1Wej.js",
+  "/assets/plan-DD8Yas57.css",
   "/assets/rolldown-runtime-hePW80VL.js",
   "/assets/VisitMascotFallbackSvg-DgPaPMDJ.js",
   "/assets/react-vendor-Bnq5Y4Sb.js",
   "/assets/icons-BYRl22YG.js",
-  "/assets/ErrorBoundary-BZ981Xdy.js",
+  "/assets/ErrorBoundary-Bao91TqM.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/useBrandTheme-Cvm71n0K.js",
-  "/assets/HelpDock-Q3eexNgS.js",
+  "/assets/useBrandTheme-DH4JwNAg.js",
+  "/assets/HelpDock-8TFD6z4U.js",
   "/assets/HelpDock-B71Xr5QT.css",
+  "/assets/Button-CusPOGvb.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).
@@ -35,7 +36,11 @@ const HTML_ENTRIES = [
 ];
 
 // API en lecture « stale-while-revalidate » (correspondance par suffixe du pathname).
-const API_STALE_WHILE_REVALIDATE = [];
+const API_STALE_WHILE_REVALIDATE = [
+  "/api/plan/content",
+  "/api/plan/settings",
+  "/api/map-routes",
+];
 
 // API en lecture « network-first » (correspondance exacte du pathname).
 const API_NETWORK_FIRST = [];

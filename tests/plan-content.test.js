@@ -349,3 +349,42 @@ test('catégories : surfaces en écriture (défaut toutes), exposition et ?surfa
     'sans ?surface=, tout est renvoyé',
   );
 });
+
+test('garde d’accès par code (lot 8) : charge refusée sans laissez-passer, puis servie', async () => {
+  const bcrypt = require('bcryptjs');
+  const hash = await bcrypt.hash('OUVRE-TOI', 10);
+  await setSetting('ui.plan.access_mode', 'code', { userType: 'teacher', userId: 'test' });
+  await setSetting('security.plan_access_code_hash', hash, { userType: 'admin', userId: 'test' });
+  invalidateSettingsCache();
+  planContentCache.clear();
+  try {
+    // Sans cookie : 401 explicite, que le client sait transformer en écran de saisie.
+    const denied = await request(app).get('/api/plan/content').expect(401);
+    assert.equal(denied.body.access_required, true);
+
+    // Mauvais code : refusé, aucun laissez-passer posé.
+    await request(app).post('/api/plan/access').send({ code: 'au-hasard' }).expect(401);
+    await request(app).post('/api/plan/access').send({}).expect(400);
+
+    // Bon code : cookie signé, puis la charge passe.
+    const agent = request.agent(app);
+    const granted = await agent.post('/api/plan/access').send({ code: 'OUVRE-TOI' }).expect(200);
+    assert.equal(granted.body.ok, true);
+    await agent.get('/api/plan/content').expect(200);
+
+    // Lien profond porteur du code : le QR interne ouvre sans saisie.
+    const viaLink = request.agent(app);
+    await viaLink.get('/api/plan/content?code=OUVRE-TOI').expect(200);
+    await viaLink.get('/api/plan/content').expect(200);
+
+    // Mode `code` sans code configuré : le plan reste ouvert plutôt que muré.
+    await setSetting('security.plan_access_code_hash', '', { userType: 'admin', userId: 'test' });
+    invalidateSettingsCache();
+    await request(app).get('/api/plan/content').expect(200);
+  } finally {
+    await setSetting('ui.plan.access_mode', 'public', { userType: 'teacher', userId: 'test' });
+    await setSetting('security.plan_access_code_hash', '', { userType: 'admin', userId: 'test' });
+    invalidateSettingsCache();
+    planContentCache.clear();
+  }
+});

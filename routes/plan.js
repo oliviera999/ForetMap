@@ -16,14 +16,19 @@
  */
 
 const express = require('express');
+const bcrypt = require('bcryptjs');
 
 const { queryAll, queryOne, getDataWriteVersion } = require('../database');
+const { createSignedCookieGate, resolveCookieSecret } = require('../lib/accessGate');
+const { authLimiter } = require('../lib/rateLimit');
+const { JWT_SECRET } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { createWriteVersionCache } = require('../lib/shared/writeVersionCache');
 const { getSettingValue, SETTINGS_REGISTRY } = require('../lib/settings');
 const { loadCategoriesMap, attachCategoriesToEntity } = require('../lib/locationCategories');
 const { isVisibleOnSurface, searchAliasesToList } = require('../lib/locationSurfaces');
 const { pickNewestMapPhotoByTarget, serializeMapLeadPhoto } = require('../lib/visitContentHelpers');
+const { attachStepsToRoutes, serializeRouteRow } = require('../lib/mapRoutes');
 
 const router = express.Router();
 
@@ -37,6 +42,35 @@ const planContentCache = createWriteVersionCache({
   writeVersion: getDataWriteVersion,
   name: 'planContentCache',
 });
+
+/** Durée du laissez-passer (30 jours) : un visiteur régulier ne resaisit pas le code. */
+const PLAN_ACCESS_TTL_SECONDS = 30 * 24 * 60 * 60;
+
+/**
+ * Garde d'accès du plan (lot 8, `docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.7) : quand
+ * `ui.plan.access_mode` vaut `code`, la charge publique exige un cookie signé, obtenu en
+ * saisissant le code d'établissement une fois. Même mécanique que la progression anonyme de
+ * la Visite (`lib/accessGate.js`) : HMAC, HttpOnly, SameSite=Lax, Secure en production.
+ */
+const planAccessGate = createSignedCookieGate({
+  name: 'plan_access',
+  ttlSeconds: PLAN_ACCESS_TTL_SECONDS,
+  secret: () =>
+    resolveCookieSecret({
+      envVar: 'VISIT_COOKIE_SECRET',
+      devFallback: () => JWT_SECRET || 'plan-dev-secret-change-me',
+    }),
+});
+
+/** Le visiteur a-t-il le droit d'obtenir la charge du plan ? */
+async function checkPlanAccess(req, settings) {
+  if (settings.access_mode !== 'code') return { ok: true };
+  const hash = String((await getSettingValue('security.plan_access_code_hash', '')) || '');
+  // Mode `code` sans code configuré : on n'enferme pas les visiteurs dehors par accident.
+  if (!hash) return { ok: true };
+  if (planAccessGate.read(req) === 'ok') return { ok: true };
+  return { ok: false };
+}
 
 /** Clés `ui.plan.*` exposées telles quelles (toutes de portée `public`). */
 const PLAN_SETTING_KEYS = Object.freeze([
@@ -161,6 +195,19 @@ const MARKER_PHOTOS_SQL = `SELECT mp.marker_id AS target_id, mp.id, mp.caption, 
   INNER JOIN map_markers m ON m.id = mp.marker_id AND m.map_id = ?
   ORDER BY mp.marker_id ASC, mp.sort_order ASC, mp.id ASC`;
 
+const ROUTES_SQL = `SELECT id, map_id, slug, title, description, audience, surfaces,
+  is_published, sort_order
+  FROM map_routes
+  WHERE map_id = ? AND is_published = 1 AND FIND_IN_SET('plan', surfaces) > 0
+  ORDER BY sort_order ASC, title ASC`;
+
+const ROUTE_STEPS_SQL = `SELECT s.route_id, s.position, s.target_type, s.target_id,
+  s.step_title, s.step_text
+  FROM map_route_steps s
+  JOIN map_routes r ON r.id = s.route_id
+  WHERE r.map_id = ? AND r.is_published = 1 AND FIND_IN_SET('plan', r.surfaces) > 0
+  ORDER BY s.route_id, s.position`;
+
 const CATEGORIES_SQL = `SELECT id, map_id, slug, label, emoji, color, description, applies_to,
   is_infrastructure, sort_order, is_active, surfaces, zoom_only
   FROM location_categories
@@ -188,13 +235,16 @@ function publicPlaceFields(row, hiddenCategoryIds) {
 
 async function buildPlanContent(map, settings) {
   const mapId = String(map.id);
-  const [zoneRows, markerRows, categoryRows, zonePhotoRows, markerPhotoRows] = await Promise.all([
-    queryAll(ZONES_SQL, [mapId]),
-    queryAll(MARKERS_SQL, [mapId]),
-    queryAll(CATEGORIES_SQL, [mapId]),
-    queryAll(ZONE_PHOTOS_SQL, [mapId]),
-    queryAll(MARKER_PHOTOS_SQL, [mapId]),
-  ]);
+  const [zoneRows, markerRows, categoryRows, zonePhotoRows, markerPhotoRows, routeRows, stepRows] =
+    await Promise.all([
+      queryAll(ZONES_SQL, [mapId]),
+      queryAll(MARKERS_SQL, [mapId]),
+      queryAll(CATEGORIES_SQL, [mapId]),
+      queryAll(ZONE_PHOTOS_SQL, [mapId]),
+      queryAll(MARKER_PHOTOS_SQL, [mapId]),
+      queryAll(ROUTES_SQL, [mapId]),
+      queryAll(ROUTE_STEPS_SQL, [mapId]),
+    ]);
   const db = { queryAll, queryOne };
   const [zoneCategories, markerCategories] = await Promise.all([
     loadCategoriesMap(
@@ -263,8 +313,34 @@ async function buildPlanContent(map, settings) {
     categories,
     zones,
     markers,
+    // Parcours publiés sur la surface `plan` (lot 8) : listes ordonnées de lieux, sans
+    // progression enregistrée — l'avancement vit sur l'appareil.
+    routes: attachStepsToRoutes(routeRows.map(serializeRouteRow), stepRows),
   };
 }
+
+/**
+ * Saisie du code d'accès : pose le laissez-passer si le code est bon. Limité en fréquence
+ * (`authLimiter`) — c'est un secret court, il doit résister au tâtonnement. La comparaison
+ * passe par bcrypt : le code n'est stocké que haché (`security.plan_access_code_hash`).
+ */
+router.post(
+  '/access',
+  authLimiter,
+  express.json({ limit: '4kb' }),
+  asyncHandler(async (req, res) => {
+    const settings = await loadPlanSettings();
+    if (settings.access_mode !== 'code') return res.json({ ok: true, required: false });
+    const hash = String((await getSettingValue('security.plan_access_code_hash', '')) || '');
+    if (!hash) return res.json({ ok: true, required: false });
+    const code = String(req.body?.code || '').trim();
+    if (!code) return res.status(400).json({ error: 'Code requis' });
+    const valid = await bcrypt.compare(code, hash).catch(() => false);
+    if (!valid) return res.status(401).json({ error: 'Code incorrect' });
+    planAccessGate.set(res, 'ok');
+    res.json({ ok: true, required: true });
+  }),
+);
 
 /** Réglages publics seuls (coquille : titre, message d'accueil, mode d'accès). */
 router.get(
@@ -281,6 +357,23 @@ router.get(
   '/content',
   asyncHandler(async (req, res) => {
     const settings = await loadPlanSettings();
+    // Lien profond porteur du code (`?code=`) : les QR codes internes fonctionnent sans
+    // saisie, et le laissez-passer est posé au passage.
+    const inlineCode = String(req.query.code || '').trim();
+    let grantedInline = false;
+    if (settings.access_mode === 'code' && inlineCode) {
+      const hash = String((await getSettingValue('security.plan_access_code_hash', '')) || '');
+      if (hash && (await bcrypt.compare(inlineCode, hash).catch(() => false))) {
+        planAccessGate.set(res, 'ok');
+        // Le cookie vient d'être posé sur la réponse : il n'est pas encore dans la requête,
+        // et cette requête-ci doit déjà être servie.
+        grantedInline = true;
+      }
+    }
+    const access = grantedInline ? { ok: true } : await checkPlanAccess(req, settings);
+    if (!access.ok) {
+      return res.status(401).json({ error: 'Code d’accès requis', access_required: true });
+    }
     const resolved = await resolvePlanMap(req.query.map_id, settings);
     if (!resolved.map) {
       const status = resolved.error === 'Carte introuvable' ? 400 : 404;
@@ -298,4 +391,5 @@ router.get(
 
 module.exports = router;
 module.exports.planContentCache = planContentCache;
+module.exports.planAccessGate = planAccessGate;
 module.exports.PLAN_CONTENT_MAX_AGE_S = PLAN_CONTENT_MAX_AGE_S;

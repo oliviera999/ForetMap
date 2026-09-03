@@ -95,6 +95,8 @@ import { StudentBottomNav } from './components/app/StudentBottomNav.jsx';
 import { RolePreviewBanners } from './components/app/RolePreviewBanners.jsx';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
 import { useBrandTheme } from './shared/brand/useBrandTheme.js';
+import { reportUsage } from './shared/usage/reportUsage.js';
+import { withAppBase } from './shared/appBase.js';
 import { FORETMAP_BRAND_DEFAULTS } from './constants/brand.js';
 import { SessionProvider } from './contexts/SessionContext.jsx';
 import { AppDialogsProvider, useAppDialogs } from './shared/components/AppDialogsProvider.jsx';
@@ -142,6 +144,18 @@ function App() {
   const [showStats, setShowStats] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [tab, setTab] = useState(() => readStoredTab());
+  /**
+   * Compteur d'usage anonyme (lot 8) : une ouverture par session, puis l'onglet consulté.
+   * Aucun identifiant n'est envoyé — seulement le nom de l'événement et l'onglet.
+   */
+  const usageOpenedRef = useRef(false);
+  useEffect(() => {
+    if (!usageOpenedRef.current) {
+      usageOpenedRef.current = true;
+      reportUsage('foret', 'open', '', withAppBase);
+    }
+    reportUsage('foret', 'tab_open', String(tab || ''), withAppBase);
+  }, [tab]);
   /** Synchronise le filtre lieu de l’onglet tâches avec la zone/repère ouvert(e) sur la carte. */
   const [tasksLocationFocus, setTasksLocationFocus] = useState(null);
   const [toast, setToast] = useState(null);

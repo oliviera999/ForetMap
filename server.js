@@ -51,6 +51,7 @@ const taskProjectsRouter = require('./routes/task-projects');
 const tutorialsRouter = require('./routes/tutorials');
 const visitRouter = require('./routes/visit');
 const planRouter = require('./routes/plan');
+const mapRoutesRouter = require('./routes/map-routes');
 const statsRouter = require('./routes/stats');
 const studentsRouter = require('./routes/students');
 const observationsRouter = require('./routes/observations');
@@ -498,6 +499,8 @@ app.use('/api/auth', authRouter);
 app.use('/api/zones', zonesRouter);
 app.use('/api/maps', mapsRouter);
 app.use('/api/map-categories', mapCategoriesRouter);
+// Parcours de carte (lot 8) : lecture publique, écriture `zones.manage`.
+app.use('/api/map-routes', mapRoutesRouter);
 app.use('/api/map', mapRouter);
 app.use('/api/plants', plantsRouter);
 app.use('/api/glossary', glossaryRouter);
