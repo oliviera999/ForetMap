@@ -799,6 +799,7 @@ CREATE TABLE IF NOT EXISTS location_categories (
   sort_order INT NOT NULL DEFAULT 0,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   surfaces SET('map','visit','plan') NOT NULL DEFAULT 'map,visit,plan',
+  zoom_only TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_location_categories_map (map_id),
   INDEX idx_location_categories_slug (slug),

@@ -9,6 +9,7 @@ import {
   shouldShowZoneNameLabel,
 } from '../../utils/mapOverlayZoneLabels.js';
 import { VisitDrawZonePreview } from '../VisitDrawZonePreview.jsx';
+import { polygonPoleOfInaccessibilityPct } from '../../shared/pct-map/pctPolylabel.js';
 
 /**
  * Calque SVG des zones de la visite (polygones + emoji/libellé) — extraction
@@ -61,12 +62,15 @@ function VisitZonesSvgLayerImpl({
           const points = parseVisitZonePoints(z.points);
           if (points.length < 3) return null;
           const ptsPct = points.map((pt) => ({ xp: pt.xp, yp: pt.yp }));
+          // Étiquette au **pôle d'inaccessibilité** (lot 5, N4) : sur une zone en L, le
+          // centroïde tombe hors du polygone et le nom s'affichait à côté de sa zone.
+          const anchor = polygonPoleOfInaccessibilityPct(ptsPct);
           return {
             zone: z,
             ptsPct,
             pointsAttr: points.map((pt) => `${pt.xp},${pt.yp}`).join(' '),
-            mx: points.reduce((s, pt) => s + pt.xp, 0) / points.length,
-            my: points.reduce((s, pt) => s + pt.yp, 0) / points.length,
+            mx: anchor.xp,
+            my: anchor.yp,
           };
         })
         .filter(Boolean),

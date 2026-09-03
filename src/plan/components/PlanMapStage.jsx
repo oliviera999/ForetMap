@@ -25,6 +25,9 @@ const PLAN_GESTURE_TARGET = '.plan-map-controls, .plan-map-controls *';
  */
 const PLAN_LABEL_PRIORITY_CUTOFF = 50;
 
+/** Rapport `échelle / ajustement` au-delà duquel la carte compte comme « zoomée ». */
+const PLAN_ZOOM_ONLY_RATIO = 1.6;
+
 /**
  * Carte plein écran du Plan Lyautey (lot 4) : moteur de carte partagé en mode « scène »
  * (`usePctMapViewport`), calques partagés zones / repères, et trois commandes (zoom avant,
@@ -94,17 +97,41 @@ export function PlanMapStage({
     [consumeSkipClick, onSelectPlace],
   );
 
+  /**
+   * Catégories « visibles seulement au zoom » (lot 5) : leurs lieux disparaissent tant que
+   * la carte est vue en entier, et reviennent dès qu'on zoome. C'est le réglage qui garde
+   * les sanitaires et les points d'eau sans noyer les entrées.
+   */
+  const zoomedIn = fitScale > 0 ? committed.s / fitScale >= PLAN_ZOOM_ONLY_RATIO : false;
+  const isVisibleAtScale = useCallback(
+    (place) => {
+      if (zoomedIn) return true;
+      const ids = place?.category_ids || [];
+      if (ids.length === 0) return true;
+      return ids.some((id) => !categoriesById?.get?.(String(id))?.zoom_only);
+    },
+    [zoomedIn, categoriesById],
+  );
+  const visibleZones = useMemo(
+    () => (zones || []).filter(isVisibleAtScale),
+    [zones, isVisibleAtScale],
+  );
+  const visibleMarkers = useMemo(
+    () => (markers || []).filter(isVisibleAtScale),
+    [markers, isVisibleAtScale],
+  );
+
   // Désencombrement (lot 5) : au dézoom, les repères dont les pastilles se recouvrent sont
   // fusionnés en une pastille de groupe. Recalculé au commit de transformation seulement.
   const clusters = useMemo(
     () =>
-      clusterMarkers(markers, {
+      clusterMarkers(visibleMarkers, {
         contentWidthPx: fitRect.width,
         contentHeightPx: fitRect.height,
         scale: committed.s,
         categoriesById,
       }),
-    [markers, fitRect.width, fitRect.height, committed.s, categoriesById],
+    [visibleMarkers, fitRect.width, fitRect.height, committed.s, categoriesById],
   );
 
   const onClusterClick = useCallback(
@@ -236,7 +263,7 @@ export function PlanMapStage({
             onLoad={fitMap}
           />
           <PctZonesLayer
-            zones={zones}
+            zones={visibleZones}
             onZoneClick={onZoneClick}
             activeZoneId={selectedZoneId}
             className="fm-pct-zones plan-map__zones"
