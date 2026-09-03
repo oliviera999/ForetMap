@@ -377,7 +377,7 @@ export function usePctMapViewport({
         transform: next,
       });
     },
-    [applyTransform, cancelAnimation, currentBounds, setWorldWillChange],
+    [applyTransform, cancelAnimation, containerRef, currentBounds, setWorldWillChange],
   );
 
   const fitMap = useCallback(() => measure('fit'), [measure]);
@@ -718,11 +718,14 @@ export function usePctMapViewport({
       isPanning.current = true;
       panStart.current = { x: e.clientX - tx.current.x, y: e.clientY - tx.current.y };
       panSamples.current = [{ x: e.clientX, y: e.clientY, t: performance.now() }];
-      // Double-tap : deux appuis tactiles rapprochés (< 300 ms, < 24 px).
+      // Double-tap : deux appuis tactiles rapprochés (< 350 ms, < 24 px). L'horodatage de
+      // l'événement (et non l'heure du traitement) rend la détection insensible au temps de
+      // rendu entre les deux appuis (le clic du premier appui peut déclencher un gros rendu).
       if (opt.doubleTapZoom && (e.pointerType === 'touch' || e.pointerType === 'pen')) {
-        const now = performance.now();
+        const now =
+          Number.isFinite(e.timeStamp) && e.timeStamp > 0 ? e.timeStamp : performance.now();
         const prev = lastTap.current;
-        if (now - prev.t < 300 && Math.hypot(e.clientX - prev.x, e.clientY - prev.y) < 24) {
+        if (now - prev.t < 350 && Math.hypot(e.clientX - prev.x, e.clientY - prev.y) < 24) {
           lastTap.current = { t: 0, x: 0, y: 0 };
           isPanning.current = false;
           skipClickRef.current = true;
