@@ -1,4 +1,9 @@
 import { useCallback, useState } from 'react';
+import {
+  SURFACE_OPTIONS,
+  SurfaceVisibilityField,
+  normalizeSurfaceList,
+} from '../../shared/ui/SurfaceVisibilityField.jsx';
 
 import { api } from '../../services/api';
 import { useApiResource } from '../../hooks/useApiResource.js';
@@ -13,6 +18,14 @@ const APPLIES_TO_LABELS = {
   marker: 'Repères seuls',
 };
 
+/** « · Plan masqué » etc. : surfaces retirées à la catégorie (aucun texte si les trois). */
+function surfaceSummary(cat) {
+  if (cat?.surfaces == null) return '';
+  const visible = normalizeSurfaceList(cat.surfaces);
+  const hidden = SURFACE_OPTIONS.filter((s) => !visible.includes(s.id)).map((s) => s.label);
+  return hidden.length ? ` · masquée : ${hidden.join(', ')}` : '';
+}
+
 const EMPTY_DRAFT = {
   label: '',
   emoji: '',
@@ -20,6 +33,7 @@ const EMPTY_DRAFT = {
   description: '',
   map_id: '',
   applies_to: 'both',
+  surfaces: ['map', 'visit', 'plan'],
   is_infrastructure: false,
   sort_order: 100,
   is_active: true,
@@ -33,6 +47,10 @@ function draftFromCategory(category) {
     description: category.description || '',
     map_id: category.map_id || '',
     applies_to: category.applies_to || 'both',
+    surfaces:
+      category.surfaces == null
+        ? ['map', 'visit', 'plan']
+        : normalizeSurfaceList(category.surfaces),
     is_infrastructure: !!category.is_infrastructure,
     sort_order: Number(category.sort_order) || 0,
     is_active: category.is_active !== false,
@@ -71,6 +89,7 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
     description: draft.description.trim(),
     map_id: draft.map_id || null,
     applies_to: draft.applies_to,
+    surfaces: draft.surfaces,
     is_infrastructure: draft.is_infrastructure,
     sort_order: Number(draft.sort_order) || 0,
     is_active: draft.is_active,
@@ -212,6 +231,14 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
         />
       </div>
 
+      <SurfaceVisibilityField
+        mode="visible"
+        idPrefix="category"
+        legend="Visible sur (décocher retire d’un coup tous les lieux de la catégorie)"
+        value={draft.surfaces}
+        onChange={(next) => setField({ surfaces: next })}
+      />
+
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
         <input
           type="checkbox"
@@ -285,6 +312,7 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
                   : 'Toutes les cartes'}{' '}
                 · {APPLIES_TO_LABELS[cat.applies_to] || cat.applies_to}
                 {cat.is_infrastructure ? ' · Infrastructure' : ''}
+                {surfaceSummary(cat)}
                 {cat.is_active ? '' : ' · Inactive'}
               </div>
             </div>

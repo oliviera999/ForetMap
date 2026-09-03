@@ -55,6 +55,18 @@ describe('buildZonePayload', () => {
     expect(payload.visit_details_title).toBe('dt');
     expect(payload.visit_details_text).toBe('dtx');
     expect(Array.isArray(payload.visit_editorial_blocks)).toBe(true);
+    expect(payload.hidden_surfaces).toEqual([]);
+    expect(payload.search_aliases).toBe('');
+  });
+
+  test('porte les surfaces masquées normalisées et les alias de recherche nettoyés', () => {
+    const payload = buildZonePayload(
+      'Verger',
+      { hiddenSurfaces: 'plan,visit,zzz', searchAliases: ' pommiers ; fruitiers ' },
+      [],
+    );
+    expect(payload.hidden_surfaces).toEqual(['visit', 'plan']);
+    expect(payload.search_aliases).toBe('pommiers ; fruitiers');
   });
 
   test('omitVisitEditorialBlocks : n’envoie pas la clé (PUT conserve body_json)', () => {

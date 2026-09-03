@@ -1,4 +1,5 @@
 import { MAP_MARKER_EMOJI_MAX_CHARS } from '../../constants/emojis';
+import { SurfaceVisibilityField } from '../../shared/ui/SurfaceVisibilityField.jsx';
 import { nextLivingBeingsFromMultiSelect } from '../../utils/livingBeings';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import {
@@ -115,6 +116,21 @@ export function MarkerCommonFormFields({ form, setForm, plants, set, categoryCat
           placeholder="Contenu du panneau repliable"
         />
       </div>
+      <div className="field">
+        <label htmlFor="marker-search-aliases">Alias de recherche</label>
+        <input
+          id="marker-search-aliases"
+          value={form.search_aliases || ''}
+          onChange={set('search_aliases')}
+          placeholder="Autres noms, séparés par ; (ex. CDI ; bibliothèque)"
+        />
+      </div>
+      <SurfaceVisibilityField
+        mode="hidden"
+        idPrefix="marker"
+        value={form.hidden_surfaces || []}
+        onChange={(next) => setForm((f) => ({ ...f, hidden_surfaces: next }))}
+      />
     </>
   );
 }
