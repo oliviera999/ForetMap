@@ -13,6 +13,11 @@ import { describe, test, expect } from 'vitest';
  * `src/shared/styles/z-layers.css`.
  */
 const STYLE_DIRS = ['src/shared/styles', 'src/gl/styles'];
+/**
+ * Feuilles hors de ces dossiers, contrôlées au même titre : la feuille d'entrée ForetMap
+ * porte encore la majorité des surfaces du produit (et n'est pas formatée par Prettier).
+ */
+const ROOT_STYLESHEETS = ['src/index.css'];
 const Z_LAYERS_PATH = 'src/shared/styles/z-layers.css';
 
 const normalizeRelPath = (relPath) => String(relPath).replace(/\\/g, '/');
@@ -40,7 +45,7 @@ function listStylesheets() {
       if (name.endsWith('.css')) files.push(join(dir, name));
     }
   }
-  files.push('src/index.css');
+  files.push(...ROOT_STYLESHEETS);
   return files.map((f) => normalizeRelPath(f)).filter((f) => f !== Z_LAYERS_PATH);
 }
 

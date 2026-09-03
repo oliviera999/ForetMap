@@ -31,7 +31,7 @@ const { combineKeywords: combineLoreKeywords } = require('../../../lib/glQcmLore
 const {
   buildGlossaryLookupMap,
   matchGlossaryTermsForSpecies,
-} = require('../../../lib/glGlossaryMatch');
+} = require('../../../lib/glossaryMatch');
 const {
   buildLoreGlossaryLookupMap,
   matchLoreGlossaryTermsForText,

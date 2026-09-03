@@ -3,6 +3,20 @@
 const globals = require('globals');
 const reactHooks = require('eslint-plugin-react-hooks');
 
+/** Dossiers produit (ForetMap ou GL) interdits d'import depuis `src/shared/**`. */
+const SHARED_PRODUCT_DIRS = [
+  'components',
+  'gl',
+  'services',
+  'hooks',
+  'utils',
+  'constants',
+  'contexts',
+  'data',
+];
+const SHARED_ISOLATION_MESSAGE =
+  'src/shared ne doit pas importer de code produit (ForetMap ou GL) — promouvoir le module dans src/shared ou injecter la dépendance.';
+
 /** ESLint — garde-fous progressifs (incl. regles des Hooks React) sans refactor massif du legacy. */
 module.exports = [
   {
@@ -120,6 +134,43 @@ module.exports = [
       'no-use-before-define': [
         'error',
         { functions: false, classes: false, variables: true, allowNamedExports: true },
+      ],
+    },
+  },
+  {
+    // Étanchéité de src/shared (code commun ForetMap + GL) : un module partagé ne doit pas
+    // remonter vers du code produit. En avertissement pour l'instant (dette recensée),
+    // le script `lint` ne passe pas `--max-warnings`, la CI n'est donc pas bloquée.
+    // Motifs distincts par profondeur : depuis `src/shared/components/`, `../utils/*` désigne
+    // `src/shared/utils/` (légitime) alors que `../../utils/*` désigne `src/utils/` (produit).
+    files: ['src/shared/*.{js,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'warn',
+        {
+          patterns: [
+            {
+              group: SHARED_PRODUCT_DIRS.map((dir) => `../${dir}/**`),
+              message: SHARED_ISOLATION_MESSAGE,
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/shared/*/*.{js,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'warn',
+        {
+          patterns: [
+            {
+              group: SHARED_PRODUCT_DIRS.map((dir) => `../../${dir}/**`),
+              message: SHARED_ISOLATION_MESSAGE,
+            },
+          ],
+        },
       ],
     },
   },

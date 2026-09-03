@@ -7,6 +7,43 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Lot 0 — Garde-fous et hygiène (plan de convergence, `docs/AUDIT_CONVERGENCE_APPS_2026-09.md` §6)
+
+- **Correctif de sécurité — glossaire lore G&L** : `GLLoreGlossaryInlineText` échappe désormais le
+  HTML saisi avant d'insérer les liens de glossaire puis assainit le résultat, comme ses trois
+  pendants ; `GLLoreGlossaryMarkdown` passe sur la mécanique partagée `useGlossaryLinkedHtml` +
+  `glossaryLinkClick` (fin du lot B5) et `glLoreGlossaryAutolink.js` balaie des chaînes au lieu
+  de parcourir le DOM (exécutable côté serveur et en test sans `document`). Le sanitizer
+  reconnaît l'attribut `data-gl-lore-code` au même titre que les deux autres glossaires.
+- **Miroirs ESM/CJS synchronisés** : `scripts/sync-shared-cores.js` (+ `npm run
+  sync:shared-cores[:check]`, enchaîné par le build) régénère les six noyaux de `lib/shared/`
+  depuis `src/shared/` ; `tests/shared-cores-sync.test.js` échoue à la moindre divergence et
+  vérifie l'égalité des exports. ≈ 1 090 lignes ne sont plus maintenues à la main.
+- **Tokens typographiques communs** : `src/shared/styles/typography-tokens.css` (échelle
+  `--text-*`, graisses, interlignes, encres, pile emoji) chargée par les deux entrées ; les 19
+  déclarations recopiées de `gl-base.css` et `index.css` sont retirées, seule `--font-sans`
+  reste par produit. `color-scheme: light` déclaré côté ForetMap (contrôles natifs plus
+  repeints en sombre par le système, comme G&L).
+- **Cliquets** : `tests-ui/utils/zLayers.test.js` contrôle aussi `src/index.css` ;
+  `tests-ui/utils/breakpoints.test.js` interdit tout nouveau seuil `@media` hors liste
+  canonique (dette existante tolérée explicitement) et toute redéclaration des tokens communs.
+- **Tests directs** des trois composants partagés les plus consommés et jusque-là sans filet :
+  `DialogShell`, `Tooltip`, `ImageLightbox` (+ `ImageLightboxProvider`). Au passage, la lightbox
+  pose enfin le focus initial sur son bouton « Fermer » (le conteneur du portail était attaché
+  après l'effet de focus).
+- **Étanchéité de `src/shared/`** : règle ESLint `no-restricted-imports` en avertissement sur
+  tout import de code produit depuis le partagé (20 cas recensés, à résorber au lot 3).
+- **Rangement** : `src/services/apiTransport.js` promu en `src/shared/apiTransport.js`
+  (ré-export de compatibilité conservé) ; `lib/glGlossaryMatch.js`, `lib/glQcmChoices.js`,
+  `lib/glQcmPresentationUse.js` renommés `glossaryMatch.js`, `qcmChoices.js`,
+  `qcmPresentationUse.js` — consommés par ForetMap (`routes/quiz.js`) autant que par G&L, le
+  préfixe `gl` était un piège de recherche.
+- **Badge de version G&L** enfin stylé : `.app-version-badge` vit dans la feuille partagée
+  `src/shared/styles/version-badge.css`, importée par les deux composants qui le rendent.
+- Documents d'orientation corrigés : `docs/PARTAGE_FM_GL.md` (états A2, B1, récapitulatif §9,
+  32 modules dans `lib/shared/`), `docs/GL_ARCHITECTURE.md` (rôle de `reactionEmojiCore`),
+  `docs/USERS_MIGRATION.md` (périmètre antérieur à G&L).
+
 ### Audit — Convergence des applications ForetMap / Visite / GL / Plan et plan d'action final
 
 - **Nouveau document `docs/AUDIT_CONVERGENCE_APPS_2026-09.md`** (audit seul, aucun code
