@@ -973,6 +973,27 @@ protocole-relatif, chemin relatif) est écartée à l’enregistrement.
 
 ---
 
+### Réglages du produit Plan Lyautey (`ui.plan.*`)
+
+Déclarés dans le registre commun (lot 1 du plan de convergence,
+`lib/shared/settingsRegistryCore.js`, branché par `lib/settings.js`), portée `public` — servis
+par `GET /api/settings/public` et éditables par `PUT /api/settings/admin/:key` :
+
+| Clé                            | Type   | Défaut                             | Rôle                                                    |
+| ------------------------------ | ------ | ---------------------------------- | ------------------------------------------------------- |
+| `ui.plan.map_id`               | string | `lyautey`                          | Carte affichée par le plan                              |
+| `ui.plan.title`                | string | `Plan Lyautey`                     | Titre de l'application                                  |
+| `ui.plan.welcome_hint`         | string | `Touchez un lieu, ou cherchez-le.` | Bulle du premier lancement                              |
+| `ui.plan.access_mode`          | enum   | `public`                           | `public` ou `code` (garde `lib/accessGate.js`)          |
+| `ui.plan.attribution`          | string | vide                               | Mention due pour le fond de plan (ex. OpenStreetMap)    |
+| `ui.plan.default_category_ids` | string | vide                               | Catégories visibles à l'ouverture (ids séparés par `;`) |
+| `ui.plan.hidden_category_ids`  | string | vide                               | Catégories jamais montrées par le plan (idem)           |
+
+Portée `admin` : `security.plan_access_code_hash` (hachage bcrypt du code d'accès, vide =
+aucun code). Le magasin de réglages partagé (`lib/shared/settingsStore.js`) invalide son cache à
+chaque écriture SQL du processus ; `lib/glSettings.js` l'utilise aussi pour `gl_settings`, dont
+la validation vit désormais dans son registre (`GL_SETTINGS_REGISTRY`) et non plus dans la route.
+
 ## Zones
 
 **Emoji de zone (colonne dédiée `zones.emoji`, migration 206 — audit UI 2026-09, C4).**
