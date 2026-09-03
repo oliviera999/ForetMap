@@ -1565,6 +1565,25 @@ Notes d'exploitation :
 
 ---
 
+## Compteur d'usage anonyme (tous produits)
+
+Lot 1 du plan de convergence (`docs/AUDIT_CONVERGENCE_APPS_2026-09.md` §5.2 ; principe dans
+`docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.9). Aucun identifiant, aucun cookie, aucune adresse IP
+conservée : des événements **nommés**, agrégés par jour dans `usage_counters (day, product,
+event, key, count)`. Noms d'événements en liste blanche **par produit** (`lib/usage.js`,
+`USAGE_EVENTS`), clé libre bornée à 64 caractères et normalisée (minuscules, espaces réduits).
+
+- `POST /api/usage` — **public**, sans session. Corps `{ product, event, key? }` ou
+  `{ events: [ … ] }` (20 au plus). Réponse `204`. `400 { error }` si le produit ou l'événement
+  n'est pas en liste blanche, si le lot est vide ou dépasse 20. Pensé pour
+  `navigator.sendBeacon` (corps JSON en `Blob`). Soumis au limiteur global `/api/`.
+- `GET /api/admin/usage?from=YYYY-MM-DD&to=YYYY-MM-DD&product=foret|gl|plan` — permission
+  `admin.settings.read`. Bornes tolérantes (un jour illisible retombe sur les 30 derniers
+  jours, un produit inconnu sur tous). Réponse `{ from, to, product, rows: [{ day, product,
+event, key, count }] }`, triée par jour décroissant puis produit, événement, compte.
+
+Produits reconnus : `lib/products.js` (registre : `foret`, `gl`, `plan`).
+
 ## Audit
 
 | Méthode | URL                   | n3boss             | Description                                                       |

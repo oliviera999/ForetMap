@@ -37,6 +37,20 @@ test('resolveProductFromRequest reconnaît www.gl.*', () => {
   assert.strictEqual(product, 'gl');
 });
 
+test('resolveProductFromRequest détecte le sous-domaine planlyautey (registre lib/products)', () => {
+  const product = resolveProductFromRequest({
+    hostname: 'planlyautey.olution.info',
+    get: (key) => (key === 'host' ? 'planlyautey.olution.info' : ''),
+  });
+  assert.strictEqual(product, 'plan');
+});
+
+test('fallback SPA accepte override x-foretmap-product=plan', async () => {
+  const res = await request(app).get('/quelque-chose').set('X-Foretmap-Product', 'plan');
+  assert.strictEqual(res.status, 200);
+  assert.match(String(res.headers['content-type'] || ''), /html/i);
+});
+
 test('fallback SPA accepte override x-foretmap-product=gl', async () => {
   const res = await request(app).get('/quelque-chose').set('X-Foretmap-Product', 'gl');
   assert.strictEqual(res.status, 200);

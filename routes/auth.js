@@ -40,7 +40,7 @@ const {
   countStudentActiveTaskAssignments,
   getEffectiveMaxActiveTaskAssignments,
 } = require('../lib/studentTaskEnrollment');
-const { logAudit, logSecurityEvent } = require('./audit');
+const { logAudit, logSecurityEvent } = require('../lib/auditLog');
 const { ensureCanonicalUserByAuth, resolveLoginAccountByIdentifier } = require('../lib/identity');
 const { syncStudentRoleFromGroups } = require('../lib/groupRole');
 const { addStudentToGroup } = require('../lib/groupMembers');

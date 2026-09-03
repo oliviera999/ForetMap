@@ -5,7 +5,7 @@ const { requireAuth } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { logRouteError } = require('../lib/routeLog');
-const { logAudit } = require('./audit');
+const { logAudit } = require('../lib/auditLog');
 const { emitContextCommentsChanged } = require('../lib/realtime');
 const { getSettingValue, isReportsEnabled } = require('../lib/settings');
 const {
