@@ -30,6 +30,17 @@ avance. Chaque chapitre (chaque biome) a sa propre carte.
 - **Les mascottes des équipes** : gnomes et licornes, qui matérialisent la position de
   chaque équipe.
 
+## Naviguer sur le plateau
+
+Le plateau se manipule comme la carte de ForetMap et la visite : **glisser** pour se
+déplacer, **pincer** (ou la molette) pour zoomer en gardant le point visé sous les
+doigts, **double-tap** pour zoomer sur un endroit (un second double-tap réajuste le
+plateau), boutons **+ / − / ⊡** en bas à droite pour zoomer, dézoomer et recentrer. Le
+plateau ne sort jamais de son cadre : au bout de la course, une butée souple le ramène
+en place. Le **plein écran** (bouton dédié, Échap ou « Fermer » pour sortir) affiche le
+plateau seul, avec les mêmes gestes. Pendant l'édition d'un plateau (repères, zones), le
+déplacement par glisser est suspendu pour ne pas gêner le placement.
+
 ## Qui déplace les mascottes
 
 C'est un **réglage de gameplay** : soit les joueurs déplacent eux-mêmes leur mascotte,
