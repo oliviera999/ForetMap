@@ -47,6 +47,8 @@ CREATE TABLE IF NOT EXISTS zones (
   points TEXT DEFAULT NULL,
   color VARCHAR(32) DEFAULT '#86efac80',
   description TEXT DEFAULT NULL,
+  hidden_surfaces SET('map','visit','plan') NOT NULL DEFAULT '',
+  search_aliases TEXT DEFAULT NULL,
   INDEX idx_zones_map_id (map_id),
   CONSTRAINT fk_zones_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -753,6 +755,8 @@ CREATE TABLE IF NOT EXISTS map_markers (
   note TEXT DEFAULT NULL,
   emoji VARCHAR(16) DEFAULT '🌱',
   created_at VARCHAR(32) DEFAULT NULL,
+  hidden_surfaces SET('map','visit','plan') NOT NULL DEFAULT '',
+  search_aliases TEXT DEFAULT NULL,
   INDEX idx_map_markers_map_id (map_id),
   CONSTRAINT fk_map_markers_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT,
   INDEX idx_map_markers_created (created_at)
@@ -794,6 +798,7 @@ CREATE TABLE IF NOT EXISTS location_categories (
   is_infrastructure TINYINT(1) NOT NULL DEFAULT 0,
   sort_order INT NOT NULL DEFAULT 0,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
+  surfaces SET('map','visit','plan') NOT NULL DEFAULT 'map,visit,plan',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_location_categories_map (map_id),
   INDEX idx_location_categories_slug (slug),

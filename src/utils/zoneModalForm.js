@@ -11,6 +11,7 @@ import {
   clampEmojiInput,
   stripLeadingMarkerEmoji,
 } from '../constants/emojis';
+import { normalizeSurfaceList } from '../shared/ui/SurfaceVisibilityField.jsx';
 import { normalizeVisitEditorialBlocksForSave } from './visitEditorialBlocks.js';
 
 export {
@@ -90,6 +91,8 @@ export function buildZonePayload(name, form, visitEditorialBlocks, options = {})
     visit_short_description: form.visitShortDesc,
     visit_details_title: form.visitDetailsTitle,
     visit_details_text: form.visitDetailsText,
+    hidden_surfaces: normalizeSurfaceList(form.hiddenSurfaces),
+    search_aliases: String(form.searchAliases || '').trim(),
     visit_editorial_blocks: normalizeVisitEditorialBlocksForSave(visitEditorialBlocks),
   };
   if (options.omitVisitEditorialBlocks) {
