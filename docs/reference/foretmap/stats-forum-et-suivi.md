@@ -36,6 +36,12 @@ commentaires) et rester informé (notifications, temps réel).
 
 - Un **centre de notifications** signale ce qui est nouveau ; les événements critiques
   s'affichent en bandeau.
+- **Échéances de l'élève** : deux avis suivent ses tâches en cours — « Échéance proche »
+  (à rendre aujourd'hui ou demain) et « Tâches en retard » (date limite dépassée). Ils se
+  comptent en **jours de calendrier** : une tâche à rendre _aujourd'hui_ est annoncée comme
+  proche, jamais comme en retard. Chacun est un avis **d'état** : il passe tout seul en
+  « lu » dès qu'aucune tâche ne le justifie plus (échéance repoussée, tâche terminée ou
+  validée), au lieu de s'empiler à chaque changement de compte.
 - L'application se met à jour **en temps réel** : une tâche validée par le professeur
   apparaît chez l'élève sans recharger la page ; les listes d'élèves et de tâches
   restent synchrones entre les écrans ouverts. Une observation ajoutée ou retirée

@@ -644,6 +644,16 @@
       display:flex;
       flex-direction:column;
       gap:2px;
+      margin-bottom:clamp(8px, 2.4vw, 16px);
+    }
+    /* Depuis D-4, les deux rangées vivent DANS `.teacher-nav` : leurs marges propres
+       (héritées de l'ancienne barre unique, enfant direct de `.teacher-main`) faisaient
+       double emploi avec `gap` et empilaient ~20 px de vide entre les pôles et leurs
+       onglets, puis ~16 px de plus avant la carte / les tâches. L'espacement vertical est
+       désormais porté par le seul conteneur. */
+    .teacher-nav > .top-tabs.app-tabs-surface {
+      margin-top:0;
+      margin-bottom:0;
     }
     .teacher-nav__poles .top-tab--pole {
       display:inline-flex;
@@ -3156,6 +3166,26 @@
     .tasks-view {
       display:grid;
       gap:8px;
+    }
+    /* Invite « validés masqués » : discrète, en fin de liste, sur le ton des méta-infos. */
+    .tasks-validated-hidden {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      gap:8px;
+      padding:8px 12px;
+      border:1px dashed var(--outline-soft);
+      border-radius:12px;
+      background:var(--surface-2);
+      color:var(--ink-soft);
+      font-size:var(--text-sm);
+      line-height:var(--lh-normal);
+    }
+    .tasks-validated-hidden__text {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
     }
 
     /* ── URGENCY SECTION ── */
