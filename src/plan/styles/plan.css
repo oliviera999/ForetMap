@@ -166,6 +166,14 @@ body.plan-body {
   outline-offset: 2px;
 }
 
+.plan-chip__swatch {
+  width: 10px;
+  height: 10px;
+  border: 1px solid rgba(26, 71, 49, 0.35);
+  border-radius: 3px;
+  background: transparent;
+}
+
 .plan-chip__count {
   opacity: 0.75;
   font-size: var(--text-xs, 0.8rem);
@@ -286,6 +294,40 @@ body.plan-body {
 .fm-pct-marker:focus-visible {
   outline: 2px solid var(--forest);
   outline-offset: 2px;
+}
+
+/* Pastille d'un groupe de repères (désencombrement, lot 5). */
+.fm-pct-cluster {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: var(--tap-target);
+  min-height: var(--tap-target);
+  padding: 0 10px;
+  border: 2px solid var(--forest);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--plan-ink);
+  font: inherit;
+  font-weight: var(--fw-bold, 700);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
+  transform: translate(-50%, -50%);
+}
+
+.fm-pct-cluster:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}
+
+.fm-pct-cluster__emoji {
+  font-size: var(--text-md, 1.05rem);
+  line-height: 1;
+}
+
+.fm-pct-cluster__count {
+  font-size: var(--text-sm, 0.9rem);
 }
 
 .plan-map-controls {

@@ -41,6 +41,8 @@ export function AppPlan() {
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState(() => new Set());
   const [welcomeVisible, setWelcomeVisible] = useState(false);
+  /** Lieux d'un groupe de repères ouvert depuis la carte (désencombrement, lot 5). */
+  const [groupPlaces, setGroupPlaces] = useState(null);
   const deepLinkAppliedRef = useRef(false);
   const openedOnceRef = useRef(false);
 
@@ -77,6 +79,13 @@ export function AppPlan() {
     [places, selectedCategoryIds],
   );
   const counts = useMemo(() => countPlacesByCategory(places), [places]);
+  // Identités stables pour la carte : `filter` recrée un tableau à chaque rendu, ce qui
+  // relancerait le regroupement et le rendu des repères pour rien.
+  const mapZones = useMemo(() => filteredPlaces.filter((p) => p.kind === 'zone'), [filteredPlaces]);
+  const mapMarkers = useMemo(
+    () => filteredPlaces.filter((p) => p.kind === 'marker'),
+    [filteredPlaces],
+  );
   const searchIndex = useMemo(
     () =>
       buildPlaceIndex(filteredPlaces, {
@@ -88,11 +97,12 @@ export function AppPlan() {
     [filteredPlaces, categoriesById],
   );
   const results = useMemo(() => {
+    if (groupPlaces) return groupPlaces.map((place) => ({ place }));
     if (!query.trim()) {
       return filteredPlaces.slice(0, RESULTS_LIMIT).map((place) => ({ place }));
     }
     return searchPlaces(searchIndex, query, { limit: RESULTS_LIMIT });
-  }, [query, searchIndex, filteredPlaces]);
+  }, [groupPlaces, query, searchIndex, filteredPlaces]);
 
   const categoriesOf = useCallback(
     (place) =>
@@ -104,6 +114,7 @@ export function AppPlan() {
     (place) => {
       setSelectedPlace(place);
       setResultsOpen(false);
+      setGroupPlaces(null);
       reportPlanUsage('place_open', String(place?.id || ''));
       if (typeof window !== 'undefined' && window.history?.replaceState) {
         window.history.replaceState(null, '', buildPlaceUrl(window.location, String(place.id)));
@@ -142,8 +153,25 @@ export function AppPlan() {
 
   const onQueryChange = useCallback((next) => {
     setQuery(next);
+    setGroupPlaces(null);
     setResultsOpen(Boolean(next.trim()));
   }, []);
+
+  /**
+   * Tap sur un groupe de repères qui ne se sépare pas au zoom : ses lieux montent dans la
+   * feuille basse. C'est l'option accessible de l'« éventail » des cartes web — au doigt,
+   * une liste vaut mieux que des pastilles qui s'écartent en cercle.
+   */
+  const openGroup = useCallback(
+    (groupMarkers) => {
+      const ids = new Set((groupMarkers || []).map((m) => String(m.id)));
+      const list = places.filter((place) => place.kind === 'marker' && ids.has(String(place.id)));
+      if (list.length === 0) return;
+      setGroupPlaces(list);
+      setResultsOpen(true);
+    },
+    [places],
+  );
 
   const toggleCategory = useCallback((id) => {
     setSelectedCategoryIds((prev) => {
@@ -208,10 +236,12 @@ export function AppPlan() {
         {hasMapImage ? (
           <PlanMapStage
             map={map}
-            zones={filteredPlaces.filter((p) => p.kind === 'zone')}
-            markers={filteredPlaces.filter((p) => p.kind === 'marker')}
+            zones={mapZones}
+            markers={mapMarkers}
             selectedPlace={selectedPlace}
             onSelectPlace={openPlace}
+            onOpenGroup={openGroup}
+            categoriesById={categoriesById}
             attribution={settings?.attribution || ''}
           />
         ) : (
@@ -230,7 +260,11 @@ export function AppPlan() {
 
       <PlanResultsSheet
         open={resultsOpen}
-        onClose={() => setResultsOpen(false)}
+        onClose={() => {
+          setResultsOpen(false);
+          setGroupPlaces(null);
+        }}
+        title={groupPlaces ? `Lieux regroupés (${groupPlaces.length})` : null}
         query={query}
         results={results}
         onSelect={openPlace}
