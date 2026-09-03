@@ -1,6 +1,6 @@
 /* Service worker « plan » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-plan-6e2050d3";
+const CACHE_NAME = "foretmap-plan-b2289710";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -15,7 +15,7 @@ const PRECACHE_URLS = [
   "/plan/apple-touch-icon.png",
   "/plan/favicon-32.png",
   "/plan/favicon-16.png",
-  "/assets/plan-Dqyb1Wej.js",
+  "/assets/plan-Dqezl8iO.js",
   "/assets/plan-DD8Yas57.css",
   "/assets/rolldown-runtime-hePW80VL.js",
   "/assets/VisitMascotFallbackSvg-DgPaPMDJ.js",
@@ -27,6 +27,7 @@ const PRECACHE_URLS = [
   "/assets/HelpDock-8TFD6z4U.js",
   "/assets/HelpDock-B71Xr5QT.css",
   "/assets/Button-CusPOGvb.js",
+  "/assets/placeSearch-BCSeYLu5.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).

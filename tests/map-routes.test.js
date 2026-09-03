@@ -17,7 +17,12 @@ const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
 const { setSetting, invalidateSettingsCache } = require('../lib/settings');
 const fx = require('./helpers/fmFixtures');
 const { planContentCache } = require('../routes/plan');
-const { slugifyRouteTitle, normalizeRouteSteps, routeDeepLink } = require('../lib/mapRoutes');
+const {
+  slugifyRouteTitle,
+  normalizeRouteSteps,
+  resolveRouteBaseUrl,
+  routeDeepLink,
+} = require('../lib/mapRoutes');
 
 let teacherToken;
 let map;
@@ -78,6 +83,32 @@ test('helpers purs : slug, étapes, lien profond', () => {
     routeDeepLink('https://plan.test/', 'portes ouvertes'),
     'https://plan.test/?parcours=portes%20ouvertes',
   );
+});
+
+test('resolveRouteBaseUrl : la demande prime, puis le réglage, puis l’hôte de la requête', () => {
+  // L'affiche est exportée depuis la console ForetMap : sans le réglage, le QR code
+  // renverrait vers la console (donc vers un écran de connexion) au lieu du plan.
+  assert.equal(
+    resolveRouteBaseUrl({
+      query: 'https://demande.test/',
+      setting: 'https://plan.test',
+      request: 'https://console.test',
+    }),
+    'https://demande.test',
+  );
+  assert.equal(
+    resolveRouteBaseUrl({
+      query: '  ',
+      setting: 'https://plan.test/',
+      request: 'https://console.test',
+    }),
+    'https://plan.test',
+  );
+  assert.equal(
+    resolveRouteBaseUrl({ setting: '', request: 'https://console.test' }),
+    'https://console.test',
+  );
+  assert.equal(resolveRouteBaseUrl(), '');
 });
 
 test('création, étapes, publication et lecture publique filtrée par surface', async () => {

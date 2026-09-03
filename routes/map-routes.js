@@ -21,6 +21,7 @@ const PDFDocument = require('pdfkit');
 const QRCode = require('qrcode');
 
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
+const { getSettingValue } = require('../lib/settings');
 const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { logAudit } = require('../lib/auditLog');
@@ -31,6 +32,7 @@ const {
   ROUTE_TITLE_MAX,
   attachStepsToRoutes,
   normalizeRouteSteps,
+  resolveRouteBaseUrl,
   routeDeepLink,
   serializeRouteRow,
   serializeSurfaceSet,
@@ -317,8 +319,14 @@ router.get(
     if (!route) return res.status(404).json({ error: 'Parcours introuvable' });
     const steps = await resolveStepLabels(route.steps);
 
-    const baseUrl =
-      String(req.query.base_url || '').trim() || `${req.protocol}://${req.get('host')}`;
+    // Le QR code doit mener au **plan**, pas à la console d'où l'export est lancé : on prend
+    // d'abord `?base_url=`, puis le réglage `ui.plan.public_base_url`, et seulement en dernier
+    // recours l'hôte de la requête.
+    const baseUrl = resolveRouteBaseUrl({
+      query: req.query.base_url,
+      setting: await getSettingValue('ui.plan.public_base_url', ''),
+      request: `${req.protocol}://${req.get('host')}`,
+    });
     const link = routeDeepLink(baseUrl, route.slug);
     const qrDataUrl = await QRCode.toDataURL(link, { margin: 1, width: 320 });
 

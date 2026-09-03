@@ -986,6 +986,7 @@ par `GET /api/settings/public` et éditables par `PUT /api/settings/admin/:key` 
 | `ui.plan.welcome_hint`         | string | `Touchez un lieu, ou cherchez-le.` | Bulle du premier lancement                              |
 | `ui.plan.access_mode`          | enum   | `public`                           | `public` ou `code` (garde `lib/accessGate.js`)          |
 | `ui.plan.attribution`          | string | vide                               | Mention due pour le fond de plan (ex. OpenStreetMap)    |
+| `ui.plan.public_base_url`      | string | vide                               | URL publique du plan, base des liens profonds imprimés  |
 | `ui.plan.default_category_ids` | string | vide                               | Catégories visibles à l'ouverture (ids séparés par `;`) |
 | `ui.plan.hidden_category_ids`  | string | vide                               | Catégories jamais montrées par le plan (idem)           |
 
@@ -1693,9 +1694,12 @@ step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `
   `PUT` conserve les étapes ; le fournir les remplace toutes (c'est ce qu'envoie l'éditeur après
   un glisser-déposer). Une valeur de `target_type` hors `zone` / `marker` → **400**.
 - **`GET /api/map-routes/:id/pdf`** : une page A4 avec le titre, le public visé, la liste des
-  étapes et un QR code vers `?parcours=<slug>`. Le lien est bâti sur l'hôte de la requête, ou
-  sur `?base_url=` quand le plan est servi sur un autre domaine. QR généré localement
-  (`qrcode`, MIT) : une affiche d'établissement ne doit dépendre d'aucun service tiers.
+  étapes et un QR code vers `?parcours=<slug>`. La base du lien suit trois sources, dans
+  l'ordre : `?base_url=`, puis le réglage **`ui.plan.public_base_url`**, puis l'hôte de la
+  requête. L'ordre compte : l'affiche est exportée depuis la console ForetMap, servie par un
+  autre domaine que le plan — sans le réglage, le QR code renverrait le visiteur vers un écran
+  de connexion. QR généré localement (`qrcode`, MIT) : une affiche d'établissement ne doit
+  dépendre d'aucun service tiers.
 - **`GET /api/plan/content`** publie les parcours de la surface `plan` sous la clé `routes`.
 
 ### Accès du plan par code
