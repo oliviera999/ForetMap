@@ -180,11 +180,16 @@ export function usePctMapViewport({
     };
   }, [contentSize, resolveMinScale]);
 
+  const lastAppliedRef = useRef('');
+  /** Écrit `style.transform` sur le monde — seulement si la valeur change (aucune mutation DOM à vide). */
   const applyTransform = useCallback(() => {
     const el = worldRef.current;
     if (!el) return;
     const { x, y, s } = tx.current;
-    el.style.transform = `translate(${x}px,${y}px) scale(${s})`;
+    const next = `translate(${x}px,${y}px) scale(${s})`;
+    if (lastAppliedRef.current === next && el.style.transform === next) return;
+    lastAppliedRef.current = next;
+    el.style.transform = next;
   }, []);
 
   const setWorldWillChange = useCallback((on) => {

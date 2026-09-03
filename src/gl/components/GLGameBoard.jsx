@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { clampMapMascotPctForViewport } from '../../utils/mapViewMascotMotion.js';
 import { isQuestionMarker } from '../utils/glMarkerEventConfig.js';
 import { shouldPresentMarkerOnArrival } from '../utils/glMarkerEffects.js';
@@ -8,6 +7,8 @@ import { GLBoardMascot } from './GLBoardMascot.jsx';
 import { GLQcmPopover } from './GLQcmPopover.jsx';
 import { GLMarkerEffectPopover } from './GLMarkerEffectPopover.jsx';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
+import { MapFullscreenShell } from '../../shared/components/MapFullscreenShell.jsx';
+import { useMapFullscreen } from '../../shared/hooks/useMapFullscreen.js';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { useGLBoardMascotMotion } from '../hooks/useGLBoardMascotMotion.js';
 import { useGLBoardAmbientBehavior } from '../hooks/useGLBoardAmbientBehavior.js';
@@ -39,6 +40,13 @@ import { GLGameBoardRoster } from './GLGameBoardRoster.jsx';
 import { buildMarkerPathNumberMap, sortMarkersByPath } from '../utils/glBoardPath.js';
 import { resolveDicePathAdvance } from '../utils/glDicePathAdvance.js';
 
+/**
+ * Défaut STABLE des props tableau : un littéral `[]` par défaut est un tableau neuf à chaque
+ * rendu ; les effets `setEditZones(feuilletZones)` / `setEditableMarkers(markers)` s'y
+ * réabonnaient à chaque rendu et bouclaient dès qu'un état changeait après le montage.
+ */
+const EMPTY_LIST = Object.freeze([]);
+
 export function GLGameBoard({
   chapter,
   markers,
@@ -50,9 +58,9 @@ export function GLGameBoard({
   onPlayerActionRequest,
   onSelectTeam,
   onOpenGlossaryTerm,
-  glossaryLinkItems = [],
+  glossaryLinkItems = EMPTY_LIST,
   onOpenLoreTerm,
-  loreGlossaryLinkItems = [],
+  loreGlossaryLinkItems = EMPTY_LIST,
   loreCarnetEnabled = false,
   onQcmAnswered,
   canMoveMascot,
@@ -63,7 +71,7 @@ export function GLGameBoard({
   selectedTeamId,
   currentTeamId,
   mascotStateMachine,
-  kingdomZones = [],
+  kingdomZones = EMPTY_LIST,
   zoneMusicEnabled = false,
   zoneMusicMuted = false,
   onZoneMusicToggle,
@@ -82,12 +90,12 @@ export function GLGameBoard({
   canRollDice = true,
   disableDiceReroll = false,
   onRecordDiceRoll = null,
-  feuilletZones = [],
+  feuilletZones = EMPTY_LIST,
   feuilletZoneEditMode = false,
   showPlateauMarkers = true,
   showPlateauZones = false,
   showMarkerPathNumbers = false,
-  roster = [],
+  roster = EMPTY_LIST,
   vitalityEnabled = false,
   vitalityByPlayerId = null,
   playerId = null,
@@ -120,7 +128,6 @@ export function GLGameBoard({
   );
   const [pendingMarker, setPendingMarker] = useState(null);
   const [actionType, setActionType] = useState('explore');
-  const [mapFullscreen, setMapFullscreen] = useState(false);
   const [boardHeightPx, setBoardHeightPx] = useState(0);
   const boardHeightPxRef = useRef(0);
   const boardShellRef = useRef(null);
@@ -317,27 +324,22 @@ export function GLGameBoard({
     handleFeuilletZonePositionChange,
   ]);
 
+  // Plein écran partagé (Échap, classe body, portail) : `MapFullscreenShell` + `useMapFullscreen`,
+  // comme la carte ForetMap et la Visite — la réécriture maison a disparu.
+  const { mapFullscreen, setMapFullscreen } = useMapFullscreen({ escapeBlocked: modalOpen });
   useEffect(() => {
-    if (!mapFullscreen || modalOpen) return undefined;
-    const onKey = (event) => {
-      if (event.key === 'Escape') setMapFullscreen(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [mapFullscreen, modalOpen]);
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return undefined;
-    const body = document.body;
-    if (mapFullscreen) {
-      body.classList.add('gl-map-fullscreen-active');
-    } else {
-      body.classList.remove('gl-map-fullscreen-active');
-    }
+    if (!mapFullscreen) return undefined;
+    // Réajustement une fois le portail posé (double rAF, comme la Visite).
+    mapGestures.fitMap();
+    let innerRaf = null;
+    const outerRaf = requestAnimationFrame(() => {
+      innerRaf = requestAnimationFrame(() => mapGestures.fitMap());
+    });
     return () => {
-      body.classList.remove('gl-map-fullscreen-active');
+      cancelAnimationFrame(outerRaf);
+      if (innerRaf != null) cancelAnimationFrame(innerRaf);
     };
-  }, [mapFullscreen]);
+  }, [mapFullscreen, mapGestures]);
 
   const resolveActiveTeamId = useCallback(() => {
     const list = Array.isArray(teams) ? teams : [];
@@ -558,6 +560,7 @@ export function GLGameBoard({
       imageAlt={chapter?.title || 'Carte du chapitre'}
       mapGestures={mapGestures}
       className={boardClass}
+      showZoomControls={!feuilletZoneEditMode}
       cursor={feuilletZoneEditMode ? plateauPlacement.mapCursor : undefined}
       onFitLayout={({ height }) => {
         if (!Number.isFinite(height) || height <= 0) return;
@@ -581,11 +584,7 @@ export function GLGameBoard({
   );
 
   const boardShell = (
-    <div
-      ref={boardShellRef}
-      className={boardShellClass}
-      data-testid={mapFullscreen ? 'gl-map-fullscreen-layer' : undefined}
-    >
+    <div ref={boardShellRef} className={boardShellClass}>
       {feuilletZoneEditMode ? (
         <GLPlateauMapEditorProvider {...plateauEditorProps}>
           {boardMapCanvas}
@@ -702,10 +701,16 @@ export function GLGameBoard({
     </div>
   );
 
-  const boardShellNode =
-    mapFullscreen && typeof document !== 'undefined' && document.body
-      ? createPortal(boardShell, document.body)
-      : boardShell;
+  const boardShellNode = (
+    <MapFullscreenShell
+      active={mapFullscreen}
+      onClose={() => setMapFullscreen(false)}
+      layerClassName="gl-board-fullscreen-shell"
+      layerTestId="gl-map-fullscreen-layer"
+    >
+      {boardShell}
+    </MapFullscreenShell>
+  );
 
   return (
     <section className={mapFullscreen ? 'gl-panel gl-panel--map-fullscreen-active' : 'gl-panel'}>
