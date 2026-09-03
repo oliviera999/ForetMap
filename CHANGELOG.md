@@ -213,6 +213,61 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   « Y aller » et mode boussole, parcours, garde d'accès, service worker et manifest par
   produit (hors ligne pour ForetMap, GL et le plan), compteur d'usage anonyme, matrice des
   bénéfices pour chaque application ; phasage en dix lots.
+### Tâches et projets validés masqués par défaut
+
+- **Vue Tâches** : une tâche **validée** (ou rattachée à un projet validé) et un **projet
+  validé** ne sont plus rendus à l'ouverture — même principe que les archives : la section
+  « Validées » (n3boss) / « Récemment validées » (n3beur) et le bloc « Projets validés »
+  n'apparaissent que si le filtre de statut « Validée » / « Projet validé » les demande.
+  Le compteur de résultats et l'état vide tiennent compte du masquage ; la vue
+  « 📦 Archivés » continue d'afficher tout son contenu.
+- **Découvrabilité** : une ligne discrète en fin de liste annonce ce qui est masqué
+  (`TasksValidatedHiddenNotice`, nouveau) avec un bouton « Afficher les validés » qui pose
+  le filtre de statut.
+- Helpers purs `isTaskValidated` / `filterStatusShowsValidated` / `partitionTasksByValidated`
+  dans `src/utils/taskSectioning.js`.
+- Tests : `tests-ui/components/TasksValidatedHiddenNotice.test.jsx`,
+  `tests-ui/components/TasksViewValidatedHidden.test.jsx` (montage de `TasksView`) et cas
+  ajoutés dans `tests-ui/utils/taskSectioning.test.js`. Doc :
+  `docs/reference/foretmap/taches-tutoriels-et-validation.md`.
+
+### Correctif — espace mort sous la barre d'onglets n3boss
+
+- Depuis la navigation en trois pôles (D-4), les deux rangées d'onglets vivent dans
+  `.teacher-nav` mais gardaient la marge basse de l'ancienne **barre unique** : ~20 px de
+  vide entre les pôles et leurs onglets, puis ~16 px de plus avant la carte / les tâches /
+  les tutoriels. L'espacement vertical est désormais porté par le seul conteneur
+  (`gap` + marge basse de la nav), ce que la hauteur d'onglets déjà calculée par
+  `--fm-maptasks-teacher-tabs-h` supposait.
+
+### Correctif — mécaniques d'échéance
+
+- **`daysUntil` en jours de calendrier locaux** (`src/utils/badges.jsx`) : la puce
+  d'échéance comparait un instant (`new Date('2026-09-02')` = minuit **UTC**) à l'heure
+  locale — à l'est de Greenwich, une tâche due le jour même s'affichait « Demain » entre
+  minuit et le décalage horaire. Une valeur illisible renvoie désormais `null` (aucune puce)
+  au lieu d'un `NaN`.
+- **Notifications d'échéance n3beur** : « Échéance proche » et « Tâches en retard »
+  deviennent des avis **d'état** — clé stable et **clôture** dès que plus aucune tâche ne
+  les justifie. Avec une clé porteuse du compte, chaque variation créait un item de plus et
+  aucun n'était jamais refermé. Elles s'appuient sur `daysUntil` : une tâche due
+  **aujourd'hui** est « proche », plus « en retard » (l'ancien calcul la déclarait en retard
+  dès minuit).
+- Tests : `tests-ui/utils/daysUntil.test.js` (nouveau) et section « échéances n3beur » dans
+  `tests-ui/hooks/useNotificationCenter.test.jsx`. Doc :
+  `docs/reference/foretmap/stats-forum-et-suivi.md`.
+
+### Documentation — audit des échéances
+
+- **`docs/AUDIT_ECHEANCES_2026-09.md`** (nouveau) : inventaire de tout ce qui dépend d'une
+  date côté tâches/projets (champs, affichage, notifications, date de départ, récurrence,
+  archivage automatique, job quotidien, validation à l'écriture, tri), avec les correctifs
+  du lot et les constats laissés en l'état (fuseau du calcul de `start_date`, absence de
+  contrôle de format et de cohérence `due_date >= start_date` à l'API, `setInterval`
+  quotidien calé sur le démarrage du process).
+- **`docs/reference/foretmap/taches-tutoriels-et-validation.md`** : nouvelle section
+  « Et pendant les vacances ? » — ForetMap ne connaît aucun calendrier scolaire ; le seul
+  levier est l'interrupteur manuel de duplication des tâches récurrentes.
 
 ### Couleurs de carte : une seule palette pour les zones et les catégories
 
