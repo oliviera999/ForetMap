@@ -14,6 +14,7 @@ import {
   clusterZoomTargetScale,
 } from '../../shared/pct-map/clusterMarkers.js';
 import { shouldShowMarkerLabel } from '../../shared/pct-map/mapOverlayLabelCollision.js';
+import { PctDirectLine, PctPositionLayer } from '../../shared/pct-map/PctPositionLayer.jsx';
 import { planPlaceFocusPct } from '../utils/planPlaces.js';
 
 /** Cibles qui ne démarrent pas un déplacement de carte (commandes superposées). */
@@ -27,6 +28,20 @@ const PLAN_LABEL_PRIORITY_CUTOFF = 50;
 
 /** Rapport `échelle / ajustement` au-delà duquel la carte compte comme « zoomée ». */
 const PLAN_ZOOM_ONLY_RATIO = 1.6;
+
+/** Bouton « Me situer » : quatre états visuels (lot 6). */
+const POSITION_ICONS = Object.freeze({
+  off: '◎',
+  acquiring: '◌',
+  on: '◉',
+  follow: '⦿',
+});
+const POSITION_LABELS = Object.freeze({
+  off: 'Me situer',
+  acquiring: 'Recherche de votre position…',
+  on: 'Suivre ma position',
+  follow: 'Arrêter le suivi',
+});
 
 /**
  * Carte plein écran du Plan Lyautey (lot 4) : moteur de carte partagé en mode « scène »
@@ -46,6 +61,8 @@ const PLAN_ZOOM_ONLY_RATIO = 1.6;
  *   sépare pas au zoom : le produit montre la liste de ses lieux (feuille basse).
  * @param {Map<string, object>} [props.categoriesById] catalogue des catégories (priorités,
  *   couleur de la pastille de groupe).
+ * @param {object|null} [props.position] état de position (`useMapPosition`, lot 6).
+ * @param {{ xp: number, yp: number }|null} [props.targetPct] lieu visé par « Y aller ».
  * @param {string} [props.attribution] mention de source du fond de plan (`ui.plan.attribution`).
  */
 export function PlanMapStage({
@@ -56,6 +73,8 @@ export function PlanMapStage({
   onSelectPlace,
   onOpenGroup = null,
   categoriesById = null,
+  position = null,
+  targetPct = null,
   attribution = '',
 }) {
   const imageSrc = String(map?.map_image_url || '');
@@ -65,6 +84,8 @@ export function PlanMapStage({
     onResize: 'clamp',
     resetKey: String(map?.id || ''),
     isGestureTarget: PLAN_GESTURE_TARGET,
+    // Un déplacement à la main quitte le suivi de position sans couper le point bleu.
+    onGestureStart: position?.notifyManualPan || null,
   });
   const {
     containerRef,
@@ -176,6 +197,14 @@ export function PlanMapStage({
     [categoriesById],
   );
 
+  // Suivi de position : la carte se recentre à chaque nouvelle position tant que l'état
+  // « suivi » dure. Hors suivi, la position ne bouge jamais la vue.
+  const followPct = position?.following ? position.displayPct : null;
+  useEffect(() => {
+    if (!followPct) return;
+    focusOnPct({ xp: followPct.xp, yp: followPct.yp });
+  }, [followPct, focusOnPct]);
+
   // Centrage sur le lieu sélectionné : une fois par lieu, jamais pendant que l'on manipule
   // la carte (sinon la vue « saute » sous le doigt à chaque re-rendu de la fiche).
   const lastFocusedRef = useRef('');
@@ -268,16 +297,38 @@ export function PlanMapStage({
             activeZoneId={selectedZoneId}
             className="fm-pct-zones plan-map__zones"
           />
+          {position?.displayPct && targetPct ? (
+            <PctDirectLine from={position.displayPct} to={targetPct} />
+          ) : null}
           <PctClusterLayer
             clusters={clusters}
             onClusterClick={onClusterClick}
             renderMarker={renderMarker}
             colorOf={clusterColorOf}
           />
+          {position?.displayPct ? (
+            <PctPositionLayer
+              position={position.displayPct}
+              haloPct={position.haloPct}
+              headingDeg={position.screenHeadingDeg}
+              accuracyM={position.accuracyM}
+            />
+          ) : null}
         </div>
       </div>
 
       <div className="plan-map-controls">
+        {position?.available ? (
+          <MapActionButton
+            role={position.following ? 'primary' : 'display'}
+            icon={POSITION_ICONS[position.mode] || POSITION_ICONS.off}
+            label={POSITION_LABELS[position.mode] || POSITION_LABELS.off}
+            testId="plan-locate"
+            active={position.active}
+            ariaPressed={position.active}
+            onClick={position.toggle}
+          />
+        ) : null}
         <MapActionButton
           role="display"
           icon="＋"

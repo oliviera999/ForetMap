@@ -83,11 +83,38 @@ vi.mock('../../src/shared/pct-map/usePctMapViewport.js', () => ({
   usePctMapViewport: () => viewportStub,
 }));
 
+// La position est testée pour elle-même (`tests-ui/shared/positionGeometry.test.js`) : ici
+// une sonde, pour vérifier le câblage du bouton « Me situer » et de « Y aller ».
+const positionStub = vi.hoisted(() => ({
+  supported: true,
+  available: false,
+  mode: 'off',
+  active: false,
+  following: false,
+  status: 'idle',
+  feedback: null,
+  error: null,
+  positionPct: null,
+  displayPct: null,
+  accuracyM: null,
+  haloPct: 0,
+  headingDeg: null,
+  screenHeadingDeg: null,
+  planSize: null,
+  toggle: vi.fn(),
+  stop: vi.fn(),
+  notifyManualPan: vi.fn(),
+}));
+vi.mock('../../src/shared/pct-map/useMapPosition.js', () => ({
+  useMapPosition: () => positionStub,
+}));
+
 const { AppPlan } = await import('../../src/plan/AppPlan.jsx');
 
 beforeEach(() => {
   planApiMock.fetchPlanContent.mockClear();
   planApiMock.reportPlanUsage.mockClear();
+  positionStub.toggle.mockClear();
   window.localStorage.clear();
   window.history.replaceState(null, '', '/');
 });
@@ -125,14 +152,38 @@ describe('AppPlan — montage', () => {
     expect(window.location.search).toContain('lieu=z-cdi');
   });
 
-  test('« Y aller » est présent mais désactivé (position au lot 6)', async () => {
+  test('carte non calée : « Y aller » désactivé, avec la raison, et pas de bouton « Me situer »', async () => {
     render(<AppPlan />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+    expect(screen.queryByTestId('plan-locate')).toBeNull();
     fireEvent.change(screen.getByLabelText('Rechercher un lieu'), { target: { value: 'CDI' } });
     fireEvent.click(await screen.findByRole('button', { name: /CDI/ }));
     const goButton = await screen.findByRole('button', { name: 'Y aller' });
     expect(goButton.disabled).toBe(true);
-    expect(screen.getByText('Bientôt : votre position sur le plan.')).toBeTruthy();
+    expect(
+      screen.getByText('Ce plan n’est pas encore calé pour afficher votre position.'),
+    ).toBeTruthy();
+  });
+
+  test('carte calée : « Me situer » apparaît et « Y aller » devient actif (lot 6)', async () => {
+    positionStub.available = true;
+    positionStub.mode = 'off';
+    try {
+      render(<AppPlan />);
+      await waitFor(() =>
+        expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy(),
+      );
+      expect(screen.getByTestId('plan-locate')).toBeTruthy();
+      fireEvent.change(screen.getByLabelText('Rechercher un lieu'), { target: { value: 'CDI' } });
+      fireEvent.click(await screen.findByRole('button', { name: /CDI/ }));
+      const goButton = await screen.findByRole('button', { name: /Y aller/ });
+      expect(goButton.disabled).toBe(false);
+      fireEvent.click(goButton);
+      expect(positionStub.toggle).toHaveBeenCalled();
+      expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith('go', 'z-cdi');
+    } finally {
+      positionStub.available = false;
+    }
   });
 
   test('filtre par catégorie : ne garde que les lieux de la catégorie cochée', async () => {

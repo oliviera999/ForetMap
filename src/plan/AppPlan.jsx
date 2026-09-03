@@ -5,6 +5,11 @@ import {
   safeLocalStorageWriteJson,
 } from '../shared/platform/browserStorage.js';
 import { buildPlaceIndex, searchPlaces } from '../shared/search/placeSearch.js';
+import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
+import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
+import { parsePctPolygonPoints } from '../shared/pct-map/pctPolygon.js';
+import { FixedToast } from '../shared/components/FixedToast.jsx';
+import { useTimedToastState } from '../shared/hooks/useTimedToastState.js';
 import { PlanCategoryChips } from './components/PlanCategoryChips.jsx';
 import { PlanMapStage } from './components/PlanMapStage.jsx';
 import { PlanPlaceSheet } from './components/PlanPlaceSheet.jsx';
@@ -16,8 +21,10 @@ import {
   buildPlaceUrl,
   countPlacesByCategory,
   filterPlacesByCategories,
+  planPlaceFocusPct,
   readPlaceIdFromLocation,
 } from './utils/planPlaces.js';
+import { PLAN_POSITION_MESSAGES } from './utils/planPositionMessages.js';
 
 /** Catégories retenues d'une visite à l'autre (le plan n'a pas de compte). */
 const CATEGORIES_STORAGE_KEY = 'plan:categories';
@@ -43,10 +50,22 @@ export function AppPlan() {
   const [welcomeVisible, setWelcomeVisible] = useState(false);
   /** Lieux d'un groupe de repères ouvert depuis la carte (désencombrement, lot 5). */
   const [groupPlaces, setGroupPlaces] = useState(null);
+  /** Lieu visé par « Y aller » (ligne droite depuis la position, lot 6). */
+  const [targetPlaceId, setTargetPlaceId] = useState('');
   const deepLinkAppliedRef = useRef(false);
   const openedOnceRef = useRef(false);
 
   const title = settings?.title || 'Plan Lyautey';
+
+  /**
+   * Position de la personne sur le plan (lot 6) : le point bleu, son halo de précision et le
+   * cap viennent du noyau partagé. Rien n'est envoyé au serveur.
+   */
+  const position = useMapPosition({
+    georef: map?.geo_anchors || null,
+    gpsEnabled: !!map?.gps_enabled,
+  });
+  const [positionToast, setPositionToast] = useTimedToastState();
   const categoriesById = useMemo(
     () => new Map((categories || []).map((c) => [String(c.id), c])),
     [categories],
@@ -110,6 +129,14 @@ export function AppPlan() {
     [categoriesById],
   );
 
+  // Les six états de position sont annoncés en toast discret, jamais en bandeau permanent.
+  const positionFeedback = position.active ? position.feedback : null;
+  useEffect(() => {
+    if (!positionFeedback || positionFeedback === 'ok') return;
+    const message = PLAN_POSITION_MESSAGES[positionFeedback];
+    if (message) setPositionToast(message);
+  }, [positionFeedback, setPositionToast]);
+
   const openPlace = useCallback(
     (place) => {
       setSelectedPlace(place);
@@ -125,6 +152,7 @@ export function AppPlan() {
 
   const closePlace = useCallback(() => {
     setSelectedPlace(null);
+    setTargetPlaceId('');
     if (typeof window !== 'undefined' && window.history?.replaceState) {
       window.history.replaceState(null, '', buildPlaceUrl(window.location, ''));
     }
@@ -188,6 +216,37 @@ export function AppPlan() {
     safeLocalStorageWriteJson(CATEGORIES_STORAGE_KEY, []);
   }, []);
 
+  /**
+   * « Y aller » : la carte trace une **ligne droite** entre la position et le lieu, avec la
+   * distance. Ce n'est pas un itinéraire — le plan ne connaît pas encore les chemins, et
+   * mieux vaut une direction honnête qu'un trajet inventé.
+   */
+  const targetPlace = useMemo(
+    () => (targetPlaceId ? places.find((p) => String(p.id) === targetPlaceId) || null : null),
+    [targetPlaceId, places],
+  );
+  const targetPct = useMemo(
+    () => (targetPlace ? planPlaceFocusPct(targetPlace, parsePctPolygonPoints) : null),
+    [targetPlace],
+  );
+  const targetDistanceM = useMemo(
+    () =>
+      position.positionPct && targetPct
+        ? distanceMetersBetweenPct(position.positionPct, targetPct, position.planSize)
+        : null,
+    [position.positionPct, position.planSize, targetPct],
+  );
+
+  const goToPlace = useCallback(
+    (place) => {
+      if (!place) return;
+      setTargetPlaceId(String(place.id));
+      reportPlanUsage('go', String(place.id));
+      if (!position.active) position.toggle();
+    },
+    [position],
+  );
+
   const dismissWelcome = useCallback(() => {
     setWelcomeVisible(false);
     safeLocalStorageWriteJson(WELCOME_STORAGE_KEY, true);
@@ -242,6 +301,8 @@ export function AppPlan() {
             onSelectPlace={openPlace}
             onOpenGroup={openGroup}
             categoriesById={categoriesById}
+            position={position}
+            targetPct={targetPct}
             attribution={settings?.attribution || ''}
           />
         ) : (
@@ -275,7 +336,17 @@ export function AppPlan() {
         place={selectedPlace}
         onClose={closePlace}
         categories={categoriesOf(selectedPlace)}
+        canLocate={position.available}
+        onGoTo={goToPlace}
+        isTarget={Boolean(selectedPlace && String(selectedPlace.id) === targetPlaceId)}
+        distanceLabel={
+          selectedPlace && String(selectedPlace.id) === targetPlaceId
+            ? formatDistanceFr(targetDistanceM)
+            : ''
+        }
       />
+
+      <FixedToast className="plan-toast">{positionToast}</FixedToast>
     </div>
   );
 }

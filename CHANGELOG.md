@@ -7,6 +7,31 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Lot 6 — Position (plan de convergence §6)
+
+- **Point de position partagé** (`src/shared/pct-map/useMapPosition.js` +
+  `PctPositionLayer.jsx`) : point bleu, **halo de précision** proportionnel à la précision
+  annoncée par le capteur, **cap** de l'appareil quand la boussole le donne (permission iOS
+  demandée explicitement, absence gérée sans flèche). Hors du plan, le point se colle au bord
+  le plus proche avec une flèche vers l'endroit réel plutôt que de disparaître.
+- **Bouton « Me situer » à quatre états** : inactif, recherche, position affichée, suivi. Un
+  déplacement manuel de la carte quitte le suivi sans éteindre la position.
+- **« Y aller »** sur la fiche d'un lieu du plan : ligne droite entre la position et le lieu,
+  avec la distance. Ce n'est pas un itinéraire, et l'interface le dit. Sans calage, le bouton
+  reste désactivé avec la raison en clair.
+- **Six messages d'état** (refus, calage incohérent, erreur d'acquisition, acquisition, hors
+  plan, signal faible) repris de la bannière ForetMap, servis en **toast discret** sur le plan.
+- **ForetMap : « Me suivre » découplé de la mascotte.** La carte de travail passe au noyau
+  partagé et affiche le point de position même quand la mascotte est masquée ; la mascotte
+  suit toujours quand elle est à l'écran. `useMascotGpsFollow` reste pour la mascotte seule.
+- **Promotions dans le socle partagé** : `mapGeoTransform.js` devient
+  `src/shared/pct-map/pctGeoTransform.js` et `useGeolocation` rejoint
+  `src/shared/platform/` ; les anciens chemins ré-exportent, aucun importateur n'est cassé.
+- Nouveau module pur `positionGeometry.js` (halo, position hors plan, distance et cap,
+  lecture du cap de l'appareil, orientation du nord dans l'image) avec ses tests, et scénario
+  Playwright `e2e/plan-mobile-position.spec.js` à position simulée.
+- La position reste **100 % côté client** : elle n'est jamais envoyée au serveur.
+
 ### Lot 5 — Désencombrement et lisibilité (plan de convergence §6)
 
 - **Regroupement des repères au dézoom** (`src/shared/pct-map/clusterMarkers.js`, grille écran

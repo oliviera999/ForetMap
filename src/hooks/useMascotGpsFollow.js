@@ -17,6 +17,11 @@ const OUT_OF_BOUNDS_MARGIN_PCT = 5;
  * (transformation affine `georef`) et appelle `moveTo`. Le suivi est désactivé tant que
  * l'utilisateur ne l'a pas activé via `toggle()`. La position reste 100 % côté client.
  *
+ * ⚠️ Depuis le lot 6 du plan de convergence, la **carte de travail** n'utilise plus ce hook :
+ * elle passe par `useMapPosition` (`src/shared/pct-map/`), qui affiche un point de position
+ * indépendant de la mascotte et sert aussi au Plan Lyautey. Ce module reste pour la mascotte
+ * seule, là où elle est le seul rendu de la position.
+ *
  * La transformation est résolue une fois par jeu d'ancres (pas à chaque position), et
  * un calage géographiquement invraisemblable — hérité d'avant le contrôle serveur —
  * est signalé `bad_georef` plutôt que projeté n'importe où (audit C4/C6).

@@ -199,6 +199,17 @@ permission « Gestion zones ».
 7. **Supprimer** une zone ou un repère : la fiche, ses photos et son contenu de visite
    sont retirés ensemble.
 
+### Se situer sur la carte
+
+Quand le plan affiché est **calé** (points de repère GPS posés par un professeur), le bouton
+« Me suivre » de la barre d'outils affiche un **point de position** : un point bleu avec un
+halo d'autant plus large que le signal est imprécis, et une flèche de cap si l'appareil a une
+boussole. Le point s'affiche désormais **même si la mascotte est masquée** : la position et la
+mascotte sont deux choses différentes. Quand la mascotte est visible, elle continue de suivre
+la position comme avant.
+
+La position est calculée dans l'appareil et n'est jamais envoyée au serveur.
+
 ### Quand la carte devient trop chargée
 
 Vu de loin, des repères qui se chevauchent sont remplacés par une **pastille chiffrée** :
