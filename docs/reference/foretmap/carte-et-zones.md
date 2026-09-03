@@ -96,8 +96,10 @@ qu'on veut). Sa fiche rassemble :
 - un **historique des cultures** : quand une espèce est retirée de la zone, elle est
   automatiquement archivée avec la date du jour — la fiche garde ainsi la mémoire de
   ce qui y a poussé ;
-- des **textes pour le mode Visite** (sous-titre, accroche, bloc dépliable, images) :
-  ce que le grand public lira au même endroit pendant une visite ;
+- des **textes publics** (sous-titre, accroche, bloc dépliable, images) : ce que le grand
+  public lira au même endroit, pendant une visite **comme sur le Plan Lyautey** ;
+- des **alias de recherche** (autres noms séparés par `;`) et un choix de **surfaces
+  d'affichage** : voir « Où apparaît un lieu » plus bas ;
 - des **commentaires** contextuels (observations des élèves et du professeur), si le
   module est activé.
 
@@ -183,7 +185,8 @@ permission « Gestion zones ».
 2. **Poser un repère** : bouton « Repère », puis clic à l'endroit voulu ; on renseigne
    ensuite nom, emoji et note.
 3. **Modifier une fiche** : ouvrir la zone ou le repère, onglet « Modifier ». On y
-   change tout (nom, espèces, catégories, couleur, description, textes visite, emoji). Un
+   change tout (nom, espèces, catégories, couleur, description, textes publics, emoji,
+   alias de recherche, surfaces d'affichage). Un
    bouton dédié permet de **retoucher le contour** de la zone (voir « Retoucher le
    contour d'une zone » plus bas), puis de sauvegarder.
 4. **Dupliquer une zone** : un bouton dans l'en-tête de la fiche crée une copie, utile
@@ -195,6 +198,30 @@ permission « Gestion zones ».
    retrouvent ensuite au même endroit.
 7. **Supprimer** une zone ou un repère : la fiche, ses photos et son contenu de visite
    sont retirés ensemble.
+
+### Où apparaît un lieu (carte, visite, plan)
+
+Un même lieu peut être montré sur trois **surfaces** : la **Carte** de travail des élèves,
+la **Visite** guidée grand public, et le **Plan Lyautey** (le plan d'établissement sur
+téléphone — voir [../plan/presentation.md](../plan/presentation.md)). Les lieux ne sont
+jamais dupliqués : c'est le même lieu, montré ou non à chaque endroit.
+
+Deux réglages se combinent :
+
+- **Par catégorie** — dans _Réglages → Catégories de lieux_, chaque catégorie porte une case
+  par surface (« Visible sur »). Décocher **Plan** pour « Cultures » retire d'un coup toutes
+  les cultures du plan d'établissement, sans rien changer pour les élèves.
+- **Par lieu** — dans la fiche d'une zone ou d'un repère, onglet _Modifier_, le bloc
+  « Masquer sur » retire **ce lieu précis** d'une surface, quelle que soit sa catégorie.
+
+Un lieu **sans catégorie** reste visible partout où il n'est pas explicitement masqué. Si
+toutes les surfaces sont cochées dans « Masquer sur », un avertissement prévient que le
+lieu ne sera visible nulle part.
+
+La même fiche propose un champ **« Alias de recherche »** : les autres noms sous lesquels on
+cherche ce lieu, séparés par des points-virgules (`CDI ; bibliothèque ; docs`). Ces mots ne
+s'affichent nulle part ; ils servent à ce que la recherche du plan trouve le lieu quel que
+soit le mot employé.
 
 ### Retoucher le contour d'une zone
 

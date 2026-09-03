@@ -1586,6 +1586,71 @@ Notes d'exploitation :
 
 ---
 
+## Plan Lyautey (`/api/plan`)
+
+Produit **`plan`** (lot 4 du plan de convergence — `docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8,
+`docs/AUDIT_CONVERGENCE_APPS_2026-09.md` §6) : plan interactif d'établissement, servi par host
+(`planlyautey.*`, surcharge d'en-tête `X-Foretmap-Product: plan`). **Sans session** : aucun
+jeton, aucun cookie, aucune donnée d'élève, de tâche ou de progression. Les lieux ne sont pas
+dupliqués : ce sont les **mêmes** `zones` et `map_markers` que la carte de travail et la Visite,
+filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
+
+| Méthode | URL                         | n3boss | Description                                                               |
+| ------- | --------------------------- | ------ | ------------------------------------------------------------------------- |
+| GET     | `/api/plan/content?map_id=` | non    | Charge publique : carte, réglages, catégories, lieux visibles sur le plan |
+| GET     | `/api/plan/settings`        | non    | Réglages publics `ui.plan.*` seuls (coquille)                             |
+
+- **Carte servie** : `map_id` si fourni (**400** si la carte n'existe pas), sinon le réglage
+  `ui.plan.map_id` s'il désigne une carte **active**, sinon la première carte active
+  (**404** s'il n'y en a aucune) — le plan doit toujours pouvoir s'afficher.
+- **Réponse** : `{ map, settings, categories, zones, markers }`.
+  - `map` : `{ id, label, map_image_url, frame_padding_px, gps_enabled, geo_anchors }`.
+  - `settings` : `title`, `welcome_hint`, `access_mode` (`public` | `code`), `attribution`,
+    `default_category_ids` (restreint aux catégories réellement servies), `hidden_category_ids`.
+    `ui.plan.map_id` n'est **pas** repris ici (l'identifiant est déjà dans `map`).
+  - `categories` : catégories **actives**, globales ou de la carte, qui apparaissent sur la
+    surface `plan`, moins celles listées par `ui.plan.hidden_category_ids`.
+  - `zones` / `markers` : champs **publics** uniquement — `id`, `name` / `label`, `emoji`,
+    `points` (zone) ou `x_pct` / `y_pct` (repère), `color`, `description` / `note`,
+    `category_ids`, `search_aliases` (**tableau**), textes `visit_subtitle`,
+    `visit_short_description`, `visit_details_title`, `visit_details_text`, et
+    `map_lead_photo` (même sérialisation que la visite). Ni espèces, ni historique de culture,
+    ni progression, ni `hidden_surfaces`.
+- **Cache** : charge agrégée mise en cache par carte, invalidée par la **version d'écriture
+  globale** (`lib/shared/writeVersionCache.js`, mécanique partagée avec
+  `GET /api/visit/content`) ; en-tête `Cache-Control: public, max-age=60`.
+- **Compteur d'usage** : le plan émet `open`, `search_empty` et `place_open` via
+  `POST /api/usage` (produit `plan`) — voir **Compteur d'usage anonyme**.
+
+### Surfaces d'affichage des lieux
+
+Un lieu (zone ou repère) s'affiche sur trois **surfaces** : `map` (carte de travail ForetMap),
+`visit` (Visite) et `plan` (Plan Lyautey). Migration
+`208_location_surfaces_search_aliases.sql`, règles pures dans `lib/locationSurfaces.js`.
+
+- `location_categories.surfaces` (**tableau** en réponse ; défaut : les trois) : surfaces où la
+  catégorie apparaît. Décocher une surface y retire d'un coup tous les lieux de la catégorie.
+- `zones.hidden_surfaces` / `map_markers.hidden_surfaces` (**tableau** en réponse ; défaut :
+  vide) : surfaces où **ce lieu précis** est masqué, quelle que soit sa catégorie.
+- **Règle** : un lieu est visible sur une surface s'il n'y est pas masqué **et** si, lorsqu'il
+  porte des catégories, au moins l'une d'elles y apparaît. Un lieu **sans catégorie** est
+  visible partout où il n'est pas masqué (cas des lieux historiques).
+- **Écritures** : `POST` / `PUT` de `/api/zones`, `/api/map/markers` acceptent
+  `hidden_surfaces` (tableau `['plan']`, chaîne `'map,plan'`, `[]` / `''` / `null` = aucune) ;
+  `POST` / `PUT /api/map-categories` accepte `surfaces` (même forme ; omis à la création =
+  toutes). Une surface inconnue → **400**. Omettre la clé sur un `PUT` conserve la valeur.
+- **Lecture filtrée** : `GET /api/zones`, `GET /api/map/markers` et `GET /api/map-categories`
+  acceptent **`?surface=map|visit|plan`** (valeur inconnue → **400**). Sans ce paramètre, la
+  réponse est inchangée (tous les lieux), pour ne pas modifier le comportement des clients
+  existants.
+- **`search_aliases`** (zones et repères) : autres noms d'un lieu pour la recherche du plan
+  (« CDI » ↔ « bibliothèque »). Accepté en chaîne `« a ; b »` ou en tableau ; stocké normalisé
+  (trim, doublons insensibles à la casse retirés, borné à 512 caractères sans troncature au
+  milieu d'un alias) et renvoyé **en chaîne** par les routes zones / repères, **en tableau**
+  par `/api/plan/content`.
+
+---
+
 ## Compteur d'usage anonyme (tous produits)
 
 Lot 1 du plan de convergence (`docs/AUDIT_CONVERGENCE_APPS_2026-09.md` §5.2 ; principe dans
