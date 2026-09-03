@@ -68,11 +68,13 @@ test('mobile : double-tap zoome la carte, le bouton recentrer la réajuste', asy
   await expect.poll(readScale, { timeout: 15_000 }).toBeGreaterThan(0);
   const fitScale = await readScale();
 
+  // Point de fond de carte (coin haut-gauche du cadre : hors bulles de repère, qui ne
+  // déclenchent pas les gestes), deux appuis rapprochés.
   const box = await canvas.boundingBox();
-  const x = box.x + box.width / 2;
-  const y = box.y + box.height / 2;
+  const x = box.x + box.width * 0.12;
+  const y = box.y + box.height * 0.12;
   await page.touchscreen.tap(x, y);
-  await page.waitForTimeout(80);
+  await page.waitForTimeout(60);
   await page.touchscreen.tap(x, y);
   await expect.poll(readScale, { timeout: 5_000 }).toBeGreaterThan(fitScale * 1.8);
 

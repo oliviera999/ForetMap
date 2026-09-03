@@ -1681,11 +1681,16 @@ a.gl-glossary-inline-link:hover,
   background: var(--gl-surface-dark);
 }
 
-.gl-map-fullscreen-close {
+/* Logement du bouton Fermer du plein écran : positionné lui (le bouton vit dans l'enrobage
+   relatif de l'infobulle, qui le repoussait sous le plateau, hors écran). */
+.gl-map-fullscreen-close-slot {
   position: absolute;
   top: max(12px, env(safe-area-inset-top, 0px));
   right: max(12px, env(safe-area-inset-right, 0px));
   z-index: calc(var(--fm-z-fullscreen) + 1);
+}
+
+.gl-map-fullscreen-close {
   border: 0;
   border-radius: var(--gl-radius-pill);
   background: rgba(15, 23, 42, 0.82);
