@@ -1,6 +1,6 @@
 /* Service worker « gl » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-gl-194cf442";
+const CACHE_NAME = "foretmap-gl-a7da8bb7";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -9,25 +9,26 @@ const PRECACHE_URLS = [
   "/manifest.json",
   "/gl/favicon.svg",
   "/gl/logo.png",
-  "/assets/gl-BFnEVtOX.js",
+  "/assets/gl-Biaonvrm.js",
   "/assets/gl-BJOYacZg.css",
   "/assets/rolldown-runtime-hePW80VL.js",
   "/assets/VisitMascotFallbackSvg-DgPaPMDJ.js",
   "/assets/react-vendor-Bnq5Y4Sb.js",
   "/assets/icons-BYRl22YG.js",
-  "/assets/ErrorBoundary-BZ981Xdy.js",
+  "/assets/ErrorBoundary-Bao91TqM.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-D_yI1JZL.js",
+  "/assets/ImageLightboxProvider-DQEnjkHe.js",
   "/assets/ImageLightboxProvider-CPh0j32G.css",
   "/assets/spriteCutCatalogEntry-Dk2XFDfU.js",
   "/assets/markdown-B5dU4qij.js",
   "/assets/socket-io-D_2T_oRH.js",
-  "/assets/HelpDock-Q3eexNgS.js",
+  "/assets/HelpDock-8TFD6z4U.js",
   "/assets/HelpDock-B71Xr5QT.css",
+  "/assets/Button-CusPOGvb.js",
   "/assets/StatsSummaryGrid-DrI_5fO6.js",
   "/assets/quizGlossaryReveal-aeOpCJbU.js",
   "/assets/mascotBehaviorEngine-CP-FMdBG.js",
-  "/assets/MediaLibraryMenu-CJSR6CP9.js",
+  "/assets/MediaLibraryMenu-BZqbdsVU.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).
@@ -37,10 +38,18 @@ const HTML_ENTRIES = [
 ];
 
 // API en lecture « stale-while-revalidate » (correspondance par suffixe du pathname).
-const API_STALE_WHILE_REVALIDATE = [];
+const API_STALE_WHILE_REVALIDATE = [
+  "/api/gl/content/help",
+  "/api/gl/content/narrator",
+  "/api/gl/content/pages",
+  "/api/gl/settings/public",
+];
 
 // API en lecture « network-first » (correspondance exacte du pathname).
-const API_NETWORK_FIRST = [];
+const API_NETWORK_FIRST = [
+  "/api/gl/chapters",
+  "/api/gl/maps",
+];
 
 const IMAGE_FONT_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.svg', '.ico', '.webp', '.woff2', '.woff'];
 

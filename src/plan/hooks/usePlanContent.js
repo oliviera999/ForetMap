@@ -10,27 +10,35 @@ import { planPlacesFromContent } from '../utils/planPlaces.js';
  *
  * @param {string} [mapId] carte demandée (`?map_id=`) ; vide = carte réglée côté serveur.
  */
-export function usePlanContent(mapId = '') {
+export function usePlanContent(mapId = '', accessCode = '') {
   const [content, setContent] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  /** Le serveur exige un code d'accès (lot 8) : le produit affiche l'écran de saisie. */
+  const [accessRequired, setAccessRequired] = useState(false);
 
   const load = useCallback(
     async (signal) => {
       setLoading(true);
       try {
-        const data = await fetchPlanContent(mapId);
+        const data = await fetchPlanContent(mapId, accessCode);
         if (signal?.aborted) return;
         setContent(data);
         setError(null);
+        setAccessRequired(false);
       } catch (err) {
         if (signal?.aborted) return;
-        setError(err instanceof Error ? err : new Error(String(err)));
+        if (err?.status === 401 && err?.body?.access_required) {
+          setAccessRequired(true);
+          setError(null);
+        } else {
+          setError(err instanceof Error ? err : new Error(String(err)));
+        }
       } finally {
         if (!signal?.aborted) setLoading(false);
       }
     },
-    [mapId],
+    [mapId, accessCode],
   );
 
   useEffect(() => {
@@ -46,6 +54,8 @@ export function usePlanContent(mapId = '') {
   return {
     content,
     places,
+    accessRequired,
+    routes: content?.routes || [],
     categories: content?.categories || [],
     settings: content?.settings || null,
     map: content?.map || null,

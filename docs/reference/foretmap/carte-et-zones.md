@@ -199,6 +199,42 @@ permission « Gestion zones ».
 7. **Supprimer** une zone ou un repère : la fiche, ses photos et son contenu de visite
    sont retirés ensemble.
 
+### Les parcours
+
+Un **parcours** enchaîne des lieux dans un ordre choisi, avec un titre, un public visé et, pour
+chaque étape, un texte court facultatif. Il se gère dans _Réglages → **Parcours**_, et sert de
+feuille de séance côté ForetMap comme de visite fléchée sur le Plan Lyautey.
+
+Composer un parcours :
+
+1. Choisir la **carte** : un parcours appartient à une carte, et ne propose que ses lieux.
+2. Donner un **titre** (obligatoire), et si besoin un public visé, une description, un ordre
+   d'affichage. L'**identifiant du lien** se déduit du titre — le renseigner à la main sert
+   surtout à garder un QR code déjà imprimé valable après un changement de titre.
+3. Ajouter les étapes : le champ **« Ajouter un lieu »** cherche parmi les zones et les repères
+   de la carte, y compris par leurs **alias de recherche**. Un clic sur un résultat l'ajoute en
+   fin de liste ; un lieu déjà présent n'est pas proposé une seconde fois.
+4. Réordonner : **glisser-déposer** une étape, ou utiliser les boutons **↑** et **↓** (la voie
+   au clavier). Chaque étape peut recevoir un titre propre — sinon c'est le nom du lieu qui
+   s'affiche — et une phrase à lire sur place.
+5. **Créer le parcours**. Il reste modifiable ensuite par le bouton « Éditer » de la liste.
+
+À savoir :
+
+- Un parcours naît **brouillon** : il n'apparaît nulle part tant que la case « Publié » n'est
+  pas cochée.
+- Les cases **« proposé sur »** décident des surfaces, comme pour les lieux. Un parcours neuf
+  vise le **Plan** seul, c'est là qu'ils servent le plus.
+- Rien n'est dupliqué : une étape **pointe** vers un lieu existant. Renommer le lieu renomme
+  l'étape ; supprimer le lieu laisse une étape signalée « lieu introuvable », à retirer.
+- Un parcours ne peut pas dépasser **60 étapes**.
+- Le bouton **« Affiche PDF »** télécharge une page imprimable : la liste des étapes et un
+  **QR code** vers le parcours, à afficher à l'accueil. Pour que ce QR code mène au plan et non
+  à la console, renseigner l'URL publique du plan dans _Réglages → Général_
+  (`ui.plan.public_base_url`, par exemple `https://planlyautey.olution.info`).
+- Rien n'est enregistré du côté des personnes qui suivent un parcours : aucune validation,
+  aucune progression, aucun suivi individuel.
+
 ### Se situer sur la carte
 
 Quand le plan affiché est **calé** (points de repère GPS posés par un professeur), le bouton

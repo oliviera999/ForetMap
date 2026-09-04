@@ -986,6 +986,7 @@ par `GET /api/settings/public` et éditables par `PUT /api/settings/admin/:key` 
 | `ui.plan.welcome_hint`         | string | `Touchez un lieu, ou cherchez-le.` | Bulle du premier lancement                              |
 | `ui.plan.access_mode`          | enum   | `public`                           | `public` ou `code` (garde `lib/accessGate.js`)          |
 | `ui.plan.attribution`          | string | vide                               | Mention due pour le fond de plan (ex. OpenStreetMap)    |
+| `ui.plan.public_base_url`      | string | vide                               | URL publique du plan, base des liens profonds imprimés  |
 | `ui.plan.default_category_ids` | string | vide                               | Catégories visibles à l'ouverture (ids séparés par `;`) |
 | `ui.plan.hidden_category_ids`  | string | vide                               | Catégories jamais montrées par le plan (idem)           |
 
@@ -1662,6 +1663,60 @@ Un lieu (zone ou repère) s'affiche sur trois **surfaces** : `map` (carte de tra
   (trim, doublons insensibles à la casse retirés, borné à 512 caractères sans troncature au
   milieu d'un alias) et renvoyé **en chaîne** par les routes zones / repères, **en tableau**
   par `/api/plan/content`.
+
+---
+
+## Parcours de carte (`/api/map-routes`)
+
+Lot 8 du plan de convergence (`docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.6). Un **parcours** est
+une liste ordonnée de lieux — « le tour des nouveaux professeurs », « les cinq zones du jour ».
+Aucune validation, aucune progression enregistrée côté serveur : l'avancement vit sur
+l'appareil. Les étapes pointent vers les lieux existants (`target_type` / `target_id`, le couple
+déjà employé par la visite) : aucun lieu n'est dupliqué, et un parcours suit les renommages.
+Tables `map_routes` et `map_route_steps` (migration `210`).
+
+| Méthode | URL                         | n3boss | Description                                                            |
+| ------- | --------------------------- | ------ | ---------------------------------------------------------------------- |
+| GET     | `/api/map-routes`           | non    | Parcours **publiés**, filtrables par `map_id` et `surface`             |
+| GET     | `/api/map-routes/manage`    | oui    | Vue de gestion : inclut les brouillons (`zones.manage`)                |
+| GET     | `/api/map-routes/:idOrSlug` | non    | Détail par identifiant **ou par slug** (le lien profond porte le slug) |
+| POST    | `/api/map-routes`           | oui    | Créer un parcours (et ses étapes)                                      |
+| PUT     | `/api/map-routes/:id`       | oui    | Modifier ; `steps` fourni **remplace** toutes les étapes               |
+| DELETE  | `/api/map-routes/:id`       | oui    | Supprimer (les étapes partent en cascade)                              |
+| GET     | `/api/map-routes/:id/pdf`   | oui    | Export **PDF** : étapes + **QR code** du lien profond, imprimable      |
+
+- **Corps JSON** : `title` (requis, ≤ 180), `map_id` (requis à la création), `slug` (dérivé du
+  titre si absent ; **409** s'il est déjà pris sur la carte), `description`, `audience` (≤ 120),
+  `surfaces` (défaut `['plan']`, même mécanique que les lieux), `is_published` (défaut faux :
+  un parcours naît brouillon), `sort_order`, `steps`.
+- **`steps`** : liste ordonnée de `{ target_type: 'zone'|'marker', target_id, step_title?,
+step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `steps` sur un
+  `PUT` conserve les étapes ; le fournir les remplace toutes (c'est ce qu'envoie l'éditeur après
+  un glisser-déposer). Une valeur de `target_type` hors `zone` / `marker` → **400**.
+- **`GET /api/map-routes/:id/pdf`** : une page A4 avec le titre, le public visé, la liste des
+  étapes et un QR code vers `?parcours=<slug>`. La base du lien suit trois sources, dans
+  l'ordre : `?base_url=`, puis le réglage **`ui.plan.public_base_url`**, puis l'hôte de la
+  requête. L'ordre compte : l'affiche est exportée depuis la console ForetMap, servie par un
+  autre domaine que le plan — sans le réglage, le QR code renverrait le visiteur vers un écran
+  de connexion. QR généré localement (`qrcode`, MIT) : une affiche d'établissement ne doit
+  dépendre d'aucun service tiers.
+- **`GET /api/plan/content`** publie les parcours de la surface `plan` sous la clé `routes`.
+
+### Accès du plan par code
+
+Quand `ui.plan.access_mode` vaut `code` **et** qu'un code est configuré
+(`security.plan_access_code_hash`, haché bcrypt) :
+
+- `GET /api/plan/content` répond **401** `{ error, access_required: true }` sans laissez-passer ;
+- `POST /api/plan/access` `{ code }` vérifie le code (comparaison bcrypt, limiteur
+  d'authentification) et pose un **cookie signé HMAC** de 30 jours (HttpOnly, SameSite=Lax,
+  Secure en production — la garde partagée `lib/accessGate.js`) ; **401** si le code est faux,
+  **400** s'il est absent ;
+- un lien profond peut porter le code (`/api/plan/content?code=…`) pour que les QR codes
+  internes ouvrent le plan sans saisie ; la requête est servie et le laissez-passer posé.
+
+Mode `code` **sans** code configuré : le plan reste ouvert — on n'enferme pas les visiteurs
+dehors par un réglage à moitié rempli.
 
 ---
 

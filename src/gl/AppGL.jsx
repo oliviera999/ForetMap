@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import { apiGL } from './services/apiGL.js';
 import { useGLSession } from './hooks/useGLSession.js';
 import { useGlSessionState } from './hooks/useGlSessionState.js';
@@ -98,6 +98,7 @@ import {
   glImpersonationBannerCopy,
 } from './utils/glStaffView.js';
 import { isGlGuest } from './utils/glGuestMode.js';
+import { reportUsage } from '../shared/usage/reportUsage.js';
 
 export function AppGL() {
   const { session, auth, token, updateSession, logout } = useGLSession();
@@ -105,6 +106,19 @@ export function AppGL() {
   const compactNav = useGlCompactNav();
   const learningProgress = useGlLearningProgress(isGuest ? null : token);
   const [tab, setTab] = useState(() => readStoredGlTab());
+  /**
+   * Compteur d'usage anonyme (lot 8 du plan de convergence) : une ouverture par session, puis
+   * l'onglet consulté. Aucun identifiant de joueur n'est envoyé — seulement le nom de
+   * l'événement et l'onglet.
+   */
+  const glUsageOpenedRef = useRef(false);
+  useEffect(() => {
+    if (!glUsageOpenedRef.current) {
+      glUsageOpenedRef.current = true;
+      reportUsage('gl', 'open');
+    }
+    reportUsage('gl', 'tab_open', String(tab || ''));
+  }, [tab]);
   const {
     narrationToast,
     setNarrationToast,
