@@ -255,6 +255,158 @@ body.plan-body {
   font-size: var(--text-xs, 0.8rem);
 }
 
+/* --- Parcours (lot 8) ----------------------------------------------------------------- */
+
+.plan-routes {
+  position: relative;
+  z-index: 3;
+  padding: 0 var(--space-3, 12px) var(--space-2, 8px);
+  background: var(--plan-bg);
+}
+
+.plan-chip--routes {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.plan-routes__list {
+  margin: var(--space-2, 8px) 0 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid rgba(26, 71, 49, 0.18);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.plan-routes__list li + li {
+  border-top: 1px solid rgba(26, 71, 49, 0.12);
+}
+
+.plan-routes__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  min-height: var(--tap-target);
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.plan-routes__title {
+  font-weight: var(--fw-semibold, 600);
+}
+
+.plan-routes__audience,
+.plan-routes__steps {
+  color: var(--plan-muted);
+  font-size: var(--text-sm, 0.9rem);
+}
+
+.plan-route__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 8px);
+  width: 100%;
+}
+
+.plan-route__counter {
+  color: var(--plan-muted);
+  font-size: var(--text-sm, 0.9rem);
+  text-align: center;
+}
+
+.plan-route__step-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  margin: 0 0 var(--space-2, 8px);
+  font-size: var(--text-md, 1.05rem);
+}
+
+.plan-route__step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--leaf);
+  color: #fff;
+  font-size: var(--text-sm, 0.9rem);
+}
+
+.plan-route__audience,
+.plan-route__place,
+.plan-route__distance,
+.plan-route__empty {
+  margin: 0 0 var(--space-2, 8px);
+  color: var(--plan-muted);
+}
+
+.plan-route__step-text {
+  margin: 0 0 var(--space-3, 12px);
+  line-height: var(--lh-relaxed, 1.6);
+}
+
+.plan-route__exit {
+  margin-top: var(--space-2, 8px);
+}
+
+/* --- Accès par code et hors ligne (lot 8) ---------------------------------------------- */
+
+.plan-access-gate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+  width: min(28rem, 100%);
+  text-align: left;
+}
+
+.plan-access-gate__title {
+  margin: 0;
+  font-size: var(--text-xl, 1.4rem);
+}
+
+.plan-access-gate__intro {
+  margin: 0 0 var(--space-2, 8px);
+  color: var(--plan-muted);
+}
+
+.plan-access-gate__input {
+  min-height: var(--tap-target);
+  padding: 0 var(--space-3, 12px);
+  border: 1px solid rgba(26, 71, 49, 0.35);
+  border-radius: 10px;
+  font: inherit;
+  font-size: var(--text-md, 1.05rem);
+}
+
+.plan-access-gate__error {
+  margin: 0;
+  color: #9f1239;
+}
+
+.plan-offline {
+  position: absolute;
+  left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 96px);
+  z-index: 4;
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(31, 42, 34, 0.88);
+  color: #fff;
+  font-size: var(--text-sm, 0.9rem);
+  transform: translateX(-50%);
+}
+
 /* --- Carte plein écran ---------------------------------------------------------------- */
 
 .plan-main {

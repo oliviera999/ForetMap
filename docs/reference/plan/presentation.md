@@ -121,6 +121,28 @@ demander un **rapport de densité** : nombre de repères par catégorie, cellule
 contiennent plusieurs, et paires de repères pratiquement superposées. C'est un script de
 lecture seule, lancé côté serveur (`scripts/report-marker-density.js`).
 
+### Les parcours
+
+Un **parcours** est une liste ordonnée de lieux : « le tour des nouveaux professeurs », « la
+visite des portes ouvertes ». Sur le plan, une puce **« Parcours »** liste ceux publiés ; en
+choisir un affiche l'étape courante en bas d'écran, avec « Précédent » et « Suivant ». La carte
+recadre sur chaque étape, et « Y aller » vise l'étape en cours.
+
+Rien n'est enregistré : personne ne coche, personne n'est suivi. On peut sauter une étape ou
+quitter le parcours à tout moment. Un lien direct par parcours (`?parcours=…`) permet d'imprimer
+un **QR code** à l'accueil : le visiteur scanne et démarre le parcours.
+
+Les parcours se créent dans ForetMap, dans _Réglages → Parcours_ (voir la documentation de la
+carte) : on cherche les lieux, on les ordonne au glisser-déposer, on publie. Le bouton
+**« Affiche PDF »** produit la page imprimable avec la liste des étapes et ce QR code.
+
+### Le plan hors ligne
+
+Le plan est une application installable : une fois ouvert, il garde en mémoire la carte, les
+lieux et les parcours. Sans réseau, il s'affiche quand même avec les dernières données connues
+et un bandeau **« Hors ligne — plan mémorisé »**. C'est ce qui le rend utilisable dans un
+bâtiment où le téléphone ne capte pas.
+
 ### Aide intégrée
 
 Un bouton **« ? »** en haut à droite du plan ouvre une aide courte : chercher un lieu,
@@ -160,8 +182,8 @@ dit quels mots les gens emploient et que le plan ne connaît pas encore — donc
   professeur n'a pas posé les points de repère du plan.
 - **En intérieur, le signal est mauvais.** Le halo le dit honnêtement ; les QR codes aux
   portes restent le moyen le plus fiable de savoir où l'on est.
-- **Le code d'accès n'est pas encore branché.** Le réglage `Mode d'accès` accepte la valeur
-  `code`, mais la demande du code arrive dans un lot ultérieur : aujourd'hui le plan est
-  public dès qu'on connaît l'adresse.
+- **Le code d'accès n'est pas un mot de passe.** Il est court, partagé, et retenu 30 jours par
+  appareil : il décourage la diffusion large, il ne protège pas des données sensibles — et le
+  plan n'en contient pas.
 - **Un lieu masqué sur toutes les surfaces disparaît partout**, y compris de la carte des
   élèves. L'avertissement dans la fiche le signale, mais rien ne l'interdit.

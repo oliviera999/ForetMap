@@ -55,8 +55,12 @@ const FORET_STATIC_ASSETS = Object.freeze([
 
 /**
  * Profil hors ligne par produit : fichiers statiques précachés (hors bundles, hors HTML
- * d'entrée ajoutés automatiquement) et listes d'API. GL et plan branchent leurs API quand
- * leurs routes en lecture seront stabilisées (audit plan §8.8) ; listes vides en attendant.
+ * d'entrée ajoutés automatiquement) et listes d'API.
+ *
+ * Lot 8 du plan de convergence (audit plan §8.8) : le **plan** et **G&L** branchent leurs
+ * lectures. `stale-while-revalidate` pour ce qui doit rester consultable sans réseau et ne
+ * change que rarement (la charge du plan, les contenus G&L) ; `network-first` pour ce qui doit
+ * être frais dès qu'il y a du réseau. Les écritures ne sont jamais mises en cache.
  */
 const PWA_PROFILES = Object.freeze({
   foret: Object.freeze({
@@ -66,8 +70,15 @@ const PWA_PROFILES = Object.freeze({
   }),
   gl: Object.freeze({
     staticPrecache: Object.freeze(['/gl/favicon.svg', '/gl/logo.png']),
-    apiStaleWhileRevalidate: Object.freeze([]),
-    apiNetworkFirst: Object.freeze([]),
+    // Contenus éditoriaux du jeu : consultables sans réseau, rafraîchis en arrière-plan.
+    apiStaleWhileRevalidate: Object.freeze([
+      '/api/gl/content/help',
+      '/api/gl/content/narrator',
+      '/api/gl/content/pages',
+      '/api/gl/settings/public',
+    ]),
+    // État de partie : toujours le réseau d'abord, le cache n'est qu'un filet.
+    apiNetworkFirst: Object.freeze(['/api/gl/chapters', '/api/gl/maps']),
   }),
   plan: Object.freeze({
     // Toutes les icônes candidates du dossier `/plan/` + favicons (celles présentes seulement).
@@ -76,7 +87,13 @@ const PWA_PROFILES = Object.freeze({
       '/plan/favicon.svg',
       ...ICON_CANDIDATES.map((icon) => `/plan/${icon.file}`),
     ]),
-    apiStaleWhileRevalidate: Object.freeze([]),
+    // La charge du plan est l'application : sans elle, il n'y a rien à afficher. Elle doit
+    // donc rester disponible hors ligne, quitte à dater d'une visite précédente.
+    apiStaleWhileRevalidate: Object.freeze([
+      '/api/plan/content',
+      '/api/plan/settings',
+      '/api/map-routes',
+    ]),
     apiNetworkFirst: Object.freeze([]),
   }),
 });
