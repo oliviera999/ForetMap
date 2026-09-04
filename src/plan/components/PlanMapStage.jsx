@@ -13,18 +13,19 @@ import {
   clusterSeparatesOnZoom,
   clusterZoomTargetScale,
 } from '../../shared/pct-map/clusterMarkers.js';
-import { shouldShowMarkerLabel } from '../../shared/pct-map/mapOverlayLabelCollision.js';
+import { PctLabelsLayer } from '../../shared/pct-map/PctLabelsLayer.jsx';
+import {
+  buildZoneLabelSpecs,
+  labelKey,
+  resolveVisibleLabels,
+  zoneLabelMaxWidthPx,
+} from '../../shared/pct-map/pctMapLabels.js';
 import { PctDirectLine, PctPositionLayer } from '../../shared/pct-map/PctPositionLayer.jsx';
-import { planPlaceFocusPct } from '../utils/planPlaces.js';
+import { accuracyHaloDiameterPx } from '../../shared/pct-map/positionGeometry.js';
+import { planPlaceFocusPct, splitNameEmoji } from '../utils/planPlaces.js';
 
 /** Cibles qui ne démarrent pas un déplacement de carte (commandes superposées). */
 const PLAN_GESTURE_TARGET = '.plan-map-controls, .plan-map-controls *';
-
-/**
- * Rang de catégorie (`sort_order`) au-delà duquel le nom d'un repère n'apparaît qu'à fort
- * zoom : les entrées et les bâtiments se nomment avant les sanitaires.
- */
-const PLAN_LABEL_PRIORITY_CUTOFF = 50;
 
 /** Rapport `échelle / ajustement` au-delà duquel la carte compte comme « zoomée ». */
 const PLAN_ZOOM_ONLY_RATIO = 1.6;
@@ -220,8 +221,15 @@ export function PlanMapStage({
     focusOnPct(pct);
   }, [selectedPlace, focusOnPct]);
 
-  const fitStyle = useMemo(
-    () =>
+  /**
+   * Contre-échelle des habillages : le calque monde est mis à l'échelle par la vue, donc tout
+   * ce qu'il porte grossit avec elle — à l'échelle maximale (8), l'emoji d'un repère mesurait
+   * ~170 px (audit B5). `--pct-inv` rend aux étiquettes, aux pastilles et aux contours une
+   * taille constante à l'écran, sans re-rendre un seul élément (une variable CSS suffit).
+   */
+  const fitStyle = useMemo(() => {
+    const inv = committed.s > 0 ? 1 / committed.s : 1;
+    const box =
       fitRect.width > 0 && fitRect.height > 0
         ? {
             left: fitRect.offsetX,
@@ -229,35 +237,71 @@ export function PlanMapStage({
             width: fitRect.width,
             height: fitRect.height,
           }
-        : { left: 0, top: 0, width: '100%', height: '100%' },
-    [fitRect],
-  );
+        : { left: 0, top: 0, width: '100%', height: '100%' };
+    return { ...box, '--pct-inv': inv };
+  }, [fitRect, committed.s]);
 
   const selectedZoneId = selectedPlace?.kind === 'zone' ? selectedPlace.id : null;
   const selectedMarkerId = selectedPlace?.kind === 'marker' ? selectedPlace.id : null;
+  const pinnedKey = selectedPlace ? labelKey(selectedPlace.kind, selectedPlace.id) : '';
 
-  // Étiquettes de repères : jamais toutes. L'emoji seul au dézoom, le nom au zoom, et
-  // toujours le nom du lieu sélectionné (§8.3, point 4).
+  /**
+   * Étiquettes : plus aucun seuil de zoom, plus aucun nom posé au hasard sur son voisin.
+   * Tout nom est candidat à toute échelle, et le placement glouton par priorité décide de ce
+   * qui tient (`pctMapLabels.js`). Comme les étiquettes gardent une taille constante à
+   * l'écran (contre-échelle `--pct-inv` ci-dessous), zoomer écarte les ancres sans grossir
+   * les boîtes : les noms masqués réapparaissent seuls.
+   */
+  const zoneLabelSpecs = useMemo(
+    () => buildZoneLabelSpecs(visibleZones, splitNameEmoji),
+    [visibleZones],
+  );
+  const visibleLabelKeys = useMemo(
+    () =>
+      resolveVisibleLabels({
+        zoneSpecs: zoneLabelSpecs,
+        markers: visibleMarkers,
+        categoriesById,
+        contentWidthPx: fitRect.width,
+        contentHeightPx: fitRect.height,
+        scale: committed.s,
+        pinnedKey,
+      }),
+    [
+      zoneLabelSpecs,
+      visibleMarkers,
+      categoriesById,
+      fitRect.width,
+      fitRect.height,
+      committed.s,
+      pinnedKey,
+    ],
+  );
+  const zoneLabels = useMemo(
+    () =>
+      zoneLabelSpecs
+        .filter((spec) => spec.emoji || visibleLabelKeys.has(spec.key))
+        .map((spec) => ({
+          id: spec.key,
+          xp: spec.anchor.xp,
+          yp: spec.anchor.yp,
+          emoji: spec.emoji,
+          // L'emoji d'une zone reste toujours visible (il tient dans le polygone) ; c'est le
+          // **nom** que la résolution de collisions peut masquer.
+          name: visibleLabelKeys.has(spec.key) ? spec.name : '',
+          maxWidthPx: zoneLabelMaxWidthPx(spec, fitRect.width, committed.s),
+          active: selectedZoneId != null && String(selectedZoneId) === spec.id,
+        })),
+    [zoneLabelSpecs, visibleLabelKeys, fitRect.width, committed.s, selectedZoneId],
+  );
+
   const markerLabelOf = useCallback(
     (marker) => {
       const label = String(marker?.label ?? marker?.name ?? '').trim();
       if (!label) return '';
-      const selected = selectedMarkerId != null && String(selectedMarkerId) === String(marker.id);
-      const priority = (marker?.category_ids || []).reduce((best, id) => {
-        const rank = Number(categoriesById?.get?.(String(id))?.sort_order);
-        return Number.isFinite(rank) && rank < best ? rank : best;
-      }, Number.POSITIVE_INFINITY);
-      return shouldShowMarkerLabel({
-        scale: committed.s,
-        fitScale,
-        priority,
-        selected,
-        priorityCutoff: PLAN_LABEL_PRIORITY_CUTOFF,
-      })
-        ? label
-        : '';
+      return visibleLabelKeys.has(labelKey('marker', marker.id)) ? label : '';
     },
-    [committed.s, fitScale, selectedMarkerId, categoriesById],
+    [visibleLabelKeys],
   );
 
   const renderMarker = useCallback(
@@ -295,8 +339,10 @@ export function PlanMapStage({
             zones={visibleZones}
             onZoneClick={onZoneClick}
             activeZoneId={selectedZoneId}
+            showLabels={false}
             className="fm-pct-zones plan-map__zones"
           />
+          <PctLabelsLayer labels={zoneLabels} />
           {position?.displayPct && targetPct ? (
             <PctDirectLine from={position.displayPct} to={targetPct} />
           ) : null}
@@ -309,7 +355,7 @@ export function PlanMapStage({
           {position?.displayPct ? (
             <PctPositionLayer
               position={position.displayPct}
-              haloPct={position.haloPct}
+              haloPx={accuracyHaloDiameterPx(position.haloPct, fitRect.width)}
               headingDeg={position.screenHeadingDeg}
               accuracyM={position.accuracyM}
             />

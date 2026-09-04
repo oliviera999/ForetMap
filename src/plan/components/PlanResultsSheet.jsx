@@ -1,4 +1,5 @@
 import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
+import { placeDisplayParts } from '../utils/planPlaces.js';
 
 /**
  * Résultats de recherche du plan (lot 4), en feuille basse : la liste occupe la moitié basse
@@ -45,14 +46,15 @@ export function PlanResultsSheet({
         <ul className="plan-results">
           {results.map(({ place }) => {
             const categories = categoriesOf(place);
+            const { emoji, name } = placeDisplayParts(place);
             return (
               <li key={`${place.kind}:${place.id}`} className="plan-results__item">
                 <button type="button" className="plan-results__btn" onClick={() => onSelect(place)}>
                   <span className="plan-results__emoji" aria-hidden>
-                    {String(place.emoji || '').trim() || (place.kind === 'zone' ? '🗺️' : '📍')}
+                    {emoji}
                   </span>
                   <span className="plan-results__text">
-                    <span className="plan-results__name">{place.name}</span>
+                    <span className="plan-results__name">{name}</span>
                     {place.visit_subtitle ? (
                       <span className="plan-results__subtitle">{place.visit_subtitle}</span>
                     ) : null}

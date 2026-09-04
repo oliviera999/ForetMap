@@ -443,6 +443,12 @@ export function AppPlan() {
   }
 
   const hasMapImage = Boolean(map?.map_image_url);
+  // Lien direct du lieu ouvert : c'est l'URL que porte un QR code interne, la fiche doit
+  // pouvoir la montrer (`PlanPlaceSheet` savait l'afficher, personne ne la lui passait).
+  const shareUrl =
+    selectedPlace && typeof window !== 'undefined'
+      ? `${window.location.origin}${buildPlaceUrl(window.location, String(selectedPlace.id))}`
+      : '';
 
   return (
     <div className="plan-shell" style={brandStyle}>
@@ -477,6 +483,14 @@ export function AppPlan() {
       />
 
       <main className="plan-main" role="main">
+        {hasMapImage && filteredPlaces.length === 0 ? (
+          <p className="plan-empty" role="status">
+            Aucun lieu dans cette sélection de catégories.{' '}
+            <button type="button" className="plan-empty__reset" onClick={resetCategories}>
+              Tout afficher
+            </button>
+          </p>
+        ) : null}
         {hasMapImage ? (
           <PlanMapStage
             map={map}
@@ -539,6 +553,7 @@ export function AppPlan() {
       <PlanPlaceSheet
         place={activeRoute ? null : selectedPlace}
         onClose={closePlace}
+        shareUrl={shareUrl}
         categories={categoriesOf(selectedPlace)}
         canLocate={position.available}
         onGoTo={goToPlace}
