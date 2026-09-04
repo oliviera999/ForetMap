@@ -8359,6 +8359,11 @@ header .lock-btn::after,
 .fm-pct-position {
   position: absolute;
   z-index: 2;
+  /* Une boîte réelle, de la taille du point : tous les enfants étant `position: absolute`, le
+     conteneur se calculait à 0 × 0 — donc muet pour un lecteur d'écran malgré son `role="img"`.
+     Les enfants restent centrés sur le point, qui est le centre de cette boîte. */
+  width: 22px;
+  height: 22px;
   pointer-events: none;
   transform: translate(-50%, -50%);
 }
