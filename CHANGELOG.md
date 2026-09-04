@@ -7,6 +7,33 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit — Convergence des applications ForetMap / Visite / GL / Plan et plan d'action final
+
+- **Nouveau document `docs/AUDIT_CONVERGENCE_APPS_2026-09.md`** (audit seul, aucun code
+  modifié) : inventaire de `src/shared/` (43 modules réellement partagés, 24 consommés par un
+  seul produit, 20 dépendances inversées vers du code produit, 6 noyaux en double ESM/CJS sans
+  synchronisation), comparaison des quatre surfaces, ce que chaque application fait de mieux
+  (bouton retour, dialogues et notifications ForetMap ; thème de marque, dock d'aide, bouton
+  d'action carte et navigation compacte GL ; transformation bornée et file hors ligne de la
+  Visite), doublons et dettes (trois systèmes de boutons, deux aides, quatre moteurs de carte,
+  réglages et caches non product-aware, écart d'échappement HTML dans le glossaire lore GL),
+  architecture cible du socle commun et **plan d'action en dix lots** qui remplace le phasage
+  de l'audit Plan Lyautey.
+
+### Audit — « Plan Lyautey » : cadrage d'un plan de repérage mobile dérivé de ForetMap
+
+- **Nouveau document `docs/AUDIT_PLAN_LYAUTEY_2026-09.md`** (audit seul, aucun code modifié) :
+  état des lieux des deux moteurs de carte, des API publiques, de la recherche et du calage GPS ;
+  douze constats d'ergonomie mobile (bornes de pan absentes, gestes incomplets, détail en modale
+  plein cadre, filtre sans tri ni légende, bug de centrage des repères `mapFocusLocation.js`) ;
+  expérience cible (carte plein écran, recherche d'abord, chips de catégories, feuille basse à
+  crans, point bleu de position, PWA) ; plan de portage en troisième produit du monorepo sur le
+  schéma GL (`plan.html` → `src/plan/`, host `planlyautey.*`, noyau carte partagé
+  `src/shared/pct-map/`) ; décisions du propriétaire intégrées et propositions détaillées :
+  fond de plan (licence), désencombrement des repères superposés, visibilité par surface,
+  « Y aller » et mode boussole, parcours, garde d'accès, service worker et manifest par
+  produit (hors ligne pour ForetMap, GL et le plan), compteur d'usage anonyme, matrice des
+  bénéfices pour chaque application ; phasage en dix lots.
 ### Tâches et projets validés masqués par défaut
 
 - **Vue Tâches** : une tâche **validée** (ou rattachée à un projet validé) et un **projet
