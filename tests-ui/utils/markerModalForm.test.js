@@ -19,7 +19,22 @@ describe('markerFormFromMarker', () => {
       visit_short_description: '',
       visit_details_title: 'Détails',
       visit_details_text: '',
+      hidden_surfaces: [],
+      search_aliases: '',
     });
+  });
+
+  test('reprend les surfaces masquées (chaîne SET ou tableau) et les alias de recherche', () => {
+    expect(markerFormFromMarker({ hidden_surfaces: 'plan,map' }).hidden_surfaces).toEqual([
+      'map',
+      'plan',
+    ]);
+    expect(markerFormFromMarker({ hidden_surfaces: ['visit', 'inconnu'] }).hidden_surfaces).toEqual(
+      ['visit'],
+    );
+    expect(markerFormFromMarker({ search_aliases: 'CDI ; biblio' }).search_aliases).toBe(
+      'CDI ; biblio',
+    );
   });
 
   test('reprend les champs du repère et trim l’emoji', () => {
@@ -90,6 +105,20 @@ describe('buildMarkerPayload', () => {
     expect(payload.living_beings).toEqual(['Pin']);
     expect(payload.emoji).toBe('🌲');
     expect(Array.isArray(payload.visit_editorial_blocks)).toBe(true);
+  });
+
+  test('porte les surfaces masquées normalisées et les alias de recherche nettoyés', () => {
+    const payload = buildMarkerPayload(
+      { id: 1 },
+      {
+        label: 'CDI',
+        hidden_surfaces: ['plan', 'plan', 'nope'],
+        search_aliases: '  biblio ; docs  ',
+      },
+      [],
+    );
+    expect(payload.hidden_surfaces).toEqual(['plan']);
+    expect(payload.search_aliases).toBe('biblio ; docs');
   });
 });
 

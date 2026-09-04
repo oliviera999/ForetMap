@@ -1,0 +1,178 @@
+import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+
+/**
+ * Montage réel du shell du Plan Lyautey (lot 4), au patron de `AppShellWiring.test.jsx` :
+ * un composant racine sans test de montage laisse passer une zone morte temporelle (un
+ * `const` référencé plus haut dans le corps), invisible au build comme aux tests purs.
+ *
+ * Seuls le transport (`planApi`) et le moteur de carte sont simulés : le reste — recherche,
+ * filtres, feuilles basses, lien profond — est le vrai code.
+ */
+
+const content = vi.hoisted(() => ({
+  map: { id: 'lyautey', label: 'Lycée Lyautey', map_image_url: '/maps/plan.jpg', gps_enabled: 0 },
+  settings: {
+    title: 'Plan Lyautey',
+    welcome_hint: 'Touchez un lieu, ou cherchez-le.',
+    access_mode: 'public',
+    attribution: 'Fond : plan interne',
+    default_category_ids: [],
+    hidden_category_ids: [],
+  },
+  categories: [
+    { id: 'c-salles', slug: 'salles', label: 'Salles', emoji: '🚪', color: '#dbeafe90' },
+    { id: 'c-sport', slug: 'sport', label: 'Sport', emoji: '🏃', color: '#fee2e290' },
+  ],
+  zones: [
+    {
+      id: 'z-cdi',
+      name: 'CDI',
+      points: '[{"xp":10,"yp":10},{"xp":30,"yp":10},{"xp":30,"yp":30}]',
+      emoji: '📚',
+      category_ids: ['c-salles'],
+      search_aliases: ['bibliothèque'],
+      visit_subtitle: 'Centre de documentation',
+      visit_short_description: 'Livres, presse et postes de travail.',
+      visit_details_title: 'Horaires',
+      visit_details_text: '8 h – 17 h',
+    },
+  ],
+  markers: [
+    {
+      id: 'm-gym',
+      label: 'Gymnase',
+      x_pct: 60,
+      y_pct: 40,
+      emoji: '🏀',
+      category_ids: ['c-sport'],
+      search_aliases: [],
+      visit_subtitle: '',
+    },
+  ],
+}));
+
+const planApiMock = vi.hoisted(() => ({
+  fetchPlanContent: vi.fn(async () => content),
+  reportPlanUsage: vi.fn(),
+}));
+vi.mock('../../src/plan/planApi.js', () => planApiMock);
+
+// Le moteur de carte est testé pour lui-même (`tests-ui/shared/usePctMapViewport.test.jsx`) :
+// ici une sonde à identités STABLES, sinon le composant se re-rend en boucle.
+const viewportStub = vi.hoisted(() => {
+  const noop = () => {};
+  const ref = () => {};
+  return {
+    containerRef: ref,
+    worldRef: ref,
+    imgRef: ref,
+    committed: { x: 0, y: 0, s: 1 },
+    fitRect: { offsetX: 0, offsetY: 0, width: 300, height: 200 },
+    fitMap: noop,
+    fitMapAnimated: noop,
+    zoomBy: noop,
+    focusOnPct: noop,
+    consumeSkipClick: () => false,
+    touchAction: 'none',
+  };
+});
+vi.mock('../../src/shared/pct-map/usePctMapViewport.js', () => ({
+  usePctMapViewport: () => viewportStub,
+}));
+
+const { AppPlan } = await import('../../src/plan/AppPlan.jsx');
+
+beforeEach(() => {
+  planApiMock.fetchPlanContent.mockClear();
+  planApiMock.reportPlanUsage.mockClear();
+  window.localStorage.clear();
+  window.history.replaceState(null, '', '/');
+});
+
+describe('AppPlan — montage', () => {
+  test('charge le contenu, affiche titre, carte, puces et message d’accueil', async () => {
+    render(<AppPlan />);
+    expect(screen.getByText('Chargement du plan…')).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+
+    expect(screen.getByRole('button', { name: /Salles/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Zoomer/ })).toBeTruthy();
+    expect(screen.getByAltText('Plan Lycée Lyautey')).toBeTruthy();
+    expect(screen.getByText('Fond : plan interne')).toBeTruthy();
+    expect(await screen.findByText('Touchez un lieu, ou cherchez-le.')).toBeTruthy();
+    expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith('open', 'lyautey');
+  });
+
+  test('recherche par alias : « bibliothèque » ouvre la feuille de résultats et le CDI', async () => {
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+
+    fireEvent.change(screen.getByLabelText('Rechercher un lieu'), {
+      target: { value: 'bibliotheque' },
+    });
+    const sheet = await screen.findByTestId('plan-results-sheet');
+    expect(sheet.textContent).toContain('CDI');
+    expect(sheet.textContent).not.toContain('Gymnase');
+
+    fireEvent.click(screen.getByRole('button', { name: /CDI/ }));
+    const placeSheet = await screen.findByTestId('plan-place-sheet');
+    expect(placeSheet.textContent).toContain('Centre de documentation');
+    expect(placeSheet.textContent).toContain('8 h – 17 h');
+    expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith('place_open', 'z-cdi');
+    expect(window.location.search).toContain('lieu=z-cdi');
+  });
+
+  test('« Y aller » est présent mais désactivé (position au lot 6)', async () => {
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+    fireEvent.change(screen.getByLabelText('Rechercher un lieu'), { target: { value: 'CDI' } });
+    fireEvent.click(await screen.findByRole('button', { name: /CDI/ }));
+    const goButton = await screen.findByRole('button', { name: 'Y aller' });
+    expect(goButton.disabled).toBe(true);
+    expect(screen.getByText('Bientôt : votre position sur le plan.')).toBeTruthy();
+  });
+
+  test('filtre par catégorie : ne garde que les lieux de la catégorie cochée', async () => {
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+
+    // Sur la carte : le repère est un bouton (`aria-label`), la zone un libellé SVG.
+    expect(screen.getByText('CDI')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Sport/ }));
+    expect(screen.getByRole('button', { name: 'Gymnase' })).toBeTruthy();
+    expect(screen.queryByText('CDI')).toBeNull();
+    expect(JSON.parse(window.localStorage.getItem('plan:categories'))).toEqual(['c-sport']);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tout' }));
+    await waitFor(() => expect(screen.getByText('CDI')).toBeTruthy());
+  });
+
+  test('recherche sans résultat : message et événement de compteur', async () => {
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+    fireEvent.change(screen.getByLabelText('Rechercher un lieu'), {
+      target: { value: 'piscine' },
+    });
+    const sheet = await screen.findByTestId('plan-results-sheet');
+    expect(sheet.textContent).toContain('Aucun lieu ne correspond');
+    await waitFor(() =>
+      expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith('search_empty', 'piscine'),
+    );
+  });
+
+  test('lien profond ?lieu= ouvre directement la fiche', async () => {
+    window.history.replaceState(null, '', '/?lieu=m-gym');
+    render(<AppPlan />);
+    const placeSheet = await screen.findByTestId('plan-place-sheet');
+    expect(placeSheet.textContent).toContain('Gymnase');
+  });
+
+  test('erreur de chargement : message et bouton Réessayer', async () => {
+    planApiMock.fetchPlanContent.mockRejectedValueOnce(new Error('réseau'));
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByText('Le plan n’a pas pu être chargé.')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+  });
+});

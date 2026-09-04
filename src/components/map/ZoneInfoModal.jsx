@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react';
+import {
+  SurfaceVisibilityField,
+  normalizeSurfaceList,
+} from '../../shared/ui/SurfaceVisibilityField.jsx';
 import { api } from '../../services/api';
 import {
   MARKER_EMOJIS,
@@ -126,6 +130,10 @@ function ZoneInfoModal({
   const [visitShortDesc, setVisitShortDesc] = useState(zone.visit_short_description || '');
   const [visitDetailsTitle, setVisitDetailsTitle] = useState(zone.visit_details_title || 'Détails');
   const [visitDetailsText, setVisitDetailsText] = useState(zone.visit_details_text || '');
+  const [hiddenSurfaces, setHiddenSurfaces] = useState(() =>
+    normalizeSurfaceList(zone.hidden_surfaces),
+  );
+  const [searchAliases, setSearchAliases] = useState(zone.search_aliases || '');
   const [linkTaskId, setLinkTaskId] = useState('');
   const [linkTutorialId, setLinkTutorialId] = useState('');
   const [selectedTaskIds, setSelectedTaskIds] = useState([]);
@@ -204,6 +212,8 @@ function ZoneInfoModal({
     setVisitShortDesc(zone.visit_short_description || '');
     setVisitDetailsTitle(zone.visit_details_title || 'Détails');
     setVisitDetailsText(zone.visit_details_text || '');
+    setHiddenSurfaces(normalizeSurfaceList(zone.hidden_surfaces));
+    setSearchAliases(zone.search_aliases || '');
   }, [
     zone.id,
     zone.name,
@@ -218,6 +228,8 @@ function ZoneInfoModal({
     zone.visit_details_title,
     zone.visit_details_text,
     zone.visit_body_json,
+    zone.hidden_surfaces,
+    zone.search_aliases,
     emojiParsingList,
     markerEmojis,
   ]);
@@ -253,6 +265,8 @@ function ZoneInfoModal({
             visitShortDesc,
             visitDetailsTitle,
             visitDetailsText,
+            hiddenSurfaces,
+            searchAliases,
           },
           visitEditorialBlocks,
           {
@@ -578,6 +592,21 @@ function ZoneInfoModal({
               placeholder="Contenu du panneau repliable"
             />
           </div>
+          <div className="field">
+            <label htmlFor="zone-search-aliases">Alias de recherche</label>
+            <input
+              id="zone-search-aliases"
+              value={searchAliases}
+              onChange={(e) => setSearchAliases(e.target.value)}
+              placeholder="Autres noms, séparés par ; (ex. G12 ; salle info)"
+            />
+          </div>
+          <SurfaceVisibilityField
+            mode="hidden"
+            idPrefix="zone"
+            value={hiddenSurfaces}
+            onChange={setHiddenSurfaces}
+          />
           <MarkerVisitImageBuilder
             imageBlocks={imageBlocks}
             visitMediaOptions={visitMediaOptions}

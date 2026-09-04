@@ -1,6 +1,6 @@
 /* Service worker « foret » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-foret-c84bbb7d";
+const CACHE_NAME = "foretmap-foret-a457b0f3";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -17,30 +17,28 @@ const PRECACHE_URLS = [
   "/pwa-maskable-512.png",
   "/pwa-screenshot-mobile.png",
   "/pwa-screenshot-wide.png",
-  "/assets/main-DNTzlhi_.js",
+  "/assets/main-BFlCjA3P.js",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/AppDialogsProvider-Ca-mmdJp.js",
+  "/assets/usePrefersReducedMotion-nYJyyXmv.js",
   "/assets/react-vendor-Bnq5Y4Sb.js",
   "/assets/icons-BYRl22YG.js",
-  "/assets/ImageLightboxProvider-Df39S2E7.js",
-  "/assets/ImageLightboxProvider-DsW0FVBB.css",
-  "/assets/spriteCutCatalogEntry-BjW5Nrj6.js",
+  "/assets/ErrorBoundary-CTx6l3Ld.js",
+  "/assets/ErrorBoundary-1Md48zKX.css",
+  "/assets/ImageLightboxProvider-BZc2l7tE.js",
+  "/assets/ImageLightboxProvider-CPh0j32G.css",
+  "/assets/spriteCutCatalogEntry-VM9TOC3k.js",
   "/assets/markdown-B5dU4qij.js",
-  "/assets/useOverlayHistoryBack-DCjxCCon.js",
-  "/assets/overlayHistory-DsunAx4e.js",
-  "/assets/visitMascotPackExtras-DhZXDlq0.js",
-  "/assets/visitMascotPackExtras-7lcBXJLb.css",
-  "/assets/mascotPack-C22QFa5Y.js",
+  "/assets/visitMascotPackExtras-C_0CUbY2.js",
+  "/assets/visitMascotPackExtras-B8-PfKoM.css",
+  "/assets/mascotPack-Csg-mQnL.js",
   "/assets/socket-io-D_2T_oRH.js",
-  "/assets/MarkdownTextarea-CFFFkby7.js",
-  "/assets/GlossaryMarkdown-CxMdzqzq.js",
-  "/assets/useGatingSummary-CVfwTcIW.js",
+  "/assets/MarkdownTextarea-DcBhkcXT.js",
+  "/assets/GlossaryMarkdown-Cd6AdghO.js",
+  "/assets/useGatingSummary-DDdIBxDG.js",
   "/assets/PublicSettingsContext-CrXzdDiQ.js",
-  "/assets/BottomSheet-BxoqyhQl.js",
-  "/assets/GuidedTourOverlay-D96LSEhq.js",
-  "/assets/downloadApiFile-BQLvUtQy.js",
+  "/assets/GuidedTourOverlay-CsD0KqAK.js",
+  "/assets/downloadApiFile-BZz_pcKj.js",
   "/assets/downloadAuthedFile-BRkwVwdZ.js",
-  "/assets/ErrorBoundary-DX7bBH20.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).
