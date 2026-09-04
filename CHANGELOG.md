@@ -7,6 +7,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctifs
+
+- **Parcours brouillon** : `GET /api/map-routes/:idOrSlug` (public) renvoyait un brouillon
+  si l'on en connaissait le slug (dérivé du titre, donc devinable) ou l'identifiant — le
+  catalogue et la charge du plan filtraient déjà `is_published`, le détail public
+  retombait sur le premier résultat. 404 désormais ; la vue de gestion est inchangée.
+- **Code d'accès du plan** : `GET /api/plan/content?code=` comparait le code hors du
+  limiteur d'authentification de `POST /access`. Même plafond désormais. La charge gated
+  n'est plus `Cache-Control: public`.
+
 ### Lot 8 — Parcours, hors ligne, QR, accès et compteur (plan de convergence §6)
 
 - **Parcours de carte** (migration `210`, `map_routes` / `map_route_steps`, API

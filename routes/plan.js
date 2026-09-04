@@ -72,6 +72,24 @@ async function checkPlanAccess(req, settings) {
   return { ok: false };
 }
 
+/**
+ * Le code en query (`?code=`, QR interne) est le même secret court que `POST /access`.
+ * Sans ce limiteur, on pouvait tâtonner via GET hors du plafond d'authentification
+ * (20 / 15 min) — seul le plafond général (1200 / min) s'appliquait.
+ */
+function limitInlineAccessCode(req, res, next) {
+  if (String(req.query?.code || '').trim()) {
+    return authLimiter(req, res, next);
+  }
+  return next();
+}
+
+/** Charge gated : jamais `public` — un cache partagé (CDN, proxy) servirait sans cookie. */
+function planContentCacheControl(settings) {
+  const visibility = settings.access_mode === 'code' ? 'private' : 'public';
+  return `${visibility}, max-age=${PLAN_CONTENT_MAX_AGE_S}`;
+}
+
 /** Clés `ui.plan.*` exposées telles quelles (toutes de portée `public`). */
 const PLAN_SETTING_KEYS = Object.freeze([
   'ui.plan.brand',
@@ -355,6 +373,7 @@ router.get(
 /** Charge publique agrégée : carte, réglages, catégories, lieux visibles sur le plan. */
 router.get(
   '/content',
+  limitInlineAccessCode,
   asyncHandler(async (req, res) => {
     const settings = await loadPlanSettings();
     // Lien profond porteur du code (`?code=`) : les QR codes internes fonctionnent sans
@@ -372,6 +391,7 @@ router.get(
     }
     const access = grantedInline ? { ok: true } : await checkPlanAccess(req, settings);
     if (!access.ok) {
+      res.set('Cache-Control', 'no-store');
       return res.status(401).json({ error: 'Code d’accès requis', access_required: true });
     }
     const resolved = await resolvePlanMap(req.query.map_id, settings);
@@ -380,7 +400,7 @@ router.get(
       return res.status(status).json({ error: resolved.error });
     }
     const mapId = String(resolved.map.id);
-    res.set('Cache-Control', `public, max-age=${PLAN_CONTENT_MAX_AGE_S}`);
+    res.set('Cache-Control', planContentCacheControl(settings));
     const cached = planContentCache.get(mapId);
     if (cached) return res.json(cached);
     const payload = await buildPlanContent(resolved.map, settings);
