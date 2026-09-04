@@ -1,4 +1,6 @@
 import ReactDOM from 'react-dom/client';
+// Tokens typographiques communs aux deux produits (G&L ne charge jamais src/index.css).
+import '../shared/styles/typography-tokens.css';
 import '../shared/styles/z-layers.css';
 import '../shared/styles/motion.css';
 import '../shared/styles/speech-bubble.css';

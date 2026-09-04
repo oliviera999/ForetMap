@@ -12,6 +12,8 @@ import {
   IconTeacherView,
   IconUndo,
 } from '../../shared/icons.jsx';
+// Pastille `.app-version-badge` : feuille partagée avec G&L (voir `GLAppVersionBadge`).
+import '../../shared/styles/version-badge.css';
 
 /**
  * En-tête applicatif — extrait de `src/App.jsx` (audit §6.1, étape 1).

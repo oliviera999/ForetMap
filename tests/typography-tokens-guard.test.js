@@ -73,11 +73,34 @@ test('JSX : plus aucun fontSize inline littéral (rem ou nombre nu)', () => {
   assert.deepStrictEqual(offenders, [], `fontSize inline littéraux :\n${offenders.join('\n')}`);
 });
 
-test('les tokens sont définis côté ForetMap ET côté GL (pages GL sans index.css)', () => {
+test('les tokens sont déclarés une seule fois, dans la feuille partagée chargée par les deux entrées', () => {
+  // Lot 0 (convergence) : les tokens communs vivent dans shared/styles/typography-tokens.css,
+  // importée par src/index.css (ForetMap) et src/gl/main.jsx (G&L, qui ne charge pas index.css).
+  const shared = fs.readFileSync(
+    path.join(SRC, 'shared', 'styles', 'typography-tokens.css'),
+    'utf8',
+  );
+  for (const token of REQUIRED_TOKENS) {
+    assert.ok(
+      new RegExp(`${token}:\\s`).test(shared),
+      `${token} manquant dans typography-tokens.css`,
+    );
+  }
+  const indexCss = fs.readFileSync(path.join(SRC, 'index.css'), 'utf8');
+  const glMain = fs.readFileSync(path.join(SRC, 'gl', 'main.jsx'), 'utf8');
+  assert.ok(
+    /@import\s+'\.\/shared\/styles\/typography-tokens\.css'/.test(indexCss),
+    'src/index.css doit importer shared/styles/typography-tokens.css',
+  );
+  assert.ok(
+    /import\s+'\.\.\/shared\/styles\/typography-tokens\.css'/.test(glMain),
+    'src/gl/main.jsx doit importer shared/styles/typography-tokens.css',
+  );
+  // Aucune redéclaration côté produit : une copie divergerait en silence.
   for (const file of ['index.css', 'gl/styles/gl-base.css']) {
-    const content = fs.readFileSync(path.join(SRC, file), 'utf8');
+    const content = fs.readFileSync(path.join(SRC, file), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
     for (const token of REQUIRED_TOKENS) {
-      assert.ok(new RegExp(`${token}:\\s`).test(content), `${token} manquant dans src/${file}`);
+      assert.ok(!new RegExp(`${token}:\\s`).test(content), `${token} redéclaré dans src/${file}`);
     }
   }
 });

@@ -14,6 +14,8 @@
 /** Attribut portant le code du terme, par produit. */
 export const FORETMAP_GLOSSARY_CODE_ATTR = 'data-glossary-code';
 export const GL_GLOSSARY_CODE_ATTR = 'data-gl-glossary-code';
+/** Glossaire **lore** G&L (univers du jeu), distinct du glossaire SVT. */
+export const GL_LORE_GLOSSARY_CODE_ATTR = 'data-gl-lore-code';
 
 /**
  * Branche la délégation de clic sur un conteneur de texte rendu.
