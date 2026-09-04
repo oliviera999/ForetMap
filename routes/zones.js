@@ -32,6 +32,13 @@ const {
   syncEntityCategories,
   categoriesCarryInfrastructure,
 } = require('../lib/locationCategories');
+const {
+  normalizeSurfaceInput,
+  normalizeSearchAliases,
+  serializeSurfaceSet,
+  readSurfaceQuery,
+  isVisibleOnSurface,
+} = require('../lib/locationSurfaces');
 const { resolveZoneEmojiForWrite } = require('../lib/zoneEmoji');
 
 const db = { queryAll, queryOne, execute, withTransaction };
@@ -185,6 +192,9 @@ router.get(
     if (mapId && !(await mapExists(mapId))) {
       return res.status(400).json({ error: 'Carte introuvable' });
     }
+    // `?surface=map|visit|plan` (lot 4) : ne renvoie que les zones visibles sur cette surface.
+    const surfaceQuery = readSurfaceQuery(req.query.surface);
+    if (!surfaceQuery.ok) return res.status(400).json({ error: surfaceQuery.error });
     const zones = mapId
       ? await queryAll(`${ZONES_LIST_SQL} WHERE z.map_id = ?`, [mapId])
       : await queryAll(ZONES_LIST_SQL);
@@ -253,7 +263,11 @@ router.get(
     for (const row of result) {
       delete row.visit_body_json;
     }
-    res.json(result);
+    res.json(
+      surfaceQuery.value
+        ? result.filter((row) => isVisibleOnSurface(row, surfaceQuery.value))
+        : result,
+    );
   }),
 );
 
@@ -303,10 +317,25 @@ router.put(
       map_id,
       species_ids,
       category_ids,
+      hidden_surfaces,
+      search_aliases,
     } = req.body;
     if (name !== undefined && !String(name).trim()) {
       return res.status(400).json({ error: 'Nom requis' });
     }
+    // Surfaces masquées et alias de recherche (lot 4) : omis = inchangés.
+    const hiddenSurfacesInput = normalizeSurfaceInput(hidden_surfaces, {
+      field: 'hidden_surfaces',
+    });
+    if (!hiddenSurfacesInput.ok) return res.status(400).json({ error: hiddenSurfacesInput.error });
+    const nextHiddenSurfaces =
+      hiddenSurfacesInput.value === null
+        ? String(zone.hidden_surfaces ?? '')
+        : serializeSurfaceSet(hiddenSurfacesInput.value);
+    const nextSearchAliases =
+      search_aliases === undefined
+        ? (zone.search_aliases ?? null)
+        : normalizeSearchAliases(search_aliases) || null;
     // Colonne `zones.emoji` (audit C4) : valeur explicite du corps ('' = effacer), sinon
     // dérivée du préfixe du nom soumis, sinon valeur existante conservée.
     const nextEmoji = resolveZoneEmojiForWrite(
@@ -378,7 +407,7 @@ router.put(
       categoryIds: await nextCategoryIdsForZone(zone.id, category_ids),
     });
     await execute(
-      'UPDATE zones SET map_id=?, name=?, emoji=?, current_plant=?, special=?, description=?, points=?, color=? WHERE id=?',
+      'UPDATE zones SET map_id=?, name=?, emoji=?, current_plant=?, special=?, description=?, points=?, color=?, hidden_surfaces=?, search_aliases=? WHERE id=?',
       [
         nextMapIdForZone,
         name !== undefined ? String(name).trim() : zone.name,
@@ -388,6 +417,8 @@ router.put(
         description !== undefined ? description : (zone.description ?? ''),
         points !== undefined ? JSON.stringify(points) : zone.points,
         color ?? zone.color,
+        nextHiddenSurfaces,
+        nextSearchAliases,
         zone.id,
       ],
     );
@@ -458,8 +489,14 @@ router.post(
       description,
       species_ids,
       category_ids,
+      hidden_surfaces,
+      search_aliases,
     } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
+    const hiddenSurfacesInput = normalizeSurfaceInput(hidden_surfaces, {
+      field: 'hidden_surfaces',
+    });
+    if (!hiddenSurfacesInput.ok) return res.status(400).json({ error: hiddenSurfacesInput.error });
     // `points` doit être un vrai polygone : tableau de sommets {xp, yp} numériques (en %)
     // (une chaîne a aussi une `length` et passerait, stockant une géométrie corrompue).
     if (
@@ -478,7 +515,7 @@ router.post(
     // Colonne `zones.emoji` (audit C4) : explicite, sinon dérivée du préfixe du nom.
     const zoneEmoji = resolveZoneEmojiForWrite(emoji, String(name), '');
     await execute(
-      'INSERT INTO zones (id, map_id, name, emoji, x, y, width, height, current_plant, points, color, description) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?)',
+      'INSERT INTO zones (id, map_id, name, emoji, x, y, width, height, current_plant, points, color, description, hidden_surfaces, search_aliases) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?, ?, ?)',
       [
         id,
         mapId,
@@ -488,6 +525,8 @@ router.post(
         JSON.stringify(points),
         color || '#86efac80',
         desc,
+        serializeSurfaceSet(hiddenSurfacesInput.value || []),
+        normalizeSearchAliases(search_aliases) || null,
       ],
     );
     await syncZoneSpecies(db, id, species_ids, nextLiving);

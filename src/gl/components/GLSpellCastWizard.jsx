@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useDialogA11y } from '../../hooks/useDialogA11y.js';
+import { useDialogA11y } from '../../shared/platform/useDialogA11y.js';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import {

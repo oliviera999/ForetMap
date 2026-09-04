@@ -1,0 +1,1 @@
+Icônes provisoires du plan : copies des icônes ForetMap (`public/favicon.ico`, `icon.svg`, `favicon-n3.png`, `pwa-icon-*.png`, `pwa-maskable-512.png`) en attendant l'identité visuelle propre au Plan Lyautey — remplacer les fichiers en conservant leurs noms (référencés par `plan.html` et `scripts/build-pwa.js`).

@@ -74,10 +74,13 @@ import { visibleMapsForScope } from './utils/appMapScope';
 import { canManagePedagoContent, resolveParticipationFlag } from './utils/appAccess';
 import { DEFAULT_USER_LABEL, formatFullName, resolveSessionDisplayName } from './utils/appIdentity';
 import { getContentText } from './utils/content';
-import { safeLocalStorageGetItem, safeLocalStorageSetItem } from './utils/browserStorage.js';
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageSetItem,
+} from './shared/platform/browserStorage.js';
 import { saveVisitMascotPreference } from './services/visitMascotPreference.js';
-import { useOverlayHistoryBack } from './hooks/useOverlayHistoryBack';
-import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
+import { useOverlayHistoryBack } from './shared/platform/useOverlayHistoryBack';
+import { abandonAllOverlays, pushOverlayClose } from './shared/platform/overlayHistory';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
 import { AppFooter } from './components/app/AppFooter.jsx';
 import { AppHeader } from './components/app/AppHeader.jsx';
@@ -91,6 +94,10 @@ import { TeacherTopTabs } from './components/app/TeacherTopTabs.jsx';
 import { StudentBottomNav } from './components/app/StudentBottomNav.jsx';
 import { RolePreviewBanners } from './components/app/RolePreviewBanners.jsx';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
+import { useBrandTheme } from './shared/brand/useBrandTheme.js';
+import { reportUsage } from './shared/usage/reportUsage.js';
+import { withAppBase } from './shared/appBase.js';
+import { FORETMAP_BRAND_DEFAULTS } from './constants/brand.js';
 import { SessionProvider } from './contexts/SessionContext.jsx';
 import { AppDialogsProvider, useAppDialogs } from './shared/components/AppDialogsProvider.jsx';
 import { DataProvider } from './contexts/DataContext.jsx';
@@ -137,6 +144,18 @@ function App() {
   const [showStats, setShowStats] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [tab, setTab] = useState(() => readStoredTab());
+  /**
+   * Compteur d'usage anonyme (lot 8) : une ouverture par session, puis l'onglet consulté.
+   * Aucun identifiant n'est envoyé — seulement le nom de l'événement et l'onglet.
+   */
+  const usageOpenedRef = useRef(false);
+  useEffect(() => {
+    if (!usageOpenedRef.current) {
+      usageOpenedRef.current = true;
+      reportUsage('foret', 'open', '', withAppBase);
+    }
+    reportUsage('foret', 'tab_open', String(tab || ''), withAppBase);
+  }, [tab]);
   /** Synchronise le filtre lieu de l’onglet tâches avec la zone/repère ouvert(e) sur la carte. */
   const [tasksLocationFocus, setTasksLocationFocus] = useState(null);
   const [toast, setToast] = useState(null);
@@ -151,6 +170,19 @@ function App() {
   );
   const [roleViewMode, setRoleViewMode] = useState('native'); // native | student | teacher
   const { appVersion, publicSettings, publicSettingsReady } = useAppBootstrap();
+  /**
+   * Thème de marque de l'établissement (lot 7 du plan de convergence) : réglage
+   * `ui.foret.brand`, mécanique partagée avec G&L et le Plan Lyautey. Sans réglage, les
+   * valeurs par défaut reproduisent exactement le thème forêt historique.
+   */
+  const { brand: foretBrand, style: foretBrandStyle } = useBrandTheme(
+    publicSettings?.foret?.brand,
+    {
+      prefix: 'fm-brand',
+      defaults: FORETMAP_BRAND_DEFAULTS,
+      fontFallback: "'DM Sans', sans-serif",
+    },
+  );
   const { isTabVisible, shouldUseDesktopSplit } = useViewportLayout();
   const {
     deferredInstallPrompt,
@@ -1000,7 +1032,11 @@ function App() {
               isTeacher={effectiveIsTeacher}
               enabled={discoveryTourAutoEnabled}
             >
-              <div id="app">
+              <div
+                id="app"
+                style={foretBrandStyle}
+                data-brand-logo={foretBrand.logoUrl || undefined}
+              >
                 {/* Fiche rapide du glossaire : hors des onglets et hors des modales, pour
                   survivre à tout changement de vue et se poser au-dessus de l'aperçu
                   de tutoriel (audit A1). */}

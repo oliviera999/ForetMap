@@ -30,15 +30,15 @@ body.gl-body {
   --gl-radius-card: 14px;
   --gl-shadow-sm: 0 5px 16px rgba(1, 58, 64, 0.1);
   --gl-shadow-md: 0 10px 28px rgba(1, 58, 64, 0.16);
-  --gl-accent-info: #d9f0ff;
-  --gl-accent-success: #d9f9ea;
-  --gl-accent-warning: #fff4d6;
-  --gl-accent-danger: #ffe2e2;
+  --gl-accent-info: var(--accent-info);
+  --gl-accent-success: var(--accent-success);
+  --gl-accent-warning: var(--accent-warning);
+  --gl-accent-danger: var(--accent-danger);
   /* Teintes d'encre associées aux fonds d'état ci-dessus (contraste AA sur ces lavis). */
-  --gl-ink-info: #075985;
-  --gl-ink-success: #14663f;
-  --gl-ink-warning: #8a5a10;
-  --gl-ink-danger: #991b1b;
+  --gl-ink-info: var(--ink-info);
+  --gl-ink-success: var(--ink-success);
+  --gl-ink-warning: var(--ink-warning);
+  --gl-ink-danger: var(--ink-danger);
   /* Accent : le turquoise servait déjà d'anneau de focus et se retrouvait codé en dur à 57
      endroits. Le promouvoir en token nomme l'existant au lieu d'inventer une teinte de plus. */
   --gl-color-accent: #047c8c;
@@ -62,14 +62,14 @@ body.gl-body {
   --gl-shadow-lg: 0 18px 42px rgba(1, 58, 64, 0.2);
   --gl-radius-pill: 999px;
   /* Échelle d'espacement : les 8 416 lignes de CSS G&L n'en avaient aucune. */
-  --gl-space-1: 4px;
-  --gl-space-2: 8px;
-  --gl-space-3: 12px;
-  --gl-space-4: 16px;
-  --gl-space-5: 24px;
-  --gl-space-6: 32px;
+  --gl-space-1: var(--space-1);
+  --gl-space-2: var(--space-2);
+  --gl-space-3: var(--space-3);
+  --gl-space-4: var(--space-4);
+  --gl-space-5: var(--space-5);
+  --gl-space-6: var(--space-6);
   /* Hauteur de cible tactile minimale imposée par le projet (cf. CLAUDE.md). */
-  --gl-tap-target: 44px;
+  --gl-tap-target: var(--tap-target);
   --gl-font-body: var(--font-sans);
   --gl-font-heading: var(--font-sans);
   /* G&L n'a qu'un thème clair : le déclarer évite que le mode sombre du système repeigne les
@@ -402,71 +402,17 @@ body.gl-body {
   color: var(--gl-color-text);
 }
 
+/* Tiroir « Plus » : coque partagée `BottomSheet` (bottom-sheet.css) ; il recouvre les
+   dialogues ouverts, d'où le palier `--fm-z-drawer`. */
 .gl-nav-drawer-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: var(--fm-z-drawer);
-  background: var(--fm-modal-overlay-bg, rgba(15, 23, 42, 0.55));
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 0;
-}
-
-.gl-nav-drawer {
-  width: 100%;
-  max-height: min(85dvh, 560px);
-  background: var(--gl-surface);
-  color: var(--gl-color-text);
-  border-radius: var(--gl-radius-lg, 16px) var(--gl-radius-lg, 16px) 0 0;
-  box-shadow: var(--gl-shadow-md);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: glNavDrawerUp 0.28s var(--spring, cubic-bezier(.34, 1.56, .64, 1)) both;
-}
-
-@keyframes glNavDrawerUp {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 100%, 0);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-.gl-nav-drawer-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--gl-border);
-}
-
-.gl-nav-drawer-title {
-  font-size: var(--text-md);
-  font-weight: var(--fw-bold);
-  margin: 0;
-}
-
-.gl-nav-drawer-close {
-  min-width: 44px;
-  min-height: 44px;
-  border: none;
-  border-radius: var(--gl-radius-control);
-  background: var(--gl-surface-muted);
-  cursor: pointer;
-  font-size: var(--text-md);
+  --fm-bottom-sheet-z: var(--fm-z-drawer);
 }
 
 .gl-nav-drawer-tabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  padding: 12px 16px calc(16px + var(--safe-bottom, 0px));
-  overflow-y: auto;
+  padding: 4px 0 8px;
 }
 
 .gl-nav-drawer-tab {
@@ -491,15 +437,8 @@ body.gl-body {
 }
 
 @media (min-width: 640px) {
-  .gl-bottom-nav,
-  .gl-nav-drawer-overlay {
+  .gl-bottom-nav {
     display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .gl-nav-drawer {
-    animation: none;
   }
 }
 
@@ -1237,6 +1176,48 @@ a.gl-glossary-inline-link:hover,
   width: 100%;
 }
 
+/* Calque monde transformé par le moteur de carte partagé (pan/zoom, transform-origin 0 0). */
+.gl-board-world {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+  will-change: auto;
+}
+
+/* Boutons zoom superposés (+ / − / recentrer), cibles ≥ 44 px. */
+.gl-board-zoom-controls {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gl-board-zoom-btn {
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--gl-radius-pill);
+  background: rgba(15, 23, 42, 0.78);
+  color: var(--gl-color-on-dark);
+  font-size: var(--text-lg);
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.gl-board-zoom-btn:hover {
+  background: rgba(30, 41, 59, 0.92);
+}
+
+.gl-board-zoom-btn:focus-visible {
+  outline: 2px solid var(--gl-color-on-dark);
+  outline-offset: 2px;
+}
+
 /* Calque % aligné sur l’image réelle (object-fit: contain), pas sur la boîte carte */
 .gl-board-fit-layer {
   position: absolute;
@@ -1609,15 +1590,24 @@ a.gl-glossary-inline-link:hover,
 }
 
 .gl-board-shell--fullscreen {
-  position: fixed;
-  inset: 0;
-  z-index: var(--fm-z-fullscreen);
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   margin: 0;
   max-width: none;
   background: var(--gl-surface-dark);
+}
+
+/* Couche plein écran partagée (`MapFullscreenShell`) habillée aux couleurs G&L ; le bouton
+   Fermer du shell est masqué au profit de celui de `GLBoardChrome` (testid gl-map-fullscreen-close). */
+.gl-board-fullscreen-shell {
+  background: var(--gl-surface-dark);
+}
+
+.gl-board-fullscreen-shell > .fm-map-fullscreen-close {
+  display: none;
 }
 
 .gl-board-shell--fullscreen .gl-board,
@@ -1630,11 +1620,16 @@ a.gl-glossary-inline-link:hover,
   background: var(--gl-surface-dark);
 }
 
-.gl-map-fullscreen-close {
+/* Logement du bouton Fermer du plein écran : positionné lui (le bouton vit dans l'enrobage
+   relatif de l'infobulle, qui le repoussait sous le plateau, hors écran). */
+.gl-map-fullscreen-close-slot {
   position: absolute;
   top: max(12px, env(safe-area-inset-top, 0px));
   right: max(12px, env(safe-area-inset-right, 0px));
   z-index: calc(var(--fm-z-fullscreen) + 1);
+}
+
+.gl-map-fullscreen-close {
   border: 0;
   border-radius: var(--gl-radius-pill);
   background: rgba(15, 23, 42, 0.82);
@@ -1651,17 +1646,6 @@ a.gl-glossary-inline-link:hover,
 .gl-map-fullscreen-close:focus-visible {
   outline: 2px solid var(--gl-color-on-dark);
   outline-offset: 2px;
-}
-
-body.gl-map-fullscreen-active {
-  overflow: hidden;
-}
-
-/* Carte portée sur body : évite le piège transform de .gl-main-inner.fade-in */
-body.gl-map-fullscreen-active > .gl-board-shell--fullscreen {
-  position: fixed;
-  inset: 0;
-  z-index: var(--fm-z-fullscreen);
 }
 
 .gl-panel--map-fullscreen-active {
@@ -6651,3 +6635,47 @@ fieldset .media-library-menu__gallery {
   line-height: 1.35;
 }
 .qcm-preview__photo-caption .qcm-photo__legende { font-weight: var(--fw-semibold); }
+
+/* Centre de notifications : groupes, niveaux et dates (lot 7 du plan de convergence). */
+.gl-notifications-group + .gl-notifications-group {
+  margin-top: var(--gl-space-3, 12px);
+}
+
+.gl-notifications-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gl-color-text);
+  opacity: 0.75;
+}
+
+.gl-notifications-group-unread {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--gl-color-primary);
+  color: #fff;
+  font-size: var(--text-2xs);
+  text-align: center;
+}
+
+.gl-notifications-date {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-2xs);
+  opacity: 0.7;
+}
+
+.gl-notifications-panel li.is-important {
+  border-left: 3px solid var(--gl-ink-warning, #b45309);
+  padding-left: 8px;
+}
+
+.gl-notifications-panel li.is-critical {
+  border-left: 3px solid var(--gl-ink-danger, #b91c1c);
+  padding-left: 8px;
+}

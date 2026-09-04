@@ -23,7 +23,7 @@ const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { toPublicUserRow } = require('../lib/publicUser');
 const { rethrowSlugConflict } = require('../lib/slugConflict');
-const { logAudit } = require('./audit');
+const { logAudit } = require('../lib/auditLog');
 const {
   MAX_DESCRIPTION_LEN,
   PSEUDO_RE,

@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { GLButton } from './ui/GLButton.jsx';
-import { validateGlMascotPackForUi } from '../../shared/mascot-pack/glPackValidationUi.js';
+import { validateGlMascotPackForUi } from '../utils/glPackValidationUi.js';
 import { MascotPackValidationList } from '../../shared/mascot-pack/MascotPackValidationList.jsx';
-import { MascotPackSpriteCutPreview } from '../../shared/mascot-pack/MascotPackSpriteCutPreview.jsx';
-import { glMascotPackSpriteCutToVisitValidation } from '../../utils/glMascotPackToVisit.js';
+import { MascotPackSpriteCutPreview } from './MascotPackSpriteCutPreview.jsx';
+import { glMascotPackSpriteCutToVisitValidation } from '../utils/glMascotPackToVisit.js';
 import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
 
 const DEFAULT_PAYLOAD = {

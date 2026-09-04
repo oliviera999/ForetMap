@@ -16,6 +16,440 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   quitte aussi la room restaurée.
 - Tests : `tests/realtime.test.js`, `tests/gl-realtime.test.js`.
 
+### Lot 8 — Parcours, hors ligne, QR, accès et compteur (plan de convergence §6)
+
+- **Parcours de carte** (migration `210`, `map_routes` / `map_route_steps`, API
+  `/api/map-routes`) : listes ordonnées de lieux, sans validation ni progression enregistrée.
+  Les étapes pointent vers les lieux existants — aucun lieu n'est dupliqué. Publication par
+  surface (plan, visite, carte), brouillon par défaut, étapes remplacées en bloc.
+- **Mode parcours du plan** : puce « Parcours », étape courante en feuille basse avec
+  « Précédent » / « Suivant », recadrage de la carte sur l'étape, « Y aller » qui vise l'étape,
+  lien profond `?parcours=<slug>`. L'avancement vit sur l'appareil, rien n'est envoyé.
+- **Export PDF avec QR code** (`GET /api/map-routes/:id/pdf`) : une page imprimable avec les
+  étapes et un QR code vers le lien profond, à afficher à l'accueil. QR généré localement
+  (`qrcode`, licence MIT — https://github.com/soldair/node-qrcode) : une affiche
+  d'établissement ne doit dépendre d'aucun service tiers.
+- **Accès du plan par code** (`ui.plan.access_mode = 'code'`) : `POST /api/plan/access` vérifie
+  le code (bcrypt, limiteur d'authentification) et pose un cookie signé de 30 jours ; la charge
+  publique répond 401 `access_required` sans laissez-passer, et un lien profond `?code=` ouvre
+  le plan sans saisie. Composant partagé `AccessCodeGate`. Mode `code` sans code configuré : le
+  plan reste ouvert plutôt que muré.
+- **Hors ligne** : les service workers du **plan** (charge publique, réglages, parcours) et de
+  **G&L** (contenus éditoriaux, chapitres) branchent enfin leurs lectures ; bandeau
+  « Hors ligne — plan mémorisé » côté plan.
+- **Compteur d'usage sur les trois produits** : envoi partagé (`src/shared/usage/reportUsage.js`),
+  ouvertures et onglets côté ForetMap et G&L, parcours et hors ligne côté plan. Nouvel écran
+  admin **« Usage »** (compteurs par produit et événement, et la liste des **recherches sans
+  résultat** — les mots à ajouter en alias de recherche).
+- **Éditeur de parcours** dans la console ForetMap (_Réglages → Parcours_) : liste des parcours
+  d'une carte (brouillons compris), création et édition, choix des lieux par le **moteur de
+  recherche partagé** du plan (alias compris), réordonnancement au **glisser-déposer** avec
+  boutons ↑/↓ comme voie clavier, titre et texte propres par étape, publication et surfaces,
+  suppression, et téléchargement de l'**affiche PDF**. Une étape dont le lieu a été supprimé est
+  signalée au lieu de rendre une ligne vide.
+- Nouveau réglage **`ui.plan.public_base_url`** : base des liens profonds imprimés. L'affiche est
+  exportée depuis la console, servie par un autre domaine que le plan — sans ce réglage, le QR
+  code renverrait le visiteur vers un écran de connexion. Ordre retenu : `?base_url=`, puis le
+  réglage, puis l'hôte de la requête.
+- Tests : `tests/map-routes.test.js` (dont l'export PDF, la publication sur le plan et la
+  résolution de la base du lien), garde d'accès dans `tests/plan-content.test.js`,
+  `tests-ui/plan/planRoutes.test.js`, mode parcours et écran de code dans le montage de
+  `AppPlan`, `tests-ui/utils/mapRoutesEditor.test.js` et
+  `tests-ui/components/settings/MapRoutesPanel.test.jsx` pour l'éditeur.
+
+### Lot 7 — Aide, thème et notifications convergés (plan de convergence §6)
+
+- **Dock d'aide partagé** (`src/shared/help/HelpDock.jsx`), généralisé depuis `GLHelpDialog` :
+  bouton « ? » qui pulse jusqu'à la première ouverture, modale, rappel de la visite guidée,
+  mémoire par clé. G&L le consomme sans changer une classe ni un comportement (ses classes
+  de thème sont passées en `classNames`, comme pour `MapActionButton`), et le **Plan Lyautey
+  gagne une aide** : chercher, filtrer, se déplacer, comprendre les pastilles de groupe, se
+  situer.
+- **Thème de marque par produit** (`src/shared/brand/`) : noyau pur extrait de
+  `useGLBrandTheme` — huit couleurs validées, deux polices, logo et favicon, variables CSS
+  préfixées par produit. Nouveaux réglages publics **`ui.foret.brand`** et **`ui.plan.brand`**
+  (objets JSON) ; ForetMap et le plan peuvent désormais porter l'identité de l'établissement,
+  et sans réglage leur apparence est **inchangée au pixel près**. Les URL de logo et de
+  favicon restent bornées à `/uploads/` et `/maps/` (garde anti-exfiltration de G&L).
+- **Centre de notifications** : noyau partagé (`notificationCenterCore.js`) — dates relatives
+  en français, niveaux, regroupement par catégorie, comptage des non-lues. ForetMap y délègue
+  ses helpers ; **G&L gagne** les dates lisibles, les niveaux et le regroupement, les groupes
+  porteurs de non-lues en tête.
+- **Fiche de glossaire** : noyau commun aux deux fiches (`glossaryCardCore.js`) — durée de
+  fermeture, libellés de niveau, cache mémoire et accent de catégorie. Les deux composants
+  restent distincts, chacun avec sa palette.
+- **Éditeur de cadre d'image** promu dans le socle (`src/shared/image-frame/ImageFrameEditor.jsx`,
+  avec son aide) : l'outil n'avait rien de propre au jeu et sert aux photos de lieux. Les
+  anciens noms G&L restent en alias, classes CSS inchangées.
+- Tests : `tests-ui/shared/HelpDock.test.jsx`, `brandThemeCore.test.js`,
+  `notificationCenterCore.test.js`.
+
+### Lot 6 — Position (plan de convergence §6)
+
+- **Point de position partagé** (`src/shared/pct-map/useMapPosition.js` +
+  `PctPositionLayer.jsx`) : point bleu, **halo de précision** proportionnel à la précision
+  annoncée par le capteur, **cap** de l'appareil quand la boussole le donne (permission iOS
+  demandée explicitement, absence gérée sans flèche). Hors du plan, le point se colle au bord
+  le plus proche avec une flèche vers l'endroit réel plutôt que de disparaître.
+- **Bouton « Me situer » à quatre états** : inactif, recherche, position affichée, suivi. Un
+  déplacement manuel de la carte quitte le suivi sans éteindre la position.
+- **« Y aller »** sur la fiche d'un lieu du plan : ligne droite entre la position et le lieu,
+  avec la distance. Ce n'est pas un itinéraire, et l'interface le dit. Sans calage, le bouton
+  reste désactivé avec la raison en clair.
+- **Six messages d'état** (refus, calage incohérent, erreur d'acquisition, acquisition, hors
+  plan, signal faible) repris de la bannière ForetMap, servis en **toast discret** sur le plan.
+- **ForetMap : « Me suivre » découplé de la mascotte.** La carte de travail passe au noyau
+  partagé et affiche le point de position même quand la mascotte est masquée ; la mascotte
+  suit toujours quand elle est à l'écran. `useMascotGpsFollow` reste pour la mascotte seule.
+- **Promotions dans le socle partagé** : `mapGeoTransform.js` devient
+  `src/shared/pct-map/pctGeoTransform.js` et `useGeolocation` rejoint
+  `src/shared/platform/` ; les anciens chemins ré-exportent, aucun importateur n'est cassé.
+- Nouveau module pur `positionGeometry.js` (halo, position hors plan, distance et cap,
+  lecture du cap de l'appareil, orientation du nord dans l'image) avec ses tests, et scénario
+  Playwright `e2e/plan-mobile-position.spec.js` à position simulée.
+- La position reste **100 % côté client** : elle n'est jamais envoyée au serveur.
+
+### Lot 5 — Désencombrement et lisibilité (plan de convergence §6)
+
+- **Regroupement des repères au dézoom** (`src/shared/pct-map/clusterMarkers.js`, grille écran
+  d'une cible tactile) : les repères qui se chevauchent deviennent une **pastille chiffrée**
+  (emoji du repère le plus prioritaire, couleur de sa catégorie). Un tap zoome sur l'enveloppe
+  du groupe s'il se sépare ; sinon le **plan** ouvre la liste des lieux du groupe en feuille
+  basse, et la **carte de travail** ouvre la fiche du repère principal. Actif sur le plan et
+  sur la carte ForetMap, où un bouton de la barre d'outils le débraye (et où le mode édition
+  le désactive toujours).
+- **Priorité par catégorie** : `sort_order` sert de rang, sans nouveau champ à saisir — les
+  catégories de tête sont nommées en premier et regroupées en dernier.
+- **Catégories « visibles seulement au zoom »** (migration `209`, `location_categories.zoom_only`,
+  case dans le panneau Catégories de lieux) : leurs lieux disparaissent tant que la carte est
+  vue en entier.
+- **Étiquettes de repères adaptatives** sur le plan : l'emoji seul au dézoom, le nom au zoom
+  en commençant par les catégories prioritaires, toujours le nom du lieu sélectionné. Le nom
+  **accessible** du bouton reste complet quand l'étiquette visible est masquée.
+- **Étiquettes de zones au pôle d'inaccessibilité** (`pctPolylabel.js`, d'après *polylabel* de
+  Mapbox, licence ISC) au lieu du centroïde : sur une zone en L ou en croissant, le nom
+  tombait hors de sa zone. Appliqué à la carte de travail **et** à la Visite.
+- **Priorité et collisions d'étiquettes** (`mapOverlayLabelCollision.js`) : module pur de
+  placement glouton, épinglage du lieu sélectionné, estimation de boîte sans mesure DOM.
+- **Légende** : chaque puce de catégorie du plan porte la pastille de couleur de sa catégorie
+  — la couleur des contours n'était expliquée nulle part à l'écran.
+- **Catégories par défaut par surface** : nouveaux réglages publics
+  `ui.map.default_category_ids` et `ui.visit.default_category_ids`, à côté de
+  `ui.plan.default_category_ids`.
+- **Rapport de densité** (`scripts/report-marker-density.js`, lecture seule) : repères par
+  catégorie, cellules du plan qui en contiennent plusieurs, paires de repères pratiquement
+  superposées — pour régler les seuils sur les données réelles.
+- Tests : `tests-ui/shared/clusterMarkers.test.js`, `pctPolylabel.test.js`,
+  `mapOverlayLabelCollision.test.js`, scénario de groupe dans le montage `AppPlan`, et
+  `tests/plan-content.test.js` pour `zoom_only`.
+
+### Lot 4 — Plan Lyautey v1 (plan de convergence §6)
+
+- **Surfaces d'affichage des lieux** (migration `208`) : un même lieu — zone ou repère — est
+  montré, ou non, sur la carte de travail, la Visite et le **Plan Lyautey**, sans jamais être
+  dupliqué. Réglage à deux niveaux : `surfaces` sur la **catégorie** (« Visible sur » dans le
+  panneau Catégories de lieux — décocher une surface y retire d'un coup tous ses lieux) et
+  `hidden_surfaces` sur le **lieu** (« Masquer sur » dans la fiche Modifier, avec avertissement
+  quand tout est masqué). Un lieu sans catégorie reste visible partout où il n'est pas masqué.
+  Lecture filtrée par **`?surface=`** sur `/api/zones`, `/api/map/markers` et
+  `/api/map-categories` ; sans le paramètre, les réponses sont inchangées.
+- **Alias de recherche** (`search_aliases`, zones et repères) : autres noms d'un lieu séparés
+  par `;` (« CDI ; bibliothèque »), saisis dans la fiche Modifier, jamais affichés — ils ne
+  servent qu'à retrouver le lieu.
+- **Plan Lyautey (produit `plan`)** : coquille complète servie par host. Carte **plein écran**
+  (moteur de carte partagé du lot 2 en mode scène : pan, pinch, double-tap, inertie, bornes),
+  recherche en haut d'écran, puces de catégories (choix retenu sur l'appareil, défauts
+  d'établissement), **feuilles basses** du kit d'interface pour les résultats et la fiche d'un
+  lieu, message d'accueil affiché une fois, lien profond `?lieu=` (partage, QR code), mention
+  de source du fond de plan. Sans compte, sans cookie, sans donnée d'élève : seuls les
+  compteurs anonymes `open`, `place_open` et `search_empty` sont émis. Le bouton « Y aller »
+  est présent mais **désactivé** — la position arrive au lot 6.
+- **API publique du plan** : `GET /api/plan/content` (carte, réglages `ui.plan.*`, catégories,
+  lieux visibles sur la surface `plan`, textes publics et photo de tête) et
+  `GET /api/plan/settings`, mises en cache par la version d'écriture globale
+  (`lib/shared/writeVersionCache.js`, mécanique désormais partagée avec `visitContentCache`)
+  et servies avec `Cache-Control: public, max-age=60`.
+- **Noyau carte partagé** : calques `PctImageLayer`, `PctZonesLayer`, `PctMarkersLayer` ;
+  `parseZonePoints` promu dans `src/shared/pct-map/pctPolygon.js` (`parsePctPolygonPoints`),
+  `src/utils/zoneGeometry.js` le ré-exporte sous son nom public.
+- **Recherche de lieux partagée** (`src/shared/search/placeSearch.js`) : insensible à la casse
+  et aux accents, tous les mots doivent correspondre, classement nom > alias > sous-titre >
+  catégorie > texte libre.
+- Tests : `tests/location-surfaces.test.js`, `tests/plan-content.test.js`,
+  `tests-ui/plan/**` (dont le montage réel de `AppPlan`), `tests-ui/shared/PctLayers.test.jsx`,
+  `tests-ui/shared/placeSearch.test.js`, `tests-ui/shared/SurfaceVisibilityField.test.jsx`, et
+  un projet Playwright **`plan-mobile`** (390×844 tactile) avec `e2e/plan-mobile-shell.spec.js`.
+- Documentation : nouvelle référence fonctionnelle
+  [`docs/reference/plan/presentation.md`](docs/reference/plan/presentation.md), section
+  « Où apparaît un lieu » dans `docs/reference/foretmap/carte-et-zones.md`, section
+  **Plan Lyautey** et **Surfaces d'affichage des lieux** dans `docs/API.md`.
+
+### Lot 3 — Kit d'interface commun (plan de convergence §6)
+
+- **Plateforme front `src/shared/platform/`** : `useDialogA11y`, `overlayHistory` +
+  `useOverlayHistoryBack`, `browserStorage`, `markdown`, `datetime-fr` promus (imports réécrits,
+  anciens chemins supprimés, shim `services/apiTransport` retiré) ; nouveau `bodyScrollLock`
+  (verrou à compteur + `useBodyScrollLock`) adopté par la visionneuse d'images et les popovers
+  G&L. `src/shared` n'importe plus de code produit : la règle ESLint `no-restricted-imports`
+  passe en **erreur** ; `MascotPackArchiveImportDialog` reçoit son transport en prop ; les
+  modules G&L seuls de `src/utils/` (`glImageFrame`, `glMascotCatalog`, `glMascotPackToVisit`)
+  rejoignent `src/gl/utils/`.
+- **`BottomSheet`** (`src/shared/ui/`) : feuille basse à crans (aperçu / mi-hauteur / plein),
+  poignée glissable (aimantation, fermeture par glisser bas), piège de focus, Échap, retour
+  Android, verrou du défilement, `inert` sur le reste de la page, zone sûre basse. Adoptée par
+  les **filtres des tâches**, les **filtres de la carte** (pied « Réinitialiser / Voir la
+  carte ») et le tiroir « Plus » de la navigation G&L ; feuilles maison et CSS morts supprimés.
+- **`useCompactPanelState`** : fusion des états de panneau compact tâches / carte (mêmes clés
+  de stockage, mêmes défauts) ; les deux anciens hooks délèguent.
+- **`Button`**, **`MapActionButton`**, **`DataList`** (`src/shared/ui/`) issus de `GLButton`,
+  `GLBoardActionButton`, `GLDataList`, qui deviennent des enveloppes iso-thème (classes
+  neutres `shared-btn…`, `fm-map-action…`, `fm-data-*` posées en plus des classes G&L) ; feuilles
+  `map-action.css` et `data-list.css` chargées par les deux entrées. `.btn` (ForetMap) reste
+  la classe de thème historique : l'adoption de `Button` côté ForetMap se fait écran par écran
+  (lot 4 pour le plan).
+- **Tokens communs** `spacing-tokens.css` (`--space-1..6`, `--tap-target`) et `state-inks.css`
+  (`--ink-*`, `--accent-*`) — G&L les aliasse (`--gl-space-*`, `--gl-ink-*`…) ; garde
+  `tests-ui/utils/sharedTokens.test.js`.
+- **Dédoublonnage CSS** : bannière « aperçu rôle / impersonation » dans
+  `shared/styles/role-preview-banner.css` (copiée jusqu'ici dans `index.css` et `gl-base.css`) ;
+  `.modal` / `.log-modal` deviennent des alias du panneau partagé `.fm-modal-panel`.
+- **`useTimedToastState`** partagé (`useGlToasts` s'y branche) ; icône SVG partagée sur le
+  bouton Fermer du plateau G&L.
+- Reporté au lot 7 (convergence des écrans d'administration) : accordéons `AdminSection` sur les
+  panneaux d'administration G&L.
+
+### Lot 2 — Noyau carte partagé (plan de convergence §6)
+
+- **Un seul moteur de carte** `src/shared/pct-map/` : géométrie pure `pctMapTransform.js`
+  (bornes « contain », élasticité, zoom à pivot, pinch à médian vivant, centrage, inertie) et
+  hook `usePctMapViewport.js` (modes image / scène, pan avec capture, molette, pinch +
+  déplacement, double-tap, inertie, retour en butée, flèches clavier, verrou tactile, mesure
+  `ResizeObserver`, glisser externe sans réseau). Molette (`pctMapWheelZoom`) et rectangle
+  « contain » (`pctMapFit`) promus dans `src/shared` (anciens chemins ré-exportés).
+- **Carte de travail** : `useMapGestures` devient un adaptateur mince (mesure du cadre,
+  `--fm-map-canvas-w`, persistance du repère glissé). Visible : le plan **ne sort plus du
+  cadre** (butée souple), **double-tap** tactile, **inertie** au relâchement, pinch qui déplace
+  en même temps qu'il zoome ; le verrou « Gestes » sur téléphone se relâche dès que la carte
+  est zoomée par rapport à son ajustement (et non plus au-delà de la taille naturelle de
+  l'image). Corrections : les repères des autres cartes n'étaient pas filtrés à l'affichage ;
+  le centrage sur un repère depuis la recherche lisait `yp` au lieu de `y_pct` (toujours en
+  haut du plan).
+- **Visite** : scène rebranchée sur le moteur en mode scène ; bornes inchangées à l'échelle
+  ≥ 1, **dézoom possible jusqu'à 0,5×**, mêmes gestes ; le glisser peut démarrer sur une zone
+  ou un repère (le clic qui suit n'est pas pris pour un tap). `useVisitMapTransform` et
+  `visitMapTransform.js` supprimés.
+- **Gnomes & Licornes** : `useGlPctMapGestures` sur le moteur — les plateaux gagnent **pan,
+  molette, pinch-zoom, double-tap**, des boutons **+ / − / ⊡** (`GLPctMapCanvas`,
+  `showZoomControls`) ; le **plein écran** passe par `MapFullscreenShell` / `useMapFullscreen`
+  partagés (`map-fullscreen.css` chargé par l'entrée GL, testids e2e conservés) ; gestes
+  suspendus pendant l'édition d'un plateau. `useGlBoardImageFit` supprimé. Correction : des
+  défauts de props tableau (`[]`) recréés à chaque rendu faisaient boucler `GLGameBoard` dès
+  qu'un état changeait après le montage.
+- **Tests de montage** (posés avant les refontes) : `MapViewMount`, `VisitViewMount`,
+  `GLGameBoardMount` sur le moteur réel ; tests du noyau (`pctMapTransform`,
+  `usePctMapViewport`) ; docs de référence carte, visite et plateau mises à jour.
+
+### Lot 1 — Socle plateforme multi-produit (plan de convergence §6)
+
+- **Registre des produits** `lib/products.js` (`foret`, `gl`, `plan` — Plan Lyautey, host
+  `planlyautey.*`) : préfixes de host, entrée HTML, dossier d'assets, préfixe d'API, chemins
+  d'authentification, fichiers PWA. Le résolveur de produit, le fallback SPA (entrée du
+  produit si présente dans `dist/`, sinon ForetMap), les en-têtes `no-store`, le favicon, la
+  garde qui redirige l'entrée HTML d'un produit demandée sur le host d'un autre et le
+  limiteur d'authentification lisent ce registre — plus aucun `gl` en dur.
+- **Entrée Plan Lyautey** : `plan.html` → `src/plan/` (coquille « le plan arrive bientôt »),
+  assets `public/plan/`, métas de partage par entrée dans `vite.config.js`.
+- **Service worker et manifest PWA par produit** : gabarit `src/shared/pwa/swTemplate.js` +
+  `scripts/build-pwa.js` (enchaîné par le build, `npm run build:pwa`) génèrent
+  `dist/sw-<produit>.js` et `dist/manifest-<produit>.webmanifest` depuis le manifeste Vite
+  (bundles hachés en cache-first, stratégies historiques conservées) ; `/sw.js` et
+  `/manifest.json` servent le fichier du produit résolu (`lib/pwaRoutes.js`). `public/sw.js`
+  reste le SW de développement ForetMap.
+- **Garde d'accès par cookie signé** `lib/accessGate.js`, extraite de `routes/visit.js` sans
+  changement de comportement (HMAC, temps constant, HttpOnly, Secure en production) ; base du
+  mode d'accès par code du plan et d'une partie G&L invitée.
+- **Journal d'audit** `lib/auditLog.js` : `logAudit` / `logSecurityEvent` sortent du routeur
+  `routes/audit.js` (ré-export conservé) ; les dix-huit consommateurs importent le module.
+- **Compteur d'usage anonyme** (migration `207_usage_counters`, `lib/usage.js`) :
+  `POST /api/usage` public (événements en liste blanche par produit, agrégés par jour, sans
+  identifiant ni cookie) et `GET /api/admin/usage` (permission `admin.settings.read`).
+- **Registre et magasin de réglages communs** `lib/shared/settingsRegistryCore.js` et
+  `lib/shared/settingsStore.js` (cache versionné par écriture) : `lib/settings.js` et
+  `lib/glSettings.js` s'y branchent sans changer de contrat ; les validateurs G&L quittent
+  `routes/gl/admin.js` pour le registre ; clés `ui.plan.*` déclarées (carte, titre, message
+  d'accueil, mode d'accès, attribution, catégories par défaut / masquées).
+- **Fixtures métier ForetMap** `tests/helpers/fmFixtures.js` (carte, zone, repère, catégorie,
+  plante), pendant de `glFixtures.js`.
+- Déploiement : `deploy:check:prod` et `prepare-dist-deploy` couvrent le troisième host
+  (`PLAN_PROD_BASE_URL`, contrôle de `dist/gl.html` et `dist/plan.html`) ; `.env.example`,
+  `docs/EXPLOITATION.md`, `docs/GL_ARCHITECTURE.md` (routage produit), `docs/API.md`
+  (compteur d'usage), `CLAUDE.md`.
+
+### Lot 0 — Garde-fous et hygiène (plan de convergence, `docs/AUDIT_CONVERGENCE_APPS_2026-09.md` §6)
+
+- **Correctif de sécurité — glossaire lore G&L** : `GLLoreGlossaryInlineText` échappe désormais le
+  HTML saisi avant d'insérer les liens de glossaire puis assainit le résultat, comme ses trois
+  pendants ; `GLLoreGlossaryMarkdown` passe sur la mécanique partagée `useGlossaryLinkedHtml` +
+  `glossaryLinkClick` (fin du lot B5) et `glLoreGlossaryAutolink.js` balaie des chaînes au lieu
+  de parcourir le DOM (exécutable côté serveur et en test sans `document`). Le sanitizer
+  reconnaît l'attribut `data-gl-lore-code` au même titre que les deux autres glossaires.
+- **Miroirs ESM/CJS synchronisés** : `scripts/sync-shared-cores.js` (+ `npm run
+  sync:shared-cores[:check]`, enchaîné par le build) régénère les six noyaux de `lib/shared/`
+  depuis `src/shared/` ; `tests/shared-cores-sync.test.js` échoue à la moindre divergence et
+  vérifie l'égalité des exports. ≈ 1 090 lignes ne sont plus maintenues à la main.
+- **Tokens typographiques communs** : `src/shared/styles/typography-tokens.css` (échelle
+  `--text-*`, graisses, interlignes, encres, pile emoji) chargée par les deux entrées ; les 19
+  déclarations recopiées de `gl-base.css` et `index.css` sont retirées, seule `--font-sans`
+  reste par produit. `color-scheme: light` déclaré côté ForetMap (contrôles natifs plus
+  repeints en sombre par le système, comme G&L).
+- **Cliquets** : `tests-ui/utils/zLayers.test.js` contrôle aussi `src/index.css` ;
+  `tests-ui/utils/breakpoints.test.js` interdit tout nouveau seuil `@media` hors liste
+  canonique (dette existante tolérée explicitement) et toute redéclaration des tokens communs.
+- **Tests directs** des trois composants partagés les plus consommés et jusque-là sans filet :
+  `DialogShell`, `Tooltip`, `ImageLightbox` (+ `ImageLightboxProvider`). Au passage, la lightbox
+  pose enfin le focus initial sur son bouton « Fermer » (le conteneur du portail était attaché
+  après l'effet de focus).
+- **Étanchéité de `src/shared/`** : règle ESLint `no-restricted-imports` en avertissement sur
+  tout import de code produit depuis le partagé (20 cas recensés, à résorber au lot 3).
+- **Rangement** : `src/services/apiTransport.js` promu en `src/shared/apiTransport.js`
+  (ré-export de compatibilité conservé) ; `lib/glGlossaryMatch.js`, `lib/glQcmChoices.js`,
+  `lib/glQcmPresentationUse.js` renommés `glossaryMatch.js`, `qcmChoices.js`,
+  `qcmPresentationUse.js` — consommés par ForetMap (`routes/quiz.js`) autant que par G&L, le
+  préfixe `gl` était un piège de recherche.
+- **Badge de version G&L** enfin stylé : `.app-version-badge` vit dans la feuille partagée
+  `src/shared/styles/version-badge.css`, importée par les deux composants qui le rendent.
+- Documents d'orientation corrigés : `docs/PARTAGE_FM_GL.md` (états A2, B1, récapitulatif §9,
+  32 modules dans `lib/shared/`), `docs/GL_ARCHITECTURE.md` (rôle de `reactionEmojiCore`),
+  `docs/USERS_MIGRATION.md` (périmètre antérieur à G&L).
+
+### Audit — Convergence des applications ForetMap / Visite / GL / Plan et plan d'action final
+
+- **Nouveau document `docs/AUDIT_CONVERGENCE_APPS_2026-09.md`** (audit seul, aucun code
+  modifié) : inventaire de `src/shared/` (43 modules réellement partagés, 24 consommés par un
+  seul produit, 20 dépendances inversées vers du code produit, 6 noyaux en double ESM/CJS sans
+  synchronisation), comparaison des quatre surfaces, ce que chaque application fait de mieux
+  (bouton retour, dialogues et notifications ForetMap ; thème de marque, dock d'aide, bouton
+  d'action carte et navigation compacte GL ; transformation bornée et file hors ligne de la
+  Visite), doublons et dettes (trois systèmes de boutons, deux aides, quatre moteurs de carte,
+  réglages et caches non product-aware, écart d'échappement HTML dans le glossaire lore GL),
+  architecture cible du socle commun et **plan d'action en dix lots** qui remplace le phasage
+  de l'audit Plan Lyautey.
+
+### Audit — « Plan Lyautey » : cadrage d'un plan de repérage mobile dérivé de ForetMap
+
+- **Nouveau document `docs/AUDIT_PLAN_LYAUTEY_2026-09.md`** (audit seul, aucun code modifié) :
+  état des lieux des deux moteurs de carte, des API publiques, de la recherche et du calage GPS ;
+  douze constats d'ergonomie mobile (bornes de pan absentes, gestes incomplets, détail en modale
+  plein cadre, filtre sans tri ni légende, bug de centrage des repères `mapFocusLocation.js`) ;
+  expérience cible (carte plein écran, recherche d'abord, chips de catégories, feuille basse à
+  crans, point bleu de position, PWA) ; plan de portage en troisième produit du monorepo sur le
+  schéma GL (`plan.html` → `src/plan/`, host `planlyautey.*`, noyau carte partagé
+  `src/shared/pct-map/`) ; décisions du propriétaire intégrées et propositions détaillées :
+  fond de plan (licence), désencombrement des repères superposés, visibilité par surface,
+  « Y aller » et mode boussole, parcours, garde d'accès, service worker et manifest par
+  produit (hors ligne pour ForetMap, GL et le plan), compteur d'usage anonyme, matrice des
+  bénéfices pour chaque application ; phasage en dix lots.
+### Tâches et projets validés masqués par défaut
+
+- **Vue Tâches** : une tâche **validée** (ou rattachée à un projet validé) et un **projet
+  validé** ne sont plus rendus à l'ouverture — même principe que les archives : la section
+  « Validées » (n3boss) / « Récemment validées » (n3beur) et le bloc « Projets validés »
+  n'apparaissent que si le filtre de statut « Validée » / « Projet validé » les demande.
+  Le compteur de résultats et l'état vide tiennent compte du masquage ; la vue
+  « 📦 Archivés » continue d'afficher tout son contenu.
+- **Découvrabilité** : une ligne discrète en fin de liste annonce ce qui est masqué
+  (`TasksValidatedHiddenNotice`, nouveau) avec un bouton « Afficher les validés » qui pose
+  le filtre de statut.
+- Helpers purs `isTaskValidated` / `filterStatusShowsValidated` / `partitionTasksByValidated`
+  dans `src/utils/taskSectioning.js`.
+- Tests : `tests-ui/components/TasksValidatedHiddenNotice.test.jsx`,
+  `tests-ui/components/TasksViewValidatedHidden.test.jsx` (montage de `TasksView`) et cas
+  ajoutés dans `tests-ui/utils/taskSectioning.test.js`. Doc :
+  `docs/reference/foretmap/taches-tutoriels-et-validation.md`.
+
+### Correctif — espace mort sous la barre d'onglets n3boss
+
+- Depuis la navigation en trois pôles (D-4), les deux rangées d'onglets vivent dans
+  `.teacher-nav` mais gardaient la marge basse de l'ancienne **barre unique** : ~20 px de
+  vide entre les pôles et leurs onglets, puis ~16 px de plus avant la carte / les tâches /
+  les tutoriels. L'espacement vertical est désormais porté par le seul conteneur
+  (`gap` + marge basse de la nav), ce que la hauteur d'onglets déjà calculée par
+  `--fm-maptasks-teacher-tabs-h` supposait.
+
+### Correctif — la navigation prof s'étirait sur la moitié de l'écran
+
+- Suite du correctif ci-dessus : les marges étaient bien en cause pour ~36 px, mais le vide
+  restant venait d'ailleurs.
+- La barre de navigation prof (`.teacher-nav`, deux rangées depuis D-4) occupait **la moitié de
+  la hauteur utile** au lieu de sa hauteur de contenu : le conteneur prof porte à la fois `main`
+  et `teacher-main`, donc `.main > * { flex:1 }` lui donnait un `flex-grow:1` que le
+  `flex-shrink:0` de `.teacher-main > .teacher-nav` ne neutralisait pas. L'ancienne barre unique
+  y échappait grâce au `max-height` de `.top-tabs` ; le conteneur des deux rangées, lui, n'en a
+  pas. Mesure en 1440×900 : **398 px de conteneur pour 114 px d'onglets**, d'où l'espace mort
+  entre la rangée d'onglets et la carte / les tâches (onglet « Cartes, tâches et tuto »), et de
+  même sur les autres onglets prof. Corrigé par `flex:0 0 auto`.
+- **Volet carte du split, côté prof ET côté élève** : le `position:sticky` du volet se cale sur
+  `.desktop-split-view` (en `overflow:hidden`, donc conteneur de défilement), pas sur le
+  document — un décalage haut de la hauteur d'en-tête y poussait la carte de 56 px vers le bas
+  sans rien dégager. Décalage remis à `0` sur les deux branches ; la marge sous l'en-tête reste
+  prise en compte par `--fm-maptasks-map-max-h`.
+- Garde-fou : `tests-ui/utils/teacherNavLayoutGuard.test.js` échoue si l'une des trois
+  déclarations repart en arrière.
+
+### Correctif — mécaniques d'échéance
+
+- **`daysUntil` en jours de calendrier locaux** (`src/utils/badges.jsx`) : la puce
+  d'échéance comparait un instant (`new Date('2026-09-02')` = minuit **UTC**) à l'heure
+  locale — à l'est de Greenwich, une tâche due le jour même s'affichait « Demain » entre
+  minuit et le décalage horaire. Une valeur illisible renvoie désormais `null` (aucune puce)
+  au lieu d'un `NaN`.
+- **Notifications d'échéance n3beur** : « Échéance proche » et « Tâches en retard »
+  deviennent des avis **d'état** — clé stable et **clôture** dès que plus aucune tâche ne
+  les justifie. Avec une clé porteuse du compte, chaque variation créait un item de plus et
+  aucun n'était jamais refermé. Elles s'appuient sur `daysUntil` : une tâche due
+  **aujourd'hui** est « proche », plus « en retard » (l'ancien calcul la déclarait en retard
+  dès minuit).
+- Tests : `tests-ui/utils/daysUntil.test.js` (nouveau) et section « échéances n3beur » dans
+  `tests-ui/hooks/useNotificationCenter.test.jsx`. Doc :
+  `docs/reference/foretmap/stats-forum-et-suivi.md`.
+
+### Documentation — audit des échéances
+
+- **`docs/AUDIT_ECHEANCES_2026-09.md`** (nouveau) : inventaire de tout ce qui dépend d'une
+  date côté tâches/projets (champs, affichage, notifications, date de départ, récurrence,
+  archivage automatique, job quotidien, validation à l'écriture, tri), avec les correctifs
+  du lot et les constats laissés en l'état (fuseau du calcul de `start_date`, absence de
+  contrôle de format et de cohérence `due_date >= start_date` à l'API, `setInterval`
+  quotidien calé sur le démarrage du process).
+- **`docs/reference/foretmap/taches-tutoriels-et-validation.md`** : nouvelle section
+  « Et pendant les vacances ? » — ForetMap ne connaît aucun calendrier scolaire ; le seul
+  levier est l'interrupteur manuel de duplication des tâches récurrentes.
+
+### Couleurs de carte : une seule palette pour les zones et les catégories
+
+- **Champ couleur unifié** (`src/components/ColorPaletteField.jsx`, nouveau) : la palette
+  prédéfinie de dix teintes (`ZONE_COLORS`) est désormais proposée **à l'identique** au
+  dessin d'une zone, dans la fiche d'une zone et dans l'administration des **catégories de
+  zones/repères**. Chacun de ces trois écrans offre les mêmes trois façons de choisir :
+  pastilles de la palette, pastille de sélection du système, saisie hexadécimale directe
+  (la transparence des deux derniers caractères est conservée par le sélecteur).
+- Les pastilles de palette deviennent de vrais `<button>` (accessibles au clavier,
+  `aria-pressed`) et leurs styles passent en CSS partagé `.color-palette-field*`
+  (ex-`.map-category-color-field*`).
+- Tests : `tests-ui/components/ColorPaletteField.test.jsx` (nouveau) et cas couleur dans
+  `tests-ui/components/ZoneDrawModal.test.jsx`. Doc :
+  `docs/reference/foretmap/carte-et-zones.md`.
+
+### Contour continu pour les lieux « Infrastructure »
+
+- **Carte principale** : le contour des zones marquées « Infrastructure » (mare, ruches,
+  compostage, cuve…) est désormais tracé en **trait continu**, comme celui de toutes les
+  autres zones — le tiretage qui les distinguait est supprimé. Le reste du comportement
+  « Infrastructure » est inchangé (pas de section Biodiversité en visite, lieu jamais
+  proposé comme cible de mission ou de tutoriel).
+- Doc mise à jour : `docs/API.md` et `docs/reference/foretmap/carte-et-zones.md`.
+- Test : cas de non-régression dans `tests-ui/components/map/ZonePolygonsLayer.test.jsx`.
+
 ### Correctif — « Serveur indisponible » affiché alors que le voyant est au vert
 
 - **Notifications d'état closes à la reprise** : « Serveur indisponible — Synchronisation

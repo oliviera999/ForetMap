@@ -14,26 +14,26 @@ Ce document décrit l'architecture du second mode **Gnomes & Licornes** (GL) dan
 
 Couches **autorisées** (sans fusionner auth, thème `gl-theme` ni catalogues métier) :
 
-| Couche                | Emplacement                                                                                                        | Usage                                                                                                                                                |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Infra                 | `server.js`, `database.js`, `lib/productResolver.js`                                                               | Un serveur, isolation JWT `product`                                                                                                                  |
-| Base d'URL front      | `src/shared/appBase.js` (`API`, `withAppBase`)                                                                     | Résolution neutre du `base` Vite ; importable par ForetMap et GL sans tirer une session ni une logique 401 produit                                   |
-| Chargement ressource  | `src/hooks/useApiResource.js`                                                                                      | Hook générique `data/loading/error/reload` avec garde anti-course ; le `fetcher` reste local au produit (`api` ou `apiGL`)                           |
-| Utilitaires           | `src/utils/image.js` (`IMAGE_COMPRESSION_PRESETS`), `markdown.js`, `visitMascotState.js`, `mapViewMascotMotion.js` | ForetMap + imports depuis `src/gl/`                                                                                                                  |
-| Géométrie carte       | `src/utils/zoneGeometry.js` + réexports `visitMapGeometry.js`, `mapImageFit.js`                                    | Parsing des polygones en % et rectangle `object-fit: contain` partagés visite/biodiversité, alias historiques conservés                              |
-| Auto-liens GL         | `src/utils/glTermAutolink.js`                                                                                      | Fabrique commune glossaire SVT / glossaire lore ; rendu markdown, désinfection et classes CSS restent dans chaque module appelant                    |
-| Noyaux                | `src/shared/*`, `lib/shared/*Core.js`                                                                              | Parité front/back (cadres image, repères, etc.)                                                                                                      |
-| OAuth pur             | `lib/shared/oauthCommon.js`                                                                                        | Fonctions Google OAuth strictement pures (listes de domaines/e-mails, configuration, autorisation) ; aucune session, cookie, redirection ni claim    |
-| Helpers tâches        | `lib/tasks/taskQueries.js`                                                                                         | Cluster ForetMap partagé entre routes tâches / propositions / inscriptions ; les helpers d'écriture acceptent `dbx`/`tx` pour une transaction        |
-| Tirage QCM / lore     | `lib/gl/questionDrawShared.js`                                                                                     | Sélection commune des questions GL biome et lore, sans dupliquer la logique de pool                                                                  |
-| Packs mascotte        | `src/shared/mascot-pack/` (validation UI, preview sprite_cut), `src/utils/glMascotPackToVisit.js`                  | Studio GL + mapper `sprite_cut` → format visite                                                                                                      |
-| Miroir serveur GL     | `lib/gl-pack/mascotPack.js` via **`npm run sync:gl-pack-lib`** (enchaîné par **`npm run build`**)                  | Validation Zod `/api/gl/mascots/packs*` sans `src/`                                                                                                  |
-| Miroir serveur visite | `lib/visit-pack/` via **`npm run sync:visit-pack-lib`**                                                            | Validation packs visite                                                                                                                              |
-| Renderer mascotte     | `VisitMapMascotRenderer` via `GLMascotRenderer`                                                                    | Mascottes `foretmap` dans le plateau GL                                                                                                              |
-| Collab                | `lib/shared/contextCommentsCore.js`, `lib/shared/reactionEmojiCore.js`                                             | Routeurs fins `routes/context-comments.js` et `routes/gl/context-comments.js`                                                                        |
-| Progression lecture   | `lib/shared/learningAckCore.js`, `src/shared/components/LearningAcknowledgeButton.jsx`                             | Accusés « lu / appris / étudié » (ForêtMap tutos + GL espèces, glossaire, tutos via `routes/gl/learning.js` et table `gl_learning_acknowledgements`) |
-| Statistiques joueurs  | `lib/glPlayerStats.js`, `routes/gl/stats.js`, `src/gl/components/GLStatsView.jsx`                                  | Stats perso (`GET /api/gl/stats/me`) et collectives classe (`GET /api/gl/stats/class`, permission `gl.players.manage`) — vitalité + apprentissages   |
-| Identité / groupes    | `lib/glGroupBridge.js`, `groups` + `group_members`, `gl_classes.foretmap_group_id`                                 | Chaque classe GL a un groupe ForetMap miroir ; les nouveaux joueurs GL sont liés à `users` et membres du groupe                                      |
+| Couche                | Emplacement                                                                                                                           | Usage                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Infra                 | `server.js`, `database.js`, `lib/productResolver.js`                                                                                  | Un serveur, isolation JWT `product`                                                                                                                  |
+| Base d'URL front      | `src/shared/appBase.js` (`API`, `withAppBase`)                                                                                        | Résolution neutre du `base` Vite ; importable par ForetMap et GL sans tirer une session ni une logique 401 produit                                   |
+| Chargement ressource  | `src/hooks/useApiResource.js`                                                                                                         | Hook générique `data/loading/error/reload` avec garde anti-course ; le `fetcher` reste local au produit (`api` ou `apiGL`)                           |
+| Utilitaires           | `src/utils/image.js` (`IMAGE_COMPRESSION_PRESETS`), `markdown.js`, `visitMascotState.js`, `mapViewMascotMotion.js`                    | ForetMap + imports depuis `src/gl/`                                                                                                                  |
+| Géométrie carte       | `src/utils/zoneGeometry.js` + réexports `visitMapGeometry.js`, `mapImageFit.js`                                                       | Parsing des polygones en % et rectangle `object-fit: contain` partagés visite/biodiversité, alias historiques conservés                              |
+| Auto-liens GL         | `src/utils/glTermAutolink.js`                                                                                                         | Fabrique commune glossaire SVT / glossaire lore ; rendu markdown, désinfection et classes CSS restent dans chaque module appelant                    |
+| Noyaux                | `src/shared/*`, `lib/shared/*Core.js`                                                                                                 | Parité front/back (cadres image, repères, etc.)                                                                                                      |
+| OAuth pur             | `lib/shared/oauthCommon.js`                                                                                                           | Fonctions Google OAuth strictement pures (listes de domaines/e-mails, configuration, autorisation) ; aucune session, cookie, redirection ni claim    |
+| Helpers tâches        | `lib/tasks/taskQueries.js`                                                                                                            | Cluster ForetMap partagé entre routes tâches / propositions / inscriptions ; les helpers d'écriture acceptent `dbx`/`tx` pour une transaction        |
+| Tirage QCM / lore     | `lib/gl/questionDrawShared.js`                                                                                                        | Sélection commune des questions GL biome et lore, sans dupliquer la logique de pool                                                                  |
+| Packs mascotte        | `src/shared/mascot-pack/` (validation UI, preview sprite_cut), `src/utils/glMascotPackToVisit.js`                                     | Studio GL + mapper `sprite_cut` → format visite                                                                                                      |
+| Miroir serveur GL     | `lib/gl-pack/mascotPack.js` via **`npm run sync:gl-pack-lib`** (enchaîné par **`npm run build`**)                                     | Validation Zod `/api/gl/mascots/packs*` sans `src/`                                                                                                  |
+| Miroir serveur visite | `lib/visit-pack/` via **`npm run sync:visit-pack-lib`**                                                                               | Validation packs visite                                                                                                                              |
+| Renderer mascotte     | `VisitMapMascotRenderer` via `GLMascotRenderer`                                                                                       | Mascottes `foretmap` dans le plateau GL                                                                                                              |
+| Collab                | `lib/shared/contextCommentsCore.js` (qui s'appuie sur `lib/shared/reactionEmojiCore.js`, lui-même aussi requis par `routes/forum.js`) | Routeurs fins `routes/context-comments.js` et `routes/gl/context-comments.js`                                                                        |
+| Progression lecture   | `lib/shared/learningAckCore.js`, `src/shared/components/LearningAcknowledgeButton.jsx`                                                | Accusés « lu / appris / étudié » (ForêtMap tutos + GL espèces, glossaire, tutos via `routes/gl/learning.js` et table `gl_learning_acknowledgements`) |
+| Statistiques joueurs  | `lib/glPlayerStats.js`, `routes/gl/stats.js`, `src/gl/components/GLStatsView.jsx`                                                     | Stats perso (`GET /api/gl/stats/me`) et collectives classe (`GET /api/gl/stats/class`, permission `gl.players.manage`) — vitalité + apprentissages   |
+| Identité / groupes    | `lib/glGroupBridge.js`, `groups` + `group_members`, `gl_classes.foretmap_group_id`                                                    | Chaque classe GL a un groupe ForetMap miroir ; les nouveaux joueurs GL sont liés à `users` et membres du groupe                                      |
 
 **À ne pas mutualiser** : tables gameplay `gl_*` (hors lien groupe), RBAC JWT GL, sessions, cookies, redirections OAuth, claims, catalogue `glMascotCatalog.js` (ids `gl-*`), styles couleur GL.
 
@@ -46,13 +46,24 @@ de la v1.90.1 (récupérable dans l’historique Git). Câbler l’UI reste à f
 
 ## Routage produit
 
-- La résolution de produit se fait via `lib/productResolver.js`.
+- **Registre des produits** : `lib/products.js` (lot 1 du plan de convergence) déclare chaque
+  produit — `foret`, `gl`, `plan` (Plan Lyautey, host `planlyautey.*`) — avec ses préfixes de
+  host, son entrée HTML Vite, son dossier d'assets `public/<dir>/`, son préfixe d'API, ses
+  chemins d'authentification soumis au limiteur strict et les noms de ses fichiers PWA
+  générés. Ajouter un produit = ajouter une entrée ici.
+- La résolution de produit se fait via `lib/productResolver.js`, qui lit le registre.
 - Source de vérité :
-  - `req.hostname` (`gl.*` => produit `gl`)
-  - surcharge possible via header `X-Foretmap-Product` (tests/e2e).
-- Fallback SPA :
-  - ForetMap => `dist/index.vite.html`
-  - GL => `dist/gl.html`
+  - `req.hostname` normalisé (minuscules, sans port, sans `www.`) : premier préfixe de host du
+    registre qui correspond (`gl.` => `gl`, `planlyautey.` => `plan`), sinon `foret` ;
+  - surcharge possible via header `X-Foretmap-Product` (tests/e2e), limitée aux identifiants du
+    registre.
+- Ce que le host décide (et rien d'autre) : l'index SPA servi (`lib/spaFallback.js`, entrée
+  du produit si présente dans `dist/`, sinon `index.vite.html`), le favicon (`public/<dir>/`),
+  le service worker et le manifest PWA (`/sw.js`, `/manifest.json` → `dist/sw-<produit>.js`,
+  `dist/manifest-<produit>.webmanifest`, générés par `scripts/build-pwa.js`), et la garde qui
+  redirige vers `/` l'entrée HTML d'un produit demandée sur le host d'un autre.
+- L'isolement des sessions reste porté par le claim JWT `product` et le préfixe `/api/gl`,
+  orthogonaux au host (ci-dessous).
 
 ### Pipeline JWT et frontière produit
 

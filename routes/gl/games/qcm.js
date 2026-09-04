@@ -4,14 +4,14 @@ const { requireGlAuth, hasGlPermission } = require('../../../middleware/requireG
 const { insertGameEvent } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { getGameplaySettings } = require('../../../lib/glSettings');
-const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../../lib/glQcmChoices');
-const { consumePresentationJti } = require('../../../lib/glQcmPresentationUse');
+const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../../lib/qcmChoices');
+const { consumePresentationJti } = require('../../../lib/qcmPresentationUse');
 const { combineKeywords } = require('../../../lib/glQcmImport');
 const { combineKeywords: combineLoreKeywords } = require('../../../lib/glQcmLoreImport');
 const {
   buildGlossaryLookupMap,
   matchGlossaryTermsForSpecies,
-} = require('../../../lib/glGlossaryMatch');
+} = require('../../../lib/glossaryMatch');
 const {
   buildLoreGlossaryLookupMap,
   matchLoreGlossaryTermsForText,

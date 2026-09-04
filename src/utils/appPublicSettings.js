@@ -76,6 +76,10 @@ export function mergePublicSettings(prev, settings) {
     if (ui.visit && typeof ui.visit === 'object') {
       next.visit = { ...prev.visit, ...ui.visit };
     }
+    // Thème de marque du produit (lot 7) : `ui.foret.brand` → `foret.brand`.
+    if (ui.foret && typeof ui.foret === 'object') {
+      next.foret = { ...(prev.foret || {}), ...ui.foret };
+    }
   }
   if (settings.visit?.mascot?.dialog) {
     next.visit = {

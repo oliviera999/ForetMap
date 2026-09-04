@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.141.1",
+  "version": "1.145.1",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "engines": {
@@ -24,6 +24,7 @@
     "on-finished": "^2.4.1",
     "pdfkit": "^0.20.1",
     "pino": "^10.3.1",
+    "qrcode": "^1.5.4",
     "socket.io": "^4.8.1",
     "zod": "^4.4.3"
   },
@@ -136,7 +137,10 @@
     "mascot:pack:validate": "node scripts/mascot-pack-validate.cjs",
     "sync:visit-pack-lib": "node scripts/sync-visit-pack-server-lib.js",
     "sync:gl-pack-lib": "node scripts/sync-gl-pack-server-lib.js",
+    "sync:shared-cores": "node scripts/sync-shared-cores.js",
+    "sync:shared-cores:check": "node scripts/sync-shared-cores.js --check",
     "build": "node scripts/build-safe.js",
+    "build:pwa": "node scripts/build-pwa.js",
     "ship": "node scripts/build-ship.js",
     "preview": "vite preview",
     "deploy:prepare": "node scripts/prepare-dist-deploy.js",
@@ -150,7 +154,7 @@
     "deploy:prepare:runtime:selector:ps": "powershell -ExecutionPolicy Bypass -File scripts/prepare-runtime-deploy.ps1 -CloudlinuxSelector",
     "deploy:prepare:runtime:selector:fast:ps": "powershell -ExecutionPolicy Bypass -File scripts/prepare-runtime-deploy.ps1 -CloudlinuxSelector -SkipInstall -SkipBuild -SkipPrune",
     "deploy:check": "node scripts/post-deploy-check.js",
-    "deploy:check:prod": "node scripts/post-deploy-check.js --base-url https://foretmap.olution.info --gl-base-url https://gl.olution.info",
+    "deploy:check:prod": "node scripts/post-deploy-check.js --base-url https://foretmap.olution.info --gl-base-url https://gl.olution.info --plan-base-url https://planlyautey.olution.info",
     "deploy:check:prod:foret": "node scripts/post-deploy-check.js --base-url https://foretmap.olution.info",
     "gl:import:wp": "node scripts/gl-import-wp.js",
     "gl:import:species": "node scripts/gl-import-species.js",

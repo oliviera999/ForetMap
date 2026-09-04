@@ -23,8 +23,7 @@ import {
   tutorialPreviewPayload,
   tutorialPreviewCanEmbed,
 } from './TutorialPreviewModal';
-import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
-import { computeMapImageContainRect, resolveMapStageClientBox } from '../utils/mapImageFit';
+import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import { visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
 import { VisitDetailPanel } from './visit/VisitDetailPanel.jsx';
@@ -39,9 +38,7 @@ import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
   getVisitMascotVisibilityReason,
 } from '../utils/visitMascotVisibility.js';
-import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
-import { clampVisitMapTransform, zoomVisitTransformToScale } from '../utils/visitMapTransform.js';
-import { pointToContainedRectPct } from '../shared/pct-map/pctMapPointer.js';
+import { usePctMapViewport } from '../shared/pct-map/usePctMapViewport.js';
 import { useMapFullscreen } from '../shared/hooks/useMapFullscreen.js';
 import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx';
 import { VisitMapMascot } from './VisitMapMascot.jsx';
@@ -54,20 +51,18 @@ import {
   computeVisitCartographyProgress,
   buildVisitNetworkStatusLabel,
 } from '../utils/visitViewStatus.js';
-import { useVisitMapTransform } from '../hooks/useVisitMapTransform.js';
 import { useVisitContent } from '../hooks/useVisitContent.js';
 import { useVisitSeenSync } from '../hooks/useVisitSeenSync.js';
 import { useVisitMapMascotController } from '../hooks/useVisitMapMascotController.js';
 // Import direct (même défaut useOverlayHistory=false que l'ancien wrapper Lightbox
 // de map-views) : évite de tirer tout le graphe carte dans le chunk visite.
 import { ImageLightbox } from '../shared/components/ImageLightbox.jsx';
-import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../utils/browserStorage.js';
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageSetItem,
+} from '../shared/platform/browserStorage.js';
 import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { IconVisit } from '../shared/icons.jsx';
-
-function pointToPct(event, stageEl, transform = { x: 0, y: 0, s: 1 }, fit = null) {
-  return pointToContainedRectPct(event, stageEl, transform, fit, { clamp: true, decimals: 2 });
-}
 
 function VisitViewImpl({
   student = null,
@@ -165,44 +160,6 @@ function VisitViewImpl({
     media.addEventListener('change', update);
     return () => media.removeEventListener('change', update);
   }, []);
-  const stageRef = useRef(null);
-  // Calque monde + minuterie de retombée : `will-change: transform` actif pendant les
-  // gestes (fluidité), retiré au repos pour que le contenu se re-pixellise net à l'échelle
-  // affichée (sinon texte/emojis flous en zoomant, cf. MapView).
-  const visitWorldRef = useRef(null);
-  const visitWillChangeTimerRef = useRef(null);
-  const dragRef = useRef({
-    active: false,
-    moved: false,
-    pointerId: null,
-    startClientX: 0,
-    startClientY: 0,
-    baseX: 0,
-    baseY: 0,
-  });
-  const skipClickRef = useRef(false);
-  const pinchRef = useRef({
-    active: false,
-    dist: 0,
-    startScale: 1,
-    startX: 0,
-    startY: 0,
-    midX: 0,
-    midY: 0,
-  });
-  // Pan/zoom : pendant un geste, la valeur vit dans `mapTransformLiveRef` et est appliquée
-  // impérativement sur `visitWorldRef` (aucun re-render par frame) ; l'état React
-  // `mapTransform` (lu par le rendu et la typographie des zones) n'est resynchronisé
-  // qu'en fin de geste — cf. useVisitMapTransform (pattern useMapGestures).
-  const {
-    transform: mapTransform,
-    liveRef: mapTransformLiveRef,
-    applyLive: applyLiveMapTransform,
-    setLive: setLiveMapTransform,
-    commit: commitMapTransform,
-    scheduleCommit: scheduleMapTransformCommit,
-  } = useVisitMapTransform(visitWorldRef);
-  const visitZoomAnimRafRef = useRef(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const {
     isHelpEnabled,
@@ -284,24 +241,45 @@ function VisitViewImpl({
   }, [mapId, currentMap?.map_image_url]);
   const visitMapImageSrc =
     visitMapImageCandidates[Math.min(visitMapImageIdx, visitMapImageCandidates.length - 1)];
-  const imgRef = useRef(null);
-  const [visitImgNatural, setVisitImgNatural] = useState({ w: 0, h: 0 });
-  const [visitMapFit, setVisitMapFit] = useState({ offsetX: 0, offsetY: 0, width: 0, height: 0 });
-  const visitImmersionRef = useRef(visitImmersion);
-  visitImmersionRef.current = visitImmersion;
-
-  const applyVisitMapFit = useCallback(
-    (stageEl, { fullscreen = visitImmersionRef.current } = {}) => {
-      if (!stageEl) return;
-      const { cw, ch } = resolveMapStageClientBox(stageEl, { fullscreen });
-      setVisitMapFit(computeMapImageContainRect(visitImgNatural.w, visitImgNatural.h, cw, ch));
-    },
-    [visitImgNatural.w, visitImgNatural.h],
+  const canPanAndZoom = mode === 'view';
+  /**
+   * Moteur de carte partagé (lot 2) en mode « scène » : le calque monde mesure la scène, l'image
+   * est en `object-fit: contain` dans le calque « fit » (`visitMapFit`). Le moteur porte pan,
+   * molette, pinch + déplacement, double-tap, inertie et bornes : à l'échelle ≥ 1 les bornes sont
+   * celles de l'ancien `visitMapTransform.js` (jamais de bord visible) ; le dézoom est désormais
+   * possible jusqu'à 0,5× (plan centré dans le cadre). Pendant un geste la valeur vit dans
+   * `mapTransformLiveRef` (aucun re-render) ; `mapTransform` (état) n'est resynchronisé qu'en
+   * fin de geste.
+   */
+  const isVisitGestureTarget = useCallback(
+    (target) => Boolean(target?.closest?.('.visit-map-controls')),
+    [],
   );
+  const {
+    containerRef: stageRef,
+    worldRef: visitWorldRef,
+    imgRef,
+    committed: mapTransform,
+    imgSize: visitImgNatural,
+    fitRect: visitMapFit,
+    consumeSkipClick,
+    fitMap,
+    fitMapAnimated,
+    zoomBy,
+    toImagePct,
+    touchAction: visitStageTouchAction,
+  } = usePctMapViewport({
+    imageSrc: visitMapImageSrc,
+    contentMode: 'stage',
+    enabled: canPanAndZoom,
+    onResize: 'clamp',
+    resetKey: mapId,
+    isGestureTarget: isVisitGestureTarget,
+  });
+  const visitMapImageReady = visitImgNatural.w > 1 && visitImgNatural.h > 1;
+  /** Rect « contain » courant en lecture impérative (contrôleur de la mascotte). */
   const visitMapFitRef = useRef(visitMapFit);
   visitMapFitRef.current = visitMapFit;
-  const visitMapImageReady = visitImgNatural.w > 0 && visitImgNatural.h > 0;
-  const canPanAndZoom = mode === 'view';
 
   // Mascotte du plan : états, minuteries, placement par carte, dialogues et
   // interactions data-driven regroupés dans le contrôleur dédié (timings identiques).
@@ -389,118 +367,6 @@ function VisitViewImpl({
     mapTextSizePercent,
   ]);
 
-  const clampTransform = useCallback((next, rectLike = null) => {
-    const stage = stageRef.current;
-    const rect = rectLike || (stage ? stage.getBoundingClientRect() : null);
-    return clampVisitMapTransform(next, rect);
-  }, []);
-
-  /** @returns {boolean} true si une animation de zoom était en cours (annulée). */
-  const cancelVisitZoomAnim = useCallback(() => {
-    if (visitZoomAnimRafRef.current != null) {
-      cancelAnimationFrame(visitZoomAnimRafRef.current);
-      visitZoomAnimRafRef.current = null;
-      return true;
-    }
-    return false;
-  }, []);
-
-  /**
-   * Marque une interaction (pan/zoom) en cours : pose `will-change: transform` pour la fluidité,
-   * puis programme son retrait après une courte inactivité pour que le calque se re-pixellise net.
-   */
-  const markVisitInteracting = useCallback(() => {
-    const el = visitWorldRef.current;
-    if (el) el.style.willChange = 'transform';
-    if (visitWillChangeTimerRef.current) clearTimeout(visitWillChangeTimerRef.current);
-    visitWillChangeTimerRef.current = setTimeout(() => {
-      visitWillChangeTimerRef.current = null;
-      const node = visitWorldRef.current;
-      if (node) node.style.willChange = 'auto';
-    }, 180);
-  }, []);
-
-  const zoomAroundClientPoint = useCallback(
-    (clientX, clientY, factor) => {
-      const stage = stageRef.current;
-      if (!stage) return;
-      const rect = stage.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
-      const prev = mapTransformLiveRef.current;
-      setLiveMapTransform(
-        zoomVisitTransformToScale(
-          prev,
-          clientX - rect.left,
-          clientY - rect.top,
-          prev.s * factor,
-          rect,
-        ),
-      );
-    },
-    [mapTransformLiveRef, setLiveMapTransform],
-  );
-
-  /** Boutons +/− : interpolation courte ; molette : `wheelZoomScaleFactor`. */
-  const zoomFromCenterAnimated = useCallback(
-    (factor) => {
-      const stage = stageRef.current;
-      if (!stage) return;
-      const rect = stage.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
-      cancelVisitZoomAnim();
-      const px = rect.width / 2;
-      const py = rect.height / 2;
-      const start = { ...mapTransformLiveRef.current };
-      const target = zoomVisitTransformToScale(start, px, py, start.s * factor, rect);
-
-      if (prefersReducedMotion) {
-        commitMapTransform(target);
-        return;
-      }
-
-      const duration = 200;
-      const fromS = start.s;
-      const toS = target.s;
-      const t0 = performance.now();
-      const easeOutCubic = (u) => 1 - (1 - u) ** 3;
-      const step = (now) => {
-        const t = Math.min(1, (now - t0) / duration);
-        const u = easeOutCubic(t);
-        const curS = fromS + (toS - fromS) * u;
-        markVisitInteracting();
-        // Frame d'animation : application impérative directe (déjà sous rAF), sans re-render.
-        mapTransformLiveRef.current = zoomVisitTransformToScale(start, px, py, curS, rect);
-        applyLiveMapTransform();
-        if (t < 1) {
-          visitZoomAnimRafRef.current = requestAnimationFrame(step);
-        } else {
-          visitZoomAnimRafRef.current = null;
-          commitMapTransform(target);
-        }
-      };
-      visitZoomAnimRafRef.current = requestAnimationFrame(step);
-    },
-    [
-      prefersReducedMotion,
-      cancelVisitZoomAnim,
-      markVisitInteracting,
-      mapTransformLiveRef,
-      applyLiveMapTransform,
-      commitMapTransform,
-    ],
-  );
-
-  const resetMapTransform = useCallback(() => {
-    cancelVisitZoomAnim();
-    commitMapTransform({ x: 0, y: 0, s: 1 });
-  }, [cancelVisitZoomAnim, commitMapTransform]);
-
-  const consumeSkipClick = useCallback(() => {
-    if (!skipClickRef.current) return false;
-    skipClickRef.current = false;
-    return true;
-  }, []);
-
   /** Clic zone (calque SVG mémoïsé) : identité stable hors changement de `mode`. */
   const onVisitZoneClick = useCallback(
     (z, event) => {
@@ -564,14 +430,11 @@ function VisitViewImpl({
     ],
   );
 
+  // Changement de carte : le moteur réajuste la vue (`resetKey`), la vue repasse en consultation.
   useEffect(() => {
-    resetMapTransform();
-    skipClickRef.current = false;
-    dragRef.current.active = false;
-    dragRef.current.moved = false;
     setDrawPoints([]);
     setMode('view');
-  }, [mapId, resetMapTransform]);
+  }, [mapId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -582,61 +445,19 @@ function VisitViewImpl({
     return () => mq.removeEventListener('change', apply);
   }, []);
 
-  useEffect(
-    () => () => {
-      cancelVisitZoomAnim();
-    },
-    [cancelVisitZoomAnim],
-  );
-
-  /** Dimensions naturelles : synchro cache (complete) + reset si pas encore décodé (évite % faux avant onLoad). */
-  useLayoutEffect(() => {
-    const el = imgRef.current;
-    if (!el) return;
-    if (el.complete && el.naturalWidth > 0 && el.naturalHeight > 0) {
-      setVisitImgNatural({ w: el.naturalWidth, h: el.naturalHeight });
-    } else {
-      setVisitImgNatural({ w: 0, h: 0 });
-    }
-  }, [visitMapImageSrc]);
-
-  useEffect(() => {
-    const stage = stageRef.current;
-    if (!stage || typeof ResizeObserver === 'undefined') return undefined;
-    const run = () => applyVisitMapFit(stage, { fullscreen: visitImmersionRef.current });
-    run();
-    const ro = new ResizeObserver(() => run());
-    ro.observe(stage);
-    return () => ro.disconnect();
-  }, [applyVisitMapFit, mapId, visitImmersion]);
-
+  // Immersion (plein écran) : réajustement une fois le portail posé (double rAF, comme avant).
   useLayoutEffect(() => {
     if (!visitImmersion) return undefined;
-    const stage = stageRef.current;
-    if (!stage) return undefined;
-    const measure = () => {
-      applyVisitMapFit(stage, { fullscreen: true });
-      commitMapTransform({ x: 0, y: 0, s: 1 });
-    };
-    measure();
+    fitMap();
     let innerRaf = null;
     const outerRaf = requestAnimationFrame(() => {
-      innerRaf = requestAnimationFrame(measure);
+      innerRaf = requestAnimationFrame(() => fitMap());
     });
     return () => {
       cancelAnimationFrame(outerRaf);
       if (innerRaf != null) cancelAnimationFrame(innerRaf);
     };
-  }, [visitImmersion, applyVisitMapFit, commitMapTransform]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    const onResize = () => {
-      commitMapTransform(clampTransform(mapTransformLiveRef.current));
-    };
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [clampTransform, commitMapTransform, mapTransformLiveRef]);
+  }, [visitImmersion, fitMap]);
 
   // Progression « vu » (online/offline) : états + effets orchestrés par le hook dédié ;
   // loadData (useVisitContent) lui transmet la progression serveur via applyServerProgressRef.
@@ -719,8 +540,7 @@ function VisitViewImpl({
   const onMapClick = async (event) => {
     if (consumeSkipClick()) return;
     if (!visitMapImageReady) return;
-    const stage = event.currentTarget;
-    const p = pointToPct(event, stage, mapTransformLiveRef.current, visitMapFit);
+    const p = toImagePct(event.clientX, event.clientY, { clamp: true, decimals: 2 });
     if (!p) return;
 
     /* Clic sur le fond du plan (hors zone/repère : stopPropagation côté SVG/boutons) : déplace la mascotte — élève et prof en mode vue. */
@@ -758,205 +578,6 @@ function VisitViewImpl({
       }
     }
   };
-
-  const onStagePointerDown = (event) => {
-    if (!canPanAndZoom) return;
-    // Zoom animé interrompu : fige l'état sur la valeur vive, sinon un re-render ultérieur
-    // ramènerait visuellement la carte à l'état commité d'avant l'animation.
-    if (cancelVisitZoomAnim()) commitMapTransform();
-    if (
-      event.target.closest('.visit-map-controls') ||
-      event.target.closest('.visit-zone-hit') ||
-      event.target.closest('.visit-marker-btn')
-    )
-      return;
-    const stage = stageRef.current;
-    if (!stage) return;
-    dragRef.current = {
-      active: true,
-      moved: false,
-      pointerId: event.pointerId,
-      startClientX: event.clientX,
-      startClientY: event.clientY,
-      baseX: mapTransformLiveRef.current.x,
-      baseY: mapTransformLiveRef.current.y,
-    };
-    try {
-      stage.setPointerCapture(event.pointerId);
-    } catch (_) {}
-  };
-
-  const onStagePointerMove = (event) => {
-    const drag = dragRef.current;
-    if (!drag.active || !canPanAndZoom) return;
-    const stage = stageRef.current;
-    if (!stage) return;
-    const rect = stage.getBoundingClientRect();
-    const dx = event.clientX - drag.startClientX;
-    const dy = event.clientY - drag.startClientY;
-    const hasMoved = Math.hypot(dx, dy) > 4;
-    if (hasMoved) {
-      drag.moved = true;
-      skipClickRef.current = true;
-      markVisitInteracting();
-    }
-    const next = clampTransform(
-      { x: drag.baseX + dx, y: drag.baseY + dy, s: mapTransformLiveRef.current.s },
-      rect,
-    );
-    // Frame de drag : ref + style impératif sous rAF, sans re-render (commit au pointerup).
-    setLiveMapTransform(next);
-    if (drag.moved) event.preventDefault();
-  };
-
-  const onStagePointerUp = (event) => {
-    const drag = dragRef.current;
-    if (!drag.active) return;
-    const stage = stageRef.current;
-    if (stage && drag.pointerId != null) {
-      try {
-        stage.releasePointerCapture(drag.pointerId);
-      } catch (_) {}
-    }
-    dragRef.current = {
-      active: false,
-      moved: drag.moved,
-      pointerId: null,
-      startClientX: 0,
-      startClientY: 0,
-      baseX: 0,
-      baseY: 0,
-    };
-    if (drag.moved) {
-      setTimeout(() => {
-        skipClickRef.current = false;
-      }, 0);
-    }
-    if (pinchRef.current.active) {
-      pinchRef.current.active = false;
-    }
-    // Fin de drag : fige la valeur vive dans l'état React (un seul re-render par geste ;
-    // aucun re-render si rien n'a bougé, cf. garde d'égalité du commit).
-    commitMapTransform();
-    if (event && drag.moved) event.preventDefault();
-  };
-
-  const onStageWheel = (event) => {
-    if (!canPanAndZoom) return;
-    event.preventDefault();
-    cancelVisitZoomAnim();
-    markVisitInteracting();
-    const stage = stageRef.current;
-    const factor = wheelZoomScaleFactor(event, { containerClientHeight: stage?.clientHeight });
-    zoomAroundClientPoint(event.clientX, event.clientY, factor);
-    // Molette : commit débouncé (80 ms) en fin de rafale, comme useMapGestures.
-    scheduleMapTransformCommit();
-  };
-
-  const onStageTouchStart = (event) => {
-    if (!canPanAndZoom) return;
-    cancelVisitZoomAnim();
-    if (event.touches.length !== 2) return;
-    const stage = stageRef.current;
-    if (!stage) return;
-    const t0 = event.touches[0];
-    const t1 = event.touches[1];
-    const rect = stage.getBoundingClientRect();
-    pinchRef.current = {
-      active: true,
-      dist: Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY),
-      startScale: mapTransformLiveRef.current.s,
-      startX: mapTransformLiveRef.current.x,
-      startY: mapTransformLiveRef.current.y,
-      midX: (t0.clientX + t1.clientX) / 2 - rect.left,
-      midY: (t0.clientY + t1.clientY) / 2 - rect.top,
-    };
-    dragRef.current.active = false;
-    skipClickRef.current = true;
-    event.preventDefault();
-  };
-
-  const onStageTouchMove = (event) => {
-    if (!canPanAndZoom) return;
-    if (!pinchRef.current.active || event.touches.length !== 2) return;
-    const stage = stageRef.current;
-    if (!stage) return;
-    const t0 = event.touches[0];
-    const t1 = event.touches[1];
-    const dist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
-    const rect = stage.getBoundingClientRect();
-    const pinch = pinchRef.current;
-    markVisitInteracting();
-    const next = zoomVisitTransformToScale(
-      { x: pinch.startX, y: pinch.startY, s: pinch.startScale },
-      pinch.midX,
-      pinch.midY,
-      pinch.startScale * (dist / Math.max(1, pinch.dist)),
-      rect,
-    );
-    // Frame de pinch : ref + style impératif sous rAF, sans re-render (commit en fin de pinch).
-    setLiveMapTransform(next);
-    event.preventDefault();
-  };
-
-  const onStageTouchEnd = () => {
-    if (pinchRef.current.active) {
-      pinchRef.current.active = false;
-      // Fin de pinch : le rendu React se resynchronise sur la valeur vive.
-      commitMapTransform();
-    }
-  };
-
-  /** React enregistre wheel / touch / pointermove comme passifs : `preventDefault` échoue sans `{ passive: false }` (cf. `map-views.jsx`). */
-  const visitStageInteractionRef = useRef({});
-  visitStageInteractionRef.current = {
-    onStagePointerDown,
-    onStagePointerMove,
-    onStagePointerUp,
-    onStageWheel,
-    onStageTouchStart,
-    onStageTouchMove,
-    onStageTouchEnd,
-  };
-
-  useLayoutEffect(() => {
-    if (loading) return undefined;
-    const el = stageRef.current;
-    if (!el) return undefined;
-
-    const r = visitStageInteractionRef;
-    const pd = (e) => r.current.onStagePointerDown(e);
-    const pm = (e) => r.current.onStagePointerMove(e);
-    const pu = (e) => r.current.onStagePointerUp(e);
-    const wh = (e) => r.current.onStageWheel(e);
-    const ts = (e) => r.current.onStageTouchStart(e);
-    const tm = (e) => r.current.onStageTouchMove(e);
-    const te = () => r.current.onStageTouchEnd();
-
-    el.addEventListener('pointerdown', pd, { passive: true });
-    el.addEventListener('pointermove', pm, { passive: false });
-    el.addEventListener('pointerup', pu, { passive: false });
-    el.addEventListener('pointercancel', pu, { passive: false });
-    el.addEventListener('pointerleave', pu, { passive: false });
-    el.addEventListener('wheel', wh, { passive: false });
-    el.addEventListener('touchstart', ts, { passive: false });
-    el.addEventListener('touchmove', tm, { passive: false });
-    el.addEventListener('touchend', te, { passive: true });
-    el.addEventListener('touchcancel', te, { passive: true });
-
-    return () => {
-      el.removeEventListener('pointerdown', pd);
-      el.removeEventListener('pointermove', pm);
-      el.removeEventListener('pointerup', pu);
-      el.removeEventListener('pointercancel', pu);
-      el.removeEventListener('pointerleave', pu);
-      el.removeEventListener('wheel', wh);
-      el.removeEventListener('touchstart', ts);
-      el.removeEventListener('touchmove', tm);
-      el.removeEventListener('touchend', te);
-      el.removeEventListener('touchcancel', te);
-    };
-  }, [loading]);
 
   useEffect(() => {
     if (!selected || visitMediaLightbox || visitTutorialPreview) return undefined;
@@ -1081,16 +702,10 @@ function VisitViewImpl({
                         : canPanAndZoom
                           ? 'grab'
                           : 'default',
-                  touchAction: canPanAndZoom ? 'none' : 'auto',
+                  touchAction: visitStageTouchAction,
                 }}
               >
-                <div
-                  ref={visitWorldRef}
-                  className="visit-map-world"
-                  style={{
-                    transform: `translate(${mapTransform.x}px, ${mapTransform.y}px) scale(${mapTransform.s})`,
-                  }}
-                >
+                <div ref={visitWorldRef} className="visit-map-world">
                   <div
                     className="visit-map-fit-layer"
                     style={{
@@ -1114,10 +729,7 @@ function VisitViewImpl({
                       src={visitMapImageSrc}
                       alt={`Plan ${currentMap?.label || 'Forêt'}`}
                       className="visit-map-img"
-                      onLoad={(e) => {
-                        const el = e.currentTarget;
-                        setVisitImgNatural({ w: el.naturalWidth || 0, h: el.naturalHeight || 0 });
-                      }}
+                      draggable={false}
                       onError={() =>
                         setVisitMapImageIdx((idx) =>
                           idx < visitMapImageCandidates.length - 1 ? idx + 1 : idx,
@@ -1161,9 +773,9 @@ function VisitViewImpl({
                   </div>
                 </div>
                 <VisitMapZoomControls
-                  onZoomIn={() => zoomFromCenterAnimated(1.2)}
-                  onZoomOut={() => zoomFromCenterAnimated(0.84)}
-                  onReset={resetMapTransform}
+                  onZoomIn={() => zoomBy(1.2)}
+                  onZoomOut={() => zoomBy(0.84)}
+                  onReset={fitMapAnimated}
                 />
               </div>
               {!selected ? (

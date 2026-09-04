@@ -14,7 +14,7 @@ import { allowedMapIdsForScope, pickDefaultMapId, resolveScopedMapId } from '../
 import { mapsForAffiliationScope } from '../utils/mapAffiliation';
 import { keepPrevIfEqual } from '../utils/stableCollection';
 import { partitionByArchived } from '../utils/taskArchive';
-import { safeLocalStorageGetItem } from '../utils/browserStorage.js';
+import { safeLocalStorageGetItem } from '../shared/platform/browserStorage.js';
 
 /** Référence stable partagée par tous les états « pas de carte » (évite un re-render inutile). */
 const DEFAULT_MAPS = [];

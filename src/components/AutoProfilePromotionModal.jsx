@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
+import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { DialogShell } from './DialogShell';
 
 /**

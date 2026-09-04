@@ -6,7 +6,7 @@ import {
   saveLegacyStudentSnapshot,
   saveStoredSession,
 } from '../services/api';
-import { safeLocalStorageSetItem } from '../utils/browserStorage.js';
+import { safeLocalStorageSetItem } from '../shared/platform/browserStorage.js';
 import { resolveOauthErrorMessage, decodeBase64UrlJson } from '../utils/appShellHelpers';
 
 /**

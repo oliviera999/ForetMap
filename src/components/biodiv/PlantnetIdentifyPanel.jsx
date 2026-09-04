@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { api } from '../../services/api';
-import { compressImageWithPreset } from '../../utils/image';
-import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../../utils/overlayHistory';
+import { compressImageWithPreset } from '../../shared/platform/image';
+import {
+  armNativeFilePickerGuard,
+  disarmNativeFilePickerGuard,
+} from '../../shared/platform/overlayHistory';
 import {
   buildPlantnetIdentifyImages,
   filterNonEmptyIdentifySlots,

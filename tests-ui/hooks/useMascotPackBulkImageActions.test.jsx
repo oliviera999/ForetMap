@@ -3,14 +3,14 @@ import { act, renderHook } from '@testing-library/react';
 
 import { useMascotPackBulkImageActions } from '../../src/components/mascot/useMascotPackBulkImageActions.js';
 import { api, AccountDeletedError } from '../../src/services/api';
-import { fileToPngDataUrl } from '../../src/utils/image.js';
+import { fileToPngDataUrl } from '../../src/shared/platform/image.js';
 
 vi.mock('../../src/services/api', () => {
   class MockAccountDeletedError extends Error {}
   return { api: vi.fn(), AccountDeletedError: MockAccountDeletedError };
 });
 
-vi.mock('../../src/utils/image.js', () => ({
+vi.mock('../../src/shared/platform/image.js', () => ({
   fileToPngDataUrl: vi.fn().mockResolvedValue('data:image/png;base64,MOCK'),
 }));
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fileToDataUrl } from '../../utils/fileToDataUrl.js';
+import { fileToDataUrl } from '../platform/fileToDataUrl.js';
 import { buildExportQuery, buildQuestionsListQuery } from './qcmCatalogPanelQuery.js';
 import { QcmPreviewModal } from './QcmPreviewModal.jsx';
 
@@ -37,6 +37,7 @@ export function QcmCatalogPanel({
   loreGlossaryLinkItems = [],
   onOpenGlossaryTerm,
   onOpenLoreTerm,
+  glossaryUi = null,
 }) {
   const {
     section = 'gl-admin-section fade-in',
@@ -388,6 +389,7 @@ export function QcmCatalogPanel({
         loreGlossaryLinkItems={loreGlossaryLinkItems}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
         onOpenLoreTerm={onOpenLoreTerm}
+        glossaryUi={glossaryUi}
       />
     </section>
   );

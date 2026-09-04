@@ -1,4 +1,5 @@
 import { GLBoardActionButton } from './GLBoardActionButton.jsx';
+import { IconClose } from '../../shared/icons.jsx';
 import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
 import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';
 import { GLBoardTurnHud } from './GLBoardTurnHud.jsx';
@@ -36,15 +37,19 @@ export function GLBoardChrome({
   return (
     <>
       {mapFullscreen ? (
-        <GLBoardActionButton
-          role="display"
-          className="gl-map-fullscreen-close"
-          icon="✕"
-          label="Fermer"
-          testId="gl-map-fullscreen-close"
-          ariaLabel="Quitter le plein écran"
-          onClick={onCloseFullscreen}
-        />
+        // Le bouton est enrobé par l'infobulle (`.fm-tooltip-wrap`, positionnée) : c'est
+        // ce logement qui se place en haut à droite du plateau, pas le bouton lui-même.
+        <div className="gl-map-fullscreen-close-slot">
+          <GLBoardActionButton
+            role="display"
+            className="gl-map-fullscreen-close"
+            icon={<IconClose size={16} />}
+            label="Fermer"
+            testId="gl-map-fullscreen-close"
+            ariaLabel="Quitter le plein écran"
+            onClick={onCloseFullscreen}
+          />
+        </div>
       ) : null}
 
       {virtualDiceEnabled && gameId ? (

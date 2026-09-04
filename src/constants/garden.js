@@ -81,6 +81,12 @@ export const TREE_DOTS = [
   { n: 14, x: 262, y: 348 },
 ];
 
+/**
+ * Palette prédéfinie proposée partout où l'on choisit une couleur de carte :
+ * zones (création et fiche) **et** catégories de zones/repères — via
+ * `components/ColorPaletteField.jsx`. Alpha `90` (≈ 56 %) pour que le plan
+ * reste lisible sous le remplissage.
+ */
 export const ZONE_COLORS = [
   '#86efac90',
   '#fde04790',

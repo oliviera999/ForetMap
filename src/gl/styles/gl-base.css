@@ -71,84 +71,15 @@ button {
   }
 }
 
-/* Bannières aperçu rôle / impersonation (partagées avec ForetMap) */
-.role-preview-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin: 0 12px 0;
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(245, 158, 11, 0.45);
-  background: rgba(255, 251, 235, 0.96);
-  color: #78350f;
-  font-size: var(--text-sm);
-  line-height: 1.35;
-  flex-shrink: 0;
-}
-
-.role-preview-banner--teacher {
-  border-color: rgba(59, 130, 246, 0.38);
-  background: rgba(239, 246, 255, 0.96);
-  color: #1e3a8a;
-}
-
-.role-preview-banner--impersonation {
-  border-color: rgba(234, 88, 12, 0.5);
-  background: rgba(255, 247, 237, 0.98);
-  color: #9a3412;
-  flex-wrap: wrap;
-}
-
-.role-preview-banner--impersonation .impersonation-banner-actions {
-  margin-left: auto;
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.role-preview-banner__icon {
-  flex-shrink: 0;
-  font-size: var(--text-md);
-  line-height: var(--lh-tight);
-}
-
-.role-preview-banner__text {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.role-preview-banner__text strong {
-  font-size: var(--text-sm);
-}
+/* Bannières aperçu rôle / impersonation : shared/styles/role-preview-banner.css (commune). */
 
 :root {
   /* Un seul ordre de pile emoji (aligné sur src/index.css) : 'ForetMapColorEmoji' avant les
-     polices système, téléchargement borné aux emojis par l'unicode-range du @font-face. */
+     polices système, téléchargement borné aux emojis par l'unicode-range du @font-face.
+     Seule --font-sans est propre au produit : --font-emoji-stack, --font-sans-with-emoji et
+     les tokens typographiques communs (--text-*, --fw-*, --lh-*, --ink-*) viennent de
+     src/shared/styles/typography-tokens.css, importée par src/gl/main.jsx avant cette feuille
+     (les pages G&L ne chargent pas index.css). */
   --font-sans:
     'Caudex', 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', serif;
-  --font-emoji-stack:
-    'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
-  --font-sans-with-emoji: var(--font-sans);
-  /* Tokens typographiques communs (mêmes valeurs que src/index.css) : les feuilles GL et
-     partagées les consomment, et les pages GL ne chargent pas index.css. */
-  --text-2xs: clamp(0.58rem, 0.55rem + 0.15vw, 0.64rem);
-  --text-xs: clamp(0.68rem, 0.64rem + 0.2vw, 0.74rem);
-  --text-sm: clamp(0.78rem, 0.72rem + 0.25vw, 0.86rem);
-  --text-base: clamp(0.88rem, 0.82rem + 0.3vw, 1rem);
-  --text-md: clamp(1rem, 0.94rem + 0.3vw, 1.1rem);
-  --text-lg: clamp(1.1rem, 1rem + 0.5vw, 1.3rem);
-  --text-xl: clamp(1.3rem, 1.15rem + 0.75vw, 1.6rem);
-  --text-2xl: clamp(1.6rem, 1.4rem + 1vw, 2rem);
-  --fw-regular: 400;
-  --fw-medium: 500;
-  --fw-semibold: 600;
-  --fw-bold: 700;
-  --lh-tight: 1.2;
-  --lh-normal: 1.45;
-  --lh-relaxed: 1.6;
-  --ink-soft: #64748b;
-  --ink-faint: #8a94a0;
 }

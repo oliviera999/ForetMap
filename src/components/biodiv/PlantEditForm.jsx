@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { api } from '../../services/api';
 import { PLANT_EMOJIS } from '../../constants/emojis';
-import { compressImageWithPreset } from '../../utils/image';
-import { disarmNativeFilePickerGuard } from '../../utils/overlayHistory';
+import { compressImageWithPreset } from '../../shared/platform/image';
+import { disarmNativeFilePickerGuard } from '../../shared/platform/overlayHistory';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { PLANT_PHOTO_FIELD_OPTIONS } from '../../constants/plantMetaSections.js';
 import {

@@ -1,0 +1,19 @@
+/* =====================================================================
+ * Tokens d'espacement et de cible tactile — feuille COMMUNE ForetMap + Gnomes & Licornes
+ * (lot 3 du plan de convergence). Chargée par `src/index.css` (@import) et `src/gl/main.jsx`.
+ *
+ * L'échelle vient de G&L (`--gl-space-1..6`, `--gl-tap-target`), qui en garde des alias
+ * dans `gl-theme.css` ; ForetMap déclarait ses marges en littéraux. Un token commun ne se
+ * déclare qu'ici.
+ * ===================================================================== */
+
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  /* Convention projet : cible tactile >= 44 px. */
+  --tap-target: 44px;
+}

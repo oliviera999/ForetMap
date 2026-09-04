@@ -4,7 +4,7 @@ const { withTransaction } = require('../../database');
 const { nowIsoUtc } = require('../../lib/shared/isoTimestamp');
 const { deleteFile, writeBufferToDisk } = require('../../lib/uploads');
 const asyncHandler = require('../../lib/asyncHandler');
-const { logAudit } = require('../audit');
+const { logAudit } = require('../../lib/auditLog');
 const { emitTasksChanged } = require('../../lib/realtime');
 const { syncTaskSpecies } = require('../../lib/speciesJunction');
 // Helpers du cluster « tasks » mutualisés dans lib/tasks/taskQueries.js (aucun import circulaire).

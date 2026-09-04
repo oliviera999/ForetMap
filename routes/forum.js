@@ -14,7 +14,7 @@ const {
   createCooldownChecker,
   studentParticipationAllowed,
 } = require('../lib/shared/participationGuards');
-const { logAudit } = require('./audit');
+const { logAudit } = require('../lib/auditLog');
 const {
   getUserAccessibleGroupIds,
   canBypassGroupScope,

@@ -1,9 +1,15 @@
 import { useCallback, useState } from 'react';
+import {
+  SURFACE_OPTIONS,
+  SurfaceVisibilityField,
+  normalizeSurfaceList,
+} from '../../shared/ui/SurfaceVisibilityField.jsx';
 
 import { api } from '../../services/api';
 import { useApiResource } from '../../hooks/useApiResource.js';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
-import { applyPickedHexColor, colorPickerValue } from '../../utils/hexColorWithAlpha.js';
+import { ColorPaletteField } from '../ColorPaletteField.jsx';
+import { ZONE_COLORS } from '../../constants/garden';
 import { IconDelete } from '../../shared/icons.jsx';
 
 const APPLIES_TO_LABELS = {
@@ -12,14 +18,24 @@ const APPLIES_TO_LABELS = {
   marker: 'Repères seuls',
 };
 
+/** « · Plan masqué » etc. : surfaces retirées à la catégorie (aucun texte si les trois). */
+function surfaceSummary(cat) {
+  if (cat?.surfaces == null) return '';
+  const visible = normalizeSurfaceList(cat.surfaces);
+  const hidden = SURFACE_OPTIONS.filter((s) => !visible.includes(s.id)).map((s) => s.label);
+  return hidden.length ? ` · masquée : ${hidden.join(', ')}` : '';
+}
+
 const EMPTY_DRAFT = {
   label: '',
   emoji: '',
-  color: '#86efac90',
+  color: ZONE_COLORS[0],
   description: '',
   map_id: '',
   applies_to: 'both',
+  surfaces: ['map', 'visit', 'plan'],
   is_infrastructure: false,
+  zoom_only: false,
   sort_order: 100,
   is_active: true,
 };
@@ -32,7 +48,12 @@ function draftFromCategory(category) {
     description: category.description || '',
     map_id: category.map_id || '',
     applies_to: category.applies_to || 'both',
+    surfaces:
+      category.surfaces == null
+        ? ['map', 'visit', 'plan']
+        : normalizeSurfaceList(category.surfaces),
     is_infrastructure: !!category.is_infrastructure,
+    zoom_only: !!category.zoom_only,
     sort_order: Number(category.sort_order) || 0,
     is_active: category.is_active !== false,
   };
@@ -44,7 +65,7 @@ function draftFromCategory(category) {
  * Une catégorie est soit globale (toutes les cartes), soit propre à une carte.
  * Cocher « Infrastructure » reprend le comportement de l'ancien drapeau « zone
  * spéciale » : pas de section Biodiversité en visite, lieu non proposé comme cible
- * de mission, contour en pointillés sur la carte.
+ * de mission. Le contour reste tracé en trait continu sur la carte.
  */
 export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
   const { confirm } = useAppDialogs();
@@ -70,7 +91,9 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
     description: draft.description.trim(),
     map_id: draft.map_id || null,
     applies_to: draft.applies_to,
+    surfaces: draft.surfaces,
     is_infrastructure: draft.is_infrastructure,
+    zoom_only: draft.zoom_only,
     sort_order: Number(draft.sort_order) || 0,
     is_active: draft.is_active,
   });
@@ -159,32 +182,12 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
             maxLength={8}
           />
         </div>
-        <div className="field" style={{ flex: 1, minWidth: 0 }}>
-          <label htmlFor="map-category-color-hex">Couleur</label>
-          <div className="map-category-color-field">
-            <input
-              type="color"
-              className="map-category-color-field__picker"
-              value={colorPickerValue(draft.color)}
-              aria-label="Choisir la teinte"
-              onChange={(e) =>
-                setField({ color: applyPickedHexColor(draft.color, e.target.value) })
-              }
-            />
-            <input
-              id="map-category-color-hex"
-              className="map-category-color-field__hex"
-              value={draft.color}
-              onChange={(e) => setField({ color: e.target.value })}
-              placeholder="#86efac90"
-              spellCheck={false}
-            />
-          </div>
-          <p className="map-category-color-field__hint">
-            Les deux derniers caractères règlent la transparence (<code>90</code> ≈ 56 %) et sont
-            conservés par le sélecteur.
-          </p>
-        </div>
+        <ColorPaletteField
+          id="map-category-color"
+          value={draft.color}
+          onChange={(next) => setField({ color: next })}
+          style={{ flex: 1, minWidth: 0 }}
+        />
         <div className="field" style={{ flex: 1, minWidth: 0 }}>
           <label>Ordre</label>
           <input
@@ -231,6 +234,14 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
         />
       </div>
 
+      <SurfaceVisibilityField
+        mode="visible"
+        idPrefix="category"
+        legend="Visible sur (décocher retire d’un coup tous les lieux de la catégorie)"
+        value={draft.surfaces}
+        onChange={(next) => setField({ surfaces: next })}
+      />
+
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
         <input
           type="checkbox"
@@ -239,6 +250,16 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
           style={{ width: 18, height: 18 }}
         />
         Infrastructure (bâtiment, aménagement — pas une culture)
+      </label>
+
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+        <input
+          type="checkbox"
+          checked={draft.zoom_only}
+          onChange={(e) => setField({ zoom_only: e.target.checked })}
+          style={{ width: 18, height: 18 }}
+        />
+        Visible seulement au zoom (désencombre la carte vue en entier)
       </label>
 
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
@@ -304,6 +325,8 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
                   : 'Toutes les cartes'}{' '}
                 · {APPLIES_TO_LABELS[cat.applies_to] || cat.applies_to}
                 {cat.is_infrastructure ? ' · Infrastructure' : ''}
+                {cat.zoom_only ? ' · au zoom' : ''}
+                {surfaceSummary(cat)}
                 {cat.is_active ? '' : ' · Inactive'}
               </div>
             </div>

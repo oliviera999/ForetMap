@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { api } from '../../services/api';
-import { fileToDataUrl } from '../../utils/fileToDataUrl.js';
+import { fileToDataUrl } from '../../shared/platform/fileToDataUrl.js';
 import { ImportPanel } from '../../shared/components/ImportPanel.jsx';
 
 const PLANTS_IMPORT_TEMPLATE_HEADERS = [

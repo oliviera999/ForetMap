@@ -8,7 +8,7 @@
  * produite côté serveur pour les tutoriels (`lib/foretmapGlossaryAutolink.js`) :
  * un seul style pour un seul geste, quel que soit l'écran.
  */
-import { renderMarkdownToSafeHtml, sanitizeRichHtml } from './markdown.js';
+import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../shared/platform/markdown.js';
 import { createTermAutolink } from './termAutolink.js';
 
 const autolink = createTermAutolink({

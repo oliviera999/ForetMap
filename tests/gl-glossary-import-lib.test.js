@@ -16,7 +16,7 @@ const {
   buildGlossaryLookupMap,
   resolveRelatedTermCodes,
   buildTermToCodeMap,
-} = require('../lib/glGlossaryMatch');
+} = require('../lib/glossaryMatch');
 
 const XLSX_PATH = path.join(__dirname, '..', 'data', 'gl', 'glossaire-gnomes-et-licornes.xlsx');
 

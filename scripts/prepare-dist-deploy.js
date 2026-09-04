@@ -87,6 +87,13 @@ const distIndex = fs.existsSync(path.join(distPath, 'index.vite.html'))
 if (!fs.existsSync(distIndex)) {
   fail('Build incomplet: dist/index.vite.html (ou index.html) introuvable.');
 }
+// Entrées des autres produits (registre lib/products.js) : leur absence ferait servir
+// ForetMap en silence sur gl.* et planlyautey.* (repli du fallback SPA).
+for (const entry of ['gl.html', 'plan.html']) {
+  if (!fs.existsSync(path.join(distPath, entry))) {
+    fail(`Build incomplet: dist/${entry} introuvable (entrée produit).`);
+  }
+}
 
 const deployDir = path.join(rootDir, 'deploy');
 if (!fs.existsSync(deployDir)) {

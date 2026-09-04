@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
+import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { resolveRoleText } from '../constants/help';
 import { hasDiscoveryTour } from '../constants/discoveryTour';
 import { useTour } from '../contexts/TourContext.jsx';

@@ -5,7 +5,7 @@ const { requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
-const { logAudit } = require('./audit');
+const { logAudit } = require('../lib/auditLog');
 const { invalidateMapsListCache } = require('./maps');
 
 // `limit` : coercition permissive (repli sur le défaut côté handler si absent/non numérique) — jamais de 400.

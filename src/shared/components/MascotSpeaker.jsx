@@ -1,9 +1,9 @@
-import VisitMascotFallbackSvg from '../../components/VisitMascotFallbackSvg.jsx';
+import VisitMascotFallbackSvg from '../mascot/VisitMascotFallbackSvg.jsx';
 import {
   DEFAULT_MASCOT_EXPRESSION,
   resolveMascotExpression,
   resolveMascotFraming,
-} from '../../utils/mascotExpressions.js';
+} from '../mascot/mascotExpressionsBase.js';
 
 /** Taille de rendu par cadrage, en pixels (§4.4). */
 const FRAMING_BOX = Object.freeze({

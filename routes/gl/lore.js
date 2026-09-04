@@ -91,8 +91,8 @@ const {
   listAdminQuestions: listAdminLoreQuestions,
   upsertGlQcmLoreQuestion,
 } = require('../../lib/glQcmLoreCrud');
-const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../lib/glQcmChoices');
-const { consumePresentationJti } = require('../../lib/glQcmPresentationUse');
+const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../lib/qcmChoices');
+const { consumePresentationJti } = require('../../lib/qcmPresentationUse');
 const { buildLorePresentation } = require('../../lib/glQcmLoreQuestionQuery');
 const { previewLoreQuestionPool } = require('../../lib/glMarkerLoreQuestionPool');
 const { normalizeLoreQuestionPool } = require('../../lib/glMarkerEventConfig');

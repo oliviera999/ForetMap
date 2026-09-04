@@ -1,30 +1,7 @@
-import React, { useState } from 'react';
-
-import { DialogShell } from '../../components/DialogShell.jsx';
-import { MascotSpeaker } from '../../shared/components/MascotSpeaker.jsx';
-import { GLButton } from './ui/GLButton.jsx';
-import { Tooltip } from '../../shared/components/Tooltip.jsx';
+import { HelpDock } from '../../shared/help/HelpDock.jsx';
 import { useGlNarrator } from '../hooks/useGlNarrator.js';
 import { useGlHelpContent } from '../hooks/useGlHelpContent.js';
 import { renderGlHelpBody } from './glHelpBody.jsx';
-
-const STORAGE_PREFIX = 'gl_help_seen:';
-
-function readSeen(key) {
-  try {
-    return localStorage.getItem(`${STORAGE_PREFIX}${key}`) === '1';
-  } catch (_) {
-    return false;
-  }
-}
-
-function writeSeen(key) {
-  try {
-    localStorage.setItem(`${STORAGE_PREFIX}${key}`, '1');
-  } catch (_) {
-    // noop
-  }
-}
 
 /**
  * Aide contextuelle GL **appelée** par un bouton « ? », sur le modèle du `HelpPanel`
@@ -36,91 +13,39 @@ function writeSeen(key) {
  * la mémoire par clé (`gl_help_seen:`) est celle de l'ancien encadré, donc un onglet
  * déjà consulté ne redemande pas l'attention.
  *
+ * Depuis le lot 7 du plan de convergence, l'appel, la mémoire « déjà lu » et le rendu de la
+ * modale viennent du **dock d'aide partagé** (`src/shared/help/HelpDock.jsx`) : ce module ne
+ * garde que ce qui est propre à G&L — le contenu serveur, le narrateur et les classes de
+ * thème. ForetMap et le Plan Lyautey utilisent le même dock.
+ *
  * L'encadré inline (`GLHelpPanel`) reste utilisé là où l'aide fait partie de la page
  * elle-même, comme le carnet personnel.
  */
 export function GLHelpDialog({ helpKey, isStaff = false, onStartTour = null }) {
-  const [open, setOpen] = useState(false);
-  const [seen, setSeen] = useState(true);
   const { title, body } = useGlHelpContent(helpKey, { isStaff });
   const { narrator } = useGlNarrator();
 
-  React.useEffect(() => {
-    setSeen(readSeen(helpKey));
-  }, [helpKey]);
-
   if (!helpKey || !String(body || '').trim()) return null;
 
-  const markSeen = () => {
-    if (seen) return;
-    writeSeen(helpKey);
-    setSeen(true);
-  };
-
   return (
-    <>
-      {/*
-       * L'infobulle dit ce que le bouton ouvre **vraiment** — l'aide, et la visite
-       * quand elle existe. Le « ? » pulse pour attirer l'œil, il n'explique rien.
-       * `aria-label` reste la source du nom accessible ; l'infobulle s'y ajoute
-       * comme description, elle ne s'y substitue pas.
-       */}
-      <Tooltip
-        text={onStartTour ? 'Aide et visite guidée de cet écran' : 'Aide de cet écran'}
-        position="left"
-      >
-        <button
-          type="button"
-          className={`gl-help-btn ${seen ? '' : 'is-pulsing'}`}
-          aria-label={`Ouvrir l'aide : ${title}`}
-          data-gl-help-key={helpKey}
-          onClick={() => {
-            markSeen();
-            setOpen(true);
-          }}
-        >
-          ?
-        </button>
-      </Tooltip>
-      {open ? (
-        <DialogShell
-          open={open}
-          onClose={() => setOpen(false)}
-          overlayClassName="gl-help-dialog-overlay"
-          dialogClassName="gl-help-dialog fade-in"
-          ariaLabel={title}
-          showCloseButton
-          closeButtonLabel="Fermer"
-        >
-          <h3 className="gl-help-dialog__title">
-            <MascotSpeaker
-              className="gl-help-dialog__portrait"
-              narrator={narrator}
-              expression="neutre"
-              size="face"
-            />
-            <span>{title}</span>
-          </h3>
-          <div className="gl-help-dialog__body">{renderGlHelpBody(body)}</div>
-          <div className="gl-help-dialog__actions">
-            {onStartTour ? (
-              <GLButton
-                type="button"
-                className="gl-help-dialog__tour-cta"
-                onClick={() => {
-                  setOpen(false);
-                  onStartTour();
-                }}
-              >
-                ▶ Visite guidée
-              </GLButton>
-            ) : null}
-            <GLButton type="button" variant="ghost" onClick={() => setOpen(false)}>
-              Fermer
-            </GLButton>
-          </div>
-        </DialogShell>
-      ) : null}
-    </>
+    <HelpDock
+      helpKey={helpKey}
+      title={title}
+      body={renderGlHelpBody(body)}
+      storagePrefix="gl_help_seen:"
+      onStartTour={onStartTour}
+      narrator={narrator}
+      className={null}
+      buttonClassName="gl-help-btn"
+      overlayClassName="gl-help-dialog-overlay"
+      dialogClassName="gl-help-dialog fade-in"
+      classNames={{
+        title: 'gl-help-dialog__title',
+        portrait: 'gl-help-dialog__portrait',
+        body: 'gl-help-dialog__body',
+        actions: 'gl-help-dialog__actions',
+        tourCta: 'gl-help-dialog__tour-cta',
+      }}
+    />
   );
 }

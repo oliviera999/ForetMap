@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
+import { useOverlayHistoryBack } from '../platform/useOverlayHistoryBack';
 import { DialogShell } from './DialogShell.jsx';
 import { LearningGatingQuestionPanel } from './LearningGatingQuestionPanel.jsx';
 import { LearningGatingStateIcon } from './LearningGatingStateIcon.jsx';

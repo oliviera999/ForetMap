@@ -2,12 +2,12 @@ import React from 'react';
 
 import { detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../../constants/emojis';
 import { TASK_VISUAL_LABEL } from '../../utils/taskEnrollment.js';
-import { isInfrastructureLocation } from '../../utils/locationCategories.js';
 import {
   fitOverlayLabelToWidth,
   shouldShowZoneEmojiLabel,
   shouldShowZoneNameLabel,
 } from '../../utils/mapOverlayZoneLabels.js';
+import { polygonPoleOfInaccessibilityPct } from '../../shared/pct-map/pctPolylabel.js';
 
 /**
  * Pré-parse les zones pour le calque SVG : `JSON.parse(z.points)` + détection de l'emoji
@@ -33,6 +33,11 @@ export function parseZonesForLayer(zones, emojiParsingList) {
       return {
         zone: z,
         pts,
+        // Ancrage de l'étiquette : **pôle d'inaccessibilité** plutôt que centroïde (lot 5,
+        // N4 de `docs/AUDIT_PLAN_LYAUTEY_2026-09.md`). Sur une zone en L ou en croissant, le
+        // centroïde tombe hors du polygone et le nom flottait sur la zone voisine. Calculé
+        // une fois par changement de données, comme le reste de ce pré-parsing.
+        labelAnchor: polygonPoleOfInaccessibilityPct(pts),
         // Colonne dédiée `zones.emoji` (audit C4) en priorité ; repli sur le préfixe du nom.
         zoneEmoji:
           String(z.emoji || '').trim() || detectLeadingMarkerEmoji(z.name || '', emojiParsingList),
@@ -65,11 +70,17 @@ const ZonePolygon = React.memo(function ZonePolygon({
   labelMaxWorldLength,
   onZoneOpen,
 }) {
-  const { zone: z, pts, zoneEmoji, zoneName } = parsed;
+  const { zone: z, pts, zoneEmoji, zoneName, labelAnchor } = parsed;
   const wp = pts.map((p) => ({ cx: (p.xp / 100) * iw, cy: (p.yp / 100) * ih }));
   const str = wp.map((p) => `${p.cx},${p.cy}`).join(' ');
-  const mx = wp.reduce((s, p) => s + p.cx, 0) / wp.length;
-  const my = wp.reduce((s, p) => s + p.cy, 0) / wp.length;
+  // Étiquette au pôle d'inaccessibilité (toujours dans la zone) ; repli sur le centroïde
+  // pour une géométrie dégénérée.
+  const mx = labelAnchor
+    ? (labelAnchor.xp / 100) * iw
+    : wp.reduce((s, p) => s + p.cx, 0) / wp.length;
+  const my = labelAnchor
+    ? (labelAnchor.yp / 100) * ih
+    : wp.reduce((s, p) => s + p.cy, 0) / wp.length;
   const isEd = isEditing;
   const isInteractive = mode === 'view' && !dimmed;
   const hitClass = mode === 'view' ? `map-zone-hit${dimmed ? ' map-zone-hit--dimmed' : ''}` : '';
@@ -115,7 +126,6 @@ const ZonePolygon = React.memo(function ZonePolygon({
         fill={isEd ? 'rgba(82,183,136,0.35)' : z.color || '#86efac90'}
         stroke={isEd ? '#52b788' : 'rgba(26,71,49,0.5)'}
         strokeWidth={(isEd ? 2.5 : 1.5) * inv}
-        strokeDasharray={isInfrastructureLocation(z) ? `${5 * inv},${3 * inv}` : 'none'}
       />
       {showZoneEmoji && (
         <text

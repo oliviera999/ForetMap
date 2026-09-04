@@ -1,5 +1,5 @@
 import { withAppBase } from '../../shared/appBase.js';
-import { assertJsonApiBody } from '../../services/apiTransport.js';
+import { assertJsonApiBody } from '../../shared/apiTransport.js';
 import { getGlToken } from './apiGL.js';
 
 export const GL_UPLOAD_TIMEOUT_MS = 120000;

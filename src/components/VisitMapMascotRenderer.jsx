@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import { resolveVisitMascotEntry, getDefaultVisitMascotId } from '../utils/visitMascotCatalog.js';
-import VisitMascotFallbackSvg from './VisitMascotFallbackSvg.jsx';
+import VisitMascotFallbackSvg from '../shared/mascot/VisitMascotFallbackSvg.jsx';
 
 // Renderers lourds chargés à la demande : seul le renderer effectivement sélectionné est
 // téléchargé (rive ~166 KB, sprite_cut ~102 KB). Le fallback SVG (eager) sert de placeholder

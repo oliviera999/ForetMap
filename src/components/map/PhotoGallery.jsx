@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../../services/api';
-import { compressImage } from '../../utils/image';
-import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../../utils/overlayHistory';
+import { compressImage } from '../../shared/platform/image';
+import {
+  armNativeFilePickerGuard,
+  disarmNativeFilePickerGuard,
+} from '../../shared/platform/overlayHistory';
 import { ImageLightbox } from '../../shared/components/ImageLightbox.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { IconCamera, IconClose, IconFolder, IconLeaf } from '../../shared/icons.jsx';

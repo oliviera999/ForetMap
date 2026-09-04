@@ -4,7 +4,7 @@ import {
   safeSessionStorageGetItem,
   safeSessionStorageRemoveItem,
   safeSessionStorageSetItem,
-} from './browserStorage.js';
+} from '../shared/platform/browserStorage.js';
 
 export const DEFAULT_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏'];
 
