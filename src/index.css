@@ -8341,3 +8341,56 @@ header .lock-btn::after,
 .map-marker-cluster__count {
   font-size: var(--text-sm);
 }
+
+/* Position sur la carte de travail (lot 6) : mêmes classes que le Plan Lyautey. */
+.fm-pct-position {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.fm-pct-position__halo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.18);
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  transform: translate(-50%, -50%);
+}
+
+.fm-pct-position__dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #2563eb;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  transform: translate(-50%, -50%);
+}
+
+.fm-pct-position__heading {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 14px solid #2563eb;
+  transform-origin: 50% 100%;
+}
+
+.fm-pct-position__arrow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  color: #2563eb;
+  font-size: var(--text-lg);
+  line-height: 1;
+  text-shadow: 0 0 3px #fff;
+}
