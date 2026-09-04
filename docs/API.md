@@ -1627,7 +1627,9 @@ filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
     ni progression, ni `hidden_surfaces`.
 - **Cache** : charge agrégée mise en cache par carte, invalidée par la **version d'écriture
   globale** (`lib/shared/writeVersionCache.js`, mécanique partagée avec
-  `GET /api/visit/content`) ; en-tête `Cache-Control: public, max-age=60`.
+  `GET /api/visit/content`) ; en-tête `Cache-Control: public, max-age=60` en mode public,
+  `private, max-age=60` quand `access_mode` vaut `code` (un cache partagé ne doit pas
+  servir la charge sans laissez-passer). Un refus 401 porte `Cache-Control: no-store`.
 - **Compteur d'usage** : le plan émet `open`, `search_empty`, `place_open` et `go` via
   `POST /api/usage` (produit `plan`) — voir **Compteur d'usage anonyme**.
 
@@ -1675,15 +1677,15 @@ l'appareil. Les étapes pointent vers les lieux existants (`target_type` / `targ
 déjà employé par la visite) : aucun lieu n'est dupliqué, et un parcours suit les renommages.
 Tables `map_routes` et `map_route_steps` (migration `210`).
 
-| Méthode | URL                         | n3boss | Description                                                            |
-| ------- | --------------------------- | ------ | ---------------------------------------------------------------------- |
-| GET     | `/api/map-routes`           | non    | Parcours **publiés**, filtrables par `map_id` et `surface`             |
-| GET     | `/api/map-routes/manage`    | oui    | Vue de gestion : inclut les brouillons (`zones.manage`)                |
-| GET     | `/api/map-routes/:idOrSlug` | non    | Détail par identifiant **ou par slug** (le lien profond porte le slug) |
-| POST    | `/api/map-routes`           | oui    | Créer un parcours (et ses étapes)                                      |
-| PUT     | `/api/map-routes/:id`       | oui    | Modifier ; `steps` fourni **remplace** toutes les étapes               |
-| DELETE  | `/api/map-routes/:id`       | oui    | Supprimer (les étapes partent en cascade)                              |
-| GET     | `/api/map-routes/:id/pdf`   | oui    | Export **PDF** : étapes + **QR code** du lien profond, imprimable      |
+| Méthode | URL                         | n3boss | Description                                                          |
+| ------- | --------------------------- | ------ | -------------------------------------------------------------------- |
+| GET     | `/api/map-routes`           | non    | Parcours **publiés**, filtrables par `map_id` et `surface`           |
+| GET     | `/api/map-routes/manage`    | oui    | Vue de gestion : inclut les brouillons (`zones.manage`)              |
+| GET     | `/api/map-routes/:idOrSlug` | non    | Détail **publié** par identifiant **ou par slug** (404 si brouillon) |
+| POST    | `/api/map-routes`           | oui    | Créer un parcours (et ses étapes)                                    |
+| PUT     | `/api/map-routes/:id`       | oui    | Modifier ; `steps` fourni **remplace** toutes les étapes             |
+| DELETE  | `/api/map-routes/:id`       | oui    | Supprimer (les étapes partent en cascade)                            |
+| GET     | `/api/map-routes/:id/pdf`   | oui    | Export **PDF** : étapes + **QR code** du lien profond, imprimable    |
 
 - **Corps JSON** : `title` (requis, ≤ 180), `map_id` (requis à la création), `slug` (dérivé du
   titre si absent ; **409** s'il est déjà pris sur la carte), `description`, `audience` (≤ 120),
@@ -1700,6 +1702,10 @@ step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `
   autre domaine que le plan — sans le réglage, le QR code renverrait le visiteur vers un écran
   de connexion. QR généré localement (`qrcode`, MIT) : une affiche d'établissement ne doit
   dépendre d'aucun service tiers.
+- **`GET /api/map-routes/:idOrSlug`** ne sert que les parcours **publiés**. Un brouillon
+  (défaut à la création) répond **404**, que l'on interroge par identifiant ou par slug —
+  le slug se déduit du titre et ne doit pas servir de porte dérobée. Les brouillons restent
+  visibles via `GET /manage` (`zones.manage`).
 - **`GET /api/plan/content`** publie les parcours de la surface `plan` sous la clé `routes`.
 
 ### Accès du plan par code
@@ -1714,6 +1720,8 @@ Quand `ui.plan.access_mode` vaut `code` **et** qu'un code est configuré
   **400** s'il est absent ;
 - un lien profond peut porter le code (`/api/plan/content?code=…`) pour que les QR codes
   internes ouvrent le plan sans saisie ; la requête est servie et le laissez-passer posé.
+  Cette comparaison bcrypt est soumise au **même limiteur** que `POST /access` (le code en
+  query ne doit pas offrir une porte dérobée au tâtonnement).
 
 Mode `code` **sans** code configuré : le plan reste ouvert — on n'enferme pas les visiteurs
 dehors par un réglage à moitié rempli.

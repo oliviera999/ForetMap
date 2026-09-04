@@ -361,16 +361,19 @@ test('garde d’accès par code (lot 8) : charge refusée sans laissez-passer, p
     // Sans cookie : 401 explicite, que le client sait transformer en écran de saisie.
     const denied = await request(app).get('/api/plan/content').expect(401);
     assert.equal(denied.body.access_required, true);
+    assert.match(String(denied.headers['cache-control'] || ''), /no-store/);
 
     // Mauvais code : refusé, aucun laissez-passer posé.
     await request(app).post('/api/plan/access').send({ code: 'au-hasard' }).expect(401);
     await request(app).post('/api/plan/access').send({}).expect(400);
+    await request(app).get('/api/plan/content?code=au-hasard').expect(401);
 
-    // Bon code : cookie signé, puis la charge passe.
+    // Bon code : cookie signé, puis la charge passe — privée (pas un cache CDN).
     const agent = request.agent(app);
     const granted = await agent.post('/api/plan/access').send({ code: 'OUVRE-TOI' }).expect(200);
     assert.equal(granted.body.ok, true);
-    await agent.get('/api/plan/content').expect(200);
+    const served = await agent.get('/api/plan/content').expect(200);
+    assert.match(String(served.headers['cache-control'] || ''), /private/);
 
     // Lien profond porteur du code : le QR interne ouvre sans saisie.
     const viaLink = request.agent(app);
