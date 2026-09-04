@@ -9,7 +9,7 @@ const {
   verifyPresentationAnswer,
   resolveQcmAnswerFeedback,
   fisherYates,
-} = require('../lib/glQcmChoices');
+} = require('../lib/qcmChoices');
 
 const SAMPLE_QUESTION = {
   question_code: 'QCM0001',
@@ -64,7 +64,7 @@ test('le jeton de présentation ne contient pas la bonne réponse', () => {
 
 test('chaque présentation porte un jti unique (consommation à usage unique)', () => {
   // Le jti est ce qui permet de refuser un rejeu du même jeton en partie
-  // (cf. lib/glQcmPresentationUse.js) : deux présentations ne doivent jamais le partager.
+  // (cf. lib/qcmPresentationUse.js) : deux présentations ne doivent jamais le partager.
   const first = presentQuestion(SAMPLE_QUESTION);
   const second = presentQuestion(SAMPLE_QUESTION);
   const jtiFirst = jwt.decode(first.presentationToken).jti;

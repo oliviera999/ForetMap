@@ -1,0 +1,47 @@
+/*
+ * Pastille de version (`.app-version-badge`) — feuille PARTAGÉE ForetMap / G&L.
+ *
+ * Rendue par `src/components/app/AppHeader.jsx` (ForetMap) et
+ * `src/gl/components/GLAppVersionBadge.jsx` (G&L) : chaque composant importe
+ * cette feuille lui-même, si bien que la pastille est stylée quel que soit le
+ * point d'entrée qui la monte. Les valeurs reprennent celles historiquement
+ * définies dans `src/index.css` (barre d'en-tête sombre : texte clair sur voile
+ * blanc translucide) ; les variables permettent à un produit de les ajuster
+ * sans redéfinir la règle.
+ */
+.app-version-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--version-badge-bg, rgba(255, 255, 255, 0.14));
+  border: 1px solid var(--version-badge-border, rgba(255, 255, 255, 0.24));
+  color: var(--version-badge-color, #f8fff9);
+  font-size: var(--text-xs, 0.75rem);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.app-version-badge__version {
+  font-weight: var(--fw-bold, 700);
+  letter-spacing: 0.02em;
+}
+
+.app-version-badge__status {
+  opacity: 0.9;
+}
+
+/* Très petits écrans : pastille compacte, mention « à jour » masquée. */
+@media (max-width: 380px) {
+  .app-version-badge {
+    padding: 4px 7px;
+    font-size: var(--text-2xs, 0.6875rem);
+  }
+
+  .app-version-badge__status {
+    display: none;
+  }
+}

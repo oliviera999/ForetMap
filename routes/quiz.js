@@ -15,8 +15,8 @@ const {
   presentQuestion,
   verifyPresentationAnswer,
   resolveQcmAnswerFeedback,
-} = require('../lib/glQcmChoices');
-const { consumePresentationJti } = require('../lib/glQcmPresentationUse');
+} = require('../lib/qcmChoices');
+const { consumePresentationJti } = require('../lib/qcmPresentationUse');
 const {
   loadAdminQuestionDetail,
   allocateNextQuizQuestionCode,
@@ -32,7 +32,7 @@ const {
   loadFmQuizExportRows,
   combineKeywords,
 } = require('../lib/fmQuizImport');
-const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../lib/glGlossaryMatch');
+const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../lib/glossaryMatch');
 const { normalizeQuestionCode } = require('../lib/shared/questionRouteHelpers');
 const { registerFmCooldownOnWrongIfGating } = require('../lib/learningGatingRuntime');
 const {
