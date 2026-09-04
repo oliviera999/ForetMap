@@ -597,6 +597,11 @@ body.plan-body {
 .fm-pct-position {
   position: absolute;
   z-index: 2;
+  /* Une boîte réelle, de la taille du point : tous les enfants étant `position: absolute`, le
+     conteneur se calculait à 0 × 0 — donc muet pour un lecteur d'écran malgré son `role="img"`.
+     Les enfants restent centrés sur le point, qui est le centre de cette boîte. */
+  width: 22px;
+  height: 22px;
   pointer-events: none;
   transform: translate(-50%, -50%);
 }
@@ -607,6 +612,8 @@ body.plan-body {
   top: 50%;
   border-radius: 50%;
   background: rgba(37, 99, 235, 0.18);
+  /* Le halo dit une distance au sol : il grandit donc avec le zoom, contour compris — une
+     bordure sous le pixel est de toute façon ramenée à 1 px par le navigateur (mesuré). */
   border: 1px solid rgba(37, 99, 235, 0.35);
   transform: translate(-50%, -50%);
 }

@@ -342,6 +342,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   un filtre qui ne laisse rien affiche « Aucun lieu dans cette sélection » et « Tout afficher ».
 - **Lien direct d'un lieu** enfin transmis à sa fiche (`shareUrl`), pour les QR codes internes.
 - Suppression de `shouldShowMarkerLabel`, devenu sans emploi.
+- **Halo de précision de la position enfin visible** : il était dimensionné en pourcentage d'un
+  parent sans dimension (tous les enfants de `.fm-pct-position` sont en `position: absolute`,
+  le conteneur se calculait donc à 0 × 0) et se rendait à 2 × 2 px, recouvert par le point bleu
+  — invisible depuis le lot 6, sur le **plan comme sur la carte de travail**. Le diamètre passe
+  en **pixels du calque** (`accuracyHaloDiameterPx`) : disque rond et non plus ellipse, rayon
+  calé sur l'axe qui a servi à convertir les mètres en pourcentage (donc jamais plus optimiste
+  que le capteur), et solidaire du zoom puisqu'il représente une distance au sol. Sur le calage
+  réel de Lyautey, 33 px de diamètre à 12 m de précision. `.fm-pct-position` reçoit au passage
+  une boîte réelle : il portait un `role="img"` sur un élément de taille nulle.
 - Tests : `tests-ui/shared/pctMapLabels.test.js` (nouveau) et compléments dans
   `PctLayers.test.jsx` et `plan/AppPlanMount.test.jsx` — le rendu de la carte du plan n'était
   couvert par aucun test.

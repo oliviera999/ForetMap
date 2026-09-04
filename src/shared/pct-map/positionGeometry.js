@@ -46,6 +46,30 @@ export function accuracyRadiusPct(accuracyM, planSize) {
   return Math.min(POSITION_HALO_MAX_PCT, Math.max(POSITION_HALO_MIN_PCT, radius));
 }
 
+/**
+ * Diamètre du halo, en **pixels du calque** (l'espace dans lequel vivent les repères : pixels
+ * naturels de l'image pour la carte de travail, rectangle « contain » pour le plan).
+ *
+ * Pourquoi ne pas laisser le CSS faire le pourcentage : le halo était dimensionné en `%` d'un
+ * parent sans dimension, donc rendu à zéro — il n'a jamais été visible
+ * (`docs/AUDIT_PLAN_AFFICHAGE_2026-09.md` C8). Et un même pourcentage appliqué à la largeur
+ * **et** à la hauteur d'un rectangle non carré dessine une ellipse, pas un disque.
+ *
+ * L'axe retenu est la **largeur**, celui qui a servi à convertir les mètres en pourcentage
+ * (`accuracyRadiusPct` prend le plus grand des deux `100/mètres`) : le rayon obtenu n'annonce
+ * donc jamais une précision meilleure que celle du capteur.
+ *
+ * @param {number} haloPct rayon en % du plan (`accuracyRadiusPct`).
+ * @param {number} contentWidthPx largeur du calque à l'échelle 1, en pixels.
+ * @returns {number} diamètre en pixels, `0` si l'un des deux est inexploitable.
+ */
+export function accuracyHaloDiameterPx(haloPct, contentWidthPx) {
+  const pct = toFinite(haloPct, 0);
+  const width = toFinite(contentWidthPx, 0);
+  if (!(pct > 0) || !(width > 0)) return 0;
+  return (pct * 2 * width) / 100;
+}
+
 /** Angle en degrés (sens horaire depuis le haut de l'image) du vecteur `from → to`. */
 export function bearingBetweenPct(from, to) {
   const dx = toFinite(to?.xp) - toFinite(from?.xp);
