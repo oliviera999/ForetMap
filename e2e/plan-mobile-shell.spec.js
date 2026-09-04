@@ -1,5 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
+const { planPlaceNamePattern } = require('./helpers/planPlaceName');
+
 /**
  * Plan Lyautey (lot 4) — filet e2e du produit servi par host : la coquille se monte sur un
  * téléphone, la charge publique répond, la recherche et la fiche d'un lieu fonctionnent.
@@ -38,7 +40,7 @@ test('plan : coquille, recherche et fiche d’un lieu', async ({ page, request }
   const results = page.getByTestId('plan-results-sheet');
   await expect(results).toBeVisible({ timeout: 15_000 });
   await results
-    .getByRole('button', { name: new RegExp(name.slice(0, 20), 'i') })
+    .getByRole('button', { name: planPlaceNamePattern(name) })
     .first()
     .click();
 
