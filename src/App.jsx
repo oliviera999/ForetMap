@@ -94,6 +94,8 @@ import { TeacherTopTabs } from './components/app/TeacherTopTabs.jsx';
 import { StudentBottomNav } from './components/app/StudentBottomNav.jsx';
 import { RolePreviewBanners } from './components/app/RolePreviewBanners.jsx';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
+import { useBrandTheme } from './shared/brand/useBrandTheme.js';
+import { FORETMAP_BRAND_DEFAULTS } from './constants/brand.js';
 import { SessionProvider } from './contexts/SessionContext.jsx';
 import { AppDialogsProvider, useAppDialogs } from './shared/components/AppDialogsProvider.jsx';
 import { DataProvider } from './contexts/DataContext.jsx';
@@ -154,6 +156,19 @@ function App() {
   );
   const [roleViewMode, setRoleViewMode] = useState('native'); // native | student | teacher
   const { appVersion, publicSettings, publicSettingsReady } = useAppBootstrap();
+  /**
+   * Thème de marque de l'établissement (lot 7 du plan de convergence) : réglage
+   * `ui.foret.brand`, mécanique partagée avec G&L et le Plan Lyautey. Sans réglage, les
+   * valeurs par défaut reproduisent exactement le thème forêt historique.
+   */
+  const { brand: foretBrand, style: foretBrandStyle } = useBrandTheme(
+    publicSettings?.foret?.brand,
+    {
+      prefix: 'fm-brand',
+      defaults: FORETMAP_BRAND_DEFAULTS,
+      fontFallback: "'DM Sans', sans-serif",
+    },
+  );
   const { isTabVisible, shouldUseDesktopSplit } = useViewportLayout();
   const {
     deferredInstallPrompt,
@@ -1003,7 +1018,11 @@ function App() {
               isTeacher={effectiveIsTeacher}
               enabled={discoveryTourAutoEnabled}
             >
-              <div id="app">
+              <div
+                id="app"
+                style={foretBrandStyle}
+                data-brand-logo={foretBrand.logoUrl || undefined}
+              >
                 {/* Fiche rapide du glossaire : hors des onglets et hors des modales, pour
                   survivre à tout changement de vue et se poser au-dessus de l'aperçu
                   de tutoriel (audit A1). */}
