@@ -18,7 +18,10 @@ const { setSetting, invalidateSettingsCache } = require('../lib/settings');
 const fx = require('./helpers/fmFixtures');
 const { planContentCache } = require('../routes/plan');
 const {
+  ROUTE_DESCRIPTION_MAX,
+  STEP_TEXT_MAX,
   slugifyRouteTitle,
+  normalizeRouteDescription,
   normalizeRouteSteps,
   resolveRouteBaseUrl,
   routeDeepLink,
@@ -82,6 +85,24 @@ test('helpers purs : slug, étapes, lien profond', () => {
   assert.equal(
     routeDeepLink('https://plan.test/', 'portes ouvertes'),
     'https://plan.test/?parcours=portes%20ouvertes',
+  );
+
+  // Les tirets de bord sont retirés APRÈS la troncature : un titre très long ne laisse pas
+  // un slug terminé par un tiret.
+  assert.ok(!slugifyRouteTitle(`${'a'.repeat(118)} bbbb`).endsWith('-'));
+
+  assert.deepEqual(normalizeRouteDescription(undefined), { ok: true, value: undefined });
+  assert.deepEqual(normalizeRouteDescription(null), { ok: true, value: null });
+  assert.deepEqual(normalizeRouteDescription('Le tour en cinq arrêts.'), {
+    ok: true,
+    value: 'Le tour en cinq arrêts.',
+  });
+  assert.equal(normalizeRouteDescription('x'.repeat(ROUTE_DESCRIPTION_MAX + 1)).ok, false);
+  assert.equal(
+    normalizeRouteSteps([
+      { target_type: 'zone', target_id: 'z1', step_text: 'x'.repeat(STEP_TEXT_MAX + 1) },
+    ]).ok,
+    false,
   );
 });
 
@@ -159,6 +180,141 @@ test('création, étapes, publication et lecture publique filtrée par surface',
   const bySlug = await request(app).get('/api/map-routes/tour-du-lycee').expect(200);
   assert.equal(bySlug.body.id, created.body.id);
   await request(app).get('/api/map-routes/inconnu').expect(404);
+});
+
+test('un brouillon n’est lisible que dans la vue de gestion, jamais par son slug ni son id', async () => {
+  const draft = await auth(request(app).post('/api/map-routes'))
+    .send({
+      map_id: map.id,
+      title: 'Répétition générale',
+      description: 'Notes internes, pas encore prêtes.',
+      steps: [{ target_type: 'zone', target_id: zone.id, step_text: 'Ne pas montrer.' }],
+    })
+    .expect(201);
+  createdRouteIds.push(draft.body.id);
+  assert.equal(draft.body.is_published, false);
+
+  // Le slug dérive du titre, donc il se devine : le brouillon doit répondre 404 en public.
+  await request(app).get('/api/map-routes/repetition-generale').expect(404);
+  await request(app).get(`/api/map-routes/${draft.body.id}`).expect(404);
+
+  // Il reste visible pour qui a la permission, c'est tout l'intérêt d'un brouillon.
+  const managed = await auth(request(app).get(`/api/map-routes/manage?map_id=${map.id}`)).expect(
+    200,
+  );
+  assert.ok(managed.body.some((r) => r.id === draft.body.id));
+
+  // Publié, il redevient lisible par son slug — et `?map_id=` lève l'ambiguïté entre cartes.
+  await auth(request(app).put(`/api/map-routes/${draft.body.id}`))
+    .send({ is_published: true })
+    .expect(200);
+  await request(app).get('/api/map-routes/repetition-generale').expect(200);
+  const scoped = await request(app)
+    .get(`/api/map-routes/repetition-generale?map_id=${map.id}`)
+    .expect(200);
+  assert.equal(scoped.body.id, draft.body.id);
+  await request(app)
+    .get('/api/map-routes/repetition-generale?map_id=carte-qui-n-existe-pas')
+    .expect(404);
+});
+
+test('garde d’accès du plan : le catalogue des parcours se ferme avec le plan', async () => {
+  const bcrypt = require('bcryptjs');
+  const hash = await bcrypt.hash('OUVRE-TOI', 10);
+  const route = await auth(request(app).post('/api/map-routes'))
+    .send({ map_id: map.id, title: 'Sous garde', is_published: true })
+    .expect(201);
+  createdRouteIds.push(route.body.id);
+
+  await setSetting('ui.plan.access_mode', 'code', { userType: 'teacher', userId: 'test' });
+  await setSetting('security.plan_access_code_hash', hash, { userType: 'admin', userId: 'test' });
+  invalidateSettingsCache();
+  try {
+    // Sans laissez-passer, le catalogue répond comme la charge du plan.
+    const denied = await request(app).get('/api/map-routes').expect(401);
+    assert.equal(denied.body.access_required, true);
+    await request(app).get(`/api/map-routes/${route.body.id}`).expect(401);
+
+    // Le laissez-passer obtenu sur le plan ouvre aussi les parcours : c'est la même garde.
+    const agent = request.agent(app);
+    await agent.post('/api/plan/access').send({ code: 'OUVRE-TOI' }).expect(200);
+    await agent.get('/api/map-routes').expect(200);
+
+    // La vue de gestion reste accessible au professeur : elle ne dépend pas du code visiteur.
+    await auth(request(app).get('/api/map-routes/manage')).expect(200);
+  } finally {
+    await setSetting('ui.plan.access_mode', 'public', { userType: 'teacher', userId: 'test' });
+    await setSetting('security.plan_access_code_hash', '', { userType: 'admin', userId: 'test' });
+    invalidateSettingsCache();
+  }
+});
+
+test('une étape doit viser un lieu réel de la carte du parcours', async () => {
+  const other = await fx.createMap({ label: 'Autre carte' });
+  const foreignZone = await fx.createZone({ mapId: other.id, name: 'Ailleurs' });
+  try {
+    await auth(request(app).post('/api/map-routes'))
+      .send({
+        map_id: map.id,
+        title: 'Étape fantôme',
+        steps: [{ target_type: 'zone', target_id: 'zone-qui-n-existe-pas' }],
+      })
+      .expect(400);
+
+    // Un lieu réel, mais d'une autre carte : un parcours ne mélange pas les cartes.
+    await auth(request(app).post('/api/map-routes'))
+      .send({
+        map_id: map.id,
+        title: 'Étape d’ailleurs',
+        steps: [{ target_type: 'zone', target_id: foreignZone.id }],
+      })
+      .expect(400);
+
+    // Le contrôle vaut aussi à la modification.
+    const route = await auth(request(app).post('/api/map-routes'))
+      .send({ map_id: map.id, title: 'Cibles vérifiées', steps: [] })
+      .expect(201);
+    createdRouteIds.push(route.body.id);
+    await auth(request(app).put(`/api/map-routes/${route.body.id}`))
+      .send({ steps: [{ target_type: 'marker', target_id: foreignZone.id }] })
+      .expect(400);
+    await auth(request(app).put(`/api/map-routes/${route.body.id}`))
+      .send({ steps: [{ target_type: 'marker', target_id: marker.id }] })
+      .expect(200);
+  } finally {
+    await execute('DELETE FROM zones WHERE map_id = ?', [other.id]);
+    await execute('DELETE FROM maps WHERE id = ?', [other.id]);
+  }
+});
+
+test('description et texte d’étape bornés : 400, jamais une erreur SQL', async () => {
+  await auth(request(app).post('/api/map-routes'))
+    .send({
+      map_id: map.id,
+      title: 'Description fleuve',
+      description: 'x'.repeat(ROUTE_DESCRIPTION_MAX + 1),
+    })
+    .expect(400);
+  await auth(request(app).post('/api/map-routes'))
+    .send({
+      map_id: map.id,
+      title: 'Étape fleuve',
+      steps: [
+        { target_type: 'zone', target_id: zone.id, step_text: 'x'.repeat(STEP_TEXT_MAX + 1) },
+      ],
+    })
+    .expect(400);
+
+  // Juste sous la borne : accepté, et rendu tel quel.
+  const ok = await auth(request(app).post('/api/map-routes'))
+    .send({
+      map_id: map.id,
+      title: 'Juste sous la borne',
+      description: 'y'.repeat(ROUTE_DESCRIPTION_MAX),
+    })
+    .expect(201);
+  createdRouteIds.push(ok.body.id);
+  assert.equal(ok.body.description.length, ROUTE_DESCRIPTION_MAX);
 });
 
 test('GET /api/map-routes/:idOrSlug ne fuit pas un brouillon (slug devinable)', async () => {
@@ -292,4 +448,22 @@ test('GET /api/plan/content publie les parcours de la surface plan', async () =>
   assert.equal(published.steps.length, 2);
   assert.equal(published.steps[0].position, 0);
   assert.ok(!content.body.routes.some((r) => r.id === draft.body.id), 'brouillon exclu');
+
+  // Un lieu masqué sur le plan emporte son étape : sinon la puce annonçait « 2 étapes » là où
+  // la feuille n'en affichait qu'une, et le texte de l'étape survivait au masquage du lieu.
+  await execute('UPDATE zones SET hidden_surfaces = ? WHERE id = ?', ['plan', zone.id]);
+  planContentCache.clear();
+  try {
+    const masked = await request(app).get('/api/plan/content').expect(200);
+    const trimmed = masked.body.routes.find((r) => r.id === route.body.id);
+    assert.equal(trimmed.steps.length, 1, 'l’étape du lieu masqué ne sort pas de la charge');
+    assert.equal(trimmed.steps[0].target_type, 'marker');
+    assert.ok(
+      !masked.body.zones.some((z) => z.id === zone.id),
+      'le lieu masqué n’est pas servi non plus',
+    );
+  } finally {
+    await execute('UPDATE zones SET hidden_surfaces = ? WHERE id = ?', ['', zone.id]);
+    planContentCache.clear();
+  }
 });

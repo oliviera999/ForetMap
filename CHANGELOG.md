@@ -7,6 +7,48 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — parcours de carte (suites de `docs/AUDIT_PARCOURS_2026-09.md`)
+
+- **Détail public d'un parcours** : le filtre `is_published` — corrigé en parallèle par la
+  PR #413, ci-dessous, et conservé ici — est complété par `?map_id=`. Le slug n'étant unique que
+  par carte, `id = ? OR slug = ?` répondait au hasard quand deux cartes portaient le même.
+- **La garde d'accès du plan couvre les parcours** : extraite dans `lib/planAccess.js` et posée
+  sur les deux lectures publiques de `/api/map-routes`. Avec `ui.plan.access_mode = 'code'`, la
+  charge du plan répondait 401 pendant que le catalogue des parcours restait ouvert.
+- **Étapes confrontées aux lieux publiés** dans `GET /api/plan/content` : une étape dont le lieu
+  est supprimé, masqué (`hidden_surfaces`) ou hors des catégories du plan ne sort plus de la
+  charge — ni son identifiant, ni son texte. La puce annonçait « 5 étapes » là où la feuille en
+  affichait 3 ; un parcours sans étape affichable n'est plus proposé du tout.
+- **Cibles d'étape vérifiées** (`400` nommant l'étape) : le couple `target_type` / `target_id`
+  est polymorphe, aucune clé étrangère ne le tient — l'API acceptait des étapes vers des
+  identifiants inventés ou vers les lieux d'une autre carte.
+- **`description` (2 000) et `step_text` (4 000) bornés** : au-delà, `400` — au lieu d'une erreur
+  SQL remontée en 500 sur des colonnes `TEXT`.
+- **Lien profond `?parcours=` introuvable** : le plan le dit (« Ce parcours n'est plus
+  disponible. ») au lieu de s'ouvrir sans un mot sur une affiche périmée ; la position dans un
+  parcours est rebornée quand ses étapes rétrécissent.
+- **Surfaces sans écran** : `SurfaceVisibilityField` accepte `unavailable` — dans l'éditeur de
+  parcours, « Carte » et « Visite » ne se cochent plus et portent la mention « n'affiche pas
+  encore les parcours ». Seul le Plan affiche les parcours.
+- **Finitions** : `sort_order` vidé retombe sur 100 et non 0 ; `?map_id=` sur le détail public ;
+  avertissement quand le slug d'un parcours publié change (affiches imprimées) ; `/api/map-routes`
+  retiré de l'allowlist du service worker du plan, qu'aucun client n'appelait ; `emitGardenChanged`
+  retiré des écritures de parcours ; export PDF journalisé ; slug tronqué sans tiret final ;
+  l'éditeur ne charge plus que les lieux de la carte retenue.
+- Tests : `tests/map-routes.test.js` (brouillon privé, garde d'accès, cibles d'étape, bornes,
+  étape masquée), `tests-ui/plan/AppPlanMount.test.jsx` (lien profond, parcours disparu, parcours
+  sans étape), `tests-ui/utils/mapRoutesEditor.test.js` (miroir de la borne, rang par défaut), et
+  un scénario e2e `e2e/plan-routes-mode.spec.js`.
+
+### Documentation
+
+- **Audit de la fonctionnalité parcours** (`docs/AUDIT_PARCOURS_2026-09.md`) : relecture
+  complète du lot 8 côté parcours — schéma, `routes/map-routes.js`, publication sur le plan,
+  éditeur prof, mode parcours du visiteur, affiche PDF, tests et documentation. Constats classés
+  par gravité, chacun suivi de sa correction. Un constat a été **infirmé** à la vérification : la
+  feuille du parcours rend déjà le reste du plan `inert`, il n'y avait pas de geste sans effet à
+  expliquer.
+- `docs/API.md` et `docs/reference/` (carte et zones, plan) mis en accord avec ces corrections.
 ### Correctifs
 
 - **Parcours brouillon** : `GET /api/map-routes/:idOrSlug` (public) renvoyait un brouillon

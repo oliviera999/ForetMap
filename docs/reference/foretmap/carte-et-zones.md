@@ -222,12 +222,22 @@ Composer un parcours :
 À savoir :
 
 - Un parcours naît **brouillon** : il n'apparaît nulle part tant que la case « Publié » n'est
-  pas cochée.
+  pas cochée — pas même pour qui connaîtrait son adresse.
 - Les cases **« proposé sur »** décident des surfaces, comme pour les lieux. Un parcours neuf
-  vise le **Plan** seul, c'est là qu'ils servent le plus.
+  vise le **Plan** seul, et c'est aujourd'hui la seule surface qui **affiche** les parcours :
+  les cases « Carte » et « Visite » restent fermées, avec la mention « n'affiche pas encore les
+  parcours », tant que ces écrans n'existent pas.
 - Rien n'est dupliqué : une étape **pointe** vers un lieu existant. Renommer le lieu renomme
   l'étape ; supprimer le lieu laisse une étape signalée « lieu introuvable », à retirer.
-- Un parcours ne peut pas dépasser **60 étapes**.
+- Une étape dont le lieu est **masqué sur le Plan** (par ses surfaces ou sa catégorie) est
+  passée par le plan sans être affichée : le compte d'étapes annoncé au visiteur est celui des
+  étapes réellement visibles, et un parcours dont plus aucune étape n'est visible n'est pas
+  proposé du tout.
+- Un parcours ne peut pas dépasser **60 étapes**. La description est limitée à 2 000 caractères,
+  le texte d'une étape à 4 000.
+- Changer l'**identifiant du lien** d'un parcours déjà publié périme les affiches imprimées :
+  l'écran le rappelle au moment où le champ change.
+- Un parcours reste sur **sa** carte : pour le déplacer, il faut le recréer.
 - Le bouton **« Affiche PDF »** télécharge une page imprimable : la liste des étapes et un
   **QR code** vers le parcours, à afficher à l'accueil. Pour que ce QR code mène au plan et non
   à la console, renseigner l'URL publique du plan dans _Réglages → Général_

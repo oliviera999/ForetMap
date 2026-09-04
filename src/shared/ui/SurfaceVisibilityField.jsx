@@ -30,6 +30,11 @@ export function normalizeSurfaceList(value) {
  * - `mode="hidden"` (lieu : `hidden_surfaces`) : cochée = **masqué** sur la surface.
  * `value` est toujours la liste stockée (surfaces visibles, ou surfaces masquées).
  *
+ * `unavailable` marque les surfaces qui n'ont pas encore d'écran pour ce contenu : la case
+ * reste lisible (et cochée si elle l'était déjà) mais ne se coche plus, et le repère dit
+ * pourquoi. Une case qui promet un affichage inexistant vaut moins qu'une case honnête
+ * (`docs/AUDIT_PARCOURS_2026-09.md` §2.3).
+ *
  * @param {object} props
  * @param {string[]} props.value
  * @param {(next: string[]) => void} props.onChange
@@ -37,6 +42,8 @@ export function normalizeSurfaceList(value) {
  * @param {string} [props.legend]
  * @param {boolean} [props.disabled]
  * @param {string} [props.idPrefix]
+ * @param {string[]} [props.unavailable] surfaces sans écran pour ce contenu.
+ * @param {string} [props.unavailableHint] repère affiché sous ces surfaces.
  */
 export function SurfaceVisibilityField({
   value,
@@ -45,8 +52,11 @@ export function SurfaceVisibilityField({
   legend,
   disabled = false,
   idPrefix = 'surface',
+  unavailable = [],
+  unavailableHint = 'écran à venir',
 }) {
   const list = normalizeSurfaceList(value);
+  const blocked = new Set(normalizeSurfaceList(unavailable));
   const title = legend || (mode === 'visible' ? 'Visible sur' : 'Masquer sur');
   const toggle = (id, checked) => {
     const next = new Set(list);
@@ -61,19 +71,22 @@ export function SurfaceVisibilityField({
         {SURFACE_OPTIONS.map((surface) => {
           const inputId = `${idPrefix}-${mode}-${surface.id}`;
           const checked = list.includes(surface.id);
+          // Une surface sans écran reste cochable pour la **décocher** : sinon une valeur
+          // déjà posée serait impossible à retirer.
+          const locked = blocked.has(surface.id) && !checked;
           return (
             <label key={surface.id} htmlFor={inputId} className="fm-surface-field__option">
               <input
                 id={inputId}
                 type="checkbox"
                 checked={checked}
-                disabled={disabled}
+                disabled={disabled || locked}
                 onChange={(e) => toggle(surface.id, e.target.checked)}
                 aria-describedby={`${inputId}-hint`}
               />
               <span>{surface.label}</span>
               <small id={`${inputId}-hint`} className="fm-surface-field__hint">
-                {surface.hint}
+                {blocked.has(surface.id) ? unavailableHint : surface.hint}
               </small>
             </label>
           );

@@ -289,6 +289,59 @@ describe('AppPlan — montage', () => {
     expect(window.location.search).not.toContain('parcours=');
   });
 
+  test('lien profond ?parcours= : ouvre le parcours annoncé par le QR code', async () => {
+    planApiMock.fetchPlanContent.mockResolvedValueOnce({
+      ...content,
+      routes: [
+        {
+          id: 'r1',
+          slug: 'tour',
+          title: 'Tour du lycée',
+          audience: '',
+          description: '',
+          steps: [{ position: 0, target_type: 'zone', target_id: 'z-cdi', step_title: 'Le CDI' }],
+        },
+      ],
+    });
+    window.history.replaceState(null, '', '/?parcours=tour');
+    render(<AppPlan />);
+
+    const sheet = await screen.findByTestId('plan-route-sheet');
+    expect(sheet.textContent).toContain('Le CDI');
+    expect(sheet.textContent).toContain('Étape 1 sur 1');
+  });
+
+  test('lien profond vers un parcours disparu : le visiteur l’apprend', async () => {
+    // Une affiche imprimée survit à la dépublication du parcours qu'elle annonce : arriver
+    // sur un plan nu, sans un mot, laissait le visiteur croire à une panne.
+    window.history.replaceState(null, '', '/?parcours=parcours-retire');
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+    expect(await screen.findByText('Ce parcours n’est plus disponible.')).toBeTruthy();
+    expect(screen.queryByTestId('plan-route-sheet')).toBeNull();
+  });
+
+  test('un parcours sans étape affichable n’est pas proposé', async () => {
+    // La charge du plan écarte les étapes dont le lieu est supprimé ou masqué : un parcours
+    // qui n'ouvre que sur « aucune étape » n'a rien à promettre.
+    planApiMock.fetchPlanContent.mockResolvedValueOnce({
+      ...content,
+      routes: [
+        {
+          id: 'r-vide',
+          slug: 'vide',
+          title: 'Parcours vidé',
+          audience: '',
+          description: '',
+          steps: [],
+        },
+      ],
+    });
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+    expect(screen.queryByRole('button', { name: /Parcours/ })).toBeNull();
+  });
+
   test('accès par code : écran de saisie quand le serveur l’exige', async () => {
     const denied = Object.assign(new Error('Code requis'), {
       status: 401,
