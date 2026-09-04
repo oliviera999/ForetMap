@@ -7,7 +7,7 @@ const {
 } = require('../../middleware/requireTeacher');
 const { getAbsolutePath } = require('../../lib/uploads');
 const asyncHandler = require('../../lib/asyncHandler');
-const { logAudit } = require('../audit');
+const { logAudit } = require('../../lib/auditLog');
 const { emitTasksChanged } = require('../../lib/realtime');
 const { resolveTaskMapId } = require('../../lib/taskRouteHelpers');
 const { isVisitorRole } = require('../../lib/taskAuthzHelpers');

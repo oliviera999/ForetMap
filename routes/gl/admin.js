@@ -2,22 +2,13 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { queryAll, queryOne, execute, withTransaction } = require('../../database');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
-const { logAudit } = require('../audit');
+const { logAudit } = require('../../lib/auditLog');
 const {
-  invalidateGameplayCache,
-  invalidateModulesCache,
   upsertGlSetting,
-  MARKER_QUESTION_RETRIGGER_VALUES,
-  LORE_SPOILER_LEVELS,
-  SPELL_CAST_CONTRIBUTION_MODES,
-  SPELL_CAST_TEAM_SCOPES,
-  SPELL_CAST_APPROVAL_MODES,
-  MASCOT_MOVE_ACTORS,
+  validateGlSettingValue,
   getGameplaySettings,
 } = require('../../lib/glSettings');
-const { normalizeFeuilletPreviewFields } = require('../../lib/glLoreFeuilletPreview');
-const { normalizeAcquisitionChannels } = require('../../lib/glFeuilletAcquisitionChannels');
-const { getDefaultVitalityFromSettings, clampVitality } = require('../../lib/glVitality');
+const { getDefaultVitalityFromSettings } = require('../../lib/glVitality');
 const {
   MAX_IMPORT_ROWS,
   PSEUDO_RE,
@@ -59,8 +50,6 @@ const {
   readApplyUploadPayload,
   getContentLibraryLimits,
 } = require('../../lib/contentLibraryUpload');
-const { normalizeBrand } = require('../../lib/glBrand');
-const { validateMarkerBackgrounds } = require('../../lib/glMarkerBackgrounds');
 const {
   ensureForetmapGroupForGlClass,
   upsertForetmapUserForGlPlayer,
@@ -784,185 +773,12 @@ router.get(
 );
 
 /*
- * O-audit — PUT /settings/:key : les 8 blocs identiques « trim + appartenance à un Set »
- * et les gardes booléens/numériques sont regroupés en table clé → validateur.
- * Chaque validateur renvoie `{ error }` (→ 400, message historique inchangé) ou
- * `{ value }` (valeur normalisée à persister). Une clé sans validateur est persistée
+ * PUT /settings/:key — la validation des valeurs vit dans le registre déclaratif
+ * `GL_SETTINGS_REGISTRY` (`lib/glSettings.js`, noyau `lib/shared/settingsRegistryCore.js`) :
+ * types, bornes et messages d'erreur historiques (`errorMessage`) y sont déclarés, la route
+ * ne fait plus que les gardes de clé. Une clé hors registre (`platform.title`…) est persistée
  * telle quelle, comme avant.
  */
-const enumSettingValidator = (allowedValues, errorMessage) => (value) => {
-  const mode = typeof value === 'string' ? value.trim() : String(value || '').trim();
-  if (!allowedValues.has(mode)) return { error: errorMessage };
-  return { value: mode };
-};
-
-const booleanSettingValidator = (errorMessage) => (value) =>
-  typeof value === 'boolean' ? { value } : { error: errorMessage };
-
-const vitalityPointsSettingValidator = (value) => {
-  const n = Number(value);
-  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0 || n > 99) {
-    return { error: 'La valeur doit être un entier entre 0 et 99' };
-  }
-  return { value: clampVitality(n) };
-};
-
-// Map (et non objet littéral) pour éviter toute collision avec Object.prototype
-// (`:key` est contrôlé par le client : constructor, __proto__, …).
-// Plafond de jeu : 0 = illimité (défaut historique), sinon 1..99. Le plafond technique
-// de la colonne reste 99 quoi qu'il arrive.
-const vitalityCapSettingValidator = (value) => {
-  const n = Number(value);
-  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0 || n > 99) {
-    return { error: 'La valeur doit être 0 (illimité) ou un entier entre 1 et 99' };
-  }
-  return { value: n };
-};
-
-const SETTINGS_VALUE_VALIDATORS = new Map([
-  [
-    'gameplay.marker_question_retrigger',
-    enumSettingValidator(
-      MARKER_QUESTION_RETRIGGER_VALUES,
-      'Valeur marker_question_retrigger invalide',
-    ),
-  ],
-  [
-    'gameplay.zone_content_retrigger',
-    enumSettingValidator(
-      MARKER_QUESTION_RETRIGGER_VALUES,
-      'Valeur zone_content_retrigger invalide',
-    ),
-  ],
-  [
-    'gameplay.spell_cast_contribution_mode',
-    enumSettingValidator(
-      SPELL_CAST_CONTRIBUTION_MODES,
-      'Mode de contribution invalide (coordinator, self_only, both)',
-    ),
-  ],
-  [
-    'gameplay.spell_cast_team_scope',
-    enumSettingValidator(
-      SPELL_CAST_TEAM_SCOPES,
-      'Périmètre équipe invalide (any_team, own_team, mj_any)',
-    ),
-  ],
-  [
-    'gameplay.spell_cast_mj_only',
-    booleanSettingValidator('La valeur de spell_cast_mj_only doit être booléenne'),
-  ],
-  [
-    'gameplay.spell_cast_approval_mode',
-    enumSettingValidator(
-      SPELL_CAST_APPROVAL_MODES,
-      'Mode d’approbation invalide (auto, mj_required, per_spell)',
-    ),
-  ],
-  [
-    'gameplay.mascot_move_actor',
-    enumSettingValidator(MASCOT_MOVE_ACTORS, 'Acteur de déplacement invalide (players, mj)'),
-  ],
-  ['gameplay.qcm_mj_only', booleanSettingValidator('La valeur de qcm_mj_only doit être booléenne')],
-  [
-    'gameplay.vitality_enabled',
-    booleanSettingValidator('La valeur de vitality_enabled doit être booléenne'),
-  ],
-  ['gameplay.default_health_points', vitalityPointsSettingValidator],
-  ['gameplay.default_power_points', vitalityPointsSettingValidator],
-  ['gameplay.max_health_points', vitalityCapSettingValidator],
-  ['gameplay.max_power_points', vitalityCapSettingValidator],
-  [
-    'gameplay.player_journal_max_chars',
-    (value) => {
-      const n = Number(value);
-      // 0 = illimité (pas de plafond) ; sinon entier entre 500 et 200000.
-      if (
-        !Number.isFinite(n) ||
-        !Number.isInteger(n) ||
-        n < 0 ||
-        n > 200000 ||
-        (n > 0 && n < 500)
-      ) {
-        return { error: 'La valeur doit être 0 (illimité) ou un entier entre 500 et 200000' };
-      }
-      return { value: n };
-    },
-  ],
-  [
-    'gameplay.player_journal_max_assets',
-    (value) => {
-      const n = Number(value);
-      // 0 = illimité (pas de plafond) ; sinon entier entre 1 et 200.
-      if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0 || n > 200) {
-        return { error: 'La valeur doit être 0 (illimité) ou un entier entre 1 et 200' };
-      }
-      return { value: n };
-    },
-  ],
-  [
-    'gameplay.lore_feuillet_retrigger',
-    enumSettingValidator(
-      MARKER_QUESTION_RETRIGGER_VALUES,
-      'Valeur lore_feuillet_retrigger invalide',
-    ),
-  ],
-  [
-    'gameplay.lore_spoiler_max_level',
-    enumSettingValidator(LORE_SPOILER_LEVELS, 'Niveau spoiler lore invalide (cle, recit, secret)'),
-  ],
-  [
-    'gameplay.lore_feuillet_preview_fields',
-    (value) => {
-      if (!Array.isArray(value)) {
-        return { error: 'La valeur de lore_feuillet_preview_fields doit être une liste' };
-      }
-      return { value: normalizeFeuilletPreviewFields(value) };
-    },
-  ],
-  [
-    'gameplay.lore_feuillet_acquisition_enabled',
-    booleanSettingValidator('La valeur de lore_feuillet_acquisition_enabled doit être booléenne'),
-  ],
-  [
-    'gameplay.lore_feuillet_acquisition_channels',
-    (value) => {
-      if (!Array.isArray(value)) {
-        return { error: 'La valeur de lore_feuillet_acquisition_channels doit être une liste' };
-      }
-      return { value: normalizeAcquisitionChannels(value) };
-    },
-  ],
-  ['gameplay.lore_effacement_enabled', booleanSettingValidator('La valeur doit être booléenne')],
-  ['gameplay.lore_gemme_costs_enabled', booleanSettingValidator('La valeur doit être booléenne')],
-  ['gameplay.lore_heart_rewards_enabled', booleanSettingValidator('La valeur doit être booléenne')],
-  ['gameplay.plateau_markers_visible', booleanSettingValidator('La valeur doit être booléenne')],
-  ['gameplay.plateau_zones_visible', booleanSettingValidator('La valeur doit être booléenne')],
-  [
-    'gameplay.plateau_marker_numbers_visible',
-    booleanSettingValidator('La valeur doit être booléenne'),
-  ],
-  [
-    'gameplay.marker_backgrounds',
-    (value) => {
-      const validated = validateMarkerBackgrounds(value);
-      if (validated.error) return { error: validated.error };
-      return { value: validated.value };
-    },
-  ],
-  ['gameplay.market_hearts_enabled', booleanSettingValidator('La valeur doit être booléenne')],
-  ['gameplay.market_feuillets_enabled', booleanSettingValidator('La valeur doit être booléenne')],
-  [
-    'platform.brand',
-    (value) => {
-      if (!value || typeof value !== 'object' || Array.isArray(value)) {
-        return { error: 'La valeur de platform.brand doit etre un objet JSON' };
-      }
-      return { value: normalizeBrand(value) };
-    },
-  ],
-]);
-
 router.put(
   '/settings/:key',
   requireGlPermission('gl.settings.manage'),
@@ -981,13 +797,14 @@ router.put(
     if (key.startsWith('gameplay.') && !ALLOWED_GAMEPLAY_SETTINGS.has(key)) {
       return res.status(400).json({ error: 'Clé gameplay inconnue' });
     }
-    const validateSettingValue = SETTINGS_VALUE_VALIDATORS.get(key);
-    if (validateSettingValue) {
-      const checked = validateSettingValue(value);
-      if (checked.error) return res.status(400).json({ error: checked.error });
-      value = checked.value;
-    }
+    const checked = validateGlSettingValue(key, value);
+    if (checked.error) return res.status(400).json({ error: checked.error });
+    value = checked.value;
     if (key === 'ui.map.plateau_marker_size_percent') {
+      // Fuite connue, conservée telle quelle pour ce lot : ce réglage est un réglage
+      // ForetMap (`app_settings`, source unique du ratio repères/plateau) écrit depuis
+      // l'admin GL. À rapatrier dans un registre commun product-aware (audit convergence
+      // 2026-09, §4.6 / §5.2) plutôt que de dupliquer la clé côté `gl_settings`.
       const { setSetting } = require('../../lib/settings');
       const n = Number(value);
       if (!Number.isFinite(n) || !Number.isInteger(n) || n < 50 || n > 200) {
@@ -999,15 +816,9 @@ router.put(
       });
       return res.json({ ok: true });
     }
+    // `upsertGlSetting` invalide le magasin (et le snapshot de test du domaine concerné) :
+    // plus d'invalidation manuelle par préfixe de clé.
     await upsertGlSetting(key, value, req.glAuth.userId);
-    // upsertGlSetting n'invalide aucun cache : on reproduit les invalidations que
-    // faisait l'ancien bloc inline selon le préfixe de la clé.
-    if (key.startsWith('gameplay.')) {
-      invalidateGameplayCache();
-    }
-    if (key.startsWith('modules.')) {
-      invalidateModulesCache();
-    }
     return res.json({ ok: true });
   }),
 );

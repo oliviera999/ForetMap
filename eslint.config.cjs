@@ -138,6 +138,17 @@ module.exports = [
     },
   },
   {
+    // Gabarit PWA : module CommonJS consommé par scripts/build-pwa.js et lib/pwaRoutes.js
+    // (Node), jamais par le bundle navigateur — globals Node et `require`/`module`.
+    files: ['src/shared/pwa/**/*.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+  {
     // Étanchéité de src/shared (code commun ForetMap + GL) : un module partagé ne doit pas
     // remonter vers du code produit. En avertissement pour l'instant (dette recensée),
     // le script `lint` ne passe pas `--max-warnings`, la CI n'est donc pas bloquée.

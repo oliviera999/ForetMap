@@ -973,6 +973,27 @@ protocole-relatif, chemin relatif) est écartée à l’enregistrement.
 
 ---
 
+### Réglages du produit Plan Lyautey (`ui.plan.*`)
+
+Déclarés dans le registre commun (lot 1 du plan de convergence,
+`lib/shared/settingsRegistryCore.js`, branché par `lib/settings.js`), portée `public` — servis
+par `GET /api/settings/public` et éditables par `PUT /api/settings/admin/:key` :
+
+| Clé                            | Type   | Défaut                             | Rôle                                                    |
+| ------------------------------ | ------ | ---------------------------------- | ------------------------------------------------------- |
+| `ui.plan.map_id`               | string | `lyautey`                          | Carte affichée par le plan                              |
+| `ui.plan.title`                | string | `Plan Lyautey`                     | Titre de l'application                                  |
+| `ui.plan.welcome_hint`         | string | `Touchez un lieu, ou cherchez-le.` | Bulle du premier lancement                              |
+| `ui.plan.access_mode`          | enum   | `public`                           | `public` ou `code` (garde `lib/accessGate.js`)          |
+| `ui.plan.attribution`          | string | vide                               | Mention due pour le fond de plan (ex. OpenStreetMap)    |
+| `ui.plan.default_category_ids` | string | vide                               | Catégories visibles à l'ouverture (ids séparés par `;`) |
+| `ui.plan.hidden_category_ids`  | string | vide                               | Catégories jamais montrées par le plan (idem)           |
+
+Portée `admin` : `security.plan_access_code_hash` (hachage bcrypt du code d'accès, vide =
+aucun code). Le magasin de réglages partagé (`lib/shared/settingsStore.js`) invalide son cache à
+chaque écriture SQL du processus ; `lib/glSettings.js` l'utilise aussi pour `gl_settings`, dont
+la validation vit désormais dans son registre (`GL_SETTINGS_REGISTRY`) et non plus dans la route.
+
 ## Zones
 
 **Emoji de zone (colonne dédiée `zones.emoji`, migration 206 — audit UI 2026-09, C4).**
@@ -1564,6 +1585,25 @@ Notes d'exploitation :
   sont publics par URL : ne pas y stocker de média nécessitant une autorisation.
 
 ---
+
+## Compteur d'usage anonyme (tous produits)
+
+Lot 1 du plan de convergence (`docs/AUDIT_CONVERGENCE_APPS_2026-09.md` §5.2 ; principe dans
+`docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.9). Aucun identifiant, aucun cookie, aucune adresse IP
+conservée : des événements **nommés**, agrégés par jour dans `usage_counters (day, product,
+event, key, count)`. Noms d'événements en liste blanche **par produit** (`lib/usage.js`,
+`USAGE_EVENTS`), clé libre bornée à 64 caractères et normalisée (minuscules, espaces réduits).
+
+- `POST /api/usage` — **public**, sans session. Corps `{ product, event, key? }` ou
+  `{ events: [ … ] }` (20 au plus). Réponse `204`. `400 { error }` si le produit ou l'événement
+  n'est pas en liste blanche, si le lot est vide ou dépasse 20. Pensé pour
+  `navigator.sendBeacon` (corps JSON en `Blob`). Soumis au limiteur global `/api/`.
+- `GET /api/admin/usage?from=YYYY-MM-DD&to=YYYY-MM-DD&product=foret|gl|plan` — permission
+  `admin.settings.read`. Bornes tolérantes (un jour illisible retombe sur les 30 derniers
+  jours, un produit inconnu sur tous). Réponse `{ from, to, product, rows: [{ day, product,
+event, key, count }] }`, triée par jour décroissant puis produit, événement, compte.
+
+Produits reconnus : `lib/products.js` (registre : `foret`, `gl`, `plan`).
 
 ## Audit
 
