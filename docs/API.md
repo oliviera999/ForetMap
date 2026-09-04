@@ -1675,15 +1675,15 @@ l'appareil. Les étapes pointent vers les lieux existants (`target_type` / `targ
 déjà employé par la visite) : aucun lieu n'est dupliqué, et un parcours suit les renommages.
 Tables `map_routes` et `map_route_steps` (migration `210`).
 
-| Méthode | URL                         | n3boss | Description                                                            |
-| ------- | --------------------------- | ------ | ---------------------------------------------------------------------- |
-| GET     | `/api/map-routes`           | non    | Parcours **publiés**, filtrables par `map_id` et `surface`             |
-| GET     | `/api/map-routes/manage`    | oui    | Vue de gestion : inclut les brouillons (`zones.manage`)                |
-| GET     | `/api/map-routes/:idOrSlug` | non    | Détail par identifiant **ou par slug** (le lien profond porte le slug) |
-| POST    | `/api/map-routes`           | oui    | Créer un parcours (et ses étapes)                                      |
-| PUT     | `/api/map-routes/:id`       | oui    | Modifier ; `steps` fourni **remplace** toutes les étapes               |
-| DELETE  | `/api/map-routes/:id`       | oui    | Supprimer (les étapes partent en cascade)                              |
-| GET     | `/api/map-routes/:id/pdf`   | oui    | Export **PDF** : étapes + **QR code** du lien profond, imprimable      |
+| Méthode | URL                         | n3boss | Description                                                                                                                             |
+| ------- | --------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/map-routes`           | non    | Parcours **publiés**, filtrables par `map_id` et `surface` — derrière la garde d'accès du plan                                          |
+| GET     | `/api/map-routes/manage`    | oui    | Vue de gestion : inclut les brouillons (`zones.manage`)                                                                                 |
+| GET     | `/api/map-routes/:idOrSlug` | non    | Détail **d'un parcours publié**, par identifiant ou par slug (le lien profond porte le slug) ; `?map_id=` lève l'ambiguïté entre cartes |
+| POST    | `/api/map-routes`           | oui    | Créer un parcours (et ses étapes)                                                                                                       |
+| PUT     | `/api/map-routes/:id`       | oui    | Modifier ; `steps` fourni **remplace** toutes les étapes                                                                                |
+| DELETE  | `/api/map-routes/:id`       | oui    | Supprimer (les étapes partent en cascade)                                                                                               |
+| GET     | `/api/map-routes/:id/pdf`   | oui    | Export **PDF** : étapes + **QR code** du lien profond, imprimable                                                                       |
 
 - **Corps JSON** : `title` (requis, ≤ 180), `map_id` (requis à la création), `slug` (dérivé du
   titre si absent ; **409** s'il est déjà pris sur la carte), `description`, `audience` (≤ 120),
@@ -1692,7 +1692,20 @@ Tables `map_routes` et `map_route_steps` (migration `210`).
 - **`steps`** : liste ordonnée de `{ target_type: 'zone'|'marker', target_id, step_title?,
 step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `steps` sur un
   `PUT` conserve les étapes ; le fournir les remplace toutes (c'est ce qu'envoie l'éditeur après
-  un glisser-déposer). Une valeur de `target_type` hors `zone` / `marker` → **400**.
+  un glisser-déposer). Une valeur de `target_type` hors `zone` / `marker` → **400**, et un
+  `target_id` qui ne désigne **aucun lieu de la carte du parcours** → **400** nommant l'étape
+  fautive (le couple est polymorphe : aucune clé étrangère ne peut le tenir).
+- **Longueurs** : `description` ≤ **2 000** caractères, `step_text` ≤ **4 000** — au-delà, **400**.
+  Sans ces bornes, une entrée trop longue faisait remonter une erreur SQL en 500.
+- **Publication** : un brouillon (`is_published: false`) n'est lisible que par
+  `GET /api/map-routes/manage`. Le détail public répond **404** pour un brouillon, y compris
+  par son identifiant.
+- **Garde d'accès** : les deux lectures publiques passent par la garde du plan
+  (`lib/planAccess.js`). Quand `ui.plan.access_mode` vaut `code` et qu'un code est configuré,
+  elles répondent **401** `{ access_required: true }` sans laissez-passer, comme
+  `GET /api/plan/content`. La vue de gestion n'est pas concernée (elle a sa permission).
+- **`map_id`** n'est pas modifiable par `PUT` : un parcours reste sur sa carte, ses étapes ne
+  visent que les lieux de celle-ci. Un `map_id` envoyé à la modification est ignoré.
 - **`GET /api/map-routes/:id/pdf`** : une page A4 avec le titre, le public visé, la liste des
   étapes et un QR code vers `?parcours=<slug>`. La base du lien suit trois sources, dans
   l'ordre : `?base_url=`, puis le réglage **`ui.plan.public_base_url`**, puis l'hôte de la
@@ -1701,6 +1714,10 @@ step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `
   de connexion. QR généré localement (`qrcode`, MIT) : une affiche d'établissement ne doit
   dépendre d'aucun service tiers.
 - **`GET /api/plan/content`** publie les parcours de la surface `plan` sous la clé `routes`.
+  Les **étapes sont confrontées aux lieux réellement publiés** : une étape dont la zone ou le
+  repère est supprimé, masqué (`hidden_surfaces`) ou hors des catégories du plan ne sort pas de
+  la charge — ni son identifiant, ni son texte. Les `position` restantes peuvent donc présenter
+  des trous ; le client renumérote à l'affichage.
 
 ### Accès du plan par code
 

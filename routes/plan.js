@@ -19,9 +19,8 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 
 const { queryAll, queryOne, getDataWriteVersion } = require('../database');
-const { createSignedCookieGate, resolveCookieSecret } = require('../lib/accessGate');
+const { planAccessGate, isPlanAccessGranted } = require('../lib/planAccess');
 const { authLimiter } = require('../lib/rateLimit');
-const { JWT_SECRET } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { createWriteVersionCache } = require('../lib/shared/writeVersionCache');
 const { getSettingValue, SETTINGS_REGISTRY } = require('../lib/settings');
@@ -43,33 +42,9 @@ const planContentCache = createWriteVersionCache({
   name: 'planContentCache',
 });
 
-/** Durée du laissez-passer (30 jours) : un visiteur régulier ne resaisit pas le code. */
-const PLAN_ACCESS_TTL_SECONDS = 30 * 24 * 60 * 60;
-
-/**
- * Garde d'accès du plan (lot 8, `docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.7) : quand
- * `ui.plan.access_mode` vaut `code`, la charge publique exige un cookie signé, obtenu en
- * saisissant le code d'établissement une fois. Même mécanique que la progression anonyme de
- * la Visite (`lib/accessGate.js`) : HMAC, HttpOnly, SameSite=Lax, Secure en production.
- */
-const planAccessGate = createSignedCookieGate({
-  name: 'plan_access',
-  ttlSeconds: PLAN_ACCESS_TTL_SECONDS,
-  secret: () =>
-    resolveCookieSecret({
-      envVar: 'VISIT_COOKIE_SECRET',
-      devFallback: () => JWT_SECRET || 'plan-dev-secret-change-me',
-    }),
-});
-
 /** Le visiteur a-t-il le droit d'obtenir la charge du plan ? */
 async function checkPlanAccess(req, settings) {
-  if (settings.access_mode !== 'code') return { ok: true };
-  const hash = String((await getSettingValue('security.plan_access_code_hash', '')) || '');
-  // Mode `code` sans code configuré : on n'enferme pas les visiteurs dehors par accident.
-  if (!hash) return { ok: true };
-  if (planAccessGate.read(req) === 'ok') return { ok: true };
-  return { ok: false };
+  return { ok: await isPlanAccessGranted(req, { accessMode: settings.access_mode }) };
 }
 
 /** Clés `ui.plan.*` exposées telles quelles (toutes de portée `public`). */
@@ -302,6 +277,11 @@ async function buildPlanContent(map, settings) {
     }));
 
   const knownCategoryIds = new Set(categories.map((c) => c.id));
+  /** Lieux réellement servis, dans la forme des cibles d'étape (`zone:z1`, `marker:m4`). */
+  const visiblePlaceKeys = new Set([
+    ...zones.map((zone) => `zone:${zone.id}`),
+    ...markers.map((marker) => `marker:${marker.id}`),
+  ]);
   const { map_id: _mapIdSetting, ...publicSettings } = settings;
   return {
     map: serializePlanMap(map),
@@ -314,8 +294,17 @@ async function buildPlanContent(map, settings) {
     zones,
     markers,
     // Parcours publiés sur la surface `plan` (lot 8) : listes ordonnées de lieux, sans
-    // progression enregistrée — l'avancement vit sur l'appareil.
-    routes: attachStepsToRoutes(routeRows.map(serializeRouteRow), stepRows),
+    // progression enregistrée — l'avancement vit sur l'appareil. Les étapes sont confrontées
+    // aux lieux réellement publiés ci-dessus : une étape dont le lieu est supprimé ou masqué
+    // sur le plan ne sort pas d'ici. Sans ce filtre, la puce annonçait « 5 étapes » quand la
+    // feuille en affichait 3, et le texte d'une étape survivait au masquage de son lieu
+    // (`docs/AUDIT_PARCOURS_2026-09.md` §2.4 et §2.5).
+    routes: attachStepsToRoutes(
+      routeRows.map(serializeRouteRow),
+      stepRows.filter((step) =>
+        visiblePlaceKeys.has(`${String(step.target_type)}:${String(step.target_id)}`),
+      ),
+    ),
   };
 }
 

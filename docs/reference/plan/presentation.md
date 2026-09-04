@@ -130,7 +130,12 @@ recadre sur chaque étape, et « Y aller » vise l'étape en cours.
 
 Rien n'est enregistré : personne ne coche, personne n'est suivi. On peut sauter une étape ou
 quitter le parcours à tout moment. Un lien direct par parcours (`?parcours=…`) permet d'imprimer
-un **QR code** à l'accueil : le visiteur scanne et démarre le parcours.
+un **QR code** à l'accueil : le visiteur scanne et démarre le parcours. Si l'affiche a survécu au
+parcours — dépublié, supprimé, renommé — le plan le **dit** (« Ce parcours n'est plus
+disponible. ») plutôt que de s'ouvrir sans rien annoncer.
+
+Quand le plan est protégé par un **code d'accès**, les parcours le sont avec lui : rien de leur
+contenu ne sort avant la saisie du code.
 
 Les parcours se créent dans ForetMap, dans _Réglages → Parcours_ (voir la documentation de la
 carte) : on cherche les lieux, on les ordonne au glisser-déposer, on publie. Le bouton

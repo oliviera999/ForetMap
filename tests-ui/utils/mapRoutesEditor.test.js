@@ -1,7 +1,10 @@
+import { createRequire } from 'node:module';
+
 import { describe, test, expect } from 'vitest';
 
 import {
   EMPTY_ROUTE_DRAFT,
+  ROUTE_SORT_ORDER_DEFAULT,
   ROUTE_STEPS_MAX,
   addStep,
   moveStep,
@@ -237,5 +240,39 @@ describe('libellés', () => {
     expect(routeSummaryLine({ is_published: false, surfaces: [], steps: [{}] })).toBe(
       'Brouillon · 1 étape · aucune surface',
     );
+  });
+});
+
+describe('bornes miroir du serveur', () => {
+  /**
+   * `ROUTE_STEPS_MAX` vit des deux côtés : la borne serveur (`lib/mapRoutes.js`) et celle
+   * annoncée dans l'éditeur avant l'aller-retour. Une divergence ne se verrait qu'à l'usage,
+   * sur le parcours de la soixante-et-unième étape (`docs/AUDIT_PARCOURS_2026-09.md` §2.9 g).
+   */
+  test('la borne d’étapes de l’éditeur est celle du serveur', () => {
+    const require = createRequire(import.meta.url);
+    const server = require('../../lib/mapRoutes.js');
+    expect(ROUTE_STEPS_MAX).toBe(server.ROUTE_STEPS_MAX);
+  });
+});
+
+describe('rang d’affichage', () => {
+  test('un champ « Ordre » vidé retombe sur le rang par défaut, pas sur zéro', () => {
+    expect(routePayloadFromDraft({ title: 'T', sort_order: '' }).sort_order).toBe(
+      ROUTE_SORT_ORDER_DEFAULT,
+    );
+    expect(routePayloadFromDraft({ title: 'T', sort_order: '  ' }).sort_order).toBe(
+      ROUTE_SORT_ORDER_DEFAULT,
+    );
+    expect(routePayloadFromDraft({ title: 'T', sort_order: 'douze' }).sort_order).toBe(
+      ROUTE_SORT_ORDER_DEFAULT,
+    );
+  });
+
+  test('un rang saisi est respecté, zéro compris', () => {
+    expect(routePayloadFromDraft({ title: 'T', sort_order: '40' }).sort_order).toBe(40);
+    expect(routePayloadFromDraft({ title: 'T', sort_order: 0 }).sort_order).toBe(0);
+    expect(routeDraftFrom({ sort_order: 0 }).sort_order).toBe(0);
+    expect(routeDraftFrom({}).sort_order).toBe(ROUTE_SORT_ORDER_DEFAULT);
   });
 });

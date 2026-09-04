@@ -39,8 +39,10 @@ const ROUTE = {
 function routeApi(routes = []) {
   return async (path) => {
     if (path.startsWith('/api/map-routes/manage')) return routes;
-    if (path === '/api/zones') return ZONES;
-    if (path === '/api/map/markers') return MARKERS;
+    // Les lieux sont demandés bornés à la carte retenue (`?map_id=`) : c'est le serveur qui
+    // filtre, l'éditeur ne rapatrie plus toutes les cartes.
+    if (path.startsWith('/api/zones')) return ZONES;
+    if (path.startsWith('/api/map/markers')) return MARKERS;
     if (path === '/api/map-categories') return CATEGORIES;
     return {};
   };
@@ -157,5 +159,35 @@ describe('MapRoutesPanel', () => {
     api.mockImplementation(routeApi([]));
     renderPanel();
     expect(await screen.findByText('Aucun parcours sur cette carte pour l’instant.')).toBeTruthy();
+  });
+
+  test('les lieux sont demandés bornés à la carte retenue', async () => {
+    renderPanel();
+    await screen.findByText('Portes ouvertes');
+    expect(api).toHaveBeenCalledWith('/api/zones?map_id=lyautey');
+    expect(api).toHaveBeenCalledWith('/api/map/markers?map_id=lyautey');
+  });
+
+  test('les surfaces sans écran de parcours ne se cochent pas', async () => {
+    renderPanel();
+    await screen.findByText('Portes ouvertes');
+    // Le Plan est la seule surface qui affiche les parcours aujourd'hui : les deux autres
+    // restent lisibles mais fermées, plutôt que de promettre un affichage inexistant.
+    // Identifiants posés par `SurfaceVisibilityField` (`idPrefix="map-route"`, mode visible).
+    expect(document.getElementById('map-route-visible-map').disabled).toBe(true);
+    expect(document.getElementById('map-route-visible-visit').disabled).toBe(true);
+    expect(document.getElementById('map-route-visible-plan').disabled).toBe(false);
+    expect(screen.getAllByText('n’affiche pas encore les parcours')).toHaveLength(2);
+  });
+
+  test('changer le slug d’un parcours publié avertit sur les affiches imprimées', async () => {
+    renderPanel();
+    await screen.findByText('Portes ouvertes');
+    fireEvent.click(screen.getByRole('button', { name: 'Éditer' }));
+    const slug = await screen.findByLabelText('Identifiant du lien');
+    expect(screen.queryByText(/périme les affiches déjà imprimées/)).toBeNull();
+
+    fireEvent.change(slug, { target: { value: 'portes-ouvertes-2027' } });
+    expect(await screen.findByText(/périme les affiches déjà imprimées/)).toBeTruthy();
   });
 });

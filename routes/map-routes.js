@@ -25,12 +25,13 @@ const { getSettingValue } = require('../lib/settings');
 const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { logAudit } = require('../lib/auditLog');
-const { emitGardenChanged } = require('../lib/realtime');
 const { readSurfaceQuery, normalizeSurfaceInput } = require('../lib/locationSurfaces');
+const { requirePlanAccess } = require('../lib/planAccess');
 const {
   ROUTE_AUDIENCE_MAX,
   ROUTE_TITLE_MAX,
   attachStepsToRoutes,
+  normalizeRouteDescription,
   normalizeRouteSteps,
   resolveRouteBaseUrl,
   routeDeepLink,
@@ -85,9 +86,66 @@ async function replaceSteps(routeId, steps) {
   });
 }
 
-/** Catalogue **public** : parcours publiés, filtrables par carte et par surface. */
+/**
+ * Les étapes visent-elles des lieux **réels de cette carte** ?
+ *
+ * Le couple `target_type` / `target_id` est polymorphe : aucune contrainte de clé étrangère ne
+ * peut le tenir. Sans ce contrôle, l'API acceptait (201) un parcours de soixante étapes
+ * pointant vers des identifiants inventés ou vers les lieux d'une autre carte — un parcours
+ * qui s'affiche vide, sans que personne ait été prévenu
+ * (`docs/AUDIT_PARCOURS_2026-09.md` §2.7). L'éditeur s'en garde déjà, mais il n'est pas la
+ * seule porte.
+ *
+ * @param {string} mapId carte du parcours.
+ * @param {Array<{ target_type: string, target_id: string }>} steps étapes déjà normalisées.
+ * @returns {Promise<{ ok: true } | { ok: false, error: string }>}
+ */
+async function checkStepTargets(mapId, steps) {
+  if (!steps || steps.length === 0) return { ok: true };
+  const idsOf = (type) => [
+    ...new Set(steps.filter((s) => s.target_type === type).map((s) => s.target_id)),
+  ];
+  const zoneIds = idsOf('zone');
+  const markerIds = idsOf('marker');
+  const [zones, markers] = await Promise.all([
+    zoneIds.length
+      ? queryAll(
+          `SELECT id FROM zones WHERE map_id = ? AND id IN (${zoneIds.map(() => '?').join(',')})`,
+          [mapId, ...zoneIds],
+        )
+      : [],
+    markerIds.length
+      ? queryAll(
+          `SELECT id FROM map_markers WHERE map_id = ? AND id IN (${markerIds.map(() => '?').join(',')})`,
+          [mapId, ...markerIds],
+        )
+      : [],
+  ]);
+  const known = new Set([
+    ...zones.map((row) => `zone:${row.id}`),
+    ...markers.map((row) => `marker:${row.id}`),
+  ]);
+  for (const [index, step] of steps.entries()) {
+    if (known.has(`${step.target_type}:${step.target_id}`)) continue;
+    return {
+      ok: false,
+      error: `Étape ${index + 1} : ce lieu n’existe pas sur cette carte`,
+    };
+  }
+  return { ok: true };
+}
+
+/**
+ * Catalogue **public** : parcours publiés, filtrables par carte et par surface.
+ *
+ * Derrière la **garde d'accès du plan** (`lib/planAccess.js`) : quand un établissement ferme
+ * son plan par un code, les parcours se ferment avec lui. Sans cette garde, la liste des
+ * parcours — titres, publics visés, descriptions, textes d'étapes — restait lisible sans
+ * laissez-passer (`docs/AUDIT_PARCOURS_2026-09.md` §2.2).
+ */
 router.get(
   '/',
+  requirePlanAccess,
   asyncHandler(async (req, res) => {
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
     if (mapId && !(await mapExists(mapId))) {
@@ -123,13 +181,30 @@ router.get(
   }),
 );
 
-/** Détail public par identifiant **ou par slug** (le lien profond porte le slug). */
+/**
+ * Détail **public** par identifiant ou par slug (le lien profond porte le slug).
+ *
+ * Ne sert que les parcours **publiés** : un brouillon n'existe que dans la vue de gestion,
+ * c'est ce qu'annoncent l'écran de réglages et `docs/reference/`. Le repli d'origine
+ * (« le publié, sinon le premier venu ») livrait le brouillon à un visiteur anonyme qui
+ * devinait le slug — celui-ci dérive du titre (`docs/AUDIT_PARCOURS_2026-09.md` §2.1).
+ *
+ * `?map_id=` lève l'ambiguïté quand deux cartes portent le même slug : il n'est unique que
+ * par carte.
+ */
 router.get(
   '/:idOrSlug',
+  requirePlanAccess,
   asyncHandler(async (req, res) => {
     const key = String(req.params.idOrSlug || '').trim();
-    const routes = await loadRoutes('id = ? OR slug = ?', [key, key]);
-    const route = routes.find((r) => r.is_published) || routes[0];
+    const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
+    const where = ['is_published = 1', '(id = ? OR slug = ?)'];
+    const params = [key, key];
+    if (mapId) {
+      where.push('map_id = ?');
+      params.push(mapId);
+    }
+    const [route] = await loadRoutes(where.join(' AND '), params);
     if (!route) return res.status(404).json({ error: 'Parcours introuvable' });
     res.json(route);
   }),
@@ -165,6 +240,10 @@ router.post(
     if (!surfaces.ok) return res.status(400).json({ error: surfaces.error });
     const steps = normalizeRouteSteps(req.body?.steps);
     if (!steps.ok) return res.status(400).json({ error: steps.error });
+    const targets = await checkStepTargets(mapId, steps.value);
+    if (!targets.ok) return res.status(400).json({ error: targets.error });
+    const description = normalizeRouteDescription(req.body?.description);
+    if (!description.ok) return res.status(400).json({ error: description.error });
 
     const sortOrderRaw = parseInt(req.body?.sort_order, 10);
     const id = crypto.randomUUID();
@@ -177,7 +256,7 @@ router.post(
         mapId,
         slug,
         title,
-        req.body?.description == null ? null : String(req.body.description),
+        description.value === undefined ? null : description.value,
         String(req.body?.audience || '')
           .trim()
           .slice(0, ROUTE_AUDIENCE_MAX),
@@ -191,12 +270,16 @@ router.post(
       req,
       payload: { title, slug, map_id: mapId },
     });
-    emitGardenChanged({ reason: 'create_map_route', mapId });
     const [created] = await loadRoutes('id = ?', [id]);
     res.status(201).json(created);
   }),
 );
 
+/**
+ * Modification. `map_id` n'est **pas** modifiable : un parcours reste sur la carte où il est
+ * né, ses étapes ne pointent que vers les lieux de cette carte. Un `map_id` envoyé ici est
+ * ignoré (documenté dans `docs/API.md`) ; pour déplacer un parcours, on le recrée.
+ */
 router.put(
   '/:id',
   requirePermission('zones.manage'),
@@ -220,6 +303,10 @@ router.put(
     if (!surfaces.ok) return res.status(400).json({ error: surfaces.error });
     const steps = normalizeRouteSteps(req.body?.steps);
     if (!steps.ok) return res.status(400).json({ error: steps.error });
+    const targets = await checkStepTargets(String(current.map_id), steps.value);
+    if (!targets.ok) return res.status(400).json({ error: targets.error });
+    const description = normalizeRouteDescription(req.body?.description);
+    if (!description.ok) return res.status(400).json({ error: description.error });
     const sortOrderRaw = parseInt(req.body?.sort_order, 10);
 
     await execute(
@@ -230,11 +317,7 @@ router.put(
       [
         slug,
         title,
-        req.body?.description !== undefined
-          ? req.body.description == null
-            ? null
-            : String(req.body.description)
-          : current.description,
+        description.value === undefined ? current.description : description.value,
         req.body?.audience !== undefined
           ? String(req.body.audience).trim().slice(0, ROUTE_AUDIENCE_MAX)
           : current.audience,
@@ -255,7 +338,6 @@ router.put(
       req,
       payload: { title, slug },
     });
-    emitGardenChanged({ reason: 'update_map_route', mapId: current.map_id });
     const [updated] = await loadRoutes('id = ?', [current.id]);
     res.json(updated);
   }),
@@ -275,7 +357,6 @@ router.delete(
       req,
       payload: { title: current.title },
     });
-    emitGardenChanged({ reason: 'delete_map_route', mapId: current.map_id });
     res.json({ ok: true });
   }),
 );
@@ -329,6 +410,12 @@ router.get(
     });
     const link = routeDeepLink(baseUrl, route.slug);
     const qrDataUrl = await QRCode.toDataURL(link, { margin: 1, width: 320 });
+    // Une affiche part vivre hors de l'application : on garde trace de qui l'a tirée, et vers
+    // quel lien, pour retrouver l'origine d'un QR code qui traîne à l'accueil.
+    await logAudit('map_route_pdf_export', 'map_route', route.id, 'Affiche PDF exportée', {
+      req,
+      payload: { title: route.title, slug: route.slug, link },
+    });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
