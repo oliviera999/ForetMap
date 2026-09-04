@@ -18,8 +18,12 @@ familles.
   fenêtre de bienvenue propose de **choisir sa mascotte guide** ; ce choix est retenu
   pour les fois suivantes et reste modifiable pendant la visite.
 - **Explorer** : un plan du jardin avec zones et repères, que l'on parcourt en
-  déplaçant la vue (zoom, glisser, mode plein écran). **Cliquer un lieu envoie d'abord
-  la mascotte s'y rendre**, puis ouvre sa fiche.
+  déplaçant la vue (zoom, glisser, mode plein écran) — mêmes gestes que la carte de
+  l'application : pincer pour zoomer et déplacer d'un seul geste, double-tap sur un point,
+  glisser lancé, butée souple qui empêche le plan de sortir du cadre. Le plan peut être
+  **dézoomé un peu sous le cadre** (jusqu'à la moitié) pour prendre du recul ; le bouton
+  ⊡ le réajuste. **Cliquer un lieu envoie d'abord la mascotte s'y rendre**, puis ouvre
+  sa fiche.
 - **La fiche d'un lieu** : titre, sous-titre, photo principale, contenu éditorial
   (paragraphes, intertitres, blocs d'images légendées), un volet Biodiversité (les
   espèces du lieu), un volet Tuto (les fiches pratiques associées), un mode « lecture
