@@ -1,5 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
+const { planPlaceNamePattern } = require('./helpers/planPlaceName');
+
 /**
  * Position sur le Plan Lyautey (lot 6) : calage du plan côté admin, position simulée par
  * Playwright, bouton « Me situer », point de position, puis « Y aller » qui annonce une
@@ -71,7 +73,7 @@ test('plan : « Me situer » affiche le point de position, « Y aller » donne u
     const results = page.getByTestId('plan-results-sheet');
     await expect(results).toBeVisible({ timeout: 15_000 });
     await results
-      .getByRole('button', { name: new RegExp(name.slice(0, 20), 'i') })
+      .getByRole('button', { name: planPlaceNamePattern(name) })
       .first()
       .click();
 
