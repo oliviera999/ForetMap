@@ -112,6 +112,12 @@ export function AppPlan() {
     gpsEnabled: !!map?.gps_enabled,
   });
   const [positionToast, setPositionToast] = useTimedToastState();
+  /**
+   * Ce que le mode parcours a à dire au visiteur — aujourd'hui : le QR code d'une affiche qui
+   * annonce un parcours disparu. Sans lui, ce cas était silencieux
+   * (`docs/AUDIT_PARCOURS_2026-09.md` §2.6).
+   */
+  const [routeToast, setRouteToast] = useTimedToastState();
   const categoriesById = useMemo(
     () => new Map((categories || []).map((c) => [String(c.id), c])),
     [categories],
@@ -335,16 +341,33 @@ export function AppPlan() {
     [routeSteps.length, activeRouteSlug],
   );
 
+  /**
+   * Un rafraîchissement du contenu peut raccourcir un parcours en cours (une étape dont le
+   * lieu vient d'être retiré du plan). Sans rebornage, la position restait au-delà de la
+   * dernière étape et la feuille basculait sur « pas encore d'étape affichable »
+   * (`docs/AUDIT_PARCOURS_2026-09.md` §2.6).
+   */
+  useEffect(() => {
+    setRouteIndex((current) => nextRouteIndex(current, routeSteps.length, 0));
+  }, [routeSteps.length]);
+
   // L'étape courante est le lieu sélectionné : la carte recadre dessus et sa fiche suit.
   useEffect(() => {
     if (!currentRouteEntry) return;
     setSelectedPlace(currentRouteEntry.place);
   }, [currentRouteEntry]);
 
-  // Lien profond `?parcours=` : ouvre le parcours dès que le contenu est là.
+  /**
+   * Lien profond `?parcours=` : ouvre le parcours dès que le contenu est là — et **le dit**
+   * quand le slug ne correspond à rien. Une affiche imprimée survit à la dépublication, à la
+   * suppression et au changement de slug du parcours qu'elle annonce : le visiteur qui scanne
+   * doit apprendre que le parcours n'existe plus, pas arriver sur un plan nu
+   * (`docs/AUDIT_PARCOURS_2026-09.md` §2.6). La garde porte sur le contenu chargé, et non plus
+   * sur `routes.length` : un plan sans aucun parcours publié restait muet.
+   */
   const routeLinkAppliedRef = useRef(false);
   useEffect(() => {
-    if (routeLinkAppliedRef.current || routes.length === 0) return;
+    if (routeLinkAppliedRef.current || !content) return;
     routeLinkAppliedRef.current = true;
     const wanted = readRouteSlugFromLocation(
       typeof window === 'undefined' ? '' : window.location.search,
@@ -354,8 +377,10 @@ export function AppPlan() {
     if (found) {
       setActiveRouteSlug(found.slug);
       setRouteIndex(0);
+      return;
     }
-  }, [routes]);
+    setRouteToast('Ce parcours n’est plus disponible.');
+  }, [content, routes, setRouteToast]);
 
   // Bandeau « hors ligne » : le plan reste consultable grâce au service worker.
   useEffect(() => {
@@ -540,7 +565,7 @@ export function AppPlan() {
         }
       />
 
-      <FixedToast className="plan-toast">{positionToast}</FixedToast>
+      <FixedToast className="plan-toast">{positionToast || routeToast}</FixedToast>
     </div>
   );
 }

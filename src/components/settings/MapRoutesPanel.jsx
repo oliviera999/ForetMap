@@ -41,6 +41,13 @@ const HINT_STYLE = {
 const SUGGESTION_LIMIT = 8;
 
 /**
+ * Surfaces qui n'ont pas d'écran de parcours. Le champ « Proposé sur » les proposait comme les
+ * autres, et un parcours publié sur la Visite n'apparaissait nulle part, sans un mot
+ * (`docs/AUDIT_PARCOURS_2026-09.md` §2.3). À vider quand ces écrans existeront.
+ */
+const ROUTE_SURFACES_WITHOUT_SCREEN = Object.freeze(['map', 'visit']);
+
+/**
  * Console de gestion des **parcours** de carte (lot 8 du plan de convergence,
  * `docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.6).
  *
@@ -93,9 +100,12 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
       return;
     }
     try {
+      // Filtré côté serveur : les deux routes acceptent `?map_id=`, inutile de rapatrier les
+      // lieux de toutes les cartes pour n'en garder qu'une.
+      const scope = `?map_id=${encodeURIComponent(mapId)}`;
       const [zones, markers, categories] = await Promise.all([
-        api('/api/zones'),
-        api('/api/map/markers'),
+        api(`/api/zones${scope}`),
+        api(`/api/map/markers${scope}`),
         api('/api/map-categories'),
       ]);
       setPlaces(routePlaceOptions({ zones, markers, categories }, mapId));
@@ -129,6 +139,19 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
       .filter((place) => !usedKeys.has(place.key))
       .slice(0, SUGGESTION_LIMIT);
   }, [searchIndex, query, usedKeys]);
+
+  /**
+   * Le QR code d'une affiche porte le slug : le changer sur un parcours déjà publié invalide
+   * tout ce qui est imprimé (`docs/AUDIT_PARCOURS_2026-09.md` §2.9 c). On le dit au moment où
+   * le champ change, pas après.
+   */
+  const editedRoute = useMemo(
+    () => (editingId ? routes.find((r) => r.id === editingId) || null : null),
+    [editingId, routes],
+  );
+  const slugWarning = Boolean(
+    editedRoute?.is_published && String(draft.slug || '').trim() !== String(editedRoute.slug || ''),
+  );
 
   const setField = (patch) => setDraft((prev) => ({ ...prev, ...patch }));
   const setSteps = (next) => setDraft((prev) => ({ ...prev, steps: next }));
@@ -258,7 +281,15 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
             value={draft.slug}
             onChange={(e) => setField({ slug: e.target.value })}
             placeholder="laissé vide : dérivé du titre"
+            aria-describedby={slugWarning ? 'map-routes-slug-warning' : undefined}
           />
+          {slugWarning && (
+            <p id="map-routes-slug-warning" style={HINT_STYLE} role="status">
+              Ce parcours est publié : changer son identifiant{' '}
+              <strong>périme les affiches déjà imprimées</strong> (leur QR code ne mènera plus nulle
+              part).
+            </p>
+          )}
         </div>
         <div className="field" style={{ flex: 1, minWidth: 0 }}>
           <label htmlFor="map-routes-sort">Ordre</label>
@@ -288,7 +319,14 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
         legend="Proposé sur"
         value={draft.surfaces}
         onChange={(next) => setField({ surfaces: next })}
+        unavailable={ROUTE_SURFACES_WITHOUT_SCREEN}
+        unavailableHint="n’affiche pas encore les parcours"
       />
+      <p style={HINT_STYLE}>
+        Seul le <strong>Plan</strong> affiche les parcours pour l’instant. La carte de travail et la
+        Visite les stockeront sans les montrer : leurs cases restent fermées tant qu’elles n’ont pas
+        d’écran.
+      </p>
 
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
         <input

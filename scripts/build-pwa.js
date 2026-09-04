@@ -89,11 +89,10 @@ const PWA_PROFILES = Object.freeze({
     ]),
     // La charge du plan est l'application : sans elle, il n'y a rien à afficher. Elle doit
     // donc rester disponible hors ligne, quitte à dater d'une visite précédente.
-    apiStaleWhileRevalidate: Object.freeze([
-      '/api/plan/content',
-      '/api/plan/settings',
-      '/api/map-routes',
-    ]),
+    // `/api/map-routes` n'y figure plus : le plan reçoit ses parcours dans
+    // `/api/plan/content`, il n'a jamais appelé cette route (`docs/AUDIT_PARCOURS_2026-09.md`
+    // §2.9 e). Une entrée d'allowlist qui ne sert rien finit par mentir sur ce qui est caché.
+    apiStaleWhileRevalidate: Object.freeze(['/api/plan/content', '/api/plan/settings']),
     apiNetworkFirst: Object.freeze([]),
   }),
 });

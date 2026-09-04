@@ -4,6 +4,10 @@
  * Placée à côté des puces de catégories : un parcours est une autre façon de lire le même
  * plan, pas un autre écran.
  *
+ * Un parcours **sans étape affichable** n'est pas proposé : la charge du plan écarte les
+ * étapes dont le lieu est supprimé ou masqué (`routes/plan.js`), et un parcours qui n'ouvre
+ * que sur « aucune étape » n'a rien à promettre (`docs/AUDIT_PARCOURS_2026-09.md` §2.4).
+ *
  * @param {object} props
  * @param {Array<object>} props.routes parcours publiés.
  * @param {(route: object) => void} props.onStart
@@ -11,7 +15,8 @@
  * @param {(next: boolean) => void} props.onToggle
  */
 export function PlanRoutePicker({ routes, onStart, open, onToggle }) {
-  if (!routes || routes.length === 0) return null;
+  const offered = (routes || []).filter((route) => (route?.steps || []).length > 0);
+  if (offered.length === 0) return null;
   return (
     <div className="plan-routes">
       <button
@@ -21,11 +26,11 @@ export function PlanRoutePicker({ routes, onStart, open, onToggle }) {
         onClick={() => onToggle(!open)}
       >
         <span aria-hidden>🧭</span> Parcours
-        <span className="plan-chip__count">{routes.length}</span>
+        <span className="plan-chip__count">{offered.length}</span>
       </button>
       {open ? (
         <ul className="plan-routes__list">
-          {routes.map((route) => (
+          {offered.map((route) => (
             <li key={route.id}>
               <button type="button" className="plan-routes__item" onClick={() => onStart(route)}>
                 <span className="plan-routes__title">{route.title}</span>
