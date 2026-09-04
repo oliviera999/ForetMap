@@ -49,6 +49,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   feuille du parcours rend déjà le reste du plan `inert`, il n'y avait pas de geste sans effet à
   expliquer.
 - `docs/API.md` et `docs/reference/` (carte et zones, plan) mis en accord avec ces corrections.
+### Correctifs
+
+- **Parcours brouillon** : `GET /api/map-routes/:idOrSlug` (public) renvoyait un brouillon
+  si l'on en connaissait le slug (dérivé du titre, donc devinable) ou l'identifiant — le
+  catalogue et la charge du plan filtraient déjà `is_published`, le détail public
+  retombait sur le premier résultat. 404 désormais ; la vue de gestion est inchangée.
+- **Code d'accès du plan** : `GET /api/plan/content?code=` comparait le code hors du
+  limiteur d'authentification de `POST /access`. Même plafond désormais. La charge gated
+  n'est plus `Cache-Control: public`.
+
+### Correctif — reprise Socket.IO et compte révoqué
+
+- **La reprise de session rejoue l'auth** : après une micro-coupure, Socket.IO
+  restaurait rooms et droits en mémoire sans relire le compte. Un MJ ou un
+  joueur désactivé (ou retiré de la partie) gardait le flux live jusqu'à 120 s.
+  L'hydratation tourne maintenant à chaque reprise ; un refus d'abonnement
+  quitte aussi la room restaurée.
+- Tests : `tests/realtime.test.js`, `tests/gl-realtime.test.js`.
 
 ### Lot 8 — Parcours, hors ligne, QR, accès et compteur (plan de convergence §6)
 
@@ -409,6 +427,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   les tutoriels. L'espacement vertical est désormais porté par le seul conteneur
   (`gap` + marge basse de la nav), ce que la hauteur d'onglets déjà calculée par
   `--fm-maptasks-teacher-tabs-h` supposait.
+
+### Correctif — la navigation prof s'étirait sur la moitié de l'écran
+
+- Suite du correctif ci-dessus : les marges étaient bien en cause pour ~36 px, mais le vide
+  restant venait d'ailleurs.
+- La barre de navigation prof (`.teacher-nav`, deux rangées depuis D-4) occupait **la moitié de
+  la hauteur utile** au lieu de sa hauteur de contenu : le conteneur prof porte à la fois `main`
+  et `teacher-main`, donc `.main > * { flex:1 }` lui donnait un `flex-grow:1` que le
+  `flex-shrink:0` de `.teacher-main > .teacher-nav` ne neutralisait pas. L'ancienne barre unique
+  y échappait grâce au `max-height` de `.top-tabs` ; le conteneur des deux rangées, lui, n'en a
+  pas. Mesure en 1440×900 : **398 px de conteneur pour 114 px d'onglets**, d'où l'espace mort
+  entre la rangée d'onglets et la carte / les tâches (onglet « Cartes, tâches et tuto »), et de
+  même sur les autres onglets prof. Corrigé par `flex:0 0 auto`.
+- **Volet carte du split, côté prof ET côté élève** : le `position:sticky` du volet se cale sur
+  `.desktop-split-view` (en `overflow:hidden`, donc conteneur de défilement), pas sur le
+  document — un décalage haut de la hauteur d'en-tête y poussait la carte de 56 px vers le bas
+  sans rien dégager. Décalage remis à `0` sur les deux branches ; la marge sous l'en-tête reste
+  prise en compte par `--fm-maptasks-map-max-h`.
+- Garde-fou : `tests-ui/utils/teacherNavLayoutGuard.test.js` échoue si l'une des trois
+  déclarations repart en arrière.
 
 ### Correctif — mécaniques d'échéance
 

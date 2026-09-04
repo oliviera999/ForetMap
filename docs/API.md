@@ -673,8 +673,8 @@ Connexion Socket.IO en transport **polling uniquement** côté client (compatibi
 - **Serveur (Engine.IO)** : transports **`polling`** puis **`websocket`** (WS pour tests / outils) ; **`allowUpgrades: false`** (pas d’upgrade polling→WS, aligné navigateurs prod) ; **`pingInterval` 20 s** / **`pingTimeout` 60 s** (heartbeat un peu plus fréquent, tolérance réseau mobile et proxy).
 - **CORS** : en production, même règle que l’API (`FRONTEND_ORIGIN` si défini).
 - **Rôle** : notifier les clients qu’une ressource a changé ; les données à jour restent à charger via les routes REST (`GET /api/tasks`, etc.). Côté client, refetch **débouncé** : ~**220 ms** pour les tâches, ~**400 ms** pour le jardin (zones / plantes / repères) — compromis fraîcheur vs rafales HTTP.
-- **Auth socket** : token JWT requis (handshake). Pour ForetMap, le serveur **ré-hydrate** le compte en base à la connexion (`unauthorized` si le compte n’existe plus ou n’a plus de profil ; `unavailable` si la base est injoignable — le client peut reconnecter). `subscribe:map` n’ajoute la salle carte que si l’identifiant existe en base.
-- **Rooms** : souscription de domaine (`tasks`, `students`, `garden`) + souscription carte via `subscribe:map` (payload `{ mapId }`) ; pour GL, `subscribe:gl-game` (payload `{ gameId }`) refuse les tokens non-GL et les joueurs qui ne sont pas membres de la partie.
+- **Auth socket** : token JWT requis (handshake). ForetMap **et** GL **ré-hydratent** le compte en base à **chaque** connexion, y compris après une **reprise de session** (`connectionStateRecovery.skipMiddlewares: false` — le défaut Socket.IO sauterait ce contrôle). `unauthorized` si le compte n’existe plus, n’est plus actif ou n’a plus de profil ; `unavailable` si la base est injoignable — le client peut reconnecter. `subscribe:map` n’ajoute la salle carte que si l’identifiant existe en base.
+- **Rooms** : souscription de domaine (`tasks`, `students`, `garden`) + souscription carte via `subscribe:map` (payload `{ mapId }`) ; pour GL, `subscribe:gl-game` (payload `{ gameId }`) refuse les tokens non-GL et les joueurs qui ne sont pas membres de la partie — un refus **quitte** aussi une room éventuellement restaurée par la reprise de session.
 - **Client** : le frontend se connecte pour n3beur/n3boss authentifié. Tant que le canal est **live**, un **filet REST** relance `fetchAll` toutes les **90 s** (événements manqués, onglet en veille). En cas d’échec de connexion, le rafraîchissement périodique reste actif (cadence adaptative, infobulle « 1 à 2 minutes »).
 
 **Robustesse (comportement attendu)** :
@@ -1627,7 +1627,9 @@ filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
     ni progression, ni `hidden_surfaces`.
 - **Cache** : charge agrégée mise en cache par carte, invalidée par la **version d'écriture
   globale** (`lib/shared/writeVersionCache.js`, mécanique partagée avec
-  `GET /api/visit/content`) ; en-tête `Cache-Control: public, max-age=60`.
+  `GET /api/visit/content`) ; en-tête `Cache-Control: public, max-age=60` en mode public,
+  `private, max-age=60` quand `access_mode` vaut `code` (un cache partagé ne doit pas
+  servir la charge sans laissez-passer). Un refus 401 porte `Cache-Control: no-store`.
 - **Compteur d'usage** : le plan émet `open`, `search_empty`, `place_open` et `go` via
   `POST /api/usage` (produit `plan`) — voir **Compteur d'usage anonyme**.
 
@@ -1713,6 +1715,10 @@ step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `
   autre domaine que le plan — sans le réglage, le QR code renverrait le visiteur vers un écran
   de connexion. QR généré localement (`qrcode`, MIT) : une affiche d'établissement ne doit
   dépendre d'aucun service tiers.
+- **`GET /api/map-routes/:idOrSlug`** ne sert que les parcours **publiés**. Un brouillon
+  (défaut à la création) répond **404**, que l'on interroge par identifiant ou par slug —
+  le slug se déduit du titre et ne doit pas servir de porte dérobée. Les brouillons restent
+  visibles via `GET /manage` (`zones.manage`).
 - **`GET /api/plan/content`** publie les parcours de la surface `plan` sous la clé `routes`.
   Les **étapes sont confrontées aux lieux réellement publiés** : une étape dont la zone ou le
   repère est supprimé, masqué (`hidden_surfaces`) ou hors des catégories du plan ne sort pas de
@@ -1731,6 +1737,8 @@ Quand `ui.plan.access_mode` vaut `code` **et** qu'un code est configuré
   **400** s'il est absent ;
 - un lien profond peut porter le code (`/api/plan/content?code=…`) pour que les QR codes
   internes ouvrent le plan sans saisie ; la requête est servie et le laissez-passer posé.
+  Cette comparaison bcrypt est soumise au **même limiteur** que `POST /access` (le code en
+  query ne doit pas offrir une porte dérobée au tâtonnement).
 
 Mode `code` **sans** code configuré : le plan reste ouvert — on n'enferme pas les visiteurs
 dehors par un réglage à moitié rempli.
