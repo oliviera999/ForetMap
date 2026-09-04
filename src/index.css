@@ -635,9 +635,14 @@
       position:relative;
       z-index:1;
     }
+    /* `flex:0 0 auto` et pas seulement `flex-shrink:0` : le conteneur prof porte AUSSI la
+       classe `main`, donc `.main > *` lui applique `flex:1 1 0%`. La barre unique d'avant D-4
+       était immunisée par le `max-height` de `.top-tabs` ; `.teacher-nav`, qui n'en a pas,
+       grandissait jusqu'à la moitié de la hauteur utile — d'où le vide entre la rangée
+       d'onglets et la carte / les tâches. */
     .teacher-main > .top-tabs,
     .teacher-main > .teacher-nav {
-      flex-shrink:0;
+      flex:0 0 auto;
     }
     /* Navigation prof en 3 pôles (audit D-4) : deux rangées dans un seul enfant flex. */
     .teacher-nav {
@@ -917,13 +922,21 @@
     }
     @media (min-width:1024px) {
       .main.main--maptasks-split:not(.teacher-main) {
-        --fm-maptasks-sticky-top:calc(56px + var(--safe-top));
+        /* Même remarque que pour la branche prof plus bas : le volet sticky se cale sur
+           `.desktop-split-view` (overflow:hidden), pas sur le document — un décalage de la
+           hauteur d'en-tête n'y dégage rien et pousse la carte de 56 px sous la barre. */
+        --fm-maptasks-sticky-top:0px;
         --fm-maptasks-map-max-h:calc(100dvh - 56px - var(--safe-top) - var(--bottom-nav-height) - var(--safe-bottom) - 32px);
       }
       .teacher-main.main--maptasks-split {
         /* Deux rangées (pôles + onglets du pôle) depuis la navigation D-4. */
         --fm-maptasks-teacher-tabs-h:calc(2 * (var(--top-tabs-row-inner-h) + 2 * var(--top-tabs-pad-y)) + 2px + clamp(4px, 1.2vw, 8px));
-        --fm-maptasks-sticky-top:calc(56px + var(--safe-top));
+        /* Le sticky se cale sur `.desktop-split-view` (overflow:hidden = conteneur de
+           défilement), pas sur le document : un décalage de la hauteur d'en-tête y pousse
+           la carte de 56 px vers le bas sans rien dégager — d'où un vide sous les onglets.
+           La marge sous l'en-tête reste prise en compte par `--fm-maptasks-map-max-h`.
+           Idem pour la branche élève ci-dessus. */
+        --fm-maptasks-sticky-top:0px;
         --fm-maptasks-map-max-h:calc(100dvh - 56px - var(--safe-top) - var(--fm-maptasks-teacher-tabs-h) - 32px - 24px);
       }
       .main--maptasks-split .desktop-split-pane--map {

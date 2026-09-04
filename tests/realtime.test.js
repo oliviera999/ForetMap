@@ -77,6 +77,20 @@ test('emitTasksChanged sans Socket.IO initialisé ne lève pas', () => {
   assert.doesNotThrow(() => emitTasksChanged({ reason: 'noop' }));
 });
 
+test('Socket.IO : la reprise de session rejoue les middlewares d’auth', async () => {
+  // Défaut Socket.IO : skipMiddlewares=true. Sans forcer false, un compte révoqué
+  // récupérerait rooms + auth périmée jusqu’à 120 s (le durcissement connect-time
+  // de PR #397 serait contourné à chaque micro-coupure o2switch).
+  const app = express();
+  const server = http.createServer(app);
+  const ioServer = initRealtime(server);
+  try {
+    assert.strictEqual(ioServer?.opts?.connectionStateRecovery?.skipMiddlewares, false);
+  } finally {
+    await closeRealtime(server);
+  }
+});
+
 test('Socket.IO : réception de tasks / students / garden / forum / context-comments / observations', async () => {
   const app = express();
   const server = http.createServer(app);
