@@ -17,6 +17,19 @@ import { normalizeSurfaceList } from '../shared/ui/SurfaceVisibilityField.jsx';
 /** Miroir de `ROUTE_STEPS_MAX` (`lib/mapRoutes.js`) : borne annoncée avant l'aller-retour serveur. */
 export const ROUTE_STEPS_MAX = 60;
 
+/**
+ * Rang par défaut, miroir du repli serveur. Le champ « Ordre » vidé produisait `0`
+ * (`Number('') || 0`) : le parcours remontait en tête de liste sans que personne l'ait demandé
+ * (`docs/AUDIT_PARCOURS_2026-09.md` §2.9 a).
+ */
+export const ROUTE_SORT_ORDER_DEFAULT = 100;
+
+/** Rang saisi → nombre, ou le rang par défaut quand le champ est vide ou illisible. */
+function sortOrderOr(raw, fallback = ROUTE_SORT_ORDER_DEFAULT) {
+  const value = Number(raw);
+  return Number.isFinite(value) && String(raw ?? '').trim() !== '' ? value : fallback;
+}
+
 /** Brouillon d'un parcours neuf : publié sur le plan seul, c'est là qu'ils servent. */
 export const EMPTY_ROUTE_DRAFT = Object.freeze({
   title: '',
@@ -25,7 +38,7 @@ export const EMPTY_ROUTE_DRAFT = Object.freeze({
   audience: '',
   surfaces: ['plan'],
   is_published: false,
-  sort_order: 100,
+  sort_order: ROUTE_SORT_ORDER_DEFAULT,
   steps: [],
 });
 
@@ -43,7 +56,7 @@ export function routeDraftFrom(route) {
     audience: String(route?.audience || ''),
     surfaces: normalizeSurfaceList(route?.surfaces ?? ['plan']),
     is_published: !!route?.is_published,
-    sort_order: Number(route?.sort_order) || 0,
+    sort_order: sortOrderOr(route?.sort_order),
     steps: (route?.steps || []).map((step) => ({
       target_type: String(step?.target_type || ''),
       target_id: String(step?.target_id || ''),
@@ -66,7 +79,7 @@ export function routePayloadFromDraft(draft, { mapId } = {}) {
     audience: String(draft?.audience || '').trim(),
     surfaces: normalizeSurfaceList(draft?.surfaces),
     is_published: !!draft?.is_published,
-    sort_order: Number(draft?.sort_order) || 0,
+    sort_order: sortOrderOr(draft?.sort_order),
     steps: (draft?.steps || []).map((step) => ({
       target_type: step.target_type,
       target_id: String(step.target_id),

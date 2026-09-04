@@ -2,8 +2,13 @@
 
 > Portée : la fonctionnalité **parcours** livrée au lot 8 du plan de convergence
 > (`docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.6) — de la table `map_routes` à la feuille basse du
-> plan, en passant par l'éditeur prof et l'affiche PDF. Audit **de lecture** : aucun
-> comportement n'a été modifié. Rédigé le 2026-09-04, sur `main` à `84dd95a` (v1.145.0).
+> plan, en passant par l'éditeur prof et l'affiche PDF. Rédigé le 2026-09-04, sur `main` à
+> `84dd95a` (v1.145.0).
+>
+> **État au 2026-09-04 (second passage)** : tous les constats ci-dessous ont été **corrigés**
+> dans le même lot, à une exception documentée (§2.6.2, constat infirmé). Chaque section porte
+> une ligne **« Corrigé »** qui dit où. Le document reste rédigé au présent de l'audit : c'est
+> l'état constaté qui est décrit, la ligne de correction dit ce qui a changé.
 >
 > Fichiers lus : `migrations/210_map_routes.sql`, `routes/map-routes.js`, `lib/mapRoutes.js`,
 > `lib/locationSurfaces.js`, `routes/plan.js`, `src/utils/mapRoutesEditor.js`,
@@ -12,11 +17,12 @@
 > `src/plan/components/PlanRouteSheet.jsx`, `scripts/build-pwa.js`, `lib/usage.js`,
 > `tests/map-routes.test.js`, `tests-ui/**`, `docs/API.md`, `docs/reference/**`.
 >
-> **Note d'exécution** : `npm run test:ui` a été rejoué sur les trois fichiers concernés
-> (39 tests, tous verts). Les tests backend (`tests/map-routes.test.js`) n'ont **pas** pu être
-> exécutés ici : ni MySQL ni Docker ne sont disponibles dans l'environnement d'audit. Les
-> constats backend ci-dessous sont donc **statiques** (lecture de code), avec la ligne exacte
-> en référence.
+> **Note d'exécution** : `npm run test:ui` est vert sur la suite entière (3 702 cas après ce
+> lot), comme `npm run lint` (0 erreur) et `npm run format:check`. Les tests backend
+> (`tests/map-routes.test.js`) et le scénario e2e n'ont **pas** pu être exécutés ici : ni MySQL
+> ni Docker dans l'environnement. Les constats backend ont donc été établis par lecture de
+> code, avec la ligne exacte en référence, et leurs tests de non-régression sont écrits pour
+> être joués par la CI.
 
 ---
 
@@ -79,10 +85,9 @@ Un slug est devinable (il dérive du titre : `portes-ouvertes`, `tour-du-lycee`)
 reste modéré — du contenu éditorial d'établissement, jamais de donnée nominative — mais la
 règle « brouillon » ne tient pas.
 
-**Correctif** : filtrer sur `is_published = 1` dans la clause SQL de cette route, et laisser la
-vue de gestion (`/manage`, déjà protégée) seule capable de lire un brouillon. Le test
-`tests/map-routes.test.js:159-161` ne couvre que le 404 d'un slug inconnu : ajouter le cas
-« brouillon → 404 en public, 200 en gestion ».
+**Corrigé** : la route filtre `is_published = 1` (`routes/map-routes.js`) ; seule `/manage` lit
+un brouillon. Test : « un brouillon n'est lisible que dans la vue de gestion, jamais par son
+slug ni son id » (`tests/map-routes.test.js`).
 
 ### 2.2 P2 — La garde d'accès du plan ne couvre pas les parcours
 
@@ -95,9 +100,10 @@ publics visés, descriptions, et l'intégralité des textes d'étapes.
 La fuite est partielle (ni les lieux, ni les photos, ni le fond de plan) mais la garde est
 présentée comme celle du plan, pas comme celle d'une partie du plan.
 
-**Correctif** : appliquer `checkPlanAccess` aux lectures publiques de `/api/map-routes`, ou —
-plus simple et cohérent avec l'usage réel (cf. §2.7) — retirer le catalogue public, que plus
-aucun client n'appelle.
+**Corrigé** : la garde est extraite dans `lib/planAccess.js` (`isPlanAccessGranted`,
+`requirePlanAccess`) et posée sur les deux lectures publiques de `/api/map-routes` ;
+`routes/plan.js` consomme le même module. Test : « garde d'accès du plan : le catalogue des
+parcours se ferme avec le plan ».
 
 ### 2.3 P2 — Les surfaces « Carte » et « Visite » ne mènent nulle part
 
@@ -111,10 +117,11 @@ ne lit `/api/map-routes` en dehors de l'éditeur ; la Visite et la carte de trav
 connaissent pas la notion. Un prof qui coche « Visite » et publie obtient un parcours qui
 n'apparaît **nulle part**, sans le moindre message.
 
-**Correctif** : au choix — (a) restreindre le champ à `plan` dans l'éditeur tant que les deux
-autres surfaces n'ont pas de rendu, en le disant dans la doc de référence ; (b) afficher un
-avertissement explicite (« la Visite n'affiche pas encore les parcours ») ; (c) implémenter la
-lecture côté Visite. (a) est le geste honnête à coût nul.
+**Corrigé** (option b) : `SurfaceVisibilityField` accepte `unavailable` — les cases « Carte » et
+« Visite » restent lisibles et décochables mais ne se cochent plus, sous la mention « n'affiche
+pas encore les parcours », avec un repère sous le champ. `docs/reference/foretmap/carte-et-zones.md`
+le dit aussi. La constante `ROUTE_SURFACES_WITHOUT_SCREEN` (`MapRoutesPanel.jsx`) est à vider le
+jour où ces écrans existent.
 
 ### 2.4 P2 — Le nombre d'étapes annoncé ne correspond pas à celui affiché
 
@@ -140,9 +147,12 @@ Cas limite : toutes les étapes masquées ⇒ la puce annonce un parcours, la fe
 Côté prof, **rien ne signale** qu'une étape ajoutée pointe vers un lieu invisible sur le plan :
 l'éditeur ne connaît que l'existence du lieu, pas sa visibilité par surface.
 
-**Correctif** : faire compter la puce sur les étapes résolues (le plan a déjà `places` sous la
-main) ; et, dans l'éditeur, marquer les étapes dont le lieu est masqué sur une surface où le
-parcours est publié.
+**Corrigé**, à la source plutôt qu'à l'affichage : `buildPlanContent` confronte les étapes aux
+lieux réellement publiés et n'envoie que celles qui résolvent (`routes/plan.js`). Les deux
+comptages deviennent le même nombre, et §2.5 tombe avec. `PlanRoutePicker` ne propose plus un
+parcours sans étape affichable. Tests : « un lieu masqué emporte son étape »
+(`tests/map-routes.test.js`) et « un parcours sans étape affichable n'est pas proposé »
+(`tests-ui/plan/AppPlanMount.test.jsx`).
 
 ### 2.5 P3 — Le texte d'une étape survit au masquage de son lieu
 
@@ -152,22 +162,39 @@ plan, mais son `step_title` et son `step_text` restent dans `GET /api/plan/conte
 de chose (du texte éditorial rédigé pour être lu sur place), mais le mécanisme de surfaces est
 censé être la réponse unique à « ne pas montrer ce lieu ici ».
 
+**Corrigé** avec §2.4 : le filtre `visiblePlaceKeys` s'applique aux étapes avant sérialisation,
+donc ni l'identifiant ni le texte d'une étape masquée ne sortent.
+
 ### 2.6 P3 — Trois angles morts de l'expérience visiteur
 
 1. **QR code périmé, silence total.** `AppPlan.jsx:344-358` : un `?parcours=<slug>` introuvable
    (parcours dépublié, supprimé, ou slug changé après impression de l'affiche) est ignoré sans
    un mot. Le visiteur scanne, arrive sur le plan nu, et n'apprend jamais que le parcours qu'on
-   lui promettait n'existe plus. Un `role="status"` (« Ce parcours n'est plus disponible ») coûte
-   trois lignes.
-2. **Toucher un lieu pendant un parcours ne fait rien.** `AppPlan.jsx:515` :
-   `place={activeRoute ? null : selectedPlace}` — décision juste (ne pas empiler deux feuilles
-   basses), mais l'utilisateur qui touche un repère ou un résultat de recherche pendant un
-   parcours n'obtient **aucun retour**. Il faudrait soit désactiver visiblement la sélection en
-   mode parcours, soit proposer « quitter le parcours pour ouvrir ce lieu ».
+   lui promettait n'existe plus.
+
+   **Corrigé** : message « Ce parcours n'est plus disponible. » dans le bandeau de statut, et la
+   garde de l'effet porte désormais sur le contenu chargé et non sur `routes.length` — un plan
+   sans aucun parcours publié restait muet même pour un lien profond. Tests : deux cas de
+   montage (`tests-ui/plan/AppPlanMount.test.jsx`) et le scénario e2e.
+
+2. **Toucher un lieu pendant un parcours ne fait rien** — **constat infirmé, rien à corriger.**
+   La lecture du seul `AppPlan.jsx:515` (`place={activeRoute ? null : selectedPlace}`) laissait
+   croire à un geste sans effet. Vérification au montage : `BottomSheet` pose `inert` sur tous
+   les frères de sa surcouche tant qu'elle est ouverte (`useInertSiblings`), donc pendant un
+   parcours la carte, la recherche et la feuille de résultats ne sont **pas atteignables** — il
+   n'y a pas de geste à expliquer. La ligne 515 est une ceinture, pas la seule barrière. Un
+   correctif avait été écrit puis retiré : il aurait été du code mort.
+
+   Reste une question de conception, hors périmètre de cet audit : `inert` est posé quel que soit
+   le cran de la feuille, y compris au cran bas où la carte est visible. C'est le comportement de
+   toutes les feuilles du plan, pas une particularité des parcours.
+
 3. **`routeIndex` n'est pas reborné quand les étapes rétrécissent.** Si la charge est
    rafraîchie et qu'une étape disparaît, `routeSteps[routeIndex]` peut devenir `undefined` et la
    feuille bascule sur le message « pas encore d'étape affichable » (`AppPlan.jsx:274`).
    `goToRouteIndex` borne, mais l'effet de rechargement ne repasse pas par lui.
+
+   **Corrigé** : un effet reborne l'index sur `routeSteps.length` (`nextRouteIndex`).
 
 ### 2.7 P3 — Le serveur ne vérifie jamais qu'une étape vise un lieu réel
 
@@ -177,9 +204,9 @@ créer par l'API un parcours de 60 étapes pointant vers des identifiants invent
 lieux d'une autre carte : la réponse est 201, et le parcours sera vide sur le plan. L'éditeur
 s'en garde (il ne propose que les lieux de la carte), mais l'éditeur n'est pas la seule porte.
 
-**Correctif** : une requête de contrôle par lot (`SELECT id FROM zones WHERE map_id = ? AND id
-IN (…)`, idem repères) et un **400** nommant l'étape fautive — même forme d'erreur que les
-autres validations de la route.
+**Corrigé** : `checkStepTargets` (`routes/map-routes.js`) contrôle les cibles par lot, à la
+création comme à la modification, et répond **400** en nommant l'étape fautive. Test : « une
+étape doit viser un lieu réel de la carte du parcours ».
 
 ### 2.8 P3 — Deux champs texte non bornés
 
@@ -190,23 +217,24 @@ sont passés tels quels à des colonnes `TEXT` (65 535 octets). Vérifié en loc
 lève `ER_DATA_TOO_LONG` (1406) — soit une **500** là où un **400** est attendu ; hors mode
 strict, c'est une troncature silencieuse au milieu d'une phrase.
 
-**Correctif** : borner les deux (par exemple 2 000 et 4 000 caractères) et refuser en 400,
-comme le reste de la route.
+**Corrigé** : `ROUTE_DESCRIPTION_MAX = 2000` et `STEP_TEXT_MAX = 4000` (`lib/mapRoutes.js`),
+refus en **400** par `normalizeRouteDescription` et `normalizeRouteSteps`. Test : « description
+et texte d'étape bornés : 400, jamais une erreur SQL ».
 
 ### 2.9 P4 — Détails à ramasser
 
-| #   | Constat                                                                                                                                                                           | Référence                                      |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| a   | `sort_order` vidé dans l'éditeur devient **0** (`Number(...) \|\| 0`) et non 100 : le parcours remonte en tête de liste sans que le prof l'ait demandé                            | `src/utils/mapRoutesEditor.js:60-79`           |
-| b   | `GET /:idOrSlug` cherche `id = ? OR slug = ?` **sans filtre de carte**, alors que le slug n'est unique que par carte : deux cartes portant `portes-ouvertes` ⇒ réponse arbitraire | `routes/map-routes.js:131`                     |
-| c   | Changer le slug d'un parcours publié invalide toutes les affiches déjà imprimées ; l'éditeur ne prévient pas (la doc de référence, elle, explique le piège)                       | `MapRoutesPanel.jsx:255-262`                   |
-| d   | `map_id` est ignoré en silence au `PUT` : un parcours ne change jamais de carte. Choix défendable, mais ni documenté ni signalé                                                   | `routes/map-routes.js:200-259`                 |
-| e   | `/api/map-routes` figure dans l'allowlist _stale-while-revalidate_ du service worker du plan, alors qu'aucun client ne l'appelle (les parcours arrivent par `/api/plan/content`)  | `scripts/build-pwa.js:95`                      |
-| f   | `emitGardenChanged` est émis à chaque écriture de parcours : les clients ForetMap sont réveillés pour une donnée que ForetMap n'affiche pas                                       | `routes/map-routes.js:194, 258, 278`           |
-| g   | `ROUTE_STEPS_MAX = 60` est dupliqué serveur/client sans test de miroir — la divergence ne se verrait qu'à l'usage                                                                 | `lib/mapRoutes.js:25`, `mapRoutesEditor.js:18` |
-| h   | L'éditeur charge **toutes** les zones et repères de **toutes** les cartes puis filtre côté client, alors que les deux routes acceptent `?map_id=`                                 | `MapRoutesPanel.jsx:95-102`                    |
-| i   | `slugifyRouteTitle` tronque à 120 **après** avoir retiré les tirets de bord : un titre très long peut produire un slug se terminant par `-`                                       | `lib/mapRoutes.js:31-40`                       |
-| j   | L'export PDF n'est pas journalisé (`logAudit`), à la différence des trois écritures                                                                                               | `routes/map-routes.js:314-369`                 |
+| #   | Constat                                                                                                             | Corrigé par                                                                                      |
+| --- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| a   | `sort_order` vidé dans l'éditeur devenait **0** et non 100 : le parcours remontait en tête sans qu'on l'ait demandé | `ROUTE_SORT_ORDER_DEFAULT` + `sortOrderOr` (`mapRoutesEditor.js`), avec deux tests               |
+| b   | `GET /:idOrSlug` cherchait `id = ? OR slug = ?` sans filtre de carte, alors que le slug n'est unique que par carte  | `?map_id=` accepté et documenté (`routes/map-routes.js`, `docs/API.md`)                          |
+| c   | Changer le slug d'un parcours publié invalidait les affiches imprimées, sans un mot dans l'éditeur                  | Avertissement sous le champ dès que le slug change sur un parcours publié (`MapRoutesPanel.jsx`) |
+| d   | `map_id` ignoré en silence au `PUT`, ni documenté ni signalé                                                        | Comportement documenté (en-tête de la route et `docs/API.md`)                                    |
+| e   | `/api/map-routes` dans l'allowlist du service worker du plan, alors qu'aucun client ne l'appelle                    | Entrée retirée (`scripts/build-pwa.js`)                                                          |
+| f   | `emitGardenChanged` réveillait les clients ForetMap pour une donnée que ForetMap n'affiche pas                      | Les trois émissions retirées (`routes/map-routes.js`)                                            |
+| g   | `ROUTE_STEPS_MAX` dupliqué serveur/client sans test de miroir                                                       | Test de miroir par `createRequire` (`tests-ui/utils/mapRoutesEditor.test.js`)                    |
+| h   | L'éditeur chargeait toutes les zones et repères de toutes les cartes puis filtrait côté client                      | `?map_id=` passé aux deux routes (`MapRoutesPanel.jsx`)                                          |
+| i   | `slugifyRouteTitle` tronquait à 120 **après** avoir retiré les tirets de bord : slug terminé par `-` possible       | Troncature puis nettoyage des bords (`lib/mapRoutes.js`), avec assertion                         |
+| j   | L'export PDF n'était pas journalisé, à la différence des trois écritures                                            | `logAudit('map_route_pdf_export', …)` avec le lien imprimé (`routes/map-routes.js`)              |
 
 ---
 
@@ -219,43 +247,47 @@ cascade de suppression, export PDF (en-têtes et magie `%PDF`), publication dans
 `MapRoutesPanel` (9 cas de montage), `planRoutes` (lien profond, résolution, bornes) et un cas
 de bout en bout du mode parcours dans `AppPlanMount.test.jsx:252`.
 
-**Les trous, dans l'ordre où ils comptent.**
+**Les trous relevés, et comment ils sont bouchés.**
 
-1. **Aucun test n'affirme qu'un brouillon reste privé** par `/:idOrSlug` — c'est exactement le
-   trou du §2.1. Le seul cas voisin teste un slug inconnu.
-2. **Aucun test de la garde d'accès sur `/api/map-routes`** (§2.2).
-3. **Aucun scénario e2e du mode parcours du plan**, alors que `CLAUDE.md` demande un scénario
-   `e2e/` pour tout flux UI critique et que le plan a déjà `plan-mobile-shell.spec.js` et
-   `plan-mobile-position.spec.js` pour l'accueillir. Le parcours est le flux qu'on imprime sur
-   une affiche à l'entrée d'un établissement : c'est le premier à mériter un e2e.
-4. **Pas de test du lien profond `?parcours=`** au montage d'`AppPlan` (la logique pure est
-   testée, le câblage non), ni du cas « slug introuvable ».
-5. Pas de test sur la cohérence des deux comptages d'étapes (§2.4), ni sur une étape dont le
-   lieu est masqué par surface.
+| Trou                                                                     | Comblé par                                                                               |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Rien n'affirmait qu'un brouillon reste privé par `/:idOrSlug`            | `tests/map-routes.test.js` — brouillon 404 en public, 200 en gestion, puis publié 200    |
+| Aucun test de la garde d'accès sur `/api/map-routes`                     | `tests/map-routes.test.js` — 401 sans laissez-passer, 200 avec, gestion intacte          |
+| Aucun scénario e2e du mode parcours du plan                              | `e2e/plan-routes-mode.spec.js` — puce, lien profond, affiche périmée, sortie             |
+| Pas de test du lien profond `?parcours=` au montage                      | `tests-ui/plan/AppPlanMount.test.jsx` — slug connu, puis slug disparu                    |
+| Rien sur la cohérence des comptages ni sur une étape masquée par surface | `tests/map-routes.test.js` (charge du plan) et le cas « parcours sans étape affichable » |
+| Pas de test de miroir de `ROUTE_STEPS_MAX`                               | `tests-ui/utils/mapRoutesEditor.test.js`                                                 |
 
----
-
-## 4. Plan de remise en état proposé
-
-| Lot   | Contenu                                                                                                                           | Effort    |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| **A** | §2.1 brouillon privé + §2.2 garde d'accès, avec les deux tests backend correspondants                                             | court     |
-| **B** | §2.4 comptage cohérent + §2.6.1 message « parcours indisponible » + §2.6.3 rebornage de l'index, avec un e2e du mode parcours     | moyen     |
-| **C** | §2.7 validation des cibles d'étape + §2.8 bornes de texte (400 au lieu de 500)                                                    | court     |
-| **D** | §2.3 : trancher sur les surfaces `map` / `visit` — restreindre l'éditeur, ou les implémenter ; mettre `docs/reference/` en accord | à décider |
-| **E** | §2.9 a→j : le lot de finitions, dont le nettoyage de l'allowlist du service worker et le test de miroir de `ROUTE_STEPS_MAX`      | court     |
-
-Le lot **A** est le seul dont l'absence se paie tout de suite : il ferme un écart entre ce que
-la documentation promet aux professeurs et ce que le serveur fait.
+Le compte après ce lot : **12 cas** backend (`tests/map-routes.test.js`), **31** dans
+`tests-ui/utils/mapRoutesEditor.test.js`, **17** dans `tests-ui/plan/AppPlanMount.test.jsx`, plus
+le scénario e2e.
 
 ---
 
-## 5. Ce que l'audit n'a pas pu vérifier
+## 4. État de la remise en état
 
-- **Exécution des tests backend** : ni MySQL ni Docker dans l'environnement — les six cas de
-  `tests/map-routes.test.js` n'ont pas été rejoués. À relancer (`npm test`) sur un poste équipé
-  avant toute correction.
-- **Rendu réel du PDF** (mise en page, débordement d'un parcours de 60 étapes sur une seule page
-  A4 : `PDFDocument` ajoute des pages, mais le QR code final peut se retrouver seul sur la
-  dernière — non vérifié).
+| Lot   | Contenu                                                                                         | État                                  |
+| ----- | ----------------------------------------------------------------------------------------------- | ------------------------------------- |
+| **A** | §2.1 brouillon privé + §2.2 garde d'accès, avec les deux tests backend                          | fait                                  |
+| **B** | §2.4 / §2.5 étapes filtrées à la source, §2.6.1 message, §2.6.3 rebornage, e2e du mode parcours | fait (§2.6.2 infirmé, sans objet)     |
+| **C** | §2.7 validation des cibles d'étape + §2.8 bornes de texte (400 au lieu de 500)                  | fait                                  |
+| **D** | §2.3 surfaces sans écran : cases fermées et dites comme telles, doc de référence en accord      | fait (l'implémentation reste ouverte) |
+| **E** | §2.9 a→j                                                                                        | fait                                  |
+
+Reste ouvert, hors périmètre d'un audit de la fonctionnalité : **implémenter** les parcours sur
+la carte de travail et sur la Visite (§2.3, option c), et la question de conception du `inert`
+posé par les feuilles basses quel que soit leur cran (§2.6.2).
+
+---
+
+## 5. Ce qui n'a pas pu être vérifié ici
+
+- **Exécution des tests backend** : ni MySQL ni Docker dans l'environnement — les cas de
+  `tests/map-routes.test.js`, y compris ceux ajoutés par ce lot, n'ont pas été rejoués. À lancer
+  (`npm test`) sur un poste équipé ; la CI du dépôt les exécute.
+- **Rendu réel du PDF** (mise en page, débordement d'un parcours de 60 étapes sur plusieurs
+  pages A4).
 - **Comportement hors ligne** du mode parcours (service worker), qui demande un navigateur.
+- **Le scénario e2e** (`e2e/plan-routes-mode.spec.js`) n'a pas été exécuté ici : il demande une
+  base et un serveur. Il est écrit pour se **sauter** proprement si la base locale n'a pas deux
+  lieux publiés ou pas de compte professeur e2e.
