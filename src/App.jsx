@@ -74,10 +74,13 @@ import { visibleMapsForScope } from './utils/appMapScope';
 import { canManagePedagoContent, resolveParticipationFlag } from './utils/appAccess';
 import { DEFAULT_USER_LABEL, formatFullName, resolveSessionDisplayName } from './utils/appIdentity';
 import { getContentText } from './utils/content';
-import { safeLocalStorageGetItem, safeLocalStorageSetItem } from './utils/browserStorage.js';
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageSetItem,
+} from './shared/platform/browserStorage.js';
 import { saveVisitMascotPreference } from './services/visitMascotPreference.js';
-import { useOverlayHistoryBack } from './hooks/useOverlayHistoryBack';
-import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
+import { useOverlayHistoryBack } from './shared/platform/useOverlayHistoryBack';
+import { abandonAllOverlays, pushOverlayClose } from './shared/platform/overlayHistory';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
 import { AppFooter } from './components/app/AppFooter.jsx';
 import { AppHeader } from './components/app/AppHeader.jsx';

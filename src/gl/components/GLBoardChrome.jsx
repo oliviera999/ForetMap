@@ -1,4 +1,5 @@
 import { GLBoardActionButton } from './GLBoardActionButton.jsx';
+import { IconClose } from '../../shared/icons.jsx';
 import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
 import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';
 import { GLBoardTurnHud } from './GLBoardTurnHud.jsx';
@@ -42,7 +43,7 @@ export function GLBoardChrome({
           <GLBoardActionButton
             role="display"
             className="gl-map-fullscreen-close"
-            icon="✕"
+            icon={<IconClose size={16} />}
             label="Fermer"
             testId="gl-map-fullscreen-close"
             ariaLabel="Quitter le plein écran"

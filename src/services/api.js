@@ -1,5 +1,8 @@
-import { safeLocalStorageGetItem, safeLocalStorageRemoveItem } from '../utils/browserStorage.js';
-import { buildApiHttpErrorMessage } from './apiTransport.js';
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageRemoveItem,
+} from '../shared/platform/browserStorage.js';
+import { buildApiHttpErrorMessage } from '../shared/apiTransport.js';
 import { fetchJsonWithRetry } from '../shared/fetchJsonWithRetry.js';
 // `API` et `withAppBase` ont été extraits vers le module partagé neutre
 // `src/shared/appBase.js` (purs, sans session). On les ré-exporte ici pour

@@ -7,7 +7,7 @@ import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { MascotSpeaker } from '../../shared/components/MascotSpeaker.jsx';
 import { SpeechBubble } from '../../shared/components/SpeechBubble.jsx';
-import VisitMascotFallbackSvg from '../VisitMascotFallbackSvg.jsx';
+import VisitMascotFallbackSvg from '../../shared/mascot/VisitMascotFallbackSvg.jsx';
 import { MASCOT_PACK_FALLBACK_SILHOUETTES } from '../../utils/mascotPackEditorModel.js';
 import {
   MASCOT_EXPRESSION_LABELS,
@@ -24,7 +24,7 @@ import {
   normalizeNarratorDraft,
   setNarratorPortrait,
 } from '../../utils/helpNarratorDraft.js';
-import { prepareMediaImport } from '../../utils/mediaImport.js';
+import { prepareMediaImport } from '../../shared/media/mediaImport.js';
 import { NarratorPortraitCard } from './NarratorPortraitCard.jsx';
 import { NarratorMediaPickerDialog } from './NarratorMediaPickerDialog.jsx';
 

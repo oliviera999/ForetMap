@@ -11,7 +11,7 @@ import {
   TAB_STORAGE_KEY,
   KNOWN_TAB_VALUES,
 } from '../constants/app-runtime';
-import { safeLocalStorageGetItem } from './browserStorage.js';
+import { safeLocalStorageGetItem } from '../shared/platform/browserStorage.js';
 
 export const OAUTH_ERROR_MESSAGES = {
   oauth_not_configured: 'Connexion Google indisponible (configuration serveur incomplète).',

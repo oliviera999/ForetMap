@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { detectIosDevice } from '../utils/appShellHelpers';
-import { safeLocalStorageGetItem } from '../utils/browserStorage.js';
+import { safeLocalStorageGetItem } from '../shared/platform/browserStorage.js';
 import { IOS_INSTALL_HINT_DISMISSED_KEY } from '../constants/app-runtime';
 
 /**

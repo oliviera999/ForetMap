@@ -1,0 +1,249 @@
+/* =====================================================================
+ * Feuille basse à crans — kit d'interface COMMUN ForetMap + Gnomes & Licornes + plan
+ * (`src/shared/ui/BottomSheet.jsx`, lot 3 du plan de convergence).
+ *
+ * Crans : `is-snap-peek` (≈ 30 dvh), `is-snap-half` (≈ 55 dvh), `is-snap-full`
+ * (viewport − zone sûre haute − 24 px). Pendant un glisser (`is-dragging`), la hauteur est
+ * écrite en style inline par le composant : la transition est coupée pour suivre le doigt.
+ *
+ * Tokens neutres avec repli : la feuille prend la surface et les rayons du produit hôte.
+ * ===================================================================== */
+
+:root {
+  --fm-bottom-sheet-z: var(--fm-z-modal);
+  --fm-bottom-sheet-overlay-bg: var(--fm-modal-overlay-bg, rgba(12, 30, 20, 0.52));
+  --fm-bottom-sheet-bg: var(--gl-surface, var(--surface-1, #fff));
+  --fm-bottom-sheet-fg: var(--gl-color-text, var(--text, #1f2a24));
+  --fm-bottom-sheet-border: var(--gl-border, var(--border, rgba(0, 0, 0, 0.12)));
+  --fm-bottom-sheet-radius: var(--gl-radius-md, 20px);
+  --fm-bottom-sheet-shadow: var(
+    --gl-shadow-md,
+    var(--shadow-strong, 0 -12px 36px rgba(20, 54, 37, 0.18))
+  );
+  --fm-bottom-sheet-safe-bottom: var(--safe-bottom, env(safe-area-inset-bottom, 0px));
+  --fm-bottom-sheet-full: calc(100dvh - var(--safe-top, env(safe-area-inset-top, 0px)) - 24px);
+  --fm-bottom-sheet-duration: var(--motion-base, 0.24s);
+}
+
+.fm-bottom-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--fm-bottom-sheet-z);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: var(--fm-bottom-sheet-overlay-bg);
+  animation: fmBottomSheetFade var(--fm-bottom-sheet-duration) ease-out both;
+}
+
+.fm-bottom-sheet {
+  --fm-bottom-sheet-h: 55dvh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  height: var(--fm-bottom-sheet-h);
+  max-height: var(--fm-bottom-sheet-full);
+  min-height: 0;
+  background: var(--fm-bottom-sheet-bg);
+  color: var(--fm-bottom-sheet-fg);
+  border-radius: var(--fm-bottom-sheet-radius) var(--fm-bottom-sheet-radius) 0 0;
+  box-shadow: var(--fm-bottom-sheet-shadow);
+  overflow: hidden;
+  outline: none;
+  transition: height var(--fm-bottom-sheet-duration) var(--ease-out, ease-out);
+  animation: fmBottomSheetUp var(--fm-bottom-sheet-duration) var(--ease-out, ease-out) both;
+  will-change: height;
+}
+
+.fm-bottom-sheet.is-snap-peek {
+  --fm-bottom-sheet-h: 30dvh;
+}
+
+.fm-bottom-sheet.is-snap-half {
+  --fm-bottom-sheet-h: 55dvh;
+}
+
+.fm-bottom-sheet.is-snap-full {
+  --fm-bottom-sheet-h: var(--fm-bottom-sheet-full);
+}
+
+.fm-bottom-sheet.is-dragging {
+  transition: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Poignée : cible tactile ≥ 44 px, glisser vertical sans défilement natif. */
+.fm-bottom-sheet__handle {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 8px 0 4px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.fm-bottom-sheet.is-dragging .fm-bottom-sheet__handle {
+  cursor: grabbing;
+}
+
+.fm-bottom-sheet__grip {
+  display: block;
+  width: 44px;
+  height: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 22%, transparent);
+}
+
+.fm-bottom-sheet__head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 12px 8px 16px;
+  touch-action: none;
+}
+
+.fm-bottom-sheet__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--text-base, 1rem);
+  font-weight: var(--fw-bold, 700);
+  line-height: 1.3;
+  color: inherit;
+}
+
+.fm-bottom-sheet__close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  border-radius: var(--gl-radius-control, 12px);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.fm-bottom-sheet__close:hover,
+.fm-bottom-sheet__close:focus-visible {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.fm-bottom-sheet__close:focus-visible {
+  outline: 2px solid var(--gl-border-focus, var(--leaf, #2f7d4e));
+  outline-offset: 2px;
+}
+
+/* Corps : seul élément qui défile ; le pied reste visible. */
+.fm-bottom-sheet__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 0 16px calc(12px + var(--fm-bottom-sheet-safe-bottom));
+}
+
+.fm-bottom-sheet__foot {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px calc(12px + var(--fm-bottom-sheet-safe-bottom));
+  border-top: 1px solid var(--fm-bottom-sheet-border);
+  background: var(--fm-bottom-sheet-bg);
+}
+
+.fm-bottom-sheet__foot > .btn,
+.fm-bottom-sheet__foot > button {
+  flex: 1 1 0%;
+  min-height: 44px;
+}
+
+/* Avec un pied, le corps n'a plus besoin de réserver la zone sûre. */
+.fm-bottom-sheet__foot ~ .fm-bottom-sheet__body,
+.fm-bottom-sheet:has(.fm-bottom-sheet__foot) .fm-bottom-sheet__body {
+  padding-bottom: 12px;
+}
+
+/* Écran large (`wideAsDialog`) : panneau centré, hauteur au contenu, sans poignée. */
+.fm-bottom-sheet-overlay:has(.fm-bottom-sheet--dialog) {
+  align-items: center;
+  padding: max(16px, var(--safe-top, 0px)) 16px max(16px, var(--fm-bottom-sheet-safe-bottom));
+}
+
+.fm-bottom-sheet.fm-bottom-sheet--dialog {
+  width: min(100%, 560px);
+  height: auto;
+  max-height: min(85dvh, var(--fm-bottom-sheet-full));
+  border-radius: var(--fm-bottom-sheet-radius);
+  animation-name: fmBottomSheetPop;
+}
+
+.fm-bottom-sheet--dialog .fm-bottom-sheet__head {
+  padding-top: 12px;
+  touch-action: auto;
+}
+
+@keyframes fmBottomSheetUp {
+  from {
+    transform: translate3d(0, 24px, 0);
+    opacity: 0;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes fmBottomSheetPop {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fmBottomSheetFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .fm-bottom-sheet-overlay {
+    --fm-bottom-sheet-overlay-bg: var(--fm-modal-overlay-bg, rgba(12, 30, 20, 0.72));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-bottom-sheet-overlay,
+  .fm-bottom-sheet {
+    animation: none;
+    transition: none;
+  }
+}
+
+.fm-bottom-sheet[data-reduced-motion='true'],
+.fm-bottom-sheet-overlay:has(.fm-bottom-sheet[data-reduced-motion='true']) {
+  animation: none;
+  transition: none;
+}

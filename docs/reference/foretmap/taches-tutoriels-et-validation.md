@@ -77,8 +77,11 @@ faire défiler la page.
 
 - **Les filtres** (carte, lieu, projet, groupe pour le professeur, catégorie « Urgent ! »,
   statut) s'ouvrent d'un appui sur « ⚙️ Filtres ». Sur ordinateur ils se déplient sous la
-  barre ; sur téléphone et tablette ils s'affichent dans un panneau qui se referme sur
-  « Voir les N tâches ». Aucun filtre n'a disparu : ils sont simplement rangés.
+  barre ; sur téléphone et tablette ils s'affichent dans une **feuille basse** (la même
+  que sur la carte et dans Gnomes & Licornes) : elle s'ouvre à mi-hauteur, une poignée
+  permet de la tirer en plein écran ou de la réduire, la glisser vers le bas — ou le bouton
+  retour du téléphone — la referme, et « Voir les N tâches » applique. Aucun filtre n'a
+  disparu : ils sont simplement rangés.
 - **Le nombre de filtres posés** s'affiche sur le bouton, et chaque filtre actif apparaît
   en **étiquette** sous la barre (« Lieu : 🐝 Ruche », « Statut : Terminée »…). Un appui
   sur l'étiquette retire ce filtre ; « Tout effacer » les retire tous. C'est le garde-fou

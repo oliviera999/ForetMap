@@ -9,7 +9,7 @@ import {
   prepareMediaImport,
   retagDataUrlMimeType,
   sniffMediaMimeFromDataUrl,
-} from '../../src/utils/mediaImport.js';
+} from '../../src/shared/media/mediaImport.js';
 
 /** `File` minimal : seuls `name`, `type` et `size` comptent pour la planification. */
 function fakeFile(name, type, size) {

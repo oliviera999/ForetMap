@@ -2,7 +2,10 @@
  * Progression visite côté client : normalisation API, file d’attente hors-ligne pour POST /api/visit/seen.
  */
 
-import { safeLocalStorageReadJson, safeLocalStorageWriteJson } from './browserStorage.js';
+import {
+  safeLocalStorageReadJson,
+  safeLocalStorageWriteJson,
+} from '../shared/platform/browserStorage.js';
 
 export const VISIT_SEEN_QUEUE_STORAGE_KEY = 'foretmap_visit_seen_queue';
 

@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { useDialogA11y } from '../../hooks/useDialogA11y';
+import { useDialogA11y } from '../platform/useDialogA11y';
 import { IconClose } from '../icons.jsx';
 
 /**

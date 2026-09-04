@@ -1,5 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
-import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../utils/browserStorage.js';
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageSetItem,
+} from '../shared/platform/browserStorage.js';
 
 const HELP_SEEN_STORAGE_KEY = 'foretmap_help_seen';
 const HELP_METRICS_STORAGE_KEY = 'foretmap_help_metrics';

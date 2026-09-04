@@ -8,7 +8,7 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 const outDir = path.join(root, 'lib', 'gl-pack');
-const relSrc = 'src/utils/glMascotPack.js';
+const relSrc = 'src/gl/utils/glMascotPack.js';
 const outName = 'mascotPack.js';
 
 function esmGlMascotPackToCjs(text) {

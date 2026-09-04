@@ -1,13 +1,15 @@
 import { useId, useRef, useState } from 'react';
 import { DialogShell } from '../components/DialogShell.jsx';
-import { api } from '../../services/api.js';
-import { apiGL } from '../../gl/services/apiGL.js';
 
 /**
  * Modale d'import ZIP pack mascotte (visite ou GL).
+ *
+ * Le client HTTP est **injecté** (`transport`) : le module est partagé et ne doit importer
+ * ni `api` (ForetMap) ni `apiGL` (GL) — chaque appelant fournit le sien.
  * @param {{
  *   open: boolean,
  *   variant: 'visit' | 'gl',
+ *   transport: (path: string, method?: string, body?: unknown) => Promise<any>,
  *   chapterId?: number | null,
  *   targetPackId?: string | number | null,
  *   targetPackLabel?: string,
@@ -18,6 +20,7 @@ import { apiGL } from '../../gl/services/apiGL.js';
 export default function MascotPackArchiveImportDialog({
   open,
   variant,
+  transport,
   chapterId = null,
   targetPackId = null,
   targetPackLabel = '',
@@ -79,9 +82,8 @@ export default function MascotPackArchiveImportDialog({
     setAnalysis(null);
     try {
       const archive = await buildArchivePayload();
-      const call = variant === 'gl' ? apiGL : api;
       const body = { archive };
-      const result = await call(analyzePath, 'POST', body);
+      const result = await transport(analyzePath, 'POST', body);
       setAnalysis(result);
       if (result?.ok === false) {
         setError('Archive lisible mais pack invalide — corrigez la source avant import.');
@@ -98,7 +100,6 @@ export default function MascotPackArchiveImportDialog({
     setError('');
     try {
       const archive = await buildArchivePayload();
-      const call = variant === 'gl' ? apiGL : api;
       const body = {
         mode,
         archive,
@@ -111,7 +112,7 @@ export default function MascotPackArchiveImportDialog({
         if (chapterId != null) body.chapterId = chapterId;
         if (mode === 'replace' && targetPackId != null) body.target_pack_id = Number(targetPackId);
       }
-      const result = await call(importPath, 'POST', body);
+      const result = await transport(importPath, 'POST', body);
       onImported(result);
       reset();
       onClose();

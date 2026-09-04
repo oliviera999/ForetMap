@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { GLMascotRenderer } from './GLMascotRenderer.jsx';
-import { validateGlMascotPackForUi } from '../../shared/mascot-pack/glPackValidationUi.js';
-import { MascotPackSpriteCutPreview } from '../../shared/mascot-pack/MascotPackSpriteCutPreview.jsx';
-import { glMascotPackSpriteCutToVisitValidation } from '../../utils/glMascotPackToVisit.js';
+import { validateGlMascotPackForUi } from '../utils/glPackValidationUi.js';
+import { MascotPackSpriteCutPreview } from './MascotPackSpriteCutPreview.jsx';
+import { glMascotPackSpriteCutToVisitValidation } from '../utils/glMascotPackToVisit.js';
 import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
 
 export function GLMascotPackPreviewPanel({ pack }) {

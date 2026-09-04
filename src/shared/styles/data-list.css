@@ -1,0 +1,50 @@
+/* Liste de données responsive (kit d'interface, lot 3 — issue de `GLDataList`) : tableau sur
+   écran large, cartes empilées en dessous de 640 px. Classes neutres ; G&L garde ses classes
+   `gl-data-*` en plus (mêmes règles dans gl-admin.css). */
+
+.fm-data-list__mobile {
+  display: none;
+}
+
+.fm-data-table-wrap {
+  overflow-x: auto;
+}
+
+.fm-data-card {
+  border: 1px solid var(--gl-border, rgba(26, 71, 49, 0.18));
+  border-radius: var(--gl-radius-md, 12px);
+  background: var(--gl-surface, #fff);
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.fm-data-card-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) 1.4fr;
+  gap: 8px;
+}
+
+.fm-data-card-label {
+  color: var(--ink-soft, #5f6f74);
+  font-size: var(--text-sm);
+}
+
+.fm-data-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+@media (max-width: 640px) {
+  .fm-data-list__desktop {
+    display: none;
+  }
+
+  .fm-data-list__mobile {
+    display: grid;
+    gap: 10px;
+    margin-top: 8px;
+  }
+}

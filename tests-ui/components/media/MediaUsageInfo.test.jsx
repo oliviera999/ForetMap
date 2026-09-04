@@ -1,9 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import {
-  MediaUsageInfo,
-  formatUsageLocation,
-} from '../../../src/components/media/MediaUsageInfo.jsx';
+import { MediaUsageInfo, formatUsageLocation } from '../../../src/shared/media/MediaUsageInfo.jsx';
 
 describe('formatUsageLocation', () => {
   test('repli sur « Référence » quand kind absent', () => {

@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { sanitizeMascotPackDraft } from '../../src/shared/mascot-pack/validationUi.js';
+import { sanitizeMascotPackDraft } from '../../src/utils/mascotPackValidationUi.js';
 import { getPackStrictValidation } from '../../src/utils/visitMascotPackManager.js';
 
 /**

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { api, AccountDeletedError } from '../services/api';
-import { compressImage } from '../utils/image';
+import { compressImage } from '../shared/platform/image';
 import { useHelp } from '../hooks/useHelp';
 import { CatalogRemarksSection } from './map-views';
 import { Tooltip } from '../shared/components/Tooltip.jsx';

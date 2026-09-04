@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 
-import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../../utils/browserStorage.js';
+import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../platform/browserStorage.js';
 
 /**
  * Moteur de **visite guidée**, partagé ForetMap / G&L.

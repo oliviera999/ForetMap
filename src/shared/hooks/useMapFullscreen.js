@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../../utils/browserStorage.js';
+import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../platform/browserStorage.js';
 
 const FM_MAP_FULLSCREEN_BODY_CLASS = 'fm-map-fullscreen-active';
 

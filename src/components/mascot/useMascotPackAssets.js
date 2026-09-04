@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { api, AccountDeletedError } from '../../services/api';
-import { fileToPngDataUrl } from '../../utils/image.js';
+import { fileToPngDataUrl } from '../../shared/platform/image.js';
 import { sanitizeClientFilename } from '../../utils/mascotPackEditorFrames.js';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 

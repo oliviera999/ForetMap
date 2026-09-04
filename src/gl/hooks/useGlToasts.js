@@ -1,29 +1,13 @@
-import { useEffect, useState } from 'react';
+import {
+  TIMED_TOAST_LONG_MS,
+  TIMED_TOAST_SHORT_MS,
+  useTimedToastState,
+} from '../../shared/hooks/useTimedToastState.js';
 
-/** Durée d'affichage (ms) des toasts « longs » (narration, sort refusé). */
-export const GL_TOAST_LONG_MS = 6000;
-/** Durée d'affichage (ms) des toasts « courts » (changement de tour, nouveau round). */
-export const GL_TOAST_SHORT_MS = 4000;
-
-/**
- * État de toast auto-expirant : identique à un `useState(null)` accompagné d'un
- * `useEffect` qui programme la remise à `null` après `durationMs` dès que la valeur
- * devient truthy (timeout nettoyé si la valeur change ou si le composant se démonte).
- *
- * @param {number} durationMs Durée d'affichage avant effacement automatique.
- * @returns {[any, Function]} Paire `[toast, setToast]` (même contrat que `useState`).
- */
-export function useTimedToastState(durationMs) {
-  const [toast, setToast] = useState(null);
-
-  useEffect(() => {
-    if (!toast) return undefined;
-    const id = setTimeout(() => setToast(null), durationMs);
-    return () => clearTimeout(id);
-  }, [toast, durationMs]);
-
-  return [toast, setToast];
-}
+/** Durées G&L : alias des durées partagées (`useTimedToastState`, lot 3). */
+export const GL_TOAST_LONG_MS = TIMED_TOAST_LONG_MS;
+export const GL_TOAST_SHORT_MS = TIMED_TOAST_SHORT_MS;
+export { useTimedToastState };
 
 /**
  * Regroupe les 4 toasts éphémères de l'app GL (narration MJ, changement de tour,
