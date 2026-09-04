@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 /**
  * Montage réel du shell du Plan Lyautey (lot 4), au patron de `AppShellWiring.test.jsx` :
@@ -147,7 +147,7 @@ describe('AppPlan — montage', () => {
     expect(sheet.textContent).toContain('CDI');
     expect(sheet.textContent).not.toContain('Gymnase');
 
-    fireEvent.click(screen.getByRole('button', { name: /CDI/ }));
+    fireEvent.click(within(sheet).getByRole('button', { name: /CDI/ }));
     const placeSheet = await screen.findByTestId('plan-place-sheet');
     expect(placeSheet.textContent).toContain('Centre de documentation');
     expect(placeSheet.textContent).toContain('8 h – 17 h');
@@ -160,7 +160,8 @@ describe('AppPlan — montage', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
     expect(screen.queryByTestId('plan-locate')).toBeNull();
     fireEvent.change(screen.getByLabelText('Rechercher un lieu'), { target: { value: 'CDI' } });
-    fireEvent.click(await screen.findByRole('button', { name: /CDI/ }));
+    const results = await screen.findByTestId('plan-results-sheet');
+    fireEvent.click(within(results).getByRole('button', { name: /CDI/ }));
     const goButton = await screen.findByRole('button', { name: 'Y aller' });
     expect(goButton.disabled).toBe(true);
     expect(
@@ -178,7 +179,8 @@ describe('AppPlan — montage', () => {
       );
       expect(screen.getByTestId('plan-locate')).toBeTruthy();
       fireEvent.change(screen.getByLabelText('Rechercher un lieu'), { target: { value: 'CDI' } });
-      fireEvent.click(await screen.findByRole('button', { name: /CDI/ }));
+      const results = await screen.findByTestId('plan-results-sheet');
+      fireEvent.click(within(results).getByRole('button', { name: /CDI/ }));
       const goButton = await screen.findByRole('button', { name: /Y aller/ });
       expect(goButton.disabled).toBe(false);
       fireEvent.click(goButton);
@@ -363,5 +365,83 @@ describe('AppPlan — montage', () => {
     await waitFor(() => expect(screen.getByText('Le plan n’a pas pu être chargé.')).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+  });
+});
+
+describe('AppPlan — affichage des repères et des zones (audit 2026-09)', () => {
+  test('l’emoji du nom n’est pas dessiné deux fois, sur la carte et dans les listes', async () => {
+    planApiMock.fetchPlanContent.mockResolvedValueOnce({
+      ...content,
+      zones: [{ ...content.zones[0], name: '📚 CDI', emoji: '📚' }],
+    });
+    const { container } = render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+    const label = container.querySelector('.fm-pct-label');
+    expect(label.textContent).toBe('📚CDI');
+  });
+
+  test('la zone est un bouton atteignable au clavier, l’étiquette n’intercepte rien', async () => {
+    const { container } = render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+    const zone = container.querySelector('.fm-pct-zone');
+    expect(zone.getAttribute('role')).toBe('button');
+    expect(zone.getAttribute('aria-label')).toBe('CDI');
+    fireEvent.keyDown(zone, { key: 'Enter' });
+    expect(await screen.findByTestId('plan-place-sheet')).toBeTruthy();
+  });
+
+  test('le nom d’un repère s’affiche dès la vue d’ensemble (plus de seuil de zoom)', async () => {
+    const { container } = render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+    const marker = container.querySelector('.fm-pct-marker');
+    expect(marker.querySelector('.fm-pct-marker__label').textContent).toBe('Gymnase');
+  });
+
+  test('contre-échelle : le calque « fit » porte l’inverse de l’échelle courante', async () => {
+    const { container } = render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+    expect(container.querySelector('.plan-map__fit').style.getPropertyValue('--pct-inv')).toBe('1');
+  });
+
+  test('une puce de catégorie sans aucun lieu n’est pas proposée', async () => {
+    planApiMock.fetchPlanContent.mockResolvedValueOnce({
+      ...content,
+      categories: [
+        ...content.categories,
+        { id: 'c-vide', slug: 'vide', label: 'Catégorie vide', emoji: '👻', color: '#eee' },
+      ],
+    });
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+    expect(screen.getByRole('button', { name: /Salles/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Catégorie vide/ })).toBe(null);
+  });
+
+  test('filtre qui ne laisse aucun lieu : la carte le dit et propose de tout réafficher', async () => {
+    // Choix mémorisé sur l'appareil pointant une catégorie devenue vide : sans état explicite,
+    // le visiteur voit un plan nu sans savoir pourquoi (audit C6).
+    window.localStorage.setItem('plan:categories', JSON.stringify(['c-vide']));
+    planApiMock.fetchPlanContent.mockResolvedValueOnce({
+      ...content,
+      categories: [
+        ...content.categories,
+        { id: 'c-vide', slug: 'vide', label: 'Catégorie vide', emoji: '👻', color: '#eee' },
+      ],
+    });
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+    expect(await screen.findByText(/Aucun lieu dans cette sélection/)).toBeTruthy();
+    // La puce cochée reste proposée, sinon on ne pourrait pas la décocher.
+    expect(screen.getByRole('button', { name: /Catégorie vide/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Tout afficher' }));
+    await waitFor(() => expect(screen.queryByText(/Aucun lieu dans cette sélection/)).toBe(null));
+  });
+
+  test('la fiche d’un lieu porte son lien direct (QR interne)', async () => {
+    const { container } = render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+    fireEvent.click(container.querySelector('.fm-pct-zone'));
+    expect(await screen.findByText(/Lien direct :/)).toBeTruthy();
+    expect(screen.getByText(/lieu=z-cdi/)).toBeTruthy();
   });
 });

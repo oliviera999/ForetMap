@@ -26,16 +26,22 @@ restent dans ForetMap et dans la Visite.
 4. **Des lieux regroupés quand c'est trop dense.** Vu de loin, des repères qui se
    chevauchent sont remplacés par une **pastille chiffrée**. La toucher zoome sur le groupe ;
    si les lieux sont exactement au même endroit (deux salles d'un même bâtiment, par
-   exemple), la **liste des lieux du groupe** s'ouvre en bas d'écran. Les noms des repères
-   n'apparaissent qu'une fois zoomé, en commençant par les catégories prioritaires ; le nom
-   du lieu sélectionné reste toujours affiché.
-5. **La fiche d'un lieu.** Toucher un lieu sur le plan ou dans la liste ouvre une fiche en
+   exemple), la **liste des lieux du groupe** s'ouvre en bas d'écran.
+5. **Des noms qui ne se marchent jamais dessus.** Tous les noms — bâtiments comme repères —
+   sont candidats à l'affichage dès la vue d'ensemble. Quand deux d'entre eux se
+   recouvriraient, seul le plus important est écrit : d'abord le lieu dont la fiche est
+   ouverte, puis l'ordre des catégories (voir « Rendre le plan lisible »), puis le plus grand
+   bâtiment. Les noms masqués **réapparaissent d'eux-mêmes en zoomant**, sans réglage : les
+   étiquettes gardent la même taille à l'écran, c'est le plan qui s'écarte sous elles. Un nom
+   trop long pour son bâtiment est raccourci par des points de suspension ; la fiche du lieu
+   en donne toujours le nom complet.
+6. **La fiche d'un lieu.** Toucher un lieu sur le plan ou dans la liste ouvre une fiche en
    bas d'écran : nom, sous-titre, photo, description, horaires ou précisions. On la fait
    glisser vers le haut pour tout lire, vers le bas pour la refermer.
-6. **Un message d'accueil**, affiché une seule fois par appareil, dont le texte est réglable.
-7. **Un lien direct par lieu** : l'adresse de la page contient `?lieu=…` quand une fiche est
-   ouverte. Ce lien peut être partagé ou transformé en QR code pour amener quelqu'un
-   directement sur le bon lieu.
+7. **Un message d'accueil**, affiché une seule fois par appareil, dont le texte est réglable.
+8. **Un lien direct par lieu** : l'adresse de la page contient `?lieu=…` quand une fiche est
+   ouverte, et la fiche affiche ce lien en toutes lettres. Il peut être partagé ou transformé
+   en QR code pour amener quelqu'un directement sur le bon lieu.
 
 ### Se situer sur le plan
 
@@ -107,14 +113,23 @@ culture, commentaires) ne sort sur le plan.
 
 Trois réglages, dans _Réglages → Catégories de lieux_ :
 
-- **L'ordre des catégories** sert de **priorité**. Une catégorie placée en tête est celle dont
-  les repères sont nommés en premier et regroupés en dernier. Mettre les entrées et les
-  bâtiments avant les sanitaires suffit à rendre un plan chargé lisible.
+- **L'ordre des catégories** sert de **priorité**. Quand deux noms se disputent la même place,
+  celui de la catégorie placée en tête est écrit et l'autre attend le zoom ; c'est aussi la
+  catégorie regroupée en dernier. Mettre les entrées et les bâtiments avant les sanitaires
+  suffit à rendre un plan chargé lisible. Un lieu **sans catégorie** prend un rang
+  intermédiaire : il passe après les catégories de tête, mais devant les catégories de détail.
 - **« Visible seulement au zoom »** retire les lieux de la catégorie tant que le plan est vu
   en entier. Ils réapparaissent dès qu'on zoome. C'est la case à cocher pour les sanitaires,
   les points d'eau, les locaux techniques.
 - **Les catégories cochées d'office** (réglage d'établissement, ci-dessous) décident de ce qui
   est visible à la première ouverture. Un plan lisible commence par montrer peu.
+
+Une étiquette de catégorie **sans aucun lieu** n'est pas proposée au visiteur (elle ne ferait
+que vider la carte) ; si un choix mémorisé sur l'appareil ne laisse plus rien à voir, le plan
+le dit et propose « Tout afficher ».
+
+Enfin, l'emoji saisi **en tête du nom** d'un lieu (« 📚 CDI ») est reconnu comme tel : il est
+dessiné une fois, au-dessus du nom, et pas deux. Il n'y a rien à changer aux noms existants.
 
 Pour régler ces choix sur des données réelles plutôt qu'au jugé, un administrateur peut
 demander un **rapport de densité** : nombre de repères par catégorie, cellules du plan qui en

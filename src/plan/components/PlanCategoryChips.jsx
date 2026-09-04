@@ -14,7 +14,16 @@
  * @param {Map<string, number>} [props.counts] nombre de lieux par catégorie.
  */
 export function PlanCategoryChips({ categories, selectedIds, onToggle, onReset, counts = null }) {
-  if (!categories || categories.length === 0) return null;
+  // Une puce sans aucun lieu vide la carte quand on la coche : sur le plan de Lyautey, deux
+  // catégories sur quatre étaient dans ce cas (`docs/AUDIT_PLAN_AFFICHAGE_2026-09.md` C6). On
+  // ne la propose pas — sauf si elle est déjà cochée, pour que l'on puisse la décocher.
+  const shown = (categories || []).filter((category) => {
+    const id = String(category.id);
+    if (selectedIds.has(id)) return true;
+    if (!counts) return true;
+    return (counts.get(id) || 0) > 0;
+  });
+  if (shown.length === 0) return null;
   const hasSelection = selectedIds.size > 0;
   return (
     <div className="plan-chips" role="group" aria-label="Filtrer par catégorie">
@@ -26,7 +35,7 @@ export function PlanCategoryChips({ categories, selectedIds, onToggle, onReset, 
       >
         Tout
       </button>
-      {categories.map((category) => {
+      {shown.map((category) => {
         const id = String(category.id);
         const active = selectedIds.has(id);
         const count = counts?.get(id);

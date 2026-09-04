@@ -4,7 +4,6 @@ import {
   boxesOverlap,
   estimateLabelBox,
   resolveLabelCollisions,
-  shouldShowMarkerLabel,
 } from '../../src/shared/pct-map/mapOverlayLabelCollision.js';
 
 describe('estimateLabelBox / boxesOverlap', () => {
@@ -68,23 +67,5 @@ describe('resolveLabelCollisions', () => {
   test('entrées vides ou sans boîte : ignorées', () => {
     expect(resolveLabelCollisions(null).size).toBe(0);
     expect(resolveLabelCollisions([{ id: 'x' }, null]).size).toBe(0);
-  });
-});
-
-describe('shouldShowMarkerLabel', () => {
-  test('au dézoom : aucun nom ; au zoom : les prioritaires d’abord', () => {
-    const base = { fitScale: 1, priorityCutoff: 50 };
-    expect(shouldShowMarkerLabel({ ...base, scale: 1, priority: 10 })).toBe(false);
-    expect(shouldShowMarkerLabel({ ...base, scale: 2, priority: 10 })).toBe(true);
-    expect(shouldShowMarkerLabel({ ...base, scale: 2, priority: 90 })).toBe(false);
-    expect(shouldShowMarkerLabel({ ...base, scale: 4, priority: 90 })).toBe(true);
-  });
-
-  test('le repère sélectionné garde toujours son nom', () => {
-    expect(shouldShowMarkerLabel({ scale: 0.1, fitScale: 1, selected: true })).toBe(true);
-  });
-
-  test('mesures absentes : pas de nom plutôt qu’un nom mal placé', () => {
-    expect(shouldShowMarkerLabel({ scale: 0, fitScale: 0 })).toBe(false);
   });
 });

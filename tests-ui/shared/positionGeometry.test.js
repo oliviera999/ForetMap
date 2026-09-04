@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest';
 import {
   POSITION_HALO_MAX_PCT,
   POSITION_HALO_MIN_PCT,
+  accuracyHaloDiameterPx,
   accuracyRadiusPct,
   bearingBetweenPct,
   clampPositionToMap,
@@ -134,5 +135,30 @@ describe('northOffsetFromProjection', () => {
     expect(northOffsetFromProjection(null, { lat: 0, lng: 0 })).toBe(0);
     expect(northOffsetFromProjection(() => null, { lat: 0, lng: 0 })).toBe(0);
     expect(northOffsetFromProjection(() => ({ xp: 1, yp: 1 }), null)).toBe(0);
+  });
+});
+
+describe('accuracyHaloDiameterPx', () => {
+  test('diamètre = 2 × rayon, ramené aux pixels du calque', () => {
+    // 4,26 % de rayon sur un plan large de 390 px → 33,2 px de diamètre.
+    expect(accuracyHaloDiameterPx(4.26, 390)).toBeCloseTo(33.23, 2);
+  });
+
+  test('le rayon rendu n’annonce jamais mieux que la précision du capteur', () => {
+    // Plan réel de Lyautey : 281,7 m × 336,8 m, rendu sur 390 px de large.
+    const planSize = { widthM: 281.75, heightM: 336.82 };
+    const widthPx = 390;
+    for (const accuracyM of [5, 12, 20, 50]) {
+      const diameterPx = accuracyHaloDiameterPx(accuracyRadiusPct(accuracyM, planSize), widthPx);
+      const radiusM = (diameterPx / 2) * (planSize.widthM / widthPx);
+      expect(radiusM).toBeGreaterThanOrEqual(accuracyM - 1e-9);
+    }
+  });
+
+  test('mesure inexploitable ou absence de halo : zéro, pas un disque au hasard', () => {
+    expect(accuracyHaloDiameterPx(0, 390)).toBe(0);
+    expect(accuracyHaloDiameterPx(4, 0)).toBe(0);
+    expect(accuracyHaloDiameterPx(Number.NaN, 390)).toBe(0);
+    expect(accuracyHaloDiameterPx(4, undefined)).toBe(0);
   });
 });

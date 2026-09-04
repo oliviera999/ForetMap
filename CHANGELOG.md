@@ -374,6 +374,69 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   32 modules dans `lib/shared/`), `docs/GL_ARCHITECTURE.md` (rôle de `reactionEmojiCore`),
   `docs/USERS_MIGRATION.md` (périmètre antérieur à G&L).
 
+### Lisibilité des repères et des zones du Plan Lyautey (suites de l'audit)
+
+- **Étiquettes départagées, plus jamais superposées** : les noms de zones **et** de repères
+  passent dans une seule résolution de collisions (`src/shared/pct-map/pctMapLabels.js`, qui
+  branche enfin `resolveLabelCollisions`, écrit au lot 5 et appelé nulle part). Plus aucun
+  seuil de zoom : tout nom est candidat dès la vue d'ensemble, et les noms masqués
+  réapparaissent en zoomant puisque les étiquettes gardent une taille constante à l'écran. Sur
+  les données de production, on passe de 28 noms de zone dont **10 paires en collision** et
+  **aucun** nom de repère, à 23 noms de zone + 7 noms de repère **sans aucun recouvrement** à
+  l'ouverture, puis la totalité à ×2,5.
+- **Ancrage au pôle d'inaccessibilité** (`polygonPoleOfInaccessibilityPct`) plutôt qu'au
+  centroïde : deux noms de bâtiment flottaient sur le voisin.
+- **Emoji plus dessiné deux fois** : le préfixe emoji d'un nom (« 📚 CDI ») est séparé du texte
+  sur la carte, dans la fiche et dans la liste de résultats. La logique passe dans
+  `src/shared/emojiPrefixCore.js` — le plan n'importe plus le catalogue d'emojis de ForetMap ;
+  `src/constants/emojis.js` la ré-exporte, comportement inchangé.
+- **Étiquettes de zones hors du SVG déformé** (`PctLabelsLayer`) : fini la compression
+  horizontale de 16 % du texte. Étiquettes, pastilles, contours, trait « Y aller » et point de
+  position gardent une **taille constante à l'écran** (variable CSS `--pct-inv`) — un emoji de
+  repère mesurait ~170 px à l'échelle maximale.
+- **Repères** : cible tactile de 44 px centrée sur le point, et l'étiquette ne déplace plus la
+  pastille quand elle apparaît.
+- **Zones accessibles** : `role="button"`, `tabIndex` et `aria-label`, activation clavier
+  (Entrée / Espace). 28 lieux sur 48 étaient jusqu'ici inatteignables au clavier et muets pour
+  un lecteur d'écran. Contour porté à 1,5 px écran (3 px pour la zone ouverte).
+- **Puces de catégorie** : une puce sans aucun lieu n'est plus proposée (elle vidait la carte) ;
+  un filtre qui ne laisse rien affiche « Aucun lieu dans cette sélection » et « Tout afficher ».
+- **Lien direct d'un lieu** enfin transmis à sa fiche (`shareUrl`), pour les QR codes internes.
+- Suppression de `shouldShowMarkerLabel`, devenu sans emploi.
+- **Halo de précision de la position enfin visible** : il était dimensionné en pourcentage d'un
+  parent sans dimension (tous les enfants de `.fm-pct-position` sont en `position: absolute`,
+  le conteneur se calculait donc à 0 × 0) et se rendait à 2 × 2 px, recouvert par le point bleu
+  — invisible depuis le lot 6, sur le **plan comme sur la carte de travail**. Le diamètre passe
+  en **pixels du calque** (`accuracyHaloDiameterPx`) : disque rond et non plus ellipse, rayon
+  calé sur l'axe qui a servi à convertir les mètres en pourcentage (donc jamais plus optimiste
+  que le capteur), et solidaire du zoom puisqu'il représente une distance au sol. Sur le calage
+  réel de Lyautey, 33 px de diamètre à 12 m de précision. `.fm-pct-position` reçoit au passage
+  une boîte réelle : il portait un `role="img"` sur un élément de taille nulle.
+- Tests : `tests-ui/shared/pctMapLabels.test.js` (nouveau) et compléments dans
+  `PctLayers.test.jsx` et `plan/AppPlanMount.test.jsx` — le rendu de la carte du plan n'était
+  couvert par aucun test.
+
+### Audit — Affichage des repères et des zones du Plan Lyautey
+
+- **Nouveau document `docs/AUDIT_PLAN_AFFICHAGE_2026-09.md`** (relevé ; les corrections qu'il
+  a déclenchées sont la section ci-dessus, et son §7 dit ce qui reste ouvert) :
+  relevé du rendu de `planlyautey.olution.info` confronté aux **données réelles de production**
+  (28 zones, 20 repères, 4 catégories, fond 852 × 1012 px) sur la version servie (1.145.0).
+  Constat bloquant d'exploitation (certificat TLS auto-signé sous un domaine `HSTS
+  includeSubDomains` : page non ouvrable, pas de géolocalisation, pas de service worker) ;
+  cinq constats majeurs de rendu — noms de zones ni ajustés ni départagés (11 étiquettes sur 28
+  en collision, jusqu'à 45 % de la largeur d'écran pour un bâtiment de 9 px), ancrage au
+  centroïde au lieu du pôle d'inaccessibilité (2 noms hors de leur polygone), emoji dupliqué sur
+  12 zones, nom des repères invisible avant un zoom ×3,2 (seuil de priorité 50 contre
+  `sort_order` 100 en base), absence de contre-échelle au zoom ; sept constats moyens
+  (texte SVG comprimé de 16 %, saut de la pastille à l'apparition de l'étiquette, cible tactile
+  < 44 px, zones ni focusables ni annoncées, contour de 0,35 px, puces de catégorie qui vident
+  la carte, fond de plan trop peu défini) et six points d'hygiène de données. Le document montre
+  que `PctZonesLayer` est le moins outillé des trois calques de zones du monorepo alors que
+  `polygonPoleOfInaccessibilityPct`, `stripLeadingMarkerEmoji`, `fitOverlayLabelToWidth` et
+  `resolveLabelCollisions` (écrit pour ce plan, appelé nulle part) sont déjà écrits et testés ;
+  plan de correction en neuf lots.
+
 ### Audit — Convergence des applications ForetMap / Visite / GL / Plan et plan d'action final
 
 - **Nouveau document `docs/AUDIT_CONVERGENCE_APPS_2026-09.md`** (audit seul, aucun code

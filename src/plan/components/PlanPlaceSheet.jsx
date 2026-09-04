@@ -1,5 +1,6 @@
 import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
 import { Button } from '../../shared/ui/Button.jsx';
+import { placeDisplayParts } from '../utils/planPlaces.js';
 
 /**
  * Fiche d'un lieu du plan (lot 4), en feuille basse à crans : un aperçu (nom + accroche)
@@ -31,7 +32,9 @@ export function PlanPlaceSheet({
   shareUrl = '',
 }) {
   if (!place) return null;
-  const emoji = String(place.emoji || '').trim() || (place.kind === 'zone' ? '🗺️' : '📍');
+  // Le nom porte presque toujours l'emoji en tête, et la colonne `emoji` le répète : sans
+  // séparation, l'en-tête affiche « 🥙 🥙 Cafétéria » (audit B3).
+  const { emoji, name } = placeDisplayParts(place);
   const detailsTitle = String(place.visit_details_title || '').trim() || 'Détails';
   const detailsText = String(place.visit_details_text || '').trim();
   const shortDescription = String(place.visit_short_description || '').trim();
@@ -46,10 +49,10 @@ export function PlanPlaceSheet({
           <span className="plan-place__emoji" aria-hidden>
             {emoji}
           </span>
-          {place.name}
+          {name}
         </span>
       }
-      ariaLabel={place.name}
+      ariaLabel={name}
       snapPoints={['peek', 'half', 'full']}
       initialSnap="peek"
       className="plan-sheet plan-place-sheet"
@@ -94,7 +97,7 @@ export function PlanPlaceSheet({
         <img
           className="plan-place__photo"
           src={photo.thumb_url || photo.image_url}
-          alt={photo.caption || `Photo de ${place.name}`}
+          alt={photo.caption || `Photo de ${name}`}
           loading="lazy"
         />
       ) : null}
