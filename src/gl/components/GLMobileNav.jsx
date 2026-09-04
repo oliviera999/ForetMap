@@ -1,5 +1,4 @@
-import { useEffect, useId } from 'react';
-import { useDialogA11y } from '../../hooks/useDialogA11y.js';
+import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
 
 function GlNavTabButton({
   tab,
@@ -33,6 +32,10 @@ function GlNavTabButton({
   );
 }
 
+/**
+ * Tiroir « Plus » de la navigation mobile G&L : feuille basse partagée (`BottomSheet`),
+ * onglets restants en grille dans le corps ; choisir un onglet referme le tiroir.
+ */
 export function GLMobileNavDrawer({
   open,
   onClose,
@@ -42,63 +45,35 @@ export function GLMobileNavDrawer({
   tabIdPrefix,
   panelIdPrefix,
 }) {
-  const titleId = useId();
-  const panelRef = useDialogA11y(onClose);
-
-  useEffect(() => {
-    if (!open || typeof document === 'undefined') return undefined;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
-
-  if (!open) return null;
-
   function handleSelect(tabId) {
     onTabChange(tabId);
     onClose();
   }
 
   return (
-    <div className="gl-nav-drawer-overlay" role="presentation" onClick={onClose}>
-      <div
-        ref={panelRef}
-        className="gl-nav-drawer"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="gl-nav-drawer-head">
-          <h2 id={titleId} className="gl-nav-drawer-title">
-            Navigation
-          </h2>
-          <button
-            type="button"
-            className="gl-nav-drawer-close"
-            aria-label="Fermer le menu"
-            onClick={onClose}
-          >
-            ✕
-          </button>
-        </div>
-        <div className="gl-nav-drawer-tabs" role="tablist" aria-label="Tous les onglets">
-          {tabs.map((tab) => (
-            <GlNavTabButton
-              key={tab.id}
-              tab={tab}
-              activeTab={activeTab}
-              onTabChange={handleSelect}
-              tabIdPrefix={tabIdPrefix}
-              panelIdPrefix={panelIdPrefix}
-              className="gl-nav-drawer-tab"
-            />
-          ))}
-        </div>
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      title="Navigation"
+      closeLabel="Fermer le menu"
+      className="gl-nav-drawer"
+      overlayClassName="gl-nav-drawer-overlay"
+      initialSnap="half"
+    >
+      <div className="gl-nav-drawer-tabs" role="tablist" aria-label="Tous les onglets">
+        {tabs.map((tab) => (
+          <GlNavTabButton
+            key={tab.id}
+            tab={tab}
+            activeTab={activeTab}
+            onTabChange={handleSelect}
+            tabIdPrefix={tabIdPrefix}
+            panelIdPrefix={panelIdPrefix}
+            className="gl-nav-drawer-tab"
+          />
+        ))}
       </div>
-    </div>
+    </BottomSheet>
   );
 }
 

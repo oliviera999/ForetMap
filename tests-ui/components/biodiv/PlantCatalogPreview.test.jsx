@@ -14,7 +14,7 @@ vi.mock('../../../src/components/PlantSpeciesDiscoveryAcknowledge', () => ({
 vi.mock('../../../src/components/context-comments', () => ({
   ContextComments: ({ contextId }) => <div data-testid="context-comments">plant:{contextId}</div>,
 }));
-vi.mock('../../../src/hooks/useOverlayHistoryBack', () => ({
+vi.mock('../../../src/shared/platform/useOverlayHistoryBack', () => ({
   useOverlayHistoryBack: vi.fn(),
 }));
 vi.mock('../../../src/contexts/PublicSettingsContext.jsx', () => ({

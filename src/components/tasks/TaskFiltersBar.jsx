@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import { DialogShell } from '../DialogShell.jsx';
+import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
 import { TaskFiltersFields } from './TaskFiltersFields.jsx';
 import { useTaskFiltersPanel } from '../../hooks/useTaskFiltersPanel.js';
 import { activeTaskFilterChips } from '../../utils/taskFilterSummary.js';
@@ -23,8 +23,9 @@ const VIEW_MODE_BUTTONS = [
  * ligne toujours visible — recherche, bouton « Filtres » (badge du nombre de
  * filtres actifs) et mode d'affichage — puis les chips des filtres posés.
  * Les champs de filtrage vivent dans `TaskFiltersFields`, affichés en panneau
- * inline sur écran large (ouvert par défaut, comme avant) et en feuille modale
- * sur écran compact, pour que les tâches restent visibles sans défiler.
+ * inline sur écran large (ouvert par défaut, comme avant) et en feuille basse à
+ * crans (`BottomSheet` partagé) sur écran compact, pour que les tâches restent
+ * visibles sans défiler.
  * Composant contrôlé : l'état des filtres reste dans TasksView.
  */
 export function TaskFiltersBar({
@@ -236,43 +237,38 @@ export function TaskFiltersBar({
       )}
 
       {compact ? (
-        <DialogShell
+        <BottomSheet
           open={open}
           onClose={close}
-          overlayClassName="modal-overlay task-filters-sheet-overlay"
-          dialogClassName="log-modal task-filters-sheet fade-in"
-          ariaLabel="Filtres des tâches"
-        >
-          <div className="task-filters-sheet__head">
-            <h3 className="task-filters-sheet__title">
+          title={
+            <>
               <IconFilter size={14} /> Filtres
-            </h3>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={close}
-              aria-label="Fermer les filtres"
-            >
-              <IconClose size={14} />
-            </button>
-          </div>
+            </>
+          }
+          ariaLabel="Filtres des tâches"
+          closeLabel="Fermer les filtres"
+          className="task-filters-sheet"
+          initialSnap="half"
+          footer={
+            <>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={clearAllFilters}
+                disabled={chips.length === 0}
+              >
+                Réinitialiser
+              </button>
+              <button type="button" className="btn btn-primary btn-sm" onClick={close}>
+                {Number.isFinite(resultCount)
+                  ? `Voir ${resultCount} tâche${resultCount > 1 ? 's' : ''}`
+                  : 'Voir les tâches'}
+              </button>
+            </>
+          }
+        >
           {fields}
-          <div className="task-filters-sheet__actions">
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={clearAllFilters}
-              disabled={chips.length === 0}
-            >
-              Réinitialiser
-            </button>
-            <button type="button" className="btn btn-primary btn-sm" onClick={close}>
-              {Number.isFinite(resultCount)
-                ? `Voir ${resultCount} tâche${resultCount > 1 ? 's' : ''}`
-                : 'Voir les tâches'}
-            </button>
-          </div>
-        </DialogShell>
+        </BottomSheet>
       ) : (
         open && (
           <div className="task-filters-panel" id="task-filters-panel">

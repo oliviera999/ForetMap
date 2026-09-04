@@ -26,7 +26,9 @@
   overscroll-behavior: contain;
 }
 
-.fm-modal-panel {
+.fm-modal-panel,
+.modal,
+.log-modal {
   position: relative;
   z-index: 1;
   flex: 0 1 auto;

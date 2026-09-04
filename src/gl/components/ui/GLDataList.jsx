@@ -1,44 +1,18 @@
-export function GLDataList({ columns = [], rows = [], emptyLabel = 'Aucune donnée.' }) {
-  return (
-    <div className="gl-data-list">
-      <div className="gl-admin-table-wrap gl-data-list__desktop">
-        <table className="gl-admin-table gl-data-table">
-          <thead>
-            <tr>
-              {columns.map((column) => (
-                <th key={column.key}>{column.label}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length > 0 ? (
-              rows.map((row) => (
-                <tr key={row.key} className={row.rowClassName || ''}>
-                  {row.desktopCells}
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={columns.length}>{emptyLabel}</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+import { DataList } from '../../../shared/ui/DataList.jsx';
 
-      <div className="gl-data-list__mobile">
-        {rows.length > 0 ? (
-          rows.map((row) => (
-            <article key={row.key} className="gl-data-card">
-              {row.mobileCells}
-            </article>
-          ))
-        ) : (
-          <article className="gl-data-card">
-            <p>{emptyLabel}</p>
-          </article>
-        )}
-      </div>
-    </div>
-  );
+/** Classes G&L historiques, posées en plus des classes neutres du composant partagé. */
+const GL_DATA_LIST_CLASS_NAMES = Object.freeze({
+  root: 'gl-data-list',
+  desktop: 'gl-admin-table-wrap gl-data-list__desktop',
+  table: 'gl-admin-table gl-data-table',
+  mobile: 'gl-data-list__mobile',
+  card: 'gl-data-card',
+});
+
+/**
+ * Liste de données G&L — enveloppe du composant partagé `DataList` (lot 3) : même API
+ * (`columns`, `rows`, `emptyLabel`), classes `gl-data-*` conservées pour le thème.
+ */
+export function GLDataList(props) {
+  return <DataList {...props} classNames={GL_DATA_LIST_CLASS_NAMES} />;
 }

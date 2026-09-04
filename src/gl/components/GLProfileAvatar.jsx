@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { getGlAvatarUrl } from '../utils/glAvatar.js';
 import { GLImageFrameEditor } from './GLImageFrameEditor.jsx';
-import { cropImageDataUrl, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
+import { cropImageDataUrl, normalizeGlImageFrame } from '../../shared/image-frame/glImageFrame.js';
 import { GLButton } from './ui/GLButton.jsx';
 
 function estimateDataUrlBytes(dataUrl) {

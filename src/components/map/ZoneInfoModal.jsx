@@ -8,8 +8,8 @@ import {
 } from '../../constants/emojis';
 import { ZONE_COLORS } from '../../constants/garden';
 import { ColorPaletteField } from '../ColorPaletteField.jsx';
-import { useDialogA11y } from '../../hooks/useDialogA11y';
-import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
+import { useDialogA11y } from '../../shared/platform/useDialogA11y';
+import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import { TimedToast } from '../../shared/components/TimedToast.jsx';
 import {
   nextLivingBeingsFromMultiSelect,

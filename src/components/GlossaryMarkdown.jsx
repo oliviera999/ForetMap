@@ -2,7 +2,7 @@ import {
   renderMarkdownWithGlossaryLinks,
   renderPlainTextWithGlossaryLinks,
 } from '../utils/foretmapGlossaryAutolink.js';
-import { renderMarkdownToSafeHtml } from '../utils/markdown.js';
+import { renderMarkdownToSafeHtml } from '../shared/platform/markdown.js';
 import { FORETMAP_GLOSSARY_CODE_ATTR } from '../shared/utils/glossaryLinkClick.js';
 import { useGlossaryLinkedHtml } from '../shared/hooks/useGlossaryLinkedHtml.js';
 

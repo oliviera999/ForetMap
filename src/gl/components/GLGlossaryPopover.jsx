@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { lockBodyScroll } from '../../shared/platform/bodyScrollLock.js';
 import { createPortal } from 'react-dom';
-import { useDialogA11y } from '../../hooks/useDialogA11y.js';
+import { useDialogA11y } from '../../shared/platform/useDialogA11y.js';
 import { usePrefersReducedMotion } from '../../shared/hooks/usePrefersReducedMotion.js';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
@@ -145,12 +146,11 @@ export function GLGlossaryPopover({
   useEffect(() => {
     if (!open && !isClosing) return undefined;
     const body = document.body;
-    const prevOverflow = body.style.overflow;
     body.classList.add('gl-glossary-popover-open');
-    body.style.overflow = 'hidden';
+    const releaseBodyScroll = lockBodyScroll();
     return () => {
       body.classList.remove('gl-glossary-popover-open');
-      body.style.overflow = prevOverflow;
+      releaseBodyScroll();
     };
   }, [open, isClosing]);
 

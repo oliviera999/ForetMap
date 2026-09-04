@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useBodyScrollLock } from '../../shared/platform/bodyScrollLock.js';
 import { createPortal } from 'react-dom';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
@@ -58,14 +59,7 @@ export function GLQcmPopover({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  useEffect(() => {
-    if (!open || typeof document === 'undefined') return undefined;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
+  useBodyScrollLock(open);
 
   async function submitAnswer() {
     if (!questionCode || !presentation?.presentationToken || selectedChoiceId == null) return;

@@ -2,7 +2,7 @@ import {
   glImageFrameToImgFillStyle,
   glImageFrameToWrapStyle,
   normalizeGlImageFrame,
-} from '../../utils/glImageFrame.js';
+} from '../../shared/image-frame/glImageFrame.js';
 import { useScrollReveal } from '../../shared/hooks/useScrollReveal.js';
 
 const CARD_SLOT_IDS = ['card_world', 'card_rules', 'card_spells'];

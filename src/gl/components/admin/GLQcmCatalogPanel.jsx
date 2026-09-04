@@ -6,6 +6,7 @@ import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
 import { GLQcmFeedbackBlock } from '../GLQcmFeedbackBlock.jsx';
 import { QcmCatalogPanel } from '../../../shared/qcm/QcmCatalogPanel.jsx';
+import { GL_QCM_PREVIEW_GLOSSARY_UI } from './glQcmPreviewGlossaryUi.js';
 
 export function GLQcmCatalogPanel({
   title,
@@ -57,6 +58,7 @@ export function GLQcmCatalogPanel({
       loreGlossaryLinkItems={loreGlossaryLinkItems}
       onOpenGlossaryTerm={onOpenGlossaryTerm}
       onOpenLoreTerm={onOpenLoreTerm}
+      glossaryUi={GL_QCM_PREVIEW_GLOSSARY_UI}
       showQuestionList={showQuestionList}
       enableAdminFilters={enableAdminFilters}
       onEditQuestion={onEditQuestion}

@@ -1,9 +1,13 @@
     @import './shared/styles/typography-tokens.css';
+    @import './shared/styles/spacing-tokens.css';
+    @import './shared/styles/state-inks.css';
+    @import './shared/styles/role-preview-banner.css';
     @import './shared/styles/z-layers.css';
     @import './shared/styles/motion.css';
     @import './shared/styles/speech-bubble.css';
     @import './shared/styles/mascot-speaker.css';
     @import './shared/styles/modal-shell.css';
+    @import './shared/styles/bottom-sheet.css';
     @import './shared/styles/toast-shell.css';
     @import './shared/styles/status-sticky.css';
     @import './shared/styles/map-fullscreen.css';
@@ -11,6 +15,8 @@
     @import './shared/styles/guided-tour.css';
     @import './shared/styles/tour-editor.css';
     @import './shared/styles/shared-controls.css';
+    @import './shared/styles/map-action.css';
+    @import './shared/styles/data-list.css';
     @import './shared/styles/learning-gating.css';
 
     @font-face {
@@ -772,50 +778,7 @@
       }
     }
 
-    /* ── APERÇU RÔLES (basculer vue n3beur / vue n3boss) ── */
-    .role-preview-banner {
-      display:flex;
-      align-items:flex-start;
-      gap:10px;
-      margin:0 12px 0;
-      padding:10px 14px;
-      border-radius:12px;
-      border:1px solid rgba(245, 158, 11, .45);
-      background:rgba(255, 251, 235, .96);
-      color:#78350f;
-      font-size:var(--text-sm);
-      line-height:1.35;
-      flex-shrink:0;
-    }
-    .role-preview-banner--teacher {
-      border-color:rgba(59, 130, 246, .38);
-      background:rgba(239, 246, 255, .96);
-      color:#1e3a8a;
-    }
-    .role-preview-banner--impersonation {
-      border-color:rgba(234, 88, 12, .5);
-      background:rgba(255, 247, 237, .98);
-      color:#9a3412;
-      flex-wrap:wrap;
-    }
-    .role-preview-banner--impersonation .impersonation-banner-actions {
-      margin-left:auto;
-      display:flex;
-      gap:8px;
-      flex-shrink:0;
-    }
-    .role-preview-banner__icon {
-      flex-shrink:0;
-      font-size:var(--text-md);
-      line-height:var(--lh-tight);
-    }
-    .role-preview-banner__text {
-      min-width:0;
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-    }
-    .role-preview-banner__text strong { font-size:var(--text-sm); }
+    /* ── APERÇU RÔLES : bannières dans shared/styles/role-preview-banner.css (commune G&L) ── */
 
     /* ── SECTION TITLES ── */
     .section-title { font-size:clamp(1.15rem, 1rem + .55vw, 1.3rem); color:var(--forest); margin-bottom:4px; }
@@ -1373,29 +1336,8 @@
     .status-done        { background:#dbeafe; color:#1e40af; }
     .status-validated   { background:#f1f5f9; color:#64748b; }
 
-    /* ── MODALS — shell partagé dans src/shared/styles/modal-shell.css ── */
-    .modal,
-    .log-modal {
-      position:relative;
-      z-index:1;
-      flex:0 1 auto;
-      min-width:0;
-      min-height:0;
-      box-sizing:border-box;
-      background:var(--fm-modal-panel-bg, var(--surface-1));
-      border-radius:20px;
-      padding:20px 20px calc(20px + var(--safe-bottom));
-      width:min(100%, calc(100vw - 32px));
-      max-height:min(90vh, calc(100vh - var(--safe-top) - var(--safe-bottom) - 32px));
-      max-height:min(90dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px));
-      overflow-y:auto;
-      -webkit-overflow-scrolling:touch;
-      overscroll-behavior:contain;
-      border:1px solid var(--fm-modal-panel-border, rgba(255,255,255,.46));
-      box-shadow:var(--fm-modal-panel-shadow, var(--shadow-strong));
-      animation:popIn var(--fm-modal-pop-duration, .28s) var(--spring) forwards;
-    }
-
+    /* ── MODALS — panneau : `.modal` et `.log-modal` sont des alias de `.fm-modal-panel`
+       (src/shared/styles/modal-shell.css) ; seules les largeurs restent ici. ── */
     .modal {
       max-width:min(720px, calc(100vw - 32px));
     }
@@ -3035,46 +2977,16 @@
     .task-filters-field-with-help select {
       flex:1 1 auto;
     }
-    /* Feuille de filtres (écran compact) : ancrée en bas, au pouce. */
-    .task-filters-sheet-overlay {
-      align-items:flex-end;
-    }
-    .modal-overlay.task-filters-sheet-overlay > .task-filters-sheet {
-      width:100%;
-      max-width:100%;
-      border-radius:20px 20px 0 0;
-      max-height:min(80dvh, calc(100dvh - var(--safe-top) - 24px));
-      overflow-y:auto;
-    }
-    .task-filters-sheet__head {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:8px;
-      margin-bottom:12px;
-    }
-    .task-filters-sheet__title {
-      font-size:var(--text-base);
-      font-weight:var(--fw-bold);
-      color:var(--forest);
-      margin:0;
-    }
+    /* Feuille de filtres (écran compact) : coque partagée `BottomSheet` (bottom-sheet.css) ;
+       ici seulement la mise en forme des champs à l'intérieur de la feuille. */
     .task-filters-sheet .task-filters-fields {
       flex-direction:column;
+      padding-top:4px;
     }
     .task-filters-sheet .task-filters-fields select,
     .task-filters-sheet .task-filters-field-with-help {
       flex:1 1 auto;
       width:100%;
-      min-height:44px;
-    }
-    .task-filters-sheet__actions {
-      display:flex;
-      gap:8px;
-      margin-top:14px;
-    }
-    .task-filters-sheet__actions .btn {
-      flex:1 1 0%;
       min-height:44px;
     }
 

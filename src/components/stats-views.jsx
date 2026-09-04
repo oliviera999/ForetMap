@@ -4,7 +4,7 @@ import { statusBadge } from '../utils/badges';
 import { getDicebearAvatarUrl, getStudentAvatarUrl } from '../utils/avatar';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { StudentAvatar } from './student-avatar';
-import { compressImageWithPreset } from '../utils/image';
+import { compressImageWithPreset } from '../shared/platform/image';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import {
   estimateDataUrlBytes,

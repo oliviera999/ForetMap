@@ -1,6 +1,9 @@
 import ReactDOM from 'react-dom/client';
 // Tokens typographiques communs aux deux produits (G&L ne charge jamais src/index.css).
 import '../shared/styles/typography-tokens.css';
+import '../shared/styles/spacing-tokens.css';
+import '../shared/styles/state-inks.css';
+import '../shared/styles/role-preview-banner.css';
 import '../shared/styles/z-layers.css';
 import '../shared/styles/motion.css';
 import '../shared/styles/speech-bubble.css';
@@ -10,10 +13,13 @@ import '../shared/styles/tooltip.css';
 import '../shared/styles/floating-dock.css';
 import '../shared/styles/tour-editor.css';
 import '../shared/styles/modal-shell.css';
+import '../shared/styles/bottom-sheet.css';
 import '../shared/styles/toast-shell.css';
 import '../shared/styles/status-sticky.css';
 import '../shared/styles/learning-gating.css';
 import '../shared/styles/shared-controls.css';
+import '../shared/styles/map-action.css';
+import '../shared/styles/data-list.css';
 import '../shared/styles/visit-map-mascot.css';
 import '../shared/styles/map-fullscreen.css';
 import './styles/gl-base.css';

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
+import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import {
   NOTIFICATION_CATEGORY,
   NOTIFICATION_LEVEL,

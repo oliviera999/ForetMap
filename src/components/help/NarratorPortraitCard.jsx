@@ -1,7 +1,10 @@
 import { useRef } from 'react';
 
-import VisitMascotFallbackSvg from '../VisitMascotFallbackSvg.jsx';
-import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../../utils/overlayHistory';
+import VisitMascotFallbackSvg from '../../shared/mascot/VisitMascotFallbackSvg.jsx';
+import {
+  armNativeFilePickerGuard,
+  disarmNativeFilePickerGuard,
+} from '../../shared/platform/overlayHistory';
 import {
   describeNarratorPreviewOrigin,
   NARRATOR_FRAMING_HINTS,

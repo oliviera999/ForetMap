@@ -259,7 +259,10 @@ En **mode consultation** (carte ouverte sans tracé ni édition de contour), une
   des textes visite… Plusieurs mots peuvent être combinés (tous doivent correspondre).
 - **Filtres** (bouton ⚙️) : type (zones seules, repères seuls), **catégories** (plusieurs
   cases cochables — un lieu sort dès qu'il porte l'une d'elles), infrastructures
-  uniquement, espèce présente, présence de **tâches actives** ou de tutoriels liés.
+  uniquement, espèce présente, présence de **tâches actives** ou de tutoriels liés. Sur
+  téléphone, les filtres s'ouvrent dans la **feuille basse** commune (poignée, mi-hauteur
+  ou plein écran, glisser vers le bas ou bouton retour pour fermer, « Voir la carte » pour
+  revenir au plan).
   Contrairement à l'ancien filtre « état », les catégories s'appliquent **aussi aux
   repères** : cocher une catégorie ne fait plus disparaître les repères de la carte.
 

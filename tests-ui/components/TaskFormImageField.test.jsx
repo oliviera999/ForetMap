@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { TaskFormImageField } from '../../src/components/tasks/TaskFormImageField.jsx';
 
 const armGuard = vi.fn();
-vi.mock('../../src/utils/overlayHistory', () => ({
+vi.mock('../../src/shared/platform/overlayHistory', () => ({
   armNativeFilePickerGuard: (...args) => armGuard(...args),
 }));
 

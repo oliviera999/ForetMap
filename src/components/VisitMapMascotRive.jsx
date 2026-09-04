@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-canvas';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import { configureRiveRuntime } from '../utils/riveRuntime.js';
-import { VisitMascotFallbackSvg, DefaultVisitMascotStaticSvg } from './VisitMascotFallbackSvg.jsx';
+import {
+  VisitMascotFallbackSvg,
+  DefaultVisitMascotStaticSvg,
+} from '../shared/mascot/VisitMascotFallbackSvg.jsx';
 
 // Sert le WASM Rive en same-origin (cf. #54) avant tout montage de `useRive` :
 // ce module est le chunk lazy unique qui consomme Rive, donc l'appel au niveau

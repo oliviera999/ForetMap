@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DialogShell } from '../../components/DialogShell.jsx';
 import { apiGL } from '../services/apiGL.js';
-import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
+import { renderMarkdownToSafeHtml } from '../../shared/platform/markdown.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { importTypeMeta } from '../utils/glJournalImportMeta.js';
 import { useGlJournalEmbedTitles } from '../hooks/useGlJournalEmbedTitles.js';

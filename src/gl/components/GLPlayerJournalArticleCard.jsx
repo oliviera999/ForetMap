@@ -6,8 +6,8 @@ import {
   applyJournalEmbed,
   applyMarkdownHtmlImage,
   renderMarkdownToSafeHtml,
-} from '../../utils/markdown.js';
-import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image.js';
+} from '../../shared/platform/markdown.js';
+import { compressImageWithPreset, isLikelyImageFile } from '../../shared/platform/image.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLPlayerJournalEmbedPicker } from './GLPlayerJournalEmbedPicker.jsx';
 import { useGlJournalEmbedTitles } from '../hooks/useGlJournalEmbedTitles.js';

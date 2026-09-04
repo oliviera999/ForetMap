@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useDialogA11y } from '../../hooks/useDialogA11y.js';
+import { useDialogA11y } from '../../shared/platform/useDialogA11y.js';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLLearnAndImport } from './GLLearnAndImport.jsx';

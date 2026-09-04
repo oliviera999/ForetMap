@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useDialogA11y } from '../../hooks/useDialogA11y.js';
+import { useDialogA11y } from '../../shared/platform/useDialogA11y.js';
 import { usePrefersReducedMotion } from '../../shared/hooks/usePrefersReducedMotion.js';
-import { lockBodyScroll } from '../../utils/body-scroll-lock.js';
+import { lockBodyScroll } from '../../shared/platform/bodyScrollLock.js';
 import { api } from '../../services/api';
 import { GlossaryMarkdown } from '../GlossaryMarkdown.jsx';
 import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';

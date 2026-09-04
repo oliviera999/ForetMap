@@ -1,6 +1,9 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { api, saveLegacyStudentSnapshot, saveStoredSession, withAppBase } from '../services/api';
-import { safeLocalStorageRemoveItem, safeLocalStorageSetItem } from '../utils/browserStorage.js';
+import {
+  safeLocalStorageRemoveItem,
+  safeLocalStorageSetItem,
+} from '../shared/platform/browserStorage.js';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { getContentText } from '../utils/content';

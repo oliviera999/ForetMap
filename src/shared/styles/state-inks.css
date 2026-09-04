@@ -1,0 +1,19 @@
+/* =====================================================================
+ * Encres et fonds d'état (info / succès / avertissement / danger) — feuille COMMUNE
+ * ForetMap + Gnomes & Licornes (lot 3 du plan de convergence).
+ *
+ * Valeurs reprises de G&L (`--gl-ink-*`, `--gl-accent-*`, qui en deviennent des alias dans
+ * `gl-theme.css`). Les composants partagés lisent ces tokens directement ; les palettes de
+ * marque (vert forêt, or licorne…) restent par produit.
+ * ===================================================================== */
+
+:root {
+  --ink-info: #075985;
+  --ink-success: #14663f;
+  --ink-warning: #8a5a10;
+  --ink-danger: #991b1b;
+  --accent-info: #d9f0ff;
+  --accent-success: #d9f9ea;
+  --accent-warning: #fff4d6;
+  --accent-danger: #ffe2e2;
+}

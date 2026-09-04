@@ -2,7 +2,7 @@ import {
   renderGlMarkdownWithGlossaryLinks,
   renderGlPlainTextWithGlossaryLinks,
 } from '../../utils/glGlossaryAutolink.js';
-import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
+import { renderMarkdownToSafeHtml } from '../../shared/platform/markdown.js';
 import { GL_GLOSSARY_CODE_ATTR } from '../../shared/utils/glossaryLinkClick.js';
 import { useGlossaryLinkedHtml } from '../../shared/hooks/useGlossaryLinkedHtml.js';
 

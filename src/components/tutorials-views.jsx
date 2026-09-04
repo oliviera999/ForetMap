@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import { useDebouncedAutoSave } from '../shared/hooks/useDebouncedAutoSave.js';
-import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
+import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { useTutorialReadIds } from '../hooks/useTutorialReadIds';
 import { TutorialReadAcknowledgeButton } from './TutorialReadAcknowledge';
 import { useGatingSummary } from '../hooks/useGatingSummary';
@@ -16,7 +16,7 @@ import { TutorialEditorPanel } from './tutorials/TutorialEditorPanel.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
-import { fileToDataUrl } from '../utils/fileToDataUrl.js';
+import { fileToDataUrl } from '../shared/platform/fileToDataUrl.js';
 import {
   sortTutorialsByOrder,
   moveIndex,

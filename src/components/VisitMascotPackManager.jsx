@@ -48,7 +48,7 @@ import { useMascotPackAssets } from './mascot/useMascotPackAssets.js';
 import { useMascotPackBulkImageActions } from './mascot/useMascotPackBulkImageActions.js';
 import MascotPackArchiveImportDialog from '../shared/mascot-pack/MascotPackArchiveImportDialog.jsx';
 import { downloadApiFile } from '../utils/downloadApiFile.js';
-import { fileToPngDataUrl } from '../utils/image.js';
+import { fileToPngDataUrl } from '../shared/platform/image.js';
 import { MASCOT_PACK_UNSAVED_LEAVE_MSG } from '../constants/mascotPackEditor.js';
 import { useMascotPackEditorState } from '../hooks/useMascotPackEditorState.js';
 import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
@@ -1171,6 +1171,7 @@ export default function VisitMascotPackManager({
       <MascotPackArchiveImportDialog
         open={importDialogOpen}
         variant="visit"
+        transport={api}
         targetPackId={selectedId}
         targetPackLabel={String(selectedRow?.label || labelDraft || '')}
         onClose={() => setImportDialogOpen(false)}

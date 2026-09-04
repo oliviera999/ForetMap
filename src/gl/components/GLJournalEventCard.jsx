@@ -1,4 +1,4 @@
-import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
+import { renderMarkdownToSafeHtml } from '../../shared/platform/markdown.js';
 
 function formatWhen(createdAt) {
   try {

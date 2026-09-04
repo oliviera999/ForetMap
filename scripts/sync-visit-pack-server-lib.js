@@ -16,7 +16,7 @@ const files = [
   ['src/utils/visitMascotInteractionEvents.js', 'visitMascotInteractionEvents.js'],
   ['src/utils/visitMascotDialogEvents.js', 'visitMascotDialogEvents.js'],
   ['src/utils/visitMascotDialogApply.js', 'visitMascotDialogApply.js'],
-  ['src/utils/browserStorage.js', 'browserStorage.js'],
+  ['src/shared/platform/browserStorage.js', 'browserStorage.js'],
   ['src/utils/visitMascotCatalog.js', 'visitMascotCatalog.js'],
   ['src/data/renard2-cut-manifest.js', 'data/renard2-cut-manifest.js'],
   ['src/data/gnome1-cut-manifest.js', 'data/gnome1-cut-manifest.js'],
@@ -28,6 +28,12 @@ function copyWithVisitCatalogImportFix(from, to) {
     // Les manifests de data sont copiés à plat sous lib/visit-pack/data/ : on
     // réaligne tout import relatif `../data/...` (source) sur `./data/...` (miroir).
     text = text.replace(/from '\.\.\/data\//g, "from './data/");
+    // `browserStorage.js` vit dans `src/shared/platform/` (lot 3) mais est copié à plat dans
+    // le miroir : on réaligne aussi cet import sur `./browserStorage.js`.
+    text = text.replace(
+      /from '\.\.\/shared\/platform\/browserStorage\.js'/g,
+      "from './browserStorage.js'",
+    );
     fs.writeFileSync(to, text, 'utf8');
     return;
   }
@@ -40,7 +46,7 @@ function main() {
     const hasLib = files.every(([, name]) => fs.existsSync(path.join(outDir, name)));
     if (hasLib) {
       console.warn(
-        '[sync-visit-pack-server-lib] Sources `src/utils` absentes — lib/visit-pack/ conservé (bundle runtime).',
+        '[sync-visit-pack-server-lib] Sources `src/` absentes — lib/visit-pack/ conservé (bundle runtime).',
       );
       return;
     }

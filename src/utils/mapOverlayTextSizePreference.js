@@ -3,7 +3,10 @@ import {
   MAP_TEXT_SIZE_LEVELS,
   MAP_TEXT_SIZE_STORAGE_KEY,
 } from '../shared/typographyTokens.js';
-import { safeLocalStorageGetItem, safeLocalStorageSetItem } from './browserStorage.js';
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageSetItem,
+} from '../shared/platform/browserStorage.js';
 
 /**
  * @returns {keyof typeof MAP_TEXT_SIZE_LEVELS}

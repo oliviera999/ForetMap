@@ -10,7 +10,9 @@ const libFrame = require('../lib/glImageFrame');
 let srcFrame;
 
 before(async () => {
-  srcFrame = await import(pathToFileURL(join(__dirname, '../src/utils/glImageFrame.js')).href);
+  srcFrame = await import(
+    pathToFileURL(join(__dirname, '../src/shared/image-frame/glImageFrame.js')).href
+  );
 });
 
 test('glImageFrame frontend/backend restent alignés', () => {
