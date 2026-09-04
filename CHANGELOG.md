@@ -379,11 +379,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   pas. Mesure en 1440×900 : **398 px de conteneur pour 114 px d'onglets**, d'où l'espace mort
   entre la rangée d'onglets et la carte / les tâches (onglet « Cartes, tâches et tuto »), et de
   même sur les autres onglets prof. Corrigé par `flex:0 0 auto`.
-- **Volet carte du split prof** : le `position:sticky` du volet se cale sur `.desktop-split-view`
-  (en `overflow:hidden`, donc conteneur de défilement), pas sur le document — un décalage haut de
-  la hauteur d'en-tête y poussait la carte de 56 px vers le bas sans rien dégager. Décalage remis
-  à `0` ; la marge sous l'en-tête reste prise en compte par `--fm-maptasks-map-max-h`.
-- Garde-fou : `tests-ui/utils/teacherNavLayoutGuard.test.js` échoue si l'une des deux
+- **Volet carte du split, côté prof ET côté élève** : le `position:sticky` du volet se cale sur
+  `.desktop-split-view` (en `overflow:hidden`, donc conteneur de défilement), pas sur le
+  document — un décalage haut de la hauteur d'en-tête y poussait la carte de 56 px vers le bas
+  sans rien dégager. Décalage remis à `0` sur les deux branches ; la marge sous l'en-tête reste
+  prise en compte par `--fm-maptasks-map-max-h`.
+- Garde-fou : `tests-ui/utils/teacherNavLayoutGuard.test.js` échoue si l'une des trois
   déclarations repart en arrière.
 
 ### Correctif — mécaniques d'échéance

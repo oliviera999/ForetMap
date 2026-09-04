@@ -922,7 +922,10 @@
     }
     @media (min-width:1024px) {
       .main.main--maptasks-split:not(.teacher-main) {
-        --fm-maptasks-sticky-top:calc(56px + var(--safe-top));
+        /* Même remarque que pour la branche prof plus bas : le volet sticky se cale sur
+           `.desktop-split-view` (overflow:hidden), pas sur le document — un décalage de la
+           hauteur d'en-tête n'y dégage rien et pousse la carte de 56 px sous la barre. */
+        --fm-maptasks-sticky-top:0px;
         --fm-maptasks-map-max-h:calc(100dvh - 56px - var(--safe-top) - var(--bottom-nav-height) - var(--safe-bottom) - 32px);
       }
       .teacher-main.main--maptasks-split {
@@ -931,7 +934,8 @@
         /* Le sticky se cale sur `.desktop-split-view` (overflow:hidden = conteneur de
            défilement), pas sur le document : un décalage de la hauteur d'en-tête y pousse
            la carte de 56 px vers le bas sans rien dégager — d'où un vide sous les onglets.
-           La marge sous l'en-tête reste prise en compte par `--fm-maptasks-map-max-h`. */
+           La marge sous l'en-tête reste prise en compte par `--fm-maptasks-map-max-h`.
+           Idem pour la branche élève ci-dessus. */
         --fm-maptasks-sticky-top:0px;
         --fm-maptasks-map-max-h:calc(100dvh - 56px - var(--safe-top) - var(--fm-maptasks-teacher-tabs-h) - 32px - 24px);
       }

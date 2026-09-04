@@ -15,17 +15,21 @@ import { describe, test, expect } from 'vitest';
  */
 const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
 
-/** Corps de la première règle (sans accolade imbriquée) contenant `needle`. */
+/**
+ * Déclarations de la première règle (sans accolade imbriquée) contenant `needle`, que `needle`
+ * soit un sélecteur ou une déclaration : on borne à la dernière accolade — ouvrante OU
+ * fermante — qui précède, sans quoi le corps de la règle voisine serait inclus.
+ */
 function ruleBodyContaining(needle) {
   const hit = css.indexOf(needle);
   if (hit === -1) return null;
-  const open = css.lastIndexOf('{', hit);
+  const open = Math.max(css.lastIndexOf('{', hit), css.lastIndexOf('}', hit));
   const close = css.indexOf('}', hit);
   if (open === -1 || close === -1) return null;
   return css.slice(open + 1, close);
 }
 
-describe('index.css — hauteur de la navigation prof', () => {
+describe('index.css — hauteur de la navigation prof et calage du split', () => {
   test('`.teacher-nav` enfant direct de `.teacher-main` ne grandit pas', () => {
     const body = ruleBodyContaining('.teacher-main > .teacher-nav');
     expect(body).not.toBeNull();
@@ -33,10 +37,16 @@ describe('index.css — hauteur de la navigation prof', () => {
     expect(body).toMatch(/flex:\s*0\s+0\s+auto\s*;/);
   });
 
-  test('la carte du split prof ne se décale pas sous un en-tête inexistant', () => {
-    // `.desktop-split-view` est en overflow:hidden → c'est lui le conteneur de défilement du
-    // volet sticky : un `top` non nul y pousse la carte vers le bas sans rien dégager.
-    const body = ruleBodyContaining('--fm-maptasks-teacher-tabs-h:');
+  // `.desktop-split-view` est en overflow:hidden → c'est lui le conteneur de défilement du
+  // volet sticky : un `top` non nul y pousse la carte vers le bas sans rien dégager.
+  test.each([
+    ['prof', '--fm-maptasks-teacher-tabs-h:'],
+    [
+      'élève',
+      '--fm-maptasks-map-max-h:calc(100dvh - 56px - var(--safe-top) - var(--bottom-nav-height)',
+    ],
+  ])('la carte du split %s ne se décale pas sous un en-tête inexistant', (_branche, ancre) => {
+    const body = ruleBodyContaining(ancre);
     expect(body).not.toBeNull();
     expect(body).toMatch(/--fm-maptasks-sticky-top:\s*0px\s*;/);
   });
