@@ -35,8 +35,9 @@ import useMapViewMascot from '../hooks/useMapViewMascot.js';
 import useZoneDrawing from '../hooks/useZoneDrawing.js';
 import useZoneEditPoints from '../hooks/useZoneEditPoints.js';
 import useMapCrudActions from '../hooks/useMapCrudActions.js';
-import useMascotGpsFollow from '../hooks/useMascotGpsFollow.js';
 import { MascotGpsStatusBanner } from './MascotGpsStatusBanner.jsx';
+import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
+import { PctPositionLayer } from '../shared/pct-map/PctPositionLayer.jsx';
 import useVisitMascotCatalogExtras from '../hooks/useVisitMascotCatalogExtras.js';
 import { useMapGestures } from '../hooks/useMapGestures.js';
 
@@ -355,11 +356,36 @@ function MapViewImpl({
     onPersistPreferredMascotId: onPersistVisitMascotId,
     mascotDialogSettings: publicSettings?.visit?.mascot?.dialog,
   });
-  const mascotGps = useMascotGpsFollow({
+  /**
+   * Position sur la carte de travail (lot 6) : le noyau partagé, le même que le Plan Lyautey.
+   * « Me suivre » n'est **plus lié à la mascotte** — un point de position s'affiche même
+   * quand la mascotte est masquée ; quand elle est affichée, elle suit en plus. La position
+   * reste 100 % côté client.
+   */
+  const mapPosition = useMapPosition({
     georef: activeMap?.georef ?? null,
-    gpsEnabled: !!activeMap?.gps_enabled && mode === 'view' && showMapMascot,
-    moveTo: moveMapMascotTo,
+    gpsEnabled: !!activeMap?.gps_enabled && mode === 'view',
   });
+  // La mascotte suit la position quand elle est à l'écran (comportement d'origine).
+  useEffect(() => {
+    if (!showMapMascot || !mapPosition.positionPct) return;
+    if (mapPosition.feedback !== 'ok') return;
+    moveMapMascotTo(mapPosition.positionPct.xp, mapPosition.positionPct.yp);
+  }, [showMapMascot, mapPosition.positionPct, mapPosition.feedback, moveMapMascotTo]);
+  /** Forme attendue par la barre d'outils et la bannière d'état (contrat inchangé). */
+  const mascotGps = useMemo(
+    () => ({
+      supported: mapPosition.supported,
+      available: mapPosition.available,
+      active: mapPosition.active,
+      status: mapPosition.status,
+      feedback: mapPosition.feedback === 'acquiring' ? null : mapPosition.feedback,
+      accuracy: mapPosition.accuracyM,
+      error: mapPosition.error,
+      toggle: mapPosition.toggle,
+    }),
+    [mapPosition],
+  );
   const { zoneTaskVisualById, markerTaskVisualById } = useMemo(
     () => computeTaskVisualByLocation(tasks),
     [tasks],
@@ -1120,6 +1146,15 @@ function MapViewImpl({
                   dialogVisible={mapMascotDialogVisible}
                   dialog={mapMascotDialog}
                 />
+
+                {mapPosition.displayPct ? (
+                  <PctPositionLayer
+                    position={mapPosition.displayPct}
+                    haloPct={mapPosition.haloPct}
+                    headingDeg={mapPosition.screenHeadingDeg}
+                    accuracyM={mapPosition.accuracyM}
+                  />
+                ) : null}
 
                 {markerClusters.map((cluster) => {
                   if (cluster.count > 1) {

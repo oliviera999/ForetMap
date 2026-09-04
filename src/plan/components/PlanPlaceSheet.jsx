@@ -5,16 +5,31 @@ import { Button } from '../../shared/ui/Button.jsx';
  * Fiche d'un lieu du plan (lot 4), en feuille basse à crans : un aperçu (nom + accroche)
  * qui laisse la carte visible, puis le détail en glissant vers le haut.
  *
- * Le bouton « Y aller » est présent mais **désactivé** : la position sur le plan arrive au
- * lot 6 (`docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.6). Annoncer la fonction sans la simuler.
+ * « Y aller » (lot 6) trace une **ligne droite** entre la position et le lieu, avec la
+ * distance : le plan ne connaît pas encore les chemins, et une direction honnête vaut mieux
+ * qu'un itinéraire inventé. Le bouton reste désactivé quand la carte n'est pas calée pour la
+ * localisation, avec la raison en clair.
  *
  * @param {object} props
  * @param {object|null} props.place lieu sélectionné (`null` = feuille fermée).
  * @param {() => void} props.onClose
  * @param {Array<{ id: string, label: string, emoji: string, color: string }>} props.categories
+ * @param {boolean} [props.canLocate] la carte est calée et le navigateur sait localiser.
+ * @param {(place: object) => void} [props.onGoTo]
+ * @param {boolean} [props.isTarget] ce lieu est déjà visé.
+ * @param {string} [props.distanceLabel] distance à vol d'oiseau, déjà mise en forme.
  * @param {string} [props.shareUrl] lien profond du lieu (`?lieu=`).
  */
-export function PlanPlaceSheet({ place, onClose, categories, shareUrl = '' }) {
+export function PlanPlaceSheet({
+  place,
+  onClose,
+  categories,
+  canLocate = false,
+  onGoTo = null,
+  isTarget = false,
+  distanceLabel = '',
+  shareUrl = '',
+}) {
   if (!place) return null;
   const emoji = String(place.emoji || '').trim() || (place.kind === 'zone' ? '🗺️' : '📍');
   const detailsTitle = String(place.visit_details_title || '').trim() || 'Détails';
@@ -46,13 +61,22 @@ export function PlanPlaceSheet({ place, onClose, categories, shareUrl = '' }) {
           <Button
             variant="primary"
             block
-            disabled
-            title="Bientôt : votre position sur le plan"
+            disabled={!canLocate}
+            title={
+              canLocate
+                ? 'Afficher la direction et la distance depuis votre position'
+                : 'Ce plan n’est pas calé pour la localisation'
+            }
             className="plan-place__go"
+            onClick={() => onGoTo?.(place)}
           >
-            Y aller
+            {isTarget && distanceLabel ? `Y aller · ${distanceLabel}` : 'Y aller'}
           </Button>
-          <p className="plan-place__go-hint">Bientôt : votre position sur le plan.</p>
+          <p className="plan-place__go-hint">
+            {canLocate
+              ? 'Direction à vol d’oiseau depuis votre position, pas un itinéraire.'
+              : 'Ce plan n’est pas encore calé pour afficher votre position.'}
+          </p>
         </div>
       }
     >
