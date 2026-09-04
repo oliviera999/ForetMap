@@ -21,6 +21,7 @@ import {
   zoneLabelMaxWidthPx,
 } from '../../shared/pct-map/pctMapLabels.js';
 import { PctDirectLine, PctPositionLayer } from '../../shared/pct-map/PctPositionLayer.jsx';
+import { accuracyHaloDiameterPx } from '../../shared/pct-map/positionGeometry.js';
 import { planPlaceFocusPct, splitNameEmoji } from '../utils/planPlaces.js';
 
 /** Cibles qui ne démarrent pas un déplacement de carte (commandes superposées). */
@@ -354,7 +355,7 @@ export function PlanMapStage({
           {position?.displayPct ? (
             <PctPositionLayer
               position={position.displayPct}
-              haloPct={position.haloPct}
+              haloPx={accuracyHaloDiameterPx(position.haloPct, fitRect.width)}
               headingDeg={position.screenHeadingDeg}
               accuracyM={position.accuracyM}
             />

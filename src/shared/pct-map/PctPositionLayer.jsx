@@ -9,19 +9,23 @@ import React from 'react';
  * point est collé au bord le plus proche et porte une flèche vers l'endroit réel, plutôt que
  * de disparaître sans explication.
  *
- * Les tailles sont en pourcentage de l'image, donc solidaires du zoom, sauf le point lui-même
- * qui garde une taille écran fixe (un point de position qui grossit avec le zoom se lit mal).
+ * Le halo est dimensionné en **pixels du calque** (`accuracyHaloDiameterPx`) : il représente
+ * une distance au sol, il grandit donc avec le zoom, mais reste un disque. Il était jusqu'ici
+ * exprimé en pourcentage d'un parent sans dimension — donc rendu à 0 × 0, invisible depuis le
+ * lot 6 (`docs/AUDIT_PLAN_AFFICHAGE_2026-09.md` C8). Le point, lui, garde une taille écran
+ * fixe (un point de position qui grossit avec le zoom se lit mal).
  *
  * @param {object} props
  * @param {{ xp: number, yp: number, offMap?: boolean, bearingDeg?: number }|null} props.position
- * @param {number} [props.haloPct] rayon du halo, en % du plan (`0` = pas de halo).
+ * @param {number} [props.haloPx] diamètre du halo de précision, en pixels du calque
+ *   (`accuracyHaloDiameterPx`) ; `0` = pas de halo.
  * @param {number|null} [props.headingDeg] cap **à l'écran**, en degrés horaires depuis le haut.
  * @param {number|null} [props.accuracyM] précision en mètres (nom accessible).
  * @param {string} [props.className]
  */
 function PctPositionLayerImpl({
   position,
-  haloPct = 0,
+  haloPx = 0,
   headingDeg = null,
   accuracyM = null,
   className = 'fm-pct-position',
@@ -43,10 +47,10 @@ function PctPositionLayerImpl({
           : `Votre position${accuracyLabel}`
       }
     >
-      {haloPct > 0 && !offMap ? (
+      {haloPx > 0 && !offMap ? (
         <span
           className={`${className}__halo`}
-          style={{ width: `${haloPct * 2}%`, height: `${haloPct * 2}%` }}
+          style={{ width: `${haloPx}px`, height: `${haloPx}px` }}
           aria-hidden
         />
       ) : null}
