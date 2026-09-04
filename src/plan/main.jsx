@@ -1,11 +1,16 @@
 import ReactDOM from 'react-dom/client';
 // Feuilles communes aux produits (le plan ne charge jamais src/index.css ni les styles GL).
 import '../shared/styles/typography-tokens.css';
+import '../shared/styles/spacing-tokens.css';
+import '../shared/styles/state-inks.css';
 import '../shared/styles/z-layers.css';
 import '../shared/styles/motion.css';
 import '../shared/styles/shared-controls.css';
 import '../shared/styles/modal-shell.css';
 import '../shared/styles/toast-shell.css';
+import '../shared/styles/tooltip.css';
+import '../shared/styles/map-action.css';
+import '../shared/styles/bottom-sheet.css';
 import './styles/plan.css';
 import { AppPlan } from './AppPlan.jsx';
 import { ErrorBoundary } from '../components/ErrorBoundary.jsx';

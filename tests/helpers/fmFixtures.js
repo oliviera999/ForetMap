@@ -41,11 +41,23 @@ async function createZone({
   ],
   color = '#86efac90',
   description = '',
+  hiddenSurfaces = [],
+  searchAliases = null,
 } = {}) {
   await execute(
-    `INSERT INTO zones (id, map_id, name, emoji, x, y, width, height, current_plant, stage, special, shape, points, color, description)
-     VALUES (?, ?, ?, ?, 0, 0, 0, 0, '', 'growing', 0, 'rect', ?, ?, ?)`,
-    [id, mapId, name, emoji, JSON.stringify(points), color, description],
+    `INSERT INTO zones (id, map_id, name, emoji, x, y, width, height, current_plant, stage, special, shape, points, color, description, hidden_surfaces, search_aliases)
+     VALUES (?, ?, ?, ?, 0, 0, 0, 0, '', 'growing', 0, 'rect', ?, ?, ?, ?, ?)`,
+    [
+      id,
+      mapId,
+      name,
+      emoji,
+      JSON.stringify(points),
+      color,
+      description,
+      [].concat(hiddenSurfaces).join(','),
+      searchAliases,
+    ],
   );
   return { id, map_id: mapId, name, emoji, points };
 }
@@ -59,11 +71,13 @@ async function createMarker({
   xPct = 50,
   yPct = 50,
   note = '',
+  hiddenSurfaces = [],
+  searchAliases = null,
 } = {}) {
   await execute(
-    `INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, note, emoji)
-     VALUES (?, ?, ?, ?, ?, '', ?, ?)`,
-    [id, mapId, xPct, yPct, label, note, emoji],
+    `INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, note, emoji, hidden_surfaces, search_aliases)
+     VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, ?)`,
+    [id, mapId, xPct, yPct, label, note, emoji, [].concat(hiddenSurfaces).join(','), searchAliases],
   );
   return { id, map_id: mapId, label, emoji, x_pct: xPct, y_pct: yPct };
 }
@@ -78,14 +92,26 @@ async function createLocationCategory({
   appliesTo = 'both',
   isInfrastructure = false,
   sortOrder = 0,
+  surfaces = ['map', 'visit', 'plan'],
   zoneIds = [],
   markerIds = [],
 } = {}) {
   const slug = id;
   await execute(
-    `INSERT INTO location_categories (id, map_id, slug, label, emoji, color, description, applies_to, is_infrastructure, sort_order, is_active)
-     VALUES (?, ?, ?, ?, ?, ?, '', ?, ?, ?, 1)`,
-    [id, mapId, slug, label, emoji, color, appliesTo, isInfrastructure ? 1 : 0, sortOrder],
+    `INSERT INTO location_categories (id, map_id, slug, label, emoji, color, description, applies_to, is_infrastructure, sort_order, is_active, surfaces)
+     VALUES (?, ?, ?, ?, ?, ?, '', ?, ?, ?, 1, ?)`,
+    [
+      id,
+      mapId,
+      slug,
+      label,
+      emoji,
+      color,
+      appliesTo,
+      isInfrastructure ? 1 : 0,
+      sortOrder,
+      [].concat(surfaces).join(','),
+    ],
   );
   for (const zoneId of zoneIds) {
     await execute('INSERT IGNORE INTO zone_categories (zone_id, category_id) VALUES (?, ?)', [

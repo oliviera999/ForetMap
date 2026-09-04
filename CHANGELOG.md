@@ -7,6 +7,47 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Lot 4 — Plan Lyautey v1 (plan de convergence §6)
+
+- **Surfaces d'affichage des lieux** (migration `208`) : un même lieu — zone ou repère — est
+  montré, ou non, sur la carte de travail, la Visite et le **Plan Lyautey**, sans jamais être
+  dupliqué. Réglage à deux niveaux : `surfaces` sur la **catégorie** (« Visible sur » dans le
+  panneau Catégories de lieux — décocher une surface y retire d'un coup tous ses lieux) et
+  `hidden_surfaces` sur le **lieu** (« Masquer sur » dans la fiche Modifier, avec avertissement
+  quand tout est masqué). Un lieu sans catégorie reste visible partout où il n'est pas masqué.
+  Lecture filtrée par **`?surface=`** sur `/api/zones`, `/api/map/markers` et
+  `/api/map-categories` ; sans le paramètre, les réponses sont inchangées.
+- **Alias de recherche** (`search_aliases`, zones et repères) : autres noms d'un lieu séparés
+  par `;` (« CDI ; bibliothèque »), saisis dans la fiche Modifier, jamais affichés — ils ne
+  servent qu'à retrouver le lieu.
+- **Plan Lyautey (produit `plan`)** : coquille complète servie par host. Carte **plein écran**
+  (moteur de carte partagé du lot 2 en mode scène : pan, pinch, double-tap, inertie, bornes),
+  recherche en haut d'écran, puces de catégories (choix retenu sur l'appareil, défauts
+  d'établissement), **feuilles basses** du kit d'interface pour les résultats et la fiche d'un
+  lieu, message d'accueil affiché une fois, lien profond `?lieu=` (partage, QR code), mention
+  de source du fond de plan. Sans compte, sans cookie, sans donnée d'élève : seuls les
+  compteurs anonymes `open`, `place_open` et `search_empty` sont émis. Le bouton « Y aller »
+  est présent mais **désactivé** — la position arrive au lot 6.
+- **API publique du plan** : `GET /api/plan/content` (carte, réglages `ui.plan.*`, catégories,
+  lieux visibles sur la surface `plan`, textes publics et photo de tête) et
+  `GET /api/plan/settings`, mises en cache par la version d'écriture globale
+  (`lib/shared/writeVersionCache.js`, mécanique désormais partagée avec `visitContentCache`)
+  et servies avec `Cache-Control: public, max-age=60`.
+- **Noyau carte partagé** : calques `PctImageLayer`, `PctZonesLayer`, `PctMarkersLayer` ;
+  `parseZonePoints` promu dans `src/shared/pct-map/pctPolygon.js` (`parsePctPolygonPoints`),
+  `src/utils/zoneGeometry.js` le ré-exporte sous son nom public.
+- **Recherche de lieux partagée** (`src/shared/search/placeSearch.js`) : insensible à la casse
+  et aux accents, tous les mots doivent correspondre, classement nom > alias > sous-titre >
+  catégorie > texte libre.
+- Tests : `tests/location-surfaces.test.js`, `tests/plan-content.test.js`,
+  `tests-ui/plan/**` (dont le montage réel de `AppPlan`), `tests-ui/shared/PctLayers.test.jsx`,
+  `tests-ui/shared/placeSearch.test.js`, `tests-ui/shared/SurfaceVisibilityField.test.jsx`, et
+  un projet Playwright **`plan-mobile`** (390×844 tactile) avec `e2e/plan-mobile-shell.spec.js`.
+- Documentation : nouvelle référence fonctionnelle
+  [`docs/reference/plan/presentation.md`](docs/reference/plan/presentation.md), section
+  « Où apparaît un lieu » dans `docs/reference/foretmap/carte-et-zones.md`, section
+  **Plan Lyautey** et **Surfaces d'affichage des lieux** dans `docs/API.md`.
+
 ### Lot 3 — Kit d'interface commun (plan de convergence §6)
 
 - **Plateforme front `src/shared/platform/`** : `useDialogA11y`, `overlayHistory` +

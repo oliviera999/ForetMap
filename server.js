@@ -50,6 +50,7 @@ const tasksRouter = require('./routes/tasks');
 const taskProjectsRouter = require('./routes/task-projects');
 const tutorialsRouter = require('./routes/tutorials');
 const visitRouter = require('./routes/visit');
+const planRouter = require('./routes/plan');
 const statsRouter = require('./routes/stats');
 const studentsRouter = require('./routes/students');
 const observationsRouter = require('./routes/observations');
@@ -508,6 +509,8 @@ app.use('/api/tasks', tasksRouter);
 app.use('/api/task-projects', taskProjectsRouter);
 app.use('/api/tutorials', tutorialsRouter);
 app.use('/api/visit', visitRouter);
+// Plan Lyautey (lot 4) : charge publique, sans session.
+app.use('/api/plan', planRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/students', studentsRouter);
 app.use('/api/observations', observationsRouter);
