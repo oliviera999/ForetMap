@@ -7,6 +7,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit — Affichage des repères et des zones du Plan Lyautey
+
+- **Nouveau document `docs/AUDIT_PLAN_AFFICHAGE_2026-09.md`** (audit seul, aucun code modifié) :
+  relevé du rendu de `planlyautey.olution.info` confronté aux **données réelles de production**
+  (28 zones, 20 repères, 4 catégories, fond 852 × 1012 px) sur la version servie (1.145.0).
+  Constat bloquant d'exploitation (certificat TLS auto-signé sous un domaine `HSTS
+  includeSubDomains` : page non ouvrable, pas de géolocalisation, pas de service worker) ;
+  cinq constats majeurs de rendu — noms de zones ni ajustés ni départagés (11 étiquettes sur 28
+  en collision, jusqu'à 45 % de la largeur d'écran pour un bâtiment de 9 px), ancrage au
+  centroïde au lieu du pôle d'inaccessibilité (2 noms hors de leur polygone), emoji dupliqué sur
+  12 zones, nom des repères invisible avant un zoom ×3,2 (seuil de priorité 50 contre
+  `sort_order` 100 en base), absence de contre-échelle au zoom ; sept constats moyens
+  (texte SVG comprimé de 16 %, saut de la pastille à l'apparition de l'étiquette, cible tactile
+  < 44 px, zones ni focusables ni annoncées, contour de 0,35 px, puces de catégorie qui vident
+  la carte, fond de plan trop peu défini) et six points d'hygiène de données. Le document montre
+  que `PctZonesLayer` est le moins outillé des trois calques de zones du monorepo alors que
+  `polygonPoleOfInaccessibilityPct`, `stripLeadingMarkerEmoji`, `fitOverlayLabelToWidth` et
+  `resolveLabelCollisions` (écrit pour ce plan, appelé nulle part) sont déjà écrits et testés ;
+  plan de correction en neuf lots.
+
 ### Lot 8 — Parcours, hors ligne, QR, accès et compteur (plan de convergence §6)
 
 - **Parcours de carte** (migration `210`, `map_routes` / `map_route_steps`, API
