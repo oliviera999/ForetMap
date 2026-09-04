@@ -89,6 +89,12 @@ règle « brouillon » ne tient pas.
 un brouillon. Test : « un brouillon n'est lisible que dans la vue de gestion, jamais par son
 slug ni son id » (`tests/map-routes.test.js`).
 
+Le même trou a été fermé **en parallèle** par la PR #413, fusionnée sur `main` avant celle-ci.
+Les deux corrections ont été réconciliées : la version d'ici est retenue (elle ajoute la garde
+d'accès et `?map_id=`), et le test de non-régression de #413 est conservé tel quel à côté du
+nôtre — il vérifie des choses que le nôtre ne vérifie pas (valeur du slug dérivé, message
+d'erreur).
+
 ### 2.2 P2 — La garde d'accès du plan ne couvre pas les parcours
 
 Quand `ui.plan.access_mode = 'code'`, `GET /api/plan/content` répond **401**

@@ -9,9 +9,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé — parcours de carte (suites de `docs/AUDIT_PARCOURS_2026-09.md`)
 
-- **Un brouillon n'est plus lisible publiquement** : `GET /api/map-routes/:idOrSlug` filtre
-  `is_published`. Le repli « le publié, sinon le premier venu » servait le brouillon — sa
-  description et le texte de ses étapes — à qui devinait le slug, qui dérive du titre.
+- **Détail public d'un parcours** : le filtre `is_published` — corrigé en parallèle par la
+  PR #413, ci-dessous, et conservé ici — est complété par `?map_id=`. Le slug n'étant unique que
+  par carte, `id = ? OR slug = ?` répondait au hasard quand deux cartes portaient le même.
 - **La garde d'accès du plan couvre les parcours** : extraite dans `lib/planAccess.js` et posée
   sur les deux lectures publiques de `/api/map-routes`. Avec `ui.plan.access_mode = 'code'`, la
   charge du plan répondait 401 pendant que le catalogue des parcours restait ouvert.

@@ -1699,9 +1699,6 @@ step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `
   fautive (le couple est polymorphe : aucune clé étrangère ne peut le tenir).
 - **Longueurs** : `description` ≤ **2 000** caractères, `step_text` ≤ **4 000** — au-delà, **400**.
   Sans ces bornes, une entrée trop longue faisait remonter une erreur SQL en 500.
-- **Publication** : un brouillon (`is_published: false`) n'est lisible que par
-  `GET /api/map-routes/manage`. Le détail public répond **404** pour un brouillon, y compris
-  par son identifiant.
 - **Garde d'accès** : les deux lectures publiques passent par la garde du plan
   (`lib/planAccess.js`). Quand `ui.plan.access_mode` vaut `code` et qu'un code est configuré,
   elles répondent **401** `{ access_required: true }` sans laissez-passer, comme
