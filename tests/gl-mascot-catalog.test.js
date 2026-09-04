@@ -6,7 +6,7 @@ const assert = require('node:assert');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 
-const CATALOG_PATH = path.join(__dirname, '..', 'src', 'utils', 'glMascotCatalog.js');
+const CATALOG_PATH = path.join(__dirname, '..', 'src', 'gl', 'utils', 'glMascotCatalog.js');
 
 let catalogModule = null;
 async function loadCatalogModule() {

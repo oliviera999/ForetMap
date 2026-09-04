@@ -3,7 +3,7 @@ const crypto = require('node:crypto');
 const { queryAll, execute } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const asyncHandler = require('../../lib/asyncHandler');
-const { logAudit } = require('../audit');
+const { logAudit } = require('../../lib/auditLog');
 const { emitTasksChanged } = require('../../lib/realtime');
 const { syncTaskProjectCompletionForProjects } = require('../../lib/syncTaskProjectCompletion');
 const {

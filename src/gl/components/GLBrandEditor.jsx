@@ -6,9 +6,9 @@ import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
 import { GLImageSourceField } from './GLImageSourceField.jsx';
 import { GLImageFrameEditor } from './GLImageFrameEditor.jsx';
-import { normalizeGlImageFrame } from '../../utils/glImageFrame.js';
+import { normalizeGlImageFrame } from '../../shared/image-frame/glImageFrame.js';
 import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
-import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image.js';
+import { compressImageWithPreset, isLikelyImageFile } from '../../shared/platform/image.js';
 import { GLBrandColorEditor } from './GLBrandColorEditor.jsx';
 
 const SLOT_DEFS = [

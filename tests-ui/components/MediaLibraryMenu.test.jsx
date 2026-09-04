@@ -1,7 +1,7 @@
 import { describe, test, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MediaLibraryMenu } from '../../src/components/MediaLibraryMenu.jsx';
-import { pushOverlayClose } from '../../src/utils/overlayHistory.js';
+import { pushOverlayClose } from '../../src/shared/platform/overlayHistory.js';
 
 vi.mock('../../src/services/api.js', () => ({
   withAppBase: (path) => path,

@@ -1,7 +1,7 @@
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 
-import { MediaLibraryBulkActions } from '../../src/components/media/MediaLibraryBulkActions.jsx';
+import { MediaLibraryBulkActions } from '../../src/shared/media/MediaLibraryBulkActions.jsx';
 
 function setup(overrides = {}) {
   const props = {

@@ -246,3 +246,46 @@ test('visite publique : marquage vu hors ligne puis synchronisation', async ({ p
   await expect(status).toHaveAttribute('data-online', '1', { timeout: 15_000 });
   await expect(status).toHaveAttribute('data-pending', '0', { timeout: 25_000 });
 });
+
+/** Lot 2 — moteur de carte partagé : zoom bouton, double-clic, recentrage et bornes. */
+test('visite connectée : zoom bouton, double-clic et recentrage sur le moteur partagé', async ({
+  page,
+}) => {
+  await loginAsNewStudent(page);
+  await openVisitTab(page);
+  const stage = page.locator('.visit-map-stage');
+  await expect(stage).toBeVisible({ timeout: 30_000 });
+  const world = stage.locator('.visit-map-world');
+  const readScale = async () => {
+    const t = await world.evaluate((el) => el.style.transform || '');
+    const m = /scale\(([\d.]+)\)/.exec(t);
+    return m ? Number(m[1]) : 1;
+  };
+  await expect.poll(readScale, { timeout: 10_000 }).toBeCloseTo(1, 1);
+
+  await stage
+    .locator('.visit-map-controls')
+    .getByRole('button', { name: 'Zoomer la carte de visite', exact: true })
+    .click();
+  await expect.poll(readScale, { timeout: 5_000 }).toBeGreaterThan(1.1);
+
+  await stage
+    .locator('.visit-map-controls')
+    .getByRole('button', { name: 'Recentrer la carte de visite', exact: true })
+    .click();
+  await expect.poll(readScale, { timeout: 5_000 }).toBeCloseTo(1, 1);
+
+  // Double-clic sur le fond : zoom vers le point visé ; le plan reste dans son cadre.
+  const box = await stage.boundingBox();
+  await page.mouse.dblclick(box.x + box.width * 0.6, box.y + box.height * 0.6);
+  await expect.poll(readScale, { timeout: 5_000 }).toBeGreaterThan(2);
+  const translate = await world.evaluate((el) => {
+    const m = /translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/.exec(el.style.transform || '');
+    return m ? { x: Number(m[1]), y: Number(m[2]) } : { x: 0, y: 0 };
+  });
+  const scale = await readScale();
+  expect(translate.x).toBeLessThanOrEqual(0.5);
+  expect(translate.x).toBeGreaterThanOrEqual(box.width * (1 - scale) - 0.5);
+  expect(translate.y).toBeLessThanOrEqual(0.5);
+  expect(translate.y).toBeGreaterThanOrEqual(box.height * (1 - scale) - 0.5);
+});

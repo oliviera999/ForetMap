@@ -4,7 +4,7 @@
  * Ce module ne connaît AUCUN produit : le jeton, la réaction au 401 et la
  * construction du message d'erreur HTTP sont injectés par l'adaptateur
  * (`src/services/api.js` ou `src/gl/services/apiGL.js`). Il compose avec la
- * politique de retry / détection passerelle de `src/services/apiTransport.js`
+ * politique de retry / détection passerelle de `src/shared/apiTransport.js`
  * (délais, statuts transitoires, parsing des corps) sans la dupliquer.
  *
  * Isolement produit (interdit ici) : stores de session (`foretmap_session`,
@@ -24,7 +24,7 @@ import {
   shouldRetryAfterNetworkError,
   shouldRetryAfterTimeout,
   transientRetryDelayMs,
-} from '../services/apiTransport.js';
+} from './apiTransport.js';
 import { apiRetryGate } from './apiRetryGate.js';
 import { emitAppStatus } from './appStatusEvents.js';
 

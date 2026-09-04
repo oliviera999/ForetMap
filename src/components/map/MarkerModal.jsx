@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MARKER_EMOJIS } from '../../constants/emojis';
-import { useDialogA11y } from '../../hooks/useDialogA11y';
-import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
+import { useDialogA11y } from '../../shared/platform/useDialogA11y';
+import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import { TimedToast } from '../../shared/components/TimedToast.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { orderedLivingBeingsForForm } from '../../utils/livingBeings';

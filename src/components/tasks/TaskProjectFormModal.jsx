@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { useDialogA11y } from '../../hooks/useDialogA11y';
-import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
+import { useDialogA11y } from '../../shared/platform/useDialogA11y';
+import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import { DialogShell } from '../DialogShell';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import {

@@ -10,7 +10,7 @@
  * parcours depuis l'application (ForetMap, lot 4).
  */
 
-import { resolveMascotExpression } from '../../utils/mascotExpressions.js';
+import { resolveMascotExpression } from '../mascot/mascotExpressionsBase.js';
 import { resolveRoleTextFrom } from '../help/roleText.js';
 
 /** Champs de parcours ouverts à l'édition depuis l'application. */

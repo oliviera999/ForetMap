@@ -4,10 +4,10 @@ import { api } from '../../../src/services/api';
 import { EMPTY_PLANT_FORM } from '../../../src/utils/plantFormValues.js';
 
 vi.mock('../../../src/services/api', () => ({ api: vi.fn(async () => ({})) }));
-vi.mock('../../../src/utils/image', () => ({
+vi.mock('../../../src/shared/platform/image', () => ({
   compressImageWithPreset: vi.fn(async () => 'data:image/jpeg;base64,XXX'),
 }));
-vi.mock('../../../src/utils/overlayHistory', () => ({
+vi.mock('../../../src/shared/platform/overlayHistory', () => ({
   armNativeFilePickerGuard: vi.fn(),
   disarmNativeFilePickerGuard: vi.fn(),
 }));

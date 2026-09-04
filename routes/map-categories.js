@@ -5,7 +5,7 @@ const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { emitGardenChanged } = require('../lib/realtime');
 const { normalizeMarkerEmoji } = require('../lib/markerEmoji');
-const { logAudit } = require('./audit');
+const { logAudit } = require('../lib/auditLog');
 const {
   APPLIES_TO_VALUES,
   normalizeAppliesTo,
@@ -15,6 +15,12 @@ const {
   getCategoryById,
   resyncZonesInfrastructureMirror,
 } = require('../lib/locationCategories');
+const {
+  SURFACES,
+  normalizeSurfaceInput,
+  serializeSurfaceSet,
+  readSurfaceQuery,
+} = require('../lib/locationSurfaces');
 
 const db = { queryAll, queryOne, execute, withTransaction };
 
@@ -101,7 +107,10 @@ router.get(
     if (kind && kind !== 'zone' && kind !== 'marker') {
       return res.status(400).json({ error: 'kind doit valoir zone ou marker' });
     }
-    res.json(await listCategories(db, { mapId, kind }));
+    // `?surface=map|visit|plan` (lot 4) : catégories qui apparaissent sur cette surface.
+    const surfaceQuery = readSurfaceQuery(req.query.surface);
+    if (!surfaceQuery.ok) return res.status(400).json({ error: surfaceQuery.error });
+    res.json(await listCategories(db, { mapId, kind, surface: surfaceQuery.value }));
   }),
 );
 
@@ -145,11 +154,14 @@ router.post(
         .json({ error: 'Une catégorie avec ce slug existe déjà sur ce périmètre' });
     }
     const sortOrderRaw = parseInt(req.body?.sort_order, 10);
+    // Surfaces où la catégorie apparaît (lot 4) : omis = toutes.
+    const surfacesInput = normalizeSurfaceInput(req.body?.surfaces);
+    if (!surfacesInput.ok) return res.status(400).json({ error: surfacesInput.error });
     const id = crypto.randomUUID();
     await execute(
       `INSERT INTO location_categories
-        (id, map_id, slug, label, emoji, color, description, applies_to, is_infrastructure, sort_order, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, map_id, slug, label, emoji, color, description, applies_to, is_infrastructure, sort_order, is_active, surfaces, zoom_only)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         mapId,
@@ -164,6 +176,8 @@ router.post(
         normalizeBooleanFlag(req.body?.is_infrastructure, 0),
         Number.isFinite(sortOrderRaw) ? sortOrderRaw : 100,
         normalizeBooleanFlag(req.body?.is_active, 1),
+        serializeSurfaceSet(surfacesInput.value === null ? SURFACES : surfacesInput.value),
+        normalizeBooleanFlag(req.body?.zoom_only, 0),
       ],
     );
     const created = await getCategoryById(db, id);
@@ -212,10 +226,14 @@ router.put(
       req.body?.is_infrastructure,
       current.is_infrastructure ? 1 : 0,
     );
+    const surfacesInput = normalizeSurfaceInput(req.body?.surfaces);
+    if (!surfacesInput.ok) return res.status(400).json({ error: surfacesInput.error });
+    const nextSurfaces = surfacesInput.value === null ? current.surfaces : surfacesInput.value;
     await execute(
       `UPDATE location_categories
           SET map_id = ?, slug = ?, label = ?, emoji = ?, color = ?, description = ?,
-              applies_to = ?, is_infrastructure = ?, sort_order = ?, is_active = ?
+              applies_to = ?, is_infrastructure = ?, sort_order = ?, is_active = ?, surfaces = ?,
+              zoom_only = ?
         WHERE id = ?`,
       [
         mapId,
@@ -232,6 +250,8 @@ router.put(
         isInfrastructure,
         Number.isFinite(sortOrderRaw) ? sortOrderRaw : current.sort_order,
         normalizeBooleanFlag(req.body?.is_active, current.is_active ? 1 : 0),
+        serializeSurfaceSet(nextSurfaces),
+        normalizeBooleanFlag(req.body?.zoom_only, current.zoom_only ? 1 : 0),
         current.id,
       ],
     );

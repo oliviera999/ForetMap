@@ -973,6 +973,28 @@ protocole-relatif, chemin relatif) est écartée à l’enregistrement.
 
 ---
 
+### Réglages du produit Plan Lyautey (`ui.plan.*`)
+
+Déclarés dans le registre commun (lot 1 du plan de convergence,
+`lib/shared/settingsRegistryCore.js`, branché par `lib/settings.js`), portée `public` — servis
+par `GET /api/settings/public` et éditables par `PUT /api/settings/admin/:key` :
+
+| Clé                            | Type   | Défaut                             | Rôle                                                    |
+| ------------------------------ | ------ | ---------------------------------- | ------------------------------------------------------- |
+| `ui.plan.map_id`               | string | `lyautey`                          | Carte affichée par le plan                              |
+| `ui.plan.title`                | string | `Plan Lyautey`                     | Titre de l'application                                  |
+| `ui.plan.welcome_hint`         | string | `Touchez un lieu, ou cherchez-le.` | Bulle du premier lancement                              |
+| `ui.plan.access_mode`          | enum   | `public`                           | `public` ou `code` (garde `lib/accessGate.js`)          |
+| `ui.plan.attribution`          | string | vide                               | Mention due pour le fond de plan (ex. OpenStreetMap)    |
+| `ui.plan.public_base_url`      | string | vide                               | URL publique du plan, base des liens profonds imprimés  |
+| `ui.plan.default_category_ids` | string | vide                               | Catégories visibles à l'ouverture (ids séparés par `;`) |
+| `ui.plan.hidden_category_ids`  | string | vide                               | Catégories jamais montrées par le plan (idem)           |
+
+Portée `admin` : `security.plan_access_code_hash` (hachage bcrypt du code d'accès, vide =
+aucun code). Le magasin de réglages partagé (`lib/shared/settingsStore.js`) invalide son cache à
+chaque écriture SQL du processus ; `lib/glSettings.js` l'utilise aussi pour `gl_settings`, dont
+la validation vit désormais dans son registre (`GL_SETTINGS_REGISTRY`) et non plus dans la route.
+
 ## Zones
 
 **Emoji de zone (colonne dédiée `zones.emoji`, migration 206 — audit UI 2026-09, C4).**
@@ -1036,8 +1058,8 @@ sur le préfixe pour les lignes non migrées.
 Classement partagé par les zones et les repères. Une catégorie est **globale** (`map_id: null`,
 valable sur toutes les cartes) ou **propre à une carte**. `applies_to` restreint son usage
 (`zone`, `marker` ou `both`). `is_infrastructure` reprend l'ancien drapeau `zones.special` :
-pas de section Biodiversité en visite, lieu jamais proposé comme cible de mission, contour en
-pointillés sur la carte.
+pas de section Biodiversité en visite, lieu jamais proposé comme cible de mission. Le contour
+sur la carte est tracé en trait continu, comme celui des autres zones.
 
 | Méthode | URL                          | n3boss | Description                                                                        |
 | ------- | ---------------------------- | ------ | ---------------------------------------------------------------------------------- |
@@ -1564,6 +1586,158 @@ Notes d'exploitation :
   sont publics par URL : ne pas y stocker de média nécessitant une autorisation.
 
 ---
+
+## Plan Lyautey (`/api/plan`)
+
+Produit **`plan`** (lot 4 du plan de convergence — `docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8,
+`docs/AUDIT_CONVERGENCE_APPS_2026-09.md` §6) : plan interactif d'établissement, servi par host
+(`planlyautey.*`, surcharge d'en-tête `X-Foretmap-Product: plan`). **Sans session** : aucun
+jeton, aucun cookie, aucune donnée d'élève, de tâche ou de progression. Les lieux ne sont pas
+dupliqués : ce sont les **mêmes** `zones` et `map_markers` que la carte de travail et la Visite,
+filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
+
+| Méthode | URL                         | n3boss | Description                                                               |
+| ------- | --------------------------- | ------ | ------------------------------------------------------------------------- |
+| GET     | `/api/plan/content?map_id=` | non    | Charge publique : carte, réglages, catégories, lieux visibles sur le plan |
+| GET     | `/api/plan/settings`        | non    | Réglages publics `ui.plan.*` seuls (coquille)                             |
+
+- **Carte servie** : `map_id` si fourni (**400** si la carte n'existe pas), sinon le réglage
+  `ui.plan.map_id` s'il désigne une carte **active**, sinon la première carte active
+  (**404** s'il n'y en a aucune) — le plan doit toujours pouvoir s'afficher.
+- **Réponse** : `{ map, settings, categories, zones, markers }`.
+  - `map` : `{ id, label, map_image_url, frame_padding_px, gps_enabled, geo_anchors }` —
+    `gps_enabled` et `geo_anchors` servent au **point de position** du plan (lot 6) ; la
+    position est calculée dans le navigateur et n'est **jamais** envoyée au serveur.
+  - `settings.brand` porte le **thème de marque** de l'établissement (lot 7) : huit couleurs,
+    deux polices, logo et favicon. Réglage `ui.plan.brand` (objet JSON, portée publique) ;
+    `{}` = apparence par défaut du produit. Les URL de logo et de favicon ne sont acceptées
+    que sous `/uploads/` ou `/maps/` — un réglage d'apparence ne doit pas servir à appeler un
+    domaine tiers depuis toutes les pages.
+  - `categories` porte aussi `zoom_only` : le client n'affiche ces lieux qu'une fois zoomé.
+  - `settings` : `title`, `welcome_hint`, `access_mode` (`public` | `code`), `attribution`,
+    `default_category_ids` (restreint aux catégories réellement servies), `hidden_category_ids`.
+    `ui.plan.map_id` n'est **pas** repris ici (l'identifiant est déjà dans `map`).
+  - `categories` : catégories **actives**, globales ou de la carte, qui apparaissent sur la
+    surface `plan`, moins celles listées par `ui.plan.hidden_category_ids`.
+  - `zones` / `markers` : champs **publics** uniquement — `id`, `name` / `label`, `emoji`,
+    `points` (zone) ou `x_pct` / `y_pct` (repère), `color`, `description` / `note`,
+    `category_ids`, `search_aliases` (**tableau**), textes `visit_subtitle`,
+    `visit_short_description`, `visit_details_title`, `visit_details_text`, et
+    `map_lead_photo` (même sérialisation que la visite). Ni espèces, ni historique de culture,
+    ni progression, ni `hidden_surfaces`.
+- **Cache** : charge agrégée mise en cache par carte, invalidée par la **version d'écriture
+  globale** (`lib/shared/writeVersionCache.js`, mécanique partagée avec
+  `GET /api/visit/content`) ; en-tête `Cache-Control: public, max-age=60`.
+- **Compteur d'usage** : le plan émet `open`, `search_empty`, `place_open` et `go` via
+  `POST /api/usage` (produit `plan`) — voir **Compteur d'usage anonyme**.
+
+### Surfaces d'affichage des lieux
+
+Un lieu (zone ou repère) s'affiche sur trois **surfaces** : `map` (carte de travail ForetMap),
+`visit` (Visite) et `plan` (Plan Lyautey). Migration
+`208_location_surfaces_search_aliases.sql`, règles pures dans `lib/locationSurfaces.js`.
+
+- `location_categories.surfaces` (**tableau** en réponse ; défaut : les trois) : surfaces où la
+  catégorie apparaît. Décocher une surface y retire d'un coup tous les lieux de la catégorie.
+- `zones.hidden_surfaces` / `map_markers.hidden_surfaces` (**tableau** en réponse ; défaut :
+  vide) : surfaces où **ce lieu précis** est masqué, quelle que soit sa catégorie.
+- **Règle** : un lieu est visible sur une surface s'il n'y est pas masqué **et** si, lorsqu'il
+  porte des catégories, au moins l'une d'elles y apparaît. Un lieu **sans catégorie** est
+  visible partout où il n'est pas masqué (cas des lieux historiques).
+- **Écritures** : `POST` / `PUT` de `/api/zones`, `/api/map/markers` acceptent
+  `hidden_surfaces` (tableau `['plan']`, chaîne `'map,plan'`, `[]` / `''` / `null` = aucune) ;
+  `POST` / `PUT /api/map-categories` accepte `surfaces` (même forme ; omis à la création =
+  toutes). Une surface inconnue → **400**. Omettre la clé sur un `PUT` conserve la valeur.
+- **Lecture filtrée** : `GET /api/zones`, `GET /api/map/markers` et `GET /api/map-categories`
+  acceptent **`?surface=map|visit|plan`** (valeur inconnue → **400**). Sans ce paramètre, la
+  réponse est inchangée (tous les lieux), pour ne pas modifier le comportement des clients
+  existants.
+- **Priorité et désencombrement** (lot 5) : `location_categories.sort_order` fait office de
+  **rang de priorité** (plus petit = plus important) — au dézoom, les repères d'une catégorie
+  peu prioritaire sont regroupés et nommés en dernier ; aucune colonne dédiée n'est ajoutée.
+  `location_categories.zoom_only` (booléen, migration `209`, accepté en `POST` / `PUT`, exposé
+  partout où la catégorie l'est) masque les lieux de la catégorie tant que la carte est vue en
+  entier ; ils réapparaissent au zoom.
+- **`search_aliases`** (zones et repères) : autres noms d'un lieu pour la recherche du plan
+  (« CDI » ↔ « bibliothèque »). Accepté en chaîne `« a ; b »` ou en tableau ; stocké normalisé
+  (trim, doublons insensibles à la casse retirés, borné à 512 caractères sans troncature au
+  milieu d'un alias) et renvoyé **en chaîne** par les routes zones / repères, **en tableau**
+  par `/api/plan/content`.
+
+---
+
+## Parcours de carte (`/api/map-routes`)
+
+Lot 8 du plan de convergence (`docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.6). Un **parcours** est
+une liste ordonnée de lieux — « le tour des nouveaux professeurs », « les cinq zones du jour ».
+Aucune validation, aucune progression enregistrée côté serveur : l'avancement vit sur
+l'appareil. Les étapes pointent vers les lieux existants (`target_type` / `target_id`, le couple
+déjà employé par la visite) : aucun lieu n'est dupliqué, et un parcours suit les renommages.
+Tables `map_routes` et `map_route_steps` (migration `210`).
+
+| Méthode | URL                         | n3boss | Description                                                            |
+| ------- | --------------------------- | ------ | ---------------------------------------------------------------------- |
+| GET     | `/api/map-routes`           | non    | Parcours **publiés**, filtrables par `map_id` et `surface`             |
+| GET     | `/api/map-routes/manage`    | oui    | Vue de gestion : inclut les brouillons (`zones.manage`)                |
+| GET     | `/api/map-routes/:idOrSlug` | non    | Détail par identifiant **ou par slug** (le lien profond porte le slug) |
+| POST    | `/api/map-routes`           | oui    | Créer un parcours (et ses étapes)                                      |
+| PUT     | `/api/map-routes/:id`       | oui    | Modifier ; `steps` fourni **remplace** toutes les étapes               |
+| DELETE  | `/api/map-routes/:id`       | oui    | Supprimer (les étapes partent en cascade)                              |
+| GET     | `/api/map-routes/:id/pdf`   | oui    | Export **PDF** : étapes + **QR code** du lien profond, imprimable      |
+
+- **Corps JSON** : `title` (requis, ≤ 180), `map_id` (requis à la création), `slug` (dérivé du
+  titre si absent ; **409** s'il est déjà pris sur la carte), `description`, `audience` (≤ 120),
+  `surfaces` (défaut `['plan']`, même mécanique que les lieux), `is_published` (défaut faux :
+  un parcours naît brouillon), `sort_order`, `steps`.
+- **`steps`** : liste ordonnée de `{ target_type: 'zone'|'marker', target_id, step_title?,
+step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `steps` sur un
+  `PUT` conserve les étapes ; le fournir les remplace toutes (c'est ce qu'envoie l'éditeur après
+  un glisser-déposer). Une valeur de `target_type` hors `zone` / `marker` → **400**.
+- **`GET /api/map-routes/:id/pdf`** : une page A4 avec le titre, le public visé, la liste des
+  étapes et un QR code vers `?parcours=<slug>`. La base du lien suit trois sources, dans
+  l'ordre : `?base_url=`, puis le réglage **`ui.plan.public_base_url`**, puis l'hôte de la
+  requête. L'ordre compte : l'affiche est exportée depuis la console ForetMap, servie par un
+  autre domaine que le plan — sans le réglage, le QR code renverrait le visiteur vers un écran
+  de connexion. QR généré localement (`qrcode`, MIT) : une affiche d'établissement ne doit
+  dépendre d'aucun service tiers.
+- **`GET /api/plan/content`** publie les parcours de la surface `plan` sous la clé `routes`.
+
+### Accès du plan par code
+
+Quand `ui.plan.access_mode` vaut `code` **et** qu'un code est configuré
+(`security.plan_access_code_hash`, haché bcrypt) :
+
+- `GET /api/plan/content` répond **401** `{ error, access_required: true }` sans laissez-passer ;
+- `POST /api/plan/access` `{ code }` vérifie le code (comparaison bcrypt, limiteur
+  d'authentification) et pose un **cookie signé HMAC** de 30 jours (HttpOnly, SameSite=Lax,
+  Secure en production — la garde partagée `lib/accessGate.js`) ; **401** si le code est faux,
+  **400** s'il est absent ;
+- un lien profond peut porter le code (`/api/plan/content?code=…`) pour que les QR codes
+  internes ouvrent le plan sans saisie ; la requête est servie et le laissez-passer posé.
+
+Mode `code` **sans** code configuré : le plan reste ouvert — on n'enferme pas les visiteurs
+dehors par un réglage à moitié rempli.
+
+---
+
+## Compteur d'usage anonyme (tous produits)
+
+Lot 1 du plan de convergence (`docs/AUDIT_CONVERGENCE_APPS_2026-09.md` §5.2 ; principe dans
+`docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.9). Aucun identifiant, aucun cookie, aucune adresse IP
+conservée : des événements **nommés**, agrégés par jour dans `usage_counters (day, product,
+event, key, count)`. Noms d'événements en liste blanche **par produit** (`lib/usage.js`,
+`USAGE_EVENTS`), clé libre bornée à 64 caractères et normalisée (minuscules, espaces réduits).
+
+- `POST /api/usage` — **public**, sans session. Corps `{ product, event, key? }` ou
+  `{ events: [ … ] }` (20 au plus). Réponse `204`. `400 { error }` si le produit ou l'événement
+  n'est pas en liste blanche, si le lot est vide ou dépasse 20. Pensé pour
+  `navigator.sendBeacon` (corps JSON en `Blob`). Soumis au limiteur global `/api/`.
+- `GET /api/admin/usage?from=YYYY-MM-DD&to=YYYY-MM-DD&product=foret|gl|plan` — permission
+  `admin.settings.read`. Bornes tolérantes (un jour illisible retombe sur les 30 derniers
+  jours, un produit inconnu sur tous). Réponse `{ from, to, product, rows: [{ day, product,
+event, key, count }] }`, triée par jour décroissant puis produit, événement, compte.
+
+Produits reconnus : `lib/products.js` (registre : `foret`, `gl`, `plan`).
 
 ## Audit
 

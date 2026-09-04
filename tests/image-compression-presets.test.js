@@ -7,7 +7,7 @@ const path = require('path');
 
 test('IMAGE_COMPRESSION_PRESETS : presets documentés', async () => {
   const mod = await import(
-    pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'image.js')).href
+    pathToFileURL(path.join(__dirname, '..', 'src', 'shared', 'platform', 'image.js')).href
   );
   assert.ok(mod.IMAGE_COMPRESSION_PRESETS.taskLog);
   assert.ok(mod.IMAGE_COMPRESSION_PRESETS.glChapter);

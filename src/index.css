@@ -1,8 +1,13 @@
+    @import './shared/styles/typography-tokens.css';
+    @import './shared/styles/spacing-tokens.css';
+    @import './shared/styles/state-inks.css';
+    @import './shared/styles/role-preview-banner.css';
     @import './shared/styles/z-layers.css';
     @import './shared/styles/motion.css';
     @import './shared/styles/speech-bubble.css';
     @import './shared/styles/mascot-speaker.css';
     @import './shared/styles/modal-shell.css';
+    @import './shared/styles/bottom-sheet.css';
     @import './shared/styles/toast-shell.css';
     @import './shared/styles/status-sticky.css';
     @import './shared/styles/map-fullscreen.css';
@@ -10,6 +15,8 @@
     @import './shared/styles/guided-tour.css';
     @import './shared/styles/tour-editor.css';
     @import './shared/styles/shared-controls.css';
+    @import './shared/styles/map-action.css';
+    @import './shared/styles/data-list.css';
     @import './shared/styles/learning-gating.css';
 
     @font-face {
@@ -38,6 +45,9 @@
      * volontaires. Éviter d'introduire de nouveaux seuils hors de cette liste.
      */
     :root {
+      /* ForetMap n'a qu'un thème clair : le déclarer évite que le mode sombre du système repeigne
+         les contrôles natifs (listes déroulantes, ascenseurs) sur des surfaces restées claires. */
+      color-scheme: light;
       --forest:   #1a4731;
       --leaf:     #2d6a4f;
       --sage:     #52b788;
@@ -46,10 +56,11 @@
          unicode-range emoji) AVANT les polices système → le même caractère sort de la même
          fonte sur tous les appareils et dans tous les écrans. Avant, --font-sans le plaçait
          en dernier : une épingle (pile emoji) et un emoji resté dans un nom de zone
-         (pile sans) affichaient deux dessins différents sur le même plan. */
+         (pile sans) affichaient deux dessins différents sur le même plan.
+         Seule --font-sans est propre au produit ; --font-emoji-stack, --font-sans-with-emoji
+         et les tokens typographiques (--text-*, --fw-*, --lh-*, --ink-*) viennent de
+         shared/styles/typography-tokens.css (@import en tête), commune aux deux entrées. */
       --font-sans: 'DM Sans', 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
-      --font-emoji-stack: 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
-      --font-sans-with-emoji: var(--font-sans);
       --cream:    #fefae0;
       --parchment:#f4e9d0;
       --soil:     #6b4226;
@@ -76,27 +87,8 @@
       --space-card: clamp(12px, 3.2vw, 16px);
       --space-card-lg: clamp(18px, 5vw, 32px);
       --space-card-lg-x: clamp(16px, 5vw, 24px);
-      /* Échelle typographique fluide (UI + chrome carte) — 7 crans, à substituer
-         progressivement aux tailles littérales (cf. docs/AUDIT_UI_HOMOGENEITE_2026-09.md, B1-B2). */
-      --text-2xs: clamp(0.58rem, 0.55rem + 0.15vw, 0.64rem);
-      --text-xs: clamp(0.68rem, 0.64rem + 0.2vw, 0.74rem);
-      --text-sm: clamp(0.78rem, 0.72rem + 0.25vw, 0.86rem);
-      --text-base: clamp(0.88rem, 0.82rem + 0.3vw, 1rem);
-      --text-md: clamp(1rem, 0.94rem + 0.3vw, 1.1rem);
-      --text-lg: clamp(1.1rem, 1rem + 0.5vw, 1.3rem);
-      --text-xl: clamp(1.3rem, 1.15rem + 0.75vw, 1.6rem);
-      --text-2xl: clamp(1.6rem, 1.4rem + 1vw, 2rem);
-      /* Graisses et interlignes nommés (aucune valeur > 700 : DM Sans est chargée en 300-700). */
-      --fw-regular: 400;
-      --fw-medium: 500;
-      --fw-semibold: 600;
-      --fw-bold: 700;
-      --lh-tight: 1.2;
-      --lh-normal: 1.45;
-      --lh-relaxed: 1.6;
-      /* Encres secondaires : remplacent les six gris inline (#64748b/#6b7280/#555/#666 et #999/#888). */
-      --ink-soft: #64748b;
-      --ink-faint: #8a94a0;
+      /* Échelle typographique (--text-*), graisses (--fw-*), interlignes (--lh-*) et encres
+         secondaires (--ink-*) : déclarées dans shared/styles/typography-tokens.css. */
       --map-toolbar-font-size: var(--text-xs);
       --map-hint-font-size: clamp(0.72rem, 0.65rem + 0.4vw, 0.88rem);
       --map-hint-font-size-sm: clamp(0.68rem, 0.62rem + 0.35vw, 0.82rem);
@@ -260,19 +252,8 @@
       -webkit-overflow-scrolling:touch; scrollbar-width:none;
     }
     .header-right::-webkit-scrollbar { display:none; }
-    .app-version-badge {
-      display:inline-flex; align-items:center; gap:6px;
-      min-height:30px; padding:4px 8px;
-      border-radius:999px;
-      background:rgba(255,255,255,.14);
-      border:1px solid rgba(255,255,255,.24);
-      color:#f8fff9;
-      font-size:var(--text-xs); line-height:1;
-      white-space:nowrap;
-      cursor:default;
-    }
-    .app-version-badge__version { font-weight:var(--fw-bold); letter-spacing:.02em; }
-    .app-version-badge__status { opacity:.9; }
+    /* Pastille de version `.app-version-badge` : règle de base et compactage < 380px dans la
+       feuille partagée shared/styles/version-badge.css (importée par AppHeader et par G&L). */
     /* Indicateur discret temps réel (mode n3boss uniquement) */
     .realtime-prof-wrap {
       display:inline-flex; align-items:center; justify-content:center;
@@ -485,8 +466,6 @@
     @media(max-width:380px) {
       .lock-btn .lock-label { display:none; }
       .user-badge { max-width:108px; font-size:var(--text-xs); }
-      .app-version-badge { padding:4px 7px; font-size:var(--text-2xs); }
-      .app-version-badge__status { display:none; }
     }
     @media(max-width:560px) {
       .header-right { max-width:62%; }
@@ -656,15 +635,30 @@
       position:relative;
       z-index:1;
     }
+    /* `flex:0 0 auto` et pas seulement `flex-shrink:0` : le conteneur prof porte AUSSI la
+       classe `main`, donc `.main > *` lui applique `flex:1 1 0%`. La barre unique d'avant D-4
+       était immunisée par le `max-height` de `.top-tabs` ; `.teacher-nav`, qui n'en a pas,
+       grandissait jusqu'à la moitié de la hauteur utile — d'où le vide entre la rangée
+       d'onglets et la carte / les tâches. */
     .teacher-main > .top-tabs,
     .teacher-main > .teacher-nav {
-      flex-shrink:0;
+      flex:0 0 auto;
     }
     /* Navigation prof en 3 pôles (audit D-4) : deux rangées dans un seul enfant flex. */
     .teacher-nav {
       display:flex;
       flex-direction:column;
       gap:2px;
+      margin-bottom:clamp(8px, 2.4vw, 16px);
+    }
+    /* Depuis D-4, les deux rangées vivent DANS `.teacher-nav` : leurs marges propres
+       (héritées de l'ancienne barre unique, enfant direct de `.teacher-main`) faisaient
+       double emploi avec `gap` et empilaient ~20 px de vide entre les pôles et leurs
+       onglets, puis ~16 px de plus avant la carte / les tâches. L'espacement vertical est
+       désormais porté par le seul conteneur. */
+    .teacher-nav > .top-tabs.app-tabs-surface {
+      margin-top:0;
+      margin-bottom:0;
     }
     .teacher-nav__poles .top-tab--pole {
       display:inline-flex;
@@ -789,50 +783,7 @@
       }
     }
 
-    /* ── APERÇU RÔLES (basculer vue n3beur / vue n3boss) ── */
-    .role-preview-banner {
-      display:flex;
-      align-items:flex-start;
-      gap:10px;
-      margin:0 12px 0;
-      padding:10px 14px;
-      border-radius:12px;
-      border:1px solid rgba(245, 158, 11, .45);
-      background:rgba(255, 251, 235, .96);
-      color:#78350f;
-      font-size:var(--text-sm);
-      line-height:1.35;
-      flex-shrink:0;
-    }
-    .role-preview-banner--teacher {
-      border-color:rgba(59, 130, 246, .38);
-      background:rgba(239, 246, 255, .96);
-      color:#1e3a8a;
-    }
-    .role-preview-banner--impersonation {
-      border-color:rgba(234, 88, 12, .5);
-      background:rgba(255, 247, 237, .98);
-      color:#9a3412;
-      flex-wrap:wrap;
-    }
-    .role-preview-banner--impersonation .impersonation-banner-actions {
-      margin-left:auto;
-      display:flex;
-      gap:8px;
-      flex-shrink:0;
-    }
-    .role-preview-banner__icon {
-      flex-shrink:0;
-      font-size:var(--text-md);
-      line-height:var(--lh-tight);
-    }
-    .role-preview-banner__text {
-      min-width:0;
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-    }
-    .role-preview-banner__text strong { font-size:var(--text-sm); }
+    /* ── APERÇU RÔLES : bannières dans shared/styles/role-preview-banner.css (commune G&L) ── */
 
     /* ── SECTION TITLES ── */
     .section-title { font-size:clamp(1.15rem, 1rem + .55vw, 1.3rem); color:var(--forest); margin-bottom:4px; }
@@ -971,13 +922,21 @@
     }
     @media (min-width:1024px) {
       .main.main--maptasks-split:not(.teacher-main) {
-        --fm-maptasks-sticky-top:calc(56px + var(--safe-top));
+        /* Même remarque que pour la branche prof plus bas : le volet sticky se cale sur
+           `.desktop-split-view` (overflow:hidden), pas sur le document — un décalage de la
+           hauteur d'en-tête n'y dégage rien et pousse la carte de 56 px sous la barre. */
+        --fm-maptasks-sticky-top:0px;
         --fm-maptasks-map-max-h:calc(100dvh - 56px - var(--safe-top) - var(--bottom-nav-height) - var(--safe-bottom) - 32px);
       }
       .teacher-main.main--maptasks-split {
         /* Deux rangées (pôles + onglets du pôle) depuis la navigation D-4. */
         --fm-maptasks-teacher-tabs-h:calc(2 * (var(--top-tabs-row-inner-h) + 2 * var(--top-tabs-pad-y)) + 2px + clamp(4px, 1.2vw, 8px));
-        --fm-maptasks-sticky-top:calc(56px + var(--safe-top));
+        /* Le sticky se cale sur `.desktop-split-view` (overflow:hidden = conteneur de
+           défilement), pas sur le document : un décalage de la hauteur d'en-tête y pousse
+           la carte de 56 px vers le bas sans rien dégager — d'où un vide sous les onglets.
+           La marge sous l'en-tête reste prise en compte par `--fm-maptasks-map-max-h`.
+           Idem pour la branche élève ci-dessus. */
+        --fm-maptasks-sticky-top:0px;
         --fm-maptasks-map-max-h:calc(100dvh - 56px - var(--safe-top) - var(--fm-maptasks-teacher-tabs-h) - 32px - 24px);
       }
       .main--maptasks-split .desktop-split-pane--map {
@@ -1084,10 +1043,20 @@
     .admin-locations-cat:disabled { opacity:.6; cursor:default; }
 
     /* Réglages admin : couleur d'une catégorie — sélecteur natif + saisie hexadécimale. */
-    .map-category-color-field { display:flex; align-items:center; gap:8px; }
-    .map-category-color-field__picker { width:44px; height:44px; min-width:44px; padding:2px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; cursor:pointer; }
-    .map-category-color-field__hex { flex:1; min-width:0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
-    .map-category-color-field__hint { margin:6px 0 0; font-size:var(--text-xs); color:#64748b; line-height:var(--lh-normal); }
+    /* Champ couleur commun aux zones et aux catégories de zones/repères. */
+    .color-palette-field { display:flex; align-items:center; gap:8px; }
+    .color-palette-field__picker { width:44px; height:44px; min-width:44px; padding:2px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; cursor:pointer; }
+    .color-palette-field__hex { flex:1; min-width:0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+    .color-palette-field__hint { margin:6px 0 0; font-size:var(--text-xs); color:#64748b; line-height:var(--lh-normal); }
+    .color-palette-field__swatches { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+    .color-palette-field__swatch {
+      width:44px; height:44px; min-width:44px; padding:0; border-radius:8px;
+      border:2px solid #ddd; cursor:pointer; transition:transform .1s var(--ease-out);
+    }
+    .color-palette-field__swatch--selected { border:3px solid #1a4731; transform:scale(1.15); }
+    @media (prefers-reduced-motion: reduce) {
+      .color-palette-field__swatch { transition:none; }
+    }
     .history-list { margin-top:12px; }
     .history-list h4 { font-size:var(--text-xs); font-weight:var(--fw-bold); color:#6b7280; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
     .history-item { display:flex; justify-content:space-between; font-size:var(--text-sm); padding:6px 0; border-bottom:1px solid var(--mint); color:#555; }
@@ -1380,29 +1349,8 @@
     .status-done        { background:#dbeafe; color:#1e40af; }
     .status-validated   { background:#f1f5f9; color:#64748b; }
 
-    /* ── MODALS — shell partagé dans src/shared/styles/modal-shell.css ── */
-    .modal,
-    .log-modal {
-      position:relative;
-      z-index:1;
-      flex:0 1 auto;
-      min-width:0;
-      min-height:0;
-      box-sizing:border-box;
-      background:var(--fm-modal-panel-bg, var(--surface-1));
-      border-radius:20px;
-      padding:20px 20px calc(20px + var(--safe-bottom));
-      width:min(100%, calc(100vw - 32px));
-      max-height:min(90vh, calc(100vh - var(--safe-top) - var(--safe-bottom) - 32px));
-      max-height:min(90dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px));
-      overflow-y:auto;
-      -webkit-overflow-scrolling:touch;
-      overscroll-behavior:contain;
-      border:1px solid var(--fm-modal-panel-border, rgba(255,255,255,.46));
-      box-shadow:var(--fm-modal-panel-shadow, var(--shadow-strong));
-      animation:popIn var(--fm-modal-pop-duration, .28s) var(--spring) forwards;
-    }
-
+    /* ── MODALS — panneau : `.modal` et `.log-modal` sont des alias de `.fm-modal-panel`
+       (src/shared/styles/modal-shell.css) ; seules les largeurs restent ici. ── */
     .modal {
       max-width:min(720px, calc(100vw - 32px));
     }
@@ -3042,46 +2990,16 @@
     .task-filters-field-with-help select {
       flex:1 1 auto;
     }
-    /* Feuille de filtres (écran compact) : ancrée en bas, au pouce. */
-    .task-filters-sheet-overlay {
-      align-items:flex-end;
-    }
-    .modal-overlay.task-filters-sheet-overlay > .task-filters-sheet {
-      width:100%;
-      max-width:100%;
-      border-radius:20px 20px 0 0;
-      max-height:min(80dvh, calc(100dvh - var(--safe-top) - 24px));
-      overflow-y:auto;
-    }
-    .task-filters-sheet__head {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:8px;
-      margin-bottom:12px;
-    }
-    .task-filters-sheet__title {
-      font-size:var(--text-base);
-      font-weight:var(--fw-bold);
-      color:var(--forest);
-      margin:0;
-    }
+    /* Feuille de filtres (écran compact) : coque partagée `BottomSheet` (bottom-sheet.css) ;
+       ici seulement la mise en forme des champs à l'intérieur de la feuille. */
     .task-filters-sheet .task-filters-fields {
       flex-direction:column;
+      padding-top:4px;
     }
     .task-filters-sheet .task-filters-fields select,
     .task-filters-sheet .task-filters-field-with-help {
       flex:1 1 auto;
       width:100%;
-      min-height:44px;
-    }
-    .task-filters-sheet__actions {
-      display:flex;
-      gap:8px;
-      margin-top:14px;
-    }
-    .task-filters-sheet__actions .btn {
-      flex:1 1 0%;
       min-height:44px;
     }
 
@@ -3261,6 +3179,26 @@
     .tasks-view {
       display:grid;
       gap:8px;
+    }
+    /* Invite « validés masqués » : discrète, en fin de liste, sur le ton des méta-infos. */
+    .tasks-validated-hidden {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      gap:8px;
+      padding:8px 12px;
+      border:1px dashed var(--outline-soft);
+      border-radius:12px;
+      background:var(--surface-2);
+      color:var(--ink-soft);
+      font-size:var(--text-sm);
+      line-height:var(--lh-normal);
+    }
+    .tasks-validated-hidden__text {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
     }
 
     /* ── URGENCY SECTION ── */
@@ -8385,4 +8323,87 @@ header .lock-btn::after,
     width: 48px;
     height: 48px;
   }
+}
+
+/* Pastille d'un groupe de repères (désencombrement, lot 5 du plan de convergence). */
+.map-marker-cluster {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: var(--tap-target, 44px);
+  min-height: var(--tap-target, 44px);
+  padding: 0 10px;
+  border: 2px solid var(--forest);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--forest);
+  font: inherit;
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
+  transform: translate(-50%, -50%);
+}
+
+.map-marker-cluster:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}
+
+.map-marker-cluster__count {
+  font-size: var(--text-sm);
+}
+
+/* Position sur la carte de travail (lot 6) : mêmes classes que le Plan Lyautey. */
+.fm-pct-position {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.fm-pct-position__halo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.18);
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  transform: translate(-50%, -50%);
+}
+
+.fm-pct-position__dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #2563eb;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  transform: translate(-50%, -50%);
+}
+
+.fm-pct-position__heading {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 14px solid #2563eb;
+  transform-origin: 50% 100%;
+}
+
+.fm-pct-position__arrow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  color: #2563eb;
+  font-size: var(--text-lg);
+  line-height: 1;
+  text-shadow: 0 0 3px #fff;
 }

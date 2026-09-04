@@ -28,6 +28,7 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a === '--base-url') args.baseUrl = argv[i + 1];
     if (a === '--gl-base-url') args.glBaseUrl = argv[i + 1];
+    if (a === '--plan-base-url') args.planBaseUrl = argv[i + 1];
     if (a === '--timeout-ms') args.timeoutMs = argv[i + 1];
     if (a === '--image-check-path') args.imageCheckPath = argv[i + 1];
     if (a === '--gl-health-only') args.glHealthOnly = true;
@@ -38,6 +39,7 @@ function parseArgs(argv) {
   return {
     baseUrl: args.baseUrl || process.env.DEPLOY_BASE_URL || 'http://localhost:3000',
     glBaseUrl: args.glBaseUrl || process.env.GL_PROD_BASE_URL || '',
+    planBaseUrl: args.planBaseUrl || process.env.PLAN_PROD_BASE_URL || '',
     timeoutMs: Number.isFinite(parseInt(args.timeoutMs, 10)) ? parseInt(args.timeoutMs, 10) : 10000,
     imageCheckPath: args.imageCheckPath || process.env.DEPLOY_IMAGE_CHECK_PATH || '',
     glHealthOnly: Boolean(
@@ -225,11 +227,11 @@ async function checkImageEndpoint(baseUrl, path, timeoutMs) {
 }
 
 async function main() {
-  const { baseUrl, glBaseUrl, timeoutMs, imageCheckPath, glHealthOnly } = parseArgs(
+  const { baseUrl, glBaseUrl, planBaseUrl, timeoutMs, imageCheckPath, glHealthOnly } = parseArgs(
     process.argv.slice(2),
   );
   console.log(
-    `[post-deploy-check] baseUrl=${baseUrl} glBaseUrl=${glBaseUrl || '-'} timeoutMs=${timeoutMs} glHealthOnly=${glHealthOnly}`,
+    `[post-deploy-check] baseUrl=${baseUrl} glBaseUrl=${glBaseUrl || '-'} planBaseUrl=${planBaseUrl || '-'} timeoutMs=${timeoutMs} glHealthOnly=${glHealthOnly}`,
   );
 
   const checks = [];
@@ -291,6 +293,12 @@ async function main() {
         false,
       ),
     );
+  }
+
+  // Plan Lyautey (host planlyautey.*) : santé et version, sans exigence (produit en construction).
+  if (planBaseUrl && !glHealthOnly) {
+    checks.push(await checkEndpoint(planBaseUrl, '/api/health', timeoutMs, false));
+    checks.push(await checkEndpoint(planBaseUrl, '/api/version', timeoutMs, false));
   }
 
   const requiredFails = checks.filter((c) => c.required && !c.pass);

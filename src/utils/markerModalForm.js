@@ -3,6 +3,7 @@
  * dérivation des blocs image de visite. Extrait de `MarkerModal.jsx` (O6).
  */
 import { MAP_MARKER_EMOJI_MAX_CHARS, clampEmojiInput } from '../constants/emojis';
+import { normalizeSurfaceList } from '../shared/ui/SurfaceVisibilityField.jsx';
 import { orderedLivingBeingsForForm } from './livingBeings';
 import { locationCategoryIds } from './locationCategories.js';
 import {
@@ -33,6 +34,8 @@ export function markerFormFromMarker(marker, { defaultEmoji = '' } = {}) {
     visit_short_description: m.visit_short_description || '',
     visit_details_title: m.visit_details_title || 'Détails',
     visit_details_text: m.visit_details_text || '',
+    hidden_surfaces: normalizeSurfaceList(m.hidden_surfaces),
+    search_aliases: m.search_aliases || '',
   };
 }
 
@@ -56,6 +59,8 @@ export function buildMarkerPayload(marker, form, visitEditorialBlocks) {
     visit_short_description: form.visit_short_description,
     visit_details_title: form.visit_details_title,
     visit_details_text: form.visit_details_text,
+    hidden_surfaces: normalizeSurfaceList(form.hidden_surfaces),
+    search_aliases: String(form.search_aliases || '').trim(),
     visit_editorial_blocks: normalizeVisitEditorialBlocksForSave(visitEditorialBlocks),
   };
 }

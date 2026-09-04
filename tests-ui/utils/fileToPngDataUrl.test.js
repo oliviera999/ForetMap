@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { fileToPngDataUrl } from '../../src/utils/image.js';
+import { fileToPngDataUrl } from '../../src/shared/platform/image.js';
 
 /**
  * jsdom ne décode pas les images et n'implémente pas le canvas 2D :

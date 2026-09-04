@@ -1,0 +1,46 @@
+/* =====================================================================
+ * Tokens typographiques — feuille COMMUNE ForetMap + Gnomes & Licornes.
+ *
+ * Chargée par les DEUX entrées : `src/index.css` (`@import` en tête, ForetMap) et
+ * `src/gl/main.jsx` (import ESM, G&L) — les pages G&L ne chargent jamais index.css.
+ * Avant, `gl-base.css` recopiait ces 19 déclarations à l'octet près : deux copies qui ne
+ * pouvaient que diverger. Un token commun ne se déclare qu'ici ; le cliquet
+ * `tests-ui/utils/breakpoints.test.js` interdit toute redéclaration côté produit.
+ *
+ * Reste PAR PRODUIT, volontairement hors de cette feuille : `--font-sans`, déclaré dans
+ * `index.css` (DM Sans) et `gl-base.css` (Caudex). `--font-sans-with-emoji` y fait référence
+ * et `--font-emoji-stack` nomme une famille dont le `@font-face` est déclaré par chaque
+ * produit : une variable CSS peut pointer une variable ou une famille définie ailleurs (ou
+ * plus loin), la résolution se fait à l'usage, sur l'élément.
+ * ===================================================================== */
+
+:root {
+  /* Un SEUL ordre de pile emoji partout : 'ForetMapColorEmoji' (Noto auto-hébergé,
+     unicode-range emoji) AVANT les polices système → le même caractère sort de la même
+     fonte sur tous les appareils et dans tous les écrans. */
+  --font-emoji-stack:
+    'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  --font-sans-with-emoji: var(--font-sans);
+  /* Échelle typographique fluide (UI + chrome carte) — 8 crans, à substituer
+     progressivement aux tailles littérales (cf. docs/AUDIT_UI_HOMOGENEITE_2026-09.md, B1-B2). */
+  --text-2xs: clamp(0.58rem, 0.55rem + 0.15vw, 0.64rem);
+  --text-xs: clamp(0.68rem, 0.64rem + 0.2vw, 0.74rem);
+  --text-sm: clamp(0.78rem, 0.72rem + 0.25vw, 0.86rem);
+  --text-base: clamp(0.88rem, 0.82rem + 0.3vw, 1rem);
+  --text-md: clamp(1rem, 0.94rem + 0.3vw, 1.1rem);
+  --text-lg: clamp(1.1rem, 1rem + 0.5vw, 1.3rem);
+  --text-xl: clamp(1.3rem, 1.15rem + 0.75vw, 1.6rem);
+  --text-2xl: clamp(1.6rem, 1.4rem + 1vw, 2rem);
+  /* Graisses et interlignes nommés (aucune valeur > 700 : DM Sans est chargée en 300-700,
+     Caudex en 400/700). */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --lh-tight: 1.2;
+  --lh-normal: 1.45;
+  --lh-relaxed: 1.6;
+  /* Encres secondaires : remplacent les six gris inline (#64748b/#6b7280/#555/#666 et #999/#888). */
+  --ink-soft: #64748b;
+  --ink-faint: #8a94a0;
+}

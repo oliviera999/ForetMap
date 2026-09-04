@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { api } from '../../../src/services/api';
 
 vi.mock('../../../src/services/api', () => ({ api: vi.fn(async () => ({})) }));
-vi.mock('../../../src/utils/fileToDataUrl.js', () => ({
+vi.mock('../../../src/shared/platform/fileToDataUrl.js', () => ({
   fileToDataUrl: vi.fn(async () => 'data:text/csv;base64,QQ=='),
 }));
 

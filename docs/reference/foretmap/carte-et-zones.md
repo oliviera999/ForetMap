@@ -83,7 +83,9 @@ Une zone est une **forme libre** dessinée sur le plan (au moins trois points, a
 qu'on veut). Sa fiche rassemble :
 
 - un **nom** et un **emoji** (choisi dans une palette ou saisi librement) ;
-- une **couleur** de remplissage (palette de dix couleurs) ;
+- une **couleur** de remplissage : la **même palette prédéfinie de dix teintes** que pour
+  les catégories, complétée par la pastille de sélection du système et la saisie directe
+  du code hexadécimal (transparence comprise) — voir « Catégories de lieux » plus bas ;
 - la liste des **êtres vivants** présents (choisis dans le catalogue biodiversité —
   plusieurs espèces possibles, l'ordre choisi est conservé à l'affichage) ;
 - une ou plusieurs **catégories** (Verger, Compostage, Zone pédagogique…), créées par
@@ -94,8 +96,10 @@ qu'on veut). Sa fiche rassemble :
 - un **historique des cultures** : quand une espèce est retirée de la zone, elle est
   automatiquement archivée avec la date du jour — la fiche garde ainsi la mémoire de
   ce qui y a poussé ;
-- des **textes pour le mode Visite** (sous-titre, accroche, bloc dépliable, images) :
-  ce que le grand public lira au même endroit pendant une visite ;
+- des **textes publics** (sous-titre, accroche, bloc dépliable, images) : ce que le grand
+  public lira au même endroit, pendant une visite **comme sur le Plan Lyautey** ;
+- des **alias de recherche** (autres noms séparés par `;`) et un choix de **surfaces
+  d'affichage** : voir « Où apparaît un lieu » plus bas ;
 - des **commentaires** contextuels (observations des élèves et du professeur), si le
   module est activé.
 
@@ -117,11 +121,12 @@ Elles remplacent l'ancien couple « état de culture » (Vide / En croissance / 
 récolter) et case « zone spéciale ».
 
 Une catégorie porte un **libellé**, un **emoji**, une **couleur**, une **description**
-(infobulle) et un **ordre d'affichage**. La couleur se choisit soit avec la **pastille de
-sélection** (nuancier du système), soit en tapant directement le code hexadécimal dans le
-champ voisin. Les deux derniers caractères de ce code règlent la **transparence** — utile
-pour que le plan reste lisible sous la zone — et le sélecteur les conserve quand on change
-seulement la teinte. Une catégorie est :
+(infobulle) et un **ordre d'affichage**. La couleur se choisit de trois façons — les mêmes
+que pour une zone, le champ est identique partout : en cliquant sur une pastille de la
+**palette prédéfinie** (dix teintes), avec la **pastille de sélection** (nuancier du
+système), ou en tapant directement le code hexadécimal dans le champ voisin. Les deux
+derniers caractères de ce code règlent la **transparence** — utile pour que le plan reste
+lisible sous la zone — et le sélecteur les conserve quand on change seulement la teinte. Une catégorie est :
 
 - soit **globale** — utilisable sur toutes les cartes (cas le plus courant : Compostage,
   Verger, Zone pédagogique) ;
@@ -133,9 +138,9 @@ pour **les deux** (par défaut).
 
 Une case **« Infrastructure »** distingue les lieux qui ne sont pas des cultures (mare,
 ruches, compostage, cuve…). Elle reprend exactement le comportement de l'ancienne case
-« zone spéciale » : ces lieux n'affichent pas de section Biodiversité en mode Visite, ne
-sont jamais proposés comme cible de mission ou de tutoriel, et leur contour apparaît en
-pointillés sur la carte. Les zones qui étaient marquées « spéciales » ont été
+« zone spéciale » : ces lieux n'affichent pas de section Biodiversité en mode Visite et ne
+sont jamais proposés comme cible de mission ou de tutoriel. Leur contour est tracé en trait
+continu sur la carte, comme celui de toutes les autres zones. Les zones qui étaient marquées « spéciales » ont été
 automatiquement reprises dans une catégorie **Infrastructure**.
 
 Une catégorie peut être **désactivée** plutôt que supprimée : elle reste posée sur les
@@ -154,7 +159,12 @@ permission « Gestion zones ».
    les noms des zones, **ajuster la taille du texte sur la carte** (bouton « Aa » dans
    la barre d'outils : Normal, Grand, Très grand — mémorisé sur l'appareil), passer en
    plein écran. Sur téléphone, un bouton « Gestes » évite de déclencher la carte en
-   faisant défiler la page.
+   faisant défiler la page. Les gestes sont ceux de toutes les cartes de la plateforme
+   (carte, visite, plateaux Gnomes & Licornes) : **le plan ne sort jamais du cadre**
+   (butée souple qui ramène la vue en place), **pincer** zoome et déplace dans le même
+   geste, un **double-tap** zoome sur le point touché (un second double-tap réajuste le
+   plan), un glisser rapide continue sur sa lancée, et la molette ou les boutons +/−
+   gardent le point visé sous le pointeur.
 2. Il **touche une zone ou un repère** : la fiche s'ouvre avec ses onglets — Tâches,
    Tutoriels, Info, Photos (l'onglet Tâches ou Tutoriels n'apparaît que s'il y a
    quelque chose à montrer).
@@ -175,7 +185,8 @@ permission « Gestion zones ».
 2. **Poser un repère** : bouton « Repère », puis clic à l'endroit voulu ; on renseigne
    ensuite nom, emoji et note.
 3. **Modifier une fiche** : ouvrir la zone ou le repère, onglet « Modifier ». On y
-   change tout (nom, espèces, catégories, couleur, description, textes visite, emoji). Un
+   change tout (nom, espèces, catégories, couleur, description, textes publics, emoji,
+   alias de recherche, surfaces d'affichage). Un
    bouton dédié permet de **retoucher le contour** de la zone (voir « Retoucher le
    contour d'une zone » plus bas), puis de sauvegarder.
 4. **Dupliquer une zone** : un bouton dans l'en-tête de la fiche crée une copie, utile
@@ -187,6 +198,94 @@ permission « Gestion zones ».
    retrouvent ensuite au même endroit.
 7. **Supprimer** une zone ou un repère : la fiche, ses photos et son contenu de visite
    sont retirés ensemble.
+
+### Les parcours
+
+Un **parcours** enchaîne des lieux dans un ordre choisi, avec un titre, un public visé et, pour
+chaque étape, un texte court facultatif. Il se gère dans _Réglages → **Parcours**_, et sert de
+feuille de séance côté ForetMap comme de visite fléchée sur le Plan Lyautey.
+
+Composer un parcours :
+
+1. Choisir la **carte** : un parcours appartient à une carte, et ne propose que ses lieux.
+2. Donner un **titre** (obligatoire), et si besoin un public visé, une description, un ordre
+   d'affichage. L'**identifiant du lien** se déduit du titre — le renseigner à la main sert
+   surtout à garder un QR code déjà imprimé valable après un changement de titre.
+3. Ajouter les étapes : le champ **« Ajouter un lieu »** cherche parmi les zones et les repères
+   de la carte, y compris par leurs **alias de recherche**. Un clic sur un résultat l'ajoute en
+   fin de liste ; un lieu déjà présent n'est pas proposé une seconde fois.
+4. Réordonner : **glisser-déposer** une étape, ou utiliser les boutons **↑** et **↓** (la voie
+   au clavier). Chaque étape peut recevoir un titre propre — sinon c'est le nom du lieu qui
+   s'affiche — et une phrase à lire sur place.
+5. **Créer le parcours**. Il reste modifiable ensuite par le bouton « Éditer » de la liste.
+
+À savoir :
+
+- Un parcours naît **brouillon** : il n'apparaît nulle part tant que la case « Publié » n'est
+  pas cochée.
+- Les cases **« proposé sur »** décident des surfaces, comme pour les lieux. Un parcours neuf
+  vise le **Plan** seul, c'est là qu'ils servent le plus.
+- Rien n'est dupliqué : une étape **pointe** vers un lieu existant. Renommer le lieu renomme
+  l'étape ; supprimer le lieu laisse une étape signalée « lieu introuvable », à retirer.
+- Un parcours ne peut pas dépasser **60 étapes**.
+- Le bouton **« Affiche PDF »** télécharge une page imprimable : la liste des étapes et un
+  **QR code** vers le parcours, à afficher à l'accueil. Pour que ce QR code mène au plan et non
+  à la console, renseigner l'URL publique du plan dans _Réglages → Général_
+  (`ui.plan.public_base_url`, par exemple `https://planlyautey.olution.info`).
+- Rien n'est enregistré du côté des personnes qui suivent un parcours : aucune validation,
+  aucune progression, aucun suivi individuel.
+
+### Se situer sur la carte
+
+Quand le plan affiché est **calé** (points de repère GPS posés par un professeur), le bouton
+« Me suivre » de la barre d'outils affiche un **point de position** : un point bleu avec un
+halo d'autant plus large que le signal est imprécis, et une flèche de cap si l'appareil a une
+boussole. Le point s'affiche désormais **même si la mascotte est masquée** : la position et la
+mascotte sont deux choses différentes. Quand la mascotte est visible, elle continue de suivre
+la position comme avant.
+
+La position est calculée dans l'appareil et n'est jamais envoyée au serveur.
+
+### Quand la carte devient trop chargée
+
+Vu de loin, des repères qui se chevauchent sont remplacés par une **pastille chiffrée** :
+elle indique combien de repères sont là. La toucher zoome sur le groupe, ou ouvre la fiche du
+repère principal si les repères sont exactement au même point. Un bouton de la barre d'outils
+de la carte désactive ce regroupement quand on veut voir tous les repères, par exemple pour en
+placer un nouveau (le regroupement est d'ailleurs toujours inactif en mode édition).
+
+Deux réglages complètent cela, dans _Réglages → Catégories de lieux_ : **l'ordre des
+catégories** sert de priorité (les premières sont nommées en premier et regroupées en
+dernier), et **« Visible seulement au zoom »** retire les lieux d'une catégorie tant que la
+carte est vue en entier.
+
+Enfin, le **nom d'une zone** s'affiche désormais au point le plus « à l'intérieur » de son
+contour, et non plus à son centre géométrique : sur une zone en L ou en croissant, le nom
+tombait à côté, parfois sur la zone voisine.
+
+### Où apparaît un lieu (carte, visite, plan)
+
+Un même lieu peut être montré sur trois **surfaces** : la **Carte** de travail des élèves,
+la **Visite** guidée grand public, et le **Plan Lyautey** (le plan d'établissement sur
+téléphone — voir [../plan/presentation.md](../plan/presentation.md)). Les lieux ne sont
+jamais dupliqués : c'est le même lieu, montré ou non à chaque endroit.
+
+Deux réglages se combinent :
+
+- **Par catégorie** — dans _Réglages → Catégories de lieux_, chaque catégorie porte une case
+  par surface (« Visible sur »). Décocher **Plan** pour « Cultures » retire d'un coup toutes
+  les cultures du plan d'établissement, sans rien changer pour les élèves.
+- **Par lieu** — dans la fiche d'une zone ou d'un repère, onglet _Modifier_, le bloc
+  « Masquer sur » retire **ce lieu précis** d'une surface, quelle que soit sa catégorie.
+
+Un lieu **sans catégorie** reste visible partout où il n'est pas explicitement masqué. Si
+toutes les surfaces sont cochées dans « Masquer sur », un avertissement prévient que le
+lieu ne sera visible nulle part.
+
+La même fiche propose un champ **« Alias de recherche »** : les autres noms sous lesquels on
+cherche ce lieu, séparés par des points-virgules (`CDI ; bibliothèque ; docs`). Ces mots ne
+s'affichent nulle part ; ils servent à ce que la recherche du plan trouve le lieu quel que
+soit le mot employé.
 
 ### Retoucher le contour d'une zone
 
@@ -251,7 +350,10 @@ En **mode consultation** (carte ouverte sans tracé ni édition de contour), une
   des textes visite… Plusieurs mots peuvent être combinés (tous doivent correspondre).
 - **Filtres** (bouton ⚙️) : type (zones seules, repères seuls), **catégories** (plusieurs
   cases cochables — un lieu sort dès qu'il porte l'une d'elles), infrastructures
-  uniquement, espèce présente, présence de **tâches actives** ou de tutoriels liés.
+  uniquement, espèce présente, présence de **tâches actives** ou de tutoriels liés. Sur
+  téléphone, les filtres s'ouvrent dans la **feuille basse** commune (poignée, mi-hauteur
+  ou plein écran, glisser vers le bas ou bouton retour pour fermer, « Voir la carte » pour
+  revenir au plan).
   Contrairement à l'ancien filtre « état », les catégories s'appliquent **aussi aux
   repères** : cocher une catégorie ne fait plus disparaître les repères de la carte.
 

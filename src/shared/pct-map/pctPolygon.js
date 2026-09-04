@@ -1,5 +1,26 @@
 /** Utilitaires polygones en coordonnées % (0–100), alignés carte ForetMap / GL. */
 
+/**
+ * Points d'un polygone de zone (JSON stocké), normalisés en pourcentages 0–100 sous la forme
+ * historique `{ xp, yp }`. Promu ici au lot 4 (le calque partagé `PctZonesLayer` en a besoin,
+ * et `src/shared` ne peut pas importer de code produit) ; `src/utils/zoneGeometry.js` le
+ * ré-exporte sous son nom public d'origine — aucun importateur n'est cassé.
+ *
+ * @param {string} raw
+ * @returns {{ xp: number, yp: number }[]}
+ */
+export function parsePctPolygonPoints(raw) {
+  try {
+    const points = JSON.parse(raw || '[]');
+    if (!Array.isArray(points)) return [];
+    return points
+      .map((p) => ({ xp: Number(p?.xp), yp: Number(p?.yp) }))
+      .filter((p) => Number.isFinite(p.xp) && Number.isFinite(p.yp));
+  } catch (_) {
+    return [];
+  }
+}
+
 export function clampPctCoord(value, decimals = 2) {
   const n = Number(value);
   if (!Number.isFinite(n)) return 0;

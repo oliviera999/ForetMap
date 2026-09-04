@@ -2,7 +2,7 @@ import { withAppBase } from '../../shared/appBase.js';
 import {
   buildApiHttpErrorMessage,
   gatewayUnavailableUserMessage,
-} from '../../services/apiTransport.js';
+} from '../../shared/apiTransport.js';
 import { fetchJsonWithRetry } from '../../shared/fetchJsonWithRetry.js';
 
 const GL_SESSION_KEY = 'gl_session';

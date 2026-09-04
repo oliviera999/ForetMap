@@ -5,7 +5,7 @@ import {
   pruneMediaLibrarySelection,
   resolveMediaLibraryLayout,
   sortMediaLibraryItems,
-} from '../../src/utils/mediaLibraryView.js';
+} from '../../src/shared/media/mediaLibraryView.js';
 
 const sampleItems = [
   {

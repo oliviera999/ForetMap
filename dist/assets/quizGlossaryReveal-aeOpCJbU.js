@@ -1,0 +1,1 @@
+var e=Object.freeze([]);function t(t,n){let r=t||{};if(n)return r;let i={};for(let[t,n]of Object.entries(r))i[t]=Array.isArray(n)?e:typeof n==`function`?null:n;return i}function n(e){return!!e}export{n,t};

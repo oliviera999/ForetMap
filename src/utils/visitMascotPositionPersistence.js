@@ -1,4 +1,7 @@
-import { safeLocalStorageGetItem, safeLocalStorageSetItem } from './browserStorage.js';
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageSetItem,
+} from '../shared/platform/browserStorage.js';
 
 /**
  * Persistance locale (localStorage) de la position % de la mascotte sur le plan visite,

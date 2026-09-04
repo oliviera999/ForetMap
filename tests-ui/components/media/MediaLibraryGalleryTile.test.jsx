@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import {
   MediaLibraryGalleryTile,
   resolveMediaUrl,
-} from '../../../src/components/media/MediaLibraryGalleryTile.jsx';
+} from '../../../src/shared/media/MediaLibraryGalleryTile.jsx';
 
 const imageItem = {
   filename: 'photo.png',

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ZONE_COLORS } from '../../constants/garden';
+import { ColorPaletteField } from '../ColorPaletteField.jsx';
 import {
   MARKER_EMOJIS,
   ZONE_NAME_PREFIX_EMOJI_MAX_CHARS,
@@ -7,8 +8,8 @@ import {
   clampEmojiInput,
 } from '../../constants/emojis';
 import { nextLivingBeingsFromMultiSelect } from '../../utils/livingBeings';
-import { useDialogA11y } from '../../hooks/useDialogA11y';
-import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
+import { useDialogA11y } from '../../shared/platform/useDialogA11y';
+import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import { DialogShell } from '../DialogShell';
 import { IconCheck, IconClose, IconDrawZone } from '../../shared/icons.jsx';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
@@ -132,27 +133,11 @@ function ZoneDrawModal({
           placeholder="Notes, observations sur cette zone..."
         />
       </div>
-      <div className="field">
-        <label>Couleur</label>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {ZONE_COLORS.map((c) => (
-            <div
-              key={c}
-              onClick={() => setForm((f) => ({ ...f, color: c }))}
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 8,
-                background: c,
-                cursor: 'pointer',
-                border: form.color === c ? '3px solid #1a4731' : '2px solid #ddd',
-                transition: 'transform .1s',
-                transform: form.color === c ? 'scale(1.15)' : 'none',
-              }}
-            />
-          ))}
-        </div>
-      </div>
+      <ColorPaletteField
+        id="zone-draw-color"
+        value={form.color}
+        onChange={(next) => setForm((f) => ({ ...f, color: next }))}
+      />
       <div className="field">
         <label htmlFor="zone-draw-emoji-custom">Emoji de zone</label>
         <ZoneOrMarkerEmojiField

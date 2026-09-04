@@ -3,6 +3,20 @@
 const globals = require('globals');
 const reactHooks = require('eslint-plugin-react-hooks');
 
+/** Dossiers produit (ForetMap ou GL) interdits d'import depuis `src/shared/**`. */
+const SHARED_PRODUCT_DIRS = [
+  'components',
+  'gl',
+  'services',
+  'hooks',
+  'utils',
+  'constants',
+  'contexts',
+  'data',
+];
+const SHARED_ISOLATION_MESSAGE =
+  'src/shared ne doit pas importer de code produit (ForetMap ou GL) — promouvoir le module dans src/shared ou injecter la dépendance.';
+
 /** ESLint — garde-fous progressifs (incl. regles des Hooks React) sans refactor massif du legacy. */
 module.exports = [
   {
@@ -120,6 +134,55 @@ module.exports = [
       'no-use-before-define': [
         'error',
         { functions: false, classes: false, variables: true, allowNamedExports: true },
+      ],
+    },
+  },
+  {
+    // Gabarit PWA : module CommonJS consommé par scripts/build-pwa.js et lib/pwaRoutes.js
+    // (Node), jamais par le bundle navigateur — globals Node et `require`/`module`.
+    files: ['src/shared/pwa/**/*.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+  {
+    // Étanchéité de src/shared (code commun ForetMap + GL) : un module partagé ne doit pas
+    // remonter vers du code produit. En erreur depuis le lot 3 (plateforme front,
+    // `docs/AUDIT_CONVERGENCE_APPS_2026-09.md` §5.2) : la dette recensée a été résorbée
+    // (promotions dans `src/shared/platform/`, `media/`, `mascot/`, dépendances injectées).
+    // Motifs distincts par profondeur : depuis `src/shared/components/`, `../utils/*` désigne
+    // `src/shared/utils/` (légitime) alors que `../../utils/*` désigne `src/utils/` (produit).
+    files: ['src/shared/*.{js,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: SHARED_PRODUCT_DIRS.map((dir) => `../${dir}/**`),
+              message: SHARED_ISOLATION_MESSAGE,
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/shared/*/*.{js,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: SHARED_PRODUCT_DIRS.map((dir) => `../../${dir}/**`),
+              message: SHARED_ISOLATION_MESSAGE,
+            },
+          ],
+        },
       ],
     },
   },

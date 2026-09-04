@@ -17,7 +17,7 @@ const {
   matchSpeciesForGlossaryTerm,
   GLOSSARY_CATEGORY_LABELS,
   GLOSSARY_CATEGORIES,
-} = require('../../lib/glGlossaryMatch');
+} = require('../../lib/glossaryMatch');
 const {
   parseBiomeSlugsFromQuery,
   loadBiomeMetaBySlugs,

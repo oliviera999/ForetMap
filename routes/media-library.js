@@ -2,7 +2,7 @@ const express = require('express');
 const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
-const { logAudit } = require('./audit');
+const { logAudit } = require('../lib/auditLog');
 const { queryAll } = require('../database');
 const {
   saveMediaFromDataUrl,

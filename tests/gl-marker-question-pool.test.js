@@ -10,7 +10,7 @@ const {
   serializeEventConfig,
 } = require('../lib/glMarkerEventConfig');
 const { queryQuestionPool, drawQuestionFromMarker } = require('../lib/glMarkerQuestionPool');
-const { buildCanonicalChoices, presentQuestion } = require('../lib/glQcmChoices');
+const { buildCanonicalChoices, presentQuestion } = require('../lib/qcmChoices');
 
 test('normalizeEventConfig valide une config question fixe', () => {
   const cfg = normalizeEventConfig({

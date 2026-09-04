@@ -103,6 +103,8 @@ export function MapViewToolbar({
   onToggleMapInteraction,
   showLabels,
   onToggleLabels,
+  clusterMarkersEnabled = true,
+  onToggleClusterMarkers = null,
   mapTextSizeLabel = 'Aa',
   onCycleMapTextSize,
   gps,
@@ -506,6 +508,29 @@ export function MapViewToolbar({
               <IconLabels size={15} />
             </button>
           </Tooltip>
+          {onToggleClusterMarkers ? (
+            <Tooltip
+              text={
+                clusterMarkersEnabled
+                  ? 'Repères regroupés au dézoom : afficher tous les repères'
+                  : 'Tous les repères affichés : regrouper au dézoom'
+              }
+            >
+              <button
+                type="button"
+                className={`map-toolbar-labels-btn ${clusterMarkersEnabled ? 'is-on' : ''}`}
+                aria-pressed={clusterMarkersEnabled}
+                aria-label={
+                  clusterMarkersEnabled
+                    ? 'Afficher tous les repères sans regroupement'
+                    : 'Regrouper les repères au dézoom'
+                }
+                onClick={onToggleClusterMarkers}
+              >
+                <span aria-hidden>⛶</span>
+              </button>
+            </Tooltip>
+          ) : null}
           <div className="map-toolbar-zoom-group">
             {[
               [IconZoomIn, 1.28, 'map.zoomIn', 'Zoomer la carte'],

@@ -47,6 +47,8 @@ CREATE TABLE IF NOT EXISTS zones (
   points TEXT DEFAULT NULL,
   color VARCHAR(32) DEFAULT '#86efac80',
   description TEXT DEFAULT NULL,
+  hidden_surfaces SET('map','visit','plan') NOT NULL DEFAULT '',
+  search_aliases TEXT DEFAULT NULL,
   INDEX idx_zones_map_id (map_id),
   CONSTRAINT fk_zones_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -753,6 +755,8 @@ CREATE TABLE IF NOT EXISTS map_markers (
   note TEXT DEFAULT NULL,
   emoji VARCHAR(16) DEFAULT '🌱',
   created_at VARCHAR(32) DEFAULT NULL,
+  hidden_surfaces SET('map','visit','plan') NOT NULL DEFAULT '',
+  search_aliases TEXT DEFAULT NULL,
   INDEX idx_map_markers_map_id (map_id),
   CONSTRAINT fk_map_markers_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT,
   INDEX idx_map_markers_created (created_at)
@@ -794,6 +798,8 @@ CREATE TABLE IF NOT EXISTS location_categories (
   is_infrastructure TINYINT(1) NOT NULL DEFAULT 0,
   sort_order INT NOT NULL DEFAULT 0,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
+  surfaces SET('map','visit','plan') NOT NULL DEFAULT 'map,visit,plan',
+  zoom_only TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_location_categories_map (map_id),
   INDEX idx_location_categories_slug (slug),
@@ -805,6 +811,36 @@ VALUES
   ('cat-infrastructure', NULL, 'infrastructure', 'Infrastructure', '🏗️', '#dbeafe90',
    'Bâtiment ou aménagement (mare, ruches, compostage, cuve…) plutôt qu''une culture.',
    'both', 1, 10, 1);
+
+-- map_routes / map_route_steps (parcours : listes ordonnées de lieux, lot 8)
+CREATE TABLE IF NOT EXISTS map_routes (
+  id VARCHAR(64) NOT NULL PRIMARY KEY,
+  map_id VARCHAR(32) NOT NULL,
+  slug VARCHAR(120) NOT NULL,
+  title VARCHAR(180) NOT NULL,
+  description TEXT DEFAULT NULL,
+  audience VARCHAR(120) NOT NULL DEFAULT '',
+  surfaces SET('map','visit','plan') NOT NULL DEFAULT 'plan',
+  is_published TINYINT(1) NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 100,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_map_routes_map_slug (map_id, slug),
+  INDEX idx_map_routes_map (map_id),
+  CONSTRAINT fk_map_routes_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS map_route_steps (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  route_id VARCHAR(64) NOT NULL,
+  position INT NOT NULL DEFAULT 0,
+  target_type ENUM('zone','marker') NOT NULL,
+  target_id VARCHAR(64) NOT NULL,
+  step_title VARCHAR(180) NOT NULL DEFAULT '',
+  step_text TEXT DEFAULT NULL,
+  INDEX idx_map_route_steps_route_position (route_id, position),
+  CONSTRAINT fk_map_route_steps_route FOREIGN KEY (route_id) REFERENCES map_routes(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS zone_categories (
   zone_id VARCHAR(64) NOT NULL,

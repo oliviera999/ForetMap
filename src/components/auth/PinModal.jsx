@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import { api, saveStoredSession } from '../../services/api';
-import { safeLocalStorageSetItem } from '../../utils/browserStorage.js';
-import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
+import { safeLocalStorageSetItem } from '../../shared/platform/browserStorage.js';
+import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import { getRoleTerms } from '../../utils/n3-terminology';
 import { DialogShell } from '../DialogShell';
 import { startGoogleAuth } from './startGoogleAuth.js';

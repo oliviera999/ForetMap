@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { safeLocalStorageGetItem } from '../utils/browserStorage.js';
+import { safeLocalStorageGetItem } from '../shared/platform/browserStorage.js';
 
 /**
  * Sélection de la carte par défaut depuis les réglages publics (extrait de App.jsx, O5).

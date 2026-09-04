@@ -1,4 +1,4 @@
-import { getGlMascotById } from '../../utils/glMascotCatalog.js';
+import { getGlMascotById } from '../utils/glMascotCatalog.js';
 import { GLMascotFallbackSvg } from './GLMascotFallbackSvg.jsx';
 
 /**

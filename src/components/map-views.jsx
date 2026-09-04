@@ -25,12 +25,19 @@ import { MapViewMascotOverlay } from './MapViewMascotOverlay.jsx';
 import { MapViewMarkerBubble } from './MapViewMarkerBubble.jsx';
 import { MapViewBackgroundImage } from './MapViewBackgroundImage.jsx';
 import { MapViewWorldLayer } from './MapViewWorldLayer.jsx';
+import {
+  clusterCenterPct,
+  clusterMarkers,
+  clusterSeparatesOnZoom,
+  clusterZoomTargetScale,
+} from '../shared/pct-map/clusterMarkers.js';
 import useMapViewMascot from '../hooks/useMapViewMascot.js';
 import useZoneDrawing from '../hooks/useZoneDrawing.js';
 import useZoneEditPoints from '../hooks/useZoneEditPoints.js';
 import useMapCrudActions from '../hooks/useMapCrudActions.js';
-import useMascotGpsFollow from '../hooks/useMascotGpsFollow.js';
 import { MascotGpsStatusBanner } from './MascotGpsStatusBanner.jsx';
+import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
+import { PctPositionLayer } from '../shared/pct-map/PctPositionLayer.jsx';
 import useVisitMascotCatalogExtras from '../hooks/useVisitMascotCatalogExtras.js';
 import { useMapGestures } from '../hooks/useMapGestures.js';
 
@@ -64,11 +71,7 @@ import {
 } from '../utils/mapLocationFilters.js';
 import { collectMapCategoryOptions } from '../utils/locationCategories.js';
 import { useMapCategories } from '../hooks/useMapCategories.js';
-import {
-  focusMapOnPct,
-  markerFocusPct,
-  zoneFocusPctFromPoints,
-} from '../utils/mapFocusLocation.js';
+import { markerFocusPct, zoneFocusPctFromPoints } from '../utils/mapFocusLocation.js';
 import { useMapFullscreen } from '../shared/hooks/useMapFullscreen.js';
 import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
@@ -107,6 +110,33 @@ const MapViewMarkerBubbleMemo = React.memo(function MapViewMarkerBubbleMemo({
       onPointerDown={onPointerDown}
       {...bubbleProps}
     />
+  );
+});
+
+/**
+ * Pastille d'un **groupe** de repères sur la carte de travail (désencombrement, lot 5) :
+ * compteur et emoji du repère représentatif, positionnée en % comme une bulle de repère.
+ */
+const MapViewMarkerClusterMemo = React.memo(function MapViewMarkerClusterMemo({
+  cluster,
+  emojiFontSize,
+  onOpenCluster,
+}) {
+  const onOpen = useCallback((e) => onOpenCluster(cluster, e), [cluster, onOpenCluster]);
+  const leadLabel = String(cluster.lead?.label || '').trim();
+  return (
+    <button
+      type="button"
+      className="map-marker-cluster"
+      style={{ left: `${cluster.x_pct}%`, top: `${cluster.y_pct}%`, fontSize: emojiFontSize }}
+      aria-label={`${cluster.count} repères regroupés${leadLabel ? `, dont ${leadLabel}` : ''}`}
+      onClick={onOpen}
+    >
+      <span className="map-marker-cluster__emoji" aria-hidden>
+        {String(cluster.lead?.emoji || '').trim() || '📍'}
+      </span>
+      <span className="map-marker-cluster__count">{cluster.count}</span>
+    </button>
   );
 });
 
@@ -150,6 +180,9 @@ function MapViewImpl({
   const canEnrollNewTasks = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);
+  // Regroupement des repères au dézoom (lot 5) : actif par défaut, débrayable depuis la
+  // barre d'outils — un professeur qui place des repères veut parfois les voir tous.
+  const [clusterMarkersEnabled, setClusterMarkersEnabled] = useState(true);
   const [selectedZone, setSelectedZone] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [pendingZone, setPendingZone] = useState(null);
@@ -210,11 +243,10 @@ function MapViewImpl({
     fitScale,
     imgSize,
     moved,
-    applyTransform,
-    commit,
     fitMap,
     remeasureMap,
     toImagePct,
+    focusOnPct,
     beginMarkerDrag,
     isCoarsePointer,
     mapInteractionEnabled,
@@ -324,11 +356,36 @@ function MapViewImpl({
     onPersistPreferredMascotId: onPersistVisitMascotId,
     mascotDialogSettings: publicSettings?.visit?.mascot?.dialog,
   });
-  const mascotGps = useMascotGpsFollow({
+  /**
+   * Position sur la carte de travail (lot 6) : le noyau partagé, le même que le Plan Lyautey.
+   * « Me suivre » n'est **plus lié à la mascotte** — un point de position s'affiche même
+   * quand la mascotte est masquée ; quand elle est affichée, elle suit en plus. La position
+   * reste 100 % côté client.
+   */
+  const mapPosition = useMapPosition({
     georef: activeMap?.georef ?? null,
-    gpsEnabled: !!activeMap?.gps_enabled && mode === 'view' && showMapMascot,
-    moveTo: moveMapMascotTo,
+    gpsEnabled: !!activeMap?.gps_enabled && mode === 'view',
   });
+  // La mascotte suit la position quand elle est à l'écran (comportement d'origine).
+  useEffect(() => {
+    if (!showMapMascot || !mapPosition.positionPct) return;
+    if (mapPosition.feedback !== 'ok') return;
+    moveMapMascotTo(mapPosition.positionPct.xp, mapPosition.positionPct.yp);
+  }, [showMapMascot, mapPosition.positionPct, mapPosition.feedback, moveMapMascotTo]);
+  /** Forme attendue par la barre d'outils et la bannière d'état (contrat inchangé). */
+  const mascotGps = useMemo(
+    () => ({
+      supported: mapPosition.supported,
+      available: mapPosition.available,
+      active: mapPosition.active,
+      status: mapPosition.status,
+      feedback: mapPosition.feedback === 'acquiring' ? null : mapPosition.feedback,
+      accuracy: mapPosition.accuracyM,
+      error: mapPosition.error,
+      toggle: mapPosition.toggle,
+    }),
+    [mapPosition],
+  );
   const { zoneTaskVisualById, markerTaskVisualById } = useMemo(
     () => computeTaskVisualByLocation(tasks),
     [tasks],
@@ -517,6 +574,35 @@ function MapViewImpl({
 
   // Catalogue des catégories de la carte active (globales + propres à la carte).
   const { categories: mapCategoryCatalog } = useMapCategories(activeMapId);
+  const mapCategoriesById = useMemo(
+    () => new Map((mapCategoryCatalog || []).map((c) => [String(c.id), c])),
+    [mapCategoryCatalog],
+  );
+  /**
+   * Regroupement des repères au dézoom (lot 5, `docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.3) :
+   * même module que le plan. Les repères dont les pastilles se recouvrent à l'écran sont
+   * fusionnés ; en mode édition, jamais de groupe (on pose et on déplace des repères un par
+   * un). Le calcul suit `committed.s`, donc un commit de geste, pas chaque `pointermove`.
+   */
+  const markerClusters = useMemo(
+    () =>
+      clusterMarkers(mapMarkersOnActiveMap, {
+        contentWidthPx: imgSize.w,
+        contentHeightPx: imgSize.h,
+        scale: committed.s,
+        categoriesById: mapCategoriesById,
+        enabled: clusterMarkersEnabled && mode === 'view',
+      }),
+    [
+      mapMarkersOnActiveMap,
+      imgSize.w,
+      imgSize.h,
+      committed.s,
+      mapCategoriesById,
+      clusterMarkersEnabled,
+      mode,
+    ],
+  );
 
   const mapSpeciesOptions = useMemo(
     () => collectMapSpeciesOptions(zones, mapMarkersOnActiveMap),
@@ -585,19 +671,8 @@ function MapViewImpl({
     return set;
   }, [mapFilterActive, mapMarkersOnActiveMap, matchingMarkerIds]);
 
-  const focusMapOnLocation = useCallback(
-    (focusPct) => {
-      focusMapOnPct(focusPct, {
-        containerRef,
-        txRef: tx,
-        imgSize,
-        animateZoomTowardScale,
-        commit,
-        fitScale,
-      });
-    },
-    [containerRef, tx, imgSize, animateZoomTowardScale, commit, fitScale],
-  );
+  /** Centre la carte sur un lieu (résultat de recherche) — moteur partagé, animé et borné. */
+  const focusMapOnLocation = useCallback((focusPct) => focusOnPct(focusPct), [focusOnPct]);
 
   const onSelectMapFilterResult = useCallback(
     (row) => {
@@ -659,6 +734,31 @@ function MapViewImpl({
       }
     },
     [mode, moved, showMapMascot, onMapMascotMarkerClick],
+  );
+
+  /**
+   * Tap sur un groupe de repères : zoom animé sur son enveloppe si le groupe se sépare,
+   * sinon ouverture du repère représentatif (sur la carte de travail, la fiche est le geste
+   * attendu ; le plan, lui, montre la liste du groupe dans sa feuille basse).
+   */
+  const openClusterFromMap = useCallback(
+    (cluster, e) => {
+      e.stopPropagation();
+      if (moved.current) return;
+      if (clusterSeparatesOnZoom(cluster)) {
+        focusOnPct(clusterCenterPct(cluster), {
+          targetScale: clusterZoomTargetScale(cluster, {
+            stageWidthPx: containerRef.current?.clientWidth || 0,
+            stageHeightPx: containerRef.current?.clientHeight || 0,
+            contentWidthPx: imgSize.w,
+            contentHeightPx: imgSize.h,
+          }),
+        });
+        return;
+      }
+      setSelectedMarker(cluster.lead);
+    },
+    [moved, focusOnPct, containerRef, imgSize.w, imgSize.h],
   );
 
   const cursor =
@@ -890,6 +990,8 @@ function MapViewImpl({
           onToggleMapInteraction={toggleMapInteraction}
           showLabels={showLabels}
           onToggleLabels={() => setShowLabels((l) => !l)}
+          clusterMarkersEnabled={clusterMarkersEnabled}
+          onToggleClusterMarkers={() => setClusterMarkersEnabled((v) => !v)}
           mapTextSizeLabel={mapTextSizeLabel}
           onCycleMapTextSize={cycleMapTextSize}
           gps={mascotGps}
@@ -1045,7 +1147,27 @@ function MapViewImpl({
                   dialog={mapMascotDialog}
                 />
 
-                {markers.map((m) => {
+                {mapPosition.displayPct ? (
+                  <PctPositionLayer
+                    position={mapPosition.displayPct}
+                    haloPct={mapPosition.haloPct}
+                    headingDeg={mapPosition.screenHeadingDeg}
+                    accuracyM={mapPosition.accuracyM}
+                  />
+                ) : null}
+
+                {markerClusters.map((cluster) => {
+                  if (cluster.count > 1) {
+                    return (
+                      <MapViewMarkerClusterMemo
+                        key={cluster.id}
+                        cluster={cluster}
+                        emojiFontSize={`${mapEmojiFontPx}px`}
+                        onOpenCluster={openClusterFromMap}
+                      />
+                    );
+                  }
+                  const m = cluster.lead;
                   const markerTaskVisual = markerTaskVisualById.get(m.id);
                   const markerTaskLabel = markerTaskVisual
                     ? TASK_VISUAL_LABEL[markerTaskVisual]

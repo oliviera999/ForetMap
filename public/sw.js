@@ -1,3 +1,8 @@
+// Service worker ForetMap du MODE DEV (servi hors production par lib/pwaRoutes.js).
+// En production, ce fichier est REMPLACÉ par `dist/sw-<produit>.js` (et sa copie `dist/sw.js`)
+// générés par `scripts/build-pwa.js` depuis le gabarit `src/shared/pwa/swTemplate.js`, avec la
+// liste exacte des bundles hachés de chaque produit. Toute évolution de stratégie de cache se
+// fait dans le gabarit (et se reflète ici seulement si le mode dev en a besoin).
 const CACHE_NAME = 'foretmap-offline-v8';
 const STATIC_ASSETS = [
   '/',

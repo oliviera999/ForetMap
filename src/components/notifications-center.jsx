@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
-import {
-  NOTIFICATION_CATEGORY,
-  NOTIFICATION_LEVEL,
-  NOTIFICATION_LEVEL_LABELS,
-} from '../constants/notifications';
+import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
+import { NOTIFICATION_CATEGORY, NOTIFICATION_LEVEL_LABELS } from '../constants/notifications';
 import { Tooltip } from '../shared/components/Tooltip.jsx';
 import { IconBell, IconClose } from '../shared/icons.jsx';
+import {
+  formatNotificationDateFr,
+  notificationLevelClass,
+} from '../shared/notifications/notificationCenterCore.js';
 
 const CATEGORY_LABELS = {
   [NOTIFICATION_CATEGORY.DEADLINES]: 'Échéances',
@@ -17,11 +17,9 @@ const CATEGORY_LABELS = {
   [NOTIFICATION_CATEGORY.SECURITY]: 'Sécurité',
 };
 
-function levelClass(level) {
-  if (level === NOTIFICATION_LEVEL.CRITICAL) return 'critical';
-  if (level === NOTIFICATION_LEVEL.IMPORTANT) return 'important';
-  return 'info';
-}
+// Niveaux et dates relatives viennent du noyau partagé des centres de notifications
+// (`src/shared/notifications/notificationCenterCore.js`, lot 7) : G&L s'en sert aussi.
+const levelClass = notificationLevelClass;
 
 function preferenceCategoriesForRole(roleKey) {
   if (roleKey === 'student') {
@@ -46,20 +44,7 @@ function preferenceCategoriesForRole(roleKey) {
   ];
 }
 
-function formatRelative(dateIso) {
-  const ts = Date.parse(dateIso || '');
-  if (!Number.isFinite(ts)) return '';
-  const diffMs = Date.now() - ts;
-  if (diffMs < 60 * 1000) return 'à l’instant';
-  if (diffMs < 60 * 60 * 1000) return `il y a ${Math.floor(diffMs / (60 * 1000))} min`;
-  if (diffMs < 24 * 60 * 60 * 1000) return `il y a ${Math.floor(diffMs / (60 * 60 * 1000))} h`;
-  return new Date(ts).toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+const formatRelative = formatNotificationDateFr;
 
 function NotificationCenter({
   roleKey,

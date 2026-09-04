@@ -5,10 +5,11 @@
 
 ## À quoi sert ce dossier ?
 
-Ce dossier est la **référence fonctionnelle** des deux applications du projet :
+Ce dossier est la **référence fonctionnelle** des applications du projet :
 
 - **ForetMap** — l'application de gestion de la forêt comestible du Lycée Lyautey ;
-- **Gnomes & Licornes (GL)** — le jeu pédagogique qui vit à côté de ForetMap.
+- **Gnomes & Licornes (GL)** — le jeu pédagogique qui vit à côté de ForetMap ;
+- **Plan Lyautey** — le plan d'établissement consultable sur téléphone.
 
 Il poursuit trois objectifs, dans l'ordre :
 
@@ -54,6 +55,12 @@ Il poursuit trois objectifs, dans l'ordre :
 | [foretmap/visite-et-mascottes.md](foretmap/visite-et-mascottes.md)                         | Parcours de visite grand public, mascottes                             | ✅ Rédigé |
 | [foretmap/pedagogie-quiz-glossaire-reseau.md](foretmap/pedagogie-quiz-glossaire-reseau.md) | Quiz, glossaire, réseau trophique, carnet d'observation                | ✅ Rédigé |
 | [foretmap/stats-forum-et-suivi.md](foretmap/stats-forum-et-suivi.md)                       | Statistiques, classement, forum, notifications, audit                  | ✅ Rédigé |
+
+### Plan Lyautey
+
+| Document                                     | Contenu                                                                              | Statut    |
+| -------------------------------------------- | ------------------------------------------------------------------------------------ | --------- |
+| [plan/presentation.md](plan/presentation.md) | Le plan d'établissement sur téléphone : usage, surfaces d'affichage, alias, réglages | ✅ Rédigé |
 
 ### Gnomes & Licornes (GL)
 
