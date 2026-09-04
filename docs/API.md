@@ -1607,6 +1607,11 @@ filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
   - `map` : `{ id, label, map_image_url, frame_padding_px, gps_enabled, geo_anchors }` —
     `gps_enabled` et `geo_anchors` servent au **point de position** du plan (lot 6) ; la
     position est calculée dans le navigateur et n'est **jamais** envoyée au serveur.
+  - `settings.brand` porte le **thème de marque** de l'établissement (lot 7) : huit couleurs,
+    deux polices, logo et favicon. Réglage `ui.plan.brand` (objet JSON, portée publique) ;
+    `{}` = apparence par défaut du produit. Les URL de logo et de favicon ne sont acceptées
+    que sous `/uploads/` ou `/maps/` — un réglage d'apparence ne doit pas servir à appeler un
+    domaine tiers depuis toutes les pages.
   - `categories` porte aussi `zoom_only` : le client n'affiche ces lieux qu'une fois zoomé.
   - `settings` : `title`, `welcome_hint`, `access_mode` (`public` | `code`), `attribution`,
     `default_category_ids` (restreint aux catégories réellement servies), `hidden_category_ids`.

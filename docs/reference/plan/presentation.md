@@ -121,6 +121,14 @@ demander un **rapport de densité** : nombre de repères par catégorie, cellule
 contiennent plusieurs, et paires de repères pratiquement superposées. C'est un script de
 lecture seule, lancé côté serveur (`scripts/report-marker-density.js`).
 
+### Aide intégrée
+
+Un bouton **« ? »** en haut à droite du plan ouvre une aide courte : chercher un lieu,
+filtrer, se déplacer sur la carte, comprendre les pastilles chiffrées, et se situer quand le
+plan est calé. Le bouton attire discrètement l'œil tant que l'aide n'a jamais été ouverte sur
+l'appareil, puis se calme. C'est le même mécanisme d'aide que dans ForetMap et dans Gnomes &
+Licornes.
+
 ### Réglages d'établissement
 
 Dans _Réglages_, section du plan (portée publique) :

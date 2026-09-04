@@ -40,6 +40,7 @@ const planContentCache = createWriteVersionCache({
 
 /** Clés `ui.plan.*` exposées telles quelles (toutes de portée `public`). */
 const PLAN_SETTING_KEYS = Object.freeze([
+  'ui.plan.brand',
   'ui.plan.map_id',
   'ui.plan.title',
   'ui.plan.welcome_hint',
@@ -71,6 +72,8 @@ async function loadPlanSettings() {
   }
   return {
     map_id: String(out.map_id || ''),
+    // Thème de marque de l'établissement (lot 7) ; `{}` = apparence par défaut du produit.
+    brand: out.brand && typeof out.brand === 'object' ? out.brand : {},
     title: String(out.title || ''),
     welcome_hint: String(out.welcome_hint || ''),
     access_mode: out.access_mode === 'code' ? 'code' : 'public',
