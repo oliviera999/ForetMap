@@ -32,13 +32,26 @@ function toFinite(value, fallback = 0) {
  * de caractères × 0,55 × taille de police). Suffisant pour décider d'un masquage, et sans le
  * coût d'un `getBBox` par étiquette à chaque commit de zoom.
  *
- * @param {{ x: number, y: number, text: string, fontSizePx: number, padding?: number }} label
+ * `maxWidthPx` borne la largeur estimée : quand le rendu tronque l'étiquette (CSS
+ * `max-width` + `text-overflow`), la boîte de collision doit être tronquée de la même façon,
+ * sinon une étiquette courte à l'écran continue d'en masquer d'autres.
+ *
+ * @param {{ x: number, y: number, text: string, fontSizePx: number, padding?: number,
+ *   maxWidthPx?: number }} label
  * @returns {{ left: number, top: number, right: number, bottom: number }}
  */
-export function estimateLabelBox({ x, y, text, fontSizePx, padding = LABEL_COLLISION_PADDING_PX }) {
+export function estimateLabelBox({
+  x,
+  y,
+  text,
+  fontSizePx,
+  padding = LABEL_COLLISION_PADDING_PX,
+  maxWidthPx = Number.POSITIVE_INFINITY,
+}) {
   const size = Math.max(toFinite(fontSizePx, 12), 1);
   const chars = String(text ?? '').length;
-  const width = Math.max(chars * size * AVG_CHAR_WIDTH_RATIO, size);
+  const cap = Number(maxWidthPx) > 0 ? Number(maxWidthPx) : Number.POSITIVE_INFINITY;
+  const width = Math.min(Math.max(chars * size * AVG_CHAR_WIDTH_RATIO, size), cap);
   const height = size * 1.2;
   const cx = toFinite(x);
   const cy = toFinite(y);
@@ -89,35 +102,4 @@ export function resolveLabelCollisions(candidates) {
     visible.add(String(candidate.id));
   }
   return visible;
-}
-
-/**
- * Doit-on afficher le **nom** d'un repère à cette échelle ? Au dézoom l'emoji seul ; au zoom
- * le nom des repères prioritaires ; toujours le nom du repère sélectionné (§8.3, point 4).
- *
- * @param {object} params
- * @param {number} params.scale échelle courante.
- * @param {number} params.fitScale échelle d'ajustement (la carte entière tient dans le cadre).
- * @param {number} [params.priority] rang de catégorie du repère.
- * @param {boolean} [params.selected] repère dont la fiche est ouverte.
- * @param {number} [params.labelsFromRatio=1.6] rapport `scale / fitScale` à partir duquel les
- *   noms apparaissent.
- * @param {number} [params.priorityCutoff=Infinity] rang au-delà duquel le nom n'apparaît
- *   qu'à fort zoom (le double du rapport ci-dessus).
- */
-export function shouldShowMarkerLabel({
-  scale,
-  fitScale,
-  priority = Number.POSITIVE_INFINITY,
-  selected = false,
-  labelsFromRatio = 1.6,
-  priorityCutoff = Number.POSITIVE_INFINITY,
-}) {
-  if (selected) return true;
-  const fit = toFinite(fitScale, 0);
-  const s = toFinite(scale, 0);
-  if (!(fit > 0) || !(s > 0)) return false;
-  const ratio = s / fit;
-  const isPriority = toFinite(priority, Number.POSITIVE_INFINITY) <= toFinite(priorityCutoff, 0);
-  return ratio >= (isPriority ? labelsFromRatio : labelsFromRatio * 2);
 }

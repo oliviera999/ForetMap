@@ -2,6 +2,37 @@
  * Logique pure du Plan Lyautey (lot 4) : unification zones + repères en « lieux », filtres
  * par catégorie, et lecture du lien profond `?lieu=`. Testée sans rendu (`tests-ui/plan/`).
  */
+import { detectLeadingEmojiPrefix, stripLeadingEmojiPrefix } from '../../shared/emojiPrefixCore.js';
+
+/**
+ * Emoji et nom d'un libellé saisi : en production, les noms portent presque tous leur emoji
+ * en tête (« 📚 CDI ») alors que la colonne `emoji` le porte aussi — sans séparation, l'emoji
+ * est affiché deux fois (`docs/AUDIT_PLAN_AFFICHAGE_2026-09.md` B3).
+ * @param {string} rawName
+ * @returns {{ emoji: string, name: string }}
+ */
+export function splitNameEmoji(rawName) {
+  return {
+    emoji: detectLeadingEmojiPrefix(rawName) || '',
+    name: stripLeadingEmojiPrefix(rawName),
+  };
+}
+
+/**
+ * Emoji et nom **à afficher** pour un lieu : la colonne `emoji` prime, sinon le préfixe du
+ * nom, sinon l'emoji par défaut du type de lieu.
+ * @param {object} place
+ * @returns {{ emoji: string, name: string }}
+ */
+export function placeDisplayParts(place) {
+  const raw = String(place?.name || '');
+  const split = splitNameEmoji(raw);
+  return {
+    emoji:
+      String(place?.emoji || '').trim() || split.emoji || (place?.kind === 'zone' ? '🗺️' : '📍'),
+    name: split.name || raw.trim(),
+  };
+}
 
 /**
  * Zones et repères d'une charge `/api/plan/content` → liste unique de lieux, triée par nom
