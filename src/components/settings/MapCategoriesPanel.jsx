@@ -35,6 +35,7 @@ const EMPTY_DRAFT = {
   applies_to: 'both',
   surfaces: ['map', 'visit', 'plan'],
   is_infrastructure: false,
+  zoom_only: false,
   sort_order: 100,
   is_active: true,
 };
@@ -52,6 +53,7 @@ function draftFromCategory(category) {
         ? ['map', 'visit', 'plan']
         : normalizeSurfaceList(category.surfaces),
     is_infrastructure: !!category.is_infrastructure,
+    zoom_only: !!category.zoom_only,
     sort_order: Number(category.sort_order) || 0,
     is_active: category.is_active !== false,
   };
@@ -91,6 +93,7 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
     applies_to: draft.applies_to,
     surfaces: draft.surfaces,
     is_infrastructure: draft.is_infrastructure,
+    zoom_only: draft.zoom_only,
     sort_order: Number(draft.sort_order) || 0,
     is_active: draft.is_active,
   });
@@ -252,6 +255,16 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
         <input
           type="checkbox"
+          checked={draft.zoom_only}
+          onChange={(e) => setField({ zoom_only: e.target.checked })}
+          style={{ width: 18, height: 18 }}
+        />
+        Visible seulement au zoom (désencombre la carte vue en entier)
+      </label>
+
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+        <input
+          type="checkbox"
           checked={draft.is_active}
           onChange={(e) => setField({ is_active: e.target.checked })}
           style={{ width: 18, height: 18 }}
@@ -312,6 +325,7 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
                   : 'Toutes les cartes'}{' '}
                 · {APPLIES_TO_LABELS[cat.applies_to] || cat.applies_to}
                 {cat.is_infrastructure ? ' · Infrastructure' : ''}
+                {cat.zoom_only ? ' · au zoom' : ''}
                 {surfaceSummary(cat)}
                 {cat.is_active ? '' : ' · Inactive'}
               </div>

@@ -8311,3 +8311,33 @@ header .lock-btn::after,
     height: 48px;
   }
 }
+
+/* Pastille d'un groupe de repères (désencombrement, lot 5 du plan de convergence). */
+.map-marker-cluster {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: var(--tap-target, 44px);
+  min-height: var(--tap-target, 44px);
+  padding: 0 10px;
+  border: 2px solid var(--forest);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--forest);
+  font: inherit;
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
+  transform: translate(-50%, -50%);
+}
+
+.map-marker-cluster:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}
+
+.map-marker-cluster__count {
+  font-size: var(--text-sm);
+}

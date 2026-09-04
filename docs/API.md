@@ -1605,6 +1605,7 @@ filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
   (**404** s'il n'y en a aucune) — le plan doit toujours pouvoir s'afficher.
 - **Réponse** : `{ map, settings, categories, zones, markers }`.
   - `map` : `{ id, label, map_image_url, frame_padding_px, gps_enabled, geo_anchors }`.
+  - `categories` porte aussi `zoom_only` : le client n'affiche ces lieux qu'une fois zoomé.
   - `settings` : `title`, `welcome_hint`, `access_mode` (`public` | `code`), `attribution`,
     `default_category_ids` (restreint aux catégories réellement servies), `hidden_category_ids`.
     `ui.plan.map_id` n'est **pas** repris ici (l'identifiant est déjà dans `map`).
@@ -1643,6 +1644,12 @@ Un lieu (zone ou repère) s'affiche sur trois **surfaces** : `map` (carte de tra
   acceptent **`?surface=map|visit|plan`** (valeur inconnue → **400**). Sans ce paramètre, la
   réponse est inchangée (tous les lieux), pour ne pas modifier le comportement des clients
   existants.
+- **Priorité et désencombrement** (lot 5) : `location_categories.sort_order` fait office de
+  **rang de priorité** (plus petit = plus important) — au dézoom, les repères d'une catégorie
+  peu prioritaire sont regroupés et nommés en dernier ; aucune colonne dédiée n'est ajoutée.
+  `location_categories.zoom_only` (booléen, migration `209`, accepté en `POST` / `PUT`, exposé
+  partout où la catégorie l'est) masque les lieux de la catégorie tant que la carte est vue en
+  entier ; ils réapparaissent au zoom.
 - **`search_aliases`** (zones et repères) : autres noms d'un lieu pour la recherche du plan
   (« CDI » ↔ « bibliothèque »). Accepté en chaîne `« a ; b »` ou en tableau ; stocké normalisé
   (trim, doublons insensibles à la casse retirés, borné à 512 caractères sans troncature au

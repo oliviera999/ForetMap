@@ -159,7 +159,7 @@ const MARKER_PHOTOS_SQL = `SELECT mp.marker_id AS target_id, mp.id, mp.caption, 
   ORDER BY mp.marker_id ASC, mp.sort_order ASC, mp.id ASC`;
 
 const CATEGORIES_SQL = `SELECT id, map_id, slug, label, emoji, color, description, applies_to,
-  is_infrastructure, sort_order, is_active, surfaces
+  is_infrastructure, sort_order, is_active, surfaces, zoom_only
   FROM location_categories
   WHERE is_active = 1 AND (map_id IS NULL OR map_id = ?) AND FIND_IN_SET('plan', surfaces) > 0
   ORDER BY sort_order ASC, label ASC`;
@@ -244,6 +244,8 @@ async function buildPlanContent(map, settings) {
       description: textOrEmpty(row.description),
       is_infrastructure: !!Number(row.is_infrastructure),
       sort_order: Number(row.sort_order) || 0,
+      // Désencombrement (lot 5) : le front n'affiche ces lieux qu'une fois la carte zoomée.
+      zoom_only: !!Number(row.zoom_only),
     }));
 
   const knownCategoryIds = new Set(categories.map((c) => c.id));
