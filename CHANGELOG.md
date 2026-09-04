@@ -7,6 +7,42 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Lot 1 — Socle plateforme multi-produit (plan de convergence §6)
+
+- **Registre des produits** `lib/products.js` (`foret`, `gl`, `plan` — Plan Lyautey, host
+  `planlyautey.*`) : préfixes de host, entrée HTML, dossier d'assets, préfixe d'API, chemins
+  d'authentification, fichiers PWA. Le résolveur de produit, le fallback SPA (entrée du
+  produit si présente dans `dist/`, sinon ForetMap), les en-têtes `no-store`, le favicon, la
+  garde qui redirige l'entrée HTML d'un produit demandée sur le host d'un autre et le
+  limiteur d'authentification lisent ce registre — plus aucun `gl` en dur.
+- **Entrée Plan Lyautey** : `plan.html` → `src/plan/` (coquille « le plan arrive bientôt »),
+  assets `public/plan/`, métas de partage par entrée dans `vite.config.js`.
+- **Service worker et manifest PWA par produit** : gabarit `src/shared/pwa/swTemplate.js` +
+  `scripts/build-pwa.js` (enchaîné par le build, `npm run build:pwa`) génèrent
+  `dist/sw-<produit>.js` et `dist/manifest-<produit>.webmanifest` depuis le manifeste Vite
+  (bundles hachés en cache-first, stratégies historiques conservées) ; `/sw.js` et
+  `/manifest.json` servent le fichier du produit résolu (`lib/pwaRoutes.js`). `public/sw.js`
+  reste le SW de développement ForetMap.
+- **Garde d'accès par cookie signé** `lib/accessGate.js`, extraite de `routes/visit.js` sans
+  changement de comportement (HMAC, temps constant, HttpOnly, Secure en production) ; base du
+  mode d'accès par code du plan et d'une partie G&L invitée.
+- **Journal d'audit** `lib/auditLog.js` : `logAudit` / `logSecurityEvent` sortent du routeur
+  `routes/audit.js` (ré-export conservé) ; les dix-huit consommateurs importent le module.
+- **Compteur d'usage anonyme** (migration `207_usage_counters`, `lib/usage.js`) :
+  `POST /api/usage` public (événements en liste blanche par produit, agrégés par jour, sans
+  identifiant ni cookie) et `GET /api/admin/usage` (permission `admin.settings.read`).
+- **Registre et magasin de réglages communs** `lib/shared/settingsRegistryCore.js` et
+  `lib/shared/settingsStore.js` (cache versionné par écriture) : `lib/settings.js` et
+  `lib/glSettings.js` s'y branchent sans changer de contrat ; les validateurs G&L quittent
+  `routes/gl/admin.js` pour le registre ; clés `ui.plan.*` déclarées (carte, titre, message
+  d'accueil, mode d'accès, attribution, catégories par défaut / masquées).
+- **Fixtures métier ForetMap** `tests/helpers/fmFixtures.js` (carte, zone, repère, catégorie,
+  plante), pendant de `glFixtures.js`.
+- Déploiement : `deploy:check:prod` et `prepare-dist-deploy` couvrent le troisième host
+  (`PLAN_PROD_BASE_URL`, contrôle de `dist/gl.html` et `dist/plan.html`) ; `.env.example`,
+  `docs/EXPLOITATION.md`, `docs/GL_ARCHITECTURE.md` (routage produit), `docs/API.md`
+  (compteur d'usage), `CLAUDE.md`.
+
 ### Lot 0 — Garde-fous et hygiène (plan de convergence, `docs/AUDIT_CONVERGENCE_APPS_2026-09.md` §6)
 
 - **Correctif de sécurité — glossaire lore G&L** : `GLLoreGlossaryInlineText` échappe désormais le

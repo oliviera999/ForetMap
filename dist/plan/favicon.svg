@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#1a4731"/>
+  <!-- Tree trunk -->
+  <rect x="232" y="330" width="48" height="100" rx="8" fill="#8B6914"/>
+  <!-- Lower canopy (largest) -->
+  <polygon points="256,100 140,310 372,310" fill="#2d7a4f"/>
+  <!-- Mid canopy -->
+  <polygon points="256,140 158,300 354,300" fill="#3a9e68"/>
+  <!-- Upper canopy (brightest) -->
+  <polygon points="256,180 180,295 332,295" fill="#4cbf82"/>
+  <!-- Leaf highlight dots -->
+  <circle cx="210" cy="220" r="10" fill="#6ed49a" opacity="0.6"/>
+  <circle cx="290" cy="200" r="8" fill="#6ed49a" opacity="0.5"/>
+  <circle cx="255" cy="195" r="6" fill="#a8f0c6" opacity="0.4"/>
+  <!-- Root lines -->
+  <line x1="232" y1="420" x2="195" y2="450" stroke="#6b4f0e" stroke-width="8" stroke-linecap="round"/>
+  <line x1="280" y1="420" x2="317" y2="450" stroke="#6b4f0e" stroke-width="8" stroke-linecap="round"/>
+</svg>

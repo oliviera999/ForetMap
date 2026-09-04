@@ -6,7 +6,7 @@ const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { emitTasksChanged } = require('../lib/realtime');
-const { logAudit } = require('./audit');
+const { logAudit } = require('../lib/auditLog');
 const {
   normalizeIdArray,
   normalizeArchivedFilter,

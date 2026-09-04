@@ -1,7 +1,7 @@
 const express = require('express');
-const crypto = require('crypto');
 const { queryAll, queryOne, execute, getDataWriteVersion } = require('../database');
 const { createVisitContentCache } = require('../lib/visitContentCache');
+const { createSignedCookieGate, resolveCookieSecret } = require('../lib/accessGate');
 const { requirePermission, JWT_SECRET, authenticate } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
@@ -26,69 +26,23 @@ const visitContentCache = createVisitContentCache({ writeVersion: getDataWriteVe
 const ANON_COOKIE_NAME = 'anon_visit_token';
 const ANON_TTL_SECONDS = 24 * 60 * 60;
 
-function visitCookieSecret() {
-  const fromEnv = String(process.env.VISIT_COOKIE_SECRET || '').trim();
-  if (fromEnv) return fromEnv;
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('VISIT_COOKIE_SECRET requis en production');
-  }
-  return JWT_SECRET || 'visit-dev-secret-change-me';
-}
-
-function parseCookies(req) {
-  const raw = String(req.headers.cookie || '');
-  const out = {};
-  for (const part of raw.split(';')) {
-    const [k, ...rest] = part.split('=');
-    if (!k) continue;
-    out[k.trim()] = decodeURIComponent(rest.join('=').trim());
-  }
-  return out;
-}
-
-function signAnonValue(value) {
-  return crypto.createHmac('sha256', visitCookieSecret()).update(value).digest('base64url');
-}
-
-function buildAnonCookie(value) {
-  const signature = signAnonValue(value);
-  return `${value}.${signature}`;
-}
-
-function verifyAnonCookie(cookieValue) {
-  const value = String(cookieValue || '');
-  const splitAt = value.lastIndexOf('.');
-  if (splitAt <= 0) return null;
-  const token = value.slice(0, splitAt);
-  const signature = value.slice(splitAt + 1);
-  const expected = signAnonValue(token);
-  try {
-    const a = Buffer.from(signature);
-    const b = Buffer.from(expected);
-    if (a.length !== b.length) return null;
-    if (!crypto.timingSafeEqual(a, b)) return null;
-    return token;
-  } catch (_) {
-    return null;
-  }
-}
-
-function setAnonCookie(res, anonToken) {
-  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  const value = encodeURIComponent(buildAnonCookie(anonToken));
-  res.append(
-    'Set-Cookie',
-    `${ANON_COOKIE_NAME}=${value}; Max-Age=${ANON_TTL_SECONDS}; Path=/; HttpOnly; SameSite=Lax${secure}`,
-  );
-}
+/**
+ * Cookie de progression anonyme : garde signée partagée (`lib/accessGate.js`, lot 1).
+ * Comportement inchangé : HMAC-SHA256, `VISIT_COOKIE_SECRET` obligatoire en production,
+ * repli sur `JWT_SECRET` en développement, HttpOnly + SameSite=Lax + Secure en production.
+ */
+const anonVisitGate = createSignedCookieGate({
+  name: ANON_COOKIE_NAME,
+  ttlSeconds: ANON_TTL_SECONDS,
+  secret: () =>
+    resolveCookieSecret({
+      envVar: 'VISIT_COOKIE_SECRET',
+      devFallback: () => JWT_SECRET || 'visit-dev-secret-change-me',
+    }),
+});
 
 function readOrCreateAnonToken(req, res) {
-  const cookies = parseCookies(req);
-  const existing = verifyAnonCookie(cookies[ANON_COOKIE_NAME]);
-  if (existing) return existing;
-  const created = crypto.randomUUID();
-  setAnonCookie(res, created);
-  return created;
+  return anonVisitGate.readOrCreate(req, res);
 }
 
 async function cleanupAnonymousSeen() {

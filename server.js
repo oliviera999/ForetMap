@@ -31,6 +31,9 @@ const { createHttpRequestLogMiddleware } = require('./lib/httpRequestLog');
 const { parseBearerToken, JWT_SECRET, requirePermission } = require('./middleware/requireTeacher');
 const { verifyJwtToken } = require('./lib/auth/jwtPipeline');
 const { resolveProductFromRequest } = require('./lib/productResolver');
+const { PRODUCT_IDS, getProduct, listAuthRateLimitPaths } = require('./lib/products');
+const usageRouters = require('./routes/usage');
+const { registerPwaRoutes } = require('./lib/pwaRoutes');
 const { generalLimiter, authLimiter } = require('./lib/rateLimit');
 const { CSP_REPORT_PATH, buildEnforcedPolicy, buildReportOnlyPolicy } = require('./lib/csp');
 const { cspReportHandler, BODY_LIMIT: CSP_BODY_LIMIT } = require('./lib/cspReport');
@@ -179,16 +182,10 @@ app.use(assignRequestId);
 // Rate-limiting : limiteurs et helpers factorisés dans lib/rateLimit.js (montages inchangés).
 app.use('/api/', generalLimiter);
 
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/register', authLimiter);
-app.use('/api/auth/reset-password', authLimiter);
-app.use('/api/auth/forgot-password', authLimiter);
-app.use('/api/auth/teacher/forgot-password', authLimiter);
-app.use('/api/auth/teacher/reset-password', authLimiter);
-app.use('/api/gl/auth/login', authLimiter);
-app.use('/api/gl/auth/guest', authLimiter);
-app.use('/api/gl/auth/forgot-password', authLimiter);
-app.use('/api/gl/auth/reset-password', authLimiter);
+// Chemins d'authentification de tous les produits (registre `lib/products.js`).
+for (const authPath of listAuthRateLimitPaths()) {
+  app.use(authPath, authLimiter);
+}
 
 /** Santé / readiness : toujours joignables pendant boot ou redémarrage. */
 function isApiAvailabilityExemptPath(originalUrl) {
@@ -296,43 +293,46 @@ const distSpaIndex = fs.existsSync(path.join(distDir, 'index.vite.html'))
   ? path.join(distDir, 'index.vite.html')
   : path.join(distDir, 'index.html');
 const distGlIndex = path.join(distDir, 'gl.html');
+/** Entrée HTML de chaque produit dans `dist/` (registre `lib/products.js`). */
+const distIndexByProduct = Object.fromEntries(
+  PRODUCT_IDS.map((id) => [id, path.join(distDir, getProduct(id).htmlEntry)]),
+);
 const serveDist = process.env.NODE_ENV === 'production' && fs.existsSync(distSpaIndex);
 const staticRoot = serveDist ? distDir : path.join(__dirname, 'public');
-const serviceWorkerPath = path.join(staticRoot, 'sw.js');
-if (fs.existsSync(serviceWorkerPath)) {
-  app.get('/sw.js', (req, res) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.setHeader('Service-Worker-Allowed', '/');
-    res.sendFile(serviceWorkerPath);
-  });
-}
-
-const manifestPath = path.join(staticRoot, 'manifest.json');
-if (fs.existsSync(manifestPath)) {
-  app.get('/manifest.json', (req, res) => {
-    res.setHeader('Content-Type', 'application/manifest+json');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.sendFile(manifestPath);
-  });
-}
+// Service worker et manifest PWA par produit (lot 1) : `/sw.js` et `/manifest.json` servent
+// `dist/sw-<produit>.js` / `dist/manifest-<produit>.webmanifest` selon le host (générés par
+// `scripts/build-pwa.js`), voir `lib/pwaRoutes.js`.
+registerPwaRoutes(app, {
+  staticRoot,
+  distDir,
+  serveDist,
+  resolveProductFromRequest,
+  getProduct,
+  logger,
+});
 const { createDistStaticServeOptions } = require('./lib/staticCacheHeaders');
 const staticServeOptions = serveDist ? createDistStaticServeOptions(distDir) : undefined;
-// Sur gl.*, index.vite.html est l'entrée ForetMap : ne pas la servir telle quelle.
+// L'entrée HTML d'un produit demandée sur le host d'un autre (ex. /index.vite.html sur gl.*,
+// /gl.html sur planlyautey.*) est redirigée vers la racine : chaque host ne sert que son entrée.
 app.use((req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();
   const pathname = String(req.path || '').split('?')[0];
-  if (pathname !== '/index.vite.html') return next();
-  if (resolveProductFromRequest(req) !== 'gl') return next();
+  const basename = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+  if (!basename || basename.includes('/')) return next();
+  const owner = PRODUCT_IDS.find((id) => getProduct(id).htmlEntry === basename);
+  if (!owner) return next();
+  if (resolveProductFromRequest(req) === owner) return next();
   return res.redirect(302, '/');
 });
-// Avant express.static : /favicon.ico ne doit pas toujours servir l’icône ForetMap.
+// Avant express.static : /favicon.ico sert l'icône du produit résolu (dossier `assetsDir`).
 app.get('/favicon.ico', (req, res) => {
-  const glFavicon = path.join(staticRoot, 'gl', 'favicon.ico');
-  if (resolveProductFromRequest(req) === 'gl' && fs.existsSync(glFavicon)) {
-    res.type('image/png');
-    return res.sendFile(glFavicon);
+  const product = getProduct(resolveProductFromRequest(req));
+  if (product.assetsDir) {
+    const productFavicon = path.join(staticRoot, product.assetsDir, 'favicon.ico');
+    if (fs.existsSync(productFavicon)) {
+      res.type('image/png');
+      return res.sendFile(productFavicon);
+    }
   }
   const foretFavicon = path.join(staticRoot, 'favicon.ico');
   if (fs.existsSync(foretFavicon)) {
@@ -490,6 +490,9 @@ app.use('/api', (req, res, next) => {
   return next();
 });
 
+// Compteur d'usage anonyme (public) et sa lecture admin — lot 1, `lib/usage.js`.
+app.use('/api/usage', usageRouters.publicRouter);
+app.use('/api/admin/usage', usageRouters.adminRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/zones', zonesRouter);
 app.use('/api/maps', mapsRouter);
@@ -567,6 +570,7 @@ registerSpaFallbackRoutes(
     serveDist,
     distSpaIndex,
     distGlIndex,
+    distIndexByProduct,
     deployHelpPath: path.resolve(__dirname, 'public', 'deploy-help.html'),
     resolveProductFromRequest,
     logger,
