@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation
+
+- **Audit de la fonctionnalité parcours** (`docs/AUDIT_PARCOURS_2026-09.md`) : relecture
+  complète du lot 8 côté parcours — schéma, `routes/map-routes.js`, publication sur le plan,
+  éditeur prof, mode parcours du visiteur, affiche PDF, tests et documentation. Constats classés
+  par gravité, avec plan de remise en état. Deux points de tête : `GET /api/map-routes/:idOrSlug`
+  sert les **brouillons** à un visiteur anonyme, et la garde d'accès du plan (`access_mode = code`)
+  ne couvre pas `/api/map-routes`. Aucun comportement modifié par ce lot.
+
 ### Lot 8 — Parcours, hors ligne, QR, accès et compteur (plan de convergence §6)
 
 - **Parcours de carte** (migration `210`, `map_routes` / `map_route_steps`, API
