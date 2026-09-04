@@ -7,23 +7,6 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Correctif — la navigation prof s'étirait sur la moitié de l'écran
-
-- La barre de navigation prof (`.teacher-nav`, deux rangées depuis D-4) occupait **la moitié de
-  la hauteur utile** au lieu de sa hauteur de contenu : le conteneur prof porte à la fois `main`
-  et `teacher-main`, donc `.main > * { flex:1 }` lui donnait un `flex-grow:1` que le
-  `flex-shrink:0` de `.teacher-main > .teacher-nav` ne neutralisait pas. L'ancienne barre unique
-  y échappait grâce au `max-height` de `.top-tabs` ; le conteneur des deux rangées, lui, n'en a
-  pas. Mesure en 1440×900 : **398 px de conteneur pour 114 px d'onglets**, d'où l'espace mort
-  entre la rangée d'onglets et la carte / les tâches (onglet « Cartes, tâches et tuto »), et de
-  même sur les autres onglets prof. Corrigé par `flex:0 0 auto`.
-- **Volet carte du split prof** : le `position:sticky` du volet se cale sur `.desktop-split-view`
-  (en `overflow:hidden`, donc conteneur de défilement), pas sur le document — un décalage haut de
-  la hauteur d'en-tête y poussait la carte de 56 px vers le bas sans rien dégager. Décalage remis
-  à `0` ; la marge sous l'en-tête reste prise en compte par `--fm-maptasks-map-max-h`.
-- Garde-fou : `tests-ui/utils/teacherNavLayoutGuard.test.js` échoue si l'une des deux
-  déclarations repart en arrière.
-
 ### Lot 8 — Parcours, hors ligne, QR, accès et compteur (plan de convergence §6)
 
 - **Parcours de carte** (migration `210`, `map_routes` / `map_route_steps`, API
@@ -383,6 +366,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   les tutoriels. L'espacement vertical est désormais porté par le seul conteneur
   (`gap` + marge basse de la nav), ce que la hauteur d'onglets déjà calculée par
   `--fm-maptasks-teacher-tabs-h` supposait.
+
+### Correctif — la navigation prof s'étirait sur la moitié de l'écran
+
+- Suite du correctif ci-dessus : les marges étaient bien en cause pour ~36 px, mais le vide
+  restant venait d'ailleurs.
+- La barre de navigation prof (`.teacher-nav`, deux rangées depuis D-4) occupait **la moitié de
+  la hauteur utile** au lieu de sa hauteur de contenu : le conteneur prof porte à la fois `main`
+  et `teacher-main`, donc `.main > * { flex:1 }` lui donnait un `flex-grow:1` que le
+  `flex-shrink:0` de `.teacher-main > .teacher-nav` ne neutralisait pas. L'ancienne barre unique
+  y échappait grâce au `max-height` de `.top-tabs` ; le conteneur des deux rangées, lui, n'en a
+  pas. Mesure en 1440×900 : **398 px de conteneur pour 114 px d'onglets**, d'où l'espace mort
+  entre la rangée d'onglets et la carte / les tâches (onglet « Cartes, tâches et tuto »), et de
+  même sur les autres onglets prof. Corrigé par `flex:0 0 auto`.
+- **Volet carte du split prof** : le `position:sticky` du volet se cale sur `.desktop-split-view`
+  (en `overflow:hidden`, donc conteneur de défilement), pas sur le document — un décalage haut de
+  la hauteur d'en-tête y poussait la carte de 56 px vers le bas sans rien dégager. Décalage remis
+  à `0` ; la marge sous l'en-tête reste prise en compte par `--fm-maptasks-map-max-h`.
+- Garde-fou : `tests-ui/utils/teacherNavLayoutGuard.test.js` échoue si l'une des deux
+  déclarations repart en arrière.
 
 ### Correctif — mécaniques d'échéance
 
