@@ -22,7 +22,7 @@ const { planContentCache } = require('../routes/plan');
 let teacherToken;
 let map;
 let mapId;
-const created = { zones: [], markers: [], categories: [] };
+const createdIds = { zones: [], markers: [], categories: [] };
 
 function auth(req) {
   return req.set('Authorization', 'Bearer ' + teacherToken);
@@ -51,9 +51,9 @@ test.beforeEach(async () => {
 });
 
 test.after(async () => {
-  for (const id of created.zones) await execute('DELETE FROM zones WHERE id = ?', [id]);
-  for (const id of created.markers) await execute('DELETE FROM map_markers WHERE id = ?', [id]);
-  for (const id of created.categories) {
+  for (const id of createdIds.zones) await execute('DELETE FROM zones WHERE id = ?', [id]);
+  for (const id of createdIds.markers) await execute('DELETE FROM map_markers WHERE id = ?', [id]);
+  for (const id of createdIds.categories) {
     await execute('DELETE FROM location_categories WHERE id = ?', [id]);
   }
   await execute('DELETE FROM visit_zones WHERE map_id = ?', [mapId]);
@@ -85,7 +85,7 @@ test('GET /api/plan/content : carte réglée, lieux visibles sur le plan seuleme
     label: 'Cultures',
     surfaces: ['map', 'visit'],
   });
-  created.categories.push(catPlan.id, catNoPlan.id);
+  createdIds.categories.push(catPlan.id, catNoPlan.id);
 
   const visible = await fx.createZone({ mapId, name: 'CDI', searchAliases: 'bibliothèque ; docs' });
   const hiddenByFlag = await fx.createZone({
@@ -181,7 +181,7 @@ test('GET /api/plan/content : ?map_id explicite, carte inconnue → 400, catégo
   await request(app).get('/api/plan/content?map_id=nope-plan').expect(400);
   const other = await fx.createMap({ label: 'Autre' });
   const cat = await fx.createLocationCategory({ mapId: other.id, label: 'À cacher' });
-  created.categories.push(cat.id);
+  createdIds.categories.push(cat.id);
   await setSetting('ui.plan.hidden_category_ids', cat.id, { userType: 'teacher', userId: 'test' });
   invalidateSettingsCache();
   try {
@@ -207,7 +207,7 @@ test('zones : hidden_surfaces / search_aliases en écriture, exposition et ?surf
       search_aliases: 'salle de sport ; gym ; gym',
     })
     .expect(201);
-  created.zones.push(createRes.body.id);
+  createdIds.zones.push(createRes.body.id);
   assert.deepEqual(createRes.body.hidden_surfaces, ['visit']);
   assert.equal(createRes.body.search_aliases, 'salle de sport ; gym');
 
@@ -251,7 +251,7 @@ test('repères : hidden_surfaces / search_aliases en écriture, exposition et ?s
       search_aliases: ['loge', 'entrée'],
     })
     .expect(201);
-  created.markers.push(createRes.body.id);
+  createdIds.markers.push(createRes.body.id);
   assert.deepEqual(createRes.body.hidden_surfaces, ['plan']);
   assert.equal(createRes.body.search_aliases, 'loge ; entrée');
 
@@ -273,11 +273,44 @@ test('repères : hidden_surfaces / search_aliases en écriture, exposition et ?s
     .expect(400);
 });
 
+test('catégories : zoom_only en écriture et en lecture (désencombrement, lot 5)', async () => {
+  const created = await auth(request(app).post('/api/map-categories'))
+    .send({ label: 'Sanitaires', map_id: mapId })
+    .expect(201);
+  createdIds.categories.push(created.body.id);
+  assert.equal(created.body.zoom_only, false);
+
+  const restricted = await auth(request(app).put(`/api/map-categories/${created.body.id}`))
+    .send({ zoom_only: true })
+    .expect(200);
+  assert.equal(restricted.body.zoom_only, true);
+
+  const kept = await auth(request(app).put(`/api/map-categories/${created.body.id}`))
+    .send({ label: 'Sanitaires 2' })
+    .expect(200);
+  assert.equal(kept.body.zoom_only, true, 'omis = inchangé');
+
+  const list = await request(app).get(`/api/map-categories?map_id=${mapId}`).expect(200);
+  assert.equal(list.body.find((c) => c.id === created.body.id).zoom_only, true);
+
+  const zoomOnlyAtCreate = await auth(request(app).post('/api/map-categories'))
+    .send({ label: 'Points d’eau', map_id: mapId, zoom_only: true })
+    .expect(201);
+  createdIds.categories.push(zoomOnlyAtCreate.body.id);
+  assert.equal(zoomOnlyAtCreate.body.zoom_only, true);
+
+  // La charge publique du plan porte le drapeau : le front décide de l'échelle d'apparition.
+  planContentCache.clear();
+  const planContent = await request(app).get('/api/plan/content').expect(200);
+  const category = planContent.body.categories.find((c) => c.id === created.body.id);
+  assert.equal(category.zoom_only, true);
+});
+
 test('catégories : surfaces en écriture (défaut toutes), exposition et ?surface=', async () => {
   const createdCat = await auth(request(app).post('/api/map-categories'))
     .send({ label: 'Bâtiments', map_id: mapId })
     .expect(201);
-  created.categories.push(createdCat.body.id);
+  createdIds.categories.push(createdCat.body.id);
   assert.deepEqual(createdCat.body.surfaces, ['map', 'visit', 'plan']);
 
   const restricted = await auth(request(app).put(`/api/map-categories/${createdCat.body.id}`))

@@ -8,17 +8,26 @@ import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
  * @param {boolean} props.open
  * @param {() => void} props.onClose
  * @param {string} props.query saisie en cours (message de liste vide).
+ * @param {string|null} [props.title] titre imposé (liste des lieux d'un groupe, lot 5).
  * @param {Array<{ place: object }>} props.results résultats classés (`searchPlaces`).
  * @param {(place: object) => void} props.onSelect
  * @param {(place: object) => Array<{ id: string, label: string, emoji: string }>} props.categoriesOf
  */
-export function PlanResultsSheet({ open, onClose, query, results, onSelect, categoriesOf }) {
+export function PlanResultsSheet({
+  open,
+  onClose,
+  query,
+  results,
+  onSelect,
+  categoriesOf,
+  title = null,
+}) {
   const count = results.length;
   return (
     <BottomSheet
       open={open}
       onClose={onClose}
-      title={query ? `Résultats (${count})` : 'Tous les lieux'}
+      title={title || (query ? `Résultats (${count})` : 'Tous les lieux')}
       snapPoints={['peek', 'half', 'full']}
       initialSnap="half"
       className="plan-sheet plan-results-sheet"

@@ -160,8 +160,8 @@ router.post(
     const id = crypto.randomUUID();
     await execute(
       `INSERT INTO location_categories
-        (id, map_id, slug, label, emoji, color, description, applies_to, is_infrastructure, sort_order, is_active, surfaces)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, map_id, slug, label, emoji, color, description, applies_to, is_infrastructure, sort_order, is_active, surfaces, zoom_only)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         mapId,
@@ -177,6 +177,7 @@ router.post(
         Number.isFinite(sortOrderRaw) ? sortOrderRaw : 100,
         normalizeBooleanFlag(req.body?.is_active, 1),
         serializeSurfaceSet(surfacesInput.value === null ? SURFACES : surfacesInput.value),
+        normalizeBooleanFlag(req.body?.zoom_only, 0),
       ],
     );
     const created = await getCategoryById(db, id);
@@ -231,7 +232,8 @@ router.put(
     await execute(
       `UPDATE location_categories
           SET map_id = ?, slug = ?, label = ?, emoji = ?, color = ?, description = ?,
-              applies_to = ?, is_infrastructure = ?, sort_order = ?, is_active = ?, surfaces = ?
+              applies_to = ?, is_infrastructure = ?, sort_order = ?, is_active = ?, surfaces = ?,
+              zoom_only = ?
         WHERE id = ?`,
       [
         mapId,
@@ -249,6 +251,7 @@ router.put(
         Number.isFinite(sortOrderRaw) ? sortOrderRaw : current.sort_order,
         normalizeBooleanFlag(req.body?.is_active, current.is_active ? 1 : 0),
         serializeSurfaceSet(nextSurfaces),
+        normalizeBooleanFlag(req.body?.zoom_only, current.zoom_only ? 1 : 0),
         current.id,
       ],
     );

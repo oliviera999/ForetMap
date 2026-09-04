@@ -25,6 +25,12 @@ import { MapViewMascotOverlay } from './MapViewMascotOverlay.jsx';
 import { MapViewMarkerBubble } from './MapViewMarkerBubble.jsx';
 import { MapViewBackgroundImage } from './MapViewBackgroundImage.jsx';
 import { MapViewWorldLayer } from './MapViewWorldLayer.jsx';
+import {
+  clusterCenterPct,
+  clusterMarkers,
+  clusterSeparatesOnZoom,
+  clusterZoomTargetScale,
+} from '../shared/pct-map/clusterMarkers.js';
 import useMapViewMascot from '../hooks/useMapViewMascot.js';
 import useZoneDrawing from '../hooks/useZoneDrawing.js';
 import useZoneEditPoints from '../hooks/useZoneEditPoints.js';
@@ -106,6 +112,33 @@ const MapViewMarkerBubbleMemo = React.memo(function MapViewMarkerBubbleMemo({
   );
 });
 
+/**
+ * Pastille d'un **groupe** de repères sur la carte de travail (désencombrement, lot 5) :
+ * compteur et emoji du repère représentatif, positionnée en % comme une bulle de repère.
+ */
+const MapViewMarkerClusterMemo = React.memo(function MapViewMarkerClusterMemo({
+  cluster,
+  emojiFontSize,
+  onOpenCluster,
+}) {
+  const onOpen = useCallback((e) => onOpenCluster(cluster, e), [cluster, onOpenCluster]);
+  const leadLabel = String(cluster.lead?.label || '').trim();
+  return (
+    <button
+      type="button"
+      className="map-marker-cluster"
+      style={{ left: `${cluster.x_pct}%`, top: `${cluster.y_pct}%`, fontSize: emojiFontSize }}
+      aria-label={`${cluster.count} repères regroupés${leadLabel ? `, dont ${leadLabel}` : ''}`}
+      onClick={onOpen}
+    >
+      <span className="map-marker-cluster__emoji" aria-hidden>
+        {String(cluster.lead?.emoji || '').trim() || '📍'}
+      </span>
+      <span className="map-marker-cluster__count">{cluster.count}</span>
+    </button>
+  );
+});
+
 function Lightbox({ src, caption, onClose, useOverlayHistory = false }) {
   return (
     <ImageLightbox
@@ -146,6 +179,9 @@ function MapViewImpl({
   const canEnrollNewTasks = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);
+  // Regroupement des repères au dézoom (lot 5) : actif par défaut, débrayable depuis la
+  // barre d'outils — un professeur qui place des repères veut parfois les voir tous.
+  const [clusterMarkersEnabled, setClusterMarkersEnabled] = useState(true);
   const [selectedZone, setSelectedZone] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [pendingZone, setPendingZone] = useState(null);
@@ -512,6 +548,35 @@ function MapViewImpl({
 
   // Catalogue des catégories de la carte active (globales + propres à la carte).
   const { categories: mapCategoryCatalog } = useMapCategories(activeMapId);
+  const mapCategoriesById = useMemo(
+    () => new Map((mapCategoryCatalog || []).map((c) => [String(c.id), c])),
+    [mapCategoryCatalog],
+  );
+  /**
+   * Regroupement des repères au dézoom (lot 5, `docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.3) :
+   * même module que le plan. Les repères dont les pastilles se recouvrent à l'écran sont
+   * fusionnés ; en mode édition, jamais de groupe (on pose et on déplace des repères un par
+   * un). Le calcul suit `committed.s`, donc un commit de geste, pas chaque `pointermove`.
+   */
+  const markerClusters = useMemo(
+    () =>
+      clusterMarkers(mapMarkersOnActiveMap, {
+        contentWidthPx: imgSize.w,
+        contentHeightPx: imgSize.h,
+        scale: committed.s,
+        categoriesById: mapCategoriesById,
+        enabled: clusterMarkersEnabled && mode === 'view',
+      }),
+    [
+      mapMarkersOnActiveMap,
+      imgSize.w,
+      imgSize.h,
+      committed.s,
+      mapCategoriesById,
+      clusterMarkersEnabled,
+      mode,
+    ],
+  );
 
   const mapSpeciesOptions = useMemo(
     () => collectMapSpeciesOptions(zones, mapMarkersOnActiveMap),
@@ -643,6 +708,31 @@ function MapViewImpl({
       }
     },
     [mode, moved, showMapMascot, onMapMascotMarkerClick],
+  );
+
+  /**
+   * Tap sur un groupe de repères : zoom animé sur son enveloppe si le groupe se sépare,
+   * sinon ouverture du repère représentatif (sur la carte de travail, la fiche est le geste
+   * attendu ; le plan, lui, montre la liste du groupe dans sa feuille basse).
+   */
+  const openClusterFromMap = useCallback(
+    (cluster, e) => {
+      e.stopPropagation();
+      if (moved.current) return;
+      if (clusterSeparatesOnZoom(cluster)) {
+        focusOnPct(clusterCenterPct(cluster), {
+          targetScale: clusterZoomTargetScale(cluster, {
+            stageWidthPx: containerRef.current?.clientWidth || 0,
+            stageHeightPx: containerRef.current?.clientHeight || 0,
+            contentWidthPx: imgSize.w,
+            contentHeightPx: imgSize.h,
+          }),
+        });
+        return;
+      }
+      setSelectedMarker(cluster.lead);
+    },
+    [moved, focusOnPct, containerRef, imgSize.w, imgSize.h],
   );
 
   const cursor =
@@ -874,6 +964,8 @@ function MapViewImpl({
           onToggleMapInteraction={toggleMapInteraction}
           showLabels={showLabels}
           onToggleLabels={() => setShowLabels((l) => !l)}
+          clusterMarkersEnabled={clusterMarkersEnabled}
+          onToggleClusterMarkers={() => setClusterMarkersEnabled((v) => !v)}
           mapTextSizeLabel={mapTextSizeLabel}
           onCycleMapTextSize={cycleMapTextSize}
           gps={mascotGps}
@@ -1029,7 +1121,18 @@ function MapViewImpl({
                   dialog={mapMascotDialog}
                 />
 
-                {mapMarkersOnActiveMap.map((m) => {
+                {markerClusters.map((cluster) => {
+                  if (cluster.count > 1) {
+                    return (
+                      <MapViewMarkerClusterMemo
+                        key={cluster.id}
+                        cluster={cluster}
+                        emojiFontSize={`${mapEmojiFontPx}px`}
+                        onOpenCluster={openClusterFromMap}
+                      />
+                    );
+                  }
+                  const m = cluster.lead;
                   const markerTaskVisual = markerTaskVisualById.get(m.id);
                   const markerTaskLabel = markerTaskVisual
                     ? TASK_VISUAL_LABEL[markerTaskVisual]

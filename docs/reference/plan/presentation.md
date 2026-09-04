@@ -23,11 +23,17 @@ restent dans ForetMap et dans la Visite.
 3. **Des étiquettes de catégories** juste sous la recherche (Salles, Sport, Administration…).
    En toucher une n'affiche que les lieux de cette catégorie ; « Tout » remet tout.
    Le choix est retenu sur l'appareil pour la prochaine visite.
-4. **La fiche d'un lieu.** Toucher un lieu sur le plan ou dans la liste ouvre une fiche en
+4. **Des lieux regroupés quand c'est trop dense.** Vu de loin, des repères qui se
+   chevauchent sont remplacés par une **pastille chiffrée**. La toucher zoome sur le groupe ;
+   si les lieux sont exactement au même endroit (deux salles d'un même bâtiment, par
+   exemple), la **liste des lieux du groupe** s'ouvre en bas d'écran. Les noms des repères
+   n'apparaissent qu'une fois zoomé, en commençant par les catégories prioritaires ; le nom
+   du lieu sélectionné reste toujours affiché.
+5. **La fiche d'un lieu.** Toucher un lieu sur le plan ou dans la liste ouvre une fiche en
    bas d'écran : nom, sous-titre, photo, description, horaires ou précisions. On la fait
    glisser vers le haut pour tout lire, vers le bas pour la refermer.
-5. **Un message d'accueil**, affiché une seule fois par appareil, dont le texte est réglable.
-6. **Un lien direct par lieu** : l'adresse de la page contient `?lieu=…` quand une fiche est
+6. **Un message d'accueil**, affiché une seule fois par appareil, dont le texte est réglable.
+7. **Un lien direct par lieu** : l'adresse de la page contient `?lieu=…` quand une fiche est
    ouverte. Ce lien peut être partagé ou transformé en QR code pour amener quelqu'un
    directement sur le bon lieu.
 
@@ -76,6 +82,24 @@ Le plan réutilise les **textes publics** déjà saisis pour la Visite (sous-tit
 titre et texte du bloc dépliable) ainsi que la première photo du lieu. Écrire une fois sert
 donc aux deux produits. Rien de ce qui est réservé aux élèves (espèces, historique de
 culture, commentaires) ne sort sur le plan.
+
+### Rendre le plan lisible quand il est dense
+
+Trois réglages, dans _Réglages → Catégories de lieux_ :
+
+- **L'ordre des catégories** sert de **priorité**. Une catégorie placée en tête est celle dont
+  les repères sont nommés en premier et regroupés en dernier. Mettre les entrées et les
+  bâtiments avant les sanitaires suffit à rendre un plan chargé lisible.
+- **« Visible seulement au zoom »** retire les lieux de la catégorie tant que le plan est vu
+  en entier. Ils réapparaissent dès qu'on zoome. C'est la case à cocher pour les sanitaires,
+  les points d'eau, les locaux techniques.
+- **Les catégories cochées d'office** (réglage d'établissement, ci-dessous) décident de ce qui
+  est visible à la première ouverture. Un plan lisible commence par montrer peu.
+
+Pour régler ces choix sur des données réelles plutôt qu'au jugé, un administrateur peut
+demander un **rapport de densité** : nombre de repères par catégorie, cellules du plan qui en
+contiennent plusieurs, et paires de repères pratiquement superposées. C'est un script de
+lecture seule, lancé côté serveur (`scripts/report-marker-density.js`).
 
 ### Réglages d'établissement
 

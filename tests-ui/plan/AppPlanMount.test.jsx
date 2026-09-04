@@ -69,6 +69,8 @@ const viewportStub = vi.hoisted(() => {
     imgRef: ref,
     committed: { x: 0, y: 0, s: 1 },
     fitRect: { offsetX: 0, offsetY: 0, width: 300, height: 200 },
+    fitScale: 1,
+    stageSize: { w: 390, h: 700 },
     fitMap: noop,
     fitMapAnimated: noop,
     zoomBy: noop,
@@ -166,6 +168,31 @@ describe('AppPlan — montage', () => {
     render(<AppPlan />);
     const placeSheet = await screen.findByTestId('plan-place-sheet');
     expect(placeSheet.textContent).toContain('Gymnase');
+  });
+
+  test('repères superposés : pastille de groupe, puis liste des lieux du groupe (lot 5)', async () => {
+    const stacked = {
+      ...content,
+      markers: [
+        { id: 'm-a', label: 'Vestiaire A', x_pct: 50, y_pct: 50, emoji: '🚪', category_ids: [] },
+        { id: 'm-b', label: 'Vestiaire B', x_pct: 50, y_pct: 50, emoji: '🚪', category_ids: [] },
+      ],
+      zones: [],
+    };
+    planApiMock.fetchPlanContent.mockResolvedValueOnce(stacked);
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+
+    // Les deux repères sont exactement au même point : une seule pastille de groupe.
+    const cluster = screen.getByRole('button', { name: /2 lieux regroupés/ });
+    expect(screen.queryByRole('button', { name: 'Vestiaire A' })).toBeNull();
+
+    // Le groupe ne se sépare pas au zoom → ses lieux montent dans la feuille basse.
+    fireEvent.click(cluster);
+    const sheet = await screen.findByTestId('plan-results-sheet');
+    expect(sheet.textContent).toContain('Lieux regroupés (2)');
+    expect(sheet.textContent).toContain('Vestiaire A');
+    expect(sheet.textContent).toContain('Vestiaire B');
   });
 
   test('erreur de chargement : message et bouton Réessayer', async () => {

@@ -199,6 +199,23 @@ permission « Gestion zones ».
 7. **Supprimer** une zone ou un repère : la fiche, ses photos et son contenu de visite
    sont retirés ensemble.
 
+### Quand la carte devient trop chargée
+
+Vu de loin, des repères qui se chevauchent sont remplacés par une **pastille chiffrée** :
+elle indique combien de repères sont là. La toucher zoome sur le groupe, ou ouvre la fiche du
+repère principal si les repères sont exactement au même point. Un bouton de la barre d'outils
+de la carte désactive ce regroupement quand on veut voir tous les repères, par exemple pour en
+placer un nouveau (le regroupement est d'ailleurs toujours inactif en mode édition).
+
+Deux réglages complètent cela, dans _Réglages → Catégories de lieux_ : **l'ordre des
+catégories** sert de priorité (les premières sont nommées en premier et regroupées en
+dernier), et **« Visible seulement au zoom »** retire les lieux d'une catégorie tant que la
+carte est vue en entier.
+
+Enfin, le **nom d'une zone** s'affiche désormais au point le plus « à l'intérieur » de son
+contour, et non plus à son centre géométrique : sur une zone en L ou en croissant, le nom
+tombait à côté, parfois sur la zone voisine.
+
 ### Où apparaît un lieu (carte, visite, plan)
 
 Un même lieu peut être montré sur trois **surfaces** : la **Carte** de travail des élèves,
