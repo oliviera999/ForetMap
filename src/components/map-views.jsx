@@ -64,11 +64,7 @@ import {
 } from '../utils/mapLocationFilters.js';
 import { collectMapCategoryOptions } from '../utils/locationCategories.js';
 import { useMapCategories } from '../hooks/useMapCategories.js';
-import {
-  focusMapOnPct,
-  markerFocusPct,
-  zoneFocusPctFromPoints,
-} from '../utils/mapFocusLocation.js';
+import { markerFocusPct, zoneFocusPctFromPoints } from '../utils/mapFocusLocation.js';
 import { useMapFullscreen } from '../shared/hooks/useMapFullscreen.js';
 import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
@@ -210,11 +206,10 @@ function MapViewImpl({
     fitScale,
     imgSize,
     moved,
-    applyTransform,
-    commit,
     fitMap,
     remeasureMap,
     toImagePct,
+    focusOnPct,
     beginMarkerDrag,
     isCoarsePointer,
     mapInteractionEnabled,
@@ -585,19 +580,8 @@ function MapViewImpl({
     return set;
   }, [mapFilterActive, mapMarkersOnActiveMap, matchingMarkerIds]);
 
-  const focusMapOnLocation = useCallback(
-    (focusPct) => {
-      focusMapOnPct(focusPct, {
-        containerRef,
-        txRef: tx,
-        imgSize,
-        animateZoomTowardScale,
-        commit,
-        fitScale,
-      });
-    },
-    [containerRef, tx, imgSize, animateZoomTowardScale, commit, fitScale],
-  );
+  /** Centre la carte sur un lieu (résultat de recherche) — moteur partagé, animé et borné. */
+  const focusMapOnLocation = useCallback((focusPct) => focusOnPct(focusPct), [focusOnPct]);
 
   const onSelectMapFilterResult = useCallback(
     (row) => {
@@ -1045,7 +1029,7 @@ function MapViewImpl({
                   dialog={mapMascotDialog}
                 />
 
-                {markers.map((m) => {
+                {mapMarkersOnActiveMap.map((m) => {
                   const markerTaskVisual = markerTaskVisualById.get(m.id);
                   const markerTaskLabel = markerTaskVisual
                     ? TASK_VISUAL_LABEL[markerTaskVisual]

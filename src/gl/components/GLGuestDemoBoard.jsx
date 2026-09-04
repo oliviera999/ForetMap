@@ -184,6 +184,7 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
           imageUrl={imageUrl}
           imageAlt="Plateau 1 — tropiques africains (aperçu)"
           mapGestures={mapGestures}
+          showZoomControls
           onFitLayout={({ height }) => setBoardHeightPx(height || 0)}
         >
           <GLFeuilletZoneOverlay

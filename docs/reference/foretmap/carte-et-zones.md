@@ -157,7 +157,12 @@ permission « Gestion zones ».
    les noms des zones, **ajuster la taille du texte sur la carte** (bouton « Aa » dans
    la barre d'outils : Normal, Grand, Très grand — mémorisé sur l'appareil), passer en
    plein écran. Sur téléphone, un bouton « Gestes » évite de déclencher la carte en
-   faisant défiler la page.
+   faisant défiler la page. Les gestes sont ceux de toutes les cartes de la plateforme
+   (carte, visite, plateaux Gnomes & Licornes) : **le plan ne sort jamais du cadre**
+   (butée souple qui ramène la vue en place), **pincer** zoome et déplace dans le même
+   geste, un **double-tap** zoome sur le point touché (un second double-tap réajuste le
+   plan), un glisser rapide continue sur sa lancée, et la molette ou les boutons +/−
+   gardent le point visé sous le pointeur.
 2. Il **touche une zone ou un repère** : la fiche s'ouvre avec ses onglets — Tâches,
    Tutoriels, Info, Photos (l'onglet Tâches ou Tutoriels n'apparaît que s'il y a
    quelque chose à montrer).

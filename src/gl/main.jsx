@@ -15,6 +15,7 @@ import '../shared/styles/status-sticky.css';
 import '../shared/styles/learning-gating.css';
 import '../shared/styles/shared-controls.css';
 import '../shared/styles/visit-map-mascot.css';
+import '../shared/styles/map-fullscreen.css';
 import './styles/gl-base.css';
 import './styles/gl-theme.css';
 import { AppGL } from './AppGL.jsx';
