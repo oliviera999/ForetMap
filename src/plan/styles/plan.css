@@ -454,16 +454,29 @@ body.plan-body {
   cursor: pointer;
 }
 
+/* Contour d'un pixel et demi **à l'écran** quel que soit le zoom : `non-scaling-stroke` neutralise
+   la mise à l'échelle interne du viewBox, `--pct-inv` celle du calque monde (audit C5 : le trait
+   de 0,35 px disparaissait à la vue d'ensemble). */
 .fm-pct-zone__poly {
   fill: rgba(74, 124, 89, 0.28);
   stroke: var(--forest);
-  stroke-width: 0.35;
+  stroke-width: calc(1.5px * var(--pct-inv, 1));
   vector-effect: non-scaling-stroke;
 }
 
 .fm-pct-zone.is-active .fm-pct-zone__poly {
   fill: rgba(74, 124, 89, 0.5);
-  stroke-width: 0.8;
+  stroke-width: calc(3px * var(--pct-inv, 1));
+}
+
+.fm-pct-zone:focus-visible {
+  outline: none;
+}
+
+.fm-pct-zone:focus-visible .fm-pct-zone__poly {
+  stroke: var(--plan-ink);
+  stroke-width: calc(3px * var(--pct-inv, 1));
+  stroke-dasharray: calc(4px * var(--pct-inv, 1)) calc(3px * var(--pct-inv, 1));
 }
 
 .fm-pct-zone__emoji {
@@ -481,19 +494,70 @@ body.plan-body {
   dominant-baseline: middle;
 }
 
-.fm-pct-marker {
+/* --- Étiquettes de zones (calque HTML, hors du SVG déformé) ----------------------------- */
+
+.fm-pct-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.fm-pct-label {
   position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  color: var(--plan-ink);
+  font-size: 12px;
+  font-weight: var(--fw-semibold, 600);
+  line-height: 1.15;
+  text-align: center;
+  text-shadow:
+    0 0 3px rgba(255, 255, 255, 0.95),
+    0 0 6px rgba(255, 255, 255, 0.85);
+  transform: translate(-50%, -50%) scale(var(--pct-inv, 1));
+  transform-origin: 50% 50%;
+}
+
+.fm-pct-label__emoji {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.fm-pct-label__name {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fm-pct-label.is-active .fm-pct-label__name {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--leaf);
+  color: #fff;
+  text-shadow: none;
+}
+
+/* --- Repères ---------------------------------------------------------------------------- */
+
+/* Le bouton est une cible tactile de 44 px **centrée sur le point** (audit C3), et son
+   étiquette est posée hors du flux : elle ne déplace donc plus la pastille quand elle
+   apparaît (audit C2). L'ensemble se contre-échelonne (audit B5). */
+.fm-pct-marker {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: var(--tap-target);
+  height: var(--tap-target);
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--plan-ink);
   font: inherit;
   cursor: pointer;
-  transform: translate(-50%, -100%);
+  transform: translate(-50%, -50%) scale(var(--pct-inv, 1));
+  transform-origin: 50% 50%;
 }
 
 .fm-pct-marker__pin {
@@ -503,7 +567,10 @@ body.plan-body {
 }
 
 .fm-pct-marker__label {
-  max-width: 9rem;
+  position: absolute;
+  top: calc(50% + 13px);
+  left: 50%;
+  max-width: 132px;
   padding: 1px 6px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.88);
@@ -512,6 +579,8 @@ body.plan-body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .fm-pct-marker.is-active .fm-pct-marker__label {
@@ -552,7 +621,8 @@ body.plan-body {
   border-radius: 50%;
   background: #2563eb;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(var(--pct-inv, 1));
+  transform-origin: 50% 50%;
 }
 
 .fm-pct-position__heading {
@@ -589,17 +659,19 @@ body.plan-body {
 
 .fm-pct-direct-line__stroke {
   stroke: #2563eb;
-  stroke-width: 2;
-  stroke-dasharray: 6 5;
+  stroke-width: calc(2px * var(--pct-inv, 1));
+  stroke-dasharray: calc(6px * var(--pct-inv, 1)) calc(5px * var(--pct-inv, 1));
   stroke-linecap: round;
   vector-effect: non-scaling-stroke;
 }
 
 /* Pastille d'un groupe de repères (désencombrement, lot 5). */
+/* Pastille de taille constante à l'écran (elle est portée par le calque monde, mis à l'échelle). */
 .fm-pct-cluster {
   position: absolute;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   min-width: var(--tap-target);
   min-height: var(--tap-target);
@@ -612,7 +684,8 @@ body.plan-body {
   font-weight: var(--fw-bold, 700);
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(var(--pct-inv, 1));
+  transform-origin: 50% 50%;
 }
 
 .fm-pct-cluster:focus-visible {
@@ -627,6 +700,36 @@ body.plan-body {
 
 .fm-pct-cluster__count {
   font-size: var(--text-sm, 0.9rem);
+}
+
+/* Filtre qui ne laisse aucun lieu : le dire, plutôt que montrer un plan nu (audit C6). */
+.plan-empty {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: var(--space-3, 12px);
+  max-width: min(92%, 30rem);
+  margin: 0;
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--plan-ink);
+  font-size: var(--text-sm, 0.9rem);
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  transform: translateX(-50%);
+}
+
+.plan-empty__reset {
+  min-height: var(--tap-target);
+  padding: 0 var(--space-2, 8px);
+  border: 0;
+  background: transparent;
+  color: var(--forest);
+  font: inherit;
+  font-weight: var(--fw-semibold, 600);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .plan-map-controls {

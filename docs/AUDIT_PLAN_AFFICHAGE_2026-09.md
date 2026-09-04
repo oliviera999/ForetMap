@@ -1,6 +1,6 @@
 # Audit — affichage des repères et des zones sur `planlyautey.olution.info` (septembre 2026)
 
-> **Statut : audit, sans aucune modification de code.** Relevé du 4 septembre 2026 sur la tête de
+> **Statut : audit, puis corrections de code (§7).** Relevé du 4 septembre 2026 sur la tête de
 > `main` (`package.json` 1.145.0), **confrontée aux données réelles de production** : le serveur
 > répond `{"version":"1.145.0"}` sur `/api/version`, le code lu ici est donc bien celui qui est
 > servi. Chaque constat porte une référence `fichier:ligne` et, quand c'est possible, une mesure
@@ -11,6 +11,12 @@
 > plusieurs briques de désencombrement déjà écrites dans le dépôt ne sont **pas branchées** sur
 > ce produit. Un problème d'infrastructure, antérieur à tout cela, empêche par ailleurs une
 > partie des visiteurs d'ouvrir la page (§3.1).
+>
+> **Suite donnée.** Le relevé a d'abord été fait sans toucher au code ; les constats ont
+> ensuite été rejoués sur l'**export complet de la base de production** (4 septembre, 15 h 53),
+> qui les confirme un à un — rien n'était masqué par `hidden_surfaces`, la charge publique
+> montre bien tout ce que porte la carte `lyautey`. Tout ce qui pouvait être corrigé **sans
+> toucher à la base** l'a été dans le même lot : §7 dit quoi, et ce qui reste.
 >
 > Complète et ne remplace pas `docs/AUDIT_PLAN_LYAUTEY_2026-09.md` (cadrage du produit) et
 > `docs/AUDIT_CONVERGENCE_APPS_2026-09.md` (plan de convergence, lots 0 à 8).
@@ -351,6 +357,19 @@ question de licence du fond actuel (`AUDIT_PLAN_LYAUTEY_2026-09.md` §8.2, fond 
 Maps) — et le réglage `ui.plan.attribution`, prévu pour cela, est **vide** en production, si bien
 qu'aucune mention de source n'apparaît (`PlanMapStage.jsx:355`).
 
+#### C8 — Le halo de précision de la position ne peut pas s'afficher
+
+Trouvé en corrigeant les autres constats, hors du périmètre « repères et zones » mais dans la
+même pile de calques. `PctPositionLayer.jsx:46-51` dimensionne le halo en **pourcentage de son
+parent** (`width: ${haloPct * 2}%`), or ce parent — `.fm-pct-position` (`plan.css:597-602`) —
+est un bloc positionné **sans dimension** : tous ses enfants sont en `position: absolute`, donc
+hors flux, et sa largeur calculée vaut zéro. Le halo mesure donc toujours 0 × 0 : il n'a jamais
+pu être vu, sur aucun appareil.
+
+Non corrigé ici : cela touche la fonction « position » (lot 6) et non l'affichage des lieux, et
+la correction demande de choisir où porter la mesure (un calque à l'échelle du plan, ou une
+conversion en pixels côté produit) — c'est une décision de conception, pas une coquille.
+
 ---
 
 ### D — Hygiène des données et finitions
@@ -402,6 +421,8 @@ Ces points ne demandent pas de code ; ils sont visibles par tous les visiteurs.
 
 ## 5. Plan de correction proposé
 
+> Les lots 2 à 6 et 9 ont été livrés dans la foulée de cet audit : voir §7.
+
 | Lot | Contenu                                                                                                                                                                                                                                          | Constats      | Effort | Bénéficie aussi à        |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------- | ------ | ------------------------ |
 | 1   | Certificat TLS du sous-domaine + redirection `http`→`https` (exploitation, pas de code)                                                                                                                                                          | A1            | 30 min | —                        |
@@ -441,3 +462,59 @@ Les tableaux de débordement et de collision (§3, B1) se recalculent avec l'est
 rectangle image 390 × 463 px, 1 unité de `viewBox` = 3,90 px en x et 4,63 px en y, largeur d'un
 nom ≈ `nb_caractères × 2,4 × 0,55 × 3,90` px, boîte de collision selon
 `estimateLabelBox` (`mapOverlayLabelCollision.js:38`).
+
+---
+
+## 7. Corrections apportées dans le même lot
+
+Tout ce qui relevait du **code** a été corrigé ; ce qui demande la base de données ou
+l'exploitation reste ouvert. Aucune ligne de SQL, aucune migration, aucune donnée modifiée.
+
+### Corrigé
+
+| Constat    | Correction                                                                                                                                                                                                                                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **B1**     | Nouveau module pur `src/shared/pct-map/pctMapLabels.js` : les noms de zones **et** de repères entrent dans une seule passe de `resolveLabelCollisions` (jusqu'ici écrit mais appelé nulle part). Un nom plus large que son bâtiment est tronqué (`max-width` CSS + boîte de collision bornée à l'identique). |
+| **B2**     | Ancrage au **pôle d'inaccessibilité** (`polygonPoleOfInaccessibilityPct`), comme les deux autres calques du monorepo.                                                                                                                                                                                        |
+| **B3**     | Emoji de tête séparé du nom partout : carte, fiche de lieu, liste de résultats. Implémentation déplacée dans `src/shared/emojiPrefixCore.js` pour que le plan n'importe plus le catalogue d'emojis de ForetMap ; `src/constants/emojis.js` la ré-exporte, comportement identique.                            |
+| **B4**     | Plus de seuil de zoom. Le rang par défaut d'un lieu **sans catégorie** devient intermédiaire (50) au lieu du dernier, et `shouldShowMarkerLabel` — le seuil arbitraire — est supprimé.                                                                                                                       |
+| **B5, C1** | Les étiquettes de zones quittent le SVG déformé pour un calque HTML (`PctLabelsLayer`), et tous les habillages (étiquettes, pastilles, contours, trait « Y aller », point bleu) se contre-échelonnent par la variable CSS `--pct-inv`.                                                                       |
+| **C2**     | L'étiquette d'un repère est posée hors du flux : la pastille ne monte plus d'un coup quand le nom apparaît.                                                                                                                                                                                                  |
+| **C3**     | Le bouton d'un repère est une cible de 44 px centrée sur le point.                                                                                                                                                                                                                                           |
+| **C4**     | Une zone est un `role="button"` avec `tabIndex` et `aria-label`, activable au clavier (Entrée / Espace).                                                                                                                                                                                                     |
+| **C5**     | Contour de 1,5 px **à l'écran** (3 px pour la zone ouverte), constant quel que soit le zoom.                                                                                                                                                                                                                 |
+| **C6**     | Une puce de catégorie sans aucun lieu n'est plus proposée (sauf si elle est déjà cochée, pour pouvoir la décocher) ; un filtre qui ne laisse rien affiche « Aucun lieu dans cette sélection » et un bouton « Tout afficher ».                                                                                |
+| **D5**     | Le lien direct d'un lieu est enfin transmis à la fiche.                                                                                                                                                                                                                                                      |
+| **D6**     | 24 tests ajoutés (`tests-ui/shared/pctMapLabels.test.js`, `PctLayers.test.jsx`, `plan/AppPlanMount.test.jsx`) : ancre dans le polygone, emoji non dupliqué, collision arbitrée, nom qui revient au zoom, zone au clavier, puce vide, état vide, lien direct.                                                 |
+
+**Effet mesuré** sur les données réelles (rectangle image 390 × 463 px), en rejouant le moteur
+de placement sur la charge de production :
+
+| Échelle             | Noms de zone affichés | Noms de repère affichés |    Collisions |
+| ------------------- | --------------------: | ----------------------: | ------------: |
+| avant, toutes       |             28 sur 28 |                0 sur 20 | **10 paires** |
+| ×1 (vue d'ensemble) |             23 sur 28 |                7 sur 20 |         **0** |
+| ×1,6                |             25 sur 28 |               12 sur 20 |             0 |
+| ×2,5                |             28 sur 28 |               19 sur 20 |             0 |
+| ×4                  |             28 sur 28 |               20 sur 20 |             0 |
+
+Et : **0 ancre hors polygone** (contre 2), **0 emoji dupliqué** (contre 12 zones), « Entrée
+lycée » et « Entrée visiteurs » nommés dès l'ouverture.
+
+### Non corrigé, et pourquoi
+
+- **A1 — certificat TLS.** Exploitation, pas de code : il faut émettre le certificat du
+  sous-domaine (même chaîne certbot que `foretmap.` et `gl.`). C'est le point à traiter en
+  premier : tant qu'il tient, le reste de ce lot est invisible pour une partie des visiteurs.
+- **C7 — définition du fond de plan.** Demande une nouvelle capture (et de trancher la question
+  de licence, `AUDIT_PLAN_LYAUTEY_2026-09.md` §8.2). Les géométries étant en pourcentage, un
+  fond de 2000 à 2500 px se substitue sans toucher au code.
+- **C8 — halo de position.** Décision de conception, hors périmètre (voir ci-dessus).
+- **D1 à D4 — données.** Renommer les lieux de travail, catégoriser les repères, donner un
+  `sort_order` de tête aux catégories structurantes, saisir des alias, cocher « visible au
+  zoom » pour les sanitaires, publier le parcours « Faire le tour du lycée » (créé le 4/09,
+  encore en brouillon) et remplir `ui.plan.attribution` : tout cela se fait dans la console
+  ForetMap, en quelques minutes, et **sans déploiement**.
+
+Le lot de code rend d'ailleurs D1 à D4 moins urgents qu'ils ne l'étaient : les noms ne se
+recouvrent plus même mal saisis, et un repère sans catégorie n'est plus relégué en dernier.
