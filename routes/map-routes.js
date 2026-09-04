@@ -128,10 +128,12 @@ router.get(
   '/:idOrSlug',
   asyncHandler(async (req, res) => {
     const key = String(req.params.idOrSlug || '').trim();
-    const routes = await loadRoutes('id = ? OR slug = ?', [key, key]);
-    const route = routes.find((r) => r.is_published) || routes[0];
-    if (!route) return res.status(404).json({ error: 'Parcours introuvable' });
-    res.json(route);
+    // Publié seulement : un brouillon ne doit pas fuir parce qu'on en connaît le slug
+    // (dérivé du titre, donc devinable) ou l'identifiant. La vue de gestion reste
+    // `GET /manage`. Le `|| routes[0]` d'origine renvoyait le premier brouillon.
+    const routes = await loadRoutes('(id = ? OR slug = ?) AND is_published = 1', [key, key]);
+    if (!routes[0]) return res.status(404).json({ error: 'Parcours introuvable' });
+    res.json(routes[0]);
   }),
 );
 

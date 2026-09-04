@@ -161,6 +161,35 @@ test('création, étapes, publication et lecture publique filtrée par surface',
   await request(app).get('/api/map-routes/inconnu').expect(404);
 });
 
+test('GET /api/map-routes/:idOrSlug ne fuit pas un brouillon (slug devinable)', async () => {
+  const draft = await auth(request(app).post('/api/map-routes'))
+    .send({
+      map_id: map.id,
+      title: 'Sécurité incendie',
+      description: 'Notes internes — ne pas diffuser.',
+      steps: [{ target_type: 'zone', target_id: zone.id, step_text: 'Clé du local extincteurs.' }],
+    })
+    .expect(201);
+  createdRouteIds.push(draft.body.id);
+  assert.equal(draft.body.is_published, false);
+  assert.equal(draft.body.slug, 'securite-incendie');
+
+  // Le slug se déduit du titre : un détail public qui retombait sur `routes[0]`
+  // livrait le brouillon (étapes et notes) à quiconque tapait l'URL.
+  const bySlug = await request(app).get('/api/map-routes/securite-incendie').expect(404);
+  assert.equal(bySlug.body.error, 'Parcours introuvable');
+  const byId = await request(app).get(`/api/map-routes/${draft.body.id}`).expect(404);
+  assert.equal(byId.body.error, 'Parcours introuvable');
+
+  const manage = await auth(request(app).get(`/api/map-routes/manage?map_id=${map.id}`)).expect(
+    200,
+  );
+  assert.ok(
+    manage.body.some((r) => r.id === draft.body.id),
+    'la vue de gestion le voit encore',
+  );
+});
+
 test('étapes remplacées en bloc, validation et slug unique par carte', async () => {
   const route = await auth(request(app).post('/api/map-routes'))
     .send({ map_id: map.id, title: 'Sécurité', steps: [] })
