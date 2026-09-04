@@ -38,6 +38,7 @@ import useMapCrudActions from '../hooks/useMapCrudActions.js';
 import { MascotGpsStatusBanner } from './MascotGpsStatusBanner.jsx';
 import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
 import { PctPositionLayer } from '../shared/pct-map/PctPositionLayer.jsx';
+import { accuracyHaloDiameterPx } from '../shared/pct-map/positionGeometry.js';
 import useVisitMascotCatalogExtras from '../hooks/useVisitMascotCatalogExtras.js';
 import { useMapGestures } from '../hooks/useMapGestures.js';
 
@@ -1150,7 +1151,7 @@ function MapViewImpl({
                 {mapPosition.displayPct ? (
                   <PctPositionLayer
                     position={mapPosition.displayPct}
-                    haloPct={mapPosition.haloPct}
+                    haloPx={accuracyHaloDiameterPx(mapPosition.haloPct, imgSize.w)}
                     headingDeg={mapPosition.screenHeadingDeg}
                     accuracyM={mapPosition.accuracyM}
                   />

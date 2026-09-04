@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 
 import { PctImageLayer } from '../../src/shared/pct-map/PctImageLayer.jsx';
 import { PctMarkersLayer } from '../../src/shared/pct-map/PctMarkersLayer.jsx';
+import { PctLabelsLayer } from '../../src/shared/pct-map/PctLabelsLayer.jsx';
 import { PctZonesLayer } from '../../src/shared/pct-map/PctZonesLayer.jsx';
 
 const ZONES = [
@@ -56,6 +57,61 @@ describe('PctZonesLayer', () => {
       <PctZonesLayer zones={ZONES} onZoneClick={() => {}} showLabels={false} />,
     );
     expect(container.querySelectorAll('text')).toHaveLength(0);
+  });
+
+  test('zone atteignable au clavier et annoncée (audit C4)', () => {
+    const onZoneClick = vi.fn();
+    render(<PctZonesLayer zones={ZONES} onZoneClick={onZoneClick} />);
+    const zone = screen.getByRole('button', { name: 'Verger' });
+    expect(zone.getAttribute('tabindex')).toBe('0');
+    fireEvent.keyDown(zone, { key: 'Enter' });
+    fireEvent.keyDown(zone, { key: ' ' });
+    fireEvent.keyDown(zone, { key: 'a' });
+    expect(onZoneClick).toHaveBeenCalledTimes(2);
+  });
+
+  test('emoji de tête retiré du nom dessiné (audit B3)', () => {
+    render(
+      <PctZonesLayer
+        zones={[{ ...ZONES[0], name: '🍏 Verger', emoji: '🍏' }]}
+        onZoneClick={() => {}}
+      />,
+    );
+    // Une seule occurrence de l'emoji, et le nom sans son préfixe.
+    expect(screen.getAllByText('🍏')).toHaveLength(1);
+    expect(screen.getByText('Verger')).toBeTruthy();
+  });
+
+  test('sans handler de clic : ni rôle ni tabulation (calque décoratif)', () => {
+    const { container } = render(<PctZonesLayer zones={ZONES} onZoneClick={null} />);
+    const group = container.querySelector('.fm-pct-zone');
+    expect(group.getAttribute('role')).toBe(null);
+    expect(group.getAttribute('tabindex')).toBe(null);
+  });
+});
+
+describe('PctLabelsLayer', () => {
+  test('étiquette posée en % avec sa largeur maximale, calque non cliquable', () => {
+    const { container } = render(
+      <PctLabelsLayer
+        labels={[{ id: 'zone:z1', xp: 30, yp: 40, emoji: '📚', name: 'CDI', maxWidthPx: 56 }]}
+      />,
+    );
+    const label = container.querySelector('.fm-pct-label');
+    expect(label.style.left).toBe('30%');
+    expect(label.style.top).toBe('40%');
+    expect(label.style.maxWidth).toBe('56px');
+    expect(screen.getByText('CDI')).toBeTruthy();
+    // Le nom accessible est porté par le polygone, pas par ce calque décoratif.
+    expect(container.querySelector('.fm-pct-labels').getAttribute('aria-hidden')).toBe('true');
+  });
+
+  test('nom masqué par la résolution de collisions : l’emoji reste, le nom disparaît', () => {
+    const { container } = render(
+      <PctLabelsLayer labels={[{ id: 'zone:z1', xp: 10, yp: 10, emoji: '📚', name: '' }]} />,
+    );
+    expect(container.querySelector('.fm-pct-label__emoji')).toBeTruthy();
+    expect(container.querySelector('.fm-pct-label__name')).toBe(null);
   });
 });
 
