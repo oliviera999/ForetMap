@@ -7,6 +7,68 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Réseau trophique, second lot (`docs/AUDIT_RESEAU_TROPHIQUE_2026-09.md` §4)
+
+- **Zoom au pincement sur tablette** : `touch-action: none`, nécessaire au déplacement,
+  neutralisait le pincement natif — seuls les boutons zoomaient, alors que les élèves
+  travaillent sur tablette. Un suivi à deux pointeurs garde le milieu des doigts fixe, et
+  lever un doigt n'enclenche plus le mode focus par erreur.
+- **Le filtre par zone ne coupe plus les relations sortantes** : une interaction est retenue
+  dès qu'**une** de ses extrémités est dans la zone ou la carte (au lieu des deux), et
+  l'espèce extérieure est marquée (`from_in_scope` / `to_in_scope`, contour orangé
+  pointillé) plutôt que masquée. Une espèce de la zone mangée par un prédateur voisin
+  disparaissait entièrement, ce qui sous-représentait la connectivité du réseau.
+- **Modifier une relation depuis l'interface** : `PUT /api/food-web/interactions/:id`
+  existait mais n'était pas exposé — corriger une description imposait de supprimer puis
+  recréer, et donc de perdre les termes de glossaire rattachés. Le panneau de la relation
+  sélectionnée porte désormais « Modifier cette relation » (type, cible, description).
+- **Deux relations entre les mêmes espèces ne se superposent plus** : la contrainte SQL
+  n'interdit que le triplet (source, cible, type), si bien que deux relations de types
+  différents étaient tracées confondues — une seule visible, deux cibles de clic au même
+  point. Chacune est maintenant écartée de l'axe.
+- **Herbivorie et prédation se distinguent au figuré** : seuls types à trait plein, avec des
+  rouges voisins, ils étaient indiscernables en vision deutan/protan alors que ce sont les
+  deux relations les plus structurantes du réseau.
+- **Recherche d'espèce dans le graphe** : la vue n'était atteignable sur une espèce précise
+  que depuis sa fiche plante.
+- **Focus « Chaîne »** : le mode focus ne montrait que les voisins directs ; un second cran
+  expose la chaîne alimentaire (qui mange qui mange qui), objet même du réseau trophique.
+- **Cercle regroupé par rôle trophique** : l'ordre des nœuds était celui d'arrivée de l'API,
+  sans rapport avec la structure du graphe.
+
+### Corrigé — affichage et navigation du Réseau trophique (`docs/AUDIT_RESEAU_TROPHIQUE_2026-09.md`)
+
+- **Les interactions « vers l'environnement » ont enfin un nœud** : une relation sans espèce
+  cible (`to_id NULL` — nitrification du sol, décomposition de la litière) traçait une flèche
+  vers un point vide de la scène, toutes convergeant au même endroit sans étiquette. Le graphe
+  matérialise désormais une bulle « 🌍 Environnement », comme le faisait déjà la vue liste.
+- **Cliquer une flèche produit une réponse visible** : le détail passe de la colonne latérale
+  défilante (souvent hors champ) à la colonne du graphe, et porte la relation elle-même — type,
+  phrase orientée (« Lapin → est mangée par → Renard »), description — avant les termes de
+  glossaire. Sur une relation sans terme lié, le clic ne paraît plus perdu.
+- **Arriver depuis une fiche plante isole l'espèce** : « Voir le réseau trophique » ne faisait
+  que teinter un nœud parmi tous les autres — introuvable sur un réseau fourni. La vue ouvre
+  maintenant le sous-réseau de l'espèce, et signale explicitement le cas où elle n'a aucune
+  interaction dans la carte ou la zone choisie.
+- **La molette zoome sans faire défiler la page** : React enregistre `wheel` en écouteur
+  **passif**, le `preventDefault()` du gestionnaire JSX était donc ignoré. L'écouteur est posé à
+  la main en `{ passive: false }`.
+- **Un glissement vertical n'est plus pris pour un clic** : le seuil clic/déplacement ne
+  regardait que l'axe X, si bien que déplacer un nœud de haut en bas déclenchait le mode focus.
+- **Changer de disposition recompose toute la scène** : les positions déplacées à la main
+  survivaient au passage « Cercle » → « Niveaux », qui n'appliquait donc pas la disposition
+  annoncée.
+- **Le graphe est utilisable au clavier et par lecteur d'écran** : nœuds et relations sont
+  focusables et actionnables (`Entrée` isole, `Maj+Entrée` ouvre la fiche), avec des noms
+  accessibles explicites ; le `role="img"` du SVG, qui masquait *tout* son contenu aux
+  technologies d'assistance, devient `role="group"`.
+- **Plus de filtre ni de sélection fantômes** : un type d'interaction absent de la nouvelle
+  carte revient à « Tous » (le menu s'affichait vide et le réseau était annoncé vide à tort), un
+  focus dont le nœud a disparu est abandonné, une relation filtrée hors de la vue perd son
+  panneau.
+- **Détails d'affichage** : noms tronqués marqués par une ellipse (« Consoude offici… » et non
+  « Consoude officin »), icônes de zoom du design system avec nom accessible, et style d'export
+  PNG/SVG réaligné sur le CSS de la page.
 ### Modifié
 
 - **Visite : plus de bandeau d’astuce au-dessus de la carte.** La mini-astuce « Coche les lieux au
