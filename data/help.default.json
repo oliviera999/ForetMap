@@ -100,7 +100,7 @@
   "quickTips": {
     "map": "Clique une zone ou un repère, puis ouvre « ? » si tu veux que je vienne avec toi.",
     "tasks": "Filtre par carte ou par groupe, puis traite les retours en attente : il y a quelqu’un derrière.",
-    "visit": "Coche les lieux au fur et à mesure — je tiens le compte pendant que tu marches."
+    "visit": ""
   },
   "chrome": {
     "hintPrefix": "Astuce : ",
