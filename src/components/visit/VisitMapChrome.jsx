@@ -11,6 +11,7 @@ const VISIT_PROGRESS_DONUT_C = 2 * Math.PI * VISIT_PROGRESS_DONUT_R;
  * panneau d'aide (slot), retour connexion, sélecteur de carte et astuces sous le bandeau.
  * Présentation pure : tout l'état reste dans `VisitView`.
  *
+ * @param {boolean} refreshing rechargement en cours (la carte reste affichée : pastille discrète).
  * @param {string|null} networkStatusLabel libellé statut réseau (null = masqué, ex. hors mode vue).
  * @param {{ total: number, seenCount: number, pct: number }} cartographyProgress progression carte courante.
  * @param {React.ReactNode} helpPanelSlot `HelpPanel` déjà configuré par le parent (null = aide désactivée).
@@ -22,6 +23,7 @@ export function VisitMapChrome({
   showPresentationButton = false,
   presentationInvitePulse = false,
   onOpenPresentation,
+  refreshing = false,
   networkStatusLabel = null,
   isOnline = true,
   syncStatus = 'idle',
@@ -63,6 +65,16 @@ export function VisitMapChrome({
           ) : null}
         </div>
         <div className="visit-map-card__chrome-actions">
+          {refreshing ? (
+            <span
+              className="visit-refresh-pill"
+              data-testid="visit-refresh-pill"
+              role="status"
+              aria-live="polite"
+            >
+              Actualisation…
+            </span>
+          ) : null}
           {networkStatusLabel ? (
             <span
               className={`visit-network-status${!isOnline ? ' visit-network-status--offline' : ''}${pendingSyncCount > 0 || syncStatus === 'error' ? ' visit-network-status--pending' : ''}${syncStatus === 'syncing' ? ' visit-network-status--syncing' : ''}`}
@@ -94,7 +106,7 @@ export function VisitMapChrome({
               className="map-toolbar-text-size-btn"
               data-testid="visit-map-text-size"
               title="Taille du texte sur la carte (Normal / Grand / Très grand)"
-              aria-label="Changer la taille du texte sur la carte"
+              aria-label={`Taille du texte sur la carte (${mapTextSizeLabel})`}
               onClick={onCycleMapTextSize}
             >
               {mapTextSizeLabel}

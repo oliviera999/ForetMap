@@ -31,7 +31,13 @@ familles.
 - **La progression « vu / non-vu »** : pour un élève connecté, elle est rattachée à son
   compte et durable ; pour un invité anonyme, elle est mémorisée environ **24 heures**
   puis s'efface. Les marquages faits hors connexion sont conservés et synchronisés au
-  retour du réseau.
+  retour du réseau. Les lieux pas encore vus clignotent en rouge sur le plan ; sur un
+  appareil réglé pour **limiter les animations**, ils restent rouges sans clignoter —
+  la couleur suffit à les distinguer.
+- **Sans souris** : zones et repères se parcourent à la **tabulation** et s'ouvrent avec
+  **Entrée** ou **Espace**, comme sur la carte de l'application. Une fois la fiche
+  ouverte, le clavier reste à l'intérieur ; **Échap** ou un clic à côté la referme et
+  ramène au lieu d'où l'on venait.
 
 ## Les mascottes
 
@@ -72,6 +78,8 @@ familles.
   (textes, blocs éditoriaux, photos — importables depuis les photos de la carte de
   travail, l'ordre est réordonnable). Une case « Visible en visite » masque un lieu au
   public sans le supprimer. Un bascule « aperçu élève » montre le rendu final.
+  Un enregistrement ne fait plus disparaître la page : le plan et la fiche en cours
+  restent affichés, et seule une mention « Actualisation… » signale le rechargement.
 - **Synchroniser avec la carte de travail** : la Visite a ses propres lieux, liés à
   ceux de la carte par leur identité. Deux outils : l'**import sélectif** (copier des
   zones/repères de la carte vers la visite, ou l'inverse — seule la géométrie et le nom
