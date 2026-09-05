@@ -182,6 +182,37 @@ export function FoodWebView({
     return [...set].sort((a, b) => a.localeCompare(b, 'fr'));
   }, [items]);
 
+  // Changement de carte/zone : un type d'interaction absent du nouveau jeu laissait
+  // le menu vide et la vue annonçait « aucune interaction » à tort.
+  useEffect(() => {
+    if (loading || !interactionFilter) return;
+    if (!interactionTypes.includes(interactionFilter)) setInteractionFilter('');
+  }, [loading, interactionFilter, interactionTypes]);
+
+  /** Ligne de l'arête sélectionnée (null si elle a disparu du jeu courant). */
+  const selectedRow = useMemo(
+    () => (selectedEdgeId == null ? null : filteredItems.find((row) => row.id === selectedEdgeId)),
+    [filteredItems, selectedEdgeId],
+  );
+
+  // Une arête sélectionnée puis filtrée hors de la vue laissait un panneau
+  // glossaire décrivant une relation devenue invisible.
+  useEffect(() => {
+    if (selectedEdgeId == null || loading) return;
+    if (!selectedRow) {
+      setSelectedEdgeId(null);
+      setEdgeGlossary([]);
+    }
+  }, [loading, selectedEdgeId, selectedRow]);
+
+  /** Espèce mise en avant (arrivée depuis une fiche plante) absente du réseau courant. */
+  const highlightAbsent = useMemo(() => {
+    if (highlightPlantId == null || loading || error) return false;
+    const id = Number(highlightPlantId);
+    if (!Number.isFinite(id)) return false;
+    return !items.some((row) => Number(row.from_id) === id || Number(row.to_id) === id);
+  }, [highlightPlantId, items, loading, error]);
+
   async function selectEdge(interactionId) {
     if (selectedEdgeId === interactionId) {
       setSelectedEdgeId(null);
@@ -199,6 +230,24 @@ export function FoodWebView({
     } finally {
       setEdgeLoading(false);
     }
+  }
+
+  /** Extrémités orientées d'une interaction, prêtes à l'affichage. */
+  function describeRow(row) {
+    if (!row) return null;
+    const oriented = orientInteraction(row.from_id, row.to_id, row.interaction_type);
+    const endpoint = (id) => {
+      if (id == null) return { id: null, name: 'Environnement', emoji: '🌍' };
+      return Number(id) === Number(row.from_id)
+        ? { id: row.from_id, name: row.from_name, emoji: row.from_emoji }
+        : { id: row.to_id, name: row.to_name, emoji: row.to_emoji };
+    };
+    return {
+      tail: endpoint(oriented.tailId),
+      head: endpoint(oriented.headId),
+      relation: oriented.relation,
+      symmetric: oriented.symmetric,
+    };
   }
 
   function renderNode(id, name, emoji) {
@@ -233,15 +282,7 @@ export function FoodWebView({
           <h3 className="pedago-panel-title">{interactionLabel(type)}</h3>
           <ul className="pedago-foodweb__edges">
             {rows.map((row) => {
-              const oriented = orientInteraction(row.from_id, row.to_id, row.interaction_type);
-              const endpoint = (id) => {
-                if (id == null) return { id: null };
-                return Number(id) === Number(row.from_id)
-                  ? { id: row.from_id, name: row.from_name, emoji: row.from_emoji }
-                  : { id: row.to_id, name: row.to_name, emoji: row.to_emoji };
-              };
-              const tail = endpoint(oriented.tailId);
-              const head = endpoint(oriented.headId);
+              const { tail, head, relation, symmetric } = describeRow(row);
               return (
                 <li key={row.id} className="pedago-foodweb__row">
                   <div className="pedago-foodweb__edge-line">
@@ -254,9 +295,9 @@ export function FoodWebView({
                       style={{ '--fw-edge-color': edgeStyleForType(type).color }}
                     >
                       <span className="pedago-foodweb__edge-arrow" aria-hidden="true">
-                        {oriented.symmetric ? '↔' : '→'}
+                        {symmetric ? '↔' : '→'}
                       </span>
-                      <span className="pedago-foodweb__edge-label">{oriented.relation}</span>
+                      <span className="pedago-foodweb__edge-label">{relation}</span>
                     </button>
                     {renderNode(head.id, head.name, head.emoji)}
                     {canManage ? (
@@ -372,6 +413,65 @@ export function FoodWebView({
     </form>
   );
 
+  const selectedDescription = describeRow(selectedRow);
+
+  /**
+   * Détail de la relation cliquée : type, sens écologique, description puis
+   * termes de glossaire. En mode graphe il est rendu sous le graphe (et non
+   * dans la colonne latérale défilante, où le clic semblait sans effet).
+   */
+  const selectedEdgePanel = selectedEdgeId ? (
+    <div className="card pedago-foodweb__glossary pedago-foodweb__glossary--panel">
+      {selectedDescription ? (
+        <div className="pedago-foodweb__selected">
+          <p className="pedago-foodweb__selected-title">
+            <span
+              className="pedago-foodweb__selected-dot"
+              aria-hidden="true"
+              style={{ background: edgeStyleForType(selectedRow.interaction_type).color }}
+            />
+            {interactionLabel(selectedRow.interaction_type)}
+          </p>
+          <p className="pedago-foodweb__selected-sentence">
+            <strong>{selectedDescription.tail.name}</strong>{' '}
+            <span aria-hidden="true">{selectedDescription.symmetric ? '↔' : '→'}</span>{' '}
+            {selectedDescription.relation} <strong>{selectedDescription.head.name}</strong>
+          </p>
+          {selectedRow.description ? (
+            <GlossaryInlineText
+              tag="p"
+              className="pedago-foodweb__desc"
+              text={selectedRow.description}
+              glossaryItems={glossaryIndex}
+              onOpenGlossaryTerm={onOpenGlossaryTerm}
+            />
+          ) : null}
+        </div>
+      ) : null}
+      {edgeLoading ? (
+        <p className="section-sub">Glossaire…</p>
+      ) : edgeGlossary.length === 0 ? (
+        <p className="section-sub">Aucun terme glossaire lié.</p>
+      ) : (
+        <>
+          <strong>Termes liés</strong>
+          <div className="pedago-chip-row">
+            {edgeGlossary.map((term) => (
+              <button
+                key={term.glossary_code}
+                type="button"
+                className="pedago-chip-btn"
+                onClick={() => onOpenGlossaryTerm?.(term.glossary_code)}
+              >
+                {term.terme}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  ) : null;
+
   return (
     <div
       className={`pedago-view pedago-foodweb${graphLayout ? ' pedago-foodweb--graph-layout' : ''}${listLayout ? ' pedago-foodweb--list-layout' : ''}`}
@@ -385,6 +485,14 @@ export function FoodWebView({
           fiche.
         </p>
       </header>
+
+      {highlightAbsent ? (
+        <p className="pedago-foodweb__highlight-notice" role="status">
+          L&apos;espèce d&apos;où tu viens n&apos;a encore aucune interaction enregistrée dans cette
+          sélection — élargis la carte ou la zone, ou demande à un professeur d&apos;ajouter ses
+          relations.
+        </p>
+      ) : null}
 
       <div
         className={`pedago-foodweb__layout${graphLayout ? ' pedago-foodweb__layout--graph' : ''}${listLayout ? ' pedago-foodweb__layout--list' : ''}`}
@@ -481,45 +589,24 @@ export function FoodWebView({
             </p>
           ) : null}
 
-          {selectedEdgeId ? (
-            <div className="card pedago-foodweb__glossary pedago-foodweb__glossary--panel">
-              {edgeLoading ? (
-                <p className="section-sub">Glossaire…</p>
-              ) : edgeGlossary.length === 0 ? (
-                <p className="section-sub">Aucun terme glossaire lié.</p>
-              ) : (
-                <>
-                  <strong>Termes liés</strong>
-                  <div className="pedago-chip-row">
-                    {edgeGlossary.map((term) => (
-                      <button
-                        key={term.glossary_code}
-                        type="button"
-                        className="pedago-chip-btn"
-                        onClick={() => onOpenGlossaryTerm?.(term.glossary_code)}
-                      >
-                        {term.terme}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          ) : null}
+          {graphLayout ? null : selectedEdgePanel}
         </div>
 
         {listLayout ? <div className="pedago-foodweb__list-stage">{listGroups}</div> : null}
 
         {graphLayout ? (
-          <div className="card pedago-foodweb__stage pedago-foodweb__graph-wrap">
-            <FoodWebGraph
-              items={filteredItems}
-              selectedEdgeId={selectedEdgeId}
-              highlightPlantId={highlightPlantId}
-              onSelectEdge={selectEdge}
-              onOpenPlant={onOpenPlant}
-              legendCompact
-            />
+          <div className="pedago-foodweb__graph-column">
+            <div className="card pedago-foodweb__stage pedago-foodweb__graph-wrap">
+              <FoodWebGraph
+                items={filteredItems}
+                selectedEdgeId={selectedEdgeId}
+                highlightPlantId={highlightPlantId}
+                onSelectEdge={selectEdge}
+                onOpenPlant={onOpenPlant}
+                legendCompact
+              />
+            </div>
+            {selectedEdgePanel}
           </div>
         ) : null}
       </div>

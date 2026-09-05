@@ -1,12 +1,14 @@
 import { describe, test, expect } from 'vitest';
 import {
   ENV_NODE_ID,
+  ENV_NODE_LABEL,
   buildGraphModel,
   computeCircleLayout,
   computeTrophicLayout,
   focusSubset,
   neighborIds,
   trophicColumn,
+  truncateNodeLabel,
 } from '../../../src/components/pedago/foodWebGraphModel.js';
 
 const ITEMS = [
@@ -54,8 +56,22 @@ const ITEMS = [
 describe('buildGraphModel', () => {
   test('dérive nœuds uniques + rôles', () => {
     const { nodes } = buildGraphModel(ITEMS);
-    expect(nodes.map((n) => n.id).sort((a, b) => a - b)).toEqual([10, 20, 30, 40]);
+    const speciesIds = nodes.filter((n) => !n.isEnv).map((n) => n.id);
+    expect(speciesIds.sort((a, b) => a - b)).toEqual([10, 20, 30, 40]);
     expect(nodes.find((n) => n.id === 30).role).toBe('producteur');
+  });
+
+  test('matérialise un nœud « environnement » quand une interaction n’a pas de cible', () => {
+    const { nodes } = buildGraphModel(ITEMS);
+    const env = nodes.find((n) => n.id === ENV_NODE_ID);
+    expect(env).toBeTruthy();
+    expect(env.isEnv).toBe(true);
+    expect(env.name).toBe(ENV_NODE_LABEL);
+  });
+
+  test('pas de nœud « environnement » si toutes les interactions ont une cible', () => {
+    const { nodes } = buildGraphModel(ITEMS.slice(0, 2));
+    expect(nodes.some((n) => n.id === ENV_NODE_ID)).toBe(false);
   });
 
   test('oriente les arêtes selon le sens écologique', () => {
@@ -112,5 +128,48 @@ describe('dispositions', () => {
     const layout = computeTrophicLayout(nodes, { width: 640, height: 440 });
     // producteur (Trèfle, 30) plus à gauche que décomposeur (Champignon, 40)
     expect(layout.get(30).x).toBeLessThan(layout.get(40).x);
+  });
+});
+
+describe('truncateNodeLabel', () => {
+  test('laisse intact un nom assez court', () => {
+    expect(truncateNodeLabel('Trèfle')).toBe('Trèfle');
+  });
+
+  test('marque la coupe par une ellipse', () => {
+    const label = truncateNodeLabel('Consoude officinale de Russie');
+    expect(label.endsWith('…')).toBe(true);
+    expect(label.length).toBeLessThanOrEqual(16);
+  });
+
+  test('tolère un nom absent', () => {
+    expect(truncateNodeLabel(null)).toBe('');
+  });
+});
+
+describe('dispositions — nœud environnement', () => {
+  test('le nœud environnement est ancré à part, hors des dispositions', () => {
+    const { nodes } = buildGraphModel(ITEMS);
+    const circle = computeCircleLayout(nodes, { width: 880, height: 560 });
+    const trophic = computeTrophicLayout(nodes, { width: 880, height: 560 });
+    expect(circle.has(ENV_NODE_ID)).toBe(false);
+    expect(trophic.has(ENV_NODE_ID)).toBe(false);
+    // Les espèces, elles, restent toutes positionnées.
+    for (const node of nodes.filter((n) => !n.isEnv)) {
+      expect(circle.has(node.id)).toBe(true);
+      expect(trophic.has(node.id)).toBe(true);
+    }
+  });
+
+  test('le nœud environnement ne consomme pas de place sur le cercle', () => {
+    const nodes = buildGraphModel(ITEMS).nodes;
+    const species = nodes.filter((n) => !n.isEnv);
+    expect(nodes.length).toBe(species.length + 1);
+    const withEnv = computeCircleLayout(nodes, { width: 880, height: 560 });
+    const withoutEnv = computeCircleLayout(species, { width: 880, height: 560 });
+    expect(withEnv.size).toBe(species.length);
+    for (const node of species) {
+      expect(withEnv.get(node.id)).toEqual(withoutEnv.get(node.id));
+    }
   });
 });

@@ -11,12 +11,38 @@ import { orientInteraction } from '../../shared/foodWebTypes.js';
 /** Ancre visuelle des extrémités « environnement » (cible/source nulle). */
 export const ENV_NODE_ID = '__env__';
 
+/** Libellé et emoji du nœud « environnement » (sol, air, lumière…). */
+export const ENV_NODE_LABEL = 'Environnement';
+export const ENV_NODE_EMOJI = '🌍';
+
 /** Ordre des colonnes pour la disposition par niveau trophique. */
 export const TROPHIC_ORDER = ['producteur', 'consommateur', 'decomposeur'];
+
+/** Longueur maximale d'un libellé de nœud avant troncature. */
+export const NODE_LABEL_MAX = 16;
+
+/** Vrai pour le nœud « environnement » (extrémité non-espèce d'une interaction). */
+export function isEnvNodeId(id) {
+  return id === ENV_NODE_ID;
+}
+
+/**
+ * Libellé de nœud tronqué, avec une ellipse explicite quand il est coupé —
+ * sans marque de coupe, « Consoude officin » se lit comme un nom complet.
+ */
+export function truncateNodeLabel(name, max = NODE_LABEL_MAX) {
+  const text = String(name || '');
+  if (text.length <= max) return text;
+  return `${text.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
+}
 
 /**
  * Construit le modèle de graphe orienté écologiquement.
  * Chaque arête expose `tailId`/`headId` (sens d'affichage de la flèche).
+ *
+ * Les interactions sans espèce cible (`to_id` nul : nitrification du sol,
+ * décomposition vers la litière…) sont rattachées à un nœud « environnement »
+ * explicite — sans lui, la flèche pointait vers un point vide de la scène.
  */
 export function buildGraphModel(items) {
   const nodeMap = new Map();
@@ -31,22 +57,37 @@ export function buildGraphModel(items) {
   };
 
   const edges = [];
+  let usesEnvNode = false;
   for (const row of items || []) {
     ensure(row.from_id, row.from_name, row.from_emoji, row.from_role);
     ensure(row.to_id, row.to_name, row.to_emoji, row.to_role);
     const oriented = orientInteraction(row.from_id, row.to_id, row.interaction_type);
+    const tailId = oriented.tailId == null ? ENV_NODE_ID : oriented.tailId;
+    const headId = oriented.headId == null ? ENV_NODE_ID : oriented.headId;
+    if (tailId === ENV_NODE_ID || headId === ENV_NODE_ID) usesEnvNode = true;
     edges.push({
       id: row.id,
       type: row.interaction_type,
       description: row.description || '',
       relation: oriented.relation,
       symmetric: oriented.symmetric,
-      tailId: oriented.tailId == null ? ENV_NODE_ID : oriented.tailId,
-      headId: oriented.headId == null ? ENV_NODE_ID : oriented.headId,
+      tailId,
+      headId,
     });
   }
 
-  return { nodes: [...nodeMap.values()], edges };
+  const nodes = [...nodeMap.values()];
+  if (usesEnvNode) {
+    nodes.push({
+      id: ENV_NODE_ID,
+      name: ENV_NODE_LABEL,
+      emoji: ENV_NODE_EMOJI,
+      role: null,
+      isEnv: true,
+    });
+  }
+
+  return { nodes, edges };
 }
 
 /** Identifiants des voisins directs d'un nœud (via les arêtes). */
@@ -74,13 +115,18 @@ export function focusSubset(edges, focusId) {
   return { visibleNodes, visibleEdges };
 }
 
+/** Nœuds à positionner par une disposition : le nœud environnement est ancré à part. */
+function layoutableNodes(nodes) {
+  return (nodes || []).filter((node) => !isEnvNodeId(node?.id));
+}
+
 /** Disposition circulaire (par défaut). */
 export function computeCircleLayout(nodes, { width = 640, height = 440 } = {}) {
   const cx = width / 2;
   const cy = height / 2;
   const r = Math.min(width, height) / 2 - 70;
   const map = new Map();
-  const list = nodes || [];
+  const list = layoutableNodes(nodes);
   list.forEach((node, index) => {
     const angle = (2 * Math.PI * index) / Math.max(list.length, 1) - Math.PI / 2;
     map.set(node.id, { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) });
@@ -100,7 +146,7 @@ export function trophicColumn(role) {
  */
 export function computeTrophicLayout(nodes, { width = 640, height = 440 } = {}) {
   const columns = new Map();
-  for (const node of nodes || []) {
+  for (const node of layoutableNodes(nodes)) {
     const col = trophicColumn(node.role);
     if (!columns.has(col)) columns.set(col, []);
     columns.get(col).push(node);
@@ -109,7 +155,7 @@ export function computeTrophicLayout(nodes, { width = 640, height = 440 } = {}) 
   const usableW = width - 120;
   const map = new Map();
   for (const [col, colNodes] of columns) {
-    const x = colCount === 1 ? width / 2 : 70 + (usableW * col) / (colCount - 1);
+    const x = 70 + (usableW * col) / (colCount - 1);
     const n = colNodes.length;
     colNodes.forEach((node, i) => {
       const y = n === 1 ? height / 2 : 60 + ((height - 120) * i) / (n - 1);

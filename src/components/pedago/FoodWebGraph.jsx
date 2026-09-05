@@ -13,7 +13,9 @@ import {
   computeCircleLayout,
   computeTrophicLayout,
   focusSubset,
+  isEnvNodeId,
   neighborIds,
+  truncateNodeLabel,
 } from './foodWebGraphModel.js';
 import {
   IconClose,
@@ -22,6 +24,9 @@ import {
   IconLeaf,
   IconStats,
   IconTarget,
+  IconZoomIn,
+  IconZoomOut,
+  IconZoomReset,
 } from '../../shared/icons.jsx';
 
 const BASE_W = 880;
@@ -34,11 +39,12 @@ const CLICK_MOVE_THRESHOLD = 4;
 const EXPORT_STYLE = `
   ${buildEdgeExportCss()}
   .pedago-foodweb-graph__node{fill:#dcfce7;stroke:#16a34a;stroke-width:1.5}
-  .pedago-foodweb-graph__node.highlight{fill:#bbf7d0;stroke-width:2.6}
+  .pedago-foodweb-graph__node.highlight{fill:#bbf7d0;stroke-width:2.5}
   .pedago-foodweb-graph__node.dim{opacity:.18}
   .pedago-foodweb-graph__node--env{fill:#f3f4f6;stroke:#94a3b8;stroke-dasharray:3 3}
   .pedago-foodweb-graph__label{font:600 10px sans-serif;fill:#1f2937}
   .pedago-foodweb-graph__label.dim{opacity:.2}
+  .pedago-foodweb-graph__node-emoji{font:16px sans-serif}
 `;
 
 function download(blob, filename) {
@@ -69,6 +75,13 @@ export function FoodWebGraph({
 }) {
   const svgRef = useRef(null);
   const dragRef = useRef(null);
+  /** Élément SVG en state (et pas seulement en ref) : l'effet « molette » doit se
+   *  relancer au montage réel du SVG, qui suit le premier rendu (cas « aucun nœud »). */
+  const [svgEl, setSvgEl] = useState(null);
+  const attachSvg = useCallback((node) => {
+    svgRef.current = node;
+    setSvgEl(node);
+  }, []);
 
   const [layout, setLayout] = useState('circle');
   const [view, setView] = useState({ scale: 1, tx: 0, ty: 0 });
@@ -138,7 +151,7 @@ export function FoodWebGraph({
 
   const posOf = useCallback(
     (id) => {
-      if (id === ENV_NODE_ID || id == null) return ENV_POS;
+      if (id == null) return ENV_POS;
       return overrides.get(id) || baseLayout.get(id) || ENV_POS;
     },
     [overrides, baseLayout],
@@ -171,6 +184,11 @@ export function FoodWebGraph({
     }
     return { activeNodes: null, activeEdges: null, hasFilter: false };
   }, [visibleEdges, focusId, hoverNode, hoverEdge]);
+
+  const nodeLabelById = useMemo(
+    () => new Map(nodes.map((node) => [node.id, node.name || 'Espèce'])),
+    [nodes],
+  );
 
   const nodeDimmed = useCallback(
     (id) => hasFilter && !(activeNodes && activeNodes.has(id)),
@@ -208,25 +226,39 @@ export function FoodWebGraph({
     });
   }, []);
 
-  const onWheel = useCallback(
-    (evt) => {
+  // React enregistre `wheel` en écouteur **passif** sur la racine : un `onWheel`
+  // JSX ne peut donc pas annuler le défilement de la page pendant le zoom. On pose
+  // l'écouteur à la main, en `passive: false`, sur le SVG lui-même.
+  useEffect(() => {
+    if (!svgEl?.addEventListener) return undefined;
+    const handleWheel = (evt) => {
       evt.preventDefault();
-      const svg = svgRef.current;
-      const rect = svg?.getBoundingClientRect?.();
-      const center = rect
-        ? {
-            x: ((evt.clientX - rect.left) / rect.width) * BASE_W,
-            y: ((evt.clientY - rect.top) / rect.height) * BASE_H,
-          }
-        : null;
+      const rect = svgEl.getBoundingClientRect?.();
+      const center =
+        rect && rect.width && rect.height
+          ? {
+              x: ((evt.clientX - rect.left) / rect.width) * BASE_W,
+              y: ((evt.clientY - rect.top) / rect.height) * BASE_H,
+            }
+          : null;
       zoomBy(evt.deltaY < 0 ? 1.12 : 1 / 1.12, center);
-    },
-    [zoomBy],
-  );
+    };
+    svgEl.addEventListener('wheel', handleWheel, { passive: false });
+    return () => svgEl.removeEventListener('wheel', handleWheel);
+  }, [svgEl, zoomBy]);
 
   const resetView = useCallback(() => {
     setView({ scale: 1, tx: 0, ty: 0 });
     setOverrides(new Map());
+  }, []);
+
+  /** Changer de disposition recompose la scène : les positions déplacées à la
+   *  main sont abandonnées, sinon « Niveaux » laissait des nœuds au cercle. */
+  const changeLayout = useCallback((next) => {
+    setLayout((cur) => {
+      if (cur !== next) setOverrides(new Map());
+      return next;
+    });
   }, []);
 
   // --- Drag nœud / pan fond ---
@@ -297,7 +329,8 @@ export function FoodWebGraph({
       if (drag.kind === 'node') {
         const p = clientToBase(evt);
         if (!p || !drag.last) return;
-        if (Math.abs(p.x - drag.last.x) > CLICK_MOVE_THRESHOLD || drag.moved) drag.moved = true;
+        if (Math.hypot(p.x - drag.last.x, p.y - drag.last.y) > CLICK_MOVE_THRESHOLD || drag.moved)
+          drag.moved = true;
         drag.pending = { x: p.x, y: p.y };
       } else if (drag.kind === 'pan') {
         const svg = svgRef.current;
@@ -328,6 +361,31 @@ export function FoodWebGraph({
     setFocusId((cur) => (cur === id ? null : id));
   }, []);
 
+  /** Dernière espèce mise en avant déjà appliquée (évite de re-focaliser à chaque rendu). */
+  const appliedHighlightRef = useRef(null);
+
+  // Arrivée depuis une fiche plante (« Voir le réseau trophique ») : isoler d'emblée
+  // le réseau de l'espèce. Sans cela, elle était seulement teintée parmi tous les
+  // autres nœuds — introuvable sur un graphe fourni.
+  useEffect(() => {
+    if (highlightPlantId == null) {
+      appliedHighlightRef.current = null;
+      return;
+    }
+    const id = Number(highlightPlantId);
+    if (!Number.isFinite(id) || appliedHighlightRef.current === id) return;
+    if (!nodes.some((node) => node.id === id)) return;
+    appliedHighlightRef.current = id;
+    setFocusId(id);
+  }, [highlightPlantId, nodes]);
+
+  // Le jeu de données a changé (carte, zone, filtre de type) : un focus sur un nœud
+  // disparu vidait la scène sans que rien ne l'explique.
+  useEffect(() => {
+    if (focusId == null) return;
+    if (!nodes.some((node) => node.id === focusId)) setFocusId(null);
+  }, [nodes, focusId]);
+
   const onNodePointerUp = useCallback(
     (evt, id) => {
       flushPendingDrag();
@@ -337,6 +395,71 @@ export function FoodWebGraph({
       if (!moved) toggleFocus(id);
     },
     [flushPendingDrag, toggleFocus],
+  );
+
+  /** Le nœud « environnement » n'a pas de fiche espèce à ouvrir. */
+  const openNodePlant = useCallback(
+    (id) => {
+      if (isEnvNodeId(id)) return;
+      onOpenPlant?.(id);
+    },
+    [onOpenPlant],
+  );
+
+  // Clavier : Entrée/Espace isole le réseau du nœud, Maj+Entrée ouvre sa fiche.
+  const onNodeKeyDown = useCallback(
+    (evt, id) => {
+      if (evt.key !== 'Enter' && evt.key !== ' ' && evt.key !== 'Spacebar') return;
+      evt.preventDefault();
+      if (evt.shiftKey) openNodePlant(id);
+      else toggleFocus(id);
+    },
+    [openNodePlant, toggleFocus],
+  );
+
+  const onEdgeKeyDown = useCallback(
+    (evt, id) => {
+      if (evt.key !== 'Enter' && evt.key !== ' ' && evt.key !== 'Spacebar') return;
+      evt.preventDefault();
+      onSelectEdge?.(id);
+    },
+    [onSelectEdge],
+  );
+
+  // --- Intitulés (infobulle souris + nom accessible clavier/lecteur d'écran) ---
+
+  const nodeTitle = useCallback((node) => {
+    if (isEnvNodeId(node.id)) {
+      return `${node.name} (sol, air, lumière) — clic : isoler ses liens`;
+    }
+    return `${node.name}${node.role ? ` (${node.role})` : ''} — clic : focus, double-clic : fiche`;
+  }, []);
+
+  const nodeAriaLabel = useCallback((node) => {
+    if (isEnvNodeId(node.id)) {
+      return `${node.name} — Entrée : isoler ses liens`;
+    }
+    return `${node.name}${node.role ? `, ${node.role}` : ''} — Entrée : isoler son réseau, Maj+Entrée : ouvrir la fiche`;
+  }, []);
+
+  /** Phrase de l'arête : « Prédation : Lapin est mangée par Renard ». */
+  const edgeSentence = useCallback(
+    (edge) => {
+      const tail = nodeLabelById.get(edge.tailId) || 'Espèce';
+      const head = nodeLabelById.get(edge.headId) || 'Espèce';
+      return `${interactionTypeLabel(edge.type)} : ${tail} ${edge.relation} ${head}`;
+    },
+    [nodeLabelById],
+  );
+
+  const edgeTitle = useCallback(
+    (edge) => `${edgeSentence(edge)}${edge.description ? ` — ${edge.description}` : ''}`,
+    [edgeSentence],
+  );
+
+  const edgeAriaLabel = useCallback(
+    (edge) => `${edgeTitle(edge)}. Entrée : voir les termes de glossaire liés`,
+    [edgeTitle],
   );
 
   // --- Export ---
@@ -395,7 +518,7 @@ export function FoodWebGraph({
           <button
             type="button"
             className={`pedago-foodweb-graph__tbtn${layout === 'circle' ? ' active' : ''}`}
-            onClick={() => setLayout('circle')}
+            onClick={() => changeLayout('circle')}
             aria-pressed={layout === 'circle'}
           >
             <IconTarget size={14} /> Cercle
@@ -403,7 +526,7 @@ export function FoodWebGraph({
           <button
             type="button"
             className={`pedago-foodweb-graph__tbtn${layout === 'trophic' ? ' active' : ''}`}
-            onClick={() => setLayout('trophic')}
+            onClick={() => changeLayout('trophic')}
             aria-pressed={layout === 'trophic'}
             title="Producteurs → consommateurs → décomposeurs"
           >
@@ -416,24 +539,27 @@ export function FoodWebGraph({
             className="pedago-foodweb-graph__tbtn"
             onClick={() => zoomBy(1 / 1.2)}
             aria-label="Dézoomer"
+            title="Dézoomer"
           >
-            −
+            <IconZoomOut size={14} />
           </button>
           <button
             type="button"
             className="pedago-foodweb-graph__tbtn"
             onClick={resetView}
+            aria-label="Réinitialiser la vue et les positions"
             title="Réinitialiser la vue et les positions"
           >
-            ⟳
+            <IconZoomReset size={14} />
           </button>
           <button
             type="button"
             className="pedago-foodweb-graph__tbtn"
             onClick={() => zoomBy(1.2)}
             aria-label="Zoomer"
+            title="Zoomer"
           >
-            +
+            <IconZoomIn size={14} />
           </button>
         </div>
         {presentTrophicTypes.length > 0 ? (
@@ -469,12 +595,11 @@ export function FoodWebGraph({
       </div>
 
       <svg
-        ref={svgRef}
+        ref={attachSvg}
         className="pedago-foodweb-graph"
         viewBox={`0 0 ${BASE_W} ${BASE_H}`}
-        role="img"
+        role="group"
         aria-label="Graphe interactif du réseau trophique"
-        onWheel={onWheel}
         onPointerDown={onBackgroundPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -582,16 +707,18 @@ export function FoodWebGraph({
                   cy={midY}
                   r={12}
                   className="pedago-foodweb-graph__edge-hit"
+                  tabIndex={0}
+                  role="button"
+                  aria-label={edgeAriaLabel(edge)}
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => onSelectEdge?.(edge.id)}
+                  onKeyDown={(e) => onEdgeKeyDown(e, edge.id)}
+                  onFocus={() => setHoverEdge(edge.id)}
+                  onBlur={() => setHoverEdge(null)}
                   onMouseEnter={() => setHoverEdge(edge.id)}
                   onMouseLeave={() => setHoverEdge(null)}
                 >
-                  <title>
-                    {`${interactionTypeLabel(edge.type)} — ${edge.relation}${
-                      edge.description ? ` : ${edge.description}` : ''
-                    }`}
-                  </title>
+                  <title>{edgeTitle(edge)}</title>
                 </circle>
               </g>
             );
@@ -600,7 +727,9 @@ export function FoodWebGraph({
           {nodes.map((node) => {
             const pos = posOf(node.id);
             if (!pos) return null;
-            const highlighted = highlightPlantId != null && Number(highlightPlantId) === node.id;
+            const isEnv = isEnvNodeId(node.id);
+            const highlighted =
+              !isEnv && highlightPlantId != null && Number(highlightPlantId) === node.id;
             const focused = focusId === node.id;
             const dim = nodeDimmed(node.id);
             return (
@@ -608,16 +737,22 @@ export function FoodWebGraph({
                 key={node.id}
                 transform={`translate(${pos.x}, ${pos.y})`}
                 className="pedago-foodweb-graph__node-group"
+                tabIndex={0}
+                role="button"
+                aria-label={nodeAriaLabel(node)}
                 onPointerDown={(e) => onNodePointerDown(e, node.id)}
                 onPointerUp={(e) => onNodePointerUp(e, node.id)}
+                onKeyDown={(e) => onNodeKeyDown(e, node.id)}
+                onFocus={() => setHoverNode(node.id)}
+                onBlur={() => setHoverNode(null)}
                 onMouseEnter={() => setHoverNode(node.id)}
                 onMouseLeave={() => setHoverNode(null)}
-                onDoubleClick={() => onOpenPlant?.(node.id)}
+                onDoubleClick={() => openNodePlant(node.id)}
                 style={{ cursor: 'pointer' }}
               >
                 <circle
                   r={NODE_R}
-                  className={`pedago-foodweb-graph__node${highlighted || focused ? ' highlight' : ''}${dim ? ' dim' : ''}`}
+                  className={`pedago-foodweb-graph__node${isEnv ? ' pedago-foodweb-graph__node--env' : ''}${highlighted || focused ? ' highlight' : ''}${dim ? ' dim' : ''}`}
                 />
                 <text className="pedago-foodweb-graph__node-emoji" textAnchor="middle" y={5}>
                   {node.emoji || '🌱'}
@@ -627,9 +762,9 @@ export function FoodWebGraph({
                   textAnchor="middle"
                   y={NODE_R + 14}
                 >
-                  {(node.name || '').slice(0, 16)}
+                  {truncateNodeLabel(node.name)}
                 </text>
-                <title>{`${node.name}${node.role ? ` (${node.role})` : ''} — clic : focus, double-clic : fiche`}</title>
+                <title>{nodeTitle(node)}</title>
               </g>
             );
           })}

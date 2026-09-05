@@ -103,6 +103,29 @@ d'observation** pour l'écriture naturaliste libre.
   chaînes alimentaires réelles de la forêt comestible.
 - Le professeur (gestionnaire des plantes) crée et modifie les liens entre espèces —
   le graphe s'appuie sur le catalogue de biodiversité.
+- **Les liens « vers l'environnement » ont désormais leur nœud.** Une interaction saisie
+  sans espèce cible (le trèfle qui enrichit le sol, le champignon qui décompose la
+  litière) aboutit à une bulle « 🌍 Environnement » : la flèche ne part plus vers un
+  point vide de l'écran.
+- **Cliquer une flèche répond sous le graphe** : le type de relation, sa phrase dans le
+  bon sens écologique (« Lapin → est mangée par → Renard »), la description saisie par le
+  professeur, puis les mots de glossaire rattachés. Avant, la réponse s'affichait dans la
+  colonne de gauche, souvent hors de vue, et se limitait aux mots de glossaire.
+- **Arriver depuis une fiche plante isole l'espèce.** Le bouton « Voir le réseau
+  trophique » d'une fiche ouvre l'onglet **sur le sous-réseau de cette espèce** (elle et
+  ses voisines directes) ; le bouton « Tout afficher » revient au réseau complet. Si
+  l'espèce n'a encore aucune interaction dans la carte ou la zone choisie, un message le
+  dit au lieu de laisser croire à un bug.
+- **Le graphe se parcourt aussi au clavier** : la tabulation passe d'une espèce et d'une
+  relation à l'autre, `Entrée` isole le réseau d'une espèce (ou sélectionne une relation),
+  `Maj+Entrée` ouvre la fiche de l'espèce. Utile en vidéoprojection sans souris, et
+  nécessaire aux lecteurs d'écran, pour qui le graphe était jusqu'ici entièrement muet.
+- **Changer de carte ou de zone ne laisse plus de filtre fantôme** : un type d'interaction
+  qui n'existe pas dans la nouvelle sélection revient à « Tous », au lieu d'afficher un
+  menu vide et un réseau annoncé comme vide à tort.
+- La molette zoome sans faire défiler la page ; les boutons « − / ⟳ / + » restent
+  disponibles (indispensables sur tablette). Changer de disposition (« Cercle » /
+  « Niveaux ») recompose bien toute la scène, y compris les nœuds déplacés à la main.
 
 ## Le Carnet d'observation
 
