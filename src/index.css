@@ -7164,6 +7164,14 @@
   padding: 12px 14px 14px;
   margin-bottom: 0;
 }
+.pedago-foodweb__graph-column {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 .pedago-foodweb__stage {
   flex: 1;
   min-width: 0;
@@ -7790,6 +7798,25 @@
   stroke-width: 14px;
   cursor: pointer;
 }
+/* Le graphe se parcourt aussi au clavier : l'anneau de focus doit rester visible
+   sur un élément SVG, où `outline` n'est pas fiable selon les navigateurs. */
+.pedago-foodweb-graph__edge-hit:focus {
+  outline: none;
+}
+.pedago-foodweb-graph__edge-hit:focus-visible {
+  stroke: var(--sage, #7aab8a);
+  stroke-dasharray: 3 3;
+}
+.pedago-foodweb-graph__node-group:focus {
+  outline: none;
+}
+.pedago-foodweb-graph__node-group:focus-visible .pedago-foodweb-graph__node {
+  stroke: #0f766e;
+  stroke-width: 3;
+}
+.pedago-foodweb-graph__node-group:focus-visible .pedago-foodweb-graph__label {
+  font-weight: var(--fw-semibold);
+}
 .pedago-foodweb-graph__node {
   fill: #dcfce7;
   stroke: #16a34a;
@@ -7846,6 +7873,45 @@
 }
 .pedago-foodweb__glossary--panel {
   margin-top: 12px;
+}
+.pedago-foodweb__graph-column .pedago-foodweb__glossary--panel {
+  margin-top: 0;
+  flex: 0 0 auto;
+}
+.pedago-foodweb__highlight-notice {
+  flex-shrink: 0;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #7c2d12;
+  font-size: var(--text-sm);
+}
+.pedago-foodweb__selected {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e2ece6;
+}
+.pedago-foodweb__selected-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-weight: var(--fw-semibold);
+  color: var(--forest, #1a3d2e);
+}
+.pedago-foodweb__selected-dot {
+  display: inline-block;
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.pedago-foodweb__selected-sentence {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--lh-normal);
 }
 .pedago-foodweb__admin-hint {
   grid-column: 1 / -1;

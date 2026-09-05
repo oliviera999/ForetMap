@@ -7,6 +7,40 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — affichage et navigation du Réseau trophique (`docs/AUDIT_RESEAU_TROPHIQUE_2026-09.md`)
+
+- **Les interactions « vers l'environnement » ont enfin un nœud** : une relation sans espèce
+  cible (`to_id NULL` — nitrification du sol, décomposition de la litière) traçait une flèche
+  vers un point vide de la scène, toutes convergeant au même endroit sans étiquette. Le graphe
+  matérialise désormais une bulle « 🌍 Environnement », comme le faisait déjà la vue liste.
+- **Cliquer une flèche produit une réponse visible** : le détail passe de la colonne latérale
+  défilante (souvent hors champ) à la colonne du graphe, et porte la relation elle-même — type,
+  phrase orientée (« Lapin → est mangée par → Renard »), description — avant les termes de
+  glossaire. Sur une relation sans terme lié, le clic ne paraît plus perdu.
+- **Arriver depuis une fiche plante isole l'espèce** : « Voir le réseau trophique » ne faisait
+  que teinter un nœud parmi tous les autres — introuvable sur un réseau fourni. La vue ouvre
+  maintenant le sous-réseau de l'espèce, et signale explicitement le cas où elle n'a aucune
+  interaction dans la carte ou la zone choisie.
+- **La molette zoome sans faire défiler la page** : React enregistre `wheel` en écouteur
+  **passif**, le `preventDefault()` du gestionnaire JSX était donc ignoré. L'écouteur est posé à
+  la main en `{ passive: false }`.
+- **Un glissement vertical n'est plus pris pour un clic** : le seuil clic/déplacement ne
+  regardait que l'axe X, si bien que déplacer un nœud de haut en bas déclenchait le mode focus.
+- **Changer de disposition recompose toute la scène** : les positions déplacées à la main
+  survivaient au passage « Cercle » → « Niveaux », qui n'appliquait donc pas la disposition
+  annoncée.
+- **Le graphe est utilisable au clavier et par lecteur d'écran** : nœuds et relations sont
+  focusables et actionnables (`Entrée` isole, `Maj+Entrée` ouvre la fiche), avec des noms
+  accessibles explicites ; le `role="img"` du SVG, qui masquait *tout* son contenu aux
+  technologies d'assistance, devient `role="group"`.
+- **Plus de filtre ni de sélection fantômes** : un type d'interaction absent de la nouvelle
+  carte revient à « Tous » (le menu s'affichait vide et le réseau était annoncé vide à tort), un
+  focus dont le nœud a disparu est abandonné, une relation filtrée hors de la vue perd son
+  panneau.
+- **Détails d'affichage** : noms tronqués marqués par une ellipse (« Consoude offici… » et non
+  « Consoude officin »), icônes de zoom du design system avec nom accessible, et style d'export
+  PNG/SVG réaligné sur le CSS de la page.
+
 ### Corrigé — parcours de carte (suites de `docs/AUDIT_PARCOURS_2026-09.md`)
 
 - **Détail public d'un parcours** : le filtre `is_published` — corrigé en parallèle par la
