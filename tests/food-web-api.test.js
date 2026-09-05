@@ -116,6 +116,38 @@ test('GET /api/food-web?mapId= — filtre par carte', async () => {
   assert.ok(res.body.items.some((row) => Number(row.id) === interactionId));
 });
 
+test('GET /api/food-web?zoneId= — la relation sortante est gardée et marquée', async () => {
+  // Une seule des deux espèces est dans la zone. Exiger les deux extrémités
+  // faisait disparaître la relation : une espèce mangée par un prédateur de la
+  // zone voisine n'apparaissait nulle part.
+  const zoneId = `fw-partial-${stamp}`;
+  await execute(
+    `INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, shape, points, color)
+     VALUES (?, 'foret', ?, 0, 0, 0, 0, '', 'empty', 0, 'rect', ?, '#86efac80')`,
+    [
+      zoneId,
+      `Zone partielle FW ${stamp}`,
+      JSON.stringify([
+        { xp: 30, yp: 30 },
+        { xp: 40, yp: 30 },
+        { xp: 35, yp: 40 },
+      ]),
+    ],
+  );
+  await execute('INSERT INTO zone_species (zone_id, plant_id) VALUES (?, ?)', [
+    zoneId,
+    plantFromId,
+  ]);
+
+  const res = await request(app)
+    .get(`/api/food-web?zoneId=${encodeURIComponent(zoneId)}`)
+    .expect(200);
+  const row = res.body.items.find((item) => Number(item.id) === interactionId);
+  assert.ok(row, 'la relation franchissant la limite de zone doit être retournée');
+  assert.strictEqual(Number(row.from_in_scope), 1);
+  assert.strictEqual(Number(row.to_in_scope), 0, 'la cible hors zone doit être signalée');
+});
+
 test('GET /api/food-web?zoneId= — filtre par zone avec junction', async () => {
   const zoneId = `fw-zone-${stamp}`;
   await execute(

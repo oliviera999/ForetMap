@@ -12,8 +12,12 @@ import { INTERACTION_TYPES, interactionTypeLabel } from './foodWebTypes.js';
 
 /** @type {Record<string, FoodWebEdgeStyle>} */
 export const INTERACTION_EDGE_STYLES = Object.freeze({
-  herbivorie: { color: '#c2410c', dash: null, width: 2 },
-  predation: { color: '#b91c1c', dash: null, width: 2 },
+  // Herbivorie et prédation étaient les deux seuls types à trait plein, avec des
+  // rouges voisins : indiscernables en vision deutan/protan, alors que ce sont
+  // les deux relations les plus structurantes du réseau. L'herbivorie prend un
+  // figuré propre (tirets longs) — la prédation garde le trait plein.
+  herbivorie: { color: '#c2410c', dash: '12 5', width: 2 },
+  predation: { color: '#b91c1c', dash: null, width: 2.4 },
   decomposition: { color: '#78350f', dash: '8 4', width: 1.8 },
   pollinisation: { color: '#ca8a04', dash: '6 3', width: 1.8 },
   plante_hote: { color: '#15803d', dash: '2 4', width: 1.8 },
