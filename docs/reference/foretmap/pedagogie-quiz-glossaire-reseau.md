@@ -103,6 +103,51 @@ d'observation** pour l'écriture naturaliste libre.
   chaînes alimentaires réelles de la forêt comestible.
 - Le professeur (gestionnaire des plantes) crée et modifie les liens entre espèces —
   le graphe s'appuie sur le catalogue de biodiversité.
+- **Les liens « vers l'environnement » ont désormais leur nœud.** Une interaction saisie
+  sans espèce cible (le trèfle qui enrichit le sol, le champignon qui décompose la
+  litière) aboutit à une bulle « 🌍 Environnement » : la flèche ne part plus vers un
+  point vide de l'écran.
+- **Cliquer une flèche répond sous le graphe** : le type de relation, sa phrase dans le
+  bon sens écologique (« Lapin → est mangée par → Renard »), la description saisie par le
+  professeur, puis les mots de glossaire rattachés. Avant, la réponse s'affichait dans la
+  colonne de gauche, souvent hors de vue, et se limitait aux mots de glossaire.
+- **Arriver depuis une fiche plante isole l'espèce.** Le bouton « Voir le réseau
+  trophique » d'une fiche ouvre l'onglet **sur le sous-réseau de cette espèce** (elle et
+  ses voisines directes) ; le bouton « Tout afficher » revient au réseau complet. Si
+  l'espèce n'a encore aucune interaction dans la carte ou la zone choisie, un message le
+  dit au lieu de laisser croire à un bug.
+- **Le graphe se parcourt aussi au clavier** : la tabulation passe d'une espèce et d'une
+  relation à l'autre, `Entrée` isole le réseau d'une espèce (ou sélectionne une relation),
+  `Maj+Entrée` ouvre la fiche de l'espèce. Utile en vidéoprojection sans souris, et
+  nécessaire aux lecteurs d'écran, pour qui le graphe était jusqu'ici entièrement muet.
+- **Changer de carte ou de zone ne laisse plus de filtre fantôme** : un type d'interaction
+  qui n'existe pas dans la nouvelle sélection revient à « Tous », au lieu d'afficher un
+  menu vide et un réseau annoncé comme vide à tort.
+- La molette zoome sans faire défiler la page ; les boutons « − / ⟳ / + » restent
+  disponibles. Changer de disposition (« Cercle » / « Niveaux ») recompose bien toute la
+  scène, y compris les nœuds déplacés à la main.
+- **Sur tablette, le zoom au pincement fonctionne** : le geste habituel à deux doigts
+  agrandit le graphe, et lever les doigts ne déclenche plus par erreur l'isolement d'une
+  espèce.
+- **Chercher une espèce dans le graphe.** Un champ de recherche est proposé dans la barre
+  d'outils : taper un nom puis « Isoler » recentre l'exploration sur cette espèce, sans
+  passer par sa fiche.
+- **Voir la chaîne, pas seulement les voisins.** Quand une espèce est isolée, deux boutons
+  apparaissent : « Voisins » (les espèces directement reliées) et « Chaîne », qui va un cran
+  plus loin — qui mange qui mange qui. C'est là que se lit une chaîne alimentaire.
+- **Deux relations entre les deux mêmes espèces ne se cachent plus l'une l'autre** : elles
+  sont légèrement écartées, chacune cliquable.
+- **Herbivorie et prédation se distinguent au trait**, et non plus seulement à la couleur :
+  les deux rouges étaient trop proches pour être différenciés par un élève daltonien, alors
+  que ce sont les deux relations les plus importantes du réseau.
+- **Filtrer par zone ne coupe plus les liens qui en sortent.** Une espèce de la zone mangée
+  par un prédateur de la zone voisine faisait disparaître la relation entière ; elle est
+  désormais affichée, l'espèce extérieure étant signalée par un contour orangé pointillé.
+  Une zone montre ainsi ce à quoi elle est reliée, ce qui est tout l'intérêt de la notion.
+- **Corriger une relation sans la supprimer.** Le professeur qui sélectionne une flèche
+  dispose d'un bouton « Modifier cette relation » : type, espèce cible et description se
+  changent sur place. Auparavant, la moindre faute de frappe imposait de supprimer puis
+  recréer — ce qui faisait perdre les mots de glossaire rattachés.
 
 ## Le Carnet d'observation
 

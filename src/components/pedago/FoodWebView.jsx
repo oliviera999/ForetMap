@@ -9,7 +9,7 @@ import {
 import { edgeStyleForType } from '../../shared/foodWebEdgeStyle.js';
 import { GlossaryInlineText } from '../GlossaryMarkdown.jsx';
 import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
-import { IconAdd, IconDelete, IconFoodweb } from '../../shared/icons.jsx';
+import { IconAdd, IconDelete, IconEdit, IconFoodweb } from '../../shared/icons.jsx';
 
 const EMPTY_FORM = { fromId: '', toId: '', type: INTERACTION_TYPES[0], description: '' };
 
@@ -35,6 +35,9 @@ export function FoodWebView({
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [adminError, setAdminError] = useState('');
+  /** Édition d'une relation existante (PUT) — sinon corriger imposait de supprimer/recréer. */
+  const [editForm, setEditForm] = useState(null);
+  const [editError, setEditError] = useState('');
   /** Invalide une réponse de graphe périmée (changement de carte/zone pendant le fetch). */
   const loadFoodWebSeqRef = useRef(0);
 
@@ -144,6 +147,30 @@ export function FoodWebView({
     [form, loadFoodWeb],
   );
 
+  const saveInteraction = useCallback(
+    async (event) => {
+      event.preventDefault();
+      if (!editForm) return;
+      setEditError('');
+      setSaving(true);
+      try {
+        await api(`/api/food-web/interactions/${editForm.id}`, 'PUT', {
+          from_id: Number(editForm.fromId),
+          to_id: editForm.toId ? Number(editForm.toId) : null,
+          interaction_type: editForm.type,
+          description: editForm.description.trim() || null,
+        });
+        setEditForm(null);
+        await loadFoodWeb();
+      } catch (err) {
+        setEditError(err.message || 'Modification impossible');
+      } finally {
+        setSaving(false);
+      }
+    },
+    [editForm, loadFoodWeb],
+  );
+
   const deleteInteraction = useCallback(
     async (interactionId) => {
       if (!interactionId) return;
@@ -182,6 +209,37 @@ export function FoodWebView({
     return [...set].sort((a, b) => a.localeCompare(b, 'fr'));
   }, [items]);
 
+  // Changement de carte/zone : un type d'interaction absent du nouveau jeu laissait
+  // le menu vide et la vue annonçait « aucune interaction » à tort.
+  useEffect(() => {
+    if (loading || !interactionFilter) return;
+    if (!interactionTypes.includes(interactionFilter)) setInteractionFilter('');
+  }, [loading, interactionFilter, interactionTypes]);
+
+  /** Ligne de l'arête sélectionnée (null si elle a disparu du jeu courant). */
+  const selectedRow = useMemo(
+    () => (selectedEdgeId == null ? null : filteredItems.find((row) => row.id === selectedEdgeId)),
+    [filteredItems, selectedEdgeId],
+  );
+
+  // Une arête sélectionnée puis filtrée hors de la vue laissait un panneau
+  // glossaire décrivant une relation devenue invisible.
+  useEffect(() => {
+    if (selectedEdgeId == null || loading) return;
+    if (!selectedRow) {
+      setSelectedEdgeId(null);
+      setEdgeGlossary([]);
+    }
+  }, [loading, selectedEdgeId, selectedRow]);
+
+  /** Espèce mise en avant (arrivée depuis une fiche plante) absente du réseau courant. */
+  const highlightAbsent = useMemo(() => {
+    if (highlightPlantId == null || loading || error) return false;
+    const id = Number(highlightPlantId);
+    if (!Number.isFinite(id)) return false;
+    return !items.some((row) => Number(row.from_id) === id || Number(row.to_id) === id);
+  }, [highlightPlantId, items, loading, error]);
+
   async function selectEdge(interactionId) {
     if (selectedEdgeId === interactionId) {
       setSelectedEdgeId(null);
@@ -199,6 +257,24 @@ export function FoodWebView({
     } finally {
       setEdgeLoading(false);
     }
+  }
+
+  /** Extrémités orientées d'une interaction, prêtes à l'affichage. */
+  function describeRow(row) {
+    if (!row) return null;
+    const oriented = orientInteraction(row.from_id, row.to_id, row.interaction_type);
+    const endpoint = (id) => {
+      if (id == null) return { id: null, name: 'Environnement', emoji: '🌍' };
+      return Number(id) === Number(row.from_id)
+        ? { id: row.from_id, name: row.from_name, emoji: row.from_emoji }
+        : { id: row.to_id, name: row.to_name, emoji: row.to_emoji };
+    };
+    return {
+      tail: endpoint(oriented.tailId),
+      head: endpoint(oriented.headId),
+      relation: oriented.relation,
+      symmetric: oriented.symmetric,
+    };
   }
 
   function renderNode(id, name, emoji) {
@@ -233,15 +309,7 @@ export function FoodWebView({
           <h3 className="pedago-panel-title">{interactionLabel(type)}</h3>
           <ul className="pedago-foodweb__edges">
             {rows.map((row) => {
-              const oriented = orientInteraction(row.from_id, row.to_id, row.interaction_type);
-              const endpoint = (id) => {
-                if (id == null) return { id: null };
-                return Number(id) === Number(row.from_id)
-                  ? { id: row.from_id, name: row.from_name, emoji: row.from_emoji }
-                  : { id: row.to_id, name: row.to_name, emoji: row.to_emoji };
-              };
-              const tail = endpoint(oriented.tailId);
-              const head = endpoint(oriented.headId);
+              const { tail, head, relation, symmetric } = describeRow(row);
               return (
                 <li key={row.id} className="pedago-foodweb__row">
                   <div className="pedago-foodweb__edge-line">
@@ -254,9 +322,9 @@ export function FoodWebView({
                       style={{ '--fw-edge-color': edgeStyleForType(type).color }}
                     >
                       <span className="pedago-foodweb__edge-arrow" aria-hidden="true">
-                        {oriented.symmetric ? '↔' : '→'}
+                        {symmetric ? '↔' : '→'}
                       </span>
-                      <span className="pedago-foodweb__edge-label">{oriented.relation}</span>
+                      <span className="pedago-foodweb__edge-label">{relation}</span>
                     </button>
                     {renderNode(head.id, head.name, head.emoji)}
                     {canManage ? (
@@ -372,6 +440,150 @@ export function FoodWebView({
     </form>
   );
 
+  const selectedDescription = describeRow(selectedRow);
+
+  /**
+   * Détail de la relation cliquée : type, sens écologique, description puis
+   * termes de glossaire. En mode graphe il est rendu sous le graphe (et non
+   * dans la colonne latérale défilante, où le clic semblait sans effet).
+   */
+  const selectedEdgePanel = selectedEdgeId ? (
+    <div className="card pedago-foodweb__glossary pedago-foodweb__glossary--panel">
+      {selectedDescription ? (
+        <div className="pedago-foodweb__selected">
+          <p className="pedago-foodweb__selected-title">
+            <span
+              className="pedago-foodweb__selected-dot"
+              aria-hidden="true"
+              style={{ background: edgeStyleForType(selectedRow.interaction_type).color }}
+            />
+            {interactionLabel(selectedRow.interaction_type)}
+          </p>
+          <p className="pedago-foodweb__selected-sentence">
+            <strong>{selectedDescription.tail.name}</strong>{' '}
+            <span aria-hidden="true">{selectedDescription.symmetric ? '↔' : '→'}</span>{' '}
+            {selectedDescription.relation} <strong>{selectedDescription.head.name}</strong>
+          </p>
+          {selectedRow.description ? (
+            <GlossaryInlineText
+              tag="p"
+              className="pedago-foodweb__desc"
+              text={selectedRow.description}
+              glossaryItems={glossaryIndex}
+              onOpenGlossaryTerm={onOpenGlossaryTerm}
+            />
+          ) : null}
+        </div>
+      ) : null}
+      {canManage && selectedRow ? (
+        editForm && editForm.id === selectedRow.id ? (
+          <form className="pedago-foodweb__edit" onSubmit={saveInteraction}>
+            <div className="pedago-foodweb__admin-fields">
+              <label className="pedago-filter-field">
+                <span>Type d&apos;interaction</span>
+                <select
+                  className="form-select"
+                  value={editForm.type}
+                  onChange={(e) => setEditForm((p) => ({ ...p, type: e.target.value }))}
+                >
+                  {INTERACTION_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {interactionLabel(t)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="pedago-filter-field">
+                <span>Espèce cible</span>
+                <select
+                  className="form-select"
+                  value={editForm.toId}
+                  onChange={(e) => setEditForm((p) => ({ ...p, toId: e.target.value }))}
+                >
+                  <option value="">— environnement / aucune —</option>
+                  {speciesOptions.map((sp) => (
+                    <option key={sp.id} value={sp.id}>
+                      {sp.emoji ? `${sp.emoji} ` : ''}
+                      {sp.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="pedago-filter-field pedago-foodweb__admin-desc">
+                <span>Description</span>
+                <input
+                  type="text"
+                  className="form-input"
+                  maxLength={255}
+                  value={editForm.description}
+                  onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))}
+                />
+              </label>
+            </div>
+            <p className="section-sub pedago-foodweb__admin-hint">
+              L&apos;espèce source reste <strong>{selectedRow.from_name}</strong> : changer de
+              source revient à créer une autre relation.
+            </p>
+            {editError ? <p className="pedago-error">{editError}</p> : null}
+            <div className="pedago-foodweb__edit-actions">
+              <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
+                {saving ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setEditForm(null);
+                  setEditError('');
+                }}
+              >
+                Annuler
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm pedago-foodweb__edit-open"
+            onClick={() => {
+              setEditError('');
+              setEditForm({
+                id: selectedRow.id,
+                fromId: selectedRow.from_id,
+                toId: selectedRow.to_id == null ? '' : String(selectedRow.to_id),
+                type: selectedRow.interaction_type,
+                description: selectedRow.description || '',
+              });
+            }}
+          >
+            <IconEdit size={14} /> Modifier cette relation
+          </button>
+        )
+      ) : null}
+      {edgeLoading ? (
+        <p className="section-sub">Glossaire…</p>
+      ) : edgeGlossary.length === 0 ? (
+        <p className="section-sub">Aucun terme glossaire lié.</p>
+      ) : (
+        <>
+          <strong>Termes liés</strong>
+          <div className="pedago-chip-row">
+            {edgeGlossary.map((term) => (
+              <button
+                key={term.glossary_code}
+                type="button"
+                className="pedago-chip-btn"
+                onClick={() => onOpenGlossaryTerm?.(term.glossary_code)}
+              >
+                {term.terme}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  ) : null;
+
   return (
     <div
       className={`pedago-view pedago-foodweb${graphLayout ? ' pedago-foodweb--graph-layout' : ''}${listLayout ? ' pedago-foodweb--list-layout' : ''}`}
@@ -385,6 +597,14 @@ export function FoodWebView({
           fiche.
         </p>
       </header>
+
+      {highlightAbsent ? (
+        <p className="pedago-foodweb__highlight-notice" role="status">
+          L&apos;espèce d&apos;où tu viens n&apos;a encore aucune interaction enregistrée dans cette
+          sélection — élargis la carte ou la zone, ou demande à un professeur d&apos;ajouter ses
+          relations.
+        </p>
+      ) : null}
 
       <div
         className={`pedago-foodweb__layout${graphLayout ? ' pedago-foodweb__layout--graph' : ''}${listLayout ? ' pedago-foodweb__layout--list' : ''}`}
@@ -481,45 +701,24 @@ export function FoodWebView({
             </p>
           ) : null}
 
-          {selectedEdgeId ? (
-            <div className="card pedago-foodweb__glossary pedago-foodweb__glossary--panel">
-              {edgeLoading ? (
-                <p className="section-sub">Glossaire…</p>
-              ) : edgeGlossary.length === 0 ? (
-                <p className="section-sub">Aucun terme glossaire lié.</p>
-              ) : (
-                <>
-                  <strong>Termes liés</strong>
-                  <div className="pedago-chip-row">
-                    {edgeGlossary.map((term) => (
-                      <button
-                        key={term.glossary_code}
-                        type="button"
-                        className="pedago-chip-btn"
-                        onClick={() => onOpenGlossaryTerm?.(term.glossary_code)}
-                      >
-                        {term.terme}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          ) : null}
+          {graphLayout ? null : selectedEdgePanel}
         </div>
 
         {listLayout ? <div className="pedago-foodweb__list-stage">{listGroups}</div> : null}
 
         {graphLayout ? (
-          <div className="card pedago-foodweb__stage pedago-foodweb__graph-wrap">
-            <FoodWebGraph
-              items={filteredItems}
-              selectedEdgeId={selectedEdgeId}
-              highlightPlantId={highlightPlantId}
-              onSelectEdge={selectEdge}
-              onOpenPlant={onOpenPlant}
-              legendCompact
-            />
+          <div className="pedago-foodweb__graph-column">
+            <div className="card pedago-foodweb__stage pedago-foodweb__graph-wrap">
+              <FoodWebGraph
+                items={filteredItems}
+                selectedEdgeId={selectedEdgeId}
+                highlightPlantId={highlightPlantId}
+                onSelectEdge={selectEdge}
+                onOpenPlant={onOpenPlant}
+                legendCompact
+              />
+            </div>
+            {selectedEdgePanel}
           </div>
         ) : null}
       </div>

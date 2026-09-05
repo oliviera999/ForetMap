@@ -1858,6 +1858,14 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 > `to` = cible, mais la flèche est rendue dans le sens écologique « est mangée par » (flux d'énergie
 > de la ressource vers le consommateur) pour les types trophiques ; voir
 > `lib/shared/foodWebCore.js` (`orientInteraction`).
+>
+> **Périmètre `?zoneId=` / `?mapId=`** : une interaction est retenue dès qu'**une** de ses deux
+> extrémités appartient au périmètre. Exiger les deux — comportement antérieur — faisait
+> disparaître toute relation franchissant la limite (une espèce de la zone mangée par un prédateur
+> de la zone voisine n'apparaissait nulle part), ce qui sous-représentait la connectivité du
+> réseau. Les réponses filtrées portent en plus `from_in_scope` et `to_in_scope` (`1`/`0`) :
+> l'interface marque l'espèce hors périmètre au lieu de la masquer. La liste non filtrée
+> (`GET /api/food-web` sans paramètre) ne porte pas ces colonnes — tout y est dans le périmètre.
 
 | GET | `/api/plants/:id/interactions` | non | Interactions espèce |
 | GET | `/api/plants/:id/glossary-terms` | non | Termes liés |
