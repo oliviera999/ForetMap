@@ -199,10 +199,10 @@ texte sur la carte"`, qui ne contient pas son libellé visible (« Aa » / « A+
 c'est le cas de figure exact que WCAG 2.5.3 « Label in Name » interdit — une commande vocale
 prononçant l'étiquette visible ne l'atteint pas.
 
-> **Corrigé** — `aria-label="Lecture confortable (Aa)"` sur le premier ;
-> `aria-label={\`Taille du texte sur la carte (${mapTextSizeLabel})\`}`sur le second. Les deux
-noms accessibles contiennent désormais leur libellé visible.
-Tests :`tests-ui/components/visit/VisitDetailPanel.test.jsx`, `…/VisitMapChrome.test.jsx`.
+> **Corrigé** — `aria-label="Lecture confortable (Aa)"` sur le premier ; sur le second, un
+> `aria-label` construit sur le libellé courant (« Taille du texte sur la carte (Aa) »). Les
+> deux noms accessibles contiennent désormais leur libellé visible.
+> Tests : `tests-ui/components/visit/VisitDetailPanel.test.jsx`, `…/VisitMapChrome.test.jsx`.
 
 ---
 
