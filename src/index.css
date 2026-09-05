@@ -3970,6 +3970,7 @@
     .visit-progress--chrome-inline.visit-progress--donut {
       margin:0;
       align-self:center;
+      flex-shrink:0;
     }
     .visit-progress-donut {
       position:relative;
@@ -4096,6 +4097,7 @@
       flex:0 1 auto;
       margin-inline-start:auto;
     }
+
     .visit-network-status {
       display:inline-flex;
       align-items:center;
@@ -4119,6 +4121,17 @@
       color:#1e3a5f;
       background:#e0f2fe;
       border-color:#7dd3fc;
+    }
+    /* Groupe « affichage du plan » : même vocabulaire visuel que `.visit-map-controls`
+       posées sur le plan — un cadre discret qui dit « ces trois commandes vont ensemble ». */
+    .visit-display-group {
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      padding:3px;
+      border:1px solid rgba(82,183,136,.45);
+      border-radius:12px;
+      background:rgba(244,233,208,.55);
     }
     .visit-refresh-pill {
       display:inline-flex;
@@ -4407,6 +4420,19 @@
       gap:4px;
       max-width:260px;
     }
+    /* Variante bandeau : rangée compacte, sans libellé visible ni marge haute.
+       `.visit-mascot-picker` impose `flex-direction: column` (sa disposition dans les
+       réglages et le studio) ; le style en ligne du bandeau ne la réinitialisait jamais,
+       si bien que le libellé se posait AU-DESSUS du menu et décalait toute la rangée
+       de ~30px. Cf. `docs/AUDIT_VISITE_UI_UX_2026-09.md` §5.1. */
+    .visit-mascot-picker--visit-chrome {
+      flex-direction:row;
+      align-items:center;
+      margin-top:0;
+      gap:0;
+      max-width:none;
+      min-width:0;
+    }
     .visit-mascot-picker span {
       font-size:var(--text-sm);
       color:#365314;
@@ -4420,6 +4446,49 @@
       color:#1a4731;
       font-weight:var(--fw-semibold);
       padding:4px 8px;
+    }
+    /* Même spécificité que `.visit-mascot-picker select` (0,1,1), déclarée plus bas :
+       sans cela la règle générique reprenait la main sur `min-height`. `.form-select`
+       n'existe pas dans cette feuille — sans taille explicite le menu héritait de celle
+       du corps et « Gnome des bois » se coupait. */
+    .visit-mascot-picker--visit-chrome select {
+      min-width:0;
+      max-width:200px;
+      min-height:44px;
+      font-size:var(--text-sm);
+      border-radius:9px;
+      text-overflow:ellipsis;
+    }
+    /* Seuils responsive du bandeau — il n'en avait aucun : sous 560px tout s'empilait
+       aligné à droite, en escalier. Placé APRÈS les règles de base qu'il écrase : à
+       spécificité égale, c'est l'ordre de déclaration qui tranche, et une media query
+       n'ajoute aucune spécificité. */
+    /* Dès que les commandes passent à la ligne (tablette portrait), les aligner à gauche
+       comme le titre : seules et alignées à droite sur leur rangée, elles laissaient un
+       vide en L sous le titre. */
+    @media (max-width: 900px) {
+      .visit-map-card__chrome-actions {
+        justify-content:flex-start;
+        margin-inline-start:0;
+        width:100%;
+      }
+    }
+    @media (max-width: 560px) {
+      .visit-map-card__title {
+        font-size:1.05rem;
+      }
+      .visit-map-card__chrome-title-line {
+        gap:8px 10px;
+      }
+      .visit-mascot-picker--visit-chrome select {
+        max-width:148px;
+      }
+      /* Le donut cède la place au titre : lisible dès 40px, il laisse le bouton
+         « Présentation du lieu » remonter sur la même ligne. */
+      .visit-progress--chrome-inline .visit-progress-donut {
+        width:40px;
+        height:40px;
+      }
     }
     .visit-mascot-preview-body {
       min-width:84px;

@@ -38,6 +38,11 @@ familles.
   **Entrée** ou **Espace**, comme sur la carte de l'application. Une fois la fiche
   ouverte, le clavier reste à l'intérieur ; **Échap** ou un clic à côté la referme et
   ramène au lieu d'où l'on venait.
+- **La barre au-dessus du plan** réunit, à gauche, le titre, la pastille de progression
+  et « Présentation du lieu » ; à droite, un petit bloc encadré rassemble les trois
+  réglages d'affichage — **plein écran**, **taille du texte** et **choix de la mascotte**.
+  Les deux premiers sont des icônes : leur nom s'affiche au survol. Sur téléphone, cette
+  barre occupe environ deux fois moins de place qu'avant, au profit de la carte.
 
 ## Les mascottes
 
