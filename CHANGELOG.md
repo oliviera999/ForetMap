@@ -8228,6 +8228,65 @@ requêtes de contrôle à passer avant activation figurent en fin de document.
   Doc de référence mise à jour (`docs/reference/foretmap/comptes-roles-et-groupes.md`,
   `docs/reference/INCOHERENCES.md` — point F2).
 
+### Corrigé — page Visite (suites de `docs/AUDIT_VISITE_UI_UX_2026-09.md`)
+
+- **Les zones du plan s'ouvrent au clavier.** Une zone de visite était un `<g>` cliquable nu :
+  ni tabulable, ni annoncée, ni activable au clavier — alors que les repères, eux, sont des
+  boutons. Sur une carte faite surtout de zones, un élève au clavier ne pouvait ouvrir aucun
+  contenu, donc rien marquer comme vu. Elles deviennent des boutons (Entrée / Espace, nom
+  accessible), comme la carte principale l'avait déjà fait (`ZonePolygonsLayer`).
+- **La fiche d'un lieu est réellement modale.** Elle s'annonçait `aria-modal` sans focus
+  initial, sans piège de tabulation, sans restitution du focus à la fermeture, et sans voile :
+  sur grand écran, la carte restait cliquable derrière le dialogue (un clic à côté déplaçait
+  la mascotte ou ouvrait une autre zone). Elle reprend la coque partagée `useDialogA11y` et
+  reçoit un voile qui la referme au clic. Échap continue de ne pas emporter la fiche quand une
+  photo agrandie ou un aperçu de tutoriel est ouvert par-dessus.
+- **Plus de saut horizontal à l'ouverture de la fiche** (écrans ≥ 980 px) : l'animation
+  d'ouverture animait `transform` sans reprendre le `translateX(-50%)` de centrage — le
+  panneau apparaissait décalé d'une demi-largeur pendant 200 ms avant de sauter en place.
+- **Le clignotement des lieux non vus respecte « limiter les animations ».** Toutes les zones
+  et tous les repères non visités pulsaient en rouge en boucle, sans garde
+  `prefers-reduced-motion`. Le rouge et le vert restent : l'information ne dépend pas du
+  mouvement.
+- **La page ne disparaît plus à chaque rechargement.** Le loader plein écran est réservé au
+  premier chargement ; un changement de carte ou un enregistrement du professeur garde le plan
+  et la fiche à l'écran, avec une mention discrète « Actualisation… ». Auparavant, chaque
+  sauvegarde de contenu démontait la vue entière et le formulaire en cours.
+- **Accueil du visiteur** : les mascottes proposées redeviennent des boutons à bascule. Un
+  `role="listitem"` posé sur eux effaçait leur rôle natif et rendait `aria-pressed` inopérant
+  — le choix courant n'était pas annoncé.
+- **Commandes de zoom du plan** : cible tactile portée à 44 px sur écran tactile (convention
+  projet), et style de focus visible ajouté aux commandes de zoom, aux repères et aux zones.
+- **Deux noms accessibles réduits à « Aa »** : le bouton « lecture confortable » de la fiche
+  n'avait qu'un `title`, et le bouton de taille de texte du bandeau portait un `aria-label` ne
+  contenant pas son libellé visible (WCAG 2.5.3). Les deux sont corrigés.
+- **Nettoyage** : `visit-views.jsx` réimplémentait `prefers-reduced-motion` à l'identique du
+  hook partagé `usePrefersReducedMotion` — la copie locale disparaît.
+
+### Modifié — agencement du bandeau de la visite (`docs/AUDIT_VISITE_UI_UX_2026-09.md` §5)
+
+- **Le sélecteur de mascotte tenait sur deux lignes.** `.visit-mascot-picker` impose
+  `flex-direction: column` (sa disposition dans les réglages) et le style en ligne du bandeau
+  ne la réinitialisait jamais : le libellé « Mascotte » se posait *au-dessus* du menu, avec une
+  marge haute qui décalait toute la rangée. ~30 px de hauteur en trop sur toutes les largeurs.
+- **Le bandeau est réorganisé en trois zones** au lieu d'une file de neuf éléments mélangeant
+  état, commandes de vue, préférence et rôle sans séparateur : *identité et progression*
+  (titre, donut, « Présentation du lieu »), *affichage du plan* (plein écran, taille du texte,
+  mascotte réunis dans un groupe visuel unique) et *contexte et rôle*.
+- **Les commandes d'affichage sont compactées** : « Plein écran » passe en icône seule (variante
+  partagée `--compact` ; la carte principale garde son libellé) et le libellé visible
+  « Mascotte » disparaît — il doublait la valeur affichée. Les deux gardent leur nom accessible
+  et gagnent une infobulle.
+- **Le bandeau n'avait aucune règle responsive** : sous 560 px tout s'empilait aligné à droite,
+  en escalier. Mesuré dans Chromium, il montait à **274 px de haut sur un écran de 390 px**. Il
+  tombe à **219 px** pour un élève ou un visiteur, et à **121 px** au-dessus de 1 024 px
+  (contre 151). Le professeur sur téléphone gagne peu — « Aperçu comme élève » occupe une
+  rangée — mais y gagne la lisibilité : trois rangées au lieu de six.
+- **Le menu de mascotte ne tronque plus le nom affiché** : `.form-select` n'existe pas dans la
+  feuille de styles, le menu héritait donc de la taille de police du corps.
+- La taille de titre du seuil mobile passe par le token `--text-md` et non par un littéral
+  `rem` : `tests/typography-tokens-guard.test.js` l'impose (audit homogénéité UI, B2).
+
 ---
 
 ## [1.2.0] - 2026-03-20

@@ -5,12 +5,71 @@ const VISIT_PROGRESS_DONUT_R = 14;
 const VISIT_PROGRESS_DONUT_STROKE = 3;
 const VISIT_PROGRESS_DONUT_C = 2 * Math.PI * VISIT_PROGRESS_DONUT_R;
 
+/** Donut de progression du parcours (zones + repères marqués comme vus). */
+function VisitProgressDonut({ progress }) {
+  return (
+    <div className="visit-progress visit-progress--donut visit-progress--chrome-inline">
+      <div
+        className="visit-progress-donut"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={progress.pct}
+        aria-label={`Parcours sur la carte : ${progress.pct} % des zones et repères marqués comme vus (${progress.seenCount} sur ${progress.total}).`}
+        title={`${progress.pct} % — ${progress.seenCount} / ${progress.total} vus`}
+        data-testid="visit-progress-donut"
+      >
+        <svg
+          className="visit-progress-donut__svg"
+          viewBox={`0 0 ${VISIT_PROGRESS_DONUT_VB} ${VISIT_PROGRESS_DONUT_VB}`}
+          aria-hidden="true"
+        >
+          <circle
+            className="visit-progress-donut__track"
+            fill="none"
+            strokeWidth={VISIT_PROGRESS_DONUT_STROKE}
+            cx={VISIT_PROGRESS_DONUT_VB / 2}
+            cy={VISIT_PROGRESS_DONUT_VB / 2}
+            r={VISIT_PROGRESS_DONUT_R}
+          />
+          <circle
+            className="visit-progress-donut__arc"
+            fill="none"
+            strokeWidth={VISIT_PROGRESS_DONUT_STROKE}
+            strokeLinecap="round"
+            cx={VISIT_PROGRESS_DONUT_VB / 2}
+            cy={VISIT_PROGRESS_DONUT_VB / 2}
+            r={VISIT_PROGRESS_DONUT_R}
+            transform={`rotate(-90 ${VISIT_PROGRESS_DONUT_VB / 2} ${VISIT_PROGRESS_DONUT_VB / 2})`}
+            strokeDasharray={VISIT_PROGRESS_DONUT_C}
+            strokeDashoffset={VISIT_PROGRESS_DONUT_C * (1 - progress.pct / 100)}
+          />
+        </svg>
+        <span className="visit-progress-donut__label" aria-hidden="true">
+          <span className="visit-progress-donut__value">{progress.pct}</span>
+          <span className="visit-progress-donut__pct-sign">%</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 /**
- * Bandeau « chrome » de la carte de visite : titre + bouton présentation, statut réseau/sync,
- * bascules plein plan / aperçu élève, sélecteur de mascotte, donut de progression,
- * panneau d'aide (slot), retour connexion, sélecteur de carte et astuces sous le bandeau.
- * Présentation pure : tout l'état reste dans `VisitView`.
+ * Bandeau « chrome » de la carte de visite. Présentation pure : tout l'état reste dans
+ * `VisitView`.
  *
+ * Organisé en **trois zones** au lieu d'une file unique de commandes hétérogènes
+ * (cf. `docs/AUDIT_VISITE_UI_UX_2026-09.md` §5) :
+ *  1. *identité et progression* — titre, donut, bouton « Présentation du lieu » ;
+ *  2. *affichage du plan* — plein écran, taille du texte, mascotte, réunis dans un groupe
+ *     visuel unique (`.visit-display-group`) qui rime avec les commandes de zoom du plan ;
+ *  3. *contexte et rôle* — état réseau, aperçu élève, aide, retour connexion.
+ *
+ * Les commandes de la zone 2 sont **en icône seule** (cible de 44px) : mesuré dans Chromium,
+ * le bandeau montait à 274px de haut sur un écran de 390px, dont un tiers pour les libellés
+ * et le sélecteur de mascotte.
+ *
+ * @param {boolean} refreshing rechargement en cours (la carte reste affichée : pastille discrète).
  * @param {string|null} networkStatusLabel libellé statut réseau (null = masqué, ex. hors mode vue).
  * @param {{ total: number, seenCount: number, pct: number }} cartographyProgress progression carte courante.
  * @param {React.ReactNode} helpPanelSlot `HelpPanel` déjà configuré par le parent (null = aide désactivée).
@@ -22,6 +81,7 @@ export function VisitMapChrome({
   showPresentationButton = false,
   presentationInvitePulse = false,
   onOpenPresentation,
+  refreshing = false,
   networkStatusLabel = null,
   isOnline = true,
   syncStatus = 'idle',
@@ -48,8 +108,13 @@ export function VisitMapChrome({
   return (
     <div className="visit-map-card__chrome">
       <div className="visit-map-card__chrome-top">
+        {/* Zone 1 — identité et progression. Le donut est une **donnée**, pas une commande :
+            sa place est auprès du titre, pas coincée entre un menu de préférence et l'aide. */}
         <div className="visit-map-card__chrome-title-line">
           <h2 className="section-title visit-map-card__title">{title}</h2>
+          {cartographyProgress.total > 0 ? (
+            <VisitProgressDonut progress={cartographyProgress} />
+          ) : null}
           {showPresentationButton ? (
             <button
               type="button"
@@ -63,6 +128,73 @@ export function VisitMapChrome({
           ) : null}
         </div>
         <div className="visit-map-card__chrome-actions">
+          {/* Zone 2 — affichage du plan : trois commandes de même nature, même forme,
+              un seul bloc. Sans ce regroupement, elles étaient éparpillées entre un état
+              réseau, une bascule de rôle et un bouton d'aide. */}
+          <div className="visit-display-group" role="group" aria-label="Affichage du plan">
+            <button
+              type="button"
+              className="fm-map-fullscreen-open fm-map-fullscreen-open--compact"
+              data-testid="visit-map-fullscreen-open"
+              onClick={onToggleImmersion}
+              aria-pressed={visitImmersion}
+              title={visitImmersion ? 'Quitter le plein écran' : 'Plein écran'}
+              aria-label={
+                visitImmersion ? 'Quitter le plein écran' : 'Afficher la carte en plein écran'
+              }
+            >
+              <IconFullscreen size={16} />
+              <span className="fm-map-fullscreen-open__label">Plein écran</span>
+            </button>
+            {onCycleMapTextSize ? (
+              <button
+                type="button"
+                className="map-toolbar-text-size-btn"
+                data-testid="visit-map-text-size"
+                title="Taille du texte sur la carte (Normal / Grand / Très grand)"
+                aria-label={`Taille du texte sur la carte (${mapTextSizeLabel})`}
+                onClick={onCycleMapTextSize}
+              >
+                {mapTextSizeLabel}
+              </button>
+            ) : null}
+            {visitMascotOptions.length > 0 ? (
+              /* Sélecteur natif conservé — accessible sans piège de focus maison — mais
+                 compacté : le libellé visible « Mascotte » doublait la valeur affichée pour
+                 60px de large, et `flex-direction: column`, hérité de `.visit-mascot-picker`
+                 sans jamais être réinitialisé, le posait sur une seconde ligne. Le nom
+                 accessible reste porté par `aria-label`, l'infobulle par `title`. */
+              <label
+                className="visit-mascot-picker visit-mascot-picker--visit-chrome"
+                data-testid="visit-mascot-picker"
+              >
+                <select
+                  className="form-select visit-mascot-picker__select"
+                  value={visitMascotId}
+                  onChange={(e) => onChangeVisitMascotId(e.target.value)}
+                  title="Mascotte affichée sur le plan"
+                  aria-label="Choisir la mascotte affichée sur le plan"
+                >
+                  {visitMascotOptions.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+          </div>
+          {/* Zone 3 — contexte et rôle. */}
+          {refreshing ? (
+            <span
+              className="visit-refresh-pill"
+              data-testid="visit-refresh-pill"
+              role="status"
+              aria-live="polite"
+            >
+              Actualisation…
+            </span>
+          ) : null}
           {networkStatusLabel ? (
             <span
               className={`visit-network-status${!isOnline ? ' visit-network-status--offline' : ''}${pendingSyncCount > 0 || syncStatus === 'error' ? ' visit-network-status--pending' : ''}${syncStatus === 'syncing' ? ' visit-network-status--syncing' : ''}`}
@@ -76,30 +208,6 @@ export function VisitMapChrome({
               {networkStatusLabel}
             </span>
           ) : null}
-          <button
-            type="button"
-            className="fm-map-fullscreen-open"
-            data-testid="visit-map-fullscreen-open"
-            onClick={onToggleImmersion}
-            aria-pressed={visitImmersion}
-            aria-label={
-              visitImmersion ? 'Quitter le plein écran' : 'Afficher la carte en plein écran'
-            }
-          >
-            <IconFullscreen size={14} /> Plein écran
-          </button>
-          {onCycleMapTextSize ? (
-            <button
-              type="button"
-              className="map-toolbar-text-size-btn"
-              data-testid="visit-map-text-size"
-              title="Taille du texte sur la carte (Normal / Grand / Très grand)"
-              aria-label="Changer la taille du texte sur la carte"
-              onClick={onCycleMapTextSize}
-            >
-              {mapTextSizeLabel}
-            </button>
-          ) : null}
           {isTeacher ? (
             <button
               type="button"
@@ -110,81 +218,6 @@ export function VisitMapChrome({
             >
               {teacherPreviewAsStudent ? 'Retour édition prof' : 'Aperçu comme élève'}
             </button>
-          ) : null}
-          {visitMascotOptions.length > 0 ? (
-            <label
-              className="visit-mascot-picker visit-mascot-picker--visit-chrome"
-              data-testid="visit-mascot-picker"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 'var(--text-sm)',
-                marginLeft: 4,
-              }}
-            >
-              <span className="section-sub" style={{ whiteSpace: 'nowrap' }}>
-                Mascotte
-              </span>
-              <select
-                className="form-select"
-                style={{ minWidth: 140, maxWidth: 220 }}
-                value={visitMascotId}
-                onChange={(e) => onChangeVisitMascotId(e.target.value)}
-                aria-label="Choisir la mascotte affichée sur le plan"
-              >
-                {visitMascotOptions.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-          {cartographyProgress.total > 0 ? (
-            <div className="visit-progress visit-progress--donut visit-progress--chrome-inline">
-              <div
-                className="visit-progress-donut"
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={cartographyProgress.pct}
-                aria-label={`Parcours sur la carte : ${cartographyProgress.pct} % des zones et repères marqués comme vus (${cartographyProgress.seenCount} sur ${cartographyProgress.total}).`}
-                title={`${cartographyProgress.pct} % — ${cartographyProgress.seenCount} / ${cartographyProgress.total} vus`}
-                data-testid="visit-progress-donut"
-              >
-                <svg
-                  className="visit-progress-donut__svg"
-                  viewBox={`0 0 ${VISIT_PROGRESS_DONUT_VB} ${VISIT_PROGRESS_DONUT_VB}`}
-                  aria-hidden="true"
-                >
-                  <circle
-                    className="visit-progress-donut__track"
-                    fill="none"
-                    strokeWidth={VISIT_PROGRESS_DONUT_STROKE}
-                    cx={VISIT_PROGRESS_DONUT_VB / 2}
-                    cy={VISIT_PROGRESS_DONUT_VB / 2}
-                    r={VISIT_PROGRESS_DONUT_R}
-                  />
-                  <circle
-                    className="visit-progress-donut__arc"
-                    fill="none"
-                    strokeWidth={VISIT_PROGRESS_DONUT_STROKE}
-                    strokeLinecap="round"
-                    cx={VISIT_PROGRESS_DONUT_VB / 2}
-                    cy={VISIT_PROGRESS_DONUT_VB / 2}
-                    r={VISIT_PROGRESS_DONUT_R}
-                    transform={`rotate(-90 ${VISIT_PROGRESS_DONUT_VB / 2} ${VISIT_PROGRESS_DONUT_VB / 2})`}
-                    strokeDasharray={VISIT_PROGRESS_DONUT_C}
-                    strokeDashoffset={VISIT_PROGRESS_DONUT_C * (1 - cartographyProgress.pct / 100)}
-                  />
-                </svg>
-                <span className="visit-progress-donut__label" aria-hidden="true">
-                  <span className="visit-progress-donut__value">{cartographyProgress.pct}</span>
-                  <span className="visit-progress-donut__pct-sign">%</span>
-                </span>
-              </div>
-            </div>
           ) : null}
           {helpPanelSlot}
           {onBackToAuth ? (

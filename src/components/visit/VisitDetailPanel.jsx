@@ -1,4 +1,5 @@
 import { useId, useMemo } from 'react';
+import { useDialogA11y } from '../../shared/platform/useDialogA11y.js';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { normalizeEditorialBlocks } from '../../utils/visitEditorialBlocks.js';
 import { computeVisitLocationAside } from '../../utils/visitLocationAside.js';
@@ -108,6 +109,11 @@ export function VisitDetailPanel({
   selected,
   selectedType,
   onClose,
+  /**
+   * Fermeture demandée au clavier (Échap). Distincte de `onClose` : le parent l'ignore
+   * tant qu'une lightbox ou un aperçu de tutoriel est ouvert par-dessus le panneau.
+   */
+  onRequestClose = null,
   comfortableReading,
   onToggleComfortableReading,
   onOpenLightbox,
@@ -132,6 +138,13 @@ export function VisitDetailPanel({
   markerEmojis,
 }) {
   const visitDetailPanelTitleId = useId();
+  /**
+   * `aria-modal` sans piège de focus laissait la tabulation repartir dans la carte derrière
+   * le panneau, et le focus n'était pas rendu à la zone/au repère à la fermeture.
+   * Même coque a11y que les autres dialogues (`useDialogA11y` : focus initial, piège Tab,
+   * Échap, restitution du focus).
+   */
+  const dialogRef = useDialogA11y(() => (onRequestClose || onClose)?.());
 
   /** Biodiversité et tutoriels liés au lieu (aligné sur les panneaux zone/repère de la carte). */
   const visitLocationAside = useMemo(
@@ -165,183 +178,197 @@ export function VisitDetailPanel({
   );
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={visitDetailPanelTitleId}
-      data-testid="visit-detail-panel"
-      className={`visit-detail-panel${comfortableReading ? ' visit-detail-panel--comfortable' : ''} visit-detail-panel--tone-paper`}
-    >
-      <div className="visit-detail-panel__handle" aria-hidden="true" />
-      <div className="visit-detail-panel__head">
-        <h3 id={visitDetailPanelTitleId} className="visit-detail-panel__title">
-          {selectedType === 'zone' ? selected.name : selected.label}
-        </h3>
-        <button
-          type="button"
-          className={`btn btn-ghost btn-sm ${comfortableReading ? 'is-active' : ''}`}
-          aria-pressed={comfortableReading}
-          title="Basculer le mode lecture confortable"
-          onClick={onToggleComfortableReading}
-        >
-          Aa
-        </button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
-          Fermer
-        </button>
-      </div>
-      <div className="visit-detail-panel__body visit-selection-aside">
-        {selected.visit_subtitle && <p className="visit-subtitle">{selected.visit_subtitle}</p>}
-        {selected.map_lead_photo?.image_url && (
-          <div className="visit-media-gallery visit-media-gallery--lead">
-            <VisitMediaGalleryThumb
-              media={{
-                image_url: selected.map_lead_photo.image_url,
-                caption: selected.map_lead_photo.caption,
-              }}
-              onOpenLightbox={onOpenLightbox}
-            />
-          </div>
-        )}
-        {hasEditorialBlocks ? (
-          <VisitEditorialRenderer
-            blocks={selectedEditorialBlocks}
-            selectedVisitMedia={selectedVisitMedia}
-            onOpenLightbox={onOpenLightbox}
-          />
-        ) : (
-          <>
-            {selected.visit_short_description && (
-              <MarkdownContent>{selected.visit_short_description}</MarkdownContent>
-            )}
-            {firstVisitPhoto && (
-              <div className="visit-media-gallery visit-media-gallery--lead">
-                <VisitMediaGalleryThumb media={firstVisitPhoto} onOpenLightbox={onOpenLightbox} />
-              </div>
-            )}
-            {showVisitDetailsBlock && (
-              <details className="visit-details">
-                <summary>{selected.visit_details_title || 'Détails'}</summary>
-                {(restVisitPhotos.length > 0 || mapExtraPhotos.length > 0) && (
-                  <div className="visit-media-gallery visit-media-gallery--details-extra">
-                    {restVisitPhotos.map((m) => (
-                      <VisitMediaGalleryThumb
-                        key={m.id}
-                        media={m}
-                        onOpenLightbox={onOpenLightbox}
-                      />
-                    ))}
-                    {mapExtraPhotos.map((ph) => (
-                      <VisitMediaGalleryThumb
-                        key={`map-extra-${ph.id}`}
-                        media={{
-                          image_url: ph.image_url,
-                          thumb_url: ph.thumb_url,
-                          caption: ph.caption,
-                        }}
-                        onOpenLightbox={onOpenLightbox}
-                      />
-                    ))}
-                  </div>
-                )}
-                {visitDetailsTextTrim ? (
-                  <MarkdownContent className="visit-details__body">
-                    {selected.visit_details_text}
-                  </MarkdownContent>
-                ) : null}
-              </details>
-            )}
-          </>
-        )}
-        {visitLocationAside.showBiodiversity && (
-          <details className="visit-details">
-            <summary>Biodiversité</summary>
-            <div className="visit-details__section">
-              {visitLocationAside.primaryLivingNames.length > 0 && (
-                <div
-                  className={`visit-details__subsection${visitLocationAside.livingBeingsOnlyOnTasks.length ? ' visit-details__subsection--with-gap' : ''}`}
-                >
-                  {visitLocationAside.primaryLivingNames.length > 1 ||
-                  visitLocationAside.livingBeingsOnlyOnTasks.length > 0 ? (
-                    <h4 className="visit-details__h4">
-                      {visitLocationAside.locationKind === 'zone'
-                        ? 'Sur cette zone'
-                        : 'Sur ce repère'}
-                    </h4>
-                  ) : null}
-                  {onOpenPlantCatalogPreview ? (
-                    <BiodiversitySpeciesOpenLinks
-                      plants={plants}
-                      names={visitLocationAside.primaryLivingNames}
-                      showHeading={false}
-                      onOpenPlant={onOpenPlantCatalogPreview}
-                    />
-                  ) : (
-                    <LivingBeingsCatalogPanel
-                      plants={plants}
-                      names={visitLocationAside.primaryLivingNames}
-                      showHeading={false}
-                    />
-                  )}
-                </div>
-              )}
-              {visitLocationAside.livingBeingsOnlyOnTasks.length > 0 && (
-                <div>
-                  <h4 className="visit-details__h4">Également dans les missions</h4>
-                  {onOpenPlantCatalogPreview ? (
-                    <BiodiversitySpeciesOpenLinks
-                      plants={plants}
-                      names={visitLocationAside.livingBeingsOnlyOnTasks}
-                      showHeading={false}
-                      sectionTitle="Également dans les missions"
-                      onOpenPlant={onOpenPlantCatalogPreview}
-                    />
-                  ) : (
-                    <LivingBeingsCatalogPanel
-                      plants={plants}
-                      names={visitLocationAside.livingBeingsOnlyOnTasks}
-                      showHeading={false}
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-          </details>
-        )}
-        {visitLocationAside.showTutos && (
-          <details className="visit-details">
-            <summary>Tuto</summary>
-            <div className="visit-details__section">
-              <LocationTutorialPreviewList
-                tutorials={visitLocationAside.tutorialListForPreview}
-                locationKind={visitLocationAside.locationKind}
-                locationId={selected.id}
-                onOpenTutorialPreview={onOpenTutorialPreview}
+    <>
+      {/* Voile : sur grand écran le panneau est une carte centrée — sans lui, la carte
+          restait cliquable sous un dialogue `aria-modal` (un clic ouvrait une autre zone
+          ou déplaçait la mascotte derrière le panneau). */}
+      <div
+        className="visit-detail-panel__scrim"
+        data-testid="visit-detail-panel-scrim"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={visitDetailPanelTitleId}
+        tabIndex={-1}
+        data-testid="visit-detail-panel"
+        className={`visit-detail-panel${comfortableReading ? ' visit-detail-panel--comfortable' : ''} visit-detail-panel--tone-paper`}
+      >
+        <div className="visit-detail-panel__handle" aria-hidden="true" />
+        <div className="visit-detail-panel__head">
+          <h3 id={visitDetailPanelTitleId} className="visit-detail-panel__title">
+            {selectedType === 'zone' ? selected.name : selected.label}
+          </h3>
+          <button
+            type="button"
+            className={`btn btn-ghost btn-sm ${comfortableReading ? 'is-active' : ''}`}
+            aria-pressed={comfortableReading}
+            aria-label="Lecture confortable (Aa)"
+            title="Basculer le mode lecture confortable"
+            onClick={onToggleComfortableReading}
+          >
+            Aa
+          </button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
+            Fermer
+          </button>
+        </div>
+        <div className="visit-detail-panel__body visit-selection-aside">
+          {selected.visit_subtitle && <p className="visit-subtitle">{selected.visit_subtitle}</p>}
+          {selected.map_lead_photo?.image_url && (
+            <div className="visit-media-gallery visit-media-gallery--lead">
+              <VisitMediaGalleryThumb
+                media={{
+                  image_url: selected.map_lead_photo.image_url,
+                  caption: selected.map_lead_photo.caption,
+                }}
+                onOpenLightbox={onOpenLightbox}
               />
             </div>
-          </details>
-        )}
-        <button className="btn btn-primary btn-sm" disabled={savingSeen} onClick={onToggleSeen}>
-          {seen.has(itemSeenKey(selectedType, selected.id)) ? (
-            <>
-              <IconCheck size={14} /> Marqué comme vu
-            </>
+          )}
+          {hasEditorialBlocks ? (
+            <VisitEditorialRenderer
+              blocks={selectedEditorialBlocks}
+              selectedVisitMedia={selectedVisitMedia}
+              onOpenLightbox={onOpenLightbox}
+            />
           ) : (
             <>
-              <IconEye size={14} /> Marquer comme vu
+              {selected.visit_short_description && (
+                <MarkdownContent>{selected.visit_short_description}</MarkdownContent>
+              )}
+              {firstVisitPhoto && (
+                <div className="visit-media-gallery visit-media-gallery--lead">
+                  <VisitMediaGalleryThumb media={firstVisitPhoto} onOpenLightbox={onOpenLightbox} />
+                </div>
+              )}
+              {showVisitDetailsBlock && (
+                <details className="visit-details">
+                  <summary>{selected.visit_details_title || 'Détails'}</summary>
+                  {(restVisitPhotos.length > 0 || mapExtraPhotos.length > 0) && (
+                    <div className="visit-media-gallery visit-media-gallery--details-extra">
+                      {restVisitPhotos.map((m) => (
+                        <VisitMediaGalleryThumb
+                          key={m.id}
+                          media={m}
+                          onOpenLightbox={onOpenLightbox}
+                        />
+                      ))}
+                      {mapExtraPhotos.map((ph) => (
+                        <VisitMediaGalleryThumb
+                          key={`map-extra-${ph.id}`}
+                          media={{
+                            image_url: ph.image_url,
+                            thumb_url: ph.thumb_url,
+                            caption: ph.caption,
+                          }}
+                          onOpenLightbox={onOpenLightbox}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {visitDetailsTextTrim ? (
+                    <MarkdownContent className="visit-details__body">
+                      {selected.visit_details_text}
+                    </MarkdownContent>
+                  ) : null}
+                </details>
+              )}
             </>
           )}
-        </button>
-        <VisitEditorPanel
-          selected={selected}
-          selectedType={selectedType}
-          onSaved={onSaved}
-          onForceLogout={onForceLogout}
-          isTeacher={canEditVisit}
-          roleTerms={roleTerms}
-          markerEmojis={markerEmojis}
-        />
+          {visitLocationAside.showBiodiversity && (
+            <details className="visit-details">
+              <summary>Biodiversité</summary>
+              <div className="visit-details__section">
+                {visitLocationAside.primaryLivingNames.length > 0 && (
+                  <div
+                    className={`visit-details__subsection${visitLocationAside.livingBeingsOnlyOnTasks.length ? ' visit-details__subsection--with-gap' : ''}`}
+                  >
+                    {visitLocationAside.primaryLivingNames.length > 1 ||
+                    visitLocationAside.livingBeingsOnlyOnTasks.length > 0 ? (
+                      <h4 className="visit-details__h4">
+                        {visitLocationAside.locationKind === 'zone'
+                          ? 'Sur cette zone'
+                          : 'Sur ce repère'}
+                      </h4>
+                    ) : null}
+                    {onOpenPlantCatalogPreview ? (
+                      <BiodiversitySpeciesOpenLinks
+                        plants={plants}
+                        names={visitLocationAside.primaryLivingNames}
+                        showHeading={false}
+                        onOpenPlant={onOpenPlantCatalogPreview}
+                      />
+                    ) : (
+                      <LivingBeingsCatalogPanel
+                        plants={plants}
+                        names={visitLocationAside.primaryLivingNames}
+                        showHeading={false}
+                      />
+                    )}
+                  </div>
+                )}
+                {visitLocationAside.livingBeingsOnlyOnTasks.length > 0 && (
+                  <div>
+                    <h4 className="visit-details__h4">Également dans les missions</h4>
+                    {onOpenPlantCatalogPreview ? (
+                      <BiodiversitySpeciesOpenLinks
+                        plants={plants}
+                        names={visitLocationAside.livingBeingsOnlyOnTasks}
+                        showHeading={false}
+                        sectionTitle="Également dans les missions"
+                        onOpenPlant={onOpenPlantCatalogPreview}
+                      />
+                    ) : (
+                      <LivingBeingsCatalogPanel
+                        plants={plants}
+                        names={visitLocationAside.livingBeingsOnlyOnTasks}
+                        showHeading={false}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            </details>
+          )}
+          {visitLocationAside.showTutos && (
+            <details className="visit-details">
+              <summary>Tuto</summary>
+              <div className="visit-details__section">
+                <LocationTutorialPreviewList
+                  tutorials={visitLocationAside.tutorialListForPreview}
+                  locationKind={visitLocationAside.locationKind}
+                  locationId={selected.id}
+                  onOpenTutorialPreview={onOpenTutorialPreview}
+                />
+              </div>
+            </details>
+          )}
+          <button className="btn btn-primary btn-sm" disabled={savingSeen} onClick={onToggleSeen}>
+            {seen.has(itemSeenKey(selectedType, selected.id)) ? (
+              <>
+                <IconCheck size={14} /> Marqué comme vu
+              </>
+            ) : (
+              <>
+                <IconEye size={14} /> Marquer comme vu
+              </>
+            )}
+          </button>
+          <VisitEditorPanel
+            selected={selected}
+            selectedType={selectedType}
+            onSaved={onSaved}
+            onForceLogout={onForceLogout}
+            isTeacher={canEditVisit}
+            roleTerms={roleTerms}
+            markerEmojis={markerEmojis}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
