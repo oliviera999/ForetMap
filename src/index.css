@@ -4475,7 +4475,9 @@
     }
     @media (max-width: 560px) {
       .visit-map-card__title {
-        font-size:1.05rem;
+        /* Token de l'échelle, pas un littéral rem : `tests/typography-tokens-guard.test.js`
+           l'impose (audit homogénéité UI, B2). --text-md ≈ 1rem→1.1rem. */
+        font-size:var(--text-md);
       }
       .visit-map-card__chrome-title-line {
         gap:8px 10px;
