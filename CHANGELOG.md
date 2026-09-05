@@ -7,16 +7,6 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Retiré
-
-- **Bandeau « Ton compte n'est pas encore rattaché à une classe »** (élève au profil
-  visiteur) : supprimé de l'écran d'accueil. Le visiteur voit toujours une version réduite
-  de l'application (Visite et Biodiversité) ; le rattachement reste à la main du professeur
-  (liste « comptes en attente de rattachement ») ou passe par le code de classe à
-  l'inscription. Vérifié : aucun autre écran ne portait de message « compte non rattaché ».
-  Doc de référence mise à jour (`docs/reference/foretmap/comptes-roles-et-groupes.md`,
-  `docs/reference/INCOHERENCES.md` — point F2).
-
 ### Corrigé — parcours de carte (suites de `docs/AUDIT_PARCOURS_2026-09.md`)
 
 - **Détail public d'un parcours** : le filtre `is_published` — corrigé en parallèle par la
@@ -8156,6 +8146,16 @@ Aucun changement de comportement — document seul. Points saillants : quatre de
 automatique — l'accusé est figé en mode `all`), et les liens bloquants hérités de la migration
 145 / des imports de QCM se réveilleraient tous à l'allumage de l'interrupteur global. Les
 requêtes de contrôle à passer avant activation figurent en fin de document.
+
+### Retiré
+
+- **Bandeau « Ton compte n'est pas encore rattaché à une classe »** (élève au profil
+  visiteur) : supprimé de l'écran d'accueil. Le visiteur voit toujours une version réduite
+  de l'application (Visite et Biodiversité) ; le rattachement reste à la main du professeur
+  (liste « comptes en attente de rattachement ») ou passe par le code de classe à
+  l'inscription. Vérifié : aucun autre écran ne portait de message « compte non rattaché ».
+  Doc de référence mise à jour (`docs/reference/foretmap/comptes-roles-et-groupes.md`,
+  `docs/reference/INCOHERENCES.md` — point F2).
 
 ---
 
