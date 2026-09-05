@@ -23,9 +23,11 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   d'élève. Code erroné → l'inscription est refusée avec un message clair (aucun compte
   n'est créé, l'élève corrige et réessaie). Sans code → le compte est créé en
   « visiteur ».
-- **Le compte en attente** : un visiteur voit un bandeau qui lui explique qu'un
-  professeur doit le rattacher à une classe, et qu'en attendant il peut explorer la
-  Visite et la Biodiversité.
+- **Le compte en attente** : un visiteur n'est averti par aucun bandeau (celui-ci a été
+  retiré à la demande de l'établissement). Il voit simplement une version réduite de
+  l'application, centrée sur la Visite et la Biodiversité ; c'est au professeur de le
+  rattacher à son groupe (liste « comptes en attente de rattachement ») ou de lui
+  fournir un code de classe.
 - **Mot de passe oublié** : procédure par e-mail, pour les élèves comme pour les
   professeurs.
 - **Longueur minimale du mot de passe** : le réglage « Sécurité » fixe le minimum pour
