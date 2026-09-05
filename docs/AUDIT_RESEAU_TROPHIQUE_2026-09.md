@@ -198,14 +198,103 @@ A4 et N8 sont des alignements de valeurs et d'icônes, sans comportement à verr
 
 ---
 
-## 4. Constats non traités (hors périmètre de ce lot)
+## 4. Second lot — améliorations demandées après l'audit
+
+Les huit points ci-dessous ne sont pas des régressions mais des manques relevés
+pendant l'audit, traités dans un second temps à la demande. Les deux derniers ont été
+arbitrés en tenant compte d'un fait de terrain : **les élèves travaillent sur tablette**.
+
+### B1. Deux relations entre les mêmes espèces se superposaient
+
+`uq_interaction` (`migrations/124_species_interactions_views.sql:13`) porte sur le triplet
+_(source, cible, type)_ : deux espèces peuvent donc être reliées par plusieurs relations de
+types différents. Elles étaient tracées comme des segments droits centre-à-centre, donc
+strictement confondus — une seule visible, et les deux cibles de clic au même point.
+
+**Correction.** `parallelEdgeRanks()` / `parallelEdgeOffset()` (helpers purs) donnent à
+chaque arête son rang parmi ses parallèles ; le tracé devient une courbe quadratique
+écartée de l'axe, et la cible de clic suit la courbe. Une arête seule reste droite.
+
+### B2. Herbivorie et prédation ne se distinguaient que par la teinte
+
+C'étaient les **deux seuls types à trait plein** de `INTERACTION_EDGE_STYLES`, avec des
+rouges voisins (`#c2410c` / `#b91c1c`). Tous les autres types portent un figuré propre :
+en vision deutan/protan, les deux relations les plus structurantes du réseau devenaient
+indiscernables l'une de l'autre.
+
+**Correction.** L'herbivorie prend des tirets longs (`12 5`) ; la prédation garde le trait
+plein, épaissi (2.4). Le CSS de la page et celui de l'export suivent la table, qui fait foi.
+
+### B3. L'ordre des nœuds sur le cercle était arbitraire
+
+`computeCircleLayout` indexait la liste dans l'ordre d'arrivée de l'API — triée par type
+d'interaction puis par nom de source, donc sans rapport avec la structure du graphe : les
+liens d'un même niveau trophique traversaient tout le cercle.
+
+**Correction.** `orderNodesForCircle()` regroupe les espèces par rôle trophique en arcs
+contigus (producteurs → consommateurs → décomposeurs → rôle inconnu), triées par nom à
+l'intérieur de chaque arc.
+
+### B4. Modifier une interaction était impossible depuis l'interface
+
+`PUT /api/food-web/interactions/:id` existait, était monté et testé côté serveur, mais
+`FoodWebView` n'appelait que `POST` et `DELETE` : corriger une description imposait de
+supprimer puis recréer — et donc de perdre les termes de glossaire rattachés à
+l'identifiant (`glossary_term_interactions.interaction_id`).
+
+**Correction.** Le panneau de la relation sélectionnée — présent en mode graphe **et** en
+mode liste — porte un bouton « Modifier cette relation » (gestionnaire des plantes
+seulement) : type, espèce cible et description. L'espèce source reste fixe : la changer
+reviendrait à créer une autre relation.
+
+### B5. Aucune recherche d'espèce dans le graphe
+
+Le seul chemin vers une espèce précise passait par sa fiche plante.
+
+**Correction.** Champ de recherche dans la barre d'outils, avec propositions
+(`<datalist>`) ; « Isoler » focalise l'espèce trouvée.
+
+### B6. Le focus ne montrait que les voisins directs
+
+Or l'objet même d'un réseau trophique est la **chaîne** — qui mange qui mange qui.
+
+**Correction.** `focusSubset(edges, focusId, depth)` accepte une profondeur ; deux boutons
+(« Voisins » / « Chaîne ») apparaissent dès qu'une espèce est isolée. À profondeur 2, les
+arêtes entre voisins sont également retenues, ce qui fait apparaître la chaîne et non un
+simple éventail.
+
+### B7. Le filtre par zone masquait les relations sortantes — _arbitré : afficher et marquer_
+
+`routes/food-web.js` exigeait que **les deux** extrémités soient dans la zone ou la carte.
+Une espèce de la zone mangée par un prédateur de la zone voisine disparaissait entièrement.
+
+**Arbitrage.** Un réseau trophique enseigne l'interdépendance ; un filtre qui coupe les
+liens franchissant la limite enseigne l'inverse. La relation est donc **conservée dès
+qu'une** extrémité est dans le périmètre, et l'espèce extérieure est **marquée** (contour
+orangé pointillé, mention dans l'infobulle et le nom accessible) plutôt que masquée. La
+réponse filtrée porte `from_in_scope` / `to_in_scope` ; la liste non filtrée, non.
+
+### B8. Pas de zoom au pincement — _arbitré : implémenté_
+
+`touch-action: none` est nécessaire au déplacement mais neutralise le pincement natif du
+navigateur : sur tablette, seuls les boutons de la barre d'outils zoomaient.
+
+**Arbitrage.** Les élèves travaillent sur tablette : le geste le plus naturel du support
+doit fonctionner. Un suivi à deux pointeurs gère l'échelle en gardant le milieu des deux
+doigts fixe ; le pincement annule tout glissement en cours, et lever un doigt d'un
+pincement n'est plus interprété comme un clic (qui enclenchait le mode focus).
+
+---
+
+## 5. Constats non traités (hors périmètre de ce lot)
 
 - **Lisibilité au-delà de ~30 espèces.** La disposition circulaire répartit les nœuds à
-  intervalle constant : au-delà d'une trentaine, les étiquettes se chevauchent. Le mode
-  focus et les filtres de type y répondent en pratique ; une vraie réponse serait une
-  disposition dirigée par les forces, ou un regroupement par rôle trophique — un lot en soi.
-- **Zoom au pincement.** Le SVG est en `touch-action: none` (nécessaire pour le
-  déplacement), ce qui neutralise aussi le pincement natif ; sur tablette, le zoom passe par
-  les boutons de la barre d'outils. Un gestionnaire multi-points serait à ajouter.
+  intervalle constant : au-delà d'une trentaine, les étiquettes se chevauchent. Le
+  regroupement par rôle (B3), le mode focus, la recherche (B5) et les filtres de type y
+  répondent en pratique ; une vraie réponse serait une disposition dirigée par les forces —
+  un lot en soi.
+- **Ordre de tabulation.** Rendre chaque nœud et chaque arête focusable (N5) rend le graphe
+  utilisable au clavier, mais allonge la séquence de tabulation à proportion du réseau. Un
+  `tabindex` glissant (roving) sur une grille de nœuds serait plus confortable.
 - **`loadEnrichedInteraction` ne relit pas les rôles trophiques** (`routes/food-web.js:24-31`) :
   sans conséquence visible, la vue rechargeant la liste complète après création.
