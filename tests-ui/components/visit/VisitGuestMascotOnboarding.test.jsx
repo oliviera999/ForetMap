@@ -1,60 +1,61 @@
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+
 import { VisitGuestMascotOnboarding } from '../../../src/components/visit/VisitGuestMascotOnboarding.jsx';
 
 vi.mock('../../../src/components/VisitMapMascotRenderer.jsx', () => ({
-  default: ({ mascotId }) => <span data-testid={`mascot-preview-${mascotId}`} />,
+  default: () => null,
 }));
 
 const OPTIONS = [
-  { id: 'renard', label: 'Renard' },
-  { id: 'hibou', label: 'Hibou' },
+  { id: 'gnome', label: 'Gnome' },
+  { id: 'spore', label: 'Spore' },
 ];
 
 function setup(overrides = {}) {
   const props = {
     requested: true,
-    mascotId: 'renard',
+    mascotId: 'gnome',
     mascotOptions: OPTIONS,
     onChangeMascotId: vi.fn(),
-    extraCatalogEntries: [],
+    extraCatalogEntries: null,
     onDone: vi.fn(),
     ...overrides,
   };
   const utils = render(<VisitGuestMascotOnboarding {...props} />);
-  return { props, ...utils };
+  return { ...utils, props };
 }
 
 describe('VisitGuestMascotOnboarding', () => {
-  test('fermée tant que non demandée, resynchronisée quand requested change', () => {
-    const { props, rerender } = setup({ requested: false });
-    expect(screen.queryByRole('dialog')).toBeNull();
-    rerender(<VisitGuestMascotOnboarding {...props} requested />);
-    expect(screen.getByRole('dialog', { name: 'Choix de la mascotte' })).toBeTruthy();
+  test('chaque mascotte reste un bouton à bascule annonçant le choix courant', () => {
+    setup();
+    const current = screen.getByRole('button', { name: 'Gnome' });
+    expect(current).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Spore' })).toHaveAttribute('aria-pressed', 'false');
   });
 
-  test('options listées avec aperçu, choix actif pressé, clic → onChangeMascotId', () => {
-    const { props } = setup();
-    const active = screen.getByText('Renard').closest('button');
-    expect(active.getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByTestId('mascot-preview-hibou')).toBeTruthy();
-    fireEvent.click(screen.getByText('Hibou').closest('button'));
-    expect(props.onChangeMascotId).toHaveBeenCalledWith('hibou');
+  test('la grille est un groupe nommé, pas une liste', () => {
+    const { container } = setup();
+    expect(screen.getByRole('group', { name: 'Mascottes disponibles' })).toBeInTheDocument();
+    expect(container.querySelector('[role="list"]')).toBeNull();
+    expect(container.querySelector('[role="listitem"]')).toBeNull();
   });
 
-  test('« Commencer la visite » ferme la modale et notifie onDone', () => {
+  test('sélectionner une mascotte remonte son identifiant', () => {
     const { props } = setup();
-    fireEvent.click(screen.getByRole('button', { name: 'Commencer la visite' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Spore' }));
+    expect(props.onChangeMascotId).toHaveBeenCalledWith('spore');
+  });
+
+  test('« Commencer la visite » ferme la modale et prévient le parent', () => {
+    const { props } = setup();
+    fireEvent.click(screen.getByRole('button', { name: /Commencer la visite/i }));
     expect(props.onDone).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  test('sans option : bouton désactivé + message, onDone jamais appelé', () => {
-    const { props } = setup({ mascotOptions: [] });
-    const start = screen.getByRole('button', { name: 'Commencer la visite' });
-    expect(start.disabled).toBe(true);
-    expect(screen.getByText('Aucune mascotte disponible pour l’instant.')).toBeTruthy();
-    fireEvent.click(start);
-    expect(props.onDone).not.toHaveBeenCalled();
+  test('non demandée → rien n’est rendu', () => {
+    const { container } = setup({ requested: false });
+    expect(container).toBeEmptyDOMElement();
   });
 });

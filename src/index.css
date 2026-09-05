@@ -4120,14 +4120,41 @@
       background:#e0f2fe;
       border-color:#7dd3fc;
     }
+    .visit-refresh-pill {
+      display:inline-flex;
+      align-items:center;
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:var(--text-sm);
+      font-weight:var(--fw-medium);
+      line-height:1.25;
+      color:#4b5563;
+      background:#f3f4f6;
+      border:1px solid #d1d5db;
+    }
     .visit-map-empty-hint {
       margin:8px 0 0;
       text-align:center;
       color:#5b655f;
       font-size:var(--text-sm);
     }
+    /* Voile du panneau lieu visite : rétablit la modalité annoncée par `aria-modal`.
+       Sur mobile le panneau le recouvre entièrement ; sur grand écran (panneau centré)
+       il assombrit la carte et absorbe les clics qui, sans lui, ouvraient une autre zone
+       ou déplaçaient la mascotte derrière le dialogue. */
+    .visit-detail-panel__scrim {
+      position:fixed;
+      inset:0;
+      z-index:calc(var(--fm-z-panel) - 1);
+      background:rgba(12,26,20,.42);
+    }
     /* Panneau lieu visite : plein viewport (repère/zone), au-dessus de la barre du bas. */
     .visit-detail-panel {
+      /* Décalage horizontal de centrage, repris tel quel par l'animation d'ouverture :
+         les keyframes écrasent `transform`, donc un `translateY` nu y perdait le
+         `translateX(-50%)` du mode centré — le panneau s'ouvrait décalé d'une demi-largeur
+         puis sautait en place. */
+      --visit-detail-panel-x:0px;
       position:fixed;
       inset:0;
       z-index:var(--fm-z-panel);
@@ -4154,8 +4181,8 @@
       }
     }
     @keyframes visitDetailPanelIn {
-      from { opacity:0; transform:translateY(10px); }
-      to { opacity:1; transform:translateY(0); }
+      from { opacity:0; transform:translate(var(--visit-detail-panel-x, 0px), 10px); }
+      to { opacity:1; transform:translate(var(--visit-detail-panel-x, 0px), 0); }
     }
     .visit-detail-panel__handle {
       display:none;
@@ -4245,7 +4272,8 @@
         border:1px solid var(--outline-soft);
         border-radius:16px;
         box-shadow:0 24px 48px rgba(0,0,0,.18);
-        transform:translateX(-50%);
+        --visit-detail-panel-x:-50%;
+        transform:translateX(var(--visit-detail-panel-x));
       }
       .visit-detail-panel__body {
         padding:16px 20px 22px;
@@ -4789,9 +4817,31 @@
     .visit-map-ctrl:active {
       transform:scale(.96);
     }
+    .visit-map-ctrl:focus-visible,
+    .visit-marker-btn:focus-visible,
+    .visit-zone-hit:focus-visible {
+      outline:3px solid rgba(82,183,136,.75);
+      outline-offset:2px;
+    }
+    /* Convention projet : cibles tactiles >= 44px (mêmes bornes que la barre carte). */
+    @media (pointer:coarse) {
+      .visit-map-ctrl {
+        min-width:44px;
+        min-height:44px;
+      }
+    }
     @keyframes visitFadeRed {
       0%, 100% { opacity:1; }
       50% { opacity:.42; }
+    }
+    /* Le clignotement « pas encore vu » tourne en boucle sur *chaque* zone et *chaque*
+       repère non visité : à respecter impérativement quand le système demande moins de
+       mouvement. Le contraste rouge/vert reste le seul porteur d'information. */
+    @media (prefers-reduced-motion: reduce) {
+      .visit-zone-poly.is-unseen,
+      .visit-marker-indicator.is-unseen {
+        animation:none;
+      }
     }
     .visit-side-card {
       background:var(--surface-1); border-radius:14px; border:1px solid var(--outline-soft);
