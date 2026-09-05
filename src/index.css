@@ -7770,10 +7770,13 @@
 .pedago-foodweb-graph__arrowhead.active {
   fill: #16a34a;
 }
+/* Herbivorie et prédation ne doivent pas se distinguer que par la teinte
+   (rouges voisins, illisibles en vision deutan/protan) : figuré et épaisseur
+   propres. Voir INTERACTION_EDGE_STYLES, qui fait foi. */
 .pedago-foodweb-graph__line--herbivorie,
-.pedago-foodweb-graph__arrowhead--herbivorie { stroke: #c2410c; fill: #c2410c; }
+.pedago-foodweb-graph__arrowhead--herbivorie { stroke: #c2410c; fill: #c2410c; stroke-dasharray: 12 5; }
 .pedago-foodweb-graph__line--predation,
-.pedago-foodweb-graph__arrowhead--predation { stroke: #b91c1c; fill: #b91c1c; }
+.pedago-foodweb-graph__arrowhead--predation { stroke: #b91c1c; fill: #b91c1c; stroke-width: 2.4; }
 .pedago-foodweb-graph__line--decomposition,
 .pedago-foodweb-graph__arrowhead--decomposition { stroke: #78350f; fill: #78350f; stroke-dasharray: 8 4; }
 .pedago-foodweb-graph__line--pollinisation,
@@ -7913,6 +7916,19 @@
   font-size: var(--text-sm);
   line-height: var(--lh-normal);
 }
+.pedago-foodweb__edit-open {
+  margin-bottom: 10px;
+}
+.pedago-foodweb__edit {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e2ece6;
+}
+.pedago-foodweb__edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .pedago-foodweb__admin-hint {
   grid-column: 1 / -1;
   font-size: var(--text-sm);
@@ -7927,6 +7943,13 @@
   fill: #f3f4f6;
   stroke: #94a3b8;
   stroke-dasharray: 3 3;
+}
+/* Espèce conservée pour ne pas amputer une relation, mais située hors de la
+   zone/carte filtrée : marquée plutôt que masquée. */
+.pedago-foodweb-graph__node--outside {
+  fill: #fff7ed;
+  stroke: #ea9a5c;
+  stroke-dasharray: 5 3;
 }
 .pedago-foodweb-graph__node-emoji {
   font-size: 16px;
@@ -7981,6 +8004,30 @@
 .pedago-foodweb-graph__hint {
   font-size: var(--text-sm);
   margin: 0;
+}
+.pedago-foodweb-graph__search {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pedago-foodweb-graph__search-input {
+  min-height: 36px;
+  min-width: 0;
+  width: clamp(120px, 22vw, 200px);
+  padding: 6px 10px;
+  font-size: var(--text-sm);
+  border: 1px solid #d6e8dc;
+  border-radius: 8px;
+  background: #fff;
+  color: inherit;
+}
+.pedago-foodweb-graph__search-input:focus-visible {
+  outline: 2px solid var(--sage, #7aab8a);
+  outline-offset: 1px;
+}
+.pedago-foodweb-graph__tbtn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 .pedago-foodweb-legend {
   padding: 10px 12px;

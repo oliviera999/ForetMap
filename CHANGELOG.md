@@ -7,6 +7,35 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Réseau trophique, second lot (`docs/AUDIT_RESEAU_TROPHIQUE_2026-09.md` §4)
+
+- **Zoom au pincement sur tablette** : `touch-action: none`, nécessaire au déplacement,
+  neutralisait le pincement natif — seuls les boutons zoomaient, alors que les élèves
+  travaillent sur tablette. Un suivi à deux pointeurs garde le milieu des doigts fixe, et
+  lever un doigt n'enclenche plus le mode focus par erreur.
+- **Le filtre par zone ne coupe plus les relations sortantes** : une interaction est retenue
+  dès qu'**une** de ses extrémités est dans la zone ou la carte (au lieu des deux), et
+  l'espèce extérieure est marquée (`from_in_scope` / `to_in_scope`, contour orangé
+  pointillé) plutôt que masquée. Une espèce de la zone mangée par un prédateur voisin
+  disparaissait entièrement, ce qui sous-représentait la connectivité du réseau.
+- **Modifier une relation depuis l'interface** : `PUT /api/food-web/interactions/:id`
+  existait mais n'était pas exposé — corriger une description imposait de supprimer puis
+  recréer, et donc de perdre les termes de glossaire rattachés. Le panneau de la relation
+  sélectionnée porte désormais « Modifier cette relation » (type, cible, description).
+- **Deux relations entre les mêmes espèces ne se superposent plus** : la contrainte SQL
+  n'interdit que le triplet (source, cible, type), si bien que deux relations de types
+  différents étaient tracées confondues — une seule visible, deux cibles de clic au même
+  point. Chacune est maintenant écartée de l'axe.
+- **Herbivorie et prédation se distinguent au figuré** : seuls types à trait plein, avec des
+  rouges voisins, ils étaient indiscernables en vision deutan/protan alors que ce sont les
+  deux relations les plus structurantes du réseau.
+- **Recherche d'espèce dans le graphe** : la vue n'était atteignable sur une espèce précise
+  que depuis sa fiche plante.
+- **Focus « Chaîne »** : le mode focus ne montrait que les voisins directs ; un second cran
+  expose la chaîne alimentaire (qui mange qui mange qui), objet même du réseau trophique.
+- **Cercle regroupé par rôle trophique** : l'ordre des nœuds était celui d'arrivée de l'API,
+  sans rapport avec la structure du graphe.
+
 ### Corrigé — affichage et navigation du Réseau trophique (`docs/AUDIT_RESEAU_TROPHIQUE_2026-09.md`)
 
 - **Les interactions « vers l'environnement » ont enfin un nœud** : une relation sans espèce

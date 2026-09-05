@@ -221,4 +221,73 @@ describe('FoodWebGraph', () => {
     fireEvent.pointerUp(node, { clientX: 100, clientY: 260 });
     expect(queryByText(/Tout afficher/)).toBeNull();
   });
+
+  test('deux relations entre les mêmes espèces ne sont plus confondues', () => {
+    const parallel = [ITEMS[0], { ...ITEMS[0], id: 99, interaction_type: 'competition' }];
+    const { container } = render(<FoodWebGraph items={parallel} />);
+    const paths = [...container.querySelectorAll('.pedago-foodweb-graph__line')].map((n) =>
+      n.getAttribute('d'),
+    );
+    expect(paths.length).toBe(2);
+    expect(paths[0]).not.toBe(paths[1]);
+    // Chacune est courbée d'un côté : le tracé passe par un point de contrôle.
+    expect(paths.every((d) => d.includes('Q'))).toBe(true);
+  });
+
+  test('une relation isolée reste un trait droit', () => {
+    const { container } = render(<FoodWebGraph items={[ITEMS[0]]} />);
+    expect(container.querySelector('.pedago-foodweb-graph__line').getAttribute('d')).toContain('L');
+  });
+
+  test('la recherche isole l’espèce trouvée', () => {
+    const { getByLabelText, getByText, queryByText } = render(<FoodWebGraph items={ITEMS} />);
+    expect(queryByText(/Tout afficher/)).toBeNull();
+    fireEvent.change(getByLabelText('Rechercher une espèce'), { target: { value: 'trèf' } });
+    fireEvent.click(getByText(/Isoler/));
+    expect(getByText(/Tout afficher/)).toBeTruthy();
+  });
+
+  test('la profondeur de focus n’apparaît qu’une fois une espèce isolée', () => {
+    const { container, queryByText, getByText } = render(<FoodWebGraph items={ITEMS} />);
+    expect(queryByText('Chaîne')).toBeNull();
+    fireEvent.pointerUp(container.querySelector('.pedago-foodweb-graph__node-group'));
+    expect(getByText('Chaîne')).toBeTruthy();
+    expect(getByText('Voisins')).toBeTruthy();
+  });
+
+  test('« Chaîne » élargit le sous-réseau isolé', () => {
+    // Renard → Lapin → Trèfle : isoler Trèfle en profondeur 2 doit rendre le Renard actif.
+    const { container, getByText } = render(<FoodWebGraph items={ITEMS} highlightPlantId={30} />);
+    const dimmedAtDepth1 = container.querySelectorAll('.pedago-foodweb-graph__node.dim').length;
+    fireEvent.click(getByText('Chaîne'));
+    const dimmedAtDepth2 = container.querySelectorAll('.pedago-foodweb-graph__node.dim').length;
+    expect(dimmedAtDepth2).toBeLessThan(dimmedAtDepth1);
+  });
+
+  test('une espèce hors périmètre est marquée', () => {
+    const outside = [{ ...ITEMS[0], from_in_scope: 0, to_in_scope: 1 }];
+    const { container, getByLabelText } = render(<FoodWebGraph items={outside} />);
+    expect(container.querySelector('.pedago-foodweb-graph__node--outside')).toBeTruthy();
+    expect(getByLabelText(/Renard.*hors du périmètre filtré/)).toBeTruthy();
+  });
+
+  test('le pincement zoome sans être pris pour un clic', () => {
+    const { container, queryByText } = render(<FoodWebGraph items={ITEMS} />);
+    const svg = container.querySelector('svg.pedago-foodweb-graph');
+    svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 880, height: 560 });
+    const viewport = () => container.querySelector('[data-fw-viewport]').getAttribute('transform');
+    const before = viewport();
+
+    const node = container.querySelector('.pedago-foodweb-graph__node-group');
+    fireEvent.pointerDown(node, { pointerId: 1, clientX: 400, clientY: 280 });
+    fireEvent.pointerDown(svg, { pointerId: 2, clientX: 440, clientY: 280 });
+    // Les deux doigts s'écartent : la vue doit grossir.
+    fireEvent.pointerMove(svg, { pointerId: 2, clientX: 600, clientY: 280 });
+    expect(viewport()).not.toBe(before);
+
+    fireEvent.pointerUp(node, { pointerId: 1, clientX: 400, clientY: 280 });
+    fireEvent.pointerUp(svg, { pointerId: 2, clientX: 600, clientY: 280 });
+    // Lever les doigts d'un pincement ne doit pas enclencher le mode focus.
+    expect(queryByText(/Tout afficher/)).toBeNull();
+  });
 });

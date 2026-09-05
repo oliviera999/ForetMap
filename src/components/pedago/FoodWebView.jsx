@@ -9,7 +9,7 @@ import {
 import { edgeStyleForType } from '../../shared/foodWebEdgeStyle.js';
 import { GlossaryInlineText } from '../GlossaryMarkdown.jsx';
 import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
-import { IconAdd, IconDelete, IconFoodweb } from '../../shared/icons.jsx';
+import { IconAdd, IconDelete, IconEdit, IconFoodweb } from '../../shared/icons.jsx';
 
 const EMPTY_FORM = { fromId: '', toId: '', type: INTERACTION_TYPES[0], description: '' };
 
@@ -35,6 +35,9 @@ export function FoodWebView({
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [adminError, setAdminError] = useState('');
+  /** Édition d'une relation existante (PUT) — sinon corriger imposait de supprimer/recréer. */
+  const [editForm, setEditForm] = useState(null);
+  const [editError, setEditError] = useState('');
   /** Invalide une réponse de graphe périmée (changement de carte/zone pendant le fetch). */
   const loadFoodWebSeqRef = useRef(0);
 
@@ -142,6 +145,30 @@ export function FoodWebView({
       }
     },
     [form, loadFoodWeb],
+  );
+
+  const saveInteraction = useCallback(
+    async (event) => {
+      event.preventDefault();
+      if (!editForm) return;
+      setEditError('');
+      setSaving(true);
+      try {
+        await api(`/api/food-web/interactions/${editForm.id}`, 'PUT', {
+          from_id: Number(editForm.fromId),
+          to_id: editForm.toId ? Number(editForm.toId) : null,
+          interaction_type: editForm.type,
+          description: editForm.description.trim() || null,
+        });
+        setEditForm(null);
+        await loadFoodWeb();
+      } catch (err) {
+        setEditError(err.message || 'Modification impossible');
+      } finally {
+        setSaving(false);
+      }
+    },
+    [editForm, loadFoodWeb],
   );
 
   const deleteInteraction = useCallback(
@@ -447,6 +474,91 @@ export function FoodWebView({
             />
           ) : null}
         </div>
+      ) : null}
+      {canManage && selectedRow ? (
+        editForm && editForm.id === selectedRow.id ? (
+          <form className="pedago-foodweb__edit" onSubmit={saveInteraction}>
+            <div className="pedago-foodweb__admin-fields">
+              <label className="pedago-filter-field">
+                <span>Type d&apos;interaction</span>
+                <select
+                  className="form-select"
+                  value={editForm.type}
+                  onChange={(e) => setEditForm((p) => ({ ...p, type: e.target.value }))}
+                >
+                  {INTERACTION_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {interactionLabel(t)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="pedago-filter-field">
+                <span>Espèce cible</span>
+                <select
+                  className="form-select"
+                  value={editForm.toId}
+                  onChange={(e) => setEditForm((p) => ({ ...p, toId: e.target.value }))}
+                >
+                  <option value="">— environnement / aucune —</option>
+                  {speciesOptions.map((sp) => (
+                    <option key={sp.id} value={sp.id}>
+                      {sp.emoji ? `${sp.emoji} ` : ''}
+                      {sp.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="pedago-filter-field pedago-foodweb__admin-desc">
+                <span>Description</span>
+                <input
+                  type="text"
+                  className="form-input"
+                  maxLength={255}
+                  value={editForm.description}
+                  onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))}
+                />
+              </label>
+            </div>
+            <p className="section-sub pedago-foodweb__admin-hint">
+              L&apos;espèce source reste <strong>{selectedRow.from_name}</strong> : changer de
+              source revient à créer une autre relation.
+            </p>
+            {editError ? <p className="pedago-error">{editError}</p> : null}
+            <div className="pedago-foodweb__edit-actions">
+              <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
+                {saving ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setEditForm(null);
+                  setEditError('');
+                }}
+              >
+                Annuler
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm pedago-foodweb__edit-open"
+            onClick={() => {
+              setEditError('');
+              setEditForm({
+                id: selectedRow.id,
+                fromId: selectedRow.from_id,
+                toId: selectedRow.to_id == null ? '' : String(selectedRow.to_id),
+                type: selectedRow.interaction_type,
+                description: selectedRow.description || '',
+              });
+            }}
+          >
+            <IconEdit size={14} /> Modifier cette relation
+          </button>
+        )
       ) : null}
       {edgeLoading ? (
         <p className="section-sub">Glossaire…</p>

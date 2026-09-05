@@ -127,17 +127,20 @@ describe('FoodWebView — filtres périmés', () => {
     ]);
     render(<FoodWebView maps={[{ id: 'm1', label: 'Forêt' }]} />);
 
+    // Le menu est re-interrogé à chaque assertion : le composant se re-rend
+    // plusieurs fois pendant les chargements.
+    const typeSelect = () => screen.getByLabelText("Type d'interaction");
+
     await waitFor(() => expect(screen.getByText('arête 1')).toBeTruthy());
-    const typeSelect = screen.getByLabelText("Type d'interaction");
-    fireEvent.change(typeSelect, { target: { value: 'predation' } });
-    expect(typeSelect.value).toBe('predation');
+    fireEvent.change(typeSelect(), { target: { value: 'predation' } });
+    await waitFor(() => expect(typeSelect().value).toBe('predation'));
 
     fireEvent.change(screen.getByLabelText('Carte'), { target: { value: 'm1' } });
 
     // La prédation n'existe plus sur cette carte : le filtre revient à « Tous »
     // au lieu d'afficher un menu vide et « Aucune interaction enregistrée ».
-    await waitFor(() => expect(typeSelect.value).toBe(''));
-    expect(screen.getByText('arête 2')).toBeTruthy();
+    await waitFor(() => expect(typeSelect().value).toBe(''));
+    await waitFor(() => expect(screen.getByText('arête 2')).toBeTruthy());
   });
 });
 
@@ -157,5 +160,43 @@ describe('FoodWebView — espèce mise en avant', () => {
 
     await waitFor(() => expect(screen.getByText('arête 1')).toBeTruthy());
     expect(screen.queryByText(/aucune interaction enregistrée dans cette sélection/i)).toBeNull();
+  });
+});
+
+describe('FoodWebView — modifier une relation', () => {
+  it('propose l’édition au gestionnaire et envoie un PUT', async () => {
+    mockFoodWeb([['/api/food-web', [PREDATION]]]);
+    render(<FoodWebView canManage />);
+
+    await waitFor(() => expect(screen.getByText('arête 1')).toBeTruthy());
+    fireEvent.click(screen.getByText('arête 1'));
+    await waitFor(() => expect(screen.getByText(/Modifier cette relation/)).toBeTruthy());
+
+    fireEvent.click(screen.getByText(/Modifier cette relation/));
+    const description = screen.getByDisplayValue('chasse au crépuscule');
+    fireEvent.change(description, { target: { value: 'chasse à l’aube' } });
+    fireEvent.click(screen.getByText('Enregistrer'));
+
+    await waitFor(() => {
+      const put = apiMock.mock.calls.find(([, method]) => method === 'PUT');
+      expect(put).toBeTruthy();
+      expect(put[0]).toBe('/api/food-web/interactions/1');
+      expect(put[2]).toMatchObject({
+        from_id: 10,
+        to_id: 20,
+        interaction_type: 'predation',
+        description: 'chasse à l’aube',
+      });
+    });
+  });
+
+  it('n’expose pas l’édition à un élève', async () => {
+    mockFoodWeb([['/api/food-web', [PREDATION]]]);
+    const { container } = render(<FoodWebView />);
+
+    await waitFor(() => expect(screen.getByText('arête 1')).toBeTruthy());
+    fireEvent.click(screen.getByText('arête 1'));
+    await waitFor(() => expect(container.querySelector('.pedago-foodweb__selected')).toBeTruthy());
+    expect(screen.queryByText(/Modifier cette relation/)).toBeNull();
   });
 });

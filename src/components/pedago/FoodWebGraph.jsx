@@ -9,12 +9,15 @@ import {
 import { FoodWebEdgeLegend } from './FoodWebEdgeLegend.jsx';
 import {
   ENV_NODE_ID,
+  FOCUS_DEPTHS,
   buildGraphModel,
   computeCircleLayout,
   computeTrophicLayout,
   focusSubset,
   isEnvNodeId,
   neighborIds,
+  parallelEdgeOffset,
+  parallelEdgeRanks,
   truncateNodeLabel,
 } from './foodWebGraphModel.js';
 import {
@@ -23,6 +26,7 @@ import {
   IconImage,
   IconLeaf,
   IconStats,
+  IconSearch,
   IconTarget,
   IconZoomIn,
   IconZoomOut,
@@ -42,6 +46,7 @@ const EXPORT_STYLE = `
   .pedago-foodweb-graph__node.highlight{fill:#bbf7d0;stroke-width:2.5}
   .pedago-foodweb-graph__node.dim{opacity:.18}
   .pedago-foodweb-graph__node--env{fill:#f3f4f6;stroke:#94a3b8;stroke-dasharray:3 3}
+  .pedago-foodweb-graph__node--outside{fill:#fff7ed;stroke:#ea9a5c;stroke-dasharray:5 3}
   .pedago-foodweb-graph__label{font:600 10px sans-serif;fill:#1f2937}
   .pedago-foodweb-graph__label.dim{opacity:.2}
   .pedago-foodweb-graph__node-emoji{font:16px sans-serif}
@@ -89,6 +94,8 @@ export function FoodWebGraph({
   const [hoverNode, setHoverNode] = useState(null);
   const [hoverEdge, setHoverEdge] = useState(null);
   const [focusId, setFocusId] = useState(null);
+  const [focusDepth, setFocusDepth] = useState(FOCUS_DEPTHS[0]);
+  const [search, setSearch] = useState('');
   const [hiddenTypes, setHiddenTypes] = useState(() => new Set());
 
   const { nodes, edges } = useMemo(() => buildGraphModel(items), [items]);
@@ -97,6 +104,9 @@ export function FoodWebGraph({
     () => edges.filter((edge) => !hiddenTypes.has(String(edge.type || '').toLowerCase())),
     [edges, hiddenTypes],
   );
+
+  /** Rang de chaque arête parmi ses parallèles, pour les écarter de l'axe. */
+  const edgeRanks = useMemo(() => parallelEdgeRanks(visibleEdges), [visibleEdges]);
 
   const presentTrophicTypes = useMemo(
     () =>
@@ -160,7 +170,7 @@ export function FoodWebGraph({
   // Ensembles « actifs » (pleine opacité). Le reste est estompé.
   const { activeNodes, activeEdges, hasFilter } = useMemo(() => {
     if (focusId != null) {
-      const subset = focusSubset(visibleEdges, focusId);
+      const subset = focusSubset(visibleEdges, focusId, focusDepth);
       return {
         activeNodes: subset.visibleNodes,
         activeEdges: subset.visibleEdges,
@@ -183,7 +193,7 @@ export function FoodWebGraph({
       return { activeNodes: ns, activeEdges: new Set(edge ? [edge.id] : []), hasFilter: true };
     }
     return { activeNodes: null, activeEdges: null, hasFilter: false };
-  }, [visibleEdges, focusId, hoverNode, hoverEdge]);
+  }, [visibleEdges, focusId, focusDepth, hoverNode, hoverEdge]);
 
   const nodeLabelById = useMemo(
     () => new Map(nodes.map((node) => [node.id, node.name || 'Espèce'])),
@@ -261,19 +271,70 @@ export function FoodWebGraph({
     });
   }, []);
 
+  // --- Zoom au pincement (les élèves travaillent sur tablette) ---
+  // `touch-action: none` est nécessaire au déplacement mais neutralise le
+  // pincement natif du navigateur : il faut donc le gérer nous-mêmes.
+  const pointersRef = useRef(new Map());
+  const pinchRef = useRef(null);
+
+  const clientToViewbox = useCallback((clientX, clientY) => {
+    const rect = svgRef.current?.getBoundingClientRect?.();
+    if (!rect || !rect.width || !rect.height) return null;
+    return {
+      x: ((clientX - rect.left) / rect.width) * BASE_W,
+      y: ((clientY - rect.top) / rect.height) * BASE_H,
+    };
+  }, []);
+
+  /** Enregistre un doigt ; au deuxième, bascule en pincement et annule tout glissement. */
+  const trackPointer = useCallback((evt) => {
+    pointersRef.current.set(evt.pointerId, { x: evt.clientX, y: evt.clientY });
+    if (pointersRef.current.size === 2) {
+      const [a, b] = [...pointersRef.current.values()];
+      pinchRef.current = { dist: Math.hypot(a.x - b.x, a.y - b.y) || 1 };
+      dragRef.current = null;
+    }
+  }, []);
+
+  const releasePointer = useCallback((evt) => {
+    if (evt?.pointerId != null) pointersRef.current.delete(evt.pointerId);
+    else pointersRef.current.clear();
+    if (pointersRef.current.size < 2) pinchRef.current = null;
+  }, []);
+
+  /** @returns {boolean} vrai si le mouvement a été consommé par un pincement. */
+  const handlePinchMove = useCallback(
+    (evt) => {
+      if (!pointersRef.current.has(evt.pointerId)) return false;
+      pointersRef.current.set(evt.pointerId, { x: evt.clientX, y: evt.clientY });
+      const pinch = pinchRef.current;
+      if (!pinch || pointersRef.current.size < 2) return false;
+      const [a, b] = [...pointersRef.current.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+      zoomBy(dist / pinch.dist, clientToViewbox((a.x + b.x) / 2, (a.y + b.y) / 2));
+      pinch.dist = dist;
+      return true;
+    },
+    [clientToViewbox, zoomBy],
+  );
+
   // --- Drag nœud / pan fond ---
   const onNodePointerDown = useCallback(
     (evt, id) => {
       evt.stopPropagation();
+      trackPointer(evt);
+      if (pinchRef.current) return;
       const start = clientToBase(evt);
       dragRef.current = { kind: 'node', id, moved: false, last: start };
       evt.currentTarget.setPointerCapture?.(evt.pointerId);
     },
-    [clientToBase],
+    [clientToBase, trackPointer],
   );
 
   const onBackgroundPointerDown = useCallback(
     (evt) => {
+      trackPointer(evt);
+      if (pinchRef.current) return;
       dragRef.current = {
         kind: 'pan',
         moved: false,
@@ -281,7 +342,7 @@ export function FoodWebGraph({
         startView: view,
       };
     },
-    [view],
+    [view, trackPointer],
   );
 
   // Commit du drag throttlé à un setState par frame (requestAnimationFrame) :
@@ -324,6 +385,7 @@ export function FoodWebGraph({
 
   const onPointerMove = useCallback(
     (evt) => {
+      if (handlePinchMove(evt)) return;
       const drag = dragRef.current;
       if (!drag) return;
       if (drag.kind === 'node') {
@@ -349,13 +411,17 @@ export function FoodWebGraph({
       }
       if (!dragRafRef.current) dragRafRef.current = requestAnimationFrame(commitPendingDrag);
     },
-    [clientToBase, commitPendingDrag],
+    [clientToBase, commitPendingDrag, handlePinchMove],
   );
 
-  const onPointerUp = useCallback(() => {
-    flushPendingDrag();
-    dragRef.current = null;
-  }, [flushPendingDrag]);
+  const onPointerUp = useCallback(
+    (evt) => {
+      releasePointer(evt);
+      flushPendingDrag();
+      dragRef.current = null;
+    },
+    [flushPendingDrag, releasePointer],
+  );
 
   const toggleFocus = useCallback((id) => {
     setFocusId((cur) => (cur === id ? null : id));
@@ -388,13 +454,16 @@ export function FoodWebGraph({
 
   const onNodePointerUp = useCallback(
     (evt, id) => {
+      const wasPinching = Boolean(pinchRef.current);
+      releasePointer(evt);
       flushPendingDrag();
       const drag = dragRef.current;
       const moved = drag?.kind === 'node' && drag.moved;
       dragRef.current = null;
-      if (!moved) toggleFocus(id);
+      // Lever un doigt d'un pincement ne doit pas être compris comme un clic.
+      if (!moved && !wasPinching) toggleFocus(id);
     },
-    [flushPendingDrag, toggleFocus],
+    [flushPendingDrag, releasePointer, toggleFocus],
   );
 
   /** Le nœud « environnement » n'a pas de fiche espèce à ouvrir. */
@@ -426,20 +495,49 @@ export function FoodWebGraph({
     [onSelectEdge],
   );
 
+  /** Espèces proposées par la recherche (hors nœud environnement). */
+  const searchMatches = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    if (!needle) return [];
+    return nodes
+      .filter(
+        (node) =>
+          !isEnvNodeId(node.id) &&
+          String(node.name || '')
+            .toLowerCase()
+            .includes(needle),
+      )
+      .slice(0, 8);
+  }, [nodes, search]);
+
+  /** Focalise la première espèce trouvée (soumission du champ de recherche). */
+  const submitSearch = useCallback(
+    (evt) => {
+      evt.preventDefault();
+      const first = searchMatches[0];
+      if (!first) return;
+      setFocusId(first.id);
+      setSearch('');
+    },
+    [searchMatches],
+  );
+
   // --- Intitulés (infobulle souris + nom accessible clavier/lecteur d'écran) ---
 
   const nodeTitle = useCallback((node) => {
     if (isEnvNodeId(node.id)) {
       return `${node.name} (sol, air, lumière) — clic : isoler ses liens`;
     }
-    return `${node.name}${node.role ? ` (${node.role})` : ''} — clic : focus, double-clic : fiche`;
+    const scope = node.outOfScope ? ' — hors du périmètre filtré' : '';
+    return `${node.name}${node.role ? ` (${node.role})` : ''}${scope} — clic : focus, double-clic : fiche`;
   }, []);
 
   const nodeAriaLabel = useCallback((node) => {
     if (isEnvNodeId(node.id)) {
       return `${node.name} — Entrée : isoler ses liens`;
     }
-    return `${node.name}${node.role ? `, ${node.role}` : ''} — Entrée : isoler son réseau, Maj+Entrée : ouvrir la fiche`;
+    const scope = node.outOfScope ? ', hors du périmètre filtré' : '';
+    return `${node.name}${node.role ? `, ${node.role}` : ''}${scope} — Entrée : isoler son réseau, Maj+Entrée : ouvrir la fiche`;
   }, []);
 
   /** Phrase de l'arête : « Prédation : Lapin est mangée par Renard ». */
@@ -575,6 +673,59 @@ export function FoodWebGraph({
             </button>
           </div>
         ) : null}
+        <form
+          className="pedago-foodweb-graph__search"
+          onSubmit={submitSearch}
+          role="search"
+          aria-label="Recherche dans le graphe"
+        >
+          <input
+            type="search"
+            className="pedago-foodweb-graph__search-input"
+            placeholder="Rechercher une espèce…"
+            aria-label="Rechercher une espèce"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            list="fw-graph-search-list"
+            autoComplete="off"
+          />
+          <datalist id="fw-graph-search-list">
+            {searchMatches.map((node) => (
+              <option key={node.id} value={node.name} />
+            ))}
+          </datalist>
+          <button
+            type="submit"
+            className="pedago-foodweb-graph__tbtn"
+            disabled={searchMatches.length === 0}
+          >
+            <IconSearch size={14} /> Isoler
+          </button>
+        </form>
+        {focusId != null ? (
+          <div
+            className="pedago-foodweb-graph__tbgroup"
+            role="group"
+            aria-label="Étendue du réseau isolé"
+          >
+            {FOCUS_DEPTHS.map((depth) => (
+              <button
+                key={depth}
+                type="button"
+                className={`pedago-foodweb-graph__tbtn${focusDepth === depth ? ' active' : ''}`}
+                onClick={() => setFocusDepth(depth)}
+                aria-pressed={focusDepth === depth}
+                title={
+                  depth === 1
+                    ? 'Voisins directs de l’espèce'
+                    : 'Deux crans : la chaîne alimentaire autour de l’espèce'
+                }
+              >
+                {depth === 1 ? 'Voisins' : 'Chaîne'}
+              </button>
+            ))}
+          </div>
+        ) : null}
         {focusId != null ? (
           <button
             type="button"
@@ -678,8 +829,18 @@ export function FoodWebGraph({
             const y1 = from.y + uy * tailOff;
             const x2 = to.x - ux * headOff;
             const y2 = to.y - uy * headOff;
-            const midX = (x1 + x2) / 2;
-            const midY = (y1 + y2) / 2;
+            // #1 — deux relations entre les mêmes espèces se superposaient trait
+            // pour trait : chacune est écartée de l'axe d'un cran.
+            const offset = parallelEdgeOffset(edgeRanks.get(edge.id));
+            const px = -uy;
+            const py = ux;
+            const straightMidX = (x1 + x2) / 2;
+            const straightMidY = (y1 + y2) / 2;
+            const midX = straightMidX + px * offset;
+            const midY = straightMidY + py * offset;
+            const d = offset
+              ? `M ${x1},${y1} Q ${straightMidX + px * offset * 2},${straightMidY + py * offset * 2} ${x2},${y2}`
+              : `M ${x1},${y1} L ${x2},${y2}`;
             const active = selectedEdgeId === edge.id;
             const dim = edgeDimmed(edge.id);
             const edgeType = String(edge.type || '').toLowerCase();
@@ -690,11 +851,8 @@ export function FoodWebGraph({
             const renderStyle = resolveEdgeRenderStyle(edge.type, { active });
             return (
               <g key={edge.id}>
-                <line
-                  x1={x1}
-                  y1={y1}
-                  x2={x2}
-                  y2={y2}
+                <path
+                  d={d}
                   className={`pedago-foodweb-graph__line ${edgeStyleClass(edge.type)}${active ? ' active' : ''}${dim ? ' dim' : ''}`}
                   stroke={renderStyle.color}
                   strokeWidth={renderStyle.width}
@@ -752,7 +910,7 @@ export function FoodWebGraph({
               >
                 <circle
                   r={NODE_R}
-                  className={`pedago-foodweb-graph__node${isEnv ? ' pedago-foodweb-graph__node--env' : ''}${highlighted || focused ? ' highlight' : ''}${dim ? ' dim' : ''}`}
+                  className={`pedago-foodweb-graph__node${isEnv ? ' pedago-foodweb-graph__node--env' : ''}${node.outOfScope ? ' pedago-foodweb-graph__node--outside' : ''}${highlighted || focused ? ' highlight' : ''}${dim ? ' dim' : ''}`}
                 />
                 <text className="pedago-foodweb-graph__node-emoji" textAnchor="middle" y={5}>
                   {node.emoji || '🌱'}
