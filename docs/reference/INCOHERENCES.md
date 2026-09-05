@@ -73,7 +73,7 @@ petit lot sans rien changer au modèle de sécurité. A est la vraie bonne répo
 rentrée (l'élève devient autonome, le prof ne fait que distribuer un code) et rend B
 encore utile pour les retardataires sans code. C est déconseillé, D trop rigide.
 
-**Décision :** ✅ **Livré** (2026-07-08, options A + B) — B : bandeau d'explication pour le compte en attente + liste « comptes en attente de rattachement » côté prof avec rattachement en un clic (promotion automatique). A : code de classe par groupe (génération/rotation/suppression côté prof), champ optionnel à l'inscription — bon code = rattachement immédiat, code invalide = refus clair sans création de compte (tracé en sécurité).
+**Décision :** ✅ **Livré** (2026-07-08, options A + B) — B : bandeau d'explication pour le compte en attente (⚠️ **retiré le 2026-09-05** à la demande de l'établissement : le visiteur ne voit plus aucun message d'attente) + liste « comptes en attente de rattachement » côté prof avec rattachement en un clic (promotion automatique). A : code de classe par groupe (génération/rotation/suppression côté prof), champ optionnel à l'inscription — bon code = rattachement immédiat, code invalide = refus clair sans création de compte (tracé en sécurité).
 
 ### F3 — 🟠 Navigation à géométrie variable (Tâches/Tuto/Carte)
 
