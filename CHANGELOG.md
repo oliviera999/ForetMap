@@ -40,6 +40,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Détails d'affichage** : noms tronqués marqués par une ellipse (« Consoude offici… » et non
   « Consoude officin »), icônes de zoom du design system avec nom accessible, et style d'export
   PNG/SVG réaligné sur le CSS de la page.
+### Modifié
+
+- **Visite : plus de bandeau d’astuce au-dessus de la carte.** La mini-astuce « Coche les lieux au
+  fur et à mesure… » est retirée des trois sources qui la fournissaient (défauts
+  `data/help.default.json`, réglage `content.help.visit_quick_tip`, repli codé dans
+  `src/utils/helpResolve.js`) : la visite s’ouvre sur la carte, sans phrase d’accueil. Le réglage
+  reste éditable si l’on veut réintroduire une astuce ponctuelle ; l’aide `?` de la visite, elle,
+  est inchangée.
 
 ### Corrigé — parcours de carte (suites de `docs/AUDIT_PARCOURS_2026-09.md`)
 

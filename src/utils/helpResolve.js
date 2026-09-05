@@ -61,7 +61,7 @@ export function resolveHelpQuickTip(viewKey, publicSettings) {
     {
       map: 'Clique une zone ou un repère puis ouvre ? pour les actions guidées.',
       tasks: 'Filtre d abord par carte ou groupe, puis traite les retours en attente.',
-      visit: 'Coche ce que tu vois déjà pour suivre ta progression sur la carte.',
+      visit: '',
     }[viewKey] || '',
   );
 }
