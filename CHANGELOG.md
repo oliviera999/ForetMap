@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+
+- **Visite : plus de bandeau d’astuce au-dessus de la carte.** La mini-astuce « Coche les lieux au
+  fur et à mesure… » est retirée des trois sources qui la fournissaient (défauts
+  `data/help.default.json`, réglage `content.help.visit_quick_tip`, repli codé dans
+  `src/utils/helpResolve.js`) : la visite s’ouvre sur la carte, sans phrase d’accueil. Le réglage
+  reste éditable si l’on veut réintroduire une astuce ponctuelle ; l’aide `?` de la visite, elle,
+  est inchangée.
+
 ### Corrigé — parcours de carte (suites de `docs/AUDIT_PARCOURS_2026-09.md`)
 
 - **Détail public d'un parcours** : le filtre `is_published` — corrigé en parallèle par la

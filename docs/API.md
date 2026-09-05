@@ -947,7 +947,9 @@ Aides contextuelles (public) :
 - `ui.help.show_context_hints` (booléen, défaut `true`) : affiche/masque les mini-astuces sur Carte, Tâches et Visite.
 - `ui.help.pulse_unseen_panels` (booléen, défaut `true`) : active l’animation du bouton `?` tant que l’aide de la section n’a pas été marquée comme vue.
 - `content.help.hint_prefix` (chaîne, défaut `Astuce :`) : préfixe affiché devant les mini-astuces.
-- `content.help.map_quick_tip`, `content.help.tasks_quick_tip`, `content.help.visit_quick_tip` (chaînes) : textes des mini-astuces par écran.
+- `content.help.map_quick_tip`, `content.help.tasks_quick_tip`, `content.help.visit_quick_tip` (chaînes) :
+  textes des mini-astuces par écran. `content.help.visit_quick_tip` a pour défaut la **chaîne vide** :
+  la visite n’affiche aucun bandeau d’astuce au-dessus de la carte tant qu’un texte n’est pas saisi.
 - `content.help.panel_title_prefix` (chaîne, défaut `💡`) : préfixe du titre des panneaux d’aide `?`.
 - `content.help.panel_close_cta` et `content.help.panel_dismiss_cta` (chaînes) : libellés des actions “Fermer” / “Ne plus afficher” des panneaux d’aide.
 
