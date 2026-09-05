@@ -8263,6 +8263,28 @@ requêtes de contrôle à passer avant activation figurent en fin de document.
 - **Nettoyage** : `visit-views.jsx` réimplémentait `prefers-reduced-motion` à l'identique du
   hook partagé `usePrefersReducedMotion` — la copie locale disparaît.
 
+### Modifié — agencement du bandeau de la visite (`docs/AUDIT_VISITE_UI_UX_2026-09.md` §5)
+
+- **Le sélecteur de mascotte tenait sur deux lignes.** `.visit-mascot-picker` impose
+  `flex-direction: column` (sa disposition dans les réglages) et le style en ligne du bandeau
+  ne la réinitialisait jamais : le libellé « Mascotte » se posait *au-dessus* du menu, avec une
+  marge haute qui décalait toute la rangée. ~30 px de hauteur en trop sur toutes les largeurs.
+- **Le bandeau est réorganisé en trois zones** au lieu d'une file de neuf éléments mélangeant
+  état, commandes de vue, préférence et rôle sans séparateur : *identité et progression*
+  (titre, donut, « Présentation du lieu »), *affichage du plan* (plein écran, taille du texte,
+  mascotte réunis dans un groupe visuel unique) et *contexte et rôle*.
+- **Les commandes d'affichage sont compactées** : « Plein écran » passe en icône seule (variante
+  partagée `--compact` ; la carte principale garde son libellé) et le libellé visible
+  « Mascotte » disparaît — il doublait la valeur affichée. Les deux gardent leur nom accessible
+  et gagnent une infobulle.
+- **Le bandeau n'avait aucune règle responsive** : sous 560 px tout s'empilait aligné à droite,
+  en escalier. Mesuré dans Chromium, il montait à **274 px de haut sur un écran de 390 px**. Il
+  tombe à **219 px** pour un élève ou un visiteur, et à **121 px** au-dessus de 1 024 px
+  (contre 151). Le professeur sur téléphone gagne peu — « Aperçu comme élève » occupe une
+  rangée — mais y gagne la lisibilité : trois rangées au lieu de six.
+- **Le menu de mascotte ne tronque plus le nom affiché** : `.form-select` n'existe pas dans la
+  feuille de styles, le menu héritait donc de la taille de police du corps.
+
 ---
 
 ## [1.2.0] - 2026-03-20

@@ -226,7 +226,97 @@ une seule implémentation à faire évoluer.
 
 ---
 
-## 5. Vérifications
+## 5. Second passage — agencement du bandeau (2026-09-05)
+
+Le premier passage traitait les défauts pris un à un. Une relecture de l'**agencement** a suivi,
+cette fois **mesurée dans Chromium** sur un fac-similé statique du balisage réel avec le CSS
+compilé du projet, à quatre largeurs. La police du projet n'étant pas chargeable hors ligne,
+la pile système a été forcée : les largeurs de texte sont approchées à quelques pour cent
+près, les hauteurs et la structure sont fidèles.
+
+### 5.1 — Le sélecteur de mascotte se posait sur deux lignes
+
+`.visit-mascot-picker` impose `flex-direction: column` — sa disposition dans les réglages et
+dans le studio. Le style **en ligne** du bandeau posait bien `display: inline-flex` et
+`align-items: center`, mais **ne réinitialisait jamais `flex-direction`**. Dans le bandeau, le
+libellé « Mascotte » se retrouvait donc _au-dessus_ du menu, et le `margin-top: 8px` de la même
+classe décalait le bloc vers le bas : ~30 px de hauteur en trop, sur toutes les largeurs, et
+l'élément le plus disgracieux de la barre.
+
+Deux pièges de cascade sont apparus en le corrigeant, tous deux dus à l'ordre de déclaration :
+une règle de compacité posée **avant** `.visit-mascot-picker select` (spécificité 0,1,1 contre
+0,1,0) restait sans effet, et une media query placée avant la règle qu'elle devait écraser
+était ignorée — une media query n'ajoute aucune spécificité. Les règles du bandeau sont
+désormais déclarées **après** les règles génériques du sélecteur.
+
+### 5.2 — Une file unique de neuf éléments, quatre registres mélangés
+
+Le cluster de droite alignait, à la même gouttière et sans séparateur : de l'état (réseau,
+rechargement, donut de progression), des commandes de vue (plein écran, taille du texte), une
+préférence (mascotte) et du rôle (aperçu élève, retour connexion) — dans cinq styles visuels
+différents. Rien n'indiquait ce qui allait ensemble.
+
+Le sélecteur de mascotte, à lui seul, occupait jusqu'à 194 px mesurés : **le plus gros élément
+du bandeau pour le réglage qu'on touche le moins souvent** (l'invité l'a déjà choisi dans la
+modale d'accueil).
+
+### 5.3 — Aucune règle responsive
+
+Le bandeau ne comptait pas une seule media query : sous 560 px, tout s'empilait aligné à droite,
+en escalier. Mesuré : **274 px de haut sur un écran de 390 px**, soit plus de 40 % de la hauteur
+utile consommés avant la carte — sur l'écran dont la carte est le sujet.
+
+### 5.4 — Ce qui a été fait
+
+Trois zones lisibles, et les commandes d'affichage compactées :
+
+1. **identité et progression** — titre, donut, « Présentation du lieu ». Le donut est une
+   _donnée_ : sa place est auprès du titre, pas entre un menu de préférence et le bouton d'aide.
+2. **affichage du plan** — plein écran, taille du texte, mascotte réunis dans un groupe visuel
+   unique (`.visit-display-group`, `role="group"`), qui rime avec les commandes de zoom posées
+   sur le plan. « Plein écran » passe en icône seule (variante partagée
+   `.fm-map-fullscreen-open--compact` ; la carte principale garde son libellé), et le libellé
+   visible « Mascotte » disparaît — il doublait la valeur affichée. Les deux gardent leur nom
+   accessible et gagnent une infobulle.
+3. **contexte et rôle** — état réseau, aperçu élève, aide, retour connexion.
+
+Plus les seuils manquants : commandes alignées à gauche dès 900 px (elles laissaient un vide en
+L sous le titre quand elles passaient seules à la ligne), titre et donut resserrés sous 560 px.
+
+**« Aperçu comme élève » n'a pas été renommé** malgré ses 185 px : le libellé est cité mot pour
+mot dans `src/constants/help.js` et `src/constants/discoveryTour.js`. Le raccourcir imposait de
+réécrire l'aide et le tour guidé pour gagner 50 px sur un bouton réservé au professeur — qui
+édite sur ordinateur, pas sur téléphone.
+
+### 5.5 — Mesures (hauteur du bandeau, Chromium)
+
+| Largeur | Prof avant → après        | Élève / invité avant → après |
+| ------- | ------------------------- | ---------------------------- |
+| 1440 px | 151 → **121 px** (−20 %)  | 151 → **121 px** (−20 %)     |
+| 1024 px | 193 → **181 px** (−6 %)   | 151 → **121 px** (−20 %)     |
+| 768 px  | 196 → **187 px** (−5 %)   | 196 → **187 px** (−5 %)      |
+| 390 px  | 274 → **273 px** (−0,4 %) | 274 → **219 px** (−20 %)     |
+
+Le gain est franc partout sauf pour le **professeur sur téléphone**, où « Aperçu comme élève »
+occupe une rangée à lui seul (cf. ci-dessus). Le gain y est structurel — trois rangées au lieu
+de six, registres séparés — plutôt que vertical. C'est un compromis assumé : le profil qui passe
+ses heures sur téléphone est l'élève, et il gagne 55 px.
+
+### 5.6 — Ce qui reste ouvert
+
+- **Descendre les commandes d'affichage sur le plan**, avec le zoom (piste « D » écartée pour
+  l'instant) : cohérence maximale, mais sur 390 px la carte ne fait que ~370 px de large et
+  trois boutons de plus en surimpression y mordent davantage qu'ils ne libèrent. À réévaluer
+  sur appareil réel.
+- **Le sélecteur de carte occupe une rangée entière** même avec deux cartes (44 px). Le fondre
+  dans la ligne de titre demanderait de restructurer `chrome-top`.
+- **La pulsation de « Présentation du lieu »** reste la seconde animation d'appel de l'écran,
+  après le clignotement rouge des lieux non vus (§2.4) — les deux tournent en même temps sur une
+  carte fraîche. À trancher : garder une seule sollicitation visuelle.
+
+---
+
+## 6. Vérifications
 
 ```bash
 npm run lint            # 0 erreur
