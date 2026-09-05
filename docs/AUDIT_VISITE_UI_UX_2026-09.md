@@ -322,7 +322,17 @@ ses heures sur téléphone est l'élève, et il gagne 55 px.
 npm run lint            # 0 erreur
 npm run format:check    # OK
 npm run test:ui         # suite entière verte (dont les 5 fichiers de tests visite)
+
+# Tests-gardes backend qui n'ont PAS besoin de MySQL — à jouer avant tout push touchant
+# le CSS ou le JSX. Le lot du bandeau a d'abord cassé la CI dessus : une règle responsive
+# introduisait `font-size: 1.05rem`, alors que ce garde impose les tokens `--text-*`.
+node --test --test-force-exit tests/typography-tokens-guard.test.js
+node --test --test-force-exit tests/gl-visit-map-mascot-css.test.js
+node --test --test-force-exit tests/native-dialogs-guard.test.js
 ```
+
+Les autres tests backend restent inexécutables sans base : `tests/migrations-guard.test.js`
+rend le même `ECONNREFUSED 127.0.0.1:3306` avec ou sans le lot.
 
 Les scénarios `e2e/visit-mode.spec.js` restent valides : ils ciblent `.visit-zone-hit`,
 `visit-detail-panel` et le bouton « Fermer », tous conservés. Le voile introduit en §2.2

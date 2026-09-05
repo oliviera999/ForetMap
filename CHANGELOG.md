@@ -8284,6 +8284,8 @@ requêtes de contrôle à passer avant activation figurent en fin de document.
   rangée — mais y gagne la lisibilité : trois rangées au lieu de six.
 - **Le menu de mascotte ne tronque plus le nom affiché** : `.form-select` n'existe pas dans la
   feuille de styles, le menu héritait donc de la taille de police du corps.
+- La taille de titre du seuil mobile passe par le token `--text-md` et non par un littéral
+  `rem` : `tests/typography-tokens-guard.test.js` l'impose (audit homogénéité UI, B2).
 
 ---
 

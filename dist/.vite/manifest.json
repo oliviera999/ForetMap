@@ -145,15 +145,15 @@
       "_icons-BYRl22YG.js"
     ]
   },
-  "_MascotPackWysiwygEditor-CkGv95sA.js": {
-    "file": "assets/MascotPackWysiwygEditor-CkGv95sA.js",
+  "_MascotPackWysiwygEditor-_mbqWMcR.js": {
+    "file": "assets/MascotPackWysiwygEditor-_mbqWMcR.js",
     "name": "MascotPackWysiwygEditor",
     "imports": [
       "_rolldown-runtime-hePW80VL.js",
       "_VisitMascotFallbackSvg-DgPaPMDJ.js",
       "_react-vendor-Bnq5Y4Sb.js",
       "_icons-BYRl22YG.js",
-      "_visitMascotPackExtras-CmA5o5No.js",
+      "_visitMascotPackExtras-Cop095aT.js",
       "_spriteCutCatalogEntry-Dk2XFDfU.js",
       "_mascotPack-CPo_r80L.js",
       "_mascotPackEditorModel-WJxaT7Lf.js",
@@ -365,12 +365,8 @@
       "_spriteCutCatalogEntry-Dk2XFDfU.js"
     ]
   },
-  "_visitMascotPackExtras-3F8UV0Qe.css": {
-    "file": "assets/visitMascotPackExtras-3F8UV0Qe.css",
-    "src": "_visitMascotPackExtras-3F8UV0Qe.css"
-  },
-  "_visitMascotPackExtras-CmA5o5No.js": {
-    "file": "assets/visitMascotPackExtras-CmA5o5No.js",
+  "_visitMascotPackExtras-Cop095aT.js": {
+    "file": "assets/visitMascotPackExtras-Cop095aT.js",
     "name": "visitMascotPackExtras",
     "imports": [
       "_rolldown-runtime-hePW80VL.js",
@@ -379,8 +375,12 @@
       "_mascotPack-CPo_r80L.js"
     ],
     "css": [
-      "assets/visitMascotPackExtras-3F8UV0Qe.css"
+      "assets/visitMascotPackExtras-DcUvMzV3.css"
     ]
+  },
+  "_visitMascotPackExtras-DcUvMzV3.css": {
+    "file": "assets/visitMascotPackExtras-DcUvMzV3.css",
+    "src": "_visitMascotPackExtras-DcUvMzV3.css"
   },
   "gl.html": {
     "file": "assets/gl-DsiVU1BF.js",
@@ -421,7 +421,7 @@
     ]
   },
   "index.vite.html": {
-    "file": "assets/main-D9kxBBXT.js",
+    "file": "assets/main-DxSoLhij.js",
     "name": "main",
     "src": "index.vite.html",
     "isEntry": true,
@@ -432,7 +432,7 @@
       "_icons-BYRl22YG.js",
       "_ErrorBoundary-DkUbFpAD.js",
       "_ImageLightboxProvider-C7G5c_t2.js",
-      "_visitMascotPackExtras-CmA5o5No.js",
+      "_visitMascotPackExtras-Cop095aT.js",
       "_spriteCutCatalogEntry-Dk2XFDfU.js",
       "_socket-io-D_2T_oRH.js",
       "_MarkdownTextarea-YCSDNEKK.js",
@@ -458,7 +458,7 @@
     ]
   },
   "mascot-pack-tool.html": {
-    "file": "assets/mascotPackTool-Dt2Mc4OA.js",
+    "file": "assets/mascotPackTool-Cr3ADqC0.js",
     "name": "mascotPackTool",
     "src": "mascot-pack-tool.html",
     "isEntry": true,
@@ -467,9 +467,9 @@
       "_VisitMascotFallbackSvg-DgPaPMDJ.js",
       "_react-vendor-Bnq5Y4Sb.js",
       "_icons-BYRl22YG.js",
-      "_visitMascotPackExtras-CmA5o5No.js",
+      "_visitMascotPackExtras-Cop095aT.js",
       "_mascotPackEditorModel-WJxaT7Lf.js",
-      "_MascotPackWysiwygEditor-CkGv95sA.js"
+      "_MascotPackWysiwygEditor-_mbqWMcR.js"
     ]
   },
   "node_modules/@rive-app/canvas/rive.wasm": {
@@ -527,7 +527,7 @@
     ]
   },
   "src/components/VisitMascotPackManager.jsx": {
-    "file": "assets/VisitMascotPackManager-CNPnR_UJ.js",
+    "file": "assets/VisitMascotPackManager-BmNSAhVM.js",
     "name": "VisitMascotPackManager",
     "src": "src/components/VisitMascotPackManager.jsx",
     "isDynamicEntry": true,
@@ -537,19 +537,19 @@
       "_react-vendor-Bnq5Y4Sb.js",
       "_icons-BYRl22YG.js",
       "_ImageLightboxProvider-C7G5c_t2.js",
-      "_visitMascotPackExtras-CmA5o5No.js",
+      "_visitMascotPackExtras-Cop095aT.js",
       "_spriteCutCatalogEntry-Dk2XFDfU.js",
       "_mascotPack-CPo_r80L.js",
       "_downloadApiFile-B8hAEaKh.js",
       "index.vite.html",
       "_mascotPackEditorModel-WJxaT7Lf.js",
-      "_MascotPackWysiwygEditor-CkGv95sA.js",
+      "_MascotPackWysiwygEditor-_mbqWMcR.js",
       "_mascotStateLabels-Dt-bbGfo.js",
       "_MascotPackArchiveImportDialog-DPjpmvsE.js"
     ]
   },
   "src/components/about-views.jsx": {
-    "file": "assets/about-views-BPtzq8ZS.js",
+    "file": "assets/about-views-BDqGwOZ4.js",
     "name": "about-views",
     "src": "src/components/about-views.jsx",
     "isDynamicEntry": true,
@@ -564,7 +564,7 @@
     ]
   },
   "src/components/audit-views.jsx": {
-    "file": "assets/audit-views-BdQm1mFg.js",
+    "file": "assets/audit-views-_215lBjm.js",
     "name": "audit-views",
     "src": "src/components/audit-views.jsx",
     "isDynamicEntry": true,
@@ -578,7 +578,7 @@
     ]
   },
   "src/components/foretmap-views.jsx": {
-    "file": "assets/foretmap-views-CUtabKRR.js",
+    "file": "assets/foretmap-views-1Wb7P0l4.js",
     "name": "foretmap-views",
     "src": "src/components/foretmap-views.jsx",
     "isDynamicEntry": true,
@@ -599,7 +599,7 @@
     ]
   },
   "src/components/forum-views.jsx": {
-    "file": "assets/forum-views-OAgZtOPu.js",
+    "file": "assets/forum-views-CNAdWuOZ.js",
     "name": "forum-views",
     "src": "src/components/forum-views.jsx",
     "isDynamicEntry": true,
@@ -629,7 +629,7 @@
     ]
   },
   "src/components/pedago-views.jsx": {
-    "file": "assets/pedago-views-CW1ixKkX.js",
+    "file": "assets/pedago-views-DQQqwrdF.js",
     "name": "pedago-views",
     "src": "src/components/pedago-views.jsx",
     "isDynamicEntry": true,
@@ -651,7 +651,7 @@
     ]
   },
   "src/components/profiles-views.jsx": {
-    "file": "assets/profiles-views-N8-1njBI.js",
+    "file": "assets/profiles-views-DyUtHKxv.js",
     "name": "profiles-views",
     "src": "src/components/profiles-views.jsx",
     "isDynamicEntry": true,
@@ -670,7 +670,7 @@
     ]
   },
   "src/components/settings-admin-views.jsx": {
-    "file": "assets/settings-admin-views-DDvfVgOk.js",
+    "file": "assets/settings-admin-views-BXcRmlDA.js",
     "name": "settings-admin-views",
     "src": "src/components/settings-admin-views.jsx",
     "isDynamicEntry": true,
@@ -695,7 +695,7 @@
     ]
   },
   "src/components/stats-views.jsx": {
-    "file": "assets/stats-views-DetGQdan.js",
+    "file": "assets/stats-views-C14e60JI.js",
     "name": "stats-views",
     "src": "src/components/stats-views.jsx",
     "isDynamicEntry": true,
@@ -713,7 +713,7 @@
     ]
   },
   "src/components/tutorials-views.jsx": {
-    "file": "assets/tutorials-views-COD99H-f.js",
+    "file": "assets/tutorials-views-OJx4eewB.js",
     "name": "tutorials-views",
     "src": "src/components/tutorials-views.jsx",
     "isDynamicEntry": true,
@@ -732,7 +732,7 @@
     ]
   },
   "src/components/visit-views.jsx": {
-    "file": "assets/visit-views-DGI01AAd.js",
+    "file": "assets/visit-views-Di-_aqSv.js",
     "name": "visit-views",
     "src": "src/components/visit-views.jsx",
     "isDynamicEntry": true,
@@ -743,7 +743,7 @@
       "_icons-BYRl22YG.js",
       "_ErrorBoundary-DkUbFpAD.js",
       "_ImageLightboxProvider-C7G5c_t2.js",
-      "_visitMascotPackExtras-CmA5o5No.js",
+      "_visitMascotPackExtras-Cop095aT.js",
       "_spriteCutCatalogEntry-Dk2XFDfU.js",
       "_MarkdownTextarea-YCSDNEKK.js",
       "_useGatingSummary-CSPdfAqe.js",
