@@ -1118,14 +1118,6 @@ function App() {
                     un peu vieilles — un clic pour rafraîchir.
                   </NoticeBanner>
                 )}
-                {isVisitor && !effectiveIsTeacher && studentForUi && (
-                  <NoticeBanner tone="info">
-                    <strong>Ton compte n'est pas encore rattaché à une classe.</strong> Un
-                    professeur doit t'ajouter à ton groupe pour débloquer la carte et les tâches —
-                    signale-le-lui (ou utilise le code de classe s'il t'en a donné un à
-                    l'inscription). En attendant, tu peux explorer la Visite et la Biodiversité.
-                  </NoticeBanner>
-                )}
                 <AppStatusSticky />
                 {toast && <Toast msg={toast} onDone={handleToastDone} />}
                 {profilePromotion &&
