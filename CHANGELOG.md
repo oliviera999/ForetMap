@@ -8302,6 +8302,36 @@ requêtes de contrôle à passer avant activation figurent en fin de document.
   contre 151 px à l'origine), **127 px à 768 px** et **175 px à 390 px** pour un élève ou un
   visiteur (contre 274 px).
 
+### Ajouté — deux cliquets d'accessibilité (`docs/AUDIT_VISITE_UI_UX_2026-09.md` §6)
+
+- **Garde statique** : `eslint-plugin-jsx-a11y` est branché. 22 règles qui n'avaient aucune
+  violation sont verrouillées en `error` (coût nul, régression impossible) ; 12 règles qui
+  portent de la dette sont en `warn`, tenues par un nouveau test
+  `tests/a11y-static-guard.test.js` sur le modèle de `typography-tokens-guard` : toute
+  violation **nouvelle** échoue, et l'inventaire (99 violations sur 59 fichiers) ne peut que
+  rétrécir. 5 règles sont écartées, chacune justifiée dans la configuration.
+- **Garde navigateur** : `@axe-core/playwright` mesure 12 écrans dans Chromium
+  (`e2e/a11y.spec.js`) — connexion, visite invitée, visite élève, fiche d'un lieu, carte,
+  tâches, biodiversité, glossaire, réseau trophique, quiz, plus deux écrans G&L. Même contrat
+  de cliquet, inventaire dans `e2e/fixtures/a11y-baseline.json`.
+
+### Corrigé — accessibilité, résorption de la dette révélée (987 nœuds fautifs → 2)
+
+- **L'application n'avait aucun repère `<main>`.** C'était la cause de 96 % du total :
+  `landmark-one-main` sur chaque écran, et `region` sur *chaque* bloc de contenu hors repère —
+  401 nœuds sur les tâches, 522 sur la biodiversité. Les coques prof, élève, visite invitée et
+  connexion passent de `<div>` à `<main>` ; les styles ciblant les classes, le rendu est
+  strictement inchangé.
+- **Aucune page n'avait de titre de niveau 1** (`page-has-heading-one`, six écrans) : le nom de
+  l'application dans le bandeau devient un `<h1>`, avec ses styles par défaut neutralisés.
+- **Le filtre « Règne » de la biodiversité n'avait aucun nom accessible** : son `<label>`
+  n'était associé à aucun menu (`select-name`). Corrigé par `htmlFor` / `id`.
+- **Le bandeau « Échéances proches » sautait un niveau de titre** (`<h4>` après un `<h2>`,
+  `heading-order`) : passé en `<h3>`.
+- Restent inventoriés : 2 nœuds sur le plateau découverte de G&L. Les écrans professeur et
+  administrateur ne sont pas couverts — leur élévation échoue dans l'environnement de test,
+  indépendamment de ce lot.
+
 ---
 
 ## [1.2.0] - 2026-03-20

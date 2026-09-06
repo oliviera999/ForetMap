@@ -2,6 +2,7 @@
 
 const globals = require('globals');
 const reactHooks = require('eslint-plugin-react-hooks');
+const jsxA11y = require('eslint-plugin-jsx-a11y');
 
 /** Dossiers produit (ForetMap ou GL) interdits d'import depuis `src/shared/**`. */
 const SHARED_PRODUCT_DIRS = [
@@ -109,6 +110,7 @@ module.exports = [
     },
     plugins: {
       'react-hooks': reactHooks,
+      'jsx-a11y': jsxA11y,
     },
     rules: {
       'no-debugger': 'error',
@@ -126,6 +128,69 @@ module.exports = [
       // dependances manquantes en avertissement pour guider la stabilisation (useCallback/useMemo).
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      // ── Accessibilité (jsx-a11y) ────────────────────────────────────────────────────
+      // Stratégie : cf. `docs/AUDIT_VISITE_UI_UX_2026-09.md` §6. Trois niveaux, pour ne pas
+      // rendre la dette invisible ni bloquer la CI sur du legacy :
+      //
+      //   `error` — les 22 règles qui n'avaient AUCUNE violation à l'activation. Coût nul,
+      //             régression désormais impossible. C'est le meilleur du lot.
+      //   `warn`  — les règles qui portent de la dette. Le cliquet
+      //             `tests/a11y-static-guard.test.js` fait échouer toute violation NOUVELLE
+      //             et interdit à l'inventaire de grossir ; c'est lui qui bloque, pas ESLint.
+      //   `off`   — dépréciées en amont, ou trop bruyantes pour un signal exploitable.
+      //
+      // À zéro violation → verrouillées.
+      'jsx-a11y/alt-text': 'error',
+      'jsx-a11y/anchor-ambiguous-text': 'error',
+      'jsx-a11y/anchor-has-content': 'error',
+      'jsx-a11y/anchor-is-valid': 'error',
+      'jsx-a11y/aria-activedescendant-has-tabindex': 'error',
+      'jsx-a11y/aria-props': 'error',
+      'jsx-a11y/aria-proptypes': 'error',
+      'jsx-a11y/aria-unsupported-elements': 'error',
+      'jsx-a11y/autocomplete-valid': 'error',
+      'jsx-a11y/heading-has-content': 'error',
+      'jsx-a11y/html-has-lang': 'error',
+      'jsx-a11y/iframe-has-title': 'error',
+      // Celle-ci aurait signalé, à l'écriture, les zones du plan cliquables mais pas
+      // focusables (audit §2.1) une fois leur `role="button"` posé.
+      'jsx-a11y/interactive-supports-focus': 'error',
+      'jsx-a11y/lang': 'error',
+      'jsx-a11y/media-has-caption': 'error',
+      'jsx-a11y/mouse-events-have-key-events': 'error',
+      'jsx-a11y/no-access-key': 'error',
+      'jsx-a11y/no-distracting-elements': 'error',
+      'jsx-a11y/no-noninteractive-tabindex': 'error',
+      'jsx-a11y/no-redundant-roles': 'error',
+      'jsx-a11y/scope': 'error',
+      'jsx-a11y/tabindex-no-positive': 'error',
+      // Avec dette : visibles ici, verrouillées par le cliquet.
+      'jsx-a11y/aria-role': 'warn',
+      'jsx-a11y/click-events-have-key-events': 'warn',
+      'jsx-a11y/img-redundant-alt': 'warn',
+      'jsx-a11y/no-aria-hidden-on-focusable': 'warn',
+      'jsx-a11y/no-autofocus': 'warn',
+      // `no-interactive-element-to-noninteractive-role` est la règle qui aurait attrapé le
+      // `role="listitem"` posé sur des `<button aria-pressed>` (audit §2.6).
+      'jsx-a11y/no-interactive-element-to-noninteractive-role': 'warn',
+      'jsx-a11y/no-noninteractive-element-interactions': 'warn',
+      'jsx-a11y/no-noninteractive-element-to-interactive-role': 'warn',
+      'jsx-a11y/no-static-element-interactions': 'warn',
+      'jsx-a11y/role-has-required-aria-props': 'warn',
+      'jsx-a11y/role-supports-aria-props': 'warn',
+      // Désactivées, et pourquoi :
+      // - dépréciées en amont par le greffon lui-même (remplacées ou obsolètes en React) ;
+      'jsx-a11y/accessible-emoji': 'off',
+      'jsx-a11y/label-has-for': 'off',
+      'jsx-a11y/no-onchange': 'off',
+      // - bruit sans signal exploitable : ~370 et ~140 remontées, inchangées même avec
+      //   `depth: 5`, essentiellement sur des `<label>` enveloppants valides et des cellules
+      //   de tableau. À reprendre avec une configuration ajustée avant d'être jugées.
+      'jsx-a11y/control-has-associated-label': 'off',
+      'jsx-a11y/label-has-associated-control': 'off',
+      // - purement stylistique (préférer `<button>` à `role="button"`), sans impact
+      //   d'accessibilité réel quand le rôle est correctement porté.
+      'jsx-a11y/prefer-tag-over-role': 'off',
       // Zone morte temporelle : un `const` declare plus bas dans le corps d'un composant,
       // reference depuis un tableau de dependances de hook, leve un ReferenceError a CHAQUE
       // rendu — invisible pour le build et pour les tests qui ne montent pas le composant.

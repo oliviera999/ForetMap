@@ -53,7 +53,8 @@ export function UnauthenticatedShell({
         {toast && <Toast msg={toast} onDone={onToastDone} />}
         {showPublicVisit ? (
           <div id="app">
-            <div className="main main--guest-visit">
+            {/* `<main>` : repère principal de la visite invitée (cf. audit §6). */}
+            <main className="main main--guest-visit">
               <TabSuspense>
                 <VisitViewLazy
                   student={null}
@@ -65,7 +66,7 @@ export function UnauthenticatedShell({
                   onGuestMascotChoiceDone={onGuestMascotChoiceDone}
                 />
               </TabSuspense>
-            </div>
+            </main>
             <AppFooter versionPrefix={footerVersionPrefix} appVersion={appVersion} />
           </div>
         ) : (

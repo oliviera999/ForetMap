@@ -22,9 +22,13 @@ export function TaskUrgencyBanner({ isTeacher = false, tasks = [], maxItems = 5 
   if (urgentTasks.length === 0) return null;
   return (
     <div className="urgency-banner">
-      <h4>
+      {/* `<h3>` et non `<h4>` : la vue Tâches enchaînait H1 (bandeau) → H2 (« Tâches ») →
+          H4, en sautant un niveau — `axe` : `heading-order`. La hiérarchie des titres est
+          ce qui permet de naviguer une page au lecteur d'écran. Style inchangé (le sélecteur
+          CSS suit la balise). */}
+      <h3>
         <IconFlame size={16} /> Échéances proches
-      </h4>
+      </h3>
       {urgentTasks.slice(0, maxItems).map((t) => (
         <div key={t.id} className="urgency-item">
           <span className="urgency-days">{urgencyDueLabel(daysUntil(t.due_date))}</span>

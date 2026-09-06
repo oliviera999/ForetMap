@@ -1,0 +1,17 @@
+{
+  "auth-connexion": {},
+  "biodiversite-eleve": {},
+  "carte-eleve": {},
+  "gl-accueil": {},
+  "gl-decouverte-invite": {
+    "page-has-heading-one": 1,
+    "region": 1
+  },
+  "glossaire-eleve": {},
+  "quiz-eleve": {},
+  "reseau-trophique-eleve": {},
+  "taches-eleve": {},
+  "visite-eleve": {},
+  "visite-fiche-lieu": {},
+  "visite-invite": {}
+}

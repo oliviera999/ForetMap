@@ -80,7 +80,10 @@ export function AppHeader({
           height={28}
           decoding="async"
         />
-        <span className="logo-title">ForêtMap</span>
+        {/* `<h1>` et non `<span>` : chaque écran a désormais un titre de niveau 1,
+            que `axe` réclamait sur les six vues élève (`page-has-heading-one`).
+            Les styles sont neutralisés dans `.logo-title` — rendu inchangé. */}
+        <h1 className="logo-title">ForêtMap</h1>
       </div>
       <div className="header-right">
         {!isStandaloneMode && deferredInstallPrompt && (
