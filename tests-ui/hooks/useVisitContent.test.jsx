@@ -141,4 +141,47 @@ describe('useVisitContent', () => {
     expect(alertSpy).toHaveBeenCalledWith('boom');
     expect(onForceLogout).not.toHaveBeenCalled();
   });
+
+  it('initialLoading ne couvre que le premier chargement (les suivants gardent la vue)', async () => {
+    mockApiRoutes({ content: { zones: [{ id: 1 }], markers: [], tutorials: [] } });
+    const apiRef = { current: null };
+    render(<Harness apiRef={apiRef} />);
+
+    // Premier chargement : la vue peut être remplacée par le loader plein écran.
+    expect(apiRef.current.initialLoading).toBe(true);
+    await waitFor(() => expect(apiRef.current.loading).toBe(false));
+    expect(apiRef.current.initialLoading).toBe(false);
+
+    // Rechargement (sauvegarde prof, changement de carte) : `loading` remonte, mais
+    // `initialLoading` reste faux — la carte et le panneau restent affichés.
+    let pending;
+    api.mockImplementation((path) => {
+      if (path === '/api/maps') return Promise.resolve(MAPS);
+      if (String(path).startsWith('/api/visit/content')) {
+        pending = new Promise((resolve) => setTimeout(() => resolve({ zones: [] }), 0));
+        return pending;
+      }
+      return Promise.resolve({ seen: [] });
+    });
+    act(() => {
+      apiRef.current.loadData();
+    });
+    expect(apiRef.current.loading).toBe(true);
+    expect(apiRef.current.initialLoading).toBe(false);
+
+    await waitFor(() => expect(apiRef.current.loading).toBe(false));
+    expect(apiRef.current.initialLoading).toBe(false);
+  });
+
+  it('initialLoading retombe même si le premier chargement échoue', async () => {
+    api.mockImplementation(async (path) => {
+      if (path === '/api/maps') return MAPS;
+      throw new Error('boom');
+    });
+    const apiRef = { current: null };
+    render(<Harness apiRef={apiRef} />);
+
+    await waitFor(() => expect(apiRef.current.loading).toBe(false));
+    expect(apiRef.current.initialLoading).toBe(false);
+  });
 });

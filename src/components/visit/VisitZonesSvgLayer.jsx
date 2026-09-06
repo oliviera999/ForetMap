@@ -115,12 +115,23 @@ function VisitZonesSvgLayerImpl({
           fontSize: labelU,
           maxWidth: labelMaxTextLengthU,
         });
+        const zoneAccessibleName = String(zoneNameText).trim() || 'Zone de visite';
         return (
           <g
             key={z.id}
             className="visit-zone-hit"
             style={{ cursor: 'pointer' }}
             onClick={(event) => onZoneClick(z, event)}
+            // Accessibilité clavier : une zone est un bouton, comme sur la carte principale
+            // (`ZonePolygonsLayer`) — sans cela, au clavier, seuls les repères s'ouvraient.
+            role="button"
+            tabIndex={0}
+            aria-label={zoneAccessibleName}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return;
+              event.preventDefault();
+              onZoneClick(z, event);
+            }}
           >
             <polygon
               points={pointsAttr}

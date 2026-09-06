@@ -14,6 +14,10 @@ import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
  * `/api/visit/progress` est transmis à `onProgressLoaded` (cf. useVisitSeenSync),
  * lu via une ref pour que `loadData` reste stable vis-à-vis de ce callback.
  *
+ * `loading` couvre **tous** les chargements ; `initialLoading` ne vaut `true` que tant
+ * qu'aucun chargement n'est allé au bout — c'est le seul cas où la vue peut être
+ * remplacée par un loader plein écran (les rechargements gardent la carte affichée).
+ *
  * @param {object} params
  * @param {string} params.mapId carte demandée (état possédé par la vue).
  * @param {(id: string) => void} params.setMapId bascule si la carte demandée est absente.
@@ -23,6 +27,7 @@ import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
  *   maps: Array<object>,
  *   content: { zones: Array, markers: Array, tutorials: Array, mascot_packs: Array, map_id?: string },
  *   loading: boolean,
+ *   initialLoading: boolean,
  *   loadData: () => Promise<void>,
  *   selected: object|null,
  *   setSelected: (v: object|null) => void,
@@ -43,6 +48,8 @@ export function useVisitContent({ mapId, setMapId, onForceLogout, onProgressLoad
     mascot_packs: [],
   });
   const [loading, setLoading] = useState(true);
+  /** Un chargement au moins est allé au bout : les suivants ne masquent plus la vue. */
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [selected, setSelected] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
 
@@ -91,6 +98,7 @@ export function useVisitContent({ mapId, setMapId, onForceLogout, onProgressLoad
       else notify(err.message || 'Erreur chargement visite');
     } finally {
       setLoading(false);
+      setHasLoadedOnce(true);
     }
   }, [mapId, setMapId, onForceLogout, notify]);
 
@@ -113,5 +121,15 @@ export function useVisitContent({ mapId, setMapId, onForceLogout, onProgressLoad
     }
   }, [content, loading, selected?.id, selectedType]);
 
-  return { maps, content, loading, loadData, selected, setSelected, selectedType, setSelectedType };
+  return {
+    maps,
+    content,
+    loading,
+    initialLoading: loading && !hasLoadedOnce,
+    loadData,
+    selected,
+    setSelected,
+    selectedType,
+    setSelectedType,
+  };
 }

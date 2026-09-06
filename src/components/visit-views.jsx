@@ -40,6 +40,7 @@ import {
 } from '../utils/visitMascotVisibility.js';
 import { usePctMapViewport } from '../shared/pct-map/usePctMapViewport.js';
 import { useMapFullscreen } from '../shared/hooks/useMapFullscreen.js';
+import { usePrefersReducedMotion } from '../shared/hooks/usePrefersReducedMotion.js';
 import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx';
 import { VisitMapMascot } from './VisitMapMascot.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
@@ -126,13 +127,22 @@ function VisitViewImpl({
   const onVisitProgressLoaded = useCallback((progressBody) => {
     applyServerProgressRef.current?.(progressBody);
   }, []);
-  const { maps, content, loading, loadData, selected, setSelected, selectedType, setSelectedType } =
-    useVisitContent({
-      mapId,
-      setMapId,
-      onForceLogout,
-      onProgressLoaded: onVisitProgressLoaded,
-    });
+  const {
+    maps,
+    content,
+    loading,
+    initialLoading,
+    loadData,
+    selected,
+    setSelected,
+    selectedType,
+    setSelectedType,
+  } = useVisitContent({
+    mapId,
+    setMapId,
+    onForceLogout,
+    onProgressLoaded: onVisitProgressLoaded,
+  });
   /** Premier tutoriel « visite » ouvrable en modale (ordre API / sélection prof). */
   const visitPresentationTutorial = useMemo(() => {
     const list = content.tutorials || [];
@@ -160,7 +170,7 @@ function VisitViewImpl({
     media.addEventListener('change', update);
     return () => media.removeEventListener('change', update);
   }, []);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
   const {
     isHelpEnabled,
     showContextHints,
@@ -436,15 +446,6 @@ function VisitViewImpl({
     setMode('view');
   }, [mapId]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const apply = () => setPrefersReducedMotion(!!mq.matches);
-    apply();
-    mq.addEventListener('change', apply);
-    return () => mq.removeEventListener('change', apply);
-  }, []);
-
   // Immersion (plein écran) : réajustement une fois le portail posé (double rAF, comme avant).
   useLayoutEffect(() => {
     if (!visitImmersion) return undefined;
@@ -579,16 +580,20 @@ function VisitViewImpl({
     }
   };
 
-  useEffect(() => {
-    if (!selected || visitMediaLightbox || visitTutorialPreview) return undefined;
-    const onKey = (e) => {
-      if (e.key === 'Escape') closeVisitSelection();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [selected, visitMediaLightbox, visitTutorialPreview, closeVisitSelection]);
+  /**
+   * Échap sur le panneau détail : géré par `useDialogA11y` côté `VisitDetailPanel` (avec le
+   * piège de focus). La garde reste ici — une lightbox ou un aperçu de tutoriel ouvert
+   * par-dessus doit se fermer seul, sans emporter le panneau.
+   */
+  const onRequestCloseVisitSelection = useCallback(() => {
+    if (visitMediaLightbox || visitTutorialPreview) return;
+    closeVisitSelection();
+  }, [visitMediaLightbox, visitTutorialPreview, closeVisitSelection]);
 
-  if (loading) {
+  // Loader plein écran réservé au **premier** chargement : les rechargements (changement de
+  // carte, sauvegarde prof via `onSaved`) gardent la carte à l'écran et n'affichent qu'un
+  // indicateur discret — auparavant la vue entière disparaissait à chaque enregistrement.
+  if (initialLoading) {
     return (
       <div className="loader">
         <div className="loader-leaf">
@@ -640,6 +645,7 @@ function VisitViewImpl({
                 onOpenPresentation={() =>
                   setVisitTutorialPreview(tutorialPreviewPayload(visitPresentationTutorial))
                 }
+                refreshing={loading}
                 networkStatusLabel={mode === 'view' ? visitNetworkStatusLabel : null}
                 isOnline={isOnline}
                 syncStatus={syncStatus}
@@ -790,6 +796,7 @@ function VisitViewImpl({
             selected={selected}
             selectedType={selectedType}
             onClose={closeVisitSelection}
+            onRequestClose={onRequestCloseVisitSelection}
             comfortableReading={comfortableReading}
             onToggleComfortableReading={() => setComfortableReading((v) => !v)}
             onOpenLightbox={setVisitMediaLightbox}
