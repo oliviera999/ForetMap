@@ -17,6 +17,21 @@ const { assertGatingSatisfiedForAcknowledge } = require('../lib/learningGatingAc
 
 const { glossaryTermMatchesQuery } = require('../lib/glossarySearch');
 
+const { getNamedMemoryTtlCache } = require('../lib/memoryTtlCache');
+
+/**
+ * Liste complète des termes actifs — le cas de très loin le plus fréquent : `useGlossaryLinkIndex`
+ * la demande une fois par session, chez chaque utilisateur, pour les auto-liens de tout l'écran.
+ * Elle repartait en base à chaque fois (audit charge biodiversité 2026-09, P4). Seule la liste
+ * SANS filtre est cachée : une clé par recherche libre exposerait le cache à une explosion de
+ * clés pour un gain nul (les recherches sont diverses et rares).
+ */
+const glossaryTermsCache = getNamedMemoryTtlCache('glossary:terms:v1', {
+  ttlMs: 30000,
+  maxEntries: 2,
+});
+const GLOSSARY_TERMS_CACHE_KEY = 'all';
+
 const router = express.Router();
 
 function normalizeOptionalFilter(value) {
@@ -58,10 +73,17 @@ router.get(
     }
     sql += ' ORDER BY categorie ASC, terme ASC';
 
+    const cacheable = !q && !niveau && !categorie;
+    if (cacheable) {
+      const cached = glossaryTermsCache.get(GLOSSARY_TERMS_CACHE_KEY);
+      if (cached) return res.json({ items: cached });
+    }
+
     let items = await queryAll(sql, params);
     if (q) {
       items = items.filter((term) => glossaryTermMatchesQuery(term, q));
     }
+    if (cacheable) glossaryTermsCache.set(GLOSSARY_TERMS_CACHE_KEY, items);
     return res.json({ items });
   }),
 );

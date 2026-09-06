@@ -25,7 +25,10 @@ router.get(
   validate({ query: auditQuerySchema }),
   asyncHandler(async (req, res) => {
     const { limit } = req.validatedQuery;
-    const rows = await queryAll(`SELECT * FROM audit_log ORDER BY id DESC LIMIT ${limit}`, []);
+    // `limit` est borne par le schema de query ; parametre par convention (audit 2026-09, G5).
+    const rows = await queryAll('SELECT * FROM audit_log ORDER BY id DESC LIMIT ?', [
+      String(limit),
+    ]);
     res.json(rows);
   }),
 );

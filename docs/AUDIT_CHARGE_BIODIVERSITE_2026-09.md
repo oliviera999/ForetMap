@@ -192,6 +192,12 @@ au filtrage ; (b) à défaut, appliquer le même anti-rebond de 280 ms ; (c) mé
 par carte au niveau de la vue plutôt que dans la carte, pour que le remontage ne rappelle pas
 le serveur.
 
+**Sans objet (lot 1), garde-fou levé (lot 2).** Le volet lourd — le remontage des cartes et sa
+rafale — a disparu avec les vignettes : filtrer ne monte plus rien. Restent les deux appels de
+**page**, qui repartent à chaque changement de filtre ; leur coût est désormais borné et
+constant côté serveur (B4), et le plafond de 60 qui rendait le choix de la source délicat est
+levé. Le remède (a) reste applicable si l'on veut supprimer jusqu'à ces deux appels.
+
 ### B4. [MAJEUR] `/api/learning/gating/summary` : 3 à 4 requêtes SQL **par ressource**, en série
 
 `lib/learningGatingSummary.js:120-133` boucle sur les références et appelle `getChallengeState`
@@ -217,6 +223,18 @@ signalé au client, ni aligné sur la taille de la page.
 verrous —, puis dérouler le calcul en mémoire (il est déjà purement calculatoire, cf.
 `AUDIT_STABILITE_PERF_2026-09.md` §5). Coût cible : **3 requêtes constantes**. Ensuite
 seulement, relever ou paginer le plafond de 60.
+
+**Traité (lot 2).** Trois chargements groupés (`loadResourcePolicies`,
+`loadApprovedGatingLinksForRefs`, `loadResourceCooldownRows`) lancés en parallèle, puis
+`getChallengeState` déroule les mêmes règles en mémoire à partir d'un `preload`. Le chemin
+unitaire (`GET /gating/challenge`) est inchangé : sans `preload`, les requêtes par ressource
+restent. Le plafond passe de 60 à **200**, aligné sur celui des compteurs d'observation — les
+fiches au-delà de la 60ᵉ retrouvent leur annonce. Couverture :
+`tests/learning-gating-summary-batch.test.js` — payload **strictement identique** à
+l'algorithme unitaire sur un jeu couvrant politique par ressource, politique de type, liens
+multiples, verrou posé et fiche sans lien ; coût SQL **constant** (≤ 6 requêtes pour 1 comme
+pour 20 fiches). Réserve honnête : côté G&L, `resolveGlChapterGranularity` reste appelé par
+ressource — le groupage porte sur les politiques, les liens et les verrous.
 
 ### B5. [MOYEN] `GET /api/plants` : `SELECT *` complet, sans projection de liste
 
@@ -252,6 +270,12 @@ détail pour la fiche ouverte ; ou, si l'on veut garder un seul aller-retour, re
 liste les colonnes les plus lourdes jamais lues en carte. Gain immédiat sans changement de
 contrat : supprimer le double `map`.
 
+**Traité en partie (lot 2).** Le double enrichissement au hit de cache est supprimé. La
+projection « liste » **n'est pas faite** : depuis le lot 1, la fiche complète est rendue à
+l'ouverture à partir de la ligne déjà en mémoire, donc scinder la réponse imposerait un
+aller-retour supplémentaire par fiche ouverte — l'inverse de ce que cet audit cherche. Le
+`SELECT *` reste donc assumé, et le poids de la réponse reste linéaire en nombre de fiches.
+
 ### B6. [MOYEN] Un clic « espèce découverte » fait recharger tout le catalogue à toute la classe
 
 `database.js:173-181` range `user_plant_observation_events` dans le domaine de synchronisation
@@ -275,6 +299,14 @@ constat B1) et sont déjà couvertes par le domaine `tutorials`.
 « union large des tables que la route référence » : la règle utile est plutôt **les tables dont
 une écriture change la réponse renvoyée au cycle `fetchAll`**.
 
+**Traité (lot 2).** `plants` se réduit à la seule table `plants`. Piège rencontré et refermé :
+sortir une table d'un domaine ne suffit pas — une écriture qui ne correspond à **aucun**
+domaine déclenche le repli conservateur, qui bumpe _tous_ les domaines. Les quatre tables
+concernées (`user_plant_observation_events`, `species_interactions`, `glossary_term_species`,
+`quiz_question_species`) rejoignent donc `SYNC_IGNORED_TABLES_RE`. Couverture :
+`tests/audit-biodiv-charge-hygiene.test.js` — une écriture sur les observations ne bouge
+**aucun** compteur, une écriture sur `plants` bumpe toujours le sien.
+
 ### B7. [MOYEN] Les compteurs d'observation du site sont recalculés par utilisateur
 
 `routes/plants.js:154-190` exécute deux `GROUP BY` (le mien, celui du site) sur
@@ -290,6 +322,11 @@ incrémenté à l'acquittement. Accessoirement, `user_plant_observation_events` 
 d'entrer dans le périmètre de `scripts/purge-audit-logs.js` (rétention « historique », cf. C3
 de l'audit consolidé) — c'est aujourd'hui la seule table de la famille biodiversité à croître
 sans borne.
+
+**Traité en partie (lot 3).** Le volet « site » passe par un cache mémoire de 15 s
+(`plants:site-observations:v1`) : une classe entière qui ouvre le catalogue ne demande plus
+qu'une fois l'agrégat commun. Le volet personnel reste relu à chaque appel. **Reste à faire** :
+l'entrée de la table dans le périmètre de purge.
 
 ### B8. [MOYEN] 78 photos « héro » en priorité haute, sans chargement paresseux
 
@@ -322,6 +359,10 @@ navigateur, et elle est refaite à chaque remontage (B3). Résoudre la vignette 
 l'enregistrement de la fiche (ou la mémoriser côté module, comme `useGlossaryLinkIndex` le fait
 pour le glossaire) supprimerait l'aller-retour.
 
+**Sans objet en grille (lot 1).** La vignette n'affiche qu'une photo **directe** ; une photo
+renseignée par catégorie retombe sur l'emoji. L'appel Commons ne subsiste que dans la fiche
+ouverte — une fois, pour la fiche lue.
+
 ---
 
 ## 3. Autres pages exposées au même motif
@@ -333,12 +374,22 @@ Même mécanique que B1, moins le bloc pédagogique : **3 appels par tâche affi
 avec 40 tâches actives ouvre l'onglet Tâches à **120 requêtes** par élève. C'est l'onglet le
 plus fréquenté de l'application.
 
+**Traité en partie (lot 2).** `ContextComments` n'émet plus qu'**un** appel au montage au lieu
+de trois : les emojis de réaction viennent du contexte des réglages publics, et le total comme
+la pastille « non lus » sont lus dans la réponse de la liste — qui les portait déjà. L'onglet
+Tâches passe donc de 3N à **N** appels (40 tuiles : 120 → 40). Ramener ce N à zéro demanderait
+soit un chargement au dépli, soit un point d'entrée de lot : c'est le même arbitrage d'usage
+que pour le catalogue, à trancher séparément. Couverture :
+`tests-ui/components/ContextComments.test.jsx`.
+
 ### P2. [MAJEUR] Liste des tutoriels — idem
 
 `src/components/tutorials-views.jsx:798-805` : 3 appels par tutoriel listé. Même remède que B1
 (compteurs en lot + chargement au dépli). `src/components/visit/VisitTutorialsSection.jsx:155`
 applique le même motif, mais **gardé par `studentId`** : la visite publique n'émet donc pas ces
 appels — le garde est bon, il manque juste ailleurs.
+
+**Traité en partie (lot 2)**, par le même correctif que P1 : 3N → N.
 
 ### P3. [MAJEUR] Catalogue biodiversité côté professeur
 
@@ -366,7 +417,20 @@ un N+1 déclenché depuis le client, borné mais gratuit à supprimer.
 la liste des termes ; filtre `q` poussé en SQL ; pour le quiz, une route dédiée
 « plantes liées à ces termes » en une requête.
 
+**Traité en partie (lot 3).** La liste **sans filtre** — le cas courant, celui de l'index des
+auto-liens chargé une fois par session et par utilisateur — passe par un cache mémoire de 30 s.
+Volontairement **non fait** : pousser le filtre `q` en SQL changerait la sémantique de
+correspondance (`glossaryTermMatchesQuery` fait un affinage en JS que `LIKE` ne reproduit pas à
+l'identique), et cacher une clé par recherche libre exposerait le cache à une explosion de clés
+pour un gain nul. La route de lot pour le quiz reste à faire.
+
 ### P5. [MOYEN] `/api/quiz/questions` sans borne, et `ORDER BY RAND()` au tirage
+
+**Traité en partie (lot 3).** Le tirage abandonne `ORDER BY RAND()` pour un décalage aléatoire
+sur la clé primaire (compte + `LIMIT 1 OFFSET n`) : même distribution, plus de tri de la
+sélection entière à chaque clic. Volontairement **non fait** : borner `/api/quiz/questions`
+tronquerait le catalogue admin qui s'en sert, et pousser son filtre `q` en SQL changerait la
+sémantique de correspondance — même raison que pour le glossaire.
 
 `routes/quiz.js:213-275` renvoie **toutes** les questions actives (131 aujourd'hui) sans `LIMIT`,
 et filtre `q` en mémoire après chargement — même motif que le glossaire.
@@ -390,6 +454,11 @@ borne ni pagination (la route professeur `/all`, elle, plafonne à 100). Les obs
 du texte libre et référencent des images ; sur une année scolaire complète, la réponse grossit
 sans plafond.
 
+**Traité (lot 3).** Borne de 500 entrées, les plus récentes d'abord (`STUDENT_NOTEBOOK_MAX_ROWS`),
+documentée dans `docs/API.md`. Un carnet dépasse rarement quelques dizaines d'entrées sur une
+année ; la troncature reste **théoriquement visible** au-delà de 500 — c'est le compromis
+assumé, faute de pagination sur cet écran.
+
 ### P8. [MINEUR] `LIMIT` interpolé plutôt que paramétré
 
 `lib/shared/contextCommentsCore.js:138` et `routes/forum.js:211,335` composent
@@ -397,6 +466,12 @@ sans plafond.
 **aucune injection n'est atteignable** — c'est le même constat que **G5** de l'audit consolidé,
 qui a été corrigé côté journal G&L et marché mais laissé ici. À aligner par cohérence de
 convention (« SQL toujours paramétré »).
+
+**Traité (lot 3).** Les quatre derniers `LIMIT`/`OFFSET` alimentés par une valeur de requête
+sont paramétrés : commentaires de contexte, forum ForetMap (fils et messages), forum G&L et
+journal d'audit. Les `LIMIT` qui subsistent interpolent des **constantes de module**
+(`MAX_ROWS`, `ADMIN_*_LIST_LIMIT`), pas des entrées. Couverture :
+`tests/audit-biodiv-charge-hygiene.test.js`.
 
 ---
 
@@ -425,29 +500,52 @@ convention (« SQL toujours paramétré »).
 
 ## 5. Ordre de traitement suggéré (suivi)
 
-Le plan initial (colonnes « Effort » et « Gain ») a été revu après arbitrage produit : plutôt
-que d'alléger fiche par fiche une grille qui affiche tout, le **lot 1** a changé la forme de
-l'écran — vignettes + fiche en fenêtre, sur le modèle déjà employé partout ailleurs dans
-l'application. Plusieurs remèdes du plan deviennent de ce fait sans objet.
+Le plan initial a été revu après arbitrage produit : plutôt que d'alléger fiche par fiche une
+grille qui affiche tout, le **lot 1** a changé la forme de l'écran — vignettes + fiche en
+fenêtre, sur le modèle déjà employé partout ailleurs dans l'application. Plusieurs remèdes du
+plan sont devenus sans objet. Le **lot 2** a dégraissé ce qui restait sur le chemin chaud, le
+**lot 3** a traité l'hygiène et la tenue dans la durée.
 
-| Priorité | Constat                                                                    | Effort           | Statut                                                                                         |
-| -------- | -------------------------------------------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------- |
-| 1        | **B1** emojis via `usePublicSettings()` + compteurs de commentaires en lot | petit            | **sans objet au catalogue** (lot 1) — reste à faire pour tâches, tutoriels et la fiche ouverte |
-| 2        | **B2** borne d'affichage de la grille (24 cartes + « voir plus »)          | petit            | **sans objet** (lot 1) — les vignettes ne coûtent plus rien par fiche                          |
-| 3        | **B1** bloc pédagogique : route de lot ou chargement au dépli              | moyen            | **traité** (lot 1) — chargé à l'ouverture de la fiche                                          |
-| 4        | **B3** identifiants dérivés de `plants` + anti-rebond 280 ms               | petit            | à faire (lot 2) — à trancher avec B4, dont le plafond de 60 dépend de la source                |
-| 5        | **B4** résumé de conditionnement en requêtes groupées (3 constantes)       | moyen            | à faire (lot 2)                                                                                |
-| 6        | **B6** retirer `user_plant_observation_events` du domaine `plants`         | quelques lignes  | à faire (lot 2)                                                                                |
-| 7        | **B8** `loading="lazy"` / `fetchPriority` sur la photo héro                | trivial          | **traité en partie** (lot 1) — reste la vignette serveur des photos téléversées                |
-| 8        | **P1/P2** même traitement que B1 sur tâches et tutoriels                   | petit (réemploi) | à faire (lot 2)                                                                                |
-| 9        | **B5** projection de liste + suppression du double enrichissement          | moyen / trivial  | à faire (lot 2)                                                                                |
-| 10       | **B7 / P4 / P5 / P7 / P8** caches, bornes et hygiène SQL                   | petits           | à faire (lot 3)                                                                                |
+| Priorité | Constat                                                                    | Statut                                                                                    |
+| -------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 1        | **B1** emojis via `usePublicSettings()` + compteurs de commentaires en lot | **traité** (lots 1 et 2) — 3 appels par section → 1, partout                              |
+| 2        | **B2** borne d'affichage de la grille                                      | **sans objet** (lot 1) — les vignettes ne coûtent plus rien par fiche                     |
+| 3        | **B1** bloc pédagogique : route de lot ou chargement au dépli              | **traité** (lot 1) — chargé à l'ouverture de la fiche                                     |
+| 4        | **B3** identifiants dérivés de `plants` + anti-rebond                      | **sans objet** (lot 1) — plus de carte à monter ; garde-fou levé par B4                   |
+| 5        | **B4** résumé de conditionnement en requêtes groupées                      | **traité** (lot 2) — 3 requêtes constantes, plafond 60 → 200                              |
+| 6        | **B6** retirer `user_plant_observation_events` du domaine `plants`         | **traité** (lot 2)                                                                        |
+| 7        | **B8** `loading="lazy"` / `fetchPriority`                                  | **traité en partie** (lot 1) — reste la vignette serveur des photos téléversées           |
+| 8        | **P1/P2** même traitement que B1 sur tâches et tutoriels                   | **traité en partie** (lot 2) — 3N → N ; le N restant demande un arbitrage d'usage         |
+| 9        | **B5** projection de liste + double enrichissement                         | **traité en partie** (lot 2) — double `map` supprimé ; projection écartée, cf. §B5        |
+| 10       | **B7 / P4 / P5 / P7 / P8** caches, bornes et hygiène SQL                   | **traité en partie** (lot 3) — cf. chaque constat pour ce qui a été volontairement écarté |
 
-**Après le lot 1**, l'ouverture du catalogue coûte **3 appels** (`/api/plants`, compteurs
-d'observation, annonce du contrôle) au lieu de ~471, et ouvrir **une** fiche en coûte 6 — pour
-la seule fiche que le lecteur regarde. Filtrer ou rechercher ne déclenche plus aucune rafale,
-puisqu'il n'y a plus de fiche à monter. Le lot 2 ramènera l'ouverture d'une fiche à 4 appels
-(points 1 et 8) et les 3 appels de page à un coût SQL constant (points 4, 5 et 6).
+### Ce qui reste ouvert, et pourquoi
+
+- **B5** — projection « liste » de `GET /api/plants` : écartée. Depuis le lot 1, la fiche est
+  rendue à partir de la ligne déjà en mémoire ; scinder la réponse coûterait un aller-retour
+  par fiche ouverte. Le poids de la liste reste linéaire en nombre de fiches.
+- **B7** — `user_plant_observation_events` n'entre toujours pas dans le périmètre de
+  `scripts/purge-audit-logs.js` : c'est la seule table de la famille biodiversité à croître
+  sans borne.
+- **B8** — pas de vignette serveur pour les photos téléversées (`lib/imageThumb.js` ne sert
+  aujourd'hui que zones et repères).
+- **P1/P2** — la section de commentaires coûte encore **un** appel par tuile de tâche et par
+  tutoriel listé. Le ramener à zéro suppose un chargement au dépli ou un point d'entrée de
+  lot : même arbitrage d'usage que pour le catalogue, à trancher.
+- **P4/P5** — filtres `q` laissés en JS : les pousser en SQL changerait la sémantique de
+  correspondance. Route de lot « plantes liées à ces termes » pour le quiz : à faire.
+- **P6** — réseau trophique : sain à la volumétrie actuelle, rien n'a été touché.
+- **G&L** — `resolveGlChapterGranularity` reste appelé par ressource dans le résumé groupé.
+
+### Bilan chiffré
+
+|                                        | Avant                              | Après les trois lots                  |
+| -------------------------------------- | ---------------------------------- | ------------------------------------- |
+| Ouverture du catalogue biodiversité    | ≈ 471 appels, ≈ 1 400 requêtes SQL | **3 appels**, ≈ 15 requêtes SQL       |
+| Ouverture d'**une** fiche              | 0 (déjà chargée)                   | 4 appels — pour la seule fiche lue    |
+| Filtrer / rechercher dans le catalogue | relance la rafale complète         | 2 appels de page, à coût SQL constant |
+| Onglet Tâches (40 tuiles)              | 120 appels                         | **40 appels**                         |
+| `/gating/summary` (60 réfs)            | ~180 à 240 requêtes SQL en série   | **≤ 6, constantes**                   |
 
 ## 6. Comment le mesurer
 
