@@ -183,6 +183,7 @@
     "db:seed:biodiv:extract": "node scripts/extract-biodiv-pedago-seed.js"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@fontsource/noto-color-emoji": "^5.3.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@playwright/test": "^1.62.1",
@@ -197,6 +198,7 @@
     "better-sqlite3": "^13.0.3",
     "cross-env": "^10.1.0",
     "eslint": "^10.9.1",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.9.0",
     "isomorphic-dompurify": "^3.23.0",

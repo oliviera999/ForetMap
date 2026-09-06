@@ -1,0 +1,207 @@
+{
+  "src/components/MapViewBackgroundImage.jsx": {
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/components/TutorialPreviewModal.jsx": {
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/components/VisitMapMascotSpriteCut.jsx": {
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/components/attachment-images-picker.jsx": {
+    "jsx-a11y/img-redundant-alt": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/components/auth-views.jsx": {
+    "jsx-a11y/no-autofocus": 2
+  },
+  "src/components/auth/PinModal.jsx": {
+    "jsx-a11y/no-autofocus": 1
+  },
+  "src/components/biodiv/BiodivLocationMaps.jsx": {
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/components/biodiv/PrefillPhotoCard.jsx": {
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/components/foretmap-views.jsx": {
+    "jsx-a11y/no-autofocus": 1
+  },
+  "src/components/map-views.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-static-element-interactions": 1
+  },
+  "src/components/map/MapLocationFilterResults.jsx": {
+    "jsx-a11y/no-noninteractive-element-to-interactive-role": 1,
+    "jsx-a11y/role-has-required-aria-props": 1
+  },
+  "src/components/map/PhotoGallery.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1,
+    "jsx-a11y/no-static-element-interactions": 1
+  },
+  "src/components/map/ZoneDrawModal.jsx": {
+    "jsx-a11y/no-autofocus": 1
+  },
+  "src/components/mascot/MascotPackImagesPanel.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/components/mascot/MascotPackInteractionBulkDialog.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/components/mascot/MascotPackStateEditor.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 2
+  },
+  "src/components/pedago/GlossaryPopover.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/components/settings/MapGeorefPanel.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/components/settings/MapRoutesPanel.jsx": {
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/components/student-avatar.jsx": {
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/components/tasks/TaskFormImageField.jsx": {
+    "jsx-a11y/img-redundant-alt": 1
+  },
+  "src/components/tasks/TaskLogModals.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/components/tasks/TaskProjectsBlock.jsx": {
+    "jsx-a11y/no-static-element-interactions": 2
+  },
+  "src/components/tasks/TaskTileCard.jsx": {
+    "jsx-a11y/no-static-element-interactions": 1
+  },
+  "src/components/tutorials-views.jsx": {
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/components/visit-views.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1,
+    "jsx-a11y/no-static-element-interactions": 1
+  },
+  "src/components/visit/VisitMediaEditor.jsx": {
+    "jsx-a11y/no-static-element-interactions": 1
+  },
+  "src/gl/components/GLAdventureView.jsx": {
+    "jsx-a11y/no-noninteractive-element-to-interactive-role": 1
+  },
+  "src/gl/components/GLBoardChrome.jsx": {
+    "jsx-a11y/aria-role": 3
+  },
+  "src/gl/components/GLFeuilletDiscoveryPopover.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/gl/components/GLGameBoard.jsx": {
+    "jsx-a11y/role-supports-aria-props": 1
+  },
+  "src/gl/components/GLGameBoardHud.jsx": {
+    "jsx-a11y/aria-role": 2
+  },
+  "src/gl/components/GLGameMasterConsole.jsx": {
+    "jsx-a11y/no-noninteractive-element-to-interactive-role": 1
+  },
+  "src/gl/components/GLGlossaryPopover.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/gl/components/GLJoueursView.jsx": {
+    "jsx-a11y/no-noninteractive-element-to-interactive-role": 1
+  },
+  "src/gl/components/GLLoreGlossaryPopover.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/gl/components/GLMarkerEffectPopover.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/gl/components/GLMobileNav.jsx": {
+    "jsx-a11y/no-noninteractive-element-to-interactive-role": 1
+  },
+  "src/gl/components/GLMondeView.jsx": {
+    "jsx-a11y/no-noninteractive-element-to-interactive-role": 1
+  },
+  "src/gl/components/GLNatureView.jsx": {
+    "jsx-a11y/no-noninteractive-element-to-interactive-role": 1
+  },
+  "src/gl/components/GLPctMapCanvas.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-static-element-interactions": 1
+  },
+  "src/gl/components/GLQcmPopover.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/gl/components/GLSpellCastResultPopover.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/gl/components/GLSpellPopover.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/gl/components/GLTopBar.jsx": {
+    "jsx-a11y/no-noninteractive-element-to-interactive-role": 1
+  },
+  "src/gl/components/GLVirtualDiceDock.jsx": {
+    "jsx-a11y/aria-role": 1
+  },
+  "src/gl/components/GLVitalityDisplay.jsx": {
+    "jsx-a11y/no-interactive-element-to-noninteractive-role": 1
+  },
+  "src/gl/components/GLZoneContentPopover.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/gl/components/GLZoneMusicMuteButton.jsx": {
+    "jsx-a11y/aria-role": 1
+  },
+  "src/gl/components/admin/GLFeuilletLiasseReorder.jsx": {
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/plan/components/PlanMapStage.jsx": {
+    "jsx-a11y/aria-role": 3
+  },
+  "src/shared/components/AppDialogsProvider.jsx": {
+    "jsx-a11y/no-autofocus": 2
+  },
+  "src/shared/components/DialogShell.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/shared/components/ImageLightbox.jsx": {
+    "jsx-a11y/click-events-have-key-events": 3,
+    "jsx-a11y/no-noninteractive-element-interactions": 2,
+    "jsx-a11y/no-static-element-interactions": 1
+  },
+  "src/shared/components/LearningQuizPopover.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/shared/components/SpeechBubble.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-static-element-interactions": 1
+  },
+  "src/shared/media/MediaLibraryGalleryTile.jsx": {
+    "jsx-a11y/no-aria-hidden-on-focusable": 1
+  },
+  "src/shared/pct-map/PctImageLayer.jsx": {
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  },
+  "src/shared/ui/BottomSheet.jsx": {
+    "jsx-a11y/click-events-have-key-events": 1,
+    "jsx-a11y/no-noninteractive-element-interactions": 1
+  }
+}

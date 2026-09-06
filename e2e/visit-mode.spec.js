@@ -129,7 +129,7 @@ test('visite connectée : mascotte visible si au moins une zone ou un repère su
   }
 });
 
-test('visite connectée : bouton Présentation du lieu (animation si parcours carte à 0)', async ({
+test('visite connectée : bouton Présentation du lieu, sans animation d’invite', async ({
   page,
 }) => {
   await loginAsNewStudent(page);
@@ -144,10 +144,11 @@ test('visite connectée : bouton Présentation du lieu (animation si parcours ca
   await expect(pres).toHaveText(/Présentation du lieu/i);
   const stage = page.locator('.visit-map-stage');
   await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 15_000 });
-  const navigable = (await stage.locator('.visit-zone-hit, .visit-marker-btn').count()) > 0;
-  if (navigable) {
-    await expect(pres).toHaveAttribute('data-invite-pulse', '1');
-  }
+  // L'invite pulsée se déclenchait à « aucun lieu vu », c'est-à-dire exactement quand tous
+  // les lieux clignotent déjà en rouge : deux sollicitations en boucle pour le même message.
+  // Elle est retirée (audit §5.6) — le bouton reste le seul bouton plein du bandeau.
+  await expect(pres).not.toHaveAttribute('data-invite-pulse');
+  await expect(pres).not.toHaveClass(/visit-map-card__presentation-btn--invite/);
 });
 
 test('visite connectée : clic sur une zone ouvre le panneau détail', async ({ page }) => {

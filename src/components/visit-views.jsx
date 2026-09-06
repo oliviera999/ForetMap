@@ -488,13 +488,6 @@ function VisitViewImpl({
 
   /** Bandeau carte : ouverture du premier tutoriel « présentation » (tous les profils en navigation). */
   const showVisitPresentationButton = mode === 'view' && !!visitPresentationTutorial;
-  /** Incitation visuelle tant qu’aucune zone ni repère n’a été marqué·e comme vu·e sur la carte courante. */
-  const visitPresentationInvitePulse =
-    showVisitPresentationButton &&
-    visitCartographyProgress.total > 0 &&
-    visitCartographyProgress.seenCount === 0 &&
-    !prefersReducedMotion;
-
   const visitNetworkStatusLabel = useMemo(
     () => buildVisitNetworkStatusLabel(isOnline, syncStatus, pendingSyncCount),
     [isOnline, syncStatus, pendingSyncCount],
@@ -641,7 +634,6 @@ function VisitViewImpl({
               <VisitMapChrome
                 title={visitTitle}
                 showPresentationButton={showVisitPresentationButton}
-                presentationInvitePulse={visitPresentationInvitePulse}
                 onOpenPresentation={() =>
                   setVisitTutorialPreview(tutorialPreviewPayload(visitPresentationTutorial))
                 }

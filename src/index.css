@@ -242,7 +242,20 @@
       filter:brightness(0) invert(1);
       opacity:.95;
     }
-    .logo-title { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+    /* `.logo-title` est un `<h1>` (repère de titre de page) : les styles par défaut du
+       navigateur — `font-size: 2em`, marges verticales, graisse — casseraient le bandeau.
+       On hérite du conteneur `header .logo`, le rendu reste celui du `<span>` d'origine. */
+    .logo-title {
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      margin:0;
+      font-size:inherit;
+      font-weight:inherit;
+      font-family:inherit;
+      line-height:inherit;
+      color:inherit;
+    }
     .header-right {
       display:flex; align-items:center; gap:6px;
       flex-wrap:nowrap;
@@ -3207,7 +3220,7 @@
       border-radius:12px; padding:14px; margin-bottom:16px;
       animation:fadeIn .3s var(--ease-out);
     }
-    .urgency-banner h4 {
+    .urgency-banner h3 {
       font-size:var(--text-sm); font-weight:var(--fw-bold); color:#c2410c; margin-bottom:8px;
       display:flex; align-items:center; gap:6px;
     }
@@ -4056,8 +4069,11 @@
       flex:1 1 auto;
       min-width:0;
     }
+    /* Le sélecteur de carte partage désormais la ligne de titre : il prend la largeur
+       qu'il lui faut et passe seul à la ligne quand il n'y a plus de place, au lieu de
+       réserver une rangée en permanence. */
     .visit-map-card__chrome-maps {
-      width:100%;
+      flex:0 1 auto;
       min-width:0;
     }
     .visit-map-card__title {
@@ -4069,24 +4085,16 @@
       font-weight:var(--fw-bold);
       box-shadow:0 1px 2px rgba(0,0,0,.08);
     }
-    @media (prefers-reduced-motion:no-preference) {
-      .visit-map-card__presentation-btn--invite {
-        animation:visitPresentationInvite 1.75s ease-in-out infinite;
-        will-change:transform, box-shadow;
-      }
-    }
-    @keyframes visitPresentationInvite {
-      0%, 100% {
-        transform:scale(1);
-        box-shadow:0 1px 2px rgba(0,0,0,.08), 0 0 0 0 rgba(82,183,136,.45);
-      }
-      50% {
-        transform:scale(1.045);
-        box-shadow:0 2px 10px rgba(82,183,136,.35), 0 0 0 10px rgba(82,183,136,0);
-      }
-    }
+    /* Plus d'animation d'invite sur « Présentation du lieu » : elle se déclenchait à
+       `seenCount === 0`, c'est-à-dire exactement quand TOUS les lieux clignotent déjà en
+       rouge — deux sollicitations en boucle sur le même écran, pour le même message.
+       Le bouton reste le seul bouton plein du bandeau : l'emphase suffit sans mouvement.
+       Cf. `docs/AUDIT_VISITE_UI_UX_2026-09.md` §5.6. */
     .visit-map-switch--embedded {
-      width:100%;
+      width:auto;
+      max-width:100%;
+      padding:4px 6px;
+      gap:6px;
     }
     .visit-map-card__chrome-actions {
       display:flex;

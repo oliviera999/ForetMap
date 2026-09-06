@@ -60,6 +60,26 @@ describe('VisitMapChrome — trois zones', () => {
     expect(screen.getAllByTestId('visit-progress-donut')).toHaveLength(1);
   });
 
+  test('le sélecteur de carte accompagne le titre, hors du groupe de commandes', () => {
+    const { container } = setup({
+      maps: [
+        { id: 'foret', label: 'Forêt' },
+        { id: 'mare', label: 'Mare' },
+      ],
+    });
+    const titleLine = container.querySelector('.visit-map-card__chrome-title-line');
+    // Il occupait une rangée entière sous le bandeau : il partage désormais la ligne 1.
+    expect(within(titleLine).getByRole('button', { name: 'Forêt' })).toBeInTheDocument();
+    expect(within(titleLine).getByRole('button', { name: 'Mare' })).toBeInTheDocument();
+    const group = screen.getByRole('group', { name: 'Affichage du plan' });
+    expect(within(group).queryByRole('button', { name: 'Forêt' })).toBeNull();
+  });
+
+  test('une seule carte → pas de sélecteur', () => {
+    const { container } = setup({ maps: [{ id: 'foret', label: 'Forêt' }] });
+    expect(container.querySelector('.visit-map-card__chrome-maps')).toBeNull();
+  });
+
   test('aucune progression à afficher → pas de donut', () => {
     setup({ cartographyProgress: { total: 0, seenCount: 0, pct: 0 } });
     expect(screen.queryByTestId('visit-progress-donut')).toBeNull();
@@ -90,6 +110,15 @@ describe('VisitMapChrome — commandes compactées', () => {
     expect(btn).toHaveAccessibleName('Quitter le plein écran');
     fireEvent.click(btn);
     expect(props.onToggleImmersion).toHaveBeenCalledTimes(1);
+  });
+
+  test('« Présentation du lieu » ne pulse plus', () => {
+    setup({ showPresentationButton: true });
+    const btn = screen.getByTestId('visit-presentation-link');
+    // L'invite se déclenchait quand aucun lieu n'était vu — c'est-à-dire quand tous les
+    // lieux clignotent déjà en rouge. Une seule sollicitation en boucle par écran.
+    expect(btn).not.toHaveClass('visit-map-card__presentation-btn--invite');
+    expect(btn).not.toHaveAttribute('data-invite-pulse');
   });
 
   test('le bouton taille de texte reprend son libellé visible dans son nom accessible', () => {
