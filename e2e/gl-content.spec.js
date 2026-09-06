@@ -26,7 +26,7 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
     const classId = Number(classRow?.id || 0);
 
     await execute(
-      `INSERT INTO gl_players (class_id, pseudo, password_hash, is_active, created_at, updated_at)
+      `INSERT INTO gl_players (class_id, pseudo, legacy_password_hash, is_active, created_at, updated_at)
        VALUES (?, ?, 'x', 1, NOW(), NOW())`,
       [classId, `e2e_content_player_${now}`],
     );

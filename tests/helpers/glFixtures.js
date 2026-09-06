@@ -34,6 +34,12 @@ async function createGlClass(options = {}) {
   return queryOne('SELECT * FROM gl_classes WHERE name = ? ORDER BY id DESC LIMIT 1', [name]);
 }
 
+/**
+ * Joueur GL de test. Depuis l'unification des identités (migration 211), le mot de passe,
+ * l'e-mail et `password_must_reset` vivent sur le compte `users` lié : la fixture crée ce
+ * compte via le pont (ou réutilise `linkedForetmapUserId`) puis insère le profil de jeu.
+ * `legacyPasswordHash` permet de simuler un joueur historique non migré.
+ */
 async function createGlPlayer(options = {}) {
   const classId = Number(options.classId);
   const teamId = options.teamId == null ? null : Number(options.teamId);
@@ -43,28 +49,55 @@ async function createGlPlayer(options = {}) {
   const lastName = options.lastName == null ? 'Nom' : String(options.lastName);
   const passwordMustReset = options.passwordMustReset ? 1 : 0;
   const isActive = options.isActive == null ? 1 : options.isActive ? 1 : 0;
-  const linkedForetmapUserId =
-    options.linkedForetmapUserId == null ? null : String(options.linkedForetmapUserId);
   const email = options.email == null ? null : String(options.email).trim().toLowerCase() || null;
   const passwordHash = options.passwordHash || (await bcrypt.hash(password, 10));
+  const legacyPasswordHash = options.legacyPasswordHash || null;
 
-  await execute('DELETE FROM gl_players WHERE pseudo = ?', [pseudo]);
+  const existing = await queryOne(
+    'SELECT id, linked_foretmap_user_id FROM gl_players WHERE pseudo = ?',
+    [pseudo],
+  );
+  if (existing) {
+    await execute('DELETE FROM gl_players WHERE id = ?', [existing.id]);
+    if (existing.linked_foretmap_user_id) {
+      await execute("DELETE FROM users WHERE id = ? AND auth_provider = 'gl_bridge'", [
+        existing.linked_foretmap_user_id,
+      ]);
+    }
+  }
+
+  let linkedForetmapUserId =
+    options.linkedForetmapUserId == null ? null : String(options.linkedForetmapUserId);
+  if (!linkedForetmapUserId && options.linkedForetmapUserId !== null) {
+    const { upsertForetmapUserForGlPlayer } = require('../../lib/glGroupBridge');
+    const link = await upsertForetmapUserForGlPlayer({
+      classId,
+      firstName,
+      lastName,
+      pseudo,
+      email,
+      passwordHash: legacyPasswordHash ? null : passwordHash,
+      passwordMustReset: !!passwordMustReset,
+      dedupe: options.dedupe === true,
+    });
+    if (!link.ok) throw new Error(link.error || 'Fixture joueur GL : pont ForetMap en échec');
+    linkedForetmapUserId = String(link.user.id);
+  }
+
   const healthPoints = options.healthPoints == null ? 3 : Number(options.healthPoints);
   const powerPoints = options.powerPoints == null ? 3 : Number(options.powerPoints);
   await execute(
     `INSERT INTO gl_players
-      (class_id, team_id, first_name, last_name, email, pseudo, password_must_reset, password_hash,
+      (class_id, team_id, first_name, last_name, pseudo, legacy_password_hash,
        linked_foretmap_user_id, is_active, health_points, power_points, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
     [
       classId,
       teamId,
       firstName,
       lastName,
-      email,
       pseudo,
-      passwordMustReset,
-      passwordHash,
+      legacyPasswordHash,
       linkedForetmapUserId,
       isActive,
       healthPoints,
