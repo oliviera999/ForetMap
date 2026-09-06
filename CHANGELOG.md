@@ -7,6 +7,29 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation et tests — mesure de charge et revue de tous les onglets (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`)
+
+- **Scénario de charge qui rejoue la rafale réelle** : `load/artillery-biodiv.yml` (+ son
+  processeur) compare les régimes avant/après de l'ouverture du catalogue. Les scénarios
+  existants ne simulaient l'écran que par un seul `GET /api/plants` — ils mesuraient 1 requête
+  là où le navigateur en émettait ~471. **Mesure sur 380 utilisateurs virtuels identiques :
+  23 180 requêtes avant, 1 520 après (÷ 15,2), à temps de réponse inchangés** (médiane 2 vs
+  3 ms). Le serveur n'était pas lent : on lui en demandait quinze fois trop. Rapport :
+  `load/reports/biodiv-summary.md`.
+- **Scénario e2e** : `e2e/plants-biodiversity.spec.js` compte les requêtes émises dans un vrai
+  navigateur à l'ouverture de l'onglet — **3 appels de catalogue pour 64 vignettes**, aucun
+  appel par fiche, puis chargement de la seule fiche ouverte au clic. Au passage, correction
+  d'un sélecteur de la fixture d'authentification partagée : `.teacher-main .top-tabs` matchait
+  **deux** éléments depuis la navigation prof en trois pôles, et le mode strict de Playwright
+  refusait le locator — **les seize specs passant par `enableTeacherMode` échouaient toutes**.
+  Vérifié en rejouant une spec prof sur la fixture d'origine (échec) puis corrigée (succès).
+- **Revue onglet par onglet** (§ 3 de l'audit) : glossaire, quiz, réseau trophique, carte,
+  visite, carnet, forum, tâches, tutoriels, stats, profils, médiathèque. Le glossaire faisait
+  déjà bien — liste + fiche au clic, le modèle vers lequel le catalogue a convergé. Trois
+  constats nouveaux, non traités : usage de la médiathèque à 30 requêtes SQL sans cache (T1),
+  catalogue complet retéléchargé par le réseau trophique pour trois champs (T2),
+  `/api/settings/public` redondant du forum (T3).
+
 ### Modifié — dégraissage des écrans de liste (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`, lots 2 et 3)
 
 - **Une section de commentaires de contexte n'émet plus qu'un appel au montage au lieu de trois.**
