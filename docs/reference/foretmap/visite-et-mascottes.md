@@ -38,11 +38,21 @@ familles.
   **Entrée** ou **Espace**, comme sur la carte de l'application. Une fois la fiche
   ouverte, le clavier reste à l'intérieur ; **Échap** ou un clic à côté la referme et
   ramène au lieu d'où l'on venait.
-- **La barre au-dessus du plan** réunit, à gauche, le titre, la pastille de progression
-  et « Présentation du lieu » ; à droite, un petit bloc encadré rassemble les trois
-  réglages d'affichage — **plein écran**, **taille du texte** et **choix de la mascotte**.
-  Les deux premiers sont des icônes : leur nom s'affiche au survol. Sur téléphone, cette
-  barre occupe environ deux fois moins de place qu'avant, au profit de la carte.
+- **La barre au-dessus du plan** réunit, à gauche, le titre, la pastille de progression,
+  « Présentation du lieu » et — s'il y a plusieurs cartes — le **choix de la carte** ; à
+  droite, un petit bloc encadré rassemble les trois réglages d'affichage : **plein écran**,
+  **taille du texte** et **choix de la mascotte**. Les deux premiers sont des icônes : leur
+  nom s'affiche au survol. Sur grand écran, tout tient désormais sur une seule ligne ; sur
+  téléphone, la barre occupe environ deux fois moins de place qu'avant, au profit de la carte.
+- **Le bouton « Présentation du lieu » ne clignote plus** au premier passage. Il reste mis
+  en avant (c'est le seul bouton plein de la barre), mais l'écran ne comporte plus qu'une
+  seule sollicitation animée : le rouge clignotant des lieux pas encore vus.
+- **Accessibilité** : l'application est désormais vérifiée automatiquement à chaque
+  livraison sur douze écrans (connexion, visite, carte, tâches, biodiversité, glossaire,
+  réseau, quiz et deux écrans G&L). Les défauts trouvés ont été corrigés : chaque page a
+  maintenant un titre principal et une zone de contenu identifiable pour les lecteurs
+  d'écran, et le filtre « Règne » de la biodiversité annonce enfin son intitulé. Ces
+  vérifications ne remplacent pas un essai réel au lecteur d'écran, qui reste à faire.
 
 ## Les mascottes
 
