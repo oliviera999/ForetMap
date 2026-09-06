@@ -30,7 +30,10 @@ before(async () => {
 });
 
 test('resolveGlPlayerLogin trouve un joueur par email GL', async () => {
-  const resolved = await resolveGlPlayerLogin({ email: playerEmail, googleSub: 'sub-test-1' });
+  const resolved = await resolveGlPlayerLogin({
+    email: playerEmail,
+    googleSub: `sub-test-${stamp}`,
+  });
   assert.ok(resolved.ok);
   assert.strictEqual(String(resolved.player.id), String(playerId));
 });
@@ -58,7 +61,7 @@ test('POST /api/gl/auth/google mode=player connecte un joueur avec idToken mock'
       email_verified: true,
       iss: 'https://accounts.google.com',
       aud: 'gl-test-client-id',
-      sub: 'gl-player-sub',
+      sub: `gl-player-sub-${stamp}`,
       name: 'Joueur OAuth',
     }),
   });

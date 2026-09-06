@@ -120,11 +120,30 @@ test('POST+DELETE /api/gl/auth/link-foretmap lient puis delient le compte eleve'
   assert.strictEqual(linkRes.body?.ok, true);
   assert.strictEqual(String(linkRes.body?.linkedForetmapStudent?.id), foretmapStudentId);
 
+  // Fusion : le joueur bascule sur le compte élève — son mot de passe est désormais celui-là,
+  // et l'ancien jeton (compte miroir supprimé) ne vaut plus.
   await request(app)
     .delete('/api/gl/auth/link-foretmap')
     .set('Authorization', `Bearer ${playerToken}`)
     .send({ currentPassword: playerPassword })
+    .expect(401);
+  const relogin = await request(app)
+    .post('/api/gl/auth/login')
+    .send({ identifier: playerPseudoUpdated, password: foretmapStudentPassword })
     .expect(200);
+  playerToken = relogin.body.authToken;
+  await request(app)
+    .delete('/api/gl/auth/link-foretmap')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ currentPassword: foretmapStudentPassword })
+    .expect(200);
+  // Scission : le joueur repart sur un compte miroir avec ce même mot de passe.
+  await request(app)
+    .post('/api/gl/auth/login')
+    .send({ identifier: playerPseudoUpdated, password: foretmapStudentPassword })
+    .expect(200);
+  const student = await queryOne('SELECT id FROM users WHERE id = ?', [foretmapStudentId]);
+  assert.ok(student);
 });
 
 test('PATCH /api/gl/auth/me/profile met a jour le profil staff', async () => {

@@ -64,4 +64,23 @@ describe('loadGlIdentity — passwordMustReset depuis la base', () => {
     assert.equal(sawPasswordColumn, false);
     assert.equal(identity.passwordMustReset, undefined);
   });
+
+  it('refuse un joueur dont le compte users lié est désactivé ou dont l époque de jeton a changé', async () => {
+    const base = { id: 9, class_id: 1, team_id: null, is_active: 1, password_must_reset: 0 };
+    const inactive = await loadGlIdentity(
+      { userType: 'gl_player', userId: '9' },
+      { queryOne: async () => ({ ...base, user_is_active: 0, token_epoch: 0 }) },
+    );
+    assert.equal(inactive, null);
+    const stale = await loadGlIdentity(
+      { userType: 'gl_player', userId: '9', tokenEpoch: 1 },
+      { queryOne: async () => ({ ...base, user_is_active: 1, token_epoch: 2 }) },
+    );
+    assert.equal(stale, null);
+    const fresh = await loadGlIdentity(
+      { userType: 'gl_player', userId: '9', tokenEpoch: 2 },
+      { queryOne: async () => ({ ...base, user_is_active: 1, token_epoch: 2 }) },
+    );
+    assert.ok(fresh);
+  });
 });

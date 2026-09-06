@@ -34,7 +34,7 @@ before(async () => {
     `Classe Learning ${stamp}`,
   ]);
   await execute(
-    `INSERT INTO gl_players (class_id, pseudo, password_hash, is_active, created_at, updated_at)
+    `INSERT INTO gl_players (class_id, pseudo, legacy_password_hash, is_active, created_at, updated_at)
      VALUES (?, ?, 'x', 1, NOW(), NOW())`,
     [cls.id, `learning-player-${stamp}`],
   );

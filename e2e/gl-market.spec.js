@@ -24,7 +24,7 @@ async function seedGlMarketE2E(label) {
   const pseudoB = `market-b-${label}-${stamp}`;
   await execute(
     `INSERT INTO gl_players
-      (class_id, first_name, last_name, pseudo, password_hash, is_active, health_points, power_points, created_at, updated_at)
+      (class_id, first_name, last_name, pseudo, legacy_password_hash, is_active, health_points, power_points, created_at, updated_at)
      VALUES (?, 'A', 'Un', ?, ?, 1, 5, 5, NOW(), NOW()),
             (?, 'B', 'Deux', ?, ?, 1, 5, 5, NOW(), NOW())`,
     [cls.id, pseudoA, hash, cls.id, pseudoB, hash],
