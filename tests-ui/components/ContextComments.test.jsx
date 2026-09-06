@@ -39,6 +39,32 @@ beforeEach(() => {
 });
 
 describe('ContextComments', () => {
+  test('un seul appel réseau au montage (ni compteur séparé, ni réglages publics)', async () => {
+    // Chaque section montée émettait trois requêtes : la liste d'aperçu, un second appel
+    // `page_size=1` pour le seul compteur, et `GET /api/settings/public` pour les emojis de
+    // réaction. Sur un écran de liste — catalogue biodiversité, tuiles de tâches, tutoriels —
+    // cela se multipliait par le nombre d'éléments affichés et pouvait épuiser le plafond de
+    // requêtes d'un établissement (docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md, B1/P1/P2).
+    // Le total et le commentaire le plus récent sont dans la réponse de la liste ; les
+    // emojis viennent du contexte des réglages publics.
+    const { api } = await import('../../src/services/api.js');
+    api.mockClear();
+    listContextComments.mockResolvedValue({ items: makeComments(2), total: 2, page: 1 });
+
+    render(<ContextComments contextType="plant" contextId="42" title="Commentaires" />);
+
+    await waitFor(() => expect(listContextComments).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(listContextComments).toHaveBeenCalledTimes(1);
+    expect(listContextComments.mock.calls[0][0]).toMatchObject({
+      contextType: 'plant',
+      contextId: '42',
+      page: 1,
+    });
+    expect(api).not.toHaveBeenCalled();
+  });
+
   test('affiche les 2 premiers commentaires sans déplier la section', async () => {
     listContextComments.mockImplementation(async ({ pageSize }) => {
       const all = makeComments(3);

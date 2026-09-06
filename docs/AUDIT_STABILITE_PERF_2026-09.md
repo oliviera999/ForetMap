@@ -4,11 +4,12 @@ Document de référence unique sur la **tenue en charge et la stabilité** de la
 ForetMap **et** Gnomes & Licornes, composants communs inclus. Il reprend et remplace comme
 point d'entrée les deux audits précédents, qui restent consultables pour leur détail :
 
-| Audit                                                                | Portée                                                                              | Statut                                                     |
-| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| [`AUDIT_CHARGE_SERVEUR_2026-08.md`](AUDIT_CHARGE_SERVEUR_2026-08.md) | régime **nominal** ForetMap : cadence de polling, mémoire au boot, coût par requête | pistes 1 à 9 traitées (lots 20-21, 30), §5 = seconde passe |
-| [`AUDIT_CHARGE_ET_BUGS_2026-08.md`](AUDIT_CHARGE_ET_BUGS_2026-08.md) | **cas dégradés et pics** ForetMap : coupures, redémarrages, classe entière          | tous les constats traités                                  |
-| **Ce document**                                                      | **GL + composants communs**, et synthèse générale                                   | tous les constats **traités** (C1–C5, G1–G5)               |
+| Audit                                                                          | Portée                                                                              | Statut                                                     |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| [`AUDIT_CHARGE_SERVEUR_2026-08.md`](AUDIT_CHARGE_SERVEUR_2026-08.md)           | régime **nominal** ForetMap : cadence de polling, mémoire au boot, coût par requête | pistes 1 à 9 traitées (lots 20-21, 30), §5 = seconde passe |
+| [`AUDIT_CHARGE_ET_BUGS_2026-08.md`](AUDIT_CHARGE_ET_BUGS_2026-08.md)           | **cas dégradés et pics** ForetMap : coupures, redémarrages, classe entière          | tous les constats traités                                  |
+| **Ce document**                                                                | **GL + composants communs**, et synthèse générale                                   | tous les constats **traités** (C1–C5, G1–G5)               |
+| [`AUDIT_CHARGE_BIODIVERSITE_2026-09.md`](AUDIT_CHARGE_BIODIVERSITE_2026-09.md) | **pic d'ouverture** des écrans de liste ForetMap (catalogue biodiversité en tête)   | constats B1–B9 / P1–P8 **ouverts**                         |
 
 ## 0. Comment lire ce document
 

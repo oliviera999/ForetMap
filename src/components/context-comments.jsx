@@ -1,7 +1,6 @@
 import { AppInlineToast } from '../shared/components/AppInlineToast.jsx';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  api,
   createContextComment,
   deleteContextComment,
   getAuthClaims,
@@ -15,7 +14,6 @@ import { ContextCommentItem } from './context-comments/ContextCommentItem.jsx';
 import { ContextCommentsToggle } from './context-comments/ContextCommentsToggle.jsx';
 import {
   CONTEXT_COMMENT_PREVIEW_SIZE,
-  DEFAULT_REACTION_EMOJIS,
   canModerate,
   parseReactionEmojiList,
   readContextCommentDraft,
@@ -40,7 +38,6 @@ function ContextComments({
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [reactionEmojis, setReactionEmojis] = useState(DEFAULT_REACTION_EMOJIS);
   const [expandedReactionsByComment, setExpandedReactionsByComment] = useState({});
   const [body, setBody] = useState(() => readContextCommentDraft(contextType, contextId));
   const [pendingImages, setPendingImages] = useState([]);
@@ -58,6 +55,19 @@ function ContextComments({
   const canUseCommentActions = canParticipateContextComments;
   const publicSettings = usePublicSettings();
   const reportsEnabled = publicSettings?.modules?.reports_enabled !== false;
+  // Emojis de réaction : lus dans les réglages publics déjà fournis par le contexte.
+  // Chaque section montée allait sinon les chercher elle-même (`GET /api/settings/public`),
+  // soit un appel par carte de catalogue, par tuile de tâche et par tutoriel listé —
+  // pour une valeur identique partout (cf. docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md, B1).
+  const reactionEmojis = useMemo(
+    () =>
+      parseReactionEmojiList(
+        publicSettings?.ui?.reactions?.allowed_emojis ||
+          publicSettings?.reactions?.allowed_emojis ||
+          '',
+      ),
+    [publicSettings],
+  );
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const markCommentsRead = useCallback(
@@ -72,6 +82,34 @@ function ContextComments({
         newestId,
       );
       setHasUnreadComments(false);
+    },
+    [contextId, contextType, currentUserId, currentUserType],
+  );
+
+  /**
+   * Pastille « non lus » à partir de la page 1 déjà chargée.
+   *
+   * Cet état venait d'un second appel (`page_size=1`) lancé au montage en même temps que
+   * `load()` — deux requêtes pour une réponse qui portait déjà `total` et le commentaire
+   * le plus récent. Sur un écran de liste, cela doublait le coût : une section de
+   * commentaires par carte de catalogue, par tuile de tâche et par tutoriel
+   * (cf. docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md, B1/P1/P2). Réservé à la page 1 :
+   * au-delà, `items[0]` n'est pas le commentaire le plus récent du fil.
+   */
+  const applyUnreadFromFirstPage = useCallback(
+    (list) => {
+      const newestId = list?.[0]?.id != null ? Number(list[0].id) : 0;
+      const cursor = readContextCommentReadCursor(
+        currentUserType,
+        currentUserId,
+        contextType,
+        contextId,
+      );
+      setHasUnreadComments((prev) => {
+        if (cursor && newestId > cursor.newestId) return true;
+        if (cursor && newestId <= cursor.newestId) return false;
+        return prev;
+      });
     },
     [contextId, contextType, currentUserId, currentUserType],
   );
@@ -97,6 +135,7 @@ function ContextComments({
         setItems(list);
         setTotal(Number(data?.total || 0));
         setPage(Number(data?.page || nextPage));
+        if (nextPage === 1) applyUnreadFromFirstPage(list);
         if (nextPage === 1 && mode === 'full') markCommentsRead(list);
       } catch (err) {
         if (mySeq !== loadSeqRef.current) return;
@@ -105,31 +144,8 @@ function ContextComments({
         if (mySeq === loadSeqRef.current) setLoading(false);
       }
     },
-    [contextId, contextType, markCommentsRead],
+    [contextId, contextType, applyUnreadFromFirstPage, markCommentsRead],
   );
-
-  /** Même section repliée : le badge doit afficher le bon total (l’API renvoie total avec page_size minimal). */
-  const refreshTotal = useCallback(async () => {
-    if (!contextType || !contextId) return;
-    try {
-      const data = await listContextComments({ contextType, contextId, page: 1, pageSize: 1 });
-      setTotal(Number(data?.total || 0));
-      const newestId = data?.items?.[0]?.id != null ? Number(data.items[0].id) : 0;
-      const cursor = readContextCommentReadCursor(
-        currentUserType,
-        currentUserId,
-        contextType,
-        contextId,
-      );
-      setHasUnreadComments((prev) => {
-        if (cursor && newestId > cursor.newestId) return true;
-        if (cursor && newestId <= cursor.newestId) return false;
-        return prev;
-      });
-    } catch {
-      // Silencieux : pas de toast pour un compteur en arrière-plan
-    }
-  }, [contextId, contextType, currentUserId, currentUserType]);
 
   useEffect(() => {
     const draft = readContextCommentDraft(contextType, contextId);
@@ -158,11 +174,6 @@ function ContextComments({
   }, [isOpen, contextType, contextId, load]);
 
   useEffect(() => {
-    if (!contextType || contextId == null || contextId === '') return;
-    refreshTotal();
-  }, [contextType, contextId, refreshTotal]);
-
-  useEffect(() => {
     if (!contextType || contextId == null || contextId === '') return undefined;
     const sameContext = (payload) =>
       String(payload?.contextType || '') === String(contextType || '') &&
@@ -173,12 +184,11 @@ function ContextComments({
       const payload = detail.payload || {};
       if (!sameContext(payload)) return;
       if (!isOpen) setHasUnreadComments(true);
-      refreshTotal();
       load(isOpen ? page : 1, { mode: isOpen ? 'full' : 'preview' });
     };
     window.addEventListener('foretmap_realtime', onRealtime);
     return () => window.removeEventListener('foretmap_realtime', onRealtime);
-  }, [contextId, contextType, isOpen, load, page, refreshTotal]);
+  }, [contextId, contextType, isOpen, load, page]);
 
   useEffect(() => {
     const refreshAuth = () => setAuthClaims(getAuthClaims());
@@ -190,20 +200,6 @@ function ContextComments({
       window.removeEventListener('foretmap_teacher_expired', refreshAuth);
       window.removeEventListener('storage', refreshAuth);
     };
-  }, []);
-
-  useEffect(() => {
-    api('/api/settings/public')
-      .then((d) => {
-        const configured =
-          d?.settings?.ui?.reactions?.allowed_emojis ||
-          d?.settings?.reactions?.allowed_emojis ||
-          '';
-        setReactionEmojis(parseReactionEmojiList(configured));
-      })
-      .catch(() => {
-        // Réglage non bloquant : on garde le fallback local.
-      });
   }, []);
 
   useEffect(() => {

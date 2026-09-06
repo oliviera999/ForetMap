@@ -21,6 +21,9 @@ function isTeacherRequest(req) {
   return perms.includes('observations.read.all') || perms.includes('observations.read.group');
 }
 
+/** Plafond de lecture du carnet d'un élève (cf. `GET /api/observations/student/:id`). */
+const STUDENT_NOTEBOOK_MAX_ROWS = 500;
+
 // Observations d'un élève
 router.get(
   '/student/:studentId',
@@ -46,13 +49,20 @@ router.get(
     ]);
     if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
 
+    // Borne de lecture : le carnet renvoyait TOUTES les observations d'un élève, texte libre
+    // et images comprises, sans plafond — la seule requête de la famille à ne pas en avoir
+    // (la vue prof `/all` plafonne à 100). Un carnet dépasse rarement quelques dizaines
+    // d'entrées sur une année ; 500 laisse une marge confortable tout en bornant la réponse
+    // (audit charge biodiversité 2026-09, P7). Valeur en chaîne : mysql2 encoderait un
+    // nombre JS en DOUBLE, refusé par MySQL pour LIMIT.
     const rows = await queryAll(
       `SELECT o.*, z.name as zone_name
      FROM observation_logs o
      LEFT JOIN zones z ON o.zone_id = z.id
      WHERE o.student_id = ?
-     ORDER BY o.created_at DESC`,
-      [askedStudentId],
+     ORDER BY o.created_at DESC
+     LIMIT ?`,
+      [askedStudentId, String(STUDENT_NOTEBOOK_MAX_ROWS)],
     );
     res.json(
       rows.map((r) => ({

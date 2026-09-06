@@ -181,13 +181,14 @@ router.get(
       String(req.query?.illustrated || '').toLowerCase() === 'true';
 
     const params = [];
-    let sql = `SELECT question_code FROM quiz_questions WHERE statut = 'actif'`;
+    // Clause de filtrage construite une fois, réutilisée par le compte et par le tirage.
+    let whereSql = `WHERE statut = 'actif'`;
     if (categorieSlug) {
-      sql += ' AND categorie_slug = ?';
+      whereSql += ' AND categorie_slug = ?';
       params.push(categorieSlug);
     }
     if (niveau) {
-      sql += ' AND niveau = ?';
+      whereSql += ' AND niveau = ?';
       params.push(niveau);
     }
     if (difficulteRaw != null) {
@@ -195,15 +196,27 @@ router.get(
       if (!Number.isInteger(difficulte) || difficulte < 1) {
         return res.status(400).json({ error: 'difficulte invalide' });
       }
-      sql += ' AND difficulte = ?';
+      whereSql += ' AND difficulte = ?';
       params.push(difficulte);
     }
     if (illustratedOnly) {
-      sql += " AND photo_url IS NOT NULL AND TRIM(photo_url) <> ''";
+      whereSql += " AND photo_url IS NOT NULL AND TRIM(photo_url) <> ''";
     }
-    sql += ' ORDER BY RAND() LIMIT 1';
-
-    const picked = await queryOne(sql, params);
+    // Tirage uniforme SANS `ORDER BY RAND()` : celui-ci matérialise et trie la sélection
+    // entière à chaque clic, et le coût croît avec le catalogue — une classe qui enchaîne
+    // les tirages paie un tri complet par question (audit charge biodiversité 2026-09, P5).
+    // Deux requêtes bornées à la place : le compte, puis un décalage aléatoire sur la clé
+    // primaire. La distribution est la même.
+    const countRow = await queryOne(`SELECT COUNT(*) AS c FROM quiz_questions ${whereSql}`, params);
+    const total = Number(countRow?.c) || 0;
+    if (total === 0) return res.status(404).json({ error: 'Aucune question disponible' });
+    const offset = Math.floor(Math.random() * total);
+    // `question_code` est la clé primaire : l'ordre est stable et l'accès indexé.
+    // Valeurs LIMIT/OFFSET en chaîne (mysql2 encoderait un nombre JS en DOUBLE).
+    const picked = await queryOne(
+      `SELECT question_code FROM quiz_questions ${whereSql} ORDER BY question_code ASC LIMIT ? OFFSET ?`,
+      [...params, '1', String(offset)],
+    );
     if (!picked) return res.status(404).json({ error: 'Aucune question disponible' });
     return res.json({ question_code: picked.question_code });
   }),
