@@ -342,8 +342,10 @@ test('GET /api/gl/mascots expose les packs visit publiés et GL persistés', asy
     .send({ name: 'Pack GL catalogue', payload: glPayload })
     .expect(201);
 
+  // Le jeton doit porter l'époque courante du compte (`users.token_epoch`) : un enseignant dont
+  // un test précédent a réinitialisé le mot de passe serait sinon rejeté (401 SESSION_REVOKED).
   const teacher = await queryOne(
-    "SELECT id FROM users WHERE user_type = 'teacher' ORDER BY id ASC LIMIT 1",
+    "SELECT id, token_epoch FROM users WHERE user_type = 'teacher' ORDER BY id ASC LIMIT 1",
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id && adminRole?.id);
@@ -356,6 +358,7 @@ test('GET /api/gl/mascots expose les packs visit publiés et GL persistés', asy
       roleSlug: 'admin',
       roleDisplayName: 'Administrateur',
       elevated: true,
+      tokenEpoch: Number(teacher.token_epoch || 0),
     },
     true,
   );

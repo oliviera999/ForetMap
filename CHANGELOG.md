@@ -16,6 +16,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   tous les garde-fous (simulation, seuils, journal réversible, contrôle croisé, fusion de
   comptes). Rien d'implémenté : lots M1 à M5 et prérequis listés.
 
+### Corrigé — test instable `gl-mascots` (401 aléatoire en CI)
+
+- `tests/gl-mascots.test.js` signait un jeton enseignant sans claim `tokenEpoch` pour « le
+  premier enseignant par identifiant » — un UUID aléatoire, parfois un compte dont un test
+  précédent avait réinitialisé le mot de passe (`token_epoch` incrémenté) : l'hydratation
+  répondait alors `401 SESSION_REVOKED`. Le jeton porte désormais l'époque courante du compte.
+  Échec observé sur `main` depuis la fusion de la PR #422 (runs des PR #422 et #423).
+
 ### Modifié — dégraissage des écrans de liste (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`, lots 2 et 3)
 
 - **Une section de commentaires de contexte n'émet plus qu'un appel au montage au lieu de trois.**
