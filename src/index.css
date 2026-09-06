@@ -3619,6 +3619,125 @@
       gap:8px;
       margin-top:4px;
     }
+    /* Fenêtre « Importer /tutos/ » : ces classes existaient dans le JSX sans aucune règle,
+       la liste des fiches débordait donc de la fenêtre et le pied de page (dont le bouton
+       d'import) pouvait sortir de l'écran sur mobile. */
+    .tuto-import-modal {
+      width:min(560px, 96vw);
+      max-height:calc(100vh - var(--safe-top) - var(--safe-bottom));
+      max-height:calc(100dvh - var(--safe-top) - var(--safe-bottom));
+      display:flex;
+      flex-direction:column;
+    }
+    .tuto-import-subtitle {
+      margin:6px 0 12px;
+      font-size:var(--text-base);
+      line-height:var(--lh-normal);
+      color:#4c5b52;
+    }
+    .tuto-import-loading {
+      margin:12px 0;
+      color:#4c5b52;
+    }
+    .tuto-import-totals {
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px 14px;
+      margin-bottom:10px;
+      font-size:var(--text-sm);
+      color:#4c5b52;
+    }
+    .tuto-import-total-error {
+      color:#a3402f;
+    }
+    .tuto-import-list {
+      list-style:none;
+      margin:0 0 12px;
+      padding:0;
+      overflow:auto;
+      -webkit-overflow-scrolling:touch;
+      overscroll-behavior:contain;
+      flex:1;
+      min-height:0;
+      border:1px solid rgba(0,0,0,.08);
+      border-radius:10px;
+      background:rgba(255,255,255,.6);
+    }
+    .tuto-import-item {
+      display:flex;
+      flex-wrap:wrap;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:4px 10px;
+      padding:10px 12px;
+      border-bottom:1px solid rgba(0,0,0,.06);
+    }
+    .tuto-import-item:last-child {
+      border-bottom:none;
+    }
+    .tuto-import-item.already_imported {
+      opacity:0.75;
+    }
+    .tuto-import-item-main {
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      min-width:0;
+    }
+    .tuto-import-filename {
+      font-size:var(--text-sm);
+      color:#7a8a7e;
+      word-break:break-all;
+    }
+    .tuto-import-item-status {
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap:2px;
+      font-size:var(--text-sm);
+      color:#4c5b52;
+      text-align:right;
+    }
+    .tuto-import-item.pending .tuto-import-item-status {
+      color:#2f6d3f;
+      font-weight:var(--fw-semibold);
+    }
+    .tuto-import-item.error .tuto-import-item-status {
+      color:#a3402f;
+    }
+    .tuto-import-item-reason {
+      color:#7a8a7e;
+      font-weight:var(--fw-regular);
+    }
+    .tuto-import-empty {
+      margin:0 0 12px;
+      font-size:var(--text-sm);
+      line-height:var(--lh-normal);
+      color:#4c5b52;
+    }
+    .tuto-import-error {
+      margin:0 0 12px;
+      padding:8px 10px;
+      border-radius:8px;
+      background:rgba(163,64,47,.08);
+      color:#a3402f;
+      font-size:var(--text-sm);
+      line-height:var(--lh-normal);
+    }
+    .tuto-import-dryrun {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-bottom:10px;
+      font-size:var(--text-base);
+      color:#3d4a3d;
+    }
+    .tuto-import-footer {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:4px;
+    }
     .tuto-read-ack-modal {
       width:min(440px, 94vw);
     }

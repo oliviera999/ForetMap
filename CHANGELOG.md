@@ -29,6 +29,56 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   répondait alors `401 SESSION_REVOKED`. Le jeton porte désormais l'époque courante du compte.
   Échec observé sur `main` depuis la fusion de la PR #422 (runs des PR #422 et #423).
 
+### Documentation et tests — mesure de charge et revue de tous les onglets (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`)
+
+- **Scénario de charge qui rejoue la rafale réelle** : `load/artillery-biodiv.yml` (+ son
+  processeur) compare les régimes avant/après de l'ouverture du catalogue. Les scénarios
+  existants ne simulaient l'écran que par un seul `GET /api/plants` — ils mesuraient 1 requête
+  là où le navigateur en émettait ~471. **Mesure sur 380 utilisateurs virtuels identiques :
+  23 180 requêtes avant, 1 520 après (÷ 15,2), à temps de réponse inchangés** (médiane 2 vs
+  3 ms). Le serveur n'était pas lent : on lui en demandait quinze fois trop. Rapport :
+  `load/reports/biodiv-summary.md`.
+- **Scénario e2e** : `e2e/plants-biodiversity.spec.js` compte les requêtes émises dans un vrai
+  navigateur à l'ouverture de l'onglet — **3 appels de catalogue pour 64 vignettes**, aucun
+  appel par fiche, puis chargement de la seule fiche ouverte au clic. Au passage, correction
+  d'un sélecteur de la fixture d'authentification partagée : `.teacher-main .top-tabs` matchait
+  **deux** éléments depuis la navigation prof en trois pôles, et le mode strict de Playwright
+  refusait le locator — **les seize specs passant par `enableTeacherMode` échouaient toutes**.
+  Vérifié en rejouant une spec prof sur la fixture d'origine (échec) puis corrigée (succès).
+- **Revue onglet par onglet** (§ 3 de l'audit) : glossaire, quiz, réseau trophique, carte,
+  visite, carnet, forum, tâches, tutoriels, stats, profils, médiathèque. Le glossaire faisait
+  déjà bien — liste + fiche au clic, le modèle vers lequel le catalogue a convergé. Trois
+  constats nouveaux, non traités : usage de la médiathèque à 30 requêtes SQL sans cache (T1),
+  catalogue complet retéléchargé par le réseau trophique pour trois champs (T2),
+  `/api/settings/public` redondant du forum (T3).
+### Corrigé — « Importer les nouvelles fiches » (tutoriels) ne faisait rien
+
+- **Une fiche réellement nouvelle pouvait être classée « déjà en base ».** Le rapprochement
+  de dernier recours entre le nom de fichier et le slug d'un tutoriel existant acceptait
+  n'importe quelle inclusion, dans les deux sens et jusqu'aux slugs privés de tirets :
+  `fiche-plantes-punk.html` était happée par `associations-plantes`,
+  `fiche-semences-locales-punk.html` par `semences`. Le compteur « à importer » retombait à
+  zéro et le bouton restait grisé. Le radical doit désormais être le **début** du slug et
+  compter au moins quatre caractères ; les dix fiches historiques de `tutos/` restent
+  reconnues (`lib/importTutosFromFilesystem.js`).
+- **Un import en échec s'annonçait comme un import sans objet.** Quand le serveur ne
+  parvenait pas à créer les fiches, la fenêtre affichait « Aucune nouvelle fiche à
+  importer » et refermait le sujet. Le nombre d'échecs et le message d'erreur du serveur
+  (fichier fautif nommé) sont maintenant affichés.
+- **La fenêtre liste toutes les fiches du dossier, pas seulement celles à importer**, avec
+  leur état (à importer / déjà en base / erreur), le **motif** du rapprochement et le
+  numéro du tutoriel correspondant : c'est la seule façon de comprendre pourquoi une fiche
+  déposée à l'instant n'est pas proposée. Quand rien n'est à importer, une phrase dit
+  pourquoi au lieu d'un bouton grisé muet, et rappelle le chemin « + Ajouter → Importer un
+  fichier HTML » pour une fiche venant de son propre ordinateur.
+- **Bouton « Relancer l'analyse »** : relit le dossier serveur sans refermer la fenêtre. Une
+  analyse en échec n'referme plus la fenêtre — l'erreur y reste lisible.
+- **Styles manquants** : les classes `tuto-import-*` du JSX n'avaient aucune règle CSS ; la
+  liste débordait de la fenêtre et le pied de page (donc le bouton d'import) pouvait sortir
+  de l'écran sur mobile.
+- Tests `tests/tutorials-import-scan.test.js` (sans BDD), `tests-ui/components/TutorialsImportModal.test.jsx`,
+  `tests-ui/utils/tutorialImportHelpers.test.js`. Doc `docs/reference/foretmap/taches-tutoriels-et-validation.md`.
+
 ### Modifié — dégraissage des écrans de liste (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`, lots 2 et 3)
 
 - **Une section de commentaires de contexte n'émet plus qu'un appel au montage au lieu de trois.**
