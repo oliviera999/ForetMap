@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — cadrage du lien Moodle 5.2 ↔ ForetMap / G&L
+
+- `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : synchronisation des cohortes (`année#classe`,
+  `année#niveau`) et groupes de cours Moodle vers les groupes ForetMap et classes G&L, avec
+  l'e-mail institutionnel Google Workspace comme pivot, la politique par population (sixièmes
+  joueurs visiteurs, n3beurs, autres élèves, années passées), les cas sur comptes existants, et
+  tous les garde-fous (simulation, seuils, journal réversible, contrôle croisé, fusion de
+  comptes). Rien d'implémenté : lots M1 à M5 et prérequis listés.
+
 ### Modifié — identités unifiées ForetMap × Gnomes & Licornes (`docs/AUDIT_COMPTES_2026-09.md`)
 
 - **Un seul compte, un seul mot de passe.** Migration `211_gl_identity_unification.sql` : le
