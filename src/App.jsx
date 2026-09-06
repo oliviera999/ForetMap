@@ -1217,7 +1217,12 @@ function App() {
                 />
 
                 {effectiveIsTeacher ? (
-                  <div
+                  /* `<main>` et non `<div>` : sans repère principal, `axe` signalait
+                     `landmark-one-main` sur tous les écrans et `region` sur CHAQUE bloc de
+                     contenu hors repère — 401 nœuds sur les tâches, 522 sur la biodiversité.
+                     Les styles ciblent la classe, pas la balise : rendu inchangé.
+                     Cf. `docs/AUDIT_VISITE_UI_UX_2026-09.md` §6. */
+                  <main
                     className={`main teacher-main app-main-shell app-main-shell--teacher ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'teacher-main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}
                   >
                     <TeacherTopTabs
@@ -1394,10 +1399,10 @@ function App() {
                         />
                       </>
                     )}
-                  </div>
+                  </main>
                 ) : (
                   <>
-                    <div
+                    <main
                       className={`main app-main-shell app-main-shell--student ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}
                     >
                       {loading ? (
@@ -1496,7 +1501,7 @@ function App() {
                           />
                         </>
                       )}
-                    </div>
+                    </main>
                     <StudentBottomNav
                       tab={tab}
                       onTabChange={setTab}

@@ -346,7 +346,7 @@ droite.
 
 ---
 
-## 6. Suite proposée — un audit d'accessibilité **outillé**, pour toute l'application
+## 6. Audit d'accessibilité **outillé** — mis en place (2026-09-06)
 
 Cet audit a été fait à la main, sur un écran. Plusieurs de ses constats sont pourtant du type
 qu'un outil attrape **en série et sans discussion** : un `role` ARIA qui écrase un rôle natif
@@ -354,7 +354,10 @@ qu'un outil attrape **en série et sans discussion** : un `role` ARIA qui écras
 un `<g onClick>` sans équivalent clavier (§2.1). Les trouver écran par écran ne passe pas à
 l'échelle — et rien n'empêche qu'ils reviennent au prochain composant.
 
-Ce qui suit est une **proposition de plan**, pas un travail engagé.
+> **État au 2026-09-06** : le plan ci-dessous a été **mis en œuvre**. Les deux cliquets
+> tournent en CI, et la dette qu'ils ont révélée est passée de **987 nœuds fautifs à 2**.
+> Le détail des résultats est en §6.7 ; le plan reste écrit au futur, c'est le raisonnement
+> qui l'a produit.
 
 ### 6.1 — Ce qu'un outil trouve, et ce qu'il ne trouve pas
 
@@ -408,18 +411,16 @@ violations. Deux réactions possibles, et une seule qui tient :
   dépôt par `tests/typography-tokens-guard.test.js` : une allowlist explicite, et interdiction
   d'y ajouter sans justification.
 
-### 6.4 — Séquence proposée
+### 6.4 — Séquence, et ce qui a été fait
 
-| Lot | Contenu                                                                                                                                                                      | Sortie                                    |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| 1   | Ajouter `@axe-core/playwright` ; un utilitaire `expectNoNewA11yViolations(page, ecran)` ; le poser sur **un seul écran** (la visite, la mieux connue) et geler l'instantané. | Le mécanisme existe et tourne en CI.      |
-| 2   | Étendre aux écrans élève : carte, tâches, biodiversité, forum, connexion. Un instantané par écran.                                                                           | La photo de la dette, chiffrée par écran. |
-| 3   | Étendre aux écrans prof et admin, puis au sous-produit GL (auquel les mêmes règles s'appliquent).                                                                            | Couverture complète du tiers mécanisable. |
-| 4   | Vider les instantanés, du plus fréquenté au moins fréquenté. Chaque lot retire des lignes, jamais n'en ajoute.                                                               | Dette qui décroît, visiblement.           |
-| 5   | Passage manuel au lecteur d'écran sur les trois parcours clés — connexion, visite, marquer une tâche faite.                                                                  | Les constats que l'outil ne voit pas.     |
-
-Les lots 1 et 2 sont largement à la portée d'un seul lot de travail. Le lot 4 est un chantier de
-fond, à mener au fil de l'eau.
+| Lot | Contenu                                                                                                                                   | État                                                                                                                      |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 0   | `eslint-plugin-jsx-a11y` + cliquet statique `tests/a11y-static-guard.test.js`.                                                            | ✅ fait                                                                                                                   |
+| 1   | `@axe-core/playwright`, l'utilitaire `verifierA11y(page, écran)` et l'inventaire gelé.                                                    | ✅ fait                                                                                                                   |
+| 2   | Écrans élève et publics : connexion, visite (dont fiche de lieu ouverte), carte, tâches, biodiversité, glossaire, réseau trophique, quiz. | ✅ fait — 10 écrans                                                                                                       |
+| 3   | Sous-produit GL : accueil et plateau découverte.                                                                                          | ✅ fait — 2 écrans. **Écrans prof et admin : non couverts** (voir §6.6).                                                  |
+| 4   | Résorber la dette révélée, du plus fréquenté au moins fréquenté.                                                                          | ✅ 987 → 2 nœuds                                                                                                          |
+| 5   | Passage manuel au lecteur d'écran sur les trois parcours clés.                                                                            | ❌ **impossible ici** — aucun lecteur d'écran dans l'environnement, et c'est par nature un travail humain. Reste à faire. |
 
 ### 6.5 — Deux gardes statiques, en complément, très bon marché
 
@@ -437,7 +438,65 @@ sans navigateur les motifs exacts rencontrés ici :
 Le point 2 mérite d'être fait **en premier**, avant même le lot 1 : c'est le constat le plus
 grave de cet audit (§2.1), et le greffon l'aurait signalé à l'écriture.
 
-### 6.6 — Sources
+> **Fait.** `eslint-plugin-jsx-a11y` est branché dans `eslint.config.cjs`. Le découpage
+> retenu, mesuré à l'activation : **22 règles n'avaient aucune violation** — verrouillées en
+> `error`, coût nul, régression désormais impossible ; **12 règles portent de la dette** —
+> en `warn`, tenues par le cliquet `tests/a11y-static-guard.test.js` ; **5 règles écartées**,
+> chacune justifiée dans la configuration (trois dépréciées en amont, deux trop bruyantes
+> pour donner un signal exploitable — ~370 et ~140 remontées inchangées même avec `depth: 5`).
+>
+> Parmi les 22 verrouillées : `interactive-supports-focus` (un `role="button"` sans
+> `tabIndex`) et `no-noninteractive-tabindex`. Parmi les 12 sous cliquet :
+> `no-static-element-interactions` et `click-events-have-key-events`, qui auraient signalé
+> §2.1 à l'écriture, et `no-interactive-element-to-noninteractive-role`, qui aurait signalé
+> §2.6.
+
+### 6.6 — Résultats, et ce qui reste
+
+**Cliquet statique** — `tests/a11y-static-guard.test.js`, inventaire dans
+`tests/fixtures/a11y-static-baseline.json` : **99 violations sur 59 fichiers**, ForetMap et GL
+confondus. C'est la dette de départ ; elle ne peut plus grossir.
+
+**Cliquet navigateur** — `e2e/a11y.spec.js`, inventaire dans `e2e/fixtures/a11y-baseline.json`,
+12 écrans mesurés dans Chromium :
+
+|                  | Nœuds fautifs |
+| ---------------- | ------------- |
+| À l'activation   | **987**       |
+| Après correction | **2**         |
+
+Une **seule cause structurelle** expliquait 96 % du total : l'application n'avait aucun repère
+`<main>`. `axe` signalait donc `landmark-one-main` sur chaque écran et `region` sur _chaque_
+bloc de contenu hors repère — 401 nœuds sur les tâches, 522 sur la biodiversité. Trois `<div>`
+convertis en `<main>` (coques prof, élève, visite invitée) plus un quatrième sur l'écran de
+connexion : 987 → 17. Les styles ciblant les classes, le rendu est inchangé.
+
+Le reste, quatre corrections ponctuelles :
+
+- **`page-has-heading-one`** sur six écrans — aucune page n'avait de titre de niveau 1. Le nom
+  de l'application dans le bandeau (`<span class="logo-title">`) devient un `<h1>` ; ses styles
+  par défaut sont neutralisés pour que le rendu ne bouge pas.
+- **`select-name`** sur la biodiversité — le `<label>Règne</label>` du filtre n'était associé à
+  aucun menu : le menu n'avait donc aucun nom accessible. `htmlFor` + `id` via `useId`.
+- **`heading-order`** sur la carte et les tâches — le bandeau « Échéances proches » était un
+  `<h4>` après un `<h2>`, sautant un niveau. Passé en `<h3>` (sélecteur CSS suivi).
+
+**Ce qui reste, et pourquoi :**
+
+- **2 nœuds sur le plateau découverte de GL** (`region`, `page-has-heading-one`) : GL est un
+  autre produit, avec sa propre coque et son propre audit UI. La dette est inventoriée, visible
+  et chiffrée — c'est exactement ce que le cliquet sert à tenir.
+- **Écrans professeur et administrateur non couverts** : l'élévation en mode professeur
+  (`enableTeacherMode`) échoue dans cet environnement de test, indépendamment de ce lot —
+  vérifié sur `main` — parce que les avatars Dicebear et les polices Google y sont injoignables.
+  Les scénarios ne sont donc pas ajoutés : un écran absent de l'inventaire fait échouer le
+  cliquet, et un scénario qu'on ne peut pas mesurer ne doit pas être gelé au hasard.
+- **`color-contrast` écarté** pour la même raison — les polices de repli faussent la mesure.
+  À reprendre dans un environnement en ligne ; c'est la règle qui manque le plus.
+- **Le lot 5 (lecteur d'écran) reste entier.** Rappel : `axe` couvre ~1/3 des critères. Un
+  inventaire à 2 n'est pas une preuve d'accessibilité.
+
+### 6.7 — Sources
 
 - `axe-core` — Deque Systems, MPL-2.0 : <https://github.com/dequelabs/axe-core>
 - `@axe-core/playwright` : <https://github.com/dequelabs/axe-core-npm/tree/develop/packages/playwright>

@@ -47,6 +47,12 @@ familles.
 - **Le bouton « Présentation du lieu » ne clignote plus** au premier passage. Il reste mis
   en avant (c'est le seul bouton plein de la barre), mais l'écran ne comporte plus qu'une
   seule sollicitation animée : le rouge clignotant des lieux pas encore vus.
+- **Accessibilité** : l'application est désormais vérifiée automatiquement à chaque
+  livraison sur douze écrans (connexion, visite, carte, tâches, biodiversité, glossaire,
+  réseau, quiz et deux écrans G&L). Les défauts trouvés ont été corrigés : chaque page a
+  maintenant un titre principal et une zone de contenu identifiable pour les lecteurs
+  d'écran, et le filtre « Règne » de la biodiversité annonce enfin son intitulé. Ces
+  vérifications ne remplacent pas un essai réel au lecteur d'écran, qui reste à faire.
 
 ## Les mascottes
 

@@ -217,8 +217,10 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
 
   const onKey = (e) => e.key === 'Enter' && submit();
 
+  // `<main>` : l'écran de connexion n'avait aucun repère principal — `axe` y signalait
+  // `landmark-one-main` et `region` sur chaque bloc de contenu (audit §6).
   return (
-    <div className="auth-wrap">
+    <main className="auth-wrap">
       <div className="auth-card fade-in">
         <img
           className="auth-brand-logo"
@@ -514,7 +516,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
         <p className="auth-home-credit">projet initialement produit Mohammed El Farrai</p>
         {appVersion != null && <p className="auth-version">Version {appVersion}</p>}
       </div>
-    </div>
+    </main>
   );
 }
 

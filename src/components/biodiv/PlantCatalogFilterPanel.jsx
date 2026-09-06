@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useId } from 'react';
 import {
   ZONE_PRESENCE_FILTER,
   distinctPlantFieldValues,
@@ -106,12 +106,16 @@ export function PlantCatalogFilterPanel({
   };
 
   const selectStyle = { background: 'white' };
+  /** Le `<label>` « Règne » n'était lié à rien : le menu n'avait aucun nom accessible
+   *  (`axe` : `select-name`). `useId` évite toute collision si le panneau est monté deux fois. */
+  const regneSelectId = useId();
 
   return (
     <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
       <div className="field" style={{ marginBottom: 0 }}>
-        <label>Règne</label>
+        <label htmlFor={regneSelectId}>Règne</label>
         <select
+          id={regneSelectId}
           value={group1}
           onChange={(e) => {
             setGroup1(e.target.value);
