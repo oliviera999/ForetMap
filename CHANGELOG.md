@@ -29,6 +29,33 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   constats nouveaux, non traités : usage de la médiathèque à 30 requêtes SQL sans cache (T1),
   catalogue complet retéléchargé par le réseau trophique pour trois champs (T2),
   `/api/settings/public` redondant du forum (T3).
+### Corrigé — « Importer les nouvelles fiches » (tutoriels) ne faisait rien
+
+- **Une fiche réellement nouvelle pouvait être classée « déjà en base ».** Le rapprochement
+  de dernier recours entre le nom de fichier et le slug d'un tutoriel existant acceptait
+  n'importe quelle inclusion, dans les deux sens et jusqu'aux slugs privés de tirets :
+  `fiche-plantes-punk.html` était happée par `associations-plantes`,
+  `fiche-semences-locales-punk.html` par `semences`. Le compteur « à importer » retombait à
+  zéro et le bouton restait grisé. Le radical doit désormais être le **début** du slug et
+  compter au moins quatre caractères ; les dix fiches historiques de `tutos/` restent
+  reconnues (`lib/importTutosFromFilesystem.js`).
+- **Un import en échec s'annonçait comme un import sans objet.** Quand le serveur ne
+  parvenait pas à créer les fiches, la fenêtre affichait « Aucune nouvelle fiche à
+  importer » et refermait le sujet. Le nombre d'échecs et le message d'erreur du serveur
+  (fichier fautif nommé) sont maintenant affichés.
+- **La fenêtre liste toutes les fiches du dossier, pas seulement celles à importer**, avec
+  leur état (à importer / déjà en base / erreur), le **motif** du rapprochement et le
+  numéro du tutoriel correspondant : c'est la seule façon de comprendre pourquoi une fiche
+  déposée à l'instant n'est pas proposée. Quand rien n'est à importer, une phrase dit
+  pourquoi au lieu d'un bouton grisé muet, et rappelle le chemin « + Ajouter → Importer un
+  fichier HTML » pour une fiche venant de son propre ordinateur.
+- **Bouton « Relancer l'analyse »** : relit le dossier serveur sans refermer la fenêtre. Une
+  analyse en échec n'referme plus la fenêtre — l'erreur y reste lisible.
+- **Styles manquants** : les classes `tuto-import-*` du JSX n'avaient aucune règle CSS ; la
+  liste débordait de la fenêtre et le pied de page (donc le bouton d'import) pouvait sortir
+  de l'écran sur mobile.
+- Tests `tests/tutorials-import-scan.test.js` (sans BDD), `tests-ui/components/TutorialsImportModal.test.jsx`,
+  `tests-ui/utils/tutorialImportHelpers.test.js`. Doc `docs/reference/foretmap/taches-tutoriels-et-validation.md`.
 
 ### Modifié — dégraissage des écrans de liste (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`, lots 2 et 3)
 
