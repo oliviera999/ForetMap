@@ -159,6 +159,9 @@ d'observation** pour l'écriture naturaliste libre.
   aux professeurs.
 - Chaque action sur le carnet (écrire, supprimer) est faite au nom du compte connecté,
   vérifié par le serveur : un élève ne peut pas toucher au carnet d'un camarade.
+- L'affichage d'un carnet montre les **500 observations les plus récentes**. C'est une
+  borne de lecture, pas une suppression : rien n'est perdu en base. Un carnet dépasse
+  rarement quelques dizaines d'entrées sur une année scolaire.
 
 ## Les Tutoriels
 

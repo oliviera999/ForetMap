@@ -208,8 +208,11 @@ router.get(
   LEFT JOIN users u ON u.id = t.author_user_id AND u.user_type = t.author_user_type
       ${whereSql}
       ORDER BY t.is_pinned DESC, t.last_post_at DESC, t.created_at DESC
-      LIMIT ${sqlLimit} OFFSET ${sqlOffset}`,
-      whereParams,
+      LIMIT ? OFFSET ?`,
+      // Valeurs deja bornees par `parsePageQuery` ; parametrees par convention (audit
+      // 2026-09, G5 / audit biodiversite, P8). En chaine : mysql2 encoderait un nombre JS
+      // en DOUBLE, refuse par MySQL pour LIMIT.
+      [...whereParams, String(sqlLimit), String(sqlOffset)],
     );
     res.json({ items: rows, page, page_size: pageSize, total });
   }),
@@ -332,8 +335,8 @@ router.get(
   LEFT JOIN users u ON u.id = p.author_user_id AND u.user_type = p.author_user_type
       WHERE p.thread_id = ?
       ORDER BY p.created_at ASC, p.id ASC
-      LIMIT ${sqlLimit} OFFSET ${sqlOffset}`,
-      [thread.id],
+      LIMIT ? OFFSET ?`,
+      [thread.id, String(sqlLimit), String(sqlOffset)],
     );
     const sanitizedPosts = posts.map((p) => {
       const row = { ...p, body: Number(p.is_deleted) ? '' : p.body };

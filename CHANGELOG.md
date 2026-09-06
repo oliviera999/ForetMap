@@ -7,6 +7,36 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — dégraissage des écrans de liste (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`, lots 2 et 3)
+
+- **Une section de commentaires de contexte n'émet plus qu'un appel au montage au lieu de trois.**
+  Les emojis de réaction sont lus dans les réglages publics déjà fournis par le contexte (au lieu
+  d'un `GET /api/settings/public` par section montée), et le total comme la pastille « non lus »
+  sont pris dans la réponse de la liste — qui les portait déjà. L'onglet **Tâches** (40 tuiles)
+  passe de 120 à 40 appels ; même gain sur la liste des tutoriels.
+- **`GET /api/learning/gating/summary` charge sa liste en requêtes groupées** : trois requêtes
+  constantes au lieu de 3 à 4 **par ressource exécutées en série** — jusqu'à ~240 pour un seul
+  appel HTTP. Le payload est strictement identique, et le chemin unitaire
+  (`GET /gating/challenge`) est inchangé. Le plafond de références passe de **60 à 200** : il
+  était inférieur au catalogue biodiversité (78 fiches), et les fiches au-delà de la 60ᵉ
+  perdaient silencieusement leur annonce de contrôle de compréhension.
+- **Un clic « espèce découverte » ne fait plus recharger le catalogue à toute la classe** : la
+  table des observations sort du domaine de synchronisation `plants`, qu'elle ne nourrissait
+  pas. Trois autres tables biodiversité, lues uniquement par des routes hors cycle, la suivent.
+- **Caches et bornes** : compteur d'observations « tout le site » (agrégat identique pour tous)
+  et liste non filtrée du glossaire passent par un cache mémoire court ; le carnet
+  d'observations d'un élève est borné à 500 entrées ; le tirage du quiz abandonne
+  `ORDER BY RAND()` (tri de toute la sélection à chaque clic) pour un décalage aléatoire sur la
+  clé primaire, à distribution identique ; la liste des plantes n'est plus ré-enrichie à chaque
+  hit de cache.
+- **Convention « SQL toujours paramétré »** rétablie sur les quatre derniers `LIMIT`/`OFFSET`
+  alimentés par une valeur de requête (commentaires de contexte, forum ForetMap, forum G&L,
+  journal d'audit). Aucune injection n'était atteignable — les valeurs étaient déjà bornées.
+- Couverture : `tests/learning-gating-summary-batch.test.js` (payload identique à l'algorithme
+  unitaire, coût SQL constant), `tests/audit-biodiv-charge-hygiene.test.js` (domaines de
+  synchronisation, caches, bornes, `LIMIT` paramétrés),
+  `tests-ui/components/ContextComments.test.jsx` (appel unique au montage).
+
 ### Modifié — catalogue biodiversité en vignettes, fiche en fenêtre (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`, lot 1)
 
 - **Le catalogue biodiversité affiche des vignettes** (photo, nom, nom scientifique, pastilles,
