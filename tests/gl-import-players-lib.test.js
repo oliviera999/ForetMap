@@ -53,19 +53,85 @@ test('importPlayersFromRows crée les lignes valides et renvoie le rapport atten
     valid: 2,
     skipped_invalid: 0,
     created: 2,
+    reused_existing: 0,
   });
   assert.deepStrictEqual(report.errors, []);
 
+  // Le drapeau vit sur le compte `users` lié (unification des identités).
   const withPwd = await queryOne(
-    'SELECT password_must_reset FROM gl_players WHERE pseudo = ? LIMIT 1',
+    `SELECT u.password_must_reset FROM gl_players p
+      INNER JOIN users u ON u.id = p.linked_foretmap_user_id WHERE p.pseudo = ? LIMIT 1`,
     [`lib_avec_${stamp}`],
   );
   assert.strictEqual(Number(withPwd.password_must_reset), 0);
   const withoutPwd = await queryOne(
-    'SELECT password_must_reset FROM gl_players WHERE pseudo = ? LIMIT 1',
+    `SELECT u.password_must_reset, u.email FROM gl_players p
+      INNER JOIN users u ON u.id = p.linked_foretmap_user_id WHERE p.pseudo = ? LIMIT 1`,
     [`lib_sans_${stamp}`],
   );
   assert.strictEqual(Number(withoutPwd.password_must_reset), 1);
+  assert.strictEqual(withoutPwd.email, `lib.sans.${stamp}@ecole.local`);
+
+  // Les identifiants sont restitués une fois : mot de passe fourni tel quel, généré sinon.
+  assert.strictEqual(report.credentials.length, 2);
+  const [first, second] = report.credentials;
+  assert.strictEqual(first.pseudo, `lib_avec_${stamp}`);
+  assert.strictEqual(first.password, 'motdepasse123');
+  assert.strictEqual(first.generated, false);
+  assert.strictEqual(second.pseudo, `lib_sans_${stamp}`);
+  assert.strictEqual(second.generated, true);
+  assert.match(second.password, /^[a-z0-9]{10}$/);
+  const bcrypt = require('bcryptjs');
+  const generatedHash = await queryOne(
+    `SELECT u.password_hash FROM gl_players p
+      INNER JOIN users u ON u.id = p.linked_foretmap_user_id WHERE p.pseudo = ? LIMIT 1`,
+    [`lib_sans_${stamp}`],
+  );
+  assert.strictEqual(await bcrypt.compare(second.password, generatedHash.password_hash), true);
+});
+
+test('importPlayersFromRows rapproche un élève ForetMap existant au lieu de le dupliquer (C1)', async () => {
+  const crypto = require('node:crypto');
+  const bcrypt = require('bcryptjs');
+  const existingId = crypto.randomUUID();
+  const email = `lib.existing.${stamp}@ecole.local`;
+  const fmHash = await bcrypt.hash('mot-de-passe-foretmap', 10);
+  await execute(
+    `INSERT INTO users (id, user_type, email, pseudo, first_name, last_name, display_name, affiliation, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'student', ?, ?, 'Existante', ?, 'Existante Eleve', 'both', ?, 'local', 1, NOW(), NOW())`,
+    [existingId, email, `fm_existing_${stamp}`, `Eleve-${stamp}`, fmHash],
+  );
+  const report = await importPlayersFromRows(
+    [
+      row({
+        firstName: 'Existante',
+        lastName: `Eleve-${stamp}`,
+        email,
+        pseudo: `lib_reuse_${stamp}`,
+        password: 'ignore-moi',
+      }),
+    ],
+    { dryRun: false },
+  );
+  assert.deepStrictEqual(report.errors, []);
+  assert.strictEqual(report.totals.created, 1);
+  assert.strictEqual(report.totals.reused_existing, 1);
+  const linked = await queryOne(
+    'SELECT linked_foretmap_user_id FROM gl_players WHERE pseudo = ? LIMIT 1',
+    [`lib_reuse_${stamp}`],
+  );
+  assert.strictEqual(String(linked.linked_foretmap_user_id), existingId);
+  // Aucun doublon : un seul compte élève porte cet e-mail, et son mot de passe est conservé.
+  const count = await queryOne('SELECT COUNT(*) AS c FROM users WHERE LOWER(email) = LOWER(?)', [
+    email,
+  ]);
+  assert.strictEqual(Number(count.c), 1);
+  const preserved = await queryOne('SELECT password_hash FROM users WHERE id = ? LIMIT 1', [
+    existingId,
+  ]);
+  assert.strictEqual(await bcrypt.compare('mot-de-passe-foretmap', preserved.password_hash), true);
+  assert.strictEqual(report.credentials[0].reusedExisting, true);
+  assert.strictEqual(report.credentials[0].password, null);
 });
 
 test('importPlayersFromRows (dryRun) détecte pseudo et email déjà pris en base', async () => {

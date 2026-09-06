@@ -29,7 +29,12 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   rattacher à son groupe (liste « comptes en attente de rattachement ») ou de lui
   fournir un code de classe.
 - **Mot de passe oublié** : procédure par e-mail, pour les élèves comme pour les
-  professeurs.
+  professeurs. Un mot de passe changé (par e-mail, par l'utilisateur ou par un
+  administrateur) **déconnecte toutes les sessions ouvertes** de ce compte, sur ForetMap
+  comme dans Gnomes & Licornes.
+- **Trop d'essais** : cinq mots de passe faux sur le même identifiant bloquent ce compte
+  30 secondes, puis de plus en plus longtemps (jusqu'à 15 minutes) — sans gêner les autres
+  élèves de la classe qui partagent la même connexion.
 - **Longueur minimale du mot de passe** : le réglage « Sécurité » fixe le minimum pour
   les **élèves** (4 caractères par défaut — un choix assumé pour des sixièmes qui
   saisissent leur mot de passe en classe). Les comptes **professeur et administrateur**
@@ -83,6 +88,24 @@ Les groupes structurent la vie pédagogique :
 - **Comptes en attente** : la gestion des groupes affiche la liste des visiteurs
   inscrits en autonomie, avec un rattachement en un clic vers le groupe choisi (le rôle
   suit automatiquement).
+
+## Un seul compte pour ForetMap et Gnomes & Licornes
+
+Depuis septembre 2026, un élève qui joue à Gnomes & Licornes n'a **qu'un seul compte** :
+son joueur est rattaché à un compte ForetMap, qui porte le mot de passe, l'adresse e-mail
+et l'état du compte.
+
+- Un joueur créé ou importé depuis le jeu reçoit automatiquement un compte ForetMap
+  (« compte miroir »), membre du groupe correspondant à sa classe de jeu. Si un élève de
+  même e-mail — ou de même pseudo, prénom et nom — existe déjà dans ForetMap, c'est **ce
+  compte** qui est rattaché : pas de doublon, l'élève garde son mot de passe.
+- Le mot de passe est **le même** dans les deux applications, quel que soit l'endroit où
+  on le change. L'élève peut se connecter à ForetMap avec son pseudo de jeu.
+- **Désactiver** un élève le coupe aussi du jeu ; le **supprimer** supprime son joueur
+  (refusé si une partie en cours le retient). Supprimer le joueur côté jeu ne supprime que
+  le compte miroir, jamais un compte élève inscrit dans ForetMap.
+- Un élève peut, depuis son profil de jeu, **rattacher** son vrai compte élève à son
+  joueur (le compte miroir est alors supprimé) ou le **détacher**.
 
 ## La gestion des utilisateurs
 

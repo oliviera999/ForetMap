@@ -19,15 +19,8 @@ const teacherPassword = 'TeacherForgot-1';
 
 before(async () => {
   await initSchema();
-  const admin = await createGlAdmin({ email: `mj.forgot.${stamp}@ecole.local` });
-  const cls = await createGlClass({ adminId: admin.id, name: `Classe forgot ${stamp}` });
-  await createGlPlayer({
-    classId: cls.id,
-    pseudo: playerPseudo,
-    password: playerPassword,
-    email: playerEmail,
-  });
-
+  // L'enseignant est créé AVANT la fixture joueur : celle-ci déclenche le bootstrap RBAC
+  // (`ensureDefaultAssignments`), qui n'attribue le rôle `prof` qu'aux enseignants déjà présents.
   const hash = await bcrypt.hash(teacherPassword, 10);
   const teacherId = `teacher-forgot-${stamp}`;
   await execute(
@@ -42,6 +35,15 @@ before(async () => {
      ON DUPLICATE KEY UPDATE foretmap_user_id = VALUES(foretmap_user_id), is_active = 1`,
     [teacherEmail, teacherId],
   );
+
+  const admin = await createGlAdmin({ email: `mj.forgot.${stamp}@ecole.local` });
+  const cls = await createGlClass({ adminId: admin.id, name: `Classe forgot ${stamp}` });
+  await createGlPlayer({
+    classId: cls.id,
+    pseudo: playerPseudo,
+    password: playerPassword,
+    email: playerEmail,
+  });
 });
 
 test('POST /api/gl/auth/forgot-password renvoie un message neutre', async () => {
@@ -54,9 +56,13 @@ test('POST /api/gl/auth/forgot-password renvoie un message neutre', async () => 
 });
 
 test('POST /api/gl/auth/reset-password réinitialise un joueur GL', async () => {
-  const player = await queryOne('SELECT id FROM gl_players WHERE LOWER(email)=LOWER(?) LIMIT 1', [
-    playerEmail,
-  ]);
+  // L'e-mail du joueur vit sur son compte `users` lié (unification des identités).
+  const player = await queryOne(
+    `SELECT p.id FROM gl_players p
+      INNER JOIN users u ON u.id = p.linked_foretmap_user_id
+      WHERE LOWER(u.email) = LOWER(?) LIMIT 1`,
+    [playerEmail],
+  );
   assert.ok(player?.id);
   const rawToken = `gl-player-reset-${stamp}`;
   await execute(

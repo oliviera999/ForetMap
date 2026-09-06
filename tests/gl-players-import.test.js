@@ -103,17 +103,26 @@ test('POST /api/gl/admin/players/import crée les lignes valides (must_reset sel
     .expect(200);
   assert.strictEqual(res.body?.report?.totals?.created, 2);
 
+  // Le drapeau vit sur le compte `users` lié (unification des identités).
   const withPwd = await queryOne(
-    'SELECT password_must_reset FROM gl_players WHERE pseudo = ? LIMIT 1',
+    `SELECT u.password_must_reset FROM gl_players p
+      INNER JOIN users u ON u.id = p.linked_foretmap_user_id WHERE p.pseudo = ? LIMIT 1`,
     [`avec_${stamp}`],
   );
   assert.strictEqual(Number(withPwd.password_must_reset), 0);
 
   const withoutPwd = await queryOne(
-    'SELECT password_must_reset FROM gl_players WHERE pseudo = ? LIMIT 1',
+    `SELECT u.password_must_reset FROM gl_players p
+      INNER JOIN users u ON u.id = p.linked_foretmap_user_id WHERE p.pseudo = ? LIMIT 1`,
     [`sans_${stamp}`],
   );
   assert.strictEqual(Number(withoutPwd.password_must_reset), 1);
+  // Les identifiants créés sont restitués une fois (mot de passe généré inclus).
+  const credentials = res.body?.report?.credentials || [];
+  assert.strictEqual(credentials.length, 2);
+  const generated = credentials.find((c) => c.pseudo === `sans_${stamp}`);
+  assert.ok(generated?.generated);
+  assert.match(String(generated.password), /^[a-z0-9]{10}$/);
 
   // Le joueur "avec" peut se connecter immédiatement
   await request(app)

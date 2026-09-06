@@ -57,8 +57,10 @@ test('POST /api/gl/admin/players crée un joueur avec password (must_reset=0)', 
     .expect(201);
   assert.strictEqual(res.body?.pseudo, pseudo);
   assert.strictEqual(Number(res.body?.password_must_reset), 0);
+  assert.strictEqual(res.body?.generatedPassword, null);
   const row = await queryOne(
-    'SELECT password_must_reset FROM gl_players WHERE pseudo = ? LIMIT 1',
+    `SELECT u.password_must_reset FROM gl_players p
+      INNER JOIN users u ON u.id = p.linked_foretmap_user_id WHERE p.pseudo = ? LIMIT 1`,
     [pseudo],
   );
   assert.strictEqual(Number(row.password_must_reset), 0);
@@ -72,6 +74,13 @@ test('POST /api/gl/admin/players sans password active must_reset=1', async () =>
     .send({ classId, firstName: 'Sans', lastName: 'Motdepasse', pseudo })
     .expect(201);
   assert.strictEqual(Number(res.body?.password_must_reset), 1);
+  // Le mot de passe généré est restitué une seule fois, et permet de se connecter.
+  assert.match(String(res.body?.generatedPassword || ''), /^[a-z0-9]{10}$/);
+  const login = await request(app)
+    .post('/api/gl/auth/login')
+    .send({ identifier: pseudo, password: res.body.generatedPassword })
+    .expect(200);
+  assert.strictEqual(login.body?.auth?.passwordMustReset, true);
 });
 
 test('POST /api/gl/admin/players refuse un pseudo déjà utilisé (409)', async () => {
@@ -101,7 +110,8 @@ test('POST /api/gl/admin/players/:id/reset-password met must_reset=0', async () 
     .send({ classId, firstName: 'Reset', lastName: 'Me', pseudo })
     .expect(201);
   const before = await queryOne(
-    'SELECT id, password_must_reset FROM gl_players WHERE pseudo = ? LIMIT 1',
+    `SELECT p.id, u.password_must_reset FROM gl_players p
+      INNER JOIN users u ON u.id = p.linked_foretmap_user_id WHERE p.pseudo = ? LIMIT 1`,
     [pseudo],
   );
   assert.strictEqual(Number(before.password_must_reset), 1);
@@ -112,9 +122,11 @@ test('POST /api/gl/admin/players/:id/reset-password met must_reset=0', async () 
     .send({ password: 'nouveau1234' })
     .expect(200);
 
-  const after = await queryOne('SELECT password_must_reset FROM gl_players WHERE id = ? LIMIT 1', [
-    before.id,
-  ]);
+  const after = await queryOne(
+    `SELECT u.password_must_reset FROM gl_players p
+      INNER JOIN users u ON u.id = p.linked_foretmap_user_id WHERE p.id = ? LIMIT 1`,
+    [before.id],
+  );
   assert.strictEqual(Number(after.password_must_reset), 0);
 
   // Le joueur peut désormais se connecter

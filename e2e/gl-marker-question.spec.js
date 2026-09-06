@@ -25,7 +25,7 @@ test.describe('GL repère question — present-question API', () => {
     const classRow = await queryOne('SELECT id FROM gl_classes ORDER BY id DESC LIMIT 1');
 
     await execute(
-      `INSERT INTO gl_players (class_id, pseudo, password_hash, is_active, created_at, updated_at)
+      `INSERT INTO gl_players (class_id, pseudo, legacy_password_hash, is_active, created_at, updated_at)
        VALUES (?, ?, 'x', 1, NOW(), NOW())`,
       [classRow.id, `e2e_mq_player_${now}`],
     );

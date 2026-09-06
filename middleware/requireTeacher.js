@@ -6,6 +6,8 @@ const {
   checkClaimsProduct,
 } = require('../lib/auth/jwtPipeline');
 const { ensureRbacBootstrap, buildAuthzPayload } = require('../lib/rbac');
+const { queryOne } = require('../database');
+const { tokenEpochMatches } = require('../lib/auth/tokenEpoch');
 const { getAuthJwtTtls } = require('../lib/settings');
 const { getUserAccessibleGroupIds } = require('../lib/groupScope');
 const logger = require('../lib/logger');
@@ -13,6 +15,18 @@ const logger = require('../lib/logger');
 const JWT_SECRET =
   process.env.JWT_SECRET ||
   (process.env.NODE_ENV === 'production' ? null : 'dev-secret-change-in-production');
+
+/**
+ * Session révoquée (compte désactivé, mot de passe changé) : distinguée d'une absence de
+ * profil (403) pour que le client déconnecte proprement, comme sur un jeton expiré (401).
+ */
+class AuthRevokedError extends Error {
+  constructor(reason) {
+    super('auth_revoked');
+    this.name = 'AuthRevokedError';
+    this.reason = reason;
+  }
+}
 
 function requireJwtConfigured(res) {
   if (!JWT_SECRET) {
@@ -45,6 +59,19 @@ async function hydrateAuthFromTokenClaims(claims) {
     const actorAuthz = await buildAuthzPayload(claims.actorUserType, claims.actorUserId);
     const actorPerms = Array.isArray(actorAuthz?.permissions) ? actorAuthz.permissions : [];
     if (!actorAuthz || !actorPerms.includes('admin.impersonate')) return null;
+  }
+  // État de compte relu à chaque requête : un compte désactivé ou dont le mot de passe a
+  // changé (`token_epoch` incrémenté) perd sa session immédiatement, pas à l'expiration.
+  const account = await queryOne('SELECT is_active, token_epoch FROM users WHERE id = ? LIMIT 1', [
+    String(claims.userId),
+  ]);
+  if (account) {
+    if (account.is_active != null && !Number(account.is_active)) {
+      throw new AuthRevokedError('account_inactive');
+    }
+    if (!tokenEpochMatches(claims, account.token_epoch)) {
+      throw new AuthRevokedError('token_epoch');
+    }
   }
   const authz = await buildAuthzPayload(claims.userType, claims.userId);
   if (!authz) return null;
@@ -124,6 +151,12 @@ async function resolveAuthOrRespond(req, res, { product } = {}) {
   try {
     req.auth = await hydrateAuthFromTokenClaims(claims);
   } catch (err) {
+    if (err instanceof AuthRevokedError) {
+      res
+        .status(401)
+        .json({ error: 'Session expirée', code: 'SESSION_REVOKED', reason: err.reason });
+      return null;
+    }
     logger.error({ err, msg: 'auth_hydration_failed' }, 'Échec hydratation auth (infra)');
     // Code transitoire : la requête n'a pas été traitée, le client peut la
     // réessayer sans risque (mutations comprises) pendant un redémarrage BDD.
@@ -197,6 +230,7 @@ const requireTeacher = requirePermission('teacher.access');
 
 module.exports = {
   JWT_SECRET,
+  AuthRevokedError,
   parseBearerToken,
   hydrateAuthFromTokenClaims,
   authenticate,

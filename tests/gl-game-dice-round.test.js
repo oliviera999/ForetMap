@@ -73,7 +73,7 @@ before(async () => {
   );
 
   await execute(
-    `INSERT INTO gl_players (class_id, pseudo, password_hash, health_points, power_points, is_active, created_at, updated_at)
+    `INSERT INTO gl_players (class_id, pseudo, legacy_password_hash, health_points, power_points, is_active, created_at, updated_at)
      VALUES (?, ?, 'hash', 5, 5, 1, NOW(), NOW())`,
     [cls.id, `dice-player-${stamp}`],
   );

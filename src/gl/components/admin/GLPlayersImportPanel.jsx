@@ -5,6 +5,7 @@ import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
+import { GLPlayerCredentialsTable } from './GLPlayerCredentialsTable.jsx';
 
 async function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -122,7 +123,22 @@ export function GLPlayersImportPanel({ onReload }) {
             Reçues: <strong>{report?.totals?.received || 0}</strong> · Valides:{' '}
             <strong>{report?.totals?.valid || 0}</strong> · Créées:{' '}
             <strong>{report?.totals?.created || 0}</strong>
+            {Number(report?.totals?.reused_existing || 0) > 0 ? (
+              <>
+                {' '}
+                · Comptes ForetMap existants rapprochés:{' '}
+                <strong>{report.totals.reused_existing}</strong>
+              </>
+            ) : null}
           </p>
+          <p className="gl-hint">
+            Un élève déjà inscrit à ForetMap (même e-mail, ou même pseudo et même nom) est rattaché
+            à son compte existant : il garde son mot de passe ForetMap.
+          </p>
+          <GLPlayerCredentialsTable
+            credentials={report?.credentials}
+            filename="identifiants-joueurs-import.csv"
+          />
           {Array.isArray(report?.errors) && report.errors.length > 0 ? (
             <ul>
               {report.errors.slice(0, 20).map((item, idx) => (

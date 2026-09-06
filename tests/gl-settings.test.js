@@ -49,8 +49,8 @@ before(async () => {
   ]);
   await execute(
     `INSERT INTO gl_players
-      (class_id, first_name, last_name, pseudo, password_must_reset, password_hash, is_active, created_at, updated_at)
-     VALUES (?, 'Jean', 'Test', ?, 0, '$2a$10$abcdefghijklmnopqrstuvabcdefghijklmnopqrstuvabcd', 1, NOW(), NOW())`,
+      (class_id, first_name, last_name, pseudo, legacy_password_hash, is_active, created_at, updated_at)
+     VALUES (?, 'Jean', 'Test', ?, '$2a$10$abcdefghijklmnopqrstuvabcdefghijklmnopqrstuvabcd', 1, NOW(), NOW())`,
     [cls.id, playerPseudo],
   );
   const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [

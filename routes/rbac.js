@@ -1,4 +1,5 @@
 const express = require('express');
+const { bumpUserTokenEpoch } = require('../lib/auth/tokenEpoch');
 const bcrypt = require('bcryptjs');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
@@ -838,6 +839,10 @@ router.patch(
         return res.status(409).json({ error: 'Pseudo ou email déjà utilisé' });
       }
       throw err;
+    }
+    if (passwordWillChange) {
+      // Révoque les sessions en cours du compte (ForetMap et GL) : nouveau mot de passe.
+      await bumpUserTokenEpoch(resolvedUserId);
     }
 
     if (resolvedUserType === 'student' && (hasFirst || hasLast)) {

@@ -605,6 +605,19 @@ router.delete(
       if (result.reason === 'not_found' || result.reason === 'missing_id') {
         return res.status(404).json({ error: 'n3beur introuvable' });
       }
+      // Le joueur Gnomes & Licornes lié à ce compte est retenu par une partie.
+      if (result.reason === 'gl_player_in_active_game') {
+        return res.status(409).json({
+          error:
+            'Suppression refusée : ce compte est joueur Gnomes & Licornes dans une partie en cours. Terminez la partie ou retirez-le de son équipe.',
+        });
+      }
+      if (result.reason === 'gl_player_referenced') {
+        return res.status(409).json({
+          error:
+            'Suppression refusée : ce compte a contribué à un sortilège dans une partie Gnomes & Licornes terminée. Supprimez d’abord cette partie.',
+        });
+      }
       return res.status(400).json({ error: 'Suppression impossible' });
     }
     logAudit('delete_student', 'student', result.studentId, result.displayName, {

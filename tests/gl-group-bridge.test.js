@@ -120,7 +120,7 @@ test('syncForetmapUserForGlPlayer déplace le membre lors d un changement de cla
   assert.ok(!inA);
 });
 
-test('syncForetmapUserForGlPlayer ne rapproche pas un joueur non lié par pseudo/email ForetMap', async () => {
+test('syncForetmapUserForGlPlayer rapproche un joueur non lié d un élève ForetMap de même e-mail (C1)', async () => {
   const admin = await createGlAdmin();
   const glClass = await createGlClass({ adminId: admin.id, name: `Collision ${Date.now()}` });
   await ensureForetmapGroupForGlClass(glClass);
@@ -136,24 +136,58 @@ test('syncForetmapUserForGlPlayer ne rapproche pas un joueur non lié par pseudo
     classId: glClass.id,
     pseudo,
     email,
-    passwordHash: glPasswordHash,
+    legacyPasswordHash: glPasswordHash,
     linkedForetmapUserId: null,
   });
+  // Joueur historique : e-mail hérité non repris, à rapprocher.
+  await execute('UPDATE gl_players SET legacy_email = ? WHERE id = ?', [email, player.id]);
 
   const sync = await syncForetmapUserForGlPlayer(player.id);
   assert.strictEqual(sync.ok, true);
-  assert.notStrictEqual(String(sync.user.id), String(existing.id));
-
+  // Même compte : pas de doublon, le mot de passe ForetMap est conservé…
+  assert.strictEqual(String(sync.user.id), String(existing.id));
   const preserved = await queryOne('SELECT password_hash FROM users WHERE id = ? LIMIT 1', [
     existing.id,
   ]);
   assert.strictEqual(await bcrypt.compare('foretmap-secret', preserved.password_hash), true);
-
   const linked = await queryOne(
-    'SELECT linked_foretmap_user_id FROM gl_players WHERE id = ? LIMIT 1',
+    'SELECT linked_foretmap_user_id, legacy_password_hash, legacy_email FROM gl_players WHERE id = ? LIMIT 1',
     [player.id],
   );
-  assert.strictEqual(String(linked.linked_foretmap_user_id), String(sync.user.id));
+  assert.strictEqual(String(linked.linked_foretmap_user_id), String(existing.id));
+  // … et le hash GL hérité survit jusqu'à sa première utilisation (adoption au login).
+  assert.ok(linked.legacy_password_hash);
+  assert.strictEqual(linked.legacy_email, null);
+  const dupes = await queryOne('SELECT COUNT(*) AS c FROM users WHERE LOWER(pseudo) LIKE ?', [
+    `${pseudo}%`,
+  ]);
+  assert.strictEqual(Number(dupes.c), 1);
+});
+
+test('findStudentUser ne rapproche par pseudo que si prénom et nom coïncident', async () => {
+  const { findStudentUser } = require('../lib/glGroupBridge');
+  const pseudo = `gl_homonyme_${Date.now()}`;
+  const existing = await createForetmapStudent({
+    pseudo,
+    email: `${pseudo}@example.com`,
+    password: 'x-secret-x',
+  });
+  const wrongName = await findStudentUser({
+    linkedId: null,
+    email: null,
+    pseudo,
+    firstName: 'Autre',
+    lastName: 'Personne',
+  });
+  assert.strictEqual(wrongName, null);
+  const sameName = await findStudentUser({
+    linkedId: null,
+    email: null,
+    pseudo,
+    firstName: 'foret',
+    lastName: 'MAP',
+  });
+  assert.strictEqual(String(sameName?.id), String(existing.id));
 });
 
 test('syncForetmapUserForGlPlayer ne remplace pas le mot de passe ForetMap lié', async () => {
@@ -169,7 +203,7 @@ test('syncForetmapUserForGlPlayer ne remplace pas le mot de passe ForetMap lié'
   const player = await createGlPlayer({
     classId: glClass.id,
     pseudo: `linked_gl_${Date.now()}`,
-    passwordHash: glPasswordHash,
+    legacyPasswordHash: glPasswordHash,
     linkedForetmapUserId: existing.id,
   });
 

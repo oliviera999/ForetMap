@@ -7,6 +7,49 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — identités unifiées ForetMap × Gnomes & Licornes (`docs/AUDIT_COMPTES_2026-09.md`)
+
+- **Un seul compte, un seul mot de passe.** Migration `211_gl_identity_unification.sql` : le
+  compte `users` lié à un joueur G&L porte désormais mot de passe, e-mail, `google_sub`,
+  `password_must_reset` et `token_epoch` ; `gl_players` ne garde que le gameplay et référence
+  `users` par une clé étrangère. Trois magasins de mots de passe divergeaient (un mot de passe
+  changé dans le jeu ne valait pas sur ForetMap) ; il n'y en a plus qu'un. Un hash G&L hérité
+  non repris par la migration est accepté une dernière fois à la connexion puis adopté comme
+  mot de passe unique — personne n'est bloqué. Toute lecture/écriture de secret joueur passe
+  par `lib/glPlayerIdentity.js`.
+- **L'import G&L ne duplique plus les élèves ForetMap** : un élève de même e-mail — ou de même
+  pseudo et mêmes prénom/nom — est rattaché à son compte existant, mot de passe conservé
+  (`reused_existing`). Avant, chaque import d'un élève déjà inscrit créait un compte en
+  doublon, pseudo suffixé `-fm` et e-mail écrasé.
+- **Les mots de passe générés sont restitués une seule fois** (`credentials` du rapport
+  d'import, `generatedPassword` à la création), avec table, copie et export CSV côté staff.
+  Ils n'étaient affichés nulle part : un fichier sans colonne « Mot de passe » produisait des
+  comptes inutilisables. Génération `crypto.randomBytes` (l'ancien `Math.random()` était
+  partiellement prédictible). Hachages bcrypt de l'import en parallèle borné.
+- **Cycle de vie symétrique** : supprimer l'élève supprime son joueur (409 si une partie le
+  retient) ; supprimer le joueur supprime le compte miroir mais conserve un vrai compte élève ;
+  désactiver le compte ForetMap coupe le jeu immédiatement. Rattacher son compte élève depuis
+  le profil G&L (`POST /api/gl/auth/link-foretmap`) fusionne les deux comptes ; le détacher
+  recrée un miroir. Rapport et rattrapage : `GET|POST /api/gl/admin/players/reconcile`.
+- **Révocation des sessions au changement de mot de passe** : claim `tokenEpoch` dans tous les
+  jetons, incrémenté par chaque reset (e-mail, self-service, admin, MJ) ; un jeton antérieur est
+  refusé (`401 SESSION_REVOKED` côté ForetMap). Un compte désactivé perd aussi sa session
+  ForetMap sans attendre l'expiration.
+- **Acteur `gl_player` canonisé** dans `audit_log` / `security_events` (il était toujours
+  `NULL`).
+
+### Sécurité — connexions (`docs/AUDIT_COMPTES_2026-09.md`, S1–S3)
+
+- `POST /api/gl/auth/staff/login` et `POST /api/gl/auth/link-foretmap` passent sous le
+  limiteur strict d'authentification : le premier vérifiait un mot de passe **prof / admin
+  ForetMap** à 1 200 essais/min/IP, le second était un oracle de mot de passe sur tous les
+  comptes élèves. Un test (`tests/auth-rate-limit-coverage.test.js`) échoue désormais si une
+  route publique vérifiant un mot de passe n'est pas couverte.
+- **Verrou par compte** (`lib/loginThrottle.js`) : cinq échecs sur un identifiant → 30 s,
+  doublés, plafonnés à 15 min (`429` + `Retry-After`), sur les connexions ForetMap et G&L. Le
+  plafond IP passe de 20 à 60 / 15 min (`FORETMAP_AUTH_RATE_LIMIT_PER_15MIN`) : une classe
+  entière derrière une adresse ne se bloque plus sur vingt fautes de frappe.
+
 ### Ajouté — Réseau trophique, second lot (`docs/AUDIT_RESEAU_TROPHIQUE_2026-09.md` §4)
 
 - **Zoom au pincement sur tablette** : `touch-action: none`, nécessaire au déplacement,

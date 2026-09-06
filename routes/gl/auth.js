@@ -51,6 +51,27 @@ const {
 } = require('../../lib/gl/authRouteHelpers');
 
 const asyncHandler = require('../../lib/asyncHandler');
+const {
+  findGlPlayerById,
+  findGlPlayerByIdentifier,
+  findGlPlayerByEmail,
+  isGlPlayerLoginActive,
+  verifyGlPlayerPassword,
+  setGlPlayerPassword,
+  toGlPlayerProfile,
+} = require('../../lib/glPlayerIdentity');
+const {
+  syncForetmapUserForGlPlayer,
+  upsertForetmapUserForGlPlayer,
+} = require('../../lib/glGroupBridge');
+const { deleteStudentById } = require('../../lib/studentDeletion');
+const {
+  getUserTokenEpoch,
+  bumpUserTokenEpoch,
+  resolveUserIdForGlClaims,
+} = require('../../lib/auth/tokenEpoch');
+const { loginThrottle, sendLoginThrottled } = require('../../lib/loginThrottle');
+const { nowIsoUtc } = require('../../lib/shared/isoTimestamp');
 
 const router = express.Router();
 
@@ -59,11 +80,19 @@ const GL_OAUTH_MODE_COOKIE = 'gl_oauth_mode';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
 async function signGlToken(payload) {
+  // Époque de jeton du compte `users` porteur des secrets (joueur lié / enseignant du staff) :
+  // un changement de mot de passe l'incrémente et invalide ce jeton à l'hydratation.
+  const epochUserId = await resolveUserIdForGlClaims(payload);
+  const tokenEpoch = epochUserId ? await getUserTokenEpoch(epochUserId) : 0;
   return signAuthToken({
     ...payload,
+    tokenEpoch,
     product: 'gl',
   });
 }
+
+const LOGIN_THROTTLE_SCOPE = 'gl_login';
+const LINK_THROTTLE_SCOPE = 'gl_link_foretmap';
 
 function buildGoogleConfig(req) {
   const clientId =
@@ -423,42 +452,58 @@ router.post(
       return res.status(400).json({ error: 'Identifiant et mot de passe requis' });
     }
 
-    const player = await queryOne(
-      `SELECT p.id, p.class_id, p.team_id, p.pseudo, p.first_name, p.last_name,
-            p.password_hash, p.password_must_reset, p.is_active, p.linked_foretmap_user_id
-       FROM gl_players p
-      WHERE LOWER(p.pseudo) = LOWER(?)
-      LIMIT 1`,
-      [identifier],
-    );
-    let playerPasswordOk = false;
+    const throttled = loginThrottle.check(LOGIN_THROTTLE_SCOPE, identifier);
+    if (throttled.blocked) return sendLoginThrottled(res, throttled);
+
+    // Le mot de passe du joueur vit sur son compte `users` lié (unification, migration 211) ;
+    // `verifyGlPlayerPassword` adopte encore un hash GL hérité à sa première utilisation.
+    const player = await findGlPlayerByIdentifier(identifier);
     if (player) {
-      if (!Number(player.is_active)) {
+      if (!isGlPlayerLoginActive(player)) {
+        loginThrottle.recordFailure(LOGIN_THROTTLE_SCOPE, identifier);
         return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
       }
-      playerPasswordOk = await bcrypt.compare(password, String(player.password_hash || ''));
-      if (!playerPasswordOk && player.linked_foretmap_user_id) {
-        const linkedUser = await queryOne(
-          "SELECT password_hash FROM users WHERE id = ? AND user_type = 'student' AND is_active = 1 LIMIT 1",
-          [String(player.linked_foretmap_user_id)],
-        );
-        if (linkedUser?.password_hash) {
-          playerPasswordOk = await bcrypt.compare(password, String(linkedUser.password_hash));
+      const verified = await verifyGlPlayerPassword(player, password);
+      if (verified.ok) {
+        loginThrottle.clear(LOGIN_THROTTLE_SCOPE, identifier);
+        await touchGlPlayerLastSeen(player);
+        if (verified.adoptedLegacy) {
+          await logSecurityEvent('gl.auth.legacy_password_adopted', {
+            req,
+            actorUserType: 'gl_player',
+            actorUserId: String(player.id),
+            targetType: 'gl_player',
+            targetId: String(player.id),
+          });
         }
-      }
-      if (playerPasswordOk) {
         return res.json(await issueGlPlayerSession(player));
       }
     }
 
     const staffOutcome = await attemptGlStaffPasswordLogin(identifier, password);
-    if (staffOutcome.ok) return res.json(staffOutcome.session);
+    if (staffOutcome.ok) {
+      loginThrottle.clear(LOGIN_THROTTLE_SCOPE, identifier);
+      return res.json(staffOutcome.session);
+    }
+    loginThrottle.recordFailure(LOGIN_THROTTLE_SCOPE, identifier);
     if (player) {
       return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
     }
     return res.status(staffOutcome.status || 401).json({ error: staffOutcome.error });
   }),
 );
+
+async function touchGlPlayerLastSeen(player) {
+  await execute('UPDATE gl_players SET last_seen = NOW(), updated_at = NOW() WHERE id = ?', [
+    player.id,
+  ]);
+  if (player.user_id) {
+    await execute('UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ?', [
+      nowIsoUtc(),
+      player.user_id,
+    ]);
+  }
+}
 
 const FORGOT_PASSWORD_NEUTRAL_MESSAGE =
   'Si un compte existe, un email de réinitialisation a été envoyé.';
@@ -489,16 +534,12 @@ router.post(
       return res.json({ ok: true, message: FORGOT_PASSWORD_NEUTRAL_MESSAGE });
     }
 
-    const player = await queryOne(
-      `SELECT id, email, pseudo, first_name, last_name, password_hash, is_active
-       FROM gl_players
-      WHERE LOWER(email) = LOWER(?)
-        AND email IS NOT NULL
-        AND TRIM(email) <> ''
-      LIMIT 1`,
-      [email],
-    );
-    if (player && Number(player.is_active) && player.password_hash) {
+    const player = await findGlPlayerByEmail(email);
+    if (
+      player &&
+      isGlPlayerLoginActive(player) &&
+      (player.user_password_hash || player.legacy_password_hash)
+    ) {
       const token = await createPasswordResetToken('gl_player', player.id);
       const displayName =
         normalizeOptionalString(player.pseudo) ||
@@ -545,13 +586,14 @@ router.post(
 
     const playerId = await consumePasswordResetToken('gl_player', token);
     if (playerId) {
-      const passwordHash = await bcrypt.hash(password, 10);
-      await execute(
-        `UPDATE gl_players
-          SET password_hash = ?, password_must_reset = 0, updated_at = NOW()
-        WHERE id = ?`,
-        [passwordHash, playerId],
-      );
+      await setGlPlayerPassword(playerId, { password, mustReset: false });
+      await logSecurityEvent('gl.auth.password_reset.confirm.player', {
+        req,
+        actorUserType: 'gl_player',
+        actorUserId: String(playerId),
+        targetType: 'gl_player',
+        targetId: String(playerId),
+      });
       return res.json({ ok: true });
     }
 
@@ -569,6 +611,7 @@ router.post(
         "UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'",
         [passwordHash, teacherId],
       );
+      await bumpUserTokenEpoch(teacherId);
       return res.json({ ok: true });
     }
 
@@ -586,10 +629,17 @@ router.post(
       return res.status(400).json({ error: 'Identifiant et mot de passe requis' });
     }
 
+    const throttled = loginThrottle.check(LOGIN_THROTTLE_SCOPE, identifier);
+    if (throttled.blocked) return sendLoginThrottled(res, throttled);
+
     const staffOutcome = await attemptGlStaffPasswordLogin(identifier, password, {
       rejectStudent: true,
     });
-    if (staffOutcome.ok) return res.json(staffOutcome.session);
+    if (staffOutcome.ok) {
+      loginThrottle.clear(LOGIN_THROTTLE_SCOPE, identifier);
+      return res.json(staffOutcome.session);
+    }
+    loginThrottle.recordFailure(LOGIN_THROTTLE_SCOPE, identifier);
     return res.status(staffOutcome.status || 401).json({ error: staffOutcome.error });
   }),
 );
@@ -756,28 +806,34 @@ router.get(
   requireGlAuth,
   asyncHandler(async (req, res) => {
     if (req.glAuth.userType === 'gl_player') {
-      const player = await queryOne(
-        `SELECT p.id, p.first_name, p.last_name, p.pseudo, p.class_id, p.team_id,
-              p.email, p.description, p.avatar_path, p.password_must_reset, p.linked_foretmap_user_id,
-              p.google_sub, p.health_points, p.power_points,
-              c.name AS class_name, t.name AS team_name
-         FROM gl_players p
-    LEFT JOIN gl_classes c ON c.id = p.class_id
-    LEFT JOIN gl_teams t ON t.id = p.team_id
-        WHERE p.id = ?
-        LIMIT 1`,
-        [req.glAuth.userId],
-      );
+      const playerRow = await findGlPlayerById(req.glAuth.userId);
+      const names = playerRow
+        ? await queryOne(
+            `SELECT c.name AS class_name, t.name AS team_name
+               FROM gl_players p
+          LEFT JOIN gl_classes c ON c.id = p.class_id
+          LEFT JOIN gl_teams t ON t.id = p.team_id
+              WHERE p.id = ? LIMIT 1`,
+            [playerRow.id],
+          )
+        : null;
+      const player = playerRow
+        ? {
+            ...toGlPlayerProfile(playerRow),
+            class_name: names?.class_name || null,
+            team_name: names?.team_name || null,
+          }
+        : null;
+      // Depuis l'unification, tout joueur a un compte ForetMap ; « lié » signifie ici que ce
+      // compte est un VRAI compte élève (inscrit ou importé côté ForetMap), pas le miroir
+      // créé par le jeu. C'est ce que le panneau « Liaison ForetMap » du profil affiche.
       let linkedForetmapStudent = null;
-      if (player?.linked_foretmap_user_id) {
-        linkedForetmapStudent = await queryOne(
-          `SELECT id, pseudo, email
-           FROM users
-          WHERE id = ?
-            AND user_type = 'student'
-          LIMIT 1`,
-          [player.linked_foretmap_user_id],
-        );
+      if (playerRow?.user_id && playerRow.user_auth_provider !== 'gl_bridge') {
+        linkedForetmapStudent = {
+          id: String(playerRow.user_id),
+          pseudo: playerRow.user_pseudo || null,
+          email: playerRow.email || null,
+        };
       }
       const membership = player
         ? await resolveGlPlayerActiveMembership(player.id, player.team_id)
@@ -889,14 +945,8 @@ router.post(
       return res.status(403).json({ error: 'Compte staff GL invalide ou inactif' });
     }
 
-    const player = await queryOne(
-      `SELECT id, class_id, team_id, pseudo, password_must_reset, is_active
-       FROM gl_players
-      WHERE id = ?
-      LIMIT 1`,
-      [targetUserId],
-    );
-    if (!player || !Number(player.is_active)) {
+    const player = await findGlPlayerById(targetUserId);
+    if (!player || !isGlPlayerLoginActive(player)) {
       return res.status(404).json({ error: 'Joueur introuvable ou inactif' });
     }
 
@@ -1023,16 +1073,10 @@ router.patch(
     }
 
     if (req.glAuth.userType === 'gl_player') {
-      const account = await queryOne(
-        `SELECT id, class_id, team_id, pseudo, first_name, last_name, email, description, avatar_path, password_hash, password_must_reset
-         FROM gl_players
-        WHERE id = ?
-        LIMIT 1`,
-        [req.glAuth.userId],
-      );
+      const account = await findGlPlayerById(req.glAuth.userId);
       if (!account) return res.status(404).json({ error: 'Joueur introuvable' });
-      const passOk = await bcrypt.compare(currentPassword, String(account.password_hash || ''));
-      if (!passOk) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+      const verified = await verifyGlPlayerPassword(account, currentPassword);
+      if (!verified.ok) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
 
       const hasPseudo = Object.prototype.hasOwnProperty.call(body, 'pseudo');
       const hasEmail = Object.prototype.hasOwnProperty.call(body, 'email');
@@ -1059,12 +1103,12 @@ router.patch(
         if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
       }
       if (email) {
+        // L'e-mail vit sur le compte `users` : unicité sur l'ensemble des comptes.
         const existingEmail = await queryOne(
-          'SELECT id FROM gl_players WHERE LOWER(email)=LOWER(?) AND id <> ? LIMIT 1',
-          [email, account.id],
+          'SELECT id FROM users WHERE LOWER(email)=LOWER(?) AND (? IS NULL OR id <> ?) LIMIT 1',
+          [email, account.user_id, account.user_id],
         );
-        if (existingEmail)
-          return res.status(409).json({ error: 'Cet email est déjà utilisé pour un joueur GL' });
+        if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
       }
 
       let avatarPath = account.avatar_path || null;
@@ -1091,18 +1135,26 @@ router.patch(
 
       await execute(
         `UPDATE gl_players
-          SET pseudo = ?, email = ?, description = ?, avatar_path = ?, updated_at = NOW()
+          SET pseudo = ?, description = ?, avatar_path = ?, updated_at = NOW()
         WHERE id = ?`,
-        [pseudo, email, description, avatarPath, account.id],
+        [pseudo, description, avatarPath, account.id],
       );
-      const updated = await queryOne(
-        `SELECT id, class_id, team_id, pseudo, first_name, last_name, email, description, avatar_path, password_must_reset
-         FROM gl_players
-        WHERE id = ?
-        LIMIT 1`,
-        [account.id],
-      );
-      const session = await issueGlPlayerSession(updated);
+      if (hasEmail) {
+        // Source unique : l'e-mail est écrit sur le compte lié (créé au besoin).
+        const sync = await syncForetmapUserForGlPlayer(account.id, { email, forceEmail: true });
+        if (!sync.ok) return res.status(500).json({ error: sync.error });
+        if (email == null) {
+          await execute('UPDATE users SET email = NULL, updated_at = NOW() WHERE id = ?', [
+            sync.user.id,
+          ]);
+        }
+      } else if (hasPseudo) {
+        // Le compte miroir suit le pseudo de jeu.
+        await syncForetmapUserForGlPlayer(account.id);
+      }
+      const updatedRow = await findGlPlayerById(account.id);
+      const updated = toGlPlayerProfile(updatedRow);
+      const session = await issueGlPlayerSession(updatedRow);
       return res.json({
         ok: true,
         authToken: session.authToken,
@@ -1256,10 +1308,28 @@ router.post(
       String(teacher.id),
       admin.id,
     ]);
-    return res.json({ ok: true });
+    // Révoque les autres sessions (ForetMap et GL) ; jeton neuf pour la session courante.
+    await bumpUserTokenEpoch(teacher.id);
+    const refreshedAdmin = await queryOne('SELECT * FROM gl_admins WHERE id = ? LIMIT 1', [
+      admin.id,
+    ]);
+    const session = await issueGlStaffSession(
+      refreshedAdmin,
+      String(refreshedAdmin?.role || 'mj').toLowerCase(),
+    );
+    return res.json({ ok: true, authToken: session.authToken, auth: session.auth });
   }),
 );
 
+/**
+ * POST /api/gl/auth/link-foretmap — rattacher son VRAI compte élève ForetMap.
+ *
+ * Depuis l'unification, tout joueur a déjà un compte `users` : soit un compte miroir créé par
+ * le jeu (`auth_provider = 'gl_bridge'`), soit un compte élève existant. Rattacher un compte
+ * élève, c'est donc FUSIONNER : le joueur bascule sur ce compte (mot de passe, e-mail, groupe
+ * de classe) et le miroir devenu inutile est supprimé. Le mot de passe du joueur devient celui
+ * du compte ForetMap — il n'y en a plus qu'un.
+ */
 router.post(
   '/link-foretmap',
   requireGlAuth,
@@ -1275,23 +1345,49 @@ router.post(
     if (!identifier || !password) {
       return res.status(400).json({ error: 'Identifiant et mot de passe requis' });
     }
-    const player = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [
-      req.glAuth.userId,
-    ]);
+    // Oracle de mot de passe ForetMap : même protection par compte que les connexions.
+    const throttleKey = `${req.glAuth.userId}:${identifier}`;
+    const throttled = loginThrottle.check(LINK_THROTTLE_SCOPE, throttleKey);
+    if (throttled.blocked) return sendLoginThrottled(res, throttled);
+
+    const player = await findGlPlayerById(req.glAuth.userId);
     if (!player) return res.status(404).json({ error: 'Joueur introuvable' });
     const student = await queryOne(
-      `SELECT id, user_type, pseudo, email, password_hash, is_active
+      `SELECT id, user_type, pseudo, email, password_hash, is_active, auth_provider
        FROM users
       WHERE user_type = 'student'
         AND (LOWER(pseudo) = LOWER(?) OR LOWER(email) = LOWER(?))
       LIMIT 1`,
       [identifier, identifier],
     );
-    if (!student || !student.password_hash || !Number(student.is_active || 0)) {
+    const passOk =
+      !!student &&
+      !!student.password_hash &&
+      !!Number(student.is_active || 0) &&
+      (await bcrypt.compare(password, String(student.password_hash || '')));
+    if (!passOk) {
+      loginThrottle.recordFailure(LINK_THROTTLE_SCOPE, throttleKey);
+      await logSecurityEvent('gl.auth.link_foretmap', {
+        req,
+        actorUserType: 'gl_player',
+        actorUserId: String(player.id),
+        result: 'failure',
+        reason: student ? 'password_invalid' : 'account_not_found',
+      });
       return res.status(401).json({ error: 'Compte ForetMap invalide' });
     }
-    const passOk = await bcrypt.compare(password, String(student.password_hash || ''));
-    if (!passOk) return res.status(401).json({ error: 'Compte ForetMap invalide' });
+    loginThrottle.clear(LINK_THROTTLE_SCOPE, throttleKey);
+
+    if (String(player.user_id || '') === String(student.id)) {
+      return res.json({
+        ok: true,
+        linkedForetmapStudent: {
+          id: String(student.id),
+          pseudo: student.pseudo || null,
+          email: student.email || null,
+        },
+      });
+    }
     const existingLink = await queryOne(
       'SELECT id, pseudo FROM gl_players WHERE linked_foretmap_user_id = ? AND id <> ? LIMIT 1',
       [student.id, player.id],
@@ -1301,10 +1397,26 @@ router.post(
         .status(409)
         .json({ error: 'Ce compte ForetMap est déjà lié à un autre joueur GL' });
     }
+    // Fusion : le joueur bascule sur le compte élève ; le miroir orphelin est supprimé.
+    const previousUserId = player.user_id ? String(player.user_id) : null;
+    const previousWasBridge = player.user_auth_provider === 'gl_bridge';
     await execute(
-      'UPDATE gl_players SET linked_foretmap_user_id = ?, updated_at = NOW() WHERE id = ?',
+      'UPDATE gl_players SET linked_foretmap_user_id = ?, legacy_password_hash = NULL, updated_at = NOW() WHERE id = ?',
       [String(student.id), player.id],
     );
+    const sync = await syncForetmapUserForGlPlayer(player.id, { dedupe: false });
+    if (!sync.ok) return res.status(500).json({ error: sync.error });
+    if (previousUserId && previousWasBridge) {
+      await deleteStudentById(previousUserId, { skipLinkedGlPlayer: true });
+    }
+    await logSecurityEvent('gl.auth.link_foretmap', {
+      req,
+      actorUserType: 'gl_player',
+      actorUserId: String(player.id),
+      targetType: 'student',
+      targetId: String(student.id),
+      payload: { previous_user_id: previousUserId, previous_was_bridge: previousWasBridge },
+    });
     return res.json({
       ok: true,
       linkedForetmapStudent: {
@@ -1316,6 +1428,12 @@ router.post(
   }),
 );
 
+/**
+ * DELETE /api/gl/auth/link-foretmap — détacher son compte élève ForetMap.
+ *
+ * Le joueur ne peut pas rester sans compte : un nouveau compte miroir est créé pour lui, avec
+ * son pseudo de jeu et son mot de passe actuel, et le compte élève reprend son indépendance.
+ */
 router.delete(
   '/link-foretmap',
   requireGlAuth,
@@ -1328,16 +1446,46 @@ router.delete(
     }
     const currentPassword = normalizeOptionalString(req.body?.currentPassword);
     if (!currentPassword) return res.status(400).json({ error: 'Mot de passe actuel requis' });
-    const player = await queryOne('SELECT id, password_hash FROM gl_players WHERE id = ? LIMIT 1', [
-      req.glAuth.userId,
-    ]);
+    const player = await findGlPlayerById(req.glAuth.userId);
     if (!player) return res.status(404).json({ error: 'Joueur introuvable' });
-    const ok = await bcrypt.compare(currentPassword, String(player.password_hash || ''));
-    if (!ok) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+    const verified = await verifyGlPlayerPassword(player, currentPassword);
+    if (!verified.ok) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+    if (!player.user_id || player.user_auth_provider === 'gl_bridge') {
+      return res.status(400).json({ error: 'Aucun compte ForetMap élève rattaché' });
+    }
+    const previousUserId = String(player.user_id);
+    const previousClassId = player.class_id;
+    const passwordHash = await bcrypt.hash(currentPassword, 10);
     await execute(
       'UPDATE gl_players SET linked_foretmap_user_id = NULL, updated_at = NOW() WHERE id = ?',
       [player.id],
     );
+    const created = await upsertForetmapUserForGlPlayer({
+      classId: player.class_id,
+      firstName: player.first_name,
+      lastName: player.last_name,
+      pseudo: player.pseudo,
+      email: null,
+      passwordHash,
+      passwordMustReset: false,
+      existingForetmapUserId: null,
+      glPlayerId: player.id,
+      dedupe: false,
+    });
+    if (!created.ok) return res.status(500).json({ error: created.error });
+    await execute(
+      'UPDATE gl_players SET linked_foretmap_user_id = ?, updated_at = NOW() WHERE id = ?',
+      [String(created.user.id), player.id],
+    );
+    const { removeGlClassGroupMembership } = require('../../lib/glGroupBridge');
+    await removeGlClassGroupMembership(previousUserId, previousClassId);
+    await logSecurityEvent('gl.auth.unlink_foretmap', {
+      req,
+      actorUserType: 'gl_player',
+      actorUserId: String(player.id),
+      targetType: 'student',
+      targetId: previousUserId,
+    });
     return res.json({ ok: true });
   }),
 );
@@ -1356,27 +1504,26 @@ router.post(
     if (!currentPassword || !nextPassword) {
       return res.status(400).json({ error: 'Mot de passe actuel et nouveau requis' });
     }
-    if (nextPassword.length < 4) {
-      return res.status(400).json({ error: 'Mot de passe trop court (min 4 caractères)' });
+    const minPasswordLen = await getPasswordMinLength();
+    if (nextPassword.length < minPasswordLen) {
+      return res
+        .status(400)
+        .json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
     }
-    const player = await queryOne('SELECT id, password_hash FROM gl_players WHERE id = ? LIMIT 1', [
-      req.glAuth.userId,
-    ]);
+    const player = await findGlPlayerById(req.glAuth.userId);
     if (!player) {
       return res.status(404).json({ error: 'Joueur introuvable' });
     }
-    const ok = await bcrypt.compare(currentPassword, String(player.password_hash || ''));
-    if (!ok) {
+    const verified = await verifyGlPlayerPassword(player, currentPassword);
+    if (!verified.ok) {
       return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
     }
-    const passwordHash = await bcrypt.hash(nextPassword, 10);
-    await execute(
-      `UPDATE gl_players
-        SET password_hash = ?, password_must_reset = 0, updated_at = NOW()
-      WHERE id = ?`,
-      [passwordHash, player.id],
-    );
-    return res.json({ ok: true });
+    // Source unique `users` + révocation des autres sessions ; la réponse porte un jeton
+    // neuf pour que la session courante survive au changement d'époque.
+    await setGlPlayerPassword(player.id, { password: nextPassword, mustReset: false });
+    const refreshed = await findGlPlayerById(player.id);
+    const session = await issueGlPlayerSession(refreshed);
+    return res.json({ ok: true, authToken: session.authToken, auth: session.auth });
   }),
 );
 

@@ -91,7 +91,7 @@ test('GET /api/gl/admin/players/export retourne un CSV', async () => {
     .get('/api/gl/admin/players/export')
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
-  assert.match(String(res.text || ''), /ID,Prenom,Nom,Pseudo,Classe,Actif/);
+  assert.match(String(res.text || ''), /ID,Prenom,Nom,Pseudo,Email,Classe,Actif,Compte/);
   assert.match(String(res.text || ''), new RegExp(`gl-admin-player-${stamp}`));
 });
 

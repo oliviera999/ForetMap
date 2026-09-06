@@ -37,7 +37,7 @@ test.describe('Gnomes & Licornes game flow smoke', () => {
     expect(classId).toBeGreaterThan(0);
 
     await execute(
-      `INSERT INTO gl_players (class_id, team_id, first_name, last_name, pseudo, password_hash, is_active, created_at, updated_at)
+      `INSERT INTO gl_players (class_id, team_id, first_name, last_name, pseudo, legacy_password_hash, is_active, created_at, updated_at)
        VALUES (?, NULL, 'Play', 'Er', ?, 'x', 1, NOW(), NOW())`,
       [classId, `e2e_joueur_${now}`],
     );
@@ -179,7 +179,7 @@ test.describe('Gnomes & Licornes game flow smoke', () => {
     const classId = Number(classRow?.id || 0);
 
     await execute(
-      `INSERT INTO gl_players (class_id, team_id, first_name, last_name, pseudo, password_hash, is_active, created_at, updated_at)
+      `INSERT INTO gl_players (class_id, team_id, first_name, last_name, pseudo, legacy_password_hash, is_active, created_at, updated_at)
        VALUES (?, NULL, 'Play', 'Er', ?, 'x', 1, NOW(), NOW())`,
       [classId, `e2e_player_toggles_${now}`],
     );
