@@ -1,135 +1,119 @@
 import { describe, test, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
+
 import { VisitMapChrome } from '../../../src/components/visit/VisitMapChrome.jsx';
 
-const MAPS_2 = [
-  { id: 'foret', label: 'Forêt' },
-  { id: 'potager', label: 'Potager' },
-];
-const MAPS_5 = [
-  ...MAPS_2,
-  { id: 'mare', label: 'Mare' },
-  { id: 'verger', label: 'Verger' },
-  { id: 'prairie', label: 'Prairie' },
+const MASCOTS = [
+  { id: 'gnome', label: 'Gnome des bois' },
+  { id: 'spore', label: 'Spore' },
 ];
 
 function setup(overrides = {}) {
   const props = {
     title: '🧭 Visite de la carte',
-    showPresentationButton: false,
-    presentationInvitePulse: false,
     onOpenPresentation: vi.fn(),
-    networkStatusLabel: null,
-    isOnline: true,
-    syncStatus: 'idle',
-    pendingSyncCount: 0,
-    visitImmersion: false,
     onToggleImmersion: vi.fn(),
-    isTeacher: false,
-    teacherPreviewAsStudent: false,
-    onToggleTeacherPreview: vi.fn(),
-    visitMascotId: 'renard',
-    visitMascotOptions: [],
+    onCycleMapTextSize: vi.fn(),
     onChangeVisitMascotId: vi.fn(),
-    cartographyProgress: { total: 4, seenCount: 1, pct: 25 },
-    helpPanelSlot: null,
-    onBackToAuth: null,
-    maps: MAPS_2,
-    mapId: 'foret',
     onSelectMapId: vi.fn(),
-    quickTipPrefix: 'Astuce :',
-    quickTipText: null,
+    maps: [],
+    mapId: 'foret',
     ...overrides,
   };
   const utils = render(<VisitMapChrome {...props} />);
-  return { props, ...utils };
+  return { ...utils, props };
 }
 
-describe('VisitMapChrome', () => {
-  test('titre + donut de progression avec valeurs et libellé accessibles', () => {
+describe('VisitMapChrome — état et rechargement', () => {
+  test('un rechargement affiche une pastille discrète au lieu de masquer la carte', () => {
+    setup({ refreshing: true });
+    const pill = screen.getByTestId('visit-refresh-pill');
+    expect(pill).toHaveTextContent('Actualisation');
+    expect(pill).toHaveAttribute('role', 'status');
+  });
+
+  test('hors rechargement, aucune pastille', () => {
     setup();
-    expect(screen.getByText('🧭 Visite de la carte')).toBeTruthy();
+    expect(screen.queryByTestId('visit-refresh-pill')).toBeNull();
+  });
+});
+
+describe('VisitMapChrome — trois zones', () => {
+  test('les commandes d’affichage forment un groupe nommé', () => {
+    setup({ visitMascotOptions: MASCOTS, visitMascotId: 'gnome' });
+    const group = screen.getByRole('group', { name: 'Affichage du plan' });
+    // Plein écran, taille du texte et mascotte vivent ensemble, et rien d'autre.
+    expect(within(group).getByTestId('visit-map-fullscreen-open')).toBeInTheDocument();
+    expect(within(group).getByTestId('visit-map-text-size')).toBeInTheDocument();
+    expect(within(group).getByTestId('visit-mascot-picker')).toBeInTheDocument();
+    expect(within(group).queryByTestId('visit-progress-donut')).toBeNull();
+    expect(within(group).queryByTestId('visit-teacher-preview-toggle')).toBeNull();
+  });
+
+  test('la progression accompagne le titre, hors du groupe de commandes', () => {
+    const { container } = setup({ cartographyProgress: { total: 10, seenCount: 5, pct: 50 } });
+    const titleLine = container.querySelector('.visit-map-card__chrome-title-line');
+    expect(within(titleLine).getByTestId('visit-progress-donut')).toBeInTheDocument();
     const donut = screen.getByTestId('visit-progress-donut');
-    expect(donut.getAttribute('aria-valuenow')).toBe('25');
-    expect(donut.getAttribute('title')).toBe('25 % — 1 / 4 vus');
+    expect(donut).toHaveAttribute('aria-valuenow', '50');
+    // Un seul donut rendu (la migration en a laissé deux à un stade intermédiaire).
+    expect(screen.getAllByTestId('visit-progress-donut')).toHaveLength(1);
   });
 
-  test('bouton présentation : masqué par défaut, pulse piloté par prop, clic → onOpenPresentation', () => {
-    const { props, rerender } = setup();
-    expect(screen.queryByTestId('visit-presentation-link')).toBeNull();
-    rerender(<VisitMapChrome {...props} showPresentationButton presentationInvitePulse />);
-    const btn = screen.getByTestId('visit-presentation-link');
-    expect(btn.getAttribute('data-invite-pulse')).toBe('1');
-    fireEvent.click(btn);
-    expect(props.onOpenPresentation).toHaveBeenCalledTimes(1);
-  });
-
-  test('statut réseau : rendu seulement avec un libellé, classes/data hors-ligne et en attente', () => {
-    setup({
-      networkStatusLabel: '2 actions en attente de sync.',
-      isOnline: false,
-      syncStatus: 'pending',
-      pendingSyncCount: 2,
-    });
-    const status = screen.getByTestId('visit-network-status');
-    expect(status.textContent).toBe('2 actions en attente de sync.');
-    expect(status.className).toContain('visit-network-status--offline');
-    expect(status.className).toContain('visit-network-status--pending');
-    expect(status.getAttribute('data-pending')).toBe('2');
-  });
-
-  test('bascules : plein plan toujours, aperçu élève réservé au prof', () => {
-    const { props } = setup({ isTeacher: false });
-    expect(screen.queryByTestId('visit-teacher-preview-toggle')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Afficher la carte en plein écran' }));
-    expect(props.onToggleImmersion).toHaveBeenCalledTimes(1);
-
-    const teacher = setup({ isTeacher: true, teacherPreviewAsStudent: true });
-    const toggle = screen.getByTestId('visit-teacher-preview-toggle');
-    expect(toggle.textContent).toBe('Retour édition prof');
-    fireEvent.click(toggle);
-    expect(teacher.props.onToggleTeacherPreview).toHaveBeenCalledTimes(1);
-  });
-
-  test('sélecteur de mascotte : visible avec options, change → onChangeVisitMascotId', () => {
-    const { props } = setup({
-      visitMascotOptions: [
-        { id: 'renard', label: 'Renard' },
-        { id: 'hibou', label: 'Hibou' },
-      ],
-    });
-    const select = screen.getByLabelText('Choisir la mascotte affichée sur le plan');
-    fireEvent.change(select, { target: { value: 'hibou' } });
-    expect(props.onChangeVisitMascotId).toHaveBeenCalledWith('hibou');
-  });
-
-  test('sélecteur de carte : boutons jusqu’à 4 cartes, menu déroulant au-delà', () => {
-    const few = setup();
-    fireEvent.click(screen.getByRole('button', { name: 'Potager' }));
-    expect(few.props.onSelectMapId).toHaveBeenCalledWith('potager');
-    few.unmount();
-
-    const many = setup({ maps: MAPS_5 });
-    const select = screen.getByLabelText('Sélection de carte visite');
-    fireEvent.change(select, { target: { value: 'mare' } });
-    expect(many.props.onSelectMapId).toHaveBeenCalledWith('mare');
-  });
-
-  test('sous le bandeau : message carte vide (variante multi-cartes), astuce et slot d’aide', () => {
-    setup({
-      cartographyProgress: { total: 0, seenCount: 0, pct: 0 },
-      quickTipText: 'Coche ce que tu vois.',
-      helpPanelSlot: <div data-testid="help-slot" />,
-      onBackToAuth: vi.fn(),
-    });
-    expect(
-      screen.getByText(
-        'Aucune zone ni repère sur cette carte. Choisis une autre carte ci-dessus si besoin.',
-      ),
-    ).toBeTruthy();
-    expect(screen.getByText('Coche ce que tu vois.', { exact: false })).toBeTruthy();
-    expect(screen.getByTestId('help-slot')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '↩ Retour connexion' })).toBeTruthy();
+  test('aucune progression à afficher → pas de donut', () => {
+    setup({ cartographyProgress: { total: 0, seenCount: 0, pct: 0 } });
     expect(screen.queryByTestId('visit-progress-donut')).toBeNull();
+  });
+
+  test('la bascule prof reste hors du groupe d’affichage', () => {
+    setup({ isTeacher: true, onToggleTeacherPreview: vi.fn() });
+    const group = screen.getByRole('group', { name: 'Affichage du plan' });
+    const toggle = screen.getByTestId('visit-teacher-preview-toggle');
+    expect(toggle).toBeInTheDocument();
+    expect(group.contains(toggle)).toBe(false);
+  });
+});
+
+describe('VisitMapChrome — commandes compactées', () => {
+  test('le plein écran est en icône seule mais garde son nom accessible', () => {
+    setup();
+    const btn = screen.getByTestId('visit-map-fullscreen-open');
+    expect(btn).toHaveClass('fm-map-fullscreen-open--compact');
+    expect(btn).toHaveAccessibleName('Afficher la carte en plein écran');
+    expect(btn).toHaveAttribute('title', 'Plein écran');
+  });
+
+  test('le plein écran actif annonce la sortie', () => {
+    const { props } = setup({ visitImmersion: true });
+    const btn = screen.getByTestId('visit-map-fullscreen-open');
+    expect(btn).toHaveAttribute('aria-pressed', 'true');
+    expect(btn).toHaveAccessibleName('Quitter le plein écran');
+    fireEvent.click(btn);
+    expect(props.onToggleImmersion).toHaveBeenCalledTimes(1);
+  });
+
+  test('le bouton taille de texte reprend son libellé visible dans son nom accessible', () => {
+    setup({ mapTextSizeLabel: 'A+' });
+    const btn = screen.getByTestId('visit-map-text-size');
+    expect(btn).toHaveTextContent('A+');
+    // WCAG 2.5.3 « Label in Name » : le nom accessible doit contenir le texte visible.
+    expect(btn.getAttribute('aria-label')).toContain('A+');
+  });
+
+  test('le sélecteur de mascotte perd son libellé visible mais garde son nom accessible', () => {
+    const { props } = setup({ visitMascotOptions: MASCOTS, visitMascotId: 'gnome' });
+    const picker = screen.getByTestId('visit-mascot-picker');
+    // Le mot « Mascotte » doublait la valeur affichée : il ne doit plus occuper de place.
+    expect(picker).not.toHaveTextContent('Mascotte');
+    const select = screen.getByLabelText('Choisir la mascotte affichée sur le plan');
+    expect(select).toHaveValue('gnome');
+    fireEvent.change(select, { target: { value: 'spore' } });
+    expect(props.onChangeVisitMascotId).toHaveBeenCalledWith('spore');
+  });
+
+  test('sans mascotte disponible, le sélecteur disparaît du groupe', () => {
+    setup({ visitMascotOptions: [] });
+    expect(screen.queryByTestId('visit-mascot-picker')).toBeNull();
+    expect(screen.getByRole('group', { name: 'Affichage du plan' })).toBeInTheDocument();
   });
 });

@@ -42,14 +42,20 @@ export function VisitGuestMascotOnboarding({
           Avant de commencer, sélectionne ton compagnon de balade. Tu pourras le changer plus tard
           pendant la visite.
         </p>
-        <div className="visit-mascot-onboarding__grid" role="list">
+        {/* `role="group"` et non `role="list"` : les enfants sont des boutons à bascule.
+            Un `role="listitem"` posé sur eux effaçait leur rôle « bouton » et rendait
+            `aria-pressed` inopérant — le choix courant n'était plus annoncé. */}
+        <div
+          className="visit-mascot-onboarding__grid"
+          role="group"
+          aria-label="Mascottes disponibles"
+        >
           {mascotOptions.map((mascot) => {
             const isActive = mascotId === mascot.id;
             return (
               <button
                 key={mascot.id}
                 type="button"
-                role="listitem"
                 className={`visit-mascot-onboarding__option${isActive ? ' is-active' : ''}`}
                 onClick={() => onChangeMascotId(mascot.id)}
                 aria-pressed={isActive}

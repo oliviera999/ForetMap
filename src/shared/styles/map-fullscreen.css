@@ -26,6 +26,20 @@
   outline-offset: 2px;
 }
 
+/* Variante compacte (bandeau de la visite) : le libellé visible est replié, le bouton
+   devient une cible carrée de 44px. Le nom accessible reste porté par `aria-label`,
+   et `title` fournit l'infobulle. La carte principale garde la variante à libellé. */
+.fm-map-fullscreen-open--compact {
+  gap: 0;
+  min-width: 44px;
+  padding: 8px;
+  justify-content: center;
+}
+
+.fm-map-fullscreen-open--compact .fm-map-fullscreen-open__label {
+  display: none;
+}
+
 .fm-map-fullscreen-layer {
   position: fixed;
   inset: 0;
