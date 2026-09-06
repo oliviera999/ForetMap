@@ -1,1 +1,0 @@
-import{nt as e}from"./ImageLightboxProvider-GNfi-Pwq.js";import{at as t,et as n}from"./spriteCutCatalogEntry-CFCTO90B.js";function r(r,i=[]){let a=typeof t!=`function`||!!t();return e({request:n,basePath:`/api/learning/gating/summary`,resourceType:r,refs:i,enabled:a,sessionEventName:`foretmap_session_changed`})}export{r as t};
