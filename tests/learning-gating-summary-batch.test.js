@@ -89,7 +89,14 @@ before(async () => {
   await setSetting('learning.gating.enabled', true, {});
 
   // Le verrou de re-tentative référence `users` (clé étrangère) : il faut un compte réel.
-  await execute("INSERT IGNORE INTO users (id, user_type) VALUES (?, 'student')", [userId]);
+  // Prénom et nom renseignés à dessein : d'autres tests prennent « le premier élève venu »
+  // (`SELECT ... FROM users WHERE user_type = 'student' LIMIT 1`) et échouent sur un compte
+  // aux noms vides. Un compte de test ne doit pas pouvoir devenir ce piège s'il survit à une
+  // exécution interrompue.
+  await execute(
+    "INSERT IGNORE INTO users (id, user_type, first_name, last_name) VALUES (?, 'student', ?, ?)",
+    [userId, 'GatingBatch', 'Test'],
+  );
 
   await execute(
     `INSERT IGNORE INTO quiz_categories (slug, nom, theme, order_index)
