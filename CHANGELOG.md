@@ -8287,6 +8287,21 @@ requêtes de contrôle à passer avant activation figurent en fin de document.
 - La taille de titre du seuil mobile passe par le token `--text-md` et non par un littéral
   `rem` : `tests/typography-tokens-guard.test.js` l'impose (audit homogénéité UI, B2).
 
+### Modifié — bandeau de la visite, suite (`docs/AUDIT_VISITE_UI_UX_2026-09.md` §5.6)
+
+- **Le sélecteur de carte n'occupe plus une rangée à lui seul.** Il réservait 44 px en
+  permanence sous le bandeau (`width: 100%`), même avec deux cartes. Il dit *quelle* carte on
+  regarde — du contexte, comme le titre, pas une commande — et rejoint donc la ligne de titre,
+  où il ne passe à la ligne que faute de place.
+- **« Présentation du lieu » ne pulse plus.** L'animation se déclenchait quand aucun lieu
+  n'était marqué comme vu, c'est-à-dire exactement quand toutes les zones et tous les repères
+  clignotent déjà en rouge : deux sollicitations en boucle sur le même écran, pour le même
+  message. Le clignotement des lieux, lui, est conservé — c'est le seul des deux qui porte une
+  information. Le bouton reste le seul bouton plein du bandeau.
+- Mesuré dans Chromium, le bandeau tombe à **61 px au-delà de 1 440 px** (une seule rangée,
+  contre 151 px à l'origine), **127 px à 768 px** et **175 px à 390 px** pour un élève ou un
+  visiteur (contre 274 px).
+
 ---
 
 ## [1.2.0] - 2026-03-20

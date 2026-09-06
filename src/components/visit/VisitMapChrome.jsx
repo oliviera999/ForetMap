@@ -60,7 +60,7 @@ function VisitProgressDonut({ progress }) {
  *
  * Organisé en **trois zones** au lieu d'une file unique de commandes hétérogènes
  * (cf. `docs/AUDIT_VISITE_UI_UX_2026-09.md` §5) :
- *  1. *identité et progression* — titre, donut, bouton « Présentation du lieu » ;
+ *  1. *identité et progression* — titre, donut, « Présentation du lieu », sélecteur de carte ;
  *  2. *affichage du plan* — plein écran, taille du texte, mascotte, réunis dans un groupe
  *     visuel unique (`.visit-display-group`) qui rime avec les commandes de zoom du plan ;
  *  3. *contexte et rôle* — état réseau, aperçu élève, aide, retour connexion.
@@ -79,7 +79,6 @@ function VisitProgressDonut({ progress }) {
 export function VisitMapChrome({
   title,
   showPresentationButton = false,
-  presentationInvitePulse = false,
   onOpenPresentation,
   refreshing = false,
   networkStatusLabel = null,
@@ -118,13 +117,47 @@ export function VisitMapChrome({
           {showPresentationButton ? (
             <button
               type="button"
-              className={`btn btn-sm btn-primary visit-map-card__presentation-btn${presentationInvitePulse ? ' visit-map-card__presentation-btn--invite' : ''}`}
+              className="btn btn-sm btn-primary visit-map-card__presentation-btn"
               data-testid="visit-presentation-link"
-              data-invite-pulse={presentationInvitePulse ? '1' : '0'}
               onClick={onOpenPresentation}
             >
               Présentation du lieu
             </button>
+          ) : null}
+          {/* Le sélecteur de carte dit **quelle** carte on regarde : c'est du contexte,
+              pas une commande. Il rejoint donc la zone 1 au lieu d'occuper une rangée
+              entière sous le bandeau — 44px rendus à la carte dès qu'il reste de la
+              place sur la ligne de titre (cf. audit §5.6). */}
+          {maps.length > 1 ? (
+            <div className="visit-map-card__chrome-maps">
+              <div className="visit-map-switch visit-map-switch--embedded">
+                {maps.length > 4 ? (
+                  <select
+                    className="visit-map-switch-select"
+                    value={mapId}
+                    onChange={(event) => onSelectMapId(event.target.value)}
+                    aria-label="Sélection de carte visite"
+                  >
+                    {maps.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  maps.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      className={`btn btn-sm ${mapId === m.id ? 'btn-primary' : 'btn-ghost'}`}
+                      onClick={() => onSelectMapId(m.id)}
+                    >
+                      {m.label}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
           ) : null}
         </div>
         <div className="visit-map-card__chrome-actions">
@@ -227,37 +260,6 @@ export function VisitMapChrome({
           ) : null}
         </div>
       </div>
-      {maps.length > 1 && (
-        <div className="visit-map-card__chrome-maps">
-          <div className="visit-map-switch visit-map-switch--embedded">
-            {maps.length > 4 ? (
-              <select
-                className="visit-map-switch-select"
-                value={mapId}
-                onChange={(event) => onSelectMapId(event.target.value)}
-                aria-label="Sélection de carte visite"
-              >
-                {maps.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              maps.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  className={`btn btn-sm ${mapId === m.id ? 'btn-primary' : 'btn-ghost'}`}
-                  onClick={() => onSelectMapId(m.id)}
-                >
-                  {m.label}
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      )}
       {cartographyProgress.total === 0 ? (
         <p className="visit-progress-empty visit-progress-empty--below-chrome section-sub">
           {maps.length > 1
