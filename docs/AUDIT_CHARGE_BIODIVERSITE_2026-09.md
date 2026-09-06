@@ -142,6 +142,15 @@ le client vient de recevoir en entier dans `GET /api/plants`.
 Et, dans tous les cas : lire les emojis de réaction depuis `usePublicSettings()` — cela
 supprime **N appels** `/api/settings/public` pour zéro perte.
 
+**Traité (lot 1).** Option retenue : **différer**, poussée à sa conclusion. Le catalogue
+n'affiche plus les fiches dépliées mais des **vignettes** (`PlantCatalogTile`) qui
+n'émettent **aucune requête** — tout ce qu'elles montrent vient déjà de `GET /api/plants`.
+La fiche complète s'ouvre au clic dans `PlantCatalogPreviewModal`, déjà montée par `App`
+et déjà utilisée depuis la carte, le glossaire, le quiz et le réseau trophique : les six
+appels par fiche ne sont donc plus émis que pour **la fiche réellement ouverte**.
+Couverture : `tests-ui/components/PlantCatalogTiles.test.jsx` — aucun appel par fiche au
+montage de la grille, nombre d'appels indépendant du nombre de fiches, clic → ouverture.
+
 ### B2. [MAJEUR] Aucune borne d'affichage : le catalogue entier est monté d'un coup
 
 `foretmap-views.jsx:726` (élève) et `:250` (prof) rendent l'intégralité de `filteredPlants`.
@@ -152,6 +161,11 @@ même facteur sans toucher à aucune route.
 **Remède** : premier lot borné (24 cartes) + « Voir plus » ou chargement à l'approche du bas de
 page. Le compteur affiché (« X / Y êtres vivants à l'écran ») reste vrai et devient même plus
 informatif.
+
+**Sans objet en l'état (lot 1).** Les vignettes ne coûtent plus rien par fiche : le DOM d'une
+vignette est une poignée de nœuds, sans requête et sans rendu Markdown. La borne d'affichage
+reste la parade si le catalogue devait dépasser quelques centaines de fiches — elle n'est plus
+nécessaire aujourd'hui.
 
 ### B3. [MAJEUR] Les appels dépendants des filtres n'ont pas d'anti-rebond
 
@@ -294,6 +308,11 @@ ce qui limite la répétition mais pas la première ouverture.
 supprimé). Une variante vignette pour les photos locales (le module `lib/imageThumb.js` existe
 déjà, mais ne sert aujourd'hui que zones et repères) serait le gain suivant.
 
+**Traité en partie (lot 1).** La grille ne charge plus que les miniatures des vignettes, en
+`loading="lazy"` et sans `fetchPriority`. `fetchPriority="high"` reste sur la photo héro de la
+**fiche ouverte**, où il est justifié : une seule image, celle que le lecteur regarde. Reste à
+faire : la variante vignette côté serveur pour les photos téléversées.
+
 ### B9. [MINEUR] Un appel Wikimedia Commons par carte concernée
 
 `PlantMetaSections.jsx:23-63` : quand la photo est renseignée par une **catégorie** Commons (et
@@ -325,6 +344,10 @@ appels — le garde est bon, il manque juste ailleurs.
 
 `foretmap-views.jsx:250-400` : pas de bloc pédagogique, mais `ContextComments` par carte →
 236 appels pour 78 fiches. Traité par le même correctif que B1 et B2.
+
+**Traité (lot 1).** La vue professeur affiche les mêmes vignettes que la vue élève ; les
+~180 lignes de carte qui **dupliquaient** `PlantBiodiversityCatalogPreviewCard` ont disparu, et
+l'édition passe en fenêtre. La fiche n'est plus rendue qu'à un seul endroit.
 
 ### P4. [MOYEN] Glossaire — liste complète non cachée côté serveur
 
@@ -400,26 +423,31 @@ convention (« SQL toujours paramétré »).
 
 ---
 
-## 5. Ordre de traitement suggéré
+## 5. Ordre de traitement suggéré (suivi)
 
-| Priorité | Constat                                                                    | Effort           | Gain attendu                                                         |
-| -------- | -------------------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------- |
-| 1        | **B1** emojis via `usePublicSettings()` + compteurs de commentaires en lot | petit            | −156 appels/page (−33 %), supprime les N `/api/settings/public`      |
-| 2        | **B2** borne d'affichage de la grille (24 cartes + « voir plus »)          | petit            | divise **tout** le reste par ~3 sans toucher aux routes              |
-| 3        | **B1** bloc pédagogique : route de lot ou chargement au dépli              | moyen            | −234 appels/page, −234 contrôles d'existence                         |
-| 4        | **B3** identifiants dérivés de `plants` + anti-rebond 280 ms               | petit            | supprime la rafale au filtrage et le remontage des cartes            |
-| 5        | **B4** résumé de conditionnement en requêtes groupées (3 constantes)       | moyen            | −180 à −240 requêtes SQL **par appel**, et débloque le plafond de 60 |
-| 6        | **B6** retirer `user_plant_observation_events` du domaine `plants`         | quelques lignes  | supprime un rechargement complet du catalogue par clic d'élève       |
-| 7        | **B8** `loading="lazy"` / `fetchPriority` sur la photo héro                | trivial          | libère les connexions du navigateur à l'ouverture                    |
-| 8        | **P1/P2** même traitement que B1 sur tâches et tutoriels                   | petit (réemploi) | −3 appels par tuile sur les deux onglets les plus fréquentés         |
-| 9        | **B5** projection de liste + suppression du double enrichissement          | moyen / trivial  | −CPU de sérialisation, borne la croissance du catalogue              |
-| 10       | **B7 / P4 / P5 / P7 / P8** caches, bornes et hygiène SQL                   | petits           | tenue dans la durée                                                  |
+Le plan initial (colonnes « Effort » et « Gain ») a été revu après arbitrage produit : plutôt
+que d'alléger fiche par fiche une grille qui affiche tout, le **lot 1** a changé la forme de
+l'écran — vignettes + fiche en fenêtre, sur le modèle déjà employé partout ailleurs dans
+l'application. Plusieurs remèdes du plan deviennent de ce fait sans objet.
 
-Les points 1, 2, 4, 6 et 7 sont des **corrections locales sans changement fonctionnel visible**.
-À eux seuls, ils ramènent l'ouverture du catalogue de **~471 à ~99 appels** (24 cartes × 4
-appels + 3 appels de page) — sous le seuil qui fait tomber le rate limit d'une classe. Le
-point 3 (bloc pédagogique en lot) descend à **~28 appels**, soit un ordre de grandeur de moins
-qu'aujourd'hui.
+| Priorité | Constat                                                                    | Effort           | Statut                                                                                         |
+| -------- | -------------------------------------------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------- |
+| 1        | **B1** emojis via `usePublicSettings()` + compteurs de commentaires en lot | petit            | **sans objet au catalogue** (lot 1) — reste à faire pour tâches, tutoriels et la fiche ouverte |
+| 2        | **B2** borne d'affichage de la grille (24 cartes + « voir plus »)          | petit            | **sans objet** (lot 1) — les vignettes ne coûtent plus rien par fiche                          |
+| 3        | **B1** bloc pédagogique : route de lot ou chargement au dépli              | moyen            | **traité** (lot 1) — chargé à l'ouverture de la fiche                                          |
+| 4        | **B3** identifiants dérivés de `plants` + anti-rebond 280 ms               | petit            | à faire (lot 2) — à trancher avec B4, dont le plafond de 60 dépend de la source                |
+| 5        | **B4** résumé de conditionnement en requêtes groupées (3 constantes)       | moyen            | à faire (lot 2)                                                                                |
+| 6        | **B6** retirer `user_plant_observation_events` du domaine `plants`         | quelques lignes  | à faire (lot 2)                                                                                |
+| 7        | **B8** `loading="lazy"` / `fetchPriority` sur la photo héro                | trivial          | **traité en partie** (lot 1) — reste la vignette serveur des photos téléversées                |
+| 8        | **P1/P2** même traitement que B1 sur tâches et tutoriels                   | petit (réemploi) | à faire (lot 2)                                                                                |
+| 9        | **B5** projection de liste + suppression du double enrichissement          | moyen / trivial  | à faire (lot 2)                                                                                |
+| 10       | **B7 / P4 / P5 / P7 / P8** caches, bornes et hygiène SQL                   | petits           | à faire (lot 3)                                                                                |
+
+**Après le lot 1**, l'ouverture du catalogue coûte **3 appels** (`/api/plants`, compteurs
+d'observation, annonce du contrôle) au lieu de ~471, et ouvrir **une** fiche en coûte 6 — pour
+la seule fiche que le lecteur regarde. Filtrer ou rechercher ne déclenche plus aucune rafale,
+puisqu'il n'y a plus de fiche à monter. Le lot 2 ramènera l'ouverture d'une fiche à 4 appels
+(points 1 et 8) et les 3 appels de page à un coût SQL constant (points 4, 5 et 6).
 
 ## 6. Comment le mesurer
 

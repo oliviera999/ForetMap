@@ -7,6 +7,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — catalogue biodiversité en vignettes, fiche en fenêtre (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`, lot 1)
+
+- **Le catalogue biodiversité affiche des vignettes** (photo, nom, nom scientifique, pastilles,
+  bouton d'observation et compteurs) au lieu d'empiler toutes les fiches dépliées. Un clic ouvre
+  la **fiche complète en fenêtre** — la même que celle déjà ouverte depuis la carte, le
+  glossaire, le quiz ou le réseau trophique. Élèves et professeurs voient le même catalogue ;
+  côté professeur, la modification passe elle aussi en fenêtre.
+- **Charge divisée par plus de cent à l'ouverture.** Chaque fiche allait chercher ses propres
+  données au montage — bloc pédagogique (`/interactions`, `/glossary-terms`, `/quiz-questions`)
+  et commentaires de contexte (aperçu, total, `/api/settings/public`), soit six appels par fiche.
+  Ouvrir le catalogue coûtait **≈ 471 requêtes HTTP et ≈ 1 400 requêtes SQL** pour 78 espèces :
+  derrière l'adresse publique unique d'un établissement, **trois ouvertures simultanées
+  saturaient le plafond de 1200 req/min** et renvoyaient des 429 à toute la classe, connexion
+  comprise. L'ouverture coûte désormais **3 appels**, et les six appels d'une fiche ne sont émis
+  que pour la fiche réellement ouverte. Filtrer ou rechercher ne déclenche plus de rafale.
+- **Une seule fiche à maintenir** : les ~180 lignes de la vue professeur qui dupliquaient la
+  carte de catalogue ont disparu. Les miniatures de vignettes sont en chargement paresseux ;
+  `fetchPriority="high"` ne subsiste que sur la photo de la fiche ouverte.
+- Couverture : `tests-ui/components/PlantCatalogTiles.test.jsx` (aucun appel par fiche au montage
+  de la grille, nombre d'appels indépendant du nombre de fiches, clic → ouverture de la fiche).
+
 ### Documentation — audit de charge de la page Biodiversité (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`)
 
 - **Nouvel audit** du **pic d'ouverture** des écrans de liste, que les audits de charge

@@ -51,18 +51,24 @@ la fiche restent affichés à part, en pastilles.
 
 ## Comment ça se passe — côté élève
 
-1. L'élève ouvre l'onglet **Biodiversité** : la liste des fiches, avec une **recherche**
-   par nom et un filtre par **règne**. Des **filtres avancés** affinent par grand
-   groupe, famille, habitat, rôle trophique, milieu, et par **présence sur la carte**
-   (espèces liées à au moins une zone ou un repère, ou au contraire sans lieu).
-2. Il ouvre une fiche et découvre photos, informations et mini-cartes d'emplacement.
+1. L'élève ouvre l'onglet **Biodiversité** : le catalogue s'affiche en **vignettes** —
+   photo, nom, nom scientifique, quelques pastilles (rôle trophique, comestibilité,
+   milieu) et le bouton d'observation. S'y ajoutent une **recherche** par nom et un
+   filtre par **règne**, puis des **filtres avancés** par grand groupe, famille,
+   habitat, rôle trophique, milieu, et par **présence sur la carte** (espèces liées à
+   au moins une zone ou un repère, ou au contraire sans lieu).
+2. Il clique une vignette : la **fiche complète** s'ouvre en fenêtre — photos,
+   informations, mini-cartes d'emplacement, interactions, termes de glossaire,
+   questions de quiz et commentaires. C'est la même fenêtre que celle ouverte depuis la
+   carte, le glossaire, le quiz ou le réseau trophique.
 3. S'il a vu l'espèce dans le jardin, il clique sur le bouton d'**observation** : il
    confirme avoir observé l'espèce sur le terrain **et** lu sa fiche. L'application
    compte alors une observation de plus.
 4. Après la confirmation, l'application peut lui proposer d'**enrichir son
    observation** d'un commentaire et de photos, rattachés à la fiche.
-5. La fiche affiche deux compteurs : **ses** observations et celles de **tout le
-   site**. Les espèces déjà découvertes par l'élève sont signalées dans le catalogue.
+5. Deux compteurs sont affichés, sur la vignette comme dans la fiche : **ses**
+   observations et celles de **tout le site**. Les espèces déjà découvertes par l'élève
+   sont signalées dans le catalogue.
 
 Si le professeur a rattaché des **questions de quiz « verrou »** à une fiche, la
 **première** observation n'est acceptée qu'après avoir répondu correctement à ces
@@ -73,8 +79,11 @@ questions (les observations suivantes de la même espèce ne redemandent rien).
 ### Créer et modifier une fiche
 
 Le professeur ajoute une fiche depuis l'onglet Biodiversité et remplit le formulaire
-(seul le nom est obligatoire). Il peut modifier ou supprimer une fiche à tout moment ;
-les changements apparaissent en temps réel chez les utilisateurs connectés.
+(seul le nom est obligatoire). Il voit le même catalogue en vignettes que les élèves,
+avec deux boutons par vignette : **modifier** (le formulaire s'ouvre en fenêtre, avec
+l'enregistrement automatique habituel) et **supprimer**. Cliquer la vignette elle-même
+ouvre la fiche telle que les élèves la voient. Les changements apparaissent en temps
+réel chez les utilisateurs connectés.
 
 ### Le pré-remplissage automatique (multi-sources)
 
