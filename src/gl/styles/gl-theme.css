@@ -2865,6 +2865,38 @@ a.gl-glossary-inline-link:hover,
   background: #ffffff;
 }
 
+/* Identifiants restitués une seule fois (création / import de joueurs). */
+.gl-admin-credentials {
+  margin-top: 12px;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-md);
+  padding: 12px;
+  background: var(--gl-surface-muted);
+}
+
+.gl-admin-credentials .gl-warning {
+  margin: 0 0 8px;
+}
+
+.gl-admin-credentials__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.gl-admin-credentials__table th,
+.gl-admin-credentials__table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--gl-border);
+  vertical-align: top;
+}
+
+.gl-admin-credentials__table code {
+  font-size: var(--text-sm);
+  user-select: all;
+}
+
 .gl-badge {
   display: inline-flex;
   align-items: center;

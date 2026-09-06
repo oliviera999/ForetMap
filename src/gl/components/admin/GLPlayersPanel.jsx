@@ -16,6 +16,7 @@ import {
   playerDisplayName,
 } from '../../utils/glPlayersPanel.js';
 import { GLPlayerResetPasswordModal } from './GLPlayerResetPasswordModal.jsx';
+import { GLPlayerCredentialsTable } from './GLPlayerCredentialsTable.jsx';
 
 export function GLPlayersPanel({
   classes,
@@ -35,6 +36,8 @@ export function GLPlayersPanel({
   const [edit, setEdit] = useState({ firstName: '', lastName: '', pseudo: '', classId: '' });
   const [resetPlayer, setResetPlayer] = useState(null);
   const [resetPasswordValue, setResetPasswordValue] = useState('');
+  // Identifiants du dernier joueur créé sans mot de passe : affichés une seule fois.
+  const [lastCredentials, setLastCredentials] = useState([]);
   const [create, setCreate] = useState({
     firstName: '',
     lastName: '',
@@ -52,7 +55,7 @@ export function GLPlayersPanel({
     setError('');
     setInfo('');
     try {
-      await apiGL('/api/gl/admin/players', 'POST', {
+      const created = await apiGL('/api/gl/admin/players', 'POST', {
         classId: Number(create.classId),
         firstName: create.firstName,
         lastName: create.lastName,
@@ -68,7 +71,27 @@ export function GLPlayersPanel({
         password: '',
         passwordMustReset: false,
       });
-      setInfo('Joueur créé.');
+      if (created?.reusedExisting) {
+        setInfo(
+          'Joueur créé et rattaché à un compte ForetMap existant : l’élève garde son mot de passe ForetMap.',
+        );
+        setLastCredentials([]);
+      } else if (created?.generatedPassword) {
+        setInfo('Joueur créé avec un mot de passe provisoire (ci-dessous).');
+        setLastCredentials([
+          {
+            pseudo: created.pseudo,
+            firstName: created.first_name,
+            lastName: created.last_name,
+            className: created.class_name,
+            password: created.generatedPassword,
+            generated: true,
+          },
+        ]);
+      } else {
+        setInfo('Joueur créé.');
+        setLastCredentials([]);
+      }
       await onReload?.();
     } catch (err) {
       setError(err.message || 'Création impossible');
@@ -275,6 +298,7 @@ export function GLPlayersPanel({
           Créer le joueur
         </GLButton>
       </form>
+      <GLPlayerCredentialsTable credentials={lastCredentials} filename="identifiant-joueur.csv" />
 
       <div className="gl-inline-actions">
         <GLField label="Filtrer par classe">
@@ -408,10 +432,12 @@ export function GLPlayersPanel({
                   )}
                 </td>
                 <td>
-                  {player.linked_foretmap_user_id ? (
-                    <GLBadge tone="success">Lié</GLBadge>
+                  {player.account_kind === 'student' ? (
+                    <GLBadge tone="success">Compte élève</GLBadge>
+                  ) : player.linked_foretmap_user_id ? (
+                    <GLBadge tone="neutral">Miroir</GLBadge>
                   ) : (
-                    <span className="gl-hint">—</span>
+                    <GLBadge tone="danger">Aucun</GLBadge>
                   )}
                 </td>
                 <td>
@@ -443,7 +469,13 @@ export function GLPlayersPanel({
                 </div>
                 <div className="gl-data-card-row">
                   <span className="gl-data-card-label">ForetMap</span>
-                  <span>{player.linked_foretmap_user_id ? 'Compte lié' : '—'}</span>
+                  <span>
+                    {player.account_kind === 'student'
+                      ? 'Compte élève'
+                      : player.linked_foretmap_user_id
+                        ? 'Compte miroir'
+                        : 'Aucun compte'}
+                  </span>
                 </div>
                 <div className="gl-data-card-row">
                   <span className="gl-data-card-label">Actif</span>

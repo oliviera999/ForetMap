@@ -26,7 +26,7 @@ export function GLForetmapLinkPanel({ enabled, profile, onReload }) {
       await apiGL('/api/gl/auth/link-foretmap', 'POST', { identifier, password });
       setIdentifier('');
       setPassword('');
-      setInfo('Compte ForetMap lie.');
+      setInfo('Compte ForetMap rattaché : ton mot de passe est désormais celui de ce compte.');
       onReload?.();
     } catch (err) {
       setError(err.message || 'Liaison impossible');
@@ -43,7 +43,7 @@ export function GLForetmapLinkPanel({ enabled, profile, onReload }) {
     try {
       await apiGL('/api/gl/auth/link-foretmap', 'DELETE', { currentPassword });
       setCurrentPassword('');
-      setInfo('Liaison retiree.');
+      setInfo('Compte élève détaché : tu gardes ton mot de passe actuel pour le jeu.');
       onReload?.();
     } catch (err) {
       setError(err.message || 'Deliaison impossible');
@@ -57,11 +57,18 @@ export function GLForetmapLinkPanel({ enabled, profile, onReload }) {
       <h3>Liaison ForetMap</h3>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-profile-ok">{info}</p> : null}
+      <p className="gl-hint">
+        Ton compte de jeu et ton compte ForetMap ne font qu’un : un seul mot de passe pour les deux.
+        Si tu as déjà un compte élève ForetMap, rattache-le ici — c’est son mot de passe qui vaudra
+        ensuite partout.
+      </p>
       {linked ? (
         <>
-          <p className="gl-hint">Lie a : {linked.pseudo || linked.email || linked.id}</p>
+          <p className="gl-hint">
+            Compte élève ForetMap : {linked.pseudo || linked.email || linked.id}
+          </p>
           <form className="gl-form" onSubmit={unlinkAccount}>
-            <GLField label="Mot de passe GL actuel">
+            <GLField label="Mot de passe actuel">
               <GLInput
                 type="password"
                 value={currentPassword}
@@ -70,20 +77,20 @@ export function GLForetmapLinkPanel({ enabled, profile, onReload }) {
               />
             </GLField>
             <GLButton type="submit" variant="danger" disabled={busy}>
-              {busy ? '...' : 'Retirer la liaison'}
+              {busy ? '...' : 'Détacher mon compte élève'}
             </GLButton>
           </form>
         </>
       ) : (
         <form className="gl-form" onSubmit={linkAccount}>
-          <GLField label="Identifiant ForetMap eleve (email ou pseudo)">
+          <GLField label="Identifiant ForetMap élève (e-mail ou pseudo)">
             <GLInput
               value={identifier}
               onChange={(event) => setIdentifier(event.target.value)}
               autoComplete="username"
             />
           </GLField>
-          <GLField label="Mot de passe ForetMap eleve">
+          <GLField label="Mot de passe ForetMap élève">
             <GLInput
               type="password"
               value={password}
@@ -92,7 +99,7 @@ export function GLForetmapLinkPanel({ enabled, profile, onReload }) {
             />
           </GLField>
           <GLButton type="submit" disabled={busy}>
-            {busy ? '...' : 'Lier mon compte ForetMap'}
+            {busy ? '...' : 'Rattacher mon compte élève ForetMap'}
           </GLButton>
         </form>
       )}
