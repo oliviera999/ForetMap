@@ -133,7 +133,8 @@ function PlantEditForm({
 
   return (
     <div className="plant-edit-form fade-in">
-      <h4>{title}</h4>
+      {/* En modale, le titre est porté par l'en-tête du dialogue : pas de titre vide ici. */}
+      {title ? <h4>{title}</h4> : null}
       {/* Sections repliables natives (patron PlantMetaSections) — pas de persistance ici. */}
       <details className="plant-more" open>
         <summary>Identité</summary>

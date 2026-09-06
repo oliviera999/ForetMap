@@ -46,7 +46,10 @@ router.get('/threads', validate({ query: glForumPageQuerySchema }), async (req, 
        FROM gl_forum_threads t
       WHERE t.is_deleted = 0
       ORDER BY t.updated_at DESC, t.id DESC
-      LIMIT ${pageSize} OFFSET ${offset}`,
+      LIMIT ? OFFSET ?`,
+    // Bornes deja validees par le schema de query ; parametrees par convention (audit
+    // 2026-09, G5). En chaine : mysql2 encoderait un nombre JS en DOUBLE, refuse pour LIMIT.
+    [String(pageSize), String(offset)],
   );
   return res.json({ items: rows, page, page_size: pageSize, total });
 });

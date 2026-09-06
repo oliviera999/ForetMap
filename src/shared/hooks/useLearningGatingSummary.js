@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 
-/** Plafond aligné sur celui du serveur (`SUMMARY_MAX_REFS`). */
-export const GATING_SUMMARY_MAX_REFS = 60;
+/**
+ * Plafond aligné sur celui du serveur (`SUMMARY_MAX_REFS`).
+ *
+ * Relevé de 60 à 200 : 60 était inférieur au catalogue biodiversité (78 fiches), et les
+ * fiches au-delà perdaient silencieusement leur annonce de contrôle. Le serveur charge
+ * désormais la liste en requêtes groupées, à coût constant
+ * (docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md, B4).
+ */
+export const GATING_SUMMARY_MAX_REFS = 200;
 
 /**
  * Résumé du contrôle de compréhension pour une LISTE de ressources — commun aux deux
