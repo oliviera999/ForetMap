@@ -348,7 +348,13 @@ async function enableTeacherMode(page, _legacyPin, _legacyOptions = {}) {
   );
   await dismissProfilePromotionModalIfPresent(page);
   await dismissDiscoveryTourIfPresent(page);
-  await page.locator('.teacher-main .top-tabs').waitFor({ state: 'attached', timeout: 45_000 });
+  // `.first()` : la navigation prof porte DEUX barres depuis les 3 pôles (`teacher-nav__poles`
+  // et `top-tabs--secondary`), et le mode strict de Playwright refuse un locator ambigu.
+  // `clickTasksTab` filtrait déjà de la sorte ; ce point-ci avait été oublié.
+  await page
+    .locator('.teacher-main .top-tabs')
+    .first()
+    .waitFor({ state: 'attached', timeout: 45_000 });
   await page
     .locator('.teacher-main .loader')
     .waitFor({ state: 'hidden', timeout: 90_000 })
