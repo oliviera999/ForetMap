@@ -1274,8 +1274,8 @@ function App() {
                           <TabSuspense>
                             <PlantManagerLazy
                               onRefresh={fetchAll}
-                              maps={visibleMaps}
                               onForceLogout={forceLogout}
+                              onOpenPlant={openPlantCatalogPreviewById}
                             />
                           </TabSuspense>
                         )}
@@ -1436,11 +1436,8 @@ function App() {
                           {tab === 'plants' && (
                             <TabSuspense>
                               <PlantViewerLazy
-                                maps={visibleMaps}
                                 onForceLogout={forceLogout}
                                 onOpenPlant={openPlantCatalogPreviewById}
-                                onOpenGlossaryTerm={openGlossaryPopover}
-                                onNavigateToFoodWeb={openPedagoFoodWeb}
                               />
                             </TabSuspense>
                           )}

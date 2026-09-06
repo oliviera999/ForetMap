@@ -16,6 +16,76 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   tous les garde-fous (simulation, seuils, journal réversible, contrôle croisé, fusion de
   comptes). Rien d'implémenté : lots M1 à M5 et prérequis listés.
 
+### Modifié — dégraissage des écrans de liste (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`, lots 2 et 3)
+
+- **Une section de commentaires de contexte n'émet plus qu'un appel au montage au lieu de trois.**
+  Les emojis de réaction sont lus dans les réglages publics déjà fournis par le contexte (au lieu
+  d'un `GET /api/settings/public` par section montée), et le total comme la pastille « non lus »
+  sont pris dans la réponse de la liste — qui les portait déjà. L'onglet **Tâches** (40 tuiles)
+  passe de 120 à 40 appels ; même gain sur la liste des tutoriels.
+- **`GET /api/learning/gating/summary` charge sa liste en requêtes groupées** : trois requêtes
+  constantes au lieu de 3 à 4 **par ressource exécutées en série** — jusqu'à ~240 pour un seul
+  appel HTTP. Le payload est strictement identique, et le chemin unitaire
+  (`GET /gating/challenge`) est inchangé. Le plafond de références passe de **60 à 200** : il
+  était inférieur au catalogue biodiversité (78 fiches), et les fiches au-delà de la 60ᵉ
+  perdaient silencieusement leur annonce de contrôle de compréhension.
+- **Un clic « espèce découverte » ne fait plus recharger le catalogue à toute la classe** : la
+  table des observations sort du domaine de synchronisation `plants`, qu'elle ne nourrissait
+  pas. Trois autres tables biodiversité, lues uniquement par des routes hors cycle, la suivent.
+- **Caches et bornes** : compteur d'observations « tout le site » (agrégat identique pour tous)
+  et liste non filtrée du glossaire passent par un cache mémoire court ; le carnet
+  d'observations d'un élève est borné à 500 entrées ; le tirage du quiz abandonne
+  `ORDER BY RAND()` (tri de toute la sélection à chaque clic) pour un décalage aléatoire sur la
+  clé primaire, à distribution identique ; la liste des plantes n'est plus ré-enrichie à chaque
+  hit de cache.
+- **Convention « SQL toujours paramétré »** rétablie sur les quatre derniers `LIMIT`/`OFFSET`
+  alimentés par une valeur de requête (commentaires de contexte, forum ForetMap, forum G&L,
+  journal d'audit). Aucune injection n'était atteignable — les valeurs étaient déjà bornées.
+- Couverture : `tests/learning-gating-summary-batch.test.js` (payload identique à l'algorithme
+  unitaire, coût SQL constant), `tests/audit-biodiv-charge-hygiene.test.js` (domaines de
+  synchronisation, caches, bornes, `LIMIT` paramétrés),
+  `tests-ui/components/ContextComments.test.jsx` (appel unique au montage).
+
+### Modifié — catalogue biodiversité en vignettes, fiche en fenêtre (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`, lot 1)
+
+- **Le catalogue biodiversité affiche des vignettes** (photo, nom, nom scientifique, pastilles,
+  bouton d'observation et compteurs) au lieu d'empiler toutes les fiches dépliées. Un clic ouvre
+  la **fiche complète en fenêtre** — la même que celle déjà ouverte depuis la carte, le
+  glossaire, le quiz ou le réseau trophique. Élèves et professeurs voient le même catalogue ;
+  côté professeur, la modification passe elle aussi en fenêtre.
+- **Charge divisée par plus de cent à l'ouverture.** Chaque fiche allait chercher ses propres
+  données au montage — bloc pédagogique (`/interactions`, `/glossary-terms`, `/quiz-questions`)
+  et commentaires de contexte (aperçu, total, `/api/settings/public`), soit six appels par fiche.
+  Ouvrir le catalogue coûtait **≈ 471 requêtes HTTP et ≈ 1 400 requêtes SQL** pour 78 espèces :
+  derrière l'adresse publique unique d'un établissement, **trois ouvertures simultanées
+  saturaient le plafond de 1200 req/min** et renvoyaient des 429 à toute la classe, connexion
+  comprise. L'ouverture coûte désormais **3 appels**, et les six appels d'une fiche ne sont émis
+  que pour la fiche réellement ouverte. Filtrer ou rechercher ne déclenche plus de rafale.
+- **Une seule fiche à maintenir** : les ~180 lignes de la vue professeur qui dupliquaient la
+  carte de catalogue ont disparu. Les miniatures de vignettes sont en chargement paresseux ;
+  `fetchPriority="high"` ne subsiste que sur la photo de la fiche ouverte.
+- Couverture : `tests-ui/components/PlantCatalogTiles.test.jsx` (aucun appel par fiche au montage
+  de la grille, nombre d'appels indépendant du nombre de fiches, clic → ouverture de la fiche).
+
+### Documentation — audit de charge de la page Biodiversité (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`)
+
+- **Nouvel audit** du **pic d'ouverture** des écrans de liste, que les audits de charge
+  précédents (régime nominal) ne couvraient pas. Constat principal : le catalogue biodiversité
+  affiché avec toutes les espèces émet **≈ 471 requêtes HTTP et ≈ 1 400 requêtes SQL** par
+  ouverture et par élève (78 fiches versionnées) — six appels par carte, montés sans attendre
+  le moindre clic (bloc pédagogique ×3, commentaires contextuels ×3), aucune borne d'affichage,
+  aucun anti-rebond au filtrage. Derrière l'IP unique d'un établissement, **trois ouvertures
+  simultanées saturent le plafond de 1200 req/min** et renvoient des 429 à toute la classe.
+- Également documentés : le résumé de conditionnement (`/api/learning/gating/summary`) qui coûte
+  **3 à 4 requêtes SQL par ressource, en série** (jusqu'à 240 pour un seul appel) et dont le
+  plafond de 60 références est inférieur au catalogue ; le domaine de synchronisation `plants`
+  qui fait recharger tout le catalogue à la classe **à chaque clic « espèce découverte »** ; le
+  même motif de rafale sur les listes de **tâches** et de **tutoriels** ; et pourquoi les
+  scénarios `load/` existants ne pouvaient pas le voir (ils rejouent un seul `GET /api/plants`).
+- Le document propose un ordre de traitement chiffré : les cinq premiers correctifs, tous
+  locaux et sans changement fonctionnel visible, ramènent l'ouverture du catalogue **sous
+  60 appels**. Aucun code n'est modifié dans ce lot.
+
 ### Modifié — identités unifiées ForetMap × Gnomes & Licornes (`docs/AUDIT_COMPTES_2026-09.md`)
 
 - **Un seul compte, un seul mot de passe.** Migration `211_gl_identity_unification.sql` : le

@@ -170,15 +170,17 @@ const SYNC_DOMAIN_TABLES = {
     'map_markers',
     'tutorials',
   ],
-  plants: [
-    'plants',
-    'species_interactions',
-    'glossary_terms',
-    'glossary_term_species',
-    'quiz_questions',
-    'quiz_question_species',
-    'user_plant_observation_events',
-  ],
+  // Règle : les tables dont une écriture change la RÉPONSE relue par le cycle `fetchAll`,
+  // et elles seules. Le domaine `plants` ne pilote qu'un refetch de `GET /api/plants` —
+  // la liste du catalogue. En sont donc sortis (audit 2026-09, B6) :
+  //   - `user_plant_observation_events` : compteurs par utilisateur, servis par
+  //     `/api/plants/me/observation-counts`, que le cycle ne rappelle pas. Chaque clic
+  //     « espèce découverte » d'un élève faisait recharger le catalogue complet à toute
+  //     la classe, pour une réponse identique au bit près ;
+  //   - `glossary_terms`, `quiz_questions` et leurs tables de liaison espèces : lues par
+  //     les routes **par fiche** (`/:id/glossary-terms`, `/:id/quiz-questions`), jamais par
+  //     la liste. Elles restent suivies par le domaine `tutorials`.
+  plants: ['plants'],
   markers: ['map_markers', 'marker_photos', 'visit_markers', 'maps'],
   tutorials: [
     'tutorials',
@@ -205,9 +207,17 @@ const SYNC_DOMAIN_RES = Object.fromEntries(
     new RegExp(`\\b(?:${tables.join('|')})\\b`, 'i'),
   ]),
 );
-/** Familles jamais lues par les endpoints du cycle fetchAll (gl_classes reste suivi : scope auth). */
+/**
+ * Familles jamais lues par les endpoints du cycle fetchAll (gl_classes reste suivi : scope auth).
+ *
+ * Y figurer est **nécessaire** dès qu'une table sort d'un domaine : une écriture qui ne
+ * correspond à aucun domaine ET n'est pas ignorée déclenche le repli conservateur, qui bumpe
+ * TOUS les domaines — l'inverse du but recherché. Les quatre tables biodiversité ajoutées ici
+ * (audit 2026-09, B6) ne sont lues que par des routes hors cycle : compteurs d'observation par
+ * utilisateur, et routes par fiche (interactions, termes de glossaire, questions de quiz).
+ */
 const SYNC_IGNORED_TABLES_RE =
-  /\b(?:gl_(?!classes\b)[a-z0-9_]+|forum_[a-z0-9_]+|context_comment[a-z0-9_]*)\b/i;
+  /\b(?:gl_(?!classes\b)[a-z0-9_]+|forum_[a-z0-9_]+|context_comment[a-z0-9_]*|user_plant_observation_events|species_interactions|glossary_term_species|quiz_question_species)\b/i;
 const syncDomainVersions = Object.fromEntries(
   Object.keys(SYNC_DOMAIN_TABLES).map((domain) => [domain, 0]),
 );
