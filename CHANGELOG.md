@@ -7,6 +7,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — audit de charge de la page Biodiversité (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`)
+
+- **Nouvel audit** du **pic d'ouverture** des écrans de liste, que les audits de charge
+  précédents (régime nominal) ne couvraient pas. Constat principal : le catalogue biodiversité
+  affiché avec toutes les espèces émet **≈ 471 requêtes HTTP et ≈ 1 400 requêtes SQL** par
+  ouverture et par élève (78 fiches versionnées) — six appels par carte, montés sans attendre
+  le moindre clic (bloc pédagogique ×3, commentaires contextuels ×3), aucune borne d'affichage,
+  aucun anti-rebond au filtrage. Derrière l'IP unique d'un établissement, **trois ouvertures
+  simultanées saturent le plafond de 1200 req/min** et renvoient des 429 à toute la classe.
+- Également documentés : le résumé de conditionnement (`/api/learning/gating/summary`) qui coûte
+  **3 à 4 requêtes SQL par ressource, en série** (jusqu'à 240 pour un seul appel) et dont le
+  plafond de 60 références est inférieur au catalogue ; le domaine de synchronisation `plants`
+  qui fait recharger tout le catalogue à la classe **à chaque clic « espèce découverte »** ; le
+  même motif de rafale sur les listes de **tâches** et de **tutoriels** ; et pourquoi les
+  scénarios `load/` existants ne pouvaient pas le voir (ils rejouent un seul `GET /api/plants`).
+- Le document propose un ordre de traitement chiffré : les cinq premiers correctifs, tous
+  locaux et sans changement fonctionnel visible, ramènent l'ouverture du catalogue **sous
+  60 appels**. Aucun code n'est modifié dans ce lot.
+
 ### Modifié — identités unifiées ForetMap × Gnomes & Licornes (`docs/AUDIT_COMPTES_2026-09.md`)
 
 - **Un seul compte, un seul mot de passe.** Migration `211_gl_identity_unification.sql` : le
