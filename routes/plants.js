@@ -57,6 +57,18 @@ const plantsAutofillCache = getNamedMemoryTtlCache('plants:autofill:v1', {
   ttlMs: 10 * 60 * 1000,
   maxEntries: 120,
 });
+/**
+ * Compteurs d'observation « tout le site », par fiche.
+ *
+ * Agrégat identique pour tous les utilisateurs, jusqu'ici recalculé à chaque ouverture
+ * d'écran et par chaque élève (audit charge biodiversité 2026-09, B7). Le TTL court garde
+ * un compteur vivant — un acquittement met de toute façon à jour l'affichage de son auteur
+ * par la réponse de `POST /:id/acknowledge-discovery`.
+ */
+const plantSiteObservationCountsCache = getNamedMemoryTtlCache('plants:site-observations:v1', {
+  ttlMs: 15000,
+  maxEntries: 32,
+});
 
 function invalidatePlantsListCache() {
   plantsListCache.delete('all');
@@ -163,16 +175,22 @@ router.get('/me/observation-counts', requireAuth, async (req, res) => {
     }
     const placeholders = ids.map(() => '?').join(',');
     const uid = String(userId);
+    // Le volet « site » ne dépend pas de l'appelant : une classe entière qui ouvre le
+    // catalogue demandait le même agrégat autant de fois qu'il y a d'élèves.
+    const siteCacheKey = ids.join(',');
+    const cachedSite = plantSiteObservationCountsCache.get(siteCacheKey);
     const [siteRows, myRows] = await Promise.all([
-      queryAll(
-        `SELECT plant_id, COUNT(*) AS c FROM user_plant_observation_events WHERE plant_id IN (${placeholders}) GROUP BY plant_id`,
-        ids,
-      ),
+      cachedSite ||
+        queryAll(
+          `SELECT plant_id, COUNT(*) AS c FROM user_plant_observation_events WHERE plant_id IN (${placeholders}) GROUP BY plant_id`,
+          ids,
+        ),
       queryAll(
         `SELECT plant_id, COUNT(*) AS c FROM user_plant_observation_events WHERE user_id = ? AND plant_id IN (${placeholders}) GROUP BY plant_id`,
         [uid, ...ids],
       ),
     ]);
+    if (!cachedSite) plantSiteObservationCountsCache.set(siteCacheKey, siteRows);
     const siteByPlant = new Map(siteRows.map((r) => [Number(r.plant_id), Number(r.c) || 0]));
     const myByPlant = new Map(myRows.map((r) => [Number(r.plant_id), Number(r.c) || 0]));
     const counts = {};
@@ -431,7 +449,10 @@ router.get(
   '/',
   asyncHandler(async (req, res) => {
     const cached = plantsListCache.get('all');
-    if (cached) return res.json(cached.map(enrichPlantRow));
+    // Le cache contient déjà les lignes enrichies : les ré-enrichir reconstruisait tout le
+    // catalogue (une centaine d'objets) à chaque hit, pour un résultat identique — `enrichPlantRow`
+    // est idempotent (audit 2026-09, B5).
+    if (cached) return res.json(cached);
     // Audit §2.4/§3.7 : SELECT * conservé volontairement. Le front ne refait PAS de GET /plants/:id
     // pour la fiche : la fiche complète, le formulaire d'édition (PlantEditForm) et les vues biodiv
     // (PlantMetaSections, FoodWebView…) sont rendus depuis les lignes de cette liste — toutes les
