@@ -302,21 +302,152 @@ occupe une rangée à lui seul (cf. ci-dessus). Le gain y est structurel — tro
 de six, registres séparés — plutôt que vertical. C'est un compromis assumé : le profil qui passe
 ses heures sur téléphone est l'élève, et il gagne 55 px.
 
-### 5.6 — Ce qui reste ouvert
+### 5.6 — Troisième passage (2026-09-06) : sélecteur de carte et pulsation
 
-- **Descendre les commandes d'affichage sur le plan**, avec le zoom (piste « D » écartée pour
-  l'instant) : cohérence maximale, mais sur 390 px la carte ne fait que ~370 px de large et
-  trois boutons de plus en surimpression y mordent davantage qu'ils ne libèrent. À réévaluer
-  sur appareil réel.
-- **Le sélecteur de carte occupe une rangée entière** même avec deux cartes (44 px). Le fondre
-  dans la ligne de titre demanderait de restructurer `chrome-top`.
-- **La pulsation de « Présentation du lieu »** reste la seconde animation d'appel de l'écran,
-  après le clignotement rouge des lieux non vus (§2.4) — les deux tournent en même temps sur une
-  carte fraîche. À trancher : garder une seule sollicitation visuelle.
+Deux des trois points laissés ouverts au second passage sont traités.
+
+**Le sélecteur de carte occupait une rangée entière** sous le bandeau, même avec deux cartes —
+44 px réservés en permanence par `width: 100%`. Or il dit _quelle_ carte on regarde : c'est du
+contexte, comme le titre, pas une commande d'affichage. Il rejoint donc la **zone 1**, où il
+prend la largeur qu'il lui faut et ne passe à la ligne que lorsqu'il n'y a plus de place.
+
+**La pulsation de « Présentation du lieu » est retirée.** Sa condition de déclenchement était
+`seenCount === 0` — c'est-à-dire _exactement_ le moment où toutes les zones et tous les repères
+clignotent déjà en rouge (§2.4). Deux sollicitations en boucle, sur le même écran, pour le même
+message : « tu n'as encore rien vu ». Des deux, celle qui porte de l'information est le
+rouge/vert des lieux ; celle du bouton est purement promotionnelle. Le bouton reste par ailleurs
+le **seul bouton plein** du bandeau — l'emphase existe déjà sans mouvement.
+
+> Le clignotement rouge, lui, est conservé : il est la mécanique de progression, et il est
+> désormais neutralisé sous `prefers-reduced-motion` (§2.4). Si l'on voulait aller plus loin,
+> l'option serait de le figer aussi (la couleur seule suffit à distinguer vu / non vu) et de ne
+> garder aucune animation en boucle sur l'écran — c'est un choix de sollicitation, pas un défaut.
+
+Hauteur du bandeau après ce passage, mesurée dans les mêmes conditions :
+
+| Largeur | Prof (origine → lot 2 → lot 3) | Élève / invité (origine → lot 2 → lot 3) |
+| ------- | ------------------------------ | ---------------------------------------- |
+| 1440 px | 151 → 121 → **61 px** (−60 %)  | 151 → 121 → **61 px** (−60 %)            |
+| 1024 px | 193 → 181 → **121 px** (−37 %) | 151 → 121 → **121 px** (−20 %)           |
+| 768 px  | 196 → 187 → **127 px** (−35 %) | 196 → 187 → **127 px** (−35 %)           |
+| 390 px  | 274 → 273 → **229 px** (−16 %) | 274 → 219 → **175 px** (−36 %)           |
+
+Au-delà de 1 440 px, tout le bandeau tient désormais sur **une seule rangée** : titre,
+progression, présentation, sélecteur de carte à gauche ; commandes d'affichage, rôle et aide à
+droite.
+
+### 5.7 — Ce qui reste ouvert
+
+- **Descendre les commandes d'affichage sur le plan**, avec le zoom (piste « D » écartée) :
+  cohérence maximale, mais sur 390 px la carte ne fait que ~370 px de large et trois boutons de
+  plus en surimpression y mordent davantage qu'ils ne libèrent. À réévaluer sur appareil réel.
+- **« Aperçu comme élève » occupe une rangée à lui seul sur téléphone** (172 px). Le raccourcir
+  imposerait de réécrire l'aide et le tour guidé, qui citent le libellé mot pour mot (§5.4).
 
 ---
 
-## 6. Vérifications
+## 6. Suite proposée — un audit d'accessibilité **outillé**, pour toute l'application
+
+Cet audit a été fait à la main, sur un écran. Plusieurs de ses constats sont pourtant du type
+qu'un outil attrape **en série et sans discussion** : un `role` ARIA qui écrase un rôle natif
+(§2.6), un `aria-label` qui ne contient pas le libellé visible (§2.8), un contraste insuffisant,
+un `<g onClick>` sans équivalent clavier (§2.1). Les trouver écran par écran ne passe pas à
+l'échelle — et rien n'empêche qu'ils reviennent au prochain composant.
+
+Ce qui suit est une **proposition de plan**, pas un travail engagé.
+
+### 6.1 — Ce qu'un outil trouve, et ce qu'il ne trouve pas
+
+C'est la distinction qui commande tout le reste. `axe-core`, la bibliothèque de référence
+(Deque, MPL-2.0), détecte de façon fiable **environ un tiers** des critères WCAG — ceux qui se
+décident sur le DOM seul :
+
+| L'automatisation **trouve**                  | L'automatisation **ne trouve pas**                |
+| -------------------------------------------- | ------------------------------------------------- |
+| Image sans `alt`, bouton sans nom accessible | Un `alt` présent mais faux (« image1 »)           |
+| Rôle ARIA invalide, `aria-*` orphelin (§2.6) | Un ordre de tabulation illogique                  |
+| Contraste texte/fond sous le seuil           | Un focus qui ne revient pas au bon endroit (§2.2) |
+| `<html lang>` absent, titres sautés          | Une animation en boucle de trop (§5.6)            |
+| Champ de formulaire sans étiquette           | Un contenu qui n'a de sens qu'avec la couleur     |
+
+Un tableau vert n'est donc **pas** une preuve d'accessibilité. L'outil sert à rendre
+**impossible la régression** sur le tiers mécanisable, pour que la relecture humaine — la partie
+coûteuse — se concentre sur les deux autres tiers.
+
+### 6.2 — Où brancher la vérification
+
+Trois emplacements possibles, de coûts très différents. La recommandation est de **commencer par
+le second**.
+
+**a) Dans les tests React (`tests-ui/`, Vitest + jsdom)** — via `vitest-axe` ou `jest-axe`.
+Rapide (quelques ms par composant), lancé à chaque `npm run test:ui`, donc à chaque PR. Mais
+jsdom **ne calcule pas les styles** : tout ce qui touche au contraste, à la taille des cibles ou
+à la visibilité réelle est hors de portée. Utile pour les rôles, noms et relations ARIA.
+
+**b) Dans les scénarios Playwright (`e2e/`)** — via `@axe-core/playwright`. C'est un **vrai
+navigateur** : contraste, focus visible, cibles tactiles, tout est mesurable. Le dépôt a déjà
+l'infrastructure (`npm run test:e2e`, Chromium installé en CI, un serveur de test qui démarre).
+Le surcoût est d'une poignée de secondes par écran. **C'est le meilleur rapport
+couverture/effort ici.**
+
+**c) Un passage manuel** au lecteur d'écran (NVDA sous Windows, VoiceOver sous macOS/iOS) et au
+clavier seul. Irremplaçable, et le seul moyen d'attraper les deux tiers restants — mais coûteux,
+donc à réserver aux écrans que l'automatisation a déjà nettoyés.
+
+### 6.3 — Le piège à éviter : la dette rendue invisible
+
+Brancher `axe` sur une application existante remonte, la première fois, des dizaines de
+violations. Deux réactions possibles, et une seule qui tient :
+
+- ❌ **Tout faire échouer** → la CI est rouge en permanence, l'équipe la contourne, et le
+  garde-fou meurt en trois jours.
+- ❌ **N'échouer sur rien** (rapport informatif) → personne ne lit le rapport, la dette grossit.
+- ✅ **Le cliquet** : on relève l'existant dans un **instantané de référence** (une liste des
+  violations connues, par écran et par règle), la CI échoue sur **toute violation nouvelle**, et
+  l'instantané ne peut que **rétrécir**. C'est exactement le mécanisme déjà employé dans ce
+  dépôt par `tests/typography-tokens-guard.test.js` : une allowlist explicite, et interdiction
+  d'y ajouter sans justification.
+
+### 6.4 — Séquence proposée
+
+| Lot | Contenu                                                                                                                                                                      | Sortie                                    |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| 1   | Ajouter `@axe-core/playwright` ; un utilitaire `expectNoNewA11yViolations(page, ecran)` ; le poser sur **un seul écran** (la visite, la mieux connue) et geler l'instantané. | Le mécanisme existe et tourne en CI.      |
+| 2   | Étendre aux écrans élève : carte, tâches, biodiversité, forum, connexion. Un instantané par écran.                                                                           | La photo de la dette, chiffrée par écran. |
+| 3   | Étendre aux écrans prof et admin, puis au sous-produit GL (auquel les mêmes règles s'appliquent).                                                                            | Couverture complète du tiers mécanisable. |
+| 4   | Vider les instantanés, du plus fréquenté au moins fréquenté. Chaque lot retire des lignes, jamais n'en ajoute.                                                               | Dette qui décroît, visiblement.           |
+| 5   | Passage manuel au lecteur d'écran sur les trois parcours clés — connexion, visite, marquer une tâche faite.                                                                  | Les constats que l'outil ne voit pas.     |
+
+Les lots 1 et 2 sont largement à la portée d'un seul lot de travail. Le lot 4 est un chantier de
+fond, à mener au fil de l'eau.
+
+### 6.5 — Deux gardes statiques, en complément, très bon marché
+
+Sur le modèle de `typography-tokens-guard`, deux tests de balayage de fichiers attraperaient
+sans navigateur les motifs exacts rencontrés ici :
+
+1. **`role` ARIA sur un élément interactif natif** — `role="listitem"` sur un `<button>` (§2.6)
+   ou `role="button"` sur un `<button>`. Un simple `grep` sur `src/**/*.jsx` suffit.
+2. **Gestionnaire de clic sur un élément non focusable** — `onClick` sur un `<div>`, un `<span>`
+   ou un `<g>` sans `role` + `tabIndex` + `onKeyDown` (§2.1). C'est la règle
+   `jsx-a11y/no-static-element-interactions`, déjà disponible via le greffon ESLint
+   `eslint-plugin-jsx-a11y` : l'activer, même sur un sous-ensemble de règles, coûte une ligne de
+   configuration et couvre ce cas définitivement.
+
+Le point 2 mérite d'être fait **en premier**, avant même le lot 1 : c'est le constat le plus
+grave de cet audit (§2.1), et le greffon l'aurait signalé à l'écriture.
+
+### 6.6 — Sources
+
+- `axe-core` — Deque Systems, MPL-2.0 : <https://github.com/dequelabs/axe-core>
+- `@axe-core/playwright` : <https://github.com/dequelabs/axe-core-npm/tree/develop/packages/playwright>
+- `eslint-plugin-jsx-a11y` : <https://github.com/jsx-eslint/eslint-plugin-jsx-a11y>
+- La couverture d'environ un tiers des critères WCAG est celle annoncée par Deque
+  elle-même dans la documentation d'`axe-core`.
+
+---
+
+## 7. Vérifications
 
 ```bash
 npm run lint            # 0 erreur
