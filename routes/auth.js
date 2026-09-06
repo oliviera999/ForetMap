@@ -42,6 +42,8 @@ const {
 } = require('../lib/studentTaskEnrollment');
 const { logAudit, logSecurityEvent } = require('../lib/auditLog');
 const { ensureCanonicalUserByAuth, resolveLoginAccountByIdentifier } = require('../lib/identity');
+const { getUserTokenEpoch, bumpUserTokenEpoch } = require('../lib/auth/tokenEpoch');
+const { loginThrottle, sendLoginThrottled } = require('../lib/loginThrottle');
 const { syncStudentRoleFromGroups } = require('../lib/groupRole');
 const { addStudentToGroup } = require('../lib/groupMembers');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
@@ -183,11 +185,14 @@ async function buildSessionPayload(userType, userId) {
   const canonicalUserId = await ensureCanonicalUserByAuth({ userType, userId });
   const authz = await buildAuthzPayload(userType, userId);
   if (!authz) return null;
+  // Époque de jeton : un changement de mot de passe l'incrémente et invalide les sessions.
+  const tokenEpoch = await getUserTokenEpoch(userId);
   return {
     tokenPayload: {
       userType,
       userId,
       canonicalUserId: canonicalUserId || null,
+      tokenEpoch,
       roleId: authz.roleId,
       roleSlug: authz.roleSlug,
       roleDisplayName: authz.roleDisplayName,
@@ -533,9 +538,22 @@ router.post(
         .json({ error: 'Identifiant (email ou pseudo) et mot de passe requis' });
     await ensureTeacherSeedFromEnv();
 
+    // Anti-force-brute PAR COMPTE (en plus du limiteur d'IP) : verrou progressif dès le 5ᵉ échec.
+    const throttled = loginThrottle.check('login', identifier);
+    if (throttled.blocked) {
+      await logSecurityEvent('auth.login', {
+        req,
+        result: 'failure',
+        reason: 'throttled',
+        payload: { identifier, retry_after_seconds: throttled.retryAfterSeconds },
+      });
+      return sendLoginThrottled(res, throttled);
+    }
+
     const account = await resolveLoginAccountByIdentifier(identifier);
 
     if (!account) {
+      loginThrottle.recordFailure('login', identifier);
       await logSecurityEvent('auth.login', {
         req,
         result: 'failure',
@@ -596,6 +614,7 @@ router.post(
 
     const ok = await bcrypt.compare(password, account.password_hash);
     if (!ok) {
+      loginThrottle.recordFailure('login', identifier);
       await logSecurityEvent('auth.login', {
         req,
         actorUserType: account.user_type,
@@ -632,6 +651,7 @@ router.post(
       }
     }
 
+    loginThrottle.clear('login', identifier);
     const userType = await resolveLoginUserType(account);
     const preferredRole = userType === 'teacher' || userType === 'user' ? 'prof' : 'eleve_novice';
     await ensurePrimaryRole(userType, account.id, preferredRole);
@@ -940,10 +960,11 @@ router.post(
     const studentId = await consumePasswordResetToken('student', token);
     if (!studentId) return res.status(400).json({ error: 'Token invalide ou expiré' });
     const hash = await bcrypt.hash(password, 10);
-    await execute("UPDATE users SET password_hash = ? WHERE id = ? AND user_type = 'student'", [
-      hash,
-      studentId,
-    ]);
+    await execute(
+      "UPDATE users SET password_hash = ?, password_must_reset = 0, updated_at = NOW() WHERE id = ? AND user_type = 'student'",
+      [hash, studentId],
+    );
+    await bumpUserTokenEpoch(studentId);
     await logSecurityEvent('auth.password_reset.confirm.student', {
       req,
       actorUserType: 'student',
@@ -1016,6 +1037,7 @@ router.post(
       "UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'",
       [hash, teacherId],
     );
+    await bumpUserTokenEpoch(teacherId);
     await logSecurityEvent('auth.password_reset.confirm.teacher', {
       req,
       actorUserType: 'teacher',

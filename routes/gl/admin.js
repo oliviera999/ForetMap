@@ -54,7 +54,14 @@ const {
   ensureForetmapGroupForGlClass,
   upsertForetmapUserForGlPlayer,
   syncForetmapUserForGlPlayer,
+  removeGlClassGroupMembership,
 } = require('../../lib/glGroupBridge');
+const { setGlPlayerPassword } = require('../../lib/glPlayerIdentity');
+const { deleteStudentById } = require('../../lib/studentDeletion');
+const {
+  buildGlIdentityReport,
+  applyGlIdentityReconciliation,
+} = require('../../lib/glIdentityReconcile');
 const { sendXlsxAttachment, wrapXlsxRoute } = require('../../lib/glXlsxAttachment');
 const {
   buildGlossaryTemplateWorkbook,
@@ -130,14 +137,22 @@ function resolveSettingsKey(req) {
   return paramKey;
 }
 
+/**
+ * E-mail disponible pour un joueur : il vit sur le compte `users` lié (unification des
+ * identités). Un élève ForetMap libre portant cet e-mail n'est pas un conflit — le pont le
+ * rapprochera ; un compte non-élève ou déjà lié à un autre joueur, si.
+ */
 async function ensureEmailAvailable(email, excludedPlayerId = null) {
   if (!email) return true;
-  const existing = excludedPlayerId
-    ? await queryOne(
-        'SELECT id FROM gl_players WHERE LOWER(email) = LOWER(?) AND id <> ? LIMIT 1',
-        [email, excludedPlayerId],
-      )
-    : await queryOne('SELECT id FROM gl_players WHERE LOWER(email) = LOWER(?) LIMIT 1', [email]);
+  const existing = await queryOne(
+    `SELECT u.id
+       FROM users u
+       LEFT JOIN gl_players p ON p.linked_foretmap_user_id = u.id
+      WHERE LOWER(u.email) = LOWER(?)
+        AND (u.user_type <> 'student' OR (p.id IS NOT NULL AND (? IS NULL OR p.id <> ?)))
+      LIMIT 1`,
+    [email, excludedPlayerId, excludedPlayerId],
+  );
   return !existing;
 }
 
@@ -271,6 +286,46 @@ router.delete(
   }),
 );
 
+const PLAYER_ADMIN_SELECT = `
+  SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo,
+         p.is_active, p.linked_foretmap_user_id, p.last_seen, p.health_points, p.power_points,
+         p.legacy_password_hash IS NOT NULL AS legacy_password_pending,
+         u.email, u.password_must_reset, u.is_active AS account_is_active,
+         u.auth_provider AS account_provider, u.pseudo AS account_pseudo,
+         c.name AS class_name
+    FROM gl_players p
+    LEFT JOIN users u ON u.id = p.linked_foretmap_user_id AND u.user_type = 'student'
+    LEFT JOIN gl_classes c ON c.id = p.class_id`;
+
+function toAdminPlayerRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    class_id: row.class_id,
+    team_id: row.team_id,
+    first_name: row.first_name,
+    last_name: row.last_name,
+    pseudo: row.pseudo,
+    email: row.email || null,
+    password_must_reset: Number(row.password_must_reset || 0),
+    is_active: Number(row.is_active || 0),
+    account_is_active: row.account_is_active == null ? null : Number(row.account_is_active),
+    // « Compte élève » = vrai compte ForetMap (inscrit/importé côté ForetMap), par opposition
+    // au compte miroir créé par le jeu.
+    account_kind: !row.linked_foretmap_user_id
+      ? null
+      : row.account_provider === 'gl_bridge'
+        ? 'bridge'
+        : 'student',
+    linked_foretmap_user_id: row.linked_foretmap_user_id || null,
+    legacy_password_pending: !!Number(row.legacy_password_pending || 0),
+    last_seen: row.last_seen,
+    health_points: row.health_points,
+    power_points: row.power_points,
+    class_name: row.class_name || null,
+  };
+}
+
 router.get(
   '/players',
   requireGlPermission('gl.players.manage'),
@@ -278,23 +333,9 @@ router.get(
   asyncHandler(async (req, res) => {
     const classId = req.validatedQuery?.classId;
     const rows = classId
-      ? await queryAll(
-          `SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo, p.email,
-              p.password_must_reset, p.is_active, p.linked_foretmap_user_id, p.last_seen, c.name AS class_name
-         FROM gl_players p
-    LEFT JOIN gl_classes c ON c.id = p.class_id
-        WHERE p.class_id = ?
-        ORDER BY p.id DESC`,
-          [classId],
-        )
-      : await queryAll(
-          `SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo, p.email,
-              p.password_must_reset, p.is_active, p.linked_foretmap_user_id, p.last_seen, c.name AS class_name
-         FROM gl_players p
-    LEFT JOIN gl_classes c ON c.id = p.class_id
-        ORDER BY p.id DESC`,
-        );
-    return res.json(rows);
+      ? await queryAll(`${PLAYER_ADMIN_SELECT} WHERE p.class_id = ? ORDER BY p.id DESC`, [classId])
+      : await queryAll(`${PLAYER_ADMIN_SELECT} ORDER BY p.id DESC`);
+    return res.json(rows.map(toAdminPlayerRow));
   }),
 );
 
@@ -332,14 +373,15 @@ router.post(
       return res.status(409).json({ error: 'Pseudo déjà utilisé' });
     }
     if (email && !(await ensureEmailAvailable(email))) {
-      return res.status(409).json({ error: 'Email déjà utilisé pour un joueur GL' });
+      return res.status(409).json({ error: 'Email déjà utilisé' });
     }
-    const generatedPassword = buildGeneratedPassword();
-    const effectivePassword = password || generatedPassword;
+    const generated = !password;
+    const effectivePassword = password || buildGeneratedPassword();
     const passwordMustReset =
-      passwordMustResetInput == null ? (password ? 0 : 1) : passwordMustResetInput ? 1 : 0;
+      passwordMustResetInput == null ? generated : !!parseOptionalBoolean(passwordMustResetInput);
     const passwordHash = await bcrypt.hash(effectivePassword, 10);
     const gameplayDefaults = getDefaultVitalityFromSettings(await getGameplaySettings());
+    // Le compte `users` (créé, ou élève ForetMap existant rapproché) porte le mot de passe.
     const foretmapLink = await upsertForetmapUserForGlPlayer({
       classId,
       firstName,
@@ -347,39 +389,44 @@ router.post(
       pseudo,
       email,
       passwordHash,
+      passwordMustReset,
     });
     if (!foretmapLink.ok) {
       return res.status(500).json({ error: foretmapLink.error || 'Liaison ForetMap impossible' });
     }
     await execute(
       `INSERT INTO gl_players
-      (class_id, team_id, first_name, last_name, email, pseudo, password_must_reset, password_hash,
+      (class_id, team_id, first_name, last_name, pseudo,
        linked_foretmap_user_id, is_active, health_points, power_points, created_at, updated_at)
-     VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, NOW(), NOW())`,
+     VALUES (?, NULL, ?, ?, ?, ?, 1, ?, ?, NOW(), NOW())`,
       [
         classId,
         firstName,
         lastName,
-        email,
         pseudo,
-        passwordMustReset,
-        passwordHash,
         foretmapLink.user.id,
         gameplayDefaults.health,
         gameplayDefaults.power,
       ],
     );
+    if (!foretmapLink.created && passwordMustReset) {
+      // Compte existant rapproché : le drapeau demandé s'applique quand même.
+      await execute('UPDATE users SET password_must_reset = 1, updated_at = NOW() WHERE id = ?', [
+        foretmapLink.user.id,
+      ]);
+    }
     const created = await queryOne(
-      `SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo, p.email,
-              p.password_must_reset, p.is_active, p.health_points, p.power_points,
-              p.linked_foretmap_user_id
-       FROM gl_players p
-      WHERE p.class_id = ? AND p.pseudo = ?
-      ORDER BY p.id DESC
-      LIMIT 1`,
+      `${PLAYER_ADMIN_SELECT} WHERE p.class_id = ? AND p.pseudo = ? ORDER BY p.id DESC LIMIT 1`,
       [classId, pseudo],
     );
-    return res.status(201).json(created);
+    // Le mot de passe généré n'est restitué qu'ICI, une seule fois : il n'est stocké nulle
+    // part en clair. Compte rapproché : son mot de passe ForetMap est conservé, rien à afficher.
+    return res.status(201).json({
+      ...toAdminPlayerRow(created),
+      reusedExisting: !!foretmapLink.reusedExisting,
+      emailConflict: !!foretmapLink.emailConflict,
+      generatedPassword: generated && !foretmapLink.reusedExisting ? effectivePassword : null,
+    });
   }),
 );
 
@@ -425,55 +472,68 @@ router.put(
       if (!pseudoAvailable) return res.status(409).json({ error: 'Pseudo déjà utilisé' });
     }
     if (emailProvided && email && !(await ensureEmailAvailable(email, id))) {
-      return res.status(409).json({ error: 'Email déjà utilisé pour un joueur GL' });
+      return res.status(409).json({ error: 'Email déjà utilisé' });
     }
 
-    const setParts = [
-      'first_name = COALESCE(?, first_name)',
-      'last_name = COALESCE(?, last_name)',
-      'pseudo = COALESCE(?, pseudo)',
-      'class_id = COALESCE(?, class_id)',
-      'is_active = COALESCE(?, is_active)',
-      'updated_at = NOW()',
-    ];
-    const params = [
-      firstName,
-      lastName,
-      pseudo,
-      Number.isFinite(classId) ? classId : null,
-      isActive == null ? null : isActive ? 1 : 0,
-    ];
-    if (emailProvided) {
-      setParts.splice(2, 0, 'email = ?');
-      params.splice(2, 0, email);
-    }
-    params.push(id);
-    await execute(`UPDATE gl_players SET ${setParts.join(', ')} WHERE id = ?`, params);
-    const syncResult = await syncForetmapUserForGlPlayer(id);
+    await execute(
+      `UPDATE gl_players SET
+         first_name = COALESCE(?, first_name),
+         last_name = COALESCE(?, last_name),
+         pseudo = COALESCE(?, pseudo),
+         class_id = COALESCE(?, class_id),
+         is_active = COALESCE(?, is_active),
+         updated_at = NOW()
+       WHERE id = ?`,
+      [
+        firstName,
+        lastName,
+        pseudo,
+        Number.isFinite(classId) ? classId : null,
+        isActive == null ? null : isActive ? 1 : 0,
+        id,
+      ],
+    );
+    // Le compte lié suit : identité et groupe de classe ; l'e-mail s'y écrit (source unique).
+    const syncResult = await syncForetmapUserForGlPlayer(
+      id,
+      emailProvided ? { email, forceEmail: true } : {},
+    );
     if (!syncResult.ok) {
       return res
         .status(500)
         .json({ error: syncResult.error || 'Synchronisation ForetMap impossible' });
     }
-    const updated = await queryOne(
-      `SELECT id, class_id, team_id, first_name, last_name, pseudo, email, password_must_reset, is_active,
-              linked_foretmap_user_id
-       FROM gl_players
-      WHERE id = ?
-      LIMIT 1`,
-      [id],
-    );
-    return res.json(updated);
+    if (emailProvided && email == null) {
+      await execute('UPDATE users SET email = NULL, updated_at = NOW() WHERE id = ?', [
+        syncResult.user.id,
+      ]);
+    }
+    const updated = await queryOne(`${PLAYER_ADMIN_SELECT} WHERE p.id = ? LIMIT 1`, [id]);
+    return res.json(toAdminPlayerRow(updated));
   }),
 );
 
+/**
+ * DELETE /api/gl/admin/players/:id — supprime le profil de jeu.
+ *
+ * Le compte `users` lié n'est supprimé que s'il s'agit du compte MIROIR créé par le jeu
+ * (`auth_provider = 'gl_bridge'`) : un vrai compte élève ForetMap reste, et quitte simplement
+ * le groupe de sa classe GL. Avant l'unification, le miroir orphelin restait actif, membre du
+ * groupe, capable de se connecter (audit comptes 2026-09, C2).
+ */
 router.delete(
   '/players/:id',
   requireGlPermission('gl.players.manage'),
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
-    const existing = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [id]);
+    const existing = await queryOne(
+      `SELECT p.id, p.class_id, p.linked_foretmap_user_id, u.auth_provider
+         FROM gl_players p
+         LEFT JOIN users u ON u.id = p.linked_foretmap_user_id
+        WHERE p.id = ? LIMIT 1`,
+      [id],
+    );
     if (!existing) return res.status(404).json({ error: 'Joueur introuvable' });
 
     const activeGames = await queryOne(
@@ -512,7 +572,25 @@ router.delete(
       }
       throw err;
     }
-    return res.json({ ok: true });
+    let accountDeleted = false;
+    if (existing.linked_foretmap_user_id) {
+      if (String(existing.auth_provider || '') === 'gl_bridge') {
+        const result = await deleteStudentById(existing.linked_foretmap_user_id, {
+          skipLinkedGlPlayer: true,
+        });
+        accountDeleted = !!result.ok;
+      } else {
+        await removeGlClassGroupMembership(existing.linked_foretmap_user_id, existing.class_id);
+      }
+    }
+    await logAudit('gl_player_delete', 'gl_player', String(id), 'Suppression joueur GL', {
+      req,
+      payload: {
+        linked_user_id: existing.linked_foretmap_user_id || null,
+        account_deleted: accountDeleted,
+      },
+    });
+    return res.json({ ok: true, accountDeleted });
   }),
 );
 
@@ -530,10 +608,18 @@ router.post(
     }
     const existing = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [id]);
     if (!existing) return res.status(404).json({ error: 'Joueur introuvable' });
-    const hash = await bcrypt.hash(password, 10);
-    await execute(
-      'UPDATE gl_players SET password_hash = ?, password_must_reset = 0, updated_at = NOW() WHERE id = ?',
-      [hash, id],
+    const mustReset = parseOptionalBoolean(req.body?.passwordMustReset) === true;
+    // Source unique `users` ; révoque les sessions en cours du joueur.
+    await setGlPlayerPassword(id, { password, mustReset });
+    await logAudit(
+      'gl_player_reset_password',
+      'gl_player',
+      String(id),
+      'Réinitialisation mot de passe joueur',
+      {
+        req,
+        payload: { must_reset: mustReset },
+      },
     );
     return res.json({ ok: true });
   }),
@@ -704,7 +790,41 @@ router.post(
       return res.status(400).json({ error: `Trop de lignes (max ${MAX_IMPORT_ROWS})` });
     }
     const report = await importPlayersFromRows(parsedRows, { dryRun });
+    if (!dryRun && report.totals.created > 0) {
+      await logAudit('gl_players_import', 'gl_player', null, 'Import de joueurs GL', {
+        req,
+        payload: { created: report.totals.created, reused_existing: report.totals.reused_existing },
+      });
+    }
     return res.json({ report });
+  }),
+);
+
+/**
+ * Réconciliation identités GL ↔ ForetMap (audit comptes 2026-09, C7/E3).
+ * GET : rapport (totaux + échantillons). POST : rejoue le pont (liens, groupes) ; avec
+ * `{ deleteOrphanBridgeAccounts: true }`, supprime aussi les comptes miroirs orphelins.
+ */
+router.get(
+  '/players/reconcile',
+  requireGlPermission('gl.players.manage'),
+  asyncHandler(async (_req, res) => {
+    return res.json(await buildGlIdentityReport());
+  }),
+);
+
+router.post(
+  '/players/reconcile',
+  requireGlPermission('gl.players.manage'),
+  asyncHandler(async (req, res) => {
+    const deleteOrphanBridgeAccounts =
+      parseOptionalBoolean(req.body?.deleteOrphanBridgeAccounts) === true;
+    const result = await applyGlIdentityReconciliation({ deleteOrphanBridgeAccounts });
+    await logAudit('gl_players_reconcile', 'gl_player', null, 'Réconciliation identités GL', {
+      req,
+      payload: { backfill: result.backfill, orphans: result.orphans, deleteOrphanBridgeAccounts },
+    });
+    return res.json(result);
   }),
 );
 
@@ -718,30 +838,26 @@ router.get(
       return res.status(400).json({ error: 'classId invalide' });
     }
     const rows = classId
-      ? await queryAll(
-          `SELECT p.id, p.first_name, p.last_name, p.pseudo, p.is_active, c.name AS class_name
-         FROM gl_players p
-    LEFT JOIN gl_classes c ON c.id = p.class_id
-        WHERE p.class_id = ?
-        ORDER BY p.id DESC`,
-          [classId],
-        )
-      : await queryAll(
-          `SELECT p.id, p.first_name, p.last_name, p.pseudo, p.is_active, c.name AS class_name
-         FROM gl_players p
-    LEFT JOIN gl_classes c ON c.id = p.class_id
-        ORDER BY p.id DESC`,
-        );
+      ? await queryAll(`${PLAYER_ADMIN_SELECT} WHERE p.class_id = ? ORDER BY p.id DESC`, [classId])
+      : await queryAll(`${PLAYER_ADMIN_SELECT} ORDER BY p.id DESC`);
     const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-    const header = ['ID', 'Prenom', 'Nom', 'Pseudo', 'Classe', 'Actif'].join(',');
+    const header = ['ID', 'Prenom', 'Nom', 'Pseudo', 'Email', 'Classe', 'Actif', 'Compte'].join(
+      ',',
+    );
     const lines = rows.map((row) =>
       [
         row.id,
         row.first_name || '',
         row.last_name || '',
         row.pseudo || '',
+        row.email || '',
         row.class_name || '',
         Number(row.is_active) ? 'oui' : 'non',
+        row.account_provider === 'gl_bridge'
+          ? 'miroir'
+          : row.linked_foretmap_user_id
+            ? 'eleve'
+            : '',
       ]
         .map(escapeCsv)
         .join(','),

@@ -4,11 +4,12 @@ Ce document décrit la matrice de validation opérationnelle pour la migration
 progressive vers un modèle utilisateur unifié.
 
 > **Périmètre (note de septembre 2026).** Cette matrice est antérieure au sous-produit
-> Gnomes & Licornes : la table `users` unifiée couvre les élèves et les enseignants ForetMap,
-> mais **pas** les identités GL (`gl_players`, `gl_admins`), reliées seulement par
-> `gl_players.linked_foretmap_user_id` et le miroir de classe de `lib/glGroupBridge.js`.
-> L'unification des identités GL est une décision structurante à part, cadrée au lot 10 de
-> [`AUDIT_CONVERGENCE_APPS_2026-09.md`](./AUDIT_CONVERGENCE_APPS_2026-09.md) §6.
+> Gnomes & Licornes. Depuis la migration `211_gl_identity_unification.sql`
+> ([`AUDIT_COMPTES_2026-09.md`](./AUDIT_COMPTES_2026-09.md) §5.1), la table `users` porte
+> aussi les secrets des joueurs GL : `gl_players` référence `users` par une clé étrangère et
+> ne garde que le gameplay ; `gl_admins` délègue déjà à `users` via `foretmap_user_id`.
+> Contrôle de non-régression GL : `GET /api/gl/admin/players/reconcile` (aucun joueur sans
+> compte, aucun reliquat `legacy_password_hash` après la première connexion de chacun).
 
 ## Scénarios critiques à valider
 

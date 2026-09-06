@@ -83,10 +83,9 @@ describe('parseOptionalBoolean', () => {
 });
 
 describe('buildGeneratedPassword', () => {
-  it('produit un mot de passe préfixé gl- et non vide', () => {
+  it('produit 10 caractères d un alphabet sans ambiguïté (pas de 0/O, 1/l/I)', () => {
     const pwd = buildGeneratedPassword();
-    assert.match(pwd, /^gl-[0-9a-z]+-[0-9a-z]+$/);
-    assert.ok(pwd.length > 4);
+    assert.match(pwd, /^[abcdefghjkmnpqrstuvwxyz23456789]{10}$/);
   });
   it('produit des valeurs distinctes', () => {
     assert.notEqual(buildGeneratedPassword(), buildGeneratedPassword());

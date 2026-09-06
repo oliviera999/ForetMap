@@ -32,7 +32,10 @@ test.describe('GL profil utilisateur', () => {
 
   test('affiche la gate de reset mot de passe si passwordMustReset=true', async ({ page }) => {
     const seeded = await seedGlScenario('profile-gate');
-    await execute('UPDATE gl_players SET password_must_reset = 1 WHERE id = ?', [seeded.playerId]);
+    // Le drapeau vit sur le compte `users` lié (unification des identités) : le pont le crée.
+    const { syncForetmapUserForGlPlayer } = require('../lib/glGroupBridge');
+    const sync = await syncForetmapUserForGlPlayer(seeded.playerId);
+    await execute('UPDATE users SET password_must_reset = 1 WHERE id = ?', [sync.user.id]);
 
     await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
     await page.goto('/');

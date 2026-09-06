@@ -22,7 +22,7 @@ async function seedGlStatsE2E(label) {
 
   await execute(
     `INSERT INTO gl_players
-      (class_id, first_name, last_name, pseudo, password_hash, is_active, health_points, power_points, created_at, updated_at)
+      (class_id, first_name, last_name, pseudo, legacy_password_hash, is_active, health_points, power_points, created_at, updated_at)
      VALUES (?, 'Stats', 'Joueur', ?, ?, 1, 4, 3, NOW(), NOW())`,
     [cls.id, pseudo, hash],
   );

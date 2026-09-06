@@ -134,7 +134,7 @@ test('PUT /api/gl/games/:id : 409 classe si roster non vide', async () => {
   ]);
   const rosterPseudo = `roster.test.${Date.now()}`;
   await execute(
-    `INSERT INTO gl_players (class_id, pseudo, first_name, last_name, password_hash, is_active, created_at, updated_at)
+    `INSERT INTO gl_players (class_id, pseudo, first_name, last_name, legacy_password_hash, is_active, created_at, updated_at)
      VALUES (?, ?, 'Roster', 'Test', '$2b$10$abcdefghijklmnopqrstuv', 1, NOW(), NOW())`,
     [cls.id, rosterPseudo],
   );
