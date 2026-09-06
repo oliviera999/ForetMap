@@ -273,6 +273,40 @@ un **document PDF joint**, affiché tel quel.
   « s'ouvrir dans un nouvel onglet » d'une fiche restent, comme avant, affichés dans la
   fenêtre d'aperçu.
 
+### Ajouter une fiche existante (« Importer /tutos/ »)
+
+Deux chemins mènent à une nouvelle fiche, et ils ne partent pas du même endroit :
+
+- **Depuis votre ordinateur** — « **+ Ajouter** », puis « **Importer un fichier HTML** ».
+  C'est le chemin normal : vous choisissez le fichier sur votre machine, son contenu
+  remplit la fiche, vous complétez le titre et le résumé, vous enregistrez.
+- **Depuis le dossier du serveur** — le bouton « **Importer /tutos/** » ne regarde **que**
+  le dossier `tutos/` **installé sur le serveur**. Il ne propose donc jamais un fichier
+  posé sur votre ordinateur : il sert à récupérer d'un coup des fiches déposées sur le
+  serveur par l'administrateur.
+
+La fenêtre « Importer /tutos/ » liste **toutes** les fiches du dossier serveur, chacune
+avec son état :
+
+| État             | Ce que cela veut dire                                                                                                                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **À importer**   | La fiche est absente de la base : elle sera créée.                                                                                                                                                           |
+| **Déjà en base** | La fiche correspond à un tutoriel existant. Le motif du rapprochement est indiqué (même chemin, contenu identique, même identifiant, même titre, nom de fichier proche) avec le numéro du tutoriel concerné. |
+| **Erreur**       | Le fichier n'a pas pu être lu : le message du serveur est affiché.                                                                                                                                           |
+
+Le bouton « **Importer les nouvelles fiches** » n'est actif que s'il y a au moins une
+fiche « À importer » ; sinon, une phrase dit pourquoi (dossier vide, fiches toutes déjà
+en base, fichiers illisibles). « **Relancer l'analyse** » relit le dossier sans refermer
+la fenêtre — utile juste après un dépôt de fichier sur le serveur. La case
+« **Simulation (sans création)** » annonce ce qui serait importé sans rien créer. Si un
+import échoue, le message d'erreur du serveur est affiché et nomme le fichier fautif.
+
+> **À savoir** : une fiche déposée sur le serveur sous un nom très proche d'un tutoriel
+> existant (`fiche-semences-locales.html` à côté d'un tutoriel « Semences », par exemple)
+> est bien reconnue comme **nouvelle**. Elle n'est classée « Déjà en base » que si son
+> contenu, son identifiant, son titre, son chemin ou le début de son nom de fichier
+> désignent réellement le tutoriel existant — le motif affiché permet de vérifier.
+
 ### Le contrôle de compréhension (questions avant validation)
 
 **Par défaut, non : un tutoriel se valide d'une simple case à cocher.** L'élève clique

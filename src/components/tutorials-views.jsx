@@ -26,6 +26,12 @@ import {
 } from '../utils/tutorialListHelpers.js';
 import { tutorialFormFromDetail, buildTutorialSavePayload } from '../utils/tutorialFormHelpers.js';
 import {
+  tutorialImportMatchReasonLabel,
+  tutorialImportStatusLabel,
+  firstImportErrorMessage,
+  emptyImportExplanation,
+} from '../utils/tutorialImportHelpers.js';
+import {
   IconCheck,
   IconDelete,
   IconDownload,
@@ -120,6 +126,7 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
   const [importScan, setImportScan] = useState(null);
   const [importLoading, setImportLoading] = useState(false);
   const [importDryRun, setImportDryRun] = useState(false);
+  const [importError, setImportError] = useState('');
   // Fetch + abonnement `foretmap_session_changed` mutualisés ; clé stable (ids joints)
   // au lieu de la référence `tutorials`, qui refetchait à chaque poll global.
   const { readIds: tutorialReadIds, markRead: markTutorialRead } = useTutorialReadIds(tutorials);
@@ -203,48 +210,86 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
     setShowImportModal(false);
     setImportScan(null);
     setImportDryRun(false);
+    setImportError('');
   }, []);
 
   useOverlayHistoryBack(showImportModal, closeImportModal);
 
-  const openImportModal = useCallback(async () => {
-    setShowImportModal(true);
-    setImportScan(null);
+  /**
+   * Relance l'analyse du dossier serveur. Extrait de `openImportModal` pour que la fenêtre
+   * offre un « Relancer l'analyse » : une fiche déposée sur le serveur pendant que la
+   * fenêtre est ouverte n'imposait sinon de la fermer et de la rouvrir.
+   */
+  const runTutosScan = useCallback(async () => {
     setImportLoading(true);
+    setImportError('');
     try {
       const res = await api('/api/tutorials/import/scan');
       setImportScan(res?.report || null);
+      return true;
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
-      showToast(e.message || 'Scan impossible');
-      setShowImportModal(false);
+      setImportError(e.message || 'Analyse impossible');
+      showToast(e.message || 'Analyse impossible', 4000);
+      return false;
     } finally {
       setImportLoading(false);
     }
   }, [onForceLogout, showToast]);
 
+  // La fenêtre reste ouverte même si l'analyse échoue : le message d'erreur et le bouton
+  // « Relancer l'analyse » y sont plus utiles qu'un toast fugace refermant tout.
+  const openImportModal = useCallback(async () => {
+    setShowImportModal(true);
+    setImportScan(null);
+    await runTutosScan();
+  }, [runTutosScan]);
+
   const runTutosImport = async () => {
     setImportLoading(true);
+    setImportError('');
     try {
       const res = await api('/api/tutorials/import/files', 'POST', { dryRun: importDryRun });
       const report = res?.report;
       setImportScan(report || null);
+      const imported = Number(report?.totals?.imported) || 0;
+      const failed = Number(report?.totals?.import_errors) || 0;
       if (importDryRun) {
         showToast(
           report?.totals?.pending
             ? `${report.totals.pending} fiche(s) seraient importée(s)`
             : 'Aucune nouvelle fiche à importer',
         );
-      } else if (report?.totals?.imported > 0) {
-        showToast(`${report.totals.imported} tutoriel(s) importé(s)`);
+        return;
+      }
+      // Un import qui échoue ne doit JAMAIS se présenter comme un import sans objet :
+      // c'était le « le bouton ne fait rien » signalé, la seule trace étant un toast
+      // « Aucune nouvelle fiche à importer » alors que la liste restait pleine.
+      if (failed > 0) {
+        setImportError(firstImportErrorMessage(report, failed));
+        showToast(
+          imported > 0
+            ? `${imported} importé(s), ${failed} en échec`
+            : `Import en échec sur ${failed} fiche(s)`,
+          4000,
+        );
+        if (imported > 0) onRefresh?.();
+        return;
+      }
+      if (imported > 0) {
+        showToast(`${imported} tutoriel(s) importé(s)`);
         onRefresh?.();
         closeImportModal();
-      } else {
-        showToast('Aucune nouvelle fiche à importer');
+        return;
       }
+      setImportError(
+        'Aucune fiche n’a été importée : le serveur n’a trouvé aucune nouvelle fiche dans le dossier tutos/.',
+      );
+      showToast('Aucune nouvelle fiche à importer');
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
-      showToast(e.message || 'Import impossible');
+      setImportError(e.message || 'Import impossible');
+      showToast(e.message || 'Import impossible', 4000);
     } finally {
       setImportLoading(false);
     }
@@ -532,20 +577,50 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
                 <span>
                   À importer : <strong>{importScan.totals?.pending ?? 0}</strong>
                 </span>
+                {(importScan.totals?.errors ?? 0) > 0 && (
+                  <span className="tuto-import-total-error">
+                    En erreur : <strong>{importScan.totals.errors}</strong>
+                  </span>
+                )}
               </div>
-              {importScan.items?.some((item) => item.status === 'pending') ? (
+              {importError ? (
+                <p className="tuto-import-error" role="alert">
+                  {importError}
+                </p>
+              ) : null}
+              {/* Toutes les fiches du dossier, et pas seulement celles à importer : c'est la
+                  seule façon de comprendre pourquoi une fiche déposée à l'instant n'est pas
+                  proposée (rapprochée d'un tutoriel existant, ou illisible). */}
+              {importScan.items?.length ? (
                 <ul className="tuto-import-list">
-                  {importScan.items
-                    .filter((item) => item.status === 'pending')
-                    .map((item) => (
-                      <li key={item.filename}>
+                  {importScan.items.map((item) => (
+                    <li key={item.filename} className={`tuto-import-item ${item.status || ''}`}>
+                      <span className="tuto-import-item-main">
                         <strong>{item.title || item.filename}</strong>
                         <span className="tuto-import-filename">{item.filename}</span>
-                      </li>
-                    ))}
+                      </span>
+                      <span className="tuto-import-item-status">
+                        {tutorialImportStatusLabel(item.status)}
+                        {item.status === 'already_imported' && (
+                          <span className="tuto-import-item-reason">
+                            {tutorialImportMatchReasonLabel(item.match_reason)}
+                            {item.existing_tutorial_id ? ` (#${item.existing_tutorial_id})` : ''}
+                          </span>
+                        )}
+                        {item.status === 'error' && item.error && (
+                          <span className="tuto-import-item-reason">{item.error}</span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
                 </ul>
               ) : (
-                <p className="tuto-import-empty">Toutes les fiches présentes sont déjà en base.</p>
+                <p className="tuto-import-empty">
+                  Le dossier serveur <code>tutos/</code> ne contient aucun fichier .html.
+                </p>
+              )}
+              {(importScan.totals?.pending ?? 0) === 0 && (
+                <p className="tuto-import-empty">{emptyImportExplanation(importScan)}</p>
               )}
               <label className="tuto-import-dryrun">
                 <input
@@ -573,6 +648,14 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
                   type="button"
                   className="btn btn-ghost btn-sm"
                   disabled={importLoading}
+                  onClick={runTutosScan}
+                >
+                  Relancer l’analyse
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  disabled={importLoading}
                   onClick={closeImportModal}
                 >
                   Fermer
@@ -580,7 +663,24 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
               </div>
             </>
           ) : (
-            <p className="tuto-import-error">Impossible de lire le dossier tutos/.</p>
+            <>
+              <p className="tuto-import-error" role="alert">
+                {importError || 'Impossible de lire le dossier tutos/.'}
+              </p>
+              <div className="tuto-import-footer">
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  disabled={importLoading}
+                  onClick={runTutosScan}
+                >
+                  Relancer l’analyse
+                </button>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={closeImportModal}>
+                  Fermer
+                </button>
+              </div>
+            </>
           )}
         </DialogShell>
       )}
