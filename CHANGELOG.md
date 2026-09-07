@@ -7,26 +7,6 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Documentation — audit complet de la validation des ressources par quiz (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`)
-
-- **Audit de tout le dispositif de conditionnement** (décision serveur, liens et génération
-  automatique, base de données, écrans lecteur et prof/MJ, documentation, tests), pour ForetMap
-  et Gnomes & Licornes. Il succède aux deux audits d'août et vérifie leurs points ouverts (C6,
-  J1, J3). Six constats à traiter avant toute activation en classe : le verrou de portée
-  « question seule » n'est relu par aucun chemin lecteur (aucun verrou effectif dans cette
-  portée) ; `GET /api/learning-links/progress` répond 500 depuis sa livraison (deux colonnes
-  inexistantes, aucun test) ; un script génère encore des liens approuvés **et** bloquants hors
-  du rattrapage de la migration 194 ; la suppression d'un joueur GL laisse ses tentatives, verrous
-  et accusés (réattribuables au prochain identifiant) ; chaque réponse de quiz ForetMap invalide
-  tous les domaines de polling ; le verrou de re-tentative ne tient que si le client envoie le
-  contexte ressource. Ordre de traitement et requêtes de contrôle en fin de document.
-- **Corrections documentaires sans effet sur le code** : `docs/API.md` ne liste plus le réglage
-  supprimé `auto_mark_on_correct`, donne les types réellement acceptés (`glossary` côté challenge
-  ForetMap, `content_page`/`ecosystem` côté GL), complète la liste des réglages GL (tolérance,
-  plafond par session, portée du verrou) et remet les trois routes `PUT` de granularité GL dans
-  le tableau GL (elles étaient insérées dans un tableau ForetMap) ; l'en-tête de
-  `routes/gl/learning-links.js` n'affirme plus que la politique par ressource n'est pas relue.
-
 ### Documentation et tests — mesure de charge et revue de tous les onglets (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`)
 
 - **Scénario de charge qui rejoue la rafale réelle** : `load/artillery-biodiv.yml` (+ son
@@ -49,6 +29,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   constats nouveaux, non traités : usage de la médiathèque à 30 requêtes SQL sans cache (T1),
   catalogue complet retéléchargé par le réseau trophique pour trois champs (T2),
   `/api/settings/public` redondant du forum (T3).
+### Documentation — audit complet de la validation des ressources par quiz (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`)
+
+- **Audit de tout le dispositif de conditionnement** (décision serveur, liens et génération
+  automatique, base de données, écrans lecteur et prof/MJ, documentation, tests), pour ForetMap
+  et Gnomes & Licornes. Il succède aux deux audits d'août et vérifie leurs points ouverts (C6,
+  J1, J3). Six constats à traiter avant toute activation en classe : le verrou de portée
+  « question seule » n'est relu par aucun chemin lecteur (aucun verrou effectif dans cette
+  portée) ; `GET /api/learning-links/progress` répond 500 depuis sa livraison (deux colonnes
+  inexistantes, aucun test) ; un script génère encore des liens approuvés **et** bloquants hors
+  du rattrapage de la migration 194 ; la suppression d'un joueur GL laisse ses tentatives, verrous
+  et accusés (réattribuables au prochain identifiant) ; chaque réponse de quiz ForetMap invalide
+  tous les domaines de polling ; le verrou de re-tentative ne tient que si le client envoie le
+  contexte ressource. Ordre de traitement et requêtes de contrôle en fin de document.
+- **Corrections documentaires sans effet sur le code** : `docs/API.md` ne liste plus le réglage
+  supprimé `auto_mark_on_correct`, donne les types réellement acceptés (`glossary` côté challenge
+  ForetMap, `content_page`/`ecosystem` côté GL), complète la liste des réglages GL (tolérance,
+  plafond par session, portée du verrou) et remet les trois routes `PUT` de granularité GL dans
+  le tableau GL (elles étaient insérées dans un tableau ForetMap) ; l'en-tête de
+  `routes/gl/learning-links.js` n'affirme plus que la politique par ressource n'est pas relue.
+
 ### Corrigé — « Importer les nouvelles fiches » (tutoriels) ne faisait rien
 
 - **Une fiche réellement nouvelle pouvait être classée « déjà en base ».** Le rapprochement
