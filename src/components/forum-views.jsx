@@ -6,12 +6,7 @@ import { formatDateTimeFr } from '../shared/platform/datetime-fr';
 import { AttachmentImagesPicker } from './attachment-images-picker';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { ForumPostCard } from './forum/ForumPostCard.jsx';
-import {
-  DEFAULT_REACTION_EMOJIS,
-  forumPageCount,
-  isForumModerator,
-  parseReactionEmojiList,
-} from '../utils/forumHelpers.js';
+import { forumPageCount, isForumModerator, parseReactionEmojiList } from '../utils/forumHelpers.js';
 import { IconForum, IconLock } from '../shared/icons.jsx';
 
 const THREAD_PAGE_SIZE = 20;
@@ -26,7 +21,6 @@ function ForumView({ authClaims, canParticipateForum = true }) {
   const [selectedThreadId, setSelectedThreadId] = useState('');
   const [threadDetail, setThreadDetail] = useState(null);
   const [posts, setPosts] = useState([]);
-  const [reactionEmojis, setReactionEmojis] = useState(DEFAULT_REACTION_EMOJIS);
   const [expandedReactionsByPost, setExpandedReactionsByPost] = useState({});
   const [postsPage, setPostsPage] = useState(1);
   const [postsTotal, setPostsTotal] = useState(0);
@@ -48,6 +42,19 @@ function ForumView({ authClaims, canParticipateForum = true }) {
   const canUseForumActions = canParticipateForum || canModerate;
   const publicSettings = usePublicSettings();
   const reportsEnabled = publicSettings?.modules?.reports_enabled !== false;
+  // Emojis de réaction : lus dans les réglages publics déjà fournis par le contexte, comme
+  // dans ContextComments. Le forum allait sinon les rechercher lui-même à chaque ouverture
+  // (`GET /api/settings/public`), pour une valeur identique à celle déjà en mémoire
+  // (cf. docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md, T3).
+  const reactionEmojis = useMemo(
+    () =>
+      parseReactionEmojiList(
+        publicSettings?.ui?.reactions?.allowed_emojis ||
+          publicSettings?.reactions?.allowed_emojis ||
+          '',
+      ),
+    [publicSettings],
+  );
   const currentUserType = String(authClaims?.userType || '').toLowerCase();
   const currentUserId = String(authClaims?.canonicalUserId || authClaims?.userId || '');
 
@@ -109,20 +116,6 @@ function ForumView({ authClaims, canParticipateForum = true }) {
     setExpandedReactionsByPost({});
     loadThreadDetail(selectedThreadId, 1);
   }, [loadThreadDetail, selectedThreadId]);
-
-  useEffect(() => {
-    api('/api/settings/public')
-      .then((d) => {
-        const configured =
-          d?.settings?.ui?.reactions?.allowed_emojis ||
-          d?.settings?.reactions?.allowed_emojis ||
-          '';
-        setReactionEmojis(parseReactionEmojiList(configured));
-      })
-      .catch(() => {
-        // Réglage non bloquant : on garde le fallback local.
-      });
-  }, []);
 
   useEffect(() => {
     api('/api/groups/options')

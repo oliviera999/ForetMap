@@ -26,9 +26,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Revue onglet par onglet** (§ 3 de l'audit) : glossaire, quiz, réseau trophique, carte,
   visite, carnet, forum, tâches, tutoriels, stats, profils, médiathèque. Le glossaire faisait
   déjà bien — liste + fiche au clic, le modèle vers lequel le catalogue a convergé. Trois
-  constats nouveaux, non traités : usage de la médiathèque à 30 requêtes SQL sans cache (T1),
-  catalogue complet retéléchargé par le réseau trophique pour trois champs (T2),
-  `/api/settings/public` redondant du forum (T3).
+  constats nouveaux — médiathèque (T1), réseau trophique (T2), forum (T3) — traités depuis,
+  voir ci-dessous.
+
+### Performance — médiathèque, réseau trophique et forum (T1 à T3 de l'audit de charge)
+
+- **Usage de la médiathèque : le balayage n'est plus refait à chaque ouverture.**
+  `/api/media-library/usage` et son équivalent G&L interrogeaient toutes leurs tables sources
+  (un `SHOW COLUMNS` puis un `SELECT … LIMIT 5000` chacune) à chaque consultation, sans cache —
+  un coût fixe qui croît avec la taille des tables, pas avec ce que l'écran affiche. Cache
+  mémoire à **version d'écriture** (motif partagé déjà utilisé par le contenu de visite), avec
+  une entrée par produit. Choix assumé de la version d'écriture plutôt que d'un TTL, malgré un
+  taux de succès moindre : l'usage sert à prévenir avant une suppression (« ce média est
+  utilisé à N endroits ») et un résultat périmé y ferait supprimer un média venant d'être
+  référencé. L'import et la suppression de médias périment le cache d'eux-mêmes (journal
+  d'audit).
+- **Réseau trophique : le catalogue complet n'est plus retéléchargé pour trois champs.** La vue
+  professeur appelait `GET /api/plants` (~117 kio) pour ne garder que `{ id, name, emoji }`
+  dans ses menus déroulants, alors que `DataContext` porte déjà la liste. Elle la dérive
+  désormais du contexte ; tri et restriction aux professeurs inchangés.
+- **Forum : plus de relecture des réglages publics.** Le `GET /api/settings/public` retiré de
+  `ContextComments` au lot précédent subsistait ici pour les seuls emojis de réaction, que
+  `PublicSettingsContext` fournit déjà.
+- **Correction d'un chiffrage de l'audit.** Le constat T1 annonçait « 15 tables sources,
+  30 requêtes SQL, `LIMIT 800` ». Les trois nombres étaient faux : **4 sources et 8 requêtes**
+  côté ForetMap, **9 et 18** côté G&L, avec un `LIMIT 5000` (le 800 est le nombre de médias
+  lus sur le disque). Nombres désormais mesurés par un test plutôt qu'estimés, et
+  l'affirmation « la route la plus chère de l'application », qu'aucune mesure n'appuyait,
+  est retirée.
 ### Corrigé — « Importer les nouvelles fiches » (tutoriels) ne faisait rien
 
 - **Une fiche réellement nouvelle pouvait être classée « déjà en base ».** Le rapprochement
