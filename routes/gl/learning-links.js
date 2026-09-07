@@ -26,6 +26,8 @@ const policyHelpers = require('../../lib/gatingPolicyRouteHelpers');
 const layers = require('../../lib/shared/gatingPolicyLayersCore');
 
 const router = express.Router();
+/** Plafond d'une liste de liens ; renvoyé au client avec `total` (B5). */
+const LINKS_MAX_ROWS = 1000;
 const ALLOWED = core.GL_RESOURCE_TYPES;
 
 function actor(req) {
@@ -56,10 +58,20 @@ router.get(
       `SELECT * FROM gl_resource_question_links
        ${core.linksWhereClause(where)}
        ORDER BY question_dataset, resource_type, resource_ref, question_code
-       LIMIT 1000`,
+       LIMIT ${LINKS_MAX_ROWS}`,
       params,
     );
-    return res.json({ links: rows });
+    // Plafond annoncé plutôt que muet (B5).
+    const countRow = await queryOne(
+      `SELECT COUNT(*) AS n FROM gl_resource_question_links ${core.linksWhereClause(where)}`,
+      params,
+    );
+    return res.json({
+      links: rows,
+      total: Number(countRow?.n || 0),
+      max_rows: LINKS_MAX_ROWS,
+      truncated: Number(countRow?.n || 0) > rows.length,
+    });
   }),
 );
 

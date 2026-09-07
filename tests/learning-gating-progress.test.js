@@ -122,6 +122,9 @@ test('progress — un tutoriel conditionné : réussi, bloqué et en attente son
   assert.ok(s.pending_count >= 1, 'au moins un élève est en attente');
   assert.equal(s.required_correct, 1);
   assert.equal(s.gating_questions, 1);
+  // C4 : le plafond est annoncé, plus muet.
+  assert.equal(s.max_students, 500);
+  assert.equal(typeof s.truncated, 'boolean');
   assert.equal(
     s.total_students,
     s.satisfied_count + s.locked_count + s.pending_count,
