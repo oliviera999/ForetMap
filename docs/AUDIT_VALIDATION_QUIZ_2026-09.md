@@ -869,8 +869,31 @@ Ensuite     Activation en classe : requêtes du §6, réglages par type, `lock_m
 ```
 
 Numéros de migration réservés dans ce plan : **212** (lot 1, `generated` non bloquants), **213**
-(lot 2, `lock_mode`), **214** (lot 3 variante B, purge des verrous par question), **215** (lot 6,
-index). À renuméroter si une PR parallèle en prend un (règle `foretmap-pr-merge-conflict`).
+(lot 2, `lock_mode` et délai en heures), **214** (lot 4, propositions non bloquantes — le lot 3 a
+retenu la variante A, qui n'en avait pas besoin), **215** (lot 6, index). À renuméroter si une PR
+parallèle en prend un (règle `foretmap-pr-merge-conflict`).
+
+### 5.9 Suivi de mise en œuvre (2026-09-07)
+
+Arbitrages retenus : sévérité du verrou **réglable par type** (défaut `flow`, exemple tutoriels
+`strict` / glossaire `advisory`) ; lot 3 en **variante A** (portée « question » branchée et
+paramétrable) ; lot 4 en **variante A** (proposition jamais bloquante, action explicite) ; délai de
+blocage par défaut ramené à **6 heures** (réglage en heures) ; écrans de réglage réécrits pour être
+compris sans notice, textes élève en clair.
+
+| Lot | État      | Contenu livré                                                                                                                                                                                       |
+| --- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | ✅ livré  | C2, A2, C1, B1 (migration 212), deux tests CI instables stabilisés.                                                                                                                                 |
+| 2   | ✅ livré  | A4 (jeton contextualisé, `lock_mode` advisory/flow/strict, exclusion du tirage libre), délai en heures (migration 213), écrans en quatre étapes, A3, A5, A6, A7, A8, J1.                            |
+| 3   | ✅ livré  | A1 : portée « question seule » branchée (challenge, résumé, accusé, agrégat prof), question verrouillée refusée dans le flux, textes élève.                                                         |
+| 4   | ✅ livré  | B2 (propositions non bloquantes, migration 214), B3, action `POST …/gating` + bouton « Rendre bloquantes » (FM et GL).                                                                              |
+| 5   | ✅ livré  | D1, D2 (test), D3, D4 (événement `learning-gating:changed`, `gl_session_changed`), D5, D6.                                                                                                          |
+| 6   | ✅ livré  | C3, C4 (`max_students`), C5 (migration 215), C6 (purges), C7 (dédup + suppression de plante), B5 (`total`/`max_rows`, recherche serveur).                                                           |
+| 7   | ◐ partiel | E1 (`docs/API.md`), E2 (EVOLUTION, G3), E3 (docs de référence FM et GL), B6 (test croisé des listes). **Reste : J3** (B4 côté GL : route `resources`, sélecteur avec titres, contrôle d'existence). |
+
+Non traités, volontairement : A10, C8, D7 (🟢, dette mineure) ; J3 (lot à part : le contrôle
+d'existence à la création casse les fixtures de tests qui créent des liens vers des références
+fictives, à reprendre avec elles).
 
 ---
 
