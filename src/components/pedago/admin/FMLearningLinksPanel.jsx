@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../../services/api.js';
-import { describeSiteGatingMode } from '../../../shared/utils/learningGatingPolicyText.js';
+import {
+  describeSiteGatingMode,
+  describeEffectiveGatingPolicy,
+} from '../../../shared/utils/learningGatingPolicyText.js';
 import { GatingPolicyEditor } from '../../../shared/components/GatingPolicyEditor.jsx';
+import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { IconCheck, IconPause, IconWarning } from '../../../shared/icons.jsx';
 
 // Écran de rattachement « ressource ↔ questions » (professeur, permission plants.manage).
@@ -40,6 +44,7 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
   const [config, setConfig] = useState(null);
   const [resourceType, setResourceType] = useState('tutorial');
   const [markable, setMarkable] = useState(true);
+  const { confirm } = useAppDialogs();
   const [resources, setResources] = useState([]);
   const [selectedRef, setSelectedRef] = useState('');
   const [links, setLinks] = useState([]);
@@ -258,6 +263,10 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
     () => links.filter((l) => l.status === 'approved' && Number(l.is_gating)).length,
     [links],
   );
+  const approvedNonGatingCount = useMemo(
+    () => links.filter((l) => l.status === 'approved' && !Number(l.is_gating)).length,
+    [links],
+  );
 
   function savePolicy(patch) {
     setPolicyBusy(true);
@@ -273,6 +282,37 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
 
   const gatingOff = config && !config.enabled;
   const tab = RESOURCE_TABS.find((t) => t.type === resourceType) || RESOURCE_TABS[0];
+
+  /**
+   * Rend bloquantes, d'un geste, toutes les questions approuvées de la fiche. Approuver ne
+   * conditionne plus rien (lot 4) : c'est ICI que le professeur décide, et l'écran lui dit
+   * avant de confirmer ce que l'élève devra faire.
+   */
+  async function makeAllApprovedGating() {
+    const total = approvedGatingCount + approvedNonGatingCount;
+    const phrase = describeEffectiveGatingPolicy({
+      ...(policy?.effective || {}),
+      gatingCount: total,
+    });
+    const ok = await confirm({
+      title: 'Rendre bloquantes',
+      message:
+        `Rendre bloquantes les ${approvedNonGatingCount} question(s) approuvée(s) de ce ${tab.one} ? ` +
+        `Ensuite : ${phrase}`,
+      confirmLabel: 'Rendre bloquantes',
+    });
+    if (!ok) return;
+    await run(
+      () =>
+        api('/api/learning-links/gating', 'POST', {
+          resourceType,
+          resourceRef: String(selectedRef),
+          is_gating: true,
+        }),
+      'Questions rendues bloquantes.',
+    );
+  }
+
   const suggestedCount = links.filter((l) => l.status === 'suggested').length;
 
   // Où en est-on VRAIMENT ? L'écran ne le disait pas : un professeur pouvait créer
@@ -505,8 +545,8 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
                 ) : null}
                 {/* Sans ce bouton, quarante propositions demandaient quarante changements
                     de liste déroulante : le rattachement automatique ne débouchait sur
-                    rien. Approuver n'est pas conditionner — le caractère bloquant reste
-                    coché ligne par ligne, ci-dessous. */}
+                    rien. Approuver n'est pas conditionner — le caractère bloquant se décide
+                    ensuite, par le bouton « Rendre bloquantes » ou ligne par ligne. */}
                 {suggestedCount > 0 ? (
                   <button
                     type="button"
@@ -515,6 +555,18 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
                     onClick={approveAllSuggested}
                   >
                     Approuver les {suggestedCount} proposition(s) de ce {tab.one}
+                  </button>
+                ) : null}
+                {markable && approvedNonGatingCount > 0 ? (
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    disabled={busy || suggesting}
+                    onClick={makeAllApprovedGating}
+                    title="Une question approuvée ne conditionne rien tant qu'elle n'est pas bloquante."
+                  >
+                    Rendre bloquantes les {approvedNonGatingCount} question(s) approuvée(s) de ce{' '}
+                    {tab.one}
                   </button>
                 ) : null}
               </div>
