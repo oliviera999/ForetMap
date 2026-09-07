@@ -4,9 +4,10 @@
 // et reglages de gating (site + surcharges chapitre/scope lore). Miroir isole du backbone
 // ForetMap. Les liens sont sans effet tant que gl_settings 'gating.enabled' = false ; des qu'il
 // est vrai, ils sont lus a l'accuse par lib/learningGatingAcknowledge (routes/gl/learning.js).
-// ATTENTION : la politique par ressource (mode/required_correct/enabled) et la granularite
-// ecrites ici ne sont PAS relues par le runtime, qui exige toujours TOUTES les questions
-// bloquantes approuvees — cf. docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md, constats F1 et F5.
+// La politique par ressource (mode/required_correct/enabled + session/verrou) et la granularite
+// ecrites ici SONT relues par le runtime a chaque challenge et a chaque accuse (cascade
+// site -> type -> ressource -> chapitre/scope, cf. lib/shared/gatingPolicyLayersCore.js) —
+// constats F1 et F5 de docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md, corriges.
 // Permissions : gl.content.manage (liens/politique), gl.settings.manage (reglages site/granularite).
 // O8 — erreurs : tous les try/catch etaient generiques (logRouteError + respondInternalError,
 // soit 500 { error: 'Erreur serveur' }) ; ils sont remplaces par asyncHandler -> gestionnaire
