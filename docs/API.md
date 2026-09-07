@@ -1975,7 +1975,7 @@ Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_
 | GET     | `/api/quiz/admin/questions/stats?onlyGating=&minAttempts=`     | Taux de réussite par question, les plus ratées d'abord ; `suspect` signale celles qui méritent relecture.                                                                                                                                  |
 
 Réglages site (table `app_settings`, scope `teacher`, modifiables via `/api/settings`) :
-`learning.gating.enabled` (def. `false`), `learning.gating.auto_mark_on_correct` (**déprécié**, ignoré),
+`learning.gating.enabled` (def. `false`),
 `learning.gating.default_mode` (`off|any|all|threshold`, def. `any` — **appliqué** à l'accusé),
 `learning.gating.default_required_correct` (1–50, def. `1`),
 `learning.gating.retry_cooldown_days` (0–365, def. `3` ; `0` = pas de verrou après erreur),
@@ -2017,13 +2017,16 @@ serveur : `announce_on_button` et `state_icons`. Ces réglages sont de portée p
 par un élève ; les routes les résolvent pour que le front les respecte sans accéder aux réglages.
 Chaque ligne de `summary` les recopie sous `announce` et `show_icon`.
 
-Audit détaillé du dispositif : [AUDIT_GATING_2026-08.md](AUDIT_GATING_2026-08.md).
+Audits du dispositif : [AUDIT_GATING_2026-08.md](AUDIT_GATING_2026-08.md) (ForetMap, août),
+[AUDIT_GATING_QCM_FEUILLETS_2026-08.md](AUDIT_GATING_QCM_FEUILLETS_2026-08.md) (GL, août) et
+[AUDIT_VALIDATION_QUIZ_2026-09.md](AUDIT_VALIDATION_QUIZ_2026-09.md) (les deux produits, tous
+les aspects, septembre — point d'entrée).
 
 ### Challenge & accusé (phase 3 — runtime pull)
 
 | Méthode | Route                                                           | Auth                       | Description                                                                                                                                                                                                                                                                                          |
 | ------- | --------------------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/learning/gating/challenge?resourceType=&resourceRef=`     | élève/prof (`requireAuth`) | État du quiz requis avant accusé (`required`, `mode` effectif, `required_correct`, `questions[]`, `pending_count`, `satisfied`, `cooldown`). Types : `tutorial`, `plant`.                                                                                                                            |
+| GET     | `/api/learning/gating/challenge?resourceType=&resourceRef=`     | élève/prof (`requireAuth`) | État du quiz requis avant accusé (`required`, `mode` effectif, `required_correct`, `questions[]`, `pending_count`, `satisfied`, `cooldown`). Types : `tutorial`, `plant`, `glossary`.                                                                                                                |
 | GET     | `/api/learning/gating/summary?resourceType=&resourceRefs=1,2,3` | élève/prof (`requireAuth`) | Résumé groupé (**200 refs max** — relevé de 60, inférieur au catalogue biodiversité ; chargement en requêtes groupées, coût SQL constant) pour **annoncer le contrôle avant le clic** : `required`, `ask_count`, `pending_count`, `satisfied`, `locked`, `remaining_days`, `allowed_wrong_attempts`. |
 | POST    | `/api/tutorials/:id/acknowledge-read`                           | `requireAuth`              | Marque le tutoriel lu. **403** `{ error, missing_question_codes, cooldown }` si gating ON et questions non réussies (`user_quiz_attempts`), ou si la ressource est **verrouillée** après une erreur.                                                                                                 |
 | POST    | `/api/plants/:id/acknowledge-discovery`                         | `requireAuth`              | Première observation : même garde gating ; ré-observations ultérieures : confirmation seule.                                                                                                                                                                                                         |
@@ -2036,8 +2039,9 @@ tolérées, délai, portée) — la même que `GET …/gating/challenge`. La ré
 
 ### GL — `/api/gl/learning-links` (MJ/admin, JWT `product:'gl'`)
 
-Types de ressources : `species|glossary|lore_glossary|tutorial|feuillet`. `question_dataset` obligatoire
-(`qcm` | `qcm_lore`). Permission `gl.content.manage` (liens/politique), `gl.settings.manage` (réglages).
+Types de ressources : `species|glossary|lore_glossary|tutorial|feuillet|content_page|ecosystem`.
+`question_dataset` obligatoire (`qcm` | `qcm_lore`). Permission `gl.content.manage` (liens, politique,
+lecture des réglages et des verrous), `gl.settings.manage` (écriture des réglages et des granularités).
 
 | Méthode        | Route                                              | Description                                                                                                                                                                                                                                                |
 | -------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2049,6 +2053,9 @@ Types de ressources : `species|glossary|lore_glossary|tutorial|feuillet`. `quest
 | GET            | `/api/gl/learning-links/settings`                  | Réglages de gating GL effectifs.                                                                                                                                                                                                                           |
 | GET / DELETE   | `/api/gl/learning-links/locks`                     | Lecteurs bloqués / levée d'un verrou. Même forme qu'en ForetMap ; le lecteur s'identifie par `reader_user_type` + `reader_user_id`.                                                                                                                        |
 | GET            | `/api/gl/learning/gating/summary`                  | **Nouveau (lot 28)** — résumé groupé (`resourceType`, `resourceRefs=a,b,c`, **200 max**), corps identique à celui de ForetMap. Une ressource déjà apprise par le lecteur n'est plus conditionnée.                                                          |
+| PUT            | `/api/gl/learning-links/settings`                  | Modifie un réglage (`gl.settings.manage`) : `{ key, value }`.                                                                                                                                                                                              |
+| PUT            | `/api/gl/learning-links/chapter-granularity`       | Surcharge granularité d'un chapitre de jeu (`{ chapterId, granularity }`, `null` = hérite). `gl.settings.manage`.                                                                                                                                          |
+| PUT            | `/api/gl/learning-links/scope-granularity`         | Surcharge granularité d'un scope lore (`{ scopeSlug, granularity }`). `gl.settings.manage`.                                                                                                                                                                |
 
 ### ForetMap — glossaire validable (« j'ai appris ce terme »)
 
@@ -2065,17 +2072,15 @@ Gnomes & Licornes savait valider un terme depuis la migration 107 ; ForetMap dep
 `glossary` rejoint donc `tutorial` et `plant` parmi les types **validables** côté ForetMap : un lien
 bloquant y est désormais accepté, et `GET /api/learning-links/resources?type=glossary` renvoie
 `markable: true`.
-| PUT | `/api/gl/learning-links/settings` | Modifie un réglage (`gl.settings.manage`) : `{ key, value }`. |
-| PUT | `/api/gl/learning-links/chapter-granularity` | Surcharge granularité d'un chapitre de jeu (`{ chapterId, granularity }`, `null` = hérite). |
-| PUT | `/api/gl/learning-links/scope-granularity` | Surcharge granularité d'un scope lore (`{ scopeSlug, granularity }`). |
 
-Réglages site GL (table `gl_settings`) : `gating.enabled` (def. `false`),
-`gating.granularity` (`player|team`, def. `player` — **appliquée** ; `per_resource` est accepté par
-compatibilité et se comporte comme `player`), `gating.auto_mark_on_correct` (**déprécié**, ignoré,
-retiré de l'écran d'administration), `gating.default_mode` et `gating.default_required_correct`
-(**appliqués**), `gating.announce_on_button` et `gating.state_icons` (bool, def. `true` — dérivés du catalogue commun,
-appliqués depuis le lot 28), `gating.retry_cooldown_days` (0–365, def. `3` ; `0` = pas de verrou après
-erreur). La politique par ressource (`GET/PUT /policy`) est **appliquée** elle aussi, avec deux règles :
+Réglages site GL (table `gl_settings`), dérivés du même catalogue que ForetMap : `gating.enabled`
+(def. `false`), `gating.granularity` (`player|team`, def. `player` — **appliquée** ; `per_resource` est
+accepté par compatibilité et se comporte comme `player`), `gating.default_mode` et
+`gating.default_required_correct` (**appliqués**), `gating.allowed_wrong_attempts` (0–10, def. `0`),
+`gating.max_questions_per_session` (1–10, def. `3`), `gating.cooldown_scope` (`resource|question`, def.
+`resource`), `gating.retry_cooldown_days` (0–365, def. `3` ; `0` = pas de verrou après erreur),
+`gating.announce_on_button` et `gating.state_icons` (bool, def. `true` — appliqués depuis le lot 28).
+`gating.auto_mark_on_correct` a été **supprimé** du catalogue, comme côté ForetMap : la clé est refusée. La politique par ressource (`GET/PUT /policy`) est **appliquée** elle aussi, avec deux règles :
 l'interrupteur global est **maître** (site éteint → aucun quiz, même sur une ressource `enabled = 1`) et
 un seuil `threshold` est **borné** au nombre de questions liées. Les préréglages par type
 (`resource_ref='*'`) s'intercalent entre le site et la ressource ; `effectiveSources` indique la
