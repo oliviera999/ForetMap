@@ -224,9 +224,22 @@ router.post(
     );
     if (!term) return res.status(404).json({ error: 'Terme introuvable' });
 
+    // Un terme déjà appris n'est pas re-conditionné (même règle que les tutoriels, les
+    // fiches espèces et tous les accusés G&L — audit validation quiz 2026-09, A7).
+    const alreadyLearned = await queryOne(
+      `SELECT target_code FROM learning_acknowledgements
+        WHERE user_id = ? AND target_type = 'glossary' AND target_code = ? LIMIT 1`,
+      [String(userId), code],
+    );
     const gating = await assertGatingSatisfiedForAcknowledge(
       { queryAll, queryOne, execute },
-      { product: 'fm', resourceType: 'glossary', resourceRef: code, userId },
+      {
+        product: 'fm',
+        resourceType: 'glossary',
+        resourceRef: code,
+        userId,
+        skipGating: !!alreadyLearned,
+      },
     );
     if (!gating.ok) {
       return res.status(gating.status || 403).json({

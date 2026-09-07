@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { readRetryHours, retryHoursLabel } from '../../../shared/utils/learningGatingPolicyText.js';
 import { apiGL } from '../../services/apiGL.js';
 import { GatingPolicyEditor } from '../../../shared/components/GatingPolicyEditor.jsx';
 import { describeSiteGatingMode } from '../../../shared/utils/learningGatingPolicyText.js';
@@ -207,7 +208,7 @@ export function GLLearningLinksPanel() {
           Conditionnement global :{' '}
           <strong>{gating.enabled ? '✅ actif' : '⏸️ inactif (les liens sont sans effet)'}</strong>
           {' — '}mode par défaut « {gating.defaultMode} », nouvelle tentative après{' '}
-          {gating.retryCooldownDays} jour(s). Ces réglages se modifient dans{' '}
+          {retryHoursLabel(readRetryHours(gating))}. Ces réglages se modifient dans{' '}
           <strong>Réglages plateforme → Conditionnement par QCM</strong> (admin).
         </p>
       ) : null}

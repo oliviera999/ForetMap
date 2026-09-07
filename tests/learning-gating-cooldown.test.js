@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const cooldown = require('../lib/learningGatingCooldown');
 
 const DAY = 24 * 60 * 60 * 1000;
+const HOUR = 60 * 60 * 1000;
 
 test('clampCooldownDays — bornage 0..365', () => {
   assert.equal(cooldown.clampCooldownDays(3), 3);
@@ -17,20 +18,20 @@ test('clampCooldownDays — bornage 0..365', () => {
 
 test('buildCooldownState — non verrouille sans date ou date passee', () => {
   const now = 1_000_000_000_000;
-  const noDate = cooldown.buildCooldownState(null, 3, now);
+  const noDate = cooldown.buildCooldownState(null, 72, now);
   assert.equal(noDate.locked, false);
   assert.equal(noDate.remaining_ms, 0);
   assert.equal(noDate.remaining_days, 0);
   assert.equal(noDate.retry_days, 3);
 
-  const past = cooldown.buildCooldownState(new Date(now - DAY), 3, now);
+  const past = cooldown.buildCooldownState(new Date(now - DAY), 72, now);
   assert.equal(past.locked, false);
   assert.equal(past.locked_until, null);
 });
 
 test('buildCooldownState — verrouille avec date future', () => {
   const now = 1_000_000_000_000;
-  const state = cooldown.buildCooldownState(new Date(now + 2 * DAY + 1000), 3, now);
+  const state = cooldown.buildCooldownState(new Date(now + 2 * DAY + 1000), 72, now);
   assert.equal(state.locked, true);
   assert.equal(state.retry_days, 3);
   assert.equal(state.remaining_days, 3); // arrondi au superieur
@@ -62,7 +63,7 @@ function assertInsertArity(sql, expectedColumns) {
   const valPart = sql.match(/VALUES\s*\(([\s\S]*?)\)\s*ON DUPLICATE/)?.[1];
   assert.ok(valPart, 'INSERT sans VALUES');
   const normalized = valPart
-    .replace(/DATE_ADD\(NOW\(\),\s*INTERVAL \? DAY\)/g, '?')
+    .replace(/DATE_ADD\(NOW\(\),\s*INTERVAL \? HOUR\)/g, '?')
     .replace(/\bNOW\(\)/g, '?');
   const values = normalized
     .split(',')
@@ -102,7 +103,7 @@ test('maybeRegisterCooldownOnWrong — no-op si bonne reponse', async () => {
     resourceRef: '12',
     questionCode: 'QF0001',
     isCorrect: true,
-    retryDays: 3,
+    retryHours: 72,
   });
   assert.equal(res, null);
   assert.equal(db.calls.execute.length, 0);
@@ -117,7 +118,7 @@ test('maybeRegisterCooldownOnWrong — no-op si delai <= 0', async () => {
     resourceRef: '12',
     questionCode: 'QF0001',
     isCorrect: false,
-    retryDays: 0,
+    retryHours: 0,
   });
   assert.equal(res, null);
   assert.equal(db.calls.execute.length, 0);
@@ -132,7 +133,7 @@ test('maybeRegisterCooldownOnWrong — no-op si code non lie a la ressource', as
     resourceRef: '12',
     questionCode: 'QF9999',
     isCorrect: false,
-    retryDays: 3,
+    retryHours: 72,
   });
   assert.equal(res, null);
   assert.equal(db.calls.execute.length, 0);
@@ -147,18 +148,18 @@ test('maybeRegisterCooldownOnWrong — pose le verrou FM sur erreur liee', async
     resourceRef: '12',
     questionCode: 'QF0001',
     isCorrect: false,
-    retryDays: 3,
+    retryHours: 72,
   });
   assert.equal(db.calls.execute.length, 1);
   const inserted = db.calls.execute[0];
   assert.match(inserted.sql, /INSERT INTO resource_gating_cooldowns/);
-  assert.match(inserted.sql, /INTERVAL \? DAY/);
+  assert.match(inserted.sql, /INTERVAL \? HOUR/);
   assertInsertArity(inserted.sql, 7);
   assert.deepEqual(inserted.params.slice(0, 3), ['7', 'tutorial', '12']);
   // La clé porte désormais le code de question ('' = verrou de portée ressource) ;
   // on vérifie la présence des valeurs plutôt que leur position, qui bougera encore.
   assert.equal(inserted.params[3], '', 'portée ressource par défaut');
-  assert.ok(inserted.params.includes(3), 'le délai en jours est bien transmis');
+  assert.ok(inserted.params.includes(72), 'le délai en heures est bien transmis');
   // res reflete l'etat relu (cooldownRow=null ici => non verrouille, mais l'INSERT a bien eu lieu)
   assert.ok(res === null || typeof res === 'object');
 });
@@ -172,7 +173,7 @@ test('maybeRegisterCooldownOnWrong — pose le verrou GL avec le reader', async 
     resourceRef: 'SP001',
     questionCode: 'GQCM0001',
     isCorrect: false,
-    retryDays: 3,
+    retryHours: 72,
   });
   assert.equal(db.calls.execute.length, 1);
   const inserted = db.calls.execute[0];
@@ -182,7 +183,7 @@ test('maybeRegisterCooldownOnWrong — pose le verrou GL avec le reader', async 
   assertInsertArity(inserted.sql, 8);
   assert.match(
     inserted.sql,
-    /VALUES \(\?, \?, \?, \?, \?, DATE_ADD\(NOW\(\), INTERVAL \? DAY\), \?, \?\)/,
+    /VALUES \(\?, \?, \?, \?, \?, DATE_ADD\(NOW\(\), INTERVAL \? HOUR\), \?, \?\)/,
   );
   assert.deepEqual(inserted.params, [
     'gl_player',
@@ -190,10 +191,10 @@ test('maybeRegisterCooldownOnWrong — pose le verrou GL avec le reader', async 
     'species',
     'SP001',
     '',
-    3,
+    72,
     'GQCM0001',
     1,
-    3,
+    72,
   ]);
   assert.ok(res === null || typeof res === 'object');
 });
@@ -206,7 +207,7 @@ test('getResourceCooldownState — verrouille si locked_until futur', async () =
     userId: '7',
     resourceType: 'tutorial',
     resourceRef: '12',
-    retryDays: 3,
+    retryHours: 72,
   });
   assert.equal(state.locked, true);
   assert.ok(state.remaining_days >= 1 && state.remaining_days <= 3);
@@ -219,7 +220,7 @@ test('getResourceCooldownState — non verrouille sans ligne', async () => {
     userId: '7',
     resourceType: 'tutorial',
     resourceRef: '12',
-    retryDays: 3,
+    retryHours: 72,
   });
   assert.equal(state.locked, false);
 });
@@ -247,11 +248,11 @@ test('tolérance 0 — le verrou tombe dès la première erreur (comportement hi
     resourceRef: '12',
     questionCode: 'QF0001',
     isCorrect: false,
-    retryDays: 3,
+    retryHours: 72,
     allowedWrongAttempts: 0,
   });
   assert.equal(db.calls.execute.length, 1);
-  assert.match(db.calls.execute[0].sql, /INTERVAL \? DAY/, 'la date de déblocage est posée');
+  assert.match(db.calls.execute[0].sql, /INTERVAL \? HOUR/, 'la date de déblocage est posée');
 });
 
 test('sous la tolérance — la faute est comptée, la ressource reste ouverte', async () => {
@@ -263,7 +264,7 @@ test('sous la tolérance — la faute est comptée, la ressource reste ouverte',
     resourceRef: '12',
     questionCode: 'QF0001',
     isCorrect: false,
-    retryDays: 3,
+    retryHours: 72,
     allowedWrongAttempts: 2,
   });
   assert.equal(res.locked, false, 'première faute sur deux tolérées : pas de verrou');
@@ -271,7 +272,7 @@ test('sous la tolérance — la faute est comptée, la ressource reste ouverte',
   assert.equal(res.attempts_left, 1);
   assert.equal(db.calls.execute.length, 1);
   assert.ok(
-    !/INTERVAL \? DAY/.test(db.calls.execute[0].sql),
+    !/INTERVAL \? HOUR/.test(db.calls.execute[0].sql),
     'aucune date de déblocage future ne doit être posée tant que la tolérance tient',
   );
   assert.match(
@@ -296,10 +297,10 @@ test('tolérance épuisée — le verrou tombe', async () => {
     resourceRef: '12',
     questionCode: 'QF0001',
     isCorrect: false,
-    retryDays: 3,
+    retryHours: 72,
     allowedWrongAttempts: 2,
   });
-  assert.match(db.calls.execute[0].sql, /INTERVAL \? DAY/);
+  assert.match(db.calls.execute[0].sql, /INTERVAL \? HOUR/);
   assert.equal(res?.attempts_left, 0);
 });
 
@@ -352,10 +353,10 @@ test('tolérance 2 — deux fautes successives s’accumulent, la troisième ver
     },
     async execute(sql, params) {
       this.calls.execute.push({ sql, params });
-      if (/INTERVAL \? DAY/.test(sql)) {
+      if (/INTERVAL \? HOUR/.test(sql)) {
         stored = {
           wrong_attempts: params[params.length - 2],
-          locked_until: new Date(Date.now() + Number(params[params.length - 1]) * DAY),
+          locked_until: new Date(Date.now() + Number(params[params.length - 1]) * HOUR),
         };
       } else {
         stored = {
@@ -373,7 +374,7 @@ test('tolérance 2 — deux fautes successives s’accumulent, la troisième ver
     resourceRef: '12',
     questionCode: 'QF0001',
     isCorrect: false,
-    retryDays: 3,
+    retryHours: 72,
     allowedWrongAttempts: 2,
   };
   const first = await cooldown.maybeRegisterCooldownOnWrong(db, payload);
@@ -383,7 +384,7 @@ test('tolérance 2 — deux fautes successives s’accumulent, la troisième ver
   assert.equal(second.locked, false, 'deuxième faute encore tolérée');
   assert.equal(second.wrong_attempts, 2);
   const third = await cooldown.maybeRegisterCooldownOnWrong(db, payload);
-  assert.match(db.calls.execute[2].sql, /INTERVAL \? DAY/, 'la troisième faute pose le verrou');
+  assert.match(db.calls.execute[2].sql, /INTERVAL \? HOUR/, 'la troisième faute pose le verrou');
   assert.equal(third?.attempts_left, 0);
 });
 
@@ -402,24 +403,52 @@ test('un verrou expiré remet le compteur d’essais à zéro', async () => {
     resourceRef: '12',
     questionCode: 'QF0001',
     isCorrect: false,
-    retryDays: 3,
+    retryHours: 72,
     allowedWrongAttempts: 2,
   });
   assert.equal(res.locked, false, 'la série précédente est soldée');
   assert.equal(res.wrong_attempts, 1);
 });
 
+test('resourceCooldownStateFromRow — une ligne de comptage garde son compteur (A6)', () => {
+  // Sous la tolérance, la ligne porte la sentinelle 1970 : non verrouillée, mais la série est
+  // en cours. Le client affiche alors « il te reste N erreur(s) » au lieu de la tolérance neuve.
+  const counting = cooldown.resourceCooldownStateFromRow(
+    { wrong_attempts: 1, locked_until: cooldown.COUNTING_LOCK_UNTIL },
+    72,
+  );
+  assert.equal(counting.locked, false);
+  assert.equal(counting.wrong_attempts, 1);
+  assert.equal(counting.retry_hours, 72);
+  assert.equal(counting.retry_label, '3 jours');
+});
+
+test('buildCooldownState — libellés en heures et jours', () => {
+  const now = 1_000_000_000_000;
+  const sixHours = cooldown.buildCooldownState(new Date(now + 5 * HOUR + 1), 6, now);
+  assert.equal(sixHours.retry_hours, 6);
+  assert.equal(sixHours.retry_label, '6 h');
+  assert.equal(sixHours.remaining_hours, 6);
+  assert.equal(sixHours.remaining_label, '6 h');
+  assert.equal(sixHours.remaining_days, 1);
+  const minutes = cooldown.buildCooldownState(new Date(now + 20 * 60 * 1000), 6, now);
+  assert.equal(minutes.remaining_label, '20 min');
+  const long = cooldown.buildCooldownState(new Date(now + 30 * HOUR), 36, now);
+  assert.equal(long.remaining_label, '1 j 6 h');
+  assert.equal(long.retry_label, '1 j 12 h');
+});
+
 test('getResourceCooldownState — le compteur ne remonte que si le verrou court', async () => {
   const locked = await cooldown.getResourceCooldownState(
     fakeDb({ cooldownRow: { wrong_attempts: 4, locked_until: new Date(Date.now() + DAY) } }),
-    { product: 'fm', userId: '7', resourceType: 'tutorial', resourceRef: '12', retryDays: 3 },
+    { product: 'fm', userId: '7', resourceType: 'tutorial', resourceRef: '12', retryHours: 72 },
   );
   assert.equal(locked.locked, true);
   assert.equal(locked.wrong_attempts, 4);
 
   const expired = await cooldown.getResourceCooldownState(
     fakeDb({ cooldownRow: { wrong_attempts: 4, locked_until: new Date(Date.now() - DAY) } }),
-    { product: 'fm', userId: '7', resourceType: 'tutorial', resourceRef: '12', retryDays: 3 },
+    { product: 'fm', userId: '7', resourceType: 'tutorial', resourceRef: '12', retryHours: 72 },
   );
   assert.equal(expired.locked, false);
   assert.equal(expired.wrong_attempts, 0);
@@ -434,7 +463,7 @@ test('portée « question » — le verrou ne bloque que la question ratée', as
     resourceRef: '12',
     questionCode: 'QF0001',
     isCorrect: false,
-    retryDays: 3,
+    retryHours: 72,
     cooldownScope: 'question',
   });
   const inserted = db.calls.execute[0];
@@ -450,7 +479,7 @@ test('portée « ressource » — la clé reste vide, comportement historique', 
     resourceRef: '12',
     questionCode: 'QF0001',
     isCorrect: false,
-    retryDays: 3,
+    retryHours: 72,
     cooldownScope: 'resource',
   });
   assert.equal(db.calls.execute[0].params[3], '');
@@ -473,7 +502,7 @@ test('la lecture prend le verrou le plus contraignant des deux portées', async 
     userId: '7',
     resourceType: 'tutorial',
     resourceRef: '12',
-    retryDays: 3,
+    retryHours: 72,
     questionCode: 'QF0001',
   });
   assert.equal(state.locked, true);

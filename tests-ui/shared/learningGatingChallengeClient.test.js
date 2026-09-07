@@ -86,14 +86,20 @@ describe('buildGatingQuizIntroMessage', () => {
 
   // F6 (audit 2026-08) : promettre « tu pourras réessayer » alors qu'une erreur verrouille
   // la ressource 3 jours était faux. Le message suit désormais le délai réel.
-  it('annonce le verrou quand un délai de nouvelle tentative est configuré', () => {
-    const msg = buildGatingQuizIntroMessage(1, 'Feuillet', 3);
+  it('annonce le verrou quand un délai de nouvelle tentative est configuré (heures)', () => {
+    const msg = buildGatingQuizIntroMessage(1, 'Feuillet', 72);
     expect(msg).toContain('3 jours');
     expect(msg).not.toContain('Tu pourras réessayer');
+    expect(buildGatingQuizIntroMessage(1, 'Feuillet', 6)).toContain('6 h.');
   });
 
-  it('accorde le singulier du délai', () => {
-    expect(buildGatingQuizIntroMessage(2, 'Feuillet', 1)).toContain('1 jour.');
+  it('accorde le singulier du délai et lit le challenge lui-même', () => {
+    expect(buildGatingQuizIntroMessage(2, 'Feuillet', 24)).toContain('1 jour.');
+    expect(buildGatingQuizIntroMessage(2, 'Feuillet', { retry_cooldown_hours: 36 })).toContain(
+      '1 j 12 h.',
+    );
+    // Serveur antérieur : `retry_days` (jours) reste compris.
+    expect(buildGatingQuizIntroMessage(2, 'Feuillet', { retry_days: 2 })).toContain('2 jours.');
   });
 
   it('promet le réessai immédiat quand le délai est nul', () => {
@@ -119,8 +125,14 @@ describe('buildCooldownLockMessage', () => {
     expect(msg.toLowerCase()).toContain('erreur');
   });
 
-  it('formule au singulier et borne à 1 jour minimum', () => {
+  it('préfère le temps restant formaté par le serveur, en heures', () => {
     expect(buildCooldownLockMessage({ locked: true, remaining_days: 1 })).toContain('1 jour');
-    expect(buildCooldownLockMessage({ locked: true, remaining_days: 0 })).toContain('1 jour');
+    expect(buildCooldownLockMessage({ locked: true, remaining_label: '5 h' })).toContain('5 h');
+    expect(
+      buildCooldownLockMessage({ locked: true, remaining_ms: 40 * 60 * 1000, remaining_days: 1 }),
+    ).toContain('40 min');
+    expect(buildCooldownLockMessage({ locked: true, remaining_days: 0 })).toContain(
+      'quelques minutes',
+    );
   });
 });

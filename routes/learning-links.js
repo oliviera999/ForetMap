@@ -19,6 +19,7 @@ const gatingProgress = require('../lib/learningGatingProgress');
 const tutorialMatch = require('../lib/shared/tutorialQuestionMatch');
 const labelMatch = require('../lib/shared/resourceQuestionMatch');
 const linksBulk = require('../lib/learningLinksBulk');
+const { invalidateStrictCodesCache } = require('../lib/learningGatingLockMode');
 const policyHelpers = require('../lib/gatingPolicyRouteHelpers');
 const layers = require('../lib/shared/gatingPolicyLayersCore');
 
@@ -112,6 +113,7 @@ router.post(
         WHERE resource_type = ? AND resource_ref = ? AND question_code = ? LIMIT 1`,
       [v.resource_type, v.resource_ref, v.question_code],
     );
+    invalidateStrictCodesCache();
     return res.status(201).json({ link: row });
   }),
 );
@@ -167,6 +169,7 @@ router.patch(
     );
     if (!result.affectedRows) return res.status(404).json({ error: 'Lien introuvable' });
     const row = await queryOne('SELECT * FROM resource_question_links WHERE id = ? LIMIT 1', [id]);
+    invalidateStrictCodesCache();
     return res.json({ link: row });
   }),
 );
@@ -225,6 +228,7 @@ router.delete(
       return res.status(400).json({ error: 'Identifiant invalide' });
     const result = await execute('DELETE FROM resource_question_links WHERE id = ?', [id]);
     if (!result.affectedRows) return res.status(404).json({ error: 'Lien introuvable' });
+    invalidateStrictCodesCache();
     return res.json({ success: true });
   }),
 );

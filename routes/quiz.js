@@ -36,6 +36,12 @@ const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../lib
 const { normalizeQuestionCode } = require('../lib/shared/questionRouteHelpers');
 const { registerFmCooldownOnWrongIfGating } = require('../lib/learningGatingRuntime');
 const {
+  resolvePresentContext,
+  assertPresentAllowed,
+  resolveAnswerContext,
+  listStrictGatingQuestionCodes,
+} = require('../lib/learningGatingLockMode');
+const {
   listFmQuestionStats,
   MIN_ATTEMPTS_FOR_FLAG,
   SUSPECT_SUCCESS_RATE,
@@ -112,21 +118,26 @@ async function tryHydrateAuth(req) {
 }
 
 /**
- * Verrou de re-tentative ForetMap : ne s'active que si la reponse est envoyee avec un contexte
- * ressource (resourceType/resourceRef) — c.-a-d. depuis le flux de validation « Marquer comme
- * acquis ». Le quiz libre n'envoie pas ce contexte : aucun verrou n'est jamais pose.
+ * Verrou de re-tentative ForetMap : ne s'active que dans le flux de validation « Marquer comme
+ * acquis », c'est-à-dire avec un contexte ressource. Ce contexte vient du JETON de présentation
+ * (gravé par `GET …/present?resourceType=&resourceRef=`) ; le corps de la requête n'est honoré
+ * que si la sévérité effective de la ressource est `advisory` (lib/learningGatingLockMode.js).
  */
-async function maybeRegisterCooldownForFmAnswer(req, { userId, questionCode, isCorrect }) {
-  return registerFmCooldownOnWrongIfGating(
-    { queryAll, queryOne, execute },
-    {
-      userId,
-      resourceType: req.body?.resourceType,
-      resourceRef: req.body?.resourceRef,
-      questionCode,
-      isCorrect,
-    },
-  );
+async function maybeRegisterCooldownForFmAnswer(req, { userId, questionCode, isCorrect, result }) {
+  const db = { queryAll, queryOne, execute };
+  const context = await resolveAnswerContext(db, {
+    product: 'fm',
+    tokenResource: result?.resource || null,
+    bodyResource: req.body || null,
+  });
+  if (!context) return null;
+  return registerFmCooldownOnWrongIfGating(db, {
+    userId,
+    resourceType: context.type,
+    resourceRef: context.ref,
+    questionCode,
+    isCorrect,
+  });
 }
 
 /** GET /api/quiz/categories?theme=&niveau= */
@@ -201,6 +212,13 @@ router.get(
     }
     if (illustratedOnly) {
       whereSql += " AND photo_url IS NOT NULL AND TRIM(photo_url) <> ''";
+    }
+    // Questions réservées à la validation d'une fiche (sévérité `strict`) : jamais dans le
+    // tirage libre, sinon l'élève y verrait la bonne réponse sans enjeu.
+    const strictCodes = await listStrictGatingQuestionCodes({ queryAll, queryOne }, 'fm');
+    if (strictCodes.length > 0) {
+      whereSql += ` AND question_code NOT IN (${strictCodes.map(() => '?').join(', ')})`;
+      params.push(...strictCodes);
     }
     // Tirage uniforme SANS `ORDER BY RAND()` : celui-ci matérialise et trie la sélection
     // entière à chaque clic, et le coût croît avec le catalogue — une classe qui enchaîne
@@ -298,10 +316,33 @@ router.get(
     const row = await loadActiveQuestion(code);
     if (!row) return res.status(404).json({ error: 'Question introuvable' });
 
+    // Contexte de validation (`?resourceType=&resourceRef=`) : gravé dans le jeton. Sans
+    // contexte, une question réservée (sévérité `strict`) est refusée.
+    const db = { queryAll, queryOne };
+    const context = await resolvePresentContext(db, {
+      product: 'fm',
+      query: req.query,
+      questionCode: code,
+    });
+    if (context.error) return res.status(context.status || 400).json({ error: context.error });
+    const allowed = await assertPresentAllowed(db, {
+      product: 'fm',
+      questionCode: code,
+      resource: context.resource,
+    });
+    if (!allowed.ok) {
+      return res
+        .status(allowed.status || 403)
+        .json({ error: allowed.error, reserved_for: allowed.reserved_for });
+    }
+
     const glossaryByKey = await loadGlossaryLookup();
     const glossaryTerms = enrichQuestionWithGlossary(row, glossaryByKey);
     try {
-      const presentation = presentQuestion(row, glossaryTerms, QCM_OPTIONS);
+      const presentation = presentQuestion(row, glossaryTerms, {
+        ...QCM_OPTIONS,
+        resource: context.resource,
+      });
       return res.json(presentation);
     } catch (err) {
       return res.status(400).json({ error: err.message || 'Présentation impossible' });
@@ -356,6 +397,7 @@ router.post(
             userId: auth.userId,
             questionCode: code,
             isCorrect: result.correct,
+            result,
           })
         : null;
 

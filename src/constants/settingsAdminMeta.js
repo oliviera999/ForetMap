@@ -29,7 +29,8 @@ export const KEYS_HANDLED_BY_PANEL = new Set([
   'learning.gating.default_mode',
   'learning.gating.default_required_correct',
   'learning.gating.allowed_wrong_attempts',
-  'learning.gating.retry_cooldown_days',
+  'learning.gating.retry_cooldown_hours',
+  'learning.gating.lock_mode',
   'learning.gating.cooldown_scope',
   'learning.gating.max_questions_per_session',
   'learning.gating.announce_on_button',
@@ -376,10 +377,15 @@ export const KEY_META = {
     section: 'learning',
     order: 55,
   },
-  'learning.gating.retry_cooldown_days': {
-    label: 'Délai avant nouvelle tentative après une erreur (jours, 0 = aucun)',
+  'learning.gating.retry_cooldown_hours': {
+    label: 'Délai avant nouvelle tentative après une erreur (heures, 0 = aucun)',
     section: 'learning',
     order: 40,
+  },
+  'learning.gating.lock_mode': {
+    label: 'Sévérité du verrou (souple / normale / stricte)',
+    section: 'learning',
+    order: 41,
   },
 
   'system.maintenance_mode': {

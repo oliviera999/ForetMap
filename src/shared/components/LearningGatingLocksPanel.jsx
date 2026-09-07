@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { cooldownRemainingLabel } from '../utils/cooldownDuration.js';
 
 // Écran « lecteurs bloqués » — partagé ForetMap / Gnomes & Licornes.
 //
@@ -19,11 +20,10 @@ export function formatLearner(learner) {
   return `${type}${learner.user_id || '—'}`.trim();
 }
 
-/** Phrase du délai restant, au singulier près. */
+/** Phrase du délai restant : « encore 5 h », « encore 1 j 2 h », « encore 40 min ». */
 export function formatRemaining(lock) {
   if (!lock || lock.expired) return 'Expiré';
-  const days = Math.max(1, Number(lock.remaining_days) || 1);
-  return days === 1 ? 'encore 1 jour' : `encore ${days} jours`;
+  return `encore ${cooldownRemainingLabel(lock) || 'quelques minutes'}`;
 }
 
 export function LearningGatingLocksPanel({

@@ -39,14 +39,20 @@ export function LearningGatingQuestionPanel({
     setSelectedChoiceId(null);
     setResult(null);
     try {
-      const data = await presentQuestion(questionCode, questionDataset);
+      // Le contexte ressource est demandé dès la présentation : le serveur le grave dans le
+      // jeton, ce qui fait tenir le verrou même si le corps de la réponse est modifié.
+      const resource =
+        resourceType && resourceRef != null && resourceRef !== ''
+          ? { resourceType, resourceRef }
+          : null;
+      const data = await presentQuestion(questionCode, questionDataset, resource);
       setPresentation(data);
     } catch (err) {
       setError(err?.message || 'Chargement de la question impossible');
     } finally {
       setLoading(false);
     }
-  }, [presentQuestion, questionCode, questionDataset]);
+  }, [presentQuestion, questionCode, questionDataset, resourceType, resourceRef]);
 
   useEffect(() => {
     loadPresentation();

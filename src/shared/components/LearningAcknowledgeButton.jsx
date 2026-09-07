@@ -5,6 +5,7 @@ import { LearningGatingQuestionPanel } from './LearningGatingQuestionPanel.jsx';
 import { LearningGatingStateIcon } from './LearningGatingStateIcon.jsx';
 import { IconCheck, IconLock } from '../icons.jsx';
 import { gatingState } from '../utils/learningGatingState.js';
+import { cooldownRemainingLabel } from '../utils/cooldownDuration.js';
 import {
   pendingChallengeQuestions,
   buildGatingQuizIntroMessage,
@@ -35,10 +36,10 @@ export function buildButtonAnnounce(summary, itemTitle = '') {
 
   const label = itemTitle ? `« ${itemTitle} »` : 'ce contenu';
   if (state.kind === 'locked') {
-    const days = Math.max(1, Number(summary.remaining_days) || 1);
+    const remaining = cooldownRemainingLabel(summary) || 'quelques minutes';
     return {
       announceBadge: '🔒',
-      announceTitle: `Validation de ${label} bloquée encore ${days === 1 ? '1 jour' : `${days} jours`} après une erreur.`,
+      announceTitle: `Validation de ${label} bloquée encore ${remaining} après une erreur.`,
     };
   }
 
@@ -214,10 +215,11 @@ export function LearningAcknowledgeButton({
 
   const currentQuestion = pendingQuestions[questionIndex] || null;
   const gatingRules = buildGatingRules(challenge);
+  // Le challenge porte le délai effectif (heures) ; le bloc `cooldown` seul sert de repli.
   const quizIntroMessage = buildGatingQuizIntroMessage(
     pendingQuestions.length,
     itemTitle,
-    cooldown?.retry_days,
+    challenge || cooldown,
   );
 
   return (

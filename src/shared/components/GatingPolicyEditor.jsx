@@ -1,12 +1,16 @@
 import { useMemo, useState } from 'react';
 import {
   COOLDOWN_SCOPE_LABELS,
+  LOCK_MODE_OPTIONS,
+  RETRY_HOUR_OPTIONS,
   describeEffectiveGatingPolicy,
   describeSiteGatingMode,
   formatEffectiveSource,
   GRANULARITY_LABELS,
   INHERIT_VALUE,
   inheritHint,
+  readRetryHours,
+  retryHoursLabel,
 } from '../utils/learningGatingPolicyText.js';
 
 const MODE_OPTIONS = [
@@ -61,12 +65,15 @@ function initialFromPolicy(policy, site, canInherit) {
     maxSession: isInherited(p, 'max_questions_per_session')
       ? INHERIT_VALUE
       : String(p.max_questions_per_session),
-    retryDays: isInherited(p, 'retry_cooldown_days')
-      ? INHERIT_VALUE
-      : String(p.retry_cooldown_days),
+    // Délai en heures ; une ligne ancienne (jours) est relue × 24, jamais perdue.
+    retryHours:
+      isInherited(p, 'retry_cooldown_hours') && isInherited(p, 'retry_cooldown_days')
+        ? INHERIT_VALUE
+        : String(readRetryHours(p, 6)),
     cooldownScope: isInherited(p, 'cooldown_scope')
       ? INHERIT_VALUE
       : String(p.cooldown_scope || 'resource'),
+    lockMode: isInherited(p, 'lock_mode') ? INHERIT_VALUE : String(p.lock_mode || 'flow'),
     granularity: isInherited(p, 'granularity') ? INHERIT_VALUE : String(p.granularity || 'player'),
   };
 }
@@ -97,8 +104,9 @@ export function GatingPolicyEditor({
   const [enabledOff, setEnabledOff] = useState(init.enabledOff);
   const [allowedWrong, setAllowedWrong] = useState(init.allowedWrong);
   const [maxSession, setMaxSession] = useState(init.maxSession);
-  const [retryDays, setRetryDays] = useState(init.retryDays);
+  const [retryHours, setRetryHours] = useState(init.retryHours);
   const [cooldownScope, setCooldownScope] = useState(init.cooldownScope);
+  const [lockMode, setLockMode] = useState(init.lockMode);
   const [granularity, setGranularity] = useState(init.granularity);
 
   const appliedText = useMemo(() => {
@@ -109,8 +117,10 @@ export function GatingPolicyEditor({
       gatingCount,
       allowedWrongAttempts: effective.allowedWrongAttempts,
       maxQuestionsPerSession: effective.maxQuestionsPerSession,
+      retryCooldownHours: effective.retryCooldownHours,
       retryCooldownDays: effective.retryCooldownDays,
       cooldownScope: effective.cooldownScope,
+      lockMode: effective.lockMode,
     });
   }, [effective, gatingCount]);
 
@@ -125,8 +135,9 @@ export function GatingPolicyEditor({
       if (mode === 'threshold') patch.defaultRequiredCorrect = readNumber(requiredCorrect, 1);
       patch.allowedWrongAttempts = readNumber(allowedWrong, 0);
       patch.maxQuestionsPerSession = readNumber(maxSession, 3);
-      patch.retryCooldownDays = readNumber(retryDays, 3);
+      patch.retryCooldownHours = readNumber(retryHours, 6);
       patch.cooldownScope = cooldownScope === INHERIT_VALUE ? 'resource' : cooldownScope;
+      patch.lockMode = lockMode === INHERIT_VALUE ? 'flow' : lockMode;
       if (product === 'gl') {
         patch.granularity = granularity === INHERIT_VALUE ? 'player' : granularity;
       }
@@ -142,10 +153,11 @@ export function GatingPolicyEditor({
     } else if (layer === 'resource') {
       patch.enabled = 1;
     }
-    patch.allowed_wrong_attempts = nullableNumberField(allowedWrong, setAllowedWrong);
-    patch.max_questions_per_session = nullableNumberField(maxSession, setMaxSession);
-    patch.retry_cooldown_days = nullableNumberField(retryDays, setRetryDays);
+    patch.allowed_wrong_attempts = nullableNumberField(allowedWrong);
+    patch.max_questions_per_session = nullableNumberField(maxSession);
+    patch.retry_cooldown_hours = nullableNumberField(retryHours);
     patch.cooldown_scope = cooldownScope === INHERIT_VALUE ? null : cooldownScope;
+    patch.lock_mode = lockMode === INHERIT_VALUE ? null : lockMode;
     if (product === 'gl' && layer !== 'site') {
       patch.granularity = granularity === INHERIT_VALUE ? null : granularity;
     }
@@ -166,6 +178,22 @@ export function GatingPolicyEditor({
     if (fromSite) return readRowField(siteSession, camel, snake) ?? siteSession[camel];
     return null;
   }
+
+  // Délai hérité (heures) : ligne de type d'abord, puis réglages du site (jours anciens × 24).
+  const parentRetryHours =
+    layer === 'resource' &&
+    parentSession &&
+    (readRowField(parentSession, 'retry_cooldown_hours', 'retryCooldownHours') != null ||
+      readRowField(parentSession, 'retry_cooldown_days', 'retryCooldownDays') != null)
+      ? readRetryHours(parentSession, 6)
+      : site
+        ? readRetryHours(siteSession, 6)
+        : null;
+  const parentLockMode = parentVal('lock_mode', 'lockMode') ?? siteSession.lockMode ?? 'flow';
+  const parentLockModeLabel =
+    LOCK_MODE_OPTIONS.find((o) => o.value === String(parentLockMode))?.label || null;
+  const effectiveLockModeForHelp =
+    lockMode === INHERIT_VALUE ? String(parentLockMode || 'flow') : lockMode;
 
   return (
     <div className={`gating-policy-editor${compact ? ' gating-policy-editor--compact' : ''}`}>
@@ -244,7 +272,7 @@ export function GatingPolicyEditor({
                   layer === 'resource' && parentSession ? 'type' : 'site',
                 )}
               </option>
-              {[0, 1, 2, 3, 4, 5].map((n) => (
+              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                 <option key={n} value={String(n)}>
                   {n}
                 </option>
@@ -299,37 +327,67 @@ export function GatingPolicyEditor({
       <fieldset className="gating-policy-editor__section" disabled={busy}>
         <legend>Verrou après erreur</legend>
         <label className="pedago-filter-field">
-          <span>Délai (jours, 0 = immédiat)</span>
+          <span>Délai avant nouvelle tentative</span>
           {canInherit ? (
             <select
               className="form-select"
-              value={retryDays}
-              onChange={(e) => setRetryDays(e.target.value)}
+              value={retryHours}
+              onChange={(e) => setRetryHours(e.target.value)}
             >
               <option value={INHERIT_VALUE}>
                 {inheritHint(
-                  'retryCooldownDays',
-                  parentVal('retry_cooldown_days', 'retryCooldownDays') ??
-                    siteSession.retryCooldownDays,
+                  'retryCooldownHours',
+                  parentRetryHours == null ? null : retryHoursLabel(parentRetryHours),
                   layer === 'resource' && parentSession ? 'type' : 'site',
                 )}
               </option>
-              {[0, 1, 2, 3, 5, 7, 14, 30].map((n) => (
+              {RETRY_HOUR_OPTIONS.map((n) => (
                 <option key={n} value={String(n)}>
-                  {n} jour{n > 1 ? 's' : ''}
+                  {retryHoursLabel(n)}
                 </option>
               ))}
+              {retryHours !== INHERIT_VALUE && !RETRY_HOUR_OPTIONS.includes(Number(retryHours)) ? (
+                <option value={retryHours}>{retryHoursLabel(retryHours)} (personnalisé)</option>
+              ) : null}
             </select>
           ) : (
             <input
               type="number"
               className="form-input"
               min={0}
-              max={365}
-              value={retryDays === INHERIT_VALUE ? 3 : retryDays}
-              onChange={(e) => setRetryDays(e.target.value)}
+              max={8760}
+              aria-label="Délai en heures"
+              value={retryHours === INHERIT_VALUE ? 6 : retryHours}
+              onChange={(e) => setRetryHours(e.target.value)}
             />
           )}
+          <span className="gating-settings__help">En heures ; 0 = réessai immédiat.</span>
+        </label>
+        <label className="pedago-filter-field">
+          <span>Sévérité du verrou</span>
+          <select
+            className="form-select"
+            value={canInherit ? lockMode : lockMode === INHERIT_VALUE ? 'flow' : lockMode}
+            onChange={(e) => setLockMode(e.target.value)}
+          >
+            {canInherit ? (
+              <option value={INHERIT_VALUE}>
+                {inheritHint(
+                  'lockMode',
+                  parentLockModeLabel,
+                  layer === 'resource' && parentSession ? 'type' : 'site',
+                )}
+              </option>
+            ) : null}
+            {LOCK_MODE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <span className="gating-settings__help">
+            {LOCK_MODE_OPTIONS.find((o) => o.value === effectiveLockModeForHelp)?.help}
+          </span>
         </label>
         <label className="pedago-filter-field">
           <span>Portée du verrou</span>

@@ -208,3 +208,63 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* ── Écrans de réglage du conditionnement (prof FM / admin GL) ─────────
+ * Quatre étapes numérotées lisibles d'un coup d'œil : activer, ce qu'il faut réussir,
+ * en cas d'erreur, ce que l'élève voit. Même habillage dans les deux produits ;
+ * `gl-theme.css` ne redéfinit que les variables. */
+.gating-settings__section {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border: 1px solid var(--learning-gating-panel-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--learning-gating-panel-bg) 55%, transparent);
+}
+.gating-settings__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--text-base, 1rem);
+  color: var(--learning-gating-ink);
+}
+.gating-settings__step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--learning-gating-accent);
+  color: #fff;
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 700;
+  line-height: 1;
+}
+.gating-settings__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: min(100%, 240px);
+}
+.gating-settings__help {
+  display: block;
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--learning-gating-muted);
+}
+.gating-settings__help .form-input--inline,
+.gating-settings__help input[type='number'] {
+  width: 6.5em;
+  min-height: 44px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.gating-settings__section select,
+.gating-settings__section input[type='number'] {
+  min-height: 44px;
+}
