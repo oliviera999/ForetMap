@@ -96,9 +96,35 @@ export function buildCooldownLockMessage(cooldown, itemTitle = '') {
   // l'ancien champ en jours pour un serveur antérieur.
   const remaining = cooldownRemainingLabel(cooldown) || 'quelques minutes';
   const label = itemTitle ? `« ${itemTitle} »` : 'cette ressource';
+  if (isQuestionScopedLock(cooldown)) {
+    // Portée « question seule » : la fiche n'est bloquée que parce que plus aucune question
+    // n'est posable ; le délai est celui de la question qui se libère en premier.
+    return (
+      `Une question ratée est encore bloquée, et il n'en reste aucune autre à passer. ` +
+      `Tu pourras réessayer de valider ${label} dans ${remaining}.`
+    );
+  }
   return (
     `Une erreur a été commise sur le contrôle de compréhension. ` +
     `Tu pourras réessayer de valider ${label} dans ${remaining}.`
+  );
+}
+
+/** Le verrou ne porte-t-il que sur une question (portée « question seule ») ? */
+export function isQuestionScopedLock(cooldown) {
+  return !!cooldown && String(cooldown.scope || '') === 'question';
+}
+
+/**
+ * Message affiché juste après une erreur qui n'a bloqué QUE la question ratée : l'élève peut
+ * continuer avec les autres questions de la fiche.
+ * @param {object} cooldown bloc renvoyé par `…/answer`
+ */
+export function buildQuestionLockMessage(cooldown) {
+  const remaining = cooldownRemainingLabel(cooldown) || 'quelques minutes';
+  return (
+    `Cette question est bloquée pendant ${remaining}. ` +
+    `Tu peux continuer avec les autres questions de la fiche.`
   );
 }
 
@@ -113,7 +139,8 @@ export function buildCooldownLockMessage(cooldown, itemTitle = '') {
 export function pendingChallengeQuestions(challenge) {
   if (!challenge?.required) return [];
   const list = Array.isArray(challenge.questions) ? challenge.questions : [];
-  const notCorrect = list.filter((q) => !q.already_correct);
+  // Une question verrouillée (portée « question seule ») n'est pas posable maintenant.
+  const notCorrect = list.filter((q) => !q.already_correct && !q.locked);
   // `ask_count` = ce que le serveur accepte de poser MAINTENANT (plafond par
   // session appliqué) ; `pending_count` = ce qu'il reste au total. Un serveur
   // antérieur n'envoie pas `ask_count` : on retombe alors sur `pending_count`.
@@ -222,6 +249,21 @@ export function buildGatingRules(challenge) {
           : `Tu as droit à ${left} erreurs ; au-delà, la validation sera bloquée ${lockLabel}.`,
       );
     }
+  }
+  if (String(challenge.cooldown_scope || '').toLowerCase() === 'question' && hours > 0) {
+    rules.push(
+      'Une erreur ne bloque que la question ratée : tu peux continuer avec les autres questions.',
+    );
+  }
+  const lockedNow = Array.isArray(challenge.cooldown?.locked_questions)
+    ? challenge.cooldown.locked_questions.length
+    : 0;
+  if (lockedNow > 0 && !challenge.cooldown?.locked) {
+    rules.push(
+      lockedNow === 1
+        ? 'Une question ratée est encore bloquée ; elle te sera reposée plus tard.'
+        : `${lockedNow} questions ratées sont encore bloquées ; elles te seront reposées plus tard.`,
+    );
   }
   const lockMode = String(challenge.lock_mode || '').toLowerCase();
   if (lockMode === 'strict') {

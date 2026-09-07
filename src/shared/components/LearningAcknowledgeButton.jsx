@@ -188,6 +188,39 @@ export function LearningAcknowledgeButton({
     setFlowPhase('confirm');
   }, [questionIndex, pendingQuestions.length]);
 
+  /**
+   * Erreur en portée « question seule » : seule la question ratée est bloquée. On redemande
+   * l'état au serveur — lui seul sait s'il reste des questions posables ou si la fiche attend
+   * la levée la plus proche.
+   */
+  const handleQuestionLocked = useCallback(async () => {
+    if (!gatingHandlers || !gatingResource) return;
+    setFlowPhase('loading');
+    try {
+      const next = await gatingHandlers.fetchChallenge(
+        gatingResource.resourceType,
+        gatingResource.resourceRef,
+      );
+      setChallenge(next || null);
+      setCooldown(next?.cooldown || null);
+      if (next?.required && isCooldownLocked(next.cooldown)) {
+        setFlowPhase('locked');
+        return;
+      }
+      const pending = pendingChallengeQuestions(next);
+      if (pending.length > 0) {
+        setPendingQuestions(pending);
+        setQuestionIndex(0);
+        setFlowPhase('quiz');
+      } else {
+        setFlowPhase('confirm');
+      }
+    } catch (e) {
+      setError(e?.message || 'Impossible de recharger le contrôle de compréhension');
+      setFlowPhase('confirm');
+    }
+  }, [gatingHandlers, gatingResource]);
+
   const closeModal = useCallback(() => {
     if (!busy) setModalOpen(false);
   }, [busy]);
@@ -325,6 +358,7 @@ export function LearningAcknowledgeButton({
                 answerQuestion={gatingHandlers.answerQuestion}
                 onPassed={handleQuestionPassed}
                 onAbandon={closeModal}
+                onQuestionLocked={handleQuestionLocked}
                 choiceClassName={choiceClassName}
                 primaryBtnClassName={primaryBtnClassName}
                 ghostBtnClassName={ghostBtnClassName}

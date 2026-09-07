@@ -1,6 +1,6 @@
 /* Service worker « gl » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-gl-9d0f708d";
+const CACHE_NAME = "foretmap-gl-b0382112";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -9,7 +9,7 @@ const PRECACHE_URLS = [
   "/manifest.json",
   "/gl/favicon.svg",
   "/gl/logo.png",
-  "/assets/gl-AQX6lc1a.js",
+  "/assets/gl-CtrCZ55n.js",
   "/assets/gl-DIPb1UXd.css",
   "/assets/rolldown-runtime-hePW80VL.js",
   "/assets/VisitMascotFallbackSvg-DgPaPMDJ.js",
@@ -17,7 +17,7 @@ const PRECACHE_URLS = [
   "/assets/icons-BYRl22YG.js",
   "/assets/ErrorBoundary-DkUbFpAD.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-BOhKCUBD.js",
+  "/assets/ImageLightboxProvider-CCWv9qyf.js",
   "/assets/ImageLightboxProvider-CPh0j32G.css",
   "/assets/spriteCutCatalogEntry-Dk2XFDfU.js",
   "/assets/markdown-B5dU4qij.js",
@@ -28,7 +28,7 @@ const PRECACHE_URLS = [
   "/assets/StatsSummaryGrid-DrI_5fO6.js",
   "/assets/quizGlossaryReveal-aeOpCJbU.js",
   "/assets/mascotBehaviorEngine-CP-FMdBG.js",
-  "/assets/MediaLibraryMenu-Cq0IVzxX.js",
+  "/assets/MediaLibraryMenu-DuHr4Dog.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).
