@@ -1,6 +1,6 @@
 /* Service worker « foret » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-foret-996092bc";
+const CACHE_NAME = "foretmap-foret-671edfc9";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -17,27 +17,27 @@ const PRECACHE_URLS = [
   "/pwa-maskable-512.png",
   "/pwa-screenshot-mobile.png",
   "/pwa-screenshot-wide.png",
-  "/assets/main-CAjTJhw_.js",
+  "/assets/main-CZKmq_H8.js",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-DgPaPMDJ.js",
-  "/assets/react-vendor-Bnq5Y4Sb.js",
-  "/assets/icons-BYRl22YG.js",
-  "/assets/ErrorBoundary-DkUbFpAD.js",
+  "/assets/VisitMascotFallbackSvg-BsT6kZRk.js",
+  "/assets/react-vendor-C0Yg5SPW.js",
+  "/assets/icons-AICwfx-P.js",
+  "/assets/ErrorBoundary-C4UxIMP8.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-CzMLpJYH.js",
+  "/assets/ImageLightboxProvider-Bj3FdeHy.js",
   "/assets/ImageLightboxProvider-CPh0j32G.css",
-  "/assets/spriteCutCatalogEntry-Dk2XFDfU.js",
+  "/assets/spriteCutCatalogEntry-CL4HzhoW.js",
   "/assets/markdown-B5dU4qij.js",
-  "/assets/visitMascotPackExtras-B5GNTM4R.js",
+  "/assets/visitMascotPackExtras-BBiV7-39.js",
   "/assets/visitMascotPackExtras-BLkqnenv.css",
-  "/assets/mascotPack-CPo_r80L.js",
+  "/assets/mascotPack-NWY-RApL.js",
   "/assets/socket-io-D_2T_oRH.js",
-  "/assets/MarkdownTextarea-DP8zgY94.js",
-  "/assets/GlossaryMarkdown-CrgdQntv.js",
-  "/assets/useGatingSummary-a4rtWW3Z.js",
-  "/assets/PublicSettingsContext-CrXzdDiQ.js",
-  "/assets/useBrandTheme-DVckmT0z.js",
-  "/assets/downloadApiFile-B8hAEaKh.js",
+  "/assets/MarkdownTextarea-CZB159Dh.js",
+  "/assets/GlossaryMarkdown-C2xdJ2qb.js",
+  "/assets/useGatingSummary-D2qQM0bS.js",
+  "/assets/PublicSettingsContext-D7eMgKFT.js",
+  "/assets/useBrandTheme-GhJx0HCg.js",
+  "/assets/downloadApiFile-B7Ios3eo.js",
   "/assets/downloadAuthedFile-BRkwVwdZ.js",
 ];
 
