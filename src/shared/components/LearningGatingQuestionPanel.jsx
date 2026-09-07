@@ -35,6 +35,7 @@ export function LearningGatingQuestionPanel({
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
   const loadPresentation = useCallback(async () => {
     setLoading(true);
@@ -80,11 +81,24 @@ export function LearningGatingQuestionPanel({
       );
       setResult(data);
     } catch (err) {
+      // 409 : la présentation a expiré (15 min) ou a déjà servi — on recharge la question
+      // avec de nouveaux choix plutôt que d'afficher « Présentation déjà utilisée » (D3).
+      if (err?.status === 409) {
+        setNotice('Cette question avait expiré : elle est rechargée avec de nouveaux choix.');
+        await loadPresentation();
+        return;
+      }
+      // 403 avec verrou : la question (ou la fiche) s'est bloquée entre-temps.
+      if (err?.status === 403 && err?.body?.cooldown) {
+        setResult({ correct: false, cooldown: err.body.cooldown, feedback: err.body.error || '' });
+        return;
+      }
       setError(err?.message || 'Envoi de la réponse impossible');
     } finally {
       setSubmitting(false);
     }
   }, [
+    loadPresentation,
     answerQuestion,
     presentation,
     questionCode,
@@ -111,6 +125,11 @@ export function LearningGatingQuestionPanel({
         .
       </p>
       {loading ? <p className="tuto-read-ack-intro">Chargement de la question…</p> : null}
+      {notice ? (
+        <p className="tuto-read-ack-intro learning-gating-quiz__notice" role="status">
+          {notice}
+        </p>
+      ) : null}
       {error ? <p className="tuto-read-ack-error">{error}</p> : null}
       {!loading && !showAnswer && presentation ? (
         <>

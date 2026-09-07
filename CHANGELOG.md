@@ -29,6 +29,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   constats nouveaux, non traités : usage de la médiathèque à 30 requêtes SQL sans cache (T1),
   catalogue complet retéléchargé par le réseau trophique pour trois champs (T2),
   `/api/settings/public` redondant du forum (T3).
+### Validation des ressources par quiz — lot 5 : écrans (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.5)
+
+- **Corrigé — le focus s'échappait de la fenêtre de contrôle** (D1) : le piège de focus des
+  fenêtres (`useDialogA11y`) figeait ses bornes au montage ; le contenu change pourtant
+  (chargement → question → réponse → confirmation) et Tab sortait de la fenêtre. Les bornes
+  sont recalculées à chaque Tab.
+- **Corrigé — les erreurs du serveur étaient affichées en texte brut, ou ignorées** (D3) :
+  challenge illisible → écran « Contrôle indisponible » avec _Réessayer_ (au lieu de passer à
+  une confirmation que le serveur allait refuser) ; refus `403` à la confirmation → retour au
+  contrôle avec « N question(s) à réussir », ou écran « Réessaie plus tard » si un verrou est
+  tombé entre-temps ; réponse `409` (présentation expirée) → la question est rechargée avec un
+  mot d'explication, sans « Présentation déjà utilisée » ; réponse `403` avec verrou → le
+  blocage est expliqué.
+- **Corrigé — la pastille restait sur « ? » après un contrôle réussi** (D4) : un événement
+  commun (`learning-gating:changed`) est émis à chaque question réussie et à chaque validation ;
+  tous les résumés ouverts (listes de tutoriels, catalogue biodiversité, glossaire, écrans
+  G&L) se rechargent sans fermer la fenêtre. G&L émet désormais aussi un événement de session
+  (`gl_session_changed`) que ses résumés écoutent.
+- **Cibles tactiles et styles communs** (D5) : les règles de la fenêtre d'accusé et du
+  contrôle (`.tuto-read-ack-*`, `.learning-gating-quiz__*`) quittent `src/index.css` pour
+  `src/shared/styles/learning-gating.css`, chargé par les deux applications ; choix de réponse
+  et boutons d'action à 44 px minimum.
+- **Écran de réglage G&L** (D6, livré au lot 2) : commandes « annoncer sur le bouton » et
+  « pastilles d'état », tolérance 0–10, sévérité du verrou, bornes revalidées côté client.
+- Tests : `tests-ui/shared/DialogShell.test.jsx` (piège de focus vivant),
+  `LearningAcknowledgeButton.test.jsx`, `LearningGatingQuestionPanel.test.jsx`,
+  `useLearningGatingSummary.test.jsx`, `tests-ui/gl/GLGatingSettings.test.jsx` (D2).
+
 ### Validation des ressources par quiz — lot 4 : une proposition ne conditionne jamais, « rendre bloquant » est un geste explicite (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.4)
 
 - **Règle unique, lisible par un professeur** : _une proposition, un import ou une génération ne

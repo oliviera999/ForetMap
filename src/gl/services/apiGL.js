@@ -1,3 +1,4 @@
+import { dispatchGlSessionChanged } from './glSessionEvents.js';
 import { withAppBase } from '../../shared/appBase.js';
 import {
   buildApiHttpErrorMessage,
@@ -28,10 +29,12 @@ export function saveGlSession(next) {
   const current = readSession() || {};
   const merged = { ...current, ...(next || {}) };
   localStorage.setItem(GL_SESSION_KEY, JSON.stringify(merged));
+  dispatchGlSessionChanged();
 }
 
 export function clearGlSession() {
   localStorage.removeItem(GL_SESSION_KEY);
+  dispatchGlSessionChanged();
 }
 
 function glDevUnavailableMessage() {
