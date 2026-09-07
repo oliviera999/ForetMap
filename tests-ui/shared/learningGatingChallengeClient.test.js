@@ -136,3 +136,75 @@ describe('buildCooldownLockMessage', () => {
     );
   });
 });
+
+// Portée « question seule » branchée (docs/AUDIT_VALIDATION_QUIZ_2026-09.md, lot 3).
+import {
+  buildGatingRules,
+  buildQuestionLockMessage,
+  isQuestionScopedLock,
+} from '../../src/shared/utils/learningGatingChallengeClient.js';
+
+describe('portée « question seule » — côté client', () => {
+  it('pendingChallengeQuestions ne pose pas une question verrouillée', () => {
+    const pending = pendingChallengeQuestions({
+      required: true,
+      pending_count: 2,
+      ask_count: 2,
+      questions: [
+        { question_code: 'Q1', already_correct: false, locked: true },
+        { question_code: 'Q2', already_correct: false, locked: false },
+      ],
+    });
+    expect(pending.map((q) => q.question_code)).toEqual(['Q2']);
+  });
+
+  it('isQuestionScopedLock distingue la portée', () => {
+    expect(isQuestionScopedLock({ locked: true, scope: 'question' })).toBe(true);
+    expect(isQuestionScopedLock({ locked: true, scope: 'resource' })).toBe(false);
+    expect(isQuestionScopedLock(null)).toBe(false);
+  });
+
+  it('buildQuestionLockMessage invite à continuer sur les autres questions', () => {
+    const msg = buildQuestionLockMessage({
+      locked: true,
+      scope: 'question',
+      remaining_label: '6 h',
+    });
+    expect(msg).toContain('6 h');
+    expect(msg).toMatch(/continuer/i);
+  });
+
+  it('buildCooldownLockMessage explique qu’il ne reste plus de question à passer', () => {
+    const msg = buildCooldownLockMessage(
+      { locked: true, scope: 'question', remaining_label: '2 h', locked_questions: ['Q1'] },
+      'Compost',
+    );
+    expect(msg).toMatch(/aucune autre/i);
+    expect(msg).toContain('2 h');
+    expect(msg).toContain('Compost');
+  });
+
+  it('buildGatingRules annonce la portée et les questions déjà bloquées', () => {
+    const rules = buildGatingRules({
+      required: true,
+      ask_count: 1,
+      pending_count: 2,
+      retry_cooldown_hours: 6,
+      cooldown_scope: 'question',
+      cooldown: { locked: false, scope: 'question', locked_questions: ['Q1'] },
+    }).join(' ');
+    expect(rules).toMatch(/ne bloque que la question ratée/i);
+    expect(rules).toMatch(/encore bloquée/i);
+  });
+
+  it('sans délai, la portée n’est pas annoncée (rien ne bloque)', () => {
+    const rules = buildGatingRules({
+      required: true,
+      ask_count: 1,
+      pending_count: 1,
+      retry_cooldown_hours: 0,
+      cooldown_scope: 'question',
+    }).join(' ');
+    expect(rules).not.toMatch(/question ratée/i);
+  });
+});

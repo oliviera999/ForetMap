@@ -2017,7 +2017,17 @@ désormais résolu par les routes `challenge`/`summary` et respecté par le fron
 `learning.gating.state_icons` (bool, def. `true`, **nouveau lot 28**) — afficher les pastilles d'état
 (acquis `✓` / en attente `?` / bloqué `🔒`) à côté des boutons de validation,
 `learning.gating.cooldown_scope` (`resource` | `question`, def. `resource`) — le verrou porte sur la
-fiche entière ou sur la seule question ratée.
+fiche entière ou sur la seule question ratée. **Branché depuis le lot 3** de l'audit de septembre
+(il n'était jusque-là lu par aucun chemin) : en portée `question`, chaque question ratée porte son
+propre verrou et son propre compteur de tolérance ; l'élève continue sur les autres questions
+bloquantes, et la fiche n'est refusée (`cooldown.locked = true`, `scope: 'question'`) que s'il
+reste des réponses à donner et qu'aucune question n'est posable — le temps restant est alors celui
+de la levée **la plus proche**. Chaque entrée de `questions[]` du challenge porte `locked`,
+`locked_until`, `remaining_label` et `wrong_attempts` ; `ask_count` exclut les questions
+verrouillées ; le bloc `cooldown` porte `scope` et `locked_questions[]`. Dans le flux de
+validation (jeton contextualisé), une question verrouillée n'est **ni présentée ni répondue** :
+`…/present` et `…/answer` répondent **403** `{ error, cooldown }` avant toute écriture. Le
+professeur lève un verrou de question via `DELETE /api/learning-links/locks` avec `question_code`.
 `learning.gating.require_linked_tutorials_before_task_done` (bool, def. `false`) — exige la lecture
 des tutoriels liés à une tâche avant `POST /api/tasks/:id/done` (`403` + `missing_tutorials[]`).
 
@@ -2109,7 +2119,7 @@ Réglages site GL (table `gl_settings`), dérivés du même catalogue que ForetM
 accepté par compatibilité et se comporte comme `player`), `gating.default_mode` et
 `gating.default_required_correct` (**appliqués**), `gating.allowed_wrong_attempts` (0–10, def. `0`),
 `gating.max_questions_per_session` (1–10, def. `3`), `gating.cooldown_scope` (`resource|question`, def.
-`resource`), `gating.retry_cooldown_hours` (0–8760, def. `6` ; `0` = pas de verrou après erreur —
+`resource` — même sémantique branchée qu'en ForetMap, lot 3), `gating.retry_cooldown_hours` (0–8760, def. `6` ; `0` = pas de verrou après erreur —
 remplace `gating.retry_cooldown_days`, converti par la migration 213), `gating.lock_mode`
 (`advisory|flow|strict`, def. `flow`),
 `gating.announce_on_button` et `gating.state_icons` (bool, def. `true` — appliqués depuis le lot 28).

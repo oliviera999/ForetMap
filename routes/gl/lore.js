@@ -97,6 +97,7 @@ const {
   resolvePresentContext,
   assertPresentAllowed,
   resolveAnswerContext,
+  assertQuestionOpen,
   listStrictGatingQuestionCodes,
 } = require('../../lib/learningGatingLockMode');
 const { buildLorePresentation } = require('../../lib/glQcmLoreQuestionQuery');
@@ -1453,6 +1454,17 @@ router.get(
         .status(allowed.status || 403)
         .json({ error: allowed.error, reserved_for: allowed.reserved_for });
     }
+    // Question verrouillée pour ce lecteur dans le flux de validation : 403 + état du verrou.
+    if (context.resource) {
+      const open = await assertQuestionOpen(db, {
+        product: 'gl',
+        glAuth: req.glAuth,
+        resource: context.resource,
+        questionCode: code,
+      });
+      if (!open.ok)
+        return res.status(open.status).json({ error: open.error, cooldown: open.cooldown });
+    }
 
     const glossaryByKey = await loadLoreGlossaryLookupForQcm();
     const loreGlossaryTerms = await enrichLoreQuestionWithGlossary(row, glossaryByKey);
@@ -1485,6 +1497,16 @@ router.post(
         code,
         req.body?.choiceId,
       );
+      // Question verrouillée entre-temps : refus AVANT de consommer le jeton et d'enregistrer.
+      if (result.resource) {
+        const open = await assertQuestionOpen(
+          { queryAll, queryOne },
+          { product: 'gl', glAuth: req.glAuth, resource: result.resource, questionCode: code },
+        );
+        if (!open.ok) {
+          return res.status(open.status).json({ error: open.error, cooldown: open.cooldown });
+        }
+      }
       // Même filet que le QCM biomes hors partie : sans consommation, un seul jeton
       // permettait d'essayer tous les choiceId jusqu'à `correct:true` (et d'écrire une
       // tentative juste qui débloque le conditionnement). La PK (jti) arbitre l'unicité

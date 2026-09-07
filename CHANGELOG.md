@@ -29,6 +29,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   constats nouveaux, non traités : usage de la médiathèque à 30 requêtes SQL sans cache (T1),
   catalogue complet retéléchargé par le réseau trophique pour trois champs (T2),
   `/api/settings/public` redondant du forum (T3).
+### Validation des ressources par quiz — lot 3 : la portée « seulement la question ratée » fonctionne (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.3)
+
+- **Corrigé — le réglage « Portée du blocage après erreur » ne faisait rien** (A1) : la portée
+  `question` était écrite dans la table des verrous mais lue par aucun chemin ; choisie, elle
+  supprimait tout verrou effectif. Elle est désormais branchée dans le challenge, le résumé,
+  l'accusé et l'agrégat prof, par une vue unique et pure (`buildResourceCooldownView`) : chaque
+  question ratée porte son propre verrou et sa propre tolérance, l'élève continue sur les autres
+  questions de la fiche, et la fiche n'est refusée que s'il reste des réponses à donner sans plus
+  aucune question posable (délai annoncé = la levée la plus proche). Utile surtout avec
+  l'exigence « toutes » ou « seuil » ; en « une suffit », la question suivante est posée tout de
+  suite.
+- **Une question verrouillée ne se rejoue pas dans le flux** : `…/present` et `…/answer` avec
+  contexte répondent `403` + état du verrou, avant de consommer le jeton ou d'enregistrer la
+  tentative (une bonne réponse tardive depuis un autre onglet ne compte plus).
+- **Écran élève** : après une erreur en portée « question », le panneau dit « Cette question est
+  bloquée pendant 6 h. Tu peux continuer avec les autres questions de la fiche » et un bouton
+  _Continuer_ recharge le contrôle ; les règles annoncées avant de commencer mentionnent la
+  portée et les questions déjà bloquées. Les questions verrouillées sortent de ce qui est posé.
+- Tests : `tests/learning-gating-question-scope.test.js`, `tests/gl-learning-gating-question-scope.test.js`,
+  vue pure dans `tests/learning-gating-cooldown.test.js`, helpers client dans
+  `tests-ui/shared/learningGatingChallengeClient.test.js`. Doc : `docs/API.md`.
+
 ### Validation des ressources par quiz — lot 2 : verrou contraignant, réglable par type, délai en heures (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.2)
 
 - **Le verrou après erreur tenait à la bonne volonté du client** (A4) : il n'était posé que si la

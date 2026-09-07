@@ -3,7 +3,9 @@ import { getQcmFeedbackText, shouldShowQcmAnswerPhase } from '../qcm/qcmFeedback
 import { QcmQuestionPhoto } from '../qcm/QcmQuestionPhoto.jsx';
 import {
   isCooldownLocked,
+  isQuestionScopedLock,
   buildCooldownLockMessage,
+  buildQuestionLockMessage,
 } from '../utils/learningGatingChallengeClient.js';
 
 /**
@@ -21,6 +23,8 @@ export function LearningGatingQuestionPanel({
   answerQuestion,
   onPassed,
   onAbandon,
+  /** Erreur qui n'a bloqué que la question (portée « question seule ») : le parent recharge. */
+  onQuestionLocked = null,
   choiceClassName = 'learning-gating-quiz__choice',
   primaryBtnClassName = 'btn btn-primary btn-sm',
   ghostBtnClassName = 'btn btn-ghost btn-sm',
@@ -93,6 +97,12 @@ export function LearningGatingQuestionPanel({
   const showAnswer = shouldShowQcmAnswerPhase(result);
   const feedbackText = getQcmFeedbackText(result);
   const cooldownLocked = !result?.correct && isCooldownLocked(result?.cooldown);
+  // Portée « question seule » : seule cette question est bloquée, la fiche reste ouverte si
+  // d'autres questions peuvent être posées — c'est le parent qui le sait (il recharge).
+  const questionOnlyLocked =
+    cooldownLocked &&
+    isQuestionScopedLock(result.cooldown) &&
+    typeof onQuestionLocked === 'function';
 
   return (
     <div className="learning-gating-quiz">
@@ -161,12 +171,22 @@ export function LearningGatingQuestionPanel({
           </p>
           {cooldownLocked ? (
             <p className="learning-gating-quiz__cooldown" role="alert">
-              {buildCooldownLockMessage(result.cooldown, itemTitle)}
+              {questionOnlyLocked
+                ? buildQuestionLockMessage(result.cooldown)
+                : buildCooldownLockMessage(result.cooldown, itemTitle)}
             </p>
           ) : null}
           <div className="tuto-read-ack-actions">
             {result?.correct ? (
               <button type="button" className={primaryBtnClassName} onClick={onPassed}>
+                Continuer
+              </button>
+            ) : questionOnlyLocked ? (
+              <button
+                type="button"
+                className={primaryBtnClassName}
+                onClick={() => onQuestionLocked(result.cooldown)}
+              >
                 Continuer
               </button>
             ) : cooldownLocked ? (

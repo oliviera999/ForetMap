@@ -30,6 +30,7 @@ const {
   resolvePresentContext,
   assertPresentAllowed,
   resolveAnswerContext,
+  assertQuestionOpen,
   listStrictGatingQuestionCodes,
 } = require('../../lib/learningGatingLockMode');
 const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../../lib/glossaryMatch');
@@ -255,6 +256,17 @@ router.get(
         .status(allowed.status || 403)
         .json({ error: allowed.error, reserved_for: allowed.reserved_for });
     }
+    // Question verrouillée pour ce lecteur dans le flux de validation : 403 + état du verrou.
+    if (context.resource) {
+      const open = await assertQuestionOpen(db, {
+        product: 'gl',
+        glAuth: req.glAuth,
+        resource: context.resource,
+        questionCode: code,
+      });
+      if (!open.ok)
+        return res.status(open.status).json({ error: open.error, cooldown: open.cooldown });
+    }
 
     const glossaryByKey = await loadGlossaryLookup();
     const glossaryTerms = await enrichQuestionWithGlossary(row, glossaryByKey);
@@ -285,6 +297,16 @@ router.post(
         code,
         req.body?.choiceId,
       );
+      // Question verrouillée entre-temps : refus AVANT de consommer le jeton et d'enregistrer.
+      if (result.resource) {
+        const open = await assertQuestionOpen(
+          { queryAll, queryOne },
+          { product: 'gl', glAuth: req.glAuth, resource: result.resource, questionCode: code },
+        );
+        if (!open.ok) {
+          return res.status(open.status).json({ error: open.error, cooldown: open.cooldown });
+        }
+      }
       // Usage unique du jeton, même hors partie : sans cela, le même `presentationToken`
       // permettait d'essayer tous les `choiceId` jusqu'à trouver la bonne réponse. La
       // consommation force un nouveau tirage (choix remélangés) à chaque tentative, ce qui

@@ -511,3 +511,129 @@ test('la lecture prend le verrou le plus contraignant des deux portées', async 
   assert.match(read.sql, /ORDER BY locked_until DESC/);
   assert.ok(read.params.includes('QF0001') && read.params.includes(''));
 });
+
+// ---------------------------------------------------------------------------
+// Portée « question seule » branchée (docs/AUDIT_VALIDATION_QUIZ_2026-09.md, A1 / lot 3) :
+// la vue du verrou est pure et partagée par le challenge et le résumé.
+// ---------------------------------------------------------------------------
+
+test('groupCooldownRows — sépare la ligne ressource des lignes par question', () => {
+  const grouped = cooldown.groupCooldownRows([
+    { question_code: 'Q2', locked_until: new Date(1), wrong_attempts: 1 },
+    { question_code: '', locked_until: new Date(2), wrong_attempts: 2 },
+    { question_code: 'Q1', locked_until: new Date(3), wrong_attempts: 3 },
+  ]);
+  assert.equal(grouped.resource.wrong_attempts, 2);
+  assert.deepEqual([...grouped.questions.keys()].sort(), ['Q1', 'Q2']);
+});
+
+test('buildResourceCooldownView — portée ressource : la ligne vide fait loi', () => {
+  const now = 1_000_000_000_000;
+  const rows = cooldown.groupCooldownRows([
+    { question_code: '', locked_until: new Date(now + 2 * HOUR), wrong_attempts: 1 },
+  ]);
+  const view = cooldown.buildResourceCooldownView({
+    rows,
+    retryHours: 6,
+    gatingCodes: ['Q1', 'Q2'],
+    correctSet: new Set(),
+    pendingCount: 1,
+    nowMs: now,
+  });
+  assert.equal(view.cooldown.locked, true);
+  assert.equal(view.cooldown.scope, 'resource');
+  assert.deepEqual(view.askableCodes, []);
+});
+
+test('buildResourceCooldownView — une question verrouillée, l’autre reste posable', () => {
+  const now = 1_000_000_000_000;
+  const rows = cooldown.groupCooldownRows([
+    { question_code: 'Q1', locked_until: new Date(now + 3 * HOUR), wrong_attempts: 1 },
+  ]);
+  const view = cooldown.buildResourceCooldownView({
+    rows,
+    retryHours: 6,
+    gatingCodes: ['Q1', 'Q2'],
+    correctSet: new Set(),
+    pendingCount: 2,
+    nowMs: now,
+  });
+  assert.equal(view.cooldown.locked, false, 'Q2 peut encore être posée');
+  assert.equal(view.cooldown.scope, 'question');
+  assert.deepEqual(view.cooldown.locked_questions, ['Q1']);
+  assert.deepEqual(view.askableCodes, ['Q2']);
+  assert.equal(view.questionStates.get('Q1').locked, true);
+  assert.equal(view.questionStates.get('Q1').remaining_label, '3 h');
+});
+
+test('buildResourceCooldownView — plus rien à poser : verrou porté par la levée la plus proche', () => {
+  const now = 1_000_000_000_000;
+  const rows = cooldown.groupCooldownRows([
+    { question_code: 'Q1', locked_until: new Date(now + 5 * HOUR), wrong_attempts: 1 },
+    { question_code: 'Q2', locked_until: new Date(now + 2 * HOUR), wrong_attempts: 1 },
+  ]);
+  const view = cooldown.buildResourceCooldownView({
+    rows,
+    retryHours: 6,
+    gatingCodes: ['Q1', 'Q2'],
+    correctSet: new Set(),
+    pendingCount: 1,
+    nowMs: now,
+  });
+  assert.equal(view.cooldown.locked, true);
+  assert.equal(view.cooldown.scope, 'question');
+  assert.equal(view.cooldown.remaining_label, '2 h', 'la plus proche levée, pas la plus lointaine');
+  assert.deepEqual(view.cooldown.locked_questions.sort(), ['Q1', 'Q2']);
+});
+
+test('buildResourceCooldownView — une question verrouillée mais déjà satisfait : pas de verrou', () => {
+  const now = 1_000_000_000_000;
+  const rows = cooldown.groupCooldownRows([
+    { question_code: 'Q1', locked_until: new Date(now + 5 * HOUR), wrong_attempts: 1 },
+  ]);
+  const view = cooldown.buildResourceCooldownView({
+    rows,
+    retryHours: 6,
+    gatingCodes: ['Q1', 'Q2'],
+    correctSet: new Set(['Q2']),
+    pendingCount: 0,
+    nowMs: now,
+  });
+  assert.equal(view.cooldown.locked, false, 'mode « une suffit » : Q2 réussie, Q1 n’importe plus');
+});
+
+test('buildResourceCooldownView — le compteur annoncé est celui de la question à poser (A6)', () => {
+  const now = 1_000_000_000_000;
+  const rows = cooldown.groupCooldownRows([
+    { question_code: 'Q2', locked_until: cooldown.COUNTING_LOCK_UNTIL, wrong_attempts: 2 },
+  ]);
+  const view = cooldown.buildResourceCooldownView({
+    rows,
+    retryHours: 6,
+    gatingCodes: ['Q1', 'Q2'],
+    correctSet: new Set(),
+    pendingCount: 2,
+    nowMs: now,
+  });
+  assert.equal(view.cooldown.locked, false);
+  assert.equal(view.cooldown.wrong_attempts, 2);
+  assert.equal(view.questionStates.get('Q2').wrong_attempts, 2);
+});
+
+test('buildResourceCooldownView — délai à 0 : jamais verrouillé, même avec des lignes', () => {
+  const now = 1_000_000_000_000;
+  const rows = cooldown.groupCooldownRows([
+    { question_code: '', locked_until: new Date(now + 5 * HOUR), wrong_attempts: 1 },
+    { question_code: 'Q1', locked_until: new Date(now + 5 * HOUR), wrong_attempts: 1 },
+  ]);
+  const view = cooldown.buildResourceCooldownView({
+    rows,
+    retryHours: 0,
+    gatingCodes: ['Q1'],
+    correctSet: new Set(),
+    pendingCount: 1,
+    nowMs: now,
+  });
+  assert.equal(view.cooldown.locked, false);
+  assert.deepEqual(view.askableCodes, ['Q1']);
+});
