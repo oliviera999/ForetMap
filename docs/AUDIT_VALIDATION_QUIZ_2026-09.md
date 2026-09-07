@@ -603,23 +603,274 @@ Aucun test `skip`/`todo` dans le périmètre.
 
 ---
 
-## 5. Ordre de traitement suggéré
+## 5. Plan de traitement détaillé
 
-1. **Lot « avant activation »** (petit, mécanique) : A2 (deux noms de colonnes + test de route),
-   B1 (script + migration de rattrapage `origin = 'generated'`), B2 (`is_gating = 0` aux trois
-   insertions de suggestion), C2 (expression ignorée + test), C1 (purge GL dans les deux chemins
-   - test de comptage). Aucun arbitrage produit nécessaire.
-2. **Lot « le verrou dit vrai »** : A1 (choisir la sémantique, implémenter dans le challenge et
-   le chemin groupé, refuser `present`/`answer` verrouillés), A6 (renvoyer et afficher le
-   compteur), A3 (préchargement GL selon la granularité), A5 (filtrer les questions inactives),
-   et un test HTTP complet du chemin « réponse avec contexte ». **A4 demande un arbitrage** :
-   lier le contexte au jeton (option 1) ou assumer et documenter (option 2).
-3. **Lot « écrans »** : D2 (resynchroniser `GatingPolicyEditor` — `key` sur l'éditeur ou
-   `useEffect`), D1 (recalculer les focusables à chaque `keydown`), D3 (lire `err.status`/`body`,
-   afficher les codes manquants), D6 (deux commandes GL manquantes, select 0–10), D5.
-4. **Lot « base et charge »** : C3, C4, C5 (deux index), C6 (purge des jetons et des lignes de
-   comptage dans `scripts/purge-audit-logs.js`), C7, B3.
-5. **Lot « doc »** : E1, E2, E3 ; rouvrir la fiche G3 pour J1/J3 ; A7/A8/B4/B5 au fil de l'eau.
+> Mis à jour le 2026-09-07 après arbitrage du porteur du projet. Décisions prises : **le verrou
+> doit être contraignant, avec une sévérité réglable par type de ressource** (choix 1) ; **J1**
+> (contrôle d'accès au feuillet avant marquage) et **A8/A7** (parité du résumé et du glossaire
+> ForetMap) sont retenus (choix 4 et 5). Deux choix restent ouverts et sont détaillés avec leurs
+> variantes : la portée « question seule » (choix 2, lot 3) et le caractère bloquant des liens
+> suggérés ou générés (choix 3, lot 4).
+>
+> Taille des lots : **S** = une demi-journée, **M** = un à deux jours, **L** = au-delà. Chaque lot
+> est une PR ; chaque PR embarque ses tests, sa doc API et sa doc de référence (règle du projet).
+
+### 5.0 Vue d'ensemble
+
+| Lot | Objet                                              | Constats                   | Taille | Dépend de   | Arbitrage  |
+| --- | -------------------------------------------------- | -------------------------- | ------ | ----------- | ---------- |
+| 1   | Sûreté minimale, sans changement de sémantique     | C2, A2, C1, B1, tests CI   | S      | —           | aucun      |
+| 2   | Verrou contraignant, réglable par type             | A4, A3, A5, A6, A7, A8, J1 | M      | 1           | pris       |
+| 3   | Portée « question seule » : brancher ou retirer    | A1                         | S ou M | 2           | **ouvert** |
+| 4   | Suggestions et génération : qui décide du bloquant | B2, B3 (+ B1 déjà en 1)    | S      | 1           | **ouvert** |
+| 5   | Écrans lecteur et prof/MJ                          | D1–D6                      | M      | 2 (pour D6) | aucun      |
+| 6   | Base et charge                                     | C3–C7                      | M      | —           | aucun      |
+| 7   | Documentation et dette                             | E2, E3, B4, B5, G3         | S      | 2, 3, 4     | aucun      |
+
+Ordre recommandé : **1 → 2 → 3 → 4**, puis 5, 6 et 7 en parallèle. Le lot 1 se fait tout de
+suite, sans attendre les choix ouverts ; le lot 2 est le cœur de la décision prise ; les lots 3
+et 4 sont courts et se décident à la lecture de leurs variantes ci-dessous.
+
+### 5.1 Lot 1 — Sûreté minimale (S, aucun arbitrage)
+
+Corrige ce qui est faux ou nuisible **même conditionnement éteint**. À livrer avant tout le
+reste, y compris si le conditionnement n'est jamais activé.
+
+| Constat | Changement                                                                                                                                                                                                                 | Fichiers                                                                                            | Test                                                                                                                                                |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C2      | Ajouter `user_quiz_attempts`, `resource_question_links`, `resource_gating_policy`, `resource_gating_cooldowns`, `learning_acknowledgements` à l'expression des tables ignorées par la synchro (`SYNC_IGNORED_TABLES_RE`)   | `database.js:219`                                                                                   | Étendre le test de non-régression du lot B6 (audit biodiversité) : une écriture dans chacune de ces tables ne bumpe aucun domaine                   |
+| A2      | `target_type`/`target_code` dans la requête glossaire ; retirer `u.deleted_at IS NULL` ; borner `evaluateUnlock` au seuil clampé (`requiredCorrectCount`)                                                                  | `lib/learningGatingProgress.js:44-46,61,112`                                                        | Nouveau `tests/learning-gating-progress.test.js` : 200 pour les trois types, agrégats `pending/satisfied/locked` sur 3 élèves fixés                 |
+| C1      | Purge de `gl_qcm_attempts`, `gl_resource_gating_cooldowns`, `gl_learning_acknowledgements` sur `reader_user_type = 'gl_player' AND reader_user_id = ?` dans la transaction de suppression, **dans les deux chemins**       | `routes/gl/admin.js:553`, `lib/studentDeletion.js:68`                                               | Compter les lignes restantes après suppression, dans `tests/gl-players-delete*.test.js` (ou nouveau) ; couvrir aussi la cascade de la migration 211 |
+| B1      | `is_gating = 0` dans les deux insertions du script, `status` inchangé ; migration **212** idempotente : `UPDATE … SET is_gating = 0 WHERE origin = 'generated' AND is_gating = 1` sur les deux tables (même forme que 194) | `scripts/generate-linked-questions.js:177,186`, `migrations/212_gating_generated_non_bloquants.sql` | `tests/migrations-unique-numbers.test.js` passe ; requête de contrôle du §6 vide après migration                                                    |
+| CI      | Rendre robustes les deux tests instables observés sur la PR #431 : signer le jeton enseignant avec l'époque de session courante (`token_epoch`) et cibler un utilisateur créé par le test plutôt que `LIMIT 1`             | `tests/gl-mascots.test.js:327-360`, `tests/rbac.test.js:86-110`                                     | Le job `test` passe deux fois de suite                                                                                                              |
+
+Critère de fin : `npm test` vert, `GET /api/learning-links/progress` répond 200 sur les trois
+types, et une réponse au Quiz libre ne déclenche plus aucun rechargement chez les autres clients
+(vérifiable avec `load/artillery-biodiv.yml`).
+
+### 5.2 Lot 2 — Verrou contraignant, réglable par type (M, arbitrage pris)
+
+**Décision.** Le verrou de re-tentative cesse d'être déclaratif. Sa sévérité devient un réglage
+de la cascade existante (site → type `resource_ref = '*'` → fiche), donc **réglable par type de
+ressource** sans nouveau mécanisme : un professeur peut rendre les tutoriels stricts et laisser
+le glossaire souple.
+
+**Le nouveau réglage `lock_mode`**, trois valeurs, du plus souple au plus strict :
+
+| Valeur     | Ce que ça change                                                                                                                                                                                                                                                                                                             | Pour qui                                                                                             |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `advisory` | Comportement actuel : le verrou n'est posé que si la réponse arrive avec le contexte ressource envoyé par le client. Rien n'empêche de réviser la même question dans le Quiz libre.                                                                                                                                          | Entraînement, ressources où le verrou n'est qu'un rythme conseillé                                   |
+| `flow`     | Le contexte ressource est **gravé dans le jeton de présentation** (`GET …/present?resourceType=&resourceRef=`) ; `POST …/answer` ne lit plus le corps mais le jeton. Une question présentée « pour la fiche » ne peut plus être répondue hors contexte. Le Quiz libre reste libre, et ses bonnes réponses comptent toujours. | **Défaut proposé** : ferme la manipulation sans rien changer pour l'élève honnête                    |
+| `strict`   | En plus de `flow` : une question bloquante d'une ressource de ce type **n'est présentable que dans le flux de validation**. `present` sans contexte → 403 « question réservée à la validation de _titre_ », et `GET /api/quiz/draw` l'exclut du tirage. Chaque mauvaise réponse coûte donc réellement.                       | Ressources qui doivent être validées « pour de vrai » (tutoriels de sécurité, feuillets de chapitre) |
+
+Deux garde-fous conservés : les bonnes réponses **passées** comptent toujours (activation
+rétroactive, F3), et l'interrupteur global reste maître.
+
+**Implémentation.**
+
+1. _Catalogue_ — `lockMode` dans `lib/shared/gatingSettingsCore.js` (enum, défaut `flow`,
+   `fmKey: 'learning.gating.lock_mode'`, `glKey: 'gating.lock_mode'`). Les deux écrans de réglages
+   l'héritent automatiquement (registre dérivé).
+2. _Cascade_ — colonne `lock_mode VARCHAR(16) NULL` (NULL = hériter) sur `resource_gating_policy`
+   et `gl_resource_gating_policy` (**migration 213**, même forme que 203) ; `POLICY_PATCH_FIELDS`,
+   `resolveEffectiveGatingPolicy`, `POLICY_COLUMNS`, `effectiveSources.lockMode`
+   (`lib/shared/gatingPolicyLayersCore.js`, `lib/gatingPolicyRouteHelpers.js`) ; sélecteur dans
+   `GatingPolicyEditor` (couches type et fiche, avec « hériter »).
+3. _Jeton_ — `presentQuestion(row, glossaryTerms, { jwtKind, resource })` ajoute la claim
+   `resource: { type, ref }` ; `verifyPresentationAnswer` la renvoie ; les quatre routes `answer`
+   (`routes/quiz.js`, `routes/gl/qcm.js`, `routes/gl/lore.js`, `routes/gl/games/qcm.js`) passent
+   `result.resource` au verrou et **ignorent** `req.body.resourceType/Ref` dès que la politique
+   effective n'est pas `advisory`. Les routes `present` acceptent le contexte en query, vérifient
+   que la ressource existe et que la question en est un lien bloquant approuvé (sinon 400), et
+   appliquent `strict` : sans contexte, 403 si la question est bloquante d'au moins une ressource
+   dont la politique effective est `strict`.
+4. _Tirage libre_ — helper `listStrictGatingQuestionCodes(db, product)` (cache mémoire 60 s,
+   invalidé à l'écriture d'une politique ou d'un lien) ; `GET /api/quiz/draw` et son équivalent GL
+   excluent ces codes.
+5. _Client_ — `presentQuestion(code, dataset, resource)` dans
+   `src/shared/utils/learningGatingChallengeClient.js` transmet le contexte en query ;
+   `LearningGatingQuestionPanel` le passe à la présentation comme il le passe déjà à la réponse.
+   Le Quiz libre ne change pas. Message dédié pour le 403 `strict`.
+6. _Constats voisins livrés dans le même lot_ — **A3** (le préchargement GL du résumé ne prend
+   l'équipe que si la granularité effective est `team` : résoudre la politique de type avant de
+   précharger, ou précharger deux ensembles) ; **A5** (`loadApprovedGatingLinks*` joignent le
+   statut de la question : `EXISTS (SELECT 1 FROM quiz_questions q WHERE q.question_code = l.question_code AND q.statut = 'actif')`,
+   et le panneau prof signale les liens bloquants dont la question est archivée) ; **A6**
+   (`resourceCooldownStateFromRow` renvoie `wrong_attempts` d'une ligne de comptage même non
+   verrouillée ; `LearningGatingQuestionPanel` affiche « il te reste N essai(s) » après chaque
+   erreur, depuis `answer.cooldown.attempts_left`) ; **A7** (`skipGating` sur le glossaire ForetMap
+   quand le terme est déjà appris) ; **A8** (`isAlreadyDone` dans le résumé ForetMap, lu dans
+   `user_tutorial_reads` / `user_plant_observation_events` / `learning_acknowledgements`) ;
+   **J1** (le résolveur `feuillet` de `lib/glLearnableResources.js` exige un état de progression
+   du lecteur via `loadPlayerFeuilletStates`).
+
+**Tests.** `tests/learning-gating-lock-mode.test.js` (FM) et `tests/gl-learning-gating-lock-mode.test.js`
+(GL) : pour chacune des trois valeurs, présentation avec et sans contexte, réponse avec jeton
+contextualisé, réponse avec corps trafiqué (ignoré), verrou posé ou non, tirage libre avec et
+sans exclusion, cascade type → fiche. Un test HTTP du chemin complet « réponse fausse avec
+contexte → verrou → 403 à l'accusé avec `cooldown` → levée par le prof → accusé 200 » (trou
+n° 1 et n° 7 du §2.F). UI : `tests-ui/shared/LearningGatingQuestionPanel.test.jsx` (compteur,
+403 strict, contexte transmis à `present`). e2e : un scénario `e2e/learning-gating.spec.js`
+question bloquante → refus → réponse → validation.
+
+**Doc.** `docs/API.md` (réglage, colonne, query de `present`, 403 strict, exclusion du tirage) ;
+`docs/reference/foretmap/taches-tutoriels-et-validation.md` et
+`docs/reference/gl/qcm-et-pedagogie.md` : un paragraphe « Trois sévérités de verrou » et la
+correction du récit « mauvaise réponse = verrou » (E3).
+
+Critère de fin : en `strict`, un élève ne peut pas obtenir la bonne réponse d'une question
+bloquante hors du flux de validation, et le résumé, le challenge et l'accusé disent la même
+chose sur la même ressource pour les deux produits.
+
+### 5.3 Lot 3 — Portée « question seule » : brancher ou retirer (arbitrage ouvert)
+
+**Ce que le réglage promet.** `cooldown_scope` vaut `resource` (défaut) ou `question`. En
+portée `resource`, une mauvaise réponse verrouille **toute la fiche** N jours : plus aucune
+question n'est posée, la validation est refusée. En portée `question`, seule la **question
+ratée** est verrouillée : l'élève peut continuer sur les autres questions bloquantes de la fiche,
+et la fiche se valide si la politique peut être satisfaite sans la question verrouillée.
+
+**Ce que ça donne selon le mode** (avec deux questions bloquantes Q1, Q2 et un verrou sur Q1) :
+
+| Mode        | Portée `resource`     | Portée `question`                                                                                                           |
+| ----------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `any`       | fiche bloquée N jours | Q2 est posée tout de suite ; réussie → validation immédiate. **Le verrou ne coûte presque rien.**                           |
+| `all`       | fiche bloquée N jours | Q2 peut être réussie maintenant ; la fiche reste bloquée jusqu'à la levée de Q1 (« une question se débloque dans N jours ») |
+| `threshold` | fiche bloquée N jours | comme `any` si le seuil est atteignable sans Q1, comme `all` sinon                                                          |
+
+Avec la tolérance d'erreurs, le compteur devient **par question** (c'est ce que l'écriture
+actuelle fait déjà) : une tolérance de 1 sur cinq questions permet cinq fautes sans verrou.
+
+**Aujourd'hui** : l'écriture est faite, la lecture ne l'est nulle part (constat A1) — en portée
+`question`, il n'y a **aucun** verrou effectif, et le réglage n'a d'utilité réelle qu'en mode
+`all` ou `threshold`, puisqu'en `any` (défaut) une seule bonne réponse suffit de toute façon.
+
+**Variante A — brancher (M).**
+
+- `getChallengeState` charge les verrous `question_code IN ('', …codes bloquants)` ; chaque entrée
+  de `questions[]` porte `locked_until` ; les questions verrouillées sortent de ce qui est posé
+  (`ask_count`) ; si `pending_count > 0` et plus rien n'est posable, `cooldown.locked = true` avec
+  `scope: 'question'` et `remaining_days` = **la plus proche** levée ; `assertGatingSatisfied…`
+  n'oppose le verrou que si la politique ne peut pas être satisfaite sans les questions
+  verrouillées (`evaluateUnlock` sur les codes non verrouillés).
+- Chemin groupé : `loadResourceCooldownRows` charge toutes les lignes des refs demandées et
+  regroupe par `(ref, question_code)`.
+- `present` / `answer` refusent (403 `{ error, cooldown }`) une question verrouillée pour ce
+  lecteur quand le contexte est connu (donc toujours en `flow`/`strict`, lot 2).
+- L'écran « Élèves bloqués » distingue déjà la portée (rien à faire).
+- Tests : `any` et `all` avec verrou partiel, tolérance par question, chemin groupé identique au
+  chemin unitaire (même patron que `learning-gating-summary-batch`).
+
+**Variante B — retirer (S).** Même geste que pour `auto_mark_on_correct` en août : un réglage qui
+ne fait pas ce qu'il dit use la confiance dans les autres.
+
+- Retirer `cooldownScope` du catalogue (la clé devient refusée), retirer le sélecteur des deux
+  écrans de réglages et de `GatingPolicyEditor` ; garder la colonne `question_code` (clé primaire,
+  inoffensive, toujours `''`).
+- Migration **214** : `DELETE … WHERE question_code <> ''` sur les deux tables (ces lignes n'ont
+  jamais bloqué personne) ; `docs/API.md` et les deux docs de référence retirent la portée.
+- Réversible : réintroduire = variante A, plus tard, si un professeur demande le mode « toutes ».
+
+**Recommandation** : **B maintenant**, A seulement si le mode `all`/`threshold` est prévu pour
+un type de ressource — auquel cas A se livre avec le lot 2, qui touche les mêmes fonctions.
+
+### 5.4 Lot 4 — Suggestions et génération : qui décide du bloquant (arbitrage ouvert)
+
+**La chaîne aujourd'hui.** Trois producteurs de liens non humains :
+
+1. `POST /api/learning-links/suggest` (bouton « Proposer des liens », ForetMap) et
+   `scripts/suggest-learning-links.js` (FM et GL, ligne de commande) → `status = 'suggested'`,
+   **`is_gating = 1`**. Inertes tant que non approuvés.
+2. `scripts/generate-linked-questions.js` → crée une **nouvelle question** dont la réponse est
+   dans la ressource, et le lien en `status = 'approved'`, **`is_gating = 1`** : actif dès
+   l'allumage (B1, corrigé au lot 1).
+3. L'approbation **en lot** (`POST …/review` sans `ids`, « toute la fiche ») passe les
+   propositions en `approved` sans toucher `is_gating` : quarante propositions textuelles
+   deviennent quarante questions bloquantes en un clic, alors que le commentaire du code dit
+   « approuver n'est pas conditionner ».
+
+S'y ajoute B3 : `POST /api/learning-links` sur un couple existant sans `is_gating` le met à
+`true` (défaut de `sanitizeLinkInput`) et réécrit `origin`.
+
+**Variante A — non bloquant à l'insertion, bloquant à la main (S).** Recommandée.
+
+- `is_gating = 0` aux trois insertions de suggestion (`routes/learning-links.js:672`,
+  `scripts/suggest-learning-links.js:222,236`). Approuver ne conditionne alors jamais.
+- Pour que « rendre bloquant » reste un geste rapide : nouvelle action
+  `POST /api/learning-links/gating` `{ resourceType, resourceRef, is_gating, ids? }` (bornée à
+  `BULK_MAX`), et un bouton dans le panneau « Rendre bloquantes les N questions approuvées de
+  cette fiche », qui affiche **la phrase de politique effective** (`describeEffectiveGatingPolicy`)
+  avant confirmation : « l'élève devra répondre correctement à 1 question sur 12 bloquantes ».
+- B3 : défaut `is_gating = false` à la création, et l'`ON DUPLICATE KEY UPDATE` ne réécrit
+  `is_gating` et `origin` que si le corps les fournit.
+- Migration : aucune de plus (212 couvre `generated` ; les `suggested` non approuvés restent
+  inertes et prennent la nouvelle valeur à la prochaine suggestion ; un `UPDATE` optionnel
+  `WHERE status = 'suggested' AND is_gating = 1` peut aligner l'existant).
+
+**Variante B — bloquant à l'insertion, mais l'approbation en lot désarme (S).** Garder
+`is_gating = 1` à la suggestion ; `reviewSuggestedLinks` en forme « toute la fiche » force
+`is_gating = 0`, la forme par `ids` le laisse. Deux formes, deux effets : source de confusion,
+et l'écran ne peut pas le montrer simplement. Déconseillée.
+
+**Variante C — avertir et confirmer (XS).** Ne rien changer aux données ; l'approbation en lot
+affiche « N questions deviendront bloquantes » et demande confirmation. Le plus rapide, mais
+contraire à la règle posée par la migration 194 (« un conditionnement ne s'applique que là où
+un humain a coché bloquant ») et sans protection côté API.
+
+**Recommandation** : **A**. Elle rétablit une règle unique, lisible par un professeur : _une
+proposition, un import ou une génération ne conditionne jamais ; seul un clic « bloquant » le
+fait, et l'écran dit alors ce que l'élève devra faire._
+
+### 5.5 Lot 5 — Écrans (M, aucun arbitrage)
+
+| Constat | Changement                                                                                                                                                                                                          | Fichiers                                                               | Test                                                                               |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| D2      | `key` sur `GatingPolicyEditor` incluant l'identité de la politique chargée (ou `useEffect` de resynchronisation)                                                                                                    | `FMLearningGatingSettings.jsx:256`, `GLGatingSettings.jsx:228`         | Test UI : la politique chargée après montage s'affiche et « Enregistrer » l'envoie |
+| D1      | `useDialogA11y` recalcule les focusables à chaque `keydown` Tab (pas de capture au montage)                                                                                                                         | `src/shared/platform/useDialogA11y.js:20-61`                           | Test UI : Tab depuis le dernier choix revient sur « Fermer »                       |
+| D3      | Lire `err.status`/`err.body` : 403 → afficher `missing_question_codes` et le `cooldown` ; 409 → « présentation expirée, question rechargée » ; échec du challenge → phase `error` avec « réessayer », pas `confirm` | `LearningAcknowledgeButton.jsx:161`, `LearningGatingQuestionPanel.jsx` | Test UI par code d'erreur                                                          |
+| D6      | Commandes `announce_on_button` et `state_icons` dans `GLGatingSettings` ; select 0–10 ; revalidation JS des bornes ; sélecteur `lock_mode` (lot 2)                                                                  | `GLGatingSettings.jsx`, `GatingPolicyEditor.jsx:247`                   | Tests UI existants étendus                                                         |
+| D4      | Refetch du résumé après accusé dans `TutorialPreviewModal`, `PlantCatalogPreview`, `GLLearningAcknowledgeButton` ; après une réponse dans le panneau ; `sessionEventName` côté GL                                   | hooks de résumé et boutons                                             | Test UI : la pastille passe de « ? » à « ✓ » sans fermer la fenêtre                |
+| D5      | 44 px sur les choix et boutons d'action ; déplacer les règles `.learning-gating-quiz__*` de `src/index.css` vers `src/shared/styles/learning-gating.css`                                                            | CSS                                                                    | Visuel, e2e du lot 2                                                               |
+
+### 5.6 Lot 6 — Base et charge (M, aucun arbitrage)
+
+| Constat | Changement                                                                                                                                                                                                                                       | Fichiers / migration                                                                            |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| C3      | `EXISTS` au lieu du `LEFT JOIN` 1:N sur les liens ; test « une question à trois liens compte trois fois moins »                                                                                                                                  | `lib/quizQuestionStats.js:48-65`                                                                |
+| C4      | Préchargement groupé de `/progress` : une requête `user_quiz_attempts … WHERE question_code IN (…) GROUP BY user_id`, une lecture groupée des verrous ; `MAX_STUDENTS` exposé                                                                    | `lib/learningGatingProgress.js:108-132`                                                         |
+| C5      | Index `(user_id, is_correct, question_code)` sur `user_quiz_attempts` ; `(reader_user_type, reader_user_id, is_correct, question_dataset, question_code)` sur `gl_qcm_attempts`                                                                  | migration **215**                                                                               |
+| C6      | `gl_qcm_presentation_uses` (`used_at < NOW() - INTERVAL 1 DAY`) et lignes de comptage 1970 (`updated_at < NOW() - INTERVAL 90 DAY`) ajoutées aux `TARGETS` de la purge ; la purge FM écrit-elle dans une table `gl_*` : à documenter ou renommer | `scripts/purge-audit-logs.js:59`                                                                |
+| C7      | `resource_gating_cooldowns` dans `POLYMORPHIC_TABLES` de la déduplication ; suppression d'une plante / d'un terme : nettoyage des liens, politiques et verrous du couple `(type, ref)`                                                           | `lib/tutorialDedup.js:38`, routes de suppression                                                |
+| B5      | `max_rows` et `total` sur les listes de liens ; `<select>` des questions filtré côté serveur (`q=`) plutôt que tronqué à 200                                                                                                                     | `routes/learning-links.js:61`, `routes/gl/learning-links.js:57`, `FMLearningLinksPanel.jsx:181` |
+
+### 5.7 Lot 7 — Documentation et dette (S)
+
+- E2 : `docs/EVOLUTION.md` (état réel du dispositif), `docs/AUDIT_GATING_2026-08.md` (ligne
+  « marquage automatique », réglages manquants), `docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md`
+  (`ask_count`), fiche **G3** de `docs/reference/INCOHERENCES.md` rouverte avec J3 côté GL.
+- E3 : les deux docs de référence, après les lots 2 et 3 (une seule réécriture du récit du
+  parcours).
+- B4 côté GL (J3) : route `GET /api/gl/learning-links/resources?type=` alimentée par
+  `glLearnableResources` (titre + compteurs), sélecteur dans `GLLearningLinksPanel`, contrôle
+  d'existence à la création (400 explicite) dans les deux produits, titres dans le tableau. **M**,
+  peut être un lot à part.
+- B6 : un test croisé qui vérifie l'égalité des listes de types et de granularités dupliquées.
+
+### 5.8 Séquence et jalons
+
+```
+Semaine 1   Lot 1 (PR)                      → CI verte, prod protégée (C2, C1)
+Semaine 1   Décisions lots 3 et 4            → variantes B et A recommandées
+Semaine 2   Lot 2 (PR)  + lot 3 si variante A
+Semaine 2   Lot 4 (PR)  + lot 3 si variante B
+Semaine 3   Lots 5 et 6 (PR séparées)        → écrans, base
+Semaine 3   Lot 7                            → docs, G3, J3 GL
+Ensuite     Activation en classe : requêtes du §6, réglages par type, `lock_mode` choisi
+```
+
+Numéros de migration réservés dans ce plan : **212** (lot 1, `generated` non bloquants), **213**
+(lot 2, `lock_mode`), **214** (lot 3 variante B, purge des verrous par question), **215** (lot 6,
+index). À renuméroter si une PR parallèle en prend un (règle `foretmap-pr-merge-conflict`).
 
 ---
 
