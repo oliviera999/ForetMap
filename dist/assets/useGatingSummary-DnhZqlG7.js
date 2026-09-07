@@ -1,0 +1,1 @@
+import{at as e}from"./ImageLightboxProvider-BOhKCUBD.js";import{at as t,et as n}from"./spriteCutCatalogEntry-Dk2XFDfU.js";function r(r,i=[]){let a=typeof t!=`function`||!!t();return e({request:n,basePath:`/api/learning/gating/summary`,resourceType:r,refs:i,enabled:a,sessionEventName:`foretmap_session_changed`})}export{r as t};

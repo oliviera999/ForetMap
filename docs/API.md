@@ -1908,6 +1908,16 @@ d'appel (`/api/quiz`, `/api/gl/qcm`, `/api/gl/lore/qcm`, `/api/gl/games/:id/qcm/
 - **La bonne réponse n'est révélée qu'une fois trouvée** : `correctChoiceId` n'apparaît dans la
   réponse que si `correct: true` — sur une erreur, l'élève reçoit le feedback de son choix, pas
   la solution.
+- **Il peut porter le contexte de validation** (lot 2 de l'audit de septembre). Appelée avec
+  `?resourceType=&resourceRef=`, la route `…/present` vérifie que la ressource est validable et
+  que la question en est un lien bloquant approuvé (sinon **400**), puis **grave** ce contexte
+  dans le jeton (claim `resource`, renvoyé aussi dans la réponse). La route `…/answer` lit le
+  contexte **dans le jeton** ; le corps `{ resourceType, resourceRef }` n'est plus honoré qu'en
+  sévérité `advisory` (voir _Sévérité du verrou_ ci-dessous). Une question réservée à une
+  ressource de sévérité `strict` ne se présente **que** dans ce flux : sans contexte, `…/present`
+  répond **403** `{ error, reserved_for: [{ type, ref }] }`, et les tirages libres
+  (`/api/quiz/draw`, `/api/gl/qcm/draw`, `/api/gl/lore/qcm/draw`) l'excluent (cache mémoire de
+  30 s, invalidé à chaque écriture de politique, de lien ou de réglage).
 
 ## Codes d’erreur
 
@@ -1937,13 +1947,29 @@ donnée avant l'activation compte donc le jour où l'interrupteur est allumé �
 
 **Verrou de re-tentative (cooldown).** Après une **mauvaise réponse** à une question bloquante
 **pendant le flux de validation** (« Marquer comme… »), la ressource entière est **verrouillée**
-pendant `retry_cooldown_days` jours (réglage, def. `3` ; `0` = désactivé) : toute nouvelle validation
-est refusée (**403**) tant que le verrou court, **même si toutes les questions sont ensuite réussies
-ailleurs**. Le déclenchement dépend d'un **contexte ressource** (`resourceType`/`resourceRef`) transmis
-avec la réponse : seules les réponses envoyées depuis le flux de validation posent le verrou (le quiz
-libre / le jeu ne l'activent jamais). Tables miroirs : `resource_gating_cooldowns` (FM, clé `user_id`)
-et `gl_resource_gating_cooldowns` (GL, clé lecteur). L'état est exposé dans le challenge et les réponses
-d'accusé via un bloc `cooldown: { locked, locked_until, retry_days, remaining_days }`.
+pendant `retry_cooldown_hours` **heures** (réglage, def. **`6`** ; `0` = désactivé ; max `8760`) :
+toute nouvelle validation est refusée (**403**) tant que le verrou court, **même si toutes les
+questions sont ensuite réussies ailleurs**. Le réglage était en jours (`retry_cooldown_days`, def. 3)
+jusqu'à la migration 213, qui convertit les valeurs existantes (× 24) ; les anciennes clés sont
+encore acceptées en écriture (converties) mais ne sont plus renvoyées. Tables miroirs :
+`resource_gating_cooldowns` (FM, clé `user_id`) et `gl_resource_gating_cooldowns` (GL, clé lecteur).
+L'état est exposé dans le challenge et les réponses d'accusé via un bloc
+`cooldown: { locked, locked_until, retry_hours, retry_label, remaining_ms, remaining_hours, remaining_label, wrong_attempts }`
+(`retry_days` / `remaining_days` restent renvoyés, arrondis au supérieur, pour les clients antérieurs ;
+`remaining_label` est le texte affiché : « 45 min », « 3 h », « 1 j 2 h »).
+
+**Sévérité du verrou (`lock_mode`).** Ce qui déclenche le verrou dépend d'une sévérité réglable en
+cascade site → type de ressource → fiche (`inherit` = hériter ; def. site **`flow`**) :
+
+| Sévérité   | Ce qui pose le verrou                                                                                                      | Question dans le Quiz libre                    |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `advisory` | Comportement historique : le corps `{ resourceType, resourceRef }` de `…/answer` est honoré.                               | Jouable, ne compte pas d'erreur.               |
+| `flow`     | Seul un jeton **présenté avec le contexte** (`…/present?resourceType=&resourceRef=`) pose le verrou ; le corps est ignoré. | Jouable, ne compte pas d'erreur.               |
+| `strict`   | Comme `flow`, et la question n'est **présentable que** dans le flux de validation (`403` + `reserved_for` hors contexte).  | **Exclue** du tirage, `403` à la présentation. |
+
+Dans tous les cas les bonnes réponses passées comptent (activation rétroactive) et l'interrupteur global
+reste maître (conditionnement éteint → aucune sévérité n'agit). Le challenge renvoie `lock_mode`,
+`retry_cooldown_hours` et `retry_cooldown_label` pour que le client annonce la règle avant le clic.
 
 Modèle polymorphe : `resource_type` (liste ouverte) + `resource_ref` (id ou code) ↔ `question_code`.
 Côté GL, le jeu de questions d'un lien est **stocké** (`question_dataset`), mais plusieurs chemins le
@@ -1956,29 +1982,31 @@ Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_
 
 ### ForetMap — `/api/learning-links` (prof, permission `plants.manage`)
 
-| Méthode | Route                                                          | Description                                                                                                                                                                                                                                |
-| ------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| GET     | `/api/learning-links`                                          | Liste filtrable (`resourceType`, `resourceRef`, `questionCode`, `status`).                                                                                                                                                                 |
-| POST    | `/api/learning-links`                                          | Crée/MAJ un lien (idempotent sur `resource_type+resource_ref+question_code`). `404` si la question n'existe pas.                                                                                                                           |
-| PATCH   | `/api/learning-links/:id`                                      | Modifie `is_gating` / `weight` / `status` / `note`.                                                                                                                                                                                        |
-| DELETE  | `/api/learning-links/:id`                                      | Supprime un lien.                                                                                                                                                                                                                          |
-| GET     | `/api/learning-links/policy?resourceType=&resourceRef=`        | Politique brute + **effective** + **effectiveSources** (cascade site → type `resource_ref='*'` → ressource). Inclut `typePolicy` et `site`.                                                                                                |
-| PUT     | `/api/learning-links/policy`                                   | Définit la politique d'une ressource. Corps (tous optionnels, merge) : `mode`, `required_correct`, `enabled`, `allowed_wrong_attempts`, `max_questions_per_session`, `retry_cooldown_days`, `cooldown_scope` (`null`/`inherit` = hériter). |
-| GET     | `/api/learning-links/type-policy?resourceType=`                | Préréglage par type (`resource_ref='*'`) : politique brute + effective + effectiveSources.                                                                                                                                                 |
-| PUT     | `/api/learning-links/type-policy`                              | Définit le préréglage par type (mêmes champs que `/policy`, sauf `resource_ref` implicite `*`).                                                                                                                                            |
-| GET     | `/api/learning-links/progress?resourceType=&resourceRef=`      | Agrégats prof pour une ressource (`pending_count`, `satisfied_count`, `locked_count`) — **sans noms d'élèves**.                                                                                                                            |
-| GET     | `/api/learning-links/config`                                   | Réglages site effectifs (lecture seule ; écriture via `/api/settings`).                                                                                                                                                                    |
-| GET     | `/api/learning-links/resources?type=tutorial\|plant\|glossary` | Ressources rattachables + compteurs (`links_count`, `gating_count`, `suggested_count`) et `markable` (le produit sait-il **valider** ce type ?).                                                                                           |
-| POST    | `/api/learning-links/suggest`                                  | Rattachement automatique tutoriel ↔ question **par le contenu** (voir ci-dessous). Simulation par défaut.                                                                                                                                  |
-| GET     | `/api/learning-links/locks?includeExpired=&resourceType=`      | **Élèves bloqués** par le conditionnement : qui, quelle fiche, quelle question ratée, combien d'erreurs, jusqu'à quand.                                                                                                                    |
-| DELETE  | `/api/learning-links/locks`                                    | Lève un verrou (`user_id`, `resource_type`, `resource_ref`, `question_code` optionnel). `404` si absent.                                                                                                                                   |
-| GET     | `/api/quiz/admin/questions/stats?onlyGating=&minAttempts=`     | Taux de réussite par question, les plus ratées d'abord ; `suspect` signale celles qui méritent relecture.                                                                                                                                  |
+| Méthode | Route                                                          | Description                                                                                                                                                                                                                                                                 |
+| ------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/learning-links`                                          | Liste filtrable (`resourceType`, `resourceRef`, `questionCode`, `status`).                                                                                                                                                                                                  |
+| POST    | `/api/learning-links`                                          | Crée/MAJ un lien (idempotent sur `resource_type+resource_ref+question_code`). `404` si la question n'existe pas.                                                                                                                                                            |
+| PATCH   | `/api/learning-links/:id`                                      | Modifie `is_gating` / `weight` / `status` / `note`.                                                                                                                                                                                                                         |
+| DELETE  | `/api/learning-links/:id`                                      | Supprime un lien.                                                                                                                                                                                                                                                           |
+| GET     | `/api/learning-links/policy?resourceType=&resourceRef=`        | Politique brute + **effective** + **effectiveSources** (cascade site → type `resource_ref='*'` → ressource). Inclut `typePolicy` et `site`.                                                                                                                                 |
+| PUT     | `/api/learning-links/policy`                                   | Définit la politique d'une ressource. Corps (tous optionnels, merge) : `mode`, `required_correct`, `enabled`, `allowed_wrong_attempts`, `max_questions_per_session`, `retry_cooldown_hours` (`retry_cooldown_days` accepté, × 24), `cooldown_scope`, `lock_mode` (`advisory | flow | strict`) (`null`/`inherit` = hériter). |
+| GET     | `/api/learning-links/type-policy?resourceType=`                | Préréglage par type (`resource_ref='*'`) : politique brute + effective + effectiveSources.                                                                                                                                                                                  |
+| PUT     | `/api/learning-links/type-policy`                              | Définit le préréglage par type (mêmes champs que `/policy`, sauf `resource_ref` implicite `*`).                                                                                                                                                                             |
+| GET     | `/api/learning-links/progress?resourceType=&resourceRef=`      | Agrégats prof pour une ressource (`pending_count`, `satisfied_count`, `locked_count`) — **sans noms d'élèves**.                                                                                                                                                             |
+| GET     | `/api/learning-links/config`                                   | Réglages site effectifs (lecture seule ; écriture via `/api/settings`).                                                                                                                                                                                                     |
+| GET     | `/api/learning-links/resources?type=tutorial\|plant\|glossary` | Ressources rattachables + compteurs (`links_count`, `gating_count`, `suggested_count`) et `markable` (le produit sait-il **valider** ce type ?).                                                                                                                            |
+| POST    | `/api/learning-links/suggest`                                  | Rattachement automatique tutoriel ↔ question **par le contenu** (voir ci-dessous). Simulation par défaut.                                                                                                                                                                   |
+| GET     | `/api/learning-links/locks?includeExpired=&resourceType=`      | **Élèves bloqués** par le conditionnement : qui, quelle fiche, quelle question ratée, combien d'erreurs, jusqu'à quand.                                                                                                                                                     |
+| DELETE  | `/api/learning-links/locks`                                    | Lève un verrou (`user_id`, `resource_type`, `resource_ref`, `question_code` optionnel). `404` si absent.                                                                                                                                                                    |
+| GET     | `/api/quiz/admin/questions/stats?onlyGating=&minAttempts=`     | Taux de réussite par question, les plus ratées d'abord ; `suspect` signale celles qui méritent relecture.                                                                                                                                                                   |
 
 Réglages site (table `app_settings`, scope `teacher`, modifiables via `/api/settings`) :
 `learning.gating.enabled` (def. `false`),
 `learning.gating.default_mode` (`off|any|all|threshold`, def. `any` — **appliqué** à l'accusé),
 `learning.gating.default_required_correct` (1–50, def. `1`),
-`learning.gating.retry_cooldown_days` (0–365, def. `3` ; `0` = pas de verrou après erreur),
+`learning.gating.retry_cooldown_hours` (0–8760, def. `6` ; `0` = pas de verrou après erreur —
+remplace `retry_cooldown_days`, converti par la migration 213),
+`learning.gating.lock_mode` (`advisory|flow|strict`, def. `flow`) — sévérité du verrou (tableau ci-dessus),
 `learning.gating.allowed_wrong_attempts` (0–10, def. `0`) — erreurs tolérées **avant** que le verrou
 ne tombe ; `0` conserve le comportement historique (verrou dès la première),
 `learning.gating.max_questions_per_session` (1–10, def. `3`) — questions posées d'affilée au maximum
@@ -2024,18 +2052,21 @@ les aspects, septembre — point d'entrée).
 
 ### Challenge & accusé (phase 3 — runtime pull)
 
-| Méthode | Route                                                           | Auth                       | Description                                                                                                                                                                                                                                                                                          |
-| ------- | --------------------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/learning/gating/challenge?resourceType=&resourceRef=`     | élève/prof (`requireAuth`) | État du quiz requis avant accusé (`required`, `mode` effectif, `required_correct`, `questions[]`, `pending_count`, `satisfied`, `cooldown`). Types : `tutorial`, `plant`, `glossary`.                                                                                                                |
-| GET     | `/api/learning/gating/summary?resourceType=&resourceRefs=1,2,3` | élève/prof (`requireAuth`) | Résumé groupé (**200 refs max** — relevé de 60, inférieur au catalogue biodiversité ; chargement en requêtes groupées, coût SQL constant) pour **annoncer le contrôle avant le clic** : `required`, `ask_count`, `pending_count`, `satisfied`, `locked`, `remaining_days`, `allowed_wrong_attempts`. |
-| POST    | `/api/tutorials/:id/acknowledge-read`                           | `requireAuth`              | Marque le tutoriel lu. **403** `{ error, missing_question_codes, cooldown }` si gating ON et questions non réussies (`user_quiz_attempts`), ou si la ressource est **verrouillée** après une erreur.                                                                                                 |
-| POST    | `/api/plants/:id/acknowledge-discovery`                         | `requireAuth`              | Première observation : même garde gating ; ré-observations ultérieures : confirmation seule.                                                                                                                                                                                                         |
+| Méthode | Route                                                           | Auth                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------- | --------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET     | `/api/learning/gating/challenge?resourceType=&resourceRef=`     | élève/prof (`requireAuth`) | État du quiz requis avant accusé (`required`, `mode` effectif, `required_correct`, `questions[]`, `pending_count`, `satisfied`, `cooldown`). Types : `tutorial`, `plant`, `glossary`.                                                                                                                                                                                                                                                                        |
+| GET     | `/api/learning/gating/summary?resourceType=&resourceRefs=1,2,3` | élève/prof (`requireAuth`) | Résumé groupé (**200 refs max** — relevé de 60, inférieur au catalogue biodiversité ; chargement en requêtes groupées, coût SQL constant) pour **annoncer le contrôle avant le clic** : `required`, `ask_count`, `pending_count`, `satisfied`, `locked`, `remaining_hours`, `remaining_label` (+ `remaining_days`), `retry_hours`, `wrong_attempts`, `allowed_wrong_attempts`. Une ressource déjà validée (lu / observée / apprise) n'est plus conditionnée. |
+| POST    | `/api/tutorials/:id/acknowledge-read`                           | `requireAuth`              | Marque le tutoriel lu. **403** `{ error, missing_question_codes, cooldown }` si gating ON et questions non réussies (`user_quiz_attempts`), ou si la ressource est **verrouillée** après une erreur.                                                                                                                                                                                                                                                         |
+| POST    | `/api/plants/:id/acknowledge-discovery`                         | `requireAuth`              | Première observation : même garde gating ; ré-observations ultérieures : confirmation seule.                                                                                                                                                                                                                                                                                                                                                                 |
 
 Le verrou est posé par `POST /api/quiz/questions/:code/answer` lorsque la réponse est **fausse** et que
-le corps inclut le contexte ressource `{ resourceType, resourceRef }` (envoyé uniquement par le flux de
-validation). La pose utilise la **politique effective** (cascade site → type → fiche : erreurs
-tolérées, délai, portée) — la même que `GET …/gating/challenge`. La réponse renvoie alors
-`cooldown: { locked, locked_until, retry_days, remaining_days }`.
+le contexte ressource est connu : gravé dans le `presentationToken` par
+`GET /api/quiz/questions/:code/present?resourceType=&resourceRef=` (sévérités `flow` et `strict`), ou
+transmis dans le corps `{ resourceType, resourceRef }` (sévérité `advisory` seulement). La pose utilise
+la **politique effective** (cascade site → type → fiche : erreurs tolérées, délai, portée, sévérité) —
+la même que `GET …/gating/challenge`. La réponse renvoie alors le bloc `cooldown` décrit plus haut.
+Les routes `challenge` et `summary` ne comptent que les liens dont la question est encore **active**
+(`statut = 'actif'`) : une question archivée cesse de conditionner sans qu'il faille toucher au lien.
 
 ### GL — `/api/gl/learning-links` (MJ/admin, JWT `product:'gl'`)
 
@@ -2078,7 +2109,9 @@ Réglages site GL (table `gl_settings`), dérivés du même catalogue que ForetM
 accepté par compatibilité et se comporte comme `player`), `gating.default_mode` et
 `gating.default_required_correct` (**appliqués**), `gating.allowed_wrong_attempts` (0–10, def. `0`),
 `gating.max_questions_per_session` (1–10, def. `3`), `gating.cooldown_scope` (`resource|question`, def.
-`resource`), `gating.retry_cooldown_days` (0–365, def. `3` ; `0` = pas de verrou après erreur),
+`resource`), `gating.retry_cooldown_hours` (0–8760, def. `6` ; `0` = pas de verrou après erreur —
+remplace `gating.retry_cooldown_days`, converti par la migration 213), `gating.lock_mode`
+(`advisory|flow|strict`, def. `flow`),
 `gating.announce_on_button` et `gating.state_icons` (bool, def. `true` — appliqués depuis le lot 28).
 `gating.auto_mark_on_correct` a été **supprimé** du catalogue, comme côté ForetMap : la clé est refusée. La politique par ressource (`GET/PUT /policy`) est **appliquée** elle aussi, avec deux règles :
 l'interrupteur global est **maître** (site éteint → aucun quiz, même sur une ressource `enabled = 1`) et
@@ -2091,7 +2124,13 @@ cette quatrième couche sans contexte joueur. Persistance des tentatives QCM par
 `gl_qcm_attempts`, alimentée par les réponses plateau **et** catalogue, **sans condition** sur
 `gating.enabled` (activation rétroactive). Le verrou de re-tentative est posé par
 `POST /api/gl/qcm/questions/:code/answer` et `POST /api/gl/lore/qcm/questions/:code/answer` lorsque
-la réponse est fausse et que le corps inclut `{ resourceType, resourceRef }`.
+la réponse est fausse et que le contexte ressource est connu — gravé dans le jeton par
+`…/present?resourceType=&resourceRef=` (sévérités `flow`/`strict`), ou dans le corps
+`{ resourceType, resourceRef }` en sévérité `advisory` seulement (même règle qu'en ForetMap). En
+granularité `team`, le résumé et le challenge comptent les mêmes réponses (celles de l'équipe, MJ
+compris) ; en granularité `player`, seules celles du joueur — les deux routes ne peuvent plus se
+contredire. Le marquage d'un **feuillet** exige que le joueur l'ait ouvert (état
+`gl_player_feuillet_states`), sinon `404`.
 
 | Méthode | Route                                                          | Auth   | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ------- | -------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

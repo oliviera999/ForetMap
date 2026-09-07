@@ -29,6 +29,51 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   constats nouveaux, non traités : usage de la médiathèque à 30 requêtes SQL sans cache (T1),
   catalogue complet retéléchargé par le réseau trophique pour trois champs (T2),
   `/api/settings/public` redondant du forum (T3).
+### Validation des ressources par quiz — lot 2 : verrou contraignant, réglable par type, délai en heures (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.2)
+
+- **Le verrou après erreur tenait à la bonne volonté du client** (A4) : il n'était posé que si la
+  réponse arrivait avec le contexte de la fiche dans le corps, alors que les codes des questions
+  bloquantes sont livrés au lecteur. Répondre depuis le Quiz libre — ou rejouer la requête sans
+  contexte — donnait des essais illimités dont les bonnes réponses comptaient quand même. Le
+  contexte est désormais **gravé dans le jeton de présentation** (`…/present?resourceType=&resourceRef=`,
+  vérifié : la question doit conditionner cette fiche, sinon `400`) et la réponse ne lit que le
+  jeton. Nouvelle **sévérité du verrou** `lock_mode`, réglable site → type de ressource → fiche :
+  `advisory` (comportement historique, corps honoré), `flow` (défaut : jeton seul) et `strict`
+  (la question ne se joue que dans le flux de validation : `403` + `reserved_for` hors contexte,
+  exclue des tirages libres ; cache de 30 s invalidé à chaque écriture de politique, lien ou
+  réglage). Exemple d'usage : tutoriels en `strict`, glossaire en `advisory`. Module
+  `lib/learningGatingLockMode.js`, migration **213**.
+- **Délai de blocage en heures, 6 h par défaut au lieu de 3 jours** : réglages
+  `learning.gating.retry_cooldown_hours` / `gating.retry_cooldown_hours` (0–8760) et colonne
+  `retry_cooldown_hours` des politiques, convertis depuis les jours par la migration 213 ; les
+  anciennes clés restent acceptées en écriture (× 24). Les réponses portent `retry_hours`,
+  `retry_label`, `remaining_ms`, `remaining_hours`, `remaining_label` (« 45 min », « 3 h »,
+  « 1 j 2 h ») en plus des jours arrondis, et l'élève lit « réessaie dans 3 h » plutôt que
+  « 1 jour ». Un seul formateur pour les deux produits (`lib/shared/cooldownDurationCore.js`,
+  miroir `src/shared/utils/cooldownDuration.js`, parité testée).
+- **Écrans de réglage réécrits pour être compris sans notice** (prof ForetMap, admin G&L) :
+  quatre étapes numérotées — _Activer_, _Ce qu'il faut réussir_, _En cas d'erreur_, _Ce que
+  l'élève voit_ — chaque champ accompagné d'une phrase d'aide, délai choisi dans une liste
+  (aucun délai, 1 h … 7 jours) ou saisi librement, sévérité expliquée en clair (« Souple »,
+  « Normale (recommandée) », « Stricte »). Le préréglage par type expose les mêmes champs et
+  l'éditeur de politique se réinitialise quand on change d'onglet (D2). Habillage commun dans
+  `src/shared/styles/learning-gating.css`.
+- **Corrigé — résumé et challenge G&L pouvaient se contredire** (A3) : le résumé comptait les
+  réponses de l'équipe même en granularité « par joueur ». Les codes d'équipe ne sont fusionnés
+  que si la granularité effective est `team`.
+- **Corrigé — une question archivée continuait de conditionner** (A5) : les liens dont la
+  question n'est plus `actif` sont ignorés par le challenge, le résumé et l'accusé.
+- **Corrigé — la tolérance d'erreurs était annoncée neuve à chaque ouverture** (A6) : le bloc
+  `cooldown` renvoie `wrong_attempts` même hors verrou ; le texte devient « Il te reste 1 erreur
+  possible » puis « Plus aucune erreur permise ».
+- **Corrigé — un terme de glossaire déjà appris repassait le quiz** (A7), **une fiche déjà lue /
+  observée / apprise restait annoncée « à valider »** dans le résumé ForetMap (A8), et **un
+  joueur G&L pouvait marquer un feuillet jamais ouvert** (J1 : état `gl_player_feuillet_states`
+  exigé, sinon `404`).
+- Doc : `docs/API.md` (jeton contextualisé, sévérités, réglages en heures, blocs `cooldown`).
+  Tests : `tests/learning-gating-lock-mode.test.js`, `tests/gl-learning-gating-lock-mode.test.js`,
+  `tests-ui/shared/cooldownDuration.test.js`, mises à jour des suites de conditionnement.
+
 ### Validation des ressources par quiz — lot 1 : sûreté minimale (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.1)
 
 - **Corrigé — chaque réponse au Quiz faisait recharger tout le catalogue à toute la classe**
