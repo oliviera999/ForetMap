@@ -150,3 +150,26 @@ test('les seuils de signalement sont annoncés au client', async () => {
   assert.equal(res.body.min_attempts_for_flag, stats.MIN_ATTEMPTS_FOR_FLAG);
   assert.equal(res.body.suspect_success_rate, stats.SUSPECT_SUCCESS_RATE);
 });
+
+// C3 (docs/AUDIT_VALIDATION_QUIZ_2026-09.md) : une question rattachée à trois fiches ne compte
+// pas trois fois ses tentatives — le caractère bloquant est lu par EXISTS, pas par jointure.
+test('une question à trois liens compte ses tentatives une seule fois', async () => {
+  const before = await request(app)
+    .get('/api/quiz/admin/questions/stats?minAttempts=1')
+    .set(auth());
+  const attemptsBefore = before.body.stats.find((s) => s.question_code === facile)?.attempts;
+  assert.ok(attemptsBefore > 0);
+  for (const ref of ['777001', '777002', '777003']) {
+    await execute(
+      `INSERT IGNORE INTO resource_question_links
+        (resource_type, resource_ref, question_code, is_gating, status, origin)
+       VALUES ('tutorial', ?, ?, 1, 'approved', 'manual')`,
+      [ref, facile],
+    );
+  }
+  const after = await request(app).get('/api/quiz/admin/questions/stats?minAttempts=1').set(auth());
+  const mine = after.body.stats.find((s) => s.question_code === facile);
+  assert.equal(mine.attempts, attemptsBefore, 'trois liens ne triplent pas les tentatives');
+  assert.equal(mine.is_gating, true);
+  await execute('DELETE FROM resource_question_links WHERE question_code = ?', [facile]);
+});

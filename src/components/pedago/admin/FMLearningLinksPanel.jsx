@@ -134,15 +134,32 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
       }
     })();
     loadResources();
-    (async () => {
-      try {
-        const res = await api('/api/quiz/admin/questions?statut=actif&sort=code');
-        setQuestions(Array.isArray(res?.items) ? res.items : []);
-      } catch (_) {
-        setQuestions([]);
-      }
-    })();
   }, [loadResources]);
+
+  // Liste des questions : filtrée CÔTÉ SERVEUR par la recherche (`q=`) plutôt que tronquée
+  // en silence à 200 côté client (B5). Sans recherche, la liste complète reste chargée une
+  // fois ; le plafond d'affichage est annoncé sous le sélecteur.
+  useEffect(() => {
+    let cancelled = false;
+    const needle = questionSearch.trim();
+    const timer = setTimeout(
+      async () => {
+        try {
+          const params = new URLSearchParams({ statut: 'actif', sort: 'code' });
+          if (needle) params.set('q', needle);
+          const res = await api(`/api/quiz/admin/questions?${params.toString()}`);
+          if (!cancelled) setQuestions(Array.isArray(res?.items) ? res.items : []);
+        } catch (_) {
+          if (!cancelled) setQuestions([]);
+        }
+      },
+      needle ? 250 : 0,
+    );
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [questionSearch]);
 
   const loadProgress = useCallback(async () => {
     if (!selectedRef) {
@@ -170,21 +187,16 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
 
   const linkedCodes = useMemo(() => new Set(links.map((l) => l.question_code)), [links]);
 
-  const questionOptions = useMemo(() => {
-    const needle = questionSearch.trim().toLowerCase();
-    return questions
-      .filter((q) => !linkedCodes.has(q.question_code))
-      .filter((q) => {
-        if (!needle) return true;
-        return (
-          q.question_code.toLowerCase().includes(needle) ||
-          String(q.question || '')
-            .toLowerCase()
-            .includes(needle)
-        );
-      })
-      .slice(0, 200);
-  }, [questions, linkedCodes, questionSearch]);
+  const QUESTION_OPTIONS_MAX = 200;
+  const questionCandidates = useMemo(
+    () => questions.filter((q) => !linkedCodes.has(q.question_code)),
+    [questions, linkedCodes],
+  );
+  const questionOptions = useMemo(
+    () => questionCandidates.slice(0, QUESTION_OPTIONS_MAX),
+    [questionCandidates],
+  );
+  const questionOptionsTruncated = questionCandidates.length > questionOptions.length;
 
   async function run(action, successMessage) {
     setBusy(true);
@@ -493,6 +505,12 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
                       </option>
                     ))}
                   </select>
+                  {questionOptionsTruncated ? (
+                    <span className="section-sub">
+                      {questionOptions.length} premières questions affichées sur{' '}
+                      {questionCandidates.length} : affinez la recherche.
+                    </span>
+                  ) : null}
                 </label>
                 <button type="submit" className="btn-primary" disabled={busy || !questionToAdd}>
                   Rattacher

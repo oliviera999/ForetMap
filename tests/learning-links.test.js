@@ -115,6 +115,10 @@ test('GET liste filtree par questionCode', async () => {
     .expect(200);
   assert.ok(Array.isArray(res.body.links));
   assert.ok(res.body.links.some((l) => l.resource_ref === resourceRef));
+  // B5 : le plafond n'est plus muet.
+  assert.equal(res.body.max_rows, 1000);
+  assert.equal(res.body.total, res.body.links.length);
+  assert.equal(res.body.truncated, false);
 });
 
 test('PATCH bascule is_gating', async () => {
