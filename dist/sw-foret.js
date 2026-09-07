@@ -1,6 +1,6 @@
 /* Service worker « foret » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-foret-996092bc";
+const CACHE_NAME = "foretmap-foret-1d561289";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -17,7 +17,7 @@ const PRECACHE_URLS = [
   "/pwa-maskable-512.png",
   "/pwa-screenshot-mobile.png",
   "/pwa-screenshot-wide.png",
-  "/assets/main-CAjTJhw_.js",
+  "/assets/main-Bl76Y0Si.js",
   "/assets/rolldown-runtime-hePW80VL.js",
   "/assets/VisitMascotFallbackSvg-DgPaPMDJ.js",
   "/assets/react-vendor-Bnq5Y4Sb.js",
@@ -34,7 +34,7 @@ const PRECACHE_URLS = [
   "/assets/socket-io-D_2T_oRH.js",
   "/assets/MarkdownTextarea-DP8zgY94.js",
   "/assets/GlossaryMarkdown-CrgdQntv.js",
-  "/assets/useGatingSummary-a4rtWW3Z.js",
+  "/assets/DataContext-BiMfSA1H.js",
   "/assets/PublicSettingsContext-CrXzdDiQ.js",
   "/assets/useBrandTheme-DVckmT0z.js",
   "/assets/downloadApiFile-B8hAEaKh.js",
