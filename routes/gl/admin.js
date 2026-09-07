@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { queryAll, queryOne, execute, withTransaction } = require('../../database');
+const { purgeGlPlayerLearningTraces } = require('../../lib/glPlayerPurge');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const { logAudit } = require('../../lib/auditLog');
 const {
@@ -558,6 +559,8 @@ router.delete(
           `DELETE FROM password_reset_tokens WHERE user_type = 'gl_player' AND user_id = ?`,
           [id],
         );
+        // Tentatives QCM, verrous et accusés d'apprentissage : lecteur polymorphe, pas de FK.
+        await purgeGlPlayerLearningTraces(tx, id);
         await tx.execute('DELETE FROM gl_players WHERE id = ?', [id]);
       });
     } catch (err) {

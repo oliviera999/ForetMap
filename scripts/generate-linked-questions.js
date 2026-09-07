@@ -5,7 +5,8 @@
 // Pour chaque ressource SANS question liee (status='approved'), genere une
 // question dont la reponse EST dans la ressource (identite d'espece, definition
 // de glossaire, idee-cle de feuillet...) et cree le lien correspondant
-// (origin='generated', status='approved', is_gating=1). Les distracteurs sont
+// (origin='generated', status='approved', is_gating=0 : un conditionnement ne s'applique
+// que la ou un humain a coche « bloquant » — migration 194/212). Les distracteurs sont
 // tires des pools reels. La bonne reponse est placee aleatoirement (A..E).
 //
 // Dry-run par defaut. --apply pour ecrire. Idempotent : ne re-genere jamais pour
@@ -174,7 +175,7 @@ async function linkFm(apply, resourceType, resourceRef, code, note) {
   await execute(
     `INSERT IGNORE INTO resource_question_links
       (resource_type, resource_ref, question_code, is_gating, weight, origin, confidence, status, note)
-     VALUES (?, ?, ?, 1, 1, 'generated', 1.000, 'approved', ?)`,
+     VALUES (?, ?, ?, 0, 1, 'generated', 1.000, 'approved', ?)`,
     [resourceType, String(resourceRef), code, note],
   );
 }
@@ -183,7 +184,7 @@ async function linkGl(apply, dataset, resourceType, resourceRef, code, note) {
   await execute(
     `INSERT IGNORE INTO gl_resource_question_links
       (question_dataset, resource_type, resource_ref, question_code, is_gating, weight, origin, confidence, status, note)
-     VALUES (?, ?, ?, ?, 1, 1, 'generated', 1.000, 'approved', ?)`,
+     VALUES (?, ?, ?, ?, 0, 1, 'generated', 1.000, 'approved', ?)`,
     [dataset, resourceType, String(resourceRef), code, note],
   );
 }
