@@ -377,16 +377,16 @@ requête, qui a fait tomber le catalogue.
 | **Biodiversité**          | élèves + profs  | 3                                                           | non                   | **sain** (lots 1-3)           |
 | **Glossaire**             | élèves + profs  | 3 (catégories, termes, annonce) + 1 par terme ouvert        | non                   | **sain — c'est le modèle**    |
 | **Quiz** (élève)          | élèves          | 2 (catégories, progression) puis 2 par question tirée       | non                   | **sain**                      |
-| **Réseau trophique**      | élèves + profs  | 2 (graphe, zones) — **+1 catalogue complet côté prof**      | non                   | **T2**                        |
+| **Réseau trophique**      | élèves + profs  | 2 (graphe, zones)                                           | non                   | **traité (T2)**               |
 | **Carte**                 | élèves + profs  | 0 (données du contexte) ; fiches à l'ouverture d'une modale | non                   | **sain**                      |
 | **Visite**                | public + élèves | 1 (`/api/visit/content`, **caché** par version d'écriture)  | non                   | **sain**                      |
 | **Carnet d'observations** | élèves          | 1 (borné à 500 depuis le lot 3)                             | non                   | **sain**                      |
-| **Forum**                 | élèves + profs  | 2 (fils, groupes) **+1 redondant**                          | non                   | **T3**                        |
+| **Forum**                 | élèves + profs  | 2 (fils, groupes)                                           | non                   | **traité (T3)**               |
 | **Tâches**                | élèves + profs  | données du contexte **+1 par tuile** (commentaires)         | **oui**               | **P1 — partiellement traité** |
 | **Tutoriels**             | élèves + profs  | données du contexte **+1 par tutoriel** (commentaires)      | **oui**               | **P2 — partiellement traité** |
 | **Stats**                 | profs           | 3 (quiz, stats agrégées, groupes)                           | non                   | **sain**                      |
 | **Profils**               | profs           | 4, dont `/api/stats/all`                                    | non                   | sain, cf. note                |
-| **Médiathèque**           | profs           | 2 appels, mais **30 requêtes SQL**                          | non                   | **T1**                        |
+| **Médiathèque**           | profs           | 2 appels, mais **8 requêtes SQL** (caché depuis T1)         | non                   | **traité (T1)**               |
 
 Deux enseignements de cette revue.
 
@@ -399,41 +399,66 @@ une fatalité de l'application : c'était une exception, et elle est levée.
 contexte** (tâches et tutoriels, constats P1 et P2). Le lot 2 l'a divisé par trois ; le
 ramener à zéro demande le même arbitrage d'usage que pour le catalogue.
 
-### T1. [MOYEN] Médiathèque — 30 requêtes SQL dont 15 balayages de table, sans cache
+### T1. [MOYEN] Médiathèque — un balayage complet par table source, sans cache — **traité**
 
-`lib/mediaLibraryUsage.js:455-476` — `collectMediaLibraryUsage` boucle sur **15 tables
-sources** et exécute, pour chacune, un `SHOW COLUMNS` puis un `SELECT … LIMIT 800`. Soit
-**30 requêtes SQL et 15 balayages** à chaque ouverture de l'onglet, sans aucun cache. C'est,
-depuis le traitement de B4, la route la plus chère de l'application.
+> **Correction de chiffrage.** La première rédaction de ce constat annonçait « 15 tables
+> sources, 30 requêtes SQL, `LIMIT 800` ». Ces trois nombres étaient faux, et le lot de
+> traitement les a mesurés plutôt qu'estimés (`tests/media-library-usage-cache.test.js`) :
+>
+> |                                           | Sources                                                                                                                                                                                    | Requêtes SQL par ouverture |
+> | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
+> | `/api/media-library/usage` (ForetMap)     | **4** (`app_settings`, `tutorials`, `visit_zones`, `visit_markers`)                                                                                                                        | **8**                      |
+> | `/api/gl/admin/media-library/usage` (G&L) | **9** (`gl_chapters`, `gl_lore_feuillets`, `gl_kingdom_zones`, `gl_species`, `gl_qcm_questions`, `gl_qcm_lore_questions`, `gl_content_pages`, `gl_player_journal_articles`, `gl_settings`) | **18**                     |
+>
+> Le `LIMIT` du `SELECT` est `ROW_LIMIT = 5000`, pas 800 — le 800 est le nombre de médias lus
+> sur le disque. Et l'affirmation « la route la plus chère de l'application » n'était appuyée
+> par aucune mesure : elle est retirée, faute d'un classement établi.
 
-Le public est restreint (`teacher.access`) et l'écran peu fréquenté : le risque de saturation
-est faible, contrairement au catalogue. Mais le coût est fixe et payé intégralement à chaque
-consultation, et il **croît avec la taille des tables** — pas avec ce que l'écran affiche.
+`lib/mediaLibraryUsage.js` — `collectMediaLibraryUsage` boucle sur les tables sources du
+produit et exécute, pour chacune, un `SHOW COLUMNS` puis un `SELECT … LIMIT 5000`. Le constat
+qui tient, une fois les nombres corrigés, est celui-ci : **le coût est fixe, payé
+intégralement à chaque ouverture de l'onglet, et il croît avec la taille des tables — pas avec
+ce que l'écran affiche.** Le public est restreint (`teacher.access`) et l'écran peu fréquenté :
+le risque de saturation est faible, contrairement au catalogue.
 
-**Remède** : cache mémoire à version d'écriture (motif `lib/shared/writeVersionCache.js`, déjà
-utilisé par le contenu de visite et la charge publique du plan) — l'usage des médias ne change
-qu'à l'écriture. À défaut, un TTL de quelques minutes.
+**Traité** : cache mémoire à version d'écriture (`createMediaLibraryUsageCache`, sur le motif
+partagé `lib/shared/writeVersionCache.js` déjà utilisé par le contenu de visite et la charge
+publique du plan), câblé dans les deux routes avec une entrée par produit.
 
-### T2. [MINEUR] Réseau trophique — le catalogue complet retéléchargé pour trois champs
+Pourquoi la version d'écriture et non un TTL de quelques minutes, qui aurait donné un bien
+meilleur taux de succès : **l'usage sert à prévenir avant une suppression** (« ce média est
+utilisé à N endroits »). Un résultat périmé y ferait supprimer un média venant d'être
+référencé. Avec l'invalidation par version, toute écriture passée par les helpers de
+`database.js` périme le cache instantanément — dont l'import et la suppression de médias
+eux-mêmes, qui écrivent au journal d'audit. Le TTL du module partagé ne subsiste que comme
+garde-fou pour les écritures hors process (scripts CLI, SQL direct).
 
-`src/components/pedago/FoodWebView.jsx:104` — la vue professeur appelle `GET /api/plants`
-pour construire la liste déroulante des espèces, dont elle ne garde que `{ id, name, emoji }`.
+Le cache est donc volontairement peu performant sous écriture continue, et pleinement efficace
+là où il sert : la rafale d'ouvertures et de rafraîchissements d'un même écran.
+
+### T2. [MINEUR] Réseau trophique — le catalogue complet retéléchargé pour trois champs — **traité**
+
+`src/components/pedago/FoodWebView.jsx` — la vue professeur appelait `GET /api/plants` pour
+construire la liste déroulante des espèces, dont elle ne gardait que `{ id, name, emoji }`.
 Soit **117 kio** transférés et désérialisés pour trois champs, alors que `DataContext` porte
 déjà `plants` — la même liste, déjà en mémoire, déjà rafraîchie par le cycle de
 synchronisation.
 
-**Remède** : lire `plants` depuis `useData()`, comme le font le catalogue et la carte. Quelques
-lignes, aucun changement visible.
+**Traité** : la liste est dérivée de `useData()` par un `useMemo`, comme le font le catalogue
+et la carte. L'effet de chargement disparaît ; le tri par nom (fr) et la restriction aux
+professeurs (`canManage`) sont inchangés.
 
-### T3. [MINEUR] Forum — le `GET /api/settings/public` redondant y subsiste
+### T3. [MINEUR] Forum — le `GET /api/settings/public` redondant — **traité**
 
-`src/components/forum-views.jsx:113-124` porte encore l'appel exact que le lot 2 a retiré de
+`src/components/forum-views.jsx` portait encore l'appel exact que le lot 2 avait retiré de
 `ContextComments` : relire les réglages publics pour en extraire les emojis de réaction, alors
 que `PublicSettingsContext` les fournit déjà. Un appel par ouverture du forum — sans commune
-mesure avec la rafale du catalogue, mais c'est le même geste, et il reste à faire au même
+mesure avec la rafale du catalogue, mais c'est le même geste, et il restait à faire au même
 endroit qu'ailleurs.
 
-**Remède** : identique au lot 2 — `usePublicSettings()` au lieu de l'appel.
+**Traité** : `usePublicSettings()` au lieu de l'appel, et `reactionEmojis` passe d'un état à
+une valeur dérivée. Le repli sur la liste par défaut est préservé (`parseReactionEmojiList('')`
+la rend déjà).
 
 ### T4. [INFO] Effet de bord positif du plafond relevé (B4)
 
@@ -609,9 +634,9 @@ plan sont devenus sans objet. Le **lot 2** a dégraissé ce qui restait sur le c
 | 8        | **P1/P2** même traitement que B1 sur tâches et tutoriels                    | **traité en partie** (lot 2) — 3N → N ; le N restant demande un arbitrage d'usage         |
 | 9        | **B5** projection de liste + double enrichissement                          | **traité en partie** (lot 2) — double `map` supprimé ; projection écartée, cf. §B5        |
 | 10       | **B7 / P4 / P5 / P7 / P8** caches, bornes et hygiène SQL                    | **traité en partie** (lot 3) — cf. chaque constat pour ce qui a été volontairement écarté |
-| 11       | **T1** cache d'usage de la médiathèque (30 requêtes SQL, 15 balayages)      | à faire — public restreint, mais route la plus chère restante                             |
-| 12       | **T2** réseau trophique : lire `plants` du contexte au lieu de le refetcher | à faire — quelques lignes, 117 kio économisés par ouverture côté prof                     |
-| 13       | **T3** forum : emojis via `usePublicSettings()`                             | à faire — même geste que le lot 2, au même endroit qu'ailleurs                            |
+| 11       | **T1** cache d'usage de la médiathèque (8 requêtes SQL, 18 côté G&L)        | **traité** (lot 4) — cache à version d'écriture, chiffrage initial corrigé                |
+| 12       | **T2** réseau trophique : lire `plants` du contexte au lieu de le refetcher | **traité** (lot 4) — 117 kio de moins par ouverture côté prof                             |
+| 13       | **T3** forum : emojis via `usePublicSettings()`                             | **traité** (lot 4) — même geste que le lot 2, au même endroit qu'ailleurs                 |
 
 ### Ce qui reste ouvert, et pourquoi
 
@@ -628,11 +653,10 @@ plan sont devenus sans objet. Le **lot 2** a dégraissé ce qui restait sur le c
   lot : même arbitrage d'usage que pour le catalogue, à trancher.
 - **P4/P5** — filtres `q` laissés en JS : les pousser en SQL changerait la sémantique de
   correspondance. Route de lot « plantes liées à ces termes » pour le quiz : à faire.
-- **P6** — réseau trophique : le graphe lui-même est sain à la volumétrie actuelle ; reste le
-  refetch du catalogue complet côté prof (T2).
-- **T1/T2/T3** — relevés par la revue onglet par onglet (§3), non traités : cache d'usage de la
-  médiathèque, catalogue refetché par le réseau trophique, `/api/settings/public` redondant du
-  forum.
+- **P6** — réseau trophique : le graphe lui-même est sain à la volumétrie actuelle, et le
+  refetch du catalogue complet côté prof a disparu au lot 4 (T2).
+- **T1/T2/T3** — traités au lot 4. Le traitement de T1 a fait apparaître que le chiffrage de ce
+  constat était faux ; la correction est en tête du constat, avec les nombres mesurés.
 - **G&L** — `resolveGlChapterGranularity` reste appelé par ressource dans le résumé groupé.
 
 ### Bilan chiffré
@@ -664,9 +688,16 @@ plan sont devenus sans objet. Le **lot 2** a dégraissé ce qui restait sur le c
    mesuré (15,2) est une **borne basse** : le scénario ne rejoue que 20 fiches sur 78, et
    seulement les routes publiques (le volet commentaires, authentifié, n'est pas simulé).
 
-2. **Compteur de requêtes en test.** Le motif existe déjà
-   (`tests/gl-market-trades-batch.test.js` compare un compteur de requêtes SQL avant/après) :
-   il s'applique tel quel au résumé de conditionnement (B4) et aux routes de lot proposées.
+2. **Compteur de requêtes en test — fait pour B4 et T1.** Le motif existait déjà
+   (`tests/gl-market-trades-batch.test.js` compare un compteur de requêtes SQL avant/après) ;
+   `tests/learning-gating-summary-batch.test.js` le porte sur le résumé de conditionnement, et
+   `tests/media-library-usage-cache.test.js` sur l'usage de la médiathèque.
+
+   Ce dernier a une valeur qui dépasse la non-régression : **c'est lui qui a corrigé le
+   chiffrage de T1.** Écrire le test a obligé à compter au lieu d'estimer, et les trois nombres
+   annoncés se sont révélés faux. Un constat d'audit non couvert par un test reste une
+   estimation ; la leçon vaut pour les constats de ce document qui n'en ont pas encore.
+
 3. **En production.** `GET /api/admin/diagnostics` expose `metrics.http429` et
    `recentHttp429` : un pic de 429 corrélé aux heures de séance est la signature directe de
    §1.1, et le moyen le plus rapide de confirmer le diagnostic sans instrumentation nouvelle.
