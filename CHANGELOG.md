@@ -29,6 +29,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   constats nouveaux, non traités : usage de la médiathèque à 30 requêtes SQL sans cache (T1),
   catalogue complet retéléchargé par le réseau trophique pour trois champs (T2),
   `/api/settings/public` redondant du forum (T3).
+### Validation des ressources par quiz — lot 4 : une proposition ne conditionne jamais, « rendre bloquant » est un geste explicite (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.4)
+
+- **Règle unique, lisible par un professeur** : _une proposition, un import ou une génération ne
+  conditionne jamais ; seul un clic « bloquant » le fait, et l'écran dit alors ce que l'élève
+  devra faire._ Les propositions du rattachement automatique (`POST /api/learning-links/suggest`,
+  `scripts/suggest-learning-links.js`) sont insérées **non bloquantes** (B2) ; la migration
+  **214** aligne les propositions encore en attente. Approuver en lot ne fait donc plus de
+  quarante propositions textuelles quarante questions bloquantes.
+- **Nouvelle action « Rendre bloquantes les N question(s) approuvée(s) »** dans les deux
+  panneaux (prof ForetMap, admin G&L), avec confirmation qui énonce la politique effective
+  (« une question réussie suffit sur 12, aucune erreur tolérée, verrou 6 h… »). Route
+  `POST /api/learning-links/gating` (et `/api/gl/learning-links/gating`), par identifiants ou
+  pour tous les liens approuvés d'une ressource, bornée à 200, refus sur un type non validable.
+- **Corrigé — recréer un couple existant le rendait bloquant et réécrivait son origine** (B3) :
+  `POST /api/learning-links` (FM et GL) ne réécrit `is_gating` et `origin` que si le corps les
+  fournit, et un lien créé sans le demander est non bloquant. Le formulaire G&L « Ajouter un
+  lien » n'a plus la case « Bloquant » précochée.
+- Tests : `tests/learning-links.test.js`, `tests/gl-learning-links.test.js`,
+  `tests/learning-links-suggest.test.js`, `tests/learning-links-bulk.test.js`, panneaux dans
+  `tests-ui/`. Doc : `docs/API.md`.
+
 ### Validation des ressources par quiz — lot 3 : la portée « seulement la question ratée » fonctionne (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.3)
 
 - **Corrigé — le réglage « Portée du blocage après erreur » ne faisait rien** (A1) : la portée

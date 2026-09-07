@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { readRetryHours, retryHoursLabel } from '../../../shared/utils/learningGatingPolicyText.js';
+import {
+  readRetryHours,
+  retryHoursLabel,
+  describeEffectiveGatingPolicy,
+} from '../../../shared/utils/learningGatingPolicyText.js';
 import { apiGL } from '../../services/apiGL.js';
 import { GatingPolicyEditor } from '../../../shared/components/GatingPolicyEditor.jsx';
+import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { describeSiteGatingMode } from '../../../shared/utils/learningGatingPolicyText.js';
 
 // G3 — écran admin du conditionnement par QCM (« marquer appris » soumis à la
@@ -26,7 +31,8 @@ const EMPTY_CREATE_FORM = {
   resource_type: 'species',
   resource_ref: '',
   question_code: '',
-  is_gating: true,
+  // Non bloquant par défaut : seul un clic explicite conditionne (lot 4, B3).
+  is_gating: false,
   note: '',
 };
 
@@ -43,6 +49,7 @@ export function GLLearningLinksPanel() {
   const [policyType, setPolicyType] = useState('species');
   const [policyState, setPolicyState] = useState(null);
   const [policyBusy, setPolicyBusy] = useState(false);
+  const { confirm } = useAppDialogs();
 
   const loadSettings = useCallback(async () => {
     try {
@@ -126,6 +133,46 @@ export function GLLearningLinksPanel() {
       l.status === 'approved' &&
       Number(l.is_gating),
   );
+
+  const policyApprovedNonGating = links.filter(
+    (l) =>
+      l.resource_type === policyType &&
+      l.resource_ref === policyRef.trim() &&
+      l.status === 'approved' &&
+      !Number(l.is_gating),
+  );
+
+  /** Rend bloquants, d'un geste, tous les liens approuvés de la ressource sélectionnée (lot 4). */
+  async function makeAllApprovedGating() {
+    const phrase = describeEffectiveGatingPolicy({
+      ...(policyState?.effective || {}),
+      gatingCount: policyLinks.length + policyApprovedNonGating.length,
+    });
+    const ok = await confirm({
+      title: 'Rendre bloquantes',
+      message:
+        `Rendre bloquantes les ${policyApprovedNonGating.length} question(s) approuvée(s) de cette ressource ? ` +
+        `Ensuite : ${phrase}`,
+      confirmLabel: 'Rendre bloquantes',
+    });
+    if (!ok) return;
+    setBusy(true);
+    setError('');
+    setInfo('');
+    try {
+      await apiGL('/api/gl/learning-links/gating', 'POST', {
+        resourceType: policyType,
+        resourceRef: policyRef.trim(),
+        is_gating: true,
+      });
+      setInfo('Questions rendues bloquantes.');
+      await loadLinks();
+    } catch (err) {
+      setError(err.message || 'Mise à jour impossible');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function createLink(event) {
     event.preventDefault();
@@ -262,6 +309,20 @@ export function GLLearningLinksPanel() {
         ) : (
           <p className="gl-hint">Indiquez une référence pour éditer la politique.</p>
         )}
+        {policyRef.trim() && policyApprovedNonGating.length > 0 ? (
+          <p className="gl-hint">
+            {policyApprovedNonGating.length} question(s) approuvée(s) ne conditionnent rien tant
+            qu'elles ne sont pas bloquantes.{' '}
+            <button
+              type="button"
+              className="gl-btn"
+              disabled={busy}
+              onClick={makeAllApprovedGating}
+            >
+              Rendre bloquantes les {policyApprovedNonGating.length} question(s) approuvée(s)
+            </button>
+          </p>
+        ) : null}
       </div>
 
       <form onSubmit={createLink} className="gl-admin-form">

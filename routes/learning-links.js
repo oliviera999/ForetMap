@@ -73,6 +73,7 @@ router.post(
     const parsed = core.sanitizeLinkInput(req.body || {}, { allowedResourceTypes: ALLOWED });
     if (!parsed.ok) return res.status(400).json({ error: parsed.error });
     const v = parsed.value;
+    const provided = parsed.provided || {};
     if (!(await questionExists(v.question_code))) {
       return res.status(404).json({ error: 'Question introuvable' });
     }
@@ -91,7 +92,8 @@ router.post(
          created_by_user_type, created_by_user_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
-         is_gating = VALUES(is_gating), weight = VALUES(weight), origin = VALUES(origin),
+         is_gating = COALESCE(?, is_gating), weight = VALUES(weight),
+         origin = COALESCE(?, origin),
          confidence = VALUES(confidence), status = VALUES(status), note = VALUES(note),
          updated_at = NOW()`,
       [
@@ -106,6 +108,10 @@ router.post(
         v.note,
         who.userType,
         who.userId,
+        // Lien existant : le caractère bloquant et l'origine ne sont réécrits que si le corps
+        // les fournit (B3) — recréer un couple sans les dire ne doit rien conditionner.
+        provided.is_gating ? v.is_gating : null,
+        provided.origin ? v.origin : null,
       ],
     );
     const row = await queryOne(
@@ -673,7 +679,7 @@ router.post(
           `INSERT IGNORE INTO resource_question_links
             (resource_type, resource_ref, question_code, is_gating, weight, origin, confidence, status, note,
              created_by_user_type, created_by_user_id)
-           VALUES (?, ?, ?, 1, 1, ?, ?, 'suggested', ?, ?, ?)`,
+           VALUES (?, ?, ?, 0, 1, ?, ?, 'suggested', ?, ?, ?)`,
           [
             c.resource_type,
             c.resource_ref,
@@ -745,6 +751,42 @@ router.post(
 
     const bulk = await linksBulk.reviewSuggestedLinks({ execute }, { product: 'fm', status, ids });
     return res.json({ success: true, status, updated: bulk.updated });
+  }),
+);
+
+/**
+ * POST /api/learning-links/gating — rendre bloquantes (ou non) des questions rattachées, en lot.
+ * Corps : `{ is_gating, ids? }` ou `{ is_gating, resourceType, resourceRef }` (liens approuvés
+ * de la ressource). Le geste explicite qui conditionne, maintenant qu'approuver ne le fait plus.
+ */
+router.post(
+  '/gating',
+  managePermission,
+  asyncHandler(async (req, res) => {
+    const body = req.body || {};
+    const rawFlag = body.is_gating ?? body.isGating;
+    if (rawFlag == null) return res.status(400).json({ error: 'is_gating attendu' });
+    const isGating = rawFlag === true || rawFlag === 1 || rawFlag === '1' || rawFlag === 'true';
+    const ids = (Array.isArray(body.ids) ? body.ids : [])
+      .map((n) => Number(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    let rt = null;
+    let ref = null;
+    if (!ids.length) {
+      rt = core.normalizeResourceType(body.resourceType ?? body.resource_type, ALLOWED);
+      ref = core.normalizeResourceRef(body.resourceRef ?? body.resource_ref);
+      if (!rt || !ref) {
+        return res.status(400).json({
+          error: 'Aucun identifiant fourni (ou indiquez resourceType + resourceRef)',
+        });
+      }
+    }
+    const bulk = await linksBulk.setLinksGating(
+      { execute },
+      { product: 'fm', isGating, ids, resourceType: rt, resourceRef: ref },
+    );
+    if (!bulk.ok) return res.status(400).json({ error: bulk.error });
+    return res.json({ success: true, is_gating: isGating ? 1 : 0, updated: bulk.updated });
   }),
 );
 

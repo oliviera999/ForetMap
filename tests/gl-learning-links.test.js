@@ -89,6 +89,39 @@ test('POST cree un lien QCM lore <-> glossaire lore', async () => {
   assert.equal(res.body.link.question_dataset, 'qcm_lore');
   assert.equal(res.body.link.resource_type, 'lore_glossary');
   assert.equal(res.body.link.question_code, lqcode);
+  assert.equal(res.body.link.is_gating, 0, 'non bloquant tant que personne ne le demande (B3)');
+});
+
+test('POST /gating — rendre bloquants les liens approuvés d’une ressource ; recréation sans is_gating conservée (lot 4)', async () => {
+  const on = await request(app)
+    .post('/api/gl/learning-links/gating')
+    .set(glAuth())
+    .send({ resourceType: 'lore_glossary', resourceRef, is_gating: true })
+    .expect(200);
+  assert.equal(on.body.updated, 1);
+
+  const again = await request(app)
+    .post('/api/gl/learning-links')
+    .set(glAuth())
+    .send({
+      question_dataset: 'qcm_lore',
+      resource_type: 'lore_glossary',
+      resource_ref: resourceRef,
+      question_code: lqcode,
+      note: 'reprise',
+    })
+    .expect(201);
+  assert.equal(again.body.link.is_gating, 1, 'le caractère bloquant survit à une recréation');
+
+  await request(app)
+    .post('/api/gl/learning-links/gating')
+    .set(glAuth())
+    .send({ ids: [again.body.link.id], is_gating: false })
+    .expect(200);
+  const list = await request(app)
+    .get(`/api/gl/learning-links?questionCode=${lqcode}`)
+    .set(glAuth());
+  assert.equal(list.body.links.find((l) => l.resource_ref === resourceRef).is_gating, 0);
 });
 
 test('POST sans dataset -> 400', async () => {

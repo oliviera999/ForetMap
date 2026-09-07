@@ -62,7 +62,34 @@ test('POST cree un lien ressource <-> question', async () => {
     .expect(201);
   assert.equal(res.body.link.resource_type, 'tutorial');
   assert.equal(res.body.link.question_code, qcode);
-  assert.equal(res.body.link.is_gating, 1);
+  // Un lien n'est bloquant que si on le demande (B3, lot 4) : créé sans le dire, il ne
+  // conditionne rien.
+  assert.equal(res.body.link.is_gating, 0);
+});
+
+test('POST is_gating explicite → bloquant ; recréer le couple sans le dire ne le réécrit pas (B3)', async () => {
+  const gated = await request(app)
+    .post('/api/learning-links')
+    .set(auth())
+    .send({
+      resource_type: 'tutorial',
+      resource_ref: resourceRef,
+      question_code: qcode,
+      is_gating: true,
+      origin: 'import',
+    })
+    .expect(201);
+  assert.equal(gated.body.link.is_gating, 1);
+  assert.equal(gated.body.link.origin, 'import');
+
+  const again = await request(app)
+    .post('/api/learning-links')
+    .set(auth())
+    .send({ resource_type: 'tutorial', resource_ref: resourceRef, question_code: qcode, note: 'n' })
+    .expect(201);
+  assert.equal(again.body.link.is_gating, 1, 'le caractère bloquant est conservé');
+  assert.equal(again.body.link.origin, 'import', "l'origine est conservée");
+  assert.equal(again.body.link.note, 'n');
 });
 
 test('POST type de ressource invalide -> 400', async () => {
@@ -99,6 +126,59 @@ test('PATCH bascule is_gating', async () => {
     .send({ is_gating: false })
     .expect(200);
   assert.equal(res.body.link.is_gating, 0);
+  const back = await request(app)
+    .patch(`/api/learning-links/${id}`)
+    .set(auth())
+    .send({ is_gating: true })
+    .expect(200);
+  assert.equal(back.body.link.is_gating, 1);
+});
+
+test('POST /gating — rendre bloquantes les questions approuvées d’une fiche, en lot (lot 4)', async () => {
+  const ref = `${resourceRef}G`.slice(0, 64);
+  const created = await request(app)
+    .post('/api/learning-links')
+    .set(auth())
+    .send({ resource_type: 'tutorial', resource_ref: ref, question_code: qcode })
+    .expect(201);
+  assert.equal(created.body.link.is_gating, 0);
+
+  const on = await request(app)
+    .post('/api/learning-links/gating')
+    .set(auth())
+    .send({ resourceType: 'tutorial', resourceRef: ref, is_gating: true })
+    .expect(200);
+  assert.equal(on.body.updated, 1);
+  assert.equal(on.body.is_gating, 1);
+  const list = await request(app)
+    .get(`/api/learning-links?resourceType=tutorial&resourceRef=${ref}`)
+    .set(auth());
+  assert.equal(list.body.links.find((l) => l.id === created.body.link.id).is_gating, 1);
+
+  // Idempotent : rien à changer la seconde fois.
+  const twice = await request(app)
+    .post('/api/learning-links/gating')
+    .set(auth())
+    .send({ resourceType: 'tutorial', resourceRef: ref, is_gating: true })
+    .expect(200);
+  assert.equal(twice.body.updated, 0);
+
+  // Par identifiants, dans l'autre sens.
+  const off = await request(app)
+    .post('/api/learning-links/gating')
+    .set(auth())
+    .send({ ids: [created.body.link.id], is_gating: false })
+    .expect(200);
+  assert.equal(off.body.updated, 1);
+
+  // Sans is_gating, ni cible : 400.
+  await request(app).post('/api/learning-links/gating').set(auth()).send({}).expect(400);
+  await request(app)
+    .post('/api/learning-links/gating')
+    .set(auth())
+    .send({ is_gating: true })
+    .expect(400);
+  await execute('DELETE FROM resource_question_links WHERE id = ?', [created.body.link.id]);
 });
 
 test('PUT policy + GET policy effective (threshold, active par ressource)', async () => {
@@ -164,7 +244,6 @@ test('POST /review — approbation en masse (phase 2)', async () => {
     .post('/api/learning-links')
     .set(auth())
     .send({
-      // Un type validable par ForetMap : le lien est bloquant par defaut.
       resource_type: 'tutorial',
       resource_ref: ref,
       question_code: qcode,

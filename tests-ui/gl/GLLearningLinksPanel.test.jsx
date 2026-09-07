@@ -192,3 +192,74 @@ describe('GLLearningLinksPanel', () => {
     });
   });
 });
+
+// Lot 4 : la case « Bloquant » du formulaire n'est plus précochée, et un bouton rend
+// bloquants d'un geste les liens approuvés de la ressource sélectionnée.
+describe('GLLearningLinksPanel — lot 4', () => {
+  beforeEach(() => {
+    apiGlMock.mockReset();
+  });
+
+  test('la case « Bloquant » du formulaire est décochée par défaut', async () => {
+    apiGlMock.mockImplementation(async (path) => {
+      if (path.startsWith('/api/gl/learning-links/settings')) return { gating: { enabled: false } };
+      if (path.startsWith('/api/gl/learning-links/policy')) return { policy: null, effective: {} };
+      return { links: [] };
+    });
+    render(<GLLearningLinksPanel />);
+    await waitFor(() =>
+      expect(screen.getByText('Aucun lien pour ces filtres.')).toBeInTheDocument(),
+    );
+    expect(screen.getByRole('checkbox', { name: /Bloquant \(la réussite/ })).not.toBeChecked();
+  });
+
+  test('rend bloquants les liens approuvés de la ressource choisie (POST /gating)', async () => {
+    const calls = [];
+    apiGlMock.mockImplementation(async (path, method = 'GET', body) => {
+      calls.push([path, method, body]);
+      if (path.startsWith('/api/gl/learning-links/settings')) return { gating: { enabled: true } };
+      if (path.startsWith('/api/gl/learning-links/policy')) {
+        return { policy: null, effective: { mode: 'any', requiredCorrect: 1 } };
+      }
+      if (path === '/api/gl/learning-links/gating') return { success: true, updated: 1 };
+      return {
+        links: [
+          {
+            id: 1,
+            question_dataset: 'qcm',
+            resource_type: 'species',
+            resource_ref: 'ESP001',
+            question_code: 'QF001',
+            is_gating: 0,
+            status: 'approved',
+            origin: 'auto',
+          },
+        ],
+      };
+    });
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<GLLearningLinksPanel />);
+    await waitFor(() => expect(screen.getByText('QF001')).toBeInTheDocument());
+    fireEvent.change(screen.getByPlaceholderText('code ressource…'), {
+      target: { value: 'ESP001' },
+    });
+    const button = await screen.findByRole('button', {
+      name: /Rendre bloquantes les 1 question\(s\) approuvée\(s\)/,
+    });
+    fireEvent.click(button);
+    await waitFor(() => {
+      expect(
+        calls.some(
+          ([path, method, body]) =>
+            path === '/api/gl/learning-links/gating' &&
+            method === 'POST' &&
+            body.resourceType === 'species' &&
+            body.resourceRef === 'ESP001' &&
+            body.is_gating === true,
+        ),
+      ).toBe(true);
+    });
+    expect(confirmSpy.mock.calls[0][0]).toMatch(/Ensuite :/);
+    confirmSpy.mockRestore();
+  });
+});
