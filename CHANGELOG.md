@@ -29,6 +29,29 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   constats nouveaux, non traités : usage de la médiathèque à 30 requêtes SQL sans cache (T1),
   catalogue complet retéléchargé par le réseau trophique pour trois champs (T2),
   `/api/settings/public` redondant du forum (T3).
+### Validation des ressources par quiz — lot 1 : sûreté minimale (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.1)
+
+- **Corrigé — chaque réponse au Quiz faisait recharger tout le catalogue à toute la classe**
+  (C2) : les cinq tables du conditionnement (`user_quiz_attempts`, `resource_question_links`,
+  `resource_gating_policy`, `resource_gating_cooldowns`, `learning_acknowledgements`) sont
+  désormais ignorées par la synchronisation ; une écriture n'y réveille plus aucun domaine de
+  polling. Garde dans `tests/audit-biodiv-charge-hygiene.test.js`.
+- **Corrigé — `GET /api/learning-links/progress` répondait 500 depuis sa livraison** (A2) : deux
+  colonnes inexistantes (`users.deleted_at`, `learning_acknowledgements.resource_type`) ; le seuil
+  du mode « seuil » est borné au nombre de questions liées, comme à l'accusé. Nouveau
+  `tests/learning-gating-progress.test.js`.
+- **Corrigé — supprimer un joueur G&L laissait ses tentatives QCM, verrous et accusés** (C1) :
+  purge applicative dans les deux chemins (`DELETE /api/gl/admin/players/:id`, suppression d'un
+  élève ForetMap lié) via `lib/glPlayerPurge.js`. Un identifiant réattribué n'hérite plus de
+  bonnes réponses. Test dans `tests/gl-players-admin.test.js`.
+- **Corrigé — `scripts/generate-linked-questions.js` créait des liens approuvés ET bloquants**
+  (B1), hors du rattrapage de la migration 194 (`origin = 'generated'`) : le script insère
+  `is_gating = 0` et la migration **212** rattrape l'existant.
+- **Tests — deux échecs intermittents en CI** : `tests/gl-mascots.test.js` signe son jeton
+  enseignant avec l'époque de session courante (`tokenEpoch`), `tests/rbac.test.js` crée l'élève
+  qu'il modifie au lieu de prendre le premier de la base partagée (qui pouvait n'avoir ni prénom
+  ni nom).
+
 ### Documentation — audit complet de la validation des ressources par quiz (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`)
 
 - **Audit de tout le dispositif de conditionnement** (décision serveur, liens et génération

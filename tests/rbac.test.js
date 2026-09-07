@@ -85,8 +85,18 @@ test('RBAC admin: lecture profils et utilisateurs', async () => {
 
 test('RBAC admin: PATCH compte utilisateur (n3beur)', async () => {
   const token = await getAdminToken();
+  // Élève créé POUR ce test : le premier élève de la base partagée (`LIMIT 1`) peut avoir été
+  // inséré par une autre suite sans prénom ni nom, et la route répond alors 400
+  // « Nom invalide » — échec intermittent vu en CI.
+  const patchStudentId = `rbac-patch-${Date.now()}`.slice(0, 64);
+  await execute(
+    `INSERT INTO users (id, user_type, first_name, last_name, pseudo, display_name, affiliation, is_active, created_at, updated_at)
+     VALUES (?, 'student', 'Patch', ?, ?, 'Patch', 'both', 1, NOW(), NOW())`,
+    [patchStudentId, `Rbac${Date.now()}`.slice(0, 40), `rbacp${Date.now()}`.slice(0, 40)],
+  );
   const student = await queryOne(
-    "SELECT id, first_name, last_name FROM users WHERE user_type = 'student' LIMIT 1",
+    "SELECT id, first_name, last_name FROM users WHERE user_type = 'student' AND id = ? LIMIT 1",
+    [patchStudentId],
   );
   assert.ok(student?.id, 'Au moins un n3beur en base pour ce test');
   const prevFirst = student.first_name;
@@ -119,6 +129,7 @@ test('RBAC admin: PATCH compte utilisateur (n3beur)', async () => {
     'UPDATE task_logs SET student_first_name = ?, student_last_name = ? WHERE student_id = ?',
     [prevFirst, prevLast, student.id],
   );
+  await execute("DELETE FROM users WHERE id = ? AND user_type = 'student'", [patchStudentId]);
 });
 
 test('RBAC admin: GET un utilisateur pour édition', async () => {
