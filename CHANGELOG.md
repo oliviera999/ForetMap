@@ -29,6 +29,47 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   constats nouveaux, non traités : usage de la médiathèque à 30 requêtes SQL sans cache (T1),
   catalogue complet retéléchargé par le réseau trophique pour trois champs (T2),
   `/api/settings/public` redondant du forum (T3).
+### Validation des ressources par quiz — lot 7 : documentation et dette (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.7)
+
+- **Docs de référence** (E3) : `docs/reference/foretmap/taches-tutoriels-et-validation.md` et
+  `docs/reference/gl/qcm-et-pedagogie.md` racontent le parcours réel — délai en heures (6 h par
+  défaut), sévérité du verrou, portée « question seule », tolérance d'erreurs, questions
+  expirées rechargées, refus expliqués, règle « une proposition ne conditionne jamais » et
+  bouton « Rendre bloquantes ».
+- **État réel du dispositif** (E2) : `docs/EVOLUTION.md` (§1.2), fiche **G3** de
+  `docs/reference/INCOHERENCES.md` (complément du 2026-09-07), section « Suivi de mise en
+  œuvre » ajoutée à l'audit avec l'état de chaque lot et ce qui reste (J3 côté G&L).
+- **Test croisé des listes dupliquées** (B6) : `tests/gating-lists-consistency.test.js` vérifie
+  que types validables, types acceptés, registre G&L, granularités, modes et sévérités
+  coïncident d'un module à l'autre.
+
+### Validation des ressources par quiz — lot 6 : base et charge (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.6)
+
+- **Corrigé — les statistiques par question étaient gonflées par la jointure sur les liens**
+  (C3) : une question rattachée à trois fiches comptait trois fois ses tentatives. Le caractère
+  bloquant est lu par `EXISTS`.
+- **Corrigé — `GET /api/learning-links/progress` faisait jusqu'à 1 001 requêtes en série**
+  (C4) : deux requêtes groupées pour toute la classe (bonnes réponses aux questions de la fiche,
+  lignes de verrou de la fiche), même vue du verrou que le challenge ; le plafond de 500 élèves
+  est annoncé (`max_students`, `truncated`).
+- **Index couvrants** (C5, migration **215**) sur `user_quiz_attempts (user_id, is_correct,
+  question_code)` et `gl_qcm_attempts (reader_user_type, reader_user_id, is_correct,
+  question_dataset, question_code)` : les lectures des bonnes réponses (challenge, résumé,
+  accusé) ne relisent plus la table.
+- **Purges** (C6) : `scripts/purge-audit-logs.js` couvre aussi les jetons de présentation
+  consommés (`gl_qcm_presentation_uses`, un jour) et les lignes de verrou échues ou de simple
+  comptage des deux produits (rétention « historiques ») ; un verrou qui court n'est jamais
+  touché. La purge est bien celle du monorepo (elle visait déjà `gl_game_events`).
+- **Orphelins polymorphes** (C7) : la déduplication des tutoriels migre aussi les verrous
+  (`resource_gating_cooldowns`) ; supprimer une plante emporte ses liens, sa politique et ses
+  verrous (`lib/learningGatingOrphans.js`).
+- **Plafonds annoncés** (B5) : les listes de liens renvoient `total`, `max_rows` et
+  `truncated` ; le sélecteur de questions du panneau prof filtre côté serveur (`q=`) et dit
+  « 200 premières questions affichées sur N » au lieu de tronquer en silence.
+- Tests : `tests/learning-gating-orphans.test.js` (nouveau), `tests/quiz-question-stats.test.js`,
+  `tests/learning-gating-progress.test.js`, `tests/tutorials-dedup.test.js`,
+  `tests/purge-audit-logs-targets.test.js`, `tests/learning-links.test.js`. Doc : `docs/API.md`.
+
 ### Validation des ressources par quiz — lot 5 : écrans (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.5)
 
 - **Corrigé — le focus s'échappait de la fenêtre de contrôle** (D1) : le piège de focus des
