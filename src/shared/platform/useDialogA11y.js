@@ -22,10 +22,8 @@ function useDialogA11y(onClose) {
     if (!dialog) return undefined;
 
     const previousActive = document.activeElement;
-    const focusables = dialog.querySelectorAll(FOCUSABLE_SELECTOR);
-    const firstFocusable = focusables[0];
-    const lastFocusable = focusables[focusables.length - 1];
-    const target = firstFocusable || dialog;
+    const initialFocusables = dialog.querySelectorAll(FOCUSABLE_SELECTOR);
+    const target = initialFocusables[0] || dialog;
     target.focus();
 
     const onKeyDown = (e) => {
@@ -35,6 +33,13 @@ function useDialogA11y(onClose) {
         return;
       }
       if (e.key !== 'Tab') return;
+      // Recalculé à chaque Tab, pas capturé au montage : le contenu d'une fenêtre change
+      // (chargement → question → réponse → confirmation) et les bornes du piège avec lui.
+      // Figées au montage, elles pointaient sur des éléments démontés et le focus
+      // s'échappait de la fenêtre (docs/AUDIT_VALIDATION_QUIZ_2026-09.md, D1).
+      const focusables = dialog.querySelectorAll(FOCUSABLE_SELECTOR);
+      const firstFocusable = focusables[0];
+      const lastFocusable = focusables[focusables.length - 1];
       if (!firstFocusable || !lastFocusable) {
         e.preventDefault();
         dialog.focus();

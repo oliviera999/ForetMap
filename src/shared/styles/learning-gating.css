@@ -268,3 +268,124 @@
 .gating-settings__section input[type='number'] {
   min-height: 44px;
 }
+
+/* ── Fenêtre d'accusé et contrôle de compréhension — règles communes ────────
+ * Déplacées de src/index.css (que Gnomes & Licornes ne charge pas) : le même composant
+ * s'habillait d'un côté et pas de l'autre. Cibles tactiles ≥ 44 px sur les choix et les
+ * boutons d'action (docs/AUDIT_VALIDATION_QUIZ_2026-09.md, D5). */
+.tuto-read-ack-modal {
+  width: min(440px, 94vw);
+}
+.tuto-read-ack-intro {
+  margin: 12px 0 14px;
+  line-height: var(--lh-normal);
+  color: #3d4a3d;
+}
+.tuto-read-ack-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: var(--text-base);
+  line-height: var(--lh-normal);
+  margin-bottom: 12px;
+}
+.tuto-read-ack-check input {
+  margin-top: 3px;
+  flex-shrink: 0;
+  min-width: 18px;
+  min-height: 18px;
+}
+.tuto-read-ack-error {
+  color: #b91c1c;
+  font-size: var(--text-base);
+  margin: 0 0 10px;
+}
+.tuto-read-ack-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.learning-gating-quiz__code {
+  font-size: var(--text-sm);
+  color: var(--muted, #64748b);
+  margin: 0 0 6px;
+}
+.learning-gating-quiz__question {
+  font-size: var(--text-base);
+  line-height: var(--lh-normal);
+  margin: 0 0 12px;
+}
+.learning-gating-quiz__choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.learning-gating-quiz__choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.learning-gating-quiz__choice input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.learning-gating-quiz__photo {
+  margin: 0 0 10px;
+}
+.learning-gating-quiz__photo img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+.learning-gating-quiz__photo-credit {
+  font-size: var(--text-xs);
+  color: #8aa193;
+  margin-top: 4px;
+}
+.learning-gating-quiz__feedback {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: var(--text-base);
+}
+.learning-gating-quiz__feedback--ok {
+  background: rgba(34, 197, 94, 0.12);
+  color: #166534;
+}
+.learning-gating-quiz__feedback--ko {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+}
+.learning-gating-quiz__cooldown {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: var(--text-base);
+  background: rgba(245, 158, 11, 0.12);
+  color: #92400e;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.learning-gating-quiz-intro__hint {
+  font-size: var(--text-base);
+  color: var(--muted, #64748b);
+  margin: 0 0 12px;
+  font-weight: var(--fw-semibold);
+}
+.tuto-read-ack-actions button,
+.tuto-read-ack-actions .btn,
+.tuto-read-ack-actions .gl-btn {
+  min-height: 44px;
+}
+.learning-gating-quiz__notice {
+  color: var(--learning-gating-muted);
+  font-style: italic;
+}

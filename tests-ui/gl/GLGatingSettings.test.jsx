@@ -96,3 +96,53 @@ describe('GLGatingSettings', () => {
     });
   });
 });
+
+// D2 (docs/AUDIT_VALIDATION_QUIZ_2026-09.md) : la politique par type chargée APRÈS le montage
+// s'affiche dans l'éditeur (remonté par clé), et « Enregistrer » envoie ce qu'on voit.
+describe('GLGatingSettings — préréglage par type chargé après montage', () => {
+  beforeEach(() => {
+    apiGlMock.mockReset();
+  });
+
+  test('la politique chargée s’affiche et « Enregistrer » l’envoie', async () => {
+    const puts = [];
+    apiGlMock.mockImplementation(async (path, method = 'GET', body) => {
+      if (method === 'PUT' && path === '/api/gl/learning-links/type-policy') {
+        puts.push(body);
+        return { success: true };
+      }
+      if (path.startsWith('/api/gl/learning-links/type-policy?resourceType=feuillet')) {
+        // Réponse volontairement retardée : le composant est déjà monté quand elle arrive.
+        await new Promise((r) => setTimeout(r, 30));
+        return {
+          policy: { mode: 'all', allowed_wrong_attempts: 2, lock_mode: 'strict' },
+          effective: { mode: 'all', lockMode: 'strict' },
+          site: GATING,
+        };
+      }
+      if (path.startsWith('/api/gl/learning-links/type-policy')) {
+        return { policy: null, effective: { mode: 'any' }, site: GATING };
+      }
+      return { gating: GATING };
+    });
+    render(<GLGatingSettings />);
+    await waitFor(() => {
+      expect(screen.getAllByLabelText('Mode').some((el) => el.value === 'all')).toBe(true);
+    });
+    const feuilletMode = screen.getAllByLabelText('Mode').find((el) => el.value === 'all');
+    const editor = feuilletMode.closest('.gating-policy-editor');
+    expect(editor.querySelector('select[value], select')).toBeTruthy();
+    const severity = Array.from(editor.querySelectorAll('select')).find(
+      (sel) => sel.value === 'strict',
+    );
+    expect(severity, 'la sévérité chargée est affichée').toBeTruthy();
+
+    fireEvent.click(
+      Array.from(editor.querySelectorAll('button')).find((b) =>
+        /Enregistrer la politique/.test(b.textContent),
+      ),
+    );
+    await waitFor(() => expect(puts.length).toBe(1));
+    expect(puts[0]).toMatchObject({ resource_type: 'feuillet', mode: 'all', lock_mode: 'strict' });
+  });
+});
