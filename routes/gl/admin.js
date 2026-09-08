@@ -1,6 +1,12 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { queryAll, queryOne, execute, withTransaction } = require('../../database');
+const {
+  queryAll,
+  queryOne,
+  execute,
+  withTransaction,
+  getDataWriteVersion,
+} = require('../../database');
 const { purgeGlPlayerLearningTraces } = require('../../lib/glPlayerPurge');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const { logAudit } = require('../../lib/auditLog');
@@ -24,7 +30,10 @@ const {
   listMediaLibraryItems,
   executeMediaLibraryDeleteRequest,
 } = require('../../lib/mediaLibrary');
-const { collectMediaLibraryUsage } = require('../../lib/mediaLibraryUsage');
+const {
+  collectMediaLibraryUsage,
+  createMediaLibraryUsageCache,
+} = require('../../lib/mediaLibraryUsage');
 const { loadMediaKeyIndex } = require('../../lib/glAssetManifest');
 const { auditGlMediaKeys } = require('../../lib/glMediaKeysAudit');
 const { auditMarkerPromises } = require('../../lib/glMarkerPromiseAudit');
@@ -81,6 +90,9 @@ const {
 } = require('../../lib/glSpeciesImport');
 
 const router = express.Router();
+
+/** Usage des médias G&L : même scan coûteux que côté ForetMap, même invalidation. */
+const glMediaUsageCache = createMediaLibraryUsageCache({ writeVersion: getDataWriteVersion });
 
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 const asyncHandler = require('../../lib/asyncHandler');
@@ -1035,7 +1047,10 @@ router.get(
   '/media-library/usage',
   requireGlPermission('gl.content.manage'),
   asyncHandler(async (_req, res) => {
-    const usage = await collectMediaLibraryUsage({ queryAll }, { app: 'gl' });
+    const usage = await collectMediaLibraryUsage(
+      { queryAll },
+      { app: 'gl', cache: glMediaUsageCache },
+    );
     return res.json({ usage });
   }),
 );

@@ -3,15 +3,21 @@ const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { logAudit } = require('../lib/auditLog');
-const { queryAll } = require('../database');
+const { queryAll, getDataWriteVersion } = require('../database');
 const {
   saveMediaFromDataUrl,
   listMediaLibraryItems,
   executeMediaLibraryDeleteRequest,
 } = require('../lib/mediaLibrary');
-const { collectMediaLibraryUsage } = require('../lib/mediaLibraryUsage');
+const {
+  collectMediaLibraryUsage,
+  createMediaLibraryUsageCache,
+} = require('../lib/mediaLibraryUsage');
 
 const router = express.Router();
+
+/** Usage des médias : scan coûteux (voir le module), périmé par toute écriture. */
+const mediaUsageCache = createMediaLibraryUsageCache({ writeVersion: getDataWriteVersion });
 
 // `limit` reste volontairement permissif : coercition douce avec repli sur le defaut si la valeur
 // est absente ou non numerique — preserve le comportement historique `Number.isFinite(limit) ? limit : 300`
@@ -43,7 +49,10 @@ router.get(
   '/usage',
   requirePermission('teacher.access'),
   asyncHandler(async (req, res) => {
-    const usage = await collectMediaLibraryUsage({ queryAll }, { app: 'foretmap' });
+    const usage = await collectMediaLibraryUsage(
+      { queryAll },
+      { app: 'foretmap', cache: mediaUsageCache },
+    );
     return res.json({ usage });
   }),
 );
