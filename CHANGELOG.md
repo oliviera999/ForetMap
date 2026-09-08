@@ -7,6 +7,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Conception — composition automatique des équipes GL au fil des chapitres
+
+- **Deux documents de conception, aucun code applicatif.**
+  `docs/GL_EQUIPES_AUTO_CONCEPTION.md` spécifie la composition automatique des équipes
+  d'une partie GL : six axes de profil joueur tirés de tables déjà existantes
+  (QCM, feuillets, marché, sortilèges, actions, assiduité), une **matrice de co-équipiers**
+  reconstruite depuis les parties passées de la classe, et un **moteur unique** dont les
+  recettes ne sont que des jeux de poids sur une même fonction de coût — l'aléatoire pur
+  n'étant que le cas où tous les poids sauf l'équilibre d'effectifs valent zéro.
+  `docs/GL_EQUIPES_AUTO_PROMPT.md` en tire le cahier des charges exécutable du lot v1
+  (moteur pur, recettes `random` / `random_memory` / `carry_over`, deux routes d'aperçu et
+  d'application, dialogue MJ, tests, documentation).
+- **Trois pièges relevés en lecture du code**, et traités dans la spécification plutôt que
+  découverts à l'exécution : `grantStartingFeuilletsToTeam` distribue le lot d'ouverture à
+  toute équipe créée sur une partie `live`/`paused` (d'où une composition **réservée aux
+  parties en brouillon**) ; `DELETE /teams/:teamId` refuse une équipe peuplée (d'où l'ordre
+  désassignation → suppression dans une même transaction) ; `gl_spells.caster_kind` restreint
+  des sortilèges à un peuple, donc une partie composée d'un seul peuple rend une partie du
+  chapitre injouable (d'où l'équilibre gnome/licorne en contrainte dure).
+- **Suivi T1 — non traité, documenté** : `gl_players.team_id` est un pointeur *global* alors
+  que l'appartenance réelle est portée par `gl_team_members (game_id, player_id)`. Préparer un
+  chapitre pendant qu'une partie tourne écrase donc le pointeur de la partie en cours. Le
+  défaut est préexistant — le panneau de répartition manuel le déclenche déjà — et la v1
+  se contentera d'un avertissement, sans changer le comportement en douce.
+- **Empreinte volontairement nulle en base** : la v1 ne prévoit aucune migration ni table de
+  profilage. Les scores dérivés se calculent à la volée (élèves mineurs : rien à conserver,
+  rien à purger), et aucun numéro `NNN_` n'est réservé — donc aucune collision possible avec
+  une PR parallèle.
 ### Documentation — lien Moodle : spécification d'implémentation complète
 
 - `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` réécrit en **spécification exécutable**, destinée à
