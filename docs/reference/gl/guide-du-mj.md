@@ -18,7 +18,12 @@
    [Carte du royaume](carte-du-royaume.md)), questions en place, feuillets répartis.
 4. **Composer les équipes** et attribuer les mascottes **gnome ou licorne** — en
    s'appuyant sur le récit : la forme n'est pas un choix d'équipe, c'est « le seuil qui
-   la donne » (voir [Les deux peuples du seuil](lore-deux-peuples.md)).
+   la donne » (voir [Les deux peuples du seuil](lore-deux-peuples.md)). Pour gagner du
+   temps, **« Composer automatiquement »** (onglet Équipes, partie en brouillon) propose
+   des équipes complètes — nom, couleur, peuple alterné, mascotte — selon une recette
+   (aléatoire, aléatoire avec mémoire des parties passées, ou reconduction de la partie
+   précédente) ; vous relisez, déplacez ou renommez ce que vous voulez, puis appliquez.
+   Détail dans [Chapitres et progression](chapitres-et-progression.md).
 5. **Les comptes** : joueurs créés ou importés, codes distribués. Un mot de passe
    oublié se réinitialise en un clic dans la gestion des joueurs.
 

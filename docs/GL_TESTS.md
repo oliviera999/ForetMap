@@ -30,6 +30,16 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 
 - `gl-game-actions.test.js`, `gl-game-turns.test.js`, `gl-game-lifecycle.test.js`, `gl-game-status.test.js`, `gl-game-access.test.js`
 - `gl-games.test.js`, `gl-games-roster.test.js`, `gl-games-runtime.test.js`, `gl-games-query-validation.test.js`
+- **Équipes — appartenance par partie** : `gl-player-membership.test.js` (lot 0 : `gl_players.team_id`
+  n'est plus écrit ni lu ; `/auth/me`, hydratation, gating d'équipe et liste admin suivent
+  `gl_team_members` de la partie active)
+- **Composition automatique des équipes** (`docs/GL_EQUIPES_AUTO_CONCEPTION.md`) :
+  `gl-team-composition.test.js` (moteur pur : graine, coût, recherche locale, verrous, épingles),
+  `gl-team-naming.test.js` (noms / couleurs / mascottes, pur), `gl-team-composition-history.test.js`
+  (historique des paires, taux de brassage), `gl-games-teams-compose.test.js` (routes
+  `compose/preview` et `compose/apply` : 401/403/404/400/409, aperçu sans écriture, application,
+  remplacement, `carry_over`, un seul événement `teams_composed`) ; UI :
+  `tests-ui/gl/GLTeamComposeDialog.test.jsx`
 - `gl-game-events-replay.test.js`, `gl-journal.test.js`, `gl-journal-query-validation.test.js`
 - `gl-vitality.test.js`, `gl-virtual-dice.test.js`, `gl-market.test.js`, `gl-market-query-validation.test.js`
 - `gl-spell-cast.test.js`, `gl-feuillet-zone-present.test.js`, `gl-feuillet-zones-loader.test.js`
