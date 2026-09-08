@@ -7,6 +7,53 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Conception — composition automatique des équipes GL au fil des chapitres
+
+- **Deux documents de conception, aucun code applicatif.**
+  `docs/GL_EQUIPES_AUTO_CONCEPTION.md` spécifie la composition automatique des équipes
+  d'une partie GL : six axes de profil joueur tirés de tables déjà existantes
+  (QCM, feuillets, marché, sortilèges, actions, assiduité), une **matrice de co-équipiers**
+  reconstruite depuis les parties passées de la classe, et un **moteur unique** dont les
+  recettes ne sont que des jeux de poids sur une même fonction de coût — l'aléatoire pur
+  n'étant que le cas où tous les poids sauf l'équilibre d'effectifs valent zéro.
+  `docs/GL_EQUIPES_AUTO_PROMPT.md` en tire le cahier des charges exécutable du lot v1
+  (moteur pur, recettes `random` / `random_memory` / `carry_over`, deux routes d'aperçu et
+  d'application, dialogue MJ, tests, documentation).
+- **Trois pièges relevés en lecture du code**, et traités dans la spécification plutôt que
+  découverts à l'exécution : `grantStartingFeuilletsToTeam` distribue le lot d'ouverture à
+  toute équipe créée sur une partie `live`/`paused` (d'où une composition **réservée aux
+  parties en brouillon**) ; `DELETE /teams/:teamId` refuse une équipe peuplée (d'où l'ordre
+  désassignation → suppression dans une même transaction) ; `gl_spells.caster_kind` restreint
+  des sortilèges à un peuple, donc une partie composée d'un seul peuple rend une partie du
+  chapitre injouable (d'où l'équilibre gnome/licorne en contrainte dure).
+- **Suivi T1 — non traité, documenté** : `gl_players.team_id` est un pointeur *global* alors
+  que l'appartenance réelle est portée par `gl_team_members (game_id, player_id)`. Préparer un
+  chapitre pendant qu'une partie tourne écrase donc le pointeur de la partie en cours. Le
+  défaut est préexistant — le panneau de répartition manuel le déclenche déjà — et la v1
+  se contentera d'un avertissement, sans changer le comportement en douce.
+- **Empreinte volontairement nulle en base** : la v1 ne prévoit aucune migration ni table de
+  profilage. Les scores dérivés se calculent à la volée (élèves mineurs : rien à conserver,
+  rien à purger), et aucun numéro `NNN_` n'est réservé — donc aucune collision possible avec
+  une PR parallèle.
+### Documentation — lien Moodle : spécification d'implémentation complète
+
+- `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` réécrit en **spécification exécutable**, destinée à
+  être donnée telle quelle comme consigne de développement. Le cadrage devient une consigne :
+  invariants numérotés (I-1 à I-10), DDL complet de la migration, registre des réglages, contrat
+  du client Web Services (dont le piège des erreurs Moodle renvoyées en `HTTP 200`), algorithme
+  de rapprochement, comparaison à trois et conflits, moteur de composition des équipes et
+  miroirs Moodle, routes d'API, écran administrateur, liste nominative des tests exigés, lots
+  M1 à M5 avec définition de terminé, procédure de rentrée et procédure de création du jeton.
+- **Données de terrain confirmées** : cohortes `26#601-602`, `26#603`, `26#6`, `26#n3` ; cours
+  des chapitres 1 à 6 (`564`, `565`, `566`, `567`, `595`, `570`) — série non contiguë, à ne pas
+  confondre avec les numéros `6xx` des classes ; les quatre équipes de chaque cohorte, dont les
+  noms distincts évitent la collision de noms de groupes dans un cours partagé.
+- **Objets propres à ForetMap et G&L** (comptes, groupes et équipes sans contrepartie Moodle) :
+  traités par trois règles structurelles — pas de ligne d'identité externe, pas de prise ;
+  `sync_exempt` prioritaire ; un joueur sans identité Moodle reste un joueur normal.
+- `env.local.example` : `MOODLE_BASE_URL` et `MOODLE_WS_TOKEN` en commentaire (aucun code ne les
+  lit encore ; elles seront consommées par le client Web Services du lot M1).
+
 ### Documentation — cadrage du lien Moodle 5.2 ↔ ForetMap / G&L
 
 - `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : synchronisation des cohortes (`année#classe`,
