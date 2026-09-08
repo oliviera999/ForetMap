@@ -5,6 +5,8 @@ import { LearningGatingQuestionPanel } from './LearningGatingQuestionPanel.jsx';
 import { LearningGatingStateIcon } from './LearningGatingStateIcon.jsx';
 import { IconCheck, IconLock } from '../icons.jsx';
 import { gatingState } from '../utils/learningGatingState.js';
+import { cooldownRemainingLabel } from '../utils/cooldownDuration.js';
+import { notifyLearningGatingChanged } from '../utils/learningGatingEvents.js';
 import {
   pendingChallengeQuestions,
   buildGatingQuizIntroMessage,
@@ -35,10 +37,10 @@ export function buildButtonAnnounce(summary, itemTitle = '') {
 
   const label = itemTitle ? `« ${itemTitle} »` : 'ce contenu';
   if (state.kind === 'locked') {
-    const days = Math.max(1, Number(summary.remaining_days) || 1);
+    const remaining = cooldownRemainingLabel(summary) || 'quelques minutes';
     return {
       announceBadge: '🔒',
-      announceTitle: `Validation de ${label} bloquée encore ${days === 1 ? '1 jour' : `${days} jours`} après une erreur.`,
+      announceTitle: `Validation de ${label} bloquée encore ${remaining} après une erreur.`,
     };
   }
 
@@ -159,10 +161,43 @@ export function LearningAcknowledgeButton({
         setFlowPhase('confirm');
       }
     } catch (e) {
+      // Sans challenge, on ne sait pas si un contrôle est exigé : passer à la confirmation
+      // promettait une validation que le serveur allait refuser (D3). On le dit, et on
+      // propose de réessayer.
       setError(e?.message || 'Impossible de charger le contrôle de compréhension');
-      setFlowPhase('confirm');
+      setFlowPhase('error');
     }
   }, [enableGating, gatingHandlers, gatingResource]);
+
+  /** Relit le challenge après un refus du serveur (403 : questions manquantes ou verrou). */
+  const reloadChallengeAfterRefusal = useCallback(
+    async (body) => {
+      if (body?.cooldown && isCooldownLocked(body.cooldown)) {
+        setCooldown(body.cooldown);
+        setFlowPhase('locked');
+        return;
+      }
+      if (!gatingHandlers || !gatingResource) return;
+      const next = await gatingHandlers.fetchChallenge(
+        gatingResource.resourceType,
+        gatingResource.resourceRef,
+      );
+      setChallenge(next || null);
+      setCooldown(next?.cooldown || null);
+      if (next?.required && isCooldownLocked(next.cooldown)) {
+        setFlowPhase('locked');
+        return;
+      }
+      const pending = pendingChallengeQuestions(next);
+      if (pending.length > 0) {
+        setPendingQuestions(pending);
+        setQuestionIndex(0);
+        setChecked(false);
+        setFlowPhase('quizIntro');
+      }
+    },
+    [gatingHandlers, gatingResource],
+  );
 
   const submit = useCallback(async () => {
     if (!checked || typeof onSubmit !== 'function') return;
@@ -171,21 +206,78 @@ export function LearningAcknowledgeButton({
     try {
       await onSubmit();
       onDone?.();
+      // Les annonces (pastilles, badges) se rechargent d'elles-mêmes.
+      notifyLearningGatingChanged({ ...(gatingResource || {}), kind: 'acknowledged' });
       setModalOpen(false);
     } catch (e) {
+      // 403 du serveur : le contrôle n'est pas (plus) satisfait — questions manquantes ou
+      // verrou posé entre-temps. On relit l'état plutôt que d'afficher une erreur sèche.
+      const body = e?.body;
+      if (e?.status === 403 && body && (body.cooldown || body.missing_question_codes)) {
+        const missing = Array.isArray(body.missing_question_codes)
+          ? body.missing_question_codes.length
+          : 0;
+        setError(
+          missing > 0
+            ? `Le contrôle n'est pas encore validé : ${missing} question${missing > 1 ? 's' : ''} à réussir.`
+            : e?.message || 'Validation refusée',
+        );
+        try {
+          await reloadChallengeAfterRefusal(body);
+        } catch (_) {
+          /* l'erreur ci-dessus reste affichée */
+        }
+        return;
+      }
       setError(e?.message || 'Erreur');
     } finally {
       setSaving(false);
     }
-  }, [checked, onSubmit, onDone]);
+  }, [checked, onSubmit, onDone, gatingResource, reloadChallengeAfterRefusal]);
 
   const handleQuestionPassed = useCallback(() => {
+    // Une bonne réponse change le résumé (une question de moins à réussir) : les pastilles
+    // des listes ouvertes derrière se mettent à jour sans fermer la fenêtre (D4).
+    notifyLearningGatingChanged({ ...(gatingResource || {}), kind: 'answered' });
     if (questionIndex + 1 < pendingQuestions.length) {
       setQuestionIndex((i) => i + 1);
       return;
     }
     setFlowPhase('confirm');
-  }, [questionIndex, pendingQuestions.length]);
+  }, [questionIndex, pendingQuestions.length, gatingResource]);
+
+  /**
+   * Erreur en portée « question seule » : seule la question ratée est bloquée. On redemande
+   * l'état au serveur — lui seul sait s'il reste des questions posables ou si la fiche attend
+   * la levée la plus proche.
+   */
+  const handleQuestionLocked = useCallback(async () => {
+    if (!gatingHandlers || !gatingResource) return;
+    setFlowPhase('loading');
+    try {
+      const next = await gatingHandlers.fetchChallenge(
+        gatingResource.resourceType,
+        gatingResource.resourceRef,
+      );
+      setChallenge(next || null);
+      setCooldown(next?.cooldown || null);
+      if (next?.required && isCooldownLocked(next.cooldown)) {
+        setFlowPhase('locked');
+        return;
+      }
+      const pending = pendingChallengeQuestions(next);
+      if (pending.length > 0) {
+        setPendingQuestions(pending);
+        setQuestionIndex(0);
+        setFlowPhase('quiz');
+      } else {
+        setFlowPhase('confirm');
+      }
+    } catch (e) {
+      setError(e?.message || 'Impossible de recharger le contrôle de compréhension');
+      setFlowPhase('confirm');
+    }
+  }, [gatingHandlers, gatingResource]);
 
   const closeModal = useCallback(() => {
     if (!busy) setModalOpen(false);
@@ -214,10 +306,11 @@ export function LearningAcknowledgeButton({
 
   const currentQuestion = pendingQuestions[questionIndex] || null;
   const gatingRules = buildGatingRules(challenge);
+  // Le challenge porte le délai effectif (heures) ; le bloc `cooldown` seul sert de repli.
   const quizIntroMessage = buildGatingQuizIntroMessage(
     pendingQuestions.length,
     itemTitle,
-    cooldown?.retry_days,
+    challenge || cooldown,
   );
 
   return (
@@ -261,6 +354,31 @@ export function LearningAcknowledgeButton({
             </>
           ) : null}
 
+          {flowPhase === 'error' ? (
+            <>
+              <h3 id="learning-ack-title">Contrôle indisponible</h3>
+              <p className="tuto-read-ack-error" role="alert">
+                {error || 'Impossible de charger le contrôle de compréhension.'}
+              </p>
+              <div className="tuto-read-ack-actions">
+                <button
+                  type="button"
+                  className={ghostBtnClassName || 'btn btn-ghost btn-sm'}
+                  onClick={closeModal}
+                >
+                  Fermer
+                </button>
+                <button
+                  type="button"
+                  className={primaryBtnClassName || 'btn btn-primary btn-sm'}
+                  onClick={openModal}
+                >
+                  Réessayer
+                </button>
+              </div>
+            </>
+          ) : null}
+
           {flowPhase === 'locked' ? (
             <>
               <h3 id="learning-ack-title">Réessaie plus tard</h3>
@@ -282,6 +400,11 @@ export function LearningAcknowledgeButton({
           {flowPhase === 'quizIntro' ? (
             <>
               <h3 id="learning-ack-title">Contrôle de compréhension</h3>
+              {error ? (
+                <p className="tuto-read-ack-error" role="alert">
+                  {error}
+                </p>
+              ) : null}
               <p className="tuto-read-ack-intro learning-gating-quiz-intro">{quizIntroMessage}</p>
               <ul className="learning-gating-rules">
                 {gatingRules.map((rule) => (
@@ -323,6 +446,7 @@ export function LearningAcknowledgeButton({
                 answerQuestion={gatingHandlers.answerQuestion}
                 onPassed={handleQuestionPassed}
                 onAbandon={closeModal}
+                onQuestionLocked={handleQuestionLocked}
                 choiceClassName={choiceClassName}
                 primaryBtnClassName={primaryBtnClassName}
                 ghostBtnClassName={ghostBtnClassName}

@@ -1,6 +1,6 @@
 /* Service worker « foret » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-foret-671edfc9";
+const CACHE_NAME = "foretmap-foret-72379df5";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -17,27 +17,27 @@ const PRECACHE_URLS = [
   "/pwa-maskable-512.png",
   "/pwa-screenshot-mobile.png",
   "/pwa-screenshot-wide.png",
-  "/assets/main-CZKmq_H8.js",
+  "/assets/main-CW_DgUBX.js",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-BsT6kZRk.js",
-  "/assets/react-vendor-C0Yg5SPW.js",
-  "/assets/icons-AICwfx-P.js",
-  "/assets/ErrorBoundary-C4UxIMP8.js",
+  "/assets/VisitMascotFallbackSvg-BdCFwf1s.js",
+  "/assets/react-vendor-NSwws4_t.js",
+  "/assets/icons-DN-Q6DZk.js",
+  "/assets/ErrorBoundary-XU2cJUND.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-Bj3FdeHy.js",
+  "/assets/ImageLightboxProvider-BGPC0Ic9.js",
   "/assets/ImageLightboxProvider-CPh0j32G.css",
-  "/assets/spriteCutCatalogEntry-CL4HzhoW.js",
+  "/assets/spriteCutCatalogEntry-BFohRCSh.js",
   "/assets/markdown-B5dU4qij.js",
-  "/assets/visitMascotPackExtras-BBiV7-39.js",
-  "/assets/visitMascotPackExtras-BLkqnenv.css",
-  "/assets/mascotPack-NWY-RApL.js",
+  "/assets/visitMascotPackExtras-vQE0kCVz.js",
+  "/assets/visitMascotPackExtras-BHuoOMMB.css",
+  "/assets/mascotPack--x2Z653t.js",
   "/assets/socket-io-D_2T_oRH.js",
-  "/assets/MarkdownTextarea-CZB159Dh.js",
-  "/assets/GlossaryMarkdown-C2xdJ2qb.js",
-  "/assets/useGatingSummary-D2qQM0bS.js",
-  "/assets/PublicSettingsContext-D7eMgKFT.js",
-  "/assets/useBrandTheme-GhJx0HCg.js",
-  "/assets/downloadApiFile-B7Ios3eo.js",
+  "/assets/MarkdownTextarea-BLyW2hyb.js",
+  "/assets/GlossaryMarkdown-DesPOP7i.js",
+  "/assets/DataContext-BVwTLYIi.js",
+  "/assets/PublicSettingsContext-D_o6wGyF.js",
+  "/assets/useBrandTheme-DzVQPnnT.js",
+  "/assets/downloadApiFile-ZU3sTPVx.js",
   "/assets/downloadAuthedFile-BRkwVwdZ.js",
 ];
 

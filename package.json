@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.147.3",
+  "version": "1.148.0",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "engines": {
@@ -193,7 +193,7 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
     "@vitejs/plugin-react": "^6.1.1",
-    "@vitest/ui": "^4.1.10",
+    "@vitest/ui": "^5.0.0",
     "artillery": "^2.0.34",
     "better-sqlite3": "^13.0.3",
     "cross-env": "^10.1.0",
@@ -201,7 +201,7 @@
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.12.0",
-    "isomorphic-dompurify": "^3.23.0",
+    "isomorphic-dompurify": "^4.1.0",
     "jsdom": "^30.0.1",
     "lucide-react": "^1.40.0",
     "marked": "^18.0.11",
@@ -213,7 +213,7 @@
     "supertest": "^7.2.2",
     "turndown": "^7.2.4",
     "vite": "^8.2.1",
-    "vitest": "^4.1.10",
+    "vitest": "^5.0.0",
     "xlsx": "^0.18.5"
   }
 }

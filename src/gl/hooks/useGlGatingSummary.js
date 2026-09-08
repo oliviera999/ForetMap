@@ -1,4 +1,5 @@
 import { apiGL } from '../services/apiGL';
+import { GL_SESSION_CHANGED_EVENT } from '../services/glSessionEvents.js';
 import { useLearningGatingSummary } from '../../shared/hooks/useLearningGatingSummary';
 
 /**
@@ -20,5 +21,6 @@ export function useGlGatingSummary(resourceType, refs = [], enabled = true) {
     resourceType,
     refs,
     enabled,
+    sessionEventName: GL_SESSION_CHANGED_EVENT,
   });
 }

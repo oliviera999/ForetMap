@@ -13,16 +13,47 @@ const {
   parseArgs,
   TARGETS,
   assertRetention,
+  TRANSIENT_RETENTION_DAYS,
+  retentionDaysFor,
 } = require('../scripts/purge-audit-logs');
 
-test('les quatre tables sont couvertes, réparties sur deux rétentions', () => {
+test('les sept tables sont couvertes, réparties sur trois rétentions', () => {
   const byRetention = new Map();
   for (const target of TARGETS) {
     if (!byRetention.has(target.retention)) byRetention.set(target.retention, []);
     byRetention.get(target.retention).push(target.table);
   }
   assert.deepStrictEqual(byRetention.get('security'), ['audit_log', 'security_events']);
-  assert.deepStrictEqual(byRetention.get('history'), ['gl_game_events', 'zone_history']);
+  // Lot 6 de l'audit validation quiz (C6) : verrous échus / lignes de comptage des deux produits.
+  assert.deepStrictEqual(byRetention.get('history'), [
+    'gl_game_events',
+    'zone_history',
+    'resource_gating_cooldowns',
+    'gl_resource_gating_cooldowns',
+  ]);
+  // Jetons de présentation consommés : rétention fixe d'un jour (un jeton vit 15 min).
+  assert.deepStrictEqual(byRetention.get('transient'), ['gl_qcm_presentation_uses']);
+  assert.strictEqual(TRANSIENT_RETENTION_DAYS, 1);
+  assert.strictEqual(
+    retentionDaysFor({ retention: 'transient' }, { days: 365, historyDays: 90 }),
+    1,
+  );
+  assert.strictEqual(
+    retentionDaysFor({ retention: 'history' }, { days: 365, historyDays: 90 }),
+    90,
+  );
+  assert.strictEqual(
+    retentionDaysFor({ retention: 'security' }, { days: 365, historyDays: 90 }),
+    365,
+  );
+});
+
+test('un verrou qui court n’est jamais purgé : la borne porte sur locked_until ET updated_at', () => {
+  for (const table of ['resource_gating_cooldowns', 'gl_resource_gating_cooldowns']) {
+    const where = TARGETS.find((t) => t.table === table).where;
+    assert.match(where, /locked_until < NOW\(\)/);
+    assert.match(where, /updated_at < \(NOW\(\) - INTERVAL \? DAY\)/);
+  }
 });
 
 test('chaque cible filtre dans son référentiel de temps et reste paramétrée', () => {

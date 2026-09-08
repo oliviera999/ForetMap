@@ -219,7 +219,7 @@ async function applyForetmap(candidates) {
     const res = await execute(
       `INSERT IGNORE INTO resource_question_links
         (resource_type, resource_ref, question_code, is_gating, weight, origin, confidence, status, note)
-       VALUES (?, ?, ?, 1, 1, 'auto', ?, 'suggested', ?)`,
+       VALUES (?, ?, ?, 0, 1, 'auto', ?, 'suggested', ?)`,
       [c.resource_type, c.resource_ref, c.question_code, c.confidence, c.reason],
     );
     n += res.affectedRows ? 1 : 0;
@@ -233,7 +233,7 @@ async function applyGl(candidates) {
     const res = await execute(
       `INSERT IGNORE INTO gl_resource_question_links
         (question_dataset, resource_type, resource_ref, question_code, is_gating, weight, origin, confidence, status, note)
-       VALUES (?, ?, ?, ?, 1, 1, 'auto', ?, 'suggested', ?)`,
+       VALUES (?, ?, ?, ?, 0, 1, 'auto', ?, 'suggested', ?)`,
       [
         c.question_dataset,
         c.resource_type,

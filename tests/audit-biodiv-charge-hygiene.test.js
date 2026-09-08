@@ -105,3 +105,26 @@ test('P5 — le tirage du quiz ne trie plus tout le catalogue', () => {
     '`ORDER BY RAND()` matérialise et trie la sélection entière à chaque tirage',
   );
 });
+
+test('C2 (audit quiz) — les tables du conditionnement ne réveillent aucun domaine de synchro', async () => {
+  // Tentatives, liens, politiques, verrous et accusés ne sont lus que par des routes hors
+  // cycle (`/gating/challenge`, `/gating/summary`, accusés par ressource, écrans prof).
+  // Absentes de la liste ignorée, chaque réponse au Quiz libre retombait sur le repli
+  // `bumpAll` : le catalogue complet rechargé chez toute la classe pour une ligne de tentative
+  // (docs/AUDIT_VALIDATION_QUIZ_2026-09.md, constat C2).
+  const tables = [
+    'user_quiz_attempts',
+    'resource_question_links',
+    'resource_gating_policy',
+    'resource_gating_cooldowns',
+    'learning_acknowledgements',
+  ];
+  for (const table of tables) {
+    const before = getSyncDomainVersions();
+    await execute(`DELETE FROM ${table} WHERE 1 = 0`);
+    const after = getSyncDomainVersions();
+    for (const domain of Object.keys(before)) {
+      assert.equal(after[domain], before[domain], `${table} ne doit pas bumper ${domain}`);
+    }
+  }
+});
