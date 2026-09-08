@@ -23,10 +23,13 @@ déjà actifs, vérifié : le point d'entrée `webservice/rest/server.php` répo
 - **Cohortes** : nom et `idnumber` `année#classe` (`26#614`), `année#niveau` (`26#6`), et une
   cohorte peut réunir **deux classes enseignées ensemble** (`26#601-602`). La cohorte des
   n3beurs est **`26#n3`**. La synchronisation lit l'`idnumber` ; le nom sert d'affichage.
-- **Cours chapitre** : un cours Moodle par chapitre G&L (chapitre 1 → cours `601`, chapitre 2
-  → cours `602`… ; le « 24 » relevé à côté reste à confirmer, voir section 9). La
-  correspondance chapitre ↔ cours est une **table de réglage explicite**, pas un motif
-  d'`idnumber` : elle se remplit une fois par an et ne dépend d'aucune convention de nommage.
+- **Cours chapitre** : un cours Moodle par chapitre G&L, désigné par son **identifiant
+  numérique** (celui de l'adresse `course/view.php?id=…`). Confirmé : **chapitre 1 → cours
+  `564`** (`https://olution.info/course/view.php?id=564`). Les numéros `601`, `602`… relevés
+  auparavant appartiennent aux **classes et cohortes**, pas aux cours : les deux séries sont
+  indépendantes et ne doivent pas être confondues. La correspondance chapitre ↔ cours est une
+  **table de réglage explicite**, pas un motif d'`idnumber` : elle se remplit une fois par an
+  et ne dépend d'aucune convention de nommage.
 - **Groupes classe des cours chapitre** : créés par la méthode d'inscription « synchronisation
   de cohorte » de Moodle, ils portent le nom de la cohorte préfixé (« Cohorte 26#601-602 »).
   Le groupe classe d'un cours se retrouve donc par ce nom, ou mieux par son `idnumber` si la
@@ -311,12 +314,11 @@ multiples requises.
 
 Restent à fournir ou à confirmer avant M1 :
 
-1. Le **jeton Web Service** (procédure en section 12) et l'adresse IP publique du serveur
-   ForetMap pour le restreindre.
-2. L'**identifiant exact des cours chapitre** : « 601 24 » a été relevé pour le chapitre 1.
-   S'il s'agit de l'identifiant numérique du cours (`id=601` dans l'URL du cours) et que « 24 »
-   est autre chose (catégorie, nom abrégé), la table de réglage prendra l'identifiant
-   numérique. À vérifier sur l'URL du cours : `https://olution.info/course/view.php?id=…`.
+1. Le **jeton Web Service** (procédure en section 12), à placer dans le `.env` du serveur sous
+   `MOODLE_WS_TOKEN`, avec `MOODLE_BASE_URL=https://olution.info` ; plus l'adresse IP publique
+   du serveur ForetMap pour restreindre le jeton côté Moodle.
+2. Les **identifiants des cours des chapitres 2 et suivants**, relevés comme celui du chapitre
+   1 (`id=564`), pour remplir la table de réglage.
 3. La **convention de nommage des équipes** : proposition en 8.2, à valider ou amender.
 
 ## 10. Procédure de rentrée (une fois livré)
@@ -403,9 +405,9 @@ d'écriture, suffit et évite tout risque pendant le développement.
 | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Cohorte n3beurs                             | `26#n3`, motif dédié (section 4)                                                                                                                     |
 | Cohortes binômes (`26#601-602`)             | Un groupe ForetMap et une classe G&L par cohorte ; sous-groupes par classe en option                                                                 |
-| Cours chapitre                              | Table de réglage chapitre → identifiant de cours ; identifiant exact à confirmer (section 9)                                                         |
+| Cours chapitre                              | Table de réglage chapitre → identifiant numérique de cours ; chapitre 1 = cours `564` (les numéros `6xx` sont des classes, pas des cours)            |
 | Groupes classe des cours (« Cohorte 26#… ») | Lus, jamais écrits                                                                                                                                   |
 | Équipes : Moodle ou G&L ?                   | **G&L maître** avec moteur de composition, Moodle miroir ; retouches Moodle détectées, jamais écrasées sans décision (section 8)                     |
-| Jeton                                       | Procédure en section 12                                                                                                                              |
+| Jeton                                       | Procédure en section 12 ; `MOODLE_WS_TOKEN` et `MOODLE_BASE_URL` dans le `.env` du serveur, jamais en base ni en réglage                             |
 | Synchronisation dans les deux sens          | Oui, un maître par objet, comparaison à trois, conflits présentés à l'administrateur, écritures vers Moodle bornées au préfixe `FM#` (sections 5, 6) |
 | Élève dans plusieurs groupes / sous-groupes | Déjà possible côté ForetMap ; une seule classe G&L par joueur, plusieurs équipes dans le temps (section 8.4)                                         |
