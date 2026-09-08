@@ -88,6 +88,27 @@ describe('GLSpeciesDetailModal', () => {
     expect(within(dialog).getByRole('button', { name: 'Biome' })).toBeInTheDocument();
   });
 
+  test('affiche le rang taxonomique quand il est renseigné', () => {
+    render(
+      <GLSpeciesDetailModal
+        species={{
+          ...fullSpecies,
+          nom_scientifique: 'Tamarix sp.',
+          taxon_rank: 'genus',
+          taxon_source: 'Catalogue of Life',
+          taxon_source_url: 'https://www.catalogueoflife.org/',
+        }}
+        onClose={vi.fn()}
+      />,
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText(/Rang\s*:\s*genre/i)).toBeInTheDocument();
+    expect(within(dialog).getByText('Catalogue of Life')).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole('link', { name: 'https://www.catalogueoflife.org/' }),
+    ).toHaveAttribute('href', 'https://www.catalogueoflife.org/');
+  });
+
   test('ferme via Échap et bouton Fermer', async () => {
     const onClose = vi.fn();
     render(<GLSpeciesDetailModal species={fullSpecies} onClose={onClose} />);
