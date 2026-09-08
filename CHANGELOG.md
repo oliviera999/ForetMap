@@ -7,6 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — cadrage du lien Moodle 5.2 ↔ ForetMap / G&L
+
+- `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : synchronisation des cohortes (`année#classe`,
+  `année#niveau`) et groupes de cours Moodle vers les groupes ForetMap et classes G&L, avec
+  l'e-mail institutionnel Google Workspace comme pivot, la politique par population (sixièmes
+  joueurs visiteurs, n3beurs, autres élèves, années passées), les cas sur comptes existants, et
+  tous les garde-fous (simulation, seuils, journal réversible, contrôle croisé, fusion de
+  comptes). Rien d'implémenté : lots M1 à M5 et prérequis listés.
+- Complément après réponses : cohorte n3beurs `26#n3`, cohortes binômes (`26#601-602`), table
+  chapitre → cours, **synchronisation bidirectionnelle** avec un maître par objet (Moodle pour
+  les cohortes, G&L pour les équipes composées par un moteur dédié, miroir Moodle préfixé
+  `FM#`), comparaison à trois et écran des conflits, appartenances multiples, procédure pas à
+  pas de création du jeton Web Services sur `olution.info`.
+
+### Corrigé — test instable `gl-mascots` (401 aléatoire en CI)
+
+- `tests/gl-mascots.test.js` signait un jeton enseignant sans claim `tokenEpoch` pour « le
+  premier enseignant par identifiant » — un UUID aléatoire, parfois un compte dont un test
+  précédent avait réinitialisé le mot de passe (`token_epoch` incrémenté) : l'hydratation
+  répondait alors `401 SESSION_REVOKED`. Le jeton porte désormais l'époque courante du compte.
+  Échec observé sur `main` depuis la fusion de la PR #422 (runs des PR #422 et #423).
+
 ### Documentation et tests — mesure de charge et revue de tous les onglets (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`)
 
 - **Scénario de charge qui rejoue la rafale réelle** : `load/artillery-biodiv.yml` (+ son
@@ -29,6 +51,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   constats nouveaux, non traités : usage de la médiathèque à 30 requêtes SQL sans cache (T1),
   catalogue complet retéléchargé par le réseau trophique pour trois champs (T2),
   `/api/settings/public` redondant du forum (T3).
+
 ### Validation des ressources par quiz — lot 7 : documentation et dette (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.7)
 
 - **Docs de référence** (E3) : `docs/reference/foretmap/taches-tutoriels-et-validation.md` et
@@ -229,6 +252,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   le tableau GL (elles étaient insérées dans un tableau ForetMap) ; l'en-tête de
   `routes/gl/learning-links.js` n'affirme plus que la politique par ressource n'est pas relue.
 
+  constats nouveaux — médiathèque (T1), réseau trophique (T2), forum (T3) — traités depuis,
+  voir ci-dessous.
+
+### Performance — médiathèque, réseau trophique et forum (T1 à T3 de l'audit de charge)
+
+- **Usage de la médiathèque : le balayage n'est plus refait à chaque ouverture.**
+  `/api/media-library/usage` et son équivalent G&L interrogeaient toutes leurs tables sources
+  (un `SHOW COLUMNS` puis un `SELECT … LIMIT 5000` chacune) à chaque consultation, sans cache —
+  un coût fixe qui croît avec la taille des tables, pas avec ce que l'écran affiche. Cache
+  mémoire à **version d'écriture** (motif partagé déjà utilisé par le contenu de visite), avec
+  une entrée par produit. Choix assumé de la version d'écriture plutôt que d'un TTL, malgré un
+  taux de succès moindre : l'usage sert à prévenir avant une suppression (« ce média est
+  utilisé à N endroits ») et un résultat périmé y ferait supprimer un média venant d'être
+  référencé. L'import et la suppression de médias périment le cache d'eux-mêmes (journal
+  d'audit).
+- **Réseau trophique : le catalogue complet n'est plus retéléchargé pour trois champs.** La vue
+  professeur appelait `GET /api/plants` (~117 kio) pour ne garder que `{ id, name, emoji }`
+  dans ses menus déroulants, alors que `DataContext` porte déjà la liste. Elle la dérive
+  désormais du contexte ; tri et restriction aux professeurs inchangés.
+- **Forum : plus de relecture des réglages publics.** Le `GET /api/settings/public` retiré de
+  `ContextComments` au lot précédent subsistait ici pour les seuls emojis de réaction, que
+  `PublicSettingsContext` fournit déjà.
+- **Correction d'un chiffrage de l'audit.** Le constat T1 annonçait « 15 tables sources,
+  30 requêtes SQL, `LIMIT 800` ». Les trois nombres étaient faux : **4 sources et 8 requêtes**
+  côté ForetMap, **9 et 18** côté G&L, avec un `LIMIT 5000` (le 800 est le nombre de médias
+  lus sur le disque). Nombres désormais mesurés par un test plutôt qu'estimés, et
+  l'affirmation « la route la plus chère de l'application », qu'aucune mesure n'appuyait,
+  est retirée.
 ### Corrigé — « Importer les nouvelles fiches » (tutoriels) ne faisait rien
 
 - **Une fiche réellement nouvelle pouvait être classée « déjà en base ».** Le rapprochement
