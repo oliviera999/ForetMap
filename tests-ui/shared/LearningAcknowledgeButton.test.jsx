@@ -124,3 +124,43 @@ describe('LearningAcknowledgeButton — erreurs du serveur', () => {
     window.removeEventListener(LEARNING_GATING_CHANGED_EVENT, listener);
   });
 });
+
+// Plafond « questions posées d'affilée » : la série finie ne vaut pas contrôle satisfait.
+// L'écran envoyait pourtant sur la confirmation, que le serveur refusait ensuite (403).
+describe('LearningAcknowledgeButton — série terminée mais contrôle inachevé', () => {
+  test('annonce le reliquat au lieu de proposer une confirmation impossible', async () => {
+    const fetchChallenge = vi.fn(async () => ({
+      required: true,
+      questions: [
+        { question_code: 'QF0001', already_correct: false },
+        { question_code: 'QF0002', already_correct: false },
+      ],
+      pending_count: 3,
+      ask_count: 1,
+      retry_cooldown_hours: 0,
+    }));
+    const presentQuestion = vi.fn(async () => ({
+      presentationToken: 'tok',
+      question: 'Que met-on dans le compost ?',
+      choices: [{ id: 'a', text: 'Épluchures' }],
+    }));
+    const answerQuestion = vi.fn(async () => ({ correct: true }));
+    render(
+      <LearningAcknowledgeButton
+        itemTitle="Le compostage"
+        gatingHandlers={handlers({ fetchChallenge, presentQuestion, answerQuestion })}
+        gatingResource={resource}
+        onSubmit={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Marquer comme lu/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Commencer' }));
+    fireEvent.click(await screen.findByLabelText('Épluchures'));
+    fireEvent.click(screen.getByRole('button', { name: 'Valider ma réponse' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Continuer' }));
+    await screen.findByText(/Série terminée/);
+    expect(screen.getByText(/2 questions à réussir/)).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Continuer le contrôle' })).toBeInTheDocument();
+  });
+});

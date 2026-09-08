@@ -366,24 +366,46 @@ Les réglages qui accompagnent l'interrupteur (panneau dédié **Validation des 
 | **Par fiche** | Quiz → Rattacher des questions → fiche choisie | Exception pour un tutoriel, une espèce ou un terme précis ; peut aussi dispenser la fiche. L'écran indique la règle **effective** et d'où elle vient.                                                                                                                                                          |
 
 Ce que l'élève voit, dans l'ordre. **Avant même de cliquer**, le bouton indique ce qui
-l'attend : « 1 question », ou un cadenas si la validation est encore bloquée. Au clic, un
-**petit panneau surgit par-dessus la page** — il ne masque pas le tutoriel qu'on vient de
-lire — et énonce les règles noir sur blanc : combien de questions vont être posées, combien
-il en restera après, combien d'erreurs sont permises, ce que coûte une erreur de trop, et le
-rappel qu'abandonner maintenant ne coûte rien. Vient ensuite la question — énoncé,
-illustration éventuelle avec son crédit, choix mélangés —, puis le résultat. Bonne réponse : il passe à la
-question suivante, ou à la confirmation de lecture si c'était la dernière ; les pastilles des
-listes ouvertes derrière se mettent à jour aussitôt. Mauvaise réponse : tout dépend de la
-tolérance. S'il reste des erreurs permises, l'écran le dit (« il te reste 1 erreur possible »)
-et propose de réessayer ; la tolérance épuisée, le verrou tombe et le message indique le temps
-restant (« réessaie dans 5 h », « 1 j 2 h »). En portée « seulement la question ratée », le
-message dit plutôt « cette question est bloquée pendant 6 h, tu peux continuer avec les
-autres » et la question suivante est posée. **Abandonner ne coûte rien** tant qu'aucune
-réponse n'a été envoyée. Les bonnes réponses déjà données ailleurs (dans l'onglet Quiz, par
-exemple) comptent : une question déjà réussie n'est pas reposée. Si la question a expiré
-(quinze minutes sans répondre), elle est simplement rechargée avec de nouveaux choix ; si le
-serveur refuse la validation, l'écran explique pourquoi (questions restantes, verrou) au lieu
-de laisser confirmer pour rien.
+l'attend : « 1 question », ou un cadenas si la validation est encore bloquée. Quand la série
+ne couvre pas tout le contrôle, l'infobulle donne les deux nombres sans les confondre
+(« 3 questions maintenant, 8 au total à réussir avant de valider »). Au clic, un **petit
+panneau surgit par-dessus la page** — il ne masque pas le tutoriel qu'on vient de lire — et
+énonce les règles noir sur blanc : combien de questions vont être posées, combien il en
+restera après, combien d'erreurs sont permises, ce que coûte une erreur de trop, et le
+rappel qu'abandonner ne coûte rien tant qu'on n'a pas répondu.
+
+L'annonce dit **ce qui va réellement se passer**, pas un cas général : avec deux erreurs
+tolérées, elle annonce « il te reste 2 erreurs possibles » (et non « une erreur bloquera la
+validation ») ; les erreurs déjà commises sont décomptées ; en portée « seulement la question
+ratée », c'est **la question** qui se ferme, pas la validation, et la phrase le dit.
+
+Vient ensuite la question — énoncé, illustration éventuelle avec son crédit, choix mélangés —,
+puis le résultat.
+
+- **Bonne réponse** : l'écran félicite et situe (« Bravo, bonne réponse ! 1 sur 2 — encore
+  1 question pour valider "Le compostage" »). À la dernière, il annonce l'ouverture de la
+  validation (« Bravo, le contrôle est réussi : tu peux maintenant valider… ») ; les pastilles
+  des listes ouvertes derrière se mettent à jour aussitôt.
+- **Mauvaise réponse** : tout dépend de la tolérance. S'il reste des erreurs permises, l'écran
+  le dit explicitement sous le retour de la question (« Il te reste 1 erreur possible : la
+  suivante bloquera la validation pendant 6 h ») et propose de réessayer ; la tolérance
+  épuisée, le verrou tombe et le message indique le temps restant (« réessaie dans 5 h »,
+  « 1 j 2 h ») ainsi que le nombre d'erreurs réellement commises. En portée « seulement la
+  question ratée », le message dit plutôt « cette question est bloquée pendant 6 h, tu peux
+  continuer avec les autres » — et ne le promet que s'il reste effectivement une autre question
+  dans la série.
+- **Série terminée mais contrôle inachevé** (plafond « questions posées d'affilée ») : l'écran
+  ne propose plus une confirmation que le serveur refuserait. Il annonce le reliquat (« il
+  reste 2 questions à réussir… tes bonnes réponses sont gardées ») et laisse le choix entre
+  _Plus tard_ et _Continuer le contrôle_, qui enchaîne la série suivante.
+
+**Abandonner ne coûte rien** tant qu'aucune réponse n'a été envoyée. Les bonnes réponses déjà
+données ailleurs (dans l'onglet Quiz, par exemple) comptent : une question déjà réussie n'est
+pas reposée. Si la question a expiré (quinze minutes sans répondre), elle est simplement
+rechargée avec de nouveaux choix ; si le serveur refuse la validation, l'écran explique
+pourquoi (verrou, ou le nombre **réellement** attendu par le mode en vigueur — une seule
+question en mode « une suffit », même si cinq sont rattachées) au lieu de laisser confirmer
+pour rien.
 
 ### Les pastilles d'état
 
