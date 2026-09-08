@@ -65,6 +65,38 @@ que le serveur n'appliquait pas, ou taisaient ce qu'il fallait savoir pour déci
   ajoutés à `LearningGatingQuestionPanel` et `LearningAcknowledgeButton`. Documentation de
   référence des deux produits mise à jour.
 
+### Ajouté — les tutoriels sont plus exigeants que le reste (migration 216)
+
+Aucun **préréglage par type** n'était livré : tutoriels, fiches espèces et termes de
+glossaire suivaient tous le site — une seule bonne réponse, un seul essai. Un tutoriel se lit
+pourtant en plusieurs minutes et porte plus de matière qu'un terme de glossaire.
+
+- La migration 216 sème le préréglage du type `tutorial` (`resource_gating_policy`,
+  `resource_ref = '*'`) : **2 bonnes réponses** au lieu d'une, et **verrou sur la seule
+  question ratée**. La portée réduite accompagne l'exigence — demander deux réponses _et_
+  verrouiller toute la fiche à la première erreur rendrait le tutoriel injouable. Le seuil
+  s'adapte au contenu : un tutoriel qui ne porte qu'une question bloquante n'en pose qu'une.
+- La **tolérance d'erreurs reste héritée du site** (0). Elle avait d'abord été fixée à 1 sur
+  le type, ce qui produisait l'inverse du but recherché : un tutoriel ne portant qu'une
+  question bloquante — le seuil se ramenant alors à 1 — aurait offert deux essais là où une
+  fiche espèce n'en offre qu'un.
+- Délai, sévérité et questions par session restent eux aussi **hérités du site** : le
+  préréglage ne fige que ce qu'il annonce.
+- Semé par `INSERT IGNORE` : un professeur qui l'ajuste dans _Réglages → Validation des
+  lectures → Préréglages par type_ ne le verra jamais réécrit au déploiement suivant.
+- Rien ne change pour les élèves tant que l'interrupteur du site est éteint (valeur par
+  défaut) et qu'aucune question n'est cochée « bloquante ».
+
+### Ajouté — `npm run gating:check`, pour lire la politique réellement en base
+
+Les défauts du code ne sont pas matérialisés en base : impossible, depuis le code seul, de
+savoir si une installation applique le défaut livré ou une valeur enregistrée un jour dans
+les réglages — et un délai hérité de l'ancien réglage en jours (72 h) ne se voyait nulle part
+tant qu'un élève ne se trompait pas. Le script (strictement en lecture) affiche, pour les deux
+produits : chaque réglage du site avec son origine (base ou défaut), les préréglages par type
+et leur effet résolu, les exceptions par fiche qui fixent leur propre délai, et le nombre de
+verrous actifs.
+
 ### Modifié — verrou de re-tentative : 1 heure par défaut, et un seul nombre pour le dire
 
 - Le délai par défaut passe de **6 h à 1 h** : assez pour qu'une erreur coûte quelque chose,
@@ -75,12 +107,13 @@ que le serveur n'appliquait pas, ou taisaient ce qu'il fallait savoir pour déci
   annoncer trois valeurs différentes. Tout le monde lit désormais
   `DEFAULT_RETRY_COOLDOWN_HOURS` (`lib/shared/cooldownDurationCore.js` et son miroir
   `src/shared/utils/cooldownDuration.js`), verrouillé par un test.
-- **Ne change rien là où un délai a déjà été enregistré** : `getSettingValue` ne matérialise pas
-  les défauts, donc le nouveau défaut ne s'applique qu'aux installations où
-  `learning.gating.retry_cooldown_hours` (ou `gating.retry_cooldown_hours` côté G&L) n'a jamais
-  été écrit, ainsi qu'aux politiques par type / par fiche laissées en « hériter ». Une valeur
-  choisie par un professeur reste souveraine — elle se relit dans Réglages → Validation des
-  lectures.
+- **La valeur en base est alignée elle aussi** (migration 216) : `getSettingValue` ne
+  matérialise pas les défauts, donc une installation portant déjà une valeur enregistrée —
+  dont les 72 h que la migration 213 avait converties depuis l'ancien réglage « 3 jours » —
+  aurait gardé l'ancien délai sans que rien ne le signale. Les deux clés de site
+  (`learning.gating.retry_cooldown_hours`, `gating.retry_cooldown_hours`) passent donc à 1.
+  Les **exceptions par fiche** ne sont pas touchées : elles restent des choix délibérés, et
+  `npm run gating:check` les liste.
 
 ### Corrigé — test instable `gl-mascots` (401 aléatoire en CI)
 

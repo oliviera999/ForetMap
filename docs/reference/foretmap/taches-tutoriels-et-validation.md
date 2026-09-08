@@ -362,8 +362,35 @@ Les réglages qui accompagnent l'interrupteur (panneau dédié **Validation des 
 | Niveau        | Où le configurer                               | Ce qu'il couvre                                                                                                                                                                                                                                                                                                |
 | ------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Site**      | Réglages → Validation des lectures             | Mode, seuil N, erreurs tolérées, questions par session, délai, portée et sévérité du verrou (valeurs par défaut pour toute l'application). L'écran est organisé en quatre étapes — _Activer_, _Ce qu'il faut réussir_, _En cas d'erreur_, _Ce que l'élève voit_ — chaque champ accompagné d'une phrase d'aide. |
-| **Par type**  | Même panneau, section « Préréglages par type » | Tutoriels, fiches espèces ou glossaire : surcharge optionnelle de chaque paramètre ci-dessus (`Hériter` = reprendre le site).                                                                                                                                                                                  |
+| **Par type**  | Même panneau, section « Préréglages par type » | Tutoriels, fiches espèces ou glossaire : surcharge optionnelle de chaque paramètre ci-dessus (`Hériter` = reprendre le site). **Un seul préréglage est livré : celui des tutoriels** (voir juste en dessous) ; espèces et glossaire n'en ont aucun et suivent donc le site.                                    |
 | **Par fiche** | Quiz → Rattacher des questions → fiche choisie | Exception pour un tutoriel, une espèce ou un terme précis ; peut aussi dispenser la fiche. L'écran indique la règle **effective** et d'où elle vient.                                                                                                                                                          |
+
+#### Les tutoriels sont plus exigeants que le reste (préréglage livré)
+
+Un tutoriel se lit en plusieurs minutes et porte plus de matière qu'un terme de glossaire.
+Depuis septembre 2026, un **préréglage du type « tutoriel »** est donc livré avec
+l'application, visible et modifiable dans _Réglages → Validation des lectures → Préréglages
+par type_ :
+
+| Réglage                                | Tutoriels                   | Fiches espèces et glossaire        |
+| -------------------------------------- | --------------------------- | ---------------------------------- |
+| Bonnes réponses exigées                | **2**                       | 1 (réglage du site)                |
+| Portée du blocage                      | **la seule question ratée** | la fiche entière (réglage du site) |
+| Erreurs tolérées                       | héritées du site (0)        | 0 (réglage du site)                |
+| Délai, sévérité, questions par session | hérités du site             | hérités du site                    |
+
+La portée réduite accompagne l'exigence, elle ne la contredit pas : demander deux bonnes
+réponses **et** verrouiller toute la fiche à la première erreur rendrait le tutoriel
+injouable. En revanche la **tolérance reste celle du site** — un tutoriel n'offre jamais plus
+d'essais qu'une fiche espèce. Le seuil, lui, s'adapte au contenu : un tutoriel qui ne porte
+qu'**une** question bloquante n'en pose qu'une, sans impasse.
+
+Deux choses que ce préréglage ne fait pas : il **ne conditionne rien** tant que
+l'interrupteur du site est éteint (valeur par défaut) et qu'aucune question n'est cochée
+« bloquante », et il ne **fige** que les deux lignes en gras ci-dessus — changer le délai ou la
+sévérité au niveau du site continue de se propager aux tutoriels. Un professeur peut le
+modifier, ou le neutraliser en repassant chaque champ sur « Hériter » ; il ne sera jamais
+réécrit par une mise à jour.
 
 Ce que l'élève voit, dans l'ordre. **Avant même de cliquer**, le bouton indique ce qui
 l'attend : « 1 question », ou un cadenas si la validation est encore bloquée. Quand la série
