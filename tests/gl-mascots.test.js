@@ -342,8 +342,12 @@ test('GET /api/gl/mascots expose les packs visit publiés et GL persistés', asy
     .send({ name: 'Pack GL catalogue', payload: glPayload })
     .expect(201);
 
+  // Le jeton doit porter l'époque de session COURANTE du compte : une suite voisine peut
+  // avoir changé le mot de passe de ce même enseignant (`token_epoch` incrémenté), et un
+  // jeton signé sans cette claim est alors rejeté en 401 « Session expirée » — d'où l'échec
+  // intermittent observé en CI sur ce test.
   const teacher = await queryOne(
-    "SELECT id FROM users WHERE user_type = 'teacher' ORDER BY id ASC LIMIT 1",
+    "SELECT id, token_epoch FROM users WHERE user_type = 'teacher' ORDER BY id ASC LIMIT 1",
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id && adminRole?.id);
@@ -356,6 +360,7 @@ test('GET /api/gl/mascots expose les packs visit publiés et GL persistés', asy
       roleSlug: 'admin',
       roleDisplayName: 'Administrateur',
       elevated: true,
+      tokenEpoch: Number(teacher.token_epoch) || 0,
     },
     true,
   );

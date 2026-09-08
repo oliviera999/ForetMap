@@ -36,6 +36,7 @@ vi.mock('../../../src/components/pedago/FoodWebGraph.jsx', () => ({
 }));
 
 import { FoodWebView } from '../../../src/components/pedago/FoodWebView.jsx';
+import { DataProvider } from '../../../src/contexts/DataContext.jsx';
 
 const PREDATION = {
   id: 1,
@@ -198,5 +199,45 @@ describe('FoodWebView — modifier une relation', () => {
     fireEvent.click(screen.getByText('arête 1'));
     await waitFor(() => expect(container.querySelector('.pedago-foodweb__selected')).toBeTruthy());
     expect(screen.queryByText(/Modifier cette relation/)).toBeNull();
+  });
+});
+
+describe('FoodWebView — liste des espèces', () => {
+  const PLANTS = [
+    { id: 20, name: 'Lapin', emoji: '🐰' },
+    { id: 10, name: 'Renard', emoji: '🦊' },
+  ];
+
+  it('alimente les menus déroulants depuis DataContext, sans retélécharger le catalogue', async () => {
+    mockFoodWeb([['/api/food-web', [PREDATION]]]);
+    render(
+      <DataProvider value={{ plants: PLANTS }}>
+        <FoodWebView canManage />
+      </DataProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByText('arête 1')).toBeTruthy());
+
+    // Les options viennent du contexte, triées par nom (fr).
+    const source = screen.getByLabelText('Espèce source');
+    const labels = [...source.querySelectorAll('option')].map((o) => o.textContent.trim());
+    expect(labels).toEqual(['— choisir —', '🐰 Lapin', '🦊 Renard']);
+
+    // ...et le catalogue complet n'est plus retéléchargé pour trois champs (audit T2).
+    expect(apiMock.mock.calls.filter(([path]) => String(path).startsWith('/api/plants'))).toEqual(
+      [],
+    );
+  });
+
+  it('ne construit aucune liste pour un élève', async () => {
+    mockFoodWeb([['/api/food-web', [PREDATION]]]);
+    render(
+      <DataProvider value={{ plants: PLANTS }}>
+        <FoodWebView />
+      </DataProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByText('arête 1')).toBeTruthy());
+    expect(screen.queryByLabelText('Espèce source')).toBeNull();
   });
 });
