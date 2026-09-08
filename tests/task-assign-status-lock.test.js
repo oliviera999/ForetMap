@@ -287,3 +287,24 @@ describe('recalcul de statut : garde-fous unitaires', () => {
     );
   });
 });
+
+describe('POST /done : garde SQL contre une validation concurrente', () => {
+  it('ne rétrograde pas une tâche validée entre la lecture et l’UPDATE done', async () => {
+    const taskId = await createTask('Done vs validated concurrent');
+    await assignAsTeacher(taskId);
+    await execute("UPDATE tasks SET status = 'validated' WHERE id = ?", [taskId]);
+
+    const res = await request(app)
+      .post(`/api/tasks/${taskId}/done`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ firstName: student.firstName, lastName: student.lastName, studentId });
+    assert.ok([200, 400].includes(res.status), `réponse: ${JSON.stringify(res.body)}`);
+
+    const after = await queryOne('SELECT status FROM tasks WHERE id = ?', [taskId]);
+    assert.strictEqual(
+      after.status,
+      'validated',
+      'la validation ne doit pas être écrasée par done',
+    );
+  });
+});

@@ -37,6 +37,7 @@ casser les liens existants.
 | [`AUDIT_MOODLE_IDENTITES_2026-09.md`](../AUDIT_MOODLE_IDENTITES_2026-09.md)       | Lien Moodle : **spécification de chantier** (annuaire + LTI) + bandeau d’état dépôt | Chantier ouvert (M4 terrain, 21.7) |
 | [`AUDIT_COMPTES_2026-09.md`](../AUDIT_COMPTES_2026-09.md)                         | Identités unifiées ForetMap × GL (préalable Moodle)                                 | Référence comptes                  |
 | [`AUDIT_CHARGE_BIODIVERSITE_2026-09.md`](../AUDIT_CHARGE_BIODIVERSITE_2026-09.md) | Pic d’ouverture listes / biodiversité — complète la stabilité                       | Constats encore signalés ouverts   |
+| [`AUDIT_BRANCHES_2026-09.md`](../AUDIT_BRANCHES_2026-09.md)                       | Passe de fusion / triage des branches (`moodle-sync` + `cursor/*`)                  | Instantané 8 sept. 2026            |
 
 ## Chantiers / specs encore utiles comme consigne
 

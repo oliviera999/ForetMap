@@ -313,9 +313,13 @@ router.post(
         status: task.status,
         completion_mode: completionMode,
       });
-    } else if (task.status !== 'validated' && task.status !== 'on_hold') {
+    } else {
       // Ne pas faire régresser une tâche validée ou en pause vers « done » (dévalidation).
-      await execute("UPDATE tasks SET status = 'done' WHERE id = ?", [task.id]);
+      // Garde SQL : le statut lu plus haut peut être périmé si un n3boss valide entre-temps.
+      await execute(
+        "UPDATE tasks SET status = 'done' WHERE id = ? AND status NOT IN ('validated', 'on_hold')",
+        [task.id],
+      );
     }
     const updated = await getTaskWithAssignments(task.id);
     logAudit('done_task', 'task', task.id, `${action.firstName} ${action.lastName}`.trim(), {
@@ -345,6 +349,15 @@ router.post(
       return res.status(400).json({ error: 'Impossible de quitter une tâche déjà terminée' });
     }
 
+    // Relecture avant DELETE : une validation concurrente ne doit pas laisser
+    // retirer une inscription d'une tâche déjà terminée / validée.
+    const fresh = await queryOne('SELECT id, status FROM tasks WHERE id = ?', [task.id]);
+    if (!fresh) return res.status(404).json({ error: 'Tâche introuvable' });
+    const freshStatus = normalizeTaskStatusForRead(fresh.status);
+    if (freshStatus === 'done' || freshStatus === 'validated') {
+      return res.status(400).json({ error: 'Impossible de quitter une tâche déjà terminée' });
+    }
+
     const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.unassign_self');
     if (action.error) {
       return res
@@ -359,7 +372,7 @@ router.post(
       task.id,
       ...unassign.params(action.studentId, action.firstName, action.lastName),
     ]);
-    const recalculated = await recalculateTaskStatus(task);
+    const recalculated = await recalculateTaskStatus(task.id);
     const newStatus = recalculated?.status || normalizeTaskStatusForRead(task.status);
 
     const updated = await getTaskWithAssignments(task.id);

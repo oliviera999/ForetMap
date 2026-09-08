@@ -1,4 +1,5 @@
 import { MarkdownContent } from './MarkdownContent.jsx';
+import { AuthedImage } from './AuthedImage.jsx';
 import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { IconDelete, IconMarker } from '../shared/icons.jsx';
 
@@ -47,7 +48,7 @@ export function ObservationCard({ entry, onDelete }) {
         </div>
       )}
       {entry.image_url && (
-        <img
+        <AuthedImage
           src={entry.image_url}
           alt="observation"
           style={{

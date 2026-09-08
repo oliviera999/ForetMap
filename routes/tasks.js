@@ -726,6 +726,9 @@ router.put('/:id', async (req, res) => {
   try {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    if (task.archived_at != null) {
+      return res.status(409).json({ error: 'Désarchivez la tâche avant de la modifier' });
+    }
     const previousProjectId =
       task.project_id != null && String(task.project_id).trim()
         ? String(task.project_id).trim()
@@ -1180,6 +1183,9 @@ router.post(
   asyncHandler(async (req, res) => {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    if (task.archived_at != null) {
+      return res.status(409).json({ error: 'Désarchivez la tâche avant de la valider' });
+    }
     const currentStatus = normalizeTaskStatusForRead(task.status);
     if (currentStatus === 'validated') {
       return res.status(400).json({ error: 'Tâche déjà validée' });

@@ -9,6 +9,7 @@ import {
 } from '../../shared/platform/overlayHistory';
 import { formatDateTimeFr } from '../../shared/platform/datetime-fr';
 import { readTaskLogCommentDraft, writeTaskLogCommentDraft } from '../../utils/taskLogDraft.js';
+import { AuthedImage } from '../AuthedImage.jsx';
 import { DialogShell } from '../DialogShell';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { MarkdownContent } from '../MarkdownContent.jsx';
@@ -320,7 +321,7 @@ function TaskLogsViewer({ task, onClose }) {
             </div>
             {l.comment && <MarkdownContent className="log-comment">{l.comment}</MarkdownContent>}
             {l.image_url && (
-              <img
+              <AuthedImage
                 src={l.image_url}
                 className="log-image"
                 alt="rapport"

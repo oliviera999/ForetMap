@@ -1,5 +1,5 @@
 const express = require('express');
-const { queryAll, queryOne, withTransaction } = require('../../../database');
+const { queryOne, withTransaction } = require('../../../database');
 const { requireGlPermission } = require('../../../middleware/requireGlAuth');
 const { insertGameEvent } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
@@ -82,26 +82,36 @@ router.post(
     const scoreDelta = scoreDeltaRaw == null ? 0 : Number(scoreDeltaRaw);
     const reason = normalizeOptionalString(req.body?.reason);
 
-    const action = await queryOne(
-      'SELECT id, team_id, status FROM gl_action_requests WHERE id = ? AND game_id = ? LIMIT 1',
-      [actionId, gameId],
-    );
-    if (!action) return res.status(404).json({ error: 'Demande introuvable' });
-    if (action.status !== 'pending') {
-      return res.status(409).json({ error: 'Demande déjà résolue' });
-    }
-
     const settings = await getGameplaySettings();
     let appliedDelta = 0;
     const resolvedEvents = [];
+    let alreadyResolved = false;
+    let missing = false;
 
     await withTransaction(async (tx) => {
-      await tx.execute(
+      const action = await tx.queryOne(
+        'SELECT id, team_id, status FROM gl_action_requests WHERE id = ? AND game_id = ? LIMIT 1 FOR UPDATE',
+        [actionId, gameId],
+      );
+      if (!action) {
+        missing = true;
+        return;
+      }
+      if (action.status !== 'pending') {
+        alreadyResolved = true;
+        return;
+      }
+
+      const claimed = await tx.execute(
         `UPDATE gl_action_requests
           SET status = ?, resolved_by = ?, resolved_at = NOW()
-        WHERE id = ?`,
+        WHERE id = ? AND status = 'pending'`,
         [decision, String(req.glAuth.userId), actionId],
       );
+      if (!claimed?.affectedRows) {
+        alreadyResolved = true;
+        return;
+      }
       resolvedEvents.push(
         await insertGameEvent(tx, {
           gameId,
@@ -141,6 +151,9 @@ router.post(
         );
       }
     });
+
+    if (missing) return res.status(404).json({ error: 'Demande introuvable' });
+    if (alreadyResolved) return res.status(409).json({ error: 'Demande déjà résolue' });
 
     // Événements de CETTE requête, dans l'ordre d'insertion. Corrige aussi la
     // ré-émission d'un vieil événement quand un seul venait d'être inséré
