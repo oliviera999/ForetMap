@@ -7,6 +7,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — miroirs d’équipes Moodle (lot M4)
+
+- Gabarits d’équipes par classe (`gl.classes.team_templates`) amorcés à la création d’une partie ;
+  type gnome/licorne déduit du premier mot du nom.
+- Moteur existant (`lib/gl/teamComposition.js`) : `composeTeams` (keepApart dur, keepTogether,
+  maxSizeDelta, avoidRepeatWindow, graine) ; verrous `apart` réparés avant recherche locale.
+- Miroirs Moodle (`lib/moodle/teamsMirror.js`) : groupes `FM#<cohorte>#C<cours>#<slug>` (équipes)
+  et `FM#<cohorte>#G#<slug>` (sous-groupes ForetMap). Seuls les `FM#` sont créés/renommés/supprimés ;
+  collision de nom hors miroir → arrêt. Joueur sans identité Moodle listé, pas une erreur.
+  Partie hors préparation : jamais recomposée.
+- Routes `POST /api/gl/games/:id/teams/mirror` (MJ) et `POST /api/admin/integrations/moodle/mirrors` ;
+  option `teams` de `POST /runs`. Boutons « Simuler le miroir Moodle » / « Pousser vers Moodle »
+  dans l’onglet Équipes. Tests `tests/moodle-teams-mirror.test.js`, `tests/gl-team-templates.test.js`.
+
 ### Documentation — alignement Moodle / LTI / miroirs d'équipes sur le code du dépôt
 
 - `docs/API.md`, `docs/EXPLOITATION.md`, `docs/CRONTAB.md`, référence (`rentree-moodle.md`,
