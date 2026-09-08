@@ -51,6 +51,10 @@ rattacher, et le professeur voit la liste des **comptes en attente** dans la ges
 des groupes, avec un rattachement en un clic. Chaque groupe génère son code dans son
 panneau de réglages (régénérable à tout moment, l'ancien code devenant invalide).
 
+À la **rentrée**, l'administrateur peut aussi peupler les groupes-classes (et les classes
+de jeu pour les sixièmes) depuis les **cohortes Moodle**, sans ressaisir les élèves — voir
+[La rentrée avec Moodle](rentree-moodle.md).
+
 ## Le tour des fonctionnalités
 
 ### La carte et les zones

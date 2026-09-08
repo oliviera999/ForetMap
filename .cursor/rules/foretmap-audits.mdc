@@ -1,0 +1,20 @@
+---
+description: Convention sur les audits datés docs/AUDIT_*.md (ne pas réécrire l'historique)
+alwaysApply: false
+---
+
+# Audits datés (`docs/AUDIT_*.md`)
+
+Index et détail : [`docs/audits/README.md`](../../docs/audits/README.md).
+
+## Règles
+
+- Les audits sont des **instantanés** : ne pas les réécrire pour coller au code actuel.
+- Vérité vivante : `docs/API.md`, `EXPLOITATION.md`, `LOCAL_DEV.md`, `docs/reference/`,
+  `CHANGELOG.md` / `EVOLUTION.md`.
+- Chantier ouvert (ex. Moodle) : **bandeau / statut** en tête seulement, ou sections
+  « terrain » après mesure — pas une réécriture complète.
+- Constat traité : marquer « Traité » + lien lot/tests ; **garder** le constat d’origine.
+- Audit remplacé : garder le fichier ; ouvrir d’abord le **consolidé**
+  (`AUDIT_STABILITE_PERF_2026-09.md`, etc.).
+- Ne pas déplacer/supprimer en masse sans lot dédié (liens nombreux).

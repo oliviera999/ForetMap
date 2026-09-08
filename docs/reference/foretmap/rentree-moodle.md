@@ -74,7 +74,9 @@ sécurité**, **Entrée depuis le cours**, **Outils**.
    S'il reste grisé, la raison est écrite à côté (périmètre changé, seuil dépassé, simulation
    échouée, synchronisation désactivée). Une confirmation est demandée.
 4. **Relire** le rapport d'application (même forme), puis traiter ce qui reste : attentes,
-   conflits.
+   conflits. Si « Inclure les miroirs d'équipes » était coché, le rapport affiche aussi, pour
+   chaque partie concernée, les équipes à créer dans Moodle et les joueurs sans compte Moodle
+   (miroir incomplet).
 
 Un **seuil de sécurité** dépassé (trop de créations, trop de désactivations, trop de
 rapprochements par le nom, trop de retraits vers Moodle) **arrête tout avant la moindre

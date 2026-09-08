@@ -24,6 +24,9 @@ Il poursuit trois objectifs, dans l'ordre :
 3. **Devenir la documentation finale de référence** pour toute personne non codeuse
    qui veut comprendre et piloter le fonctionnel, le pédagogique et le ludique.
 
+> Les audits techniques datés (`docs/AUDIT_*.md`) sont un autre public (historique /
+> consignes de chantier). Index et convention : [`../audits/README.md`](../audits/README.md).
+
 ## Règle d'or : cette documentation est perpétuellement à jour
 
 - Chaque évolution du code qui change ce que voit ou fait un utilisateur (élève,
