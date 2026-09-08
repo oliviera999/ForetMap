@@ -195,7 +195,7 @@ describe('AppPlan — montage', () => {
     render(<AppPlan />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
 
-    // Sur la carte : le repère est un bouton (`aria-label`), la zone un libellé SVG.
+    // Sur la carte : le repère est un bouton (`aria-label`), la zone un libellé HTML.
     expect(screen.getByText('CDI')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /Sport/ }));
     expect(screen.getByRole('button', { name: 'Gymnase' })).toBeTruthy();
@@ -395,6 +395,18 @@ describe('AppPlan — affichage des repères et des zones (audit 2026-09)', () =
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
     const marker = container.querySelector('.fm-pct-marker');
     expect(marker.querySelector('.fm-pct-marker__label').textContent).toBe('Gymnase');
+  });
+
+  test('zones et repères partagent le même habillage de nom ; aide dans la barre', async () => {
+    const { container } = render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+    const zoneName = container.querySelector('.fm-pct-label__name');
+    const markerName = container.querySelector('.fm-pct-marker__label');
+    expect(zoneName.classList.contains('map-overlay-name-label')).toBe(true);
+    expect(markerName.classList.contains('map-overlay-name-label')).toBe(true);
+    const topbar = container.querySelector('.plan-topbar');
+    expect(topbar.querySelector('.plan-help-dock')).toBeTruthy();
+    expect(container.querySelector('.plan-filters__row')).toBeTruthy();
   });
 
   test('contre-échelle : le calque « fit » porte l’inverse de l’échelle courante', async () => {

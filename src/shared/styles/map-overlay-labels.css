@@ -1,0 +1,58 @@
+/**
+ * Habillage commun des noms et emojis sur les cartes (ForetMap, Visite, Plan).
+ *
+ * Un seul dessin pour un nom de zone et un nom de repère : même police, même graisse,
+ * même halo. Les tailles viennent de `--map-overlay-*-font-size` (moteur typo ForetMap /
+ * Visite, ou constantes du noyau `%` sur le Plan). Sans variable, `inherit` laisse le
+ * produit poser la taille (attribut SVG, style inline).
+ */
+
+.map-overlay-emoji-label {
+  /* Force la présentation emoji (couleur) même sans U+FE0F dans la donnée. */
+  font-variant-emoji: emoji;
+  font-family: var(--font-emoji-stack);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.map-overlay-name-label {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-bold);
+  color: var(--forest, #1a4731);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+  text-rendering: optimizeLegibility;
+}
+
+.map-overlay-name-label--svg {
+  stroke: rgba(255, 255, 255, 0.75);
+  paint-order: stroke;
+}
+
+.map-overlay-name-label--html {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  text-shadow:
+    0 0 2px rgba(255, 255, 255, 0.95),
+    0 0 6px rgba(255, 255, 255, 0.85),
+    0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+/* Légende HTML du noyau carte « % image » (zones et repères) : tailles via variables
+   posées sur le calque, pour ne pas écraser le `font-size` SVG de ForetMap / Visite. */
+.fm-pct-overlay__emoji {
+  flex-shrink: 0;
+  font-size: var(--map-overlay-emoji-font-size, 16px);
+}
+
+.fm-pct-overlay__name {
+  max-width: 100%;
+  font-size: var(--map-overlay-label-font-size, 12px);
+}

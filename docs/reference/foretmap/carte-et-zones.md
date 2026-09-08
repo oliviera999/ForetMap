@@ -486,7 +486,9 @@ Les **emojis et noms** affichés sur le plan s'adaptent à la **taille du platea
 l'écran : plus la carte est petite (téléphone, vue « Cartes & tâches » avec panneau
 latéral), plus l'application garantit un **minimum de lisibilité** plutôt que de réduire
 le texte jusqu'à l'illisible. Sur tablette et téléphone, les étiquettes sont légèrement
-**agrandies** automatiquement.
+**agrandies** automatiquement. Un **nom de zone** et un **nom de repère** s'écrivent de
+la même façon (même police, même graisse, même halo) : seule la place change — le nom
+d'une zone est dans la forme, celui d'un repère juste sous l'épingle.
 
 **Côté utilisateur** : le bouton **Aa** de la barre d'outils carte permet trois niveaux
 locaux (Normal / Grand / Très grand), mémorisés sur l'appareil. Le même bouton est

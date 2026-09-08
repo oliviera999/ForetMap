@@ -20,21 +20,23 @@ restent dans ForetMap et dans la Visite.
    apparaissent dans une liste qui glisse depuis le bas de l'écran, sans cacher le plan.
    La recherche ignore les accents et les majuscules, et connaît les **autres noms** d'un
    lieu (chercher « bibliothèque » trouve le CDI).
-3. **Des étiquettes de catégories** juste sous la recherche (Salles, Sport, Administration…).
-   En toucher une n'affiche que les lieux de cette catégorie ; « Tout » remet tout.
-   Le choix est retenu sur l'appareil pour la prochaine visite.
+3. **Des étiquettes de catégories** juste sous la recherche (Salles, Sport, Administration…),
+   dans la même rangée que la puce **Parcours** s'il y en a. En toucher une n'affiche que
+   les lieux de cette catégorie ; « Tout » remet tout. Le choix est retenu sur l'appareil
+   pour la prochaine visite.
 4. **Des lieux regroupés quand c'est trop dense.** Vu de loin, des repères qui se
    chevauchent sont remplacés par une **pastille chiffrée**. La toucher zoome sur le groupe ;
    si les lieux sont exactement au même endroit (deux salles d'un même bâtiment, par
    exemple), la **liste des lieux du groupe** s'ouvre en bas d'écran.
 5. **Des noms qui ne se marchent jamais dessus.** Tous les noms — bâtiments comme repères —
-   sont candidats à l'affichage dès la vue d'ensemble. Quand deux d'entre eux se
-   recouvriraient, seul le plus important est écrit : d'abord le lieu dont la fiche est
-   ouverte, puis l'ordre des catégories (voir « Rendre le plan lisible »), puis le plus grand
-   bâtiment. Les noms masqués **réapparaissent d'eux-mêmes en zoomant**, sans réglage : les
-   étiquettes gardent la même taille à l'écran, c'est le plan qui s'écarte sous elles. Un nom
-   trop long pour son bâtiment est raccourci par des points de suspension ; la fiche du lieu
-   en donne toujours le nom complet.
+   sont écrits **de la même façon** (même police, même taille, même halo) et sont candidats
+   à l'affichage dès la vue d'ensemble. Quand deux d'entre eux se recouvriraient, seul le
+   plus important est écrit : d'abord le lieu dont la fiche est ouverte, puis l'ordre des
+   catégories (voir « Rendre le plan lisible »), puis le plus grand bâtiment. Les noms
+   masqués **réapparaissent d'eux-mêmes en zoomant**, sans réglage : les étiquettes gardent
+   la même taille à l'écran, c'est le plan qui s'écarte sous elles. Un nom trop long pour
+   son bâtiment est raccourci par des points de suspension ; la fiche du lieu en donne
+   toujours le nom complet.
 6. **La fiche d'un lieu.** Toucher un lieu sur le plan ou dans la liste ouvre une fiche en
    bas d'écran : nom, sous-titre, photo, description, horaires ou précisions. On la fait
    glisser vers le haut pour tout lire, vers le bas pour la refermer.
@@ -165,11 +167,11 @@ bâtiment où le téléphone ne capte pas.
 
 ### Aide intégrée
 
-Un bouton **« ? »** en haut à droite du plan ouvre une aide courte : chercher un lieu,
-filtrer, se déplacer sur la carte, comprendre les pastilles chiffrées, et se situer quand le
-plan est calé. Le bouton attire discrètement l'œil tant que l'aide n'a jamais été ouverte sur
-l'appareil, puis se calme. C'est le même mécanisme d'aide que dans ForetMap et dans Gnomes &
-Licornes.
+Un bouton **« ? »** à droite du titre, dans la barre du haut, ouvre une aide courte :
+chercher un lieu, filtrer, se déplacer sur la carte, comprendre les pastilles chiffrées, et
+se situer quand le plan est calé. Le bouton attire discrètement l'œil tant que l'aide n'a
+jamais été ouverte sur cet appareil, puis se calme. C'est le même mécanisme d'aide que dans
+ForetMap et dans Gnomes & Licornes.
 
 ### Réglages d'établissement
 

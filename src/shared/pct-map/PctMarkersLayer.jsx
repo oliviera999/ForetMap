@@ -1,5 +1,7 @@
 import React, { useCallback } from 'react';
 
+import { PctOverlayCaption } from './PctOverlayCaption.jsx';
+
 /**
  * Repère ponctuel d'une carte « % image » : bouton positionné en pourcentage, mémoïsé avec
  * un handler stable par repère (un repère ne se re-rend que si son objet change). Exporté
@@ -30,10 +32,12 @@ export const PctMarkerButton = React.memo(function PctMarkerButton({
       aria-label={accessibleName || 'Lieu'}
       onClick={handleClick}
     >
-      <span className="fm-pct-marker__pin" aria-hidden>
-        {String(marker.emoji || '').trim() || '📍'}
-      </span>
-      {label ? <span className="fm-pct-marker__label">{label}</span> : null}
+      <PctOverlayCaption
+        emoji={String(marker.emoji || '').trim() || '📍'}
+        name={label}
+        emojiClassName="fm-pct-marker__pin"
+        nameClassName="fm-pct-marker__label"
+      />
     </button>
   );
 });

@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié
+
+- **Cartes — noms de zones et de repères** : un seul habillage partagé (`map-overlay-*`,
+  légende `PctOverlayCaption`) pour que les deux se lisent de la même façon. Sur le Plan,
+  fini la pastille blanche et la police plus petite des seuls repères ; aide dans la barre
+  du titre (plus par-dessus) ; parcours et catégories sur **une** rangée.
+
 ### Ajouté — questions de validation reliées aux ressources
 
 - **Tutoriels ForetMap** (migration `226`) : 40 QCM ancrés dans les 10 fiches

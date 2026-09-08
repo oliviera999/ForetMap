@@ -15,6 +15,9 @@ import {
 } from '../../shared/pct-map/clusterMarkers.js';
 import { PctLabelsLayer } from '../../shared/pct-map/PctLabelsLayer.jsx';
 import {
+  LABEL_EMOJI_SIZE_PX,
+  LABEL_FONT_SIZE_PX,
+  MARKER_LABEL_OFFSET_PX,
   buildZoneLabelSpecs,
   labelKey,
   resolveVisibleLabels,
@@ -238,7 +241,13 @@ export function PlanMapStage({
             height: fitRect.height,
           }
         : { left: 0, top: 0, width: '100%', height: '100%' };
-    return { ...box, '--pct-inv': inv };
+    return {
+      ...box,
+      '--pct-inv': inv,
+      '--map-overlay-label-font-size': `${LABEL_FONT_SIZE_PX}px`,
+      '--map-overlay-emoji-font-size': `${LABEL_EMOJI_SIZE_PX}px`,
+      '--map-overlay-marker-label-offset': `${MARKER_LABEL_OFFSET_PX}px`,
+    };
   }, [fitRect, committed.s]);
 
   const selectedZoneId = selectedPlace?.kind === 'zone' ? selectedPlace.id : null;

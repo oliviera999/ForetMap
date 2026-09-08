@@ -10,6 +10,7 @@ import '../shared/styles/modal-shell.css';
 import '../shared/styles/toast-shell.css';
 import '../shared/styles/tooltip.css';
 import '../shared/styles/map-action.css';
+import '../shared/styles/map-overlay-labels.css';
 import '../shared/styles/bottom-sheet.css';
 import './styles/plan.css';
 import { AppPlan } from './AppPlan.jsx';
