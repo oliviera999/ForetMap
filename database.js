@@ -777,16 +777,7 @@ async function runMigrations(conn) {
   }
   if (current < 0 && files.length > 0) {
     const first = files[0];
-    const sql = fs.readFileSync(path.join(migrationsDir, first), 'utf8');
-    const statements = splitSqlStatements(sql);
-    for (const stmt of statements) {
-      try {
-        await conn.query(stmt);
-      } catch (err) {
-        const ignored = logMigrationStmtError(err, stmt, first);
-        if (!ignored) throw err;
-      }
-    }
+    await applyOneMigration(conn, migrationsDir, first);
     await conn.query('UPDATE schema_version SET version = ?', [parseInt(first.slice(0, 3), 10)]);
     current = parseInt(first.slice(0, 3), 10);
   }
@@ -800,17 +791,55 @@ async function runMigrations(conn) {
     // ou 37 rejouera ces fichiers une fois au prochain démarrage (sans effet).
     if (num < current) continue;
     if (num === current && !LEGACY_DUPLICATE_MIGRATION_NUMBERS.has(num)) continue;
-    const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
-    const statements = splitSqlStatements(sql);
-    for (const stmt of statements) {
-      try {
-        await conn.query(stmt);
-      } catch (err) {
-        const ignored = logMigrationStmtError(err, stmt, file);
-        if (!ignored) throw err;
-      }
-    }
+    await applyOneMigration(conn, migrationsDir, file);
     await conn.query('UPDATE schema_version SET version = ?', [num]);
+  }
+  // 217/218 (moteur d'équipes) ont pu arriver après qu'une base ait déjà 219 (Moodle) :
+  // le curseur unique `schema_version` ne les rejoue alors jamais. Idempotentes.
+  await replayMissedTeamCompositionMigrations(conn, migrationsDir);
+}
+
+async function applyOneMigration(conn, migrationsDir, file) {
+  const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+  const statements = splitSqlStatements(sql);
+  for (const stmt of statements) {
+    try {
+      await conn.query(stmt);
+    } catch (err) {
+      const ignored = logMigrationStmtError(err, stmt, file);
+      if (!ignored) throw err;
+    }
+  }
+}
+
+/**
+ * Rejoue 217/218 si le schéma Moodle (219) a été appliqué avant le merge du moteur d'équipes.
+ */
+async function replayMissedTeamCompositionMigrations(conn, migrationsDir) {
+  const [clsRows] = await conn.query(
+    `SELECT COUNT(*) AS c FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'gl_classes'`,
+  );
+  if (!clsRows?.[0] || Number(clsRows[0].c) === 0) return;
+  const [colRows] = await conn.query(
+    `SELECT COUNT(*) AS c FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'gl_classes' AND COLUMN_NAME = 'team_policy'`,
+  );
+  if (!colRows?.[0] || Number(colRows[0].c) === 0) {
+    const file = '217_gl_classes_team_policy.sql';
+    if (fs.existsSync(path.join(migrationsDir, file))) {
+      await applyOneMigration(conn, migrationsDir, file);
+    }
+  }
+  const [lockRows] = await conn.query(
+    `SELECT COUNT(*) AS c FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'gl_class_pairing_locks'`,
+  );
+  if (!lockRows?.[0] || Number(lockRows[0].c) === 0) {
+    const file = '218_gl_class_pairing_locks.sql';
+    if (fs.existsSync(path.join(migrationsDir, file))) {
+      await applyOneMigration(conn, migrationsDir, file);
+    }
   }
 }
 

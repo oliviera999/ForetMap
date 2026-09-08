@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — gabarits d’équipes et verrous « séparés » (M4)
+
+- Amorçage des gabarits : lecture de `gl_settings.value_json` (plus `value`) pour ne plus
+  faire échouer la création d’une partie ; un gabarit illisible n’empêche plus l’INSERT.
+- Verrous « séparés » : échange de deux joueurs plutôt qu’un déplacement, pour conserver
+  les effectifs ; les paires « ensemble » déjà placées ne sont pas cassées.
+
 ### Documentation — index des audits datés + compléments Moodle / GL
 
 - Nouvel index [`docs/audits/README.md`](docs/audits/README.md) (convention : audits =
