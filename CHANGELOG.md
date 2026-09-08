@@ -7,6 +7,50 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — messages du contrôle de compréhension (validation par quiz)
+
+Les textes affichés à l'élève autour de la validation d'une ressource annonçaient des règles
+que le serveur n'appliquait pas, ou taisaient ce qu'il fallait savoir pour décider de répondre.
+
+- **« Une erreur bloquera la validation » alors qu'une tolérance était réglée.** L'intro du
+  contrôle ignorait `allowed_wrong_attempts` : elle contredisait la liste de règles affichée
+  juste en dessous, qui, elle, décomptait les erreurs. L'intro lit désormais la même tolérance
+  (erreurs déjà commises déduites) et dit « il te reste 2 erreurs possibles ».
+- **Portée « seulement la question ratée » : mauvaise cible annoncée.** Intro et règles
+  disaient « la validation sera bloquée » là où seule la question se ferme. Les deux visent
+  maintenant la question, en accord avec la règle de portée qui suit.
+- **Aucun retour sur les essais restants après une mauvaise réponse.** Le serveur renvoyait
+  `attempts_left` depuis le début ; l'écran n'affichait que « Ce n'est pas la bonne réponse. »
+  et un bouton « Réessayer ». Il annonce désormais « Il te reste 1 erreur possible : la
+  suivante bloquera la validation pendant 6 h » — comportement que la documentation de
+  référence décrivait déjà sans qu'il existe.
+- **Aucune félicitation ni progression après une bonne réponse.** L'écran affiche « Bravo,
+  bonne réponse ! 1 sur 2 — encore 1 question pour valider "…" », et annonce l'ouverture de la
+  validation à la dernière (« le contrôle est réussi : tu peux maintenant valider… »).
+- **Fin de série présentée comme une fin de contrôle.** Avec le plafond « questions posées
+  d'affilée », la série pouvait s'achever sans que le contrôle soit satisfait : l'écran passait
+  quand même à la confirmation, que le serveur refusait ensuite par un 403. Nouvel écran
+  « Série terminée » : reliquat annoncé, bonnes réponses gardées, et un bouton _Continuer le
+  contrôle_ qui enchaîne la série suivante.
+- **Refus de validation compté sur le mauvais nombre.** Le message « N questions à réussir »
+  comptait `missing_question_codes` (toutes les questions non réussies) : en mode « une bonne
+  réponse suffit », il annonçait 3 questions là où une seule était attendue. Le compte vient
+  maintenant du `pending_count` relu, qui suit le mode effectif.
+- **Nombres contradictoires dans l'annonce et la pastille d'état.** « 3 questions à réussir
+  avant de valider (8 au total…) » donnait deux nombres pour la même chose. L'exigence réelle
+  vient en premier, la part de la session ensuite (« 8 questions à réussir…, dont 3 dès
+  maintenant »).
+- **Verrou : « une erreur a été commise » même après plusieurs.** Client et serveur accordent
+  le message au compteur réel (« 3 erreurs ont été commises »). Le repli « réessaie dans 1 h »
+  du serveur, qui inventait un délai quand le temps restant n'était pas formaté, devient
+  « quelques minutes ». « Tu peux continuer avec les autres questions » n'est plus promis quand
+  la série n'en comptait qu'une.
+- **Écran prof « lecteurs bloqués »** : « bloquée pendant quelques jours » datait du réglage en
+  jours ; il annonce le délai configuré (6 h par défaut) et la portée.
+- Tests : `tests-ui/shared/learningGatingFeedback.test.js` (nouveau, 27 cas) plus les cas
+  ajoutés à `LearningGatingQuestionPanel` et `LearningAcknowledgeButton`. Documentation de
+  référence des deux produits mise à jour.
+
 ### Documentation — cadrage du lien Moodle 5.2 ↔ ForetMap / G&L
 
 - `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : synchronisation des cohortes (`année#classe`,

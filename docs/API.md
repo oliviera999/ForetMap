@@ -2074,7 +2074,10 @@ le contexte ressource est connu : gravé dans le `presentationToken` par
 `GET /api/quiz/questions/:code/present?resourceType=&resourceRef=` (sévérités `flow` et `strict`), ou
 transmis dans le corps `{ resourceType, resourceRef }` (sévérité `advisory` seulement). La pose utilise
 la **politique effective** (cascade site → type → fiche : erreurs tolérées, délai, portée, sévérité) —
-la même que `GET …/gating/challenge`. La réponse renvoie alors le bloc `cooldown` décrit plus haut.
+la même que `GET …/gating/challenge`. La réponse renvoie alors le bloc `cooldown` décrit plus haut,
+enrichi de `allowed_wrong_attempts`, `wrong_attempts`, `attempts_left` et `scope` — l'écran élève s'en
+sert pour annoncer les essais restants (« il te reste 1 erreur possible ») au lieu de laisser croire
+qu'une mauvaise réponse est sans conséquence.
 Les routes `challenge` et `summary` ne comptent que les liens dont la question est encore **active**
 (`statut = 'actif'`) : une question archivée cesse de conditionner sans qu'il faille toucher au lien.
 

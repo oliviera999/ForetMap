@@ -36,17 +36,19 @@ describe('gatingState', () => {
 
   it('compte ce qui sera posé maintenant, et dit le reste', () => {
     // `ask_count` = ce que le serveur pose dans cette session (plafond appliqué) ;
-    // `pending_count` = ce qu'il reste au total.
+    // `pending_count` = ce qu'il reste au total. L'exigence (8) vient en premier : annoncer
+    // « 3 questions à réussir avant de valider » était faux.
     const state = gatingState({ required: true, ask_count: 3, pending_count: 8 });
     expect(state.kind).toBe('pending');
     expect(state.shortLabel).toBe('3 questions');
-    expect(state.label).toContain('8 questions au total');
+    expect(state.label).toContain('8 questions à réussir');
+    expect(state.label).toContain('3 questions dès maintenant');
   });
 
   it('accorde le singulier', () => {
     const state = gatingState({ required: true, ask_count: 1, pending_count: 1 });
     expect(state.shortLabel).toBe('1 question');
-    expect(state.label).not.toContain('au total');
+    expect(state.label).not.toContain('dès maintenant');
   });
 
   it('un résumé incohérent ne casse rien', () => {
