@@ -42,7 +42,7 @@ router.get(
       return res.status(404).json({ error: 'Aucune image' });
     }
     const absolutePath = getAbsolutePath(row.image_path);
-    return res.sendFile(absolutePath, (err) => {
+    return res.sendFile(absolutePath, { dotfiles: 'allow' }, (err) => {
       if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
     });
   }),

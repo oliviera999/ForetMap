@@ -184,7 +184,7 @@ async function serveVisitMascotSpriteLibraryFile(req, res, rawFilename) {
     if (!row) return res.status(404).json({ error: 'Fichier introuvable' });
     const rel = resolveVisitMascotSpriteLibraryRelPath(filename);
     if (!rel) return res.status(404).json({ error: 'Fichier introuvable' });
-    return res.type('image/png').sendFile(getAbsolutePath(rel), (err) => {
+    return res.type('image/png').sendFile(getAbsolutePath(rel), { dotfiles: 'allow' }, (err) => {
       if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
     });
   } catch (err) {
@@ -323,7 +323,7 @@ router.get('/mascot-packs/:packId/assets/:filename', authenticate, async (req, r
     const rel = `${visitMascotPackAssetRelativeDir(packId)}/${filename}`;
     const abs = getAbsolutePath(rel);
     if (!fs.existsSync(abs)) return res.status(404).json({ error: 'Fichier introuvable' });
-    return res.type('image/png').sendFile(abs, (err) => {
+    return res.type('image/png').sendFile(abs, { dotfiles: 'allow' }, (err) => {
       if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
     });
   } catch (err) {
