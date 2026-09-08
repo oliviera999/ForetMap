@@ -9,7 +9,15 @@ export const MS_PER_HOUR = 60 * MS_PER_MINUTE;
 export const MS_PER_DAY = 24 * MS_PER_HOUR;
 export const MAX_COOLDOWN_HOURS = 365 * 24;
 
-export function clampCooldownHours(value, fallback = 6) {
+/**
+ * Délai de verrou par défaut, en heures — miroir de `DEFAULT_RETRY_COOLDOWN_HOURS`
+ * (lib/shared/cooldownDurationCore.js). Le nombre était recopié à la main dans les replis
+ * du front, des éditeurs de politique et des phrases d'aide : trois écrans pouvaient
+ * annoncer trois valeurs différentes.
+ */
+export const DEFAULT_RETRY_COOLDOWN_HOURS = 1;
+
+export function clampCooldownHours(value, fallback = DEFAULT_RETRY_COOLDOWN_HOURS) {
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
   return Math.max(0, Math.min(MAX_COOLDOWN_HOURS, Math.floor(n)));

@@ -111,7 +111,7 @@ test('resolveEffectiveGatingPolicy — délai en heures, ancienne colonne en jou
   assert.equal(fromHours.lockMode, 'strict');
   assert.equal(fromHours.effectiveSources.lockMode, 'resource');
   const siteOnly = layers.resolveEffectiveGatingPolicy({ site: {}, product: 'fm' });
-  assert.equal(siteOnly.retryCooldownHours, 6, 'défaut : 6 h');
+  assert.equal(siteOnly.retryCooldownHours, 1, 'défaut : 1 h');
   assert.equal(siteOnly.lockMode, 'flow', 'défaut : normal');
 });
 

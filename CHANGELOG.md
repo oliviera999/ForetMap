@@ -65,6 +65,23 @@ que le serveur n'appliquait pas, ou taisaient ce qu'il fallait savoir pour déci
   ajoutés à `LearningGatingQuestionPanel` et `LearningAcknowledgeButton`. Documentation de
   référence des deux produits mise à jour.
 
+### Modifié — verrou de re-tentative : 1 heure par défaut, et un seul nombre pour le dire
+
+- Le délai par défaut passe de **6 h à 1 h** : assez pour qu'une erreur coûte quelque chose,
+  assez court pour qu'un élève rattrape la fiche dans la même journée de cours.
+- Le nombre était **recopié à la main dans dix endroits** (catalogue des réglages, résolveur de
+  cascade site → type → fiche, replis du front, éditeur de politique, deux écrans de réglages,
+  clamp serveur et son miroir ESM) : le catalogue, un formulaire et une phrase d'aide pouvaient
+  annoncer trois valeurs différentes. Tout le monde lit désormais
+  `DEFAULT_RETRY_COOLDOWN_HOURS` (`lib/shared/cooldownDurationCore.js` et son miroir
+  `src/shared/utils/cooldownDuration.js`), verrouillé par un test.
+- **Ne change rien là où un délai a déjà été enregistré** : `getSettingValue` ne matérialise pas
+  les défauts, donc le nouveau défaut ne s'applique qu'aux installations où
+  `learning.gating.retry_cooldown_hours` (ou `gating.retry_cooldown_hours` côté G&L) n'a jamais
+  été écrit, ainsi qu'aux politiques par type / par fiche laissées en « hériter ». Une valeur
+  choisie par un professeur reste souveraine — elle se relit dans Réglages → Validation des
+  lectures.
+
 ### Corrigé — test instable `gl-mascots` (401 aléatoire en CI)
 
 - `tests/gl-mascots.test.js` signait un jeton enseignant sans claim `tokenEpoch` pour « le

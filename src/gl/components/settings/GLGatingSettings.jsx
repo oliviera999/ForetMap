@@ -7,6 +7,7 @@ import {
   readRetryHours,
   retryHoursLabel,
 } from '../../../shared/utils/learningGatingPolicyText.js';
+import { DEFAULT_RETRY_COOLDOWN_HOURS } from '../../../shared/utils/cooldownDuration.js';
 
 const TYPE_TABS = [
   { type: 'species', label: 'Fiches espèces' },
@@ -123,7 +124,7 @@ export function GLGatingSettings() {
     );
   }
 
-  const retryHours = readRetryHours(gating, 6);
+  const retryHours = readRetryHours(gating, DEFAULT_RETRY_COOLDOWN_HOURS);
   const lockMode = String(gating.lockMode || 'flow');
   const allowedWrong = clampInt(gating.allowedWrongAttempts, 0, 10, 0);
   const maxSession = clampInt(gating.maxQuestionsPerSession, 1, 10, 3);
@@ -261,7 +262,10 @@ export function GLGatingSettings() {
               disabled={savingKey === 'gating.retry_cooldown_hours'}
               onChange={(event) => {
                 if (event.target.value === 'custom') return;
-                save('gating.retry_cooldown_hours', clampInt(event.target.value, 0, 8760, 6));
+                save(
+                  'gating.retry_cooldown_hours',
+                  clampInt(event.target.value, 0, 8760, DEFAULT_RETRY_COOLDOWN_HOURS),
+                );
               }}
             >
               {RETRY_HOUR_OPTIONS.map((h) => (
