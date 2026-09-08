@@ -335,12 +335,12 @@ app.get('/favicon.ico', (req, res) => {
     const productFavicon = path.join(staticRoot, product.assetsDir, 'favicon.ico');
     if (fs.existsSync(productFavicon)) {
       res.type('image/png');
-      return res.sendFile(productFavicon);
+      return res.sendFile(productFavicon, { dotfiles: 'allow' });
     }
   }
   const foretFavicon = path.join(staticRoot, 'favicon.ico');
   if (fs.existsSync(foretFavicon)) {
-    return res.sendFile(foretFavicon);
+    return res.sendFile(foretFavicon, { dotfiles: 'allow' });
   }
   return res.status(204).end();
 });
@@ -553,7 +553,7 @@ const allowedDocFiles = new Set([
 for (const [routePath, filePath] of rootDocs.entries()) {
   app.get(routePath, (req, res) => {
     res.type('text/markdown; charset=utf-8');
-    res.sendFile(filePath);
+    res.sendFile(filePath, { dotfiles: 'allow' });
   });
 }
 
@@ -561,7 +561,7 @@ app.get('/docs/:file', (req, res) => {
   const file = req.params.file;
   if (!allowedDocFiles.has(file)) return res.status(404).json({ error: 'Document introuvable' });
   res.type('text/markdown; charset=utf-8');
-  res.sendFile(path.resolve(__dirname, 'docs', file));
+  res.sendFile(path.resolve(__dirname, 'docs', file), { dotfiles: 'allow' });
 });
 
 // Liste centralisée des problèmes potentiels du site (audit interne) : réservée aux
@@ -569,11 +569,11 @@ app.get('/docs/:file', (req, res) => {
 // doit pas être servi publiquement.
 app.get('/api/site-issues', requirePermission('admin.settings.read'), (req, res) => {
   res.type('text/markdown; charset=utf-8');
-  res.sendFile(path.resolve(__dirname, 'docs', 'SITE_ISSUES.md'));
+  res.sendFile(path.resolve(__dirname, 'docs', 'SITE_ISSUES.md'), { dotfiles: 'allow' });
 });
 app.get('/api/site-issues.json', requirePermission('admin.settings.read'), (req, res) => {
   res.type('application/json; charset=utf-8');
-  res.sendFile(path.resolve(__dirname, 'docs', 'SITE_ISSUES.json'));
+  res.sendFile(path.resolve(__dirname, 'docs', 'SITE_ISSUES.json'), { dotfiles: 'allow' });
 });
 
 // Fallback SPA (build Vite en prod, sinon page d'aide locale)

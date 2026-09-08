@@ -65,7 +65,7 @@ router.get(
     if (!log) return res.status(404).json({ error: 'Log introuvable' });
     if (log.image_path) {
       const absolutePath = getAbsolutePath(log.image_path);
-      return res.sendFile(absolutePath, (err) => {
+      return res.sendFile(absolutePath, { dotfiles: 'allow' }, (err) => {
         if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
       });
     }

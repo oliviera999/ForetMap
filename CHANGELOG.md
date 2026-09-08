@@ -13,6 +13,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   faire échouer la création d’une partie ; un gabarit illisible n’empêche plus l’INSERT.
 - Verrous « séparés » : échange de deux joueurs plutôt qu’un déplacement, pour conserver
   les effectifs ; les paires « ensemble » déjà placées ne sont pas cassées.
+- Titre de la page d’arrivée LTI : token `--text-xl` (plus de `font-size` en rem hors
+  allowlist).
+- Fichiers servis par `sendFile` : `dotfiles: allow` pour qu’un déploiement ou un worktree
+  dont un dossier commence par un point (`.worktrees`) ne réponde plus 404.
 
 ### Documentation — index des audits datés + compléments Moodle / GL
 
