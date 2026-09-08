@@ -65,6 +65,21 @@ son chapitre** à sa création.
      équipes existaient déjà, le MJ doit explicitement accepter de les remplacer. Les
      élèves inactifs sont laissés de côté par défaut (le MJ peut les inclure). Le journal
      de la partie garde une trace « le MJ a composé N équipes ».
+   - **Trois recettes fondées sur le profil** s'ajoutent quand l'administrateur les laisse
+     actives (réglage « Recettes d'équipes fondées sur le profil », actif par défaut) :
+     _Mixte_ (des profils variés dans chaque équipe et des équipes comparables entre
+     elles), _Complémentarité_ (chaque équipe réunit si possible un savant, un éclaireur,
+     un négociant et un gardien) et _Groupes de besoin_ (des équipes aux profils proches,
+     pour différencier l'accompagnement). Le profil d'un élève est déduit **uniquement de
+     ce qu'il a déjà fait dans le jeu** (QCM, feuillets trouvés, échanges au Marché et sur
+     le forum, cœurs et gemmes engagés dans les sortilèges, actions proposées, présence) ;
+     il est recalculé à chaque proposition, jamais enregistré, et **jamais affiché** — ni
+     aux élèves ni au MJ. Tant que la classe a peu joué, tous les profils restent proches
+     de la moyenne et le jeu le dit : la proposition garde alors une large part de hasard.
+     _Groupes de besoin_ est **refusée dès que le score par équipe est activé** : elle
+     servirait sinon à classer les élèves. Une section repliable « Poids avancés » permet
+     d'ajuster finement une recette (éviter les binômes déjà vus, rapprocher les équipes,
+     couvrir les rôles) ; les valeurs par défaut conviennent presque toujours.
 3. **Démarrer** : la partie passe **en cours**. Si la carte du chapitre est en
    « parcours numéroté », toutes les mascottes sont posées sur la case départ. Le MJ
    peut mettre en **pause** puis reprendre, et **terminer** la partie quand il veut.

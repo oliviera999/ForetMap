@@ -5,6 +5,7 @@ import { apiGL } from '../../services/apiGL.js';
 import {
   GL_TEAM_COMPOSE_WARNING_LABELS,
   listAvailableRecipes,
+  listWeightSliders,
 } from '../../utils/glTeamCompositionRecipes.js';
 import { GLMascotAvatar } from '../GLMascotAvatar.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
@@ -48,12 +49,15 @@ export function GLTeamComposeDialog({
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState('');
+  // Surcharges de poids saisies par le MJ (« Poids avancés ») ; vide = presets serveur.
+  const [weightsOverride, setWeightsOverride] = useState({});
   const requestRef = useRef(0);
 
   const recipes = useMemo(
     () => listAvailableRecipes({ profileRecipesEnabled, scoringEnabled }),
     [profileRecipesEnabled, scoringEnabled],
   );
+  const sliders = useMemo(() => listWeightSliders(recipe), [recipe]);
 
   const runPreview = useCallback(
     async (overrides = {}) => {
@@ -66,6 +70,8 @@ export function GLTeamComposeDialog({
         recipe: overrides.recipe ?? recipe,
         includeInactive: overrides.includeInactive ?? includeInactive,
       };
+      const weights = overrides.weightsOverride ?? weightsOverride;
+      if (weights && Object.keys(weights).length > 0) body.weightsOverride = weights;
       const nextSeed = overrides.seed !== undefined ? overrides.seed : seed;
       if (nextSeed) body.seed = nextSeed;
       const count = Number(overrides.teamCount ?? teamCount);
@@ -95,7 +101,7 @@ export function GLTeamComposeDialog({
         if (requestRef.current === requestId) setLoading(false);
       }
     },
-    [gameId, includeInactive, recipe, seed, teamCount, teamSize],
+    [gameId, includeInactive, recipe, seed, teamCount, teamSize, weightsOverride],
   );
 
   // Ouverture : aperçu immédiat avec les réglages par défaut.
@@ -106,16 +112,30 @@ export function GLTeamComposeDialog({
     setError('');
     setReplaceExisting(false);
     setSeed('');
-    runPreview({ seed: '' });
+    setWeightsOverride({});
+    runPreview({ seed: '', weightsOverride: {} });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- volontairement au seul basculement d'ouverture
   }, [open, gameId]);
 
   const selectRecipe = (id) => {
     setRecipe(id);
-    runPreview({ recipe: id, seed: '' });
+    // Les poids sont propres à une recette : changer de recette revient aux presets.
+    setWeightsOverride({});
+    runPreview({ recipe: id, seed: '', weightsOverride: {} });
   };
 
   const regenerate = () => runPreview({ seed: '' });
+
+  const setWeight = (key, value) => {
+    const next = { ...weightsOverride, [key]: Number(value) };
+    setWeightsOverride(next);
+    runPreview({ seed, weightsOverride: next });
+  };
+
+  const resetWeights = () => {
+    setWeightsOverride({});
+    runPreview({ seed, weightsOverride: {} });
+  };
 
   const movePlayer = (playerId, fromIndex, toIndex) => {
     if (fromIndex === toIndex) return;
@@ -274,6 +294,55 @@ export function GLTeamComposeDialog({
           </GLButton>
         </div>
       </section>
+
+      {sliders.length > 0 ? (
+        <details
+          className="gl-compose-section gl-compose-advanced"
+          data-testid="gl-compose-advanced"
+        >
+          <summary>Poids avancés</summary>
+          <p className="gl-hint">
+            Réglages fins de la recette. Les valeurs par défaut conviennent dans la grande majorité
+            des cas ; le serveur borne toute valeur saisie.
+          </p>
+          <div className="gl-compose-sliders">
+            {sliders.map((slider) => {
+              const value = weightsOverride[slider.key] ?? slider.defaultValue;
+              const inputId = `gl-compose-weight-${slider.key}`;
+              return (
+                <div key={slider.key} className="gl-compose-slider">
+                  <label htmlFor={inputId}>
+                    {slider.label} <span className="gl-hint">({value})</span>
+                  </label>
+                  <input
+                    id={inputId}
+                    type="range"
+                    min={slider.min}
+                    max={slider.max}
+                    step={slider.step}
+                    value={value}
+                    onChange={(event) => setWeight(slider.key, event.target.value)}
+                    disabled={loading || applying}
+                    aria-describedby={`${inputId}-hint`}
+                  />
+                  <small id={`${inputId}-hint`} className="gl-hint">
+                    {slider.hint}
+                  </small>
+                </div>
+              );
+            })}
+          </div>
+          <GLButton
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={resetWeights}
+            disabled={loading || applying || Object.keys(weightsOverride).length === 0}
+          >
+            Revenir aux poids par défaut
+          </GLButton>
+        </details>
+      ) : null}
 
       {error ? (
         <p className="gl-error" role="alert">

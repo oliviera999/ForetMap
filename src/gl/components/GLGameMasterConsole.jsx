@@ -113,6 +113,8 @@ export function GLGameMasterConsole({
   const playerActionsEnabled = !!flags.playerActionsEnabled;
   const scoringEnabled = !!flags.scoringEnabled;
   const vitalityEnabled = !!flags.vitalityEnabled;
+  // Défaut serveur `true` : n'est masqué que si l'admin a explicitement coupé le réglage.
+  const profileRecipesEnabled = flags.teamCompositionProfileRecipesEnabled !== false;
 
   const effectiveSelectedTeamId = useMemo(() => {
     if (
@@ -884,6 +886,8 @@ export function GLGameMasterConsole({
             busy={busy}
             teamSaveStatus={teamSaveStatus}
             teamSaveError={teamSaveError}
+            profileRecipesEnabled={profileRecipesEnabled}
+            scoringEnabled={scoringEnabled}
           />
         )}
         {mjSection === 'live' && (

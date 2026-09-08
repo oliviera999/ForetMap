@@ -225,5 +225,8 @@ test('cas limites : aucun joueur, aucune équipe, une seule équipe', () => {
   });
   assert.deepEqual(flat(one.slots), [1, 2, 3]);
   assert.equal(one.iterations, 0);
-  assert.deepEqual([...ENGINE_RECIPES].sort(), ['random', 'random_memory'].sort());
+  assert.deepEqual(
+    [...ENGINE_RECIPES].sort(),
+    ['random', 'random_memory', 'mixed', 'roles', 'homogeneous'].sort(),
+  );
 });

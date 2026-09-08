@@ -58,9 +58,76 @@ export const GL_TEAM_RECIPE_BY_ID = Object.freeze(
   Object.fromEntries(GL_TEAM_RECIPES.map((recipe) => [recipe.id, recipe])),
 );
 
+/**
+ * Poids par défaut de chaque recette (miroir de `RECIPE_WEIGHTS`, lib/gl/teamComposition.js),
+ * uniquement pour pré-positionner les curseurs « Poids avancés » ; le serveur reste maître
+ * (il borne toute surcharge dans [0, 100]).
+ */
+export const GL_TEAM_RECIPE_DEFAULT_WEIGHTS = Object.freeze({
+  random: Object.freeze({}),
+  random_memory: Object.freeze({ repeat: 0.6 }),
+  carry_over: Object.freeze({}),
+  mixed: Object.freeze({ repeat: 0.2, inter: 60 }),
+  roles: Object.freeze({ repeat: 0.2, roles: 1, inter: 10 }),
+  homogeneous: Object.freeze({ intra: 60 }),
+});
+
+/** Curseurs proposés au MJ : terme, libellé, bornes et recettes concernées. */
+export const GL_TEAM_WEIGHT_SLIDERS = Object.freeze([
+  Object.freeze({
+    key: 'repeat',
+    label: 'Éviter les binômes déjà vus',
+    hint: 'Pénalise chaque paire de joueurs qui a déjà coéquipé dans les parties passées.',
+    min: 0,
+    max: 5,
+    step: 0.1,
+    recipes: ['random_memory', 'mixed', 'roles', 'homogeneous', 'random'],
+  }),
+  Object.freeze({
+    key: 'inter',
+    label: 'Équipes comparables entre elles',
+    hint: 'Rapproche les moyennes de profil des équipes (recette mixte).',
+    min: 0,
+    max: 100,
+    step: 5,
+    recipes: ['mixed', 'roles'],
+  }),
+  Object.freeze({
+    key: 'intra',
+    label: 'Profils proches dans une même équipe',
+    hint: 'Resserre les profils à l’intérieur de chaque équipe (groupes de besoin).',
+    min: 0,
+    max: 100,
+    step: 5,
+    recipes: ['homogeneous'],
+  }),
+  Object.freeze({
+    key: 'roles',
+    label: 'Couvrir les quatre rôles',
+    hint: 'Pénalise chaque rôle (savant, éclaireur, négociant, gardien) absent d’une équipe.',
+    min: 0,
+    max: 10,
+    step: 0.5,
+    recipes: ['roles', 'mixed'],
+  }),
+]);
+
+/** Curseurs pertinents pour une recette (aucun pour la reconduction). */
+export function listWeightSliders(recipeId) {
+  if (!recipeId || recipeId === 'carry_over') return [];
+  return GL_TEAM_WEIGHT_SLIDERS.filter((slider) => slider.recipes.includes(recipeId)).map(
+    (slider) => ({
+      ...slider,
+      defaultValue: GL_TEAM_RECIPE_DEFAULT_WEIGHTS[recipeId]?.[slider.key] ?? 0,
+    }),
+  );
+}
+
 /** Codes d'avertissement renvoyés par l'aperçu → phrase MJ. */
 export const GL_TEAM_COMPOSE_WARNING_LABELS = Object.freeze({
   INACTIVE_EXCLUDED: 'Des joueurs inactifs ont été laissés de côté.',
+  PROFILE_DATA_SPARSE:
+    'Peu de données de jeu pour cette classe : les profils restent proches de la moyenne, le tirage garde une large part de hasard.',
   TEAMS_NOT_EMPTY:
     'Cette partie a déjà des équipes avec des joueurs : appliquer les remplacera (à confirmer).',
   TEAMS_EXIST: 'Cette partie a déjà des équipes (vides) : appliquer les remplacera.',

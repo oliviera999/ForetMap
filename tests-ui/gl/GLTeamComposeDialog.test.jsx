@@ -8,7 +8,10 @@ vi.mock('../../src/gl/services/apiGL.js', () => ({
 }));
 
 import { GLTeamComposeDialog } from '../../src/gl/components/mj/GLTeamComposeDialog.jsx';
-import { listAvailableRecipes } from '../../src/gl/utils/glTeamCompositionRecipes.js';
+import {
+  listAvailableRecipes,
+  listWeightSliders,
+} from '../../src/gl/utils/glTeamCompositionRecipes.js';
 
 function buildProposal(overrides = {}) {
   return {
@@ -194,5 +197,82 @@ describe('GLTeamComposeDialog', () => {
     expect(all.map((r) => r.id)).toContain('homogeneous');
     expect(all.find((r) => r.id === 'homogeneous').disabled).toBe(true);
     expect(all.find((r) => r.id === 'mixed').disabled).toBe(false);
+    // Curseurs : aucun pour la reconduction, presets pré-positionnés sinon.
+    expect(listWeightSliders('carry_over')).toEqual([]);
+    const mixed = listWeightSliders('mixed');
+    expect(mixed.map((s) => s.key)).toEqual(['repeat', 'inter', 'roles']);
+    expect(mixed.find((s) => s.key === 'inter').defaultValue).toBe(60);
+    expect(listWeightSliders('homogeneous').map((s) => s.key)).toEqual(['repeat', 'intra']);
+  });
+
+  test('recettes v2 : cartes affichées, homogène désactivée avec score, poids avancés envoyés', async () => {
+    apiGlMock.mockImplementation((path, method, body) =>
+      path.endsWith('/teams/compose/preview')
+        ? Promise.resolve(
+            buildProposal({
+              recipe: body.recipe,
+              requestedRecipe: body.recipe,
+              warnings: body.recipe === 'mixed' ? [{ code: 'PROFILE_DATA_SPARSE' }] : [],
+              explain: ['Profils variés dans chaque équipe.'],
+            }),
+          )
+        : Promise.resolve({ ok: true }),
+    );
+    render(
+      <GLTeamComposeDialog
+        open
+        onClose={() => {}}
+        gameId={7}
+        profileRecipesEnabled
+        scoringEnabled
+      />,
+    );
+    await waitFor(() => expect(screen.getByTestId('gl-compose-team-0')).toBeTruthy());
+    // Trois cartes de profil visibles ; « groupes de besoin » grisée tant que le score est actif.
+    expect(screen.getByTestId('gl-compose-recipe-mixed')).toBeTruthy();
+    expect(screen.getByTestId('gl-compose-recipe-roles')).toBeTruthy();
+    const homogeneous = screen.getByTestId('gl-compose-recipe-homogeneous');
+    expect(homogeneous.disabled).toBe(true);
+    expect(homogeneous.textContent).toMatch(/score est activé/);
+    // Aucune section « Poids avancés » pour l'aléatoire pur ? Si : le terme « binômes » y est.
+    expect(screen.getByTestId('gl-compose-advanced')).toBeTruthy();
+
+    fireEvent.click(screen.getByTestId('gl-compose-recipe-mixed'));
+    await waitFor(() =>
+      expect(
+        apiGlMock.mock.calls.some(
+          (c) => c[0].endsWith('/teams/compose/preview') && c[2].recipe === 'mixed',
+        ),
+      ).toBe(true),
+    );
+    await waitFor(() => expect(screen.getByText(/Peu de données de jeu/)).toBeTruthy());
+    // Le premier appel « mixed » ne porte aucune surcharge (presets serveur).
+    const firstMixed = apiGlMock.mock.calls.find(
+      (c) => c[0].endsWith('/teams/compose/preview') && c[2].recipe === 'mixed',
+    );
+    expect(firstMixed[2].weightsOverride).toBeUndefined();
+
+    // Un curseur déplacé ⇒ nouvel aperçu avec `weightsOverride` borné côté client au pas.
+    const slider = screen.getByLabelText(/Équipes comparables entre elles/);
+    expect(Number(slider.value)).toBe(60);
+    fireEvent.change(slider, { target: { value: '80' } });
+    await waitFor(() =>
+      expect(
+        apiGlMock.mock.calls.some(
+          (c) =>
+            c[0].endsWith('/teams/compose/preview') &&
+            c[2].recipe === 'mixed' &&
+            c[2].weightsOverride?.inter === 80,
+        ),
+      ).toBe(true),
+    );
+    // Retour aux presets : la surcharge disparaît du corps.
+    fireEvent.click(screen.getByRole('button', { name: 'Revenir aux poids par défaut' }));
+    await waitFor(() => {
+      const last = apiGlMock.mock.calls.filter((c) => c[0].endsWith('/teams/compose/preview'));
+      expect(last[last.length - 1][2].weightsOverride).toBeUndefined();
+    });
+    // Toujours aucun score à l'écran.
+    expect(screen.queryByText(/composite/i)).toBeNull();
   });
 });

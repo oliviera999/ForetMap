@@ -2201,6 +2201,33 @@ a.gl-glossary-inline-link:hover,
   border-top: 1px solid rgba(15, 23, 42, 0.1);
 }
 
+.gl-compose-advanced > summary {
+  cursor: pointer;
+  font-weight: 600;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.gl-compose-sliders {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 8px 0 12px;
+}
+
+.gl-compose-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gl-compose-slider input[type='range'] {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--gl-accent, #2f855a);
+}
+
 .gl-profile-modal-actions {
   display: flex;
   flex-wrap: wrap;
