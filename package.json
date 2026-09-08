@@ -82,6 +82,8 @@
     "help:compact": "node scripts/compact-help-registry.js --apply",
     "gl:help:compact:dry": "node scripts/compact-gl-help-registry.js",
     "gl:help:compact": "node scripts/compact-gl-help-registry.js --apply",
+    "moodle:check": "node scripts/moodle-check.js",
+    "moodle:sync": "node scripts/moodle-sync.js",
     "migrate:sqlite-to-mysql": "node scripts/migrate-sqlite-to-mysql.js",
     "export:sqlite-garden": "node scripts/export-sqlite-garden-sql.js",
     "bump:patch": "npm version patch --no-git-tag-version",
