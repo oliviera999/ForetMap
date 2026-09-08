@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { apiGL } from '../../services/apiGL.js';
 import { GLGameRosterPanel } from '../admin/GLGameRosterPanel.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLDataList } from '../ui/GLDataList.jsx';
@@ -39,7 +40,32 @@ export default function GLGameMasterConsoleTeams({
   scoringEnabled = false,
 }) {
   const [composeOpen, setComposeOpen] = useState(false);
+  const [mirrorBusy, setMirrorBusy] = useState(false);
+  const [mirrorMessage, setMirrorMessage] = useState('');
+  const [mirrorError, setMirrorError] = useState('');
   const isDraft = String(game?.status || '') === 'draft';
+
+  async function runMirror(dryRun) {
+    if (!game?.id || mirrorBusy) return;
+    setMirrorBusy(true);
+    setMirrorError('');
+    setMirrorMessage('');
+    try {
+      const report = await apiGL(`/api/gl/games/${game.id}/teams/mirror`, 'POST', { dryRun });
+      const created = report.created?.length || 0;
+      const renamed = report.renamed?.length || 0;
+      const deleted = report.deleted?.length || 0;
+      const missing = report.missingIdentities?.length || 0;
+      const notices = (report.notices || []).join(' ');
+      setMirrorMessage(
+        `${dryRun ? 'Simulation' : 'Miroir poussé'} : ${created} créé(s), ${renamed} renommé(s), ${deleted} retiré(s), ${missing} joueur(s) sans compte Moodle.${notices ? ` ${notices}` : ''}`,
+      );
+    } catch (err) {
+      setMirrorError(err?.message || 'Miroir Moodle impossible');
+    } finally {
+      setMirrorBusy(false);
+    }
+  }
 
   if (!game?.id) {
     return (
@@ -88,7 +114,29 @@ export default function GLGameMasterConsoleTeams({
               Composer automatiquement
             </GLButton>
           </span>
+          <GLButton
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => runMirror(true)}
+            disabled={busy || mirrorBusy}
+            data-testid="gl-teams-mirror-dry"
+          >
+            Simuler le miroir Moodle
+          </GLButton>
+          <GLButton
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => runMirror(false)}
+            disabled={busy || mirrorBusy}
+            data-testid="gl-teams-mirror-apply"
+          >
+            Pousser vers Moodle
+          </GLButton>
         </div>
+        {mirrorError ? <p className="gl-hint auth-error">{mirrorError}</p> : null}
+        {mirrorMessage ? <p className="gl-hint">{mirrorMessage}</p> : null}
         {!isDraft ? (
           <p id="gl-compose-locked-hint" className="gl-hint">
             {COMPOSE_LOCKED_HINT}

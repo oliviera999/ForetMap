@@ -145,6 +145,25 @@ export function MoodleRunReport({ run, onUndo, undoing }) {
         items={lists.playersWithoutIdentity}
         render={(x) => userDisplay(x.user)}
       />
+      {(report.teamMirrors || []).map((mirror, i) => (
+        <div key={mirror.gameId || i} data-testid="moodle-team-mirror">
+          <p>
+            Miroir d’équipes partie #{mirror.gameId}
+            {mirror.error ? ` — ${mirror.error}` : ''}
+            {mirror.notices?.length ? ` — ${mirror.notices.join(' ')}` : ''}
+          </p>
+          <ListBlock
+            title="Équipes à créer dans Moodle"
+            items={mirror.created}
+            render={(x) => `${x.name} (${x.idnumber})`}
+          />
+          <ListBlock
+            title="Joueurs sans compte Moodle (miroir incomplet)"
+            items={mirror.missingIdentities}
+            render={(x) => `${x.pseudo || x.playerId} — ${x.team}`}
+          />
+        </div>
+      ))}
       {canUndo && onUndo && (
         <div className="moodle-actions">
           <button

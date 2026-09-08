@@ -259,6 +259,23 @@ function createFakeMoodleServer(options = {}) {
     addCourse({ id, fullname, shortname }) {
       state.courses.push({ id: Number(id), fullname, shortname: shortname || fullname });
     },
+    addGroup({ id, courseid, name, idnumber = '' }) {
+      const group = {
+        id: id == null ? state.nextGroupId++ : Number(id),
+        courseid: Number(courseid),
+        name,
+        idnumber,
+      };
+      if (group.id >= state.nextGroupId) state.nextGroupId = group.id + 1;
+      state.groups.push(group);
+      if (!state.groupMembers.has(group.id)) state.groupMembers.set(group.id, new Set());
+      return group;
+    },
+    enrolInCourse(courseId, userId) {
+      const list = state.enrolled.get(Number(courseId)) || [];
+      list.push(Number(userId));
+      state.enrolled.set(Number(courseId), list);
+    },
     callsFor(wsfunction) {
       return calls.filter((c) => c.wsfunction === wsfunction);
     },

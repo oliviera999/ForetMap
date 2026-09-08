@@ -14,6 +14,7 @@ const {
   targetSizeBounds,
   scoreComposition,
   computeComposition,
+  composeTeams,
   summarizePairs,
 } = require('../lib/gl/teamComposition');
 
@@ -229,4 +230,60 @@ test('cas limites : aucun joueur, aucune équipe, une seule équipe', () => {
     [...ENGINE_RECIPES].sort(),
     ['random', 'random_memory', 'mixed', 'roles', 'homogeneous'].sort(),
   );
+});
+
+test('composeTeams : keepApart jamais violé, graine stable, maxSizeDelta signalé', () => {
+  const teams = [{ id: 1 }, { id: 2 }, { id: 3 }];
+  const out = composeTeams({
+    players: players(12),
+    teams,
+    options: {
+      seed: 'brume-4172',
+      keepApart: [
+        [1, 2],
+        [3, 4],
+      ],
+      keepTogether: [[5, 6]],
+      maxSizeDelta: 1,
+    },
+  });
+  const slotOf = new Map();
+  out.slots.forEach((team, idx) => team.forEach((p) => slotOf.set(p, idx)));
+  assert.notEqual(slotOf.get(1), slotOf.get(2));
+  assert.notEqual(slotOf.get(3), slotOf.get(4));
+  assert.equal(slotOf.get(5), slotOf.get(6));
+  assert.equal(out.warnings.filter((w) => w.code === 'keepApart').length, 0);
+  const again = composeTeams({
+    players: players(12),
+    teams,
+    options: { seed: 'brume-4172', keepApart: [[1, 2]] },
+  });
+  assert.deepEqual(out.slots, again.slots);
+  const tight = composeTeams({
+    players: players(5),
+    teams: [{ id: 1 }, { id: 2 }],
+    options: { seed: 'x', maxSizeDelta: 0 },
+  });
+  assert.equal(tight.ok, false);
+  assert.ok(tight.warnings.some((w) => w.code === 'maxSizeDelta' && w.delta === 1));
+});
+
+test('composeTeams : avoidRepeatWindow 0 ignore l’historique', () => {
+  const history = [
+    {
+      teams: [{ memberIds: [1, 2, 3, 4] }, { memberIds: [5, 6, 7, 8] }],
+    },
+  ];
+  const noHist = composeTeams({
+    players: players(8),
+    teams: [{ id: 1 }, { id: 2 }],
+    options: { seed: 'memoire-1' },
+  });
+  const window0 = composeTeams({
+    players: players(8),
+    teams: [{ id: 1 }, { id: 2 }],
+    history,
+    options: { seed: 'memoire-1', avoidRepeatWindow: 0 },
+  });
+  assert.deepEqual(window0.slots, noHist.slots);
 });

@@ -12,6 +12,7 @@ const {
   pickTeamColors,
   pickMascots,
   alternateTeamTypes,
+  typeFromTeamName,
 } = require('../lib/gl/teamNaming');
 
 test('buildTeamVocabulary : biomes, mots porteurs du titre, plateau, sans doublon', () => {
@@ -85,4 +86,11 @@ test('alternateTeamTypes alterne les peuples et accepte un départ licorne', () 
   assert.deepEqual(alternateTeamTypes(5), ['gnome', 'unicorn', 'gnome', 'unicorn', 'gnome']);
   assert.deepEqual(alternateTeamTypes(2, 'unicorn'), ['unicorn', 'gnome']);
   assert.deepEqual(alternateTeamTypes(0), []);
+});
+
+test('typeFromTeamName déduit gnome / licorne du premier mot', () => {
+  assert.equal(typeFromTeamName('gnomes sylvestres'), 'gnome');
+  assert.equal(typeFromTeamName('Licornes des eaux'), 'unicorn');
+  assert.equal(typeFromTeamName('  GNOME montagnards'), 'gnome');
+  assert.equal(typeFromTeamName('Sources du nord'), null);
 });

@@ -207,6 +207,8 @@ router.post(
       throw err;
     }
     const newId = insertResult?.insertId;
+    const { seedTeamsFromTemplate } = require('../../lib/gl/teamTemplates');
+    await seedTeamsFromTemplate({ gameId: newId, classId });
     const state = await readGameState(newId);
     return res.status(201).json(state);
   }),
