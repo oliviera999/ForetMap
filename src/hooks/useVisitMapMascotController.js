@@ -6,7 +6,7 @@ import { VISIT_MASCOT_INTERACTION_EVENT } from '../utils/visitMascotInteractionE
 import { resolveVisitMascotInteraction } from '../utils/visitMascotInteractionApply.js';
 import { getTapActions, runBehaviorAction } from '../utils/mascotBehaviorEngine.js';
 import useAmbientMascotBehavior from './useAmbientMascotBehavior.js';
-import useVisitMascotCatalogExtras from './useVisitMascotCatalogExtras.js';
+import { useVisitMascotRegistry } from './useVisitMascotCatalogExtras.js';
 import useVisitMascotStateMachine from './useVisitMascotStateMachine.js';
 import {
   loadVisitMascotPositionPct,
@@ -76,7 +76,11 @@ export function useVisitMapMascotController({
 
   // Packs de la carte courante (servis avec le contenu) ⊕ registre global des packs publiés :
   // la mascotte choisie reste disponible quelle que soit la carte visitée.
-  const visitMascotRegistryExtras = useVisitMascotCatalogExtras();
+  //
+  // `offeredIds` borne le sélecteur au registre — la même liste que le studio. Sans lui, le
+  // catalogue livré revenait en entier, dépublier n'ayant alors aucun effet visible côté visite.
+  const { extras: visitMascotRegistryExtras, offeredIds: visitMascotOfferedIds } =
+    useVisitMascotRegistry();
   const visitMascotCatalogExtras = useMemo(() => {
     const fromContent = buildVisitMascotCatalogExtrasFromContent(content.mascot_packs);
     const seen = new Set(fromContent.map((entry) => String(entry?.id || '').trim()));
@@ -103,6 +107,7 @@ export function useVisitMapMascotController({
     happy: visitMapMascotHappy,
     extraCatalogEntries: visitMascotCatalogExtras,
     preferredMascotId: profileVisitMascotId,
+    allowedMascotIds: visitMascotOfferedIds,
     onPersistPreferredMascotId: onPersistVisitMascotId,
     defaultMascotId: visitMascotDefaultId,
   });
