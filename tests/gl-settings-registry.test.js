@@ -57,6 +57,7 @@ const HISTORICAL_GAMEPLAY_KEYS = [
   'gameplay.marker_effect_auto_move_enabled',
   'gameplay.market_hearts_enabled',
   'gameplay.market_feuillets_enabled',
+  'gameplay.team_composition_profile_recipes_enabled',
 ];
 
 const HISTORICAL_MODULE_KEYS = [
@@ -157,6 +158,7 @@ test('messages historiques — booléens stricts (un booléen JSON, pas « true 
     'gameplay.plateau_marker_numbers_visible',
     'gameplay.market_hearts_enabled',
     'gameplay.market_feuillets_enabled',
+    'gameplay.team_composition_profile_recipes_enabled',
     // Les cinq interrupteurs autrefois sans validateur rejoignent la même règle.
     'gameplay.turns_enabled',
     'gameplay.narration_enabled',

@@ -175,6 +175,14 @@ le rapport signale ligne par ligne les erreurs (pseudo déjà pris, classe incon
 Les joueurs sont créés **sans équipe** (l'affectation se fait ensuite) et un compte
 ForetMap correspondant est automatiquement préparé pour chacun.
 
+> **Une équipe par partie.** Un joueur appartient à une équipe **dans chaque partie** où il
+> a été affecté, pas à une équipe « en général ». L'équipe qu'il voit (bandeau, carnet,
+> questions comptées pour l'équipe) est celle de la **partie en cours** — celle qui est
+> lancée, sinon en pause, sinon en préparation. Le MJ peut donc composer les équipes du
+> chapitre suivant pendant qu'un chapitre se joue : rien ne change pour les élèves tant que la
+> nouvelle partie n'est pas démarrée. La liste des joueurs (Gestion des utilisateurs) affiche
+> cette même équipe « active ».
+
 - **Élève déjà inscrit à ForetMap** : si la ligne porte le même e-mail qu'un compte élève
   existant — ou le même pseudo **et** les mêmes prénom et nom —, le jeu **rattache ce
   compte** au lieu d'en créer un second. L'élève garde son mot de passe ForetMap ; le
