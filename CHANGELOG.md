@@ -7,6 +7,42 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté (GL) — composition automatique des équipes, lot v3 (verrous, politique, rotation, brassage)
+
+- **Politique d'équipes par classe** (migration `217_gl_classes_team_policy.sql` :
+  `gl_classes.team_policy` `carry_over` / `reshuffle_each` (défaut) / `reshuffle_per_plateau`,
+  `team_size_default` défaut 4). `PUT /api/gl/admin/classes/:id` accepte `teamPolicy` /
+  `teamSizeDefault` (validés), la liste les expose ; édition dans la fiche classe (`GLClassesPanel`,
+  colonne « Équipes »). Sans recette explicite, `compose/preview` **déduit la recette de la
+  politique** (`reshuffle_per_plateau` ⇒ reprise si même plateau que la partie précédente, sinon
+  aléatoire à mémoire) et signale `POLICY_DEFAULT_RECIPE` ; le dialogue s'ouvre désormais sans
+  recette ni taille (la classe décide) et affiche la recette effective.
+- **Verrous de paires** (migration `218_gl_class_pairing_locks.sql`, `lib/glClassPairingLocks.js`) :
+  `GET/POST/DELETE /api/gl/admin/classes/:id/pairing-locks` (`gl.players.manage`), paire ordonnée
+  unique par classe, `together` / `apart`, upsert idempotent avec remplacement de type
+  (`409 LOCK_CONFLICT` si `replace:false`), refus cross-classe. Contraintes **dures** dans le moteur
+  (pénalité 10⁶ + réparation `applyTogetherLocks` avant la recherche locale) ; verrous hors pool
+  ignorés (`LOCKS_IGNORED`), incompatibilités signalées (`LOCKS_UNSATISFIED`) — y compris en
+  reprise. Section repliable **« Contraintes de la classe »** dans le dialogue (liste, ajout,
+  retrait, relance de l'aperçu).
+- **Épingles** : `pins: [{ playerId, slot }]` dans le corps de l'aperçu (validées, `400
+  INVALID_PINS`, jamais persistées) ; côté console, un déplacement manuel épingle le joueur, bouton
+  📌 par membre, « Tout désépingler » ; `members[].pinned` dans la réponse.
+- **Rotation des peuples** : `buildPeopleStreaks` / `choosePeopleStart` choisissent le peuple de la
+  première équipe pour minimiser les joueurs qui feraient un 3ᵉ tour consécutif dans le même peuple
+  (`PEOPLE_ROTATION`) ; `startWith` explicite possible (sélecteur « Peuple de la première
+  équipe »). La composition précède désormais le choix des types/mascottes (repli sur l'autre
+  parité avant de réduire le nombre d'équipes).
+- **Plancher de vitalité** : quand `gameplay.vitality_enabled` est actif, terme `vitality` (poids 1,
+  plancher Σ cœurs + gemmes ≥ 1 par équipe), avertissement `VITALITY_FLOOR` si intenable.
+- **Indicateur de brassage** : `GET /api/gl/games/:id/teams/compose/mixing-rate` (`gl.team.manage`)
+  et champ `mixing: { before, after }` de l'aperçu ; composant `GLTeamMixingRate` en tête de
+  l'onglet Équipes (« N % des binômes possibles déjà réunis »), phrase dans `explain`.
+- Tests : `tests/gl-class-pairing-locks.test.js`, `tests-ui/gl/GLTeamMixingRate.test.jsx`, extension
+  de `GLTeamComposeDialog.test.jsx`. Docs : `docs/API.md`, `docs/GL_ARCHITECTURE.md`,
+  `docs/GL_TESTS.md`, référence GL (chapitres, guide du MJ), `docs/GL_EQUIPES_AUTO_CONCEPTION.md`
+  (statut v1–v3 livrés, écarts).
+
 ### Ajouté (GL) — composition automatique des équipes, lot v2 (profils six axes)
 
 - **Trois recettes de profil** dans le dialogue « Composer automatiquement » : **Mixte**

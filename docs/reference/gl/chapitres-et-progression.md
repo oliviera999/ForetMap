@@ -80,6 +80,31 @@ son chapitre** à sa création.
      servirait sinon à classer les élèves. Une section repliable « Poids avancés » permet
      d'ajuster finement une recette (éviter les binômes déjà vus, rapprocher les équipes,
      couvrir les rôles) ; les valeurs par défaut conviennent presque toujours.
+   - **La classe a une politique d'équipes**, réglée par l'administrateur dans la fiche de la
+     classe : _Rebrasser à chaque partie_ (par défaut), _Rebrasser à chaque plateau_ (les
+     équipes sont reconduites tant que le chapitre joué reste sur le même plateau) ou
+     _Reconduire les équipes_. Quand le MJ ouvre « Composer automatiquement » sans choisir
+     de recette, c'est cette politique qui décide (le dialogue le dit), et la **taille
+     d'équipe par défaut** de la classe (4 sauf réglage) sert de taille visée. Le MJ peut
+     toujours forcer une autre recette d'un clic.
+   - **Contraintes de la classe** (section repliable du dialogue) : le MJ peut poser des
+     **verrous** entre deux élèves — _toujours ensemble_ ou _jamais ensemble_. Ils valent
+     pour toutes les parties de la classe, sont respectés en priorité par toutes les
+     recettes, et ne sont jamais visibles des élèves. Si deux verrous se contredisent, le
+     jeu le signale plutôt que d'en ignorer un en silence. Un verrou concernant un élève
+     inactif est mis de côté (et signalé) tant qu'il ne joue pas.
+   - **Épingles** : en déplaçant un élève à la main dans l'aperçu (ou en cliquant l'épingle
+     à côté de son nom), le MJ le fixe dans son équipe ; les régénérations suivantes ne le
+     bougent plus. Les épingles ne valent que pour l'aperçu en cours.
+   - **Rotation des peuples** : le jeu choisit le peuple de la première équipe (les
+     suivantes alternent) de façon à limiter les élèves qui joueraient un **troisième tour
+     de suite** dans le même peuple ; le MJ peut imposer Gnome ou Licorne.
+   - Quand la vitalité est activée, chaque équipe reçoit si possible **au moins un cœur ou
+     une gemme** (plancher de vitalité) ; le MJ est averti si ce n'est pas tenable.
+   - **Brassage de la classe** : l'onglet Équipes affiche la part des binômes possibles
+     déjà réunis au fil des parties (« 43 % des binômes possibles déjà réunis »), et
+     l'aperçu indique ce que la proposition y ajoute. C'est un indicateur collectif, sans
+     aucun score individuel.
 3. **Démarrer** : la partie passe **en cours**. Si la carte du chapitre est en
    « parcours numéroté », toutes les mascottes sont posées sur la case départ. Le MJ
    peut mettre en **pause** puis reprendre, et **terminer** la partie quand il veut.

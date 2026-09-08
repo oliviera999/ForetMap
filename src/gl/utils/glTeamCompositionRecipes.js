@@ -136,7 +136,51 @@ export const GL_TEAM_COMPOSE_WARNING_LABELS = Object.freeze({
     'Pas assez de mascottes typées disponibles : le nombre d’équipes a été réduit.',
   CARRY_OVER_SOURCE: 'Équipes reprises de la partie précédente.',
   LOCKS_UNSATISFIED: 'Certaines contraintes de la classe n’ont pas pu être toutes respectées.',
+  LOCKS_IGNORED:
+    'Des verrous de la classe concernent des joueurs absents du groupe (inactifs) : ignorés.',
+  POLICY_DEFAULT_RECIPE: 'Recette choisie d’après la politique d’équipes de la classe.',
+  PEOPLE_ROTATION:
+    'Peuple de la première équipe choisi pour éviter des troisièmes tours consécutifs dans le même peuple.',
+  VITALITY_FLOOR:
+    'Une équipe au moins n’a ni cœur ni gemme : le plancher de vitalité n’est pas tenu.',
 });
+
+/** Politiques d'équipes d'une classe (miroir de `TEAM_POLICIES`, lib/gl/teamComposition.js). */
+export const GL_TEAM_POLICIES = Object.freeze([
+  Object.freeze({
+    id: 'reshuffle_each',
+    label: 'Rebrasser à chaque partie',
+    summary: 'Par défaut : tirage aléatoire à mémoire pour renouveler les binômes.',
+  }),
+  Object.freeze({
+    id: 'reshuffle_per_plateau',
+    label: 'Rebrasser à chaque plateau',
+    summary: 'Les équipes sont reconduites tant que le plateau ne change pas.',
+  }),
+  Object.freeze({
+    id: 'carry_over',
+    label: 'Reconduire les équipes',
+    summary: 'Les mêmes équipes d’une partie à l’autre (nouveaux venus répartis).',
+  }),
+]);
+
+export const GL_TEAM_POLICY_BY_ID = Object.freeze(
+  Object.fromEntries(GL_TEAM_POLICIES.map((policy) => [policy.id, policy])),
+);
+
+/** Verrous MJ sur une paire de joueurs. */
+export const GL_PAIRING_LOCK_KINDS = Object.freeze([
+  Object.freeze({ id: 'together', label: 'Toujours ensemble' }),
+  Object.freeze({ id: 'apart', label: 'Jamais ensemble' }),
+]);
+
+/** « 43 % des binômes possibles déjà réunis (12 sur 28, 3 parties) » — `null` sans historique. */
+export function formatMixingRate(mixing) {
+  if (!mixing || mixing.rate == null || !(mixing.pairsPossible > 0)) return null;
+  const pct = Math.round(Number(mixing.rate) * 100);
+  const games = Number(mixing.gamesCount || 0);
+  return `${pct} % des binômes possibles déjà réunis (${mixing.pairsSeen} sur ${mixing.pairsPossible}${games > 0 ? `, ${games} partie${games > 1 ? 's' : ''}` : ''})`;
+}
 
 /** Filtre les recettes affichables selon les réglages (v2 activées ? score actif ?). */
 export function listAvailableRecipes({

@@ -82,10 +82,13 @@ describe('GLTeamComposeDialog', () => {
     );
 
     await waitFor(() => expect(screen.getByTestId('gl-compose-team-0')).toBeTruthy());
-    expect(apiGlMock).toHaveBeenCalledWith(
-      '/api/gl/games/7/teams/compose/preview',
-      'POST',
-      expect.objectContaining({ recipe: 'random', teamSize: 4, includeInactive: false }),
+    // Premier aperçu : ni recette ni taille — la politique de la classe décide côté serveur.
+    const firstCall = apiGlMock.mock.calls[0];
+    expect(firstCall[0]).toBe('/api/gl/games/7/teams/compose/preview');
+    expect(firstCall[2]).toEqual({ includeInactive: false });
+    // La carte sélectionnée suit la recette effective renvoyée.
+    expect(screen.getByTestId('gl-compose-recipe-random').getAttribute('aria-checked')).toBe(
+      'true',
     );
     expect(screen.getByText(/alpha — A Un/)).toBeTruthy();
     expect(screen.getByDisplayValue('Sources')).toBeTruthy();
@@ -134,6 +137,157 @@ describe('GLTeamComposeDialog', () => {
     expect(applyCall[2].teams[0].memberIds).toEqual([1]);
     expect(applyCall[2].teams[1]).toEqual(
       expect.objectContaining({ name: 'Nord Bis', memberIds: [3, 2] }),
+    );
+  });
+
+  test('épingles : un déplacement épingle le joueur, « Régénérer » renvoie les épingles, bascule manuelle', async () => {
+    apiGlMock.mockImplementation((path) =>
+      path.endsWith('/teams/compose/preview')
+        ? Promise.resolve(buildProposal())
+        : Promise.resolve({ ok: true }),
+    );
+    render(<GLTeamComposeDialog open onClose={() => {}} gameId={7} />);
+    await waitFor(() => expect(screen.getByTestId('gl-compose-team-1')).toBeTruthy());
+
+    fireEvent.change(screen.getByLabelText('Déplacer beta vers…'), { target: { value: '1' } });
+    const pinBeta = screen.getByRole('button', { name: 'Désépingler beta' });
+    expect(pinBeta.getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Épingler alpha' }));
+    expect(screen.getByRole('button', { name: 'Désépingler alpha' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Régénérer' }));
+    await waitFor(() => {
+      const previews = apiGlMock.mock.calls.filter((c) => c[0].endsWith('/teams/compose/preview'));
+      const last = previews[previews.length - 1][2];
+      expect(last.pins).toEqual(
+        expect.arrayContaining([
+          { playerId: 2, slot: 1 },
+          { playerId: 1, slot: 0 },
+        ]),
+      );
+      expect(last.seed).toBeUndefined();
+    });
+
+    // Désépingler beta : disparaît du corps suivant.
+    fireEvent.click(screen.getByRole('button', { name: 'Désépingler beta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Régénérer' }));
+    await waitFor(() => {
+      const previews = apiGlMock.mock.calls.filter((c) => c[0].endsWith('/teams/compose/preview'));
+      expect(previews[previews.length - 1][2].pins).toEqual([{ playerId: 1, slot: 0 }]);
+    });
+  });
+
+  test('contraintes de la classe : verrous chargés, ajout et retrait relancent l’aperçu ; indice politique', async () => {
+    const locks = [
+      {
+        id: 51,
+        kind: 'apart',
+        players: [
+          { playerId: 1, pseudo: 'alpha' },
+          { playerId: 3, pseudo: 'gamma' },
+        ],
+      },
+    ];
+    apiGlMock.mockImplementation((path, method, body) => {
+      if (path.endsWith('/teams/compose/preview')) {
+        return Promise.resolve(
+          buildProposal({
+            classId: 12,
+            recipeSource: 'policy',
+            classPolicy: 'carry_over',
+            classTeamSizeDefault: 3,
+            recipe: 'random_memory',
+            warnings: [{ code: 'POLICY_DEFAULT_RECIPE' }, { code: 'PEOPLE_ROTATION' }],
+          }),
+        );
+      }
+      if (path === '/api/gl/admin/classes/12/pairing-locks' && method === 'GET') {
+        return Promise.resolve({ locks });
+      }
+      if (path === '/api/gl/admin/classes/12/pairing-locks' && method === 'POST') {
+        locks.push({
+          id: 52,
+          kind: body.kind,
+          players: [
+            { playerId: body.playerAId, pseudo: 'p' },
+            { playerId: body.playerBId, pseudo: 'q' },
+          ],
+        });
+        return Promise.resolve({ ok: true, created: true, lock: locks[1] });
+      }
+      if (path === '/api/gl/admin/classes/12/pairing-locks/51' && method === 'DELETE') {
+        locks.splice(0, 1);
+        return Promise.resolve({ ok: true });
+      }
+      return Promise.reject(new Error(`chemin inattendu ${method} ${path}`));
+    });
+    render(<GLTeamComposeDialog open onClose={() => {}} gameId={7} />);
+    await waitFor(() => expect(screen.getByTestId('gl-compose-constraints')).toBeTruthy());
+    expect(screen.getByTestId('gl-compose-policy-hint').textContent).toMatch(/Reconduire/);
+    expect(screen.getByText(/politique d’équipes de la classe/)).toBeTruthy();
+    expect(screen.getByText(/troisièmes tours/)).toBeTruthy();
+    expect(screen.getByLabelText('Taille visée par équipe').getAttribute('placeholder')).toBe(
+      'classe : 3',
+    );
+    // Recette effective sélectionnée.
+    expect(screen.getByTestId('gl-compose-recipe-random_memory').getAttribute('aria-checked')).toBe(
+      'true',
+    );
+
+    await waitFor(() => expect(screen.getByText(/alpha & gamma/)).toBeTruthy());
+    expect(screen.getByText('Jamais ensemble')).toBeTruthy();
+
+    const previewsBefore = apiGlMock.mock.calls.filter((c) =>
+      c[0].endsWith('/teams/compose/preview'),
+    ).length;
+    fireEvent.change(screen.getByLabelText('Premier joueur du verrou'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('Type de verrou'), { target: { value: 'together' } });
+    fireEvent.change(screen.getByLabelText('Second joueur du verrou'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter le verrou' }));
+    await waitFor(() =>
+      expect(
+        apiGlMock.mock.calls.some(
+          (c) =>
+            c[0] === '/api/gl/admin/classes/12/pairing-locks' &&
+            c[1] === 'POST' &&
+            c[2].playerAId === 1 &&
+            c[2].playerBId === 2 &&
+            c[2].kind === 'together',
+        ),
+      ).toBe(true),
+    );
+    await waitFor(() => expect(screen.getByText(/p & q/)).toBeTruthy());
+    await waitFor(() =>
+      expect(
+        apiGlMock.mock.calls.filter((c) => c[0].endsWith('/teams/compose/preview')).length,
+      ).toBeGreaterThan(previewsBefore),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer le verrou alpha et gamma' }));
+    await waitFor(() =>
+      expect(
+        apiGlMock.mock.calls.some(
+          (c) => c[0] === '/api/gl/admin/classes/12/pairing-locks/51' && c[1] === 'DELETE',
+        ),
+      ).toBe(true),
+    );
+    await waitFor(() => expect(screen.queryByText(/alpha & gamma/)).toBeNull());
+  });
+
+  test('peuple de la première équipe : le choix explicite part dans `startWith`', async () => {
+    apiGlMock.mockImplementation(() => Promise.resolve(buildProposal()));
+    render(<GLTeamComposeDialog open onClose={() => {}} gameId={7} />);
+    await waitFor(() => expect(screen.getByTestId('gl-compose-team-0')).toBeTruthy());
+    fireEvent.change(screen.getByLabelText('Peuple de la première équipe'), {
+      target: { value: 'unicorn' },
+    });
+    await waitFor(() =>
+      expect(
+        apiGlMock.mock.calls.some(
+          (c) => c[0].endsWith('/teams/compose/preview') && c[2].startWith === 'unicorn',
+        ),
+      ).toBe(true),
     );
   });
 
@@ -210,8 +364,8 @@ describe('GLTeamComposeDialog', () => {
       path.endsWith('/teams/compose/preview')
         ? Promise.resolve(
             buildProposal({
-              recipe: body.recipe,
-              requestedRecipe: body.recipe,
+              recipe: body.recipe || 'random',
+              requestedRecipe: body.recipe || 'random',
               warnings: body.recipe === 'mixed' ? [{ code: 'PROFILE_DATA_SPARSE' }] : [],
               explain: ['Profils variés dans chaque équipe.'],
             }),

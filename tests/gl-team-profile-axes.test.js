@@ -332,6 +332,7 @@ test('preview mixed : réponse sans aucun score, avertissement de données rares
         'firstName',
         'isActive',
         'lastName',
+        'pinned',
         'playerId',
         'pseudo',
       ]);

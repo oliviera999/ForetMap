@@ -187,6 +187,7 @@ test('preview random : proposition complète, déterministe, sans écriture ni s
         'firstName',
         'isActive',
         'lastName',
+        'pinned',
         'playerId',
         'pseudo',
       ]);

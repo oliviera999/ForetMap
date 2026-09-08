@@ -9,6 +9,13 @@ const {
 } = require('../../database');
 const { purgeGlPlayerLearningTraces } = require('../../lib/glPlayerPurge');
 const { ACTIVE_TEAM_ID_SUBQUERY_SQL } = require('../../lib/glPlayerMembership');
+const {
+  GlPairingLockError,
+  listPairingLocks,
+  upsertPairingLock,
+  deletePairingLock,
+} = require('../../lib/glClassPairingLocks');
+const { TEAM_POLICIES } = require('../../lib/gl/teamComposition');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const { logAudit } = require('../../lib/auditLog');
 const {
@@ -191,6 +198,7 @@ router.get(
   asyncHandler(async (_req, res) => {
     const rows = await queryAll(
       `SELECT c.id, c.name, c.school, c.is_active, c.foretmap_group_id, c.created_at, c.updated_at,
+              c.team_policy, c.team_size_default,
               COUNT(p.id) AS players_count,
               g.slug AS foretmap_group_slug, g.name AS foretmap_group_name
        FROM gl_classes c
@@ -249,7 +257,29 @@ router.put(
     if (name != null && !name) return res.status(400).json({ error: 'Nom de classe invalide' });
     if (isActive === undefined)
       return res.status(400).json({ error: 'isActive doit être booléen' });
-    if (name == null && school == null && isActive == null) {
+    // Politique d'équipes (lot v3 composition automatique) et taille visée par défaut.
+    const teamPolicy =
+      req.body?.teamPolicy == null ? null : String(req.body.teamPolicy).toLowerCase();
+    if (teamPolicy != null && !TEAM_POLICIES.includes(teamPolicy)) {
+      return res.status(400).json({
+        error: `Politique d’équipes invalide (${TEAM_POLICIES.join(', ')})`,
+      });
+    }
+    const teamSizeDefault =
+      req.body?.teamSizeDefault == null ? null : Number(req.body.teamSizeDefault);
+    if (
+      teamSizeDefault != null &&
+      (!Number.isInteger(teamSizeDefault) || teamSizeDefault < 2 || teamSizeDefault > 12)
+    ) {
+      return res.status(400).json({ error: 'Taille d’équipe par défaut invalide (2 à 12)' });
+    }
+    if (
+      name == null &&
+      school == null &&
+      isActive == null &&
+      teamPolicy == null &&
+      teamSizeDefault == null
+    ) {
       return res.status(400).json({ error: 'Aucune modification fournie' });
     }
 
@@ -258,9 +288,11 @@ router.put(
         SET name = COALESCE(?, name),
             school = ?,
             is_active = COALESCE(?, is_active),
+            team_policy = COALESCE(?, team_policy),
+            team_size_default = COALESCE(?, team_size_default),
             updated_at = NOW()
       WHERE id = ?`,
-      [name, school, isActive == null ? null : isActive ? 1 : 0, id],
+      [name, school, isActive == null ? null : isActive ? 1 : 0, teamPolicy, teamSizeDefault, id],
     );
     const updated = await queryOne('SELECT * FROM gl_classes WHERE id = ? LIMIT 1', [id]);
     return res.json(updated);
@@ -297,6 +329,67 @@ router.delete(
 
     await execute('DELETE FROM gl_classes WHERE id = ?', [id]);
     return res.json({ ok: true });
+  }),
+);
+
+// ---------------------------------------------------------------------------------------------
+// Verrous de paires (composition automatique, lot v3) — `gl.players.manage`, jamais joueur.
+// ---------------------------------------------------------------------------------------------
+
+function sendPairingLockError(res, err) {
+  if (err instanceof GlPairingLockError) {
+    res.status(err.status || 400).json({ error: err.message, code: err.code });
+    return true;
+  }
+  return false;
+}
+
+router.get(
+  '/classes/:id/pairing-locks',
+  requireGlPermission('gl.players.manage'),
+  asyncHandler(async (req, res) => {
+    try {
+      return res.json({ locks: await listPairingLocks(req.params.id) });
+    } catch (err) {
+      if (sendPairingLockError(res, err)) return undefined;
+      throw err;
+    }
+  }),
+);
+
+router.post(
+  '/classes/:id/pairing-locks',
+  requireGlPermission('gl.players.manage'),
+  asyncHandler(async (req, res) => {
+    try {
+      const { lock, created } = await upsertPairingLock({
+        classId: req.params.id,
+        playerAId: req.body?.playerAId ?? req.body?.playerIds?.[0],
+        playerBId: req.body?.playerBId ?? req.body?.playerIds?.[1],
+        kind: req.body?.kind,
+        actorId: req.glAuth?.userId != null ? String(req.glAuth.userId) : null,
+        replace: req.body?.replace !== false,
+      });
+      return res.status(created ? 201 : 200).json({ ok: true, created, lock });
+    } catch (err) {
+      if (sendPairingLockError(res, err)) return undefined;
+      throw err;
+    }
+  }),
+);
+
+router.delete(
+  '/classes/:id/pairing-locks/:lockId',
+  requireGlPermission('gl.players.manage'),
+  asyncHandler(async (req, res) => {
+    try {
+      return res.json(
+        await deletePairingLock({ classId: req.params.id, lockId: req.params.lockId }),
+      );
+    } catch (err) {
+      if (sendPairingLockError(res, err)) return undefined;
+      throw err;
+    }
   }),
 );
 
