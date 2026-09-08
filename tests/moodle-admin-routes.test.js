@@ -362,6 +362,19 @@ test('/merge : simulation par défaut, application explicite, erreurs propagées
   assert.strictEqual(await queryOne('SELECT 1 AS x FROM users WHERE id = ?', [b.id]), undefined);
 });
 
+test('/cohorts : jeton Moodle refusé → 502 exposé, pas « Erreur serveur »', async () => {
+  pointEnvToFake();
+  process.env.MOODLE_WS_TOKEN = 'nope';
+  const res = await request(app)
+    .get(`${BASE}/cohorts`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(502);
+  assert.match(res.body.error, /Moodle|invalidtoken/i);
+  assert.notEqual(res.body.error, 'Erreur serveur');
+  assert.equal(res.body.code, 'MOODLE_API');
+  process.env.MOODLE_WS_TOKEN = fake.state.token;
+});
+
 test('/pending-matches/:id et /conflicts/:id : 404 sur identifiant inconnu, validation du corps', async () => {
   await request(app)
     .post(`${BASE}/pending-matches/999999`)

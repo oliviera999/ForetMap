@@ -13,6 +13,18 @@ import { MoodleRunHistory } from './moodle/MoodleRunHistory.jsx';
 import { MoodleToolsCard } from './moodle/MoodleToolsCard.jsx';
 import { MoodleLtiSection } from './moodle/MoodleLtiSection.jsx';
 
+export function remoteMoodleErrorMessage(error) {
+  if (isNotConfiguredError(error)) {
+    return 'Intégration Moodle non configurée : renseigner MOODLE_BASE_URL et MOODLE_WS_TOKEN dans .env puis redémarrer.';
+  }
+  const raw = String(error?.message || '').trim();
+  if (/Wasm|mémoire Wasm|CloudLinux/i.test(raw)) {
+    return 'Moodle injoignable : le serveur n’a pas assez de mémoire pour le moteur HTTP de Node (limite de l’hébergeur). Un redéploiement est nécessaire.';
+  }
+  if (raw && !/^Erreur serveur/i.test(raw)) return raw;
+  return 'Moodle injoignable (erreur serveur). Vérifier le jeton, la joignabilité du site, puis les journaux si ça persiste.';
+}
+
 export const MOODLE_SETTING_KEYS = Object.freeze({
   enabled: 'integration.moodle.enabled',
   yearPrefix: 'integration.moodle.year_prefix',
@@ -85,11 +97,7 @@ export function MoodleAdminPanel({ get, saveSetting, savingKey, onMessage, onErr
       setCourses({ rows: crs.rows || [], chapters: crs.chapters || [] });
     } catch (error) {
       setCohorts([]);
-      setRemoteError(
-        isNotConfiguredError(error)
-          ? 'Intégration Moodle non configurée : renseigner MOODLE_BASE_URL et MOODLE_WS_TOKEN dans .env puis redémarrer.'
-          : error?.message || 'Moodle injoignable',
-      );
+      setRemoteError(remoteMoodleErrorMessage(error));
     }
   }, []);
 
