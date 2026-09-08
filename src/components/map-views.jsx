@@ -39,7 +39,7 @@ import { MascotGpsStatusBanner } from './MascotGpsStatusBanner.jsx';
 import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
 import { PctPositionLayer } from '../shared/pct-map/PctPositionLayer.jsx';
 import { accuracyHaloDiameterPx } from '../shared/pct-map/positionGeometry.js';
-import useVisitMascotCatalogExtras from '../hooks/useVisitMascotCatalogExtras.js';
+import { useVisitMascotRegistry } from '../hooks/useVisitMascotCatalogExtras.js';
 import { useMapGestures } from '../hooks/useMapGestures.js';
 
 import { TimedToast } from '../shared/components/TimedToast.jsx';
@@ -213,9 +213,11 @@ function MapViewImpl({
     [configuredLocationEmojis],
   );
   const visitMascotDefaultId = String(publicSettings?.visit?.mascot?.default_id || '').trim();
-  // Registre global des packs publiés → la mascotte peut être un pack importé (srv-…),
-  // et le choix du visiteur vaut sur toutes les cartes.
-  const visitMascotCatalogExtras = useVisitMascotCatalogExtras({ enabled: mode === 'view' });
+  // Registre global des mascottes proposées → la mascotte peut être un pack importé (srv-…),
+  // le choix du visiteur vaut sur toutes les cartes, et `offeredIds` borne la liste à ce que
+  // le studio propose (sinon le catalogue livré revenait en entier, dépublication ignorée).
+  const { extras: visitMascotCatalogExtras, offeredIds: visitMascotOfferedIds } =
+    useVisitMascotRegistry({ enabled: mode === 'view' });
   const mapMarkersOnActiveMap = useMemo(
     () => (markers || []).filter((m) => m.map_id === activeMapId),
     [markers, activeMapId],
@@ -353,6 +355,7 @@ function MapViewImpl({
     enabled: mode === 'view',
     extraCatalogEntries: visitMascotCatalogExtras,
     preferredMascotId: student?.visit_mascot_catalog_id,
+    allowedMascotIds: visitMascotOfferedIds,
     defaultMascotId: visitMascotDefaultId,
     onPersistPreferredMascotId: onPersistVisitMascotId,
     mascotDialogSettings: publicSettings?.visit?.mascot?.dialog,

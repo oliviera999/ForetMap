@@ -7,6 +7,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — le sélecteur de mascotte proposait toutes les mascottes livrées, quoi qu'ait décidé le studio
+
+- **Symptôme** : le studio et **Paramètres → Mascottes de visite** ne montraient que les
+  mascottes réellement proposées (souvent quelques-unes), tandis que la visite, le plan de carte
+  et « Mon profil » offraient au choix les **seize mascottes livrées** en plus des packs publiés.
+  Dépublier ou supprimer une mascotte n'avait donc aucun effet visible côté visiteur, et
+  enregistrer dans son profil l'une de ces mascottes fantômes échouait avec un
+  `400 « Mascotte indisponible pour la visite »` — le serveur, lui, tranchait déjà par le registre
+  (`isVisitMascotOffered`).
+- **Cause** : `buildVisitMascotSelectionOptions` empile le catalogue livré **puis** les packs ;
+  seul le paramètre `allowedMascotIds` pouvait retrancher. Depuis la bascule de la visibilité sur
+  `is_published` (suppression de `ui.visit.mascot.allowed_ids`, `lib/visitMascotVisibility.js`),
+  plus aucun écran ne lui passait de liste : la restriction existait, testée et juste, mais
+  personne ne l'appelait. Le registre `GET /api/visit/mascots` n'était consommé qu'en **ajout**
+  (les packs), jamais en **borne**.
+- **Correctif** : `useVisitMascotRegistry` expose désormais, à côté des entrées de packs, les
+  `offeredIds` du registre, et les trois écrans qui proposent des mascottes s'y tiennent —
+  visite (`useVisitMapMascotController`), plan de carte (`map-views`) et « Mon profil »
+  (`stats-views`). Une préférence portant sur une mascotte retirée retombe sur la mascotte par
+  défaut au lieu d'afficher un choix que le serveur refuse.
+- **Repli assumé** : `offeredIds` vaut `null` tant que le registre est inconnu (pas encore
+  chargé, désactivé, ou en erreur) — aucune restriction n'est alors appliquée, pour qu'une panne
+  de lecture ne vide jamais le sélecteur. `null` et `[]` ne sont volontairement pas confondus.
+- **Tests** : `tests-ui/hooks/useVisitMascotOfferedSelection.test.jsx` monte le contrôleur de
+  visite sur un registre court et vérifie la liste offerte, le repli d'une préférence retirée et
+  le cas « registre inconnu » ; une garde de câblage vérifie en plus que chaque écran qui propose
+  des mascottes passe bien la liste du registre — c'est l'oubli de câblage, et non la mécanique,
+  qui avait laissé passer le défaut.
 ### Conception — composition automatique des équipes GL au fil des chapitres
 
 - **Deux documents de conception, aucun code applicatif.**

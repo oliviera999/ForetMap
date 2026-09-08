@@ -85,6 +85,14 @@ familles.
   publiée est proposée, y compris celles ajoutées plus tard. C'est ce qui corrige un défaut
   ancien — une mascotte importée pouvait rester invisible parce qu'elle ne figurait pas dans une
   liste posée avant son arrivée.
+- **Le sélecteur montre exactement les mascottes du studio**, ni plus ni moins — dans la visite,
+  sur le plan de carte et dans « Mon profil ». Retirer une mascotte de la visite, ou la
+  supprimer, la retire donc bien du choix offert aux visiteurs. Ce n'était pas le cas avant :
+  les mascottes livrées avec l'application revenaient toutes au sélecteur quoi qu'on ait fait au
+  studio, si bien que la liste proposée pouvait en compter dix-huit là où le studio en montrait
+  trois — et enregistrer l'une de ces mascottes fantômes dans son profil échouait avec un
+  message d'indisponibilité difficile à comprendre. Si quelqu'un avait choisi une mascotte
+  depuis retirée, il retrouve simplement la mascotte par défaut.
 
 ## Ce que gère le professeur
 
