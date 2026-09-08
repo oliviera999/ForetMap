@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — lien Moodle : spécification finalisée (annuaire M1–M5, LTI 1.3 en M6)
+
+- `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : le lien Moodle ↔ ForetMap / G&L a **deux
+  couches** — l'annuaire (Web Services, lots M1–M5) puis l'entrée depuis le cours (LTI 1.3,
+  lot M6). LTI n'est pas une deuxième sync d'utilisateurs : c'est le clic depuis une activité
+  Moodle vers un compte **déjà** reconnu ; aucune note renvoyée pour M6.
+- Sections **20** et **21** : plus de questions pédagogiques ouvertes (8 septembre 2026).
+  Annuaire : cours 2–6 confirmés, motifs `{year}#` / `{year}#n3`, binôme `601-602`
+  indissociable, `push_membership` n3beurs, retrait de groupes sans désactivation des comptes
+  rapprochés, alerte si deux classes G&L. LTI : outil unique pour les deux produits, nouvel
+  onglet, aiguillage des deux produits pour un n3beur dans un cours chapitre, options
+  d'arrivée réglées par l'admin, boutons enseignant à chaque lancement, pas de retour Moodle,
+  URL publique paramétrable, jamais de création de compte au clic, cours `511` = La salle
+  aérée n³. Reste à **mesurer** sur un lancement de test (21.7) : forme du `sub`, présence de
+  l'e-mail.
+- `env.local.example` : rappel que les secrets LTI (lot M6) restent dans `.env`, sans les
+  inventer avant M6.
+
 ### Corrigé — le sélecteur de mascotte proposait toutes les mascottes livrées, quoi qu'ait décidé le studio
 
 - **Symptôme** : le studio et **Paramètres → Mascottes de visite** ne montraient que les
