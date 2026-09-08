@@ -10,7 +10,8 @@
  * Lit `MOODLE_BASE_URL` / `MOODLE_WS_TOKEN` dans `.env`, vérifie le jeton, les fonctions Web
  * Services autorisées, les cohortes de l'année avec leur politique, la table chapitre → cours.
  * Code de sortie : 0 si tout est en ordre, 1 sinon, 2 si l'intégration n'est pas configurée.
- * Le jeton n'est jamais affiché.
+ * Le jeton n'est jamais affiché. Les appels HTTP passent par `lib/nodeHttpFetch.js`
+ * (pas `fetch`/undici) pour rester dans les limites d'adressage CloudLinux.
  */
 
 require('dotenv').config();
@@ -139,6 +140,14 @@ async function main() {
 }
 
 main().catch((error) => {
-  process.stderr.write(`moodle-check : ${error.message}\n`);
+  const message = error?.message || String(error);
+  if (/WebAssembly|Cannot allocate Wasm memory/i.test(message)) {
+    process.stderr.write(
+      'moodle-check : Node n’a pas pu allouer la mémoire Wasm d’undici (limite CloudLinux 4 Gio).\n' +
+        'Les appels Moodle/LTI doivent passer par lib/nodeHttpFetch.js — vérifier que le déploiement est à jour.\n',
+    );
+  } else {
+    process.stderr.write(`moodle-check : ${message}\n`);
+  }
   process.exit(1);
 });

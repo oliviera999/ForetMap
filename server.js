@@ -600,12 +600,15 @@ app.use((err, req, res, _next) => {
     'Erreur serveur',
   );
   const status = Number(err?.status) || 500;
-  const message = status >= 500 ? 'Erreur serveur' : err?.message || 'Requête invalide';
+  const expose = Boolean(err?.expose) && typeof err?.message === 'string' && err.message.trim();
+  const message = status >= 500 && !expose ? 'Erreur serveur' : err?.message || 'Requête invalide';
   const originalUrl = String(req.originalUrl || req.url || '');
   if (originalUrl.startsWith('/api')) {
     res.type('application/json');
   }
-  res.status(status).json({ error: message });
+  const body = { error: message };
+  if (expose && err?.code) body.code = err.code;
+  res.status(status).json(body);
 });
 
 // Ne pas utiliser process.env.IP — sur o2switch il contient l'IP publique du serveur,

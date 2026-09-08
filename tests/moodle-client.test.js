@@ -152,6 +152,52 @@ test('client : lots de 100 en série et paramètres encodés côté serveur', as
   }
 });
 
+test('client : le transport par défaut n’utilise pas globalThis.fetch (undici / Wasm)', async () => {
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('globalThis.fetch ne doit pas être appelé');
+  };
+  const fake = createFakeMoodleServer();
+  await fake.start();
+  try {
+    const client = createMoodleClient({
+      baseUrl: fake.baseUrl,
+      token: fake.state.token,
+      retryDelaysMs: [],
+      log: silentLog,
+    });
+    const info = await client.siteInfo();
+    assert.strictEqual(info.sitename, 'Moodle de test');
+  } finally {
+    globalThis.fetch = previousFetch;
+    await fake.stop();
+  }
+});
+
+test('client : erreur Wasm undici → MoodleTransportError 502 exposée, sans réessai inutile', async () => {
+  const wasm = new RangeError(
+    'WebAssembly.instantiate(): Out of memory: Cannot allocate Wasm memory for new instance',
+  );
+  const client = createMoodleClient({
+    baseUrl: 'https://moodle.test',
+    token: 't',
+    retryDelaysMs: [],
+    log: silentLog,
+    fetchImpl: async () => {
+      throw wasm;
+    },
+  });
+  await assert.rejects(
+    client.siteInfo(),
+    (err) =>
+      err instanceof MoodleTransportError &&
+      err.status === 502 &&
+      err.expose === true &&
+      err.code === 'MOODLE_TRANSPORT' &&
+      /Wasm|mémoire/i.test(err.message),
+  );
+});
+
 test('client : erreur réseau → MoodleTransportError après épuisement des réessais', async () => {
   const client = createMoodleClient({
     baseUrl: 'http://127.0.0.1:9',

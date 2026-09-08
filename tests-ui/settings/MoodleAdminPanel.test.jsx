@@ -205,6 +205,19 @@ describe('MoodleAdminPanel', () => {
     expect(screen.getByLabelText('Cohorte 26#zz')).toBeDisabled();
   });
 
+  it('Moodle injoignable : bandeau d’erreur au lieu d’un simple « Erreur serveur »', async () => {
+    const boom = new Error('Erreur serveur');
+    boom.status = 500;
+    mockApi({
+      [`GET ${BASE}/cohorts`]: () => {
+        throw boom;
+      },
+    });
+    renderPanel();
+    await screen.findByTestId('moodle-remote-error');
+    expect(screen.getByTestId('moodle-remote-error').textContent).toMatch(/Moodle injoignable/);
+  });
+
   it('non configuré : message explicite, aucun appel vers Moodle', async () => {
     mockApi({
       [`GET ${BASE}/status`]: () => ({

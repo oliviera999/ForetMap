@@ -1813,7 +1813,9 @@ Sans configuration `.env` (ou avec `MOODLE_SYNC_ENABLED=0`), les routes qui **ap
 Moodle (`/check`, `/cohorts`, `/courses`, `/runs`, `/lti/suggest`, et
 `/conflicts/:id` en `apply_other`) répondent
 **`503 { error: 'Intégration Moodle non configurée', code: 'MOODLE_NOT_CONFIGURED' }`** ;
-`/status`, l'historique, les pending, exempt et merge restent utilisables. Le réglage
+si Moodle est configuré mais refuse l'appel ou est injoignable, ces routes répondent
+**`502 { error, code: 'MOODLE_API' | 'MOODLE_TRANSPORT' }`** (message exposé, plus le 500
+générique). `/status`, l'historique, les pending, exempt et merge restent utilisables. Le réglage
 `integration.moodle.enabled` n'ouvre que les exécutions `apply` (sinon **409**) ; il ne
 provoque pas de 503. `/check` et `/runs` sont soumis au limiteur strict (`authLimiter`).
 

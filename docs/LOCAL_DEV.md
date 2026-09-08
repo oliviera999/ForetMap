@@ -46,6 +46,7 @@ dépannage : `docs/EXPLOITATION.md` ; contrat : `docs/API.md` ; spécification :
 
 ```bash
 npm run moodle:check                 # jeton WS, fonctions, cohortes, JWKS LTI si configuré
+                                     # (http natif, pas fetch/undici : évite l’OOM Wasm CloudLinux)
 npm run moodle:sync -- --dry-run     # simulation d'annuaire (rien n'écrit)
 ```
 
