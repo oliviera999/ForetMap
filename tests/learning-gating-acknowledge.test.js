@@ -40,6 +40,15 @@ before(async () => {
     [`rt-tuto-${stamp}`.slice(0, 80)],
   );
   tutorialId = tut.insertId;
+  // Le préréglage par type « tutorial » livré par la migration 216 (seuil de 2, verrou sur la
+  // seule question ratée) s'interpose entre le site et la fiche. Ce fichier teste la cascade
+  // DU SITE : il pose donc lui-même la couche « type », en la vidant — comme le font déjà
+  // learning-gating-lock-mode et learning-gating-question-scope. Sans cela, l'assertion
+  // « mode = any » lisait le préréglage sans le savoir, et le test devenait dépendant de
+  // l'ordre d'exécution des fichiers (le premier qui supprime la ligne la supprime pour tous).
+  await execute(
+    "DELETE FROM resource_gating_policy WHERE resource_type = 'tutorial' AND resource_ref = '*'",
+  ).catch(() => {});
   await execute(
     `INSERT IGNORE INTO resource_question_links
       (resource_type, resource_ref, question_code, is_gating, weight, origin, status)
