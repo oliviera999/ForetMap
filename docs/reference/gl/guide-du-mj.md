@@ -20,7 +20,10 @@
    s'appuyant sur le récit : la forme n'est pas un choix d'équipe, c'est « le seuil qui
    la donne » (voir [Les deux peuples du seuil](lore-deux-peuples.md)).
 5. **Les comptes** : joueurs créés ou importés, codes distribués. Un mot de passe
-   oublié se réinitialise en un clic dans la gestion des joueurs.
+   oublié se réinitialise en un clic dans la gestion des joueurs. Quand l'administrateur
+   a fait la **rentrée avec Moodle**, les classes de sixième et leurs joueurs existent déjà
+   avant la première séance : il n'y a rien à créer, seulement à vérifier l'effectif (voir
+   [La rentrée avec Moodle](../foretmap/rentree-moodle.md), côté ForetMap).
 
 ## Pendant la séance — la console MJ
 
