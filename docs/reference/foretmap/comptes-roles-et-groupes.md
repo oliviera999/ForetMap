@@ -90,9 +90,10 @@ Les groupes structurent la vie pédagogique :
   suit automatiquement).
 - **Groupes venus de Moodle** : à la rentrée, l'administrateur peut créer et tenir à jour
   les groupes-classes depuis les cohortes Moodle. Ces groupes se comportent comme les
-  autres (rôle par défaut, périmètre, sous-groupes), mais leur liste de membres suit
-  Moodle : un élève ajouté à la main y reste, la divergence est simplement signalée à
-  l'administrateur. Détail : [La rentrée avec Moodle](rentree-moodle.md).
+  autres (rôle par défaut, périmètre, sous-groupes). Moodle est maître des cohortes ; un
+  élève ajouté à la main n'est pas retiré automatiquement — la divergence est signalée à
+  l'administrateur pour trancher. Une activité du cours peut aussi ouvrir ForetMap déjà
+  connecté (voir [La rentrée avec Moodle](rentree-moodle.md)).
 
 ## Un seul compte pour ForetMap et Gnomes & Licornes
 
