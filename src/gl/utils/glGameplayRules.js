@@ -21,6 +21,7 @@ export const GL_DEFAULT_GAMEPLAY = {
   // Marché : cœurs non échangeables par défaut (seules les gemmes circulent).
   marketHeartsEnabled: false,
   marketFeuilletsEnabled: true,
+  teamCompositionProfileRecipesEnabled: true,
 };
 
 /**

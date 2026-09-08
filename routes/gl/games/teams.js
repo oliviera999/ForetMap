@@ -1,13 +1,113 @@
 const express = require('express');
 const db = require('../../../database');
 const { queryOne, execute } = db;
-const { requireGlPermission } = require('../../../middleware/requireGlAuth');
+const { requireGlPermission, hasGlPermission } = require('../../../middleware/requireGlAuth');
 const { normalizeOptionalString, parseId } = require('../../../lib/shared/httpHelpers');
 const asyncHandler = require('../../../lib/asyncHandler');
 const logger = require('../../../lib/logger');
 const { grantStartingFeuilletsToTeam } = require('../../../lib/glFeuilletBundleGrant');
+const {
+  GlTeamCompositionError,
+  buildCompositionProposal,
+  applyComposition,
+  getClassMixingRate,
+} = require('../../../lib/glTeamComposition');
 
 const router = express.Router();
+
+/**
+ * Composition automatique (docs/GL_EQUIPES_AUTO_CONCEPTION.md) : outre `gl.team.manage`, la
+ * route touche aux affectations de joueurs — même exigence que le roster (`gl.players.manage`).
+ */
+function requireTeamCompositionRights(req, res) {
+  if (!hasGlPermission(req.glAuth, 'gl.players.manage')) {
+    res.status(403).json({ error: 'Permission insuffisante (gl.players.manage requise)' });
+    return false;
+  }
+  return true;
+}
+
+function sendCompositionError(res, err) {
+  if (err instanceof GlTeamCompositionError) {
+    res.status(err.status || 400).json({ error: err.message, code: err.code });
+    return true;
+  }
+  return false;
+}
+
+router.post(
+  '/games/:id/teams/compose/preview',
+  requireGlPermission('gl.team.manage'),
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+    if (!requireTeamCompositionRights(req, res)) return undefined;
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    try {
+      const proposal = await buildCompositionProposal({
+        gameId,
+        recipe: body.recipe,
+        teamCount: body.teamCount,
+        teamSize: body.teamSize,
+        seed: body.seed,
+        includeInactive: body.includeInactive === true,
+        weightsOverride: body.weightsOverride,
+        pins: body.pins,
+        startWith: body.startWith,
+      });
+      return res.json(proposal);
+    } catch (err) {
+      if (sendCompositionError(res, err)) return undefined;
+      throw err;
+    }
+  }),
+);
+
+router.get(
+  '/games/:id/teams/compose/mixing-rate',
+  requireGlPermission('gl.team.manage'),
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+    try {
+      return res.json(await getClassMixingRate({ gameId }));
+    } catch (err) {
+      if (sendCompositionError(res, err)) return undefined;
+      throw err;
+    }
+  }),
+);
+
+router.post(
+  '/games/:id/teams/compose/apply',
+  requireGlPermission('gl.team.manage'),
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+    if (!requireTeamCompositionRights(req, res)) return undefined;
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    try {
+      const result = await applyComposition({
+        gameId,
+        teams: body.teams,
+        replaceExisting: body.replaceExisting === true,
+        recipe: body.recipe,
+        seed: body.seed,
+        actor: req.glAuth,
+      });
+      return res.status(201).json({
+        ok: true,
+        gameId,
+        replaced: result.replaced,
+        teams: result.teams,
+        event: result.event,
+      });
+    } catch (err) {
+      if (sendCompositionError(res, err)) return undefined;
+      throw err;
+    }
+  }),
+);
 
 router.post(
   '/games/:id/teams',

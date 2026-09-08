@@ -42,7 +42,8 @@ async function createGlClass(options = {}) {
  */
 async function createGlPlayer(options = {}) {
   const classId = Number(options.classId);
-  const teamId = options.teamId == null ? null : Number(options.teamId);
+  // `options.teamId` est ignoré : l'appartenance est par partie (`assignPlayerToGameTeam`),
+  // le pointeur global `gl_players.team_id` n'est plus alimenté (lib/glPlayerMembership.js).
   const pseudo = String(options.pseudo || `gl-player-${Date.now()}`);
   const password = String(options.password || '1234');
   const firstName = options.firstName == null ? 'Prenom' : String(options.firstName);
@@ -88,12 +89,11 @@ async function createGlPlayer(options = {}) {
   const powerPoints = options.powerPoints == null ? 3 : Number(options.powerPoints);
   await execute(
     `INSERT INTO gl_players
-      (class_id, team_id, first_name, last_name, pseudo, legacy_password_hash,
+      (class_id, first_name, last_name, pseudo, legacy_password_hash,
        linked_foretmap_user_id, is_active, health_points, power_points, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
     [
       classId,
-      teamId,
       firstName,
       lastName,
       pseudo,

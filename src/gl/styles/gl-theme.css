@@ -2053,6 +2053,247 @@ a.gl-glossary-inline-link:hover,
   gap: 12px;
 }
 
+/* Composition automatique des équipes (GLTeamComposeDialog) */
+.gl-compose-modal-body {
+  width: min(1040px, calc(100% - 32px));
+  max-width: 1040px;
+  max-height: 90vh;
+  overflow: auto;
+  display: grid;
+  gap: 14px;
+}
+
+.gl-compose-section h3 {
+  margin: 0 0 8px;
+  font-size: var(--text-md);
+}
+
+.gl-compose-recipes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.gl-compose-recipe-card {
+  display: grid;
+  gap: 4px;
+  min-height: 44px;
+  padding: 10px 12px;
+  text-align: left;
+  border: 2px solid var(--gl-border, rgba(15, 23, 42, 0.15));
+  border-radius: var(--gl-radius-card, 12px);
+  background: var(--gl-surface, #fff);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.gl-compose-recipe-card span {
+  font-size: var(--text-base);
+  opacity: 0.85;
+}
+
+.gl-compose-recipe-card.is-selected {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+}
+
+.gl-compose-recipe-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.gl-compose-recipe-card:focus-visible {
+  outline: 3px solid var(--gl-select-ink, #1d4ed8);
+  outline-offset: 2px;
+}
+
+.gl-compose-settings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.gl-compose-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.gl-compose-check input {
+  width: 22px;
+  height: 22px;
+}
+
+.gl-compose-check--warn {
+  padding: 8px 12px;
+  border-radius: var(--gl-radius-card, 12px);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.gl-compose-explain,
+.gl-compose-warnings {
+  margin: 0 0 8px;
+  padding-left: 18px;
+}
+
+.gl-compose-teams {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.gl-compose-team-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 3px solid rgba(15, 23, 42, 0.15);
+  border-radius: var(--gl-radius-card, 12px);
+  background: var(--gl-surface, #fff);
+}
+
+.gl-compose-team-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gl-compose-team-title {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+}
+
+.gl-compose-members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.gl-compose-member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.gl-compose-member-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gl-compose-member .gl-select {
+  max-width: 46%;
+  min-height: 44px;
+}
+
+.gl-compose-footer {
+  justify-content: flex-end;
+  padding-top: 6px;
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.gl-compose-advanced > summary {
+  cursor: pointer;
+  font-weight: 600;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.gl-compose-sliders {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 8px 0 12px;
+}
+
+.gl-compose-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gl-compose-slider input[type='range'] {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--gl-accent, #2f855a);
+}
+
+/* Lot v3 — épingles, verrous de classe, brassage */
+.gl-compose-pin {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--gl-select-surface);
+  border-radius: var(--gl-radius-md);
+  background: var(--gl-surface-muted);
+  cursor: pointer;
+  opacity: 0.55;
+  font-size: var(--text-md);
+}
+
+.gl-compose-pin:hover,
+.gl-compose-pin:focus-visible {
+  opacity: 0.9;
+}
+
+.gl-compose-pin.is-pinned {
+  opacity: 1;
+  border-color: var(--gl-accent, #2f855a);
+  background: color-mix(in srgb, var(--gl-accent, #2f855a) 18%, transparent);
+}
+
+.gl-compose-locks {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.gl-compose-lock-form {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(140px, auto) minmax(120px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .gl-compose-lock-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gl-link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--gl-accent, #2f855a);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+  min-height: 44px;
+}
+
+.gl-team-mixing {
+  margin: 0 0 8px;
+}
+
+.gl-class-team-policy-edit {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) 72px;
+  gap: 6px;
+}
+
 .gl-profile-modal-actions {
   display: flex;
   flex-wrap: wrap;

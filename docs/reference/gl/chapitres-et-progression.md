@@ -51,6 +51,60 @@ son chapitre** à sa création.
    **mascotte** dans le catalogue (filtré par peuple). Les joueurs de la classe sont
    ensuite répartis : à la main, par répartition automatique, ou en laissant chaque
    joueur rejoindre lui-même une équipe.
+   - **Composer automatiquement** (bouton de l'onglet Équipes, disponible seulement
+     tant que la partie est en brouillon) : le MJ choisit une taille d'équipe (4 par
+     défaut) et une **recette** — _Aléatoire_, _Aléatoire avec mémoire_ (le jeu évite de
+     remettre ensemble des élèves qui ont déjà joué côte à côte dans les parties
+     précédentes de la classe) ou _Reconduire_ (les équipes de la partie précédente sont
+     reprises telles quelles ; s'il n'y en a pas, on retombe sur l'aléatoire, et le MJ en
+     est averti). Le jeu propose alors des équipes complètes : nom tiré du vocabulaire du
+     chapitre, couleur, peuple alterné (au moins un camp de chaque dès deux équipes),
+     mascotte distincte pour chacune. Le MJ **relit et retouche** la proposition
+     (déplacer un joueur vers une autre équipe, renommer une équipe, tirer une nouvelle
+     proposition) avant de l'**appliquer** ; rien n'est enregistré avant ce clic. Si des
+     équipes existaient déjà, le MJ doit explicitement accepter de les remplacer. Les
+     élèves inactifs sont laissés de côté par défaut (le MJ peut les inclure). Le journal
+     de la partie garde une trace « le MJ a composé N équipes ».
+   - **Trois recettes fondées sur le profil** s'ajoutent quand l'administrateur les laisse
+     actives (réglage « Recettes d'équipes fondées sur le profil », actif par défaut) :
+     _Mixte_ (des profils variés dans chaque équipe et des équipes comparables entre
+     elles), _Complémentarité_ (chaque équipe réunit si possible un savant, un éclaireur,
+     un négociant et un gardien) et _Groupes de besoin_ (des équipes aux profils proches,
+     pour différencier l'accompagnement). Le profil d'un élève est déduit **uniquement de
+     ce qu'il a déjà fait dans le jeu** (QCM, feuillets trouvés, échanges au Marché et sur
+     le forum, cœurs et gemmes engagés dans les sortilèges, actions proposées, présence) ;
+     il est recalculé à chaque proposition, jamais enregistré, et **jamais affiché** — ni
+     aux élèves ni au MJ. Tant que la classe a peu joué, tous les profils restent proches
+     de la moyenne et le jeu le dit : la proposition garde alors une large part de hasard.
+     _Groupes de besoin_ est **refusée dès que le score par équipe est activé** : elle
+     servirait sinon à classer les élèves. Une section repliable « Poids avancés » permet
+     d'ajuster finement une recette (éviter les binômes déjà vus, rapprocher les équipes,
+     couvrir les rôles) ; les valeurs par défaut conviennent presque toujours.
+   - **La classe a une politique d'équipes**, réglée par l'administrateur dans la fiche de la
+     classe : _Rebrasser à chaque partie_ (par défaut), _Rebrasser à chaque plateau_ (les
+     équipes sont reconduites tant que le chapitre joué reste sur le même plateau) ou
+     _Reconduire les équipes_. Quand le MJ ouvre « Composer automatiquement » sans choisir
+     de recette, c'est cette politique qui décide (le dialogue le dit), et la **taille
+     d'équipe par défaut** de la classe (4 sauf réglage) sert de taille visée. Le MJ peut
+     toujours forcer une autre recette d'un clic.
+   - **Contraintes de la classe** (section repliable du dialogue) : le MJ peut poser des
+     **verrous** entre deux élèves — _toujours ensemble_ ou _jamais ensemble_. Ils valent
+     pour toutes les parties de la classe, sont respectés en priorité par toutes les
+     recettes, et ne sont jamais visibles des élèves. Si deux verrous se contredisent, le
+     jeu le signale plutôt que d'en ignorer un en silence. Un verrou concernant un élève
+     inactif est mis de côté (et signalé) tant qu'il ne joue pas.
+   - **Épingles** : en déplaçant un élève à la main dans l'aperçu (ou en cliquant l'épingle
+     à côté de son nom), le MJ le fixe dans son équipe ; les régénérations suivantes ne le
+     bougent plus. Les épingles ne valent que pour l'aperçu en cours.
+   - **Rotation des peuples** : le jeu choisit le peuple de la première équipe (les
+     suivantes alternent) de façon à limiter les élèves qui joueraient un **troisième tour
+     de suite** dans le même peuple ; le MJ peut imposer Gnome ou Licorne.
+   - Quand la vitalité est activée, chaque équipe reçoit si possible **au moins un cœur ou
+     une gemme** (plancher de vitalité) ; le MJ est averti si ce n'est pas tenable.
+   - **Brassage de la classe** : l'onglet Équipes affiche la part des binômes possibles
+     déjà réunis au fil des parties (« 43 % des binômes possibles déjà réunis »), et
+     l'aperçu indique ce que la proposition y ajoute. C'est un indicateur collectif, sans
+     aucun score individuel.
 3. **Démarrer** : la partie passe **en cours**. Si la carte du chapitre est en
    « parcours numéroté », toutes les mascottes sont posées sur la case départ. Le MJ
    peut mettre en **pause** puis reprendre, et **terminer** la partie quand il veut.
