@@ -10,6 +10,7 @@ const {
   detectOrphanLinks,
   buildPedagoMatrix,
   isolatedMatrixNotions,
+  countResourcesWithoutGating,
   analyzePedagoSnapshot,
 } = require('../lib/pedagoContentAudit');
 
@@ -65,6 +66,22 @@ test('buildPedagoMatrix et notions isolées', () => {
   ]);
   assert.strictEqual(isolated[0].notion, 'seul');
   assert.strictEqual(isolatedMatrixNotions(matrix).length, 0);
+});
+
+test('countResourcesWithoutGating et couverture tutoriel', () => {
+  const missing = countResourcesWithoutGating({
+    resources: [{ id: '1' }, { id: '2' }],
+    links: [{ resource_ref: '1', is_gating: 1, status: 'approved' }],
+  });
+  assert.deepStrictEqual(
+    missing.map((row) => row.id),
+    ['2'],
+  );
+  const matrix = buildPedagoMatrix({
+    tutorials: [{ id: 3, slug: 'compostage', title: 'Compostage' }],
+    quizTutorials: [{ question_code: 'QF9221', tutorial_id: 3 }],
+  });
+  assert.ok(matrix.some((row) => row.tutorial_slug === 'compostage'));
 });
 
 test('analyzePedagoSnapshot agrège les findings', () => {
