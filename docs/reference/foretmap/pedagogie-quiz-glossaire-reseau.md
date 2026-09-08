@@ -114,12 +114,22 @@ d'observation** pour l'écriture naturaliste libre.
   pollinisation, plante hôte, symbiose, compétition et nitrification. **Tout**
   superpose les deux pour l’exploration complète. Les filtres par type et le mode
   « isoler une espèce » restent disponibles dans chaque vue.
-- **Les liens « vers l'environnement » ont désormais leur nœud.** Une interaction saisie
-  sans espèce cible (le trèfle qui enrichit le sol, le champignon qui décompose la
-  litière) aboutit à une bulle « 🌍 Environnement » : la flèche ne part plus vers un
-  point vide de l'écran. Cette bulle n’apparaît que si au moins une relation visible
-  pointe vers le milieu : en vue « Réseau alimentaire », surtout les décompositions
-  sans cible ; en vue « Autres relations », surtout la nitrification.
+- **Les détritivores ont des nourritures nommées.** Vers, cloportes, collemboles,
+  escargots d’eau, fourmis ou blattes pointent vers des fiches-ressources du
+  catalogue — litière de feuilles, compost et épluchures, bois mort, biofilm, fruits
+  tombés, carton de lombricompost, crottes et fientes. Ce ne sont pas des espèces :
+  ce sont des exemples de matière morte, pour qu’une chaîne détritique ait un vrai
+  point de départ. La gambusie est reliée au moustique (ses larves), les coccinelles
+  et syrphes aux pucerons, le Rhizobium aux légumineuses (haricot, fève, pois, pois
+  chiche, fenugrec). Le réseau relie aussi le jardin méditerranéen : cochenille du
+  nopal sur figuier de Barbarie, cigale sur olivier, hérisson d’Algérie sur
+  escargots, tarente sur moustiques, chrysope sur pucerons. S’y ajoutent merle
+  (vers, baies), hirondelle et pipistrelle (moustiques), libellule et gerris
+  (mare), et les mycorhizes à Glomus en symbiose avec les légumes.
+- **Une flèche sans cible reste possible.** Si le professeur laisse la cible vide,
+  le graphe affiche une bulle « 🌍 Environnement » plutôt qu’un trait vers le vide.
+  Cette bulle n’apparaît que si au moins une relation visible n’a pas de cible. Le
+  catalogue livré n’en a plus besoin pour les décomposeurs ni pour la gambusie.
 - **Cliquer une flèche répond sous le graphe** : le type de relation, sa phrase dans le
   bon sens écologique (« Lapin → est mangée par → Renard »), la description saisie par le
   professeur, puis les mots de glossaire rattachés. Avant, la réponse s'affichait dans la

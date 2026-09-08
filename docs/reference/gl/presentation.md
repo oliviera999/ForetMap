@@ -88,7 +88,10 @@ placer les repères et y associer textes, images et questions.
   des relations entre espèces du catalogue (qui mange qui, pollinisation, etc.). On
   peut afficher le **réseau alimentaire**, les **autres relations**, ou **tout**. Une
   fiche peut préciser le **rang** (espèce, genre…) et un lien vers une source
-  (catalogue du vivant), sans remplacer le nom scientifique.
+  (catalogue du vivant), sans remplacer le nom scientifique. Le catalogue des
+  biomes tempérés, landes et Méditerranée inclut aussi des **lisières et mares**
+  (merle, carabe, sureau, daphnie, libellule, gerris, pipistrelle) pour relier
+  le réseau alimentaire à ce qu’on observe aussi au jardin.
 - **Glossaire** : le vocabulaire scientifique.
 
 Les élèves peuvent marquer un contenu comme « appris » — et l'admin peut exiger la
