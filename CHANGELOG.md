@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — index des audits datés + compléments Moodle / GL
+
+- Nouvel index [`docs/audits/README.md`](docs/audits/README.md) (convention : audits =
+  instantanés ; vérité vivante ailleurs) + règle Cursor `foretmap-audits` ; liens depuis
+  `CLAUDE.md`, `AUDIT_STABILITE_PERF`, `AUDIT_MOODLE`, `docs/reference/README.md`.
+- Compléments : `LOCAL_DEV.md` (Moodle/LTI), `GL_ARCHITECTURE.md` / `GL_EQUIPES_AUTO_CONCEPTION.md`
+  (miroirs, gabarits), `API.md` (`teamMirrors`, `gl.classes.team_templates`), référence
+  `presentation.md` / `rentree-moodle.md` (rapport miroirs).
+
 ### Ajouté — miroirs d’équipes Moodle (lot M4)
 
 - Gabarits d’équipes par classe (`gl.classes.team_templates`) amorcés à la création d’une partie ;

@@ -14,6 +14,8 @@
 > **deux couches** : l'annuaire (synchronisation Web Services, lots M1 à M5) puis l'entrée
 > depuis le cours (LTI 1.3, lot M6, section 21). La seconde ne remplace pas la première.
 >
+> **Index des audits datés** (ne pas réécrire l’historique) : [`docs/audits/README.md`](audits/README.md).
+>
 > **Opération délicate** : la synchronisation touche des centaines de comptes d'élèves mineurs,
 > dont certains portent déjà un historique (tâches, observations, forum, parties G&L). Une
 > erreur ne se voit pas tout de suite et se répare mal. D'où la règle centrale : **la
