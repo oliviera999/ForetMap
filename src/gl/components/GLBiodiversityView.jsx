@@ -72,6 +72,7 @@ export function GLBiodiversityView({
         />
       ) : (
         <GLFoodWebPanel
+          key="reseau"
           biomes={biomes}
           canManage={canManageContent}
           onOpenSpecies={(row) => {
