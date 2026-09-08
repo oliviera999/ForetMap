@@ -22,7 +22,7 @@ const PctClusterButton = React.memo(function PctClusterButton({ cluster, onClust
       aria-label={`${cluster.count} lieux regroupés, dont ${cluster.lead?.label || cluster.lead?.name || 'un lieu'}`}
       onClick={handleClick}
     >
-      <span className="fm-pct-cluster__emoji" aria-hidden>
+      <span className="fm-pct-cluster__emoji map-overlay-emoji-label" aria-hidden>
         {emoji}
       </span>
       <span className="fm-pct-cluster__count">{cluster.count}</span>

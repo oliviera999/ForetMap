@@ -106,6 +106,28 @@ describe('PctLabelsLayer', () => {
     expect(container.querySelector('.fm-pct-labels').getAttribute('aria-hidden')).toBe('true');
   });
 
+  test('zone et repère partagent le même habillage de nom', () => {
+    const { container } = render(
+      <>
+        <PctLabelsLayer labels={[{ id: 'zone:z1', xp: 10, yp: 10, emoji: '📚', name: 'CDI' }]} />
+        <PctMarkersLayer
+          markers={[{ id: 'm1', label: 'Infirmerie', emoji: '🏥', x_pct: 40, y_pct: 60 }]}
+          onMarkerClick={() => {}}
+        />
+      </>,
+    );
+    const zoneName = container.querySelector('.fm-pct-label__name');
+    const markerName = container.querySelector('.fm-pct-marker__label');
+    expect(zoneName.classList.contains('map-overlay-name-label')).toBe(true);
+    expect(markerName.classList.contains('map-overlay-name-label')).toBe(true);
+    expect(
+      container.querySelector('.fm-pct-label__emoji').classList.contains('map-overlay-emoji-label'),
+    ).toBe(true);
+    expect(
+      container.querySelector('.fm-pct-marker__pin').classList.contains('map-overlay-emoji-label'),
+    ).toBe(true);
+  });
+
   test('nom masqué par la résolution de collisions : l’emoji reste, le nom disparaît', () => {
     const { container } = render(
       <PctLabelsLayer labels={[{ id: 'zone:z1', xp: 10, yp: 10, emoji: '📚', name: '' }]} />,

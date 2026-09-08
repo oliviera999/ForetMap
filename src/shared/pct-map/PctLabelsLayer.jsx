@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { PctOverlayCaption } from './PctOverlayCaption.jsx';
+
 /**
  * Calque HTML des étiquettes de zones d'une carte « % image » (noyau carte partagé).
  *
@@ -33,8 +35,12 @@ function PctLabelsLayerImpl({ labels, className = 'fm-pct-labels' }) {
             maxWidth: label.maxWidthPx ? `${label.maxWidthPx}px` : undefined,
           }}
         >
-          {label.emoji ? <span className="fm-pct-label__emoji">{label.emoji}</span> : null}
-          {label.name ? <span className="fm-pct-label__name">{label.name}</span> : null}
+          <PctOverlayCaption
+            emoji={label.emoji}
+            name={label.name}
+            emojiClassName="fm-pct-label__emoji"
+            nameClassName="fm-pct-label__name"
+          />
         </span>
       ))}
     </div>

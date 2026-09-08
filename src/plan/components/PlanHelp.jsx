@@ -35,7 +35,7 @@ export function PlanHelp({ welcomeHint = '', canLocate = false, onOpen = null })
             </li>
             <li>
               <strong>Filtrer</strong> : les étiquettes sous la recherche n’affichent que les lieux
-              d’une catégorie. « Tout » remet l’ensemble.
+              d’une catégorie. « Tout » remet l’ensemble. La puce Parcours est dans la même rangée.
             </li>
             <li>
               <strong>Se déplacer sur le plan</strong> : un doigt pour glisser, deux doigts ou les

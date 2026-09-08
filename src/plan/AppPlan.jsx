@@ -459,28 +459,32 @@ export function AppPlan() {
         onQueryChange={onQueryChange}
         onFocusSearch={() => setResultsOpen(true)}
         resultCount={results.length}
+        help={
+          <PlanHelp
+            welcomeHint={settings?.welcome_hint || ''}
+            canLocate={position.available}
+            onOpen={() => reportPlanUsage('help_open', 'plan')}
+          />
+        }
       />
 
-      <PlanHelp
-        welcomeHint={settings?.welcome_hint || ''}
-        canLocate={position.available}
-        onOpen={() => reportPlanUsage('help_open', 'plan')}
-      />
-
-      <PlanRoutePicker
-        routes={routes}
-        onStart={startRoute}
-        open={routePickerOpen}
-        onToggle={setRoutePickerOpen}
-      />
-
-      <PlanCategoryChips
-        categories={categories}
-        selectedIds={selectedCategoryIds}
-        onToggle={toggleCategory}
-        onReset={resetCategories}
-        counts={counts}
-      />
+      <div className="plan-filters">
+        <div className="plan-filters__row">
+          <PlanRoutePicker
+            routes={routes}
+            onStart={startRoute}
+            open={routePickerOpen}
+            onToggle={setRoutePickerOpen}
+          />
+          <PlanCategoryChips
+            categories={categories}
+            selectedIds={selectedCategoryIds}
+            onToggle={toggleCategory}
+            onReset={resetCategories}
+            counts={counts}
+          />
+        </div>
+      </div>
 
       <main className="plan-main" role="main">
         {hasMapImage && filteredPlaces.length === 0 ? (

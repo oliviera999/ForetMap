@@ -12,6 +12,8 @@ import { useId } from 'react';
  * @param {(next: string) => void} props.onQueryChange
  * @param {() => void} [props.onFocusSearch] ouverture de la feuille de résultats.
  * @param {number} [props.resultCount] nombre de résultats (annonce vocale).
+ * @param {import('react').ReactNode} [props.help] bouton d'aide (dock partagé), aligné
+ *   sur le titre plutôt que posé par-dessus.
  */
 export function PlanTopBar({
   title,
@@ -20,6 +22,7 @@ export function PlanTopBar({
   onFocusSearch,
   resultCount = null,
   logoUrl = '',
+  help = null,
 }) {
   const inputId = useId();
   return (
@@ -55,12 +58,13 @@ export function PlanTopBar({
             ✕
           </button>
         ) : null}
+        <p className="fm-visually-hidden" role="status">
+          {query && resultCount != null
+            ? `${resultCount} lieu${resultCount > 1 ? 'x' : ''} trouvé${resultCount > 1 ? 's' : ''}`
+            : ''}
+        </p>
       </div>
-      <p className="fm-visually-hidden" role="status">
-        {query && resultCount != null
-          ? `${resultCount} lieu${resultCount > 1 ? 'x' : ''} trouvé${resultCount > 1 ? 's' : ''}`
-          : ''}
-      </p>
+      {help}
     </header>
   );
 }

@@ -1,5 +1,17 @@
 /* Plan Lyautey — feuille du produit (lot 4 : carte plein écran, recherche, feuilles basses).
    `--font-sans` est PAR PRODUIT (cf. typography-tokens.css) : même DM Sans que ForetMap. */
+@font-face {
+  font-family: 'ForetMapColorEmoji';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/noto-color-emoji.woff2') format('woff2');
+  unicode-range:
+    U+200D, U+203C, U+2049, U+20E3, U+2122, U+2139, U+2194-21AA, U+231A-23FA, U+24C2, U+25AA-25FE,
+    U+2600-27BF, U+2934-2935, U+2B00-2BFF, U+3030, U+303D, U+3297, U+3299, U+FE0F, U+1F000-1FAFF,
+    U+E0020-E007F;
+}
+
 :root {
   color-scheme: light;
   --font-sans:
@@ -56,8 +68,12 @@ body.plan-body {
 .plan-topbar {
   position: relative;
   z-index: 3;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'identity help'
+    'search search';
+  align-items: center;
   gap: var(--space-2, 8px);
   padding: calc(env(safe-area-inset-top, 0px) + var(--space-3, 12px)) var(--space-3, 12px)
     var(--space-2, 8px);
@@ -66,7 +82,20 @@ body.plan-body {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
 }
 
+@media (min-width: 720px) {
+  .plan-topbar {
+    grid-template-columns: auto minmax(12rem, 1fr) auto;
+    grid-template-areas: 'identity search help';
+  }
+
+  .plan-topbar__search {
+    max-width: 28rem;
+    justify-self: stretch;
+  }
+}
+
 .plan-topbar__identity {
+  grid-area: identity;
   display: flex;
   align-items: center;
   gap: var(--space-2, 8px);
@@ -88,6 +117,7 @@ body.plan-body {
 }
 
 .plan-topbar__search {
+  grid-area: search;
   display: flex;
   align-items: center;
   gap: var(--space-2, 8px);
@@ -138,9 +168,8 @@ body.plan-body {
 /* --- Aide (dock partagé) ------------------------------------------------------------- */
 
 .plan-help-dock {
-  position: absolute;
-  right: var(--space-3, 12px);
-  top: calc(env(safe-area-inset-top, 0px) + var(--space-3, 12px));
+  grid-area: help;
+  position: static;
   z-index: 4;
 }
 
@@ -197,17 +226,40 @@ body.plan-body {
   color: var(--plan-muted);
 }
 
-/* --- Puces de catégories -------------------------------------------------------------- */
+/* --- Filtres : parcours + puces de catégories, une seule rangée --------------------- */
 
-.plan-chips {
+.plan-filters {
+  position: relative;
   z-index: 2;
+  background: var(--plan-bg);
+  border-bottom: 1px solid rgba(26, 71, 49, 0.12);
+}
+
+.plan-filters:not(:has(.plan-chip)) {
+  display: none;
+}
+
+.plan-filters__row {
   display: flex;
+  align-items: center;
   gap: var(--space-2, 8px);
   padding: var(--space-2, 8px) var(--space-3, 12px);
   overflow-x: auto;
-  background: var(--plan-bg);
-  border-bottom: 1px solid rgba(26, 71, 49, 0.12);
   scrollbar-width: none;
+}
+
+.plan-filters__row::-webkit-scrollbar {
+  display: none;
+}
+
+.plan-chips {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--space-2, 8px);
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  border: 0;
 }
 
 .plan-chips::-webkit-scrollbar {
@@ -260,23 +312,30 @@ body.plan-body {
 .plan-routes {
   position: relative;
   z-index: 3;
-  padding: 0 var(--space-3, 12px) var(--space-2, 8px);
-  background: var(--plan-bg);
+  flex: 0 0 auto;
+  padding: 0;
+  background: transparent;
 }
 
 .plan-chip--routes {
-  width: 100%;
+  width: auto;
   justify-content: flex-start;
 }
 
 .plan-routes__list {
-  margin: var(--space-2, 8px) 0 0;
+  position: absolute;
+  top: calc(100% + var(--space-1, 4px));
+  left: 0;
+  z-index: 5;
+  min-width: min(22rem, calc(100vw - 24px));
+  margin: 0;
   padding: 0;
   list-style: none;
   border: 1px solid rgba(26, 71, 49, 0.18);
   border-radius: 12px;
   background: #fff;
   overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
 }
 
 .plan-routes__list li + li {
@@ -494,7 +553,7 @@ body.plan-body {
   dominant-baseline: middle;
 }
 
-/* --- Étiquettes de zones (calque HTML, hors du SVG déformé) ----------------------------- */
+/* --- Étiquettes HTML (zones et repères : même habillage `map-overlay-*`) ------------- */
 
 .fm-pct-labels {
   position: absolute;
@@ -507,31 +566,12 @@ body.plan-body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: var(--plan-ink);
-  font-size: 12px;
-  font-weight: var(--fw-semibold, 600);
-  line-height: 1.15;
-  text-align: center;
-  text-shadow:
-    0 0 3px rgba(255, 255, 255, 0.95),
-    0 0 6px rgba(255, 255, 255, 0.85);
   transform: translate(-50%, -50%) scale(var(--pct-inv, 1));
   transform-origin: 50% 50%;
 }
 
-.fm-pct-label__emoji {
-  font-size: 15px;
-  line-height: 1;
-}
-
-.fm-pct-label__name {
-  max-width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.fm-pct-label.is-active .fm-pct-label__name {
+.fm-pct-label.is-active .fm-pct-overlay__name,
+.fm-pct-marker.is-active .fm-pct-overlay__name {
   padding: 0 6px;
   border-radius: 999px;
   background: var(--leaf);
@@ -561,31 +601,15 @@ body.plan-body {
 }
 
 .fm-pct-marker__pin {
-  font-size: var(--text-xl, 1.35rem);
-  line-height: 1;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
 .fm-pct-marker__label {
   position: absolute;
-  top: calc(50% + 13px);
+  top: calc(50% + var(--map-overlay-marker-label-offset, 26px));
   left: 50%;
   max-width: 132px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.88);
-  font-size: var(--text-2xs, 0.7rem);
-  font-weight: var(--fw-semibold, 600);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-.fm-pct-marker.is-active .fm-pct-marker__label {
-  background: var(--leaf);
-  color: #fff;
+  transform: translate(-50%, -50%);
 }
 
 .fm-pct-marker:focus-visible {

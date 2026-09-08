@@ -29,6 +29,9 @@ export const DEFAULT_LABEL_PRIORITY = 50;
 /** Taille de police des étiquettes, en pixels **écran** (constante quel que soit le zoom). */
 export const LABEL_FONT_SIZE_PX = 12;
 
+/** Taille des emojis d'étiquette (zones et repères), en pixels **écran**. */
+export const LABEL_EMOJI_SIZE_PX = 16;
+
 /** Largeur minimale d'un nom de zone : en dessous, le nom serait illisible plutôt que court. */
 export const ZONE_LABEL_MIN_WIDTH_PX = 56;
 
