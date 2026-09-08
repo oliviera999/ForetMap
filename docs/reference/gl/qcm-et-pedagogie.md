@@ -66,7 +66,12 @@ tutoriel, feuillet…) comme apprise.
   aussi sous la barre de navigation.
 - **Relier ressources et questions** : dans **Contenus → Conditionnement QCM**, on crée
   des liens « cette ressource ↔ cette question », avec un interrupteur « bloquant » par
-  lien, un statut et des filtres pour s'y retrouver.
+  lien, un statut et des filtres pour s'y retrouver. Le catalogue livré a été relu :
+  chaque biome qui a des QCM est relié à « son » écosystème ; les espèces ajoutées
+  (merle, carabe, daphnie, pipistrelle…) ont des questions de rôle, pas seulement un
+  nom latin. Les liens approuvés de ce catalogue sont **bloquants** ; le rapprochement
+  automatique, lui, reste une proposition. L'interrupteur général du conditionnement
+  reste éteint tant qu'un administrateur ne l'allume pas.
 - **Régler le comportement global** : dans **Réglages plateforme → Conditionnement par
   QCM** (admin) — l'interrupteur général (tant qu'il est éteint, les liens sont sans
   effet), le **mode** (une réussite suffit / toutes les questions / un nombre minimum), le

@@ -24,6 +24,9 @@ async function loadSnapshot() {
     glossaryInteractions,
     speciesInteractions,
     glSpeciesInteractions,
+    tutorials,
+    quizTutorialLinks,
+    tutorialGatingLinks,
   ] = await Promise.all([
     queryAll('SELECT id, species_code, nom_commun, nom_scientifique FROM gl_species'),
     queryAll('SELECT id, name, scientific_name FROM plants'),
@@ -55,6 +58,17 @@ async function loadSnapshot() {
     queryAll(
       'SELECT id, from_species_id, to_species_id, interaction_type FROM gl_species_interactions',
     ),
+    queryAll('SELECT id, slug, title FROM tutorials WHERE is_active = 1'),
+    queryAll(
+      `SELECT question_code, resource_ref, CAST(resource_ref AS UNSIGNED) AS tutorial_id
+         FROM resource_question_links
+        WHERE resource_type = 'tutorial' AND status = 'approved'`,
+    ),
+    queryAll(
+      `SELECT resource_ref, is_gating, status
+         FROM resource_question_links
+        WHERE resource_type = 'tutorial'`,
+    ),
   ]);
 
   return {
@@ -71,6 +85,9 @@ async function loadSnapshot() {
     glSpeciesInteractions,
     glossaryCodes: glossaryTerms.map((row) => row.glossary_code),
     glGlossaryCodes: glGlossaryTerms.map((row) => row.glossary_code),
+    tutorials,
+    quizTutorialLinks,
+    tutorialGatingLinks,
   };
 }
 

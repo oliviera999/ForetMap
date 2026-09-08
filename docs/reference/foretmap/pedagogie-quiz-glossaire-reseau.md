@@ -49,15 +49,18 @@ d'observation** pour l'écriture naturaliste libre.
   où la question de test est noyée sous le catalogue et l'éditeur. C'est la même surface
   d'affichage et le même état : répondre dans la fenêtre ou dans la page revient au même.
 - Le catalogue comprend aussi des **questions de raisonnement** (réseaux alimentaires,
-  cycle de l’azote, sol et compost, énergie, biodiversité, équilibres) : chaque bonne
-  réponse a une explication rédigée, distincte de l’énoncé. Les propositions sont
-  mélangées à chaque présentation : le fait qu’une bonne réponse soit enregistrée en
-  premier n’aide pas à deviner.
+  cycle de l’azote, sol et compost, énergie, biodiversité, équilibres) et des
+  **questions ancrées dans les fiches pratiques** (arrosage au pied, compost 1/3–2/3,
+  semences F1, spirale d’herbes…). Chaque bonne réponse a une explication rédigée,
+  distincte de l’énoncé. Les propositions sont mélangées à chaque présentation : le
+  fait qu’une bonne réponse soit enregistrée en premier n’aide pas à deviner.
 - Les questions du Quiz servent aussi de **contrôle de compréhension** avant de valider
-  un tutoriel ou une fiche espèce, si le dispositif est activé. L'écran « Rattacher des
-  questions aux contenus », sous l'éditeur, relie les deux — à la main ou par
-  rapprochement automatique des contenus : voir
-  [Tâches, tutoriels et validation](taches-tutoriels-et-validation.md).
+  un tutoriel, une fiche espèce ou un terme de glossaire, si le dispositif est activé.
+  Les rattachements livrés ont été relus : une question n’est plus accrochée à une
+  fiche qui ne l’enseigne pas (par exemple la photosynthèse n’est plus collée au
+  tutoriel « Sol vivant »). L'écran « Rattacher des questions aux contenus », sous
+  l'éditeur, relie les deux — à la main ou par rapprochement automatique des contenus :
+  voir [Tâches, tutoriels et validation](taches-tutoriels-et-validation.md).
 
 ## Le Glossaire
 

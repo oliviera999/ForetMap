@@ -7,6 +7,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — questions de validation reliées aux ressources
+
+- **Tutoriels ForetMap** (migration `226`) : 40 QCM ancrés dans les 10 fiches
+  (arrosage, désherbage, jardin punk, rempotage, associations, compost, eau,
+  semences, lire son sol, sol vivant). Les anciens rattachements par titre
+  `LIKE` (aquaponie sans fiche, photosynthèse sur « Sol vivant », bouture sur
+  « Associations »…) sont retirés. Liens par slug, bloquants une fois approuvés.
+  Titre unifié **Jardin punk (N3)**.
+- **Espèces et glossaire ForetMap** (migration `227`) : QCM de rôle pour
+  Rhizobium, auxiliaires, mare, nœuds-nourriture, ligneux méditerranéens ;
+  purge des liens dont le libellé n’apparaît pas dans la question ; transversaux
+  tuto ↔ plante ↔ terme.
+- **GL** (migration `228`) : QCM miroir (merle, carabe, mare, Glomus, lombric,
+  lisière, pipistrelle) ; chaque biome qui a un QCM est relié à l’écosystème
+  correspondant ; feuillets / lexique lore seulement si le texte matche.
+- Les liens `approved` du catalogue relu sont **bloquants** ; le rapprochement
+  automatique (`suggested` / `origin=auto`) ne l’est jamais. L’interrupteur
+  général du contrôle reste un geste admin.
+
 ### Documentation
 
 - **Fiche scripts** : `docs/SCRIPTS.md` — quoi lancer selon le cas (dev local,

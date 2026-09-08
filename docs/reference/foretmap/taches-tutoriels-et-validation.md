@@ -471,12 +471,19 @@ Pour un contenu choisi, on peut :
 - **Rattacher une question** : un champ de recherche filtre le catalogue par code ou par
   texte ; les questions déjà rattachées n'y sont plus proposées.
 - **Rendre une question bloquante ou non** : une question non bloquante reste associée à la
-  fiche (elle l'enrichit) sans conditionner la validation. **Une question n'est jamais
-  bloquante par défaut** : ni une proposition du rapprochement automatique, ni un import, ni
-  une question rattachée sans cocher la case. Le bouton **« Rendre bloquantes les N
-  question(s) approuvée(s) »** le fait d'un geste pour toute la fiche, après une confirmation
-  qui énonce ce que l'élève devra faire (« une question réussie suffit sur 12, aucune erreur
-  tolérée, verrou 1 h… »).
+  fiche (elle l'enrichit) sans conditionner la validation. **Une question que vous rattachez
+  à la main, ou qu'un import / rapprochement automatique propose, n'est jamais bloquante par
+  défaut.** Le bouton **« Rendre bloquantes les N question(s) approuvée(s) »** le fait d'un
+  geste pour toute la fiche, après une confirmation qui énonce ce que l'élève devra faire
+  (« une question réussie suffit sur 12, aucune erreur tolérée, verrou 1 h… »).
+
+  Le **catalogue livré** (les dix fiches pratiques, les espèces et le glossaire déjà relus)
+  est dans un autre cas : ces rattachements ont été revus une par une, les questions hors
+  sujet ont été retirées, et les liens conservés sont **bloquants**. L'interrupteur général
+  du contrôle reste éteint tant qu'un administrateur ne l'allume pas : rien ne change pour
+  l'élève tant que ce réglage est off. Le rapprochement automatique, lui, continue de
+  proposer sans jamais conditionner.
+
 - **Changer le statut** : seules les questions **approuvées** comptent. Une question
   « proposée » n'a aucun effet tant qu'un professeur ne l'a pas approuvée ; « rejetée » la
   met de côté sans l'effacer.
