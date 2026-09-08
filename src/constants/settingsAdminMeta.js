@@ -47,6 +47,12 @@ export const KEYS_HANDLED_BY_PANEL = new Set([
   'integration.moodle.threshold_deactivate_abs',
   'integration.moodle.threshold_namematch_pct',
   'integration.moodle.threshold_outbound_remove_abs',
+  'integration.lti.enabled',
+  'integration.lti.unknown_user',
+  'integration.lti.public_origin',
+  'integration.lti.instructor_targets',
+  'integration.lti.launch_bindings',
+  'integration.lti.landing_options',
 ]);
 
 export const KEY_META = {

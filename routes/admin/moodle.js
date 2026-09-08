@@ -445,6 +445,38 @@ router.post(
   }),
 );
 
+const suggestSchema = z.object({
+  courseId: z.coerce.number().int().positive(),
+});
+
+router.post(
+  '/lti/suggest',
+  requireMoodleAdmin,
+  validate({ body: suggestSchema }),
+  asyncHandler(async (req, res) => {
+    const client = requireClient();
+    const settings = await loadMoodleSettings();
+    const courseId = req.body.courseId;
+    const groups = await client.getCourseGroups(courseId);
+    const names = (Array.isArray(groups) ? groups : []).map((g) =>
+      String(g.name || g.idnumber || ''),
+    );
+    const year = settings.yearPrefix;
+    const hasN3 = names.some((n) => n.includes(`${year}#n3`));
+    const hasPlayer = names.some((n) => new RegExp(`${year}#6\\d{2}`).test(n));
+    let product = null;
+    if (hasN3 && hasPlayer) product = 'both';
+    else if (hasN3) product = 'fm';
+    else if (hasPlayer) product = 'gl';
+    res.json({
+      courseId,
+      groups: names,
+      product,
+      reason: product ? 'cohortes du cours' : 'aucune cohorte connue',
+    });
+  }),
+);
+
 // L'absence de configuration est un état attendu (section 6.1), pas une panne : message explicite
 // en 503 et journal en `warn`, alors que le gestionnaire global masque tout 5xx en « Erreur serveur ».
 router.use((err, req, res, next) => {

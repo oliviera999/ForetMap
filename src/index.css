@@ -6808,6 +6808,46 @@
   gap: 8px;
   padding: 4px 0;
 }
+.moodle-lti-h {
+  font-size: var(--text-md, 1rem);
+  margin: 16px 0 8px;
+}
+.moodle-lti-unknown,
+.moodle-lti-targets {
+  border: 0;
+  padding: 0;
+  margin: 12px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.moodle-lti-unknown legend,
+.moodle-lti-targets legend {
+  font-weight: 600;
+  padding: 0;
+  margin-bottom: 6px;
+}
+.lti-arrivee {
+  max-width: 32rem;
+  margin: 12vh auto 0;
+  padding: var(--space-card);
+  background: var(--surface-soft, #fff);
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+}
+.lti-arrivee h1 {
+  margin: 0 0 12px;
+  font-size: 1.35rem;
+}
+.lti-arrivee__choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+.lti-arrivee__choices .btn {
+  min-height: 44px;
+}
 @media (max-width: 720px) {
   .moodle-status-grid {
     grid-template-columns: 1fr;

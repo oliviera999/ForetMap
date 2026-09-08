@@ -11,6 +11,7 @@ import { MoodlePendingMatches } from './moodle/MoodlePendingMatches.jsx';
 import { MoodleConflicts } from './moodle/MoodleConflicts.jsx';
 import { MoodleRunHistory } from './moodle/MoodleRunHistory.jsx';
 import { MoodleToolsCard } from './moodle/MoodleToolsCard.jsx';
+import { MoodleLtiSection } from './moodle/MoodleLtiSection.jsx';
 
 export const MOODLE_SETTING_KEYS = Object.freeze({
   enabled: 'integration.moodle.enabled',
@@ -390,6 +391,17 @@ export function MoodleAdminPanel({ get, saveSetting, savingKey, onMessage, onErr
             </div>
           ))}
         </div>
+      </AdminSection>
+
+      <AdminSection id="moodle-lti" title="Entrée depuis le cours" defaultOpen={false}>
+        <MoodleLtiSection
+          get={get}
+          saveSetting={saveSetting}
+          savingKey={savingKey}
+          courses={courses.rows}
+          onMessage={onMessage}
+          onError={onError}
+        />
       </AdminSection>
 
       <AdminSection
