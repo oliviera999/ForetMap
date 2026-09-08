@@ -62,7 +62,8 @@ tutoriel, feuillet…) comme apprise.
   QCM** (admin) — l'interrupteur général (tant qu'il est éteint, les liens sont sans
   effet), le **mode** (une réussite suffit / toutes les questions / un nombre minimum), le
   **nombre de réussites** du mode « minimum », la **granularité du suivi** (par joueur ou
-  par équipe) et le **délai avant nouvelle tentative** après une erreur (3 jours par défaut).
+  par équipe) et le **délai avant nouvelle tentative** après une erreur (**6 heures par
+  défaut** depuis septembre 2026 ; il se réglait en jours, 3 par défaut).
   S'y ajoutent, depuis le lot 27, les réglages jusque-là réservés à ForetMap : les **erreurs
   tolérées avant blocage**, le **nombre de questions posées d'affilée**, l'**annonce du
   contrôle sur le bouton**, et la **portée du blocage** (toute la fiche, ou la seule question
@@ -70,6 +71,15 @@ tutoriel, feuillet…) comme apprise.
   Option D**, chacun de ces paramètres (mode, seuil N, session, verrou, granularité) peut se
   surcharger **par type de ressource** puis **par fiche**, comme en ForetMap ; une **4e couche**
   (chapitre de jeu ou scope lore) peut encore ajuster **qui répond** (joueur ou équipe).
+  Depuis septembre 2026, l'écran est organisé en quatre étapes (_Activer_, _Ce qu'il faut
+  réussir_, _En cas d'erreur_, _Ce que le joueur voit_) avec une phrase d'aide par champ, le
+  délai se choisit en heures, et une **sévérité du verrou** s'ajoute : **souple** (l'ancien
+  comportement), **normale** (le verrou ne peut être posé que depuis le flux de validation,
+  réglage par défaut) ou **stricte** (les questions bloquantes de la fiche ne se jouent que
+  depuis la fiche et sortent du tirage libre) — réglable par type, par exemple feuillets en
+  « stricte » et lexique en « souple ». La **portée « seulement la question ratée »**
+  fonctionne réellement depuis cette date (elle n'était relue nulle part) : chaque question
+  ratée porte son propre délai, le joueur continue sur les autres.
 - **Assouplir une ressource en particulier** : dans **Contenus → Conditionnement QCM**, saisir
   le type et la référence de la ressource puis choisir le mode (y compris « un nombre minimum »
   avec le champ **N**). Une ressource peut aussi être **dispensée** (« aucune question exigée »).
@@ -82,14 +92,20 @@ tutoriel, feuillet…) comme apprise.
   qu'une erreur coûterait** (« une erreur bloquera la validation pendant 3 jours ») ; il peut
   abandonner sans rien risquer. On ne lui pose que le nombre de questions réellement exigé par
   le mode : en mode « une réussite suffit », une seule question, même si la ressource en
-  compte cinq. Bonne réponse → il peut confirmer ; mauvaise réponse → la ressource est
-  verrouillée le temps du délai, puis il peut réessayer.
+  compte cinq. Bonne réponse → il peut confirmer ; mauvaise réponse → s'il reste des erreurs
+  tolérées, l'écran le dit et propose de réessayer ; sinon la ressource (ou la seule question
+  ratée, selon la portée) est verrouillée le temps du délai, avec le temps restant en clair
+  (« réessaie dans 5 h »). Une question expirée est rechargée d'elle-même ; un refus du
+  serveur est expliqué (questions restantes, verrou) au lieu de laisser confirmer pour rien.
 - **Des pastilles d'état** accompagnent le bouton : **✓** contrôle réussi, **?** questions
   restantes, **🔒** bloqué. Rien ne s'affiche là où rien n'est conditionné, ni sur un contenu
   déjà appris. Le réglage « Afficher les pastilles d'état » permet de les éteindre.
 - **Approuver les propositions d'un coup** : dans l'écran des liens, les rattachements
   « proposés » d'une ressource peuvent être approuvés ensemble plutôt qu'un par un. Approuver
-  n'est pas conditionner : le caractère bloquant reste une décision explicite, lien par lien.
+  n'est pas conditionner : **une proposition, un import ou un lien créé sans cocher la case
+  n'est jamais bloquant** (la case « Bloquant » du formulaire n'est plus précochée). Le bouton
+  **« Rendre bloquantes les N question(s) approuvée(s) »**, sous la politique de la ressource,
+  le fait d'un geste après une confirmation qui énonce ce que le joueur devra faire.
 - **Un lien bloquant n'est plus accepté sur un type non validable** : le message dit lesquels
   le sont, et rappelle que le lien reste possible en non bloquant.
 - **Le glossaire n'est plus consultable pendant une question.** Les termes reconnus dans

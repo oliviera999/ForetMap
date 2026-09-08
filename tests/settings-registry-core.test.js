@@ -150,7 +150,9 @@ test('gatingRegistryEntries dérive le catalogue commun pour chaque produit', ()
   assert.equal(fm['learning.gating.enabled'].scope, 'teacher');
   assert.equal(gl['gating.enabled'].group, 'gating');
   assert.deepEqual(gl['gating.default_mode'].values, [...gatingCore.GATING_MODE_VALUES]);
-  assert.equal(gl['gating.retry_cooldown_days'].min, 0);
-  assert.equal(gl['gating.retry_cooldown_days'].max, 365);
+  assert.equal(gl['gating.retry_cooldown_hours'].min, 0);
+  assert.equal(gl['gating.retry_cooldown_hours'].max, 8760);
+  assert.equal(gl['gating.retry_cooldown_hours'].default, 6);
+  assert.deepEqual(gl['gating.lock_mode'].values, ['advisory', 'flow', 'strict']);
   assert.equal(fm['learning.gating.granularity'], undefined, 'clé propre à GL');
 });

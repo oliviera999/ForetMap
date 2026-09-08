@@ -4,9 +4,10 @@
 // et reglages de gating (site + surcharges chapitre/scope lore). Miroir isole du backbone
 // ForetMap. Les liens sont sans effet tant que gl_settings 'gating.enabled' = false ; des qu'il
 // est vrai, ils sont lus a l'accuse par lib/learningGatingAcknowledge (routes/gl/learning.js).
-// ATTENTION : la politique par ressource (mode/required_correct/enabled) et la granularite
-// ecrites ici ne sont PAS relues par le runtime, qui exige toujours TOUTES les questions
-// bloquantes approuvees — cf. docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md, constats F1 et F5.
+// La politique par ressource (mode/required_correct/enabled + session/verrou) et la granularite
+// ecrites ici SONT relues par le runtime a chaque challenge et a chaque accuse (cascade
+// site -> type -> ressource -> chapitre/scope, cf. lib/shared/gatingPolicyLayersCore.js) —
+// constats F1 et F5 de docs/AUDIT_GATING_QCM_FEUILLETS_2026-08.md, corriges.
 // Permissions : gl.content.manage (liens/politique), gl.settings.manage (reglages site/granularite).
 // O8 — erreurs : tous les try/catch etaient generiques (logRouteError + respondInternalError,
 // soit 500 { error: 'Erreur serveur' }) ; ils sont remplaces par asyncHandler -> gestionnaire
@@ -20,10 +21,13 @@ const { getGlGatingSettings, setGlGatingSetting, GATING_KEYS } = require('../../
 const core = require('../../lib/shared/resourceQuestionGatingCore');
 const gatingAdmin = require('../../lib/learningGatingAdmin');
 const linksBulk = require('../../lib/learningLinksBulk');
+const { invalidateStrictCodesCache } = require('../../lib/learningGatingLockMode');
 const policyHelpers = require('../../lib/gatingPolicyRouteHelpers');
 const layers = require('../../lib/shared/gatingPolicyLayersCore');
 
 const router = express.Router();
+/** Plafond d'une liste de liens ; renvoyé au client avec `total` (B5). */
+const LINKS_MAX_ROWS = 1000;
 const ALLOWED = core.GL_RESOURCE_TYPES;
 
 function actor(req) {
@@ -54,10 +58,20 @@ router.get(
       `SELECT * FROM gl_resource_question_links
        ${core.linksWhereClause(where)}
        ORDER BY question_dataset, resource_type, resource_ref, question_code
-       LIMIT 1000`,
+       LIMIT ${LINKS_MAX_ROWS}`,
       params,
     );
-    return res.json({ links: rows });
+    // Plafond annoncé plutôt que muet (B5).
+    const countRow = await queryOne(
+      `SELECT COUNT(*) AS n FROM gl_resource_question_links ${core.linksWhereClause(where)}`,
+      params,
+    );
+    return res.json({
+      links: rows,
+      total: Number(countRow?.n || 0),
+      max_rows: LINKS_MAX_ROWS,
+      truncated: Number(countRow?.n || 0) > rows.length,
+    });
   }),
 );
 
@@ -73,6 +87,7 @@ router.post(
     });
     if (!parsed.ok) return res.status(400).json({ error: parsed.error });
     const v = parsed.value;
+    const provided = parsed.provided || {};
     if (!(await glQuestionExists(v.question_dataset, v.question_code))) {
       return res.status(404).json({ error: 'Question introuvable' });
     }
@@ -90,7 +105,8 @@ router.post(
          confidence, status, note, created_by_user_type, created_by_user_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
-         is_gating = VALUES(is_gating), weight = VALUES(weight), origin = VALUES(origin),
+         is_gating = COALESCE(?, is_gating), weight = VALUES(weight),
+         origin = COALESCE(?, origin),
          confidence = VALUES(confidence), status = VALUES(status), note = VALUES(note),
          updated_at = NOW()`,
       [
@@ -106,6 +122,9 @@ router.post(
         v.note,
         who.userType,
         who.userId,
+        // Lien existant : bloquant et origine ne sont réécrits que si le corps les fournit (B3).
+        provided.is_gating ? v.is_gating : null,
+        provided.origin ? v.origin : null,
       ],
     );
     const row = await queryOne(
@@ -113,6 +132,7 @@ router.post(
         WHERE question_dataset = ? AND resource_type = ? AND resource_ref = ? AND question_code = ? LIMIT 1`,
       [v.question_dataset, v.resource_type, v.resource_ref, v.question_code],
     );
+    invalidateStrictCodesCache();
     return res.status(201).json({ link: row });
   }),
 );
@@ -171,6 +191,7 @@ router.patch(
     const row = await queryOne('SELECT * FROM gl_resource_question_links WHERE id = ? LIMIT 1', [
       id,
     ]);
+    invalidateStrictCodesCache();
     return res.json({ link: row });
   }),
 );
@@ -235,6 +256,7 @@ router.delete(
       return res.status(400).json({ error: 'Identifiant invalide' });
     const result = await execute('DELETE FROM gl_resource_question_links WHERE id = ?', [id]);
     if (!result.affectedRows) return res.status(404).json({ error: 'Lien introuvable' });
+    invalidateStrictCodesCache();
     return res.json({ success: true });
   }),
 );
@@ -505,6 +527,39 @@ router.post(
 
     const bulk = await linksBulk.reviewSuggestedLinks({ execute }, { product: 'gl', status, ids });
     return res.json({ success: true, status, updated: bulk.updated });
+  }),
+);
+
+/** POST /api/gl/learning-links/gating — rendre bloquantes (ou non) des questions, en lot (parité FM). */
+router.post(
+  '/gating',
+  requireGlAuth,
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const body = req.body || {};
+    const rawFlag = body.is_gating ?? body.isGating;
+    if (rawFlag == null) return res.status(400).json({ error: 'is_gating attendu' });
+    const isGating = rawFlag === true || rawFlag === 1 || rawFlag === '1' || rawFlag === 'true';
+    const ids = (Array.isArray(body.ids) ? body.ids : [])
+      .map((n) => Number(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    let rt = null;
+    let ref = null;
+    if (!ids.length) {
+      rt = core.normalizeResourceType(body.resourceType ?? body.resource_type, ALLOWED);
+      ref = core.normalizeResourceRef(body.resourceRef ?? body.resource_ref);
+      if (!rt || !ref) {
+        return res.status(400).json({
+          error: 'Aucun identifiant fourni (ou indiquez resourceType + resourceRef)',
+        });
+      }
+    }
+    const bulk = await linksBulk.setLinksGating(
+      { execute },
+      { product: 'gl', isGating, ids, resourceType: rt, resourceRef: ref },
+    );
+    if (!bulk.ok) return res.status(400).json({ error: bulk.error });
+    return res.json({ success: true, is_gating: isGating ? 1 : 0, updated: bulk.updated });
   }),
 );
 

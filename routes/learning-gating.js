@@ -17,6 +17,28 @@ const { FM_MARKABLE } = require('../lib/learningGatingRuntime');
 const router = express.Router();
 const db = { queryAll, queryOne };
 
+/** Références déjà validées par l'utilisateur pour un type (lecture, observation, terme appris). */
+async function loadFmDoneRefs(resourceType, userId) {
+  const uid = String(userId);
+  let rows = [];
+  if (resourceType === 'tutorial') {
+    rows = await queryAll('SELECT tutorial_id AS ref FROM user_tutorial_reads WHERE user_id = ?', [
+      uid,
+    ]);
+  } else if (resourceType === 'plant') {
+    rows = await queryAll(
+      'SELECT DISTINCT plant_id AS ref FROM user_plant_observation_events WHERE user_id = ?',
+      [uid],
+    );
+  } else if (resourceType === 'glossary') {
+    rows = await queryAll(
+      "SELECT target_code AS ref FROM learning_acknowledgements WHERE user_id = ? AND target_type = 'glossary'",
+      [uid],
+    );
+  }
+  return new Set(rows.map((r) => String(r.ref)));
+}
+
 /** GET /api/learning/gating/challenge?resourceType=&resourceRef= */
 router.get(
   '/challenge',
@@ -60,11 +82,15 @@ router.get(
     const userId = req.auth?.userId;
     if (!userId) return res.status(403).json({ error: 'Profil utilisateur invalide' });
 
+    // Une ressource déjà validée n'a plus rien à conditionner (parité avec G&L, audit A8) :
+    // le résumé le dit lui-même au lieu de laisser chaque écran le déduire.
+    const done = await loadFmDoneRefs(resourceType, userId);
     const summary = await buildGatingSummary(db, {
       product: 'fm',
       resourceType,
       rawRefs: req.query.resourceRefs,
       userId,
+      isAlreadyDone: async (_type, ref) => done.has(String(ref)),
     });
     return res.json(summary);
   }),

@@ -71,8 +71,10 @@ describe('formatRemaining', () => {
   test('un blocage expiré le dit', () => {
     expect(formatRemaining({ expired: true, remaining_days: 0 })).toBe('Expiré');
   });
-  test('jamais « 0 jour » sur un blocage actif', () => {
-    expect(formatRemaining({ remaining_days: 0 })).toBe('encore 1 jour');
+  test('jamais « 0 jour » sur un blocage actif ; heures et minutes du serveur', () => {
+    expect(formatRemaining({ remaining_days: 0 })).toBe('encore quelques minutes');
+    expect(formatRemaining({ remaining_label: '5 h', remaining_days: 1 })).toBe('encore 5 h');
+    expect(formatRemaining({ remaining_hours: 30, remaining_days: 2 })).toBe('encore 1 j 6 h');
   });
 });
 

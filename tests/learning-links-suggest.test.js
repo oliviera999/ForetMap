@@ -196,6 +196,9 @@ test('POST /suggest avec apply insère en statut « suggested »', async () => {
   assert.ok(link, 'le lien doit exister après application');
   // « suggested » : sans effet sur les élèves tant qu'un professeur n'a pas approuvé.
   assert.equal(link.status, 'suggested');
+  // Et non bloquant (lot 4, B2) : approuver ne conditionne pas ; seul le geste explicite
+  // « rendre bloquant » le fait.
+  assert.equal(Number(link.is_gating), 0);
 });
 
 test('POST /suggest est idempotent : un couple déjà lié n’est pas re-proposé', async () => {

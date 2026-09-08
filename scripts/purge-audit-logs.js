@@ -81,7 +81,37 @@ const TARGETS = [
     // DATE `YYYY-MM-DD` dans un VARCHAR : comparaison lexicographique valide.
     where: "harvested_at < DATE_FORMAT(CURDATE() - INTERVAL ? DAY, '%Y-%m-%d')",
   },
+  // --- Conditionnement des lectures (docs/AUDIT_VALIDATION_QUIZ_2026-09.md, C6) ---------------
+  // Trois tables croissaient sans purge. Cette purge est bien celle du MONOREPO : elle vise
+  // déjà `gl_game_events`, et couvre ici les deux produits.
+  {
+    // Jetons de présentation consommés (anti-rejeu, migration 193/197) : un jeton vit 15 min,
+    // sa trace n'a plus d'utilité passé un jour.
+    table: 'gl_qcm_presentation_uses',
+    retention: 'transient',
+    where: 'used_at < (NOW() - INTERVAL ? DAY)',
+  },
+  {
+    // Lignes de verrou échues ou de simple comptage (sentinelle 1970) que plus rien ne
+    // relit depuis longtemps. Un verrou qui court (`locked_until` futur) n'est jamais touché.
+    table: 'resource_gating_cooldowns',
+    retention: 'history',
+    where: 'locked_until < NOW() AND updated_at < (NOW() - INTERVAL ? DAY)',
+  },
+  {
+    table: 'gl_resource_gating_cooldowns',
+    retention: 'history',
+    where: 'locked_until < NOW() AND updated_at < (NOW() - INTERVAL ? DAY)',
+  },
 ];
+
+/** Rétention des traces transitoires (jetons consommés) : fixe, non paramétrable. */
+const TRANSIENT_RETENTION_DAYS = 1;
+
+function retentionDaysFor(target, { days, historyDays }) {
+  if (target.retention === 'transient') return TRANSIENT_RETENTION_DAYS;
+  return target.retention === 'history' ? historyDays : days;
+}
 
 function assertRetention(label, days) {
   if (!Number.isFinite(days) || days < MIN_RETENTION_DAYS) {
@@ -107,7 +137,7 @@ async function main() {
   try {
     let totalDeleted = 0;
     for (const target of TARGETS) {
-      const retentionDays = target.retention === 'history' ? historyDays : days;
+      const retentionDays = retentionDaysFor(target, { days, historyDays });
       const row = await queryOne(
         `SELECT COUNT(*) AS n FROM ${target.table} WHERE ${target.where}`,
         [retentionDays],
@@ -159,4 +189,6 @@ module.exports = {
   parseArgs,
   TARGETS,
   assertRetention,
+  TRANSIENT_RETENTION_DAYS,
+  retentionDaysFor,
 };
