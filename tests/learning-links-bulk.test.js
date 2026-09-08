@@ -110,3 +110,62 @@ test('review : le lot est borné (garde-fou de charge)', async () => {
   await bulk.reviewSuggestedLinks(db, { product: 'fm', status: 'approved', ids });
   assert.equal(calls[0].params.length, bulk.BULK_MAX + 1, 'statut + BULK_MAX identifiants');
 });
+
+// ---------------------------------------------------------------------------
+// setLinksGating — « rendre bloquant » en lot (docs/AUDIT_VALIDATION_QUIZ_2026-09.md, lot 4).
+// ---------------------------------------------------------------------------
+
+test('gating par ressource : ne touche que les liens APPROUVÉS, et seulement ceux qui changent', async () => {
+  const { calls, db } = recorder(2);
+  const res = await bulk.setLinksGating(db, {
+    product: 'fm',
+    isGating: true,
+    resourceType: 'tutorial',
+    resourceRef: '12',
+  });
+  assert.equal(res.ok, true);
+  assert.equal(res.updated, 2);
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].sql, /resource_question_links/);
+  assert.match(calls[0].sql, /status = 'approved'/);
+  assert.deepEqual(calls[0].params, [1, 'tutorial', '12', 1]);
+});
+
+test('gating par ressource : refuse de rendre bloquant un type non validable', async () => {
+  const { calls, db } = recorder(1);
+  const res = await bulk.setLinksGating(db, {
+    product: 'fm',
+    isGating: true,
+    resourceType: 'feuillet',
+    resourceRef: 'F1',
+  });
+  assert.equal(res.ok, false);
+  assert.match(res.error, /validation de lecture/);
+  assert.equal(calls.length, 0, 'aucune écriture');
+});
+
+test('gating par identifiants : le type validable est vérifié en SQL, ligne par ligne', async () => {
+  const { calls, db } = recorder(3);
+  const res = await bulk.setLinksGating(db, { product: 'gl', isGating: true, ids: [1, 2, 3] });
+  assert.equal(res.updated, 3);
+  assert.match(calls[0].sql, /gl_resource_question_links/);
+  assert.match(calls[0].sql, /resource_type IN \(/, 'garde-fou des types validables');
+  assert.deepEqual(calls[0].params.slice(0, 4), [1, 1, 2, 3]);
+});
+
+test('gating par identifiants, vers non bloquant : aucun garde-fou de type nécessaire', async () => {
+  const { calls, db } = recorder(1);
+  await bulk.setLinksGating(db, { product: 'fm', isGating: false, ids: [7] });
+  assert.doesNotMatch(calls[0].sql, /resource_type IN/);
+  assert.deepEqual(calls[0].params, [0, 7]);
+});
+
+test('gating : le lot est borné et les entrées vides n’écrivent rien', async () => {
+  const { calls, db } = recorder(0);
+  const many = Array.from({ length: bulk.BULK_MAX + 50 }, (_, i) => i + 1);
+  await bulk.setLinksGating(db, { product: 'fm', isGating: true, ids: many });
+  assert.equal(calls[0].params.filter((p) => typeof p === 'number').length - 1, bulk.BULK_MAX);
+  const empty = await bulk.setLinksGating(db, { product: 'fm', isGating: true });
+  assert.equal(empty.updated, 0);
+  assert.equal(calls.length, 1);
+});

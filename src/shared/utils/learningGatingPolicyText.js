@@ -2,6 +2,7 @@
  * Textes d'aide pour les politiques de conditionnement (prof / admin).
  * Miroir ESM de lib/shared/gatingPolicyLayersCore.js et resourceQuestionGatingCore.js.
  */
+import { clampCooldownHours, formatHoursLabel } from './cooldownDuration.js';
 
 function clampN(value, fallback = 1) {
   const n = Number(value);
@@ -54,6 +55,54 @@ export const COOLDOWN_SCOPE_LABELS = {
   question: 'Question seule ratée',
 };
 
+/** Sévérité du verrou : libellé court + phrase d'aide, pour les trois écrans qui la règlent. */
+export const LOCK_MODE_LABELS = {
+  advisory: 'Souple',
+  flow: 'Normale (recommandée)',
+  strict: 'Stricte',
+};
+
+export const LOCK_MODE_HELP = {
+  advisory:
+    'Le verrou ne vaut que dans la fenêtre de validation. L’élève peut réviser la même question dans le Quiz libre.',
+  flow: 'Une question posée pour une fiche se répond dans cette fiche. Le Quiz libre reste libre et ses bonnes réponses comptent.',
+  strict:
+    'Les questions bloquantes de ce type ne se jouent que dans la fiche : elles sont retirées du Quiz libre et chaque erreur compte.',
+};
+
+export const LOCK_MODE_OPTIONS = ['advisory', 'flow', 'strict'].map((value) => ({
+  value,
+  label: LOCK_MODE_LABELS[value],
+  help: LOCK_MODE_HELP[value],
+}));
+
+/** Délais proposés dans les listes déroulantes (heures), du plus court au plus long. */
+export const RETRY_HOUR_OPTIONS = [0, 1, 2, 6, 12, 24, 48, 72, 168];
+
+/** « aucun délai », « 6 h », « 2 jours »… — le même texte partout. */
+export function retryHoursLabel(hours) {
+  const h = clampCooldownHours(hours, 0);
+  return h <= 0 ? 'aucun délai (réessai immédiat)' : formatHoursLabel(h);
+}
+
+/** Délai en heures d'un objet réglages/politique, ancien champ en jours accepté (× 24). */
+export function readRetryHours(source, fallback = 6) {
+  if (!source) return fallback;
+  if (source.retryCooldownHours != null && source.retryCooldownHours !== '') {
+    return clampCooldownHours(source.retryCooldownHours, fallback);
+  }
+  if (source.retry_cooldown_hours != null && source.retry_cooldown_hours !== '') {
+    return clampCooldownHours(source.retry_cooldown_hours, fallback);
+  }
+  if (source.retryCooldownDays != null && source.retryCooldownDays !== '') {
+    return clampCooldownHours(Number(source.retryCooldownDays) * 24, fallback);
+  }
+  if (source.retry_cooldown_days != null && source.retry_cooldown_days !== '') {
+    return clampCooldownHours(Number(source.retry_cooldown_days) * 24, fallback);
+  }
+  return fallback;
+}
+
 export const SOURCE_LABELS = {
   site: 'site',
   resource: 'fiche',
@@ -87,8 +136,10 @@ export function describeEffectiveGatingPolicy({
   gatingCount = 0,
   allowedWrongAttempts = 0,
   maxQuestionsPerSession = 3,
-  retryCooldownDays = 3,
+  retryCooldownHours = null,
+  retryCooldownDays = null,
   cooldownScope = 'resource',
+  lockMode = 'flow',
 } = {}) {
   const base = describeGatingPolicy({ mode, requiredCorrect, gatingCount });
   if (mode === 'off' || gatingCount === 0) return base;
@@ -102,14 +153,17 @@ export function describeEffectiveGatingPolicy({
   );
   const maxS = Math.max(1, Math.min(10, Number(maxQuestionsPerSession) || 3));
   parts.push(`jusqu'à ${maxS} question(s) par session`);
-  const days = Math.max(0, Number(retryCooldownDays) || 0);
+  const hours = readRetryHours({ retryCooldownHours, retryCooldownDays }, 6);
   const scopeLabel =
     cooldownScope === 'question' ? 'verrou sur la question ratée' : 'verrou sur toute la fiche';
-  if (days <= 0) {
-    parts.push('nouvelle tentative immédiate après verrou');
+  if (hours <= 0) {
+    parts.push('nouvelle tentative immédiate après une erreur');
   } else {
-    parts.push(`verrou ${days} jour${days > 1 ? 's' : ''} (${scopeLabel})`);
+    parts.push(`verrou ${formatHoursLabel(hours)} (${scopeLabel})`);
   }
+  const lm = String(lockMode || 'flow').toLowerCase();
+  if (lm === 'strict') parts.push('questions réservées à la validation');
+  else if (lm === 'advisory') parts.push('verrou souple');
   return `${parts.join(' · ')}.`;
 }
 

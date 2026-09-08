@@ -239,3 +239,45 @@ describe('DialogShell', () => {
     expect(ref.current).toBe(screen.getByRole('dialog'));
   });
 });
+
+// D1 (docs/AUDIT_VALIDATION_QUIZ_2026-09.md) : les bornes du piège de focus sont recalculées à
+// chaque Tab — le contenu d'une fenêtre de contrôle change (question → réponse → confirmation).
+describe('DialogShell — piège de focus vivant', () => {
+  test('Tab depuis un élément ajouté après le montage revient sur « Fermer »', () => {
+    const { rerender } = render(
+      <DialogShell ariaLabel="Boîte" showCloseButton onClose={() => {}}>
+        <input aria-label="Premier" />
+      </DialogShell>,
+    );
+    // Contenu remplacé après le montage : un bouton apparaît en dernière position.
+    rerender(
+      <DialogShell ariaLabel="Boîte" showCloseButton onClose={() => {}}>
+        <input aria-label="Premier" />
+        <button type="button">Valider ma réponse</button>
+      </DialogShell>,
+    );
+    const last = screen.getByRole('button', { name: 'Valider ma réponse' });
+    last.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    const focusables = screen.getByRole('dialog').querySelectorAll('button, input');
+    expect(document.activeElement).toBe(focusables[0]);
+  });
+
+  test('Shift+Tab depuis le premier élément va sur le dernier, même apparu plus tard', () => {
+    const { rerender } = render(
+      <DialogShell ariaLabel="Boîte" showCloseButton onClose={() => {}}>
+        <input aria-label="Premier" />
+      </DialogShell>,
+    );
+    rerender(
+      <DialogShell ariaLabel="Boîte" showCloseButton onClose={() => {}}>
+        <input aria-label="Premier" />
+        <button type="button">Dernier</button>
+      </DialogShell>,
+    );
+    const focusables = screen.getByRole('dialog').querySelectorAll('button, input');
+    focusables[0].focus();
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Dernier' }));
+  });
+});

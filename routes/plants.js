@@ -3,6 +3,7 @@ const http = require('http');
 const https = require('https');
 const crypto = require('crypto');
 const { pool, queryAll, queryOne, execute, noteExternalDataWrite } = require('../database');
+const { purgeResourceGatingRows } = require('../lib/learningGatingOrphans');
 const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const { requirePermission, requireAuth } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
@@ -694,6 +695,12 @@ router.delete(
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
     if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
     await execute('DELETE FROM plants WHERE id = ?', [req.params.id]);
+    // Liens, politique et verrous du conditionnement désignent la plante par référence
+    // polymorphe (pas de clé étrangère) : sans cette purge, ils survivaient à la fiche (C7).
+    await purgeResourceGatingRows(
+      { execute },
+      { product: 'fm', resourceType: 'plant', resourceRef: String(req.params.id) },
+    );
     invalidatePlantsListCache();
     emitGardenChanged({ reason: 'delete_plant', plantId: req.params.id });
     res.json({ success: true });

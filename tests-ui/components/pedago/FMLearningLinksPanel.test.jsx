@@ -320,3 +320,79 @@ describe('FMLearningLinksPanel', () => {
     expect(await screen.findByText('Permission insuffisante')).toBeInTheDocument();
   });
 });
+
+// Lot 4 (docs/AUDIT_VALIDATION_QUIZ_2026-09.md) : approuver ne conditionne pas ; rendre
+// bloquant est un geste explicite, confirmé avec la politique effective sous les yeux.
+describe('FMLearningLinksPanel — rendre bloquantes les questions approuvées', () => {
+  const approvedNotGating = {
+    links: [
+      { ...LINKS.links[0], is_gating: 0 },
+      {
+        id: 11,
+        resource_type: 'tutorial',
+        resource_ref: '1',
+        question_code: 'QF0002',
+        is_gating: 0,
+        status: 'approved',
+        origin: 'auto',
+        confidence: 0.8,
+        note: null,
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    apiMock.mockReset();
+    installApi({
+      handler: (path, method) => {
+        if (path === '/api/learning-links/gating' && method === 'POST') {
+          return { success: true, is_gating: 1, updated: 2 };
+        }
+        if (path.startsWith('/api/learning-links?')) return approvedNotGating;
+        return undefined;
+      },
+    });
+  });
+
+  test('propose le geste, dit la politique effective, puis appelle la route en lot', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<FMLearningLinksPanel />);
+    const button = await screen.findByRole('button', {
+      name: /Rendre bloquantes les 2 question\(s\) approuvée\(s\)/,
+    });
+    fireEvent.click(button);
+    await waitFor(() => {
+      expect(apiMock).toHaveBeenCalledWith('/api/learning-links/gating', 'POST', {
+        resourceType: 'tutorial',
+        resourceRef: '1',
+        is_gating: true,
+      });
+    });
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(confirmSpy.mock.calls[0][0]).toMatch(/Ensuite :/);
+    confirmSpy.mockRestore();
+  });
+
+  test('annuler la confirmation n’écrit rien', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    render(<FMLearningLinksPanel />);
+    const button = await screen.findByRole('button', {
+      name: /Rendre bloquantes les 2 question\(s\)/,
+    });
+    fireEvent.click(button);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(
+      apiMock.mock.calls.some(
+        ([path, method]) => path === '/api/learning-links/gating' && method === 'POST',
+      ),
+    ).toBe(false);
+    confirmSpy.mockRestore();
+  });
+
+  test('le bouton n’apparaît pas quand tout est déjà bloquant', async () => {
+    installApi();
+    render(<FMLearningLinksPanel />);
+    await screen.findByLabelText('Bloquante pour QF0001');
+    expect(screen.queryByRole('button', { name: /Rendre bloquantes/ })).toBeNull();
+  });
+});

@@ -1,6 +1,12 @@
 /**
  * Helpers API pour le challenge gating à l'accusé (ForetMap et GL).
  */
+import {
+  clampCooldownHours,
+  cooldownRemainingLabel,
+  cooldownRetryHours,
+  formatHoursLabel,
+} from './cooldownDuration.js';
 
 export function createFmGatingHandlers(api) {
   return {
@@ -11,8 +17,10 @@ export function createFmGatingHandlers(api) {
       });
       return api(`/api/learning/gating/challenge?${params.toString()}`);
     },
-    presentQuestion(code) {
-      return api(`/api/quiz/questions/${encodeURIComponent(code)}/present`);
+    presentQuestion(code, _dataset = null, resource = null) {
+      return api(
+        `/api/quiz/questions/${encodeURIComponent(code)}/present${presentContextQuery(resource)}`,
+      );
     },
     answerQuestion(code, _dataset, presentationToken, choiceId, resource = null) {
       return api(`/api/quiz/questions/${encodeURIComponent(code)}/answer`, 'POST', {
@@ -24,7 +32,20 @@ export function createFmGatingHandlers(api) {
   };
 }
 
-/** Contexte ressource transmis avec la réponse pour activer le verrou de re-tentative (cooldown). */
+/**
+ * Contexte ressource demandé à la PRÉSENTATION : le serveur le grave dans le jeton, et c'est ce
+ * jeton — pas le corps de la réponse — qui fait valoir le verrou en sévérité normale ou stricte.
+ */
+function presentContextQuery(resource) {
+  if (!resource || !resource.resourceType || resource.resourceRef == null) return '';
+  const params = new URLSearchParams({
+    resourceType: String(resource.resourceType),
+    resourceRef: String(resource.resourceRef),
+  });
+  return `?${params.toString()}`;
+}
+
+/** Contexte ressource transmis avec la réponse (honoré seulement en sévérité souple). */
 function resourceContextBody(resource) {
   if (!resource || !resource.resourceType || resource.resourceRef == null) return {};
   return {
@@ -45,8 +66,10 @@ export function createGlGatingHandlers(apiGL) {
       });
       return apiGL(`/api/gl/learning/gating/challenge?${params.toString()}`);
     },
-    presentQuestion(code, dataset = 'qcm') {
-      return apiGL(`${apiBase(dataset)}/questions/${encodeURIComponent(code)}/present`);
+    presentQuestion(code, dataset = 'qcm', resource = null) {
+      return apiGL(
+        `${apiBase(dataset)}/questions/${encodeURIComponent(code)}/present${presentContextQuery(resource)}`,
+      );
     },
     answerQuestion(code, dataset = 'qcm', presentationToken, choiceId, resource = null) {
       return apiGL(`${apiBase(dataset)}/questions/${encodeURIComponent(code)}/answer`, 'POST', {
@@ -69,12 +92,39 @@ export function isCooldownLocked(cooldown) {
  * @param {string} [itemTitle]
  */
 export function buildCooldownLockMessage(cooldown, itemTitle = '') {
-  const days = Math.max(1, Number(cooldown?.remaining_days) || 1);
+  // Temps restant calculé par le serveur (« 5 h », « 1 j 2 h », « 40 min ») ; repli sur
+  // l'ancien champ en jours pour un serveur antérieur.
+  const remaining = cooldownRemainingLabel(cooldown) || 'quelques minutes';
   const label = itemTitle ? `« ${itemTitle} »` : 'cette ressource';
-  const dayWord = days === 1 ? '1 jour' : `${days} jours`;
+  if (isQuestionScopedLock(cooldown)) {
+    // Portée « question seule » : la fiche n'est bloquée que parce que plus aucune question
+    // n'est posable ; le délai est celui de la question qui se libère en premier.
+    return (
+      `Une question ratée est encore bloquée, et il n'en reste aucune autre à passer. ` +
+      `Tu pourras réessayer de valider ${label} dans ${remaining}.`
+    );
+  }
   return (
     `Une erreur a été commise sur le contrôle de compréhension. ` +
-    `Tu pourras réessayer de valider ${label} dans ${dayWord}.`
+    `Tu pourras réessayer de valider ${label} dans ${remaining}.`
+  );
+}
+
+/** Le verrou ne porte-t-il que sur une question (portée « question seule ») ? */
+export function isQuestionScopedLock(cooldown) {
+  return !!cooldown && String(cooldown.scope || '') === 'question';
+}
+
+/**
+ * Message affiché juste après une erreur qui n'a bloqué QUE la question ratée : l'élève peut
+ * continuer avec les autres questions de la fiche.
+ * @param {object} cooldown bloc renvoyé par `…/answer`
+ */
+export function buildQuestionLockMessage(cooldown) {
+  const remaining = cooldownRemainingLabel(cooldown) || 'quelques minutes';
+  return (
+    `Cette question est bloquée pendant ${remaining}. ` +
+    `Tu peux continuer avec les autres questions de la fiche.`
   );
 }
 
@@ -89,7 +139,8 @@ export function buildCooldownLockMessage(cooldown, itemTitle = '') {
 export function pendingChallengeQuestions(challenge) {
   if (!challenge?.required) return [];
   const list = Array.isArray(challenge.questions) ? challenge.questions : [];
-  const notCorrect = list.filter((q) => !q.already_correct);
+  // Une question verrouillée (portée « question seule ») n'est pas posable maintenant.
+  const notCorrect = list.filter((q) => !q.already_correct && !q.locked);
   // `ask_count` = ce que le serveur accepte de poser MAINTENANT (plafond par
   // session appliqué) ; `pending_count` = ce qu'il reste au total. Un serveur
   // antérieur n'envoie pas `ask_count` : on retombe alors sur `pending_count`.
@@ -104,23 +155,25 @@ export function pendingChallengeQuestions(challenge) {
  * Texte d'introduction avant le quiz gating (une ou plusieurs questions).
  *
  * L'annonce de ce qui suit une erreur dépend du délai de nouvelle tentative : avec un délai
- * (3 jours par défaut), la PREMIÈRE mauvaise réponse verrouille la ressource — promettre
+ * (6 h par défaut), la PREMIÈRE mauvaise réponse verrouille la ressource — promettre
  * « tu pourras réessayer » serait faux (audit F6, 2026-08). Sans délai (0), le réessai
  * immédiat est bien possible.
  * @param {number} pendingCount
  * @param {string} [itemTitle]
- * @param {number} [retryDays] `cooldown.retry_days` renvoyé par le challenge (0 = pas de verrou)
+ * @param {number|object} [retry] délai en HEURES, ou le challenge / bloc `cooldown` renvoyé par
+ *   le serveur (`retry_cooldown_hours`, `retry_hours`, ancien `retry_days`)
  */
-export function buildGatingQuizIntroMessage(pendingCount, itemTitle = '', retryDays = 0) {
+export function buildGatingQuizIntroMessage(pendingCount, itemTitle = '', retry = 0) {
   const n = Math.max(0, Number(pendingCount) || 0);
   if (n <= 0) return '';
   const label = itemTitle ? `« ${itemTitle} »` : 'ce contenu';
   const questionWord = n === 1 ? 'une question' : `${n} questions`;
   const verb = n === 1 ? 'sera posée' : 'seront posées';
-  const days = Math.max(0, Math.floor(Number(retryDays) || 0));
+  const hours =
+    retry && typeof retry === 'object' ? cooldownRetryHours(retry) : clampCooldownHours(retry, 0);
   const consequence =
-    days > 0
-      ? `Attention : une erreur bloquera la validation pendant ${days === 1 ? '1 jour' : `${days} jours`}. ` +
+    hours > 0
+      ? `Attention : une erreur bloquera la validation pendant ${formatHoursLabel(hours)}. ` +
         `Tu peux abandonner à tout moment sans rien risquer.`
       : `Tu pourras réessayer en cas d'erreur et abandonner à tout moment.`;
   return (
@@ -176,23 +229,46 @@ export function buildGatingRules(challenge) {
   }
 
   const tolerance = Math.max(0, Number(challenge.allowed_wrong_attempts) || 0);
-  const days = Math.max(
-    0,
-    Number(challenge.retry_cooldown_days ?? challenge.cooldown?.retry_days) || 0,
-  );
-  if (days <= 0) {
+  const hours = cooldownRetryHours(challenge);
+  const lockLabel = formatHoursLabel(hours);
+  if (hours <= 0) {
     rules.push('En cas d’erreur, tu peux réessayer tout de suite.');
   } else if (tolerance <= 0) {
-    rules.push(
-      `Une seule erreur et la validation sera bloquée ${days === 1 ? '1 jour' : `${days} jours`}.`,
-    );
+    rules.push(`Une seule erreur et la validation sera bloquée ${lockLabel}.`);
   } else {
+    // Le compteur de la série en cours est renvoyé par le serveur même hors verrou (A6) :
+    // un élève qui a déjà consommé une faute ne relit plus la tolérance neuve.
     const already = Math.max(0, Number(challenge.cooldown?.wrong_attempts) || 0);
     const left = Math.max(0, tolerance - already);
+    if (left === 0) {
+      rules.push(`Plus aucune erreur permise : la prochaine bloquera la validation ${lockLabel}.`);
+    } else {
+      rules.push(
+        left === 1
+          ? `Il te reste 1 erreur possible ; au-delà, la validation sera bloquée ${lockLabel}.`
+          : `Tu as droit à ${left} erreurs ; au-delà, la validation sera bloquée ${lockLabel}.`,
+      );
+    }
+  }
+  if (String(challenge.cooldown_scope || '').toLowerCase() === 'question' && hours > 0) {
     rules.push(
-      left === 1
-        ? `Il te reste 1 erreur possible ; au-delà, la validation sera bloquée ${days === 1 ? '1 jour' : `${days} jours`}.`
-        : `Tu as droit à ${left} erreurs ; au-delà, la validation sera bloquée ${days === 1 ? '1 jour' : `${days} jours`}.`,
+      'Une erreur ne bloque que la question ratée : tu peux continuer avec les autres questions.',
+    );
+  }
+  const lockedNow = Array.isArray(challenge.cooldown?.locked_questions)
+    ? challenge.cooldown.locked_questions.length
+    : 0;
+  if (lockedNow > 0 && !challenge.cooldown?.locked) {
+    rules.push(
+      lockedNow === 1
+        ? 'Une question ratée est encore bloquée ; elle te sera reposée plus tard.'
+        : `${lockedNow} questions ratées sont encore bloquées ; elles te seront reposées plus tard.`,
+    );
+  }
+  const lockMode = String(challenge.lock_mode || '').toLowerCase();
+  if (lockMode === 'strict') {
+    rules.push(
+      'Ces questions ne se jouent qu’ici : elles ne sont pas proposées dans le Quiz libre.',
     );
   }
 

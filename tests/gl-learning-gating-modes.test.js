@@ -45,7 +45,7 @@ const site = (over = {}) =>
     granularity: 'player',
     defaultMode: 'any',
     defaultRequiredCorrect: 1,
-    retryCooldownDays: 0, // pas de verrou : ces scénarios n'échouent jamais volontairement
+    retryCooldownHours: 0, // pas de verrou : ces scénarios n'échouent jamais volontairement
     ...over,
   });
 
@@ -89,8 +89,8 @@ before(async () => {
   for (let i = 0; i < codes.length; i += 1) {
     await execute(
       `INSERT IGNORE INTO gl_qcm_questions
-        (question_code, categorie_slug, numero_dans_categorie, question, choix_a, choix_b, choix_c, reponse_correcte, niveau)
-       VALUES (?, ?, ?, 'Q ?', 'A', 'B', 'C', 'A', 'college')`,
+        (question_code, biome_slug, categorie_slug, numero_dans_categorie, question, choix_a, choix_b, choix_c, reponse_correcte, niveau)
+       VALUES (?, 'savane', ?, ?, 'Q ?', 'A', 'B', 'C', 'A', 'college')`,
       [codes[i], catSlug, i + 1],
     );
   }

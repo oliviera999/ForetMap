@@ -93,6 +93,13 @@ const {
 } = require('../../lib/glQcmLoreCrud');
 const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../lib/qcmChoices');
 const { consumePresentationJti } = require('../../lib/qcmPresentationUse');
+const {
+  resolvePresentContext,
+  assertPresentAllowed,
+  resolveAnswerContext,
+  assertQuestionOpen,
+  listStrictGatingQuestionCodes,
+} = require('../../lib/learningGatingLockMode');
 const { buildLorePresentation } = require('../../lib/glQcmLoreQuestionQuery');
 const { previewLoreQuestionPool } = require('../../lib/glMarkerLoreQuestionPool');
 const { normalizeLoreQuestionPool } = require('../../lib/glMarkerEventConfig');
@@ -1413,6 +1420,7 @@ router.get(
       scopeColumn: 'chapitre_slug',
       scopeSlugs: chapitreSlugs,
       emptyScopeError: 'chapitreSlug ou chapitreSlugs requis',
+      excludeCodes: await listStrictGatingQuestionCodes({ queryAll, queryOne }, 'gl'),
     });
   }),
 );
@@ -1428,11 +1436,43 @@ router.get(
     const row = await loadActiveLoreQuestionRow(code);
     if (!row) return res.status(404).json({ error: 'Question introuvable' });
 
+    // Contexte de validation gravé dans le jeton ; question réservée (`strict`) refusée hors flux.
+    const db = { queryAll, queryOne };
+    const context = await resolvePresentContext(db, {
+      product: 'gl',
+      query: req.query,
+      questionCode: code,
+    });
+    if (context.error) return res.status(context.status || 400).json({ error: context.error });
+    const allowed = await assertPresentAllowed(db, {
+      product: 'gl',
+      questionCode: code,
+      resource: context.resource,
+    });
+    if (!allowed.ok) {
+      return res
+        .status(allowed.status || 403)
+        .json({ error: allowed.error, reserved_for: allowed.reserved_for });
+    }
+    // Question verrouillée pour ce lecteur dans le flux de validation : 403 + état du verrou.
+    if (context.resource) {
+      const open = await assertQuestionOpen(db, {
+        product: 'gl',
+        glAuth: req.glAuth,
+        resource: context.resource,
+        questionCode: code,
+      });
+      if (!open.ok)
+        return res.status(open.status).json({ error: open.error, cooldown: open.cooldown });
+    }
+
     const glossaryByKey = await loadLoreGlossaryLookupForQcm();
     const loreGlossaryTerms = await enrichLoreQuestionWithGlossary(row, glossaryByKey);
 
     try {
-      const presentation = buildLorePresentation(row, loreGlossaryTerms);
+      const presentation = buildLorePresentation(row, loreGlossaryTerms, {
+        resource: context.resource,
+      });
       return res.json(presentation);
     } catch (err) {
       return res.status(400).json({ error: err.message || 'Présentation impossible' });
@@ -1457,6 +1497,16 @@ router.post(
         code,
         req.body?.choiceId,
       );
+      // Question verrouillée entre-temps : refus AVANT de consommer le jeton et d'enregistrer.
+      if (result.resource) {
+        const open = await assertQuestionOpen(
+          { queryAll, queryOne },
+          { product: 'gl', glAuth: req.glAuth, resource: result.resource, questionCode: code },
+        );
+        if (!open.ok) {
+          return res.status(open.status).json({ error: open.error, cooldown: open.cooldown });
+        }
+      }
       // Même filet que le QCM biomes hors partie : sans consommation, un seul jeton
       // permettait d'essayer tous les choiceId jusqu'à `correct:true` (et d'écrire une
       // tentative juste qui débloque le conditionnement). La PK (jti) arbitre l'unicité
@@ -1477,14 +1527,21 @@ router.post(
         questionCode: code,
         isCorrect: result.correct,
       });
-      // Contexte ressource present uniquement depuis le flux « Marquer comme acquis » : verrou sur erreur.
-      const cooldown = await registerGlCooldownOnWrongIfGating(dbHandle, {
-        glAuth: req.glAuth,
-        resourceType: req.body?.resourceType,
-        resourceRef: req.body?.resourceRef,
-        questionCode: code,
-        isCorrect: result.correct,
+      // Contexte ressource : celui du JETON ; le corps n'est honoré qu'en sévérité `advisory`.
+      const context = await resolveAnswerContext(dbHandle, {
+        product: 'gl',
+        tokenResource: result.resource,
+        bodyResource: req.body,
       });
+      const cooldown = context
+        ? await registerGlCooldownOnWrongIfGating(dbHandle, {
+            glAuth: req.glAuth,
+            resourceType: context.type,
+            resourceRef: context.ref,
+            questionCode: code,
+            isCorrect: result.correct,
+          })
+        : null;
       return res.json({
         correct: result.correct,
         feedback: resolveQcmAnswerFeedback(row, result),

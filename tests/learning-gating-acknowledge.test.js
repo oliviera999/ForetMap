@@ -114,7 +114,7 @@ after(async () => {
     );
   }
   await setSetting('learning.gating.allowed_wrong_attempts', 0, {}).catch(() => {});
-  await setSetting('learning.gating.retry_cooldown_days', 3, {}).catch(() => {});
+  await setSetting('learning.gating.retry_cooldown_hours', 6, {}).catch(() => {});
 });
 
 test('GL — gating ON : tentative enregistrée sans auto-marquage', async () => {
@@ -242,7 +242,7 @@ test('FM — l’écriture du verrou honore la tolérance de la fiche, pas celle
   // Avant le correctif, la 1re faute verrouillait quand même (réglages site seuls).
   await setSetting('learning.gating.enabled', true, {});
   await setSetting('learning.gating.allowed_wrong_attempts', 0, {});
-  await setSetting('learning.gating.retry_cooldown_days', 3, {});
+  await setSetting('learning.gating.retry_cooldown_hours', 72, {});
   await execute(
     `INSERT INTO resource_gating_policy
       (resource_type, resource_ref, mode, required_correct, enabled, allowed_wrong_attempts)
@@ -286,7 +286,7 @@ test('FM — l’écriture du verrou honore la tolérance de la fiche, pas celle
 test('FM — le délai de verrou de la fiche s’applique même si le site est à 0', async () => {
   await setSetting('learning.gating.enabled', true, {});
   await setSetting('learning.gating.allowed_wrong_attempts', 0, {});
-  await setSetting('learning.gating.retry_cooldown_days', 0, {});
+  await setSetting('learning.gating.retry_cooldown_hours', 0, {});
   await execute(
     `INSERT INTO resource_gating_policy
       (resource_type, resource_ref, mode, required_correct, enabled,
@@ -306,12 +306,13 @@ test('FM — le délai de verrou de la fiche s’applique même si le site est �
   });
   assert.equal(res?.locked, true, 'le délai de la fiche (3 j) doit poser le verrou malgré site=0');
   assert.equal(res?.retry_days, 3);
+  assert.equal(res?.retry_hours, 72, 'ancienne colonne en jours reprise en heures');
 });
 
 test('FM — préréglage par type (resource_ref=*) appliqué à l’écriture du verrou', async () => {
   await setSetting('learning.gating.enabled', true, {});
   await setSetting('learning.gating.allowed_wrong_attempts', 0, {});
-  await setSetting('learning.gating.retry_cooldown_days', 3, {});
+  await setSetting('learning.gating.retry_cooldown_hours', 72, {});
   await execute(
     `DELETE FROM resource_gating_policy WHERE resource_type = 'tutorial' AND resource_ref IN (?, '*')`,
     [String(tutorialId)],

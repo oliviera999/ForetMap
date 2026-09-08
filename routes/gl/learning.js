@@ -372,7 +372,9 @@ router.post(
       return res.status(400).json({ error: 'Type de ressource non marquable' });
     }
 
-    if (!(await resourceExists(db, resourceType, ref))) {
+    // Le lecteur est transmis : un feuillet n'existe, pour un joueur, que s'il l'a déjà
+    // rencontré (J1). Un MJ, un admin ou un invité n'a pas cette restriction.
+    if (!(await resourceExists(db, resourceType, ref, { glAuth: req.glAuth }))) {
       return res.status(404).json({ error: 'Ressource introuvable' });
     }
 

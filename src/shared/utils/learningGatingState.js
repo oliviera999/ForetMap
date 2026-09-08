@@ -16,6 +16,8 @@
  * d'annonce du bouton et aux tests, qui parlent donc tous du même état.
  */
 
+import { cooldownRemainingLabel } from './cooldownDuration.js';
+
 export const GATING_STATE_KINDS = Object.freeze(['none', 'acquired', 'pending', 'locked']);
 
 /**
@@ -59,12 +61,13 @@ export function gatingState(summary, { done = false } = {}) {
   }
 
   if (summary.locked) {
-    const days = dayWord(summary.remaining_days);
+    // Temps restant formaté par le serveur (« 5 h », « 1 j 2 h ») ; repli sur les jours.
+    const remaining = cooldownRemainingLabel(summary) || dayWord(summary.remaining_days);
     return {
       kind: 'locked',
       icon: STATE_ICONS.locked,
       shortLabel: 'Bloqué',
-      label: `Validation bloquée encore ${days} après une erreur.`,
+      label: `Validation bloquée encore ${remaining} après une erreur.`,
     };
   }
 
