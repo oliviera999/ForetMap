@@ -201,7 +201,7 @@
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.9.0",
-    "isomorphic-dompurify": "^3.23.0",
+    "isomorphic-dompurify": "^4.1.0",
     "jsdom": "^30.0.1",
     "lucide-react": "^1.39.0",
     "marked": "^18.0.11",
