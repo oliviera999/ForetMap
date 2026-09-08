@@ -15,7 +15,7 @@ import {
   validateProfileEditorFields,
 } from '../utils/studentProfileFields.js';
 import { useHelp } from '../hooks/useHelp';
-import useVisitMascotCatalogExtras from '../hooks/useVisitMascotCatalogExtras.js';
+import { useVisitMascotRegistry } from '../hooks/useVisitMascotCatalogExtras.js';
 import { HelpPanel } from './HelpPanel';
 import { resolveHelpPanelSection } from '../utils/helpResolve';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
@@ -326,14 +326,15 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
     () => buildProfileAffiliationOptions(maps, affiliation, student?.affiliation),
     [maps, affiliation, student?.affiliation],
   );
-  // Packs publiés inclus : le profil propose exactement les mêmes mascottes que le plan.
-  const visitMascotPackExtras = useVisitMascotCatalogExtras();
-  // Aucune restriction passée : « proposée aux visiteurs » se règle sur la mascotte elle-même
-  // (publication au studio), plus par une liste blanche de réglages. Le profil montre donc
-  // exactement ce que montre le plan.
+  // Registre des mascottes proposées : le profil propose exactement les mêmes que le plan.
+  const { extras: visitMascotPackExtras, offeredIds: visitMascotOfferedIds } =
+    useVisitMascotRegistry();
+  // « Proposée aux visiteurs » se règle sur la mascotte elle-même (publication au studio), plus
+  // par une liste blanche de réglages — mais la restriction reste à appliquer : c'est le registre
+  // qui la porte. `null` (registre pas encore lu) = aucune restriction, le temps de la réponse.
   const visitMascotOptions = useMemo(
-    () => buildVisitMascotOptions(null, visitMascotPackExtras),
-    [visitMascotPackExtras],
+    () => buildVisitMascotOptions(visitMascotOfferedIds, visitMascotPackExtras),
+    [visitMascotOfferedIds, visitMascotPackExtras],
   );
   const [avatarPreview, setAvatarPreview] = useState(getStudentAvatarUrl(student));
   const [avatarData, setAvatarData] = useState(null);

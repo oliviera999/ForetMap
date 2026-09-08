@@ -425,7 +425,7 @@
     ]
   },
   "index.vite.html": {
-    "file": "assets/main-CW_DgUBX.js",
+    "file": "assets/main-BPmwN48y.js",
     "name": "main",
     "src": "index.vite.html",
     "isEntry": true,
@@ -531,7 +531,7 @@
     ]
   },
   "src/components/VisitMascotPackManager.jsx": {
-    "file": "assets/VisitMascotPackManager-CjJY7led.js",
+    "file": "assets/VisitMascotPackManager-CSl4SJbd.js",
     "name": "VisitMascotPackManager",
     "src": "src/components/VisitMascotPackManager.jsx",
     "isDynamicEntry": true,
@@ -553,7 +553,7 @@
     ]
   },
   "src/components/about-views.jsx": {
-    "file": "assets/about-views-AaBvudxE.js",
+    "file": "assets/about-views-C7LWPs6D.js",
     "name": "about-views",
     "src": "src/components/about-views.jsx",
     "isDynamicEntry": true,
@@ -568,7 +568,7 @@
     ]
   },
   "src/components/audit-views.jsx": {
-    "file": "assets/audit-views-BydJHgkg.js",
+    "file": "assets/audit-views-jxSg4HZJ.js",
     "name": "audit-views",
     "src": "src/components/audit-views.jsx",
     "isDynamicEntry": true,
@@ -582,7 +582,7 @@
     ]
   },
   "src/components/foretmap-views.jsx": {
-    "file": "assets/foretmap-views-BO_QzmzE.js",
+    "file": "assets/foretmap-views-CrtcJnJW.js",
     "name": "foretmap-views",
     "src": "src/components/foretmap-views.jsx",
     "isDynamicEntry": true,
@@ -603,7 +603,7 @@
     ]
   },
   "src/components/forum-views.jsx": {
-    "file": "assets/forum-views-BMmBF8Jr.js",
+    "file": "assets/forum-views-DJEp6a6R.js",
     "name": "forum-views",
     "src": "src/components/forum-views.jsx",
     "isDynamicEntry": true,
@@ -633,7 +633,7 @@
     ]
   },
   "src/components/pedago-views.jsx": {
-    "file": "assets/pedago-views-BKL8mWEo.js",
+    "file": "assets/pedago-views-CrxtKaVc.js",
     "name": "pedago-views",
     "src": "src/components/pedago-views.jsx",
     "isDynamicEntry": true,
@@ -655,7 +655,7 @@
     ]
   },
   "src/components/profiles-views.jsx": {
-    "file": "assets/profiles-views-CFVBcbZF.js",
+    "file": "assets/profiles-views-tfUFlzXx.js",
     "name": "profiles-views",
     "src": "src/components/profiles-views.jsx",
     "isDynamicEntry": true,
@@ -674,7 +674,7 @@
     ]
   },
   "src/components/settings-admin-views.jsx": {
-    "file": "assets/settings-admin-views-DZgRcqwY.js",
+    "file": "assets/settings-admin-views-PqZ9I8qf.js",
     "name": "settings-admin-views",
     "src": "src/components/settings-admin-views.jsx",
     "isDynamicEntry": true,
@@ -699,7 +699,7 @@
     ]
   },
   "src/components/stats-views.jsx": {
-    "file": "assets/stats-views-DXWAVGtl.js",
+    "file": "assets/stats-views-BZ9ddp6N.js",
     "name": "stats-views",
     "src": "src/components/stats-views.jsx",
     "isDynamicEntry": true,
@@ -717,7 +717,7 @@
     ]
   },
   "src/components/tutorials-views.jsx": {
-    "file": "assets/tutorials-views-JwOCW9sE.js",
+    "file": "assets/tutorials-views-D1-P_eYv.js",
     "name": "tutorials-views",
     "src": "src/components/tutorials-views.jsx",
     "isDynamicEntry": true,
@@ -736,7 +736,7 @@
     ]
   },
   "src/components/visit-views.jsx": {
-    "file": "assets/visit-views-BAkISJNe.js",
+    "file": "assets/visit-views-DsCOkrJM.js",
     "name": "visit-views",
     "src": "src/components/visit-views.jsx",
     "isDynamicEntry": true,

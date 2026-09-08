@@ -4,6 +4,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import useVisitMascotCatalogExtras, {
   invalidateVisitMascotCatalogExtras,
   loadVisitMascotCatalogExtras,
+  useVisitMascotRegistry,
 } from '../../src/hooks/useVisitMascotCatalogExtras.js';
 import { api } from '../../src/services/api';
 
@@ -85,5 +86,35 @@ describe('useVisitMascotCatalogExtras', () => {
     const { result } = renderHook(() => useVisitMascotCatalogExtras());
     await waitFor(() => expect(api).toHaveBeenCalled());
     expect(result.current).toEqual([]);
+  });
+});
+
+describe('useVisitMascotRegistry', () => {
+  it('expose les ids proposés — mascottes livrées comprises, qui ne produisent aucun extra', async () => {
+    api.mockResolvedValueOnce({
+      mascots: [registryCatalogRow('gnome1'), registryPackRow('srv-abc')],
+    });
+    const { result } = renderHook(() => useVisitMascotRegistry());
+    await waitFor(() => expect(result.current.offeredIds).not.toBeNull());
+    // Une livrée n'apporte pas de pack : elle est absente des extras (le front a déjà sa
+    // définition en dur) mais bien présente dans la liste offerte, sinon elle disparaîtrait.
+    expect(result.current.extras.map((e) => e.id)).toEqual(['srv-abc']);
+    expect(result.current.offeredIds).toEqual(['gnome1', 'srv-abc']);
+  });
+
+  it('registre inconnu (erreur réseau) → offeredIds null, pas []', async () => {
+    api.mockRejectedValueOnce(new Error('boom'));
+    const { result } = renderHook(() => useVisitMascotRegistry());
+    await waitFor(() => expect(api).toHaveBeenCalled());
+    // `null` = « je ne sais pas, ne restreins rien ». Un `[]` serait lu comme une restriction
+    // vide par les appelants et pourrait vider le sélecteur sur une simple panne de lecture.
+    expect(result.current.offeredIds).toBeNull();
+    expect(result.current.extras).toEqual([]);
+  });
+
+  it('désactivé → registre inconnu, sans appel réseau', () => {
+    const { result } = renderHook(() => useVisitMascotRegistry({ enabled: false }));
+    expect(result.current.offeredIds).toBeNull();
+    expect(api).not.toHaveBeenCalled();
   });
 });
