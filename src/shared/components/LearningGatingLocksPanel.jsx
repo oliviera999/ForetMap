@@ -87,7 +87,7 @@ export function LearningGatingLocksPanel({
       <h3 className="section-title">{title}</h3>
       <p className={hint}>
         Après trop d&apos;erreurs au contrôle, la validation d&apos;une fiche (ou la seule question
-        ratée, selon la portée réglée) est bloquée pendant le délai configuré — 6 heures par défaut.
+        ratée, selon la portée réglée) est bloquée pendant le délai configuré — 1 heure par défaut.
         Cette liste montre qui est concerné — et permet de lever le blocage.
       </p>
 

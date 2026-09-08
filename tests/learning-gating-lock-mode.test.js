@@ -147,7 +147,7 @@ after(async () => {
 test('flow (défaut) — le contexte du corps est ignoré : pas de verrou sans jeton contextualisé', async () => {
   const state = await challenge();
   assert.equal(state.lock_mode, 'flow');
-  assert.equal(state.retry_cooldown_hours, 6, 'délai par défaut : 6 h');
+  assert.equal(state.retry_cooldown_hours, 6, 'délai réglé plus haut par ce test : 6 h');
   assert.equal(state.retry_cooldown_label, '6 h');
 
   const free = await present().expect(200);

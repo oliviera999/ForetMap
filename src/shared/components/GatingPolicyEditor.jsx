@@ -12,6 +12,7 @@ import {
   readRetryHours,
   retryHoursLabel,
 } from '../utils/learningGatingPolicyText.js';
+import { DEFAULT_RETRY_COOLDOWN_HOURS } from '../utils/cooldownDuration.js';
 
 const MODE_OPTIONS = [
   { value: 'inherit', label: 'Hériter' },
@@ -69,7 +70,7 @@ function initialFromPolicy(policy, site, canInherit) {
     retryHours:
       isInherited(p, 'retry_cooldown_hours') && isInherited(p, 'retry_cooldown_days')
         ? INHERIT_VALUE
-        : String(readRetryHours(p, 6)),
+        : String(readRetryHours(p, DEFAULT_RETRY_COOLDOWN_HOURS)),
     cooldownScope: isInherited(p, 'cooldown_scope')
       ? INHERIT_VALUE
       : String(p.cooldown_scope || 'resource'),
@@ -135,7 +136,7 @@ export function GatingPolicyEditor({
       if (mode === 'threshold') patch.defaultRequiredCorrect = readNumber(requiredCorrect, 1);
       patch.allowedWrongAttempts = readNumber(allowedWrong, 0);
       patch.maxQuestionsPerSession = readNumber(maxSession, 3);
-      patch.retryCooldownHours = readNumber(retryHours, 6);
+      patch.retryCooldownHours = readNumber(retryHours, DEFAULT_RETRY_COOLDOWN_HOURS);
       patch.cooldownScope = cooldownScope === INHERIT_VALUE ? 'resource' : cooldownScope;
       patch.lockMode = lockMode === INHERIT_VALUE ? 'flow' : lockMode;
       if (product === 'gl') {
@@ -185,9 +186,9 @@ export function GatingPolicyEditor({
     parentSession &&
     (readRowField(parentSession, 'retry_cooldown_hours', 'retryCooldownHours') != null ||
       readRowField(parentSession, 'retry_cooldown_days', 'retryCooldownDays') != null)
-      ? readRetryHours(parentSession, 6)
+      ? readRetryHours(parentSession, DEFAULT_RETRY_COOLDOWN_HOURS)
       : site
-        ? readRetryHours(siteSession, 6)
+        ? readRetryHours(siteSession, DEFAULT_RETRY_COOLDOWN_HOURS)
         : null;
   const parentLockMode = parentVal('lock_mode', 'lockMode') ?? siteSession.lockMode ?? 'flow';
   const parentLockModeLabel =

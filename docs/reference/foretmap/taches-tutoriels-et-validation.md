@@ -349,7 +349,7 @@ Les réglages qui accompagnent l'interrupteur (panneau dédié **Validation des 
 | Exigence par défaut                             | **une** question réussie suffit (défaut), **toutes** les questions rattachées, ou un **seuil** de N réussites.                                                                                                                                                                                                                                                                                                                                                                                                      |
 | Nombre de bonnes réponses attendues             | Le N du mode « seuil » (visible dans **Réglages → Validation des lectures** uniquement lorsque le mode site est « seuil », et dans **Rattacher des questions** lorsque l'exigence d'une fiche est « un nombre minimum »).                                                                                                                                                                                                                                                                                           |
 | Erreurs tolérées avant blocage                  | **0 par défaut** : la première mauvaise réponse bloque. Le porter à 1 ou 2 laisse à l'élève le droit de se tromper sans tout perdre.                                                                                                                                                                                                                                                                                                                                                                                |
-| Délai avant nouvelle tentative après une erreur | **6 heures par défaut** (il se réglait en jours, 3 jours par défaut, jusqu'en septembre 2026). Une fois la tolérance épuisée, la validation de ce tutoriel est verrouillée pour la durée indiquée, choisie dans une liste (aucun délai, 1 h … 7 jours) ou saisie librement en heures. `0` supprime le verrou et autorise le réessai immédiat.                                                                                                                                                                       |
+| Délai avant nouvelle tentative après une erreur | **1 heure par défaut** (il se réglait en jours, 3 jours par défaut, puis 6 heures, jusqu'en septembre 2026) — assez pour qu'une erreur coûte quelque chose, assez court pour que l'élève rattrape la fiche dans la même journée de cours. Une fois la tolérance épuisée, la validation de ce tutoriel est verrouillée pour la durée indiquée, choisie dans une liste (aucun délai, 1 h … 7 jours) ou saisie librement en heures. `0` supprime le verrou et autorise le réessai immédiat.                            |
 | Sévérité du verrou                              | **Normale par défaut.** Dit ce qui pose le verrou. **Souple** : l'ancien comportement, le verrou dépend de ce que l'écran envoie. **Normale** : le verrou ne peut être posé que depuis le flux de validation (la question posée depuis la fiche), quoi que fasse l'onglet Quiz. **Stricte** : en plus, les questions bloquantes de la fiche ne se jouent _que_ depuis la fiche — elles disparaissent du Quiz libre. Se règle par type de ressource : par exemple tutoriels en « stricte », glossaire en « souple ». |
 | Questions posées d'affilée au maximum           | **3 par défaut.** En mode « toutes », l'élève avance par paliers plutôt que d'enchaîner huit questions : ses bonnes réponses sont gardées d'une fois sur l'autre.                                                                                                                                                                                                                                                                                                                                                   |
 | Annoncer le contrôle sur le bouton              | **Oui par défaut.** Le bouton « Marquer comme lu » porte alors une pastille (« 1 question », « 🔒 ») pour prévenir l'élève avant qu'il ne clique.                                                                                                                                                                                                                                                                                                                                                                   |
@@ -388,10 +388,10 @@ puis le résultat.
   des listes ouvertes derrière se mettent à jour aussitôt.
 - **Mauvaise réponse** : tout dépend de la tolérance. S'il reste des erreurs permises, l'écran
   le dit explicitement sous le retour de la question (« Il te reste 1 erreur possible : la
-  suivante bloquera la validation pendant 6 h ») et propose de réessayer ; la tolérance
+  suivante bloquera la validation pendant 1 h ») et propose de réessayer ; la tolérance
   épuisée, le verrou tombe et le message indique le temps restant (« réessaie dans 5 h »,
   « 1 j 2 h ») ainsi que le nombre d'erreurs réellement commises. En portée « seulement la
-  question ratée », le message dit plutôt « cette question est bloquée pendant 6 h, tu peux
+  question ratée », le message dit plutôt « cette question est bloquée pendant 1 h, tu peux
   continuer avec les autres » — et ne le promet que s'il reste effectivement une autre question
   dans la série.
 - **Série terminée mais contrôle inachevé** (plafond « questions posées d'affilée ») : l'écran
@@ -449,7 +449,7 @@ Pour un contenu choisi, on peut :
   une question rattachée sans cocher la case. Le bouton **« Rendre bloquantes les N
   question(s) approuvée(s) »** le fait d'un geste pour toute la fiche, après une confirmation
   qui énonce ce que l'élève devra faire (« une question réussie suffit sur 12, aucune erreur
-  tolérée, verrou 6 h… »).
+  tolérée, verrou 1 h… »).
 - **Changer le statut** : seules les questions **approuvées** comptent. Une question
   « proposée » n'a aucun effet tant qu'un professeur ne l'a pas approuvée ; « rejetée » la
   met de côté sans l'effacer.

@@ -152,7 +152,7 @@ test('gatingRegistryEntries dérive le catalogue commun pour chaque produit', ()
   assert.deepEqual(gl['gating.default_mode'].values, [...gatingCore.GATING_MODE_VALUES]);
   assert.equal(gl['gating.retry_cooldown_hours'].min, 0);
   assert.equal(gl['gating.retry_cooldown_hours'].max, 8760);
-  assert.equal(gl['gating.retry_cooldown_hours'].default, 6);
+  assert.equal(gl['gating.retry_cooldown_hours'].default, 1);
   assert.deepEqual(gl['gating.lock_mode'].values, ['advisory', 'flow', 'strict']);
   assert.equal(fm['learning.gating.granularity'], undefined, 'clé propre à GL');
 });
