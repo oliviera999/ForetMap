@@ -449,6 +449,35 @@ const suggestSchema = z.object({
   courseId: z.coerce.number().int().positive(),
 });
 
+const subgroupMirrorSchema = z.object({
+  groupId: z.string().trim().min(1).max(64),
+  courseId: z.coerce.number().int().positive(),
+  dryRun: z.boolean().optional(),
+});
+
+router.post(
+  '/mirrors',
+  requireMoodleAdmin,
+  validate({ body: subgroupMirrorSchema }),
+  asyncHandler(async (req, res) => {
+    requireClient();
+    const { mirrorForetmapGroup } = require('../../lib/moodle/teamsMirror');
+    const dryRun = req.body.dryRun !== false;
+    const report = await mirrorForetmapGroup({
+      groupId: req.body.groupId,
+      courseId: req.body.courseId,
+      dryRun,
+    });
+    if (report.error) return res.status(409).json({ error: report.error, report });
+    if (!dryRun) {
+      await logAudit('moodle_group_mirror', 'group', req.body.groupId, String(req.body.courseId), {
+        req,
+      });
+    }
+    return res.json(report);
+  }),
+);
+
 router.post(
   '/lti/suggest',
   requireMoodleAdmin,
