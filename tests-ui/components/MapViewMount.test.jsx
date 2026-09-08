@@ -40,13 +40,18 @@ const stubs = vi.hoisted(() => {
     },
     gps: { active: false },
     extras: [],
+    // Registre inconnu (`offeredIds: null`) : le montage ne dépend pas du registre.
+    mascotRegistry: { extras: [], offeredIds: null },
     edgeSnap: { snapPoint: () => null, ready: false },
     categories: { categories: [], loading: false, error: null, reload: noop },
   };
 });
 vi.mock('../../src/hooks/useMapViewMascot.js', () => ({ default: () => stubs.mascot }));
 vi.mock('../../src/hooks/useMascotGpsFollow.js', () => ({ default: () => stubs.gps }));
-vi.mock('../../src/hooks/useVisitMascotCatalogExtras.js', () => ({ default: () => stubs.extras }));
+vi.mock('../../src/hooks/useVisitMascotCatalogExtras.js', () => ({
+  default: () => stubs.extras,
+  useVisitMascotRegistry: () => stubs.mascotRegistry,
+}));
 vi.mock('../../src/hooks/useMapImageEdgeSnap.js', () => ({ default: () => stubs.edgeSnap }));
 vi.mock('../../src/hooks/useMapCategories.js', () => ({
   useMapCategories: () => stubs.categories,
