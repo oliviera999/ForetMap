@@ -25,7 +25,7 @@ SMTP_HOST=… SMTP_PORT=587 SMTP_USER=… SMTP_PASS=… SMTP_FROM="ForetMap <no-
 OPS_ALERT_TO=admin@…
 ```
 
-## Les 5 lignes de crontab (`crontab -e`) — les 4 premières ci-dessous, la 5ᵉ (purge) plus bas
+## Les lignes de crontab (`crontab -e`) — 4 de base ci-dessous, puis purge (5) et Moodle optionnel (6)
 
 ```cron
 # 1) Déploiement auto : pull + (migrate) + restart + post-deploy-check (+ rollback/alerte si échec) — toutes les 2 min
@@ -107,16 +107,20 @@ accepte des arguments supplémentaires via `MOODLE_CRON_ARGS` (ex. `--cohort 26#
 
 ## Variables utiles (valeurs par défaut)
 
-| Variable                           | Défaut      | Rôle                                                                                                                                   |
-| ---------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `DEPLOY_AUTO_MIGRATE`              | `0`         | `1` pour `npm run db:migrate` quand `migrations/` change                                                                               |
-| `DEPLOY_AUTO_ROLLBACK`             | `1`         | rollback code si `post-deploy-check` échoue après restart                                                                              |
-| `DEPLOY_DB_PRE_MIGRATE_BACKUP`     | `1`         | snapshot BDD avant `db:migrate`                                                                                                        |
-| `BACKUP_RETENTION_DAYS`            | `14`        | purge des dumps plus vieux que N jours                                                                                                 |
-| `BACKUP_DIR`                       | `./backups` | dossier des dumps (non versionné)                                                                                                      |
-| `DEPLOY_SKIP_RESTART_IF_SOFT_ONLY` | `1`         | ne pas redémarrer si le diff est « soft » (docs/CHANGELOG seuls)                                                                       |
-| `DEPLOY_QUIET_SECONDS`             | `180`       | n'applique un commit qu'après N s d'accalmie : une rafale de merges devient **un** redémarrage au lieu d'un par commit (`0` désactive) |
-| `FORETMAP_BOOT_JOURNAL`            | _(activé)_  | `0` pour couper le journal de cycle de vie (`logs/boot-journal.ndjson`)                                                                |
+| Variable                           | Défaut                           | Rôle                                                                                                                                   |
+| ---------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `DEPLOY_AUTO_MIGRATE`              | `0`                              | `1` pour `npm run db:migrate` quand `migrations/` change                                                                               |
+| `DEPLOY_AUTO_ROLLBACK`             | `1`                              | rollback code si `post-deploy-check` échoue après restart                                                                              |
+| `DEPLOY_DB_PRE_MIGRATE_BACKUP`     | `1`                              | snapshot BDD avant `db:migrate`                                                                                                        |
+| `BACKUP_RETENTION_DAYS`            | `14`                             | purge des dumps plus vieux que N jours                                                                                                 |
+| `BACKUP_DIR`                       | `./backups`                      | dossier des dumps (non versionné)                                                                                                      |
+| `DEPLOY_SKIP_RESTART_IF_SOFT_ONLY` | `1`                              | ne pas redémarrer si le diff est « soft » (docs/CHANGELOG seuls)                                                                       |
+| `DEPLOY_QUIET_SECONDS`             | `180`                            | n'applique un commit qu'après N s d'accalmie : une rafale de merges devient **un** redémarrage au lieu d'un par commit (`0` désactive) |
+| `FORETMAP_BOOT_JOURNAL`            | _(activé)_                       | `0` pour couper le journal de cycle de vie (`logs/boot-journal.ndjson`)                                                                |
+| `APP_DIR`                          | _(requis)_                       | Racine de l'application pour les scripts cron (`/home/USER/foretmap`)                                                                  |
+| `MOODLE_CRON_LOCK_DIR`             | `/tmp/foretmap-moodle-sync.lock` | Verrou `mkdir` de la simulation Moodle (ligne 6)                                                                                       |
+| `MOODLE_CRON_ARGS`                 | _(vide)_                         | Arguments supplémentaires passés à `moodle:sync` (ex. `--cohort 26#603`) — jamais `--apply`                                            |
+| `MOODLE_CRON_NO_ALERT`             | _(vide)_                         | `1` pour couper l'e-mail `ops-alert` après une simulation Moodle                                                                       |
 
 ## Vérifications
 

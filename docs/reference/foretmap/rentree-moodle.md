@@ -165,7 +165,8 @@ inconnu voit un refus clair.
 L'administrateur règle, dans **Entrée depuis le cours** :
 
 - l'activation ;
-- ce qui arrive à une personne inconnue (refus, ou file d'attente réservée) ;
+- ce qui arrive à une personne inconnue (**refus** : seule option active ; une file
+  d'attente est prévue plus tard) ;
 - pour chaque cours Moodle : ForetMap, Gnomes & Licornes, ou les deux, l'écran d'arrivée, le
   chapitre de jeu s'il y a lieu ;
 - les boutons proposés à un **enseignant** (ForetMap prof / Gnomes & Licornes MJ) à chaque
@@ -216,9 +217,11 @@ cours. Le professeur pose l'activité à la main dans Moodle (pas d'insertion au
 - **Le lien n'est pas encore branché sur le vrai Moodle** : tout ce qui précède a été validé sur
   un Moodle de test. La première mise en service demandera le jeton de service (geste
   technique) et une passe de « Contrôler la connexion ».
-- **Miroirs d'équipes vers les cours Moodle** (les équipes de jeu recopiées comme groupes dans le
-  cours du chapitre) : décrits dans la spécification, livrés dans un lot suivant ; l'option
-  « Inclure les miroirs d'équipes » est visible mais sans effet tant que ce lot n'est pas livré.
+- **Miroirs d'équipes vers les cours Moodle** : l'option « Inclure les miroirs d'équipes » lors
+  d'une synchronisation, et les boutons **Simuler le miroir Moodle** / **Pousser vers Moodle**
+  dans la console MJ (onglet Équipes), recopient les équipes de jeu comme groupes du cours du
+  chapitre. Seuls ces groupes-miroir sont créés ou retirés ; un joueur sans compte Moodle
+  reconnu est signalé, pas inventé. Le premier passage sur le vrai Moodle reste à valider.
 - **Entrée depuis le cours** : le clic Moodle est en place côté application ; le premier
   lancement réel depuis olution.info reste à mesurer (réglage de l'outil dans Moodle, geste
   technique).

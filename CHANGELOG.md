@@ -7,19 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — alignement Moodle / LTI / miroirs d'équipes sur le code du dépôt
+
+- `docs/API.md`, `docs/EXPLOITATION.md`, `docs/CRONTAB.md`, référence (`rentree-moodle.md`,
+  comptes, guide MJ, README) et `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : inventaire
+  `POST …/lti/suggest`, `POST …/mirrors`, `POST /api/gl/games/:id/teams/mirror`, distinction
+  kill switch / `enabled` / routes base-only, miroirs d'équipes (M4) via `teams` et console MJ,
+  `unknown_user=queue` non câblé, `/session` sans secrets `.env`, statut lots M1–M6.
+
 ### Ajouté — synchronisation Moodle ↔ ForetMap / G&L : lots M1 à M3, côté serveur
 
-Mise en œuvre de `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` (sections 5 à 14). Rien n'est actif
-tant que `MOODLE_BASE_URL` / `MOODLE_WS_TOKEN` ne sont pas dans `.env` **et** que le réglage
-`integration.moodle.enabled` n'est pas coché : toutes les routes répondent alors
-`503 Intégration Moodle non configurée`.
+Mise en œuvre de `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` (sections 5 à 14). Sans
+`MOODLE_BASE_URL` / `MOODLE_WS_TOKEN` (ou avec `MOODLE_SYNC_ENABLED=0`), les routes qui
+**appellent** Moodle répondent `503 Intégration Moodle non configurée` ; `/status`,
+historique, pending, exempt et merge restent utilisables. Le réglage
+`integration.moodle.enabled` n'ouvre que les exécutions `apply` (sinon **409**).
 
 - **Base** : migration `219_moodle_sync.sql` (tables `external_identities`, `external_groups`,
   `external_group_members`, `sync_runs`, `sync_actions`, `sync_conflicts`,
   `sync_pending_matches` ; colonnes `users.sync_exempt` / `groups.sync_exempt`), reportée dans
   `sql/schema_foretmap.sql`. Permission `integrations.moodle.manage` (rôle admin).
 - **Réglages** `integration.moodle.*` (portée admin) : politiques par cohorte (motif avec
-  `{year}`, rôle, genre de groupe, classe G&L, `push_membership`, maître), préfixe d'année,
+  `{year}`, rôle, genre de groupe, classe G&L, `push_membership`), préfixe d'année,
   seuils, domaines d'e-mail, table chapitre → cours, tout validé avant enregistrement.
 - **`lib/moodle/`** : client Web Services (erreurs applicatives détectées en HTTP 200, réessai
   réseau/5xx seulement, lots de 100, jamais de jeton dans les journaux), contrôle
@@ -40,8 +49,8 @@ tant que `MOODLE_BASE_URL` / `MOODLE_WS_TOKEN` ne sont pas dans `.env` **et** qu
   `npm run moodle:check` et `npm run moodle:sync -- --dry-run|--apply`.
 - **Tests** : faux serveur Moodle HTTP local (`tests/helpers/fakeMoodleServer.js`) qui
   reproduit les erreurs en 200, empreinte de tables sensibles (`dbFingerprint`) pour prouver
-  qu'une simulation n'écrit rien et qu'un groupe local reste intact ; 58 tests
-  `tests/moodle-*.test.js`.
+  qu'une simulation n'écrit rien et qu'un groupe local reste intact ; fichiers
+  `tests/moodle-*.test.js` (et `tests/lti-*.test.js` pour M6).
 - **Écran administrateur** : nouvel onglet **Moodle** dans *Paramètres administrateur*
   (`MoodleAdminPanel`) — état du lien (configuré / activé, dernier contrôle, dernière
   exécution, compteurs), bouton « Contrôler la connexion », cohortes de l'année à cocher avec
@@ -71,7 +80,7 @@ Clic depuis une activité Moodle vers un compte **déjà** reconnu (pas une 2ᵉ
 [`jose`](https://github.com/panva/jose) (MIT) pour JWKS distant + RS256.
 
 - Secrets `.env` `LTI_*` ; réglages `integration.lti.*` (liaisons cours → produit, `unknown_user`
-  refuse/queue jamais `create`, cibles enseignant). Routes `/api/lti/login`, `/launch`,
+  refuse/queue — seul `refuse` câblé, jamais `create` —, cibles enseignant). Routes `/api/lti/login`, `/launch`,
   `/.well-known/jwks.json`, `/session` (ticket 120 s puis jeton même durée qu'une session Google,
   dépôt `#oauth=`). Personne inconnue refusée, aucun `INSERT users`. Page `/lti/arrivee` ;
   sous-section admin **Entrée depuis le cours**. `npm run moodle:check` contrôle aussi le JWKS.
@@ -91,8 +100,8 @@ Clic depuis une activité Moodle vers un compte **déjà** reconnu (pas une 2ᵉ
   URL publique paramétrable, jamais de création de compte au clic, cours `511` = La salle
   aérée n³. Reste à **mesurer** sur un lancement de test (21.7) : forme du `sub`, présence de
   l'e-mail.
-- `env.local.example` : rappel que les secrets LTI (lot M6) restent dans `.env`, sans les
-  inventer avant M6.
+- `env.local.example` : variables `MOODLE_*` et secrets LTI `LTI_*` documentés (toujours
+  dans `.env`, jamais en base).
 ### Ajouté (GL) — composition automatique des équipes, lot v3 (verrous, politique, rotation, brassage)
 
 - **Politique d'équipes par classe** (migration `217_gl_classes_team_policy.sql` :

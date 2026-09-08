@@ -31,13 +31,20 @@
    équipe pour les régénérations suivantes, puis relire, déplacer ou renommer ce que vous
    voulez et appliquer. L'onglet Équipes affiche le **brassage de la classe** (part des
    binômes déjà réunis au fil des parties). Détail dans
-   [Chapitres et progression](chapitres-et-progression.md).
+   [Chapitres et progression](chapitres-et-progression.md). Quand la rentrée Moodle est en place,
+   **« Simuler le miroir Moodle »** puis **« Pousser vers Moodle »** recopient les équipes dans le
+   cours du chapitre (mêmes noms). Un élève sans compte Moodle reste dans l'équipe ; le groupe
+   Moodle est juste incomplet. Une partie déjà lancée n'est pas recomposée.
 5. **Les comptes** : joueurs créés ou importés, codes distribués. Un mot de passe
    oublié se réinitialise en un clic dans la gestion des joueurs. Quand l'administrateur
    a fait la **rentrée avec Moodle**, les classes de sixième et leurs joueurs existent déjà
    avant la première séance : il n'y a rien à créer, seulement à vérifier l'effectif (voir
    [La rentrée avec Moodle](../foretmap/rentree-moodle.md), côté ForetMap). Une activité du cours
-   Moodle peut aussi ouvrir le jeu **déjà connecté** (nouvel onglet) pour un joueur déjà reconnu.
+   Moodle peut aussi ouvrir le jeu **déjà connecté** (nouvel onglet) pour un joueur déjà
+   reconnu ; si le joueur n'est pas encore dans l'annuaire, le clic est refusé (aucun compte
+   fantôme). Une fois les équipes composées, **Simuler le miroir Moodle** puis **Pousser vers
+   Moodle** (onglet Équipes) recopie ces équipes comme groupes du cours du chapitre, pour
+   restreindre une activité Moodle à une équipe.
 
 ## Pendant la séance — la console MJ
 
