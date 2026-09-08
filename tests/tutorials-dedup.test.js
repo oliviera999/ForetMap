@@ -54,6 +54,13 @@ before(async () => {
      VALUES ('tutorial', ?, 'inherit', 0)`,
     [String(dropId)],
   );
+  // Verrou de re-tentative sur le doublon : oublié jusqu'au lot 6 de l'audit validation quiz (C7).
+  await execute(
+    `INSERT INTO resource_gating_cooldowns
+      (user_id, resource_type, resource_ref, question_code, locked_until, wrong_question_code, wrong_attempts)
+     VALUES (?, 'tutorial', ?, '', DATE_ADD(NOW(), INTERVAL 1 DAY), 'QX', 1)`,
+    [USER_ID, String(dropId)],
+  );
 });
 
 after(async () => {
@@ -63,6 +70,10 @@ after(async () => {
     "DELETE FROM resource_gating_policy WHERE resource_type = 'tutorial' AND resource_ref IN (?, ?)",
     [String(keepId), String(dropId)],
   );
+  await execute(
+    "DELETE FROM resource_gating_cooldowns WHERE resource_type = 'tutorial' AND resource_ref IN (?, ?)",
+    [String(keepId), String(dropId)],
+  ).catch(() => {});
 });
 
 test('les tutoriels au contenu identique forment un groupe, le plus ancien est conservé', async () => {
@@ -96,6 +107,15 @@ test('la fusion repointe les liens puis supprime le doublon', async () => {
     'la lecture attestée doit avoir migré vers le tutoriel conservé',
   );
 
+  const cooldowns = await queryAll(
+    "SELECT resource_ref FROM resource_gating_cooldowns WHERE resource_type = 'tutorial' AND resource_ref IN (?, ?)",
+    [String(keepId), String(dropId)],
+  );
+  assert.deepStrictEqual(
+    cooldowns.map((r) => r.resource_ref),
+    [String(keepId)],
+    'le verrou suit le tutoriel conservé',
+  );
   const policy = await queryAll(
     "SELECT resource_ref FROM resource_gating_policy WHERE resource_type = 'tutorial' AND resource_ref IN (?, ?)",
     [String(keepId), String(dropId)],

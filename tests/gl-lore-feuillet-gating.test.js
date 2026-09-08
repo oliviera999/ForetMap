@@ -24,6 +24,7 @@ const catSlug = `lfgcat${stamp}`.slice(0, 64);
 const loreCode = `LQCM9${String(stamp).slice(-5)}`.slice(0, 16); // préfixe LQCM = dataset lore
 const feuilletCode = `lfg-${String(stamp).slice(-8)}`;
 const feuilletOff = `lfgoff-${String(stamp).slice(-8)}`;
+const feuilletUnseen = `lfgnew-${String(stamp).slice(-8)}`;
 const password = 'feuilletgating1';
 const CORRECT_TEXT = 'Le pacte du seuil';
 
@@ -84,6 +85,23 @@ before(async () => {
     .post('/api/gl/auth/login')
     .send({ pseudo: player.pseudo, password });
   glToken = login.body.authToken;
+
+  // J1 : pour un joueur, un feuillet n'est marquable que s'il l'a déjà rencontré. Le feuillet
+  // nominal lui est donc attribué (possession propre) ; `feuilletUnseen`, actif mais jamais
+  // trouvé, doit rester introuvable pour lui.
+  await execute(
+    `INSERT INTO gl_player_feuillet_states
+      (player_id, feuillet_code, status, effacement_pct, acquired_via, acquired_at, updated_at)
+     VALUES (?, ?, 'discovered', 0, 'decouverte', NOW(), NOW())
+     ON DUPLICATE KEY UPDATE status = 'discovered'`,
+    [player.id, feuilletCode],
+  );
+  await execute(
+    `INSERT INTO gl_lore_feuillets (feuillet_code, titre, texte, statut)
+     VALUES (?, 'Feuillet jamais trouvé', 'Texte', 'actif')
+     ON DUPLICATE KEY UPDATE statut = 'actif'`,
+    [feuilletUnseen],
+  );
 });
 
 after(async () => {
@@ -92,6 +110,14 @@ after(async () => {
     feuilletCode,
     feuilletOff,
   ]).catch(() => {});
+  if (player?.id) {
+    await execute('DELETE FROM gl_player_feuillet_states WHERE player_id = ?', [player.id]).catch(
+      () => {},
+    );
+  }
+  await execute('DELETE FROM gl_lore_feuillets WHERE feuillet_code = ?', [feuilletUnseen]).catch(
+    () => {},
+  );
   await execute('DELETE FROM gl_qcm_attempts WHERE question_code = ?', [loreCode]).catch(() => {});
   await execute('DELETE FROM gl_resource_gating_cooldowns WHERE resource_ref = ?', [
     feuilletCode,
@@ -125,7 +151,11 @@ async function resetReaderState() {
 }
 
 test('GL — le challenge d’un feuillet annonce la question du jeu LORE', async () => {
-  glSettings.setGatingCacheForTests({ enabled: true, granularity: 'player', retryCooldownDays: 3 });
+  glSettings.setGatingCacheForTests({
+    enabled: true,
+    granularity: 'player',
+    retryCooldownHours: 72,
+  });
   await resetReaderState();
 
   const res = await request(app)
@@ -144,7 +174,11 @@ test('GL — le challenge d’un feuillet annonce la question du jeu LORE', asyn
 });
 
 test('GL — « Marquer comme étudié » : 403 tant que la question LORE n’est pas réussie', async () => {
-  glSettings.setGatingCacheForTests({ enabled: true, granularity: 'player', retryCooldownDays: 3 });
+  glSettings.setGatingCacheForTests({
+    enabled: true,
+    granularity: 'player',
+    retryCooldownHours: 72,
+  });
   await resetReaderState();
 
   const res = await request(app)
@@ -156,7 +190,11 @@ test('GL — « Marquer comme étudié » : 403 tant que la question LORE n’es
 });
 
 test('GL — parcours complet : présenter, répondre juste sur le jeu LORE, puis marquer étudié', async () => {
-  glSettings.setGatingCacheForTests({ enabled: true, granularity: 'player', retryCooldownDays: 3 });
+  glSettings.setGatingCacheForTests({
+    enabled: true,
+    granularity: 'player',
+    retryCooldownHours: 72,
+  });
   await resetReaderState();
 
   const present = await request(app)
@@ -227,6 +265,33 @@ test('GL — un feuillet désactivé n’est pas marquable (404)', async () => {
   assert.equal(res.body.error, 'Ressource introuvable');
 });
 
+test('GL — J1 : un feuillet jamais rencontré n’est pas marquable par un joueur (404)', async () => {
+  // La règle « n'est proposé que sur un feuillet déjà accessible en partie » n'était tenue que
+  // par l'écran : un appel direct à l'API marquait « étudié » un feuillet jamais vu.
+  glSettings.setGatingCacheForTests({ enabled: false });
+  await resetReaderState();
+  const res = await request(app)
+    .post(`/api/gl/learning/mark/feuillet/${encodeURIComponent(feuilletUnseen)}`)
+    .set('Authorization', 'Bearer ' + glToken)
+    .send({ confirm: true })
+    .expect(404);
+  assert.equal(res.body.error, 'Ressource introuvable');
+  // Une fois le feuillet découvert, le marquage passe.
+  await execute(
+    `INSERT INTO gl_player_feuillet_states
+      (player_id, feuillet_code, status, effacement_pct, acquired_via, acquired_at, updated_at)
+     VALUES (?, ?, 'read', 0, 'decouverte', NOW(), NOW())
+     ON DUPLICATE KEY UPDATE status = 'read'`,
+    [player.id, feuilletUnseen],
+  );
+  await request(app)
+    .post(`/api/gl/learning/mark/feuillet/${encodeURIComponent(feuilletUnseen)}`)
+    .set('Authorization', 'Bearer ' + glToken)
+    .send({ confirm: true })
+    .expect(200);
+  await execute('DELETE FROM gl_learning_acknowledgements WHERE target_code = ?', [feuilletUnseen]);
+});
+
 test('GL — conditionnement éteint : la bonne réponse compte quand même une fois allumé', async () => {
   // F3 : l'écriture des tentatives ne dépend plus de gating.enabled — l'activation est rétroactive.
   glSettings.setGatingCacheForTests({ enabled: false });
@@ -253,7 +318,11 @@ test('GL — conditionnement éteint : la bonne réponse compte quand même une 
   assert.equal(off.body.required, false);
 
   // …et une fois allumé, la réponse déjà donnée est reconnue : rien à repasser.
-  glSettings.setGatingCacheForTests({ enabled: true, granularity: 'player', retryCooldownDays: 3 });
+  glSettings.setGatingCacheForTests({
+    enabled: true,
+    granularity: 'player',
+    retryCooldownHours: 72,
+  });
   const on = await request(app)
     .get(
       `/api/gl/learning/gating/challenge?resourceType=feuillet&resourceRef=${encodeURIComponent(feuilletCode)}`,

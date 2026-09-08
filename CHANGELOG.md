@@ -35,6 +35,46 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   profilage. Les scores dérivés se calculent à la volée (élèves mineurs : rien à conserver,
   rien à purger), et aucun numéro `NNN_` n'est réservé — donc aucune collision possible avec
   une PR parallèle.
+### Documentation — lien Moodle : spécification d'implémentation complète
+
+- `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` réécrit en **spécification exécutable**, destinée à
+  être donnée telle quelle comme consigne de développement. Le cadrage devient une consigne :
+  invariants numérotés (I-1 à I-10), DDL complet de la migration, registre des réglages, contrat
+  du client Web Services (dont le piège des erreurs Moodle renvoyées en `HTTP 200`), algorithme
+  de rapprochement, comparaison à trois et conflits, moteur de composition des équipes et
+  miroirs Moodle, routes d'API, écran administrateur, liste nominative des tests exigés, lots
+  M1 à M5 avec définition de terminé, procédure de rentrée et procédure de création du jeton.
+- **Données de terrain confirmées** : cohortes `26#601-602`, `26#603`, `26#6`, `26#n3` ; cours
+  des chapitres 1 à 6 (`564`, `565`, `566`, `567`, `595`, `570`) — série non contiguë, à ne pas
+  confondre avec les numéros `6xx` des classes ; les quatre équipes de chaque cohorte, dont les
+  noms distincts évitent la collision de noms de groupes dans un cours partagé.
+- **Objets propres à ForetMap et G&L** (comptes, groupes et équipes sans contrepartie Moodle) :
+  traités par trois règles structurelles — pas de ligne d'identité externe, pas de prise ;
+  `sync_exempt` prioritaire ; un joueur sans identité Moodle reste un joueur normal.
+- `env.local.example` : `MOODLE_BASE_URL` et `MOODLE_WS_TOKEN` en commentaire (aucun code ne les
+  lit encore ; elles seront consommées par le client Web Services du lot M1).
+
+### Documentation — cadrage du lien Moodle 5.2 ↔ ForetMap / G&L
+
+- `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : synchronisation des cohortes (`année#classe`,
+  `année#niveau`) et groupes de cours Moodle vers les groupes ForetMap et classes G&L, avec
+  l'e-mail institutionnel Google Workspace comme pivot, la politique par population (sixièmes
+  joueurs visiteurs, n3beurs, autres élèves, années passées), les cas sur comptes existants, et
+  tous les garde-fous (simulation, seuils, journal réversible, contrôle croisé, fusion de
+  comptes). Rien d'implémenté : lots M1 à M5 et prérequis listés.
+- Complément après réponses : cohorte n3beurs `26#n3`, cohortes binômes (`26#601-602`), table
+  chapitre → cours, **synchronisation bidirectionnelle** avec un maître par objet (Moodle pour
+  les cohortes, G&L pour les équipes composées par un moteur dédié, miroir Moodle préfixé
+  `FM#`), comparaison à trois et écran des conflits, appartenances multiples, procédure pas à
+  pas de création du jeton Web Services sur `olution.info`.
+
+### Corrigé — test instable `gl-mascots` (401 aléatoire en CI)
+
+- `tests/gl-mascots.test.js` signait un jeton enseignant sans claim `tokenEpoch` pour « le
+  premier enseignant par identifiant » — un UUID aléatoire, parfois un compte dont un test
+  précédent avait réinitialisé le mot de passe (`token_epoch` incrémenté) : l'hydratation
+  répondait alors `401 SESSION_REVOKED`. Le jeton porte désormais l'époque courante du compte.
+  Échec observé sur `main` depuis la fusion de la PR #422 (runs des PR #422 et #423).
 
 ### Documentation et tests — mesure de charge et revue de tous les onglets (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`)
 
@@ -58,6 +98,235 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   constats nouveaux, non traités : usage de la médiathèque à 30 requêtes SQL sans cache (T1),
   catalogue complet retéléchargé par le réseau trophique pour trois champs (T2),
   `/api/settings/public` redondant du forum (T3).
+
+### Validation des ressources par quiz — lot 7 : documentation et dette (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.7)
+
+- **Docs de référence** (E3) : `docs/reference/foretmap/taches-tutoriels-et-validation.md` et
+  `docs/reference/gl/qcm-et-pedagogie.md` racontent le parcours réel — délai en heures (6 h par
+  défaut), sévérité du verrou, portée « question seule », tolérance d'erreurs, questions
+  expirées rechargées, refus expliqués, règle « une proposition ne conditionne jamais » et
+  bouton « Rendre bloquantes ».
+- **État réel du dispositif** (E2) : `docs/EVOLUTION.md` (§1.2), fiche **G3** de
+  `docs/reference/INCOHERENCES.md` (complément du 2026-09-07), section « Suivi de mise en
+  œuvre » ajoutée à l'audit avec l'état de chaque lot et ce qui reste (J3 côté G&L).
+- **Test croisé des listes dupliquées** (B6) : `tests/gating-lists-consistency.test.js` vérifie
+  que types validables, types acceptés, registre G&L, granularités, modes et sévérités
+  coïncident d'un module à l'autre.
+
+### Validation des ressources par quiz — lot 6 : base et charge (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.6)
+
+- **Corrigé — les statistiques par question étaient gonflées par la jointure sur les liens**
+  (C3) : une question rattachée à trois fiches comptait trois fois ses tentatives. Le caractère
+  bloquant est lu par `EXISTS`.
+- **Corrigé — `GET /api/learning-links/progress` faisait jusqu'à 1 001 requêtes en série**
+  (C4) : deux requêtes groupées pour toute la classe (bonnes réponses aux questions de la fiche,
+  lignes de verrou de la fiche), même vue du verrou que le challenge ; le plafond de 500 élèves
+  est annoncé (`max_students`, `truncated`).
+- **Index couvrants** (C5, migration **215**) sur `user_quiz_attempts (user_id, is_correct,
+  question_code)` et `gl_qcm_attempts (reader_user_type, reader_user_id, is_correct,
+  question_dataset, question_code)` : les lectures des bonnes réponses (challenge, résumé,
+  accusé) ne relisent plus la table.
+- **Purges** (C6) : `scripts/purge-audit-logs.js` couvre aussi les jetons de présentation
+  consommés (`gl_qcm_presentation_uses`, un jour) et les lignes de verrou échues ou de simple
+  comptage des deux produits (rétention « historiques ») ; un verrou qui court n'est jamais
+  touché. La purge est bien celle du monorepo (elle visait déjà `gl_game_events`).
+- **Orphelins polymorphes** (C7) : la déduplication des tutoriels migre aussi les verrous
+  (`resource_gating_cooldowns`) ; supprimer une plante emporte ses liens, sa politique et ses
+  verrous (`lib/learningGatingOrphans.js`).
+- **Plafonds annoncés** (B5) : les listes de liens renvoient `total`, `max_rows` et
+  `truncated` ; le sélecteur de questions du panneau prof filtre côté serveur (`q=`) et dit
+  « 200 premières questions affichées sur N » au lieu de tronquer en silence.
+- Tests : `tests/learning-gating-orphans.test.js` (nouveau), `tests/quiz-question-stats.test.js`,
+  `tests/learning-gating-progress.test.js`, `tests/tutorials-dedup.test.js`,
+  `tests/purge-audit-logs-targets.test.js`, `tests/learning-links.test.js`. Doc : `docs/API.md`.
+
+### Validation des ressources par quiz — lot 5 : écrans (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.5)
+
+- **Corrigé — le focus s'échappait de la fenêtre de contrôle** (D1) : le piège de focus des
+  fenêtres (`useDialogA11y`) figeait ses bornes au montage ; le contenu change pourtant
+  (chargement → question → réponse → confirmation) et Tab sortait de la fenêtre. Les bornes
+  sont recalculées à chaque Tab.
+- **Corrigé — les erreurs du serveur étaient affichées en texte brut, ou ignorées** (D3) :
+  challenge illisible → écran « Contrôle indisponible » avec _Réessayer_ (au lieu de passer à
+  une confirmation que le serveur allait refuser) ; refus `403` à la confirmation → retour au
+  contrôle avec « N question(s) à réussir », ou écran « Réessaie plus tard » si un verrou est
+  tombé entre-temps ; réponse `409` (présentation expirée) → la question est rechargée avec un
+  mot d'explication, sans « Présentation déjà utilisée » ; réponse `403` avec verrou → le
+  blocage est expliqué.
+- **Corrigé — la pastille restait sur « ? » après un contrôle réussi** (D4) : un événement
+  commun (`learning-gating:changed`) est émis à chaque question réussie et à chaque validation ;
+  tous les résumés ouverts (listes de tutoriels, catalogue biodiversité, glossaire, écrans
+  G&L) se rechargent sans fermer la fenêtre. G&L émet désormais aussi un événement de session
+  (`gl_session_changed`) que ses résumés écoutent.
+- **Cibles tactiles et styles communs** (D5) : les règles de la fenêtre d'accusé et du
+  contrôle (`.tuto-read-ack-*`, `.learning-gating-quiz__*`) quittent `src/index.css` pour
+  `src/shared/styles/learning-gating.css`, chargé par les deux applications ; choix de réponse
+  et boutons d'action à 44 px minimum.
+- **Écran de réglage G&L** (D6, livré au lot 2) : commandes « annoncer sur le bouton » et
+  « pastilles d'état », tolérance 0–10, sévérité du verrou, bornes revalidées côté client.
+- Tests : `tests-ui/shared/DialogShell.test.jsx` (piège de focus vivant),
+  `LearningAcknowledgeButton.test.jsx`, `LearningGatingQuestionPanel.test.jsx`,
+  `useLearningGatingSummary.test.jsx`, `tests-ui/gl/GLGatingSettings.test.jsx` (D2).
+
+### Validation des ressources par quiz — lot 4 : une proposition ne conditionne jamais, « rendre bloquant » est un geste explicite (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.4)
+
+- **Règle unique, lisible par un professeur** : _une proposition, un import ou une génération ne
+  conditionne jamais ; seul un clic « bloquant » le fait, et l'écran dit alors ce que l'élève
+  devra faire._ Les propositions du rattachement automatique (`POST /api/learning-links/suggest`,
+  `scripts/suggest-learning-links.js`) sont insérées **non bloquantes** (B2) ; la migration
+  **214** aligne les propositions encore en attente. Approuver en lot ne fait donc plus de
+  quarante propositions textuelles quarante questions bloquantes.
+- **Nouvelle action « Rendre bloquantes les N question(s) approuvée(s) »** dans les deux
+  panneaux (prof ForetMap, admin G&L), avec confirmation qui énonce la politique effective
+  (« une question réussie suffit sur 12, aucune erreur tolérée, verrou 6 h… »). Route
+  `POST /api/learning-links/gating` (et `/api/gl/learning-links/gating`), par identifiants ou
+  pour tous les liens approuvés d'une ressource, bornée à 200, refus sur un type non validable.
+- **Corrigé — recréer un couple existant le rendait bloquant et réécrivait son origine** (B3) :
+  `POST /api/learning-links` (FM et GL) ne réécrit `is_gating` et `origin` que si le corps les
+  fournit, et un lien créé sans le demander est non bloquant. Le formulaire G&L « Ajouter un
+  lien » n'a plus la case « Bloquant » précochée.
+- Tests : `tests/learning-links.test.js`, `tests/gl-learning-links.test.js`,
+  `tests/learning-links-suggest.test.js`, `tests/learning-links-bulk.test.js`, panneaux dans
+  `tests-ui/`. Doc : `docs/API.md`.
+
+### Validation des ressources par quiz — lot 3 : la portée « seulement la question ratée » fonctionne (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.3)
+
+- **Corrigé — le réglage « Portée du blocage après erreur » ne faisait rien** (A1) : la portée
+  `question` était écrite dans la table des verrous mais lue par aucun chemin ; choisie, elle
+  supprimait tout verrou effectif. Elle est désormais branchée dans le challenge, le résumé,
+  l'accusé et l'agrégat prof, par une vue unique et pure (`buildResourceCooldownView`) : chaque
+  question ratée porte son propre verrou et sa propre tolérance, l'élève continue sur les autres
+  questions de la fiche, et la fiche n'est refusée que s'il reste des réponses à donner sans plus
+  aucune question posable (délai annoncé = la levée la plus proche). Utile surtout avec
+  l'exigence « toutes » ou « seuil » ; en « une suffit », la question suivante est posée tout de
+  suite.
+- **Une question verrouillée ne se rejoue pas dans le flux** : `…/present` et `…/answer` avec
+  contexte répondent `403` + état du verrou, avant de consommer le jeton ou d'enregistrer la
+  tentative (une bonne réponse tardive depuis un autre onglet ne compte plus).
+- **Écran élève** : après une erreur en portée « question », le panneau dit « Cette question est
+  bloquée pendant 6 h. Tu peux continuer avec les autres questions de la fiche » et un bouton
+  _Continuer_ recharge le contrôle ; les règles annoncées avant de commencer mentionnent la
+  portée et les questions déjà bloquées. Les questions verrouillées sortent de ce qui est posé.
+- Tests : `tests/learning-gating-question-scope.test.js`, `tests/gl-learning-gating-question-scope.test.js`,
+  vue pure dans `tests/learning-gating-cooldown.test.js`, helpers client dans
+  `tests-ui/shared/learningGatingChallengeClient.test.js`. Doc : `docs/API.md`.
+
+### Validation des ressources par quiz — lot 2 : verrou contraignant, réglable par type, délai en heures (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.2)
+
+- **Le verrou après erreur tenait à la bonne volonté du client** (A4) : il n'était posé que si la
+  réponse arrivait avec le contexte de la fiche dans le corps, alors que les codes des questions
+  bloquantes sont livrés au lecteur. Répondre depuis le Quiz libre — ou rejouer la requête sans
+  contexte — donnait des essais illimités dont les bonnes réponses comptaient quand même. Le
+  contexte est désormais **gravé dans le jeton de présentation** (`…/present?resourceType=&resourceRef=`,
+  vérifié : la question doit conditionner cette fiche, sinon `400`) et la réponse ne lit que le
+  jeton. Nouvelle **sévérité du verrou** `lock_mode`, réglable site → type de ressource → fiche :
+  `advisory` (comportement historique, corps honoré), `flow` (défaut : jeton seul) et `strict`
+  (la question ne se joue que dans le flux de validation : `403` + `reserved_for` hors contexte,
+  exclue des tirages libres ; cache de 30 s invalidé à chaque écriture de politique, lien ou
+  réglage). Exemple d'usage : tutoriels en `strict`, glossaire en `advisory`. Module
+  `lib/learningGatingLockMode.js`, migration **213**.
+- **Délai de blocage en heures, 6 h par défaut au lieu de 3 jours** : réglages
+  `learning.gating.retry_cooldown_hours` / `gating.retry_cooldown_hours` (0–8760) et colonne
+  `retry_cooldown_hours` des politiques, convertis depuis les jours par la migration 213 ; les
+  anciennes clés restent acceptées en écriture (× 24). Les réponses portent `retry_hours`,
+  `retry_label`, `remaining_ms`, `remaining_hours`, `remaining_label` (« 45 min », « 3 h »,
+  « 1 j 2 h ») en plus des jours arrondis, et l'élève lit « réessaie dans 3 h » plutôt que
+  « 1 jour ». Un seul formateur pour les deux produits (`lib/shared/cooldownDurationCore.js`,
+  miroir `src/shared/utils/cooldownDuration.js`, parité testée).
+- **Écrans de réglage réécrits pour être compris sans notice** (prof ForetMap, admin G&L) :
+  quatre étapes numérotées — _Activer_, _Ce qu'il faut réussir_, _En cas d'erreur_, _Ce que
+  l'élève voit_ — chaque champ accompagné d'une phrase d'aide, délai choisi dans une liste
+  (aucun délai, 1 h … 7 jours) ou saisi librement, sévérité expliquée en clair (« Souple »,
+  « Normale (recommandée) », « Stricte »). Le préréglage par type expose les mêmes champs et
+  l'éditeur de politique se réinitialise quand on change d'onglet (D2). Habillage commun dans
+  `src/shared/styles/learning-gating.css`.
+- **Corrigé — résumé et challenge G&L pouvaient se contredire** (A3) : le résumé comptait les
+  réponses de l'équipe même en granularité « par joueur ». Les codes d'équipe ne sont fusionnés
+  que si la granularité effective est `team`.
+- **Corrigé — une question archivée continuait de conditionner** (A5) : les liens dont la
+  question n'est plus `actif` sont ignorés par le challenge, le résumé et l'accusé.
+- **Corrigé — la tolérance d'erreurs était annoncée neuve à chaque ouverture** (A6) : le bloc
+  `cooldown` renvoie `wrong_attempts` même hors verrou ; le texte devient « Il te reste 1 erreur
+  possible » puis « Plus aucune erreur permise ».
+- **Corrigé — un terme de glossaire déjà appris repassait le quiz** (A7), **une fiche déjà lue /
+  observée / apprise restait annoncée « à valider »** dans le résumé ForetMap (A8), et **un
+  joueur G&L pouvait marquer un feuillet jamais ouvert** (J1 : état `gl_player_feuillet_states`
+  exigé, sinon `404`).
+- Doc : `docs/API.md` (jeton contextualisé, sévérités, réglages en heures, blocs `cooldown`).
+  Tests : `tests/learning-gating-lock-mode.test.js`, `tests/gl-learning-gating-lock-mode.test.js`,
+  `tests-ui/shared/cooldownDuration.test.js`, mises à jour des suites de conditionnement.
+
+### Validation des ressources par quiz — lot 1 : sûreté minimale (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, §5.1)
+
+- **Corrigé — chaque réponse au Quiz faisait recharger tout le catalogue à toute la classe**
+  (C2) : les cinq tables du conditionnement (`user_quiz_attempts`, `resource_question_links`,
+  `resource_gating_policy`, `resource_gating_cooldowns`, `learning_acknowledgements`) sont
+  désormais ignorées par la synchronisation ; une écriture n'y réveille plus aucun domaine de
+  polling. Garde dans `tests/audit-biodiv-charge-hygiene.test.js`.
+- **Corrigé — `GET /api/learning-links/progress` répondait 500 depuis sa livraison** (A2) : deux
+  colonnes inexistantes (`users.deleted_at`, `learning_acknowledgements.resource_type`) ; le seuil
+  du mode « seuil » est borné au nombre de questions liées, comme à l'accusé. Nouveau
+  `tests/learning-gating-progress.test.js`.
+- **Corrigé — supprimer un joueur G&L laissait ses tentatives QCM, verrous et accusés** (C1) :
+  purge applicative dans les deux chemins (`DELETE /api/gl/admin/players/:id`, suppression d'un
+  élève ForetMap lié) via `lib/glPlayerPurge.js`. Un identifiant réattribué n'hérite plus de
+  bonnes réponses. Test dans `tests/gl-players-admin.test.js`.
+- **Corrigé — `scripts/generate-linked-questions.js` créait des liens approuvés ET bloquants**
+  (B1), hors du rattrapage de la migration 194 (`origin = 'generated'`) : le script insère
+  `is_gating = 0` et la migration **212** rattrape l'existant.
+- **Tests — deux échecs intermittents en CI** : `tests/gl-mascots.test.js` signe son jeton
+  enseignant avec l'époque de session courante (`tokenEpoch`), `tests/rbac.test.js` crée l'élève
+  qu'il modifie au lieu de prendre le premier de la base partagée (qui pouvait n'avoir ni prénom
+  ni nom).
+
+### Documentation — audit complet de la validation des ressources par quiz (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`)
+
+- **Audit de tout le dispositif de conditionnement** (décision serveur, liens et génération
+  automatique, base de données, écrans lecteur et prof/MJ, documentation, tests), pour ForetMap
+  et Gnomes & Licornes. Il succède aux deux audits d'août et vérifie leurs points ouverts (C6,
+  J1, J3). Six constats à traiter avant toute activation en classe : le verrou de portée
+  « question seule » n'est relu par aucun chemin lecteur (aucun verrou effectif dans cette
+  portée) ; `GET /api/learning-links/progress` répond 500 depuis sa livraison (deux colonnes
+  inexistantes, aucun test) ; un script génère encore des liens approuvés **et** bloquants hors
+  du rattrapage de la migration 194 ; la suppression d'un joueur GL laisse ses tentatives, verrous
+  et accusés (réattribuables au prochain identifiant) ; chaque réponse de quiz ForetMap invalide
+  tous les domaines de polling ; le verrou de re-tentative ne tient que si le client envoie le
+  contexte ressource. Ordre de traitement et requêtes de contrôle en fin de document.
+- **Corrections documentaires sans effet sur le code** : `docs/API.md` ne liste plus le réglage
+  supprimé `auto_mark_on_correct`, donne les types réellement acceptés (`glossary` côté challenge
+  ForetMap, `content_page`/`ecosystem` côté GL), complète la liste des réglages GL (tolérance,
+  plafond par session, portée du verrou) et remet les trois routes `PUT` de granularité GL dans
+  le tableau GL (elles étaient insérées dans un tableau ForetMap) ; l'en-tête de
+  `routes/gl/learning-links.js` n'affirme plus que la politique par ressource n'est pas relue.
+
+  constats nouveaux — médiathèque (T1), réseau trophique (T2), forum (T3) — traités depuis,
+  voir ci-dessous.
+
+### Performance — médiathèque, réseau trophique et forum (T1 à T3 de l'audit de charge)
+
+- **Usage de la médiathèque : le balayage n'est plus refait à chaque ouverture.**
+  `/api/media-library/usage` et son équivalent G&L interrogeaient toutes leurs tables sources
+  (un `SHOW COLUMNS` puis un `SELECT … LIMIT 5000` chacune) à chaque consultation, sans cache —
+  un coût fixe qui croît avec la taille des tables, pas avec ce que l'écran affiche. Cache
+  mémoire à **version d'écriture** (motif partagé déjà utilisé par le contenu de visite), avec
+  une entrée par produit. Choix assumé de la version d'écriture plutôt que d'un TTL, malgré un
+  taux de succès moindre : l'usage sert à prévenir avant une suppression (« ce média est
+  utilisé à N endroits ») et un résultat périmé y ferait supprimer un média venant d'être
+  référencé. L'import et la suppression de médias périment le cache d'eux-mêmes (journal
+  d'audit).
+- **Réseau trophique : le catalogue complet n'est plus retéléchargé pour trois champs.** La vue
+  professeur appelait `GET /api/plants` (~117 kio) pour ne garder que `{ id, name, emoji }`
+  dans ses menus déroulants, alors que `DataContext` porte déjà la liste. Elle la dérive
+  désormais du contexte ; tri et restriction aux professeurs inchangés.
+- **Forum : plus de relecture des réglages publics.** Le `GET /api/settings/public` retiré de
+  `ContextComments` au lot précédent subsistait ici pour les seuls emojis de réaction, que
+  `PublicSettingsContext` fournit déjà.
+- **Correction d'un chiffrage de l'audit.** Le constat T1 annonçait « 15 tables sources,
+  30 requêtes SQL, `LIMIT 800` ». Les trois nombres étaient faux : **4 sources et 8 requêtes**
+  côté ForetMap, **9 et 18** côté G&L, avec un `LIMIT 5000` (le 800 est le nombre de médias
+  lus sur le disque). Nombres désormais mesurés par un test plutôt qu'estimés, et
+  l'affirmation « la route la plus chère de l'application », qu'aucune mesure n'appuyait,
+  est retirée.
 ### Corrigé — « Importer les nouvelles fiches » (tutoriels) ne faisait rien
 
 - **Une fiche réellement nouvelle pouvait être classée « déjà en base ».** Le rapprochement

@@ -3,7 +3,9 @@ import { getQcmFeedbackText, shouldShowQcmAnswerPhase } from '../qcm/qcmFeedback
 import { QcmQuestionPhoto } from '../qcm/QcmQuestionPhoto.jsx';
 import {
   isCooldownLocked,
+  isQuestionScopedLock,
   buildCooldownLockMessage,
+  buildQuestionLockMessage,
 } from '../utils/learningGatingChallengeClient.js';
 
 /**
@@ -21,6 +23,8 @@ export function LearningGatingQuestionPanel({
   answerQuestion,
   onPassed,
   onAbandon,
+  /** Erreur qui n'a bloqué que la question (portée « question seule ») : le parent recharge. */
+  onQuestionLocked = null,
   choiceClassName = 'learning-gating-quiz__choice',
   primaryBtnClassName = 'btn btn-primary btn-sm',
   ghostBtnClassName = 'btn btn-ghost btn-sm',
@@ -31,6 +35,7 @@ export function LearningGatingQuestionPanel({
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
   const loadPresentation = useCallback(async () => {
     setLoading(true);
@@ -39,14 +44,20 @@ export function LearningGatingQuestionPanel({
     setSelectedChoiceId(null);
     setResult(null);
     try {
-      const data = await presentQuestion(questionCode, questionDataset);
+      // Le contexte ressource est demandé dès la présentation : le serveur le grave dans le
+      // jeton, ce qui fait tenir le verrou même si le corps de la réponse est modifié.
+      const resource =
+        resourceType && resourceRef != null && resourceRef !== ''
+          ? { resourceType, resourceRef }
+          : null;
+      const data = await presentQuestion(questionCode, questionDataset, resource);
       setPresentation(data);
     } catch (err) {
       setError(err?.message || 'Chargement de la question impossible');
     } finally {
       setLoading(false);
     }
-  }, [presentQuestion, questionCode, questionDataset]);
+  }, [presentQuestion, questionCode, questionDataset, resourceType, resourceRef]);
 
   useEffect(() => {
     loadPresentation();
@@ -70,11 +81,24 @@ export function LearningGatingQuestionPanel({
       );
       setResult(data);
     } catch (err) {
+      // 409 : la présentation a expiré (15 min) ou a déjà servi — on recharge la question
+      // avec de nouveaux choix plutôt que d'afficher « Présentation déjà utilisée » (D3).
+      if (err?.status === 409) {
+        setNotice('Cette question avait expiré : elle est rechargée avec de nouveaux choix.');
+        await loadPresentation();
+        return;
+      }
+      // 403 avec verrou : la question (ou la fiche) s'est bloquée entre-temps.
+      if (err?.status === 403 && err?.body?.cooldown) {
+        setResult({ correct: false, cooldown: err.body.cooldown, feedback: err.body.error || '' });
+        return;
+      }
       setError(err?.message || 'Envoi de la réponse impossible');
     } finally {
       setSubmitting(false);
     }
   }, [
+    loadPresentation,
     answerQuestion,
     presentation,
     questionCode,
@@ -87,6 +111,12 @@ export function LearningGatingQuestionPanel({
   const showAnswer = shouldShowQcmAnswerPhase(result);
   const feedbackText = getQcmFeedbackText(result);
   const cooldownLocked = !result?.correct && isCooldownLocked(result?.cooldown);
+  // Portée « question seule » : seule cette question est bloquée, la fiche reste ouverte si
+  // d'autres questions peuvent être posées — c'est le parent qui le sait (il recharge).
+  const questionOnlyLocked =
+    cooldownLocked &&
+    isQuestionScopedLock(result.cooldown) &&
+    typeof onQuestionLocked === 'function';
 
   return (
     <div className="learning-gating-quiz">
@@ -95,6 +125,11 @@ export function LearningGatingQuestionPanel({
         .
       </p>
       {loading ? <p className="tuto-read-ack-intro">Chargement de la question…</p> : null}
+      {notice ? (
+        <p className="tuto-read-ack-intro learning-gating-quiz__notice" role="status">
+          {notice}
+        </p>
+      ) : null}
       {error ? <p className="tuto-read-ack-error">{error}</p> : null}
       {!loading && !showAnswer && presentation ? (
         <>
@@ -155,12 +190,22 @@ export function LearningGatingQuestionPanel({
           </p>
           {cooldownLocked ? (
             <p className="learning-gating-quiz__cooldown" role="alert">
-              {buildCooldownLockMessage(result.cooldown, itemTitle)}
+              {questionOnlyLocked
+                ? buildQuestionLockMessage(result.cooldown)
+                : buildCooldownLockMessage(result.cooldown, itemTitle)}
             </p>
           ) : null}
           <div className="tuto-read-ack-actions">
             {result?.correct ? (
               <button type="button" className={primaryBtnClassName} onClick={onPassed}>
+                Continuer
+              </button>
+            ) : questionOnlyLocked ? (
+              <button
+                type="button"
+                className={primaryBtnClassName}
+                onClick={() => onQuestionLocked(result.cooldown)}
+              >
                 Continuer
               </button>
             ) : cooldownLocked ? (

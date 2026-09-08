@@ -37,10 +37,10 @@ test('auto_mark_on_correct a bien disparu du catalogue', () => {
 
 test('gatingNameForKey retrouve le nom logique dans les deux sens', () => {
   assert.equal(
-    core.gatingNameForKey('fm', 'learning.gating.retry_cooldown_days'),
-    'retryCooldownDays',
+    core.gatingNameForKey('fm', 'learning.gating.retry_cooldown_hours'),
+    'retryCooldownHours',
   );
-  assert.equal(core.gatingNameForKey('gl', 'gating.retry_cooldown_days'), 'retryCooldownDays');
+  assert.equal(core.gatingNameForKey('gl', 'gating.retry_cooldown_hours'), 'retryCooldownHours');
   assert.equal(core.gatingNameForKey('fm', 'gating.granularity'), null);
   assert.equal(core.gatingNameForKey('fm', 'inconnu'), null);
 });
@@ -48,7 +48,7 @@ test('gatingNameForKey retrouve le nom logique dans les deux sens', () => {
 test('normalisation — bornage numérique', () => {
   assert.equal(core.normalizeGatingSetting('allowedWrongAttempts', 99), 10);
   assert.equal(core.normalizeGatingSetting('allowedWrongAttempts', -4), 0);
-  assert.equal(core.normalizeGatingSetting('retryCooldownDays', 1000), 365);
+  assert.equal(core.normalizeGatingSetting('retryCooldownHours', 100000), 8760);
   assert.equal(core.normalizeGatingSetting('maxQuestionsPerSession', 0), 1);
   assert.equal(core.normalizeGatingSetting('defaultRequiredCorrect', 2.9), 2);
 });
@@ -77,7 +77,8 @@ test('normalisation — booléens tolérants aux formes stockées', () => {
 test('buildGatingSettings — défauts complets et omission du hors-produit', () => {
   const fm = core.buildGatingSettings({}, 'fm');
   assert.equal(fm.enabled, false);
-  assert.equal(fm.retryCooldownDays, 3);
+  assert.equal(fm.retryCooldownHours, 6, 'délai par défaut : 6 h');
+  assert.equal(fm.lockMode, 'flow', 'sévérité par défaut : normale (flow)');
   assert.equal(fm.granularity, undefined, 'la granularité n’a pas de sens côté ForetMap');
 
   const gl = core.buildGatingSettings({}, 'gl');

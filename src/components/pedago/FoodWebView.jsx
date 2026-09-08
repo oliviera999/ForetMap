@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../services/api';
+import { useData } from '../../contexts/DataContext.jsx';
 import { FoodWebGraph } from './FoodWebGraph.jsx';
 import {
   INTERACTION_TYPES,
@@ -31,7 +32,6 @@ export function FoodWebView({
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [edgeGlossary, setEdgeGlossary] = useState([]);
   const [edgeLoading, setEdgeLoading] = useState(false);
-  const [speciesOptions, setSpeciesOptions] = useState([]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [adminError, setAdminError] = useState('');
@@ -40,6 +40,8 @@ export function FoodWebView({
   const [editError, setEditError] = useState('');
   /** Invalide une réponse de graphe périmée (changement de carte/zone pendant le fetch). */
   const loadFoodWebSeqRef = useRef(0);
+
+  const { plants = [] } = useData();
 
   // Auto-liens des descriptions d'interaction (texte brut).
   const glossaryIndex = useGlossaryLinkIndex();
@@ -96,28 +98,17 @@ export function FoodWebView({
     };
   }, [mapId]);
 
-  useEffect(() => {
-    if (!canManage) return undefined;
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await api('/api/plants');
-        if (cancelled) return;
-        const list = Array.isArray(data) ? data : [];
-        setSpeciesOptions(
-          list
-            .map((p) => ({ id: Number(p.id), name: p.name, emoji: p.emoji || '' }))
-            .filter((p) => Number.isFinite(p.id) && p.id > 0)
-            .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'fr')),
-        );
-      } catch (_) {
-        if (!cancelled) setSpeciesOptions([]);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [canManage]);
+  // Liste déroulante des espèces : lue dans `DataContext`, qui porte déjà `plants` —
+  // la même liste, chargée une fois par le cycle de synchronisation et tenue à jour par lui.
+  // La vue la retéléchargeait entière (`GET /api/plants`, ~117 kio) pour n'en garder que
+  // trois champs (cf. docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md, T2).
+  const speciesOptions = useMemo(() => {
+    if (!canManage) return [];
+    return (Array.isArray(plants) ? plants : [])
+      .map((p) => ({ id: Number(p.id), name: p.name, emoji: p.emoji || '' }))
+      .filter((p) => Number.isFinite(p.id) && p.id > 0)
+      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'fr'));
+  }, [canManage, plants]);
 
   const createInteraction = useCallback(
     async (event) => {

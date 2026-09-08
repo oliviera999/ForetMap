@@ -216,8 +216,15 @@ const SYNC_DOMAIN_RES = Object.fromEntries(
  * (audit 2026-09, B6) ne sont lues que par des routes hors cycle : compteurs d'observation par
  * utilisateur, et routes par fiche (interactions, termes de glossaire, questions de quiz).
  */
+//
+// Les cinq tables du conditionnement des lectures (audit docs/AUDIT_VALIDATION_QUIZ_2026-09.md,
+// constat C2) ne sont lues que par des routes hors cycle : challenge, résumé et accusés par
+// ressource, écrans prof. Absentes d'ici, chaque réponse au Quiz libre (`user_quiz_attempts`),
+// chaque verrou, chaque accusé glossaire et chaque lien créé par un prof retombait sur le
+// repli `bumpAll` : tous les domaines invalidés, le catalogue complet rechargé chez toute la
+// classe — le symptôme B6, sur les tables voisines.
 const SYNC_IGNORED_TABLES_RE =
-  /\b(?:gl_(?!classes\b)[a-z0-9_]+|forum_[a-z0-9_]+|context_comment[a-z0-9_]*|user_plant_observation_events|species_interactions|glossary_term_species|quiz_question_species)\b/i;
+  /\b(?:gl_(?!classes\b)[a-z0-9_]+|forum_[a-z0-9_]+|context_comment[a-z0-9_]*|user_plant_observation_events|species_interactions|glossary_term_species|quiz_question_species|user_quiz_attempts|resource_question_links|resource_gating_policy|resource_gating_cooldowns|learning_acknowledgements)\b/i;
 const syncDomainVersions = Object.fromEntries(
   Object.keys(SYNC_DOMAIN_TABLES).map((domain) => [domain, 0]),
 );

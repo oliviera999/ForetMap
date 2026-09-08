@@ -77,9 +77,16 @@ par des quick wins.
   persistance des tentatives QCM (`user_quiz_attempts` / `gl_qcm_attempts`), endpoints CRUD prof/MJ,
   cœur partagé `lib/shared/resourceQuestionGatingCore.js` et **`lib/learningGatingAcknowledge.js`**
   (challenge + garde 403 sur accusé). **Runtime pull** : quiz obligatoire au clic « Marquer comme… »
-  (toutes les questions liées, mode `all`), essais illimités, abandon possible ; plus d'auto-marquage
-  sur bonne réponse plateau/catalogue. UI : `LearningGatingQuestionPanel` + branchement FM/GL/plantes.
-  **Reste optionnel** : granularité `team` au challenge, gating `lore_glossary` / `feuillet`.
+  selon le **mode effectif** (`any` par défaut, `all`, `threshold`), tolérance d'erreurs, plafond de
+  questions par session, abandon possible ; plus d'auto-marquage sur bonne réponse plateau/catalogue.
+  UI : `LearningGatingQuestionPanel` + branchement FM/GL/plantes. Granularité `team` et types
+  `lore_glossary` / `feuillet` / `content_page` / `ecosystem` **livrés** côté GL (août 2026).
+  **Septembre 2026** (`docs/AUDIT_VALIDATION_QUIZ_2026-09.md`, lots 1–6) : verrou de re-tentative
+  **contraignant** (contexte gravé dans le jeton de présentation, sévérité `lock_mode`
+  advisory/flow/strict réglable par type, défaut `flow`), délai **en heures, 6 h par défaut**, portée
+  « question seule » réellement branchée, propositions jamais bloquantes + action « rendre bloquant »
+  en lot, écrans de réglage réécrits en quatre étapes, index/purges/orphelins. **État : livré, gating
+  OFF par défaut** — l'activation en classe suit les requêtes de contrôle du §6 de l'audit.
 - **Observabilité externe (hors scope court terme)** : intégration **Sentry**, **OpenTelemetry** ou agrégation fichier/ELK pour historiser au-delà du tampon mémoire Pino — à trancher selon budget hébergeur et besoin de rétention ; l’app expose déjà stdout, `/api/admin/logs`, `/api/admin/diagnostics` (inclut désormais **`visitMascotHint`** pour diagnostiquer une visite « vide » / mascotte absente côté données) et **`X-Request-Id`** pour corrélation.
 - **Frontend (partiellement réalisé)** :
   - `auth`, `tâches`, `carte`, `stats`, `audit`, `about` sont désormais extraits en modules dédiés.

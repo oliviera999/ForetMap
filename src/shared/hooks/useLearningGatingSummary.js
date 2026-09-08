@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { LEARNING_GATING_CHANGED_EVENT } from '../utils/learningGatingEvents.js';
 
 /**
  * Plafond aligné sur celui du serveur (`SUMMARY_MAX_REFS`).
@@ -78,15 +79,19 @@ export function useLearningGatingSummary({
       await load();
     };
     run();
-    if (sessionEventName && typeof window !== 'undefined') {
-      window.addEventListener(sessionEventName, run);
+    if (typeof window === 'undefined') {
       return () => {
         cancelled = true;
-        window.removeEventListener(sessionEventName, run);
       };
     }
+    // Changement de session (propre au produit) ET changement de conditionnement (commun :
+    // une question réussie, une ressource validée) rechargent l'annonce — sans cela, la
+    // pastille restait sur « ? » après un contrôle réussi tant qu'on ne rechargeait pas.
+    const names = [LEARNING_GATING_CHANGED_EVENT, sessionEventName].filter(Boolean);
+    for (const name of names) window.addEventListener(name, run);
     return () => {
       cancelled = true;
+      for (const name of names) window.removeEventListener(name, run);
     };
   }, [load, sessionEventName]);
 
