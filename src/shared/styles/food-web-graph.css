@@ -1,0 +1,433 @@
+/* Graphe réseau trophique partagé ForetMap + GL. */
+.pedago-foodweb-graph {
+  width: 100%;
+  max-width: none;
+  flex: 1;
+  min-height: 260px;
+  height: auto;
+  display: block;
+  margin: 0;
+  touch-action: none;
+  background: #fbfdfc;
+  border-radius: 10px;
+}
+.pedago-foodweb-graph__line {
+  fill: none;
+}
+.pedago-foodweb-graph__line.dim {
+  opacity: 0.12;
+}
+.pedago-foodweb-graph__arrowhead.active {
+  fill: #16a34a;
+}
+/* Herbivorie et prédation ne doivent pas se distinguer que par la teinte
+   (rouges voisins, illisibles en vision deutan/protan) : figuré et épaisseur
+   propres. Voir INTERACTION_EDGE_STYLES, qui fait foi. */
+.pedago-foodweb-graph__line--herbivorie,
+.pedago-foodweb-graph__arrowhead--herbivorie {
+  stroke: #c2410c;
+  fill: #c2410c;
+  stroke-dasharray: 12 5;
+}
+.pedago-foodweb-graph__line--predation,
+.pedago-foodweb-graph__arrowhead--predation {
+  stroke: #b91c1c;
+  fill: #b91c1c;
+  stroke-width: 2.4;
+}
+.pedago-foodweb-graph__line--decomposition,
+.pedago-foodweb-graph__arrowhead--decomposition {
+  stroke: #78350f;
+  fill: #78350f;
+  stroke-dasharray: 8 4;
+}
+.pedago-foodweb-graph__line--pollinisation,
+.pedago-foodweb-graph__arrowhead--pollinisation {
+  stroke: #ca8a04;
+  fill: #ca8a04;
+  stroke-dasharray: 6 3;
+}
+.pedago-foodweb-graph__line--plante_hote,
+.pedago-foodweb-graph__arrowhead--plante_hote {
+  stroke: #15803d;
+  fill: #15803d;
+  stroke-dasharray: 2 4;
+}
+.pedago-foodweb-graph__line--nitrification,
+.pedago-foodweb-graph__arrowhead--nitrification {
+  stroke: #1d4ed8;
+  fill: #1d4ed8;
+  stroke-dasharray: 10 3 2 3;
+}
+.pedago-foodweb-graph__line--symbiose,
+.pedago-foodweb-graph__arrowhead--symbiose {
+  stroke: #0f766e;
+  fill: #0f766e;
+}
+.pedago-foodweb-graph__line--competition,
+.pedago-foodweb-graph__arrowhead--competition {
+  stroke: #4b5563;
+  fill: #4b5563;
+  stroke-dasharray: 4 4;
+}
+.pedago-foodweb-graph__line--default,
+.pedago-foodweb-graph__arrowhead--default {
+  stroke: #94a3b8;
+  fill: #94a3b8;
+}
+.pedago-foodweb-graph__line.active {
+  stroke: #16a34a;
+  stroke-width: 2.6;
+}
+.pedago-foodweb-graph__edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14px;
+  cursor: pointer;
+}
+/* Le graphe se parcourt aussi au clavier : l'anneau de focus doit rester visible
+   sur un élément SVG, où `outline` n'est pas fiable selon les navigateurs. */
+.pedago-foodweb-graph__edge-hit:focus {
+  outline: none;
+}
+.pedago-foodweb-graph__edge-hit:focus-visible {
+  stroke: var(--sage, #7aab8a);
+  stroke-dasharray: 3 3;
+}
+.pedago-foodweb-graph__node-group:focus {
+  outline: none;
+}
+.pedago-foodweb-graph__node-group:focus-visible .pedago-foodweb-graph__node {
+  stroke: #0f766e;
+  stroke-width: 3;
+}
+.pedago-foodweb-graph__node-group:focus-visible .pedago-foodweb-graph__label {
+  font-weight: var(--fw-semibold);
+}
+.pedago-foodweb-graph__node {
+  fill: #dcfce7;
+  stroke: #16a34a;
+  stroke-width: 1.5;
+}
+.pedago-foodweb-graph__node.highlight {
+  fill: #bbf7d0;
+  stroke-width: 2.5;
+}
+.pedago-foodweb-graph__label {
+  font-size: 9px;
+  fill: #1f2937;
+}
+.pedago-foodweb__graph-wrap {
+  padding: 12px;
+  overflow: hidden;
+}
+.pedago-foodweb__layout--graph .pedago-foodweb__graph-wrap {
+  padding: 8px;
+}
+.pedago-foodweb__layout--graph .pedago-foodweb-graph__wrap {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 8px;
+}
+@media (min-width: 1100px) {
+  .pedago-foodweb__layout--graph .pedago-foodweb-graph__wrap {
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 240px);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+  .pedago-foodweb__layout--graph .pedago-foodweb-graph__toolbar {
+    grid-column: 1 / -1;
+  }
+  .pedago-foodweb__layout--graph .pedago-foodweb-graph {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: stretch;
+    min-height: 320px;
+  }
+  .pedago-foodweb__layout--graph .pedago-foodweb-legend {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    max-height: 100%;
+    overflow-y: auto;
+  }
+  .pedago-foodweb__layout--graph .pedago-foodweb-graph__hint {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+}
+.pedago-foodweb__glossary--panel {
+  margin-top: 12px;
+}
+.pedago-foodweb__graph-column .pedago-foodweb__glossary--panel {
+  margin-top: 0;
+  flex: 0 0 auto;
+}
+.pedago-foodweb__highlight-notice {
+  flex-shrink: 0;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #7c2d12;
+  font-size: var(--text-sm);
+}
+.pedago-foodweb__selected {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e2ece6;
+}
+.pedago-foodweb__selected-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-weight: var(--fw-semibold);
+  color: var(--forest, #1a3d2e);
+}
+.pedago-foodweb__selected-dot {
+  display: inline-block;
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.pedago-foodweb__selected-sentence {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--lh-normal);
+}
+.pedago-foodweb__edit-open {
+  margin-bottom: 10px;
+}
+.pedago-foodweb__edit {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e2ece6;
+}
+.pedago-foodweb__edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pedago-foodweb__admin-hint {
+  grid-column: 1 / -1;
+  font-size: var(--text-sm);
+  margin: 0;
+}
+.pedago-foodweb-graph__node.dim,
+.pedago-foodweb-graph__label.dim {
+  opacity: 0.18;
+  transition: opacity 0.15s ease;
+}
+.pedago-foodweb-graph__node--env {
+  fill: #f3f4f6;
+  stroke: #94a3b8;
+  stroke-dasharray: 3 3;
+}
+/* Espèce conservée pour ne pas amputer une relation, mais située hors de la
+   zone/carte filtrée : marquée plutôt que masquée. */
+.pedago-foodweb-graph__node--outside {
+  fill: #fff7ed;
+  stroke: #ea9a5c;
+  stroke-dasharray: 5 3;
+}
+.pedago-foodweb-graph__node-emoji {
+  font-size: 16px;
+  pointer-events: none;
+  user-select: none;
+}
+.pedago-foodweb-graph__node-group {
+  cursor: pointer;
+}
+.pedago-foodweb-graph__wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+.pedago-foodweb-graph__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.pedago-foodweb-graph__tbgroup {
+  display: inline-flex;
+  gap: 2px;
+  background: #eef4f0;
+  border-radius: 8px;
+  padding: 2px;
+}
+.pedago-foodweb-graph__tbtn {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
+  padding: 6px 10px;
+  min-height: 36px;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  color: var(--forest, #1a3d2e);
+}
+.pedago-foodweb-graph__tbtn:hover {
+  background: #fff;
+}
+.pedago-foodweb-graph__tbtn.active {
+  background: #fff;
+  border-color: var(--sage, #7aab8a);
+  font-weight: var(--fw-semibold);
+}
+.pedago-foodweb-graph__tbtn--focus {
+  background: #fde8e8;
+  border: 1px solid #f0b4b4;
+}
+.pedago-foodweb-graph__hint {
+  font-size: var(--text-sm);
+  margin: 0;
+}
+.pedago-foodweb-graph__search {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pedago-foodweb-graph__search-input {
+  min-height: 36px;
+  min-width: 0;
+  width: clamp(120px, 22vw, 200px);
+  padding: 6px 10px;
+  font-size: var(--text-sm);
+  border: 1px solid #d6e8dc;
+  border-radius: 8px;
+  background: #fff;
+  color: inherit;
+}
+.pedago-foodweb-graph__search-input:focus-visible {
+  outline: 2px solid var(--sage, #7aab8a);
+  outline-offset: 1px;
+}
+.pedago-foodweb-graph__tbtn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.pedago-foodweb-legend {
+  padding: 10px 12px;
+  background: #f1f8f3;
+  border: 1px solid #d6e8dc;
+  border-radius: 8px;
+  font-size: var(--text-sm);
+}
+.pedago-foodweb-legend__title {
+  margin: 0 0 4px;
+  font-weight: var(--fw-semibold);
+  font-size: var(--text-sm);
+  color: #1a3d2e;
+}
+.pedago-foodweb-legend__hint {
+  margin: 0 0 10px;
+  font-size: var(--text-xs);
+  color: #5a6f62;
+  line-height: 1.35;
+}
+.pedago-foodweb-legend__group {
+  margin-top: 8px;
+}
+.pedago-foodweb-legend__group:first-of-type {
+  margin-top: 0;
+}
+.pedago-foodweb-legend__group-label {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #6b7f72;
+  margin-bottom: 6px;
+}
+.pedago-foodweb-legend__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 6px 12px;
+}
+.pedago-foodweb-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  width: 100%;
+  text-align: left;
+}
+.pedago-foodweb-legend__item--toggle {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.pedago-foodweb-legend__item--toggle:hover {
+  background: #e8f3ec;
+  border-color: #d6e8dc;
+}
+.pedago-foodweb-legend__item--toggle:focus-visible {
+  outline: 2px solid var(--sage, #7aab8a);
+  outline-offset: 2px;
+}
+.pedago-foodweb-legend__item--hidden {
+  opacity: 0.42;
+}
+.pedago-foodweb-legend__item--hidden .pedago-foodweb-legend__label {
+  text-decoration: line-through;
+}
+.pedago-foodweb-legend__sample {
+  flex-shrink: 0;
+}
+.pedago-foodweb-legend__label {
+  line-height: var(--lh-tight);
+  color: #1f2937;
+}
+.pedago-foodweb-legend--compact .pedago-foodweb-legend__hint {
+  display: none;
+}
+
+/* Variante GL : pas de tokens forêt. */
+.pedago-foodweb-graph__wrap--gl .pedago-foodweb-graph {
+  background: rgba(255, 255, 255, 0.04);
+}
+.pedago-foodweb-graph__wrap--gl .pedago-foodweb-graph__tbgroup {
+  background: rgba(255, 255, 255, 0.08);
+}
+.pedago-foodweb-graph__wrap--gl .pedago-foodweb-graph__tbtn {
+  color: inherit;
+}
+.pedago-foodweb-graph__wrap--gl .pedago-foodweb-graph__tbtn:hover,
+.pedago-foodweb-graph__wrap--gl .pedago-foodweb-graph__tbtn.active {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.pedago-foodweb-graph__wrap--gl .pedago-foodweb-graph__search-input {
+  background: rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: inherit;
+}
+.pedago-foodweb-graph__wrap--gl .pedago-foodweb-graph__label {
+  fill: currentColor;
+}
+.pedago-foodweb-graph__wrap--gl .pedago-foodweb-legend {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.pedago-foodweb-graph__wrap--gl .pedago-foodweb-legend__title,
+.pedago-foodweb-graph__wrap--gl .pedago-foodweb-legend__label,
+.pedago-foodweb-graph__wrap--gl .pedago-foodweb-legend__group-label,
+.pedago-foodweb-graph__wrap--gl .pedago-foodweb-legend__hint {
+  color: inherit;
+}

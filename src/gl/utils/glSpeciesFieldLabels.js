@@ -6,6 +6,9 @@ export const GL_SPECIES_FIELD_LABELS = {
   type: 'Type',
   nom_commun: 'Nom commun',
   nom_scientifique: 'Nom scientifique',
+  taxon_rank: 'Rang taxonomique',
+  taxon_source: 'Source taxonomique',
+  taxon_source_url: 'Lien de la source',
   groupe: 'Groupe',
   famille: 'Famille',
   statut_iucn: 'Statut UICN',
@@ -35,6 +38,13 @@ export const GL_SPECIES_TYPE_LABELS = {
   flore: 'Flore',
 };
 
+export const GL_TAXON_RANK_LABELS = {
+  species: 'espèce',
+  genus: 'genre',
+  family: 'famille',
+  clade: 'clade',
+};
+
 /** Sections de la fiche modale : titre + clés affichées si non vides. */
 export const GL_SPECIES_DETAIL_SECTIONS = [
   {
@@ -46,6 +56,11 @@ export const GL_SPECIES_DETAIL_SECTIONS = [
     id: 'morphologie',
     title: 'Morphologie et vie',
     fields: ['taille_adulte', 'poids_adulte', 'longevite', 'reproduction'],
+  },
+  {
+    id: 'taxonomie',
+    title: 'Taxonomie',
+    fields: ['taxon_rank', 'taxon_source', 'taxon_source_url'],
   },
   {
     id: 'conservation',
@@ -111,6 +126,10 @@ export function formatGlSpeciesFieldValue(key, value, ctx = {}) {
     return GL_SPECIES_TYPE_LABELS[raw] || raw;
   }
 
+  if (key === 'taxon_rank') {
+    return GL_TAXON_RANK_LABELS[raw] || raw;
+  }
+
   if (key === 'present_dans_qcm') {
     const lower = raw.toLowerCase();
     if (lower === 'oui' || lower === 'yes' || lower === '1' || lower === 'true') return 'Oui';
@@ -126,5 +145,5 @@ export function formatGlSpeciesFieldValue(key, value, ctx = {}) {
 }
 
 export function isGlSpeciesUrlField(key) {
-  return key === 'wikipedia_url' || key === 'photo_licence_url';
+  return key === 'wikipedia_url' || key === 'photo_licence_url' || key === 'taxon_source_url';
 }

@@ -10,11 +10,13 @@ import { FoodWebEdgeLegend } from './FoodWebEdgeLegend.jsx';
 import {
   ENV_NODE_ID,
   FOCUS_DEPTHS,
+  GRAPH_PRESET_LABELS,
   buildGraphModel,
   computeCircleLayout,
   computeTrophicLayout,
   focusSubset,
   isEnvNodeId,
+  itemsForPreset,
   neighborIds,
   parallelEdgeOffset,
   parallelEdgeRanks,
@@ -77,6 +79,7 @@ export function FoodWebGraph({
   highlightPlantId,
   onOpenPlant,
   legendCompact = false,
+  variant = 'foretmap',
 }) {
   const svgRef = useRef(null);
   const dragRef = useRef(null);
@@ -89,6 +92,7 @@ export function FoodWebGraph({
   }, []);
 
   const [layout, setLayout] = useState('circle');
+  const [preset, setPreset] = useState('alimentaire');
   const [view, setView] = useState({ scale: 1, tx: 0, ty: 0 });
   const [overrides, setOverrides] = useState(() => new Map());
   const [hoverNode, setHoverNode] = useState(null);
@@ -98,7 +102,8 @@ export function FoodWebGraph({
   const [search, setSearch] = useState('');
   const [hiddenTypes, setHiddenTypes] = useState(() => new Set());
 
-  const { nodes, edges } = useMemo(() => buildGraphModel(items), [items]);
+  const presetItems = useMemo(() => itemsForPreset(items, preset), [items, preset]);
+  const { nodes, edges } = useMemo(() => buildGraphModel(presetItems), [presetItems]);
 
   const visibleEdges = useMemo(
     () => edges.filter((edge) => !hiddenTypes.has(String(edge.type || '').toLowerCase())),
@@ -603,15 +608,34 @@ export function FoodWebGraph({
     img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(str)))}`;
   }, [serializeSvg]);
 
-  if (nodes.length === 0) {
+  if ((items || []).length === 0) {
     return <p className="section-sub">Aucun nœud à afficher.</p>;
   }
 
   const transform = `translate(${view.tx}, ${view.ty}) scale(${view.scale})`;
 
   return (
-    <div className="pedago-foodweb-graph__wrap">
+    <div
+      className={`pedago-foodweb-graph__wrap${variant === 'gl' ? ' pedago-foodweb-graph__wrap--gl' : ''}`}
+    >
       <div className="pedago-foodweb-graph__toolbar" role="toolbar" aria-label="Outils du graphe">
+        <div className="pedago-foodweb-graph__tbgroup" role="group" aria-label="Type de graphe">
+          {['alimentaire', 'relations', 'all'].map((key) => (
+            <button
+              key={key}
+              type="button"
+              className={`pedago-foodweb-graph__tbtn${preset === key ? ' active' : ''}`}
+              onClick={() => {
+                setPreset(key);
+                setOverrides(new Map());
+                setHiddenTypes(new Set());
+              }}
+              aria-pressed={preset === key}
+            >
+              {GRAPH_PRESET_LABELS[key]}
+            </button>
+          ))}
+        </div>
         <div className="pedago-foodweb-graph__tbgroup" role="group" aria-label="Disposition">
           <button
             type="button"
@@ -744,6 +768,10 @@ export function FoodWebGraph({
           </button>
         </div>
       </div>
+
+      {nodes.length === 0 ? (
+        <p className="section-sub">Aucun nœud à afficher dans cette vue.</p>
+      ) : null}
 
       <svg
         ref={attachSvg}

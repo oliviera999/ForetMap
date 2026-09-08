@@ -4,6 +4,7 @@ import { DialogShell } from '../../components/DialogShell.jsx';
 import {
   GL_SPECIES_DETAIL_SECTIONS,
   GL_SPECIES_TYPE_LABELS,
+  GL_TAXON_RANK_LABELS,
   formatGlSpeciesFieldValue,
   getGlSpeciesFieldLabel,
   hasGlSpeciesFieldValue,
@@ -249,6 +250,13 @@ export function GLSpeciesDetailModal({
               {hasGlSpeciesFieldValue(species.famille) ? (
                 <span className="gl-species-detail-modal__badge">
                   {String(species.famille).trim()}
+                </span>
+              ) : null}
+              {hasGlSpeciesFieldValue(species.taxon_rank) ? (
+                <span className="gl-species-detail-modal__badge">
+                  Rang :{' '}
+                  {GL_TAXON_RANK_LABELS[String(species.taxon_rank).trim()] ||
+                    String(species.taxon_rank).trim()}
                 </span>
               ) : null}
             </div>

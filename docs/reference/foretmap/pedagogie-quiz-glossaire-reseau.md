@@ -48,6 +48,11 @@ d'observation** pour l'écriture naturaliste libre.
   l'affichage habituel. Utile pour se concentrer sur l'énoncé, et surtout côté professeur,
   où la question de test est noyée sous le catalogue et l'éditeur. C'est la même surface
   d'affichage et le même état : répondre dans la fenêtre ou dans la page revient au même.
+- Le catalogue comprend aussi des **questions de raisonnement** (réseaux alimentaires,
+  cycle de l’azote, sol et compost, énergie, biodiversité, équilibres) : chaque bonne
+  réponse a une explication rédigée, distincte de l’énoncé. Les propositions sont
+  mélangées à chaque présentation : le fait qu’une bonne réponse soit enregistrée en
+  premier n’aide pas à deviner.
 - Les questions du Quiz servent aussi de **contrôle de compréhension** avant de valider
   un tutoriel ou une fiche espèce, si le dispositif est activé. L'écran « Rattacher des
   questions aux contenus », sous l'éditeur, relie les deux — à la main ou par
@@ -103,10 +108,18 @@ d'observation** pour l'écriture naturaliste libre.
   chaînes alimentaires réelles de la forêt comestible.
 - Le professeur (gestionnaire des plantes) crée et modifie les liens entre espèces —
   le graphe s'appuie sur le catalogue de biodiversité.
+- **Trois vues du graphe.** Par défaut, **Réseau alimentaire** ne montre que qui mange
+  qui et qui décompose (herbivorie, prédation, décomposition) : c’est la vue à
+  présenter en classe pour une chaîne alimentaire. **Autres relations** isole
+  pollinisation, plante hôte, symbiose, compétition et nitrification. **Tout**
+  superpose les deux pour l’exploration complète. Les filtres par type et le mode
+  « isoler une espèce » restent disponibles dans chaque vue.
 - **Les liens « vers l'environnement » ont désormais leur nœud.** Une interaction saisie
   sans espèce cible (le trèfle qui enrichit le sol, le champignon qui décompose la
   litière) aboutit à une bulle « 🌍 Environnement » : la flèche ne part plus vers un
-  point vide de l'écran.
+  point vide de l'écran. Cette bulle n’apparaît que si au moins une relation visible
+  pointe vers le milieu : en vue « Réseau alimentaire », surtout les décompositions
+  sans cible ; en vue « Autres relations », surtout la nitrification.
 - **Cliquer une flèche répond sous le graphe** : le type de relation, sa phrase dans le
   bon sens écologique (« Lapin → est mangée par → Renard »), la description saisie par le
   professeur, puis les mots de glossaire rattachés. Avant, la réponse s'affichait dans la

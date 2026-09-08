@@ -47,14 +47,16 @@ test('validateSpeciesPayload signale les champs manquants', () => {
   assert.ok(errors.some((e) => e.field === 'nom_commun'));
 });
 
-test('buildSpeciesUpsertParams aligne 28 paramètres', () => {
+test('buildSpeciesUpsertParams aligne 31 paramètres', () => {
   const payload = buildSpeciesPayload({
     id: 'SP9999',
     biome_slug: 'sahara',
     type: 'faune',
     nom_commun: 'Test',
+    taxon_rank: 'genus',
   });
   const params = buildSpeciesUpsertParams(payload);
-  assert.strictEqual(params.length, 28);
+  assert.strictEqual(params.length, 31);
   assert.strictEqual(params[0], 'SP9999');
+  assert.strictEqual(params[5], 'genus');
 });

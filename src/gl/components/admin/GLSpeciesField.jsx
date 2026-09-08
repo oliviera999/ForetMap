@@ -1,6 +1,7 @@
 import {
   GL_SPECIES_FIELD_LABELS,
   GL_SPECIES_TYPE_LABELS,
+  GL_TAXON_RANK_LABELS,
 } from '../../utils/glSpeciesFieldLabels.js';
 import { TEXTAREA_FIELDS } from '../../utils/glSpeciesEditorForm.js';
 import { GLField } from '../ui/GLField.jsx';
@@ -27,6 +28,24 @@ export function GLSpeciesField({ fieldKey, value, onChange, disabled }) {
         >
           <option value="faune">{GL_SPECIES_TYPE_LABELS.faune}</option>
           <option value="flore">{GL_SPECIES_TYPE_LABELS.flore}</option>
+        </GLSelect>
+      </GLField>
+    );
+  }
+  if (fieldKey === 'taxon_rank') {
+    return (
+      <GLField label={label}>
+        <GLSelect
+          value={value}
+          onChange={(e) => onChange(fieldKey, e.target.value)}
+          disabled={disabled}
+        >
+          <option value="">Non renseigné</option>
+          {Object.entries(GL_TAXON_RANK_LABELS).map(([key, text]) => (
+            <option key={key} value={key}>
+              {text}
+            </option>
+          ))}
         </GLSelect>
       </GLField>
     );
