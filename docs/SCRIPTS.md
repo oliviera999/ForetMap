@@ -172,6 +172,10 @@ npm run deploy:prepare:runtime:selector # CloudLinux : sans node_modules
 
 Seulement le front (`dist/` + ZIP) : `npm run deploy:prepare`.
 
+Le **Build** cPanel (Setup Node.js App) n’est pas un cas supporté. S’il échoue
+en `ERESOLVE` (`eslint-plugin-jsx-a11y` / ESLint 10) : variable
+`NPM_CONFIG_LEGACY_PEER_DEPS=true`, détail dans [EXPLOITATION.md](EXPLOITATION.md).
+
 ### Juste après un déploiement
 
 ```bash

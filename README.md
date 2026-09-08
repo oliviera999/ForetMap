@@ -178,8 +178,10 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, biodive
 4. **Déployer le code (mode standard)** : upload du dépôt (sans `.env`), puis sur le serveur :
 
    ```bash
-   npm install --production
+   npm install --production --legacy-peer-deps
    ```
+
+   **Erreur ERESOLVE (`eslint-plugin-jsx-a11y` / ESLint 10)** : le greffon a11y ne déclare pas encore ESLint 10. Le dépôt force le peer via `package.json` (`overrides`) et `.npmrc` (`legacy-peer-deps=true`). Si le bouton **Build** / **Run NPM Install** de Setup Node.js App ignore `.npmrc` (fréquent avec le Node.js Selector CloudLinux), ajouter la variable d’environnement **`NPM_CONFIG_LEGACY_PEER_DEPS=true`**, enregistrer, puis relancer l’install. Détail : [docs/EXPLOITATION.md](docs/EXPLOITATION.md) (section _ERESOLVE npm sur cPanel_).
 
    **Erreur « Can't acquire lock for app: … »** : message du panel o2switch (pas de l’app). **Arrêter l’application** dans Setup Node.js App, attendre quelques secondes, lancer **npm install**, puis **redémarrer** l’app. Ne pas ouvrir l’URL du site pendant l’install si le panel ou un script interroge l’app à ce moment.
 
