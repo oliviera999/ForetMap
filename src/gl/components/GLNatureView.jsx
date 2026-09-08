@@ -21,6 +21,7 @@ export function GLNatureView({
   onSpeciesFocusHandled,
   learningProgress,
   journalImportEnabled = false,
+  canManageContent = false,
 }) {
   return (
     <div className="gl-nature-view fade-in">
@@ -73,6 +74,7 @@ export function GLNatureView({
             loreCarnetEnabled={false}
             speciesFocusCode={speciesFocusCode}
             onSpeciesFocusHandled={onSpeciesFocusHandled}
+            canManageContent={canManageContent}
           />
         ) : null}
         {activeSubTab === 'glossary' ? (

@@ -6,6 +6,8 @@ import {
   computeCircleLayout,
   computeTrophicLayout,
   focusSubset,
+  itemsForPreset,
+  itemMatchesPreset,
   neighborIds,
   orderNodesForCircle,
   parallelEdgeOffset,
@@ -331,5 +333,27 @@ describe('périmètre de zone', () => {
       { id: 1, interaction_type: 'predation', from_id: 10, to_id: 20 },
     ]);
     expect(nodes.every((n) => !n.outOfScope)).toBe(true);
+  });
+});
+
+describe('itemsForPreset', () => {
+  const mix = [
+    { id: 1, interaction_type: 'predation', from_id: 1, to_id: 2 },
+    { id: 2, interaction_type: 'nitrification', from_id: 3, to_id: null },
+    { id: 3, interaction_type: 'pollinisation', from_id: 4, to_id: 5 },
+  ];
+
+  test('alimentaire ne garde que les flux trophiques', () => {
+    const kept = itemsForPreset(mix, 'alimentaire');
+    expect(kept.map((i) => i.id)).toEqual([1]);
+    expect(itemMatchesPreset(mix[1], 'alimentaire')).toBe(false);
+  });
+
+  test('relations garde les interactions non trophiques', () => {
+    expect(itemsForPreset(mix, 'relations').map((i) => i.id)).toEqual([2, 3]);
+  });
+
+  test('tout conserve la liste', () => {
+    expect(itemsForPreset(mix, 'all')).toHaveLength(3);
   });
 });

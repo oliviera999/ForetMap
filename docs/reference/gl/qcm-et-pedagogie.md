@@ -22,6 +22,15 @@ Les deux se gèrent de la même façon : édition question par question ou **imp
 tableur**, avec pour chaque question ses choix de réponse et des **retours
 pédagogiques** (un commentaire par réponse, qui explique pourquoi c'est juste ou faux).
 
+Des **questions de raisonnement** ont été ajoutées au catalogue biomes (faune, flore,
+écosystèmes, biome, géologie, perturbations) : elles portent sur des cas concrets
+(lièvre arctique actif en hiver, genre _Tamarix_, réseau plutôt que chaîne unique,
+résilience après un incendie) et chaque bonne réponse a une explication rédigée, pas
+une simple recopie de l'énoncé. Les propositions sont mélangées à chaque présentation :
+le fait qu'une bonne réponse soit stockée en premier n'aide pas à deviner. Côté
+ForetMap, le Quiz a reçu le même type de questions (réseaux, azote, sol, énergie,
+biodiversité, équilibres).
+
 ## Où l'élève rencontre les questions
 
 - **Sur le plateau** : une équipe qui arrive sur un repère « question » reçoit un QCM —

@@ -93,6 +93,7 @@
     "release:patch": "npm version patch -m \"chore(release): v%s\"",
     "release:minor": "npm version minor -m \"chore(release): v%s\"",
     "release:major": "npm version major -m \"chore(release): v%s\"",
+    "audit:pedago": "node scripts/audit-pedago-content.js",
     "test": "node --test --test-concurrency=1 --test-force-exit tests/*.test.js",
     "test:coverage": "node --test --experimental-test-coverage --test-concurrency=1 --test-force-exit tests/*.test.js",
     "test:ui": "vitest run --config vitest.config.js",

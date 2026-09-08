@@ -95,7 +95,8 @@ router.get(
     ]);
     if (!biome) return res.status(404).json({ error: 'Biome introuvable' });
     const itemsRaw = await queryAll(
-      `SELECT id, species_code, biome_slug, type, nom_commun, nom_scientifique, groupe, famille,
+      `SELECT id, species_code, biome_slug, type, nom_commun, nom_scientifique, taxon_rank,
+            taxon_source, taxon_source_url, groupe, famille,
             statut_iucn, endemique, role_ecologique, adaptations_cles, taille_adulte, poids_adulte,
             regime_alimentaire, longevite, reproduction, observation_terrain, description_courte,
             anecdote, present_dans_qcm, mots_cles, wikipedia_title, wikipedia_url, photo_url, photo_credit,
@@ -159,7 +160,8 @@ function handleSpeciesCrudError(res, err) {
 
 async function loadAdminSpeciesDetail(code) {
   const row = await queryOne(
-    `SELECT id, species_code, biome_slug, type, nom_commun, nom_scientifique, groupe, famille,
+    `SELECT id, species_code, biome_slug, type, nom_commun, nom_scientifique, taxon_rank,
+            taxon_source, taxon_source_url, groupe, famille,
             statut_iucn, endemique, role_ecologique, adaptations_cles, taille_adulte, poids_adulte,
             regime_alimentaire, longevite, reproduction, observation_terrain, description_courte,
             anecdote, present_dans_qcm, mots_cles, wikipedia_title, wikipedia_url, photo_url, photo_credit,

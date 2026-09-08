@@ -17,6 +17,7 @@ import '../shared/styles/bottom-sheet.css';
 import '../shared/styles/toast-shell.css';
 import '../shared/styles/status-sticky.css';
 import '../shared/styles/learning-gating.css';
+import '../shared/styles/food-web-graph.css';
 import '../shared/styles/shared-controls.css';
 import '../shared/styles/map-action.css';
 import '../shared/styles/data-list.css';

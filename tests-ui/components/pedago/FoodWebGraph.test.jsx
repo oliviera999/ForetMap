@@ -4,6 +4,20 @@ import { FoodWebGraph } from '../../../src/components/pedago/FoodWebGraph.jsx';
 
 const ENV_ITEM = {
   id: 3,
+  interaction_type: 'decomposition',
+  from_id: 40,
+  from_name: 'Champignon',
+  from_emoji: '🍄',
+  from_role: 'decomposeur',
+  to_id: null,
+  to_name: null,
+  to_emoji: null,
+  to_role: null,
+  description: 'litière',
+};
+
+const NITRI_ITEM = {
+  id: 4,
   interaction_type: 'nitrification',
   from_id: 30,
   from_name: 'Trèfle',
@@ -64,6 +78,17 @@ describe('FoodWebGraph', () => {
   test('affiche un message si aucun nœud', () => {
     const { getByText } = render(<FoodWebGraph items={[]} />);
     expect(getByText(/Aucun nœud/i)).toBeTruthy();
+  });
+
+  test('le mode par défaut masque les relations non alimentaires', () => {
+    const { queryByLabelText, getByRole, getByLabelText } = render(
+      <FoodWebGraph items={[...ITEMS, NITRI_ITEM]} />,
+    );
+    expect(queryByLabelText(/^Environnement —/)).toBeNull();
+    fireEvent.click(getByRole('button', { name: /^Autres relations$/ }));
+    expect(getByLabelText(/^Environnement —/)).toBeTruthy();
+    fireEvent.click(getByRole('button', { name: /^Tout$/ }));
+    expect(getByLabelText(/^Environnement —/)).toBeTruthy();
   });
 
   test('basculer la disposition ne casse pas le rendu', () => {
@@ -223,7 +248,7 @@ describe('FoodWebGraph', () => {
   });
 
   test('deux relations entre les mêmes espèces ne sont plus confondues', () => {
-    const parallel = [ITEMS[0], { ...ITEMS[0], id: 99, interaction_type: 'competition' }];
+    const parallel = [ITEMS[0], { ...ITEMS[0], id: 99, interaction_type: 'herbivorie' }];
     const { container } = render(<FoodWebGraph items={parallel} />);
     const paths = [...container.querySelectorAll('.pedago-foodweb-graph__line')].map((n) =>
       n.getAttribute('d'),

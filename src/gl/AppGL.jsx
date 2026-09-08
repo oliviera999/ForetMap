@@ -934,6 +934,7 @@ export function AppGL() {
                       journalImportEnabled={
                         !isGuest && isModuleEnabled(modules, 'playerJournalEnabled')
                       }
+                      canManageContent={showStaffAdminUi}
                     />
                   ) : null}
                   {resolveGlNavActiveTab(tab) === 'joueurs' ? (

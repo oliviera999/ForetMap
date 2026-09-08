@@ -18,6 +18,39 @@ export const ENV_NODE_EMOJI = '🌍';
 /** Ordre des colonnes pour la disposition par niveau trophique. */
 export const TROPHIC_ORDER = ['producteur', 'consommateur', 'decomposeur'];
 
+/** Présélections de graphe : séparer réseau alimentaire et autres relations. */
+export const GRAPH_PRESETS = Object.freeze({
+  alimentaire: Object.freeze(['herbivorie', 'predation', 'decomposition']),
+  relations: Object.freeze([
+    'pollinisation',
+    'plante_hote',
+    'symbiose',
+    'competition',
+    'nitrification',
+  ]),
+  all: null,
+});
+
+export const GRAPH_PRESET_LABELS = Object.freeze({
+  alimentaire: 'Réseau alimentaire',
+  relations: 'Autres relations',
+  all: 'Tout',
+});
+
+export function itemMatchesPreset(item, preset) {
+  const types = GRAPH_PRESETS[preset];
+  if (!types) return true;
+  const type = String(item?.interaction_type || item?.type || '')
+    .trim()
+    .toLowerCase();
+  return types.includes(type);
+}
+
+/** Filtre les interactions avant construction du modèle (évite des nœuds orphelins). */
+export function itemsForPreset(items, preset) {
+  return (items || []).filter((item) => itemMatchesPreset(item, preset));
+}
+
 /** Longueur maximale d'un libellé de nœud avant troncature. */
 export const NODE_LABEL_MAX = 16;
 

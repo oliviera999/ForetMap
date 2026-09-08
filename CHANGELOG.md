@@ -7,6 +7,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — upgrade pédagogique rétrocompatible (Plan D)
+
+- **Audit lecture seule** : `npm run audit:pedago` signale genres saisis comme espèces,
+  QCM sans bonne réponse, feedbacks recopiant l’énoncé, liens orphelins, et une matrice
+  notion → glossaire → espèce → interaction → question.
+- **Contenus** (migrations `220`–`221`) : glossaires et fiches corrigés par code, termes
+  GL9001–GL9010, QCM de raisonnement `QF91xx` / `GQCM91xx` sur les catégories existantes,
+  liaisons glossaire via le modèle unifié. Aucun `ALTER` d’ENUM.
+- **Graphe** : trois vues (réseau alimentaire / autres relations / tout) ; le nœud milieu
+  n’apparaît que s’il a des flèches visibles.
+- **Réseau GL** : `GET/POST/PUT/DELETE /api/gl/food-web` + sous-onglets Catalogue | Réseau
+  dans Biodiversité (réutilise le graphe, variante thème GL).
+- **Taxonomie additive** (migration `222`) : `taxon_rank` / source sur les fiches GL
+  (genres SP0015, SP0045, SP0221, SP0227), affichage « rang : genre » et éditeur MJ.
+
 ### Ajouté — lien Moodle ↔ ForetMap / G&L (lots M1–M6)
 
 - Fusion de `feat/moodle-sync` dans `main` : synchronisation d’annuaire, écran
