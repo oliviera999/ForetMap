@@ -8,6 +8,17 @@ import { GLButton } from '../ui/GLButton.jsx';
 import { GLDataList } from '../ui/GLDataList.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
+import { GLSelect } from '../ui/GLSelect.jsx';
+import { GL_TEAM_POLICIES, GL_TEAM_POLICY_BY_ID } from '../../utils/glTeamCompositionRecipes.js';
+
+const DEFAULT_TEAM_POLICY = 'reshuffle_each';
+const DEFAULT_TEAM_SIZE = 4;
+
+function policyLabel(item) {
+  const policy = GL_TEAM_POLICY_BY_ID[item.team_policy]?.label || 'Rebrasser à chaque partie';
+  const size = Number(item.team_size_default) || DEFAULT_TEAM_SIZE;
+  return `${policy} · ${size} par équipe`;
+}
 
 export function GLClassesPanel({ classes, onReload }) {
   const { confirm } = useAppDialogs();
@@ -16,6 +27,8 @@ export function GLClassesPanel({ classes, onReload }) {
   const [editId, setEditId] = useState(null);
   const [editName, setEditName] = useState('');
   const [editSchool, setEditSchool] = useState('');
+  const [editTeamPolicy, setEditTeamPolicy] = useState(DEFAULT_TEAM_POLICY);
+  const [editTeamSize, setEditTeamSize] = useState(String(DEFAULT_TEAM_SIZE));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -42,9 +55,18 @@ export function GLClassesPanel({ classes, onReload }) {
     setEditId(Number(item.id));
     setEditName(item.name || '');
     setEditSchool(item.school || '');
+    setEditTeamPolicy(
+      GL_TEAM_POLICY_BY_ID[item.team_policy] ? item.team_policy : DEFAULT_TEAM_POLICY,
+    );
+    setEditTeamSize(String(Number(item.team_size_default) || DEFAULT_TEAM_SIZE));
     setError('');
     setInfo('');
   }
+
+  const editTeamSizeValid = (() => {
+    const n = Number(editTeamSize);
+    return Number.isInteger(n) && n >= 2 && n <= 12;
+  })();
 
   async function saveEdit() {
     if (!editId) return;
@@ -55,13 +77,20 @@ export function GLClassesPanel({ classes, onReload }) {
       await apiGL(`/api/gl/admin/classes/${editId}`, 'PUT', {
         name: editName,
         school: editSchool || null,
+        teamPolicy: editTeamPolicy,
+        teamSizeDefault: Number(editTeamSize),
       });
       setEditId(null);
       setEditName('');
       setEditSchool('');
       setInfo('Classe mise à jour.');
       await onReload?.();
-      return { name: editName, school: editSchool };
+      return {
+        name: editName,
+        school: editSchool,
+        teamPolicy: editTeamPolicy,
+        teamSizeDefault: editTeamSize,
+      };
     } catch (err) {
       setError(err.message || 'Mise à jour impossible');
       throw err;
@@ -70,11 +99,16 @@ export function GLClassesPanel({ classes, onReload }) {
     }
   }
 
-  const editDraft = { name: editName, school: editSchool };
+  const editDraft = {
+    name: editName,
+    school: editSchool,
+    teamPolicy: editTeamPolicy,
+    teamSizeDefault: editTeamSize,
+  };
   const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
     value: editDraft,
     resetKey: editId,
-    enabled: Boolean(editId) && String(editName || '').trim().length > 0,
+    enabled: Boolean(editId) && String(editName || '').trim().length > 0 && editTeamSizeValid,
     onSave: saveEdit,
   });
 
@@ -135,6 +169,7 @@ export function GLClassesPanel({ classes, onReload }) {
           { key: 'name', label: 'Classe' },
           { key: 'school', label: 'Établissement' },
           { key: 'players', label: 'Joueurs' },
+          { key: 'teams', label: 'Équipes' },
           { key: 'foretmap', label: 'Groupe ForetMap' },
           { key: 'status', label: 'Statut' },
           { key: 'actions', label: 'Actions' },
@@ -198,6 +233,34 @@ export function GLClassesPanel({ classes, onReload }) {
                 </td>
                 <td>{Number(item.players_count || 0)}</td>
                 <td>
+                  {isEditing ? (
+                    <div className="gl-class-team-policy-edit">
+                      <GLSelect
+                        value={editTeamPolicy}
+                        onChange={(e) => setEditTeamPolicy(e.target.value)}
+                        aria-label="Politique d’équipes"
+                      >
+                        {GL_TEAM_POLICIES.map((policy) => (
+                          <option key={policy.id} value={policy.id} title={policy.summary}>
+                            {policy.label}
+                          </option>
+                        ))}
+                      </GLSelect>
+                      <GLInput
+                        type="number"
+                        min="2"
+                        max="12"
+                        value={editTeamSize}
+                        onChange={(e) => setEditTeamSize(e.target.value)}
+                        aria-label="Taille d’équipe par défaut"
+                        aria-invalid={!editTeamSizeValid}
+                      />
+                    </div>
+                  ) : (
+                    <span className="gl-hint">{policyLabel(item)}</span>
+                  )}
+                </td>
+                <td>
                   {item.foretmap_group_id ? (
                     <span className="gl-hint" title={item.foretmap_group_name || ''}>
                       Groupe FM
@@ -227,6 +290,10 @@ export function GLClassesPanel({ classes, onReload }) {
                 <div className="gl-data-card-row">
                   <span className="gl-data-card-label">Joueurs</span>
                   <span>{Number(item.players_count || 0)}</span>
+                </div>
+                <div className="gl-data-card-row">
+                  <span className="gl-data-card-label">Équipes</span>
+                  <span>{policyLabel(item)}</span>
                 </div>
                 <div className="gl-data-card-row">
                   <span className="gl-data-card-label">Groupe ForetMap</span>
