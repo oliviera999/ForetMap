@@ -86,8 +86,9 @@ export function LearningGatingLocksPanel({
     <section className={section}>
       <h3 className="section-title">{title}</h3>
       <p className={hint}>
-        Après trop d&apos;erreurs au contrôle, la validation d&apos;une fiche est bloquée pendant
-        quelques jours. Cette liste montre qui est concerné — et permet de lever le blocage.
+        Après trop d&apos;erreurs au contrôle, la validation d&apos;une fiche (ou la seule question
+        ratée, selon la portée réglée) est bloquée pendant le délai configuré — 1 heure par défaut.
+        Cette liste montre qui est concerné — et permet de lever le blocage.
       </p>
 
       <label className="pedago-links__policy">

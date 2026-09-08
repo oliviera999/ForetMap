@@ -6,6 +6,8 @@ import {
   isQuestionScopedLock,
   buildCooldownLockMessage,
   buildQuestionLockMessage,
+  buildCorrectAnswerNotice,
+  buildWrongAnswerNotice,
 } from '../utils/learningGatingChallengeClient.js';
 
 /**
@@ -16,6 +18,8 @@ export function LearningGatingQuestionPanel({
   questionDataset = null,
   questionIndex = 0,
   questionTotal = 1,
+  /** Bonnes réponses encore attendues au total (`pending_count`) : peut dépasser la série. */
+  pendingTotal = 0,
   resourceType = null,
   resourceRef = null,
   itemTitle = '',
@@ -111,18 +115,26 @@ export function LearningGatingQuestionPanel({
   const showAnswer = shouldShowQcmAnswerPhase(result);
   const feedbackText = getQcmFeedbackText(result);
   const cooldownLocked = !result?.correct && isCooldownLocked(result?.cooldown);
+  const hasOtherQuestions = questionIndex + 1 < questionTotal;
   // Portée « question seule » : seule cette question est bloquée, la fiche reste ouverte si
   // d'autres questions peuvent être posées — c'est le parent qui le sait (il recharge).
   const questionOnlyLocked =
     cooldownLocked &&
     isQuestionScopedLock(result.cooldown) &&
     typeof onQuestionLocked === 'function';
+  // Ce que le feedback de la question ne dit jamais : la progression après une bonne
+  // réponse, et le nombre d'erreurs encore permises après une mauvaise.
+  const progressNotice = result?.correct
+    ? buildCorrectAnswerNotice({ questionIndex, questionTotal, pendingTotal, itemTitle })
+    : cooldownLocked
+      ? ''
+      : buildWrongAnswerNotice(result?.cooldown);
 
   return (
     <div className="learning-gating-quiz">
       <p className="tuto-read-ack-intro">
         Vérifie ta compréhension avant de valider — question {questionIndex + 1} sur {questionTotal}
-        .
+        {pendingTotal > questionTotal ? ` de cette série (${pendingTotal} à réussir en tout)` : ''}.
       </p>
       {loading ? <p className="tuto-read-ack-intro">Chargement de la question…</p> : null}
       {notice ? (
@@ -188,10 +200,22 @@ export function LearningGatingQuestionPanel({
           >
             {feedbackText}
           </p>
+          {progressNotice ? (
+            <p
+              className={
+                result?.correct
+                  ? 'learning-gating-quiz__progress learning-gating-quiz__progress--ok'
+                  : 'learning-gating-quiz__progress learning-gating-quiz__progress--warn'
+              }
+              role="status"
+            >
+              {progressNotice}
+            </p>
+          ) : null}
           {cooldownLocked ? (
             <p className="learning-gating-quiz__cooldown" role="alert">
               {questionOnlyLocked
-                ? buildQuestionLockMessage(result.cooldown)
+                ? buildQuestionLockMessage(result.cooldown, { hasOtherQuestions })
                 : buildCooldownLockMessage(result.cooldown, itemTitle)}
             </p>
           ) : null}

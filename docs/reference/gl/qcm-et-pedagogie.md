@@ -62,8 +62,8 @@ tutoriel, feuillet…) comme apprise.
   QCM** (admin) — l'interrupteur général (tant qu'il est éteint, les liens sont sans
   effet), le **mode** (une réussite suffit / toutes les questions / un nombre minimum), le
   **nombre de réussites** du mode « minimum », la **granularité du suivi** (par joueur ou
-  par équipe) et le **délai avant nouvelle tentative** après une erreur (**6 heures par
-  défaut** depuis septembre 2026 ; il se réglait en jours, 3 par défaut).
+  par équipe) et le **délai avant nouvelle tentative** après une erreur (**1 heure par
+  défaut** ; il se réglait en jours, 3 par défaut, puis 6 heures, jusqu'en septembre 2026).
   S'y ajoutent, depuis le lot 27, les réglages jusque-là réservés à ForetMap : les **erreurs
   tolérées avant blocage**, le **nombre de questions posées d'affilée**, l'**annonce du
   contrôle sur le bouton**, et la **portée du blocage** (toute la fiche, ou la seule question
@@ -89,14 +89,23 @@ tutoriel, feuillet…) comme apprise.
   jusqu'au lot 28, alors que ForetMap en avait une. Au clic, un **petit panneau surgit
   par-dessus la page** (le même popover que ForetMap, aux couleurs du royaume, à la place de
   l'ancienne fenêtre pleine largeur) et annonce combien de questions seront posées **et ce
-  qu'une erreur coûterait** (« une erreur bloquera la validation pendant 3 jours ») ; il peut
-  abandonner sans rien risquer. On ne lui pose que le nombre de questions réellement exigé par
-  le mode : en mode « une réussite suffit », une seule question, même si la ressource en
-  compte cinq. Bonne réponse → il peut confirmer ; mauvaise réponse → s'il reste des erreurs
-  tolérées, l'écran le dit et propose de réessayer ; sinon la ressource (ou la seule question
-  ratée, selon la portée) est verrouillée le temps du délai, avec le temps restant en clair
-  (« réessaie dans 5 h »). Une question expirée est rechargée d'elle-même ; un refus du
-  serveur est expliqué (questions restantes, verrou) au lieu de laisser confirmer pour rien.
+  qu'une erreur coûterait vraiment** : « une erreur bloquera la validation pendant 1 h » quand
+  aucune erreur n'est tolérée, « il te reste 2 erreurs possibles » quand elles le sont (erreurs
+  déjà commises décomptées), et « bloquera cette question » — non la validation — en portée
+  « seulement la question ratée » ; il peut abandonner sans rien risquer tant qu'il n'a pas
+  répondu. On ne lui pose que le nombre de questions réellement exigé par le mode : en mode
+  « une réussite suffit », une seule question, même si la ressource en compte cinq. Bonne
+  réponse → l'écran félicite, situe l'avancement (« 1 sur 2 — encore 1 question ») et annonce
+  l'ouverture de la validation à la dernière ; mauvaise réponse → s'il reste des erreurs
+  tolérées, l'écran l'écrit sous le retour de la question (« il te reste 1 erreur possible :
+  la suivante bloquera la validation pendant 1 h ») et propose de réessayer ; sinon la
+  ressource (ou la seule question ratée, selon la portée) est verrouillée le temps du délai,
+  avec le temps restant en clair (« réessaie dans 5 h ») et le nombre d'erreurs réellement
+  commises. Si la série s'arrête sur le plafond « questions posées d'affilée » sans que le
+  contrôle soit satisfait, l'écran l'annonce et propose d'enchaîner, au lieu d'ouvrir une
+  confirmation que le serveur refuserait. Une question expirée est rechargée d'elle-même ; un
+  refus du serveur est expliqué (nombre réellement attendu, verrou) au lieu de laisser
+  confirmer pour rien.
 - **Des pastilles d'état** accompagnent le bouton : **✓** contrôle réussi, **?** questions
   restantes, **🔒** bloqué. Rien ne s'affiche là où rien n'est conditionné, ni sur un contenu
   déjà appris. Le réglage « Afficher les pastilles d'état » permet de les éteindre.

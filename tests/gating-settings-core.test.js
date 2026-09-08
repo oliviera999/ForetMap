@@ -77,7 +77,7 @@ test('normalisation — booléens tolérants aux formes stockées', () => {
 test('buildGatingSettings — défauts complets et omission du hors-produit', () => {
   const fm = core.buildGatingSettings({}, 'fm');
   assert.equal(fm.enabled, false);
-  assert.equal(fm.retryCooldownHours, 6, 'délai par défaut : 6 h');
+  assert.equal(fm.retryCooldownHours, 1, 'délai par défaut : 1 h');
   assert.equal(fm.lockMode, 'flow', 'sévérité par défaut : normale (flow)');
   assert.equal(fm.granularity, undefined, 'la granularité n’a pas de sens côté ForetMap');
 
@@ -113,4 +113,20 @@ test('isQuestionScopedCooldown', () => {
   assert.equal(core.isQuestionScopedCooldown({ cooldownScope: 'resource' }), false);
   assert.equal(core.isQuestionScopedCooldown({}), false, 'défaut = ressource entière');
   assert.equal(core.isQuestionScopedCooldown(null), false);
+});
+
+// Le delai par defaut etait recopie a la main dans une dizaine d'endroits (catalogue,
+// cascade, replis du front). Un seul nombre fait desormais autorite : ce test le verrouille
+// pour que le catalogue et le module de durees ne puissent plus diverger.
+test('le delai de verrou par defaut vient d une source unique', () => {
+  const duration = require('../lib/shared/cooldownDurationCore');
+  assert.equal(duration.DEFAULT_RETRY_COOLDOWN_HOURS, 1, 'defaut livre : 1 h');
+  assert.equal(
+    core.GATING_SETTING_DEFS.retryCooldownHours.default,
+    duration.DEFAULT_RETRY_COOLDOWN_HOURS,
+    'le catalogue des reglages lit la constante partagee',
+  );
+  // Repli du clamp : une valeur illisible retombe sur le meme defaut.
+  assert.equal(duration.clampCooldownHours('bof'), duration.DEFAULT_RETRY_COOLDOWN_HOURS);
+  assert.equal(core.normalizeGatingSetting('retryCooldownHours', null), 1);
 });

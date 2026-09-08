@@ -8,6 +8,7 @@ import {
   readRetryHours,
   retryHoursLabel,
 } from '../../shared/utils/learningGatingPolicyText.js';
+import { DEFAULT_RETRY_COOLDOWN_HOURS } from '../../shared/utils/cooldownDuration.js';
 
 // Écran « Validation des lectures » (contrôle de compréhension) — ForetMap.
 //
@@ -281,7 +282,13 @@ export function FMLearningGatingSettings({ get, saveSetting, savingKey = '' }) {
               disabled={savingKey === 'learning.gating.retry_cooldown_hours'}
               onChange={(e) => {
                 if (e.target.value === 'custom') return;
-                saveBounded('learning.gating.retry_cooldown_hours', e.target.value, 0, 8760, 6);
+                saveBounded(
+                  'learning.gating.retry_cooldown_hours',
+                  e.target.value,
+                  0,
+                  8760,
+                  DEFAULT_RETRY_COOLDOWN_HOURS,
+                );
               }}
             >
               {RETRY_HOUR_OPTIONS.map((h) => (

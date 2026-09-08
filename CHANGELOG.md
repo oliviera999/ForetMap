@@ -96,6 +96,100 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `FM#`), comparaison à trois et écran des conflits, appartenances multiples, procédure pas à
   pas de création du jeton Web Services sur `olution.info`.
 
+### Corrigé — messages du contrôle de compréhension (validation par quiz)
+
+Les textes affichés à l'élève autour de la validation d'une ressource annonçaient des règles
+que le serveur n'appliquait pas, ou taisaient ce qu'il fallait savoir pour décider de répondre.
+
+- **« Une erreur bloquera la validation » alors qu'une tolérance était réglée.** L'intro du
+  contrôle ignorait `allowed_wrong_attempts` : elle contredisait la liste de règles affichée
+  juste en dessous, qui, elle, décomptait les erreurs. L'intro lit désormais la même tolérance
+  (erreurs déjà commises déduites) et dit « il te reste 2 erreurs possibles ».
+- **Portée « seulement la question ratée » : mauvaise cible annoncée.** Intro et règles
+  disaient « la validation sera bloquée » là où seule la question se ferme. Les deux visent
+  maintenant la question, en accord avec la règle de portée qui suit.
+- **Aucun retour sur les essais restants après une mauvaise réponse.** Le serveur renvoyait
+  `attempts_left` depuis le début ; l'écran n'affichait que « Ce n'est pas la bonne réponse. »
+  et un bouton « Réessayer ». Il annonce désormais « Il te reste 1 erreur possible : la
+  suivante bloquera la validation pendant 6 h » — comportement que la documentation de
+  référence décrivait déjà sans qu'il existe.
+- **Aucune félicitation ni progression après une bonne réponse.** L'écran affiche « Bravo,
+  bonne réponse ! 1 sur 2 — encore 1 question pour valider "…" », et annonce l'ouverture de la
+  validation à la dernière (« le contrôle est réussi : tu peux maintenant valider… »).
+- **Fin de série présentée comme une fin de contrôle.** Avec le plafond « questions posées
+  d'affilée », la série pouvait s'achever sans que le contrôle soit satisfait : l'écran passait
+  quand même à la confirmation, que le serveur refusait ensuite par un 403. Nouvel écran
+  « Série terminée » : reliquat annoncé, bonnes réponses gardées, et un bouton _Continuer le
+  contrôle_ qui enchaîne la série suivante.
+- **Refus de validation compté sur le mauvais nombre.** Le message « N questions à réussir »
+  comptait `missing_question_codes` (toutes les questions non réussies) : en mode « une bonne
+  réponse suffit », il annonçait 3 questions là où une seule était attendue. Le compte vient
+  maintenant du `pending_count` relu, qui suit le mode effectif.
+- **Nombres contradictoires dans l'annonce et la pastille d'état.** « 3 questions à réussir
+  avant de valider (8 au total…) » donnait deux nombres pour la même chose. L'exigence réelle
+  vient en premier, la part de la session ensuite (« 8 questions à réussir…, dont 3 dès
+  maintenant »).
+- **Verrou : « une erreur a été commise » même après plusieurs.** Client et serveur accordent
+  le message au compteur réel (« 3 erreurs ont été commises »). Le repli « réessaie dans 1 h »
+  du serveur, qui inventait un délai quand le temps restant n'était pas formaté, devient
+  « quelques minutes ». « Tu peux continuer avec les autres questions » n'est plus promis quand
+  la série n'en comptait qu'une.
+- **Écran prof « lecteurs bloqués »** : « bloquée pendant quelques jours » datait du réglage en
+  jours ; il annonce le délai configuré (6 h par défaut) et la portée.
+- Tests : `tests-ui/shared/learningGatingFeedback.test.js` (nouveau, 27 cas) plus les cas
+  ajoutés à `LearningGatingQuestionPanel` et `LearningAcknowledgeButton`. Documentation de
+  référence des deux produits mise à jour.
+
+### Ajouté — les tutoriels sont plus exigeants que le reste (migration 216)
+
+Aucun **préréglage par type** n'était livré : tutoriels, fiches espèces et termes de
+glossaire suivaient tous le site — une seule bonne réponse, un seul essai. Un tutoriel se lit
+pourtant en plusieurs minutes et porte plus de matière qu'un terme de glossaire.
+
+- La migration 216 sème le préréglage du type `tutorial` (`resource_gating_policy`,
+  `resource_ref = '*'`) : **2 bonnes réponses** au lieu d'une, et **verrou sur la seule
+  question ratée**. La portée réduite accompagne l'exigence — demander deux réponses _et_
+  verrouiller toute la fiche à la première erreur rendrait le tutoriel injouable. Le seuil
+  s'adapte au contenu : un tutoriel qui ne porte qu'une question bloquante n'en pose qu'une.
+- La **tolérance d'erreurs reste héritée du site** (0). Elle avait d'abord été fixée à 1 sur
+  le type, ce qui produisait l'inverse du but recherché : un tutoriel ne portant qu'une
+  question bloquante — le seuil se ramenant alors à 1 — aurait offert deux essais là où une
+  fiche espèce n'en offre qu'un.
+- Délai, sévérité et questions par session restent eux aussi **hérités du site** : le
+  préréglage ne fige que ce qu'il annonce.
+- Semé par `INSERT IGNORE` : un professeur qui l'ajuste dans _Réglages → Validation des
+  lectures → Préréglages par type_ ne le verra jamais réécrit au déploiement suivant.
+- Rien ne change pour les élèves tant que l'interrupteur du site est éteint (valeur par
+  défaut) et qu'aucune question n'est cochée « bloquante ».
+
+### Ajouté — `npm run gating:check`, pour lire la politique réellement en base
+
+Les défauts du code ne sont pas matérialisés en base : impossible, depuis le code seul, de
+savoir si une installation applique le défaut livré ou une valeur enregistrée un jour dans
+les réglages — et un délai hérité de l'ancien réglage en jours (72 h) ne se voyait nulle part
+tant qu'un élève ne se trompait pas. Le script (strictement en lecture) affiche, pour les deux
+produits : chaque réglage du site avec son origine (base ou défaut), les préréglages par type
+et leur effet résolu, les exceptions par fiche qui fixent leur propre délai, et le nombre de
+verrous actifs.
+
+### Modifié — verrou de re-tentative : 1 heure par défaut, et un seul nombre pour le dire
+
+- Le délai par défaut passe de **6 h à 1 h** : assez pour qu'une erreur coûte quelque chose,
+  assez court pour qu'un élève rattrape la fiche dans la même journée de cours.
+- Le nombre était **recopié à la main dans dix endroits** (catalogue des réglages, résolveur de
+  cascade site → type → fiche, replis du front, éditeur de politique, deux écrans de réglages,
+  clamp serveur et son miroir ESM) : le catalogue, un formulaire et une phrase d'aide pouvaient
+  annoncer trois valeurs différentes. Tout le monde lit désormais
+  `DEFAULT_RETRY_COOLDOWN_HOURS` (`lib/shared/cooldownDurationCore.js` et son miroir
+  `src/shared/utils/cooldownDuration.js`), verrouillé par un test.
+- **La valeur en base est alignée elle aussi** (migration 216) : `getSettingValue` ne
+  matérialise pas les défauts, donc une installation portant déjà une valeur enregistrée —
+  dont les 72 h que la migration 213 avait converties depuis l'ancien réglage « 3 jours » —
+  aurait gardé l'ancien délai sans que rien ne le signale. Les deux clés de site
+  (`learning.gating.retry_cooldown_hours`, `gating.retry_cooldown_hours`) passent donc à 1.
+  Les **exceptions par fiche** ne sont pas touchées : elles restent des choix délibérés, et
+  `npm run gating:check` les liste.
+
 ### Corrigé — test instable `gl-mascots` (401 aléatoire en CI)
 
 - `tests/gl-mascots.test.js` signait un jeton enseignant sans claim `tokenEpoch` pour « le

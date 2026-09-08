@@ -13,6 +13,7 @@ import {
   buildGatingRules,
   isCooldownLocked,
   buildCooldownLockMessage,
+  buildSessionPausedMessage,
 } from '../utils/learningGatingChallengeClient.js';
 
 /**
@@ -48,12 +49,13 @@ export function buildButtonAnnounce(summary, itemTitle = '') {
   if (ask <= 0) return none;
   const total = Math.max(ask, Number(summary.pending_count) || ask);
   const badge = ask === 1 ? '1 question' : `${ask} questions`;
-  const reste =
-    total > ask ? ` (${total} au total pour valider ${label})` : ` avant de valider ${label}`;
-  return {
-    announceBadge: badge,
-    announceTitle: `Contrôle de compréhension : ${badge} à réussir${reste}.`,
-  };
+  // `ask_count` n'est que ce qui sera posé MAINTENANT : dire « 3 questions à réussir » quand
+  // il en faut 8 était faux. Les deux nombres sont donc énoncés, chacun à sa place.
+  const title =
+    total > ask
+      ? `Contrôle de compréhension : ${badge} maintenant, ${total} au total à réussir avant de valider ${label}.`
+      : `Contrôle de compréhension : ${badge} à réussir avant de valider ${label}.`;
+  return { announceBadge: badge, announceTitle: title };
 }
 
 /**
@@ -188,6 +190,17 @@ export function LearningAcknowledgeButton({
         setFlowPhase('locked');
         return;
       }
+      // Le nombre annoncé vient du challenge relu (`pending_count` = bonnes réponses encore
+      // attendues selon le mode effectif). Le compter sur `missing_question_codes` annonçait
+      // « 3 questions à réussir » là où le mode « une suffit » n'en attendait qu'une.
+      const stillPending = Math.max(0, Number(next?.pending_count) || 0);
+      if (stillPending > 0) {
+        setError(
+          `Le contrôle n'est pas encore validé : ${stillPending} question${
+            stillPending > 1 ? 's' : ''
+          } à réussir.`,
+        );
+      }
       const pending = pendingChallengeQuestions(next);
       if (pending.length > 0) {
         setPendingQuestions(pending);
@@ -214,14 +227,9 @@ export function LearningAcknowledgeButton({
       // verrou posé entre-temps. On relit l'état plutôt que d'afficher une erreur sèche.
       const body = e?.body;
       if (e?.status === 403 && body && (body.cooldown || body.missing_question_codes)) {
-        const missing = Array.isArray(body.missing_question_codes)
-          ? body.missing_question_codes.length
-          : 0;
-        setError(
-          missing > 0
-            ? `Le contrôle n'est pas encore validé : ${missing} question${missing > 1 ? 's' : ''} à réussir.`
-            : e?.message || 'Validation refusée',
-        );
+        // Message du serveur d'abord (il connaît le mode effectif : « une des questions »,
+        // « N questions », verrou) ; la relecture ci-dessous le précise avec le compte réel.
+        setError(e?.message || 'Validation refusée');
         try {
           await reloadChallengeAfterRefusal(body);
         } catch (_) {
@@ -243,8 +251,16 @@ export function LearningAcknowledgeButton({
       setQuestionIndex((i) => i + 1);
       return;
     }
+    // Plafond « questions posées d'affilée » : la série est finie mais le contrôle ne l'est
+    // pas. Passer à la confirmation promettait une validation que le serveur refusait par un
+    // 403 — l'écran le dit maintenant, et propose d'enchaîner la série suivante.
+    const pendingTotal = Math.max(0, Number(challenge?.pending_count) || 0);
+    if (pendingTotal > pendingQuestions.length) {
+      setFlowPhase('sessionPaused');
+      return;
+    }
     setFlowPhase('confirm');
-  }, [questionIndex, pendingQuestions.length, gatingResource]);
+  }, [questionIndex, pendingQuestions.length, gatingResource, challenge]);
 
   /**
    * Erreur en portée « question seule » : seule la question ratée est bloquée. On redemande
@@ -306,6 +322,9 @@ export function LearningAcknowledgeButton({
 
   const currentQuestion = pendingQuestions[questionIndex] || null;
   const gatingRules = buildGatingRules(challenge);
+  // Bonnes réponses encore attendues AVANT cette série : la série peut n'en couvrir
+  // qu'une partie (plafond « questions posées d'affilée »).
+  const pendingTotal = Math.max(pendingQuestions.length, Number(challenge?.pending_count) || 0);
   // Le challenge porte le délai effectif (heures) ; le bloc `cooldown` seul sert de repli.
   const quizIntroMessage = buildGatingQuizIntroMessage(
     pendingQuestions.length,
@@ -439,6 +458,7 @@ export function LearningAcknowledgeButton({
                 questionDataset={currentQuestion.question_dataset || null}
                 questionIndex={questionIndex}
                 questionTotal={pendingQuestions.length}
+                pendingTotal={pendingTotal}
                 resourceType={gatingResource?.resourceType || null}
                 resourceRef={gatingResource?.resourceRef ?? null}
                 itemTitle={itemTitle}
@@ -451,6 +471,31 @@ export function LearningAcknowledgeButton({
                 primaryBtnClassName={primaryBtnClassName}
                 ghostBtnClassName={ghostBtnClassName}
               />
+            </>
+          ) : null}
+
+          {flowPhase === 'sessionPaused' ? (
+            <>
+              <h3 id="learning-ack-title">Série terminée</h3>
+              <p className="tuto-read-ack-intro learning-gating-quiz__progress" role="status">
+                {buildSessionPausedMessage(pendingTotal - pendingQuestions.length, itemTitle)}
+              </p>
+              <div className="tuto-read-ack-actions">
+                <button
+                  type="button"
+                  className={ghostBtnClassName || 'btn btn-ghost btn-sm'}
+                  onClick={closeModal}
+                >
+                  Plus tard
+                </button>
+                <button
+                  type="button"
+                  className={primaryBtnClassName || 'btn btn-primary btn-sm'}
+                  onClick={openModal}
+                >
+                  Continuer le contrôle
+                </button>
+              </div>
             </>
           ) : null}
 
