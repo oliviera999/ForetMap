@@ -7,6 +7,29 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé (GL) — l'équipe d'un joueur est lue par partie, plus par un pointeur global
+
+- **Symptôme** : `gl_players.team_id` était un pointeur **global** réécrit à chaque
+  affectation (`assignPlayerToTeamTx`), alors que l'appartenance réelle vit dans
+  `gl_team_members (game_id, player_id)`. Préparer les équipes du chapitre N+1 (partie en
+  brouillon) pendant que le chapitre N tournait écrasait donc l'équipe vue par l'élève : bandeau,
+  `GET /api/gl/auth/me`, hydratation du jeton à chaque requête et **granularité `team` du
+  conditionnement QCM** (les bonnes réponses comptées pour l'équipe pouvaient être celles d'une
+  équipe d'un autre chapitre). Défaut préexistant, prérequis du chantier « composition
+  automatique des équipes » (`docs/GL_EQUIPES_AUTO_CONCEPTION.md` § 7.1, suivi T1).
+- **Correctif** : nouveau `lib/glPlayerMembership.js` — `resolveGlPlayerActiveMembership`
+  (partie du jeton en priorité, sinon `live` > `paused` > `draft` > `ended`, la plus récente),
+  `resolveGlPlayerTeamIdForGame` et une sous-requête `ACTIVE_TEAM_ID_SUBQUERY_SQL` pour les
+  listes. Les six lecteurs du pointeur (hydratation d'auth, identité joueur, `/auth/me`,
+  impersonation, liste admin des joueurs, gating d'équipe) passent par lui ; `glRoster.js` cesse
+  d'écrire la colonne. L'hydratation fait désormais primer la base sur le claim `teamId` du jeton
+  (un joueur réaffecté change d'équipe sans nouveau jeton) ; le claim reste le repli quand aucune
+  appartenance n'existe en base.
+- **Suivi** : la colonne `gl_players.team_id` est **conservée** (aucune migration destructive dans
+  ce lot) mais n'est plus ni écrite ni lue ; sa suppression physique se fera dans une migration
+  dédiée ultérieure. Tests : `tests/gl-player-membership.test.js` ; doc :
+  `docs/API.md` (`/api/gl/auth/me`), `docs/reference/gl/roles-et-connexion.md`.
+
 ### Corrigé — le sélecteur de mascotte proposait toutes les mascottes livrées, quoi qu'ait décidé le studio
 
 - **Symptôme** : le studio et **Paramètres → Mascottes de visite** ne montraient que les

@@ -8,6 +8,7 @@ const {
   getDataWriteVersion,
 } = require('../../database');
 const { purgeGlPlayerLearningTraces } = require('../../lib/glPlayerPurge');
+const { ACTIVE_TEAM_ID_SUBQUERY_SQL } = require('../../lib/glPlayerMembership');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const { logAudit } = require('../../lib/auditLog');
 const {
@@ -299,8 +300,9 @@ router.delete(
   }),
 );
 
+// `team_id` = équipe de la partie active du joueur (gl_team_members), pas le pointeur global.
 const PLAYER_ADMIN_SELECT = `
-  SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo,
+  SELECT p.id, p.class_id, ${ACTIVE_TEAM_ID_SUBQUERY_SQL} AS team_id, p.first_name, p.last_name, p.pseudo,
          p.is_active, p.linked_foretmap_user_id, p.last_seen, p.health_points, p.power_points,
          p.legacy_password_hash IS NOT NULL AS legacy_password_pending,
          u.email, u.password_must_reset, u.is_active AS account_is_active,
@@ -409,9 +411,9 @@ router.post(
     }
     await execute(
       `INSERT INTO gl_players
-      (class_id, team_id, first_name, last_name, pseudo,
+      (class_id, first_name, last_name, pseudo,
        linked_foretmap_user_id, is_active, health_points, power_points, created_at, updated_at)
-     VALUES (?, NULL, ?, ?, ?, ?, 1, ?, ?, NOW(), NOW())`,
+     VALUES (?, ?, ?, ?, ?, 1, ?, ?, NOW(), NOW())`,
       [
         classId,
         firstName,
