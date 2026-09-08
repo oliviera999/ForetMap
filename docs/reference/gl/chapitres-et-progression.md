@@ -87,6 +87,11 @@ son chapitre** à sa création.
      de recette, c'est cette politique qui décide (le dialogue le dit), et la **taille
      d'équipe par défaut** de la classe (4 sauf réglage) sert de taille visée. Le MJ peut
      toujours forcer une autre recette d'un clic.
+   - **Pousser vers Moodle** (même onglet) : une fois les équipes posées, le MJ peut
+     **simuler** puis **pousser** le miroir vers le cours du chapitre. Les groupes Moodle
+     portent **exactement** le nom des équipes. Un élève sans compte Moodle reste dans
+     l'équipe ; le groupe du cours est simplement incomplet. Une partie déjà lancée n'est
+     **pas** recomposée : on recopie seulement l'état actuel.
    - **Contraintes de la classe** (section repliable du dialogue) : le MJ peut poser des
      **verrous** entre deux élèves — _toujours ensemble_ ou _jamais ensemble_. Ils valent
      pour toutes les parties de la classe, sont respectés en priorité par toutes les

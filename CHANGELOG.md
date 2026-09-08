@@ -7,6 +7,135 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — gabarits d’équipes et verrous « séparés » (M4)
+
+- Amorçage des gabarits : lecture de `gl_settings.value_json` (plus `value`) pour ne plus
+  faire échouer la création d’une partie ; un gabarit illisible n’empêche plus l’INSERT.
+- Verrous « séparés » : échange de deux joueurs plutôt qu’un déplacement, pour conserver
+  les effectifs ; les paires « ensemble » déjà placées ne sont pas cassées.
+- Titre de la page d’arrivée LTI : token `--text-xl` (plus de `font-size` en rem hors
+  allowlist).
+- Fichiers servis par `sendFile` : `dotfiles: allow` pour qu’un déploiement ou un worktree
+  dont un dossier commence par un point (`.worktrees`) ne réponde plus 404.
+
+### Documentation — index des audits datés + compléments Moodle / GL
+
+- Nouvel index [`docs/audits/README.md`](docs/audits/README.md) (convention : audits =
+  instantanés ; vérité vivante ailleurs) + règle Cursor `foretmap-audits` ; liens depuis
+  `CLAUDE.md`, `AUDIT_STABILITE_PERF`, `AUDIT_MOODLE`, `docs/reference/README.md`.
+- Compléments : `LOCAL_DEV.md` (Moodle/LTI), `GL_ARCHITECTURE.md` / `GL_EQUIPES_AUTO_CONCEPTION.md`
+  (miroirs, gabarits), `API.md` (`teamMirrors`, `gl.classes.team_templates`), référence
+  `presentation.md` / `rentree-moodle.md` (rapport miroirs).
+
+### Ajouté — miroirs d’équipes Moodle (lot M4)
+
+- Gabarits d’équipes par classe (`gl.classes.team_templates`) amorcés à la création d’une partie ;
+  type gnome/licorne déduit du premier mot du nom.
+- Moteur existant (`lib/gl/teamComposition.js`) : `composeTeams` (keepApart dur, keepTogether,
+  maxSizeDelta, avoidRepeatWindow, graine) ; verrous `apart` réparés avant recherche locale.
+- Miroirs Moodle (`lib/moodle/teamsMirror.js`) : groupes `FM#<cohorte>#C<cours>#<slug>` (équipes)
+  et `FM#<cohorte>#G#<slug>` (sous-groupes ForetMap). Seuls les `FM#` sont créés/renommés/supprimés ;
+  collision de nom hors miroir → arrêt. Joueur sans identité Moodle listé, pas une erreur.
+  Partie hors préparation : jamais recomposée.
+- Routes `POST /api/gl/games/:id/teams/mirror` (MJ) et `POST /api/admin/integrations/moodle/mirrors` ;
+  option `teams` de `POST /runs`. Boutons « Simuler le miroir Moodle » / « Pousser vers Moodle »
+  dans l’onglet Équipes. Tests `tests/moodle-teams-mirror.test.js`, `tests/gl-team-templates.test.js`.
+
+### Documentation — alignement Moodle / LTI / miroirs d'équipes sur le code du dépôt
+
+- `docs/API.md`, `docs/EXPLOITATION.md`, `docs/CRONTAB.md`, référence (`rentree-moodle.md`,
+  comptes, guide MJ, README) et `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : inventaire
+  `POST …/lti/suggest`, `POST …/mirrors`, `POST /api/gl/games/:id/teams/mirror`, distinction
+  kill switch / `enabled` / routes base-only, miroirs d'équipes (M4) via `teams` et console MJ,
+  `unknown_user=queue` non câblé, `/session` sans secrets `.env`, statut lots M1–M6.
+
+### Ajouté — synchronisation Moodle ↔ ForetMap / G&L : lots M1 à M3, côté serveur
+
+Mise en œuvre de `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` (sections 5 à 14). Sans
+`MOODLE_BASE_URL` / `MOODLE_WS_TOKEN` (ou avec `MOODLE_SYNC_ENABLED=0`), les routes qui
+**appellent** Moodle répondent `503 Intégration Moodle non configurée` ; `/status`,
+historique, pending, exempt et merge restent utilisables. Le réglage
+`integration.moodle.enabled` n'ouvre que les exécutions `apply` (sinon **409**).
+
+- **Base** : migration `219_moodle_sync.sql` (tables `external_identities`, `external_groups`,
+  `external_group_members`, `sync_runs`, `sync_actions`, `sync_conflicts`,
+  `sync_pending_matches` ; colonnes `users.sync_exempt` / `groups.sync_exempt`), reportée dans
+  `sql/schema_foretmap.sql`. Permission `integrations.moodle.manage` (rôle admin).
+- **Réglages** `integration.moodle.*` (portée admin) : politiques par cohorte (motif avec
+  `{year}`, rôle, genre de groupe, classe G&L, `push_membership`), préfixe d'année,
+  seuils, domaines d'e-mail, table chapitre → cours, tout validé avant enregistrement.
+- **`lib/moodle/`** : client Web Services (erreurs applicatives détectées en HTTP 200, réessai
+  réseau/5xx seulement, lots de 100, jamais de jeton dans les journaux), contrôle
+  (`npm run moodle:check`), politiques, rapprochement en quatre règles (e-mail, identité,
+  nom + classe, homonymes → attente), contrôles amont bloquants, plan d'écritures typé,
+  seuils de sécurité, exécution `dry_run` / `apply` sous verrou avec journal
+  `sync_runs` / `sync_actions`, **annulation** d'une exécution (comptes créés désactivés,
+  jamais supprimés), garde des 24 h (`apply` exige une simulation récente sauf `force` motivé),
+  **comparaison à trois** (Moodle / ForetMap / dernier état commun) qui distingue « le maître
+  a bougé » (propagé) de « le reflet a bougé » (conflit à trancher : garder Moodle, appliquer
+  l'autre côté, ignorer), comptes et groupes **hors synchronisation** (`sync_exempt`),
+  écritures sortantes `push_membership` vers la cohorte n3.
+- **Fusion de comptes** (`lib/accountMerge.js`) : inventaire des tables qui référencent
+  `users.id`, réattribution, complétion des champs vides, suppression du doublon, journalisée
+  et **non annulable**.
+- **Routes** `/api/admin/integrations/moodle/*` (statut sans jeton, contrôle, cohortes, cours,
+  exécutions, annulation, rapprochements en attente, conflits, hors-sync, fusion) ; scripts
+  `npm run moodle:check` et `npm run moodle:sync -- --dry-run|--apply`.
+- **Tests** : faux serveur Moodle HTTP local (`tests/helpers/fakeMoodleServer.js`) qui
+  reproduit les erreurs en 200, empreinte de tables sensibles (`dbFingerprint`) pour prouver
+  qu'une simulation n'écrit rien et qu'un groupe local reste intact ; fichiers
+  `tests/moodle-*.test.js` (et `tests/lti-*.test.js` pour M6).
+- **Écran administrateur** : nouvel onglet **Moodle** dans *Paramètres administrateur*
+  (`MoodleAdminPanel`) — état du lien (configuré / activé, dernier contrôle, dernière
+  exécution, compteurs), bouton « Contrôler la connexion », cohortes de l'année à cocher avec
+  politique et effectif, **Simuler** puis **Appliquer** (grisé tant que la simulation du même
+  périmètre n'a pas réussi ; « forcer » exige un motif), rapport lisible (totaux puis listes :
+  comptes à créer, rapprochés par le nom à relire, doublons probables, désactivations,
+  conflits, alertes, cohortes sans politique), annulation d'une exécution, rapprochements en
+  attente (rapprocher / créer / ignorer), conflits à trancher (garder Moodle / appliquer
+  ForetMap / ignorer), historique, éditeur des politiques (ordre, motif, rôle, options),
+  table chapitre → cours **avec le nom du cours**, seuils, outils hors-synchronisation et
+  fusion de comptes. Les clés `integration.moodle.*` quittent la grille générique.
+  Tests `tests-ui/settings/MoodleAdminPanel.test.jsx` et `tests/moodle-admin-report-utils.test.js`.
+- **Documentation et exploitation (lot M5)** : `docs/API.md` (section *Lien Moodle*, toutes les
+  routes et réglages), `docs/EXPLOITATION.md` (variables `.env`, création et rotation du jeton,
+  mise en service, tableau de dépannage `invalidtoken` / `accessexception` / délais / 409),
+  `docs/CRONTAB.md` (ligne 6 : simulation quotidienne) et `scripts/moodle-sync-cron.sh`
+  (verrou `mkdir`, `--dry-run --json` **jamais `--apply`**, alerte e-mail par `ops-alert` si
+  désactivations, conflits, attentes ou seuil) ; `env.local.example` complété. Référence
+  fonctionnelle : nouveau document `docs/reference/foretmap/rentree-moodle.md` (principes,
+  écran, pas à pas, attentes, conflits, annulation, réglages, outils, procédure de rentrée,
+  points d'attention), exposé dans la doc de référence en ligne ; mentions dans
+  `comptes-roles-et-groupes.md` et `gl/guide-du-mj.md`.
+
+### Ajouté — entrée depuis le cours Moodle (LTI 1.3, lot M6)
+
+Clic depuis une activité Moodle vers un compte **déjà** reconnu (pas une 2ᵉ sync). Dépendance
+[`jose`](https://github.com/panva/jose) (MIT) pour JWKS distant + RS256.
+
+- Secrets `.env` `LTI_*` ; réglages `integration.lti.*` (liaisons cours → produit, `unknown_user`
+  refuse/queue — seul `refuse` câblé, jamais `create` —, cibles enseignant). Routes `/api/lti/login`, `/launch`,
+  `/.well-known/jwks.json`, `/session` (ticket 120 s puis jeton même durée qu'une session Google,
+  dépôt `#oauth=`). Personne inconnue refusée, aucun `INSERT users`. Page `/lti/arrivee` ;
+  sous-section admin **Entrée depuis le cours**. `npm run moodle:check` contrôle aussi le JWKS.
+
+### Documentation — lien Moodle : spécification finalisée (annuaire M1–M5, LTI 1.3 en M6)
+
+- `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : le lien Moodle ↔ ForetMap / G&L a **deux
+  couches** — l'annuaire (Web Services, lots M1–M5) puis l'entrée depuis le cours (LTI 1.3,
+  lot M6). LTI n'est pas une deuxième sync d'utilisateurs : c'est le clic depuis une activité
+  Moodle vers un compte **déjà** reconnu ; aucune note renvoyée pour M6.
+- Sections **20** et **21** : plus de questions pédagogiques ouvertes (8 septembre 2026).
+  Annuaire : cours 2–6 confirmés, motifs `{year}#` / `{year}#n3`, binôme `601-602`
+  indissociable, `push_membership` n3beurs, retrait de groupes sans désactivation des comptes
+  rapprochés, alerte si deux classes G&L. LTI : outil unique pour les deux produits, nouvel
+  onglet, aiguillage des deux produits pour un n3beur dans un cours chapitre, options
+  d'arrivée réglées par l'admin, boutons enseignant à chaque lancement, pas de retour Moodle,
+  URL publique paramétrable, jamais de création de compte au clic, cours `511` = La salle
+  aérée n³. Reste à **mesurer** sur un lancement de test (21.7) : forme du `sub`, présence de
+  l'e-mail.
+- `env.local.example` : variables `MOODLE_*` et secrets LTI `LTI_*` documentés (toujours
+  dans `.env`, jamais en base).
 ### Ajouté (GL) — composition automatique des équipes, lot v3 (verrous, politique, rotation, brassage)
 
 - **Politique d'équipes par classe** (migration `217_gl_classes_team_policy.sql` :

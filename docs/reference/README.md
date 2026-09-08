@@ -24,6 +24,9 @@ Il poursuit trois objectifs, dans l'ordre :
 3. **Devenir la documentation finale de référence** pour toute personne non codeuse
    qui veut comprendre et piloter le fonctionnel, le pédagogique et le ludique.
 
+> Les audits techniques datés (`docs/AUDIT_*.md`) sont un autre public (historique /
+> consignes de chantier). Index et convention : [`../audits/README.md`](../audits/README.md).
+
 ## Règle d'or : cette documentation est perpétuellement à jour
 
 - Chaque évolution du code qui change ce que voit ou fait un utilisateur (élève,
@@ -45,16 +48,17 @@ Il poursuit trois objectifs, dans l'ordre :
 
 ### ForetMap
 
-| Document                                                                                   | Contenu                                                                | Statut    |
-| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- | --------- |
-| [foretmap/presentation.md](foretmap/presentation.md)                                       | Vue d'ensemble : but, publics, tour des fonctionnalités, rôles         | ✅ Rédigé |
-| [foretmap/carte-et-zones.md](foretmap/carte-et-zones.md)                                   | Les plans, les zones, les repères, leur cycle de vie                   | ✅ Rédigé |
-| [foretmap/plantes-et-biodiversite.md](foretmap/plantes-et-biodiversite.md)                 | Fiches plantes, pré-remplissage des espèces, identification par photo  | ✅ Rédigé |
-| [foretmap/taches-tutoriels-et-validation.md](foretmap/taches-tutoriels-et-validation.md)   | Tâches, tutoriels, prise en charge par les élèves, validation profs    | ✅ Rédigé |
-| [foretmap/comptes-roles-et-groupes.md](foretmap/comptes-roles-et-groupes.md)               | Inscription (code de classe), rôles et paliers, groupes, gestion profs | ✅ Rédigé |
-| [foretmap/visite-et-mascottes.md](foretmap/visite-et-mascottes.md)                         | Parcours de visite grand public, mascottes                             | ✅ Rédigé |
-| [foretmap/pedagogie-quiz-glossaire-reseau.md](foretmap/pedagogie-quiz-glossaire-reseau.md) | Quiz, glossaire, réseau trophique, carnet d'observation                | ✅ Rédigé |
-| [foretmap/stats-forum-et-suivi.md](foretmap/stats-forum-et-suivi.md)                       | Statistiques, classement, forum, notifications, audit                  | ✅ Rédigé |
+| Document                                                                                   | Contenu                                                                                                                  | Statut    |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | --------- |
+| [foretmap/presentation.md](foretmap/presentation.md)                                       | Vue d'ensemble : but, publics, tour des fonctionnalités, rôles                                                           | ✅ Rédigé |
+| [foretmap/carte-et-zones.md](foretmap/carte-et-zones.md)                                   | Les plans, les zones, les repères, leur cycle de vie                                                                     | ✅ Rédigé |
+| [foretmap/plantes-et-biodiversite.md](foretmap/plantes-et-biodiversite.md)                 | Fiches plantes, pré-remplissage des espèces, identification par photo                                                    | ✅ Rédigé |
+| [foretmap/taches-tutoriels-et-validation.md](foretmap/taches-tutoriels-et-validation.md)   | Tâches, tutoriels, prise en charge par les élèves, validation profs                                                      | ✅ Rédigé |
+| [foretmap/comptes-roles-et-groupes.md](foretmap/comptes-roles-et-groupes.md)               | Inscription (code de classe), rôles et paliers, groupes, gestion profs                                                   | ✅ Rédigé |
+| [foretmap/visite-et-mascottes.md](foretmap/visite-et-mascottes.md)                         | Parcours de visite grand public, mascottes                                                                               | ✅ Rédigé |
+| [foretmap/pedagogie-quiz-glossaire-reseau.md](foretmap/pedagogie-quiz-glossaire-reseau.md) | Quiz, glossaire, réseau trophique, carnet d'observation                                                                  | ✅ Rédigé |
+| [foretmap/stats-forum-et-suivi.md](foretmap/stats-forum-et-suivi.md)                       | Statistiques, classement, forum, notifications, audit                                                                    | ✅ Rédigé |
+| [foretmap/rentree-moodle.md](foretmap/rentree-moodle.md)                                   | La rentrée avec Moodle : cohortes → groupes et classes G&L, simulation, conflits, entrée depuis un cours (déjà connecté) | ✅ Rédigé |
 
 ### Plan Lyautey
 

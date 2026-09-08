@@ -2,7 +2,9 @@
 
 Document de référence unique sur la **tenue en charge et la stabilité** de la plateforme,
 ForetMap **et** Gnomes & Licornes, composants communs inclus. Il reprend et remplace comme
-point d'entrée les deux audits précédents, qui restent consultables pour leur détail :
+point d'entrée les deux audits précédents, qui restent consultables pour leur détail.
+**Index de tous les audits datés** (convention : ne pas réécrire l’historique) :
+[`docs/audits/README.md`](audits/README.md).
 
 | Audit                                                                          | Portée                                                                              | Statut                                                     |
 | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- | ---------------------------------------------------------- |

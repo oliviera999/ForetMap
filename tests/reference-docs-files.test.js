@@ -126,7 +126,12 @@ test('ForetMap — le sommaire expose les documents réellement versionnés', ()
 
   const slugs = docs.map((d) => d.slug);
   assert.equal(slugs[0], 'presentation', 'la présentation ouvre le sommaire');
-  for (const expected of ['carte-et-zones', 'visite-et-mascottes', 'stats-forum-et-suivi']) {
+  for (const expected of [
+    'carte-et-zones',
+    'visite-et-mascottes',
+    'stats-forum-et-suivi',
+    'rentree-moodle',
+  ]) {
     assert.ok(slugs.includes(expected), `document manquant : ${expected}`);
   }
 

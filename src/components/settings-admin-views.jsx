@@ -18,6 +18,7 @@ import { MapLocationsAdminPanel } from './settings/MapLocationsAdminPanel.jsx';
 import { MapGeorefPanel } from './settings/MapGeorefPanel.jsx';
 import { VisitMascotSettingsPanel } from './settings/VisitMascotSettingsPanel.jsx';
 import { FMLearningGatingSettings } from './settings/FMLearningGatingSettings.jsx';
+import { MoodleAdminPanel } from './settings/MoodleAdminPanel.jsx';
 import { ForetMapHelpContentAdminPanel } from './help/ForetMapHelpContentAdminPanel.jsx';
 import { HelpNarratorAdminPanel } from './help/HelpNarratorAdminPanel.jsx';
 import { ForetMapReferenceDocsPanel } from './help/ForetMapReferenceDocsPanel.jsx';
@@ -502,6 +503,13 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
             >
               Narrateur OLU
             </button>
+            <button
+              type="button"
+              className={adminSection === 'moodle' ? 'is-active' : ''}
+              onClick={() => setAdminSection('moodle')}
+            >
+              Moodle
+            </button>
           </>
         )}
         {canManageTours && (
@@ -548,6 +556,17 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
         <ForetMapReferenceDocsPanel />
       ) : adminSection === 'narrator' ? (
         <HelpNarratorAdminPanel />
+      ) : adminSection === 'moodle' ? (
+        <MoodleAdminPanel
+          get={get}
+          saveSetting={saveSetting}
+          savingKey={savingKey}
+          onMessage={(okMsg) => {
+            setMsg(okMsg);
+            setErr('');
+          }}
+          onError={(errMsg) => setErr(errMsg)}
+        />
       ) : adminSection === 'help' ? (
         <ForetMapHelpContentAdminPanel />
       ) : (
