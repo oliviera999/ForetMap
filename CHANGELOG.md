@@ -7,6 +7,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — lien Moodle : identifiant des cours chapitre et variables d'environnement
+
+- `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : le cours d'un chapitre G&L est désigné par son
+  **identifiant numérique** Moodle (chapitre 1 = cours `564`) ; les numéros `6xx` relevés
+  auparavant sont ceux des classes et cohortes, pas des cours. Le jeton de synchronisation se
+  place dans le `.env` du serveur sous `MOODLE_WS_TOKEN`, avec
+  `MOODLE_BASE_URL=https://olution.info` — jamais en base ni en réglage administrateur.
+- `env.local.example` : les deux variables y figurent en commentaire (aucun code ne les lit
+  encore ; elles seront consommées par le client Web Services du lot M1).
+
 ### Documentation — cadrage du lien Moodle 5.2 ↔ ForetMap / G&L
 
 - `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : synchronisation des cohortes (`année#classe`,
