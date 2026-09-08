@@ -12,6 +12,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Fiche scripts** : `docs/SCRIPTS.md` — quoi lancer selon le cas (dev local,
   seed GL / biodiversité, vérifs avant livrable, déploiement, debug prod, ménage).
 
+### Corrigé
+
+- **cPanel / `npm install` ERESOLVE** : `eslint-plugin-jsx-a11y@6.10.2` refuse encore ESLint 10
+  en peer (https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/issues/1075). `overrides` dans
+  `package.json` aligne le peer sur l’ESLint du projet ; `.cpanel.yml` passe `--legacy-peer-deps`.
+  Le Node.js Selector ignore parfois `.npmrc` : variable `NPM_CONFIG_LEGACY_PEER_DEPS=true`.
+
 ### Ajouté — upgrade pédagogique rétrocompatible (Plan D)
 
 - **Audit lecture seule** : `npm run audit:pedago` signale genres saisis comme espèces,
