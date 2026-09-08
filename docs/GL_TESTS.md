@@ -52,7 +52,8 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
   `GET .../compose/mixing-rate` ; `PUT /admin/classes/:id` `teamPolicy` / `teamSizeDefault` et
   recette par défaut selon politique) ; UI : `tests-ui/gl/GLTeamComposeDialog.test.jsx` (aperçu
   sans recette = politique, épingles, contraintes de classe, peuple de départ),
-  `tests-ui/gl/GLTeamMixingRate.test.jsx`
+  `tests-ui/gl/GLTeamMixingRate.test.jsx`, `tests-ui/gl/GLGameMasterConsoleTeams.test.jsx` (miroir
+  Moodle) ; gabarits `gl-team-templates.test.js` ; miroirs Moodle `moodle-teams-mirror.test.js`
 - `gl-game-events-replay.test.js`, `gl-journal.test.js`, `gl-journal-query-validation.test.js`
 - `gl-vitality.test.js`, `gl-virtual-dice.test.js`, `gl-market.test.js`, `gl-market-query-validation.test.js`
 - `gl-spell-cast.test.js`, `gl-feuillet-zone-present.test.js`, `gl-feuillet-zones-loader.test.js`

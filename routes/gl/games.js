@@ -25,6 +25,7 @@ const { serializeZonePopoverRow, zoneHasPopoverContent } = require('../../lib/gl
 const { MARKER_QUESTION_RETRIGGER_VALUES } = require('../../lib/glSettings');
 const { resolveBoardMovementMode } = require('../../lib/glBoardPath');
 const { parseDiceRollPayload } = require('../../lib/glDiceRoll');
+const logger = require('../../lib/logger');
 // O10 — helpers runtime à I/O (DB) déplacés en l'état vers lib/gl/gamesRuntime.js
 // (déplacement pur byte-identique) ; débloque le découpage futur en sous-routeurs.
 const {
@@ -207,6 +208,12 @@ router.post(
       throw err;
     }
     const newId = insertResult?.insertId;
+    try {
+      const { seedTeamsFromTemplate } = require('../../lib/gl/teamTemplates');
+      await seedTeamsFromTemplate({ gameId: newId, classId });
+    } catch (seedErr) {
+      logger.warn({ err: seedErr, gameId: newId }, 'amorçage gabarit équipes ignoré');
+    }
     const state = await readGameState(newId);
     return res.status(201).json(state);
   }),

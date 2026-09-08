@@ -5,11 +5,16 @@
 >
 > **Ce document est la spécification de référence du chantier et il est écrit pour être donné
 > tel quel comme consigne à un agent de codage.** Il décrit ce qu'il faut construire, dans quel
-> ordre, avec quelles garanties, et surtout ce qu'il ne faut **jamais** faire. Rien n'est encore
-> implémenté. Les valeurs de terrain (cohortes, cours, équipes) de la section 2 sont réelles et
-> confirmées par l'établissement ; tout le reste en découle. Le lien Moodle ↔ ForetMap / G&L a
+> ordre, avec quelles garanties, et surtout ce qu'il ne faut **jamais** faire. **État dépôt
+> (septembre 2026)** : lots **M1–M3** (serveur + écran), **M4** (miroirs d'équipes — code
+> présent, critère terrain §17 à valider), **M5** (documentation) et **M6** (LTI 1.3) sont
+> **dans le code** ; la file `unknown_user=queue` reste ouverte ; le critère « Terminé pour
+> M6 » (vrai clic sur olution.info, section 21.7) reste à valider sur le terrain. Les valeurs de terrain (cohortes, cours, équipes) de la
+> section 2 sont réelles et confirmées par l'établissement. Le lien Moodle ↔ ForetMap / G&L a
 > **deux couches** : l'annuaire (synchronisation Web Services, lots M1 à M5) puis l'entrée
 > depuis le cours (LTI 1.3, lot M6, section 21). La seconde ne remplace pas la première.
+>
+> **Index des audits datés** (ne pas réécrire l’historique) : [`docs/audits/README.md`](audits/README.md).
 >
 > **Opération délicate** : la synchronisation touche des centaines de comptes d'élèves mineurs,
 > dont certains portent déjà un historique (tâches, observations, forum, parties G&L). Une
@@ -392,29 +397,30 @@ bases neuves ; les deux doivent rester alignés).
   (`https://olution.info`) : `provider = 'moodle'` (identifiant Web Services) et
   `provider = 'lti'` (sujet du jeton de lancement). La clé unique est
   `(provider, issuer, external_id)` : les deux coexistent. Le lot M1 crée la table dans cette
-  forme générique ; le lot M6 pose les lignes `'lti'`. Ne pas figer `provider` en ENUM à deux
+  forme générique ; le lot M6 (livré) pose les lignes `'lti'`. Ne pas figer `provider` en ENUM à deux
   valeurs figées côté application au-delà de ces deux identifiants connus.
 
 ## 6. Configuration
 
 ### 6.1 Variables d'environnement (`.env`, jamais en base — I-9)
 
-| Variable               | Rôle                                                            |
-| ---------------------- | --------------------------------------------------------------- |
-| `MOODLE_BASE_URL`      | `https://olution.info` (sans barre oblique finale)              |
-| `MOODLE_WS_TOKEN`      | jeton du service externe, créé selon la section 19              |
-| `MOODLE_WS_TIMEOUT_MS` | facultatif, défaut `20000`                                      |
-| `MOODLE_SYNC_ENABLED`  | facultatif, `0` coupe toute la fonctionnalité (garde d'urgence) |
+| Variable               | Rôle                                                                                                       |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `MOODLE_BASE_URL`      | `https://olution.info` (sans barre oblique finale)                                                         |
+| `MOODLE_WS_TOKEN`      | jeton du service externe, créé selon la section 19                                                         |
+| `MOODLE_WS_TIMEOUT_MS` | facultatif, défaut `20000`                                                                                 |
+| `MOODLE_SYNC_ENABLED`  | facultatif, `0` coupe les appels Moodle (`503`) et le cron (garde d'urgence) ; routes base-only restent OK |
 
 `lib/env.js` ne doit **pas** les rendre obligatoires : leur absence désactive proprement la
 fonctionnalité (endpoints en `503 { error: 'Intégration Moodle non configurée' }`), elle ne
 doit pas empêcher le serveur de démarrer. Ajouter les deux premières en commentaire dans
 `env.local.example` — c'est déjà fait.
 
-Les secrets LTI (émetteur Moodle, identifiant client, clés de l'outil) sont ceux du **lot M6**.
-Ils restent dans `.env` (I-9), distincts du jeton Web Services. Noms prévus, à n'activer
-qu'avec M6 : `LTI_ISSUER`, `LTI_CLIENT_ID`, `LTI_DEPLOYMENT_ID`, plus la paire de clés de
-l'outil. Ne pas les inventer dans M1.
+Les secrets LTI (émetteur Moodle, identifiant client, clés de l'outil) sont ceux du **lot M6**
+(livré dans le dépôt). Ils restent dans `.env` (I-9), distincts du jeton Web Services :
+`LTI_ISSUER`, `LTI_CLIENT_ID`, `LTI_DEPLOYMENT_ID`, `LTI_PLATFORM_AUTH_URL`,
+`LTI_PLATFORM_JWKS_URL`, `LTI_TOOL_PRIVATE_KEY`, `LTI_TOOL_KID`. Documentés dans
+`env.local.example` ; absents → routes de lancement en `503`, sans bloquer le démarrage.
 
 ### 6.2 Réglages administrateur (`lib/settings.js`, registre `SETTINGS_REGISTRY`)
 
@@ -434,7 +440,8 @@ Portée `admin` pour tous ; aucun n'est public.
 | `integration.moodle.threshold_outbound_remove_abs` | `number`  | `50`            | seuil de retraits de membres poussés vers Moodle          |
 
 Les réglages LTI (`integration.lti.*`, section 21.5) **n'entrent pas** dans M1–M5. Ils sont
-livrés avec M6, dans le même onglet « Moodle », section distincte « Entrée depuis le cours ».
+livrés avec M6 (présent dans le dépôt), dans le même onglet « Moodle », section distincte
+« Entrée depuis le cours ».
 
 Forme d'une politique (le tableau est ordonné ; **la première entrée dont le motif correspond
 gagne**, ce qui rend le classement significatif — `{year}#n3` doit précéder tout motif
@@ -693,12 +700,14 @@ Le type est déduit du premier mot à la saisie (section 2.4) et reste modifiabl
 une **commodité de saisie**, pas une source de vérité : ce sont les lignes `gl_teams` de la
 partie qui font foi, et c'est leur nom qui part dans le miroir Moodle.
 
-### 10.3 Moteur de composition — `lib/gl/teamComposer.js`
+### 10.3 Moteur de composition — `lib/gl/teamComposition.js`
 
-Fonction pure, testable sans base :
+Le moteur **déjà livré** pour la composition automatique G&L (`computeComposition`, recettes,
+verrous de classe, historique de paires, graine) est réutilisé. L'enveloppe `composeTeams`
+aligne l'API de la spec :
 
 ```js
-composeTeams({ players, teams, history, options }) → { assignments, warnings }
+composeTeams({ players, teams, history, options }) → { ok, assignments, warnings, slots }
 ```
 
 - `players` : joueurs de la classe, avec `id` et ce qui sert aux contraintes.
@@ -714,8 +723,12 @@ répétitions de binômes sur les `avoidRepeatWindow` derniers chapitres. Tirage
 à partir de `seed` : le MJ doit pouvoir rejouer exactement la même composition, et les tests en
 dépendent.
 
-Le moteur **propose** ; le MJ ajuste à la main puis **valide**. Rien n'est écrit dans
-`gl_team_members` avant validation.
+Le moteur **propose** ; le MJ ajuste à la main puis **valide** via
+`POST /api/gl/games/:id/teams/compose/preview` (aperçu) et
+`POST /api/gl/games/:id/teams/compose/apply` (écriture). Rien n'est écrit dans
+`gl_team_members` avant validation. La synchronisation Moodle **n'appelle jamais**
+ce moteur sur une partie hors `draft` (I-10) : le miroir pousse l'état actuel des
+`gl_teams`.
 
 ### 10.4 Nommage des miroirs
 
@@ -875,13 +888,15 @@ d'exécution. Toutes les réponses sont du JSON ; les erreurs suivent `{ error }
 | `POST /conflicts/:id`       | résolution `keep_master`, `apply_other` ou `ignore`                                              |
 | `POST /exempt`              | marquer un compte ou un groupe `sync_exempt`                                                     |
 
-Côté G&L, pour les équipes (routeur `routes/gl/admin.js`, permission MJ existante) :
+Côté G&L, pour les équipes (routeur `routes/gl/games/teams.js`, permission MJ
+`gl.team.manage` — la composition exige aussi `gl.players.manage`) :
 
-| Méthode et chemin                               | Rôle                                                             |
-| ----------------------------------------------- | ---------------------------------------------------------------- |
-| `POST /api/gl/admin/games/:id/teams/compose`    | propose une composition (`lib/gl/teamComposer.js`), n'écrit rien |
-| `PUT /api/gl/admin/games/:id/teams/assignments` | valide et écrit les affectations                                 |
-| `POST /api/gl/admin/games/:id/teams/mirror`     | pousse le miroir Moodle de cette partie ; `{ dryRun }`           |
+| Méthode et chemin                              | Rôle                                                                                             |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `POST /api/gl/games/:id/teams/compose/preview` | propose une composition (`lib/gl/teamComposition.js` / `lib/glTeamComposition.js`), n'écrit rien |
+| `POST /api/gl/games/:id/teams/compose/apply`   | valide et écrit les affectations                                                                 |
+| `POST /api/gl/games/:id/teams/mirror`          | pousse le miroir Moodle de cette partie ; `{ dryRun }` (défaut `true`)                           |
+| `POST /api/admin/integrations/moodle/mirrors`  | miroir d'un sous-groupe ForetMap `{ groupId, courseId, dryRun }`                                 |
 
 Toute route publique nouvelle ou modifiée va dans `docs/API.md` **dans le même lot** que le
 code.
@@ -946,7 +961,7 @@ Backend (`tests/*.test.js`, `node:test` + `supertest`, séquentiel) :
 | `moodle-sync-undo.test.js`       | annulation complète : appartenances rendues, comptes réactivés, identités retirées, comptes créés désactivés et non supprimés                                                                                                |
 | `moodle-conflicts.test.js`       | comparaison à trois sur les quatre combinaisons ; résolution par les trois boutons ; `members_hash` recalculé après « ignorer »                                                                                              |
 | `moodle-teams-mirror.test.js`    | création, renommage, suppression d'un miroir `FM#` ; un groupe non `FM#` jamais touché ; collision de nom refusée avec message explicite ; joueur sans identité Moodle listé sans erreur ; partie non `draft` non recomposée |
-| `gl-team-composer.test.js`       | moteur pur : `keepApart` jamais violé, écart de taille borné, déterminisme à `seed` égal, évitement des répétitions                                                                                                          |
+| `gl-team-composition.test.js`    | moteur pur (dont `composeTeams`) : `keepApart` jamais violé, écart de taille borné, déterminisme à `seed` égal, évitement des répétitions (`avoidRepeatWindow`)                                                              |
 | `moodle-admin-routes.test.js`    | permission `integrations.moodle.manage` exigée ; verrou (409) ; `apply` refusé sans simulation récente ; jeton jamais renvoyé                                                                                                |
 
 Le serveur Moodle est **simulé** dans les tests : un faux serveur HTTP local qui répond comme
@@ -959,14 +974,14 @@ Avant chaque commit : `npm run lint`, `npm run format:check`, `npm test`, `npm r
 
 ## 17. Lots et définition de terminé
 
-| Lot | Contenu                                                                                                                                                                                                      | Effort     |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- |
-| M1  | Client Web Services, `moodle:check`, migration, réglages, rapprochement, simulation, seuils, journal, `POST /runs` en `dry_run`                                                                              | 3,5 j      |
-| M2  | Application réelle, transactions par cohorte, annulation, rapprochements en attente, outil de fusion de comptes                                                                                              | 3 j        |
-| M3  | Comparaison à trois, conflits, écran administrateur complet                                                                                                                                                  | 2 j        |
-| M4  | Moteur de composition des équipes, miroirs Moodle, sous-groupes                                                                                                                                              | 3 j        |
-| M5  | Documentation : `docs/API.md`, `docs/CRONTAB.md`, `docs/EXPLOITATION.md`, `docs/reference/` (« Rentrée avec Moodle », pour les administrateurs et les professeurs)                                           | 0,5 j      |
-| M6  | LTI 1.3 : outil unique, nouvel onglet, identité au clic, liaisons FM **et** G&L, arrivée réglée par l'admin (aiguillage si plusieurs cibles). **Pas** de notes. Réglages `integration.lti.*` (section 21.5). | à chiffrer |
+| Lot | Contenu                                                                                                                                                                                                      | Effort  | Statut dépôt (sept. 2026)                                                          |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- | ---------------------------------------------------------------------------------- |
+| M1  | Client Web Services, `moodle:check`, migration, réglages, rapprochement, simulation, seuils, journal, `POST /runs` en `dry_run`                                                                              | 3,5 j   | Code + tests                                                                       |
+| M2  | Application réelle, transactions par cohorte, annulation, rapprochements en attente, outil de fusion de comptes                                                                                              | 3 j     | Code + tests                                                                       |
+| M3  | Comparaison à trois, conflits, écran administrateur complet                                                                                                                                                  | 2 j     | Code + tests + UI                                                                  |
+| M4  | Moteur de composition des équipes, miroirs Moodle, sous-groupes                                                                                                                                              | 3 j     | Code présent (sync `teams`, `/mirrors`, GL mirror) ; critère terrain **à valider** |
+| M5  | Documentation : `docs/API.md`, `docs/CRONTAB.md`, `docs/EXPLOITATION.md`, `docs/reference/` (« Rentrée avec Moodle », pour les administrateurs et les professeurs)                                           | 0,5 j   | Docs livrés                                                                        |
+| M6  | LTI 1.3 : outil unique, nouvel onglet, identité au clic, liaisons FM **et** G&L, arrivée réglée par l'admin (aiguillage si plusieurs cibles). **Pas** de notes. Réglages `integration.lti.*` (section 21.5). | réalisé | Code + tests ; pilote réel / 21.7 **à valider**                                    |
 
 **Terminé, pour chaque lot**, signifie : code + tests du lot verts + `lint` et `format:check`
 propres + `docs/API.md` à jour si des routes ont bougé + entrée `CHANGELOG.md` sous

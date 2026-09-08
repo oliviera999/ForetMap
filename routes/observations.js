@@ -198,7 +198,7 @@ router.get(
       if (!allowed) return res.status(403).json({ error: 'Accès refusé à cette image' });
     }
     const absolutePath = getAbsolutePath(obs.image_path);
-    res.sendFile(absolutePath, (err) => {
+    res.sendFile(absolutePath, { dotfiles: 'allow' }, (err) => {
       if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
     });
   }),

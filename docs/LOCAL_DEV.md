@@ -34,6 +34,22 @@ cp env.local.example .env
 
 Le mot de passe root du conteneur MariaDB est **`foretmap_local_root`** (déjà cohérent avec `env.local.example`). Ajustez `DB_PORT` si vous avez changé le mapping de port.
 
+### Optionnel — lien Moodle / entrée depuis le cours (LTI)
+
+Les variables sont commentées dans `env.local.example` (`MOODLE_*`, `LTI_*`,
+`GL_FRONTEND_ORIGIN`). Sans elles, le serveur démarre normalement ; les routes qui
+appellent Moodle ou initient un lancement LTI répondent **503**. Mise en service et
+dépannage : `docs/EXPLOITATION.md` ; contrat : `docs/API.md` ; spécification :
+`docs/AUDIT_MOODLE_IDENTITES_2026-09.md` (index des audits : `docs/audits/README.md`).
+
+```bash
+npm run moodle:check                 # jeton WS, fonctions, cohortes, JWKS LTI si configuré
+npm run moodle:sync -- --dry-run     # simulation d'annuaire (rien n'écrit)
+```
+
+Les tests `tests/moodle-*.test.js` / `tests/lti-*.test.js` s’appuient sur un faux serveur
+Moodle HTTP local (`tests/helpers/fakeMoodleServer.js`) et sur MariaDB (`foretmap_test`).
+
 ## 3. Dépendances et base de données
 
 ```bash

@@ -36,6 +36,23 @@ export const KEYS_HANDLED_BY_PANEL = new Set([
   'learning.gating.announce_on_button',
   'learning.gating.state_icons',
   'learning.gating.require_linked_tutorials_before_task_done',
+  // Onglet « Moodle » (MoodleAdminPanel) : politiques et table chapitre → cours sont des `json`.
+  'integration.moodle.enabled',
+  'integration.moodle.year_prefix',
+  'integration.moodle.email_domains',
+  'integration.moodle.policies',
+  'integration.moodle.chapter_courses',
+  'integration.moodle.threshold_create_pct',
+  'integration.moodle.threshold_deactivate_pct',
+  'integration.moodle.threshold_deactivate_abs',
+  'integration.moodle.threshold_namematch_pct',
+  'integration.moodle.threshold_outbound_remove_abs',
+  'integration.lti.enabled',
+  'integration.lti.unknown_user',
+  'integration.lti.public_origin',
+  'integration.lti.instructor_targets',
+  'integration.lti.launch_bindings',
+  'integration.lti.landing_options',
 ]);
 
 export const KEY_META = {

@@ -110,6 +110,42 @@ router.post(
 );
 
 router.post(
+  '/games/:id/teams/mirror',
+  requireGlPermission('gl.team.manage'),
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+    const dryRun = req.body?.dryRun !== false;
+    const { mirrorGameTeams } = require('../../../lib/moodle/teamsMirror');
+    const { logAudit } = require('../../../lib/auditLog');
+    try {
+      const report = await mirrorGameTeams({ gameId, dryRun });
+      if (report.error) return res.status(409).json({ error: report.error, report });
+      if (!dryRun) {
+        await logAudit('moodle_teams_mirror', 'gl_game', String(gameId), 'apply', {
+          req,
+          payload: {
+            created: report.created?.length || 0,
+            missing: report.missingIdentities?.length || 0,
+          },
+        });
+      }
+      return res.json(report);
+    } catch (err) {
+      if (err.status === 503) {
+        return res
+          .status(503)
+          .json({ error: err.message, code: err.code || 'MOODLE_NOT_CONFIGURED' });
+      }
+      if (err.status && err.status < 500) {
+        return res.status(err.status).json({ error: err.message });
+      }
+      throw err;
+    }
+  }),
+);
+
+router.post(
   '/games/:id/teams',
   requireGlPermission('gl.team.manage'),
   asyncHandler(async (req, res) => {

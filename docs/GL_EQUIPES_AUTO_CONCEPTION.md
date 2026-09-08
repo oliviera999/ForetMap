@@ -252,3 +252,15 @@ professeur fasse confiance à la fonctionnalité.
       des racines neutres puis « Équipe N ».
 - [x] 5. La reconduction `carry_over` copie aussi les **mascottes** (et noms, couleurs,
       peuples) ; les nouveaux joueurs rejoignent les équipes les moins fournies.
+
+## 12. Miroirs Moodle (après composition)
+
+Une fois les équipes appliquées, le MJ peut **simuler** puis **pousser** un miroir vers le
+cours Moodle du chapitre (`POST /api/gl/games/:id/teams/mirror`, boutons dans l’onglet
+Équipes). Les groupes portent le **même nom** que les équipes ; seuls les `idnumber` en
+`FM#…` sont créés, renommés ou supprimés. Un joueur sans identité Moodle reste dans l’équipe
+G&L ; le groupe de cours est simplement incomplet. La composition G&L n’est **jamais**
+recomposée par le miroir (surtout hors brouillon).
+
+Gabarits de noms par classe : réglage `gl.classes.team_templates`. Sync d’annuaire avec
+option `teams` : `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` §10 ; contrat : `docs/API.md`.

@@ -25,7 +25,7 @@ SMTP_HOST=… SMTP_PORT=587 SMTP_USER=… SMTP_PASS=… SMTP_FROM="ForetMap <no-
 OPS_ALERT_TO=admin@…
 ```
 
-## Les 5 lignes de crontab (`crontab -e`) — les 4 premières ci-dessous, la 5ᵉ (purge) plus bas
+## Les lignes de crontab (`crontab -e`) — 4 de base ci-dessous, puis purge (5) et Moodle optionnel (6)
 
 ```cron
 # 1) Déploiement auto : pull + (migrate) + restart + post-deploy-check (+ rollback/alerte si échec) — toutes les 2 min
@@ -87,18 +87,40 @@ npm run logs:purge -- --days=365 --history-days=365 --apply    # applique
 Le minimum accepté est 30 jours (pour chacune des deux rétentions) : en deçà, le script
 refuse — une purge trop agressive effacerait des traces encore utiles à une investigation.
 
+## Ligne 6 (optionnelle) — simulation quotidienne du lien Moodle
+
+Une fois le lien Moodle configuré (`MOODLE_BASE_URL` / `MOODLE_WS_TOKEN` dans `.env`, voir
+`docs/EXPLOITATION.md`), une **simulation** chaque matin de classe prépare le travail de
+l'administrateur : elle ne modifie rien et envoie un email (`ops-alert`) quand elle annonce des
+désactivations, des conflits ou des rapprochements en attente — ou quand un seuil l'arrête.
+L'**application** reste un geste humain depuis _Paramètres administrateur → Moodle_, après
+lecture du rapport (spécification : `docs/AUDIT_MOODLE_IDENTITES_2026-09.md`, section 17).
+
+```cron
+# 6) Simulation Moodle (jamais --apply) — du lundi au vendredi à 06:30
+30 6 * * 1-5 APP_DIR=/home/USER/foretmap /home/USER/foretmap/scripts/moodle-sync-cron.sh >> /home/USER/foretmap/logs/moodle-sync.log 2>&1
+```
+
+Le script pose un verrou `mkdir` (`MOODLE_CRON_LOCK_DIR`, défaut `/tmp/foretmap-moodle-sync.lock`),
+accepte des arguments supplémentaires via `MOODLE_CRON_ARGS` (ex. `--cohort 26#603`) et se tait
+(`exit 0`) si l'intégration n'est pas configurée. `MOODLE_CRON_NO_ALERT=1` coupe l'email.
+
 ## Variables utiles (valeurs par défaut)
 
-| Variable                           | Défaut      | Rôle                                                                                                                                   |
-| ---------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `DEPLOY_AUTO_MIGRATE`              | `0`         | `1` pour `npm run db:migrate` quand `migrations/` change                                                                               |
-| `DEPLOY_AUTO_ROLLBACK`             | `1`         | rollback code si `post-deploy-check` échoue après restart                                                                              |
-| `DEPLOY_DB_PRE_MIGRATE_BACKUP`     | `1`         | snapshot BDD avant `db:migrate`                                                                                                        |
-| `BACKUP_RETENTION_DAYS`            | `14`        | purge des dumps plus vieux que N jours                                                                                                 |
-| `BACKUP_DIR`                       | `./backups` | dossier des dumps (non versionné)                                                                                                      |
-| `DEPLOY_SKIP_RESTART_IF_SOFT_ONLY` | `1`         | ne pas redémarrer si le diff est « soft » (docs/CHANGELOG seuls)                                                                       |
-| `DEPLOY_QUIET_SECONDS`             | `180`       | n'applique un commit qu'après N s d'accalmie : une rafale de merges devient **un** redémarrage au lieu d'un par commit (`0` désactive) |
-| `FORETMAP_BOOT_JOURNAL`            | _(activé)_  | `0` pour couper le journal de cycle de vie (`logs/boot-journal.ndjson`)                                                                |
+| Variable                           | Défaut                           | Rôle                                                                                                                                   |
+| ---------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `DEPLOY_AUTO_MIGRATE`              | `0`                              | `1` pour `npm run db:migrate` quand `migrations/` change                                                                               |
+| `DEPLOY_AUTO_ROLLBACK`             | `1`                              | rollback code si `post-deploy-check` échoue après restart                                                                              |
+| `DEPLOY_DB_PRE_MIGRATE_BACKUP`     | `1`                              | snapshot BDD avant `db:migrate`                                                                                                        |
+| `BACKUP_RETENTION_DAYS`            | `14`                             | purge des dumps plus vieux que N jours                                                                                                 |
+| `BACKUP_DIR`                       | `./backups`                      | dossier des dumps (non versionné)                                                                                                      |
+| `DEPLOY_SKIP_RESTART_IF_SOFT_ONLY` | `1`                              | ne pas redémarrer si le diff est « soft » (docs/CHANGELOG seuls)                                                                       |
+| `DEPLOY_QUIET_SECONDS`             | `180`                            | n'applique un commit qu'après N s d'accalmie : une rafale de merges devient **un** redémarrage au lieu d'un par commit (`0` désactive) |
+| `FORETMAP_BOOT_JOURNAL`            | _(activé)_                       | `0` pour couper le journal de cycle de vie (`logs/boot-journal.ndjson`)                                                                |
+| `APP_DIR`                          | _(requis)_                       | Racine de l'application pour les scripts cron (`/home/USER/foretmap`)                                                                  |
+| `MOODLE_CRON_LOCK_DIR`             | `/tmp/foretmap-moodle-sync.lock` | Verrou `mkdir` de la simulation Moodle (ligne 6)                                                                                       |
+| `MOODLE_CRON_ARGS`                 | _(vide)_                         | Arguments supplémentaires passés à `moodle:sync` (ex. `--cohort 26#603`) — jamais `--apply`                                            |
+| `MOODLE_CRON_NO_ALERT`             | _(vide)_                         | `1` pour couper l'e-mail `ops-alert` après une simulation Moodle                                                                       |
 
 ## Vérifications
 
