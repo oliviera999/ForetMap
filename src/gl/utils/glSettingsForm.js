@@ -132,6 +132,12 @@ export const GAMEPLAY_TOGGLES = [
     label: 'Feuillets échangeables sur le Marché',
     hint: 'Activé par défaut : un feuillet donné est recopié (le donneur garde le sien) et devient lisible par toute l’équipe du receveur. Nécessite le module Carnet de Sélène.',
   },
+  {
+    key: 'gameplay.team_composition_profile_recipes_enabled',
+    camel: 'teamCompositionProfileRecipesEnabled',
+    label: 'Recettes d’équipes fondées sur le profil',
+    hint: 'Activé par défaut : la composition automatique propose aussi « Mixte », « Complémentarité » et « Groupes de besoin », calculées à la volée depuis les actions de jeu (rien n’est enregistré ni affiché aux élèves). Désactiver ne laisse que l’aléatoire, l’aléatoire à mémoire et la reconduction.',
+  },
 ];
 
 /** Drapeaux d'activation des modules GL côté interface. */

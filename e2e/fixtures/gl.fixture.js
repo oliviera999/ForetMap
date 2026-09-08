@@ -37,9 +37,9 @@ async function seedGlScenario(label = 'default') {
   );
 
   await execute(
-    `INSERT INTO gl_players (class_id, team_id, first_name, last_name, pseudo, legacy_password_hash, is_active, created_at, updated_at)
-     VALUES (?, ?, 'Play', 'Er', ?, 'x', 1, NOW(), NOW())`,
-    [cls.id, team.id, `player-${label}-${stamp}`],
+    `INSERT INTO gl_players (class_id, first_name, last_name, pseudo, legacy_password_hash, is_active, created_at, updated_at)
+     VALUES (?, 'Play', 'Er', ?, 'x', 1, NOW(), NOW())`,
+    [cls.id, `player-${label}-${stamp}`],
   );
   const player = await queryOne('SELECT id, pseudo FROM gl_players ORDER BY id DESC LIMIT 1');
 

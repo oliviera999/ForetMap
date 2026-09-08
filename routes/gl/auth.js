@@ -72,6 +72,7 @@ const {
 } = require('../../lib/auth/tokenEpoch');
 const { loginThrottle, sendLoginThrottled } = require('../../lib/loginThrottle');
 const { nowIsoUtc } = require('../../lib/shared/isoTimestamp');
+const { resolveGlPlayerActiveMembership } = require('../../lib/glPlayerMembership');
 
 const router = express.Router();
 
@@ -224,55 +225,18 @@ async function issueGlGuestSession() {
   return { authToken: token, auth: exposeGlAuth(claims) };
 }
 
-async function resolveGlPlayerActiveMembership(
-  playerId,
-  preferredTeamId = null,
-  preferredGameId = null,
-) {
-  const preferredGame =
-    preferredGameId != null && Number.isFinite(Number(preferredGameId))
-      ? Number(preferredGameId)
-      : -1;
-  const membership = await queryOne(
-    `SELECT tm.game_id, tm.team_id
-       FROM gl_team_members tm
- INNER JOIN gl_games g ON g.id = tm.game_id
-      WHERE tm.player_id = ?
-      ORDER BY
-        CASE WHEN tm.game_id = ? THEN 0 ELSE 1 END ASC,
-        CASE g.status
-          WHEN 'live' THEN 0
-          WHEN 'paused' THEN 1
-          WHEN 'draft' THEN 2
-          ELSE 3
-        END ASC,
-        CASE WHEN tm.team_id = ? THEN 0 ELSE 1 END ASC,
-        g.updated_at DESC,
-        tm.joined_at DESC
-      LIMIT 1`,
-    [playerId, preferredGame, preferredTeamId != null ? Number(preferredTeamId) : 0],
-  );
-  if (!membership) return null;
-  return {
-    gameId: membership.game_id != null ? Number(membership.game_id) : null,
-    teamId: membership.team_id != null ? Number(membership.team_id) : null,
-  };
-}
-
 async function issueGlPlayerSession(player, options = {}) {
   const preferredGameId = options.preferredGameId ?? null;
-  const membership = await resolveGlPlayerActiveMembership(
-    player.id,
-    player.team_id,
-    preferredGameId,
-  );
+  // L'équipe portée par le jeton vient de l'appartenance par partie (`gl_team_members`),
+  // jamais du pointeur global `gl_players.team_id` (cf. lib/glPlayerMembership.js).
+  const membership = await resolveGlPlayerActiveMembership(player.id, { preferredGameId });
   const claims = {
     userType: 'gl_player',
     userId: String(player.id),
     roleSlug: 'gl_player',
     displayName: player.pseudo,
     classId: player.class_id ? Number(player.class_id) : null,
-    teamId: membership?.teamId || (player.team_id ? Number(player.team_id) : null),
+    teamId: membership?.teamId || null,
     gameId: membership?.gameId || null,
     passwordMustReset: !!Number(player.password_must_reset || 0),
     permissions: getGlRolePermissions('player'),
@@ -807,19 +771,27 @@ router.get(
   asyncHandler(async (req, res) => {
     if (req.glAuth.userType === 'gl_player') {
       const playerRow = await findGlPlayerById(req.glAuth.userId);
+      // Équipe = appartenance par partie (partie du jeton en priorité), pas le pointeur global.
+      const membership = playerRow
+        ? await resolveGlPlayerActiveMembership(playerRow.id, {
+            preferredGameId: req.glAuth.gameId,
+            preferredTeamId: req.glAuth.teamId,
+          })
+        : null;
       const names = playerRow
         ? await queryOne(
             `SELECT c.name AS class_name, t.name AS team_name
                FROM gl_players p
           LEFT JOIN gl_classes c ON c.id = p.class_id
-          LEFT JOIN gl_teams t ON t.id = p.team_id
+          LEFT JOIN gl_teams t ON t.id = ?
               WHERE p.id = ? LIMIT 1`,
-            [playerRow.id],
+            [membership?.teamId ?? null, playerRow.id],
           )
         : null;
       const player = playerRow
         ? {
             ...toGlPlayerProfile(playerRow),
+            team_id: membership?.teamId ?? null,
             class_name: names?.class_name || null,
             team_name: names?.team_name || null,
           }
@@ -835,9 +807,6 @@ router.get(
           email: playerRow.email || null,
         };
       }
-      const membership = player
-        ? await resolveGlPlayerActiveMembership(player.id, player.team_id)
-        : null;
       const refreshedAuth = exposeGlAuth({
         ...req.glAuth,
         userType: 'gl_player',
@@ -845,9 +814,7 @@ router.get(
         roleSlug: req.glAuth.roleSlug || 'gl_player',
         displayName: req.glAuth.displayName || player?.pseudo,
         classId: player?.class_id != null ? Number(player.class_id) : req.glAuth.classId,
-        teamId:
-          membership?.teamId ||
-          (player?.team_id != null ? Number(player.team_id) : req.glAuth.teamId),
+        teamId: membership?.teamId || req.glAuth.teamId || null,
         gameId: membership?.gameId || req.glAuth.gameId || null,
         permissions: Array.isArray(req.glAuth.permissions)
           ? req.glAuth.permissions
@@ -867,7 +834,7 @@ router.get(
           ? {
               ...player,
               activeGameId: membership?.gameId || null,
-              team_id: membership?.teamId || player.team_id,
+              team_id: membership?.teamId || null,
               linkedForetmapStudent: linkedForetmapStudent || null,
             }
           : null,
@@ -998,7 +965,7 @@ router.post(
         id: String(player.id),
         pseudo: player.pseudo || null,
         class_id: player.class_id || null,
-        team_id: player.team_id || null,
+        team_id: playerSession.auth?.teamId || null,
       },
     });
   }),
