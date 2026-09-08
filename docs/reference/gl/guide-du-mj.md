@@ -24,8 +24,14 @@
    (aléatoire, aléatoire avec mémoire des parties passées, reconduction de la partie
    précédente ; et, si l'administrateur les a laissées actives, mixte, complémentarité des
    rôles ou groupes de besoin — déduites de ce que les élèves ont déjà fait dans le jeu,
-   sans jamais afficher de score) ; vous relisez, déplacez ou renommez ce que vous voulez,
-   puis appliquez. Détail dans [Chapitres et progression](chapitres-et-progression.md).
+   sans jamais afficher de score). Sans choix de votre part, la **politique d'équipes de la
+   classe** (rebrasser à chaque partie, à chaque plateau, ou reconduire) décide de la recette.
+   Vous pouvez poser des **verrous** entre deux élèves (toujours ensemble / jamais ensemble,
+   valables pour toute la classe, invisibles des élèves), **épingler** un élève dans son
+   équipe pour les régénérations suivantes, puis relire, déplacer ou renommer ce que vous
+   voulez et appliquer. L'onglet Équipes affiche le **brassage de la classe** (part des
+   binômes déjà réunis au fil des parties). Détail dans
+   [Chapitres et progression](chapitres-et-progression.md).
 5. **Les comptes** : joueurs créés ou importés, codes distribués. Un mot de passe
    oublié se réinitialise en un clic dans la gestion des joueurs.
 

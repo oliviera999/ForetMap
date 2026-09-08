@@ -10,6 +10,7 @@ const {
   GlTeamCompositionError,
   buildCompositionProposal,
   applyComposition,
+  getClassMixingRate,
 } = require('../../../lib/glTeamComposition');
 
 const router = express.Router();
@@ -52,8 +53,24 @@ router.post(
         includeInactive: body.includeInactive === true,
         weightsOverride: body.weightsOverride,
         pins: body.pins,
+        startWith: body.startWith,
       });
       return res.json(proposal);
+    } catch (err) {
+      if (sendCompositionError(res, err)) return undefined;
+      throw err;
+    }
+  }),
+);
+
+router.get(
+  '/games/:id/teams/compose/mixing-rate',
+  requireGlPermission('gl.team.manage'),
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+    try {
+      return res.json(await getClassMixingRate({ gameId }));
     } catch (err) {
       if (sendCompositionError(res, err)) return undefined;
       throw err;

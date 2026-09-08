@@ -1,10 +1,28 @@
 # GL — Composition automatique des équipes au fil des chapitres (conception)
 
-> **Statut : conception validée, non implémentée.** Ce document est la spécification de
-> référence ; le prompt d'exécution destiné à Cursor est
-> [GL_EQUIPES_AUTO_PROMPT.md](GL_EQUIPES_AUTO_PROMPT.md). Aucun comportement décrit ici
-> n'existe encore dans l'application — ne pas le répercuter dans `docs/reference/gl/`
-> tant que le code n'est pas livré.
+> **Statut : lots v1, v2 et v3 livrés** (septembre 2026), précédés d'un **lot 0** qui a
+> supprimé le pointeur global `gl_players.team_id` (§ 7.1, `lib/glPlayerMembership.js`). Ce
+> document reste la spécification de référence ; le prompt d'exécution initial est
+> [GL_EQUIPES_AUTO_PROMPT.md](GL_EQUIPES_AUTO_PROMPT.md). Le comportement livré est décrit
+> côté utilisateurs dans `docs/reference/gl/chapitres-et-progression.md` (étape 2) et
+> `guide-du-mj.md` ; l'architecture dans `GL_ARCHITECTURE.md`, l'API dans `API.md`.
+>
+> **Écarts assumés entre la conception et le code :**
+>
+> - § 10.5 — pas de glisser-déposer (aucune bibliothèque DnD dans le projet) : un
+>   **sélecteur « déplacer vers… »** par joueur (clavier, tactile ≥ 44 px) le remplace ; un
+>   déplacement manuel vaut épingle. Le DnD natif reste une amélioration possible.
+> - § 4.2 / § 9 — les recettes de profil sont **désactivables par l'admin**
+>   (`gameplay.team_composition_profile_recipes_enabled`, défaut `true`) et `homogeneous` est
+>   **refusée (`409 HOMOGENEOUS_WITH_SCORING`)** quand le score par équipe est actif.
+> - § 2 — les statuts de partie sont `draft` / `live` / `paused` / `ended` (le document
+>   employait « finished »).
+> - § 4.4 — seules les mascottes **typées** (catalogue GL, 7 gnomes / 6 licornes) sont
+>   utilisées ⇒ plafond de 13 équipes ; au-delà le nombre d'équipes est réduit et signalé.
+> - § 6 — la politique de classe ne déclenche rien seule : elle **choisit la recette par
+>   défaut** de l'aperçu quand le MJ n'en impose pas ; les épingles ne sont jamais persistées.
+> - § 7.1 — la colonne `gl_players.team_id` est **conservée** (plus écrite ni lue) ; sa
+>   suppression physique reste à planifier dans une migration dédiée.
 
 ## 1. Le besoin
 
@@ -222,15 +240,15 @@ professeur fasse confiance à la fonctionnalité.
 | **v2** | Axes de profil (S, E, É, G, I, A) avec shrinkage · recettes `mixed`, `roles`, `homogeneous` · curseurs de poids avancés                                                                               |
 | **v3** | Verrous d'appariement par classe · politique de rebrassage persistée · rotation des peuples · plancher de vitalité · indicateur de brassage cumulé                                                    |
 
-## 12. Arbitrages ouverts
+## 12. Arbitrages (tranchés à la livraison)
 
-À trancher avant (ou pendant) l'implémentation — les valeurs entre parenthèses sont les
-défauts retenus faute de réponse :
-
-1. Taille d'équipe par défaut _(4)_.
-2. Composition réservée aux parties en brouillon _(oui, cf. § 7.2)_.
-3. Pointeur global `gl_players.team_id` : avertir en v1 et corriger plus tard _(oui, T1)_,
-   ou corriger tout de suite ?
-4. Nommage automatique puisé dans le lore du chapitre _(oui : biome + plateau)_, ou noms
-   neutres (« Équipe 1 ») ?
-5. La reconduction `carry_over` copie-t-elle aussi les **mascottes** _(oui)_ ?
+- [x] 1. Taille d'équipe par défaut **4**, désormais réglable **par classe**
+      (`gl_classes.team_size_default`, lot v3).
+- [x] 2. Composition réservée aux parties en brouillon (`409 GAME_NOT_DRAFT`).
+- [x] 3. Pointeur global `gl_players.team_id` : **corrigé tout de suite** (lot 0) — plus
+      écrit ni lu, appartenance résolue depuis `gl_team_members` par partie active
+      (live > paused > draft > ended). Colonne conservée, suppression physique à planifier.
+- [x] 4. Nommage automatique puisé dans le chapitre (**titre, biomes, plateau**), repli sur
+      des racines neutres puis « Équipe N ».
+- [x] 5. La reconduction `carry_over` copie aussi les **mascottes** (et noms, couleurs,
+      peuples) ; les nouveaux joueurs rejoignent les équipes les moins fournies.

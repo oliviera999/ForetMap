@@ -8,6 +8,7 @@ import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
 import { GLTeamComposeDialog } from './GLTeamComposeDialog.jsx';
+import { GLTeamMixingRate } from './GLTeamMixingRate.jsx';
 
 const COMPOSE_LOCKED_HINT =
   'La composition automatique n’est possible que sur une partie en préparation.';
@@ -60,6 +61,7 @@ export default function GLGameMasterConsoleTeams({
         <h3>
           Équipes de la partie « {game.name} » (#{game.id})
         </h3>
+        <GLTeamMixingRate gameId={game.id} refreshKey={rosterRefreshKey} />
         <div className="gl-inline-actions">
           <GLButton type="button" size="sm" onClick={() => addTeam('gnome')} disabled={busy}>
             Ajouter équipe Gnome

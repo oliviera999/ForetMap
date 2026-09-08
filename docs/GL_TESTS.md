@@ -42,8 +42,17 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
   `gl-team-profile-axes.test.js` (lot v2 : normalisation pure avec shrinkage, joueur sans donnée
   = moyenne de classe, rôle dominant ; chargement SQL sur fixtures ; `mixed` réduit la variance
   inter, `homogeneous` l'intra, `roles` couvre les rôles ; `409 HOMOGENEOUS_WITH_SCORING`,
-  `409 PROFILE_RECIPES_DISABLED`, aucune clé de profil dans la réponse) ; UI :
-  `tests-ui/gl/GLTeamComposeDialog.test.jsx`
+  `409 PROFILE_RECIPES_DISABLED`, aucune clé de profil dans la réponse),
+  `gl-class-pairing-locks.test.js` (lot v3 : verrous `together` / `apart` respectés sur 40 graines
+  et épingles fixes, verrous incompatibles comptés sans plantage, plancher de vitalité, rotation des
+  peuples `buildPeopleStreaks` / `choosePeopleStart`, `resolveDefaultRecipe` par politique ; routes
+  `GET/POST/DELETE /admin/classes/:id/pairing-locks` — 401/403/404, CRUD, idempotence, remplacement
+  de type, `409 LOCK_CONFLICT`, refus hors classe ; aperçu avec verrous appliqués et `LOCKS_IGNORED`,
+  `pins` respectées + `400 INVALID_PINS`, `startWith` / `PEOPLE_ROTATION`, `mixing` avant/après et
+  `GET .../compose/mixing-rate` ; `PUT /admin/classes/:id` `teamPolicy` / `teamSizeDefault` et
+  recette par défaut selon politique) ; UI : `tests-ui/gl/GLTeamComposeDialog.test.jsx` (aperçu
+  sans recette = politique, épingles, contraintes de classe, peuple de départ),
+  `tests-ui/gl/GLTeamMixingRate.test.jsx`
 - `gl-game-events-replay.test.js`, `gl-journal.test.js`, `gl-journal-query-validation.test.js`
 - `gl-vitality.test.js`, `gl-virtual-dice.test.js`, `gl-market.test.js`, `gl-market-query-validation.test.js`
 - `gl-spell-cast.test.js`, `gl-feuillet-zone-present.test.js`, `gl-feuillet-zones-loader.test.js`
