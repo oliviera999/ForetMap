@@ -6660,6 +6660,160 @@
   border-radius: 12px;
   padding: 12px;
 }
+/* Onglet « Moodle » de la console admin (lot M3) : tableaux denses, totaux, badges d'état. */
+.moodle-admin {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.moodle-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.moodle-status-url {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  word-break: break-all;
+}
+.moodle-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  background: #e5e7eb;
+  color: #374151;
+}
+.moodle-badge.is-ok {
+  background: var(--sage, #cfe3cf);
+  color: var(--forest, #1f4d2b);
+}
+.moodle-badge.is-off {
+  background: #fde8e8;
+  color: #9b1c1c;
+}
+.moodle-status-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 14px;
+  margin: 8px 0;
+  font-size: var(--text-sm);
+}
+.moodle-status-grid dt {
+  color: var(--ink-soft);
+}
+.moodle-status-grid dd {
+  margin: 0;
+}
+.moodle-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.moodle-actions .btn,
+.moodle-actions button {
+  min-height: 44px;
+}
+.moodle-actions .btn-sm {
+  min-height: 36px;
+}
+.moodle-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+.moodle-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+.moodle-table th,
+.moodle-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  vertical-align: middle;
+}
+.moodle-table th {
+  color: var(--ink-soft);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.moodle-table tr.is-muted td {
+  color: var(--ink-soft);
+}
+.moodle-table tr.is-selected td {
+  background: #f3f7f3;
+}
+.moodle-table input[type='text'],
+.moodle-table input[type='number'],
+.moodle-table select {
+  min-height: 36px;
+}
+.moodle-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+.moodle-totals > div {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #fafafa;
+}
+.moodle-totals > div.is-attention {
+  border-color: #f0b35a;
+  background: #fff7e8;
+}
+.moodle-totals dt {
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+.moodle-totals dd {
+  margin: 0;
+  font-size: var(--text-lg, 1.2rem);
+  font-weight: 700;
+}
+.moodle-report-list {
+  margin-top: 8px;
+}
+.moodle-report-list summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.moodle-report-list ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: var(--text-sm);
+}
+.moodle-thresholds {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.moodle-exempt-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 14px;
+  font-size: var(--text-sm);
+}
+.moodle-exempt-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+@media (max-width: 720px) {
+  .moodle-status-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Panneau « Mascottes de visite » : une carte par mascotte (livrée ou pack publié). */
 .visit-mascot-admin-grid {
   display: grid;

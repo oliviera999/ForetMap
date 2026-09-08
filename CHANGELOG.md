@@ -42,6 +42,18 @@ tant que `MOODLE_BASE_URL` / `MOODLE_WS_TOKEN` ne sont pas dans `.env` **et** qu
   reproduit les erreurs en 200, empreinte de tables sensibles (`dbFingerprint`) pour prouver
   qu'une simulation n'écrit rien et qu'un groupe local reste intact ; 58 tests
   `tests/moodle-*.test.js`.
+- **Écran administrateur** : nouvel onglet **Moodle** dans *Paramètres administrateur*
+  (`MoodleAdminPanel`) — état du lien (configuré / activé, dernier contrôle, dernière
+  exécution, compteurs), bouton « Contrôler la connexion », cohortes de l'année à cocher avec
+  politique et effectif, **Simuler** puis **Appliquer** (grisé tant que la simulation du même
+  périmètre n'a pas réussi ; « forcer » exige un motif), rapport lisible (totaux puis listes :
+  comptes à créer, rapprochés par le nom à relire, doublons probables, désactivations,
+  conflits, alertes, cohortes sans politique), annulation d'une exécution, rapprochements en
+  attente (rapprocher / créer / ignorer), conflits à trancher (garder Moodle / appliquer
+  ForetMap / ignorer), historique, éditeur des politiques (ordre, motif, rôle, options),
+  table chapitre → cours **avec le nom du cours**, seuils, outils hors-synchronisation et
+  fusion de comptes. Les clés `integration.moodle.*` quittent la grille générique.
+  Tests `tests-ui/settings/MoodleAdminPanel.test.jsx` et `tests/moodle-admin-report-utils.test.js`.
 
 ### Documentation — lien Moodle : spécification finalisée (annuaire M1–M5, LTI 1.3 en M6)
 
