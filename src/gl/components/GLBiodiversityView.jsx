@@ -74,21 +74,8 @@ export function GLBiodiversityView({
         <GLFoodWebPanel
           biomes={biomes}
           canManage={canManageContent}
-          onOpenSpecies={async (speciesId) => {
-            const id = Number(speciesId);
-            if (!Number.isInteger(id) || id <= 0) return;
-            try {
-              const list = await apiGL(
-                `/api/gl/food-web${biomes[0]?.slug ? `?biomeSlug=${encodeURIComponent(biomes[0].slug)}` : ''}`,
-              );
-              const hit = (list?.items || []).find(
-                (row) => Number(row.from_id) === id || Number(row.to_id) === id,
-              );
-              const codeGuess = hit?.from_id === id ? hit.from_name : hit?.to_name;
-              if (!codeGuess) return;
-            } catch {
-              /* ouverture best-effort via catalogue déjà ouvert */
-            }
+          onOpenSpecies={(row) => {
+            if (row) setFocusSpecies(row);
           }}
         />
       )}
