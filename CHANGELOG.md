@@ -7,15 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Documentation — lien Moodle : identifiant des cours chapitre et variables d'environnement
+### Documentation — lien Moodle : spécification d'implémentation complète
 
-- `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : le cours d'un chapitre G&L est désigné par son
-  **identifiant numérique** Moodle (chapitre 1 = cours `564`) ; les numéros `6xx` relevés
-  auparavant sont ceux des classes et cohortes, pas des cours. Le jeton de synchronisation se
-  place dans le `.env` du serveur sous `MOODLE_WS_TOKEN`, avec
-  `MOODLE_BASE_URL=https://olution.info` — jamais en base ni en réglage administrateur.
-- `env.local.example` : les deux variables y figurent en commentaire (aucun code ne les lit
-  encore ; elles seront consommées par le client Web Services du lot M1).
+- `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` réécrit en **spécification exécutable**, destinée à
+  être donnée telle quelle comme consigne de développement. Le cadrage devient une consigne :
+  invariants numérotés (I-1 à I-10), DDL complet de la migration, registre des réglages, contrat
+  du client Web Services (dont le piège des erreurs Moodle renvoyées en `HTTP 200`), algorithme
+  de rapprochement, comparaison à trois et conflits, moteur de composition des équipes et
+  miroirs Moodle, routes d'API, écran administrateur, liste nominative des tests exigés, lots
+  M1 à M5 avec définition de terminé, procédure de rentrée et procédure de création du jeton.
+- **Données de terrain confirmées** : cohortes `26#601-602`, `26#603`, `26#6`, `26#n3` ; cours
+  des chapitres 1 à 6 (`564`, `565`, `566`, `567`, `595`, `570`) — série non contiguë, à ne pas
+  confondre avec les numéros `6xx` des classes ; les quatre équipes de chaque cohorte, dont les
+  noms distincts évitent la collision de noms de groupes dans un cours partagé.
+- **Objets propres à ForetMap et G&L** (comptes, groupes et équipes sans contrepartie Moodle) :
+  traités par trois règles structurelles — pas de ligne d'identité externe, pas de prise ;
+  `sync_exempt` prioritaire ; un joueur sans identité Moodle reste un joueur normal.
+- `env.local.example` : `MOODLE_BASE_URL` et `MOODLE_WS_TOKEN` en commentaire (aucun code ne les
+  lit encore ; elles seront consommées par le client Web Services du lot M1).
 
 ### Documentation — cadrage du lien Moodle 5.2 ↔ ForetMap / G&L
 
