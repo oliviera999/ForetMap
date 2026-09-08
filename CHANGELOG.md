@@ -19,6 +19,36 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `package.json` aligne le peer sur l’ESLint du projet ; `.cpanel.yml` passe `--legacy-peer-deps`.
   Le Node.js Selector ignore parfois `.npmrc` : variable `NPM_CONFIG_LEGACY_PEER_DEPS=true`.
 
+- **e2e (nav prof 3 pôles)** : helpers `openTeacherPole` / onglets secondaires, reconnexion
+  élève après sortie mode prof, specs groups/modals/contour/visite/mascotte alignées
+  (badge « Suivi N », géométrie zone unique pour éviter l’empilement SVG).
+
+### Ajouté — auxiliaires, sol, mare et sauvages utiles
+
+- **Catalogue ForetMap** (migration `225`) : carabe, perce-oreille, merle,
+  hirondelle, pipistrelle, crapaud de Maurétanie, Glomus, staphylin, lombric
+  commun (distinct du ver Eisenia du compost), daphnie, libellule, gerris,
+  sureau, lierre, pâquerette, plantain, violette.
+- **Catalogue GL** : mêmes notions placées dans les biomes déjà là (forêt
+  caducifoliée, landes, Méditerranée), codes `SP0255`–`SP0274`, sans doublonner
+  hérisson commun ni lierre grimpant.
+
+### Ajouté — jardin méditerranéen et potager maghrébin
+
+- **Catalogue** (migration `224`) : figuier de Barbarie, volubilis, tillandsia,
+  figuier, olivier, caroubier, arganier, citronnier, dattier, artichaut, pois
+  chiche, fenugrec, lavande, bougainvillier, jasmin, capucine, souci, fenouil,
+  louiza, câprier ; faune (cochenille du nopal, hérisson d’Algérie, tarente,
+  chrysope, cigale, criquet marocain).
+
+### Ajouté — espèces et nourritures du réseau trophique
+
+- **Catalogue** (migration `223`) : moustique, coccinelle, syrphe, Rhizobium,
+  champignons de litière, ortie, pissenlit, collembole, escargot petit-gris ; plus
+  des fiches-ressources (litière, compost, bois mort, biofilm, fruits tombés, carton,
+  crottes) pour nourrir les détritivores déjà présents. Les flèches « vers le vide »
+  de la gambusie et des vers / cloportes pointent désormais vers ces cibles.
+
 ### Ajouté — upgrade pédagogique rétrocompatible (Plan D)
 
 - **Audit lecture seule** : `npm run audit:pedago` signale genres saisis comme espèces,
@@ -40,6 +70,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   administrateur, LTI 1.3, miroirs d’équipes, documentation de référence
   (« Rentrée avec Moodle »). Migration `219_moodle_sync.sql`.
 - Bilan de la passe de branches : [`docs/AUDIT_BRANCHES_2026-09.md`](docs/AUDIT_BRANCHES_2026-09.md).
+
+### Corrigé — `moodle:check` / CloudLinux
+
+- `npm run moodle:check` (et le client Web Services Moodle) n’utilisent plus `fetch`/undici :
+  le parseur HTTP Wasm d’undici échoue en `Out of memory` quand l’espace d’adressage est
+  plafonné à 4 Gio (o2switch / CloudLinux). Les appels passent par `http`/`https` natifs
+  (`lib/nodeHttpFetch.js`), y compris le contrôle JWKS LTI et le JWKS distant de `jose`
+  au lancement LTI.
+- L’onglet admin Moodle (`GET /cohorts`, `/courses`, `/check`) renvoyait **500 Erreur serveur**
+  pour la même cause : les erreurs Moodle sont maintenant un **502** avec message lisible
+  (`MOODLE_API` / `MOODLE_TRANSPORT`).
 
 ### Corrigé — restes utiles des anciennes branches d’investigation
 

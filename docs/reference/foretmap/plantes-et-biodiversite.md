@@ -43,6 +43,27 @@ La fiche affiche aussi automatiquement ses liens avec le reste de l'application 
 réseau trophique (« qui mange qui, qui aide qui »), les termes du glossaire et les
 questions de quiz qui s'y rapportent.
 
+Le catalogue contient aussi quelques **fiches-ressources** qui ne sont pas des êtres
+vivants : litière de feuilles, compost, bois mort, biofilm, fruits tombés, carton de
+lombricompost, crottes. Elles servent d’exemples de nourriture pour les vers, cloportes
+et autres recycleurs, afin que le réseau trophique montre clairement ce qu’ils
+décomposent.
+
+S’y ajoutent des **espèces du jardin méditerranéen et marocain** et du potager local :
+figuier de Barbarie (différent de l’oponce ornementale), volubilis, figuier, olivier,
+caroubier, arganier, citronnier, palmier-dattier, artichaut, pois chiche, fenugrec,
+lavande, bougainvillier, jasmin, capucine, souci, fenouil, verveine odorante (louiza),
+câprier, tillandsia (fille de l’air, sans terre) — et la faune qui va avec
+(cochenille du nopal, hérisson d’Algérie, tarente, chrysope, cigale, criquet
+marocain). Si une fiche « Tillandsia aérienne » existait déjà, elle reste ; on
+peut aussi chercher « tillandsia » ou « fille des airs ».
+
+Le jardin lycée compte aussi des **auxiliaires** (carabe, perce-oreille, merle,
+hirondelle, pipistrelle, crapaud), le **sol** (mycorhizes à Glomus, staphylin,
+lombric commun distinct du ver de compost Eisenia), la **mare** (daphnie,
+libellule, gerris — la gambusie n’est plus seule) et des **sauvages utiles**
+(sureau, lierre, pâquerette, plantain, violette).
+
 Dans les textes **« rôle dans l'écosystème »** et **« utilité pour l'être humain »**,
 les mots qui correspondent à un terme du glossaire deviennent **cliquables
 automatiquement** : l'élève qui bute sur un mot ouvre sa définition d'un clic, sans
