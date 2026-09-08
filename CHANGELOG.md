@@ -54,6 +54,16 @@ tant que `MOODLE_BASE_URL` / `MOODLE_WS_TOKEN` ne sont pas dans `.env` **et** qu
   table chapitre → cours **avec le nom du cours**, seuils, outils hors-synchronisation et
   fusion de comptes. Les clés `integration.moodle.*` quittent la grille générique.
   Tests `tests-ui/settings/MoodleAdminPanel.test.jsx` et `tests/moodle-admin-report-utils.test.js`.
+- **Documentation et exploitation (lot M5)** : `docs/API.md` (section *Lien Moodle*, toutes les
+  routes et réglages), `docs/EXPLOITATION.md` (variables `.env`, création et rotation du jeton,
+  mise en service, tableau de dépannage `invalidtoken` / `accessexception` / délais / 409),
+  `docs/CRONTAB.md` (ligne 6 : simulation quotidienne) et `scripts/moodle-sync-cron.sh`
+  (verrou `mkdir`, `--dry-run --json` **jamais `--apply`**, alerte e-mail par `ops-alert` si
+  désactivations, conflits, attentes ou seuil) ; `env.local.example` complété. Référence
+  fonctionnelle : nouveau document `docs/reference/foretmap/rentree-moodle.md` (principes,
+  écran, pas à pas, attentes, conflits, annulation, réglages, outils, procédure de rentrée,
+  points d'attention), exposé dans la doc de référence en ligne ; mentions dans
+  `comptes-roles-et-groupes.md` et `gl/guide-du-mj.md`.
 
 ### Documentation — lien Moodle : spécification finalisée (annuaire M1–M5, LTI 1.3 en M6)
 

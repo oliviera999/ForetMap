@@ -87,6 +87,24 @@ npm run logs:purge -- --days=365 --history-days=365 --apply    # applique
 Le minimum accepté est 30 jours (pour chacune des deux rétentions) : en deçà, le script
 refuse — une purge trop agressive effacerait des traces encore utiles à une investigation.
 
+## Ligne 6 (optionnelle) — simulation quotidienne du lien Moodle
+
+Une fois le lien Moodle configuré (`MOODLE_BASE_URL` / `MOODLE_WS_TOKEN` dans `.env`, voir
+`docs/EXPLOITATION.md`), une **simulation** chaque matin de classe prépare le travail de
+l'administrateur : elle ne modifie rien et envoie un email (`ops-alert`) quand elle annonce des
+désactivations, des conflits ou des rapprochements en attente — ou quand un seuil l'arrête.
+L'**application** reste un geste humain depuis _Paramètres administrateur → Moodle_, après
+lecture du rapport (spécification : `docs/AUDIT_MOODLE_IDENTITES_2026-09.md`, section 17).
+
+```cron
+# 6) Simulation Moodle (jamais --apply) — du lundi au vendredi à 06:30
+30 6 * * 1-5 APP_DIR=/home/USER/foretmap /home/USER/foretmap/scripts/moodle-sync-cron.sh >> /home/USER/foretmap/logs/moodle-sync.log 2>&1
+```
+
+Le script pose un verrou `mkdir` (`MOODLE_CRON_LOCK_DIR`, défaut `/tmp/foretmap-moodle-sync.lock`),
+accepte des arguments supplémentaires via `MOODLE_CRON_ARGS` (ex. `--cohort 26#603`) et se tait
+(`exit 0`) si l'intégration n'est pas configurée. `MOODLE_CRON_NO_ALERT=1` coupe l'email.
+
 ## Variables utiles (valeurs par défaut)
 
 | Variable                           | Défaut      | Rôle                                                                                                                                   |
