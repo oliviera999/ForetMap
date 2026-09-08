@@ -7,6 +7,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — lien Moodle ↔ ForetMap / G&L (lots M1–M6)
+
+- Fusion de `feat/moodle-sync` dans `main` : synchronisation d’annuaire, écran
+  administrateur, LTI 1.3, miroirs d’équipes, documentation de référence
+  (« Rentrée avec Moodle »). Migration `219_moodle_sync.sql`.
+- Bilan de la passe de branches : [`docs/AUDIT_BRANCHES_2026-09.md`](docs/AUDIT_BRANCHES_2026-09.md).
+
+### Corrigé — restes utiles des anciennes branches d’investigation
+
+- `POST /api/tasks/:id/done` ne rétrograde plus une tâche `validated` / `on_hold`
+  (garde SQL) ; relecture avant désinscription.
+- Résolution d’une action GL : verrou `FOR UPDATE` + `UPDATE … WHERE status='pending'`
+  (anti double-score).
+- `PUT` / `POST /validate` d’une tâche archivée → 409 (désarchiver d’abord).
+- Acquisition d’un feuillet par consultation : verrou d’équipe, pas de second crédit.
+- Photos d’observations et de journaux de tâches : affichage authentifié (`AuthedImage`).
+
 ### Corrigé — gabarits d’équipes et verrous « séparés » (M4)
 
 - Amorçage des gabarits : lecture de `gl_settings.value_json` (plus `value`) pour ne plus

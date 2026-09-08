@@ -24,6 +24,14 @@ describe('ObservationCard', () => {
       'confirm',
       vi.fn(() => true),
     );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        blob: async () => new Blob(['x'], { type: 'image/jpeg' }),
+      })),
+    );
+    URL.createObjectURL = vi.fn(() => 'blob:mock-obs');
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -34,7 +42,7 @@ describe('ObservationCard', () => {
     expect(screen.getByText('Feuilles jaunies')).toBeTruthy();
   });
 
-  test('affiche la zone et la photo quand présentes', () => {
+  test('affiche la zone et la photo quand présentes', async () => {
     render(
       <ObservationCard
         entry={makeEntry({ zone_name: 'Verger', image_url: 'http://x/p.jpg' })}
@@ -42,7 +50,7 @@ describe('ObservationCard', () => {
       />,
     );
     expect(screen.getByText('Verger')).toBeTruthy();
-    expect(screen.getByAltText('observation')).toBeTruthy();
+    expect(await screen.findByAltText('observation')).toBeTruthy();
   });
 
   test('suppression confirmée remonte l’id au parent', async () => {

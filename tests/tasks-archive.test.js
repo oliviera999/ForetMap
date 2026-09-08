@@ -381,6 +381,22 @@ describe('Actions élève sur une tâche archivée', () => {
     assert.strictEqual(Number(row.c), 0, 'aucune inscription enregistrée');
   });
 
+  it('PUT et POST /validate refusent une tâche archivée (409)', async () => {
+    const task = await archivedTask(`Archivée mutate ${Date.now()}`);
+    const put = await request(app)
+      .put(`/api/tasks/${task.id}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ title: 'Ne doit pas passer' });
+    assert.strictEqual(put.status, 409);
+    assert.match(String(put.body.error || ''), /Désarchivez/);
+
+    const validate = await request(app)
+      .post(`/api/tasks/${task.id}/validate`)
+      .set('Authorization', `Bearer ${teacherToken}`);
+    assert.strictEqual(validate.status, 409);
+    assert.match(String(validate.body.error || ''), /Désarchivez/);
+  });
+
   it('refuse le marquage « terminée » (POST /:id/done)', async () => {
     const task = await createTask({ title: `Archivée done ${Date.now()}`, required_students: 1 });
     await request(app)
