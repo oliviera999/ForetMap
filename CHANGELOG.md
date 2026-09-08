@@ -7,6 +7,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — cadrage du lien Moodle 5.2 ↔ ForetMap / G&L
+
+- `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : synchronisation des cohortes (`année#classe`,
+  `année#niveau`) et groupes de cours Moodle vers les groupes ForetMap et classes G&L, avec
+  l'e-mail institutionnel Google Workspace comme pivot, la politique par population (sixièmes
+  joueurs visiteurs, n3beurs, autres élèves, années passées), les cas sur comptes existants, et
+  tous les garde-fous (simulation, seuils, journal réversible, contrôle croisé, fusion de
+  comptes). Rien d'implémenté : lots M1 à M5 et prérequis listés.
+- Complément après réponses : cohorte n3beurs `26#n3`, cohortes binômes (`26#601-602`), table
+  chapitre → cours, **synchronisation bidirectionnelle** avec un maître par objet (Moodle pour
+  les cohortes, G&L pour les équipes composées par un moteur dédié, miroir Moodle préfixé
+  `FM#`), comparaison à trois et écran des conflits, appartenances multiples, procédure pas à
+  pas de création du jeton Web Services sur `olution.info`.
+
 ### Corrigé — messages du contrôle de compréhension (validation par quiz)
 
 Les textes affichés à l'élève autour de la validation d'une ressource annonçaient des règles
@@ -50,20 +64,6 @@ que le serveur n'appliquait pas, ou taisaient ce qu'il fallait savoir pour déci
 - Tests : `tests-ui/shared/learningGatingFeedback.test.js` (nouveau, 27 cas) plus les cas
   ajoutés à `LearningGatingQuestionPanel` et `LearningAcknowledgeButton`. Documentation de
   référence des deux produits mise à jour.
-
-### Documentation — cadrage du lien Moodle 5.2 ↔ ForetMap / G&L
-
-- `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : synchronisation des cohortes (`année#classe`,
-  `année#niveau`) et groupes de cours Moodle vers les groupes ForetMap et classes G&L, avec
-  l'e-mail institutionnel Google Workspace comme pivot, la politique par population (sixièmes
-  joueurs visiteurs, n3beurs, autres élèves, années passées), les cas sur comptes existants, et
-  tous les garde-fous (simulation, seuils, journal réversible, contrôle croisé, fusion de
-  comptes). Rien d'implémenté : lots M1 à M5 et prérequis listés.
-- Complément après réponses : cohorte n3beurs `26#n3`, cohortes binômes (`26#601-602`), table
-  chapitre → cours, **synchronisation bidirectionnelle** avec un maître par objet (Moodle pour
-  les cohortes, G&L pour les équipes composées par un moteur dédié, miroir Moodle préfixé
-  `FM#`), comparaison à trois et écran des conflits, appartenances multiples, procédure pas à
-  pas de création du jeton Web Services sur `olution.info`.
 
 ### Corrigé — test instable `gl-mascots` (401 aléatoire en CI)
 
