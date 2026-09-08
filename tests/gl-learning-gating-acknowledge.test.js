@@ -24,9 +24,11 @@ before(async () => {
     [catSlug],
   );
   await execute(
+    // `biome_slug` est une FK vers gl_biomes : sans elle, l'INSERT IGNORE n'insérait RIEN et le
+    // lien pointait vers une question fantôme (un lien bloquant exige désormais une question active).
     `INSERT IGNORE INTO gl_qcm_questions
-      (question_code, categorie_slug, numero_dans_categorie, question, choix_a, choix_b, choix_c, reponse_correcte, niveau)
-     VALUES (?, ?, 1, 'Q ?', 'A', 'B', 'C', 'A', 'college')`,
+      (question_code, biome_slug, categorie_slug, numero_dans_categorie, question, choix_a, choix_b, choix_c, reponse_correcte, niveau)
+     VALUES (?, 'savane', ?, 1, 'Q ?', 'A', 'B', 'C', 'A', 'college')`,
     [glq, catSlug],
   );
   await execute(

@@ -176,3 +176,50 @@ test('PUT /api/gl/admin/players/:id met à jour prénom/nom/pseudo', async () =>
   assert.strictEqual(res.body?.first_name, 'Apres');
   assert.strictEqual(res.body?.last_name, 'Mise-A-Jour');
 });
+
+test('DELETE /api/gl/admin/players/:id purge tentatives, verrous et accusés du joueur', async () => {
+  // Lecteur polymorphe (reader_user_type, reader_user_id) : aucune FK vers gl_players n'est
+  // possible. Sans purge applicative, un identifiant réattribué héritait des bonnes réponses,
+  // des accusés et des verrous du joueur supprimé (audit validation quiz 2026-09, C1).
+  const pseudo = `pa_purge_${stamp}`;
+  await request(app)
+    .post('/api/gl/admin/players')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ classId, firstName: 'Purge', lastName: 'Traces', pseudo, password: 'motdepasse123' })
+    .expect(201);
+  const row = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [pseudo]);
+  const readerId = String(row.id);
+  await execute(
+    `INSERT INTO gl_qcm_attempts (reader_user_type, reader_user_id, question_dataset, question_code, is_correct, answered_at)
+     VALUES ('gl_player', ?, 'qcm', 'GQCM0001', 1, NOW())`,
+    [readerId],
+  );
+  await execute(
+    `INSERT INTO gl_resource_gating_cooldowns
+      (reader_user_type, reader_user_id, resource_type, resource_ref, question_code, locked_until, wrong_question_code, wrong_attempts)
+     VALUES ('gl_player', ?, 'species', 'SPX', '', DATE_ADD(NOW(), INTERVAL 1 DAY), 'GQCM0001', 1)`,
+    [readerId],
+  );
+  await execute(
+    `INSERT INTO gl_learning_acknowledgements (reader_user_type, reader_user_id, target_type, target_code, acknowledged_at)
+     VALUES ('gl_player', ?, 'species', 'SPX', NOW())`,
+    [readerId],
+  );
+
+  await request(app)
+    .delete(`/api/gl/admin/players/${row.id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+
+  for (const table of [
+    'gl_qcm_attempts',
+    'gl_resource_gating_cooldowns',
+    'gl_learning_acknowledgements',
+  ]) {
+    const left = await queryOne(
+      `SELECT COUNT(*) AS c FROM ${table} WHERE reader_user_type = 'gl_player' AND reader_user_id = ?`,
+      [readerId],
+    );
+    assert.strictEqual(Number(left.c), 0, `${table} purgée avec le joueur`);
+  }
+});
