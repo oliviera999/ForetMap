@@ -7,7 +7,9 @@
 > tel quel comme consigne à un agent de codage.** Il décrit ce qu'il faut construire, dans quel
 > ordre, avec quelles garanties, et surtout ce qu'il ne faut **jamais** faire. Rien n'est encore
 > implémenté. Les valeurs de terrain (cohortes, cours, équipes) de la section 2 sont réelles et
-> confirmées par l'établissement ; tout le reste en découle.
+> confirmées par l'établissement ; tout le reste en découle. Le lien Moodle ↔ ForetMap / G&L a
+> **deux couches** : l'annuaire (synchronisation Web Services, lots M1 à M5) puis l'entrée
+> depuis le cours (LTI 1.3, lot M6, section 21). La seconde ne remplace pas la première.
 >
 > **Opération délicate** : la synchronisation touche des centaines de comptes d'élèves mineurs,
 > dont certains portent déjà un historique (tâches, observations, forum, parties G&L). Une
@@ -19,21 +21,27 @@
 - **Lire les sections 1 à 4 avant d'écrire la moindre ligne.** Les invariants de la section 3
   priment sur toute autre considération, y compris sur la simplicité du code.
 - **Implémenter dans l'ordre des lots (section 17).** Chaque lot a une définition de terminé
-  vérifiable ; ne pas commencer le suivant tant que la précédente n'est pas atteinte.
+  vérifiable ; ne pas commencer le suivant tant que la précédente n'est pas atteinte. Les lots
+  M1 à M5 ne doivent **pas** implémenter de lancement LTI « en passant ». M6 suit M5 et la
+  section 21 (décisions du 8 septembre 2026).
 - **Conventions du dépôt applicables sans exception** (`CLAUDE.md`, `.cursor/rules/`) : SQL
   toujours paramétré, logger Pino et jamais `console.*`, réponses JSON `{ error }`, migrations
   idempotentes, tests dans le même lot que le code, `docs/API.md` mis à jour dans le même lot,
   documentation de référence non technique (`docs/reference/`) mise à jour dès qu'un
   comportement visible utilisateur change.
 - **En cas de doute sur une règle métier, ne pas trancher seul** : les questions ouvertes
-  connues sont listées en section 20. En ajouter plutôt que d'inventer.
+  restantes sont en **21.7** (constats du lancement de test LTI, à écrire après mesure).
+  Les sections 20 et 21.8 sont **tranchées** (8 septembre 2026).
 
 ## 1. Objectif et périmètre
 
 ### 1.1 Ce que le chantier doit produire
 
-Une synchronisation **bidirectionnelle** entre le Moodle du lycée (`https://olution.info`,
-Moodle 5.2) et ForetMap / G&L, qui :
+Le lien entre le Moodle du lycée (`https://olution.info`, Moodle 5.2) et ForetMap / G&L a
+**deux couches**, dans cet ordre. La seconde n'a de sens que si la première a déjà reconnu
+les personnes.
+
+**Couche A — l'annuaire** (lots M1 à M5). Une synchronisation **bidirectionnelle** qui :
 
 1. crée ou rapproche les comptes `users` des élèves à partir des **cohortes** Moodle, et les
    place dans les bons **groupes** ForetMap avec le bon rôle ;
@@ -43,18 +51,39 @@ Moodle 5.2) et ForetMap / G&L, qui :
 4. détecte et présente à un administrateur toute divergence entre les deux côtés, sans jamais
    la résoudre silencieusement.
 
+**Couche B — l'entrée depuis le cours** (lot M6, section 21). LTI 1.3 n'est **pas** une autre
+façon de synchroniser les utilisateurs. C'est le moyen, pour un élève **déjà reconnu** par la
+couche A, d'entrer dans ForetMap ou G&L d'un clic depuis une activité du cours Moodle.
+Sans la couche A, le clic LTI n'a personne à qui rattacher l'identité, hors bricolage
+interdit. Le retour de notes est écarté pour M6.
+
+Les trois fonctions LTI, après les décisions du 8 septembre 2026 (section 21) :
+
+- **lancement depuis un cours** : **un** outil externe Moodle, pour ForetMap **et** G&L ;
+  l'administrateur règle les liaisons cours → produit / écran, avec suggestions selon les
+  cohortes connues ; le clic ouvre un **nouvel onglet** ;
+- **identité au clic** : le jeton LTI porte qui clique ; on rattache au compte `users` déjà
+  lié, sans nouveau mot de passe ; personne inconnue → refus (réglable) ;
+- **retour de notes** : **écarté pour M6** (L12). Un lot ultérieur pourra le rouvrir.
+
 ### 1.2 Hors périmètre
 
-- **LTI 1.3** (lancement depuis un cours, identité au clic, retour de notes) : cadré à part.
-  L'implémentation réutilisera `external_identities` avec `provider = 'lti'` et le même
-  rapprochement par e-mail. La synchronisation Web Services reste la seule source pour les
-  cohortes et les groupes, que LTI n'expose pas.
 - **Toute gestion de mot de passe.** Google OAuth 2 est actif des deux côtés sur l'annuaire
   Workspace du lycée : la synchronisation pose l'e-mail institutionnel, et la première
-  connexion Google atterrit sur le bon compte. La synchronisation ne lit, n'écrit et ne
-  réinitialise **aucun** secret.
+  connexion Google atterrit sur le bon compte. Ni la synchronisation ni LTI ne lisent, n'écrivent
+  ni ne réinitialisent **aucun** secret.
 - **Toute écriture de compte dans Moodle.** ForetMap ne crée pas, ne modifie pas, ne suspend
-  pas un utilisateur Moodle, et ne l'inscrit ni ne le désinscrit d'un cours.
+  pas un utilisateur Moodle, et ne l'inscrit ni ne le désinscrit d'un cours. LTI non plus :
+  Moodle reste maître des inscriptions aux cours.
+- **Se servir de LTI comme source d'annuaire.** LTI n'expose pas les cohortes ni les groupes
+  de cours. Le service de roster d'un cours (Names and Role Provisioning) mélange plusieurs
+  cohortes et les enseignants dans le même contexte : il ne remplace **jamais** la
+  synchronisation Web Services (invariant repris en section 21.2).
+
+LTI n'est **pas** hors chantier : c'est l'étape M6, après M5. Les lots M1 à M5 préparent le
+socle (`external_identities.provider` accepte `'lti'`) et n'implémentent pas de lancement.
+Les décisions pédagogiques des sections 20 et 21 sont prises. Il reste à **mesurer** le
+`sub` LTI et l'e-mail sur un lancement de test (21.7), avant tout pilote élève.
 
 ### 1.3 Populations concernées
 
@@ -62,7 +91,7 @@ Moodle 5.2) et ForetMap / G&L, qui :
 | ------------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------- | ------------------------------ |
 | Sixièmes                  | cohortes `26#601-602`, `26#603` ; cours par chapitre avec groupes classe et groupes équipe | inscrits, **visiteur** (pas de tâches)    | **joueurs**, équipes variables |
 | n3beurs (tous niveaux)    | cohorte `26#n3`                                                                            | groupe n3beur, **tâches** de tous niveaux | non                            |
-| Autres élèves de l'année  | cohortes de l'année, motif à confirmer (section 20)                                        | connexion libre, visiteur, pas de tâches  | non                            |
+| Autres élèves de l'année  | cohortes `{année}#…` (préfixe réglable) ; l'admin choisit lesquelles synchro               | connexion libre, visiteur, pas de tâches  | non                            |
 | Élèves des années passées | cohortes `25#…`, encore inscrits aux anciens cours                                         | aucun accès, sauf exception               | non                            |
 | Enseignants               | inscrits aux cours, hors cohortes                                                          | comptes `teacher`, RBAC                   | MJ / admin via `gl_admins`     |
 
@@ -88,7 +117,8 @@ reproduites ici pour que l'implémentation soit testable avec des cas fidèles.
 Le préfixe `26` est l'année en cours ; il devient `27` à la rentrée suivante et c'est un
 réglage. Le séparateur est `#`. Une cohorte peut réunir **deux classes enseignées ensemble** :
 `26#601-602` est **une seule** unité pédagogique, donc **un** groupe ForetMap et **une** classe
-G&L. Les n3beurs ont leur propre cohorte, transversale aux niveaux.
+G&L. Les n3beurs ont leur propre cohorte, transversale aux niveaux. `26#601-602` est
+**indissociable** : on ne crée pas de sous-groupes `601` et `602` (décision section 20).
 
 ### 2.2 Cours des chapitres G&L
 
@@ -106,16 +136,15 @@ Un cours Moodle par chapitre, désigné par son **identifiant numérique**, celu
 
 Deux pièges à connaître :
 
-- **Les numéros `6xx` des cohortes ne sont pas des cours.** `601`, `602`, `603` désignent des
+- **Les numéros** `6xx` **des cohortes ne sont pas des cours.** `601`, `602`, `603` désignent des
   classes ; les cours sont `564`…`570`. Les deux séries sont indépendantes et se ressemblent
   assez pour induire en erreur. Ne jamais dériver l'un de l'autre.
 - **La série des cours n'est pas contiguë** (`595` entre `567` et `570`) : aucun code ne doit
   supposer que le cours du chapitre N vaut `563 + N`. La correspondance est une table de
   réglage explicite, saisie une fois par an, et rien d'autre.
 
-Les correspondances des chapitres 2 à 6 ci-dessus suivent l'ordre dans lequel les identifiants
-ont été communiqués ; **l'écran de réglage doit afficher, à côté de chaque ligne, le nom du
-cours lu dans Moodle** (`core_course_get_courses_by_field`) pour que l'administrateur vérifie
+Les correspondances des chapitres 1 à 6 ci-dessus sont **confirmées** (8 septembre 2026).
+**L'écran de réglage doit afficher, à côté de chaque ligne, le nom du cours lu dans Moodle** (`core_course_get_courses_by_field`) pour que l'administrateur vérifie
 d'un coup d'œil que « Chapitre 5 → 595 » pointe bien sur le cours attendu. Sans cet affichage,
 une inversion passerait inaperçue.
 
@@ -167,6 +196,18 @@ Ces objets sont **de plein droit**. La synchronisation ne les voit pas comme des
 elle les ignore. La règle qui garantit cela est mécanique, pas déclarative — voir l'invariant
 I-4 (section 3) et le détail en section 11.
 
+### 2.6 Cours ForetMap (hors chapitres G&L)
+
+Un cours Moodle peut lancer **ForetMap** plutôt qu'un chapitre G&L. Confirmé :
+
+| Usage                       | Cours Moodle | Nom complet       | Nom abrégé |
+| --------------------------- | ------------ | ----------------- | ---------- |
+| ForetMap (n3beurs / tâches) | `511`        | La salle aérée n³ | n³         |
+
+D'**autres** cours doivent pouvoir être liés de la même façon, sans modifier le code : c'est
+la table de liaisons LTI (section 21.6), pas une constante. Ne pas hardcoder `511` hors des
+valeurs initiales de réglage.
+
 ## 3. Invariants — les règles que rien ne justifie d'enfreindre
 
 Elles sont numérotées pour être citables en revue de code et en test.
@@ -181,7 +222,7 @@ Elles sont numérotées pour être citables en revue de code et en test.
 | I-6  | **Rien n'est écrit sans simulation préalable réussie** dans la même exécution ou dans une exécution antérieure explicitement reprise.                                                                                                                                                                          |
 | I-7  | **Écritures sortantes bornées** : seuls des groupes de cours dont l'`idnumber` commence par `FM#`, et les membres de cohortes explicitement autorisées par leur politique. Rien d'autre ne sort jamais vers Moodle.                                                                                            |
 | I-8  | **Idempotence.** Rejouer une exécution sur un état inchangé ne produit aucune écriture et aucune ligne de journal d'action.                                                                                                                                                                                    |
-| I-9  | **Le jeton reste dans `.env`.** Jamais en base, jamais dans un réglage, jamais dans un journal, jamais dans une réponse d'API, jamais dans le dépôt.                                                                                                                                                           |
+| I-9  | **Le jeton reste dans** `.env`**.** Jamais en base, jamais dans un réglage, jamais dans un journal, jamais dans une réponse d'API, jamais dans le dépôt.                                                                                                                                                       |
 | I-10 | **Une partie G&L en cours ou terminée n'est jamais recomposée** par une synchronisation. L'écart est signalé, le MJ décide.                                                                                                                                                                                    |
 
 ## 4. Vocabulaire
@@ -341,12 +382,18 @@ bases neuves ; les deux doivent rester alignés).
 - `master` dit dans quel sens l'objet se synchronise, et `members_hash` mémorise le dernier
   état sur lequel les deux côtés étaient d'accord — c'est ce qui permet de distinguer « changé
   chez le maître » de « changé sur le reflet » (section 9).
-- Un groupe ForetMap **sans ligne `external_groups`** est un groupe purement local : invisible
+- Un groupe ForetMap **sans ligne** `external_groups` est un groupe purement local : invisible
   pour la synchronisation, quoi qu'il arrive (section 11).
 - `auth_provider` d'un compte créé par la synchronisation vaut `moodle`. Un compte miroir G&L
   (`gl_bridge`) qui se fait rapprocher **cesse d'être un miroir** : son `auth_provider` passe à
   `moodle`, faute de quoi une suppression de joueur (`DELETE /api/gl/admin/players/:id`)
   emporterait un compte désormais adossé à Moodle.
+- Une même personne peut porter **deux** lignes `external_identities` pour le même `issuer`
+  (`https://olution.info`) : `provider = 'moodle'` (identifiant Web Services) et
+  `provider = 'lti'` (sujet du jeton de lancement). La clé unique est
+  `(provider, issuer, external_id)` : les deux coexistent. Le lot M1 crée la table dans cette
+  forme générique ; le lot M6 pose les lignes `'lti'`. Ne pas figer `provider` en ENUM à deux
+  valeurs figées côté application au-delà de ces deux identifiants connus.
 
 ## 6. Configuration
 
@@ -363,6 +410,11 @@ bases neuves ; les deux doivent rester alignés).
 fonctionnalité (endpoints en `503 { error: 'Intégration Moodle non configurée' }`), elle ne
 doit pas empêcher le serveur de démarrer. Ajouter les deux premières en commentaire dans
 `env.local.example` — c'est déjà fait.
+
+Les secrets LTI (émetteur Moodle, identifiant client, clés de l'outil) sont ceux du **lot M6**.
+Ils restent dans `.env` (I-9), distincts du jeton Web Services. Noms prévus, à n'activer
+qu'avec M6 : `LTI_ISSUER`, `LTI_CLIENT_ID`, `LTI_DEPLOYMENT_ID`, plus la paire de clés de
+l'outil. Ne pas les inventer dans M1.
 
 ### 6.2 Réglages administrateur (`lib/settings.js`, registre `SETTINGS_REGISTRY`)
 
@@ -381,14 +433,19 @@ Portée `admin` pour tous ; aucun n'est public.
 | `integration.moodle.threshold_namematch_pct`       | `number`  | `20`            | seuil de rapprochements par nom, en %                     |
 | `integration.moodle.threshold_outbound_remove_abs` | `number`  | `50`            | seuil de retraits de membres poussés vers Moodle          |
 
+Les réglages LTI (`integration.lti.*`, section 21.5) **n'entrent pas** dans M1–M5. Ils sont
+livrés avec M6, dans le même onglet « Moodle », section distincte « Entrée depuis le cours ».
+
 Forme d'une politique (le tableau est ordonné ; **la première entrée dont le motif correspond
-gagne**, ce qui rend le classement significatif — `26#n3` doit précéder tout motif générique) :
+gagne**, ce qui rend le classement significatif — `{year}#n3` doit précéder tout motif
+générique). `{year}` est remplacé par `integration.moodle.year_prefix` à l'évaluation
+(`26`, puis `27` à la rentrée) : on ne réécrit pas les motifs à chaque année.
 
 ```json
 [
   {
     "key": "niveau",
-    "pattern": "^26#\\d$",
+    "pattern": "^{year}#\\d$",
     "group_kind": "unit",
     "role": null,
     "n3beur": false,
@@ -398,17 +455,17 @@ gagne**, ce qui rend le classement significatif — `26#n3` doit précéder tout
   },
   {
     "key": "n3",
-    "pattern": "^26#n3$",
+    "pattern": "^{year}#n3$",
     "group_kind": "class",
     "role": "eleve_novice",
     "n3beur": true,
     "gl_class": false,
     "create_accounts": true,
-    "push_membership": false
+    "push_membership": true
   },
   {
     "key": "classe6",
-    "pattern": "^26#6\\d{2}(-6\\d{2})?$",
+    "pattern": "^{year}#6\\d{2}(-6\\d{2})?$",
     "group_kind": "class",
     "role": "visiteur",
     "n3beur": false,
@@ -418,7 +475,7 @@ gagne**, ce qui rend le classement significatif — `26#n3` doit précéder tout
   },
   {
     "key": "classe",
-    "pattern": "^26#[2-5]\\d{2}$",
+    "pattern": "^{year}#[2-5]\\d{2}$",
     "group_kind": "class",
     "role": "visiteur",
     "n3beur": false,
@@ -443,8 +500,14 @@ Points d'attention métier :
   résolution de rôle retient le plus élevé : il est n3beur. Le groupe classe ne doit donc
   **jamais** forcer un rôle à la baisse sur un compte qui en a déjà un plus élevé.
 - `push_membership` autorise l'ajout et le retrait de membres **de cohorte** depuis ForetMap.
-  Utile pour `26#n3` (recrutement en cours d'année depuis ForetMap) ; à laisser à `false` pour
-  les classes, que la vie scolaire tient dans Moodle.
+  **Oui pour les n3beurs** (`{year}#n3`) : le recrutement en cours d'année depuis ForetMap
+  écrit dans la cohorte Moodle. C'est le drapeau de politique déjà prévu (fonctions
+  `core_cohort_add_cohort_members` / `delete`), pas un chantier à part ; si le premier
+  apply pose problème, on remet le drapeau à `false` sans changer le code. **Non pour les
+  classes** : la vie scolaire les tient dans Moodle.
+- L'écran « Exécuter » liste les cohortes de l'année (préfixe `year_prefix`) et l'admin
+  **coche celles à synchroniser**. Un motif qui match sans case cochée n'est pas appliqué.
+  C'est le moyen de n'envoyer que `26#603` au premier apply, ou d'ignorer `26#6`.
 
 ## 7. Client Web Services Moodle — `lib/moodle/client.js`
 
@@ -458,7 +521,7 @@ callMoodle(wsfunction, params, { timeoutMs, signal }) → Promise<any>
 
 - `POST` sur `${MOODLE_BASE_URL}/webservice/rest/server.php`, corps en
   `application/x-www-form-urlencoded`, avec `wstoken`, `wsfunction`, `moodlewsrestformat=json`.
-- **Piège majeur : Moodle renvoie `HTTP 200` même en cas d'erreur.** Une réponse d'erreur est un
+- **Piège majeur : Moodle renvoie** `HTTP 200` **même en cas d'erreur.** Une réponse d'erreur est un
   objet JSON portant `exception`, `errorcode` et `message`. Le client doit détecter ce cas et
   lever une `MoodleApiError` typée (`errorcode` conservé) ; se fier au code HTTP seul est une
   faute qui ferait passer un échec pour un succès et déclencherait des retraits de masse.
@@ -516,17 +579,8 @@ une à une la présence des fonctions et des capacités nécessaires : c'est le 
 Pour chaque membre de cohorte, dans cet ordre, **arrêt à la première correspondance** :
 
 1. **Identité externe connue** : ligne `external_identities` pour ce `(provider, issuer,
-external_id)`. C'est le cas normal après la première exécution.
-2. **E-mail** : `users.email` égal, comparaison insensible à la casse, sur **tous** les types de
-   compte (élève, enseignant). Un e-mail Moodle porté par un compte enseignant est un **conflit**,
-   pas une correspondance : ligne de rapport, aucune action.
-3. **Prénom + nom normalisés**, et seulement si le couple est **unique des deux côtés** : une
-   seule personne le porte dans la cohorte Moodle, et un seul compte le porte dans ForetMap.
-   Normalisation : minuscules, suppression des accents (`String.normalize('NFD')` puis retrait
-   des diacritiques), espaces et traits d'union réduits à un séparateur unique, espaces de bord
-   supprimés. Deux homonymes ⇒ **jamais** de rapprochement automatique : ligne dans la liste des
-   rapprochements en attente, décision humaine.
-4. **Création**, si la politique de la cohorte le permet (`create_accounts`).
+
+external_id)`. C'est le cas normal après la première exécution. 2. **E-mail** :` users.email `égal, comparaison insensible à la casse, sur **tous** les types de    compte (élève, enseignant). Un e-mail Moodle porté par un compte enseignant est un **conflit**,    pas une correspondance : ligne de rapport, aucune action. 3. **Prénom + nom normalisés**, et seulement si le couple est **unique des deux côtés** : une    seule personne le porte dans la cohorte Moodle, et un seul compte le porte dans ForetMap.    Normalisation : minuscules, suppression des accents (`String.normalize('NFD') `puis retrait    des diacritiques), espaces et traits d'union réduits à un séparateur unique, espaces de bord    supprimés. Deux homonymes ⇒ **jamais** de rapprochement automatique : ligne dans la liste des    rapprochements en attente, décision humaine. 4. **Création**, si la politique de la cohorte le permet (`create_accounts`).
 
 ### 8.2 Ce que la synchronisation a le droit d'écrire
 
@@ -562,7 +616,7 @@ test (section 16).
 | E-mail Moodle déjà porté par un autre compte (enseignant, autre) | Conflit : aucune action, ligne de rapport                                                                                    |
 | Compte ForetMap ou joueur G&L absent de Moodle                   | **Jamais touché** ; listé « hors Moodle » pour information (section 11)                                                      |
 | Compte créé par la sync, disparu des cohortes de l'année         | Désactivé, réactivable à la main ; `sync_exempt` respecté ensuite                                                            |
-| Compte rapproché, disparu des cohortes                           | Retiré des groupes synchronisés seulement ; désactivation en option (section 20)                                             |
+| Compte rapproché, disparu des cohortes                           | Retiré des groupes synchronisés seulement ; **pas** désactivé                                                                |
 | Membre suspendu dans Moodle                                      | Compte créé par la sync : désactivé. Compte rapproché : signalé, non désactivé                                               |
 | Élève changeant de classe en cours d'année                       | Déplacé de groupe (et de classe G&L si la classe joue) à l'exécution suivante ; une partie en cours n'est pas touchée (I-10) |
 | Homonymes                                                        | Jamais rapprochés automatiquement ; décision dans l'écran des rapprochements en attente                                      |
@@ -596,8 +650,7 @@ Décisions :
 | identique | changé    | le reflet a bougé → **conflit**, sauf miroir « sans édition » (ci-dessous) |
 | changé    | changé    | **conflit** systématique                                                   |
 
-Exception unique, et elle doit être explicite dans le code : un groupe dont `master =
-'foretmap'` et qui est un **miroir d'équipe** est reconstruit à l'identique sans conflit, parce
+Exception unique, et elle doit être explicite dans le code : un groupe dont `master = 'foretmap'` et qui est un **miroir d'équipe** est reconstruit à l'identique sans conflit, parce
 que sa raison d'être est de refléter G&L. Une retouche faite dans Moodle sur un tel groupe est
 tout de même **signalée** dans le rapport (l'enseignant qui l'a faite doit savoir qu'elle a été
 écrasée), mais elle ne bloque pas.
@@ -652,8 +705,7 @@ composeTeams({ players, teams, history, options }) → { assignments, warnings }
 - `teams` : les quatre équipes de la cohorte (`id`, `name`, `type`).
 - `history` : compositions des chapitres précédents de la même classe, pour « éviter de
   remettre ensemble les mêmes ».
-- `options` : `{ maxSizeDelta = 1, avoidRepeatWindow = 2, keepTogether: [[idA, idB]],
-keepApart: [[idC, idD]], seed }`.
+- `options` : `{ maxSizeDelta = 1, avoidRepeatWindow = 2, keepTogether: [[idA, idB]], keepApart: [[idC, idD]], seed }`.
 
 Règles, par ordre de priorité décroissante : `keepApart` est **dur** (jamais violé, sinon
 `warnings` et l'affectation échoue), l'écart de taille entre équipes ne dépasse pas
@@ -670,7 +722,7 @@ Le moteur **propose** ; le MJ ajuste à la main puis **valide**. Rien n'est écr
 - **Nom affiché dans Moodle** : exactement le nom de l'équipe côté G&L (« gnomes sylvestres »).
   Pas de préfixe, pas de suffixe, pas de reformatage : c'est ce nom que les enseignants voient
   dans les réglages d'activité.
-- **`idnumber`** : `FM#<cohorte>#C<courseid>#<slug-équipe>`, par exemple
+- `idnumber` : `FM#<cohorte>#C<courseid>#<slug-équipe>`, par exemple
   `FM#26#601-602#C564#gnomes-sylvestres`. Le `slug` est le nom de l'équipe normalisé (minuscules,
   sans accent, espaces en tirets). C'est ce préfixe `FM#` — et lui seul — qui autorise une
   écriture (I-7).
@@ -681,7 +733,7 @@ Le moteur **propose** ; le MJ ajuste à la main puis **valide**. Rien n'est écr
 1. Retrouver le cours du chapitre dans `integration.moodle.chapter_courses`. Absent ⇒ rien à
    faire pour ce chapitre, ligne de rapport.
 2. Lire les groupes du cours (`core_group_get_course_groups`). En déduire : le groupe classe
-   (nom « Cohorte <idnumber> », lu seulement) et les miroirs existants (`idnumber` en `FM#`).
+   (nom « Cohorte », lu seulement) et les miroirs existants (`idnumber` en `FM#`).
 3. **Vérifier l'unicité des noms** avant d'écrire : si une équipe à créer porte le nom d'un
    groupe existant qui n'est pas son propre miroir, **arrêter avec une erreur explicite**
    nommant le cours, le groupe en place et l'équipe en cause. Ne jamais renommer pour
@@ -689,10 +741,12 @@ Le moteur **propose** ; le MJ ajuste à la main puis **valide**. Rien n'est écr
 4. Créer, renommer ou supprimer les miroirs pour coller aux équipes de la partie. Un miroir
    `FM#` sans équipe correspondante est supprimé ; **aucun autre groupe du cours n'est touché**.
 5. Aligner les membres : résoudre chaque joueur en identifiant Moodle via `external_identities`.
-   - Joueur **sans** identité Moodle : listé dans le rapport, l'équipe existe côté G&L, le
-     miroir est simplement incomplet. **Ce n'est pas une erreur** (section 11).
-   - Élève non inscrit au cours : Moodle refuse l'ajout. Le rapport le dit, avec le nom du
-     cours ; l'inscription reste du ressort de Moodle.
+
+- Joueur **sans** identité Moodle : listé dans le rapport, l'équipe existe côté G&L, le
+  miroir est simplement incomplet. **Ce n'est pas une erreur** (section 11).
+- Élève non inscrit au cours : Moodle refuse l'ajout. Le rapport le dit, avec le nom du
+  cours ; l'inscription reste du ressort de Moodle.
+
 6. Une partie dont le statut n'est pas `draft` n'est **jamais** recomposée (I-10) : les écarts
    sont signalés, le MJ décide.
 
@@ -706,9 +760,10 @@ Le moteur **propose** ; le MJ ajuste à la main puis **valide**. Rien n'est écr
   (`gl_team_members`, clé `(game_id, player_id)`). Plusieurs équipes dans le temps — une par
   chapitre — sont donc naturelles et attendues.
 - **Deux classes G&L simultanées pour un même joueur sont impossibles** dans le modèle actuel.
-  Le cas ne se présente pas tant que la classe G&L est la cohorte. S'il se présentait (élève à
-  cheval sur deux cohortes joueuses), il faudrait une table `gl_class_members` : **ne pas
-  l'improviser**, remonter la question (section 20).
+  Le cas **ne doit pas se présenter** (une classe G&L = une cohorte joueuse). S'il apparaît
+  malgré tout, **ne pas** créer de table `gl_class_members` : ligne d'**alerte** dans le
+  rapport, le joueur n'est pas réaffecté à une seconde classe, l'exécution des autres
+  cohortes continue.
 - **Sous-groupes composés dans ForetMap** hors jeu (ateliers, tâches par équipe) : même
   mécanisme que les équipes, maître ForetMap, miroir Moodle facultatif dans un cours choisi,
   `idnumber` `FM#<cohorte>#G#<slug>`.
@@ -725,7 +780,7 @@ structurelles** :
    synchronisation part de ces tables et **jamais** d'un `SELECT` sur `users` ou `groups` seul.
    Un balayage du genre « tous les élèves du groupe X qui ne sont pas dans la cohorte » est
    interdit s'il n'est pas borné par `external_group_members.source = 'sync'`.
-2. **`sync_exempt` prime sur tout.** Un compte ou un groupe marqué `sync_exempt = 1` est ignoré
+2. `sync_exempt` **prime sur tout.** Un compte ou un groupe marqué `sync_exempt = 1` est ignoré
    en lecture comme en écriture, même s'il a une identité externe : ni désactivation, ni
    retrait, ni ajout, ni mise à jour de champ. Le marquage se pose depuis l'écran administrateur
    et **ne s'enlève que là** ; aucune exécution ne le retire.
@@ -748,18 +803,9 @@ Corollaires à vérifier en test (section 16) :
 
 1. **Verrou** exclusif : une seule exécution à la fois, même mécanisme que le cron de
    déploiement. Une deuxième demande reçoit `409 { error: 'Une synchronisation est déjà en
-cours' }`.
-2. Ouverture d'une ligne `sync_runs` (`status = 'running'`).
-3. Lecture Moodle, contrôles amont (section 8), rapprochement.
-4. **Calcul du plan** : la liste complète des écritures envisagées, sans rien écrire.
-5. **Contrôle des seuils** sur le plan (section 12.2). Dépassement sans `force` ⇒ l'exécution
-   s'arrête en `aborted`, le rapport dit quel seuil et de combien.
-6. **Application**, cohorte par cohorte, **une transaction par cohorte** : une cohorte qui
-   échoue n'annule pas les précédentes, et le rapport dit où l'on s'est arrêté.
-7. Écritures sortantes vers Moodle (équipes, `push_membership`), après les écritures locales.
-8. Recalcul des `members_hash`, clôture de la ligne `sync_runs`, rapport.
-9. Rejeu automatique de la réconciliation G&L (`lib/glIdentityReconcile.js`) et contrôle croisé
-   des effectifs par cohorte.
+
+cours' }`. 2. Ouverture d'une ligne` sync_runs `(`status = 'running'`). 3. Lecture Moodle, contrôles amont (section 8), rapprochement. 4. **Calcul du plan** : la liste complète des écritures envisagées, sans rien écrire. 5. **Contrôle des seuils** sur le plan (section 12.2). Dépassement sans` force`⇒ l'exécution    s'arrête en`aborted`, le rapport dit quel seuil et de combien. 6. **Application**, cohorte par cohorte, **une transaction par cohorte** : une cohorte qui    échoue n'annule pas les précédentes, et le rapport dit où l'on s'est arrêté. 7. Écritures sortantes vers Moodle (équipes,` push_membership`), après les écritures locales. 8. Recalcul des` members_hash`, clôture de la ligne` sync_runs`, rapport. 9. Rejeu automatique de la réconciliation G&L (`lib/glIdentityReconcile.js`) et contrôle croisé
+des effectifs par cohorte.
 
 Le **mode simulation** (`dry_run`) exécute les étapes 1 à 5 et produit exactement le même
 rapport, sans aucune écriture — ni locale, ni vers Moodle. Une exécution réelle est refusée si
@@ -783,8 +829,7 @@ Un dépassement n'est **jamais** contourné automatiquement. Il faut une reprise
 
 ### 12.3 Journal et annulation
 
-Chaque écriture produit une ligne `sync_actions` avec l'état avant et après. `POST
-/api/admin/integrations/moodle/runs/:id/undo` rejoue le journal à l'envers :
+Chaque écriture produit une ligne `sync_actions` avec l'état avant et après. `POST /api/admin/integrations/moodle/runs/:id/undo` rejoue le journal à l'envers :
 
 - appartenances rendues à leur état antérieur ;
 - comptes désactivés par l'exécution réactivés ;
@@ -804,31 +849,31 @@ sur la ligne d'origine), avec les mêmes garanties de transaction et de journal.
 - `npm run moodle:sync -- --dry-run [--cohort 26#603] [--teams] [--json]` — simulation.
 - `npm run moodle:sync -- --apply [--cohort …] [--force]` — exécution réelle.
 - Cron hebdomadaire (documenter dans `docs/CRONTAB.md`) : simulation automatique et alerte si le
-  plan contient des désactivations ou des conflits. **Le cron ne fait jamais d'`--apply`** : la
+  plan contient des désactivations ou des conflits. **Le cron ne fait jamais d'**`--apply` : la
   synchronisation réelle reste déclenchée par un humain.
 
 ## 13. API HTTP
 
 Routeur `routes/admin/moodle.js`, monté sur `/api/admin/integrations/moodle`, sous
-`requireTeacher` et une permission dédiée **`integrations.moodle.manage`** (à ajouter au
+`requireTeacher` et une permission dédiée `integrations.moodle.manage` (à ajouter au
 registre RBAC et à attribuer au rôle `admin` par la migration). Limiteur strict sur les routes
 d'exécution. Toutes les réponses sont du JSON ; les erreurs suivent `{ error }`.
 
-| Méthode et chemin           | Rôle                                                                                                         |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `GET /status`               | configuration présente ou non, résultat du dernier `check`, dernière exécution, conflits ouverts             |
-| `POST /check`               | rejoue les vérifications de `moodle:check` et renvoie le détail                                              |
-| `GET /cohorts`              | cohortes Moodle visibles, avec `idnumber`, effectif et politique retenue                                     |
-| `GET /courses`              | table chapitre → cours résolue, avec le nom du cours lu dans Moodle                                          |
-| `POST /runs`                | lance une exécution : `{ mode: 'dry_run' \| 'apply', cohorts?: string[], teams?: boolean, force?: boolean }` |
-| `GET /runs`                 | historique paginé                                                                                            |
-| `GET /runs/:id`             | rapport complet d'une exécution                                                                              |
-| `POST /runs/:id/undo`       | annulation (section 12.3)                                                                                    |
-| `GET /pending-matches`      | rapprochements en attente : membre Moodle et comptes candidats                                               |
-| `POST /pending-matches/:id` | `{ decision: 'link', userId }` ou `{ decision: 'create' }` ou `{ decision: 'ignore' }`                       |
-| `GET /conflicts`            | conflits ouverts                                                                                             |
-| `POST /conflicts/:id`       | `{ resolution: 'keep_master' \| 'apply_other' \| 'ignore' }`                                                 |
-| `POST /exempt`              | `{ targetType: 'user' \| 'group', targetId, exempt: true \| false }`                                         |
+| Méthode et chemin           | Rôle                                                                                             |
+| --------------------------- | ------------------------------------------------------------------------------------------------ |
+| `GET /status`               | configuration présente ou non, résultat du dernier `check`, dernière exécution, conflits ouverts |
+| `POST /check`               | rejoue les vérifications de `moodle:check` et renvoie le détail                                  |
+| `GET /cohorts`              | cohortes Moodle visibles, avec `idnumber`, effectif et politique retenue                         |
+| `GET /courses`              | table chapitre → cours résolue, avec le nom du cours lu dans Moodle                              |
+| `POST /runs`                | lance une exécution (`dry_run` ou `apply`, cohortes optionnelles, `teams`, `force`)              |
+| `GET /runs`                 | historique paginé                                                                                |
+| `GET /runs/:id`             | rapport complet d'une exécution                                                                  |
+| `POST /runs/:id/undo`       | annulation (section 12.3)                                                                        |
+| `GET /pending-matches`      | rapprochements en attente : membre Moodle et comptes candidats                                   |
+| `POST /pending-matches/:id` | décision `link` (avec `userId`), `create` ou `ignore`                                            |
+| `GET /conflicts`            | conflits ouverts                                                                                 |
+| `POST /conflicts/:id`       | résolution `keep_master`, `apply_other` ou `ignore`                                              |
+| `POST /exempt`              | marquer un compte ou un groupe `sync_exempt`                                                     |
 
 Côté G&L, pour les équipes (routeur `routes/gl/admin.js`, permission MJ existante) :
 
@@ -850,7 +895,9 @@ Sous les réglages, onglet « Moodle ». Le minimum utile, sans fioriture :
 2. **Réglages** : année, domaines d'e-mail, politiques (édition du tableau), table chapitre →
    cours **avec le nom du cours affiché à côté de chaque identifiant** (section 2.2), seuils.
 3. **Exécuter** : bouton « Simuler » (toujours disponible) et bouton « Appliquer » (grisé tant
-   qu'aucune simulation récente n'existe pour le périmètre). Sélecteur de cohortes.
+   qu'aucune simulation récente n'existe pour le périmètre). **Cases à cocher** : cohortes de
+   l'année (préfixe `year_prefix`) ; au moins une case pour lancer. Une cohorte non cochée
+   n'est pas touchée, même si sa politique matcherait.
 4. **Rapport** : totaux, puis les listes qui comptent — créations, rapprochements par e-mail,
    rapprochements par nom, désactivations prévues, doublons probables, conflits d'e-mail,
    comptes hors Moodle (**pour information seulement**), joueurs sans identité Moodle.
@@ -858,6 +905,9 @@ Sous les réglages, onglet « Moodle ». Le minimum utile, sans fioriture :
    « lier », « créer », « ignorer ».
 6. **Conflits** : trois boutons par ligne (section 9).
 7. **Historique** : liste des exécutions, rapport de chacune, bouton « annuler ».
+8. **Entrée depuis le cours (M6)** : interrupteur LTI, table des liaisons cours Moodle →
+   produit / écran (noms de cours lus dans Moodle, suggestions selon les cohortes), politique
+   des inconnus, cibles enseignant. Pas de fioriture : le détail des clés est en 21.6.
 
 Conventions front du dépôt : composants fonctionnels, hooks, locale `fr-FR`, thème forêt, cibles
 tactiles ≥ 44 px, runtime JSX automatique (pas d'`import React` pour écrire du JSX), et
@@ -900,7 +950,7 @@ Backend (`tests/*.test.js`, `node:test` + `supertest`, séquentiel) :
 | `moodle-admin-routes.test.js`    | permission `integrations.moodle.manage` exigée ; verrou (409) ; `apply` refusé sans simulation récente ; jeton jamais renvoyé                                                                                                |
 
 Le serveur Moodle est **simulé** dans les tests : un faux serveur HTTP local qui répond comme
-lui, **y compris ses erreurs en `HTTP 200`**. Aucun test ne doit appeler `olution.info`.
+lui, **y compris ses erreurs en** `HTTP 200`. Aucun test ne doit appeler `olution.info`.
 
 UI (`tests-ui/**`, Vitest) : rendu du rapport, écran des conflits, table chapitre → cours avec
 noms, composition d'équipes et glisser-déposer.
@@ -909,13 +959,14 @@ Avant chaque commit : `npm run lint`, `npm run format:check`, `npm test`, `npm r
 
 ## 17. Lots et définition de terminé
 
-| Lot | Contenu                                                                                                                                                            | Effort |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
-| M1  | Client Web Services, `moodle:check`, migration, réglages, rapprochement, simulation, seuils, journal, `POST /runs` en `dry_run`                                    | 3,5 j  |
-| M2  | Application réelle, transactions par cohorte, annulation, rapprochements en attente, outil de fusion de comptes                                                    | 3 j    |
-| M3  | Comparaison à trois, conflits, écran administrateur complet                                                                                                        | 2 j    |
-| M4  | Moteur de composition des équipes, miroirs Moodle, sous-groupes                                                                                                    | 3 j    |
-| M5  | Documentation : `docs/API.md`, `docs/CRONTAB.md`, `docs/EXPLOITATION.md`, `docs/reference/` (« Rentrée avec Moodle », pour les administrateurs et les professeurs) | 0,5 j  |
+| Lot | Contenu                                                                                                                                                                                                      | Effort     |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- |
+| M1  | Client Web Services, `moodle:check`, migration, réglages, rapprochement, simulation, seuils, journal, `POST /runs` en `dry_run`                                                                              | 3,5 j      |
+| M2  | Application réelle, transactions par cohorte, annulation, rapprochements en attente, outil de fusion de comptes                                                                                              | 3 j        |
+| M3  | Comparaison à trois, conflits, écran administrateur complet                                                                                                                                                  | 2 j        |
+| M4  | Moteur de composition des équipes, miroirs Moodle, sous-groupes                                                                                                                                              | 3 j        |
+| M5  | Documentation : `docs/API.md`, `docs/CRONTAB.md`, `docs/EXPLOITATION.md`, `docs/reference/` (« Rentrée avec Moodle », pour les administrateurs et les professeurs)                                           | 0,5 j      |
+| M6  | LTI 1.3 : outil unique, nouvel onglet, identité au clic, liaisons FM **et** G&L, arrivée réglée par l'admin (aiguillage si plusieurs cibles). **Pas** de notes. Réglages `integration.lti.*` (section 21.5). | à chiffrer |
 
 **Terminé, pour chaque lot**, signifie : code + tests du lot verts + `lint` et `format:check`
 propres + `docs/API.md` à jour si des routes ont bougé + entrée `CHANGELOG.md` sous
@@ -929,27 +980,38 @@ après.
 **Terminé pour M4** : les quatre équipes de `26#601-602` apparaissent dans le cours `564` avec
 leurs noms exacts, leurs membres, et sans qu'aucun autre groupe du cours n'ait bougé.
 
+**Terminé pour M6** : depuis le cours `564`, un élève de `26#603` déjà synchronisé clique
+l'activité, s'ouvre un **nouvel onglet**, session sur le compte `users` déjà lié, arrivée
+selon le `landing` admin (sans menu libre). Un n3beur dans ce même cours voit l'aiguillage
+**ForetMap et G&L**. Depuis `511` (La salle aérée n³), mécanisme vers ForetMap. Un élève
+sans identité de la couche A est **refusé**, sans compte fantôme. Pas de bouton retour
+Moodle, pas de note. Google OAuth hors Moodle continue de fonctionner.
+
 ## 18. Procédure de rentrée (une fois livré)
 
-0. **Étape zéro, une seule fois avant la toute première synchronisation** : exporter les élèves
+1. **Étape zéro, une seule fois avant la toute première synchronisation** : exporter les élèves
    sans adresse e-mail, faire compléter par les professeurs, réimporter ; obtenir un rapport
    `GET /api/gl/admin/players/reconcile` à zéro (aucun joueur sans compte, aucun miroir
    orphelin, aucun reliquat de mot de passe) ; tester une connexion Google sur un compte de
    chaque population, pour vérifier que le domaine autorisé et le réglage
    `ui.auth.allow_google_student` laissent bien passer les élèves.
-1. Mettre à jour l'année dans les réglages (`26` → `27`) et vérifier les motifs de politique.
-2. Mettre à jour la table chapitre → cours (les cours changent d'identifiant chaque année) et
+2. Mettre à jour l'année dans les réglages (`26` → `27`) et vérifier les motifs de politique.
+3. Mettre à jour la table chapitre → cours (les cours changent d'identifiant chaque année) et
    **vérifier les noms affichés**.
-3. Snapshot de la base : `scripts/db-backup.sh --label pre-moodle-sync`.
-4. `npm run moodle:check`.
-5. Simulation complète ; lire le rapport : désactivations prévues (anciens élèves), créations,
+4. Snapshot de la base : `scripts/db-backup.sh --label pre-moodle-sync`.
+5. `npm run moodle:check`.
+6. Simulation complète ; lire le rapport : désactivations prévues (anciens élèves), créations,
    rapprochements par nom, conflits.
-6. Exécution réelle **sur une seule cohorte**, la plus petite ; contrôler les effectifs et
+7. Exécution réelle **sur une seule cohorte**, la plus petite ; contrôler les effectifs et
    tester une connexion Google d'élève.
-7. Exécution complète ; contrôle croisé des effectifs ; réconciliation G&L.
-8. Traiter les rapprochements en attente et les conflits dans l'écran administrateur.
-9. Composer les équipes du chapitre 1 dans G&L, pousser le miroir, vérifier dans le cours.
-10. Activer le cron hebdomadaire de simulation.
+8. Exécution complète ; contrôle croisé des effectifs ; réconciliation G&L.
+9. Traiter les rapprochements en attente et les conflits dans l'écran administrateur.
+10. Composer les équipes du chapitre 1 dans G&L, pousser le miroir, vérifier dans le cours.
+11. Activer le cron hebdomadaire de simulation.
+12. **Après M6** : poser **une** activité outil externe (l'outil unique) dans le cours du
+    chapitre 1 **et** dans le cours `511`, tester le clic élève et le clic enseignant,
+    vérifier Google OAuth hors Moodle. Pilote : `26#603` dans `564` après sync réelle de
+    cette cohorte — pas le jour de la première sync de masse.
 
 ## 19. Créer le jeton Web Services sur `olution.info`
 
@@ -963,18 +1025,18 @@ Tout se fait dans **Administration du site** avec un compte administrateur Moodl
 2. **Rôle système « ForetMap Web Services »** — Utilisateurs → Permissions → Définition des
    rôles → Ajouter un nouveau rôle (rôle vide, contexte **Système**), avec ces capacités en
    « Autoriser » :
-   - lecture : `webservice/rest:use`, `moodle/cohort:view`, `moodle/user:viewdetails`,
-     `moodle/user:viewhiddendetails`, `moodle/user:viewalldetails`,
-     `moodle/site:viewuseridentity` (sans quoi l'e-mail est masqué dans les réponses),
-     `moodle/course:view`, `moodle/course:viewhiddencourses`, `moodle/site:accessallgroups` ;
-   - écriture des équipes : `moodle/course:managegroups` ;
-   - écriture optionnelle (`push_membership`) : `moodle/cohort:assign`.
 
-   Puis Utilisateurs → Permissions → **Attribution des rôles système** : attribuer ce rôle à
-   `foretmap-sync`. Vérifier aussi que le réglage « Afficher l'identité de l'utilisateur »
-   (`showuseridentity`) inclut l'adresse de courriel, sinon `core_user_get_users_by_field` ne
-   renvoie pas d'e-mail — et le rapprochement par e-mail, qui est le pivot de tout le
-   dispositif, tomberait à l'eau.
+- lecture : `webservice/rest:use`, `moodle/cohort:view`, `moodle/user:viewdetails`,
+  `moodle/user:viewhiddendetails`, `moodle/user:viewalldetails`,
+  `moodle/site:viewuseridentity` (sans quoi l'e-mail est masqué dans les réponses),
+  `moodle/course:view`, `moodle/course:viewhiddencourses`, `moodle/site:accessallgroups` ;
+- écriture des équipes : `moodle/course:managegroups` ;
+- écriture optionnelle (`push_membership`) : `moodle/cohort:assign`.
+  Puis Utilisateurs → Permissions → **Attribution des rôles système** : attribuer ce rôle à
+  `foretmap-sync`. Vérifier aussi que le réglage « Afficher l'identité de l'utilisateur »
+  (`showuseridentity`) inclut l'adresse de courriel, sinon `core_user_get_users_by_field` ne
+  renvoie pas d'e-mail — et le rapprochement par e-mail, qui est le pivot de tout le
+  dispositif, tomberait à l'eau.
 
 3. **Service externe** — Serveur → Services web → Services externes → Ajouter : nom
    « ForetMap », **Activé**, « Utilisateurs autorisés seulement » coché, « Fichiers » décochés.
@@ -986,44 +1048,236 @@ Tout se fait dans **Administration du site** avec un compte administrateur Moodl
    ForetMap, date de validité (un an, à renouveler à la rentrée). Le jeton ne s'affiche qu'une
    fois : le copier directement dans le `.env` du serveur, jamais dans un réglage, un dépôt ou
    un message.
-
-   ```bash
-   MOODLE_BASE_URL=https://olution.info
-   MOODLE_WS_TOKEN=…
-   ```
-
 5. **Vérification** depuis le serveur ForetMap :
 
-   ```bash
-   curl -s "https://olution.info/webservice/rest/server.php" \
-     --data-urlencode "wstoken=$MOODLE_WS_TOKEN" \
-     --data-urlencode "wsfunction=core_webservice_get_site_info" \
-     --data-urlencode "moodlewsrestformat=json" | head -c 400
-   ```
+```bash
+ curl -s "https://olution.info/webservice/rest/server.php" \
+   --data-urlencode "wstoken=$MOODLE_WS_TOKEN" \
+   --data-urlencode "wsfunction=core_webservice_get_site_info" \
+   --data-urlencode "moodlewsrestformat=json" | head -c 400
+```
 
-   La réponse doit contenir `sitename`, `username: "foretmap-sync"` et la liste des fonctions
-   autorisées. Un `{"exception":…,"errorcode":"invalidtoken"}` en `HTTP 200` signale un jeton
-   erroné ou une restriction d'IP qui ne correspond pas.
+La réponse doit contenir `sitename`, `username: "foretmap-sync"` et la liste des fonctions
+autorisées. Un `{"exception":…,"errorcode":"invalidtoken"}` en `HTTP 200` signale un jeton
+erroné ou une restriction d'IP qui ne correspond pas.
 
 Pour la phase de développement, un **jeton de test** sur un compte technique séparé, **sans les
 fonctions d'écriture**, suffit et supprime tout risque.
 
-## 20. Questions ouvertes — à trancher avec l'établissement, jamais seul
+## 20. Annuaire, cohortes, équipes — décisions (8 septembre 2026)
 
-1. **Ordre des chapitres 2 à 6** (section 2.2) : les identifiants `565`, `566`, `567`, `595`,
-   `570` ont été communiqués dans cet ordre et sont supposés correspondre aux chapitres 2 à 6.
-   L'écran de réglage affiche le nom du cours à côté de chaque ligne pour permettre la
-   vérification ; à confirmer avant la première synchronisation d'équipes.
-2. **Cohortes des autres populations** : le motif `26#[2-5]xx` couvre « les autres élèves de
-   l'année », et `26#Nxx` a été évoqué sans être confirmé. Récupérer la liste réelle des
-   `idnumber` avant la première exécution complète, plutôt que de deviner un motif.
-3. **Sous-groupes par classe dans une cohorte binôme** : faut-il créer `601` et `602` comme
-   sous-groupes de `26#601-602` (utile pour l'appel et les statistiques), ou le binôme
-   suffit-il ?
-4. **`push_membership` pour `26#n3`** : autorise-t-on le recrutement d'un n3beur depuis
-   ForetMap avec écriture dans la cohorte Moodle, ou la cohorte reste-t-elle tenue uniquement
-   dans Moodle ?
-5. **Comptes rapprochés disparus des cohortes** : retrait des groupes seulement (défaut
-   proposé), ou désactivation également ?
-6. **Élève à cheval sur deux cohortes joueuses** (section 10.6) : si le cas se présente, il
-   faut une table `gl_class_members` et une reprise du modèle G&L. Ne rien improviser.
+Plus de questions ouvertes ici. Consigne pour M1–M5.
+
+| #   | Décision                                                                                                                                                         | Consigne pour le code                                                                                    |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| A1  | Cours chapitres 2 à 6 = `565`, `566`, `567`, `595`, `570` dans cet ordre. **Confirmé.**                                                                          | Section 2.2. L'écran affiche le nom Moodle à côté de chaque id.                                          |
+| A2  | Préfixe `{année}#` = élèves de l'année. `{année}#n3` = n3beurs de l'année (saisie « 26#N »). Année et **choix des cohortes à synchro** doivent rester réglables. | `year_prefix` + motifs `{year}` (section 6.2) + cases à cocher à l'exécution. Pas de motif attrape-tout. |
+| A3  | `26#601-602` est un **groupe indissociable**. Pas de sous-groupes `601` / `602`.                                                                                 | Un groupe FM, une classe G&L.                                                                            |
+| A4  | Recrutement n3beur depuis ForetMap **avec** écriture dans la cohorte Moodle (le drapeau existe déjà).                                                            | Politique n3 : `push_membership: true`. Remettre à `false` si le premier apply pose problème.            |
+| A5  | Compte **rapproché** disparu des cohortes : **retrait des groupes synchronisés seulement**, pas de désactivation.                                                | La désactivation reste réservée aux comptes `origin = created` (I-4).                                    |
+| A6  | Un élève sur deux cohortes joueuses **n'arrivera pas**. Si ça arrive : **alerte**, pas de table `gl_class_members`.                                              | Section 10.6.                                                                                            |
+
+## 21. LTI 1.3 — entrée depuis le cours Moodle
+
+Décisions pédagogiques : **8 septembre 2026**. Cette section est la consigne de M6.
+Le seul paragraphe encore à remplir **après mesure** est 21.7 (lancement de test).
+
+### 21.1 Rôle dans le chantier
+
+LTI 1.3 n'est pas une deuxième synchronisation d'utilisateurs. C'est le moyen, pour une
+personne **déjà reconnue** par la couche A, d'entrer dans ForetMap **ou** G&L d'un clic
+depuis une activité du cours Moodle (`olution.info`).
+
+Déroulé retenu :
+
+1. L'élève (ou l'enseignant) est dans un cours Moodle lié : chapitre G&L (`564`…), cours
+   ForetMap (`511`), ou tout autre cours ajouté dans les liaisons.
+2. Il clique **l'unique** activité « outil externe » du site.
+3. Moodle ouvre ForetMap / G&L dans un **nouvel onglet**, avec un jeton d'identité
+   (OpenID Connect + JWT).
+4. On rattache au compte `users` déjà lié (e-mail, puis `external_identities`), on pose une
+   ligne `provider = 'lti'`, on ouvre une session **de même durée qu'une session Google**.
+5. L'arrivée suit le `landing` **réglé par l'admin** pour cette liaison. Page d'aiguillage
+   seulement s'il y a **plusieurs** destinations valides pour cette personne (n3beur dans
+   un cours G&L : les deux produits ; enseignant : boutons prof FM / MJ G&L à chaque
+   lancement).
+6. **Aucune note** n'est renvoyée vers le carnet Moodle (M6). **Pas de bouton « retour au
+   cours »** (Moodle reste dans l'autre onglet). Google OAuth hors Moodle reste ouvert.
+   Déconnexion : écran de login local.
+
+Moodle 5.2 est la **plateforme** ; ForetMap / G&L est l'**outil**. Ce n'est pas le jeton
+Web Services de la section 19.
+
+### 21.2 Déjà décidé — ne pas rouvrir
+
+| #     | Règle                                                                                                                                                                                                            |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I-L1  | **La sync Web Services reste la seule source des cohortes et des groupes.** LTI ne les lit pas, ne les écrit pas. Le roster d'un cours (Names and Role Provisioning) n'alimente jamais `groups` ni `gl_classes`. |
+| I-L2  | **Rapprocher, ne pas recréer.** Le lancement réutilise le rapprochement par e-mail de la section 8 et `external_identities` avec `provider = 'lti'`. Pas de magasin d'identités parallèle.                       |
+| I-L3  | **Aucun secret.** LTI n'écrit ni ne lit `password_hash`, ne touche pas `token_epoch`, ne « répare » pas Google.                                                                                                  |
+| I-L4  | **Aucune écriture de compte Moodle** (identique à la section 1.2).                                                                                                                                               |
+| I-L5  | **M1 à M5 ne livrent pas de lancement.** Ils livrent seulement une table `external_identities` assez générique pour `provider = 'lti'`.                                                                          |
+| I-L6  | **M6 ne pousse aucune note** (Assignment and Grade Services écarté). Deep Linking écarté : l'enseignant pose l'activité à la main.                                                                               |
+| I-L7  | **Un seul outil externe** enregistré sur `olution.info`, pour les deux produits. Le routage FM / G&L est un réglage, pas un second outil Moodle.                                                                 |
+| I-L8  | **Nouvel onglet**, pas d'iframe Moodle.                                                                                                                                                                          |
+| I-L9  | **Personne absente de la couche A : refus** par défaut (message clair). Pas de création de compte à la volée.                                                                                                    |
+| I-L10 | **Le rôle métier ne se dérive pas du rôle LTI.** `Learner` / `Instructor` décident seulement _si_ on ouvre une session et _quelles cibles enseignant_ proposer. Le rôle FM/GL vient de la sync et du RBAC.       |
+
+Les groupes `FM#` poussés par la couche A restent le moyen de **restreindre une activité
+Moodle à une équipe**. LTI n'a pas à recréer ces groupes.
+
+### 21.3 Les trois briques, état après décisions
+
+#### Brique 1 — Lancement (Resource Link) — dans M6
+
+Un outil, deux produits, liaisons **évolutives** : l'administrateur associe un cours Moodle
+à ForetMap et/ou G&L, avec un écran d'arrivée. Les cohortes connues alimentent des
+**suggestions** (ex. un cours où joue `26#601-602` → proposer G&L chapitre ; un cours lié à
+`26#n3` ou l'id `511` → proposer ForetMap). La suggestion n'écrit pas toute seule : l'admin
+valide. On peut ajouter d'autres cours plus tard sans changer le code.
+
+Le cours désigne le chapitre (ou la carte) par **les deux** : table de liaisons (défaut) **et**
+paramètres LTI personnalisés (`product`, `chapter`, `landing`, …) qui **surchargent** la
+table. Oublier la table à la rentrée n'est plus silencieux si le paramètre d'activité est
+juste ; un paramètre faux n'est plus silencieux si la table est juste — le rapport de
+lancement doit dire lequel a gagné.
+
+#### Brique 2 — Identité au clic — dans M6
+
+Rattachement : ligne LTI connue, sinon e-mail (section 8), sinon id Moodle si L9 le confirme.
+Clic enseignant : à **chaque** lancement, boutons des cibles autorisées (prof FM et/ou
+MJ G&L). Clic d'un inscrit hors politique de sync : refus (L6), sans valeur `create`.
+
+`sub` LTI vs id Moodle : **à mesurer sur** `olution.info` **avant le premier pilote élève**
+(L9). Les e-mails ne sont en principe pas masqués ; si un lancement de test arrive sans
+e-mail, exiger le réglage Moodle « partager l'e-mail avec l'outil » avant d'aller plus loin.
+
+#### Brique 3 — Retour de notes — hors M6
+
+**Non.** Pas de colonne de carnet, pas d'AGS, pas de client de notes. Deep Linking : **non**.
+L13 à L16 restent sans objet tant qu'on ne rouvre pas L12.
+
+### 21.4 Décisions L1–L22 (8 septembre 2026)
+
+| #       | Décision                                                                                                                                                              | Consigne pour le code                                                                                          |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| L1      | ForetMap **et** G&L. Choix selon les cohortes Moodle, avec suggestions pour les cohortes / cours connus. Doit rester évolutif.                                        | Table de liaisons admin, pas d'outil Moodle par produit. Suggestions, jamais d'écriture automatique.           |
+| L2      | L'**admin** règle `landing` / `landing_options`. L'élève n'a pas un menu libre à chaque clic. Aiguillage si plusieurs destinations s'appliquent (n3beur, enseignant). | Pas de choix élève quand une seule destination.                                                                |
+| L3      | Table **et** paramètres d'activité (surcharge).                                                                                                                       | Résoudre : paramètre LTI s'il est présent et valide, sinon liaison du cours, sinon refus explicite.            |
+| L4      | **Nouvel onglet.**                                                                                                                                                    | Enregistrement Moodle : ouverture dans un nouvel onglet. Pas d'iframe.                                         |
+| L5      | **Outil unique** sur `olution.info`. L'URL publique de lancement est **paramétrable**.                                                                                | Réglage `integration.lti.public_origin` (défaut proposé : origine ForetMap).                                   |
+| L6      | **Refuser** si absent de la couche A.                                                                                                                                 | Message clair, journal d'identifiant numérique seulement. Aucun `INSERT` `users`.                              |
+| L7      | Enseignant : boutons **à chaque lancement** (prof FM / MJ G&L selon `instructor_targets`).                                                                            | Pas d'atterrissage enseignant unique forcé.                                                                    |
+| L8      | Suivre la proposition : **ne pas** dériver le rôle FM/GL du rôle LTI.                                                                                                 | I-L10.                                                                                                         |
+| L9      | Inconnu à ce stade ; e-mails normalement visibles.                                                                                                                    | Mesure sur un lancement de test **avant** pilote élève ; consigner `sub` / e-mail / nom ici.                   |
+| L10     | Les deux chemins (LTI et Google) restent ouverts sur le même compte.                                                                                                  | `google_sub` et ligne `lti` coexistent.                                                                        |
+| L11     | **Reporté.** Ce chantier est fonctionnel ; registre de traitement / info familles hors lot.                                                                           | Ne pas bloquer M6. Ne pas inventer de texte juridique.                                                         |
+| L12     | **Non** — pas de notes vers Moodle pour M6.                                                                                                                           | I-L6.                                                                                                          |
+| L13–L16 | Sans objet (L12 = non).                                                                                                                                               | —                                                                                                              |
+| L17     | **Non** — pas de Deep Linking.                                                                                                                                        | L'enseignant pose l'activité à la main.                                                                        |
+| L18     | Même personne que le jeton WS, **et éventuellement un autre admin** Moodle.                                                                                           | Documenter le geste à deux. Restriction IP : celle du **navigateur** (élève / lycée), pas celle du serveur FM. |
+| L19     | Durée **comme Google**. **Pas** de bouton « retour au cours » (autre onglet). Déconnexion → login local.                                                              | Ne pas rediriger vers Moodle.                                                                                  |
+| L20     | Même refus que L6. Enum : `refuse` / plus tard `queue`. **Jamais** `create`.                                                                                          | Confirmé : pas de création de compte au clic LTI.                                                              |
+| L21     | Cours ForetMap `511` : **La salle aérée n³** (abrégé **n³**) ; d'autres cours liables.                                                                                | Section 2.6 + table de liaisons.                                                                               |
+| L22     | OK : pilote après sync réelle de `26#603`, pas le jour de la sync de masse.                                                                                           | Procédure de rentrée, étape 12.                                                                                |
+| L23     | N3beur dans un cours chapitre G&L : **aiguillage des deux produits** (ForetMap et G&L).                                                                               | Même si la liaison du cours est `gl`. Un élève 6e non n3beur suit le `landing` admin, sans ce double choix.    |
+
+### 21.5 Réglages administrateur — peu, au bon endroit
+
+Consigne générale (8 septembre 2026) : **tout ce qui varie d'une année ou d'un cours à
+l'autre est un réglage**, pas une constante. Mais on ne noie pas l'écran : uniquement ce
+qu'un admin doit pouvoir changer sans développeur, groupé dans l'onglet Moodle déjà prévu
+(section 14), sous-section **« Entrée depuis le cours »**, visible dès M6, ignorée tant que
+`integration.lti.enabled` est faux. Permission : la même `integrations.moodle.manage`.
+
+Ne **pas** dupliquer cette table dans les réglages G&L « plateforme » ni dans un troisième
+écran. Un MJ sans cette permission ne modifie pas les liaisons LTI.
+
+Valeurs initiales (semis M6, modifiables ensuite) :
+
+| Clé                                  | Type    | Défaut          | Rôle                                                                                                                                                               |
+| ------------------------------------ | ------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `integration.lti.enabled`            | boolean | `false`         | interrupteur. Sans secrets `.env`, l'écran le dit, le lancement répond `503`.                                                                                      |
+| `integration.lti.unknown_user`       | enum    | `refuse`        | `refuse` (L6/L20). `queue` réservé (même file que M2). **Pas** de valeur `create`.                                                                                 |
+| `integration.lti.public_origin`      | string  | `''`            | origine publique de l'outil unique (ex. `https://foretmap.olution.info`). Vide = origine ForetMap du processus. Doit correspondre à l'URL enregistrée dans Moodle. |
+| `integration.lti.instructor_targets` | json    | `["fm","gl"]`   | cibles d'un `Instructor` : ForetMap prof, G&L MJ, les deux, ou une seule.                                                                                          |
+| `integration.lti.launch_bindings`    | json    | voir ci-dessous | liaisons cours Moodle → produit / arrivée / chapitre. Évolutif.                                                                                                    |
+| `integration.lti.landing_options`    | json    | voir ci-dessous | options proposées sur la page d'aiguillage (on n'affiche que celles-ci).                                                                                           |
+
+Forme d'une liaison (`launch_bindings`) :
+
+```json
+[
+  {
+    "moodle_course_id": 564,
+    "product": "gl",
+    "gl_chapter_id": 1,
+    "landing": "aiguillage",
+    "label": ""
+  },
+  {
+    "moodle_course_id": 511,
+    "product": "fm",
+    "landing": "aiguillage",
+    "label": ""
+  }
+]
+```
+
+`product` : `fm` / `gl` / `both` (l'aiguillage propose les deux produits). `landing` :
+`aiguillage` (défaut), `gl_game`, `gl_home`, `fm_map`, `fm_tasks`. Une liaison `both` sans
+aiguillage est refusée à l'enregistrement.
+
+Valeurs initiales des liaisons : un enregistrement par cours de la section 2.2 (G&L,
+`product: "gl"`, chapitre correspondant) **plus** le cours `511` (`product: "fm"`). L'écran
+affiche le **nom du cours** lu dans Moodle à côté de chaque id, comme la table chapitre →
+cours. Bouton « suggérer » : à partir des cohortes visibles dans ce cours (groupe
+« Cohorte 26#… »), proposer FM si `n3` apparaît, G&L si une cohorte joueuse apparaît. L'admin
+peut ajouter une ligne pour n'importe quel autre id de cours.
+
+`landing_options` (défaut) : les cinq valeurs ci-dessus. En retirer une la masque sur
+l'aiguillage **et** dans le sélecteur de liaison.
+
+**Ce qui n'est pas un réglage admin** (reste dans `.env`, I-9) : issuer, client id,
+deployment id, clés de l'outil. **Ce qui n'est pas un réglage du tout** : durées JWT
+(même pile que Google, L19), liste des fonctions Moodle, invariants I-L*.
+
+### 21.6 Ordre d'implémentation M6
+
+1. Secrets `.env` + `moodle:check` étendu : l'outil unique est-il joignable, l'e-mail apparaît-il
+   dans un lancement de test (L9) ?
+2. Réglages `integration.lti.*` + écran section 14 point 8 (liaisons, suggestions, noms de cours).
+3. Endpoint de lancement (outil unique), session, `external_identities` `lti`, refus L6.
+4. Page d'aiguillage + surcharge par paramètres d'activité (L3).
+5. Cibles enseignant (L7). Vérifier Google toujours possible (L10).
+6. Tests : faux plateforme LTI (pas d'appel à `olution.info`) ; personne inconnue refusée ;
+   `Instructor` ne devient pas élève ; iframe non utilisée ; aucune écriture AGS.
+7. Doc `docs/reference/` : geste professeur (poser l'activité, nouvel onglet, restreindre au
+   groupe `FM#` si besoin) et geste admin (liaisons, suggestions).
+
+Chiffrage : possible dès M5 vert ; les décisions pédagogiques ne bloquent plus.
+
+### 21.7 Ce que le lancement de test doit écrire ici (L9, L18)
+
+Avant tout élève réel, consigner dans ce paragraphe :
+
+- `sub` reçu (id numérique Moodle ou opaque) ;
+- présence de l'e-mail et du nom ;
+- URL publique de lancement retenue (hôte `foretmap.` ou autre) ;
+- qui a enregistré l'outil (compte Moodle).
+
+Tant que ce paragraphe est vide, le pilote élève n'a pas lieu.
+
+### 21.8 Précisions d'aiguillage — décisions (8 septembre 2026)
+
+Plus de questions ouvertes. Récapitulatif des réponses aux anciens points 21.8 :
+
+1. **N3beur dans un cours chapitre** : aiguillage **des deux produits** (L23).
+2. **Options d'arrivée** : l'**admin** les règle (`landing` / `landing_options`). Pas de menu
+   libre élève à chaque clic, sauf le cas 1 et le cas enseignant.
+3. **Enseignant** : boutons **à chaque lancement**, selon `instructor_targets` (L7).
+4. **Retour Moodle** : **non**. Le cours reste dans l'autre onglet. Déconnexion → login local.
+5. **URL publique** : **paramétrable** (`integration.lti.public_origin`). Défaut proposé :
+   origine ForetMap, qui redirige vers G&L si la liaison le dit.
+6. **`create` au clic** : **interdit**. Confirmé.
+7. **Cours `511`** : La salle aérée n³ / n³ (section 2.6).
