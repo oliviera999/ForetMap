@@ -2,6 +2,8 @@
 
 Environnement aligné sur la CI : **MariaDB 11.4** (image Docker `mariadb:11.4.10`), deux bases (`foretmap_local` pour l’app, `foretmap_test` pour les tests). **N’utilisez pas** les identifiants o2switch ici.
 
+**Quoi lancer dans quel cas** (seed, e2e, livrable, debug prod) : [SCRIPTS.md](SCRIPTS.md).
+
 ## Prérequis
 
 - Node.js **≥ 20.19** (aligné sur `package.json` `engines` et la CI **Node 22**)

@@ -7,6 +7,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation
+
+- **Fiche scripts** : `docs/SCRIPTS.md` — quoi lancer selon le cas (dev local,
+  seed GL / biodiversité, vérifs avant livrable, déploiement, debug prod, ménage).
+
 ### Ajouté — upgrade pédagogique rétrocompatible (Plan D)
 
 - **Audit lecture seule** : `npm run audit:pedago` signale genres saisis comme espèces,

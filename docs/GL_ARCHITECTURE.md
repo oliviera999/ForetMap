@@ -415,6 +415,8 @@ Tests : `tests/gl-lore-import.test.js`, `tests/gl-lore-feuillets.test.js`, `test
 
 ## Migration de contenu WordPress
 
+Ordre des commandes (XLSX + WP + médias) : [SCRIPTS.md](SCRIPTS.md) §2.
+
 Source recommandée : API publique WordPress de `yo.olution.info` (avec canonical `www.yo.olution.info`).
 
 - Config : `scripts/gl-import-wp.config.json`

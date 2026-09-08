@@ -2,6 +2,8 @@
 
 Objectif : transposer le contenu et l'identité visuelle de `yo.olution.info` dans `gl.olution.info`.
 
+Les autres seeds GL (XLSX chapitres, QCM, lore…) sont listés dans [SCRIPTS.md](SCRIPTS.md) §2.
+
 ## Prérequis
 
 - API REST WordPress accessible en lecture :
