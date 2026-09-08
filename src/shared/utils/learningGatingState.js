@@ -83,13 +83,18 @@ export function gatingState(summary, { done = false } = {}) {
     };
   }
 
-  const reste =
-    pending > ask ? ` (${questionWord(pending)} au total, ${questionWord(ask)} maintenant)` : '';
+  // `ask_count` = ce qui sera posé maintenant, `pending_count` = ce qu'il faut réussir en
+  // tout. Annoncer « 3 questions à réussir avant de valider (8 au total…) » disait deux
+  // nombres contradictoires pour la même chose : la phrase donne d'abord l'exigence.
+  const label =
+    pending > ask
+      ? `Contrôle de compréhension : ${questionWord(pending)} à réussir avant de valider, dont ${questionWord(ask)} dès maintenant.`
+      : `Contrôle de compréhension : ${questionWord(ask)} à réussir avant de valider.`;
   return {
     kind: 'pending',
     icon: STATE_ICONS.pending,
     shortLabel: questionWord(ask),
-    label: `Contrôle de compréhension : ${questionWord(ask)} à réussir avant de valider${reste}.`,
+    label,
   };
 }
 

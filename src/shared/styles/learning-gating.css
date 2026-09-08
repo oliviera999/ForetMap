@@ -389,3 +389,21 @@
   color: var(--learning-gating-muted);
   font-style: italic;
 }
+
+/* Progression du contrôle : ce que le feedback de la question ne dit pas — combien de
+   questions restent après une bonne réponse, combien d'erreurs après une mauvaise. */
+.learning-gating-quiz__progress {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: var(--text-base);
+  font-weight: var(--fw-semibold);
+}
+.learning-gating-quiz__progress--ok {
+  background: rgba(34, 197, 94, 0.08);
+  color: #166534;
+}
+.learning-gating-quiz__progress--warn {
+  background: rgba(245, 158, 11, 0.1);
+  color: #92400e;
+}

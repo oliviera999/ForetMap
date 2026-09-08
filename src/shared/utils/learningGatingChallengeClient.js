@@ -99,15 +99,27 @@ export function buildCooldownLockMessage(cooldown, itemTitle = '') {
   if (isQuestionScopedLock(cooldown)) {
     // Portée « question seule » : la fiche n'est bloquée que parce que plus aucune question
     // n'est posable ; le délai est celui de la question qui se libère en premier.
+    const locked = Math.max(
+      1,
+      Array.isArray(cooldown?.locked_questions) ? cooldown.locked_questions.length : 1,
+    );
+    const ratees =
+      locked === 1
+        ? 'Une question ratée est encore bloquée'
+        : `${locked} questions ratées sont encore bloquées`;
     return (
-      `Une question ratée est encore bloquée, et il n'en reste aucune autre à passer. ` +
+      `${ratees}, et il n'en reste aucune autre à passer. ` +
       `Tu pourras réessayer de valider ${label} dans ${remaining}.`
     );
   }
-  return (
-    `Une erreur a été commise sur le contrôle de compréhension. ` +
-    `Tu pourras réessayer de valider ${label} dans ${remaining}.`
-  );
+  // Avec une tolérance, il a fallu PLUSIEURS erreurs : annoncer « une erreur » laissait
+  // croire que la tolérance réglée par le professeur n'avait pas joué.
+  const wrong = Math.max(0, Number(cooldown?.wrong_attempts) || 0);
+  const commises =
+    wrong > 1
+      ? `${wrong} erreurs ont été commises sur le contrôle de compréhension.`
+      : 'Une erreur a été commise sur le contrôle de compréhension.';
+  return `${commises} Tu pourras réessayer de valider ${label} dans ${remaining}.`;
 }
 
 /** Le verrou ne porte-t-il que sur une question (portée « question seule ») ? */
@@ -120,12 +132,14 @@ export function isQuestionScopedLock(cooldown) {
  * continuer avec les autres questions de la fiche.
  * @param {object} cooldown bloc renvoyé par `…/answer`
  */
-export function buildQuestionLockMessage(cooldown) {
+export function buildQuestionLockMessage(cooldown, { hasOtherQuestions = true } = {}) {
   const remaining = cooldownRemainingLabel(cooldown) || 'quelques minutes';
-  return (
-    `Cette question est bloquée pendant ${remaining}. ` +
-    `Tu peux continuer avec les autres questions de la fiche.`
-  );
+  // Promettre « continue avec les autres » alors que la série n'en comptait qu'une était
+  // faux : l'écran enchaînait aussitôt sur le verrou de la fiche entière.
+  const suite = hasOtherQuestions
+    ? 'Tu peux continuer avec les autres questions de la fiche.'
+    : 'Voyons s’il reste une autre question à passer pour cette fiche.';
+  return `Cette question est bloquée pendant ${remaining}. ${suite}`;
 }
 
 /**
@@ -169,17 +183,55 @@ export function buildGatingQuizIntroMessage(pendingCount, itemTitle = '', retry 
   const label = itemTitle ? `« ${itemTitle} »` : 'ce contenu';
   const questionWord = n === 1 ? 'une question' : `${n} questions`;
   const verb = n === 1 ? 'sera posée' : 'seront posées';
-  const hours =
-    retry && typeof retry === 'object' ? cooldownRetryHours(retry) : clampCooldownHours(retry, 0);
-  const consequence =
-    hours > 0
-      ? `Attention : une erreur bloquera la validation pendant ${formatHoursLabel(hours)}. ` +
-        `Tu peux abandonner à tout moment sans rien risquer.`
-      : `Tu pourras réessayer en cas d'erreur et abandonner à tout moment.`;
+  const source = retry && typeof retry === 'object' ? retry : null;
+  const hours = source ? cooldownRetryHours(source) : clampCooldownHours(retry, 0);
+  const { left } = readToleranceState(source);
+  // Ce que coûte VRAIMENT la prochaine erreur : « une erreur bloque tout » était faux dès
+  // qu'une tolérance était réglée, et faux aussi en portée « question seule », où seule la
+  // question ratée se ferme.
+  const target = isQuestionScopedPolicy(source) ? 'cette question' : 'la validation';
+  let consequence;
+  if (hours <= 0) {
+    consequence = "Tu pourras réessayer tout de suite en cas d'erreur.";
+  } else if (left > 0) {
+    consequence =
+      left === 1
+        ? `Attention : il te reste 1 erreur possible ; la suivante bloquera ${target} pendant ${formatHoursLabel(hours)}.`
+        : `Attention : il te reste ${left} erreurs possibles ; au-delà, ${target} sera bloquée pendant ${formatHoursLabel(hours)}.`;
+  } else {
+    consequence = `Attention : une erreur bloquera ${target} pendant ${formatHoursLabel(hours)}.`;
+  }
   return (
     `Pour valider que tu as bien compris ${label}, ${questionWord} ${verb} ` +
-    `avant de pouvoir confirmer. ${consequence}`
+    `avant de pouvoir confirmer. ${consequence} ` +
+    `Tant que tu n'as pas répondu, tu peux abandonner sans rien risquer.`
   );
+}
+
+/** Portée du verrou annoncée par le challenge (ou par un bloc `cooldown`) : question seule ? */
+function isQuestionScopedPolicy(source) {
+  if (!source) return false;
+  const scope = String(source.cooldown_scope || source.scope || '').toLowerCase();
+  return scope === 'question';
+}
+
+/**
+ * Tolérance d'erreurs telle qu'elle se présente MAINTENANT.
+ *
+ * Trois nombres qui doivent rester d'accord entre l'intro, les règles et le retour d'une
+ * mauvaise réponse : la tolérance réglée, ce qui a déjà été consommé sur la série en cours,
+ * et ce qu'il reste. Trois lectures séparées les faisaient diverger.
+ *
+ * @param {object|null} source challenge (`allowed_wrong_attempts` + `cooldown.wrong_attempts`)
+ *   ou bloc `cooldown` d'une réponse (`allowed_wrong_attempts`, `wrong_attempts`, `attempts_left`)
+ */
+export function readToleranceState(source) {
+  if (!source) return { tolerance: 0, used: 0, left: 0 };
+  const tolerance = Math.max(0, Number(source.allowed_wrong_attempts) || 0);
+  const used = Math.max(0, Number(source.wrong_attempts ?? source.cooldown?.wrong_attempts) || 0);
+  const declared = Number(source.attempts_left);
+  const left = Number.isFinite(declared) ? Math.max(0, declared) : Math.max(0, tolerance - used);
+  return { tolerance, used, left };
 }
 
 /**
@@ -228,29 +280,29 @@ export function buildGatingRules(challenge) {
     );
   }
 
-  const tolerance = Math.max(0, Number(challenge.allowed_wrong_attempts) || 0);
   const hours = cooldownRetryHours(challenge);
   const lockLabel = formatHoursLabel(hours);
+  const questionScoped = isQuestionScopedPolicy(challenge) && hours > 0;
+  // En portée « question seule », c'est la QUESTION qui se ferme, pas la validation :
+  // annoncer « la validation sera bloquée » contredisait la règle suivante.
+  const target = questionScoped ? 'la question ratée' : 'la validation';
+  const { tolerance, left } = readToleranceState(challenge);
   if (hours <= 0) {
     rules.push('En cas d’erreur, tu peux réessayer tout de suite.');
   } else if (tolerance <= 0) {
-    rules.push(`Une seule erreur et la validation sera bloquée ${lockLabel}.`);
-  } else {
+    rules.push(`Une seule erreur et ${target} sera bloquée ${lockLabel}.`);
+  } else if (left === 0) {
     // Le compteur de la série en cours est renvoyé par le serveur même hors verrou (A6) :
-    // un élève qui a déjà consommé une faute ne relit plus la tolérance neuve.
-    const already = Math.max(0, Number(challenge.cooldown?.wrong_attempts) || 0);
-    const left = Math.max(0, tolerance - already);
-    if (left === 0) {
-      rules.push(`Plus aucune erreur permise : la prochaine bloquera la validation ${lockLabel}.`);
-    } else {
-      rules.push(
-        left === 1
-          ? `Il te reste 1 erreur possible ; au-delà, la validation sera bloquée ${lockLabel}.`
-          : `Tu as droit à ${left} erreurs ; au-delà, la validation sera bloquée ${lockLabel}.`,
-      );
-    }
+    // un élève qui a déjà consommé ses fautes ne relit plus la tolérance neuve.
+    rules.push(`Plus aucune erreur permise : la prochaine bloquera ${target} ${lockLabel}.`);
+  } else {
+    rules.push(
+      left === 1
+        ? `Il te reste 1 erreur possible ; au-delà, ${target} sera bloquée ${lockLabel}.`
+        : `Tu as droit à ${left} erreurs ; au-delà, ${target} sera bloquée ${lockLabel}.`,
+    );
   }
-  if (String(challenge.cooldown_scope || '').toLowerCase() === 'question' && hours > 0) {
+  if (questionScoped) {
     rules.push(
       'Une erreur ne bloque que la question ratée : tu peux continuer avec les autres questions.',
     );
@@ -276,4 +328,84 @@ export function buildGatingRules(challenge) {
     'Abandonner maintenant ne coûte rien : rien n’est compté tant que tu n’as pas répondu.',
   );
   return rules;
+}
+
+/**
+ * Retour d'une BONNE réponse : féliciter, et dire où l'on en est.
+ *
+ * Le panneau n'affichait que le feedback pédagogique de la question (« Bonne réponse ! »)
+ * et un bouton « Continuer » : l'élève ne savait ni combien de questions restaient, ni si
+ * la validation venait de s'ouvrir.
+ *
+ * @param {object} params
+ * @param {number} params.questionIndex index (0-based) de la question qui vient d'être réussie
+ * @param {number} params.questionTotal nombre de questions posées dans cette série
+ * @param {number} [params.pendingTotal] bonnes réponses encore attendues AVANT cette série
+ * @param {string} [params.itemTitle]
+ */
+export function buildCorrectAnswerNotice({
+  questionIndex = 0,
+  questionTotal = 1,
+  pendingTotal = 0,
+  itemTitle = '',
+} = {}) {
+  const label = itemTitle ? `« ${itemTitle} »` : 'ce contenu';
+  const asked = Math.max(1, Number(questionTotal) || 1);
+  const done = Math.min(asked, Math.max(1, (Number(questionIndex) || 0) + 1));
+  const leftInSession = asked - done;
+  if (leftInSession > 0) {
+    return (
+      `Bravo, bonne réponse ! ${done} sur ${asked} — encore ` +
+      `${leftInSession} question${leftInSession > 1 ? 's' : ''} pour valider ${label}.`
+    );
+  }
+  const remaining = Math.max(0, Math.max(asked, Number(pendingTotal) || 0) - done);
+  if (remaining > 0) {
+    return (
+      `Bravo, bonne réponse ! Il restera ${remaining} question${remaining > 1 ? 's' : ''} ` +
+      `à réussir pour valider ${label}.`
+    );
+  }
+  return `Bravo, le contrôle est réussi : tu peux maintenant valider ${label}.`;
+}
+
+/**
+ * Retour d'une MAUVAISE réponse qui n'a PAS posé de verrou : combien d'erreurs restent.
+ *
+ * Sans cette phrase, l'écran affichait « Ce n'est pas la bonne réponse. » et un bouton
+ * « Réessayer » : rien ne disait que l'essai suivant était le dernier.
+ *
+ * @param {object|null} cooldown bloc renvoyé par `…/answer` (absent = aucun verrou possible)
+ */
+export function buildWrongAnswerNotice(cooldown) {
+  if (!cooldown || cooldown.locked) return '';
+  const hours = cooldownRetryHours(cooldown);
+  if (hours <= 0) return '';
+  const { tolerance, left } = readToleranceState(cooldown);
+  if (tolerance <= 0) return '';
+  const target = isQuestionScopedLock(cooldown) ? 'cette question' : 'la validation';
+  if (left <= 0) {
+    return `Attention : la prochaine erreur bloquera ${target} pendant ${formatHoursLabel(hours)}.`;
+  }
+  return left === 1
+    ? `Il te reste 1 erreur possible : la suivante bloquera ${target} pendant ${formatHoursLabel(hours)}.`
+    : `Il te reste ${left} erreurs possibles : au-delà, ${target} sera bloquée pendant ${formatHoursLabel(hours)}.`;
+}
+
+/**
+ * Série de questions terminée, mais le contrôle n'est pas encore satisfait (plafond
+ * « questions posées d'affilée »). Sans ce message, l'écran envoyait l'élève sur la
+ * confirmation, que le serveur refusait ensuite par un 403.
+ *
+ * @param {number} remaining bonnes réponses encore attendues
+ * @param {string} [itemTitle]
+ */
+export function buildSessionPausedMessage(remaining, itemTitle = '') {
+  const n = Math.max(1, Number(remaining) || 1);
+  const label = itemTitle ? `« ${itemTitle} »` : 'ce contenu';
+  return (
+    `Bien joué : toutes les questions de cette série sont réussies. Il reste ` +
+    `${n} question${n > 1 ? 's' : ''} à réussir pour valider ${label} — tes bonnes réponses ` +
+    `sont gardées, tu peux enchaîner ou revenir plus tard.`
+  );
 }

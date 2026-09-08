@@ -349,7 +349,7 @@ Les réglages qui accompagnent l'interrupteur (panneau dédié **Validation des 
 | Exigence par défaut                             | **une** question réussie suffit (défaut), **toutes** les questions rattachées, ou un **seuil** de N réussites.                                                                                                                                                                                                                                                                                                                                                                                                      |
 | Nombre de bonnes réponses attendues             | Le N du mode « seuil » (visible dans **Réglages → Validation des lectures** uniquement lorsque le mode site est « seuil », et dans **Rattacher des questions** lorsque l'exigence d'une fiche est « un nombre minimum »).                                                                                                                                                                                                                                                                                           |
 | Erreurs tolérées avant blocage                  | **0 par défaut** : la première mauvaise réponse bloque. Le porter à 1 ou 2 laisse à l'élève le droit de se tromper sans tout perdre.                                                                                                                                                                                                                                                                                                                                                                                |
-| Délai avant nouvelle tentative après une erreur | **6 heures par défaut** (il se réglait en jours, 3 jours par défaut, jusqu'en septembre 2026). Une fois la tolérance épuisée, la validation de ce tutoriel est verrouillée pour la durée indiquée, choisie dans une liste (aucun délai, 1 h … 7 jours) ou saisie librement en heures. `0` supprime le verrou et autorise le réessai immédiat.                                                                                                                                                                       |
+| Délai avant nouvelle tentative après une erreur | **1 heure par défaut** (il se réglait en jours, 3 jours par défaut, puis 6 heures, jusqu'en septembre 2026) — assez pour qu'une erreur coûte quelque chose, assez court pour que l'élève rattrape la fiche dans la même journée de cours. Une fois la tolérance épuisée, la validation de ce tutoriel est verrouillée pour la durée indiquée, choisie dans une liste (aucun délai, 1 h … 7 jours) ou saisie librement en heures. `0` supprime le verrou et autorise le réessai immédiat.                            |
 | Sévérité du verrou                              | **Normale par défaut.** Dit ce qui pose le verrou. **Souple** : l'ancien comportement, le verrou dépend de ce que l'écran envoie. **Normale** : le verrou ne peut être posé que depuis le flux de validation (la question posée depuis la fiche), quoi que fasse l'onglet Quiz. **Stricte** : en plus, les questions bloquantes de la fiche ne se jouent _que_ depuis la fiche — elles disparaissent du Quiz libre. Se règle par type de ressource : par exemple tutoriels en « stricte », glossaire en « souple ». |
 | Questions posées d'affilée au maximum           | **3 par défaut.** En mode « toutes », l'élève avance par paliers plutôt que d'enchaîner huit questions : ses bonnes réponses sont gardées d'une fois sur l'autre.                                                                                                                                                                                                                                                                                                                                                   |
 | Annoncer le contrôle sur le bouton              | **Oui par défaut.** Le bouton « Marquer comme lu » porte alors une pastille (« 1 question », « 🔒 ») pour prévenir l'élève avant qu'il ne clique.                                                                                                                                                                                                                                                                                                                                                                   |
@@ -362,28 +362,77 @@ Les réglages qui accompagnent l'interrupteur (panneau dédié **Validation des 
 | Niveau        | Où le configurer                               | Ce qu'il couvre                                                                                                                                                                                                                                                                                                |
 | ------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Site**      | Réglages → Validation des lectures             | Mode, seuil N, erreurs tolérées, questions par session, délai, portée et sévérité du verrou (valeurs par défaut pour toute l'application). L'écran est organisé en quatre étapes — _Activer_, _Ce qu'il faut réussir_, _En cas d'erreur_, _Ce que l'élève voit_ — chaque champ accompagné d'une phrase d'aide. |
-| **Par type**  | Même panneau, section « Préréglages par type » | Tutoriels, fiches espèces ou glossaire : surcharge optionnelle de chaque paramètre ci-dessus (`Hériter` = reprendre le site).                                                                                                                                                                                  |
+| **Par type**  | Même panneau, section « Préréglages par type » | Tutoriels, fiches espèces ou glossaire : surcharge optionnelle de chaque paramètre ci-dessus (`Hériter` = reprendre le site). **Un seul préréglage est livré : celui des tutoriels** (voir juste en dessous) ; espèces et glossaire n'en ont aucun et suivent donc le site.                                    |
 | **Par fiche** | Quiz → Rattacher des questions → fiche choisie | Exception pour un tutoriel, une espèce ou un terme précis ; peut aussi dispenser la fiche. L'écran indique la règle **effective** et d'où elle vient.                                                                                                                                                          |
 
+#### Les tutoriels sont plus exigeants que le reste (préréglage livré)
+
+Un tutoriel se lit en plusieurs minutes et porte plus de matière qu'un terme de glossaire.
+Depuis septembre 2026, un **préréglage du type « tutoriel »** est donc livré avec
+l'application, visible et modifiable dans _Réglages → Validation des lectures → Préréglages
+par type_ :
+
+| Réglage                                | Tutoriels                   | Fiches espèces et glossaire        |
+| -------------------------------------- | --------------------------- | ---------------------------------- |
+| Bonnes réponses exigées                | **2**                       | 1 (réglage du site)                |
+| Portée du blocage                      | **la seule question ratée** | la fiche entière (réglage du site) |
+| Erreurs tolérées                       | héritées du site (0)        | 0 (réglage du site)                |
+| Délai, sévérité, questions par session | hérités du site             | hérités du site                    |
+
+La portée réduite accompagne l'exigence, elle ne la contredit pas : demander deux bonnes
+réponses **et** verrouiller toute la fiche à la première erreur rendrait le tutoriel
+injouable. En revanche la **tolérance reste celle du site** — un tutoriel n'offre jamais plus
+d'essais qu'une fiche espèce. Le seuil, lui, s'adapte au contenu : un tutoriel qui ne porte
+qu'**une** question bloquante n'en pose qu'une, sans impasse.
+
+Deux choses que ce préréglage ne fait pas : il **ne conditionne rien** tant que
+l'interrupteur du site est éteint (valeur par défaut) et qu'aucune question n'est cochée
+« bloquante », et il ne **fige** que les deux lignes en gras ci-dessus — changer le délai ou la
+sévérité au niveau du site continue de se propager aux tutoriels. Un professeur peut le
+modifier, ou le neutraliser en repassant chaque champ sur « Hériter » ; il ne sera jamais
+réécrit par une mise à jour.
+
 Ce que l'élève voit, dans l'ordre. **Avant même de cliquer**, le bouton indique ce qui
-l'attend : « 1 question », ou un cadenas si la validation est encore bloquée. Au clic, un
-**petit panneau surgit par-dessus la page** — il ne masque pas le tutoriel qu'on vient de
-lire — et énonce les règles noir sur blanc : combien de questions vont être posées, combien
-il en restera après, combien d'erreurs sont permises, ce que coûte une erreur de trop, et le
-rappel qu'abandonner maintenant ne coûte rien. Vient ensuite la question — énoncé,
-illustration éventuelle avec son crédit, choix mélangés —, puis le résultat. Bonne réponse : il passe à la
-question suivante, ou à la confirmation de lecture si c'était la dernière ; les pastilles des
-listes ouvertes derrière se mettent à jour aussitôt. Mauvaise réponse : tout dépend de la
-tolérance. S'il reste des erreurs permises, l'écran le dit (« il te reste 1 erreur possible »)
-et propose de réessayer ; la tolérance épuisée, le verrou tombe et le message indique le temps
-restant (« réessaie dans 5 h », « 1 j 2 h »). En portée « seulement la question ratée », le
-message dit plutôt « cette question est bloquée pendant 6 h, tu peux continuer avec les
-autres » et la question suivante est posée. **Abandonner ne coûte rien** tant qu'aucune
-réponse n'a été envoyée. Les bonnes réponses déjà données ailleurs (dans l'onglet Quiz, par
-exemple) comptent : une question déjà réussie n'est pas reposée. Si la question a expiré
-(quinze minutes sans répondre), elle est simplement rechargée avec de nouveaux choix ; si le
-serveur refuse la validation, l'écran explique pourquoi (questions restantes, verrou) au lieu
-de laisser confirmer pour rien.
+l'attend : « 1 question », ou un cadenas si la validation est encore bloquée. Quand la série
+ne couvre pas tout le contrôle, l'infobulle donne les deux nombres sans les confondre
+(« 3 questions maintenant, 8 au total à réussir avant de valider »). Au clic, un **petit
+panneau surgit par-dessus la page** — il ne masque pas le tutoriel qu'on vient de lire — et
+énonce les règles noir sur blanc : combien de questions vont être posées, combien il en
+restera après, combien d'erreurs sont permises, ce que coûte une erreur de trop, et le
+rappel qu'abandonner ne coûte rien tant qu'on n'a pas répondu.
+
+L'annonce dit **ce qui va réellement se passer**, pas un cas général : avec deux erreurs
+tolérées, elle annonce « il te reste 2 erreurs possibles » (et non « une erreur bloquera la
+validation ») ; les erreurs déjà commises sont décomptées ; en portée « seulement la question
+ratée », c'est **la question** qui se ferme, pas la validation, et la phrase le dit.
+
+Vient ensuite la question — énoncé, illustration éventuelle avec son crédit, choix mélangés —,
+puis le résultat.
+
+- **Bonne réponse** : l'écran félicite et situe (« Bravo, bonne réponse ! 1 sur 2 — encore
+  1 question pour valider "Le compostage" »). À la dernière, il annonce l'ouverture de la
+  validation (« Bravo, le contrôle est réussi : tu peux maintenant valider… ») ; les pastilles
+  des listes ouvertes derrière se mettent à jour aussitôt.
+- **Mauvaise réponse** : tout dépend de la tolérance. S'il reste des erreurs permises, l'écran
+  le dit explicitement sous le retour de la question (« Il te reste 1 erreur possible : la
+  suivante bloquera la validation pendant 1 h ») et propose de réessayer ; la tolérance
+  épuisée, le verrou tombe et le message indique le temps restant (« réessaie dans 5 h »,
+  « 1 j 2 h ») ainsi que le nombre d'erreurs réellement commises. En portée « seulement la
+  question ratée », le message dit plutôt « cette question est bloquée pendant 1 h, tu peux
+  continuer avec les autres » — et ne le promet que s'il reste effectivement une autre question
+  dans la série.
+- **Série terminée mais contrôle inachevé** (plafond « questions posées d'affilée ») : l'écran
+  ne propose plus une confirmation que le serveur refuserait. Il annonce le reliquat (« il
+  reste 2 questions à réussir… tes bonnes réponses sont gardées ») et laisse le choix entre
+  _Plus tard_ et _Continuer le contrôle_, qui enchaîne la série suivante.
+
+**Abandonner ne coûte rien** tant qu'aucune réponse n'a été envoyée. Les bonnes réponses déjà
+données ailleurs (dans l'onglet Quiz, par exemple) comptent : une question déjà réussie n'est
+pas reposée. Si la question a expiré (quinze minutes sans répondre), elle est simplement
+rechargée avec de nouveaux choix ; si le serveur refuse la validation, l'écran explique
+pourquoi (verrou, ou le nombre **réellement** attendu par le mode en vigueur — une seule
+question en mode « une suffit », même si cinq sont rattachées) au lieu de laisser confirmer
+pour rien.
 
 ### Les pastilles d'état
 
@@ -427,7 +476,7 @@ Pour un contenu choisi, on peut :
   une question rattachée sans cocher la case. Le bouton **« Rendre bloquantes les N
   question(s) approuvée(s) »** le fait d'un geste pour toute la fiche, après une confirmation
   qui énonce ce que l'élève devra faire (« une question réussie suffit sur 12, aucune erreur
-  tolérée, verrou 6 h… »).
+  tolérée, verrou 1 h… »).
 - **Changer le statut** : seules les questions **approuvées** comptent. Une question
   « proposée » n'a aucun effet tant qu'un professeur ne l'a pas approuvée ; « rejetée » la
   met de côté sans l'effacer.

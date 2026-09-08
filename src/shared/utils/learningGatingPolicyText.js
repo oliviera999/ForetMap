@@ -2,7 +2,11 @@
  * Textes d'aide pour les politiques de conditionnement (prof / admin).
  * Miroir ESM de lib/shared/gatingPolicyLayersCore.js et resourceQuestionGatingCore.js.
  */
-import { clampCooldownHours, formatHoursLabel } from './cooldownDuration.js';
+import {
+  clampCooldownHours,
+  formatHoursLabel,
+  DEFAULT_RETRY_COOLDOWN_HOURS,
+} from './cooldownDuration.js';
 
 function clampN(value, fallback = 1) {
   const n = Number(value);
@@ -86,7 +90,7 @@ export function retryHoursLabel(hours) {
 }
 
 /** Délai en heures d'un objet réglages/politique, ancien champ en jours accepté (× 24). */
-export function readRetryHours(source, fallback = 6) {
+export function readRetryHours(source, fallback = DEFAULT_RETRY_COOLDOWN_HOURS) {
   if (!source) return fallback;
   if (source.retryCooldownHours != null && source.retryCooldownHours !== '') {
     return clampCooldownHours(source.retryCooldownHours, fallback);
@@ -153,7 +157,10 @@ export function describeEffectiveGatingPolicy({
   );
   const maxS = Math.max(1, Math.min(10, Number(maxQuestionsPerSession) || 3));
   parts.push(`jusqu'à ${maxS} question(s) par session`);
-  const hours = readRetryHours({ retryCooldownHours, retryCooldownDays }, 6);
+  const hours = readRetryHours(
+    { retryCooldownHours, retryCooldownDays },
+    DEFAULT_RETRY_COOLDOWN_HOURS,
+  );
   const scopeLabel =
     cooldownScope === 'question' ? 'verrou sur la question ratée' : 'verrou sur toute la fiche';
   if (hours <= 0) {
