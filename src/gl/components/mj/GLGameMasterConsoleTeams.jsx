@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
 import { GLGameRosterPanel } from '../admin/GLGameRosterPanel.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
@@ -5,6 +7,10 @@ import { GLDataList } from '../ui/GLDataList.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
+import { GLTeamComposeDialog } from './GLTeamComposeDialog.jsx';
+
+const COMPOSE_LOCKED_HINT =
+  'La composition automatique n’est possible que sur une partie en préparation.';
 
 export default function GLGameMasterConsoleTeams({
   game,
@@ -28,7 +34,12 @@ export default function GLGameMasterConsoleTeams({
   busy,
   teamSaveStatus = 'idle',
   teamSaveError = '',
+  profileRecipesEnabled = false,
+  scoringEnabled = false,
 }) {
+  const [composeOpen, setComposeOpen] = useState(false);
+  const isDraft = String(game?.status || '') === 'draft';
+
   if (!game?.id) {
     return (
       <div className="gl-empty-state">
@@ -62,7 +73,37 @@ export default function GLGameMasterConsoleTeams({
           >
             Ajouter équipe Licorne
           </GLButton>
+          <span title={isDraft ? undefined : COMPOSE_LOCKED_HINT}>
+            <GLButton
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => setComposeOpen(true)}
+              disabled={busy || !isDraft}
+              aria-describedby={isDraft ? undefined : 'gl-compose-locked-hint'}
+              data-testid="gl-compose-open"
+            >
+              Composer automatiquement
+            </GLButton>
+          </span>
         </div>
+        {!isDraft ? (
+          <p id="gl-compose-locked-hint" className="gl-hint">
+            {COMPOSE_LOCKED_HINT}
+          </p>
+        ) : null}
+        <GLTeamComposeDialog
+          open={composeOpen}
+          onClose={() => setComposeOpen(false)}
+          gameId={game.id}
+          gameName={game.name}
+          profileRecipesEnabled={profileRecipesEnabled}
+          scoringEnabled={scoringEnabled}
+          onApplied={async () => {
+            await onReloadGame?.();
+            setRosterRefreshKey((value) => value + 1);
+          }}
+        />
 
         <form className="gl-form" onSubmit={upsertTeam}>
           <h4>{editingTeamId ? 'Modifier une équipe' : 'Nouvelle équipe'}</h4>

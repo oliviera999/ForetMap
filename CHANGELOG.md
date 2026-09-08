@@ -7,6 +7,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté (GL) — composition automatique des équipes, lot v1
+
+- **Console MJ → onglet Équipes** : bouton **« Composer automatiquement »** (partie en
+  brouillon uniquement, désactivé avec info-bulle sinon). Dialogue `GLTeamComposeDialog` :
+  taille d'équipe (défaut 4) ou nombre d'équipes, graine + « Nouvelle proposition », inclusion
+  des inactifs, trois recettes **Aléatoire** / **Aléatoire avec mémoire** (évite de remettre
+  ensemble d'anciens coéquipiers des parties passées de la classe) / **Reconduire** (reprend la
+  dernière partie de la classe, repli aléatoire + avertissement sinon). Aperçu retouchable —
+  sélecteur « déplacer vers… » par joueur (clavier / tactile, pas de glisser-déposer), renommage
+  — puis **Appliquer** ; remplacement explicite des équipes existantes. Explications factuelles
+  seulement, **aucun score individuel** exposé.
+- **API** : `POST /api/gl/games/:id/teams/compose/preview` (aperçu sans écriture, déterministe à
+  graine donnée) et `POST /api/gl/games/:id/teams/compose/apply` (transaction : équipes + membres,
+  `replaceExisting`, un seul événement `teams_composed`). `gl.team.manage` **et**
+  `gl.players.manage` ; `409 GAME_NOT_DRAFT` / `NOT_ENOUGH_PLAYERS` / `TEAMS_NOT_EMPTY`,
+  `400 INVALID_MEMBER` / `INVALID_TEAM`. Journal : « Le MJ a composé N équipes (recette …) ».
+- **Moteur** : `lib/gl/teamComposition.js` (pur : graine FNV-1a + xorshift, coût pondéré par
+  recette, recherche locale par échanges), `lib/gl/teamNaming.js` (noms tirés du vocabulaire du
+  chapitre, palette, mascottes du catalogue GL typé sans doublon, peuples alternés avec au moins
+  un gnome et une licorne), `lib/glTeamCompositionHistory.js` (paires de coéquipiers pondérées
+  `0.8^rang` sur 12 parties, taux de brassage), orchestration `lib/glTeamComposition.js`.
+  Plafond : 13 équipes distinctes (7 mascottes gnome + 6 licorne typées).
+- Tests : `tests/gl-team-composition.test.js`, `gl-team-naming.test.js`,
+  `gl-team-composition-history.test.js`, `gl-games-teams-compose.test.js`,
+  `tests-ui/gl/GLTeamComposeDialog.test.jsx`. Docs : `docs/API.md`, `docs/GL_ARCHITECTURE.md`,
+  `docs/GL_TESTS.md`, `docs/reference/gl/chapitres-et-progression.md`, `guide-du-mj.md`,
+  conception `docs/GL_EQUIPES_AUTO_CONCEPTION.md`.
+
 ### Corrigé (GL) — l'équipe d'un joueur est lue par partie, plus par un pointeur global
 
 - **Symptôme** : `gl_players.team_id` était un pointeur **global** réécrit à chaque
@@ -29,6 +57,30 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   ce lot) mais n'est plus ni écrite ni lue ; sa suppression physique se fera dans une migration
   dédiée ultérieure. Tests : `tests/gl-player-membership.test.js` ; doc :
   `docs/API.md` (`/api/gl/auth/me`), `docs/reference/gl/roles-et-connexion.md`.
+
+### Documentation — lien Moodle : décisions LTI et annuaire (8 septembre 2026)
+
+- Sections **20** et **21** de `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : plus de questions
+  pédagogiques ouvertes. Annuaire : cours 2–6 confirmés, `{year}#` / `{year}#n3`, binôme
+  `601-602` indissociable, `push_membership` n3beurs, retrait de groupes sans désactivation
+  des comptes rapprochés, alerte si deux classes G&L. LTI : aiguillage des deux produits
+  pour un n3beur dans un cours chapitre ; options d'arrivée réglées par l'admin ; boutons
+  enseignant à chaque lancement ; pas de retour Moodle ; URL publique paramétrable ; jamais
+  de création de compte au clic ; cours `511` = La salle aérée n³.
+- Il reste à **mesurer** sur un lancement de test (21.7) : forme du `sub` LTI, présence de
+  l'e-mail — pas une question métier.
+
+### Documentation — lien Moodle : LTI 1.3 devient une étape du chantier, pas un hors-sujet
+
+- `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : le lien Moodle ↔ ForetMap / G&L a **deux
+  couches** — l'annuaire (Web Services, lots M1–M5) puis l'entrée depuis le cours (LTI 1.3,
+  lot M6). LTI n'est plus « cadré à part » : ce n'est pas une deuxième sync d'utilisateurs,
+  c'est le clic depuis une activité Moodle vers un compte **déjà** reconnu, avec note en
+  option.
+- Nouvelle **section 21** : ce qui est déjà décidé (LTI n'alimente jamais les cohortes ;
+  `external_identities` `provider = 'lti'` ; pas de secret ; M1–M5 sans lancement), les trois
+  briques (lancement, identité au clic, retour de notes), et **vingt-deux questions** (L1–L22)
+  sans lesquelles on ne code pas. M6 est listé, bloqué et à chiffrer après réponses.
 
 ### Corrigé — le sélecteur de mascotte proposait toutes les mascottes livrées, quoi qu'ait décidé le studio
 

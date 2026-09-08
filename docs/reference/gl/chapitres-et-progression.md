@@ -51,6 +51,20 @@ son chapitre** à sa création.
    **mascotte** dans le catalogue (filtré par peuple). Les joueurs de la classe sont
    ensuite répartis : à la main, par répartition automatique, ou en laissant chaque
    joueur rejoindre lui-même une équipe.
+   - **Composer automatiquement** (bouton de l'onglet Équipes, disponible seulement
+     tant que la partie est en brouillon) : le MJ choisit une taille d'équipe (4 par
+     défaut) et une **recette** — _Aléatoire_, _Aléatoire avec mémoire_ (le jeu évite de
+     remettre ensemble des élèves qui ont déjà joué côte à côte dans les parties
+     précédentes de la classe) ou _Reconduire_ (les équipes de la partie précédente sont
+     reprises telles quelles ; s'il n'y en a pas, on retombe sur l'aléatoire, et le MJ en
+     est averti). Le jeu propose alors des équipes complètes : nom tiré du vocabulaire du
+     chapitre, couleur, peuple alterné (au moins un camp de chaque dès deux équipes),
+     mascotte distincte pour chacune. Le MJ **relit et retouche** la proposition
+     (déplacer un joueur vers une autre équipe, renommer une équipe, tirer une nouvelle
+     proposition) avant de l'**appliquer** ; rien n'est enregistré avant ce clic. Si des
+     équipes existaient déjà, le MJ doit explicitement accepter de les remplacer. Les
+     élèves inactifs sont laissés de côté par défaut (le MJ peut les inclure). Le journal
+     de la partie garde une trace « le MJ a composé N équipes ».
 3. **Démarrer** : la partie passe **en cours**. Si la carte du chapitre est en
    « parcours numéroté », toutes les mascottes sont posées sur la case départ. Le MJ
    peut mettre en **pause** puis reprendre, et **terminer** la partie quand il veut.

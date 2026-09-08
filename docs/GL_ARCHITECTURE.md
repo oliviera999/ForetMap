@@ -248,6 +248,26 @@ Chaque toggle est une clé dans `gl_settings` (modifiable via `PUT /api/gl/admin
 
 Côté serveur : module `lib/glSettings.js` (cache mémoire 30 s, invalidé à chaque PUT `gameplay.*`). Côté client : `apiGL('/api/gl/gameplay-settings')` au login et au déclenchement de chaque event reçu côté MJ ; UI conditionnelle dans `GLGameMasterConsole` et `GLMapView`.
 
+### Équipes : appartenance par partie et composition automatique
+
+L'appartenance d'un joueur à une équipe est **toujours scopée à une partie** (`gl_team_members`,
+une ligne par `(game_id, player_id)`). La colonne historique `gl_players.team_id` n'est **plus
+écrite ni lue** ; `lib/glPlayerMembership.js` (`resolveGlPlayerActiveMembership`) désigne l'équipe
+« active » d'un joueur (partie ciblée par le jeton, sinon `live` > `paused` > `draft` > `ended`,
+puis la plus récente) pour `/auth/me`, l'hydratation JWT, le gating d'équipe et la liste admin.
+
+Composition automatique (conception : [GL_EQUIPES_AUTO_CONCEPTION.md](GL_EQUIPES_AUTO_CONCEPTION.md)) :
+
+| Couche        | Emplacement                                                                | Rôle                                                                                                                                                                                                                   |
+| ------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Moteur pur    | `lib/gl/teamComposition.js`                                                | Graine déterministe (FNV-1a + xorshift), fonction de coût pondérée par recette (`RECIPE_WEIGHTS`), recherche locale par échanges (`computeComposition`), verrous/épingles                                              |
+| Nommage pur   | `lib/gl/teamNaming.js`                                                     | Noms tirés du vocabulaire du chapitre (titre, biomes, plateau, repli « Équipe N »), palette de couleurs, mascottes du catalogue GL typé (gnome/licorne) sans doublon, alternance des peuples                           |
+| Historique    | `lib/glTeamCompositionHistory.js`                                          | Paires de coéquipiers des parties passées de la classe (`gl_team_members ⋈ gl_games ⋈ gl_teams`, pondération `0.8^rang`, 12 parties max), taux de brassage                                                             |
+| Orchestration | `lib/glTeamComposition.js`                                                 | `buildCompositionProposal` (chargement partie/joueurs/historique, recette, avertissements, `explain` factuel) et `applyComposition` (transaction : remplacement optionnel, INSERT équipes + membres, événement unique) |
+| API           | `routes/gl/games/teams.js` — `POST .../teams/compose/preview` et `/apply`  | `gl.team.manage` + `gl.players.manage`, partie `draft` uniquement ; codes détaillés dans `docs/API.md`                                                                                                                 |
+| Journal       | `lib/glJournalPresent.js`                                                  | Événement `teams_composed` (« Le MJ a composé N équipes (recette …) »), sans score individuel                                                                                                                          |
+| Console MJ    | `src/gl/components/mj/GLTeamComposeDialog.jsx`, `GLGameMasterConsoleTeams` | Bouton « Composer automatiquement » (désactivé hors `draft`), aperçu retouchable (sélecteur « déplacer vers… » par joueur, renommage), application                                                                     |
+
 ## Isolation de sécurité
 
 - Guard serveur global : un token GL est refusé sur les routes `/api/*` ForetMap.
