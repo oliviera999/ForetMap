@@ -25,6 +25,7 @@ export const moodleAdminApi = {
   exempt: () => api(`${BASE}/exempt`),
   setExempt: (body) => api(`${BASE}/exempt`, 'POST', body),
   merge: (body) => api(`${BASE}/merge`, 'POST', body),
+  ltiSuggest: (courseId) => api(`${BASE}/lti/suggest`, 'POST', { courseId }),
 };
 
 /** L'API répond 503 avec ce code tant que `.env` ne porte pas l'URL et le jeton. */

@@ -65,6 +65,17 @@ tant que `MOODLE_BASE_URL` / `MOODLE_WS_TOKEN` ne sont pas dans `.env` **et** qu
   points d'attention), exposé dans la doc de référence en ligne ; mentions dans
   `comptes-roles-et-groupes.md` et `gl/guide-du-mj.md`.
 
+### Ajouté — entrée depuis le cours Moodle (LTI 1.3, lot M6)
+
+Clic depuis une activité Moodle vers un compte **déjà** reconnu (pas une 2ᵉ sync). Dépendance
+[`jose`](https://github.com/panva/jose) (MIT) pour JWKS distant + RS256.
+
+- Secrets `.env` `LTI_*` ; réglages `integration.lti.*` (liaisons cours → produit, `unknown_user`
+  refuse/queue jamais `create`, cibles enseignant). Routes `/api/lti/login`, `/launch`,
+  `/.well-known/jwks.json`, `/session` (ticket 120 s puis jeton même durée qu'une session Google,
+  dépôt `#oauth=`). Personne inconnue refusée, aucun `INSERT users`. Page `/lti/arrivee` ;
+  sous-section admin **Entrée depuis le cours**. `npm run moodle:check` contrôle aussi le JWKS.
+
 ### Documentation — lien Moodle : spécification finalisée (annuaire M1–M5, LTI 1.3 en M6)
 
 - `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : le lien Moodle ↔ ForetMap / G&L a **deux

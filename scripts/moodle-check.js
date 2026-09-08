@@ -70,6 +70,23 @@ function printHuman(report, env) {
   line(report.ok ? 'Résultat : OK' : 'Résultat : problèmes à corriger (voir ci-dessus)');
 }
 
+function printLti(lti) {
+  line('');
+  line('Entrée depuis le cours (LTI 1.3) :');
+  if (!lti.configured) {
+    line('  secrets absents de .env (lancement désactivé)');
+    return;
+  }
+  line(
+    `  issuer ${lti.issuer} · client_id ${lti.clientIdSet ? 'posé' : 'manquant'} · deployment ${lti.deploymentIdSet ? 'posé' : 'manquant'}`,
+  );
+  line(
+    `  JWKS plateforme : ${lti.jwksOk ? `OK (${lti.jwksKeys} clé(s))` : 'KO'} ${lti.platformJwksUrl || ''}`,
+  );
+  line(`  clé de l’outil : ${lti.toolJwkOk ? 'OK' : 'KO'} (kid ${lti.toolKid || '?'})`);
+  for (const err of lti.errors || []) line(`  ERREUR [${err.step}] ${err.message}`);
+}
+
 async function main() {
   const env = readMoodleEnv();
   if (!env.configured) {
@@ -109,9 +126,16 @@ async function main() {
     if (!asJson) line(`(réglages par défaut : base indisponible — ${error.message})`);
   }
   const report = await runMoodleCheck({ client, settings, chapters });
+  const { runLtiCheck } = require('../lib/lti/check');
+  const lti = await runLtiCheck();
+  report.lti = lti;
   if (asJson) line(JSON.stringify(report, null, 2));
-  else printHuman(report, env);
-  process.exit(report.ok ? 0 : 1);
+  else {
+    printHuman(report, env);
+    printLti(lti);
+  }
+  const ltiFail = lti.configured && lti.errors.length > 0;
+  process.exit(report.ok && !ltiFail ? 0 : 1);
 }
 
 main().catch((error) => {

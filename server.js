@@ -59,6 +59,7 @@ const auditRouter = require('./routes/audit');
 const rbacRouter = require('./routes/rbac');
 const settingsRouter = require('./routes/settings');
 const adminMoodleRouter = require('./routes/admin/moodle');
+const ltiRouter = require('./routes/lti');
 const referenceDocsRouter = require('./routes/reference-docs');
 const mediaLibraryRouter = require('./routes/media-library');
 const forumRouter = require('./routes/forum');
@@ -497,6 +498,7 @@ app.use('/api', (req, res, next) => {
 app.use('/api/usage', usageRouters.publicRouter);
 app.use('/api/admin/usage', usageRouters.adminRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/lti', ltiRouter);
 app.use('/api/zones', zonesRouter);
 app.use('/api/maps', mapsRouter);
 app.use('/api/map-categories', mapCategoriesRouter);

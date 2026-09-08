@@ -160,6 +160,13 @@ const settings = {
   ],
   'integration.moodle.chapter_courses': { 1: 42 },
   'integration.moodle.threshold_create_pct': 30,
+  'integration.lti.enabled': false,
+  'integration.lti.unknown_user': 'refuse',
+  'integration.lti.public_origin': '',
+  'integration.lti.instructor_targets': ['fm', 'gl'],
+  'integration.lti.launch_bindings': [
+    { moodle_course_id: 42, product: 'gl', gl_chapter_id: 1, landing: 'aiguillage', label: '' },
+  ],
 };
 
 function renderPanel(props = {}) {
@@ -307,5 +314,15 @@ describe('MoodleAdminPanel', () => {
     expect(key).toBe('integration.moodle.policies');
     expect(value[0].pattern).toBe('^{year}#6\\d{2}(-6\\d{2})?$');
     expect(value[0].role).toBe('visiteur');
+  });
+
+  it('Entrée depuis le cours : affiche le nom du cours et refuse create comme unknown_user', async () => {
+    mockApi();
+    window.localStorage.setItem('foretmap.adminSection.moodle-lti', '1');
+    renderPanel();
+    await screen.findByTestId('moodle-lti');
+    expect(screen.getByText('Cours G&L chapitre 1')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /Refuser/ })).toBeChecked();
+    expect(screen.queryByRole('radio', { name: /créer/i })).not.toBeInTheDocument();
   });
 });

@@ -23,7 +23,8 @@
    oublié se réinitialise en un clic dans la gestion des joueurs. Quand l'administrateur
    a fait la **rentrée avec Moodle**, les classes de sixième et leurs joueurs existent déjà
    avant la première séance : il n'y a rien à créer, seulement à vérifier l'effectif (voir
-   [La rentrée avec Moodle](../foretmap/rentree-moodle.md), côté ForetMap).
+   [La rentrée avec Moodle](../foretmap/rentree-moodle.md), côté ForetMap). Une activité du cours
+   Moodle peut aussi ouvrir le jeu **déjà connecté** (nouvel onglet) pour un joueur déjà reconnu.
 
 ## Pendant la séance — la console MJ
 

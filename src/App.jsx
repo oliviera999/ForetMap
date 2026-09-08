@@ -87,6 +87,7 @@ import { AppHeader } from './components/app/AppHeader.jsx';
 import { AppLoader, FULL_PAGE_LOADER_STYLE } from './components/app/AppLoader.jsx';
 import { AppUserDialog } from './components/app/AppUserDialog.jsx';
 import { UnauthenticatedShell } from './components/app/UnauthenticatedShell.jsx';
+import { LtiArrivee } from './components/lti/LtiArrivee.jsx';
 import { MapTasksArea } from './components/app/MapTasksArea.jsx';
 import { NoticeBanner } from './components/app/NoticeBanner.jsx';
 import { PedagoTabs } from './components/app/PedagoTabs.jsx';
@@ -994,6 +995,20 @@ function App() {
       loadArchivedTasks,
     ],
   );
+
+  const ltiArrivee =
+    typeof window !== 'undefined' &&
+    (() => {
+      const p = String(window.location.pathname || '').replace(/\/+$/, '');
+      return p === '/lti/arrivee' || p.endsWith('/lti/arrivee');
+    })();
+  if (ltiArrivee) {
+    return (
+      <PublicSettingsProvider value={publicSettings}>
+        <LtiArrivee />
+      </PublicSettingsProvider>
+    );
+  }
 
   if (!student && !isTeacher)
     return (

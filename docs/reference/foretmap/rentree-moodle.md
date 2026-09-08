@@ -52,7 +52,7 @@ Dans **Paramètres administrateur → onglet Moodle**. L'onglet s'ouvre sur l'**
 
 Puis, en sections repliables : **Synchroniser**, **Rapprochements en attente**, **Conflits à
 trancher**, **Historique**, **Politiques par cohorte**, **Chapitres → cours**, **Seuils de
-sécurité**, **Outils**.
+sécurité**, **Entrée depuis le cours**, **Outils**.
 
 ## Synchroniser, pas à pas
 
@@ -155,6 +155,26 @@ ne s'annule pas.
   disparaît. **Cette opération ne s'annule pas.** Elle est refusée si les deux comptes ne sont
   pas du même type ou si chacun a déjà un joueur de jeu.
 
+## Entrée depuis un cours Moodle
+
+Une activité du cours peut ouvrir **un nouvel onglet** directement dans ForetMap ou dans
+Gnomes & Licornes, **déjà connecté**, sans mot de passe supplémentaire. Cela ne crée jamais
+de compte : l'élève doit déjà exister dans l'annuaire (la synchronisation ci-dessus). Un
+inconnu voit un refus clair.
+
+L'administrateur règle, dans **Entrée depuis le cours** :
+
+- l'activation ;
+- ce qui arrive à une personne inconnue (refus, ou file d'attente réservée) ;
+- pour chaque cours Moodle : ForetMap, Gnomes & Licornes, ou les deux, l'écran d'arrivée, le
+  chapitre de jeu s'il y a lieu ;
+- les boutons proposés à un **enseignant** (ForetMap prof / Gnomes & Licornes MJ) à chaque
+  clic — le rôle dans l'application ne vient pas du rôle Moodle « enseignant ».
+
+Un n3beur qui clique dans un cours de chapitre Gnomes & Licornes voit les **deux**
+applications (carte ForetMap et jeu). Un élève de 6e non n3beur suit l'écran réglé pour ce
+cours. Le professeur pose l'activité à la main dans Moodle (pas d'insertion automatique).
+
 ## Ce que ça change pour un professeur
 
 - Les groupes-classes apparaissent **tout seuls** à la rentrée, avec les bons élèves ; plus
@@ -197,10 +217,11 @@ ne s'annule pas.
   un Moodle de test. La première mise en service demandera le jeton de service (geste
   technique) et une passe de « Contrôler la connexion ».
 - **Miroirs d'équipes vers les cours Moodle** (les équipes de jeu recopiées comme groupes dans le
-  cours du chapitre) et **entrée depuis le cours** (cliquer une activité Moodle pour arriver
-  connecté dans ForetMap ou dans le jeu) : décrits dans la spécification, livrés dans des lots
-  suivants ; l'option « Inclure les miroirs d'équipes » est visible mais sans effet tant que ce
-  lot n'est pas livré.
+  cours du chapitre) : décrits dans la spécification, livrés dans un lot suivant ; l'option
+  « Inclure les miroirs d'équipes » est visible mais sans effet tant que ce lot n'est pas livré.
+- **Entrée depuis le cours** : le clic Moodle est en place côté application ; le premier
+  lancement réel depuis olution.info reste à mesurer (réglage de l'outil dans Moodle, geste
+  technique).
 - **Un conflit ignoré ne revient pas** : « Ignorer » est définitif pour cet écart-là. Si l'on
   change d'avis, il faut refaire le geste dans le groupe (remettre ou retirer l'élève) puis
   laisser la synchronisation suivante le constater.
