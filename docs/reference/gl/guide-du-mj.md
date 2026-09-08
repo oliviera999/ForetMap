@@ -21,9 +21,11 @@
    la donne » (voir [Les deux peuples du seuil](lore-deux-peuples.md)). Pour gagner du
    temps, **« Composer automatiquement »** (onglet Équipes, partie en brouillon) propose
    des équipes complètes — nom, couleur, peuple alterné, mascotte — selon une recette
-   (aléatoire, aléatoire avec mémoire des parties passées, ou reconduction de la partie
-   précédente) ; vous relisez, déplacez ou renommez ce que vous voulez, puis appliquez.
-   Détail dans [Chapitres et progression](chapitres-et-progression.md).
+   (aléatoire, aléatoire avec mémoire des parties passées, reconduction de la partie
+   précédente ; et, si l'administrateur les a laissées actives, mixte, complémentarité des
+   rôles ou groupes de besoin — déduites de ce que les élèves ont déjà fait dans le jeu,
+   sans jamais afficher de score) ; vous relisez, déplacez ou renommez ce que vous voulez,
+   puis appliquez. Détail dans [Chapitres et progression](chapitres-et-progression.md).
 5. **Les comptes** : joueurs créés ou importés, codes distribués. Un mot de passe
    oublié se réinitialise en un clic dans la gestion des joueurs.
 

@@ -7,6 +7,31 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté (GL) — composition automatique des équipes, lot v2 (profils six axes)
+
+- **Trois recettes de profil** dans le dialogue « Composer automatiquement » : **Mixte**
+  (variance inter-équipes du composite minimale), **Complémentarité** (un savant, un éclaireur,
+  un négociant, un gardien par équipe quand c'est possible), **Groupes de besoin** (variance
+  intra-équipe minimale). Section repliable **« Poids avancés »** (curseurs bornés, renvoyés au
+  serveur dans `weightsOverride`, « Revenir aux poids par défaut »).
+- **Six axes** `lib/gl/teamProfileAxes.js` : savoir (QCM, « appris »), exploration (feuillets
+  découverts, déplacements), échange (trocs aboutis, messages de négociation, forum), générosité
+  (cœurs/gemmes engagés dans les sorts), initiative (demandes d'action, coordination de sorts pour
+  autrui), assiduité (dernière connexion, densité d'événements). Une requête par table
+  **existante**, normalisation **pure** relative à la classe avec **shrinkage k = 10** (joueur sans
+  donnée = moyenne de classe) ; rien n'est persisté, **aucune clé de profil ne sort du serveur**
+  (assertion de test sur le JSON). Avertissement `PROFILE_DATA_SPARSE` tant que la classe a peu
+  joué.
+- **Garde-fous** : `homogeneous` + `gameplay.scoring_enabled` ⇒ `409 HOMOGENEOUS_WITH_SCORING`
+  (un groupe de besoin scoré serait un classement) ; nouveau réglage admin
+  **`gameplay.team_composition_profile_recipes_enabled`** (défaut `true`, Réglages GL → gameplay)
+  qui masque les trois recettes côté console et répond `409 PROFILE_RECIPES_DISABLED` côté API.
+- Moteur : presets `mixed` / `roles` / `homogeneous` dans `RECIPE_WEIGHTS`, `resolveWeights`
+  (surcharges bornées [0, 100], `size` jamais surchargeable), `summarizeRoles` pour les
+  explications factuelles. Tests : `tests/gl-team-profile-axes.test.js`, extension de
+  `gl-team-composition.test.js`, `gl-settings-registry.test.js`, UI `GLTeamComposeDialog.test.jsx`.
+  Docs : `docs/API.md`, `docs/GL_ARCHITECTURE.md`, `docs/GL_TESTS.md`, référence GL.
+
 ### Ajouté (GL) — composition automatique des équipes, lot v1
 
 - **Console MJ → onglet Équipes** : bouton **« Composer automatiquement »** (partie en

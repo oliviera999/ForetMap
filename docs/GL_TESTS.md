@@ -38,7 +38,11 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
   `gl-team-naming.test.js` (noms / couleurs / mascottes, pur), `gl-team-composition-history.test.js`
   (historique des paires, taux de brassage), `gl-games-teams-compose.test.js` (routes
   `compose/preview` et `compose/apply` : 401/403/404/400/409, aperçu sans écriture, application,
-  remplacement, `carry_over`, un seul événement `teams_composed`) ; UI :
+  remplacement, `carry_over`, un seul événement `teams_composed`),
+  `gl-team-profile-axes.test.js` (lot v2 : normalisation pure avec shrinkage, joueur sans donnée
+  = moyenne de classe, rôle dominant ; chargement SQL sur fixtures ; `mixed` réduit la variance
+  inter, `homogeneous` l'intra, `roles` couvre les rôles ; `409 HOMOGENEOUS_WITH_SCORING`,
+  `409 PROFILE_RECIPES_DISABLED`, aucune clé de profil dans la réponse) ; UI :
   `tests-ui/gl/GLTeamComposeDialog.test.jsx`
 - `gl-game-events-replay.test.js`, `gl-journal.test.js`, `gl-journal-query-validation.test.js`
 - `gl-vitality.test.js`, `gl-virtual-dice.test.js`, `gl-market.test.js`, `gl-market-query-validation.test.js`
