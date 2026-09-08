@@ -58,6 +58,7 @@ const observationsRouter = require('./routes/observations');
 const auditRouter = require('./routes/audit');
 const rbacRouter = require('./routes/rbac');
 const settingsRouter = require('./routes/settings');
+const adminMoodleRouter = require('./routes/admin/moodle');
 const referenceDocsRouter = require('./routes/reference-docs');
 const mediaLibraryRouter = require('./routes/media-library');
 const forumRouter = require('./routes/forum');
@@ -520,6 +521,11 @@ app.use('/api/observations', observationsRouter);
 app.use('/api/audit', auditRouter);
 app.use('/api/rbac', rbacRouter);
 app.use('/api/admin/reference-docs', referenceDocsRouter);
+// Lien Moodle (docs/AUDIT_MOODLE_IDENTITES_2026-09.md §13) : limiteur strict sur les routes qui
+// parlent à Moodle ou lancent une exécution, le reste sous le limiteur général.
+app.use('/api/admin/integrations/moodle/check', authLimiter);
+app.use('/api/admin/integrations/moodle/runs', authLimiter);
+app.use('/api/admin/integrations/moodle', adminMoodleRouter);
 app.use('/api/settings', settingsRouter);
 // Le restart GUI (/api/settings/admin/system/restart) partage l'arrêt gracieux
 // de /api/admin/restart (drain HTTP, Socket.IO, pool MySQL).

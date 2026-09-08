@@ -7,6 +7,42 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — synchronisation Moodle ↔ ForetMap / G&L : lots M1 à M3, côté serveur
+
+Mise en œuvre de `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` (sections 5 à 14). Rien n'est actif
+tant que `MOODLE_BASE_URL` / `MOODLE_WS_TOKEN` ne sont pas dans `.env` **et** que le réglage
+`integration.moodle.enabled` n'est pas coché : toutes les routes répondent alors
+`503 Intégration Moodle non configurée`.
+
+- **Base** : migration `219_moodle_sync.sql` (tables `external_identities`, `external_groups`,
+  `external_group_members`, `sync_runs`, `sync_actions`, `sync_conflicts`,
+  `sync_pending_matches` ; colonnes `users.sync_exempt` / `groups.sync_exempt`), reportée dans
+  `sql/schema_foretmap.sql`. Permission `integrations.moodle.manage` (rôle admin).
+- **Réglages** `integration.moodle.*` (portée admin) : politiques par cohorte (motif avec
+  `{year}`, rôle, genre de groupe, classe G&L, `push_membership`, maître), préfixe d'année,
+  seuils, domaines d'e-mail, table chapitre → cours, tout validé avant enregistrement.
+- **`lib/moodle/`** : client Web Services (erreurs applicatives détectées en HTTP 200, réessai
+  réseau/5xx seulement, lots de 100, jamais de jeton dans les journaux), contrôle
+  (`npm run moodle:check`), politiques, rapprochement en quatre règles (e-mail, identité,
+  nom + classe, homonymes → attente), contrôles amont bloquants, plan d'écritures typé,
+  seuils de sécurité, exécution `dry_run` / `apply` sous verrou avec journal
+  `sync_runs` / `sync_actions`, **annulation** d'une exécution (comptes créés désactivés,
+  jamais supprimés), garde des 24 h (`apply` exige une simulation récente sauf `force` motivé),
+  **comparaison à trois** (Moodle / ForetMap / dernier état commun) qui distingue « le maître
+  a bougé » (propagé) de « le reflet a bougé » (conflit à trancher : garder Moodle, appliquer
+  l'autre côté, ignorer), comptes et groupes **hors synchronisation** (`sync_exempt`),
+  écritures sortantes `push_membership` vers la cohorte n3.
+- **Fusion de comptes** (`lib/accountMerge.js`) : inventaire des tables qui référencent
+  `users.id`, réattribution, complétion des champs vides, suppression du doublon, journalisée
+  et **non annulable**.
+- **Routes** `/api/admin/integrations/moodle/*` (statut sans jeton, contrôle, cohortes, cours,
+  exécutions, annulation, rapprochements en attente, conflits, hors-sync, fusion) ; scripts
+  `npm run moodle:check` et `npm run moodle:sync -- --dry-run|--apply`.
+- **Tests** : faux serveur Moodle HTTP local (`tests/helpers/fakeMoodleServer.js`) qui
+  reproduit les erreurs en 200, empreinte de tables sensibles (`dbFingerprint`) pour prouver
+  qu'une simulation n'écrit rien et qu'un groupe local reste intact ; 58 tests
+  `tests/moodle-*.test.js`.
+
 ### Documentation — lien Moodle : spécification finalisée (annuaire M1–M5, LTI 1.3 en M6)
 
 - `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` : le lien Moodle ↔ ForetMap / G&L a **deux
