@@ -21,6 +21,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   (capacité `webservice/rest:use`, « Utilisateurs autorisés », restriction d'IP, jeton expiré,
   jeton créé pour un autre service) et donne le geste qui tranche : passer Moodle en mode
   débogage DÉVELOPPEUR et relancer, le `debuginfo` renvoyé nommant la cause exacte.
+- **`sitepolicynotagreed`** : nouveau conseil — le compte de service n'a pas accepté la politique
+  du site, ce qui fait refuser **toutes** ses fonctions Web Services même correctement
+  autorisées ; le geste est de l'accepter en son nom depuis les accords des utilisateurs.
+- **Sonde de repli, formulation juste** : quand la sonde est *admise* par le service puis refusée
+  pour une autre raison (politique du site, capacité manquante), le conseil ne prétend plus
+  qu'elle « a répondu » — il conclut quand même que `core_webservice_get_site_info` manque au
+  service, et renvoie vers l'autre erreur. L'appel n'est plus rejoué à l'étape des cohortes : le
+  refus déjà constaté y est reporté tel quel.
 - **Conseils repliés à 96 colonnes** dans `npm run moodle:check` : un paragraphe lisible plutôt
   qu'une ligne unique qui déborde du terminal.
 
