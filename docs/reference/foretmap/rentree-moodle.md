@@ -50,8 +50,10 @@ Dans **Paramètres administrateur → onglet Moodle**. L'onglet s'ouvre sur l'**
 - Dernier contrôle, dernière exécution, nombre de **conflits ouverts** et de **rapprochements
   en attente**.
 - Si Moodle ne répond pas (site coupé, jeton invalide, ou limite de l'hébergeur), un **bandeau
-  d'erreur** remplace la liste des cohortes. Les réglages locaux (politiques, seuils, table
-  chapitre → cours) restent éditables.
+  d'erreur** remplace la liste des cohortes. Le bandeau indique aussi, sous le message, **le geste
+  à faire** côté Moodle (par exemple : autoriser une fonction manquante dans le service, ou
+  vérifier le compte de service). Les réglages locaux (politiques, seuils, table chapitre → cours)
+  restent éditables.
 
 Puis, en sections repliables : **Synchroniser**, **Rapprochements en attente**, **Conflits à
 trancher**, **Historique**, **Politiques par cohorte**, **Chapitres → cours**, **Seuils de
