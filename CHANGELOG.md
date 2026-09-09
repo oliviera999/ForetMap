@@ -18,6 +18,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   (migration `229`) ; les tests de liens ne regardent plus les QCM d’export ni tout
   l’historique, seulement les codes `QF91/92` et `GQCM91/92`.
 
+### Corrigé — contrôle Moodle : `accessexception` enfin lisible
+
+- **`npm run moodle:check` / `POST /api/admin/integrations/moodle/check`** : chaque erreur
+  Moodle porte désormais son `exception`, son `debuginfo` et un **conseil de dépannage**
+  (`hint`) affiché sous le message, en console comme dans l'écran administrateur.
+- **`accessexception` sur `core_webservice_get_site_info`** : une **sonde de repli**
+  (`core_cohort_search_cohorts`) distingue le refus **global** du jeton (protocole REST,
+  compte non autorisé sur le service, capacité `webservice/rest:use`) de la seule **fonction
+  absente** du service externe. Dans ce second cas le contrôle se poursuit — cohortes et
+  chapitres → cours sont listés — avec `functionsUnknown: true` et `functions[].allowed: null`.
+- **Plus de rapport trompeur** : une liste de fonctions vide et « Cohortes de l'année (0) »
+  ne s'affichent plus comme un résultat, mais comme un contrôle interrompu.
+
 ### Modifié
 
 - **Cartes — noms de zones et de repères** : un seul habillage partagé (`map-overlay-*`,
