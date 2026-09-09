@@ -41,7 +41,7 @@ export function GLBiodiversityView({
   return (
     <article className="gl-panel fade-in">
       <h2>Biodiversité</h2>
-      <nav className="gl-subtabs" role="tablist" aria-label="Biodiversité">
+      <div className="gl-subtabs" role="tablist" aria-label="Biodiversité">
         <button
           type="button"
           role="tab"
@@ -60,7 +60,7 @@ export function GLBiodiversityView({
         >
           Réseau
         </button>
-      </nav>
+      </div>
       {panel === 'catalogue' ? (
         <GLSpeciesCatalog
           biomes={biomes}

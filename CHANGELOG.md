@@ -7,6 +7,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — CI après les lots pédago et cartes
+
+- **Accessibilité** : les sous-onglets Catalogue / Réseau de Biodiversité GL sont un
+  `tablist` sur un `div` (plus un `nav`) ; l’inventaire a11y ne garde plus une dette
+  déjà éteinte sur les journaux de tâches.
+- **Graphe trophique** : la légende passe à côté du réseau dès **1024 px** (seuil
+  canonique), plus 1100 px.
+- **Catalogue relu** : jacinthe des bois et muguet existent dans le réseau GL
+  (migration `229`) ; les tests de liens ne regardent plus les QCM d’export ni tout
+  l’historique, seulement les codes `QF91/92` et `GQCM91/92`.
+
 ### Modifié
 
 - **Cartes — noms de zones et de repères** : un seul habillage partagé (`map-overlay-*`,

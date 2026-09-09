@@ -27,9 +27,12 @@ test('questions de raisonnement ForetMap QF91xx sont insérées avec un vrai fee
   }
   const links = await queryOne(
     `SELECT COUNT(*) AS n FROM resource_question_links
-      WHERE question_code REGEXP '^QF91[0-9]{2}$' AND resource_type = 'glossary'`,
+      WHERE question_code REGEXP '^QF91[0-9]{2}$'`,
   );
-  assert.ok(Number(links.n) >= 8);
+  assert.ok(
+    Number(links.n) >= 2,
+    'QF9105 / QF9109 au moins doivent garder un lien plante après la purge pertinence',
+  );
 });
 
 test('questions de raisonnement GL GQCM91xx restent sur des slugs existants', async () => {

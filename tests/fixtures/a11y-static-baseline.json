@@ -72,10 +72,6 @@
   "src/components/tasks/TaskFormImageField.jsx": {
     "jsx-a11y/img-redundant-alt": 1
   },
-  "src/components/tasks/TaskLogModals.jsx": {
-    "jsx-a11y/click-events-have-key-events": 1,
-    "jsx-a11y/no-noninteractive-element-interactions": 1
-  },
   "src/components/tasks/TaskProjectsBlock.jsx": {
     "jsx-a11y/no-static-element-interactions": 2
   },
