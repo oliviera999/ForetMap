@@ -393,3 +393,57 @@ test('apply refuse une partie qui n’est plus en préparation', async () => {
     playerId: players[0].id,
   });
 });
+
+test('apply concurrent avec start : pas de composition après le lancement', async () => {
+  const race = await createGlGameWithTeams({
+    classId: cls.id,
+    chapterId: chapter.id,
+    createdBy: admin.id,
+    status: 'draft',
+    name: `Partie course ${stamp}`,
+    teams: [],
+  });
+  const preview = await request(app)
+    .post(url(race.game.id, 'preview'))
+    .set('Authorization', `Bearer ${fullToken}`)
+    .send({ recipe: 'random', teamCount: 2, seed: 'course-4242' })
+    .expect(200);
+  const [applyRes, startRes] = await Promise.all([
+    request(app).post(url(race.game.id, 'apply')).set('Authorization', `Bearer ${fullToken}`).send({
+      teams: preview.body.teams,
+      recipe: preview.body.recipe,
+      seed: preview.body.seed,
+      replaceExisting: true,
+    }),
+    request(app)
+      .post(`/api/gl/games/${race.game.id}/start`)
+      .set('Authorization', `Bearer ${fullToken}`),
+  ]);
+  assert.ok(
+    [201, 409].includes(applyRes.status),
+    `apply inattendu: ${applyRes.status} ${JSON.stringify(applyRes.body)}`,
+  );
+  assert.ok(
+    startRes.status === 200,
+    `start inattendu: ${startRes.status} ${JSON.stringify(startRes.body)}`,
+  );
+  const events = await queryAll(
+    'SELECT id, event_type FROM gl_game_events WHERE game_id = ? ORDER BY id ASC',
+    [race.game.id],
+  );
+  const composeIdx = events.findIndex((e) => e.event_type === 'teams_composed');
+  const startIdx = events.findIndex((e) => e.event_type === 'game_status');
+  if (composeIdx >= 0 && startIdx >= 0) {
+    assert.ok(
+      composeIdx < startIdx,
+      'une composition validée après le lancement recomposerait une partie en cours',
+    );
+  }
+  if (applyRes.status === 201) {
+    assert.ok(composeIdx >= 0);
+  }
+  if (startIdx >= 0 && composeIdx < 0) {
+    assert.equal(applyRes.status, 409);
+    assert.equal(applyRes.body.code, 'GAME_NOT_DRAFT');
+  }
+});
