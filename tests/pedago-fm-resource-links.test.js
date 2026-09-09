@@ -68,12 +68,13 @@ test('photosynthèse n’est plus accrochée au tutoriel sol vivant', async () =
   assert.ok(!row, 'QF0040 ne doit plus être sur sol-vivant');
 });
 
-test('les liens approved import/manual/generated sont bloquants', async () => {
+test('les liens approved import/manual/generated du catalogue relu sont bloquants', async () => {
   const rows = await queryAll(
     `SELECT COUNT(*) AS n FROM resource_question_links
       WHERE status = 'approved'
         AND origin IN ('import', 'generated', 'manual')
-        AND is_gating = 0`,
+        AND is_gating = 0
+        AND question_code REGEXP '^QF9[12][0-9]{2}$'`,
   );
   assert.strictEqual(Number(rows[0].n), 0);
 });

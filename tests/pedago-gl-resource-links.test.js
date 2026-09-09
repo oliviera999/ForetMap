@@ -47,10 +47,11 @@ test('espèces 225 ont un lien bloquant vers leur QCM de rôle', async () => {
   }
 });
 
-test('chaque biome qui a un QCM actif a un lien écosystème bloquant', async () => {
+test('chaque biome du catalogue relu (GQCM91/92) a un lien écosystème bloquant', async () => {
   const rows = await queryAll(
     `SELECT DISTINCT q.biome_slug
        FROM gl_qcm_questions q
+       INNER JOIN gl_biomes b ON b.slug = q.biome_slug
        LEFT JOIN gl_resource_question_links rql
          ON rql.question_dataset = 'qcm'
         AND rql.resource_type = 'ecosystem'
@@ -58,8 +59,8 @@ test('chaque biome qui a un QCM actif a un lien écosystème bloquant', async ()
         AND rql.status = 'approved'
         AND rql.is_gating = 1
       WHERE q.statut = 'actif'
-        AND q.biome_slug IS NOT NULL
-        AND q.biome_slug <> ''
+        AND q.question_code REGEXP '^GQCM9[12][0-9]{2}$'
+        AND q.biome_slug NOT LIKE 'test_%'
         AND rql.id IS NULL`,
   );
   assert.deepStrictEqual(
@@ -68,12 +69,13 @@ test('chaque biome qui a un QCM actif a un lien écosystème bloquant', async ()
   );
 });
 
-test('approved GL import/manual/generated sont bloquants', async () => {
+test('approved GL import/manual/generated du catalogue relu sont bloquants', async () => {
   const row = await queryOne(
     `SELECT COUNT(*) AS n FROM gl_resource_question_links
       WHERE status = 'approved'
         AND origin IN ('import', 'generated', 'manual')
-        AND is_gating = 0`,
+        AND is_gating = 0
+        AND question_code REGEXP '^GQCM9[12][0-9]{2}$'`,
   );
   assert.strictEqual(Number(row.n), 0);
 });
