@@ -110,9 +110,10 @@ son chapitre** à sa création.
      déjà réunis au fil des parties (« 43 % des binômes possibles déjà réunis »), et
      l'aperçu indique ce que la proposition y ajoute. C'est un indicateur collectif, sans
      aucun score individuel.
-3. **Démarrer** : la partie passe **en cours**. Si la carte du chapitre est en
-   « parcours numéroté », toutes les mascottes sont posées sur la case départ. Le MJ
-   peut mettre en **pause** puis reprendre, et **terminer** la partie quand il veut.
+3. **Démarrer** : la partie passe **en cours**. Si on quitte le **brouillon** et que la
+   carte du chapitre est en « parcours numéroté », toutes les mascottes sont posées
+   sur la case départ. Le MJ peut mettre en **pause** puis reprendre : les mascottes
+   restent là où elles étaient. Il peut **terminer** la partie quand il veut.
 4. **Animer** : selon les réglages activés (voir profils ci-dessous), la séance
    combine :
    - **Tours de jeu** (optionnels) : le MJ clique « Tour suivant » ; le compteur de
