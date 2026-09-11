@@ -79,6 +79,8 @@ import {
   safeLocalStorageSetItem,
 } from './shared/platform/browserStorage.js';
 import { saveVisitMascotPreference } from './services/visitMascotPreference.js';
+import { saveDiscoveryTourSeen } from './services/discoveryTourSeen.js';
+import { mergeDiscoveryTourSeenMaps } from './shared/tour/mergeDiscoveryTourSeenMaps.js';
 import { useOverlayHistoryBack } from './shared/platform/useOverlayHistoryBack';
 import { abandonAllOverlays, pushOverlayClose } from './shared/platform/overlayHistory';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
@@ -142,6 +144,9 @@ function App() {
   const [showPin, setShowPin] = useState(false);
   const [showPublicVisit, setShowPublicVisit] = useState(false);
   const [guestVisitNeedsMascotChoice, setGuestVisitNeedsMascotChoice] = useState(false);
+  /** Progression des visites guidées liée au compte (null = pas encore hydratée). */
+  const [discoveryTourSeen, setDiscoveryTourSeen] = useState(null);
+  const [discoveryTourSeenReady, setDiscoveryTourSeenReady] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [tab, setTab] = useState(() => readStoredTab());
@@ -294,13 +299,28 @@ function App() {
     [sessionUser, student, persistVisitMascotPreference],
   );
 
+  /** Marque un parcours vu côté compte (merge serveur) ; le cache local est déjà à jour. */
+  const persistDiscoveryTourSeen = useCallback((tabKey) => {
+    if (!tabKey) return;
+    setDiscoveryTourSeen((prev) => mergeDiscoveryTourSeenMaps(prev, { [tabKey]: true }));
+    void saveDiscoveryTourSeen({ [tabKey]: true })
+      .then((serverSeen) => {
+        if (serverSeen && typeof serverSeen === 'object') {
+          setDiscoveryTourSeen((prev) => mergeDiscoveryTourSeenMaps(prev, serverSeen));
+        }
+      })
+      .catch(() => {
+        /* best-effort : le prochain /me réalignera */
+      });
+  }, []);
+
   // D3 — cycle de vie session (restauration, /api/auth/me, impersonation admin, logout forcé).
   const {
-    forceLogout,
+    forceLogout: forceLogoutBase,
     updateStudentSession,
     handleAdminImpersonationApplied,
     stopAdminImpersonation,
-    mergeAuthMeResponse,
+    mergeAuthMeResponse: mergeAuthMeResponseBase,
     validateStudentSession,
   } = useAuthSession({
     studentRef,
@@ -316,6 +336,23 @@ function App() {
     setShowProfile,
   });
 
+  const mergeAuthMeResponse = useCallback(
+    (d, opts = {}) => {
+      mergeAuthMeResponseBase(d, opts);
+      if (!d || typeof d !== 'object' || !d.auth) return;
+      const fromServer =
+        d.discoveryTourSeen && typeof d.discoveryTourSeen === 'object' ? d.discoveryTourSeen : {};
+      setDiscoveryTourSeen((prev) => mergeDiscoveryTourSeenMaps(prev, fromServer));
+      setDiscoveryTourSeenReady(true);
+    },
+    [mergeAuthMeResponseBase],
+  );
+
+  const forceLogout = useCallback(() => {
+    setDiscoveryTourSeen(null);
+    setDiscoveryTourSeenReady(false);
+    forceLogoutBase();
+  }, [forceLogoutBase]);
   /* Les deux écouteurs de useSessionWindowSync posent déjà authClaims de façon cohérente
      (null à l'expiration, claims relus au changement de session) : le setIsTeacher legacy
      devient un no-op, isTeacher étant dérivé d'authClaims. */
@@ -724,6 +761,12 @@ function App() {
       }
       const claims = getAuthClaims();
       setAuthClaims(claims);
+      const fromServer =
+        session?.discoveryTourSeen && typeof session.discoveryTourSeen === 'object'
+          ? session.discoveryTourSeen
+          : {};
+      setDiscoveryTourSeen(fromServer);
+      setDiscoveryTourSeenReady(true);
       const roleSlug = String(claims?.roleSlug || '').toLowerCase();
       if (userType !== 'teacher' && roleSlug === 'visiteur') {
         const visitOk = publicSettings?.modules?.visit_enabled !== false;
@@ -749,6 +792,8 @@ function App() {
     setStudent(null);
     setSessionUser(null);
     setAuthClaims(null);
+    setDiscoveryTourSeen(null);
+    setDiscoveryTourSeenReady(false);
   }, [studentRef]);
 
   useOverlayHistoryBack(showStats && canOpenUserDialogs, handleCloseStatsDialog);
@@ -1044,6 +1089,9 @@ function App() {
               tab={tab}
               isTeacher={effectiveIsTeacher}
               enabled={discoveryTourAutoEnabled}
+              accountSeen={discoveryTourSeen}
+              accountSeenReady={discoveryTourSeenReady}
+              onTourSeen={persistDiscoveryTourSeen}
             >
               <div
                 id="app"

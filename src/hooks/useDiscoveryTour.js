@@ -8,14 +8,25 @@ import { getDiscoverySteps } from '../constants/discoveryTour.js';
  * fournit que le registre du produit et sa clé de mémoire.
  *
  * La version (`_v1`) du suffixe de clé permet de relancer l'onboarding pour tous
- * après une refonte majeure des parcours.
+ * après une refonte majeure des parcours. La progression **compte** (serveur) est
+ * fournie via `accountSeen` / `onTourSeen` ; le localStorage reste un cache d'appareil.
  */
 const SEEN_STORAGE_KEY = 'foretmap_discovery_seen_v1';
 
-export function useDiscoveryTour({ isTeacher = false, tourOverrides = null } = {}) {
+export function useDiscoveryTour({
+  isTeacher = false,
+  tourOverrides = null,
+  accountSeen = null,
+  onTourSeen = null,
+} = {}) {
   const getSteps = useCallback(
     (tabKey) => getDiscoverySteps(tabKey, isTeacher, tourOverrides),
     [isTeacher, tourOverrides],
   );
-  return useGuidedTour({ getSteps, storageKey: SEEN_STORAGE_KEY });
+  return useGuidedTour({
+    getSteps,
+    storageKey: SEEN_STORAGE_KEY,
+    accountSeen,
+    onTourSeen,
+  });
 }

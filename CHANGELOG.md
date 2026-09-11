@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Accueil OLU : une fois par compte
+
+- L'accueil d'OLU (et les parcours de visite guidée d'onglets) est mémorisé **sur le
+  compte**, pas seulement dans le navigateur : se reconnecter sur un autre appareil ne
+  rejoue plus la présentation. Route `PUT /api/auth/discovery-tour-seen` + champ
+  `discoveryTourSeen` sur `GET /api/auth/me` / login.
+
 ### Modifié — import : lignes en double fusionnées
 
 - Import **comptes** et **groupes** : une même personne / un même groupe répété dans
