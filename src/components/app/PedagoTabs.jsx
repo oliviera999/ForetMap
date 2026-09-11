@@ -71,6 +71,7 @@ export function PedagoTabs({
             mapMarkers={markers}
             catalogTutorials={tutorials}
             onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
+            onOpenGlossaryTerm={onOpenGlossaryTerm}
           />
         </TabSuspense>
       )}

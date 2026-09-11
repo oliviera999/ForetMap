@@ -1,8 +1,13 @@
 /**
  * Jauge visuelle min–max (pH, température °C, etc.).
- * @param {{ label: string, unit?: string, min: number, max: number, domainMin?: number, domainMax?: number, icon?: string }} props
+ *
+ * `icon` est un **nœud React** (les appelants passent `<IconFlask />`, `<IconThermometer />`) :
+ * il était interpolé dans un gabarit de chaîne, ce qui affichait « [object Object] pH optimal »
+ * sur chaque fiche espèce.
+ *
+ * @param {{ label: string, unit?: string, min: number, max: number, domainMin?: number, domainMax?: number, icon?: import('react').ReactNode }} props
  */
-export function PlantRangeGauge({ label, unit = '', min, max, domainMin, domainMax, icon = '' }) {
+export function PlantRangeGauge({ label, unit = '', min, max, domainMin, domainMax, icon = null }) {
   const lo = Number(min);
   const hi = Number(max);
   if (!Number.isFinite(lo) || !Number.isFinite(hi)) return null;
@@ -19,7 +24,7 @@ export function PlantRangeGauge({ label, unit = '', min, max, domainMin, domainM
   return (
     <div className="pedago-range-gauge">
       <div className="pedago-range-gauge__label">
-        {icon ? `${icon} ` : ''}
+        {icon ? <>{icon} </> : null}
         {label}
       </div>
       <div className="pedago-range-gauge__track" aria-hidden="true">

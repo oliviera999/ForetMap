@@ -8,6 +8,7 @@ import {
   PlantSpeciesDiscoveryAcknowledgeButton,
   fetchPlantObservationCounts,
 } from '../PlantSpeciesDiscoveryAcknowledge';
+import { getAuthToken } from '../../services/api';
 import { useGatingSummary } from '../../hooks/useGatingSummary';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../../contexts/SessionContext.jsx';
@@ -208,6 +209,12 @@ export function PlantCatalogPreviewModal({
   const { zones = [], markers = [] } = useData();
   useOverlayHistoryBack(!!plant, onClose);
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
+  /**
+   * Commentaires de fiche : route authentifiée. La fiche est désormais ouvrable depuis la
+   * visite **invitée** (biodiversité des lieux) — sans session, le fil de commentaires
+   * n'aurait récolté qu'un 401 affiché en erreur.
+   */
+  const hasSession = typeof getAuthToken === 'function' && !!getAuthToken();
   const [obs, setObs] = useState({ my: 0, site: 0 });
   // L'aperçu plein écran n'annonçait rien : l'élève y découvrait le contrôle après coup.
   const plantIds = useMemo(() => (plant?.id ? [plant.id] : []), [plant?.id]);
@@ -274,7 +281,7 @@ export function PlantCatalogPreviewModal({
           contextCommentsEnabled={contextCommentsEnabled}
           canParticipateContextComments={canParticipateContextComments}
           onForceLogout={onForceLogout}
-          showContextComments
+          showContextComments={hasSession}
           dataBiodivPlantId={null}
           onOpenPlant={onOpenPlant}
           onOpenGlossaryTerm={onOpenGlossaryTerm}
