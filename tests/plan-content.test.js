@@ -391,3 +391,34 @@ test('garde d’accès par code (lot 8) : charge refusée sans laissez-passer, p
     planContentCache.clear();
   }
 });
+
+test('POST /api/settings/admin/plan-access-code : hash serveur, PUT direct refusé', async () => {
+  try {
+    const denied = await auth(
+      request(app).put('/api/settings/admin/security.plan_access_code_hash'),
+    )
+      .send({ value: 'pas-un-hash' })
+      .expect(400);
+    assert.match(String(denied.body.error || ''), /plan-access-code/);
+
+    const set = await auth(request(app).post('/api/settings/admin/plan-access-code'))
+      .send({ code: 'SECRET-PLAN' })
+      .expect(200);
+    assert.equal(set.body.hasCode, true);
+    invalidateSettingsCache();
+    const { getSettingValue } = require('../lib/settings');
+    const stored = String((await getSettingValue('security.plan_access_code_hash', '')) || '');
+    assert.ok(stored.startsWith('$2'), 'empreinte bcrypt attendue');
+    const bcrypt = require('bcryptjs');
+    assert.equal(await bcrypt.compare('SECRET-PLAN', stored), true);
+
+    await auth(request(app).post('/api/settings/admin/plan-access-code'))
+      .send({ code: '' })
+      .expect(200);
+    invalidateSettingsCache();
+    assert.equal(String((await getSettingValue('security.plan_access_code_hash', '')) || ''), '');
+  } finally {
+    await setSetting('security.plan_access_code_hash', '', { userType: 'admin', userId: 'test' });
+    invalidateSettingsCache();
+  }
+});

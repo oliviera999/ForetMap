@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const bcrypt = require('bcryptjs');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
@@ -290,18 +291,49 @@ router.post(
   }),
 );
 
+router.post(
+  '/admin/plan-access-code',
+  requirePermission('admin.settings.write'),
+  asyncHandler(async (req, res) => {
+    const code = String(req.body?.code ?? '').trim();
+    if (code.length > 64) {
+      return res.status(400).json({ error: 'Code trop long (64 caractères maximum)' });
+    }
+    const hash = code ? await bcrypt.hash(code, 10) : '';
+    const updated = await setSetting('security.plan_access_code_hash', hash, {
+      userType: req.auth?.userType,
+      userId: req.auth?.userId,
+    });
+    await logAudit(
+      'settings_update',
+      'setting',
+      'security.plan_access_code_hash',
+      code ? 'Code d’accès du plan défini' : 'Code d’accès du plan effacé',
+      { req, payload: { key: 'security.plan_access_code_hash', cleared: !code } },
+    );
+    res.json({ ok: true, key: 'security.plan_access_code_hash', hasCode: Boolean(updated) });
+  }),
+);
+
 router.put(
   '/admin/:key',
   requirePermission('admin.settings.write'),
   asyncHandler(async (req, res) => {
     const key = String(req.params.key || '').trim();
     if (!key) return res.status(400).json({ error: 'Clé de réglage requise' });
+    if (key === 'security.plan_access_code_hash') {
+      return res.status(400).json({
+        error:
+          'Utilisez POST /api/settings/admin/plan-access-code pour définir le code d’accès du plan',
+      });
+    }
     const value = req.body?.value;
     if (
       [
         'ui.map.default_map_student',
         'ui.map.default_map_teacher',
         'ui.map.default_map_visit',
+        'ui.plan.map_id',
       ].includes(key)
     ) {
       const exists = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [

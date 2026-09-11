@@ -203,7 +203,8 @@ permission « Gestion zones ».
 
 Un **parcours** enchaîne des lieux dans un ordre choisi, avec un titre, un public visé et, pour
 chaque étape, un texte court facultatif. Il se gère dans _Réglages → **Parcours**_, et sert de
-feuille de séance côté ForetMap comme de visite fléchée sur le Plan Lyautey.
+feuille de séance côté ForetMap comme de visite fléchée sur le Plan Lyautey (barre d'étape en
+bas, carte restée utilisable).
 
 Composer un parcours :
 

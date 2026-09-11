@@ -13,6 +13,7 @@ import { MediaLibraryMenu } from './MediaLibraryMenu.jsx';
 import { AdminTextSettingField, AdminNumberSettingField } from './settings/AdminSettingFields.jsx';
 import { MapCategoriesPanel } from './settings/MapCategoriesPanel.jsx';
 import { MapRoutesPanel } from './settings/MapRoutesPanel.jsx';
+import { PlanSettingsPanel } from './settings/PlanSettingsPanel.jsx';
 import { UsagePanel } from './settings/UsagePanel.jsx';
 import { MapLocationsAdminPanel } from './settings/MapLocationsAdminPanel.jsx';
 import { MapGeorefPanel } from './settings/MapGeorefPanel.jsx';
@@ -859,6 +860,21 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                 </div>
               ))}
             </div>
+          </AdminSection>
+
+          <AdminSection id="plan" title="Plan Lyautey" defaultOpen={false}>
+            <PlanSettingsPanel
+              maps={maps}
+              get={get}
+              saveSetting={saveSetting}
+              savingKey={savingKey}
+              onMessage={(okMsg) => {
+                setMsg(okMsg);
+                setErr('');
+                load();
+              }}
+              onError={(errMsg) => setErr(errMsg)}
+            />
           </AdminSection>
 
           <AdminSection id="routes" title="Parcours" defaultOpen={false}>

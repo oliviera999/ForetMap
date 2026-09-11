@@ -66,7 +66,10 @@ const POSITION_LABELS = Object.freeze({
  * @param {Map<string, object>} [props.categoriesById] catalogue des catégories (priorités,
  *   couleur de la pastille de groupe).
  * @param {object|null} [props.position] état de position (`useMapPosition`, lot 6).
+ * @param {() => void} [props.onLocateToggle] remplace `position.toggle` (compteur d'usage).
  * @param {{ xp: number, yp: number }|null} [props.targetPct] lieu visé par « Y aller ».
+ * @param {{ top?: number, right?: number, bottom?: number, left?: number }|null} [props.focusInsets]
+ *   marges scène pour recentrer au-dessus d'une barre basse (parcours).
  * @param {string} [props.attribution] mention de source du fond de plan (`ui.plan.attribution`).
  */
 export function PlanMapStage({
@@ -78,7 +81,9 @@ export function PlanMapStage({
   onOpenGroup = null,
   categoriesById = null,
   position = null,
+  onLocateToggle = null,
   targetPct = null,
+  focusInsets = null,
   attribution = '',
 }) {
   const imageSrc = String(map?.map_image_url || '');
@@ -211,18 +216,22 @@ export function PlanMapStage({
 
   // Centrage sur le lieu sélectionné : une fois par lieu, jamais pendant que l'on manipule
   // la carte (sinon la vue « saute » sous le doigt à chaque re-rendu de la fiche).
+  // `focusInsets` décale le centre vers la zone encore visible (barre parcours en bas).
   const lastFocusedRef = useRef('');
+  const focusInsetsKey = focusInsets
+    ? `${focusInsets.top || 0},${focusInsets.right || 0},${focusInsets.bottom || 0},${focusInsets.left || 0}`
+    : '';
   useEffect(() => {
-    const key = selectedPlace ? `${selectedPlace.kind}:${selectedPlace.id}` : '';
+    const key = selectedPlace ? `${selectedPlace.kind}:${selectedPlace.id}:${focusInsetsKey}` : '';
     if (!key || key === lastFocusedRef.current) {
-      if (!key) lastFocusedRef.current = '';
+      if (!selectedPlace) lastFocusedRef.current = '';
       return;
     }
     const pct = planPlaceFocusPct(selectedPlace, parsePctPolygonPoints);
     if (!pct) return;
     lastFocusedRef.current = key;
-    focusOnPct(pct);
-  }, [selectedPlace, focusOnPct]);
+    focusOnPct(pct, { insets: focusInsets });
+  }, [selectedPlace, focusOnPct, focusInsets, focusInsetsKey]);
 
   /**
    * Contre-échelle des habillages : le calque monde est mis à l'échelle par la vue, donc tout
@@ -381,7 +390,7 @@ export function PlanMapStage({
             testId="plan-locate"
             active={position.active}
             ariaPressed={position.active}
-            onClick={position.toggle}
+            onClick={onLocateToggle || position.toggle}
           />
         ) : null}
         <MapActionButton
