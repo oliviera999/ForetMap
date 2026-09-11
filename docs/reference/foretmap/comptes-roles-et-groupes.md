@@ -195,9 +195,10 @@ quand l'établissement a beaucoup de comptes et de groupes :
 
 - **Créer / importer** : un **n3boss** (selon ses droits) peut créer des comptes un par
   un (sous-onglet Comptes) ou importer une liste (sous-onglet Imports & exports, rentrée).
-  Le fichier d'import (CSV ou tableur) permet de
+  La **création unitaire** et le fichier d'import (CSV ou tableur) permettent de
   choisir **chaque profil** : visiteur, n3beur novice / avancé / chevronné, prof de
-  classe, n3boss, administrateur. Une colonne **Groupes** permet de rattacher chaque
+  classe, n3boss, administrateur. Une colonne **Groupes** (à l'import) permet de
+  rattacher chaque
   personne à **une ou plusieurs** classes (noms ou identifiants séparés par `|` ou
   `;`) ; un chemin du type « classe > sous-groupe » crée le sous-groupe sous son
   parent. Si un groupe nommé dans le fichier **n'existe pas encore**, il est **créé

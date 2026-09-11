@@ -294,3 +294,70 @@ test('RBAC: profil n3boss dupliqué — enseignant traité comme palier staff (n
     await execute('DELETE FROM roles WHERE id = ?', [dup.body.id]);
   }
 });
+
+test('RBAC admin: POST /users crée visiteur, eleve_avance et prof_classe', async () => {
+  const token = await getAdminToken();
+  const unique = Date.now();
+
+  const visitor = await request(app)
+    .post('/api/rbac/users')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      role_slug: 'visiteur',
+      first_name: 'Visit',
+      last_name: `U-${unique}`,
+      password: 'pass1234',
+      affiliation: 'both',
+    })
+    .expect(201);
+  assert.strictEqual(visitor.body.role_slug, 'visiteur');
+  assert.strictEqual(visitor.body.user_type, 'student');
+
+  const avance = await request(app)
+    .post('/api/rbac/users')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      role_slug: 'eleve_avance',
+      first_name: 'Avance',
+      last_name: `U-${unique}`,
+      password: 'pass1234',
+      affiliation: 'n3',
+    })
+    .expect(201);
+  assert.strictEqual(avance.body.role_slug, 'eleve_avance');
+  const avanceRole = await queryOne(
+    `SELECT r.slug FROM user_roles ur
+     INNER JOIN roles r ON r.id = ur.role_id
+     WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+    [avance.body.id],
+  );
+  assert.strictEqual(avanceRole?.slug, 'eleve_avance');
+
+  const tuteur = await request(app)
+    .post('/api/rbac/users')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      role_slug: 'prof_classe',
+      first_name: 'Tuteur',
+      last_name: `U-${unique}`,
+      password: 'MotDePasse12!',
+    })
+    .expect(201);
+  assert.strictEqual(tuteur.body.role_slug, 'prof_classe');
+  assert.strictEqual(tuteur.body.user_type, 'teacher');
+});
+
+test('RBAC admin: POST /users refuse un role_slug inconnu', async () => {
+  const token = await getAdminToken();
+  const res = await request(app)
+    .post('/api/rbac/users')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      role_slug: 'inexistant',
+      first_name: 'X',
+      last_name: 'Y',
+      password: 'pass1234',
+    })
+    .expect(400);
+  assert.match(String(res.body.error || ''), /role_slug invalide/i);
+});

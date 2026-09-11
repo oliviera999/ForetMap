@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — création unitaire : tous les profils
+
+- Le sélecteur de création de compte propose **visiteur**, paliers n3beur, **prof de
+  classe**, n3boss et admin (selon droits) — aligné sur l’import.
+- L’API accepte aussi `eleve_avance` / `eleve_chevronne` ; le profil demandé est
+  réappliqué après rattachement à un groupe.
+
 ### Corrigé — init schéma / semis admin de test
 
 - Migrations : errno **1022** (contrainte déjà présente) ignoré comme les autres
