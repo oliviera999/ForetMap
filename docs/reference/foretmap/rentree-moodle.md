@@ -193,6 +193,12 @@ cours. Le professeur pose l'activité à la main dans Moodle (pas d'insertion au
   ne viennent pas de Moodle et Moodle ne les touche pas.
 - Pour les **sixièmes**, la classe Gnomes & Licornes et les joueurs existent avant le premier
   cours ; le MJ n'a plus qu'à ouvrir une partie (voir le [guide du MJ](../gl/guide-du-mj.md)).
+  Côté ForetMap, ces élèves restent en pratique des **visiteurs** (Visite et Biodiversité,
+  pas de tâches) — cas d'usage du profil **Prof de classe** (tuteur de la classe, sans
+  gestion des tâches) ; détail dans
+  [Comptes, rôles et groupes](comptes-roles-et-groupes.md).
+- La **création manuelle** de comptes par un prof de classe n'est pas obligatoire si Moodle
+  peupple déjà les classes : ce droit reste **paramétrable** pour ce profil.
 
 ## Procédure de rentrée (administrateur)
 

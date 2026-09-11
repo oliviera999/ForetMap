@@ -34,6 +34,7 @@ const {
   isVisibleOnSurface,
 } = require('../lib/locationSurfaces');
 const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
+const { logAudit } = require('../lib/auditLog');
 const {
   registerEntityPhotoRoutes,
   reorderPhotosBodySchema,
@@ -420,6 +421,16 @@ router.delete(
       if (p && p.image_path) deleteMapPhotoMainAndThumb(p.image_path);
     }
     emitGardenChanged({ reason: 'delete_marker', markerId: req.params.id, mapId: m.map_id });
+    await logAudit(
+      'delete_marker',
+      'marker',
+      req.params.id,
+      `Suppression repère ${m.label || req.params.id}`,
+      {
+        req,
+        payload: { label: m.label || null, map_id: m.map_id || null },
+      },
+    );
     res.json({ success: true });
   }),
 );

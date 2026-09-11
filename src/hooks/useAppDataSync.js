@@ -316,21 +316,23 @@ export function useAppDataSync({
             if (isApplicableDomainResult(p)) setPlants((prev) => keepPrevIfEqual(prev, p));
             if (isApplicableDomainResult(m)) setMarkers((prev) => keepPrevIfEqual(prev, m));
             if (isApplicableDomainResult(tu)) setTutorials((prev) => keepPrevIfEqual(prev, tu));
-            if (!isTeacherSnap && needsDomain('authMe')) {
+            if (needsDomain('authMe')) {
               const sess = studentRef.current;
-              if (sess?.id && !sess.preview_mode) {
-                const sid = sess.id;
+              const isStudentSession = sess?.id && !sess.preview_mode;
+              if (isStudentSession || isTeacherSnap) {
+                const sid = isStudentSession ? sess.id : null;
                 api('/api/auth/me')
                   .then((d) => {
-                    if (studentRef.current?.id !== sid) return;
+                    if (sid && studentRef.current?.id !== sid) return;
                     const hasSideEffects =
                       d?.taskEnrollment != null ||
                       typeof d?.forumParticipate === 'boolean' ||
                       typeof d?.contextCommentParticipate === 'boolean' ||
                       typeof d?.refreshedToken === 'string' ||
-                      d?.autoProfilePromotion;
+                      d?.autoProfilePromotion ||
+                      (isTeacherSnap && d?.auth);
                     if (!hasSideEffects) return;
-                    mergeAuthMeResponse(d, { studentIdForMatch: sid });
+                    mergeAuthMeResponse(d, sid ? { studentIdForMatch: sid } : {});
                   })
                   .catch(() => {});
               }

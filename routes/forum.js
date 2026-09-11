@@ -582,15 +582,18 @@ router.post(
 
 router.patch(
   '/threads/:id/lock',
-  requirePermission('teacher.access'),
+  requirePermission('forum.group.moderate'),
   asyncHandler(async (req, res) => {
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
     const thread = await queryOne(
-      'SELECT id, title, is_locked FROM forum_threads WHERE id = ? LIMIT 1',
+      'SELECT id, title, is_locked, group_id FROM forum_threads WHERE id = ? LIMIT 1',
       [req.params.id],
     );
     if (!thread) return res.status(404).json({ error: 'Sujet introuvable' });
+    if (!(await isForumGroupInScope(req.auth, thread.group_id))) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
     const nextLocked = !!req.body?.locked;
     await execute('UPDATE forum_threads SET is_locked = ?, updated_at = NOW() WHERE id = ?', [
       nextLocked ? 1 : 0,

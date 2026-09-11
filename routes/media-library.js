@@ -59,7 +59,7 @@ router.get(
 
 router.post(
   '/',
-  requirePermission('teacher.access'),
+  requirePermission('media.manage'),
   validate({ body: uploadBodySchema }),
   asyncHandler(async (req, res) => {
     const mediaData = req.body.media_data;
@@ -86,7 +86,7 @@ router.post(
 
 router.delete(
   '/',
-  requirePermission('teacher.access'),
+  requirePermission('media.manage'),
   asyncHandler(async (req, res) => {
     const payload = executeMediaLibraryDeleteRequest(req.body || {}, { app: 'foretmap' });
     const auditTarget = payload.results?.length === 1 ? payload.results[0].relativePath : 'bulk';

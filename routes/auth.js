@@ -28,12 +28,9 @@ const {
   makeResetUrl,
 } = require('../lib/passwordReset');
 const {
-  ensureRbacBootstrap,
   buildAuthzPayload,
   consumePendingAutoProfilePromotion,
   ensurePrimaryRole,
-  getPrimaryRoleForUser,
-  setPrimaryRole,
 } = require('../lib/rbac');
 const { getSettingValue } = require('../lib/settings');
 const {
@@ -57,7 +54,6 @@ const {
 } = require('../lib/profileUpdate');
 
 const router = express.Router();
-const PASSWORD_RESET_TTL_MINUTES = 60;
 const OAUTH_STATE_COOKIE = 'foretmap_oauth_state';
 const OAUTH_MODE_COOKIE = 'foretmap_oauth_mode';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
@@ -225,11 +221,18 @@ router.get('/me', requireAuth, async (req, res) => {
     const tokenIn = parseBearerToken(req);
     if (tokenIn && req.auth) {
       const claims = verifyJwtToken(tokenIn, JWT_SECRET);
-      if (
+      const roleChanged =
         String(claims.roleId) !== String(req.auth.roleId) ||
         String(claims.roleSlug || '').toLowerCase() !==
-          String(req.auth.roleSlug || '').toLowerCase()
-      ) {
+          String(req.auth.roleSlug || '').toLowerCase();
+      const claimPerms = Array.isArray(claims.permissions)
+        ? [...claims.permissions].map(String).sort()
+        : [];
+      const authPerms = Array.isArray(req.auth.permissions)
+        ? [...req.auth.permissions].map(String).sort()
+        : [];
+      const permissionsChanged = JSON.stringify(claimPerms) !== JSON.stringify(authPerms);
+      if (roleChanged || permissionsChanged) {
         const session = await buildSessionPayload(req.auth.userType, req.auth.userId);
         if (session) {
           const tp = { ...session.tokenPayload };
@@ -1139,7 +1142,8 @@ router.post(
       },
     );
 
-    const { password_hash, ...profile } = account;
+    const { password_hash: _passwordHash, ...profile } = account;
+    void _passwordHash;
     res.json({
       authToken: token,
       auth: exposeAuth(hydrated),

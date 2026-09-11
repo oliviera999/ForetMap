@@ -8,6 +8,8 @@ const {
   normalizeId,
   canReadGroups,
   canManageGroups,
+  canBypassGroupScope,
+  isGroupInManageScope,
   getAllGroups,
   getUserAccessibleGroupIds,
 } = require('../lib/groupScope');
@@ -18,6 +20,7 @@ const {
   syncStudentRolesForGroupMembers,
 } = require('../lib/groupRole');
 const { addStudentToGroup } = require('../lib/groupMembers');
+const { logAudit } = require('../lib/auditLog');
 
 const router = express.Router();
 
@@ -214,13 +217,14 @@ router.get(
   '/options',
   asyncHandler(async (req, res) => {
     const scopeGroupIds = await getUserAccessibleGroupIds(req.auth, { includeDescendants: true });
+    const bypass = canBypassGroupScope(req.auth);
     if (!canReadGroups(req.auth) && scopeGroupIds.length === 0) {
       return res.json({ groups: [] });
     }
     const rows = await getAllGroups();
-    const scoped = canReadGroups(req.auth)
-      ? rows.filter((r) => Number(r.is_active) !== 0)
-      : rows.filter((r) => scopeGroupIds.includes(String(r.id)) && Number(r.is_active) !== 0);
+    const scoped = (
+      bypass ? rows : rows.filter((r) => scopeGroupIds.includes(String(r.id)))
+    ).filter((r) => Number(r.is_active) !== 0);
     res.json({
       groups: scoped.map((g) => ({
         id: g.id,
@@ -262,12 +266,13 @@ router.get(
     const canRead = canReadGroups(req.auth);
     const canManage = canManageGroups(req.auth);
     const scopeGroupIds = await getUserAccessibleGroupIds(req.auth, { includeDescendants: true });
+    const bypass = canBypassGroupScope(req.auth);
     if (!canRead && scopeGroupIds.length === 0) {
       return res.status(403).json({ error: 'Permission insuffisante' });
     }
 
     const rows = await getAllGroups();
-    const visibleRows = canRead
+    const visibleRows = bypass
       ? rows
       : rows.filter((row) => scopeGroupIds.includes(String(row.id)));
     const ids = visibleRows.map((row) => String(row.id));
@@ -308,6 +313,14 @@ router.post(
         parentGroupId,
       ]);
       if (!parent) return res.status(400).json({ error: 'parent_group_id introuvable' });
+      if (!(await isGroupInManageScope(req.auth, parentGroupId))) {
+        return res.status(403).json({ error: 'Groupe hors périmètre' });
+      }
+    } else if (!canBypassGroupScope(req.auth)) {
+      return res.status(403).json({
+        error:
+          'Sans vue globale, créez uniquement un sous-groupe d’une classe déjà dans votre périmètre',
+      });
     }
     const id = crypto.randomUUID();
     try {
@@ -345,6 +358,9 @@ router.patch(
     const id = normalizeId(req.params.id);
     const group = await queryOne('SELECT * FROM `groups` WHERE id = ? LIMIT 1', [id]);
     if (!group) return res.status(404).json({ error: 'Groupe introuvable' });
+    if (!(await isGroupInManageScope(req.auth, id))) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
 
     const slug = req.body?.slug !== undefined ? normalizeSlug(req.body.slug) : group.slug;
     const name = req.body?.name !== undefined ? String(req.body.name || '').trim() : group.name;
@@ -438,8 +454,11 @@ router.delete(
       return res.status(403).json({ error: 'Permission insuffisante' });
     }
     const id = normalizeId(req.params.id);
-    const group = await queryOne('SELECT id FROM `groups` WHERE id = ? LIMIT 1', [id]);
+    const group = await queryOne('SELECT id, name FROM `groups` WHERE id = ? LIMIT 1', [id]);
     if (!group) return res.status(404).json({ error: 'Groupe introuvable' });
+    if (!(await isGroupInManageScope(req.auth, id))) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
     // Membres élèves relevés AVANT la suppression (cascade group_members) pour resynchroniser
     // leurs rôles ensuite — comme PUT /:id/members ; sinon un élève garde un rôle issu du
     // groupe supprimé jusqu'à sa prochaine requête /api/auth/me.
@@ -467,6 +486,10 @@ router.delete(
     for (const row of studentMembers) {
       await syncStudentRoleFromGroups(row.user_id);
     }
+    await logAudit('delete_group', 'group', id, `Suppression groupe ${group.name || id}`, {
+      req,
+      payload: { name: group.name || null, student_members: studentMembers.length },
+    });
     res.json({ ok: true });
   }),
 );
@@ -475,10 +498,11 @@ router.get(
   '/:id/members',
   asyncHandler(async (req, res) => {
     const groupId = normalizeId(req.params.id);
-    const scopeGroupIds = await getUserAccessibleGroupIds(req.auth, { includeDescendants: true });
-    const canRead = canReadGroups(req.auth);
-    if (!canRead && !scopeGroupIds.includes(groupId)) {
+    if (!(await isGroupInManageScope(req.auth, groupId)) && !canReadGroups(req.auth)) {
       return res.status(403).json({ error: 'Permission insuffisante' });
+    }
+    if (!(await isGroupInManageScope(req.auth, groupId))) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
     }
     const rows = await queryAll(
       `SELECT gm.group_id, gm.user_id, gm.user_type, gm.role_in_group,
@@ -502,6 +526,9 @@ router.put(
     const groupId = normalizeId(req.params.id);
     const group = await queryOne('SELECT id FROM `groups` WHERE id = ? LIMIT 1', [groupId]);
     if (!group) return res.status(404).json({ error: 'Groupe introuvable' });
+    if (!(await isGroupInManageScope(req.auth, groupId))) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
 
     const memberUserIds = uniqueStrings(req.body?.member_user_ids || []);
     const managerUserIds = uniqueStrings(req.body?.manager_user_ids || []);
@@ -644,6 +671,9 @@ router.post(
     const id = normalizeId(req.params.id);
     const group = await queryOne('SELECT id FROM `groups` WHERE id = ? LIMIT 1', [id]);
     if (!group) return res.status(404).json({ error: 'Groupe introuvable' });
+    if (!(await isGroupInManageScope(req.auth, id))) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
     const action = String(req.body?.action || 'generate');
     if (action === 'clear') {
       await execute('UPDATE `groups` SET class_code = NULL, updated_at = NOW() WHERE id = ?', [id]);
@@ -679,6 +709,9 @@ router.post(
     const groupId = normalizeId(req.params.id);
     const userId = normalizeId(req.params.userId);
     if (!groupId || !userId) return res.status(400).json({ error: 'Identifiants requis' });
+    if (!(await isGroupInManageScope(req.auth, groupId))) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
     const result = await addStudentToGroup(userId, groupId);
     if (!result.ok) return res.status(result.status).json({ error: result.error });
     res.status(201).json({ ok: true, group_id: groupId, user_id: userId });
@@ -691,16 +724,19 @@ router.post(
     if (!canManageGroups(req.auth)) {
       return res.status(403).json({ error: 'Permission insuffisante' });
     }
-    const groupId = normalizeId(req.params.id);
-    const group = await queryOne('SELECT id FROM `groups` WHERE id = ? LIMIT 1', [groupId]);
+    const id = normalizeId(req.params.id);
+    if (!(await isGroupInManageScope(req.auth, id))) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
+    const group = await queryOne('SELECT id FROM `groups` WHERE id = ? LIMIT 1', [id]);
     if (!group) return res.status(404).json({ error: 'Groupe introuvable' });
 
-    const results = await syncStudentRolesForGroupMembers(groupId, {
+    const results = await syncStudentRolesForGroupMembers(id, {
       force: true,
-      groupId,
+      groupId: id,
     });
     res.json({
-      group_id: groupId,
+      group_id: id,
       applied: results.filter((r) => r.changed).length,
       results,
     });
