@@ -545,7 +545,7 @@ export function usePctMapViewport({
 
   /** Centre un point % image dans le cadre (résultat de recherche, lien profond), animé. */
   const focusOnPct = useCallback(
-    (pct, { targetScale = null, zoomFactor = 1.35 } = {}) => {
+    (pct, { targetScale = null, zoomFactor = 1.35, insets = null } = {}) => {
       const b = currentBounds();
       const fit = fitScaleRef.current || 1;
       const desired =
@@ -554,7 +554,7 @@ export function usePctMapViewport({
           : Math.max(tx.current.s, fit * (Number(zoomFactor) || 1.35));
       const s = clampPctMapScale(desired, b);
       const fr = optionsRef.current.contentMode === 'stage' ? fitRectRef.current : null;
-      animateTo(centerPctMapTransformOnPct(pct, s, b, fr));
+      animateTo(centerPctMapTransformOnPct(pct, s, b, fr, insets));
     },
     [animateTo, currentBounds],
   );

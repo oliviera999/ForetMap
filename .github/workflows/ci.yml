@@ -179,6 +179,13 @@ jobs:
           echo "API did not become healthy in time"
           exit 1
 
+      - name: Run Playwright Plan smoke (bloquant)
+        # Coquille + parcours Plan uniquement (projet `plan-mobile`) — filet court et
+        # stable ; la suite e2e complète reste informatif ci-dessous.
+        run: npx playwright test --project=plan-mobile e2e/plan-mobile-shell.spec.js e2e/plan-routes-mode.spec.js
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3000
+
       - name: Run Playwright smoke e2e (non-bloquant — informatif)
         id: e2e
         # La suite Playwright complète ne tient pas dans le budget CI (timeout global)

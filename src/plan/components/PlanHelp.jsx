@@ -14,7 +14,12 @@ import { HelpDock } from '../../shared/help/HelpDock.jsx';
  * @param {boolean} [props.canLocate] la carte est calée pour la localisation (lot 6).
  * @param {() => void} [props.onOpen] compteur d'usage (`help_open`).
  */
-export function PlanHelp({ welcomeHint = '', canLocate = false, onOpen = null }) {
+export function PlanHelp({
+  welcomeHint = '',
+  canLocate = false,
+  hasRoutes = false,
+  onOpen = null,
+}) {
   return (
     <HelpDock
       helpKey="plan:home"
@@ -39,18 +44,31 @@ export function PlanHelp({ welcomeHint = '', canLocate = false, onOpen = null })
             </li>
             <li>
               <strong>Se déplacer sur le plan</strong> : un doigt pour glisser, deux doigts ou les
-              boutons pour zoomer, « Voir tout le plan » pour revenir en arrière.
+              boutons pour zoomer, « Voir tout le plan » pour revenir en arrière. Une fiche ouverte
+              en bas peut être glissée ; au cran bas, le plan reste visible derrière.
             </li>
             <li>
               <strong>Les pastilles chiffrées</strong> regroupent des lieux trop proches pour être
               touchés séparément : touchez-les pour zoomer ou voir la liste.
             </li>
+            {hasRoutes ? (
+              <li>
+                <strong>Parcours</strong> : la puce ouvre la liste. Une barre en bas guide chaque
+                étape ; le plan reste utilisable. Sans GPS, repérez-vous sur le lieu mis en avant
+                puis touchez « Suivant ». Après « Quitter », reprenez via la puce ou « Reprendre ».
+              </li>
+            ) : null}
             {canLocate ? (
               <li>
                 <strong>Me situer</strong> affiche votre position et sa précision. « Y aller » donne
                 alors la direction et la distance à vol d’oiseau, pas un itinéraire.
               </li>
-            ) : null}
+            ) : (
+              <li>
+                <strong>Sans position GPS</strong> : le plan ne peut pas afficher où vous êtes.
+                Cherchez le lieu sur le plan, ou scannez un QR aux portes s’il y en a.
+              </li>
+            )}
           </ul>
         </div>
       }

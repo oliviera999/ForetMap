@@ -142,11 +142,14 @@ lecture seule, lancé côté serveur (`scripts/report-marker-density.js`).
 
 Un **parcours** est une liste ordonnée de lieux : « le tour des nouveaux professeurs », « la
 visite des portes ouvertes ». Sur le plan, une puce **« Parcours »** liste ceux publiés ; en
-choisir un affiche l'étape courante en bas d'écran, avec « Précédent » et « Suivant ». La carte
-recadre sur chaque étape, et « Y aller » vise l'étape en cours.
+choisir un affiche une **barre d'étape en bas d'écran**, avec « Précédent » et « Suivant ». La
+carte reste utilisable (on peut la déplacer et zoomer) et se recentre sur chaque étape, au-dessus
+de la barre, pour que le lieu reste visible. Sans calage GPS, on se repère sur le plan puis on
+avance avec « Suivant » ; avec le calage, « Y aller » vise l'étape en cours.
 
 Rien n'est enregistré : personne ne coche, personne n'est suivi. On peut sauter une étape ou
-quitter le parcours à tout moment. Un lien direct par parcours (`?parcours=…`) permet d'imprimer
+quitter le parcours à tout moment. Après avoir quitté, on le reprend via la puce **Parcours**
+(un court message le rappelle). Un lien direct par parcours (`?parcours=…`) permet d'imprimer
 un **QR code** à l'accueil : le visiteur scanne et démarre le parcours. Si l'affiche a survécu au
 parcours — dépublié, supprimé, renommé — le plan le **dit** (« Ce parcours n'est plus
 disponible. ») plutôt que de s'ouvrir sans rien annoncer.
@@ -155,8 +158,9 @@ Quand le plan est protégé par un **code d'accès**, les parcours le sont avec 
 contenu ne sort avant la saisie du code.
 
 Les parcours se créent dans ForetMap, dans _Réglages → Parcours_ (voir la documentation de la
-carte) : on cherche les lieux, on les ordonne au glisser-déposer, on publie. Le bouton
-**« Affiche PDF »** produit la page imprimable avec la liste des étapes et ce QR code.
+carte) : on cherche les lieux, on les ordonne au glisser-déposer, on **publie**. Un parcours
+brouillon n'apparaît nulle part, pas même via son lien. Le bouton **« Affiche PDF »** produit la
+page imprimable avec la liste des étapes et ce QR code.
 
 ### Le plan hors ligne
 
@@ -175,25 +179,50 @@ ForetMap et dans Gnomes & Licornes.
 
 ### Réglages d'établissement
 
-Dans _Réglages_, section du plan (portée publique) :
+Dans _Réglages → Plan_ (portée publique, sauf le code d'accès) :
 
-| Réglage                     | Effet                                                                          |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| Carte du plan               | quel plan est affiché par défaut                                               |
-| Titre                       | le titre en haut de l'écran                                                    |
-| Message d'accueil           | la phrase montrée une fois par appareil                                        |
-| Mention de source           | petite mention en bas du plan (origine du fond de carte)                       |
-| Catégories cochées d'office | les étiquettes actives à la première ouverture                                 |
-| Catégories masquées         | catégories jamais proposées sur le plan                                        |
-| Mode d'accès                | `public` (par défaut) ou `code` — le code d'accès arrive dans un lot ultérieur |
+| Réglage                     | Effet                                                                    |
+| --------------------------- | ------------------------------------------------------------------------ |
+| Carte du plan               | quel plan est affiché par défaut                                         |
+| Titre                       | le titre en haut de l'écran                                              |
+| Message d'accueil           | la phrase montrée une fois par appareil                                  |
+| Mention de source           | petite mention en bas du plan (origine du fond de carte)                 |
+| Adresse publique du plan    | base des QR codes et liens (ex. adresse du site Plan)                    |
+| Catégories cochées d'office | les étiquettes actives à la première ouverture                           |
+| Catégories masquées         | catégories jamais proposées sur le plan                                  |
+| Mode d'accès                | `public` (par défaut) ou `code` — un code court partagé, retenu 30 jours |
+| Code d'accès                | saisi en clair dans les réglages ; seul un empreinte est stockée         |
+
+### Mettre le Plan en service
+
+Avant d'annoncer le plan aux visiteurs, vérifier dans l'ordre :
+
+1. **Adresse sécurisée** — le site du plan s'ouvre en HTTPS avec un certificat reconnu (sinon
+   certains téléphones refusent la page, la position et l'installation hors ligne).
+2. **Fond de carte** — image assez nette pour zoomer, avec la **mention de source** renseignée
+   (licence / origine du dessin).
+3. **Carte du plan** — la bonne carte est choisie dans les réglages, et ses lieux utiles sont
+   visibles sur la surface **Plan** (catégories et masquages par lieu).
+4. **Alias et catégories** — les autres noms de recherche sont saisis ; les détails trop
+   denses sont en « visible seulement au zoom ».
+5. **Calage GPS** (si on veut « Me situer ») — trois points de calage posés sur cette carte.
+6. **Adresse publique** — renseignée pour que les QR des parcours mènent au plan, pas à la
+   console.
+7. **Parcours** — publiés (pas seulement créés en brouillon), avec des lieux encore visibles
+   sur le Plan.
+8. **QR aux portes** (recommandé en intérieur) — liens directs `?lieu=…` vers les entrées ;
+   sans bon signal GPS, c'est le moyen le plus fiable de se situer.
+
+Un rapport de densité (script de lecture seule côté serveur) aide à prioriser les alias et le
+désencombrement sur les données réelles.
 
 ## Vie privée
 
-Le plan n'a ni compte, ni cookie de suivi, ni identifiant d'appareil. Seuls trois
-**compteurs anonymes** sont incrémentés, sans jamais dire qui : ouverture du plan,
-ouverture d'un lieu, et recherche restée sans résultat. Ce dernier est le plus utile : il
-dit quels mots les gens emploient et que le plan ne connaît pas encore — donc quels
-**alias de recherche** ajouter.
+Le plan n'a ni compte, ni cookie de suivi, ni identifiant d'appareil. Des **compteurs
+anonymes** sont incrémentés, sans jamais dire qui : ouverture du plan, ouverture d'un lieu,
+recherche, recherche restée sans résultat, localisation, démarrage de parcours, etc. La
+recherche sans résultat est la plus utile : elle dit quels mots les gens emploient et que le
+plan ne connaît pas encore — donc quels **alias de recherche** ajouter.
 
 ## ⚠️ Points d'attention
 
