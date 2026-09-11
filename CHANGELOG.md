@@ -7,6 +7,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Profils & utilisateurs : sous-onglets et listes filtrées
+
+- L’onglet **Profils & utilisateurs** est découpé en sous-onglets **Profils**,
+  **Comptes**, **Groupes**, **Imports & exports** (sous-onglet mémorisé).
+- Listes de comptes : recherche, filtres (profil, type, groupe) et pagination
+  client (25 / 50 / 100).
+- Groupes : recherche, filtre par type, masquage des inactifs, arborescence
+  repliable, rattachement **en lot** des visiteurs en attente ; éditeur de
+  membres filtrable et paginé.
+
 ### Modifié — Visite : pastilles vu / non-vu (plus de zones toutes rouges)
 
 - Sur le plan de visite, les zones gardent un remplissage vert calme ; le statut

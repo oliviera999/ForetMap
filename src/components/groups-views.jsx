@@ -6,6 +6,25 @@ import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { slugify } from '../utils/slugify';
 import { IconClock, IconWarning } from '../shared/icons.jsx';
+import {
+  buildGroupForest,
+  filterGroupMemberCandidates,
+  filterGroupsList,
+  GROUP_KINDS,
+} from '../utils/groupsAdminListFilters.js';
+import {
+  normalizePageSize,
+  paginateList,
+  DEFAULT_PROFILES_PAGE_SIZE,
+  PROFILES_PAGE_SIZES,
+} from '../utils/profilesUserListFilters.js';
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageSetItem,
+} from '../shared/platform/browserStorage.js';
+
+const GROUPS_HIDE_INACTIVE_KEY = 'foretmap.groups.hideInactive';
+const GROUPS_PAGE_SIZE_KEY = 'foretmap.profiles.pageSize';
 
 function normalizeIds(values = []) {
   return [...new Set(values.map((v) => String(v || '').trim()).filter(Boolean))];
@@ -189,6 +208,11 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
   const [scopeMapIds, setScopeMapIds] = useState([]);
   const [scopeProjectIds, setScopeProjectIds] = useState([]);
   const [search, setSearch] = useState('');
+  const [membershipFilter, setMembershipFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(() =>
+    normalizePageSize(safeLocalStorageGetItem(GROUPS_PAGE_SIZE_KEY, DEFAULT_PROFILES_PAGE_SIZE)),
+  );
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
 
@@ -205,15 +229,29 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
     setScopeProjectIds(normalizeIds(scopes.map((s) => s.project_id).filter(Boolean)));
   }, [group]);
 
-  const filteredUsers = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter((u) =>
-      String(u.display_name || '')
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [users, search]);
+  const memberOrManagerIds = useMemo(
+    () => new Set([...memberIds, ...managerIds].map(String)),
+    [memberIds, managerIds],
+  );
+
+  const filteredUsers = useMemo(
+    () =>
+      filterGroupMemberCandidates(users, {
+        query: search,
+        membershipFilter,
+        memberOrManagerIds,
+      }),
+    [users, search, membershipFilter, memberOrManagerIds],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, membershipFilter, pageSize]);
+
+  const pageData = useMemo(
+    () => paginateList(filteredUsers, page, pageSize),
+    [filteredUsers, page, pageSize],
+  );
 
   const toggleId = (setter, current, id, checked) => {
     if (checked) setter(normalizeIds([...current, id]));
@@ -246,23 +284,56 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
           <IconWarning size={14} /> {err}
         </div>
       )}
-      <div className="field" style={{ marginBottom: 8 }}>
+      <div className="profiles-admin-list-toolbar" style={{ marginBottom: 8 }}>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Rechercher un utilisateur..."
+          aria-label="Rechercher un utilisateur"
         />
+        <select
+          value={membershipFilter}
+          onChange={(e) => setMembershipFilter(e.target.value)}
+          aria-label="Filtrer membres"
+        >
+          <option value="all">Tous</option>
+          <option value="members">Déjà membres</option>
+          <option value="non_members">Non membres</option>
+        </select>
+        <label className="profiles-admin-page-size">
+          <span>Par page</span>
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              const size = normalizePageSize(e.target.value);
+              setPageSize(size);
+              safeLocalStorageSetItem(GROUPS_PAGE_SIZE_KEY, String(size));
+            }}
+            aria-label="Nombre d’utilisateurs par page"
+          >
+            {PROFILES_PAGE_SIZES.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
+      <p style={{ margin: '0 0 6px', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
+        {pageData.total === 0
+          ? 'Aucun utilisateur'
+          : `${pageData.from}–${pageData.to} sur ${pageData.total}`}
+      </p>
       <div
         style={{
-          maxHeight: 220,
+          maxHeight: 280,
           overflow: 'auto',
           border: '1px solid #e5e7eb',
           borderRadius: 8,
           padding: 8,
         }}
       >
-        {filteredUsers.map((u) => {
+        {pageData.items.map((u) => {
           const uid = String(u.id);
           const memberChecked = memberIds.includes(uid) || managerIds.includes(uid);
           const managerChecked = managerIds.includes(uid);
@@ -300,6 +371,29 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
           );
         })}
       </div>
+      {pageData.pageCount > 1 && (
+        <div className="profiles-admin-pagination" style={{ marginTop: 8 }}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            disabled={pageData.page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Précédent
+          </button>
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
+            Page {pageData.page} / {pageData.pageCount}
+          </span>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            disabled={pageData.page >= pageData.pageCount}
+            onClick={() => setPage((p) => Math.min(pageData.pageCount, p + 1))}
+          >
+            Suivant
+          </button>
+        </div>
+      )}
       <div className="field" style={{ marginTop: 10 }}>
         <label>Périmètre cartes</label>
         <select
@@ -346,7 +440,116 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
   );
 }
 
-export function GroupsAdminView() {
+function GroupTreeNode({
+  node,
+  depth,
+  collapsedIds,
+  onToggleCollapse,
+  loading,
+  onSettings,
+  onMembers,
+  onToggleActive,
+  onDelete,
+}) {
+  const id = String(node.id);
+  const hasChildren = Array.isArray(node.children) && node.children.length > 0;
+  const collapsed = collapsedIds.has(id);
+  return (
+    <div style={{ marginLeft: depth === 0 ? 0 : 16 }}>
+      <div
+        style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 8, marginBottom: 8 }}
+        data-testid={`group-row-${id}`}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: 8,
+            flexWrap: 'wrap',
+            alignItems: 'center',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+            {hasChildren ? (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                aria-expanded={!collapsed}
+                aria-label={collapsed ? 'Déplier le sous-groupe' : 'Replier le sous-groupe'}
+                onClick={() => onToggleCollapse(id)}
+                style={{ minWidth: 44, padding: '4px 8px' }}
+              >
+                {collapsed ? '▸' : '▾'}
+              </button>
+            ) : (
+              <span style={{ width: 28, display: 'inline-block' }} aria-hidden />
+            )}
+            <div>
+              <strong>{node.name}</strong>
+              <span style={{ color: 'var(--ink-soft)' }}> · {node.kind}</span>
+              {node.parent_group_id && <span style={{ color: '#94a3b8' }}> · sous-groupe</span>}
+              {Number(node.is_active) === 0 && (
+                <span style={{ color: '#b45309', fontSize: 'var(--text-xs)' }}> · inactif</span>
+              )}
+              {node.gl_class_id && (
+                <span style={{ color: '#0f766e', fontSize: 'var(--text-xs)' }}> · Lié GL</span>
+              )}
+              {node.default_role_display_name && (
+                <span style={{ color: 'var(--ink-soft)', fontSize: 'var(--text-xs)' }}>
+                  {' '}
+                  · Profil : {node.default_role_display_name}
+                </span>
+              )}
+              {node.grants_n3beur_access && (
+                <span style={{ color: '#0369a1', fontSize: 'var(--text-xs)' }}> · n3beur</span>
+              )}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => onSettings(node)}>
+              Profil
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => onMembers(node)}>
+              Membres
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => onToggleActive(node)}>
+              {node.is_active ? 'Désactiver' : 'Activer'}
+            </button>
+            <button
+              className="btn btn-danger btn-sm"
+              onClick={() => onDelete(node)}
+              disabled={loading}
+            >
+              Supprimer
+            </button>
+          </div>
+        </div>
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-soft)', marginTop: 4 }}>
+          {Array.isArray(node.members) ? `${node.members.length} membre(s)` : '0 membre'} ·{' '}
+          {Array.isArray(node.scopes) ? `${node.scopes.length} scope(s)` : '0 scope'}
+        </div>
+      </div>
+      {hasChildren &&
+        !collapsed &&
+        node.children.map((child) => (
+          <GroupTreeNode
+            key={child.id}
+            node={child}
+            depth={depth + 1}
+            collapsedIds={collapsedIds}
+            onToggleCollapse={onToggleCollapse}
+            loading={loading}
+            onSettings={onSettings}
+            onMembers={onMembers}
+            onToggleActive={onToggleActive}
+            onDelete={onDelete}
+          />
+        ))}
+    </div>
+  );
+}
+
+export function GroupsAdminView({ onPendingCountChange } = {}) {
   const publicSettings = usePublicSettings();
   const { confirm, prompt } = useAppDialogs();
   const [groups, setGroups] = useState([]);
@@ -361,6 +564,14 @@ export function GroupsAdminView() {
   const [msg, setMsg] = useState('');
   const [pendingVisitors, setPendingVisitors] = useState([]);
   const [pendingTargetGroup, setPendingTargetGroup] = useState('');
+  const [selectedPendingIds, setSelectedPendingIds] = useState(() => new Set());
+  const [groupQuery, setGroupQuery] = useState('');
+  const [groupKind, setGroupKind] = useState('');
+  const [hideInactive, setHideInactive] = useState(() => {
+    const raw = safeLocalStorageGetItem(GROUPS_HIDE_INACTIVE_KEY, '1');
+    return raw !== '0';
+  });
+  const [collapsedIds, setCollapsedIds] = useState(() => new Set());
   const helpGroups = resolveHelpPanelSection('groups', publicSettings);
 
   const load = async () => {
@@ -379,7 +590,12 @@ export function GroupsAdminView() {
     setMaps(Array.isArray(mapsRows) ? mapsRows : []);
     setProjects(Array.isArray(projectRows) ? projectRows : []);
     setRoles(Array.isArray(roleRows) ? roleRows : []);
-    setPendingVisitors(Array.isArray(pendingRows) ? pendingRows : []);
+    const pending = Array.isArray(pendingRows) ? pendingRows : [];
+    setPendingVisitors(pending);
+    setSelectedPendingIds(new Set());
+    if (typeof onPendingCountChange === 'function') {
+      onPendingCountChange(pending.length);
+    }
   };
 
   const attachPendingVisitor = async (student) => {
@@ -402,9 +618,58 @@ export function GroupsAdminView() {
     setLoading(false);
   };
 
+  const attachSelectedPending = async () => {
+    if (!pendingTargetGroup) {
+      setErr('Choisis d’abord le groupe de rattachement.');
+      return;
+    }
+    const selected = pendingVisitors.filter((v) => selectedPendingIds.has(String(v.id)));
+    if (selected.length === 0) {
+      setErr('Sélectionne au moins un compte à rattacher.');
+      return;
+    }
+    setLoading(true);
+    setErr('');
+    let ok = 0;
+    const errors = [];
+    for (const student of selected) {
+      try {
+        await api(
+          `/api/groups/${encodeURIComponent(pendingTargetGroup)}/members/${encodeURIComponent(student.id)}`,
+          'POST',
+        );
+        ok += 1;
+      } catch (e) {
+        errors.push(
+          `${student.first_name || ''} ${student.last_name || ''}: ${e.message || 'échec'}`.trim(),
+        );
+      }
+    }
+    if (ok > 0) {
+      setMsg(`${ok} compte${ok > 1 ? 's' : ''} rattaché${ok > 1 ? 's' : ''} au groupe.`);
+    }
+    if (errors.length > 0) {
+      setErr(errors.slice(0, 3).join(' · '));
+    }
+    await load();
+    setLoading(false);
+  };
+
   useEffect(() => {
     load().catch((e) => setErr(e.message || 'Erreur chargement groupes'));
   }, []);
+
+  const filteredGroups = useMemo(
+    () =>
+      filterGroupsList(groups, {
+        query: groupQuery,
+        kind: groupKind,
+        hideInactive,
+      }),
+    [groups, groupQuery, groupKind, hideInactive],
+  );
+
+  const forest = useMemo(() => buildGroupForest(filteredGroups), [filteredGroups]);
 
   const createGroup = async () => {
     const name = await prompt({ message: 'Nom du groupe (ex: 2nde A)' });
@@ -465,6 +730,42 @@ export function GroupsAdminView() {
     setLoading(false);
   };
 
+  const toggleCollapse = (id) => {
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleHideInactive = (checked) => {
+    setHideInactive(checked);
+    safeLocalStorageSetItem(GROUPS_HIDE_INACTIVE_KEY, checked ? '1' : '0');
+  };
+
+  const togglePendingSelection = (id, checked) => {
+    setSelectedPendingIds((prev) => {
+      const next = new Set(prev);
+      const key = String(id);
+      if (checked) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+  };
+
+  const allPendingSelected =
+    pendingVisitors.length > 0 &&
+    pendingVisitors.every((v) => selectedPendingIds.has(String(v.id)));
+
+  const toggleSelectAllPending = (checked) => {
+    if (checked) {
+      setSelectedPendingIds(new Set(pendingVisitors.map((v) => String(v.id))));
+    } else {
+      setSelectedPendingIds(new Set());
+    }
+  };
+
   return (
     <div
       style={{
@@ -487,7 +788,7 @@ export function GroupsAdminView() {
         />
       </div>
       <p style={{ marginTop: 0, fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
-        Module dédié: structure pédagogique, membres, responsables et périmètre carte/projet.
+        Structure pédagogique, membres, responsables et périmètre carte/projet.
       </p>
 
       {pendingVisitors.length > 0 && (
@@ -506,9 +807,9 @@ export function GroupsAdminView() {
             {pendingVisitors.length > 1 ? 's' : ''} en attente de rattachement
           </strong>
           <p style={{ margin: '4px 0 8px', fontSize: 'var(--text-sm)', color: '#1e3a8a' }}>
-            Ces élèves se sont inscrits seuls et n'ont encore accès qu'à la Visite. Choisis un
-            groupe puis rattache-les en un clic (le rôle n3beur est attribué automatiquement si le
-            groupe le confère).
+            Ces élèves se sont inscrits seuls et n&apos;ont encore accès qu&apos;à la Visite.
+            Choisis un groupe puis rattache-les un par un ou en lot (le rôle n3beur est attribué
+            automatiquement si le groupe le confère).
           </p>
           <label style={{ fontSize: 'var(--text-sm)', display: 'block', marginBottom: 8 }}>
             Groupe de rattachement{' '}
@@ -526,11 +827,46 @@ export function GroupsAdminView() {
                 ))}
             </select>
           </label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+            <label
+              style={{ fontSize: 'var(--text-sm)', display: 'flex', gap: 6, alignItems: 'center' }}
+            >
+              <input
+                type="checkbox"
+                checked={allPendingSelected}
+                onChange={(e) => toggleSelectAllPending(e.target.checked)}
+              />
+              Tout sélectionner
+            </label>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={loading || !pendingTargetGroup || selectedPendingIds.size === 0}
+              onClick={attachSelectedPending}
+            >
+              Rattacher la sélection ({selectedPendingIds.size})
+            </button>
+          </div>
           <ul style={{ margin: 0, paddingLeft: 18 }}>
             {pendingVisitors.map((v) => (
               <li key={v.id} style={{ marginBottom: 4 }}>
-                {v.first_name} {v.last_name}
-                {v.pseudo ? ` (${v.pseudo})` : ''}{' '}
+                <label
+                  style={{
+                    display: 'inline-flex',
+                    gap: 6,
+                    alignItems: 'center',
+                    marginRight: 8,
+                    fontSize: 'var(--text-sm)',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedPendingIds.has(String(v.id))}
+                    onChange={(e) => togglePendingSelection(v.id, e.target.checked)}
+                  />
+                  {v.first_name} {v.last_name}
+                  {v.pseudo ? ` (${v.pseudo})` : ''}
+                </label>
                 <button
                   className="btn btn-secondary btn-sm"
                   disabled={loading || !pendingTargetGroup}
@@ -549,63 +885,73 @@ export function GroupsAdminView() {
         </div>
       )}
       {msg && <div className="auth-success">{msg}</div>}
-      <button className="btn btn-secondary btn-sm" onClick={createGroup} disabled={loading}>
-        + Nouveau groupe
-      </button>
-      <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
-        {groups.map((g) => (
-          <div key={g.id} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 8 }}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: 8,
-                flexWrap: 'wrap',
-                alignItems: 'center',
-              }}
-            >
-              <div>
-                <strong>{g.name}</strong>
-                <span style={{ color: 'var(--ink-soft)' }}> · {g.kind}</span>
-                {g.parent_group_id && <span style={{ color: '#94a3b8' }}> · sous-groupe</span>}
-                {g.gl_class_id && (
-                  <span style={{ color: '#0f766e', fontSize: 'var(--text-xs)' }}> · Lié GL</span>
-                )}
-                {g.default_role_display_name && (
-                  <span style={{ color: 'var(--ink-soft)', fontSize: 'var(--text-xs)' }}>
-                    {' '}
-                    · Profil : {g.default_role_display_name}
-                  </span>
-                )}
-                {g.grants_n3beur_access && (
-                  <span style={{ color: '#0369a1', fontSize: 'var(--text-xs)' }}> · n3beur</span>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => setSettingsGroup(g)}>
-                  Profil
-                </button>
-                <button className="btn btn-ghost btn-sm" onClick={() => setEditingGroup(g)}>
-                  Membres
-                </button>
-                <button className="btn btn-ghost btn-sm" onClick={() => toggleGroupActive(g)}>
-                  {g.is_active ? 'Désactiver' : 'Activer'}
-                </button>
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => deleteGroup(g)}
-                  disabled={loading}
-                >
-                  Supprimer
-                </button>
-              </div>
-            </div>
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-soft)', marginTop: 4 }}>
-              {Array.isArray(g.members) ? `${g.members.length} membre(s)` : '0 membre'} ·{' '}
-              {Array.isArray(g.scopes) ? `${g.scopes.length} scope(s)` : '0 scope'}
-            </div>
-          </div>
-        ))}
+      <div className="profiles-admin-list-toolbar" style={{ marginBottom: 10 }}>
+        <input
+          type="search"
+          value={groupQuery}
+          onChange={(e) => setGroupQuery(e.target.value)}
+          placeholder="Rechercher un groupe (nom ou slug)…"
+          aria-label="Rechercher un groupe"
+        />
+        <select
+          value={groupKind}
+          onChange={(e) => setGroupKind(e.target.value)}
+          aria-label="Filtrer par type de groupe"
+        >
+          <option value="">Tous les types</option>
+          {GROUP_KINDS.map((k) => (
+            <option key={k} value={k}>
+              {k}
+            </option>
+          ))}
+        </select>
+        <label
+          style={{
+            display: 'inline-flex',
+            gap: 6,
+            alignItems: 'center',
+            fontSize: 'var(--text-sm)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={hideInactive}
+            onChange={(e) => toggleHideInactive(e.target.checked)}
+          />
+          Masquer les inactifs
+        </label>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button className="btn btn-secondary btn-sm" onClick={createGroup} disabled={loading}>
+          + Nouveau groupe
+        </button>
+        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
+          {filteredGroups.length} groupe{filteredGroups.length !== 1 ? 's' : ''} affiché
+          {filteredGroups.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+      <div style={{ marginTop: 10 }}>
+        {forest.length === 0 ? (
+          <p style={{ margin: 0, color: 'var(--ink-soft)', fontSize: 'var(--text-sm)' }}>
+            Aucun groupe ne correspond aux filtres.
+          </p>
+        ) : (
+          forest.map((node) => (
+            <GroupTreeNode
+              key={node.id}
+              node={node}
+              depth={0}
+              collapsedIds={collapsedIds}
+              onToggleCollapse={toggleCollapse}
+              loading={loading}
+              onSettings={setSettingsGroup}
+              onMembers={setEditingGroup}
+              onToggleActive={toggleGroupActive}
+              onDelete={deleteGroup}
+            />
+          ))
+        )}
       </div>
       {settingsGroup && (
         <div style={{ marginTop: 12 }}>
