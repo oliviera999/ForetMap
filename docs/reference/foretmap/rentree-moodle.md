@@ -75,7 +75,9 @@ sécurité**, **Entrée depuis le cours**, **Outils**.
      deux comptes ») ;
    - _Désactivations_ — les comptes qui ne sont plus dans aucune cohorte ;
    - _Rapprochements en attente_, _Conflits d'e-mail_, _Conflits de comparaison_, _Alertes_,
-     _Cohortes sans politique_.
+     _Cohortes sans politique_ ;
+   - _Comptes laissés de côté_ — sans e-mail, e-mail hors domaine autorisé, ou e-mail en
+     double côté Moodle : ils ne bloquent plus toute la synchronisation.
 3. **Appliquer.** Le bouton se libère quand la simulation a réussi sur exactement ces cohortes.
    S'il reste grisé, la raison est écrite à côté (périmètre changé, seuil dépassé, simulation
    échouée, synchronisation désactivée). Une confirmation est demandée.
@@ -147,7 +149,9 @@ ne s'annule pas.
   cohorte dont le code contient « n3 » (par exemple `26#n3`, `n3` ou `club-n3`) peut être
   synchronisée même sans ce préfixe.
 - **Domaines d'e-mail acceptés** : vide = tous ; sinon un membre Moodle dont l'e-mail n'est pas
-  dans ces domaines bloque la synchronisation (contrôle amont).
+  dans ces domaines est **laissé de côté** (les autres membres de la cohorte sont quand même
+  traités). Même principe pour un membre sans e-mail, ou deux membres Moodle qui partagent le
+  même e-mail : le rapport les liste, l'exécution continue.
 - **Chapitres → cours** : quel cours Moodle porte quel chapitre de Gnomes & Licornes. Le **nom
   du cours** s'affiche à côté de son identifiant pour éviter une erreur d'année. Sert aux miroirs
   d'équipes et à l'entrée depuis le cours.

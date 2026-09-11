@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — sync Moodle : comptes à problème laissés de côté
+
+- Sans e-mail, e-mail hors domaine, ou e-mail en double côté Moodle : le membre est
+  **écarté** et listé dans le rapport ; les autres sont importés / rapprochés normalement
+  (plus d’échec global de l’exécution).
+- Un membre **déjà lié** sans e-mail continue d’être synchronisé (appartenances).
+
 ### Modifié — sync Moodle : cohortes n3 sans préfixe d'année
 
 - Politique **n3** : toute cohorte dont le code contient « n3 » (ex. `26#n3`, `n3`,

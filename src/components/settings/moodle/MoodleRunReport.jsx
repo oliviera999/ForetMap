@@ -61,9 +61,18 @@ export function MoodleRunReport({ run, onUndo, undoing }) {
         </div>
       )}
       {Array.isArray(report.upstreamErrors) && report.upstreamErrors.length > 0 && (
-        <div className="auth-error">
-          Contrôles amont bloquants ({report.upstreamErrors.length}) :
-          <ul>
+        <div
+          style={{
+            background: '#fff7ed',
+            border: '1px solid #fdba74',
+            borderRadius: 8,
+            padding: '8px 10px',
+            marginTop: 8,
+          }}
+          data-testid="moodle-upstream-skipped"
+        >
+          Comptes laissés de côté ({report.upstreamErrors.length}) — le reste a été traité :
+          <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
             {report.upstreamErrors.slice(0, 20).map((e, i) => (
               <li key={i}>
                 {e.code} — {e.message}
