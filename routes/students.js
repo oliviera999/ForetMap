@@ -15,6 +15,8 @@ const { getAbsolutePath, ensureDir } = require('../lib/uploads');
 const { getPrimaryRoleForUser, setPrimaryRole } = require('../lib/rbac');
 const { deleteStudentById } = require('../lib/studentDeletion');
 const { getPasswordMinLength, getPasswordMinLengthFor } = require('../lib/passwordReset');
+const { getSettingValue } = require('../lib/settings');
+const { bumpUserTokenEpoch } = require('../lib/auth/tokenEpoch');
 const logger = require('../lib/logger');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 const { loadGroupsIndex, attachUserToGroupRefs } = require('../lib/groupImport');
@@ -115,12 +117,25 @@ router.post(
       return res.status(400).json({ error: `Import limité à ${MAX_IMPORT_ROWS} lignes` });
     }
 
+    const existingStrategyRaw = await getSettingValue(
+      'students.import.existing_strategy',
+      'update',
+    );
+    const existingStrategy =
+      String(existingStrategyRaw || '').toLowerCase() === 'skip' ? 'skip' : 'update';
+    const allowWeakPasswords = !!(await getSettingValue(
+      'students.import.allow_weak_passwords',
+      false,
+    ));
+
     const report = {
       dryRun,
+      options: { existingStrategy, allowWeakPasswords },
       totals: {
         received: rawRows.length,
         valid: 0,
         created: 0,
+        updated: 0,
         skipped_existing: 0,
         skipped_invalid: 0,
         merged_duplicates: 0,
@@ -141,16 +156,24 @@ router.post(
         u,
       ]),
     );
-    const pseudoSet = new Set(
-      existingUsers.map((u) => asTrimmedString(u.pseudo).toLowerCase()).filter(Boolean),
-    );
-    const emailSet = new Set(
-      existingUsers.map((u) => asTrimmedString(u.email).toLowerCase()).filter(Boolean),
-    );
+    const pseudoOwner = new Map();
+    const emailOwner = new Map();
+    for (const u of existingUsers) {
+      const p = asTrimmedString(u.pseudo).toLowerCase();
+      const e = asTrimmedString(u.email).toLowerCase();
+      if (p) pseudoOwner.set(p, u.id);
+      if (e) emailOwner.set(e, u.id);
+    }
 
     const minPasswordStudent = await getPasswordMinLengthFor('student');
     const minPasswordTeacher = await getPasswordMinLengthFor('teacher');
-    const passwordOpts = { minPasswordStudent, minPasswordTeacher };
+    const passwordOpts = {
+      minPasswordStudent,
+      minPasswordTeacher,
+      allowWeakPasswords,
+      // Mot de passe requis seulement à la création ; vide à la mise à jour = inchangé.
+      passwordRequired: false,
+    };
 
     const candidateRows = [];
     rawRows.forEach((row, idx) => {
@@ -194,8 +217,9 @@ router.post(
     for (const rowItem of mergedRows) {
       const { payload, rowNumber } = rowItem;
       const keyByName = `${payload.userType}|${payload.firstName.toLowerCase()}|${payload.lastName.toLowerCase()}`;
+      const existing = existingByName.get(keyByName) || null;
 
-      if (existingByName.has(keyByName)) {
+      if (existing && existingStrategy === 'skip') {
         report.totals.skipped_existing += 1;
         report.errors.push({
           row: rowNumber,
@@ -205,12 +229,28 @@ router.post(
         continue;
       }
 
-      const uniquenessErrors = [];
-      if (payload.pseudo && pseudoSet.has(payload.pseudo.toLowerCase())) {
-        uniquenessErrors.push({ row: rowNumber, field: 'pseudo', error: 'Pseudo déjà utilisé' });
+      if (!existing && !payload.password) {
+        report.totals.skipped_invalid += 1;
+        report.errors.push({
+          row: rowNumber,
+          field: 'password',
+          error: 'Mot de passe requis',
+        });
+        continue;
       }
-      if (payload.email && emailSet.has(payload.email.toLowerCase())) {
-        uniquenessErrors.push({ row: rowNumber, field: 'email', error: 'Email déjà utilisé' });
+
+      const uniquenessErrors = [];
+      if (payload.pseudo) {
+        const ownerId = pseudoOwner.get(payload.pseudo.toLowerCase());
+        if (ownerId && (!existing || ownerId !== existing.id)) {
+          uniquenessErrors.push({ row: rowNumber, field: 'pseudo', error: 'Pseudo déjà utilisé' });
+        }
+      }
+      if (payload.email) {
+        const ownerId = emailOwner.get(payload.email.toLowerCase());
+        if (ownerId && (!existing || ownerId !== existing.id)) {
+          uniquenessErrors.push({ row: rowNumber, field: 'email', error: 'Email déjà utilisé' });
+        }
       }
       if (uniquenessErrors.length > 0) {
         report.totals.skipped_invalid += 1;
@@ -218,9 +258,14 @@ router.post(
         continue;
       }
 
-      if (payload.pseudo) pseudoSet.add(payload.pseudo.toLowerCase());
-      if (payload.email) emailSet.add(payload.email.toLowerCase());
-      validRows.push(rowItem);
+      if (payload.pseudo) {
+        pseudoOwner.set(payload.pseudo.toLowerCase(), existing?.id || '__pending__');
+      }
+      if (payload.email) {
+        emailOwner.set(payload.email.toLowerCase(), existing?.id || '__pending__');
+      }
+
+      validRows.push({ ...rowItem, existing, action: existing ? 'update' : 'create' });
     }
 
     const affiliationResolvedRows = [];
@@ -245,6 +290,7 @@ router.post(
       if (report.preview.length < 20) {
         report.preview.push({
           row: rowItem.rowNumber,
+          action: rowItem.action,
           role_slug: rowItem.payload.roleSlug,
           user_type: rowItem.payload.userType,
           first_name: rowItem.payload.firstName,
@@ -264,7 +310,6 @@ router.post(
       return res.json({ report });
     }
 
-    // Rôle primaire : une requête pour tous les slugs importables, puis INSERT multi-valeurs.
     const roleIdBySlug = new Map();
     const slugList = [...IMPORT_ROLE_SLUGS];
     const placeholdersSlugs = slugList.map(() => '?').join(', ');
@@ -274,15 +319,61 @@ router.post(
     );
     for (const r of roleRows) roleIdBySlug.set(r.slug, r.id);
     const createdRoleAssignments = [];
-    const createdUsersForGroups = [];
+    const usersForGroups = [];
 
     for (const rowItem of affiliationResolvedRows) {
-      const { payload, rowNumber } = rowItem;
-      const hash = await bcrypt.hash(payload.password, 10);
-      const id = crypto.randomUUID();
-      const now = nowIsoUtc();
+      const { payload, rowNumber, action, existing } = rowItem;
       const roleSlug = payload.roleSlug;
+      const roleId = roleIdBySlug.get(roleSlug);
+      const displayName = `${payload.firstName} ${payload.lastName}`.trim();
+
       try {
+        if (action === 'update' && existing?.id) {
+          const sets = [
+            'email = ?',
+            'pseudo = ?',
+            'description = ?',
+            'affiliation = ?',
+            'display_name = ?',
+            'updated_at = NOW()',
+          ];
+          const params = [
+            payload.email,
+            payload.pseudo,
+            payload.description,
+            payload.affiliation,
+            displayName,
+          ];
+          let passwordChanged = false;
+          if (payload.password) {
+            const hash = await bcrypt.hash(payload.password, 10);
+            sets.push('password_hash = ?');
+            params.push(hash);
+            passwordChanged = true;
+          }
+          params.push(existing.id);
+          await execute(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`, params);
+          if (passwordChanged) {
+            await bumpUserTokenEpoch(existing.id);
+          }
+          if (roleId != null) {
+            await setPrimaryRole(payload.userType, existing.id, roleId);
+          }
+          report.totals.updated += 1;
+          if (Array.isArray(payload.groupRefs) && payload.groupRefs.length > 0) {
+            usersForGroups.push({
+              id: existing.id,
+              userType: payload.userType,
+              groupRefs: payload.groupRefs,
+              rowNumber,
+            });
+          }
+          continue;
+        }
+
+        const hash = await bcrypt.hash(payload.password, 10);
+        const id = crypto.randomUUID();
+        const now = nowIsoUtc();
         await execute(
           `INSERT INTO users
             (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
@@ -294,7 +385,7 @@ router.post(
             payload.pseudo,
             payload.firstName,
             payload.lastName,
-            `${payload.firstName} ${payload.lastName}`.trim(),
+            displayName,
             payload.description,
             payload.affiliation,
             hash,
@@ -302,10 +393,9 @@ router.post(
           ],
         );
         report.totals.created += 1;
-        const roleId = roleIdBySlug.get(roleSlug);
         if (roleId != null) createdRoleAssignments.push([payload.userType, id, roleId]);
         if (Array.isArray(payload.groupRefs) && payload.groupRefs.length > 0) {
-          createdUsersForGroups.push({
+          usersForGroups.push({
             id,
             userType: payload.userType,
             groupRefs: payload.groupRefs,
@@ -326,8 +416,6 @@ router.post(
       }
     }
 
-    // Assigne le rôle primaire de tous les comptes créés en INSERT multi-valeurs par lots
-    // (au lieu d'un INSERT par compte). Le rôle inconnu (slug absent) est ignoré, comme `ensurePrimaryRole`.
     if (createdRoleAssignments.length > 0) {
       const ROLE_CHUNK = 500;
       for (let i = 0; i < createdRoleAssignments.length; i += ROLE_CHUNK) {
@@ -342,9 +430,9 @@ router.post(
       }
     }
 
-    if (createdUsersForGroups.length > 0) {
+    if (usersForGroups.length > 0) {
       const groupsIndex = await loadGroupsIndex();
-      for (const item of createdUsersForGroups) {
+      for (const item of usersForGroups) {
         const attach = await attachUserToGroupRefs(
           req.auth,
           item.id,
@@ -364,12 +452,22 @@ router.post(
       }
     }
 
-    if (report.totals.created > 0) {
-      logAudit('students_import', 'user', null, `Import de ${report.totals.created} compte(s)`, {
-        req,
-        payload: { report: report.totals },
+    if (report.totals.created > 0 || report.totals.updated > 0) {
+      logAudit(
+        'students_import',
+        'user',
+        null,
+        `Import de ${report.totals.created} compte(s) créé(s), ${report.totals.updated} mis à jour`,
+        {
+          req,
+          payload: { report: report.totals, options: report.options },
+        },
+      );
+      emitStudentsChanged({
+        reason: 'students_import',
+        created: report.totals.created,
+        updated: report.totals.updated,
       });
-      emitStudentsChanged({ reason: 'students_import', created: report.totals.created });
     }
     res.json({ report });
   }),

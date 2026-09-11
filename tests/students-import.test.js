@@ -202,3 +202,142 @@ test('POST /api/students/import crée un prof_classe avec le bon profil', async 
   );
   assert.strictEqual(role?.slug, 'prof_classe');
 });
+
+test('POST /api/students/import met à jour un compte déjà présent (défaut)', async () => {
+  const { setSetting } = require('../lib/settings');
+  await setSetting('students.import.existing_strategy', 'update', {
+    userType: 'teacher',
+    userId: 'test',
+  });
+  const unique = Date.now();
+  const header =
+    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte);Groupes (noms/slugs, | ou ; ; chemin Parent>Enfant);Pseudo (optionnel);Email (optionnel);Description (optionnel)';
+  const createCsv = [
+    header,
+    `eleve;Maj;User-${unique};pass123;n3;;maj_${unique};maj_${unique}@example.com;Avant`,
+  ].join('\n');
+  await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'create.csv',
+      fileDataBase64: Buffer.from(createCsv, 'utf8').toString('base64'),
+      dryRun: false,
+    })
+    .expect(200);
+
+  const updateCsv = [
+    header,
+    `eleve_avance;Maj;User-${unique};;foret;Classe Maj ${unique};maj_${unique}_v2;maj_v2_${unique}@example.com;Après`,
+  ].join('\n');
+  const res = await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'update.csv',
+      fileDataBase64: Buffer.from(updateCsv, 'utf8').toString('base64'),
+      dryRun: false,
+    })
+    .expect(200);
+
+  assert.strictEqual(res.body.report.options.existingStrategy, 'update');
+  assert.strictEqual(res.body.report.totals.updated, 1);
+  assert.strictEqual(res.body.report.totals.created, 0);
+  const row = await queryOne(
+    "SELECT * FROM users WHERE user_type = 'student' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?)",
+    ['Maj', `User-${unique}`],
+  );
+  assert.ok(row);
+  assert.strictEqual(String(row.pseudo), `maj_${unique}_v2`);
+  assert.strictEqual(String(row.email).toLowerCase(), `maj_v2_${unique}@example.com`);
+  assert.strictEqual(String(row.description), 'Après');
+  assert.strictEqual(String(row.affiliation).toLowerCase(), 'foret');
+  const role = await queryOne(
+    `SELECT r.slug FROM user_roles ur
+     INNER JOIN roles r ON r.id = ur.role_id
+     WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+    [row.id],
+  );
+  assert.strictEqual(role?.slug, 'eleve_avance');
+});
+
+test('POST /api/students/import ignore les existants si strategy=skip', async () => {
+  const { setSetting } = require('../lib/settings');
+  await setSetting('students.import.existing_strategy', 'skip', {
+    userType: 'teacher',
+    userId: 'test',
+  });
+  const unique = Date.now();
+  const header =
+    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte);Groupes (noms/slugs, | ou ; ; chemin Parent>Enfant);Pseudo (optionnel);Email (optionnel);Description (optionnel)';
+  const createCsv = [
+    header,
+    `eleve;Skip;User-${unique};pass123;n3;;skip_${unique};skip_${unique}@example.com;Origine`,
+  ].join('\n');
+  await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'create.csv',
+      fileDataBase64: Buffer.from(createCsv, 'utf8').toString('base64'),
+      dryRun: false,
+    })
+    .expect(200);
+
+  const againCsv = [
+    header,
+    `eleve;Skip;User-${unique};pass123;foret;;skip_${unique}_x;skip_x_${unique}@example.com;Changé`,
+  ].join('\n');
+  const res = await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'again.csv',
+      fileDataBase64: Buffer.from(againCsv, 'utf8').toString('base64'),
+      dryRun: false,
+    })
+    .expect(200);
+
+  assert.strictEqual(res.body.report.options.existingStrategy, 'skip');
+  assert.strictEqual(res.body.report.totals.skipped_existing, 1);
+  assert.strictEqual(res.body.report.totals.updated, 0);
+  const row = await queryOne(
+    "SELECT description, affiliation FROM users WHERE user_type = 'student' AND LOWER(last_name)=LOWER(?)",
+    [`User-${unique}`],
+  );
+  assert.strictEqual(String(row.description), 'Origine');
+  // Remettre le défaut pour les autres tests / l'environnement local.
+  await setSetting('students.import.existing_strategy', 'update', {
+    userType: 'teacher',
+    userId: 'test',
+  });
+});
+
+test('POST /api/students/import accepte un MDP court si allow_weak_passwords', async () => {
+  const { setSetting } = require('../lib/settings');
+  await setSetting('students.import.allow_weak_passwords', true, {
+    userType: 'teacher',
+    userId: 'test',
+  });
+  const unique = Date.now();
+  const csv = [
+    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte);Groupes (noms/slugs, | ou ; ; chemin Parent>Enfant);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
+    `eleve;Weak;Pwd-${unique};ab;n3;;weak_${unique};weak_${unique}@example.com;Court`,
+  ].join('\n');
+  const res = await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'weak.csv',
+      fileDataBase64: Buffer.from(csv, 'utf8').toString('base64'),
+      dryRun: false,
+    })
+    .expect(200);
+
+  assert.strictEqual(res.body.report.options.allowWeakPasswords, true);
+  assert.strictEqual(res.body.report.totals.created, 1);
+  await setSetting('students.import.allow_weak_passwords', false, {
+    userType: 'teacher',
+    userId: 'test',
+  });
+});

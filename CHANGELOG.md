@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — import comptes : mise à jour et MDP faibles paramétrables
+
+- Compte déjà présent (même prénom + nom + type) : **mis à jour** par défaut
+  (réglage `students.import.existing_strategy` : `update` ou `skip`).
+- Mot de passe à la mise à jour : renseigné → remplacé ; vide → inchangé.
+- Option admin `students.import.allow_weak_passwords` : importer sans le plancher
+  de longueur habituel (élèves et enseignants).
+- Rapport : total `updated` + `options` ; section Réglages « Imports de comptes ».
+
 ### Modifié — Plan Lyautey : même favicon que ForetMap
 
 - L’onglet et `/favicon.ico` sur `planlyautey.*` réutilisent l’icône ForetMap
