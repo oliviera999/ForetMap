@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — composition d’équipes GL en course avec le démarrage
+
+- **Partie lancée** : appliquer une composition pendant qu’un autre MJ démarre
+  la partie (ou qu’un second apply tourne) ne réécrit plus les équipes d’une
+  partie déjà en cours. La ligne de la partie est verrouillée le temps de
+  l’écriture ; si elle n’est plus en préparation, le serveur refuse (409).
+
 ### Corrigé — CI après les lots pédago et cartes
 
 - **Accessibilité** : les sous-onglets Catalogue / Réseau de Biodiversité GL sont un
