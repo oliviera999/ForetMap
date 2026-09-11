@@ -99,7 +99,8 @@ L'établissement a besoin de **deux postures distinctes**, pas d'un seul profess
 | ----------------------- | ------------------------------------------------- | ---------------------------------------------------------------------- |
 | Public élève typique    | n3beurs (carte, tâches, progression)              | Élèves restés **visiteurs** (souvent une classe entière, ex. sixièmes) |
 | Tâches                  | Crée, affecte, valide                             | **Aucune** charge de tâches : ni création, ni validation               |
-| Contenu jardin / visite | Zones, plantes, visite, quiz…                     | **Hors périmètre**                                                     |
+| Interface               | Barre haute Contenus / Suivi / Admin              | **Même navigation basse** qu’un visiteur connecté                      |
+| Contenu jardin / visite | Zones, plantes, visite, quiz…                     | Pas d’édition ; **parcours visite** + apprentissages comme un visiteur |
 | Élèves                  | Vue **globale** de l'établissement (choix assumé) | Uniquement les élèves **de ses groupes**                               |
 | Création de comptes     | Oui (matrice actuelle)                            | **Paramétrable** — absente par défaut ; un admin peut l'ouvrir         |
 
@@ -112,10 +113,11 @@ Le profil système **« Prof de classe »** est distinct du n3boss. En pratique 
    carte de travail. Le rattachement au groupe **ne les promeut pas** automatiquement
    en n3beur (contrairement à une classe n3beur classique) : laisser le rôle par
    défaut du groupe sur « Visiteur » et ne pas cocher « accorde le statut n3beur ».
-3. **Gestion des personnes** dans le périmètre : consulter la liste, rattacher /
-   détacher, générer le code de classe — **sans** accès à la gestion des tâches, des
-   zones, des plantes ni des contenus de visite. Les onglets correspondants sont
-   masqués.
+3. **Même parcours qu’un visiteur connecté** : Visite, Biodiversité, Quiz, Glossaire,
+   Réseau, Tutoriels — pour valider soi-même les apprentissages (espèces, termes,
+   tutos). En plus : onglets **Stats** (stats personnelles des élèves du périmètre)
+   et **Classe** (liste, rattachements, code de classe), sans édition des zones /
+   plantes / contenus de visite.
 4. **Création de comptes paramétrable** : les droits de **créer** et d'**importer**
    des comptes élèves ne font **pas** partie du socle. Un administrateur peut les
    cocher sur ce profil (ou un profil dérivé). Hors vue globale, la création unitaire

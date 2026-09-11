@@ -71,7 +71,13 @@ const VisitMascotPackManagerLazy = lazy(() => import('./components/VisitMascotPa
 const MASCOT_PACK_LOADER_STYLE = { padding: '24px 16px', minHeight: 120 };
 import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
 import { visibleMapsForScope } from './utils/appMapScope';
-import { canManagePedagoContent, resolveParticipationFlag } from './utils/appAccess';
+import {
+  canManagePedagoContent,
+  isClassTeacherRole,
+  isVisitorLikeRole,
+  resolveParticipationFlag,
+  shouldUseTeacherChrome,
+} from './utils/appAccess';
 import { DEFAULT_USER_LABEL, formatFullName, resolveSessionDisplayName } from './utils/appIdentity';
 import { getContentText } from './utils/content';
 import {
@@ -211,7 +217,12 @@ function App() {
       activePerms = activePermsRaw.filter((perm) => !String(perm).startsWith('admin.'));
     }
     const canUseTeacherUi = activePerms.includes('teacher.access');
-    const effectiveIsTeacher = canUseTeacherUi && roleViewMode !== 'student';
+    // Prof de classe : teacher.access pour l'API, mais chrome apprenant (pas TeacherTopTabs).
+    const effectiveIsTeacher = shouldUseTeacherChrome({
+      roleSlug,
+      hasTeacherAccess: canUseTeacherUi,
+      roleViewMode,
+    });
     return {
       roleSlug,
       activePerms,
@@ -570,8 +581,20 @@ function App() {
     'app.footer_version_prefix',
     'Version',
   );
-  const isVisitor = effectiveRoleContext.roleSlug === 'visiteur';
+  const isVisitor = isVisitorLikeRole(effectiveRoleContext.roleSlug);
+  const isClassTeacher = isClassTeacherRole(effectiveRoleContext.roleSlug);
   const canAccessStudentMapTasks = !isVisitor;
+  const canAccessTutorials =
+    publicSettings?.modules?.tutorials_enabled !== false && (canAccessStudentMapTasks || isVisitor);
+  const canAccessProfiles =
+    hasPermissionInRole('admin.roles.manage') ||
+    hasPermissionInRole('admin.users.assign_roles') ||
+    hasPermissionInRole('stats.export') ||
+    hasPermissionInRole('students.import') ||
+    hasPermissionInRole('students.delete') ||
+    hasPermissionInRole('users.create') ||
+    hasPermissionInRole('groups.manage') ||
+    hasPermissionInRole('groups.read');
   /** Met à jour le filtre lieu du volet Tâches (sans changer d’onglet). */
   const handleMapLocationTasksFocus = useCallback((focus) => {
     setTasksLocationFocus(focus);
@@ -617,13 +640,13 @@ function App() {
   const canViewOtherUsersIdentity = !isVisitor;
   const isPreviewStudentView = !!previewStudent;
   const profileTargetUserId = useMemo(() => {
-    if (effectiveIsTeacher) return sessionUser?.id || authClaims?.userId || null;
+    if (effectiveIsTeacher || isTeacher) return sessionUser?.id || authClaims?.userId || null;
     return student?.id || null;
-  }, [authClaims?.userId, effectiveIsTeacher, sessionUser?.id, student?.id]);
+  }, [authClaims?.userId, effectiveIsTeacher, isTeacher, sessionUser?.id, student?.id]);
   const canOpenUserDialogs = !!profileTargetUserId && !isPreviewStudentView;
   const profileTargetUser = useMemo(() => {
     if (!canOpenUserDialogs) return null;
-    if (!effectiveIsTeacher && student) return student;
+    if (!effectiveIsTeacher && !isTeacher && student) return student;
     const fallbackName = resolveSessionDisplayName(
       sessionUser?.displayName,
       authClaims?.roleDisplayName,
@@ -651,6 +674,7 @@ function App() {
     authClaims?.userType,
     canOpenUserDialogs,
     effectiveIsTeacher,
+    isTeacher,
     profileTargetUserId,
     sessionUser?.avatar_path,
     sessionUser?.displayName,
@@ -661,7 +685,9 @@ function App() {
     student,
   ]);
   const canOpenTeacherStatsFromBadge =
-    effectiveIsTeacher && publicSettings?.modules?.stats_enabled !== false && canReadStats;
+    (effectiveIsTeacher || isClassTeacher) &&
+    publicSettings?.modules?.stats_enabled !== false &&
+    canReadStats;
   const canViewGeneralStats = publicSettings?.modules?.stats_enabled !== false && canReadStats;
   const canSwitchToStudentView =
     isTeacher &&
@@ -720,13 +746,13 @@ function App() {
   /** Profil enregistré : la session prof et la session élève ne se mettent pas à jour pareil. */
   const handleProfileUpdated = useCallback(
     (updated) => {
-      if (effectiveIsTeacher) {
+      if (isTeacher || String(sessionUser?.userType || '').toLowerCase() === 'teacher') {
         updateTeacherSession(updated);
         return;
       }
       updateStudentSession(updated);
     },
-    [effectiveIsTeacher, updateStudentSession, updateTeacherSession],
+    [isTeacher, sessionUser?.userType, updateStudentSession, updateTeacherSession],
   );
 
   /** Bascule de vue rôle (natif / élève / prof) : réinitialise onglet et dialogues. */
@@ -768,7 +794,7 @@ function App() {
       setDiscoveryTourSeen(fromServer);
       setDiscoveryTourSeenReady(true);
       const roleSlug = String(claims?.roleSlug || '').toLowerCase();
-      if (userType !== 'teacher' && roleSlug === 'visiteur') {
+      if (isVisitorLikeRole(roleSlug)) {
         const visitOk = publicSettings?.modules?.visit_enabled !== false;
         setTab(visitOk ? 'visit' : 'plants');
       }
@@ -924,6 +950,8 @@ function App() {
     shouldUseDesktopSplit,
     canAccessForum,
     canViewGeneralStats,
+    canAccessProfiles,
+    canAccessTutorials,
     modules: publicSettings?.modules,
   });
 
@@ -1519,8 +1547,17 @@ function App() {
                               <TeacherStatsLazy />
                             </TabSuspense>
                           )}
+                          {tab === 'profiles' && canAccessProfiles && (
+                            <TabSuspense>
+                              <ProfilesAdminViewLazy
+                                maps={maps}
+                                onImpersonationApplied={handleAdminImpersonationApplied}
+                              />
+                            </TabSuspense>
+                          )}
                           {publicSettings?.modules?.observations_enabled !== false &&
-                            tab === 'notebook' && (
+                            tab === 'notebook' &&
+                            studentForUi?.id && (
                               <TabSuspense>
                                 <ObservationNotebookLazy
                                   student={studentForUi}
@@ -1568,9 +1605,14 @@ function App() {
                       isVisitor={isVisitor}
                       shouldUseDesktopSplit={shouldUseDesktopSplit}
                       tutorialsModuleEnabled={tutorialsModuleEnabled}
+                      canAccessTutorials={canAccessTutorials}
                       studentActiveAssignedTasksCount={studentActiveAssignedTasksCount}
                       canViewGeneralStats={canViewGeneralStats}
-                      observationsEnabled={publicSettings?.modules?.observations_enabled !== false}
+                      canAccessProfiles={canAccessProfiles}
+                      profilesLabel={isClassTeacher ? 'Classe' : 'Profils'}
+                      observationsEnabled={
+                        publicSettings?.modules?.observations_enabled !== false && !isClassTeacher
+                      }
                       visitEnabled={publicSettings?.modules?.visit_enabled !== false}
                       canAccessForum={canAccessForum}
                     />
