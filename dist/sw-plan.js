@@ -1,67 +1,49 @@
-/* Service worker « foret » — GÉNÉRÉ par scripts/build-pwa.js depuis
+/* Service worker « plan » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-foret-bf3f459f";
+const CACHE_NAME = "foretmap-plan-b2b9d24f";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
-  "/index.html",
-  "/index.vite.html",
+  "/plan.html",
   "/offline.html",
   "/manifest.json",
-  "/app-logo-n3.png",
-  "/icon.svg",
-  "/favicon-n3.png",
-  "/favicon.ico",
-  "/pwa-icon-192.png",
-  "/pwa-icon-512.png",
-  "/pwa-maskable-512.png",
-  "/pwa-screenshot-mobile.png",
-  "/pwa-screenshot-wide.png",
-  "/assets/main-dU7B5TO1.js",
+  "/plan/favicon.ico",
+  "/plan/favicon.svg",
+  "/plan/pwa-icon-192.png",
+  "/plan/pwa-icon-512.png",
+  "/plan/pwa-maskable-512.png",
+  "/plan/apple-touch-icon.png",
+  "/plan/favicon-32.png",
+  "/plan/favicon-16.png",
+  "/assets/plan-CCdKmB6U.js",
+  "/assets/plan-CyMOLoow.css",
   "/assets/rolldown-runtime-hePW80VL.js",
   "/assets/VisitMascotFallbackSvg-BdCFwf1s.js",
   "/assets/react-vendor-NSwws4_t.js",
   "/assets/icons-DN-Q6DZk.js",
   "/assets/ErrorBoundary-BoKgNuT_.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-CNMoeBjV.js",
-  "/assets/ImageLightboxProvider-CPh0j32G.css",
-  "/assets/spriteCutCatalogEntry-BFohRCSh.js",
-  "/assets/markdown-B5dU4qij.js",
-  "/assets/visitMascotPackExtras-DQVd1dKC.js",
-  "/assets/visitMascotPackExtras-C-WanbBj.css",
-  "/assets/mascotPack--x2Z653t.js",
-  "/assets/socket-io-D_2T_oRH.js",
-  "/assets/MarkdownTextarea-Cn9g0Vvk.js",
-  "/assets/GlossaryMarkdown-vU7JJr5D.js",
-  "/assets/useGatingSummary-BZ-5ZlRE.js",
-  "/assets/GuidedTourOverlay-CaUV3t3m.js",
-  "/assets/PublicSettingsContext-D_o6wGyF.js",
   "/assets/useBrandTheme-DeX-BTcY.js",
-  "/assets/downloadApiFile-ZU3sTPVx.js",
-  "/assets/downloadAuthedFile-BRkwVwdZ.js",
+  "/assets/HelpDock-DMrFtUSm.js",
+  "/assets/HelpDock-607GLmvi.css",
+  "/assets/Button-TXNlPuUo.js",
+  "/assets/placeSearch-BCSeYLu5.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).
 const HTML_ENTRIES = [
   "/",
-  "/index.html",
-  "/index.vite.html",
+  "/plan.html",
 ];
 
 // API en lecture « stale-while-revalidate » (correspondance par suffixe du pathname).
 const API_STALE_WHILE_REVALIDATE = [
-  "/api/maps",
-  "/api/visit/content",
+  "/api/plan/content",
+  "/api/plan/settings",
 ];
 
 // API en lecture « network-first » (correspondance exacte du pathname).
-const API_NETWORK_FIRST = [
-  "/api/zones",
-  "/api/plants",
-  "/api/map/markers",
-  "/api/tasks",
-];
+const API_NETWORK_FIRST = [];
 
 const IMAGE_FONT_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.svg', '.ico', '.webp', '.woff2', '.woff'];
 
