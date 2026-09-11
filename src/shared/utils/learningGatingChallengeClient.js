@@ -7,6 +7,12 @@ import {
   cooldownRetryHours,
   formatHoursLabel,
 } from './cooldownDuration.js';
+import {
+  oluControlPassedSentence,
+  oluGatingIntroSentence,
+  oluSeriesDoneOpener,
+  oluSeriesProgressSentence,
+} from './oluLearningVoice.js';
 
 export function createFmGatingHandlers(api) {
   return {
@@ -176,8 +182,9 @@ export function pendingChallengeQuestions(challenge) {
  * @param {string} [itemTitle]
  * @param {number|object} [retry] délai en HEURES, ou le challenge / bloc `cooldown` renvoyé par
  *   le serveur (`retry_cooldown_hours`, `retry_hours`, ancien `retry_days`)
+ * @param {string} [seed] graine du tirage de variante (référence de la ressource)
  */
-export function buildGatingQuizIntroMessage(pendingCount, itemTitle = '', retry = 0) {
+export function buildGatingQuizIntroMessage(pendingCount, itemTitle = '', retry = 0, seed = '') {
   const n = Math.max(0, Number(pendingCount) || 0);
   if (n <= 0) return '';
   const label = itemTitle ? `« ${itemTitle} »` : 'ce contenu';
@@ -201,9 +208,12 @@ export function buildGatingQuizIntroMessage(pendingCount, itemTitle = '', retry 
   } else {
     consequence = `Attention : une erreur bloquera ${target} pendant ${formatHoursLabel(hours)}.`;
   }
+  // L'annonce est d'OLU ; la conséquence ne l'est pas. Un avertissement se dit à plat
+  // (charte §2.2bis-4) — c'est précisément parce qu'il ne plaisante jamais là-dessus qu'on
+  // le croit quand il le dit.
+  const announce = oluGatingIntroSentence(label, `${questionWord} ${verb}`, seed);
   return (
-    `Pour valider que tu as bien compris ${label}, ${questionWord} ${verb} ` +
-    `avant de pouvoir confirmer. ${consequence} ` +
+    `${announce} ${consequence} ` +
     `Tant que tu n'as pas répondu, tu peux abandonner sans rien risquer.`
   );
 }
@@ -342,31 +352,41 @@ export function buildGatingRules(challenge) {
  * @param {number} params.questionTotal nombre de questions posées dans cette série
  * @param {number} [params.pendingTotal] bonnes réponses encore attendues AVANT cette série
  * @param {string} [params.itemTitle]
+ * @param {string} [params.seed] graine du tirage de variante (code de la question)
  */
 export function buildCorrectAnswerNotice({
   questionIndex = 0,
   questionTotal = 1,
   pendingTotal = 0,
   itemTitle = '',
+  seed = '',
 } = {}) {
   const label = itemTitle ? `« ${itemTitle} »` : 'ce contenu';
   const asked = Math.max(1, Number(questionTotal) || 1);
   const done = Math.min(asked, Math.max(1, (Number(questionIndex) || 0) + 1));
   const leftInSession = asked - done;
+  // Cette ligne ne félicite plus : le retour de la question, juste au-dessus, l'a déjà fait
+  // (« Bravo, bonne réponse ! » sous « Bonne réponse ! », c'était deux fois la même chose).
+  // Elle situe — et la voix d'OLU ne porte que la mise en phrase, jamais les nombres.
   if (leftInSession > 0) {
-    return (
-      `Bravo, bonne réponse ! ${done} sur ${asked} — encore ` +
-      `${leftInSession} question${leftInSession > 1 ? 's' : ''} pour valider ${label}.`
-    );
+    return oluSeriesProgressSentence({
+      done,
+      asked,
+      left: leftInSession,
+      label,
+      seed,
+    });
   }
   const remaining = Math.max(0, Math.max(asked, Number(pendingTotal) || 0) - done);
   if (remaining > 0) {
+    // Graine décalée : l'écran « Série terminée » qui suit tire dans le même pool, et deux
+    // fois la même ouverture à une seconde d'intervalle se remarquerait tout de suite.
     return (
-      `Bravo, bonne réponse ! Il restera ${remaining} question${remaining > 1 ? 's' : ''} ` +
+      `${oluSeriesDoneOpener(`${seed}#reste`)} Il restera ${remaining} question${remaining > 1 ? 's' : ''} ` +
       `à réussir pour valider ${label}.`
     );
   }
-  return `Bravo, le contrôle est réussi : tu peux maintenant valider ${label}.`;
+  return oluControlPassedSentence(label, seed);
 }
 
 /**
@@ -399,12 +419,13 @@ export function buildWrongAnswerNotice(cooldown) {
  *
  * @param {number} remaining bonnes réponses encore attendues
  * @param {string} [itemTitle]
+ * @param {string} [seed] graine du tirage de variante (référence de la ressource)
  */
-export function buildSessionPausedMessage(remaining, itemTitle = '') {
+export function buildSessionPausedMessage(remaining, itemTitle = '', seed = '') {
   const n = Math.max(1, Number(remaining) || 1);
   const label = itemTitle ? `« ${itemTitle} »` : 'ce contenu';
   return (
-    `Bien joué : toutes les questions de cette série sont réussies. Il reste ` +
+    `${oluSeriesDoneOpener(seed)} Il reste ` +
     `${n} question${n > 1 ? 's' : ''} à réussir pour valider ${label} — tes bonnes réponses ` +
     `sont gardées, tu peux enchaîner ou revenir plus tard.`
   );
