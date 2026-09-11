@@ -29,7 +29,7 @@ describe('Semis RBAC durable', () => {
       'SELECT permission_key FROM role_permissions WHERE role_id = ? AND permission_key = ?',
       [role.id, 'audit.read'],
     );
-    assert.equal(row, null);
+    assert.ok(!row);
 
     resetRbacBootstrapForTests();
     await ensureRbacBootstrap();
@@ -38,7 +38,7 @@ describe('Semis RBAC durable', () => {
       'SELECT permission_key FROM role_permissions WHERE role_id = ? AND permission_key = ?',
       [role.id, 'audit.read'],
     );
-    assert.equal(row, null, 'audit.read ne doit pas être réinséré');
+    assert.ok(!row, 'audit.read ne doit pas être réinséré');
 
     // Restaurer pour ne pas polluer la suite de tests partagée.
     await execute('INSERT IGNORE INTO role_permissions (role_id, permission_key) VALUES (?, ?)', [
