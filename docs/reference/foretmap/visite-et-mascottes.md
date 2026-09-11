@@ -23,7 +23,10 @@ familles.
   glisser lancé, butée souple qui empêche le plan de sortir du cadre. Le plan peut être
   **dézoomé un peu sous le cadre** (jusqu'à la moitié) pour prendre du recul ; le bouton
   ⊡ le réajuste. **Cliquer un lieu envoie d'abord la mascotte s'y rendre**, puis ouvre
-  sa fiche.
+  sa fiche. Quand le plan de visite est **calé GPS** et que l'orientation boussole est
+  autorisée (réglage Visite **et** case sur la carte), **« Me situer »** place un point
+  de position et **« Orienter »** aligne le plan sur le regard — comme sur la carte de
+  travail et le Plan Lyautey.
 - **La fiche d'un lieu** : titre, sous-titre, photo principale, contenu éditorial
   (paragraphes, intertitres, blocs d'images légendées), la **biodiversité du lieu**, un volet
   Tuto (les fiches pratiques associées), un mode « lecture confortable », et un bouton

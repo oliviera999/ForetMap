@@ -80,6 +80,8 @@ const viewportStub = vi.hoisted(() => {
     focusOnPct: noop,
     consumeSkipClick: () => false,
     touchAction: 'none',
+    setMapOrientation: noop,
+    orientStyle: undefined,
   };
 });
 vi.mock('../../src/shared/pct-map/usePctMapViewport.js', () => ({
@@ -103,6 +105,8 @@ const positionStub = vi.hoisted(() => ({
   haloPct: 0,
   headingDeg: null,
   screenHeadingDeg: null,
+  smoothedScreenHeadingDeg: null,
+  headingAvailable: false,
   planSize: null,
   toggle: vi.fn(),
   stop: vi.fn(),

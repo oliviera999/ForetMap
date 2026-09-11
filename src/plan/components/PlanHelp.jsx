@@ -61,7 +61,9 @@ export function PlanHelp({
             {canLocate ? (
               <li>
                 <strong>Me situer</strong> affiche votre position et sa précision. « Y aller » donne
-                alors la direction et la distance à vol d’oiseau, pas un itinéraire.
+                alors la direction et la distance à vol d’oiseau, pas un itinéraire. Si
+                l’établissement l’autorise, <strong>Orienter</strong> fait tourner le plan selon la
+                boussole (coupure libre, choix retenu sur l’appareil).
               </li>
             ) : (
               <li>

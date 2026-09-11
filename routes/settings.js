@@ -70,13 +70,13 @@ function parseBoolean(value, fallback) {
 async function getMapById(id) {
   try {
     return await queryOne(
-      'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled FROM maps WHERE id = ? LIMIT 1',
+      'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled, heading_up_enabled FROM maps WHERE id = ? LIMIT 1',
       [id],
     );
   } catch (e) {
     if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
     return queryOne(
-      'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active, NULL AS geo_anchors_json, 0 AS gps_enabled FROM maps WHERE id = ? LIMIT 1',
+      'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active, NULL AS geo_anchors_json, 0 AS gps_enabled, 0 AS heading_up_enabled FROM maps WHERE id = ? LIMIT 1',
       [id],
     );
   }
@@ -85,12 +85,12 @@ async function getMapById(id) {
 async function listMaps() {
   try {
     return await queryAll(
-      'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled FROM maps ORDER BY sort_order ASC, label ASC',
+      'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled, heading_up_enabled FROM maps ORDER BY sort_order ASC, label ASC',
     );
   } catch (e) {
     if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
     return queryAll(
-      'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active, NULL AS geo_anchors_json, 0 AS gps_enabled FROM maps ORDER BY sort_order ASC, label ASC',
+      'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active, NULL AS geo_anchors_json, 0 AS gps_enabled, 0 AS heading_up_enabled FROM maps ORDER BY sort_order ASC, label ASC',
     );
   }
 }
@@ -532,17 +532,23 @@ router.put(
       }
     }
     const gpsEnabled = parseBoolean(body.gps_enabled, !!map.gps_enabled) && hasValidAnchors;
+    const headingUpEnabled =
+      gpsEnabled && parseBoolean(body.heading_up_enabled, !!map.heading_up_enabled);
 
-    await execute('UPDATE maps SET geo_anchors_json = ?, gps_enabled = ? WHERE id = ?', [
-      anchorsJson,
-      gpsEnabled ? 1 : 0,
-      map.id,
-    ]);
+    await execute(
+      'UPDATE maps SET geo_anchors_json = ?, gps_enabled = ?, heading_up_enabled = ? WHERE id = ?',
+      [anchorsJson, gpsEnabled ? 1 : 0, headingUpEnabled ? 1 : 0, map.id],
+    );
     invalidateMapsListCache();
     const updated = await getMapById(map.id);
     await logAudit('settings_map_georef', 'map', map.id, 'Calage GPS du plan mis à jour', {
       req,
-      payload: { map_id: map.id, gps_enabled: gpsEnabled, has_anchors: !!anchorsJson },
+      payload: {
+        map_id: map.id,
+        gps_enabled: gpsEnabled,
+        heading_up_enabled: headingUpEnabled,
+        has_anchors: !!anchorsJson,
+      },
     });
     res.json(serializeMap(updated));
   }),

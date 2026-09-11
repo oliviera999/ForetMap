@@ -6,10 +6,67 @@
  * @param {Function} onZoomIn zoom avant depuis le centre du plan.
  * @param {Function} onZoomOut zoom arrière depuis le centre du plan.
  * @param {Function} onReset réinitialise pan + zoom.
+ * @param {object|null} [props.position] état `useMapPosition` (Me situer).
+ * @param {boolean} [props.headingUpAllowed]
+ * @param {boolean} [props.headingUpEffective]
+ * @param {boolean} [props.headingUpUserEnabled]
+ * @param {() => void} [props.onHeadingUpToggle]
  */
-export function VisitMapZoomControls({ onZoomIn, onZoomOut, onReset }) {
+export function VisitMapZoomControls({
+  onZoomIn,
+  onZoomOut,
+  onReset,
+  position = null,
+  headingUpAllowed = false,
+  headingUpEffective = false,
+  headingUpUserEnabled = false,
+  onHeadingUpToggle = null,
+}) {
   return (
     <div className="visit-map-controls">
+      {position?.available ? (
+        <button
+          type="button"
+          className={`visit-map-ctrl${position.active ? ' is-on' : ''}`}
+          aria-label={
+            position.following
+              ? 'Arrêter le suivi de position'
+              : position.active
+                ? 'Suivre ma position'
+                : 'Me situer sur le plan'
+          }
+          aria-pressed={position.active}
+          data-testid="visit-locate"
+          onClick={(event) => {
+            event.stopPropagation();
+            position.toggle?.();
+          }}
+        >
+          {position.following ? '⦿' : position.active ? '◉' : '◎'}
+        </button>
+      ) : null}
+      {headingUpAllowed && position?.available && position?.active ? (
+        <button
+          type="button"
+          className={`visit-map-ctrl${headingUpEffective ? ' is-on' : ''}`}
+          aria-label={
+            !position.headingAvailable
+              ? 'Boussole indisponible'
+              : headingUpUserEnabled
+                ? 'Désorienter la carte'
+                : 'Orienter la carte selon la boussole'
+          }
+          aria-pressed={headingUpEffective}
+          disabled={!position.headingAvailable}
+          data-testid="visit-heading-up"
+          onClick={(event) => {
+            event.stopPropagation();
+            onHeadingUpToggle?.();
+          }}
+        >
+          🧭
+        </button>
+      ) : null}
       <button
         type="button"
         className="visit-map-ctrl"
