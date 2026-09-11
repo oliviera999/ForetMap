@@ -7,6 +7,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — accessibilité : `onError`/`onLoad` ne comptent plus comme des interactions
+
+- **Règles `no-noninteractive-element-interactions` et `no-static-element-interactions`** :
+  l'option `handlers` est désormais explicite et vaut le défaut du greffon **moins le groupe
+  `image`** (`onLoad`, `onError`). Ce ne sont pas des interactions : ce sont des événements du
+  chargement d'un média, que l'utilisateur ne déclenche pas. L'intention des deux règles est
+  intacte — clic, touche, focus ou geste souris sur un élément non interactif restent signalés.
+- **Déclencheur** : le repli légitime d'une vignette photo vers son emoji quand l'image est
+  injoignable (`<img onError>`, `VisitBiodiversityPanel`) faisait échouer le cliquet a11y, donc
+  le job `test` de toutes les PR. Un cas que ni le clavier ni un lecteur d'écran ne voient.
+- **L'inventaire rétrécit de 9 entrées** (`tests/fixtures/a11y-static-baseline.json`) : huit
+  fichiers sortent complètement, un passe de 2 à 1. Toutes étaient du même bruit. Ce qui reste
+  inventorié est de la dette d'accessibilité réelle. ESLint passe de 189 à 179 avertissements.
+
 ### Corrigé — le hérisson manquant du réseau GL, et les tests de contenu séparés du code
 
 - **Migration `230`** : `Hérisson commun` (SP0074) est **créé** au lieu d’être supposé présent.
