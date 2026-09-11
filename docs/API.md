@@ -695,11 +695,11 @@ Notes :
 
 ## Temps réel (Socket.IO)
 
-Connexion Socket.IO en transport **polling uniquement** côté client (compatibilité proxy TLS / mutualisé ; pas de WebSocket) sur le **même hôte** que l’API, chemin `/socket.io`.
+Connexion Socket.IO sur le **même hôte** que l’API, chemin `/socket.io` (défaut : long-polling ; WebSocket derrière drapeau).
 
 - **Authentification** : JWT via **`handshake.auth.token`** ou en-tête **`Authorization: Bearer`**. Le jeton en **query string** (`?token=`) est **désactivé en production** (fuite possible dans logs proxy) ; réservé aux tests (**`NODE_ENV=test`**, **`E2E_DISABLE_RATE_LIMIT=1`**) ou **`FORETMAP_SOCKET_QUERY_TOKEN=1`**.
-- **Client (Engine.IO)** : **`transports: ['polling']`** et **`upgrade: false`** pour interdire toute tentative WebSocket (évite des erreurs **« reserved bits »** si un proxy renvoie du trafic non conforme sur le chemin WS).
-- **Serveur (Engine.IO)** : transports **`polling`** puis **`websocket`** (WS pour tests / outils) ; **`allowUpgrades: false`** (pas d’upgrade polling→WS, aligné navigateurs prod) ; **`pingInterval` 20 s** / **`pingTimeout` 60 s** (heartbeat un peu plus fréquent, tolérance réseau mobile et proxy).
+- **Client (Engine.IO)** : par défaut **`transports: ['polling']`** et **`upgrade: false`** (évite des erreurs **« reserved bits »** si un proxy renvoie du trafic non conforme sur le chemin WS). Si **`FORETMAP_SOCKETIO_ALLOW_WEBSOCKET=1`**, les clients lisent **`realtime.allow_websocket: true`** dans **`GET /api/settings/public`** (ForetMap) et **`GET /api/gl/auth/config`** (GL) et autorisent WebSocket + upgrade.
+- **Serveur (Engine.IO)** : transports **`polling`** puis **`websocket`** ; **`allowUpgrades`** suit le même drapeau (défaut **false**) ; **`pingInterval` 20 s** / **`pingTimeout` 60 s**. Diagnostics : **`runtimeProcess.realtime.allowWebsocket`**.
 - **CORS** : en production, même règle que l’API (`FRONTEND_ORIGIN` si défini).
 - **Rôle** : notifier les clients qu’une ressource a changé ; les données à jour restent à charger via les routes REST (`GET /api/tasks`, etc.). Côté client, refetch **débouncé** : ~**220 ms** pour les tâches, ~**400 ms** pour le jardin (zones / plantes / repères) — compromis fraîcheur vs rafales HTTP.
 - **Auth socket** : token JWT requis (handshake). ForetMap **et** GL **ré-hydratent** le compte en base à **chaque** connexion, y compris après une **reprise de session** (`connectionStateRecovery.skipMiddlewares: false` — le défaut Socket.IO sauterait ce contrôle). `unauthorized` si le compte n’existe plus, n’est plus actif ou n’a plus de profil ; `unavailable` si la base est injoignable — le client peut reconnecter. `subscribe:map` n’ajoute la salle carte que si l’identifiant existe en base.
