@@ -38,6 +38,7 @@ casser les liens existants.
 | [`AUDIT_COMPTES_2026-09.md`](../AUDIT_COMPTES_2026-09.md)                         | Identités unifiées ForetMap × GL (préalable Moodle)                                 | Référence comptes                  |
 | [`AUDIT_CHARGE_BIODIVERSITE_2026-09.md`](../AUDIT_CHARGE_BIODIVERSITE_2026-09.md) | Pic d’ouverture listes / biodiversité — complète la stabilité                       | Constats encore signalés ouverts   |
 | [`AUDIT_BRANCHES_2026-09.md`](../AUDIT_BRANCHES_2026-09.md)                       | Passe de fusion / triage des branches (`moodle-sync` + `cursor/*`)                  | Instantané 8 sept. 2026            |
+| [`AUDIT_EVOLUTION_V1_V2_2026-09.md`](../AUDIT_EVOLUTION_V1_V2_2026-09.md)         | Évolution v1.0.0 → v1.151.3 et arbitrage « poser une V2 ? »                         | Instantané 9 sept. 2026            |
 
 ## Chantiers / specs encore utiles comme consigne
 

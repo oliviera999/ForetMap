@@ -9349,6 +9349,21 @@ requêtes de contrôle à passer avant activation figurent en fin de document.
   administrateur ne sont pas couverts — leur élévation échoue dans l'environnement de test,
   indépendamment de ce lot.
 
+### Documentation — audit d'évolution v1.0.0 → v1.151.3 et question de la V2
+
+- **`docs/AUDIT_EVOLUTION_V1_V2_2026-09.md`** (nouveau) : comparaison mesurée du commit
+  initial (6 fichiers, SQLite, 34 routes) et de l'état actuel (3 669 fichiers, MySQL,
+  628 endpoints, 3 produits), six ruptures structurelles datées, et arbitrage argumenté
+  sur l'opportunité de poser une **V2**. Constat seul, aucun changement de comportement.
+- **Constats de versionnage** : dernière section datée du `CHANGELOG` au **20 mars 2026**
+  (99 % du fichier sous `[Non publié]`), **aucun** commit n'a jamais déclaré de
+  `BREAKING CHANGE` alors que quatre ruptures ont été livrées (élévation PIN en `410 Gone`,
+  migration `166` destructive, vues mortes `152`, unification des identités).
+- **Constat CI** : `main` est rouge — une PR de documentation seule échoue sur
+  `tests/pedago-garden-auxiliaires.test.js` (liaison trophique manquante), les tests de
+  contenu pédagogique n'étant pas découplés des tests de code.
+- Indexé dans `docs/audits/README.md`.
+
 ---
 
 ## [1.2.0] - 2026-03-20
