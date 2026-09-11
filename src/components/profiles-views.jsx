@@ -707,6 +707,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
           editUserLoadState={editUserLoadState}
           isAdmin={isAdmin}
           canCreateUsers={canCreateUsers}
+          canCreateTeacherRoles={isAdmin || authRoleSlug === 'prof'}
           canManageProfiles={canManageProfiles}
           canReadAllStats={canReadAllStats}
           canDeleteUi={canDeleteUi}

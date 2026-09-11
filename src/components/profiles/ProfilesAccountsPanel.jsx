@@ -37,6 +37,7 @@ export function ProfilesAccountsPanel({
   editUserLoadState = 'idle',
   isAdmin = false,
   canCreateUsers = false,
+  canCreateTeacherRoles = false,
   canManageProfiles = false,
   canReadAllStats = false,
   canDeleteUi = false,
@@ -247,7 +248,10 @@ export function ProfilesAccountsPanel({
       <CreateUserPanel
         roleTerms={roleTerms}
         affiliationOptions={affiliationOptions}
+        roles={roles}
+        groupOptions={groupOptions}
         isAdmin={isAdmin}
+        canCreateTeacherRoles={canCreateTeacherRoles}
         canCreateUsers={canCreateUsers}
         setErr={setErr}
         setMsg={setMsg}
