@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — sync Moodle : cohortes n3 sans préfixe d'année
+
+- Politique **n3** : toute cohorte dont le code contient « n3 » (ex. `26#n3`, `n3`,
+  `club-n3`) est synchronisable, **sans** exiger le préfixe `26#`.
+- Liste / simulation / application : les cohortes hors préfixe d'année mais retenues
+  par une politique apparaissent aussi.
+- Migration `232_moodle_n3_cohort_pattern.sql` + bascule automatique de l'ancien motif.
+
 ### Modifié — import comptes + import groupes
 
 - Colonne **Groupes** à l’import utilisateurs : un ou plusieurs rattachements
