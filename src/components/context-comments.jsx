@@ -13,7 +13,6 @@ import { ContextCommentForm } from './context-comments/ContextCommentForm.jsx';
 import { ContextCommentItem } from './context-comments/ContextCommentItem.jsx';
 import { ContextCommentsToggle } from './context-comments/ContextCommentsToggle.jsx';
 import {
-  CONTEXT_COMMENT_PREVIEW_SIZE,
   canModerate,
   parseReactionEmojiList,
   readContextCommentDraft,
@@ -23,7 +22,6 @@ import {
 } from '../utils/contextCommentsHelpers.js';
 
 const PAGE_SIZE = 10;
-const PREVIEW_SIZE = CONTEXT_COMMENT_PREVIEW_SIZE;
 
 function ContextComments({
   contextType,
@@ -55,10 +53,6 @@ function ContextComments({
   const canUseCommentActions = canParticipateContextComments;
   const publicSettings = usePublicSettings();
   const reportsEnabled = publicSettings?.modules?.reports_enabled !== false;
-  // Emojis de réaction : lus dans les réglages publics déjà fournis par le contexte.
-  // Chaque section montée allait sinon les chercher elle-même (`GET /api/settings/public`),
-  // soit un appel par carte de catalogue, par tuile de tâche et par tutoriel listé —
-  // pour une valeur identique partout (cf. docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md, B1).
   const reactionEmojis = useMemo(
     () =>
       parseReactionEmojiList(
@@ -86,16 +80,6 @@ function ContextComments({
     [contextId, contextType, currentUserId, currentUserType],
   );
 
-  /**
-   * Pastille « non lus » à partir de la page 1 déjà chargée.
-   *
-   * Cet état venait d'un second appel (`page_size=1`) lancé au montage en même temps que
-   * `load()` — deux requêtes pour une réponse qui portait déjà `total` et le commentaire
-   * le plus récent. Sur un écran de liste, cela doublait le coût : une section de
-   * commentaires par carte de catalogue, par tuile de tâche et par tutoriel
-   * (cf. docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md, B1/P1/P2). Réservé à la page 1 :
-   * au-delà, `items[0]` n'est pas le commentaire le plus récent du fil.
-   */
   const applyUnreadFromFirstPage = useCallback(
     (list) => {
       const newestId = list?.[0]?.id != null ? Number(list[0].id) : 0;
@@ -114,13 +98,10 @@ function ContextComments({
     [contextId, contextType, currentUserId, currentUserType],
   );
 
-  // Compteur de requête : pagination + événement temps réel peuvent lancer des `load()`
-  // concurrents ; seule la réponse de la requête la plus récente est appliquée.
   const loadSeqRef = useRef(0);
   const load = useCallback(
-    async (nextPage = 1, { mode = 'preview' } = {}) => {
+    async (nextPage = 1) => {
       if (!contextType || !contextId) return;
-      const pageSize = mode === 'full' ? PAGE_SIZE : PREVIEW_SIZE;
       const mySeq = ++loadSeqRef.current;
       setLoading(true);
       try {
@@ -128,15 +109,17 @@ function ContextComments({
           contextType,
           contextId,
           page: nextPage,
-          pageSize,
+          pageSize: PAGE_SIZE,
         });
         if (mySeq !== loadSeqRef.current) return;
         const list = Array.isArray(data?.items) ? data.items : [];
         setItems(list);
         setTotal(Number(data?.total || 0));
         setPage(Number(data?.page || nextPage));
-        if (nextPage === 1) applyUnreadFromFirstPage(list);
-        if (nextPage === 1 && mode === 'full') markCommentsRead(list);
+        if (nextPage === 1) {
+          applyUnreadFromFirstPage(list);
+          markCommentsRead(list);
+        }
       } catch (err) {
         if (mySeq !== loadSeqRef.current) return;
         setToast(`Chargement impossible : ${err.message}`);
@@ -155,6 +138,9 @@ function ContextComments({
 
   useEffect(() => {
     setHasUnreadComments(false);
+    setItems([]);
+    setTotal(0);
+    setPage(1);
   }, [contextType, contextId]);
 
   useEffect(() => {
@@ -167,10 +153,12 @@ function ContextComments({
     };
   }, [body, contextType, contextId]);
 
+  // D1-A : aucun GET tant que la section est fermée (listes tâches / tutoriels).
   useEffect(() => {
     if (!contextType || contextId == null || contextId === '') return;
-    if (isOpen) setExpandedReactionsByComment({});
-    load(1, { mode: isOpen ? 'full' : 'preview' });
+    if (!isOpen) return;
+    setExpandedReactionsByComment({});
+    void load(1);
   }, [isOpen, contextType, contextId, load]);
 
   useEffect(() => {
@@ -183,8 +171,11 @@ function ContextComments({
       if (detail.domain !== 'context_comments') return;
       const payload = detail.payload || {};
       if (!sameContext(payload)) return;
-      if (!isOpen) setHasUnreadComments(true);
-      load(isOpen ? page : 1, { mode: isOpen ? 'full' : 'preview' });
+      if (!isOpen) {
+        setHasUnreadComments(true);
+        return;
+      }
+      void load(page);
     };
     window.addEventListener('foretmap_realtime', onRealtime);
     return () => window.removeEventListener('foretmap_realtime', onRealtime);
@@ -223,7 +214,7 @@ function ContextComments({
       setPendingImages([]);
       writeContextCommentDraft(contextType, contextId, '');
       setToast('Commentaire publié');
-      await load(1, { mode: 'full' });
+      await load(1);
     } catch (err) {
       setToast(`Publication impossible : ${err.message}`);
     } finally {
@@ -235,7 +226,7 @@ function ContextComments({
     try {
       await deleteContextComment(commentId);
       setToast('Commentaire supprimé');
-      await load(page, { mode: 'full' });
+      await load(page);
     } catch (err) {
       setToast(`Suppression impossible : ${err.message}`);
     }
@@ -255,7 +246,7 @@ function ContextComments({
   const react = async (commentId, emoji) => {
     try {
       await toggleContextCommentReaction(commentId, emoji);
-      await load(page, { mode: 'full' });
+      await load(page);
     } catch (err) {
       setToast(`Réaction impossible : ${err.message}`);
     }
@@ -263,7 +254,6 @@ function ContextComments({
 
   if (!contextType || !contextId) return null;
   const firstReactionEmoji = reactionEmojis[0] || '👍';
-  const hiddenCount = Math.max(0, total - PREVIEW_SIZE);
 
   const renderCommentItems = (list) =>
     list.map((item) => (
@@ -303,22 +293,6 @@ function ContextComments({
         hasUnreadComments={hasUnreadComments}
         onToggle={() => setIsOpen((prev) => !prev)}
       />
-
-      {!isOpen && total > 0 && (
-        <div className="context-comments-preview">
-          {loading && items.length === 0 && <p className="forum-muted">Chargement…</p>}
-          <div className="context-comments-list">{renderCommentItems(items)}</div>
-          {hiddenCount > 0 && (
-            <button
-              type="button"
-              className="context-comments-show-more btn btn-ghost btn-sm"
-              onClick={() => setIsOpen(true)}
-            >
-              {hiddenCount} commentaire{hiddenCount > 1 ? 's' : ''} de plus…
-            </button>
-          )}
-        </div>
-      )}
 
       {isOpen && (
         <div className="context-comments-body">
@@ -360,7 +334,7 @@ function ContextComments({
               type="button"
               className="btn btn-ghost btn-sm"
               disabled={page <= 1 || loading}
-              onClick={() => load(page - 1, { mode: 'full' })}
+              onClick={() => load(page - 1)}
             >
               Précédent
             </button>
@@ -371,7 +345,7 @@ function ContextComments({
               type="button"
               className="btn btn-ghost btn-sm"
               disabled={page >= pages || loading}
-              onClick={() => load(page + 1, { mode: 'full' })}
+              onClick={() => load(page + 1)}
             >
               Suivant
             </button>
