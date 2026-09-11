@@ -742,6 +742,11 @@ Connexion Socket.IO en transport **polling uniquement** côté client (compatibi
 
 Routes protégées « n3boss » : header `Authorization: Bearer <token>`.
 
+**Format du pseudo** — 3 à 50 caractères : lettres Unicode (accents compris), chiffres,
+et `.` `_` `-` `+` (ex. `prenom.nom`). Pas d’espace ni de `@` (réservé à l’e-mail). Même
+règle pour inscription, profil, import comptes / joueurs G&L, et création admin. La sync
+Moodle conserve les points du username Moodle.
+
 **Longueur minimale du mot de passe** — le réglage admin **`security.password_min_length`**
 (4–32, défaut **4**) fixe le plancher des comptes **élève**. Les comptes **`teacher`**
 (profils `prof` et `admin`) ont un plancher propre de **12 caractères**, jamais inférieur au

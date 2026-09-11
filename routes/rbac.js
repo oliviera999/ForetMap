@@ -28,6 +28,7 @@ const { logAudit } = require('../lib/auditLog');
 const {
   MAX_DESCRIPTION_LEN,
   PSEUDO_RE,
+  PSEUDO_INVALID_MSG,
   EMAIL_RE,
   STUDENT_ROLE_SLUG_RE,
   reservedRoleSlugError,
@@ -140,9 +141,7 @@ router.post(
         .json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
     }
     if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
-      return res
-        .status(400)
-        .json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
+      return res.status(400).json({ error: PSEUDO_INVALID_MSG });
     }
     if (email != null && !EMAIL_RE.test(email)) {
       return res.status(400).json({ error: 'Email invalide' });
@@ -804,9 +803,7 @@ router.patch(
     if (hasPseudo) {
       pseudo = normalizeOptionalString(body.pseudo);
       if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
-        return res
-          .status(400)
-          .json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
+        return res.status(400).json({ error: PSEUDO_INVALID_MSG });
       }
     }
 

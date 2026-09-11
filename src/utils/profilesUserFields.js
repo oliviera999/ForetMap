@@ -1,8 +1,9 @@
 // Helpers purs pour la lecture/normalisation des champs utilisateur côté admin (Profils & utilisateurs).
 // Extraits de profiles-views.jsx (O6) — comportement strictement identique.
 
+import { PSEUDO_RE, PSEUDO_INVALID_MSG } from './pseudoValidation';
+
 const EDIT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PSEUDO_RE = /^[A-Za-z0-9_.-]{3,30}$/;
 
 /**
  * Valide les champs communs des formulaires création/édition de compte (admin Profils).
@@ -25,7 +26,7 @@ export function validateUserIdentityFields({
     return 'Prénom et nom sont requis';
   }
   if (pseudo.trim() && !PSEUDO_RE.test(pseudo.trim())) {
-    return 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)';
+    return PSEUDO_INVALID_MSG;
   }
   if (email.trim() && !EDIT_EMAIL_RE.test(email.trim())) {
     return 'Email invalide';

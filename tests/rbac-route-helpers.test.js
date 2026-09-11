@@ -25,8 +25,9 @@ describe('rbacRouteHelpers (logique pure de routes/rbac.js, sans DB)', () => {
   it('constantes : MAX_DESCRIPTION_LEN et expressions régulières inchangées', () => {
     assert.equal(MAX_DESCRIPTION_LEN, 300);
     assert.ok(PSEUDO_RE.test('abc_123.x-y'));
+    assert.ok(PSEUDO_RE.test('prenom.nom'));
     assert.ok(!PSEUDO_RE.test('ab'));
-    assert.ok(!PSEUDO_RE.test('a'.repeat(31)));
+    assert.ok(!PSEUDO_RE.test('a'.repeat(51)));
     assert.ok(!PSEUDO_RE.test('avec espace'));
     assert.ok(EMAIL_RE.test('a.b@exemple.fr'));
     assert.ok(!EMAIL_RE.test('pas-un-email'));

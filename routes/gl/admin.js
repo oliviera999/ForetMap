@@ -27,6 +27,7 @@ const { getDefaultVitalityFromSettings } = require('../../lib/glVitality');
 const {
   MAX_IMPORT_ROWS,
   PSEUDO_RE,
+  PSEUDO_INVALID_MSG,
   normalizeOptionalString: normalizeImportOptionalString,
   resolveImportRows,
   buildCsvTemplate,
@@ -465,9 +466,7 @@ router.post(
       return res.status(400).json({ error: 'Email invalide' });
     }
     if (!PSEUDO_RE.test(pseudo)) {
-      return res
-        .status(400)
-        .json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
+      return res.status(400).json({ error: PSEUDO_INVALID_MSG });
     }
     if (password && password.length < 4) {
       return res.status(400).json({ error: 'Mot de passe trop court (min 4 caractères)' });
@@ -567,9 +566,7 @@ router.put(
     if (isActive === undefined)
       return res.status(400).json({ error: 'isActive doit être booléen' });
     if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
-      return res
-        .status(400)
-        .json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
+      return res.status(400).json({ error: PSEUDO_INVALID_MSG });
     }
     if (Number.isFinite(classId)) {
       const cls = await ensureClassExists(classId);

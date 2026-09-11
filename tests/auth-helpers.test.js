@@ -27,8 +27,10 @@ describe('authRouteHelpers (logique pure de routes/auth.js, sans DB)', () => {
   it('constantes inchangées', () => {
     assert.equal(MAX_DESCRIPTION_LEN, 300);
     assert.ok(PSEUDO_RE.test('abc_123.x-y'));
+    assert.ok(PSEUDO_RE.test('jean.dupont'));
+    assert.ok(PSEUDO_RE.test('José+lyautey'));
     assert.ok(!PSEUDO_RE.test('ab'));
-    assert.ok(!PSEUDO_RE.test('a'.repeat(31)));
+    assert.ok(!PSEUDO_RE.test('a'.repeat(51)));
     assert.ok(!PSEUDO_RE.test('avec espace'));
     assert.deepEqual(GOOGLE_ALLOWED_DOMAINS_DEFAULT, ['pedagolyautey.org', 'lyceelyautey.org']);
     assert.deepEqual(GOOGLE_ALLOWED_EMAILS_DEFAULT, ['oliv.arn.lau@gmail.com']);
