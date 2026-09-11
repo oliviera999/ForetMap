@@ -24,12 +24,36 @@ const TourContext = createContext({
 // Laisse le contenu de l'onglet se monter avant de mesurer les cibles.
 const AUTO_START_DELAY_MS = 650;
 
-export function TourProvider({ tab, isTeacher = false, enabled = false, children }) {
+/**
+ * @param {object} props
+ * @param {string} props.tab
+ * @param {boolean} [props.isTeacher]
+ * @param {boolean} [props.enabled]
+ * @param {Record<string, true>|null} [props.accountSeen] progression serveur du compte
+ * @param {boolean} [props.accountSeenReady] false tant que `/me` (ou login) n'a pas répondu —
+ *   évite de rejouer l'accueil OLU sur un nouvel appareil avant hydratation compte
+ * @param {(tabKey: string, nextSeen: Record<string, true>) => void} [props.onTourSeen]
+ * @param {import('react').ReactNode} props.children
+ */
+export function TourProvider({
+  tab,
+  isTeacher = false,
+  enabled = false,
+  accountSeen = null,
+  accountSeenReady = true,
+  onTourSeen = null,
+  children,
+}) {
   const publicSettings = usePublicSettings();
   // Surcharges éditoriales des parcours (`content.tour.registry`). Le corpus par
   // défaut reste dans le bundle : un registre absent ou illisible ne dégrade rien.
   const tourOverrides = publicSettings?.content?.tour?.registry || null;
-  const tour = useDiscoveryTour({ isTeacher, tourOverrides });
+  const tour = useDiscoveryTour({
+    isTeacher,
+    tourOverrides,
+    accountSeen,
+    onTourSeen,
+  });
   const { startTour, hasSeenTour, isActive } = tour;
   const timerRef = useRef(0);
 
@@ -41,18 +65,18 @@ export function TourProvider({ tab, isTeacher = false, enabled = false, children
   /*
    * Auto-démarrage. Deux cas, dans cet ordre :
    *
-   * 1. **Première connexion** — OLU se présente (parcours `welcome`, bulles centrées).
+   * 1. **Première connexion du compte** — OLU se présente (parcours `welcome`, bulles centrées).
    *    Il passe avant tout parcours d'onglet : se faire présenter la carte par quelqu'un
    *    qu'on n'a pas encore rencontré met la charrue avant les bœufs.
    * 2. **Première découverte d'un onglet** — le parcours de l'onglet affiché.
    *
-   * Les deux partagent la mémoire `foretmap_discovery_seen_v1` : l'accueil vu une fois
-   * ne revient plus, et l'onglet ouvert dans la foulée garde son parcours pour la fois
-   * suivante.
+   * La mémoire compte (`discoveryTourSeen`) prime : un accueil vu sur un appareil
+   * ne revient pas sur un autre. On attend `accountSeenReady` pour ne pas relancer
+   * à tort pendant le chargement de `/me`.
    */
   useEffect(() => {
     clearTimeout(timerRef.current);
-    if (!enabled || !tab) return undefined;
+    if (!enabled || !tab || !accountSeenReady) return undefined;
     if (isActive) return undefined;
     const target = hasSeenTour(WELCOME_TOUR_KEY) ? tab : WELCOME_TOUR_KEY;
     if (hasSeenTour(target)) return undefined;
@@ -60,7 +84,7 @@ export function TourProvider({ tab, isTeacher = false, enabled = false, children
       startTour(target);
     }, AUTO_START_DELAY_MS);
     return () => clearTimeout(timerRef.current);
-  }, [tab, enabled, isActive, hasSeenTour, startTour]);
+  }, [tab, enabled, accountSeenReady, isActive, hasSeenTour, startTour]);
 
   const value = useMemo(
     () => ({

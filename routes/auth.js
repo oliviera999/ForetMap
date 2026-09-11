@@ -15,6 +15,12 @@ const { verifyJwtToken } = require('../lib/auth/jwtPipeline');
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { toPublicUserRow } = require('../lib/publicUser');
+const {
+  parseDiscoveryTourSeen,
+  normalizeDiscoveryTourSeenInput,
+  mergeDiscoveryTourSeen,
+  serializeDiscoveryTourSeen,
+} = require('../lib/discoveryTourSeen');
 const logger = require('../lib/logger');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { sendPasswordResetEmail } = require('../lib/mailer');
@@ -291,8 +297,49 @@ router.get('/me', requireAuth, async (req, res) => {
       body.contextCommentParticipate = Number(u.context_comment_participate) !== 0;
     }
   }
+  // Progression des visites guidées (accueil OLU + onglets) : liée au compte, pas au navigateur.
+  if (req.auth?.userId) {
+    try {
+      const seenRow = await queryOne(
+        'SELECT discovery_tour_seen_json FROM users WHERE id = ? LIMIT 1',
+        [req.auth.userId],
+      );
+      body.discoveryTourSeen = parseDiscoveryTourSeen(seenRow?.discovery_tour_seen_json);
+    } catch (_) {
+      body.discoveryTourSeen = {};
+    }
+  }
   res.json(body);
 });
+
+/**
+ * Marque des parcours de visite guidée comme déjà vus pour le compte connecté.
+ * Merge (union) : les clés déjà vraies restent vraies. Sans mot de passe actuel
+ * (route étroite, comme la préférence mascotte).
+ */
+router.put(
+  '/discovery-tour-seen',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const auth = req.auth || {};
+    if (!auth.userId) return res.status(401).json({ error: 'Authentification requise' });
+    const normalized = normalizeDiscoveryTourSeenInput(req.body?.seen);
+    if (!normalized.ok) return res.status(400).json({ error: normalized.error });
+    const row = await queryOne('SELECT discovery_tour_seen_json FROM users WHERE id = ? LIMIT 1', [
+      auth.userId,
+    ]);
+    if (!row) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    const merged = mergeDiscoveryTourSeen(
+      parseDiscoveryTourSeen(row.discovery_tour_seen_json),
+      normalized.seen,
+    );
+    await execute(
+      'UPDATE users SET discovery_tour_seen_json = ?, updated_at = NOW() WHERE id = ?',
+      [serializeDiscoveryTourSeen(merged), String(auth.userId)],
+    );
+    res.json({ ok: true, discoveryTourSeen: merged });
+  }),
+);
 
 router.patch(
   '/me/profile',
@@ -524,6 +571,7 @@ router.post(
     emitStudentsChanged({ reason: 'register', studentId: id });
     res.status(201).json({
       ...toPublicUserRow(student),
+      discoveryTourSeen: parseDiscoveryTourSeen(student?.discovery_tour_seen_json),
       authToken: token,
       auth: session ? exposeAuth(session.tokenPayload) : null,
     });
@@ -686,6 +734,7 @@ router.post(
     });
     res.json({
       ...toPublicUserRow(account),
+      discoveryTourSeen: parseDiscoveryTourSeen(account.discovery_tour_seen_json),
       authToken: token,
       auth: session ? exposeAuth(session.tokenPayload) : null,
     });
@@ -898,6 +947,7 @@ router.get('/google/callback', async (req, res) => {
         type: 'student',
         student: {
           ...toPublicUserRow(student),
+          discoveryTourSeen: parseDiscoveryTourSeen(student?.discovery_tour_seen_json),
           authToken: token,
           auth: session ? exposeAuth(session.tokenPayload) : null,
         },

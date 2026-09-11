@@ -205,9 +205,11 @@ dit ce qu'on fait dans l'application, et indique où le retrouver. Elles ne dés
 bouton — à la première seconde, montrer un élément qu'on n'a pas appris à lire n'apprend
 rien.
 
-Cet accueil est joué **une seule fois par navigateur**, avant toute visite guidée
-d'onglet, et le professeur en lit une version qui lui est propre. Il suit le même
-interrupteur que les visites guidées : les désactiver le désactive aussi.
+Cet accueil est joué **une seule fois par compte**, avant toute visite guidée
+d'onglet — sur n'importe quel appareil où l'on se connecte — et le professeur en lit
+une version qui lui est propre. Il suit le même interrupteur que les visites guidées :
+les désactiver le désactive aussi. Sans compte (visite invitée), la mémoire reste
+locale à l'appareil.
 
 ### Comment OLU parle
 
