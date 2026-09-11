@@ -689,6 +689,51 @@ Même raisonnement pour `mapCanvasHints` (hints de tracé, contextuels et brefs)
 **`quickTips` (3 entrées) et `chrome` (4 entrées)** : à examiner au cas par cas au moment du lot 4
 — certains peuvent porter la voix, d'autres non.
 
+### 7.4 Quatrième gisement — les surfaces d'apprentissage ✅ _livré (lot 8)_
+
+Les §7.1 à §7.3 ne connaissaient que l'aide et les parcours. Il manquait le gisement où l'élève
+passe le plus de temps : **le quiz de conditionnement, le retour d'une réponse et les fenêtres
+d'accusé**. Ces écrans parlaient encore comme un formulaire (« Bonne réponse ! », « Ce n'est pas
+la bonne réponse. », « Bravo, bonne réponse ! ») au milieu d'une interface où, partout ailleurs,
+quelqu'un parle.
+
+| Ce qui passe à la voix d'OLU                                                                | Ce qui n'y passe pas                                                      |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Annonce du contrôle (`buildGatingQuizIntroMessage`) — **la première phrase seulement**      | La conséquence d'une erreur, dans la même phrase : c'est un avertissement |
+| En-tête du panneau de question (`LearningGatingQuestionPanel`)                              | Le décompte « question 2 sur 3 » : de l'information, pas de la voix       |
+| Défauts de retour d'une réponse (`qcmFeedback.js`)                                          | Le retour **écrit par le professeur** : il gagne toujours                 |
+| Progression après une bonne réponse, série réussie, contrôle satisfait                      | `buildGatingRules` : c'est le règlement du contrôle, il se lit à plat     |
+| Pointe sous l'engagement des accusés (`LearningAcknowledgeButton`), par nature de ressource | La phrase d'engagement elle-même, et la case à cocher : l'élève la dit    |
+| Sous-titre du Quiz libre (`QuizView`)                                                       | Verrou et essais restants (`buildCooldownLockMessage`, `…WrongAnswer…`)   |
+
+**Trois arbitrages propres à ce gisement.**
+
+1. **L'erreur n'est jamais la cible.** C'est ici que la règle d'or (§2.2bis-1) cesse d'être une
+   consigne de relecture pour devenir une contrainte d'architecture : le pool « mauvaise réponse »
+   ne contient aucune ligne qui commente le choix de l'élève, et une seule des cinq porte une
+   pointe — dirigée vers OLU. Un assistant qui vanne quelqu'un qui vient de se tromper est
+   insupportable au troisième écran, et c'est exactement le troisième écran qu'on atteint ici.
+2. **La fréquence de lecture change tout.** Une bulle de parcours se lit une fois ; un retour de
+   QCM se relit vingt fois dans l'heure. D'où des **pools de variantes** plutôt que des chaînes
+   fixes, et un plafond d'exclamations abaissé de « une par parcours » (§2.4) à **zéro**.
+3. **Le tirage est déterministe, jamais `Math.random()`.** Une phrase tirée au rendu changerait à
+   chaque re-rendu de React — une saisie, un focus, un rafraîchissement de données suffisent — et
+   se lirait comme un bug. La graine est le code de la question ou la référence de la ressource :
+   la phrase tient tant que l'écran montre la même chose, et tourne d'une question à l'autre.
+
+**Où c'est écrit.** Un seul module, [`src/shared/utils/oluLearningVoice.js`](../src/shared/utils/oluLearningVoice.js),
+partagé ForetMap et G&L : les deux produits affichent le **même** bouton d'accusé et le **même**
+panneau de question, deux corpus séparés feraient parler deux OLU différents sur le même écran.
+Les pointes d'accusé sont déduites du **type de ressource** du conditionnement (`plant` →
+observation de terrain, `species` → étude de fiche, `glossary`, `tutorial`) : les points d'entrée
+n'ont rien à câbler, et aucun ne peut oublier. Garde-fou :
+[`tests/learning-voice-olu.test.js`](../tests/learning-voice-olu.test.js).
+
+**Asymétrie assumée** (même nature que celle du §7.1) : ces textes ne sont **pas** éditables par
+les profs, alors que l'aide et les parcours le sont. Le levier existant reste le retour rédigé sur
+la question, qui prime sur le défaut. Les rendre éditables serait un chantier à part — même
+arbitrage que le §11.4, à rouvrir si le besoin se manifeste.
+
 ---
 
 ## 8. Gnomes & Licornes
@@ -956,17 +1001,18 @@ de la chrome d'interface — un bouton ne parle pas, et le préfixe est de toute
 
 ## 12. Découpage en lots
 
-| Lot    | Contenu                                                                                                                                                                                                | Assets requis  | Effort | Risque            |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- | ------ | ----------------- |
-| **1**  | ✅ **Livré** — `SpeechBubble` : cadre, étiquette locuteur, machine à écrire + `reduced-motion`. Branché sur `DiscoveryTour` seul. Styles.                                                              | ❌ aucun       | Faible | Très faible       |
-| **2**  | ✅ **Livré** — `MascotSpeaker` (rendu SVG niveau 3) + `mascotExpressions.js` + réglage `content.help.narrator` (schéma, routes, payload public).                                                       | ❌ aucun       | Moyen  | Faible            |
-| **3**  | ✅ **Livré** — champ `expression` dans `DISCOVERY_TOURS`, portrait dans `DiscoveryTour`, médaillon sous 480 px (§6bis.1).                                                                              | ❌ aucun       | Faible | Faible            |
-| **4**  | ✅ **Livré** — corpus à la voix d'OLU (21 étapes, 7 panneaux + miroir, 3 `quickTips`) **et** édition des parcours sous `tours.manage` (§6ter).                                                         | ❌ aucun       | Moyen  | Moyen — §11.2     |
-| **5**  | ✅ **Livré** — studio prof `HelpNarratorAdminPanel` (onglet dédié, cf. §6bis.2) + portrait `face` dans `HelpPanel`.                                                                                    | ❌ aucun\*     | Moyen  | Faible            |
-| **6a** | ✅ **Livré** — GL : `GLFeuilletPopover` + `GLHelpPanel`, `useGlNarrator`, route publique `GET /api/gl/content/narrator`, styles GL. **Réglage partagé avec ForetMap** (§8.2bis, arbitrage révisé).     | ❌ aucun\*\*   | Moyen  | Moyen — isolement |
-| **6b** | ✅ **Livré** — GL : **corpus** — 26 entrées d'aide (`data/gl/help.default.json`) à la voix d'OLU, titres propres à chaque onglet, §11.7 tranché (§8.4). Sur les écrans de responsabilité, OLU se tait. | ❌ aucun       | Moyen  | Faible            |
-| **7a** | ✅ **Livré** — audit du mapping d'états §3.1a : six alias morts supprimés, neuf états non mappés assumés et figés, garde-fou `tests/visit-mascot-catalog-states.test.js`.                              | ❌ aucun       | Faible | Faible            |
-| **7b** | _(optionnel, suspendu)_ Animation d'OLU et cadrage `body` — **subordonnés à une planche**. Voie recommandée : publier un pack `olu-spritesheet` au studio plutôt que versionner un PNG (§3.1a).        | ✅ spritesheet | Moyen  | Faible            |
+| Lot    | Contenu                                                                                                                                                                                                                                   | Assets requis  | Effort | Risque            |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- | ------ | ----------------- |
+| **1**  | ✅ **Livré** — `SpeechBubble` : cadre, étiquette locuteur, machine à écrire + `reduced-motion`. Branché sur `DiscoveryTour` seul. Styles.                                                                                                 | ❌ aucun       | Faible | Très faible       |
+| **2**  | ✅ **Livré** — `MascotSpeaker` (rendu SVG niveau 3) + `mascotExpressions.js` + réglage `content.help.narrator` (schéma, routes, payload public).                                                                                          | ❌ aucun       | Moyen  | Faible            |
+| **3**  | ✅ **Livré** — champ `expression` dans `DISCOVERY_TOURS`, portrait dans `DiscoveryTour`, médaillon sous 480 px (§6bis.1).                                                                                                                 | ❌ aucun       | Faible | Faible            |
+| **4**  | ✅ **Livré** — corpus à la voix d'OLU (21 étapes, 7 panneaux + miroir, 3 `quickTips`) **et** édition des parcours sous `tours.manage` (§6ter).                                                                                            | ❌ aucun       | Moyen  | Moyen — §11.2     |
+| **5**  | ✅ **Livré** — studio prof `HelpNarratorAdminPanel` (onglet dédié, cf. §6bis.2) + portrait `face` dans `HelpPanel`.                                                                                                                       | ❌ aucun\*     | Moyen  | Faible            |
+| **6a** | ✅ **Livré** — GL : `GLFeuilletPopover` + `GLHelpPanel`, `useGlNarrator`, route publique `GET /api/gl/content/narrator`, styles GL. **Réglage partagé avec ForetMap** (§8.2bis, arbitrage révisé).                                        | ❌ aucun\*\*   | Moyen  | Moyen — isolement |
+| **6b** | ✅ **Livré** — GL : **corpus** — 26 entrées d'aide (`data/gl/help.default.json`) à la voix d'OLU, titres propres à chaque onglet, §11.7 tranché (§8.4). Sur les écrans de responsabilité, OLU se tait.                                    | ❌ aucun       | Moyen  | Faible            |
+| **7a** | ✅ **Livré** — audit du mapping d'états §3.1a : six alias morts supprimés, neuf états non mappés assumés et figés, garde-fou `tests/visit-mascot-catalog-states.test.js`.                                                                 | ❌ aucun       | Faible | Faible            |
+| **8**  | ✅ **Livré** — corpus des **surfaces d'apprentissage** (§7.4) : quiz de conditionnement, défauts de retour QCM, accusés « appris / découvert », sous-titre du Quiz libre — ForetMap **et** G&L, pools de variantes à tirage déterministe. | ❌ aucun       | Moyen  | Faible            |
+| **7b** | _(optionnel, suspendu)_ Animation d'OLU et cadrage `body` — **subordonnés à une planche**. Voie recommandée : publier un pack `olu-spritesheet` au studio plutôt que versionner un PNG (§3.1a).                                           | ✅ spritesheet | Moyen  | Faible            |
 
 **Les lots 1 à 4 ont été livrés sans aucun sprite** et apportent déjà l'essentiel de l'effet
 ludique — le cadre, le rythme et la voix. C'est délibéré : la production graphique ne doit
