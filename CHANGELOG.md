@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — import : lignes en double fusionnées
+
+- Import **comptes** et **groupes** : une même personne / un même groupe répété dans
+  le fichier est fusionné (groupes cumulés pour les comptes ; dernière ligne pour
+  pseudo, e-mail, description, type…). Message d'info dans le rapport.
+- Groupes déjà présents : **mise à jour** des infos du fichier (plus seulement « déjà là »).
+
+### Modifié — Plan Lyautey : parcours, admin et noyau partagé
+
+- **Parcours** : barre d’étape compacte (carte encore utilisable), recentrage au-dessus de
+  la barre, reprise après Quitter, aide et doc mises à jour.
+- **Noyau partagé** : `BottomSheet` accepte `blockBackground=false` ; `focusOnPct` /
+  `centerPctMapTransformOnPct` acceptent des `insets`.
+- **Réglages → Plan** : panneau regroupé + `POST /api/settings/admin/plan-access-code`
+  (code clair → bcrypt serveur).
+- Compteurs `search` / `locate` émis ; checklist « mettre le Plan en service » dans la
+  référence fonctionnelle.
+
 ### Modifié — sync Moodle : comptes à problème laissés de côté
 
 - Sans e-mail, e-mail hors domaine, ou e-mail en double côté Moodle : le membre est

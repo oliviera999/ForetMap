@@ -28,6 +28,7 @@ const {
   hasOwn,
   buildImportStudentPayload,
   validateImportStudentPayload,
+  mergeDuplicateStudentImportItems,
   resolveImportRows,
   csvEscape,
   buildTemplateWorkbookRows,
@@ -121,9 +122,11 @@ router.post(
         created: 0,
         skipped_existing: 0,
         skipped_invalid: 0,
+        merged_duplicates: 0,
       },
       preview: [],
       errors: [],
+      infos: [],
       // Contrat explicite : pas de filtre domaines OAuth / Moodle sur les e-mails du fichier.
       emailDomainRestrictionsApplied: false,
     };
@@ -143,13 +146,12 @@ router.post(
     const emailSet = new Set(
       existingUsers.map((u) => asTrimmedString(u.email).toLowerCase()).filter(Boolean),
     );
-    const seenName = new Set();
 
     const minPasswordStudent = await getPasswordMinLengthFor('student');
     const minPasswordTeacher = await getPasswordMinLengthFor('teacher');
     const passwordOpts = { minPasswordStudent, minPasswordTeacher };
 
-    const validRows = [];
+    const candidateRows = [];
     rawRows.forEach((row, idx) => {
       const rowNumber = idx + 2;
       const payload = buildImportStudentPayload(row);
@@ -170,43 +172,55 @@ router.post(
         });
       }
 
-      const keyByName = `${payload.userType}|${payload.firstName.toLowerCase()}|${payload.lastName.toLowerCase()}`;
-      if (!errors.length && seenName.has(keyByName)) {
-        errors.push({
-          row: rowNumber,
-          field: 'name',
-          error: 'Doublon dans le fichier (type de compte + prénom + nom)',
-        });
-      }
-      if (!errors.length && existingByName.has(keyByName)) {
-        report.totals.skipped_existing += 1;
-        report.errors.push({
-          row: rowNumber,
-          field: 'name',
-          error: 'Utilisateur déjà existant (type de compte + prénom + nom)',
-        });
-        return;
-      }
-
-      if (!errors.length && payload.pseudo && pseudoSet.has(payload.pseudo.toLowerCase())) {
-        errors.push({ row: rowNumber, field: 'pseudo', error: 'Pseudo déjà utilisé' });
-      }
-      if (!errors.length && payload.email && emailSet.has(payload.email.toLowerCase())) {
-        errors.push({ row: rowNumber, field: 'email', error: 'Email déjà utilisé' });
-      }
-
       if (errors.length > 0) {
         report.totals.skipped_invalid += 1;
         report.errors.push(...errors);
         return;
       }
 
-      seenName.add(keyByName);
+      candidateRows.push({ payload, rowNumber });
+    });
+
+    const { items: mergedRows, infos: mergeInfos } =
+      mergeDuplicateStudentImportItems(candidateRows);
+    report.infos.push(...mergeInfos);
+    report.totals.merged_duplicates = mergeInfos.reduce(
+      (acc, info) => acc + Math.max(0, (info.rows?.length || 0) - 1),
+      0,
+    );
+
+    const validRows = [];
+    for (const rowItem of mergedRows) {
+      const { payload, rowNumber } = rowItem;
+      const keyByName = `${payload.userType}|${payload.firstName.toLowerCase()}|${payload.lastName.toLowerCase()}`;
+
+      if (existingByName.has(keyByName)) {
+        report.totals.skipped_existing += 1;
+        report.errors.push({
+          row: rowNumber,
+          field: 'name',
+          error: 'Utilisateur déjà existant (type de compte + prénom + nom)',
+        });
+        continue;
+      }
+
+      const uniquenessErrors = [];
+      if (payload.pseudo && pseudoSet.has(payload.pseudo.toLowerCase())) {
+        uniquenessErrors.push({ row: rowNumber, field: 'pseudo', error: 'Pseudo déjà utilisé' });
+      }
+      if (payload.email && emailSet.has(payload.email.toLowerCase())) {
+        uniquenessErrors.push({ row: rowNumber, field: 'email', error: 'Email déjà utilisé' });
+      }
+      if (uniquenessErrors.length > 0) {
+        report.totals.skipped_invalid += 1;
+        report.errors.push(...uniquenessErrors);
+        continue;
+      }
+
       if (payload.pseudo) pseudoSet.add(payload.pseudo.toLowerCase());
       if (payload.email) emailSet.add(payload.email.toLowerCase());
-
-      validRows.push({ payload, rowNumber });
-    });
+      validRows.push(rowItem);
+    }
 
     const affiliationResolvedRows = [];
     for (const rowItem of validRows) {
