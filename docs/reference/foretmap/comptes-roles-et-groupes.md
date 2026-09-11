@@ -198,7 +198,13 @@ quand l'établissement a beaucoup de comptes et de groupes :
   pas la vue globale). Si la **même personne** apparaît sur plusieurs lignes, elles
   sont **fusionnées** : les groupes s'ajoutent, et pour le reste (pseudo, e-mail…)
   c'est la **dernière ligne** qui compte — un message d'information le signale dans
-  le rapport. Le modèle téléchargeable contient **une ligne d'exemple par
+  le rapport. Si un compte **existe déjà** sur le site (même prénom, nom et type
+  élève/enseignant), l'import **met à jour** ses infos par défaut (pseudo, e-mail,
+  description, affiliation, profil, groupes ajoutés ; mot de passe seulement s'il
+  est renseigné dans le fichier). Un administrateur peut choisir d'**ignorer** ces
+  doublons à la place, et autoriser des **mots de passe plus courts** que le
+  plancher habituel — dans **Réglages → Imports de comptes**. Le modèle
+  téléchargeable contient **une ligne d'exemple par
   profil**, avec des cas multi-groupes. Les adresses e-mail du fichier **ne sont
   pas** limitées aux domaines autorisés pour Google ou Moodle.
 - **Importer des groupes** : le sous-onglet Imports & exports permet

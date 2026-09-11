@@ -13,6 +13,7 @@ export const SECTION_DEFS = {
   tasks: { title: 'Tâches & inscriptions n3beurs', order: 23 },
   progression: { title: 'Progression n3beurs', order: 25 },
   learning: { title: 'Validation des lectures (contrôle de compréhension)', order: 26 },
+  imports: { title: 'Imports de comptes', order: 28 },
   security: { title: 'Sécurité', order: 30 },
   operations: { title: 'Exploitation', order: 40 },
   other: { title: 'Autres paramètres', order: 90 },
@@ -335,6 +336,18 @@ export const KEY_META = {
     label: 'Longueur min mot de passe',
     section: 'security',
     order: 10,
+  },
+  'students.import.existing_strategy': {
+    label:
+      'Import comptes — compte déjà présent (même prénom + nom + type) : mettre à jour ou ignorer',
+    section: 'imports',
+    order: 10,
+  },
+  'students.import.allow_weak_passwords': {
+    label:
+      'Import comptes — autoriser des mots de passe plus courts que le plancher (élèves et enseignants)',
+    section: 'imports',
+    order: 20,
   },
   'security.jwt_ttl_base_seconds': {
     label: 'Durée session standard (secondes)',

@@ -267,6 +267,35 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.ok(errors.some((e) => e.field === 'password' && /12/.test(e.error)));
   });
 
+  it('validateImportStudentPayload : allowWeakPasswords assouplit le plancher', () => {
+    const payload = buildImportStudentPayload({
+      Rôle: 'prof',
+      Prénom: 'Ada',
+      Nom: 'Lovelace',
+      'Mot de passe': 'ab',
+      Affiliation: 'both',
+    });
+    assert.deepEqual(
+      validateImportStudentPayload(payload, 3, {
+        minPasswordStudent: 4,
+        minPasswordTeacher: 12,
+        allowWeakPasswords: true,
+      }),
+      [],
+    );
+  });
+
+  it('validateImportStudentPayload : passwordRequired false tolère un MDP vide', () => {
+    const payload = buildImportStudentPayload({
+      Rôle: 'eleve',
+      Prénom: 'Ada',
+      Nom: 'Lovelace',
+      Affiliation: 'n3',
+    });
+    assert.ok(!payload.password);
+    assert.deepEqual(validateImportStudentPayload(payload, 2, { passwordRequired: false }), []);
+  });
+
   it('validateImportStudentPayload : cumul des erreurs avec numéro de ligne et champ', () => {
     const errors = validateImportStudentPayload(
       {
