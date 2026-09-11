@@ -301,7 +301,11 @@ describe('MoodleAdminPanel', () => {
     await screen.findByTestId('moodle-chapter-courses');
     expect(screen.getByText('Cours G&L chapitre 1 [GL1]')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter un chapitre' }));
-    fireEvent.change(screen.getByLabelText('Cours de la ligne 2'), { target: { value: '43' } });
+    // La ligne ajoutée est cherchée en asynchrone : une requête synchrone juste après un clic
+    // suppose que React a déjà repeint, ce qui ne tient plus sur un exécuteur CI chargé.
+    fireEvent.change(await screen.findByLabelText('Cours de la ligne 2'), {
+      target: { value: '43' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer la table' }));
     await waitFor(() =>
       expect(saveSetting).toHaveBeenCalledWith(

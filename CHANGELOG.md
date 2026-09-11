@@ -13,6 +13,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   la partie (ou qu’un second apply tourne) ne réécrit plus les équipes d’une
   partie déjà en cours. La ligne de la partie est verrouillée le temps de
   l’écriture ; si elle n’est plus en préparation, le serveur refuse (409).
+### Corrigé — contrôle Moodle : le refus global nomme ses causes
+
+- **`accessexception` sur toutes les fonctions** (sonde de repli comprise) : le conseil affiché
+  part désormais de ce que la réponse prouve — Moodle **reconnaît** le jeton (sinon
+  `invalidtoken`) et le point d'entrée REST répond — puis liste les causes par fréquence
+  (capacité `webservice/rest:use`, « Utilisateurs autorisés », restriction d'IP, jeton expiré,
+  jeton créé pour un autre service) et donne le geste qui tranche : passer Moodle en mode
+  débogage DÉVELOPPEUR et relancer, le `debuginfo` renvoyé nommant la cause exacte.
+- **`sitepolicynotagreed`** : nouveau conseil — le compte de service n'a pas accepté la politique
+  du site, ce qui fait refuser **toutes** ses fonctions Web Services même correctement
+  autorisées ; le geste est de l'accepter en son nom depuis les accords des utilisateurs.
+- **Sonde de repli, formulation juste** : quand la sonde est *admise* par le service puis refusée
+  pour une autre raison (politique du site, capacité manquante), le conseil ne prétend plus
+  qu'elle « a répondu » — il conclut quand même que `core_webservice_get_site_info` manque au
+  service, et renvoie vers l'autre erreur. L'appel n'est plus rejoué à l'étape des cohortes : le
+  refus déjà constaté y est reporté tel quel.
+- **Conseils repliés à 96 colonnes** dans `npm run moodle:check` : un paragraphe lisible plutôt
+  qu'une ligne unique qui déborde du terminal.
 
 ### Corrigé — CI après les lots pédago et cartes
 

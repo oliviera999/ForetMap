@@ -109,6 +109,40 @@ test('check : seule core_webservice_get_site_info manque au service → contrôl
   });
 });
 
+test('check : sonde admise puis refusée (politique du site) → conseil sans « a répondu »', async () => {
+  const functions = createFakeMoodleServer().state.functions.filter(
+    (f) => f !== 'core_webservice_get_site_info',
+  );
+  await withFake({ functions }, async ({ fake, client }) => {
+    fake.addCohort({ id: 7, name: '6e 3', idnumber: '26#603' });
+    fake.state.failFor = {
+      core_cohort_search_cohorts: {
+        errorcode: 'sitepolicynotagreed',
+        message: 'Politique du site pas acceptée',
+      },
+    };
+    const report = await runMoodleCheck({ client, settings: SETTINGS });
+
+    // La sonde a été admise par le service, donc `site_info` manque bien — mais elle n'a pas
+    // « répondu » : le conseil ne doit pas le prétendre.
+    assert.strictEqual(report.tokenProbe.ok, false);
+    assert.strictEqual(report.tokenProbe.scope, 'function');
+    assert.strictEqual(report.tokenProbe.errorcode, 'sitepolicynotagreed');
+    assert.strictEqual(report.errors[0].hint, SITE_INFO_ACCESS_HINTS.functionOther);
+    assert.ok(!/a répondu/.test(report.errors[0].hint));
+
+    // Le refus des cohortes est reporté avec son propre conseil, sans rejouer l'appel.
+    const cohorts = report.errors.find((e) => e.step === 'cohorts');
+    assert.strictEqual(cohorts.errorcode, 'sitepolicynotagreed');
+    assert.strictEqual(cohorts.hint, ERROR_HINTS.sitepolicynotagreed);
+    assert.strictEqual(
+      fake.calls.filter((c) => c.wsfunction === 'core_cohort_search_cohorts').length,
+      1,
+    );
+    assert.deepStrictEqual(report.cohorts, []);
+  });
+});
+
 test('check : aucune fonction accessible → refus global, contrôle arrêté', async () => {
   await withFake({ functions: [] }, async ({ fake, client }) => {
     fake.addCohort({ id: 7, name: '6e3', idnumber: '26#603' });

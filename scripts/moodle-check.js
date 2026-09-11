@@ -28,6 +28,24 @@ function line(text = '') {
   process.stdout.write(`${text}\n`);
 }
 
+/** Conseil de dépannage : replié à 96 colonnes, chaque ligne préfixée, pour rester lisible. */
+function lines(text, { first = '  → ', next = '    ' } = {}) {
+  const width = 96;
+  const out = [];
+  let current = '';
+  for (const word of String(text).split(/\s+/).filter(Boolean)) {
+    const prefix = out.length ? next : first;
+    if (current && prefix.length + current.length + 1 + word.length > width) {
+      out.push(prefix + current);
+      current = word;
+    } else {
+      current = current ? `${current} ${word}` : word;
+    }
+  }
+  if (current) out.push((out.length ? next : first) + current);
+  for (const l of out) line(l);
+}
+
 function printHuman(report, env) {
   line(`Site Moodle : ${env.baseUrl}`);
   if (report.site) {
@@ -80,8 +98,8 @@ function printHuman(report, env) {
   line('');
   for (const err of report.errors) {
     line(`ERREUR [${err.step}] ${err.kind} ${err.errorcode || err.status || ''} ${err.message}`);
-    if (err.debuginfo) line(`  debug Moodle : ${err.debuginfo}`);
-    if (err.hint) line(`  → ${err.hint}`);
+    if (err.debuginfo) lines(err.debuginfo, { first: '  debug Moodle : ', next: '    ' });
+    if (err.hint) lines(err.hint);
   }
   if (report.tokenProbe) {
     const probe = report.tokenProbe;
