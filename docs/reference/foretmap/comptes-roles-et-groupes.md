@@ -174,14 +174,23 @@ et l'état du compte.
 - **Créer / importer** : un **n3boss** (selon ses droits) peut créer des comptes un par
   un ou importer une liste (rentrée). Le fichier d'import (CSV ou tableur) permet de
   choisir **chaque profil** : visiteur, n3beur novice / avancé / chevronné, prof de
-  classe, n3boss, administrateur. Le modèle téléchargeable contient **une ligne
-  d'exemple par profil** ; ces lignes sont à remplacer ou supprimer avant l'import
-  réel. Les adresses e-mail du fichier **ne sont pas** limitées aux domaines autorisés
-  pour Google ou Moodle (seule la forme de l'e-mail est contrôlée). Pour un **prof de
-  classe**, la création / l'import ne sont disponibles **que si** un administrateur a
-  ouvert ces droits sur son profil. Seul un administrateur peut importer un compte
-  administrateur ; seuls n3boss et administrateur peuvent importer un compte
-  enseignant.
+  classe, n3boss, administrateur. Une colonne **Groupes** permet de rattacher chaque
+  personne à **une ou plusieurs** classes (noms ou identifiants séparés par `|` ou
+  `;`) ; un chemin du type « classe > sous-groupe » crée le sous-groupe sous son
+  parent. Si un groupe nommé dans le fichier **n'existe pas encore**, il est **créé
+  automatiquement** (et le professeur qui importe en devient responsable s'il n'a
+  pas la vue globale). Le modèle téléchargeable contient **une ligne d'exemple par
+  profil**, avec des cas multi-groupes. Les adresses e-mail du fichier **ne sont
+  pas** limitées aux domaines autorisés pour Google ou Moodle.
+- **Importer des groupes** : un panneau dédié (même onglet Profils) permet
+  d'importer une liste de groupes et sous-groupes via un fichier modèle (type
+  classe / équipe / unité / club, parent optionnel, option « accorde le statut
+  n3beur »). Les groupes déjà présents (même nom ou même identifiant) sont
+  laissés tels quels ; les nouveaux sont créés. Pour un **prof de classe**, la
+  création / l'import de comptes ne sont disponibles **que si** un administrateur
+  a ouvert ces droits sur son profil. Seul un administrateur peut importer un
+  compte administrateur ; seuls n3boss et administrateur peuvent importer un
+  compte enseignant.
 - **Supprimer** : la suppression d'un élève retire aussi ses affectations et son
   historique de tâches, et recalcule les statuts des tâches concernées. C'est un
   pouvoir sensible ; il ne fait pas partie du socle minimal du prof de classe.

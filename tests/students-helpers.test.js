@@ -42,8 +42,9 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.equal(MAX_AVATAR_BYTES, 2 * 1024 * 1024);
     assert.equal(MAX_IMPORT_FILE_BYTES, 8 * 1024 * 1024);
     assert.equal(MAX_IMPORT_ROWS, 1000);
-    assert.equal(TEMPLATE_COLUMNS.length, 8);
+    assert.equal(TEMPLATE_COLUMNS.length, 9);
     assert.equal(TEMPLATE_COLUMNS[0], 'Rôle');
+    assert.match(TEMPLATE_COLUMNS[5], /Groupes/);
     assert.deepEqual([...ALLOWED_IMPORT_USER_TYPES].sort(), ['student', 'teacher']);
     assert.equal(IMPORT_SKIPS_EMAIL_DOMAIN_RESTRICTIONS, true);
     assert.deepEqual(
@@ -207,10 +208,23 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
       lastName: 'Lovelace',
       password: 'MotDePasse12!',
       affiliation: 'n3',
+      groupRefs: [],
       pseudo: null,
       email: 'ada@gmail.com',
       description: null,
     });
+  });
+
+  it('buildImportStudentPayload : groupes multi et chemin', () => {
+    const payload = buildImportStudentPayload({
+      Rôle: 'eleve',
+      Prénom: 'Ada',
+      Nom: 'Lovelace',
+      'Mot de passe': 'azerty123',
+      Affiliation: 'both',
+      [TEMPLATE_COLUMNS[5]]: '6ème A | 6ème B > Atelier',
+    });
+    assert.deepEqual(payload.groupRefs, [{ path: ['6ème A'] }, { path: ['6ème B', 'Atelier'] }]);
   });
 
   it('validateImportStudentPayload : payload élève valide → aucune erreur', () => {
@@ -319,7 +333,8 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.equal(rows.length, IMPORT_ROLE_SLUGS.size);
     const slugs = rows.map((r) => r[TEMPLATE_COLUMNS[0]]);
     assert.deepEqual(slugs.sort(), [...IMPORT_ROLE_SLUGS].sort());
-    assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[6]]).includes('@gmail.com')));
+    assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[7]] || '').includes('@gmail.com')));
+    assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[5]] || '').includes('|')));
     assert.ok(rows.every((r) => Object.keys(r).length === TEMPLATE_COLUMNS.length));
   });
 });

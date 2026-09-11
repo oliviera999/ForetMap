@@ -17,6 +17,7 @@ const { deleteStudentById } = require('../lib/studentDeletion');
 const { getPasswordMinLength, getPasswordMinLengthFor } = require('../lib/passwordReset');
 const logger = require('../lib/logger');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
+const { loadGroupsIndex, attachUserToGroupRefs } = require('../lib/groupImport');
 const {
   MAX_DESCRIPTION_LEN,
   MAX_IMPORT_ROWS,
@@ -234,11 +235,16 @@ router.post(
           first_name: rowItem.payload.firstName,
           last_name: rowItem.payload.lastName,
           affiliation: resolved.affiliation,
+          groups:
+            (rowItem.payload.groupRefs || []).map((r) => r.path.join(' > ')).join(' | ') || null,
         });
       }
     }
 
     report.totals.valid = affiliationResolvedRows.length;
+    report.totals.groups_created = 0;
+    report.totals.groups_attached = 0;
+
     if (dryRun || affiliationResolvedRows.length === 0) {
       return res.json({ report });
     }
@@ -253,6 +259,7 @@ router.post(
     );
     for (const r of roleRows) roleIdBySlug.set(r.slug, r.id);
     const createdRoleAssignments = [];
+    const createdUsersForGroups = [];
 
     for (const rowItem of affiliationResolvedRows) {
       const { payload, rowNumber } = rowItem;
@@ -282,6 +289,14 @@ router.post(
         report.totals.created += 1;
         const roleId = roleIdBySlug.get(roleSlug);
         if (roleId != null) createdRoleAssignments.push([payload.userType, id, roleId]);
+        if (Array.isArray(payload.groupRefs) && payload.groupRefs.length > 0) {
+          createdUsersForGroups.push({
+            id,
+            userType: payload.userType,
+            groupRefs: payload.groupRefs,
+            rowNumber,
+          });
+        }
       } catch (err) {
         if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
           report.totals.skipped_existing += 1;
@@ -309,6 +324,28 @@ router.post(
           `INSERT IGNORE INTO user_roles (user_type, user_id, role_id, is_primary) VALUES ${placeholders}`,
           params,
         );
+      }
+    }
+
+    if (createdUsersForGroups.length > 0) {
+      const groupsIndex = await loadGroupsIndex();
+      for (const item of createdUsersForGroups) {
+        const attach = await attachUserToGroupRefs(
+          req.auth,
+          item.id,
+          item.userType,
+          item.groupRefs,
+          groupsIndex,
+        );
+        report.totals.groups_created += attach.created.length;
+        report.totals.groups_attached += attach.attached.length;
+        for (const errMsg of attach.errors) {
+          report.errors.push({
+            row: item.rowNumber,
+            field: 'groups',
+            error: errMsg,
+          });
+        }
       }
     }
 

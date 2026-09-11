@@ -49,9 +49,8 @@ test('GET /api/students/import/template retourne un modèle CSV multi-rôles', a
     .expect(200);
 
   assert.ok((res.headers['content-type'] || '').includes('text/csv'));
-  assert.ok(
-    (res.text || '').includes('Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte)'),
-  );
+  assert.ok((res.text || '').includes('Rôle;Prénom;Nom;Mot de passe'));
+  assert.ok((res.text || '').toLowerCase().includes('groupes'));
   for (const slug of [
     'visiteur',
     'eleve_novice',
@@ -69,9 +68,9 @@ test('GET /api/students/import/template retourne un modèle CSV multi-rôles', a
 test('POST /api/students/import dryRun valide un CSV avec erreurs', async () => {
   const unique = Date.now();
   const csv = [
-    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
-    `eleve;Import;Eleve-${unique};pass123;n3;import_${unique};import_${unique}@gmail.com;Test import hors domaine`,
-    `prof;Import;SansMdp-${unique};;wrong;;;`,
+    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte);Groupes (noms/slugs, | ou ; ; chemin Parent>Enfant);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
+    `eleve;Import;Eleve-${unique};pass123;n3;Classe Import ${unique};import_${unique};import_${unique}@gmail.com;Test import hors domaine`,
+    `prof;Import;SansMdp-${unique};;wrong;;;;`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
 
@@ -98,8 +97,8 @@ test('POST /api/students/import dryRun valide un CSV avec erreurs', async () => 
 test('POST /api/students/import crée les élèves valides', async () => {
   const unique = Date.now();
   const csv = [
-    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
-    `eleve;Mass;Create-${unique};pass123;foret;mass_${unique};mass_${unique}@example.com;Import réel`,
+    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte);Groupes (noms/slugs, | ou ; ; chemin Parent>Enfant);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
+    `eleve;Mass;Create-${unique};pass123;foret;Classe Mass ${unique};mass_${unique};mass_${unique}@example.com;Import réel`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
 
@@ -114,6 +113,7 @@ test('POST /api/students/import crée les élèves valides', async () => {
     .expect(200);
 
   assert.strictEqual(res.body.report.totals.created, 1);
+  assert.ok(res.body.report.totals.groups_attached >= 1);
   const inserted = await queryOne(
     "SELECT * FROM users WHERE user_type = 'student' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?)",
     ['Mass', `Create-${unique}`],
@@ -127,13 +127,18 @@ test('POST /api/students/import crée les élèves valides', async () => {
     [inserted.id],
   );
   assert.strictEqual(role?.slug, 'eleve_novice');
+  const membership = await queryOne(
+    'SELECT group_id FROM group_members WHERE user_id = ? LIMIT 1',
+    [inserted.id],
+  );
+  assert.ok(membership?.group_id);
 });
 
 test('POST /api/students/import crée un professeur si rôle=prof', async () => {
   const unique = Date.now();
   const csv = [
-    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
-    `prof;Prof;Import-${unique};MotDePasse12!;both;prof_${unique};prof_${unique}@gmail.com;Import prof hors domaine`,
+    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte);Groupes (noms/slugs, | ou ; ; chemin Parent>Enfant);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
+    `prof;Prof;Import-${unique};MotDePasse12!;both;;prof_${unique};prof_${unique}@gmail.com;Import prof hors domaine`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
 
@@ -167,8 +172,8 @@ test('POST /api/students/import crée un professeur si rôle=prof', async () => 
 test('POST /api/students/import crée un prof_classe avec le bon profil', async () => {
   const unique = Date.now();
   const csv = [
-    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
-    `prof_classe;Tuteur;Classe-${unique};MotDePasse12!;both;tuteur_${unique};tuteur_${unique}@outlook.com;Import tuteur`,
+    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte);Groupes (noms/slugs, | ou ; ; chemin Parent>Enfant);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
+    `prof_classe;Tuteur;Classe-${unique};MotDePasse12!;both;Classe Tuteur ${unique}|Autre Classe ${unique};tuteur_${unique};tuteur_${unique}@outlook.com;Import tuteur`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
 
@@ -183,6 +188,7 @@ test('POST /api/students/import crée un prof_classe avec le bon profil', async 
     .expect(200);
 
   assert.strictEqual(res.body.report.totals.created, 1);
+  assert.ok(res.body.report.totals.groups_attached >= 2);
   const inserted = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?)",
     ['Tuteur', `Classe-${unique}`],

@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — import comptes + import groupes
+
+- Colonne **Groupes** à l’import utilisateurs : un ou plusieurs rattachements
+  (`|` / `;`, chemins `Parent>Enfant`) ; création auto des groupes absents.
+- **Import dédié** groupes / sous-groupes (modèle CSV/XLSX téléchargeable,
+  panneau Profils) : type, parent, option n3beur.
+
 ### Modifié — import comptes : tous les profils ForetMap
 
 - Colonne **Rôle** : `visiteur`, `eleve_novice` / `eleve_avance` / `eleve_chevronne`,
