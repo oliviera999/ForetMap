@@ -7,6 +7,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — le hérisson manquant du réseau GL, et les tests de contenu séparés du code
+
+- **Migration `230`** : `Hérisson commun` (SP0074) est **créé** au lieu d’être supposé présent.
+  Il était cité par les migrations `225` et `228` mais semé par aucune d’elles — il n’existait
+  qu’en production. Ses deux liaisons trophiques (`→ Lombric commun`, `→ Escargot des bois`)
+  sont rejouées dans la foulée. Idempotente, sans effet en production.
+- **Cause** : les semis d’interactions résolvent les espèces par `JOIN ... ON nom_commun = ?`.
+  Toute ligne dont un nom manque à cet instant est **silencieusement** abandonnée — ni erreur,
+  ni avertissement. Même trou que la migration `229` avait rebouché pour la jacinthe et le muguet.
+- **Test durci** : `réseau GL : merle, mare et mycorhizes` n’ignore plus une paire dont l’espèce
+  est absente (`continue` retiré). C’est ce raccourci qui rendait la perte invisible sur base
+  neuve et ne la révélait en CI que selon l’ordre des fichiers de test.
+- **Tests de contenu isolés** : les huit fichiers `pedago-*.test.js` passent sous
+  **`tests/content/`**, hors du glob `tests/*.test.js`, avec une commande (`npm run test:content`)
+  et un **job CI dédié `contenu`**. Une dérive du corpus pédagogique tombe désormais sous son
+  propre nom au lieu de bloquer toutes les PR — quatre PR consécutives, dont deux purement
+  documentaires, avaient échoué sur cette seule liaison manquante le 09/09.
+- `npm run test:local` continue de parcourir les deux dossiers ; `npm run test:all` enchaîne
+  code, contenu puis UI.
+
 ### Corrigé — composition d’équipes GL en course avec le démarrage
 
 - **Partie lancée** : appliquer une composition pendant qu’un autre MJ démarre

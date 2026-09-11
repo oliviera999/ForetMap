@@ -207,19 +207,20 @@ Le script force `DB_NAME=foretmap_test` ; le schéma est (re)créé par les fich
 
 ### Récapitulatif des commandes de test (référence)
 
-| Commande                                      | Rôle                                                                                                  |
-| --------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `npm test`                                    | Tous les **`tests/*.test.js`** (API + utilitaires **`src/utils`** : géométrie visite, mascotte, etc.) |
-| `npm run test:ui`                             | Tests UI Vitest (`tests-ui/**`) — exécutés aussi en **CI** (après `npm test`)                         |
-| `npm run test:all`                            | `npm test` puis `npm run test:ui`                                                                     |
-| `npm run test:e2e`                            | Playwright sur **`e2e/`** (inclut visite / mascotte)                                                  |
-| `npm run smoke:local:fast`                    | Smoke applicatif (`scripts/local-smoke.js`)                                                           |
-| `npm run test:snapshot`                       | Snapshot DB importée (`FORETMAP_SNAPSHOT_TESTS=1`, voir § 5ter)                                       |
-| `npm run test:snapshot:gl`                    | Snapshot DB ciblé Gnomes & Licornes (`FORETMAP_SNAPSHOT_GL=1`)                                        |
-| `npm run test:load` (et variantes)            | Charge Artillery (`LOAD_TEST_SECRET`, voir § **5quinquies**)                                          |
-| `npm run test:load:gl`                        | Charge Artillery ciblée GL (`load/artillery-gl.yml`)                                                  |
-| `npx artillery run load/artillery-biodiv.yml` | Charge ciblée Biodiversité : catalogue avant/après correctif (§ **5quinquies**)                       |
-| `npm run test:profile:memory`                 | Profil mémoire local des parcours suspects LVE (`/api/admin/diagnostics`, voir § **5sexies**)         |
+| Commande                                      | Rôle                                                                                                          |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `npm test`                                    | Tous les **`tests/*.test.js`** (API + utilitaires **`src/utils`** : géométrie visite, mascotte, etc.)         |
+| `npm run test:content`                        | Corpus pédagogique **`tests/content/*.test.js`** (espèces, liaisons trophiques, liens QCM) — job CI `contenu` |
+| `npm run test:ui`                             | Tests UI Vitest (`tests-ui/**`) — exécutés aussi en **CI** (après `npm test`)                                 |
+| `npm run test:all`                            | `npm test`, `npm run test:content` puis `npm run test:ui`                                                     |
+| `npm run test:e2e`                            | Playwright sur **`e2e/`** (inclut visite / mascotte)                                                          |
+| `npm run smoke:local:fast`                    | Smoke applicatif (`scripts/local-smoke.js`)                                                                   |
+| `npm run test:snapshot`                       | Snapshot DB importée (`FORETMAP_SNAPSHOT_TESTS=1`, voir § 5ter)                                               |
+| `npm run test:snapshot:gl`                    | Snapshot DB ciblé Gnomes & Licornes (`FORETMAP_SNAPSHOT_GL=1`)                                                |
+| `npm run test:load` (et variantes)            | Charge Artillery (`LOAD_TEST_SECRET`, voir § **5quinquies**)                                                  |
+| `npm run test:load:gl`                        | Charge Artillery ciblée GL (`load/artillery-gl.yml`)                                                          |
+| `npx artillery run load/artillery-biodiv.yml` | Charge ciblée Biodiversité : catalogue avant/après correctif (§ **5quinquies**)                               |
+| `npm run test:profile:memory`                 | Profil mémoire local des parcours suspects LVE (`/api/admin/diagnostics`, voir § **5sexies**)                 |
 
 Après une modification **frontend** : **`npm run build`** si le serveur sert **`dist/`** (`NODE_ENV=production`), avant **`npm run test:e2e`**. Le build Vite applique un **code-splitting** par onglet (`React.lazy` dans `App.jsx`) et des chunks vendor (`react-vendor`, `socket-io`, `rive`, `markdown` — voir `vite.config.js`).
 

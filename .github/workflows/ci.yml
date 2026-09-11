@@ -46,6 +46,51 @@ jobs:
       - name: Run UI tests (Vitest)
         run: npm run test:ui
 
+  # Corpus pédagogique (`tests/content/`) : assertions sur les **données** semées par les
+  # migrations — espèces, liaisons trophiques, rattachements QCM. Job séparé depuis le
+  # 11/09/2026, parce qu'une dérive du corpus bloquait jusqu'aux PR de documentation : le
+  # 09/09, `pedago-garden-auxiliaires` (liaison « Hérisson commun → Escargot des bois »
+  # jamais semée, cf. migration 230) a fait échouer quatre PR d'affilée, dont deux qui ne
+  # contenaient que du Markdown. Un contenu incohérent doit tomber — mais sous son propre
+  # nom, sans se confondre avec un échec de code.
+  contenu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: foretmap_test
+      DB_USER: root
+      DB_PASS: ''
+      JWT_SECRET: 'ci-test-secret-not-for-production'
+    services:
+      mysql:
+        image: mariadb:11.4.10
+        env:
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: '1'
+          MARIADB_DATABASE: foretmap_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=10s --health-timeout=5s --health-retries=5 --health-start-period=40s
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Initialize test database
+        run: npm run db:init
+
+      - name: Run content tests
+        run: npm run test:content
+
   # Conserve le nom `test` : c'est le check requis côté protections de branche.
   test:
     runs-on: ubuntu-latest

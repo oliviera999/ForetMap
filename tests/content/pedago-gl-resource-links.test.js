@@ -1,9 +1,9 @@
 'use strict';
 
-require('./helpers/setup');
+require('../helpers/setup');
 const { test, before } = require('node:test');
 const assert = require('node:assert');
-const { initSchema, queryAll, queryOne } = require('../database');
+const { initSchema, queryAll, queryOne } = require('../../database');
 
 const NEW_GQCM = ['GQCM9250', 'GQCM9251', 'GQCM9253', 'GQCM9255', 'GQCM9256', 'GQCM9258'];
 

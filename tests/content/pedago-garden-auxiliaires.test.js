@@ -1,9 +1,9 @@
 'use strict';
 
-require('./helpers/setup');
+require('../helpers/setup');
 const { test, before } = require('node:test');
 const assert = require('node:assert');
-const { initSchema, queryAll, queryOne } = require('../database');
+const { initSchema, queryAll, queryOne } = require('../../database');
 
 const FM_SPECIES = [
   'Carabe doré',
@@ -134,10 +134,15 @@ test('réseau GL : merle, mare et mycorhizes', async () => {
     ['Mycorhizes à Glomus', 'Jacinthe des bois', 'symbiose'],
     ['Hérisson commun', 'Escargot des bois', 'predation'],
   ];
+  // Pas de `continue` si une espèce manque : c'est précisément le trou que 230 rebouche.
+  // Le semis de 225 résout les espèces par JOIN sur `nom_commun` et perd sans bruit toute
+  // ligne dont un nom est absent ; sauter le cas rendait la perte invisible sur base neuve
+  // et ne la révélait en CI que selon l'ordre des fichiers de test.
   for (const [fromName, toName, type] of needed) {
     const fromOk = await queryOne('SELECT id FROM gl_species WHERE nom_commun = ?', [fromName]);
     const toOk = await queryOne('SELECT id FROM gl_species WHERE nom_commun = ?', [toName]);
-    if (!fromOk || !toOk) continue;
+    assert.ok(fromOk, `espèce GL absente : ${fromName} (citée par le réseau)`);
+    assert.ok(toOk, `espèce GL absente : ${toName} (citée par le réseau)`);
     const row = await pair(fromName, toName, type);
     assert.ok(Number(row.n) >= 1, `liaison GL manquante ${fromName} → ${toName}`);
   }

@@ -32,7 +32,7 @@ sous **`.claude/skills/`**.
 | Shell applicatif (orchestration seule)             | `src/App.jsx` + `src/components/app/` ; données `hooks/useAppDataSync.js` & `useAppDataPolling.js` ; dérivations `utils/appAccess.js`, `appMapScope.js`, `appIdentity.js`                                                                |
 | Front GL                                           | `gl.html` → `src/gl/main.jsx` → `src/gl/AppGL.jsx`                                                                                                                                                                                       |
 | Migrations                                         | `migrations/NNN_*.sql` (idempotentes) + `sql/schema_foretmap.sql`                                                                                                                                                                        |
-| Tests                                              | `tests/*.test.js` (node:test), `tests-ui/**` (vitest), `e2e/*.spec.js` (Playwright)                                                                                                                                                      |
+| Tests                                              | `tests/*.test.js` (code, node:test), `tests/content/*.test.js` (corpus pédagogique, job CI `contenu`), `tests-ui/**` (vitest), `e2e/*.spec.js` (Playwright)                                                                              |
 | Documentation                                      | `docs/` — `API.md`, `EVOLUTION.md`, `LOCAL_DEV.md`, `EXPLOITATION.md`, `VERSIONING.md`, `GL_*.md` ; **index des audits datés : `docs/audits/README.md`** ; stabilité / charge : `AUDIT_STABILITE_PERF_2026-09.md` (consolidé)            |
 
 ## Commandes essentielles
@@ -41,7 +41,8 @@ sous **`.claude/skills/`**.
 npm run dev              # serveur en watch (nodemon)
 npm run build            # build Vite (build-safe : enchaîne sync:*-pack-lib)
 npm run ship -- -m "…"   # routine tout-en-un : build + lint/format/test + bump + commit + push
-npm test                 # tests backend (node:test, séquentiel, force-exit)
+npm test                 # tests backend code (node:test, séquentiel, force-exit)
+npm run test:content     # assertions sur le corpus pédagogique (tests/content/**)
 npm run test:ui          # tests React (Vitest, tests-ui/**)
 npm run test:e2e         # Playwright (libère le port puis start:e2e)
 npm run lint             # ESLint            | npm run format:check  # Prettier (vérif)
@@ -70,6 +71,10 @@ npm run bump:patch|minor|major  # incrémente package.json (sans tag)
   `docs/AUDIT_REFACTORING_APP_2026-08.md`.
 - **Tests dans le même lot que le code** : toute nouvelle route/règle/utilitaire → `tests/*.test.js` ;
   flux UI critique → scénario `e2e/`. Lancer au minimum `npm test` avant commit.
+- **Tests de contenu séparés du code** : une assertion qui porte sur les **données** semées par
+  les migrations (espèces, liaisons trophiques, rattachements QCM…) va dans `tests/content/`,
+  hors du glob `tests/*.test.js`, et tourne dans le job CI **`contenu`**. Une dérive du corpus
+  doit tomber sous son propre nom, sans bloquer une PR de documentation (cf. migration `230`).
 - **Doc API** : toute route publique nouvelle/modifiée → `docs/API.md` dans le même lot.
 - **Doc de référence fonctionnelle** (`docs/reference/`, non technique, pour admins/profs/MJ) :
   tout changement de comportement **visible utilisateur** → mise à jour du doc concerné dans le
