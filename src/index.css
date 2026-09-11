@@ -4174,9 +4174,9 @@
       box-shadow:0 1px 2px rgba(0,0,0,.08);
     }
     /* Plus d'animation d'invite sur « Présentation du lieu » : elle se déclenchait à
-       `seenCount === 0`, c'est-à-dire exactement quand TOUS les lieux clignotent déjà en
-       rouge — deux sollicitations en boucle sur le même écran, pour le même message.
-       Le bouton reste le seul bouton plein du bandeau : l'emphase suffit sans mouvement.
+       `seenCount === 0`, en même temps que le signal « lieux à découvrir » du plan —
+       deux sollicitations en boucle pour le même message. Le bouton reste le seul
+       bouton plein du bandeau : l'emphase suffit sans mouvement.
        Cf. `docs/AUDIT_VISITE_UI_UX_2026-09.md` §5.6. */
     .visit-map-switch--embedded {
       width:auto;
@@ -4694,15 +4694,32 @@
       cursor:pointer;
       transition:fill .16s ease, filter .16s ease;
     }
+    /* Vu / non-vu : le polygone reste vert (plan jardin) ; la pastille porte le signal. */
     .visit-zone-poly.is-unseen {
-      fill:rgba(220,38,38,.24);
-      animation:visitFadeRed 2.2s ease-in-out infinite;
-      filter:drop-shadow(0 0 5px rgba(220,38,38,.42));
+      fill:rgba(22,163,74,.22);
+      animation:none;
+      filter:none;
     }
     .visit-zone-poly.is-seen {
-      fill:rgba(22,163,74,.26);
+      fill:rgba(22,163,74,.12);
       animation:none;
-      filter:drop-shadow(0 0 4px rgba(22,163,74,.35));
+      filter:none;
+    }
+    .visit-zone-indicator {
+      pointer-events:none;
+      stroke:#fff;
+      vector-effect:non-scaling-stroke;
+      stroke-width:1.5px;
+    }
+    .visit-zone-indicator.is-unseen {
+      fill:#d97706;
+      animation:visitPulseUnseen 2.2s ease-in-out infinite;
+      filter:drop-shadow(0 0 3px rgba(217,119,6,.45));
+    }
+    .visit-zone-indicator.is-seen {
+      fill:#16a34a;
+      animation:none;
+      filter:drop-shadow(0 0 2px rgba(22,163,74,.35));
     }
     .visit-marker-btn {
       position:absolute;
@@ -4742,8 +4759,8 @@
       box-shadow:0 1px 4px rgba(0,0,0,.18);
     }
     .visit-marker-indicator.is-unseen {
-      background:#dc2626;
-      animation:visitFadeRed 2.2s ease-in-out infinite;
+      background:#d97706;
+      animation:visitPulseUnseen 2.2s ease-in-out infinite;
     }
     .visit-marker-indicator.is-seen {
       background:#16a34a;
@@ -4993,15 +5010,15 @@
         min-height:44px;
       }
     }
-    @keyframes visitFadeRed {
+    @keyframes visitPulseUnseen {
       0%, 100% { opacity:1; }
       50% { opacity:.42; }
     }
-    /* Le clignotement « pas encore vu » tourne en boucle sur *chaque* zone et *chaque*
-       repère non visité : à respecter impérativement quand le système demande moins de
-       mouvement. Le contraste rouge/vert reste le seul porteur d'information. */
+    /* Le pulse « pas encore vu » ne touche que les pastilles (zones + repères), pas le
+       fill des polygones. À neutraliser quand le système demande moins de mouvement :
+       la pastille ambre / verte reste le porteur d'information. */
     @media (prefers-reduced-motion: reduce) {
-      .visit-zone-poly.is-unseen,
+      .visit-zone-indicator.is-unseen,
       .visit-marker-indicator.is-unseen {
         animation:none;
       }

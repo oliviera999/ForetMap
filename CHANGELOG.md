@@ -7,6 +7,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Visite : pastilles vu / non-vu (plus de zones toutes rouges)
+
+- Sur le plan de visite, les zones gardent un remplissage vert calme ; le statut
+  « pas encore vu » / « vu » se lit via une **pastille** (ambre qui pulse, ou verte),
+  même langage que les repères. Plus de mer de polygones rouges au démarrage.
+
 ### Modifié — pseudos : points, accents et signes autorisés
 
 - Pseudo utilisateur : lettres (y compris accentuées), chiffres, `.` `_` `-` `+`

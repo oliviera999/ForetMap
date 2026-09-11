@@ -45,9 +45,11 @@ familles.
 - **La progression « vu / non-vu »** : pour un élève connecté, elle est rattachée à son
   compte et durable ; pour un invité anonyme, elle est mémorisée environ **24 heures**
   puis s'efface. Les marquages faits hors connexion sont conservés et synchronisés au
-  retour du réseau. Les lieux pas encore vus clignotent en rouge sur le plan ; sur un
-  appareil réglé pour **limiter les animations**, ils restent rouges sans clignoter —
-  la couleur suffit à les distinguer.
+  retour du réseau. Les lieux pas encore vus portent une **petite pastille ambre**
+  (qui pulse doucement) sur le plan — zones comme repères — sans colorer toute la zone
+  en rouge ; les lieux déjà vus ont une pastille verte. Sur un appareil réglé pour
+  **limiter les animations**, les pastilles restent ambre ou vertes sans pulser :
+  la pastille suffit à les distinguer.
 - **Sans souris** : zones et repères se parcourent à la **tabulation** et s'ouvrent avec
   **Entrée** ou **Espace**, comme sur la carte de l'application. Une fois la fiche
   ouverte, le clavier reste à l'intérieur ; **Échap** ou un clic à côté la referme et
@@ -60,7 +62,7 @@ familles.
   téléphone, la barre occupe environ deux fois moins de place qu'avant, au profit de la carte.
 - **Le bouton « Présentation du lieu » ne clignote plus** au premier passage. Il reste mis
   en avant (c'est le seul bouton plein de la barre), mais l'écran ne comporte plus qu'une
-  seule sollicitation animée : le rouge clignotant des lieux pas encore vus.
+  seule sollicitation animée : le pulse doux des pastilles ambre des lieux pas encore vus.
 - **Accessibilité** : l'application est désormais vérifiée automatiquement à chaque
   livraison sur douze écrans (connexion, visite, carte, tâches, biodiversité, glossaire,
   réseau, quiz et deux écrans G&L). Les défauts trouvés ont été corrigés : chaque page a

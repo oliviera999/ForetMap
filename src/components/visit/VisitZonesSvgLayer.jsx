@@ -116,6 +116,18 @@ function VisitZonesSvgLayerImpl({
           maxWidth: labelMaxTextLengthU,
         });
         const zoneAccessibleName = String(zoneNameText).trim() || 'Zone de visite';
+        // Pastille vu/non-vu (~5 px de rayon) : même langage que les repères, hors fill
+        // du polygone. Compensation anisotrope autour du centre de la pastille pour
+        // qu’elle reste ronde malgré `preserveAspectRatio="none"`.
+        const indicatorRU = Math.max(0.7, (5 / Math.max(iw, 1)) * 100);
+        const indicatorX = mx + indicatorRU * 2.2;
+        const indicatorY = my - indicatorRU * 2.2;
+        const indicatorUniform = visitZoneSvgTextUniformYTransform(
+          indicatorX,
+          indicatorY,
+          fitWidth,
+          fitHeight,
+        );
         return (
           <g
             key={z.id}
@@ -167,6 +179,14 @@ function VisitZonesSvgLayerImpl({
                 ) : null}
               </g>
             ) : null}
+            <g transform={indicatorUniform} pointerEvents="none" aria-hidden="true">
+              <circle
+                cx={indicatorX}
+                cy={indicatorY}
+                r={indicatorRU}
+                className={`visit-zone-indicator ${isSeen ? 'is-seen' : 'is-unseen'}`}
+              />
+            </g>
           </g>
         );
       })}
