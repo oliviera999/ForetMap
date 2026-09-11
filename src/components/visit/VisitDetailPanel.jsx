@@ -1,6 +1,6 @@
 import { useId, useMemo } from 'react';
 import { useDialogA11y } from '../../shared/platform/useDialogA11y.js';
-import { MarkdownContent } from '../MarkdownContent.jsx';
+import { GlossaryMarkdown } from '../GlossaryMarkdown.jsx';
 import { normalizeEditorialBlocks } from '../../utils/visitEditorialBlocks.js';
 import { computeVisitLocationAside } from '../../utils/visitLocationAside.js';
 import {
@@ -10,11 +10,8 @@ import {
 } from '../../utils/visitMediaGallery.js';
 // Imports directs (mêmes symboles que les ré-exports du barrel map-views) :
 // évite de tirer MarkerModal/ZoneDrawModal/useMapGestures dans le chunk visite.
-import {
-  BiodiversitySpeciesOpenLinks,
-  LivingBeingsCatalogPanel,
-} from '../map/LivingBeingsCatalogPanel.jsx';
 import { LocationTutorialPreviewList } from '../map/mapModalShared.jsx';
+import { VisitBiodiversityPanel } from './VisitBiodiversityPanel.jsx';
 import { VisitEditorPanel } from './VisitEditorPanel.jsx';
 import { IconCheck, IconEye } from '../../shared/icons.jsx';
 
@@ -39,7 +36,13 @@ function VisitMediaGalleryThumb({ media, onOpenLightbox }) {
   );
 }
 
-function VisitEditorialRenderer({ blocks, selectedVisitMedia, onOpenLightbox }) {
+function VisitEditorialRenderer({
+  blocks,
+  selectedVisitMedia,
+  onOpenLightbox,
+  glossaryItems,
+  onOpenGlossaryTerm,
+}) {
   const mediaById = useMemo(() => {
     const m = new Map();
     for (const media of selectedVisitMedia || []) {
@@ -65,7 +68,12 @@ function VisitEditorialRenderer({ blocks, selectedVisitMedia, onOpenLightbox }) 
         if (block.type === 'paragraph') {
           return (
             <div key={block.id} className="visit-editorial-paragraph">
-              <MarkdownContent>{block.markdown}</MarkdownContent>
+              <GlossaryMarkdown
+                glossaryItems={glossaryItems}
+                onOpenGlossaryTerm={onOpenGlossaryTerm}
+              >
+                {block.markdown}
+              </GlossaryMarkdown>
             </div>
           );
         }
@@ -123,6 +131,12 @@ export function VisitDetailPanel({
   onToggleSeen,
   plants = [],
   onOpenPlantCatalogPreview = null,
+  /**
+   * Index des termes du glossaire (`useGlossaryLinkIndex`) : les textes de visite sont
+   * auto-liés comme ceux des tutoriels et des fiches espèces. Vide → rendu markdown normal.
+   */
+  glossaryItems = [],
+  onOpenGlossaryTerm = null,
   /** Contexte carte/missions/catalogue pour l'aside biodiversité + tutos du lieu. */
   mapId,
   mapZones = [],
@@ -234,11 +248,18 @@ export function VisitDetailPanel({
               blocks={selectedEditorialBlocks}
               selectedVisitMedia={selectedVisitMedia}
               onOpenLightbox={onOpenLightbox}
+              glossaryItems={glossaryItems}
+              onOpenGlossaryTerm={onOpenGlossaryTerm}
             />
           ) : (
             <>
               {selected.visit_short_description && (
-                <MarkdownContent>{selected.visit_short_description}</MarkdownContent>
+                <GlossaryMarkdown
+                  glossaryItems={glossaryItems}
+                  onOpenGlossaryTerm={onOpenGlossaryTerm}
+                >
+                  {selected.visit_short_description}
+                </GlossaryMarkdown>
               )}
               {firstVisitPhoto && (
                 <div className="visit-media-gallery visit-media-gallery--lead">
@@ -271,68 +292,27 @@ export function VisitDetailPanel({
                     </div>
                   )}
                   {visitDetailsTextTrim ? (
-                    <MarkdownContent className="visit-details__body">
+                    <GlossaryMarkdown
+                      className="visit-details__body"
+                      glossaryItems={glossaryItems}
+                      onOpenGlossaryTerm={onOpenGlossaryTerm}
+                    >
                       {selected.visit_details_text}
-                    </MarkdownContent>
+                    </GlossaryMarkdown>
                   ) : null}
                 </details>
               )}
             </>
           )}
           {visitLocationAside.showBiodiversity && (
-            <details className="visit-details">
-              <summary>Biodiversité</summary>
-              <div className="visit-details__section">
-                {visitLocationAside.primaryLivingNames.length > 0 && (
-                  <div
-                    className={`visit-details__subsection${visitLocationAside.livingBeingsOnlyOnTasks.length ? ' visit-details__subsection--with-gap' : ''}`}
-                  >
-                    {visitLocationAside.primaryLivingNames.length > 1 ||
-                    visitLocationAside.livingBeingsOnlyOnTasks.length > 0 ? (
-                      <h4 className="visit-details__h4">
-                        {visitLocationAside.locationKind === 'zone'
-                          ? 'Sur cette zone'
-                          : 'Sur ce repère'}
-                      </h4>
-                    ) : null}
-                    {onOpenPlantCatalogPreview ? (
-                      <BiodiversitySpeciesOpenLinks
-                        plants={plants}
-                        names={visitLocationAside.primaryLivingNames}
-                        showHeading={false}
-                        onOpenPlant={onOpenPlantCatalogPreview}
-                      />
-                    ) : (
-                      <LivingBeingsCatalogPanel
-                        plants={plants}
-                        names={visitLocationAside.primaryLivingNames}
-                        showHeading={false}
-                      />
-                    )}
-                  </div>
-                )}
-                {visitLocationAside.livingBeingsOnlyOnTasks.length > 0 && (
-                  <div>
-                    <h4 className="visit-details__h4">Également dans les missions</h4>
-                    {onOpenPlantCatalogPreview ? (
-                      <BiodiversitySpeciesOpenLinks
-                        plants={plants}
-                        names={visitLocationAside.livingBeingsOnlyOnTasks}
-                        showHeading={false}
-                        sectionTitle="Également dans les missions"
-                        onOpenPlant={onOpenPlantCatalogPreview}
-                      />
-                    ) : (
-                      <LivingBeingsCatalogPanel
-                        plants={plants}
-                        names={visitLocationAside.livingBeingsOnlyOnTasks}
-                        showHeading={false}
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
-            </details>
+            <VisitBiodiversityPanel
+              locationKind={visitLocationAside.locationKind}
+              names={visitLocationAside.primaryLivingNames}
+              species={visitLocationAside.primaryLivingSpecies}
+              plants={plants}
+              namesOnlyOnTasks={visitLocationAside.livingBeingsOnlyOnTasks}
+              onOpenPlant={onOpenPlantCatalogPreview}
+            />
           )}
           {visitLocationAside.showTutos && (
             <details className="visit-details">

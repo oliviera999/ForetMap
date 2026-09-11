@@ -1,4 +1,13 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import { MARKER_EMOJIS, parseEmojiListSetting } from '../constants/emojis';
 import { getRoleTerms } from '../utils/n3-terminology';
@@ -45,7 +54,9 @@ import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx'
 import { VisitMapMascot } from './VisitMapMascot.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
-import { useData } from '../contexts/DataContext.jsx';
+import { DataProvider, useData } from '../contexts/DataContext.jsx';
+import { useGlossaryLinkIndex } from '../hooks/useGlossaryLinkIndex.js';
+import { useVisitPlantCatalog } from '../hooks/useVisitPlantCatalog.js';
 
 import { VISIT_MASCOT_INTERACTION_EVENT } from '../utils/visitMascotInteractionEvents.js';
 import {
@@ -65,6 +76,23 @@ import {
 import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { IconVisit } from '../shared/icons.jsx';
 
+/**
+ * Fiche rapide d'un terme du glossaire et fiche espèce : chargées à la demande.
+ *
+ * En visite **connectée**, l'application monte déjà ces deux surfaces à sa racine
+ * (`App.jsx`) et la visite ne fait que remonter l'intention (`onOpenGlossaryTerm`,
+ * `onOpenPlantCatalogPreview`). En visite **invitée**, cette racine n'existe pas : la vue
+ * les monte elle-même, sans alourdir le chunk visite de ceux qui n'ouvrent aucune fiche.
+ */
+const GlossaryPopoverLazy = lazy(() =>
+  import('./pedago/GlossaryPopover.jsx').then((m) => ({ default: m.GlossaryPopover })),
+);
+const PlantCatalogPreviewModalLazy = lazy(() =>
+  import('./biodiv/PlantCatalogPreview.jsx').then((m) => ({
+    default: m.PlantCatalogPreviewModal,
+  })),
+);
+
 function VisitViewImpl({
   student = null,
   isTeacher = false,
@@ -80,6 +108,8 @@ function VisitViewImpl({
   /** Catalogue tutoriels (liens lieu + missions), distinct de la sélection `visit_tutorials`. */
   catalogTutorials = [],
   onOpenPlantCatalogPreview = null,
+  /** Fiche rapide du glossaire montée par l'app (absente en visite invitée). */
+  onOpenGlossaryTerm = null,
   profileVisitMascotId = null,
   onPersistVisitMascotId = null,
   requireGuestMascotChoice = false,
@@ -88,7 +118,9 @@ function VisitViewImpl({
   const publicSettings = usePublicSettings();
   const { prompt, notify } = useAppDialogs();
   const { isN3Affiliated = false, canParticipateContextComments = true } = useSession();
-  const { tasks = [], plants = [] } = useData();
+  const { tasks = [], plants: contextPlants = [] } = useData();
+  /** Catalogue biodiversité : contexte de données, ou route publique en visite invitée. */
+  const { plants, ensurePlantCatalog } = useVisitPlantCatalog(contextPlants);
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const configuredLocationEmojis = String(
     publicSettings?.ui?.map?.location_emojis || publicSettings?.map?.location_emojis || '',
@@ -143,6 +175,63 @@ function VisitViewImpl({
     onForceLogout,
     onProgressLoaded: onVisitProgressLoaded,
   });
+  /** Fiche glossaire / fiche espèce ouvertes par la visite elle-même (mode invité). */
+  const [guestGlossaryCode, setGuestGlossaryCode] = useState(null);
+  const [guestPlantPreview, setGuestPlantPreview] = useState(null);
+
+  /**
+   * Termes du glossaire hyperliés dans les textes du lieu ouvert. L'index n'est demandé
+   * qu'à la première ouverture d'un lieu (une requête par session, mémoïsée) : une carte
+   * seulement survolée ne le charge pas.
+   */
+  const glossaryItems = useGlossaryLinkIndex({ enabled: !!selected });
+
+  /** Ouverture d'un terme : remontée à l'app si elle porte la fiche, sinon fiche locale. */
+  const openGlossaryTermFromVisit = useCallback(
+    (code) => {
+      const next = String(code || '').trim();
+      if (!next) return;
+      if (onOpenGlossaryTerm) onOpenGlossaryTerm(next);
+      else setGuestGlossaryCode(next);
+    },
+    [onOpenGlossaryTerm],
+  );
+
+  /** Ouverture d'une fiche espèce : idem — modale de l'app, ou modale locale en invité. */
+  const openPlantFromVisit = useCallback(
+    (plantId) => {
+      if (onOpenPlantCatalogPreview) {
+        onOpenPlantCatalogPreview(plantId);
+        return;
+      }
+      const id = Number(plantId);
+      if (!Number.isFinite(id) || id <= 0) return;
+      const plant = (plants || []).find((p) => Number(p.id) === id);
+      if (plant) setGuestPlantPreview(plant);
+    },
+    [onOpenPlantCatalogPreview, plants],
+  );
+
+  /** Le lieu ouvert porte des espèces : le catalogue devient nécessaire (invité). */
+  const selectedHasSpecies = !!(
+    selected &&
+    ((Array.isArray(selected.species) && selected.species.length > 0) ||
+      (Array.isArray(selected.living_beings_list) && selected.living_beings_list.length > 0))
+  );
+  useEffect(() => {
+    if (selectedHasSpecies) ensurePlantCatalog();
+  }, [selectedHasSpecies, ensurePlantCatalog]);
+
+  /**
+   * Données lues par la fiche espèce locale : zones et repères **du contenu de visite**
+   * (ils portent `living_beings_list` et leur géométrie), pour que le bloc « Sur la carte »
+   * de la fiche fonctionne aussi sans session.
+   */
+  const guestPlantPreviewData = useMemo(
+    () => ({ zones: content.zones || [], markers: content.markers || [], plants }),
+    [content.zones, content.markers, plants],
+  );
+
   /** Premier tutoriel « visite » ouvrable en modale (ordre API / sélection prof). */
   const visitPresentationTutorial = useMemo(() => {
     const list = content.tutorials || [];
@@ -620,6 +709,30 @@ function VisitViewImpl({
             onClose={() => setVisitMediaLightbox(null)}
           />
         )}
+        {guestGlossaryCode ? (
+          <Suspense fallback={null}>
+            <GlossaryPopoverLazy
+              open
+              glossaryCode={guestGlossaryCode}
+              onClose={() => setGuestGlossaryCode(null)}
+              showFullGlossaryLink={false}
+            />
+          </Suspense>
+        ) : null}
+        {guestPlantPreview ? (
+          <Suspense fallback={null}>
+            <DataProvider value={guestPlantPreviewData}>
+              <PlantCatalogPreviewModalLazy
+                plant={guestPlantPreview}
+                maps={maps}
+                onClose={() => setGuestPlantPreview(null)}
+                onForceLogout={onForceLogout}
+                onOpenPlant={openPlantFromVisit}
+                onOpenGlossaryTerm={openGlossaryTermFromVisit}
+              />
+            </DataProvider>
+          </Suspense>
+        ) : null}
         <VisitGuestMascotOnboarding
           requested={isGuestPublicVisit && requireGuestMascotChoice}
           mascotId={visitMascotId}
@@ -797,7 +910,9 @@ function VisitViewImpl({
             savingSeen={savingSeen}
             onToggleSeen={onToggleSeen}
             plants={plants}
-            onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
+            onOpenPlantCatalogPreview={openPlantFromVisit}
+            glossaryItems={glossaryItems}
+            onOpenGlossaryTerm={openGlossaryTermFromVisit}
             mapId={mapId}
             mapZones={mapZones}
             mapMarkers={mapMarkers}

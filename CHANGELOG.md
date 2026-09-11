@@ -48,6 +48,35 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   **téléportait toutes les mascottes** au départ et effaçait la progression du plateau.
   Les transitions hors cycle (démarrer une partie déjà en cours, mettre en pause un
   brouillon…) répondent désormais **409**.
+### Ajouté — visite : biodiversité des lieux et mots du glossaire
+
+- **La biodiversité d'un lieu est visible d'emblée** dans sa fiche de visite : une vignette par
+  espèce (photo du catalogue ou pictogramme, nom courant, nom scientifique, une ligne sur son
+  rôle), qui ouvre la **fiche complète de l'espèce** — la même modale que la carte, le glossaire
+  ou le réseau trophique. L'ancien volet replié n'affichait qu'une liste de noms. Les espèces
+  rattachées par une **mission** restent regroupées sous « Également dans les missions », et les
+  lieux d'**infrastructure** n'affichent toujours pas de biodiversité.
+- **Les mots du glossaire sont hyperliés dans les textes de la visite** (description, détails,
+  blocs éditoriaux) comme ailleurs dans l'application : le clic ouvre la **fiche rapide** du terme
+  par-dessus le plan, sans quitter la visite.
+- **La visite invitée en bénéficie aussi**, alors qu'elle n'avait jusqu'ici **aucune**
+  biodiversité : le volet se nourrissait de `GET /api/zones` et `GET /api/map/markers`, deux
+  routes authentifiées. `GET /api/visit/content` publie désormais, par zone et par repère,
+  **`species`** (id, nom, emoji), **`species_ids`** et **`living_beings_list`**, plus
+  **`is_infrastructure`** sur les zones. Le catalogue biodiversité (route publique
+  `GET /api/plants`) n'est chargé **qu'à l'ouverture d'un lieu porteur d'espèces, une seule fois
+  par session** ; fiche espèce et fiche de glossaire sont montées à la demande par la visite
+  elle-même quand l'application ne les porte pas.
+- **Fiche espèce sans session** : le fil de commentaires de fiche (route authentifiée) n'est plus
+  rendu pour un visiteur anonyme — il n'aurait affiché qu'une erreur. Les gestes liés au compte
+  (« je l'ai observé », « j'ai appris ce mot ») restaient déjà masqués.
+- **Fiche espèce — « [object Object] pH optimal »** : les jauges pH et température recevaient leur
+  icône sous forme de nœud React, insérée dans un gabarit de **chaîne**. Le défaut était visible
+  sur **toutes** les fiches espèces, catalogue compris ; il l'aurait été d'autant plus depuis la
+  visite, qui y mène maintenant.
+- **Vignette d'espèce, photo injoignable** : repli sur l'emoji plutôt qu'un cadre vide. Beaucoup de
+  photos du catalogue pointent vers Wikimedia Commons, qu'une visite sur le terrain n'atteint pas
+  toujours.
 
 ### Corrigé — CI après les lots pédago et cartes
 

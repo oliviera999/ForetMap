@@ -93,12 +93,14 @@ const { SessionProvider } = await import('../../../src/contexts/SessionContext.j
 const { DataProvider } = await import('../../../src/contexts/DataContext.jsx');
 const { AppDialogsProvider } =
   await import('../../../src/shared/components/AppDialogsProvider.jsx');
+const { resetVisitPlantCatalogCache } = await import('../../../src/hooks/useVisitPlantCatalog.js');
+const { resetGlossaryLinkIndexCache } = await import('../../../src/hooks/useGlossaryLinkIndex.js');
 
-function renderVisit(props = {}) {
+function renderVisit(props = {}, data = { tasks: [], plants: [] }) {
   return render(
     <PublicSettingsProvider value={{ modules: {}, ui: { map: {} }, visit: {} }}>
       <SessionProvider value={{ isN3Affiliated: false, canParticipateContextComments: true }}>
-        <DataProvider value={{ tasks: [], plants: [] }}>
+        <DataProvider value={data}>
           <AppDialogsProvider>
             <VisitView
               student={{ id: 'S1', first_name: 'Ada' }}
@@ -116,7 +118,12 @@ function renderVisit(props = {}) {
 
 beforeEach(() => {
   apiMock.mockClear();
+  apiMock.mockImplementation(async () => []);
   stubs.mascot.moveVisitMapMascotTo.mockClear();
+  stubs.visit.selected = null;
+  stubs.visit.selectedType = null;
+  resetVisitPlantCatalogCache();
+  resetGlossaryLinkIndexCache();
 });
 
 describe('VisitView — montage sur le moteur de carte partagé', () => {
@@ -169,5 +176,112 @@ describe('VisitView — montage sur le moteur de carte partagé', () => {
   test('visite publique invitée : montage sans session', async () => {
     const view = renderVisit({ student: null, requireGuestMascotChoice: false });
     await waitFor(() => expect(view.container.querySelector('.visit-map-stage')).not.toBeNull());
+  });
+});
+
+/**
+ * Visite **invitée** : aucune session, donc aucun contexte de données — la vue doit aller
+ * chercher elle-même le catalogue biodiversité (route publique) et porter la fiche espèce,
+ * sinon le visiteur lit les textes d'un lieu sans jamais voir ses espèces.
+ */
+describe('VisitView — biodiversité et glossaire sans session', () => {
+  const ZONE_WITH_SPECIES = {
+    id: 1,
+    map_id: 'foret',
+    name: 'Verger',
+    points: JSON.stringify([
+      { xp: 10, yp: 10 },
+      { xp: 40, yp: 10 },
+      { xp: 40, yp: 40 },
+    ]),
+    visit_short_description: 'Un coin de pommiers.',
+    living_beings_list: ['Consoude'],
+    species: [{ id: 12, name: 'Consoude', emoji: '🌿' }],
+  };
+  const PUBLIC_PLANTS = [
+    { id: 12, name: 'Consoude', emoji: '🌿', ecosystem_role: 'Remonte les minéraux.' },
+  ];
+
+  function mockPublicApi() {
+    apiMock.mockImplementation(async (path) => {
+      if (String(path) === '/api/plants') return PUBLIC_PLANTS;
+      if (String(path) === '/api/glossary/terms') return { items: [] };
+      return [];
+    });
+  }
+
+  test('lieu porteur d’espèces : catalogue public chargé et vignette ouvrable', async () => {
+    mockPublicApi();
+    stubs.visit.selected = ZONE_WITH_SPECIES;
+    stubs.visit.selectedType = 'zone';
+    const view = renderVisit({ student: null });
+    await waitFor(() =>
+      expect(apiMock.mock.calls.some((c) => String(c[0]) === '/api/plants')).toBe(true),
+    );
+    const tile = await waitFor(
+      () => view.getByRole('button', { name: /Ouvrir la fiche de Consoude/i }),
+      { timeout: 5000 },
+    );
+    expect(tile).toBeTruthy();
+  });
+
+  test('index du glossaire demandé à l’ouverture d’un lieu, pas avant', async () => {
+    mockPublicApi();
+    const closed = renderVisit({ student: null });
+    await waitFor(() => expect(closed.container.querySelector('.visit-map-stage')).not.toBeNull());
+    expect(apiMock.mock.calls.some((c) => String(c[0]) === '/api/glossary/terms')).toBe(false);
+    closed.unmount();
+
+    stubs.visit.selected = ZONE_WITH_SPECIES;
+    stubs.visit.selectedType = 'zone';
+    renderVisit({ student: null });
+    await waitFor(() =>
+      expect(apiMock.mock.calls.some((c) => String(c[0]) === '/api/glossary/terms')).toBe(true),
+    );
+  });
+
+  test('lieu sans espèce : aucun chargement de catalogue', async () => {
+    mockPublicApi();
+    stubs.visit.selected = { ...ZONE_WITH_SPECIES, living_beings_list: [], species: [] };
+    stubs.visit.selectedType = 'zone';
+    const view = renderVisit({ student: null });
+    await waitFor(() => expect(view.container.querySelector('.visit-detail-panel')).not.toBeNull());
+    expect(apiMock.mock.calls.some((c) => String(c[0]) === '/api/plants')).toBe(false);
+  });
+
+  test('session ouverte : la fiche espèce est remontée à l’application', async () => {
+    mockPublicApi();
+    stubs.visit.selected = ZONE_WITH_SPECIES;
+    stubs.visit.selectedType = 'zone';
+    const onOpenPlantCatalogPreview = vi.fn();
+    // Catalogue déjà distribué par le contexte de données : aucune requête publique.
+    const view = renderVisit({ onOpenPlantCatalogPreview }, { tasks: [], plants: PUBLIC_PLANTS });
+    const tile = await waitFor(
+      () => view.getByRole('button', { name: /Ouvrir la fiche de Consoude/i }),
+      { timeout: 5000 },
+    );
+    fireEvent.click(tile);
+    expect(onOpenPlantCatalogPreview).toHaveBeenCalledWith(12);
+    expect(apiMock.mock.calls.some((c) => String(c[0]) === '/api/plants')).toBe(false);
+  });
+
+  test('sans session, le clic ouvre la fiche espèce portée par la visite', async () => {
+    mockPublicApi();
+    stubs.visit.selected = ZONE_WITH_SPECIES;
+    stubs.visit.selectedType = 'zone';
+    const view = renderVisit({ student: null });
+    const tile = await waitFor(
+      () => view.getByRole('button', { name: /Ouvrir la fiche de Consoude/i }),
+      { timeout: 5000 },
+    );
+    fireEvent.click(tile);
+    // Fiche montée à la demande (import dynamique) : laisser au chunk le temps d'arriver.
+    await waitFor(
+      () => expect(document.querySelector('#plant-catalog-preview-title')).not.toBeNull(),
+      { timeout: 5000 },
+    );
+    expect(document.querySelector('#plant-catalog-preview-title').textContent).toContain(
+      'Consoude',
+    );
   });
 });

@@ -6,6 +6,11 @@ const { requirePermission, JWT_SECRET, authenticate } = require('../middleware/r
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { visitContentRowIsPublicActive } = require('../lib/visitContentPublicActive');
+const {
+  loadZoneSpeciesMap,
+  loadMarkerSpeciesMap,
+  attachSpeciesToEntity,
+} = require('../lib/speciesJunction');
 const { nowIso, resolveVisitMapId, mapExists } = require('../lib/visitRouteShared');
 const {
   sanitizeTargetType,
@@ -161,6 +166,25 @@ router.get(
   }),
 );
 
+/**
+ * Espèces d'une zone / d'un repère pour le contenu **public** de visite :
+ * `species` (id, nom, emoji — de quoi ouvrir la fiche catalogue), `species_ids` et
+ * `living_beings_list`. Le nom legacy mono-espèce (`zones.current_plant`,
+ * `map_markers.plant_name`) ne sert que de repli et n'est pas republié.
+ *
+ * @param {object} row ligne de `visit_zones` / `visit_markers` déjà sérialisée
+ * @param {Array<{id: number, name: string, emoji: string}>|undefined} speciesRows jonction
+ * @param {string|null} legacySingleName nom mono-espèce historique
+ */
+function withVisitLocationSpecies(row, speciesRows, legacySingleName) {
+  const next = attachSpeciesToEntity(row, speciesRows || [], {
+    legacySingleName: legacySingleName || '',
+  });
+  delete next.current_plant;
+  delete next.plant_name;
+  return next;
+}
+
 router.get(
   '/content',
   asyncHandler(async (req, res) => {
@@ -177,6 +201,7 @@ router.get(
       `SELECT
        z.id, z.map_id, z.name, z.points,
        zm.description AS description,
+       zm.current_plant AS current_plant,
        z.subtitle AS visit_subtitle,
        z.short_description AS visit_short_description,
        z.details_title AS visit_details_title,
@@ -195,6 +220,7 @@ router.get(
       `SELECT
        m.id, m.map_id, m.x_pct, m.y_pct, m.label, m.emoji,
        mm.note AS note,
+       mm.plant_name AS plant_name,
        m.subtitle AS visit_subtitle,
        m.short_description AS visit_short_description,
        m.details_title AS visit_details_title,
@@ -245,6 +271,40 @@ router.get(
       [mapId],
     );
 
+    /**
+     * Zones d'infrastructure (bâtiment, mare, compostage…) : le volet biodiversité les
+     * ignore, comme sur la carte (`isInfrastructureLocation`). La colonne miroir
+     * `zones.special` existe encore, mais la source de vérité est la catégorie affectée —
+     * on la lit donc directement plutôt que de dépendre d'une resynchronisation.
+     */
+    const infrastructureZoneIdsPromise = queryAll(
+      `SELECT DISTINCT zc.zone_id
+         FROM zone_categories zc
+         JOIN location_categories c ON c.id = zc.category_id
+        WHERE c.is_infrastructure = 1
+          AND zc.zone_id IN (SELECT id FROM visit_zones WHERE map_id = ?)`,
+      [mapId],
+    );
+
+    /**
+     * Espèces du lieu (table de jonction) : c'est **la** donnée qui manquait au contenu
+     * public. Jusqu'ici le volet « Biodiversité » de la visite se reconstruisait côté
+     * client depuis `GET /api/zones` + `GET /api/markers` — hors de portée d'un visiteur
+     * invité, qui n'avait donc aucune biodiversité.
+     */
+    const zoneSpeciesPromise = zonesPromise.then((rows) =>
+      loadZoneSpeciesMap(
+        { queryAll },
+        (rows || []).map((r) => r.id),
+      ),
+    );
+    const markerSpeciesPromise = markersPromise.then((rows) =>
+      loadMarkerSpeciesMap(
+        { queryAll },
+        (rows || []).map((r) => r.id),
+      ),
+    );
+
     // Packs publiés : **tous**, sans filtre de carte — une mascotte n'appartient plus
     // à une carte (migration `176_visit_mascot_packs_drop_map.sql`), et le registre
     // public `GET /api/visit/mascots` les expose déjà ainsi. Un échec de cette seule
@@ -259,16 +319,33 @@ router.get(
       return null;
     });
 
-    const [zones, markers, media, zoneMapPhotoRows, markerMapPhotoRows, tutorials, packRows] =
-      await Promise.all([
-        zonesPromise,
-        markersPromise,
-        mediaPromise,
-        zoneMapPhotosPromise,
-        markerMapPhotosPromise,
-        tutorialsPromise,
-        packRowsPromise,
-      ]);
+    const [
+      zones,
+      markers,
+      media,
+      zoneMapPhotoRows,
+      markerMapPhotoRows,
+      tutorials,
+      packRows,
+      infrastructureZoneRows,
+      zoneSpeciesMap,
+      markerSpeciesMap,
+    ] = await Promise.all([
+      zonesPromise,
+      markersPromise,
+      mediaPromise,
+      zoneMapPhotosPromise,
+      markerMapPhotosPromise,
+      tutorialsPromise,
+      packRowsPromise,
+      infrastructureZoneIdsPromise,
+      zoneSpeciesPromise,
+      markerSpeciesPromise,
+    ]);
+
+    const infrastructureZoneIds = new Set(
+      (infrastructureZoneRows || []).map((row) => String(row.zone_id)),
+    );
 
     const mediaByTarget = media.reduce((acc, row) => {
       const key = `${row.target_type}:${row.target_id}`;
@@ -298,7 +375,8 @@ router.get(
         .map((z) => {
           const visitMedia = mediaByTarget[`zone:${z.id}`] || [];
           return {
-            ...z,
+            ...withVisitLocationSpecies(z, zoneSpeciesMap.get(String(z.id)), z.current_plant),
+            is_infrastructure: infrastructureZoneIds.has(String(z.id)),
             map_lead_photo: serializeMapLeadPhoto('zone', z.id, zoneMapLeadById.get(String(z.id))),
             map_extra_photos: serializeMapExtraPhotos('zone', z.id, zoneMapPhotoRows),
             visit_media: visitMedia,
@@ -310,7 +388,7 @@ router.get(
         .map((m) => {
           const visitMedia = mediaByTarget[`marker:${m.id}`] || [];
           return {
-            ...m,
+            ...withVisitLocationSpecies(m, markerSpeciesMap.get(String(m.id)), m.plant_name),
             map_lead_photo: serializeMapLeadPhoto(
               'marker',
               m.id,
