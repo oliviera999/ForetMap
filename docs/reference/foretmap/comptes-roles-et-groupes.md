@@ -46,14 +46,15 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
 
 ## Les rôles et les paliers
 
-| Rôle                    | Qui                                     | Ce qu'il peut faire                                             |
-| ----------------------- | --------------------------------------- | --------------------------------------------------------------- |
-| **Visiteur**            | Compte non rattaché, curieux de passage | Visite et Biodiversité seulement                                |
-| **n3beur novice** 🪨    | Élève rattaché, 0 tâche validée         | Carte, tâches, quiz, carnet, forum                              |
-| **n3beur avancé** 🌿    | 5 tâches validées                       | Idem — le palier marque la progression                          |
-| **n3beur chevronné** 🏆 | 10 tâches validées                      | Idem                                                            |
-| **n3boss**              | Professeur                              | Toute la gestion pédagogique                                    |
-| **Administrateur**      | Professeur aux pleins pouvoirs          | Gestion + réglages + rôles + audit + aperçu des vues élève/prof |
+| Rôle                    | Qui                                             | Ce qu'il peut faire                                                                                   |
+| ----------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Visiteur**            | Compte non promu (classe sans tâches, passage…) | Visite et Biodiversité seulement — **pas** de carte de travail ni de tâches                           |
+| **n3beur novice** 🪨    | Élève rattaché, 0 tâche validée                 | Carte, tâches, quiz, carnet, forum                                                                    |
+| **n3beur avancé** 🌿    | 5 tâches validées                               | Idem — le palier marque la progression                                                                |
+| **n3beur chevronné** 🏆 | 10 tâches validées                              | Idem                                                                                                  |
+| **Prof de classe**      | Enseignant tuteur d'une ou plusieurs classes    | Gérer les élèves **de ses groupes** (voir ci-dessous) — **pas** la gestion des tâches ni du jardin    |
+| **n3boss**              | Animateur / responsable pédagogique forêt       | Gestion pédagogique large (zones, plantes, tâches, visite, élèves, stats…) — **ce n'est pas** l'admin |
+| **Administrateur**      | Compte aux pleins pouvoirs établissement        | Tout le n3boss, plus réglages, rôles, secrets, prise de contrôle, audit technique                     |
 
 - La montée de palier est **automatique** (nombre de tâches validées) et saluée par une
   fenêtre de félicitations. Le vocabulaire « n3beur / n3boss » se personnalise dans les
@@ -69,6 +70,61 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   des réglages — administrateurs en pratique — et s'ouvrent directement dans la page.
   Ils recensent des faiblesses techniques connues : ce n'est pas une lecture destinée
   aux élèves.
+
+### n3boss n'est pas administrateur
+
+Le **n3boss** est le rôle enseignant « fort » de la forêt (pilotage pédagogique).
+L'**administrateur** est au-dessus : réglages d'établissement, création et réglage des
+profils de droits, secrets, prise de contrôle temporaire sur un compte. Un n3boss ne
+peut pas se promouvoir administrateur, ni créer ou modifier un compte administrateur.
+
+Aujourd'hui, le n3boss par défaut dispose déjà de pouvoirs sensibles qu'il faut avoir
+en tête avant de distribuer le rôle : créer des comptes professeurs, supprimer des
+comptes élèves, lire le journal d'audit. Ce n'est pas « toute la gestion pédagogique »
+au sens anodin du terme.
+
+### Deux métiers d'enseignant : n3boss et prof de classe
+
+L'établissement a besoin de **deux postures distinctes**, pas d'un seul professeur
+« tout faire ».
+
+|                         | **n3boss**                                        | **Prof de classe**                                                     |
+| ----------------------- | ------------------------------------------------- | ---------------------------------------------------------------------- |
+| Public élève typique    | n3beurs (carte, tâches, progression)              | Élèves restés **visiteurs** (souvent une classe entière, ex. sixièmes) |
+| Tâches                  | Crée, affecte, valide                             | **Aucune** charge de tâches : ni création, ni validation               |
+| Contenu jardin / visite | Zones, plantes, visite, quiz…                     | **Hors périmètre**                                                     |
+| Élèves                  | Vue **globale** de l'établissement (choix assumé) | Uniquement les élèves **de ses groupes**                               |
+| Création de comptes     | Oui (matrice actuelle)                            | **Paramétrable** — absente par défaut ; un admin peut l'ouvrir         |
+
+Le profil système **« Prof de classe »** est distinct du n3boss. En pratique :
+
+1. **Association aux groupes** : le compte enseignant est rattaché à une ou plusieurs
+   classes / groupes ; il ne voit et n'agit que sur les élèves de ce périmètre.
+2. **Élèves en visiteurs** : les membres de ces classes restent (ou sont placés) en
+   rôle **visiteur** — ils voient Visite et Biodiversité, **pas** les tâches ni la
+   carte de travail. Le rattachement au groupe **ne les promeut pas** automatiquement
+   en n3beur (contrairement à une classe n3beur classique) : laisser le rôle par
+   défaut du groupe sur « Visiteur » et ne pas cocher « accorde le statut n3beur ».
+3. **Gestion des personnes** dans le périmètre : consulter la liste, rattacher /
+   détacher, générer le code de classe — **sans** accès à la gestion des tâches, des
+   zones, des plantes ni des contenus de visite. Les onglets correspondants sont
+   masqués.
+4. **Création de comptes paramétrable** : les droits de **créer** et d'**importer**
+   des comptes élèves ne font **pas** partie du socle. Un administrateur peut les
+   cocher sur ce profil (ou un profil dérivé). Hors vue globale, la création unitaire
+   exige de rattacher l'élève à un groupe du périmètre du professeur.
+5. **Pas d'escalade** : ce profil ne donne pas les pouvoirs administrateur, ni la
+   totalité des pouvoirs n3boss.
+
+### Portée de groupe
+
+L'application limite un enseignant à **ses** groupes (stats, observations, forum,
+tâches, gestion des groupes filtrés ; refus hors périmètre), sauf s'il dispose de la
+vue globale.
+
+**Règle d'établissement** : le **n3boss** (et l'administrateur) a la vue globale —
+tous les élèves. Le **prof de classe** n'a **pas** cette vue : hors de ses groupes,
+aucune gestion d'élèves ni de classes.
 
 ## Les groupes
 
@@ -115,14 +171,33 @@ et l'état du compte.
 
 ## La gestion des utilisateurs
 
-- **Créer / importer** : le professeur peut créer des comptes un par un ou importer une
-  liste (rentrée de classe).
+- **Créer / importer** : un **n3boss** (selon ses droits) peut créer des comptes un par
+  un ou importer une liste (rentrée de classe). Pour un **prof de classe**, la
+  création / l'import ne sont disponibles **que si** un administrateur a ouvert ces
+  droits sur son profil.
 - **Supprimer** : la suppression d'un élève retire aussi ses affectations et son
-  historique de tâches, et recalcule les statuts des tâches concernées.
+  historique de tâches, et recalcule les statuts des tâches concernées. C'est un
+  pouvoir sensible ; il ne fait pas partie du socle minimal du prof de classe.
 - **Prendre la main** : un administrateur peut temporairement se connecter « en tant
   que » un utilisateur pour l'aider — l'action est tracée dans le journal d'audit.
 - **Compte supprimé** : si un compte est supprimé pendant qu'il est connecté,
   l'application le déconnecte proprement avec un message.
+
+## Fiabilité des droits (n3boss et profils)
+
+- Une permission **retirée** d'un profil système par un administrateur **reste
+  retirée** après redémarrage ou déploiement (le profil n'est plus « remis d'usine »
+  tant qu'il a déjà été configuré).
+- Quand les droits d'un professeur changent, l'**interface déjà ouverte** se met à
+  jour (jeton rafraîchi et permissions relues) sans exiger une déconnexion manuelle.
+- L'accès à l'interface professeur ne suffit **pas** à vider la médiathèque ni à
+  verrouiller le forum : ces actions exigent des droits dédiés (`media.manage`,
+  modération forum), avec périmètre de groupe quand il s'applique.
+- Les **suppressions** de zones, plantes, tutoriels, groupes, repères et contenus de
+  visite sont **journalisées** dans l'onglet Audit.
+- Un profil chargé de gérer les rôles **ne peut pas** s'attribuer des pouvoirs qu'il
+  ne détient pas, ni modifier le profil administrateur s'il n'est pas lui-même
+  administrateur.
 
 ## ⚠️ Points d'attention
 
@@ -134,8 +209,12 @@ et l'état du compte.
 > ⚠️ **Point d'attention** — Un groupe « neutre » (sans rôle par défaut ni statut
 > n3beur) ne promeut pas ses membres : un visiteur rattaché à un tel groupe reste
 > visiteur. Vérifier le réglage « accorde le statut n3beur » du groupe si un élève
-> rattaché ne voit toujours pas la carte.
+> rattaché ne voit toujours pas la carte. Pour une **classe de visiteurs** gérée par
+> un prof de classe, ce comportement « rester visiteur » est **voulu** — ne pas
+> activer par erreur la promotion n3beur sur ce groupe.
 
 ## Pour aller plus loin
 
-[Présentation générale](presentation.md) · [Tâches, tutoriels et validation](taches-tutoriels-et-validation.md) · [Stats, forum et suivi](stats-forum-et-suivi.md) · [Sommaire](../README.md)
+[Présentation générale](presentation.md) · [La rentrée avec Moodle](rentree-moodle.md) ·
+[Tâches, tutoriels et validation](taches-tutoriels-et-validation.md) ·
+[Stats, forum et suivi](stats-forum-et-suivi.md) · [Sommaire](../README.md)

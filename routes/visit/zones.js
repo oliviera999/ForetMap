@@ -16,6 +16,7 @@ const {
   serializeVisitEditorialBlocks,
 } = require('../../lib/visitEditorialBlocks');
 const { normalizePoints } = require('../../lib/visitContentHelpers');
+const { logAudit } = require('../../lib/auditLog');
 
 const router = express.Router();
 
@@ -137,6 +138,9 @@ router.delete(
     const zoneId = String(req.params.id || '').trim();
     if (!zoneId) return res.status(400).json({ error: 'Zone invalide' });
     await withTransaction((tx) => deleteVisitTargetCascade('zone', zoneId, tx));
+    await logAudit('visit_zone_delete', 'visit_zone', zoneId, `Suppression zone visite ${zoneId}`, {
+      req,
+    });
     res.json({ ok: true });
   }),
 );

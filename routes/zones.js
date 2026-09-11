@@ -16,6 +16,7 @@ const {
 } = require('../lib/visitEditorialBlocks');
 const { resolveDefaultMapId } = require('../lib/settings');
 const { deleteVisitTargetCascade } = require('../lib/visitTargetCleanup');
+const { logAudit } = require('../lib/auditLog');
 const {
   loadZoneSpeciesMap,
   syncZoneSpecies,
@@ -576,6 +577,16 @@ router.delete(
       if (p && p.image_path) deleteMapPhotoMainAndThumb(p.image_path);
     }
     emitGardenChanged({ reason: 'delete_zone', zoneId: req.params.id, mapId: zone.map_id });
+    await logAudit(
+      'delete_zone',
+      'zone',
+      req.params.id,
+      `Suppression zone ${zone.name || req.params.id}`,
+      {
+        req,
+        payload: { name: zone.name || null, map_id: zone.map_id || null },
+      },
+    );
     res.json({ success: true });
   }),
 );

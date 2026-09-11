@@ -22,24 +22,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   inventorié est de la dette d'accessibilité réelle. ESLint passe de 189 à 179 avertissements.
 
 ### Corrigé — le hérisson manquant du réseau GL, et les tests de contenu séparés du code
+### Ajouté — profil « Prof de classe » et correctifs RBAC n3boss
 
-- **Migration `230`** : `Hérisson commun` (SP0074) est **créé** au lieu d’être supposé présent.
-  Il était cité par les migrations `225` et `228` mais semé par aucune d’elles — il n’existait
-  qu’en production. Ses deux liaisons trophiques (`→ Lombric commun`, `→ Escargot des bois`)
-  sont rejouées dans la foulée. Idempotente, sans effet en production.
-- **Cause** : les semis d’interactions résolvent les espèces par `JOIN ... ON nom_commun = ?`.
-  Toute ligne dont un nom manque à cet instant est **silencieusement** abandonnée — ni erreur,
-  ni avertissement. Même trou que la migration `229` avait rebouché pour la jacinthe et le muguet.
-- **Test durci** : `réseau GL : merle, mare et mycorhizes` n’ignore plus une paire dont l’espèce
-  est absente (`continue` retiré). C’est ce raccourci qui rendait la perte invisible sur base
-  neuve et ne la révélait en CI que selon l’ordre des fichiers de test.
-- **Tests de contenu isolés** : les huit fichiers `pedago-*.test.js` passent sous
-  **`tests/content/`**, hors du glob `tests/*.test.js`, avec une commande (`npm run test:content`)
-  et un **job CI dédié `contenu`**. Une dérive du corpus pédagogique tombe désormais sous son
-  propre nom au lieu de bloquer toutes les PR — quatre PR consécutives, dont deux purement
-  documentaires, avaient échoué sur cette seule liaison manquante le 09/09.
-- `npm run test:local` continue de parcourir les deux dossiers ; `npm run test:all` enchaîne
-  code, contenu puis UI.
+- **Profil système `prof_classe`** : tuteur limité à ses groupes, sans tâches ni jardin ;
+  création / import de comptes **paramétrables** (absents par défaut).
+- **Semis RBAC** : les révocations sur profils système survivent aux redémarrages.
+- **Session** : `/api/auth/me` réémet le jeton si les permissions changent ; le front
+  fusionne `d.auth` (y compris pour les enseignants).
+- **`media.manage`** pour écritures médiathèque ; verrouillage forum via
+  `forum.group.moderate` + périmètre.
+- **Portée groupes** appliquée aux mutations ; journal d’audit sur les suppressions
+  de contenus ; garde anti-escalade sur `PUT /profiles/:id/permissions`.
+- Doc de référence, `docs/API.md`, migration `230_rbac_prof_classe_media.sql`, tests
+  de gel de matrice.
 
 ### Corrigé — composition d’équipes GL en course avec le démarrage
 
@@ -82,30 +77,35 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   **téléportait toutes les mascottes** au départ et effaçait la progression du plateau.
   Les transitions hors cycle (démarrer une partie déjà en cours, mettre en pause un
   brouillon…) répondent désormais **409**.
-### Modifié — OLU parle aussi dans le quiz et les validations
+### Ajouté — visite : biodiversité des lieux et mots du glossaire
 
-- **Surfaces d'apprentissage à la voix d'OLU** (ForetMap **et** Gnomes & Licornes) : annonce du
-  contrôle de compréhension, en-tête du panneau de question, progression après une bonne réponse,
-  série réussie, contrôle satisfait, défauts de retour d'une réponse QCM, remarque sous
-  l'engagement des fenêtres « J'ai appris ce terme » / « Espèce découverte » / « Marquer comme
-  lu », et sous-titre du Quiz libre. Ces écrans parlaient encore comme un formulaire au milieu
-  d'une interface où, partout ailleurs, quelqu'un parle.
-- **Ce qui ne bouge pas, et pourquoi** : le retour **écrit par le professeur** prime toujours sur
-  le défaut ; les **avertissements** (verrou après erreur, essais restants, règles du contrôle)
-  gardent leur formulation neutre — OLU ne plaisante pas là-dessus (charte §2.2bis-4) ; les
-  **libellés de boutons** et la **case à cocher d'engagement** restent inchangés : un bouton ne
-  parle pas, et la case est une phrase dite par l'élève.
-- **Jamais aux dépens de l'élève** : aucune variante du retour d'erreur ne commente le choix qui
-  vient d'être fait ; la seule pointe du pool vise OLU lui-même.
-- **Variantes plutôt que phrases figées** : un retour de quiz se relit des dizaines de fois dans
-  l'heure. Chaque message existe en plusieurs formulations, tirées de façon **déterministe** sur le
-  code de la question ou la référence de la ressource — stable à l'écran, différent d'une question
-  à l'autre. Nouveau module partagé `src/shared/utils/oluLearningVoice.js`, garde-fou de charte
-  `tests/learning-voice-olu.test.js` (aucun emoji, aucune exclamation, tournures bannies, pools
-  d'au moins trois variantes distinctes).
-- **La ligne de progression ne félicite plus** : « Bravo, bonne réponse ! » doublait le retour
-  affiché juste au-dessus. Elle situe désormais, et c'est tout.
-- Documentation : `docs/MASCOT_NARRATEUR_OLU.md` §7.4 et lot 8, `docs/reference/foretmap/visite-et-mascottes.md`.
+- **La biodiversité d'un lieu est visible d'emblée** dans sa fiche de visite : une vignette par
+  espèce (photo du catalogue ou pictogramme, nom courant, nom scientifique, une ligne sur son
+  rôle), qui ouvre la **fiche complète de l'espèce** — la même modale que la carte, le glossaire
+  ou le réseau trophique. L'ancien volet replié n'affichait qu'une liste de noms. Les espèces
+  rattachées par une **mission** restent regroupées sous « Également dans les missions », et les
+  lieux d'**infrastructure** n'affichent toujours pas de biodiversité.
+- **Les mots du glossaire sont hyperliés dans les textes de la visite** (description, détails,
+  blocs éditoriaux) comme ailleurs dans l'application : le clic ouvre la **fiche rapide** du terme
+  par-dessus le plan, sans quitter la visite.
+- **La visite invitée en bénéficie aussi**, alors qu'elle n'avait jusqu'ici **aucune**
+  biodiversité : le volet se nourrissait de `GET /api/zones` et `GET /api/map/markers`, deux
+  routes authentifiées. `GET /api/visit/content` publie désormais, par zone et par repère,
+  **`species`** (id, nom, emoji), **`species_ids`** et **`living_beings_list`**, plus
+  **`is_infrastructure`** sur les zones. Le catalogue biodiversité (route publique
+  `GET /api/plants`) n'est chargé **qu'à l'ouverture d'un lieu porteur d'espèces, une seule fois
+  par session** ; fiche espèce et fiche de glossaire sont montées à la demande par la visite
+  elle-même quand l'application ne les porte pas.
+- **Fiche espèce sans session** : le fil de commentaires de fiche (route authentifiée) n'est plus
+  rendu pour un visiteur anonyme — il n'aurait affiché qu'une erreur. Les gestes liés au compte
+  (« je l'ai observé », « j'ai appris ce mot ») restaient déjà masqués.
+- **Fiche espèce — « [object Object] pH optimal »** : les jauges pH et température recevaient leur
+  icône sous forme de nœud React, insérée dans un gabarit de **chaîne**. Le défaut était visible
+  sur **toutes** les fiches espèces, catalogue compris ; il l'aurait été d'autant plus depuis la
+  visite, qui y mène maintenant.
+- **Vignette d'espèce, photo injoignable** : repli sur l'emoji plutôt qu'un cadre vide. Beaucoup de
+  photos du catalogue pointent vers Wikimedia Commons, qu'une visite sur le terrain n'atteint pas
+  toujours.
 
 ### Corrigé — CI après les lots pédago et cartes
 

@@ -93,20 +93,32 @@ router.post(
     const actorRoleSlug = String(req.auth?.roleSlug || '')
       .trim()
       .toLowerCase();
-    if (!['prof', 'admin'].includes(actorRoleSlug)) {
-      return res
-        .status(403)
-        .json({ error: 'Seuls les profils prof/admin peuvent créer des utilisateurs' });
-    }
+    const actorPerms = Array.isArray(req.auth?.permissions) ? req.auth.permissions : [];
 
     const roleSlug = String(req.body?.role_slug || '')
       .trim()
       .toLowerCase();
-    if (!['eleve_novice', 'prof', 'admin'].includes(roleSlug)) {
-      return res.status(400).json({ error: 'role_slug invalide (eleve_novice, prof, admin)' });
+    const allowedStudentSlugs = new Set(['eleve_novice', 'visiteur']);
+    const allowedTeacherSlugs = new Set(['prof', 'prof_classe']);
+    if (
+      !allowedStudentSlugs.has(roleSlug) &&
+      !allowedTeacherSlugs.has(roleSlug) &&
+      roleSlug !== 'admin'
+    ) {
+      return res.status(400).json({
+        error: 'role_slug invalide (eleve_novice, visiteur, prof, prof_classe, admin)',
+      });
     }
-    if (actorRoleSlug === 'prof' && roleSlug === 'admin') {
-      return res.status(403).json({ error: 'Un profil prof ne peut pas créer un admin' });
+    if (roleSlug === 'admin' && actorRoleSlug !== 'admin') {
+      return res.status(403).json({ error: 'Seul un administrateur peut créer un admin' });
+    }
+    if (allowedTeacherSlugs.has(roleSlug) && !['prof', 'admin'].includes(actorRoleSlug)) {
+      return res.status(403).json({
+        error: 'Seuls n3boss et administrateur peuvent créer un compte enseignant',
+      });
+    }
+    if (allowedStudentSlugs.has(roleSlug) && !actorPerms.includes('users.create')) {
+      return res.status(403).json({ error: 'Permission insuffisante' });
     }
 
     const firstName = normalizeOptionalString(req.body?.first_name);
@@ -119,7 +131,7 @@ router.post(
     // 4 caractères conviennent à un élève de sixième, pas à un compte qui porte
     // `admin.impersonate`. Le calcul est remonté ici — il vivait plus bas — pour être
     // disponible au moment de la validation.
-    const userType = roleSlug === 'eleve_novice' ? 'student' : 'teacher';
+    const userType = allowedStudentSlugs.has(roleSlug) ? 'student' : 'teacher';
     const minPasswordLen = await getPasswordMinLengthFor(userType);
     if (!firstName || !lastName) return res.status(400).json({ error: 'Prénom et nom requis' });
     if (!password || password.length < minPasswordLen) {
@@ -206,10 +218,37 @@ router.post(
     }
     await setPrimaryRole(userType, id, role.id);
 
+    if (userType === 'student') {
+      const { canBypassGroupScope, isGroupInManageScope } = require('../lib/groupScope');
+      const { addStudentToGroup } = require('../lib/groupMembers');
+      const groupId = String(req.body?.group_id || '').trim() || null;
+      if (!canBypassGroupScope(req.auth)) {
+        if (!groupId) {
+          await execute('DELETE FROM users WHERE id = ?', [id]);
+          return res.status(400).json({
+            error: 'group_id requis : rattachez l’élève à un groupe de votre périmètre',
+          });
+        }
+        if (!(await isGroupInManageScope(req.auth, groupId))) {
+          await execute('DELETE FROM users WHERE id = ?', [id]);
+          return res.status(403).json({ error: 'Groupe hors périmètre' });
+        }
+        const attach = await addStudentToGroup(id, groupId);
+        if (!attach.ok) {
+          await execute('DELETE FROM users WHERE id = ?', [id]);
+          return res
+            .status(attach.status || 400)
+            .json({ error: attach.error || 'Rattachement impossible' });
+        }
+      } else if (groupId) {
+        await addStudentToGroup(id, groupId);
+      }
+    }
+
     const created = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [id]);
     logAudit('create_user_manual', 'user', id, `${firstName} ${lastName}`, {
       req,
-      payload: { user_type: userType, role_slug: role.slug },
+      payload: { user_type: userType, role_slug: role.slug, group_id: req.body?.group_id || null },
     });
     if (userType === 'student') {
       emitStudentsChanged({ reason: 'create_student_manual', studentId: id });
@@ -585,9 +624,29 @@ router.put(
   '/profiles/:id/permissions',
   requirePermission('admin.roles.manage'),
   asyncHandler(async (req, res) => {
-    const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
+    const role = await queryOne('SELECT id, slug FROM roles WHERE id = ?', [req.params.id]);
     if (!role) return res.status(404).json({ error: 'Profil introuvable' });
+    const actorRoleSlug = String(req.auth?.roleSlug || '')
+      .trim()
+      .toLowerCase();
+    const actorPerms = Array.isArray(req.auth?.permissions) ? req.auth.permissions : [];
+    if (String(role.slug || '').toLowerCase() === 'admin' && actorRoleSlug !== 'admin') {
+      return res
+        .status(403)
+        .json({ error: 'Seul un administrateur peut modifier le profil admin' });
+    }
     const entries = Array.isArray(req.body?.permissions) ? req.body.permissions : [];
+    if (actorRoleSlug !== 'admin') {
+      for (const item of entries) {
+        const key = String(item?.key || '').trim();
+        if (!key) continue;
+        if (!actorPerms.includes(key)) {
+          return res.status(403).json({
+            error: `Vous ne pouvez pas accorder une permission que vous ne détenez pas (${key})`,
+          });
+        }
+      }
+    }
     await withTransaction(async (tx) => {
       await tx.execute('DELETE FROM role_permissions WHERE role_id = ?', [role.id]);
       for (const item of entries) {
