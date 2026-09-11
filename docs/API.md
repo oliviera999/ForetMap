@@ -816,7 +816,7 @@ Ces droits sont assignables depuis la console **Profils & utilisateurs**.
 | `stats.export`                 | Export stats                    | Exporter les stats n3beurs en CSV                                                                               |
 | `groups.read`                  | Lecture groupes utilisateurs    | Consulter les groupes et sous-groupes                                                                           |
 | `groups.manage`                | Gestion groupes utilisateurs    | Créer/éditer/supprimer les groupes, membres et scopes                                                           |
-| `students.import`              | Import n3beurs                  | Importer des n3beurs via CSV/XLSX                                                                               |
+| `students.import`              | Import comptes                  | Importer des comptes via CSV/XLSX (tous profils ForetMap : visiteur → admin)                                    |
 | `students.delete`              | Suppression n3beur              | Supprimer un compte n3beur                                                                                      |
 | `tasks.manage`                 | Gestion tâches                  | Créer/éditer/supprimer les tâches                                                                               |
 | `tasks.validate`               | Validation tâches               | Valider une tâche (tous statuts sauf déjà validée)                                                              |
@@ -1919,14 +1919,14 @@ Objet **`site`** (réponse `GET /api/stats/all` uniquement) :
 
 ## n3beurs (comptes `student`)
 
-| Méthode | URL                             | n3boss                                | Description                                                                                                 |
-| ------- | ------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/students/import/template` | oui (`students.import`)               | Télécharger le modèle d’import CSV/XLSX                                                                     |
-| POST    | `/api/students/import`          | oui (`students.import`)               | Import en lot (CSV/XLSX base64)                                                                             |
-| POST    | `/api/students/register`        | non                                   | Rafraîchir last_seen (`{ studentId }`)                                                                      |
-| POST    | `/api/students/:id/duplicate`   | oui (`users.create`)                  | Dupliquer un compte n3beur                                                                                  |
-| PATCH   | `/api/students/:id/profile`     | non (token élève propriétaire requis) | Mettre à jour son profil (`{ pseudo?, email?, description?, avatarData?, removeAvatar?, currentPassword }`) |
-| DELETE  | `/api/students/:id`             | oui (`students.delete`)               | Supprimer un n3beur (cascade)                                                                               |
+| Méthode | URL                             | n3boss                                | Description                                                                                                                                                                                                                                                    |
+| ------- | ------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/students/import/template` | oui (`students.import`)               | Modèle CSV/XLSX : **une ligne d’exemple par profil** ForetMap (`visiteur`, `eleve_novice`, `eleve_avance`, `eleve_chevronne`, `prof_classe`, `prof`, `admin`)                                                                                                  |
+| POST    | `/api/students/import`          | oui (`students.import`)               | Import en lot (CSV/XLSX base64). Colonne **Rôle** = slug/alias du profil. E-mails **sans** filtre domaines OAuth/Moodle. Réponse `report.emailDomainRestrictionsApplied: false`. Admin seul pour `admin` ; n3boss/admin pour enseignants. MDP enseignant ≥ 12. |
+| POST    | `/api/students/register`        | non                                   | Rafraîchir last_seen (`{ studentId }`)                                                                                                                                                                                                                         |
+| POST    | `/api/students/:id/duplicate`   | oui (`users.create`)                  | Dupliquer un compte n3beur                                                                                                                                                                                                                                     |
+| PATCH   | `/api/students/:id/profile`     | non (token élève propriétaire requis) | Mettre à jour son profil (`{ pseudo?, email?, description?, avatarData?, removeAvatar?, currentPassword }`)                                                                                                                                                    |
+| DELETE  | `/api/students/:id`             | oui (`students.delete`)               | Supprimer un n3beur (cascade)                                                                                                                                                                                                                                  |
 
 `avatarData` doit être une data URL image (`png`, `jpg/jpeg`, `webp`).
 

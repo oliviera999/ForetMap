@@ -42,7 +42,7 @@ test.before(async () => {
   );
 });
 
-test('GET /api/students/import/template retourne un modèle CSV', async () => {
+test('GET /api/students/import/template retourne un modèle CSV multi-rôles', async () => {
   const res = await request(app)
     .get('/api/students/import/template?format=csv')
     .set('Authorization', 'Bearer ' + teacherToken)
@@ -52,14 +52,25 @@ test('GET /api/students/import/template retourne un modèle CSV', async () => {
   assert.ok(
     (res.text || '').includes('Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte)'),
   );
-  assert.ok((res.text || '').includes('eleve;Exemple;Eleve;azerty123;both'));
+  for (const slug of [
+    'visiteur',
+    'eleve_novice',
+    'eleve_avance',
+    'eleve_chevronne',
+    'prof_classe',
+    'prof',
+    'admin',
+  ]) {
+    assert.ok((res.text || '').includes(slug), `modèle sans ligne ${slug}`);
+  }
+  assert.ok((res.text || '').includes('@gmail.com'));
 });
 
 test('POST /api/students/import dryRun valide un CSV avec erreurs', async () => {
   const unique = Date.now();
   const csv = [
     'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
-    `eleve;Import;Eleve-${unique};pass123;n3;import_${unique};import_${unique}@example.com;Test import`,
+    `eleve;Import;Eleve-${unique};pass123;n3;import_${unique};import_${unique}@gmail.com;Test import hors domaine`,
     `prof;Import;SansMdp-${unique};;wrong;;;`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
@@ -75,6 +86,7 @@ test('POST /api/students/import dryRun valide un CSV avec erreurs', async () => 
     .expect(200);
 
   assert.ok(res.body.report);
+  assert.strictEqual(res.body.report.emailDomainRestrictionsApplied, false);
   assert.strictEqual(res.body.report.totals.received, 2);
   assert.strictEqual(res.body.report.totals.valid, 1);
   assert.strictEqual(res.body.report.totals.skipped_invalid, 1);
@@ -108,13 +120,20 @@ test('POST /api/students/import crée les élèves valides', async () => {
   );
   assert.ok(inserted);
   assert.strictEqual(String(inserted.affiliation || '').toLowerCase(), 'foret');
+  const role = await queryOne(
+    `SELECT r.slug FROM user_roles ur
+     INNER JOIN roles r ON r.id = ur.role_id
+     WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+    [inserted.id],
+  );
+  assert.strictEqual(role?.slug, 'eleve_novice');
 });
 
 test('POST /api/students/import crée un professeur si rôle=prof', async () => {
   const unique = Date.now();
   const csv = [
     'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
-    `prof;Prof;Import-${unique};pass123;both;prof_${unique};prof_${unique}@example.com;Import prof`,
+    `prof;Prof;Import-${unique};MotDePasse12!;both;prof_${unique};prof_${unique}@gmail.com;Import prof hors domaine`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
 
@@ -129,9 +148,51 @@ test('POST /api/students/import crée un professeur si rôle=prof', async () => 
     .expect(200);
 
   assert.strictEqual(res.body.report.totals.created, 1);
+  assert.strictEqual(res.body.report.emailDomainRestrictionsApplied, false);
   const inserted = await queryOne(
     "SELECT * FROM users WHERE user_type = 'teacher' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?)",
     ['Prof', `Import-${unique}`],
   );
   assert.ok(inserted);
+  assert.strictEqual(String(inserted.email || '').toLowerCase(), `prof_${unique}@gmail.com`);
+  const role = await queryOne(
+    `SELECT r.slug FROM user_roles ur
+     INNER JOIN roles r ON r.id = ur.role_id
+     WHERE ur.user_type = 'teacher' AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+    [inserted.id],
+  );
+  assert.strictEqual(role?.slug, 'prof');
+});
+
+test('POST /api/students/import crée un prof_classe avec le bon profil', async () => {
+  const unique = Date.now();
+  const csv = [
+    'Rôle;Prénom;Nom;Mot de passe;Affiliation (n3|foret|both|id_carte);Pseudo (optionnel);Email (optionnel);Description (optionnel)',
+    `prof_classe;Tuteur;Classe-${unique};MotDePasse12!;both;tuteur_${unique};tuteur_${unique}@outlook.com;Import tuteur`,
+  ].join('\n');
+  const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
+
+  const res = await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'profs.csv',
+      fileDataBase64,
+      dryRun: false,
+    })
+    .expect(200);
+
+  assert.strictEqual(res.body.report.totals.created, 1);
+  const inserted = await queryOne(
+    "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?)",
+    ['Tuteur', `Classe-${unique}`],
+  );
+  assert.ok(inserted);
+  const role = await queryOne(
+    `SELECT r.slug FROM user_roles ur
+     INNER JOIN roles r ON r.id = ur.role_id
+     WHERE ur.user_type = 'teacher' AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+    [inserted.id],
+  );
+  assert.strictEqual(role?.slug, 'prof_classe');
 });

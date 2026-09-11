@@ -33,7 +33,7 @@ function StudentImportPanel({ roleTerms, canImport, setErr, setMsg, onImported }
       });
       setReport(result.report || null);
       if ((result.report?.totals?.created || 0) > 0) {
-        setMsg(`${result.report.totals.created} ${roleTerms.studentSingular}(s) créé(s)`);
+        setMsg(`${result.report.totals.created} compte(s) créé(s)`);
       } else if (dryRun) {
         setMsg('Simulation terminée');
       } else {
@@ -56,16 +56,17 @@ function StudentImportPanel({ roleTerms, canImport, setErr, setMsg, onImported }
         marginTop: 12,
         opacity: canImport ? 1 : 0.65,
       }}
-      title={`Import ${roleTerms.studentPlural} (CSV / XLSX)`}
+      title={`Import comptes (${roleTerms.studentPlural} et enseignants)`}
       titleStyle={{ margin: '0 0 8px', fontSize: 'var(--text-base)', color: 'var(--forest)' }}
       intro={
         <>
           <p style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
-            Téléchargez un modèle vierge, complétez-le puis importez le fichier.
+            Téléchargez le modèle (plusieurs lignes d&apos;exemple : visiteur, n3beurs, prof de
+            classe, n3boss, admin), complétez-le puis importez. La colonne Rôle fixe le profil.
           </p>
           <p style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: '#9a3412' }}>
-            Le modèle contient une ligne d&apos;exemple: pensez à la remplacer ou la supprimer avant
-            l&apos;import.
+            Remplacez ou supprimez les lignes d&apos;exemple avant l&apos;import. Les e-mails du
+            fichier ne sont pas limités aux domaines Google / Moodle de l&apos;établissement.
           </p>
         </>
       }

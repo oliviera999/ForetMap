@@ -14,7 +14,7 @@ const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
 const { getAbsolutePath, ensureDir } = require('../lib/uploads');
 const { getPrimaryRoleForUser, setPrimaryRole } = require('../lib/rbac');
 const { deleteStudentById } = require('../lib/studentDeletion');
-const { getPasswordMinLength } = require('../lib/passwordReset');
+const { getPasswordMinLength, getPasswordMinLengthFor } = require('../lib/passwordReset');
 const logger = require('../lib/logger');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 const {
@@ -30,6 +30,8 @@ const {
   resolveImportRows,
   csvEscape,
   buildTemplateWorkbookRows,
+  canActorImportRoleSlug,
+  IMPORT_ROLE_SLUGS,
 } = require('../lib/studentRouteHelpers');
 
 const { z, validate } = require('../lib/validate');
@@ -87,19 +89,10 @@ router.get(
 
     const BOM = '\uFEFF';
     const line = TEMPLATE_COLUMNS.map(csvEscape).join(';');
-    const sampleRow = [
-      'eleve',
-      'Exemple',
-      'Eleve',
-      'azerty123',
-      'both',
-      'exemple_eleve',
-      'exemple.eleve@lyautey.ma',
-      'Remplacer ou supprimer cette ligne avant import.',
-    ]
-      .map(csvEscape)
-      .join(';');
-    const csv = `${BOM}${line}\r\n${sampleRow}\r\n`;
+    const sampleLines = buildTemplateWorkbookRows().map((row) =>
+      TEMPLATE_COLUMNS.map((col) => csvEscape(row[col])).join(';'),
+    );
+    const csv = `${BOM}${line}\r\n${sampleLines.join('\r\n')}\r\n`;
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-n3beurs.csv"');
     res.send(csv);
@@ -130,6 +123,8 @@ router.post(
       },
       preview: [],
       errors: [],
+      // Contrat explicite : pas de filtre domaines OAuth / Moodle sur les e-mails du fichier.
+      emailDomainRestrictionsApplied: false,
     };
 
     const existingUsers = await queryAll(
@@ -149,18 +144,37 @@ router.post(
     );
     const seenName = new Set();
 
+    const minPasswordStudent = await getPasswordMinLengthFor('student');
+    const minPasswordTeacher = await getPasswordMinLengthFor('teacher');
+    const passwordOpts = { minPasswordStudent, minPasswordTeacher };
+
     const validRows = [];
     rawRows.forEach((row, idx) => {
       const rowNumber = idx + 2;
       const payload = buildImportStudentPayload(row);
-      const errors = validateImportStudentPayload(payload, rowNumber);
+      const errors = validateImportStudentPayload(payload, rowNumber, passwordOpts);
+
+      if (
+        !errors.length &&
+        payload.roleSlug &&
+        !canActorImportRoleSlug(req.auth, payload.roleSlug)
+      ) {
+        errors.push({
+          row: rowNumber,
+          field: 'role',
+          error:
+            payload.roleSlug === 'admin'
+              ? 'Seul un administrateur peut importer un compte admin'
+              : 'Seuls n3boss et administrateur peuvent importer un compte enseignant',
+        });
+      }
 
       const keyByName = `${payload.userType}|${payload.firstName.toLowerCase()}|${payload.lastName.toLowerCase()}`;
       if (!errors.length && seenName.has(keyByName)) {
         errors.push({
           row: rowNumber,
           field: 'name',
-          error: 'Doublon dans le fichier (rôle + prénom + nom)',
+          error: 'Doublon dans le fichier (type de compte + prénom + nom)',
         });
       }
       if (!errors.length && existingByName.has(keyByName)) {
@@ -168,7 +182,7 @@ router.post(
         report.errors.push({
           row: rowNumber,
           field: 'name',
-          error: 'Utilisateur déjà existant (rôle + prénom + nom)',
+          error: 'Utilisateur déjà existant (type de compte + prénom + nom)',
         });
         return;
       }
@@ -215,6 +229,7 @@ router.post(
       if (report.preview.length < 20) {
         report.preview.push({
           row: rowItem.rowNumber,
+          role_slug: rowItem.payload.roleSlug,
           user_type: rowItem.payload.userType,
           first_name: rowItem.payload.firstName,
           last_name: rowItem.payload.lastName,
@@ -228,13 +243,13 @@ router.post(
       return res.json({ report });
     }
 
-    // Rôle primaire des comptes créés : résolu en UNE requête (au lieu d'un getRoleBySlug +
-    // getPrimaryRoleForUser + INSERT par ligne via `ensurePrimaryRole`), puis assigné en UNE
-    // requête multi-valeurs après la boucle. Les ids sont des UUID neufs → aucun rôle préexistant,
-    // donc `INSERT IGNORE … is_primary = 1` équivaut à `ensurePrimaryRole` pour des comptes frais.
+    // Rôle primaire : une requête pour tous les slugs importables, puis INSERT multi-valeurs.
     const roleIdBySlug = new Map();
+    const slugList = [...IMPORT_ROLE_SLUGS];
+    const placeholdersSlugs = slugList.map(() => '?').join(', ');
     const roleRows = await queryAll(
-      "SELECT slug, id FROM roles WHERE slug IN ('prof', 'eleve_novice')",
+      `SELECT slug, id FROM roles WHERE slug IN (${placeholdersSlugs})`,
+      slugList,
     );
     for (const r of roleRows) roleIdBySlug.set(r.slug, r.id);
     const createdRoleAssignments = [];
@@ -244,7 +259,7 @@ router.post(
       const hash = await bcrypt.hash(payload.password, 10);
       const id = crypto.randomUUID();
       const now = nowIsoUtc();
-      const roleSlug = payload.userType === 'teacher' ? 'prof' : 'eleve_novice';
+      const roleSlug = payload.roleSlug;
       try {
         await execute(
           `INSERT INTO users
@@ -298,7 +313,7 @@ router.post(
     }
 
     if (report.totals.created > 0) {
-      logAudit('students_import', 'student', null, `Import de ${report.totals.created} n3beur(s)`, {
+      logAudit('students_import', 'user', null, `Import de ${report.totals.created} compte(s)`, {
         req,
         payload: { report: report.totals },
       });
