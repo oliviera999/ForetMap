@@ -48,6 +48,30 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   **téléportait toutes les mascottes** au départ et effaçait la progression du plateau.
   Les transitions hors cycle (démarrer une partie déjà en cours, mettre en pause un
   brouillon…) répondent désormais **409**.
+### Modifié — OLU parle aussi dans le quiz et les validations
+
+- **Surfaces d'apprentissage à la voix d'OLU** (ForetMap **et** Gnomes & Licornes) : annonce du
+  contrôle de compréhension, en-tête du panneau de question, progression après une bonne réponse,
+  série réussie, contrôle satisfait, défauts de retour d'une réponse QCM, remarque sous
+  l'engagement des fenêtres « J'ai appris ce terme » / « Espèce découverte » / « Marquer comme
+  lu », et sous-titre du Quiz libre. Ces écrans parlaient encore comme un formulaire au milieu
+  d'une interface où, partout ailleurs, quelqu'un parle.
+- **Ce qui ne bouge pas, et pourquoi** : le retour **écrit par le professeur** prime toujours sur
+  le défaut ; les **avertissements** (verrou après erreur, essais restants, règles du contrôle)
+  gardent leur formulation neutre — OLU ne plaisante pas là-dessus (charte §2.2bis-4) ; les
+  **libellés de boutons** et la **case à cocher d'engagement** restent inchangés : un bouton ne
+  parle pas, et la case est une phrase dite par l'élève.
+- **Jamais aux dépens de l'élève** : aucune variante du retour d'erreur ne commente le choix qui
+  vient d'être fait ; la seule pointe du pool vise OLU lui-même.
+- **Variantes plutôt que phrases figées** : un retour de quiz se relit des dizaines de fois dans
+  l'heure. Chaque message existe en plusieurs formulations, tirées de façon **déterministe** sur le
+  code de la question ou la référence de la ressource — stable à l'écran, différent d'une question
+  à l'autre. Nouveau module partagé `src/shared/utils/oluLearningVoice.js`, garde-fou de charte
+  `tests/learning-voice-olu.test.js` (aucun emoji, aucune exclamation, tournures bannies, pools
+  d'au moins trois variantes distinctes).
+- **La ligne de progression ne félicite plus** : « Bravo, bonne réponse ! » doublait le retour
+  affiché juste au-dessus. Elle situe désormais, et c'est tout.
+- Documentation : `docs/MASCOT_NARRATEUR_OLU.md` §7.4 et lot 8, `docs/reference/foretmap/visite-et-mascottes.md`.
 
 ### Corrigé — CI après les lots pédago et cartes
 

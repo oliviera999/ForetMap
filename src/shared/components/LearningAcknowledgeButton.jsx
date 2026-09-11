@@ -15,6 +15,7 @@ import {
   buildCooldownLockMessage,
   buildSessionPausedMessage,
 } from '../utils/learningGatingChallengeClient.js';
+import { oluAcknowledgeAside, oluAsideKindForResource } from '../utils/oluLearningVoice.js';
 
 /**
  * Texte d'annonce du bouton, d'après le résumé de conditionnement de la ressource.
@@ -69,6 +70,13 @@ export function LearningAcknowledgeButton({
   /** Résumé du contrôle connu AVANT le clic (route /api/learning/gating/summary). */
   gatingSummary = null,
   labelAction = 'Marquer comme lu',
+  /**
+   * Pool de pointes d'OLU sous la phrase d'engagement (`glossary` | `species` | `tutorial` |
+   * `observation`). Par défaut, il est déduit du type de ressource du conditionnement : les
+   * points d'entrée ForetMap et G&L n'ont ainsi rien à câbler, et aucun ne peut oublier.
+   * `oluAsideKind={''}` éteint la pointe sur un écran précis.
+   */
+  oluAsideKind = null,
   labelDone = (
     <>
       <IconCheck size={14} /> Lu
@@ -316,6 +324,15 @@ export function LearningAcknowledgeButton({
     </>
   );
 
+  // La pointe d'OLU vient APRÈS l'engagement (charte §2.2bis-2 : l'utile d'abord, la chute
+  // ensuite) — quelqu'un qui lit en diagonale repart quand même avec ce à quoi il s'engage.
+  // La case à cocher, elle, reste telle quelle : c'est l'élève qui la dit, pas OLU.
+  const asideKind =
+    oluAsideKind == null ? oluAsideKindForResource(gatingResource?.resourceType) : oluAsideKind;
+  const oluAside = asideKind
+    ? oluAcknowledgeAside(asideKind, String(gatingResource?.resourceRef ?? itemTitle ?? ''))
+    : '';
+
   // Annonce portée par le bouton : sans elle, l'élève ne découvrait le contrôle
   // qu'une fois la fenêtre ouverte — il s'engageait sans savoir ce qui l'attendait.
   const { announceBadge, announceTitle } = buildButtonAnnounce(gatingSummary, itemTitle);
@@ -330,6 +347,7 @@ export function LearningAcknowledgeButton({
     pendingQuestions.length,
     itemTitle,
     challenge || cooldown,
+    String(gatingResource?.resourceRef ?? itemTitle ?? ''),
   );
 
   return (
@@ -478,7 +496,11 @@ export function LearningAcknowledgeButton({
             <>
               <h3 id="learning-ack-title">Série terminée</h3>
               <p className="tuto-read-ack-intro learning-gating-quiz__progress" role="status">
-                {buildSessionPausedMessage(pendingTotal - pendingQuestions.length, itemTitle)}
+                {buildSessionPausedMessage(
+                  pendingTotal - pendingQuestions.length,
+                  itemTitle,
+                  String(gatingResource?.resourceRef ?? itemTitle ?? ''),
+                )}
               </p>
               <div className="tuto-read-ack-actions">
                 <button
@@ -503,6 +525,7 @@ export function LearningAcknowledgeButton({
             <>
               <h3 id="learning-ack-title">Confirmer</h3>
               <p className="tuto-read-ack-intro">{intro}</p>
+              {oluAside ? <p className="tuto-read-ack-olu">{oluAside}</p> : null}
               <label className="tuto-read-ack-check">
                 <input
                   type="checkbox"

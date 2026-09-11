@@ -242,6 +242,43 @@ Concrètement, ce que lisent élèves et professeurs :
   place pour une voix. Même chose pour les messages de tracé sur la carte et les indicateurs de
   connexion.
 
+### Où OLU parle, au-delà de l'aide
+
+Depuis la reprise des textes d'apprentissage, c'est **OLU** qui accompagne aussi le quiz et les
+validations — dans ForetMap comme dans Gnomes & Licornes, puisque les deux partagent les mêmes
+écrans :
+
+- **Le contrôle de compréhension** : l'annonce avant les questions (« Avant de te laisser valider
+  « Le compostage », une question sera posée — histoire d'être sûr. »), l'en-tête du panneau de
+  question, la progression après une bonne réponse, et le mot de fin quand la validation s'ouvre.
+- **Le retour après une réponse**, quand la question ne porte pas de texte écrit par un
+  professeur. Sur une erreur, OLU reste **chaleureux et sobre** : il dit que ce n'est pas la bonne,
+  il renvoie à la fiche, et il ne commente jamais le choix qui vient d'être fait.
+- **Les fenêtres de validation** (« J'ai appris ce terme », « Espèce découverte », « Marquer comme
+  lu ») : une remarque d'OLU s'affiche **sous** la phrase d'engagement, jamais à sa place.
+- **Le sous-titre du Quiz libre.**
+
+Trois choses ne changent pas, et c'est voulu :
+
+- **Le texte écrit par un professeur gagne toujours.** Le retour rédigé sur une question s'affiche
+  tel quel ; la voix d'OLU ne sert que là où rien n'a été écrit.
+- **Les avertissements restent neutres** : le verrou après erreur, le décompte des essais restants
+  et les règles du contrôle gardent leur formulation factuelle. OLU ne plaisante pas là-dessus —
+  c'est ce qui fait qu'on le croit quand il annonce un blocage.
+- **Les boutons et la case à cocher sont inchangés.** « Espèce découverte », « Appris », « Je
+  confirme avoir lu et compris » : un bouton ne parle pas, et la case est une phrase dite par
+  l'élève, pas par OLU.
+
+Pour éviter la lassitude — un retour de quiz se relit des dizaines de fois dans une heure —
+chaque message existe en **plusieurs formulations**, choisies d'après la question ou la fiche
+concernée. Le texte reste le même tant qu'on est sur le même écran ; il change d'une question à
+l'autre.
+
+> ⚠️ **Ces textes-là ne sont pas modifiables** depuis les Paramètres, contrairement aux bulles
+> d'aide et aux visites guidées. Pour peser sur ce que lit un élève après une réponse, le levier
+> est le **retour rédigé sur la question elle-même**, dans l'éditeur de QCM : il prend le pas sur
+> tout le reste.
+
 ### Modifier ce que dit OLU
 
 Deux endroits, deux droits :
