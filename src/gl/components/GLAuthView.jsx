@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react';
 
 import { withAppBase } from '../../shared/appBase.js';
 import { apiGL } from '../services/apiGL.js';
+import { setGlSocketIoAllowWebsocket } from '../realtime/glSocketClient.js';
 import { GLBrandHub } from './GLBrandHub.jsx';
 import { GLIntroOverlay, hasSeenGlIntro } from './GLIntroOverlay.jsx';
 import { isModuleEnabled } from '../constants/modules.js';
@@ -92,6 +93,7 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
         if (data?.brand?.slots) setBrandSlots(data.brand.slots);
         if (data?.modules) setModules(data.modules);
         setModulesLoaded(true);
+        setGlSocketIoAllowWebsocket(data?.realtime?.allow_websocket === true);
         const googleReady = !!(data?.allowGoogleStaff || data?.allowGooglePlayer);
         setAllowGoogle(googleReady);
         if (typeof data?.guestModeEnabled === 'boolean') {
@@ -116,6 +118,9 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
     }
     if (typeof config?.guestModeEnabled === 'boolean') {
       setGuestModeEnabled(config.guestModeEnabled);
+    }
+    if (config.realtime) {
+      setGlSocketIoAllowWebsocket(config.realtime.allow_websocket === true);
     }
   }, [config]);
 

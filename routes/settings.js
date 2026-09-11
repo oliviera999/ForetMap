@@ -108,7 +108,13 @@ router.get(
   '/public',
   asyncHandler(async (req, res) => {
     const settings = await getSettings('public');
-    res.json({ settings: settings.nested });
+    const { getSocketIoRealtimePublicConfig } = require('../lib/socketIoTransport');
+    res.json({
+      settings: {
+        ...settings.nested,
+        realtime: getSocketIoRealtimePublicConfig(),
+      },
+    });
   }),
 );
 

@@ -906,6 +906,7 @@ function App() {
     setPlants,
     setMarkers,
     pauseDataRefreshRef: pauseDataRefreshForTaskOverlaysRef,
+    allowWebsocket: publicSettings?.realtime?.allow_websocket === true,
   });
   const teacherSyncStatus = effectiveIsTeacher
     ? rtStatus === 'off'

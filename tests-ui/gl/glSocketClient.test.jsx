@@ -24,7 +24,7 @@ import {
   resetGlSocketClientForTests,
   glSocketClientOpenCount,
 } from '../../src/gl/realtime/glSocketClient.js';
-import { SOCKETIO_CLIENT_OPTIONS } from '../../src/utils/socketIoClientOptions.js';
+import { getSocketIoClientOptions } from '../../src/utils/socketIoClientOptions.js';
 
 describe('glSocketClient', () => {
   beforeEach(() => {
@@ -40,7 +40,9 @@ describe('glSocketClient', () => {
     const a = acquireGlSocket('tok');
     const b = acquireGlSocket('tok');
     expect(io).toHaveBeenCalledTimes(1);
-    expect(io.mock.calls[0][1]).toEqual(expect.objectContaining(SOCKETIO_CLIENT_OPTIONS));
+    expect(io.mock.calls[0][1]).toEqual(
+      expect.objectContaining(getSocketIoClientOptions({ allowWebsocket: false })),
+    );
     expect(glSocketClientOpenCount()).toBe(1);
     expect(a.socket).toBe(b.socket);
     a.release();
