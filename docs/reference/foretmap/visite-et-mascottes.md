@@ -25,9 +25,23 @@ familles.
   ⊡ le réajuste. **Cliquer un lieu envoie d'abord la mascotte s'y rendre**, puis ouvre
   sa fiche.
 - **La fiche d'un lieu** : titre, sous-titre, photo principale, contenu éditorial
-  (paragraphes, intertitres, blocs d'images légendées), un volet Biodiversité (les
-  espèces du lieu), un volet Tuto (les fiches pratiques associées), un mode « lecture
-  confortable », et un bouton **« Marquer comme vu »** — qui fait fêter la mascotte.
+  (paragraphes, intertitres, blocs d'images légendées), la **biodiversité du lieu**, un volet
+  Tuto (les fiches pratiques associées), un mode « lecture confortable », et un bouton
+  **« Marquer comme vu »** — qui fait fêter la mascotte.
+- **La biodiversité du lieu est visible d'emblée**, sous le texte : une vignette par espèce
+  (photo de la fiche ou pictogramme, nom courant, nom scientifique, une ligne sur son rôle).
+  Toucher une vignette ouvre la **fiche complète de l'espèce** — la même que dans l'onglet
+  Biodiversité. Les espèces rattachées au lieu par une **mission** apparaissent à part, sous
+  « Également dans les missions ». Les lieux d'**infrastructure** (bâtiment, mare, compostage…)
+  n'affichent pas de biodiversité. Une espèce citée sur le lieu mais absente du catalogue est
+  annoncée sans être ouvrable : c'est le signe qu'il manque sa fiche côté Biodiversité.
+- **Les mots du glossaire sont cliquables dans les textes de la visite** (description, détails,
+  blocs éditoriaux), comme dans les tutoriels et les fiches espèces : un mot souligné ouvre sa
+  **fiche rapide** par-dessus le plan, sans quitter la visite ni perdre sa place.
+- **Tout cela fonctionne aussi en visite invitée**, sans compte : biodiversité des lieux, fiches
+  espèces et fiches de glossaire sont consultables par n'importe quel visiteur. Seules les
+  actions rattachées à un compte restent réservées aux élèves connectés (« je l'ai observé »,
+  « j'ai appris ce mot », commentaires de fiche).
 - **La progression « vu / non-vu »** : pour un élève connecté, elle est rattachée à son
   compte et durable ; pour un invité anonyme, elle est mémorisée environ **24 heures**
   puis s'efface. Les marquages faits hors connexion sont conservés et synchronisés au

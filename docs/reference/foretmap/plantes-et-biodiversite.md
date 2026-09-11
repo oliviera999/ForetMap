@@ -15,7 +15,9 @@ celles qu'ils ont **observées** sur le terrain.
 
 ## Qui l'utilise
 
-- **Tout le monde** (y compris les simples visiteurs) peut consulter le catalogue.
+- **Tout le monde** (y compris les simples visiteurs) peut consulter le catalogue. Les fiches
+  s'ouvrent aussi depuis la **visite** : chaque lieu du plan affiche ses espèces en vignettes
+  (voir [Visite et mascottes](visite-et-mascottes.md)).
 - **L'élève connecté** filtre, lit les fiches et enregistre ses observations.
 - **Le professeur** crée et enrichit les fiches, avec des aides puissantes :
   pré-remplissage automatique, identification par photo, import en masse.

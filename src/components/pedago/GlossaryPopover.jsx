@@ -13,6 +13,7 @@ import {
   GLOSSARY_NIVEAU_LABELS,
   createGlossaryDetailCache,
   glossaryCategoryAccent,
+  mergeGlossaryNeighbourTerms,
 } from '../../shared/glossary/glossaryCardCore.js';
 import {
   GlossaryTermLearnedAcknowledgeButton,
@@ -246,10 +247,15 @@ export function GlossaryPopover({
     return null;
   }
 
-  const relatedTerms = Array.isArray(detail?.relatedTerms) ? detail.relatedTerms : [];
-  const incomingRelations = Array.isArray(detail?.incomingRelations)
-    ? detail.incomingRelations
-    : [];
+  /**
+   * Voisins en une seule liste : le corpus enregistre la plupart des relations dans les
+   * deux sens, les deux tableaux affichaient donc chaque terme deux fois de suite.
+   */
+  const neighbourTerms = mergeGlossaryNeighbourTerms(
+    detail?.relatedTerms,
+    detail?.incomingRelations,
+    activeCode,
+  );
   const linkedPlants = Array.isArray(detail?.linkedPlants) ? detail.linkedPlants : [];
   const linkedTutorials = Array.isArray(detail?.linkedTutorials) ? detail.linkedTutorials : [];
   const hasDetail = Boolean(detail && !error);
@@ -397,23 +403,13 @@ export function GlossaryPopover({
               ) : null}
             </div>
 
-            {relatedTerms.length > 0 || incomingRelations.length > 0 ? (
+            {neighbourTerms.length > 0 ? (
               <div className="fm-glossary-popover__related">
                 <h4 className="fm-glossary-popover__related-title">Termes liés</h4>
                 <div className="pedago-chip-row">
-                  {relatedTerms.map((term) => (
+                  {neighbourTerms.map((term) => (
                     <button
-                      key={`out-${term.glossary_code}`}
-                      type="button"
-                      className="pedago-chip-btn fm-glossary-popover__chip"
-                      onClick={() => openRelatedTerm(term.glossary_code)}
-                    >
-                      {term.terme}
-                    </button>
-                  ))}
-                  {incomingRelations.map((term) => (
-                    <button
-                      key={`in-${term.glossary_code}`}
+                      key={term.glossary_code}
                       type="button"
                       className="pedago-chip-btn fm-glossary-popover__chip"
                       onClick={() => openRelatedTerm(term.glossary_code)}
