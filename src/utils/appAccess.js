@@ -8,6 +8,36 @@
 /** Rôles autorisés à administrer les contenus pédagogiques (hors permission fine). */
 const PRIVILEGED_ROLE_SLUGS = new Set(['prof', 'admin']);
 
+/** Profil tuteur de classe (enseignants hors n3boss). */
+export function isClassTeacherRole(roleSlug) {
+  return String(roleSlug || '').toLowerCase() === 'prof_classe';
+}
+
+/**
+ * Parcours « Visite / Biodiversité » sans carte ni tâches : visiteurs connectés et
+ * profs de classe (même chrome apprenant).
+ */
+export function isVisitorLikeRole(roleSlug) {
+  const slug = String(roleSlug || '').toLowerCase();
+  return slug === 'visiteur' || slug === 'prof_classe';
+}
+
+/**
+ * Barre haute n3boss (`TeacherTopTabs`) : exige `teacher.access`, sauf pour le
+ * prof de classe qui reste sur la navigation basse type visiteur.
+ * @param {{ roleSlug?: string|null, hasTeacherAccess?: boolean, roleViewMode?: string }} params
+ */
+export function shouldUseTeacherChrome({
+  roleSlug,
+  hasTeacherAccess = false,
+  roleViewMode = 'native',
+} = {}) {
+  if (!hasTeacherAccess) return false;
+  if (roleViewMode === 'student') return false;
+  if (isClassTeacherRole(roleSlug)) return false;
+  return true;
+}
+
 /**
  * Vrai si le rôle porte l'administration des contenus : `prof`/`admin`, ou compte
  * « nativement privilégié » (claim `nativePrivileged`, cas de l'impersonation admin).

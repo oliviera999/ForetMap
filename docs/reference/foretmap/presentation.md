@@ -39,8 +39,9 @@ une fenêtre de félicitations s'affiche à chaque promotion. Le vocabulaire
 « n3beur / n3boss » est personnalisable dans les réglages.
 
 Deux métiers d'enseignant coexistent : le **n3boss** pilote la forêt et les tâches
-(vue globale des élèves) ; le **prof de classe** suit une classe dont les élèves
-restent souvent **visiteurs** (sans tâches). Détail :
+(vue globale des élèves) ; le **prof de classe** suit sa classe avec la **même
+interface** qu’un visiteur connecté (Visite, Biodiversité, apprentissages), plus
+la liste et les statistiques de **ses** élèves. Détail :
 [Comptes, rôles et groupes](comptes-roles-et-groupes.md).
 
 **Connexion** : un seul écran pour tout le monde (identifiant — e-mail ou pseudo — et

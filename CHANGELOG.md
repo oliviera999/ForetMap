@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Prof de classe : interface type visiteur + suivi de classe
+
+- Navigation basse comme un **visiteur connecté** (Visite, Biodiversité, Quiz,
+  Glossaire, Réseau, Tutos) : accusés d’apprentissage utilisables.
+- Extras tuteur : onglets **Stats** (élèves du périmètre) et **Classe** (liste /
+  groupes) — réutilisation de Stats et Profils existants.
+- Plus de barre haute n3boss pour ce profil (`teacher.access` conservé côté API).
+
 ### Modifié — charge serveur (commentaires, rate limit, drapeau WS)
 
 - Commentaires contextuels : plus de GET d’aperçu tant que la section est fermée
