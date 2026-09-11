@@ -28,7 +28,7 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 
 ### Gameplay et parties
 
-- `gl-game-actions.test.js`, `gl-game-turns.test.js`, `gl-game-lifecycle.test.js`, `gl-game-status.test.js`, `gl-game-access.test.js`
+- `gl-game-actions.test.js`, `gl-game-turns.test.js`, `gl-game-lifecycle.test.js`, `gl-game-status.test.js`, `gl-game-access.test.js`, `gl-game-start-resume.test.js`
 - `gl-games.test.js`, `gl-games-roster.test.js`, `gl-games-runtime.test.js`, `gl-games-query-validation.test.js`
 - **Équipes — appartenance par partie** : `gl-player-membership.test.js` (lot 0 : `gl_players.team_id`
   n'est plus écrit ni lu ; `/auth/me`, hydratation, gating d'équipe et liste admin suivent
