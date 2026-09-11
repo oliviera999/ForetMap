@@ -34,6 +34,7 @@ const {
   scanTutosForImport,
   importMissingTutosFromFilesystem,
 } = require('../lib/importTutosFromFilesystem');
+const { logAudit } = require('../lib/auditLog');
 const {
   fingerprintText,
   buildGlossaryIndexVersion,
@@ -953,6 +954,13 @@ router.delete(
     ]);
     clearTutorialViewCache();
     await emitTutorialTasksChanged('tutorial_delete', Number(req.params.id));
+    await logAudit(
+      'delete_tutorial',
+      'tutorial',
+      req.params.id,
+      `Désactivation tutoriel ${req.params.id}`,
+      { req, payload: { soft: true } },
+    );
     res.json({ success: true });
   }),
 );

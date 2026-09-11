@@ -38,6 +38,7 @@ const {
 } = require('../lib/speciesAutofill');
 const { plantnetIdentifyFromImages } = require('../lib/speciesAutofillPlantnet');
 const { enrichPlantRow } = require('../lib/biodivReadModel');
+const { logAudit } = require('../lib/auditLog');
 const { z, validate } = require('../lib/validate');
 
 const router = express.Router();
@@ -703,6 +704,16 @@ router.delete(
     );
     invalidatePlantsListCache();
     emitGardenChanged({ reason: 'delete_plant', plantId: req.params.id });
+    await logAudit(
+      'delete_plant',
+      'plant',
+      req.params.id,
+      `Suppression plante ${plant.name || req.params.id}`,
+      {
+        req,
+        payload: { name: plant.name || null },
+      },
+    );
     res.json({ success: true });
   }),
 );

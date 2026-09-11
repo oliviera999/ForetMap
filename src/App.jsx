@@ -550,7 +550,8 @@ function App() {
       }),
     [effectiveIsTeacher, studentForUi],
   );
-  const canManageMediaLibrary = hasPermissionInRole('teacher.access');
+  const canManageMediaLibrary = hasPermissionInRole('media.manage');
+  const canReadStats = hasPermission('stats.read.all') || hasPermission('stats.read.group');
   const canManageQuiz = useMemo(
     () =>
       canManagePedagoContent({
@@ -623,11 +624,8 @@ function App() {
     student,
   ]);
   const canOpenTeacherStatsFromBadge =
-    effectiveIsTeacher &&
-    publicSettings?.modules?.stats_enabled !== false &&
-    hasPermission('stats.read.all');
-  const canViewGeneralStats =
-    publicSettings?.modules?.stats_enabled !== false && hasPermission('stats.read.all');
+    effectiveIsTeacher && publicSettings?.modules?.stats_enabled !== false && canReadStats;
+  const canViewGeneralStats = publicSettings?.modules?.stats_enabled !== false && canReadStats;
   const canSwitchToStudentView =
     isTeacher &&
     (effectiveRoleContext.roleSlug === 'prof' || effectiveRoleContext.roleSlug === 'admin');
@@ -1306,7 +1304,7 @@ function App() {
                         )}
                         {publicSettings?.modules?.stats_enabled !== false &&
                           tab === 'stats' &&
-                          (hasPermission('stats.read.all') ? (
+                          (canReadStats ? (
                             <TabSuspense>
                               <TeacherStatsLazy />
                             </TabSuspense>

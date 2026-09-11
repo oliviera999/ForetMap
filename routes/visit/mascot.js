@@ -43,6 +43,7 @@ const {
   visitMascotCatalogModelInfo,
   listVisitMascotCatalogModels,
 } = require('../../lib/visitMascotPackHelpers');
+const { logAudit } = require('../../lib/auditLog');
 const {
   parseMascotPackZipBuffer,
   buildMascotPackZipBuffer,
@@ -962,6 +963,19 @@ router.delete('/mascot-packs/:id', requirePermission('visit.manage'), async (req
     }
     await removeVisitMascotPackUploadDir(packId);
     await execute('DELETE FROM visit_mascot_packs WHERE id = ?', [packId]);
+    await logAudit(
+      'visit_mascot_pack_delete',
+      'visit_mascot_pack',
+      packId,
+      `Suppression pack mascotte ${packId}`,
+      {
+        req,
+        payload: {
+          origin: estLivree ? 'builtin' : 'custom',
+          catalog_id: row.catalog_id || null,
+        },
+      },
+    );
     res.json({ ok: true, origin: estLivree ? 'builtin' : 'custom' });
   } catch (err) {
     logRouteError(err, req);
