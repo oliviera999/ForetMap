@@ -131,6 +131,13 @@ describe('FMLearningLinksPanel', () => {
   test('rattache une question via POST puis recharge la liste', async () => {
     render(<FMLearningLinksPanel />);
     const picker = await screen.findByLabelText('Question à rattacher');
+    // Même course que le test précédent : les options ne sont filtrées qu'après le **second**
+    // appel (`/api/learning-links`). Sélectionner QF0002 avant qu'il ne soit une option laisse le
+    // `<select>` à vide — « Rattacher » n'a alors rien à envoyer, et le POST attendu n'arrive
+    // jamais. Vert sur une machine rapide, rouge sur un runner chargé.
+    await waitFor(() =>
+      expect([...picker.querySelectorAll('option')].map((o) => o.value)).toContain('QF0002'),
+    );
     fireEvent.change(picker, { target: { value: 'QF0002' } });
     fireEvent.click(screen.getByRole('button', { name: 'Rattacher' }));
     await waitFor(() => {
