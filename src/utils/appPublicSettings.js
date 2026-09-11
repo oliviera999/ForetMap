@@ -49,6 +49,9 @@ export const DEFAULT_PUBLIC_SETTINGS = {
       default_id: '',
     },
   },
+  realtime: {
+    allow_websocket: false,
+  },
 };
 
 /**
@@ -105,6 +108,12 @@ export function mergePublicSettings(prev, settings) {
       ...(prev.content || {}),
       ...(settings.content || {}),
       help,
+    };
+  }
+  if (settings.realtime && typeof settings.realtime === 'object') {
+    next.realtime = {
+      ...(prev.realtime || {}),
+      ...settings.realtime,
     };
   }
   return next;

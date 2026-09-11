@@ -11,6 +11,7 @@ describe('DEFAULT_PUBLIC_SETTINGS', () => {
     // la résolution appartient au catalogue (src/utils/visitMascotCatalog.js).
     expect(DEFAULT_PUBLIC_SETTINGS.visit.mascot.default_id).toBe('');
     expect(DEFAULT_PUBLIC_SETTINGS.visit.mascot.allowed_ids).toEqual([]);
+    expect(DEFAULT_PUBLIC_SETTINGS.realtime.allow_websocket).toBe(false);
   });
 });
 

@@ -11,12 +11,22 @@
 import { io } from 'socket.io-client';
 import { withAppBase } from '../../shared/appBase.js';
 import { isSocketAuthRejection } from '../../utils/realtimeAuthRejection.js';
-import { SOCKETIO_CLIENT_OPTIONS } from '../../utils/socketIoClientOptions.js';
+import { getSocketIoClientOptions } from '../../utils/socketIoClientOptions.js';
 
 /** @typedef {{ socket: import('socket.io-client').Socket, refs: number, games: Map<string, number>, classes: Map<string, number> }} GlSocketEntry */
 
 /** @type {Map<string, GlSocketEntry>} */
 const byToken = new Map();
+
+/** Aligné sur `realtime.allow_websocket` de GET /api/gl/auth/config. */
+let allowWebsocket = false;
+
+/**
+ * @param {boolean} value
+ */
+export function setGlSocketIoAllowWebsocket(value) {
+  allowWebsocket = value === true;
+}
 
 function bump(map, key, delta) {
   const next = (map.get(key) || 0) + delta;
@@ -56,7 +66,7 @@ export function acquireGlSocket(token) {
   }
   const socket = io(withAppBase(''), {
     path: '/socket.io',
-    ...SOCKETIO_CLIENT_OPTIONS,
+    ...getSocketIoClientOptions({ allowWebsocket }),
     auth: { token: key },
   });
   entry = { socket, refs: 1, games: new Map(), classes: new Map() };
@@ -129,6 +139,7 @@ export function resetGlSocketClientForTests() {
     }
   }
   byToken.clear();
+  allowWebsocket = false;
 }
 
 /** Nombre de connexions ouvertes (tests). */

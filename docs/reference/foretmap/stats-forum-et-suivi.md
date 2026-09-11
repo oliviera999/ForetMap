@@ -30,7 +30,9 @@ commentaires) et rester informé (notifications, temps réel).
 - **Modération** : les messages peuvent être **signalés** ; les professeurs disposent
   des outils de modération (masquer, supprimer, traiter les signalements).
 - **Commentaires contextuels** : des commentaires attachés directement à une tâche, un
-  projet ou une zone — la discussion reste au plus près du travail concerné.
+  projet ou une zone — la discussion reste au plus près du travail concerné. La liste
+  n’est chargée **qu’à l’ouverture** de la section (pas d’aperçu tant qu’elle est
+  repliée) ; un point signale les nouveaux messages reçus en temps réel sans ouvrir.
 
 ## Notifications et temps réel
 
