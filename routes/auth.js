@@ -907,6 +907,15 @@ router.get('/google/callback', async (req, res) => {
       [email],
     );
     if (!student) {
+      const allowGoogleAutoRegister = await getSettingValue(
+        'ui.auth.allow_google_auto_register',
+        false,
+      );
+      if (!allowGoogleAutoRegister) {
+        return res.redirect(
+          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_account_not_found', mode),
+        );
+      }
       const id = crypto.randomUUID();
       const now = nowIsoUtc();
       const splitName = splitDisplayName(payload.name);

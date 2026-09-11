@@ -161,6 +161,8 @@ test('GET /api/settings/public renvoie les réglages publics', async () => {
   assert.ok(res.body?.settings);
   assert.strictEqual(typeof res.body.settings.ui?.auth?.allow_register, 'boolean');
   assert.strictEqual(typeof res.body.settings.ui?.auth?.allow_google_student, 'boolean');
+  assert.strictEqual(typeof res.body.settings.ui?.auth?.allow_google_auto_register, 'boolean');
+  assert.strictEqual(res.body.settings.ui?.auth?.allow_google_auto_register, false);
   assert.strictEqual(typeof res.body.settings.ui?.modules?.forum_enabled, 'boolean');
   assert.strictEqual(typeof res.body.settings.ui?.modules?.context_comments_enabled, 'boolean');
   assert.strictEqual(typeof res.body.settings.ui?.modules?.reports_enabled, 'boolean');

@@ -45,9 +45,12 @@ restent souvent **visiteurs** (sans tâches). Détail :
 
 **Connexion** : un seul écran pour tout le monde (identifiant — e-mail ou pseudo — et
 mot de passe, ou compte Google). L'inscription des élèves se fait en autonomie
-(prénom, nom, mot de passe) et peut être désactivée par un administrateur. Une
-procédure « mot de passe oublié » par e-mail existe, et un administrateur peut
-temporairement prendre la main sur un compte pour aider son propriétaire.
+(prénom, nom, mot de passe) et peut être désactivée par un administrateur. La
+**connexion Google** ne crée un compte que si un administrateur l'a explicitement
+autorisé dans les réglages (désactivé par défaut) : sinon Google ne connecte que
+les comptes déjà présents. Une procédure « mot de passe oublié » par e-mail existe,
+et un administrateur peut temporairement prendre la main sur un compte pour aider
+son propriétaire.
 
 **Rejoindre sa classe** : à l'inscription, l'élève peut saisir le **code de classe**
 fourni par son professeur — son compte rejoint alors directement le groupe et reçoit

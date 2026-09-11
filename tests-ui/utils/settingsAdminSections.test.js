@@ -17,6 +17,9 @@ describe('resolveSettingLabel', () => {
     expect(resolveSettingLabel('ui.auth.allow_register', ROLE_TERMS)).toBe(
       'Afficher "Créer un compte"',
     );
+    expect(resolveSettingLabel('ui.auth.allow_google_auto_register', ROLE_TERMS)).toBe(
+      'Créer un compte à la première connexion Google (désactivé = connexion seule)',
+    );
   });
   test('libellés dynamiques construits depuis la terminologie des rôles', () => {
     expect(resolveSettingLabel('ui.auth.allow_google_student', ROLE_TERMS)).toBe(

@@ -60,6 +60,11 @@ export const KEY_META = {
   'ui.auth.allow_register': { label: 'Afficher "Créer un compte"', section: 'auth', order: 10 },
   'ui.auth.allow_google_student': { section: 'auth', order: 20, dynamicLabel: 'googleStudent' },
   'ui.auth.allow_google_teacher': { section: 'auth', order: 30, dynamicLabel: 'googleTeacher' },
+  'ui.auth.allow_google_auto_register': {
+    label: 'Créer un compte à la première connexion Google (désactivé = connexion seule)',
+    section: 'auth',
+    order: 35,
+  },
   'ui.auth.allow_guest_visit': {
     label: 'Afficher "Visiter sans compte"',
     section: 'auth',

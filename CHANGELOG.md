@@ -7,6 +7,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — charge serveur (commentaires, rate limit, drapeau WS)
+
+- Commentaires contextuels : plus de GET d’aperçu tant que la section est fermée
+  (listes tâches / tutoriels / etc.) — charge à l’ouverture uniquement.
+- Rate limit API général : clé **utilisateur JWT** si Bearer valide, sinon IP
+  (classe derrière un NAT = buckets séparés).
+- Drapeau **`FORETMAP_SOCKETIO_ALLOW_WEBSOCKET`** (défaut off) exposé aux clients
+  via `settings.realtime` / config GL ; prod o2switch reste en long-polling.
+- Doc : une instance Passenger recommandée ; projection `/api/plants` reportée
+  jusqu’à ~150–200 fiches (D4-A).
+
 ### Modifié — Google : création de compte paramétrable (défaut non)
 
 - Réglage public `ui.auth.allow_google_auto_register` (**défaut `false`**) : à la

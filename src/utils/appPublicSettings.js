@@ -11,6 +11,7 @@ export const DEFAULT_PUBLIC_SETTINGS = {
     allow_register: true,
     allow_google_student: true,
     allow_google_teacher: true,
+    allow_google_auto_register: false,
     allow_guest_visit: true,
     default_mode: 'login',
     welcome_message: '',

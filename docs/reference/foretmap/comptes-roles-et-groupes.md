@@ -15,6 +15,11 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
 - **Un seul écran de connexion** pour tout le monde : identifiant (e-mail ou pseudo) +
   mot de passe, ou compte Google. Le système reconnaît automatiquement s'il s'agit d'un
   élève, d'un professeur ou d'un administrateur.
+- **Google ne crée pas de compte par défaut** : la connexion Google ne fonctionne que si
+  le compte existe déjà (même adresse e-mail). Un administrateur peut activer, dans les
+  réglages d'accueil, la **création automatique à la première connexion Google** — un
+  compte élève « visiteur » est alors créé. Tant que ce réglage est désactivé (valeur
+  livrée), aucun utilisateur ne peut s'inscrire via Google.
 - **L'inscription des élèves est autonome** : prénom, nom, mot de passe (pseudo,
   e-mail, description et affiliation optionnels). Un administrateur peut désactiver
   l'inscription libre dans les réglages. Le **pseudo** accepte les lettres (y compris
