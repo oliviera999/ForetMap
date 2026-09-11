@@ -88,4 +88,16 @@ describe('VisitZonesSvgLayer — accessibilité clavier des zones', () => {
     setup({ zones: [makeZone({ name: '📍 Verger' })] });
     expect(screen.getByRole('button', { name: 'Verger' })).toBeInTheDocument();
   });
+
+  test('zone non vue → pastille is-unseen (hors fill rouge du polygone)', () => {
+    const { container } = setup();
+    expect(container.querySelector('.visit-zone-indicator')).toHaveClass('is-unseen');
+    expect(container.querySelector('.visit-zone-poly')).toHaveClass('is-unseen');
+  });
+
+  test('zone vue → pastille is-seen', () => {
+    const { container } = setup({ seen: new Set(['zone:7']) });
+    expect(container.querySelector('.visit-zone-indicator')).toHaveClass('is-seen');
+    expect(container.querySelector('.visit-zone-poly')).toHaveClass('is-seen');
+  });
 });
