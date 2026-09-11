@@ -179,14 +179,19 @@ et l'état du compte.
   `;`) ; un chemin du type « classe > sous-groupe » crée le sous-groupe sous son
   parent. Si un groupe nommé dans le fichier **n'existe pas encore**, il est **créé
   automatiquement** (et le professeur qui importe en devient responsable s'il n'a
-  pas la vue globale). Le modèle téléchargeable contient **une ligne d'exemple par
+  pas la vue globale). Si la **même personne** apparaît sur plusieurs lignes, elles
+  sont **fusionnées** : les groupes s'ajoutent, et pour le reste (pseudo, e-mail…)
+  c'est la **dernière ligne** qui compte — un message d'information le signale dans
+  le rapport. Le modèle téléchargeable contient **une ligne d'exemple par
   profil**, avec des cas multi-groupes. Les adresses e-mail du fichier **ne sont
   pas** limitées aux domaines autorisés pour Google ou Moodle.
 - **Importer des groupes** : un panneau dédié (même onglet Profils) permet
   d'importer une liste de groupes et sous-groupes via un fichier modèle (type
   classe / équipe / unité / club, parent optionnel, option « accorde le statut
   n3beur »). Les groupes déjà présents (même nom ou même identifiant) sont
-  laissés tels quels ; les nouveaux sont créés. Pour un **prof de classe**, la
+  **mis à jour** avec les infos du fichier ; une ligne répétée dans le fichier est
+  fusionnée (dernière ligne pour le reste, message d'info). Les nouveaux sont
+  créés. Pour un **prof de classe**, la
   création / l'import de comptes ne sont disponibles **que si** un administrateur
   a ouvert ces droits sur son profil. Seul un administrateur peut importer un
   compte administrateur ; seuls n3boss et administrateur peuvent importer un

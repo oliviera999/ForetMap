@@ -59,6 +59,8 @@ function GroupsImportPanel({ canImport, setErr, setMsg, onImported }) {
           <p style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
             Téléchargez le modèle (classes, sous-groupes avec parent, clubs…), complétez-le puis
             importez. Les groupes absents sont créés ; un parent peut être désigné par nom ou slug.
+            Une même classe répétée sur plusieurs lignes est fusionnée (dernière ligne pour le
+            reste) ; un groupe déjà présent est mis à jour.
           </p>
           <p style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: '#9a3412' }}>
             Remplacez ou supprimez les lignes d&apos;exemple avant l&apos;import réel.
@@ -99,11 +101,12 @@ function GroupsImportPanel({ canImport, setErr, setMsg, onImported }) {
         fontSize: 'var(--text-sm)',
       }}
       onImport={importGroups}
-      totalsRenderer={(totals) => (
+      totalsRenderer={(report) => (
         <div>
-          Reçues : {totals.received ?? 0} · Valides : {totals.valid ?? 0} · Créés :{' '}
-          {totals.created ?? 0} · Déjà présents : {totals.updated_existing ?? 0} · Ignorées :{' '}
-          {totals.skipped_invalid ?? 0}
+          Reçues : {report.totals?.received ?? 0} · Valides : {report.totals?.valid ?? 0} · Créés :{' '}
+          {report.totals?.created ?? 0} · Mis à jour : {report.totals?.updated_existing ?? 0} ·
+          Doublons fusionnés : {report.totals?.merged_duplicates ?? 0} · Ignorées :{' '}
+          {report.totals?.skipped_invalid ?? 0}
         </div>
       )}
     />

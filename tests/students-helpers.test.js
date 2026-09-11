@@ -31,6 +31,7 @@ const {
   mapImportRowToStudentShape,
   buildImportStudentPayload,
   validateImportStudentPayload,
+  mergeDuplicateStudentImportItems,
   resolveImportRows,
   csvEscape,
   buildTemplateWorkbookRows,
@@ -326,6 +327,38 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.equal(csvEscape('l1\nl2'), '"l1\nl2"');
     assert.equal(csvEscape(null), '');
     assert.equal(csvEscape(undefined), '');
+  });
+
+  it('mergeDuplicateStudentImportItems : groupes cumulés, dernière ligne pour le reste', () => {
+    const a = buildImportStudentPayload({
+      Rôle: 'eleve',
+      Prénom: 'Léa',
+      Nom: 'Martin',
+      'Mot de passe': 'pass123',
+      Groupes: '6A',
+      Pseudo: 'lea1',
+    });
+    const b = buildImportStudentPayload({
+      Rôle: 'eleve',
+      Prénom: 'Léa',
+      Nom: 'Martin',
+      'Mot de passe': 'pass456',
+      Groupes: '6B',
+      Pseudo: 'lea2',
+    });
+    const { items, infos } = mergeDuplicateStudentImportItems([
+      { payload: a, rowNumber: 2 },
+      { payload: b, rowNumber: 4 },
+    ]);
+    assert.equal(items.length, 1);
+    assert.deepEqual(
+      items[0].payload.groupRefs.map((r) => r.path.join('>')),
+      ['6A', '6B'],
+    );
+    assert.equal(items[0].payload.pseudo, 'lea2');
+    assert.equal(items[0].payload.password, 'pass456');
+    assert.equal(infos.length, 1);
+    assert.match(infos[0].message, /Lignes 2, 4/);
   });
 
   it('buildTemplateWorkbookRows : une ligne d’exemple par profil ForetMap', () => {

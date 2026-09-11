@@ -12,6 +12,7 @@ const {
   validateGroupImportPayload,
   buildGroupTemplateWorkbookRows,
   GROUP_TEMPLATE_COLUMNS,
+  mergeDuplicateGroupImportItems,
 } = require('../lib/groupImport');
 
 describe('groupImport (parsing pur)', () => {
@@ -46,6 +47,38 @@ describe('groupImport (parsing pur)', () => {
     assert.equal(payload.kind, 'class');
     assert.deepEqual(validateGroupImportPayload(payload, 2), []);
     assert.ok(validateGroupImportPayload({ name: '', kind: null }, 3).length >= 2);
+  });
+
+  it('mergeDuplicateGroupImportItems : dernière ligne + message d’info', () => {
+    const { items, infos } = mergeDuplicateGroupImportItems([
+      {
+        rowNumber: 2,
+        payload: {
+          slug: '6a',
+          name: '6ème A',
+          kind: 'class',
+          parent: null,
+          description: 'v1',
+          grantsN3beur: false,
+        },
+      },
+      {
+        rowNumber: 5,
+        payload: {
+          slug: '6a',
+          name: '6ème A',
+          kind: 'class',
+          parent: null,
+          description: 'v2',
+          grantsN3beur: true,
+        },
+      },
+    ]);
+    assert.equal(items.length, 1);
+    assert.equal(items[0].payload.description, 'v2');
+    assert.equal(items[0].payload.grantsN3beur, true);
+    assert.equal(infos.length, 1);
+    assert.match(infos[0].message, /Lignes 2, 5/);
   });
 
   it('modèle : plusieurs lignes d’exemple', () => {
