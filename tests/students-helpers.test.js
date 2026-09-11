@@ -14,11 +14,16 @@ const {
   TEMPLATE_COLUMNS,
   ALLOWED_IMPORT_USER_TYPES,
   IMPORT_HEADER_ALIASES,
+  IMPORT_ROLE_SLUGS,
+  IMPORT_SKIPS_EMAIL_DOMAIN_RESTRICTIONS,
   normalizeVisitMascotPreference,
   asTrimmedString,
   hasOwn,
   affiliationFromImportCell,
   normalizeImportUserType,
+  normalizeImportRoleSlug,
+  userTypeForImportRoleSlug,
+  canActorImportRoleSlug,
   detectAvatarExtension,
   normalizeImportHeader,
   parseCsvLine,
@@ -32,7 +37,7 @@ const {
 } = require('../lib/studentRouteHelpers');
 
 describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', () => {
-  it('constantes : limites et colonnes du modèle inchangées', () => {
+  it('constantes : limites, rôles importables, skip domaines e-mail', () => {
     assert.equal(MAX_DESCRIPTION_LEN, 300);
     assert.equal(MAX_AVATAR_BYTES, 2 * 1024 * 1024);
     assert.equal(MAX_IMPORT_FILE_BYTES, 8 * 1024 * 1024);
@@ -40,6 +45,19 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.equal(TEMPLATE_COLUMNS.length, 8);
     assert.equal(TEMPLATE_COLUMNS[0], 'Rôle');
     assert.deepEqual([...ALLOWED_IMPORT_USER_TYPES].sort(), ['student', 'teacher']);
+    assert.equal(IMPORT_SKIPS_EMAIL_DOMAIN_RESTRICTIONS, true);
+    assert.deepEqual(
+      [...IMPORT_ROLE_SLUGS].sort(),
+      [
+        'admin',
+        'eleve_avance',
+        'eleve_chevronne',
+        'eleve_novice',
+        'prof',
+        'prof_classe',
+        'visiteur',
+      ].sort(),
+    );
     assert.ok(PSEUDO_RE.test('pseudo_ok-1'));
     assert.ok(!PSEUDO_RE.test('ab'));
     assert.ok(EMAIL_RE.test('a@b.fr'));
@@ -78,15 +96,29 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.equal(affiliationFromImportCell('Slug Invalide !'), null);
   });
 
-  it('normalizeImportUserType : alias élève/prof, défaut student, inconnu → null', () => {
-    assert.equal(normalizeImportUserType('eleve'), 'student');
-    assert.equal(normalizeImportUserType('Élève'), 'student');
-    assert.equal(normalizeImportUserType('n3beur'), 'student');
+  it('normalizeImportRoleSlug : tous les profils + alias', () => {
+    assert.equal(normalizeImportRoleSlug(''), 'eleve_novice');
+    assert.equal(normalizeImportRoleSlug(null), 'eleve_novice');
+    assert.equal(normalizeImportRoleSlug('eleve'), 'eleve_novice');
+    assert.equal(normalizeImportRoleSlug('visiteur'), 'visiteur');
+    assert.equal(normalizeImportRoleSlug('eleve_avance'), 'eleve_avance');
+    assert.equal(normalizeImportRoleSlug('chevronné'), 'eleve_chevronne');
+    assert.equal(normalizeImportRoleSlug('prof_classe'), 'prof_classe');
+    assert.equal(normalizeImportRoleSlug('N3BOSS'), 'prof');
+    assert.equal(normalizeImportRoleSlug('administrateur'), 'admin');
+    assert.equal(normalizeImportRoleSlug('autre'), null);
     assert.equal(normalizeImportUserType('prof'), 'teacher');
-    assert.equal(normalizeImportUserType('N3BOSS'), 'teacher');
-    assert.equal(normalizeImportUserType(''), 'student');
-    assert.equal(normalizeImportUserType(null), 'student');
-    assert.equal(normalizeImportUserType('autre'), null);
+    assert.equal(normalizeImportUserType('eleve'), 'student');
+    assert.equal(userTypeForImportRoleSlug('admin'), 'teacher');
+    assert.equal(userTypeForImportRoleSlug('visiteur'), 'student');
+  });
+
+  it('canActorImportRoleSlug : anti-escalade', () => {
+    assert.equal(canActorImportRoleSlug({ roleSlug: 'admin' }, 'admin'), true);
+    assert.equal(canActorImportRoleSlug({ roleSlug: 'prof' }, 'admin'), false);
+    assert.equal(canActorImportRoleSlug({ roleSlug: 'prof' }, 'prof_classe'), true);
+    assert.equal(canActorImportRoleSlug({ roleSlug: 'prof_classe' }, 'prof'), false);
+    assert.equal(canActorImportRoleSlug({ roleSlug: 'prof_classe' }, 'visiteur'), true);
   });
 
   it('detectAvatarExtension : png/jpg/webp, jpeg → jpg, refus hors data URL image', () => {
@@ -150,37 +182,38 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
       'Colonne inconnue': 'x',
     });
     assert.deepEqual(mapped, {
-      userType: 'eleve',
+      role: 'eleve',
       firstName: 'Ada',
       lastName: 'Lovelace',
       password: 'azerty123',
     });
   });
 
-  it('buildImportStudentPayload : payload normalisé complet', () => {
+  it('buildImportStudentPayload : payload normalisé complet (prof)', () => {
     const payload = buildImportStudentPayload({
       Rôle: 'prof',
       Prénom: ' Ada ',
       Nom: ' Lovelace ',
-      'Mot de passe': ' azerty123 ',
+      'Mot de passe': ' MotDePasse12! ',
       Affiliation: 'N3',
       Pseudo: '  ',
-      Email: ' ada@calcul.fr ',
+      Email: ' ada@gmail.com ',
       Description: '',
     });
     assert.deepEqual(payload, {
+      roleSlug: 'prof',
       userType: 'teacher',
       firstName: 'Ada',
       lastName: 'Lovelace',
-      password: 'azerty123',
+      password: 'MotDePasse12!',
       affiliation: 'n3',
       pseudo: null,
-      email: 'ada@calcul.fr',
+      email: 'ada@gmail.com',
       description: null,
     });
   });
 
-  it('validateImportStudentPayload : payload valide → aucune erreur', () => {
+  it('validateImportStudentPayload : payload élève valide → aucune erreur', () => {
     const payload = buildImportStudentPayload({
       Rôle: 'eleve',
       Prénom: 'Ada',
@@ -191,9 +224,37 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.deepEqual(validateImportStudentPayload(payload, 2), []);
   });
 
+  it('validateImportStudentPayload : e-mail hors domaine établissement accepté', () => {
+    const payload = buildImportStudentPayload({
+      Rôle: 'visiteur',
+      Prénom: 'Ada',
+      Nom: 'Lovelace',
+      'Mot de passe': 'azerty123',
+      Affiliation: 'both',
+      Email: 'ada.externe@gmail.com',
+    });
+    assert.deepEqual(validateImportStudentPayload(payload, 2), []);
+  });
+
+  it('validateImportStudentPayload : prof exige mot de passe assez long', () => {
+    const payload = buildImportStudentPayload({
+      Rôle: 'prof',
+      Prénom: 'Ada',
+      Nom: 'Lovelace',
+      'Mot de passe': 'court',
+      Affiliation: 'both',
+    });
+    const errors = validateImportStudentPayload(payload, 3, {
+      minPasswordStudent: 4,
+      minPasswordTeacher: 12,
+    });
+    assert.ok(errors.some((e) => e.field === 'password' && /12/.test(e.error)));
+  });
+
   it('validateImportStudentPayload : cumul des erreurs avec numéro de ligne et champ', () => {
     const errors = validateImportStudentPayload(
       {
+        roleSlug: null,
         userType: null,
         firstName: '',
         lastName: '',
@@ -214,7 +275,7 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
       'lastName',
       'password',
       'pseudo',
-      'userType',
+      'role',
     ]);
     assert.ok(errors.every((e) => e.row === 5));
   });
@@ -253,11 +314,12 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.equal(csvEscape(undefined), '');
   });
 
-  it('buildTemplateWorkbookRows : une ligne d’exemple alignée sur TEMPLATE_COLUMNS', () => {
+  it('buildTemplateWorkbookRows : une ligne d’exemple par profil ForetMap', () => {
     const rows = buildTemplateWorkbookRows();
-    assert.equal(rows.length, 1);
-    assert.deepEqual(Object.keys(rows[0]), TEMPLATE_COLUMNS);
-    assert.equal(rows[0][TEMPLATE_COLUMNS[0]], 'eleve');
-    assert.equal(rows[0][TEMPLATE_COLUMNS[4]], 'both');
+    assert.equal(rows.length, IMPORT_ROLE_SLUGS.size);
+    const slugs = rows.map((r) => r[TEMPLATE_COLUMNS[0]]);
+    assert.deepEqual(slugs.sort(), [...IMPORT_ROLE_SLUGS].sort());
+    assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[6]]).includes('@gmail.com')));
+    assert.ok(rows.every((r) => Object.keys(r).length === TEMPLATE_COLUMNS.length));
   });
 });

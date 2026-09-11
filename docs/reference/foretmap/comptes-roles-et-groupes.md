@@ -172,9 +172,16 @@ et l'état du compte.
 ## La gestion des utilisateurs
 
 - **Créer / importer** : un **n3boss** (selon ses droits) peut créer des comptes un par
-  un ou importer une liste (rentrée de classe). Pour un **prof de classe**, la
-  création / l'import ne sont disponibles **que si** un administrateur a ouvert ces
-  droits sur son profil.
+  un ou importer une liste (rentrée). Le fichier d'import (CSV ou tableur) permet de
+  choisir **chaque profil** : visiteur, n3beur novice / avancé / chevronné, prof de
+  classe, n3boss, administrateur. Le modèle téléchargeable contient **une ligne
+  d'exemple par profil** ; ces lignes sont à remplacer ou supprimer avant l'import
+  réel. Les adresses e-mail du fichier **ne sont pas** limitées aux domaines autorisés
+  pour Google ou Moodle (seule la forme de l'e-mail est contrôlée). Pour un **prof de
+  classe**, la création / l'import ne sont disponibles **que si** un administrateur a
+  ouvert ces droits sur son profil. Seul un administrateur peut importer un compte
+  administrateur ; seuls n3boss et administrateur peuvent importer un compte
+  enseignant.
 - **Supprimer** : la suppression d'un élève retire aussi ses affectations et son
   historique de tâches, et recalcule les statuts des tâches concernées. C'est un
   pouvoir sensible ; il ne fait pas partie du socle minimal du prof de classe.

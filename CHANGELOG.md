@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — import comptes : tous les profils ForetMap
+
+- Colonne **Rôle** : `visiteur`, `eleve_novice` / `eleve_avance` / `eleve_chevronne`,
+  `prof_classe`, `prof` (n3boss), `admin` (alias historiques `eleve`, `n3beur`, etc.).
+- Modèle CSV/XLSX : **7 lignes d’exemple** (un cas par profil), e-mails hors domaine
+  établissement inclus ; l’import **n’applique pas** les restrictions de domaines
+  Google / Moodle.
+- Garde anti-escalade alignée sur la création manuelle ; mot de passe enseignant ≥ 12.
+
 ### Ajouté — profil « Prof de classe » et correctifs RBAC n3boss
 
 - **Profil système `prof_classe`** : tuteur limité à ses groupes, sans tâches ni jardin ;
