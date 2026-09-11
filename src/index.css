@@ -7385,6 +7385,48 @@
   width: 100%;
   overflow-x: hidden;
 }
+.profiles-admin-subtabs {
+  margin-bottom: 14px;
+}
+.profiles-admin-subtabs .top-tab {
+  flex: 0 0 auto;
+  min-width: 120px;
+}
+.profiles-admin-list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.profiles-admin-list-toolbar input[type='search'],
+.profiles-admin-list-toolbar input:not([type]),
+.profiles-admin-list-toolbar select {
+  min-height: 44px;
+  flex: 1 1 160px;
+  max-width: 100%;
+}
+.profiles-admin-page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.profiles-admin-page-size select {
+  min-height: 44px;
+  flex: 0 0 auto;
+}
+.profiles-admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
 .profiles-admin-grid {
   display: grid;
   gap: 12px;

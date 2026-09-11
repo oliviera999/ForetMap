@@ -143,9 +143,9 @@ Les groupes structurent la vie pédagogique :
 - **Code de classe** : chaque groupe peut générer son code d'inscription dans son
   panneau de réglages — affichable/imprimable pour la classe, **régénérable** (l'ancien
   code devient alors invalide) ou supprimable.
-- **Comptes en attente** : la gestion des groupes affiche la liste des visiteurs
-  inscrits en autonomie, avec un rattachement en un clic vers le groupe choisi (le rôle
-  suit automatiquement).
+- **Comptes en attente** : le sous-onglet Groupes affiche la liste des visiteurs
+  inscrits en autonomie, avec un rattachement unitaire ou **en lot** vers le groupe
+  choisi (le rôle suit automatiquement).
 - **Groupes venus de Moodle** : à la rentrée, l'administrateur peut créer et tenir à jour
   les groupes-classes depuis les cohortes Moodle. Ces groupes se comportent comme les
   autres (rôle par défaut, périmètre, sous-groupes). Moodle est maître des cohortes ; un
@@ -173,8 +173,22 @@ et l'état du compte.
 
 ## La gestion des utilisateurs
 
+L'onglet **Profils & utilisateurs** est découpé en **sous-onglets** pour rester lisible
+quand l'établissement a beaucoup de comptes et de groupes :
+
+- **Profils** : créer et régler les profils de droits (permissions, paliers, emoji…).
+- **Comptes** : attribuer un profil à chaque personne, créer un compte unitaire,
+  supprimer ou dupliquer. Une barre de recherche et des filtres (profil, type élève /
+  enseignant, groupe) réduisent la liste ; on peut choisir combien de lignes afficher
+  par page (25, 50 ou 100).
+- **Groupes** : arborescence des classes et sous-groupes (recherche, filtre par type,
+  masquage des inactifs). Les visiteurs en attente de rattachement apparaissent en tête ;
+  on peut les rattacher un par un ou **en lot** au groupe choisi.
+- **Imports & exports** : importer des élèves ou des groupes, exporter les statistiques.
+
 - **Créer / importer** : un **n3boss** (selon ses droits) peut créer des comptes un par
-  un ou importer une liste (rentrée). Le fichier d'import (CSV ou tableur) permet de
+  un (sous-onglet Comptes) ou importer une liste (sous-onglet Imports & exports, rentrée).
+  Le fichier d'import (CSV ou tableur) permet de
   choisir **chaque profil** : visiteur, n3beur novice / avancé / chevronné, prof de
   classe, n3boss, administrateur. Une colonne **Groupes** permet de rattacher chaque
   personne à **une ou plusieurs** classes (noms ou identifiants séparés par `|` ou
@@ -187,7 +201,7 @@ et l'état du compte.
   le rapport. Le modèle téléchargeable contient **une ligne d'exemple par
   profil**, avec des cas multi-groupes. Les adresses e-mail du fichier **ne sont
   pas** limitées aux domaines autorisés pour Google ou Moodle.
-- **Importer des groupes** : un panneau dédié (même onglet Profils) permet
+- **Importer des groupes** : le sous-onglet Imports & exports permet
   d'importer une liste de groupes et sous-groupes via un fichier modèle (type
   classe / équipe / unité / club, parent optionnel, option « accorde le statut
   n3beur »). Les groupes déjà présents (même nom ou même identifiant) sont
@@ -198,9 +212,10 @@ et l'état du compte.
   a ouvert ces droits sur son profil. Seul un administrateur peut importer un
   compte administrateur ; seuls n3boss et administrateur peuvent importer un
   compte enseignant.
-- **Supprimer** : la suppression d'un élève retire aussi ses affectations et son
-  historique de tâches, et recalcule les statuts des tâches concernées. C'est un
-  pouvoir sensible ; il ne fait pas partie du socle minimal du prof de classe.
+- **Supprimer** : la suppression d'un élève (sous-onglet Comptes) retire aussi ses
+  affectations et son historique de tâches, et recalcule les statuts des tâches
+  concernées. C'est un pouvoir sensible ; il ne fait pas partie du socle minimal du
+  prof de classe.
 - **Prendre la main** : un administrateur peut temporairement se connecter « en tant
   que » un utilisateur pour l'aider — l'action est tracée dans le journal d'audit.
 - **Compte supprimé** : si un compte est supprimé pendant qu'il est connecté,
