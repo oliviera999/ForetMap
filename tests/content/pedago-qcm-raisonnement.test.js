@@ -1,9 +1,9 @@
 'use strict';
 
-require('./helpers/setup');
+require('../helpers/setup');
 const { test, before } = require('node:test');
 const assert = require('node:assert');
-const { initSchema, queryOne, queryAll } = require('../database');
+const { initSchema, queryOne, queryAll } = require('../../database');
 
 before(async () => {
   await initSchema();

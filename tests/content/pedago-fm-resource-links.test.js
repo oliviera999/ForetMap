@@ -1,9 +1,9 @@
 'use strict';
 
-require('./helpers/setup');
+require('../helpers/setup');
 const { test, before } = require('node:test');
 const assert = require('node:assert');
-const { initSchema, queryAll, queryOne } = require('../database');
+const { initSchema, queryAll, queryOne } = require('../../database');
 
 const SPECIES_QUESTIONS = [
   'QF9250',
