@@ -31,6 +31,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   refus déjà constaté y est reporté tel quel.
 - **Conseils repliés à 96 colonnes** dans `npm run moodle:check` : un paragraphe lisible plutôt
   qu'une ligne unique qui déborde du terminal.
+### Documentation — audit du rôle professeur (n3boss)
+
+- **`docs/AUDIT_ROLE_PROFESSEUR_2026-09.md`** : audit complet du rôle n3boss — définition
+  RBAC, gardes serveur, surface d'interface, traçabilité, documentation et tests. Aucun
+  changement de comportement : constat daté, avec neuf points classés P1 → P4 et un plan
+  d'action en cinq lots. Deux constats P1 : les révocations de permission sur les profils
+  système sont annulées au redémarrage (semis `INSERT IGNORE`), et l'interface lit les
+  permissions dans le JWT sans jamais les rafraîchir (le serveur, lui, applique la bonne
+  règle). Indexé dans `docs/audits/README.md`.
 
 ### Corrigé — CI après les lots pédago et cartes
 
