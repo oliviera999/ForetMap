@@ -35,13 +35,14 @@ describe('rbacRouteHelpers (logique pure de routes/rbac.js, sans DB)', () => {
     assert.ok(!STUDENT_ROLE_SLUG_RE.test('prof'));
   });
 
-  it('RESERVED_ROLE_SLUGS : les 6 slugs système exacts', () => {
+  it('RESERVED_ROLE_SLUGS : les 7 slugs système exacts', () => {
     assert.deepEqual([...RESERVED_ROLE_SLUGS].sort(), [
       'admin',
       'eleve_avance',
       'eleve_chevronne',
       'eleve_novice',
       'prof',
+      'prof_classe',
       'visiteur',
     ]);
   });
