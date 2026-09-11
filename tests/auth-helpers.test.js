@@ -183,8 +183,19 @@ describe('authRouteHelpers (logique pure de routes/auth.js, sans DB)', () => {
       roleDisplayName: 'Prof',
       permissions: ['a.b'],
       nativePrivileged: false,
+      // Champ arrivé avec le profil `prof_classe` : la clé est toujours présente,
+      // à `undefined` tant qu'aucun périmètre de groupes n'est porté par la session.
+      groupIds: undefined,
     });
     assert.equal('password_hash' in base, false);
+
+    // Périmètre de groupes présent : écho tel quel.
+    const scoped = exposeAuth({
+      userType: 'teacher',
+      userId: 'u2',
+      groupIds: [3, 5],
+    });
+    assert.deepEqual(scoped.groupIds, [3, 5]);
 
     const imp = exposeAuth({
       userType: 'student',
