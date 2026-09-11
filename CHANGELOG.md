@@ -7,6 +7,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Plan Lyautey : même favicon que ForetMap
+
+- L’onglet et `/favicon.ico` sur `planlyautey.*` réutilisent l’icône ForetMap
+  (arbre n³) ; plus de liens distincts sous `/plan/favicon.*` dans `plan.html`.
+
 ### Modifié — Profils & utilisateurs : sous-onglets et listes filtrées
 
 - L’onglet **Profils & utilisateurs** est découpé en sous-onglets **Profils**,

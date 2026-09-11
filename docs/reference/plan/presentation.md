@@ -12,6 +12,10 @@ Elle ne demande **aucun compte** et ne conserve **aucune donnée personnelle**. 
 on cherche, on trouve. Il n'y a ni tâche, ni validation, ni progression : ces choses-là
 restent dans ForetMap et dans la Visite.
 
+Dans l'onglet du navigateur (et si on installe le plan sur l'écran d'accueil), l'icône
+est **la même que celle de ForetMap** — le petit arbre vert — pour qu'on reconnaisse tout
+de suite la famille d'applications du lycée.
+
 ## Ce que voit un visiteur
 
 1. **Le plan en plein écran.** On le déplace avec un doigt, on zoome à deux doigts ou avec
@@ -57,6 +61,16 @@ documentation ForetMap), un bouton **« Me situer »** apparaît en bas à droit
    signal est imprécis, et d'une flèche de direction si le téléphone a une boussole ;
 4. **suivi** : la carte se recentre à chaque nouvelle position. Déplacer la carte à la main
    quitte le suivi sans éteindre le point.
+
+Quand l'établissement l'autorise (réglage Plan **et** case sur la carte dans le calage GPS),
+un bouton **« Orienter »** apparaît à côté de « Me situer » une fois la position active. Il fait
+**tourner le plan** pour que le regard pointe vers le haut de l'écran (boussole du téléphone).
+Chacun peut le couper ; le choix est retenu sur l'appareil. Sans boussole exploitable, le bouton
+reste inactif. En intérieur, la boussole peut être fantaisiste : mieux vaut alors s'en passer.
+
+> **Points d'attention.** Sur iPhone, le navigateur demande une permission pour la boussole au
+> premier « Me situer ». L'orientation ne remplace pas un itinéraire : elle aide à lire le plan
+> dans le sens de la marche.
 
 Si le visiteur est **hors du plan**, le point ne disparaît pas : il se colle au bord le plus
 proche avec une flèche vers l'endroit réel. Les messages d'état (autorisation refusée, signal
