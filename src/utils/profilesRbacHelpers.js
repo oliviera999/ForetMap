@@ -49,6 +49,7 @@ export function deriveProfilesCapabilities(auth = {}) {
   const has = (p) => perms.includes(p);
   const canExport = has('stats.export');
   const canImport = has('students.import');
+  const canImportGroups = has('groups.manage');
   const canDelete = has('students.delete');
   const canCreateUsers = has('users.create');
   const canReadAllStats = has('stats.read.all');
@@ -57,12 +58,13 @@ export function deriveProfilesCapabilities(auth = {}) {
     canEditRoleDefinition: has('admin.roles.manage'),
     canExport,
     canImport,
+    canImportGroups,
     canDelete,
     canCreateUsers,
     canReadAllStats,
     canDuplicateStudents: canCreateUsers && canReadAllStats,
     isAdmin: String(auth.authRoleSlug || '') === 'admin',
-    canManageStudents: canExport || canImport || canDelete || canCreateUsers,
+    canManageStudents: canExport || canImport || canDelete || canCreateUsers || canImportGroups,
     canDeleteUi: canDelete && canReadAllStats,
   };
 }

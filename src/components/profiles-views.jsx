@@ -20,6 +20,7 @@ import { UserEditModal } from './profiles/UserEditModal.jsx';
 import { DeleteUserConfirmModal } from './profiles/DeleteUserConfirmModal.jsx';
 import { CreateUserPanel } from './profiles/CreateUserPanel.jsx';
 import { StudentImportPanel } from './profiles/StudentImportPanel.jsx';
+import { GroupsImportPanel } from './profiles/GroupsImportPanel.jsx';
 import { StudentDeletePanel } from './profiles/StudentDeletePanel.jsx';
 import { ProfilesRbacAdminSection } from './profiles/ProfilesRbacAdminSection.jsx';
 import { ProfilesAdminHeader } from './profiles/ProfilesAdminHeader.jsx';
@@ -149,6 +150,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     canEditRoleDefinition,
     canExport,
     canImport,
+    canImportGroups,
     canCreateUsers,
     canReadAllStats,
     canDuplicateStudents,
@@ -655,6 +657,15 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
       )}
 
       {canManageProfiles && <GroupsAdminView />}
+
+      {(canManageProfiles || canImportGroups) && (
+        <GroupsImportPanel
+          canImport={canImportGroups}
+          setErr={setErr}
+          setMsg={setMsg}
+          onImported={load}
+        />
+      )}
 
       {canManageStudents && (
         <>

@@ -61,8 +61,10 @@ function StudentImportPanel({ roleTerms, canImport, setErr, setMsg, onImported }
       intro={
         <>
           <p style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
-            Téléchargez le modèle (plusieurs lignes d&apos;exemple : visiteur, n3beurs, prof de
-            classe, n3boss, admin), complétez-le puis importez. La colonne Rôle fixe le profil.
+            Téléchargez le modèle (rôles + rattachements à une ou plusieurs classes / sous-groupes),
+            complétez-le puis importez. Colonne Groupes : plusieurs noms ou slugs séparés par{' '}
+            <code>|</code> ou <code>;</code>, chemins <code>Parent&gt;Enfant</code> (création
+            automatique si absents).
           </p>
           <p style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: '#9a3412' }}>
             Remplacez ou supprimez les lignes d&apos;exemple avant l&apos;import. Les e-mails du
@@ -107,7 +109,9 @@ function StudentImportPanel({ roleTerms, canImport, setErr, setMsg, onImported }
         <>
           Reçus: <strong>{report.totals?.received || 0}</strong> · Valides:{' '}
           <strong>{report.totals?.valid || 0}</strong> · Créés:{' '}
-          <strong>{report.totals?.created || 0}</strong> · Déjà existants:{' '}
+          <strong>{report.totals?.created || 0}</strong> · Groupes créés:{' '}
+          <strong>{report.totals?.groups_created || 0}</strong> · Rattachements:{' '}
+          <strong>{report.totals?.groups_attached || 0}</strong> · Déjà existants:{' '}
           <strong>{report.totals?.skipped_existing || 0}</strong> · Invalides:{' '}
           <strong>{report.totals?.skipped_invalid || 0}</strong>
         </>
