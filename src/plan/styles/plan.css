@@ -1051,3 +1051,7 @@ body.plan-body {
   font-size: var(--text-xs, 0.8rem);
   text-align: center;
 }
+
+.plan-map-controls .fm-map-action[data-testid='plan-heading-up'] {
+  touch-action: manipulation;
+}

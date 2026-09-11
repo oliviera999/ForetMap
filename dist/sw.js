@@ -1,112 +1,38 @@
-/* Service worker « foret » — GÉNÉRÉ par scripts/build-pwa.js depuis
- * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-foret-bf3f459f";
-const OFFLINE_PATH = "/offline.html";
-const PRECACHE_URLS = [
-  "/",
-  "/index.html",
-  "/index.vite.html",
-  "/offline.html",
-  "/manifest.json",
-  "/app-logo-n3.png",
-  "/icon.svg",
-  "/favicon-n3.png",
-  "/favicon.ico",
-  "/pwa-icon-192.png",
-  "/pwa-icon-512.png",
-  "/pwa-maskable-512.png",
-  "/pwa-screenshot-mobile.png",
-  "/pwa-screenshot-wide.png",
-  "/assets/main-dU7B5TO1.js",
-  "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-BdCFwf1s.js",
-  "/assets/react-vendor-NSwws4_t.js",
-  "/assets/icons-DN-Q6DZk.js",
-  "/assets/ErrorBoundary-BoKgNuT_.js",
-  "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-CNMoeBjV.js",
-  "/assets/ImageLightboxProvider-CPh0j32G.css",
-  "/assets/spriteCutCatalogEntry-BFohRCSh.js",
-  "/assets/markdown-B5dU4qij.js",
-  "/assets/visitMascotPackExtras-DQVd1dKC.js",
-  "/assets/visitMascotPackExtras-C-WanbBj.css",
-  "/assets/mascotPack--x2Z653t.js",
-  "/assets/socket-io-D_2T_oRH.js",
-  "/assets/MarkdownTextarea-Cn9g0Vvk.js",
-  "/assets/GlossaryMarkdown-vU7JJr5D.js",
-  "/assets/useGatingSummary-BZ-5ZlRE.js",
-  "/assets/GuidedTourOverlay-CaUV3t3m.js",
-  "/assets/PublicSettingsContext-D_o6wGyF.js",
-  "/assets/useBrandTheme-DeX-BTcY.js",
-  "/assets/downloadApiFile-ZU3sTPVx.js",
-  "/assets/downloadAuthedFile-BRkwVwdZ.js",
+// Service worker ForetMap du MODE DEV (servi hors production par lib/pwaRoutes.js).
+// En production, ce fichier est REMPLACÉ par `dist/sw-<produit>.js` (et sa copie `dist/sw.js`)
+// générés par `scripts/build-pwa.js` depuis le gabarit `src/shared/pwa/swTemplate.js`, avec la
+// liste exacte des bundles hachés de chaque produit. Toute évolution de stratégie de cache se
+// fait dans le gabarit (et se reflète ici seulement si le mode dev en a besoin).
+const CACHE_NAME = 'foretmap-offline-v8';
+const STATIC_ASSETS = [
+  '/',
+  '/index.html',
+  '/index.vite.html',
+  '/offline.html',
+  '/manifest.json',
+  '/app-logo-n3.png',
+  '/icon.svg',
+  '/favicon-n3.png',
+  '/favicon.ico',
+  '/pwa-icon-192.png',
+  '/pwa-icon-512.png',
+  '/pwa-maskable-512.png',
+  '/pwa-screenshot-mobile.png',
+  '/pwa-screenshot-wide.png',
 ];
 
-// Entrées HTML servies en network-first (correspondance exacte du pathname).
-const HTML_ENTRIES = [
-  "/",
-  "/index.html",
-  "/index.vite.html",
+// URLs d'API en lecture (correspondance exacte pathname)
+const API_CACHE_URLS = [
+  '/api/zones',
+  '/api/plants',
+  '/api/map/markers',
+  '/api/tasks',
 ];
 
-// API en lecture « stale-while-revalidate » (correspondance par suffixe du pathname).
-const API_STALE_WHILE_REVALIDATE = [
-  "/api/maps",
-  "/api/visit/content",
-];
-
-// API en lecture « network-first » (correspondance exacte du pathname).
-const API_NETWORK_FIRST = [
-  "/api/zones",
-  "/api/plants",
-  "/api/map/markers",
-  "/api/tasks",
-];
-
-const IMAGE_FONT_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.svg', '.ico', '.webp', '.woff2', '.woff'];
-
-function isHtmlEntry(pathname) {
-  return HTML_ENTRIES.some((entry) => pathname === entry);
-}
-
-function isStaleWhileRevalidateApi(pathname) {
-  return API_STALE_WHILE_REVALIDATE.some((suffix) => pathname.endsWith(suffix));
-}
-
-function isNetworkFirstApi(pathname) {
-  return API_NETWORK_FIRST.some((exact) => pathname === exact);
-}
-
-/** Bundles hachés par Vite : immuables, donc cache-first sans risque de version obsolète. */
-function isHashedAsset(pathname) {
-  return pathname.includes('/assets/');
-}
-
-function isScriptOrStyle(pathname) {
-  return pathname.endsWith('.css') || pathname.endsWith('.js');
-}
-
-function isImageOrFont(pathname) {
-  return IMAGE_FONT_EXTENSIONS.some((ext) => pathname.endsWith(ext));
-}
-
-function putInCache(request, response) {
-  const clone = response.clone();
-  caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-  return response;
-}
-
-function networkFirst(request, fallback) {
-  return fetch(request)
-    .then((response) => putInCache(request, response))
-    .catch(() => caches.match(request).then((cached) => cached || (fallback ? fallback() : undefined)));
-}
-
-function cacheFirst(request) {
-  return caches.match(request).then((cached) => {
-    if (cached) return cached;
-    return fetch(request).then((response) => putInCache(request, response));
-  });
+/** GET lecture mode visite : stale-while-revalidate (réponse immédiate + rafraîchissement réseau). */
+function isVisitReadApiPath(pathname) {
+  return pathname.endsWith('/api/maps')
+    || pathname.endsWith('/api/visit/content');
 }
 
 function staleWhileRevalidate(request) {
@@ -136,10 +62,10 @@ self.addEventListener('message', (event) => {
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS).catch(() => {
-        // Une entrée absente ne doit pas faire échouer toute l'installation.
+      .then((cache) => cache.addAll(STATIC_ASSETS).catch(() => {
+        // index.vite.html peut être absent en dev public/ : ignorer l’échec global
         return Promise.all(
-          PRECACHE_URLS.map((url) => cache.add(url).catch(() => undefined))
+          STATIC_ASSETS.map((url) => cache.add(url).catch(() => undefined))
         );
       }))
       .then(() => self.skipWaiting())
@@ -149,7 +75,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((names) => Promise.all(
-      names.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
+      names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n))
     )).then(() => self.clients.claim())
   );
 });
@@ -159,38 +85,78 @@ self.addEventListener('fetch', (event) => {
   if (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) return;
   const url = new URL(event.request.url);
 
-  // HTML en network-first ; repli vers la page hors ligne.
-  if (isHtmlEntry(url.pathname)) {
-    event.respondWith(networkFirst(event.request, () => caches.match(OFFLINE_PATH)));
+  // HTML en network-first ; fallback vers /offline.html si hors-ligne
+  if (
+    url.pathname === '/'
+    || url.pathname === '/index.html'
+    || url.pathname.endsWith('/index.vite.html')
+  ) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((r) => r || caches.match('/offline.html')))
+    );
     return;
   }
 
-  // Lecture « visite » : stale-while-revalidate (réponse immédiate + rafraîchissement réseau).
-  if (isStaleWhileRevalidateApi(url.pathname)) {
+  // Mode visite : stale-while-revalidate (contenu, cartes, progression)
+  if (isVisitReadApiPath(url.pathname)) {
     event.respondWith(staleWhileRevalidate(event.request));
     return;
   }
 
-  // Autres API cachées : network-first, repli cache silencieux.
-  if (isNetworkFirstApi(url.pathname)) {
-    event.respondWith(networkFirst(event.request));
+  // Stratégie network-first pour les autres API cachées ; fallback silencieux
+  if (API_CACHE_URLS.some((p) => url.pathname === p)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
     return;
   }
 
-  // Bundles hachés (/assets/*) : cache-first, ils ne changent jamais sous le même nom.
-  if (isHashedAsset(url.pathname)) {
-    event.respondWith(cacheFirst(event.request));
+  // Stratégie network-first pour JS/CSS afin d'éviter de servir des bundles obsolètes.
+  if (url.pathname.endsWith('.css') || url.pathname.endsWith('.js')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
     return;
   }
 
-  // JS/CSS non hachés : network-first pour ne jamais servir une version obsolète.
-  if (isScriptOrStyle(url.pathname)) {
-    event.respondWith(networkFirst(event.request));
-    return;
-  }
-
-  // Images, icônes, fontes : cache-first.
-  if (isImageOrFont(url.pathname)) {
-    event.respondWith(cacheFirst(event.request));
+  // Cache-first pour les assets statiques (images, fonts, icônes)
+  if (
+    url.pathname.endsWith('.png')
+    || url.pathname.endsWith('.jpg')
+    || url.pathname.endsWith('.jpeg')
+    || url.pathname.endsWith('.svg')
+    || url.pathname.endsWith('.ico')
+    || url.pathname.endsWith('.webp')
+    || url.pathname.endsWith('.woff2')
+    || url.pathname.endsWith('.woff')
+  ) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        });
+      })
+    );
   }
 });
