@@ -6,6 +6,7 @@ import {
 } from '../shared/platform/browserStorage.js';
 import { buildPlaceIndex, searchPlaces } from '../shared/search/placeSearch.js';
 import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
+import { useHeadingUpPreference } from '../shared/pct-map/useHeadingUpPreference.js';
 import { useBrandTheme } from '../shared/brand/useBrandTheme.js';
 import { PLAN_BRAND_DEFAULTS } from './utils/planBrand.js';
 import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
@@ -42,6 +43,8 @@ import {
 const CATEGORIES_STORAGE_KEY = 'plan:categories';
 /** Message d'accueil : montré une seule fois par appareil. */
 const WELCOME_STORAGE_KEY = 'plan:welcome-seen';
+/** Préférence appareil : carte orientée selon la boussole. */
+const HEADING_UP_STORAGE_KEY = 'plan:heading-up';
 /** Nombre de résultats affichés (au-delà, affiner la recherche est plus rapide que défiler). */
 const RESULTS_LIMIT = 40;
 
@@ -112,6 +115,12 @@ export function AppPlan() {
   const position = useMapPosition({
     georef: map?.geo_anchors || null,
     gpsEnabled: !!map?.gps_enabled,
+  });
+  const headingUpAllowed =
+    !!settings?.heading_up_enabled && !!map?.heading_up_enabled && !!position.available;
+  const headingUpPref = useHeadingUpPreference({
+    storageKey: HEADING_UP_STORAGE_KEY,
+    allowed: headingUpAllowed,
   });
   const [positionToast, setPositionToast] = useTimedToastState();
   /**
@@ -535,6 +544,14 @@ export function AppPlan() {
             onLocateToggle={() => {
               reportPlanUsage('locate', position.active ? 'off' : 'on');
               position.toggle();
+            }}
+            headingUpAllowed={headingUpAllowed}
+            headingUpEffective={headingUpPref.effective && position.active}
+            headingUpUserEnabled={headingUpPref.userEnabled}
+            onHeadingUpToggle={() => {
+              const next = !headingUpPref.userEnabled;
+              reportPlanUsage('heading_up', next ? 'on' : 'off');
+              headingUpPref.setEnabled(next);
             }}
             targetPct={targetPct}
             focusInsets={activeRoute ? { bottom: PLAN_ROUTE_BAR_FOCUS_INSET_PX } : null}

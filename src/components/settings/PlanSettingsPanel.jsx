@@ -12,6 +12,7 @@ const PLAN_KEYS = Object.freeze({
   defaultCategoryIds: 'ui.plan.default_category_ids',
   hiddenCategoryIds: 'ui.plan.hidden_category_ids',
   accessMode: 'ui.plan.access_mode',
+  headingUpEnabled: 'ui.plan.heading_up_enabled',
 });
 
 /**
@@ -195,6 +196,31 @@ export function PlanSettingsPanel({
           <option value="public">Public</option>
           <option value="code">Code d’accès</option>
         </select>
+      </label>
+
+      <label
+        className="field"
+        style={{ display: 'flex', gap: 8, alignItems: 'center' }}
+        data-testid="plan-heading-up-setting"
+      >
+        <input
+          type="checkbox"
+          checked={Boolean(get(PLAN_KEYS.headingUpEnabled, false))}
+          disabled={savingKey === PLAN_KEYS.headingUpEnabled}
+          onChange={(e) =>
+            saveSetting(
+              PLAN_KEYS.headingUpEnabled,
+              e.target.checked,
+              e.target.checked
+                ? 'Orientation boussole autorisée sur le Plan'
+                : 'Orientation boussole désactivée sur le Plan',
+            )
+          }
+        />
+        <span>
+          Autoriser l’orientation de la carte selon la boussole (bouton « Orienter »). Chaque carte
+          doit aussi l’autoriser dans son calage GPS.
+        </span>
       </label>
 
       <div className="field">

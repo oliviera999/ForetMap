@@ -255,6 +255,10 @@ boussole. Le point s'affiche désormais **même si la mascotte est masquée** : 
 mascotte sont deux choses différentes. Quand la mascotte est visible, elle continue de suivre
 la position comme avant.
 
+Si l'orientation boussole est autorisée (réglage Carte **et** case sur cette carte dans le
+calage GPS), le bouton **« Orienter »** fait tourner le plan pour aligner le regard vers le
+haut de l'écran. Chacun peut l'activer ou le couper ; le choix reste sur l'appareil.
+
 La position est calculée dans l'appareil et n'est jamais envoyée au serveur.
 
 ### Quand la carte devient trop chargée

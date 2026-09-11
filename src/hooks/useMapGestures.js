@@ -185,6 +185,8 @@ function useMapGestures({
     toggleInteraction,
     prefersPageScroll,
     touchAction,
+    setMapOrientation,
+    orientStyle,
   } = viewport;
 
   // Variable CSS de la barre d'outils retirée au démontage (comme avant).
@@ -250,6 +252,8 @@ function useMapGestures({
       updatePan,
       endPan,
       panByScreenDelta,
+      setMapOrientation,
+      orientStyle,
     }),
     [
       containerRef,
@@ -279,6 +283,8 @@ function useMapGestures({
       updatePan,
       endPan,
       panByScreenDelta,
+      setMapOrientation,
+      orientStyle,
     ],
   );
 }

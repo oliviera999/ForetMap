@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS maps (
   frame_padding_px INT UNSIGNED DEFAULT NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   geo_anchors_json LONGTEXT DEFAULT NULL,
-  gps_enabled TINYINT(1) NOT NULL DEFAULT 0
+  gps_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  heading_up_enabled TINYINT(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 INSERT IGNORE INTO maps (id, label, map_image_url, sort_order) VALUES
   ('foret', 'Forêt comestible', '/maps/map-foret.svg', 1),

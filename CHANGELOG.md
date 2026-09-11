@@ -7,6 +7,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Google : création de compte paramétrable (défaut non)
+
+- Réglage public `ui.auth.allow_google_auto_register` (**défaut `false`**) : à la
+  première connexion Google, un compte élève n’est créé que si l’admin l’autorise.
+- Sinon : redirection `oauth_account_not_found` (aucun compte créé) ; les comptes
+  déjà présents restent connectables via Google.
+
+### Ajouté — orientation carte selon la boussole (heading-up)
+
+- Bouton **Orienter** (Plan, carte ForetMap, Visite) : la carte tourne pour aligner le
+  regard vers le haut de l'écran ; bascule mémorisée sur l'appareil.
+- Autorisation en deux niveaux : réglage de surface (`ui.plan|map|visit.heading_up_enabled`)
+  **et** case par carte dans le calage GPS (`maps.heading_up_enabled`).
+- Noyau partagé : rotation intérieure + lissage du cap ; pan/zoom inchangés.
+
 ### Modifié — import comptes : mise à jour et MDP faibles paramétrables
 
 - Compte déjà présent (même prénom + nom + type) : **mis à jour** par défaut

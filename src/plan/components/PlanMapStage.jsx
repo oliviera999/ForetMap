@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
+import { headingUpOrientationDeg } from '../../shared/pct-map/pctMapOrientation.js';
+
 import { MapActionButton } from '../../shared/ui/MapActionButton.jsx';
 import { PctClusterLayer } from '../../shared/pct-map/PctClusterLayer.jsx';
 import { PctImageLayer } from '../../shared/pct-map/PctImageLayer.jsx';
@@ -85,6 +87,10 @@ export function PlanMapStage({
   targetPct = null,
   focusInsets = null,
   attribution = '',
+  headingUpAllowed = false,
+  headingUpEffective = false,
+  headingUpUserEnabled = false,
+  onHeadingUpToggle = null,
 }) {
   const imageSrc = String(map?.map_image_url || '');
   const viewport = usePctMapViewport({
@@ -110,6 +116,8 @@ export function PlanMapStage({
     focusOnPct,
     consumeSkipClick,
     touchAction,
+    setMapOrientation,
+    orientStyle,
   } = viewport;
 
   const onZoneClick = useCallback(
@@ -205,6 +213,27 @@ export function PlanMapStage({
     },
     [categoriesById],
   );
+
+  // Heading-up : rotation intérieure autour de la position (ou centre) ; pan/zoom inchangés.
+  const orientPivot = position?.displayPct || null;
+  useEffect(() => {
+    if (!headingUpEffective) {
+      setMapOrientation({ deg: 0, originPct: null });
+      return;
+    }
+    const heading = position?.smoothedScreenHeadingDeg ?? position?.screenHeadingDeg ?? null;
+    setMapOrientation({
+      deg: headingUpOrientationDeg(heading),
+      originPct: orientPivot,
+    });
+  }, [
+    headingUpEffective,
+    orientPivot?.xp,
+    orientPivot?.yp,
+    position?.smoothedScreenHeadingDeg,
+    position?.screenHeadingDeg,
+    setMapOrientation,
+  ]);
 
   // Suivi de position : la carte se recentre à chaque nouvelle position tant que l'état
   // « suivi » dure. Hors suivi, la position ne bouge jamais la vue.
@@ -345,7 +374,7 @@ export function PlanMapStage({
           transformOrigin: '0 0',
         }}
       >
-        <div className="plan-map__fit" style={fitStyle}>
+        <div className="plan-map__fit" style={{ ...fitStyle, ...orientStyle }}>
           <PctImageLayer
             ref={imgRef}
             src={imageSrc}
@@ -374,7 +403,7 @@ export function PlanMapStage({
             <PctPositionLayer
               position={position.displayPct}
               haloPx={accuracyHaloDiameterPx(position.haloPct, fitRect.width)}
-              headingDeg={position.screenHeadingDeg}
+              headingDeg={headingUpEffective ? null : position.screenHeadingDeg}
               accuracyM={position.accuracyM}
             />
           ) : null}
@@ -391,6 +420,24 @@ export function PlanMapStage({
             active={position.active}
             ariaPressed={position.active}
             onClick={onLocateToggle || position.toggle}
+          />
+        ) : null}
+        {headingUpAllowed && position?.available && position?.active ? (
+          <MapActionButton
+            role={headingUpEffective ? 'primary' : 'display'}
+            icon="🧭"
+            label={
+              !position.headingAvailable
+                ? 'Boussole indisponible'
+                : headingUpUserEnabled
+                  ? 'Désorienter la carte'
+                  : 'Orienter la carte selon la boussole'
+            }
+            testId="plan-heading-up"
+            active={headingUpEffective}
+            ariaPressed={headingUpEffective}
+            disabled={!position.headingAvailable}
+            onClick={onHeadingUpToggle}
           />
         ) : null}
         <MapActionButton
