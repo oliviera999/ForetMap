@@ -150,37 +150,16 @@ async function verifyGoogleIdToken({ idToken, audience }) {
   return ticket.getPayload() || null;
 }
 
+const { ensureTeacherAdminFromEnv } = require('../lib/teacherAdminSeed');
+
 let seedTeacherChecked = false;
 async function ensureTeacherSeedFromEnv() {
   if (seedTeacherChecked) return;
   seedTeacherChecked = true;
-  const email = normalizeEmail(process.env.TEACHER_ADMIN_EMAIL);
-  const password = normalizeOptionalString(process.env.TEACHER_ADMIN_PASSWORD);
-  const displayName = normalizeOptionalString(process.env.TEACHER_ADMIN_DISPLAY_NAME) || 'n3boss';
-  if (!email || !password || password.length < PASSWORD_RESET_MIN_LEN) return;
-
-  const existing = await queryOne(
-    "SELECT id FROM users WHERE user_type = 'teacher' AND email = ? LIMIT 1",
-    [email],
-  );
-  if (existing) return;
-
-  const hash = await bcrypt.hash(password, 10);
-  const now = nowIsoUtc();
-  try {
-    const teacherId = crypto.randomUUID();
-    await execute(
-      `INSERT INTO users
-        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
-       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
-      [teacherId, email, email.split('@')[0] || null, displayName, hash, now],
-    );
-    await ensurePrimaryRole('teacher', teacherId, 'admin');
-  } catch (err) {
-    if (!(err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY'))) {
-      throw err;
-    }
-  }
+  await ensureTeacherAdminFromEnv({
+    minPasswordLength: PASSWORD_RESET_MIN_LEN,
+    ensurePrimaryRole,
+  });
 }
 
 async function buildSessionPayload(userType, userId) {

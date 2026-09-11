@@ -7,6 +7,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — init schéma / semis admin de test
+
+- Migrations : errno **1022** (contrainte déjà présente) ignoré comme les autres
+  errnos d’idempotence.
+- `initSchema` refuse MySQL 5.7 / moteurs trop anciens (message vers Docker MariaDB).
+- Semis `TEACHER_ADMIN_*` factorisé (`lib/teacherAdminSeed.js`) et appliqué dans le
+  harnais de tests après chaque `initSchema` — les suites API ne dépendent plus d’un
+  compte déjà présent dans un dump local.
+- Import CSV : libellé colonne **Groupes** sans « ; » (sinon le délimiteur CSV
+  cassait les colonnes Pseudo/Email dans les fichiers collés à la main).
+- Rattachement à un groupe sans accès n3beur : ne rétrograde plus un profil
+  élève (novice/avancé/…) vers **visiteur**.
+
 ### Modifié — Prof de classe : interface type visiteur + suivi de classe
 
 - Navigation basse comme un **visiteur connecté** (Visite, Biodiversité, Quiz,
