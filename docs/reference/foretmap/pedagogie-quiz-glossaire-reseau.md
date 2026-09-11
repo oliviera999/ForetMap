@@ -81,8 +81,9 @@ d'observation** pour l'écriture naturaliste libre.
   liste des termes, une **pastille d'état** dit où en est l'élève (✓ acquis, ? en attente,
   🔒 bloqué).
 - **Fiche rapide en surimpression.** Partout où un terme du glossaire est cité et
-  cliquable — dans un tutoriel ouvert en lecture, sur une fiche plante ou dans le réseau
-  trophique — le clic ouvre une **petite fiche par-dessus l'écran en cours**. Une
+  cliquable — dans un tutoriel ouvert en lecture, sur une fiche plante, dans le réseau
+  trophique ou **dans les textes de la visite** — le clic ouvre une **petite fiche par-dessus
+  l'écran en cours**. Une
   exception : pendant une question de quiz non encore répondue, les termes ne sont pas
   cliquables (voir plus haut). L'élève lit la définition, puis referme : il retrouve exactement sa page et sa
   position de lecture. Il ne quitte plus son tutoriel pour consulter un mot.
@@ -91,7 +92,9 @@ d'observation** pour l'écriture naturaliste libre.
   voisins** y sont proposés en pastilles : les enchaîner fait défiler les définitions
   dans la fiche, sans jamais la fermer.
 - Un bouton **« Voir la fiche complète »** reste disponible pour basculer, cette fois
-  volontairement, sur l'onglet Glossaire et y explorer le terme en grand.
+  volontairement, sur l'onglet Glossaire et y explorer le terme en grand. En **visite
+  invitée**, où il n'y a pas d'onglet Glossaire, la fiche rapide s'ouvre quand même : elle
+  se lit seule, sans ce bouton.
 - La fiche se ferme par la croix, par le bouton Fermer, par la touche Échap ou par un
   clic à côté.
 - **La fiche rapide passe toujours devant ce qui l'a ouverte.** Ouverte depuis un quiz

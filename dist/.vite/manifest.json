@@ -8,17 +8,6 @@
       "_icons-DN-Q6DZk.js"
     ]
   },
-  "_DataContext-D079ZLOS.js": {
-    "file": "assets/DataContext-D079ZLOS.js",
-    "name": "DataContext",
-    "imports": [
-      "_rolldown-runtime-hePW80VL.js",
-      "_react-vendor-NSwws4_t.js",
-      "_icons-DN-Q6DZk.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
-      "_spriteCutCatalogEntry-BFohRCSh.js"
-    ]
-  },
   "_DataList-DyRwXVZg.js": {
     "file": "assets/DataList-DyRwXVZg.js",
     "name": "DataList",
@@ -60,8 +49,8 @@
       "_react-vendor-NSwws4_t.js"
     ]
   },
-  "_GLBrandColorEditor-C9xu8jun.js": {
-    "file": "assets/GLBrandColorEditor-C9xu8jun.js",
+  "_GLBrandColorEditor-ZwDf9r_r.js": {
+    "file": "assets/GLBrandColorEditor-ZwDf9r_r.js",
     "name": "GLBrandColorEditor",
     "imports": [
       "_rolldown-runtime-hePW80VL.js",
@@ -78,22 +67,22 @@
       "_DataList-DyRwXVZg.js"
     ]
   },
-  "_GatingPolicyEditor-yhLOj68L.js": {
-    "file": "assets/GatingPolicyEditor-yhLOj68L.js",
+  "_GatingPolicyEditor-B8wu5StZ.js": {
+    "file": "assets/GatingPolicyEditor-B8wu5StZ.js",
     "name": "GatingPolicyEditor",
     "imports": [
       "_rolldown-runtime-hePW80VL.js",
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
-      "_ImageLightboxProvider-DNz8dRzO.js"
+      "_ImageLightboxProvider-B_sXwxtW.js"
     ]
   },
-  "_GlossaryMarkdown-DjdnwySs.js": {
-    "file": "assets/GlossaryMarkdown-DjdnwySs.js",
+  "_GlossaryMarkdown-lYfBH-3_.js": {
+    "file": "assets/GlossaryMarkdown-lYfBH-3_.js",
     "name": "GlossaryMarkdown",
     "imports": [
       "_react-vendor-NSwws4_t.js",
-      "_ImageLightboxProvider-DNz8dRzO.js"
+      "_ImageLightboxProvider-B_sXwxtW.js"
     ]
   },
   "_HelpDock-B71Xr5QT.css": {
@@ -115,12 +104,8 @@
       "assets/HelpDock-B71Xr5QT.css"
     ]
   },
-  "_ImageLightboxProvider-CPh0j32G.css": {
-    "file": "assets/ImageLightboxProvider-CPh0j32G.css",
-    "src": "_ImageLightboxProvider-CPh0j32G.css"
-  },
-  "_ImageLightboxProvider-DNz8dRzO.js": {
-    "file": "assets/ImageLightboxProvider-DNz8dRzO.js",
+  "_ImageLightboxProvider-B_sXwxtW.js": {
+    "file": "assets/ImageLightboxProvider-B_sXwxtW.js",
     "name": "ImageLightboxProvider",
     "imports": [
       "_rolldown-runtime-hePW80VL.js",
@@ -135,26 +120,30 @@
       "assets/ImageLightboxProvider-CPh0j32G.css"
     ]
   },
-  "_LearningGatingLocksPanel-DFILSp5t.js": {
-    "file": "assets/LearningGatingLocksPanel-DFILSp5t.js",
+  "_ImageLightboxProvider-CPh0j32G.css": {
+    "file": "assets/ImageLightboxProvider-CPh0j32G.css",
+    "src": "_ImageLightboxProvider-CPh0j32G.css"
+  },
+  "_LearningGatingLocksPanel-GplTm1oO.js": {
+    "file": "assets/LearningGatingLocksPanel-GplTm1oO.js",
     "name": "LearningGatingLocksPanel",
     "imports": [
       "_rolldown-runtime-hePW80VL.js",
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "_FoodWebGraph-BYb4Dq3I.js"
     ]
   },
-  "_MarkdownTextarea-cGt7gqKh.js": {
-    "file": "assets/MarkdownTextarea-cGt7gqKh.js",
+  "_MarkdownTextarea-pfBfpMOr.js": {
+    "file": "assets/MarkdownTextarea-pfBfpMOr.js",
     "name": "MarkdownTextarea",
     "imports": [
       "_rolldown-runtime-hePW80VL.js",
       "_VisitMascotFallbackSvg-BdCFwf1s.js",
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
-      "_ImageLightboxProvider-DNz8dRzO.js"
+      "_ImageLightboxProvider-B_sXwxtW.js"
     ]
   },
   "_MascotPackArchiveImportDialog-yAW1gyBX.js": {
@@ -167,23 +156,23 @@
       "_icons-DN-Q6DZk.js"
     ]
   },
-  "_MascotPackWysiwygEditor-C3ZAEtEO.js": {
-    "file": "assets/MascotPackWysiwygEditor-C3ZAEtEO.js",
+  "_MascotPackWysiwygEditor-DbDY50P-.js": {
+    "file": "assets/MascotPackWysiwygEditor-DbDY50P-.js",
     "name": "MascotPackWysiwygEditor",
     "imports": [
       "_rolldown-runtime-hePW80VL.js",
       "_VisitMascotFallbackSvg-BdCFwf1s.js",
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
-      "_visitMascotPackExtras-BnZj7XaE.js",
+      "_visitMascotPackExtras-Ddxx502y.js",
       "_spriteCutCatalogEntry-BFohRCSh.js",
       "_mascotPack--x2Z653t.js",
       "_mascotPackEditorModel-B9L26S3a.js",
       "_mascotStateLabels-CgoGoYW0.js"
     ]
   },
-  "_MediaLibraryMenu-Dy37imz1.js": {
-    "file": "assets/MediaLibraryMenu-Dy37imz1.js",
+  "_MediaLibraryMenu-DFs_sGYK.js": {
+    "file": "assets/MediaLibraryMenu-DFs_sGYK.js",
     "name": "MediaLibraryMenu",
     "imports": [
       "_rolldown-runtime-hePW80VL.js",
@@ -191,11 +180,11 @@
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
       "_ErrorBoundary-XU2cJUND.js",
-      "_ImageLightboxProvider-DNz8dRzO.js"
+      "_ImageLightboxProvider-B_sXwxtW.js"
     ]
   },
-  "_PlantRangeGauge-Df569PiG.js": {
-    "file": "assets/PlantRangeGauge-Df569PiG.js",
+  "_PlantRangeGauge-BEXtwexY.js": {
+    "file": "assets/PlantRangeGauge-BEXtwexY.js",
     "name": "PlantRangeGauge",
     "imports": [
       "_react-vendor-NSwws4_t.js"
@@ -219,15 +208,15 @@
       "_icons-DN-Q6DZk.js"
     ]
   },
-  "_TourOverridesEditor-CoC4UMyH.js": {
-    "file": "assets/TourOverridesEditor-CoC4UMyH.js",
+  "_TourOverridesEditor-CvNrYRgs.js": {
+    "file": "assets/TourOverridesEditor-CvNrYRgs.js",
     "name": "TourOverridesEditor",
     "imports": [
       "_rolldown-runtime-hePW80VL.js",
       "_VisitMascotFallbackSvg-BdCFwf1s.js",
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
-      "_ImageLightboxProvider-DNz8dRzO.js"
+      "_ImageLightboxProvider-B_sXwxtW.js"
     ]
   },
   "_VisitMapMascotSpriteCut-B-CWNezi.js": {
@@ -256,6 +245,10 @@
     "imports": [
       "_VisitMascotFallbackSvg-BdCFwf1s.js"
     ]
+  },
+  "_biodivPlantForm-Cchglh68.js": {
+    "file": "assets/biodivPlantForm-Cchglh68.js",
+    "name": "biodivPlantForm"
   },
   "_downloadApiFile-ZU3sTPVx.js": {
     "file": "assets/downloadApiFile-ZU3sTPVx.js",
@@ -386,8 +379,20 @@
       "_ErrorBoundary-XU2cJUND.js"
     ]
   },
-  "_visitMascotPackExtras-BnZj7XaE.js": {
-    "file": "assets/visitMascotPackExtras-BnZj7XaE.js",
+  "_useGatingSummary-DHCZo49E.js": {
+    "file": "assets/useGatingSummary-DHCZo49E.js",
+    "name": "useGatingSummary",
+    "imports": [
+      "_ImageLightboxProvider-B_sXwxtW.js",
+      "_spriteCutCatalogEntry-BFohRCSh.js"
+    ]
+  },
+  "_visitMascotPackExtras-D_E8oAir.css": {
+    "file": "assets/visitMascotPackExtras-D_E8oAir.css",
+    "src": "_visitMascotPackExtras-D_E8oAir.css"
+  },
+  "_visitMascotPackExtras-Ddxx502y.js": {
+    "file": "assets/visitMascotPackExtras-Ddxx502y.js",
     "name": "visitMascotPackExtras",
     "imports": [
       "_rolldown-runtime-hePW80VL.js",
@@ -396,15 +401,11 @@
       "_mascotPack--x2Z653t.js"
     ],
     "css": [
-      "assets/visitMascotPackExtras-DD-s0AcO.css"
+      "assets/visitMascotPackExtras-D_E8oAir.css"
     ]
   },
-  "_visitMascotPackExtras-DD-s0AcO.css": {
-    "file": "assets/visitMascotPackExtras-DD-s0AcO.css",
-    "src": "_visitMascotPackExtras-DD-s0AcO.css"
-  },
   "gl.html": {
-    "file": "assets/gl-D91UUXwh.js",
+    "file": "assets/gl-DXWFExWw.js",
     "name": "gl",
     "src": "gl.html",
     "isEntry": true,
@@ -414,7 +415,7 @@
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
       "_ErrorBoundary-XU2cJUND.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "_spriteCutCatalogEntry-BFohRCSh.js",
       "_socket-io-D_2T_oRH.js",
       "_HelpDock-nB5250_a.js",
@@ -423,7 +424,7 @@
       "_Button-TXNlPuUo.js",
       "_FoodWebGraph-BYb4Dq3I.js",
       "_mascotBehaviorEngine-_n-MyI9l.js",
-      "_MediaLibraryMenu-Dy37imz1.js"
+      "_MediaLibraryMenu-DFs_sGYK.js"
     ],
     "dynamicImports": [
       "src/gl/components/GLHistoryView.jsx",
@@ -443,7 +444,7 @@
     ]
   },
   "index.vite.html": {
-    "file": "assets/main-CNIeYuAL.js",
+    "file": "assets/main-DJH_-ShG.js",
     "name": "main",
     "src": "index.vite.html",
     "isEntry": true,
@@ -453,13 +454,13 @@
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
       "_ErrorBoundary-XU2cJUND.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
-      "_visitMascotPackExtras-BnZj7XaE.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
+      "_visitMascotPackExtras-Ddxx502y.js",
       "_spriteCutCatalogEntry-BFohRCSh.js",
       "_socket-io-D_2T_oRH.js",
-      "_MarkdownTextarea-cGt7gqKh.js",
-      "_GlossaryMarkdown-DjdnwySs.js",
-      "_DataContext-D079ZLOS.js",
+      "_MarkdownTextarea-pfBfpMOr.js",
+      "_GlossaryMarkdown-lYfBH-3_.js",
+      "_useGatingSummary-DHCZo49E.js",
       "_PublicSettingsContext-D_o6wGyF.js",
       "_useBrandTheme-DzVQPnnT.js",
       "_downloadApiFile-ZU3sTPVx.js"
@@ -480,7 +481,7 @@
     ]
   },
   "mascot-pack-tool.html": {
-    "file": "assets/mascotPackTool-BraV_P_4.js",
+    "file": "assets/mascotPackTool-BCyv6v-W.js",
     "name": "mascotPackTool",
     "src": "mascot-pack-tool.html",
     "isEntry": true,
@@ -489,9 +490,9 @@
       "_VisitMascotFallbackSvg-BdCFwf1s.js",
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
-      "_visitMascotPackExtras-BnZj7XaE.js",
+      "_visitMascotPackExtras-Ddxx502y.js",
       "_mascotPackEditorModel-B9L26S3a.js",
-      "_MascotPackWysiwygEditor-C3ZAEtEO.js"
+      "_MascotPackWysiwygEditor-DbDY50P-.js"
     ]
   },
   "node_modules/@rive-app/canvas/rive.wasm": {
@@ -549,7 +550,7 @@
     ]
   },
   "src/components/VisitMascotPackManager.jsx": {
-    "file": "assets/VisitMascotPackManager-B2ZH9Gt0.js",
+    "file": "assets/VisitMascotPackManager-B6x-R64F.js",
     "name": "VisitMascotPackManager",
     "src": "src/components/VisitMascotPackManager.jsx",
     "isDynamicEntry": true,
@@ -558,20 +559,20 @@
       "_VisitMascotFallbackSvg-BdCFwf1s.js",
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
-      "_visitMascotPackExtras-BnZj7XaE.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
+      "_visitMascotPackExtras-Ddxx502y.js",
       "_spriteCutCatalogEntry-BFohRCSh.js",
       "_mascotPack--x2Z653t.js",
       "_downloadApiFile-ZU3sTPVx.js",
       "index.vite.html",
       "_mascotPackEditorModel-B9L26S3a.js",
-      "_MascotPackWysiwygEditor-C3ZAEtEO.js",
+      "_MascotPackWysiwygEditor-DbDY50P-.js",
       "_mascotStateLabels-CgoGoYW0.js",
       "_MascotPackArchiveImportDialog-yAW1gyBX.js"
     ]
   },
   "src/components/about-views.jsx": {
-    "file": "assets/about-views-Dm5VxA1Q.js",
+    "file": "assets/about-views-vHa1DxAH.js",
     "name": "about-views",
     "src": "src/components/about-views.jsx",
     "isDynamicEntry": true,
@@ -586,7 +587,7 @@
     ]
   },
   "src/components/audit-views.jsx": {
-    "file": "assets/audit-views-BbvfI1Iq.js",
+    "file": "assets/audit-views-CNE5M1TG.js",
     "name": "audit-views",
     "src": "src/components/audit-views.jsx",
     "isDynamicEntry": true,
@@ -599,8 +600,30 @@
       "index.vite.html"
     ]
   },
+  "src/components/biodiv/PlantCatalogPreview.jsx": {
+    "file": "assets/PlantCatalogPreview-DLFr8nO5.js",
+    "name": "PlantCatalogPreview",
+    "src": "src/components/biodiv/PlantCatalogPreview.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_VisitMascotFallbackSvg-BdCFwf1s.js",
+      "_react-vendor-NSwws4_t.js",
+      "_icons-DN-Q6DZk.js",
+      "_ErrorBoundary-XU2cJUND.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
+      "_spriteCutCatalogEntry-BFohRCSh.js",
+      "_MarkdownTextarea-pfBfpMOr.js",
+      "_GlossaryMarkdown-lYfBH-3_.js",
+      "_useGatingSummary-DHCZo49E.js",
+      "_PublicSettingsContext-D_o6wGyF.js",
+      "index.vite.html",
+      "_biodivPlantForm-Cchglh68.js",
+      "_PlantRangeGauge-BEXtwexY.js"
+    ]
+  },
   "src/components/foretmap-views.jsx": {
-    "file": "assets/foretmap-views-DZ2Nz2_j.js",
+    "file": "assets/foretmap-views-GLaic3Wv.js",
     "name": "foretmap-views",
     "src": "src/components/foretmap-views.jsx",
     "isDynamicEntry": true,
@@ -610,18 +633,18 @@
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
       "_ErrorBoundary-XU2cJUND.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "_spriteCutCatalogEntry-BFohRCSh.js",
-      "_MarkdownTextarea-cGt7gqKh.js",
-      "_GlossaryMarkdown-DjdnwySs.js",
-      "_DataContext-D079ZLOS.js",
+      "_MarkdownTextarea-pfBfpMOr.js",
+      "_useGatingSummary-DHCZo49E.js",
       "_PublicSettingsContext-D_o6wGyF.js",
       "index.vite.html",
-      "_PlantRangeGauge-Df569PiG.js"
+      "_biodivPlantForm-Cchglh68.js",
+      "src/components/biodiv/PlantCatalogPreview.jsx"
     ]
   },
   "src/components/forum-views.jsx": {
-    "file": "assets/forum-views-DQQPw6pG.js",
+    "file": "assets/forum-views-DhL6rlYG.js",
     "name": "forum-views",
     "src": "src/components/forum-views.jsx",
     "isDynamicEntry": true,
@@ -631,13 +654,13 @@
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
       "_spriteCutCatalogEntry-BFohRCSh.js",
-      "_MarkdownTextarea-cGt7gqKh.js",
+      "_MarkdownTextarea-pfBfpMOr.js",
       "_PublicSettingsContext-D_o6wGyF.js",
       "index.vite.html"
     ]
   },
   "src/components/media-library-views.jsx": {
-    "file": "assets/media-library-views-m80rFFJL.js",
+    "file": "assets/media-library-views-Dw1ZbFtW.js",
     "name": "media-library-views",
     "src": "src/components/media-library-views.jsx",
     "isDynamicEntry": true,
@@ -647,11 +670,11 @@
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
       "_spriteCutCatalogEntry-BFohRCSh.js",
-      "_MediaLibraryMenu-Dy37imz1.js"
+      "_MediaLibraryMenu-DFs_sGYK.js"
     ]
   },
   "src/components/pedago-views.jsx": {
-    "file": "assets/pedago-views-sfQNysvn.js",
+    "file": "assets/pedago-views-CwMCMRaq.js",
     "name": "pedago-views",
     "src": "src/components/pedago-views.jsx",
     "isDynamicEntry": true,
@@ -660,20 +683,20 @@
       "_VisitMascotFallbackSvg-BdCFwf1s.js",
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "_spriteCutCatalogEntry-BFohRCSh.js",
-      "_GlossaryMarkdown-DjdnwySs.js",
-      "_DataContext-D079ZLOS.js",
+      "_GlossaryMarkdown-lYfBH-3_.js",
+      "_useGatingSummary-DHCZo49E.js",
       "_downloadApiFile-ZU3sTPVx.js",
       "index.vite.html",
       "_FoodWebGraph-BYb4Dq3I.js",
-      "_PlantRangeGauge-Df569PiG.js",
-      "_LearningGatingLocksPanel-DFILSp5t.js",
-      "_GatingPolicyEditor-yhLOj68L.js"
+      "_PlantRangeGauge-BEXtwexY.js",
+      "_LearningGatingLocksPanel-GplTm1oO.js",
+      "_GatingPolicyEditor-B8wu5StZ.js"
     ]
   },
   "src/components/profiles-views.jsx": {
-    "file": "assets/profiles-views-Bod1Cvb4.js",
+    "file": "assets/profiles-views-Dx-0hOrl.js",
     "name": "profiles-views",
     "src": "src/components/profiles-views.jsx",
     "isDynamicEntry": true,
@@ -683,16 +706,16 @@
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
       "_ErrorBoundary-XU2cJUND.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "_spriteCutCatalogEntry-BFohRCSh.js",
-      "_MarkdownTextarea-cGt7gqKh.js",
+      "_MarkdownTextarea-pfBfpMOr.js",
       "_PublicSettingsContext-D_o6wGyF.js",
       "_downloadApiFile-ZU3sTPVx.js",
       "index.vite.html"
     ]
   },
   "src/components/settings-admin-views.jsx": {
-    "file": "assets/settings-admin-views-Bq3HOZMS.js",
+    "file": "assets/settings-admin-views-C7yFaeVY.js",
     "name": "settings-admin-views",
     "src": "src/components/settings-admin-views.jsx",
     "isDynamicEntry": true,
@@ -702,22 +725,22 @@
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
       "_ErrorBoundary-XU2cJUND.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "_spriteCutCatalogEntry-BFohRCSh.js",
       "_useBrandTheme-DzVQPnnT.js",
       "_downloadApiFile-ZU3sTPVx.js",
       "index.vite.html",
       "_mascotPackEditorModel-B9L26S3a.js",
       "_Button-TXNlPuUo.js",
-      "_MediaLibraryMenu-Dy37imz1.js",
+      "_MediaLibraryMenu-DFs_sGYK.js",
       "_placeSearch-BCSeYLu5.js",
-      "_GatingPolicyEditor-yhLOj68L.js",
+      "_GatingPolicyEditor-B8wu5StZ.js",
       "_DataList-DyRwXVZg.js",
-      "_TourOverridesEditor-CoC4UMyH.js"
+      "_TourOverridesEditor-CvNrYRgs.js"
     ]
   },
   "src/components/stats-views.jsx": {
-    "file": "assets/stats-views-Cvab9ANq.js",
+    "file": "assets/stats-views-CiEkixjZ.js",
     "name": "stats-views",
     "src": "src/components/stats-views.jsx",
     "isDynamicEntry": true,
@@ -726,16 +749,16 @@
       "_VisitMascotFallbackSvg-BdCFwf1s.js",
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "_spriteCutCatalogEntry-BFohRCSh.js",
-      "_MarkdownTextarea-cGt7gqKh.js",
+      "_MarkdownTextarea-pfBfpMOr.js",
       "_PublicSettingsContext-D_o6wGyF.js",
       "index.vite.html",
       "_StatsSummaryGrid-DrlH-b3p.js"
     ]
   },
   "src/components/tutorials-views.jsx": {
-    "file": "assets/tutorials-views-qlsiQ9ow.js",
+    "file": "assets/tutorials-views-Cq6kOt7s.js",
     "name": "tutorials-views",
     "src": "src/components/tutorials-views.jsx",
     "isDynamicEntry": true,
@@ -745,16 +768,16 @@
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
       "_ErrorBoundary-XU2cJUND.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "_spriteCutCatalogEntry-BFohRCSh.js",
-      "_MarkdownTextarea-cGt7gqKh.js",
-      "_DataContext-D079ZLOS.js",
+      "_MarkdownTextarea-pfBfpMOr.js",
+      "_useGatingSummary-DHCZo49E.js",
       "_PublicSettingsContext-D_o6wGyF.js",
       "index.vite.html"
     ]
   },
   "src/components/visit-views.jsx": {
-    "file": "assets/visit-views-t1yy4o9I.js",
+    "file": "assets/visit-views-BwY9NBB-.js",
     "name": "visit-views",
     "src": "src/components/visit-views.jsx",
     "isDynamicEntry": true,
@@ -764,19 +787,25 @@
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
       "_ErrorBoundary-XU2cJUND.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
-      "_visitMascotPackExtras-BnZj7XaE.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
+      "_visitMascotPackExtras-Ddxx502y.js",
       "_spriteCutCatalogEntry-BFohRCSh.js",
-      "_MarkdownTextarea-cGt7gqKh.js",
-      "_DataContext-D079ZLOS.js",
+      "_MarkdownTextarea-pfBfpMOr.js",
+      "_GlossaryMarkdown-lYfBH-3_.js",
+      "_useGatingSummary-DHCZo49E.js",
       "_PublicSettingsContext-D_o6wGyF.js",
       "_useBrandTheme-DzVQPnnT.js",
       "index.vite.html",
-      "_mascotBehaviorEngine-_n-MyI9l.js"
+      "_mascotBehaviorEngine-_n-MyI9l.js",
+      "_biodivPlantForm-Cchglh68.js"
+    ],
+    "dynamicImports": [
+      "index.vite.html",
+      "src/components/biodiv/PlantCatalogPreview.jsx"
     ]
   },
   "src/gl/components/GLContentsAdminView.jsx": {
-    "file": "assets/GLContentsAdminView-DXVvdAiG.js",
+    "file": "assets/GLContentsAdminView-Dy5WeXos.js",
     "name": "GLContentsAdminView",
     "src": "src/gl/components/GLContentsAdminView.jsx",
     "isDynamicEntry": true,
@@ -786,15 +815,15 @@
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
       "_ErrorBoundary-XU2cJUND.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
-      "_MarkdownTextarea-cGt7gqKh.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
+      "_MarkdownTextarea-pfBfpMOr.js",
       "_apiGL-Ca4mgcWz.js",
-      "_MediaLibraryMenu-Dy37imz1.js",
+      "_MediaLibraryMenu-DFs_sGYK.js",
       "gl.html",
-      "_LearningGatingLocksPanel-DFILSp5t.js",
-      "_GatingPolicyEditor-yhLOj68L.js",
-      "_TourOverridesEditor-CoC4UMyH.js",
-      "_GLBrandColorEditor-C9xu8jun.js",
+      "_LearningGatingLocksPanel-GplTm1oO.js",
+      "_GatingPolicyEditor-B8wu5StZ.js",
+      "_TourOverridesEditor-CvNrYRgs.js",
+      "_GLBrandColorEditor-ZwDf9r_r.js",
       "_downloadGlFile-D4-Hqt4H.js",
       "_GLBadge-DHarFj7F.js",
       "_GLDataList-HvNnBpgu.js"
@@ -804,7 +833,7 @@
     ]
   },
   "src/gl/components/GLForumView.jsx": {
-    "file": "assets/GLForumView-CTpsB4wc.js",
+    "file": "assets/GLForumView-QPCm469d.js",
     "name": "GLForumView",
     "src": "src/gl/components/GLForumView.jsx",
     "isDynamicEntry": true,
@@ -817,7 +846,7 @@
     ]
   },
   "src/gl/components/GLGameMasterConsole.jsx": {
-    "file": "assets/GLGameMasterConsole-BKYl3C2A.js",
+    "file": "assets/GLGameMasterConsole-DonhqFCv.js",
     "name": "GLGameMasterConsole",
     "src": "src/gl/components/GLGameMasterConsole.jsx",
     "isDynamicEntry": true,
@@ -826,7 +855,7 @@
       "_VisitMascotFallbackSvg-BdCFwf1s.js",
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "_spriteCutCatalogEntry-BFohRCSh.js",
       "_apiGL-Ca4mgcWz.js",
       "gl.html",
@@ -843,7 +872,7 @@
     ]
   },
   "src/gl/components/GLHistoryView.jsx": {
-    "file": "assets/GLHistoryView-DtIBDaLJ.js",
+    "file": "assets/GLHistoryView-3mOHmZ_-.js",
     "name": "GLHistoryView",
     "src": "src/gl/components/GLHistoryView.jsx",
     "isDynamicEntry": true,
@@ -855,7 +884,7 @@
     ]
   },
   "src/gl/components/GLJournalView.jsx": {
-    "file": "assets/GLJournalView-B8fJuidb.js",
+    "file": "assets/GLJournalView-CJWJZSCn.js",
     "name": "GLJournalView",
     "src": "src/gl/components/GLJournalView.jsx",
     "isDynamicEntry": true,
@@ -863,13 +892,13 @@
       "_rolldown-runtime-hePW80VL.js",
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "_apiGL-Ca4mgcWz.js",
       "gl.html"
     ]
   },
   "src/gl/components/GLMarketView.jsx": {
-    "file": "assets/GLMarketView-CRKFaJes.js",
+    "file": "assets/GLMarketView-BOKlxQ8s.js",
     "name": "GLMarketView",
     "src": "src/gl/components/GLMarketView.jsx",
     "isDynamicEntry": true,
@@ -877,13 +906,13 @@
       "_rolldown-runtime-hePW80VL.js",
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "_apiGL-Ca4mgcWz.js",
       "gl.html"
     ]
   },
   "src/gl/components/GLMascotsAdminView.jsx": {
-    "file": "assets/GLMascotsAdminView-CE5vlC8H.js",
+    "file": "assets/GLMascotsAdminView-DkzTkSoR.js",
     "name": "GLMascotsAdminView",
     "src": "src/gl/components/GLMascotsAdminView.jsx",
     "isDynamicEntry": true,
@@ -892,7 +921,7 @@
       "_VisitMascotFallbackSvg-BdCFwf1s.js",
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "_spriteCutCatalogEntry-BFohRCSh.js",
       "_mascotPack--x2Z653t.js",
       "_downloadApiFile-ZU3sTPVx.js",
@@ -907,7 +936,7 @@
     ]
   },
   "src/gl/components/GLPlayerJournalView.jsx": {
-    "file": "assets/GLPlayerJournalView-3ZQOGYeD.js",
+    "file": "assets/GLPlayerJournalView-B36Gbhnc.js",
     "name": "GLPlayerJournalView",
     "src": "src/gl/components/GLPlayerJournalView.jsx",
     "isDynamicEntry": true,
@@ -917,13 +946,13 @@
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
       "_ErrorBoundary-XU2cJUND.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "_apiGL-Ca4mgcWz.js",
       "gl.html"
     ]
   },
   "src/gl/components/GLSettingsView.jsx": {
-    "file": "assets/GLSettingsView-CN5HMwgB.js",
+    "file": "assets/GLSettingsView-Dj3-nmev.js",
     "name": "GLSettingsView",
     "src": "src/gl/components/GLSettingsView.jsx",
     "isDynamicEntry": true,
@@ -932,18 +961,18 @@
       "_VisitMascotFallbackSvg-BdCFwf1s.js",
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "_apiGL-Ca4mgcWz.js",
       "gl.html",
-      "_GatingPolicyEditor-yhLOj68L.js",
-      "_GLBrandColorEditor-C9xu8jun.js"
+      "_GatingPolicyEditor-B8wu5StZ.js",
+      "_GLBrandColorEditor-ZwDf9r_r.js"
     ],
     "css": [
       "assets/gl-admin-CwZdZR30.css"
     ]
   },
   "src/gl/components/GLTutorialsView.jsx": {
-    "file": "assets/GLTutorialsView-Ct-cqRGX.js",
+    "file": "assets/GLTutorialsView-CmQztyqX.js",
     "name": "GLTutorialsView",
     "src": "src/gl/components/GLTutorialsView.jsx",
     "isDynamicEntry": true,
@@ -952,13 +981,13 @@
       "_VisitMascotFallbackSvg-BdCFwf1s.js",
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "_apiGL-Ca4mgcWz.js",
       "gl.html"
     ]
   },
   "src/gl/components/GLUsersAdminView.jsx": {
-    "file": "assets/GLUsersAdminView-DDQTpgei.js",
+    "file": "assets/GLUsersAdminView-E9Qdc_iX.js",
     "name": "GLUsersAdminView",
     "src": "src/gl/components/GLUsersAdminView.jsx",
     "isDynamicEntry": true,
@@ -967,7 +996,7 @@
       "_VisitMascotFallbackSvg-BdCFwf1s.js",
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "_apiGL-Ca4mgcWz.js",
       "gl.html",
       "_downloadGlFile-D4-Hqt4H.js",
@@ -980,20 +1009,20 @@
     ]
   },
   "src/gl/components/mj/GLGameMasterConsoleActiveGameBanner.jsx": {
-    "file": "assets/GLGameMasterConsoleActiveGameBanner-BwiDVUAe.js",
+    "file": "assets/GLGameMasterConsoleActiveGameBanner-BKw1P5Hq.js",
     "name": "GLGameMasterConsoleActiveGameBanner",
     "src": "src/gl/components/mj/GLGameMasterConsoleActiveGameBanner.jsx",
     "isDynamicEntry": true,
     "imports": [
       "_react-vendor-NSwws4_t.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "gl.html",
       "_GLBadge-DHarFj7F.js",
       "src/gl/components/GLGameMasterConsole.jsx"
     ]
   },
   "src/gl/components/mj/GLGameMasterConsoleLive.jsx": {
-    "file": "assets/GLGameMasterConsoleLive-DdlfhB9O.js",
+    "file": "assets/GLGameMasterConsoleLive-Bpkxxa7m.js",
     "name": "GLGameMasterConsoleLive",
     "src": "src/gl/components/mj/GLGameMasterConsoleLive.jsx",
     "isDynamicEntry": true,
@@ -1003,7 +1032,7 @@
     ]
   },
   "src/gl/components/mj/GLGameMasterConsoleParties.jsx": {
-    "file": "assets/GLGameMasterConsoleParties-HIRyCki7.js",
+    "file": "assets/GLGameMasterConsoleParties-4EvytX5c.js",
     "name": "GLGameMasterConsoleParties",
     "src": "src/gl/components/mj/GLGameMasterConsoleParties.jsx",
     "isDynamicEntry": true,
@@ -1014,7 +1043,7 @@
     ]
   },
   "src/gl/components/mj/GLGameMasterConsoleTeams.jsx": {
-    "file": "assets/GLGameMasterConsoleTeams-CpfAVofm.js",
+    "file": "assets/GLGameMasterConsoleTeams-B8seOhaz.js",
     "name": "GLGameMasterConsoleTeams",
     "src": "src/gl/components/mj/GLGameMasterConsoleTeams.jsx",
     "isDynamicEntry": true,
@@ -1023,7 +1052,7 @@
       "_VisitMascotFallbackSvg-BdCFwf1s.js",
       "_react-vendor-NSwws4_t.js",
       "_icons-DN-Q6DZk.js",
-      "_ImageLightboxProvider-DNz8dRzO.js",
+      "_ImageLightboxProvider-B_sXwxtW.js",
       "_apiGL-Ca4mgcWz.js",
       "gl.html",
       "_GLDataList-HvNnBpgu.js",
