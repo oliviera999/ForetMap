@@ -268,9 +268,9 @@ Réglage admin associé : `gl.classes.team_templates` (json, portée admin) — 
 | GET | `/api/gl/spell-cast-settings` | — | Auth GL (snapshot module + modes) |
 | POST | `/api/gl/games/:id/actions` | `{ actionType, payload }` | `gl.action.request` (joueur) (refus `409` si toggle off ; mode classique : pas de blocage « tour de l'équipe ») |
 | POST | `/api/gl/games/:id/actions/:actionId/resolve` | `{ decision: "accepted"\|"refused", scoreDelta?, reason? }` | `gl.game.manage` |
-| POST | `/api/gl/games/:id/start` | — | `gl.game.manage` |
-| POST | `/api/gl/games/:id/pause` | — | `gl.game.manage` |
-| POST | `/api/gl/games/:id/end` | — | `gl.game.manage` |
+| POST | `/api/gl/games/:id/start` | — | `gl.game.manage` — `draft` ou `paused` → `live`. **409** sinon. En parcours numéroté, les équipes ne sont placées sur la case départ **que** depuis un brouillon (une reprise après pause conserve les positions). |
+| POST | `/api/gl/games/:id/pause` | — | `gl.game.manage` — `live` → `paused`. **409** sinon. |
+| POST | `/api/gl/games/:id/end` | — | `gl.game.manage` — `live` ou `paused` → `ended`. **409** sinon. |
 | DELETE | `/api/gl/games/:id` | — | `gl.game.manage` (autorisé uniquement pour `draft` / `ended`) |
 | GET | `/api/gl/mascots` | `?gameId=` optionnel (renvoie aussi `assignments`) | Auth GL (joueur ou admin) ; catalogue unifié (`source: "gl"` + `source: "foretmap"`) |
 | POST | `/api/gl/mascots/assign` | `{ gameId, teamId, mascotId }` | `gl.team.manage` (refus `404` mascotte inconnue, refus `409` mascotte déjà utilisée par une autre équipe de la même partie) |

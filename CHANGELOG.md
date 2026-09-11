@@ -40,6 +40,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   système sont annulées au redémarrage (semis `INSERT IGNORE`), et l'interface lit les
   permissions dans le JWT sans jamais les rafraîchir (le serveur, lui, applique la bonne
   règle). Indexé dans `docs/audits/README.md`.
+### Corrigé — reprise GL après pause : plus de téléport à la case départ
+
+- **`POST /api/gl/games/:id/start`** : en parcours numéroté, les équipes n’étaient
+  replacées sur la case départ qu’au premier démarrage (brouillon). Une reprise après
+  **pause** — le bouton « Démarrer » du bandeau MJ — conservait le statut `live` mais
+  **téléportait toutes les mascottes** au départ et effaçait la progression du plateau.
+  Les transitions hors cycle (démarrer une partie déjà en cours, mettre en pause un
+  brouillon…) répondent désormais **409**.
 
 ### Corrigé — CI après les lots pédago et cartes
 
