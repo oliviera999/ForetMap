@@ -17,7 +17,9 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   élève, d'un professeur ou d'un administrateur.
 - **L'inscription des élèves est autonome** : prénom, nom, mot de passe (pseudo,
   e-mail, description et affiliation optionnels). Un administrateur peut désactiver
-  l'inscription libre dans les réglages.
+  l'inscription libre dans les réglages. Le **pseudo** accepte les lettres (y compris
+  accentuées), les chiffres et les signes `.` `_` `-` `+` (ex. `prenom.nom`) ; pas
+  d'espace ni de `@`.
 - **Le code de classe** : à l'inscription, l'élève peut saisir le code fourni par son
   professeur. Bon code → son compte rejoint directement le groupe et reçoit le rôle
   d'élève. Code erroné → l'inscription est refusée avec un message clair (aucun compte

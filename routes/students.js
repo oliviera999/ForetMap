@@ -22,6 +22,7 @@ const {
   MAX_DESCRIPTION_LEN,
   MAX_IMPORT_ROWS,
   PSEUDO_RE,
+  PSEUDO_INVALID_MSG,
   EMAIL_RE,
   TEMPLATE_COLUMNS,
   asTrimmedString,
@@ -428,9 +429,7 @@ router.post(
         .json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
     }
     if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
-      return res
-        .status(400)
-        .json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
+      return res.status(400).json({ error: PSEUDO_INVALID_MSG });
     }
     if (email != null && !EMAIL_RE.test(email)) {
       return res.status(400).json({ error: 'Email invalide' });
@@ -598,9 +597,7 @@ router.patch(
     const visitMascotCatalogId = mascotRes.value;
 
     if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
-      return res
-        .status(400)
-        .json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
+      return res.status(400).json({ error: PSEUDO_INVALID_MSG });
     }
     if (email != null && !EMAIL_RE.test(email)) {
       return res.status(400).json({ error: 'Email invalide' });

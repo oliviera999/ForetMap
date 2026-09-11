@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — pseudos : points, accents et signes autorisés
+
+- Pseudo utilisateur : lettres (y compris accentuées), chiffres, `.` `_` `-` `+`
+  (3–50 caractères) ; inscription, profil, import et admin. Les espaces et `@`
+  restent refusés.
+- Sync Moodle : le username (ex. `prenom.nom`) conserve ses points au lieu d’être
+  transformé en tirets.
+
 ### Modifié — Accueil OLU : une fois par compte
 
 - L'accueil d'OLU (et les parcours de visite guidée d'onglets) est mémorisé **sur le

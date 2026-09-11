@@ -61,6 +61,7 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
       ].sort(),
     );
     assert.ok(PSEUDO_RE.test('pseudo_ok-1'));
+    assert.ok(PSEUDO_RE.test('jean.dupont'));
     assert.ok(!PSEUDO_RE.test('ab'));
     assert.ok(EMAIL_RE.test('a@b.fr'));
     assert.ok(!EMAIL_RE.test('a b@c.fr'));
