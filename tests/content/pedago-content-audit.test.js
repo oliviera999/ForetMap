@@ -12,7 +12,7 @@ const {
   isolatedMatrixNotions,
   countResourcesWithoutGating,
   analyzePedagoSnapshot,
-} = require('../lib/pedagoContentAudit');
+} = require('../../lib/pedagoContentAudit');
 
 test('isProbableGenusName — un mot capitalisé sans sp.', () => {
   assert.strictEqual(isProbableGenusName('Tamarix'), true);

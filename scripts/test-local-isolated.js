@@ -8,12 +8,25 @@ const { spawnSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '..');
 const TESTS_DIR = path.join(ROOT, 'tests');
 
-function listTestFiles() {
+// `tests/content/` porte les assertions sur le corpus pédagogique (cf. `npm run test:content`).
+// Elles sont hors du glob `tests/*.test.js` pour que leur dérive ne bloque plus la suite de
+// code, mais l'exécution isolée locale doit rester exhaustive : on lit les deux dossiers.
+const CONTENT_DIR = path.join(TESTS_DIR, 'content');
+
+function listTestFilesIn(dir, prefix) {
+  if (!fs.existsSync(dir)) return [];
   return fs
-    .readdirSync(TESTS_DIR)
+    .readdirSync(dir)
     .filter((name) => name.endsWith('.test.js'))
     .sort((a, b) => a.localeCompare(b))
-    .map((name) => path.join('tests', name));
+    .map((name) => path.join(prefix, name));
+}
+
+function listTestFiles() {
+  return [
+    ...listTestFilesIn(TESTS_DIR, 'tests'),
+    ...listTestFilesIn(CONTENT_DIR, path.join('tests', 'content')),
+  ];
 }
 
 function runNode(args, env) {
