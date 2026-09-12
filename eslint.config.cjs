@@ -122,6 +122,7 @@ module.exports = [
       'tests/visit-editorial-blocks.test.js',
       'tests/profiles-user-list-filters.test.js',
       'tests/groups-admin-list-filters.test.js',
+      'tests/map-route-steps.test.js',
     ],
     languageOptions: {
       ecmaVersion: 2022,

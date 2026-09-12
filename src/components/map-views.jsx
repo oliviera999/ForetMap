@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 
 import { api } from '../services/api';
-
+import { MapRoutePicker } from '../shared/map-routes/MapRoutePicker.jsx';
+import { MapRouteBar } from '../shared/map-routes/MapRouteBar.jsx';
+import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
+import { placesFromZonesAndMarkers } from '../shared/map-routes/mapRouteSteps.js';
 import { MARKER_EMOJIS, parseEmojiListSetting } from '../constants/emojis';
 
 import {
@@ -34,6 +37,7 @@ import {
 import useMapViewMascot from '../hooks/useMapViewMascot.js';
 import useZoneDrawing from '../hooks/useZoneDrawing.js';
 import useZoneEditPoints from '../hooks/useZoneEditPoints.js';
+import useZoneAlignMode from '../hooks/useZoneAlignMode.js';
 import useMapCrudActions from '../hooks/useMapCrudActions.js';
 import { MascotGpsStatusBanner } from './MascotGpsStatusBanner.jsx';
 import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
@@ -55,8 +59,13 @@ import {
 import { ZonePolygonsLayer, parseZonesForLayer } from './map/ZonePolygonsLayer.jsx';
 import { DrawingLayer } from './map/DrawingLayer.jsx';
 import { EditPointsLayer } from './map/EditPointsLayer.jsx';
+import { AlignZonesPreviewLayer } from './map/AlignZonesPreviewLayer.jsx';
 import useMapImageEdgeSnap from '../hooks/useMapImageEdgeSnap.js';
 import { EDGE_SNAP_DEFAULTS, sensitivityToMinStrength } from '../utils/edgeSnap.js';
+import {
+  NEIGHBOR_SNAP_DEFAULT_RADIUS_PCT,
+  normalizeNeighborZones,
+} from '../utils/zoneNeighborSnap.js';
 import { ZoneDrawModal } from './map/ZoneDrawModal.jsx';
 import { PhotoGallery } from './map/PhotoGallery.jsx';
 import { LocationTutorialPreviewList } from './map/mapModalShared.jsx';
@@ -81,6 +90,9 @@ import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { resolveMapCanvasHint } from '../utils/helpResolve.js';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
+
+/** Carte vide stable : pastilles tutoriel désactivées sans recréer un `Map` à chaque rendu. */
+const EMPTY_TUTORIAL_COUNT_BY_ID = new Map();
 
 /**
  * Bulle repère mémoïsée : évite le re-render de chaque bulle à chaque rendu de la carte.
@@ -190,9 +202,17 @@ function MapViewImpl({
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [pendingZone, setPendingZone] = useState(null);
   const [pendingMarker, setPendingMarker] = useState(null);
+  const [neighborSnapEnabled, setNeighborSnapEnabled] = useState(false);
+  const allNeighborZones = useMemo(() => normalizeNeighborZones(zones), [zones]);
   // Tracé de zone (mode draw-zone) : points cliqués + actions barre d'outils.
   const { drawPoints, addDrawPoint, resetDrawPoints, finishZone, undoPoint, cancelDraw } =
-    useZoneDrawing({ setMode, setPendingZone });
+    useZoneDrawing({
+      setMode,
+      setPendingZone,
+      neighborSnapEnabled,
+      neighborZones: allNeighborZones,
+      neighborSnapRadiusPct: NEIGHBOR_SNAP_DEFAULT_RADIUS_PCT,
+    });
   const [toast, setToast] = useState(null);
   const [mapTutorialPreview, setMapTutorialPreview] = useState(null);
   const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
@@ -223,6 +243,33 @@ function MapViewImpl({
   const mapMarkersOnActiveMap = useMemo(
     () => (markers || []).filter((m) => m.map_id === activeMapId),
     [markers, activeMapId],
+  );
+  const mapZonesOnActiveMap = useMemo(
+    () => (zones || []).filter((z) => z.map_id === activeMapId),
+    [zones, activeMapId],
+  );
+  const [mapRoutes, setMapRoutes] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    const mid = String(activeMapId || '').trim();
+    if (!mid) {
+      setMapRoutes([]);
+      return undefined;
+    }
+    api(`/api/map-routes?map_id=${encodeURIComponent(mid)}&surface=map`)
+      .then((rows) => {
+        if (!cancelled) setMapRoutes(Array.isArray(rows) ? rows : []);
+      })
+      .catch(() => {
+        if (!cancelled) setMapRoutes([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeMapId]);
+  const routePlaces = useMemo(
+    () => placesFromZonesAndMarkers(mapZonesOnActiveMap, mapMarkersOnActiveMap),
+    [mapZonesOnActiveMap, mapMarkersOnActiveMap],
   );
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const emojiParsingList = useMemo(
@@ -274,6 +321,52 @@ function MapViewImpl({
     mapLayoutOuterRef,
     mapFullscreen,
   });
+
+  const onRouteStepPlace = useCallback(
+    (entry) => {
+      if (!entry?.place) return;
+      const place = entry.place;
+      if (place.kind === 'zone') {
+        setSelectedMarker(null);
+        setSelectedZone(place);
+        const pct = zoneFocusPctFromPoints(place.points);
+        if (pct) focusOnPct(pct);
+      } else {
+        setSelectedZone(null);
+        setSelectedMarker(place);
+        focusOnPct(markerFocusPct(place));
+      }
+    },
+    [focusOnPct],
+  );
+  const onRouteExitExtra = useCallback(() => {
+    setSelectedZone(null);
+    setSelectedMarker(null);
+  }, []);
+  const {
+    activeRoute,
+    routeSteps,
+    routeIndex,
+    routePickerOpen,
+    setRoutePickerOpen,
+    resumableRouteSlug,
+    startRoute,
+    exitRoute,
+    resumeRoute,
+    goToRouteIndex,
+    resetForMapChange,
+  } = useMapRouteMode({
+    routes: mapRoutes,
+    places: routePlaces,
+    onStepPlace: onRouteStepPlace,
+    onExitExtra: onRouteExitExtra,
+  });
+  useEffect(() => {
+    resetForMapChange();
+  }, [activeMapId, resetForMapChange]);
+  useEffect(() => {
+    if (mode !== 'view' && activeRoute) exitRoute();
+  }, [mode, activeRoute, exitRoute]);
   const { s: cs } = committed;
   const { w: iw, h: ih } = imgSize;
   const inv = 1 / cs;
@@ -329,6 +422,9 @@ function MapViewImpl({
     snapPoint: edgeSnap.snapPoint,
     snapRadiusPct,
     snapMinStrength: sensitivityToMinStrength(snapSensitivity),
+    neighborSnapEnabled,
+    neighborZones: allNeighborZones,
+    neighborSnapRadiusPct: NEIGHBOR_SNAP_DEFAULT_RADIUS_PCT,
     edgeTolerancePct,
     mapScaleInv: inv,
     mapImgW: iw,
@@ -338,6 +434,27 @@ function MapViewImpl({
     onBackgroundPanMove: updatePan,
     onBackgroundPanEnd: endPan,
   });
+
+  const {
+    alignSelectedIds,
+    alignPreview,
+    alignSaving,
+    alignSelectedCount,
+    enterAlignMode,
+    exitAlignMode,
+    toggleAlignZoneId,
+    computeAlignPreview,
+    discardAlignPreview,
+    applyAlignPreview,
+    clearAlignSession,
+  } = useZoneAlignMode({
+    mode,
+    setMode,
+    zones,
+    onRefresh,
+    setToast,
+  });
+
   const {
     mascotId: mapMascotId,
     showMascot: showMapMascot,
@@ -497,8 +614,15 @@ function MapViewImpl({
     setMarkerPositionUnlocked(false);
     setMapLocationFilters({ ...MAP_LOCATION_FILTER_DEFAULTS });
     discardEditPointsSession();
+    clearAlignSession();
     resetMapMascotMotion?.();
-  }, [activeMapId, resetMapMascotMotion, resetDrawPoints, discardEditPointsSession]);
+  }, [
+    activeMapId,
+    resetMapMascotMotion,
+    resetDrawPoints,
+    discardEditPointsSession,
+    clearAlignSession,
+  ]);
 
   const onMapClick = (e) => {
     if (moved.current) return;
@@ -571,6 +695,8 @@ function MapViewImpl({
   } = useMapOverlayTextSizePreference();
   const mapSettings =
     publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
+  /** Pastilles violettes tutoriel : OFF par défaut (`ui.map.show_tutorial_dots`). */
+  const showTutorialDots = !!mapSettings?.show_tutorial_dots;
   const mapCanvasHintTexts = useMemo(
     () => ({
       drawZoneMin: resolveMapCanvasHint('drawZoneMin', publicSettings),
@@ -757,13 +883,19 @@ function MapViewImpl({
 
   const openZoneFromMap = useCallback(
     (z, e) => {
-      if (mode === 'view' && !moved.current) {
+      if (moved.current) return;
+      if (mode === 'align-zones') {
+        e.stopPropagation();
+        toggleAlignZoneId(z.id);
+        return;
+      }
+      if (mode === 'view') {
         e.stopPropagation();
         if (showMapMascot) onMapMascotZoneClick(z, setSelectedZone);
         else setSelectedZone(z);
       }
     },
-    [mode, moved, showMapMascot, onMapMascotZoneClick],
+    [mode, moved, showMapMascot, onMapMascotZoneClick, toggleAlignZoneId],
   );
 
   const openMarkerFromMap = useCallback(
@@ -809,7 +941,9 @@ function MapViewImpl({
         ? 'crosshair'
         : mode === 'edit-points'
           ? 'default'
-          : 'cell';
+          : mode === 'align-zones'
+            ? 'pointer'
+            : 'cell';
   const mobileInteractionsActive = mapInteractionEnabled || committed.s > 1.05;
   const canManageMarkerPositions = !!isTeacher;
 
@@ -985,6 +1119,7 @@ function MapViewImpl({
             if (m === 'view') {
               resetDrawPoints();
               discardEditPointsSession();
+              clearAlignSession();
             }
           }}
           onFinishZone={finishZone}
@@ -1010,13 +1145,28 @@ function MapViewImpl({
           snapSensitivity={snapSensitivity}
           onSnapSensitivityChange={setSnapSensitivity}
           onSnapSelectedPoints={() => {
-            const moved = snapSelectedPoints();
+            const movedCount = snapSelectedPoints();
             setToast(
-              moved > 0
-                ? `${moved} sommet${moved > 1 ? 's' : ''} collé${moved > 1 ? 's' : ''} au contour`
+              movedCount > 0
+                ? `${movedCount} sommet${movedCount > 1 ? 's' : ''} collé${movedCount > 1 ? 's' : ''} au contour`
                 : 'Aucun contour trouvé à proximité',
             );
           }}
+          neighborSnapEnabled={neighborSnapEnabled}
+          onToggleNeighborSnap={() => setNeighborSnapEnabled((v) => !v)}
+          alignSelectedCount={alignSelectedCount}
+          alignHasPreview={Boolean(alignPreview?.aligned?.length)}
+          alignSaving={alignSaving}
+          onEnterAlignMode={() => {
+            resetDrawPoints();
+            discardEditPointsSession();
+            setSelectedZone(null);
+            enterAlignMode();
+          }}
+          onExitAlignMode={exitAlignMode}
+          onComputeAlignPreview={computeAlignPreview}
+          onDiscardAlignPreview={discardAlignPreview}
+          onApplyAlignPreview={applyAlignPreview}
           onUndoEditPoints={undoEditPoints}
           onSaveEditPoints={saveEditPoints}
           onExitEditPoints={() => {
@@ -1041,6 +1191,16 @@ function MapViewImpl({
           fitMap={fitMap}
           animateZoomTowardScale={animateZoomTowardScale}
           onOpenFullscreen={openMapFullscreen}
+          routesSlot={
+            mode === 'view' ? (
+              <MapRoutePicker
+                routes={mapRoutes}
+                open={routePickerOpen}
+                onToggle={setRoutePickerOpen}
+                onStart={startRoute}
+              />
+            ) : null
+          }
         />
       ) : null}
 
@@ -1146,15 +1306,25 @@ function MapViewImpl({
                         mode={mode}
                         showLabels={showLabels}
                         editZoneId={editZone?.id ?? null}
+                        selectedZoneId={selectedZone?.id ?? null}
+                        alignSelectedIds={mode === 'align-zones' ? alignSelectedIds : null}
                         dimmedZoneIds={dimmedZoneIds}
                         zoneTaskVisualById={zoneTaskVisualById}
-                        zoneTutorialCountById={zoneTutorialCountById}
+                        zoneTutorialCountById={
+                          showTutorialDots ? zoneTutorialCountById : EMPTY_TUTORIAL_COUNT_BY_ID
+                        }
                         emojiFontPx={mapEmojiFontPx}
                         labelFontPx={mapLabelFontPx}
                         emojiLabelCenterGap={mapEmojiLabelCenterGap}
                         minSideFactor={mapOverlayLabelLayout.minSideFactor}
                         labelMaxWorldLength={mapOverlayLabelLayout.maxWorldLength}
                         onZoneOpen={openZoneFromMap}
+                      />
+                      <AlignZonesPreviewLayer
+                        aligned={alignPreview?.aligned}
+                        iw={iw}
+                        ih={ih}
+                        inv={inv}
                       />
                       <DrawingLayer drawPoints={drawPoints} iw={iw} ih={ih} inv={inv} />
                       <EditPointsLayer
@@ -1253,7 +1423,7 @@ function MapViewImpl({
                         labelMaxWidthPx={mapOverlayLabelLayout.maxScreenPx}
                         taskVisual={markerTaskVisual}
                         taskLabel={markerTaskLabel}
-                        tutorialCount={markerTutorialCount}
+                        tutorialCount={showTutorialDots ? markerTutorialCount : 0}
                         tutorialLabel={markerTutorialLabel}
                         onOpenMarker={openMarkerFromMap}
                         onBeginMarkerDrag={beginMarkerDrag}
@@ -1272,6 +1442,28 @@ function MapViewImpl({
               />
             </div>
           </div>
+          {!activeRoute && resumableRouteSlug && mode === 'view' ? (
+            <div className="map-route-resume">
+              <button
+                type="button"
+                className="btn btn-sm btn-primary map-route-resume__btn"
+                onClick={resumeRoute}
+              >
+                Reprendre le parcours
+              </button>
+            </div>
+          ) : null}
+          {activeRoute && mode === 'view' ? (
+            <MapRouteBar
+              route={activeRoute}
+              steps={routeSteps}
+              index={routeIndex}
+              onGoToIndex={goToRouteIndex}
+              onExit={exitRoute}
+              canLocate={!!mapPosition?.available}
+              hintManual="Le lieu est mis en avant sur la carte. Avance puis Suivant."
+            />
+          ) : null}
         </div>
       </MapFullscreenShell>
     </div>
