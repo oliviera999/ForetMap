@@ -503,6 +503,7 @@ CREATE TABLE IF NOT EXISTS users (
   -- Hors synchronisation Moodle (migration 219, section 11 du chantier Moodle).
   sync_exempt TINYINT(1) NOT NULL DEFAULT 0,
   last_seen VARCHAR(32) DEFAULT NULL,
+  discovery_tour_seen_json LONGTEXT NULL COMMENT 'JSON des visites guidees deja presentees (welcome, map, ...)',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_users_type_legacy (user_type, legacy_user_id),

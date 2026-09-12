@@ -50,3 +50,32 @@ export function placesFromZonesAndMarkers(zones = [], markers = []) {
     })),
   ];
 }
+
+/**
+ * Point de focus (% image) d'une étape de parcours résolue.
+ * @param {{ place?: object }|null} entry
+ * @returns {{ xp: number, yp: number }|null}
+ */
+export function routeEntryFocusPct(entry) {
+  const place = entry?.place;
+  if (!place) return null;
+  if (place.kind === 'marker') {
+    const xp = Number(place.x_pct);
+    const yp = Number(place.y_pct);
+    return Number.isFinite(xp) && Number.isFinite(yp) ? { xp, yp } : null;
+  }
+  let pts;
+  try {
+    pts = typeof place.points === 'string' ? JSON.parse(place.points || '[]') : place.points;
+  } catch {
+    pts = null;
+  }
+  if (!Array.isArray(pts) || pts.length < 1) return null;
+  let sx = 0;
+  let sy = 0;
+  for (const p of pts) {
+    sx += Number(p?.xp) || 0;
+    sy += Number(p?.yp) || 0;
+  }
+  return { xp: sx / pts.length, yp: sy / pts.length };
+}

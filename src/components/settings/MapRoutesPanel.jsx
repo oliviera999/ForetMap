@@ -41,11 +41,6 @@ const HINT_STYLE = {
 const SUGGESTION_LIMIT = 8;
 
 /**
- * Surfaces qui n'ont pas encore d'écran de parcours. Vide depuis que la Visite et la carte
- * de travail affichent les parcours comme le Plan (`docs/AUDIT_PARCOURS_2026-09.md` §2.3).
- */
-const ROUTE_SURFACES_WITHOUT_SCREEN = Object.freeze([]);
-/**
  * Console de gestion des **parcours** de carte (lot 8 du plan de convergence,
  * `docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.6).
  *
@@ -317,8 +312,6 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
         legend="Proposé sur"
         value={draft.surfaces}
         onChange={(next) => setField({ surfaces: next })}
-        unavailable={ROUTE_SURFACES_WITHOUT_SCREEN}
-        unavailableHint="n’affiche pas encore les parcours"
       />
       <p style={HINT_STYLE}>
         Cochez les surfaces où le parcours doit apparaître : <strong>Plan</strong>,{' '}

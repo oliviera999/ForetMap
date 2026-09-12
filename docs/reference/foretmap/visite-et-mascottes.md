@@ -356,11 +356,12 @@ Au-delà, l'application le signale : sur le réseau d'un lycée, le poids se pai
 
 ## ⚠️ Points d'attention
 
-> ⚠️ **Point d'attention** — **Pas de guidage GPS dans la Visite** : la mascotte s'y
-> déplace uniquement au clic. Le suivi de la position GPS existe, mais sur la **carte
-> de travail** des élèves (avec calage du plan et seuil de précision). Si l'on souhaite
-> une visite « sur le terrain » guidée par la position réelle, c'est une évolution à
-> demander.
+> ⚠️ **Point d'attention** — **La mascotte ne suit pas le GPS** : elle se déplace
+> uniquement au clic sur un lieu. En revanche, si le plan de visite est **calé**, le
+> bouton **« Me situer »** peut afficher la position réelle (et **« Orienter »** /
+> l'échelle si les réglages le permettent), comme sur la carte de travail et le Plan
+> Lyautey. Une visite « guidée pas à pas par la position » (mascotte qui avance toute
+> seule sur le terrain) reste une évolution à demander.
 
 > ⚠️ **Point d'attention** — Les contenus de visite n'acceptent que des **images**
 > (pas d'audio ni de vidéo), et la progression d'un invité anonyme est **éphémère**
