@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — échelle et rose des vents visibles sur Plan Lyautey
+
+- Les styles de l’overlay étaient uniquement dans `index.css` ForetMap ; le Plan ne charge
+  jamais cette feuille. Extraction vers `shared/styles/map-scale-compass.css`, importée
+  aussi par Plan (charte bleue + décalage au-dessus du logo école).
+
 ### Corrigé — alignement de zones et accroche voisins réellement branchés
 
 - La logique (aperçu multi-zones, accroche sommet/côté, côté partagé au tracé) existait
