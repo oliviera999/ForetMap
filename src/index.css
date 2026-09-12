@@ -9126,3 +9126,121 @@ header .lock-btn::after,
   line-height: 1;
   text-shadow: 0 0 3px #fff;
 }
+
+/* ——— Carnet utilisateur (parité Mon journal GL) ——— */
+.fm-journal {
+  display: grid;
+  gap: 14px;
+  padding: 4px 2px 24px;
+}
+.fm-journal__header h2 {
+  margin: 0 0 6px;
+}
+.fm-journal__actions,
+.fm-journal__toolbar,
+.fm-journal__article-head,
+.fm-journal__import-actions,
+.fm-journal-actions,
+.fm-learn-import {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.fm-journal__search {
+  min-width: min(100%, 220px);
+  flex: 1;
+}
+.fm-journal__feed {
+  display: grid;
+  gap: 12px;
+}
+.fm-journal__article.is-pinned,
+.fm-journal__import.is-pinned {
+  outline: 2px solid var(--leaf, #3d7a4a);
+}
+.fm-journal__article-title {
+  flex: 1;
+  min-width: 140px;
+  font-weight: 600;
+  font-size: var(--text-md, 1rem);
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.fm-journal__textarea {
+  width: 100%;
+  min-height: 160px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px;
+  font: inherit;
+  resize: vertical;
+}
+.fm-journal__preview {
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 10px;
+  background: #f8fafc;
+}
+.fm-journal__asset-thumb {
+  max-width: 120px;
+  max-height: 90px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.fm-journal__import-main {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.fm-journal__import-icon {
+  font-size: 1.4rem;
+}
+.fm-journal__import-title {
+  margin: 0;
+  font-size: var(--text-md, 1rem);
+}
+.fm-journal__import-kind {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-soft, #64748b);
+}
+.fm-journal-field {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0;
+  font-size: var(--text-sm);
+}
+.fm-journal-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.fm-journal-markdown .journal-embed,
+.fm-journal-markdown .gl-journal-embed {
+  display: block;
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--leaf, #3d7a4a);
+  background: #f0fdf4;
+  border-radius: 0 8px 8px 0;
+  font-size: var(--text-sm);
+}
+.fm-journal-markdown .journal-embed::before,
+.fm-journal-markdown .gl-journal-embed::before {
+  content: attr(data-journal-title, attr(data-gl-title, 'Élément'));
+  font-weight: 600;
+}
+.fm-journal-import__done {
+  font-size: var(--text-sm);
+  color: var(--forest, #1f4d2e);
+}
+.fm-journal-read-list {
+  display: grid;
+  gap: 16px;
+  max-height: min(60vh, 520px);
+  overflow: auto;
+}

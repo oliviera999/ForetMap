@@ -221,9 +221,19 @@ export const KEY_META = {
   'ui.modules.visit_enabled': { label: 'Visite', section: 'modules', order: 20 },
   'ui.modules.stats_enabled': { label: 'Statistiques', section: 'modules', order: 30 },
   'ui.modules.observations_enabled': {
-    label: 'Carnet observations',
+    label: 'Carnet',
     section: 'modules',
     order: 40,
+  },
+  'observations.journal_max_chars': {
+    label: 'Carnet — max. caractères par article (0 = illimité)',
+    section: 'modules',
+    order: 40.1,
+  },
+  'observations.journal_max_assets': {
+    label: 'Carnet — max. photos par article (0 = illimité)',
+    section: 'modules',
+    order: 40.2,
   },
   'ui.modules.help_enabled': {
     label: 'Aide contextuelle (tooltips + panneau ?)',

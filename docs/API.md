@@ -1624,9 +1624,33 @@ Contraintes principales :
 
 ---
 
-## Observations
+## Observations et carnet
 
-Toutes les routes observations exigent un utilisateur connecté (`Authorization: Bearer <token>`).
+Toutes les routes ci-dessous exigent un utilisateur connecté (`Authorization: Bearer <token>`).
+
+### Carnet unifié (`/api/user-journal`) — source de vérité UI
+
+Module `ui.modules.observations_enabled` ; sinon **503**. Détail : `docs/FORETMAP_CARNET.md`.
+
+| Méthode | URL                                                 | Accès                                 | Description                                                 |
+| ------- | --------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------- |
+| GET     | `/api/user-journal/me`                              | propriétaire                          | `{ limits, articles[], imports[] }`                         |
+| GET     | `/api/user-journal/me/imports/refs`                 | propriétaire                          | refs déjà importées                                         |
+| POST    | `/api/user-journal/me/articles`                     | propriétaire                          | `{ title?, bodyMarkdown?, zoneId? }`                        |
+| PUT     | `/api/user-journal/me/articles/:id`                 | propriétaire                          | mise à jour                                                 |
+| PUT     | `/api/user-journal/me/articles/:id/pin`             | propriétaire                          | `{ pinned }`                                                |
+| DELETE  | `/api/user-journal/me/articles/:id`                 | propriétaire                          |                                                             |
+| POST    | `/api/user-journal/me/articles/:id/assets`          | propriétaire                          | `{ imageData }`                                             |
+| DELETE  | `/api/user-journal/me/articles/:id/assets/:assetId` | propriétaire                          |                                                             |
+| GET     | `/api/user-journal/assets/:assetId/file`            | propriétaire ou `observations.read.*` | fichier (legacy observations)                               |
+| POST    | `/api/user-journal/me/imports`                      | propriétaire                          | `{ resourceType, resourceRef, title? }` — 403 si non appris |
+| PUT     | `/api/user-journal/me/imports/:id/pin`              | propriétaire                          |                                                             |
+| DELETE  | `/api/user-journal/me/imports/:id`                  | propriétaire                          |                                                             |
+| POST    | `/api/user-journal/embeds/resolve`                  | auth                                  | titres d’encarts                                            |
+| GET     | `/api/user-journal/feed`                            | `observations.read.*`                 | articles récents (max 100)                                  |
+| GET     | `/api/user-journal/users/:userId`                   | propriétaire ou `observations.read.*` | lecture staff                                               |
+
+### Observations (legacy)
 
 | Méthode | URL                                    | n3boss                                                     | Description                                                                                                                                                     |
 | ------- | -------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1650,7 +1674,7 @@ Les fichiers envoyés sont stockés sous `uploads/`. Le montage statique **`/upl
 directement les familles **publiques** (chargement navigateur sans passer par `/api`) :
 
 `zones/` · `markers/` · `tasks/` · `forum-posts/` · `context-comments/` · `students/` ·
-`media-library/` · `visit_media/` · `gl_*` · `gl-player-journal/`
+`media-library/` · `visit_media/` · `gl_*` · `gl-player-journal/` · `user-journal/`
 
 Deux familles sont **privées** : elles restent stockées au même endroit mais `/uploads` les
 refuse en **403** (`{"code": "PRIVATE_UPLOAD"}`), car leur lecture est soumise à autorisation

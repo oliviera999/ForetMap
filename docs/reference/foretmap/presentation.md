@@ -120,8 +120,9 @@ masse, et programmer des **tâches récurrentes** (générées automatiquement c
   les espèces du jardin, édité par le professeur.
 - **Tutoriels** : fiches pratiques (arrosage, compostage…) liées aux tâches et zones,
   avec accusé de lecture par l'élève.
-- **Carnet d'observation** : le journal libre de l'élève (texte + photo), consultable
-  par le professeur.
+- **Carnet d'observation** : journal personnel (articles texte/photos, imports d’espèces,
+  glossaire et tutoriels appris), pour élèves, visiteurs connectés et profs de classe ;
+  consultable par les professeurs.
 
 ### La Visite (le mode grand public)
 
