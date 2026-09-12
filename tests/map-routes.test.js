@@ -249,6 +249,40 @@ test('garde d’accès du plan : le catalogue des parcours se ferme avec le plan
   }
 });
 
+test('surfaces map et visit : catalogue lisible sans code d’accès du plan', async () => {
+  const bcrypt = require('bcryptjs');
+  const hash = await bcrypt.hash('FERME-PLAN', 10);
+  const route = await auth(request(app).post('/api/map-routes'))
+    .send({
+      map_id: map.id,
+      title: 'Hors plan',
+      is_published: true,
+      surfaces: ['map', 'visit'],
+      steps: [{ target_type: 'zone', target_id: zone.id }],
+    })
+    .expect(201);
+  createdRouteIds.push(route.body.id);
+
+  await setSetting('ui.plan.access_mode', 'code', { userType: 'teacher', userId: 'test' });
+  await setSetting('security.plan_access_code_hash', hash, { userType: 'admin', userId: 'test' });
+  invalidateSettingsCache();
+  try {
+    await request(app).get('/api/map-routes?surface=plan').expect(401);
+    const onMap = await request(app)
+      .get(`/api/map-routes?map_id=${map.id}&surface=map`)
+      .expect(200);
+    assert.ok(onMap.body.some((r) => r.id === route.body.id));
+    const onVisit = await request(app)
+      .get(`/api/map-routes?map_id=${map.id}&surface=visit`)
+      .expect(200);
+    assert.ok(onVisit.body.some((r) => r.id === route.body.id));
+  } finally {
+    await setSetting('ui.plan.access_mode', 'public', { userType: 'teacher', userId: 'test' });
+    await setSetting('security.plan_access_code_hash', '', { userType: 'admin', userId: 'test' });
+    invalidateSettingsCache();
+  }
+});
+
 test('une étape doit viser un lieu réel de la carte du parcours', async () => {
   const other = await fx.createMap({ label: 'Autre carte' });
   const foreignZone = await fx.createZone({ mapId: other.id, name: 'Ailleurs' });

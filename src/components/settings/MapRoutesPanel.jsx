@@ -41,12 +41,10 @@ const HINT_STYLE = {
 const SUGGESTION_LIMIT = 8;
 
 /**
- * Surfaces qui n'ont pas d'écran de parcours. Le champ « Proposé sur » les proposait comme les
- * autres, et un parcours publié sur la Visite n'apparaissait nulle part, sans un mot
- * (`docs/AUDIT_PARCOURS_2026-09.md` §2.3). À vider quand ces écrans existeront.
+ * Surfaces qui n'ont pas encore d'écran de parcours. Vide depuis que la Visite et la carte
+ * de travail affichent les parcours comme le Plan (`docs/AUDIT_PARCOURS_2026-09.md` §2.3).
  */
-const ROUTE_SURFACES_WITHOUT_SCREEN = Object.freeze(['map', 'visit']);
-
+const ROUTE_SURFACES_WITHOUT_SCREEN = Object.freeze([]);
 /**
  * Console de gestion des **parcours** de carte (lot 8 du plan de convergence,
  * `docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.6).

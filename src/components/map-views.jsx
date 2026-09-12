@@ -82,9 +82,6 @@ import { resolveMapCanvasHint } from '../utils/helpResolve.js';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
 
-/** Carte vide stable : pastilles tutoriel désactivées sans recréer un `Map` à chaque rendu. */
-const EMPTY_TUTORIAL_COUNT_BY_ID = new Map();
-
 /**
  * Bulle repère mémoïsée : évite le re-render de chaque bulle à chaque rendu de la carte.
  * Le repère est passé par la bulle aux handlers (`onOpenMarker(marker, e)`,
@@ -574,8 +571,6 @@ function MapViewImpl({
   } = useMapOverlayTextSizePreference();
   const mapSettings =
     publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
-  /** Pastilles violettes tutoriel : OFF par défaut (`ui.map.show_tutorial_dots`). */
-  const showTutorialDots = !!mapSettings?.show_tutorial_dots;
   const mapCanvasHintTexts = useMemo(
     () => ({
       drawZoneMin: resolveMapCanvasHint('drawZoneMin', publicSettings),
@@ -1151,12 +1146,9 @@ function MapViewImpl({
                         mode={mode}
                         showLabels={showLabels}
                         editZoneId={editZone?.id ?? null}
-                        selectedZoneId={selectedZone?.id ?? null}
                         dimmedZoneIds={dimmedZoneIds}
                         zoneTaskVisualById={zoneTaskVisualById}
-                        zoneTutorialCountById={
-                          showTutorialDots ? zoneTutorialCountById : EMPTY_TUTORIAL_COUNT_BY_ID
-                        }
+                        zoneTutorialCountById={zoneTutorialCountById}
                         emojiFontPx={mapEmojiFontPx}
                         labelFontPx={mapLabelFontPx}
                         emojiLabelCenterGap={mapEmojiLabelCenterGap}
@@ -1261,7 +1253,7 @@ function MapViewImpl({
                         labelMaxWidthPx={mapOverlayLabelLayout.maxScreenPx}
                         taskVisual={markerTaskVisual}
                         taskLabel={markerTaskLabel}
-                        tutorialCount={showTutorialDots ? markerTutorialCount : 0}
+                        tutorialCount={markerTutorialCount}
                         tutorialLabel={markerTutorialLabel}
                         onOpenMarker={openMarkerFromMap}
                         onBeginMarkerDrag={beginMarkerDrag}

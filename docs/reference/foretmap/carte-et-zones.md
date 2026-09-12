@@ -211,8 +211,8 @@ permission « Gestion zones ».
 
 Un **parcours** enchaîne des lieux dans un ordre choisi, avec un titre, un public visé et, pour
 chaque étape, un texte court facultatif. Il se gère dans _Réglages → **Parcours**_, et sert de
-feuille de séance côté ForetMap comme de visite fléchée sur le Plan Lyautey (barre d'étape en
-bas, carte restée utilisable).
+feuille de séance sur la **carte** ForetMap, de visite fléchée en **Visite**, et de parcours
+guidé sur le **Plan** Lyautey (barre d'étape en bas, carte restée utilisable).
 
 Composer un parcours :
 
@@ -233,9 +233,9 @@ Composer un parcours :
 - Un parcours naît **brouillon** : il n'apparaît nulle part tant que la case « Publié » n'est
   pas cochée — pas même pour qui connaîtrait son adresse.
 - Les cases **« proposé sur »** décident des surfaces, comme pour les lieux. Un parcours neuf
-  vise le **Plan** seul, et c'est aujourd'hui la seule surface qui **affiche** les parcours :
-  les cases « Carte » et « Visite » restent fermées, avec la mention « n'affiche pas encore les
-  parcours », tant que ces écrans n'existent pas.
+  vise le **Plan** seul ; on peut aussi le proposer sur la **Carte** (feuille de séance dans
+  ForetMap) et la **Visite** (parcours fléché grand public). Chaque surface n'affiche que les
+  parcours qui la ciblent, avec une barre d'étape en bas et la carte restée utilisable.
 - Rien n'est dupliqué : une étape **pointe** vers un lieu existant. Renommer le lieu renomme
   l'étape ; supprimer le lieu laisse une étape signalée « lieu introuvable », à retirer.
 - Une étape dont le lieu est **masqué sur le Plan** (par ses surfaces ou sa catégorie) est
@@ -373,6 +373,17 @@ directement sur le plan ; rien n'est enregistré tant qu'on n'a pas cliqué « S
   bouton « 🧲 Coller » applique l'aimantation d'un coup aux sommets sélectionnés (ou à
   tout le contour si rien n'est sélectionné). Maintenir la touche Alt suspend l'aimant
   le temps d'un geste, pour placer un sommet à la main.
+- **Coller aux zones voisines** : la bascule « Voisins » (disponible en **tracé** d'une
+  nouvelle zone et en **retouche** de contour) colle chaque sommet au contour d'une
+  zone déjà proche — sommet ou côté. En tracé, si deux points successifs touchent le
+  **même** voisin, l'outil peut **suivre automatiquement le meilleur côté partagé**
+  (il reprend les coins intermédiaires du voisin). L'accroche voisins a priorité sur
+  l'aimant image quand les deux sont actifs.
+- **Aligner plusieurs zones d'un coup** : en navigation, le bouton « Aligner » ouvre un
+  mode de sélection. On clique les zones **proches** à corriger (≥ 2), puis « Aperçu »
+  montre le rendu global (contours pointillés orange) **sans rien enregistrer**. On peut
+  rejeter l'aperçu, ou « Enregistrer » pour appliquer l'alignement des sommets communs.
+  Seules les zones sélectionnées qui se touchent (ou presque) sont concernées.
 - **Se tromper n'est pas grave** : « ↩ Annuler » (ou Ctrl+Z / Cmd+Z) revient en arrière
   pas à pas, et fermer par « ✕ » abandonne toutes les retouches sans rien enregistrer.
 
@@ -382,7 +393,8 @@ directement sur le plan ; rien n'est enregistré tant qu'on n'a pas cliqué « S
 > ombre ou un feuillage plutôt que la limite réelle — c'est là que **baisser la
 > sensibilité** aide : l'aimant ne retient alors que les limites franches, quitte à ne
 > rien accrocher du tout. Il reste une aide : le tracé final est celui qu'on valide à
-> l'œil. Par ailleurs, si l'image de fond du plan est
+> l'œil. Pour coller proprement **deux zones entre elles**, préférez « Voisins » ou
+> « Aligner » plutôt que l'aimant image. Par ailleurs, si l'image de fond du plan est
 > hébergée sur un autre site, le navigateur interdit d'en lire les couleurs : le bouton
 > affiche alors « Indispo. » et l'édition continue normalement sans aimant.
 
