@@ -27,6 +27,10 @@ familles.
   autorisée (réglage Visite **et** case sur la carte), **« Me situer »** place un point
   de position et **« Orienter »** aligne le plan sur le regard — comme sur la carte de
   travail et le Plan Lyautey.
+- **Parcours fléchés** : si des parcours ont été publiés pour la Visite (_Réglages → Parcours_,
+  case « Visite »), une puce **« Parcours »** les liste. En choisir un affiche une barre d'étape
+  en bas (Précédent / Suivant) : la carte se recentre sur chaque lieu, reste utilisable, et rien
+  n'est enregistré — comme sur le Plan Lyautey. On peut quitter et reprendre.
 - **La fiche d'un lieu** : titre, sous-titre, photo principale, contenu éditorial
   (paragraphes, intertitres, blocs d'images légendées), la **biodiversité du lieu**, un volet
   Tuto (les fiches pratiques associées), un mode « lecture confortable », et un bouton

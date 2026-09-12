@@ -44,7 +44,9 @@ du lycée apparaît discrètement en bas à gauche du plan.
    toujours le nom complet.
 6. **La fiche d'un lieu.** Toucher un lieu sur le plan ou dans la liste ouvre une fiche en
    bas d'écran : nom, sous-titre, photo, description, horaires ou précisions. On la fait
-   glisser vers le haut pour tout lire, vers le bas pour la refermer. Pour une **zone**, celle-ci reste mise en avant sur le plan et les autres zones s'estompent un peu tant que la fiche est ouverte.
+   glisser vers le haut pour tout lire, vers le bas pour la refermer. Pour une **zone**,
+   celle-ci reste mise en avant sur le plan et les autres zones s'estompent un peu tant
+   que la fiche est ouverte.
 7. **Un message d'accueil**, affiché une seule fois par appareil, dont le texte est réglable.
 8. **Un lien direct par lieu** : l'adresse de la page contient `?lieu=…` quand une fiche est
    ouverte, et la fiche affiche ce lien en toutes lettres. Il peut être partagé ou transformé
@@ -173,9 +175,10 @@ Quand le plan est protégé par un **code d'accès**, les parcours le sont avec 
 contenu ne sort avant la saisie du code.
 
 Les parcours se créent dans ForetMap, dans _Réglages → Parcours_ (voir la documentation de la
-carte) : on cherche les lieux, on les ordonne au glisser-déposer, on **publie**. Un parcours
-brouillon n'apparaît nulle part, pas même via son lien. Le bouton **« Affiche PDF »** produit la
-page imprimable avec la liste des étapes et ce QR code.
+carte) : on cherche les lieux, on les ordonne au glisser-déposer, on **publie**, et on coche les
+surfaces (**Plan**, **Visite**, **Carte**) où ils doivent apparaître. Un parcours brouillon
+n'apparaît nulle part, pas même via son lien. Le bouton **« Affiche PDF »** produit la page
+imprimable avec la liste des étapes et ce QR code (le QR mène au Plan).
 
 ### Le plan hors ligne
 
