@@ -15,6 +15,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   avec l’arbre n³ de ForetMap. Régénération via `npm run icons:plan`.
 - **Interface** : palette marine et variantes (fond, barre haute, puces, boutons) alignée sur
   le logo officiel ; logo Lycée Lyautey discret en bas à gauche de la carte.
+### Modifié — sélection d'une zone sur la carte
+
+- À l'ouverture d'une fiche **zone** (carte de travail, Visite, Plan Lyautey), la zone
+  choisie reste **mise en avant** (remplissage affirmé) et les autres zones sont
+  **légèrement estompées**. Suppression du gros contour noir de focus navigateur autour
+  de la forme ; le focus clavier garde un trait discret sur le polygone.
 
 ### Corrigé — accessibilité : `onError`/`onLoad` ne comptent plus comme des interactions
 

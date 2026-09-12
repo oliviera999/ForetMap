@@ -107,4 +107,16 @@ describe('VisitZonesSvgLayer — accessibilité clavier des zones', () => {
     expect(container.querySelector('.visit-zone-status')).toHaveTextContent('Vu');
     expect(screen.getByRole('button', { name: /Vu$/ })).toBeInTheDocument();
   });
+
+  test('fiche ouverte → zone sélectionnée mise en avant, voisines estompées', () => {
+    const { container } = setup({
+      zones: [makeZone({ id: 7, name: 'Verger' }), makeZone({ id: 8, name: 'Mare' })],
+      selectedZoneId: 7,
+    });
+    const hits = container.querySelectorAll('.visit-zone-hit');
+    expect(hits[0]).toHaveClass('is-selected');
+    expect(hits[0]).toHaveAttribute('aria-current', 'true');
+    expect(hits[0].querySelector('.visit-zone-poly')).toHaveClass('is-selected');
+    expect(hits[1]).toHaveClass('is-recessed');
+  });
 });

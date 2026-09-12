@@ -1151,6 +1151,7 @@ function MapViewImpl({
                         mode={mode}
                         showLabels={showLabels}
                         editZoneId={editZone?.id ?? null}
+                        selectedZoneId={selectedZone?.id ?? null}
                         dimmedZoneIds={dimmedZoneIds}
                         zoneTaskVisualById={zoneTaskVisualById}
                         zoneTutorialCountById={

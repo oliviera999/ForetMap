@@ -3138,6 +3138,29 @@
       color:var(--sage);
       flex-shrink:0;
     }
+    /* Zone sélectionnée (fiche ouverte) : pas d'outline navigateur (rectangle noir
+       sur le <g> SVG) — la forme elle-même porte le signal (remplissage + voisines
+       estompées). Focus clavier : trait sage sur le polygone. */
+    .map-zone-hit:focus,
+    .map-zone-hit:focus-visible {
+      outline:none;
+    }
+    .map-zone-hit polygon {
+      transition:fill-opacity .18s ease, stroke-opacity .18s ease;
+    }
+    .map-zone-hit--selected polygon {
+      fill-opacity:0.88;
+    }
+    .map-zone-hit--recessed polygon {
+      fill-opacity:0.22;
+      stroke-opacity:0.28;
+    }
+    .map-zone-hit--recessed text {
+      opacity:0.4;
+    }
+    .map-zone-hit:focus-visible polygon {
+      stroke:var(--sage, #52b788);
+    }
     .map-zone-hit--dimmed {
       pointer-events:none;
     }
@@ -4693,7 +4716,7 @@
       vector-effect:non-scaling-stroke;
       stroke-width:1.5px;
       cursor:pointer;
-      transition:fill-opacity .16s ease, stroke .16s ease, stroke-width .16s ease;
+      transition:fill-opacity .16s ease, stroke .16s ease, stroke-width .16s ease, stroke-opacity .16s ease;
     }
     /* Vu / non-vu : couleur métier conservée ; statut = opacité + épaisseur du trait. */
     .visit-zone-poly.is-unseen {
@@ -4706,6 +4729,24 @@
       stroke:rgba(26,71,49,.32);
       stroke-width:1px;
     }
+    /* Fiche ouverte : forme affirmée + voisines estompées (pas d'outline rectangle noir). */
+    .visit-zone-hit:focus,
+    .visit-zone-hit:focus-visible {
+      outline:none;
+    }
+    .visit-zone-poly.is-selected {
+      fill-opacity:0.92;
+      stroke:rgba(26,71,49,.92);
+      stroke-width:2.75px;
+    }
+    .visit-zone-hit.is-recessed .visit-zone-poly {
+      fill-opacity:0.2;
+      stroke-opacity:0.3;
+    }
+    .visit-zone-hit.is-recessed .visit-zone-label,
+    .visit-zone-hit.is-recessed .visit-zone-status {
+      opacity:0.35;
+    }
     .visit-zone-status {
       fill:var(--forest, #1a4731);
       font-weight:var(--fw-semibold);
@@ -4717,8 +4758,9 @@
       transition:opacity .14s ease;
     }
     .visit-zone-hit:focus-visible .visit-zone-poly {
-      stroke:rgba(26,71,49,.9);
+      stroke:var(--sage, #52b788);
       stroke-width:2.75px;
+      stroke-dasharray:5 4;
     }
     .visit-zone-hit:focus-visible .visit-zone-status {
       opacity:1;
@@ -5017,8 +5059,7 @@
       transform:scale(.96);
     }
     .visit-map-ctrl:focus-visible,
-    .visit-marker-btn:focus-visible,
-    .visit-zone-hit:focus-visible {
+    .visit-marker-btn:focus-visible {
       outline:3px solid rgba(82,183,136,.75);
       outline-offset:2px;
     }

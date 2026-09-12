@@ -50,7 +50,9 @@ familles.
   puis s'efface. Les marquages faits hors connexion sont conservés et synchronisés au
   retour du réseau. Sur le plan, chaque zone garde **sa couleur** ; les lieux déjà
   vus sont un peu plus atténués (remplissage plus transparent, contour plus fin),
-  les lieux pas encore vus restent bien marqués. Au **survol** ou au **focus clavier**,
+  les lieux pas encore vus restent bien marqués. Quand on **ouvre la fiche d'une zone**,
+  celle-ci reste mise en avant sur le plan et les autres zones s'estompent un peu —
+  sans cadre noir autour de la forme. Au **survol** ou au **focus clavier**,
   le contour s'épaissit et le libellé « À découvrir » ou « Vu » apparaît un instant —
   sans pastille permanente. Les repères suivent la même idée (légère atténuation une
   fois vus, libellé au survol/focus). Le donut de progression du bandeau complète

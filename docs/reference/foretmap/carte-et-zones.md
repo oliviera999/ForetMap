@@ -172,7 +172,10 @@ permission « Gestion zones ».
    gardent le point visé sous le pointeur.
 2. Il **touche une zone ou un repère** : la fiche s'ouvre avec ses onglets — Tâches,
    Tutoriels, Info, Photos (l'onglet Tâches ou Tutoriels n'apparaît que s'il y a
-   quelque chose à montrer).
+   quelque chose à montrer). Tant que la fiche d'une **zone** est ouverte, cette zone
+   reste **mise en avant** sur le plan (remplissage plus marqué) et les autres zones
+   sont **légèrement estompées**, pour repérer d'un coup d'œil où l'on se trouve —
+   sans cadre ni contour noir autour de la forme.
 3. Dans l'onglet **Tâches**, il coche une ou plusieurs tâches disponibles à cet
    endroit et les **prend en charge** directement.
 4. Un bouton permet aussi d'**ouvrir l'onglet Tâches de l'application filtré sur ce
