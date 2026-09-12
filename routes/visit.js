@@ -201,6 +201,8 @@ router.get(
       `SELECT
        z.id, z.map_id, z.name, z.points,
        zm.description AS description,
+       zm.color AS color,
+       zm.emoji AS emoji,
        zm.current_plant AS current_plant,
        z.subtitle AS visit_subtitle,
        z.short_description AS visit_short_description,
