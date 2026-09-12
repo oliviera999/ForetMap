@@ -38,7 +38,7 @@ const PlantViewerLazy = lazy(() =>
   import('./components/foretmap-views').then((m) => ({ default: m.PlantViewer })),
 );
 const ObservationNotebookLazy = lazy(() =>
-  import('./components/foretmap-views').then((m) => ({ default: m.ObservationNotebook })),
+  import('./components/journal/UserJournalView.jsx').then((m) => ({ default: m.UserJournalView })),
 );
 // Modale a la demande : lazy pour que foretmap-views (PlantManager/Viewer/Notebook ~52 Ko) quitte le chunk main.
 const PlantCatalogPreviewModalLazy = lazy(() =>
@@ -1557,11 +1557,14 @@ function App() {
                           )}
                           {publicSettings?.modules?.observations_enabled !== false &&
                             tab === 'notebook' &&
-                            studentForUi?.id && (
+                            (studentForUi?.id || sessionUser?.id || authClaims?.userId) && (
                               <TabSuspense>
                                 <ObservationNotebookLazy
-                                  student={studentForUi}
+                                  zones={zones}
                                   onForceLogout={forceLogout}
+                                  onNavigateTab={(nav) => {
+                                    if (nav?.tab) setTab(nav.tab);
+                                  }}
                                 />
                               </TabSuspense>
                             )}
@@ -1610,9 +1613,7 @@ function App() {
                       canViewGeneralStats={canViewGeneralStats}
                       canAccessProfiles={canAccessProfiles}
                       profilesLabel={isClassTeacher ? 'Classe' : 'Profils'}
-                      observationsEnabled={
-                        publicSettings?.modules?.observations_enabled !== false && !isClassTeacher
-                      }
+                      observationsEnabled={publicSettings?.modules?.observations_enabled !== false}
                       visitEnabled={publicSettings?.modules?.visit_enabled !== false}
                       canAccessForum={canAccessForum}
                     />

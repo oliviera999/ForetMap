@@ -4,6 +4,7 @@ import { LearningAcknowledgeButton } from '../../shared/components/LearningAckno
 import { LearningQuizPopover } from '../../shared/components/LearningQuizPopover.jsx';
 import { createFmGatingHandlers } from '../../shared/utils/learningGatingChallengeClient.js';
 import { IconCheck } from '../../shared/icons.jsx';
+import { FmLearnAndImportSlot } from '../journal/FmLearnAndImportSlot.jsx';
 
 /**
  * Bouton « J'ai appris ce terme » sur une fiche du glossaire ForetMap.
@@ -44,43 +45,50 @@ export function GlossaryTermLearnedAcknowledgeButton({
   if (!hasToken || !glossaryCode) return null;
 
   return (
-    <LearningAcknowledgeButton
-      itemTitle={termLabel}
-      labelAction={
-        <>
-          <IconCheck size={14} /> J’ai appris ce terme
-        </>
-      }
-      labelDone={
-        <>
-          <IconCheck size={14} /> Appris
-        </>
-      }
-      titleDone="Tu as confirmé avoir appris ce terme"
-      confirmIntro={
-        <>
-          En validant, tu t&apos;engages à avoir lu et compris le terme{' '}
-          <strong>« {termLabel || 'ce terme'} »</strong>.
-        </>
-      }
-      confirmCheckboxLabel="Je confirme avoir lu et compris cette définition."
-      isDone={isLearned}
-      gatingHandlers={gatingHandlers}
-      gatingResource={gatingResource}
-      gatingSummary={gatingSummary}
-      enableGating={!isLearned}
-      Shell={LearningQuizPopover}
-      overlayClassName="fm-quiz-popover fm-quiz-popover--ack"
-      dialogClassName="fm-quiz-popover__panel animate-pop"
-      onSubmit={async () => {
-        try {
-          await submit();
-        } catch (e) {
-          if (e instanceof AccountDeletedError) onForceLogout?.();
-          throw e;
+    <FmLearnAndImportSlot
+      resourceType="glossary"
+      resourceRef={glossaryCode}
+      title={termLabel}
+      learned={isLearned}
+    >
+      <LearningAcknowledgeButton
+        itemTitle={termLabel}
+        labelAction={
+          <>
+            <IconCheck size={14} /> J’ai appris ce terme
+          </>
         }
-      }}
-    />
+        labelDone={
+          <>
+            <IconCheck size={14} /> Appris
+          </>
+        }
+        titleDone="Tu as confirmé avoir appris ce terme"
+        confirmIntro={
+          <>
+            En validant, tu t&apos;engages à avoir lu et compris le terme{' '}
+            <strong>« {termLabel || 'ce terme'} »</strong>.
+          </>
+        }
+        confirmCheckboxLabel="Je confirme avoir lu et compris cette définition."
+        isDone={isLearned}
+        gatingHandlers={gatingHandlers}
+        gatingResource={gatingResource}
+        gatingSummary={gatingSummary}
+        enableGating={!isLearned}
+        Shell={LearningQuizPopover}
+        overlayClassName="fm-quiz-popover fm-quiz-popover--ack"
+        dialogClassName="fm-quiz-popover__panel animate-pop"
+        onSubmit={async () => {
+          try {
+            await submit();
+          } catch (e) {
+            if (e instanceof AccountDeletedError) onForceLogout?.();
+            throw e;
+          }
+        }}
+      />
+    </FmLearnAndImportSlot>
   );
 }
 

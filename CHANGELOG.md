@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Carnet ForetMap à parité « Mon journal » GL
+
+- Articles markdown (multi-photos, auto-save, épinglage, encarts), imports après appris
+  (espèce / glossaire / tuto), recherche/filtre/tri.
+- Accès écriture : élève, visiteur connecté, prof de classe (carnet personnel).
+- API `/api/user-journal`, migration `237_user_journal.sql`, lecture prof enrichie + export `.md`.
+
 ### Modifié — Visite : couleurs de zone + statut discret (A+E)
 
 - Les zones de visite affichent **leur couleur** (comme sur la carte) ; « vu » =

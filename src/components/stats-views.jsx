@@ -653,13 +653,13 @@ function TeacherStats() {
     setObsLoading(true);
     setObsError('');
     try {
-      const rows = await api(
-        `/api/observations/all${filterGroupId ? `?group_id=${encodeURIComponent(filterGroupId)}` : ''}`,
+      const payload = await api(
+        `/api/user-journal/feed${filterGroupId ? `?group_id=${encodeURIComponent(filterGroupId)}` : ''}`,
       );
-      setObservations(Array.isArray(rows) ? rows : []);
+      setObservations(Array.isArray(payload?.articles) ? payload.articles : []);
     } catch (err) {
       setObservations([]);
-      setObsError(err?.message || 'Impossible de charger les observations globales.');
+      setObsError(err?.message || 'Impossible de charger les carnets.');
     } finally {
       setObsLoading(false);
     }
