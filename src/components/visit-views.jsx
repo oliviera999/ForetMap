@@ -911,6 +911,7 @@ function VisitViewImpl({
                       mode={mode}
                       drawPoints={drawPoints}
                       onZoneClick={onVisitZoneClick}
+                      selectedZoneId={selected && selectedType === 'zone' ? selected.id : null}
                     />
 
                     {showVisitMapMascot ? (

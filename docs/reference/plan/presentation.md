@@ -44,7 +44,7 @@ du lycée apparaît discrètement en bas à gauche du plan.
    toujours le nom complet.
 6. **La fiche d'un lieu.** Toucher un lieu sur le plan ou dans la liste ouvre une fiche en
    bas d'écran : nom, sous-titre, photo, description, horaires ou précisions. On la fait
-   glisser vers le haut pour tout lire, vers le bas pour la refermer.
+   glisser vers le haut pour tout lire, vers le bas pour la refermer. Pour une **zone**, celle-ci reste mise en avant sur le plan et les autres zones s'estompent un peu tant que la fiche est ouverte.
 7. **Un message d'accueil**, affiché une seule fois par appareil, dont le texte est réglable.
 8. **Un lien direct par lieu** : l'adresse de la page contient `?lieu=…` quand une fiche est
    ouverte, et la fiche affiche ce lien en toutes lettres. Il peut être partagé ou transformé

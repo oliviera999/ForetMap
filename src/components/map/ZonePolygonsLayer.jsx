@@ -61,6 +61,8 @@ const ZonePolygon = React.memo(function ZonePolygon({
   showLabels,
   isEditing,
   dimmed,
+  selected,
+  recessed,
   taskVisual,
   tutorialCount,
   emojiFontPx,
@@ -83,7 +85,17 @@ const ZonePolygon = React.memo(function ZonePolygon({
     : wp.reduce((s, p) => s + p.cy, 0) / wp.length;
   const isEd = isEditing;
   const isInteractive = mode === 'view' && !dimmed;
-  const hitClass = mode === 'view' ? `map-zone-hit${dimmed ? ' map-zone-hit--dimmed' : ''}` : '';
+  const hitClass =
+    mode === 'view'
+      ? [
+          'map-zone-hit',
+          dimmed ? 'map-zone-hit--dimmed' : '',
+          selected ? 'map-zone-hit--selected' : '',
+          recessed ? 'map-zone-hit--recessed' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')
+      : '';
   const zoneNameText = zoneName || z.name || '';
   const showZoneEmoji =
     showLabels &&
@@ -99,6 +111,18 @@ const ZonePolygon = React.memo(function ZonePolygon({
     fontSize: labelFontPx,
     maxWidth: labelMaxWorldLength,
   });
+  // Sélection fiche ouverte : fill plus affirmé + trait forêt (pas d'outline navigateur).
+  let stroke = 'rgba(26,71,49,0.5)';
+  let strokeW = 1.5;
+  let fill = z.color || '#86efac90';
+  if (isEd) {
+    fill = 'rgba(82,183,136,0.35)';
+    stroke = '#52b788';
+    strokeW = 2.5;
+  } else if (selected) {
+    stroke = 'rgba(26,71,49,0.92)';
+    strokeW = 2.75;
+  }
   return (
     <g
       className={hitClass || undefined}
@@ -109,6 +133,7 @@ const ZonePolygon = React.memo(function ZonePolygon({
       role={isInteractive ? 'button' : undefined}
       tabIndex={isInteractive ? 0 : dimmed ? -1 : undefined}
       aria-hidden={dimmed || undefined}
+      aria-current={selected ? 'true' : undefined}
       aria-label={isInteractive ? zoneName || z.name : undefined}
       onKeyDown={
         isInteractive
@@ -121,12 +146,7 @@ const ZonePolygon = React.memo(function ZonePolygon({
           : undefined
       }
     >
-      <polygon
-        points={str}
-        fill={isEd ? 'rgba(82,183,136,0.35)' : z.color || '#86efac90'}
-        stroke={isEd ? '#52b788' : 'rgba(26,71,49,0.5)'}
-        strokeWidth={(isEd ? 2.5 : 1.5) * inv}
-      />
+      <polygon points={str} fill={fill} stroke={stroke} strokeWidth={strokeW * inv} />
       {showZoneEmoji && (
         <text
           x={mx}
@@ -196,6 +216,7 @@ const ZonePolygon = React.memo(function ZonePolygon({
  * @param {string} props.mode mode carte (`view`, `draw-zone`, `edit-points`, …)
  * @param {boolean} props.showLabels affiche emoji + nom des zones
  * @param {string|number|null} props.editZoneId id de la zone en édition de contour (surbrillance)
+ * @param {string|number|null} [props.selectedZoneId] zone dont la fiche est ouverte (mise en avant)
  * @param {Map<*, string>} props.zoneTaskVisualById visuel de tâche par id de zone
  * @param {Map<*, number>} props.zoneTutorialCountById nb de tutoriels liés par id de zone
  * @param {number} props.emojiFontPx taille de l'emoji d'étiquette (px monde)
@@ -213,6 +234,7 @@ export const ZonePolygonsLayer = React.memo(function ZonePolygonsLayer({
   mode,
   showLabels,
   editZoneId,
+  selectedZoneId = null,
   dimmedZoneIds = null,
   zoneTaskVisualById,
   zoneTutorialCountById,
@@ -223,29 +245,39 @@ export const ZonePolygonsLayer = React.memo(function ZonePolygonsLayer({
   labelMaxWorldLength,
   onZoneOpen,
 }) {
+  const hasSelection = selectedZoneId != null && selectedZoneId !== '';
   return (
     <>
-      {parsedZones.map((parsed) => (
-        <ZonePolygon
-          key={parsed.zone.id}
-          parsed={parsed}
-          iw={iw}
-          ih={ih}
-          inv={inv}
-          mode={mode}
-          showLabels={showLabels}
-          isEditing={mode === 'edit-points' && editZoneId === parsed.zone.id}
-          dimmed={dimmedZoneIds?.has(String(parsed.zone.id))}
-          taskVisual={zoneTaskVisualById.get(parsed.zone.id)}
-          tutorialCount={zoneTutorialCountById.get(parsed.zone.id) || 0}
-          emojiFontPx={emojiFontPx}
-          labelFontPx={labelFontPx}
-          emojiLabelCenterGap={emojiLabelCenterGap}
-          minSideFactor={minSideFactor}
-          labelMaxWorldLength={labelMaxWorldLength}
-          onZoneOpen={onZoneOpen}
-        />
-      ))}
+      {parsedZones.map((parsed) => {
+        const id = String(parsed.zone.id);
+        const selected = hasSelection && id === String(selectedZoneId);
+        const dimmed = dimmedZoneIds?.has(id);
+        // Estompage des voisines seulement hors filtre déjà atténué / hors édition.
+        const recessed = hasSelection && !selected && !dimmed && mode === 'view';
+        return (
+          <ZonePolygon
+            key={parsed.zone.id}
+            parsed={parsed}
+            iw={iw}
+            ih={ih}
+            inv={inv}
+            mode={mode}
+            showLabels={showLabels}
+            isEditing={mode === 'edit-points' && editZoneId === parsed.zone.id}
+            dimmed={dimmed}
+            selected={selected}
+            recessed={recessed}
+            taskVisual={zoneTaskVisualById.get(parsed.zone.id)}
+            tutorialCount={zoneTutorialCountById.get(parsed.zone.id) || 0}
+            emojiFontPx={emojiFontPx}
+            labelFontPx={labelFontPx}
+            emojiLabelCenterGap={emojiLabelCenterGap}
+            minSideFactor={minSideFactor}
+            labelMaxWorldLength={labelMaxWorldLength}
+            onZoneOpen={onZoneOpen}
+          />
+        );
+      })}
     </>
   );
 });
