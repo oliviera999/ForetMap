@@ -4,6 +4,7 @@
  */
 export const UNITARY_CREATE_ROLE_SLUGS = [
   'visiteur',
+  'personnel',
   'eleve_novice',
   'eleve_avance',
   'eleve_chevronne',
@@ -16,7 +17,7 @@ export function isStudentUnitaryCreateRole(slug) {
   const s = String(slug || '')
     .trim()
     .toLowerCase();
-  return s === 'visiteur' || s.startsWith('eleve_');
+  return s === 'visiteur' || s === 'personnel' || s.startsWith('eleve_');
 }
 
 /**
@@ -39,6 +40,7 @@ export function buildUnitaryCreateRoleOptions({
   }
   const fallback = {
     visiteur: 'Visiteur',
+    personnel: 'Personnel',
     eleve_novice: 'n3beur novice',
     eleve_avance: 'n3beur avancé',
     eleve_chevronne: 'n3beur chevronné',

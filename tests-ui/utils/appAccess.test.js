@@ -14,6 +14,7 @@ describe('isClassTeacherRole / isVisitorLikeRole / shouldUseTeacherChrome', () =
     expect(isClassTeacherRole('prof')).toBe(false);
     expect(isVisitorLikeRole('prof_classe')).toBe(true);
     expect(isVisitorLikeRole('visiteur')).toBe(true);
+    expect(isVisitorLikeRole('personnel')).toBe(true);
     expect(isVisitorLikeRole('eleve_novice')).toBe(false);
   });
 

@@ -61,4 +61,18 @@ describe('Semis RBAC durable', () => {
     assert.ok(!keys.includes('users.create'));
     assert.ok(!keys.includes('stats.read.all'));
   });
+
+  it('personnel existe, calqué sur visiteur (aucune permission)', async () => {
+    const role = await getRoleBySlug('personnel');
+    assert.ok(role);
+    assert.equal(role.display_name, 'Personnel');
+    assert.equal(Number(role.rank), 50);
+    const rows = await queryAll('SELECT permission_key FROM role_permissions WHERE role_id = ?', [
+      role.id,
+    ]);
+    assert.equal(rows.length, 0);
+    const visitor = await getRoleBySlug('visiteur');
+    assert.ok(visitor);
+    assert.equal(Number(visitor.rank), Number(role.rank));
+  });
 });

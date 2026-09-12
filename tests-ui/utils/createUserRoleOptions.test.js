@@ -6,9 +6,10 @@ import {
 } from '../../src/utils/createUserRoleOptions.js';
 
 describe('createUserRoleOptions', () => {
-  it('liste les 7 profils ForetMap', () => {
+  it('liste les 8 profils ForetMap', () => {
     expect(UNITARY_CREATE_ROLE_SLUGS).toEqual([
       'visiteur',
+      'personnel',
       'eleve_novice',
       'eleve_avance',
       'eleve_chevronne',
@@ -20,6 +21,7 @@ describe('createUserRoleOptions', () => {
 
   it('isStudentUnitaryCreateRole', () => {
     expect(isStudentUnitaryCreateRole('visiteur')).toBe(true);
+    expect(isStudentUnitaryCreateRole('personnel')).toBe(true);
     expect(isStudentUnitaryCreateRole('eleve_avance')).toBe(true);
     expect(isStudentUnitaryCreateRole('prof')).toBe(false);
     expect(isStudentUnitaryCreateRole('prof_classe')).toBe(false);
@@ -32,6 +34,7 @@ describe('createUserRoleOptions', () => {
     });
     expect(studentOnly.map((o) => o.value)).toEqual([
       'visiteur',
+      'personnel',
       'eleve_novice',
       'eleve_avance',
       'eleve_chevronne',

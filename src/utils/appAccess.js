@@ -14,12 +14,12 @@ export function isClassTeacherRole(roleSlug) {
 }
 
 /**
- * Parcours « Visite / Biodiversité » sans carte ni tâches : visiteurs connectés et
- * profs de classe (même chrome apprenant).
+ * Parcours « Visite / Biodiversité » sans carte ni tâches : visiteurs, personnel
+ * et profs de classe (même chrome apprenant).
  */
 export function isVisitorLikeRole(roleSlug) {
   const slug = String(roleSlug || '').toLowerCase();
-  return slug === 'visiteur' || slug === 'prof_classe';
+  return slug === 'visiteur' || slug === 'personnel' || slug === 'prof_classe';
 }
 
 /**

@@ -56,6 +56,7 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
 | Rôle                    | Qui                                             | Ce qu'il peut faire                                                                                   |
 | ----------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | **Visiteur**            | Compte non promu (classe sans tâches, passage…) | Visite et Biodiversité seulement — **pas** de carte de travail ni de tâches                           |
+| **Personnel**           | Staff non enseignant (AED, vie scolaire…)       | Même parcours que le visiteur — Visite et Biodiversité seulement                                      |
 | **n3beur novice** 🪨    | Élève rattaché, 0 tâche validée                 | Carte, tâches, quiz, carnet, forum                                                                    |
 | **n3beur avancé** 🌿    | 5 tâches validées                               | Idem — le palier marque la progression                                                                |
 | **n3beur chevronné** 🏆 | 10 tâches validées                              | Idem                                                                                                  |
@@ -196,7 +197,7 @@ quand l'établissement a beaucoup de comptes et de groupes :
 - **Créer / importer** : un **n3boss** (selon ses droits) peut créer des comptes un par
   un (sous-onglet Comptes) ou importer une liste (sous-onglet Imports & exports, rentrée).
   La **création unitaire** et le fichier d'import (CSV ou tableur) permettent de
-  choisir **chaque profil** : visiteur, n3beur novice / avancé / chevronné, prof de
+  choisir **chaque profil** : visiteur, personnel, n3beur novice / avancé / chevronné, prof de
   classe, n3boss, administrateur. Une colonne **Groupes** (à l'import) permet de
   rattacher chaque
   personne à **une ou plusieurs** classes (noms ou identifiants séparés par `|` ou
