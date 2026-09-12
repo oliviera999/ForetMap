@@ -149,6 +149,36 @@ describe('MapCategoriesPanel — réordonnancement', () => {
     await waitFor(() => expect(onMessage).toHaveBeenCalledWith('Ordre des catégories mis à jour'));
   });
 
+  test('glisser-déposer réordonne via PUT /reorder', async () => {
+    const { onMessage } = renderPanel();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /Descendre « Alpha »/ })).toBeTruthy(),
+    );
+    const grip = screen.getByRole('button', { name: /Glisser pour réordonner « Alpha »/ });
+    const betaGrip = screen.getByRole('button', { name: /Glisser pour réordonner « Beta »/ });
+    expect(grip).toBeTruthy();
+    expect(betaGrip).toBeTruthy();
+
+    api.mockClear();
+    api.mockImplementation(async (path) => {
+      if (path === '/api/map-categories/manage') return CATS;
+      if (path === '/api/map-categories/reorder') return { ok: true, category_ids: ['c2', 'c1'] };
+      return { ok: true };
+    });
+
+    fireEvent.dragStart(grip);
+    fireEvent.dragOver(betaGrip);
+    fireEvent.drop(betaGrip);
+    fireEvent.dragEnd(grip);
+
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith('/api/map-categories/reorder', 'PUT', {
+        category_ids: ['c2', 'c1'],
+      }),
+    );
+    await waitFor(() => expect(onMessage).toHaveBeenCalledWith('Ordre des catégories mis à jour'));
+  });
+
   test('le premier ne peut pas monter, le dernier ne peut pas descendre', async () => {
     renderPanel();
     await waitFor(() =>

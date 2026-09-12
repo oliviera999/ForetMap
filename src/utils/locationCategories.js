@@ -108,6 +108,28 @@ export function sortLocationCategories(list) {
  * `{ category_ids }` dans le nouvel ordre (pour `PUT /api/map-categories/reorder`)
  * et `patches` `{ id, sort_order }` des lignes qui changent vraiment.
  */
+/**
+ * Densifie `sort_order` = index après un nouvel ordre (↑↓ ou glisser-déposer).
+ * @param {object[]} previousOrder liste avant déplacement (pour calculer `patches`)
+ * @param {object[]} nextOrder liste après déplacement
+ */
+export function categoryReorderResult(previousOrder, nextOrder) {
+  const prev = Array.isArray(previousOrder) ? previousOrder : [];
+  const next = Array.isArray(nextOrder) ? nextOrder : [];
+  if (!next.length) return null;
+  const patches = [];
+  next.forEach((c, i) => {
+    if (c?.id == null) return;
+    const was = prev.find((x) => String(x.id) === String(c.id));
+    if (Number(was?.sort_order) === i) return;
+    patches.push({ id: c.id, sort_order: i });
+  });
+  return {
+    category_ids: next.map((c) => String(c.id)),
+    patches,
+  };
+}
+
 export function buildCategoryReorderPatches(sortedCategories, categoryId, direction) {
   const cats = Array.isArray(sortedCategories) ? sortedCategories : [];
   const target = String(categoryId ?? '');
@@ -117,15 +139,30 @@ export function buildCategoryReorderPatches(sortedCategories, categoryId, direct
   if (newIdx < 0 || newIdx >= cats.length) return null;
   const arr = [...cats];
   [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
-  const patches = [];
-  arr.forEach((c, i) => {
-    if (c?.id == null) return;
-    const prev = cats.find((x) => String(x.id) === String(c.id));
-    if (Number(prev?.sort_order) === i) return;
-    patches.push({ id: c.id, sort_order: i });
-  });
-  return {
-    category_ids: arr.map((c) => String(c.id)),
-    patches,
-  };
+  return categoryReorderResult(cats, arr);
+}
+
+/**
+ * Déplace une catégorie de `fromIndex` vers `toIndex` (glisser-déposer).
+ * @returns {{ category_ids: string[], patches: Array<{id, sort_order}> } | null}
+ */
+export function buildCategoryReorderByMove(sortedCategories, fromIndex, toIndex) {
+  const cats = Array.isArray(sortedCategories) ? sortedCategories : [];
+  const from = Number(fromIndex);
+  const to = Number(toIndex);
+  if (
+    !Number.isInteger(from) ||
+    !Number.isInteger(to) ||
+    from < 0 ||
+    to < 0 ||
+    from >= cats.length ||
+    to >= cats.length ||
+    from === to
+  ) {
+    return null;
+  }
+  const arr = [...cats];
+  const [item] = arr.splice(from, 1);
+  arr.splice(to, 0, item);
+  return categoryReorderResult(cats, arr);
 }

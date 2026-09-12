@@ -31,6 +31,12 @@ function renderToolbar(overrides = {}) {
     onSnapRadiusChange: vi.fn(),
     onSnapSensitivityChange: vi.fn(),
     onSnapSelectedPoints: vi.fn(),
+    onToggleNeighborSnap: vi.fn(),
+    onEnterAlignMode: vi.fn(),
+    onExitAlignMode: vi.fn(),
+    onComputeAlignPreview: vi.fn(),
+    onDiscardAlignPreview: vi.fn(),
+    onApplyAlignPreview: vi.fn(),
     onToggleMarkerPositionLock: vi.fn(),
     onToggleMapInteraction: vi.fn(),
     onToggleLabels: vi.fn(),
@@ -189,6 +195,35 @@ describe('MapViewToolbar', () => {
 
     renderToolbar({ mode: 'edit-points', snapEnabled: true, snapStatus: 'unavailable' });
     expect(screen.getByRole('button', { name: 'Indispo.' })).toBeTruthy();
+  });
+
+  test('mode edit-points : bascule Voisins', () => {
+    const h = renderToolbar({
+      isTeacher: true,
+      mode: 'edit-points',
+    });
+    fireEvent.click(screen.getByTestId('map-neighbor-snap'));
+    expect(h.onToggleNeighborSnap).toHaveBeenCalled();
+  });
+
+  test('prof en navigation : bouton Aligner et barre d’aperçu', () => {
+    const h = renderToolbar({
+      isTeacher: true,
+      mode: 'view',
+    });
+    fireEvent.click(screen.getByTestId('map-align-zones'));
+    expect(h.onEnterAlignMode).toHaveBeenCalled();
+
+    const h2 = renderToolbar({
+      isTeacher: true,
+      mode: 'align-zones',
+      alignSelectedCount: 2,
+      alignHasPreview: true,
+    });
+    fireEvent.click(screen.getByTestId('map-align-preview'));
+    expect(h2.onComputeAlignPreview).toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('map-align-apply'));
+    expect(h2.onApplyAlignPreview).toHaveBeenCalled();
   });
 
   test('mode edit-points : aimant prêt → curseur de sensibilité réglable', () => {

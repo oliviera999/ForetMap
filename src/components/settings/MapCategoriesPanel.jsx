@@ -12,6 +12,7 @@ import { ColorPaletteField } from '../ColorPaletteField.jsx';
 import { ZONE_COLORS } from '../../constants/garden';
 import { IconDelete } from '../../shared/icons.jsx';
 import {
+  buildCategoryReorderByMove,
   buildCategoryReorderPatches,
   sortLocationCategories,
 } from '../../utils/locationCategories.js';
@@ -80,6 +81,7 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
   const [draft, setDraft] = useState(EMPTY_DRAFT);
   const [editingId, setEditingId] = useState('');
   const [busy, setBusy] = useState(false);
+  const [dragIndex, setDragIndex] = useState(-1);
 
   const setField = (patch) => setDraft((prev) => ({ ...prev, ...patch }));
 
@@ -156,6 +158,21 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
     setBusy(false);
   };
 
+  const dropOn = async (toIndex) => {
+    const result = buildCategoryReorderByMove(categories, dragIndex, toIndex);
+    setDragIndex(-1);
+    if (!result?.category_ids?.length) return;
+    setBusy(true);
+    try {
+      await api('/api/map-categories/reorder', 'PUT', { category_ids: result.category_ids });
+      onMessage?.('Ordre des catégories mis à jour');
+      reload();
+    } catch (e) {
+      onError?.(e?.message || 'Échec du réordonnancement');
+    }
+    setBusy(false);
+  };
+
   return (
     <div
       style={{
@@ -179,8 +196,8 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
         catégorie sans carte vaut pour toutes les cartes ; sinon elle n’est proposée que sur la
         carte choisie. « Infrastructure » marque les lieux qui ne sont pas des cultures (mare,
         ruches, compostage…) : pas de section Biodiversité, jamais proposés comme cible de mission.
-        Utilisez ↑ ↓ dans la liste pour définir l’ordre d’affichage (filtres, pastilles, priorité au
-        dézoom) — ou saisissez un numéro « Ordre » ci-dessous.
+        Utilisez ↑ ↓ ou glissez-déposez une ligne pour définir l’ordre d’affichage (filtres,
+        pastilles, priorité au dézoom) — ou saisissez un numéro « Ordre » ci-dessous.
       </p>
 
       <div className="field">
@@ -321,8 +338,32 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
               gap: 10,
               padding: '8px 0',
               borderTop: '1px solid #f1f5f9',
+              opacity: dragIndex === idx ? 0.55 : 1,
+              background: dragIndex >= 0 && dragIndex !== idx ? '#f8fafc' : 'transparent',
             }}
           >
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              draggable={!busy}
+              disabled={busy}
+              aria-label={`Glisser pour réordonner « ${cat.label} »`}
+              title="Glisser pour réordonner"
+              onDragStart={() => setDragIndex(idx)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => dropOn(idx)}
+              onDragEnd={() => setDragIndex(-1)}
+              style={{
+                minHeight: 36,
+                minWidth: 36,
+                padding: '4px 6px',
+                cursor: busy ? 'default' : 'grab',
+                color: 'var(--ink-soft)',
+                lineHeight: 1,
+              }}
+            >
+              ⋮⋮
+            </button>
             <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 2 }}>
               <button
                 type="button"
