@@ -24,6 +24,9 @@ const {
   normalizeImportRoleSlug,
   userTypeForImportRoleSlug,
   canActorImportRoleSlug,
+  canActorMutateImportedAdmin,
+  isAdminRoleSlug,
+  hasImportScalarValue,
   detectAvatarExtension,
   normalizeImportHeader,
   parseCsvLine,
@@ -122,6 +125,18 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.equal(canActorImportRoleSlug({ roleSlug: 'prof' }, 'prof_classe'), true);
     assert.equal(canActorImportRoleSlug({ roleSlug: 'prof_classe' }, 'prof'), false);
     assert.equal(canActorImportRoleSlug({ roleSlug: 'prof_classe' }, 'visiteur'), true);
+  });
+
+  it('canActorMutateImportedAdmin : un n3boss ne touche pas un admin existant', () => {
+    assert.equal(isAdminRoleSlug('admin'), true);
+    assert.equal(isAdminRoleSlug('prof'), false);
+    assert.equal(canActorMutateImportedAdmin({ roleSlug: 'admin' }, 'admin'), true);
+    assert.equal(canActorMutateImportedAdmin({ roleSlug: 'prof' }, 'admin'), false);
+    assert.equal(canActorMutateImportedAdmin({ roleSlug: 'prof' }, 'prof'), true);
+    assert.equal(hasImportScalarValue(null), false);
+    assert.equal(hasImportScalarValue(''), false);
+    assert.equal(hasImportScalarValue('  '), false);
+    assert.equal(hasImportScalarValue('ok'), true);
   });
 
   it('detectAvatarExtension : png/jpg/webp, jpeg → jpg, refus hors data URL image', () => {
