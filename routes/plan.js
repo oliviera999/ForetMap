@@ -114,7 +114,7 @@ async function loadPlanSettings() {
 }
 
 const MAP_SELECT =
-  'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled, heading_up_enabled FROM maps';
+  'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled, heading_up_enabled, scale_compass_enabled FROM maps';
 
 /**
  * Carte du plan : `?map_id=` si fournie (400 si inconnue), sinon `ui.plan.map_id` si
@@ -149,6 +149,9 @@ function parseGeoAnchors(raw) {
 }
 
 function serializePlanMap(row) {
+  const geoAnchors = parseGeoAnchors(row.geo_anchors_json);
+  const hasAnchors = !!geoAnchors;
+  const scaleRaw = row.scale_compass_enabled == null ? 1 : row.scale_compass_enabled;
   return {
     id: String(row.id),
     label: String(row.label || ''),
@@ -156,7 +159,8 @@ function serializePlanMap(row) {
     frame_padding_px: row.frame_padding_px == null ? null : Number(row.frame_padding_px),
     gps_enabled: !!Number(row.gps_enabled),
     heading_up_enabled: !!Number(row.heading_up_enabled) && !!Number(row.gps_enabled),
-    geo_anchors: parseGeoAnchors(row.geo_anchors_json),
+    scale_compass_enabled: hasAnchors && !!Number(scaleRaw),
+    geo_anchors: geoAnchors,
   };
 }
 

@@ -42,6 +42,8 @@ import useMapCrudActions from '../hooks/useMapCrudActions.js';
 import { MascotGpsStatusBanner } from './MascotGpsStatusBanner.jsx';
 import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
 import { useHeadingUpPreference } from '../shared/pct-map/useHeadingUpPreference.js';
+import { useScaleCompassPreference } from '../shared/pct-map/useScaleCompassPreference.js';
+import { MapScaleCompassOverlay } from '../shared/pct-map/MapScaleCompassOverlay.jsx';
 import { headingUpOrientationDeg } from '../shared/pct-map/pctMapOrientation.js';
 import { PctPositionLayer } from '../shared/pct-map/PctPositionLayer.jsx';
 import { accuracyHaloDiameterPx } from '../shared/pct-map/positionGeometry.js';
@@ -501,6 +503,17 @@ function MapViewImpl({
     allowed: headingUpAllowed,
   });
   const headingUpEffective = headingUpPref.effective && mapPosition.active;
+  const scaleCompassAllowed =
+    !!activeMap?.georef && !!activeMap?.scale_compass_enabled && mode === 'view';
+  const scaleCompassPref = useScaleCompassPreference({
+    storageKey: 'foretmap:scale-compass',
+    allowed: scaleCompassAllowed,
+  });
+  const mapOrientationDeg = headingUpEffective
+    ? headingUpOrientationDeg(
+        mapPosition.smoothedScreenHeadingDeg ?? mapPosition.screenHeadingDeg ?? null,
+      )
+    : 0;
   useEffect(() => {
     if (!headingUpEffective) {
       setMapOrientation({ deg: 0, originPct: null });
@@ -1186,6 +1199,11 @@ function MapViewImpl({
           mapTextSizeLabel={mapTextSizeLabel}
           onCycleMapTextSize={cycleMapTextSize}
           gps={mascotGps}
+          scaleCompass={{
+            allowed: scaleCompassAllowed,
+            effective: scaleCompassPref.effective,
+            toggle: scaleCompassPref.toggle,
+          }}
           containerRef={containerRef}
           txRef={tx}
           fitMap={fitMap}
@@ -1432,6 +1450,14 @@ function MapViewImpl({
                   })}
                 </div>
               </MapViewWorldLayer>
+
+              <MapScaleCompassOverlay
+                visible={scaleCompassPref.effective}
+                georef={activeMap?.georef}
+                contentWidthPx={iw}
+                scale={cs}
+                orientationDeg={mapOrientationDeg}
+              />
 
               <MapCanvasHints
                 mode={mode}

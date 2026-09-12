@@ -139,6 +139,7 @@ test('GET /api/plan/content : carte réglée, lieux visibles sur le plan seuleme
   assert.equal(res.body.map.id, mapId);
   assert.equal(res.body.map.label, 'Plan de test');
   assert.equal(typeof res.body.map.gps_enabled, 'boolean');
+  assert.equal(typeof res.body.map.scale_compass_enabled, 'boolean');
   assert.equal(res.body.settings.map_id, undefined);
   assert.equal(typeof res.body.settings.title, 'string');
 

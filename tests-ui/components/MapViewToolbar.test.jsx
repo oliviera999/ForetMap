@@ -219,4 +219,24 @@ describe('MapViewToolbar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Coller' }));
     expect(h.onSnapSelectedPoints).toHaveBeenCalled();
   });
+
+  test('bouton Échelle : visible si scaleCompass.allowed en mode view, appelle toggle', () => {
+    const toggle = vi.fn();
+    renderToolbar({
+      mode: 'view',
+      scaleCompass: { allowed: true, effective: true, toggle },
+    });
+    const btn = screen.getByTestId('map-scale-compass-toggle');
+    expect(btn).toBeTruthy();
+    fireEvent.click(btn);
+    expect(toggle).toHaveBeenCalled();
+  });
+
+  test('bouton Échelle : masqué si scaleCompass non autorisé', () => {
+    renderToolbar({
+      mode: 'view',
+      scaleCompass: { allowed: false, effective: false, toggle: vi.fn() },
+    });
+    expect(screen.queryByTestId('map-scale-compass-toggle')).toBeNull();
+  });
 });

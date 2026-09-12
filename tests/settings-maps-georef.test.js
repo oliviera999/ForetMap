@@ -193,3 +193,27 @@ test('PUT /admin/maps/:id/georef force gps_enabled=false sans ancres', async () 
   assert.strictEqual(res.body.georef, null);
   await execute('DELETE FROM maps WHERE id = ?', [id]);
 });
+
+test('PUT /admin/maps/:id/georef scale_compass_enabled sans GPS', async () => {
+  const token = await ensureAdminTeacherAuthToken();
+  const id = await createTempMap(token);
+  const on = await request(app)
+    .put(`/api/settings/admin/maps/${id}/georef`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ anchors: VALID_ANCHORS, gps_enabled: false, scale_compass_enabled: true })
+    .expect(200);
+  assert.strictEqual(on.body.gps_enabled, false);
+  assert.strictEqual(on.body.scale_compass_enabled, true);
+  assert.ok(Array.isArray(on.body.georef) && on.body.georef.length === 3);
+
+  const off = await request(app)
+    .put(`/api/settings/admin/maps/${id}/georef`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ gps_enabled: false, scale_compass_enabled: false })
+    .expect(200);
+  assert.strictEqual(off.body.gps_enabled, false);
+  assert.strictEqual(off.body.scale_compass_enabled, false);
+  assert.ok(Array.isArray(off.body.georef) && off.body.georef.length === 3);
+
+  await execute('DELETE FROM maps WHERE id = ?', [id]);
+});

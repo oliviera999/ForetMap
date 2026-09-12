@@ -54,6 +54,8 @@ import {
 import { usePctMapViewport } from '../shared/pct-map/usePctMapViewport.js';
 import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
 import { useHeadingUpPreference } from '../shared/pct-map/useHeadingUpPreference.js';
+import { useScaleCompassPreference } from '../shared/pct-map/useScaleCompassPreference.js';
+import { MapScaleCompassOverlay } from '../shared/pct-map/MapScaleCompassOverlay.jsx';
 import { headingUpOrientationDeg } from '../shared/pct-map/pctMapOrientation.js';
 import { PctPositionLayer } from '../shared/pct-map/PctPositionLayer.jsx';
 import { accuracyHaloDiameterPx } from '../shared/pct-map/positionGeometry.js';
@@ -454,6 +456,17 @@ function VisitViewImpl({
     allowed: visitHeadingUpAllowed,
   });
   const visitHeadingUpEffective = visitHeadingUpPref.effective && visitPosition.active;
+  const visitScaleCompassAllowed =
+    !!currentMap?.georef && !!currentMap?.scale_compass_enabled && mode === 'view';
+  const visitScaleCompassPref = useScaleCompassPreference({
+    storageKey: 'visit:scale-compass',
+    allowed: visitScaleCompassAllowed,
+  });
+  const visitMapOrientationDeg = visitHeadingUpEffective
+    ? headingUpOrientationDeg(
+        visitPosition.smoothedScreenHeadingDeg ?? visitPosition.screenHeadingDeg ?? null,
+      )
+    : 0;
 
   useEffect(() => {
     if (!visitHeadingUpEffective) {
@@ -1010,6 +1023,13 @@ function VisitViewImpl({
                     ) : null}
                   </div>
                 </div>
+                <MapScaleCompassOverlay
+                  visible={visitScaleCompassPref.effective}
+                  georef={currentMap?.georef}
+                  contentWidthPx={visitMapFit.width}
+                  scale={mapTransform.s}
+                  orientationDeg={visitMapOrientationDeg}
+                />
                 <VisitMapZoomControls
                   onZoomIn={() => zoomBy(1.2)}
                   onZoomOut={() => zoomBy(0.84)}
@@ -1021,6 +1041,9 @@ function VisitViewImpl({
                   onHeadingUpToggle={() =>
                     visitHeadingUpPref.setEnabled(!visitHeadingUpPref.userEnabled)
                   }
+                  scaleCompassAllowed={visitScaleCompassAllowed}
+                  scaleCompassEffective={visitScaleCompassPref.effective}
+                  onScaleCompassToggle={visitScaleCompassPref.toggle}
                 />
                 {!activeRoute && resumableRouteSlug ? (
                   <div className="map-route-resume">

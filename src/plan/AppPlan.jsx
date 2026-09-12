@@ -7,6 +7,7 @@ import {
 import { buildPlaceIndex, searchPlaces } from '../shared/search/placeSearch.js';
 import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
 import { useHeadingUpPreference } from '../shared/pct-map/useHeadingUpPreference.js';
+import { useScaleCompassPreference } from '../shared/pct-map/useScaleCompassPreference.js';
 import { useBrandTheme } from '../shared/brand/useBrandTheme.js';
 import { PLAN_BRAND_DEFAULTS, PLAN_SCHOOL_LOGO_URL } from './utils/planBrand.js';
 import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
@@ -45,6 +46,8 @@ const CATEGORIES_STORAGE_KEY = 'plan:categories';
 const WELCOME_STORAGE_KEY = 'plan:welcome-seen';
 /** Préférence appareil : carte orientée selon la boussole. */
 const HEADING_UP_STORAGE_KEY = 'plan:heading-up';
+/** Préférence appareil : échelle + rose des vents. */
+const SCALE_COMPASS_STORAGE_KEY = 'plan:scale-compass';
 /** Nombre de résultats affichés (au-delà, affiner la recherche est plus rapide que défiler). */
 const RESULTS_LIMIT = 40;
 
@@ -121,6 +124,11 @@ export function AppPlan() {
   const headingUpPref = useHeadingUpPreference({
     storageKey: HEADING_UP_STORAGE_KEY,
     allowed: headingUpAllowed,
+  });
+  const scaleCompassAllowed = !!map?.geo_anchors && !!map?.scale_compass_enabled;
+  const scaleCompassPref = useScaleCompassPreference({
+    storageKey: SCALE_COMPASS_STORAGE_KEY,
+    allowed: scaleCompassAllowed,
   });
   const [positionToast, setPositionToast] = useTimedToastState();
   /**
@@ -553,6 +561,9 @@ export function AppPlan() {
               reportPlanUsage('heading_up', next ? 'on' : 'off');
               headingUpPref.setEnabled(next);
             }}
+            scaleCompassAllowed={scaleCompassAllowed}
+            scaleCompassEffective={scaleCompassPref.effective}
+            onScaleCompassToggle={scaleCompassPref.toggle}
             targetPct={targetPct}
             focusInsets={activeRoute ? { bottom: PLAN_ROUTE_BAR_FOCUS_INSET_PX } : null}
             attribution={settings?.attribution || ''}

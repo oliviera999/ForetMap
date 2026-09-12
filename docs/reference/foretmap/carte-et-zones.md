@@ -267,6 +267,11 @@ Si l'orientation boussole est autorisée (réglage Carte **et** case sur cette c
 calage GPS), le bouton **« Orienter »** fait tourner le plan pour aligner le regard vers le
 haut de l'écran. Chacun peut l'activer ou le couper ; le choix reste sur l'appareil.
 
+Dès que le plan est **calé** (même sans suivi GPS), une **barre d'échelle** et une **rose des
+vents** (N) s'affichent en bas à gauche. Un professeur peut les désactiver pour cette carte
+dans le calage GPS ; chacun peut aussi les masquer temporairement via le bouton **« Échelle »**
+de la barre d'outils (le choix reste sur l'appareil).
+
 La position est calculée dans l'appareil et n'est jamais envoyée au serveur.
 
 ### Quand la carte devient trop chargée
