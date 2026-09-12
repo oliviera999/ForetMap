@@ -55,6 +55,7 @@ const mapRoutesRouter = require('./routes/map-routes');
 const statsRouter = require('./routes/stats');
 const studentsRouter = require('./routes/students');
 const observationsRouter = require('./routes/observations');
+const userJournalRouter = require('./routes/user-journal');
 const auditRouter = require('./routes/audit');
 const rbacRouter = require('./routes/rbac');
 const settingsRouter = require('./routes/settings');
@@ -329,13 +330,24 @@ app.use((req, res, next) => {
   if (resolveProductFromRequest(req) === owner) return next();
   return res.redirect(302, '/');
 });
-// Avant express.static : /favicon.ico sert l'icône du produit résolu (dossier `assetsDir`).
+// Avant express.static : /favicon.ico sert l'icône du produit résolu (dossier `assetsDir`),
+// sauf si `shareFaviconWith` pointe vers un autre produit (Plan → ForetMap).
 app.get('/favicon.ico', (req, res) => {
   const product = getProduct(resolveProductFromRequest(req));
-  if (product.assetsDir) {
-    const productFavicon = path.join(staticRoot, product.assetsDir, 'favicon.ico');
+  const faviconProduct = product.shareFaviconWith ? getProduct(product.shareFaviconWith) : product;
+  if (faviconProduct.assetsDir) {
+    const productFavicon = path.join(staticRoot, faviconProduct.assetsDir, 'favicon.ico');
     if (fs.existsSync(productFavicon)) {
-      res.type('image/png');
+      // GL stocke un PNG sous le nom favicon.ico ; ForetMap / Plan un vrai ICO.
+      const head = Buffer.alloc(8);
+      const fd = fs.openSync(productFavicon, 'r');
+      try {
+        fs.readSync(fd, head, 0, 8, 0);
+      } finally {
+        fs.closeSync(fd);
+      }
+      const isPng = head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47;
+      res.type(isPng ? 'image/png' : 'image/vnd.microsoft.icon');
       return res.sendFile(productFavicon, { dotfiles: 'allow' });
     }
   }
@@ -522,6 +534,7 @@ app.use('/api/plan', planRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/students', studentsRouter);
 app.use('/api/observations', observationsRouter);
+app.use('/api/user-journal', userJournalRouter);
 app.use('/api/audit', auditRouter);
 app.use('/api/rbac', rbacRouter);
 app.use('/api/admin/reference-docs', referenceDocsRouter);

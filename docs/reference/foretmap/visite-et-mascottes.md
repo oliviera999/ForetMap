@@ -23,7 +23,10 @@ familles.
   glisser lancé, butée souple qui empêche le plan de sortir du cadre. Le plan peut être
   **dézoomé un peu sous le cadre** (jusqu'à la moitié) pour prendre du recul ; le bouton
   ⊡ le réajuste. **Cliquer un lieu envoie d'abord la mascotte s'y rendre**, puis ouvre
-  sa fiche.
+  sa fiche. Quand le plan de visite est **calé GPS** et que l'orientation boussole est
+  autorisée (réglage Visite **et** case sur la carte), **« Me situer »** place un point
+  de position et **« Orienter »** aligne le plan sur le regard — comme sur la carte de
+  travail et le Plan Lyautey.
 - **La fiche d'un lieu** : titre, sous-titre, photo principale, contenu éditorial
   (paragraphes, intertitres, blocs d'images légendées), la **biodiversité du lieu**, un volet
   Tuto (les fiches pratiques associées), un mode « lecture confortable », et un bouton
@@ -45,9 +48,13 @@ familles.
 - **La progression « vu / non-vu »** : pour un élève connecté, elle est rattachée à son
   compte et durable ; pour un invité anonyme, elle est mémorisée environ **24 heures**
   puis s'efface. Les marquages faits hors connexion sont conservés et synchronisés au
-  retour du réseau. Les lieux pas encore vus clignotent en rouge sur le plan ; sur un
-  appareil réglé pour **limiter les animations**, ils restent rouges sans clignoter —
-  la couleur suffit à les distinguer.
+  retour du réseau. Sur le plan, chaque zone garde **sa couleur** ; les lieux déjà
+  vus sont un peu plus atténués (remplissage plus transparent, contour plus fin),
+  les lieux pas encore vus restent bien marqués. Au **survol** ou au **focus clavier**,
+  le contour s'épaissit et le libellé « À découvrir » ou « Vu » apparaît un instant —
+  sans pastille permanente. Les repères suivent la même idée (légère atténuation une
+  fois vus, libellé au survol/focus). Le donut de progression du bandeau complète
+  la lecture d'ensemble.
 - **Sans souris** : zones et repères se parcourent à la **tabulation** et s'ouvrent avec
   **Entrée** ou **Espace**, comme sur la carte de l'application. Une fois la fiche
   ouverte, le clavier reste à l'intérieur ; **Échap** ou un clic à côté la referme et
@@ -59,8 +66,9 @@ familles.
   nom s'affiche au survol. Sur grand écran, tout tient désormais sur une seule ligne ; sur
   téléphone, la barre occupe environ deux fois moins de place qu'avant, au profit de la carte.
 - **Le bouton « Présentation du lieu » ne clignote plus** au premier passage. Il reste mis
-  en avant (c'est le seul bouton plein de la barre), mais l'écran ne comporte plus qu'une
-  seule sollicitation animée : le rouge clignotant des lieux pas encore vus.
+  en avant (c'est le seul bouton plein de la barre). Le plan n'a plus de signal animé
+  permanent : la progression se lit par l'atténuation des lieux déjà vus, le libellé au
+  survol/focus, et le donut du bandeau.
 - **Accessibilité** : l'application est désormais vérifiée automatiquement à chaque
   livraison sur douze écrans (connexion, visite, carte, tâches, biodiversité, glossaire,
   réseau, quiz et deux écrans G&L). Les défauts trouvés ont été corrigés : chaque page a
@@ -205,9 +213,11 @@ dit ce qu'on fait dans l'application, et indique où le retrouver. Elles ne dés
 bouton — à la première seconde, montrer un élément qu'on n'a pas appris à lire n'apprend
 rien.
 
-Cet accueil est joué **une seule fois par navigateur**, avant toute visite guidée
-d'onglet, et le professeur en lit une version qui lui est propre. Il suit le même
-interrupteur que les visites guidées : les désactiver le désactive aussi.
+Cet accueil est joué **une seule fois par compte**, avant toute visite guidée
+d'onglet — sur n'importe quel appareil où l'on se connecte — et le professeur en lit
+une version qui lui est propre. Il suit le même interrupteur que les visites guidées :
+les désactiver le désactive aussi. Sans compte (visite invitée), la mémoire reste
+locale à l'appareil.
 
 ### Comment OLU parle
 

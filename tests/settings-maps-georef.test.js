@@ -109,8 +109,27 @@ test('PUT /admin/maps/:id/georef enregistre le calage et l’expose via GET /api
   const map = list.body.find((m) => m.id === id);
   assert.ok(map, 'plan présent dans la liste publique');
   assert.strictEqual(map.gps_enabled, true);
+  assert.strictEqual(map.heading_up_enabled, false);
   assert.ok(Array.isArray(map.georef) && map.georef.length === 3);
   assert.strictEqual(map.georef[0].lat, VALID_ANCHORS[0].lat);
+
+  await execute('DELETE FROM maps WHERE id = ?', [id]);
+});
+
+test('PUT /admin/maps/:id/georef active heading_up_enabled avec GPS', async () => {
+  const token = await ensureAdminTeacherAuthToken();
+  const id = await createTempMap(token);
+  const saved = await request(app)
+    .put(`/api/settings/admin/maps/${id}/georef`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ anchors: VALID_ANCHORS, gps_enabled: true, heading_up_enabled: true })
+    .expect(200);
+  assert.strictEqual(saved.body.gps_enabled, true);
+  assert.strictEqual(saved.body.heading_up_enabled, true);
+
+  const list = await request(app).get('/api/maps').expect(200);
+  const map = list.body.find((m) => m.id === id);
+  assert.strictEqual(map.heading_up_enabled, true);
 
   await execute('DELETE FROM maps WHERE id = ?', [id]);
 });

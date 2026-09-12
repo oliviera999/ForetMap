@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { pointToContainedRectPct } from './pctMapPointer.js';
+import { mapOrientationStyle } from './pctMapOrientation.js';
 import {
   PCT_MAP_INERTIA_MIN_VELOCITY,
   PCT_MAP_SCALE_MAX_DEFAULT,
@@ -145,6 +146,35 @@ export function usePctMapViewport({
   const externalDragRef = useRef(null);
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
   const [interactionEnabled, setInteractionEnabled] = useState(true);
+  /** Orientation de vue (heading-up) : angle CSS + pivot en % contenu. */
+  const [mapOrientation, setMapOrientationState] = useState({ deg: 0, originPct: null });
+  const mapOrientationRef = useRef(mapOrientation);
+  mapOrientationRef.current = mapOrientation;
+
+  const setMapOrientation = useCallback((next) => {
+    const deg = Number(next?.deg) || 0;
+    const originPct =
+      next?.originPct &&
+      Number.isFinite(Number(next.originPct.xp)) &&
+      Number.isFinite(Number(next.originPct.yp))
+        ? { xp: Number(next.originPct.xp), yp: Number(next.originPct.yp) }
+        : null;
+    setMapOrientationState((prev) => {
+      const sameOrigin =
+        (prev.originPct == null && originPct == null) ||
+        (prev.originPct &&
+          originPct &&
+          Math.abs(prev.originPct.xp - originPct.xp) < 1e-3 &&
+          Math.abs(prev.originPct.yp - originPct.yp) < 1e-3);
+      if (Math.abs((prev.deg || 0) - deg) < 0.05 && sameOrigin) return prev;
+      return { deg, originPct };
+    });
+  }, []);
+
+  const orientStyle = useMemo(
+    () => mapOrientationStyle(mapOrientation.deg, mapOrientation.originPct) || undefined,
+    [mapOrientation],
+  );
 
   const optionsRef = useRef({});
   optionsRef.current = {
@@ -507,9 +537,12 @@ export function usePctMapViewport({
         optionsRef.current.contentMode === 'stage'
           ? fr
           : { offsetX: 0, offsetY: 0, width: imgSizeRef.current.w, height: imgSizeRef.current.h };
+      const orient = mapOrientationRef.current;
       return pointToContainedRectPct({ clientX, clientY }, c, tx.current, fit, {
         clamp: options.clamp === true,
         decimals: options.decimals ?? null,
+        orientationDeg: orient?.deg || 0,
+        orientationOriginPct: orient?.originPct || null,
       });
     },
     [containerRef],
@@ -545,7 +578,7 @@ export function usePctMapViewport({
 
   /** Centre un point % image dans le cadre (résultat de recherche, lien profond), animé. */
   const focusOnPct = useCallback(
-    (pct, { targetScale = null, zoomFactor = 1.35 } = {}) => {
+    (pct, { targetScale = null, zoomFactor = 1.35, insets = null } = {}) => {
       const b = currentBounds();
       const fit = fitScaleRef.current || 1;
       const desired =
@@ -554,7 +587,7 @@ export function usePctMapViewport({
           : Math.max(tx.current.s, fit * (Number(zoomFactor) || 1.35));
       const s = clampPctMapScale(desired, b);
       const fr = optionsRef.current.contentMode === 'stage' ? fitRectRef.current : null;
-      animateTo(centerPctMapTransformOnPct(pct, s, b, fr));
+      animateTo(centerPctMapTransformOnPct(pct, s, b, fr, insets));
     },
     [animateTo, currentBounds],
   );
@@ -979,6 +1012,9 @@ export function usePctMapViewport({
       toggleInteraction,
       prefersPageScroll,
       touchAction,
+      mapOrientation,
+      setMapOrientation,
+      orientStyle,
     }),
     [
       containerRef,
@@ -1013,6 +1049,9 @@ export function usePctMapViewport({
       toggleInteraction,
       prefersPageScroll,
       touchAction,
+      mapOrientation,
+      setMapOrientation,
+      orientStyle,
     ],
   );
 }

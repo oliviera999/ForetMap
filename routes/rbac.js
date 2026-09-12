@@ -28,6 +28,7 @@ const { logAudit } = require('../lib/auditLog');
 const {
   MAX_DESCRIPTION_LEN,
   PSEUDO_RE,
+  PSEUDO_INVALID_MSG,
   EMAIL_RE,
   STUDENT_ROLE_SLUG_RE,
   reservedRoleSlugError,
@@ -86,39 +87,35 @@ async function resolveRbacSubjectForMutation(userTypeParam, userIdParam) {
   return { ok: true, user, resolvedUserType, resolvedUserId };
 }
 
+const {
+  IMPORT_ROLE_SLUGS,
+  userTypeForImportRoleSlug,
+  canActorImportRoleSlug,
+} = require('../lib/studentRouteHelpers');
+
 router.post(
   '/users',
   requirePermission('users.create'),
   asyncHandler(async (req, res) => {
-    const actorRoleSlug = String(req.auth?.roleSlug || '')
-      .trim()
-      .toLowerCase();
-    const actorPerms = Array.isArray(req.auth?.permissions) ? req.auth.permissions : [];
-
     const roleSlug = String(req.body?.role_slug || '')
       .trim()
       .toLowerCase();
-    const allowedStudentSlugs = new Set(['eleve_novice', 'visiteur']);
-    const allowedTeacherSlugs = new Set(['prof', 'prof_classe']);
-    if (
-      !allowedStudentSlugs.has(roleSlug) &&
-      !allowedTeacherSlugs.has(roleSlug) &&
-      roleSlug !== 'admin'
-    ) {
+    if (!IMPORT_ROLE_SLUGS.has(roleSlug)) {
       return res.status(400).json({
-        error: 'role_slug invalide (eleve_novice, visiteur, prof, prof_classe, admin)',
+        error:
+          'role_slug invalide (visiteur, personnel, eleve_novice, eleve_avance, eleve_chevronne, prof_classe, prof, admin)',
       });
     }
-    if (roleSlug === 'admin' && actorRoleSlug !== 'admin') {
-      return res.status(403).json({ error: 'Seul un administrateur peut créer un admin' });
-    }
-    if (allowedTeacherSlugs.has(roleSlug) && !['prof', 'admin'].includes(actorRoleSlug)) {
-      return res.status(403).json({
-        error: 'Seuls n3boss et administrateur peuvent créer un compte enseignant',
-      });
-    }
-    if (allowedStudentSlugs.has(roleSlug) && !actorPerms.includes('users.create')) {
-      return res.status(403).json({ error: 'Permission insuffisante' });
+    if (!canActorImportRoleSlug(req.auth, roleSlug)) {
+      if (roleSlug === 'admin') {
+        return res.status(403).json({ error: 'Seul un administrateur peut créer un admin' });
+      }
+      if (roleSlug === 'prof' || roleSlug === 'prof_classe') {
+        return res.status(403).json({
+          error: 'Seuls n3boss et administrateur peuvent créer un compte enseignant',
+        });
+      }
+      return res.status(403).json({ error: 'Permission insuffisante pour ce profil' });
     }
 
     const firstName = normalizeOptionalString(req.body?.first_name);
@@ -131,7 +128,7 @@ router.post(
     // 4 caractères conviennent à un élève de sixième, pas à un compte qui porte
     // `admin.impersonate`. Le calcul est remonté ici — il vivait plus bas — pour être
     // disponible au moment de la validation.
-    const userType = allowedStudentSlugs.has(roleSlug) ? 'student' : 'teacher';
+    const userType = userTypeForImportRoleSlug(roleSlug) || 'student';
     const minPasswordLen = await getPasswordMinLengthFor(userType);
     if (!firstName || !lastName) return res.status(400).json({ error: 'Prénom et nom requis' });
     if (!password || password.length < minPasswordLen) {
@@ -140,9 +137,7 @@ router.post(
         .json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
     }
     if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
-      return res
-        .status(400)
-        .json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
+      return res.status(400).json({ error: PSEUDO_INVALID_MSG });
     }
     if (email != null && !EMAIL_RE.test(email)) {
       return res.status(400).json({ error: 'Email invalide' });
@@ -243,6 +238,9 @@ router.post(
       } else if (groupId) {
         await addStudentToGroup(id, groupId);
       }
+      // Le rattachement peut recalculer le profil (ex. promotion visiteur→novice) :
+      // on réapplique le profil explicitement demandé à la création.
+      await setPrimaryRole(userType, id, role.id);
     }
 
     const created = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [id]);
@@ -339,7 +337,7 @@ router.post(
       if (!canConfigureStudentTierForumContext(slug, rank)) {
         return res.status(400).json({
           error:
-            'max_concurrent_tasks : réservé aux profils n3beur (slug eleve_* ou rang strictement inférieur à celui du n3boss, hors admin, prof, visiteur)',
+            'max_concurrent_tasks : réservé aux profils n3beur (slug eleve_* ou rang strictement inférieur à celui du n3boss, hors admin, prof, visiteur, personnel)',
         });
       }
       const rawMct = Object.prototype.hasOwnProperty.call(req.body || {}, 'max_concurrent_tasks')
@@ -804,9 +802,7 @@ router.patch(
     if (hasPseudo) {
       pseudo = normalizeOptionalString(body.pseudo);
       if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
-        return res
-          .status(400)
-          .json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
+        return res.status(400).json({ error: PSEUDO_INVALID_MSG });
       }
     }
 

@@ -48,6 +48,11 @@ import {
   getVisitMascotVisibilityReason,
 } from '../utils/visitMascotVisibility.js';
 import { usePctMapViewport } from '../shared/pct-map/usePctMapViewport.js';
+import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
+import { useHeadingUpPreference } from '../shared/pct-map/useHeadingUpPreference.js';
+import { headingUpOrientationDeg } from '../shared/pct-map/pctMapOrientation.js';
+import { PctPositionLayer } from '../shared/pct-map/PctPositionLayer.jsx';
+import { accuracyHaloDiameterPx } from '../shared/pct-map/positionGeometry.js';
 import { useMapFullscreen } from '../shared/hooks/useMapFullscreen.js';
 import { usePrefersReducedMotion } from '../shared/hooks/usePrefersReducedMotion.js';
 import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx';
@@ -354,6 +359,7 @@ function VisitViewImpl({
     (target) => Boolean(target?.closest?.('.visit-map-controls')),
     [],
   );
+  const visitPositionNotifyRef = useRef(null);
   const {
     containerRef: stageRef,
     worldRef: visitWorldRef,
@@ -367,6 +373,9 @@ function VisitViewImpl({
     zoomBy,
     toImagePct,
     touchAction: visitStageTouchAction,
+    focusOnPct,
+    setMapOrientation,
+    orientStyle,
   } = usePctMapViewport({
     imageSrc: visitMapImageSrc,
     contentMode: 'stage',
@@ -374,7 +383,50 @@ function VisitViewImpl({
     onResize: 'clamp',
     resetKey: mapId,
     isGestureTarget: isVisitGestureTarget,
+    onGestureStart: () => visitPositionNotifyRef.current?.(),
   });
+
+  const visitPosition = useMapPosition({
+    georef: currentMap?.georef ?? null,
+    gpsEnabled: !!currentMap?.gps_enabled && mode === 'view',
+  });
+  visitPositionNotifyRef.current = visitPosition.notifyManualPan;
+  const visitHeadingUpAllowed =
+    !!publicSettings?.visit?.heading_up_enabled &&
+    !!currentMap?.heading_up_enabled &&
+    !!visitPosition.available &&
+    mode === 'view';
+  const visitHeadingUpPref = useHeadingUpPreference({
+    storageKey: 'visit:heading-up',
+    allowed: visitHeadingUpAllowed,
+  });
+  const visitHeadingUpEffective = visitHeadingUpPref.effective && visitPosition.active;
+
+  useEffect(() => {
+    if (!visitHeadingUpEffective) {
+      setMapOrientation({ deg: 0, originPct: null });
+      return;
+    }
+    const heading =
+      visitPosition.smoothedScreenHeadingDeg ?? visitPosition.screenHeadingDeg ?? null;
+    setMapOrientation({
+      deg: headingUpOrientationDeg(heading),
+      originPct: visitPosition.displayPct || null,
+    });
+  }, [
+    visitHeadingUpEffective,
+    visitPosition.displayPct?.xp,
+    visitPosition.displayPct?.yp,
+    visitPosition.smoothedScreenHeadingDeg,
+    visitPosition.screenHeadingDeg,
+    setMapOrientation,
+  ]);
+
+  const visitFollowPct = visitPosition.following ? visitPosition.displayPct : null;
+  useEffect(() => {
+    if (!visitFollowPct) return;
+    focusOnPct({ xp: visitFollowPct.xp, yp: visitFollowPct.yp });
+  }, [visitFollowPct, focusOnPct]);
   const visitMapImageReady = visitImgNatural.w > 1 && visitImgNatural.h > 1;
   /** Rect « contain » courant en lecture impérative (contrôleur de la mascotte). */
   const visitMapFitRef = useRef(visitMapFit);
@@ -833,6 +885,7 @@ function VisitViewImpl({
                           }
                         : { left: 0, top: 0, width: '100%', height: '100%' }),
                       ...visitZoneSvgTypography.overlayCssVars,
+                      ...(orientStyle || {}),
                     }}
                   >
                     <img
@@ -881,12 +934,27 @@ function VisitViewImpl({
                       seen={seen}
                       onMarkerClick={onVisitMarkerClick}
                     />
+                    {visitPosition.displayPct ? (
+                      <PctPositionLayer
+                        position={visitPosition.displayPct}
+                        haloPx={accuracyHaloDiameterPx(visitPosition.haloPct, visitMapFit.width)}
+                        headingDeg={visitHeadingUpEffective ? null : visitPosition.screenHeadingDeg}
+                        accuracyM={visitPosition.accuracyM}
+                      />
+                    ) : null}
                   </div>
                 </div>
                 <VisitMapZoomControls
                   onZoomIn={() => zoomBy(1.2)}
                   onZoomOut={() => zoomBy(0.84)}
                   onReset={fitMapAnimated}
+                  position={visitPosition}
+                  headingUpAllowed={visitHeadingUpAllowed}
+                  headingUpEffective={visitHeadingUpEffective}
+                  headingUpUserEnabled={visitHeadingUpPref.userEnabled}
+                  onHeadingUpToggle={() =>
+                    visitHeadingUpPref.setEnabled(!visitHeadingUpPref.userEnabled)
+                  }
                 />
               </div>
               {!selected ? (

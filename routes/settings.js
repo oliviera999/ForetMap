@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const bcrypt = require('bcryptjs');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
@@ -69,13 +70,13 @@ function parseBoolean(value, fallback) {
 async function getMapById(id) {
   try {
     return await queryOne(
-      'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled FROM maps WHERE id = ? LIMIT 1',
+      'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled, heading_up_enabled FROM maps WHERE id = ? LIMIT 1',
       [id],
     );
   } catch (e) {
     if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
     return queryOne(
-      'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active, NULL AS geo_anchors_json, 0 AS gps_enabled FROM maps WHERE id = ? LIMIT 1',
+      'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active, NULL AS geo_anchors_json, 0 AS gps_enabled, 0 AS heading_up_enabled FROM maps WHERE id = ? LIMIT 1',
       [id],
     );
   }
@@ -84,12 +85,12 @@ async function getMapById(id) {
 async function listMaps() {
   try {
     return await queryAll(
-      'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled FROM maps ORDER BY sort_order ASC, label ASC',
+      'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled, heading_up_enabled FROM maps ORDER BY sort_order ASC, label ASC',
     );
   } catch (e) {
     if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
     return queryAll(
-      'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active, NULL AS geo_anchors_json, 0 AS gps_enabled FROM maps ORDER BY sort_order ASC, label ASC',
+      'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active, NULL AS geo_anchors_json, 0 AS gps_enabled, 0 AS heading_up_enabled FROM maps ORDER BY sort_order ASC, label ASC',
     );
   }
 }
@@ -107,7 +108,13 @@ router.get(
   '/public',
   asyncHandler(async (req, res) => {
     const settings = await getSettings('public');
-    res.json({ settings: settings.nested });
+    const { getSocketIoRealtimePublicConfig } = require('../lib/socketIoTransport');
+    res.json({
+      settings: {
+        ...settings.nested,
+        realtime: getSocketIoRealtimePublicConfig(),
+      },
+    });
   }),
 );
 
@@ -290,18 +297,49 @@ router.post(
   }),
 );
 
+router.post(
+  '/admin/plan-access-code',
+  requirePermission('admin.settings.write'),
+  asyncHandler(async (req, res) => {
+    const code = String(req.body?.code ?? '').trim();
+    if (code.length > 64) {
+      return res.status(400).json({ error: 'Code trop long (64 caractères maximum)' });
+    }
+    const hash = code ? await bcrypt.hash(code, 10) : '';
+    const updated = await setSetting('security.plan_access_code_hash', hash, {
+      userType: req.auth?.userType,
+      userId: req.auth?.userId,
+    });
+    await logAudit(
+      'settings_update',
+      'setting',
+      'security.plan_access_code_hash',
+      code ? 'Code d’accès du plan défini' : 'Code d’accès du plan effacé',
+      { req, payload: { key: 'security.plan_access_code_hash', cleared: !code } },
+    );
+    res.json({ ok: true, key: 'security.plan_access_code_hash', hasCode: Boolean(updated) });
+  }),
+);
+
 router.put(
   '/admin/:key',
   requirePermission('admin.settings.write'),
   asyncHandler(async (req, res) => {
     const key = String(req.params.key || '').trim();
     if (!key) return res.status(400).json({ error: 'Clé de réglage requise' });
+    if (key === 'security.plan_access_code_hash') {
+      return res.status(400).json({
+        error:
+          'Utilisez POST /api/settings/admin/plan-access-code pour définir le code d’accès du plan',
+      });
+    }
     const value = req.body?.value;
     if (
       [
         'ui.map.default_map_student',
         'ui.map.default_map_teacher',
         'ui.map.default_map_visit',
+        'ui.plan.map_id',
       ].includes(key)
     ) {
       const exists = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [
@@ -500,17 +538,23 @@ router.put(
       }
     }
     const gpsEnabled = parseBoolean(body.gps_enabled, !!map.gps_enabled) && hasValidAnchors;
+    const headingUpEnabled =
+      gpsEnabled && parseBoolean(body.heading_up_enabled, !!map.heading_up_enabled);
 
-    await execute('UPDATE maps SET geo_anchors_json = ?, gps_enabled = ? WHERE id = ?', [
-      anchorsJson,
-      gpsEnabled ? 1 : 0,
-      map.id,
-    ]);
+    await execute(
+      'UPDATE maps SET geo_anchors_json = ?, gps_enabled = ?, heading_up_enabled = ? WHERE id = ?',
+      [anchorsJson, gpsEnabled ? 1 : 0, headingUpEnabled ? 1 : 0, map.id],
+    );
     invalidateMapsListCache();
     const updated = await getMapById(map.id);
     await logAudit('settings_map_georef', 'map', map.id, 'Calage GPS du plan mis à jour', {
       req,
-      payload: { map_id: map.id, gps_enabled: gpsEnabled, has_anchors: !!anchorsJson },
+      payload: {
+        map_id: map.id,
+        gps_enabled: gpsEnabled,
+        heading_up_enabled: headingUpEnabled,
+        has_anchors: !!anchorsJson,
+      },
     });
     res.json(serializeMap(updated));
   }),

@@ -165,6 +165,17 @@ describe('centerPctMapTransformOnPct', () => {
     const t2 = centerPctMapTransformOnPct({ xp: 100, yp: 100 }, 2, sceneBounds, fitRect);
     expect(t2).toEqual({ x: -400, y: -300, s: 2 });
   });
+
+  test('insets bas : centre dans la zone visible au-dessus de la barre', () => {
+    // Cadre 400×300, marge basse 100 → zone visible haute 200, centre cible y = 100.
+    // Point image (50 %, 50 %) = (500, 250) en px contenu → y = 100 − 250·1 = −150.
+    const t = centerPctMapTransformOnPct({ xp: 50, yp: 50 }, 1, imageBounds, null, {
+      bottom: 100,
+    });
+    expect(t.s).toBe(1);
+    expect(t.x).toBe(-300);
+    expect(t.y).toBe(-150);
+  });
 });
 
 describe('inertie', () => {

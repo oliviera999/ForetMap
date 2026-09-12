@@ -103,27 +103,34 @@ test('simulation : plan complet sans aucune écriture, rapport structuré', asyn
   assert.ok(list.items.some((r) => r.id === result.runId));
 });
 
-test('simulation : contrôles amont bloquants (e-mail absent) → exécution failed, rien d’écrit', async () => {
+test('simulation : membre sans e-mail laissé de côté, les autres traités', async () => {
+  const stamp = Date.now();
   fake.state.cohorts = [];
   fake.state.members = new Map();
   fx.seedCohort(fake, {
     id: 604,
     idnumber: '26#604',
     name: '6e 4',
-    members: [fx.member(2001, 'Sans', 'Mail', { email: '' })],
+    members: [
+      fx.member(2001, 'Sans', 'Mail', { email: '' }),
+      fx.member(2002, 'Avec', 'Mail', { email: `avec.mail${stamp}@lyautey.test` }),
+    ],
   });
   const result = await runSync({
     mode: 'dry_run',
     cohortIds: [604],
     deps: { client, settings: fx.buildSettings() },
   });
-  assert.strictEqual(result.status, 'failed');
+  assert.strictEqual(result.status, 'succeeded');
+  assert.strictEqual(result.report.upstreamErrors.length, 1);
   assert.strictEqual(result.report.upstreamErrors[0].code, 'member_without_email');
+  assert.strictEqual(result.report.totals.upstreamSkipped, 1);
+  assert.strictEqual(result.report.totals.creations, 1);
   const run = await queryOne('SELECT status, error_text FROM sync_runs WHERE id = ?', [
     result.runId,
   ]);
-  assert.strictEqual(run.status, 'failed');
-  assert.match(run.error_text, /Contrôles amont/);
+  assert.strictEqual(run.status, 'succeeded');
+  assert.equal(run.error_text, null);
 });
 
 test('simulation : périmètre inconnu → 400 ; seuil de création dépassé → blocked dans le rapport', async () => {

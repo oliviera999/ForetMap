@@ -161,6 +161,8 @@ test('GET /api/settings/public renvoie les réglages publics', async () => {
   assert.ok(res.body?.settings);
   assert.strictEqual(typeof res.body.settings.ui?.auth?.allow_register, 'boolean');
   assert.strictEqual(typeof res.body.settings.ui?.auth?.allow_google_student, 'boolean');
+  assert.strictEqual(typeof res.body.settings.ui?.auth?.allow_google_auto_register, 'boolean');
+  assert.strictEqual(res.body.settings.ui?.auth?.allow_google_auto_register, false);
   assert.strictEqual(typeof res.body.settings.ui?.modules?.forum_enabled, 'boolean');
   assert.strictEqual(typeof res.body.settings.ui?.modules?.context_comments_enabled, 'boolean');
   assert.strictEqual(typeof res.body.settings.ui?.modules?.reports_enabled, 'boolean');
@@ -181,6 +183,8 @@ test('GET /api/settings/public renvoie les réglages publics', async () => {
   assert.strictEqual(uiMap.overlay_emoji_size_percent, 100);
   assert.strictEqual(uiMap.overlay_label_size_percent, 100);
   assert.strictEqual(uiMap.plateau_marker_size_percent, 100);
+  assert.strictEqual(typeof uiMap.show_tutorial_dots, 'boolean');
+  assert.strictEqual(uiMap.show_tutorial_dots, false);
   // `allowed_ids` a disparu de la charge publique avec le réglage : le client retombe donc sur
   // son défaut `[]`, c'est-à-dire « aucune restriction », par construction.
   assert.strictEqual(res.body.settings.ui?.visit?.mascot?.allowed_ids, undefined);
@@ -368,6 +372,27 @@ test('PUT ui.map.emoji_label_center_gap valide et refuse hors plage', async () =
     .put('/api/settings/admin/ui.map.emoji_label_center_gap')
     .set('Authorization', `Bearer ${token}`)
     .send({ value: 14 })
+    .expect(200);
+});
+
+test('PUT ui.map.show_tutorial_dots active/désactive les pastilles tutoriel (défaut false)', async () => {
+  const token = await getAdminToken();
+  const before = await request(app).get('/api/settings/public').expect(200);
+  assert.strictEqual(before.body?.settings?.ui?.map?.show_tutorial_dots, false);
+
+  await request(app)
+    .put('/api/settings/admin/ui.map.show_tutorial_dots')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: true })
+    .expect(200);
+
+  const on = await request(app).get('/api/settings/public').expect(200);
+  assert.strictEqual(on.body?.settings?.ui?.map?.show_tutorial_dots, true);
+
+  await request(app)
+    .put('/api/settings/admin/ui.map.show_tutorial_dots')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: false })
     .expect(200);
 });
 

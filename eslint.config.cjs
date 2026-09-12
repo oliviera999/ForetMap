@@ -120,6 +120,8 @@ module.exports = [
       'tests/qcm-feedback.test.js',
       'tests/image-lightbox-click.test.js',
       'tests/visit-editorial-blocks.test.js',
+      'tests/profiles-user-list-filters.test.js',
+      'tests/groups-admin-list-filters.test.js',
     ],
     languageOptions: {
       ecmaVersion: 2022,

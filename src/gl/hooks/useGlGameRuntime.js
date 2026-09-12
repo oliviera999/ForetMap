@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
-import { acquireGlSocket, subscribeGlGame } from '../realtime/glSocketClient.js';
+import {
+  acquireGlSocket,
+  subscribeGlGame,
+  setGlSocketIoAllowWebsocket,
+} from '../realtime/glSocketClient.js';
 import { jitteredRefreshDelay } from '../../utils/realtimeRefreshDelay.js';
 import { registerSkipMarkerArrival } from '../utils/glMarkerArrivalSkip.js';
 import { GL_MODULE_DEFAULTS, normalizeGlModules, isModuleEnabled } from '../constants/modules.js';
@@ -138,6 +142,7 @@ export function useGlGameRuntime({
         setChapters(Array.isArray(chaptersData) ? chaptersData : []);
         setModules(normalizeGlModules(configData?.modules));
         setGlConfig(configData || {});
+        setGlSocketIoAllowWebsocket(configData?.realtime?.allow_websocket === true);
         const first = Array.isArray(chaptersData) ? chaptersData[0] : null;
         if (first?.slug) {
           try {
@@ -168,6 +173,7 @@ export function useGlGameRuntime({
       setClasses(Array.isArray(classesData) ? classesData : []);
       setModules(normalizeGlModules(configData?.modules));
       setGlConfig(configData || {});
+      setGlSocketIoAllowWebsocket(configData?.realtime?.allow_websocket === true);
       setGlProfile(profileData?.profile || null);
       if (profileData?.auth) {
         updateSession({ auth: profileData.auth });

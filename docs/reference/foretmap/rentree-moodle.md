@@ -8,7 +8,8 @@
 
 Chaque rentrée, les classes du lycée existent déjà dans **Moodle** (la plateforme de cours de
 l'établissement) sous forme de **cohortes** : une par classe (« 26#603 » pour la 6e 3 de
-l'année 26), une pour les n3beurs (« 26#n3 »), une par niveau. Plutôt que de ressaisir les
+l'année 26), une pour les n3beurs (souvent « 26#n3 », ou tout code contenant « n3 »), une par
+niveau. Plutôt que de ressaisir les
 élèves à la main ou de distribuer des codes de classe, ForetMap **lit ces cohortes** et
 s'aligne dessus :
 
@@ -74,7 +75,11 @@ sécurité**, **Entrée depuis le cours**, **Outils**.
      deux comptes ») ;
    - _Désactivations_ — les comptes qui ne sont plus dans aucune cohorte ;
    - _Rapprochements en attente_, _Conflits d'e-mail_, _Conflits de comparaison_, _Alertes_,
-     _Cohortes sans politique_.
+     _Cohortes sans politique_ ;
+   - _Comptes laissés de côté_ — sans e-mail, e-mail hors domaine autorisé, ou e-mail en
+     double côté Moodle : ils ne bloquent plus toute la synchronisation. Un élève
+     **déjà reconnu** (compte déjà lié) n'est **pas** retiré de sa classe ni
+     désactivé pour ces raisons : seul un vrai départ de la cohorte le fait.
 3. **Appliquer.** Le bouton se libère quand la simulation a réussi sur exactement ces cohortes.
    S'il reste grisé, la raison est écrite à côté (périmètre changé, seuil dépassé, simulation
    échouée, synchronisation désactivée). Une confirmation est demandée.
@@ -138,12 +143,17 @@ ne s'annule pas.
   club, équipe), le **rôle** donné aux membres, et quatre options : accès n3beur, création
   d'une **classe G&L**, création des comptes manquants, **pousser vers Moodle** les ajouts faits
   dans ForetMap. Les réglages livrés couvrent : les niveaux (pas de création de compte), les
-  n3beurs (rôle élève, poussée vers Moodle), les sixièmes (visiteur + classe G&L), les autres
+  n3beurs (rôle élève, poussée vers Moodle — **toute cohorte dont le code contient « n3 »**,
+  préfixe d'année facultatif), les sixièmes (visiteur + classe G&L), les autres
   classes (visiteur).
-- **Préfixe d'année** (« 26 ») : à changer chaque rentrée ; tout ce qui ne commence pas par ce
-  préfixe est ignoré.
+- **Préfixe d'année** (« 26 ») : à changer chaque rentrée ; les cohortes de classes et de
+  niveaux qui ne commencent pas par ce préfixe sont ignorées. **Exception n3beurs** : toute
+  cohorte dont le code contient « n3 » (par exemple `26#n3`, `n3` ou `club-n3`) peut être
+  synchronisée même sans ce préfixe.
 - **Domaines d'e-mail acceptés** : vide = tous ; sinon un membre Moodle dont l'e-mail n'est pas
-  dans ces domaines bloque la synchronisation (contrôle amont).
+  dans ces domaines est **laissé de côté** (les autres membres de la cohorte sont quand même
+  traités). Même principe pour un membre sans e-mail, ou deux membres Moodle qui partagent le
+  même e-mail : le rapport les liste, l'exécution continue.
 - **Chapitres → cours** : quel cours Moodle porte quel chapitre de Gnomes & Licornes. Le **nom
   du cours** s'affiche à côté de son identifiant pour éviter une erreur d'année. Sert aux miroirs
   d'équipes et à l'entrée depuis le cours.

@@ -141,6 +141,207 @@ release automatiques, cliquet d'accessibilité, audits datés indexés dans
   documentaires, avaient échoué sur cette seule liaison manquante le 09/09.
 - `npm run test:local` continue de parcourir les deux dossiers ; `npm run test:all` enchaîne
   code, contenu puis UI.
+### Corrigé — import comptes : garde admin et cellules vides
+
+- Un n3boss ne peut plus, via l’import, changer le mot de passe ou le profil d’un
+  administrateur existant (même prénom/nom) ; le dernier administrateur ne peut
+  pas être rétrogradé — aligné sur l’attribution de profil.
+- À la mise à jour, une cellule vide (e-mail, pseudo, description) laisse la
+  valeur actuelle ; seul un champ renseigné est écrit.
+
+### Corrigé — sync Moodle : comptes déjà liés hors « laissés de côté »
+
+- Un élève déjà reconnu n’est plus retiré de sa classe ni désactivé si Moodle
+  signale un e-mail en double, hors domaine ou manquant : il reste dans le
+  périmètre, le problème est seulement signalé.
+### Ajouté — Carnet ForetMap à parité « Mon journal » GL
+
+- Articles markdown (multi-photos, auto-save, épinglage, encarts), imports après appris
+  (espèce / glossaire / tuto), recherche/filtre/tri.
+- Accès écriture : élève, visiteur connecté, prof de classe (carnet personnel).
+- API `/api/user-journal`, migration `237_user_journal.sql`, lecture prof enrichie + export `.md`.
+
+### Modifié — Visite : couleurs de zone + statut discret (A+E)
+
+- Les zones de visite affichent **leur couleur** (comme sur la carte) ; « vu » =
+  atténuation + contour plus fin, « non vu » = contour un peu plus marqué.
+- Au survol / focus : contour renforcé et libellé « À découvrir » / « Vu ».
+- Pastilles ambre/vertes retirées (zones et repères) — plan moins chargé.
+
+### Ajouté — audience des lieux par rôles (V1)
+
+- Zones et repères : réglage **« Qui peut voir ce lieu »** (rôles ForetMap) — hors audience,
+  le lieu est **absent** (carte, visite, plan), pas grisé.
+- Champ **complément réservé** lisible seulement par certains rôles (gestionnaires toujours).
+- Visite anonyme / Plan : un lieu restreint n'apparaît que si **Visiteur** est dans
+  l'audience. Suite documentée : groupes, multi-blocs, héritage par catégorie.
+
+### Ajouté — profil système « Personnel »
+
+- Nouveau profil **Personnel** (slug `personnel`), calqué sur **Visiteur** : Visite et
+  Biodiversité seulement, aucune permission d’action, même chrome de navigation.
+- Création unitaire, import CSV/tableur, rôle par défaut de groupe, slugs réservés.
+- Migration `235_personnel_role.sql`.
+
+### Ajouté — ordre des catégories de lieux dans les paramètres
+
+- Dans Réglages → Catégories de lieux : boutons ↑ ↓ pour réordonner les catégories
+  (filtres, pastilles, priorité au dézoom).
+- API `PUT /api/map-categories/reorder` (`{ category_ids }`).
+
+### Ajouté — pastilles tutoriel sur la carte (réglage)
+
+- Nouveau réglage public `ui.map.show_tutorial_dots` (défaut **off**) : affiche ou
+  masque le point violet signalant qu’une zone ou un repère est lié à un tutoriel.
+- Case à cocher dans Réglages → Cartes & plans.
+
+### Modifié — création unitaire : tous les profils
+
+- Le sélecteur de création de compte propose **visiteur**, paliers n3beur, **prof de
+  classe**, n3boss et admin (selon droits) — aligné sur l’import.
+- L’API accepte aussi `eleve_avance` / `eleve_chevronne` ; le profil demandé est
+  réappliqué après rattachement à un groupe.
+
+### Corrigé — init schéma / semis admin de test
+
+- Migrations : errno **1022** (contrainte déjà présente) ignoré comme les autres
+  errnos d’idempotence.
+- `initSchema` refuse MySQL 5.7 / moteurs trop anciens (message vers Docker MariaDB).
+- Semis `TEACHER_ADMIN_*` factorisé (`lib/teacherAdminSeed.js`) et appliqué dans le
+  harnais de tests après chaque `initSchema` — les suites API ne dépendent plus d’un
+  compte déjà présent dans un dump local.
+- Import CSV : libellé colonne **Groupes** sans « ; » (sinon le délimiteur CSV
+  cassait les colonnes Pseudo/Email dans les fichiers collés à la main).
+- Rattachement à un groupe sans accès n3beur : ne rétrograde plus un profil
+  élève (novice/avancé/…) vers **visiteur**.
+
+### Modifié — Prof de classe : interface type visiteur + suivi de classe
+
+- Navigation basse comme un **visiteur connecté** (Visite, Biodiversité, Quiz,
+  Glossaire, Réseau, Tutos) : accusés d’apprentissage utilisables.
+- Extras tuteur : onglets **Stats** (élèves du périmètre) et **Classe** (liste /
+  groupes) — réutilisation de Stats et Profils existants.
+- Plus de barre haute n3boss pour ce profil (`teacher.access` conservé côté API).
+
+### Modifié — charge serveur (commentaires, rate limit, drapeau WS)
+
+- Commentaires contextuels : plus de GET d’aperçu tant que la section est fermée
+  (listes tâches / tutoriels / etc.) — charge à l’ouverture uniquement.
+- Rate limit API général : clé **utilisateur JWT** si Bearer valide, sinon IP
+  (classe derrière un NAT = buckets séparés).
+- Drapeau **`FORETMAP_SOCKETIO_ALLOW_WEBSOCKET`** (défaut off) exposé aux clients
+  via `settings.realtime` / config GL ; prod o2switch reste en long-polling.
+- Doc : une instance Passenger recommandée ; projection `/api/plants` reportée
+  jusqu’à ~150–200 fiches (D4-A).
+
+### Modifié — Google : création de compte paramétrable (défaut non)
+
+- Réglage public `ui.auth.allow_google_auto_register` (**défaut `false`**) : à la
+  première connexion Google, un compte élève n’est créé que si l’admin l’autorise.
+- Sinon : redirection `oauth_account_not_found` (aucun compte créé) ; les comptes
+  déjà présents restent connectables via Google.
+
+### Ajouté — orientation carte selon la boussole (heading-up)
+
+- Bouton **Orienter** (Plan, carte ForetMap, Visite) : la carte tourne pour aligner le
+  regard vers le haut de l'écran ; bascule mémorisée sur l'appareil.
+- Autorisation en deux niveaux : réglage de surface (`ui.plan|map|visit.heading_up_enabled`)
+  **et** case par carte dans le calage GPS (`maps.heading_up_enabled`).
+- Noyau partagé : rotation intérieure + lissage du cap ; pan/zoom inchangés.
+
+### Modifié — import comptes : mise à jour et MDP faibles paramétrables
+
+- Compte déjà présent (même prénom + nom + type) : **mis à jour** par défaut
+  (réglage `students.import.existing_strategy` : `update` ou `skip`).
+- Mot de passe à la mise à jour : renseigné → remplacé ; vide → inchangé.
+- Option admin `students.import.allow_weak_passwords` : importer sans le plancher
+  de longueur habituel (élèves et enseignants).
+- Rapport : total `updated` + `options` ; section Réglages « Imports de comptes ».
+
+### Modifié — Plan Lyautey : même favicon que ForetMap
+
+- L’onglet et `/favicon.ico` sur `planlyautey.*` réutilisent l’icône ForetMap
+  (arbre n³) ; plus de liens distincts sous `/plan/favicon.*` dans `plan.html`.
+
+### Modifié — Profils & utilisateurs : sous-onglets et listes filtrées
+
+- L’onglet **Profils & utilisateurs** est découpé en sous-onglets **Profils**,
+  **Comptes**, **Groupes**, **Imports & exports** (sous-onglet mémorisé).
+- Listes de comptes : recherche, filtres (profil, type, groupe) et pagination
+  client (25 / 50 / 100).
+- Groupes : recherche, filtre par type, masquage des inactifs, arborescence
+  repliable, rattachement **en lot** des visiteurs en attente ; éditeur de
+  membres filtrable et paginé.
+
+### Modifié — Visite : pastilles vu / non-vu (plus de zones toutes rouges)
+
+- Sur le plan de visite, les zones gardent un remplissage vert calme ; le statut
+  « pas encore vu » / « vu » se lit via une **pastille** (ambre qui pulse, ou verte),
+  même langage que les repères. Plus de mer de polygones rouges au démarrage.
+
+### Modifié — pseudos : points, accents et signes autorisés
+
+- Pseudo utilisateur : lettres (y compris accentuées), chiffres, `.` `_` `-` `+`
+  (3–50 caractères) ; inscription, profil, import et admin. Les espaces et `@`
+  restent refusés.
+- Sync Moodle : le username (ex. `prenom.nom`) conserve ses points au lieu d’être
+  transformé en tirets.
+
+### Modifié — Accueil OLU : une fois par compte
+
+- L'accueil d'OLU (et les parcours de visite guidée d'onglets) est mémorisé **sur le
+  compte**, pas seulement dans le navigateur : se reconnecter sur un autre appareil ne
+  rejoue plus la présentation. Route `PUT /api/auth/discovery-tour-seen` + champ
+  `discoveryTourSeen` sur `GET /api/auth/me` / login.
+
+### Modifié — import : lignes en double fusionnées
+
+- Import **comptes** et **groupes** : une même personne / un même groupe répété dans
+  le fichier est fusionné (groupes cumulés pour les comptes ; dernière ligne pour
+  pseudo, e-mail, description, type…). Message d'info dans le rapport.
+- Groupes déjà présents : **mise à jour** des infos du fichier (plus seulement « déjà là »).
+
+### Modifié — Plan Lyautey : parcours, admin et noyau partagé
+
+- **Parcours** : barre d’étape compacte (carte encore utilisable), recentrage au-dessus de
+  la barre, reprise après Quitter, aide et doc mises à jour.
+- **Noyau partagé** : `BottomSheet` accepte `blockBackground=false` ; `focusOnPct` /
+  `centerPctMapTransformOnPct` acceptent des `insets`.
+- **Réglages → Plan** : panneau regroupé + `POST /api/settings/admin/plan-access-code`
+  (code clair → bcrypt serveur).
+- Compteurs `search` / `locate` émis ; checklist « mettre le Plan en service » dans la
+  référence fonctionnelle.
+
+### Modifié — sync Moodle : comptes à problème laissés de côté
+
+- Sans e-mail, e-mail hors domaine, ou e-mail en double côté Moodle : le membre est
+  **écarté** et listé dans le rapport ; les autres sont importés / rapprochés normalement
+  (plus d’échec global de l’exécution).
+- Un membre **déjà lié** sans e-mail continue d’être synchronisé (appartenances).
+
+### Modifié — sync Moodle : cohortes n3 sans préfixe d'année
+
+- Politique **n3** : toute cohorte dont le code contient « n3 » (ex. `26#n3`, `n3`,
+  `club-n3`) est synchronisable, **sans** exiger le préfixe `26#`.
+- Liste / simulation / application : les cohortes hors préfixe d'année mais retenues
+  par une politique apparaissent aussi.
+- Migration `232_moodle_n3_cohort_pattern.sql` + bascule automatique de l'ancien motif.
+
+### Modifié — import comptes + import groupes
+
+- Colonne **Groupes** à l’import utilisateurs : un ou plusieurs rattachements
+  (`|` / `;`, chemins `Parent>Enfant`) ; création auto des groupes absents.
+- **Import dédié** groupes / sous-groupes (modèle CSV/XLSX téléchargeable,
+  panneau Profils) : type, parent, option n3beur.
+
+### Modifié — import comptes : tous les profils ForetMap
+
+- Colonne **Rôle** : `visiteur`, `eleve_novice` / `eleve_avance` / `eleve_chevronne`,
+  `prof_classe`, `prof` (n3boss), `admin` (alias historiques `eleve`, `n3beur`, etc.).
+- Modèle CSV/XLSX : **7 lignes d’exemple** (un cas par profil), e-mails hors domaine
+  établissement inclus ; l’import **n’applique pas** les restrictions de domaines
+  Google / Moodle.
+- Garde anti-escalade alignée sur la création manuelle ; mot de passe enseignant ≥ 12.
 
 ### Ajouté — profil « Prof de classe » et correctifs RBAC n3boss
 

@@ -27,6 +27,7 @@ leurs permissions sont configurables par les administrateurs) :
 | Rôle                    | Qui c'est                                       | Ce qu'il peut faire                                                                                                                                  |
 | ----------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Visiteur**            | Compte non promu (classe sans tâches, passage…) | Essentiellement la Visite et la Biodiversité — pas d'accès à la carte de travail ni aux tâches                                                       |
+| **Personnel**           | Staff non enseignant (AED, vie scolaire…)       | Même parcours que le visiteur — Visite et Biodiversité seulement                                                                                     |
 | **n3beur novice** 🪨    | Un élève débutant (0 tâche validée)             | Consulter la carte, prendre des tâches, les marquer faites, observer des espèces, tenir son carnet, participer au forum et aux quiz                  |
 | **n3beur avancé** 🌿    | Un élève avec 5 tâches validées                 | Comme le novice (le palier récompense la progression)                                                                                                |
 | **n3beur chevronné** 🏆 | Un élève avec 10 tâches validées                | Comme l'avancé                                                                                                                                       |
@@ -39,15 +40,19 @@ une fenêtre de félicitations s'affiche à chaque promotion. Le vocabulaire
 « n3beur / n3boss » est personnalisable dans les réglages.
 
 Deux métiers d'enseignant coexistent : le **n3boss** pilote la forêt et les tâches
-(vue globale des élèves) ; le **prof de classe** suit une classe dont les élèves
-restent souvent **visiteurs** (sans tâches). Détail :
+(vue globale des élèves) ; le **prof de classe** suit sa classe avec la **même
+interface** qu’un visiteur connecté (Visite, Biodiversité, apprentissages), plus
+la liste et les statistiques de **ses** élèves. Détail :
 [Comptes, rôles et groupes](comptes-roles-et-groupes.md).
 
 **Connexion** : un seul écran pour tout le monde (identifiant — e-mail ou pseudo — et
 mot de passe, ou compte Google). L'inscription des élèves se fait en autonomie
-(prénom, nom, mot de passe) et peut être désactivée par un administrateur. Une
-procédure « mot de passe oublié » par e-mail existe, et un administrateur peut
-temporairement prendre la main sur un compte pour aider son propriétaire.
+(prénom, nom, mot de passe) et peut être désactivée par un administrateur. La
+**connexion Google** ne crée un compte que si un administrateur l'a explicitement
+autorisé dans les réglages (désactivé par défaut) : sinon Google ne connecte que
+les comptes déjà présents. Une procédure « mot de passe oublié » par e-mail existe,
+et un administrateur peut temporairement prendre la main sur un compte pour aider
+son propriétaire.
 
 **Rejoindre sa classe** : à l'inscription, l'élève peut saisir le **code de classe**
 fourni par son professeur — son compte rejoint alors directement le groupe et reçoit
@@ -115,8 +120,9 @@ masse, et programmer des **tâches récurrentes** (générées automatiquement c
   les espèces du jardin, édité par le professeur.
 - **Tutoriels** : fiches pratiques (arrosage, compostage…) liées aux tâches et zones,
   avec accusé de lecture par l'élève.
-- **Carnet d'observation** : le journal libre de l'élève (texte + photo), consultable
-  par le professeur.
+- **Carnet d'observation** : journal personnel (articles texte/photos, imports d’espèces,
+  glossaire et tutoriels appris), pour élèves, visiteurs connectés et profs de classe ;
+  consultable par les professeurs.
 
 ### La Visite (le mode grand public)
 

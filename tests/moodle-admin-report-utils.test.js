@@ -45,9 +45,10 @@ describe('moodleAdminReport (logique pure de l’onglet Moodle)', () => {
       /seuil/,
     );
     const upstream = { ...base, report: { ...base.report, upstreamErrors: [{ code: 'x' }] } };
-    assert.match(
-      mod.canApplyAfterDryRun({ lastDryRun: upstream, selectedCohortIds: [603, 604] }).reason,
-      /amont/,
+    assert.equal(
+      mod.canApplyAfterDryRun({ lastDryRun: upstream, selectedCohortIds: [603, 604] }).ok,
+      true,
+      'des comptes laissés de côté n’empêchent plus d’appliquer',
     );
     assert.equal(
       mod.canApplyAfterDryRun({

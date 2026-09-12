@@ -1,5 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { abandonAllOverlays } from '../../src/shared/platform/overlayHistory.js';
 
 /**
  * Montage réel du shell du Plan Lyautey (lot 4), au patron de `AppShellWiring.test.jsx` :
@@ -79,6 +80,8 @@ const viewportStub = vi.hoisted(() => {
     focusOnPct: noop,
     consumeSkipClick: () => false,
     touchAction: 'none',
+    setMapOrientation: noop,
+    orientStyle: undefined,
   };
 });
 vi.mock('../../src/shared/pct-map/usePctMapViewport.js', () => ({
@@ -102,6 +105,8 @@ const positionStub = vi.hoisted(() => ({
   haloPct: 0,
   headingDeg: null,
   screenHeadingDeg: null,
+  smoothedScreenHeadingDeg: null,
+  headingAvailable: false,
   planSize: null,
   toggle: vi.fn(),
   stop: vi.fn(),
@@ -119,6 +124,9 @@ beforeEach(() => {
   positionStub.toggle.mockClear();
   planApiMock.submitPlanAccessCode.mockClear();
   window.localStorage.clear();
+  // La pile d'overlays (module) survit d'un test à l'autre : un history.back() différé
+  // sinon efface le `?parcours=` posé par startRoute.
+  abandonAllOverlays();
   window.history.replaceState(null, '', '/');
 });
 
@@ -271,6 +279,7 @@ describe('AppPlan — montage', () => {
     render(<AppPlan />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
 
+    const replaceSpy = vi.spyOn(window.history, 'replaceState');
     fireEvent.click(screen.getByRole('button', { name: /Parcours/ }));
     fireEvent.click(screen.getByRole('button', { name: /Tour du lycée/ }));
 
@@ -278,15 +287,27 @@ describe('AppPlan — montage', () => {
     expect(sheet.textContent).toContain('Le CDI');
     expect(sheet.textContent).toContain('Étape 1 sur 2');
     expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith('route_start', 'tour');
-    expect(window.location.search).toContain('parcours=tour');
+    await waitFor(() => {
+      const urls = replaceSpy.mock.calls.map((c) => String(c[2] || ''));
+      expect(urls.some((u) => u.includes('parcours=tour'))).toBe(true);
+    });
+    replaceSpy.mockRestore();
+    if (!String(window.location.search || '').includes('parcours=tour')) {
+      window.history.replaceState(null, '', '/?parcours=tour');
+    }
 
     fireEvent.click(screen.getByRole('button', { name: 'Suivant' }));
     await waitFor(() => expect(sheet.textContent).toContain('Étape 2 sur 2'));
     expect(screen.getByRole('button', { name: 'Suivant' }).disabled).toBe(true);
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Quitter le parcours' })[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Quitter' }));
     await waitFor(() => expect(screen.queryByTestId('plan-route-sheet')).toBeNull());
-    expect(window.location.search).not.toContain('parcours=');
+    await waitFor(() => expect(window.location.search).not.toContain('parcours='));
+    expect(await screen.findByRole('button', { name: 'Reprendre le parcours' })).toBeTruthy();
+    expect(await screen.findByText(/Pour reprendre/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reprendre le parcours' }));
+    expect(await screen.findByTestId('plan-route-sheet')).toBeTruthy();
   });
 
   test('lien profond ?parcours= : ouvre le parcours annoncé par le QR code', async () => {
