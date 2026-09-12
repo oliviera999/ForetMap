@@ -93,3 +93,68 @@ describe('MapCategoriesPanel — champ couleur', () => {
     expect(payload.color).toBe('#fca5a590');
   });
 });
+
+describe('MapCategoriesPanel — réordonnancement', () => {
+  const CATS = [
+    {
+      id: 'c1',
+      label: 'Alpha',
+      emoji: '🅰️',
+      color: '#86efac90',
+      sort_order: 0,
+      applies_to: 'both',
+      is_active: true,
+    },
+    {
+      id: 'c2',
+      label: 'Beta',
+      emoji: '🅱️',
+      color: '#fca5a590',
+      sort_order: 1,
+      applies_to: 'both',
+      is_active: true,
+    },
+  ];
+
+  beforeEach(() => {
+    api.mockReset();
+    api.mockImplementation(async (path) => {
+      if (path === '/api/map-categories/manage') return CATS;
+      return { ok: true };
+    });
+  });
+
+  test('affiche les boutons monter/descendre et appelle reorder', async () => {
+    const { onMessage } = renderPanel();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /Descendre « Alpha »/ })).toBeTruthy(),
+    );
+    expect(screen.getByText(/Ordre 0/)).toBeTruthy();
+    expect(screen.getByText(/Ordre 1/)).toBeTruthy();
+
+    const down = screen.getByRole('button', { name: /Descendre « Alpha »/ });
+    api.mockClear();
+    api.mockImplementation(async (path) => {
+      if (path === '/api/map-categories/manage') return CATS;
+      if (path === '/api/map-categories/reorder') return { ok: true, category_ids: ['c2', 'c1'] };
+      return { ok: true };
+    });
+    fireEvent.click(down);
+
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith('/api/map-categories/reorder', 'PUT', {
+        category_ids: ['c2', 'c1'],
+      }),
+    );
+    await waitFor(() => expect(onMessage).toHaveBeenCalledWith('Ordre des catégories mis à jour'));
+  });
+
+  test('le premier ne peut pas monter, le dernier ne peut pas descendre', async () => {
+    renderPanel();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /Monter « Alpha »/ })).toBeTruthy(),
+    );
+    expect(screen.getByRole('button', { name: /Monter « Alpha »/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Descendre « Beta »/ })).toBeDisabled();
+  });
+});

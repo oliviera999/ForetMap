@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import {
+  buildCategoryReorderPatches,
   collectMapCategoryOptions,
   isInfrastructureLocation,
   locationCategoriesSummary,
@@ -7,6 +8,7 @@ import {
   locationCategoryLabels,
   locationHasAnyCategory,
   primaryLocationCategory,
+  sortLocationCategories,
 } from '../../src/utils/locationCategories.js';
 
 const VERGER = { id: 'c1', label: 'Verger', emoji: '🍎', color: '#fca5a590', sort_order: 20 };
@@ -91,5 +93,64 @@ describe('libellés et résumé', () => {
   test('primaryLocationCategory retourne la première (couleur / légende)', () => {
     expect(primaryLocationCategory({ categories: [INFRA, VERGER] })).toBe(INFRA);
     expect(primaryLocationCategory({})).toBe(null);
+  });
+});
+
+describe('sortLocationCategories', () => {
+  test('trie par sort_order puis libellé, sans muter', () => {
+    const input = [VERGER, INFRA, { id: 'c3', label: 'Alpha', sort_order: 10 }];
+    const sorted = sortLocationCategories(input);
+    expect(sorted.map((c) => c.id)).toEqual(['c3', 'c2', 'c1']);
+    expect(input[0]).toBe(VERGER);
+  });
+});
+
+describe('buildCategoryReorderPatches', () => {
+  const cats = [
+    { id: 'a', sort_order: 0, label: 'A' },
+    { id: 'b', sort_order: 1, label: 'B' },
+    { id: 'c', sort_order: 2, label: 'C' },
+  ];
+
+  test('descendre le premier échange les deux premiers', () => {
+    expect(buildCategoryReorderPatches(cats, 'a', 1)).toEqual({
+      category_ids: ['b', 'a', 'c'],
+      patches: [
+        { id: 'b', sort_order: 0 },
+        { id: 'a', sort_order: 1 },
+      ],
+    });
+  });
+
+  test('monter le dernier échange les deux derniers', () => {
+    expect(buildCategoryReorderPatches(cats, 'c', -1)).toEqual({
+      category_ids: ['a', 'c', 'b'],
+      patches: [
+        { id: 'c', sort_order: 1 },
+        { id: 'b', sort_order: 2 },
+      ],
+    });
+  });
+
+  test('renvoie null hors bornes ou id inconnu', () => {
+    expect(buildCategoryReorderPatches(cats, 'a', -1)).toBeNull();
+    expect(buildCategoryReorderPatches(cats, 'c', 1)).toBeNull();
+    expect(buildCategoryReorderPatches(cats, 'z', 1)).toBeNull();
+  });
+
+  test('corrige aussi les sort_order désynchronisés', () => {
+    const desync = [
+      { id: 'a', sort_order: 50 },
+      { id: 'b', sort_order: 10 },
+      { id: 'c', sort_order: 20 },
+    ];
+    expect(buildCategoryReorderPatches(desync, 'b', 1)).toEqual({
+      category_ids: ['a', 'c', 'b'],
+      patches: [
+        { id: 'a', sort_order: 0 },
+        { id: 'c', sort_order: 1 },
+        { id: 'b', sort_order: 2 },
+      ],
+    });
   });
 });

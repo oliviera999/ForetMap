@@ -127,6 +127,63 @@ router.get(
   }),
 );
 
+/**
+ * Réordonne toutes les catégories : `sort_order` = index dans `category_ids`.
+ * La liste doit contenir chaque catégorie existante exactement une fois.
+ */
+router.put(
+  '/reorder',
+  requirePermission('zones.manage'),
+  asyncHandler(async (req, res) => {
+    const rawIds = Array.isArray(req.body?.category_ids) ? req.body.category_ids : [];
+    const seen = new Set();
+    const normalized = [];
+    for (const v of rawIds) {
+      const id = String(v ?? '').trim();
+      if (!id) {
+        return res.status(400).json({ error: 'Identifiants de catégories invalides' });
+      }
+      if (seen.has(id)) {
+        return res.status(400).json({ error: 'Chaque catégorie ne doit apparaître qu’une fois' });
+      }
+      seen.add(id);
+      normalized.push(id);
+    }
+
+    const allRows = await queryAll('SELECT id FROM location_categories');
+    const allIds = new Set(allRows.map((r) => String(r.id)));
+    if (normalized.length !== allIds.size) {
+      return res.status(400).json({
+        error: 'La liste doit contenir toutes les catégories exactement une fois',
+      });
+    }
+    for (const id of normalized) {
+      if (!allIds.has(id)) {
+        return res.status(400).json({ error: 'Catégorie inconnue' });
+      }
+    }
+
+    await withTransaction(async (tx) => {
+      for (let i = 0; i < normalized.length; i += 1) {
+        await tx.execute('UPDATE location_categories SET sort_order = ? WHERE id = ?', [
+          i,
+          normalized[i],
+        ]);
+      }
+    });
+
+    await logAudit(
+      'map_category_reorder',
+      'location_category',
+      null,
+      'Ordre des catégories de lieux modifié',
+      { req, payload: { count: normalized.length } },
+    );
+    emitGardenChanged({ reason: 'reorder_map_categories' });
+    res.json({ ok: true, category_ids: normalized });
+  }),
+);
+
 router.post(
   '/',
   requirePermission('zones.manage'),

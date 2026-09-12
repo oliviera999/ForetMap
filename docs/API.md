@@ -1137,17 +1137,22 @@ valable sur toutes les cartes) ou **propre à une carte**. `applies_to` restrein
 pas de section Biodiversité en visite, lieu jamais proposé comme cible de mission. Le contour
 sur la carte est tracé en trait continu, comme celui des autres zones.
 
-| Méthode | URL                          | n3boss | Description                                                                        |
-| ------- | ---------------------------- | ------ | ---------------------------------------------------------------------------------- |
-| GET     | `/api/map-categories`        | non    | Catalogue **public** : catégories **actives**, filtrables par `map_id` et `kind`   |
-| GET     | `/api/map-categories/manage` | oui    | Vue de gestion : inclut les catégories **désactivées** (permission `zones.manage`) |
-| POST    | `/api/map-categories`        | oui    | Créer une catégorie                                                                |
-| PUT     | `/api/map-categories/:id`    | oui    | Modifier une catégorie                                                             |
-| DELETE  | `/api/map-categories/:id`    | oui    | Supprimer une catégorie (les affectations partent en cascade)                      |
+| Méthode | URL                           | n3boss | Description                                                                           |
+| ------- | ----------------------------- | ------ | ------------------------------------------------------------------------------------- |
+| GET     | `/api/map-categories`         | non    | Catalogue **public** : catégories **actives**, filtrables par `map_id` et `kind`      |
+| GET     | `/api/map-categories/manage`  | oui    | Vue de gestion : inclut les catégories **désactivées** (permission `zones.manage`)    |
+| POST    | `/api/map-categories`         | oui    | Créer une catégorie                                                                   |
+| PUT     | `/api/map-categories/reorder` | oui    | Réordonner toutes les catégories (`{ category_ids }` — chaque id exactement une fois) |
+| PUT     | `/api/map-categories/:id`     | oui    | Modifier une catégorie                                                                |
+| DELETE  | `/api/map-categories/:id`     | oui    | Supprimer une catégorie (les affectations partent en cascade)                         |
 
 - **`GET /api/map-categories`** : paramètres `map_id` (renvoie les catégories globales **et**
   celles de la carte ; **400** si la carte n'existe pas) et `kind` (`zone` ou `marker` ; **400**
   sinon). Réponse triée par `sort_order` puis `label`.
+- **`PUT /api/map-categories/reorder`** : corps `{ category_ids: string[] }` — la liste doit
+  contenir **toutes** les catégories existantes exactement une fois ; `sort_order` devient
+  l'index (0, 1, 2…). **400** si la liste est incomplète, contient un doublon ou un id
+  inconnu. Réponse `{ ok, category_ids }`.
 - **Corps JSON** (`POST` / `PUT`) : `label` (requis, ≤ 120 caractères), `slug` (dérivé du label
   si absent), `emoji`, `color` (`#rrggbb`, `#rrggbbaa`… — **400** si le format est invalide),
   `description` (≤ 512 caractères), `map_id` (`null` ou vide = toutes les cartes ; **400** si la

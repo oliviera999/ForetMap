@@ -121,7 +121,10 @@ Elles remplacent l'ancien couple « état de culture » (Vide / En croissance / 
 récolter) et case « zone spéciale ».
 
 Une catégorie porte un **libellé**, un **emoji**, une **couleur**, une **description**
-(infobulle) et un **ordre d'affichage**. La couleur se choisit de trois façons — les mêmes
+(infobulle) et un **ordre d'affichage**. L'ordre se règle dans **Réglages administrateur →
+Catégories de lieux** : boutons ↑ ↓ sur chaque ligne de la liste, ou champ numérique « Ordre »
+lors de la création / édition. Cet ordre pilote les filtres, les pastilles et la priorité des
+repères au dézoom (plus petit = plus important). La couleur se choisit de trois façons — les mêmes
 que pour une zone, le champ est identique partout : en cliquant sur une pastille de la
 **palette prédéfinie** (dix teintes), avec la **pastille de sélection** (nuancier du
 système), ou en tapant directement le code hexadécimal dans le champ voisin. Les deux
