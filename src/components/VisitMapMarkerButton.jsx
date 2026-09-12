@@ -1,13 +1,16 @@
 /**
  * Bouton (présentation) d'un repère de visite positionné sur le plan.
+ * Statut vu/non-vu : opacité au repos + libellé au survol/focus (pas de pastille).
  */
 export function VisitMapMarkerButton({ marker, isSeen, onClick }) {
   const label = String(marker.label || '').trim();
+  const statusLabel = isSeen ? 'Vu' : 'À découvrir';
+  const accessibleName = label || 'Repère visite';
   return (
     <button
       type="button"
-      className="visit-marker-btn"
-      aria-label={label || 'Repère visite'}
+      className={`visit-marker-btn ${isSeen ? 'is-seen' : 'is-unseen'}`}
+      aria-label={`${accessibleName} — ${statusLabel}`}
       style={{ left: `${marker.x_pct}%`, top: `${marker.y_pct}%` }}
       onClick={onClick}
     >
@@ -32,7 +35,9 @@ export function VisitMapMarkerButton({ marker, isSeen, onClick }) {
           {label}
         </span>
       ) : null}
-      <span className={`visit-marker-indicator ${isSeen ? 'is-seen' : 'is-unseen'}`} />
+      <span className="visit-marker-status" aria-hidden="true">
+        {statusLabel}
+      </span>
     </button>
   );
 }

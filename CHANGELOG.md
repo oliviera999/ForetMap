@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Visite : couleurs de zone + statut discret (A+E)
+
+- Les zones de visite affichent **leur couleur** (comme sur la carte) ; « vu » =
+  atténuation + contour plus fin, « non vu » = contour un peu plus marqué.
+- Au survol / focus : contour renforcé et libellé « À découvrir » / « Vu ».
+- Pastilles ambre/vertes retirées (zones et repères) — plan moins chargé.
+
 ### Ajouté — ordre des catégories de lieux dans les paramètres
 
 - Dans Réglages → Catégories de lieux : boutons ↑ ↓ pour réordonner les catégories

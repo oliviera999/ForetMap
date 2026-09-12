@@ -1223,7 +1223,13 @@ sur la carte est tracé en trait continu, comme celui des autres zones.
 
 Contraintes importantes :
 
-- **`GET /api/visit/content`** : chaque zone renvoyée inclut **`description`** (texte de la table **`zones`**, jointure sur le même `id`) ; chaque repère inclut **`note`** (table **`map_markers`**, même principe). Ces champs sont **`null`** s’il n’y a pas de ligne carte correspondante ou si le texte est vide. Les zones et repères dont **`is_active`** est **explicitement** désactivé (`0`, `false`, chaîne `'0'`) sont exclus ; les autres valeurs « actives » (y compris variantes driver) restent listées.
+- **`GET /api/visit/content`** : chaque zone renvoyée inclut **`description`**, **`color`** et
+  **`emoji`** (texte / couleur / emoji de la table **`zones`**, jointure sur le même `id`) ;
+  chaque repère inclut **`note`** (table **`map_markers`**, même principe). Ces champs sont
+  **`null`** s’il n’y a pas de ligne carte correspondante ou si le texte / la couleur est vide.
+  Les zones et repères dont **`is_active`** est **explicitement** désactivé (`0`, `false`,
+  chaîne `'0'`) sont exclus ; les autres valeurs « actives » (y compris variantes driver)
+  restent listées.
 - **Biodiversité du lieu** : chaque zone et chaque repère de `GET /api/visit/content` expose **`species`** (`[{ id, name, emoji }]`, table de jonction `zone_species` / `marker_species`, tri par nom), **`species_ids`** et **`living_beings_list`** (noms, repli sur `zones.current_plant` / `map_markers.plant_name` quand la jonction est vide). Les zones portent en plus **`is_infrastructure`** (au moins une catégorie affectée porte le drapeau) : le client masque la biodiversité des lieux d'infrastructure, comme sur la carte. Les colonnes legacy mono-espèce ne sont **pas** republiées. C'est cette charge utile qui permet au **visiteur invité** (sans jeton) de consulter la biodiversité d'un lieu, les routes `/api/zones` et `/api/map/markers` étant authentifiées ; la fiche espèce elle-même est servie par la route publique **`GET /api/plants`**.
 - **Blocs éditoriaux (nouveau)** : `GET /api/visit/content` expose **`visit_editorial_blocks`** (tableau ordonné) pour chaque zone/repère. Si `visit_body_json` est présent en base, le serveur l’utilise en priorité ; sinon il génère un fallback compatible depuis `visit_short_description`, `visit_details_*` et `visit_media`.
 - **Écriture blocs** : `POST/PUT /api/visit/zones(:id)` et `POST/PUT /api/visit/markers(:id)` acceptent **`visit_editorial_blocks`** (alias **`body_json`**) ; le serveur normalise et persiste dans `visit_zones.body_json` / `visit_markers.body_json`.
