@@ -774,6 +774,7 @@ function ZoneInfoModal({
           linkedTutorialsDirect={linkedTutorialsDirect}
           tutorialsOnlyViaTasks={tutorialsOnlyViaTasks}
           assignableTutorials={assignableTutorials}
+          mapId={zone.map_id}
           linkTutorialId={linkTutorialId}
           onChangeLinkTutorialId={setLinkTutorialId}
           onUnlinkTutorial={async (tu) => {

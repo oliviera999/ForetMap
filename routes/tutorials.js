@@ -23,6 +23,7 @@ const {
   slugify,
   htmlToPdfBuffer,
   injectTutorialViewIframeLinkScript,
+  injectTutorialViewNoScriptRevealStyle,
   toPublicTutorialRow,
 } = require('../lib/tutorialRouteHelpers');
 const {
@@ -43,6 +44,9 @@ const {
   clearTutorialViewCache,
 } = require('../lib/tutorialViewCache');
 const { sanitizeTutorialViewHtml } = require('../lib/tutorialViewSanitize');
+
+/** Incrémenter quand le pipeline d’enrichissement `/view` change (ex. CSS reveal). */
+const TUTORIAL_VIEW_PIPELINE_VERSION = 'reveal-css-1';
 
 let glossaryAutolinkCache = null;
 let glossaryAutolinkCacheAt = 0;
@@ -80,7 +84,10 @@ async function loadGlossaryAutolinkEntries() {
  */
 function enrichTutorialHtmlWithGlossary(html, entries) {
   const safe = sanitizeTutorialViewHtml(html);
-  const linked = autolinkHtmlTextNodes(safe, entries);
+  // Avant auto-liens : forcer la lisibilité des blocs masqués pour animation JS
+  // (sandbox aperçu sans scripts — cf. injectTutorialViewNoScriptRevealStyle).
+  const readable = injectTutorialViewNoScriptRevealStyle(safe);
+  const linked = autolinkHtmlTextNodes(readable, entries);
   return injectGlossaryAutolinkScript(injectTutorialViewIframeLinkScript(linked));
 }
 
@@ -97,7 +104,7 @@ async function renderTutorialViewHtml(tutorial, html) {
   const key = buildTutorialViewCacheKey({
     tutorialId: tutorial.id,
     updatedAt: tutorial.updated_at,
-    glossaryIndexVersion: version,
+    glossaryIndexVersion: `${TUTORIAL_VIEW_PIPELINE_VERSION}:${version}`,
     htmlFingerprint: fingerprintText(html),
   });
   return sharedTutorialViewCache.getOrCompute(key, () =>

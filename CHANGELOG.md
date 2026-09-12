@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — tutoriels : texte masqué en aperçu et liste de liaison incomplète
+
+- **Aperçu** : les fiches qui cachent des blocs pour une animation au défilement
+  (classe `.reveal`, ex. « Jardin N3 » / fiches punk) affichaient une partie du texte
+  invisible dans l’application (scripts désactivés), alors que le téléchargement HTML
+  montrait tout. L’aperçu force désormais ces blocs à rester lisibles.
+- **Liaison zone / repère** : la liste proposait seulement les tutoriels sans lieu ou déjà
+  sur la **même** carte — d’où l’absence de la plupart des fiches quand on travaillait sur
+  l’autre plan. Tous les tutoriels actifs non déjà liés au lieu apparaissent ; ceux d’une
+  autre carte sont signalés (« bascule ici ») et la liaison retire leurs lieux de l’autre
+  carte.
+
 ### Ajouté — échelle et rose des vents sur plans calés GPS
 
 - Sur la **carte de travail**, la **Visite** et le **Plan Lyautey**, un plan calé GPS

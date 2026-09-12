@@ -461,6 +461,7 @@ function MarkerModal({
       {tab === 'tutorials' && isTeacher && (
         <ZoneTutorialsTeacherPanel
           locationKind="marker"
+          mapId={marker.map_id}
           linkedTutorialsDirect={linkedTutorialsDirect}
           tutorialsOnlyViaTasks={tutorialsOnlyViaTasks}
           assignableTutorials={assignableTutorials}

@@ -220,10 +220,34 @@ export function LocationVisitAside({
 /** Tutoriel sans lieu ou entièrement sur la carte `mapId` (évite mélange de cartes). */
 export function tutorialLinkedToSameMap(tu, mapId) {
   if (!mapId) return true;
+  const mapKey = String(mapId);
   const zl = tu.zones_linked || [];
   const ml = tu.markers_linked || [];
   if (zl.length === 0 && ml.length === 0) return true;
-  return [...zl, ...ml].every((x) => x.map_id === mapId);
+  return [...zl, ...ml].every((x) => String(x.map_id) === mapKey);
+}
+
+/**
+ * Vrai si le tutoriel a au moins un lieu sur une autre carte que `mapId`
+ * (proposé dans la liste de liaison avec un libellé d’avertissement).
+ */
+export function tutorialLinkedToOtherMap(tu, mapId) {
+  if (!mapId) return false;
+  const mapKey = String(mapId);
+  const locs = [...(tu.zones_linked || []), ...(tu.markers_linked || [])];
+  if (!locs.length) return false;
+  return locs.some((x) => x.map_id != null && String(x.map_id) !== mapKey);
+}
+
+/**
+ * Libellé d’option « lier un tutoriel » : précise si la fiche basculera depuis une autre carte.
+ */
+export function tutorialAssignOptionLabel(tu, mapId) {
+  const title = String(tu?.title || '').trim() || 'Tutoriel';
+  if (tutorialLinkedToOtherMap(tu, mapId)) {
+    return `${title} (autre carte — bascule ici)`;
+  }
+  return title;
 }
 
 export function TaskEnrollmentLegend() {
