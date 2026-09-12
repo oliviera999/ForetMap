@@ -26,6 +26,8 @@ export const SECTION_DEFS = {
  */
 export const KEYS_HANDLED_BY_PANEL = new Set([
   'ui.visit.mascot.default_id',
+  // Case à cocher dédiée dans Réglages → Cartes & plans (évite le doublon grille texte).
+  'ui.map.show_tutorial_dots',
   'learning.gating.enabled',
   'learning.gating.default_mode',
   'learning.gating.default_required_correct',

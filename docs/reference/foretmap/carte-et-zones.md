@@ -377,6 +377,16 @@ En **mode consultation** (carte ouverte sans tracé ni édition de contour), une
 > plus de pastille de tâche et ne font plus hériter leurs tutoriels au lieu. Les tutoriels
 > **directement** liés à une zone ou un repère restent visibles.
 
+### Pastille violette des tutoriels
+
+Sur la carte, un **petit point violet** peut signaler qu'une zone ou un repère est lié à
+au moins un tutoriel (en bas à gauche du repère, ou à côté du nom de la zone).
+
+Ce témoin est **éteint par défaut**. Un administrateur l'allume dans
+_Réglages → Cartes & plans_ (« Afficher le point violet sur les zones et repères liés à un
+tutoriel »). Les liens tutoriel ↔ lieu restent inchangés : seuls le filtre « tutoriels liés »
+et l'onglet Tutoriels de la fiche permettent de les retrouver quand le point est masqué.
+
 - **Raccourci clavier** : touche **/** ou **Ctrl+K** (Cmd+K sur Mac) place le curseur
   dans le champ de recherche.
 

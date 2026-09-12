@@ -696,6 +696,30 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                 dans son calage GPS).
               </span>
             </label>
+            <label
+              className="field"
+              style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}
+              data-testid="map-show-tutorial-dots-setting"
+            >
+              <input
+                type="checkbox"
+                checked={Boolean(get('ui.map.show_tutorial_dots', false))}
+                disabled={savingKey === 'ui.map.show_tutorial_dots'}
+                onChange={(e) =>
+                  saveSetting(
+                    'ui.map.show_tutorial_dots',
+                    e.target.checked,
+                    e.target.checked
+                      ? 'Pastilles tutoriel visibles sur la carte'
+                      : 'Pastilles tutoriel masquées sur la carte',
+                  )
+                }
+              />
+              <span>
+                Afficher le point violet sur les zones et repères liés à un tutoriel (désactivé par
+                défaut : le point reste invisible).
+              </span>
+            </label>
             <div
               style={{
                 display: 'flex',

@@ -69,6 +69,15 @@ describe('buildSettingSections', () => {
   test('entrée absente → aucune section', () => {
     expect(buildSettingSections(undefined)).toEqual([]);
   });
+  test('ui.map.show_tutorial_dots exclu de la grille (case dédiée Cartes & plans)', () => {
+    const sections = buildSettingSections([
+      { key: 'ui.map.show_tutorial_dots', type: 'boolean' },
+      { key: 'ui.auth.allow_register', type: 'boolean' },
+    ]);
+    const keys = sections.flatMap((s) => s.rows.map((r) => r.key));
+    expect(keys).toContain('ui.auth.allow_register');
+    expect(keys).not.toContain('ui.map.show_tutorial_dots');
+  });
 });
 
 describe('filterSettingSections + countSectionRows', () => {

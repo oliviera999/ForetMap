@@ -983,6 +983,7 @@ Affichage carte (zones SVG + repères sur l’onglet Carte, visite et plateau GL
 - `overlay_zoom_growth_percent` (entier 0–100, défaut `35`) : grossissement des étiquettes (emojis + noms, zones et repères) **au zoom**. `0` = taille apparente constante quel que soit le zoom ; `100` = grossissement linéaire avec le zoom ; valeurs intermédiaires = grossissement progressif (`taille = base × ratio_zoom^(pourcent/100)`). Vaut pour la carte des tâches et le plan de visite.
 - `zone_label_min_side_factor` (nombre 1–6, défaut `2.5`) : **masquage adaptatif** des noms de zone lorsque la zone est trop petite à l'écran. Le nom est masqué si l'aire apparente est inférieure à `(facteur × hauteur du libellé)²` px² ; l'emoji peut rester visible (seuil plus bas). Plus le facteur est **bas**, plus les noms restent affichés sur de petites zones ; plus il est **haut**, plus le masquage est agressif (l'ancien comportement implicite correspondait à environ `4`).
 - `plateau_marker_size_percent` (entier 50–200, défaut `100`) : ratio repères / plateau partagé **ForetMap + GL** ; prioritaire pour l’échelle des repères GL si présent (sinon repli sur `overlay_emoji_size_percent`). Modifiable depuis les réglages ForetMap admin ou `PUT /api/gl/admin/settings/ui.map.plateau_marker_size_percent` (staff GL).
+- `show_tutorial_dots` (booléen, défaut `false`) : affiche les **pastilles violettes** sur les zones et repères liés à un tutoriel (carte de travail). Désactivé par défaut (pastilles invisibles). Éditable via case à cocher dans Réglages → Cartes & plans (`PUT /api/settings/admin/ui.map.show_tutorial_dots`).
 
 Contenus éditables du site (micro-CMS texte brut) :
 
@@ -1056,6 +1057,7 @@ par `GET /api/settings/public` et éditables par `PUT /api/settings/admin/:key` 
 | `ui.plan.hidden_category_ids`  | string  | vide                               | Catégories jamais montrées par le plan (idem)           |
 | `ui.plan.heading_up_enabled`   | boolean | `false`                            | Autorise le bouton « Orienter » (boussole) sur le Plan  |
 | `ui.map.heading_up_enabled`    | boolean | `false`                            | Idem sur la carte de travail ForetMap                   |
+| `ui.map.show_tutorial_dots`    | boolean | `false`                            | Pastilles violettes tutoriel sur zones/repères (carte)  |
 | `ui.visit.heading_up_enabled`  | boolean | `false`                            | Idem sur la Visite                                      |
 
 En plus du réglage de surface, chaque carte doit autoriser l'orientation via

@@ -7,6 +7,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — pastilles tutoriel sur la carte (réglage)
+
+- Nouveau réglage public `ui.map.show_tutorial_dots` (défaut **off**) : affiche ou
+  masque le point violet signalant qu’une zone ou un repère est lié à un tutoriel.
+- Case à cocher dans Réglages → Cartes & plans.
+
 ### Modifié — création unitaire : tous les profils
 
 - Le sélecteur de création de compte propose **visiteur**, paliers n3beur, **prof de
