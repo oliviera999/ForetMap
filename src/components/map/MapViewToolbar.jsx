@@ -113,6 +113,7 @@ export function MapViewToolbar({
   fitMap,
   animateZoomTowardScale,
   onOpenFullscreen,
+  routesSlot = null,
 }) {
   const publicSettings = usePublicSettings();
   const {
@@ -236,6 +237,8 @@ export function MapViewToolbar({
             </button>
           ))}
         </div>
+
+        {routesSlot ? <div className="map-view-toolbar-routes">{routesSlot}</div> : null}
 
         {isTeacher && mode === 'draw-zone' && drawPointsCount > 0 && (
           <div style={{ display: 'flex', gap: 4 }}>

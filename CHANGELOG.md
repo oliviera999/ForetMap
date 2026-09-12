@@ -11,10 +11,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Modifié — Plan Lyautey : charte bleue du lycée
 
-- **Favicon et PWA** propres au produit (`/plan/favicon.*`, thème `#183058`) : plus de partage
-  avec l’arbre n³ de ForetMap. Régénération via `npm run icons:plan`.
+- **Favicon et PWA** propres au produit (/plan/favicon.*, thème #183058) : plus de partage
+  avec l’arbre n³ de ForetMap. Régénération via pm run icons:plan.
 - **Interface** : palette marine et variantes (fond, barre haute, puces, boutons) alignée sur
   le logo officiel ; logo Lycée Lyautey discret en bas à gauche de la carte.
+
+### Ajouté — parcours sur Visite et Carte
+
+- Les parcours de carte (_Réglages → Parcours_) s'affichent aussi en **Visite** et sur la
+  **carte de travail** (puce « Parcours », barre d'étape), pas seulement sur le Plan Lyautey.
+- Les cases « proposé sur » Carte / Visite sont à nouveau cochables ; `GET /api/visit/content`
+  embarque les parcours `visit` ; `GET /api/map-routes?surface=map|visit` n'est plus bloqué par
+  le code d'accès du plan.
+
 ### Modifié — sélection d'une zone sur la carte
 
 - À l'ouverture d'une fiche **zone** (carte de travail, Visite, Plan Lyautey), la zone

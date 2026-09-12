@@ -26,7 +26,7 @@ const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { logAudit } = require('../lib/auditLog');
 const { readSurfaceQuery, normalizeSurfaceInput } = require('../lib/locationSurfaces');
-const { requirePlanAccess } = require('../lib/planAccess');
+const { isPlanAccessGranted, requirePlanAccess } = require('../lib/planAccess');
 const {
   ROUTE_AUDIENCE_MAX,
   ROUTE_TITLE_MAX,
@@ -138,14 +138,14 @@ async function checkStepTargets(mapId, steps) {
 /**
  * Catalogue **public** : parcours publiés, filtrables par carte et par surface.
  *
- * Derrière la **garde d'accès du plan** (`lib/planAccess.js`) : quand un établissement ferme
- * son plan par un code, les parcours se ferment avec lui. Sans cette garde, la liste des
- * parcours — titres, publics visés, descriptions, textes d'étapes — restait lisible sans
- * laissez-passer (`docs/AUDIT_PARCOURS_2026-09.md` §2.2).
+ * La **garde d'accès du plan** ne s'applique qu'au catalogue du plan (surface absente ou
+ * `plan`) : les surfaces `map` et `visit` ont leurs propres écrans dans ForetMap, et ne
+ * doivent pas dépendre du code d'accès du Plan Lyautey. Sans laissez-passer plan, un
+ * établissement en `access_mode = code` fermait aussi la liste destinée à la Visite / carte
+ * (`docs/AUDIT_PARCOURS_2026-09.md` §2.2, étendu aux surfaces hors plan).
  */
 router.get(
   '/',
-  requirePlanAccess,
   asyncHandler(async (req, res) => {
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
     if (mapId && !(await mapExists(mapId))) {
@@ -154,15 +154,22 @@ router.get(
     const surfaceQuery = readSurfaceQuery(req.query.surface);
     if (!surfaceQuery.ok) return res.status(400).json({ error: surfaceQuery.error });
 
+    const surface = surfaceQuery.value;
+    if (!surface || surface === 'plan') {
+      if (!(await isPlanAccessGranted(req))) {
+        return res.status(401).json({ error: 'Code d’accès requis', access_required: true });
+      }
+    }
+
     const where = ['is_published = 1'];
     const params = [];
     if (mapId) {
       where.push('map_id = ?');
       params.push(mapId);
     }
-    if (surfaceQuery.value) {
+    if (surface) {
       where.push('FIND_IN_SET(?, surfaces) > 0');
-      params.push(surfaceQuery.value);
+      params.push(surface);
     }
     res.json(await loadRoutes(where.join(' AND '), params));
   }),

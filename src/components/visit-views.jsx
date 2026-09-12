@@ -43,6 +43,10 @@ import { VisitGuestMascotOnboarding } from './visit/VisitGuestMascotOnboarding.j
 import { VisitZonesSvgLayer } from './visit/VisitZonesSvgLayer.jsx';
 import { VisitMarkersLayer } from './visit/VisitMarkersLayer.jsx';
 import { VisitMapZoomControls } from './visit/VisitMapZoomControls.jsx';
+import { MapRoutePicker } from '../shared/map-routes/MapRoutePicker.jsx';
+import { MapRouteBar } from '../shared/map-routes/MapRouteBar.jsx';
+import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
+import { placesFromZonesAndMarkers } from '../shared/map-routes/mapRouteSteps.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
   getVisitMascotVisibilityReason,
@@ -386,6 +390,55 @@ function VisitViewImpl({
     onGestureStart: () => visitPositionNotifyRef.current?.(),
   });
 
+  const routePlaces = useMemo(
+    () => placesFromZonesAndMarkers(content.zones || [], content.markers || []),
+    [content.zones, content.markers],
+  );
+  const onRouteStepPlace = useCallback(
+    (entry) => {
+      if (!entry?.place) return;
+      const place = entry.place;
+      if (place.kind === 'zone') {
+        setSelected(place);
+        setSelectedType('zone');
+        const c = visitZoneCentroidPct(place);
+        if (c) focusOnPct({ xp: c.xp, yp: c.yp });
+      } else {
+        setSelected(place);
+        setSelectedType('marker');
+        if (Number.isFinite(Number(place.x_pct)) && Number.isFinite(Number(place.y_pct))) {
+          focusOnPct({ xp: Number(place.x_pct), yp: Number(place.y_pct) });
+        }
+      }
+    },
+    [setSelected, setSelectedType, focusOnPct],
+  );
+  const onRouteExitExtra = useCallback(() => {
+    setSelected(null);
+    setSelectedType(null);
+  }, [setSelected, setSelectedType]);
+  const {
+    activeRoute,
+    routeSteps,
+    routeIndex,
+    routePickerOpen,
+    setRoutePickerOpen,
+    resumableRouteSlug,
+    startRoute,
+    exitRoute,
+    resumeRoute,
+    goToRouteIndex,
+    resetForMapChange,
+  } = useMapRouteMode({
+    routes: content.routes || [],
+    places: routePlaces,
+    onStepPlace: onRouteStepPlace,
+    onExitExtra: onRouteExitExtra,
+  });
+  useEffect(() => {
+    resetForMapChange();
+  }, [mapId, resetForMapChange]);
+
   const visitPosition = useMapPosition({
     georef: currentMap?.georef ?? null,
     gpsEnabled: !!currentMap?.gps_enabled && mode === 'view',
@@ -522,6 +575,7 @@ function VisitViewImpl({
   const onVisitZoneClick = useCallback(
     (z, event) => {
       event.stopPropagation();
+      if (activeRoute) return;
       if (consumeSkipClick()) return;
       if (mode === 'view') {
         const c = visitZoneCentroidPct(z);
@@ -540,6 +594,7 @@ function VisitViewImpl({
       }
     },
     [
+      activeRoute,
       mode,
       consumeSkipClick,
       moveVisitMapMascotTo,
@@ -556,6 +611,7 @@ function VisitViewImpl({
   const onVisitMarkerClick = useCallback(
     (m, event) => {
       event.stopPropagation();
+      if (activeRoute) return;
       if (consumeSkipClick()) return;
       if (mode === 'view') {
         const fromPct = { ...visitMapMascotPctRef.current };
@@ -569,6 +625,7 @@ function VisitViewImpl({
       }
     },
     [
+      activeRoute,
       mode,
       consumeSkipClick,
       moveVisitMapMascotTo,
@@ -843,6 +900,14 @@ function VisitViewImpl({
                 quickTipText={
                   isHelpEnabled && showContextHints && visitQuickTip ? visitQuickTip : null
                 }
+                routesSlot={
+                  <MapRoutePicker
+                    routes={content.routes || []}
+                    open={routePickerOpen}
+                    onToggle={setRoutePickerOpen}
+                    onStart={startRoute}
+                  />
+                }
               />
             ) : null}
             <MapFullscreenShell
@@ -911,6 +976,7 @@ function VisitViewImpl({
                       mode={mode}
                       drawPoints={drawPoints}
                       onZoneClick={onVisitZoneClick}
+                      selectedZoneId={selected && selectedType === 'zone' ? selected.id : null}
                     />
 
                     {showVisitMapMascot ? (
@@ -956,8 +1022,30 @@ function VisitViewImpl({
                     visitHeadingUpPref.setEnabled(!visitHeadingUpPref.userEnabled)
                   }
                 />
+                {!activeRoute && resumableRouteSlug ? (
+                  <div className="map-route-resume">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-primary map-route-resume__btn"
+                      onClick={resumeRoute}
+                    >
+                      Reprendre le parcours
+                    </button>
+                  </div>
+                ) : null}
+                {activeRoute ? (
+                  <MapRouteBar
+                    route={activeRoute}
+                    steps={routeSteps}
+                    index={routeIndex}
+                    onGoToIndex={goToRouteIndex}
+                    onExit={exitRoute}
+                    canLocate={!!visitPosition.available}
+                    hintManual="Le lieu est mis en avant sur la carte. Avance puis Suivant."
+                  />
+                ) : null}
               </div>
-              {!selected ? (
+              {!selected && !activeRoute ? (
                 <p className="visit-map-empty-hint section-sub">{visitEmptySelection}</p>
               ) : null}
             </MapFullscreenShell>

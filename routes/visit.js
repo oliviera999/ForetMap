@@ -6,6 +6,7 @@ const { requirePermission, JWT_SECRET, authenticate } = require('../middleware/r
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { visitContentRowIsPublicActive } = require('../lib/visitContentPublicActive');
+const { filterLocationsForViewer } = require('../lib/locationAudience');
 const {
   loadZoneSpeciesMap,
   loadMarkerSpeciesMap,
@@ -22,6 +23,7 @@ const {
   serializeMapExtraPhotos,
   ratioPct,
 } = require('../lib/visitContentHelpers');
+const { attachStepsToRoutes, serializeRouteRow } = require('../lib/mapRoutes');
 
 const router = express.Router();
 
@@ -185,13 +187,37 @@ function withVisitLocationSpecies(row, speciesRows, legacySingleName) {
   return next;
 }
 
+/** Filtre audience par rôle après cache (le cache conserve les champs bruts). */
+function projectVisitContentForViewer(payload, auth) {
+  if (!payload || typeof payload !== 'object') return payload;
+  const zones = filterLocationsForViewer(payload.zones || [], auth, { publicSurface: true });
+  const markers = filterLocationsForViewer(payload.markers || [], auth, { publicSurface: true });
+  const visibleKeys = new Set([
+    ...zones.map((z) => `zone:${z.id}`),
+    ...markers.map((m) => `marker:${m.id}`),
+  ]);
+  const routes = (payload.routes || []).map((route) => ({
+    ...route,
+    steps: (route.steps || []).filter((step) =>
+      visibleKeys.has(`${String(step.target_type)}:${String(step.target_id)}`),
+    ),
+  }));
+  return {
+    ...payload,
+    zones,
+    markers,
+    routes,
+  };
+}
+
 router.get(
   '/content',
+  authenticate,
   asyncHandler(async (req, res) => {
     const mapId = await resolveVisitMapId(req.query.map_id);
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     const cached = visitContentCache.get(mapId);
-    if (cached) return res.json(cached);
+    if (cached) return res.json(projectVisitContentForViewer(cached, req.auth));
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
 
     // Requêtes indépendantes : lancées ensemble plutôt qu'en file (huit allers-retours
@@ -201,7 +227,12 @@ router.get(
       `SELECT
        z.id, z.map_id, z.name, z.points,
        zm.description AS description,
+       zm.color AS color,
+       zm.emoji AS emoji,
        zm.current_plant AS current_plant,
+       zm.visible_role_slugs AS visible_role_slugs,
+       zm.restricted_note AS restricted_note,
+       zm.restricted_note_role_slugs AS restricted_note_role_slugs,
        z.subtitle AS visit_subtitle,
        z.short_description AS visit_short_description,
        z.details_title AS visit_details_title,
@@ -221,6 +252,9 @@ router.get(
        m.id, m.map_id, m.x_pct, m.y_pct, m.label, m.emoji,
        mm.note AS note,
        mm.plant_name AS plant_name,
+       mm.visible_role_slugs AS visible_role_slugs,
+       mm.restricted_note AS restricted_note,
+       mm.restricted_note_role_slugs AS restricted_note_role_slugs,
        m.subtitle AS visit_subtitle,
        m.short_description AS visit_short_description,
        m.details_title AS visit_details_title,
@@ -319,6 +353,30 @@ router.get(
       return null;
     });
 
+    /** Parcours publiés sur la surface Visite (mêmes tables que le Plan / la carte). */
+    const routeRowsPromise = queryAll(
+      `SELECT id, map_id, slug, title, description, audience, surfaces,
+              is_published, sort_order
+         FROM map_routes
+        WHERE map_id = ? AND is_published = 1 AND FIND_IN_SET('visit', surfaces) > 0
+        ORDER BY sort_order ASC, title ASC`,
+      [mapId],
+    ).catch((routeErr) => {
+      logRouteError(routeErr, req);
+      return [];
+    });
+    const routeStepsPromise = routeRowsPromise.then((rows) => {
+      if (!rows || rows.length === 0) return [];
+      const ids = rows.map((r) => r.id);
+      return queryAll(
+        `SELECT route_id, position, target_type, target_id, step_title, step_text
+           FROM map_route_steps
+          WHERE route_id IN (${ids.map(() => '?').join(',')})
+          ORDER BY route_id, position`,
+        ids,
+      );
+    });
+
     const [
       zones,
       markers,
@@ -330,6 +388,8 @@ router.get(
       infrastructureZoneRows,
       zoneSpeciesMap,
       markerSpeciesMap,
+      routeRows,
+      routeStepRows,
     ] = await Promise.all([
       zonesPromise,
       markersPromise,
@@ -341,6 +401,8 @@ router.get(
       infrastructureZoneIdsPromise,
       zoneSpeciesPromise,
       markerSpeciesPromise,
+      routeRowsPromise,
+      routeStepsPromise,
     ]);
 
     const infrastructureZoneIds = new Set(
@@ -367,42 +429,57 @@ router.get(
       })
       .filter((x) => x.catalog_id && x.pack && typeof x.pack === 'object');
 
+    const publicZones = zones
+      .filter((z) => visitContentRowIsPublicActive(z))
+      .map((z) => {
+        const visitMedia = mediaByTarget[`zone:${z.id}`] || [];
+        return {
+          ...withVisitLocationSpecies(z, zoneSpeciesMap.get(String(z.id)), z.current_plant),
+          is_infrastructure: infrastructureZoneIds.has(String(z.id)),
+          map_lead_photo: serializeMapLeadPhoto('zone', z.id, zoneMapLeadById.get(String(z.id))),
+          map_extra_photos: serializeMapExtraPhotos('zone', z.id, zoneMapPhotoRows),
+          visit_media: visitMedia,
+          visit_editorial_blocks: resolveVisitEditorialBlocksForContentRow(z, visitMedia),
+        };
+      });
+    const publicMarkers = markers
+      .filter((m) => visitContentRowIsPublicActive(m))
+      .map((m) => {
+        const visitMedia = mediaByTarget[`marker:${m.id}`] || [];
+        return {
+          ...withVisitLocationSpecies(m, markerSpeciesMap.get(String(m.id)), m.plant_name),
+          map_lead_photo: serializeMapLeadPhoto(
+            'marker',
+            m.id,
+            markerMapLeadById.get(String(m.id)),
+          ),
+          map_extra_photos: serializeMapExtraPhotos('marker', m.id, markerMapPhotoRows),
+          visit_media: visitMedia,
+          visit_editorial_blocks: resolveVisitEditorialBlocksForContentRow(m, visitMedia),
+        };
+      });
+
+    const visiblePlaceKeys = new Set([
+      ...publicZones.map((z) => `zone:${z.id}`),
+      ...publicMarkers.map((m) => `marker:${m.id}`),
+    ]);
+    const publicRoutes = attachStepsToRoutes(
+      (routeRows || []).map(serializeRouteRow),
+      (routeStepRows || []).filter((step) =>
+        visiblePlaceKeys.has(`${String(step.target_type)}:${String(step.target_id)}`),
+      ),
+    );
+
     const payload = {
       map_id: mapId,
       mascot_packs: mascotPacks,
-      zones: zones
-        .filter((z) => visitContentRowIsPublicActive(z))
-        .map((z) => {
-          const visitMedia = mediaByTarget[`zone:${z.id}`] || [];
-          return {
-            ...withVisitLocationSpecies(z, zoneSpeciesMap.get(String(z.id)), z.current_plant),
-            is_infrastructure: infrastructureZoneIds.has(String(z.id)),
-            map_lead_photo: serializeMapLeadPhoto('zone', z.id, zoneMapLeadById.get(String(z.id))),
-            map_extra_photos: serializeMapExtraPhotos('zone', z.id, zoneMapPhotoRows),
-            visit_media: visitMedia,
-            visit_editorial_blocks: resolveVisitEditorialBlocksForContentRow(z, visitMedia),
-          };
-        }),
-      markers: markers
-        .filter((m) => visitContentRowIsPublicActive(m))
-        .map((m) => {
-          const visitMedia = mediaByTarget[`marker:${m.id}`] || [];
-          return {
-            ...withVisitLocationSpecies(m, markerSpeciesMap.get(String(m.id)), m.plant_name),
-            map_lead_photo: serializeMapLeadPhoto(
-              'marker',
-              m.id,
-              markerMapLeadById.get(String(m.id)),
-            ),
-            map_extra_photos: serializeMapExtraPhotos('marker', m.id, markerMapPhotoRows),
-            visit_media: visitMedia,
-            visit_editorial_blocks: resolveVisitEditorialBlocksForContentRow(m, visitMedia),
-          };
-        }),
+      zones: publicZones,
+      markers: publicMarkers,
       tutorials,
+      routes: publicRoutes,
     };
     visitContentCache.set(mapId, payload);
-    res.json(payload);
+    res.json(projectVisitContentForViewer(payload, req.auth));
   }),
 );
 
@@ -585,3 +662,4 @@ router.put(
 );
 
 module.exports = router;
+module.exports.visitContentCache = visitContentCache;
