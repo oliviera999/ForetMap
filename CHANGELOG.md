@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — alignement de zones et accroche voisins réellement branchés
+
+- La logique (aperçu multi-zones, accroche sommet/côté, côté partagé au tracé) existait
+  déjà, mais la barre d’outils et les hooks de dessin/retouche **ignoraient** les props :
+  pas de bouton « Aligner » / « Voisins », donc pas d’entrée utilisateur. Branchement UI +
+  hooks, tests unitaires sur `zoneNeighborSnap`.
+
+### Ajouté — glisser-déposer pour l’ordre des catégories de lieux
+
+- Dans **Réglages → Catégories de lieux**, on peut réordonner par **glisser-déposer** en
+  plus des boutons ↑ ↓ (même API densifiée `PUT /api/map-categories/reorder`).
+
 ### Modifié — tutoriels multi-cartes sans bascule
 
 - Un tutoriel peut être lié à des zones/repères sur **plusieurs cartes** en même temps.

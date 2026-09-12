@@ -1132,8 +1132,8 @@ function MapViewImpl({
             if (m === 'view') {
               resetDrawPoints();
               discardEditPointsSession();
-              clearAlignSession();
             }
+            if (m !== 'align-zones') clearAlignSession();
           }}
           onFinishZone={finishZone}
           onUndoPoint={undoPoint}

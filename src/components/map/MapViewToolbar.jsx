@@ -96,6 +96,16 @@ export function MapViewToolbar({
   snapSensitivity = EDGE_SNAP_DEFAULTS.sensitivity,
   onSnapSensitivityChange,
   onSnapSelectedPoints,
+  neighborSnapEnabled = false,
+  onToggleNeighborSnap,
+  alignSelectedCount = 0,
+  alignHasPreview = false,
+  alignSaving = false,
+  onEnterAlignMode,
+  onExitAlignMode,
+  onComputeAlignPreview,
+  onDiscardAlignPreview,
+  onApplyAlignPreview,
   canManageMarkerPositions,
   markerPositionUnlocked,
   onToggleMarkerPositionLock,
@@ -208,7 +218,7 @@ export function MapViewToolbar({
                 <IconHand size={15} /> Nav
               </>,
             ],
-            ...(isTeacher && mode !== 'edit-points'
+            ...(isTeacher && mode !== 'edit-points' && mode !== 'align-zones'
               ? [
                   [
                     'draw-zone',
@@ -230,10 +240,20 @@ export function MapViewToolbar({
               key={m}
               className="map-toolbar-mode-btn map-toolbar-mode-btn--nav"
               style={{
-                background: mode === m ? 'var(--forest)' : 'transparent',
-                color: mode === m ? 'white' : 'var(--soil)',
+                background:
+                  mode === m || (m === 'view' && mode === 'align-zones')
+                    ? 'var(--forest)'
+                    : 'transparent',
+                color:
+                  mode === m || (m === 'view' && mode === 'align-zones') ? 'white' : 'var(--soil)',
               }}
-              onClick={() => onModeButtonClick(m)}
+              onClick={() => {
+                if (mode === 'align-zones' && m === 'view') {
+                  onExitAlignMode?.();
+                  return;
+                }
+                onModeButtonClick(m);
+              }}
             >
               {label}
             </button>
@@ -241,6 +261,87 @@ export function MapViewToolbar({
         </div>
 
         {routesSlot ? <div className="map-view-toolbar-routes">{routesSlot}</div> : null}
+
+        {isTeacher && mode === 'view' && typeof onEnterAlignMode === 'function' && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={onEnterAlignMode}
+            title="Aligner plusieurs zones proches : sélection, aperçu, puis enregistrement"
+            data-testid="map-align-zones"
+          >
+            <IconTarget size={15} /> Aligner
+          </button>
+        )}
+
+        {isTeacher && mode === 'align-zones' && (
+          <div
+            className="map-align-zones-toolbar"
+            role="toolbar"
+            aria-label="Alignement de zones"
+            style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}
+          >
+            <span className="map-edit-zone-badge">
+              <IconTarget size={15} /> {alignSelectedCount} zone
+              {alignSelectedCount > 1 ? 's' : ''}
+            </span>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={alignSelectedCount < 2 || alignSaving}
+              onClick={onComputeAlignPreview}
+              data-testid="map-align-preview"
+            >
+              Aperçu
+            </button>
+            {alignHasPreview && (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  disabled={alignSaving}
+                  onClick={onDiscardAlignPreview}
+                >
+                  Rejeter
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  disabled={alignSaving}
+                  onClick={onApplyAlignPreview}
+                  data-testid="map-align-apply"
+                >
+                  <IconSave size={15} /> Enregistrer
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              aria-label="Quitter l'alignement"
+              disabled={alignSaving}
+              onClick={onExitAlignMode}
+            >
+              <IconClose size={15} />
+            </button>
+          </div>
+        )}
+
+        {isTeacher &&
+          (mode === 'draw-zone' || mode === 'edit-points') &&
+          typeof onToggleNeighborSnap === 'function' && (
+            <button
+              type="button"
+              className="map-toolbar-pill"
+              style={editTogglePillStyle(neighborSnapEnabled)}
+              aria-pressed={neighborSnapEnabled}
+              onClick={onToggleNeighborSnap}
+              title="Coller aux zones voisines : sommet ou côté. En tracé, suit le meilleur côté partagé entre deux accroches."
+              data-testid="map-neighbor-snap"
+            >
+              <IconMagnet size={15} /> Voisins
+            </button>
+          )}
 
         {isTeacher && mode === 'draw-zone' && drawPointsCount > 0 && (
           <div style={{ display: 'flex', gap: 4 }}>

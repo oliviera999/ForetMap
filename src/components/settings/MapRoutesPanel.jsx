@@ -321,9 +321,8 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
         unavailableHint="n’affiche pas encore les parcours"
       />
       <p style={HINT_STYLE}>
-        Seul le <strong>Plan</strong> affiche les parcours pour l’instant. La carte de travail et la
-        Visite les stockeront sans les montrer : leurs cases restent fermées tant qu’elles n’ont pas
-        d’écran.
+        Cochez les surfaces où le parcours doit apparaître : <strong>Plan</strong>,{' '}
+        <strong>carte de travail</strong> et/ou <strong>Visite</strong>.
       </p>
 
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>

@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import {
+  buildCategoryReorderByMove,
   buildCategoryReorderPatches,
   collectMapCategoryOptions,
   isInfrastructureLocation,
@@ -152,5 +153,30 @@ describe('buildCategoryReorderPatches', () => {
         { id: 'b', sort_order: 2 },
       ],
     });
+  });
+});
+
+describe('buildCategoryReorderByMove', () => {
+  const cats = [
+    { id: 'a', sort_order: 0, label: 'A' },
+    { id: 'b', sort_order: 1, label: 'B' },
+    { id: 'c', sort_order: 2, label: 'C' },
+  ];
+
+  test('déplace le premier vers la fin', () => {
+    expect(buildCategoryReorderByMove(cats, 0, 2)).toEqual({
+      category_ids: ['b', 'c', 'a'],
+      patches: [
+        { id: 'b', sort_order: 0 },
+        { id: 'c', sort_order: 1 },
+        { id: 'a', sort_order: 2 },
+      ],
+    });
+  });
+
+  test('renvoie null si indices invalides ou identiques', () => {
+    expect(buildCategoryReorderByMove(cats, 1, 1)).toBeNull();
+    expect(buildCategoryReorderByMove(cats, -1, 0)).toBeNull();
+    expect(buildCategoryReorderByMove(cats, 0, 9)).toBeNull();
   });
 });
