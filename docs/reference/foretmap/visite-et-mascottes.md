@@ -26,7 +26,9 @@ familles.
   sa fiche. Quand le plan de visite est **calé GPS** et que l'orientation boussole est
   autorisée (réglage Visite **et** case sur la carte), **« Me situer »** place un point
   de position et **« Orienter »** aligne le plan sur le regard — comme sur la carte de
-  travail et le Plan Lyautey.
+  travail et le Plan Lyautey. Dès que le plan est calé, une **échelle** et une **rose des
+  vents** apparaissent aussi (masquables via le bouton 📏) ; le professeur peut les
+  désactiver pour cette carte dans le calage GPS.
 - **Parcours fléchés** : si des parcours ont été publiés pour la Visite (_Réglages → Parcours_,
   case « Visite »), une puce **« Parcours »** les liste. En choisir un affiche une barre d'étape
   en bas (Précédent / Suivant) : la carte se recentre sur chaque lieu, reste utilisable, et rien

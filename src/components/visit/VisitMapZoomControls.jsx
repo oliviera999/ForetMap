@@ -11,6 +11,9 @@
  * @param {boolean} [props.headingUpEffective]
  * @param {boolean} [props.headingUpUserEnabled]
  * @param {() => void} [props.onHeadingUpToggle]
+ * @param {boolean} [props.scaleCompassAllowed]
+ * @param {boolean} [props.scaleCompassEffective]
+ * @param {() => void} [props.onScaleCompassToggle]
  */
 export function VisitMapZoomControls({
   onZoomIn,
@@ -21,6 +24,9 @@ export function VisitMapZoomControls({
   headingUpEffective = false,
   headingUpUserEnabled = false,
   onHeadingUpToggle = null,
+  scaleCompassAllowed = false,
+  scaleCompassEffective = false,
+  onScaleCompassToggle = null,
 }) {
   return (
     <div className="visit-map-controls">
@@ -65,6 +71,25 @@ export function VisitMapZoomControls({
           }}
         >
           🧭
+        </button>
+      ) : null}
+      {scaleCompassAllowed ? (
+        <button
+          type="button"
+          className={`visit-map-ctrl${scaleCompassEffective ? ' is-on' : ''}`}
+          aria-label={
+            scaleCompassEffective
+              ? 'Masquer l’échelle et la rose des vents'
+              : 'Afficher l’échelle et la rose des vents'
+          }
+          aria-pressed={scaleCompassEffective}
+          data-testid="visit-scale-compass-toggle"
+          onClick={(event) => {
+            event.stopPropagation();
+            onScaleCompassToggle?.();
+          }}
+        >
+          📏
         </button>
       ) : null}
       <button

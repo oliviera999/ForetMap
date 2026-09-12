@@ -22,6 +22,7 @@ import {
   IconEdit,
   IconFullscreen,
   IconGps,
+  IconCompass,
   IconHand,
   IconLabels,
   IconLock,
@@ -108,6 +109,7 @@ export function MapViewToolbar({
   mapTextSizeLabel = 'Aa',
   onCycleMapTextSize,
   gps,
+  scaleCompass,
   containerRef,
   txRef,
   fitMap,
@@ -516,6 +518,34 @@ export function MapViewToolbar({
                 }}
               >
                 <IconTarget size={15} /> Orienter
+              </button>
+            </Tooltip>
+          ) : null}
+          {scaleCompass?.allowed && mode === 'view' ? (
+            <Tooltip
+              text={
+                scaleCompass.effective
+                  ? 'Masquer l’échelle et la rose des vents'
+                  : 'Afficher l’échelle et la rose des vents'
+              }
+            >
+              <button
+                type="button"
+                className={`map-toolbar-pill ${scaleCompass.effective ? 'is-on' : ''}`}
+                onClick={scaleCompass.toggle}
+                aria-pressed={!!scaleCompass.effective}
+                aria-label={
+                  scaleCompass.effective
+                    ? 'Masquer l’échelle et la rose des vents'
+                    : 'Afficher l’échelle et la rose des vents'
+                }
+                data-testid="map-scale-compass-toggle"
+                style={{
+                  background: scaleCompass.effective ? 'var(--forest)' : 'transparent',
+                  color: scaleCompass.effective ? 'white' : 'var(--forest)',
+                }}
+              >
+                <IconCompass size={15} /> Échelle
               </button>
             </Tooltip>
           ) : null}

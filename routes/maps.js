@@ -6,7 +6,7 @@ const { normalizeMapImageUrl } = require('../lib/mapImageUrl');
 const { withMapGeoref } = require('../lib/mapGeoref');
 
 const router = express.Router();
-const mapsListCache = getNamedMemoryTtlCache('maps:list:v2', { ttlMs: 20000, maxEntries: 5 });
+const mapsListCache = getNamedMemoryTtlCache('maps:list:v3', { ttlMs: 20000, maxEntries: 5 });
 
 router.get(
   '/',
@@ -16,12 +16,12 @@ router.get(
     let rows = [];
     try {
       rows = await queryAll(
-        'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled, heading_up_enabled FROM maps ORDER BY sort_order ASC, label ASC',
+        'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled, heading_up_enabled, scale_compass_enabled FROM maps ORDER BY sort_order ASC, label ASC',
       );
     } catch (e) {
       if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
       rows = await queryAll(
-        'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active, NULL AS geo_anchors_json, 0 AS gps_enabled, 0 AS heading_up_enabled FROM maps ORDER BY sort_order ASC, label ASC',
+        'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active, NULL AS geo_anchors_json, 0 AS gps_enabled, 0 AS heading_up_enabled, 1 AS scale_compass_enabled FROM maps ORDER BY sort_order ASC, label ASC',
       );
     }
     const payload = rows.map((row) =>

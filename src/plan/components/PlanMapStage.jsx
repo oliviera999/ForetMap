@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { headingUpOrientationDeg } from '../../shared/pct-map/pctMapOrientation.js';
+import { MapScaleCompassOverlay } from '../../shared/pct-map/MapScaleCompassOverlay.jsx';
 
 import { MapActionButton } from '../../shared/ui/MapActionButton.jsx';
 import { PctClusterLayer } from '../../shared/pct-map/PctClusterLayer.jsx';
@@ -93,6 +94,9 @@ export function PlanMapStage({
   headingUpEffective = false,
   headingUpUserEnabled = false,
   onHeadingUpToggle = null,
+  scaleCompassAllowed = false,
+  scaleCompassEffective = false,
+  onScaleCompassToggle = null,
 }) {
   const imageSrc = String(map?.map_image_url || '');
   const viewport = usePctMapViewport({
@@ -218,6 +222,11 @@ export function PlanMapStage({
 
   // Heading-up : rotation intérieure autour de la position (ou centre) ; pan/zoom inchangés.
   const orientPivot = position?.displayPct || null;
+  const mapOrientationDeg = headingUpEffective
+    ? headingUpOrientationDeg(
+        position?.smoothedScreenHeadingDeg ?? position?.screenHeadingDeg ?? null,
+      )
+    : 0;
   useEffect(() => {
     if (!headingUpEffective) {
       setMapOrientation({ deg: 0, originPct: null });
@@ -412,6 +421,14 @@ export function PlanMapStage({
         </div>
       </div>
 
+      <MapScaleCompassOverlay
+        visible={scaleCompassEffective}
+        georef={map?.geo_anchors}
+        contentWidthPx={fitRect.width}
+        scale={committed.s}
+        orientationDeg={mapOrientationDeg}
+      />
+
       <div className="plan-map-controls">
         {position?.available ? (
           <MapActionButton
@@ -440,6 +457,21 @@ export function PlanMapStage({
             ariaPressed={headingUpEffective}
             disabled={!position.headingAvailable}
             onClick={onHeadingUpToggle}
+          />
+        ) : null}
+        {scaleCompassAllowed ? (
+          <MapActionButton
+            role={scaleCompassEffective ? 'primary' : 'display'}
+            icon="📏"
+            label={
+              scaleCompassEffective
+                ? 'Masquer l’échelle et la rose des vents'
+                : 'Afficher l’échelle et la rose des vents'
+            }
+            testId="plan-scale-compass-toggle"
+            active={scaleCompassEffective}
+            ariaPressed={scaleCompassEffective}
+            onClick={onScaleCompassToggle}
           />
         ) : null}
         <MapActionButton

@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — échelle et rose des vents sur plans calés GPS
+
+- Sur la **carte de travail**, la **Visite** et le **Plan Lyautey**, un plan calé GPS
+  affiche une **barre d'échelle** et une **rose des vents** (nord). Affichage dès qu'un
+  calage valide existe — sans exiger le suivi GPS. Case admin dans le calage GPS
+  (`scale_compass_enabled`, défaut activé) et bascule utilisateur dans la barre d'outils
+  (préférence appareil, affichée par défaut).
+
 ### Modifié — Plan Lyautey : charte bleue du lycée
 
 - **Favicon et PWA** propres au produit (/plan/favicon.*, thème #183058) : plus de partage

@@ -99,3 +99,36 @@ test('parseAnchors normalise le JSON stocké et withMapGeoref expose georef/gps_
   assert.strictEqual(broken.georef, null);
   assert.strictEqual(broken.gps_enabled, false);
 });
+
+test('withMapGeoref expose scale_compass_enabled dès calage valide (hors GPS)', () => {
+  const withScale = withMapGeoref({
+    id: 'foret',
+    geo_anchors_json: JSON.stringify(NUMERIC_ANCHORS),
+    gps_enabled: 0,
+    scale_compass_enabled: 1,
+  });
+  assert.strictEqual(withScale.gps_enabled, false);
+  assert.strictEqual(withScale.scale_compass_enabled, true);
+
+  const defaultOn = withMapGeoref({
+    id: 'foret',
+    geo_anchors_json: JSON.stringify(NUMERIC_ANCHORS),
+    gps_enabled: 0,
+  });
+  assert.strictEqual(defaultOn.scale_compass_enabled, true);
+
+  const off = withMapGeoref({
+    id: 'foret',
+    geo_anchors_json: JSON.stringify(NUMERIC_ANCHORS),
+    gps_enabled: 0,
+    scale_compass_enabled: 0,
+  });
+  assert.strictEqual(off.scale_compass_enabled, false);
+
+  const noGeoref = withMapGeoref({
+    id: 'foret',
+    geo_anchors_json: null,
+    scale_compass_enabled: 1,
+  });
+  assert.strictEqual(noGeoref.scale_compass_enabled, false);
+});

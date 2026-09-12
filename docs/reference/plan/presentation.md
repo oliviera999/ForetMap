@@ -71,6 +71,11 @@ un bouton **« Orienter »** apparaît à côté de « Me situer » une fois la 
 Chacun peut le couper ; le choix est retenu sur l'appareil. Sans boussole exploitable, le bouton
 reste inactif. En intérieur, la boussole peut être fantaisiste : mieux vaut alors s'en passer.
 
+Dès que le plan est **calé** (points GPS posés), une **barre d'échelle** et une **rose des
+vents** s'affichent en bas à gauche — sans avoir besoin d'activer « Me situer ». Chacun peut
+les masquer via le bouton dédié ; le professeur peut aussi les couper pour cette carte dans le
+calage GPS.
+
 > **Points d'attention.** Sur iPhone, le navigateur demande une permission pour la boussole au
 > premier « Me situer ». L'orientation ne remplace pas un itinéraire : elle aide à lire le plan
 > dans le sens de la marche.
