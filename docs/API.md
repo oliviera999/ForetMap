@@ -1111,7 +1111,7 @@ sur le préfixe pour les lignes non migrées.
 
 | Méthode | URL                                     | n3boss             | Description                                                                                                                                     |
 | ------- | --------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/map/markers`                      | non                | Liste des repères                                                                                                                               |
+| GET     | `/api/map/markers`                      | optionnel          | Liste des repères (filtre audience par rôle si jeton)                                                                                           |
 | POST    | `/api/map/markers`                      | oui                | Créer repère                                                                                                                                    |
 | PUT     | `/api/map/markers/:id`                  | oui                | Modifier repère                                                                                                                                 |
 | DELETE  | `/api/map/markers/:id`                  | oui                | Supprimer repère                                                                                                                                |
@@ -1755,6 +1755,25 @@ Un lieu (zone ou repère) s'affiche sur trois **surfaces** : `map` (carte de tra
   (trim, doublons insensibles à la casse retirés, borné à 512 caractères sans troncature au
   milieu d'un alias) et renvoyé **en chaîne** par les routes zones / repères, **en tableau**
   par `/api/plan/content`.
+
+### Audience des lieux par rôles (V1)
+
+Migration `236_location_audience_roles.sql`, règles pures dans `lib/locationAudience.js`.
+
+- **`visible_role_slugs`** (zones / repères, tableau en réponse) : rôles autorisés à **voir le
+  lieu**. Vide / omis = **public**. Hors audience, le lieu est **absent** des listes (pas
+  grisé). Slugs acceptés : `visiteur`, `personnel`, `eleve_novice`, `eleve_avance`,
+  `eleve_chevronne`, `prof_classe`, `prof`, `admin`.
+- **`restricted_note`** + **`restricted_note_role_slugs`** : complément de texte optionnel.
+  Slugs vides pour le complément = réservé aux gestionnaires (`zones.manage` /
+  `map.manage_markers`). Les lecteurs non autorisés ne reçoivent **pas** ces champs.
+- **Gestionnaires** : voient toujours tous les lieux et les métadonnées d'audience.
+- **Visite anonyme / Plan** : un anonyme compte comme `visiteur` ; un lieu restreint sans
+  `visiteur` dans l'audience n'y apparaît pas.
+- **`GET /api/zones`**, **`GET /api/map/markers`**, **`GET /api/visit/content`** : auth
+  optionnelle (`authenticate`) pour appliquer le filtre selon le rôle du jeton.
+- **Écritures** : `POST` / `PUT` acceptent les trois champs ; rôle inconnu → **400** ; omis
+  sur `PUT` = inchangé.
 
 ---
 

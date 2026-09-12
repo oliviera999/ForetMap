@@ -50,6 +50,9 @@ CREATE TABLE IF NOT EXISTS zones (
   description TEXT DEFAULT NULL,
   hidden_surfaces SET('map','visit','plan') NOT NULL DEFAULT '',
   search_aliases TEXT DEFAULT NULL,
+  visible_role_slugs TEXT DEFAULT NULL,
+  restricted_note TEXT DEFAULT NULL,
+  restricted_note_role_slugs TEXT DEFAULT NULL,
   INDEX idx_zones_map_id (map_id),
   CONSTRAINT fk_zones_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -762,6 +765,9 @@ CREATE TABLE IF NOT EXISTS map_markers (
   created_at VARCHAR(32) DEFAULT NULL,
   hidden_surfaces SET('map','visit','plan') NOT NULL DEFAULT '',
   search_aliases TEXT DEFAULT NULL,
+  visible_role_slugs TEXT DEFAULT NULL,
+  restricted_note TEXT DEFAULT NULL,
+  restricted_note_role_slugs TEXT DEFAULT NULL,
   INDEX idx_map_markers_map_id (map_id),
   CONSTRAINT fk_map_markers_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT,
   INDEX idx_map_markers_created (created_at)
