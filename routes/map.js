@@ -1,7 +1,7 @@
 const express = require('express');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
-const { requirePermission } = require('../middleware/requireTeacher');
+const { requirePermission, authenticate } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { emitGardenChanged } = require('../lib/realtime');
 const {
@@ -32,7 +32,14 @@ const {
   serializeSurfaceSet,
   readSurfaceQuery,
   isVisibleOnSurface,
+  withLocationSurfaceFields,
 } = require('../lib/locationSurfaces');
+const {
+  readAudienceWriteFields,
+  serializeRoleSlugList,
+  withLocationAudienceFields,
+  filterLocationsForViewer,
+} = require('../lib/locationAudience');
 const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const { logAudit } = require('../lib/auditLog');
 const {
@@ -42,6 +49,10 @@ const {
 } = require('../lib/entityPhotoRoutes');
 
 const db = { queryAll, queryOne, execute, withTransaction };
+
+function serializeLocationRow(row) {
+  return withLocationAudienceFields(withLocationSurfaceFields(row));
+}
 
 const router = express.Router();
 
@@ -177,6 +188,7 @@ registerEntityPhotoRoutes(router, {
 
 router.get(
   '/markers',
+  authenticate,
   asyncHandler(async (req, res) => {
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
     if (mapId && !(await mapExists(mapId))) {
@@ -185,6 +197,7 @@ router.get(
     // `?surface=map|visit|plan` (lot 4) : ne renvoie que les repères visibles sur cette surface.
     const surfaceQuery = readSurfaceQuery(req.query.surface);
     if (!surfaceQuery.ok) return res.status(400).json({ error: surfaceQuery.error });
+    const publicSurface = surfaceQuery.value === 'visit' || surfaceQuery.value === 'plan';
     const rows = mapId
       ? await queryAll(`${MARKERS_LIST_SQL} WHERE m.map_id = ? ORDER BY m.created_at`, [mapId])
       : await queryAll(`${MARKERS_LIST_SQL} ORDER BY m.created_at`);
@@ -192,18 +205,19 @@ router.get(
     const speciesMap = await loadMarkerSpeciesMap(db, markerIds);
     const categoriesMap = await loadCategoriesMap(db, 'marker', markerIds);
     const result = rows.map((row) =>
-      attachCategoriesToEntity(
-        attachSpeciesToEntity(row, speciesMap.get(String(row.id)) || [], {
-          legacySingleName: row.plant_name,
-        }),
-        categoriesMap.get(String(row.id)) || [],
+      serializeLocationRow(
+        attachCategoriesToEntity(
+          attachSpeciesToEntity(row, speciesMap.get(String(row.id)) || [], {
+            legacySingleName: row.plant_name,
+          }),
+          categoriesMap.get(String(row.id)) || [],
+        ),
       ),
     );
-    res.json(
-      surfaceQuery.value
-        ? result.filter((row) => isVisibleOnSurface(row, surfaceQuery.value))
-        : result,
-    );
+    const surfaced = surfaceQuery.value
+      ? result.filter((row) => isVisibleOnSurface(row, surfaceQuery.value))
+      : result;
+    res.json(filterLocationsForViewer(surfaced, req.auth, { publicSurface }));
   }),
 );
 
@@ -224,6 +238,9 @@ router.post(
       category_ids,
       hidden_surfaces,
       search_aliases,
+      visible_role_slugs,
+      restricted_note,
+      restricted_note_role_slugs,
     } = req.body;
     const mapId = String(map_id || '').trim() || (await resolveDefaultMapId('teacher'));
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
@@ -233,6 +250,12 @@ router.post(
       field: 'hidden_surfaces',
     });
     if (!hiddenSurfacesInput.ok) return res.status(400).json({ error: hiddenSurfacesInput.error });
+    const audienceInput = readAudienceWriteFields({
+      visible_role_slugs,
+      restricted_note,
+      restricted_note_role_slugs,
+    });
+    if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
     // Coordonnées en pourcentage : bornées 0-100 (sinon un repère hors carte, ou NaN, était
     // inséré tel quel — paramétré donc sans injection, mais qualité de données non garantie).
     const xPct = Number(x_pct);
@@ -247,7 +270,7 @@ router.post(
     const nextPlantName = nextLiving.length > 0 ? '' : String(plant_name || '').trim();
     const id = crypto.randomUUID();
     await execute(
-      'INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, note, emoji, created_at, hidden_surfaces, search_aliases) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, note, emoji, created_at, hidden_surfaces, search_aliases, visible_role_slugs, restricted_note, restricted_note_role_slugs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         mapId,
@@ -260,6 +283,9 @@ router.post(
         nowIsoUtc(),
         serializeSurfaceSet(hiddenSurfacesInput.value || []),
         normalizeSearchAliases(search_aliases) || null,
+        serializeRoleSlugList(audienceInput.visible_role_slugs || []) || null,
+        audienceInput.restricted_note || null,
+        serializeRoleSlugList(audienceInput.restricted_note_role_slugs || []) || null,
       ],
     );
     await syncMarkerSpecies(db, id, species_ids, nextLiving);
@@ -278,11 +304,13 @@ router.post(
     const categoriesRows = await loadCategoriesMap(db, 'marker', [id]);
     emitGardenChanged({ reason: 'create_marker', markerId: id, mapId });
     res.status(201).json(
-      attachCategoriesToEntity(
-        attachSpeciesToEntity(row, speciesRows.get(String(id)) || [], {
-          legacySingleName: row.plant_name,
-        }),
-        categoriesRows.get(String(id)) || [],
+      serializeLocationRow(
+        attachCategoriesToEntity(
+          attachSpeciesToEntity(row, speciesRows.get(String(id)) || [], {
+            legacySingleName: row.plant_name,
+          }),
+          categoriesRows.get(String(id)) || [],
+        ),
       ),
     );
   }),
@@ -307,6 +335,9 @@ router.put(
       category_ids,
       hidden_surfaces,
       search_aliases,
+      visible_role_slugs,
+      restricted_note,
+      restricted_note_role_slugs,
     } = req.body;
     if (label !== undefined && !String(label).trim()) {
       return res.status(400).json({ error: 'Label requis' });
@@ -316,6 +347,12 @@ router.put(
       field: 'hidden_surfaces',
     });
     if (!hiddenSurfacesInput.ok) return res.status(400).json({ error: hiddenSurfacesInput.error });
+    const audienceInput = readAudienceWriteFields({
+      visible_role_slugs,
+      restricted_note,
+      restricted_note_role_slugs,
+    });
+    if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
     const nextHiddenSurfaces =
       hiddenSurfacesInput.value === null
         ? String(m.hidden_surfaces ?? '')
@@ -324,6 +361,18 @@ router.put(
       search_aliases === undefined
         ? (m.search_aliases ?? null)
         : normalizeSearchAliases(search_aliases) || null;
+    const nextVisibleRoleSlugs =
+      audienceInput.visible_role_slugs === null
+        ? (m.visible_role_slugs ?? null)
+        : serializeRoleSlugList(audienceInput.visible_role_slugs) || null;
+    const nextRestrictedNote =
+      audienceInput.restricted_note === null
+        ? (m.restricted_note ?? null)
+        : audienceInput.restricted_note || null;
+    const nextRestrictedNoteRoleSlugs =
+      audienceInput.restricted_note_role_slugs === null
+        ? (m.restricted_note_role_slugs ?? null)
+        : serializeRoleSlugList(audienceInput.restricted_note_role_slugs) || null;
     if (map_id != null) {
       const mapId = String(map_id).trim();
       if (!mapId) return res.status(400).json({ error: 'map_id invalide' });
@@ -349,7 +398,7 @@ router.put(
           : String(m.plant_name || '').trim();
     const nextMapIdForMarker = map_id != null ? String(map_id).trim() : m.map_id;
     await execute(
-      'UPDATE map_markers SET map_id=?, x_pct=?, y_pct=?, label=?, plant_name=?, note=?, emoji=?, hidden_surfaces=?, search_aliases=? WHERE id=?',
+      'UPDATE map_markers SET map_id=?, x_pct=?, y_pct=?, label=?, plant_name=?, note=?, emoji=?, hidden_surfaces=?, search_aliases=?, visible_role_slugs=?, restricted_note=?, restricted_note_role_slugs=? WHERE id=?',
       [
         nextMapIdForMarker,
         x_pct ?? m.x_pct,
@@ -362,6 +411,9 @@ router.put(
           : String(m.emoji ?? ''),
         nextHiddenSurfaces,
         nextSearchAliases,
+        nextVisibleRoleSlugs,
+        nextRestrictedNote,
+        nextRestrictedNoteRoleSlugs,
         m.id,
       ],
     );
@@ -391,11 +443,13 @@ router.put(
     const categoriesRows = await loadCategoriesMap(db, 'marker', [m.id]);
     emitGardenChanged({ reason: 'update_marker', markerId: m.id, mapId: updated.map_id });
     res.json(
-      attachCategoriesToEntity(
-        attachSpeciesToEntity(updated, speciesRows.get(String(m.id)) || [], {
-          legacySingleName: updated.plant_name,
-        }),
-        categoriesRows.get(String(m.id)) || [],
+      serializeLocationRow(
+        attachCategoriesToEntity(
+          attachSpeciesToEntity(updated, speciesRows.get(String(m.id)) || [], {
+            legacySingleName: updated.plant_name,
+          }),
+          categoriesRows.get(String(m.id)) || [],
+        ),
       ),
     );
   }),

@@ -92,6 +92,7 @@ qu'on veut). Sa fiche rassemble :
   l'administrateur et utilisables comme filtre sur la carte — voir « Catégories de
   lieux » plus bas ;
 - une **description** libre (avec mise en forme) ;
+- un réglage **« Qui peut voir ce lieu »** et un **complément réservé** (voir plus bas) ;
 - des **photos** avec légende, que le professeur peut réordonner et supprimer ;
 - un **historique des cultures** : quand une espèce est retirée de la zone, elle est
   automatiquement archivée avec la date du jour — la fiche garde ainsi la mémoire de
@@ -106,9 +107,10 @@ qu'on veut). Sa fiche rassemble :
 ## Les repères
 
 Un repère est un **point** posé sur le plan, complémentaire des zones. Il porte un
-**emoji**, un **nom**, une **note** libre, ses **photos** (mêmes possibilités que les
-zones), ses **espèces associées**, ses **catégories** (mêmes catégories que les zones)
-et, comme les zones, ses textes pour le mode Visite, ses tâches et tutoriels liés.
+**emoji**, un **nom**, une **note** libre, le même réglage **« Qui peut voir ce lieu »**
+et le même **complément réservé** que les zones, ses **photos** (mêmes possibilités que
+les zones), ses **espèces associées**, ses **catégories** (mêmes catégories que les
+zones) et, comme les zones, ses textes pour le mode Visite, ses tâches et tutoriels liés.
 
 Pour éviter les déplacements accidentels, la position des repères est **verrouillée**
 par défaut : le professeur clique sur le cadenas « Repères » de la barre d'outils pour
@@ -280,6 +282,32 @@ carte est vue en entier.
 Enfin, le **nom d'une zone** s'affiche désormais au point le plus « à l'intérieur » de son
 contour, et non plus à son centre géométrique : sur une zone en L ou en croissant, le nom
 tombait à côté, parfois sur la zone voisine.
+
+### Qui peut voir un lieu (rôles)
+
+Par défaut, un lieu est **public** : toute personne autorisée à ouvrir la carte (ou la
+visite / le plan, selon les surfaces) le voit, avec sa description ou sa note habituelle.
+
+Le professeur peut restreindre la **visibilité du lieu entier** à certains **rôles**
+(visiteur, personnel, paliers n3beur, prof de classe, n3boss, administrateur) :
+
+- hors de ces rôles, le lieu est **absent** : pas d'épingle, pas de forme, pas de résultat
+  dans la recherche ni dans les listes — on ne le « grise » pas ;
+- les comptes qui gèrent les zones ou les repères voient **toujours** tous les lieux, pour
+  pouvoir les éditer ;
+- la **visite anonyme** et le **Plan Lyautey** ne voient un lieu restreint que si le rôle
+  **Visiteur** fait partie de l'audience (sinon le lieu reste réservé aux comptes connectés
+  concernés).
+
+Sur la même fiche, un champ **« Complément réservé »** permet d'ajouter un texte lu
+seulement par certains rôles (par exemple une consigne de classe ou une note pour les
+enseignants). Le lieu peut rester visible pour tout le monde ; seul ce complément est
+masqué. Sans rôle coché pour le complément, seuls les gestionnaires du jardin le voient.
+
+> 🔧 **À implémenter (suite possible)** — Restreindre aussi par **groupes** (classe, club,
+> équipe), pas seulement par rôle ; plusieurs compléments (un par public) ; héritage
+> d'audience au niveau d'une **catégorie** de lieux. La V1 couvre les rôles, un lieu
+> absent hors audience, et un seul complément réservé.
 
 ### Où apparaît un lieu (carte, visite, plan)
 

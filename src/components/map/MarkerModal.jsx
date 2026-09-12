@@ -504,6 +504,23 @@ function MarkerModal({
               <MarkdownContent>{marker.note}</MarkdownContent>
             </div>
           )}
+          {marker.restricted_note && (
+            <div
+              style={{
+                background: '#fff7ed',
+                borderRadius: 10,
+                padding: '10px 14px',
+                marginBottom: 12,
+                border: '1px solid #fdba74',
+                fontSize: 'var(--text-sm)',
+                color: '#333',
+                lineHeight: 'var(--lh-relaxed)',
+              }}
+            >
+              <strong style={{ display: 'block', marginBottom: 6 }}>Complément réservé</strong>
+              <MarkdownContent>{marker.restricted_note}</MarkdownContent>
+            </div>
+          )}
           {showVisitAsideBlock && (
             <LocationVisitAside
               entity={marker}
