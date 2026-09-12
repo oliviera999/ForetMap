@@ -66,6 +66,7 @@ test('GET /api/students/import/template retourne un modèle CSV multi-rôles', a
   assert.ok((res.text || '').toLowerCase().includes('groupes'));
   for (const slug of [
     'visiteur',
+    'personnel',
     'eleve_novice',
     'eleve_avance',
     'eleve_chevronne',

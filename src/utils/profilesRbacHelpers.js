@@ -7,7 +7,7 @@
  */
 
 /**
- * Un profil « palier n3beur » configurable (seuils/forum/contexte) : ni admin/prof/visiteur,
+ * Un profil « palier n3beur » configurable (seuils/forum/contexte) : ni admin/prof/visiteur/personnel,
  * et soit slug `eleve_*`, soit rang fini < 400. Reproduit la règle serveur.
  */
 export function isN3beurTierConfigurableProfile(role) {
@@ -15,7 +15,8 @@ export function isN3beurTierConfigurableProfile(role) {
   const slug = String(role.slug || '')
     .trim()
     .toLowerCase();
-  if (slug === 'admin' || slug === 'prof' || slug === 'visiteur') return false;
+  if (slug === 'admin' || slug === 'prof' || slug === 'visiteur' || slug === 'personnel')
+    return false;
   if (/^eleve_/i.test(String(role.slug || ''))) return true;
   const r = Number(role.rank);
   return Number.isFinite(r) && r < 400;

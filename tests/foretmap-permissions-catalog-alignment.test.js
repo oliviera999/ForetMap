@@ -55,4 +55,9 @@ describe('Permissions ForetMap : matrices catalogue', () => {
     assert.ok(!keys.includes('zones.manage'));
     assert.ok(!keys.includes('visit.manage'));
   });
+
+  it('visiteur et personnel : aucune permission d’action', () => {
+    assert.deepEqual(ROLE_PERMISSION_MATRIX.visiteur, []);
+    assert.deepEqual(ROLE_PERMISSION_MATRIX.personnel, []);
+  });
 });

@@ -22,6 +22,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Visite anonyme / Plan : un lieu restreint n'apparaît que si **Visiteur** est dans
   l'audience. Suite documentée : groupes, multi-blocs, héritage par catégorie.
 
+### Ajouté — profil système « Personnel »
+
+- Nouveau profil **Personnel** (slug `personnel`), calqué sur **Visiteur** : Visite et
+  Biodiversité seulement, aucune permission d’action, même chrome de navigation.
+- Création unitaire, import CSV/tableur, rôle par défaut de groupe, slugs réservés.
+- Migration `235_personnel_role.sql`.
+
 ### Ajouté — ordre des catégories de lieux dans les paramètres
 
 - Dans Réglages → Catégories de lieux : boutons ↑ ↓ pour réordonner les catégories

@@ -69,6 +69,7 @@ function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
         const slug = String(r.slug || '').toLowerCase();
         return (
           slug === 'visiteur' ||
+          slug === 'personnel' ||
           slug.startsWith('eleve_') ||
           (Number(r.rank) > 0 && Number(r.rank) < 400 && !slug.startsWith('gl_'))
         );

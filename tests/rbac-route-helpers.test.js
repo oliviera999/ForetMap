@@ -36,19 +36,21 @@ describe('rbacRouteHelpers (logique pure de routes/rbac.js, sans DB)', () => {
     assert.ok(!STUDENT_ROLE_SLUG_RE.test('prof'));
   });
 
-  it('RESERVED_ROLE_SLUGS : les 6 slugs système exacts', () => {
+  it('RESERVED_ROLE_SLUGS : les slugs système exacts', () => {
     assert.deepEqual([...RESERVED_ROLE_SLUGS].sort(), [
       'admin',
       'eleve_avance',
       'eleve_chevronne',
       'eleve_novice',
+      'personnel',
       'prof',
+      'prof_classe',
       'visiteur',
     ]);
   });
 
   it('reservedRoleSlugError : message pour un slug réservé (casse / espaces ignorés)', () => {
-    for (const slug of ['admin', 'PROF', '  visiteur ', 'eleve_novice']) {
+    for (const slug of ['admin', 'PROF', '  visiteur ', 'personnel', 'eleve_novice']) {
       const msg = reservedRoleSlugError(slug);
       assert.equal(typeof msg, 'string');
       assert.match(msg, /réservé au système/);
@@ -83,10 +85,11 @@ describe('rbacRouteHelpers (logique pure de routes/rbac.js, sans DB)', () => {
     assert.ok(!PROFILE_PATCH_KEYS.has('is_system'));
   });
 
-  it('isStaffRoleSlug : admin/prof/visiteur (trim + casse), refus du reste', () => {
+  it('isStaffRoleSlug : admin/prof/visiteur/personnel (trim + casse), refus du reste', () => {
     assert.equal(isStaffRoleSlug('admin'), true);
     assert.equal(isStaffRoleSlug(' PROF '), true);
     assert.equal(isStaffRoleSlug('Visiteur'), true);
+    assert.equal(isStaffRoleSlug('personnel'), true);
     assert.equal(isStaffRoleSlug('eleve_novice'), false);
     assert.equal(isStaffRoleSlug(''), false);
     assert.equal(isStaffRoleSlug(null), false);
@@ -96,6 +99,7 @@ describe('rbacRouteHelpers (logique pure de routes/rbac.js, sans DB)', () => {
     assert.equal(canConfigureStudentTierForumContext('admin', 10), false);
     assert.equal(canConfigureStudentTierForumContext('prof', 0), false);
     assert.equal(canConfigureStudentTierForumContext('visiteur', 1), false);
+    assert.equal(canConfigureStudentTierForumContext('personnel', 1), false);
   });
 
   it('canConfigureStudentTierForumContext : slug eleve_* accepté quel que soit le rang', () => {
