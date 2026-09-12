@@ -142,9 +142,13 @@ d'observation** pour l'écriture naturaliste libre.
   colonne de gauche, souvent hors de vue, et se limitait aux mots de glossaire.
 - **Arriver depuis une fiche plante isole l'espèce.** Le bouton « Voir le réseau
   trophique » d'une fiche ouvre l'onglet **sur le sous-réseau de cette espèce** (elle et
-  ses voisines directes) ; le bouton « Tout afficher » revient au réseau complet. Si
-  l'espèce n'a encore aucune interaction dans la carte ou la zone choisie, un message le
-  dit au lieu de laisser croire à un bug.
+  ses voisines directes), **filtré sur la carte active** (celle choisie sur le plan de
+  travail) ; le bouton « Tout afficher » revient au réseau de cette carte. On peut encore
+  élargir à « Toutes les cartes » dans le filtre. Si l'espèce n'a encore aucune
+  interaction dans la carte ou la zone choisie, un message le dit au lieu de laisser
+  croire à un bug.
+- **Ouvrir l'onglet Réseau trophique** (menu ou lien) part aussi sur la **carte active**,
+  pas sur le réseau global de toutes les cartes.
 - **Le graphe se parcourt aussi au clavier** : la tabulation passe d'une espèce et d'une
   relation à l'autre, `Entrée` isole le réseau d'une espèce (ou sélectionne une relation),
   `Maj+Entrée` ouvre la fiche de l'espèce. Utile en vidéoprojection sans souris, et

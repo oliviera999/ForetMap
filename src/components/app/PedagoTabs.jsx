@@ -109,6 +109,7 @@ export function PedagoTabs({
         <TabSuspense>
           <FoodWebViewLazy
             maps={maps}
+            initialMapId={activeMapId}
             onOpenPlant={onOpenPlantCatalogPreview}
             onOpenGlossaryTerm={onOpenGlossaryTerm}
             highlightPlantId={foodWebHighlightPlantId}

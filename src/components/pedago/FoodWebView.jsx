@@ -14,8 +14,15 @@ import { IconAdd, IconDelete, IconEdit, IconFoodweb } from '../../shared/icons.j
 
 const EMPTY_FORM = { fromId: '', toId: '', type: INTERACTION_TYPES[0], description: '' };
 
+function normalizeMapId(value) {
+  if (value == null || value === '') return '';
+  return String(value);
+}
+
 export function FoodWebView({
   maps = [],
+  /** Carte active de l'app : le graphe s'ouvre sur son réseau (pas « toutes les cartes »). */
+  initialMapId = null,
   onOpenPlant,
   onOpenGlossaryTerm,
   highlightPlantId = null,
@@ -24,7 +31,7 @@ export function FoodWebView({
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [mapId, setMapId] = useState('');
+  const [mapId, setMapId] = useState(() => normalizeMapId(initialMapId));
   const [zoneId, setZoneId] = useState('');
   const [filterZones, setFilterZones] = useState([]);
   const [interactionFilter, setInteractionFilter] = useState('');
@@ -45,6 +52,14 @@ export function FoodWebView({
 
   // Auto-liens des descriptions d'interaction (texte brut).
   const glossaryIndex = useGlossaryLinkIndex();
+
+  // Lien « Voir le réseau trophique » depuis une fiche : cadrer sur la carte active
+  // même si l'onglet était déjà ouvert avec un autre filtre.
+  useEffect(() => {
+    if (highlightPlantId == null) return;
+    const next = normalizeMapId(initialMapId);
+    if (next) setMapId(next);
+  }, [highlightPlantId, initialMapId]);
 
   const loadFoodWeb = useCallback(async () => {
     const seq = ++loadFoodWebSeqRef.current;
