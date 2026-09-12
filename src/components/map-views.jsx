@@ -4,7 +4,11 @@ import { api } from '../services/api';
 import { MapRoutePicker } from '../shared/map-routes/MapRoutePicker.jsx';
 import { MapRouteBar } from '../shared/map-routes/MapRouteBar.jsx';
 import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
-import { placesFromZonesAndMarkers } from '../shared/map-routes/mapRouteSteps.js';
+import {
+  placesFromZonesAndMarkers,
+  routeEntryFocusPct,
+} from '../shared/map-routes/mapRouteSteps.js';
+import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
 import { MARKER_EMOJIS, parseEmojiListSetting } from '../constants/emojis';
 
 import {
@@ -349,6 +353,7 @@ function MapViewImpl({
     activeRoute,
     routeSteps,
     routeIndex,
+    currentRouteEntry,
     routePickerOpen,
     setRoutePickerOpen,
     resumableRouteSlug,
@@ -493,6 +498,16 @@ function MapViewImpl({
     georef: activeMap?.georef ?? null,
     gpsEnabled: !!activeMap?.gps_enabled && mode === 'view',
   });
+  const routeDistanceLabel = useMemo(() => {
+    const targetPct = routeEntryFocusPct(currentRouteEntry);
+    if (!mapPosition.positionPct || !targetPct || !mapPosition.planSize) return '';
+    const meters = distanceMetersBetweenPct(
+      mapPosition.positionPct,
+      targetPct,
+      mapPosition.planSize,
+    );
+    return meters != null ? formatDistanceFr(meters) : '';
+  }, [currentRouteEntry, mapPosition.positionPct, mapPosition.planSize]);
   const headingUpAllowed =
     !!publicSettings?.map?.heading_up_enabled &&
     !!activeMap?.heading_up_enabled &&
@@ -1487,6 +1502,8 @@ function MapViewImpl({
               onGoToIndex={goToRouteIndex}
               onExit={exitRoute}
               canLocate={!!mapPosition?.available}
+              distanceLabel={routeDistanceLabel}
+              hintLocate="Le lieu est mis en avant sur la carte. Utilisez « Me suivre » puis avancez."
               hintManual="Le lieu est mis en avant sur la carte. Avance puis Suivant."
             />
           ) : null}

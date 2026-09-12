@@ -9,6 +9,33 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — barre de parcours Plan : styles enfants orphelins
+
+- `MapRouteBar` n’appliquait le dual-class `plan-*` qu’à la racine ; les enfants
+  (`__head`, pastille d’étape…) restaient en `map-route-*` seuls, donc sans CSS sur
+  Plan Lyautey (qui n’importe pas `index.css`). Dual-classing aligné sur `MapRoutePicker`.
+
+### Corrigé — « Masquer sur Carte » appliqué au sync élève / visiteur
+
+- `useAppDataSync` chargeait `/api/zones` et `/api/map/markers` sans `surface=map` : un
+  lieu coché « masqué sur Carte » restait visible pour les non-professeurs. Filtre ajouté
+  hors chrome prof (les gestionnaires gardent la liste complète pour éditer).
+
+### Corrigé — doc Visite : GPS / position vs guidage mascotte
+
+- Le point d’attention niait encore tout GPS en Visite alors que « Me situer »,
+  « Orienter » et l’échelle y sont branchés. Clarification : la mascotte reste au clic ;
+  la position réelle est disponible si le plan est calé.
+
+### Ajouté — distance à vol d’oiseau sur parcours Carte / Visite
+
+- Comme sur le Plan : distance affichée dans la barre d’étape quand la position GPS est
+  active. Libellés « Me suivre » / « Me situer » adaptés par surface.
+
+### Corrigé — schéma : colonne `discovery_tour_seen_json`
+
+- Présente en migration 233 mais absente de `sql/schema_foretmap.sql` (install schéma seul).
+
 ### Corrigé — échelle et rose des vents visibles sur Plan Lyautey
 
 - Les styles de l’overlay étaient uniquement dans `index.css` ForetMap ; le Plan ne charge

@@ -46,7 +46,11 @@ import { VisitMapZoomControls } from './visit/VisitMapZoomControls.jsx';
 import { MapRoutePicker } from '../shared/map-routes/MapRoutePicker.jsx';
 import { MapRouteBar } from '../shared/map-routes/MapRouteBar.jsx';
 import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
-import { placesFromZonesAndMarkers } from '../shared/map-routes/mapRouteSteps.js';
+import {
+  placesFromZonesAndMarkers,
+  routeEntryFocusPct,
+} from '../shared/map-routes/mapRouteSteps.js';
+import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
   getVisitMascotVisibilityReason,
@@ -423,6 +427,7 @@ function VisitViewImpl({
     activeRoute,
     routeSteps,
     routeIndex,
+    currentRouteEntry,
     routePickerOpen,
     setRoutePickerOpen,
     resumableRouteSlug,
@@ -446,6 +451,16 @@ function VisitViewImpl({
     gpsEnabled: !!currentMap?.gps_enabled && mode === 'view',
   });
   visitPositionNotifyRef.current = visitPosition.notifyManualPan;
+  const visitRouteDistanceLabel = useMemo(() => {
+    const targetPct = routeEntryFocusPct(currentRouteEntry);
+    if (!visitPosition.positionPct || !targetPct || !visitPosition.planSize) return '';
+    const meters = distanceMetersBetweenPct(
+      visitPosition.positionPct,
+      targetPct,
+      visitPosition.planSize,
+    );
+    return meters != null ? formatDistanceFr(meters) : '';
+  }, [currentRouteEntry, visitPosition.positionPct, visitPosition.planSize]);
   const visitHeadingUpAllowed =
     !!publicSettings?.visit?.heading_up_enabled &&
     !!currentMap?.heading_up_enabled &&
@@ -1064,6 +1079,8 @@ function VisitViewImpl({
                     onGoToIndex={goToRouteIndex}
                     onExit={exitRoute}
                     canLocate={!!visitPosition.available}
+                    distanceLabel={visitRouteDistanceLabel}
+                    hintLocate="Le lieu est mis en avant sur la carte. Utilisez « Me situer » puis avancez."
                     hintManual="Le lieu est mis en avant sur la carte. Avance puis Suivant."
                   />
                 ) : null}

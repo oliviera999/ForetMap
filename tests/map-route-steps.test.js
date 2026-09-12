@@ -5,6 +5,7 @@ import {
   nextRouteIndex,
   placesFromZonesAndMarkers,
   resolveRouteSteps,
+  routeEntryFocusPct,
   routeStepTitle,
 } from '../src/shared/map-routes/mapRouteSteps.js';
 
@@ -33,5 +34,28 @@ describe('mapRouteSteps', () => {
     assert.equal(nextRouteIndex(2, 3, 0), 2);
     assert.equal(nextRouteIndex(5, 3, 0), 2);
     assert.equal(nextRouteIndex(-1, 3, 0), 0);
+  });
+
+  it('routeEntryFocusPct centre un repère ou une zone', () => {
+    assert.deepEqual(
+      routeEntryFocusPct({
+        place: { kind: 'marker', x_pct: 12, y_pct: 34 },
+      }),
+      { xp: 12, yp: 34 },
+    );
+    assert.deepEqual(
+      routeEntryFocusPct({
+        place: {
+          kind: 'zone',
+          points: [
+            { xp: 0, yp: 0 },
+            { xp: 20, yp: 0 },
+            { xp: 20, yp: 20 },
+          ],
+        },
+      }),
+      { xp: 40 / 3, yp: 20 / 3 },
+    );
+    assert.equal(routeEntryFocusPct(null), null);
   });
 });
