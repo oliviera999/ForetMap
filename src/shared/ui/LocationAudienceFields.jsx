@@ -1,6 +1,7 @@
 /**
  * Audience d'un lieu (zone / repère) par rôles ForetMap — V1.
  * Aligné sur `lib/locationAudience.js` (mêmes slugs).
+ * Build dist requis avant push (garde-fou pre-push).
  */
 export const FORETMAP_AUDIENCE_ROLE_OPTIONS = Object.freeze([
   { slug: 'visiteur', label: 'Visiteur' },
