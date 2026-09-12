@@ -76,7 +76,7 @@ export async function promptRoleDetailsPatch(role, drafts = {}, promptFn = defau
  */
 export async function promptNewRoleProfile(promptFn = defaultPrompt) {
   const slug = await promptFn(
-    'Slug technique du profil (ex. eleve_mentor, n3boss_lycee). Réservés et interdits : admin, prof, visiteur, eleve_novice, eleve_avance, eleve_chevronne. Le nom affiché peut être « Admin » ou « n3boss » avec un autre slug.',
+    'Slug technique du profil (ex. eleve_mentor, n3boss_lycee). Réservés et interdits : admin, prof, visiteur, personnel, eleve_novice, eleve_avance, eleve_chevronne. Le nom affiché peut être « Admin » ou « n3boss » avec un autre slug.',
     '',
   );
   if (!slug || !slug.trim()) return null;
@@ -128,7 +128,7 @@ export async function promptNewRoleProfile(promptFn = defaultPrompt) {
 export async function promptDuplicateRoleProfile(role, promptFn = defaultPrompt) {
   const suggestedSlug = `${String(role.slug || 'profil').replace(/[^a-z0-9_]+/gi, '_')}_copie`;
   const slugInput = await promptFn(
-    'Slug technique (unique). Ne pas utiliser : admin, prof, visiteur, eleve_novice, eleve_avance, eleve_chevronne — préférez ex. prof_copie_lycee. Le nom affiché est demandé ensuite.',
+    'Slug technique (unique). Ne pas utiliser : admin, prof, visiteur, personnel, eleve_novice, eleve_avance, eleve_chevronne — préférez ex. prof_copie_lycee. Le nom affiché est demandé ensuite.',
     suggestedSlug,
   );
   if (!slugInput || !slugInput.trim()) return null;

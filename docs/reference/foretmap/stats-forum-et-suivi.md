@@ -13,7 +13,7 @@ commentaires) et rester informé (notifications, temps réel).
 
 - **Tableau de bord professeur** : pour chaque élève, le nombre de tâches par statut
   (en cours, faites, validées), la progression vers les paliers, et un panneau de
-  lecture des carnets d'observation.
+  lecture des carnets (articles enrichis, imports, export).
 - **Classement** : un palmarès des élèves fondé sur les tâches validées — motivant en
   classe, à utiliser avec discernement.
 - **Export tableur** : les données de suivi s'exportent en un clic (permission

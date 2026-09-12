@@ -20,18 +20,22 @@ describe('VisitMapMarkerButton', () => {
     );
     const btn = container.querySelector('.visit-marker-btn');
     expect(btn).toBeInTheDocument();
-    expect(btn).toHaveAttribute('aria-label', 'Vieux chêne');
+    expect(btn).toHaveAttribute('aria-label', 'Vieux chêne — À découvrir');
     expect(btn.style.left).toBe('40%');
     expect(btn.style.top).toBe('60%');
     expect(container.querySelector('.visit-marker-emoji')).toHaveTextContent('🌳');
-    expect(container.querySelector('.visit-marker-indicator')).toHaveClass('is-unseen');
+    expect(btn).toHaveClass('is-unseen');
+    expect(container.querySelector('.visit-marker-indicator')).toBeNull();
+    expect(container.querySelector('.visit-marker-status')).toHaveTextContent('À découvrir');
   });
 
-  test('repère vu → indicateur is-seen', () => {
+  test('repère vu → classe is-seen et libellé Vu', () => {
     const { container } = render(
       <VisitMapMarkerButton marker={makeMarker()} isSeen onClick={vi.fn()} />,
     );
-    expect(container.querySelector('.visit-marker-indicator')).toHaveClass('is-seen');
+    expect(container.querySelector('.visit-marker-btn')).toHaveClass('is-seen');
+    expect(container.querySelector('.visit-marker-status')).toHaveTextContent('Vu');
+    expect(screen.getByRole('button', { name: /Vu$/ })).toBeInTheDocument();
   });
 
   test('sans emoji → pastille de repli et libellé par défaut', () => {
@@ -45,14 +49,14 @@ describe('VisitMapMarkerButton', () => {
     expect(container.querySelector('.visit-marker-emoji--empty')).toBeInTheDocument();
     expect(container.querySelector('.visit-marker-btn')).toHaveAttribute(
       'aria-label',
-      'Repère visite',
+      'Repère visite — À découvrir',
     );
   });
 
   test('clic transmet l’évènement au parent', () => {
     const onClick = vi.fn();
     render(<VisitMapMarkerButton marker={makeMarker()} isSeen={false} onClick={onClick} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Vieux chêne' }));
+    fireEvent.click(screen.getByRole('button', { name: /Vieux chêne/ }));
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 });

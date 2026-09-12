@@ -69,7 +69,9 @@ router.post(
       return res.status(action.errorStatus).json(body);
     }
     if (action.auth?.userType === 'student' && isVisitorRole(action.auth)) {
-      return res.status(403).json({ error: 'Le profil visiteur ne permet pas cette action.' });
+      return res
+        .status(403)
+        .json({ error: 'Le profil visiteur ou personnel ne permet pas cette action.' });
     }
 
     let zIds = normalizeIdArray(zone_ids);

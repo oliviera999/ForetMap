@@ -6,6 +6,7 @@ const { requirePermission, JWT_SECRET, authenticate } = require('../middleware/r
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { visitContentRowIsPublicActive } = require('../lib/visitContentPublicActive');
+const { filterLocationsForViewer } = require('../lib/locationAudience');
 const {
   loadZoneSpeciesMap,
   loadMarkerSpeciesMap,
@@ -185,13 +186,24 @@ function withVisitLocationSpecies(row, speciesRows, legacySingleName) {
   return next;
 }
 
+/** Filtre audience par rôle après cache (le cache conserve les champs bruts). */
+function projectVisitContentForViewer(payload, auth) {
+  if (!payload || typeof payload !== 'object') return payload;
+  return {
+    ...payload,
+    zones: filterLocationsForViewer(payload.zones || [], auth, { publicSurface: true }),
+    markers: filterLocationsForViewer(payload.markers || [], auth, { publicSurface: true }),
+  };
+}
+
 router.get(
   '/content',
+  authenticate,
   asyncHandler(async (req, res) => {
     const mapId = await resolveVisitMapId(req.query.map_id);
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     const cached = visitContentCache.get(mapId);
-    if (cached) return res.json(cached);
+    if (cached) return res.json(projectVisitContentForViewer(cached, req.auth));
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
 
     // Requêtes indépendantes : lancées ensemble plutôt qu'en file (huit allers-retours
@@ -201,7 +213,12 @@ router.get(
       `SELECT
        z.id, z.map_id, z.name, z.points,
        zm.description AS description,
+       zm.color AS color,
+       zm.emoji AS emoji,
        zm.current_plant AS current_plant,
+       zm.visible_role_slugs AS visible_role_slugs,
+       zm.restricted_note AS restricted_note,
+       zm.restricted_note_role_slugs AS restricted_note_role_slugs,
        z.subtitle AS visit_subtitle,
        z.short_description AS visit_short_description,
        z.details_title AS visit_details_title,
@@ -221,6 +238,9 @@ router.get(
        m.id, m.map_id, m.x_pct, m.y_pct, m.label, m.emoji,
        mm.note AS note,
        mm.plant_name AS plant_name,
+       mm.visible_role_slugs AS visible_role_slugs,
+       mm.restricted_note AS restricted_note,
+       mm.restricted_note_role_slugs AS restricted_note_role_slugs,
        m.subtitle AS visit_subtitle,
        m.short_description AS visit_short_description,
        m.details_title AS visit_details_title,
@@ -402,7 +422,7 @@ router.get(
       tutorials,
     };
     visitContentCache.set(mapId, payload);
-    res.json(payload);
+    res.json(projectVisitContentForViewer(payload, req.auth));
   }),
 );
 
@@ -585,3 +605,4 @@ router.put(
 );
 
 module.exports = router;
+module.exports.visitContentCache = visitContentCache;

@@ -5,6 +5,7 @@ describe('DEFAULT_PUBLIC_SETTINGS', () => {
   test('expose les sections attendues par le shell App', () => {
     expect(DEFAULT_PUBLIC_SETTINGS.auth.allow_register).toBe(true);
     expect(DEFAULT_PUBLIC_SETTINGS.map.default_map_student).toBe('foret');
+    expect(DEFAULT_PUBLIC_SETTINGS.map.show_tutorial_dots).toBe(false);
     expect(DEFAULT_PUBLIC_SETTINGS.modules.tutorials_enabled).toBe(true);
     expect(DEFAULT_PUBLIC_SETTINGS.help.show_context_hints).toBe(true);
     // Aucun id de mascotte en dur ici : vide = « défaut livré » / « aucune restriction »,

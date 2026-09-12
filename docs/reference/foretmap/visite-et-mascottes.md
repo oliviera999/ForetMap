@@ -48,11 +48,13 @@ familles.
 - **La progression « vu / non-vu »** : pour un élève connecté, elle est rattachée à son
   compte et durable ; pour un invité anonyme, elle est mémorisée environ **24 heures**
   puis s'efface. Les marquages faits hors connexion sont conservés et synchronisés au
-  retour du réseau. Les lieux pas encore vus portent une **petite pastille ambre**
-  (qui pulse doucement) sur le plan — zones comme repères — sans colorer toute la zone
-  en rouge ; les lieux déjà vus ont une pastille verte. Sur un appareil réglé pour
-  **limiter les animations**, les pastilles restent ambre ou vertes sans pulser :
-  la pastille suffit à les distinguer.
+  retour du réseau. Sur le plan, chaque zone garde **sa couleur** ; les lieux déjà
+  vus sont un peu plus atténués (remplissage plus transparent, contour plus fin),
+  les lieux pas encore vus restent bien marqués. Au **survol** ou au **focus clavier**,
+  le contour s'épaissit et le libellé « À découvrir » ou « Vu » apparaît un instant —
+  sans pastille permanente. Les repères suivent la même idée (légère atténuation une
+  fois vus, libellé au survol/focus). Le donut de progression du bandeau complète
+  la lecture d'ensemble.
 - **Sans souris** : zones et repères se parcourent à la **tabulation** et s'ouvrent avec
   **Entrée** ou **Espace**, comme sur la carte de l'application. Une fois la fiche
   ouverte, le clavier reste à l'intérieur ; **Échap** ou un clic à côté la referme et
@@ -64,8 +66,9 @@ familles.
   nom s'affiche au survol. Sur grand écran, tout tient désormais sur une seule ligne ; sur
   téléphone, la barre occupe environ deux fois moins de place qu'avant, au profit de la carte.
 - **Le bouton « Présentation du lieu » ne clignote plus** au premier passage. Il reste mis
-  en avant (c'est le seul bouton plein de la barre), mais l'écran ne comporte plus qu'une
-  seule sollicitation animée : le pulse doux des pastilles ambre des lieux pas encore vus.
+  en avant (c'est le seul bouton plein de la barre). Le plan n'a plus de signal animé
+  permanent : la progression se lit par l'atténuation des lieux déjà vus, le libellé au
+  survol/focus, et le donut du bandeau.
 - **Accessibilité** : l'application est désormais vérifiée automatiquement à chaque
   livraison sur douze écrans (connexion, visite, carte, tâches, biodiversité, glossaire,
   réseau, quiz et deux écrans G&L). Les défauts trouvés ont été corrigés : chaque page a

@@ -103,7 +103,7 @@ router.post(
     if (!IMPORT_ROLE_SLUGS.has(roleSlug)) {
       return res.status(400).json({
         error:
-          'role_slug invalide (visiteur, eleve_novice, eleve_avance, eleve_chevronne, prof_classe, prof, admin)',
+          'role_slug invalide (visiteur, personnel, eleve_novice, eleve_avance, eleve_chevronne, prof_classe, prof, admin)',
       });
     }
     if (!canActorImportRoleSlug(req.auth, roleSlug)) {
@@ -337,7 +337,7 @@ router.post(
       if (!canConfigureStudentTierForumContext(slug, rank)) {
         return res.status(400).json({
           error:
-            'max_concurrent_tasks : réservé aux profils n3beur (slug eleve_* ou rang strictement inférieur à celui du n3boss, hors admin, prof, visiteur)',
+            'max_concurrent_tasks : réservé aux profils n3beur (slug eleve_* ou rang strictement inférieur à celui du n3boss, hors admin, prof, visiteur, personnel)',
         });
       }
       const rawMct = Object.prototype.hasOwnProperty.call(req.body || {}, 'max_concurrent_tasks')

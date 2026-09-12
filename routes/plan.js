@@ -26,6 +26,7 @@ const { createWriteVersionCache } = require('../lib/shared/writeVersionCache');
 const { getSettingValue, SETTINGS_REGISTRY } = require('../lib/settings');
 const { loadCategoriesMap, attachCategoriesToEntity } = require('../lib/locationCategories');
 const { isVisibleOnSurface, searchAliasesToList } = require('../lib/locationSurfaces');
+const { canViewLocation, projectLocationAudienceForViewer } = require('../lib/locationAudience');
 const { pickNewestMapPhotoByTarget, serializeMapLeadPhoto } = require('../lib/visitContentHelpers');
 const { attachStepsToRoutes, serializeRouteRow } = require('../lib/mapRoutes');
 
@@ -161,6 +162,7 @@ function serializePlanMap(row) {
 
 const ZONES_SQL = `SELECT z.id, z.map_id, z.name, z.emoji, z.points, z.color, z.description,
   z.hidden_surfaces, z.search_aliases,
+  z.visible_role_slugs, z.restricted_note, z.restricted_note_role_slugs,
   vz.subtitle AS visit_subtitle,
   vz.short_description AS visit_short_description,
   vz.details_title AS visit_details_title,
@@ -172,6 +174,7 @@ ORDER BY z.name ASC`;
 
 const MARKERS_SQL = `SELECT m.id, m.map_id, m.x_pct, m.y_pct, m.label, m.emoji, m.note,
   m.hidden_surfaces, m.search_aliases,
+  m.visible_role_slugs, m.restricted_note, m.restricted_note_role_slugs,
   vm.subtitle AS visit_subtitle,
   vm.short_description AS visit_short_description,
   vm.details_title AS visit_details_title,
@@ -261,26 +264,40 @@ async function buildPlanContent(map, settings) {
   const zones = zoneRows
     .map((row) => attachCategoriesToEntity(row, zoneCategories.get(String(row.id)) || []))
     .filter((row) => isVisibleOnSurface(row, PLAN_SURFACE))
-    .map((row) => ({
-      ...publicPlaceFields(row, hiddenCategoryIds),
-      name: textOrEmpty(row.name),
-      points: textOrEmpty(row.points),
-      color: textOrEmpty(row.color),
-      description: textOrEmpty(row.description),
-      map_lead_photo: serializeMapLeadPhoto('zone', row.id, zoneLead.get(String(row.id))),
-    }));
+    .filter((row) => canViewLocation(row, null, { publicSurface: true }))
+    .map((row) => {
+      const projected = projectLocationAudienceForViewer(row, null, { publicSurface: true });
+      return {
+        ...publicPlaceFields(projected, hiddenCategoryIds),
+        name: textOrEmpty(projected.name),
+        points: textOrEmpty(projected.points),
+        color: textOrEmpty(projected.color),
+        description: textOrEmpty(projected.description),
+        ...(projected.restricted_note
+          ? { restricted_note: textOrEmpty(projected.restricted_note) }
+          : {}),
+        map_lead_photo: serializeMapLeadPhoto('zone', row.id, zoneLead.get(String(row.id))),
+      };
+    });
 
   const markers = markerRows
     .map((row) => attachCategoriesToEntity(row, markerCategories.get(String(row.id)) || []))
     .filter((row) => isVisibleOnSurface(row, PLAN_SURFACE))
-    .map((row) => ({
-      ...publicPlaceFields(row, hiddenCategoryIds),
-      label: textOrEmpty(row.label),
-      x_pct: Number(row.x_pct),
-      y_pct: Number(row.y_pct),
-      note: textOrEmpty(row.note),
-      map_lead_photo: serializeMapLeadPhoto('marker', row.id, markerLead.get(String(row.id))),
-    }));
+    .filter((row) => canViewLocation(row, null, { publicSurface: true }))
+    .map((row) => {
+      const projected = projectLocationAudienceForViewer(row, null, { publicSurface: true });
+      return {
+        ...publicPlaceFields(projected, hiddenCategoryIds),
+        label: textOrEmpty(projected.label),
+        x_pct: Number(projected.x_pct),
+        y_pct: Number(projected.y_pct),
+        note: textOrEmpty(projected.note),
+        ...(projected.restricted_note
+          ? { restricted_note: textOrEmpty(projected.restricted_note) }
+          : {}),
+        map_lead_photo: serializeMapLeadPhoto('marker', row.id, markerLead.get(String(row.id))),
+      };
+    });
 
   const categories = categoryRows
     .filter((row) => !hiddenCategoryIds.has(String(row.id)))

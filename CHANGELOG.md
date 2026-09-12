@@ -20,6 +20,46 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Un élève déjà reconnu n’est plus retiré de sa classe ni désactivé si Moodle
   signale un e-mail en double, hors domaine ou manquant : il reste dans le
   périmètre, le problème est seulement signalé.
+### Ajouté — Carnet ForetMap à parité « Mon journal » GL
+
+- Articles markdown (multi-photos, auto-save, épinglage, encarts), imports après appris
+  (espèce / glossaire / tuto), recherche/filtre/tri.
+- Accès écriture : élève, visiteur connecté, prof de classe (carnet personnel).
+- API `/api/user-journal`, migration `237_user_journal.sql`, lecture prof enrichie + export `.md`.
+
+### Modifié — Visite : couleurs de zone + statut discret (A+E)
+
+- Les zones de visite affichent **leur couleur** (comme sur la carte) ; « vu » =
+  atténuation + contour plus fin, « non vu » = contour un peu plus marqué.
+- Au survol / focus : contour renforcé et libellé « À découvrir » / « Vu ».
+- Pastilles ambre/vertes retirées (zones et repères) — plan moins chargé.
+
+### Ajouté — audience des lieux par rôles (V1)
+
+- Zones et repères : réglage **« Qui peut voir ce lieu »** (rôles ForetMap) — hors audience,
+  le lieu est **absent** (carte, visite, plan), pas grisé.
+- Champ **complément réservé** lisible seulement par certains rôles (gestionnaires toujours).
+- Visite anonyme / Plan : un lieu restreint n'apparaît que si **Visiteur** est dans
+  l'audience. Suite documentée : groupes, multi-blocs, héritage par catégorie.
+
+### Ajouté — profil système « Personnel »
+
+- Nouveau profil **Personnel** (slug `personnel`), calqué sur **Visiteur** : Visite et
+  Biodiversité seulement, aucune permission d’action, même chrome de navigation.
+- Création unitaire, import CSV/tableur, rôle par défaut de groupe, slugs réservés.
+- Migration `235_personnel_role.sql`.
+
+### Ajouté — ordre des catégories de lieux dans les paramètres
+
+- Dans Réglages → Catégories de lieux : boutons ↑ ↓ pour réordonner les catégories
+  (filtres, pastilles, priorité au dézoom).
+- API `PUT /api/map-categories/reorder` (`{ category_ids }`).
+
+### Ajouté — pastilles tutoriel sur la carte (réglage)
+
+- Nouveau réglage public `ui.map.show_tutorial_dots` (défaut **off**) : affiche ou
+  masque le point violet signalant qu’une zone ou un repère est lié à un tutoriel.
+- Case à cocher dans Réglages → Cartes & plans.
 
 ### Modifié — création unitaire : tous les profils
 

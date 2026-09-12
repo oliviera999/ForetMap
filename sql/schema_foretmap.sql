@@ -50,6 +50,9 @@ CREATE TABLE IF NOT EXISTS zones (
   description TEXT DEFAULT NULL,
   hidden_surfaces SET('map','visit','plan') NOT NULL DEFAULT '',
   search_aliases TEXT DEFAULT NULL,
+  visible_role_slugs TEXT DEFAULT NULL,
+  restricted_note TEXT DEFAULT NULL,
+  restricted_note_role_slugs TEXT DEFAULT NULL,
   INDEX idx_zones_map_id (map_id),
   CONSTRAINT fk_zones_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -663,6 +666,57 @@ CREATE TABLE IF NOT EXISTS observation_logs (
   CONSTRAINT fk_observation_logs_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Carnet utilisateur (parité Mon journal GL) — voir migrations/237_user_journal.sql
+CREATE TABLE IF NOT EXISTS user_journal_articles (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id VARCHAR(64) NOT NULL,
+  title VARCHAR(255) DEFAULT NULL,
+  body_markdown MEDIUMTEXT NOT NULL,
+  zone_id VARCHAR(64) DEFAULT NULL,
+  pinned TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_uja_user_created (user_id, created_at),
+  INDEX idx_uja_user_pinned (user_id, pinned),
+  CONSTRAINT fk_uja_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_uja_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_journal_article_assets (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  article_id INT UNSIGNED NOT NULL,
+  user_id VARCHAR(64) NOT NULL,
+  asset_path VARCHAR(512) NOT NULL,
+  mime_type VARCHAR(64) DEFAULT NULL,
+  byte_size INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_ujaa_article (article_id),
+  INDEX idx_ujaa_user (user_id),
+  CONSTRAINT fk_ujaa_article FOREIGN KEY (article_id) REFERENCES user_journal_articles(id) ON DELETE CASCADE,
+  CONSTRAINT fk_ujaa_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_journal_imports (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id VARCHAR(64) NOT NULL,
+  resource_type VARCHAR(32) NOT NULL,
+  resource_ref VARCHAR(64) NOT NULL,
+  title VARCHAR(255) DEFAULT NULL,
+  pinned TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_uji_resource (user_id, resource_type, resource_ref),
+  INDEX idx_uji_user_created (user_id, created_at),
+  INDEX idx_uji_user_pinned (user_id, pinned),
+  CONSTRAINT fk_uji_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_journal_observation_map (
+  observation_id INT UNSIGNED NOT NULL PRIMARY KEY,
+  article_id INT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_ujom_article FOREIGN KEY (article_id) REFERENCES user_journal_articles(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- groups (groupes pédagogiques + sous-groupes)
 CREATE TABLE IF NOT EXISTS `groups` (
   id VARCHAR(64) NOT NULL PRIMARY KEY,
@@ -762,6 +816,9 @@ CREATE TABLE IF NOT EXISTS map_markers (
   created_at VARCHAR(32) DEFAULT NULL,
   hidden_surfaces SET('map','visit','plan') NOT NULL DEFAULT '',
   search_aliases TEXT DEFAULT NULL,
+  visible_role_slugs TEXT DEFAULT NULL,
+  restricted_note TEXT DEFAULT NULL,
+  restricted_note_role_slugs TEXT DEFAULT NULL,
   INDEX idx_map_markers_map_id (map_id),
   CONSTRAINT fk_map_markers_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT,
   INDEX idx_map_markers_created (created_at)

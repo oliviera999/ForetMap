@@ -96,7 +96,7 @@ export function ZoneTasksStudentPanel({
       <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--text-sm)', marginBottom: 10 }}>
         {canSelfAssignTasks
           ? 'Sélectionne une ou plusieurs tâches puis inscris-toi directement.'
-          : 'Profil visiteur : consultation en lecture seule.'}
+          : 'Profil visiteur ou personnel : consultation en lecture seule.'}
       </p>
       {canSelfAssignTasks && Number(student?.taskEnrollment?.maxActiveAssignments) > 0 && (
         <p

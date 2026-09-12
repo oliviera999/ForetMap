@@ -146,7 +146,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     () => roles.find((r) => Number(r.id) === Number(selectedRoleId)) || null,
     [roles, selectedRoleId],
   );
-  /** Paliers n3beur : slug eleve_* ou profil perso. avec rang strictement inférieur à 400 (n3boss) ; exclus admin, n3boss, visiteur. */
+  /** Paliers n3beur : slug eleve_* ou profil perso. avec rang strictement inférieur à 400 (n3boss) ; exclus admin, n3boss, visiteur, personnel. */
   const isN3beurTierConfigurableProfile = useMemo(
     () => isN3beurTierConfigurableRole(selectedRole),
     [selectedRole],
@@ -280,7 +280,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   };
 
   const saveStudentMinDoneThreshold = async (roleMinDoneTasks) => {
-    /* Même règle que la garde historique admin/prof/visiteur + rang : seuls les paliers n3beur ont un seuil. */
+    /* Même règle que la garde historique admin/prof/visiteur/personnel + rang : seuls les paliers n3beur ont un seuil. */
     if (!selectedRole || !isN3beurTierConfigurableProfile) return;
     const parsed = parseMinDoneTasksThreshold(roleMinDoneTasks);
     if (parsed.error) {

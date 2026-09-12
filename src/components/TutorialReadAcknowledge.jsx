@@ -4,6 +4,7 @@ import { LearningAcknowledgeButton } from '../shared/components/LearningAcknowle
 import { createFmGatingHandlers } from '../shared/utils/learningGatingChallengeClient.js';
 import { LearningQuizPopover } from '../shared/components/LearningQuizPopover.jsx';
 import { IconCheck } from '../shared/icons.jsx';
+import { FmLearnAndImportSlot } from './journal/FmLearnAndImportSlot.jsx';
 
 /**
  * Bouton + modal pour marquer un tutoriel comme lu après confirmation explicite.
@@ -41,42 +42,49 @@ export function TutorialReadAcknowledgeButton({
   if (!hasToken) return null;
 
   return (
-    <LearningAcknowledgeButton
-      itemTitle={tutorialTitle}
-      labelAction={
-        <>
-          <IconCheck size={14} /> Marquer comme lu
-        </>
-      }
-      labelDone={
-        <>
-          <IconCheck size={14} /> Lu
-        </>
-      }
-      titleDone="Tu as confirmé avoir lu et compris ce tutoriel"
-      confirmIntro={
-        <>
-          En validant, tu t&apos;engages à avoir lu et compris le tutoriel{' '}
-          <strong>« {tutorialTitle || 'ce tutoriel'} »</strong>.
-        </>
-      }
-      confirmCheckboxLabel="Je confirme avoir lu et compris ce contenu."
-      isDone={isRead}
-      gatingHandlers={gatingHandlers}
-      gatingResource={gatingResource}
-      gatingSummary={gatingSummary}
-      enableGating={!isRead}
-      Shell={LearningQuizPopover}
-      overlayClassName="fm-quiz-popover fm-quiz-popover--ack"
-      dialogClassName="fm-quiz-popover__panel animate-pop"
-      onSubmit={async () => {
-        try {
-          await submit();
-        } catch (e) {
-          handleError(e);
+    <FmLearnAndImportSlot
+      resourceType="tutorial"
+      resourceRef={tutorialId}
+      title={tutorialTitle}
+      learned={!!isRead}
+    >
+      <LearningAcknowledgeButton
+        itemTitle={tutorialTitle}
+        labelAction={
+          <>
+            <IconCheck size={14} /> Marquer comme lu
+          </>
         }
-      }}
-    />
+        labelDone={
+          <>
+            <IconCheck size={14} /> Lu
+          </>
+        }
+        titleDone="Tu as confirmé avoir lu et compris ce tutoriel"
+        confirmIntro={
+          <>
+            En validant, tu t&apos;engages à avoir lu et compris le tutoriel{' '}
+            <strong>« {tutorialTitle || 'ce tutoriel'} »</strong>.
+          </>
+        }
+        confirmCheckboxLabel="Je confirme avoir lu et compris ce contenu."
+        isDone={isRead}
+        gatingHandlers={gatingHandlers}
+        gatingResource={gatingResource}
+        gatingSummary={gatingSummary}
+        enableGating={!isRead}
+        Shell={LearningQuizPopover}
+        overlayClassName="fm-quiz-popover fm-quiz-popover--ack"
+        dialogClassName="fm-quiz-popover__panel animate-pop"
+        onSubmit={async () => {
+          try {
+            await submit();
+          } catch (e) {
+            handleError(e);
+          }
+        }}
+      />
+    </FmLearnAndImportSlot>
   );
 }
 

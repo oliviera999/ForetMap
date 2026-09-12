@@ -26,6 +26,7 @@ export const DEFAULT_PUBLIC_SETTINGS = {
     overlay_zoom_growth_percent: 35,
     zone_label_min_side_factor: 2.5,
     plateau_marker_size_percent: 100,
+    show_tutorial_dots: false,
   },
   modules: {
     tutorials_enabled: true,
