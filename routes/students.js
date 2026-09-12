@@ -14,22 +14,32 @@ const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
 const { getAbsolutePath, ensureDir } = require('../lib/uploads');
 const { getPrimaryRoleForUser, setPrimaryRole } = require('../lib/rbac');
 const { deleteStudentById } = require('../lib/studentDeletion');
-const { getPasswordMinLength } = require('../lib/passwordReset');
+const { getPasswordMinLength, getPasswordMinLengthFor } = require('../lib/passwordReset');
+const { getSettingValue } = require('../lib/settings');
+const { bumpUserTokenEpoch } = require('../lib/auth/tokenEpoch');
 const logger = require('../lib/logger');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
+const { loadGroupsIndex, attachUserToGroupRefs } = require('../lib/groupImport');
 const {
   MAX_DESCRIPTION_LEN,
   MAX_IMPORT_ROWS,
   PSEUDO_RE,
+  PSEUDO_INVALID_MSG,
   EMAIL_RE,
   TEMPLATE_COLUMNS,
   asTrimmedString,
   hasOwn,
   buildImportStudentPayload,
   validateImportStudentPayload,
+  mergeDuplicateStudentImportItems,
   resolveImportRows,
   csvEscape,
   buildTemplateWorkbookRows,
+  canActorImportRoleSlug,
+  canActorMutateImportedAdmin,
+  isAdminRoleSlug,
+  hasImportScalarValue,
+  IMPORT_ROLE_SLUGS,
 } = require('../lib/studentRouteHelpers');
 
 const { z, validate } = require('../lib/validate');
@@ -87,19 +97,10 @@ router.get(
 
     const BOM = '\uFEFF';
     const line = TEMPLATE_COLUMNS.map(csvEscape).join(';');
-    const sampleRow = [
-      'eleve',
-      'Exemple',
-      'Eleve',
-      'azerty123',
-      'both',
-      'exemple_eleve',
-      'exemple.eleve@lyautey.ma',
-      'Remplacer ou supprimer cette ligne avant import.',
-    ]
-      .map(csvEscape)
-      .join(';');
-    const csv = `${BOM}${line}\r\n${sampleRow}\r\n`;
+    const sampleLines = buildTemplateWorkbookRows().map((row) =>
+      TEMPLATE_COLUMNS.map((col) => csvEscape(row[col])).join(';'),
+    );
+    const csv = `${BOM}${line}\r\n${sampleLines.join('\r\n')}\r\n`;
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-n3beurs.csv"');
     res.send(csv);
@@ -119,21 +120,43 @@ router.post(
       return res.status(400).json({ error: `Import limité à ${MAX_IMPORT_ROWS} lignes` });
     }
 
+    const existingStrategyRaw = await getSettingValue(
+      'students.import.existing_strategy',
+      'update',
+    );
+    const existingStrategy =
+      String(existingStrategyRaw || '').toLowerCase() === 'skip' ? 'skip' : 'update';
+    const allowWeakPasswords = !!(await getSettingValue(
+      'students.import.allow_weak_passwords',
+      false,
+    ));
+
     const report = {
       dryRun,
+      options: { existingStrategy, allowWeakPasswords },
       totals: {
         received: rawRows.length,
         valid: 0,
         created: 0,
+        updated: 0,
         skipped_existing: 0,
         skipped_invalid: 0,
+        merged_duplicates: 0,
       },
       preview: [],
       errors: [],
+      infos: [],
+      // Contrat explicite : pas de filtre domaines OAuth / Moodle sur les e-mails du fichier.
+      emailDomainRestrictionsApplied: false,
     };
 
     const existingUsers = await queryAll(
-      "SELECT id, user_type, first_name, last_name, pseudo, email FROM users WHERE user_type IN ('student', 'teacher')",
+      `SELECT u.id, u.user_type, u.first_name, u.last_name, u.pseudo, u.email, r.slug AS role_slug
+         FROM users u
+         LEFT JOIN user_roles ur
+           ON ur.user_type = u.user_type AND ur.user_id = u.id AND ur.is_primary = 1
+         LEFT JOIN roles r ON r.id = ur.role_id
+        WHERE u.user_type IN ('student', 'teacher')`,
     );
     const existingByName = new Map(
       existingUsers.map((u) => [
@@ -141,43 +164,44 @@ router.post(
         u,
       ]),
     );
-    const pseudoSet = new Set(
-      existingUsers.map((u) => asTrimmedString(u.pseudo).toLowerCase()).filter(Boolean),
-    );
-    const emailSet = new Set(
-      existingUsers.map((u) => asTrimmedString(u.email).toLowerCase()).filter(Boolean),
-    );
-    const seenName = new Set();
+    const pseudoOwner = new Map();
+    const emailOwner = new Map();
+    for (const u of existingUsers) {
+      const p = asTrimmedString(u.pseudo).toLowerCase();
+      const e = asTrimmedString(u.email).toLowerCase();
+      if (p) pseudoOwner.set(p, u.id);
+      if (e) emailOwner.set(e, u.id);
+    }
 
-    const validRows = [];
+    const minPasswordStudent = await getPasswordMinLengthFor('student');
+    const minPasswordTeacher = await getPasswordMinLengthFor('teacher');
+    const passwordOpts = {
+      minPasswordStudent,
+      minPasswordTeacher,
+      allowWeakPasswords,
+      // Mot de passe requis seulement à la création ; vide à la mise à jour = inchangé.
+      passwordRequired: false,
+    };
+
+    const candidateRows = [];
     rawRows.forEach((row, idx) => {
       const rowNumber = idx + 2;
       const payload = buildImportStudentPayload(row);
-      const errors = validateImportStudentPayload(payload, rowNumber);
+      const errors = validateImportStudentPayload(payload, rowNumber, passwordOpts);
 
-      const keyByName = `${payload.userType}|${payload.firstName.toLowerCase()}|${payload.lastName.toLowerCase()}`;
-      if (!errors.length && seenName.has(keyByName)) {
+      if (
+        !errors.length &&
+        payload.roleSlug &&
+        !canActorImportRoleSlug(req.auth, payload.roleSlug)
+      ) {
         errors.push({
           row: rowNumber,
-          field: 'name',
-          error: 'Doublon dans le fichier (rôle + prénom + nom)',
+          field: 'role',
+          error:
+            payload.roleSlug === 'admin'
+              ? 'Seul un administrateur peut importer un compte admin'
+              : 'Seuls n3boss et administrateur peuvent importer un compte enseignant',
         });
-      }
-      if (!errors.length && existingByName.has(keyByName)) {
-        report.totals.skipped_existing += 1;
-        report.errors.push({
-          row: rowNumber,
-          field: 'name',
-          error: 'Utilisateur déjà existant (rôle + prénom + nom)',
-        });
-        return;
-      }
-
-      if (!errors.length && payload.pseudo && pseudoSet.has(payload.pseudo.toLowerCase())) {
-        errors.push({ row: rowNumber, field: 'pseudo', error: 'Pseudo déjà utilisé' });
-      }
-      if (!errors.length && payload.email && emailSet.has(payload.email.toLowerCase())) {
-        errors.push({ row: rowNumber, field: 'email', error: 'Email déjà utilisé' });
       }
 
       if (errors.length > 0) {
@@ -186,12 +210,98 @@ router.post(
         return;
       }
 
-      seenName.add(keyByName);
-      if (payload.pseudo) pseudoSet.add(payload.pseudo.toLowerCase());
-      if (payload.email) emailSet.add(payload.email.toLowerCase());
-
-      validRows.push({ payload, rowNumber });
+      candidateRows.push({ payload, rowNumber });
     });
+
+    const { items: mergedRows, infos: mergeInfos } =
+      mergeDuplicateStudentImportItems(candidateRows);
+    report.infos.push(...mergeInfos);
+    report.totals.merged_duplicates = mergeInfos.reduce(
+      (acc, info) => acc + Math.max(0, (info.rows?.length || 0) - 1),
+      0,
+    );
+
+    const validRows = [];
+    for (const rowItem of mergedRows) {
+      const { payload, rowNumber } = rowItem;
+      const keyByName = `${payload.userType}|${payload.firstName.toLowerCase()}|${payload.lastName.toLowerCase()}`;
+      const existing = existingByName.get(keyByName) || null;
+
+      if (existing && existingStrategy === 'skip') {
+        report.totals.skipped_existing += 1;
+        report.errors.push({
+          row: rowNumber,
+          field: 'name',
+          error: 'Utilisateur déjà existant (type de compte + prénom + nom)',
+        });
+        continue;
+      }
+
+      if (!existing && !payload.password) {
+        report.totals.skipped_invalid += 1;
+        report.errors.push({
+          row: rowNumber,
+          field: 'password',
+          error: 'Mot de passe requis',
+        });
+        continue;
+      }
+
+      if (existing && !canActorMutateImportedAdmin(req.auth, existing.role_slug)) {
+        report.totals.skipped_invalid += 1;
+        report.errors.push({
+          row: rowNumber,
+          field: 'role',
+          error: 'Seul un administrateur peut modifier un compte administrateur',
+        });
+        continue;
+      }
+      if (existing && isAdminRoleSlug(existing.role_slug) && !isAdminRoleSlug(payload.roleSlug)) {
+        const adminCountRow = await queryOne(
+          `SELECT COUNT(*) AS c
+             FROM user_roles ur
+             INNER JOIN roles r ON r.id = ur.role_id
+            WHERE ur.is_primary = 1 AND ur.user_type = 'teacher' AND r.slug = 'admin'`,
+        );
+        if (Number(adminCountRow?.c || 0) <= 1) {
+          report.totals.skipped_invalid += 1;
+          report.errors.push({
+            row: rowNumber,
+            field: 'role',
+            error: 'Action refusée: dernier administrateur actif',
+          });
+          continue;
+        }
+      }
+
+      const uniquenessErrors = [];
+      if (payload.pseudo) {
+        const ownerId = pseudoOwner.get(payload.pseudo.toLowerCase());
+        if (ownerId && (!existing || ownerId !== existing.id)) {
+          uniquenessErrors.push({ row: rowNumber, field: 'pseudo', error: 'Pseudo déjà utilisé' });
+        }
+      }
+      if (payload.email) {
+        const ownerId = emailOwner.get(payload.email.toLowerCase());
+        if (ownerId && (!existing || ownerId !== existing.id)) {
+          uniquenessErrors.push({ row: rowNumber, field: 'email', error: 'Email déjà utilisé' });
+        }
+      }
+      if (uniquenessErrors.length > 0) {
+        report.totals.skipped_invalid += 1;
+        report.errors.push(...uniquenessErrors);
+        continue;
+      }
+
+      if (payload.pseudo) {
+        pseudoOwner.set(payload.pseudo.toLowerCase(), existing?.id || '__pending__');
+      }
+      if (payload.email) {
+        emailOwner.set(payload.email.toLowerCase(), existing?.id || '__pending__');
+      }
+
+      validRows.push({ ...rowItem, existing, action: existing ? 'update' : 'create' });
+    }
 
     const affiliationResolvedRows = [];
     for (const rowItem of validRows) {
@@ -215,37 +325,93 @@ router.post(
       if (report.preview.length < 20) {
         report.preview.push({
           row: rowItem.rowNumber,
+          action: rowItem.action,
+          role_slug: rowItem.payload.roleSlug,
           user_type: rowItem.payload.userType,
           first_name: rowItem.payload.firstName,
           last_name: rowItem.payload.lastName,
           affiliation: resolved.affiliation,
+          groups:
+            (rowItem.payload.groupRefs || []).map((r) => r.path.join(' > ')).join(' | ') || null,
         });
       }
     }
 
     report.totals.valid = affiliationResolvedRows.length;
+    report.totals.groups_created = 0;
+    report.totals.groups_attached = 0;
+
     if (dryRun || affiliationResolvedRows.length === 0) {
       return res.json({ report });
     }
 
-    // Rôle primaire des comptes créés : résolu en UNE requête (au lieu d'un getRoleBySlug +
-    // getPrimaryRoleForUser + INSERT par ligne via `ensurePrimaryRole`), puis assigné en UNE
-    // requête multi-valeurs après la boucle. Les ids sont des UUID neufs → aucun rôle préexistant,
-    // donc `INSERT IGNORE … is_primary = 1` équivaut à `ensurePrimaryRole` pour des comptes frais.
     const roleIdBySlug = new Map();
+    const slugList = [...IMPORT_ROLE_SLUGS];
+    const placeholdersSlugs = slugList.map(() => '?').join(', ');
     const roleRows = await queryAll(
-      "SELECT slug, id FROM roles WHERE slug IN ('prof', 'eleve_novice')",
+      `SELECT slug, id FROM roles WHERE slug IN (${placeholdersSlugs})`,
+      slugList,
     );
     for (const r of roleRows) roleIdBySlug.set(r.slug, r.id);
     const createdRoleAssignments = [];
+    const usersForGroups = [];
 
     for (const rowItem of affiliationResolvedRows) {
-      const { payload, rowNumber } = rowItem;
-      const hash = await bcrypt.hash(payload.password, 10);
-      const id = crypto.randomUUID();
-      const now = nowIsoUtc();
-      const roleSlug = payload.userType === 'teacher' ? 'prof' : 'eleve_novice';
+      const { payload, rowNumber, action, existing } = rowItem;
+      const roleSlug = payload.roleSlug;
+      const roleId = roleIdBySlug.get(roleSlug);
+      const displayName = `${payload.firstName} ${payload.lastName}`.trim();
+
       try {
+        if (action === 'update' && existing?.id) {
+          const sets = ['display_name = ?', 'updated_at = NOW()'];
+          const params = [displayName];
+          if (hasImportScalarValue(payload.email)) {
+            sets.push('email = ?');
+            params.push(payload.email);
+          }
+          if (hasImportScalarValue(payload.pseudo)) {
+            sets.push('pseudo = ?');
+            params.push(payload.pseudo);
+          }
+          if (hasImportScalarValue(payload.description)) {
+            sets.push('description = ?');
+            params.push(payload.description);
+          }
+          if (payload.affiliation != null) {
+            sets.push('affiliation = ?');
+            params.push(payload.affiliation);
+          }
+          let passwordChanged = false;
+          if (payload.password) {
+            const hash = await bcrypt.hash(payload.password, 10);
+            sets.push('password_hash = ?');
+            params.push(hash);
+            passwordChanged = true;
+          }
+          params.push(existing.id);
+          await execute(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`, params);
+          if (passwordChanged) {
+            await bumpUserTokenEpoch(existing.id);
+          }
+          if (roleId != null) {
+            await setPrimaryRole(payload.userType, existing.id, roleId);
+          }
+          report.totals.updated += 1;
+          if (Array.isArray(payload.groupRefs) && payload.groupRefs.length > 0) {
+            usersForGroups.push({
+              id: existing.id,
+              userType: payload.userType,
+              groupRefs: payload.groupRefs,
+              rowNumber,
+            });
+          }
+          continue;
+        }
+
+        const hash = await bcrypt.hash(payload.password, 10);
+        const id = crypto.randomUUID();
+        const now = nowIsoUtc();
         await execute(
           `INSERT INTO users
             (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
@@ -257,7 +423,7 @@ router.post(
             payload.pseudo,
             payload.firstName,
             payload.lastName,
-            `${payload.firstName} ${payload.lastName}`.trim(),
+            displayName,
             payload.description,
             payload.affiliation,
             hash,
@@ -265,8 +431,15 @@ router.post(
           ],
         );
         report.totals.created += 1;
-        const roleId = roleIdBySlug.get(roleSlug);
         if (roleId != null) createdRoleAssignments.push([payload.userType, id, roleId]);
+        if (Array.isArray(payload.groupRefs) && payload.groupRefs.length > 0) {
+          usersForGroups.push({
+            id,
+            userType: payload.userType,
+            groupRefs: payload.groupRefs,
+            rowNumber,
+          });
+        }
       } catch (err) {
         if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
           report.totals.skipped_existing += 1;
@@ -281,8 +454,6 @@ router.post(
       }
     }
 
-    // Assigne le rôle primaire de tous les comptes créés en INSERT multi-valeurs par lots
-    // (au lieu d'un INSERT par compte). Le rôle inconnu (slug absent) est ignoré, comme `ensurePrimaryRole`.
     if (createdRoleAssignments.length > 0) {
       const ROLE_CHUNK = 500;
       for (let i = 0; i < createdRoleAssignments.length; i += ROLE_CHUNK) {
@@ -297,12 +468,44 @@ router.post(
       }
     }
 
-    if (report.totals.created > 0) {
-      logAudit('students_import', 'student', null, `Import de ${report.totals.created} n3beur(s)`, {
-        req,
-        payload: { report: report.totals },
+    if (usersForGroups.length > 0) {
+      const groupsIndex = await loadGroupsIndex();
+      for (const item of usersForGroups) {
+        const attach = await attachUserToGroupRefs(
+          req.auth,
+          item.id,
+          item.userType,
+          item.groupRefs,
+          groupsIndex,
+        );
+        report.totals.groups_created += attach.created.length;
+        report.totals.groups_attached += attach.attached.length;
+        for (const errMsg of attach.errors) {
+          report.errors.push({
+            row: item.rowNumber,
+            field: 'groups',
+            error: errMsg,
+          });
+        }
+      }
+    }
+
+    if (report.totals.created > 0 || report.totals.updated > 0) {
+      logAudit(
+        'students_import',
+        'user',
+        null,
+        `Import de ${report.totals.created} compte(s) créé(s), ${report.totals.updated} mis à jour`,
+        {
+          req,
+          payload: { report: report.totals, options: report.options },
+        },
+      );
+      emitStudentsChanged({
+        reason: 'students_import',
+        created: report.totals.created,
+        updated: report.totals.updated,
       });
-      emitStudentsChanged({ reason: 'students_import', created: report.totals.created });
     }
     res.json({ report });
   }),
@@ -362,9 +565,7 @@ router.post(
         .json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
     }
     if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
-      return res
-        .status(400)
-        .json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
+      return res.status(400).json({ error: PSEUDO_INVALID_MSG });
     }
     if (email != null && !EMAIL_RE.test(email)) {
       return res.status(400).json({ error: 'Email invalide' });
@@ -532,9 +733,7 @@ router.patch(
     const visitMascotCatalogId = mascotRes.value;
 
     if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
-      return res
-        .status(400)
-        .json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
+      return res.status(400).json({ error: PSEUDO_INVALID_MSG });
     }
     if (email != null && !EMAIL_RE.test(email)) {
       return res.status(400).json({ error: 'Email invalide' });

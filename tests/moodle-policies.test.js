@@ -9,6 +9,9 @@ const {
   compilePolicies,
   resolvePolicyForIdnumber,
   isCohortOfYear,
+  isCohortListedForSync,
+  LEGACY_N3_POLICY_PATTERN,
+  upgradeLegacyN3PolicyPattern,
   normalizeChapterCourses,
   validatePoliciesSetting,
   parseEmailDomains,
@@ -21,6 +24,9 @@ test('politiques par défaut : première correspondance dans l’ordre, {year} s
   const compiled = compilePolicies(DEFAULT_POLICIES, '26');
   assert.strictEqual(resolvePolicyForIdnumber('26#6', compiled).key, 'niveau');
   assert.strictEqual(resolvePolicyForIdnumber('26#n3', compiled).key, 'n3');
+  assert.strictEqual(resolvePolicyForIdnumber('n3', compiled).key, 'n3');
+  assert.strictEqual(resolvePolicyForIdnumber('club-n3-beurs', compiled).key, 'n3');
+  assert.strictEqual(resolvePolicyForIdnumber('25#n3', compiled).key, 'n3');
   assert.strictEqual(resolvePolicyForIdnumber('26#603', compiled).key, 'classe6');
   assert.strictEqual(resolvePolicyForIdnumber('26#601-602', compiled).key, 'classe6');
   assert.strictEqual(resolvePolicyForIdnumber('26#403', compiled).key, 'classe');
@@ -33,6 +39,26 @@ test('isCohortOfYear : préfixe strict `<year>#`', () => {
   assert.strictEqual(isCohortOfYear('26#603', '26'), true);
   assert.strictEqual(isCohortOfYear('260#603', '26'), false);
   assert.strictEqual(isCohortOfYear('26#603', ''), false);
+});
+
+test('isCohortListedForSync : année ou politique hors préfixe (n3)', () => {
+  const compiled = compilePolicies(DEFAULT_POLICIES, '26');
+  assert.strictEqual(isCohortListedForSync('26#603', '26', compiled), true);
+  assert.strictEqual(isCohortListedForSync('n3', '26', compiled), true);
+  assert.strictEqual(isCohortListedForSync('club-n3', '26', compiled), true);
+  assert.strictEqual(isCohortListedForSync('25#603', '26', compiled), false);
+  assert.strictEqual(isCohortListedForSync('26#club-echecs', '26', compiled), true);
+});
+
+test('upgradeLegacyN3PolicyPattern : remplace uniquement l’ancien motif n3 par défaut', () => {
+  const upgraded = upgradeLegacyN3PolicyPattern([
+    { key: 'n3', pattern: LEGACY_N3_POLICY_PATTERN },
+    { key: 'n3_custom', pattern: LEGACY_N3_POLICY_PATTERN },
+    { key: 'n3', pattern: '^custom$' },
+  ]);
+  assert.strictEqual(upgraded[0].pattern, 'n3');
+  assert.strictEqual(upgraded[1].pattern, LEGACY_N3_POLICY_PATTERN);
+  assert.strictEqual(upgraded[2].pattern, '^custom$');
 });
 
 test('compilePattern : motif vide, trop long, regex invalide, préfixe échappé', () => {

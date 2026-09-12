@@ -11,6 +11,7 @@ export const DEFAULT_PUBLIC_SETTINGS = {
     allow_register: true,
     allow_google_student: true,
     allow_google_teacher: true,
+    allow_google_auto_register: false,
     allow_guest_visit: true,
     default_mode: 'login',
     welcome_message: '',
@@ -25,6 +26,7 @@ export const DEFAULT_PUBLIC_SETTINGS = {
     overlay_zoom_growth_percent: 35,
     zone_label_min_side_factor: 2.5,
     plateau_marker_size_percent: 100,
+    show_tutorial_dots: false,
   },
   modules: {
     tutorials_enabled: true,
@@ -47,6 +49,9 @@ export const DEFAULT_PUBLIC_SETTINGS = {
       allowed_ids: DEFAULT_VISIT_MASCOT_ALLOWED_IDS,
       default_id: '',
     },
+  },
+  realtime: {
+    allow_websocket: false,
   },
 };
 
@@ -104,6 +109,12 @@ export function mergePublicSettings(prev, settings) {
       ...(prev.content || {}),
       ...(settings.content || {}),
       help,
+    };
+  }
+  if (settings.realtime && typeof settings.realtime === 'object') {
+    next.realtime = {
+      ...(prev.realtime || {}),
+      ...settings.realtime,
     };
   }
   return next;

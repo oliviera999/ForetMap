@@ -37,6 +37,8 @@ import useZoneEditPoints from '../hooks/useZoneEditPoints.js';
 import useMapCrudActions from '../hooks/useMapCrudActions.js';
 import { MascotGpsStatusBanner } from './MascotGpsStatusBanner.jsx';
 import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
+import { useHeadingUpPreference } from '../shared/pct-map/useHeadingUpPreference.js';
+import { headingUpOrientationDeg } from '../shared/pct-map/pctMapOrientation.js';
 import { PctPositionLayer } from '../shared/pct-map/PctPositionLayer.jsx';
 import { accuracyHaloDiameterPx } from '../shared/pct-map/positionGeometry.js';
 import { useVisitMascotRegistry } from '../hooks/useVisitMascotCatalogExtras.js';
@@ -79,6 +81,9 @@ import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { resolveMapCanvasHint } from '../utils/helpResolve.js';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
+
+/** Carte vide stable : pastilles tutoriel désactivées sans recréer un `Map` à chaque rendu. */
+const EMPTY_TUTORIAL_COUNT_BY_ID = new Map();
 
 /**
  * Bulle repère mémoïsée : évite le re-render de chaque bulle à chaque rendu de la carte.
@@ -261,6 +266,8 @@ function MapViewImpl({
     updatePan,
     endPan,
     panByScreenDelta,
+    setMapOrientation,
+    orientStyle,
   } = useMapGestures({
     mapImageSrc,
     activeMapId,
@@ -370,6 +377,34 @@ function MapViewImpl({
     georef: activeMap?.georef ?? null,
     gpsEnabled: !!activeMap?.gps_enabled && mode === 'view',
   });
+  const headingUpAllowed =
+    !!publicSettings?.map?.heading_up_enabled &&
+    !!activeMap?.heading_up_enabled &&
+    !!mapPosition.available &&
+    mode === 'view';
+  const headingUpPref = useHeadingUpPreference({
+    storageKey: 'foretmap:heading-up',
+    allowed: headingUpAllowed,
+  });
+  const headingUpEffective = headingUpPref.effective && mapPosition.active;
+  useEffect(() => {
+    if (!headingUpEffective) {
+      setMapOrientation({ deg: 0, originPct: null });
+      return;
+    }
+    const heading = mapPosition.smoothedScreenHeadingDeg ?? mapPosition.screenHeadingDeg ?? null;
+    setMapOrientation({
+      deg: headingUpOrientationDeg(heading),
+      originPct: mapPosition.displayPct || null,
+    });
+  }, [
+    headingUpEffective,
+    mapPosition.displayPct?.xp,
+    mapPosition.displayPct?.yp,
+    mapPosition.smoothedScreenHeadingDeg,
+    mapPosition.screenHeadingDeg,
+    setMapOrientation,
+  ]);
   // La mascotte suit la position quand elle est à l'écran (comportement d'origine).
   useEffect(() => {
     if (!showMapMascot || !mapPosition.positionPct) return;
@@ -387,8 +422,13 @@ function MapViewImpl({
       accuracy: mapPosition.accuracyM,
       error: mapPosition.error,
       toggle: mapPosition.toggle,
+      headingAvailable: mapPosition.headingAvailable,
+      headingUpAllowed,
+      headingUpEffective,
+      headingUpUserEnabled: headingUpPref.userEnabled,
+      toggleHeadingUp: () => headingUpPref.setEnabled(!headingUpPref.userEnabled),
     }),
-    [mapPosition],
+    [mapPosition, headingUpAllowed, headingUpEffective, headingUpPref],
   );
   const { zoneTaskVisualById, markerTaskVisualById } = useMemo(
     () => computeTaskVisualByLocation(tasks),
@@ -534,6 +574,8 @@ function MapViewImpl({
   } = useMapOverlayTextSizePreference();
   const mapSettings =
     publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
+  /** Pastilles violettes tutoriel : OFF par défaut (`ui.map.show_tutorial_dots`). */
+  const showTutorialDots = !!mapSettings?.show_tutorial_dots;
   const mapCanvasHintTexts = useMemo(
     () => ({
       drawZoneMin: resolveMapCanvasHint('drawZoneMin', publicSettings),
@@ -1066,153 +1108,166 @@ function MapViewImpl({
               onClick={onMapClick}
             >
               <MapViewWorldLayer worldRef={worldRef} width={iw} height={ih}>
-                <MapViewBackgroundImage
-                  imgRef={imgRef}
-                  src={mapImageSrc}
-                  alt={`Plan ${activeMap?.label || 'du jardin'}`}
-                  width={iw}
-                  height={ih}
-                  onError={() =>
-                    setMapImageIdx((idx) => (idx < mapImageCandidates.length - 1 ? idx + 1 : idx))
-                  }
-                />
-
-                <svg
-                  className="map-zone-svg-layer"
+                <div
+                  className="map-view-orient"
                   style={{
                     position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    width: iw,
-                    height: ih,
-                    overflow: 'visible',
-                    pointerEvents: 'none',
-                    textRendering: 'optimizeLegibility',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    ...(orientStyle || {}),
                   }}
                 >
-                  <g style={{ pointerEvents: 'all' }}>
-                    <ZonePolygonsLayer
-                      parsedZones={parsedZones}
-                      iw={iw}
-                      ih={ih}
-                      inv={inv}
-                      mode={mode}
-                      showLabels={showLabels}
-                      editZoneId={editZone?.id ?? null}
-                      dimmedZoneIds={dimmedZoneIds}
-                      zoneTaskVisualById={zoneTaskVisualById}
-                      zoneTutorialCountById={zoneTutorialCountById}
-                      emojiFontPx={mapEmojiFontPx}
-                      labelFontPx={mapLabelFontPx}
-                      emojiLabelCenterGap={mapEmojiLabelCenterGap}
-                      minSideFactor={mapOverlayLabelLayout.minSideFactor}
-                      labelMaxWorldLength={mapOverlayLabelLayout.maxWorldLength}
-                      onZoneOpen={openZoneFromMap}
-                    />
-                    <DrawingLayer drawPoints={drawPoints} iw={iw} ih={ih} inv={inv} />
-                    <EditPointsLayer
-                      mode={mode}
-                      editPoints={editPoints}
-                      draggingPtIdx={draggingPtIdx}
-                      selectedPtIdxs={selectedPtIdxs}
-                      insertVertexMode={insertVertexMode}
-                      iw={iw}
-                      ih={ih}
-                      inv={inv}
-                      toImagePct={toImagePct}
-                      onInsertPointFromPct={insertPointFromPct}
-                      onInsertPointAtMidpoint={insertPointAtMidpoint}
-                      onBackgroundPointerDown={onBackgroundPointerDown}
-                      onBackgroundPointerMove={onBackgroundPointerMove}
-                      onBackgroundPointerUp={onBackgroundPointerUp}
-                      onBackgroundLostPointerCapture={onBackgroundLostPointerCapture}
-                      onTranslatePointerDown={onTranslatePointerDown}
-                      onTranslatePointerMove={onTranslatePointerMove}
-                      endEditZoneTranslate={endEditZoneTranslate}
-                      onTranslateLostPointerCapture={onTranslateLostPointerCapture}
-                      onEditPointPointerDown={onEditPointPointerDown}
-                      onEditPointPointerMove={onEditPointPointerMove}
-                      onEditPointPointerUp={onEditPointPointerUp}
-                    />
-                  </g>
-                </svg>
-
-                <MapViewMascotOverlay
-                  show={showMapMascot}
-                  mascotClassName={mapMascotClassName}
-                  embedded={embedded}
-                  renderPct={mapMascotRenderPct}
-                  fitScale={mapMascotFitScale}
-                  faceRight={mapMascotFaceRight}
-                  animationState={mapMascotAnimationState}
-                  mascotId={mapMascotId}
-                  extraCatalogEntries={visitMascotCatalogExtras}
-                  dialogVisible={mapMascotDialogVisible}
-                  dialog={mapMascotDialog}
-                />
-
-                {mapPosition.displayPct ? (
-                  <PctPositionLayer
-                    position={mapPosition.displayPct}
-                    haloPx={accuracyHaloDiameterPx(mapPosition.haloPct, imgSize.w)}
-                    headingDeg={mapPosition.screenHeadingDeg}
-                    accuracyM={mapPosition.accuracyM}
+                  <MapViewBackgroundImage
+                    imgRef={imgRef}
+                    src={mapImageSrc}
+                    alt={`Plan ${activeMap?.label || 'du jardin'}`}
+                    width={iw}
+                    height={ih}
+                    onError={() =>
+                      setMapImageIdx((idx) => (idx < mapImageCandidates.length - 1 ? idx + 1 : idx))
+                    }
                   />
-                ) : null}
 
-                {markerClusters.map((cluster) => {
-                  if (cluster.count > 1) {
+                  <svg
+                    className="map-zone-svg-layer"
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      width: iw,
+                      height: ih,
+                      overflow: 'visible',
+                      pointerEvents: 'none',
+                      textRendering: 'optimizeLegibility',
+                    }}
+                  >
+                    <g style={{ pointerEvents: 'all' }}>
+                      <ZonePolygonsLayer
+                        parsedZones={parsedZones}
+                        iw={iw}
+                        ih={ih}
+                        inv={inv}
+                        mode={mode}
+                        showLabels={showLabels}
+                        editZoneId={editZone?.id ?? null}
+                        dimmedZoneIds={dimmedZoneIds}
+                        zoneTaskVisualById={zoneTaskVisualById}
+                        zoneTutorialCountById={
+                          showTutorialDots ? zoneTutorialCountById : EMPTY_TUTORIAL_COUNT_BY_ID
+                        }
+                        emojiFontPx={mapEmojiFontPx}
+                        labelFontPx={mapLabelFontPx}
+                        emojiLabelCenterGap={mapEmojiLabelCenterGap}
+                        minSideFactor={mapOverlayLabelLayout.minSideFactor}
+                        labelMaxWorldLength={mapOverlayLabelLayout.maxWorldLength}
+                        onZoneOpen={openZoneFromMap}
+                      />
+                      <DrawingLayer drawPoints={drawPoints} iw={iw} ih={ih} inv={inv} />
+                      <EditPointsLayer
+                        mode={mode}
+                        editPoints={editPoints}
+                        draggingPtIdx={draggingPtIdx}
+                        selectedPtIdxs={selectedPtIdxs}
+                        insertVertexMode={insertVertexMode}
+                        iw={iw}
+                        ih={ih}
+                        inv={inv}
+                        toImagePct={toImagePct}
+                        onInsertPointFromPct={insertPointFromPct}
+                        onInsertPointAtMidpoint={insertPointAtMidpoint}
+                        onBackgroundPointerDown={onBackgroundPointerDown}
+                        onBackgroundPointerMove={onBackgroundPointerMove}
+                        onBackgroundPointerUp={onBackgroundPointerUp}
+                        onBackgroundLostPointerCapture={onBackgroundLostPointerCapture}
+                        onTranslatePointerDown={onTranslatePointerDown}
+                        onTranslatePointerMove={onTranslatePointerMove}
+                        endEditZoneTranslate={endEditZoneTranslate}
+                        onTranslateLostPointerCapture={onTranslateLostPointerCapture}
+                        onEditPointPointerDown={onEditPointPointerDown}
+                        onEditPointPointerMove={onEditPointPointerMove}
+                        onEditPointPointerUp={onEditPointPointerUp}
+                      />
+                    </g>
+                  </svg>
+
+                  <MapViewMascotOverlay
+                    show={showMapMascot}
+                    mascotClassName={mapMascotClassName}
+                    embedded={embedded}
+                    renderPct={mapMascotRenderPct}
+                    fitScale={mapMascotFitScale}
+                    faceRight={mapMascotFaceRight}
+                    animationState={mapMascotAnimationState}
+                    mascotId={mapMascotId}
+                    extraCatalogEntries={visitMascotCatalogExtras}
+                    dialogVisible={mapMascotDialogVisible}
+                    dialog={mapMascotDialog}
+                  />
+
+                  {mapPosition.displayPct ? (
+                    <PctPositionLayer
+                      position={mapPosition.displayPct}
+                      haloPx={accuracyHaloDiameterPx(mapPosition.haloPct, imgSize.w)}
+                      headingDeg={headingUpEffective ? null : mapPosition.screenHeadingDeg}
+                      accuracyM={mapPosition.accuracyM}
+                    />
+                  ) : null}
+
+                  {markerClusters.map((cluster) => {
+                    if (cluster.count > 1) {
+                      return (
+                        <MapViewMarkerClusterMemo
+                          key={cluster.id}
+                          cluster={cluster}
+                          emojiFontSize={`${mapEmojiFontPx}px`}
+                          onOpenCluster={openClusterFromMap}
+                        />
+                      );
+                    }
+                    const m = cluster.lead;
+                    const markerTaskVisual = markerTaskVisualById.get(m.id);
+                    const markerTaskLabel = markerTaskVisual
+                      ? TASK_VISUAL_LABEL[markerTaskVisual]
+                      : '';
+                    const markerTutorialCount = markerTutorialCountById.get(m.id) || 0;
+                    const markerTutorialLabel =
+                      markerTutorialCount === 0
+                        ? ''
+                        : markerTutorialCount === 1
+                          ? '1 tutoriel lié'
+                          : `${markerTutorialCount} tutoriels liés`;
+                    const markerAriaLabel = [
+                      m.label || 'Repère',
+                      markerTaskLabel,
+                      markerTutorialLabel,
+                    ]
+                      .filter(Boolean)
+                      .join(' — ');
+                    const markerDraggable = isTeacher && markerPositionUnlocked;
                     return (
-                      <MapViewMarkerClusterMemo
-                        key={cluster.id}
-                        cluster={cluster}
+                      <MapViewMarkerBubbleMemo
+                        key={m.id}
+                        marker={m}
+                        dimmed={dimmedMarkerIds?.has(String(m.id))}
+                        ariaLabel={markerAriaLabel}
+                        showLabels={showLabels}
+                        isCoarsePointer={isCoarsePointer}
+                        draggable={markerDraggable}
                         emojiFontSize={`${mapEmojiFontPx}px`}
-                        onOpenCluster={openClusterFromMap}
+                        labelFontSize={`${mapLabelFontPx}px`}
+                        labelMarginTop={markerLabelMarginTop}
+                        labelMaxWidthPx={mapOverlayLabelLayout.maxScreenPx}
+                        taskVisual={markerTaskVisual}
+                        taskLabel={markerTaskLabel}
+                        tutorialCount={showTutorialDots ? markerTutorialCount : 0}
+                        tutorialLabel={markerTutorialLabel}
+                        onOpenMarker={openMarkerFromMap}
+                        onBeginMarkerDrag={beginMarkerDrag}
                       />
                     );
-                  }
-                  const m = cluster.lead;
-                  const markerTaskVisual = markerTaskVisualById.get(m.id);
-                  const markerTaskLabel = markerTaskVisual
-                    ? TASK_VISUAL_LABEL[markerTaskVisual]
-                    : '';
-                  const markerTutorialCount = markerTutorialCountById.get(m.id) || 0;
-                  const markerTutorialLabel =
-                    markerTutorialCount === 0
-                      ? ''
-                      : markerTutorialCount === 1
-                        ? '1 tutoriel lié'
-                        : `${markerTutorialCount} tutoriels liés`;
-                  const markerAriaLabel = [
-                    m.label || 'Repère',
-                    markerTaskLabel,
-                    markerTutorialLabel,
-                  ]
-                    .filter(Boolean)
-                    .join(' — ');
-                  const markerDraggable = isTeacher && markerPositionUnlocked;
-                  return (
-                    <MapViewMarkerBubbleMemo
-                      key={m.id}
-                      marker={m}
-                      dimmed={dimmedMarkerIds?.has(String(m.id))}
-                      ariaLabel={markerAriaLabel}
-                      showLabels={showLabels}
-                      isCoarsePointer={isCoarsePointer}
-                      draggable={markerDraggable}
-                      emojiFontSize={`${mapEmojiFontPx}px`}
-                      labelFontSize={`${mapLabelFontPx}px`}
-                      labelMarginTop={markerLabelMarginTop}
-                      labelMaxWidthPx={mapOverlayLabelLayout.maxScreenPx}
-                      taskVisual={markerTaskVisual}
-                      taskLabel={markerTaskLabel}
-                      tutorialCount={markerTutorialCount}
-                      tutorialLabel={markerTutorialLabel}
-                      onOpenMarker={openMarkerFromMap}
-                      onBeginMarkerDrag={beginMarkerDrag}
-                    />
-                  );
-                })}
+                  })}
+                </div>
               </MapViewWorldLayer>
 
               <MapCanvasHints

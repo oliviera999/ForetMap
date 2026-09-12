@@ -97,6 +97,34 @@ test('profil par défaut du groupe est appliqué en force', async () => {
   assert.strictEqual(primary.slug, 'eleve_avance');
 });
 
+test('profil élève n’est pas rétrogradé en visiteur sans force', async () => {
+  const studentId = await createStudent('keep_novice');
+  const novice = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
+  assert.ok(novice?.id);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+    'student',
+    studentId,
+  ]);
+  await execute(
+    'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
+    ['student', studentId, novice.id],
+  );
+  const groupId = await createGroup({
+    slug: `no-n3-${Date.now()}`,
+    grantsN3beur: false,
+  });
+  await execute(
+    `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
+     VALUES (?, ?, 'student', 'member')`,
+    [groupId, studentId],
+  );
+  const sync = await syncStudentRoleFromGroups(studentId);
+  assert.strictEqual(sync.changed, false);
+  assert.strictEqual(sync.reason, 'eleve_preserved_over_visitor');
+  const primary = await getPrimaryRoleForUser('student', studentId);
+  assert.strictEqual(primary.slug, 'eleve_novice');
+});
+
 test('profil par défaut dangereux ignoré lors de la synchronisation de groupe', async () => {
   const studentId = await createStudent('unsafe_default');
   const groupId = await createGroup({

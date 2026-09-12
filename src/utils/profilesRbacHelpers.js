@@ -7,7 +7,7 @@
  */
 
 /**
- * Un profil « palier n3beur » configurable (seuils/forum/contexte) : ni admin/prof/visiteur,
+ * Un profil « palier n3beur » configurable (seuils/forum/contexte) : ni admin/prof/visiteur/personnel,
  * et soit slug `eleve_*`, soit rang fini < 400. Reproduit la règle serveur.
  */
 export function isN3beurTierConfigurableProfile(role) {
@@ -15,7 +15,8 @@ export function isN3beurTierConfigurableProfile(role) {
   const slug = String(role.slug || '')
     .trim()
     .toLowerCase();
-  if (slug === 'admin' || slug === 'prof' || slug === 'visiteur') return false;
+  if (slug === 'admin' || slug === 'prof' || slug === 'visiteur' || slug === 'personnel')
+    return false;
   if (/^eleve_/i.test(String(role.slug || ''))) return true;
   const r = Number(role.rank);
   return Number.isFinite(r) && r < 400;
@@ -49,6 +50,7 @@ export function deriveProfilesCapabilities(auth = {}) {
   const has = (p) => perms.includes(p);
   const canExport = has('stats.export');
   const canImport = has('students.import');
+  const canImportGroups = has('groups.manage');
   const canDelete = has('students.delete');
   const canCreateUsers = has('users.create');
   const canReadAllStats = has('stats.read.all');
@@ -57,12 +59,13 @@ export function deriveProfilesCapabilities(auth = {}) {
     canEditRoleDefinition: has('admin.roles.manage'),
     canExport,
     canImport,
+    canImportGroups,
     canDelete,
     canCreateUsers,
     canReadAllStats,
     canDuplicateStudents: canCreateUsers && canReadAllStats,
     isAdmin: String(auth.authRoleSlug || '') === 'admin',
-    canManageStudents: canExport || canImport || canDelete || canCreateUsers,
+    canManageStudents: canExport || canImport || canDelete || canCreateUsers || canImportGroups,
     canDeleteUi: canDelete && canReadAllStats,
   };
 }

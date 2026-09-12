@@ -6,6 +6,7 @@ import {
 } from '../shared/platform/browserStorage.js';
 import { buildPlaceIndex, searchPlaces } from '../shared/search/placeSearch.js';
 import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
+import { useHeadingUpPreference } from '../shared/pct-map/useHeadingUpPreference.js';
 import { useBrandTheme } from '../shared/brand/useBrandTheme.js';
 import { PLAN_BRAND_DEFAULTS } from './utils/planBrand.js';
 import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
@@ -15,7 +16,7 @@ import { useTimedToastState } from '../shared/hooks/useTimedToastState.js';
 import { PlanCategoryChips } from './components/PlanCategoryChips.jsx';
 import { PlanHelp } from './components/PlanHelp.jsx';
 import { PlanRoutePicker } from './components/PlanRoutePicker.jsx';
-import { PlanRouteSheet } from './components/PlanRouteSheet.jsx';
+import { PLAN_ROUTE_BAR_FOCUS_INSET_PX, PlanRouteBar } from './components/PlanRouteBar.jsx';
 import { AccessCodeGate } from '../shared/components/AccessCodeGate.jsx';
 import { PlanMapStage } from './components/PlanMapStage.jsx';
 import { PlanPlaceSheet } from './components/PlanPlaceSheet.jsx';
@@ -42,6 +43,8 @@ import {
 const CATEGORIES_STORAGE_KEY = 'plan:categories';
 /** Message d'accueil : montré une seule fois par appareil. */
 const WELCOME_STORAGE_KEY = 'plan:welcome-seen';
+/** Préférence appareil : carte orientée selon la boussole. */
+const HEADING_UP_STORAGE_KEY = 'plan:heading-up';
 /** Nombre de résultats affichés (au-delà, affiner la recherche est plus rapide que défiler). */
 const RESULTS_LIMIT = 40;
 
@@ -76,6 +79,8 @@ export function AppPlan() {
   const [activeRouteSlug, setActiveRouteSlug] = useState('');
   const [routeIndex, setRouteIndex] = useState(0);
   const [routePickerOpen, setRoutePickerOpen] = useState(false);
+  /** Dernier parcours quitté (slug) — bouton « Reprendre » jusqu'à un autre démarrage. */
+  const [resumableRouteSlug, setResumableRouteSlug] = useState('');
   const [offline, setOffline] = useState(
     () => typeof navigator !== 'undefined' && navigator.onLine === false,
   );
@@ -110,6 +115,12 @@ export function AppPlan() {
   const position = useMapPosition({
     georef: map?.geo_anchors || null,
     gpsEnabled: !!map?.gps_enabled,
+  });
+  const headingUpAllowed =
+    !!settings?.heading_up_enabled && !!map?.heading_up_enabled && !!position.available;
+  const headingUpPref = useHeadingUpPreference({
+    storageKey: HEADING_UP_STORAGE_KEY,
+    allowed: headingUpAllowed,
   });
   const [positionToast, setPositionToast] = useTimedToastState();
   /**
@@ -222,11 +233,17 @@ export function AppPlan() {
     if (found) setSelectedPlace(found);
   }, [places]);
 
-  // Recherche sans résultat : signalé au compteur (quels mots manquent au plan).
+  // Recherche : compteur d'usage (mots tapés) + recherche vide (mots manquants au plan).
+  const searchReportedRef = useRef('');
   const emptyReportedRef = useRef('');
   useEffect(() => {
     const trimmed = query.trim();
-    if (!trimmed || results.length > 0 || emptyReportedRef.current === trimmed) return;
+    if (!trimmed) return;
+    if (searchReportedRef.current !== trimmed) {
+      searchReportedRef.current = trimmed;
+      reportPlanUsage('search', trimmed.slice(0, 60));
+    }
+    if (results.length > 0 || emptyReportedRef.current === trimmed) return;
     emptyReportedRef.current = trimmed;
     reportPlanUsage('search_empty', trimmed.slice(0, 60));
   }, [query, results]);
@@ -312,25 +329,30 @@ export function AppPlan() {
   );
 
   const startRoute = useCallback((route) => {
-    setActiveRouteSlug(route.slug);
-    setRouteIndex(0);
     setRoutePickerOpen(false);
     setResultsOpen(false);
     setGroupPlaces(null);
+    setResumableRouteSlug('');
+    setRouteIndex(0);
+    setActiveRouteSlug(route.slug);
     reportPlanUsage('route_start', route.slug);
-    if (typeof window !== 'undefined' && window.history?.replaceState) {
-      window.history.replaceState(null, '', buildRouteUrl(window.location, route.slug));
-    }
   }, []);
 
   const exitRoute = useCallback(() => {
+    const slug = activeRouteSlug;
     setActiveRouteSlug('');
     setRouteIndex(0);
     setSelectedPlace(null);
-    if (typeof window !== 'undefined' && window.history?.replaceState) {
-      window.history.replaceState(null, '', buildRouteUrl(window.location, ''));
+    if (slug) {
+      setResumableRouteSlug(slug);
+      setRouteToast('Pour reprendre : puce Parcours, ou Reprendre.');
     }
-  }, []);
+  }, [activeRouteSlug, setRouteToast]);
+
+  const resumeRoute = useCallback(() => {
+    const route = routes.find((r) => r.slug === resumableRouteSlug);
+    if (route) startRoute(route);
+  }, [routes, resumableRouteSlug, startRoute]);
 
   const goToRouteIndex = useCallback(
     (next) => {
@@ -381,6 +403,19 @@ export function AppPlan() {
     }
     setRouteToast('Ce parcours n’est plus disponible.');
   }, [content, routes, setRouteToast]);
+
+  /**
+   * Aligne `?parcours=` après les history.back() des feuilles qui se ferment au démarrage.
+   * Placé après l'effet lien profond pour ne pas effacer `?parcours=` avant lecture.
+   */
+  useEffect(() => {
+    if (!routeLinkAppliedRef.current) return;
+    if (typeof window === 'undefined' || !window.history?.replaceState) return;
+    const wanted = activeRouteSlug || '';
+    const current = readRouteSlugFromLocation(window.location.search);
+    if (current === wanted) return;
+    window.history.replaceState(null, '', buildRouteUrl(window.location, wanted));
+  }, [activeRouteSlug, content]);
 
   // Bandeau « hors ligne » : le plan reste consultable grâce au service worker.
   useEffect(() => {
@@ -463,6 +498,7 @@ export function AppPlan() {
           <PlanHelp
             welcomeHint={settings?.welcome_hint || ''}
             canLocate={position.available}
+            hasRoutes={(routes || []).some((r) => (r?.steps || []).length > 0)}
             onOpen={() => reportPlanUsage('help_open', 'plan')}
           />
         }
@@ -501,11 +537,24 @@ export function AppPlan() {
             zones={mapZones}
             markers={mapMarkers}
             selectedPlace={selectedPlace}
-            onSelectPlace={openPlace}
-            onOpenGroup={openGroup}
+            onSelectPlace={activeRoute ? () => {} : openPlace}
+            onOpenGroup={activeRoute ? null : openGroup}
             categoriesById={categoriesById}
             position={position}
+            onLocateToggle={() => {
+              reportPlanUsage('locate', position.active ? 'off' : 'on');
+              position.toggle();
+            }}
+            headingUpAllowed={headingUpAllowed}
+            headingUpEffective={headingUpPref.effective && position.active}
+            headingUpUserEnabled={headingUpPref.userEnabled}
+            onHeadingUpToggle={() => {
+              const next = !headingUpPref.userEnabled;
+              reportPlanUsage('heading_up', next ? 'on' : 'off');
+              headingUpPref.setEnabled(next);
+            }}
             targetPct={targetPct}
+            focusInsets={activeRoute ? { bottom: PLAN_ROUTE_BAR_FOCUS_INSET_PX } : null}
             attribution={settings?.attribution || ''}
           />
         ) : (
@@ -528,13 +577,22 @@ export function AppPlan() {
         </p>
       ) : null}
 
+      {!activeRoute && resumableRouteSlug ? (
+        <div className="plan-route-resume">
+          <button type="button" className="plan-route-resume__btn" onClick={resumeRoute}>
+            Reprendre le parcours
+          </button>
+        </div>
+      ) : null}
+
       {activeRoute ? (
-        <PlanRouteSheet
+        <PlanRouteBar
           route={activeRoute}
           steps={routeSteps}
           index={routeIndex}
           onGoToIndex={goToRouteIndex}
           onExit={exitRoute}
+          canLocate={position.available}
           distanceLabel={
             currentRouteEntry && position.positionPct ? formatDistanceFr(targetDistanceM) : ''
           }

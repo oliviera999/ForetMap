@@ -3,6 +3,8 @@
  * Reproduit à l'identique la cascade de gardes historique de `submit` :
  * première erreur rencontrée renvoyée telle quelle, '' si tout est valide.
  */
+import { PSEUDO_RE, PSEUDO_INVALID_MSG } from './pseudoValidation';
+
 export function getAuthSubmitError({
   mode,
   identifier,
@@ -24,8 +26,8 @@ export function getAuthSubmitError({
     return 'Tous les champs sont requis';
   if (mode === 'register' && pass !== pass2) return 'Les mots de passe ne correspondent pas';
   if (mode === 'register' && pass.length < 4) return 'Mot de passe trop court (min 4 caractères)';
-  if (mode === 'register' && pseudo.trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(pseudo.trim())) {
-    return 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)';
+  if (mode === 'register' && pseudo.trim() && !PSEUDO_RE.test(pseudo.trim())) {
+    return PSEUDO_INVALID_MSG;
   }
   if (mode === 'register' && email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
     return 'Email invalide';

@@ -1265,7 +1265,8 @@ chaînes vides à chaque enregistrement.
 
 ### 16.5 L'accueil — OLU se présente
 
-**Trois bulles, centrées, jouées une seule fois**, avant tout parcours d'onglet : se faire
+**Trois bulles, centrées, jouées une seule fois par compte** (portable d'un appareil à
+l'autre), avant tout parcours d'onglet : se faire
 présenter la carte par quelqu'un qu'on n'a pas encore rencontré met la charrue avant les
 bœufs. Aucune ne vise d'élément — à la première seconde, désigner un bouton qu'on n'a pas
 appris à lire ne veut rien dire.

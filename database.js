@@ -10,7 +10,15 @@ const { dropLegacyScaffolding } = require('./lib/legacySchemaCleanup');
 const { normalizeLegacyTimestamps } = require('./lib/legacyTimestampNormalization');
 
 /** Errnos MySQL souvent attendus lors de migrations idempotentes (table/colonne/index déjà présents ou legacy absent). */
-const MYSQL_MIGRATION_EXPECTED_ERRNO = new Set([1050, 1060, 1061, 1091, 1146, 1826]);
+const MYSQL_MIGRATION_EXPECTED_ERRNO = new Set([
+  1050, // ER_TABLE_EXISTS_ERROR
+  1060, // ER_DUP_FIELDNAME
+  1061, // ER_DUP_KEYNAME
+  1022, // ER_DUP_KEY (contrainte / index déjà présent — ex. FK déjà dans schema_foretmap.sql)
+  1091, // ER_CANT_DROP_FIELD_OR_KEY
+  1146, // ER_NO_SUCH_TABLE
+  1826, // ER_FK_DUP_NAME
+]);
 
 function migrationStmtSnippet(stmt) {
   const s = (stmt || '').replace(/\s+/g, ' ').trim();
@@ -623,6 +631,23 @@ function splitSqlStatements(sqlText) {
  * Idempotent : peut être rappelé sans effet de bord si les tables existent déjà.
  * @throws si le fichier est introuvable ou si l'exécution SQL échoue
  */
+/**
+ * Refuse MySQL 5.7 / moteurs trop anciens (fenêtres SQL, JSON, etc. exigés par les migrations).
+ * Aligné sur docs/LOCAL_DEV.md : MariaDB 11.4 (ou MySQL 8+).
+ */
+async function assertSupportedSqlEngine(conn) {
+  const [rows] = await conn.query('SELECT VERSION() AS v');
+  const version = String(rows?.[0]?.v || '');
+  const isMaria = /mariadb/i.test(version);
+  const major = parseInt(version, 10);
+  if (isMaria && Number.isFinite(major) && major >= 10) return;
+  if (!isMaria && Number.isFinite(major) && major >= 8) return;
+  throw new Error(
+    `Moteur SQL non supporté (« ${version} »). ForetMap exige MariaDB 10+ ou MySQL 8+ ` +
+      '(recommandé : MariaDB 11.4 via `npm run docker:up`, voir docs/LOCAL_DEV.md).',
+  );
+}
+
 async function initSchema() {
   const schemaPath = path.join(__dirname, 'sql', 'schema_foretmap.sql');
   if (!fs.existsSync(schemaPath)) {
@@ -635,6 +660,7 @@ async function initSchema() {
   const statements = splitSqlStatements(sql);
   const conn = await pool.getConnection();
   try {
+    await assertSupportedSqlEngine(conn);
     for (const stmt of statements) {
       if (stmt) await conn.query(stmt);
     }

@@ -349,6 +349,71 @@ router.post(
   }),
 );
 
+router.get(
+  '/import/template',
+  requireGroupManagement,
+  asyncHandler(async (req, res) => {
+    const {
+      GROUP_TEMPLATE_COLUMNS,
+      buildGroupTemplateWorkbookRows,
+      csvEscape,
+    } = require('../lib/groupImport');
+    const { buildWorkbookBuffer, jsonRowsToAoa } = require('../lib/spreadsheet');
+    const format = String(req.query?.format || 'csv')
+      .trim()
+      .toLowerCase();
+    const rows = buildGroupTemplateWorkbookRows();
+    if (format === 'xlsx') {
+      const aoa = jsonRowsToAoa(rows, GROUP_TEMPLATE_COLUMNS);
+      const buffer = await buildWorkbookBuffer([{ name: 'groupes', aoa }]);
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-groupes.xlsx"');
+      return res.send(buffer);
+    }
+    if (format !== 'csv') {
+      return res.status(400).json({ error: 'Format invalide (csv ou xlsx)' });
+    }
+    const BOM = '\uFEFF';
+    const header = GROUP_TEMPLATE_COLUMNS.map(csvEscape).join(';');
+    const lines = rows.map((row) =>
+      GROUP_TEMPLATE_COLUMNS.map((col) => csvEscape(row[col])).join(';'),
+    );
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-groupes.csv"');
+    res.send(`${BOM}${header}\r\n${lines.join('\r\n')}\r\n`);
+  }),
+);
+
+router.post(
+  '/import',
+  requireGroupManagement,
+  asyncHandler(async (req, res) => {
+    const { resolveImportRowsFromBody, importGroupsFromRows } = require('../lib/groupImport');
+    const dryRun = !!req.body?.dryRun;
+    let rawRows;
+    try {
+      rawRows = await resolveImportRowsFromBody(req.body || {});
+    } catch (err) {
+      return res.status(400).json({ error: err.message || 'Fichier invalide' });
+    }
+    try {
+      const report = await importGroupsFromRows(req.auth, rawRows, { dryRun });
+      if (!dryRun && report.totals.created > 0) {
+        logAudit('groups_import', 'group', null, `Import de ${report.totals.created} groupe(s)`, {
+          req,
+          payload: { report: report.totals },
+        });
+      }
+      res.json({ report });
+    } catch (err) {
+      return res.status(400).json({ error: err.message || 'Import impossible' });
+    }
+  }),
+);
+
 router.patch(
   '/:id',
   asyncHandler(async (req, res) => {

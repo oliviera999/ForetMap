@@ -143,9 +143,9 @@ router.use(async (req, res, next) => {
 });
 router.use((req, res, next) => {
   if (isVisitorRole(req.auth)) {
-    return res
-      .status(403)
-      .json({ error: 'Accès refusé aux commentaires de contexte pour le profil visiteur' });
+    return res.status(403).json({
+      error: 'Accès refusé aux commentaires de contexte pour le profil visiteur ou personnel',
+    });
   }
   return next();
 });

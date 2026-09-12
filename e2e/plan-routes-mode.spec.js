@@ -77,9 +77,10 @@ test('plan : parcours par la puce, par lien profond, et sortie', async ({ page, 
     await expect(sheet.getByText('Étape 2 sur 2')).toBeVisible();
     await expect(sheet.getByRole('button', { name: 'Suivant' })).toBeDisabled();
 
-    await sheet.getByRole('button', { name: 'Quitter le parcours' }).first().click();
+    await sheet.getByRole('button', { name: 'Quitter' }).click();
     await expect(sheet).toBeHidden({ timeout: 15_000 });
     await expect(page).not.toHaveURL(/parcours=/);
+    await expect(page.getByRole('button', { name: 'Reprendre le parcours' })).toBeVisible();
 
     // 2) Par le lien profond : ce que voit un visiteur qui scanne l'affiche.
     await page.goto(`/?parcours=${slug}`);

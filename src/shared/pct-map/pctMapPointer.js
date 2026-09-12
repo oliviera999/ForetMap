@@ -1,3 +1,5 @@
+import { unrotatePointAround } from './pctMapOrientation.js';
+
 function clampPct(value, decimals = null) {
   if (!Number.isFinite(value)) return null;
   const bounded = Math.max(0, Math.min(100, value));
@@ -61,6 +63,18 @@ export function pointToElementPct(clientX, clientY, elementOrRect, options = {})
   };
 }
 
+/**
+ * @param {{ clientX: number, clientY: number }} event
+ * @param {Element} stageEl
+ * @param {{ x?: number, y?: number, s?: number }} [transform]
+ * @param {{ offsetX?: number, offsetY?: number, width?: number, height?: number }|null} [fit]
+ * @param {{
+ *   clamp?: boolean,
+ *   decimals?: number|null,
+ *   orientationDeg?: number,
+ *   orientationOriginPct?: { xp?: number, yp?: number }|null,
+ * }} [options]
+ */
 export function pointToContainedRectPct(
   event,
   stageEl,
@@ -73,12 +87,24 @@ export function pointToContainedRectPct(
   const scale = Number(transform?.s) > 0 ? Number(transform.s) : 1;
   const tx = Number(transform?.x) || 0;
   const ty = Number(transform?.y) || 0;
-  const u = (event.clientX - rect.left - tx) / scale;
-  const v = (event.clientY - rect.top - ty) / scale;
+  let u = (event.clientX - rect.left - tx) / scale;
+  let v = (event.clientY - rect.top - ty) / scale;
   const fw = fit && fit.width > 0 ? fit.width : rect.width;
   const fh = fit && fit.height > 0 ? fit.height : rect.height;
-  const fox = fit && fit.width > 0 ? fit.offsetX : 0;
-  const foy = fit && fit.height > 0 ? fit.offsetY : 0;
+  const fox = fit && fit.width > 0 ? Number(fit.offsetX) || 0 : 0;
+  const foy = fit && fit.height > 0 ? Number(fit.offsetY) || 0 : 0;
+
+  const orientationDeg = Number(options.orientationDeg) || 0;
+  if (Math.abs(orientationDeg) > 1e-6) {
+    const oxPct = Number(options.orientationOriginPct?.xp);
+    const oyPct = Number(options.orientationOriginPct?.yp);
+    const ox = fox + ((Number.isFinite(oxPct) ? oxPct : 50) / 100) * fw;
+    const oy = foy + ((Number.isFinite(oyPct) ? oyPct : 50) / 100) * fh;
+    const un = unrotatePointAround(u, v, ox, oy, orientationDeg);
+    u = un.x;
+    v = un.y;
+  }
+
   const xp = ((u - fox) / fw) * 100;
   const yp = ((v - foy) / fh) * 100;
   if (!Number.isFinite(xp) || !Number.isFinite(yp)) return null;

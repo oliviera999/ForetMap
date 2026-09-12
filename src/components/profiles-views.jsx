@@ -18,13 +18,12 @@ import {
 } from '../utils/profilesUserFields.js';
 import { UserEditModal } from './profiles/UserEditModal.jsx';
 import { DeleteUserConfirmModal } from './profiles/DeleteUserConfirmModal.jsx';
-import { CreateUserPanel } from './profiles/CreateUserPanel.jsx';
-import { StudentImportPanel } from './profiles/StudentImportPanel.jsx';
-import { StudentDeletePanel } from './profiles/StudentDeletePanel.jsx';
 import { ProfilesRbacAdminSection } from './profiles/ProfilesRbacAdminSection.jsx';
 import { ProfilesAdminHeader } from './profiles/ProfilesAdminHeader.jsx';
 import { ProfilesAdminFeedback } from './profiles/ProfilesAdminFeedback.jsx';
-import { ProfilesStatsExportRow } from './profiles/ProfilesStatsExportRow.jsx';
+import { ProfilesAdminSubTabs } from './profiles/ProfilesAdminSubTabs.jsx';
+import { ProfilesAccountsPanel } from './profiles/ProfilesAccountsPanel.jsx';
+import { ProfilesImportsPanel } from './profiles/ProfilesImportsPanel.jsx';
 import {
   isN3beurTierConfigurableProfile as isN3beurTierConfigurableRole,
   sortRolesForDisplay,
@@ -38,6 +37,13 @@ import {
   promptNewRoleProfile,
   promptDuplicateRoleProfile,
 } from '../utils/profilesRolePrompts.js';
+import { resolveProfilesSubTab } from '../utils/profilesUserListFilters.js';
+import {
+  safeLocalStorageGetItem,
+  safeLocalStorageSetItem,
+} from '../shared/platform/browserStorage.js';
+
+const PROFILES_SUB_TAB_KEY = 'foretmap.profiles.subTab';
 
 function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   const publicSettings = usePublicSettings();
@@ -74,6 +80,11 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editUserLoadState, setEditUserLoadState] = useState('idle');
   const [impersonateLoading, setImpersonateLoading] = useState(false);
+  const [subTab, setSubTab] = useState(() =>
+    resolveProfilesSubTab(safeLocalStorageGetItem(PROFILES_SUB_TAB_KEY, '')),
+  );
+  const [pendingVisitorsCount, setPendingVisitorsCount] = useState(0);
+  const [accountsFilteredCount, setAccountsFilteredCount] = useState(null);
 
   const load = async () => {
     setErr('');
@@ -135,7 +146,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     () => roles.find((r) => Number(r.id) === Number(selectedRoleId)) || null,
     [roles, selectedRoleId],
   );
-  /** Paliers n3beur : slug eleve_* ou profil perso. avec rang strictement inférieur à 400 (n3boss) ; exclus admin, n3boss, visiteur. */
+  /** Paliers n3beur : slug eleve_* ou profil perso. avec rang strictement inférieur à 400 (n3boss) ; exclus admin, n3boss, visiteur, personnel. */
   const isN3beurTierConfigurableProfile = useMemo(
     () => isN3beurTierConfigurableRole(selectedRole),
     [selectedRole],
@@ -149,6 +160,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     canEditRoleDefinition,
     canExport,
     canImport,
+    canImportGroups,
     canCreateUsers,
     canReadAllStats,
     canDuplicateStudents,
@@ -156,6 +168,30 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     canManageStudents,
     canDeleteUi,
   } = deriveProfilesCapabilities({ authPerms, authRoleSlug });
+
+  const canShowImports = canManageStudents || canImportGroups || canManageProfiles;
+
+  useEffect(() => {
+    const resolved = resolveProfilesSubTab(subTab, {
+      canManageProfiles,
+      canManageStudents,
+      canImportGroups,
+    });
+    if (resolved !== subTab) setSubTab(resolved);
+  }, [subTab, canManageProfiles, canManageStudents, canImportGroups]);
+
+  const changeSubTab = useCallback(
+    (next) => {
+      const resolved = resolveProfilesSubTab(next, {
+        canManageProfiles,
+        canManageStudents,
+        canImportGroups,
+      });
+      setSubTab(resolved);
+      safeLocalStorageSetItem(PROFILES_SUB_TAB_KEY, resolved);
+    },
+    [canManageProfiles, canManageStudents, canImportGroups],
+  );
 
   /** Même tri que GET /api/rbac/profiles (affichage cohérent avec la progression n3beur côté serveur). */
   const sortedRoles = useMemo(() => sortRolesForDisplay(roles), [roles]);
@@ -244,7 +280,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   };
 
   const saveStudentMinDoneThreshold = async (roleMinDoneTasks) => {
-    /* Même règle que la garde historique admin/prof/visiteur + rang : seuls les paliers n3beur ont un seuil. */
+    /* Même règle que la garde historique admin/prof/visiteur/personnel + rang : seuls les paliers n3beur ont un seuil. */
     if (!selectedRole || !isN3beurTierConfigurableProfile) return;
     const parsed = parseMinDoneTasksThreshold(roleMinDoneTasks);
     if (parsed.error) {
@@ -588,7 +624,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
       />
       <p className="section-sub">
         Gestion des profils, des comptes et des opérations {roleTerms.studentPlural} (création,
-        import, export, suppression).
+        import, export, suppression) — organisée en sous-onglets.
       </p>
       <ProfilesAdminFeedback
         err={err}
@@ -622,21 +658,32 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
         onCancel={() => setConfirmStudent(null)}
       />
 
-      {canManageProfiles && (
+      {(canManageProfiles || canManageStudents || canImportGroups) && (
+        <ProfilesAdminSubTabs
+          active={subTab}
+          onChange={changeSubTab}
+          canManageProfiles={canManageProfiles}
+          canManageStudents={canManageStudents}
+          canShowImports={canShowImports}
+          pendingVisitorsCount={pendingVisitorsCount}
+          accountsFilteredCount={
+            subTab === 'comptes' || accountsFilteredCount != null ? accountsFilteredCount : null
+          }
+        />
+      )}
+
+      {canManageProfiles && subTab === 'profils' && (
         <ProfilesRbacAdminSection
           roles={sortedRoles}
           catalog={catalog}
-          users={users}
           loading={loading}
           roleTerms={roleTerms}
           selectedRole={selectedRole}
           selectedRoleId={selectedRoleId}
           canEditRoleDefinition={canEditRoleDefinition}
-          isAdmin={isAdmin}
           isN3beurTier={isN3beurTierConfigurableProfile}
           progressionByTasksEnabled={progressionByTasksEnabled}
           tasksProposeEntry={tasksProposeEntry}
-          editUserLoadState={editUserLoadState}
           onCreateRole={createRoleProfile}
           onSelectRole={setSelectedRoleId}
           onReorderRole={reorderRole}
@@ -649,51 +696,58 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
           onSetForumParticipate={setRoleForumParticipate}
           onSetContextCommentParticipate={setRoleContextCommentParticipate}
           onSaveMaxConcurrent={saveMaxConcurrentTasks}
-          onAssignRole={assignRole}
-          onOpenEditUser={openEditUser}
         />
       )}
 
-      {canManageProfiles && <GroupsAdminView />}
-
-      {canManageStudents && (
-        <>
-          <ProfilesStatsExportRow canExport={canExport} onExport={exportStats} />
-
-          <CreateUserPanel
-            roleTerms={roleTerms}
-            affiliationOptions={affiliationOptions}
-            isAdmin={isAdmin}
-            canCreateUsers={canCreateUsers}
-            setErr={setErr}
-            setMsg={setMsg}
-            onCreated={load}
-          />
-
-          <StudentImportPanel
-            roleTerms={roleTerms}
-            canImport={canImport}
-            setErr={setErr}
-            setMsg={setMsg}
-            onImported={load}
-          />
-
-          {canReadAllStats && (
-            <StudentDeletePanel
-              roleTerms={roleTerms}
-              canDeleteUi={canDeleteUi}
-              canDuplicateStudents={canDuplicateStudents}
-              searchStudent={searchStudent}
-              filteredStudents={filteredStudents}
-              setSearchStudent={setSearchStudent}
-              setConfirmStudent={setConfirmStudent}
-              duplicateStudent={duplicateStudent}
-            />
-          )}
-        </>
+      {(canManageProfiles || canManageStudents) && subTab === 'comptes' && (
+        <ProfilesAccountsPanel
+          roles={sortedRoles}
+          users={users}
+          loading={loading}
+          editUserLoadState={editUserLoadState}
+          isAdmin={isAdmin}
+          canCreateUsers={canCreateUsers}
+          canCreateTeacherRoles={isAdmin || authRoleSlug === 'prof'}
+          canManageProfiles={canManageProfiles}
+          canReadAllStats={canReadAllStats}
+          canDeleteUi={canDeleteUi}
+          canDuplicateStudents={canDuplicateStudents}
+          roleTerms={roleTerms}
+          affiliationOptions={affiliationOptions}
+          searchStudent={searchStudent}
+          filteredStudents={filteredStudents}
+          setSearchStudent={setSearchStudent}
+          setConfirmStudent={setConfirmStudent}
+          duplicateStudent={duplicateStudent}
+          setErr={setErr}
+          setMsg={setMsg}
+          onCreated={load}
+          onAssignRole={assignRole}
+          onOpenEditUser={openEditUser}
+          onFilteredCountChange={setAccountsFilteredCount}
+        />
       )}
 
-      {!canManageProfiles && !canManageStudents && (
+      {canManageProfiles && subTab === 'groupes' && (
+        <GroupsAdminView onPendingCountChange={setPendingVisitorsCount} />
+      )}
+
+      {canShowImports && subTab === 'imports' && (
+        <ProfilesImportsPanel
+          roleTerms={roleTerms}
+          canImport={canImport}
+          canImportGroups={canImportGroups}
+          canExport={canExport}
+          canManageStudents={canManageStudents}
+          canManageProfiles={canManageProfiles}
+          setErr={setErr}
+          setMsg={setMsg}
+          onImported={load}
+          onExport={exportStats}
+        />
+      )}
+
+      {!canManageProfiles && !canManageStudents && !canImportGroups && (
         <div className="empty" style={{ marginTop: 12 }}>
           <p>
             Aucune permission disponible pour gérer les profils ou les {roleTerms.studentPlural}.

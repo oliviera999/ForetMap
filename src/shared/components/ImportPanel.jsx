@@ -37,6 +37,32 @@ export function ImportReportErrors({ errors, limit = 15, moreLabel }) {
   );
 }
 
+/** Messages d'information (doublons fusionnés, etc.). */
+export function ImportReportInfos({ infos, limit = 15, moreLabel }) {
+  if (!Array.isArray(infos) || infos.length === 0) return null;
+  return (
+    <div
+      style={{
+        maxHeight: 120,
+        overflow: 'auto',
+        fontSize: 'var(--text-sm)',
+        color: '#1e3a8a',
+        marginBottom: 6,
+      }}
+      data-testid="import-report-infos"
+    >
+      {infos.slice(0, limit).map((item, idx) => (
+        <div key={`${item.code || 'info'}-${idx}`}>{item.message || String(item)}</div>
+      ))}
+      {infos.length > limit && (
+        <div>
+          {moreLabel ? moreLabel(infos.length - limit) : `… ${infos.length - limit} de plus`}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ImportPanel({
   /** 'details' (panneau repliable .plant-more) ou 'card' (carte blanche + <h3>). */
   variant = 'details',
@@ -153,6 +179,7 @@ export function ImportPanel({
           <div style={{ fontSize: 'var(--text-sm)', color: '#1f2937', marginBottom: 4 }}>
             {totalsRenderer(report)}
           </div>
+          <ImportReportInfos infos={report?.infos} limit={errorLimit} />
           <ImportReportErrors
             errors={report?.errors}
             limit={errorLimit}

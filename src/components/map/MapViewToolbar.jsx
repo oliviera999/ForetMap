@@ -488,6 +488,34 @@ export function MapViewToolbar({
               </button>
             </Tooltip>
           ) : null}
+          {gps?.headingUpAllowed && gps?.active && mode === 'view' ? (
+            <Tooltip
+              text={
+                !gps.headingAvailable
+                  ? 'Boussole indisponible sur cet appareil'
+                  : gps.headingUpEffective
+                    ? 'Remettre le plan nord en haut'
+                    : 'Orienter le plan selon la boussole'
+              }
+            >
+              <button
+                type="button"
+                className={`map-toolbar-pill ${gps.headingUpEffective ? 'is-on' : ''}`}
+                onClick={gps.toggleHeadingUp}
+                disabled={!gps.headingAvailable}
+                aria-pressed={!!gps.headingUpEffective}
+                aria-label={gps.headingUpEffective ? 'Désorienter la carte' : 'Orienter la carte'}
+                data-testid="map-heading-up"
+                style={{
+                  background: gps.headingUpEffective ? 'var(--forest)' : 'transparent',
+                  color: gps.headingUpEffective ? 'white' : 'var(--forest)',
+                  opacity: gps.headingAvailable ? 1 : 0.5,
+                }}
+              >
+                <IconTarget size={15} /> Orienter
+              </button>
+            </Tooltip>
+          ) : null}
           <Tooltip text="Taille du texte sur la carte (Normal / Grand / Très grand)">
             <button
               type="button"

@@ -36,6 +36,17 @@
   animation: fmBottomSheetFade var(--fm-bottom-sheet-duration) ease-out both;
 }
 
+/* Arrière-plan utilisable : la surcouche laisse passer les gestes ; seule la feuille capte. */
+.fm-bottom-sheet-overlay--pass-through {
+  background: transparent;
+  pointer-events: none;
+  animation: none;
+}
+
+.fm-bottom-sheet-overlay--pass-through .fm-bottom-sheet {
+  pointer-events: auto;
+}
+
 .fm-bottom-sheet {
   --fm-bottom-sheet-h: 55dvh;
   position: relative;

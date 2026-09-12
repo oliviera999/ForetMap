@@ -87,6 +87,23 @@ test('GET /favicon.ico sert l’icône GL sur host gl.*', async () => {
 test('GET /favicon.ico sert l’icône ForetMap par défaut', async () => {
   const res = await request(app).get('/favicon.ico').set('Host', 'foretmap.olution.info');
   assert.strictEqual(res.status, 200);
-  assert.match(String(res.headers['content-type'] || ''), /image\/(png|vnd\.microsoft\.icon)/i);
+  assert.match(
+    String(res.headers['content-type'] || ''),
+    /image\/(png|vnd\.microsoft\.icon|x-icon)/i,
+  );
   assert.ok(res.body && res.body.length > 0);
+});
+
+test('GET /favicon.ico sur host planlyautey sert la même icône que ForetMap', async () => {
+  const foret = await request(app).get('/favicon.ico').set('Host', 'foretmap.olution.info');
+  const plan = await request(app)
+    .get('/favicon.ico')
+    .set('Host', 'planlyautey.olution.info')
+    .set('X-Foretmap-Product', 'plan');
+  assert.strictEqual(plan.status, 200);
+  assert.match(
+    String(plan.headers['content-type'] || ''),
+    /image\/(png|vnd\.microsoft\.icon|x-icon)/i,
+  );
+  assert.deepStrictEqual(Buffer.from(plan.body), Buffer.from(foret.body));
 });

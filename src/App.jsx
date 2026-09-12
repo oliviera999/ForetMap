@@ -38,7 +38,7 @@ const PlantViewerLazy = lazy(() =>
   import('./components/foretmap-views').then((m) => ({ default: m.PlantViewer })),
 );
 const ObservationNotebookLazy = lazy(() =>
-  import('./components/foretmap-views').then((m) => ({ default: m.ObservationNotebook })),
+  import('./components/journal/UserJournalView.jsx').then((m) => ({ default: m.UserJournalView })),
 );
 // Modale a la demande : lazy pour que foretmap-views (PlantManager/Viewer/Notebook ~52 Ko) quitte le chunk main.
 const PlantCatalogPreviewModalLazy = lazy(() =>
@@ -71,7 +71,13 @@ const VisitMascotPackManagerLazy = lazy(() => import('./components/VisitMascotPa
 const MASCOT_PACK_LOADER_STYLE = { padding: '24px 16px', minHeight: 120 };
 import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
 import { visibleMapsForScope } from './utils/appMapScope';
-import { canManagePedagoContent, resolveParticipationFlag } from './utils/appAccess';
+import {
+  canManagePedagoContent,
+  isClassTeacherRole,
+  isVisitorLikeRole,
+  resolveParticipationFlag,
+  shouldUseTeacherChrome,
+} from './utils/appAccess';
 import { DEFAULT_USER_LABEL, formatFullName, resolveSessionDisplayName } from './utils/appIdentity';
 import { getContentText } from './utils/content';
 import {
@@ -79,6 +85,8 @@ import {
   safeLocalStorageSetItem,
 } from './shared/platform/browserStorage.js';
 import { saveVisitMascotPreference } from './services/visitMascotPreference.js';
+import { saveDiscoveryTourSeen } from './services/discoveryTourSeen.js';
+import { mergeDiscoveryTourSeenMaps } from './shared/tour/mergeDiscoveryTourSeenMaps.js';
 import { useOverlayHistoryBack } from './shared/platform/useOverlayHistoryBack';
 import { abandonAllOverlays, pushOverlayClose } from './shared/platform/overlayHistory';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
@@ -142,6 +150,9 @@ function App() {
   const [showPin, setShowPin] = useState(false);
   const [showPublicVisit, setShowPublicVisit] = useState(false);
   const [guestVisitNeedsMascotChoice, setGuestVisitNeedsMascotChoice] = useState(false);
+  /** Progression des visites guidées liée au compte (null = pas encore hydratée). */
+  const [discoveryTourSeen, setDiscoveryTourSeen] = useState(null);
+  const [discoveryTourSeenReady, setDiscoveryTourSeenReady] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [tab, setTab] = useState(() => readStoredTab());
@@ -206,7 +217,12 @@ function App() {
       activePerms = activePermsRaw.filter((perm) => !String(perm).startsWith('admin.'));
     }
     const canUseTeacherUi = activePerms.includes('teacher.access');
-    const effectiveIsTeacher = canUseTeacherUi && roleViewMode !== 'student';
+    // Prof de classe : teacher.access pour l'API, mais chrome apprenant (pas TeacherTopTabs).
+    const effectiveIsTeacher = shouldUseTeacherChrome({
+      roleSlug,
+      hasTeacherAccess: canUseTeacherUi,
+      roleViewMode,
+    });
     return {
       roleSlug,
       activePerms,
@@ -294,13 +310,28 @@ function App() {
     [sessionUser, student, persistVisitMascotPreference],
   );
 
+  /** Marque un parcours vu côté compte (merge serveur) ; le cache local est déjà à jour. */
+  const persistDiscoveryTourSeen = useCallback((tabKey) => {
+    if (!tabKey) return;
+    setDiscoveryTourSeen((prev) => mergeDiscoveryTourSeenMaps(prev, { [tabKey]: true }));
+    void saveDiscoveryTourSeen({ [tabKey]: true })
+      .then((serverSeen) => {
+        if (serverSeen && typeof serverSeen === 'object') {
+          setDiscoveryTourSeen((prev) => mergeDiscoveryTourSeenMaps(prev, serverSeen));
+        }
+      })
+      .catch(() => {
+        /* best-effort : le prochain /me réalignera */
+      });
+  }, []);
+
   // D3 — cycle de vie session (restauration, /api/auth/me, impersonation admin, logout forcé).
   const {
-    forceLogout,
+    forceLogout: forceLogoutBase,
     updateStudentSession,
     handleAdminImpersonationApplied,
     stopAdminImpersonation,
-    mergeAuthMeResponse,
+    mergeAuthMeResponse: mergeAuthMeResponseBase,
     validateStudentSession,
   } = useAuthSession({
     studentRef,
@@ -316,6 +347,23 @@ function App() {
     setShowProfile,
   });
 
+  const mergeAuthMeResponse = useCallback(
+    (d, opts = {}) => {
+      mergeAuthMeResponseBase(d, opts);
+      if (!d || typeof d !== 'object' || !d.auth) return;
+      const fromServer =
+        d.discoveryTourSeen && typeof d.discoveryTourSeen === 'object' ? d.discoveryTourSeen : {};
+      setDiscoveryTourSeen((prev) => mergeDiscoveryTourSeenMaps(prev, fromServer));
+      setDiscoveryTourSeenReady(true);
+    },
+    [mergeAuthMeResponseBase],
+  );
+
+  const forceLogout = useCallback(() => {
+    setDiscoveryTourSeen(null);
+    setDiscoveryTourSeenReady(false);
+    forceLogoutBase();
+  }, [forceLogoutBase]);
   /* Les deux écouteurs de useSessionWindowSync posent déjà authClaims de façon cohérente
      (null à l'expiration, claims relus au changement de session) : le setIsTeacher legacy
      devient un no-op, isTeacher étant dérivé d'authClaims. */
@@ -533,8 +581,20 @@ function App() {
     'app.footer_version_prefix',
     'Version',
   );
-  const isVisitor = effectiveRoleContext.roleSlug === 'visiteur';
+  const isVisitor = isVisitorLikeRole(effectiveRoleContext.roleSlug);
+  const isClassTeacher = isClassTeacherRole(effectiveRoleContext.roleSlug);
   const canAccessStudentMapTasks = !isVisitor;
+  const canAccessTutorials =
+    publicSettings?.modules?.tutorials_enabled !== false && (canAccessStudentMapTasks || isVisitor);
+  const canAccessProfiles =
+    hasPermissionInRole('admin.roles.manage') ||
+    hasPermissionInRole('admin.users.assign_roles') ||
+    hasPermissionInRole('stats.export') ||
+    hasPermissionInRole('students.import') ||
+    hasPermissionInRole('students.delete') ||
+    hasPermissionInRole('users.create') ||
+    hasPermissionInRole('groups.manage') ||
+    hasPermissionInRole('groups.read');
   /** Met à jour le filtre lieu du volet Tâches (sans changer d’onglet). */
   const handleMapLocationTasksFocus = useCallback((focus) => {
     setTasksLocationFocus(focus);
@@ -580,13 +640,13 @@ function App() {
   const canViewOtherUsersIdentity = !isVisitor;
   const isPreviewStudentView = !!previewStudent;
   const profileTargetUserId = useMemo(() => {
-    if (effectiveIsTeacher) return sessionUser?.id || authClaims?.userId || null;
+    if (effectiveIsTeacher || isTeacher) return sessionUser?.id || authClaims?.userId || null;
     return student?.id || null;
-  }, [authClaims?.userId, effectiveIsTeacher, sessionUser?.id, student?.id]);
+  }, [authClaims?.userId, effectiveIsTeacher, isTeacher, sessionUser?.id, student?.id]);
   const canOpenUserDialogs = !!profileTargetUserId && !isPreviewStudentView;
   const profileTargetUser = useMemo(() => {
     if (!canOpenUserDialogs) return null;
-    if (!effectiveIsTeacher && student) return student;
+    if (!effectiveIsTeacher && !isTeacher && student) return student;
     const fallbackName = resolveSessionDisplayName(
       sessionUser?.displayName,
       authClaims?.roleDisplayName,
@@ -614,6 +674,7 @@ function App() {
     authClaims?.userType,
     canOpenUserDialogs,
     effectiveIsTeacher,
+    isTeacher,
     profileTargetUserId,
     sessionUser?.avatar_path,
     sessionUser?.displayName,
@@ -624,7 +685,9 @@ function App() {
     student,
   ]);
   const canOpenTeacherStatsFromBadge =
-    effectiveIsTeacher && publicSettings?.modules?.stats_enabled !== false && canReadStats;
+    (effectiveIsTeacher || isClassTeacher) &&
+    publicSettings?.modules?.stats_enabled !== false &&
+    canReadStats;
   const canViewGeneralStats = publicSettings?.modules?.stats_enabled !== false && canReadStats;
   const canSwitchToStudentView =
     isTeacher &&
@@ -683,13 +746,13 @@ function App() {
   /** Profil enregistré : la session prof et la session élève ne se mettent pas à jour pareil. */
   const handleProfileUpdated = useCallback(
     (updated) => {
-      if (effectiveIsTeacher) {
+      if (isTeacher || String(sessionUser?.userType || '').toLowerCase() === 'teacher') {
         updateTeacherSession(updated);
         return;
       }
       updateStudentSession(updated);
     },
-    [effectiveIsTeacher, updateStudentSession, updateTeacherSession],
+    [isTeacher, sessionUser?.userType, updateStudentSession, updateTeacherSession],
   );
 
   /** Bascule de vue rôle (natif / élève / prof) : réinitialise onglet et dialogues. */
@@ -724,8 +787,14 @@ function App() {
       }
       const claims = getAuthClaims();
       setAuthClaims(claims);
+      const fromServer =
+        session?.discoveryTourSeen && typeof session.discoveryTourSeen === 'object'
+          ? session.discoveryTourSeen
+          : {};
+      setDiscoveryTourSeen(fromServer);
+      setDiscoveryTourSeenReady(true);
       const roleSlug = String(claims?.roleSlug || '').toLowerCase();
-      if (userType !== 'teacher' && roleSlug === 'visiteur') {
+      if (isVisitorLikeRole(roleSlug)) {
         const visitOk = publicSettings?.modules?.visit_enabled !== false;
         setTab(visitOk ? 'visit' : 'plants');
       }
@@ -749,6 +818,8 @@ function App() {
     setStudent(null);
     setSessionUser(null);
     setAuthClaims(null);
+    setDiscoveryTourSeen(null);
+    setDiscoveryTourSeenReady(false);
   }, [studentRef]);
 
   useOverlayHistoryBack(showStats && canOpenUserDialogs, handleCloseStatsDialog);
@@ -861,6 +932,7 @@ function App() {
     setPlants,
     setMarkers,
     pauseDataRefreshRef: pauseDataRefreshForTaskOverlaysRef,
+    allowWebsocket: publicSettings?.realtime?.allow_websocket === true,
   });
   const teacherSyncStatus = effectiveIsTeacher
     ? rtStatus === 'off'
@@ -878,6 +950,8 @@ function App() {
     shouldUseDesktopSplit,
     canAccessForum,
     canViewGeneralStats,
+    canAccessProfiles,
+    canAccessTutorials,
     modules: publicSettings?.modules,
   });
 
@@ -1044,6 +1118,9 @@ function App() {
               tab={tab}
               isTeacher={effectiveIsTeacher}
               enabled={discoveryTourAutoEnabled}
+              accountSeen={discoveryTourSeen}
+              accountSeenReady={discoveryTourSeenReady}
+              onTourSeen={persistDiscoveryTourSeen}
             >
               <div
                 id="app"
@@ -1470,12 +1547,24 @@ function App() {
                               <TeacherStatsLazy />
                             </TabSuspense>
                           )}
+                          {tab === 'profiles' && canAccessProfiles && (
+                            <TabSuspense>
+                              <ProfilesAdminViewLazy
+                                maps={maps}
+                                onImpersonationApplied={handleAdminImpersonationApplied}
+                              />
+                            </TabSuspense>
+                          )}
                           {publicSettings?.modules?.observations_enabled !== false &&
-                            tab === 'notebook' && (
+                            tab === 'notebook' &&
+                            (studentForUi?.id || sessionUser?.id || authClaims?.userId) && (
                               <TabSuspense>
                                 <ObservationNotebookLazy
-                                  student={studentForUi}
+                                  zones={zones}
                                   onForceLogout={forceLogout}
+                                  onNavigateTab={(nav) => {
+                                    if (nav?.tab) setTab(nav.tab);
+                                  }}
                                 />
                               </TabSuspense>
                             )}
@@ -1519,8 +1608,11 @@ function App() {
                       isVisitor={isVisitor}
                       shouldUseDesktopSplit={shouldUseDesktopSplit}
                       tutorialsModuleEnabled={tutorialsModuleEnabled}
+                      canAccessTutorials={canAccessTutorials}
                       studentActiveAssignedTasksCount={studentActiveAssignedTasksCount}
                       canViewGeneralStats={canViewGeneralStats}
+                      canAccessProfiles={canAccessProfiles}
+                      profilesLabel={isClassTeacher ? 'Classe' : 'Profils'}
                       observationsEnabled={publicSettings?.modules?.observations_enabled !== false}
                       visitEnabled={publicSettings?.modules?.visit_enabled !== false}
                       canAccessForum={canAccessForum}

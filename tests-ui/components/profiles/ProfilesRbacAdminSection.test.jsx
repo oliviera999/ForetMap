@@ -20,23 +20,18 @@ const CATALOG = [
   { key: 'stats.read.all', label: 'Lire toutes les stats' },
 ];
 
-const USERS = [{ user_type: 'student', id: 11, display_name: 'Léa Martin', role_id: 2 }];
-
 function setup(overrides = {}) {
   const props = {
     roles: ROLES,
     catalog: CATALOG,
-    users: USERS,
     loading: false,
     roleTerms: { studentSingular: 'n3beur', studentPlural: 'n3beurs' },
     selectedRole: ROLES[1],
     selectedRoleId: 2,
     canEditRoleDefinition: true,
-    isAdmin: true,
     isN3beurTier: true,
     progressionByTasksEnabled: true,
     tasksProposeEntry: ROLES[1].permissions[0],
-    editUserLoadState: 'idle',
     onCreateRole: vi.fn(),
     onSelectRole: vi.fn(),
     onReorderRole: vi.fn(),
@@ -49,8 +44,6 @@ function setup(overrides = {}) {
     onSetForumParticipate: vi.fn(),
     onSetContextCommentParticipate: vi.fn(),
     onSaveMaxConcurrent: vi.fn(),
-    onAssignRole: vi.fn(),
-    onOpenEditUser: vi.fn(),
     ...overrides,
   };
   render(<ProfilesRbacAdminSection {...props} />);
@@ -58,13 +51,14 @@ function setup(overrides = {}) {
 }
 
 describe('ProfilesRbacAdminSection', () => {
-  test('rend la liste des profils, la config rapide, les permissions et l’attribution', () => {
+  test('rend la liste des profils, la config rapide et les permissions (sans attribution)', () => {
     setup();
     expect(screen.getByRole('button', { name: '🛡️ Admin' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Emoji pour le profil Novice')).toBeInTheDocument(); // config rapide
+    expect(screen.getByLabelText('Emoji pour le profil Novice')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Permissions' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Attribution des profils' })).toBeInTheDocument();
-    expect(screen.getByText('Léa Martin')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Attribution des profils' }),
+    ).not.toBeInTheDocument();
   });
 
   test('les champs d’édition sont initialisés depuis le profil sélectionné (useRoleEditFields)', () => {
@@ -77,8 +71,6 @@ describe('ProfilesRbacAdminSection', () => {
     expect(screen.getByText('Choisis un profil dans la liste.')).toBeInTheDocument();
     expect(screen.queryByLabelText(/Emoji pour le profil/)).not.toBeInTheDocument();
     expect(screen.queryByText('Proposer des tâches')).not.toBeInTheDocument();
-    // L'attribution reste affichée
-    expect(screen.getByRole('heading', { name: 'Attribution des profils' })).toBeInTheDocument();
   });
 
   test('handlers de la liste des profils câblés (sélection, création)', () => {
@@ -106,7 +98,6 @@ describe('ProfilesRbacAdminSection', () => {
 
   test('isN3beurTier masque tasks.propose dans les lignes de permissions (géré côté progression)', () => {
     setup();
-    // tasks.propose est masqué dans le tableau générique, stats.read.all visible
     expect(screen.getByText('Lire toutes les stats')).toBeInTheDocument();
   });
 });

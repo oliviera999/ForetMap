@@ -15,6 +15,7 @@ import {
   northOffsetFromProjection,
   screenHeadingDeg,
 } from './positionGeometry.js';
+import { smoothHeadingDeg } from './pctMapOrientation.js';
 
 /**
  * Position de la personne sur une carte « % image » — noyau carte partagé (lot 6 du plan de
@@ -178,6 +179,16 @@ export function useMapPosition({
     [deviceHeading, georefState],
   );
 
+  const [smoothedScreenHeading, setSmoothedScreenHeading] = useState(null);
+  useEffect(() => {
+    if (!active) {
+      setSmoothedScreenHeading(null);
+      return undefined;
+    }
+    setSmoothedScreenHeading((prev) => smoothHeadingDeg(prev, screenHeading, 0.28));
+    return undefined;
+  }, [active, screenHeading]);
+
   return {
     supported: geo.supported,
     available,
@@ -197,6 +208,10 @@ export function useMapPosition({
     haloPct: projected?.haloPct || 0,
     headingDeg: deviceHeading,
     screenHeadingDeg: screenHeading,
+    /** Cap écran lissé (heading-up) ; `null` sans boussole. */
+    smoothedScreenHeadingDeg: smoothedScreenHeading,
+    /** Cap exploitable pour l'orientation de la carte. */
+    headingAvailable: smoothedScreenHeading != null || screenHeading != null,
     planSize: georefState?.planSize || null,
     toggle,
     stop,

@@ -32,8 +32,10 @@ function StudentImportPanel({ roleTerms, canImport, setErr, setMsg, onImported }
         dryRun,
       });
       setReport(result.report || null);
-      if ((result.report?.totals?.created || 0) > 0) {
-        setMsg(`${result.report.totals.created} ${roleTerms.studentSingular}(s) créé(s)`);
+      if ((result.report?.totals?.created || 0) > 0 || (result.report?.totals?.updated || 0) > 0) {
+        const created = result.report.totals.created || 0;
+        const updated = result.report.totals.updated || 0;
+        setMsg(`${created} créé(s), ${updated} mis à jour`);
       } else if (dryRun) {
         setMsg('Simulation terminée');
       } else {
@@ -56,16 +58,25 @@ function StudentImportPanel({ roleTerms, canImport, setErr, setMsg, onImported }
         marginTop: 12,
         opacity: canImport ? 1 : 0.65,
       }}
-      title={`Import ${roleTerms.studentPlural} (CSV / XLSX)`}
+      title={`Import comptes (${roleTerms.studentPlural} et enseignants)`}
       titleStyle={{ margin: '0 0 8px', fontSize: 'var(--text-base)', color: 'var(--forest)' }}
       intro={
         <>
           <p style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
-            Téléchargez un modèle vierge, complétez-le puis importez le fichier.
+            Téléchargez le modèle (rôles + rattachements à une ou plusieurs classes / sous-groupes),
+            complétez-le puis importez. Colonne Groupes : plusieurs noms ou slugs séparés par{' '}
+            <code>|</code> ou <code>;</code>, chemins <code>Parent&gt;Enfant</code> (création
+            automatique si absents). Une même personne sur plusieurs lignes est fusionnée (groupes
+            cumulés ; dernière ligne pour le reste) — un message d&apos;info le signale. Un compte
+            déjà présent (même prénom, nom et type) est <strong>mis à jour</strong> par défaut ;
+            réglable dans Réglages → Imports de comptes (ignorer, ou autoriser des mots de passe
+            courts).
           </p>
           <p style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: '#9a3412' }}>
-            Le modèle contient une ligne d&apos;exemple: pensez à la remplacer ou la supprimer avant
-            l&apos;import.
+            Remplacez ou supprimez les lignes d&apos;exemple avant l&apos;import. Les e-mails du
+            fichier ne sont pas limités aux domaines Google / Moodle de l&apos;établissement. À la
+            mise à jour, un mot de passe vide dans le fichier laisse le mot de passe actuel
+            inchangé.
           </p>
         </>
       }
@@ -106,7 +117,11 @@ function StudentImportPanel({ roleTerms, canImport, setErr, setMsg, onImported }
         <>
           Reçus: <strong>{report.totals?.received || 0}</strong> · Valides:{' '}
           <strong>{report.totals?.valid || 0}</strong> · Créés:{' '}
-          <strong>{report.totals?.created || 0}</strong> · Déjà existants:{' '}
+          <strong>{report.totals?.created || 0}</strong> · Mis à jour:{' '}
+          <strong>{report.totals?.updated || 0}</strong> · Groupes créés:{' '}
+          <strong>{report.totals?.groups_created || 0}</strong> · Rattachements:{' '}
+          <strong>{report.totals?.groups_attached || 0}</strong> · Doublons fusionnés:{' '}
+          <strong>{report.totals?.merged_duplicates || 0}</strong> · Ignorés (déjà là):{' '}
           <strong>{report.totals?.skipped_existing || 0}</strong> · Invalides:{' '}
           <strong>{report.totals?.skipped_invalid || 0}</strong>
         </>

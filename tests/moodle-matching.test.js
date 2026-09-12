@@ -55,8 +55,8 @@ test('normalizePersonName : accents, casse, tirets et espaces multiples', () => 
   assert.strictEqual(normalizePersonName('', ''), '');
 });
 
-test('runUpstreamChecks : e-mail absent, domaine interdit, doublon → bloquants', () => {
-  const { errors } = runUpstreamChecks({
+test('runUpstreamChecks : e-mail absent, domaine interdit, doublon → laissés de côté', () => {
+  const { skips } = runUpstreamChecks({
     members: [
       { id: 1, email: 'a@lyautey.ma' },
       { id: 2, email: '' },
@@ -66,10 +66,34 @@ test('runUpstreamChecks : e-mail absent, domaine interdit, doublon → bloquants
     ],
     emailDomains: ['lyautey.ma'],
   });
-  assert.deepStrictEqual(errors.map((e) => e.code).sort(), [
+  assert.deepStrictEqual(skips.map((e) => e.code).sort(), [
+    'duplicate_email',
     'duplicate_email',
     'email_domain_not_allowed',
     'member_without_email',
+  ]);
+});
+
+test('runUpstreamChecks : membre déjà lié sans e-mail → pas écarté', () => {
+  const { skips } = runUpstreamChecks({
+    members: [{ id: 9, email: '', username: 'deja' }],
+    linkedExternalIds: new Set(['9']),
+  });
+  assert.deepStrictEqual(skips, []);
+});
+
+test('runUpstreamChecks : déjà lié + doublon / domaine → le lié reste, l’autre est écarté', () => {
+  const { skips } = runUpstreamChecks({
+    members: [
+      { id: 10, email: 'a@lyautey.ma', username: 'lie' },
+      { id: 11, email: 'A@Lyautey.ma', username: 'fantome' },
+      { id: 12, email: 'perso@gmail.com', username: 'hors-domaine' },
+    ],
+    emailDomains: ['lyautey.ma'],
+    linkedExternalIds: new Set(['10', '12']),
+  });
+  assert.deepStrictEqual(skips.map((s) => `${s.code}:${s.externalId}`).sort(), [
+    'duplicate_email:11',
   ]);
 });
 

@@ -160,6 +160,20 @@ describe('BottomSheet', () => {
     expect(dialog.getAttribute('data-snap')).toBe('half');
     expect(screen.getByText('Contenu')).toBeTruthy();
     expect(dialog.querySelector('.fm-bottom-sheet__handle')).toBeTruthy();
+    expect(sibling.hasAttribute('inert')).toBe(true);
+  });
+
+  test('blockBackground=false : pas d’inert, surcouche pass-through, aria-modal false', () => {
+    renderSheet({ blockBackground: false });
+    const dialog = screen.getByRole('dialog', { name: 'Filtres' });
+    expect(dialog.getAttribute('aria-modal')).toBe('false');
+    expect(dialog.getAttribute('data-block-background')).toBe('false');
+    expect(sibling.hasAttribute('inert')).toBe(false);
+    expect(
+      screen
+        .getByTestId('sheet-overlay')
+        .classList.contains('fm-bottom-sheet-overlay--pass-through'),
+    ).toBe(true);
   });
 
   test('ariaLabel prime sur le titre ; closeLabel nomme le bouton de fermeture', () => {
