@@ -259,10 +259,9 @@ un **document PDF joint**, affiché tel quel.
 
 - Un tutoriel se **relie** aux tâches et aux zones/repères concernés : l'élève le trouve
   directement depuis la tâche ou le lieu. Depuis la fiche d'un lieu, la liste propose
-  **tous** les tutoriels actifs pas déjà liés à ce lieu — y compris ceux rattachés à une
-  **autre carte**. Dans ce cas, le libellé indique « autre carte — bascule ici » : lier
-  le tutoriel le rattache à ce lieu et **retire** ses liens sur l'autre carte (un tutoriel
-  ne peut pas mélanger deux cartes, comme une tâche).
+  **tous** les tutoriels actifs pas déjà liés à ce lieu. Un même tutoriel peut être
+  rattaché à des lieux sur **plusieurs cartes** à la fois (forêt et N3, par exemple) —
+  lier sur une carte n'enlève rien sur les autres.
 - **Accusé de lecture** : l'élève confirme « j'ai lu et compris » ; l'application retient
   ses lectures.
 - Le professeur crée, modifie, réordonne et retire les fiches (un retrait les masque sans

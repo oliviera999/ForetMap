@@ -1,4 +1,4 @@
-import { LocationTutorialPreviewList, tutorialAssignOptionLabel } from './mapModalShared.jsx';
+import { LocationTutorialPreviewList } from './mapModalShared.jsx';
 import { IconLink } from '../../shared/icons.jsx';
 
 /**
@@ -12,7 +12,6 @@ import { IconLink } from '../../shared/icons.jsx';
 /** Vue enseignant : liste des tutoriels liés (directs + via tâches) + formulaire de liaison. */
 export function ZoneTutorialsTeacherPanel({
   locationKind = 'zone',
-  mapId = null,
   linkedTutorialsDirect,
   tutorialsOnlyViaTasks,
   assignableTutorials,
@@ -88,7 +87,7 @@ export function ZoneTutorialsTeacherPanel({
           <option value="">— Choisir un tutoriel —</option>
           {assignableTutorials.map((tu) => (
             <option key={tu.id} value={String(tu.id)}>
-              {tutorialAssignOptionLabel(tu, mapId)}
+              {tu.title}
             </option>
           ))}
         </select>
@@ -100,8 +99,8 @@ export function ZoneTutorialsTeacherPanel({
             lineHeight: 'var(--lh-normal)',
           }}
         >
-          Tu peux lier plusieurs tutoriels en répétant l’opération pour chaque fiche. Un tutoriel
-          déjà rattaché à une autre carte bascule ici (ses lieux de l’autre carte sont retirés).
+          Tu peux lier plusieurs tutoriels en répétant l’opération pour chaque fiche. Un même
+          tutoriel peut être rattaché à des lieux sur plusieurs cartes.
         </p>
       </div>
       <button

@@ -9,10 +9,9 @@ import {
 } from '../../utils/taskListHelpers.js';
 import {
   focusMapIdForLocationFilter,
+  tutorialLocationIdsAfterLink,
   tutorialLocationIdsAfterUnlink,
 } from '../../utils/taskLocationPicker.js';
-import { tutorialLocationIdsForLinkOnMap } from '../../utils/mapLocationContext.js';
-import { tutorialAssignOptionLabel } from '../map/mapModalShared.jsx';
 import { IconGlossary, IconLink, IconTuto } from '../../shared/icons.jsx';
 
 /**
@@ -67,14 +66,7 @@ export function TaskTutorialsAtFocusBlock({
       withLoad(`tuto-link-${tutorialId}`, async () => {
         const tu = (tutorials || []).find((x) => Number(x.id) === Number(tutorialId));
         if (!tu || !filterZone) return;
-        const [kind, rawId] = String(filterZone).split(':');
-        if ((kind !== 'zone' && kind !== 'marker') || !rawId) return;
-        const { zoneIds, markerIds } = tutorialLocationIdsForLinkOnMap(
-          tu,
-          kind,
-          rawId,
-          focusMapIdForTutorials,
-        );
+        const { zoneIds, markerIds } = tutorialLocationIdsAfterLink(tu, filterZone);
         await api(`/api/tutorials/${tutorialId}`, 'PUT', {
           zone_ids: zoneIds,
           marker_ids: markerIds,
@@ -82,7 +74,7 @@ export function TaskTutorialsAtFocusBlock({
         setQuickTutoLinkId('');
         setToast('Tutoriel lié à ce lieu ✓');
       }),
-    [withLoad, tutorials, filterZone, focusMapIdForTutorials, setToast],
+    [withLoad, tutorials, filterZone, setToast],
   );
 
   const unlinkTutorialAtFocus = useCallback(
@@ -152,7 +144,7 @@ export function TaskTutorialsAtFocusBlock({
               <option value="">— Choisir un tutoriel —</option>
               {assignableTutorialsAtFocus.map((tu) => (
                 <option key={tu.id} value={String(tu.id)}>
-                  {tutorialAssignOptionLabel(tu, focusMapIdForTutorials)}
+                  {tu.title}
                 </option>
               ))}
             </select>

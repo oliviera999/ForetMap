@@ -1,9 +1,10 @@
 /**
  * Helpers purs du formulaire de tutoriel — extraits de `tutorials-views.jsx` (O6).
  *
- * Bascule d'un lieu coché (zones/repères, ids dédupliqués en chaînes), refiltrage des lieux
- * après changement de carte, hydratation du formulaire depuis le détail API et construction
- * du payload de sauvegarde. Transformations non-mutantes ; logique testable.
+ * Bascule d'un lieu coché (zones/repères, ids dédupliqués en chaînes), changement du filtre
+ * carte (sans retirer les lieux déjà cochés sur d'autres cartes), hydratation du formulaire
+ * depuis le détail API et construction du payload de sauvegarde. Transformations
+ * non-mutantes ; logique testable.
  */
 
 /** Ids d'une liste, normalisés en chaînes trimées, vides retirés, dédupliqués. */
@@ -24,21 +25,19 @@ export function toggleTutorialFormLocation(form, field, rawId) {
 }
 
 /**
- * Applique un changement de carte au formulaire : `map_id` mis à jour, `zone_ids`/`marker_ids`
- * réduits aux lieux existants sur la nouvelle carte (tous conservés si `nextMapId` vide).
+ * Applique un changement de filtre carte : `map_id` mis à jour. Les `zone_ids` / `marker_ids`
+ * déjà cochés sont **conservés** même s’ils appartiennent à d’autres cartes (un tutoriel peut
+ * être lié à plusieurs plans). Les ids qui ne correspondent plus à aucun lieu connu sont
+ * retirés (lieux supprimés).
  */
 export function applyTutorialFormMapChange(form, nextMapId, zones = [], markers = []) {
+  const knownZones = new Set((zones || []).map((z) => String(z.id)));
+  const knownMarkers = new Set((markers || []).map((m) => String(m.id)));
   return {
     ...form,
     map_id: nextMapId,
-    zone_ids: (form.zone_ids || []).filter((zid) => {
-      const z = zones.find((zz) => String(zz.id) === String(zid));
-      return z && (!nextMapId || z.map_id === nextMapId);
-    }),
-    marker_ids: (form.marker_ids || []).filter((mid) => {
-      const mk = markers.find((mm) => String(mm.id) === String(mid));
-      return mk && (!nextMapId || mk.map_id === nextMapId);
-    }),
+    zone_ids: (form.zone_ids || []).filter((zid) => knownZones.has(String(zid))),
+    marker_ids: (form.marker_ids || []).filter((mid) => knownMarkers.has(String(mid))),
   };
 }
 
