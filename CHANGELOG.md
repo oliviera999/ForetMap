@@ -9,6 +9,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — réseau trophique : ouverture sur la carte active
+
+- Un lien « Voir le réseau trophique » (ou l’ouverture de l’onglet) affiche le graphe
+  **filtré sur la carte active**, et non plus le réseau global « Toutes les cartes ».
+  Le filtre reste modifiable à la main.
+
+### Corrigé — carte : estompage des zones voisines à l’ouverture d’une fiche
+
+- Les styles CSS de mise en avant / estompage (carte et Visite) avaient été perdus lors
+  d’un commit ultérieur : les classes étaient bien posées, mais sans effet visible en
+  production. Restauration des règles `.map-zone-hit--selected` / `--recessed` et
+  équivalents Visite.
+
 ### Corrigé — tutoriels : texte masqué en aperçu et liste de liaison incomplète
 
 - **Aperçu** : les fiches qui cachent des blocs pour une animation au défilement
