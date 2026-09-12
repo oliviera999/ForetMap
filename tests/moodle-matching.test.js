@@ -82,6 +82,21 @@ test('runUpstreamChecks : membre déjà lié sans e-mail → pas écarté', () =
   assert.deepStrictEqual(skips, []);
 });
 
+test('runUpstreamChecks : déjà lié + doublon / domaine → le lié reste, l’autre est écarté', () => {
+  const { skips } = runUpstreamChecks({
+    members: [
+      { id: 10, email: 'a@lyautey.ma', username: 'lie' },
+      { id: 11, email: 'A@Lyautey.ma', username: 'fantome' },
+      { id: 12, email: 'perso@gmail.com', username: 'hors-domaine' },
+    ],
+    emailDomains: ['lyautey.ma'],
+    linkedExternalIds: new Set(['10', '12']),
+  });
+  assert.deepStrictEqual(skips.map((s) => `${s.code}:${s.externalId}`).sort(), [
+    'duplicate_email:11',
+  ]);
+});
+
 test('matchMembers : les quatre règles dans l’ordre', () => {
   const linked = user('u-linked', { email: 'linked@x.test', first: 'Lina', last: 'Kedd' });
   const byEmail = user('u-email', { email: 'zoe@x.test', first: 'Zoé', last: 'Martin' });

@@ -36,6 +36,9 @@ const {
   csvEscape,
   buildTemplateWorkbookRows,
   canActorImportRoleSlug,
+  canActorMutateImportedAdmin,
+  isAdminRoleSlug,
+  hasImportScalarValue,
   IMPORT_ROLE_SLUGS,
 } = require('../lib/studentRouteHelpers');
 
@@ -148,7 +151,12 @@ router.post(
     };
 
     const existingUsers = await queryAll(
-      "SELECT id, user_type, first_name, last_name, pseudo, email FROM users WHERE user_type IN ('student', 'teacher')",
+      `SELECT u.id, u.user_type, u.first_name, u.last_name, u.pseudo, u.email, r.slug AS role_slug
+         FROM users u
+         LEFT JOIN user_roles ur
+           ON ur.user_type = u.user_type AND ur.user_id = u.id AND ur.is_primary = 1
+         LEFT JOIN roles r ON r.id = ur.role_id
+        WHERE u.user_type IN ('student', 'teacher')`,
     );
     const existingByName = new Map(
       existingUsers.map((u) => [
@@ -237,6 +245,33 @@ router.post(
           error: 'Mot de passe requis',
         });
         continue;
+      }
+
+      if (existing && !canActorMutateImportedAdmin(req.auth, existing.role_slug)) {
+        report.totals.skipped_invalid += 1;
+        report.errors.push({
+          row: rowNumber,
+          field: 'role',
+          error: 'Seul un administrateur peut modifier un compte administrateur',
+        });
+        continue;
+      }
+      if (existing && isAdminRoleSlug(existing.role_slug) && !isAdminRoleSlug(payload.roleSlug)) {
+        const adminCountRow = await queryOne(
+          `SELECT COUNT(*) AS c
+             FROM user_roles ur
+             INNER JOIN roles r ON r.id = ur.role_id
+            WHERE ur.is_primary = 1 AND ur.user_type = 'teacher' AND r.slug = 'admin'`,
+        );
+        if (Number(adminCountRow?.c || 0) <= 1) {
+          report.totals.skipped_invalid += 1;
+          report.errors.push({
+            row: rowNumber,
+            field: 'role',
+            error: 'Action refusée: dernier administrateur actif',
+          });
+          continue;
+        }
       }
 
       const uniquenessErrors = [];
@@ -329,21 +364,24 @@ router.post(
 
       try {
         if (action === 'update' && existing?.id) {
-          const sets = [
-            'email = ?',
-            'pseudo = ?',
-            'description = ?',
-            'affiliation = ?',
-            'display_name = ?',
-            'updated_at = NOW()',
-          ];
-          const params = [
-            payload.email,
-            payload.pseudo,
-            payload.description,
-            payload.affiliation,
-            displayName,
-          ];
+          const sets = ['display_name = ?', 'updated_at = NOW()'];
+          const params = [displayName];
+          if (hasImportScalarValue(payload.email)) {
+            sets.push('email = ?');
+            params.push(payload.email);
+          }
+          if (hasImportScalarValue(payload.pseudo)) {
+            sets.push('pseudo = ?');
+            params.push(payload.pseudo);
+          }
+          if (hasImportScalarValue(payload.description)) {
+            sets.push('description = ?');
+            params.push(payload.description);
+          }
+          if (payload.affiliation != null) {
+            sets.push('affiliation = ?');
+            params.push(payload.affiliation);
+          }
           let passwordChanged = false;
           if (payload.password) {
             const hash = await bcrypt.hash(payload.password, 10);
