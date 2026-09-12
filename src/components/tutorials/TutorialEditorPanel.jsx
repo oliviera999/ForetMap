@@ -116,8 +116,9 @@ export function TutorialEditorPanel({
             lineHeight: 'var(--lh-normal)',
           }}
         >
-          Lieux choisis : détail dans la fiche zone ou repère ; pastille violette sur la carte si le
-          réglage « Afficher le point violet… » est activé (Réglages → Cartes & plans).
+          Filtre d’affichage seulement : les lieux déjà cochés sur d’autres cartes restent liés.
+          Pastille violette sur la carte si le réglage « Afficher le point violet… » est activé
+          (Réglages → Cartes & plans).
         </p>
       </div>
       <div className="field">

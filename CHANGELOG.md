@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — tutoriels multi-cartes sans bascule
+
+- Un tutoriel peut être lié à des zones/repères sur **plusieurs cartes** en même temps.
+  Lier sur N3 n’enlève plus les liens sur la forêt (et inversement). L’éditeur conserve
+  les lieux cochés quand on change le filtre de carte.
+
 ### Corrigé — réseau trophique : ouverture sur la carte active
 
 - Un lien « Voir le réseau trophique » (ou l’ouverture de l’onglet) affiche le graphe
@@ -30,9 +36,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   montrait tout. L’aperçu force désormais ces blocs à rester lisibles.
 - **Liaison zone / repère** : la liste proposait seulement les tutoriels sans lieu ou déjà
   sur la **même** carte — d’où l’absence de la plupart des fiches quand on travaillait sur
-  l’autre plan. Tous les tutoriels actifs non déjà liés au lieu apparaissent ; ceux d’une
-  autre carte sont signalés (« bascule ici ») et la liaison retire leurs lieux de l’autre
-  carte.
+  l’autre plan. Tous les tutoriels actifs non déjà liés au lieu apparaissent désormais
+  (et peuvent rester liés sur plusieurs cartes — voir « tutoriels multi-cartes » ci-dessus).
 
 ### Ajouté — échelle et rose des vents sur plans calés GPS
 

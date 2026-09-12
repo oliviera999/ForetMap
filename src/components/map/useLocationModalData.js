@@ -70,8 +70,7 @@ export function useLocationModalData(
   const linkedTutorialsVisible = isTeacher
     ? linkedTutorialsAll
     : linkedTutorialsAll.filter((tu) => tu.is_active !== false);
-  // Tous les actifs non déjà liés à CE lieu : un tuto d’une autre carte apparaît aussi
-  // (libellé d’avertissement dans le select) ; la liaison bascule ses lieux vers cette carte.
+  // Tous les actifs non déjà liés à CE lieu (y compris déjà présents sur d’autres cartes).
   const assignableTutorials = (tutorials || []).filter(
     (tu) =>
       tu.is_active !== false &&

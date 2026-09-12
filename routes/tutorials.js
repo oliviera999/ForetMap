@@ -126,20 +126,13 @@ function canManageTutorials(req) {
 async function validateTutorialLocations(zoneIds, markerIds) {
   const z = normalizeIdArray(zoneIds);
   const m = normalizeIdArray(markerIds);
-  const mapIds = new Set();
   for (const zid of z) {
-    const row = await queryOne('SELECT id, map_id FROM zones WHERE id = ? LIMIT 1', [zid]);
+    const row = await queryOne('SELECT id FROM zones WHERE id = ? LIMIT 1', [zid]);
     if (!row) return { error: 'Zone introuvable' };
-    mapIds.add(row.map_id);
   }
   for (const mid of m) {
-    const row = await queryOne('SELECT id, map_id FROM map_markers WHERE id = ? LIMIT 1', [mid]);
+    const row = await queryOne('SELECT id FROM map_markers WHERE id = ? LIMIT 1', [mid]);
     if (!row) return { error: 'Repère introuvable' };
-    mapIds.add(row.map_id);
-  }
-  const uniqueMaps = [...mapIds].filter(Boolean);
-  if (uniqueMaps.length > 1) {
-    return { error: 'Les zones et repères choisis doivent appartenir à la même carte' };
   }
   return { zoneIds: z, markerIds: m };
 }
