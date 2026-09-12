@@ -27,6 +27,7 @@ leurs permissions sont configurables par les administrateurs) :
 | Rôle                    | Qui c'est                                       | Ce qu'il peut faire                                                                                                                                  |
 | ----------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Visiteur**            | Compte non promu (classe sans tâches, passage…) | Essentiellement la Visite et la Biodiversité — pas d'accès à la carte de travail ni aux tâches                                                       |
+| **Personnel**           | Staff non enseignant (AED, vie scolaire…)       | Même parcours que le visiteur — Visite et Biodiversité seulement                                                                                     |
 | **n3beur novice** 🪨    | Un élève débutant (0 tâche validée)             | Consulter la carte, prendre des tâches, les marquer faites, observer des espèces, tenir son carnet, participer au forum et aux quiz                  |
 | **n3beur avancé** 🌿    | Un élève avec 5 tâches validées                 | Comme le novice (le palier récompense la progression)                                                                                                |
 | **n3beur chevronné** 🏆 | Un élève avec 10 tâches validées                | Comme l'avancé                                                                                                                                       |
@@ -119,8 +120,9 @@ masse, et programmer des **tâches récurrentes** (générées automatiquement c
   les espèces du jardin, édité par le professeur.
 - **Tutoriels** : fiches pratiques (arrosage, compostage…) liées aux tâches et zones,
   avec accusé de lecture par l'élève.
-- **Carnet d'observation** : le journal libre de l'élève (texte + photo), consultable
-  par le professeur.
+- **Carnet d'observation** : journal personnel (articles texte/photos, imports d’espèces,
+  glossaire et tutoriels appris), pour élèves, visiteurs connectés et profs de classe ;
+  consultable par les professeurs.
 
 ### La Visite (le mode grand public)
 

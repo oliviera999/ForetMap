@@ -3,6 +3,10 @@ import {
   SurfaceVisibilityField,
   normalizeSurfaceList,
 } from '../../shared/ui/SurfaceVisibilityField.jsx';
+import {
+  LocationAudienceFields,
+  normalizeAudienceRoleList,
+} from '../../shared/ui/LocationAudienceFields.jsx';
 import { api } from '../../services/api';
 import {
   MARKER_EMOJIS,
@@ -134,6 +138,13 @@ function ZoneInfoModal({
     normalizeSurfaceList(zone.hidden_surfaces),
   );
   const [searchAliases, setSearchAliases] = useState(zone.search_aliases || '');
+  const [visibleRoleSlugs, setVisibleRoleSlugs] = useState(() =>
+    normalizeAudienceRoleList(zone.visible_role_slugs),
+  );
+  const [restrictedNote, setRestrictedNote] = useState(zone.restricted_note || '');
+  const [restrictedNoteRoleSlugs, setRestrictedNoteRoleSlugs] = useState(() =>
+    normalizeAudienceRoleList(zone.restricted_note_role_slugs),
+  );
   const [linkTaskId, setLinkTaskId] = useState('');
   const [linkTutorialId, setLinkTutorialId] = useState('');
   const [selectedTaskIds, setSelectedTaskIds] = useState([]);
@@ -214,6 +225,9 @@ function ZoneInfoModal({
     setVisitDetailsText(zone.visit_details_text || '');
     setHiddenSurfaces(normalizeSurfaceList(zone.hidden_surfaces));
     setSearchAliases(zone.search_aliases || '');
+    setVisibleRoleSlugs(normalizeAudienceRoleList(zone.visible_role_slugs));
+    setRestrictedNote(zone.restricted_note || '');
+    setRestrictedNoteRoleSlugs(normalizeAudienceRoleList(zone.restricted_note_role_slugs));
   }, [
     zone.id,
     zone.name,
@@ -230,6 +244,9 @@ function ZoneInfoModal({
     zone.visit_body_json,
     zone.hidden_surfaces,
     zone.search_aliases,
+    zone.visible_role_slugs,
+    zone.restricted_note,
+    zone.restricted_note_role_slugs,
     emojiParsingList,
     markerEmojis,
   ]);
@@ -267,6 +284,9 @@ function ZoneInfoModal({
             visitDetailsText,
             hiddenSurfaces,
             searchAliases,
+            visibleRoleSlugs,
+            restrictedNote,
+            restrictedNoteRoleSlugs,
           },
           visitEditorialBlocks,
           {
@@ -419,6 +439,23 @@ function ZoneInfoModal({
               <MarkdownContent>{zone.description}</MarkdownContent>
             </div>
           )}
+          {zone.restricted_note && (
+            <div
+              style={{
+                background: '#fff7ed',
+                borderRadius: 10,
+                padding: '10px 14px',
+                marginBottom: 12,
+                border: '1px solid #fdba74',
+                fontSize: 'var(--text-sm)',
+                color: '#333',
+                lineHeight: 'var(--lh-relaxed)',
+              }}
+            >
+              <strong style={{ display: 'block', marginBottom: 6 }}>Complément réservé</strong>
+              <MarkdownContent>{zone.restricted_note}</MarkdownContent>
+            </div>
+          )}
           {showVisitAsideBlock && (
             <LocationVisitAside
               entity={zone}
@@ -456,6 +493,7 @@ function ZoneInfoModal({
             ).length === 0 &&
             livingBeingsOnlyOnTasks.length === 0 &&
             !zone.description &&
+            !zone.restricted_note &&
             !(zoneDetail.history || zone.history)?.length &&
             !showVisitAsideBlock && (
               <p
@@ -606,6 +644,15 @@ function ZoneInfoModal({
             idPrefix="zone"
             value={hiddenSurfaces}
             onChange={setHiddenSurfaces}
+          />
+          <LocationAudienceFields
+            idPrefix="zone"
+            visibleRoleSlugs={visibleRoleSlugs}
+            onVisibleRoleSlugsChange={setVisibleRoleSlugs}
+            restrictedNote={restrictedNote}
+            onRestrictedNoteChange={setRestrictedNote}
+            restrictedNoteRoleSlugs={restrictedNoteRoleSlugs}
+            onRestrictedNoteRoleSlugsChange={setRestrictedNoteRoleSlugs}
           />
           <MarkerVisitImageBuilder
             imageBlocks={imageBlocks}

@@ -4685,41 +4685,52 @@
       text-rendering:geometricPrecision;
     }
     .visit-zone-poly {
-      fill:rgba(22,163,74,.18);
+      /* Fill fourni en inline (`zone.color`) — repli CSS si absent. */
+      fill:#86efac90;
       stroke:rgba(26,71,49,.52);
       /* Trait en px écran (vector-effect) : constant au zoom et identique sur les deux axes,
          comme les contours de la carte principale (strokeWidth × inv). */
       vector-effect:non-scaling-stroke;
       stroke-width:1.5px;
       cursor:pointer;
-      transition:fill .16s ease, filter .16s ease;
+      transition:fill-opacity .16s ease, stroke .16s ease, stroke-width .16s ease;
     }
-    /* Vu / non-vu : le polygone reste vert (plan jardin) ; la pastille porte le signal. */
+    /* Vu / non-vu : couleur métier conservée ; statut = opacité + épaisseur du trait. */
     .visit-zone-poly.is-unseen {
-      fill:rgba(22,163,74,.22);
-      animation:none;
-      filter:none;
+      fill-opacity:1;
+      stroke:rgba(26,71,49,.62);
+      stroke-width:2px;
     }
     .visit-zone-poly.is-seen {
-      fill:rgba(22,163,74,.12);
-      animation:none;
-      filter:none;
+      fill-opacity:.42;
+      stroke:rgba(26,71,49,.32);
+      stroke-width:1px;
     }
-    .visit-zone-indicator {
+    .visit-zone-status {
+      fill:var(--forest, #1a4731);
+      font-weight:var(--fw-semibold);
+      opacity:0;
       pointer-events:none;
+      paint-order:stroke fill;
       stroke:#fff;
-      vector-effect:non-scaling-stroke;
-      stroke-width:1.5px;
+      stroke-width:.35;
+      transition:opacity .14s ease;
     }
-    .visit-zone-indicator.is-unseen {
-      fill:#d97706;
-      animation:visitPulseUnseen 2.2s ease-in-out infinite;
-      filter:drop-shadow(0 0 3px rgba(217,119,6,.45));
+    .visit-zone-hit:focus-visible .visit-zone-poly {
+      stroke:rgba(26,71,49,.9);
+      stroke-width:2.75px;
     }
-    .visit-zone-indicator.is-seen {
-      fill:#16a34a;
-      animation:none;
-      filter:drop-shadow(0 0 2px rgba(22,163,74,.35));
+    .visit-zone-hit:focus-visible .visit-zone-status {
+      opacity:1;
+    }
+    @media (hover: hover) {
+      .visit-zone-hit:hover .visit-zone-poly {
+        stroke:rgba(26,71,49,.9);
+        stroke-width:2.75px;
+      }
+      .visit-zone-hit:hover .visit-zone-status {
+        opacity:1;
+      }
     }
     .visit-marker-btn {
       position:absolute;
@@ -4733,7 +4744,10 @@
       flex-shrink:0;
       font-family:var(--font-emoji-stack);
       gap:var(--map-overlay-label-margin-top, 2px);
+      transition:opacity .16s ease;
     }
+    .visit-marker-btn.is-unseen { opacity:1; }
+    .visit-marker-btn.is-seen { opacity:.55; }
     .visit-marker-emoji {
       font-size:var(--map-overlay-emoji-font-size, 1.35rem);
       line-height:1;
@@ -4748,23 +4762,28 @@
       white-space:nowrap;
       pointer-events:none;
     }
-    .visit-marker-indicator {
-      /* Taille compensée par l'inverse de l'échelle monde : le rapport pastille/emoji
-         reste constant pendant le zoom (avant : pastille fixe qui grossissait avec lui). */
-      position:absolute; top:-2px; right:-2px;
-      width:calc(10px * var(--map-overlay-world-inv, 1));
-      height:calc(10px * var(--map-overlay-world-inv, 1));
-      border-radius:50%;
-      border:calc(1.5px * var(--map-overlay-world-inv, 1)) solid white;
-      box-shadow:0 1px 4px rgba(0,0,0,.18);
+    .visit-marker-status {
+      font-size:calc(0.68rem * var(--map-overlay-world-inv, 1));
+      font-weight:var(--fw-semibold);
+      color:var(--forest, #1a4731);
+      line-height:1.1;
+      opacity:0;
+      pointer-events:none;
+      text-shadow:0 0 3px #fff, 0 0 6px #fff;
+      transition:opacity .14s ease;
     }
-    .visit-marker-indicator.is-unseen {
-      background:#d97706;
-      animation:visitPulseUnseen 2.2s ease-in-out infinite;
+    .visit-marker-btn:focus-visible {
+      outline:2px solid var(--sage, #52b788);
+      outline-offset:2px;
     }
-    .visit-marker-indicator.is-seen {
-      background:#16a34a;
-      animation:none;
+    .visit-marker-btn:focus-visible .visit-marker-status {
+      opacity:1;
+    }
+    @media (hover: hover) {
+      .visit-marker-btn:hover { opacity:1; }
+      .visit-marker-btn:hover .visit-marker-status {
+        opacity:1;
+      }
     }
     /* Mascottes non-gnome : animations spécifiques marche / joie */
     .visit-map-mascot--walking .visit-map-mascot-rive-shell[data-mascot-shape="spore"] .visit-spore-cap,
@@ -5010,19 +5029,8 @@
         min-height:44px;
       }
     }
-    @keyframes visitPulseUnseen {
-      0%, 100% { opacity:1; }
-      50% { opacity:.42; }
-    }
-    /* Le pulse « pas encore vu » ne touche que les pastilles (zones + repères), pas le
-       fill des polygones. À neutraliser quand le système demande moins de mouvement :
-       la pastille ambre / verte reste le porteur d'information. */
-    @media (prefers-reduced-motion: reduce) {
-      .visit-zone-indicator.is-unseen,
-      .visit-marker-indicator.is-unseen {
-        animation:none;
-      }
-    }
+    /* (Ancien pulse pastilles vu/non-vu retiré : statut = opacité / contour + libellé
+       au survol-focus uniquement.) */
     .visit-side-card {
       background:var(--surface-1); border-radius:14px; border:1px solid var(--outline-soft);
       box-shadow:var(--shadow-soft); padding:14px;
@@ -9117,4 +9125,122 @@ header .lock-btn::after,
   font-size: var(--text-lg);
   line-height: 1;
   text-shadow: 0 0 3px #fff;
+}
+
+/* ——— Carnet utilisateur (parité Mon journal GL) ——— */
+.fm-journal {
+  display: grid;
+  gap: 14px;
+  padding: 4px 2px 24px;
+}
+.fm-journal__header h2 {
+  margin: 0 0 6px;
+}
+.fm-journal__actions,
+.fm-journal__toolbar,
+.fm-journal__article-head,
+.fm-journal__import-actions,
+.fm-journal-actions,
+.fm-learn-import {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.fm-journal__search {
+  min-width: min(100%, 220px);
+  flex: 1;
+}
+.fm-journal__feed {
+  display: grid;
+  gap: 12px;
+}
+.fm-journal__article.is-pinned,
+.fm-journal__import.is-pinned {
+  outline: 2px solid var(--leaf, #3d7a4a);
+}
+.fm-journal__article-title {
+  flex: 1;
+  min-width: 140px;
+  font-weight: 600;
+  font-size: var(--text-md, 1rem);
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.fm-journal__textarea {
+  width: 100%;
+  min-height: 160px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px;
+  font: inherit;
+  resize: vertical;
+}
+.fm-journal__preview {
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 10px;
+  background: #f8fafc;
+}
+.fm-journal__asset-thumb {
+  max-width: 120px;
+  max-height: 90px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.fm-journal__import-main {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.fm-journal__import-icon {
+  font-size: 1.4rem;
+}
+.fm-journal__import-title {
+  margin: 0;
+  font-size: var(--text-md, 1rem);
+}
+.fm-journal__import-kind {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-soft, #64748b);
+}
+.fm-journal-field {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0;
+  font-size: var(--text-sm);
+}
+.fm-journal-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.fm-journal-markdown .journal-embed,
+.fm-journal-markdown .gl-journal-embed {
+  display: block;
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--leaf, #3d7a4a);
+  background: #f0fdf4;
+  border-radius: 0 8px 8px 0;
+  font-size: var(--text-sm);
+}
+.fm-journal-markdown .journal-embed::before,
+.fm-journal-markdown .gl-journal-embed::before {
+  content: attr(data-journal-title, attr(data-gl-title, 'Élément'));
+  font-weight: 600;
+}
+.fm-journal-import__done {
+  font-size: var(--text-sm);
+  color: var(--forest, #1f4d2e);
+}
+.fm-journal-read-list {
+  display: grid;
+  gap: 16px;
+  max-height: min(60vh, 520px);
+  overflow: auto;
 }

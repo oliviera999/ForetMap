@@ -274,6 +274,44 @@ test('supprimer une catégorie détache les lieux et réaligne le miroir', async
   assert.strictEqual(Number(after.special), 0);
 });
 
+test('PUT /api/map-categories/reorder met à jour sort_order pour toutes les catégories', async () => {
+  const a = await createCategory({ label: 'Ordre A ' + Date.now(), sort_order: 50 });
+  const b = await createCategory({ label: 'Ordre B ' + Date.now(), sort_order: 60 });
+  const all = await auth(request(app).get('/api/map-categories/manage')).expect(200);
+  const ids = all.body.map((c) => c.id);
+  // Place b juste avant a dans la liste complète.
+  const idxA = ids.indexOf(a.id);
+  const idxB = ids.indexOf(b.id);
+  assert.ok(idxA >= 0 && idxB >= 0);
+  const reordered = ids.filter((id) => id !== a.id && id !== b.id);
+  reordered.splice(0, 0, b.id, a.id);
+
+  await auth(request(app).put('/api/map-categories/reorder'))
+    .send({ category_ids: reordered })
+    .expect(200);
+
+  const rowB = await queryOne('SELECT sort_order FROM location_categories WHERE id = ?', [b.id]);
+  const rowA = await queryOne('SELECT sort_order FROM location_categories WHERE id = ?', [a.id]);
+  assert.strictEqual(Number(rowB.sort_order), 0);
+  assert.strictEqual(Number(rowA.sort_order), 1);
+});
+
+test('PUT /api/map-categories/reorder refuse une liste incomplète ou invalide', async () => {
+  await auth(request(app).put('/api/map-categories/reorder'))
+    .send({ category_ids: [] })
+    .expect(400);
+  await auth(request(app).put('/api/map-categories/reorder'))
+    .send({ category_ids: ['cat-infrastructure', 'cat-infrastructure'] })
+    .expect(400);
+  await auth(request(app).put('/api/map-categories/reorder'))
+    .send({ category_ids: ['cat-infrastructure', 'id-inexistant'] })
+    .expect(400);
+  await request(app)
+    .put('/api/map-categories/reorder')
+    .send({ category_ids: ['cat-infrastructure'] })
+    .expect(401);
+});
+
 test('PUT/DELETE sur une catégorie inconnue → 404', async () => {
   await auth(request(app).put('/api/map-categories/inconnue')).send({ label: 'X' }).expect(404);
   await auth(request(app).delete('/api/map-categories/inconnue')).expect(404);

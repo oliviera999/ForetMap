@@ -58,6 +58,7 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
         'eleve_avance',
         'eleve_chevronne',
         'eleve_novice',
+        'personnel',
         'prof',
         'prof_classe',
         'visiteur',
@@ -107,6 +108,8 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.equal(normalizeImportRoleSlug(null), 'eleve_novice');
     assert.equal(normalizeImportRoleSlug('eleve'), 'eleve_novice');
     assert.equal(normalizeImportRoleSlug('visiteur'), 'visiteur');
+    assert.equal(normalizeImportRoleSlug('personnel'), 'personnel');
+    assert.equal(normalizeImportRoleSlug('staff'), 'personnel');
     assert.equal(normalizeImportRoleSlug('eleve_avance'), 'eleve_avance');
     assert.equal(normalizeImportRoleSlug('chevronné'), 'eleve_chevronne');
     assert.equal(normalizeImportRoleSlug('prof_classe'), 'prof_classe');
@@ -117,6 +120,7 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.equal(normalizeImportUserType('eleve'), 'student');
     assert.equal(userTypeForImportRoleSlug('admin'), 'teacher');
     assert.equal(userTypeForImportRoleSlug('visiteur'), 'student');
+    assert.equal(userTypeForImportRoleSlug('personnel'), 'student');
   });
 
   it('canActorImportRoleSlug : anti-escalade', () => {

@@ -180,17 +180,29 @@ d'observation** pour l'écriture naturaliste libre.
 
 ## Le Carnet d'observation
 
-- **L'élève** tient un journal libre : une observation = un texte, une photo
-  éventuelle, un lieu (zone) ou un groupe. C'est son espace d'écriture naturaliste,
-  indépendant des tâches.
-- **Le professeur** consulte les carnets de ses élèves (panneau dédié dans les
-  statistiques) — la lecture du carnet d'un élève est réservée à son propriétaire et
-  aux professeurs.
-- Chaque action sur le carnet (écrire, supprimer) est faite au nom du compte connecté,
-  vérifié par le serveur : un élève ne peut pas toucher au carnet d'un camarade.
-- L'affichage d'un carnet montre les **500 observations les plus récentes**. C'est une
-  borne de lecture, pas une suppression : rien n'est perdu en base. Un carnet dépasse
-  rarement quelques dizaines d'entrées sur une année scolaire.
+- **Qui peut tenir un carnet** : l’élève, le **visiteur connecté** et le **prof de classe**
+  (chacun le sien). La visite anonyme sans compte n’a pas de carnet.
+- **Articles** : texte enrichi (titres, listes, liens…), une ou plusieurs photos, titre
+  optionnel, et éventuellement une **zone** de la forêt. L’enregistrement est automatique
+  pendant la saisie. On peut épingler un article, rechercher, filtrer (articles / imports)
+  et trier le fil.
+- **Imports** : depuis une fiche espèce, un terme du glossaire ou un tutoriel, après l’avoir
+  marqué comme appris / découvert / lu, on peut l’**ajouter au carnet**. Il apparaît dans le
+  même fil, avec un lien pour le rouvrir.
+- **Encarts** : dans un article, on peut aussi coller un rappel vers une espèce, un terme, un
+  tutoriel ou un module de l’application.
+- **Le professeur** consulte les carnets (panneau dans les statistiques) : aperçu du texte
+  enrichi, ouverture du carnet complet, export en fichier texte. La lecture d’un carnet est
+  réservée à son propriétaire et aux professeurs selon leur périmètre (groupe ou global).
+- Chaque action est faite au nom du compte connecté : on ne peut pas modifier le carnet d’un
+  camarade.
+- L’affichage côté propriétaire charge l’ensemble du carnet ; la vue groupe des professeurs
+  montre les **100 articles les plus récents** du périmètre (borne de lecture, pas une
+  suppression).
+
+> ⚠️ **Point d'attention** — Ces modules sont **activables/désactivables** dans les
+> réglages (quiz, tutoriels, carnet, forum…). Si un onglet manque, vérifier d’abord les
+> réglages des modules.
 
 ## Les Tutoriels
 
@@ -198,10 +210,6 @@ Les fiches pratiques (arrosage, compostage…) sont décrites avec les tâches, 
 y sont liées : voir [Tâches, tutoriels et validation](taches-tutoriels-et-validation.md).
 
 ## ⚠️ Points d'attention
-
-> ⚠️ **Point d'attention** — Ces modules sont **activables/désactivables** dans les
-> réglages (quiz, tutoriels, observations, forum…). Si un onglet manque chez un élève,
-> vérifier d'abord les réglages des modules avant de chercher un problème.
 
 > ⚠️ **Point d'attention** — La qualité du Réseau trophique dépend entièrement des
 > liens saisis par le professeur : un graphe vide ou clairsemé n'est pas une panne,

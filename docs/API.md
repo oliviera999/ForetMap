@@ -983,6 +983,7 @@ Affichage carte (zones SVG + repères sur l’onglet Carte, visite et plateau GL
 - `overlay_zoom_growth_percent` (entier 0–100, défaut `35`) : grossissement des étiquettes (emojis + noms, zones et repères) **au zoom**. `0` = taille apparente constante quel que soit le zoom ; `100` = grossissement linéaire avec le zoom ; valeurs intermédiaires = grossissement progressif (`taille = base × ratio_zoom^(pourcent/100)`). Vaut pour la carte des tâches et le plan de visite.
 - `zone_label_min_side_factor` (nombre 1–6, défaut `2.5`) : **masquage adaptatif** des noms de zone lorsque la zone est trop petite à l'écran. Le nom est masqué si l'aire apparente est inférieure à `(facteur × hauteur du libellé)²` px² ; l'emoji peut rester visible (seuil plus bas). Plus le facteur est **bas**, plus les noms restent affichés sur de petites zones ; plus il est **haut**, plus le masquage est agressif (l'ancien comportement implicite correspondait à environ `4`).
 - `plateau_marker_size_percent` (entier 50–200, défaut `100`) : ratio repères / plateau partagé **ForetMap + GL** ; prioritaire pour l’échelle des repères GL si présent (sinon repli sur `overlay_emoji_size_percent`). Modifiable depuis les réglages ForetMap admin ou `PUT /api/gl/admin/settings/ui.map.plateau_marker_size_percent` (staff GL).
+- `show_tutorial_dots` (booléen, défaut `false`) : affiche les **pastilles violettes** sur les zones et repères liés à un tutoriel (carte de travail). Désactivé par défaut (pastilles invisibles). Éditable via case à cocher dans Réglages → Cartes & plans (`PUT /api/settings/admin/ui.map.show_tutorial_dots`).
 
 Contenus éditables du site (micro-CMS texte brut) :
 
@@ -1056,6 +1057,7 @@ par `GET /api/settings/public` et éditables par `PUT /api/settings/admin/:key` 
 | `ui.plan.hidden_category_ids`  | string  | vide                               | Catégories jamais montrées par le plan (idem)           |
 | `ui.plan.heading_up_enabled`   | boolean | `false`                            | Autorise le bouton « Orienter » (boussole) sur le Plan  |
 | `ui.map.heading_up_enabled`    | boolean | `false`                            | Idem sur la carte de travail ForetMap                   |
+| `ui.map.show_tutorial_dots`    | boolean | `false`                            | Pastilles violettes tutoriel sur zones/repères (carte)  |
 | `ui.visit.heading_up_enabled`  | boolean | `false`                            | Idem sur la Visite                                      |
 
 En plus du réglage de surface, chaque carte doit autoriser l'orientation via
@@ -1109,7 +1111,7 @@ sur le préfixe pour les lignes non migrées.
 
 | Méthode | URL                                     | n3boss             | Description                                                                                                                                     |
 | ------- | --------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/map/markers`                      | non                | Liste des repères                                                                                                                               |
+| GET     | `/api/map/markers`                      | optionnel          | Liste des repères (filtre audience par rôle si jeton)                                                                                           |
 | POST    | `/api/map/markers`                      | oui                | Créer repère                                                                                                                                    |
 | PUT     | `/api/map/markers/:id`                  | oui                | Modifier repère                                                                                                                                 |
 | DELETE  | `/api/map/markers/:id`                  | oui                | Supprimer repère                                                                                                                                |
@@ -1135,17 +1137,22 @@ valable sur toutes les cartes) ou **propre à une carte**. `applies_to` restrein
 pas de section Biodiversité en visite, lieu jamais proposé comme cible de mission. Le contour
 sur la carte est tracé en trait continu, comme celui des autres zones.
 
-| Méthode | URL                          | n3boss | Description                                                                        |
-| ------- | ---------------------------- | ------ | ---------------------------------------------------------------------------------- |
-| GET     | `/api/map-categories`        | non    | Catalogue **public** : catégories **actives**, filtrables par `map_id` et `kind`   |
-| GET     | `/api/map-categories/manage` | oui    | Vue de gestion : inclut les catégories **désactivées** (permission `zones.manage`) |
-| POST    | `/api/map-categories`        | oui    | Créer une catégorie                                                                |
-| PUT     | `/api/map-categories/:id`    | oui    | Modifier une catégorie                                                             |
-| DELETE  | `/api/map-categories/:id`    | oui    | Supprimer une catégorie (les affectations partent en cascade)                      |
+| Méthode | URL                           | n3boss | Description                                                                           |
+| ------- | ----------------------------- | ------ | ------------------------------------------------------------------------------------- |
+| GET     | `/api/map-categories`         | non    | Catalogue **public** : catégories **actives**, filtrables par `map_id` et `kind`      |
+| GET     | `/api/map-categories/manage`  | oui    | Vue de gestion : inclut les catégories **désactivées** (permission `zones.manage`)    |
+| POST    | `/api/map-categories`         | oui    | Créer une catégorie                                                                   |
+| PUT     | `/api/map-categories/reorder` | oui    | Réordonner toutes les catégories (`{ category_ids }` — chaque id exactement une fois) |
+| PUT     | `/api/map-categories/:id`     | oui    | Modifier une catégorie                                                                |
+| DELETE  | `/api/map-categories/:id`     | oui    | Supprimer une catégorie (les affectations partent en cascade)                         |
 
 - **`GET /api/map-categories`** : paramètres `map_id` (renvoie les catégories globales **et**
   celles de la carte ; **400** si la carte n'existe pas) et `kind` (`zone` ou `marker` ; **400**
   sinon). Réponse triée par `sort_order` puis `label`.
+- **`PUT /api/map-categories/reorder`** : corps `{ category_ids: string[] }` — la liste doit
+  contenir **toutes** les catégories existantes exactement une fois ; `sort_order` devient
+  l'index (0, 1, 2…). **400** si la liste est incomplète, contient un doublon ou un id
+  inconnu. Réponse `{ ok, category_ids }`.
 - **Corps JSON** (`POST` / `PUT`) : `label` (requis, ≤ 120 caractères), `slug` (dérivé du label
   si absent), `emoji`, `color` (`#rrggbb`, `#rrggbbaa`… — **400** si le format est invalide),
   `description` (≤ 512 caractères), `map_id` (`null` ou vide = toutes les cartes ; **400** si la
@@ -1216,7 +1223,13 @@ sur la carte est tracé en trait continu, comme celui des autres zones.
 
 Contraintes importantes :
 
-- **`GET /api/visit/content`** : chaque zone renvoyée inclut **`description`** (texte de la table **`zones`**, jointure sur le même `id`) ; chaque repère inclut **`note`** (table **`map_markers`**, même principe). Ces champs sont **`null`** s’il n’y a pas de ligne carte correspondante ou si le texte est vide. Les zones et repères dont **`is_active`** est **explicitement** désactivé (`0`, `false`, chaîne `'0'`) sont exclus ; les autres valeurs « actives » (y compris variantes driver) restent listées.
+- **`GET /api/visit/content`** : chaque zone renvoyée inclut **`description`**, **`color`** et
+  **`emoji`** (texte / couleur / emoji de la table **`zones`**, jointure sur le même `id`) ;
+  chaque repère inclut **`note`** (table **`map_markers`**, même principe). Ces champs sont
+  **`null`** s’il n’y a pas de ligne carte correspondante ou si le texte / la couleur est vide.
+  Les zones et repères dont **`is_active`** est **explicitement** désactivé (`0`, `false`,
+  chaîne `'0'`) sont exclus ; les autres valeurs « actives » (y compris variantes driver)
+  restent listées.
 - **Biodiversité du lieu** : chaque zone et chaque repère de `GET /api/visit/content` expose **`species`** (`[{ id, name, emoji }]`, table de jonction `zone_species` / `marker_species`, tri par nom), **`species_ids`** et **`living_beings_list`** (noms, repli sur `zones.current_plant` / `map_markers.plant_name` quand la jonction est vide). Les zones portent en plus **`is_infrastructure`** (au moins une catégorie affectée porte le drapeau) : le client masque la biodiversité des lieux d'infrastructure, comme sur la carte. Les colonnes legacy mono-espèce ne sont **pas** republiées. C'est cette charge utile qui permet au **visiteur invité** (sans jeton) de consulter la biodiversité d'un lieu, les routes `/api/zones` et `/api/map/markers` étant authentifiées ; la fiche espèce elle-même est servie par la route publique **`GET /api/plants`**.
 - **Blocs éditoriaux (nouveau)** : `GET /api/visit/content` expose **`visit_editorial_blocks`** (tableau ordonné) pour chaque zone/repère. Si `visit_body_json` est présent en base, le serveur l’utilise en priorité ; sinon il génère un fallback compatible depuis `visit_short_description`, `visit_details_*` et `visit_media`.
 - **Écriture blocs** : `POST/PUT /api/visit/zones(:id)` et `POST/PUT /api/visit/markers(:id)` acceptent **`visit_editorial_blocks`** (alias **`body_json`**) ; le serveur normalise et persiste dans `visit_zones.body_json` / `visit_markers.body_json`.
@@ -1611,9 +1624,33 @@ Contraintes principales :
 
 ---
 
-## Observations
+## Observations et carnet
 
-Toutes les routes observations exigent un utilisateur connecté (`Authorization: Bearer <token>`).
+Toutes les routes ci-dessous exigent un utilisateur connecté (`Authorization: Bearer <token>`).
+
+### Carnet unifié (`/api/user-journal`) — source de vérité UI
+
+Module `ui.modules.observations_enabled` ; sinon **503**. Détail : `docs/FORETMAP_CARNET.md`.
+
+| Méthode | URL                                                 | Accès                                 | Description                                                 |
+| ------- | --------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------- |
+| GET     | `/api/user-journal/me`                              | propriétaire                          | `{ limits, articles[], imports[] }`                         |
+| GET     | `/api/user-journal/me/imports/refs`                 | propriétaire                          | refs déjà importées                                         |
+| POST    | `/api/user-journal/me/articles`                     | propriétaire                          | `{ title?, bodyMarkdown?, zoneId? }`                        |
+| PUT     | `/api/user-journal/me/articles/:id`                 | propriétaire                          | mise à jour                                                 |
+| PUT     | `/api/user-journal/me/articles/:id/pin`             | propriétaire                          | `{ pinned }`                                                |
+| DELETE  | `/api/user-journal/me/articles/:id`                 | propriétaire                          |                                                             |
+| POST    | `/api/user-journal/me/articles/:id/assets`          | propriétaire                          | `{ imageData }`                                             |
+| DELETE  | `/api/user-journal/me/articles/:id/assets/:assetId` | propriétaire                          |                                                             |
+| GET     | `/api/user-journal/assets/:assetId/file`            | propriétaire ou `observations.read.*` | fichier (legacy observations)                               |
+| POST    | `/api/user-journal/me/imports`                      | propriétaire                          | `{ resourceType, resourceRef, title? }` — 403 si non appris |
+| PUT     | `/api/user-journal/me/imports/:id/pin`              | propriétaire                          |                                                             |
+| DELETE  | `/api/user-journal/me/imports/:id`                  | propriétaire                          |                                                             |
+| POST    | `/api/user-journal/embeds/resolve`                  | auth                                  | titres d’encarts                                            |
+| GET     | `/api/user-journal/feed`                            | `observations.read.*`                 | articles récents (max 100)                                  |
+| GET     | `/api/user-journal/users/:userId`                   | propriétaire ou `observations.read.*` | lecture staff                                               |
+
+### Observations (legacy)
 
 | Méthode | URL                                    | n3boss                                                     | Description                                                                                                                                                     |
 | ------- | -------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1637,7 +1674,7 @@ Les fichiers envoyés sont stockés sous `uploads/`. Le montage statique **`/upl
 directement les familles **publiques** (chargement navigateur sans passer par `/api`) :
 
 `zones/` · `markers/` · `tasks/` · `forum-posts/` · `context-comments/` · `students/` ·
-`media-library/` · `visit_media/` · `gl_*` · `gl-player-journal/`
+`media-library/` · `visit_media/` · `gl_*` · `gl-player-journal/` · `user-journal/`
 
 Deux familles sont **privées** : elles restent stockées au même endroit mais `/uploads` les
 refuse en **403** (`{"code": "PRIVATE_UPLOAD"}`), car leur lecture est soumise à autorisation
@@ -1742,6 +1779,25 @@ Un lieu (zone ou repère) s'affiche sur trois **surfaces** : `map` (carte de tra
   (trim, doublons insensibles à la casse retirés, borné à 512 caractères sans troncature au
   milieu d'un alias) et renvoyé **en chaîne** par les routes zones / repères, **en tableau**
   par `/api/plan/content`.
+
+### Audience des lieux par rôles (V1)
+
+Migration `236_location_audience_roles.sql`, règles pures dans `lib/locationAudience.js`.
+
+- **`visible_role_slugs`** (zones / repères, tableau en réponse) : rôles autorisés à **voir le
+  lieu**. Vide / omis = **public**. Hors audience, le lieu est **absent** des listes (pas
+  grisé). Slugs acceptés : `visiteur`, `personnel`, `eleve_novice`, `eleve_avance`,
+  `eleve_chevronne`, `prof_classe`, `prof`, `admin`.
+- **`restricted_note`** + **`restricted_note_role_slugs`** : complément de texte optionnel.
+  Slugs vides pour le complément = réservé aux gestionnaires (`zones.manage` /
+  `map.manage_markers`). Les lecteurs non autorisés ne reçoivent **pas** ces champs.
+- **Gestionnaires** : voient toujours tous les lieux et les métadonnées d'audience.
+- **Visite anonyme / Plan** : un anonyme compte comme `visiteur` ; un lieu restreint sans
+  `visiteur` dans l'audience n'y apparaît pas.
+- **`GET /api/zones`**, **`GET /api/map/markers`**, **`GET /api/visit/content`** : auth
+  optionnelle (`authenticate`) pour appliquer le filtre selon le rôle du jeton.
+- **Écritures** : `POST` / `PUT` acceptent les trois champs ; rôle inconnu → **400** ; omis
+  sur `PUT` = inchangé.
 
 ---
 

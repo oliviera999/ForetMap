@@ -20,6 +20,7 @@ function makeZone(overrides = {}) {
     id: 7,
     name: 'Verger',
     emoji: '',
+    color: '#fde04790',
     // `points` est stocké en JSON (cf. parsePctPolygonPoints).
     points: JSON.stringify([
       { xp: 10, yp: 10 },
@@ -51,19 +52,19 @@ function setup(overrides = {}) {
 describe('VisitZonesSvgLayer — accessibilité clavier des zones', () => {
   test('chaque zone est un bouton nommé, atteignable au clavier', () => {
     setup();
-    const zone = screen.getByRole('button', { name: 'Verger' });
+    const zone = screen.getByRole('button', { name: /Verger/ });
     expect(zone).toHaveClass('visit-zone-hit');
     expect(zone).toHaveAttribute('tabindex', '0');
   });
 
   test('zone sans nom exploitable → nom accessible de repli', () => {
     setup({ zones: [makeZone({ name: '   ' })] });
-    expect(screen.getByRole('button', { name: 'Zone de visite' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Zone de visite/ })).toBeInTheDocument();
   });
 
   test('Entrée et Espace ouvrent la zone comme un clic', () => {
     const { props } = setup();
-    const zone = screen.getByRole('button', { name: 'Verger' });
+    const zone = screen.getByRole('button', { name: /Verger/ });
 
     fireEvent.keyDown(zone, { key: 'Enter' });
     fireEvent.keyDown(zone, { key: ' ' });
@@ -74,30 +75,36 @@ describe('VisitZonesSvgLayer — accessibilité clavier des zones', () => {
 
   test('une autre touche ne déclenche pas l’ouverture', () => {
     const { props } = setup();
-    fireEvent.keyDown(screen.getByRole('button', { name: 'Verger' }), { key: 'a' });
+    fireEvent.keyDown(screen.getByRole('button', { name: /Verger/ }), { key: 'a' });
     expect(props.onZoneClick).not.toHaveBeenCalled();
   });
 
   test('le clic reste opérant (non-régression)', () => {
     const { props } = setup();
-    fireEvent.click(screen.getByRole('button', { name: 'Verger' }));
+    fireEvent.click(screen.getByRole('button', { name: /Verger/ }));
     expect(props.onZoneClick).toHaveBeenCalledTimes(1);
   });
 
   test('l’emoji du nom est retiré du libellé accessible', () => {
     setup({ zones: [makeZone({ name: '📍 Verger' })] });
-    expect(screen.getByRole('button', { name: 'Verger' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Verger/ })).toBeInTheDocument();
   });
 
-  test('zone non vue → pastille is-unseen (hors fill rouge du polygone)', () => {
+  test('zone non vue → couleur métier + statut « À découvrir » (sans pastille)', () => {
     const { container } = setup();
-    expect(container.querySelector('.visit-zone-indicator')).toHaveClass('is-unseen');
-    expect(container.querySelector('.visit-zone-poly')).toHaveClass('is-unseen');
+    const poly = container.querySelector('.visit-zone-poly');
+    expect(poly).toHaveClass('is-unseen');
+    // jsdom sérialise `#fde04790` en rgba(…) ; on vérifie la teinte, pas la forme hex.
+    expect(poly.getAttribute('style') || '').toMatch(/253,\s*224,\s*71/);
+    expect(container.querySelector('.visit-zone-indicator')).toBeNull();
+    expect(container.querySelector('.visit-zone-status')).toHaveTextContent('À découvrir');
+    expect(screen.getByRole('button', { name: /À découvrir/ })).toBeInTheDocument();
   });
 
-  test('zone vue → pastille is-seen', () => {
+  test('zone vue → statut « Vu » et classe is-seen', () => {
     const { container } = setup({ seen: new Set(['zone:7']) });
-    expect(container.querySelector('.visit-zone-indicator')).toHaveClass('is-seen');
     expect(container.querySelector('.visit-zone-poly')).toHaveClass('is-seen');
+    expect(container.querySelector('.visit-zone-status')).toHaveTextContent('Vu');
+    expect(screen.getByRole('button', { name: /Vu$/ })).toBeInTheDocument();
   });
 });

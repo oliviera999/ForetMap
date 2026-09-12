@@ -13,6 +13,7 @@ const ROLE_TERMS = { studentSingular: 'n3beur', teacherShort: 'n3boss' };
 
 const SAMPLE_ROLES = [
   { slug: 'visiteur', display_name: 'Visiteur' },
+  { slug: 'personnel', display_name: 'Personnel' },
   { slug: 'eleve_novice', display_name: 'n3beur novice' },
   { slug: 'eleve_avance', display_name: 'n3beur avancé' },
   { slug: 'eleve_chevronne', display_name: 'n3beur chevronné' },
@@ -71,9 +72,10 @@ describe('CreateUserPanel', () => {
     expect(screen.getByRole('button', { name: 'Créer' })).toBeTruthy();
   });
 
-  test('propose visiteur, paliers n3beur, prof de classe et n3boss', () => {
+  test('propose visiteur, personnel, paliers n3beur, prof de classe et n3boss', () => {
     renderPanel({ isAdmin: false, canCreateTeacherRoles: true });
     expect(screen.getByRole('option', { name: 'Visiteur' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Personnel' })).toBeTruthy();
     expect(screen.getByRole('option', { name: 'n3beur novice' })).toBeTruthy();
     expect(screen.getByRole('option', { name: 'n3beur avancé' })).toBeTruthy();
     expect(screen.getByRole('option', { name: 'n3beur chevronné' })).toBeTruthy();
