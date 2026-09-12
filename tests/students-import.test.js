@@ -3,9 +3,12 @@ const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
-const { initSchema, queryOne, execute } = require('../database');
+const crypto = require('node:crypto');
+const bcrypt = require('bcryptjs');
+const { initSchema, queryOne, queryAll, execute } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
 const { TEMPLATE_COLUMNS, csvEscape } = require('../lib/studentRouteHelpers');
+const { setPrimaryRole } = require('../lib/rbac');
 
 /** En-tête CSV aligné sur le modèle officiel (`csvEscape` pour les cellules à « ; »). */
 const IMPORT_CSV_HEADER = TEMPLATE_COLUMNS.map(csvEscape).join(';');
@@ -352,4 +355,174 @@ test('POST /api/students/import accepte un MDP court si allow_weak_passwords', a
     userType: 'teacher',
     userId: 'test',
   });
+});
+
+async function createTeacherWithRole({ firstName, lastName, roleSlug, email, password }) {
+  const id = crypto.randomUUID();
+  const hash = await bcrypt.hash(password || 'MotDePasse12!', 10);
+  const pseudo = `imp_${id.slice(0, 8)}`;
+  await execute(
+    `INSERT INTO users
+      (id, user_type, first_name, last_name, display_name, email, pseudo, affiliation,
+       password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'teacher', ?, ?, ?, ?, ?, 'both', ?, 'local', 1, NOW(), NOW())`,
+    [id, firstName, lastName, `${firstName} ${lastName}`, email, pseudo, hash],
+  );
+  const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [roleSlug]);
+  assert.ok(role?.id, `rôle ${roleSlug} introuvable`);
+  await setPrimaryRole('teacher', id, role.id);
+  return { id, roleId: role.id, email, firstName, lastName, passwordHash: hash };
+}
+
+test('POST /api/students/import : un n3boss ne peut pas modifier un administrateur', async () => {
+  const unique = Date.now();
+  const adminUser = await createTeacherWithRole({
+    firstName: 'Cible',
+    lastName: `Admin-${unique}`,
+    roleSlug: 'admin',
+    email: `cible.admin.${unique}@example.com`,
+  });
+  const n3boss = await createTeacherWithRole({
+    firstName: 'N3',
+    lastName: `Boss-${unique}`,
+    roleSlug: 'prof',
+    email: `n3boss.import.${unique}@example.com`,
+  });
+  const n3bossToken = await signAuthToken(
+    {
+      userType: 'teacher',
+      userId: n3boss.id,
+      canonicalUserId: n3boss.id,
+      roleId: n3boss.roleId,
+      roleSlug: 'prof',
+      roleDisplayName: 'n3boss',
+      elevated: false,
+    },
+    false,
+  );
+  const csv = [
+    IMPORT_CSV_HEADER,
+    `prof;Cible;Admin-${unique};NouveauMdp12!;;;hacked_${unique};hacked_${unique}@example.com;Prise de controle`,
+  ].join('\n');
+  const res = await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + n3bossToken)
+    .send({
+      fileName: 'takeover.csv',
+      fileDataBase64: Buffer.from(csv, 'utf8').toString('base64'),
+      dryRun: false,
+    })
+    .expect(200);
+
+  assert.strictEqual(res.body.report.totals.updated, 0);
+  assert.strictEqual(res.body.report.totals.created, 0);
+  assert.ok(res.body.report.errors.some((e) => /administrateur/i.test(e.error)));
+  const row = await queryOne('SELECT email, password_hash FROM users WHERE id = ?', [adminUser.id]);
+  assert.strictEqual(String(row.email).toLowerCase(), adminUser.email);
+  assert.strictEqual(row.password_hash, adminUser.passwordHash);
+  const role = await queryOne(
+    `SELECT r.slug FROM user_roles ur
+     INNER JOIN roles r ON r.id = ur.role_id
+     WHERE ur.user_type = 'teacher' AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+    [adminUser.id],
+  );
+  assert.strictEqual(role?.slug, 'admin');
+});
+
+test('POST /api/students/import refuse de rétrograder le dernier administrateur', async () => {
+  const seed = await queryOne(
+    "SELECT id, first_name, last_name FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
+    [String(process.env.TEACHER_ADMIN_EMAIL || '').trim()],
+  );
+  assert.ok(seed?.id);
+  const unique = Date.now();
+  const firstName = 'Seed';
+  const lastName = `AdminLast-${unique}`;
+  await execute('UPDATE users SET first_name = ?, last_name = ? WHERE id = ?', [
+    firstName,
+    lastName,
+    seed.id,
+  ]);
+  const otherAdmins = await queryAll(
+    `SELECT ur.user_id
+       FROM user_roles ur
+       INNER JOIN roles r ON r.id = ur.role_id
+      WHERE ur.is_primary = 1 AND ur.user_type = 'teacher' AND r.slug = 'admin' AND ur.user_id <> ?`,
+    [seed.id],
+  );
+  const profRole = await queryOne("SELECT id FROM roles WHERE slug = 'prof' LIMIT 1");
+  const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
+  for (const row of otherAdmins) {
+    await setPrimaryRole('teacher', row.user_id, profRole.id);
+  }
+  try {
+    const csv = [IMPORT_CSV_HEADER, `prof;${firstName};${lastName};AutreMdp123!;;;;;;`].join('\n');
+    const res = await request(app)
+      .post('/api/students/import')
+      .set('Authorization', 'Bearer ' + teacherToken)
+      .send({
+        fileName: 'last-admin.csv',
+        fileDataBase64: Buffer.from(csv, 'utf8').toString('base64'),
+        dryRun: false,
+      })
+      .expect(200);
+
+    assert.strictEqual(res.body.report.totals.updated, 0);
+    assert.ok(res.body.report.errors.some((e) => /dernier administrateur/i.test(e.error)));
+    const role = await queryOne(
+      `SELECT r.slug FROM user_roles ur
+       INNER JOIN roles r ON r.id = ur.role_id
+       WHERE ur.user_type = 'teacher' AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+      [seed.id],
+    );
+    assert.strictEqual(role?.slug, 'admin');
+  } finally {
+    for (const row of otherAdmins) {
+      await setPrimaryRole('teacher', row.user_id, adminRole.id);
+    }
+    await execute('UPDATE users SET first_name = ?, last_name = ? WHERE id = ?', [
+      seed.first_name,
+      seed.last_name,
+      seed.id,
+    ]);
+  }
+});
+
+test('POST /api/students/import : cellules vides ne transent pas e-mail / pseudo / description', async () => {
+  const unique = Date.now();
+  const header = IMPORT_CSV_HEADER;
+  const createCsv = [
+    header,
+    `eleve;Garde;Champs-${unique};pass123;n3;;garde_${unique};garde_${unique}@example.com;A conserver`,
+  ].join('\n');
+  await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'create.csv',
+      fileDataBase64: Buffer.from(createCsv, 'utf8').toString('base64'),
+      dryRun: false,
+    })
+    .expect(200);
+
+  const updateCsv = [header, `eleve;Garde;Champs-${unique};;foret;;;;;`].join('\n');
+  const res = await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'update-empty.csv',
+      fileDataBase64: Buffer.from(updateCsv, 'utf8').toString('base64'),
+      dryRun: false,
+    })
+    .expect(200);
+
+  assert.strictEqual(res.body.report.totals.updated, 1);
+  const row = await queryOne(
+    "SELECT email, pseudo, description, affiliation FROM users WHERE user_type = 'student' AND LOWER(last_name)=LOWER(?)",
+    [`Champs-${unique}`],
+  );
+  assert.strictEqual(String(row.email).toLowerCase(), `garde_${unique}@example.com`);
+  assert.strictEqual(String(row.pseudo), `garde_${unique}`);
+  assert.strictEqual(String(row.description), 'A conserver');
+  assert.strictEqual(String(row.affiliation).toLowerCase(), 'foret');
 });

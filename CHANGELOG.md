@@ -7,6 +7,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — import comptes : garde admin et cellules vides
+
+- Un n3boss ne peut plus, via l’import, changer le mot de passe ou le profil d’un
+  administrateur existant (même prénom/nom) ; le dernier administrateur ne peut
+  pas être rétrogradé — aligné sur l’attribution de profil.
+- À la mise à jour, une cellule vide (e-mail, pseudo, description) laisse la
+  valeur actuelle ; seul un champ renseigné est écrit.
+
+### Corrigé — sync Moodle : comptes déjà liés hors « laissés de côté »
+
+- Un élève déjà reconnu n’est plus retiré de sa classe ni désactivé si Moodle
+  signale un e-mail en double, hors domaine ou manquant : il reste dans le
+  périmètre, le problème est seulement signalé.
 ### Ajouté — Carnet ForetMap à parité « Mon journal » GL
 
 - Articles markdown (multi-photos, auto-save, épinglage, encarts), imports après appris

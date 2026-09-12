@@ -210,7 +210,12 @@ quand l'établissement a beaucoup de comptes et de groupes :
   le rapport. Si un compte **existe déjà** sur le site (même prénom, nom et type
   élève/enseignant), l'import **met à jour** ses infos par défaut (pseudo, e-mail,
   description, affiliation, profil, groupes ajoutés ; mot de passe seulement s'il
-  est renseigné dans le fichier). Un administrateur peut choisir d'**ignorer** ces
+  est renseigné dans le fichier). Une cellule **vide** laisse la valeur actuelle
+  (comme pour le mot de passe) : un fichier de rentrée incomplet n'efface pas
+  l'adresse ou le pseudo déjà en place. Un n3boss **ne peut pas** modifier un
+  compte administrateur par ce fichier (mot de passe, profil, coordonnées) — seul
+  un administrateur le peut ; le dernier administrateur ne peut pas être
+  rétrogradé. Un administrateur peut choisir d'**ignorer** ces
   doublons à la place, et autoriser des **mots de passe plus courts** que le
   plancher habituel — dans **Réglages → Imports de comptes**. Le modèle
   téléchargeable contient **une ligne d'exemple par
