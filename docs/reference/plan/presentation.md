@@ -13,8 +13,9 @@ on cherche, on trouve. Il n'y a ni tâche, ni validation, ni progression : ces c
 restent dans ForetMap et dans la Visite.
 
 Dans l'onglet du navigateur (et si on installe le plan sur l'écran d'accueil), l'icône
-est **la même que celle de ForetMap** — le petit arbre vert — pour qu'on reconnaisse tout
-de suite la famille d'applications du lycée.
+reprend la **charte graphique du Lycée Lyautey** : fond bleu marine et monogramme en traits
+légers. L’interface (barre haute, boutons, puces) suit les mêmes bleus. Le **logo officiel**
+du lycée apparaît discrètement en bas à gauche du plan.
 
 ## Ce que voit un visiteur
 

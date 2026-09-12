@@ -8,7 +8,7 @@ import { buildPlaceIndex, searchPlaces } from '../shared/search/placeSearch.js';
 import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
 import { useHeadingUpPreference } from '../shared/pct-map/useHeadingUpPreference.js';
 import { useBrandTheme } from '../shared/brand/useBrandTheme.js';
-import { PLAN_BRAND_DEFAULTS } from './utils/planBrand.js';
+import { PLAN_BRAND_DEFAULTS, PLAN_SCHOOL_LOGO_URL } from './utils/planBrand.js';
 import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
 import { parsePctPolygonPoints } from '../shared/pct-map/pctPolygon.js';
 import { FixedToast } from '../shared/components/FixedToast.jsx';
@@ -556,6 +556,7 @@ export function AppPlan() {
             targetPct={targetPct}
             focusInsets={activeRoute ? { bottom: PLAN_ROUTE_BAR_FOCUS_INSET_PX } : null}
             attribution={settings?.attribution || ''}
+            schoolLogoUrl={PLAN_SCHOOL_LOGO_URL}
           />
         ) : (
           <p className="plan-state">Aucun fond de plan n’est encore publié pour ce lieu.</p>

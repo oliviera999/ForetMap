@@ -32,6 +32,8 @@ test('le registre déclare foret, gl et plan avec leurs entrées HTML', () => {
   assert.strictEqual(products.getProduct('gl').htmlEntry, 'gl.html');
   assert.strictEqual(products.getProduct('plan').htmlEntry, 'plan.html');
   assert.strictEqual(products.getProduct('inconnu').id, 'foret');
+  assert.strictEqual(products.getProduct('plan').shareFaviconWith, undefined);
+  assert.strictEqual(products.getProduct('plan').pwa.themeColor, '#183058');
   assert.deepStrictEqual(products.listHtmlEntryBasenames(), [
     'index.vite.html',
     'gl.html',
@@ -145,7 +147,7 @@ test('serveur : garde d’entrée croisée et favicon par produit', async () => 
   // Sur son propre host, l'entrée n'est pas redirigée (elle est servie ou 404 selon le build).
   const own = await request(app).get('/gl.html').set('X-Foretmap-Product', 'gl');
   assert.notStrictEqual(own.status, 302);
-  // Favicon : le produit plan retombe sur l'icône ForetMap tant que public/plan/ n'a pas la sienne.
+  // Favicon : le produit plan a sa propre icône (charte Lyautey) sous public/plan/.
   const favicon = await request(app).get('/favicon.ico').set('X-Foretmap-Product', 'plan');
   assert.ok([200, 204].includes(favicon.status));
   if (favicon.status === 200) {
