@@ -73,6 +73,7 @@ const POSITION_LABELS = Object.freeze({
  * @param {{ top?: number, right?: number, bottom?: number, left?: number }|null} [props.focusInsets]
  *   marges scène pour recentrer au-dessus d'une barre basse (parcours).
  * @param {string} [props.attribution] mention de source du fond de plan (`ui.plan.attribution`).
+ * @param {string} [props.schoolLogoUrl] logo officiel du lycée (affichage discret sur la carte).
  */
 export function PlanMapStage({
   map,
@@ -87,6 +88,7 @@ export function PlanMapStage({
   targetPct = null,
   focusInsets = null,
   attribution = '',
+  schoolLogoUrl = '',
   headingUpAllowed = false,
   headingUpEffective = false,
   headingUpUserEnabled = false,
@@ -463,7 +465,21 @@ export function PlanMapStage({
         />
       </div>
 
-      {attribution ? <p className="plan-map__attribution">{attribution}</p> : null}
+      {(schoolLogoUrl || attribution) && (
+        <div className="plan-map__school-mark">
+          {schoolLogoUrl ? (
+            <img
+              className="plan-map__school-logo"
+              src={schoolLogoUrl}
+              alt="Lycée Lyautey"
+              width={120}
+              height={36}
+              decoding="async"
+            />
+          ) : null}
+          {attribution ? <p className="plan-map__attribution">{attribution}</p> : null}
+        </div>
+      )}
     </div>
   );
 }

@@ -331,7 +331,7 @@ app.use((req, res, next) => {
   return res.redirect(302, '/');
 });
 // Avant express.static : /favicon.ico sert l'icône du produit résolu (dossier `assetsDir`),
-// sauf si `shareFaviconWith` pointe vers un autre produit (Plan → ForetMap).
+// sauf si `shareFaviconWith` pointe vers un autre produit.
 app.get('/favicon.ico', (req, res) => {
   const product = getProduct(resolveProductFromRequest(req));
   const faviconProduct = product.shareFaviconWith ? getProduct(product.shareFaviconWith) : product;

@@ -17,11 +17,17 @@
   --font-sans:
     'DM Sans', 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji',
     sans-serif;
-  --plan-bg: #f0f4f0;
-  --plan-ink: #1f2a22;
-  --plan-muted: #4f5f55;
-  --forest: #1a4731;
-  --leaf: #4a7c59;
+  /* Charte Lycée Lyautey : bleu marine du logo et variantes. */
+  --plan-navy: #183058;
+  --plan-navy-mid: #406088;
+  --plan-steel: #98a8c8;
+  --plan-bg: #eef1f6;
+  --plan-ink: #14233d;
+  --plan-muted: #5a6b82;
+  --plan-primary: var(--plan-navy);
+  /* Alias historiques du thème forêt → marine (règles existantes / contrôles partagés). */
+  --forest: var(--plan-navy);
+  --leaf: var(--plan-navy-mid);
   --tap-target: 44px;
 }
 
@@ -43,6 +49,19 @@ body.plan-body {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+  /* Thème de marque (lot 7) : prioritaire sur le défaut charte si réglé. */
+  --plan-primary: var(--plan-brand-color-primary, var(--plan-navy));
+  --forest: var(--plan-brand-color-primary, var(--plan-navy));
+  --leaf: var(--plan-brand-color-link, var(--plan-navy-mid));
+  --plan-bg: var(--plan-brand-color-background, #eef1f6);
+  --plan-ink: var(--plan-brand-color-text, #14233d);
+  background: var(--plan-bg);
+  color: var(--plan-ink);
+}
+
+.plan-shell .shared-btn--primary {
+  border-color: var(--plan-primary);
+  background: var(--plan-primary);
 }
 
 .plan-shell--state {
@@ -104,9 +123,11 @@ body.plan-body {
 
 .plan-topbar__logo {
   flex: 0 0 auto;
-  width: 28px;
+  width: auto;
   height: 28px;
+  max-width: 4.5rem;
   object-fit: contain;
+  opacity: 0.95;
 }
 
 .plan-topbar__title {
@@ -232,7 +253,7 @@ body.plan-body {
   position: relative;
   z-index: 2;
   background: var(--plan-bg);
-  border-bottom: 1px solid rgba(26, 71, 49, 0.12);
+  border-bottom: 1px solid rgba(24, 48, 88, 0.12);
 }
 
 .plan-filters:not(:has(.plan-chip)) {
@@ -273,7 +294,7 @@ body.plan-body {
   gap: 6px;
   min-height: var(--tap-target);
   padding: 0 var(--space-3, 12px);
-  border: 1px solid rgba(26, 71, 49, 0.25);
+  border: 1px solid rgba(24, 48, 88, 0.25);
   border-radius: 999px;
   background: #fff;
   color: var(--plan-ink);
@@ -297,7 +318,7 @@ body.plan-body {
 .plan-chip__swatch {
   width: 10px;
   height: 10px;
-  border: 1px solid rgba(26, 71, 49, 0.35);
+  border: 1px solid rgba(24, 48, 88, 0.35);
   border-radius: 3px;
   background: transparent;
 }
@@ -331,7 +352,7 @@ body.plan-body {
   margin: 0;
   padding: 0;
   list-style: none;
-  border: 1px solid rgba(26, 71, 49, 0.18);
+  border: 1px solid rgba(24, 48, 88, 0.18);
   border-radius: 12px;
   background: #fff;
   overflow: hidden;
@@ -339,7 +360,7 @@ body.plan-body {
 }
 
 .plan-routes__list li + li {
-  border-top: 1px solid rgba(26, 71, 49, 0.12);
+  border-top: 1px solid rgba(24, 48, 88, 0.12);
 }
 
 .plan-routes__item {
@@ -486,7 +507,7 @@ body.plan-body {
   border: 0;
   padding: 0;
   background: none;
-  color: var(--leaf, #2d6a4f);
+  color: var(--leaf, #406088);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -512,7 +533,7 @@ body.plan-body {
   padding: 0 var(--space-4, 16px);
   border: 0;
   border-radius: 999px;
-  background: var(--leaf, #2d6a4f);
+  background: var(--leaf, #406088);
   color: #fff;
   font: inherit;
   font-weight: 600;
@@ -543,7 +564,7 @@ body.plan-body {
 .plan-access-gate__input {
   min-height: var(--tap-target);
   padding: 0 var(--space-3, 12px);
-  border: 1px solid rgba(26, 71, 49, 0.35);
+  border: 1px solid rgba(24, 48, 88, 0.35);
   border-radius: 10px;
   font: inherit;
   font-size: var(--text-md, 1.05rem);
@@ -623,21 +644,38 @@ body.plan-body {
   stroke: var(--forest);
   stroke-width: calc(1.5px * var(--pct-inv, 1));
   vector-effect: non-scaling-stroke;
+  transition:
+    fill-opacity 0.18s ease,
+    stroke-opacity 0.18s ease,
+    stroke-width 0.18s ease;
 }
 
+/* Fiche ouverte : zone affirmée, voisines estompées (pas de rectangle de focus noir). */
 .fm-pct-zone.is-active .fm-pct-zone__poly {
-  fill: rgba(74, 124, 89, 0.5);
-  stroke-width: calc(3px * var(--pct-inv, 1));
+  fill-opacity: 0.92;
+  stroke: var(--forest);
+  stroke-width: calc(2.75px * var(--pct-inv, 1));
 }
 
+.fm-pct-zones.has-selection .fm-pct-zone:not(.is-active) .fm-pct-zone__poly {
+  fill-opacity: 0.22;
+  stroke-opacity: 0.3;
+}
+
+.fm-pct-zones.has-selection .fm-pct-zone:not(.is-active) .fm-pct-zone__emoji,
+.fm-pct-zones.has-selection .fm-pct-zone:not(.is-active) .fm-pct-zone__name {
+  opacity: 0.4;
+}
+
+.fm-pct-zone:focus,
 .fm-pct-zone:focus-visible {
   outline: none;
 }
 
 .fm-pct-zone:focus-visible .fm-pct-zone__poly {
-  stroke: var(--plan-ink);
-  stroke-width: calc(3px * var(--pct-inv, 1));
-  stroke-dasharray: calc(4px * var(--pct-inv, 1)) calc(3px * var(--pct-inv, 1));
+  stroke: var(--leaf, #4a7c59);
+  stroke-width: calc(2.75px * var(--pct-inv, 1));
+  stroke-dasharray: calc(5px * var(--pct-inv, 1)) calc(4px * var(--pct-inv, 1));
 }
 
 .fm-pct-zone__emoji {
@@ -875,16 +913,43 @@ body.plan-body {
   gap: var(--space-2, 8px);
 }
 
-.plan-map__attribution {
+.plan-map__school-mark {
   position: absolute;
   left: var(--space-2, 8px);
   bottom: calc(env(safe-area-inset-bottom, 0px) + 4px);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  max-width: min(42vw, 11rem);
+  pointer-events: none;
+}
+
+.plan-map__school-logo {
+  display: block;
+  width: auto;
+  height: 36px;
+  max-width: 100%;
+  object-fit: contain;
+  opacity: 0.72;
+  filter: drop-shadow(0 1px 2px rgba(20, 35, 61, 0.18));
+}
+
+.plan-map__attribution {
   margin: 0;
   padding: 2px 8px;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.78);
   color: var(--plan-muted);
   font-size: var(--text-2xs, 0.7rem);
+}
+
+@media (min-width: 720px) {
+  .plan-map__school-logo {
+    height: 44px;
+    opacity: 0.78;
+  }
 }
 
 /* --- Message d'accueil ---------------------------------------------------------------- */
@@ -932,7 +997,7 @@ body.plan-body {
 }
 
 .plan-results__item + .plan-results__item {
-  border-top: 1px solid rgba(26, 71, 49, 0.12);
+  border-top: 1px solid rgba(24, 48, 88, 0.12);
 }
 
 .plan-results__btn {
@@ -1005,7 +1070,7 @@ body.plan-body {
 
 .plan-place__category {
   padding: 2px 10px;
-  border: 1px solid rgba(26, 71, 49, 0.25);
+  border: 1px solid rgba(24, 48, 88, 0.25);
   border-radius: 999px;
   font-size: var(--text-xs, 0.8rem);
 }

@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Plan Lyautey : charte bleue du lycée
+
+- **Favicon et PWA** propres au produit (`/plan/favicon.*`, thème `#183058`) : plus de partage
+  avec l’arbre n³ de ForetMap. Régénération via `npm run icons:plan`.
+- **Interface** : palette marine et variantes (fond, barre haute, puces, boutons) alignée sur
+  le logo officiel ; logo Lycée Lyautey discret en bas à gauche de la carte.
+
 ### Corrigé — accessibilité : `onError`/`onLoad` ne comptent plus comme des interactions
 
 - **Règles `no-noninteractive-element-interactions` et `no-static-element-interactions`** :

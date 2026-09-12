@@ -94,7 +94,7 @@ test('GET /favicon.ico sert l’icône ForetMap par défaut', async () => {
   assert.ok(res.body && res.body.length > 0);
 });
 
-test('GET /favicon.ico sur host planlyautey sert la même icône que ForetMap', async () => {
+test('GET /favicon.ico sur host planlyautey sert l’icône Plan (charte Lyautey), distincte de ForetMap', async () => {
   const foret = await request(app).get('/favicon.ico').set('Host', 'foretmap.olution.info');
   const plan = await request(app)
     .get('/favicon.ico')
@@ -105,5 +105,12 @@ test('GET /favicon.ico sur host planlyautey sert la même icône que ForetMap', 
     String(plan.headers['content-type'] || ''),
     /image\/(png|vnd\.microsoft\.icon|x-icon)/i,
   );
-  assert.deepStrictEqual(Buffer.from(plan.body), Buffer.from(foret.body));
+  assert.ok(plan.body && plan.body.length > 0);
+  if (foret.status === 200 && foret.body?.length) {
+    assert.notDeepStrictEqual(
+      Buffer.from(plan.body),
+      Buffer.from(foret.body),
+      'Plan et ForetMap ne partagent plus la même favicon',
+    );
+  }
 });
