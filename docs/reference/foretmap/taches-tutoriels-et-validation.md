@@ -258,7 +258,11 @@ par nature : un **lien externe** (le site d'un tiers, que ForetMap n'a pas à r�
 un **document PDF joint**, affiché tel quel.
 
 - Un tutoriel se **relie** aux tâches et aux zones/repères concernés : l'élève le trouve
-  directement depuis la tâche ou le lieu.
+  directement depuis la tâche ou le lieu. Depuis la fiche d'un lieu, la liste propose
+  **tous** les tutoriels actifs pas déjà liés à ce lieu — y compris ceux rattachés à une
+  **autre carte**. Dans ce cas, le libellé indique « autre carte — bascule ici » : lier
+  le tutoriel le rattache à ce lieu et **retire** ses liens sur l'autre carte (un tutoriel
+  ne peut pas mélanger deux cartes, comme une tâche).
 - **Accusé de lecture** : l'élève confirme « j'ai lu et compris » ; l'application retient
   ses lectures.
 - Le professeur crée, modifie, réordonne et retire les fiches (un retrait les masque sans
@@ -268,10 +272,12 @@ un **document PDF joint**, affiché tel quel.
   l'application avant affichage** — la mise en page, les styles, les images et les liens
   sont conservés, mais tout code exécutable (scripts, formulaires, pages embarquées)
   qu'un fichier importé pourrait contenir est retiré. Une fiche qui reposait sur un tel
-  code pour son affichage doit être reprise en page simple ou proposée en **lien
-  externe** (elle s'ouvre alors avec les protections normales du navigateur). Les liens
-  « s'ouvrir dans un nouvel onglet » d'une fiche restent, comme avant, affichés dans la
-  fenêtre d'aperçu.
+  code pour **animer** l'apparition du texte (blocs invisibles tant qu'un script ne les
+  révèle pas) reste **entièrement lisible** dans l'aperçu : l'application force
+  l'affichage de ces blocs. Une fiche qui dépendrait encore d'un script pour autre chose
+  doit être reprise en page simple ou proposée en **lien externe** (elle s'ouvre alors
+  avec les protections normales du navigateur). Les liens « s'ouvrir dans un nouvel
+  onglet » d'une fiche restent, comme avant, affichés dans la fenêtre d'aperçu.
 
 ### Ajouter une fiche existante (« Importer /tutos/ »)
 

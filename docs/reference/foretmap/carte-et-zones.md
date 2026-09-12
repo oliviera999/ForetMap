@@ -202,8 +202,10 @@ permission « Gestion zones ».
 5. **Gérer les photos** : onglet Photos — ajout avec légende, réorganisation par
    glisser-déposer, suppression.
 6. **Lier tâches et tutoriels** : depuis les onglets Tâches et Tutoriels de la fiche,
-   on associe ou dissocie les tâches et tutoriels existants ; les élèves les
-   retrouvent ensuite au même endroit.
+   on associe ou dissocie les tâches et tutoriels existants ; la liste des tutoriels
+   propose toutes les fiches actives pas déjà liées à ce lieu (celles d'une autre carte
+   sont signalées et basculent ici à la liaison). Les élèves les retrouvent ensuite au
+   même endroit.
 7. **Supprimer** une zone ou un repère : la fiche, ses photos et son contenu de visite
    sont retirés ensemble.
 

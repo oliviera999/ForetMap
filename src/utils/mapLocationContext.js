@@ -26,6 +26,33 @@ export function tutorialLocationIds(tu) {
   return { zoneIds, markerIds };
 }
 
+/**
+ * Ids zone/repère après liaison à un lieu de la carte `mapId` : ne conserve que les lieux
+ * déjà sur cette carte (un tutoriel ne peut pas mélanger les cartes), puis ajoute le lieu.
+ * @param {object} tu tutoriel (avec `zones_linked` / `markers_linked` si possible)
+ * @param {'zone'|'marker'} kind
+ * @param {string|number} locationId
+ * @param {string|null|undefined} mapId carte du lieu cible
+ */
+export function tutorialLocationIdsForLinkOnMap(tu, kind, locationId, mapId) {
+  const mapKey = mapId != null && String(mapId).trim() !== '' ? String(mapId) : null;
+  const zl = tu?.zones_linked || [];
+  const ml = tu?.markers_linked || [];
+  let zoneIds = zl.filter((z) => !mapKey || String(z.map_id) === mapKey).map((z) => String(z.id));
+  let markerIds = ml.filter((m) => !mapKey || String(m.map_id) === mapKey).map((m) => String(m.id));
+  // Repli si la charge utile n’a que zone_ids / marker_ids (sans map_id) : on repart
+  // des ids bruts uniquement quand aucune carte n’est connue.
+  if (!zl.length && !ml.length && !mapKey) {
+    const raw = tutorialLocationIds(tu);
+    zoneIds = raw.zoneIds;
+    markerIds = raw.markerIds;
+  }
+  const lid = String(locationId || '').trim();
+  if (kind === 'zone' && lid) zoneIds = [...new Set([...zoneIds, lid])];
+  if (kind === 'marker' && lid) markerIds = [...new Set([...markerIds, lid])];
+  return { zoneIds, markerIds };
+}
+
 /** Tutoriels référencés par une tâche (`tutorials_linked` ou `tutorial_ids` + catalogue). */
 export function taskLinkedTutorialRefs(task, tutorialsCatalog = []) {
   if (!task) return [];

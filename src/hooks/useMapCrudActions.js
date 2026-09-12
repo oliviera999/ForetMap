@@ -1,6 +1,10 @@
 import { useCallback } from 'react';
 import { api } from '../services/api';
-import { taskLocationIds, tutorialLocationIds } from '../utils/mapLocationContext';
+import {
+  taskLocationIds,
+  tutorialLocationIds,
+  tutorialLocationIdsForLinkOnMap,
+} from '../utils/mapLocationContext';
 import { offsetDuplicateZonePoints } from '../utils/zoneEditGeometry.js';
 import { orderedLivingBeingsForForm } from '../utils/livingBeings';
 import { locationCategoryIds } from '../utils/locationCategories.js';
@@ -75,21 +79,25 @@ function useMapCrudActions({
     [activeMapId, onRefresh],
   );
 
-  /** Lie un tutoriel à une zone (`kind: 'zone'`) ou à un repère (`kind: 'marker'`). */
+  /** Lie un tutoriel à une zone (`kind: 'zone'`) ou à un repère (`kind: 'marker'`).
+   * Si le tutoriel était sur une autre carte, ses lieux y sont retirés (contrainte une carte). */
   const linkTutorialToLocation = useCallback(
     async (tutorialId, kind, locationId) => {
       const tu = (tutorials || []).find((x) => Number(x.id) === Number(tutorialId));
       if (!tu) return;
-      const { zoneIds: zi, markerIds: mi } = tutorialLocationIds(tu);
-      const zoneIds = kind === 'zone' ? [...new Set([...(zi || []), locationId])] : zi;
-      const markerIds = kind === 'marker' ? [...new Set([...(mi || []), locationId])] : mi;
+      const { zoneIds, markerIds } = tutorialLocationIdsForLinkOnMap(
+        tu,
+        kind,
+        locationId,
+        activeMapId,
+      );
       await api(`/api/tutorials/${tutorialId}`, 'PUT', {
         zone_ids: zoneIds,
         marker_ids: markerIds,
       });
       await onRefresh();
     },
-    [tutorials, onRefresh],
+    [tutorials, onRefresh, activeMapId],
   );
 
   const unlinkTutorialFromLocation = useCallback(

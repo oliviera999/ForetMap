@@ -15,12 +15,16 @@ import { isInfrastructureLocation } from '../../utils/locationCategories.js';
  * cible de mission), limitées à la carte si `mapId` est renseigné.
  */
 export function filterSelectableZones(zones, mapId) {
-  return zones.filter((z) => !isInfrastructureLocation(z) && (!mapId || z.map_id === mapId));
+  const mapKey = mapId != null && String(mapId).trim() !== '' ? String(mapId) : '';
+  return zones.filter(
+    (z) => !isInfrastructureLocation(z) && (!mapKey || String(z.map_id) === mapKey),
+  );
 }
 
 /** Repères sélectionnables : limités à la carte si `mapId` est renseigné. */
 export function filterSelectableMarkers(markers, mapId) {
-  return markers.filter((m) => !mapId || m.map_id === mapId);
+  const mapKey = mapId != null && String(mapId).trim() !== '' ? String(mapId) : '';
+  return markers.filter((m) => !mapKey || String(m.map_id) === mapKey);
 }
 
 /**

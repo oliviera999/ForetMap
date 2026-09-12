@@ -18,7 +18,6 @@ import {
 } from '../../utils/mapLocationContext';
 import { markerTaskMapId } from '../../utils/markerModalForm.js';
 import { canStudentAssignTask } from '../../utils/taskEnrollment.js';
-import { tutorialLinkedToSameMap } from './mapModalShared.jsx';
 import { isInfrastructureLocation } from '../../utils/locationCategories.js';
 
 /**
@@ -71,11 +70,12 @@ export function useLocationModalData(
   const linkedTutorialsVisible = isTeacher
     ? linkedTutorialsAll
     : linkedTutorialsAll.filter((tu) => tu.is_active !== false);
+  // Tous les actifs non déjà liés à CE lieu : un tuto d’une autre carte apparaît aussi
+  // (libellé d’avertissement dans le select) ; la liaison bascule ses lieux vers cette carte.
   const assignableTutorials = (tutorials || []).filter(
     (tu) =>
       tu.is_active !== false &&
-      !tutorialLocationIds(tu)[idsKey].some((id) => String(id) === String(entityId)) &&
-      tutorialLinkedToSameMap(tu, entity.map_id),
+      !tutorialLocationIds(tu)[idsKey].some((id) => String(id) === String(entityId)),
   );
 
   // Êtres vivants du lieu (champ « plante » historique : plant_name côté repère,
