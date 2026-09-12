@@ -1,6 +1,6 @@
 /* Service worker « foret » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-foret-f9dbac64";
+const CACHE_NAME = "foretmap-foret-59ca60d2";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -17,28 +17,28 @@ const PRECACHE_URLS = [
   "/pwa-maskable-512.png",
   "/pwa-screenshot-mobile.png",
   "/pwa-screenshot-wide.png",
-  "/assets/main-BrMhnF07.js",
+  "/assets/main-BfVCM4o9.js",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-BdCFwf1s.js",
+  "/assets/VisitMascotFallbackSvg-C2IowJN5.js",
   "/assets/react-vendor-NSwws4_t.js",
   "/assets/icons-DN-Q6DZk.js",
-  "/assets/ErrorBoundary-Ba_55LZo.js",
+  "/assets/ErrorBoundary-DDzsK0yk.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-CDto4Uek.js",
+  "/assets/ImageLightboxProvider-DwqT4_B-.js",
   "/assets/ImageLightboxProvider-CPh0j32G.css",
-  "/assets/spriteCutCatalogEntry-BFohRCSh.js",
+  "/assets/spriteCutCatalogEntry-C2qE4NY2.js",
   "/assets/markdown-B5dU4qij.js",
-  "/assets/visitMascotPackExtras-B95ai1Wy.js",
-  "/assets/visitMascotPackExtras-B3HM3O05.css",
-  "/assets/mascotPack--x2Z653t.js",
+  "/assets/visitMascotPackExtras-3778WiQ1.js",
+  "/assets/visitMascotPackExtras-Cn30NtQc.css",
+  "/assets/mascotPack-Wf5U5iQo.js",
   "/assets/socket-io-D_2T_oRH.js",
-  "/assets/MarkdownTextarea-DrXdup0_.js",
-  "/assets/GlossaryMarkdown-5G3yNq4-.js",
-  "/assets/FmLearnAndImportSlot-D7Q1-nuV.js",
+  "/assets/MarkdownTextarea-CRAMyFz9.js",
+  "/assets/GlossaryMarkdown-j6iqrFuY.js",
+  "/assets/FmLearnAndImportSlot-DI1Sduqj.js",
   "/assets/PublicSettingsContext-D_o6wGyF.js",
-  "/assets/GuidedTourOverlay-BuPapklk.js",
-  "/assets/useBrandTheme-BN8jqoQv.js",
-  "/assets/downloadApiFile-ZU3sTPVx.js",
+  "/assets/GuidedTourOverlay-D7lN6LnK.js",
+  "/assets/useBrandTheme-jONWfKuO.js",
+  "/assets/downloadApiFile-BKQwbNcc.js",
   "/assets/downloadAuthedFile-BRkwVwdZ.js",
 ];
 
