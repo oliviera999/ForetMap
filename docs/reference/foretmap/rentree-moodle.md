@@ -77,7 +77,9 @@ sécurité**, **Entrée depuis le cours**, **Outils**.
    - _Rapprochements en attente_, _Conflits d'e-mail_, _Conflits de comparaison_, _Alertes_,
      _Cohortes sans politique_ ;
    - _Comptes laissés de côté_ — sans e-mail, e-mail hors domaine autorisé, ou e-mail en
-     double côté Moodle : ils ne bloquent plus toute la synchronisation.
+     double côté Moodle : ils ne bloquent plus toute la synchronisation. Un élève
+     **déjà reconnu** (compte déjà lié) n'est **pas** retiré de sa classe ni
+     désactivé pour ces raisons : seul un vrai départ de la cohorte le fait.
 3. **Appliquer.** Le bouton se libère quand la simulation a réussi sur exactement ces cohortes.
    S'il reste grisé, la raison est écrite à côté (périmètre changé, seuil dépassé, simulation
    échouée, synchronisation désactivée). Une confirmation est demandée.
