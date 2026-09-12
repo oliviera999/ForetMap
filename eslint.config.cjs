@@ -18,6 +18,51 @@ const SHARED_PRODUCT_DIRS = [
 const SHARED_ISOLATION_MESSAGE =
   'src/shared ne doit pas importer de code produit (ForetMap ou GL) — promouvoir le module dans src/shared ou injecter la dépendance.';
 
+/**
+ * Handlers comptés comme « interaction » par `no-noninteractive-element-interactions` et
+ * `no-static-element-interactions`.
+ *
+ * C'est le défaut du greffon (`focus` + `image` + `keyboard` + `mouse` de `jsx-ast-utils`)
+ * **moins le groupe `image`**, c'est-à-dire `onLoad` et `onError`. Ce ne sont pas des
+ * interactions : ce sont des événements du chargement d'un média, que l'utilisateur ne
+ * déclenche pas. Les compter faisait tomber le repli légitime d'une vignette photo vers son
+ * emoji quand l'image est injoignable (`<img onError>`, VisitBiodiversityPanel, 11/09/2026)
+ * — un cas que ni le clavier ni un lecteur d'écran ne voient, alors que ces règles servent
+ * précisément à repérer ce qui rend une commande inutilisable au clavier ou muette.
+ *
+ * L'intention des deux règles est conservée intacte : un clic, une touche, un focus ou un
+ * geste souris sur un élément non interactif reste signalé.
+ */
+const A11Y_INTERACTION_HANDLERS = [
+  // focus
+  'onFocus',
+  'onBlur',
+  // keyboard
+  'onKeyDown',
+  'onKeyPress',
+  'onKeyUp',
+  // mouse
+  'onClick',
+  'onContextMenu',
+  'onDblClick',
+  'onDoubleClick',
+  'onDrag',
+  'onDragEnd',
+  'onDragEnter',
+  'onDragExit',
+  'onDragLeave',
+  'onDragOver',
+  'onDragStart',
+  'onDrop',
+  'onMouseDown',
+  'onMouseEnter',
+  'onMouseLeave',
+  'onMouseMove',
+  'onMouseOut',
+  'onMouseOver',
+  'onMouseUp',
+];
+
 /** ESLint — garde-fous progressifs (incl. regles des Hooks React) sans refactor massif du legacy. */
 module.exports = [
   {
@@ -175,9 +220,14 @@ module.exports = [
       // `no-interactive-element-to-noninteractive-role` est la règle qui aurait attrapé le
       // `role="listitem"` posé sur des `<button aria-pressed>` (audit §2.6).
       'jsx-a11y/no-interactive-element-to-noninteractive-role': 'warn',
-      'jsx-a11y/no-noninteractive-element-interactions': 'warn',
+      // `handlers` restreint : cf. A11Y_INTERACTION_HANDLERS en tête de fichier (le défaut du
+      // greffon compte `onLoad`/`onError`, qui ne sont pas des interactions utilisateur).
+      'jsx-a11y/no-noninteractive-element-interactions': [
+        'warn',
+        { handlers: A11Y_INTERACTION_HANDLERS },
+      ],
       'jsx-a11y/no-noninteractive-element-to-interactive-role': 'warn',
-      'jsx-a11y/no-static-element-interactions': 'warn',
+      'jsx-a11y/no-static-element-interactions': ['warn', { handlers: A11Y_INTERACTION_HANDLERS }],
       'jsx-a11y/role-has-required-aria-props': 'warn',
       'jsx-a11y/role-supports-aria-props': 'warn',
       // Désactivées, et pourquoi :

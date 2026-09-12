@@ -2,6 +2,29 @@ import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { TeacherTopTabs } from '../../../src/components/app/TeacherTopTabs.jsx';
 
+/**
+ * Permissions d'un professeur complet. Depuis `feat(rbac): profil Prof de classe`, la
+ * visibilité de CHAQUE onglet passe par `hasPermission` — un `() => false` ne rend plus
+ * aucun onglet secondaire, et les assertions de cette suite portaient alors sur une rangée
+ * vide. Le socle décrit donc un prof qui a ses droits ; les tests qui veulent l'inverse
+ * surchargent `hasPermission` explicitement.
+ *
+ * `hasPermissionInRole` reste à `false` : les onglets d'administration ne s'ouvrent que
+ * pour un rôle qui les porte, ce que le test dédié vérifie.
+ */
+const TEACHER_PERMISSIONS = new Set([
+  'zones.manage',
+  'map.manage_markers',
+  'plants.manage',
+  'tasks.manage',
+  'tasks.validate',
+  'visit.manage',
+  'tutorials.manage',
+  'media.manage',
+  'teacher.access',
+  'stats.read.all',
+]);
+
 const baseProps = {
   tab: 'map',
   onTabChange: () => {},
@@ -12,7 +35,7 @@ const baseProps = {
   visitEnabled: true,
   canAccessForum: true,
   isN3Affiliated: false,
-  hasPermission: () => false,
+  hasPermission: (perm) => TEACHER_PERMISSIONS.has(perm),
   hasPermissionInRole: () => false,
 };
 
@@ -106,6 +129,25 @@ describe('TeacherTopTabs — navigation en 3 pôles (audit D-4)', () => {
     expect(screen.queryByRole('button', { name: 'Tuto' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Visite' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Packs mascotte' })).toBeNull();
+  });
+
+  test('chaque onglet est filtré par sa permission (profil « Prof de classe »)', () => {
+    // Un tuteur limité à ses groupes : il suit ses élèves, il ne gère pas le catalogue.
+    const profClasse = new Set(['tasks.validate', 'stats.read.group', 'teacher.access']);
+    render(
+      <TeacherTopTabs
+        {...baseProps}
+        hasPermission={(perm) => profClasse.has(perm)}
+        onTabChange={() => {}}
+      />,
+    );
+    // Pôle Contenus actif : seule la médiathèque survit (`teacher.access`).
+    expect(screen.queryByRole('button', { name: 'Carte & Zones' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Biodiversité' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Tuto' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Médiathèque' })).toBeInTheDocument();
+    // Les trois pôles restent offerts : c'est leur contenu qui se réduit.
+    expect(screen.getByRole('button', { name: 'Suivi' })).toBeInTheDocument();
   });
 
   test('F3 : Tâches et Tuto restent des onglets séparés (plus de fusion contextuelle)', () => {

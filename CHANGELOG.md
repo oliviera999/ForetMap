@@ -5,8 +5,142 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 **ForetMap :** pendant le développement sur `main`, le champ **`version`** de **`package.json`** est incrémenté **à chaque lot livré** (`npm run bump:*`, voir [docs/VERSIONING.md](docs/VERSIONING.md) — *Lots livrés sur `main`*), tandis que **`[Non publié]`** ci-dessous accumule les notes jusqu’à une **release** formelle (section renommée en **`[X.Y.Z] - date`** + tag **`vX.Y.Z`**). Les sections **datées** plus bas conservent l’historique des releases passées.
 
+> **Le cycle 1.x est clos** depuis le 11 septembre 2026 : la section [`[1.152.1]`](#11521---2026-09-11) fige les cinq mois et demi de notes qui s’étaient accumulées sous `[Non publié]` depuis la v1.2.0, et s’ouvre sur un sommaire thématique. `[Non publié]` recommence donc à zéro.
+
 ## [Non publié]
 
+### Corrigé — accessibilité : `onError`/`onLoad` ne comptent plus comme des interactions
+
+- **Règles `no-noninteractive-element-interactions` et `no-static-element-interactions`** :
+  l'option `handlers` est désormais explicite et vaut le défaut du greffon **moins le groupe
+  `image`** (`onLoad`, `onError`). Ce ne sont pas des interactions : ce sont des événements du
+  chargement d'un média, que l'utilisateur ne déclenche pas. L'intention des deux règles est
+  intacte — clic, touche, focus ou geste souris sur un élément non interactif restent signalés.
+- **Déclencheur** : le repli légitime d'une vignette photo vers son emoji quand l'image est
+  injoignable (`<img onError>`, `VisitBiodiversityPanel`) faisait échouer le cliquet a11y, donc
+  le job `test` de toutes les PR. Un cas que ni le clavier ni un lecteur d'écran ne voient.
+- **L'inventaire rétrécit de 9 entrées** (`tests/fixtures/a11y-static-baseline.json`) : huit
+  fichiers sortent complètement, un passe de 2 à 1. Toutes étaient du même bruit. Ce qui reste
+  inventorié est de la dette d'accessibilité réelle. ESLint passe de 189 à 179 avertissements.
+
+### Corrigé — deux tests purs alignés sur le profil « Prof de classe »
+
+- **`RESERVED_ROLE_SLUGS`** compte désormais **sept** slugs système : `prof_classe` en fait
+  partie, et reste donc interdit à un rôle personnalisé. Le test décrivait encore six slugs.
+- **`exposeAuth`** expose `groupIds`, clé toujours présente et laissée à `undefined` tant que
+  la session ne porte aucun périmètre de groupes — `JSON.stringify` la retire, l'API publique
+  est inchangée. L'attente est alignée et un cas ajouté vérifie l'écho d'un périmètre réel :
+  le champ est décrit, pas masqué.
+- Aucun des deux ne signalait un défaut du code livré. Ils faisaient tomber le job `test` de
+  `main` depuis `feat(rbac): profil Prof de classe`.
+
+### Corrigé — la pose du tag de release échouait sur une coupure UTF-8
+
+- **`release-tag.yml`** : `iconv -c` **omet** le caractère invalide mais **sort en 1** quand la
+  troncature des notes tombe au milieu d'une séquence UTF-8 (« incomplete character or shift
+  sequence at end of buffer »). L'étape tournant en `bash -e`, elle tombait avec lui — alors
+  que la sortie déjà convertie était exactement le préfixe propre recherché. Un `|| true`
+  conserve ce préfixe.
+- **Conséquence mesurée** : les deux pushes qui ont bumpé en `1.152.0` puis `1.152.1` ont
+  laissé l'étape rouge. **Aucun tag `v1.152.x` n'existe**, et aucune release non plus, alors
+  que le dépôt compte 213 tags. Le dernier posé est `v1.151.9`.
+- Le « `printf: write error: Broken pipe` » du même journal est le SIGPIPE que `head` envoie
+  en fermant le tuyau : sans `pipefail` il ne décide de rien, mais il accompagne le symptôme.
+
+### Documentation — le cycle 1.x est clos dans le journal des versions
+
+- **`[Non publié]` est figé en [`[1.152.1] - 2026-09-11`](#11521---2026-09-11)** : 537 entrées
+  accumulées depuis la v1.2.0 du 20 mars, soit 2 705 commits et 209 incréments de version sans
+  qu'une seule release ait été prononcée en cinq mois et demi.
+- **Un sommaire thématique** ouvre la section : socle technique, ForetMap, Gnomes & Licornes,
+  Plan, couche pédagogique partagée, comptes et système d'information, plus l'infrastructure en
+  transverse. Les entrées ne sont **pas** déplacées : 112 d'entre elles portent un titre nu
+  (`Modifié` ×43, `Ajouté` ×35, `Corrigé` ×26…) dont le sens vient uniquement de leur position.
+  Les regrouper par thème les rendrait illisibles.
+- **Section du hérisson restaurée** : la fusion de la PR #447 avait gardé son titre et perdu son
+  corps, la remplaçant par les puces de « Prof de classe ». Numéro de migration corrigé au
+  passage — `231_rbac_prof_classe_media.sql`, renuméroté depuis, était encore cité en `230`.
+
+---
+
+## [1.152.1] - 2026-09-11
+
+> **Clôture du cycle 1.x.** Cette section fige les **537 entrées** accumulées sous
+> `[Non publié]` entre le **20 mars 2026** (v1.2.0, dernière section datée) et le **11 septembre
+> 2026** : 2 705 commits, 209 incréments de version, et aucune release prononcée pendant
+> cinq mois et demi.
+>
+> Les entrées gardent leur **ordre chronologique inverse**. C'est délibéré : 112 d'entre elles
+> portent un titre nu — `Modifié` (43), `Ajouté` (35), `Corrigé` (26), `Documentation`,
+> `Supprimé`, `Retiré` — dont le sens vient **uniquement** de leur position. Les regrouper par
+> thème les rendrait illisibles et effacerait le seul ordre qu'un journal des versions
+> garantisse. Le sommaire ci-dessous ajoute donc une entrée thématique **sans déplacer une
+> ligne**.
+>
+> Analyse détaillée du cycle, et arbitrage sur une éventuelle V2 :
+> [`docs/AUDIT_EVOLUTION_V1_V2_2026-09.md`](docs/AUDIT_EVOLUTION_V1_V2_2026-09.md).
+
+### Sommaire thématique du cycle 1.x
+
+Six chantiers structurent ces cinq mois. Chacun renvoie aux entrées détaillées plus bas, à
+lire de la plus récente à la plus ancienne.
+
+**1. Socle technique.** Le prototype de mars — SQLite, un fichier HTML, un PIN professeur
+vérifié côté client — n'a survécu à aucun de ces trois choix. MySQL remplace SQLite en 48 h
+(contrainte d'hébergement o2switch / Passenger), React + Vite remplacent la page unique dès
+le 21 mars (v1.4.0, Socket.IO le même jour), et le PIN cède la place à des rôles et
+permissions relus en base à chaque requête. L'élévation par PIN est aujourd'hui **supprimée**,
+trois endpoints conservés en `410 Gone`.
+
+**2. ForetMap.** Le produit d'origine : carte des zones et repères, plantes et espèces,
+tâches et validations, statistiques, forum, médiathèque, mode visite avec mascotte et
+parcours. C'est la part de l'application que le lycée utilise sur le terrain.
+
+**3. Gnomes & Licornes.** Ajouté le 19 mai comme second produit du monorepo (routage par
+host, entrée Vite `gl.html`, API `/api/gl/*`, isolement par claim JWT `product`), G&L est
+devenu **la moitié lourde du dépôt** : 327 des 628 endpoints (52 %) et 338 des 932 fichiers
+`src/`. Chapitres, carte du royaume, lore et feuillets, marché, sorts, QCM, journal,
+composition automatique d'équipes. C'est la rupture la plus importante du cycle, et la moins
+visible dans le numéro de version.
+
+**4. Plan.** Troisième produit, plus tardif et plus discret, servi par le même registre
+central `lib/products.js` (`foret` / `gl` / `plan`) : entrée HTML, favicon et manifeste PWA
+résolus par host.
+
+**5. Couche pédagogique partagée.** Gating « lu / appris » conditionné par QCM, liens
+ressource ↔ question, verrous de re-tentative réglables, empreinte HMAC des réponses,
+réseau trophique, glossaire, tutoriels. ForetMap et G&L cessent ici d'être deux applications
+voisines : elles partagent un cœur commun (`lib/shared/resourceQuestionGatingCore.js`).
+
+**6. Comptes et système d'information.** Identités unifiées ForetMap × G&L (`users` comme
+source unique des secrets, v1.147.0), puis le raccordement à l'annuaire de l'établissement :
+22 modules sous `lib/moodle/`, miroirs de groupes et d'équipes, entrée depuis le cours par
+LTI 1.3. L'application cesse d'être autonome.
+
+**Infrastructure, en transverse.** 222 migrations idempotentes, 488 fichiers de test
+(backend, contenu pédagogique, UI, e2e), bump de version automatique à la fusion, tag et
+release automatiques, cliquet d'accessibilité, audits datés indexés dans
+[`docs/audits/README.md`](docs/audits/README.md).
+
+### Corrigé — le hérisson manquant du réseau GL, et les tests de contenu séparés du code
+
+- **Migration `230`** : `Hérisson commun` (SP0074) est **créé** au lieu d’être supposé présent.
+  Il était cité par les migrations `225` et `228` mais semé par aucune d’elles — il n’existait
+  qu’en production. Ses deux liaisons trophiques (`→ Lombric commun`, `→ Escargot des bois`)
+  sont rejouées dans la foulée. Idempotente, sans effet en production.
+- **Cause** : les semis d’interactions résolvent les espèces par `JOIN ... ON nom_commun = ?`.
+  Toute ligne dont un nom manque à cet instant est **silencieusement** abandonnée — ni erreur,
+  ni avertissement. Même trou que la migration `229` avait rebouché pour la jacinthe et le muguet.
+- **Test durci** : `réseau GL : merle, mare et mycorhizes` n’ignore plus une paire dont l’espèce
+  est absente (`continue` retiré). C’est ce raccourci qui rendait la perte invisible sur base
+  neuve et ne la révélait en CI que selon l’ordre des fichiers de test.
+- **Tests de contenu isolés** : les huit fichiers `pedago-*.test.js` passent sous
+  **`tests/content/`**, hors du glob `tests/*.test.js`, avec une commande (`npm run test:content`)
+  et un **job CI dédié `contenu`**. Une dérive du corpus pédagogique tombe désormais sous son
+  propre nom au lieu de bloquer toutes les PR — quatre PR consécutives, dont deux purement
+  documentaires, avaient échoué sur cette seule liaison manquante le 09/09.
+- `npm run test:local` continue de parcourir les deux dossiers ; `npm run test:all` enchaîne
+  code, contenu puis UI.
 ### Corrigé — import comptes : garde admin et cellules vides
 
 - Un n3boss ne peut plus, via l’import, changer le mot de passe ou le profil d’un
@@ -220,7 +354,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `forum.group.moderate` + périmètre.
 - **Portée groupes** appliquée aux mutations ; journal d’audit sur les suppressions
   de contenus ; garde anti-escalade sur `PUT /profiles/:id/permissions`.
-- Doc de référence, `docs/API.md`, migration `230_rbac_prof_classe_media.sql`, tests
+- Doc de référence, `docs/API.md`, migration `231_rbac_prof_classe_media.sql`, tests
   de gel de matrice.
 
 ### Corrigé — composition d’équipes GL en course avec le démarrage

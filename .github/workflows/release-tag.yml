@@ -67,9 +67,19 @@ jobs:
           # échouerait en 422 sur le corps — l'étape resterait rouge alors même que
           # l'interpolation est réparée.
           # `iconv -c` retire la séquence multi-octets que `head -c` peut couper en deux.
+          #
+          # Le `|| true` n'est pas cosmétique. `iconv -c` **omet** le caractère invalide mais
+          # **sort quand même en 1** quand la coupure tombe sur une séquence incomplète en fin
+          # de tampon (« incomplete character or shift sequence at end of buffer ») — et le
+          # step, en `bash -e`, tombait avec lui. La sortie déjà convertie, elle, est complète :
+          # c'est le préfixe propre qu'on veut. Vécu le 11/09/2026 sur les pushes qui
+          # bumpaient en 1.152.0 puis 1.152.1 : aucun tag posé, aucune release, l'étape rouge à
+          # chaque fois. Le « printf: write error: Broken pipe » du même journal est le SIGPIPE
+          # que `head` envoie en fermant le tuyau — sans `pipefail` il ne décide de rien, mais
+          # il accompagne toujours le symptôme.
           MAX_BYTES=60000
           if [ "$(printf '%s' "$notes" | wc -c)" -gt "$MAX_BYTES" ]; then
-            tronque="$(printf '%s' "$notes" | head -c "$MAX_BYTES" | iconv -c -f UTF-8 -t UTF-8)"
+            tronque="$(printf '%s' "$notes" | head -c "$MAX_BYTES" | iconv -c -f UTF-8 -t UTF-8 || true)"
             notes="$tronque
 
           ---
