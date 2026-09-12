@@ -92,3 +92,40 @@ export function locationHasAnyCategory(item, categoryIds) {
   const ids = new Set(locationCategoryIds(item));
   return categoryIds.some((id) => ids.has(String(id)));
 }
+
+/** Trie les catégories par `sort_order` croissant, puis libellé (locale fr). Ne mute pas. */
+export function sortLocationCategories(list) {
+  return [...(list || [])].sort(
+    (a, b) =>
+      (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) ||
+      String(a.label || '').localeCompare(String(b.label || ''), 'fr'),
+  );
+}
+
+/**
+ * Calcule les `sort_order` à persister pour déplacer une catégorie d'un cran
+ * (`direction` = -1 monter / +1 descendre). Renvoie `null` si impossible, sinon
+ * `{ category_ids }` dans le nouvel ordre (pour `PUT /api/map-categories/reorder`)
+ * et `patches` `{ id, sort_order }` des lignes qui changent vraiment.
+ */
+export function buildCategoryReorderPatches(sortedCategories, categoryId, direction) {
+  const cats = Array.isArray(sortedCategories) ? sortedCategories : [];
+  const target = String(categoryId ?? '');
+  const idx = cats.findIndex((c) => String(c?.id ?? '') === target);
+  if (idx < 0 || !target) return null;
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= cats.length) return null;
+  const arr = [...cats];
+  [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+  const patches = [];
+  arr.forEach((c, i) => {
+    if (c?.id == null) return;
+    const prev = cats.find((x) => String(x.id) === String(c.id));
+    if (Number(prev?.sort_order) === i) return;
+    patches.push({ id: c.id, sort_order: i });
+  });
+  return {
+    category_ids: arr.map((c) => String(c.id)),
+    patches,
+  };
+}

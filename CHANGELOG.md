@@ -7,6 +7,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — ordre des catégories de lieux dans les paramètres
+
+- Dans Réglages → Catégories de lieux : boutons ↑ ↓ pour réordonner les catégories
+  (filtres, pastilles, priorité au dézoom).
+- API `PUT /api/map-categories/reorder` (`{ category_ids }`).
+
 ### Ajouté — pastilles tutoriel sur la carte (réglage)
 
 - Nouveau réglage public `ui.map.show_tutorial_dots` (défaut **off**) : affiche ou
