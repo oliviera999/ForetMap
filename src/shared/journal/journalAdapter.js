@@ -1,9 +1,10 @@
 /**
  * Adaptateur produit du carnet : la seule chose qui distingue « Mon carnet » (ForetMap) de
  * « Mon journal » (G&L) côté données est le client HTTP et le préfixe des routes — le contrat
- * (`GET me`, `POST me/articles`, `PUT me/articles/:id`, `…/assets`, `…/pin`, `DELETE`) est
- * le même, par construction (`docs/PLAN_CARNET_PARITE_GL.md`, §4.2). Chaque produit expose
- * une instance ; les hooks partagés ne connaissent que cette interface.
+ * (`GET me`, `POST me/articles`, `PUT me/articles/:id`, `…/assets`, `…/pin`, `DELETE`,
+ * `POST me/imports`, `POST embeds/resolve`, `GET users|players/:id`) est le même, par
+ * construction (`docs/PLAN_CARNET_PARITE_GL.md`, §4.2). Chaque produit expose une instance ;
+ * les hooks et composants partagés ne connaissent que cette interface.
  *
  * @typedef {object} JournalAdapter
  * @property {() => Promise<{ limits?: object, articles?: object[], imports?: object[] }>} fetchJournal
@@ -15,16 +16,22 @@
  * @property {(articleId: string|number, assetId: string|number) => Promise<{ usage?: object }>} removeArticleAsset
  * @property {(importId: string|number) => Promise<unknown>} deleteImport
  * @property {(importId: string|number, pinned: boolean) => Promise<unknown>} pinImport
+ * @property {(payload: { resourceType: string, resourceRef: string, title?: string }) => Promise<{ import?: object }>} importResource
+ * @property {(embeds: { type: string, ref: string }[]) => Promise<{ titles?: Record<string, string> }>} resolveEmbeds
+ * @property {(subjectId: string|number) => Promise<{ user?: object, player?: object, articles?: object[], imports?: object[] }>} fetchSubjectJournal
+ *   lecture par un professeur / MJ du carnet d'un autre compte
  */
 
 /**
  * @param {object} options
  * @param {(path: string, method?: string, body?: unknown) => Promise<any>} options.request client HTTP du produit (`api` / `apiGL`)
  * @param {string} options.basePath préfixe des routes « me » (`/api/user-journal/me`, `/api/gl/player-journal/me`)
+ * @param {string} [options.subjectsSegment='users'] segment des routes de lecture staff (`users` côté ForetMap, `players` côté G&L)
  * @returns {JournalAdapter}
  */
-export function createJournalAdapter({ request, basePath }) {
+export function createJournalAdapter({ request, basePath, subjectsSegment = 'users' }) {
   const base = String(basePath || '').replace(/\/+$/, '');
+  const root = base.replace(/\/me$/, '');
   const enc = (v) => encodeURIComponent(String(v));
   return {
     fetchJournal: () => request(base),
@@ -41,5 +48,8 @@ export function createJournalAdapter({ request, basePath }) {
     deleteImport: (importId) => request(`${base}/imports/${enc(importId)}`, 'DELETE'),
     pinImport: (importId, pinned) =>
       request(`${base}/imports/${enc(importId)}/pin`, 'PUT', { pinned }),
+    importResource: (payload) => request(`${base}/imports`, 'POST', payload),
+    resolveEmbeds: (embeds) => request(`${root}/embeds/resolve`, 'POST', { embeds }),
+    fetchSubjectJournal: (subjectId) => request(`${root}/${subjectsSegment}/${enc(subjectId)}`),
   };
 }

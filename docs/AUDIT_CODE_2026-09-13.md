@@ -390,10 +390,14 @@ d'API éviterait la prochaine divergence. _Confiance : haute._
 **Traité dans un second temps** par un noyau commun `src/shared/journal/` : adaptateur
 produit (client HTTP + préfixe de routes), fil unifié en fonction pure, hook du fil, hook de
 l'éditeur d'article, carte d'import et barre d'outils partagées ; les composants produit ne
-gardent que le rendu (textes, aide G&L, zone côté ForetMap, sorts du chapitre côté G&L). Détail
-et reste à faire (sélecteur d'encarts, modale de lecture, hydratation des titres) :
-`docs/PLAN_CARNET_PARITE_GL.md` §9. Tests : `tests-ui/shared/journalFeed.test.js`,
-`tests-ui/components/journal/` (miroirs des tests G&L existants).
+gardent que le rendu (textes, aide G&L, zone côté ForetMap, sorts du chapitre côté G&L).
+**Troisième passage** : sélecteur d'encarts (registre de types par produit), modale de lecture
+(ForetMap aligné sur la vue MJ : dates, volumes, filtre des imports, export enrichi),
+hydratation des titres d'encarts et bouton d'import partagés ; panneau d'aide ForetMap sur le
+carnet (section `journal`). Les composants produit sont réduits à des enveloppes de quelques
+lignes. Détail : `docs/PLAN_CARNET_PARITE_GL.md` §9. Tests : `tests-ui/shared/journalFeed.test.js`,
+`tests-ui/shared/journal/` (adaptateur, export, hydratation), `tests-ui/components/journal/`
+(miroirs des tests G&L existants).
 
 ### 4.6 — INFO · Doublons assumés et sains
 

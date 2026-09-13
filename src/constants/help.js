@@ -192,6 +192,24 @@ const HELP_PANELS = {
       },
     ],
   },
+  journal: {
+    title: 'Aide carnet',
+    items: [
+      {
+        text: 'Un article, c’est ce que tu veux garder : du texte, des photos, ou les deux. Ça s’enregistre tout seul pendant que tu écris — je veille.',
+      },
+      {
+        text: 'Sur une fiche espèce, un terme du glossaire ou un tutoriel, marque-le comme appris puis « Ajouter au carnet » : il rejoint le fil, avec un lien pour le rouvrir.',
+      },
+      {
+        text: 'Épingle ce qui compte, cherche et filtre le reste. Un carnet qu’on relit vaut mieux qu’un carnet qu’on remplit.',
+      },
+      {
+        textTeacher:
+          'Les carnets se lisent depuis les statistiques, selon ton périmètre, et s’exportent en texte. Lire n’est pas corriger : le carnet reste à celui qui l’écrit.',
+      },
+    ],
+  },
 };
 
 export { HELP_TOOLTIPS, HELP_PANELS, resolveRoleText };
