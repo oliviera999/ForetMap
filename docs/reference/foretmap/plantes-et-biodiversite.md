@@ -78,8 +78,11 @@ la fiche restent affichés à part, en pastilles.
    photo, nom, nom scientifique, quelques pastilles (rôle trophique, comestibilité,
    milieu) et le bouton d'observation. S'y ajoutent une **recherche** par nom et un
    filtre par **règne**, puis des **filtres avancés** par grand groupe, famille,
-   habitat, rôle trophique, milieu, et par **présence sur la carte** (espèces liées à
-   au moins une zone ou un repère, ou au contraire sans lieu).
+   habitat, rôle trophique, milieu, et par **présence sur la carte**. Par défaut, seules
+   les espèces **présentes sur la carte active** sont montrées : celles liées à une zone
+   ou un repère de cette carte, **ou** rattachées à la carte elle-même (sans lieu précis —
+   par exemple les oiseaux du site). L'élève peut élargir à « Toutes les fiches » ou
+   n'afficher que les absentes de la carte.
 2. Il clique une vignette : la **fiche complète** s'ouvre en fenêtre — photos,
    informations, mini-cartes d'emplacement, interactions, termes de glossaire,
    questions de quiz et commentaires. C'est la même fenêtre que celle ouverte depuis la
@@ -102,11 +105,12 @@ questions (les observations suivantes de la même espèce ne redemandent rien).
 ### Créer et modifier une fiche
 
 Le professeur ajoute une fiche depuis l'onglet Biodiversité et remplit le formulaire
-(seul le nom est obligatoire). Il voit le même catalogue en vignettes que les élèves,
-avec deux boutons par vignette : **modifier** (le formulaire s'ouvre en fenêtre, avec
-l'enregistrement automatique habituel) et **supprimer**. Cliquer la vignette elle-même
-ouvre la fiche telle que les élèves la voient. Les changements apparaissent en temps
-réel chez les utilisateurs connectés.
+(seul le nom est obligatoire). Il peut aussi cocher les **cartes** sur lesquelles
+l'espèce est présente sans être liée à une zone ou un repère précis. Il voit le même
+catalogue en vignettes que les élèves, avec deux boutons par vignette : **modifier**
+(le formulaire s'ouvre en fenêtre, avec l'enregistrement automatique habituel) et
+**supprimer**. Cliquer la vignette elle-même ouvre la fiche telle que les élèves la
+voient. Les changements apparaissent en temps réel chez les utilisateurs connectés.
 
 ### Le pré-remplissage automatique (multi-sources)
 
@@ -184,6 +188,6 @@ retrouve automatiquement la bonne fiche.
 - Retour au [sommaire de la documentation](../README.md) ;
 - [Présentation générale de ForetMap](presentation.md) ;
 - [La carte et les zones](carte-et-zones.md) — où l'on associe les espèces aux lieux
-  du jardin ;
+  du jardin (et, pour les espèces sans lieu précis, directement à la carte) ;
 - Le réseau trophique, le glossaire et les quiz reliés aux fiches sont détaillés dans
   le document « pédagogie : quiz, glossaire, réseau » (voir sommaire).
