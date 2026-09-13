@@ -175,6 +175,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   corps, la remplaçant par les puces de « Prof de classe ». Numéro de migration corrigé au
   passage — `231_rbac_prof_classe_media.sql`, renuméroté depuis, était encore cité en `230`.
 
+### Audit — Affichage du Plan Lyautey, second relevé (13 septembre)
+
+- **Nouveau document `docs/AUDIT_PLAN_AFFICHAGE_2026-09-13.md`** (relevé seul, aucun code
+  modifié) : reprise de l'audit du 4 septembre sur la tête de `main` (1.153.39) confrontée à la
+  charge publique réelle (33 zones, 26 repères, 9 catégories, fond recapturé en 1210 × 1437).
+  **Sept constats sur neuf sont réglés**, dont le certificat TLS, la collision des noms, le fond
+  de plan et le halo de position ; le moteur d'étiquettes tient sur les données d'aujourd'hui
+  (0 ancre hors polygone, 0 recouvrement, tout nommé à ×2,5). Deux constats majeurs nouveaux :
+  **« Orienter la carte selon la boussole » retourne les étiquettes** (la rotation est posée sur
+  le calque qui porte aussi le texte — mesuré à 180° dans Chromium), et **les cinq entrées du
+  lycée sont au dernier rang de priorité d'affichage** parce que `sort_order`, lu comme
+  importance par le moteur, sert désormais d'ordre d'audience côté établissement (les tables
+  d'échecs passent devant). S'y ajoutent : `main` rouge sur un seul fichier mal formaté, ce qui
+  saute la suite Vitest **et** le smoke e2e Plan pourtant rendu bloquant ; cinq « WC »
+  indiscernables dans la recherche ; un parcours publié à une seule étape. Plan d'action en neuf
+  points.
+
 ---
 
 ## [1.152.1] - 2026-09-11
