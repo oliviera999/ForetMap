@@ -29,7 +29,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   échec d'intégration — et, les tentatives se répétant, en verrou `429` sur le scénario suivant.
   Ils se mettent désormais de côté (`test.skip`), comme le fait déjà `plan-routes-mode.spec.js`
   dans le même filet : une absence de compte n'est pas une régression d'affichage.
+- **Gardes posées avant les assertions qu'elles protègent.** Les trois scénarios du plan
+  assertaient la présence de contrôles de la carte (« Voir tout le plan », « Me situer ») avant
+  de vérifier que la base avait de quoi les afficher. Or `AppPlan` ne monte `PlanMapStage` que
+  si la carte a un **fond d'image** (`hasMapImage`) : sur une base qui n'en a pas — le cas en
+  intégration —, les trois échouaient sur des boutons absents, là où il n'y avait rien à
+  vérifier. `plan-routes-mode.spec.js`, qui garde en tête de scénario, tenait pour cette raison.
+  Les gardes sont désormais au même endroit. Aucune assertion n'est retirée : là où le plan a un
+  fond, les scénarios s'exécutent en entier.
 - Smoke bloquant rejoué en local sur base neuve : **0 échec**.
+
+> **À noter, et à traiter à part :** tant que la carte du plan semée en intégration n'a pas de
+> fond d'image, ces scénarios s'y **abstiennent** — le filet est donc en place mais ne vérifie
+> rien de ce côté. Lui donner de la matière demande de compléter le semis, pas de toucher aux
+> scénarios.
 
 ## [Non publié]
 

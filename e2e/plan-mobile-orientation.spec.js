@@ -80,6 +80,14 @@ test('plan : le cap en haut fait tourner la carte sans retourner le texte', asyn
   const mapId = content.map?.id;
   expect(mapId).toBeTruthy();
 
+  // Les contrôles de la carte (« Voir tout le plan », « Me situer », pastilles) ne sont rendus
+  // que si le plan a un fond d'image : `AppPlan` ne monte `PlanMapStage` que sous
+  // `hasMapImage`. Sans cette garde, une base dont la carte n'a pas d'image fait échouer le
+  // scénario sur un bouton absent, là où il n'y a en réalité rien à vérifier — c'est ce qui
+  // rendait le smoke bloquant rouge en intégration. Garde posée **avant** les assertions
+  // qu'elle protège, comme dans `plan-routes-mode.spec.js`.
+  test.skip(!content.map?.map_image_url, 'La carte du plan de cette base locale n’a pas de fond.');
+
   const token = await adminToken(request);
   test.skip(!token, 'Compte professeur e2e indisponible : calage GPS impossible.');
   const auth = { Authorization: `Bearer ${token}` };
