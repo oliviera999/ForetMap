@@ -1,6 +1,6 @@
 /**
  * Navigation haute du chemin n3boss en TROIS PÔLES (audit UI, D-4) : Contenus / Suivi /
- * Administration, chacun déployant sa rangée d'onglets — les 17 onglets ne défilent plus
+ * Administration, chacun déployant sa rangée d'onglets — les onglets ne défilent plus
  * hors écran dans une barre unique au débordement invisible.
  *
  * Composant feuille purement piloté par props : l'onglet actif, les permissions et les
@@ -22,6 +22,7 @@ import {
   IconMap,
   IconMascotPacks,
   IconMediaLibrary,
+  IconNotebook,
   IconPoleAdmin,
   IconPoleContents,
   IconPoleTracking,
@@ -71,6 +72,7 @@ export function TeacherTopTabs({
   tutorialsModuleEnabled,
   statsEnabled,
   visitEnabled,
+  observationsEnabled = true,
   canAccessForum,
   isN3Affiliated,
   hasPermission,
@@ -155,6 +157,13 @@ export function TeacherTopTabs({
       visible: canTasks,
     },
     { id: 'stats', pole: 'tracking', Icon: IconStats, label: 'Stats', visible: canStats },
+    {
+      id: 'notebook',
+      pole: 'tracking',
+      Icon: IconNotebook,
+      label: 'Carnet',
+      visible: observationsEnabled,
+    },
     { id: 'forum', pole: 'tracking', Icon: IconForum, label: 'Forum', visible: canAccessForum },
     {
       id: 'audit',
