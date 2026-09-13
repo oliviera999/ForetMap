@@ -26,6 +26,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   ids de lieux, et fixtures du catalogue que le filtre « carte active » laissait sans vignette.
   Aucun de ces tests ne décrivait plus le comportement livré.
 
+### Ajouté — le périmètre cartes d'un groupe restreint vraiment l'accès
+
+- **Périmètre cartes** (`lib/shared/mapScopeCore.js`, `lib/mapAccess.js`) : `group_scopes.map_id`,
+  qui ne servait qu'à filtrer des élèves dans les statistiques, borne désormais l'accès aux
+  cartes des membres du groupe — et de ses sous-groupes, qui en héritent quand ils n'en
+  déclarent pas. L'**affiliation** d'un élève (`users.affiliation`), jusqu'ici appliquée par le
+  seul client, est vérifiée côté serveur et s'intersecte avec le périmètre de groupe.
+- **Routes bornées** : `GET /api/maps` (réponse filtrée), `GET /api/zones`, `GET /api/zones/:id`,
+  `GET /api/map/markers`, `GET /api/map-routes`, `GET /api/map-routes/:idOrSlug`,
+  `GET /api/map-categories`. Une carte hors périmètre répond `403 { code: 'MAP_OUT_OF_SCOPE' }` ;
+  une liste sans `map_id` est ramenée au périmètre, pour que la garde ne tienne pas à
+  l'omission d'un paramètre.
+- **Ne change rien sans configuration** : un groupe sans périmètre n'est pas borné, et comme
+  les appartenances s'additionnent, un seul groupe sans périmètre suffit à ne rien borner.
+  Les lectures **sans session** (visite publique, plan public) et les comptes `teacher.access`
+  ou `admin` ne sont jamais bornés.
+- Écran de gestion des groupes : le champ *Périmètre cartes* explique désormais sa portée.
+  `group_scopes` entre dans la version d'écriture du scope groupes (`database.js`), sans quoi
+  un changement de périmètre ne périmerait pas le cache d'accès.
 ### Ajouté — cloisonnement par rôles sur la couche visite
 
 - Migration `240_visit_location_audience_roles.sql` : `visible_role_slugs`,
