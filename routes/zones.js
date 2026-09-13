@@ -2,7 +2,8 @@ const express = require('express');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
-const { requirePermission } = require('../middleware/requireTeacher');
+const { requirePermission, authenticate } = require('../middleware/requireTeacher');
+const { resolveScopedMapFilter, canAccessMapId, MAP_OUT_OF_SCOPE } = require('../lib/mapAccess');
 const {
   serializeZonePhotoListRow,
   redirectIfPublicZonePhotoDataUrl,
@@ -185,8 +186,11 @@ LEFT JOIN visit_zones vz ON vz.id = z.id`;
 /** Historique affiché sur la liste carte (le reste via GET /api/zones/:id). */
 const ZONE_LIST_HISTORY_LIMIT = 5;
 
+// `authenticate` : session facultative (la visite publique lit les zones sans compte),
+// hydratée quand elle existe — c'est elle qui porte le périmètre cartes.
 router.get(
   '/',
+  authenticate,
   asyncHandler(async (req, res) => {
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
     if (mapId && !(await mapExists(mapId))) {
@@ -195,8 +199,16 @@ router.get(
     // `?surface=map|visit|plan` (lot 4) : ne renvoie que les zones visibles sur cette surface.
     const surfaceQuery = readSurfaceQuery(req.query.surface);
     if (!surfaceQuery.ok) return res.status(400).json({ error: surfaceQuery.error });
-    const zones = mapId
-      ? await queryAll(`${ZONES_LIST_SQL} WHERE z.map_id = ?`, [mapId])
+    // Périmètre cartes : carte demandée hors périmètre → 403 ; sans `map_id`, la liste
+    // complète est ramenée aux cartes autorisées (sinon la garde tiendrait à l'omission
+    // du paramètre).
+    const scope = await resolveScopedMapFilter(req.auth || null, mapId);
+    if (scope.forbidden) return res.status(403).json(MAP_OUT_OF_SCOPE);
+    const zones = scope.mapIds
+      ? await queryAll(
+          `${ZONES_LIST_SQL} WHERE z.map_id IN (${scope.mapIds.map(() => '?').join(',')})`,
+          scope.mapIds,
+        )
       : await queryAll(ZONES_LIST_SQL);
     const zoneIds = zones.map((z) => z.id);
     // Historique : seules les `ZONE_LIST_HISTORY_LIMIT` dernières lignes par zone sont
@@ -273,9 +285,15 @@ router.get(
 
 router.get(
   '/:id',
+  authenticate,
   asyncHandler(async (req, res) => {
     const zone = await queryOne(`${ZONES_DETAIL_SQL} WHERE z.id = ?`, [req.params.id]);
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
+    // Accès direct par identifiant : la carte de la zone est relue en base, pas déduite
+    // d'un paramètre de requête.
+    if (!(await canAccessMapId(req.auth || null, zone.map_id))) {
+      return res.status(403).json(MAP_OUT_OF_SCOPE);
+    }
     const history = await queryAll(
       'SELECT * FROM zone_history WHERE zone_id = ? ORDER BY harvested_at DESC',
       [req.params.id],

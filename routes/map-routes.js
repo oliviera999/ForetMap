@@ -22,7 +22,8 @@ const QRCode = require('qrcode');
 
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { getSettingValue } = require('../lib/settings');
-const { requirePermission } = require('../middleware/requireTeacher');
+const { requirePermission, authenticate } = require('../middleware/requireTeacher');
+const { resolveScopedMapFilter, canAccessMapId, MAP_OUT_OF_SCOPE } = require('../lib/mapAccess');
 const asyncHandler = require('../lib/asyncHandler');
 const { logAudit } = require('../lib/auditLog');
 const { readSurfaceQuery, normalizeSurfaceInput } = require('../lib/locationSurfaces');
@@ -146,6 +147,7 @@ async function checkStepTargets(mapId, steps) {
 router.get(
   '/',
   requirePlanAccess,
+  authenticate,
   asyncHandler(async (req, res) => {
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
     if (mapId && !(await mapExists(mapId))) {
@@ -156,9 +158,12 @@ router.get(
 
     const where = ['is_published = 1'];
     const params = [];
-    if (mapId) {
-      where.push('map_id = ?');
-      params.push(mapId);
+    // Périmètre cartes du compte : sans `map_id`, la liste est ramenée aux cartes autorisées.
+    const scope = await resolveScopedMapFilter(req.auth || null, mapId);
+    if (scope.forbidden) return res.status(403).json(MAP_OUT_OF_SCOPE);
+    if (scope.mapIds) {
+      where.push(`map_id IN (${scope.mapIds.map(() => '?').join(',')})`);
+      params.push(...scope.mapIds);
     }
     if (surfaceQuery.value) {
       where.push('FIND_IN_SET(?, surfaces) > 0');
@@ -195,6 +200,7 @@ router.get(
 router.get(
   '/:idOrSlug',
   requirePlanAccess,
+  authenticate,
   asyncHandler(async (req, res) => {
     const key = String(req.params.idOrSlug || '').trim();
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
@@ -206,6 +212,10 @@ router.get(
     }
     const [route] = await loadRoutes(where.join(' AND '), params);
     if (!route) return res.status(404).json({ error: 'Parcours introuvable' });
+    // Lien profond par slug : la carte du parcours est relue en base, pas déduite de l'URL.
+    if (!(await canAccessMapId(req.auth || null, route.map_id))) {
+      return res.status(403).json(MAP_OUT_OF_SCOPE);
+    }
     res.json(route);
   }),
 );
