@@ -208,6 +208,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   pourtant rendu bloquant ; cinq « WC »
   indiscernables dans la recherche ; un parcours publié à une seule étape. Plan d'action en neuf
   points.
+### Corrigé — `docs/API.md` : format Prettier et tableau « Auth GL »
+
+- **`npm run format:check` repasse au vert.** Cinq tableaux du fichier avaient dérivé de
+  l'alignement canonique de Prettier ; la vérification de format faisait donc échouer le job
+  `quality` sur `main`, **et sautait en conséquence toute la suite Vitest** (~3 700 tests), qui
+  n'a plus tourné en intégration depuis le 12 septembre.
+- **Tableau « Auth GL » réparé.** Il déclarait 4 colonnes et deux de ses lignes en comptaient 6 :
+  le type union `{ idToken, mode?: 'player' | 'staff' | 'auto' }` de `/api/gl/auth/google`
+  portait des barres verticales non échappées, et le séparateur avait été aligné sur 6 colonnes
+  pour suivre. Le tableau s'affichait de travers, « 'staff' » et « 'auto' » débordant dans les
+  colonnes voisines. Barres échappées (`\|`), séparateur ramené à 4 colonnes.
+- Hors ces deux lignes, la modification est **purement de mise en forme** : `git diff -w` ne
+  montre aucun autre changement de contenu.
 
 ---
 
