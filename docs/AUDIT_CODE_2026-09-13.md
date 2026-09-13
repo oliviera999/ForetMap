@@ -309,7 +309,11 @@ client silencieuse. **Remède** : déplacer la source dans `src/shared/` (miroir
 déjà couvert par le diff de CI) ou ajouter un `sync:biomes-lib`. _Confiance : haute sur le
 doublon, moyenne sur la divergence sémantique (non testée)._
 
-**Ouvert** : demande de décider où vit la source (client ou serveur) ; voir §9.
+**Traité** : la source est `src/shared/glBiomesRegistryCore.js`, miroir CJS généré dans
+`lib/shared/` par `scripts/sync-shared-cores.js` (contrôlé par `tests/shared-cores-sync.test.js`) ;
+`src/gl/data/biomes.registry.js` et `lib/glBiomesRegistry.js` ne font plus que réexporter, ce
+dernier gardant les alias propres au lore. La divergence textuelle (alias `foret_caducifoliee`
+présent d'un seul côté) était sans effet : `normalizeBiomeSlugKey` replie `-` sur `_`.
 
 ### 4.2 — MINEUR · Helpers d'import tableur : 11 `resolveImportRows`, 8 `readSheetRows`
 
@@ -585,9 +589,10 @@ moitié si la CI devient contrainte.
 | 8   | **Traité** pour les copies identiques ; `buildImportReportBase` laissé (sept formes)       |
 | 9   | **Traité** — NUL, N+1, `LIMIT`, import visite par lots                                     |
 
-**Restent ouverts** : §2.5 (25 effets sans annulation — écran par écran), §4.1 (registre des
-biomes : décider la source), §4.5 (composants carnet FM/GL), §5.3 (projections `SELECT *`,
-dont `lib/identity.js`), §5.6–5.7 et §6 (process).
+**Restent ouverts** : §2.5 (25 effets sans annulation — écran par écran), §4.5 (composants
+carnet FM/GL), §5.3 (projections `SELECT *` — `lib/identity.js` alimente aussi le profil et
+les visites guidées vues, une projection y demande une relecture des consommateurs), §5.6–5.7
+et §6 (process). §4.1 (registre des biomes) a été traité dans un second temps.
 
 ### 9.1 — Trouvé en chemin : la CI de `main` était rouge depuis le 11 septembre
 

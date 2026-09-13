@@ -86,6 +86,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `lib/shared/`. Côté front : `src/shared/utils/classNames.js`, `formatDateTime.js` et
   `fileToDataUrl` partagé (24 copies retirées). Aucun changement de comportement visé ; suites
   backend, Vitest et e2e plan vertes.
+- **Registre des biomes G&L** : une seule source, `src/shared/glBiomesRegistryCore.js`, miroir
+  CJS généré par `sync:shared-cores` ; les deux copies manuelles (client et serveur) ne font
+  plus que réexporter.
 - **Dépendances** : `adm-zip` 0.6.1 et `qs` 6.16.0 (`npm audit fix`, sans changement cassant).
 
 ### Documentation — audit du code du 13 septembre 2026
