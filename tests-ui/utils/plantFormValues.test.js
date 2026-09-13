@@ -58,17 +58,15 @@ describe('mergePlantPhotoFieldValue', () => {
 });
 
 describe('EMPTY_PLANT_FORM', () => {
-  test('aucun champ pré-rempli, hors emoji (🌱)', () => {
+  test('toutes les valeurs vides sauf emoji (🌱)', () => {
     expect(EMPTY_PLANT_FORM.emoji).toBe('🌱');
-    // `map_ids` est arrivé avec le rattachement d'espèces à une carte : un formulaire vierge
-    // vaut donc `''` pour les champs texte et `[]` pour les listes. L'intention du test est
-    // « rien de pré-rempli », pas « tout est une chaîne ».
-    const others = Object.entries(EMPTY_PLANT_FORM).filter(([k]) => k !== 'emoji');
-    for (const [key, value] of others) {
-      const vide = Array.isArray(value) ? value.length === 0 : value === '';
-      expect(vide, `${key} devrait être vide`).toBe(true);
-    }
+    // `map_ids` (rattachement direct fiche → carte, migration 239) est une liste, pas une
+    // chaîne : le formulaire vide en part avec un tableau vide.
     expect(EMPTY_PLANT_FORM.map_ids).toEqual([]);
+    const others = Object.entries(EMPTY_PLANT_FORM).filter(
+      ([k]) => k !== 'emoji' && k !== 'map_ids',
+    );
+    expect(others.every(([, v]) => v === '')).toBe(true);
   });
   test('couvre les colonnes attendues du modèle', () => {
     expect(EMPTY_PLANT_FORM).toHaveProperty('name');
