@@ -265,6 +265,78 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   corps, la remplaçant par les puces de « Prof de classe ». Numéro de migration corrigé au
   passage — `231_rbac_prof_classe_media.sql`, renuméroté depuis, était encore cité en `230`.
 
+### Audit — Affichage du Plan Lyautey, second relevé (13 septembre)
+
+- **Nouveau document `docs/AUDIT_PLAN_AFFICHAGE_2026-09-13.md`** (relevé seul, aucun code
+  modifié) : reprise de l'audit du 4 septembre sur la tête de `main` (1.153.39) confrontée à la
+  charge publique réelle (33 zones, 26 repères, 9 catégories, fond recapturé en 1210 × 1437).
+  **Sept constats sur neuf sont réglés**, dont le certificat TLS, la collision des noms, le fond
+  de plan et le halo de position ; le moteur d'étiquettes tient sur les données d'aujourd'hui
+  (0 ancre hors polygone, 0 recouvrement, tout nommé à ×2,5). Deux constats majeurs nouveaux :
+  **« Orienter la carte selon la boussole » retourne les étiquettes** (la rotation est posée sur
+  le calque qui porte aussi le texte — mesuré à 180° dans Chromium), et **les cinq entrées du
+  lycée sont au dernier rang de priorité d'affichage** parce que `sort_order`, lu comme
+  importance par le moteur, sert désormais d'ordre d'audience côté établissement (les tables
+  d'échecs passent devant). S'y ajoutent : `main` rouge sur un seul fichier — cinq tableaux de
+  `docs/API.md` hors alignement Prettier — ce qui saute la suite Vitest **et** le smoke e2e Plan
+  pourtant rendu bloquant ; cinq « WC »
+  indiscernables dans la recherche ; un parcours publié à une seule étape. Plan d'action en neuf
+  points.
+
+### Corrigé — Plan : le texte reste droit quand la carte tourne (audit N1)
+
+- **« Orienter la carte selon la boussole » retournait toutes les étiquettes.** La rotation
+  était posée sur `.plan-map__fit`, le calque qui porte **aussi** les noms de zones, les
+  repères et les pastilles de groupe. Rien ne contre-tournait le texte : mesuré dans Chromium
+  en cumulant les matrices jusqu'au viewport, un cap de 180° donnait un texte à 180° — les noms
+  de bâtiments étaient littéralement à l'envers. La fonction est opt-in, mais son usage même
+  consiste à pivoter sur soi : elle devenait illisible dès que l'on quittait le nord.
+- **Correction en deux temps, parce qu'une ligne de CSS n'aurait pas suffi.** Le calque expose
+  désormais son angle (`--pct-orient`) et chaque habillage lisible le défait sur lui-même,
+  exactement comme `--pct-inv` défait le zoom. Mais une fois les étiquettes redressées, leurs
+  boîtes redeviennent alignées sur l'écran alors que leurs ancres, elles, tournent : deux noms
+  qui ne se gênaient pas au nord pouvaient se recouvrir à 45°. `resolveVisibleLabels` reçoit
+  donc l'angle et son pivot, et tourne les ancres avant de construire les boîtes. L'écart de
+  26 px entre un repère et son nom, lui, reste vertical **à l'écran** : il s'ajoute après la
+  rotation.
+- **Vérifié en vrai.** Mesure refaite dans Chromium : sans la correction, carte à −90° → texte
+  à −90°, carte à −180° → texte à 180° ; avec, texte à 0° à tous les caps, l'étiquette restant
+  ancrée au pixel près sur son point. Scénario `e2e/plan-mobile-orientation.spec.js` : cap
+  simulé par `deviceorientation`, bouton 🧭 réellement cliqué, et l'assertion vérifie **d'abord
+  que la carte a tourné** — sans quoi elle passerait sur une carte restée au nord, sans rien
+  prouver.
+
+### Corrigé — Plan : un lieu sans catégorie retrouve un rang d'affichage intermédiaire (audit N2)
+
+- **Les cinq entrées du lycée étaient au dernier rang de priorité, les tables d'échecs au
+  premier.** Le moteur d'étiquettes lit `sort_order` comme importance, et donnait le rang 50 aux
+  lieux sans catégorie. Ce 50 était intermédiaire quand les catégories de production valaient 10
+  et 100 ; l'établissement les a renumérotées par **audience** (Elèves 0, Parents 1… Sanitaire
+  14), et la constante s'est retrouvée dernière. Le code n'avait pas bougé : sa donnée d'entrée
+  avait changé de sens sous lui.
+- **Le rang de repli est maintenant calculé sur les catégories présentes** (`defaultLabelPriority`),
+  à mi-chemin entre le rang médian et le rang distinct suivant. Il reste intermédiaire quelle que
+  soit l'échelle de numérotation retenue — 6,5 sur la numérotation actuelle, 55 sur l'ancienne —
+  et reste **strictement supérieur** à la médiane : à rang nominal égal, une catégorie réelle
+  l'emporte toujours sur une absence de catégorie, qui serait sinon départagée par l'ordre
+  d'itération.
+- Cela ne remplace pas le rangement des cinq entrées dans une catégorie « Entrées / Accès » en
+  tête, ni la séparation à terme de `sort_order` (ordre des puces) et de la priorité d'affichage.
+
+### Ajouté — Plan : distance dans la liste de résultats (audit N4)
+
+- Cinq repères « WC » s'affichaient en cinq lignes strictement identiques — même emoji, même
+  nom, ni sous-titre ni catégorie distinctive : il fallait ouvrir les cinq fiches l'une après
+  l'autre pour savoir laquelle était la plus proche. Quand la position est active, chaque ligne
+  porte désormais sa distance à vol d'oiseau, déjà calculée pour « Y aller ». Elle est **dans le
+  bouton**, donc dans son nom accessible : « WC 40 m » se distingue de « WC 120 m » au lecteur
+  d'écran comme à l'œil.
+
+### Modifié — CI : position et orientation du plan entrent dans le filet bloquant
+
+- `plan-mobile-position.spec.js` et `plan-mobile-orientation.spec.js` rejoignent le smoke
+  Playwright bloquant. Le retournement des étiquettes avait traversé l'intégration parce que le
+  seul scénario exerçant la position n'était pas bloquant.
 ---
 
 ## [1.152.1] - 2026-09-11

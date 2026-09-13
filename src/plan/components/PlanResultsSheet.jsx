@@ -13,6 +13,9 @@ import { placeDisplayParts } from '../utils/planPlaces.js';
  * @param {Array<{ place: object }>} props.results résultats classés (`searchPlaces`).
  * @param {(place: object) => void} props.onSelect
  * @param {(place: object) => Array<{ id: string, label: string, emoji: string }>} props.categoriesOf
+ * @param {(place: object) => string} [props.distanceOf] distance à vol d'oiseau depuis la
+ *   position, déjà formatée — chaîne vide quand la position n'est pas active. Voir le bloc
+ *   ci-dessous : c'est ce qui distingue cinq « WC » autrement identiques.
  */
 export function PlanResultsSheet({
   open,
@@ -21,6 +24,7 @@ export function PlanResultsSheet({
   results,
   onSelect,
   categoriesOf,
+  distanceOf = null,
   title = null,
 }) {
   const count = results.length;
@@ -47,6 +51,18 @@ export function PlanResultsSheet({
           {results.map(({ place }) => {
             const categories = categoriesOf(place);
             const { emoji, name } = placeDisplayParts(place);
+            /**
+             * Distance à vol d'oiseau, quand la position est active
+             * (`docs/AUDIT_PLAN_AFFICHAGE_2026-09-13.md` N4) : en production, cinq repères
+             * « WC » s'affichent en cinq lignes strictement identiques — même emoji, même nom,
+             * ni sous-titre ni catégorie distinctive. Il fallait ouvrir les cinq fiches l'une
+             * après l'autre pour savoir laquelle était la plus proche. La distance étant déjà
+             * calculée pour « Y aller », l'afficher ici ne coûte rien et tranche la question.
+             *
+             * Elle est **dans le bouton**, donc dans son nom accessible : « WC 120 m » se
+             * distingue de « WC 40 m » aussi bien au lecteur d'écran qu'à l'œil.
+             */
+            const distance = distanceOf ? distanceOf(place) : '';
             return (
               <li key={`${place.kind}:${place.id}`} className="plan-results__item">
                 <button type="button" className="plan-results__btn" onClick={() => onSelect(place)}>
@@ -54,7 +70,10 @@ export function PlanResultsSheet({
                     {emoji}
                   </span>
                   <span className="plan-results__text">
-                    <span className="plan-results__name">{name}</span>
+                    <span className="plan-results__name">
+                      {name}
+                      {distance ? <span className="plan-results__distance">{distance}</span> : null}
+                    </span>
                     {place.visit_subtitle ? (
                       <span className="plan-results__subtitle">{place.visit_subtitle}</span>
                     ) : null}

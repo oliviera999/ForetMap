@@ -180,9 +180,12 @@ jobs:
           exit 1
 
       - name: Run Playwright Plan smoke (bloquant)
-        # Coquille + parcours Plan uniquement (projet `plan-mobile`) — filet court et
-        # stable ; la suite e2e complète reste informatif ci-dessous.
-        run: npx playwright test --project=plan-mobile e2e/plan-mobile-shell.spec.js e2e/plan-routes-mode.spec.js
+        # Coquille, parcours, position et cap en haut (projet `plan-mobile`) — filet court et
+        # stable ; la suite e2e complète reste informative ci-dessous.
+        # Position et orientation y sont entrées après l'audit du 13 septembre (N1) : le
+        # retournement des étiquettes sous « cap en haut » avait traversé la CI parce que le
+        # seul scénario qui exerce la position n'était pas bloquant.
+        run: npx playwright test --project=plan-mobile e2e/plan-mobile-shell.spec.js e2e/plan-routes-mode.spec.js e2e/plan-mobile-position.spec.js e2e/plan-mobile-orientation.spec.js
         env:
           E2E_BASE_URL: http://127.0.0.1:3000
 
