@@ -40,6 +40,15 @@ vi.mock('../../src/services/api', async (importOriginal) => {
   };
 });
 
+/**
+ * Depuis `feat(biodiv): rattacher des espèces à une carte sans lieu précis`, le catalogue
+ * élève s'ouvre filtré sur la carte active (`defaultZonePresence: IN_MAP`). Les fiches
+ * doivent donc y être rattachées, sinon la grille est vide à juste titre et cette garde de
+ * charge ne mesure plus rien. On utilise le rattachement direct (`map_ids`) introduit par
+ * ce même lot, plutôt que d'inventer des zones.
+ */
+const ACTIVE_MAP_ID = 'foret';
+
 const PLANTS = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
   name: `Espèce ${i + 1}`,
@@ -48,11 +57,12 @@ const PLANTS = Array.from({ length: 12 }, (_, i) => ({
   scientific_name: `Genus species${i + 1}`,
   trophic_role: 'producteur',
   is_edible: 1,
+  map_ids: [ACTIVE_MAP_ID],
   taxonomy: { kingdom: 'Végétal', group: 'Angiosperme', family: null, genus: null },
 }));
 
 vi.mock('../../src/contexts/DataContext.jsx', () => ({
-  useData: () => ({ plants: PLANTS, zones: [], markers: [] }),
+  useData: () => ({ plants: PLANTS, zones: [], markers: [], activeMapId: ACTIVE_MAP_ID }),
 }));
 vi.mock('../../src/contexts/PublicSettingsContext.jsx', () => ({
   usePublicSettings: () => ({ modules: {} }),
@@ -94,7 +104,7 @@ describe('catalogue biodiversité — vignettes', () => {
     expect(publicSettings, `appels réglages : ${publicSettings.join(', ')}`).toEqual([]);
 
     // Le nombre d'appels ne doit pas dépendre du nombre de fiches affichées.
-    expect(apiCalls.length).toBeLessThanOrEqual(3);
+    expect(apiCalls.length, `appels : ${apiCalls.join(' | ')}`).toBeLessThanOrEqual(3);
   });
 
   test('les douze fiches sont listées et le clic ouvre la fiche complète', async () => {

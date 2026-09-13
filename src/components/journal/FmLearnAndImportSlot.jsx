@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api } from '../../services/api';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
+import { fetchJournalImportRefs, invalidateJournalImportRefs } from './journalImportRefs.js';
 import { FmJournalImportButton } from './FmJournalImportButton.jsx';
 
 /**
@@ -21,10 +21,8 @@ export function FmLearnAndImportSlot({
     let cancelled = false;
     if (!resourceType || resourceRef == null || resourceRef === '') return undefined;
     const ref = String(resourceRef);
-    Promise.resolve()
-      .then(() => api('/api/user-journal/me/imports/refs'))
-      .then((res) => {
-        const refs = Array.isArray(res?.refs) ? res.refs : [];
+    fetchJournalImportRefs()
+      .then((refs) => {
         const found = refs.some(
           (r) => r?.resourceType === resourceType && String(r?.resourceRef) === ref,
         );
@@ -36,7 +34,11 @@ export function FmLearnAndImportSlot({
     };
   }, [resourceType, resourceRef]);
 
-  const onImported = useCallback(() => setAlreadyImported(true), []);
+  const onImported = useCallback(() => {
+    // La liste partagée vient de changer : le prochain accusé monté doit la relire.
+    invalidateJournalImportRefs();
+    setAlreadyImported(true);
+  }, []);
 
   return (
     <div className="fm-learn-import">

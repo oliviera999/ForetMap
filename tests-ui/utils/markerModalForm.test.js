@@ -21,6 +21,11 @@ describe('markerFormFromMarker', () => {
       visit_details_text: '',
       hidden_surfaces: [],
       search_aliases: '',
+      // Champs d'audience arrivés avec la migration `236` : un repère neuf n'est restreint
+      // à personne et ne porte aucune note réservée.
+      visible_role_slugs: [],
+      restricted_note: '',
+      restricted_note_role_slugs: [],
     });
   });
 

@@ -58,10 +58,17 @@ describe('mergePlantPhotoFieldValue', () => {
 });
 
 describe('EMPTY_PLANT_FORM', () => {
-  test('toutes les valeurs vides sauf emoji (🌱)', () => {
+  test('aucun champ pré-rempli, hors emoji (🌱)', () => {
     expect(EMPTY_PLANT_FORM.emoji).toBe('🌱');
+    // `map_ids` est arrivé avec le rattachement d'espèces à une carte : un formulaire vierge
+    // vaut donc `''` pour les champs texte et `[]` pour les listes. L'intention du test est
+    // « rien de pré-rempli », pas « tout est une chaîne ».
     const others = Object.entries(EMPTY_PLANT_FORM).filter(([k]) => k !== 'emoji');
-    expect(others.every(([, v]) => v === '')).toBe(true);
+    for (const [key, value] of others) {
+      const vide = Array.isArray(value) ? value.length === 0 : value === '';
+      expect(vide, `${key} devrait être vide`).toBe(true);
+    }
+    expect(EMPTY_PLANT_FORM.map_ids).toEqual([]);
   });
   test('couvre les colonnes attendues du modèle', () => {
     expect(EMPTY_PLANT_FORM).toHaveProperty('name');
