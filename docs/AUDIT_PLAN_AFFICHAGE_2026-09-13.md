@@ -175,18 +175,19 @@ Les deux derniers runs CI de `main` (12 et 13 septembre) échouent. Deux causes 
   `docs/API.md`. L'étape suivante, « Run UI tests (Vitest) », est alors **sautée** : les ~3 700
   tests UI n'ont pas tourné sur `main`.
 
-  La cause n'est pas cosmétique. Le tableau « Auth GL » déclare **4 colonnes**, mais deux de ses
-  lignes en comptent **6** : la ligne `/api/gl/auth/google` (ligne 51) contient un type union
-  `{ idToken, mode?: 'player' | 'staff' | 'auto' }` dont les barres verticales ne sont **pas
-  échappées**, et le séparateur (ligne 45) a été « réparé » à 6 colonnes pour suivre. Markdown
-  lit donc trois cellules là où il en faut une, et Prettier n'arrive pas à stabiliser le
-  tableau.
+  La cause est prosaïque : **cinq tableaux** du fichier ne sont plus dans l'alignement canonique
+  de Prettier (lignes 45, 328, 1173, 1610 et 2189). `prettier --write docs/API.md` est donc bien
+  la correction juste — elle réécrit 202 lignes, ce qui est beaucoup pour une PR d'audit mais
+  normal pour une remise au format : **à faire dans sa propre PR**, en une commande, pour ne pas
+  entrer en conflit avec les autres PR touchant ce fichier.
 
-  **Ne pas corriger par `prettier --write`** : essayé, cela réécrit 232 lignes, écrase
-  l'alignement de tous les tableaux du fichier et entrerait en conflit avec toute autre PR
-  touchant `docs/API.md`. La correction juste est d'échapper les deux barres (`\|`) dans cette
-  cellule et de ramener le séparateur à 4 colonnes — après quoi le fichier redevient conforme
-  sans réécriture de masse.
+  Trouvé en chemin, et indépendant de la CI : le tableau « Auth GL » déclare **4 colonnes**, mais
+  deux de ses lignes en comptent **6**. La ligne `/api/gl/auth/google` contient un type union
+  `{ idToken, mode?: 'player' | 'staff' | 'auto' }` dont les barres verticales ne sont **pas
+  échappées**, et le séparateur a été « réparé » à 6 colonnes pour suivre. Markdown lit donc
+  trois cellules là où il en faut une : **le tableau s'affiche de travers sur GitHub**, avec
+  « 'staff' » et « 'auto' » propulsés dans les colonnes Description et suivantes. Deux `\|` et un
+  séparateur ramené à 4 colonnes suffisent ; c'est un défaut de rendu, pas la cause du rouge.
 
 - **`test`** échoue à « Run backend tests (with coverage) ». Toutes les étapes suivantes sont
   sautées : build, installation de Playwright, et surtout **« Run Playwright Plan smoke
