@@ -94,6 +94,7 @@ export function GLJoueursView({
             classes={classes}
             auth={auth}
             vitalityEnabled={vitalityEnabled}
+            modules={modules}
           />
         ) : null}
       </div>

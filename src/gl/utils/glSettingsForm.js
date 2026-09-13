@@ -152,7 +152,16 @@ export const MODULE_TOGGLES = [
     label: 'Commentaires contextuels',
     hint: 'Prépare le module commentaires GL.',
   },
-  { key: 'modules.forum_enabled', label: 'Forum', hint: 'Prépare le module forum GL.' },
+  {
+    key: 'modules.forum_enabled',
+    label: 'Forum',
+    hint: 'Active le forum GL (API refusée si coupé).',
+  },
+  {
+    key: 'modules.presence_enabled',
+    label: 'Présence en ligne',
+    hint: 'Pastilles « en ligne » sur les stats MJ/admin (staff uniquement).',
+  },
   {
     key: 'modules.notifications_enabled',
     label: 'Notifications',

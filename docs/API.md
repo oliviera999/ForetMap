@@ -704,7 +704,8 @@ Connexion Socket.IO sur le **même hôte** que l’API, chemin `/socket.io` (dé
 - **Rôle** : notifier les clients qu’une ressource a changé ; les données à jour restent à charger via les routes REST (`GET /api/tasks`, etc.). Côté client, refetch **débouncé** : ~**220 ms** pour les tâches, ~**400 ms** pour le jardin (zones / plantes / repères) — compromis fraîcheur vs rafales HTTP.
 - **Auth socket** : token JWT requis (handshake). ForetMap **et** GL **ré-hydratent** le compte en base à **chaque** connexion, y compris après une **reprise de session** (`connectionStateRecovery.skipMiddlewares: false` — le défaut Socket.IO sauterait ce contrôle). `unauthorized` si le compte n’existe plus, n’est plus actif ou n’a plus de profil ; `unavailable` si la base est injoignable — le client peut reconnecter. `subscribe:map` n’ajoute la salle carte que si l’identifiant existe en base.
 - **Rooms** : souscription de domaine (`tasks`, `students`, `garden`) + souscription carte via `subscribe:map` (payload `{ mapId }`) ; pour GL, `subscribe:gl-game` (payload `{ gameId }`) refuse les tokens non-GL et les joueurs qui ne sont pas membres de la partie — un refus **quitte** aussi une room éventuellement restaurée par la reprise de session.
-- **Client** : le frontend se connecte pour n3beur/n3boss authentifié. Tant que le canal est **live**, un **filet REST** relance `fetchAll` toutes les **90 s** (événements manqués, onglet en veille). En cas d’échec de connexion, le rafraîchissement périodique reste actif (cadence adaptative, infobulle « 1 à 2 minutes »).
+- **Client** : le frontend se connecte pour n3beur/n3boss authentifié. Tant que le canal est **live**, un **filet REST** relance `fetchAll` selon **`runtime.rest_poll_floor_ms`** (défaut **90 s**, réglage public). En cas d’échec de connexion, le rafraîchissement périodique reste actif (cadence adaptative, infobulle « 1 à 2 minutes »).
+- **Présence staff** (si `ui.modules.presence_enabled` / `modules.presence_enabled`) : à la connexion Socket, refcount in-process + `UPDATE last_seen` ; event **`presence:update`** uniquement vers les rooms **`presence:foret-staff`** / **`presence:gl-staff`** (permissions stats / `gl.players.manage`). Les listes `GET /api/stats/all` et `GET /api/gl/stats/class` enrichissent `presence_status` / `presence_label`. Coupe-circuit emits métier : **`runtime.realtime_signals_enabled`**.
 
 **Robustesse (comportement attendu)** :
 
@@ -724,6 +725,7 @@ Connexion Socket.IO sur le **même hôte** que l’API, chemin `/socket.io` (dé
 | `forum:changed`            | Création de sujet, réponse, suppression de message, verrouillage, signalement                                               | `reason`, `threadId`, `postId`                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `context-comments:changed` | Création/suppression/signalement d’un commentaire contextuel                                                                | `reason`, `contextType`, `contextId`, `commentId`                                                                                                                                                                                                                                                                                                                                                                                             |
 | `observations:changed`     | Création ou suppression d’une observation (carnet)                                                                          | `reason`, `observationId`, `studentId`… — le client relance le carnet / le panneau prof via `foretmap_realtime` (`domain: observations`).                                                                                                                                                                                                                                                                                                     |
+| `presence:update`          | Connexion / déconnexion socket d’un compte suivi (présence staff)                                                           | `product`, `userId`, `status` (`online`\|`recent`\|`offline`), `lastSeen`, `label` — room `presence:foret-staff` ou `presence:gl-staff` uniquement ; **pas** de refetch liste déclenché côté client.                                                                                                                                                                                                                                          |
 
 ---
 
@@ -1787,12 +1789,13 @@ Un lieu (zone ou repère) s'affiche sur trois **surfaces** : `map` (carte de tra
 
 ### Audience des lieux par rôles (V1)
 
-Migration `236_location_audience_roles.sql`, règles pures dans `lib/locationAudience.js`.
+Migration `236_location_audience_roles.sql` (carte) + `240_visit_location_audience_roles.sql`
+(visite), règles pures dans `lib/locationAudience.js`.
 
-- **`visible_role_slugs`** (zones / repères, tableau en réponse) : rôles autorisés à **voir le
-  lieu**. Vide / omis = **public**. Hors audience, le lieu est **absent** des listes (pas
-  grisé). Slugs acceptés : `visiteur`, `personnel`, `eleve_novice`, `eleve_avance`,
-  `eleve_chevronne`, `prof_classe`, `prof`, `admin`.
+- **`visible_role_slugs`** (zones / repères **carte et visite**, tableau en réponse) : rôles
+  autorisés à **voir le lieu**. Vide / omis = **public**. Hors audience, le lieu est
+  **absent** des listes (pas grisé). Slugs acceptés : `visiteur`, `personnel`,
+  `eleve_novice`, `eleve_avance`, `eleve_chevronne`, `prof_classe`, `prof`, `admin`.
 - **`restricted_note`** + **`restricted_note_role_slugs`** : complément de texte optionnel.
   Slugs vides pour le complément = réservé aux gestionnaires (`zones.manage` /
   `map.manage_markers`). Les lecteurs non autorisés ne reçoivent **pas** ces champs.
@@ -1801,8 +1804,16 @@ Migration `236_location_audience_roles.sql`, règles pures dans `lib/locationAud
   `visiteur` dans l'audience n'y apparaît pas.
 - **`GET /api/zones`**, **`GET /api/map/markers`**, **`GET /api/visit/content`** : auth
   optionnelle (`authenticate`) pour appliquer le filtre selon le rôle du jeton.
-- **Écritures** : `POST` / `PUT` acceptent les trois champs ; rôle inconnu → **400** ; omis
-  sur `PUT` = inchangé.
+  Sur la visite, l’audience est lue sur `visit_zones` / `visit_markers` (repli éventuel
+  sur la ligne carte homonyme si pas encore synchronisée).
+- **Écritures** : `POST` / `PUT` zones, repères carte **et** `POST` / `PUT`
+  `/api/visit/zones` / `/api/visit/markers` acceptent les trois champs ; rôle inconnu →
+  **400** ; omis sur `PUT` = inchangé.
+- **Bascule carte → visite** (`POST /api/visit/sync` `map_to_visit`,
+  `POST /api/visit/rebuild-from-map`) : copie liste blanche uniquement — `name`/`label`,
+  `emoji`, `description`→`short_description` / `note`→`short_description`, et les trois
+  colonnes d’audience. **`restricted_note` n’est jamais écrit** dans `subtitle`,
+  `short_description`, `details_text` ou `body_json`.
 
 ---
 

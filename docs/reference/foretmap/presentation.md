@@ -24,16 +24,16 @@
 Les droits de chacun découlent de son **rôle**, attribué à la connexion (les rôles et
 leurs permissions sont configurables par les administrateurs) :
 
-| Rôle                    | Qui c'est                                       | Ce qu'il peut faire                                                                                                                                  |
-| ----------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Visiteur**            | Compte non promu (classe sans tâches, passage…) | Essentiellement la Visite et la Biodiversité — pas d'accès à la carte de travail ni aux tâches                                                       |
-| **Personnel**           | Staff non enseignant (AED, vie scolaire…)       | Même parcours que le visiteur — Visite et Biodiversité seulement                                                                                     |
-| **n3beur novice** 🪨    | Un élève débutant (0 tâche validée)             | Consulter la carte, prendre des tâches, les marquer faites, observer des espèces, tenir son carnet, participer au forum et aux quiz                  |
-| **n3beur avancé** 🌿    | Un élève avec 5 tâches validées                 | Comme le novice (le palier récompense la progression)                                                                                                |
-| **n3beur chevronné** 🏆 | Un élève avec 10 tâches validées                | Comme l'avancé                                                                                                                                       |
-| **Prof de classe**      | Enseignant tuteur d'une ou plusieurs classes    | Gérer les élèves **de ses groupes** seulement — pas les tâches ni le jardin                                                                          |
-| **n3boss**              | Animateur / responsable pédagogique forêt       | Gestion pédagogique large : zones, plantes, tâches et validation, visite, quiz, élèves, stats — **ce n'est pas** l'administrateur                    |
-| **Administrateur**      | Compte aux pleins pouvoirs établissement        | Tout le n3boss, plus les réglages, les rôles, l'audit — et la possibilité de prévisualiser l'application telle que la voit un élève ou un professeur |
+| Rôle                    | Qui c'est                                       | Ce qu'il peut faire                                                                                                                                                               |
+| ----------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Visiteur**            | Compte non promu (classe sans tâches, passage…) | Essentiellement la Visite et la Biodiversité — pas d'accès à la carte de travail ni aux tâches                                                                                    |
+| **Personnel**           | Staff non enseignant (AED, vie scolaire…)       | Même parcours que le visiteur — Visite et Biodiversité seulement                                                                                                                  |
+| **n3beur novice** 🪨    | Un élève débutant (0 tâche validée)             | Consulter la carte, prendre des tâches, les marquer faites, observer des espèces, tenir son carnet, participer au forum et aux quiz                                               |
+| **n3beur avancé** 🌿    | Un élève avec 5 tâches validées                 | Comme le novice (le palier récompense la progression)                                                                                                                             |
+| **n3beur chevronné** 🏆 | Un élève avec 10 tâches validées                | Comme l'avancé                                                                                                                                                                    |
+| **Prof de classe**      | Enseignant tuteur d'une ou plusieurs classes    | Gérer les élèves **de ses groupes** seulement — pas les tâches ni le jardin                                                                                                       |
+| **n3boss**              | Animateur / responsable pédagogique forêt       | Gestion pédagogique large : zones, plantes, tâches et validation, visite, quiz, élèves, stats, **carnet personnel** — **ce n'est pas** l'administrateur                           |
+| **Administrateur**      | Compte aux pleins pouvoirs établissement        | Tout le n3boss (y compris carnet personnel), plus les réglages, les rôles, l'audit — et la possibilité de prévisualiser l'application telle que la voit un élève ou un professeur |
 
 Les paliers « n3beur » montent **automatiquement** avec le nombre de tâches validées ;
 une fenêtre de félicitations s'affiche à chaque promotion. Le vocabulaire
@@ -121,8 +121,8 @@ masse, et programmer des **tâches récurrentes** (générées automatiquement c
 - **Tutoriels** : fiches pratiques (arrosage, compostage…) liées aux tâches et zones,
   avec accusé de lecture par l'élève.
 - **Carnet d'observation** : journal personnel (articles texte/photos, imports d’espèces,
-  glossaire et tutoriels appris), pour élèves, visiteurs connectés et profs de classe ;
-  consultable par les professeurs.
+  glossaire et tutoriels appris) pour **tout compte connecté** ; consultable par les
+  professeurs selon leur périmètre.
 
 ### La Visite (le mode grand public)
 

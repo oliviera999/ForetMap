@@ -251,6 +251,36 @@ export const KEY_META = {
     section: 'modules',
     order: 47.05,
   },
+  'ui.modules.presence_enabled': {
+    label: 'Présence en ligne (pastilles stats prof — qui est connecté)',
+    section: 'modules',
+    order: 47.06,
+  },
+  'runtime.realtime_signals_enabled': {
+    label: 'Temps réel — émissions Socket (couper = filet REST seul, allège la charge)',
+    section: 'operations',
+    order: 10,
+  },
+  'runtime.rest_poll_floor_ms': {
+    label: 'Filet REST — intervalle min. si live (ms, défaut 90000)',
+    section: 'operations',
+    order: 11,
+  },
+  'runtime.rest_poll_background_floor_ms': {
+    label: 'Filet REST — intervalle min. onglet caché (ms, défaut 120000)',
+    section: 'operations',
+    order: 12,
+  },
+  'runtime.sync_state_enabled': {
+    label: 'Polling différentiel sync-state (recommandé)',
+    section: 'operations',
+    order: 13,
+  },
+  'runtime.socket_presence_emit_coalesce_ms': {
+    label: 'Présence — coalescence des mises à jour staff (ms)',
+    section: 'operations',
+    order: 14,
+  },
   'ui.help.show_context_hints': {
     label: 'Afficher les mini-astuces contextuelles',
     section: 'modules',
