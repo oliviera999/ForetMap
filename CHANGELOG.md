@@ -9,6 +9,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — CI au vert : semis RBAC, N+1 du carnet, horodatages hérités
+
+- **Semis RBAC sur base neuve** (migration `241`) : `admin` démarrait sans
+  `forum.group.moderate` — donc **plus personne ne pouvait modérer le forum** — ni
+  `admin.impersonate`, ni `tours.manage`, ni les variantes `.group` ; `prof` perdait en plus
+  `groups.read`, `groups.manage` et `tasks.assign.group`, c'est-à-dire le périmètre de groupes
+  sur lequel repose « Prof de classe ». Mesuré sur base vierge : 27 permissions sur 36 pour
+  `admin`, 21 sur 28 pour `prof`. La garde « ne semer que si le profil n'a encore aucune
+  permission » visait le bon but — qu'une révocation admin survive aux redémarrages — avec un
+  mauvais critère : les migrations remplissent déjà `role_permissions` avant le semis, qui était
+  donc entièrement sauté. `rbac_seeded_permissions` mémorise désormais ce qui a été **proposé**,
+  ce qui distingue « révoqué » de « jamais accordé ». Les installations existantes n'étaient pas
+  touchées ; seules les neuves l'étaient, d'où l'invisibilité hors CI.
+- **Une requête par vignette** sur le catalogue biodiversité :
+  `GET /api/user-journal/me/imports/refs` renvoie la liste entière des imports, mais chaque
+  accusé la demandait pour son propre compte — 12 appels pour 12 fiches, autant que d'espèces en
+  vrai. La promesse est mutualisée, invalidée après un import et à chaque changement de session.
+- **Reprise des observations héritées** : `observation_logs.created_at` est un `VARCHAR(32)`
+  portant de l'ISO-8601 UTC, la cible un vrai `DATETIME` — `GET /api/user-journal/me` répondait
+  **500** dès qu'une observation restait à migrer. L'horodatage est converti, à l'article comme
+  à sa pièce jointe.
+- **Note réservée jamais servie à son audience** : deux tests appelaient `signAuthToken` sans
+  `await`, l'en-tête valant `Bearer [object Promise]`. Le code de projection était sain.
+- Tests d'accompagnement : la matrice RBAC déclarée est désormais vérifiée **en base**, la
+  mutualisation des imports a ses quatre règles couvertes, et la reprise d'une observation
+  héritée — avec et sans photo — est testée. Sept tests UI et deux fixtures backend périmés
+  alignés sur des comportements livrés volontairement.
+
 ### Ajouté — cloisonnement par rôles sur la couche visite
 
 - Migration `240_visit_location_audience_roles.sql` : `visible_role_slugs`,
