@@ -131,6 +131,17 @@ CREATE TABLE IF NOT EXISTS zone_species (
   CONSTRAINT fk_zone_species_plant FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Espèces liées à la carte entière (sans lieu précis) — ex. oiseaux du site
+CREATE TABLE IF NOT EXISTS map_species (
+  map_id VARCHAR(32) NOT NULL,
+  plant_id INT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (map_id, plant_id),
+  KEY idx_map_species_plant (plant_id),
+  CONSTRAINT fk_map_species_map FOREIGN KEY (map_id) REFERENCES maps (id) ON DELETE CASCADE,
+  CONSTRAINT fk_map_species_plant FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- task_projects (regroupement de tâches par projet)
 CREATE TABLE IF NOT EXISTS task_projects (
   id VARCHAR(64) PRIMARY KEY,

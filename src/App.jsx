@@ -1366,6 +1366,7 @@ function App() {
                               onRefresh={fetchAll}
                               onForceLogout={forceLogout}
                               onOpenPlant={openPlantCatalogPreviewById}
+                              maps={visibleMaps}
                             />
                           </TabSuspense>
                         )}

@@ -1307,10 +1307,13 @@ Pour une mascotte spritesheet (ex. OLU), vérifier aussi l’asset statique serv
 `agroecosystem_category`, `longevity`, `remark_1`, `remark_2`, `remark_3`, `reproduction`, `size`,
 `sources`, `ideal_temperature_c`, `optimal_ph`, `ecosystem_role`, `geographic_origin`, `human_utility`,
 `harvest_part`, `planting_recommendations`, `preferred_nutrients`, `photo_species`, `photo_leaf`,
-`photo_flower`, `photo_fruit`, `photo_harvest_part`.
+`photo_flower`, `photo_fruit`, `photo_harvest_part`, ainsi que **`map_ids`** (tableaux d’identifiants
+de cartes au rattachement **direct**, table `map_species` — complète la présence via zones / repères).
 
 `POST /api/plants` et `PUT /api/plants/:id` acceptent ces mêmes champs en JSON. Les champs texte vides
-des métadonnées biodiversité sont normalisés en `null`.
+des métadonnées biodiversité sont normalisés en `null`. Le champ optionnel **`map_ids`** remplace le
+rattachement direct à la carte lorsqu’il est présent ; s’il est omis, les liens `map_species`
+existants sont conservés.
 
 `POST /api/plants/:id/photo-upload` (n3boss):
 
@@ -2079,6 +2082,8 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 > réseau. Les réponses filtrées portent en plus `from_in_scope` et `to_in_scope` (`1`/`0`) :
 > l'interface marque l'espèce hors périmètre au lieu de la masquer. La liste non filtrée
 > (`GET /api/food-web` sans paramètre) ne porte pas ces colonnes — tout y est dans le périmètre.
+> Pour **`?mapId=`**, le périmètre unit les espèces des **zones**, des **repères** et celles
+> rattachées **directement** à la carte (`map_species`).
 
 | GET | `/api/plants/:id/interactions` | non | Interactions espèce |
 | GET | `/api/plants/:id/glossary-terms` | non | Termes liés |

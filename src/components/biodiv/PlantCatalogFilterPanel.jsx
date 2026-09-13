@@ -33,6 +33,7 @@ export function PlantCatalogFilterPanel({
   setHabitatType,
   zonePresence,
   setZonePresence,
+  defaultZonePresence = ZONE_PRESENCE_FILTER.ALL,
 }) {
   const subsetAfterG1 = useMemo(() => filterPlantsByTaxonomy(plants, { group1 }), [plants, group1]);
   const subsetAfterG2 = useMemo(
@@ -102,7 +103,7 @@ export function PlantCatalogFilterPanel({
     else if (setAgro) setAgro('');
     if (setHabitatType) setHabitatType('');
     setSearch('');
-    if (showZonePresence && setZonePresence) setZonePresence(ZONE_PRESENCE_FILTER.ALL);
+    if (showZonePresence && setZonePresence) setZonePresence(defaultZonePresence);
   };
 
   const selectStyle = { background: 'white' };
@@ -238,10 +239,8 @@ export function PlantCatalogFilterPanel({
                   style={selectStyle}
                 >
                   <option value={ZONE_PRESENCE_FILTER.ALL}>Toutes les fiches</option>
-                  <option value={ZONE_PRESENCE_FILTER.IN_MAP}>
-                    Lié à au moins une zone ou un repère
-                  </option>
-                  <option value={ZONE_PRESENCE_FILTER.NOT_IN_MAP}>Sans lieu sur la carte</option>
+                  <option value={ZONE_PRESENCE_FILTER.IN_MAP}>Présente sur cette carte</option>
+                  <option value={ZONE_PRESENCE_FILTER.NOT_IN_MAP}>Absente de cette carte</option>
                 </select>
               </div>
             )}

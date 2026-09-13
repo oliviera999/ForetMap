@@ -33,6 +33,7 @@ import { IconCamera, IconGallery, IconSave } from '../../shared/icons.jsx';
  * @param {() => Promise<string|number|null>} [props.onEnsurePlantId] crée la fiche si besoin, renvoie son id
  * @param {string} [props.autoSaveStatus] état de l'enregistrement automatique (édition seule)
  * @param {string} [props.autoSaveError] message d'erreur de l'enregistrement automatique
+ * @param {Array<{ id: string, label?: string }>} [props.maps] cartes actives pour le rattachement direct
  */
 function PlantEditForm({
   title,
@@ -46,6 +47,7 @@ function PlantEditForm({
   onEnsurePlantId = null,
   autoSaveStatus = '',
   autoSaveError = '',
+  maps = [],
 }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const [uploadingField, setUploadingField] = useState('');
@@ -186,6 +188,48 @@ function PlantEditForm({
               placeholder="Comment reconnaître cet être vivant ? Feuilles, taille, odeur..."
             />
           </div>
+          {Array.isArray(maps) && maps.length > 0 ? (
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label>Présente sur ces cartes</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {maps.map((map) => {
+                  const mapId = String(map.id || '').trim();
+                  if (!mapId) return null;
+                  const checked = Array.isArray(form.map_ids) && form.map_ids.includes(mapId);
+                  return (
+                    <label
+                      key={mapId}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        minHeight: 44,
+                        padding: '4px 10px',
+                        borderRadius: 8,
+                        border: '1px solid var(--border, #c5d4c0)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          setForm((f) => {
+                            const prev = Array.isArray(f.map_ids) ? f.map_ids : [];
+                            const next = checked
+                              ? prev.filter((id) => id !== mapId)
+                              : [...prev, mapId];
+                            return { ...f, map_ids: next };
+                          });
+                        }}
+                      />
+                      <span>{map.label || mapId}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </div>
       </details>
       {/* Fiche technique : repliée en édition ; ouverte en création (`plantId` absent,

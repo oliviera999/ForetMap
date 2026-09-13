@@ -148,7 +148,8 @@ d'observation** pour l'écriture naturaliste libre.
   interaction dans la carte ou la zone choisie, un message le dit au lieu de laisser
   croire à un bug.
 - **Ouvrir l'onglet Réseau trophique** (menu ou lien) part aussi sur la **carte active**,
-  pas sur le réseau global de toutes les cartes.
+  pas sur le réseau global de toutes les cartes. Le filtre carte compte les espèces des
+  zones, des repères **et** celles rattachées directement à la carte (sans lieu précis).
 - **Le graphe se parcourt aussi au clavier** : la tabulation passe d'une espèce et d'une
   relation à l'autre, `Entrée` isole le réseau d'une espèce (ou sélectionne une relation),
   `Maj+Entrée` ouvre la fiche de l'espèce. Utile en vidéoprojection sans souris, et

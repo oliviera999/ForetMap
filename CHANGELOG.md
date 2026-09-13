@@ -9,6 +9,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — espèces rattachées à une carte (sans lieu précis)
+
+- Jonction `map_species` : une fiche peut être présente sur une carte sans zone ni
+  repère (oiseaux, etc.). Les liens zones / repères restent inchangés.
+- Catalogue biodiversité élève : filtre « Présente sur cette carte » par défaut
+  (union lieux + rattachement direct).
+- Réseau trophique `?mapId=` : inventaire élargi (zones + repères + `map_species`).
+- Formulaire fiche : cases « Présente sur ces cartes » (prof).
+
 ### Corrigé — barre de parcours Plan : styles enfants orphelins
 
 - `MapRouteBar` n’appliquait le dual-class `plan-*` qu’à la racine ; les enfants
