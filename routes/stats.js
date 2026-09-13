@@ -5,6 +5,9 @@ const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { getStudentProgressionConfig, syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
 const { getScopedStudentIds, canAccessStudentId } = require('../lib/groupScope');
+const { getOnlineUserIdSet } = require('../lib/realtime');
+const { attachPresenceStatus } = require('../lib/shared/presenceCore');
+const { isModuleEnabled } = require('../lib/shared/moduleGate');
 
 const router = express.Router();
 
@@ -347,7 +350,13 @@ router.get(
       };
     });
     result.sort((a, b) => b.stats.done - a.stats.done);
-    res.json({ students: result, site });
+    let studentsOut = result;
+    if (await isModuleEnabled('foret', 'presence')) {
+      studentsOut = attachPresenceStatus(result, {
+        onlineIds: getOnlineUserIdSet('foret'),
+      });
+    }
+    res.json({ students: studentsOut, site });
   }),
 );
 

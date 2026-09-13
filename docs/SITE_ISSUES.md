@@ -34,10 +34,10 @@ Il consolide les constats des audits internes, notamment:
 ## Basse priorite
 
 - `R8` - Strategie de distribution medias a harmoniser (`/uploads` + endpoints `sendFile`).
-- `B7` - Evenements de presence eleve non diffuses en temps reel.
 
 ## Deja traite
 
+- `B7` - [done] Presence eleve : pastilles staff (FM + GL) via Socket.IO refcount + `last_seen` a connect/disconnect ; event `presence:update` room staff only.
 - `G1` - [done #154] XSS SVG stocke sur `/uploads` neutralise (CSP `sandbox` + `Content-Disposition: attachment` pour les `.svg`). Recoupe `R3`.
 - `G2` - [done #154] CVE high `ws` (divulgation memoire / DoS) corrigee via override `ws@^8.21.0` cible sur la pile socket.io.
 - `G3` - [done #154] CORS permissif par defaut en prod durci (`origin: false` same-origin si aucune origine configuree).

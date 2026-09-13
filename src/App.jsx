@@ -970,6 +970,8 @@ function App() {
     refreshMs,
     isTabVisible,
     pauseRef: pauseDataRefreshForTaskOverlaysRef,
+    liveMinIntervalMs: publicSettings?.runtime?.rest_poll_floor_ms,
+    backgroundMinIntervalMs: publicSettings?.runtime?.rest_poll_background_floor_ms,
   });
 
   const updateZone = useCallback(
@@ -1323,6 +1325,7 @@ function App() {
                       tutorialsModuleEnabled={tutorialsModuleEnabled}
                       statsEnabled={publicSettings?.modules?.stats_enabled !== false}
                       visitEnabled={publicSettings?.modules?.visit_enabled !== false}
+                      observationsEnabled={publicSettings?.modules?.observations_enabled !== false}
                       canAccessForum={canAccessForum}
                       isN3Affiliated={isN3Affiliated}
                       hasPermission={hasPermission}
@@ -1457,6 +1460,19 @@ function App() {
                             <MediaLibraryViewLazy canManage={canManageMediaLibrary} />
                           </TabSuspense>
                         )}
+                        {publicSettings?.modules?.observations_enabled !== false &&
+                          tab === 'notebook' &&
+                          (sessionUser?.id || authClaims?.userId) && (
+                            <TabSuspense>
+                              <ObservationNotebookLazy
+                                zones={zones}
+                                onForceLogout={forceLogout}
+                                onNavigateTab={(nav) => {
+                                  if (nav?.tab) setTab(nav.tab);
+                                }}
+                              />
+                            </TabSuspense>
+                          )}
                         {tab === 'forum' && canAccessForum && (
                           <TabSuspense>
                             <ForumViewLazy authClaims={authClaims} canParticipateForum />

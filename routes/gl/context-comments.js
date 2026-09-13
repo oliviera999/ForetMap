@@ -4,6 +4,7 @@ const express = require('express');
 const crypto = require('node:crypto');
 const { queryOne, execute } = require('../../database');
 const { requireGlAuth } = require('../../middleware/requireGlAuth');
+const { requireModuleEnabled } = require('../../lib/shared/moduleGate');
 const { emitContextCommentsChanged } = require('../../lib/realtime');
 const {
   persistUserContentImages,
@@ -101,6 +102,7 @@ function canModerate(auth) {
 }
 
 router.use(requireGlAuth);
+router.use(requireModuleEnabled('gl', 'context_comments', 'Commentaires de contexte désactivés'));
 
 router.get(
   '/',

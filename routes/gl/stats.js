@@ -5,6 +5,9 @@ const { queryOne, queryAll } = require('../../database');
 const { requireGlAuth, requireGlPermission } = require('../../middleware/requireGlAuth');
 const { getGameplaySettings } = require('../../lib/glSettings');
 const { buildClassStats, buildPlayerStats } = require('../../lib/glPlayerStats');
+const { getOnlineUserIdSet } = require('../../lib/realtime');
+const { attachPresenceStatus } = require('../../lib/shared/presenceCore');
+const { isModuleEnabled } = require('../../lib/shared/moduleGate');
 const { z, validate } = require('../../lib/validate');
 const asyncHandler = require('../../lib/asyncHandler');
 
@@ -87,6 +90,11 @@ router.get(
     }
     const vitalityEnabled = await resolveVitalityEnabled();
     const data = await buildClassStats(db, classId, { vitalityEnabled });
+    if (await isModuleEnabled('gl', 'presence')) {
+      data.players = attachPresenceStatus(data.players || [], {
+        onlineIds: getOnlineUserIdSet('gl'),
+      });
+    }
     return res.json(data);
   }),
 );

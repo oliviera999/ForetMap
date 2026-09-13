@@ -9,6 +9,22 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — présence « en ligne » staff (ForetMap + GL)
+
+- Pastilles En ligne / Vu récemment / Hors ligne sur le classement prof et les stats
+  MJ/admin GL (staff uniquement ; pas d’exposition élève↔élève).
+- Cœur partagé `lib/shared/presenceCore.js` + refcount Socket.IO dans `lib/realtime.js`
+  (sans heartbeat HTTP périodique — adapté o2switch / 1 instance).
+- Réglages : `ui.modules.presence_enabled` / `modules.presence_enabled` ; knobs charge
+  `runtime.*` (filet REST, coupe-circuit emits Socket, coalescence présence).
+- Forum / commentaires GL refusés en API (503) quand le module est coupé (aligné FM).
+
+### Ajouté — carnet personnel pour admin et n3boss
+
+- Onglet « Carnet » dans la barre haute (pôle Suivi) : tout compte ForetMap connecté
+  peut tenir son carnet personnel (élèves / visiteurs / personnel / prof de classe
+  l’avaient déjà ; admin et n3boss manquaient l’entrée UI).
+
 ### Ajouté — espèces rattachées à une carte (sans lieu précis)
 
 - Jonction `map_species` : une fiche peut être présente sur une carte sans zone ni
