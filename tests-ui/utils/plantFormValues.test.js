@@ -61,7 +61,10 @@ describe('EMPTY_PLANT_FORM', () => {
   test('toutes les valeurs vides sauf emoji (🌱)', () => {
     expect(EMPTY_PLANT_FORM.emoji).toBe('🌱');
     const others = Object.entries(EMPTY_PLANT_FORM).filter(([k]) => k !== 'emoji');
-    expect(others.every(([, v]) => v === '')).toBe(true);
+    // « Vide » dépend du type du champ : chaîne vide pour un texte, tableau vide pour une
+    // liste (`map_ids`, rattachement multi-cartes). Exiger `''` partout confondait les deux.
+    const isEmpty = (v) => (Array.isArray(v) ? v.length === 0 : v === '');
+    expect(others.every(([, v]) => isEmpty(v))).toBe(true);
   });
   test('couvre les colonnes attendues du modèle', () => {
     expect(EMPTY_PLANT_FORM).toHaveProperty('name');

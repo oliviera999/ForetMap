@@ -235,6 +235,35 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Hors ces deux lignes, la modification est **purement de mise en forme** : `git diff -w` ne
   montre aucun autre changement de contenu.
 
+### Corrigé — la suite de tests UI retourne au vert, et découvre une régression de charge
+
+Remettre `docs/API.md` au format rend la parole aux ~3 700 tests Vitest, que l'échec de format
+court-circuitait depuis le 12 septembre. **Sept échouaient**, invisibles depuis. Six étaient des
+fixtures restées en arrière de changements délibérés ; le septième cachait un vrai défaut.
+
+- **Défaut réel — une requête par vignette dans le catalogue de biodiversité.** Chaque
+  `FmLearnAndImportSlot` appelait `/api/user-journal/me/imports/refs`, qui renvoie la liste
+  **entière** des imports, pour n'y chercher qu'une seule entrée. Douze vignettes = douze
+  requêtes identiques ; **78 espèces en production = 78 requêtes** à chaque ouverture du
+  catalogue. C'est la classe de défaut décrite par `docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`,
+  et précisément ce que la garde `PlantCatalogTiles.test.jsx` devait retenir — elle ne le
+  voyait plus parce que sa fixture, privée de zones, n'affichait plus aucune vignette depuis
+  l'arrivée du filtre « Présente sur cette carte ». La liste est désormais mutualisée
+  (`src/components/journal/importedRefsCache.js`) : **une requête pour toute la page**, quel
+  que soit le nombre de vignettes, périmée après un import.
+- **Fixtures remises à jour**, sans toucher au comportement produit : trois champs de
+  cloisonnement d'audience ajoutés à l'attendu de `markerFormFromMarker` ; `EMPTY_PLANT_FORM`
+  accepte `[]` comme valeur vide d'une liste (`map_ids`) ; ids de lieux normalisés en chaînes
+  dans `useMapCrudActions` ; `TutorialEditorPanel` assert enfin le comportement documenté
+  (changer de carte est un **filtre**, il ne décoche plus les lieux d'autres cartes — un test
+  a été ajouté pour la seule suppression qui subsiste, celle des lieux disparus) ; libellés
+  « Carnets / article » dans `TeacherObservationsPanel`, renommé depuis « Observations ».
+- Suite complète : **554 fichiers, 4 009 tests au vert.**
+
+> À noter : `src/gl/components/GLLearnAndImport.jsx` porte le même motif sur
+> `/api/gl/player-journal/me/imports/refs`. Non traité ici — GL est un produit isolé, et le
+> catalogue G&L n'affiche pas des dizaines de vignettes simultanées.
+
 ---
 
 ## [1.152.1] - 2026-09-11
