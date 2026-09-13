@@ -315,6 +315,11 @@ seulement par certains rôles (par exemple une consigne de classe ou une note po
 enseignants). Le lieu peut rester visible pour tout le monde ; seul ce complément est
 masqué. Sans rôle coché pour le complément, seuls les gestionnaires du jardin le voient.
 
+Ce cloisonnement s'applique aussi à la **Visite** (lieux de la visite guidée) : un
+complément réservé n'y apparaît pas pour un visiteur anonyme, et la copie d'un lieu
+depuis la carte vers la visite ne place jamais ce complément dans les textes publics
+de la fiche visite.
+
 > 🔧 **À implémenter (suite possible)** — Restreindre aussi par **groupes** (classe, club,
 > équipe), pas seulement par rôle ; plusieurs compléments (un par public) ; héritage
 > d'audience au niveau d'une **catégorie** de lieux. La V1 couvre les rôles, un lieu

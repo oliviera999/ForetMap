@@ -185,8 +185,9 @@ d'observation** pour l'écriture naturaliste libre.
 
 ## Le Carnet d'observation
 
-- **Qui peut tenir un carnet** : l’élève, le **visiteur connecté** et le **prof de classe**
-  (chacun le sien). La visite anonyme sans compte n’a pas de carnet.
+- **Qui peut tenir un carnet** : **tout compte ForetMap connecté** (élève, visiteur,
+  personnel, prof de classe, n3boss, administrateur) — chacun le sien. La visite anonyme
+  sans compte n’a pas de carnet.
 - **Articles** : texte enrichi (titres, listes, liens…), une ou plusieurs photos, titre
   optionnel, et éventuellement une **zone** de la forêt. L’enregistrement est automatique
   pendant la saisie. On peut épingler un article, rechercher, filtrer (articles / imports)

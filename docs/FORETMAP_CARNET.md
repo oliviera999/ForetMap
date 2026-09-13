@@ -16,8 +16,9 @@ Produit isolé : tables `user_journal_*`, API `/api/user-journal`, pas de coupla
 
 ## Public
 
-Élève, visiteur connecté, prof de classe (carnet personnel). Les routes `/api/observations`
-restent pour compatibilité historique ; l’UI et le panneau Stats utilisent le carnet unifié.
+Tout compte ForetMap connecté (élève, visiteur, personnel, prof de classe, n3boss, admin)
+tient **son** carnet personnel. Les routes `/api/observations` restent pour compatibilité
+historique ; l’UI et le panneau Stats utilisent le carnet unifié.
 
 ## Fichiers
 
