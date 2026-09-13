@@ -23,6 +23,7 @@ import { StatCard, StatsSummaryGrid } from '../shared/components/StatsSummaryGri
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { TeacherObservationsPanel } from './stats/TeacherObservationsPanel.jsx';
 import { TeacherLeaderboard } from './stats/TeacherLeaderboard.jsx';
+import { applyPresenceUpdateToRows } from '../shared/presenceListPatch.js';
 import { deriveStudentProgressionView } from '../utils/studentStatsProgression.js';
 import { useSession } from '../contexts/SessionContext.jsx';
 import {
@@ -685,6 +686,16 @@ function TeacherStats() {
     return () => window.removeEventListener('foretmap_realtime', onRealtime);
   }, [load, loadObservations]);
 
+  useEffect(() => {
+    const onPresence = (e) => {
+      const payload = e?.detail;
+      if (!payload || String(payload.product || 'foret') === 'gl') return;
+      setStudents((prev) => (prev ? applyPresenceUpdateToRows(prev, payload) : prev));
+    };
+    window.addEventListener('foretmap_presence', onPresence);
+    return () => window.removeEventListener('foretmap_presence', onPresence);
+  }, []);
+
   if (students === null)
     return (
       <div className="loader" style={{ height: '60vh' }}>
@@ -841,7 +852,12 @@ function TeacherStats() {
         onLoad={loadObservations}
       />
 
-      <TeacherLeaderboard students={data} search={search} roleTerms={roleTerms} />
+      <TeacherLeaderboard
+        students={data}
+        search={search}
+        roleTerms={roleTerms}
+        presenceEnabled={publicSettings?.modules?.presence_enabled !== false}
+      />
     </div>
   );
 }
