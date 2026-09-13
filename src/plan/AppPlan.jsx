@@ -229,6 +229,35 @@ export function AppPlan() {
     }
   }, []);
 
+  /**
+   * Réaffirme `?lieu=` après un retour d'historique.
+   *
+   * Les feuilles basses empilent une entrée d'historique à l'ouverture et la dépilent à la
+   * fermeture (`useOverlayHistoryBack`). Or `openPlace` écrit l'URL **sur l'entrée courante**,
+   * qui est justement celle de la feuille de résultats : la fermer déclenche `history.back()`,
+   * et l'adresse revient à celle d'avant — sans le lieu. Conséquence visible : après avoir
+   * tapé un résultat de recherche, l'adresse ne portait plus le lieu, donc recharger la page
+   * ou copier l'URL de la barre d'adresse perdait la sélection. (Le bouton « Partager », lui,
+   * construit son lien depuis l'état : il n'était pas touché, ce qui explique que personne
+   * ne l'ait vu.)
+   *
+   * L'écriture immédiate reste utile — elle suffit quand aucune surcouche n'est ouverte, par
+   * exemple en cliquant directement sur la carte. Cet effet ne fait que la rétablir quand une
+   * fermeture de feuille vient de l'emporter.
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.history?.replaceState) return undefined;
+    const syncPlaceParam = () => {
+      const wanted = selectedPlace ? String(selectedPlace.id) : '';
+      if (readPlaceIdFromLocation(window.location.search) === wanted) return;
+      window.history.replaceState(null, '', buildPlaceUrl(window.location, wanted));
+    };
+    // Le listener de `overlayHistory` est posé avant celui-ci : la feuille a donc déjà traité
+    // le retour quand nous réaffirmons l'adresse.
+    window.addEventListener('popstate', syncPlaceParam);
+    return () => window.removeEventListener('popstate', syncPlaceParam);
+  }, [selectedPlace]);
+
   // Lien profond `?lieu=` : une seule fois, au premier contenu reçu.
   useEffect(() => {
     if (deepLinkAppliedRef.current || places.length === 0) return;
