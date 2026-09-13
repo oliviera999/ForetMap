@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission, authenticate } = require('../middleware/requireTeacher');
+const { resolveScopedMapFilter, MAP_OUT_OF_SCOPE } = require('../lib/mapAccess');
 const asyncHandler = require('../lib/asyncHandler');
 const { emitGardenChanged } = require('../lib/realtime');
 const {
@@ -213,6 +214,8 @@ registerEntityPhotoRoutes(router, {
   },
 });
 
+// `authenticate` : session facultative (lecture publique conservée), mais hydratée quand
+// elle existe — c'est elle qui porte le périmètre cartes.
 router.get(
   '/markers',
   authenticate,
@@ -225,8 +228,15 @@ router.get(
     const surfaceQuery = readSurfaceQuery(req.query.surface);
     if (!surfaceQuery.ok) return res.status(400).json({ error: surfaceQuery.error });
     const publicSurface = surfaceQuery.value === 'visit' || surfaceQuery.value === 'plan';
-    const rows = mapId
-      ? await queryAll(`${MARKERS_LIST_SQL} WHERE m.map_id = ? ORDER BY m.created_at`, [mapId])
+    // Périmètre cartes : sans `map_id`, la liste est ramenée aux cartes autorisées. Se cumule
+    // au filtre d'audience appliqué plus bas, qui trie les lieux d'une même carte par rôle.
+    const scope = await resolveScopedMapFilter(req.auth || null, mapId);
+    if (scope.forbidden) return res.status(403).json(MAP_OUT_OF_SCOPE);
+    const rows = scope.mapIds
+      ? await queryAll(
+          `${MARKERS_LIST_SQL} WHERE m.map_id IN (${scope.mapIds.map(() => '?').join(',')}) ORDER BY m.created_at`,
+          scope.mapIds,
+        )
       : await queryAll(`${MARKERS_LIST_SQL} ORDER BY m.created_at`);
     const markerIds = rows.map((row) => row.id);
     const speciesMap = await loadMarkerSpeciesMap(db, markerIds);
