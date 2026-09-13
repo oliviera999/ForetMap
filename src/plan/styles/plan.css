@@ -701,12 +701,22 @@ body.plan-body {
   pointer-events: none;
 }
 
+/* Contre-rotation des habillages (audit du 13 septembre, N1) : « Orienter la carte selon la
+   boussole » tourne `.plan-map__fit`, qui porte **aussi** le texte — à un cap de 180°, les noms
+   de bâtiments étaient littéralement à l'envers. `--pct-orient` porte l'angle appliqué à la
+   carte ; chaque habillage lisible le défait sur lui-même, exactement comme `--pct-inv` défait
+   le zoom. La rotation vient **après** la translation et la mise à l'échelle : l'étiquette reste
+   ancrée sur son point et ne fait que se redresser.
+   Le pendant côté placement est dans `pctMapLabels.js` : une fois les étiquettes redressées,
+   leurs boîtes sont alignées sur l'écran alors que leurs ancres tournent — le moteur de
+   collisions reçoit donc l'angle. */
 .fm-pct-label {
   position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
-  transform: translate(-50%, -50%) scale(var(--pct-inv, 1));
+  transform: translate(-50%, -50%) scale(var(--pct-inv, 1))
+    rotate(calc(-1 * var(--pct-orient, 0deg)));
   transform-origin: 50% 50%;
 }
 
@@ -736,7 +746,8 @@ body.plan-body {
   color: var(--plan-ink);
   font: inherit;
   cursor: pointer;
-  transform: translate(-50%, -50%) scale(var(--pct-inv, 1));
+  transform: translate(-50%, -50%) scale(var(--pct-inv, 1))
+    rotate(calc(-1 * var(--pct-orient, 0deg)));
   transform-origin: 50% 50%;
 }
 
@@ -855,7 +866,8 @@ body.plan-body {
   font-weight: var(--fw-bold, 700);
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
-  transform: translate(-50%, -50%) scale(var(--pct-inv, 1));
+  transform: translate(-50%, -50%) scale(var(--pct-inv, 1))
+    rotate(calc(-1 * var(--pct-orient, 0deg)));
   transform-origin: 50% 50%;
 }
 
@@ -1033,7 +1045,22 @@ body.plan-body {
 }
 
 .plan-results__name {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2, 8px);
   font-weight: var(--fw-semibold, 600);
+}
+
+/* Distance à vol d'oiseau, quand la position est active (audit du 13 septembre, N4) : elle
+   sépare cinq « WC » autrement identiques. Poussée à droite pour que les noms restent alignés
+   et lisibles en colonne, et en graisse normale pour ne pas concurrencer le nom lui-même. */
+.plan-results__distance {
+  margin-left: auto;
+  color: var(--plan-muted);
+  font-weight: var(--fw-regular, 400);
+  font-size: var(--text-sm, 0.9rem);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .plan-results__subtitle,

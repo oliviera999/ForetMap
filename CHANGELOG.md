@@ -222,6 +222,67 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Hors ces deux lignes, la modification est **purement de mise en forme** : `git diff -w` ne
   montre aucun autre changement de contenu.
 
+### Corrigé — Plan : le texte reste droit quand la carte tourne (audit N1)
+
+- **« Orienter la carte selon la boussole » retournait toutes les étiquettes.** La rotation
+  était posée sur `.plan-map__fit`, le calque qui porte **aussi** les noms de zones, les
+  repères et les pastilles de groupe. Rien ne contre-tournait le texte : mesuré dans Chromium
+  en cumulant les matrices jusqu'au viewport, un cap de 180° donnait un texte à 180° — les noms
+  de bâtiments étaient littéralement à l'envers. La fonction est opt-in, mais son usage même
+  consiste à pivoter sur soi : elle devenait illisible dès que l'on quittait le nord.
+- **Correction en deux temps, parce qu'une ligne de CSS n'aurait pas suffi.** Le calque expose
+  désormais son angle (`--pct-orient`) et chaque habillage lisible le défait sur lui-même,
+  exactement comme `--pct-inv` défait le zoom. Mais une fois les étiquettes redressées, leurs
+  boîtes redeviennent alignées sur l'écran alors que leurs ancres, elles, tournent : deux noms
+  qui ne se gênaient pas au nord pouvaient se recouvrir à 45°. `resolveVisibleLabels` reçoit
+  donc l'angle et son pivot, et tourne les ancres avant de construire les boîtes. L'écart de
+  26 px entre un repère et son nom, lui, reste vertical **à l'écran** : il s'ajoute après la
+  rotation.
+- **Vérifié en vrai.** Mesure refaite dans Chromium : sans la correction, carte à −90° → texte
+  à −90°, carte à −180° → texte à 180° ; avec, texte à 0° à tous les caps, l'étiquette restant
+  ancrée au pixel près sur son point. Scénario `e2e/plan-mobile-orientation.spec.js` : cap
+  simulé par `deviceorientation`, bouton 🧭 réellement cliqué, et l'assertion vérifie **d'abord
+  que la carte a tourné** — sans quoi elle passerait sur une carte restée au nord, sans rien
+  prouver.
+
+### Corrigé — Plan : un lieu sans catégorie retrouve un rang d'affichage intermédiaire (audit N2)
+
+- **Les cinq entrées du lycée étaient au dernier rang de priorité, les tables d'échecs au
+  premier.** Le moteur d'étiquettes lit `sort_order` comme importance, et donnait le rang 50 aux
+  lieux sans catégorie. Ce 50 était intermédiaire quand les catégories de production valaient 10
+  et 100 ; l'établissement les a renumérotées par **audience** (Elèves 0, Parents 1… Sanitaire
+  14), et la constante s'est retrouvée dernière. Le code n'avait pas bougé : sa donnée d'entrée
+  avait changé de sens sous lui.
+- **Le rang de repli est maintenant calculé sur les catégories présentes** (`defaultLabelPriority`),
+  à mi-chemin entre le rang médian et le rang distinct suivant. Il reste intermédiaire quelle que
+  soit l'échelle de numérotation retenue — 6,5 sur la numérotation actuelle, 55 sur l'ancienne —
+  et reste **strictement supérieur** à la médiane : à rang nominal égal, une catégorie réelle
+  l'emporte toujours sur une absence de catégorie, qui serait sinon départagée par l'ordre
+  d'itération.
+- Cela ne remplace pas le rangement des cinq entrées dans une catégorie « Entrées / Accès » en
+  tête, ni la séparation à terme de `sort_order` (ordre des puces) et de la priorité d'affichage.
+
+### Ajouté — Plan : distance dans la liste de résultats (audit N4)
+
+- Cinq repères « WC » s'affichaient en cinq lignes strictement identiques — même emoji, même
+  nom, ni sous-titre ni catégorie distinctive : il fallait ouvrir les cinq fiches l'une après
+  l'autre pour savoir laquelle était la plus proche. Quand la position est active, chaque ligne
+  porte désormais sa distance à vol d'oiseau, déjà calculée pour « Y aller ». Elle est **dans le
+  bouton**, donc dans son nom accessible : « WC 40 m » se distingue de « WC 120 m » au lecteur
+  d'écran comme à l'œil.
+
+### Modifié — CI : position et orientation du plan entrent dans le filet bloquant
+
+- `plan-mobile-position.spec.js` et `plan-mobile-orientation.spec.js` rejoignent le smoke
+  Playwright bloquant. Le retournement des étiquettes avait traversé l'intégration parce que le
+  seul scénario exerçant la position n'était pas bloquant.
+- **Signalé, non corrigé :** remettre `format:check` au vert rend la parole aux ~3 700 tests
+  Vitest, et **sept d'entre eux échouent** (`PlantCatalogTiles`, `TeacherObservationsPanel`,
+  `TutorialEditorPanel`, `useMapCrudActions`, `markerModalForm`, `plantFormValues`). Vérifié
+  identiques sur `main` sans aucune de nos modifications : antérieurs, et masqués depuis le
+  12 septembre par l'échec de format qui tombait avant eux. Ils concernent la console ForetMap
+  (champs ajoutés aux formulaires sans mise à jour des assertions), pas l'affichage du plan.
+
 ---
 
 ## [1.152.1] - 2026-09-11
