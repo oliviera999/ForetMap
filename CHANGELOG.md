@@ -86,6 +86,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `lib/shared/`. Côté front : `src/shared/utils/classNames.js`, `formatDateTime.js` et
   `fileToDataUrl` partagé (24 copies retirées). Aucun changement de comportement visé ; suites
   backend, Vitest et e2e plan vertes.
+- **Garde anti-course des chargements** (`src/shared/hooks/useLatestRequest.js`) sur la galerie
+  photos d'un lieu, le panneau d'usage, les carnets des statistiques, les parcours et lieux du
+  panneau cartes et la synchronisation visite : une réponse arrivée après un changement de
+  lieu, de carte, de groupe ou de période n'écrase plus la plus récente.
 - **Registre des biomes G&L** : une seule source, `src/shared/glBiomesRegistryCore.js`, miroir
   CJS généré par `sync:shared-cores` ; les deux copies manuelles (client et serveur) ne font
   plus que réexporter.

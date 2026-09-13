@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useLatestRequest } from '../shared/hooks/useLatestRequest.js';
 import { api } from '../services/api';
 import { statusBadge } from '../utils/badges';
 import { getDicebearAvatarUrl, getStudentAvatarUrl } from '../utils/avatar';
@@ -650,21 +651,27 @@ function TeacherStats() {
     [filterGroupId],
   );
 
+  // Garde anti-course : changer de groupe pendant un chargement ne doit pas afficher les
+  // carnets du groupe précédent (audit 2026-09-13 §2.5).
+  const latestObservations = useLatestRequest();
   const loadObservations = useCallback(async () => {
+    const isCurrent = latestObservations();
     setObsLoading(true);
     setObsError('');
     try {
       const payload = await api(
         `/api/user-journal/feed${filterGroupId ? `?group_id=${encodeURIComponent(filterGroupId)}` : ''}`,
       );
+      if (!isCurrent()) return;
       setObservations(Array.isArray(payload?.articles) ? payload.articles : []);
     } catch (err) {
+      if (!isCurrent()) return;
       setObservations([]);
       setObsError(err?.message || 'Impossible de charger les carnets.');
     } finally {
-      setObsLoading(false);
+      if (isCurrent()) setObsLoading(false);
     }
-  }, [filterGroupId]);
+  }, [filterGroupId, latestObservations]);
   useEffect(() => {
     load();
   }, [load]);
