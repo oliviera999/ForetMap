@@ -311,6 +311,14 @@ export function useForetmapRealtime({
     socket.on('forum:changed', onForumRealtime);
     socket.on('context-comments:changed', onContextCommentsRealtime);
     socket.on('observations:changed', onObservationsRealtime);
+    const onPresenceUpdate = (payload) => {
+      try {
+        window.dispatchEvent(new CustomEvent('foretmap_presence', { detail: payload }));
+      } catch {
+        /* ignore */
+      }
+    };
+    socket.on('presence:update', onPresenceUpdate);
     window.addEventListener('online', onBrowserOnline);
     if (socket.connected) setRtStatus('live');
 
@@ -330,6 +338,7 @@ export function useForetmapRealtime({
       socket.off('forum:changed', onForumRealtime);
       socket.off('context-comments:changed', onContextCommentsRealtime);
       socket.off('observations:changed', onObservationsRealtime);
+      socket.off('presence:update', onPresenceUpdate);
       window.removeEventListener('online', onBrowserOnline);
       if (tasksRtDebounceRef.current) {
         clearTimeout(tasksRtDebounceRef.current);

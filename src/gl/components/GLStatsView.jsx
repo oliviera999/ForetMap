@@ -5,6 +5,9 @@ import { GLButton } from './ui/GLButton.jsx';
 import { GLPlayerJournalReadModal } from './GLPlayerJournalReadModal.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLSelect } from './ui/GLSelect.jsx';
+import { PresenceStatusBadge } from '../../shared/components/PresenceStatusBadge.jsx';
+import { applyPresenceUpdateToRows } from '../../shared/presenceListPatch.js';
+import { isModuleEnabled } from '../constants/modules.js';
 
 const GL_STAT = {
   card: 'gl-stat-card',
@@ -128,7 +131,14 @@ function LearningStatsGrid({ stats, catalogTotals }) {
   );
 }
 
-function ClassLeaderboardRow({ row, vitalityEnabled, rank, onViewJournal, showJournalButton }) {
+function ClassLeaderboardRow({
+  row,
+  vitalityEnabled,
+  rank,
+  onViewJournal,
+  showJournalButton,
+  presenceEnabled,
+}) {
   const s = row.stats || {};
   return (
     <div className="gl-stats-lb-row">
@@ -140,6 +150,13 @@ function ClassLeaderboardRow({ row, vitalityEnabled, rank, onViewJournal, showJo
         ) : (
           <small>Jamais connecté</small>
         )}
+        {presenceEnabled && row.presence_status ? (
+          <PresenceStatusBadge
+            status={row.presence_status}
+            label={row.presence_label}
+            lastSeen={row.last_seen}
+          />
+        ) : null}
       </div>
       <div className="gl-stats-lb-metrics">
         {vitalityEnabled ? (
@@ -180,7 +197,9 @@ export function GLStatsView({
   initialClassId = null,
   compact = false,
   onClose = null,
+  modules = null,
 }) {
+  const presenceEnabled = isModuleEnabled(modules, 'presenceEnabled');
   const activeClasses = useMemo(
     () => (Array.isArray(classes) ? classes : []).filter((c) => Number(c.is_active) !== 0),
     [classes],
@@ -223,12 +242,30 @@ export function GLStatsView({
       ? data?.vitalityEnabled === true
       : vitalityEnabled && data?.vitalityEnabled !== false;
 
-  const filteredPlayers = useMemo(() => {
-    const rows = Array.isArray(data?.players) ? data.players : [];
+  const [presenceOverlay, setPresenceOverlay] = useState(null);
+  useEffect(() => {
+    setPresenceOverlay(null);
+  }, [data?.players]);
+  useEffect(() => {
+    if (!presenceEnabled) return undefined;
+    const onPresence = (e) => {
+      const payload = e?.detail;
+      if (!payload || String(payload.product || '') !== 'gl') return;
+      setPresenceOverlay((prev) => {
+        const base = prev || (Array.isArray(data?.players) ? data.players : []);
+        return applyPresenceUpdateToRows(base, payload);
+      });
+    };
+    window.addEventListener('foretmap_presence', onPresence);
+    return () => window.removeEventListener('foretmap_presence', onPresence);
+  }, [presenceEnabled, data?.players]);
+
+  const displayPlayers = useMemo(() => {
+    const rows = presenceOverlay || (Array.isArray(data?.players) ? data.players : []);
     const q = search.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter((row) => playerLabel(row).toLowerCase().includes(q));
-  }, [data?.players, search]);
+  }, [presenceOverlay, data?.players, search]);
 
   if (loading && !data) {
     return (
@@ -363,10 +400,10 @@ export function GLStatsView({
       </div>
 
       <div className="gl-stats-leaderboard">
-        {filteredPlayers.length === 0 ? (
+        {displayPlayers.length === 0 ? (
           <p className="gl-hint">Aucun joueur ne correspond à ta recherche.</p>
         ) : (
-          filteredPlayers.map((row, index) => (
+          displayPlayers.map((row, index) => (
             <ClassLeaderboardRow
               key={row.id}
               row={row}
@@ -374,6 +411,7 @@ export function GLStatsView({
               rank={index + 1}
               showJournalButton={canViewPlayerJournal}
               onViewJournal={setJournalPlayerId}
+              presenceEnabled={presenceEnabled}
             />
           ))
         )}

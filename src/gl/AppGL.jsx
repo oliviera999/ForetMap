@@ -1058,6 +1058,7 @@ export function AppGL() {
                   mode="self"
                   auth={auth}
                   vitalityEnabled={!!gameplaySettings.vitalityEnabled}
+                  modules={modules}
                   compact
                   onClose={() => setShowPlayerStats(false)}
                 />

@@ -48,6 +48,11 @@ commentaires) et rester informé (notifications, temps réel).
   apparaît chez l'élève sans recharger la page ; les listes d'élèves et de tâches
   restent synchrones entre les écrans ouverts. Une observation ajoutée ou retirée
   du carnet se voit aussi tout de suite chez les autres personnes connectées.
+- **Présence en ligne (professeur)** : sur le classement, une pastille indique si
+  l'élève est **en ligne**, **vu récemment** (quelques minutes) ou **hors ligne**.
+  Seuls les profils autorisés à lire les statistiques voient ces pastilles — les
+  élèves ne voient pas qui d'autre est connecté. L'administrateur peut couper cette
+  fonction dans les modules du site.
 
 ## L'audit et la médiathèque
 
