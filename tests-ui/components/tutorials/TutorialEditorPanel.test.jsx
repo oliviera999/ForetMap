@@ -74,13 +74,10 @@ describe('TutorialEditorPanel', () => {
     expect(lastFormUpdate(handlers.setForm).zone_ids).toEqual(['z1']);
   });
 
-  /**
-   * Depuis `fix(tutorials): liaisons multi-cartes sans bascule`, la liste « Carte » est un
-   * FILTRE D'AFFICHAGE, plus une bascule : un tutoriel peut rester lié à des lieux de
-   * plusieurs plans, et changer de carte ne décoche plus ceux des autres. Seuls les ids
-   * devenus inconnus (lieu supprimé) sont retirés.
-   */
-  test('changement de carte : map_id mis à jour, les liens des autres cartes sont conservés', () => {
+  // Le filtre carte est un filtre d'AFFICHAGE depuis « liaisons multi-cartes sans bascule »
+  // (72a1519) : changer de carte ne décoche plus les lieux des autres cartes. Seuls les ids
+  // devenus inconnus (lieu supprimé entre-temps) sont purgés.
+  test('changement de carte : map_id mis à jour, liaisons des autres cartes conservées', () => {
     const { handlers } = renderPanel({ zone_ids: ['z1', 'z2'], marker_ids: ['m1'] });
     fireEvent.change(fieldControl('Carte (filtre zones / repères)', 'select'), {
       target: { value: 'jardin' },
@@ -91,13 +88,13 @@ describe('TutorialEditorPanel', () => {
     expect(next.marker_ids).toEqual(['m1']);
   });
 
-  test('changement de carte : un lieu devenu inconnu est bien retiré', () => {
-    const { handlers } = renderPanel({ zone_ids: ['z2', 'z-supprimee'], marker_ids: ['m-parti'] });
+  test('changement de carte : un lieu inconnu du catalogue est purgé', () => {
+    const { handlers } = renderPanel({ zone_ids: ['z1', 'zX'], marker_ids: ['mX'] });
     fireEvent.change(fieldControl('Carte (filtre zones / repères)', 'select'), {
       target: { value: 'jardin' },
     });
     const next = lastFormUpdate(handlers.setForm);
-    expect(next.zone_ids).toEqual(['z2']);
+    expect(next.zone_ids).toEqual(['z1']);
     expect(next.marker_ids).toEqual([]);
   });
 

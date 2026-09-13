@@ -9,9 +9,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Corrigé — CI au vert : semis RBAC, N+1 du carnet, horodatages hérités
+### Corrigé — semis RBAC sur base neuve, et reprise des observations héritées
 
-- **Semis RBAC sur base neuve** (migration `241`) : `admin` démarrait sans
+- **Semis RBAC** (migration `241`) : sur une **installation neuve**, `admin` démarrait sans
   `forum.group.moderate` — donc **plus personne ne pouvait modérer le forum** — ni
   `admin.impersonate`, ni `tours.manage`, ni les variantes `.group` ; `prof` perdait en plus
   `groups.read`, `groups.manage` et `tasks.assign.group`, c'est-à-dire le périmètre de groupes
@@ -20,23 +20,58 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   permission » visait le bon but — qu'une révocation admin survive aux redémarrages — avec un
   mauvais critère : les migrations remplissent déjà `role_permissions` avant le semis, qui était
   donc entièrement sauté. `rbac_seeded_permissions` mémorise désormais ce qui a été **proposé**,
-  ce qui distingue « révoqué » de « jamais accordé ». Les installations existantes n'étaient pas
-  touchées ; seules les neuves l'étaient, d'où l'invisibilité hors CI.
-- **Une requête par vignette** sur le catalogue biodiversité :
-  `GET /api/user-journal/me/imports/refs` renvoie la liste entière des imports, mais chaque
-  accusé la demandait pour son propre compte — 12 appels pour 12 fiches, autant que d'espèces en
-  vrai. La promesse est mutualisée, invalidée après un import et à chaque changement de session.
+  ce qui distingue « révoqué » de « jamais accordé » — et fait que toute permission ajoutée plus
+  tard au catalogue est bien déployée sur les profils existants. Les installations existantes
+  n'étaient pas touchées ; seules les neuves l'étaient, d'où l'invisibilité hors CI.
 - **Reprise des observations héritées** : `observation_logs.created_at` est un `VARCHAR(32)`
   portant de l'ISO-8601 UTC, la cible un vrai `DATETIME` — `GET /api/user-journal/me` répondait
   **500** dès qu'une observation restait à migrer. L'horodatage est converti, à l'article comme
   à sa pièce jointe.
 - **Note réservée jamais servie à son audience** : deux tests appelaient `signAuthToken` sans
-  `await`, l'en-tête valant `Bearer [object Promise]`. Le code de projection était sain.
-- Tests d'accompagnement : la matrice RBAC déclarée est désormais vérifiée **en base**, la
-  mutualisation des imports a ses quatre règles couvertes, et la reprise d'une observation
-  héritée — avec et sans photo — est testée. Sept tests UI et deux fixtures backend périmés
-  alignés sur des comportements livrés volontairement.
+  `await`, l'en-tête valant `Bearer [object Promise]` — le jeton était rejeté et le lecteur
+  résolu en « visiteur ». Le code de projection était sain. L'un des deux passait pour la
+  mauvaise raison : il affirmait un refus faute de permission alors que le jeton seul suffisait.
+- **Garde-fou** : la matrice RBAC déclarée est désormais vérifiée **en base**, et non plus
+  seulement contre le catalogue JS — c'est ce trou qui avait laissé passer le semis muet.
+  `modules.presence_enabled` rejoint le gel des clés de réglages GL ; deux fixtures backend qui
+  s'en remettaient au semis global paresseux posent maintenant leurs rôles explicitement.
 
+### Corrigé — la suite Vitest repasse au vert, et une régression de charge du carnet
+
+- **Catalogue de biodiversité** : chaque vignette montait un `FmLearnAndImportSlot` qui
+  demandait pour son compte `GET /api/user-journal/me/imports/refs` — la liste **complète**
+  des imports, identique pour tous. Soit une requête par fiche affichée : 78 espèces, 78
+  requêtes à chaque ouverture du catalogue, le symptôme même que la garde de charge
+  `PlantCatalogTiles` devait empêcher de revenir
+  (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`, §1). La liste passe par
+  `src/services/userJournalImports.js` : une requête par écran, partagée entre les slots,
+  invalidée à chaque import.
+- **Tests restés en arrière de leurs lots** (la suite Vitest ne tournait plus en intégration
+  depuis le 12 septembre — `format:check` rouge fait sauter `test:ui` dans le job `quality`) :
+  libellés du panneau carnets, filtre carte des tutoriels devenu un filtre d'affichage,
+  champs d'audience du formulaire repère, `map_ids` du formulaire espèce, normalisation des
+  ids de lieux, et fixtures du catalogue que le filtre « carte active » laissait sans vignette.
+  Aucun de ces tests ne décrivait plus le comportement livré.
+
+### Ajouté — le périmètre cartes d'un groupe restreint vraiment l'accès
+
+- **Périmètre cartes** (`lib/shared/mapScopeCore.js`, `lib/mapAccess.js`) : `group_scopes.map_id`,
+  qui ne servait qu'à filtrer des élèves dans les statistiques, borne désormais l'accès aux
+  cartes des membres du groupe — et de ses sous-groupes, qui en héritent quand ils n'en
+  déclarent pas. L'**affiliation** d'un élève (`users.affiliation`), jusqu'ici appliquée par le
+  seul client, est vérifiée côté serveur et s'intersecte avec le périmètre de groupe.
+- **Routes bornées** : `GET /api/maps` (réponse filtrée), `GET /api/zones`, `GET /api/zones/:id`,
+  `GET /api/map/markers`, `GET /api/map-routes`, `GET /api/map-routes/:idOrSlug`,
+  `GET /api/map-categories`. Une carte hors périmètre répond `403 { code: 'MAP_OUT_OF_SCOPE' }` ;
+  une liste sans `map_id` est ramenée au périmètre, pour que la garde ne tienne pas à
+  l'omission d'un paramètre.
+- **Ne change rien sans configuration** : un groupe sans périmètre n'est pas borné, et comme
+  les appartenances s'additionnent, un seul groupe sans périmètre suffit à ne rien borner.
+  Les lectures **sans session** (visite publique, plan public) et les comptes `teacher.access`
+  ou `admin` ne sont jamais bornés.
+- Écran de gestion des groupes : le champ *Périmètre cartes* explique désormais sa portée.
+  `group_scopes` entre dans la version d'écriture du scope groupes (`database.js`), sans quoi
+  un changement de périmètre ne périmerait pas le cache d'accès.
 ### Ajouté — cloisonnement par rôles sur la couche visite
 
 - Migration `240_visit_location_audience_roles.sql` : `visible_role_slugs`,

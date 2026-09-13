@@ -8,7 +8,6 @@ describe('TeacherObservationsPanel', () => {
   test('état initial : invite à charger, bouton actif qui déclenche onLoad', () => {
     const onLoad = vi.fn();
     render(<TeacherObservationsPanel roleTerms={ROLE_TERMS} onLoad={onLoad} />);
-    // Libellé renommé avec les carnets personnels : « observations » est devenu « carnets ».
     expect(screen.getByText('Carnets des n3beurs (max 100 articles)')).toBeTruthy();
     expect(
       screen.getByText('Aucun article chargé (clique sur le bouton pour rafraîchir).'),
