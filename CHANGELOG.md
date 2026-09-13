@@ -7,6 +7,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 > **Le cycle 1.x est clos** depuis le 11 septembre 2026 : la section [`[1.152.1]`](#11521---2026-09-11) fige les cinq mois et demi de notes qui s’étaient accumulées sous `[Non publié]` depuis la v1.2.0, et s’ouvre sur un sommaire thématique. `[Non publié]` recommence donc à zéro.
 
+## [Non publié]
+
 ### Corrigé — Plan : l'adresse gardait le lieu… puis le perdait
 
 - **Après un résultat de recherche, l'adresse revenait à `/`.** Les feuilles basses empilent une
@@ -43,8 +45,6 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 > fond d'image, ces scénarios s'y **abstiennent** — le filet est donc en place mais ne vérifie
 > rien de ce côté. Lui donner de la matière demande de compléter le semis, pas de toucher aux
 > scénarios.
-
-## [Non publié]
 
 ### Corrigé — CI de `main` rouge depuis le 11 septembre, et lien profond du plan
 
@@ -104,6 +104,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **`docs/API.md`** : quatorze routes d'administration du lore G&L (glossaire, questions QCM,
   réordonnancement des feuillets) documentées ; **`tests/api-doc-coverage.test.js`** rapproche
   désormais chaque route montée de la documentation (job `quality`, sans base).
+
+### Non publié, en attente — variables admin du serveur e2e
+
+- `.github/workflows/ci.yml` pose `TEACHER_ADMIN_EMAIL` / `TEACHER_ADMIN_PASSWORD` sur le
+  serveur e2e. `lib/env.js` n'auto-sème le compte enseignant que si les deux sont présentes ;
+  sans elles, la garde `test.skip(!token, …)` des specs Plan se déclenche et **trois specs sur
+  quatre sont ignorées à chaque passage** — position, orientation et parcours ne sont jamais
+  exercés, le job restant vert.
+- **À ne pas fusionner seul** : poser ces variables fait s'exécuter les specs… et échouer, faute
+  de tout lieu placé sur la carte du plan (`points` vide partout, aucun repère), ce qui rend la
+  distance incalculable. Mesuré sur base vierge : sans les variables 1 passé / 3 ignorés ; avec,
+  1 passé / 1 ignoré / 2 échecs. Il faut les deux — les variables **et** une fixture apportant
+  un lieu placé avec un fond de carte. Détail : PR #458.
+
+### Corrigé — le lien profond `?lieu=` survit à l'ouverture depuis la recherche
+
+- **Plan Lyautey** : ouvrir un lieu depuis la recherche perdait aussitôt son `?lieu=`. La
+  feuille de résultats se ferme à cette occasion, et `removeOverlayClose` recule alors d'une
+  entrée d'historique — celle-là même que `openPlace` venait de réécrire. Le `popstate`
+  arrivait après et ramenait l'URL à `/`. Le lien profond du lieu, celui que porte un QR code
+  interne, n'était donc jamais formé par ce chemin. La valeur attendue est désormais
+  réaffirmée, comme le fait déjà `?parcours=`.
+- **CI** : le serveur e2e reçoit `TEACHER_ADMIN_EMAIL` / `TEACHER_ADMIN_PASSWORD`. `lib/env.js`
+  n'auto-sème le compte enseignant que si les deux sont présentes ; sans elles, aucun
+  enseignant n'existait et les specs Plan qui calent la carte via l'API admin échouaient en
+  401 — pas sur ce qu'elles testent.
 
 ### Corrigé — semis RBAC sur base neuve, et reprise des observations héritées
 
@@ -168,6 +194,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Écran de gestion des groupes : le champ *Périmètre cartes* explique désormais sa portée.
   `group_scopes` entre dans la version d'écriture du scope groupes (`database.js`), sans quoi
   un changement de périmètre ne périmerait pas le cache d'accès.
+
 ### Ajouté — cloisonnement par rôles sur la couche visite
 
 - Migration `240_visit_location_audience_roles.sql` : `visible_role_slugs`,
