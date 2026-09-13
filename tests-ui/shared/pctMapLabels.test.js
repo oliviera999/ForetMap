@@ -6,6 +6,7 @@ import {
   ZONE_LABEL_MAX_WIDTH_PX,
   ZONE_LABEL_MIN_WIDTH_PX,
   buildZoneLabelSpecs,
+  defaultLabelPriority,
   labelKey,
   labelPriority,
   polygonAreaPct,
@@ -229,5 +230,196 @@ describe('resolveVisibleLabels', () => {
 
   test('largeur maximale d’un nom de repère : constante, indépendante du bâtiment', () => {
     expect(MARKER_LABEL_MAX_WIDTH_PX).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * Rang par défaut relatif — audit du 13 septembre, N2.
+ *
+ * Le rang 50 avait été choisi quand les catégories de production valaient 10 et 100 : il
+ * passait alors bien au milieu. L'établissement les a renumérotées 0 à 14 (par **audience** :
+ * Elèves 0, Parents 1…), et la constante s'est retrouvée **dernière** : les cinq entrées du
+ * lycée, sans catégorie, attendaient le zoom pendant que les tables d'échecs étaient nommées
+ * à l'ouverture. Le code n'avait pas bougé ; sa donnée d'entrée avait changé de sens.
+ */
+describe('defaultLabelPriority — rang intermédiaire, quelle que soit la numérotation', () => {
+  /** Les neuf catégories de `planlyautey.olution.info` au 13 septembre 2026. */
+  const PRODUCTION_2026_09 = new Map([
+    ['eleves', { sort_order: 0 }],
+    ['parents', { sort_order: 1 }],
+    ['enseignement', { sort_order: 2 }],
+    ['administration', { sort_order: 3 }],
+    ['infrastructure', { sort_order: 4 }],
+    ['personnels', { sort_order: 9 }],
+    ['verdure', { sort_order: 10 }],
+    ['professeurs', { sort_order: 12 }],
+    ['sanitaire', { sort_order: 14 }],
+  ]);
+
+  test('sur la numérotation 0–14, le défaut tombe au milieu et non en dernier', () => {
+    const fallback = defaultLabelPriority(PRODUCTION_2026_09);
+    // À mi-chemin entre la médiane (4, « Infrastructure ») et le rang suivant (9, « Personnels »).
+    expect(fallback).toBe(6.5);
+    expect(fallback).toBeLessThan(DEFAULT_LABEL_PRIORITY);
+    const ranks = [...PRODUCTION_2026_09.values()].map((c) => c.sort_order);
+    expect(ranks.filter((r) => r < fallback).length).toBe(5);
+    expect(ranks.filter((r) => r > fallback).length).toBe(4);
+  });
+
+  test('à rang nominal égal, une catégorie réelle l’emporte sur une absence de catégorie', () => {
+    // Une seule catégorie : sa médiane est son propre rang. Le repli doit passer **après**
+    // elle, jamais à égalité — une égalité serait tranchée par l'ordre d'itération, donc au
+    // hasard du point de vue de l'utilisateur.
+    const une = new Map([['x', { sort_order: 1 }]]);
+    expect(defaultLabelPriority(une)).toBeGreaterThan(1);
+    expect(defaultLabelPriority(une)).toBeLessThan(2);
+  });
+
+  test('sur l’ancienne numérotation 10/100, il reste intermédiaire lui aussi', () => {
+    expect(
+      defaultLabelPriority(
+        new Map([
+          ['a', { sort_order: 10 }],
+          ['b', { sort_order: 100 }],
+        ]),
+      ),
+    ).toBe(55);
+  });
+
+  test('aucune catégorie exploitable : repli sur la constante', () => {
+    expect(defaultLabelPriority(null)).toBe(DEFAULT_LABEL_PRIORITY);
+    expect(defaultLabelPriority(new Map())).toBe(DEFAULT_LABEL_PRIORITY);
+    expect(defaultLabelPriority(new Map([['x', { sort_order: 'nord' }]]))).toBe(
+      DEFAULT_LABEL_PRIORITY,
+    );
+  });
+
+  test('une entrée sans catégorie passe devant les sanitaires, pas derrière', () => {
+    // Deux repères superposés : un seul survit. Sans le rang relatif, « Sanitaire » (14)
+    // battait « Entrée lycée » (50) ; c'est le classement que N2 décrit comme le pire possible.
+    const visible = resolveVisibleLabels({
+      contentWidthPx: 390,
+      contentHeightPx: 463,
+      scale: 1,
+      zoneSpecs: [],
+      markers: [
+        { id: 'wc', x_pct: 30, y_pct: 30, label: 'WC', category_ids: ['sanitaire'] },
+        { id: 'entree', x_pct: 30, y_pct: 30, label: 'Entrée lycée', category_ids: [] },
+      ],
+      categoriesById: PRODUCTION_2026_09,
+    });
+    expect(visible.has(labelKey('marker', 'entree'))).toBe(true);
+    expect(visible.has(labelKey('marker', 'wc'))).toBe(false);
+  });
+});
+
+/**
+ * Placement sous rotation — audit du 13 septembre, N1.
+ *
+ * « Orienter la carte selon la boussole » tourne le calque qui porte les étiquettes. Celles-ci
+ * sont désormais contre-tournées en CSS pour rester lisibles : leurs boîtes redeviennent donc
+ * alignées sur l'écran alors que leurs ancres, elles, tournent. Le moteur de placement doit
+ * recevoir l'angle.
+ *
+ * La géométrie exacte, pour que ces attentes soient lisibles plutôt que magiques : une boîte
+ * d'étiquette est **bien plus large que haute** (« Gauche », 6 caractères à 12 px : ≈ 43,6 px
+ * de large pour 18,4 px de haut, marges comprises). Deux noms distants de 32 px se gênent donc
+ * quand cet écart est **horizontal** à l'écran, et pas du tout quand il est **vertical**.
+ * Tourner la carte d'un quart de tour fait passer d'un cas à l'autre.
+ */
+describe('resolveVisibleLabels — rotation de la carte', () => {
+  const view = { contentWidthPx: 400, contentHeightPx: 400, scale: 1 };
+
+  /** Deux repères côte à côte, à 32 px l'un de l'autre (46 % et 54 % de 400 px). */
+  const SIDE_BY_SIDE = [
+    { id: 'g', x_pct: 46, y_pct: 50, label: 'Gauche' },
+    { id: 'd', x_pct: 54, y_pct: 50, label: 'Droite' },
+  ];
+  const CENTRE = { xp: 50, yp: 50 };
+
+  test('sans rotation, le comportement d’aujourd’hui est inchangé', () => {
+    const sans = resolveVisibleLabels({ ...view, zoneSpecs: [], markers: SIDE_BY_SIDE });
+    const zero = resolveVisibleLabels({
+      ...view,
+      zoneSpecs: [],
+      markers: SIDE_BY_SIDE,
+      orientationDeg: 0,
+    });
+    expect([...zero]).toEqual([...sans]);
+    // Au nord, l'écart de 32 px est horizontal : plus étroit qu'une boîte, un seul nom tient.
+    expect(sans.size).toBe(1);
+  });
+
+  test('un quart de tour redresse l’écart : le nom masqué revient', () => {
+    const tourne = resolveVisibleLabels({
+      ...view,
+      zoneSpecs: [],
+      markers: SIDE_BY_SIDE,
+      orientationDeg: 90,
+      orientOriginPct: CENTRE,
+    });
+    // L'écart est devenu vertical à l'écran (32 px > 18,4 px de hauteur de boîte) : les deux
+    // noms tiennent. Sans l'angle, le moteur aurait continué d'en masquer un pour rien.
+    expect(tourne.size).toBe(2);
+  });
+
+  test('un demi-tour ne change rien : l’écart reste horizontal', () => {
+    const demi = resolveVisibleLabels({
+      ...view,
+      zoneSpecs: [],
+      markers: SIDE_BY_SIDE,
+      orientationDeg: 180,
+      orientOriginPct: CENTRE,
+    });
+    expect(demi.size).toBe(1);
+  });
+
+  test('le verdict ne dépend pas du pivot : une rotation conserve les distances', () => {
+    // Seule l'**orientation** du segment qui joint deux ancres décide du recouvrement de
+    // boîtes redressées, et elle ne dépend pas du point autour duquel on tourne. Le pivot est
+    // la position de l'utilisateur, donc mobile : ce serait un défaut sournois s'il comptait.
+    const centre = resolveVisibleLabels({
+      ...view,
+      zoneSpecs: [],
+      markers: SIDE_BY_SIDE,
+      orientationDeg: 90,
+      orientOriginPct: CENTRE,
+    });
+    const coin = resolveVisibleLabels({
+      ...view,
+      zoneSpecs: [],
+      markers: SIDE_BY_SIDE,
+      orientationDeg: 90,
+      orientOriginPct: { xp: 0, yp: 0 },
+    });
+    expect([...coin].sort()).toEqual([...centre].sort());
+  });
+
+  test('l’écart au point du repère reste vertical **à l’écran**, jamais tourné avec la carte', () => {
+    // L'étiquette d'un repère est posée 26 px sous son point. Comme elle est contre-tournée,
+    // cet écart s'ajoute après la rotation de l'ancre. S'il était tourné avec la carte, un
+    // repère unique verrait sa boîte partir de côté — ici, elle reste sous le point.
+    const seul = [{ id: 'u', x_pct: 50, y_pct: 50, label: 'Unique' }];
+    for (const deg of [0, 45, 90, 180, 270]) {
+      const visible = resolveVisibleLabels({
+        ...view,
+        zoneSpecs: [],
+        markers: seul,
+        orientationDeg: deg,
+        orientOriginPct: CENTRE,
+      });
+      expect(visible.has(labelKey('marker', 'u'))).toBe(true);
+    }
+  });
+
+  test('un angle non fini est ignoré plutôt que de fausser tout le placement', () => {
+    const casse = resolveVisibleLabels({
+      ...view,
+      zoneSpecs: [],
+      markers: SIDE_BY_SIDE,
+      orientationDeg: Number.NaN,
+    });
+    const sans = resolveVisibleLabels({ ...view, zoneSpecs: [], markers: SIDE_BY_SIDE });
+    expect([...casse].sort()).toEqual([...sans].sort());
   });
 });

@@ -326,6 +326,23 @@ export function AppPlan() {
     [position.positionPct, position.planSize, targetPct],
   );
 
+  /**
+   * Distance à vol d'oiseau d'un lieu quelconque, formatée — pour la liste de résultats
+   * (`docs/AUDIT_PLAN_AFFICHAGE_2026-09-13.md` N4). Chaîne vide tant que la position n'est
+   * pas active : mieux vaut ne rien dire qu'annoncer une distance depuis un point inconnu.
+   */
+  const distanceOfPlace = useCallback(
+    (place) => {
+      if (!position.positionPct || !place) return '';
+      const pct = planPlaceFocusPct(place, parsePctPolygonPoints);
+      if (!pct) return '';
+      return formatDistanceFr(
+        distanceMetersBetweenPct(position.positionPct, pct, position.planSize),
+      );
+    },
+    [position.positionPct, position.planSize],
+  );
+
   const goToPlace = useCallback(
     (place) => {
       if (!place) return;
@@ -622,6 +639,7 @@ export function AppPlan() {
         results={results}
         onSelect={openPlace}
         categoriesOf={categoriesOf}
+        distanceOf={distanceOfPlace}
       />
 
       <PlanPlaceSheet

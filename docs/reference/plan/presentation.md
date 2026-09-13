@@ -70,6 +70,8 @@ un bouton **« Orienter »** apparaît à côté de « Me situer » une fois la 
 **tourner le plan** pour que le regard pointe vers le haut de l'écran (boussole du téléphone).
 Chacun peut le couper ; le choix est retenu sur l'appareil. Sans boussole exploitable, le bouton
 reste inactif. En intérieur, la boussole peut être fantaisiste : mieux vaut alors s'en passer.
+**Les noms restent droits** quand le plan tourne : seul le fond de plan pivote, les étiquettes
+et les pastilles se redressent d'elles-mêmes et restent lisibles quel que soit le cap.
 
 Dès que le plan est **calé** (points GPS posés), une **barre d'échelle** et une **rose des
 vents** s'affichent en bas à gauche — sans avoir besoin d'activer « Me situer ». Chacun peut
@@ -83,6 +85,10 @@ calage GPS.
 Si le visiteur est **hors du plan**, le point ne disparaît pas : il se colle au bord le plus
 proche avec une flèche vers l'endroit réel. Les messages d'état (autorisation refusée, signal
 faible, calage incohérent, hors plan) s'affichent en petit message passager, pas en bandeau.
+
+Tant que la position est affichée, la **liste de résultats** indique la distance de chaque lieu
+— ce qui permet de distinguer d'un coup d'œil plusieurs lieux portant le même nom (les
+différents « WC », par exemple) et de choisir le plus proche sans ouvrir les fiches une à une.
 
 Le bouton **« Y aller »** d'une fiche trace alors une **ligne droite** entre la position et le
 lieu, et affiche la distance. Ce n'est pas un itinéraire : le plan ne connaît pas encore les

@@ -257,17 +257,28 @@ attendant.
 
 ## 5. Plan d'action
 
-| #   | Action                                                                                                        | Constat    | Effort          | Qui            |
-| --- | ------------------------------------------------------------------------------------------------------------- | ---------- | --------------- | -------------- |
-| 1   | `npx prettier --write docs/API.md`, pousser                                                                   | N3         | 1 min           | code           |
-| 2   | Diagnostiquer l'échec backend de `main`                                                                       | N3         | ?               | code           |
-| 3   | Créer une catégorie « Entrées / Accès » en tête et y ranger les 5 entrées                                     | N2         | 5 min           | console        |
-| 4   | Contre-rotation des habillages **et** passage de l'angle au moteur de collisions                              | N1         | ½ j             | code           |
-| 5   | Ajouter `plan-mobile-position.spec.js` au smoke bloquant, et un test de lisibilité sous rotation              | N1, C9     | ¼ j             | code           |
-| 6   | Sous-titres distinctifs sur les WC / Fontaines / Echecs ; distance dans la liste quand la position est active | N4         | 20 min + ¼ j    | console + code |
-| 7   | Séparer `sort_order` (ordre des puces) et priorité d'affichage                                                | N2         | ½ j + migration | code           |
-| 8   | Compléter ou dépublier « Faire le tour du lycée »                                                             | N5         | 10 min          | console        |
-| 9   | Alias de recherche, `zoom_only` sur « Sanitaire », emojis cohérents, doublons, attribution                    | N6, D2, D3 | 1 h             | console        |
+| #   | Action                                                                                     | Constat    | Qui            | État                                                                  |
+| --- | ------------------------------------------------------------------------------------------ | ---------- | -------------- | --------------------------------------------------------------------- |
+| 1   | `npx prettier --write docs/API.md`, pousser                                                | N3         | code           | ✅ fait (PR dédiée, tableau « Auth GL » réparé au passage)            |
+| 2   | Diagnostiquer l'échec backend de `main`                                                    | N3         | code           | ⬜ à faire — ne touche pas l'affichage du plan                        |
+| 3   | Créer une catégorie « Entrées / Accès » en tête et y ranger les 5 entrées                  | N2         | console        | ⬜ donnée — mais le garde-fou de code est posé (ligne 7)              |
+| 4   | Contre-rotation des habillages **et** passage de l'angle au moteur de collisions           | N1         | code           | ✅ fait (`--pct-orient` + `orientationDeg`)                           |
+| 5   | Position et orientation dans le smoke bloquant, test de lisibilité sous rotation           | N1, C9     | code           | ✅ fait (`plan-mobile-orientation.spec.js`, mesure d'angle réelle)    |
+| 6   | Sous-titres distinctifs sur les WC / Fontaines / Echecs ; distance dans la liste           | N4         | console + code | ◧ moitié code faite (distance affichée) ; sous-titres = donnée        |
+| 7   | Séparer `sort_order` (ordre des puces) et priorité d'affichage                             | N2         | code           | ◧ repli rendu **relatif** (`defaultLabelPriority`) ; migration à part |
+| 8   | Compléter ou dépublier « Faire le tour du lycée »                                          | N5         | console        | ⬜ donnée                                                             |
+| 9   | Alias de recherche, `zoom_only` sur « Sanitaire », emojis cohérents, doublons, attribution | N6, D2, D3 | console        | ⬜ donnée                                                             |
+
+> **Découvert en appliquant la ligne 1.** Remettre `format:check` au vert rend la parole aux
+> ~3 700 tests Vitest — et **sept d'entre eux échouent**, dans six fichiers
+> (`PlantCatalogTiles`, `TeacherObservationsPanel`, `TutorialEditorPanel`, `useMapCrudActions`,
+> `markerModalForm`, `plantFormValues`). Vérifié : ces échecs sont **identiques sur `main` sans
+> aucune de nos modifications** — ils sont antérieurs, et invisibles depuis le 12 septembre
+> précisément parce que l'étape de format tombait avant eux. Ils concernent la console ForetMap
+> (formulaires plantes, repères, tutoriels), pas l'affichage du plan : des assertions restées en
+> arrière quand des champs ont été ajoutés aux formulaires. À traiter à part, avec la personne
+> qui a ajouté ces champs — les « corriger » ici reviendrait à arbitrer seul du travail
+> fonctionnel que nous n'avons pas écrit.
 
 ---
 
