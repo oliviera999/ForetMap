@@ -93,9 +93,9 @@ describe('useMapCrudActions', () => {
   it('linkTutorialToLocation / unlinkTutorialFromLocation gèrent zone et repère', async () => {
     const { result } = setup();
     await result.current.linkTutorialToLocation(3, 'marker', 11);
-    // `tutorialLocationIds` normalise **tous** les ids en chaînes, l'id ajouté compris : la
-    // liste envoyée est donc homogène. Ce test attendait encore `11` en nombre, du temps où
-    // seuls les ids déjà présents étaient normalisés.
+    // tutorialLocationIds normalise TOUS les ids en chaînes, l'id ajouté compris : un
+    // <select> renvoie des chaînes, un lien posé par code un nombre, et la liste envoyée à
+    // l'API doit être homogène pour que le dédoublonnage par Set fasse son travail.
     expect(api).toHaveBeenCalledWith('/api/tutorials/3', 'PUT', {
       zone_ids: ['1'],
       marker_ids: ['10', '11'],

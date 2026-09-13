@@ -9,6 +9,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — la suite Vitest repasse au vert, et une régression de charge du carnet
+
+- **Catalogue de biodiversité** : chaque vignette montait un `FmLearnAndImportSlot` qui
+  demandait pour son compte `GET /api/user-journal/me/imports/refs` — la liste **complète**
+  des imports, identique pour tous. Soit une requête par fiche affichée : 78 espèces, 78
+  requêtes à chaque ouverture du catalogue, le symptôme même que la garde de charge
+  `PlantCatalogTiles` devait empêcher de revenir
+  (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`, §1). La liste passe par
+  `src/services/userJournalImports.js` : une requête par écran, partagée entre les slots,
+  invalidée à chaque import.
+- **Tests restés en arrière de leurs lots** (la suite Vitest ne tournait plus en intégration
+  depuis le 12 septembre — `format:check` rouge fait sauter `test:ui` dans le job `quality`) :
+  libellés du panneau carnets, filtre carte des tutoriels devenu un filtre d'affichage,
+  champs d'audience du formulaire repère, `map_ids` du formulaire espèce, normalisation des
+  ids de lieux, et fixtures du catalogue que le filtre « carte active » laissait sans vignette.
+  Aucun de ces tests ne décrivait plus le comportement livré.
+
 ### Ajouté — le périmètre cartes d'un groupe restreint vraiment l'accès
 
 - **Périmètre cartes** (`lib/shared/mapScopeCore.js`, `lib/mapAccess.js`) : `group_scopes.map_id`,
@@ -238,19 +255,6 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   pourtant rendu bloquant ; cinq « WC »
   indiscernables dans la recherche ; un parcours publié à une seule étape. Plan d'action en neuf
   points.
-### Corrigé — `docs/API.md` : format Prettier et tableau « Auth GL »
-
-- **`npm run format:check` repasse au vert.** Cinq tableaux du fichier avaient dérivé de
-  l'alignement canonique de Prettier ; la vérification de format faisait donc échouer le job
-  `quality` sur `main`, **et sautait en conséquence toute la suite Vitest** (~3 700 tests), qui
-  n'a plus tourné en intégration depuis le 12 septembre.
-- **Tableau « Auth GL » réparé.** Il déclarait 4 colonnes et deux de ses lignes en comptaient 6 :
-  le type union `{ idToken, mode?: 'player' | 'staff' | 'auto' }` de `/api/gl/auth/google`
-  portait des barres verticales non échappées, et le séparateur avait été aligné sur 6 colonnes
-  pour suivre. Le tableau s'affichait de travers, « 'staff' » et « 'auto' » débordant dans les
-  colonnes voisines. Barres échappées (`\|`), séparateur ramené à 4 colonnes.
-- Hors ces deux lignes, la modification est **purement de mise en forme** : `git diff -w` ne
-  montre aucun autre changement de contenu.
 
 ### Corrigé — Plan : le texte reste droit quand la carte tourne (audit N1)
 
@@ -306,41 +310,6 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - `plan-mobile-position.spec.js` et `plan-mobile-orientation.spec.js` rejoignent le smoke
   Playwright bloquant. Le retournement des étiquettes avait traversé l'intégration parce que le
   seul scénario exerçant la position n'était pas bloquant.
-- **Signalé, non corrigé :** remettre `format:check` au vert rend la parole aux ~3 700 tests
-  Vitest, et **sept d'entre eux échouent** (`PlantCatalogTiles`, `TeacherObservationsPanel`,
-  `TutorialEditorPanel`, `useMapCrudActions`, `markerModalForm`, `plantFormValues`). Vérifié
-  identiques sur `main` sans aucune de nos modifications : antérieurs, et masqués depuis le
-  12 septembre par l'échec de format qui tombait avant eux. Ils concernent la console ForetMap
-  (champs ajoutés aux formulaires sans mise à jour des assertions), pas l'affichage du plan.
-### Corrigé — la suite de tests UI retourne au vert, et découvre une régression de charge
-
-Remettre `docs/API.md` au format rend la parole aux ~3 700 tests Vitest, que l'échec de format
-court-circuitait depuis le 12 septembre. **Sept échouaient**, invisibles depuis. Six étaient des
-fixtures restées en arrière de changements délibérés ; le septième cachait un vrai défaut.
-
-- **Défaut réel — une requête par vignette dans le catalogue de biodiversité.** Chaque
-  `FmLearnAndImportSlot` appelait `/api/user-journal/me/imports/refs`, qui renvoie la liste
-  **entière** des imports, pour n'y chercher qu'une seule entrée. Douze vignettes = douze
-  requêtes identiques ; **78 espèces en production = 78 requêtes** à chaque ouverture du
-  catalogue. C'est la classe de défaut décrite par `docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`,
-  et précisément ce que la garde `PlantCatalogTiles.test.jsx` devait retenir — elle ne le
-  voyait plus parce que sa fixture, privée de zones, n'affichait plus aucune vignette depuis
-  l'arrivée du filtre « Présente sur cette carte ». La liste est désormais mutualisée
-  (`src/components/journal/importedRefsCache.js`) : **une requête pour toute la page**, quel
-  que soit le nombre de vignettes, périmée après un import.
-- **Fixtures remises à jour**, sans toucher au comportement produit : trois champs de
-  cloisonnement d'audience ajoutés à l'attendu de `markerFormFromMarker` ; `EMPTY_PLANT_FORM`
-  accepte `[]` comme valeur vide d'une liste (`map_ids`) ; ids de lieux normalisés en chaînes
-  dans `useMapCrudActions` ; `TutorialEditorPanel` assert enfin le comportement documenté
-  (changer de carte est un **filtre**, il ne décoche plus les lieux d'autres cartes — un test
-  a été ajouté pour la seule suppression qui subsiste, celle des lieux disparus) ; libellés
-  « Carnets / article » dans `TeacherObservationsPanel`, renommé depuis « Observations ».
-- Suite complète : **554 fichiers, 4 009 tests au vert.**
-
-> À noter : `src/gl/components/GLLearnAndImport.jsx` porte le même motif sur
-> `/api/gl/player-journal/me/imports/refs`. Non traité ici — GL est un produit isolé, et le
-> catalogue G&L n'affiche pas des dizaines de vignettes simultanées.
-
 ---
 
 ## [1.152.1] - 2026-09-11

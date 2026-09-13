@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 /**
@@ -40,6 +40,12 @@ vi.mock('../../src/services/api', async (importOriginal) => {
   };
 });
 
+// Depuis `38e8555` (« rattacher des espèces à une carte sans lieu précis »), le catalogue
+// élève s'ouvre filtré sur la **carte active** : une espèce n'y figure que si elle est posée
+// sur une zone / un repère de cette carte, ou rattachée directement via `map_ids`. Les fiches
+// sont donc rattachées à la carte active — sans quoi la grille est vide et cette garde de
+// charge ne mesure plus rien.
+const ACTIVE_MAP_ID = 'foret';
 const PLANTS = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
   name: `Espèce ${i + 1}`,
@@ -48,31 +54,12 @@ const PLANTS = Array.from({ length: 12 }, (_, i) => ({
   scientific_name: `Genus species${i + 1}`,
   trophic_role: 'producteur',
   is_edible: 1,
+  map_ids: [ACTIVE_MAP_ID],
   taxonomy: { kingdom: 'Végétal', group: 'Angiosperme', family: null, genus: null },
 }));
 
-/**
- * Une zone qui rattache les douze espèces à la carte active.
- *
- * Indispensable depuis que le catalogue filtre par défaut sur « Présente sur cette carte »
- * (`ZONE_PRESENCE_FILTER.IN_MAP`) : avec `zones: []`, les douze fiches étaient **toutes
- * écartées**, la grille se rendait vide, et ce test passait pour de mauvaises raisons — zéro
- * appel par fiche, parce que zéro fiche. La garde de charge ne gardait plus rien.
- */
-const ZONE_AVEC_ESPECES = {
-  id: 'z1',
-  name: 'Verger',
-  map_id: 'foret',
-  species_ids: PLANTS.map((p) => p.id),
-};
-
 vi.mock('../../src/contexts/DataContext.jsx', () => ({
-  useData: () => ({
-    plants: PLANTS,
-    zones: [ZONE_AVEC_ESPECES],
-    markers: [],
-    activeMapId: 'foret',
-  }),
+  useData: () => ({ plants: PLANTS, zones: [], markers: [], activeMapId: ACTIVE_MAP_ID }),
 }));
 vi.mock('../../src/contexts/PublicSettingsContext.jsx', () => ({
   usePublicSettings: () => ({ modules: {} }),
@@ -101,7 +88,9 @@ describe('catalogue biodiversité — vignettes', () => {
   test('aucune requête par fiche au montage de la grille', async () => {
     render(<PlantViewer onOpenPlant={vi.fn()} />);
 
-    await waitFor(() => expect(apiCalls.length).toBeGreaterThan(0));
+    // Attendre les vignettes plutôt qu'un premier appel API : la grille peut n'en émettre
+    // aucun — c'est le but de cette garde, pas une raison d'échouer sur la synchronisation.
+    await screen.findAllByRole('button', { name: /Ouvrir la fiche de/ });
     // Laisse passer les effets différés d'éventuels enfants avant de conclure.
     await new Promise((resolve) => setTimeout(resolve, 20));
 
@@ -114,7 +103,7 @@ describe('catalogue biodiversité — vignettes', () => {
     expect(publicSettings, `appels réglages : ${publicSettings.join(', ')}`).toEqual([]);
 
     // Le nombre d'appels ne doit pas dépendre du nombre de fiches affichées.
-    expect(apiCalls.length).toBeLessThanOrEqual(3);
+    expect(apiCalls.length, `appels : ${apiCalls.join(', ')}`).toBeLessThanOrEqual(3);
   });
 
   test('les douze fiches sont listées et le clic ouvre la fiche complète', async () => {
