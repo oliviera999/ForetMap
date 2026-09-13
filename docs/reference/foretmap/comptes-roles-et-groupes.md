@@ -147,7 +147,23 @@ Les groupes structurent la vie pédagogique :
   (par exemple « n3beur novice » pour une classe) — c'est ce qui promeut un visiteur en
   élève dès son rattachement. Un bouton « Appliquer à tous les membres » force le
   recalcul.
-- **Périmètre** : un groupe peut être limité à certaines cartes et certains projets.
+- **Périmètre** : un groupe peut être limité à certaines cartes et certains projets. Le
+  périmètre **cartes** est une vraie restriction d'accès : les membres du groupe (et de ses
+  sous-groupes) ne voient plus que ces cartes — ni dans le sélecteur de carte, ni par un lien
+  direct vers une zone, un repère ou un parcours d'une autre carte. Trois précisions qui
+  comptent au moment de composer les groupes :
+  - **Vide = aucune restriction.** Tant qu'aucun périmètre n'est posé, rien ne change.
+  - **Les appartenances s'additionnent.** Un élève d'une classe bornée à la forêt qui est
+    aussi membre d'un club **sans** périmètre retrouve toutes les cartes : le groupe le plus
+    ouvert l'emporte. Pour cloisonner réellement, tous les groupes de l'élève doivent porter
+    un périmètre.
+  - **Sans effet sur les professeurs**, ni sur la visite publique (qui se consulte sans
+    compte). Le périmètre cloisonne des classes entre elles, il ne ferme pas le site.
+
+  Un élève peut aussi être limité individuellement par son **espace** (champ _Affiliation_ de
+  sa fiche) : les deux restrictions se cumulent, l'élève ne voit que les cartes autorisées
+  par les deux.
+
 - **Code de classe** : chaque groupe peut générer son code d'inscription dans son
   panneau de réglages — affichable/imprimable pour la classe, **régénérable** (l'ancien
   code devient alors invalide) ou supprimable.

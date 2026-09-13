@@ -681,15 +681,47 @@ Réservé aux environnements de **développement / CI** ; ne pas utiliser en pro
 
 ## Cartes
 
-| Méthode | URL         | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| ------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/maps` | Liste des cartes configurées, triées (`sort_order`, `id`). Retourne les champs `id`, `label`, `map_image_url`, `sort_order`, `is_active`, `updated_at`, `frame_padding_px`, **`georef`** (3 ancres de calage GPS `[{ xp, yp, lat, lng }]` ou `null`), **`gps_enabled`** (booléen ; vrai uniquement si le suivi est activé **et** le calage valide), **`heading_up_enabled`** et **`scale_compass_enabled`** (booléen ; vrai si calage valide **et** case admin activée — indépendant de `gps_enabled` ; défaut admin `1`). Utilisé par toutes les vues carte/tâches/visite ; `georef`/`gps_enabled` pilotent le suivi GPS de la mascotte (bouton « Me suivre ») ; `scale_compass_enabled` pilote l'échelle et la rose des vents. La logique client filtre ensuite selon l’affiliation et le mode (élève, n3boss, visite). **Route publique (sans session)** : les ancres `georef` — donc les coordonnées GPS du site — sont lisibles par tout visiteur. Choix assumé pour un établissement dont l’adresse est publique ; à reconsidérer avant de géoréférencer un plan d’un lieu non public (audit géolocalisation 2026-09, C5). |
+| Méthode | URL         | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/maps` | Liste des cartes configurées, triées (`sort_order`, `id`). Retourne les champs `id`, `label`, `map_image_url`, `sort_order`, `is_active`, `updated_at`, `frame_padding_px`, **`georef`** (3 ancres de calage GPS `[{ xp, yp, lat, lng }]` ou `null`), **`gps_enabled`** (booléen ; vrai uniquement si le suivi est activé **et** le calage valide), **`heading_up_enabled`** et **`scale_compass_enabled`** (booléen ; vrai si calage valide **et** case admin activée — indépendant de `gps_enabled` ; défaut admin `1`). Utilisé par toutes les vues carte/tâches/visite ; `georef`/`gps_enabled` pilotent le suivi GPS de la mascotte (bouton « Me suivre ») ; `scale_compass_enabled` pilote l'échelle et la rose des vents. **Filtrée par le périmètre cartes du compte** (voir ci-dessous) : un élève borné ne reçoit que ses cartes ; la logique client réduit ensuite l’affichage selon le mode (élève, n3boss, visite). **Route publique (sans session)** : les ancres `georef` — donc les coordonnées GPS du site — sont lisibles par tout visiteur. Choix assumé pour un établissement dont l’adresse est publique ; à reconsidérer avant de géoréférencer un plan d’un lieu non public (audit géolocalisation 2026-09, C5). |
 
 Notes :
 
 - Le backend n’impose pas de plafond à 2 cartes : le contrat est compatible **N cartes**.
 - Le paramètre `is_active` permet de masquer une carte côté UI sans la supprimer de la base.
 - Les routes admin associées (création/mise à jour) sont documentées dans la section **Réglages admin**.
+
+### Périmètre cartes (`lib/mapAccess.js`)
+
+Le **périmètre** d’un compte est la liste des cartes qu’il a le droit de consulter. Il se calcule
+à partir de deux sources, **intersectées** :
+
+1. **Périmètre de groupe** — `group_scopes.map_id`, posé par `PUT /api/groups/:id/members`
+   (`scope_map_ids`). Un groupe **sans** périmètre n’est **pas** borné ; comme les appartenances
+   s’additionnent, un seul groupe sans périmètre suffit à ne rien borner. Un sous-groupe sans
+   périmètre propre hérite de l’ancêtre le plus proche qui en déclare un.
+2. **Affiliation** — `users.affiliation` (`both` = non borné, sinon un identifiant de carte).
+   Appliquée côté client depuis toujours, désormais aussi côté serveur.
+
+**Jamais bornés** : les lectures **sans session** (visite publique, plan public — le périmètre
+cloisonne des classes entre elles, il ne ferme pas le site) et les comptes portant
+`teacher.access` ou le rôle `admin`.
+
+Routes concernées :
+
+| Route                           | Effet du périmètre                                                                                                  |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/maps`                 | Réponse filtrée : seules les cartes du périmètre                                                                    |
+| `GET /api/zones`                | `?map_id=` hors périmètre → **403** ; sans `map_id`, liste ramenée au périmètre                                     |
+| `GET /api/zones/:id`            | **403** si la zone appartient à une carte hors périmètre                                                            |
+| `GET /api/map/markers`          | Même règle que `GET /api/zones`                                                                                     |
+| `GET /api/map-routes`           | Même règle que `GET /api/zones` (après la garde d’accès du plan, sur les surfaces qui la déclenchent)               |
+| `GET /api/map-routes/:idOrSlug` | **403** si le parcours appartient à une carte hors périmètre                                                        |
+| `GET /api/map-categories`       | `?map_id=` hors périmètre → **403** (la liste sans `map_id` n’est pas bornée : ce sont des métadonnées d’habillage) |
+
+Refus : `403 { error, code: 'MAP_OUT_OF_SCOPE' }`. Les lectures filtrées par élève
+(tâches, statistiques) restent régies par le périmètre de groupe déjà en place
+(`lib/groupScope.js`), qui ne change pas.
 
 ---
 
@@ -1410,7 +1442,9 @@ Toutes les routes ci-dessous exigent un utilisateur connecté (`Authorization: B
 Contrat principal :
 
 - `group_members.role_in_group` : `member` ou `manager`.
-- `group_scopes` porte le périmètre map/projet par défaut du groupe (optionnel ; vide = non borné).
+- `group_scopes` porte le périmètre map/projet du groupe (optionnel ; vide = non borné). Le
+  volet **projet** reste un filtre de lecture ; le volet **carte** borne en plus l’accès aux
+  cartes des membres — voir **Périmètre cartes** dans la section _Cartes_.
 - Les filtres transverses utilisent `group_id` (et `subgroup_id` côté stats) pour les lectures ciblées.
 
 ---
