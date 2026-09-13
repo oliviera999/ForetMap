@@ -177,7 +177,10 @@ test('visite : restricted_note absent pour anonyme, présent pour personnel audi
     'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1)',
     ['student', personnelUserId, personnelRole.id],
   );
-  const personnelToken = signAuthToken({
+  // `signAuthToken` est asynchrone depuis `fix(auth): durées JWT pilotées par les réglages
+  // admin` : sans `await`, l'en-tête valait « Bearer [object Promise] », le jeton était rejeté
+  // et le lecteur retombait sur « visiteur » — la note réservée n'était donc servie à personne.
+  const personnelToken = await signAuthToken({
     userType: 'student',
     userId: personnelUserId,
     canonicalUserId: personnelUserId,
