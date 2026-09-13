@@ -37,11 +37,25 @@ before(async () => {
     );
   }
 
-  // Observation héritée posée AVANT toute lecture du carnet : la reprise
+  // Observations héritées posées AVANT toute lecture du carnet : la reprise
   // (`migrateObservationLogsOnce`) est mémoïsée par processus, elle ne repasse pas après coup.
+  // Deux lignes, dont une AVEC image : l'horodatage hérité est réécrit à deux endroits
+  // (l'article et sa pièce jointe), et n'en corriger qu'un laissait la 500 intacte dès qu'une
+  // observation portait une photo.
+  const isoHérité = new Date(Date.now() - 3600_000).toISOString();
   await execute(
     'INSERT INTO observation_logs (student_id, zone_id, content, created_at) VALUES (?, NULL, ?, ?)',
-    [studentId, `Observation héritée ${stamp}`, new Date(Date.now() - 3600_000).toISOString()],
+    [studentId, `Observation héritée ${stamp}`, isoHérité],
+  );
+  await execute(
+    `INSERT INTO observation_logs (student_id, zone_id, content, image_path, created_at)
+     VALUES (?, NULL, ?, ?, ?)`,
+    [
+      studentId,
+      `Observation héritée avec photo ${stamp}`,
+      `uploads/heritee-${stamp}.jpg`,
+      isoHérité,
+    ],
   );
 
   const plant = await queryOne('SELECT id FROM plants ORDER BY id ASC LIMIT 1');
@@ -177,6 +191,12 @@ test('reprise : une observation héritée horodatée en ISO-8601 UTC devient un 
   assert.ok(
     res.body.articles.some((a) => String(a.bodyMarkdown || '').includes(`héritée ${stamp}`)),
     'l’observation héritée doit avoir été reprise en article',
+  );
+  assert.ok(
+    res.body.articles.some((a) =>
+      String(a.bodyMarkdown || '').includes(`héritée avec photo ${stamp}`),
+    ),
+    'celle qui porte une image aussi — sa pièce jointe passe par le même horodatage',
   );
 });
 
