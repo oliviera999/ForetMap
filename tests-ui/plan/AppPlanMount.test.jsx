@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { abandonAllOverlays } from '../../src/shared/platform/overlayHistory.js';
 
 /**
@@ -161,6 +161,35 @@ describe('AppPlan — montage', () => {
     expect(placeSheet.textContent).toContain('Centre de documentation');
     expect(placeSheet.textContent).toContain('8 h – 17 h');
     expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith('place_open', 'z-cdi');
+    expect(window.location.search).toContain('lieu=z-cdi');
+  });
+
+  test('l’adresse garde le lieu une fois la feuille de résultats refermée', async () => {
+    // Régression réelle, vue seulement en navigateur : les feuilles basses empilent une entrée
+    // d'historique et la dépilent en se fermant (`useOverlayHistoryBack`). `openPlace` écrivait
+    // `?lieu=` sur l'entrée de la feuille — donc le `history.back()` de sa fermeture emportait
+    // l'adresse avec elle. Recharger la page ou copier l'URL perdait alors la sélection.
+    // Le test voisin ne le voyait pas : il observe l'adresse **avant** que ce retour n'ait lieu.
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+
+    fireEvent.change(screen.getByLabelText('Rechercher un lieu'), {
+      target: { value: 'bibliotheque' },
+    });
+    const sheet = await screen.findByTestId('plan-results-sheet');
+    fireEvent.click(within(sheet).getByRole('button', { name: /CDI/ }));
+    await screen.findByTestId('plan-place-sheet');
+
+    // Rejoue ce que fait le navigateur en dépilant l'entrée de la feuille : il restaure
+    // l'adresse de l'entrée précédente — celle d'avant l'ouverture, sans le lieu — puis émet
+    // `popstate`. jsdom ne simule pas cette restauration, il faut donc l'écrire ici, sans quoi
+    // le test passerait aussi bien avec qu'sans le correctif (vérifié : c'était le cas).
+    await act(async () => {
+      window.history.replaceState(null, '', '/');
+      window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
+      await Promise.resolve();
+    });
+
     expect(window.location.search).toContain('lieu=z-cdi');
   });
 
