@@ -137,9 +137,10 @@ function getRbacWriteVersion() {
 let dataWriteVersion = 0;
 let groupScopeWriteVersion = 0;
 const SQL_WRITE_RE = /^\s*(?:INSERT|UPDATE|DELETE|REPLACE|TRUNCATE)\b/i;
-// Tables dont dépendent getAllGroups() / getUserDirectGroupIds() (jointures comprises).
+// Tables dont dépendent getAllGroups() / getUserDirectGroupIds() (jointures comprises) et
+// le périmètre cartes de lib/mapAccess.js (`group_scopes`, qui ne matche pas `\bgroups\b`).
 const GROUP_SCOPE_WRITE_RE =
-  /^\s*(?:INSERT|UPDATE|DELETE|REPLACE|TRUNCATE)\b[\s\S]*\b(?:groups|group_members|roles|gl_classes)\b/i;
+  /^\s*(?:INSERT|UPDATE|DELETE|REPLACE|TRUNCATE)\b[\s\S]*\b(?:groups|group_scopes|group_members|roles|gl_classes)\b/i;
 function isSqlWrite(sql) {
   return typeof sql === 'string' && SQL_WRITE_RE.test(sql);
 }

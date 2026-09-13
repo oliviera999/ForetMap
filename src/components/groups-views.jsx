@@ -397,6 +397,11 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
       )}
       <div className="field" style={{ marginTop: 10 }}>
         <label>Périmètre cartes</label>
+        <small style={{ display: 'block', opacity: 0.75, marginBottom: 4 }}>
+          Vide = toutes les cartes. Sinon les membres du groupe (et de ses sous-groupes) ne voient
+          plus que ces cartes — sauf s’ils appartiennent aussi à un groupe sans périmètre. Sans
+          effet sur les professeurs.
+        </small>
         <select
           multiple
           value={scopeMapIds}
