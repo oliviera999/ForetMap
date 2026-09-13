@@ -9,6 +9,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — cloisonnement par rôles sur la couche visite
+
+- Migration `240_visit_location_audience_roles.sql` : `visible_role_slugs`,
+  `restricted_note`, `restricted_note_role_slugs` sur `visit_zones` / `visit_markers`
+  (même contrat que la 236 sur la carte) + reprise des valeurs déjà saisies côté carte.
+- `GET /api/visit/content` lit l’audience sur `visit_*` (repli carte si pas encore sync).
+- Bascule `POST /api/visit/sync` et `rebuild-from-map` : liste blanche uniquement
+  (`name`/`label`, `emoji`, `description`/`note` → `short_description`, audience) —
+  `restricted_note` ne peut pas atterrir dans les champs publics.
+- Tests : `tests/location-audience-api.test.js`, `tests/visit-map-to-visit-fields.test.js`.
+
 ### Ajouté — présence « en ligne » staff (ForetMap + GL)
 
 - Pastilles En ligne / Vu récemment / Hors ligne sur le classement prof et les stats
