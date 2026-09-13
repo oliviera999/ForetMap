@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
+import {
+  loadImportedRefs,
+  invalidateImportedRefs,
+  refsContain,
+} from '../../services/userJournalImports';
 import { FmJournalImportButton } from './FmJournalImportButton.jsx';
-import { getImportedRefs, invalidateImportedRefs } from './importedRefsCache.js';
 
 /**
  * Composeur : bouton d’import carnet à côté d’un accusé (espèce / glossaire / tuto).
@@ -17,30 +21,23 @@ export function FmLearnAndImportSlot({
   const journalEnabled = publicSettings?.modules?.observations_enabled !== false;
   const [alreadyImported, setAlreadyImported] = useState(false);
 
+  // Liste mutualisée : une requête par écran, pas une par slot monté (le catalogue
+  // biodiversité en affiche un par vignette — cf. `src/services/userJournalImports.js`).
   useEffect(() => {
     let cancelled = false;
     if (!resourceType || resourceRef == null || resourceRef === '') return undefined;
-    const ref = String(resourceRef);
-    // Liste mutualisée : une requête pour toute la page, quel que soit le nombre de vignettes
-    // (`importedRefsCache.js`). Chaque vignette la demandait auparavant pour son seul compte.
-    getImportedRefs()
-      .then((refs) => {
-        const found = refs.some(
-          (r) => r?.resourceType === resourceType && String(r?.resourceRef) === ref,
-        );
-        if (!cancelled && found) setAlreadyImported(true);
-      })
-      .catch(() => {});
+    loadImportedRefs().then((refs) => {
+      if (!cancelled && refsContain(refs, resourceType, resourceRef)) setAlreadyImported(true);
+    });
     return () => {
       cancelled = true;
     };
   }, [resourceType, resourceRef]);
 
   const onImported = useCallback(() => {
-    // La liste mémorisée vient de changer : la périmer, sinon une autre vignette de la même
-    // page continuerait de se croire non importée.
-    invalidateImportedRefs();
     setAlreadyImported(true);
+    // La liste partagée vient de changer : les prochains écrans la rechargeront.
+    invalidateImportedRefs();
   }, []);
 
   return (
