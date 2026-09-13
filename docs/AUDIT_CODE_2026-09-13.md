@@ -345,9 +345,11 @@ parseur CSV, l'échappement CSV, le décodage base64 et `resolveImportRows` (él
 tâches, groupes, plantes), plus `resolveWorkbookImportRows(body, parseur)` pour les quatre
 importeurs G&L par classeur ; `readSheetRows` vient de `lib/shared/xlsxImportCore.js`
 (6 copies), `asOptionalText` de `lib/shared/stringHelpers.js` (5), `normalizeOptionalFilter` et
-`normalizeBiomeSlug` sont des alias de `normalizeOptionalString` (10). **Laissé** :
-`buildImportReportBase` (sept formes de rapport réellement différentes) et `isPlainObject`
-(trois variantes équivalentes, dont deux dans des cœurs miroirs `src/shared` ↔ `lib/shared`).
+`normalizeBiomeSlug` sont des alias de `normalizeOptionalString` (10). **Puis** : `createImportReport` (`lib/importRows.js`) porte la forme commune du rapport
+d'import (`dryRun`, `sourceType`, `totals` de base, `preview`, `errors`) ; les sept fabriques
+locales ne déclarent plus que leurs compteurs propres (`extraTotals`) ou leur stratégie.
+**Laissé** : `isPlainObject` (trois variantes équivalentes, dont deux dans des cœurs miroirs
+`src/shared` ↔ `lib/shared`).
 
 ### 4.3 — MINEUR · Front : `joinClassNames` ×12, `fileToDataUrl` ×8, `formatDateTime` ×6
 
@@ -385,9 +387,13 @@ correctif récent du carnet (voir `CHANGELOG.md`, « Catalogue de biodiversité 
 pour un seul côté ; un composant partagé dans `src/shared/journal/` paramétré par le service
 d'API éviterait la prochaine divergence. _Confiance : haute._
 
-**Ouvert** : les paires ont divergé au-delà du doublon mécanique (235 lignes sur 332 pour la
-carte d'article : classes CSS, boutons, métadonnées propres à chaque produit). Les partager est
-un travail de conception (composant paramétré par produit), pas un déplacement de code. Voir §9.
+**Traité dans un second temps** par un noyau commun `src/shared/journal/` : adaptateur
+produit (client HTTP + préfixe de routes), fil unifié en fonction pure, hook du fil, hook de
+l'éditeur d'article, carte d'import et barre d'outils partagées ; les composants produit ne
+gardent que le rendu (textes, aide G&L, zone côté ForetMap, sorts du chapitre côté G&L). Détail
+et reste à faire (sélecteur d'encarts, modale de lecture, hydratation des titres) :
+`docs/PLAN_CARNET_PARITE_GL.md` §9. Tests : `tests-ui/shared/journalFeed.test.js`,
+`tests-ui/components/journal/` (miroirs des tests G&L existants).
 
 ### 4.6 — INFO · Doublons assumés et sains
 
@@ -466,6 +472,12 @@ Hors constats déjà connus (`GET /api/plants`, B5) : `routes/learning-links.js:
 `password_hash` au code appelant, qui doit penser à le retirer). Aucun n'est chaud ; celui de
 `lib/identity.js` mérite une projection par principe (ne pas faire circuler le hachage).
 _Confiance : haute._
+
+**Vérifié, sans suite** pour `lib/identity.js` : la ligne renvoyée par
+`resolveLoginAccountByIdentifier` alimente la réponse de connexion entière
+(`toPublicUserRow`, visites guidées vues, mascotte de visite) et la vérification du mot de
+passe ; une projection équivaudrait à recopier toutes les colonnes. Le hachage ne sort pas du
+serveur : `toPublicUserRow` le retire. Les autres `SELECT *` listés restent des pistes.
 
 ### 5.4 — MINEUR · `npm audit` : 4 vulnérabilités modérées
 
@@ -593,11 +605,11 @@ moitié si la CI devient contrainte.
 | 8   | **Traité** pour les copies identiques ; `buildImportReportBase` laissé (sept formes)       |
 | 9   | **Traité** — NUL, N+1, `LIMIT`, import visite par lots                                     |
 
-**Restent ouverts** : §2.5 pour les panneaux chargés une fois au montage (course théorique ;
-cinq écrans à entrées variables traités dans un second temps), §4.5 (composants
-carnet FM/GL), §5.3 (projections `SELECT *` — `lib/identity.js` alimente aussi le profil et
-les visites guidées vues, une projection y demande une relecture des consommateurs), §5.6–5.7
-et §6 (process). §4.1 (registre des biomes) a été traité dans un second temps.
+**Restent ouverts** : §2.5 pour les panneaux chargés une fois au montage (course théorique),
+§5.3 pour les `SELECT *` hors `lib/identity.js` (vérifié justifié), §5.6–5.7 (pistes) et §6
+(process : `dist/` versionné, avertissements a11y — décisions d'équipe). §4.1 (registre des
+biomes), §4.2 (`createImportReport`) et §4.5 (noyau commun du carnet, `PLAN_CARNET_PARITE_GL.md`
+§9) ont été traités dans un second temps.
 
 ### 9.1 — Trouvé en chemin : la CI de `main` était rouge depuis le 11 septembre
 

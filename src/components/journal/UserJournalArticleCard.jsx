@@ -1,17 +1,18 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { api, AccountDeletedError } from '../../services/api';
+import { useCallback, useMemo, useState } from 'react';
+import { AccountDeletedError } from '../../services/api';
+import { userJournalAdapter } from '../../services/userJournalAdapter.js';
+import { useJournalArticleEditor } from '../../shared/journal/useJournalArticleEditor.js';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
-import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
-import {
-  applyJournalEmbed,
-  applyMarkdownHtmlImage,
-  renderMarkdownToSafeHtml,
-} from '../../shared/platform/markdown.js';
-import { compressImageWithPreset, isLikelyImageFile } from '../../shared/platform/image.js';
 import { useFmJournalEmbedTitles } from '../../hooks/useFmJournalEmbedTitles.js';
 import { UserJournalEmbedPicker } from './UserJournalEmbedPicker.jsx';
 import { formatDateTime } from '../../shared/utils/formatDateTime.js';
 
+const EMBED_OPTIONS = { variant: 'fm' };
+
+/**
+ * Article du carnet ForetMap : logique dans `useJournalArticleEditor` (partagée avec G&L),
+ * ici seulement l'habillage `.fm-journal` et le champ propre au produit — la zone.
+ */
 export function UserJournalArticleCard({
   article,
   limits,
@@ -20,200 +21,63 @@ export function UserJournalArticleCard({
   onTogglePin,
   onForceLogout,
 }) {
-  const textareaRef = useRef(null);
-  const [title, setTitle] = useState(article.title || '');
-  const [body, setBody] = useState(article.bodyMarkdown || '');
   const [zoneId, setZoneId] = useState(article.zoneId || '');
-  const [assets, setAssets] = useState(Array.isArray(article.assets) ? article.assets : []);
-  const [usage, setUsage] = useState(article.usage || { charCount: 0, assetCount: 0 });
-  const [updatedAt, setUpdatedAt] = useState(article.updatedAt || null);
-  const [saveError, setSaveError] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [embedPickerOpen, setEmbedPickerOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [pinning, setPinning] = useState(false);
-  const pinned = !!article.pinned;
-
-  const maxChars = Number(limits?.maxChars) || 0;
-  const maxAssets = Number(limits?.maxAssets) || 0;
-  const charCount = useMemo(() => [...body].length, [body]);
-  const charsOver = maxChars > 0 && charCount > maxChars;
-  const assetsFull = maxAssets > 0 && (usage.assetCount || 0) >= maxAssets;
-
-  const previewHtml = useMemo(() => {
-    if (!showPreview || !body.trim()) return '';
-    return renderMarkdownToSafeHtml(body, { allowImages: true, allowJournalEmbeds: true });
-  }, [body, showPreview]);
-  const hydratedPreview = useFmJournalEmbedTitles(previewHtml);
-
-  const handleApiError = useCallback(
+  const extraValue = useMemo(() => ({ zoneId: zoneId || null }), [zoneId]);
+  const onSaved = useCallback((saved) => {
+    if (saved?.zoneId !== undefined) setZoneId(saved.zoneId || '');
+  }, []);
+  const onApiError = useCallback(
     (err) => {
       if (err instanceof AccountDeletedError) onForceLogout?.();
-      throw err;
     },
     [onForceLogout],
   );
 
-  const persist = useCallback(async () => {
-    try {
-      const data = await api(`/api/user-journal/me/articles/${article.id}`, 'PUT', {
-        title,
-        bodyMarkdown: body,
-        zoneId: zoneId || null,
-      });
-      const saved = data?.article;
-      const nextTitle = saved?.title ?? title;
-      const nextBody = typeof saved?.bodyMarkdown === 'string' ? saved.bodyMarkdown : body;
-      setTitle(nextTitle);
-      setBody(nextBody);
-      if (saved?.zoneId !== undefined) setZoneId(saved.zoneId || '');
-      if (saved?.usage) setUsage(saved.usage);
-      if (Array.isArray(saved?.assets)) setAssets(saved.assets);
-      if (saved?.updatedAt) setUpdatedAt(saved.updatedAt);
-      return { title: nextTitle, body: nextBody, zoneId };
-    } catch (err) {
-      handleApiError(err);
-      return undefined;
-    }
-  }, [article.id, title, body, zoneId, handleApiError]);
-
-  const autoSaveValue = useMemo(() => ({ title, body, zoneId }), [title, body, zoneId]);
-
-  const { status: saveStatus, error: autoSaveError } = useDebouncedAutoSave({
-    value: autoSaveValue,
-    resetKey: article.id,
-    canSave: () => {
-      if (charsOver) return `Texte trop long (${charCount} / ${maxChars} caractères)`;
-      return true;
-    },
-    onSave: persist,
+  const ed = useJournalArticleEditor({
+    article,
+    limits,
+    adapter: userJournalAdapter,
+    extraValue,
+    onSaved,
+    onApiError,
+    embedOptions: EMBED_OPTIONS,
+    onDelete,
+    onTogglePin,
   });
-
-  function handleBodyChange(next) {
-    setBody(next);
-    if (autoSaveError) setSaveError('');
-  }
-
-  async function handleImageUpload(file) {
-    if (!file || !isLikelyImageFile(file)) {
-      setSaveError('Format d’image non reconnu (JPEG, PNG ou WebP).');
-      return;
-    }
-    if (assetsFull) {
-      setSaveError(`Nombre maximum d’illustrations atteint (${maxAssets}).`);
-      return;
-    }
-    setUploading(true);
-    setSaveError('');
-    try {
-      const mediaData = await compressImageWithPreset(file, 'glInline');
-      const saved = await api(`/api/user-journal/me/articles/${article.id}/assets`, 'POST', {
-        imageData: mediaData,
-      });
-      const url = String(saved?.asset?.url || '').trim();
-      if (!url) throw new Error('URL illustration manquante');
-      const el = textareaRef.current;
-      const start = el?.selectionStart ?? body.length;
-      const end = el?.selectionEnd ?? start;
-      const result = applyMarkdownHtmlImage(
-        body,
-        start,
-        end,
-        url,
-        file.name || 'Illustration',
-        null,
-      );
-      handleBodyChange(result.value);
-      setUsage((u) => ({ ...u, assetCount: saved?.usage?.assetCount ?? (u.assetCount || 0) + 1 }));
-      if (saved?.asset) setAssets((prev) => [...prev, saved.asset]);
-      requestAnimationFrame(() => {
-        if (!el) return;
-        el.focus();
-        el.setSelectionRange(result.selectionStart, result.selectionEnd);
-      });
-    } catch (err) {
-      if (err instanceof AccountDeletedError) onForceLogout?.();
-      setSaveError(err.message || 'Import image impossible');
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  function insertEmbed(type, ref) {
-    const el = textareaRef.current;
-    const start = el?.selectionStart ?? body.length;
-    const end = el?.selectionEnd ?? start;
-    const result = applyJournalEmbed(body, start, end, type, ref, { variant: 'fm' });
-    handleBodyChange(result.value);
-    requestAnimationFrame(() => {
-      if (!el) return;
-      el.focus();
-      el.setSelectionRange(result.selectionStart, result.selectionEnd);
-    });
-  }
-
-  async function removeAsset(assetId) {
-    try {
-      const res = await api(
-        `/api/user-journal/me/articles/${article.id}/assets/${assetId}`,
-        'DELETE',
-      );
-      setAssets((prev) => prev.filter((a) => a.id !== assetId));
-      setUsage((u) => ({
-        ...u,
-        assetCount: res?.usage?.assetCount ?? Math.max(0, (u.assetCount || 0) - 1),
-      }));
-    } catch (err) {
-      if (err instanceof AccountDeletedError) onForceLogout?.();
-      setSaveError(err.message || 'Suppression impossible');
-    }
-  }
+  const hydratedPreview = useFmJournalEmbedTitles(ed.previewHtml);
 
   return (
-    <article className={`card fm-journal__article fade-in${pinned ? ' is-pinned' : ''}`}>
+    <article className={`card fm-journal__article fade-in${ed.pinned ? ' is-pinned' : ''}`}>
       <header className="fm-journal__article-head">
         <input
           type="text"
           className="fm-journal__article-title"
-          value={title}
+          value={ed.title}
           maxLength={255}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => ed.setTitle(e.target.value)}
           placeholder="Titre de l’article (optionnel)"
           aria-label="Titre de l’article"
         />
+        {onTogglePin ? (
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={ed.handleTogglePin}
+            disabled={ed.pinning}
+            aria-pressed={ed.pinned}
+            aria-label={ed.pinned ? 'Désépingler l’article' : 'Épingler l’article'}
+          >
+            {ed.pinned ? '📌 Épinglé' : 'Épingler'}
+          </button>
+        ) : null}
         <button
           type="button"
           className="btn btn-secondary btn-sm"
-          onClick={async () => {
-            if (pinning) return;
-            setPinning(true);
-            try {
-              await onTogglePin?.(article.id, !pinned);
-            } finally {
-              setPinning(false);
-            }
-          }}
-          disabled={pinning}
-          aria-pressed={pinned}
+          onClick={ed.handleDelete}
+          disabled={ed.deleting}
+          aria-label="Supprimer l’article"
         >
-          {pinned ? '📌 Épinglé' : 'Épingler'}
-        </button>
-        <button
-          type="button"
-          className="btn btn-secondary btn-sm"
-          onClick={async () => {
-            if (deleting) return;
-            setDeleting(true);
-            try {
-              await onDelete?.(article.id);
-            } finally {
-              setDeleting(false);
-            }
-          }}
-          disabled={deleting}
-        >
-          {deleting ? 'Suppression…' : 'Supprimer'}
+          {ed.deleting ? 'Suppression…' : 'Supprimer'}
         </button>
       </header>
 
@@ -232,61 +96,67 @@ export function UserJournalArticleCard({
       ) : null}
 
       <p className="hint fm-journal__article-meta">
-        {updatedAt ? <>Modifié le {formatDateTime(updatedAt)}</> : null}
+        {ed.updatedAt ? <>Modifié le {formatDateTime(ed.updatedAt)}</> : null}
         {article.createdAt ? <> · créé le {formatDateTime(article.createdAt)}</> : null}
-        {article.zoneName ? <> · {article.zoneName}</> : null}{' '}
-        <AutoSaveStatus status={saveStatus} className="fm-journal__saved" />
+        {article.zoneName ? <> · {article.zoneName}</> : null}
+        {ed.maxChars > 0 ? (
+          <>
+            {' '}
+            · {ed.charCount} / {ed.maxChars} caractères
+          </>
+        ) : null}{' '}
+        <AutoSaveStatus status={ed.saveStatus} className="fm-journal__saved" />
       </p>
 
-      {saveError || autoSaveError ? (
-        <p className="auth-error">{saveError || autoSaveError}</p>
+      {ed.saveError || ed.autoSaveError ? (
+        <p className="auth-error">{ed.saveError || ed.autoSaveError}</p>
       ) : null}
 
       <div className="fm-journal__toolbar">
         <button
           type="button"
           className="btn btn-secondary btn-sm"
-          onClick={() => setEmbedPickerOpen(true)}
+          onClick={() => ed.setEmbedPickerOpen(true)}
         >
           Insérer un élément
         </button>
         <label
           className="btn btn-secondary btn-sm"
-          style={{ cursor: uploading ? 'wait' : 'pointer' }}
+          style={{ cursor: ed.uploading ? 'wait' : 'pointer' }}
         >
-          {uploading ? 'Envoi…' : 'Ajouter une image'}
+          {ed.uploading ? 'Envoi…' : 'Ajouter une image'}
           <input
             type="file"
             accept="image/*"
             style={{ display: 'none' }}
-            disabled={uploading || assetsFull}
+            disabled={ed.uploading || ed.assetsFull}
             onChange={(e) => {
               const file = e.target.files?.[0];
               e.target.value = '';
-              handleImageUpload(file);
+              ed.handleImageUpload(file);
             }}
           />
         </label>
         <button
           type="button"
           className="btn btn-secondary btn-sm"
-          onClick={() => setShowPreview((v) => !v)}
+          onClick={() => ed.setShowPreview((v) => !v)}
         >
-          {showPreview ? 'Masquer l’aperçu' : 'Aperçu'}
+          {ed.showPreview ? 'Masquer l’aperçu' : 'Aperçu'}
         </button>
       </div>
 
       <textarea
-        ref={textareaRef}
+        ref={ed.textareaRef}
         className="fm-journal__textarea"
         rows={10}
-        value={body}
-        onChange={(e) => handleBodyChange(e.target.value)}
+        value={ed.body}
+        onChange={(e) => ed.handleBodyChange(e.target.value)}
         placeholder="Écris ici, ou publie simplement des images…"
         aria-label="Contenu de l’article"
       />
 
-      {showPreview && previewHtml ? (
+      {ed.showPreview && ed.previewHtml ? (
         <div className="fm-journal__preview">
           <h3>Aperçu</h3>
           <div
@@ -296,17 +166,17 @@ export function UserJournalArticleCard({
         </div>
       ) : null}
 
-      {assets.length > 0 ? (
+      {ed.assets.length > 0 ? (
         <details className="fm-journal__assets">
-          <summary>Illustrations ({assets.length})</summary>
+          <summary>Illustrations ({ed.assets.length})</summary>
           <ul>
-            {assets.map((asset) => (
+            {ed.assets.map((asset) => (
               <li key={asset.id}>
                 <img src={asset.url} alt="" loading="lazy" className="fm-journal__asset-thumb" />
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  onClick={() => removeAsset(asset.id)}
+                  onClick={() => ed.removeAsset(asset.id)}
                 >
                   Supprimer
                 </button>
@@ -317,9 +187,9 @@ export function UserJournalArticleCard({
       ) : null}
 
       <UserJournalEmbedPicker
-        open={embedPickerOpen}
-        onClose={() => setEmbedPickerOpen(false)}
-        onInsert={insertEmbed}
+        open={ed.embedPickerOpen}
+        onClose={() => ed.setEmbedPickerOpen(false)}
+        onInsert={ed.insertEmbed}
       />
     </article>
   );
