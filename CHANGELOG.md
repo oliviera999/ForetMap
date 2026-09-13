@@ -9,6 +9,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — audit du code du 13 septembre 2026
+
+- **`docs/AUDIT_CODE_2026-09-13.md`** : audit transversal (bugs, incohérences, doublons mesurés,
+  performance et charge serveur) mené avec une base MariaDB réelle — suites backend, contenu et
+  Vitest exécutées et vertes. Constats principaux : le moteur de migrations classe « table
+  inexistante » parmi les erreurs « déjà appliquée » (la migration `237` écrit dans `settings`
+  au lieu d'`app_settings` sans que rien ne le signale) ; sept `normalizeSlug` et neuf `httpError`
+  aux sémantiques divergentes ; 28 routes montées absentes de `docs/API.md` (administration
+  Moodle, lore G&L) ; journaux purgés par date sans index sur cette date (`audit_log`,
+  `gl_game_events`, `task_logs`). Indexé dans `docs/audits/README.md`.
+
 ### Corrigé — semis RBAC sur base neuve, et reprise des observations héritées
 
 - **Semis RBAC** (migration `241`) : sur une **installation neuve**, `admin` démarrait sans
