@@ -521,11 +521,7 @@
     "src": "node_modules/@rive-app/canvas/rive_fallback.wasm"
   },
   "plan.html": {
-<<<<<<< HEAD
-    "file": "assets/plan-BdP4y_oa.js",
-=======
     "file": "assets/plan-BIYh5R-e.js",
->>>>>>> origin/main
     "name": "plan",
     "src": "plan.html",
     "isEntry": true,

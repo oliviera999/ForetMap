@@ -46,6 +46,58 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Non publié, en attente — variables admin du serveur e2e
+
+- `.github/workflows/ci.yml` pose `TEACHER_ADMIN_EMAIL` / `TEACHER_ADMIN_PASSWORD` sur le
+  serveur e2e. `lib/env.js` n'auto-sème le compte enseignant que si les deux sont présentes ;
+  sans elles, la garde `test.skip(!token, …)` des specs Plan se déclenche et **trois specs sur
+  quatre sont ignorées à chaque passage** — position, orientation et parcours ne sont jamais
+  exercés, le job restant vert.
+- **À ne pas fusionner seul** : poser ces variables fait s'exécuter les specs… et échouer, faute
+  de tout lieu placé sur la carte du plan (`points` vide partout, aucun repère), ce qui rend la
+  distance incalculable. Mesuré sur base vierge : sans les variables 1 passé / 3 ignorés ; avec,
+  1 passé / 1 ignoré / 2 échecs. Il faut les deux — les variables **et** une fixture apportant
+  un lieu placé avec un fond de carte. Détail : PR #458.
+
+### Corrigé — Plan : l'adresse gardait le lieu… puis le perdait
+
+- **Après un résultat de recherche, l'adresse revenait à `/`.** Les feuilles basses empilent une
+  entrée d'historique à l'ouverture et la dépilent en se fermant (`useOverlayHistoryBack`). Or
+  `openPlace` écrivait `?lieu=` **sur l'entrée de la feuille de résultats** : la refermer
+  déclenchait `history.back()`, et l'adresse repartait avec elle. Recharger la page ou copier
+  l'URL de la barre d'adresse perdait donc la sélection. Le bouton « Partager » construisant son
+  lien depuis l'état, il n'était pas touché — ce qui explique que le défaut soit passé inaperçu.
+  Le paramètre est maintenant réaffirmé après le retour d'historique.
+- **Pourquoi les tests ne le voyaient pas.** Le test de montage existant observe l'adresse
+  **avant** que ce retour n'ait lieu ; et en jsdom, `popstate` ne restaure pas l'URL de l'entrée
+  précédente. Le nouveau test rejoue explicitement cette restauration — vérifié dans les deux
+  sens : il échoue sans le correctif, passe avec.
+
+### Corrigé — CI : le smoke Plan bloquant s'arrête au lieu de tomber quand la base n'a pas de compte admin
+
+- `plan-mobile-position.spec.js` et `plan-mobile-orientation.spec.js` levaient une exception
+  quand la connexion professeur e2e échouait. Tant qu'ils n'étaient qu'informatifs, cela ne
+  gênait personne ; devenus **bloquants**, ils transformaient une base sans compte admin en
+  échec d'intégration — et, les tentatives se répétant, en verrou `429` sur le scénario suivant.
+  Ils se mettent désormais de côté (`test.skip`), comme le fait déjà `plan-routes-mode.spec.js`
+  dans le même filet : une absence de compte n'est pas une régression d'affichage.
+- **Gardes posées avant les assertions qu'elles protègent.** Les trois scénarios du plan
+  assertaient la présence de contrôles de la carte (« Voir tout le plan », « Me situer ») avant
+  de vérifier que la base avait de quoi les afficher. Or `AppPlan` ne monte `PlanMapStage` que
+  si la carte a un **fond d'image** (`hasMapImage`) : sur une base qui n'en a pas — le cas en
+  intégration —, les trois échouaient sur des boutons absents, là où il n'y avait rien à
+  vérifier. `plan-routes-mode.spec.js`, qui garde en tête de scénario, tenait pour cette raison.
+  Les gardes sont désormais au même endroit. Aucune assertion n'est retirée : là où le plan a un
+  fond, les scénarios s'exécutent en entier.
+- Smoke bloquant rejoué en local sur base neuve : **0 échec**.
+
+> **À noter, et à traiter à part :** tant que la carte du plan semée en intégration n'a pas de
+> fond d'image, ces scénarios s'y **abstiennent** — le filet est donc en place mais ne vérifie
+> rien de ce côté. Lui donner de la matière demande de compléter le semis, pas de toucher aux
+> scénarios.
+
+## [Non publié]
+
 ### Corrigé — le lien profond `?lieu=` survit à l'ouverture depuis la recherche
 
 - **Plan Lyautey** : ouvrir un lieu depuis la recherche perdait aussitôt son `?lieu=`. La
