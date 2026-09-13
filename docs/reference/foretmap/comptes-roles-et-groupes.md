@@ -53,16 +53,16 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
 
 ## Les rôles et les paliers
 
-| Rôle                    | Qui                                             | Ce qu'il peut faire                                                                                   |
-| ----------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| **Visiteur**            | Compte non promu (classe sans tâches, passage…) | Visite et Biodiversité seulement — **pas** de carte de travail ni de tâches                           |
-| **Personnel**           | Staff non enseignant (AED, vie scolaire…)       | Même parcours que le visiteur — Visite et Biodiversité seulement                                      |
-| **n3beur novice** 🪨    | Élève rattaché, 0 tâche validée                 | Carte, tâches, quiz, carnet, forum                                                                    |
-| **n3beur avancé** 🌿    | 5 tâches validées                               | Idem — le palier marque la progression                                                                |
-| **n3beur chevronné** 🏆 | 10 tâches validées                              | Idem                                                                                                  |
-| **Prof de classe**      | Enseignant tuteur d'une ou plusieurs classes    | Gérer les élèves **de ses groupes** (voir ci-dessous) — **pas** la gestion des tâches ni du jardin    |
-| **n3boss**              | Animateur / responsable pédagogique forêt       | Gestion pédagogique large (zones, plantes, tâches, visite, élèves, stats…) — **ce n'est pas** l'admin |
-| **Administrateur**      | Compte aux pleins pouvoirs établissement        | Tout le n3boss, plus réglages, rôles, secrets, prise de contrôle, audit technique                     |
+| Rôle                    | Qui                                             | Ce qu'il peut faire                                                                                                     |
+| ----------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Visiteur**            | Compte non promu (classe sans tâches, passage…) | Visite et Biodiversité seulement — **pas** de carte de travail ni de tâches                                             |
+| **Personnel**           | Staff non enseignant (AED, vie scolaire…)       | Même parcours que le visiteur — Visite et Biodiversité seulement                                                        |
+| **n3beur novice** 🪨    | Élève rattaché, 0 tâche validée                 | Carte, tâches, quiz, carnet, forum                                                                                      |
+| **n3beur avancé** 🌿    | 5 tâches validées                               | Idem — le palier marque la progression                                                                                  |
+| **n3beur chevronné** 🏆 | 10 tâches validées                              | Idem                                                                                                                    |
+| **Prof de classe**      | Enseignant tuteur d'une ou plusieurs classes    | Gérer les élèves **de ses groupes** (voir ci-dessous) — **pas** la gestion des tâches ni du jardin                      |
+| **n3boss**              | Animateur / responsable pédagogique forêt       | Gestion pédagogique large (zones, plantes, tâches, visite, élèves, stats…), carnet personnel — **ce n'est pas** l'admin |
+| **Administrateur**      | Compte aux pleins pouvoirs établissement        | Tout le n3boss (y compris carnet personnel), plus réglages, rôles, secrets, prise de contrôle, audit technique          |
 
 - La montée de palier est **automatique** (nombre de tâches validées) et saluée par une
   fenêtre de félicitations. Le vocabulaire « n3beur / n3boss » se personnalise dans les

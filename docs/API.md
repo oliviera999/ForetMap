@@ -1823,12 +1823,13 @@ Un lieu (zone ou repère) s'affiche sur trois **surfaces** : `map` (carte de tra
 
 ### Audience des lieux par rôles (V1)
 
-Migration `236_location_audience_roles.sql`, règles pures dans `lib/locationAudience.js`.
+Migration `236_location_audience_roles.sql` (carte) + `240_visit_location_audience_roles.sql`
+(visite), règles pures dans `lib/locationAudience.js`.
 
-- **`visible_role_slugs`** (zones / repères, tableau en réponse) : rôles autorisés à **voir le
-  lieu**. Vide / omis = **public**. Hors audience, le lieu est **absent** des listes (pas
-  grisé). Slugs acceptés : `visiteur`, `personnel`, `eleve_novice`, `eleve_avance`,
-  `eleve_chevronne`, `prof_classe`, `prof`, `admin`.
+- **`visible_role_slugs`** (zones / repères **carte et visite**, tableau en réponse) : rôles
+  autorisés à **voir le lieu**. Vide / omis = **public**. Hors audience, le lieu est
+  **absent** des listes (pas grisé). Slugs acceptés : `visiteur`, `personnel`,
+  `eleve_novice`, `eleve_avance`, `eleve_chevronne`, `prof_classe`, `prof`, `admin`.
 - **`restricted_note`** + **`restricted_note_role_slugs`** : complément de texte optionnel.
   Slugs vides pour le complément = réservé aux gestionnaires (`zones.manage` /
   `map.manage_markers`). Les lecteurs non autorisés ne reçoivent **pas** ces champs.
@@ -1837,8 +1838,16 @@ Migration `236_location_audience_roles.sql`, règles pures dans `lib/locationAud
   `visiteur` dans l'audience n'y apparaît pas.
 - **`GET /api/zones`**, **`GET /api/map/markers`**, **`GET /api/visit/content`** : auth
   optionnelle (`authenticate`) pour appliquer le filtre selon le rôle du jeton.
-- **Écritures** : `POST` / `PUT` acceptent les trois champs ; rôle inconnu → **400** ; omis
-  sur `PUT` = inchangé.
+  Sur la visite, l’audience est lue sur `visit_zones` / `visit_markers` (repli éventuel
+  sur la ligne carte homonyme si pas encore synchronisée).
+- **Écritures** : `POST` / `PUT` zones, repères carte **et** `POST` / `PUT`
+  `/api/visit/zones` / `/api/visit/markers` acceptent les trois champs ; rôle inconnu →
+  **400** ; omis sur `PUT` = inchangé.
+- **Bascule carte → visite** (`POST /api/visit/sync` `map_to_visit`,
+  `POST /api/visit/rebuild-from-map`) : copie liste blanche uniquement — `name`/`label`,
+  `emoji`, `description`→`short_description` / `note`→`short_description`, et les trois
+  colonnes d’audience. **`restricted_note` n’est jamais écrit** dans `subtitle`,
+  `short_description`, `details_text` ou `body_json`.
 
 ---
 

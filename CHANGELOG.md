@@ -28,6 +28,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Écran de gestion des groupes : le champ *Périmètre cartes* explique désormais sa portée.
   `group_scopes` entre dans la version d'écriture du scope groupes (`database.js`), sans quoi
   un changement de périmètre ne périmerait pas le cache d'accès.
+### Ajouté — cloisonnement par rôles sur la couche visite
+
+- Migration `240_visit_location_audience_roles.sql` : `visible_role_slugs`,
+  `restricted_note`, `restricted_note_role_slugs` sur `visit_zones` / `visit_markers`
+  (même contrat que la 236 sur la carte) + reprise des valeurs déjà saisies côté carte.
+- `GET /api/visit/content` lit l’audience sur `visit_*` (repli carte si pas encore sync).
+- Bascule `POST /api/visit/sync` et `rebuild-from-map` : liste blanche uniquement
+  (`name`/`label`, `emoji`, `description`/`note` → `short_description`, audience) —
+  `restricted_note` ne peut pas atterrir dans les champs publics.
+- Tests : `tests/location-audience-api.test.js`, `tests/visit-map-to-visit-fields.test.js`.
 
 ### Ajouté — présence « en ligne » staff (ForetMap + GL)
 

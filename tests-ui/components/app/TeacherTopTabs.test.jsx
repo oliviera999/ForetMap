@@ -116,19 +116,30 @@ describe('TeacherTopTabs — navigation en 3 pôles (audit D-4)', () => {
     expect(screen.queryByRole('button', { name: 'Audit' })).toBeNull();
   });
 
-  test('modules coupés → onglets stats/visite/forum/tuto masqués', () => {
+  test('modules coupés → onglets stats/visite/forum/tuto/carnet masqués', () => {
     render(
       <TeacherTopTabs
         {...baseProps}
         tutorialsModuleEnabled={false}
         statsEnabled={false}
         visitEnabled={false}
+        observationsEnabled={false}
         canAccessForum={false}
       />,
     );
     expect(screen.queryByRole('button', { name: 'Tuto' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Visite' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Packs mascotte' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Carnet' })).toBeNull();
+  });
+
+  test('expose l’onglet Carnet dans le pôle Suivi quand le module est actif', () => {
+    const onTabChange = vi.fn();
+    render(<TeacherTopTabs {...baseProps} tab="notebook" onTabChange={onTabChange} />);
+    expect(screen.getByRole('button', { name: 'Suivi' })).toHaveClass('active');
+    expect(screen.getByRole('button', { name: 'Carnet' })).toHaveClass('active');
+    fireEvent.click(screen.getByRole('button', { name: 'Carnet' }));
+    expect(onTabChange).toHaveBeenCalledWith('notebook');
   });
 
   test('chaque onglet est filtré par sa permission (profil « Prof de classe »)', () => {
