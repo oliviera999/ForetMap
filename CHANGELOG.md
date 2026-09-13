@@ -7,6 +7,30 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 > **Le cycle 1.x est clos** depuis le 11 septembre 2026 : la section [`[1.152.1]`](#11521---2026-09-11) fige les cinq mois et demi de notes qui s’étaient accumulées sous `[Non publié]` depuis la v1.2.0, et s’ouvre sur un sommaire thématique. `[Non publié]` recommence donc à zéro.
 
+### Corrigé — Plan : l'adresse gardait le lieu… puis le perdait
+
+- **Après un résultat de recherche, l'adresse revenait à `/`.** Les feuilles basses empilent une
+  entrée d'historique à l'ouverture et la dépilent en se fermant (`useOverlayHistoryBack`). Or
+  `openPlace` écrivait `?lieu=` **sur l'entrée de la feuille de résultats** : la refermer
+  déclenchait `history.back()`, et l'adresse repartait avec elle. Recharger la page ou copier
+  l'URL de la barre d'adresse perdait donc la sélection. Le bouton « Partager » construisant son
+  lien depuis l'état, il n'était pas touché — ce qui explique que le défaut soit passé inaperçu.
+  Le paramètre est maintenant réaffirmé après le retour d'historique.
+- **Pourquoi les tests ne le voyaient pas.** Le test de montage existant observe l'adresse
+  **avant** que ce retour n'ait lieu ; et en jsdom, `popstate` ne restaure pas l'URL de l'entrée
+  précédente. Le nouveau test rejoue explicitement cette restauration — vérifié dans les deux
+  sens : il échoue sans le correctif, passe avec.
+
+### Corrigé — CI : le smoke Plan bloquant s'arrête au lieu de tomber quand la base n'a pas de compte admin
+
+- `plan-mobile-position.spec.js` et `plan-mobile-orientation.spec.js` levaient une exception
+  quand la connexion professeur e2e échouait. Tant qu'ils n'étaient qu'informatifs, cela ne
+  gênait personne ; devenus **bloquants**, ils transformaient une base sans compte admin en
+  échec d'intégration — et, les tentatives se répétant, en verrou `429` sur le scénario suivant.
+  Ils se mettent désormais de côté (`test.skip`), comme le fait déjà `plan-routes-mode.spec.js`
+  dans le même filet : une absence de compte n'est pas une régression d'affichage.
+- Smoke bloquant rejoué en local sur base neuve : **0 échec**.
+
 ## [Non publié]
 
 ### Corrigé — semis RBAC sur base neuve, et reprise des observations héritées
