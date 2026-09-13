@@ -14,16 +14,29 @@
  *
  * Priorité : rang de catégorie (`sort_order`, plus petit = plus important), les lieux sans
  * catégorie prenant un rang intermédiaire plutôt que le dernier — sans quoi, en production,
- * 17 repères sur 20 (aucune catégorie) passaient systématiquement après tout le reste. À rang
- * égal, la plus grande zone gagne ; le lieu sélectionné passe avant tout le monde.
+ * 17 repères sur 20 (aucune catégorie) passaient systématiquement après tout le reste. Ce rang
+ * intermédiaire est **calculé sur les catégories présentes** (médiane) et non fixé en dur :
+ * une constante ne reste intermédiaire que pour une échelle de numérotation donnée
+ * (`defaultLabelPriority`, audit du 13 septembre N2). À rang égal, la plus grande zone gagne ;
+ * le lieu sélectionné passe avant tout le monde.
  *
  * Aucun DOM, aucun état : testable en environnement node.
  */
 import { estimateLabelBox, resolveLabelCollisions } from './mapOverlayLabelCollision.js';
+import { rotatePointAround } from './pctMapOrientation.js';
 import { parsePctPolygonPoints } from './pctPolygon.js';
 import { polygonPoleOfInaccessibilityPct } from './pctPolylabel.js';
 
-/** Rang d'un lieu sans catégorie : entre les catégories structurantes et les catégories de détail. */
+/**
+ * Rang de repli d'un lieu sans catégorie, quand aucune catégorie n'est connue.
+ *
+ * **Ne pas s'en servir comme rang « intermédiaire » en dur** : il l'était quand les catégories
+ * valaient 10, 100… ; il ne l'est plus depuis qu'elles sont numérotées 0, 1, 2, 3…
+ * (`docs/AUDIT_PLAN_AFFICHAGE_2026-09-13.md` N2 : les cinq entrées du lycée, sans catégorie,
+ * se retrouvaient **derrière les neuf catégories réelles**, donc derrière les tables d'échecs).
+ * Le rang intermédiaire réel se calcule sur les catégories présentes :
+ * `defaultLabelPriority()`.
+ */
 export const DEFAULT_LABEL_PRIORITY = 50;
 
 /** Taille de police des étiquettes, en pixels **écran** (constante quel que soit le zoom). */
@@ -52,6 +65,43 @@ function toFinite(value, fallback = 0) {
 /** Clé d'étiquette, préfixée par le type : une zone et un repère peuvent porter le même id. */
 export function labelKey(kind, id) {
   return `${kind}:${id}`;
+}
+
+/**
+ * Rang à donner à un lieu **sans catégorie**, calculé sur les catégories réellement présentes.
+ *
+ * Pourquoi pas une constante : la valeur d'un `sort_order` n'a pas de sens absolu, seulement un
+ * sens **relatif aux autres catégories**. Un lieu sans catégorie doit passer au milieu du
+ * peloton, quelle que soit l'échelle de numérotation choisie par l'établissement — qu'elle
+ * aille de 0 à 14 (production, septembre 2026) ou de 10 à 100 (production, 2025). Une constante
+ * ne peut pas tenir cette promesse : à 50, elle est intermédiaire dans le second cas et
+ * **dernière** dans le premier, ce qui reléguait les cinq entrées du lycée derrière les tables
+ * d'échecs (N2).
+ *
+ * Valeur retenue : **à mi-chemin entre le rang médian et le rang distinct suivant**. Deux
+ * propriétés en découlent, et ce sont elles qui comptent :
+ * - le résultat est **strictement supérieur** à la médiane, donc à rang nominal égal une
+ *   catégorie réelle l'emporte toujours — avoir une catégorie est une information, ne pas en
+ *   avoir est une absence d'information, et l'égalité serait tranchée par l'ordre d'itération ;
+ * - il reste **strictement inférieur** au rang suivant, donc le lieu sans catégorie garde bien
+ *   la moitié basse du classement devant lui et la moitié haute derrière.
+ *
+ * @param {Map<string, { sort_order?: number }>|null} categoriesById
+ * @returns {number} rang intermédiaire, ou {@link DEFAULT_LABEL_PRIORITY} sans catégorie connue.
+ */
+export function defaultLabelPriority(categoriesById) {
+  const ranks = [];
+  for (const category of categoriesById?.values?.() || []) {
+    const rank = Number(category?.sort_order);
+    if (Number.isFinite(rank)) ranks.push(rank);
+  }
+  if (!ranks.length) return DEFAULT_LABEL_PRIORITY;
+  ranks.sort((a, b) => a - b);
+  const median = ranks[(ranks.length - 1) >> 1];
+  // Rang distinct immédiatement supérieur ; s'il n'y en a pas (médiane = maximum), on s'écarte
+  // d'un cran pour rester strictement au-delà sans franchir de catégorie.
+  const next = ranks.find((rank) => rank > median);
+  return (median + (next === undefined ? median + 1 : next)) / 2;
 }
 
 /**
@@ -150,6 +200,13 @@ export function zoneLabelMaxWidthPx(spec, contentWidthPx, scale) {
  * @param {number} params.scale échelle courante.
  * @param {string} [params.pinnedKey] étiquette toujours gardée (`labelKey` du lieu sélectionné).
  * @param {number} [params.fontSizePx]
+ * @param {number} [params.orientationDeg=0] rotation du calque carte (« cap en haut »), en
+ *   degrés CSS. Les étiquettes étant **contre-tournées** pour rester lisibles, leurs boîtes
+ *   restent alignées sur l'écran alors que leurs ancres, elles, tournent : il faut donc
+ *   tourner les ancres ici, sans quoi deux noms qui ne se gênent pas à 0° se recouvrent à 45°
+ *   (`docs/AUDIT_PLAN_AFFICHAGE_2026-09-13.md` N1).
+ * @param {{ xp?: number, yp?: number }|null} [params.orientOriginPct] pivot de cette rotation,
+ *   en % du contenu (défaut : centre, comme `mapOrientationStyle`).
  * @returns {Set<string>} clés (`zone:<id>` / `marker:<id>`) des étiquettes à afficher.
  */
 export function resolveVisibleLabels({
@@ -161,24 +218,41 @@ export function resolveVisibleLabels({
   scale,
   pinnedKey = '',
   fontSizePx = LABEL_FONT_SIZE_PX,
+  orientationDeg = 0,
+  orientOriginPct = null,
 }) {
   const width = toFinite(contentWidthPx);
   const height = toFinite(contentHeightPx);
   const s = toFinite(scale, 1);
   if (!(width > 0) || !(height > 0) || !(s > 0)) return new Set();
 
+  // Position d'une ancre en pixels **écran**, rotation de la carte comprise. Une mise à
+  // l'échelle uniforme commute avec une rotation : tourner après mise à l'échelle donne la
+  // même géométrie relative que le CSS, qui tourne avant.
+  const deg = toFinite(orientationDeg, 0);
+  const rotates = Math.abs(deg) > 1e-6;
+  const originXpx = (toFinite(orientOriginPct?.xp, 50) / 100) * width * s;
+  const originYpx = (toFinite(orientOriginPct?.yp, 50) / 100) * height * s;
+  const anchorPx = (xPct, yPct) => {
+    const x = (toFinite(xPct) / 100) * width * s;
+    const y = (toFinite(yPct) / 100) * height * s;
+    return rotates ? rotatePointAround(x, y, originXpx, originYpx, deg) : { x, y };
+  };
+
+  const fallbackPriority = defaultLabelPriority(categoriesById);
   const candidates = [];
   for (const spec of zoneSpecs || []) {
     if (!spec.name) continue;
     const maxWidth = zoneLabelMaxWidthPx(spec, width, s);
+    const at = anchorPx(spec.anchor.xp, spec.anchor.yp);
     candidates.push({
       id: spec.key,
-      priority: labelPriority(spec.zone, categoriesById),
+      priority: labelPriority(spec.zone, categoriesById, fallbackPriority),
       weight: spec.areaPct,
       pinned: spec.key === pinnedKey,
       box: estimateLabelBox({
-        x: (spec.anchor.xp / 100) * width * s,
-        y: (spec.anchor.yp / 100) * height * s,
+        x: at.x,
+        y: at.y,
         text: spec.name,
         fontSizePx,
         maxWidthPx: maxWidth,
@@ -191,16 +265,19 @@ export function resolveVisibleLabels({
     const yPct = Number(marker?.y_pct);
     if (!text || !Number.isFinite(xPct) || !Number.isFinite(yPct)) continue;
     const key = labelKey('marker', marker.id);
+    const at = anchorPx(xPct, yPct);
     candidates.push({
       id: key,
-      priority: labelPriority(marker, categoriesById),
+      priority: labelPriority(marker, categoriesById, fallbackPriority),
       // Un repère n'a pas d'aire : à rang égal il passe après les zones, dont l'étiquette
       // nomme une surface déjà visible à l'écran.
       weight: 0,
       pinned: key === pinnedKey,
       box: estimateLabelBox({
-        x: (xPct / 100) * width * s,
-        y: (yPct / 100) * height * s + MARKER_LABEL_OFFSET_PX,
+        x: at.x,
+        // L'écart au point est **vertical à l'écran** : l'étiquette étant contre-tournée,
+        // il s'ajoute après la rotation de l'ancre, jamais avant.
+        y: at.y + MARKER_LABEL_OFFSET_PX,
         text,
         fontSizePx,
         maxWidthPx: MARKER_LABEL_MAX_WIDTH_PX,

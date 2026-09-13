@@ -293,11 +293,14 @@ export function PlanMapStage({
     return {
       ...box,
       '--pct-inv': inv,
+      // Angle appliqué à ce calque : les habillages lisibles (étiquettes, repères, pastilles)
+      // le défont sur eux-mêmes en CSS, sinon le texte se retourne avec la carte (N1).
+      '--pct-orient': `${mapOrientationDeg}deg`,
       '--map-overlay-label-font-size': `${LABEL_FONT_SIZE_PX}px`,
       '--map-overlay-emoji-font-size': `${LABEL_EMOJI_SIZE_PX}px`,
       '--map-overlay-marker-label-offset': `${MARKER_LABEL_OFFSET_PX}px`,
     };
-  }, [fitRect, committed.s]);
+  }, [fitRect, committed.s, mapOrientationDeg]);
 
   const selectedZoneId = selectedPlace?.kind === 'zone' ? selectedPlace.id : null;
   const selectedMarkerId = selectedPlace?.kind === 'marker' ? selectedPlace.id : null;
@@ -324,6 +327,11 @@ export function PlanMapStage({
         contentHeightPx: fitRect.height,
         scale: committed.s,
         pinnedKey,
+        // Étiquettes contre-tournées (N1) : leurs boîtes sont alignées sur l'écran, leurs
+        // ancres non. Sans l'angle, deux noms qui ne se gênent pas au nord se recouvrent
+        // dès que l'on pivote.
+        orientationDeg: mapOrientationDeg,
+        orientOriginPct: orientPivot,
       }),
     [
       zoneLabelSpecs,
@@ -333,6 +341,9 @@ export function PlanMapStage({
       fitRect.height,
       committed.s,
       pinnedKey,
+      mapOrientationDeg,
+      orientPivot?.xp,
+      orientPivot?.yp,
     ],
   );
   const zoneLabels = useMemo(
