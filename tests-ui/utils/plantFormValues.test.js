@@ -60,7 +60,12 @@ describe('mergePlantPhotoFieldValue', () => {
 describe('EMPTY_PLANT_FORM', () => {
   test('toutes les valeurs vides sauf emoji (🌱)', () => {
     expect(EMPTY_PLANT_FORM.emoji).toBe('🌱');
-    const others = Object.entries(EMPTY_PLANT_FORM).filter(([k]) => k !== 'emoji');
+    // `map_ids` (rattachement direct fiche → carte, migration 239) est une liste, pas une
+    // chaîne : le formulaire vide en part avec un tableau vide.
+    expect(EMPTY_PLANT_FORM.map_ids).toEqual([]);
+    const others = Object.entries(EMPTY_PLANT_FORM).filter(
+      ([k]) => k !== 'emoji' && k !== 'map_ids',
+    );
     expect(others.every(([, v]) => v === '')).toBe(true);
   });
   test('couvre les colonnes attendues du modèle', () => {
