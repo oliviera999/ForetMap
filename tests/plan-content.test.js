@@ -139,6 +139,7 @@ test('GET /api/plan/content : carte réglée, lieux visibles sur le plan seuleme
   assert.equal(res.body.map.id, mapId);
   assert.equal(res.body.map.label, 'Plan de test');
   assert.equal(typeof res.body.map.gps_enabled, 'boolean');
+  assert.equal(typeof res.body.map.scale_compass_enabled, 'boolean');
   assert.equal(res.body.settings.map_id, undefined);
   assert.equal(typeof res.body.settings.title, 'string');
 
@@ -389,5 +390,36 @@ test('garde d’accès par code (lot 8) : charge refusée sans laissez-passer, p
     await setSetting('security.plan_access_code_hash', '', { userType: 'admin', userId: 'test' });
     invalidateSettingsCache();
     planContentCache.clear();
+  }
+});
+
+test('POST /api/settings/admin/plan-access-code : hash serveur, PUT direct refusé', async () => {
+  try {
+    const denied = await auth(
+      request(app).put('/api/settings/admin/security.plan_access_code_hash'),
+    )
+      .send({ value: 'pas-un-hash' })
+      .expect(400);
+    assert.match(String(denied.body.error || ''), /plan-access-code/);
+
+    const set = await auth(request(app).post('/api/settings/admin/plan-access-code'))
+      .send({ code: 'SECRET-PLAN' })
+      .expect(200);
+    assert.equal(set.body.hasCode, true);
+    invalidateSettingsCache();
+    const { getSettingValue } = require('../lib/settings');
+    const stored = String((await getSettingValue('security.plan_access_code_hash', '')) || '');
+    assert.ok(stored.startsWith('$2'), 'empreinte bcrypt attendue');
+    const bcrypt = require('bcryptjs');
+    assert.equal(await bcrypt.compare('SECRET-PLAN', stored), true);
+
+    await auth(request(app).post('/api/settings/admin/plan-access-code'))
+      .send({ code: '' })
+      .expect(200);
+    invalidateSettingsCache();
+    assert.equal(String((await getSettingValue('security.plan_access_code_hash', '')) || ''), '');
+  } finally {
+    await setSetting('security.plan_access_code_hash', '', { userType: 'admin', userId: 'test' });
+    invalidateSettingsCache();
   }
 });

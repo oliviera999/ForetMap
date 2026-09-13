@@ -422,7 +422,40 @@ describe('Auth', () => {
     authRouter.__setGoogleOAuthHooks();
   });
 
-  it('GET /api/auth/google/callback crée un élève OAuth si absent', async () => {
+  it('GET /api/auth/google/callback refuse de créer un élève si auto-inscription Google désactivée', async () => {
+    await setSetting('ui.auth.allow_google_auto_register', false, {});
+    const studentEmail = `oauth_noreg_${Date.now()}@lyceelyautey.org`;
+    authRouter.__setGoogleOAuthHooks({
+      exchangeCode: async () => ({ id_token: 'token-noreg' }),
+      verifyIdToken: async () => ({
+        aud: process.env.GOOGLE_OAUTH_CLIENT_ID,
+        iss: 'accounts.google.com',
+        email: studentEmail,
+        email_verified: true,
+        hd: 'lyceelyautey.org',
+        given_name: 'No',
+        family_name: 'Register',
+        name: 'No Register',
+      }),
+    });
+    try {
+      const res = await request(app)
+        .get('/api/auth/google/callback?state=ok-noreg&code=code-noreg')
+        .set('Cookie', ['foretmap_oauth_state=ok-noreg', 'foretmap_oauth_mode=student'])
+        .expect(302);
+      assert.ok(String(res.headers.location || '').includes('oauth_account_not_found'));
+      const created = await queryOne(
+        "SELECT id FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1",
+        [studentEmail],
+      );
+      assert.ok(!created?.id);
+    } finally {
+      authRouter.__setGoogleOAuthHooks();
+    }
+  });
+
+  it('GET /api/auth/google/callback crée un élève OAuth si absent et autorisé', async () => {
+    await setSetting('ui.auth.allow_google_auto_register', true, {});
     const studentEmail = `oauth_student_${Date.now()}@lyceelyautey.org`;
     authRouter.__setGoogleOAuthHooks({
       exchangeCode: async () => ({ id_token: 'token-student' }),
@@ -437,26 +470,30 @@ describe('Auth', () => {
         name: 'Google Student',
       }),
     });
-    const res = await request(app)
-      .get('/api/auth/google/callback?state=ok2&code=code-student')
-      .set('Cookie', ['foretmap_oauth_state=ok2', 'foretmap_oauth_mode=student'])
-      .expect(302);
-    const payload = decodeOAuthPayloadFromRedirect(res.headers.location);
-    assert.strictEqual(payload?.type, 'student');
-    assert.ok(payload?.student?.id);
-    assert.ok(
-      ['visiteur', 'eleve_novice'].includes(String(payload?.student?.auth?.roleSlug || '')),
-    );
-    assert.strictEqual(
-      String(payload?.student?.email || '').toLowerCase(),
-      studentEmail.toLowerCase(),
-    );
-    const created = await queryOne(
-      "SELECT id, email FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1",
-      [studentEmail],
-    );
-    assert.ok(created?.id);
-    authRouter.__setGoogleOAuthHooks();
+    try {
+      const res = await request(app)
+        .get('/api/auth/google/callback?state=ok2&code=code-student')
+        .set('Cookie', ['foretmap_oauth_state=ok2', 'foretmap_oauth_mode=student'])
+        .expect(302);
+      const payload = decodeOAuthPayloadFromRedirect(res.headers.location);
+      assert.strictEqual(payload?.type, 'student');
+      assert.ok(payload?.student?.id);
+      assert.ok(
+        ['visiteur', 'eleve_novice'].includes(String(payload?.student?.auth?.roleSlug || '')),
+      );
+      assert.strictEqual(
+        String(payload?.student?.email || '').toLowerCase(),
+        studentEmail.toLowerCase(),
+      );
+      const created = await queryOne(
+        "SELECT id, email FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1",
+        [studentEmail],
+      );
+      assert.ok(created?.id);
+    } finally {
+      await setSetting('ui.auth.allow_google_auto_register', false, {});
+      authRouter.__setGoogleOAuthHooks();
+    }
   });
 
   it('GET /api/auth/google/callback refuse un email non autorisé', async () => {

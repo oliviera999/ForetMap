@@ -10,7 +10,7 @@ import { api, AccountDeletedError, API, withAppBase, getAuthToken } from '../ser
 import { partitionByArchived } from '../utils/taskArchive';
 import { isSocketAuthRejection } from '../utils/realtimeAuthRejection';
 import { jitteredRefreshDelay } from '../utils/realtimeRefreshDelay';
-import { SOCKETIO_CLIENT_OPTIONS } from '../utils/socketIoClientOptions';
+import { getSocketIoClientOptions } from '../utils/socketIoClientOptions';
 
 /** Après notification Socket.IO : tâches = refetch léger côté API (priorité fraîcheur). */
 const TASKS_RT_DEBOUNCE_MS = 220;
@@ -53,6 +53,8 @@ export function useForetmapRealtime({
   setMarkers,
   /** Quand vrai : pas de `setTasks` / jardin via temps réel (modale formulaire ouverte — clavier mobile). */
   pauseDataRefreshRef = null,
+  /** Aligné sur `realtime.allow_websocket` des réglages publics (env serveur). */
+  allowWebsocket = false,
 }) {
   const [rtStatus, setRtStatus] = useState('off');
   // Jeton réactif : après élévation PIN, refresh ou expiration, `foretmap_session_changed`
@@ -221,7 +223,7 @@ export function useForetmapRealtime({
       reconnectionDelayMax: 5000,
       randomizationFactor: 0.3,
       timeout: 20000,
-      ...SOCKETIO_CLIENT_OPTIONS,
+      ...getSocketIoClientOptions({ allowWebsocket }),
     });
     socketRef.current = socket;
     const OFFLINE_GRACE_MS = 15000;
@@ -309,6 +311,14 @@ export function useForetmapRealtime({
     socket.on('forum:changed', onForumRealtime);
     socket.on('context-comments:changed', onContextCommentsRealtime);
     socket.on('observations:changed', onObservationsRealtime);
+    const onPresenceUpdate = (payload) => {
+      try {
+        window.dispatchEvent(new CustomEvent('foretmap_presence', { detail: payload }));
+      } catch {
+        /* ignore */
+      }
+    };
+    socket.on('presence:update', onPresenceUpdate);
     window.addEventListener('online', onBrowserOnline);
     if (socket.connected) setRtStatus('live');
 
@@ -328,6 +338,7 @@ export function useForetmapRealtime({
       socket.off('forum:changed', onForumRealtime);
       socket.off('context-comments:changed', onContextCommentsRealtime);
       socket.off('observations:changed', onObservationsRealtime);
+      socket.off('presence:update', onPresenceUpdate);
       window.removeEventListener('online', onBrowserOnline);
       if (tasksRtDebounceRef.current) {
         clearTimeout(tasksRtDebounceRef.current);
@@ -343,6 +354,7 @@ export function useForetmapRealtime({
   }, [
     enabled,
     authToken,
+    allowWebsocket,
     onContextCommentsRealtime,
     onObservationsRealtime,
     onForumRealtime,

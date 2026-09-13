@@ -71,6 +71,7 @@ export function PedagoTabs({
             mapMarkers={markers}
             catalogTutorials={tutorials}
             onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
+            onOpenGlossaryTerm={onOpenGlossaryTerm}
           />
         </TabSuspense>
       )}
@@ -108,6 +109,7 @@ export function PedagoTabs({
         <TabSuspense>
           <FoodWebViewLazy
             maps={maps}
+            initialMapId={activeMapId}
             onOpenPlant={onOpenPlantCatalogPreview}
             onOpenGlossaryTerm={onOpenGlossaryTerm}
             highlightPlantId={foodWebHighlightPlantId}

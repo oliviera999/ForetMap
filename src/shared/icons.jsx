@@ -161,6 +161,7 @@ export const IconFullscreen = ui(Maximize2);
 export const IconLock = ui(Lock);
 export const IconUnlock = ui(Unlock);
 export const IconGps = ui(LocateFixed);
+export const IconCompass = ui(Compass);
 export const IconLabels = ui(Tags);
 export const IconZoomIn = ui(Plus);
 export const IconZoomOut = ui(Minus);

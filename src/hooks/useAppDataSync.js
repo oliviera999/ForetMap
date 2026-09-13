@@ -267,9 +267,15 @@ export function useAppDataSync({
             // — évite de sérialiser tout l'historique à chaque cycle (pression LVE).
             // `Promise.resolve([])` sans carte active reste un vide **légitime** (rien à
             // afficher), à distinguer d'un échec réseau — d'où safeApi sans valeur de repli.
+            // Hors chrome prof : filtrer `surface=map` pour honorer « Masquer sur Carte ».
+            // Les gestionnaires (chrome prof) gardent la liste complète pour éditer.
             const [z, t, taskProjectsRes, p, m, tu] = await Promise.all([
               needsDomain('zones')
-                ? safeApi(() => (mapQuery ? api(`/api/zones?${mapQuery}`) : Promise.resolve([])))
+                ? safeApi(() =>
+                    mapQuery
+                      ? api(`/api/zones?${mapQuery}${isTeacherSnap ? '' : '&surface=map'}`)
+                      : Promise.resolve([]),
+                  )
                 : skipDomain(),
               needsDomain('tasks')
                 ? safeApi(() => (mapQuery ? api(`/api/tasks?${mapQuery}`) : Promise.resolve([])))
@@ -282,7 +288,9 @@ export function useAppDataSync({
               needsDomain('plants') ? safeApi(() => api('/api/plants')) : skipDomain(),
               needsDomain('markers')
                 ? safeApi(() =>
-                    mapQuery ? api(`/api/map/markers?${mapQuery}`) : Promise.resolve([]),
+                    mapQuery
+                      ? api(`/api/map/markers?${mapQuery}${isTeacherSnap ? '' : '&surface=map'}`)
+                      : Promise.resolve([]),
                   )
                 : skipDomain(),
               needsDomain('tutorials') ? safeApi(() => api(tutorialsEndpoint)) : skipDomain(),
@@ -316,21 +324,23 @@ export function useAppDataSync({
             if (isApplicableDomainResult(p)) setPlants((prev) => keepPrevIfEqual(prev, p));
             if (isApplicableDomainResult(m)) setMarkers((prev) => keepPrevIfEqual(prev, m));
             if (isApplicableDomainResult(tu)) setTutorials((prev) => keepPrevIfEqual(prev, tu));
-            if (!isTeacherSnap && needsDomain('authMe')) {
+            if (needsDomain('authMe')) {
               const sess = studentRef.current;
-              if (sess?.id && !sess.preview_mode) {
-                const sid = sess.id;
+              const isStudentSession = sess?.id && !sess.preview_mode;
+              if (isStudentSession || isTeacherSnap) {
+                const sid = isStudentSession ? sess.id : null;
                 api('/api/auth/me')
                   .then((d) => {
-                    if (studentRef.current?.id !== sid) return;
+                    if (sid && studentRef.current?.id !== sid) return;
                     const hasSideEffects =
                       d?.taskEnrollment != null ||
                       typeof d?.forumParticipate === 'boolean' ||
                       typeof d?.contextCommentParticipate === 'boolean' ||
                       typeof d?.refreshedToken === 'string' ||
-                      d?.autoProfilePromotion;
+                      d?.autoProfilePromotion ||
+                      (isTeacherSnap && d?.auth);
                     if (!hasSideEffects) return;
-                    mergeAuthMeResponse(d, { studentIdForMatch: sid });
+                    mergeAuthMeResponse(d, sid ? { studentIdForMatch: sid } : {});
                   })
                   .catch(() => {});
               }

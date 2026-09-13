@@ -1,6 +1,6 @@
 /* Service worker « plan » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-plan-e75d13f3";
+const CACHE_NAME = "foretmap-plan-c36f94d4";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -15,18 +15,17 @@ const PRECACHE_URLS = [
   "/plan/apple-touch-icon.png",
   "/plan/favicon-32.png",
   "/plan/favicon-16.png",
-  "/assets/plan-CJw0k_9I.js",
-  "/assets/plan-DwNR68nl.css",
+  "/assets/plan-tAi44EMq.js",
+  "/assets/plan-CVaqISpP.css",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-BdCFwf1s.js",
+  "/assets/VisitMascotFallbackSvg-C2IowJN5.js",
   "/assets/react-vendor-NSwws4_t.js",
   "/assets/icons-DN-Q6DZk.js",
-  "/assets/ErrorBoundary-XU2cJUND.js",
+  "/assets/ErrorBoundary-v8GfR6I8.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/useBrandTheme-DzVQPnnT.js",
-  "/assets/HelpDock-nB5250_a.js",
-  "/assets/HelpDock-B71Xr5QT.css",
-  "/assets/Button-TXNlPuUo.js",
+  "/assets/useBrandTheme-BwKE_kO8.js",
+  "/assets/HelpDock-C3bvqVxY.js",
+  "/assets/HelpDock-607GLmvi.css",
   "/assets/placeSearch-BCSeYLu5.js",
 ];
 

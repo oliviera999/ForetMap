@@ -9,6 +9,7 @@ import {
   buildCorrectAnswerNotice,
   buildWrongAnswerNotice,
 } from '../utils/learningGatingChallengeClient.js';
+import { oluQuizIntroOpener } from '../utils/oluLearningVoice.js';
 
 /**
  * Panneau d'une question QCM dans le flux gating (présentation + réponse + feedback).
@@ -113,7 +114,11 @@ export function LearningGatingQuestionPanel({
   ]);
 
   const showAnswer = shouldShowQcmAnswerPhase(result);
-  const feedbackText = getQcmFeedbackText(result);
+  // Graine du tirage de variante (voix d'OLU) : stable tant que l'écran montre la même chose.
+  // Le choix retenu en fait partie pour les erreurs — deux mauvaises pistes sur la même
+  // question ne méritent pas deux fois la même phrase.
+  const voiceSeed = `${questionCode || ''}|${selectedChoiceId ?? ''}`;
+  const feedbackText = getQcmFeedbackText(result, { seed: voiceSeed });
   const cooldownLocked = !result?.correct && isCooldownLocked(result?.cooldown);
   const hasOtherQuestions = questionIndex + 1 < questionTotal;
   // Portée « question seule » : seule cette question est bloquée, la fiche reste ouverte si
@@ -125,7 +130,13 @@ export function LearningGatingQuestionPanel({
   // Ce que le feedback de la question ne dit jamais : la progression après une bonne
   // réponse, et le nombre d'erreurs encore permises après une mauvaise.
   const progressNotice = result?.correct
-    ? buildCorrectAnswerNotice({ questionIndex, questionTotal, pendingTotal, itemTitle })
+    ? buildCorrectAnswerNotice({
+        questionIndex,
+        questionTotal,
+        pendingTotal,
+        itemTitle,
+        seed: String(questionCode || ''),
+      })
     : cooldownLocked
       ? ''
       : buildWrongAnswerNotice(result?.cooldown);
@@ -133,7 +144,8 @@ export function LearningGatingQuestionPanel({
   return (
     <div className="learning-gating-quiz">
       <p className="tuto-read-ack-intro">
-        Vérifie ta compréhension avant de valider — question {questionIndex + 1} sur {questionTotal}
+        {oluQuizIntroOpener(String(questionCode || ''))} — question {questionIndex + 1} sur{' '}
+        {questionTotal}
         {pendingTotal > questionTotal ? ` de cette série (${pendingTotal} à réussir en tout)` : ''}.
       </p>
       {loading ? <p className="tuto-read-ack-intro">Chargement de la question…</p> : null}

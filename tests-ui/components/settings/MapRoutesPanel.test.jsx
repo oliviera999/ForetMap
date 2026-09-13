@@ -168,16 +168,13 @@ describe('MapRoutesPanel', () => {
     expect(api).toHaveBeenCalledWith('/api/map/markers?map_id=lyautey');
   });
 
-  test('les surfaces sans écran de parcours ne se cochent pas', async () => {
+  test('les surfaces Carte et Visite se cochent (écrans de parcours actifs)', async () => {
     renderPanel();
     await screen.findByText('Portes ouvertes');
-    // Le Plan est la seule surface qui affiche les parcours aujourd'hui : les deux autres
-    // restent lisibles mais fermées, plutôt que de promettre un affichage inexistant.
-    // Identifiants posés par `SurfaceVisibilityField` (`idPrefix="map-route"`, mode visible).
-    expect(document.getElementById('map-route-visible-map').disabled).toBe(true);
-    expect(document.getElementById('map-route-visible-visit').disabled).toBe(true);
+    expect(document.getElementById('map-route-visible-map').disabled).toBe(false);
+    expect(document.getElementById('map-route-visible-visit').disabled).toBe(false);
     expect(document.getElementById('map-route-visible-plan').disabled).toBe(false);
-    expect(screen.getAllByText('n’affiche pas encore les parcours')).toHaveLength(2);
+    expect(screen.queryByText('n’affiche pas encore les parcours')).toBeNull();
   });
 
   test('changer le slug d’un parcours publié avertit sur les affiches imprimées', async () => {

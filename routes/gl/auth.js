@@ -373,6 +373,7 @@ router.get(
     const allowPlayerLinkForetmap = await isForetmapLinkEnabled();
     const guestModeEnabled = await isGlGuestModeEnabled();
     const googleReady = !!clientId;
+    const { getSocketIoRealtimePublicConfig } = require('../../lib/socketIoTransport');
     return res.json({
       title: String(title || 'Gnomes & Licornes'),
       subtitle: String(subtitle || ''),
@@ -382,6 +383,7 @@ router.get(
       allowPlayerLinkForetmap,
       guestModeEnabled,
       modules,
+      realtime: getSocketIoRealtimePublicConfig(),
     });
   }),
 );

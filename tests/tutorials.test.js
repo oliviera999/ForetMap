@@ -121,6 +121,36 @@ test('POST /api/tutorials crée un tuto HTML, téléchargeable en HTML/PDF', asy
   assert.ok((pdfRes.headers['content-disposition'] || '').includes('.pdf'));
 });
 
+test('PUT /api/tutorials accepte des lieux sur plusieurs cartes', async () => {
+  const { createMap, createZone } = require('./helpers/fmFixtures');
+  const mapA = await createMap({ label: 'Carte A multi-tuto' });
+  const mapB = await createMap({ label: 'Carte B multi-tuto' });
+  const zoneA = await createZone({ mapId: mapA.id, name: 'Zone A multi-tuto' });
+  const zoneB = await createZone({ mapId: mapB.id, name: 'Zone B multi-tuto' });
+
+  const create = await request(app)
+    .post('/api/tutorials')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      title: `Tuto multi-cartes ${Date.now()}`,
+      type: 'html',
+      html_content: '<p>multi</p>',
+      zone_ids: [zoneA.id],
+    })
+    .expect(201);
+
+  const updated = await request(app)
+    .put(`/api/tutorials/${create.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ zone_ids: [zoneA.id, zoneB.id], marker_ids: [] })
+    .expect(200);
+
+  const linkedMaps = new Set((updated.body.zones_linked || []).map((z) => z.map_id));
+  assert.ok(linkedMaps.has(mapA.id));
+  assert.ok(linkedMaps.has(mapB.id));
+  assert.strictEqual((updated.body.zone_ids || []).length, 2);
+});
+
 test('POST /api/tutorials avec seulement source_file_path intègre le HTML en base', async () => {
   const create = await request(app)
     .post('/api/tutorials')

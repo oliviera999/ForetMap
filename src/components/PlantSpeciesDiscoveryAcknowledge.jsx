@@ -9,6 +9,7 @@ import { LearningAcknowledgeButton } from '../shared/components/LearningAcknowle
 import { LearningQuizPopover } from '../shared/components/LearningQuizPopover.jsx';
 import { createFmGatingHandlers } from '../shared/utils/learningGatingChallengeClient.js';
 import { IconCheck } from '../shared/icons.jsx';
+import { FmLearnAndImportSlot } from './journal/FmLearnAndImportSlot.jsx';
 
 const MIN_CONTEXT_COMMENT_CHARS = 2;
 
@@ -245,14 +246,21 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
 
   return (
     <>
-      {hasObserved ? (
-        <div className="plant-discovery-observed-wrap">
-          {ackButton}
-          <PlantDiscoveryObservedCounts my={my} site={site} />
-        </div>
-      ) : (
-        ackButton
-      )}
+      <FmLearnAndImportSlot
+        resourceType="plant"
+        resourceRef={plantId}
+        title={speciesName}
+        learned={hasObserved}
+      >
+        {hasObserved ? (
+          <div className="plant-discovery-observed-wrap">
+            {ackButton}
+            <PlantDiscoveryObservedCounts my={my} site={site} />
+          </div>
+        ) : (
+          ackButton
+        )}
+      </FmLearnAndImportSlot>
       {enrichOpen ? renderEnrichStep(enrichOpen, () => setEnrichOpen(false)) : null}
     </>
   );

@@ -40,6 +40,20 @@ describe('accueil — OLU se présente à la première connexion', () => {
     expect(screen.queryByText('Salut, moi c’est OLU')).toBeNull();
   });
 
+  test('hydraté depuis le compte, l’accueil ne part pas même si le cache local est vide', async () => {
+    renderApp({ accountSeen: { [WELCOME_TOUR_KEY]: true }, accountSeenReady: true });
+    await waitFor(() => expect(document.querySelector('.discovery-tour')).toBeTruthy(), {
+      timeout: 2000,
+    });
+    expect(screen.queryByText('Salut, moi c’est OLU')).toBeNull();
+  });
+
+  test('tant que le compte n’est pas hydraté, aucun accueil automatique', async () => {
+    renderApp({ accountSeenReady: false });
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    expect(document.querySelector('.discovery-tour')).toBeNull();
+  });
+
   test('l’accueil est marqué vu dès son démarrage', async () => {
     renderApp();
     await screen.findByText('Salut, moi c’est OLU', {}, { timeout: 2000 });

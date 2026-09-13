@@ -82,14 +82,16 @@ describe('getAuthSubmitError — mode register', () => {
     );
   });
 
-  test('pseudo optionnel mais format contraint (3-30, lettres/chiffres/._-)', () => {
+  test('pseudo optionnel mais format contraint (lettres, chiffres, . _ - +)', () => {
     expect(getAuthSubmitError(registerInput({ pseudo: '' }))).toBe('');
     expect(getAuthSubmitError(registerInput({ pseudo: 'momo_lyautey.2-b' }))).toBe('');
+    expect(getAuthSubmitError(registerInput({ pseudo: 'jean.dupont' }))).toBe('');
+    expect(getAuthSubmitError(registerInput({ pseudo: 'Élève+n3' }))).toBe('');
     expect(getAuthSubmitError(registerInput({ pseudo: 'ab' }))).toBe(
-      'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)',
+      'Pseudo invalide (3-50 caractères : lettres — y compris accentuées —, chiffres, . _ - +)',
     );
     expect(getAuthSubmitError(registerInput({ pseudo: 'momo lyautey' }))).toBe(
-      'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)',
+      'Pseudo invalide (3-50 caractères : lettres — y compris accentuées —, chiffres, . _ - +)',
     );
   });
 

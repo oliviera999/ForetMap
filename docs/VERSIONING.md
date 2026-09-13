@@ -124,8 +124,16 @@ Le workflow **`.github/workflows/release-tag.yml`** crée, à chaque push sur `m
 **`v<version de package.json>`** s'il n'existe pas encore, avec une **GitHub Release** dont les
 notes sont extraites du `CHANGELOG.md` (section `[X.Y.Z]` datée si présente, sinon `[Non publié]`).
 C'est **idempotent** : un push sans changement de version (ex. auto-commit `dist/` du bot
-`frontend-dist`) ne crée aucun tag. Le `bump:*` (via `npm run ship` ou manuel) suffit donc à
-déclencher la pose du tag une fois mergé sur `main` — plus besoin de `git tag` manuel.
+`frontend-dist`) ne crée aucun tag.
+
+> **Panne du 11/09/2026 — à connaître.** Quand les notes dépassent `MAX_BYTES`, elles sont tronquées
+> à l'octet par `head -c`, ce qui peut trancher un caractère UTF-8 en deux. `iconv -c` retire bien la
+> séquence incomplète, mais **sort en 1** en le signalant, et l'étape — qui tourne en `bash -e` —
+> tombait avec lui. Résultat : les pushes qui ont bumpé en `1.152.0` puis `1.152.1` n'ont posé
+> **aucun tag** et publié **aucune release**. Corrigé par un `|| true` qui conserve le préfixe déjà
+> converti. Les tags `v1.152.0` et `v1.152.1` manquent donc à l'appel : le workflow ne tague que la
+> version courante de `package.json`, il ne rattrape pas les versions sautées. Le `bump:*` (via `npm run ship` ou manuel) suffit donc à
+> déclencher la pose du tag une fois mergé sur `main` — plus besoin de `git tag` manuel.
 
 ## Sans Git
 
@@ -141,6 +149,8 @@ Si le dépôt englobe plusieurs dossiers, travailler depuis **`ForetMap/`** ; le
 - Après chaque **lot livré** sur `main` : voir la sous-section **Lots livrés sur `main`** ci-dessus (**CHANGELOG** + commit + push ; le bump est fait par la CI après la fusion).
 - Pour une **release** nommée : **CHANGELOG d’abord** (renommer `[Non publié]` en section datée), puis **`bump:*` + commit groupé + tag**, sauf si on utilise volontairement **`release:*`** (deux commits possibles).
 - Le fichier **`CHANGELOG.md`** peut conserver une longue section **`[Non publié]`** entre deux releases datées : ce n’est pas une incohérence avec **`package.json`** tant que la version du manifeste suit les **`bump:*`** successifs.
+- **Le cycle 1.x a été clos le 11/09/2026** : `[Non publié]` courait depuis la v1.2.0 du 20 mars — 537 entrées, 2 705 commits, 209 incréments, zéro release. Il est figé en `[1.152.1] - 2026-09-11`, avec un sommaire thématique en tête et les entrées laissées dans leur ordre chronologique (112 d'entre elles ont un titre nu du type `Modifié` : les regrouper par thème les priverait de sens). La tolérance décrite ci-dessus reste valable — mais une section `[Non publié]` qui court cinq mois cesse d'être lisible bien avant de devenir incohérente.
+- **Une section datée peut à son tour dépasser le plafond des notes de release** (celle du cycle 1.x pèse ~945 Ko pour un plafond de 60 Ko) : c'est le chemin de troncature de `release-tag.yml` qui la prend en charge. Ce chemin était cassé — voir ci-dessous.
 
 ## Résolution automatique des conflits de merge (CI)
 

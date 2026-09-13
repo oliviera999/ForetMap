@@ -46,6 +46,19 @@ const RELATED = {
   linkedQuizQuestions: [],
 };
 
+/** Relation enregistrée dans les deux sens — le cas le plus courant du corpus. */
+const TERM_WITH_MIRRORED_RELATION = {
+  ...TERM,
+  relatedTerms: [
+    { glossary_code: 'FM0002', terme: 'Humus' },
+    { glossary_code: 'FM0003', terme: 'Biodiversité' },
+  ],
+  incomingRelations: [
+    { glossary_code: 'FM0003', terme: 'Biodiversité' },
+    { glossary_code: 'FM0002', terme: 'Humus' },
+  ],
+};
+
 function renderPopover(props = {}) {
   return render(
     <GlossaryPopover
@@ -280,5 +293,25 @@ describe('readGlossaryTermMessage — contrôle d’origine (audit A10)', () => 
       readGlossaryTermMessage({ origin: ORIGIN, data: 'foretmap:glossary' }, ORIGIN),
     ).toBeNull();
     expect(readGlossaryTermMessage(null, ORIGIN)).toBeNull();
+  });
+});
+
+describe('GlossaryPopover — termes liés', () => {
+  test('une relation enregistrée dans les deux sens n’affiche qu’une pastille', async () => {
+    api.mockImplementation(async () => TERM_WITH_MIRRORED_RELATION);
+    renderPopover();
+    await waitFor(() => expect(screen.getByText('Termes liés')).toBeInTheDocument());
+    expect(screen.getAllByRole('button', { name: 'Humus' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Biodiversité' })).toHaveLength(1);
+  });
+
+  test('les deux sens sont réunis dans une seule liste triée', async () => {
+    api.mockImplementation(async () => TERM);
+    renderPopover();
+    await waitFor(() => expect(screen.getByText('Termes liés')).toBeInTheDocument());
+    const chips = [...document.querySelectorAll('.fm-glossary-popover__chip')].map(
+      (el) => el.textContent,
+    );
+    expect(chips).toEqual(['Biodiversité', 'Humus']);
   });
 });

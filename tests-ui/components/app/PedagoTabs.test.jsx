@@ -126,10 +126,14 @@ describe('PedagoTabs', () => {
     expect(probes.quizAdmin[0]).toMatchObject({ canManageQuiz: true, initialQuestionCode: 'Q1' });
   });
 
-  test('réseau trophique : cartes, surlignage et droit de gestion', async () => {
+  test('réseau trophique : cartes, carte active, surlignage et droit de gestion', async () => {
     render(<PedagoTabs {...baseProps} tab="foodweb" canManageFoodWeb />);
     expect(await screen.findByTestId('foodweb-view')).toBeInTheDocument();
-    expect(probes.foodweb[0]).toMatchObject({ highlightPlantId: 42, canManage: true });
+    expect(probes.foodweb[0]).toMatchObject({
+      highlightPlantId: 42,
+      canManage: true,
+      initialMapId: 'm1',
+    });
     expect(probes.foodweb[0].maps).toBe(baseProps.maps);
   });
 

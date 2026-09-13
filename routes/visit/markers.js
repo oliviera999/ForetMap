@@ -17,6 +17,7 @@ const {
 } = require('../../lib/visitEditorialBlocks');
 const { normalizeMarkerEmoji } = require('../../lib/markerEmoji');
 const { normalizeCoord } = require('../../lib/visitContentHelpers');
+const { logAudit } = require('../../lib/auditLog');
 
 const router = express.Router();
 
@@ -146,6 +147,13 @@ router.delete(
     const markerId = String(req.params.id || '').trim();
     if (!markerId) return res.status(400).json({ error: 'Repère invalide' });
     await withTransaction((tx) => deleteVisitTargetCascade('marker', markerId, tx));
+    await logAudit(
+      'visit_marker_delete',
+      'visit_marker',
+      markerId,
+      `Suppression repère visite ${markerId}`,
+      { req },
+    );
     res.json({ ok: true });
   }),
 );

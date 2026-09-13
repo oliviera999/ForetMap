@@ -60,10 +60,29 @@ describe('StudentBottomNav', () => {
   });
 
   test('F3 : Tâches et Tuto restent des onglets séparés (plus de fusion contextuelle)', () => {
-    render(<StudentBottomNav {...baseProps} tab="tuto" />);
+    render(<StudentBottomNav {...baseProps} canAccessTutorials tab="tuto" />);
     expect(screen.getByText('Tuto')).toBeInTheDocument();
     expect(screen.getByText('Tuto')).toHaveClass('active');
     expect(screen.queryByText('Tâches&tuto')).toBeNull();
+  });
+
+  test('parcours type visiteur : tuto + stats + classe sans carte', () => {
+    render(
+      <StudentBottomNav
+        {...baseProps}
+        canAccessStudentMapTasks={false}
+        isVisitor
+        canAccessTutorials
+        canViewGeneralStats
+        canAccessProfiles
+        profilesLabel="Classe"
+        tab="visit"
+      />,
+    );
+    expect(screen.queryByText('Carte')).toBeNull();
+    expect(screen.getByText('Tuto')).toBeInTheDocument();
+    expect(screen.getByText('Stats')).toBeInTheDocument();
+    expect(screen.getByText('Classe')).toBeInTheDocument();
   });
 
   test('modules coupés → Carnet/Visite/Forum/Tuto masqués, Stats visible avec le droit', () => {

@@ -56,6 +56,9 @@ function createFakeMoodleServer(options = {}) {
     groupMembers: new Map(), // groupId → Set(userId)
     enrolled: new Map(), // courseId → [userId]
     failNext: null, // { errorcode } | { status } : la prochaine requête échoue
+    // { [wsfunction]: { errorcode, message } } : cette fonction échoue à *chaque* appel, une fois
+    // passé le contrôle du service — de quoi rejouer un refus métier (politique du site…).
+    failFor: {},
     nextGroupId: 1000,
   };
   const calls = [];
@@ -207,6 +210,12 @@ function createFakeMoodleServer(options = {}) {
         return send(200, moodleError('invalidtoken', 'Jeton invalide'));
       if (!state.functions.includes(wsfunction))
         return send(200, moodleError('accessexception', `Accès refusé : ${wsfunction}`));
+      const forced = state.failFor?.[wsfunction];
+      if (forced)
+        return send(
+          200,
+          moodleError(forced.errorcode || 'generalexceptionmessage', forced.message),
+        );
       const handler = handlers[wsfunction];
       if (!handler)
         return send(200, moodleError('invalidrecord', `Fonction inconnue ${wsfunction}`));

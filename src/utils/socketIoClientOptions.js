@@ -4,8 +4,26 @@
  * reste le transport fiable. `upgrade: false` interdit toute tentative WS.
  *
  * Partagé ForetMap / GL pour ne plus diverger (audit temps réel 2026-09).
+ * Le serveur expose `realtime.allow_websocket` (env `FORETMAP_SOCKETIO_ALLOW_WEBSOCKET`)
+ * pour réactiver WS côté client sans rebuild.
  */
-export const SOCKETIO_CLIENT_OPTIONS = Object.freeze({
-  transports: ['polling'],
-  upgrade: false,
-});
+
+/**
+ * @param {{ allowWebsocket?: boolean }} [opts]
+ * @returns {{ transports: string[], upgrade: boolean }}
+ */
+export function getSocketIoClientOptions({ allowWebsocket } = {}) {
+  if (allowWebsocket === true) {
+    return Object.freeze({
+      transports: ['polling', 'websocket'],
+      upgrade: true,
+    });
+  }
+  return Object.freeze({
+    transports: ['polling'],
+    upgrade: false,
+  });
+}
+
+/** Défaut client : polling uniquement (prod mutualisée). */
+export const SOCKETIO_CLIENT_OPTIONS = getSocketIoClientOptions({ allowWebsocket: false });

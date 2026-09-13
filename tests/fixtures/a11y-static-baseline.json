@@ -1,13 +1,4 @@
 {
-  "src/components/MapViewBackgroundImage.jsx": {
-    "jsx-a11y/no-noninteractive-element-interactions": 1
-  },
-  "src/components/TutorialPreviewModal.jsx": {
-    "jsx-a11y/no-noninteractive-element-interactions": 1
-  },
-  "src/components/VisitMapMascotSpriteCut.jsx": {
-    "jsx-a11y/no-noninteractive-element-interactions": 1
-  },
   "src/components/attachment-images-picker.jsx": {
     "jsx-a11y/img-redundant-alt": 1,
     "jsx-a11y/no-noninteractive-element-interactions": 1
@@ -17,12 +8,6 @@
   },
   "src/components/auth/PinModal.jsx": {
     "jsx-a11y/no-autofocus": 1
-  },
-  "src/components/biodiv/BiodivLocationMaps.jsx": {
-    "jsx-a11y/no-noninteractive-element-interactions": 1
-  },
-  "src/components/biodiv/PrefillPhotoCard.jsx": {
-    "jsx-a11y/no-noninteractive-element-interactions": 1
   },
   "src/components/foretmap-views.jsx": {
     "jsx-a11y/no-autofocus": 1
@@ -53,7 +38,7 @@
   },
   "src/components/mascot/MascotPackStateEditor.jsx": {
     "jsx-a11y/click-events-have-key-events": 1,
-    "jsx-a11y/no-noninteractive-element-interactions": 2
+    "jsx-a11y/no-noninteractive-element-interactions": 1
   },
   "src/components/pedago/GlossaryPopover.jsx": {
     "jsx-a11y/click-events-have-key-events": 1,
@@ -64,9 +49,6 @@
     "jsx-a11y/no-noninteractive-element-interactions": 1
   },
   "src/components/settings/MapRoutesPanel.jsx": {
-    "jsx-a11y/no-noninteractive-element-interactions": 1
-  },
-  "src/components/student-avatar.jsx": {
     "jsx-a11y/no-noninteractive-element-interactions": 1
   },
   "src/components/tasks/TaskFormImageField.jsx": {
@@ -83,7 +65,6 @@
   },
   "src/components/visit-views.jsx": {
     "jsx-a11y/click-events-have-key-events": 1,
-    "jsx-a11y/no-noninteractive-element-interactions": 1,
     "jsx-a11y/no-static-element-interactions": 1
   },
   "src/components/visit/VisitMediaEditor.jsx": {
@@ -192,9 +173,6 @@
   },
   "src/shared/media/MediaLibraryGalleryTile.jsx": {
     "jsx-a11y/no-aria-hidden-on-focusable": 1
-  },
-  "src/shared/pct-map/PctImageLayer.jsx": {
-    "jsx-a11y/no-noninteractive-element-interactions": 1
   },
   "src/shared/ui/BottomSheet.jsx": {
     "jsx-a11y/click-events-have-key-events": 1,

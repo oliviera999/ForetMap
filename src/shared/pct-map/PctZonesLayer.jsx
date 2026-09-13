@@ -59,7 +59,11 @@ function PctZonesLayerImpl({
   );
 
   return (
-    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className={className}>
+    <svg
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      className={`${className}${activeZoneId != null ? ' has-selection' : ''}`}
+    >
       {parsed.map(({ zone, pointsAttr, cx, cy, name }) => {
         const isActive = activeZoneId != null && String(activeZoneId) === String(zone.id);
         const emoji = String(zone.emoji || '').trim();
@@ -71,6 +75,7 @@ function PctZonesLayerImpl({
             className={`fm-pct-zone${isActive ? ' is-active' : ''}`}
             role={onZoneClick ? 'button' : undefined}
             tabIndex={onZoneClick ? 0 : undefined}
+            aria-current={isActive ? 'true' : undefined}
             aria-label={onZoneClick ? accessibleName || 'Zone' : undefined}
             onClick={activate}
             onKeyDown={

@@ -23,17 +23,46 @@ familles.
   glisser lancé, butée souple qui empêche le plan de sortir du cadre. Le plan peut être
   **dézoomé un peu sous le cadre** (jusqu'à la moitié) pour prendre du recul ; le bouton
   ⊡ le réajuste. **Cliquer un lieu envoie d'abord la mascotte s'y rendre**, puis ouvre
-  sa fiche.
+  sa fiche. Quand le plan de visite est **calé GPS** et que l'orientation boussole est
+  autorisée (réglage Visite **et** case sur la carte), **« Me situer »** place un point
+  de position et **« Orienter »** aligne le plan sur le regard — comme sur la carte de
+  travail et le Plan Lyautey. Dès que le plan est calé, une **échelle** et une **rose des
+  vents** apparaissent aussi (masquables via le bouton 📏) ; le professeur peut les
+  désactiver pour cette carte dans le calage GPS.
+- **Parcours fléchés** : si des parcours ont été publiés pour la Visite (_Réglages → Parcours_,
+  case « Visite »), une puce **« Parcours »** les liste. En choisir un affiche une barre d'étape
+  en bas (Précédent / Suivant) : la carte se recentre sur chaque lieu, reste utilisable, et rien
+  n'est enregistré — comme sur le Plan Lyautey. On peut quitter et reprendre.
 - **La fiche d'un lieu** : titre, sous-titre, photo principale, contenu éditorial
-  (paragraphes, intertitres, blocs d'images légendées), un volet Biodiversité (les
-  espèces du lieu), un volet Tuto (les fiches pratiques associées), un mode « lecture
-  confortable », et un bouton **« Marquer comme vu »** — qui fait fêter la mascotte.
+  (paragraphes, intertitres, blocs d'images légendées), la **biodiversité du lieu**, un volet
+  Tuto (les fiches pratiques associées), un mode « lecture confortable », et un bouton
+  **« Marquer comme vu »** — qui fait fêter la mascotte.
+- **La biodiversité du lieu est visible d'emblée**, sous le texte : une vignette par espèce
+  (photo de la fiche ou pictogramme, nom courant, nom scientifique, une ligne sur son rôle).
+  Toucher une vignette ouvre la **fiche complète de l'espèce** — la même que dans l'onglet
+  Biodiversité. Les espèces rattachées au lieu par une **mission** apparaissent à part, sous
+  « Également dans les missions ». Les lieux d'**infrastructure** (bâtiment, mare, compostage…)
+  n'affichent pas de biodiversité. Une espèce citée sur le lieu mais absente du catalogue est
+  annoncée sans être ouvrable : c'est le signe qu'il manque sa fiche côté Biodiversité.
+- **Les mots du glossaire sont cliquables dans les textes de la visite** (description, détails,
+  blocs éditoriaux), comme dans les tutoriels et les fiches espèces : un mot souligné ouvre sa
+  **fiche rapide** par-dessus le plan, sans quitter la visite ni perdre sa place.
+- **Tout cela fonctionne aussi en visite invitée**, sans compte : biodiversité des lieux, fiches
+  espèces et fiches de glossaire sont consultables par n'importe quel visiteur. Seules les
+  actions rattachées à un compte restent réservées aux élèves connectés (« je l'ai observé »,
+  « j'ai appris ce mot », commentaires de fiche).
 - **La progression « vu / non-vu »** : pour un élève connecté, elle est rattachée à son
   compte et durable ; pour un invité anonyme, elle est mémorisée environ **24 heures**
   puis s'efface. Les marquages faits hors connexion sont conservés et synchronisés au
-  retour du réseau. Les lieux pas encore vus clignotent en rouge sur le plan ; sur un
-  appareil réglé pour **limiter les animations**, ils restent rouges sans clignoter —
-  la couleur suffit à les distinguer.
+  retour du réseau. Sur le plan, chaque zone garde **sa couleur** ; les lieux déjà
+  vus sont un peu plus atténués (remplissage plus transparent, contour plus fin),
+  les lieux pas encore vus restent bien marqués. Quand on **ouvre la fiche d'une zone**,
+  celle-ci reste mise en avant sur le plan et les autres zones s'estompent un peu —
+  sans cadre noir autour de la forme. Au **survol** ou au **focus clavier**,
+  le contour s'épaissit et le libellé « À découvrir » ou « Vu » apparaît un instant —
+  sans pastille permanente. Les repères suivent la même idée (légère atténuation une
+  fois vus, libellé au survol/focus). Le donut de progression du bandeau complète
+  la lecture d'ensemble.
 - **Sans souris** : zones et repères se parcourent à la **tabulation** et s'ouvrent avec
   **Entrée** ou **Espace**, comme sur la carte de l'application. Une fois la fiche
   ouverte, le clavier reste à l'intérieur ; **Échap** ou un clic à côté la referme et
@@ -45,8 +74,9 @@ familles.
   nom s'affiche au survol. Sur grand écran, tout tient désormais sur une seule ligne ; sur
   téléphone, la barre occupe environ deux fois moins de place qu'avant, au profit de la carte.
 - **Le bouton « Présentation du lieu » ne clignote plus** au premier passage. Il reste mis
-  en avant (c'est le seul bouton plein de la barre), mais l'écran ne comporte plus qu'une
-  seule sollicitation animée : le rouge clignotant des lieux pas encore vus.
+  en avant (c'est le seul bouton plein de la barre). Le plan n'a plus de signal animé
+  permanent : la progression se lit par l'atténuation des lieux déjà vus, le libellé au
+  survol/focus, et le donut du bandeau.
 - **Accessibilité** : l'application est désormais vérifiée automatiquement à chaque
   livraison sur douze écrans (connexion, visite, carte, tâches, biodiversité, glossaire,
   réseau, quiz et deux écrans G&L). Les défauts trouvés ont été corrigés : chaque page a
@@ -191,9 +221,11 @@ dit ce qu'on fait dans l'application, et indique où le retrouver. Elles ne dés
 bouton — à la première seconde, montrer un élément qu'on n'a pas appris à lire n'apprend
 rien.
 
-Cet accueil est joué **une seule fois par navigateur**, avant toute visite guidée
-d'onglet, et le professeur en lit une version qui lui est propre. Il suit le même
-interrupteur que les visites guidées : les désactiver le désactive aussi.
+Cet accueil est joué **une seule fois par compte**, avant toute visite guidée
+d'onglet — sur n'importe quel appareil où l'on se connecte — et le professeur en lit
+une version qui lui est propre. Il suit le même interrupteur que les visites guidées :
+les désactiver le désactive aussi. Sans compte (visite invitée), la mémoire reste
+locale à l'appareil.
 
 ### Comment OLU parle
 
@@ -227,6 +259,43 @@ Concrètement, ce que lisent élèves et professeurs :
   le détail. ») décrivent une fonction : on les lit la main déjà sur le bouton, il n'y a pas de
   place pour une voix. Même chose pour les messages de tracé sur la carte et les indicateurs de
   connexion.
+
+### Où OLU parle, au-delà de l'aide
+
+Depuis la reprise des textes d'apprentissage, c'est **OLU** qui accompagne aussi le quiz et les
+validations — dans ForetMap comme dans Gnomes & Licornes, puisque les deux partagent les mêmes
+écrans :
+
+- **Le contrôle de compréhension** : l'annonce avant les questions (« Avant de te laisser valider
+  « Le compostage », une question sera posée — histoire d'être sûr. »), l'en-tête du panneau de
+  question, la progression après une bonne réponse, et le mot de fin quand la validation s'ouvre.
+- **Le retour après une réponse**, quand la question ne porte pas de texte écrit par un
+  professeur. Sur une erreur, OLU reste **chaleureux et sobre** : il dit que ce n'est pas la bonne,
+  il renvoie à la fiche, et il ne commente jamais le choix qui vient d'être fait.
+- **Les fenêtres de validation** (« J'ai appris ce terme », « Espèce découverte », « Marquer comme
+  lu ») : une remarque d'OLU s'affiche **sous** la phrase d'engagement, jamais à sa place.
+- **Le sous-titre du Quiz libre.**
+
+Trois choses ne changent pas, et c'est voulu :
+
+- **Le texte écrit par un professeur gagne toujours.** Le retour rédigé sur une question s'affiche
+  tel quel ; la voix d'OLU ne sert que là où rien n'a été écrit.
+- **Les avertissements restent neutres** : le verrou après erreur, le décompte des essais restants
+  et les règles du contrôle gardent leur formulation factuelle. OLU ne plaisante pas là-dessus —
+  c'est ce qui fait qu'on le croit quand il annonce un blocage.
+- **Les boutons et la case à cocher sont inchangés.** « Espèce découverte », « Appris », « Je
+  confirme avoir lu et compris » : un bouton ne parle pas, et la case est une phrase dite par
+  l'élève, pas par OLU.
+
+Pour éviter la lassitude — un retour de quiz se relit des dizaines de fois dans une heure —
+chaque message existe en **plusieurs formulations**, choisies d'après la question ou la fiche
+concernée. Le texte reste le même tant qu'on est sur le même écran ; il change d'une question à
+l'autre.
+
+> ⚠️ **Ces textes-là ne sont pas modifiables** depuis les Paramètres, contrairement aux bulles
+> d'aide et aux visites guidées. Pour peser sur ce que lit un élève après une réponse, le levier
+> est le **retour rédigé sur la question elle-même**, dans l'éditeur de QCM : il prend le pas sur
+> tout le reste.
 
 ### Modifier ce que dit OLU
 
@@ -287,11 +356,12 @@ Au-delà, l'application le signale : sur le réseau d'un lycée, le poids se pai
 
 ## ⚠️ Points d'attention
 
-> ⚠️ **Point d'attention** — **Pas de guidage GPS dans la Visite** : la mascotte s'y
-> déplace uniquement au clic. Le suivi de la position GPS existe, mais sur la **carte
-> de travail** des élèves (avec calage du plan et seuil de précision). Si l'on souhaite
-> une visite « sur le terrain » guidée par la position réelle, c'est une évolution à
-> demander.
+> ⚠️ **Point d'attention** — **La mascotte ne suit pas le GPS** : elle se déplace
+> uniquement au clic sur un lieu. En revanche, si le plan de visite est **calé**, le
+> bouton **« Me situer »** peut afficher la position réelle (et **« Orienter »** /
+> l'échelle si les réglages le permettent), comme sur la carte de travail et le Plan
+> Lyautey. Une visite « guidée pas à pas par la position » (mascotte qui avance toute
+> seule sur le terrain) reste une évolution à demander.
 
 > ⚠️ **Point d'attention** — Les contenus de visite n'acceptent que des **images**
 > (pas d'audio ni de vidéo), et la progression d'un invité anonyme est **éphémère**

@@ -23,6 +23,19 @@ const router = express.Router();
 /** Dernier plateau du voyage : c'est là que la liasse du copiste se remet d'elle-même. */
 const LAST_PLATEAU = 5;
 
+/** Transitions autorisées — alignées sur `gameLifecycleAction` (bandeau MJ). */
+const ALLOWED_FROM = Object.freeze({
+  live: Object.freeze(['draft', 'paused']),
+  paused: Object.freeze(['live']),
+  ended: Object.freeze(['live', 'paused']),
+});
+
+const TRANSITION_ERROR = Object.freeze({
+  live: 'La partie ne peut être démarrée que depuis un brouillon ou une pause',
+  paused: 'Seule une partie en cours peut être mise en pause',
+  ended: 'Seule une partie en cours ou en pause peut être terminée',
+});
+
 async function placeTeamsOnPathStart(gameId, gameRow) {
   if (!gameRow?.chapter_id) return;
   if (resolveBoardMovementMode(gameRow) !== 'numbered_path') return;
@@ -52,7 +65,7 @@ async function updateGameStatus(req, res, nextStatus) {
   const gameId = parseId(req.params.id);
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
   const gameRow = await queryOne(
-    `SELECT g.id, g.chapter_id, g.board_movement_mode, g.board_path_start_index,
+    `SELECT g.id, g.status, g.chapter_id, g.board_movement_mode, g.board_path_start_index,
             ch.plateau_number
        FROM gl_games g
        LEFT JOIN gl_chapters ch ON ch.id = g.chapter_id
@@ -60,14 +73,33 @@ async function updateGameStatus(req, res, nextStatus) {
     [gameId],
   );
   if (!gameRow) return res.status(404).json({ error: 'Partie introuvable' });
-  await execute('UPDATE gl_games SET status = ?, updated_at = NOW() WHERE id = ?', [
-    nextStatus,
-    gameId,
-  ]);
+
+  const current = String(gameRow.status || '').toLowerCase();
+  const allowed = ALLOWED_FROM[nextStatus] || [];
+  if (!allowed.includes(current)) {
+    return res.status(409).json({
+      error: TRANSITION_ERROR[nextStatus] || 'Transition de statut impossible',
+    });
+  }
+
+  const claimed = await execute(
+    'UPDATE gl_games SET status = ?, updated_at = NOW() WHERE id = ? AND status = ?',
+    [nextStatus, gameId, current],
+  );
+  if (!claimed?.affectedRows) {
+    return res.status(409).json({ error: 'La partie a changé d’état, réessayez' });
+  }
+
   if (nextStatus === 'live') {
-    await placeTeamsOnPathStart(gameId, gameRow);
+    // Placement sur la case départ : uniquement au premier démarrage (brouillon → en cours).
+    // Reprendre après pause ne doit pas téléporter les équipes — la doc MJ promet une reprise.
+    if (current === 'draft') {
+      await placeTeamsOnPathStart(gameId, gameRow);
+    }
     // Feuillets d'ouverture : chaque équipe démarre avec le cadre du récit en main.
     // Best-effort — un corpus sans feuillet d'ouverture ne doit pas empêcher de jouer.
+    // Rejoué à la reprise : idempotent pour les équipes déjà pourvues, utile si le MJ a
+    // ajouté une équipe pendant la pause.
     try {
       await grantStartingFeuilletsForGame(db, { gameId, actorId: req.glAuth.userId });
     } catch (err) {

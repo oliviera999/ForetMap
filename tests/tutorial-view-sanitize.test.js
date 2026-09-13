@@ -63,21 +63,31 @@ test('sanitize : entrées vides inchangées', () => {
 test('pipeline : seuls les scripts de l’application survivent dans la sortie servie', () => {
   // Même ordre que enrichTutorialHtmlWithGlossary (routes/tutorials.js) : assainir PUIS
   // injecter les scripts de l'application (liens iframe + relais glossaire).
+  const { injectTutorialViewNoScriptRevealStyle } = require('../lib/tutorialRouteHelpers');
   const served = injectGlossaryAutolinkScript(
-    injectTutorialViewIframeLinkScript(sanitizeTutorialViewHtml(HOSTILE_FICHE)),
+    injectTutorialViewIframeLinkScript(
+      injectTutorialViewNoScriptRevealStyle(sanitizeTutorialViewHtml(HOSTILE_FICHE)),
+    ),
   );
   const scripts = served.match(/<script[\s\S]*?<\/script>/gi) || [];
   assert.strictEqual(scripts.length, 2, 'exactement les deux scripts de l’application');
   assert.ok(scripts.some((s) => s.includes('foretmap:glossary')));
   assert.doesNotMatch(served, /exfiltre|localStorage\.getItem/);
   assert.ok(served.trimEnd().endsWith('</script></body></html>'));
+  assert.match(served, /fm-tutorial-noscript-reveal/);
+  assert.match(served, /\.reveal\{opacity:1!important/);
 });
 
 test('convention : la route assainit AVANT de poser les auto-liens', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'routes', 'tutorials.js'), 'utf8');
-  assert.match(
-    source,
-    /const safe = sanitizeTutorialViewHtml\(html\);\s*\n\s*const linked = autolinkHtmlTextNodes\(safe, entries\);/,
+  const enrichStart = source.indexOf('function enrichTutorialHtmlWithGlossary');
+  assert.ok(enrichStart !== -1, 'enrichTutorialHtmlWithGlossary doit exister');
+  const slice = source.slice(enrichStart, enrichStart + 600);
+  assert.match(slice, /sanitizeTutorialViewHtml\(html\)/);
+  assert.match(slice, /injectTutorialViewNoScriptRevealStyle\(safe\)/);
+  assert.match(slice, /autolinkHtmlTextNodes\(readable, entries\)/);
+  assert.ok(
+    slice.indexOf('sanitizeTutorialViewHtml') < slice.indexOf('autolinkHtmlTextNodes'),
     'enrichTutorialHtmlWithGlossary doit assainir le HTML importé avant tout enrichissement',
   );
 });

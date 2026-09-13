@@ -239,6 +239,7 @@ export function GLQcmPopover({
                   loreGlossaryLinkItems={mergedLoreGlossaryItems}
                   onOpenGlossaryTerm={onOpenGlossaryTerm}
                   onOpenLoreTerm={onOpenLoreTerm}
+                  seed={questionCode}
                 />
                 {((isLore ? displayResult.loreGlossaryTerms : displayResult.glossaryTerms) || [])
                   .length > 0 ? (

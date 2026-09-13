@@ -31,6 +31,17 @@ describe('useTabNavigationGuards', () => {
     expect(setTab).toHaveBeenCalledWith('visit');
   });
 
+  it('laisse un visiteur sur tuto (accusés d’apprentissage)', () => {
+    const setTab = run({
+      tab: 'tuto',
+      canAccessStudentMapTasks: false,
+      isVisitor: true,
+      canAccessTutorials: true,
+      modules: { tutorials_enabled: true },
+    });
+    expect(setTab).not.toHaveBeenCalled();
+  });
+
   it('renvoie un élève sans accès carte/tâches vers plants', () => {
     const setTab = run({ tab: 'tasks', canAccessStudentMapTasks: false, isVisitor: false });
     expect(setTab).toHaveBeenCalledWith('plants');
@@ -62,7 +73,11 @@ describe('useTabNavigationGuards', () => {
   });
 
   it('F3 : rester sur tuto ne déclenche plus aucune bascule (fusion supprimée)', () => {
-    const setTab = run({ tab: 'tuto' });
+    const setTab = run({
+      tab: 'tuto',
+      canAccessTutorials: true,
+      modules: { tutorials_enabled: true },
+    });
     expect(setTab).not.toHaveBeenCalled();
   });
 

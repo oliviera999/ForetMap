@@ -65,3 +65,31 @@ export function createGlossaryDetailCache() {
     size: () => entries.size,
   };
 }
+
+/**
+ * Termes voisins d'une fiche, en **une** liste : les relations sortantes
+ * (`relatedTerms`) et entrantes (`incomingRelations`) réunies, dédoublonnées par code et
+ * triées par libellé.
+ *
+ * Le corpus enregistre la plupart des relations dans les deux sens : rendues à la suite,
+ * les deux listes affichaient chaque voisin **deux fois** sous le même intertitre
+ * « Termes liés ». La direction d'une relation n'a pas de sens pour le lecteur d'une fiche
+ * rapide — il veut savoir où aller ensuite.
+ *
+ * @param {Array<{glossary_code?: string, terme?: string}>} outgoing relations sortantes
+ * @param {Array<{glossary_code?: string, terme?: string}>} incoming relations entrantes
+ * @param {string} [excludeCode] code de la fiche affichée (jamais son propre voisin)
+ * @returns {Array<object>}
+ */
+export function mergeGlossaryNeighbourTerms(outgoing, incoming, excludeCode = '') {
+  const skip = String(excludeCode || '').trim();
+  const byCode = new Map();
+  for (const term of [...(outgoing || []), ...(incoming || [])]) {
+    const code = String(term?.glossary_code || '').trim();
+    if (!code || code === skip || byCode.has(code)) continue;
+    byCode.set(code, term);
+  }
+  return [...byCode.values()].sort((a, b) =>
+    String(a?.terme || '').localeCompare(String(b?.terme || ''), 'fr', { sensitivity: 'base' }),
+  );
+}

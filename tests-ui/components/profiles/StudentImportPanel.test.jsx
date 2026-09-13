@@ -48,7 +48,7 @@ describe('StudentImportPanel', () => {
 
   test('affiche le titre avec le pluriel de rôle et les boutons modèles', () => {
     renderPanel();
-    expect(screen.getByText('Import n3beurs (CSV / XLSX)')).toBeTruthy();
+    expect(screen.getByText('Import comptes (n3beurs et enseignants)')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Modèle CSV' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Modèle XLSX' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Importer' })).toBeTruthy();
@@ -97,7 +97,7 @@ describe('StudentImportPanel', () => {
     expect(body.fileName).toBe('classe.csv');
     expect(body.dryRun).toBe(false);
     expect(String(body.fileDataBase64)).toContain('base64');
-    await waitFor(() => expect(setMsg).toHaveBeenCalledWith('3 n3beur(s) créé(s)'));
+    await waitFor(() => expect(setMsg).toHaveBeenCalledWith('3 créé(s), 0 mis à jour'));
     expect(onImported).toHaveBeenCalledTimes(1);
   });
 

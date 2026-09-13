@@ -105,7 +105,7 @@ function printHuman(result) {
   }
   if (report.upstreamErrors?.length) {
     line('');
-    line(`Contrôles amont bloquants (${report.upstreamErrors.length}) :`);
+    line(`Comptes laissés de côté (${report.upstreamErrors.length}) :`);
     for (const e of report.upstreamErrors.slice(0, 20)) line(`  - ${e.code} : ${e.message}`);
   }
   const lists = report.lists || {};

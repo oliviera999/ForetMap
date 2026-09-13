@@ -1,9 +1,40 @@
 import { describe, test, expect } from 'vitest';
 import {
   isPrivilegedRole,
+  isClassTeacherRole,
+  isVisitorLikeRole,
+  shouldUseTeacherChrome,
   canManagePedagoContent,
   resolveParticipationFlag,
 } from '../../src/utils/appAccess';
+
+describe('isClassTeacherRole / isVisitorLikeRole / shouldUseTeacherChrome', () => {
+  test('prof_classe est tuteur et parcours type visiteur', () => {
+    expect(isClassTeacherRole('prof_classe')).toBe(true);
+    expect(isClassTeacherRole('prof')).toBe(false);
+    expect(isVisitorLikeRole('prof_classe')).toBe(true);
+    expect(isVisitorLikeRole('visiteur')).toBe(true);
+    expect(isVisitorLikeRole('personnel')).toBe(true);
+    expect(isVisitorLikeRole('eleve_novice')).toBe(false);
+  });
+
+  test('chrome TeacherTopTabs : n3boss oui, prof de classe non', () => {
+    expect(
+      shouldUseTeacherChrome({ roleSlug: 'prof', hasTeacherAccess: true, roleViewMode: 'native' }),
+    ).toBe(true);
+    expect(
+      shouldUseTeacherChrome({
+        roleSlug: 'prof_classe',
+        hasTeacherAccess: true,
+        roleViewMode: 'native',
+      }),
+    ).toBe(false);
+    expect(
+      shouldUseTeacherChrome({ roleSlug: 'prof', hasTeacherAccess: true, roleViewMode: 'student' }),
+    ).toBe(false);
+    expect(shouldUseTeacherChrome({ roleSlug: 'visiteur', hasTeacherAccess: false })).toBe(false);
+  });
+});
 
 describe('isPrivilegedRole', () => {
   test('prof et admin sont privilégiés (insensible à la casse)', () => {

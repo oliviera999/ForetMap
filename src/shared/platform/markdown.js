@@ -47,6 +47,8 @@ const ALLOWED_ATTR_WITH_JOURNAL = [
   ...ALLOWED_ATTR_WITH_IMAGES,
   'data-gl-embed-type',
   'data-gl-ref',
+  'data-embed-type',
+  'data-ref',
 ];
 /**
  * Auto-liens de glossaire reconnus par le sanitizer : attribut de données portant
@@ -69,7 +71,16 @@ const ALLOWED_ATTR_WITH_GLOSSARY = [
   'class',
   ...GLOSSARY_LINK_KINDS.map((kind) => kind.attr),
 ];
-const JOURNAL_EMBED_TYPES = new Set(['spell', 'species', 'glossary', 'chapter', 'module_stub']);
+/** Types d’encarts GL + FM (sanitize commun). */
+const JOURNAL_EMBED_TYPES = new Set([
+  'spell',
+  'species',
+  'glossary',
+  'chapter',
+  'module_stub',
+  'plant',
+  'tutorial',
+]);
 
 marked.setOptions({
   breaks: true,
@@ -221,21 +232,35 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   }
   if (node.tagName === 'ASIDE') {
     const className = String(node.getAttribute('class') || '');
-    if (!className.includes('gl-journal-embed')) {
+    const isGlEmbed = className.includes('gl-journal-embed');
+    const isFmEmbed = className.includes('journal-embed');
+    if (!isGlEmbed && !isFmEmbed) {
       node.remove();
       return;
     }
-    const embedType = String(node.getAttribute('data-gl-embed-type') || '')
+    const embedType = String(
+      node.getAttribute('data-embed-type') || node.getAttribute('data-gl-embed-type') || '',
+    )
       .trim()
       .toLowerCase();
-    const embedRef = String(node.getAttribute('data-gl-ref') || '').trim();
+    const embedRef = String(
+      node.getAttribute('data-ref') || node.getAttribute('data-gl-ref') || '',
+    ).trim();
     if (!JOURNAL_EMBED_TYPES.has(embedType) || !embedRef) {
       node.remove();
       return;
     }
-    node.setAttribute('class', 'gl-journal-embed');
-    node.setAttribute('data-gl-embed-type', embedType);
-    node.setAttribute('data-gl-ref', embedRef);
+    if (isFmEmbed && !isGlEmbed) {
+      node.setAttribute('class', 'journal-embed');
+      node.setAttribute('data-embed-type', embedType);
+      node.setAttribute('data-ref', embedRef);
+      node.removeAttribute('data-gl-embed-type');
+      node.removeAttribute('data-gl-ref');
+    } else {
+      node.setAttribute('class', 'gl-journal-embed');
+      node.setAttribute('data-gl-embed-type', embedType);
+      node.setAttribute('data-gl-ref', embedRef);
+    }
   }
 });
 
@@ -256,9 +281,10 @@ export function renderMarkdownToSafeHtml(markdown, options = {}) {
 }
 
 /**
- * Insère un encart de carnet personnel GL.
+ * Insère un encart de carnet. Par défaut format neutre FM (`journal-embed`) ;
+ * passer `variant: 'gl'` pour le format historique GL.
  */
-export function applyJournalEmbed(value, selectionStart, selectionEnd, type, ref) {
+export function applyJournalEmbed(value, selectionStart, selectionEnd, type, ref, options = {}) {
   const text = String(value ?? '');
   const start = Math.max(0, Math.min(selectionStart, text.length));
   const end = Math.max(start, Math.min(selectionEnd, text.length));
@@ -268,7 +294,11 @@ export function applyJournalEmbed(value, selectionStart, selectionEnd, type, ref
   const safeRef = String(ref || '')
     .trim()
     .replace(/"/g, '');
-  const snippet = `\n\n<aside class="gl-journal-embed" data-gl-embed-type="${safeType}" data-gl-ref="${safeRef}"></aside>\n\n`;
+  const variant = options?.variant === 'fm' ? 'fm' : 'gl';
+  const snippet =
+    variant === 'fm'
+      ? `\n\n<aside class="journal-embed" data-embed-type="${safeType}" data-ref="${safeRef}"></aside>\n\n`
+      : `\n\n<aside class="gl-journal-embed" data-gl-embed-type="${safeType}" data-gl-ref="${safeRef}"></aside>\n\n`;
   const nextValue = `${text.slice(0, start)}${snippet}${text.slice(end)}`;
   const cursor = start + snippet.length;
   return { value: nextValue, selectionStart: cursor, selectionEnd: cursor };

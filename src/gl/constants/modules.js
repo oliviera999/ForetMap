@@ -14,6 +14,7 @@ export const GL_MODULE_DEFAULTS = {
   loreCarnetEnabled: true,
   loreGlossaryEnabled: true,
   introEnabled: true,
+  presenceEnabled: true,
 };
 
 export function normalizeGlModules(raw) {

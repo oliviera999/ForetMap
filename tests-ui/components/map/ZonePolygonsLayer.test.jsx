@@ -119,6 +119,31 @@ describe('ZonePolygonsLayer', () => {
     expect(getByText('2 tutoriels liés')).toBeInTheDocument();
   });
 
+  it('met en avant la zone sélectionnée et estompe les voisines', () => {
+    const zones = [
+      zoneFixture({ id: 1, name: '🌳 Verger' }),
+      zoneFixture({
+        id: 2,
+        name: '🌱 Potager',
+        points: JSON.stringify([
+          { xp: 60, yp: 60 },
+          { xp: 90, yp: 60 },
+          { xp: 90, yp: 90 },
+        ]),
+      }),
+    ];
+    const { container } = renderLayer({
+      parsedZones: parseZonesForLayer(zones, EMOJIS),
+      selectedZoneId: 1,
+    });
+    const hits = container.querySelectorAll('g.map-zone-hit');
+    expect(hits).toHaveLength(2);
+    expect(hits[0]).toHaveClass('map-zone-hit--selected');
+    expect(hits[0]).toHaveAttribute('aria-current', 'true');
+    expect(hits[1]).toHaveClass('map-zone-hit--recessed');
+    expect(hits[0].querySelector('polygon').getAttribute('stroke')).toBe('rgba(26,71,49,0.92)');
+  });
+
   it('trace le contour des lieux « Infrastructure » en trait continu', () => {
     const { container } = renderLayer({
       parsedZones: parseZonesForLayer([zoneFixture({ is_infrastructure: true })], EMOJIS),

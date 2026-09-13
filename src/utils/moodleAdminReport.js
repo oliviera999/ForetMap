@@ -37,6 +37,7 @@ export const PENDING_DECISION_LABELS = Object.freeze({
 /** Ordre et libellés des totaux affichés en tête de rapport (section 14, point 4). */
 export const REPORT_TOTAL_ROWS = Object.freeze([
   ['membersProcessed', 'Membres traités'],
+  ['upstreamSkipped', 'Laissés de côté (contrôles)'],
   ['creations', 'Comptes à créer'],
   ['emailMatches', 'Rapprochés par e-mail'],
   ['nameMatches', 'Rapprochés par le nom'],
@@ -99,8 +100,13 @@ export function summarizeTotals(totals) {
     label,
     value: Number(t[key] || 0),
     attention:
-      ['deactivations', 'conflicts', 'pendingMatches', 'emailConflicts'].includes(key) &&
-      Number(t[key] || 0) > 0,
+      [
+        'deactivations',
+        'conflicts',
+        'pendingMatches',
+        'emailConflicts',
+        'upstreamSkipped',
+      ].includes(key) && Number(t[key] || 0) > 0,
   }));
 }
 
@@ -116,9 +122,6 @@ export function canApplyAfterDryRun({ lastDryRun, selectedCohortIds, teams = fal
   }
   if (lastDryRun.report?.thresholds?.blocked) {
     return { ok: false, reason: 'Un seuil de sécurité bloque : relire le rapport' };
-  }
-  if (Array.isArray(lastDryRun.report?.upstreamErrors) && lastDryRun.report.upstreamErrors.length) {
-    return { ok: false, reason: 'Des contrôles amont bloquent : corriger dans Moodle' };
   }
   const simulated = [...new Set((lastDryRun.report?.scope?.cohortIds || []).map(Number))].sort(
     (a, b) => a - b,

@@ -223,7 +223,26 @@ export function useAuthSession({
         const sess = getStoredSession() || {};
         saveStoredSession({ ...sess, token: trimmed });
       }
-      setAuthClaims(getAuthClaims());
+      // Toujours fusionner d.auth (permissions fraîches BDD) — le JWT seul peut être périmé
+      // après un changement de matrice sans changement de profil.
+      const fromJwt = getAuthClaims() || {};
+      setAuthClaims({
+        ...fromJwt,
+        userType: auth.userType ?? fromJwt.userType,
+        userId: auth.userId ?? fromJwt.userId,
+        canonicalUserId: auth.canonicalUserId ?? fromJwt.canonicalUserId,
+        roleId: auth.roleId ?? fromJwt.roleId,
+        roleSlug: auth.roleSlug ?? fromJwt.roleSlug,
+        roleDisplayName: auth.roleDisplayName ?? fromJwt.roleDisplayName,
+        permissions: Array.isArray(auth.permissions) ? auth.permissions : fromJwt.permissions,
+        nativePrivileged:
+          typeof auth.nativePrivileged === 'boolean'
+            ? auth.nativePrivileged
+            : fromJwt.nativePrivileged,
+        groupIds: Array.isArray(auth.groupIds) ? auth.groupIds : fromJwt.groupIds,
+        impersonating: auth.impersonating ?? fromJwt.impersonating,
+        impersonatedBy: auth.impersonatedBy ?? fromJwt.impersonatedBy,
+      });
       if (auth.userType === 'teacher') {
         setSessionUser((prev) => ({
           id: auth.canonicalUserId || prev?.id || null,

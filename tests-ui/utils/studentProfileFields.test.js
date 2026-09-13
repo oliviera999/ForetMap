@@ -151,10 +151,10 @@ describe('validateProfileEditorFields', () => {
 
   test('pseudo invalide (trop court ou caractères interdits) ; pseudo vide toléré', () => {
     expect(validateProfileEditorFields({ ...valid, pseudo: 'ab' })).toBe(
-      'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)',
+      'Pseudo invalide (3-50 caractères : lettres — y compris accentuées —, chiffres, . _ - +)',
     );
     expect(validateProfileEditorFields({ ...valid, pseudo: 'momo lyautey' })).toBe(
-      'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)',
+      'Pseudo invalide (3-50 caractères : lettres — y compris accentuées —, chiffres, . _ - +)',
     );
     expect(validateProfileEditorFields({ ...valid, pseudo: '   ' })).toBe('');
   });

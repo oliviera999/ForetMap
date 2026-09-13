@@ -48,9 +48,21 @@ describe('useLocationModalData', () => {
     expect(student.result.current.linkedTutorialsVisible.map((t) => t.id)).toEqual([10]);
   });
 
-  test('assignableTutorials : exclut archivés et déjà liés au lieu', () => {
-    const { result } = renderData('zone', ZONE, { isTeacher: true });
-    expect(result.current.assignableTutorials.map((t) => t.id)).toEqual([12]);
+  test('assignableTutorials : exclut archivés et déjà liés au lieu ; inclut ceux d’une autre carte', () => {
+    const { result } = renderData('zone', ZONE, {
+      isTeacher: true,
+      tutorials: [
+        ...TUTORIALS,
+        {
+          id: 13,
+          title: 'Tuto autre carte',
+          zone_ids: ['z-other'],
+          zones_linked: [{ id: 'z-other', name: 'Ailleurs', map_id: 'map2' }],
+          is_active: true,
+        },
+      ],
+    });
+    expect(result.current.assignableTutorials.map((t) => t.id).sort()).toEqual([12, 13]);
   });
 
   test('livingNames : repli sur le champ plante legacy du type de lieu (current_plant vs plant_name)', () => {

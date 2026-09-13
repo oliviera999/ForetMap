@@ -13,6 +13,7 @@ import { GlossaryInlineText } from '../GlossaryMarkdown.jsx';
 import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
 import { mergeGlossaryLinkItems } from '../../utils/foretmapGlossaryAutolink.js';
 import { IconQuiz } from '../../shared/icons.jsx';
+import { oluQuizHeaderSubtitle } from '../../shared/utils/oluLearningVoice.js';
 
 const THEME_OPTIONS = [
   { value: '', label: 'Tous thèmes' },
@@ -326,6 +327,7 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
             result={answerResult}
             glossaryItems={autolinkItems}
             onOpenGlossaryTerm={onOpenGlossaryTerm}
+            seed={questionCode}
           />
           {remediationTerms.length > 0 ? (
             <div className="pedago-remediation">
@@ -381,7 +383,7 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
         <h2 className="section-title">
           <IconQuiz size={20} /> Quiz
         </h2>
-        <p className="section-sub">Questions sciences du vivant et jardinage.</p>
+        <p className="section-sub">{oluQuizHeaderSubtitle(questionCode)}</p>
         {progress ? (
           <p className="section-sub pedago-quiz__progress">
             Progression : {progress.correct}/{progress.attempts} bonnes réponses

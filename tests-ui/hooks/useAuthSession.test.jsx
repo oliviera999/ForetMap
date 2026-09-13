@@ -155,7 +155,19 @@ describe('useAuthSession', () => {
     expect(apiMocks.saveStoredSession).toHaveBeenCalledWith(
       expect.objectContaining({ token: 'jwt-neuf' }),
     );
-    expect(params.setAuthClaims).toHaveBeenCalledWith({ permissions: ['teacher.access'] });
+    /*
+     * Depuis `feat(rbac): profil Prof de classe`, les claims ne sont plus simplement relus
+     * du stockage : `d.auth` y est FUSIONNÉ, enseignants compris. C'est ce qui propage un
+     * changement de permissions ou de périmètre de groupes sans exiger une reconnexion —
+     * le JWT seul peut être périmé. On décrit donc la fusion, pas l'égalité stricte.
+     */
+    const claims = params.setAuthClaims.mock.calls.at(-1)[0];
+    expect(claims).toMatchObject({
+      permissions: ['teacher.access'],
+      userType: 'teacher',
+      canonicalUserId: 'T1',
+      roleDisplayName: 'Prof',
+    });
     const updater = params.setSessionUser.mock.calls.at(-1)[0];
     expect(updater(null)).toMatchObject({ id: 'T1', userType: 'teacher', displayName: 'Prof' });
   });

@@ -12,6 +12,7 @@ import {
   stripLeadingMarkerEmoji,
 } from '../constants/emojis';
 import { normalizeSurfaceList } from '../shared/ui/SurfaceVisibilityField.jsx';
+import { normalizeAudienceRoleList } from '../shared/ui/LocationAudienceFields.jsx';
 import { normalizeVisitEditorialBlocksForSave } from './visitEditorialBlocks.js';
 
 export {
@@ -93,6 +94,9 @@ export function buildZonePayload(name, form, visitEditorialBlocks, options = {})
     visit_details_text: form.visitDetailsText,
     hidden_surfaces: normalizeSurfaceList(form.hiddenSurfaces),
     search_aliases: String(form.searchAliases || '').trim(),
+    visible_role_slugs: normalizeAudienceRoleList(form.visibleRoleSlugs),
+    restricted_note: String(form.restrictedNote || '').trim(),
+    restricted_note_role_slugs: normalizeAudienceRoleList(form.restrictedNoteRoleSlugs),
     visit_editorial_blocks: normalizeVisitEditorialBlocksForSave(visitEditorialBlocks),
   };
   if (options.omitVisitEditorialBlocks) {

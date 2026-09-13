@@ -19,6 +19,7 @@ import {
   IconGlossary,
   IconMap,
   IconNotebook,
+  IconProfiles,
   IconQuiz,
   IconStats,
   IconTasks,
@@ -49,8 +50,13 @@ export function StudentBottomNav({
   isVisitor = false,
   shouldUseDesktopSplit,
   tutorialsModuleEnabled,
+  /** Tutos consultables même sans carte/tâches (visiteur / prof de classe). */
+  canAccessTutorials = false,
   studentActiveAssignedTasksCount,
   canViewGeneralStats,
+  /** Liste / gestion des élèves de ses groupes (prof de classe). */
+  canAccessProfiles = false,
+  profilesLabel = 'Classe',
   observationsEnabled,
   visitEnabled,
   canAccessForum,
@@ -101,7 +107,7 @@ export function StudentBottomNav({
       <NavButton id="foodweb" tab={tab} onTabChange={onTabChange} icon={<IconFoodweb size={20} />}>
         Réseau
       </NavButton>
-      {tutorialsModuleEnabled && canAccessStudentMapTasks && (
+      {tutorialsModuleEnabled && canAccessTutorials && (
         <NavButton id="tuto" tab={tab} onTabChange={onTabChange} icon={<IconTuto size={20} />}>
           Tuto
         </NavButton>
@@ -109,6 +115,16 @@ export function StudentBottomNav({
       {canViewGeneralStats && (
         <NavButton id="stats" tab={tab} onTabChange={onTabChange} icon={<IconStats size={20} />}>
           Stats
+        </NavButton>
+      )}
+      {canAccessProfiles && (
+        <NavButton
+          id="profiles"
+          tab={tab}
+          onTabChange={onTabChange}
+          icon={<IconProfiles size={20} />}
+        >
+          {profilesLabel}
         </NavButton>
       )}
       {observationsEnabled && (

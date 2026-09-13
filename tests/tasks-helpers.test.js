@@ -399,8 +399,10 @@ describe('taskAuthzHelpers — contrôles d’accès purs', () => {
     );
   });
 
-  it('isVisitorRole : slug visiteur insensible à la casse', () => {
+  it('isVisitorRole : slug visiteur ou personnel, insensible à la casse', () => {
     assert.equal(isVisitorRole({ roleSlug: 'Visiteur' }), true);
+    assert.equal(isVisitorRole({ roleSlug: 'personnel' }), true);
+    assert.equal(isVisitorRole({ roleSlug: 'Personnel' }), true);
     assert.equal(isVisitorRole({ roleSlug: 'prof' }), false);
     assert.equal(isVisitorRole(null), false);
   });

@@ -18,5 +18,7 @@ test('règles d’édition partie', async () => {
   assert.strictEqual(mod.canEditGameClass('draft'), true);
   assert.strictEqual(mod.canEditGameClass('paused'), false);
   assert.strictEqual(mod.gameLifecycleAction('live', 'pause'), true);
+  assert.strictEqual(mod.gameLifecycleAction('paused', 'start'), true);
+  assert.strictEqual(mod.gameLifecycleAction('live', 'start'), false);
   assert.strictEqual(mod.gameLifecycleAction('draft', 'end'), false);
 });

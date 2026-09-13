@@ -13,6 +13,7 @@ import { MediaLibraryMenu } from './MediaLibraryMenu.jsx';
 import { AdminTextSettingField, AdminNumberSettingField } from './settings/AdminSettingFields.jsx';
 import { MapCategoriesPanel } from './settings/MapCategoriesPanel.jsx';
 import { MapRoutesPanel } from './settings/MapRoutesPanel.jsx';
+import { PlanSettingsPanel } from './settings/PlanSettingsPanel.jsx';
 import { UsagePanel } from './settings/UsagePanel.jsx';
 import { MapLocationsAdminPanel } from './settings/MapLocationsAdminPanel.jsx';
 import { MapGeorefPanel } from './settings/MapGeorefPanel.jsx';
@@ -627,6 +628,30 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
           {/* Réglages mascottes : panneau dédié (vignettes + choix du défaut) — la clé
               correspondante est retirée de la grille texte libre ci-dessus. */}
           <AdminSection id="mascots" title="Mascottes de visite" defaultOpen={false}>
+            <label
+              className="field"
+              style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}
+              data-testid="visit-heading-up-setting"
+            >
+              <input
+                type="checkbox"
+                checked={Boolean(get('ui.visit.heading_up_enabled', false))}
+                disabled={savingKey === 'ui.visit.heading_up_enabled'}
+                onChange={(e) =>
+                  saveSetting(
+                    'ui.visit.heading_up_enabled',
+                    e.target.checked,
+                    e.target.checked
+                      ? 'Orientation boussole autorisée sur la Visite'
+                      : 'Orientation boussole désactivée sur la Visite',
+                  )
+                }
+              />
+              <span>
+                Autoriser « Me situer » / « Orienter » sur la Visite (la carte affichée doit aussi
+                l’autoriser dans son calage GPS).
+              </span>
+            </label>
             <VisitMascotSettingsPanel
               defaultValue={get('ui.visit.mascot.default_id', '')}
               onSave={(key, value) => saveSetting(key, value, 'Réglages mascottes enregistrés')}
@@ -647,6 +672,54 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
               toutes les cartes actives ; une affiliation peut cibler un seul plan (y compris ceux
               ajoutés ici).
             </p>
+            <label
+              className="field"
+              style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}
+              data-testid="map-heading-up-setting"
+            >
+              <input
+                type="checkbox"
+                checked={Boolean(get('ui.map.heading_up_enabled', false))}
+                disabled={savingKey === 'ui.map.heading_up_enabled'}
+                onChange={(e) =>
+                  saveSetting(
+                    'ui.map.heading_up_enabled',
+                    e.target.checked,
+                    e.target.checked
+                      ? 'Orientation boussole autorisée sur la carte'
+                      : 'Orientation boussole désactivée sur la carte',
+                  )
+                }
+              />
+              <span>
+                Autoriser « Orienter » sur la carte de travail (chaque carte doit aussi l’autoriser
+                dans son calage GPS).
+              </span>
+            </label>
+            <label
+              className="field"
+              style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}
+              data-testid="map-show-tutorial-dots-setting"
+            >
+              <input
+                type="checkbox"
+                checked={Boolean(get('ui.map.show_tutorial_dots', false))}
+                disabled={savingKey === 'ui.map.show_tutorial_dots'}
+                onChange={(e) =>
+                  saveSetting(
+                    'ui.map.show_tutorial_dots',
+                    e.target.checked,
+                    e.target.checked
+                      ? 'Pastilles tutoriel visibles sur la carte'
+                      : 'Pastilles tutoriel masquées sur la carte',
+                  )
+                }
+              />
+              <span>
+                Afficher le point violet sur les zones et repères liés à un tutoriel (désactivé par
+                défaut : le point reste invisible).
+              </span>
+            </label>
             <div
               style={{
                 display: 'flex',
@@ -859,6 +932,21 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                 </div>
               ))}
             </div>
+          </AdminSection>
+
+          <AdminSection id="plan" title="Plan Lyautey" defaultOpen={false}>
+            <PlanSettingsPanel
+              maps={maps}
+              get={get}
+              saveSetting={saveSetting}
+              savingKey={savingKey}
+              onMessage={(okMsg) => {
+                setMsg(okMsg);
+                setErr('');
+                load();
+              }}
+              onError={(errMsg) => setErr(errMsg)}
+            />
           </AdminSection>
 
           <AdminSection id="routes" title="Parcours" defaultOpen={false}>

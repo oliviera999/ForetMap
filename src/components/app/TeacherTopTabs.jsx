@@ -80,7 +80,15 @@ export function TeacherTopTabs({
   const tasksText = tutorialsModuleEnabled ? 'Tâches et tuto' : 'Tâches';
   const mapTasksText = tutorialsModuleEnabled ? 'Cartes, tâches et tuto' : 'Cartes & tâches';
 
-  /* Ordre et conditions de visibilité inchangés par rapport à la barre unique. */
+  /* Visibilité pilotée par permissions (profil Prof de classe inclus). */
+  const canMap = hasPermission('zones.manage') || hasPermission('map.manage_markers');
+  const canPlants = hasPermission('plants.manage');
+  const canTasks = hasPermission('tasks.manage') || hasPermission('tasks.validate');
+  const canVisit = hasPermission('visit.manage');
+  const canTutorials = hasPermission('tutorials.manage');
+  const canMedia = hasPermission('media.manage') || hasPermission('teacher.access');
+  const canStats =
+    statsEnabled && (hasPermission('stats.read.all') || hasPermission('stats.read.group'));
   const tabsSpec = [
     {
       id: 'maptasks',
@@ -88,43 +96,55 @@ export function TeacherTopTabs({
       Icon: IconMap,
       label: mapTasksText,
       badge: true,
-      visible: shouldUseDesktopSplit,
+      visible: shouldUseDesktopSplit && (canMap || canTasks),
     },
-    { id: 'map', pole: 'contents', Icon: IconMap, label: 'Carte & Zones', visible: true },
-    { id: 'plants', pole: 'contents', Icon: IconBiodiv, label: 'Biodiversité', visible: true },
-    { id: 'quiz', pole: 'contents', Icon: IconQuiz, label: 'Quiz', visible: true },
+    { id: 'map', pole: 'contents', Icon: IconMap, label: 'Carte & Zones', visible: canMap },
+    { id: 'plants', pole: 'contents', Icon: IconBiodiv, label: 'Biodiversité', visible: canPlants },
+    { id: 'quiz', pole: 'contents', Icon: IconQuiz, label: 'Quiz', visible: canPlants },
     /* Le glossaire est rendu pour les deux branches par `PedagoTabs`, mais seule la barre
        élève l'exposait : côté prof, l'onglet n'était atteignable qu'en cliquant un terme
        auto-lié (`openPedagoGlossaryTerm`). */
-    { id: 'glossary', pole: 'contents', Icon: IconGlossary, label: 'Glossaire', visible: true },
+    {
+      id: 'glossary',
+      pole: 'contents',
+      Icon: IconGlossary,
+      label: 'Glossaire',
+      visible: canPlants,
+    },
     {
       id: 'foodweb',
       pole: 'contents',
       Icon: IconFoodweb,
       label: 'Réseau trophique',
-      visible: true,
+      visible: canPlants,
     },
     {
       id: 'tuto',
       pole: 'contents',
       Icon: IconTuto,
       label: 'Tuto',
-      visible: tutorialsModuleEnabled,
+      visible: tutorialsModuleEnabled && canTutorials,
     },
-    { id: 'visit', pole: 'contents', Icon: IconVisit, label: 'Visite', visible: visitEnabled },
+    {
+      id: 'visit',
+      pole: 'contents',
+      Icon: IconVisit,
+      label: 'Visite',
+      visible: visitEnabled && canVisit,
+    },
     {
       id: 'mascot_packs',
       pole: 'contents',
       Icon: IconMascotPacks,
       label: 'Packs mascotte',
-      visible: visitEnabled,
+      visible: visitEnabled && canVisit,
     },
     {
       id: 'media_library',
       pole: 'contents',
       Icon: IconMediaLibrary,
       label: 'Médiathèque',
-      visible: true,
+      visible: canMedia,
     },
     {
       id: 'tasks',
@@ -132,9 +152,9 @@ export function TeacherTopTabs({
       Icon: IconTasks,
       label: tasksText,
       badge: true,
-      visible: true,
+      visible: canTasks,
     },
-    { id: 'stats', pole: 'tracking', Icon: IconStats, label: 'Stats', visible: statsEnabled },
+    { id: 'stats', pole: 'tracking', Icon: IconStats, label: 'Stats', visible: canStats },
     { id: 'forum', pole: 'tracking', Icon: IconForum, label: 'Forum', visible: canAccessForum },
     {
       id: 'audit',
@@ -154,7 +174,9 @@ export function TeacherTopTabs({
         hasPermissionInRole('stats.export') ||
         hasPermissionInRole('students.import') ||
         hasPermissionInRole('students.delete') ||
-        hasPermissionInRole('users.create'),
+        hasPermissionInRole('users.create') ||
+        hasPermissionInRole('groups.manage') ||
+        hasPermissionInRole('groups.read'),
     },
     /* `tours.manage` ouvre l'onglet sans `admin.settings.read` : un prof à qui l'on
        délègue la réécriture des visites guidées n'y voit que ce sous-onglet. */

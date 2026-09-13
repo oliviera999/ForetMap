@@ -4,7 +4,6 @@ import { api } from '../../services/api';
 import { tutorialPreviewCanEmbed } from '../TutorialPreviewModal';
 import {
   tutorialPickerHasLocation,
-  tutorialPickerLinkedToSameMap,
   dedupeTutorialsByIdForTasks,
   tutorialRefsFromTasksAtLocationFilter,
 } from '../../utils/taskListHelpers.js';
@@ -58,10 +57,7 @@ export function TaskTutorialsAtFocusBlock({
   const assignableTutorialsAtFocus = useMemo(() => {
     if (!filterZone || !isTeacher || !tutorialsModuleEnabled || !focusMapIdForTutorials) return [];
     return (tutorials || []).filter(
-      (tu) =>
-        tu.is_active !== false &&
-        !tutorialPickerHasLocation(tu, filterZone) &&
-        tutorialPickerLinkedToSameMap(tu, focusMapIdForTutorials),
+      (tu) => tu.is_active !== false && !tutorialPickerHasLocation(tu, filterZone),
     );
   }, [filterZone, tutorials, isTeacher, tutorialsModuleEnabled, focusMapIdForTutorials]);
 

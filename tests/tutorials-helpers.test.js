@@ -19,6 +19,8 @@ const {
   htmlToPdfBuffer,
   TUTORIAL_VIEW_IFRAME_LINK_SCRIPT,
   injectTutorialViewIframeLinkScript,
+  injectTutorialViewNoScriptRevealStyle,
+  TUTORIAL_VIEW_NOSCRIPT_REVEAL_STYLE,
   toPublicTutorialRow,
   buildLinkedTaskLocationHint,
 } = require('../lib/tutorialRouteHelpers');
@@ -163,6 +165,17 @@ describe('tutorialRouteHelpers (logique pure de routes/tutorials.js, sans DB)', 
     );
     assert.equal(injectTutorialViewIframeLinkScript(''), '');
     assert.equal(injectTutorialViewIframeLinkScript('   '), '   ');
+  });
+
+  it('injectTutorialViewNoScriptRevealStyle : force .reveal visible (aperçu sans scripts)', () => {
+    const src =
+      '<!doctype html><html><head><title>t</title></head><body><div class="reveal">x</div></body></html>';
+    const out = injectTutorialViewNoScriptRevealStyle(src);
+    assert.ok(out.includes('fm-tutorial-noscript-reveal'));
+    assert.ok(out.includes('.reveal{opacity:1!important'));
+    assert.ok(
+      out.indexOf(TUTORIAL_VIEW_NOSCRIPT_REVEAL_STYLE) < out.toLowerCase().indexOf('</head>'),
+    );
   });
 
   it('toPublicTutorialRow : projection complète d’une ligne SQL', () => {

@@ -33,13 +33,27 @@ describe('parseReactionEmojiList', () => {
 });
 
 describe('isForumModerator', () => {
-  test('admin ou prof par roleSlug (insensible à la casse)', () => {
+  test('admin par roleSlug (insensible à la casse)', () => {
     expect(isForumModerator({ roleSlug: 'admin' })).toBe(true);
-    expect(isForumModerator({ roleSlug: 'Prof' })).toBe(true);
+    expect(isForumModerator({ roleSlug: 'ADMIN' })).toBe(true);
   });
 
-  test('permission teacher.access suffisante', () => {
-    expect(isForumModerator({ roleSlug: 'n3beur', permissions: ['teacher.access'] })).toBe(true);
+  /**
+   * Resserrement apporté par `feat(rbac): profil Prof de classe` : la modération ne se
+   * déduit plus d'un rôle ni de l'accès enseignant en général, elle demande la permission
+   * dédiée. Un tuteur de classe enseigne sans pour autant modérer le forum de tout le monde.
+   */
+  test('prof et teacher.access ne suffisent plus : il faut forum.group.moderate', () => {
+    expect(isForumModerator({ roleSlug: 'Prof' })).toBe(false);
+    expect(isForumModerator({ roleSlug: 'prof_classe', permissions: ['teacher.access'] })).toBe(
+      false,
+    );
+    expect(isForumModerator({ roleSlug: 'prof', permissions: ['forum.group.moderate'] })).toBe(
+      true,
+    );
+    expect(isForumModerator({ roleSlug: 'n3beur', permissions: ['forum.group.moderate'] })).toBe(
+      true,
+    );
   });
 
   test('sinon non modérateur (claims absents ou permissions non tableau)', () => {

@@ -11,6 +11,17 @@ vi.mock('../../../src/services/api.js', () => ({
 
 const ROLE_TERMS = { studentSingular: 'n3beur', teacherShort: 'n3boss' };
 
+const SAMPLE_ROLES = [
+  { slug: 'visiteur', display_name: 'Visiteur' },
+  { slug: 'personnel', display_name: 'Personnel' },
+  { slug: 'eleve_novice', display_name: 'n3beur novice' },
+  { slug: 'eleve_avance', display_name: 'n3beur avancé' },
+  { slug: 'eleve_chevronne', display_name: 'n3beur chevronné' },
+  { slug: 'prof_classe', display_name: 'Prof de classe' },
+  { slug: 'prof', display_name: 'n3boss' },
+  { slug: 'admin', display_name: 'Administrateur' },
+];
+
 /** Les libellés du panneau ne sont pas associés (pas de htmlFor) : on récupère le contrôle voisin via le conteneur .field. */
 function fieldControl(labelText, tag = 'input') {
   const label = screen.getByText(labelText);
@@ -29,7 +40,9 @@ function renderPanel(overrides = {}) {
       { value: 'both', label: 'Tous les espaces' },
       { value: 'n3', label: 'N3 uniquement' },
     ],
+    roles: SAMPLE_ROLES,
     isAdmin: false,
+    canCreateTeacherRoles: true,
     canCreateUsers: true,
     ...callbacks,
     ...overrides,
@@ -59,14 +72,32 @@ describe('CreateUserPanel', () => {
     expect(screen.getByRole('button', { name: 'Créer' })).toBeTruthy();
   });
 
+  test('propose visiteur, personnel, paliers n3beur, prof de classe et n3boss', () => {
+    renderPanel({ isAdmin: false, canCreateTeacherRoles: true });
+    expect(screen.getByRole('option', { name: 'Visiteur' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Personnel' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'n3beur novice' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'n3beur avancé' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'n3beur chevronné' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Prof de classe' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'n3boss' })).toBeTruthy();
+  });
+
   test("l'option Admin est absente pour un non-admin", () => {
     renderPanel({ isAdmin: false });
-    expect(screen.queryByRole('option', { name: 'Admin' })).toBeNull();
+    expect(screen.queryByRole('option', { name: 'Administrateur' })).toBeNull();
   });
 
   test("l'option Admin est présente pour un admin", () => {
     renderPanel({ isAdmin: true });
-    expect(screen.getByRole('option', { name: 'Admin' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Administrateur' })).toBeTruthy();
+  });
+
+  test('sans droit enseignant : pas de prof / prof de classe', () => {
+    renderPanel({ isAdmin: false, canCreateTeacherRoles: false });
+    expect(screen.queryByRole('option', { name: 'Prof de classe' })).toBeNull();
+    expect(screen.queryByRole('option', { name: 'n3boss' })).toBeNull();
+    expect(screen.getByRole('option', { name: 'Visiteur' })).toBeTruthy();
   });
 
   test('la saisie du prénom met à jour le champ (état interne)', () => {
@@ -97,7 +128,7 @@ describe('CreateUserPanel', () => {
     expect(path).toBe('/api/rbac/users');
     expect(method).toBe('POST');
     expect(body).toEqual({
-      role_slug: 'eleve_novice',
+      role_slug: 'visiteur',
       first_name: 'Léa',
       last_name: 'Martin',
       password: 'secret123',
@@ -113,6 +144,22 @@ describe('CreateUserPanel', () => {
     expect(fieldControl('Prénom').value).toBe('');
     expect(fieldControl('Nom').value).toBe('');
     expect(fieldControl('Mot de passe').value).toBe('');
+  });
+
+  test('création prof_classe : role_slug transmis', async () => {
+    api.mockResolvedValue({
+      first_name: 'Léa',
+      last_name: 'Martin',
+      role_display_name: 'Prof de classe',
+      role_slug: 'prof_classe',
+    });
+    renderPanel();
+    fillRequiredFields();
+    fireEvent.change(fieldControl('Profil', 'select'), { target: { value: 'prof_classe' } });
+    fireEvent.change(fieldControl('Mot de passe'), { target: { value: 'MotDePasse12!' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Créer' }));
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+    expect(api.mock.calls[0][2].role_slug).toBe('prof_classe');
   });
 
   test('échec API : setErr avec le message serveur, pas de onCreated', async () => {
@@ -131,7 +178,7 @@ describe('CreateUserPanel', () => {
     fillRequiredFields();
     fireEvent.click(screen.getByRole('button', { name: 'Créer' }));
     expect(screen.getByRole('button', { name: 'Création…' }).disabled).toBe(true);
-    resolveApi({ first_name: 'Léa', last_name: 'Martin', role_slug: 'eleve_novice' });
+    resolveApi({ first_name: 'Léa', last_name: 'Martin', role_slug: 'visiteur' });
     await waitFor(() => expect(screen.getByRole('button', { name: 'Créer' })).toBeTruthy());
   });
 
@@ -141,9 +188,15 @@ describe('CreateUserPanel', () => {
     expect(btn.disabled).toBe(true);
   });
 
-  test("l'affiliation est désactivée si le profil sélectionné n'est pas eleve_novice", () => {
+  test("l'affiliation est désactivée si le profil sélectionné n'est pas un profil élève", () => {
     renderPanel();
     fireEvent.change(fieldControl('Profil', 'select'), { target: { value: 'prof' } });
     expect(fieldControl('Affiliation n3beur', 'select').disabled).toBe(true);
+  });
+
+  test("l'affiliation reste active pour visiteur et paliers n3beur", () => {
+    renderPanel();
+    fireEvent.change(fieldControl('Profil', 'select'), { target: { value: 'eleve_avance' } });
+    expect(fieldControl('Affiliation n3beur', 'select').disabled).toBe(false);
   });
 });

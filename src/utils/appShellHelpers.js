@@ -22,6 +22,8 @@ export const OAUTH_ERROR_MESSAGES = {
   oauth_invalid_token: 'Connexion Google impossible (token invalide).',
   oauth_claims_invalid: 'Connexion Google refusée (compte non vérifié).',
   oauth_email_not_allowed: 'Adresse Google non autorisée pour ForetMap.',
+  oauth_account_not_found:
+    'Aucun compte ForetMap pour cette adresse Google. Demandez à un professeur de créer votre compte.',
   oauth_teacher_inactive: 'Compte n3boss inactif.',
   oauth_teacher_no_role: 'Aucun rôle n3boss attribué à ce compte.',
   oauth_server_error: 'Erreur serveur pendant la connexion Google.',

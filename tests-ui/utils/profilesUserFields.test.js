@@ -242,10 +242,10 @@ describe('validateUserIdentityFields', () => {
 
   test('pseudo invalide (format ou longueur)', () => {
     expect(validateUserIdentityFields({ ...valid, pseudo: 'ab' })).toBe(
-      'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)',
+      'Pseudo invalide (3-50 caractères : lettres — y compris accentuées —, chiffres, . _ - +)',
     );
     expect(validateUserIdentityFields({ ...valid, pseudo: 'léa!' })).toBe(
-      'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)',
+      'Pseudo invalide (3-50 caractères : lettres — y compris accentuées —, chiffres, . _ - +)',
     );
     expect(validateUserIdentityFields({ ...valid, pseudo: '  ' })).toBeNull(); // vide après trim → ignoré
   });

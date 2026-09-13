@@ -114,4 +114,59 @@ describe('computeVisitLocationAside', () => {
     expect(out.livingBeingsOnlyOnTasks).toEqual(['Geai']);
     expect(out.showBiodiversity).toBe(true);
   });
+  test('visite invitée : biodiversité lue sur la ligne de visite (aucune zone carte)', () => {
+    // `GET /api/visit/content` publie species / living_beings_list / is_infrastructure :
+    // c'est la seule source disponible sans session.
+    const selected = {
+      id: 7,
+      living_beings_list: ['Chêne', 'Fougère'],
+      species: [
+        { id: 2, name: 'Fougère', emoji: '🌿' },
+        { id: 1, name: 'Chêne', emoji: '🌳' },
+      ],
+      is_infrastructure: false,
+    };
+    const out = computeVisitLocationAside(selected, 'zone', baseCtx());
+    expect(out.primaryLivingNames).toEqual(['Chêne', 'Fougère']);
+    // Les espèces suivent l'ordre d'affichage, pas celui de la charge utile.
+    expect(out.primaryLivingSpecies.map((sp) => sp.name)).toEqual(['Chêne', 'Fougère']);
+    expect(out.showBiodiversity).toBe(true);
+  });
+
+  test('visite invitée : zone d’infrastructure → aucun volet biodiversité', () => {
+    const selected = { id: 7, living_beings_list: ['Chêne'], is_infrastructure: true };
+    const out = computeVisitLocationAside(selected, 'zone', baseCtx());
+    expect(out.primaryLivingNames).toEqual(['Chêne']);
+    expect(out.showBiodiversity).toBe(false);
+  });
+
+  test('visite invitée : biodiversité du repère lue sur la ligne de visite', () => {
+    const selected = {
+      id: 3,
+      living_beings_list: ['Bouleau'],
+      species: [{ id: 5, name: 'Bouleau', emoji: '🌳' }],
+    };
+    const out = computeVisitLocationAside(selected, 'marker', baseCtx());
+    expect(out.primaryLivingNames).toEqual(['Bouleau']);
+    expect(out.primaryLivingSpecies).toEqual([{ id: 5, name: 'Bouleau', emoji: '🌳' }]);
+    expect(out.showBiodiversity).toBe(true);
+  });
+
+  test('la zone carte reste prioritaire quand elle porte des espèces', () => {
+    const ctx = baseCtx({
+      mapZones: [{ id: 7, map_id: MAP_ID, living_beings_list: ['Chêne'] }],
+    });
+    const selected = { id: 7, living_beings_list: ['Ronce'] };
+    const out = computeVisitLocationAside(selected, 'zone', ctx);
+    expect(out.primaryLivingNames).toEqual(['Chêne']);
+  });
+
+  test('zone carte connue mais sans espèce : repli sur le contenu de visite', () => {
+    const ctx = baseCtx({
+      mapZones: [{ id: 7, map_id: MAP_ID, living_beings_list: [] }],
+    });
+    const selected = { id: 7, living_beings_list: ['Ronce'] };
+    const out = computeVisitLocationAside(selected, 'zone', ctx);
+    expect(out.primaryLivingNames).toEqual(['Ronce']);
+  });
 });

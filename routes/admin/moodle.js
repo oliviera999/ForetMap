@@ -19,7 +19,7 @@ const { PROVIDER, readMoodleEnv, notConfiguredError } = require('../../lib/moodl
 const { createMoodleClientFromEnv } = require('../../lib/moodle/client');
 const { loadMoodleSettings } = require('../../lib/moodle/settings');
 const { runMoodleCheck } = require('../../lib/moodle/check');
-const { resolvePolicyForIdnumber, isCohortOfYear } = require('../../lib/moodle/policies');
+const { resolvePolicyForIdnumber, isCohortListedForSync } = require('../../lib/moodle/policies');
 const { runSync, getRun, listRuns } = require('../../lib/moodle/syncRun');
 const { undoRun } = require('../../lib/moodle/undo');
 const pendingMatches = require('../../lib/moodle/pendingMatches');
@@ -130,7 +130,9 @@ router.get(
         name: String(c.name || ''),
         idnumber: String(c.idnumber || ''),
       }))
-      .filter((c) => isCohortOfYear(c.idnumber, settings.yearPrefix));
+      .filter((c) =>
+        isCohortListedForSync(c.idnumber, settings.yearPrefix, settings.compiledPolicies),
+      );
     const counts = new Map();
     if (ofYear.length) {
       const rows = await client.getCohortMembers(ofYear.map((c) => c.id));
@@ -491,7 +493,7 @@ router.post(
       String(g.name || g.idnumber || ''),
     );
     const year = settings.yearPrefix;
-    const hasN3 = names.some((n) => n.includes(`${year}#n3`));
+    const hasN3 = names.some((n) => /n3/i.test(n));
     const hasPlayer = names.some((n) => new RegExp(`${year}#6\\d{2}`).test(n));
     let product = null;
     if (hasN3 && hasPlayer) product = 'both';

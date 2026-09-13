@@ -52,9 +52,13 @@ function readSafeTopPx() {
  * Pose `inert` sur les frères de la surcouche (enfants directs de `body` autres que le
  * portail) le temps de l'ouverture, et le retire à la fermeture — seulement sur ceux que
  * nous avons marqués, pour ne pas libérer un `inert` posé par une autre surcouche.
+ *
+ * `enabled=false` : la carte / l'arrière-plan restent utilisables (mode parcours Plan, cran
+ * peek non bloquant). Défaut inchangé pour les autres écrans.
  */
-function useInertSiblings(overlayRef) {
+function useInertSiblings(overlayRef, enabled = true) {
   useEffect(() => {
+    if (!enabled) return undefined;
     if (typeof document === 'undefined' || !document.body) return undefined;
     const overlay = overlayRef.current;
     const marked = [];
@@ -68,7 +72,7 @@ function useInertSiblings(overlayRef) {
     return () => {
       for (const el of marked) el.removeAttribute('inert');
     };
-  }, [overlayRef]);
+  }, [overlayRef, enabled]);
 }
 
 /**
@@ -93,6 +97,7 @@ function BottomSheetSurface({
   dismissOnDragDown,
   closeLabel,
   dialogMode,
+  blockBackground,
 }) {
   const titleId = useId();
   const onCloseRef = useRef(onClose);
@@ -110,8 +115,9 @@ function BottomSheetSurface({
   const reducedMotion = usePrefersReducedMotion();
 
   useOverlayHistoryBack(true, () => onCloseRef.current?.());
-  useBodyScrollLock(true);
-  useInertSiblings(overlayRef);
+  // Sans blocage d'arrière-plan : pas de verrou de scroll (la carte doit pan/zoom).
+  useBodyScrollLock(blockBackground);
+  useInertSiblings(overlayRef, blockBackground);
 
   // Notifie les changements de cran (jamais le cran initial).
   const firstSnapNotify = useRef(true);
@@ -232,7 +238,11 @@ function BottomSheetSurface({
   return createPortal(
     <div
       ref={overlayRef}
-      className={joinClassNames('fm-bottom-sheet-overlay', overlayClassName)}
+      className={joinClassNames(
+        'fm-bottom-sheet-overlay',
+        !blockBackground && 'fm-bottom-sheet-overlay--pass-through',
+        overlayClassName,
+      )}
       role="presentation"
       data-testid={testId ? `${testId}-overlay` : undefined}
       onClick={(e) => {
@@ -249,12 +259,13 @@ function BottomSheetSurface({
           className,
         )}
         role="dialog"
-        aria-modal="true"
+        aria-modal={blockBackground ? 'true' : 'false'}
         aria-label={ariaLabel}
         aria-labelledby={labelledBy}
         tabIndex={-1}
         data-testid={testId}
         data-snap={snap}
+        data-block-background={blockBackground ? 'true' : 'false'}
         data-reduced-motion={reducedMotion ? 'true' : undefined}
         onClick={(e) => e.stopPropagation()}
       >
@@ -294,7 +305,8 @@ function BottomSheetSurface({
  *
  * - portail sous `document.body`, `role="dialog" aria-modal="true"`, piège de focus + Échap +
  *   restauration du focus (`useDialogA11y`), retour navigateur/Android (`useOverlayHistoryBack`),
- *   verrou du défilement du body, `inert` sur les frères de la surcouche ;
+ *   verrou du défilement du body, `inert` sur les frères de la surcouche (sauf si
+ *   `blockBackground=false`) ;
  * - crans `peek` (≈ 30 dvh), `half` (≈ 55 dvh), `full` (viewport − zone sûre − 24 px), poignée
  *   glissable (poignée + en-tête) avec aimantation au relâchement selon position et vitesse ;
  *   glisser sous le cran bas ferme (`dismissOnDragDown`) ;
@@ -310,6 +322,8 @@ function BottomSheetSurface({
  * @param {'peek'|'half'|'full'} [props.initialSnap='half']
  * @param {(snap: string) => void} [props.onSnapChange]
  * @param {boolean} [props.closeOnOverlay=true]
+ * @param {boolean} [props.blockBackground=true] si false : pas d'`inert`, surcouche transparente
+ *   aux pointeurs (carte encore utilisable derrière)
  * @param {string} [props.className] classes supplémentaires sur la feuille
  * @param {string} [props.overlayClassName] classes supplémentaires sur la surcouche
  * @param {string} [props.testId] `data-testid` de la feuille (`${testId}-overlay` sur la surcouche)
@@ -329,6 +343,7 @@ export function BottomSheet({
   initialSnap = 'half',
   onSnapChange = null,
   closeOnOverlay = true,
+  blockBackground = true,
   className = '',
   overlayClassName = '',
   testId,
@@ -349,6 +364,7 @@ export function BottomSheet({
       initialSnap={initialSnap}
       onSnapChange={onSnapChange}
       closeOnOverlay={closeOnOverlay}
+      blockBackground={blockBackground}
       className={className}
       overlayClassName={overlayClassName}
       testId={testId}

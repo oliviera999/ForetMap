@@ -166,14 +166,16 @@ export function pinchPctMapTransform(start, startMid, mid, bounds) {
 
 /**
  * Transformation qui place le point contenu (`xp`, `yp` en % du rectangle image) au centre
- * du cadre, à l'échelle `scale`, bornée au cadre.
+ * de la zone visible du cadre, à l'échelle `scale`, bornée au cadre.
  * @param {{ xp: number, yp: number }} pct
  * @param {number} scale
  * @param {object} bounds `{ content, stage, min, max }`
  * @param {{ offsetX?: number, offsetY?: number, width?: number, height?: number }} [fitRect]
  *   rectangle de l'image dans le contenu (mode « scène » : image en `object-fit: contain`).
+ * @param {{ top?: number, right?: number, bottom?: number, left?: number }} [insets]
+ *   marges en px scène (ex. hauteur d'une barre basse) pour centrer dans la zone encore visible.
  */
-export function centerPctMapTransformOnPct(pct, scale, bounds, fitRect = null) {
+export function centerPctMapTransformOnPct(pct, scale, bounds, fitRect = null, insets = null) {
   const content = bounds?.content || { w: 1, h: 1 };
   const stage = bounds?.stage || { w: 1, h: 1 };
   const s = clampPctMapScale(scale, bounds);
@@ -183,10 +185,15 @@ export function centerPctMapTransformOnPct(pct, scale, bounds, fitRect = null) {
   const foy = fitRect && num(fitRect.height) > 0 ? num(fitRect.offsetY) : 0;
   const cx = fox + (num(pct?.xp) / 100) * fw;
   const cy = foy + (num(pct?.yp) / 100) * fh;
-  return clampPctMapTransform(
-    { s, x: num(stage.w) / 2 - cx * s, y: num(stage.h) / 2 - cy * s },
-    bounds,
-  );
+  const insetTop = Math.max(0, num(insets?.top));
+  const insetRight = Math.max(0, num(insets?.right));
+  const insetBottom = Math.max(0, num(insets?.bottom));
+  const insetLeft = Math.max(0, num(insets?.left));
+  const visibleW = Math.max(1, num(stage.w) - insetLeft - insetRight);
+  const visibleH = Math.max(1, num(stage.h) - insetTop - insetBottom);
+  const targetX = insetLeft + visibleW / 2;
+  const targetY = insetTop + visibleH / 2;
+  return clampPctMapTransform({ s, x: targetX - cx * s, y: targetY - cy * s }, bounds);
 }
 
 /** Accélération de retombée de l'inertie (px/ms²) — décroissance exponentielle de la vitesse. */

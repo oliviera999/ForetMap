@@ -5,13 +5,18 @@ import { ZONE_PRESENCE_FILTER, plantMatchesAllFilters } from '../utils/plantFilt
  * État partagé des filtres du catalogue biodiversité (PlantManager / PlantViewer).
  *
  * Regroupe les 7 états de filtre (recherche + taxonomie + habitat/rôle/milieu + présence
- * en zone), le memo `structured` et le calcul mémoïsé de `filteredPlants` — auparavant
- * dupliqués dans les deux composants. `zonePresence` démarre sur `ALL` : un appelant qui
- * n'affiche pas ce filtre (PlantManager) obtient donc le même résultat qu'avant.
+ * sur la carte), le memo `structured` et le calcul mémoïsé de `filteredPlants`.
+ * `defaultZonePresence` permet d’ouvrir le catalogue élève déjà filtré sur la carte active
+ * sans exposer un second modèle de rattachement.
  *
  * Retourne aussi `filterPanelProps`, à étaler tel quel sur `<PlantCatalogFilterPanel />`.
  */
-export function usePlantCatalogFilters(plants, zones, markers) {
+export function usePlantCatalogFilters(
+  plants,
+  zones,
+  markers,
+  { defaultZonePresence = ZONE_PRESENCE_FILTER.ALL, activeMapId = null } = {},
+) {
   const [search, setSearch] = useState('');
   const [group1, setGroup1] = useState('');
   const [group2, setGroup2] = useState('');
@@ -19,7 +24,7 @@ export function usePlantCatalogFilters(plants, zones, markers) {
   const [habitat, setHabitat] = useState('');
   const [trophicRole, setTrophicRole] = useState('');
   const [habitatType, setHabitatType] = useState('');
-  const [zonePresence, setZonePresence] = useState(ZONE_PRESENCE_FILTER.ALL);
+  const [zonePresence, setZonePresence] = useState(defaultZonePresence);
 
   const structured = useMemo(
     () => ({
@@ -38,9 +43,15 @@ export function usePlantCatalogFilters(plants, zones, markers) {
   const filteredPlants = useMemo(
     () =>
       plants.filter((p) =>
-        plantMatchesAllFilters(p, { structured, queryTrimmedLower, zonePresence }, zones, markers),
+        plantMatchesAllFilters(
+          p,
+          { structured, queryTrimmedLower, zonePresence },
+          zones,
+          markers,
+          activeMapId,
+        ),
       ),
-    [plants, structured, queryTrimmedLower, zonePresence, zones, markers],
+    [plants, structured, queryTrimmedLower, zonePresence, zones, markers, activeMapId],
   );
 
   return {
@@ -62,6 +73,7 @@ export function usePlantCatalogFilters(plants, zones, markers) {
       setHabitatType,
       zonePresence,
       setZonePresence,
+      defaultZonePresence,
     },
   };
 }

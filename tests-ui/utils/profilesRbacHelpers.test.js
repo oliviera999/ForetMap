@@ -10,11 +10,12 @@ import {
 } from '../../src/utils/profilesRbacHelpers.js';
 
 describe('isN3beurTierConfigurableProfile', () => {
-  test('false pour admin/prof/visiteur et null', () => {
+  test('false pour admin/prof/visiteur/personnel et null', () => {
     expect(isN3beurTierConfigurableProfile(null)).toBe(false);
     expect(isN3beurTierConfigurableProfile({ slug: 'admin' })).toBe(false);
     expect(isN3beurTierConfigurableProfile({ slug: 'prof' })).toBe(false);
     expect(isN3beurTierConfigurableProfile({ slug: 'visiteur' })).toBe(false);
+    expect(isN3beurTierConfigurableProfile({ slug: 'personnel' })).toBe(false);
   });
   test('true pour slug eleve_* ou rang < 400', () => {
     expect(isN3beurTierConfigurableProfile({ slug: 'eleve_novice' })).toBe(true);

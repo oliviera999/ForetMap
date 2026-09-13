@@ -11,6 +11,9 @@ import {
 import { VisitDrawZonePreview } from '../VisitDrawZonePreview.jsx';
 import { polygonPoleOfInaccessibilityPct } from '../../shared/pct-map/pctPolylabel.js';
 
+/** Repli aligné sur la carte principale (`ZonePolygonsLayer`). */
+const DEFAULT_ZONE_FILL = '#86efac90';
+
 /**
  * Calque SVG des zones de la visite (polygones + emoji/libellé) — extraction
  * iso-comportement du rendu inline de VisitViewImpl (visit-views.jsx).
@@ -30,6 +33,7 @@ import { polygonPoleOfInaccessibilityPct } from '../../shared/pct-map/pctPolylab
  * @param {string} props.mode mode courant (`view` | `draw-zone` | `add-marker`).
  * @param {Array<{ xp: number, yp: number }>} props.drawPoints points du tracé en cours (mode prof).
  * @param {(zone: object, event: object) => void} props.onZoneClick clic sur une zone (handler stable).
+ * @param {string|number|null} [props.selectedZoneId] zone dont la fiche est ouverte (mise en avant).
  */
 function VisitZonesSvgLayerImpl({
   zones,
@@ -41,6 +45,7 @@ function VisitZonesSvgLayerImpl({
   mode,
   drawPoints,
   onZoneClick,
+  selectedZoneId = null,
 }) {
   const {
     emojiU,
@@ -79,11 +84,15 @@ function VisitZonesSvgLayerImpl({
 
   const iw = fitWidth > 0 ? fitWidth : 360;
   const ih = fitHeight > 0 ? fitHeight : 480;
+  const hasSelection = selectedZoneId != null && selectedZoneId !== '';
 
   return (
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="visit-map-zones">
       {parsedZones.map(({ zone: z, ptsPct, pointsAttr, mx, my }) => {
         const isSeen = seen.has(itemSeenKey('zone', z.id));
+        const isSelected = hasSelection && String(z.id) === String(selectedZoneId);
+        const isRecessed = hasSelection && !isSelected;
+        const statusLabel = isSeen ? 'Vu' : 'À découvrir';
         const zoneEmoji =
           String(z.emoji || '').trim() || detectLeadingMarkerEmoji(z.name || '', markerEmojis);
         const zoneLabel = stripLeadingMarkerEmoji(z.name || '', markerEmojis);
@@ -116,17 +125,29 @@ function VisitZonesSvgLayerImpl({
           maxWidth: labelMaxTextLengthU,
         });
         const zoneAccessibleName = String(zoneNameText).trim() || 'Zone de visite';
+        const statusY =
+          titleY + (showZoneEmoji ? gapU : 0) + (showZoneName ? labelU * 0.95 : labelU * 0.55);
+        const fillColor = String(z.color || '').trim() || DEFAULT_ZONE_FILL;
+        const hitClass = [
+          'visit-zone-hit',
+          isSeen ? 'is-seen' : 'is-unseen',
+          isSelected ? 'is-selected' : '',
+          isRecessed ? 'is-recessed' : '',
+        ]
+          .filter(Boolean)
+          .join(' ');
         return (
           <g
             key={z.id}
-            className="visit-zone-hit"
+            className={hitClass}
             style={{ cursor: 'pointer' }}
             onClick={(event) => onZoneClick(z, event)}
             // Accessibilité clavier : une zone est un bouton, comme sur la carte principale
             // (`ZonePolygonsLayer`) — sans cela, au clavier, seuls les repères s'ouvraient.
             role="button"
             tabIndex={0}
-            aria-label={zoneAccessibleName}
+            aria-current={isSelected ? 'true' : undefined}
+            aria-label={`${zoneAccessibleName} — ${statusLabel}`}
             onKeyDown={(event) => {
               if (event.key !== 'Enter' && event.key !== ' ') return;
               event.preventDefault();
@@ -135,7 +156,10 @@ function VisitZonesSvgLayerImpl({
           >
             <polygon
               points={pointsAttr}
-              className={`visit-zone-poly ${isSeen ? 'is-seen' : 'is-unseen'}`}
+              className={`visit-zone-poly ${isSeen ? 'is-seen' : 'is-unseen'}${
+                isSelected ? ' is-selected' : ''
+              }`}
+              style={{ fill: fillColor }}
             />
             {showZoneEmoji || showZoneName ? (
               <g transform={titleUniform}>
@@ -167,6 +191,19 @@ function VisitZonesSvgLayerImpl({
                 ) : null}
               </g>
             ) : null}
+            {/* Statut au survol / focus uniquement (A+E) — pas de pastille permanente. */}
+            <g transform={titleUniform} pointerEvents="none" aria-hidden="true">
+              <text
+                x={mx}
+                y={statusY}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize={Math.max(1.6, labelU * 0.72)}
+                className="visit-zone-status"
+              >
+                {statusLabel}
+              </text>
+            </g>
           </g>
         );
       })}

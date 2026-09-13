@@ -428,6 +428,41 @@ test('undo : l’exécution est rejouée à l’envers (comptes créés désacti
   assert.deepStrictEqual(diffFingerprints(before, after), ['users']);
 });
 
+test('apply : e-mail Moodle en double ne retire pas un élève déjà lié', async () => {
+  const unique = `Dup${stamp}`;
+  const student = await fx.createStudent({
+    firstName: 'Lien',
+    lastName: unique,
+    email: `lien.${unique.toLowerCase()}@lyautey.test`,
+  });
+  fx.seedCohort(fake, {
+    id: 621,
+    idnumber: '26#621',
+    name: `6e skip ${stamp}`,
+    members: [fx.member(6211, 'Lien', unique, { email: student.email })],
+  });
+  const first = await apply([621]);
+  assert.strictEqual(first.status, 'succeeded');
+
+  fake.addUser(fx.member(6212, 'Fantome', unique, { email: student.email }));
+  fake.enrolInCohort(621, 6212);
+
+  const second = await apply([621]);
+  assert.strictEqual(second.status, 'succeeded');
+  const after = await queryOne('SELECT is_active FROM users WHERE id = ?', [student.id]);
+  assert.strictEqual(Number(after.is_active), 1, 'compte déjà lié non désactivé');
+  const eg = await queryOne("SELECT * FROM external_groups WHERE external_id = '621'");
+  assert.ok(eg);
+  const membership = await queryOne(
+    'SELECT 1 AS x FROM group_members WHERE group_id = ? AND user_id = ?',
+    [eg.group_id, student.id],
+  );
+  assert.ok(membership, 'appartenance conservée');
+  const kinds = (second.report.actions || []).map((a) => a.kind);
+  assert.ok(!kinds.includes('user.deactivate'));
+  assert.ok(!kinds.includes('group.member.remove'));
+});
+
 test('undo : refuse une simulation et une exécution plus ancienne qu’une exécution réelle postérieure', async () => {
   const sim = await dryRun([603]);
   await assert.rejects(undoRun(sim.runId), (e) => e.status === 409);

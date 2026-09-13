@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { oluControlPassedSentence } from '../../src/shared/utils/oluLearningVoice.js';
 import {
   buildCorrectAnswerNotice,
   buildWrongAnswerNotice,
@@ -83,16 +84,19 @@ describe('buildGatingRules — accord avec la portée du verrou', () => {
   });
 });
 
-describe('buildCorrectAnswerNotice — féliciter et situer', () => {
-  it('félicite et annonce ce qui reste dans la série', () => {
+// La ligne ne félicite plus (le retour de la question le fait déjà) : elle situe. Les
+// assertions portent donc sur les nombres et le titre, pas sur la formulation — celle-ci
+// tourne d'une question à l'autre (voix d'OLU, §7.4).
+describe('buildCorrectAnswerNotice — situer dans la série', () => {
+  it('annonce ce qui reste dans la série', () => {
     const msg = buildCorrectAnswerNotice({
       questionIndex: 0,
       questionTotal: 3,
       itemTitle: 'Compost',
     });
-    expect(msg).toMatch(/^Bravo/);
     expect(msg).toContain('1 sur 3');
-    expect(msg).toContain('encore 2 questions');
+    expect(msg).toContain('2 questions');
+    expect(msg).toContain('« Compost »');
   });
 
   it('annonce l’ouverture de la validation à la dernière question', () => {
@@ -102,14 +106,14 @@ describe('buildCorrectAnswerNotice — féliciter et situer', () => {
       pendingTotal: 2,
       itemTitle: 'Compost',
     });
-    expect(msg).toContain('le contrôle est réussi');
+    expect(msg).toBe(oluControlPassedSentence('« Compost »'));
     expect(msg).toContain('« Compost »');
   });
 
   it('dit le reliquat quand la série ne couvre pas tout le contrôle', () => {
     const msg = buildCorrectAnswerNotice({ questionIndex: 2, questionTotal: 3, pendingTotal: 8 });
     expect(msg).toContain('5 questions');
-    expect(msg).not.toContain('contrôle est réussi');
+    expect(msg).not.toBe(oluControlPassedSentence('ce contenu'));
   });
 });
 
