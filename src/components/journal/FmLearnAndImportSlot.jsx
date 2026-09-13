@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api } from '../../services/api';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { FmJournalImportButton } from './FmJournalImportButton.jsx';
+import { getImportedRefs, invalidateImportedRefs } from './importedRefsCache.js';
 
 /**
  * Composeur : bouton d’import carnet à côté d’un accusé (espèce / glossaire / tuto).
@@ -21,10 +21,10 @@ export function FmLearnAndImportSlot({
     let cancelled = false;
     if (!resourceType || resourceRef == null || resourceRef === '') return undefined;
     const ref = String(resourceRef);
-    Promise.resolve()
-      .then(() => api('/api/user-journal/me/imports/refs'))
-      .then((res) => {
-        const refs = Array.isArray(res?.refs) ? res.refs : [];
+    // Liste mutualisée : une requête pour toute la page, quel que soit le nombre de vignettes
+    // (`importedRefsCache.js`). Chaque vignette la demandait auparavant pour son seul compte.
+    getImportedRefs()
+      .then((refs) => {
         const found = refs.some(
           (r) => r?.resourceType === resourceType && String(r?.resourceRef) === ref,
         );
@@ -36,7 +36,12 @@ export function FmLearnAndImportSlot({
     };
   }, [resourceType, resourceRef]);
 
-  const onImported = useCallback(() => setAlreadyImported(true), []);
+  const onImported = useCallback(() => {
+    // La liste mémorisée vient de changer : la périmer, sinon une autre vignette de la même
+    // page continuerait de se croire non importée.
+    invalidateImportedRefs();
+    setAlreadyImported(true);
+  }, []);
 
   return (
     <div className="fm-learn-import">

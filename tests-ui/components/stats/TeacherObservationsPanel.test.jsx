@@ -8,11 +8,13 @@ describe('TeacherObservationsPanel', () => {
   test('état initial : invite à charger, bouton actif qui déclenche onLoad', () => {
     const onLoad = vi.fn();
     render(<TeacherObservationsPanel roleTerms={ROLE_TERMS} onLoad={onLoad} />);
-    expect(screen.getByText('Observations des n3beurs (max 100)')).toBeTruthy();
+    // Le panneau a été renommé « Observations » → « Carnets » (et « observation » → « article ») ;
+    // seuls les libellés changent, le fil d'articles est le même.
+    expect(screen.getByText(/Carnets des n3beurs \(max 100 articles\)/)).toBeTruthy();
     expect(
-      screen.getByText('Aucune observation chargée (clique sur le bouton pour rafraîchir).'),
+      screen.getByText('Aucun article chargé (clique sur le bouton pour rafraîchir).'),
     ).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Charger les observations' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Charger les carnets' }));
     expect(onLoad).toHaveBeenCalledTimes(1);
   });
 
@@ -20,13 +22,13 @@ describe('TeacherObservationsPanel', () => {
     render(<TeacherObservationsPanel roleTerms={ROLE_TERMS} obsLoading onLoad={() => {}} />);
     const btn = screen.getByRole('button', { name: 'Chargement…' });
     expect(btn.disabled).toBe(true);
-    expect(screen.queryByText(/Aucune observation chargée/)).toBeNull();
+    expect(screen.queryByText(/Aucun article chargé/)).toBeNull();
   });
 
   test('erreur affichée à la place du message vide', () => {
     render(<TeacherObservationsPanel roleTerms={ROLE_TERMS} obsError="Boum" onLoad={() => {}} />);
     expect(screen.getByText('Boum')).toBeTruthy();
-    expect(screen.queryByText(/Aucune observation chargée/)).toBeNull();
+    expect(screen.queryByText(/Aucun article chargé/)).toBeNull();
   });
 
   test('liste : nom, zone, contenu et tiret pour un contenu vide', () => {

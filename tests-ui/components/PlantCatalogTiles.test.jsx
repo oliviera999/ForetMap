@@ -51,8 +51,28 @@ const PLANTS = Array.from({ length: 12 }, (_, i) => ({
   taxonomy: { kingdom: 'Végétal', group: 'Angiosperme', family: null, genus: null },
 }));
 
+/**
+ * Une zone qui rattache les douze espèces à la carte active.
+ *
+ * Indispensable depuis que le catalogue filtre par défaut sur « Présente sur cette carte »
+ * (`ZONE_PRESENCE_FILTER.IN_MAP`) : avec `zones: []`, les douze fiches étaient **toutes
+ * écartées**, la grille se rendait vide, et ce test passait pour de mauvaises raisons — zéro
+ * appel par fiche, parce que zéro fiche. La garde de charge ne gardait plus rien.
+ */
+const ZONE_AVEC_ESPECES = {
+  id: 'z1',
+  name: 'Verger',
+  map_id: 'foret',
+  species_ids: PLANTS.map((p) => p.id),
+};
+
 vi.mock('../../src/contexts/DataContext.jsx', () => ({
-  useData: () => ({ plants: PLANTS, zones: [], markers: [] }),
+  useData: () => ({
+    plants: PLANTS,
+    zones: [ZONE_AVEC_ESPECES],
+    markers: [],
+    activeMapId: 'foret',
+  }),
 }));
 vi.mock('../../src/contexts/PublicSettingsContext.jsx', () => ({
   usePublicSettings: () => ({ modules: {} }),
