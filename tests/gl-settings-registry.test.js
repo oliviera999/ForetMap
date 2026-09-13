@@ -76,6 +76,9 @@ const HISTORICAL_MODULE_KEYS = [
   'modules.lore_carnet_enabled',
   'modules.lore_glossary_enabled',
   'modules.intro_enabled',
+  // Ajoutée par `feat: présence en ligne staff FM+GL (cœur partagé)`. Ce gel n'interdit pas
+  // d'étendre le registre : il oblige à le faire sciemment, en inscrivant la clé ici.
+  'modules.presence_enabled',
 ];
 
 test('les listes de clés gameplay / modules / gating sont inchangées', () => {

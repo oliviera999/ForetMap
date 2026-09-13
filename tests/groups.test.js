@@ -444,7 +444,9 @@ test('F2-B : POST /api/groups/:id/members/:userId rattache et promeut le visiteu
 test('F2-B : rattachement unitaire refusé sans permission groups.manage', async () => {
   const visitor = await createVisitorStudent('Deny');
   const other = await createVisitorStudent('DenyGrp');
-  const studentToken = signAuthToken({
+  // `await` : sans lui l'en-tête vaut « Bearer [object Promise] » et le refus vient du jeton
+  // invalide, pas de l'absence de `groups.manage` — le test passait pour la mauvaise raison.
+  const studentToken = await signAuthToken({
     userType: 'student',
     userId: other.id,
     canonicalUserId: other.id,
