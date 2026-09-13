@@ -93,11 +93,12 @@ describe('useMapCrudActions', () => {
   it('linkTutorialToLocation / unlinkTutorialFromLocation gèrent zone et repère', async () => {
     const { result } = setup();
     await result.current.linkTutorialToLocation(3, 'marker', 11);
-    // tutorialLocationIds normalise les ids existants en chaînes (comportement
-    // de production) ; seul l'id ajouté garde son type d'origine.
+    // `tutorialLocationIds` normalise **tous** les ids en chaînes, l'id ajouté compris : la
+    // liste envoyée est donc homogène. Ce test attendait encore `11` en nombre, du temps où
+    // seuls les ids déjà présents étaient normalisés.
     expect(api).toHaveBeenCalledWith('/api/tutorials/3', 'PUT', {
       zone_ids: ['1'],
-      marker_ids: ['10', 11],
+      marker_ids: ['10', '11'],
     });
     await result.current.unlinkTutorialFromLocation(TUTORIAL, 'marker', '10');
     expect(api).toHaveBeenLastCalledWith('/api/tutorials/3', 'PUT', {

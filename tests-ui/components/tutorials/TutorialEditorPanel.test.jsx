@@ -74,14 +74,29 @@ describe('TutorialEditorPanel', () => {
     expect(lastFormUpdate(handlers.setForm).zone_ids).toEqual(['z1']);
   });
 
-  test('changement de carte : map_id mis à jour et lieux hors carte décochés', () => {
+  test('changement de carte : map_id mis à jour, lieux d’autres cartes conservés', () => {
     const { handlers } = renderPanel({ zone_ids: ['z1', 'z2'], marker_ids: ['m1'] });
     fireEvent.change(fieldControl('Carte (filtre zones / repères)', 'select'), {
       target: { value: 'jardin' },
     });
     const next = lastFormUpdate(handlers.setForm);
     expect(next.map_id).toBe('jardin');
-    expect(next.zone_ids).toEqual(['z2']);
+    // Le sélecteur est un **filtre d'affichage**, pas une remise à zéro : un tutoriel peut
+    // être rattaché à plusieurs plans, donc changer de carte ne décoche rien (docblock de
+    // `applyTutorialFormMapChange`). Ce test attendait l'ancien comportement.
+    expect(next.zone_ids).toEqual(['z1', 'z2']);
+    expect(next.marker_ids).toEqual(['m1']);
+  });
+
+  test('changement de carte : un lieu qui n’existe plus est retiré', () => {
+    // Seule suppression encore faite : les ids qui ne correspondent à aucun lieu connu
+    // (lieu effacé depuis l'enregistrement du tutoriel).
+    const { handlers } = renderPanel({ zone_ids: ['z1', 'disparue'], marker_ids: ['fantome'] });
+    fireEvent.change(fieldControl('Carte (filtre zones / repères)', 'select'), {
+      target: { value: 'jardin' },
+    });
+    const next = lastFormUpdate(handlers.setForm);
+    expect(next.zone_ids).toEqual(['z1']);
     expect(next.marker_ids).toEqual([]);
   });
 
