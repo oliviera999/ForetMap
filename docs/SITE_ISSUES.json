@@ -87,10 +87,6 @@
         "id": "R8",
         "summary": "Strategie de distribution medias a harmoniser",
         "details": "/uploads + endpoints sendFile"
-      },
-      {
-        "id": "B7",
-        "summary": "Evenements de presence eleve non diffuses en temps reel"
       }
     ],
     "optimisation": [
@@ -201,6 +197,11 @@
         "id": "B5",
         "summary": "Creation et suppression d'observations diffusees en temps reel",
         "details": "Evenement observations:changed ; carnet eleve et panneau prof se rechargent"
+      },
+      {
+        "id": "B7",
+        "summary": "Presence eleve staff : presence:update + pastilles FM/GL",
+        "details": "Refcount Socket.IO, last_seen a connect/disconnect, rooms presence:*-staff"
       },
       {
         "id": "B8",
