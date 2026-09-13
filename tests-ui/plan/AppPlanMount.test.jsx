@@ -237,7 +237,9 @@ describe('AppPlan — montage', () => {
     expect(screen.getByText('CDI')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /Sport/ }));
     expect(screen.getByRole('button', { name: 'Gymnase' })).toBeTruthy();
-    expect(screen.queryByText('CDI')).toBeNull();
+    // Attente explicite : la feuille précédente peut encore se fermer (history différé) ; une
+    // assertion synchrone tombait par intermittence dans la suite complète.
+    await waitFor(() => expect(screen.queryByText('CDI')).toBeNull());
     expect(JSON.parse(window.localStorage.getItem('plan:categories'))).toEqual(['c-sport']);
 
     fireEvent.click(screen.getByRole('button', { name: 'Tout' }));

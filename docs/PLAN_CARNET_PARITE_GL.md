@@ -283,3 +283,59 @@ Ordre de merge : A → B → C. Version : **ne pas bumper** `package.json` (bump
 - [ ] Doc référence + API + tests + CHANGELOG à jour
 - [ ] Aucun couplage runtime FM ↔ tables/routes GL
       `)
+
+## 9. Noyau commun ForetMap / G&L (13 septembre 2026)
+
+> Réalisé dans la PR #457, à la suite de l'audit du code (`docs/AUDIT_CODE_2026-09-13.md`,
+> §4.5 : trois paires de composants recopiées, 235 lignes divergentes sur la carte d'article).
+
+### 9.1 Principe : la logique est commune, l'habillage reste au produit
+
+Le contrat HTTP des deux carnets est identique par construction (§4.2 ci-dessus). Tout ce qui
+ne dépend pas du produit vit désormais dans **`src/shared/journal/`** ; chaque produit ne
+fournit plus que trois choses : son **client HTTP et son préfixe de routes**, ses
+**métadonnées de types d'import** (quels onglets, quelles icônes), et son **habillage**
+(classes, composant bouton, aide contextuelle).
+
+| Module partagé                               | Rôle                                                                                                                                                                                                                               |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `journalAdapter.js` — `createJournalAdapter` | Fabrique l'interface `JournalAdapter` (`fetchJournal`, `createArticle`, `updateArticle`, `addArticleAsset`, `removeArticleAsset`, `deleteArticle`, `pinArticle`, `deleteImport`, `pinImport`) à partir d'un client et d'un préfixe |
+| `journalFeed.js` — `buildJournalTimeline`    | Fil unifié articles + imports : filtre par type, recherche, épinglés d'abord, ordre chronologique — fonction pure, testée sans rendu                                                                                               |
+| `useJournalFeed.js`                          | État et actions du fil (chargement avec garde anti-course, création, suppression, épinglage, filtres)                                                                                                                              |
+| `useJournalArticleEditor.js`                 | Toute la logique d'un article : auto-save titre/corps (+ champs produit), illustrations, encarts au curseur, aperçu, états suppression/épinglage                                                                                   |
+| `JournalImportCard.jsx`                      | Carte d'import unique, paramétrée par `meta` (types) et `ui` (habillage)                                                                                                                                                           |
+| `JournalFeedToolbar.jsx`                     | Recherche / filtre / tri, mêmes libellés d'accessibilité dans les deux produits                                                                                                                                                    |
+
+Côté produit :
+
+| ForetMap                                    | G&L                                                 | Contenu                                                                         |
+| ------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `src/services/userJournalAdapter.js`        | `src/gl/services/playerJournalAdapter.js`           | `createJournalAdapter({ request: api \| apiGL, basePath })`                     |
+| `src/components/journal/journalUi.js`       | `src/gl/components/journalUi.js`                    | préfixe de classes, surface, bouton (`.btn` / `GLButton`)                       |
+| `src/utils/fmJournalMeta.js`                | `src/gl/utils/glJournalImportMeta.js`               | types d'import (`plant`, `glossary`, `tutorial` / `species`, `feuillet`, …)     |
+| `UserJournalView`, `UserJournalArticleCard` | `GLPlayerJournalView`, `GLPlayerJournalArticleCard` | rendu seul : textes, aide G&L, champ **zone** (FM) / **sorts du chapitre** (GL) |
+
+### 9.2 Ce que cela change pour un correctif
+
+Un défaut du fil, de l'auto-save, de l'ajout d'image ou de l'insertion d'encart se corrige
+**une fois**, dans `src/shared/journal/`, et vaut pour les deux produits ; un test Vitest du
+noyau (`tests-ui/shared/journalFeed.test.js`) et deux tests miroirs par produit
+(`tests-ui/components/journal/`, `tests-ui/gl/GLPlayerJournal*`) tiennent la parité. Les
+libellés (« Mon carnet » / « Mon journal », textes d'introduction et d'état vide) restent
+volontairement propres à chaque produit.
+
+### 9.3 Reste à faire pour aller au bout de la mutualisation
+
+1. **Sélecteur d'encarts** (`UserJournalEmbedPicker` 85 l. / `GLPlayerJournalEmbedPicker`
+   108 l.) : même dialogue, listes de types différentes — un `JournalEmbedPicker` partagé
+   paramétré par un registre de types (libellés `JOURNAL_EMBED_TYPE_LABELS` déjà présents côté FM).
+2. **Modale de lecture** (`UserJournalReadModal` 174 l. / `GLPlayerJournalReadModal` 221 l.,
+   lecture par le professeur / MJ) : même squelette ; la G&L affiche en plus les imports —
+   à aligner d'abord fonctionnellement, puis à partager.
+3. **Hydratation des titres d'encarts** (`useFmJournalEmbedTitles` / `useGlJournalEmbedTitles`)
+   et **boutons d'import** (`FmJournalImportButton` / `GLJournalImportButton`) : même motif,
+   sources de titres différentes — un hook partagé prenant un résolveur de titres par type.
+4. **Aide contextuelle** : G&L a `GLHelpPanel` sur `tab:my-journal`, ForetMap rien ; la
+   parité voudrait un panneau d'aide ForetMap sur le même modèle (`docs/reference/`).
+5. **Compteur de caractères** : G&L affiche `n / max` et « Enregistrement… » ; ForetMap
+   affiche désormais aussi le compteur quand un plafond existe (aligné dans ce lot).

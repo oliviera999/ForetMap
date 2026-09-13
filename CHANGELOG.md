@@ -86,6 +86,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `lib/shared/`. Côté front : `src/shared/utils/classNames.js`, `formatDateTime.js` et
   `fileToDataUrl` partagé (24 copies retirées). Aucun changement de comportement visé ; suites
   backend, Vitest et e2e plan vertes.
+- **Carnet : noyau commun ForetMap / G&L** (`src/shared/journal/`) — adaptateur produit,
+  fil unifié en fonction pure, hooks du fil et de l'éditeur d'article, carte d'import et barre
+  d'outils partagées ; « Mon carnet » et « Mon journal » ne gardent que leur rendu (textes, aide
+  G&L, zone / sorts du chapitre). Un correctif du fil, de l'auto-save ou des illustrations vaut
+  désormais pour les deux produits. ForetMap affiche aussi le compteur de caractères quand un
+  plafond est réglé, et étiquette ses boutons d'épinglage pour les lecteurs d'écran. Détail et
+  reste à faire : `docs/PLAN_CARNET_PARITE_GL.md` §9.
+- **Rapport d'import** : forme commune `createImportReport` (`lib/importRows.js`) ; les sept
+  fabriques locales ne déclarent plus que leurs compteurs propres.
 - **Garde anti-course des chargements** (`src/shared/hooks/useLatestRequest.js`) sur la galerie
   photos d'un lieu, le panneau d'usage, les carnets des statistiques, les parcours et lieux du
   panneau cartes et la synchronisation visite : une réponse arrivée après un changement de
