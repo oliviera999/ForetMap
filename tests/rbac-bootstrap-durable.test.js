@@ -18,6 +18,27 @@ describe('Semis RBAC durable', () => {
     await ensureRbacBootstrap();
   });
 
+  /**
+   * Le garde-fou qui manquait. Les tests d'alignement existants comparent la matrice JS au
+   * catalogue JS — ils ne voient donc rien quand le semis n'écrit pas en base. C'est ce trou
+   * qui a laissé passer une base neuve où `admin` n'avait pas `forum.group.moderate` :
+   * personne ne pouvait modérer le forum, et `npm test` ne tombait que sur un test de forum,
+   * loin de la cause. On affirme ici la propriété directement : ce que la matrice déclare,
+   * la base le porte.
+   */
+  it('toute la matrice des profils système est réellement posée en base', async () => {
+    for (const [slug, expectedKeys] of Object.entries(ROLE_PERMISSION_MATRIX)) {
+      const role = await getRoleBySlug(slug);
+      if (!role) continue;
+      const rows = await queryAll('SELECT permission_key FROM role_permissions WHERE role_id = ?', [
+        role.id,
+      ]);
+      const granted = new Set(rows.map((r) => r.permission_key));
+      const missing = expectedKeys.filter((key) => !granted.has(key));
+      assert.deepEqual(missing, [], `${slug} : permissions déclarées mais jamais posées`);
+    }
+  });
+
   it('une révocation sur profil système survit à un re-bootstrap', async () => {
     const role = await getRoleBySlug('prof');
     assert.ok(role);
