@@ -93,6 +93,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   désormais pour les deux produits. ForetMap affiche aussi le compteur de caractères quand un
   plafond est réglé, et étiquette ses boutons d'épinglage pour les lecteurs d'écran. Détail et
   reste à faire : `docs/PLAN_CARNET_PARITE_GL.md` §9.
+- **Carnet : fin de la mutualisation.** Sélecteur d'encarts, modale de lecture (professeur / MJ),
+  hydratation des titres d'encarts et bouton « Ajouter au carnet » ne sont plus écrits qu'une
+  fois (`src/shared/journal/`) ; chaque produit fournit son registre de types d'encart, son
+  adaptateur, ses textes et son thème. **Visible côté ForetMap** : la lecture d'un carnet par le
+  professeur affiche désormais, comme côté G&L, les dates et volumes de chaque article, un filtre
+  des éléments importés par type (dès deux types présents) et un export Markdown daté ; le
+  panneau d'aide `?` apparaît dans l'en-tête de « Mon carnet » (section « Aide carnet »,
+  éditable dans l'administration de l'aide). **Visible côté G&L** : la lecture d'un carnet par
+  le MJ montre les vignettes d'illustrations des articles. Détail :
+  `docs/PLAN_CARNET_PARITE_GL.md` §9.3.
 - **Rapport d'import** : forme commune `createImportReport` (`lib/importRows.js`) ; les sept
   fabriques locales ne déclarent plus que leurs compteurs propres.
 - **Garde anti-course des chargements** (`src/shared/hooks/useLatestRequest.js`) sur la galerie

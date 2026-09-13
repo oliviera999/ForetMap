@@ -25,6 +25,7 @@ const PANEL_LABELS = {
   profiles: 'Profils et comptes',
   groups: 'Groupes',
   groupFilters: 'Filtre groupe',
+  journal: 'Mon carnet',
 };
 
 const MAP_HINT_LABELS = {

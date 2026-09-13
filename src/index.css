@@ -2371,7 +2371,18 @@
     /* Le « ? » était exclu de la compaction (48px) : en portrait il impose une barre plus haute que sur les autres onglets. */
     .main.main--map-visible .map-view-toolbar .fm-help-btn,
     .teacher-main.teacher-main--map-visible .map-view-toolbar .fm-help-btn,
-    .map-view-root--solo .map-view-toolbar .fm-help-btn {
+    .map-view-root--solo .map-view-toolbar /* En-tête de « Mon carnet » : titre à gauche, bouton d'aide `?` à droite (parité GLHelpPanel). */
+.fm-journal__header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.fm-journal__header-row h2 {
+  margin: 0;
+}
+
+.fm-help-btn {
       min-width:36px;
       min-height:36px;
       width:36px;

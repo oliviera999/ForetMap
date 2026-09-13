@@ -6,12 +6,27 @@ import { JournalFeedToolbar } from '../../shared/journal/JournalFeedToolbar.jsx'
 import { UserJournalArticleCard } from './UserJournalArticleCard.jsx';
 import { UserJournalImportCard } from './UserJournalImportCard.jsx';
 import { FM_JOURNAL_UI } from './journalUi.js';
+import { HelpPanel } from '../HelpPanel.jsx';
+import { useHelp } from '../../hooks/useHelp.js';
+import { resolveHelpPanelSection } from '../../utils/helpResolve.js';
+import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 
 /**
  * Carnet ForetMap (parité « Mon journal » G&L) : fil unifié articles + imports.
- * Données et actions dans `useJournalFeed` (partagé) ; ici les textes et l'habillage.
+ * Données et actions dans `useJournalFeed` (partagé) ; ici les textes, l'aide contextuelle
+ * (panneau `?` de la section `journal`, pendant du `GLHelpPanel` sur `tab:my-journal`) et
+ * l'habillage.
  */
-export function UserJournalView({ zones = [], onForceLogout = null, onNavigateTab = null }) {
+export function UserJournalView({
+  zones = [],
+  onForceLogout = null,
+  onNavigateTab = null,
+  isTeacher = false,
+}) {
+  const publicSettings = usePublicSettings();
+  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
+    useHelp({ publicSettings, isTeacher });
+  const helpJournal = resolveHelpPanelSection('journal', publicSettings);
   const onError = useCallback(
     (err) => {
       if (err instanceof AccountDeletedError) onForceLogout?.();
@@ -23,7 +38,21 @@ export function UserJournalView({ zones = [], onForceLogout = null, onNavigateTa
   return (
     <section className="fm-journal fade-in" data-testid="user-journal">
       <header className="fm-journal__header">
-        <h2>Mon carnet</h2>
+        <div className="fm-journal__header-row">
+          <h2>Mon carnet</h2>
+          {isHelpEnabled ? (
+            <HelpPanel
+              sectionId="journal"
+              title={helpJournal.title}
+              entries={helpJournal.items}
+              isTeacher={isTeacher}
+              isPulsing={!hasSeenSection('journal')}
+              onMarkSeen={markSectionSeen}
+              onOpen={trackPanelOpen}
+              onDismiss={trackPanelDismiss}
+            />
+          ) : null}
+        </div>
         <p className="hint">
           Ton carnet personnel : articles (texte enrichi et photos), et imports des espèces, termes
           de glossaire et tutoriels que tu as marqués comme appris. Les professeurs peuvent le

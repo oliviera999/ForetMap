@@ -1,23 +1,11 @@
 import { useState } from 'react';
 import { GLButton } from '../ui/GLButton.jsx';
+import { downloadTextFile } from '../../../shared/utils/downloadTextFile.js';
 import {
   buildCredentialsCsv,
   countDistributablePasswords,
   credentialStatusLabel,
 } from '../../utils/glPlayerCredentials.js';
-
-function downloadTextFile(filename, content) {
-  if (typeof window === 'undefined' || typeof URL?.createObjectURL !== 'function') return;
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 
 /**
  * Identifiants créés (pseudo + mot de passe en clair), affichés UNE fois après une création ou
@@ -57,7 +45,9 @@ export function GLPlayerCredentialsTable({ credentials, filename = 'identifiants
         <GLButton
           type="button"
           variant="secondary"
-          onClick={() => downloadTextFile(filename, buildCredentialsCsv(rows))}
+          onClick={() =>
+            downloadTextFile(filename, buildCredentialsCsv(rows), 'text/csv;charset=utf-8')
+          }
         >
           Télécharger (CSV)
         </GLButton>
