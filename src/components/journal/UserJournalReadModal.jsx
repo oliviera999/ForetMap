@@ -3,6 +3,8 @@ import { api } from '../../services/api';
 import { DialogShell } from '../DialogShell.jsx';
 import { renderMarkdownToSafeHtml } from '../../shared/platform/markdown.js';
 import { useFmJournalEmbedTitles } from '../../hooks/useFmJournalEmbedTitles.js';
+import { useAuthedHtmlImages } from '../../hooks/useAuthedHtmlImages.js';
+import { AuthedImage } from '../AuthedImage.jsx';
 import { importTypeMeta } from '../../utils/fmJournalMeta.js';
 
 function buildJournalExport({ user, articles, imports }) {
@@ -36,15 +38,22 @@ function ReadArticle({ article }) {
     [article.bodyMarkdown],
   );
   const hydrated = useFmJournalEmbedTitles(html);
+  const htmlWithImages = useAuthedHtmlImages(hydrated);
   return (
     <article className="fm-journal-read-article">
       <h3>{article.title || 'Sans titre'}</h3>
       {article.zoneName ? <p className="hint">Zone : {article.zoneName}</p> : null}
-      <div className="fm-journal-markdown" dangerouslySetInnerHTML={{ __html: hydrated }} />
+      <div className="fm-journal-markdown" dangerouslySetInnerHTML={{ __html: htmlWithImages }} />
       {Array.isArray(article.assets) && article.assets.length > 0 ? (
         <div className="fm-journal__assets-inline">
           {article.assets.map((a) => (
-            <img key={a.id} src={a.url} alt="" loading="lazy" className="fm-journal__asset-thumb" />
+            <AuthedImage
+              key={a.id}
+              src={a.url}
+              alt=""
+              loading="lazy"
+              className="fm-journal__asset-thumb"
+            />
           ))}
         </div>
       ) : null}

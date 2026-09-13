@@ -88,7 +88,49 @@ test('POST assets — ajoute une illustration', async () => {
     .send({ imageData: PNG_BASE64 })
     .expect(201);
   assert.ok(asset.body.asset.url);
+  assert.match(asset.body.asset.url, /^\/api\/user-journal\/assets\/\d+\/file$/);
   assert.ok(asset.body.usage.assetCount >= 1);
+});
+
+test('illustrations du carnet — privées (pas de /uploads public)', async () => {
+  const created = await request(app)
+    .post('/api/user-journal/me/articles')
+    .set('Authorization', `Bearer ${studentToken}`)
+    .send({ bodyMarkdown: '' })
+    .expect(201);
+  const id = created.body.article.id;
+  const uploaded = await request(app)
+    .post(`/api/user-journal/me/articles/${id}/assets`)
+    .set('Authorization', `Bearer ${studentToken}`)
+    .send({ imageData: PNG_BASE64 })
+    .expect(201);
+  const assetId = uploaded.body.asset.id;
+  const fileUrl = uploaded.body.asset.url;
+
+  const owner = await request(app)
+    .get(fileUrl)
+    .set('Authorization', `Bearer ${studentToken}`)
+    .expect(200);
+  assert.ok((owner.headers['content-type'] || '').toLowerCase().includes('image'));
+
+  await request(app).get(fileUrl).expect(401);
+
+  const other = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Journal', lastName: `Other${stamp}`, password: 'pwd12345' })
+    .expect(201);
+  await request(app)
+    .get(fileUrl)
+    .set('Authorization', `Bearer ${other.body.authToken}`)
+    .expect(403);
+
+  const row = await queryOne(
+    'SELECT asset_path FROM user_journal_article_assets WHERE id = ? LIMIT 1',
+    [assetId],
+  );
+  assert.ok(row?.asset_path);
+  const direct = await request(app).get(`/uploads/${row.asset_path}`).expect(403);
+  assert.strictEqual(direct.body.code, 'PRIVATE_UPLOAD');
 });
 
 test('POST /me/imports — 403 sans appris, 201 après observation espèce', async () => {

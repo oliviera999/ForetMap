@@ -501,3 +501,51 @@ test('GET /api/plan/content publie les parcours de la surface plan', async () =>
     planContentCache.clear();
   }
 });
+
+test('GET /api/map-routes?surface=map — étape hors audience / masquée absente', async () => {
+  const restricted = await fx.createZone({ mapId: map.id, name: 'Salle staff' });
+  const hiddenOnMap = await fx.createZone({ mapId: map.id, name: 'Coulisses' });
+  await execute('UPDATE zones SET visible_role_slugs = ? WHERE id = ?', [
+    JSON.stringify(['prof', 'admin']),
+    restricted.id,
+  ]);
+  await execute('UPDATE zones SET hidden_surfaces = ? WHERE id = ?', ['map', hiddenOnMap.id]);
+
+  const route = await auth(request(app).post('/api/map-routes'))
+    .send({
+      map_id: map.id,
+      title: 'Notes internes carte',
+      is_published: true,
+      surfaces: ['map'],
+      steps: [
+        { target_type: 'zone', target_id: zone.id, step_text: 'Accueil public' },
+        { target_type: 'zone', target_id: restricted.id, step_text: 'SECRET_STAFF_STEP' },
+        { target_type: 'zone', target_id: hiddenOnMap.id, step_text: 'SECRET_HIDDEN_MAP_STEP' },
+      ],
+    })
+    .expect(201);
+  createdRouteIds.push(route.body.id);
+
+  try {
+    const anon = await request(app).get(`/api/map-routes?map_id=${map.id}&surface=map`).expect(200);
+    const published = anon.body.find((r) => r.id === route.body.id);
+    assert.ok(published);
+    const texts = (published.steps || []).map((s) => s.step_text);
+    assert.ok(texts.includes('Accueil public'));
+    assert.ok(!texts.includes('SECRET_STAFF_STEP'), 'texte staff ne fuit pas au catalogue public');
+    assert.ok(
+      !texts.includes('SECRET_HIDDEN_MAP_STEP'),
+      'texte d’un lieu masqué sur Carte ne fuit pas',
+    );
+
+    const asTeacher = await auth(
+      request(app).get(`/api/map-routes?map_id=${map.id}&surface=map`),
+    ).expect(200);
+    const managed = asTeacher.body.find((r) => r.id === route.body.id);
+    const teacherTexts = (managed.steps || []).map((s) => s.step_text);
+    assert.ok(teacherTexts.includes('SECRET_STAFF_STEP'));
+    assert.ok(teacherTexts.includes('SECRET_HIDDEN_MAP_STEP'));
+  } finally {
+    await execute('DELETE FROM zones WHERE id IN (?, ?)', [restricted.id, hiddenOnMap.id]);
+  }
+});

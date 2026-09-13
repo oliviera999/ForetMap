@@ -23,6 +23,7 @@ const {
   countArticleAssets,
   getUserJournalLimits,
   userJournalUploadPrefix,
+  journalAssetFileUrl,
   getUserJournalImports,
   getUserJournalImportRefs,
   setArticlePinned,
@@ -312,7 +313,7 @@ router.post(
     return res.status(201).json({
       asset: {
         id: Number(asset.id),
-        url: `/uploads/${asset.asset_path}`,
+        url: journalAssetFileUrl(asset.id),
         mimeType: asset.mime_type,
         byteSize: Number(asset.byte_size) || 0,
         createdAt: asset.created_at,

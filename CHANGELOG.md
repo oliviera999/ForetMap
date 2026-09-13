@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — photos du carnet exposées sans authentification
+
+- Les illustrations `user-journal/` étaient servies par `/uploads` (public). Elles passent
+  par `GET /api/user-journal/assets/:id/file` (propriétaire ou lecture staff) ; le montage
+  statique répond **403**.
+
+### Corrigé — textes d’étapes de parcours hors audience
+
+- `GET /api/map-routes` (surfaces Carte / Visite / Plan) renvoyait `step_text` d’un lieu
+  masqué ou réservé. Filtre aligné sur la charge Visite / Plan : le catalogue public
+  n’expose que les étapes visibles pour le lecteur.
+
 ### Corrigé — barre de parcours Plan : styles enfants orphelins
 
 - `MapRouteBar` n’appliquait le dual-class `plan-*` qu’à la racine ; les enfants

@@ -22,10 +22,15 @@ const QRCode = require('qrcode');
 
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { getSettingValue } = require('../lib/settings');
-const { requirePermission } = require('../middleware/requireTeacher');
+const { authenticate, requirePermission } = require('../middleware/requireTeacher');
+const { canViewLocation, isLocationManager } = require('../lib/locationAudience');
 const asyncHandler = require('../lib/asyncHandler');
 const { logAudit } = require('../lib/auditLog');
-const { readSurfaceQuery, normalizeSurfaceInput } = require('../lib/locationSurfaces');
+const {
+  parseSurfaceSet,
+  readSurfaceQuery,
+  normalizeSurfaceInput,
+} = require('../lib/locationSurfaces');
 const { isPlanAccessGranted, requirePlanAccess } = require('../lib/planAccess');
 const {
   ROUTE_AUDIENCE_MAX,
@@ -70,6 +75,61 @@ async function loadRoutes(where, params) {
     ids,
   );
   return attachStepsToRoutes(rows.map(serializeRouteRow), stepRows);
+}
+
+/**
+ * Catalogue public : ne sert que les étapes dont le lieu est visible pour le lecteur
+ * (audience + `hidden_surfaces` de la surface demandée). Aligné sur `plan/content`
+ * et `visit/content` — sans ce filtre, `step_text` d'un lieu staff/masqué fuitait
+ * via `GET /api/map-routes?surface=map|visit`.
+ * Les gestionnaires (`zones.manage` / `map.manage_markers`) voient toutes les étapes.
+ */
+async function filterPublicRouteSteps(routes, auth, { surface } = {}) {
+  if (!Array.isArray(routes) || routes.length === 0) return routes;
+  if (isLocationManager(auth)) return routes;
+
+  const zoneIds = new Set();
+  const markerIds = new Set();
+  for (const route of routes) {
+    for (const step of route.steps || []) {
+      if (step.target_type === 'zone') zoneIds.add(String(step.target_id));
+      else if (step.target_type === 'marker') markerIds.add(String(step.target_id));
+    }
+  }
+  const [zones, markers] = await Promise.all([
+    zoneIds.size
+      ? queryAll(
+          `SELECT id, visible_role_slugs, hidden_surfaces
+             FROM zones WHERE id IN (${[...zoneIds].map(() => '?').join(',')})`,
+          [...zoneIds],
+        )
+      : [],
+    markerIds.size
+      ? queryAll(
+          `SELECT id, visible_role_slugs, hidden_surfaces
+             FROM map_markers WHERE id IN (${[...markerIds].map(() => '?').join(',')})`,
+          [...markerIds],
+        )
+      : [],
+  ]);
+  const publicSurface = !surface || surface === 'visit' || surface === 'plan';
+  const visible = new Set();
+  for (const row of zones) {
+    if (!canViewLocation(row, auth, { publicSurface })) continue;
+    if (surface && parseSurfaceSet(row.hidden_surfaces).includes(surface)) continue;
+    visible.add(`zone:${row.id}`);
+  }
+  for (const row of markers) {
+    if (!canViewLocation(row, auth, { publicSurface })) continue;
+    if (surface && parseSurfaceSet(row.hidden_surfaces).includes(surface)) continue;
+    visible.add(`marker:${row.id}`);
+  }
+  return routes.map((route) => ({
+    ...route,
+    steps: (route.steps || []).filter((step) =>
+      visible.has(`${String(step.target_type)}:${String(step.target_id)}`),
+    ),
+  }));
 }
 
 /** Remplace les étapes d'un parcours (une transaction : jamais de parcours à moitié réécrit). */
@@ -146,6 +206,7 @@ async function checkStepTargets(mapId, steps) {
  */
 router.get(
   '/',
+  authenticate,
   asyncHandler(async (req, res) => {
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
     if (mapId && !(await mapExists(mapId))) {
@@ -171,7 +232,8 @@ router.get(
       where.push('FIND_IN_SET(?, surfaces) > 0');
       params.push(surface);
     }
-    res.json(await loadRoutes(where.join(' AND '), params));
+    const routes = await loadRoutes(where.join(' AND '), params);
+    res.json(await filterPublicRouteSteps(routes, req.auth, { surface: surface || 'plan' }));
   }),
 );
 
@@ -201,6 +263,7 @@ router.get(
  */
 router.get(
   '/:idOrSlug',
+  authenticate,
   requirePlanAccess,
   asyncHandler(async (req, res) => {
     const key = String(req.params.idOrSlug || '').trim();
@@ -213,7 +276,8 @@ router.get(
     }
     const [route] = await loadRoutes(where.join(' AND '), params);
     if (!route) return res.status(404).json({ error: 'Parcours introuvable' });
-    res.json(route);
+    const [filtered] = await filterPublicRouteSteps([route], req.auth, { surface: 'plan' });
+    res.json(filtered);
   }),
 );
 
