@@ -606,9 +606,10 @@ causes empilées, dont une régression produit :
 2. **Régression produit : le lien profond `?lieu=` était effacé** à l'ouverture d'une fiche
    depuis la feuille de résultats. Les feuilles basses empilent une entrée d'historique et
    reculent d'une entrée à la fermeture (`overlayHistory.js`) ; fermer les résultats après
-   `replaceState(?lieu=…)` restaurait l'URL d'avant la recherche. `src/plan/AppPlan.jsx` tient
-   désormais l'identifiant sélectionné dans une réf et ré-aligne l'URL à chaque `popstate`,
-   sans toucher au lien profond avant sa lecture.
+   `replaceState(?lieu=…)` restaurait l'URL d'avant la recherche. Diagnostiqué ici et corrigé le
+   même jour, en parallèle, par la PR #459 (réaffirmation du paramètre après `popstate`, avec
+   un test de montage qui rejoue la restauration d'URL) — c'est cette implémentation qui est
+   conservée ; la mienne, équivalente, a été retirée à la fusion.
 3. **Scénario d'orientation** : il émettait `deviceorientation` alors que le produit écoute
    `deviceorientationabsolute` dès que le navigateur l'expose (Chromium) — le cap n'arrivait
    jamais. Le scénario émet sur les deux noms.
