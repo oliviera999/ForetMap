@@ -17,8 +17,45 @@ const {
 } = require('../../lib/visitEditorialBlocks');
 const { normalizePoints } = require('../../lib/visitContentHelpers');
 const { logAudit } = require('../../lib/auditLog');
+const {
+  readAudienceWriteFields,
+  serializeRoleSlugList,
+  withLocationAudienceFields,
+} = require('../../lib/locationAudience');
 
 const router = express.Router();
+
+function resolveAudienceForInsert(body) {
+  const audienceInput = readAudienceWriteFields(body);
+  if (!audienceInput.ok) return audienceInput;
+  return {
+    ok: true,
+    visible_role_slugs: serializeRoleSlugList(audienceInput.visible_role_slugs || []) || null,
+    restricted_note: audienceInput.restricted_note || null,
+    restricted_note_role_slugs:
+      serializeRoleSlugList(audienceInput.restricted_note_role_slugs || []) || null,
+  };
+}
+
+function resolveAudienceForUpdate(body, exists) {
+  const audienceInput = readAudienceWriteFields(body);
+  if (!audienceInput.ok) return audienceInput;
+  return {
+    ok: true,
+    visible_role_slugs:
+      audienceInput.visible_role_slugs === null
+        ? (exists.visible_role_slugs ?? null)
+        : serializeRoleSlugList(audienceInput.visible_role_slugs) || null,
+    restricted_note:
+      audienceInput.restricted_note === null
+        ? (exists.restricted_note ?? null)
+        : audienceInput.restricted_note || null,
+    restricted_note_role_slugs:
+      audienceInput.restricted_note_role_slugs === null
+        ? (exists.restricted_note_role_slugs ?? null)
+        : serializeRoleSlugList(audienceInput.restricted_note_role_slugs) || null,
+  };
+}
 
 router.post(
   '/zones',
@@ -31,11 +68,15 @@ router.post(
       return res.status(400).json({ error: 'Carte introuvable' });
     if (!name) return res.status(400).json({ error: 'Nom de zone requis' });
     if (!points) return res.status(400).json({ error: 'Polygone invalide (min 3 points)' });
+    const audience = resolveAudienceForInsert(req.body);
+    if (!audience.ok) return res.status(400).json({ error: audience.error });
     const id = crypto.randomUUID();
     await execute(
       `INSERT INTO visit_zones
-        (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json, sort_order, is_active, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json,
+         visible_role_slugs, restricted_note, restricted_note_role_slugs,
+         sort_order, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         mapId,
@@ -48,6 +89,9 @@ router.post(
         serializeVisitEditorialBlocks(
           parseVisitEditorialBlocksInput(req.body.visit_editorial_blocks ?? req.body.body_json),
         ),
+        audience.visible_role_slugs,
+        audience.restricted_note,
+        audience.restricted_note_role_slugs,
         Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0,
         req.body.is_active === false ? 0 : 1,
         nowIso(),
@@ -55,7 +99,7 @@ router.post(
       ],
     );
     const row = await queryOne('SELECT * FROM visit_zones WHERE id = ?', [id]);
-    res.status(201).json(row);
+    res.status(201).json(withLocationAudienceFields(row));
   }),
 );
 
@@ -73,6 +117,8 @@ router.put(
     if (req.body.points !== undefined && !maybePoints) {
       return res.status(400).json({ error: 'Polygone invalide (min 3 points)' });
     }
+    const audience = resolveAudienceForUpdate(req.body, exists);
+    if (!audience.ok) return res.status(400).json({ error: audience.error });
     const subtitle =
       req.body.subtitle !== undefined
         ? String(req.body.subtitle || '').trim()
@@ -110,6 +156,7 @@ router.put(
     await execute(
       `UPDATE visit_zones
        SET name = ?, points = ?, subtitle = ?, short_description = ?, details_title = ?, details_text = ?, body_json = ?,
+           visible_role_slugs = ?, restricted_note = ?, restricted_note_role_slugs = ?,
            is_active = ?, sort_order = ?, updated_at = ?
        WHERE id = ?`,
       [
@@ -120,6 +167,9 @@ router.put(
         detailsTitle,
         detailsText,
         bodyJson,
+        audience.visible_role_slugs,
+        audience.restricted_note,
+        audience.restricted_note_role_slugs,
         isActive,
         sortOrder,
         nowIso(),
@@ -127,7 +177,7 @@ router.put(
       ],
     );
     const row = await queryOne('SELECT * FROM visit_zones WHERE id = ?', [zoneId]);
-    res.json(row);
+    res.json(withLocationAudienceFields(row));
   }),
 );
 
