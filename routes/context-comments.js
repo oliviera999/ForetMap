@@ -4,10 +4,10 @@ const { queryOne, execute } = require('../database');
 const { requireAuth } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
-const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('../lib/auditLog');
 const { emitContextCommentsChanged } = require('../lib/realtime');
-const { getSettingValue, isReportsEnabled } = require('../lib/settings');
+const { isReportsEnabled } = require('../lib/settings');
+const { requireModuleEnabled } = require('../lib/shared/moduleGate');
 const {
   getActor,
   canModerateWithTeacherAccess,
@@ -125,22 +125,9 @@ async function contextExists(contextType, contextId) {
 }
 
 router.use(requireAuth);
-router.use(async (req, res, next) => {
-  try {
-    const on = await getSettingValue('ui.modules.context_comments_enabled', true);
-    if (!on) return res.status(503).json({ error: 'Commentaires de contexte désactivés' });
-    return next();
-  } catch (e) {
-    logRouteError(e, req);
-    // Ne pas passer par next(e) : le handler global masque le détail derrière « Erreur serveur ».
-    if (res.headersSent) return;
-    return res.status(503).json({
-      error:
-        'Commentaires temporairement indisponibles (impossible de lire les réglages ou la base). Réessaie dans un instant.',
-      code: 'CONTEXT_COMMENTS_UNAVAILABLE',
-    });
-  }
-});
+router.use(
+  requireModuleEnabled('foret', 'context_comments', 'Commentaires de contexte désactivés'),
+);
 router.use((req, res, next) => {
   if (isVisitorRole(req.auth)) {
     return res.status(403).json({

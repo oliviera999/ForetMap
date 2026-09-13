@@ -2,11 +2,11 @@ const express = require('express');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
-const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { emitForumChanged } = require('../lib/realtime');
-const { getSettingValue, isReportsEnabled } = require('../lib/settings');
+const { isReportsEnabled } = require('../lib/settings');
+const { requireModuleEnabled } = require('../lib/shared/moduleGate');
 const {
   getActor,
   canModerateWithTeacherAccess,
@@ -139,16 +139,7 @@ async function loadForumPostReactions(postIds = [], actor = null) {
 }
 
 router.use(requireAuth);
-router.use(async (req, res, next) => {
-  try {
-    const on = await getSettingValue('ui.modules.forum_enabled', true);
-    if (!on) return res.status(503).json({ error: 'Forum désactivé' });
-    return next();
-  } catch (e) {
-    logRouteError(e, req);
-    return next(e);
-  }
-});
+router.use(requireModuleEnabled('foret', 'forum', 'Forum désactivé'));
 router.use((req, res, next) => {
   if (isVisitorRole(req.auth)) {
     return res

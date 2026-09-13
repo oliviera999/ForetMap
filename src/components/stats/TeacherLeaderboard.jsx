@@ -17,8 +17,14 @@ import {
   IconTelescope,
   IconUser,
 } from '../../shared/icons.jsx';
+import { PresenceStatusBadge } from '../../shared/components/PresenceStatusBadge.jsx';
 
-export function TeacherLeaderboard({ students = [], search = '', roleTerms }) {
+export function TeacherLeaderboard({
+  students = [],
+  search = '',
+  roleTerms,
+  presenceEnabled = true,
+}) {
   const filtered = useMemo(
     () =>
       students.filter((s) =>
@@ -114,6 +120,13 @@ export function TeacherLeaderboard({ students = [], search = '', roleTerms }) {
                     ? `Vu le ${new Date(s.last_seen).toLocaleDateString('fr-FR')}`
                     : 'Jamais connecté'}
                 </small>
+                {presenceEnabled && s.presence_status ? (
+                  <PresenceStatusBadge
+                    status={s.presence_status}
+                    label={s.presence_label}
+                    lastSeen={s.last_seen}
+                  />
+                ) : null}
               </div>
               <div
                 className="lb-stats"

@@ -1,6 +1,7 @@
 import ReactDOM from 'react-dom/client';
 import './shared/styles/tooltip.css';
 import './shared/styles/floating-dock.css';
+import './shared/styles/presence-badge.css';
 import './index.css';
 import { App } from './App.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
