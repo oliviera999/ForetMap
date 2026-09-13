@@ -1,13 +1,7 @@
 import { useState } from 'react';
 import { GLButton } from './ui/GLButton.jsx';
 import { importTypeMeta, importTargetNav } from '../utils/glJournalImportMeta.js';
-
-function formatDateTime(value) {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleString('fr-FR');
-}
+import { formatDateTime } from '../../shared/utils/formatDateTime.js';
 
 /**
  * Carte d'un élément du site importé dans le carnet (lecture seule) :

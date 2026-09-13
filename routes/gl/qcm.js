@@ -43,14 +43,9 @@ const { previewQuestionPool } = require('../../lib/glMarkerQuestionPool');
 const { normalizeQuestionPool } = require('../../lib/glMarkerEventConfig');
 const { handleQuestionDraw } = require('../../lib/gl/questionDrawShared');
 const asyncHandler = require('../../lib/asyncHandler');
+const normalizeBiomeSlug = normalizeOptionalString;
 
 const router = express.Router();
-
-function normalizeBiomeSlug(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
 
 const QUESTION_SELECT = `
   SELECT question_code, biome_slug, categorie_slug, numero_dans_categorie, question,

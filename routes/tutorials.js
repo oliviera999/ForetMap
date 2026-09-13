@@ -123,17 +123,21 @@ function canManageTutorials(req) {
   return perms.includes('tutorials.manage') && TUTORIAL_MANAGER_ROLES.has(roleSlug);
 }
 
+/** Vrai si chaque identifiant demandé existe dans `table` — une requête `IN (…)` par table. */
+async function allIdsExist(table, ids) {
+  if (ids.length === 0) return true;
+  const placeholders = ids.map(() => '?').join(', ');
+  const rows = await queryAll(`SELECT id FROM ${table} WHERE id IN (${placeholders})`, ids);
+  const found = new Set(rows.map((r) => String(r.id)));
+  return ids.every((id) => found.has(String(id)));
+}
+
 async function validateTutorialLocations(zoneIds, markerIds) {
   const z = normalizeIdArray(zoneIds);
   const m = normalizeIdArray(markerIds);
-  for (const zid of z) {
-    const row = await queryOne('SELECT id FROM zones WHERE id = ? LIMIT 1', [zid]);
-    if (!row) return { error: 'Zone introuvable' };
-  }
-  for (const mid of m) {
-    const row = await queryOne('SELECT id FROM map_markers WHERE id = ? LIMIT 1', [mid]);
-    if (!row) return { error: 'Repère introuvable' };
-  }
+  // Deux requêtes groupées au lieu d'une par lieu (audit 2026-09-13 §2.3).
+  if (!(await allIdsExist('zones', z))) return { error: 'Zone introuvable' };
+  if (!(await allIdsExist('map_markers', m))) return { error: 'Repère introuvable' };
   return { zoneIds: z, markerIds: m };
 }
 

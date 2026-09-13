@@ -5,6 +5,7 @@ import { renderMarkdownToSafeHtml } from '../../shared/platform/markdown.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { importTypeMeta } from '../utils/glJournalImportMeta.js';
 import { useGlJournalEmbedTitles } from '../hooks/useGlJournalEmbedTitles.js';
+import { formatDateTime } from '../../shared/utils/formatDateTime.js';
 
 function playerLabel(player) {
   if (!player) return 'Joueur';
@@ -12,13 +13,6 @@ function playerLabel(player) {
   const name = `${player.firstName || ''} ${player.lastName || ''}`.trim();
   if (pseudo && name) return `${pseudo} (${name})`;
   return pseudo || name || `Joueur #${player.id}`;
-}
-
-function formatDateTime(value) {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleString('fr-FR');
 }
 
 // Construit un export texte (markdown) du carnet d'un joueur, pour l'accompagnement

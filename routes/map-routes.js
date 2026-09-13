@@ -40,6 +40,7 @@ const {
   serializeSurfaceSet,
   slugifyRouteTitle,
 } = require('../lib/mapRoutes');
+const { mapExists } = require('../lib/mapQueries');
 
 const router = express.Router();
 
@@ -48,11 +49,6 @@ const ROUTE_SELECT = `SELECT id, map_id, slug, title, description, audience, sur
   FROM map_routes`;
 
 const ROUTE_ORDER = ' ORDER BY sort_order ASC, title ASC';
-
-async function mapExists(mapId) {
-  const row = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [mapId]);
-  return !!row;
-}
 
 /** Charge les parcours (avec leurs étapes) répondant à une clause SQL déjà paramétrée. */
 async function loadRoutes(where, params) {

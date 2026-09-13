@@ -103,11 +103,17 @@ test('plan : le cap en haut fait tourner la carte sans retourner le texte', asyn
     const pushHeading = async () => {
       await page.evaluate(
         (alpha) => {
+          // Le produit écoute `deviceorientationabsolute` quand le navigateur l'expose (Chromium),
+          // sinon `deviceorientation` (`src/shared/pct-map/useMapPosition.js`) : on émet sur les
+          // deux noms, comme le ferait la plateforme selon le capteur disponible.
+          const names = ['deviceorientationabsolute', 'deviceorientation'];
           for (let i = 0; i < 40; i += 1) {
-            const event = new Event('deviceorientation');
-            Object.defineProperty(event, 'alpha', { value: alpha });
-            Object.defineProperty(event, 'absolute', { value: true });
-            window.dispatchEvent(event);
+            for (const name of names) {
+              const event = new Event(name);
+              Object.defineProperty(event, 'alpha', { value: alpha });
+              Object.defineProperty(event, 'absolute', { value: true });
+              window.dispatchEvent(event);
+            }
           }
         },
         (360 - HEADING_DEG) % 360,

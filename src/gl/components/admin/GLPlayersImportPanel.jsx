@@ -6,15 +6,7 @@ import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
 import { GLPlayerCredentialsTable } from './GLPlayerCredentialsTable.jsx';
-
-async function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
-    reader.readAsDataURL(file);
-  });
-}
+import { fileToDataUrl } from '../../../shared/platform/fileToDataUrl.js';
 
 export function GLPlayersImportPanel({ onReload }) {
   const [file, setFile] = useState(null);

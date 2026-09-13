@@ -1,0 +1,1 @@
+function e(e){if(!e)return``;let t=new Date(e);return Number.isNaN(t.getTime())?``:t.toLocaleString(`fr-FR`)}export{e as t};

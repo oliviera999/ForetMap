@@ -15,6 +15,9 @@ const { normalizeSpellCodeList, parseSpellCodesFromQuery } = require('../../lib/
 const { buildSpellBulkPatch, buildSpellBulkUpdateSql } = require('../../lib/glSpellBulkPatch');
 const { z, validate } = require('../../lib/validate');
 const asyncHandler = require('../../lib/asyncHandler');
+const {
+  normalizeOptionalString: normalizeOptionalFilter,
+} = require('../../lib/shared/httpHelpers');
 
 const router = express.Router();
 
@@ -58,12 +61,6 @@ const spellCodeParamsSchema = z.unknown().superRefine((p, ctx) => {
 function normalizeCategorySlug(value) {
   if (value == null) return null;
   const s = String(value).trim().toLowerCase();
-  return s.length > 0 ? s : null;
-}
-
-function normalizeOptionalFilter(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
   return s.length > 0 ? s : null;
 }
 

@@ -1,6 +1,9 @@
 # Audit du code ForetMap — 13 septembre 2026
 
-> **Statut : à traiter.** Audit transversal du monorepo (ForetMap + Gnomes & Licornes) sur
+> **Statut : traité le jour même** (même PR, #457) pour tout ce qui est marqué « **Traité** »
+> ci-dessous ; les constats restés ouverts sont récapitulés en §9. Les constats d'origine sont
+> conservés tels quels (convention `docs/audits/README.md`), y compris celui de §3.5 qui s'est
+> révélé partiellement faux. Audit transversal du monorepo (ForetMap + Gnomes & Licornes) sur
 > `main` @ `0278a73`, version **1.155.3** : bugs, incohérences, doublons, performance et charge
 > serveur. Mené **avec une base MariaDB réelle** (10.11, schéma initialisé par `npm run db:init`
 > en 4 s) : les trois suites de tests, le lint, Prettier et `npm audit` ont été exécutés ; les
@@ -27,16 +30,16 @@ tout le reste (RBAC, périmètre groupes, réglages) est servi par des caches in
 d'écriture. Le polling client est différentiel (`/api/sync-state`), plancher 90 s en temps réel
 et 120 s onglet caché.
 
-| Contrôle                                   | Résultat                                               |
-| ------------------------------------------ | ------------------------------------------------------ |
-| `npm test` (backend, MariaDB réelle)       | **3380 / 3382**, 0 échec, 2 ignorés (snapshots opt-in) |
-| `npm run test:content`                     | **41 / 41**                                            |
-| `npm run test:ui` (Vitest)                 | **4024 / 4024**, 555 fichiers, 296 s                   |
-| `npm run lint`                             | **0 erreur**, 179 avertissements (voir §6.3)           |
-| `npm run format:check`                     | conforme                                               |
-| `npm run db:init` sur base vierge          | 155 tables, sans erreur remontée (mais voir §2.1)      |
-| `npm audit --omit=dev`                     | **4 moderate**, 0 high (voir §5.4)                     |
-| Miroirs `src/shared` ↔ `lib/shared`, packs | identiques, scripts de sync sans dérive                |
+| Contrôle                                   | Résultat                                                                                    |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `npm test` (backend, MariaDB réelle)       | **3380 / 3382**, 0 échec, 2 ignorés (snapshots opt-in) — après correctifs : **3408 / 3410** |
+| `npm run test:content`                     | **41 / 41**                                                                                 |
+| `npm run test:ui` (Vitest)                 | **4024 / 4024**, 555 fichiers, 296 s                                                        |
+| `npm run lint`                             | **0 erreur**, 179 avertissements (voir §6.3)                                                |
+| `npm run format:check`                     | conforme                                                                                    |
+| `npm run db:init` sur base vierge          | 155 tables, sans erreur remontée (mais voir §2.1)                                           |
+| `npm audit --omit=dev`                     | **4 moderate**, 0 high (voir §5.4)                                                          |
+| Miroirs `src/shared` ↔ `lib/shared`, packs | identiques, scripts de sync sans dérive                                                     |
 
 Ce que l'audit apporte de neuf tient en quatre points :
 
@@ -48,9 +51,11 @@ Ce que l'audit apporte de neuf tient en quatre points :
 2. **Le code d'import et les helpers de routes sont copiés plutôt que partagés** (§4). Trente
    fonctions homonymes déclarées dans 3 à 12 fichiers ; deux d'entre elles (`normalizeSlug`,
    `httpError`) portent **des sémantiques différentes sous le même nom** (§3.1, §3.2).
-3. **`docs/API.md` a décroché sur deux périmètres récents** (§3.5) : les 16 routes
-   d'administration Moodle et une douzaine de routes d'administration du lore G&L (glossaire,
-   QCM) n'y figurent pas, alors que la convention du dépôt l'exige dans le même lot.
+3. **`docs/API.md` a décroché sur un périmètre récent** (§3.5) : ~~les 16 routes
+   d'administration Moodle et~~ quatorze routes d'administration du lore G&L (glossaire, QCM,
+   réordonnancement des feuillets) n'y figurent pas, alors que la convention du dépôt l'exige
+   dans le même lot. _Correction du 13/09 : les routes Moodle **sont** documentées, en chemins
+   relatifs sous leur titre de section — le rapprochement initial ne les lisait pas (§3.5)._
 4. **Les tables de journaux purgées par date n'ont pas d'index sur cette date** (§5.2) :
    `audit_log.created_at`, `gl_game_events.created_at`, `task_logs.created_at`. La purge
    (`scripts/purge-audit-logs.js`) balaie donc la table entière.
@@ -99,6 +104,15 @@ INDEX`, remonter en `warn` et faire échouer la migration. Ajouter un test dans
 `app_settings` (les migrations appliquées ne sont pas rejouées : `schema_version`).
 _Confiance : haute (reproduit)._
 
+**Traité.** `database.js` : `1146` n'est plus dans la liste des errnos tolérés ;
+`classifyMigrationStmtError` ne l'accepte que pour un énoncé de suppression (`DROP …`,
+`ALTER … DROP …`), pour les tables de l'ancien modèle de comptes (`students`, `teachers`) que la
+migration 029 a remplacées, ou — en `warn` — dans une migration antérieure à la 242. La
+migration `237` écrit désormais dans `app_settings`, les deux blocs morts de la `227` sont
+retirés, et la migration `242` rattrape les bases déjà en 237. Vérifié par `npm run db:init`
+sur base vierge (zéro avertissement, `schema_version = 242`) et par
+`tests/migrations-error-classifier.test.js`.
+
 ### 2.2 — MINEUR · Un octet nul littéral dans `lib/usage.js`
 
 `lib/usage.js:87` — ``const id = `${ev.product}\0${ev.event}\0${ev.key}`;`` : le séparateur est
@@ -108,6 +122,8 @@ n'affichent plus ses lignes ; certains éditeurs le réécrivent. Le comportemen
 est correct. **Remède** : écrire `\u0000` ou, plus lisible, `'|'` (les trois champs sont déjà
 normalisés sans ce caractère). _Confiance : haute._
 
+**Traité** (`'\u0000'`).
+
 ### 2.3 — MINEUR · N+1 à la validation des lieux d'un tutoriel
 
 `routes/tutorials.js:126-138` — `validateTutorialLocations` exécute **une requête par zone puis
@@ -116,6 +132,8 @@ mise à jour d'un tutoriel, volumes faibles (quelques lieux), donc coût réel m
 le motif que les audits précédents ont traqué partout ailleurs. **Remède** : deux requêtes `WHERE
 id IN (…)` et comparaison des ensembles. _Confiance : haute._
 
+**Traité** (`allIdsExist`, deux requêtes groupées).
+
 ### 2.4 — MINEUR · Historique de zone sans borne
 
 `routes/zones.js:346` et `:524` — `SELECT * FROM zone_history WHERE zone_id = ? ORDER BY
@@ -123,6 +141,9 @@ harvested_at DESC` sans `LIMIT`, renvoyé entier dans la fiche de zone. `zone_hi
 purgée à 730 jours par défaut (`scripts/purge-audit-logs.js`), ce qui borne la dérive, mais une
 zone très récoltée renvoie des centaines de lignes à chaque ouverture de fiche. **Remède** :
 `LIMIT 200` et pagination si besoin ; projection de colonnes. _Confiance : haute._
+
+**Traité** : projection explicite (`id, zone_id, plant, harvested_at`) et `LIMIT 500`
+(`ZONE_HISTORY_MAX_ROWS`), sur les deux lectures.
 
 ### 2.5 — MINEUR · Effets de chargement sans annulation (25 fichiers)
 
@@ -139,6 +160,9 @@ récente. `useApiResource` (`src/hooks/useApiResource.js`) règle déjà ce cas 
 utilisé par ces composants. **Remède** : passer ces chargements par `useApiResource`, ou poser
 un compteur de génération dans `load`. _Confiance : moyenne (motif vérifié, course non
 reproduite)._
+
+**Ouvert** : 25 composants, chacun à relire pour choisir entre `useApiResource` et un compteur
+de génération ; à traiter écran par écran (voir §9).
 
 ### 2.6 — INFO · Deux conventions d'erreur HTTP typée cohabitent
 
@@ -165,6 +189,10 @@ au nom de la fonction, laquelle il appelle. **Remède** : un `lib/shared/slug.js
 fonctions **nommées différemment** (`lowerTrim`, `slugify`) et suppression des sept copies.
 _Confiance : haute._
 
+**Traité** : `lib/shared/slug.js` (`lowerTrim`, `slugify(value, { allowDots })`), les sept
+copies remplacées ; `lib/gl/chaptersRouteHelpers.js` garde l'export `normalizeSlug` comme
+alias de `lowerTrim` pour ses appelants.
+
 ### 3.2 — MINEUR · `httpError` : neuf copies, deux formes
 
 - `Object.assign(new Error(m), { statusCode, … })` — `lib/shared/questionCrudCore.js:18`, lu par
@@ -176,6 +204,10 @@ _Confiance : haute._
 **Remède** : un seul `lib/shared/httpError.js` posant **les deux** propriétés, et un helper
 `sendError(res, err)` unique. _Confiance : haute._
 
+**Traité** : `lib/shared/httpError.js` (`httpError` pose `status` **et** `statusCode`,
+`httpErrorStatus(err)` lit l'un ou l'autre) ; neuf copies remplacées, et les trois
+`makeHttpError(message, status)` du marché / des sorts redirigent vers lui.
+
 ### 3.3 — MINEUR · `mapExists` : sept copies, deux variantes
 
 `routes/zones.js:64`, `routes/map.js:61`, `lib/tasks/taskQueries.js:46` (garde `!mapId`, sans
@@ -183,6 +215,9 @@ _Confiance : haute._
 `lib/realtime.js:198` (sans garde, avec `LIMIT 1`). Sans garde, `mapExists(undefined)` envoie
 `WHERE id = NULL` — faux, donc sans danger, mais une requête pour rien. **Remède** : exporter la
 version de `lib/visitRouteShared.js` (avec garde) et importer partout. _Confiance : haute._
+
+**Traité** : `lib/mapQueries.js` (garde sur identifiant vide + `LIMIT 1`), sept copies
+remplacées.
 
 ### 3.4 — MINEUR · `normalizeEmail` : sept copies identiques
 
@@ -192,17 +227,30 @@ version de `lib/visitRouteShared.js` (avec garde) et importer partout. _Confianc
 retour `null` sur vide : `''` au lieu de `null`, ce qui change une comparaison `=== null` en
 aval). **Remède** : importer `lib/identity.js`. _Confiance : haute._
 
-### 3.5 — MINEUR · `docs/API.md` : au moins 28 routes montées sans documentation
+**Traité** pour cinq copies (import de `lib/identity.js`). `lib/moodle/matching.js` garde la
+sienne : elle renvoie `''` et non `null`, et ses appelants comparent des chaînes — l'aligner
+serait un changement de comportement à tester à part.
+
+### 3.5 — MINEUR · `docs/API.md` : ~~au moins 28~~ quatorze routes montées sans documentation
+
+> **Correction du 13/09.** Le rapprochement initial ne reconnaissait que les URL absolues
+> (`/api/...`). Or `API.md` documente certaines familles en **chemins relatifs sous un titre
+> qui porte le préfixe** — c'est le cas des 16 routes Moodle (`## Lien Moodle
+(\`/api/admin/integrations/moodle\`)`puis`| GET | \`/status\` |`). Elles **sont**
+documentées ; le constat qui suit les concernant est faux et reste ici barré. Restaient
+réellement absentes : 8 routes `/api/gl/lore/admin/glossary/_`(résumées par une seule
+ligne joker), 5 routes`/api/gl/lore/admin/qcm/questions_`et`PUT
+> /api/gl/lore/admin/feuillets/reorder`.
 
 Rapprochement automatique des 548 routes montées via `server.js` avec les 629 entrées de
 `docs/API.md` ; après vérification manuelle (zéro occurrence du chemin dans le fichier) :
 
-- **16 routes `/api/admin/integrations/moodle/*`** (`routes/admin/moodle.js`) : `status`,
+- ~~**16 routes `/api/admin/integrations/moodle/*`** (`routes/admin/moodle.js`) : `status`,
   `check`, `cohorts`, `courses`, `runs` (GET/POST), `runs/:id`, `runs/:id/undo`,
   `pending-matches` (GET, POST `:id`), `conflicts` (GET, POST `:id`), `exempt` (GET/POST),
   `merge`, `mirrors`. Elles ne sont décrites que dans
   [`AUDIT_MOODLE_IDENTITES_2026-09.md`](AUDIT_MOODLE_IDENTITES_2026-09.md) — un document de
-  chantier, pas le contrat HTTP.
+  chantier, pas le contrat HTTP.~~ **Faux** : documentées en chemins relatifs (voir l'encadré).
 - **12 routes `/api/gl/lore/admin/{glossary,qcm}/*`** (`routes/gl/lore.js`) : `glossary/meta`,
   `glossary/terms` (GET/POST), `glossary/terms/next-code`, `glossary/terms/:code` (PUT),
   `glossary/import/template`, `glossary/export`, `glossary/import`, `qcm/questions` (GET/POST),
@@ -214,6 +262,11 @@ Le rapprochement signale d'autres candidats (`/api/gl/learning-links/{policy,loc
 normalisation des paramètres rend moins sûrs ; à contrôler à la main. Le script de rapprochement
 est reproductible (voir §7) et pourrait rejoindre `tests/` comme garde-fou de la convention
 « toute route publique → `API.md` ». _Confiance : haute sur les 28, moyenne sur le reste._
+
+**Traité** : quatorze lignes ajoutées à `docs/API.md`, et le rapprochement devient un test
+sans base, `tests/api-doc-coverage.test.js` (routeurs montés par `server.js` et sous-routeurs
+`router.use(require(…))`, URL absolues, relatives sous titre préfixé, jokers `/*`). Il passe
+sur les 548 routes ; toute exception future doit être justifiée dans sa liste blanche.
 
 ### 3.6 — INFO · Réglages orphelins des deux côtés
 
@@ -256,6 +309,8 @@ client silencieuse. **Remède** : déplacer la source dans `src/shared/` (miroir
 déjà couvert par le diff de CI) ou ajouter un `sync:biomes-lib`. _Confiance : haute sur le
 doublon, moyenne sur la divergence sémantique (non testée)._
 
+**Ouvert** : demande de décider où vit la source (client ou serveur) ; voir §9.
+
 ### 4.2 — MINEUR · Helpers d'import tableur : 11 `resolveImportRows`, 8 `readSheetRows`
 
 Fonctions homonymes déclarées dans plusieurs fichiers backend (extraction `^function nom(`) :
@@ -277,6 +332,15 @@ maintenance le plus visible du dépôt : une correction du parsing CSV doit êtr
 endroits. **Remède** : un `lib/import/spreadsheetRows.js` (lecture + CSV + rapport) importé par
 les neuf. _Confiance : haute._
 
+**Traité pour les copies strictement identiques** : `lib/importRows.js` porte désormais le
+parseur CSV, l'échappement CSV, le décodage base64 et `resolveImportRows` (élèves, joueurs,
+tâches, groupes, plantes), plus `resolveWorkbookImportRows(body, parseur)` pour les quatre
+importeurs G&L par classeur ; `readSheetRows` vient de `lib/shared/xlsxImportCore.js`
+(6 copies), `asOptionalText` de `lib/shared/stringHelpers.js` (5), `normalizeOptionalFilter` et
+`normalizeBiomeSlug` sont des alias de `normalizeOptionalString` (10). **Laissé** :
+`buildImportReportBase` (sept formes de rapport réellement différentes) et `isPlainObject`
+(trois variantes équivalentes, dont deux dans des cœurs miroirs `src/shared` ↔ `lib/shared`).
+
 ### 4.3 — MINEUR · Front : `joinClassNames` ×12, `fileToDataUrl` ×8, `formatDateTime` ×6
 
 - `joinClassNames` : 12 copies dont **5 dans `src/shared/ui/` lui-même** (`Button`, `DataList`,
@@ -292,6 +356,9 @@ les neuf. _Confiance : haute._
 **Remède** : un `src/shared/utils/classNames.js` et un `src/shared/utils/formatDate.js`, et
 remplacement des copies par des imports. _Confiance : haute._
 
+**Traité** : `src/shared/utils/classNames.js`, `src/shared/utils/formatDateTime.js`, et les
+sept panneaux d'import importent `src/shared/platform/fileToDataUrl.js` — 24 copies retirées.
+
 ### 4.4 — MINEUR · Deux routeurs « lieu » qui n'en font qu'un
 
 `routes/map.js` (repères) et `routes/zones.js` (zones) partagent `normalizeLivingBeings`,
@@ -300,6 +367,8 @@ remplacement des copies par des imports. _Confiance : haute._
 (58 fenêtres sur ~200 lignes chacun). Un `lib/locationRouteHelpers.js` et un
 `lib/visitAudienceHelpers.js` suffiraient. _Confiance : haute._
 
+**Traité** : `lib/locationRowHelpers.js` et `lib/visitAudienceWrite.js`.
+
 ### 4.5 — MINEUR · Carnet FM et carnet joueur GL : trois composants recopiés
 
 `UserJournalArticleCard` ↔ `GLPlayerJournalArticleCard` (37), `UserJournalView` ↔
@@ -307,6 +376,10 @@ remplacement des copies par des imports. _Confiance : haute._
 correctif récent du carnet (voir `CHANGELOG.md`, « Catalogue de biodiversité ») a dû être pensé
 pour un seul côté ; un composant partagé dans `src/shared/journal/` paramétré par le service
 d'API éviterait la prochaine divergence. _Confiance : haute._
+
+**Ouvert** : les paires ont divergé au-delà du doublon mécanique (235 lignes sur 332 pour la
+carte d'article : classes CSS, boutons, métadonnées propres à chaque produit). Les partager est
+un travail de conception (composant paramétré par produit), pas un déplacement de code. Voir §9.
 
 ### 4.6 — INFO · Doublons assumés et sains
 
@@ -374,6 +447,8 @@ partout. **Remède** : migration `242` — `CREATE INDEX idx_audit_log_created O
 `idx_task_logs_created ON task_logs (created_at)`. _Confiance : haute (structure lue en base ;
 volumétrie prod non mesurée)._
 
+**Traité** : migration `242` (les trois index) et `sql/schema_foretmap.sql` pour `audit_log`.
+
 ### 5.3 — MINEUR · `SELECT *` sans projection sur des listes
 
 Hors constats déjà connus (`GET /api/plants`, B5) : `routes/learning-links.js:61,130` et
@@ -394,6 +469,11 @@ _Confiance : haute._
 
 Les deux premiers se ferment sans changement cassant. _Confiance : haute._
 
+**Traité** : `npm audit fix` → `adm-zip 0.6.1`, `qs 6.16.0` ; restent les deux avis `uuid`
+via `exceljs`, sans correctif non cassant. _Piège rencontré : `npm audit fix --omit=dev`
+**désinstalle les dépendances de développement** du `node_modules` local (ESLint, Vitest…) ;
+relancer `npm ci` après._
+
 ### 5.5 — MINEUR · Import « carte → visite » : une requête par élément
 
 `routes/visit/sync.js:143-235` — quatre boucles `for … await execute(INSERT … ON DUPLICATE
@@ -402,6 +482,9 @@ opération). Une carte de 60 zones + 80 repères coûte 140 requêtes séquentie
 milieu laisse un import partiel. Action d'administration rare : coût acceptable, atomicité
 discutable. **Remède** : `INSERT … VALUES (…),(…)` par lots de 100 dans `withTransaction`.
 _Confiance : haute._
+
+**Traité** : `insertInBatches` (lots de 100 lignes) dans une seule transaction, pour les deux
+sens ; payload de réponse inchangé.
 
 ### 5.6 — INFO · Écritures disque synchrones sur le chemin de requête
 
@@ -482,6 +565,58 @@ moitié si la CI devient contrainte.
 | 8   | §4.2 pipeline d'import tableur commun                                   |  2 j   | le plus gros gisement de dette                     |
 | 9   | §2.2, §2.3, §2.4, §5.5 (petits correctifs)                              |  ½ j   | —                                                  |
 
-**Méthode reproductible.** Rapprochement routes ↔ `API.md` et détecteur de doublons : deux
-scripts Node d'une cinquantaine de lignes chacun, sans dépendance, à verser dans `scripts/audit/`
-si l'on veut rejouer cet audit (le premier a vocation à devenir un test).
+**Méthode reproductible.** Le rapprochement routes ↔ `API.md` est devenu
+`tests/api-doc-coverage.test.js` (job CI `quality`, sans base). Le détecteur de doublons
+(fenêtres de 10 lignes normalisées) reste un script jetable, à réécrire au besoin.
+
+---
+
+## 9. Suites du 13/09 : ce qui a été traité, ce qui reste, ce qui a été trouvé en chemin
+
+| Lot | État                                                                                       |
+| --- | ------------------------------------------------------------------------------------------ |
+| 1   | **Traité** — moteur de migrations, `227`/`237` corrigées, migration `242`, test unitaire   |
+| 2   | **Traité** — trois index (`242`)                                                           |
+| 3   | **Traité** — 14 lignes `API.md`, test de couverture ; constat Moodle retiré (faux)         |
+| 4   | **Traité** — `adm-zip`, `qs` ; `uuid`/`exceljs` reste                                      |
+| 5   | **Traité** — `slug.js`, `httpError.js`, `mapQueries.js`, `normalizeEmail` (5/6)            |
+| 6   | **Traité** — 24 copies front retirées                                                      |
+| 7   | **Traité** pour les helpers de routes ; **ouvert** pour les composants carnet (conception) |
+| 8   | **Traité** pour les copies identiques ; `buildImportReportBase` laissé (sept formes)       |
+| 9   | **Traité** — NUL, N+1, `LIMIT`, import visite par lots                                     |
+
+**Restent ouverts** : §2.5 (25 effets sans annulation — écran par écran), §4.1 (registre des
+biomes : décider la source), §4.5 (composants carnet FM/GL), §5.3 (projections `SELECT *`,
+dont `lib/identity.js`), §5.6–5.7 et §6 (process).
+
+### 9.1 — Trouvé en chemin : la CI de `main` était rouge depuis le 11 septembre
+
+Le job `test` échouait à l'étape Playwright `plan-mobile` sur **tous** les runs de `main`
+depuis le 11/09 (trente runs consultés), donc aussi sur la PR de cet audit, qui ne touche
+que du Markdown. Reproduit en local sur la base laissée par `npm test`, comme en CI. Quatre
+causes empilées, dont une régression produit :
+
+1. **Pollution de la base par les tests** — `tests/plan-content.test.js` et
+   `tests/map-routes.test.js` « restauraient » `ui.plan.map_id` à la valeur littérale
+   `'lyautey'`, une carte qui n'existe pas en base de test ; `tests/tasks-queries-atomic.test.js`
+   laissait sa carte `tq-atomic` (tri `0`, sans fond publié). Le plan retombait donc sur cette
+   carte, affichait « Aucun fond de plan n'est encore publié » et ne montait jamais la scène
+   carte. Corrigé : `tests/helpers/settingsSnapshot.js` (un test restaure ce qu'il a trouvé) et
+   nettoyage en `after()`.
+2. **Régression produit : le lien profond `?lieu=` était effacé** à l'ouverture d'une fiche
+   depuis la feuille de résultats. Les feuilles basses empilent une entrée d'historique et
+   reculent d'une entrée à la fermeture (`overlayHistory.js`) ; fermer les résultats après
+   `replaceState(?lieu=…)` restaurait l'URL d'avant la recherche. `src/plan/AppPlan.jsx` tient
+   désormais l'identifiant sélectionné dans une réf et ré-aligne l'URL à chaque `popstate`,
+   sans toucher au lien profond avant sa lecture.
+3. **Scénario d'orientation** : il émettait `deviceorientation` alors que le produit écoute
+   `deviceorientationabsolute` dès que le navigateur l'expose (Chromium) — le cap n'arrivait
+   jamais. Le scénario émet sur les deux noms.
+4. **Scénario de position** : il visait le premier lieu du plan, une zone héritée du semis sans
+   polygone, donc sans point à viser — « Y aller » ne pouvait pas annoncer de distance. Le
+   scénario choisit un lieu géolocalisable. _Reste à noter_ : les zones rectangulaires héritées
+   (`x, y, width, height` sans `points`) ne sont pas « visables » par le plan — à convertir
+   (`lib/legacyZoneShapeConvert.js`) si le plan Lyautey en contient.
+
+Les quatre scénarios `plan-mobile` passent en local sur la base post-suite ; c'est la CI de la
+PR qui tranche.

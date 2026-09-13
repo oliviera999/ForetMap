@@ -10,13 +10,7 @@ import {
 import { compressImageWithPreset, isLikelyImageFile } from '../../shared/platform/image.js';
 import { useFmJournalEmbedTitles } from '../../hooks/useFmJournalEmbedTitles.js';
 import { UserJournalEmbedPicker } from './UserJournalEmbedPicker.jsx';
-
-function formatDateTime(value) {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleString('fr-FR');
-}
+import { formatDateTime } from '../../shared/utils/formatDateTime.js';
 
 export function UserJournalArticleCard({
   article,
