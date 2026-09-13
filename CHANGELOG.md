@@ -9,6 +9,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — la suite Vitest repasse au vert, et une régression de charge du carnet
+
+- **Catalogue de biodiversité** : chaque vignette montait un `FmLearnAndImportSlot` qui
+  demandait pour son compte `GET /api/user-journal/me/imports/refs` — la liste **complète**
+  des imports, identique pour tous. Soit une requête par fiche affichée : 78 espèces, 78
+  requêtes à chaque ouverture du catalogue, le symptôme même que la garde de charge
+  `PlantCatalogTiles` devait empêcher de revenir
+  (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`, §1). La liste passe par
+  `src/services/userJournalImports.js` : une requête par écran, partagée entre les slots,
+  invalidée à chaque import.
+- **Tests restés en arrière de leurs lots** (la suite Vitest ne tournait plus en intégration
+  depuis le 12 septembre — `format:check` rouge fait sauter `test:ui` dans le job `quality`) :
+  libellés du panneau carnets, filtre carte des tutoriels devenu un filtre d'affichage,
+  champs d'audience du formulaire repère, `map_ids` du formulaire espèce, normalisation des
+  ids de lieux, et fixtures du catalogue que le filtre « carte active » laissait sans vignette.
+  Aucun de ces tests ne décrivait plus le comportement livré.
+
 ### Ajouté — cloisonnement par rôles sur la couche visite
 
 - Migration `240_visit_location_audience_roles.sql` : `visible_role_slugs`,
