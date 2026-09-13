@@ -42,6 +42,7 @@ const {
 } = require('../lib/locationAudience');
 const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const { logAudit } = require('../lib/auditLog');
+const { mapMarkerToVisitWhitelistFields } = require('../lib/visitMapToVisitFields');
 const {
   registerEntityPhotoRoutes,
   reorderPhotosBodySchema,
@@ -121,11 +122,14 @@ async function upsertVisitMarkerEditorial(reqBody, markerRow) {
       ? parseVisitEditorialBlocksInput(patchBlocksInput)
       : parseVisitEditorialBlocksInput(existing?.body_json);
   const bodyJson = serializeVisitEditorialBlocks(normalizedBlocks);
+  const audience = mapMarkerToVisitWhitelistFields(markerRow);
   const now = nowIsoUtc();
   await execute(
     `INSERT INTO visit_markers
-      (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json, is_active, sort_order, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
+      (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json,
+       visible_role_slugs, restricted_note, restricted_note_role_slugs,
+       is_active, sort_order, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
      ON DUPLICATE KEY UPDATE
        map_id = VALUES(map_id),
        x_pct = VALUES(x_pct),
@@ -137,6 +141,9 @@ async function upsertVisitMarkerEditorial(reqBody, markerRow) {
        details_title = VALUES(details_title),
        details_text = VALUES(details_text),
        body_json = VALUES(body_json),
+       visible_role_slugs = VALUES(visible_role_slugs),
+       restricted_note = VALUES(restricted_note),
+       restricted_note_role_slugs = VALUES(restricted_note_role_slugs),
        updated_at = VALUES(updated_at)`,
     [
       markerRow.id,
@@ -150,8 +157,28 @@ async function upsertVisitMarkerEditorial(reqBody, markerRow) {
       detailsTitle,
       detailsText,
       bodyJson,
+      audience.visible_role_slugs,
+      audience.restricted_note,
+      audience.restricted_note_role_slugs,
       now,
       now,
+    ],
+  );
+}
+
+async function mirrorMarkerAudienceToVisit(markerRow) {
+  const audience = mapMarkerToVisitWhitelistFields(markerRow);
+  await execute(
+    `UPDATE visit_markers
+     SET visible_role_slugs = ?, restricted_note = ?, restricted_note_role_slugs = ?, updated_at = ?
+     WHERE id = ? AND map_id = ?`,
+    [
+      audience.visible_role_slugs,
+      audience.restricted_note,
+      audience.restricted_note_role_slugs,
+      nowIsoUtc(),
+      markerRow.id,
+      markerRow.map_id,
     ],
   );
 }
@@ -438,6 +465,12 @@ router.put(
     if (hasVisitMarkerContentPatch(req.body)) {
       await upsertVisitMarkerEditorial(req.body, updated);
       updated = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [m.id]);
+    } else if (
+      audienceInput.visible_role_slugs !== null ||
+      audienceInput.restricted_note !== null ||
+      audienceInput.restricted_note_role_slugs !== null
+    ) {
+      await mirrorMarkerAudienceToVisit(updated);
     }
     const speciesRows = await loadMarkerSpeciesMap(db, [m.id]);
     const categoriesRows = await loadCategoriesMap(db, 'marker', [m.id]);

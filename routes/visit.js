@@ -223,6 +223,8 @@ router.get(
     // Requêtes indépendantes : lancées ensemble plutôt qu'en file (huit allers-retours
     // séquentiels sur un endpoint public, c'est autant de latence et de temps de connexion
     // MySQL retenue).
+    // Audience : source de vérité = visit_* ; COALESCE vers la carte si pas encore
+    // synchronisé (transition post-migration 240). Filtrage via filterLocationsForViewer.
     const zonesPromise = queryAll(
       `SELECT
        z.id, z.map_id, z.name, z.points,
@@ -230,9 +232,9 @@ router.get(
        zm.color AS color,
        zm.emoji AS emoji,
        zm.current_plant AS current_plant,
-       zm.visible_role_slugs AS visible_role_slugs,
-       zm.restricted_note AS restricted_note,
-       zm.restricted_note_role_slugs AS restricted_note_role_slugs,
+       COALESCE(z.visible_role_slugs, zm.visible_role_slugs) AS visible_role_slugs,
+       COALESCE(z.restricted_note, zm.restricted_note) AS restricted_note,
+       COALESCE(z.restricted_note_role_slugs, zm.restricted_note_role_slugs) AS restricted_note_role_slugs,
        z.subtitle AS visit_subtitle,
        z.short_description AS visit_short_description,
        z.details_title AS visit_details_title,
@@ -252,9 +254,9 @@ router.get(
        m.id, m.map_id, m.x_pct, m.y_pct, m.label, m.emoji,
        mm.note AS note,
        mm.plant_name AS plant_name,
-       mm.visible_role_slugs AS visible_role_slugs,
-       mm.restricted_note AS restricted_note,
-       mm.restricted_note_role_slugs AS restricted_note_role_slugs,
+       COALESCE(m.visible_role_slugs, mm.visible_role_slugs) AS visible_role_slugs,
+       COALESCE(m.restricted_note, mm.restricted_note) AS restricted_note,
+       COALESCE(m.restricted_note_role_slugs, mm.restricted_note_role_slugs) AS restricted_note_role_slugs,
        m.subtitle AS visit_subtitle,
        m.short_description AS visit_short_description,
        m.details_title AS visit_details_title,
