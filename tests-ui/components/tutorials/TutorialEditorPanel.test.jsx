@@ -74,27 +74,14 @@ describe('TutorialEditorPanel', () => {
     expect(lastFormUpdate(handlers.setForm).zone_ids).toEqual(['z1']);
   });
 
-  // Le filtre carte est un filtre d'AFFICHAGE depuis « liaisons multi-cartes sans bascule »
-  // (72a1519) : changer de carte ne décoche plus les lieux des autres cartes. Seuls les ids
-  // devenus inconnus (lieu supprimé entre-temps) sont purgés.
-  test('changement de carte : map_id mis à jour, liaisons des autres cartes conservées', () => {
+  test('changement de carte : map_id mis à jour et lieux hors carte décochés', () => {
     const { handlers } = renderPanel({ zone_ids: ['z1', 'z2'], marker_ids: ['m1'] });
     fireEvent.change(fieldControl('Carte (filtre zones / repères)', 'select'), {
       target: { value: 'jardin' },
     });
     const next = lastFormUpdate(handlers.setForm);
     expect(next.map_id).toBe('jardin');
-    expect(next.zone_ids).toEqual(['z1', 'z2']);
-    expect(next.marker_ids).toEqual(['m1']);
-  });
-
-  test('changement de carte : un lieu inconnu du catalogue est purgé', () => {
-    const { handlers } = renderPanel({ zone_ids: ['z1', 'zX'], marker_ids: ['mX'] });
-    fireEvent.change(fieldControl('Carte (filtre zones / repères)', 'select'), {
-      target: { value: 'jardin' },
-    });
-    const next = lastFormUpdate(handlers.setForm);
-    expect(next.zone_ids).toEqual(['z1']);
+    expect(next.zone_ids).toEqual(['z2']);
     expect(next.marker_ids).toEqual([]);
   });
 
