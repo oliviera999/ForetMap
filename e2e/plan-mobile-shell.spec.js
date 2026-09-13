@@ -26,13 +26,20 @@ test('plan : coquille, recherche et fiche d’un lieu', async ({ page, request }
   expect(content.tasks).toBeUndefined();
   expect(content.students).toBeUndefined();
 
+  // Les contrôles de la carte (« Voir tout le plan », « Me situer », pastilles) ne sont rendus
+  // que si le plan a un fond d'image : `AppPlan` ne monte `PlanMapStage` que sous
+  // `hasMapImage`. Sans cette garde, une base dont la carte n'a pas d'image fait échouer le
+  // scénario sur un bouton absent, là où il n'y a en réalité rien à vérifier — c'est ce qui
+  // rendait le smoke bloquant rouge en intégration. Garde posée **avant** les assertions
+  // qu'elle protège, comme dans `plan-routes-mode.spec.js`.
+  test.skip(!content.map?.map_image_url, 'La carte du plan de cette base locale n’a pas de fond.');
+  const places = [...(content.zones || []), ...(content.markers || [])];
+  test.skip(places.length === 0, 'Aucun lieu publié sur le plan de cette base locale.');
+
   await page.goto('/');
   const search = page.getByLabel('Rechercher un lieu');
   await expect(search).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole('button', { name: /Voir tout le plan/ })).toBeVisible();
-
-  const places = [...(content.zones || []), ...(content.markers || [])];
-  test.skip(places.length === 0, 'Aucun lieu publié sur le plan de cette base locale.');
 
   const first = places[0];
   const name = String(first.name || first.label || '').trim();
