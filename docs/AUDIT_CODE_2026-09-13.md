@@ -161,8 +161,12 @@ utilisé par ces composants. **Remède** : passer ces chargements par `useApiRes
 un compteur de génération dans `load`. _Confiance : moyenne (motif vérifié, course non
 reproduite)._
 
-**Ouvert** : 25 composants, chacun à relire pour choisir entre `useApiResource` et un compteur
-de génération ; à traiter écran par écran (voir §9).
+**Traité pour les écrans dont les entrées changent** : `src/shared/hooks/useLatestRequest.js`
+(compteur de génération, périmé au démontage — `tests-ui/shared/useLatestRequest.test.jsx`)
+posé sur la galerie photos d'un lieu (changement de lieu), le panneau d'usage (période,
+produit), les carnets des statistiques (groupe), les parcours et lieux du panneau cartes
+(carte), et la synchronisation visite (carte). **Laissé** : les panneaux d'administration qui
+chargent une fois au montage sans dépendance variable — la course y est théorique.
 
 ### 2.6 — INFO · Deux conventions d'erreur HTTP typée cohabitent
 
@@ -589,7 +593,8 @@ moitié si la CI devient contrainte.
 | 8   | **Traité** pour les copies identiques ; `buildImportReportBase` laissé (sept formes)       |
 | 9   | **Traité** — NUL, N+1, `LIMIT`, import visite par lots                                     |
 
-**Restent ouverts** : §2.5 (25 effets sans annulation — écran par écran), §4.5 (composants
+**Restent ouverts** : §2.5 pour les panneaux chargés une fois au montage (course théorique ;
+cinq écrans à entrées variables traités dans un second temps), §4.5 (composants
 carnet FM/GL), §5.3 (projections `SELECT *` — `lib/identity.js` alimente aussi le profil et
 les visites guidées vues, une projection y demande une relecture des consommateurs), §5.6–5.7
 et §6 (process). §4.1 (registre des biomes) a été traité dans un second temps.
