@@ -229,6 +229,31 @@ export function AppPlan() {
     }
   }, []);
 
+  /**
+   * Maintient `?lieu=` sur le lieu ouvert, y compris après les `history.back()` des feuilles.
+   *
+   * Ouvrir un lieu depuis la recherche ferme la feuille de résultats, et `removeOverlayClose`
+   * recule alors d'une entrée — celle-là même que `openPlace` venait de réécrire. Le
+   * `popstate` arrivait donc APRÈS et ramenait l'URL à `/` : le lien profond du lieu, celui
+   * que porte un QR code interne, était perdu à chaque ouverture depuis la recherche.
+   * Même remède que pour `?parcours=` plus bas — on réaffirme la valeur attendue.
+   *
+   * On ne s'occupe que du cas « un lieu est ouvert » : le retrait du paramètre reste à
+   * `closePlace`, sinon cet effet lutterait contre la fermeture au bouton retour.
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.history?.replaceState) return undefined;
+    const wanted = selectedPlace ? String(selectedPlace.id || '') : '';
+    if (!wanted) return undefined;
+    const align = () => {
+      if (readPlaceIdFromLocation(window.location.search) === wanted) return;
+      window.history.replaceState(null, '', buildPlaceUrl(window.location, wanted));
+    };
+    align();
+    window.addEventListener('popstate', align);
+    return () => window.removeEventListener('popstate', align);
+  }, [selectedPlace]);
+
   // Lien profond `?lieu=` : une seule fois, au premier contenu reçu.
   useEffect(() => {
     if (deepLinkAppliedRef.current || places.length === 0) return;

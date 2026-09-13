@@ -9,6 +9,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — le lien profond `?lieu=` survit à l'ouverture depuis la recherche
+
+- **Plan Lyautey** : ouvrir un lieu depuis la recherche perdait aussitôt son `?lieu=`. La
+  feuille de résultats se ferme à cette occasion, et `removeOverlayClose` recule alors d'une
+  entrée d'historique — celle-là même que `openPlace` venait de réécrire. Le `popstate`
+  arrivait après et ramenait l'URL à `/`. Le lien profond du lieu, celui que porte un QR code
+  interne, n'était donc jamais formé par ce chemin. La valeur attendue est désormais
+  réaffirmée, comme le fait déjà `?parcours=`.
+- **CI** : le serveur e2e reçoit `TEACHER_ADMIN_EMAIL` / `TEACHER_ADMIN_PASSWORD`. `lib/env.js`
+  n'auto-sème le compte enseignant que si les deux sont présentes ; sans elles, aucun
+  enseignant n'existait et les specs Plan qui calent la carte via l'API admin échouaient en
+  401 — pas sur ce qu'elles testent.
+
+
 ### Corrigé — semis RBAC sur base neuve, et reprise des observations héritées
 
 - **Semis RBAC** (migration `241`) : sur une **installation neuve**, `admin` démarrait sans

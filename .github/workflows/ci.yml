@@ -169,6 +169,13 @@ jobs:
           # `start:e2e` pose déjà ce bypass via --foretmap-e2e-no-rate-limit ;
           # explicite ici pour mirror exact du webServer local.
           E2E_DISABLE_RATE_LIMIT: '1'
+          # Compte admin de test. `lib/env.js` ne l'auto-sème QUE si les deux variables sont
+          # présentes ; sans elles, aucun enseignant n'existe et les specs Plan qui appellent
+          # `POST /api/auth/login` (calage géo de la carte via l'API admin) échouaient en 401
+          # — pas sur ce qu'elles testent. Valeurs alignées sur les défauts des specs et du
+          # helper `tests/helpers/adminAuth.js`.
+          TEACHER_ADMIN_EMAIL: 'admin.test@foretmap.local'
+          TEACHER_ADMIN_PASSWORD: 'admin1234'
 
       - name: Wait for app health
         run: |
