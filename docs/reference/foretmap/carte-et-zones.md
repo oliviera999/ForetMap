@@ -241,10 +241,11 @@ Composer un parcours :
   parcours qui la ciblent, avec une barre d'étape en bas et la carte restée utilisable.
 - Rien n'est dupliqué : une étape **pointe** vers un lieu existant. Renommer le lieu renomme
   l'étape ; supprimer le lieu laisse une étape signalée « lieu introuvable », à retirer.
-- Une étape dont le lieu est **masqué sur le Plan** (par ses surfaces ou sa catégorie) est
-  passée par le plan sans être affichée : le compte d'étapes annoncé au visiteur est celui des
-  étapes réellement visibles, et un parcours dont plus aucune étape n'est visible n'est pas
-  proposé du tout.
+- Une étape dont le lieu est **masqué** sur la surface consultée (Carte, Visite ou Plan — par
+  ses surfaces, sa catégorie, ou parce qu'il est réservé à certains profils) n'est pas
+  affichée : le compte d'étapes annoncé est celui des étapes réellement visibles, et le texte
+  de l'étape masquée n'est pas transmis. Un parcours dont plus aucune étape n'est visible n'est
+  pas proposé du tout. L'affiche PDF du professeur continue de lister toutes les étapes.
 - Un parcours ne peut pas dépasser **60 étapes**. La description est limitée à 2 000 caractères,
   le texte d'une étape à 4 000.
 - Changer l'**identifiant du lien** d'un parcours déjà publié périme les affiches imprimées :

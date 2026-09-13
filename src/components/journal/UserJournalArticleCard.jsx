@@ -9,6 +9,8 @@ import {
 } from '../../shared/platform/markdown.js';
 import { compressImageWithPreset, isLikelyImageFile } from '../../shared/platform/image.js';
 import { useFmJournalEmbedTitles } from '../../hooks/useFmJournalEmbedTitles.js';
+import { useAuthedHtmlImages } from '../../hooks/useAuthedHtmlImages.js';
+import { AuthedImage } from '../AuthedImage.jsx';
 import { UserJournalEmbedPicker } from './UserJournalEmbedPicker.jsx';
 
 function formatDateTime(value) {
@@ -52,6 +54,7 @@ export function UserJournalArticleCard({
     return renderMarkdownToSafeHtml(body, { allowImages: true, allowJournalEmbeds: true });
   }, [body, showPreview]);
   const hydratedPreview = useFmJournalEmbedTitles(previewHtml);
+  const previewWithImages = useAuthedHtmlImages(hydratedPreview);
 
   const handleApiError = useCallback(
     (err) => {
@@ -297,7 +300,7 @@ export function UserJournalArticleCard({
           <h3>Aperçu</h3>
           <div
             className="fm-journal-markdown"
-            dangerouslySetInnerHTML={{ __html: hydratedPreview }}
+            dangerouslySetInnerHTML={{ __html: previewWithImages }}
           />
         </div>
       ) : null}
@@ -308,7 +311,12 @@ export function UserJournalArticleCard({
           <ul>
             {assets.map((asset) => (
               <li key={asset.id}>
-                <img src={asset.url} alt="" loading="lazy" className="fm-journal__asset-thumb" />
+                <AuthedImage
+                  src={asset.url}
+                  alt=""
+                  loading="lazy"
+                  className="fm-journal__asset-thumb"
+                />
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
