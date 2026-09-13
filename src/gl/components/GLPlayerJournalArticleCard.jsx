@@ -11,13 +11,7 @@ import { compressImageWithPreset, isLikelyImageFile } from '../../shared/platfor
 import { GLButton } from './ui/GLButton.jsx';
 import { GLPlayerJournalEmbedPicker } from './GLPlayerJournalEmbedPicker.jsx';
 import { useGlJournalEmbedTitles } from '../hooks/useGlJournalEmbedTitles.js';
-
-function formatDateTime(value) {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleString('fr-FR');
-}
+import { formatDateTime } from '../../shared/utils/formatDateTime.js';
 
 /**
  * Éditeur d'un article de carnet : titre optionnel, texte markdown et/ou

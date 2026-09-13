@@ -1,8 +1,5 @@
 import React from 'react';
-
-function joinClassNames(...parts) {
-  return parts.filter(Boolean).join(' ');
-}
+import { joinClassNames } from '../../../shared/utils/classNames.js';
 
 export const GLSelect = React.forwardRef(function GLSelect(
   { className = '', children, ...props },

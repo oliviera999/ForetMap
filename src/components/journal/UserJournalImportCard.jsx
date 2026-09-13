@@ -1,12 +1,6 @@
 import { useState } from 'react';
 import { importTypeMeta, importTargetNav } from '../../utils/fmJournalMeta.js';
-
-function formatDateTime(value) {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleString('fr-FR');
-}
+import { formatDateTime } from '../../shared/utils/formatDateTime.js';
 
 export function UserJournalImportCard({
   item,

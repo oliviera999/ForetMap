@@ -9,16 +9,58 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — CI de `main` rouge depuis le 11 septembre, et lien profond du plan
+
+- **Scénarios e2e `plan-mobile`** (job `test`) : rouges sur tous les runs de `main` depuis le
+  11/09. Deux suites backend « restauraient » `ui.plan.map_id` à `'lyautey'`, une carte absente
+  de la base de test, et une troisième laissait sa carte de fixture sans fond publié ; le plan
+  retombait dessus et n'affichait jamais la scène carte. Un test restaure désormais l'état qu'il
+  a trouvé (`tests/helpers/settingsSnapshot.js`) et nettoie ses cartes. Le scénario d'orientation
+  émettait un événement que Chromium n'écoute pas (`deviceorientation` au lieu de
+  `deviceorientationabsolute`), celui de position visait une zone héritée sans polygone.
+- **Plan Lyautey — lien profond `?lieu=` effacé** à l'ouverture d'une fiche depuis la feuille de
+  résultats : la fermeture de la feuille reculait d'une entrée d'historique et restaurait l'URL
+  d'avant la recherche. L'identifiant sélectionné est tenu dans une réf et l'URL ré-alignée à
+  chaque `popstate`, sans toucher au lien profond avant sa lecture.
+- **Moteur de migrations** : « table inexistante » (`ER_NO_SUCH_TABLE`) n'est plus classé
+  « déjà appliquée » pour un énoncé d'écriture — la migration `237` semait deux réglages du
+  carnet dans une table `settings` qui n'existe pas (`app_settings`) sans que rien ne le dise, et
+  la `227` visait une table supprimée par la `186`. Les deux migrations sont corrigées, la `242`
+  rattrape les bases déjà passées, et l'erreur est désormais tolérée seulement pour une
+  suppression, pour les tables de l'ancien modèle de comptes, ou — en `warn` — dans une
+  migration antérieure à la 242 (`tests/migrations-error-classifier.test.js`).
+- Un octet NUL littéral dans `lib/usage.js` rendait le fichier « binaire » pour `grep` ;
+  `validateTutorialLocations` faisait une requête par lieu ; l'historique de récoltes d'une zone
+  était renvoyé sans borne (projection explicite et `LIMIT 500`).
+
+### Modifié — audit du code du 13 septembre (dette, performance, dépendances)
+
+- **Index** `created_at` sur `audit_log`, `gl_game_events` et `task_logs` (migration `242`) :
+  la purge (`scripts/purge-audit-logs.js`) filtrait ces tables par date sans index.
+- **Import carte ↔ visite** (`POST /api/visit/sync`) : lots de 100 lignes dans une seule
+  transaction au lieu d'une requête par élément hors transaction (import partiel possible avant).
+- **Helpers partagés** à la place des copies locales : `lib/shared/slug.js` (`lowerTrim`,
+  `slugify` — sept `normalizeSlug` aux sémantiques divergentes), `lib/shared/httpError.js`
+  (`status` **et** `statusCode` — neuf copies en deux conventions), `lib/mapQueries.js`
+  (`mapExists` ×7), `normalizeEmail` de `lib/identity.js` (×5), `lib/locationRowHelpers.js`
+  (`routes/map.js` ↔ `routes/zones.js`), `lib/visitAudienceWrite.js` (`routes/visit/*`),
+  `lib/importRows.js` (parseur CSV, décodage base64 et `resolveImportRows` des importeurs
+  élèves / joueurs / tâches / groupes / plantes, `resolveWorkbookImportRows` des importeurs
+  G&L par classeur), `readSheetRows` / `asOptionalText` / `normalizeOptionalString` depuis
+  `lib/shared/`. Côté front : `src/shared/utils/classNames.js`, `formatDateTime.js` et
+  `fileToDataUrl` partagé (24 copies retirées). Aucun changement de comportement visé ; suites
+  backend, Vitest et e2e plan vertes.
+- **Dépendances** : `adm-zip` 0.6.1 et `qs` 6.16.0 (`npm audit fix`, sans changement cassant).
+
 ### Documentation — audit du code du 13 septembre 2026
 
 - **`docs/AUDIT_CODE_2026-09-13.md`** : audit transversal (bugs, incohérences, doublons mesurés,
-  performance et charge serveur) mené avec une base MariaDB réelle — suites backend, contenu et
-  Vitest exécutées et vertes. Constats principaux : le moteur de migrations classe « table
-  inexistante » parmi les erreurs « déjà appliquée » (la migration `237` écrit dans `settings`
-  au lieu d'`app_settings` sans que rien ne le signale) ; sept `normalizeSlug` et neuf `httpError`
-  aux sémantiques divergentes ; 28 routes montées absentes de `docs/API.md` (administration
-  Moodle, lore G&L) ; journaux purgés par date sans index sur cette date (`audit_log`,
-  `gl_game_events`, `task_logs`). Indexé dans `docs/audits/README.md`.
+  performance et charge serveur) mené avec une base MariaDB réelle, constats marqués « Traité »
+  dans la même PR, et §9 sur les causes de la CI rouge trouvées en chemin. Indexé dans
+  `docs/audits/README.md`.
+- **`docs/API.md`** : quatorze routes d'administration du lore G&L (glossaire, questions QCM,
+  réordonnancement des feuillets) documentées ; **`tests/api-doc-coverage.test.js`** rapproche
+  désormais chaque route montée de la documentation (job `quality`, sans base).
 
 ### Corrigé — semis RBAC sur base neuve, et reprise des observations héritées
 

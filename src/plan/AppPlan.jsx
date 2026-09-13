@@ -208,26 +208,53 @@ export function AppPlan() {
     if (message) setPositionToast(message);
   }, [positionFeedback, setPositionToast]);
 
+  /**
+   * Lien profond `?lieu=` : écrit dans l'URL **et** ré-aligné à chaque `popstate`.
+   * Les feuilles basses empilent une entrée d'historique à l'ouverture et reculent d'une
+   * entrée à la fermeture (`src/shared/platform/overlayHistory.js`). Ouvrir une fiche depuis
+   * la feuille de résultats ferme celle-ci : le `history.back()` qui suit restaurait l'URL
+   * d'avant la recherche et effaçait le `?lieu=` qu'on venait de poser (e2e
+   * `plan-mobile-shell`, constaté le 13/09/2026). La réf est la vérité, l'URL la suit.
+   */
+  const selectedPlaceIdRef = useRef('');
+  const syncPlaceUrl = useCallback(() => {
+    if (typeof window === 'undefined' || !window.history?.replaceState) return;
+    // Avant lecture du lien profond (premier contenu), l'URL fait foi : ne pas l'effacer.
+    if (!deepLinkAppliedRef.current && !selectedPlaceIdRef.current) return;
+    const wanted = selectedPlaceIdRef.current;
+    const current = readPlaceIdFromLocation(window.location.search);
+    if (current === wanted) return;
+    window.history.replaceState(null, '', buildPlaceUrl(window.location, wanted));
+  }, []);
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    window.addEventListener('popstate', syncPlaceUrl);
+    return () => window.removeEventListener('popstate', syncPlaceUrl);
+  }, [syncPlaceUrl]);
+  useEffect(() => {
+    // Sélection posée ailleurs (lien profond au premier contenu) : la réf suit l'état.
+    selectedPlaceIdRef.current = selectedPlace ? String(selectedPlace.id) : '';
+    syncPlaceUrl();
+  }, [selectedPlace, syncPlaceUrl]);
+
   const openPlace = useCallback(
     (place) => {
+      selectedPlaceIdRef.current = String(place?.id || '');
       setSelectedPlace(place);
       setResultsOpen(false);
       setGroupPlaces(null);
       reportPlanUsage('place_open', String(place?.id || ''));
-      if (typeof window !== 'undefined' && window.history?.replaceState) {
-        window.history.replaceState(null, '', buildPlaceUrl(window.location, String(place.id)));
-      }
+      syncPlaceUrl();
     },
-    [setSelectedPlace],
+    [setSelectedPlace, syncPlaceUrl],
   );
 
   const closePlace = useCallback(() => {
+    selectedPlaceIdRef.current = '';
     setSelectedPlace(null);
     setTargetPlaceId('');
-    if (typeof window !== 'undefined' && window.history?.replaceState) {
-      window.history.replaceState(null, '', buildPlaceUrl(window.location, ''));
-    }
-  }, []);
+    syncPlaceUrl();
+  }, [syncPlaceUrl]);
 
   // Lien profond `?lieu=` : une seule fois, au premier contenu reçu.
   useEffect(() => {

@@ -65,8 +65,21 @@ test('plan : « Me situer » affiche le point de position, « Y aller » donne u
     // Le point de position s'affiche sur le plan.
     await expect(page.locator('.fm-pct-position').first()).toBeVisible({ timeout: 20_000 });
 
-    const places = [...(content.zones || []), ...(content.markers || [])];
-    test.skip(places.length === 0, 'Aucun lieu publié sur le plan de cette base locale.');
+    // « Y aller » a besoin d'un point à viser : un repère (x/y), ou une zone dont le polygone
+    // est renseigné. Les zones héritées du semis (rectangle sans `points`) n'en ont pas —
+    // ce n'est pas le sujet du scénario, on les écarte.
+    const hasGeometry = (place) =>
+      place.x_pct != null ||
+      (() => {
+        try {
+          const pts = JSON.parse(String(place.points || '[]'));
+          return Array.isArray(pts) && pts.length >= 3;
+        } catch (_) {
+          return false;
+        }
+      })();
+    const places = [...(content.markers || []), ...(content.zones || [])].filter(hasGeometry);
+    test.skip(places.length === 0, 'Aucun lieu géolocalisable publié sur le plan de cette base.');
 
     const name = String(places[0].name || places[0].label || '').trim();
     await page.getByLabel('Rechercher un lieu').fill(name);
