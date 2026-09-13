@@ -51,6 +51,7 @@ const {
   canViewLocation,
 } = require('../lib/locationAudience');
 const { resolveZoneEmojiForWrite } = require('../lib/zoneEmoji');
+const { mapZoneToVisitWhitelistFields } = require('../lib/visitMapToVisitFields');
 
 function serializeLocationRow(row) {
   return withLocationAudienceFields(withLocationSurfaceFields(row));
@@ -139,11 +140,14 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
       ? parseVisitEditorialBlocksInput(patchBlocksInput)
       : parseVisitEditorialBlocksInput(existing?.body_json);
   const bodyJson = serializeVisitEditorialBlocks(normalizedBlocks);
+  const audience = mapZoneToVisitWhitelistFields(zoneRow);
   const now = nowIsoUtc();
   await execute(
     `INSERT INTO visit_zones
-      (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json, is_active, sort_order, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
+      (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json,
+       visible_role_slugs, restricted_note, restricted_note_role_slugs,
+       is_active, sort_order, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
      ON DUPLICATE KEY UPDATE
        map_id = VALUES(map_id),
        name = VALUES(name),
@@ -153,6 +157,9 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
        details_title = VALUES(details_title),
        details_text = VALUES(details_text),
        body_json = VALUES(body_json),
+       visible_role_slugs = VALUES(visible_role_slugs),
+       restricted_note = VALUES(restricted_note),
+       restricted_note_role_slugs = VALUES(restricted_note_role_slugs),
        updated_at = VALUES(updated_at)`,
     [
       zoneRow.id,
@@ -164,8 +171,29 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
       detailsTitle,
       detailsText,
       bodyJson,
+      audience.visible_role_slugs,
+      audience.restricted_note,
+      audience.restricted_note_role_slugs,
       now,
       now,
+    ],
+  );
+}
+
+/** Miroir audience carte → visite si une ligne visit_zones existe (sans toucher l'éditorial). */
+async function mirrorZoneAudienceToVisit(zoneRow) {
+  const audience = mapZoneToVisitWhitelistFields(zoneRow);
+  await execute(
+    `UPDATE visit_zones
+     SET visible_role_slugs = ?, restricted_note = ?, restricted_note_role_slugs = ?, updated_at = ?
+     WHERE id = ? AND map_id = ?`,
+    [
+      audience.visible_role_slugs,
+      audience.restricted_note,
+      audience.restricted_note_role_slugs,
+      nowIsoUtc(),
+      zoneRow.id,
+      zoneRow.map_id,
     ],
   );
 }
@@ -498,6 +526,12 @@ router.put(
     );
     if (hasVisitZoneContentPatch(req.body)) {
       await upsertVisitZoneEditorial(req.body, updated);
+    } else if (
+      audienceInput.visible_role_slugs !== null ||
+      audienceInput.restricted_note !== null ||
+      audienceInput.restricted_note_role_slugs !== null
+    ) {
+      await mirrorZoneAudienceToVisit(updated);
     }
     const updatedWithVisit = await queryOne(`${ZONES_DETAIL_SQL} WHERE z.id = ?`, [zone.id]);
     const speciesRows = await loadZoneSpeciesMap(db, [zone.id]);
