@@ -9,6 +9,33 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — semis RBAC sur base neuve, et reprise des observations héritées
+
+- **Semis RBAC** (migration `241`) : sur une **installation neuve**, `admin` démarrait sans
+  `forum.group.moderate` — donc **plus personne ne pouvait modérer le forum** — ni
+  `admin.impersonate`, ni `tours.manage`, ni les variantes `.group` ; `prof` perdait en plus
+  `groups.read`, `groups.manage` et `tasks.assign.group`, c'est-à-dire le périmètre de groupes
+  sur lequel repose « Prof de classe ». Mesuré sur base vierge : 27 permissions sur 36 pour
+  `admin`, 21 sur 28 pour `prof`. La garde « ne semer que si le profil n'a encore aucune
+  permission » visait le bon but — qu'une révocation admin survive aux redémarrages — avec un
+  mauvais critère : les migrations remplissent déjà `role_permissions` avant le semis, qui était
+  donc entièrement sauté. `rbac_seeded_permissions` mémorise désormais ce qui a été **proposé**,
+  ce qui distingue « révoqué » de « jamais accordé » — et fait que toute permission ajoutée plus
+  tard au catalogue est bien déployée sur les profils existants. Les installations existantes
+  n'étaient pas touchées ; seules les neuves l'étaient, d'où l'invisibilité hors CI.
+- **Reprise des observations héritées** : `observation_logs.created_at` est un `VARCHAR(32)`
+  portant de l'ISO-8601 UTC, la cible un vrai `DATETIME` — `GET /api/user-journal/me` répondait
+  **500** dès qu'une observation restait à migrer. L'horodatage est converti, à l'article comme
+  à sa pièce jointe.
+- **Note réservée jamais servie à son audience** : deux tests appelaient `signAuthToken` sans
+  `await`, l'en-tête valant `Bearer [object Promise]` — le jeton était rejeté et le lecteur
+  résolu en « visiteur ». Le code de projection était sain. L'un des deux passait pour la
+  mauvaise raison : il affirmait un refus faute de permission alors que le jeton seul suffisait.
+- **Garde-fou** : la matrice RBAC déclarée est désormais vérifiée **en base**, et non plus
+  seulement contre le catalogue JS — c'est ce trou qui avait laissé passer le semis muet.
+  `modules.presence_enabled` rejoint le gel des clés de réglages GL ; deux fixtures backend qui
+  s'en remettaient au semis global paresseux posent maintenant leurs rôles explicitement.
+
 ### Corrigé — la suite Vitest repasse au vert, et une régression de charge du carnet
 
 - **Catalogue de biodiversité** : chaque vignette montait un `FmLearnAndImportSlot` qui
