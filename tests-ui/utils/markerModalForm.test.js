@@ -21,6 +21,10 @@ describe('markerFormFromMarker', () => {
       visit_details_text: '',
       hidden_surfaces: [],
       search_aliases: '',
+      // Cloisonnement d'audience : visibilité du repère et note réservée à certains rôles.
+      visible_role_slugs: [],
+      restricted_note: '',
+      restricted_note_role_slugs: [],
     });
   });
 
