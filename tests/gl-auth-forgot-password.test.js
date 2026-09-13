@@ -19,8 +19,10 @@ const teacherPassword = 'TeacherForgot-1';
 
 before(async () => {
   await initSchema();
-  // L'enseignant est créé AVANT la fixture joueur : celle-ci déclenche le bootstrap RBAC
-  // (`ensureDefaultAssignments`), qui n'attribue le rôle `prof` qu'aux enseignants déjà présents.
+  // Le rôle `prof` est posé explicitement plus bas. S'en remettre au bootstrap RBAC
+  // (`ensureDefaultAssignments`) ne marche pas : il est mémoïsé par processus et a déjà tourné
+  // quand ce `before()` insère son enseignant, qui restait donc sans rôle — donc sans
+  // `teacher.access`, et `resolveGlStaffLogin` répondait 403 « pas les droits maître du jeu ».
   const hash = await bcrypt.hash(teacherPassword, 10);
   const teacherId = `teacher-forgot-${stamp}`;
   await execute(
@@ -28,6 +30,14 @@ before(async () => {
      VALUES (?, 'teacher', ?, ?, ?, ?, 'local', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), is_active = 1`,
     [teacherId, teacherEmail, `prof-forgot-${stamp}`, 'Prof forgot GL', hash],
+  );
+  const profRole = await queryOne("SELECT id FROM roles WHERE slug = 'prof' LIMIT 1");
+  assert.ok(profRole?.id, 'le profil prof doit exister');
+  await execute(
+    `INSERT INTO user_roles (user_type, user_id, role_id, is_primary)
+     VALUES ('teacher', ?, ?, 1)
+     ON DUPLICATE KEY UPDATE is_primary = 1`,
+    [teacherId, profRole.id],
   );
   await execute(
     `INSERT INTO gl_admins (email, display_name, role, foretmap_user_id, is_active, created_at, updated_at)
