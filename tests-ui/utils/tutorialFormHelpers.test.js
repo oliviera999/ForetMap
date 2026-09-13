@@ -34,14 +34,14 @@ describe('applyTutorialFormMapChange', () => {
     { id: 'z2', map_id: 'jardin' },
   ];
   const markers = [{ id: 'm1', map_id: 'foret' }];
-  test('garde uniquement les lieux de la nouvelle carte', () => {
+  test('filtre carte : conserve les lieux des autres cartes', () => {
     const form = { map_id: '', zone_ids: ['z1', 'z2'], marker_ids: ['m1'] };
     const next = applyTutorialFormMapChange(form, 'jardin', zones, markers);
     expect(next.map_id).toBe('jardin');
-    expect(next.zone_ids).toEqual(['z2']);
-    expect(next.marker_ids).toEqual([]);
+    expect(next.zone_ids).toEqual(['z1', 'z2']);
+    expect(next.marker_ids).toEqual(['m1']);
   });
-  test('carte vide (« toutes ») : garde les lieux existants, retire les ids inconnus', () => {
+  test('retire les ids inconnus (lieux supprimés), garde le reste', () => {
     const form = { map_id: 'foret', zone_ids: ['z1', 'fantome'], marker_ids: ['m1'] };
     const next = applyTutorialFormMapChange(form, '', zones, markers);
     expect(next.zone_ids).toEqual(['z1']);

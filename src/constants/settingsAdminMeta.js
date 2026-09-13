@@ -13,6 +13,7 @@ export const SECTION_DEFS = {
   tasks: { title: 'Tâches & inscriptions n3beurs', order: 23 },
   progression: { title: 'Progression n3beurs', order: 25 },
   learning: { title: 'Validation des lectures (contrôle de compréhension)', order: 26 },
+  imports: { title: 'Imports de comptes', order: 28 },
   security: { title: 'Sécurité', order: 30 },
   operations: { title: 'Exploitation', order: 40 },
   other: { title: 'Autres paramètres', order: 90 },
@@ -25,6 +26,8 @@ export const SECTION_DEFS = {
  */
 export const KEYS_HANDLED_BY_PANEL = new Set([
   'ui.visit.mascot.default_id',
+  // Case à cocher dédiée dans Réglages → Cartes & plans (évite le doublon grille texte).
+  'ui.map.show_tutorial_dots',
   'learning.gating.enabled',
   'learning.gating.default_mode',
   'learning.gating.default_required_correct',
@@ -59,6 +62,11 @@ export const KEY_META = {
   'ui.auth.allow_register': { label: 'Afficher "Créer un compte"', section: 'auth', order: 10 },
   'ui.auth.allow_google_student': { section: 'auth', order: 20, dynamicLabel: 'googleStudent' },
   'ui.auth.allow_google_teacher': { section: 'auth', order: 30, dynamicLabel: 'googleTeacher' },
+  'ui.auth.allow_google_auto_register': {
+    label: 'Créer un compte à la première connexion Google (désactivé = connexion seule)',
+    section: 'auth',
+    order: 35,
+  },
   'ui.auth.allow_guest_visit': {
     label: 'Afficher "Visiter sans compte"',
     section: 'auth',
@@ -213,9 +221,19 @@ export const KEY_META = {
   'ui.modules.visit_enabled': { label: 'Visite', section: 'modules', order: 20 },
   'ui.modules.stats_enabled': { label: 'Statistiques', section: 'modules', order: 30 },
   'ui.modules.observations_enabled': {
-    label: 'Carnet observations',
+    label: 'Carnet',
     section: 'modules',
     order: 40,
+  },
+  'observations.journal_max_chars': {
+    label: 'Carnet — max. caractères par article (0 = illimité)',
+    section: 'modules',
+    order: 40.1,
+  },
+  'observations.journal_max_assets': {
+    label: 'Carnet — max. photos par article (0 = illimité)',
+    section: 'modules',
+    order: 40.2,
   },
   'ui.modules.help_enabled': {
     label: 'Aide contextuelle (tooltips + panneau ?)',
@@ -232,6 +250,36 @@ export const KEY_META = {
     label: 'Signalements (forum et commentaires de contexte)',
     section: 'modules',
     order: 47.05,
+  },
+  'ui.modules.presence_enabled': {
+    label: 'Présence en ligne (pastilles stats prof — qui est connecté)',
+    section: 'modules',
+    order: 47.06,
+  },
+  'runtime.realtime_signals_enabled': {
+    label: 'Temps réel — émissions Socket (couper = filet REST seul, allège la charge)',
+    section: 'operations',
+    order: 10,
+  },
+  'runtime.rest_poll_floor_ms': {
+    label: 'Filet REST — intervalle min. si live (ms, défaut 90000)',
+    section: 'operations',
+    order: 11,
+  },
+  'runtime.rest_poll_background_floor_ms': {
+    label: 'Filet REST — intervalle min. onglet caché (ms, défaut 120000)',
+    section: 'operations',
+    order: 12,
+  },
+  'runtime.sync_state_enabled': {
+    label: 'Polling différentiel sync-state (recommandé)',
+    section: 'operations',
+    order: 13,
+  },
+  'runtime.socket_presence_emit_coalesce_ms': {
+    label: 'Présence — coalescence des mises à jour staff (ms)',
+    section: 'operations',
+    order: 14,
   },
   'ui.help.show_context_hints': {
     label: 'Afficher les mini-astuces contextuelles',
@@ -335,6 +383,18 @@ export const KEY_META = {
     label: 'Longueur min mot de passe',
     section: 'security',
     order: 10,
+  },
+  'students.import.existing_strategy': {
+    label:
+      'Import comptes — compte déjà présent (même prénom + nom + type) : mettre à jour ou ignorer',
+    section: 'imports',
+    order: 10,
+  },
+  'students.import.allow_weak_passwords': {
+    label:
+      'Import comptes — autoriser des mots de passe plus courts que le plancher (élèves et enseignants)',
+    section: 'imports',
+    order: 20,
   },
   'security.jwt_ttl_base_seconds': {
     label: 'Durée session standard (secondes)',

@@ -92,6 +92,7 @@ qu'on veut). Sa fiche rassemble :
   l'administrateur et utilisables comme filtre sur la carte — voir « Catégories de
   lieux » plus bas ;
 - une **description** libre (avec mise en forme) ;
+- un réglage **« Qui peut voir ce lieu »** et un **complément réservé** (voir plus bas) ;
 - des **photos** avec légende, que le professeur peut réordonner et supprimer ;
 - un **historique des cultures** : quand une espèce est retirée de la zone, elle est
   automatiquement archivée avec la date du jour — la fiche garde ainsi la mémoire de
@@ -106,9 +107,10 @@ qu'on veut). Sa fiche rassemble :
 ## Les repères
 
 Un repère est un **point** posé sur le plan, complémentaire des zones. Il porte un
-**emoji**, un **nom**, une **note** libre, ses **photos** (mêmes possibilités que les
-zones), ses **espèces associées**, ses **catégories** (mêmes catégories que les zones)
-et, comme les zones, ses textes pour le mode Visite, ses tâches et tutoriels liés.
+**emoji**, un **nom**, une **note** libre, le même réglage **« Qui peut voir ce lieu »**
+et le même **complément réservé** que les zones, ses **photos** (mêmes possibilités que
+les zones), ses **espèces associées**, ses **catégories** (mêmes catégories que les
+zones) et, comme les zones, ses textes pour le mode Visite, ses tâches et tutoriels liés.
 
 Pour éviter les déplacements accidentels, la position des repères est **verrouillée**
 par défaut : le professeur clique sur le cadenas « Repères » de la barre d'outils pour
@@ -121,7 +123,11 @@ Elles remplacent l'ancien couple « état de culture » (Vide / En croissance / 
 récolter) et case « zone spéciale ».
 
 Une catégorie porte un **libellé**, un **emoji**, une **couleur**, une **description**
-(infobulle) et un **ordre d'affichage**. La couleur se choisit de trois façons — les mêmes
+(infobulle) et un **ordre d'affichage**. L'ordre se règle dans **Réglages administrateur →
+Catégories de lieux** : boutons ↑ ↓, **glisser-déposer** une ligne de la liste, ou champ
+numérique « Ordre »
+lors de la création / édition. Cet ordre pilote les filtres, les pastilles et la priorité des
+repères au dézoom (plus petit = plus important). La couleur se choisit de trois façons — les mêmes
 que pour une zone, le champ est identique partout : en cliquant sur une pastille de la
 **palette prédéfinie** (dix teintes), avec la **pastille de sélection** (nuancier du
 système), ou en tapant directement le code hexadécimal dans le champ voisin. Les deux
@@ -167,7 +173,10 @@ permission « Gestion zones ».
    gardent le point visé sous le pointeur.
 2. Il **touche une zone ou un repère** : la fiche s'ouvre avec ses onglets — Tâches,
    Tutoriels, Info, Photos (l'onglet Tâches ou Tutoriels n'apparaît que s'il y a
-   quelque chose à montrer).
+   quelque chose à montrer). Tant que la fiche d'une **zone** est ouverte, cette zone
+   reste **mise en avant** sur le plan (remplissage plus marqué) et les autres zones
+   sont **légèrement estompées**, pour repérer d'un coup d'œil où l'on se trouve —
+   sans cadre ni contour noir autour de la forme.
 3. Dans l'onglet **Tâches**, il coche une ou plusieurs tâches disponibles à cet
    endroit et les **prend en charge** directement.
 4. Un bouton permet aussi d'**ouvrir l'onglet Tâches de l'application filtré sur ce
@@ -194,8 +203,10 @@ permission « Gestion zones ».
 5. **Gérer les photos** : onglet Photos — ajout avec légende, réorganisation par
    glisser-déposer, suppression.
 6. **Lier tâches et tutoriels** : depuis les onglets Tâches et Tutoriels de la fiche,
-   on associe ou dissocie les tâches et tutoriels existants ; les élèves les
-   retrouvent ensuite au même endroit.
+   on associe ou dissocie les tâches et tutoriels existants ; la liste des tutoriels
+   propose toutes les fiches actives pas déjà liées à ce lieu. Un tutoriel peut être
+   présent sur plusieurs cartes à la fois. Les élèves les retrouvent ensuite au même
+   endroit.
 7. **Supprimer** une zone ou un repère : la fiche, ses photos et son contenu de visite
    sont retirés ensemble.
 
@@ -203,7 +214,8 @@ permission « Gestion zones ».
 
 Un **parcours** enchaîne des lieux dans un ordre choisi, avec un titre, un public visé et, pour
 chaque étape, un texte court facultatif. Il se gère dans _Réglages → **Parcours**_, et sert de
-feuille de séance côté ForetMap comme de visite fléchée sur le Plan Lyautey.
+feuille de séance sur la **carte** ForetMap, de visite fléchée en **Visite**, et de parcours
+guidé sur le **Plan** Lyautey (barre d'étape en bas, carte restée utilisable).
 
 Composer un parcours :
 
@@ -224,9 +236,9 @@ Composer un parcours :
 - Un parcours naît **brouillon** : il n'apparaît nulle part tant que la case « Publié » n'est
   pas cochée — pas même pour qui connaîtrait son adresse.
 - Les cases **« proposé sur »** décident des surfaces, comme pour les lieux. Un parcours neuf
-  vise le **Plan** seul, et c'est aujourd'hui la seule surface qui **affiche** les parcours :
-  les cases « Carte » et « Visite » restent fermées, avec la mention « n'affiche pas encore les
-  parcours », tant que ces écrans n'existent pas.
+  vise le **Plan** seul ; on peut aussi le proposer sur la **Carte** (feuille de séance dans
+  ForetMap) et la **Visite** (parcours fléché grand public). Chaque surface n'affiche que les
+  parcours qui la ciblent, avec une barre d'étape en bas et la carte restée utilisable.
 - Rien n'est dupliqué : une étape **pointe** vers un lieu existant. Renommer le lieu renomme
   l'étape ; supprimer le lieu laisse une étape signalée « lieu introuvable », à retirer.
 - Une étape dont le lieu est **masqué sur le Plan** (par ses surfaces ou sa catégorie) est
@@ -254,6 +266,15 @@ boussole. Le point s'affiche désormais **même si la mascotte est masquée** : 
 mascotte sont deux choses différentes. Quand la mascotte est visible, elle continue de suivre
 la position comme avant.
 
+Si l'orientation boussole est autorisée (réglage Carte **et** case sur cette carte dans le
+calage GPS), le bouton **« Orienter »** fait tourner le plan pour aligner le regard vers le
+haut de l'écran. Chacun peut l'activer ou le couper ; le choix reste sur l'appareil.
+
+Dès que le plan est **calé** (même sans suivi GPS), une **barre d'échelle** et une **rose des
+vents** (N) s'affichent en bas à gauche. Un professeur peut les désactiver pour cette carte
+dans le calage GPS ; chacun peut aussi les masquer temporairement via le bouton **« Échelle »**
+de la barre d'outils (le choix reste sur l'appareil).
+
 La position est calculée dans l'appareil et n'est jamais envoyée au serveur.
 
 ### Quand la carte devient trop chargée
@@ -272,6 +293,32 @@ carte est vue en entier.
 Enfin, le **nom d'une zone** s'affiche désormais au point le plus « à l'intérieur » de son
 contour, et non plus à son centre géométrique : sur une zone en L ou en croissant, le nom
 tombait à côté, parfois sur la zone voisine.
+
+### Qui peut voir un lieu (rôles)
+
+Par défaut, un lieu est **public** : toute personne autorisée à ouvrir la carte (ou la
+visite / le plan, selon les surfaces) le voit, avec sa description ou sa note habituelle.
+
+Le professeur peut restreindre la **visibilité du lieu entier** à certains **rôles**
+(visiteur, personnel, paliers n3beur, prof de classe, n3boss, administrateur) :
+
+- hors de ces rôles, le lieu est **absent** : pas d'épingle, pas de forme, pas de résultat
+  dans la recherche ni dans les listes — on ne le « grise » pas ;
+- les comptes qui gèrent les zones ou les repères voient **toujours** tous les lieux, pour
+  pouvoir les éditer ;
+- la **visite anonyme** et le **Plan Lyautey** ne voient un lieu restreint que si le rôle
+  **Visiteur** fait partie de l'audience (sinon le lieu reste réservé aux comptes connectés
+  concernés).
+
+Sur la même fiche, un champ **« Complément réservé »** permet d'ajouter un texte lu
+seulement par certains rôles (par exemple une consigne de classe ou une note pour les
+enseignants). Le lieu peut rester visible pour tout le monde ; seul ce complément est
+masqué. Sans rôle coché pour le complément, seuls les gestionnaires du jardin le voient.
+
+> 🔧 **À implémenter (suite possible)** — Restreindre aussi par **groupes** (classe, club,
+> équipe), pas seulement par rôle ; plusieurs compléments (un par public) ; héritage
+> d'audience au niveau d'une **catégorie** de lieux. La V1 couvre les rôles, un lieu
+> absent hors audience, et un seul complément réservé.
 
 ### Où apparaît un lieu (carte, visite, plan)
 
@@ -334,6 +381,17 @@ directement sur le plan ; rien n'est enregistré tant qu'on n'a pas cliqué « S
   bouton « 🧲 Coller » applique l'aimantation d'un coup aux sommets sélectionnés (ou à
   tout le contour si rien n'est sélectionné). Maintenir la touche Alt suspend l'aimant
   le temps d'un geste, pour placer un sommet à la main.
+- **Coller aux zones voisines** : la bascule « Voisins » (disponible en **tracé** d'une
+  nouvelle zone et en **retouche** de contour) colle chaque sommet au contour d'une
+  zone déjà proche — sommet ou côté. En tracé, si deux points successifs touchent le
+  **même** voisin, l'outil peut **suivre automatiquement le meilleur côté partagé**
+  (il reprend les coins intermédiaires du voisin). L'accroche voisins a priorité sur
+  l'aimant image quand les deux sont actifs.
+- **Aligner plusieurs zones d'un coup** : en navigation, le bouton « Aligner » ouvre un
+  mode de sélection. On clique les zones **proches** à corriger (≥ 2), puis « Aperçu »
+  montre le rendu global (contours pointillés orange) **sans rien enregistrer**. On peut
+  rejeter l'aperçu, ou « Enregistrer » pour appliquer l'alignement des sommets communs.
+  Seules les zones sélectionnées qui se touchent (ou presque) sont concernées.
 - **Se tromper n'est pas grave** : « ↩ Annuler » (ou Ctrl+Z / Cmd+Z) revient en arrière
   pas à pas, et fermer par « ✕ » abandonne toutes les retouches sans rien enregistrer.
 
@@ -343,7 +401,8 @@ directement sur le plan ; rien n'est enregistré tant qu'on n'a pas cliqué « S
 > ombre ou un feuillage plutôt que la limite réelle — c'est là que **baisser la
 > sensibilité** aide : l'aimant ne retient alors que les limites franches, quitte à ne
 > rien accrocher du tout. Il reste une aide : le tracé final est celui qu'on valide à
-> l'œil. Par ailleurs, si l'image de fond du plan est
+> l'œil. Pour coller proprement **deux zones entre elles**, préférez « Voisins » ou
+> « Aligner » plutôt que l'aimant image. Par ailleurs, si l'image de fond du plan est
 > hébergée sur un autre site, le navigateur interdit d'en lire les couleurs : le bouton
 > affiche alors « Indispo. » et l'édition continue normalement sans aimant.
 
@@ -371,6 +430,16 @@ En **mode consultation** (carte ouverte sans tracé ni édition de contour), une
 > de validation), validées, archivées, ou rattachées à un projet terminé/validé n'affichent
 > plus de pastille de tâche et ne font plus hériter leurs tutoriels au lieu. Les tutoriels
 > **directement** liés à une zone ou un repère restent visibles.
+
+### Pastille violette des tutoriels
+
+Sur la carte, un **petit point violet** peut signaler qu'une zone ou un repère est lié à
+au moins un tutoriel (en bas à gauche du repère, ou à côté du nom de la zone).
+
+Ce témoin est **éteint par défaut**. Un administrateur l'allume dans
+_Réglages → Cartes & plans_ (« Afficher le point violet sur les zones et repères liés à un
+tutoriel »). Les liens tutoriel ↔ lieu restent inchangés : seuls le filtre « tutoriels liés »
+et l'onglet Tutoriels de la fiche permettent de les retrouver quand le point est masqué.
 
 - **Raccourci clavier** : touche **/** ou **Ctrl+K** (Cmd+K sur Mac) place le curseur
   dans le champ de recherche.

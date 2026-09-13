@@ -103,6 +103,7 @@ export function VisitMapChrome({
   onSelectMapId,
   quickTipPrefix = '',
   quickTipText = null,
+  routesSlot = null,
 }) {
   return (
     <div className="visit-map-card__chrome">
@@ -160,6 +161,7 @@ export function VisitMapChrome({
             </div>
           ) : null}
         </div>
+        {routesSlot ? <div className="visit-map-card__chrome-routes">{routesSlot}</div> : null}
         <div className="visit-map-card__chrome-actions">
           {/* Zone 2 — affichage du plan : trois commandes de même nature, même forme,
               un seul bloc. Sans ce regroupement, elles étaient éparpillées entre un état

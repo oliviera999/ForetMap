@@ -17,6 +17,7 @@ const {
 } = require('../lib/visitEditorialBlocks');
 const { resolveDefaultMapId } = require('../lib/settings');
 const { deleteVisitTargetCascade } = require('../lib/visitTargetCleanup');
+const { logAudit } = require('../lib/auditLog');
 const {
   loadZoneSpeciesMap,
   syncZoneSpecies,
@@ -39,8 +40,21 @@ const {
   serializeSurfaceSet,
   readSurfaceQuery,
   isVisibleOnSurface,
+  withLocationSurfaceFields,
 } = require('../lib/locationSurfaces');
+const {
+  readAudienceWriteFields,
+  serializeRoleSlugList,
+  withLocationAudienceFields,
+  filterLocationsForViewer,
+  projectLocationAudienceForViewer,
+  canViewLocation,
+} = require('../lib/locationAudience');
 const { resolveZoneEmojiForWrite } = require('../lib/zoneEmoji');
+
+function serializeLocationRow(row) {
+  return withLocationAudienceFields(withLocationSurfaceFields(row));
+}
 
 const db = { queryAll, queryOne, execute, withTransaction };
 
@@ -199,9 +213,11 @@ router.get(
     // `?surface=map|visit|plan` (lot 4) : ne renvoie que les zones visibles sur cette surface.
     const surfaceQuery = readSurfaceQuery(req.query.surface);
     if (!surfaceQuery.ok) return res.status(400).json({ error: surfaceQuery.error });
+    const publicSurface = surfaceQuery.value === 'visit' || surfaceQuery.value === 'plan';
     // Périmètre cartes : carte demandée hors périmètre → 403 ; sans `map_id`, la liste
     // complète est ramenée aux cartes autorisées (sinon la garde tiendrait à l'omission
-    // du paramètre).
+    // du paramètre). Se cumule au filtre d'audience appliqué plus bas, qui trie les lieux
+    // d'une même carte selon le rôle.
     const scope = await resolveScopedMapFilter(req.auth || null, mapId);
     if (scope.forbidden) return res.status(403).json(MAP_OUT_OF_SCOPE);
     const zones = scope.mapIds
@@ -257,29 +273,30 @@ router.get(
     const result = zones.map((z) => {
       const key = String(z.id);
       const totalHist = historyTotalByZoneId.get(key) || 0;
-      return attachCategoriesToEntity(
-        attachSpeciesToEntity(
-          {
-            ...z,
-            has_visit_body: !!Number(z.has_visit_body),
-            visit_body_json: undefined,
-            history: historyByZoneId.get(key) || [],
-            history_truncated: totalHist > ZONE_LIST_HISTORY_LIMIT,
-          },
-          speciesMap.get(key) || [],
-          { legacySingleName: z.current_plant },
+      return serializeLocationRow(
+        attachCategoriesToEntity(
+          attachSpeciesToEntity(
+            {
+              ...z,
+              has_visit_body: !!Number(z.has_visit_body),
+              visit_body_json: undefined,
+              history: historyByZoneId.get(key) || [],
+              history_truncated: totalHist > ZONE_LIST_HISTORY_LIMIT,
+            },
+            speciesMap.get(key) || [],
+            { legacySingleName: z.current_plant },
+          ),
+          categoriesMap.get(key) || [],
         ),
-        categoriesMap.get(key) || [],
       );
     });
     for (const row of result) {
       delete row.visit_body_json;
     }
-    res.json(
-      surfaceQuery.value
-        ? result.filter((row) => isVisibleOnSurface(row, surfaceQuery.value))
-        : result,
-    );
+    const surfaced = surfaceQuery.value
+      ? result.filter((row) => isVisibleOnSurface(row, surfaceQuery.value))
+      : result;
+    res.json(filterLocationsForViewer(surfaced, req.auth, { publicSurface }));
   }),
 );
 
@@ -289,6 +306,9 @@ router.get(
   asyncHandler(async (req, res) => {
     const zone = await queryOne(`${ZONES_DETAIL_SQL} WHERE z.id = ?`, [req.params.id]);
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
+    if (!canViewLocation(zone, req.auth)) {
+      return res.status(404).json({ error: 'Zone introuvable' });
+    }
     // Accès direct par identifiant : la carte de la zone est relue en base, pas déduite
     // d'un paramètre de requête.
     if (!(await canAccessMapId(req.auth || null, zone.map_id))) {
@@ -300,21 +320,25 @@ router.get(
     );
     const speciesRows = await loadZoneSpeciesMap(db, [zone.id]);
     const categoriesRows = await loadCategoriesMap(db, 'zone', [zone.id]);
-    res.json(
-      attachCategoriesToEntity(
-        attachSpeciesToEntity(
-          {
-            ...zone,
-            has_visit_body: !!Number(zone.has_visit_body),
-            history,
-            history_truncated: false,
-          },
-          speciesRows.get(String(zone.id)) || [],
-          { legacySingleName: zone.current_plant },
+    const payload = projectLocationAudienceForViewer(
+      serializeLocationRow(
+        attachCategoriesToEntity(
+          attachSpeciesToEntity(
+            {
+              ...zone,
+              has_visit_body: !!Number(zone.has_visit_body),
+              history,
+              history_truncated: false,
+            },
+            speciesRows.get(String(zone.id)) || [],
+            { legacySingleName: zone.current_plant },
+          ),
+          categoriesRows.get(String(zone.id)) || [],
         ),
-        categoriesRows.get(String(zone.id)) || [],
       ),
+      req.auth,
     );
+    res.json(payload);
   }),
 );
 
@@ -337,6 +361,9 @@ router.put(
       category_ids,
       hidden_surfaces,
       search_aliases,
+      visible_role_slugs,
+      restricted_note,
+      restricted_note_role_slugs,
     } = req.body;
     if (name !== undefined && !String(name).trim()) {
       return res.status(400).json({ error: 'Nom requis' });
@@ -346,6 +373,12 @@ router.put(
       field: 'hidden_surfaces',
     });
     if (!hiddenSurfacesInput.ok) return res.status(400).json({ error: hiddenSurfacesInput.error });
+    const audienceInput = readAudienceWriteFields({
+      visible_role_slugs,
+      restricted_note,
+      restricted_note_role_slugs,
+    });
+    if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
     const nextHiddenSurfaces =
       hiddenSurfacesInput.value === null
         ? String(zone.hidden_surfaces ?? '')
@@ -354,6 +387,18 @@ router.put(
       search_aliases === undefined
         ? (zone.search_aliases ?? null)
         : normalizeSearchAliases(search_aliases) || null;
+    const nextVisibleRoleSlugs =
+      audienceInput.visible_role_slugs === null
+        ? (zone.visible_role_slugs ?? null)
+        : serializeRoleSlugList(audienceInput.visible_role_slugs) || null;
+    const nextRestrictedNote =
+      audienceInput.restricted_note === null
+        ? (zone.restricted_note ?? null)
+        : audienceInput.restricted_note || null;
+    const nextRestrictedNoteRoleSlugs =
+      audienceInput.restricted_note_role_slugs === null
+        ? (zone.restricted_note_role_slugs ?? null)
+        : serializeRoleSlugList(audienceInput.restricted_note_role_slugs) || null;
     // Colonne `zones.emoji` (audit C4) : valeur explicite du corps ('' = effacer), sinon
     // dérivée du préfixe du nom soumis, sinon valeur existante conservée.
     const nextEmoji = resolveZoneEmojiForWrite(
@@ -425,7 +470,7 @@ router.put(
       categoryIds: await nextCategoryIdsForZone(zone.id, category_ids),
     });
     await execute(
-      'UPDATE zones SET map_id=?, name=?, emoji=?, current_plant=?, special=?, description=?, points=?, color=?, hidden_surfaces=?, search_aliases=? WHERE id=?',
+      'UPDATE zones SET map_id=?, name=?, emoji=?, current_plant=?, special=?, description=?, points=?, color=?, hidden_surfaces=?, search_aliases=?, visible_role_slugs=?, restricted_note=?, restricted_note_role_slugs=? WHERE id=?',
       [
         nextMapIdForZone,
         name !== undefined ? String(name).trim() : zone.name,
@@ -437,6 +482,9 @@ router.put(
         color ?? zone.color,
         nextHiddenSurfaces,
         nextSearchAliases,
+        nextVisibleRoleSlugs,
+        nextRestrictedNote,
+        nextRestrictedNoteRoleSlugs,
         zone.id,
       ],
     );
@@ -456,16 +504,18 @@ router.put(
     const categoriesRows = await loadCategoriesMap(db, 'zone', [zone.id]);
     emitGardenChanged({ reason: 'update_zone', zoneId: zone.id, mapId: updatedWithVisit.map_id });
     res.json(
-      attachCategoriesToEntity(
-        attachSpeciesToEntity(
-          {
-            ...updatedWithVisit,
-            history,
-          },
-          speciesRows.get(String(zone.id)) || [],
-          { legacySingleName: updatedWithVisit.current_plant },
+      serializeLocationRow(
+        attachCategoriesToEntity(
+          attachSpeciesToEntity(
+            {
+              ...updatedWithVisit,
+              history,
+            },
+            speciesRows.get(String(zone.id)) || [],
+            { legacySingleName: updatedWithVisit.current_plant },
+          ),
+          categoriesRows.get(String(zone.id)) || [],
         ),
-        categoriesRows.get(String(zone.id)) || [],
       ),
     );
   }),
@@ -509,12 +559,21 @@ router.post(
       category_ids,
       hidden_surfaces,
       search_aliases,
+      visible_role_slugs,
+      restricted_note,
+      restricted_note_role_slugs,
     } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
     const hiddenSurfacesInput = normalizeSurfaceInput(hidden_surfaces, {
       field: 'hidden_surfaces',
     });
     if (!hiddenSurfacesInput.ok) return res.status(400).json({ error: hiddenSurfacesInput.error });
+    const audienceInput = readAudienceWriteFields({
+      visible_role_slugs,
+      restricted_note,
+      restricted_note_role_slugs,
+    });
+    if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
     // `points` doit être un vrai polygone : tableau de sommets {xp, yp} numériques (en %)
     // (une chaîne a aussi une `length` et passerait, stockant une géométrie corrompue).
     if (
@@ -533,7 +592,7 @@ router.post(
     // Colonne `zones.emoji` (audit C4) : explicite, sinon dérivée du préfixe du nom.
     const zoneEmoji = resolveZoneEmojiForWrite(emoji, String(name), '');
     await execute(
-      'INSERT INTO zones (id, map_id, name, emoji, x, y, width, height, current_plant, points, color, description, hidden_surfaces, search_aliases) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO zones (id, map_id, name, emoji, x, y, width, height, current_plant, points, color, description, hidden_surfaces, search_aliases, visible_role_slugs, restricted_note, restricted_note_role_slugs) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         mapId,
@@ -545,6 +604,9 @@ router.post(
         desc,
         serializeSurfaceSet(hiddenSurfacesInput.value || []),
         normalizeSearchAliases(search_aliases) || null,
+        serializeRoleSlugList(audienceInput.visible_role_slugs || []) || null,
+        audienceInput.restricted_note || null,
+        serializeRoleSlugList(audienceInput.restricted_note_role_slugs || []) || null,
       ],
     );
     await syncZoneSpecies(db, id, species_ids, nextLiving);
@@ -563,11 +625,13 @@ router.post(
     const categoriesRows = await loadCategoriesMap(db, 'zone', [id]);
     emitGardenChanged({ reason: 'create_zone', zoneId: id, mapId });
     res.status(201).json(
-      attachCategoriesToEntity(
-        attachSpeciesToEntity({ ...zone, history: [] }, speciesRows.get(id) || [], {
-          legacySingleName: zone.current_plant,
-        }),
-        categoriesRows.get(id) || [],
+      serializeLocationRow(
+        attachCategoriesToEntity(
+          attachSpeciesToEntity({ ...zone, history: [] }, speciesRows.get(id) || [], {
+            legacySingleName: zone.current_plant,
+          }),
+          categoriesRows.get(id) || [],
+        ),
       ),
     );
   }),
@@ -594,6 +658,16 @@ router.delete(
       if (p && p.image_path) deleteMapPhotoMainAndThumb(p.image_path);
     }
     emitGardenChanged({ reason: 'delete_zone', zoneId: req.params.id, mapId: zone.map_id });
+    await logAudit(
+      'delete_zone',
+      'zone',
+      req.params.id,
+      `Suppression zone ${zone.name || req.params.id}`,
+      {
+        req,
+        payload: { name: zone.name || null, map_id: zone.map_id || null },
+      },
+    );
     res.json({ success: true });
   }),
 );

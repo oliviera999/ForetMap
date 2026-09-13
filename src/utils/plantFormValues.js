@@ -78,6 +78,7 @@ export const EMPTY_PLANT_FORM = {
   photo_flower: '',
   photo_fruit: '',
   photo_harvest_part: '',
+  map_ids: [],
 };
 
 /**
@@ -87,8 +88,12 @@ export const EMPTY_PLANT_FORM = {
 export function extractPlantForm(plant = {}) {
   const form = { ...EMPTY_PLANT_FORM };
   Object.keys(form).forEach((k) => {
+    if (k === 'map_ids') return;
     form[k] = normalizedPlantValue(plant[k]);
   });
   if (!form.emoji) form.emoji = '🌱';
+  form.map_ids = Array.isArray(plant.map_ids)
+    ? [...new Set(plant.map_ids.map((id) => String(id || '').trim()).filter(Boolean))]
+    : [];
   return form;
 }

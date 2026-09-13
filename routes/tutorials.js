@@ -23,6 +23,7 @@ const {
   slugify,
   htmlToPdfBuffer,
   injectTutorialViewIframeLinkScript,
+  injectTutorialViewNoScriptRevealStyle,
   toPublicTutorialRow,
 } = require('../lib/tutorialRouteHelpers');
 const {
@@ -34,6 +35,7 @@ const {
   scanTutosForImport,
   importMissingTutosFromFilesystem,
 } = require('../lib/importTutosFromFilesystem');
+const { logAudit } = require('../lib/auditLog');
 const {
   fingerprintText,
   buildGlossaryIndexVersion,
@@ -42,6 +44,9 @@ const {
   clearTutorialViewCache,
 } = require('../lib/tutorialViewCache');
 const { sanitizeTutorialViewHtml } = require('../lib/tutorialViewSanitize');
+
+/** Incrémenter quand le pipeline d’enrichissement `/view` change (ex. CSS reveal). */
+const TUTORIAL_VIEW_PIPELINE_VERSION = 'reveal-css-1';
 
 let glossaryAutolinkCache = null;
 let glossaryAutolinkCacheAt = 0;
@@ -79,7 +84,10 @@ async function loadGlossaryAutolinkEntries() {
  */
 function enrichTutorialHtmlWithGlossary(html, entries) {
   const safe = sanitizeTutorialViewHtml(html);
-  const linked = autolinkHtmlTextNodes(safe, entries);
+  // Avant auto-liens : forcer la lisibilité des blocs masqués pour animation JS
+  // (sandbox aperçu sans scripts — cf. injectTutorialViewNoScriptRevealStyle).
+  const readable = injectTutorialViewNoScriptRevealStyle(safe);
+  const linked = autolinkHtmlTextNodes(readable, entries);
   return injectGlossaryAutolinkScript(injectTutorialViewIframeLinkScript(linked));
 }
 
@@ -96,7 +104,7 @@ async function renderTutorialViewHtml(tutorial, html) {
   const key = buildTutorialViewCacheKey({
     tutorialId: tutorial.id,
     updatedAt: tutorial.updated_at,
-    glossaryIndexVersion: version,
+    glossaryIndexVersion: `${TUTORIAL_VIEW_PIPELINE_VERSION}:${version}`,
     htmlFingerprint: fingerprintText(html),
   });
   return sharedTutorialViewCache.getOrCompute(key, () =>
@@ -118,20 +126,13 @@ function canManageTutorials(req) {
 async function validateTutorialLocations(zoneIds, markerIds) {
   const z = normalizeIdArray(zoneIds);
   const m = normalizeIdArray(markerIds);
-  const mapIds = new Set();
   for (const zid of z) {
-    const row = await queryOne('SELECT id, map_id FROM zones WHERE id = ? LIMIT 1', [zid]);
+    const row = await queryOne('SELECT id FROM zones WHERE id = ? LIMIT 1', [zid]);
     if (!row) return { error: 'Zone introuvable' };
-    mapIds.add(row.map_id);
   }
   for (const mid of m) {
-    const row = await queryOne('SELECT id, map_id FROM map_markers WHERE id = ? LIMIT 1', [mid]);
+    const row = await queryOne('SELECT id FROM map_markers WHERE id = ? LIMIT 1', [mid]);
     if (!row) return { error: 'Repère introuvable' };
-    mapIds.add(row.map_id);
-  }
-  const uniqueMaps = [...mapIds].filter(Boolean);
-  if (uniqueMaps.length > 1) {
-    return { error: 'Les zones et repères choisis doivent appartenir à la même carte' };
   }
   return { zoneIds: z, markerIds: m };
 }
@@ -953,6 +954,13 @@ router.delete(
     ]);
     clearTutorialViewCache();
     await emitTutorialTasksChanged('tutorial_delete', Number(req.params.id));
+    await logAudit(
+      'delete_tutorial',
+      'tutorial',
+      req.params.id,
+      `Désactivation tutoriel ${req.params.id}`,
+      { req, payload: { soft: true } },
+    );
     res.json({ success: true });
   }),
 );

@@ -46,6 +46,7 @@ export function useVisitContent({ mapId, setMapId, onForceLogout, onProgressLoad
     markers: [],
     tutorials: [],
     mascot_packs: [],
+    routes: [],
   });
   const [loading, setLoading] = useState(true);
   /** Un chargement au moins est allé au bout : les suivants ne masquent plus la vue. */
@@ -90,8 +91,18 @@ export function useVisitContent({ mapId, setMapId, onForceLogout, onProgressLoad
               map_id: visitRes.map_id ?? requestedMapId,
               mascot_packs: Array.isArray(visitRes.mascot_packs) ? visitRes.mascot_packs : [],
             }
-          : { zones: [], markers: [], tutorials: [], mascot_packs: [], map_id: requestedMapId };
-      setContent(visitPayload);
+          : {
+              zones: [],
+              markers: [],
+              tutorials: [],
+              mascot_packs: [],
+              routes: [],
+              map_id: requestedMapId,
+            };
+      setContent({
+        ...visitPayload,
+        routes: Array.isArray(visitPayload.routes) ? visitPayload.routes : [],
+      });
       onProgressLoadedRef.current?.(progressBody);
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();

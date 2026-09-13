@@ -14,6 +14,7 @@ import {
   shiftSelectionAfterRemove,
   snapEditPointOrthogonal,
 } from '../utils/zoneEditGeometry.js';
+import { NEIGHBOR_SNAP_DEFAULT_RADIUS_PCT, applyNeighborSnap } from '../utils/zoneNeighborSnap.js';
 
 /** Profondeur maximale de l'historique d'édition de contour (annulations Ctrl+Z). */
 const EDIT_POINTS_HISTORY_MAX = 30;
@@ -43,6 +44,9 @@ const EMPTY_SELECTION = new Set();
  *   ancrage magnétique (aimant de contour) ; renvoie `null` si aucun contour proche
  * @param {number} [params.snapRadiusPct] rayon d'accroche de l'aimant, en % de largeur d'image
  * @param {number} [params.snapMinStrength] contraste minimal exigé par l'aimant (sensibilité)
+ * @param {boolean} [params.neighborSnapEnabled] colle sur les polygones voisins (prioritaire)
+ * @param {Array<{ id: string, points: Array<{xp:number,yp:number}> }>} [params.neighborZones]
+ * @param {number} [params.neighborSnapRadiusPct]
  * @param {number} [params.edgeTolerancePct] distance max. à une arête pour y insérer un sommet
  * @param {number} [params.mapScaleInv] inverse de l'échelle carte (nudge clavier scale-aware)
  * @param {number} [params.mapImgW] largeur naturelle du plan (px)
@@ -61,6 +65,9 @@ function useZoneEditPoints({
   snapPoint,
   snapRadiusPct = 1,
   snapMinStrength,
+  neighborSnapEnabled = false,
+  neighborZones = [],
+  neighborSnapRadiusPct = NEIGHBOR_SNAP_DEFAULT_RADIUS_PCT,
   edgeTolerancePct = 3,
   mapScaleInv = 1,
   mapImgW = 1,
@@ -91,8 +98,28 @@ function useZoneEditPoints({
     snapRadiusPct: 1,
     snapMinStrength: undefined,
     edgeTolerancePct: 3,
+    neighborSnapEnabled: false,
+    neighborZones: [],
+    neighborSnapRadiusPct: NEIGHBOR_SNAP_DEFAULT_RADIUS_PCT,
   });
-  snapRef.current = { snapPoint, snapRadiusPct, snapMinStrength, edgeTolerancePct };
+  snapRef.current = {
+    snapPoint,
+    snapRadiusPct,
+    snapMinStrength,
+    edgeTolerancePct,
+    neighborSnapEnabled,
+    neighborZones,
+    neighborSnapRadiusPct,
+  };
+
+  const neighborsExcludingEdit = useCallback(
+    (zones) => {
+      const selfId = editZone?.id != null ? String(editZone.id) : '';
+      if (!selfId) return zones || [];
+      return (zones || []).filter((z) => String(z?.id) !== selfId);
+    },
+    [editZone?.id],
+  );
 
   useEffect(() => {
     if (mode !== 'edit-points') {
@@ -220,14 +247,17 @@ function useZoneEditPoints({
     return true;
   }, [scheduleRecordEditHistory]);
 
-  /** Colle les sommets sélectionnés (ou tous) sur les contours de l'image de fond. */
+  /** Colle les sommets sélectionnés (ou tous) : voisins d'abord, sinon aimant image. */
   const snapSelectedPoints = useCallback(() => {
     const {
       snapPoint: snap,
       snapRadiusPct: radiusPct,
       snapMinStrength: minStrength,
+      neighborSnapEnabled: nEnabled,
+      neighborZones: nZones,
+      neighborSnapRadiusPct: nRadius,
     } = snapRef.current;
-    if (typeof snap !== 'function') return 0;
+    const neighbors = neighborsExcludingEdit(nZones);
     const pts = editPointsRef.current;
     const targets = selectedPtIdxsRef.current.size
       ? new Set(normalizeEditSelection([...selectedPtIdxsRef.current], pts.length))
@@ -236,6 +266,14 @@ function useZoneEditPoints({
     const n = pts.length;
     const next = pts.map((p, i) => {
       if (!targets.has(i)) return p;
+      if (nEnabled) {
+        const neighborHit = applyNeighborSnap(p, neighbors, nRadius, true);
+        if (neighborHit.xp !== p.xp || neighborHit.yp !== p.yp) {
+          moved += 1;
+          return clampEditZonePct(neighborHit);
+        }
+      }
+      if (typeof snap !== 'function') return p;
       const prev = pts[(i - 1 + n) % n];
       const neighborNext = pts[(i + 1) % n];
       const hit = snapEditPointOrthogonal(p, prev, neighborNext, radiusPct, snap, {
@@ -251,7 +289,7 @@ function useZoneEditPoints({
     setEditPoints(next);
     scheduleRecordEditHistory();
     return moved;
-  }, [scheduleRecordEditHistory]);
+  }, [neighborsExcludingEdit, scheduleRecordEditHistory]);
 
   // ——— Raccourcis clavier (hors champs de saisie) ———
 
@@ -494,18 +532,39 @@ function useZoneEditPoints({
         snapPoint: snap,
         snapRadiusPct: radiusPct,
         snapMinStrength: minStrength,
+        neighborSnapEnabled: nEnabled,
+        neighborZones: nZones,
+        neighborSnapRadiusPct: nRadius,
       } = snapRef.current;
-      const pts = editPointsRef.current;
-      const n = pts.length;
-      const prev = pts[(i - 1 + n) % n];
-      const next = pts[(i + 1) % n];
-      const target =
-        typeof snap === 'function'
-          ? snapEditPointOrthogonal(p2, prev, next, radiusPct, snap, { radiusPct, minStrength })
-          : p2;
+      const neighbors = neighborsExcludingEdit(nZones);
+      let target = p2;
+      if (nEnabled) {
+        const neighborHit = applyNeighborSnap(p2, neighbors, nRadius, true);
+        if (neighborHit.xp !== p2.xp || neighborHit.yp !== p2.yp) {
+          target = neighborHit;
+        } else if (typeof snap === 'function') {
+          const pts = editPointsRef.current;
+          const n = pts.length;
+          const prev = pts[(i - 1 + n) % n];
+          const next = pts[(i + 1) % n];
+          target = snapEditPointOrthogonal(p2, prev, next, radiusPct, snap, {
+            radiusPct,
+            minStrength,
+          });
+        }
+      } else if (typeof snap === 'function') {
+        const pts = editPointsRef.current;
+        const n = pts.length;
+        const prev = pts[(i - 1 + n) % n];
+        const next = pts[(i + 1) % n];
+        target = snapEditPointOrthogonal(p2, prev, next, radiusPct, snap, {
+          radiusPct,
+          minStrength,
+        });
+      }
       setEditPoints((cur) => cur.map((pt, j) => (j === i ? clampEditZonePct(target) : pt)));
     },
-    [draggingPtIdx, toImagePct],
+    [draggingPtIdx, neighborsExcludingEdit, toImagePct],
   );
 
   const onEditPointPointerUp = useCallback(

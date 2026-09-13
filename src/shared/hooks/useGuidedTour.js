@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../platform/browserStorage.js';
+import { mergeDiscoveryTourSeenMaps } from '../tour/mergeDiscoveryTourSeenMaps.js';
 
 /**
  * Moteur de **visite guidée**, partagé ForetMap / G&L.
@@ -16,8 +17,12 @@ import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../platform/br
  * @param {string} options.storageKey  clé localStorage propre au produit. Y faire
  *   figurer une version (`_v1`) permet de relancer l'onboarding pour tout le monde
  *   après une refonte des parcours.
+ * @param {Record<string, true>|null} [options.accountSeen] progression liée au compte
+ *   (hydratée depuis le serveur). Fusionnée avec le cache local.
+ * @param {(tabKey: string, nextSeen: Record<string, true>) => void} [options.onTourSeen]
+ *   notifié quand un parcours est marqué vu (pour persistance serveur).
  */
-export function useGuidedTour({ getSteps, storageKey }) {
+export function useGuidedTour({ getSteps, storageKey, accountSeen = null, onTourSeen = null }) {
   const readSeen = useCallback(() => {
     try {
       const raw = safeLocalStorageGetItem(storageKey, null);
@@ -39,9 +44,30 @@ export function useGuidedTour({ getSteps, storageKey }) {
     [storageKey],
   );
 
-  const [seen, setSeen] = useState(() => readSeen());
+  const [seen, setSeen] = useState(() => mergeDiscoveryTourSeenMaps(readSeen(), accountSeen));
   // active = null | { tab, steps, index }
   const [active, setActive] = useState(null);
+  const onTourSeenRef = useRef(onTourSeen);
+  onTourSeenRef.current = onTourSeen;
+
+  // Hydratation compte → état + cache local (union, jamais d'effacement).
+  useEffect(() => {
+    if (!accountSeen || typeof accountSeen !== 'object') return undefined;
+    setSeen((prev) => {
+      const next = mergeDiscoveryTourSeenMaps(prev, accountSeen);
+      const prevKeys = Object.keys(prev || {});
+      const nextKeys = Object.keys(next);
+      if (
+        prevKeys.length === nextKeys.length &&
+        nextKeys.every((key) => prev?.[key] === next[key])
+      ) {
+        return prev;
+      }
+      persistSeen(next);
+      return next;
+    });
+    return undefined;
+  }, [accountSeen, persistSeen]);
 
   const hasSeenTour = useCallback(
     (tabKey) => {
@@ -58,6 +84,11 @@ export function useGuidedTour({ getSteps, storageKey }) {
         if (prev?.[tabKey]) return prev;
         const next = { ...(prev || {}), [tabKey]: true };
         persistSeen(next);
+        try {
+          onTourSeenRef.current?.(tabKey, next);
+        } catch (_) {
+          /* persistance compte best-effort */
+        }
         return next;
       });
     },

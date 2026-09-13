@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
+import { headingUpOrientationDeg } from '../../shared/pct-map/pctMapOrientation.js';
+import { MapScaleCompassOverlay } from '../../shared/pct-map/MapScaleCompassOverlay.jsx';
+
 import { MapActionButton } from '../../shared/ui/MapActionButton.jsx';
 import { PctClusterLayer } from '../../shared/pct-map/PctClusterLayer.jsx';
 import { PctImageLayer } from '../../shared/pct-map/PctImageLayer.jsx';
@@ -66,8 +69,12 @@ const POSITION_LABELS = Object.freeze({
  * @param {Map<string, object>} [props.categoriesById] catalogue des catégories (priorités,
  *   couleur de la pastille de groupe).
  * @param {object|null} [props.position] état de position (`useMapPosition`, lot 6).
+ * @param {() => void} [props.onLocateToggle] remplace `position.toggle` (compteur d'usage).
  * @param {{ xp: number, yp: number }|null} [props.targetPct] lieu visé par « Y aller ».
+ * @param {{ top?: number, right?: number, bottom?: number, left?: number }|null} [props.focusInsets]
+ *   marges scène pour recentrer au-dessus d'une barre basse (parcours).
  * @param {string} [props.attribution] mention de source du fond de plan (`ui.plan.attribution`).
+ * @param {string} [props.schoolLogoUrl] logo officiel du lycée (affichage discret sur la carte).
  */
 export function PlanMapStage({
   map,
@@ -78,8 +85,18 @@ export function PlanMapStage({
   onOpenGroup = null,
   categoriesById = null,
   position = null,
+  onLocateToggle = null,
   targetPct = null,
+  focusInsets = null,
   attribution = '',
+  schoolLogoUrl = '',
+  headingUpAllowed = false,
+  headingUpEffective = false,
+  headingUpUserEnabled = false,
+  onHeadingUpToggle = null,
+  scaleCompassAllowed = false,
+  scaleCompassEffective = false,
+  onScaleCompassToggle = null,
 }) {
   const imageSrc = String(map?.map_image_url || '');
   const viewport = usePctMapViewport({
@@ -105,6 +122,8 @@ export function PlanMapStage({
     focusOnPct,
     consumeSkipClick,
     touchAction,
+    setMapOrientation,
+    orientStyle,
   } = viewport;
 
   const onZoneClick = useCallback(
@@ -201,6 +220,32 @@ export function PlanMapStage({
     [categoriesById],
   );
 
+  // Heading-up : rotation intérieure autour de la position (ou centre) ; pan/zoom inchangés.
+  const orientPivot = position?.displayPct || null;
+  const mapOrientationDeg = headingUpEffective
+    ? headingUpOrientationDeg(
+        position?.smoothedScreenHeadingDeg ?? position?.screenHeadingDeg ?? null,
+      )
+    : 0;
+  useEffect(() => {
+    if (!headingUpEffective) {
+      setMapOrientation({ deg: 0, originPct: null });
+      return;
+    }
+    const heading = position?.smoothedScreenHeadingDeg ?? position?.screenHeadingDeg ?? null;
+    setMapOrientation({
+      deg: headingUpOrientationDeg(heading),
+      originPct: orientPivot,
+    });
+  }, [
+    headingUpEffective,
+    orientPivot?.xp,
+    orientPivot?.yp,
+    position?.smoothedScreenHeadingDeg,
+    position?.screenHeadingDeg,
+    setMapOrientation,
+  ]);
+
   // Suivi de position : la carte se recentre à chaque nouvelle position tant que l'état
   // « suivi » dure. Hors suivi, la position ne bouge jamais la vue.
   const followPct = position?.following ? position.displayPct : null;
@@ -211,18 +256,22 @@ export function PlanMapStage({
 
   // Centrage sur le lieu sélectionné : une fois par lieu, jamais pendant que l'on manipule
   // la carte (sinon la vue « saute » sous le doigt à chaque re-rendu de la fiche).
+  // `focusInsets` décale le centre vers la zone encore visible (barre parcours en bas).
   const lastFocusedRef = useRef('');
+  const focusInsetsKey = focusInsets
+    ? `${focusInsets.top || 0},${focusInsets.right || 0},${focusInsets.bottom || 0},${focusInsets.left || 0}`
+    : '';
   useEffect(() => {
-    const key = selectedPlace ? `${selectedPlace.kind}:${selectedPlace.id}` : '';
+    const key = selectedPlace ? `${selectedPlace.kind}:${selectedPlace.id}:${focusInsetsKey}` : '';
     if (!key || key === lastFocusedRef.current) {
-      if (!key) lastFocusedRef.current = '';
+      if (!selectedPlace) lastFocusedRef.current = '';
       return;
     }
     const pct = planPlaceFocusPct(selectedPlace, parsePctPolygonPoints);
     if (!pct) return;
     lastFocusedRef.current = key;
-    focusOnPct(pct);
-  }, [selectedPlace, focusOnPct]);
+    focusOnPct(pct, { insets: focusInsets });
+  }, [selectedPlace, focusOnPct, focusInsets, focusInsetsKey]);
 
   /**
    * Contre-échelle des habillages : le calque monde est mis à l'échelle par la vue, donc tout
@@ -336,7 +385,7 @@ export function PlanMapStage({
           transformOrigin: '0 0',
         }}
       >
-        <div className="plan-map__fit" style={fitStyle}>
+        <div className="plan-map__fit" style={{ ...fitStyle, ...orientStyle }}>
           <PctImageLayer
             ref={imgRef}
             src={imageSrc}
@@ -365,12 +414,20 @@ export function PlanMapStage({
             <PctPositionLayer
               position={position.displayPct}
               haloPx={accuracyHaloDiameterPx(position.haloPct, fitRect.width)}
-              headingDeg={position.screenHeadingDeg}
+              headingDeg={headingUpEffective ? null : position.screenHeadingDeg}
               accuracyM={position.accuracyM}
             />
           ) : null}
         </div>
       </div>
+
+      <MapScaleCompassOverlay
+        visible={scaleCompassEffective}
+        georef={map?.geo_anchors}
+        contentWidthPx={fitRect.width}
+        scale={committed.s}
+        orientationDeg={mapOrientationDeg}
+      />
 
       <div className="plan-map-controls">
         {position?.available ? (
@@ -381,7 +438,40 @@ export function PlanMapStage({
             testId="plan-locate"
             active={position.active}
             ariaPressed={position.active}
-            onClick={position.toggle}
+            onClick={onLocateToggle || position.toggle}
+          />
+        ) : null}
+        {headingUpAllowed && position?.available && position?.active ? (
+          <MapActionButton
+            role={headingUpEffective ? 'primary' : 'display'}
+            icon="🧭"
+            label={
+              !position.headingAvailable
+                ? 'Boussole indisponible'
+                : headingUpUserEnabled
+                  ? 'Désorienter la carte'
+                  : 'Orienter la carte selon la boussole'
+            }
+            testId="plan-heading-up"
+            active={headingUpEffective}
+            ariaPressed={headingUpEffective}
+            disabled={!position.headingAvailable}
+            onClick={onHeadingUpToggle}
+          />
+        ) : null}
+        {scaleCompassAllowed ? (
+          <MapActionButton
+            role={scaleCompassEffective ? 'primary' : 'display'}
+            icon="📏"
+            label={
+              scaleCompassEffective
+                ? 'Masquer l’échelle et la rose des vents'
+                : 'Afficher l’échelle et la rose des vents'
+            }
+            testId="plan-scale-compass-toggle"
+            active={scaleCompassEffective}
+            ariaPressed={scaleCompassEffective}
+            onClick={onScaleCompassToggle}
           />
         ) : null}
         <MapActionButton
@@ -407,7 +497,21 @@ export function PlanMapStage({
         />
       </div>
 
-      {attribution ? <p className="plan-map__attribution">{attribution}</p> : null}
+      {(schoolLogoUrl || attribution) && (
+        <div className="plan-map__school-mark">
+          {schoolLogoUrl ? (
+            <img
+              className="plan-map__school-logo"
+              src={schoolLogoUrl}
+              alt="Lycée Lyautey"
+              width={120}
+              height={36}
+              decoding="async"
+            />
+          ) : null}
+          {attribution ? <p className="plan-map__attribution">{attribution}</p> : null}
+        </div>
+      )}
     </div>
   );
 }

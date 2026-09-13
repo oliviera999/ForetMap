@@ -1,0 +1,37 @@
+/* Pastille présence staff (FM + GL) — cœur partagé PresenceStatusBadge. */
+
+.fm-presence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--ink-soft, #4b5563);
+  min-height: 22px;
+}
+
+.fm-presence-badge__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #9ca3af;
+}
+
+.fm-presence-badge--online .fm-presence-badge__dot {
+  background: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.25);
+}
+
+.fm-presence-badge--recent .fm-presence-badge__dot {
+  background: #d97706;
+}
+
+.fm-presence-badge--offline .fm-presence-badge__dot {
+  background: #9ca3af;
+}
+
+.fm-presence-badge__label {
+  line-height: 1.2;
+}

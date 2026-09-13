@@ -6,6 +6,7 @@
  */
 import { buildAffiliationSelectOptions } from './affiliationSelectOptions';
 import { buildVisitMascotSelectionOptions } from './visitMascotCatalog.js';
+import { PSEUDO_RE, PSEUDO_INVALID_MSG } from './pseudoValidation';
 
 /** Poids approximatif (octets) du contenu d'un data URL base64. */
 export function estimateDataUrlBytes(dataUrl) {
@@ -72,8 +73,8 @@ export function buildVisitMascotOptions(allowedRaw, extraEntries = []) {
  */
 export function validateProfileEditorFields({ pseudo, email, description, currentPassword }) {
   if (!currentPassword) return 'Mot de passe actuel requis';
-  if (String(pseudo || '').trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(String(pseudo).trim())) {
-    return 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)';
+  if (String(pseudo || '').trim() && !PSEUDO_RE.test(String(pseudo).trim())) {
+    return PSEUDO_INVALID_MSG;
   }
   if (String(email || '').trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim())) {
     return 'Email invalide';

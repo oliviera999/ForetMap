@@ -271,6 +271,7 @@ export function GLQcmModal({
                 loreGlossaryLinkItems={mergedLoreGlossaryItems}
                 onOpenGlossaryTerm={onOpenGlossaryTerm}
                 onOpenLoreTerm={onOpenLoreTerm}
+                seed={questionCode}
               />
               {Array.isArray(result.loreGlossaryTerms) && result.loreGlossaryTerms.length > 0 ? (
                 <div className="gl-qcm-modal__glossary">

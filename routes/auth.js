@@ -15,6 +15,12 @@ const { verifyJwtToken } = require('../lib/auth/jwtPipeline');
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { toPublicUserRow } = require('../lib/publicUser');
+const {
+  parseDiscoveryTourSeen,
+  normalizeDiscoveryTourSeenInput,
+  mergeDiscoveryTourSeen,
+  serializeDiscoveryTourSeen,
+} = require('../lib/discoveryTourSeen');
 const logger = require('../lib/logger');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { sendPasswordResetEmail } = require('../lib/mailer');
@@ -28,12 +34,9 @@ const {
   makeResetUrl,
 } = require('../lib/passwordReset');
 const {
-  ensureRbacBootstrap,
   buildAuthzPayload,
   consumePendingAutoProfilePromotion,
   ensurePrimaryRole,
-  getPrimaryRoleForUser,
-  setPrimaryRole,
 } = require('../lib/rbac');
 const { getSettingValue } = require('../lib/settings');
 const {
@@ -57,7 +60,6 @@ const {
 } = require('../lib/profileUpdate');
 
 const router = express.Router();
-const PASSWORD_RESET_TTL_MINUTES = 60;
 const OAUTH_STATE_COOKIE = 'foretmap_oauth_state';
 const OAUTH_MODE_COOKIE = 'foretmap_oauth_mode';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
@@ -148,37 +150,16 @@ async function verifyGoogleIdToken({ idToken, audience }) {
   return ticket.getPayload() || null;
 }
 
+const { ensureTeacherAdminFromEnv } = require('../lib/teacherAdminSeed');
+
 let seedTeacherChecked = false;
 async function ensureTeacherSeedFromEnv() {
   if (seedTeacherChecked) return;
   seedTeacherChecked = true;
-  const email = normalizeEmail(process.env.TEACHER_ADMIN_EMAIL);
-  const password = normalizeOptionalString(process.env.TEACHER_ADMIN_PASSWORD);
-  const displayName = normalizeOptionalString(process.env.TEACHER_ADMIN_DISPLAY_NAME) || 'n3boss';
-  if (!email || !password || password.length < PASSWORD_RESET_MIN_LEN) return;
-
-  const existing = await queryOne(
-    "SELECT id FROM users WHERE user_type = 'teacher' AND email = ? LIMIT 1",
-    [email],
-  );
-  if (existing) return;
-
-  const hash = await bcrypt.hash(password, 10);
-  const now = nowIsoUtc();
-  try {
-    const teacherId = crypto.randomUUID();
-    await execute(
-      `INSERT INTO users
-        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
-       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
-      [teacherId, email, email.split('@')[0] || null, displayName, hash, now],
-    );
-    await ensurePrimaryRole('teacher', teacherId, 'admin');
-  } catch (err) {
-    if (!(err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY'))) {
-      throw err;
-    }
-  }
+  await ensureTeacherAdminFromEnv({
+    minPasswordLength: PASSWORD_RESET_MIN_LEN,
+    ensurePrimaryRole,
+  });
 }
 
 async function buildSessionPayload(userType, userId) {
@@ -225,11 +206,18 @@ router.get('/me', requireAuth, async (req, res) => {
     const tokenIn = parseBearerToken(req);
     if (tokenIn && req.auth) {
       const claims = verifyJwtToken(tokenIn, JWT_SECRET);
-      if (
+      const roleChanged =
         String(claims.roleId) !== String(req.auth.roleId) ||
         String(claims.roleSlug || '').toLowerCase() !==
-          String(req.auth.roleSlug || '').toLowerCase()
-      ) {
+          String(req.auth.roleSlug || '').toLowerCase();
+      const claimPerms = Array.isArray(claims.permissions)
+        ? [...claims.permissions].map(String).sort()
+        : [];
+      const authPerms = Array.isArray(req.auth.permissions)
+        ? [...req.auth.permissions].map(String).sort()
+        : [];
+      const permissionsChanged = JSON.stringify(claimPerms) !== JSON.stringify(authPerms);
+      if (roleChanged || permissionsChanged) {
         const session = await buildSessionPayload(req.auth.userType, req.auth.userId);
         if (session) {
           const tp = { ...session.tokenPayload };
@@ -288,8 +276,49 @@ router.get('/me', requireAuth, async (req, res) => {
       body.contextCommentParticipate = Number(u.context_comment_participate) !== 0;
     }
   }
+  // Progression des visites guidées (accueil OLU + onglets) : liée au compte, pas au navigateur.
+  if (req.auth?.userId) {
+    try {
+      const seenRow = await queryOne(
+        'SELECT discovery_tour_seen_json FROM users WHERE id = ? LIMIT 1',
+        [req.auth.userId],
+      );
+      body.discoveryTourSeen = parseDiscoveryTourSeen(seenRow?.discovery_tour_seen_json);
+    } catch (_) {
+      body.discoveryTourSeen = {};
+    }
+  }
   res.json(body);
 });
+
+/**
+ * Marque des parcours de visite guidée comme déjà vus pour le compte connecté.
+ * Merge (union) : les clés déjà vraies restent vraies. Sans mot de passe actuel
+ * (route étroite, comme la préférence mascotte).
+ */
+router.put(
+  '/discovery-tour-seen',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const auth = req.auth || {};
+    if (!auth.userId) return res.status(401).json({ error: 'Authentification requise' });
+    const normalized = normalizeDiscoveryTourSeenInput(req.body?.seen);
+    if (!normalized.ok) return res.status(400).json({ error: normalized.error });
+    const row = await queryOne('SELECT discovery_tour_seen_json FROM users WHERE id = ? LIMIT 1', [
+      auth.userId,
+    ]);
+    if (!row) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    const merged = mergeDiscoveryTourSeen(
+      parseDiscoveryTourSeen(row.discovery_tour_seen_json),
+      normalized.seen,
+    );
+    await execute(
+      'UPDATE users SET discovery_tour_seen_json = ?, updated_at = NOW() WHERE id = ?',
+      [serializeDiscoveryTourSeen(merged), String(auth.userId)],
+    );
+    res.json({ ok: true, discoveryTourSeen: merged });
+  }),
+);
 
 router.patch(
   '/me/profile',
@@ -521,6 +550,7 @@ router.post(
     emitStudentsChanged({ reason: 'register', studentId: id });
     res.status(201).json({
       ...toPublicUserRow(student),
+      discoveryTourSeen: parseDiscoveryTourSeen(student?.discovery_tour_seen_json),
       authToken: token,
       auth: session ? exposeAuth(session.tokenPayload) : null,
     });
@@ -683,6 +713,7 @@ router.post(
     });
     res.json({
       ...toPublicUserRow(account),
+      discoveryTourSeen: parseDiscoveryTourSeen(account.discovery_tour_seen_json),
       authToken: token,
       auth: session ? exposeAuth(session.tokenPayload) : null,
     });
@@ -855,6 +886,15 @@ router.get('/google/callback', async (req, res) => {
       [email],
     );
     if (!student) {
+      const allowGoogleAutoRegister = await getSettingValue(
+        'ui.auth.allow_google_auto_register',
+        false,
+      );
+      if (!allowGoogleAutoRegister) {
+        return res.redirect(
+          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_account_not_found', mode),
+        );
+      }
       const id = crypto.randomUUID();
       const now = nowIsoUtc();
       const splitName = splitDisplayName(payload.name);
@@ -895,6 +935,7 @@ router.get('/google/callback', async (req, res) => {
         type: 'student',
         student: {
           ...toPublicUserRow(student),
+          discoveryTourSeen: parseDiscoveryTourSeen(student?.discovery_tour_seen_json),
           authToken: token,
           auth: session ? exposeAuth(session.tokenPayload) : null,
         },
@@ -1139,7 +1180,8 @@ router.post(
       },
     );
 
-    const { password_hash, ...profile } = account;
+    const { password_hash: _passwordHash, ...profile } = account;
+    void _passwordHash;
     res.json({
       authToken: token,
       auth: exposeAuth(hydrated),

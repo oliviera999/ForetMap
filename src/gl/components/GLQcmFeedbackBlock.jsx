@@ -14,8 +14,10 @@ export function GLQcmFeedbackBlock({
   loreGlossaryLinkItems = [],
   onOpenGlossaryTerm,
   onOpenLoreTerm,
+  /** Graine de la variante servie par la voix d'OLU à défaut de feedback écrit (code question). */
+  seed = '',
 }) {
-  const text = getQcmFeedbackText(result);
+  const text = getQcmFeedbackText(result, { seed });
   if (!text) return null;
 
   const correct = Boolean(result?.correct);

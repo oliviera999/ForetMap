@@ -28,6 +28,24 @@ function line(text = '') {
   process.stdout.write(`${text}\n`);
 }
 
+/** Conseil de dépannage : replié à 96 colonnes, chaque ligne préfixée, pour rester lisible. */
+function lines(text, { first = '  → ', next = '    ' } = {}) {
+  const width = 96;
+  const out = [];
+  let current = '';
+  for (const word of String(text).split(/\s+/).filter(Boolean)) {
+    const prefix = out.length ? next : first;
+    if (current && prefix.length + current.length + 1 + word.length > width) {
+      out.push(prefix + current);
+      current = word;
+    } else {
+      current = current ? `${current} ${word}` : word;
+    }
+  }
+  if (current) out.push((out.length ? next : first) + current);
+  for (const l of out) line(l);
+}
+
 function printHuman(report, env) {
   line(`Site Moodle : ${env.baseUrl}`);
   if (report.site) {
@@ -37,12 +55,25 @@ function printHuman(report, env) {
   }
   line('');
   line('Fonctions Web Services :');
+  if (!report.functions.length) {
+    line('  (non contrôlées : le contrôle s’est arrêté — voir l’erreur ci-dessous)');
+  } else if (report.functionsUnknown) {
+    line(
+      '  (liste indéterminée : core_webservice_get_site_info a échoué — voir l’erreur ci-dessous)',
+    );
+  }
   for (const fn of report.functions) {
-    line(`  ${fn.allowed ? 'OK ' : 'KO '} ${fn.name.padEnd(38)} ${fn.lot}  ${fn.use}`);
+    const mark = fn.allowed === null ? ' ? ' : fn.allowed ? 'OK ' : 'KO ';
+    line(`  ${mark} ${fn.name.padEnd(38)} ${fn.lot}  ${fn.use}`);
   }
   line('');
   const ofYear = report.cohorts.filter((c) => c.ofYear);
-  line(`Cohortes de l'année (${ofYear.length}) :`);
+  const cohortsFailed = report.errors.some((e) => e.step === 'site_info' || e.step === 'cohorts');
+  line(
+    cohortsFailed && !ofYear.length
+      ? 'Cohortes de l’année : non listées (voir l’erreur ci-dessous)'
+      : `Cohortes de l'année (${ofYear.length}) :`,
+  );
   for (const c of ofYear) {
     line(
       `  #${c.id}  ${c.idnumber.padEnd(14)} ${c.name.padEnd(28)} → ${c.policyKey || 'AUCUNE POLITIQUE'}`,
@@ -67,6 +98,14 @@ function printHuman(report, env) {
   line('');
   for (const err of report.errors) {
     line(`ERREUR [${err.step}] ${err.kind} ${err.errorcode || err.status || ''} ${err.message}`);
+    if (err.debuginfo) lines(err.debuginfo, { first: '  debug Moodle : ', next: '    ' });
+    if (err.hint) lines(err.hint);
+  }
+  if (report.tokenProbe) {
+    const probe = report.tokenProbe;
+    line(
+      `  sonde ${probe.wsfunction} : ${probe.ok ? 'a répondu' : `échec ${probe.errorcode || '?'}`}`,
+    );
   }
   line(report.ok ? 'Résultat : OK' : 'Résultat : problèmes à corriger (voir ci-dessus)');
 }

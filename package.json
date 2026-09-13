@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.151.2",
+  "version": "1.153.40",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "engines": {
@@ -99,10 +99,11 @@
     "audit:pedago": "node scripts/audit-pedago-content.js",
     "test": "node --test --test-concurrency=1 --test-force-exit tests/*.test.js",
     "test:coverage": "node --test --experimental-test-coverage --test-concurrency=1 --test-force-exit tests/*.test.js",
+    "test:content": "node --test --test-concurrency=1 --test-force-exit tests/content/*.test.js",
     "test:ui": "vitest run --config vitest.config.js",
     "test:ui:watch": "vitest --config vitest.config.js",
     "test:ui:coverage": "vitest run --coverage --config vitest.config.js",
-    "test:all": "npm test && npm run test:ui",
+    "test:all": "npm test && npm run test:content && npm run test:ui",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -133,6 +134,7 @@
     "smoke:local:fast": "node scripts/local-smoke.js --fast",
     "icons:pwa": "node scripts/generate-pwa-icons-n3-white.js",
     "icons:gl": "node scripts/generate-gl-icons.js",
+    "icons:plan": "node scripts/generate-plan-icons.js",
     "fonts:sync-noto-emoji": "node scripts/sync-noto-color-emoji-font.js",
     "mascot:fox-backpack": "node scripts/fox-backpack-extract-and-compose.cjs",
     "mascot:renard2-cut": "node scripts/renard2-cut-extract.cjs",

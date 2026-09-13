@@ -1,4 +1,8 @@
 import { describe, test, expect, vi } from 'vitest';
+import {
+  oluControlPassedSentence,
+  oluSeriesProgressSentence,
+} from '../../src/shared/utils/oluLearningVoice.js';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { LearningGatingQuestionPanel } from '../../src/shared/components/LearningGatingQuestionPanel.jsx';
 
@@ -75,7 +79,11 @@ describe('LearningGatingQuestionPanel — erreurs à la réponse', () => {
 // Ce que l'élève ne lisait nulle part : la progression après une bonne réponse, et le
 // nombre d'erreurs encore permises après une mauvaise qui n'a pas (encore) bloqué.
 describe('LearningGatingQuestionPanel — retour après réponse', () => {
-  test('bonne réponse : félicitations et progression dans la série', async () => {
+  // Depuis la reprise à la voix d'OLU (docs/MASCOT_NARRATEUR_OLU.md §7.4), cette ligne ne
+  // félicite plus — le retour de la question, juste au-dessus, s'en charge. Ce qu'elle doit
+  // encore porter : les nombres, le titre de la ressource, et la variante tirée sur le code
+  // de la question (donc stable d'un rendu à l'autre).
+  test('bonne réponse : progression située dans la série', async () => {
     const answerQuestion = vi.fn(async () => ({ correct: true, feedback: 'Bonne réponse !' }));
     render(
       <LearningGatingQuestionPanel
@@ -92,9 +100,16 @@ describe('LearningGatingQuestionPanel — retour après réponse', () => {
     );
     fireEvent.click(await screen.findByLabelText('Épluchures'));
     fireEvent.click(screen.getByRole('button', { name: 'Valider ma réponse' }));
-    const notice = await screen.findByText(/^Bravo/);
+    const expected = oluSeriesProgressSentence({
+      done: 1,
+      asked: 2,
+      left: 1,
+      label: '« Le compostage »',
+      seed: 'QF0001',
+    });
+    const notice = await screen.findByText(expected);
     expect(notice.textContent).toContain('1 sur 2');
-    expect(notice.textContent).toContain('encore 1 question');
+    expect(notice.textContent).toContain('1 question');
   });
 
   test('dernière bonne réponse : la validation est annoncée comme ouverte', async () => {
@@ -114,7 +129,7 @@ describe('LearningGatingQuestionPanel — retour après réponse', () => {
     );
     fireEvent.click(await screen.findByLabelText('Épluchures'));
     fireEvent.click(screen.getByRole('button', { name: 'Valider ma réponse' }));
-    await screen.findByText(/le contrôle est réussi/);
+    await screen.findByText(oluControlPassedSentence('« Le compostage »', 'QF0001'));
   });
 
   test('mauvaise réponse tolérée : le nombre d’essais restants est affiché', async () => {

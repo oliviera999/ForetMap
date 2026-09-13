@@ -1,6 +1,10 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { api } from '../../services/api';
 import { validateUserIdentityFields } from '../../utils/profilesUserFields.js';
+import {
+  buildUnitaryCreateRoleOptions,
+  isStudentUnitaryCreateRole,
+} from '../../utils/createUserRoleOptions.js';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 
 /**
@@ -8,18 +12,29 @@ import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
  * Autonome (§6.1) : possède l'état du formulaire et l'appel `POST /api/rbac/users`.
  * Le parent ne fournit que le contexte (`roleTerms`, `affiliationOptions`, droits)
  * et les retours (`setErr`/`setMsg` vers les bandeaux, `onCreated()` → rechargement).
- * Comportement inchangé (mêmes validations, messages et réinitialisations).
  */
 function CreateUserPanel({
   roleTerms,
   affiliationOptions,
+  roles = [],
+  groupOptions = [],
   isAdmin,
+  canCreateTeacherRoles = false,
   canCreateUsers,
   setErr,
   setMsg,
   onCreated,
 }) {
-  const [createRole, setCreateRole] = useState('eleve_novice');
+  const roleOptions = useMemo(
+    () =>
+      buildUnitaryCreateRoleOptions({
+        roles,
+        isAdmin,
+        canCreateTeacherRoles: canCreateTeacherRoles || isAdmin,
+      }),
+    [roles, isAdmin, canCreateTeacherRoles],
+  );
+  const [createRole, setCreateRole] = useState(() => roleOptions[0]?.value || 'eleve_novice');
   const [createFirstName, setCreateFirstName] = useState('');
   const [createLastName, setCreateLastName] = useState('');
   const [createPassword, setCreatePassword] = useState('');
@@ -27,7 +42,11 @@ function CreateUserPanel({
   const [createEmail, setCreateEmail] = useState('');
   const [createDescription, setCreateDescription] = useState('');
   const [createAffiliation, setCreateAffiliation] = useState('both');
+  const [createGroupId, setCreateGroupId] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
+
+  const isStudentRole = isStudentUnitaryCreateRole(createRole);
+  const showGroupField = isStudentRole && Array.isArray(groupOptions) && groupOptions.length > 0;
 
   const createUser = async () => {
     const fieldError = validateUserIdentityFields({
@@ -47,10 +66,18 @@ function CreateUserPanel({
       setErr('Seul un admin peut créer un admin');
       return;
     }
+    if (
+      (createRole === 'prof' || createRole === 'prof_classe') &&
+      !isAdmin &&
+      !canCreateTeacherRoles
+    ) {
+      setErr('Seuls n3boss et administrateur peuvent créer un compte enseignant');
+      return;
+    }
     setCreateLoading(true);
     setErr('');
     try {
-      const result = await api('/api/rbac/users', 'POST', {
+      const body = {
         role_slug: createRole,
         first_name: createFirstName.trim(),
         last_name: createLastName.trim(),
@@ -58,8 +85,12 @@ function CreateUserPanel({
         pseudo: createPseudo.trim() || null,
         email: createEmail.trim() || null,
         description: createDescription.trim() || null,
-        affiliation: createAffiliation,
-      });
+        affiliation: isStudentRole ? createAffiliation : 'both',
+      };
+      if (isStudentRole && createGroupId) {
+        body.group_id = createGroupId;
+      }
+      const result = await api('/api/rbac/users', 'POST', body);
       setMsg(
         `Utilisateur créé : ${result.first_name} ${result.last_name} (${result.role_display_name || result.role_slug})`,
       );
@@ -70,7 +101,10 @@ function CreateUserPanel({
       setCreateEmail('');
       setCreateDescription('');
       setCreateAffiliation('both');
-      if (!isAdmin && createRole === 'admin') setCreateRole('prof');
+      setCreateGroupId('');
+      if (!roleOptions.some((o) => o.value === createRole)) {
+        setCreateRole(roleOptions[0]?.value || 'eleve_novice');
+      }
       await onCreated();
     } catch (e) {
       setErr(e.message || 'Erreur création utilisateur');
@@ -94,7 +128,7 @@ function CreateUserPanel({
       </h3>
       <p style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
         Créez un compte sans import. Action réservée aux profils disposant de la permission de
-        gestion des utilisateurs.
+        gestion des utilisateurs. Tous les profils ForetMap sont proposés (selon vos droits).
       </p>
       <div className="profiles-admin-create-grid">
         <div className="field" style={{ margin: 0 }}>
@@ -104,9 +138,11 @@ function CreateUserPanel({
             onChange={(e) => setCreateRole(e.target.value)}
             disabled={!canCreateUsers || createLoading}
           >
-            <option value="eleve_novice">{roleTerms.studentSingular}</option>
-            <option value="prof">{roleTerms.teacherShort}</option>
-            {isAdmin && <option value="admin">Admin</option>}
+            {roleOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
         </div>
         <div className="field" style={{ margin: 0 }}>
@@ -166,7 +202,7 @@ function CreateUserPanel({
           <select
             value={createAffiliation}
             onChange={(e) => setCreateAffiliation(e.target.value)}
-            disabled={!canCreateUsers || createLoading || createRole !== 'eleve_novice'}
+            disabled={!canCreateUsers || createLoading || !isStudentRole}
           >
             {affiliationOptions.map((o) => (
               <option key={o.value} value={o.value}>
@@ -175,6 +211,23 @@ function CreateUserPanel({
             ))}
           </select>
         </div>
+        {showGroupField && (
+          <div className="field" style={{ margin: 0 }}>
+            <label>Groupe (recommandé / requis hors vue globale)</label>
+            <select
+              value={createGroupId}
+              onChange={(e) => setCreateGroupId(e.target.value)}
+              disabled={!canCreateUsers || createLoading}
+            >
+              <option value="">— Aucun —</option>
+              {groupOptions.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name || g.slug || g.id}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
       <div style={{ marginTop: 10 }}>
         <button

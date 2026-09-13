@@ -90,3 +90,95 @@ describe('VisitDetailPanel — modalité et accessibilité', () => {
     expect(container).toBeEmptyDOMElement();
   });
 });
+
+describe('VisitDetailPanel — glossaire et biodiversité du lieu', () => {
+  const GLOSSARY_ITEMS = [{ glossary_code: 'FM0001', terme: 'biocénose', variantes: 'biocénoses' }];
+
+  test('les termes du glossaire sont hyperliés dans le texte du lieu', () => {
+    const { container } = setup({
+      selected: {
+        id: 3,
+        name: 'Verger',
+        visit_short_description: 'Ici vit une biocénose entière.',
+        visit_media: [],
+      },
+      glossaryItems: GLOSSARY_ITEMS,
+      onOpenGlossaryTerm: vi.fn(),
+    });
+    const link = container.querySelector('a[data-glossary-code="FM0001"]');
+    expect(link).not.toBeNull();
+    expect(link.textContent).toBe('biocénose');
+  });
+
+  test('un clic sur un terme remonte son code (fiche rapide)', () => {
+    const onOpenGlossaryTerm = vi.fn();
+    const { container } = setup({
+      selected: {
+        id: 3,
+        name: 'Verger',
+        visit_short_description: 'Ici vit une biocénose entière.',
+        visit_media: [],
+      },
+      glossaryItems: GLOSSARY_ITEMS,
+      onOpenGlossaryTerm,
+    });
+    fireEvent.click(container.querySelector('a[data-glossary-code="FM0001"]'));
+    expect(onOpenGlossaryTerm).toHaveBeenCalledWith('FM0001');
+  });
+
+  test('sans index de glossaire, le texte reste un markdown normal', () => {
+    const { container } = setup({
+      selected: {
+        id: 3,
+        name: 'Verger',
+        visit_short_description: 'Ici vit une biocénose entière.',
+        visit_media: [],
+      },
+    });
+    expect(container.querySelector('a[data-glossary-code]')).toBeNull();
+    expect(container.textContent).toContain('Ici vit une biocénose entière.');
+  });
+
+  test('les détails et les blocs éditoriaux sont auto-liés aussi', () => {
+    const { container } = setup({
+      selected: {
+        id: 3,
+        name: 'Verger',
+        visit_media: [],
+        visit_editorial_blocks: [
+          { id: 'b1', type: 'paragraph', markdown: 'Une biocénose en bloc éditorial.' },
+        ],
+      },
+      glossaryItems: GLOSSARY_ITEMS,
+      onOpenGlossaryTerm: vi.fn(),
+    });
+    expect(
+      container.querySelector('.visit-editorial a[data-glossary-code="FM0001"]'),
+    ).not.toBeNull();
+  });
+
+  test('la biodiversité du lieu est visible d’emblée, vignette ouvrant la fiche', () => {
+    const onOpenPlantCatalogPreview = vi.fn();
+    setup({
+      selected: {
+        id: 3,
+        name: 'Verger',
+        visit_media: [],
+        living_beings_list: ['Consoude'],
+        species: [{ id: 12, name: 'Consoude', emoji: '🌿' }],
+      },
+      plants: [{ id: 12, name: 'Consoude', emoji: '🌿' }],
+      onOpenPlantCatalogPreview,
+    });
+    expect(
+      screen.getByRole('heading', { name: /Biodiversité de cette zone/i }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Ouvrir la fiche de Consoude/i }));
+    expect(onOpenPlantCatalogPreview).toHaveBeenCalledWith(12);
+  });
+
+  test('aucune espèce : aucun volet biodiversité', () => {
+    setup();
+    expect(screen.queryByRole('heading', { name: /Biodiversité/i })).toBeNull();
+  });
+});

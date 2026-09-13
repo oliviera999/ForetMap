@@ -109,8 +109,27 @@ test('PUT /admin/maps/:id/georef enregistre le calage et l’expose via GET /api
   const map = list.body.find((m) => m.id === id);
   assert.ok(map, 'plan présent dans la liste publique');
   assert.strictEqual(map.gps_enabled, true);
+  assert.strictEqual(map.heading_up_enabled, false);
   assert.ok(Array.isArray(map.georef) && map.georef.length === 3);
   assert.strictEqual(map.georef[0].lat, VALID_ANCHORS[0].lat);
+
+  await execute('DELETE FROM maps WHERE id = ?', [id]);
+});
+
+test('PUT /admin/maps/:id/georef active heading_up_enabled avec GPS', async () => {
+  const token = await ensureAdminTeacherAuthToken();
+  const id = await createTempMap(token);
+  const saved = await request(app)
+    .put(`/api/settings/admin/maps/${id}/georef`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ anchors: VALID_ANCHORS, gps_enabled: true, heading_up_enabled: true })
+    .expect(200);
+  assert.strictEqual(saved.body.gps_enabled, true);
+  assert.strictEqual(saved.body.heading_up_enabled, true);
+
+  const list = await request(app).get('/api/maps').expect(200);
+  const map = list.body.find((m) => m.id === id);
+  assert.strictEqual(map.heading_up_enabled, true);
 
   await execute('DELETE FROM maps WHERE id = ?', [id]);
 });
@@ -172,5 +191,29 @@ test('PUT /admin/maps/:id/georef force gps_enabled=false sans ancres', async () 
     .expect(200);
   assert.strictEqual(res.body.gps_enabled, false);
   assert.strictEqual(res.body.georef, null);
+  await execute('DELETE FROM maps WHERE id = ?', [id]);
+});
+
+test('PUT /admin/maps/:id/georef scale_compass_enabled sans GPS', async () => {
+  const token = await ensureAdminTeacherAuthToken();
+  const id = await createTempMap(token);
+  const on = await request(app)
+    .put(`/api/settings/admin/maps/${id}/georef`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ anchors: VALID_ANCHORS, gps_enabled: false, scale_compass_enabled: true })
+    .expect(200);
+  assert.strictEqual(on.body.gps_enabled, false);
+  assert.strictEqual(on.body.scale_compass_enabled, true);
+  assert.ok(Array.isArray(on.body.georef) && on.body.georef.length === 3);
+
+  const off = await request(app)
+    .put(`/api/settings/admin/maps/${id}/georef`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ gps_enabled: false, scale_compass_enabled: false })
+    .expect(200);
+  assert.strictEqual(off.body.gps_enabled, false);
+  assert.strictEqual(off.body.scale_compass_enabled, false);
+  assert.ok(Array.isArray(off.body.georef) && off.body.georef.length === 3);
+
   await execute('DELETE FROM maps WHERE id = ?', [id]);
 });

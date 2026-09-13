@@ -7,6 +7,7 @@ const { emitObservationsChanged } = require('../lib/realtime');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { canAccessStudentId, getScopedStudentIds } = require('../lib/groupScope');
+const { logAudit } = require('../lib/auditLog');
 
 const router = express.Router();
 
@@ -246,6 +247,16 @@ router.delete(
       observationId: obs.id,
       studentId: obs.student_id,
     });
+    await logAudit(
+      'delete_observation',
+      'observation',
+      obs.id,
+      `Suppression observation ${obs.id}`,
+      {
+        req,
+        payload: { student_id: obs.student_id || null },
+      },
+    );
     res.json({ success: true });
   }),
 );

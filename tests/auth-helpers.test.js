@@ -27,8 +27,10 @@ describe('authRouteHelpers (logique pure de routes/auth.js, sans DB)', () => {
   it('constantes inchangées', () => {
     assert.equal(MAX_DESCRIPTION_LEN, 300);
     assert.ok(PSEUDO_RE.test('abc_123.x-y'));
+    assert.ok(PSEUDO_RE.test('jean.dupont'));
+    assert.ok(PSEUDO_RE.test('José+lyautey'));
     assert.ok(!PSEUDO_RE.test('ab'));
-    assert.ok(!PSEUDO_RE.test('a'.repeat(31)));
+    assert.ok(!PSEUDO_RE.test('a'.repeat(51)));
     assert.ok(!PSEUDO_RE.test('avec espace'));
     assert.deepEqual(GOOGLE_ALLOWED_DOMAINS_DEFAULT, ['pedagolyautey.org', 'lyceelyautey.org']);
     assert.deepEqual(GOOGLE_ALLOWED_EMAILS_DEFAULT, ['oliv.arn.lau@gmail.com']);
@@ -183,8 +185,19 @@ describe('authRouteHelpers (logique pure de routes/auth.js, sans DB)', () => {
       roleDisplayName: 'Prof',
       permissions: ['a.b'],
       nativePrivileged: false,
+      // Champ arrivé avec le profil `prof_classe` : la clé est toujours présente,
+      // à `undefined` tant qu'aucun périmètre de groupes n'est porté par la session.
+      groupIds: undefined,
     });
     assert.equal('password_hash' in base, false);
+
+    // Périmètre de groupes présent : écho tel quel.
+    const scoped = exposeAuth({
+      userType: 'teacher',
+      userId: 'u2',
+      groupIds: [3, 5],
+    });
+    assert.deepEqual(scoped.groupIds, [3, 5]);
 
     const imp = exposeAuth({
       userType: 'student',

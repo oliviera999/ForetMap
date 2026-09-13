@@ -81,8 +81,8 @@ function useMapCrudActions({
       const tu = (tutorials || []).find((x) => Number(x.id) === Number(tutorialId));
       if (!tu) return;
       const { zoneIds: zi, markerIds: mi } = tutorialLocationIds(tu);
-      const zoneIds = kind === 'zone' ? [...new Set([...(zi || []), locationId])] : zi;
-      const markerIds = kind === 'marker' ? [...new Set([...(mi || []), locationId])] : mi;
+      const zoneIds = kind === 'zone' ? [...new Set([...(zi || []), String(locationId)])] : zi;
+      const markerIds = kind === 'marker' ? [...new Set([...(mi || []), String(locationId)])] : mi;
       await api(`/api/tutorials/${tutorialId}`, 'PUT', {
         zone_ids: zoneIds,
         marker_ids: markerIds,

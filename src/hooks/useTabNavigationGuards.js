@@ -27,6 +27,8 @@ import { useEffect } from 'react';
  * @param {boolean} params.shouldUseDesktopSplit
  * @param {boolean} params.canAccessForum
  * @param {boolean} params.canViewGeneralStats
+ * @param {boolean} [params.canAccessProfiles]
+ * @param {boolean} [params.canAccessTutorials]
  * @param {object} [params.modules] - Drapeaux `publicSettings.modules`.
  */
 export function useTabNavigationGuards({
@@ -38,6 +40,8 @@ export function useTabNavigationGuards({
   shouldUseDesktopSplit,
   canAccessForum,
   canViewGeneralStats,
+  canAccessProfiles = false,
+  canAccessTutorials = false,
   modules,
 }) {
   const tutorialsEnabled = modules?.tutorials_enabled;
@@ -56,7 +60,8 @@ export function useTabNavigationGuards({
 
   useEffect(() => {
     if (effectiveIsTeacher || !isVisitor) return;
-    if (tab === 'map' || tab === 'tasks' || tab === 'maptasks' || tab === 'tuto') {
+    // Carte / tâches interdites ; les tutos restent accessibles (accusés d'apprentissage).
+    if (tab === 'map' || tab === 'tasks' || tab === 'maptasks') {
       setTab(visitEnabled !== false ? 'visit' : 'plants');
     }
   }, [effectiveIsTeacher, isVisitor, visitEnabled, tab, setTab]);
@@ -68,13 +73,17 @@ export function useTabNavigationGuards({
   }, [shouldUseDesktopSplit, tab, setTab]);
 
   useEffect(() => {
-    if (tab === 'tuto' && tutorialsEnabled === false) setTab(isVisitor ? 'visit' : 'map');
-    if (tab === 'stats' && statsEnabled === false) setTab(isVisitor ? 'visit' : 'map');
-    if (tab === 'stats' && statsEnabled !== false && !canViewGeneralStats)
-      setTab(isVisitor ? 'visit' : 'map');
+    const visitFallback = isVisitor ? 'visit' : 'map';
+    if (tab === 'tuto' && tutorialsEnabled === false) setTab(visitFallback);
+    if (tab === 'tuto' && tutorialsEnabled !== false && !canAccessTutorials)
+      setTab(visitFallback === 'visit' && visitEnabled !== false ? 'visit' : 'plants');
+    if (tab === 'stats' && statsEnabled === false) setTab(visitFallback);
+    if (tab === 'stats' && statsEnabled !== false && !canViewGeneralStats) setTab(visitFallback);
+    if (tab === 'profiles' && !canAccessProfiles)
+      setTab(visitEnabled !== false && isVisitor ? 'visit' : 'plants');
     if (tab === 'visit' && visitEnabled === false) setTab(isVisitor ? 'plants' : 'map');
     if (tab === 'mascot_packs' && visitEnabled === false) setTab(isVisitor ? 'plants' : 'map');
-    if (tab === 'notebook' && observationsEnabled === false) setTab(isVisitor ? 'visit' : 'map');
+    if (tab === 'notebook' && observationsEnabled === false) setTab(visitFallback);
     if (tab === 'forum' && !canAccessForum) setTab('about');
     if (tab === 'media_library' && !effectiveIsTeacher) setTab('about');
   }, [
@@ -86,6 +95,8 @@ export function useTabNavigationGuards({
     forumEnabled,
     canAccessForum,
     canViewGeneralStats,
+    canAccessProfiles,
+    canAccessTutorials,
     effectiveIsTeacher,
     isVisitor,
     setTab,

@@ -125,6 +125,15 @@ if (typeof rbac.resetRbacBootstrapForTests === 'function') {
     // Middleware /api (SERVICE_NOT_READY) exige initDatabase() ; la plupart des fichiers
     // de test n’appellent que initSchema() — marquer la BDD prête après chaque init.
     await originalInitDatabase(...args);
+    // Compte admin TEACHER_ADMIN_* : absent d’un `db:init` vierge ; sans lui, les tests API
+    // qui cherchent l’enseignant plantent (CI MariaDB neuve, foretmap_test locale).
+    const { ensureTeacherAdminFromEnv } = require('../../lib/teacherAdminSeed');
+    await ensureTeacherAdminFromEnv({
+      ensurePrimaryRole:
+        typeof rbac.ensurePrimaryRole === 'function'
+          ? rbac.ensurePrimaryRole.bind(rbac)
+          : undefined,
+    });
     if (typeof rbac.repairSystemN3beurParticipationDefaults === 'function') {
       await rbac.repairSystemN3beurParticipationDefaults();
     }

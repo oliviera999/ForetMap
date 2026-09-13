@@ -23,6 +23,7 @@ import { StatCard, StatsSummaryGrid } from '../shared/components/StatsSummaryGri
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { TeacherObservationsPanel } from './stats/TeacherObservationsPanel.jsx';
 import { TeacherLeaderboard } from './stats/TeacherLeaderboard.jsx';
+import { applyPresenceUpdateToRows } from '../shared/presenceListPatch.js';
 import { deriveStudentProgressionView } from '../utils/studentStatsProgression.js';
 import { useSession } from '../contexts/SessionContext.jsx';
 import {
@@ -653,13 +654,13 @@ function TeacherStats() {
     setObsLoading(true);
     setObsError('');
     try {
-      const rows = await api(
-        `/api/observations/all${filterGroupId ? `?group_id=${encodeURIComponent(filterGroupId)}` : ''}`,
+      const payload = await api(
+        `/api/user-journal/feed${filterGroupId ? `?group_id=${encodeURIComponent(filterGroupId)}` : ''}`,
       );
-      setObservations(Array.isArray(rows) ? rows : []);
+      setObservations(Array.isArray(payload?.articles) ? payload.articles : []);
     } catch (err) {
       setObservations([]);
-      setObsError(err?.message || 'Impossible de charger les observations globales.');
+      setObsError(err?.message || 'Impossible de charger les carnets.');
     } finally {
       setObsLoading(false);
     }
@@ -684,6 +685,16 @@ function TeacherStats() {
     window.addEventListener('foretmap_realtime', onRealtime);
     return () => window.removeEventListener('foretmap_realtime', onRealtime);
   }, [load, loadObservations]);
+
+  useEffect(() => {
+    const onPresence = (e) => {
+      const payload = e?.detail;
+      if (!payload || String(payload.product || 'foret') === 'gl') return;
+      setStudents((prev) => (prev ? applyPresenceUpdateToRows(prev, payload) : prev));
+    };
+    window.addEventListener('foretmap_presence', onPresence);
+    return () => window.removeEventListener('foretmap_presence', onPresence);
+  }, []);
 
   if (students === null)
     return (
@@ -841,7 +852,12 @@ function TeacherStats() {
         onLoad={loadObservations}
       />
 
-      <TeacherLeaderboard students={data} search={search} roleTerms={roleTerms} />
+      <TeacherLeaderboard
+        students={data}
+        search={search}
+        roleTerms={roleTerms}
+        presenceEnabled={publicSettings?.modules?.presence_enabled !== false}
+      />
     </div>
   );
 }

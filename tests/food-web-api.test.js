@@ -116,6 +116,27 @@ test('GET /api/food-web?mapId= — filtre par carte', async () => {
   assert.ok(res.body.items.some((row) => Number(row.id) === interactionId));
 });
 
+test('GET /api/food-web?mapId= — inventaire via map_species (sans zone)', async () => {
+  const mapId = `fw-map-direct-${stamp}`;
+  await execute(
+    `INSERT INTO maps (id, label, sort_order, is_active) VALUES (?, ?, 999, 1)
+     ON DUPLICATE KEY UPDATE label = VALUES(label)`,
+    [mapId, `Carte FW direct ${stamp}`],
+  );
+  await execute('INSERT INTO map_species (map_id, plant_id) VALUES (?, ?), (?, ?)', [
+    mapId,
+    plantFromId,
+    mapId,
+    plantToId,
+  ]);
+
+  const res = await request(app)
+    .get(`/api/food-web?mapId=${encodeURIComponent(mapId)}`)
+    .expect(200);
+  assert.strictEqual(res.body.mapId, mapId);
+  assert.ok(res.body.items.some((row) => Number(row.id) === interactionId));
+});
+
 test('GET /api/food-web?zoneId= — la relation sortante est gardée et marquée', async () => {
   // Une seule des deux espèces est dans la zone. Exiger les deux extrémités
   // faisait disparaître la relation : une espèce mangée par un prédateur de la

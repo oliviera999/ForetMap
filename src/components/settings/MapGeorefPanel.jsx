@@ -80,6 +80,10 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
     [0, 1, 2].map((i) => (initial[i] ? toPointState(initial[i]) : { ...EMPTY_POINT })),
   );
   const [gpsEnabled, setGpsEnabled] = useState(!!map.gps_enabled);
+  const [headingUpEnabled, setHeadingUpEnabled] = useState(!!map.heading_up_enabled);
+  const [scaleCompassEnabled, setScaleCompassEnabled] = useState(
+    map.georef ? !!map.scale_compass_enabled : true,
+  );
   const [activePoint, setActivePoint] = useState(null);
   const [saving, setSaving] = useState(false);
   const imgRef = useRef(null);
@@ -194,6 +198,8 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
       await api(`/api/settings/admin/maps/${encodeURIComponent(map.id)}/georef`, 'PUT', {
         anchors,
         gps_enabled: gpsEnabled && anchorsValid,
+        heading_up_enabled: headingUpEnabled && gpsEnabled && anchorsValid,
+        scale_compass_enabled: scaleCompassEnabled && anchorsValid,
       });
       onSaved?.('Calage GPS enregistré.');
     } catch (e) {
@@ -388,10 +394,50 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
         <input
           type="checkbox"
           checked={gpsEnabled}
-          onChange={(e) => setGpsEnabled(e.target.checked)}
+          onChange={(e) => {
+            const on = e.target.checked;
+            setGpsEnabled(on);
+            if (!on) setHeadingUpEnabled(false);
+          }}
           disabled={disabled || !anchorsValid}
         />
         Activer le suivi GPS pour ce plan {anchorsValid ? '' : '(3 points valides requis)'}
+      </label>
+
+      <label
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          marginTop: 6,
+          fontSize: 'var(--text-sm)',
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={headingUpEnabled}
+          onChange={(e) => setHeadingUpEnabled(e.target.checked)}
+          disabled={disabled || !anchorsValid || !gpsEnabled}
+        />
+        Autoriser l’orientation boussole sur cette carte (Orienter)
+      </label>
+
+      <label
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          marginTop: 6,
+          fontSize: 'var(--text-sm)',
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={scaleCompassEnabled}
+          onChange={(e) => setScaleCompassEnabled(e.target.checked)}
+          disabled={disabled || !anchorsValid}
+        />
+        Afficher l’échelle et la rose des vents
       </label>
 
       {geo.position ? (

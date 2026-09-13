@@ -281,6 +281,16 @@
   line-height: var(--lh-normal);
   color: #3d4a3d;
 }
+/* Pointe d'OLU sous la phrase d'engagement : une voix, pas une consigne — donc en retrait
+ * typographique, et jamais à la place de l'engagement lui-même
+ * (docs/MASCOT_NARRATEUR_OLU.md §7.4). */
+.tuto-read-ack-olu {
+  margin: -6px 0 14px;
+  font-size: var(--text-sm, 0.9rem);
+  line-height: var(--lh-normal);
+  color: #5b6b5b;
+  font-style: italic;
+}
 .tuto-read-ack-check {
   display: flex;
   align-items: flex-start;

@@ -145,6 +145,43 @@ describe('FoodWebView — filtres périmés', () => {
   });
 });
 
+describe('FoodWebView — carte active', () => {
+  it('charge le réseau de la carte active à l’ouverture', async () => {
+    mockFoodWeb([
+      ['/api/food-web?mapId=m1', [PREDATION]],
+      ['/api/food-web', [POLLINISATION]],
+    ]);
+    render(<FoodWebView maps={[{ id: 'm1', label: 'Forêt' }]} initialMapId="m1" />);
+
+    await waitFor(() => expect(screen.getByText('arête 1')).toBeTruthy());
+    expect(screen.getByLabelText('Carte').value).toBe('m1');
+    expect(apiMock.mock.calls.some(([p]) => String(p).includes('mapId=m1'))).toBe(true);
+    expect(apiMock.mock.calls.some(([p]) => p === '/api/food-web')).toBe(false);
+  });
+
+  it('recadre sur la carte active quand un lien met une espèce en avant', async () => {
+    // Préfixes plus spécifiques d’abord : `startsWith('/api/food-web')` matchait aussi `?mapId=`.
+    mockFoodWeb([
+      ['/api/food-web?mapId=m1', [PREDATION]],
+      ['/api/food-web', [POLLINISATION]],
+    ]);
+    const { rerender } = render(
+      <FoodWebView maps={[{ id: 'm1', label: 'Forêt' }]} initialMapId="m1" />,
+    );
+
+    await waitFor(() => expect(screen.getByLabelText('Carte').value).toBe('m1'));
+    fireEvent.change(screen.getByLabelText('Carte'), { target: { value: '' } });
+    await waitFor(() => expect(screen.getByLabelText('Carte').value).toBe(''));
+
+    rerender(
+      <FoodWebView maps={[{ id: 'm1', label: 'Forêt' }]} initialMapId="m1" highlightPlantId={10} />,
+    );
+
+    await waitFor(() => expect(screen.getByLabelText('Carte').value).toBe('m1'));
+    await waitFor(() => expect(screen.getByText('arête 1')).toBeTruthy());
+  });
+});
+
 describe('FoodWebView — espèce mise en avant', () => {
   it('explique qu’une espèce sans interaction n’apparaît pas dans le réseau', async () => {
     mockFoodWeb([['/api/food-web', [PREDATION]]]);

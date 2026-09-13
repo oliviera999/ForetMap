@@ -99,7 +99,8 @@ export function ZoneTutorialsTeacherPanel({
             lineHeight: 'var(--lh-normal)',
           }}
         >
-          Tu peux lier plusieurs tutoriels en répétant l’opération pour chaque fiche.
+          Tu peux lier plusieurs tutoriels en répétant l’opération pour chaque fiche. Un même
+          tutoriel peut être rattaché à des lieux sur plusieurs cartes.
         </p>
       </div>
       <button

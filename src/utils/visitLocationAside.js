@@ -12,10 +12,51 @@ export const EMPTY_VISIT_LOCATION_ASIDE = Object.freeze({
   showBiodiversity: false,
   showTutos: false,
   primaryLivingNames: [],
+  primaryLivingSpecies: [],
   livingBeingsOnlyOnTasks: [],
   tutorialListForPreview: [],
   locationKind: 'zone',
 });
+
+/**
+ * Source de biodiversité d'un lieu : la zone / le repère **de la carte** quand l'écran en
+ * dispose (élève ou prof connecté), sinon la ligne de visite elle-même.
+ *
+ * `GET /api/visit/content` publie désormais `species`, `living_beings_list` et
+ * `is_infrastructure` : c'est la seule source disponible en **visite invitée**, où les
+ * routes `/api/zones` et `/api/markers` sont hors de portée. Les deux formes portent les
+ * mêmes champs, la dérivation est donc identique.
+ *
+ * @param {object|null} mapLocation zone/repère de la carte (peut manquer)
+ * @param {object} visitLocation ligne de visite sélectionnée
+ */
+function biodiversitySourceForLocation(mapLocation, visitLocation) {
+  if (!mapLocation) return visitLocation || null;
+  const mapNames = orderedLivingBeingsForForm(
+    mapLocation.living_beings_list || mapLocation.living_beings,
+    mapLocation.current_plant || mapLocation.plant_name,
+  );
+  if (mapNames.length > 0) return mapLocation;
+  // Zone de carte connue mais sans espèce : le contenu de visite peut en porter (cache
+  // client de la carte plus ancien que le contenu public, par exemple).
+  const visitNames = orderedLivingBeingsForForm(
+    visitLocation?.living_beings_list,
+    visitLocation?.current_plant || visitLocation?.plant_name,
+  );
+  return visitNames.length > 0 ? visitLocation : mapLocation;
+}
+
+/** Espèces (id, nom, emoji) du lieu, dans l'ordre des noms affichés. */
+function speciesForDisplayedNames(source, names) {
+  const species = Array.isArray(source?.species) ? source.species : [];
+  if (species.length === 0) return [];
+  const byName = new Map(
+    species
+      .filter((sp) => sp && String(sp.name || '').trim())
+      .map((sp) => [String(sp.name).trim(), sp]),
+  );
+  return names.map((name) => byName.get(name)).filter(Boolean);
+}
 
 /**
  * Biodiversité et tutoriels liés au lieu sélectionné en visite (aligné sur les
@@ -47,11 +88,12 @@ export function computeVisitLocationAside(
     const mapZone = (mapZones || []).find(
       (z) => String(z.id) === String(selected.id) && String(z.map_id || '') === String(mapId),
     );
-    const zoneIsInfrastructure = isInfrastructureLocation(mapZone);
-    const primaryLivingNames = mapZone
+    const zoneSource = biodiversitySourceForLocation(mapZone, selected);
+    const zoneIsInfrastructure = isInfrastructureLocation(zoneSource);
+    const primaryLivingNames = zoneSource
       ? orderedLivingBeingsForForm(
-          mapZone.living_beings_list || mapZone.living_beings,
-          mapZone.current_plant,
+          zoneSource.living_beings_list || zoneSource.living_beings,
+          zoneSource.current_plant,
         )
       : [];
     const livingFromTasks = livingBeingNamesFromTasksAtLocation('zone', selected.id, taskList);
@@ -80,6 +122,7 @@ export function computeVisitLocationAside(
       showBiodiversity,
       showTutos: tutorialListForPreview.length > 0,
       primaryLivingNames,
+      primaryLivingSpecies: speciesForDisplayedNames(zoneSource, primaryLivingNames),
       livingBeingsOnlyOnTasks,
       tutorialListForPreview,
       locationKind: 'zone',
@@ -88,10 +131,11 @@ export function computeVisitLocationAside(
   const mapMarker = (mapMarkers || []).find(
     (m) => String(m.id) === String(selected.id) && String(m.map_id || '') === String(mapId),
   );
-  const primaryLivingNames = mapMarker
+  const markerSource = biodiversitySourceForLocation(mapMarker, selected);
+  const primaryLivingNames = markerSource
     ? orderedLivingBeingsForForm(
-        mapMarker.living_beings_list || mapMarker.living_beings,
-        mapMarker.plant_name,
+        markerSource.living_beings_list || markerSource.living_beings,
+        markerSource.plant_name,
       )
     : [];
   const livingFromTasks = livingBeingNamesFromTasksAtLocation('marker', selected.id, taskList);
@@ -118,6 +162,7 @@ export function computeVisitLocationAside(
     showBiodiversity,
     showTutos: tutorialListForPreview.length > 0,
     primaryLivingNames,
+    primaryLivingSpecies: speciesForDisplayedNames(markerSource, primaryLivingNames),
     livingBeingsOnlyOnTasks,
     tutorialListForPreview,
     locationKind: 'marker',

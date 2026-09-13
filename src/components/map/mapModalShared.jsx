@@ -217,13 +217,14 @@ export function LocationVisitAside({
   );
 }
 
-/** Tutoriel sans lieu ou entièrement sur la carte `mapId` (évite mélange de cartes). */
+/** Tutoriel sans lieu ou entièrement sur la carte `mapId`. */
 export function tutorialLinkedToSameMap(tu, mapId) {
   if (!mapId) return true;
+  const mapKey = String(mapId);
   const zl = tu.zones_linked || [];
   const ml = tu.markers_linked || [];
   if (zl.length === 0 && ml.length === 0) return true;
-  return [...zl, ...ml].every((x) => x.map_id === mapId);
+  return [...zl, ...ml].every((x) => String(x.map_id) === mapKey);
 }
 
 export function TaskEnrollmentLegend() {

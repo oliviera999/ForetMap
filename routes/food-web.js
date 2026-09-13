@@ -6,6 +6,7 @@ const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { INTERACTION_TYPES, makeFoodWebStore } = require('../lib/shared/foodWebCore');
+const { mapPresencePlantIdsSubquery } = require('../lib/speciesJunction');
 
 const router = express.Router();
 
@@ -72,15 +73,19 @@ const FOOD_WEB_SELECT = `fw.id, fw.interaction_type, fw.from_id, fw.from_name, f
  * `from_in_scope` / `to_in_scope` disent à l'interface quelle extrémité est
  * hors périmètre, pour qu'elle la marque au lieu de la masquer.
  */
-function scopedFoodWebQuery(inventoryFilter) {
-  const inScope = `SELECT plant_id FROM v_zone_inventory WHERE ${inventoryFilter}`;
+function scopedFoodWebQuery(inventorySubquery) {
   return `SELECT ${FOOD_WEB_SELECT},
-                 (fw.from_id IN (${inScope})) AS from_in_scope,
-                 (fw.to_id IS NULL OR fw.to_id IN (${inScope})) AS to_in_scope
+                 (fw.from_id IN ${inventorySubquery}) AS from_in_scope,
+                 (fw.to_id IS NULL OR fw.to_id IN ${inventorySubquery}) AS to_in_scope
             FROM v_food_web fw
-           WHERE fw.from_id IN (${inScope})
-              OR fw.to_id IN (${inScope})
+           WHERE fw.from_id IN ${inventorySubquery}
+              OR fw.to_id IN ${inventorySubquery}
            ORDER BY fw.interaction_type ASC, fw.from_name ASC, fw.to_name ASC`;
+}
+
+/** Inventaire zone (vue historique) — 1 placeholder répété 4 fois. */
+function zoneInventorySubquery() {
+  return `(SELECT plant_id FROM v_zone_inventory WHERE zone_id = ?)`;
 }
 
 /** GET /api/food-web?mapId=&zoneId= */
@@ -94,12 +99,8 @@ router.get(
       const zone = await queryOne('SELECT id FROM zones WHERE id = ? LIMIT 1', [zoneId]);
       if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
 
-      const items = await queryAll(scopedFoodWebQuery('zone_id = ?'), [
-        zoneId,
-        zoneId,
-        zoneId,
-        zoneId,
-      ]);
+      const inv = zoneInventorySubquery();
+      const items = await queryAll(scopedFoodWebQuery(inv), [zoneId, zoneId, zoneId, zoneId]);
       return res.json({ zoneId, items });
     }
 
@@ -107,7 +108,9 @@ router.get(
       const map = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [mapId]);
       if (!map) return res.status(404).json({ error: 'Carte introuvable' });
 
-      const items = await queryAll(scopedFoodWebQuery('map_id = ?'), [mapId, mapId, mapId, mapId]);
+      // Zones + repères + rattachement direct à la carte (map_species).
+      const inv = mapPresencePlantIdsSubquery();
+      const items = await queryAll(scopedFoodWebQuery(inv), Array(12).fill(mapId));
       return res.json({ mapId, items });
     }
 

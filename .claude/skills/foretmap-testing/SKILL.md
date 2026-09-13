@@ -8,10 +8,11 @@ description: Tests ForetMap — backend (node:test + supertest), utilitaires src
 ## Commandes
 
 ```bash
-npm test           # backend : node --test, séquentiel + force-exit, tests/*.test.js
-npm run test:ui    # UI React : Vitest (tests-ui/**, jsdom)
-npm run test:e2e   # e2e : libère le port puis Playwright (start:e2e)
-npm run test:all   # backend + UI
+npm test              # backend code : node --test, séquentiel + force-exit, tests/*.test.js
+npm run test:content  # corpus pédagogique : tests/content/*.test.js (job CI `contenu`)
+npm run test:ui       # UI React : Vitest (tests-ui/**, jsdom)
+npm run test:e2e      # e2e : libère le port puis Playwright (start:e2e)
+npm run test:all      # backend + contenu + UI
 node --test tests/<fichier>.test.js   # cibler un fichier
 ```
 
@@ -24,6 +25,21 @@ node --test tests/<fichier>.test.js   # cibler un fichier
   ex. `visit-map-geometry`, `visit-mascot-*`.
 - Pour les tests qui mockent `global.fetch` : `{ concurrency: false }`.
 - Helper GL : `tests/helpers/glFixtures.js` (admin, classe, joueur, partie, tokens).
+
+## Contenu pédagogique (`tests/content/*.test.js`)
+
+- Assertions sur les **données** semées par les migrations : espèces, liaisons trophiques,
+  rattachements ressource ↔ QCM. Pas de code applicatif testé ici.
+- **Hors du glob `tests/*.test.js`** depuis le 11/09/2026 : une dérive du corpus ne doit plus
+  faire échouer la suite de code ni bloquer une PR de documentation. Job CI dédié : `contenu`.
+- Requires à un niveau de plus : `require('../helpers/setup')`, `require('../../database')`.
+- **Piège** : les semis d'interactions (migrations `224`, `225`…) résolvent les espèces par
+  `JOIN ... ON nom_commun = ?`. Un nom absent au moment du passage est **silencieusement**
+  abandonné. Ne jamais écrire `if (!espèce) continue;` dans un test : c'est ce qui a masqué
+  la liaison manquante « Hérisson commun → Escargot des bois » (migration `230`). Affirmer
+  la présence de l'espèce, puis celle de la liaison.
+- Nouvelle espèce citée par un semis → vérifier qu'une migration la **crée** (base neuve ≠ prod :
+  `gl_species` n'est peuplé que par `225` et `229`+ ; SP0001–SP0254 n'existent qu'en production).
 
 ## UI (`tests-ui/**`) — Vitest + RTL (jsdom)
 

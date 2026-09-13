@@ -18,12 +18,12 @@ export function parseReactionEmojiList(rawValue) {
   return unique.length > 0 ? unique : [...DEFAULT_REACTION_EMOJIS];
 }
 
-/** Vrai si les claims donnent le droit de modérer le forum (admin/prof ou `teacher.access`). */
+/** Vrai si les claims donnent le droit de modérer le forum (admin ou `forum.group.moderate`). */
 export function isForumModerator(authClaims) {
   const roleSlug = String(authClaims?.roleSlug || '').toLowerCase();
-  if (roleSlug === 'admin' || roleSlug === 'prof') return true;
+  if (roleSlug === 'admin') return true;
   const perms = Array.isArray(authClaims?.permissions) ? authClaims.permissions : [];
-  return perms.includes('teacher.access');
+  return perms.includes('forum.group.moderate');
 }
 
 /** Nombre de pages d'une liste paginée (toujours ≥ 1, même liste vide). */

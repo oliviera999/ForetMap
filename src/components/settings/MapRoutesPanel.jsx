@@ -41,13 +41,6 @@ const HINT_STYLE = {
 const SUGGESTION_LIMIT = 8;
 
 /**
- * Surfaces qui n'ont pas d'écran de parcours. Le champ « Proposé sur » les proposait comme les
- * autres, et un parcours publié sur la Visite n'apparaissait nulle part, sans un mot
- * (`docs/AUDIT_PARCOURS_2026-09.md` §2.3). À vider quand ces écrans existeront.
- */
-const ROUTE_SURFACES_WITHOUT_SCREEN = Object.freeze(['map', 'visit']);
-
-/**
  * Console de gestion des **parcours** de carte (lot 8 du plan de convergence,
  * `docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.6).
  *
@@ -319,13 +312,10 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
         legend="Proposé sur"
         value={draft.surfaces}
         onChange={(next) => setField({ surfaces: next })}
-        unavailable={ROUTE_SURFACES_WITHOUT_SCREEN}
-        unavailableHint="n’affiche pas encore les parcours"
       />
       <p style={HINT_STYLE}>
-        Seul le <strong>Plan</strong> affiche les parcours pour l’instant. La carte de travail et la
-        Visite les stockeront sans les montrer : leurs cases restent fermées tant qu’elles n’ont pas
-        d’écran.
+        Cochez les surfaces où le parcours doit apparaître : <strong>Plan</strong>,{' '}
+        <strong>carte de travail</strong> et/ou <strong>Visite</strong>.
       </p>
 
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>

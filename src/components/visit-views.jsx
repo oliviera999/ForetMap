@@ -1,4 +1,13 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import { MARKER_EMOJIS, parseEmojiListSetting } from '../constants/emojis';
 import { getRoleTerms } from '../utils/n3-terminology';
@@ -34,18 +43,35 @@ import { VisitGuestMascotOnboarding } from './visit/VisitGuestMascotOnboarding.j
 import { VisitZonesSvgLayer } from './visit/VisitZonesSvgLayer.jsx';
 import { VisitMarkersLayer } from './visit/VisitMarkersLayer.jsx';
 import { VisitMapZoomControls } from './visit/VisitMapZoomControls.jsx';
+import { MapRoutePicker } from '../shared/map-routes/MapRoutePicker.jsx';
+import { MapRouteBar } from '../shared/map-routes/MapRouteBar.jsx';
+import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
+import {
+  placesFromZonesAndMarkers,
+  routeEntryFocusPct,
+} from '../shared/map-routes/mapRouteSteps.js';
+import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
   getVisitMascotVisibilityReason,
 } from '../utils/visitMascotVisibility.js';
 import { usePctMapViewport } from '../shared/pct-map/usePctMapViewport.js';
+import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
+import { useHeadingUpPreference } from '../shared/pct-map/useHeadingUpPreference.js';
+import { useScaleCompassPreference } from '../shared/pct-map/useScaleCompassPreference.js';
+import { MapScaleCompassOverlay } from '../shared/pct-map/MapScaleCompassOverlay.jsx';
+import { headingUpOrientationDeg } from '../shared/pct-map/pctMapOrientation.js';
+import { PctPositionLayer } from '../shared/pct-map/PctPositionLayer.jsx';
+import { accuracyHaloDiameterPx } from '../shared/pct-map/positionGeometry.js';
 import { useMapFullscreen } from '../shared/hooks/useMapFullscreen.js';
 import { usePrefersReducedMotion } from '../shared/hooks/usePrefersReducedMotion.js';
 import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx';
 import { VisitMapMascot } from './VisitMapMascot.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
-import { useData } from '../contexts/DataContext.jsx';
+import { DataProvider, useData } from '../contexts/DataContext.jsx';
+import { useGlossaryLinkIndex } from '../hooks/useGlossaryLinkIndex.js';
+import { useVisitPlantCatalog } from '../hooks/useVisitPlantCatalog.js';
 
 import { VISIT_MASCOT_INTERACTION_EVENT } from '../utils/visitMascotInteractionEvents.js';
 import {
@@ -65,6 +91,23 @@ import {
 import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { IconVisit } from '../shared/icons.jsx';
 
+/**
+ * Fiche rapide d'un terme du glossaire et fiche espèce : chargées à la demande.
+ *
+ * En visite **connectée**, l'application monte déjà ces deux surfaces à sa racine
+ * (`App.jsx`) et la visite ne fait que remonter l'intention (`onOpenGlossaryTerm`,
+ * `onOpenPlantCatalogPreview`). En visite **invitée**, cette racine n'existe pas : la vue
+ * les monte elle-même, sans alourdir le chunk visite de ceux qui n'ouvrent aucune fiche.
+ */
+const GlossaryPopoverLazy = lazy(() =>
+  import('./pedago/GlossaryPopover.jsx').then((m) => ({ default: m.GlossaryPopover })),
+);
+const PlantCatalogPreviewModalLazy = lazy(() =>
+  import('./biodiv/PlantCatalogPreview.jsx').then((m) => ({
+    default: m.PlantCatalogPreviewModal,
+  })),
+);
+
 function VisitViewImpl({
   student = null,
   isTeacher = false,
@@ -80,6 +123,8 @@ function VisitViewImpl({
   /** Catalogue tutoriels (liens lieu + missions), distinct de la sélection `visit_tutorials`. */
   catalogTutorials = [],
   onOpenPlantCatalogPreview = null,
+  /** Fiche rapide du glossaire montée par l'app (absente en visite invitée). */
+  onOpenGlossaryTerm = null,
   profileVisitMascotId = null,
   onPersistVisitMascotId = null,
   requireGuestMascotChoice = false,
@@ -88,7 +133,9 @@ function VisitViewImpl({
   const publicSettings = usePublicSettings();
   const { prompt, notify } = useAppDialogs();
   const { isN3Affiliated = false, canParticipateContextComments = true } = useSession();
-  const { tasks = [], plants = [] } = useData();
+  const { tasks = [], plants: contextPlants = [] } = useData();
+  /** Catalogue biodiversité : contexte de données, ou route publique en visite invitée. */
+  const { plants, ensurePlantCatalog } = useVisitPlantCatalog(contextPlants);
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const configuredLocationEmojis = String(
     publicSettings?.ui?.map?.location_emojis || publicSettings?.map?.location_emojis || '',
@@ -143,6 +190,63 @@ function VisitViewImpl({
     onForceLogout,
     onProgressLoaded: onVisitProgressLoaded,
   });
+  /** Fiche glossaire / fiche espèce ouvertes par la visite elle-même (mode invité). */
+  const [guestGlossaryCode, setGuestGlossaryCode] = useState(null);
+  const [guestPlantPreview, setGuestPlantPreview] = useState(null);
+
+  /**
+   * Termes du glossaire hyperliés dans les textes du lieu ouvert. L'index n'est demandé
+   * qu'à la première ouverture d'un lieu (une requête par session, mémoïsée) : une carte
+   * seulement survolée ne le charge pas.
+   */
+  const glossaryItems = useGlossaryLinkIndex({ enabled: !!selected });
+
+  /** Ouverture d'un terme : remontée à l'app si elle porte la fiche, sinon fiche locale. */
+  const openGlossaryTermFromVisit = useCallback(
+    (code) => {
+      const next = String(code || '').trim();
+      if (!next) return;
+      if (onOpenGlossaryTerm) onOpenGlossaryTerm(next);
+      else setGuestGlossaryCode(next);
+    },
+    [onOpenGlossaryTerm],
+  );
+
+  /** Ouverture d'une fiche espèce : idem — modale de l'app, ou modale locale en invité. */
+  const openPlantFromVisit = useCallback(
+    (plantId) => {
+      if (onOpenPlantCatalogPreview) {
+        onOpenPlantCatalogPreview(plantId);
+        return;
+      }
+      const id = Number(plantId);
+      if (!Number.isFinite(id) || id <= 0) return;
+      const plant = (plants || []).find((p) => Number(p.id) === id);
+      if (plant) setGuestPlantPreview(plant);
+    },
+    [onOpenPlantCatalogPreview, plants],
+  );
+
+  /** Le lieu ouvert porte des espèces : le catalogue devient nécessaire (invité). */
+  const selectedHasSpecies = !!(
+    selected &&
+    ((Array.isArray(selected.species) && selected.species.length > 0) ||
+      (Array.isArray(selected.living_beings_list) && selected.living_beings_list.length > 0))
+  );
+  useEffect(() => {
+    if (selectedHasSpecies) ensurePlantCatalog();
+  }, [selectedHasSpecies, ensurePlantCatalog]);
+
+  /**
+   * Données lues par la fiche espèce locale : zones et repères **du contenu de visite**
+   * (ils portent `living_beings_list` et leur géométrie), pour que le bloc « Sur la carte »
+   * de la fiche fonctionne aussi sans session.
+   */
+  const guestPlantPreviewData = useMemo(
+    () => ({ zones: content.zones || [], markers: content.markers || [], plants }),
+    [content.zones, content.markers, plants],
+  );
+
   /** Premier tutoriel « visite » ouvrable en modale (ordre API / sélection prof). */
   const visitPresentationTutorial = useMemo(() => {
     const list = content.tutorials || [];
@@ -265,6 +369,7 @@ function VisitViewImpl({
     (target) => Boolean(target?.closest?.('.visit-map-controls')),
     [],
   );
+  const visitPositionNotifyRef = useRef(null);
   const {
     containerRef: stageRef,
     worldRef: visitWorldRef,
@@ -278,6 +383,9 @@ function VisitViewImpl({
     zoomBy,
     toImagePct,
     touchAction: visitStageTouchAction,
+    focusOnPct,
+    setMapOrientation,
+    orientStyle,
   } = usePctMapViewport({
     imageSrc: visitMapImageSrc,
     contentMode: 'stage',
@@ -285,7 +393,121 @@ function VisitViewImpl({
     onResize: 'clamp',
     resetKey: mapId,
     isGestureTarget: isVisitGestureTarget,
+    onGestureStart: () => visitPositionNotifyRef.current?.(),
   });
+
+  const routePlaces = useMemo(
+    () => placesFromZonesAndMarkers(content.zones || [], content.markers || []),
+    [content.zones, content.markers],
+  );
+  const onRouteStepPlace = useCallback(
+    (entry) => {
+      if (!entry?.place) return;
+      const place = entry.place;
+      if (place.kind === 'zone') {
+        setSelected(place);
+        setSelectedType('zone');
+        const c = visitZoneCentroidPct(place);
+        if (c) focusOnPct({ xp: c.xp, yp: c.yp });
+      } else {
+        setSelected(place);
+        setSelectedType('marker');
+        if (Number.isFinite(Number(place.x_pct)) && Number.isFinite(Number(place.y_pct))) {
+          focusOnPct({ xp: Number(place.x_pct), yp: Number(place.y_pct) });
+        }
+      }
+    },
+    [setSelected, setSelectedType, focusOnPct],
+  );
+  const onRouteExitExtra = useCallback(() => {
+    setSelected(null);
+    setSelectedType(null);
+  }, [setSelected, setSelectedType]);
+  const {
+    activeRoute,
+    routeSteps,
+    routeIndex,
+    currentRouteEntry,
+    routePickerOpen,
+    setRoutePickerOpen,
+    resumableRouteSlug,
+    startRoute,
+    exitRoute,
+    resumeRoute,
+    goToRouteIndex,
+    resetForMapChange,
+  } = useMapRouteMode({
+    routes: content.routes || [],
+    places: routePlaces,
+    onStepPlace: onRouteStepPlace,
+    onExitExtra: onRouteExitExtra,
+  });
+  useEffect(() => {
+    resetForMapChange();
+  }, [mapId, resetForMapChange]);
+
+  const visitPosition = useMapPosition({
+    georef: currentMap?.georef ?? null,
+    gpsEnabled: !!currentMap?.gps_enabled && mode === 'view',
+  });
+  visitPositionNotifyRef.current = visitPosition.notifyManualPan;
+  const visitRouteDistanceLabel = useMemo(() => {
+    const targetPct = routeEntryFocusPct(currentRouteEntry);
+    if (!visitPosition.positionPct || !targetPct || !visitPosition.planSize) return '';
+    const meters = distanceMetersBetweenPct(
+      visitPosition.positionPct,
+      targetPct,
+      visitPosition.planSize,
+    );
+    return meters != null ? formatDistanceFr(meters) : '';
+  }, [currentRouteEntry, visitPosition.positionPct, visitPosition.planSize]);
+  const visitHeadingUpAllowed =
+    !!publicSettings?.visit?.heading_up_enabled &&
+    !!currentMap?.heading_up_enabled &&
+    !!visitPosition.available &&
+    mode === 'view';
+  const visitHeadingUpPref = useHeadingUpPreference({
+    storageKey: 'visit:heading-up',
+    allowed: visitHeadingUpAllowed,
+  });
+  const visitHeadingUpEffective = visitHeadingUpPref.effective && visitPosition.active;
+  const visitScaleCompassAllowed =
+    !!currentMap?.georef && !!currentMap?.scale_compass_enabled && mode === 'view';
+  const visitScaleCompassPref = useScaleCompassPreference({
+    storageKey: 'visit:scale-compass',
+    allowed: visitScaleCompassAllowed,
+  });
+  const visitMapOrientationDeg = visitHeadingUpEffective
+    ? headingUpOrientationDeg(
+        visitPosition.smoothedScreenHeadingDeg ?? visitPosition.screenHeadingDeg ?? null,
+      )
+    : 0;
+
+  useEffect(() => {
+    if (!visitHeadingUpEffective) {
+      setMapOrientation({ deg: 0, originPct: null });
+      return;
+    }
+    const heading =
+      visitPosition.smoothedScreenHeadingDeg ?? visitPosition.screenHeadingDeg ?? null;
+    setMapOrientation({
+      deg: headingUpOrientationDeg(heading),
+      originPct: visitPosition.displayPct || null,
+    });
+  }, [
+    visitHeadingUpEffective,
+    visitPosition.displayPct?.xp,
+    visitPosition.displayPct?.yp,
+    visitPosition.smoothedScreenHeadingDeg,
+    visitPosition.screenHeadingDeg,
+    setMapOrientation,
+  ]);
+
+  const visitFollowPct = visitPosition.following ? visitPosition.displayPct : null;
+  useEffect(() => {
+    if (!visitFollowPct) return;
+    focusOnPct({ xp: visitFollowPct.xp, yp: visitFollowPct.yp });
+  }, [visitFollowPct, focusOnPct]);
   const visitMapImageReady = visitImgNatural.w > 1 && visitImgNatural.h > 1;
   /** Rect « contain » courant en lecture impérative (contrôleur de la mascotte). */
   const visitMapFitRef = useRef(visitMapFit);
@@ -381,6 +603,7 @@ function VisitViewImpl({
   const onVisitZoneClick = useCallback(
     (z, event) => {
       event.stopPropagation();
+      if (activeRoute) return;
       if (consumeSkipClick()) return;
       if (mode === 'view') {
         const c = visitZoneCentroidPct(z);
@@ -399,6 +622,7 @@ function VisitViewImpl({
       }
     },
     [
+      activeRoute,
       mode,
       consumeSkipClick,
       moveVisitMapMascotTo,
@@ -415,6 +639,7 @@ function VisitViewImpl({
   const onVisitMarkerClick = useCallback(
     (m, event) => {
       event.stopPropagation();
+      if (activeRoute) return;
       if (consumeSkipClick()) return;
       if (mode === 'view') {
         const fromPct = { ...visitMapMascotPctRef.current };
@@ -428,6 +653,7 @@ function VisitViewImpl({
       }
     },
     [
+      activeRoute,
       mode,
       consumeSkipClick,
       moveVisitMapMascotTo,
@@ -620,6 +846,30 @@ function VisitViewImpl({
             onClose={() => setVisitMediaLightbox(null)}
           />
         )}
+        {guestGlossaryCode ? (
+          <Suspense fallback={null}>
+            <GlossaryPopoverLazy
+              open
+              glossaryCode={guestGlossaryCode}
+              onClose={() => setGuestGlossaryCode(null)}
+              showFullGlossaryLink={false}
+            />
+          </Suspense>
+        ) : null}
+        {guestPlantPreview ? (
+          <Suspense fallback={null}>
+            <DataProvider value={guestPlantPreviewData}>
+              <PlantCatalogPreviewModalLazy
+                plant={guestPlantPreview}
+                maps={maps}
+                onClose={() => setGuestPlantPreview(null)}
+                onForceLogout={onForceLogout}
+                onOpenPlant={openPlantFromVisit}
+                onOpenGlossaryTerm={openGlossaryTermFromVisit}
+              />
+            </DataProvider>
+          </Suspense>
+        ) : null}
         <VisitGuestMascotOnboarding
           requested={isGuestPublicVisit && requireGuestMascotChoice}
           mascotId={visitMascotId}
@@ -678,6 +928,14 @@ function VisitViewImpl({
                 quickTipText={
                   isHelpEnabled && showContextHints && visitQuickTip ? visitQuickTip : null
                 }
+                routesSlot={
+                  <MapRoutePicker
+                    routes={content.routes || []}
+                    open={routePickerOpen}
+                    onToggle={setRoutePickerOpen}
+                    onStart={startRoute}
+                  />
+                }
               />
             ) : null}
             <MapFullscreenShell
@@ -720,6 +978,7 @@ function VisitViewImpl({
                           }
                         : { left: 0, top: 0, width: '100%', height: '100%' }),
                       ...visitZoneSvgTypography.overlayCssVars,
+                      ...(orientStyle || {}),
                     }}
                   >
                     <img
@@ -745,6 +1004,7 @@ function VisitViewImpl({
                       mode={mode}
                       drawPoints={drawPoints}
                       onZoneClick={onVisitZoneClick}
+                      selectedZoneId={selected && selectedType === 'zone' ? selected.id : null}
                     />
 
                     {showVisitMapMascot ? (
@@ -768,15 +1028,64 @@ function VisitViewImpl({
                       seen={seen}
                       onMarkerClick={onVisitMarkerClick}
                     />
+                    {visitPosition.displayPct ? (
+                      <PctPositionLayer
+                        position={visitPosition.displayPct}
+                        haloPx={accuracyHaloDiameterPx(visitPosition.haloPct, visitMapFit.width)}
+                        headingDeg={visitHeadingUpEffective ? null : visitPosition.screenHeadingDeg}
+                        accuracyM={visitPosition.accuracyM}
+                      />
+                    ) : null}
                   </div>
                 </div>
+                <MapScaleCompassOverlay
+                  visible={visitScaleCompassPref.effective}
+                  georef={currentMap?.georef}
+                  contentWidthPx={visitMapFit.width}
+                  scale={mapTransform.s}
+                  orientationDeg={visitMapOrientationDeg}
+                />
                 <VisitMapZoomControls
                   onZoomIn={() => zoomBy(1.2)}
                   onZoomOut={() => zoomBy(0.84)}
                   onReset={fitMapAnimated}
+                  position={visitPosition}
+                  headingUpAllowed={visitHeadingUpAllowed}
+                  headingUpEffective={visitHeadingUpEffective}
+                  headingUpUserEnabled={visitHeadingUpPref.userEnabled}
+                  onHeadingUpToggle={() =>
+                    visitHeadingUpPref.setEnabled(!visitHeadingUpPref.userEnabled)
+                  }
+                  scaleCompassAllowed={visitScaleCompassAllowed}
+                  scaleCompassEffective={visitScaleCompassPref.effective}
+                  onScaleCompassToggle={visitScaleCompassPref.toggle}
                 />
+                {!activeRoute && resumableRouteSlug ? (
+                  <div className="map-route-resume">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-primary map-route-resume__btn"
+                      onClick={resumeRoute}
+                    >
+                      Reprendre le parcours
+                    </button>
+                  </div>
+                ) : null}
+                {activeRoute ? (
+                  <MapRouteBar
+                    route={activeRoute}
+                    steps={routeSteps}
+                    index={routeIndex}
+                    onGoToIndex={goToRouteIndex}
+                    onExit={exitRoute}
+                    canLocate={!!visitPosition.available}
+                    distanceLabel={visitRouteDistanceLabel}
+                    hintLocate="Le lieu est mis en avant sur la carte. Utilisez « Me situer » puis avancez."
+                    hintManual="Le lieu est mis en avant sur la carte. Avance puis Suivant."
+                  />
+                ) : null}
               </div>
-              {!selected ? (
+              {!selected && !activeRoute ? (
                 <p className="visit-map-empty-hint section-sub">{visitEmptySelection}</p>
               ) : null}
             </MapFullscreenShell>
@@ -797,7 +1106,9 @@ function VisitViewImpl({
             savingSeen={savingSeen}
             onToggleSeen={onToggleSeen}
             plants={plants}
-            onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
+            onOpenPlantCatalogPreview={openPlantFromVisit}
+            glossaryItems={glossaryItems}
+            onOpenGlossaryTerm={openGlossaryTermFromVisit}
             mapId={mapId}
             mapZones={mapZones}
             mapMarkers={mapMarkers}

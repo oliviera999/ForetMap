@@ -66,7 +66,8 @@ export function MoodleStatusCard({ status, checking, onCheck, onToggleEnabled, s
 /** Rapport de `POST /check` : fonctions autorisées, cohortes de l'année, erreurs. */
 export function MoodleCheckReport({ report }) {
   if (!report) return null;
-  const missing = report.functions?.filter((f) => !f.allowed) || [];
+  // `allowed === null` = indéterminé (site_info a échoué) : surtout pas « manquante ».
+  const missing = report.functions?.filter((f) => f.allowed === false) || [];
   return (
     <div className="settings-admin-card" data-testid="moodle-check-report">
       <h4 style={{ marginTop: 0 }}>
@@ -79,13 +80,24 @@ export function MoodleCheckReport({ report }) {
           Fonctions Web Services manquantes : {missing.map((f) => f.name).join(', ')}
         </p>
       )}
+      {report.functionsUnknown && (
+        <p className="auth-error">
+          Liste des fonctions indéterminée : <code>core_webservice_get_site_info</code> a échoué.
+        </p>
+      )}
       {(report.errors || []).map((e, i) => (
         <p key={i} className="auth-error">
           [{e.step}] {e.message}
+          {e.hint ? (
+            <>
+              <br />
+              <span style={{ fontWeight: 400 }}>→ {e.hint}</span>
+            </>
+          ) : null}
         </p>
       ))}
       <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
-        {report.functions?.length || 0} fonction(s) contrôlée(s) ·{' '}
+        {report.functionsUnknown ? 0 : report.functions?.length || 0} fonction(s) contrôlée(s) ·{' '}
         {(report.cohorts || []).filter((c) => c.ofYear).length} cohorte(s) de l’année ·{' '}
         {(report.cohorts || []).filter((c) => c.ofYear && !c.policyKey).length} sans politique
       </p>

@@ -11,6 +11,7 @@ export const DEFAULT_PUBLIC_SETTINGS = {
     allow_register: true,
     allow_google_student: true,
     allow_google_teacher: true,
+    allow_google_auto_register: false,
     allow_guest_visit: true,
     default_mode: 'login',
     welcome_message: '',
@@ -25,6 +26,7 @@ export const DEFAULT_PUBLIC_SETTINGS = {
     overlay_zoom_growth_percent: 35,
     zone_label_min_side_factor: 2.5,
     plateau_marker_size_percent: 100,
+    show_tutorial_dots: false,
   },
   modules: {
     tutorials_enabled: true,
@@ -35,10 +37,18 @@ export const DEFAULT_PUBLIC_SETTINGS = {
     forum_enabled: true,
     context_comments_enabled: true,
     reports_enabled: true,
+    presence_enabled: true,
   },
   help: {
     show_context_hints: true,
     pulse_unseen_panels: true,
+  },
+  runtime: {
+    realtime_signals_enabled: true,
+    rest_poll_floor_ms: 90000,
+    rest_poll_background_floor_ms: 120000,
+    sync_state_enabled: true,
+    socket_presence_emit_coalesce_ms: 500,
   },
   visit: {
     mascot: {
@@ -47,6 +57,9 @@ export const DEFAULT_PUBLIC_SETTINGS = {
       allowed_ids: DEFAULT_VISIT_MASCOT_ALLOWED_IDS,
       default_id: '',
     },
+  },
+  realtime: {
+    allow_websocket: false,
   },
 };
 
@@ -59,6 +72,9 @@ export const DEFAULT_PUBLIC_SETTINGS = {
 export function mergePublicSettings(prev, settings) {
   if (!settings || typeof settings !== 'object') return prev;
   const next = { ...prev, ...settings };
+  if (settings.runtime && typeof settings.runtime === 'object') {
+    next.runtime = { ...(prev.runtime || {}), ...settings.runtime };
+  }
   const ui = settings.ui;
   if (ui && typeof ui === 'object') {
     if (ui.modules && typeof ui.modules === 'object') {
@@ -104,6 +120,12 @@ export function mergePublicSettings(prev, settings) {
       ...(prev.content || {}),
       ...(settings.content || {}),
       help,
+    };
+  }
+  if (settings.realtime && typeof settings.realtime === 'object') {
+    next.realtime = {
+      ...(prev.realtime || {}),
+      ...settings.realtime,
     };
   }
   return next;

@@ -81,8 +81,9 @@ d'observation** pour l'écriture naturaliste libre.
   liste des termes, une **pastille d'état** dit où en est l'élève (✓ acquis, ? en attente,
   🔒 bloqué).
 - **Fiche rapide en surimpression.** Partout où un terme du glossaire est cité et
-  cliquable — dans un tutoriel ouvert en lecture, sur une fiche plante ou dans le réseau
-  trophique — le clic ouvre une **petite fiche par-dessus l'écran en cours**. Une
+  cliquable — dans un tutoriel ouvert en lecture, sur une fiche plante, dans le réseau
+  trophique ou **dans les textes de la visite** — le clic ouvre une **petite fiche par-dessus
+  l'écran en cours**. Une
   exception : pendant une question de quiz non encore répondue, les termes ne sont pas
   cliquables (voir plus haut). L'élève lit la définition, puis referme : il retrouve exactement sa page et sa
   position de lecture. Il ne quitte plus son tutoriel pour consulter un mot.
@@ -91,7 +92,9 @@ d'observation** pour l'écriture naturaliste libre.
   voisins** y sont proposés en pastilles : les enchaîner fait défiler les définitions
   dans la fiche, sans jamais la fermer.
 - Un bouton **« Voir la fiche complète »** reste disponible pour basculer, cette fois
-  volontairement, sur l'onglet Glossaire et y explorer le terme en grand.
+  volontairement, sur l'onglet Glossaire et y explorer le terme en grand. En **visite
+  invitée**, où il n'y a pas d'onglet Glossaire, la fiche rapide s'ouvre quand même : elle
+  se lit seule, sans ce bouton.
 - La fiche se ferme par la croix, par le bouton Fermer, par la touche Échap ou par un
   clic à côté.
 - **La fiche rapide passe toujours devant ce qui l'a ouverte.** Ouverte depuis un quiz
@@ -139,9 +142,14 @@ d'observation** pour l'écriture naturaliste libre.
   colonne de gauche, souvent hors de vue, et se limitait aux mots de glossaire.
 - **Arriver depuis une fiche plante isole l'espèce.** Le bouton « Voir le réseau
   trophique » d'une fiche ouvre l'onglet **sur le sous-réseau de cette espèce** (elle et
-  ses voisines directes) ; le bouton « Tout afficher » revient au réseau complet. Si
-  l'espèce n'a encore aucune interaction dans la carte ou la zone choisie, un message le
-  dit au lieu de laisser croire à un bug.
+  ses voisines directes), **filtré sur la carte active** (celle choisie sur le plan de
+  travail) ; le bouton « Tout afficher » revient au réseau de cette carte. On peut encore
+  élargir à « Toutes les cartes » dans le filtre. Si l'espèce n'a encore aucune
+  interaction dans la carte ou la zone choisie, un message le dit au lieu de laisser
+  croire à un bug.
+- **Ouvrir l'onglet Réseau trophique** (menu ou lien) part aussi sur la **carte active**,
+  pas sur le réseau global de toutes les cartes. Le filtre carte compte les espèces des
+  zones, des repères **et** celles rattachées directement à la carte (sans lieu précis).
 - **Le graphe se parcourt aussi au clavier** : la tabulation passe d'une espèce et d'une
   relation à l'autre, `Entrée` isole le réseau d'une espèce (ou sélectionne une relation),
   `Maj+Entrée` ouvre la fiche de l'espèce. Utile en vidéoprojection sans souris, et
@@ -177,17 +185,29 @@ d'observation** pour l'écriture naturaliste libre.
 
 ## Le Carnet d'observation
 
-- **L'élève** tient un journal libre : une observation = un texte, une photo
-  éventuelle, un lieu (zone) ou un groupe. C'est son espace d'écriture naturaliste,
-  indépendant des tâches.
-- **Le professeur** consulte les carnets de ses élèves (panneau dédié dans les
-  statistiques) — la lecture du carnet d'un élève est réservée à son propriétaire et
-  aux professeurs.
-- Chaque action sur le carnet (écrire, supprimer) est faite au nom du compte connecté,
-  vérifié par le serveur : un élève ne peut pas toucher au carnet d'un camarade.
-- L'affichage d'un carnet montre les **500 observations les plus récentes**. C'est une
-  borne de lecture, pas une suppression : rien n'est perdu en base. Un carnet dépasse
-  rarement quelques dizaines d'entrées sur une année scolaire.
+- **Qui peut tenir un carnet** : l’élève, le **visiteur connecté** et le **prof de classe**
+  (chacun le sien). La visite anonyme sans compte n’a pas de carnet.
+- **Articles** : texte enrichi (titres, listes, liens…), une ou plusieurs photos, titre
+  optionnel, et éventuellement une **zone** de la forêt. L’enregistrement est automatique
+  pendant la saisie. On peut épingler un article, rechercher, filtrer (articles / imports)
+  et trier le fil.
+- **Imports** : depuis une fiche espèce, un terme du glossaire ou un tutoriel, après l’avoir
+  marqué comme appris / découvert / lu, on peut l’**ajouter au carnet**. Il apparaît dans le
+  même fil, avec un lien pour le rouvrir.
+- **Encarts** : dans un article, on peut aussi coller un rappel vers une espèce, un terme, un
+  tutoriel ou un module de l’application.
+- **Le professeur** consulte les carnets (panneau dans les statistiques) : aperçu du texte
+  enrichi, ouverture du carnet complet, export en fichier texte. La lecture d’un carnet est
+  réservée à son propriétaire et aux professeurs selon leur périmètre (groupe ou global).
+- Chaque action est faite au nom du compte connecté : on ne peut pas modifier le carnet d’un
+  camarade.
+- L’affichage côté propriétaire charge l’ensemble du carnet ; la vue groupe des professeurs
+  montre les **100 articles les plus récents** du périmètre (borne de lecture, pas une
+  suppression).
+
+> ⚠️ **Point d'attention** — Ces modules sont **activables/désactivables** dans les
+> réglages (quiz, tutoriels, carnet, forum…). Si un onglet manque, vérifier d’abord les
+> réglages des modules.
 
 ## Les Tutoriels
 
@@ -195,10 +215,6 @@ Les fiches pratiques (arrosage, compostage…) sont décrites avec les tâches, 
 y sont liées : voir [Tâches, tutoriels et validation](taches-tutoriels-et-validation.md).
 
 ## ⚠️ Points d'attention
-
-> ⚠️ **Point d'attention** — Ces modules sont **activables/désactivables** dans les
-> réglages (quiz, tutoriels, observations, forum…). Si un onglet manque chez un élève,
-> vérifier d'abord les réglages des modules avant de chercher un problème.
 
 > ⚠️ **Point d'attention** — La qualité du Réseau trophique dépend entièrement des
 > liens saisis par le professeur : un graphe vide ou clairsemé n'est pas une panne,

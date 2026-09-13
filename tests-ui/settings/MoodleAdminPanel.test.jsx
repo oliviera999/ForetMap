@@ -301,7 +301,11 @@ describe('MoodleAdminPanel', () => {
     await screen.findByTestId('moodle-chapter-courses');
     expect(screen.getByText('Cours G&L chapitre 1 [GL1]')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter un chapitre' }));
-    fireEvent.change(screen.getByLabelText('Cours de la ligne 2'), { target: { value: '43' } });
+    // La ligne ajoutée est cherchée en asynchrone : une requête synchrone juste après un clic
+    // suppose que React a déjà repeint, ce qui ne tient plus sur un exécuteur CI chargé.
+    fireEvent.change(await screen.findByLabelText('Cours de la ligne 2'), {
+      target: { value: '43' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer la table' }));
     await waitFor(() =>
       expect(saveSetting).toHaveBeenCalledWith(
@@ -327,6 +331,46 @@ describe('MoodleAdminPanel', () => {
     expect(key).toBe('integration.moodle.policies');
     expect(value[0].pattern).toBe('^{year}#6\\d{2}(-6\\d{2})?$');
     expect(value[0].role).toBe('visiteur');
+  });
+
+  it('contrôle : site_info absente du service → conseil affiché, aucune fonction dite « manquante »', async () => {
+    const check = vi.fn(async () => ({
+      ok: false,
+      checkedAt: '2026-09-09T10:00:00Z',
+      site: null,
+      functions: [
+        {
+          name: 'core_cohort_get_cohorts',
+          lot: 'M1',
+          use: 'lecture des cohortes',
+          allowed: null,
+        },
+      ],
+      functionsUnknown: true,
+      missingFunctions: [],
+      tokenProbe: { wsfunction: 'core_cohort_search_cohorts', ok: true, scope: 'function' },
+      cohorts: [],
+      cohortsOfYearWithoutPolicy: [],
+      chapterCourses: [],
+      errors: [
+        {
+          step: 'site_info',
+          kind: 'api',
+          errorcode: 'accessexception',
+          message: 'Exception du contrôle d’accès',
+          hint: 'L’ajouter dans Moodle → Services externes → Fonctions.',
+        },
+      ],
+    }));
+    mockApi({ [`POST ${BASE}/check`]: check });
+    renderPanel();
+    fireEvent.click(await screen.findByRole('button', { name: 'Contrôler la connexion' }));
+    const report = await screen.findByTestId('moodle-check-report');
+    expect(check).toHaveBeenCalled();
+    expect(report.textContent).toMatch(/Liste des fonctions indéterminée/);
+    expect(report.textContent).toMatch(/Services externes → Fonctions/);
+    // `allowed: null` = indéterminé : ne jamais l'annoncer comme manquante.
+    expect(report.textContent).not.toMatch(/Fonctions Web Services manquantes/);
   });
 
   it('Entrée depuis le cours : affiche le nom du cours et refuse create comme unknown_user', async () => {

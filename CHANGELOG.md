@@ -5,6 +5,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 **ForetMap :** pendant le développement sur `main`, le champ **`version`** de **`package.json`** est incrémenté **à chaque lot livré** (`npm run bump:*`, voir [docs/VERSIONING.md](docs/VERSIONING.md) — *Lots livrés sur `main`*), tandis que **`[Non publié]`** ci-dessous accumule les notes jusqu’à une **release** formelle (section renommée en **`[X.Y.Z] - date`** + tag **`vX.Y.Z`**). Les sections **datées** plus bas conservent l’historique des releases passées.
 
+> **Le cycle 1.x est clos** depuis le 11 septembre 2026 : la section [`[1.152.1]`](#11521---2026-09-11) fige les cinq mois et demi de notes qui s’étaient accumulées sous `[Non publié]` depuis la v1.2.0, et s’ouvre sur un sommaire thématique. `[Non publié]` recommence donc à zéro.
+
 ## [Non publié]
 
 ### Ajouté — le périmètre cartes d'un groupe restreint vraiment l'accès
@@ -27,6 +29,555 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `group_scopes` entre dans la version d'écriture du scope groupes (`database.js`), sans quoi
   un changement de périmètre ne périmerait pas le cache d'accès.
 
+### Ajouté — présence « en ligne » staff (ForetMap + GL)
+
+- Pastilles En ligne / Vu récemment / Hors ligne sur le classement prof et les stats
+  MJ/admin GL (staff uniquement ; pas d’exposition élève↔élève).
+- Cœur partagé `lib/shared/presenceCore.js` + refcount Socket.IO dans `lib/realtime.js`
+  (sans heartbeat HTTP périodique — adapté o2switch / 1 instance).
+- Réglages : `ui.modules.presence_enabled` / `modules.presence_enabled` ; knobs charge
+  `runtime.*` (filet REST, coupe-circuit emits Socket, coalescence présence).
+- Forum / commentaires GL refusés en API (503) quand le module est coupé (aligné FM).
+
+### Ajouté — carnet personnel pour admin et n3boss
+
+- Onglet « Carnet » dans la barre haute (pôle Suivi) : tout compte ForetMap connecté
+  peut tenir son carnet personnel (élèves / visiteurs / personnel / prof de classe
+  l’avaient déjà ; admin et n3boss manquaient l’entrée UI).
+
+### Ajouté — espèces rattachées à une carte (sans lieu précis)
+
+- Jonction `map_species` : une fiche peut être présente sur une carte sans zone ni
+  repère (oiseaux, etc.). Les liens zones / repères restent inchangés.
+- Catalogue biodiversité élève : filtre « Présente sur cette carte » par défaut
+  (union lieux + rattachement direct).
+- Réseau trophique `?mapId=` : inventaire élargi (zones + repères + `map_species`).
+- Formulaire fiche : cases « Présente sur ces cartes » (prof).
+
+### Corrigé — barre de parcours Plan : styles enfants orphelins
+
+- `MapRouteBar` n’appliquait le dual-class `plan-*` qu’à la racine ; les enfants
+  (`__head`, pastille d’étape…) restaient en `map-route-*` seuls, donc sans CSS sur
+  Plan Lyautey (qui n’importe pas `index.css`). Dual-classing aligné sur `MapRoutePicker`.
+
+### Corrigé — « Masquer sur Carte » appliqué au sync élève / visiteur
+
+- `useAppDataSync` chargeait `/api/zones` et `/api/map/markers` sans `surface=map` : un
+  lieu coché « masqué sur Carte » restait visible pour les non-professeurs. Filtre ajouté
+  hors chrome prof (les gestionnaires gardent la liste complète pour éditer).
+
+### Corrigé — doc Visite : GPS / position vs guidage mascotte
+
+- Le point d’attention niait encore tout GPS en Visite alors que « Me situer »,
+  « Orienter » et l’échelle y sont branchés. Clarification : la mascotte reste au clic ;
+  la position réelle est disponible si le plan est calé.
+
+### Ajouté — distance à vol d’oiseau sur parcours Carte / Visite
+
+- Comme sur le Plan : distance affichée dans la barre d’étape quand la position GPS est
+  active. Libellés « Me suivre » / « Me situer » adaptés par surface.
+
+### Corrigé — schéma : colonne `discovery_tour_seen_json`
+
+- Présente en migration 233 mais absente de `sql/schema_foretmap.sql` (install schéma seul).
+
+### Corrigé — échelle et rose des vents visibles sur Plan Lyautey
+
+- Les styles de l’overlay étaient uniquement dans `index.css` ForetMap ; le Plan ne charge
+  jamais cette feuille. Extraction vers `shared/styles/map-scale-compass.css`, importée
+  aussi par Plan (charte bleue + décalage au-dessus du logo école).
+
+### Corrigé — alignement de zones et accroche voisins réellement branchés
+
+- La logique (aperçu multi-zones, accroche sommet/côté, côté partagé au tracé) existait
+  déjà, mais la barre d’outils et les hooks de dessin/retouche **ignoraient** les props :
+  pas de bouton « Aligner » / « Voisins », donc pas d’entrée utilisateur. Branchement UI +
+  hooks, tests unitaires sur `zoneNeighborSnap`.
+
+### Ajouté — glisser-déposer pour l’ordre des catégories de lieux
+
+- Dans **Réglages → Catégories de lieux**, on peut réordonner par **glisser-déposer** en
+  plus des boutons ↑ ↓ (même API densifiée `PUT /api/map-categories/reorder`).
+
+### Modifié — tutoriels multi-cartes sans bascule
+
+- Un tutoriel peut être lié à des zones/repères sur **plusieurs cartes** en même temps.
+  Lier sur N3 n’enlève plus les liens sur la forêt (et inversement). L’éditeur conserve
+  les lieux cochés quand on change le filtre de carte.
+
+### Corrigé — réseau trophique : ouverture sur la carte active
+
+- Un lien « Voir le réseau trophique » (ou l’ouverture de l’onglet) affiche le graphe
+  **filtré sur la carte active**, et non plus le réseau global « Toutes les cartes ».
+  Le filtre reste modifiable à la main.
+
+### Corrigé — carte : estompage des zones voisines à l’ouverture d’une fiche
+
+- Les styles CSS de mise en avant / estompage (carte et Visite) avaient été perdus lors
+  d’un commit ultérieur : les classes étaient bien posées, mais sans effet visible en
+  production. Restauration des règles `.map-zone-hit--selected` / `--recessed` et
+  équivalents Visite.
+
+### Corrigé — tutoriels : texte masqué en aperçu et liste de liaison incomplète
+
+- **Aperçu** : les fiches qui cachent des blocs pour une animation au défilement
+  (classe `.reveal`, ex. « Jardin N3 » / fiches punk) affichaient une partie du texte
+  invisible dans l’application (scripts désactivés), alors que le téléchargement HTML
+  montrait tout. L’aperçu force désormais ces blocs à rester lisibles.
+- **Liaison zone / repère** : la liste proposait seulement les tutoriels sans lieu ou déjà
+  sur la **même** carte — d’où l’absence de la plupart des fiches quand on travaillait sur
+  l’autre plan. Tous les tutoriels actifs non déjà liés au lieu apparaissent désormais
+  (et peuvent rester liés sur plusieurs cartes — voir « tutoriels multi-cartes » ci-dessus).
+
+### Ajouté — échelle et rose des vents sur plans calés GPS
+
+- Sur la **carte de travail**, la **Visite** et le **Plan Lyautey**, un plan calé GPS
+  affiche une **barre d'échelle** et une **rose des vents** (nord). Affichage dès qu'un
+  calage valide existe — sans exiger le suivi GPS. Case admin dans le calage GPS
+  (`scale_compass_enabled`, défaut activé) et bascule utilisateur dans la barre d'outils
+  (préférence appareil, affichée par défaut).
+
+### Modifié — Plan Lyautey : charte bleue du lycée
+
+- **Favicon et PWA** propres au produit (/plan/favicon.*, thème #183058) : plus de partage
+  avec l’arbre n³ de ForetMap. Régénération via pm run icons:plan.
+- **Interface** : palette marine et variantes (fond, barre haute, puces, boutons) alignée sur
+  le logo officiel ; logo Lycée Lyautey discret en bas à gauche de la carte.
+
+### Ajouté — parcours sur Visite et Carte
+
+- Les parcours de carte (_Réglages → Parcours_) s'affichent aussi en **Visite** et sur la
+  **carte de travail** (puce « Parcours », barre d'étape), pas seulement sur le Plan Lyautey.
+- Les cases « proposé sur » Carte / Visite sont à nouveau cochables ; `GET /api/visit/content`
+  embarque les parcours `visit` ; `GET /api/map-routes?surface=map|visit` n'est plus bloqué par
+  le code d'accès du plan.
+
+### Modifié — sélection d'une zone sur la carte
+
+- À l'ouverture d'une fiche **zone** (carte de travail, Visite, Plan Lyautey), la zone
+  choisie reste **mise en avant** (remplissage affirmé) et les autres zones sont
+  **légèrement estompées**. Suppression du gros contour noir de focus navigateur autour
+  de la forme ; le focus clavier garde un trait discret sur le polygone.
+
+### Corrigé — accessibilité : `onError`/`onLoad` ne comptent plus comme des interactions
+
+- **Règles `no-noninteractive-element-interactions` et `no-static-element-interactions`** :
+  l'option `handlers` est désormais explicite et vaut le défaut du greffon **moins le groupe
+  `image`** (`onLoad`, `onError`). Ce ne sont pas des interactions : ce sont des événements du
+  chargement d'un média, que l'utilisateur ne déclenche pas. L'intention des deux règles est
+  intacte — clic, touche, focus ou geste souris sur un élément non interactif restent signalés.
+- **Déclencheur** : le repli légitime d'une vignette photo vers son emoji quand l'image est
+  injoignable (`<img onError>`, `VisitBiodiversityPanel`) faisait échouer le cliquet a11y, donc
+  le job `test` de toutes les PR. Un cas que ni le clavier ni un lecteur d'écran ne voient.
+- **L'inventaire rétrécit de 9 entrées** (`tests/fixtures/a11y-static-baseline.json`) : huit
+  fichiers sortent complètement, un passe de 2 à 1. Toutes étaient du même bruit. Ce qui reste
+  inventorié est de la dette d'accessibilité réelle. ESLint passe de 189 à 179 avertissements.
+
+### Corrigé — deux tests purs alignés sur le profil « Prof de classe »
+
+- **`RESERVED_ROLE_SLUGS`** compte désormais **sept** slugs système : `prof_classe` en fait
+  partie, et reste donc interdit à un rôle personnalisé. Le test décrivait encore six slugs.
+- **`exposeAuth`** expose `groupIds`, clé toujours présente et laissée à `undefined` tant que
+  la session ne porte aucun périmètre de groupes — `JSON.stringify` la retire, l'API publique
+  est inchangée. L'attente est alignée et un cas ajouté vérifie l'écho d'un périmètre réel :
+  le champ est décrit, pas masqué.
+- Aucun des deux ne signalait un défaut du code livré. Ils faisaient tomber le job `test` de
+  `main` depuis `feat(rbac): profil Prof de classe`.
+
+### Corrigé — la pose du tag de release échouait sur une coupure UTF-8
+
+- **`release-tag.yml`** : `iconv -c` **omet** le caractère invalide mais **sort en 1** quand la
+  troncature des notes tombe au milieu d'une séquence UTF-8 (« incomplete character or shift
+  sequence at end of buffer »). L'étape tournant en `bash -e`, elle tombait avec lui — alors
+  que la sortie déjà convertie était exactement le préfixe propre recherché. Un `|| true`
+  conserve ce préfixe.
+- **Conséquence mesurée** : les deux pushes qui ont bumpé en `1.152.0` puis `1.152.1` ont
+  laissé l'étape rouge. **Aucun tag `v1.152.x` n'existe**, et aucune release non plus, alors
+  que le dépôt compte 213 tags. Le dernier posé est `v1.151.9`.
+- Le « `printf: write error: Broken pipe` » du même journal est le SIGPIPE que `head` envoie
+  en fermant le tuyau : sans `pipefail` il ne décide de rien, mais il accompagne le symptôme.
+
+### Documentation — le cycle 1.x est clos dans le journal des versions
+
+- **`[Non publié]` est figé en [`[1.152.1] - 2026-09-11`](#11521---2026-09-11)** : 537 entrées
+  accumulées depuis la v1.2.0 du 20 mars, soit 2 705 commits et 209 incréments de version sans
+  qu'une seule release ait été prononcée en cinq mois et demi.
+- **Un sommaire thématique** ouvre la section : socle technique, ForetMap, Gnomes & Licornes,
+  Plan, couche pédagogique partagée, comptes et système d'information, plus l'infrastructure en
+  transverse. Les entrées ne sont **pas** déplacées : 112 d'entre elles portent un titre nu
+  (`Modifié` ×43, `Ajouté` ×35, `Corrigé` ×26…) dont le sens vient uniquement de leur position.
+  Les regrouper par thème les rendrait illisibles.
+- **Section du hérisson restaurée** : la fusion de la PR #447 avait gardé son titre et perdu son
+  corps, la remplaçant par les puces de « Prof de classe ». Numéro de migration corrigé au
+  passage — `231_rbac_prof_classe_media.sql`, renuméroté depuis, était encore cité en `230`.
+
+---
+
+## [1.152.1] - 2026-09-11
+
+> **Clôture du cycle 1.x.** Cette section fige les **537 entrées** accumulées sous
+> `[Non publié]` entre le **20 mars 2026** (v1.2.0, dernière section datée) et le **11 septembre
+> 2026** : 2 705 commits, 209 incréments de version, et aucune release prononcée pendant
+> cinq mois et demi.
+>
+> Les entrées gardent leur **ordre chronologique inverse**. C'est délibéré : 112 d'entre elles
+> portent un titre nu — `Modifié` (43), `Ajouté` (35), `Corrigé` (26), `Documentation`,
+> `Supprimé`, `Retiré` — dont le sens vient **uniquement** de leur position. Les regrouper par
+> thème les rendrait illisibles et effacerait le seul ordre qu'un journal des versions
+> garantisse. Le sommaire ci-dessous ajoute donc une entrée thématique **sans déplacer une
+> ligne**.
+>
+> Analyse détaillée du cycle, et arbitrage sur une éventuelle V2 :
+> [`docs/AUDIT_EVOLUTION_V1_V2_2026-09.md`](docs/AUDIT_EVOLUTION_V1_V2_2026-09.md).
+
+### Sommaire thématique du cycle 1.x
+
+Six chantiers structurent ces cinq mois. Chacun renvoie aux entrées détaillées plus bas, à
+lire de la plus récente à la plus ancienne.
+
+**1. Socle technique.** Le prototype de mars — SQLite, un fichier HTML, un PIN professeur
+vérifié côté client — n'a survécu à aucun de ces trois choix. MySQL remplace SQLite en 48 h
+(contrainte d'hébergement o2switch / Passenger), React + Vite remplacent la page unique dès
+le 21 mars (v1.4.0, Socket.IO le même jour), et le PIN cède la place à des rôles et
+permissions relus en base à chaque requête. L'élévation par PIN est aujourd'hui **supprimée**,
+trois endpoints conservés en `410 Gone`.
+
+**2. ForetMap.** Le produit d'origine : carte des zones et repères, plantes et espèces,
+tâches et validations, statistiques, forum, médiathèque, mode visite avec mascotte et
+parcours. C'est la part de l'application que le lycée utilise sur le terrain.
+
+**3. Gnomes & Licornes.** Ajouté le 19 mai comme second produit du monorepo (routage par
+host, entrée Vite `gl.html`, API `/api/gl/*`, isolement par claim JWT `product`), G&L est
+devenu **la moitié lourde du dépôt** : 327 des 628 endpoints (52 %) et 338 des 932 fichiers
+`src/`. Chapitres, carte du royaume, lore et feuillets, marché, sorts, QCM, journal,
+composition automatique d'équipes. C'est la rupture la plus importante du cycle, et la moins
+visible dans le numéro de version.
+
+**4. Plan.** Troisième produit, plus tardif et plus discret, servi par le même registre
+central `lib/products.js` (`foret` / `gl` / `plan`) : entrée HTML, favicon et manifeste PWA
+résolus par host.
+
+**5. Couche pédagogique partagée.** Gating « lu / appris » conditionné par QCM, liens
+ressource ↔ question, verrous de re-tentative réglables, empreinte HMAC des réponses,
+réseau trophique, glossaire, tutoriels. ForetMap et G&L cessent ici d'être deux applications
+voisines : elles partagent un cœur commun (`lib/shared/resourceQuestionGatingCore.js`).
+
+**6. Comptes et système d'information.** Identités unifiées ForetMap × G&L (`users` comme
+source unique des secrets, v1.147.0), puis le raccordement à l'annuaire de l'établissement :
+22 modules sous `lib/moodle/`, miroirs de groupes et d'équipes, entrée depuis le cours par
+LTI 1.3. L'application cesse d'être autonome.
+
+**Infrastructure, en transverse.** 222 migrations idempotentes, 488 fichiers de test
+(backend, contenu pédagogique, UI, e2e), bump de version automatique à la fusion, tag et
+release automatiques, cliquet d'accessibilité, audits datés indexés dans
+[`docs/audits/README.md`](docs/audits/README.md).
+
+### Corrigé — le hérisson manquant du réseau GL, et les tests de contenu séparés du code
+
+- **Migration `230`** : `Hérisson commun` (SP0074) est **créé** au lieu d’être supposé présent.
+  Il était cité par les migrations `225` et `228` mais semé par aucune d’elles — il n’existait
+  qu’en production. Ses deux liaisons trophiques (`→ Lombric commun`, `→ Escargot des bois`)
+  sont rejouées dans la foulée. Idempotente, sans effet en production.
+- **Cause** : les semis d’interactions résolvent les espèces par `JOIN ... ON nom_commun = ?`.
+  Toute ligne dont un nom manque à cet instant est **silencieusement** abandonnée — ni erreur,
+  ni avertissement. Même trou que la migration `229` avait rebouché pour la jacinthe et le muguet.
+- **Test durci** : `réseau GL : merle, mare et mycorhizes` n’ignore plus une paire dont l’espèce
+  est absente (`continue` retiré). C’est ce raccourci qui rendait la perte invisible sur base
+  neuve et ne la révélait en CI que selon l’ordre des fichiers de test.
+- **Tests de contenu isolés** : les huit fichiers `pedago-*.test.js` passent sous
+  **`tests/content/`**, hors du glob `tests/*.test.js`, avec une commande (`npm run test:content`)
+  et un **job CI dédié `contenu`**. Une dérive du corpus pédagogique tombe désormais sous son
+  propre nom au lieu de bloquer toutes les PR — quatre PR consécutives, dont deux purement
+  documentaires, avaient échoué sur cette seule liaison manquante le 09/09.
+- `npm run test:local` continue de parcourir les deux dossiers ; `npm run test:all` enchaîne
+  code, contenu puis UI.
+### Corrigé — import comptes : garde admin et cellules vides
+
+- Un n3boss ne peut plus, via l’import, changer le mot de passe ou le profil d’un
+  administrateur existant (même prénom/nom) ; le dernier administrateur ne peut
+  pas être rétrogradé — aligné sur l’attribution de profil.
+- À la mise à jour, une cellule vide (e-mail, pseudo, description) laisse la
+  valeur actuelle ; seul un champ renseigné est écrit.
+
+### Corrigé — sync Moodle : comptes déjà liés hors « laissés de côté »
+
+- Un élève déjà reconnu n’est plus retiré de sa classe ni désactivé si Moodle
+  signale un e-mail en double, hors domaine ou manquant : il reste dans le
+  périmètre, le problème est seulement signalé.
+### Ajouté — Carnet ForetMap à parité « Mon journal » GL
+
+- Articles markdown (multi-photos, auto-save, épinglage, encarts), imports après appris
+  (espèce / glossaire / tuto), recherche/filtre/tri.
+- Accès écriture : élève, visiteur connecté, prof de classe (carnet personnel).
+- API `/api/user-journal`, migration `237_user_journal.sql`, lecture prof enrichie + export `.md`.
+
+### Modifié — Visite : couleurs de zone + statut discret (A+E)
+
+- Les zones de visite affichent **leur couleur** (comme sur la carte) ; « vu » =
+  atténuation + contour plus fin, « non vu » = contour un peu plus marqué.
+- Au survol / focus : contour renforcé et libellé « À découvrir » / « Vu ».
+- Pastilles ambre/vertes retirées (zones et repères) — plan moins chargé.
+
+### Ajouté — audience des lieux par rôles (V1)
+
+- Zones et repères : réglage **« Qui peut voir ce lieu »** (rôles ForetMap) — hors audience,
+  le lieu est **absent** (carte, visite, plan), pas grisé.
+- Champ **complément réservé** lisible seulement par certains rôles (gestionnaires toujours).
+- Visite anonyme / Plan : un lieu restreint n'apparaît que si **Visiteur** est dans
+  l'audience. Suite documentée : groupes, multi-blocs, héritage par catégorie.
+
+### Ajouté — profil système « Personnel »
+
+- Nouveau profil **Personnel** (slug `personnel`), calqué sur **Visiteur** : Visite et
+  Biodiversité seulement, aucune permission d’action, même chrome de navigation.
+- Création unitaire, import CSV/tableur, rôle par défaut de groupe, slugs réservés.
+- Migration `235_personnel_role.sql`.
+
+### Ajouté — ordre des catégories de lieux dans les paramètres
+
+- Dans Réglages → Catégories de lieux : boutons ↑ ↓ pour réordonner les catégories
+  (filtres, pastilles, priorité au dézoom).
+- API `PUT /api/map-categories/reorder` (`{ category_ids }`).
+
+### Ajouté — pastilles tutoriel sur la carte (réglage)
+
+- Nouveau réglage public `ui.map.show_tutorial_dots` (défaut **off**) : affiche ou
+  masque le point violet signalant qu’une zone ou un repère est lié à un tutoriel.
+- Case à cocher dans Réglages → Cartes & plans.
+
+### Modifié — création unitaire : tous les profils
+
+- Le sélecteur de création de compte propose **visiteur**, paliers n3beur, **prof de
+  classe**, n3boss et admin (selon droits) — aligné sur l’import.
+- L’API accepte aussi `eleve_avance` / `eleve_chevronne` ; le profil demandé est
+  réappliqué après rattachement à un groupe.
+
+### Corrigé — init schéma / semis admin de test
+
+- Migrations : errno **1022** (contrainte déjà présente) ignoré comme les autres
+  errnos d’idempotence.
+- `initSchema` refuse MySQL 5.7 / moteurs trop anciens (message vers Docker MariaDB).
+- Semis `TEACHER_ADMIN_*` factorisé (`lib/teacherAdminSeed.js`) et appliqué dans le
+  harnais de tests après chaque `initSchema` — les suites API ne dépendent plus d’un
+  compte déjà présent dans un dump local.
+- Import CSV : libellé colonne **Groupes** sans « ; » (sinon le délimiteur CSV
+  cassait les colonnes Pseudo/Email dans les fichiers collés à la main).
+- Rattachement à un groupe sans accès n3beur : ne rétrograde plus un profil
+  élève (novice/avancé/…) vers **visiteur**.
+
+### Modifié — Prof de classe : interface type visiteur + suivi de classe
+
+- Navigation basse comme un **visiteur connecté** (Visite, Biodiversité, Quiz,
+  Glossaire, Réseau, Tutos) : accusés d’apprentissage utilisables.
+- Extras tuteur : onglets **Stats** (élèves du périmètre) et **Classe** (liste /
+  groupes) — réutilisation de Stats et Profils existants.
+- Plus de barre haute n3boss pour ce profil (`teacher.access` conservé côté API).
+
+### Modifié — charge serveur (commentaires, rate limit, drapeau WS)
+
+- Commentaires contextuels : plus de GET d’aperçu tant que la section est fermée
+  (listes tâches / tutoriels / etc.) — charge à l’ouverture uniquement.
+- Rate limit API général : clé **utilisateur JWT** si Bearer valide, sinon IP
+  (classe derrière un NAT = buckets séparés).
+- Drapeau **`FORETMAP_SOCKETIO_ALLOW_WEBSOCKET`** (défaut off) exposé aux clients
+  via `settings.realtime` / config GL ; prod o2switch reste en long-polling.
+- Doc : une instance Passenger recommandée ; projection `/api/plants` reportée
+  jusqu’à ~150–200 fiches (D4-A).
+
+### Modifié — Google : création de compte paramétrable (défaut non)
+
+- Réglage public `ui.auth.allow_google_auto_register` (**défaut `false`**) : à la
+  première connexion Google, un compte élève n’est créé que si l’admin l’autorise.
+- Sinon : redirection `oauth_account_not_found` (aucun compte créé) ; les comptes
+  déjà présents restent connectables via Google.
+
+### Ajouté — orientation carte selon la boussole (heading-up)
+
+- Bouton **Orienter** (Plan, carte ForetMap, Visite) : la carte tourne pour aligner le
+  regard vers le haut de l'écran ; bascule mémorisée sur l'appareil.
+- Autorisation en deux niveaux : réglage de surface (`ui.plan|map|visit.heading_up_enabled`)
+  **et** case par carte dans le calage GPS (`maps.heading_up_enabled`).
+- Noyau partagé : rotation intérieure + lissage du cap ; pan/zoom inchangés.
+
+### Modifié — import comptes : mise à jour et MDP faibles paramétrables
+
+- Compte déjà présent (même prénom + nom + type) : **mis à jour** par défaut
+  (réglage `students.import.existing_strategy` : `update` ou `skip`).
+- Mot de passe à la mise à jour : renseigné → remplacé ; vide → inchangé.
+- Option admin `students.import.allow_weak_passwords` : importer sans le plancher
+  de longueur habituel (élèves et enseignants).
+- Rapport : total `updated` + `options` ; section Réglages « Imports de comptes ».
+
+### Modifié — Plan Lyautey : même favicon que ForetMap
+
+- L’onglet et `/favicon.ico` sur `planlyautey.*` réutilisent l’icône ForetMap
+  (arbre n³) ; plus de liens distincts sous `/plan/favicon.*` dans `plan.html`.
+
+### Modifié — Profils & utilisateurs : sous-onglets et listes filtrées
+
+- L’onglet **Profils & utilisateurs** est découpé en sous-onglets **Profils**,
+  **Comptes**, **Groupes**, **Imports & exports** (sous-onglet mémorisé).
+- Listes de comptes : recherche, filtres (profil, type, groupe) et pagination
+  client (25 / 50 / 100).
+- Groupes : recherche, filtre par type, masquage des inactifs, arborescence
+  repliable, rattachement **en lot** des visiteurs en attente ; éditeur de
+  membres filtrable et paginé.
+
+### Modifié — Visite : pastilles vu / non-vu (plus de zones toutes rouges)
+
+- Sur le plan de visite, les zones gardent un remplissage vert calme ; le statut
+  « pas encore vu » / « vu » se lit via une **pastille** (ambre qui pulse, ou verte),
+  même langage que les repères. Plus de mer de polygones rouges au démarrage.
+
+### Modifié — pseudos : points, accents et signes autorisés
+
+- Pseudo utilisateur : lettres (y compris accentuées), chiffres, `.` `_` `-` `+`
+  (3–50 caractères) ; inscription, profil, import et admin. Les espaces et `@`
+  restent refusés.
+- Sync Moodle : le username (ex. `prenom.nom`) conserve ses points au lieu d’être
+  transformé en tirets.
+
+### Modifié — Accueil OLU : une fois par compte
+
+- L'accueil d'OLU (et les parcours de visite guidée d'onglets) est mémorisé **sur le
+  compte**, pas seulement dans le navigateur : se reconnecter sur un autre appareil ne
+  rejoue plus la présentation. Route `PUT /api/auth/discovery-tour-seen` + champ
+  `discoveryTourSeen` sur `GET /api/auth/me` / login.
+
+### Modifié — import : lignes en double fusionnées
+
+- Import **comptes** et **groupes** : une même personne / un même groupe répété dans
+  le fichier est fusionné (groupes cumulés pour les comptes ; dernière ligne pour
+  pseudo, e-mail, description, type…). Message d'info dans le rapport.
+- Groupes déjà présents : **mise à jour** des infos du fichier (plus seulement « déjà là »).
+
+### Modifié — Plan Lyautey : parcours, admin et noyau partagé
+
+- **Parcours** : barre d’étape compacte (carte encore utilisable), recentrage au-dessus de
+  la barre, reprise après Quitter, aide et doc mises à jour.
+- **Noyau partagé** : `BottomSheet` accepte `blockBackground=false` ; `focusOnPct` /
+  `centerPctMapTransformOnPct` acceptent des `insets`.
+- **Réglages → Plan** : panneau regroupé + `POST /api/settings/admin/plan-access-code`
+  (code clair → bcrypt serveur).
+- Compteurs `search` / `locate` émis ; checklist « mettre le Plan en service » dans la
+  référence fonctionnelle.
+
+### Modifié — sync Moodle : comptes à problème laissés de côté
+
+- Sans e-mail, e-mail hors domaine, ou e-mail en double côté Moodle : le membre est
+  **écarté** et listé dans le rapport ; les autres sont importés / rapprochés normalement
+  (plus d’échec global de l’exécution).
+- Un membre **déjà lié** sans e-mail continue d’être synchronisé (appartenances).
+
+### Modifié — sync Moodle : cohortes n3 sans préfixe d'année
+
+- Politique **n3** : toute cohorte dont le code contient « n3 » (ex. `26#n3`, `n3`,
+  `club-n3`) est synchronisable, **sans** exiger le préfixe `26#`.
+- Liste / simulation / application : les cohortes hors préfixe d'année mais retenues
+  par une politique apparaissent aussi.
+- Migration `232_moodle_n3_cohort_pattern.sql` + bascule automatique de l'ancien motif.
+
+### Modifié — import comptes + import groupes
+
+- Colonne **Groupes** à l’import utilisateurs : un ou plusieurs rattachements
+  (`|` / `;`, chemins `Parent>Enfant`) ; création auto des groupes absents.
+- **Import dédié** groupes / sous-groupes (modèle CSV/XLSX téléchargeable,
+  panneau Profils) : type, parent, option n3beur.
+
+### Modifié — import comptes : tous les profils ForetMap
+
+- Colonne **Rôle** : `visiteur`, `eleve_novice` / `eleve_avance` / `eleve_chevronne`,
+  `prof_classe`, `prof` (n3boss), `admin` (alias historiques `eleve`, `n3beur`, etc.).
+- Modèle CSV/XLSX : **7 lignes d’exemple** (un cas par profil), e-mails hors domaine
+  établissement inclus ; l’import **n’applique pas** les restrictions de domaines
+  Google / Moodle.
+- Garde anti-escalade alignée sur la création manuelle ; mot de passe enseignant ≥ 12.
+
+### Ajouté — profil « Prof de classe » et correctifs RBAC n3boss
+
+- **Profil système `prof_classe`** : tuteur limité à ses groupes, sans tâches ni jardin ;
+  création / import de comptes **paramétrables** (absents par défaut).
+- **Semis RBAC** : les révocations sur profils système survivent aux redémarrages.
+- **Session** : `/api/auth/me` réémet le jeton si les permissions changent ; le front
+  fusionne `d.auth` (y compris pour les enseignants).
+- **`media.manage`** pour écritures médiathèque ; verrouillage forum via
+  `forum.group.moderate` + périmètre.
+- **Portée groupes** appliquée aux mutations ; journal d’audit sur les suppressions
+  de contenus ; garde anti-escalade sur `PUT /profiles/:id/permissions`.
+- Doc de référence, `docs/API.md`, migration `231_rbac_prof_classe_media.sql`, tests
+  de gel de matrice.
+
+### Corrigé — composition d’équipes GL en course avec le démarrage
+
+- **Partie lancée** : appliquer une composition pendant qu’un autre MJ démarre
+  la partie (ou qu’un second apply tourne) ne réécrit plus les équipes d’une
+  partie déjà en cours. La ligne de la partie est verrouillée le temps de
+  l’écriture ; si elle n’est plus en préparation, le serveur refuse (409).
+### Corrigé — contrôle Moodle : le refus global nomme ses causes
+
+- **`accessexception` sur toutes les fonctions** (sonde de repli comprise) : le conseil affiché
+  part désormais de ce que la réponse prouve — Moodle **reconnaît** le jeton (sinon
+  `invalidtoken`) et le point d'entrée REST répond — puis liste les causes par fréquence
+  (capacité `webservice/rest:use`, « Utilisateurs autorisés », restriction d'IP, jeton expiré,
+  jeton créé pour un autre service) et donne le geste qui tranche : passer Moodle en mode
+  débogage DÉVELOPPEUR et relancer, le `debuginfo` renvoyé nommant la cause exacte.
+- **`sitepolicynotagreed`** : nouveau conseil — le compte de service n'a pas accepté la politique
+  du site, ce qui fait refuser **toutes** ses fonctions Web Services même correctement
+  autorisées ; le geste est de l'accepter en son nom depuis les accords des utilisateurs.
+- **Sonde de repli, formulation juste** : quand la sonde est *admise* par le service puis refusée
+  pour une autre raison (politique du site, capacité manquante), le conseil ne prétend plus
+  qu'elle « a répondu » — il conclut quand même que `core_webservice_get_site_info` manque au
+  service, et renvoie vers l'autre erreur. L'appel n'est plus rejoué à l'étape des cohortes : le
+  refus déjà constaté y est reporté tel quel.
+- **Conseils repliés à 96 colonnes** dans `npm run moodle:check` : un paragraphe lisible plutôt
+  qu'une ligne unique qui déborde du terminal.
+### Documentation — audit du rôle professeur (n3boss)
+
+- **`docs/AUDIT_ROLE_PROFESSEUR_2026-09.md`** : audit complet du rôle n3boss — définition
+  RBAC, gardes serveur, surface d'interface, traçabilité, documentation et tests. Aucun
+  changement de comportement : constat daté, avec neuf points classés P1 → P4 et un plan
+  d'action en cinq lots. Deux constats P1 : les révocations de permission sur les profils
+  système sont annulées au redémarrage (semis `INSERT IGNORE`), et l'interface lit les
+  permissions dans le JWT sans jamais les rafraîchir (le serveur, lui, applique la bonne
+  règle). Indexé dans `docs/audits/README.md`.
+### Corrigé — reprise GL après pause : plus de téléport à la case départ
+
+- **`POST /api/gl/games/:id/start`** : en parcours numéroté, les équipes n’étaient
+  replacées sur la case départ qu’au premier démarrage (brouillon). Une reprise après
+  **pause** — le bouton « Démarrer » du bandeau MJ — conservait le statut `live` mais
+  **téléportait toutes les mascottes** au départ et effaçait la progression du plateau.
+  Les transitions hors cycle (démarrer une partie déjà en cours, mettre en pause un
+  brouillon…) répondent désormais **409**.
+### Ajouté — visite : biodiversité des lieux et mots du glossaire
+
+- **La biodiversité d'un lieu est visible d'emblée** dans sa fiche de visite : une vignette par
+  espèce (photo du catalogue ou pictogramme, nom courant, nom scientifique, une ligne sur son
+  rôle), qui ouvre la **fiche complète de l'espèce** — la même modale que la carte, le glossaire
+  ou le réseau trophique. L'ancien volet replié n'affichait qu'une liste de noms. Les espèces
+  rattachées par une **mission** restent regroupées sous « Également dans les missions », et les
+  lieux d'**infrastructure** n'affichent toujours pas de biodiversité.
+- **Les mots du glossaire sont hyperliés dans les textes de la visite** (description, détails,
+  blocs éditoriaux) comme ailleurs dans l'application : le clic ouvre la **fiche rapide** du terme
+  par-dessus le plan, sans quitter la visite.
+- **La visite invitée en bénéficie aussi**, alors qu'elle n'avait jusqu'ici **aucune**
+  biodiversité : le volet se nourrissait de `GET /api/zones` et `GET /api/map/markers`, deux
+  routes authentifiées. `GET /api/visit/content` publie désormais, par zone et par repère,
+  **`species`** (id, nom, emoji), **`species_ids`** et **`living_beings_list`**, plus
+  **`is_infrastructure`** sur les zones. Le catalogue biodiversité (route publique
+  `GET /api/plants`) n'est chargé **qu'à l'ouverture d'un lieu porteur d'espèces, une seule fois
+  par session** ; fiche espèce et fiche de glossaire sont montées à la demande par la visite
+  elle-même quand l'application ne les porte pas.
+- **Fiche espèce sans session** : le fil de commentaires de fiche (route authentifiée) n'est plus
+  rendu pour un visiteur anonyme — il n'aurait affiché qu'une erreur. Les gestes liés au compte
+  (« je l'ai observé », « j'ai appris ce mot ») restaient déjà masqués.
+- **Fiche espèce — « [object Object] pH optimal »** : les jauges pH et température recevaient leur
+  icône sous forme de nœud React, insérée dans un gabarit de **chaîne**. Le défaut était visible
+  sur **toutes** les fiches espèces, catalogue compris ; il l'aurait été d'autant plus depuis la
+  visite, qui y mène maintenant.
+- **Vignette d'espèce, photo injoignable** : repli sur l'emoji plutôt qu'un cadre vide. Beaucoup de
+  photos du catalogue pointent vers Wikimedia Commons, qu'une visite sur le terrain n'atteint pas
+  toujours.
+
 ### Corrigé — CI après les lots pédago et cartes
 
 - **Accessibilité** : les sous-onglets Catalogue / Réseau de Biodiversité GL sont un
@@ -37,6 +588,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Catalogue relu** : jacinthe des bois et muguet existent dans le réseau GL
   (migration `229`) ; les tests de liens ne regardent plus les QCM d’export ni tout
   l’historique, seulement les codes `QF91/92` et `GQCM91/92`.
+
+### Corrigé — contrôle Moodle : `accessexception` enfin lisible
+
+- **`npm run moodle:check` / `POST /api/admin/integrations/moodle/check`** : chaque erreur
+  Moodle porte désormais son `exception`, son `debuginfo` et un **conseil de dépannage**
+  (`hint`) affiché sous le message, en console comme dans l'écran administrateur.
+- **`accessexception` sur `core_webservice_get_site_info`** : une **sonde de repli**
+  (`core_cohort_search_cohorts`) distingue le refus **global** du jeton (protocole REST,
+  compte non autorisé sur le service, capacité `webservice/rest:use`) de la seule **fonction
+  absente** du service externe. Dans ce second cas le contrôle se poursuit — cohortes et
+  chapitres → cours sont listés — avec `functionsUnknown: true` et `functions[].allowed: null`.
+- **Plus de rapport trompeur** : une liste de fonctions vide et « Cohortes de l'année (0) »
+  ne s'affichent plus comme un résultat, mais comme un contrôle interrompu.
 
 ### Modifié
 
@@ -9321,6 +9885,55 @@ requêtes de contrôle à passer avant activation figurent en fin de document.
 - Restent inventoriés : 2 nœuds sur le plateau découverte de G&L. Les écrans professeur et
   administrateur ne sont pas couverts — leur élévation échoue dans l'environnement de test,
   indépendamment de ce lot.
+
+### Documentation — audit d'évolution v1.0.0 → v1.151.3 et question de la V2
+
+- **`docs/AUDIT_EVOLUTION_V1_V2_2026-09.md`** (nouveau) : comparaison mesurée du commit
+  initial (6 fichiers, SQLite, 34 routes) et de l'état actuel (3 669 fichiers, MySQL,
+  628 endpoints, 3 produits), six ruptures structurelles datées, et arbitrage argumenté
+  sur l'opportunité de poser une **V2**. Constat seul, aucun changement de comportement.
+- **Constats de versionnage** : dernière section datée du `CHANGELOG` au **20 mars 2026**
+  (99 % du fichier sous `[Non publié]`), **aucun** commit n'a jamais déclaré de
+  `BREAKING CHANGE` alors que quatre ruptures ont été livrées (élévation PIN en `410 Gone`,
+  migration `166` destructive, vues mortes `152`, unification des identités).
+- **Constat CI** : `main` est rouge — une PR de documentation seule échoue sur
+  `tests/pedago-garden-auxiliaires.test.js` (liaison trophique manquante), les tests de
+  contenu pédagogique n'étant pas découplés des tests de code.
+- Indexé dans `docs/audits/README.md`.
+### Ajouté — visite : biodiversité des lieux et mots du glossaire
+
+- **La biodiversité d'un lieu est visible d'emblée** dans sa fiche de visite : une vignette par
+  espèce (photo du catalogue ou pictogramme, nom courant, nom scientifique, une ligne sur son
+  rôle), qui ouvre la **fiche complète de l'espèce** — la même modale que la carte, le glossaire
+  ou le réseau trophique. L'ancien volet replié n'affichait qu'une liste de noms. Les espèces
+  rattachées par une **mission** restent regroupées sous « Également dans les missions », et les
+  lieux d'**infrastructure** n'affichent toujours pas de biodiversité.
+- **Les mots du glossaire sont hyperliés dans les textes de la visite** (description, détails,
+  blocs éditoriaux) comme ailleurs dans l'application : le clic ouvre la **fiche rapide** du terme
+  par-dessus le plan, sans quitter la visite.
+- **La visite invitée en bénéficie aussi**, alors qu'elle n'avait jusqu'ici **aucune**
+  biodiversité : le volet se nourrissait de `GET /api/zones` et `GET /api/map/markers`, deux
+  routes authentifiées. `GET /api/visit/content` publie désormais, par zone et par repère,
+  **`species`** (id, nom, emoji), **`species_ids`** et **`living_beings_list`**, plus
+  **`is_infrastructure`** sur les zones. Le catalogue biodiversité (route publique
+  `GET /api/plants`) n'est chargé **qu'à l'ouverture d'un lieu porteur d'espèces, une seule fois
+  par session** ; fiche espèce et fiche de glossaire sont montées à la demande par la visite
+  elle-même quand l'application ne les porte pas.
+- **Fiche espèce sans session** : le fil de commentaires de fiche (route authentifiée) n'est plus
+  rendu pour un visiteur anonyme — il n'aurait affiché qu'une erreur. Les gestes liés au compte
+  (« je l'ai observé », « j'ai appris ce mot ») restaient déjà masqués.
+- **Fiche espèce — « [object Object] pH optimal »** : les jauges pH et température recevaient leur
+  icône sous forme de nœud React, insérée dans un gabarit de **chaîne**. Le défaut était visible
+  sur **toutes** les fiches espèces, catalogue compris ; il l'aurait été d'autant plus depuis la
+  visite, qui y mène maintenant.
+- **Vignette d'espèce, photo injoignable** : repli sur l'emoji plutôt qu'un cadre vide. Beaucoup de
+  photos du catalogue pointent vers Wikimedia Commons, qu'une visite sur le terrain n'atteint pas
+  toujours.
+- **Fiche rapide du glossaire — « Termes liés » en double** : les relations sortantes et entrantes
+  étaient rendues à la suite sous le même intertitre, or le corpus enregistre la plupart des
+  relations **dans les deux sens** : chaque voisin apparaissait deux fois. Les deux listes sont
+  désormais réunies, dédoublonnées et triées (la direction d'une relation n'apprend rien au
+  lecteur d'une fiche rapide).
 
 ---
 
