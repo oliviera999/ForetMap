@@ -187,8 +187,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   le calque qui porte aussi le texte — mesuré à 180° dans Chromium), et **les cinq entrées du
   lycée sont au dernier rang de priorité d'affichage** parce que `sort_order`, lu comme
   importance par le moteur, sert désormais d'ordre d'audience côté établissement (les tables
-  d'échecs passent devant). S'y ajoutent : `main` rouge sur un seul fichier mal formaté, ce qui
-  saute la suite Vitest **et** le smoke e2e Plan pourtant rendu bloquant ; cinq « WC »
+  d'échecs passent devant). S'y ajoutent : `main` rouge sur un seul fichier — cinq tableaux de
+  `docs/API.md` hors alignement Prettier — ce qui saute la suite Vitest **et** le smoke e2e Plan
+  pourtant rendu bloquant ; cinq « WC »
   indiscernables dans la recherche ; un parcours publié à une seule étape. Plan d'action en neuf
   points.
 
