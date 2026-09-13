@@ -9,7 +9,8 @@
  * onglet visible. Le compteur « à valider » devient un badge (pôle Suivi + onglet Tâches)
  * au lieu d'allonger le libellé dans une barre en nowrap.
  *
- * Accessibilité : l'onglet actif porte `aria-current="page"`, le pôle actif
+ * Onglet Carnet (pôle Suivi) : carnet personnel pour tout compte connecté.
+ ** Accessibilité : l'onglet actif porte `aria-current="page"`, le pôle actif
  * `aria-current="true"` ; les icônes (src/shared/icons.jsx) sont décoratives.
  */
 import {
@@ -162,7 +163,7 @@ export function TeacherTopTabs({
       pole: 'tracking',
       Icon: IconNotebook,
       label: 'Carnet',
-      visible: observationsEnabled,
+      visible: Boolean(observationsEnabled),
     },
     { id: 'forum', pole: 'tracking', Icon: IconForum, label: 'Forum', visible: canAccessForum },
     {
