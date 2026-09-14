@@ -72,6 +72,7 @@ function VisitProgressDonut({ progress }) {
  * @param {boolean} refreshing rechargement en cours (la carte reste affichée : pastille discrète).
  * @param {string|null} networkStatusLabel libellé statut réseau (null = masqué, ex. hors mode vue).
  * @param {{ total: number, seenCount: number, pct: number }} cartographyProgress progression carte courante.
+ * @param {boolean} [showSeenProgress=true] afficher le donut de progression.
  * @param {React.ReactNode} helpPanelSlot `HelpPanel` déjà configuré par le parent (null = aide désactivée).
  * @param {Function|null} onBackToAuth retour à la connexion (null = bouton masqué).
  * @param {string|null} quickTipText astuce contextuelle (null = masquée).
@@ -96,6 +97,7 @@ export function VisitMapChrome({
   visitMascotOptions = [],
   onChangeVisitMascotId,
   cartographyProgress = { total: 0, seenCount: 0, pct: 0 },
+  showSeenProgress = true,
   helpPanelSlot = null,
   onBackToAuth = null,
   maps = [],
@@ -112,7 +114,7 @@ export function VisitMapChrome({
             sa place est auprès du titre, pas coincée entre un menu de préférence et l'aide. */}
         <div className="visit-map-card__chrome-title-line">
           <h2 className="section-title visit-map-card__title">{title}</h2>
-          {cartographyProgress.total > 0 ? (
+          {showSeenProgress && cartographyProgress.total > 0 ? (
             <VisitProgressDonut progress={cartographyProgress} />
           ) : null}
           {showPresentationButton ? (

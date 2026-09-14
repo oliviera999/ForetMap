@@ -36,7 +36,7 @@ familles.
 - **La fiche d'un lieu** : titre, sous-titre, photo principale, contenu éditorial
   (paragraphes, intertitres, blocs d'images légendées), la **biodiversité du lieu**, un volet
   Tuto (les fiches pratiques associées), un mode « lecture confortable », et un bouton
-  **« Marquer comme vu »** — qui fait fêter la mascotte.
+  **« Marquer comme vu »** — qui fait fêter la mascotte et met à jour la progression.
 - **La biodiversité du lieu est visible d'emblée**, sous le texte : une vignette par espèce
   (photo de la fiche ou pictogramme, nom courant, nom scientifique, une ligne sur son rôle).
   Toucher une vignette ouvre la **fiche complète de l'espèce** — la même que dans l'onglet
@@ -55,14 +55,11 @@ familles.
   compte et durable ; pour un invité anonyme, elle est mémorisée environ **24 heures**
   puis s'efface. Les marquages faits hors connexion sont conservés et synchronisés au
   retour du réseau. Sur le plan, chaque zone garde **sa couleur** ; les lieux déjà
-  vus sont un peu plus atténués (remplissage plus transparent, contour plus fin),
-  les lieux pas encore vus restent bien marqués. Quand on **ouvre la fiche d'une zone**,
-  celle-ci reste mise en avant sur le plan et les autres zones s'estompent un peu —
-  sans cadre noir autour de la forme. Au **survol** ou au **focus clavier**,
-  le contour s'épaissit et le libellé « À découvrir » ou « Vu » apparaît un instant —
-  sans pastille permanente. Les repères suivent la même idée (légère atténuation une
-  fois vus, libellé au survol/focus). Le donut de progression du bandeau complète
-  la lecture d'ensemble.
+  **vus sont un peu plus atténués** (remplissage plus transparent, contour plus fin),
+  les autres restent bien marqués. Le **donut** du bandeau indique le pourcentage de lieux
+  marqués. Il n'y a **pas** de libellé « À découvrir » / « Vu » collé sur chaque lieu au
+  survol — pour ne pas surcharger le plan. Quand on **ouvre la fiche d'une zone**,
+  celle-ci reste mise en avant et les autres s'estompent un peu — sans cadre noir.
 - **Sans souris** : zones et repères se parcourent à la **tabulation** et s'ouvrent avec
   **Entrée** ou **Espace**, comme sur la carte de l'application. Une fois la fiche
   ouverte, le clavier reste à l'intérieur ; **Échap** ou un clic à côté la referme et
@@ -74,9 +71,9 @@ familles.
   nom s'affiche au survol. Sur grand écran, tout tient désormais sur une seule ligne ; sur
   téléphone, la barre occupe environ deux fois moins de place qu'avant, au profit de la carte.
 - **Le bouton « Présentation du lieu » ne clignote plus** au premier passage. Il reste mis
-  en avant (c'est le seul bouton plein de la barre). Le plan n'a plus de signal animé
-  permanent : la progression se lit par l'atténuation des lieux déjà vus, le libellé au
-  survol/focus, et le donut du bandeau.
+  en avant (c'est le seul bouton plein de la barre). Le plan n'a plus de libellés de
+  découverte animés : la progression se lit par l'atténuation des lieux déjà vus et le
+  donut du bandeau.
 - **Accessibilité** : l'application est désormais vérifiée automatiquement à chaque
   livraison sur douze écrans (connexion, visite, carte, tâches, biodiversité, glossaire,
   réseau, quiz et deux écrans G&L). Les défauts trouvés ont été corrigés : chaque page a
@@ -130,7 +127,7 @@ familles.
   de dessiner des zones de visite, poser des repères, puis remplir chaque fiche
   (textes, blocs éditoriaux, photos — importables depuis les photos de la carte de
   travail, l'ordre est réordonnable). Une case « Visible en visite » masque un lieu au
-  public sans le supprimer. Un bascule « aperçu élève » montre le rendu final.
+  public sans le supprimer. Une bascule « aperçu élève » montre le rendu final.
   Un enregistrement ne fait plus disparaître la page : le plan et la fiche en cours
   restent affichés, et seule une mention « Actualisation… » signale le rechargement.
 - **Synchroniser avec la carte de travail** : la Visite a ses propres lieux, liés à

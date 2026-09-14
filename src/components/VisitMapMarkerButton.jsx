@@ -1,16 +1,23 @@
 /**
  * Bouton (présentation) d'un repère de visite positionné sur le plan.
- * Statut vu/non-vu : opacité au repos + libellé au survol/focus (pas de pastille).
+ * Statut vu/non-vu : opacité au repos ; libellé au survol/focus optionnel (`showSeenLabels`).
  */
-export function VisitMapMarkerButton({ marker, isSeen, onClick }) {
+export function VisitMapMarkerButton({
+  marker,
+  isSeen,
+  onClick,
+  showSeenStatus = true,
+  showSeenLabels = false,
+}) {
   const label = String(marker.label || '').trim();
-  const statusLabel = isSeen ? 'Vu' : 'À découvrir';
+  const statusLabel = showSeenStatus ? (isSeen ? 'Vu' : 'À découvrir') : null;
   const accessibleName = label || 'Repère visite';
+  const seenClass = showSeenStatus ? (isSeen ? 'is-seen' : 'is-unseen') : '';
   return (
     <button
       type="button"
-      className={`visit-marker-btn ${isSeen ? 'is-seen' : 'is-unseen'}`}
-      aria-label={`${accessibleName} — ${statusLabel}`}
+      className={`visit-marker-btn ${seenClass}`.trim()}
+      aria-label={statusLabel ? `${accessibleName} — ${statusLabel}` : accessibleName}
       style={{ left: `${marker.x_pct}%`, top: `${marker.y_pct}%` }}
       onClick={onClick}
     >
@@ -35,9 +42,11 @@ export function VisitMapMarkerButton({ marker, isSeen, onClick }) {
           {label}
         </span>
       ) : null}
-      <span className="visit-marker-status" aria-hidden="true">
-        {statusLabel}
-      </span>
+      {showSeenLabels && statusLabel ? (
+        <span className="visit-marker-status" aria-hidden="true">
+          {statusLabel}
+        </span>
+      ) : null}
     </button>
   );
 }

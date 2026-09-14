@@ -90,24 +90,43 @@ describe('VisitZonesSvgLayer — accessibilité clavier des zones', () => {
     expect(screen.getByRole('button', { name: /Verger/ })).toBeInTheDocument();
   });
 
-  test('zone non vue → couleur métier + statut « À découvrir » (sans pastille)', () => {
+  test('zone non vue → couleur métier + atténuation, sans libellé visible par défaut', () => {
     const { container } = setup();
     const poly = container.querySelector('.visit-zone-poly');
     expect(poly).toHaveClass('is-unseen');
     // jsdom sérialise `#fde04790` en rgba(…) ; on vérifie la teinte, pas la forme hex.
     expect(poly.getAttribute('style') || '').toMatch(/253,\s*224,\s*71/);
     expect(container.querySelector('.visit-zone-indicator')).toBeNull();
-    expect(container.querySelector('.visit-zone-status')).toHaveTextContent('À découvrir');
+    expect(container.querySelector('.visit-zone-status')).toBeNull();
     expect(screen.getByRole('button', { name: /À découvrir/ })).toBeInTheDocument();
   });
 
-  test('zone vue → statut « Vu » et classe is-seen', () => {
+  test('showSeenLabels=true → libellé « À découvrir » au survol', () => {
+    const { container } = setup({ showSeenLabels: true });
+    expect(container.querySelector('.visit-zone-status')).toHaveTextContent('À découvrir');
+  });
+
+  test('showSeenStatus=false → rendu neutre sans libellé de progression', () => {
+    const { container } = setup({ showSeenStatus: false });
+    const poly = container.querySelector('.visit-zone-poly');
+    expect(poly).not.toHaveClass('is-unseen');
+    expect(poly).not.toHaveClass('is-seen');
+    expect(container.querySelector('.visit-zone-status')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Verger' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /À découvrir/ })).toBeNull();
+  });
+
+  test('zone vue → classe is-seen ; libellé visible seulement si demandé', () => {
     const { container } = setup({ seen: new Set(['zone:7']) });
     expect(container.querySelector('.visit-zone-poly')).toHaveClass('is-seen');
-    expect(container.querySelector('.visit-zone-status')).toHaveTextContent('Vu');
+    expect(container.querySelector('.visit-zone-status')).toBeNull();
     expect(screen.getByRole('button', { name: /Vu$/ })).toBeInTheDocument();
   });
 
+  test('zone vue + showSeenLabels → libellé « Vu »', () => {
+    const { container } = setup({ seen: new Set(['zone:7']), showSeenLabels: true });
+    expect(container.querySelector('.visit-zone-status')).toHaveTextContent('Vu');
+  });
   test('fiche ouverte → zone sélectionnée mise en avant, voisines estompées', () => {
     const { container } = setup({
       zones: [makeZone({ id: 7, name: 'Verger' }), makeZone({ id: 8, name: 'Mare' })],
