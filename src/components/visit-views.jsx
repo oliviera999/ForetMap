@@ -321,6 +321,9 @@ function VisitViewImpl({
 
   /** Tutoriels sous la carte : réservés au prof en édition (pas invité, pas élève, pas aperçu élève). */
   const showVisitMapTutorialsSection = isTeacher && !teacherPreviewAsStudent;
+  /** Progression : atténuation + donut + « Marquer comme vu » ; pas de libellés « À découvrir » sur le plan. */
+  const showVisitSeenStatus = true;
+  const showVisitSeenLabels = false;
 
   useEffect(() => {
     const next = String(initialMapId || '').trim();
@@ -903,6 +906,7 @@ function VisitViewImpl({
                 visitMascotOptions={visitMascotOptions}
                 onChangeVisitMascotId={onChangeVisitMascotId}
                 cartographyProgress={visitCartographyProgress}
+                showSeenProgress={showVisitSeenStatus}
                 helpPanelSlot={
                   isHelpEnabled ? (
                     <HelpPanel
@@ -997,6 +1001,8 @@ function VisitViewImpl({
                     <VisitZonesSvgLayer
                       zones={content.zones}
                       seen={seen}
+                      showSeenStatus={showVisitSeenStatus}
+                      showSeenLabels={showVisitSeenLabels}
                       markerEmojis={markerEmojis}
                       typography={visitZoneSvgTypography}
                       fitWidth={visitMapFit.width}
@@ -1026,6 +1032,8 @@ function VisitViewImpl({
                     <VisitMarkersLayer
                       markers={content.markers}
                       seen={seen}
+                      showSeenStatus={showVisitSeenStatus}
+                      showSeenLabels={showVisitSeenLabels}
                       onMarkerClick={onVisitMarkerClick}
                     />
                     {visitPosition.displayPct ? (
@@ -1105,6 +1113,7 @@ function VisitViewImpl({
             seen={seen}
             savingSeen={savingSeen}
             onToggleSeen={onToggleSeen}
+            showSeenStatus={showVisitSeenStatus}
             plants={plants}
             onOpenPlantCatalogPreview={openPlantFromVisit}
             glossaryItems={glossaryItems}

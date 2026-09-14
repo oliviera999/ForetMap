@@ -129,6 +129,8 @@ export function VisitDetailPanel({
   seen,
   savingSeen,
   onToggleSeen,
+  /** Afficher « Marquer comme vu ». */
+  showSeenStatus = true,
   plants = [],
   onOpenPlantCatalogPreview = null,
   /**
@@ -327,17 +329,19 @@ export function VisitDetailPanel({
               </div>
             </details>
           )}
-          <button className="btn btn-primary btn-sm" disabled={savingSeen} onClick={onToggleSeen}>
-            {seen.has(itemSeenKey(selectedType, selected.id)) ? (
-              <>
-                <IconCheck size={14} /> Marqué comme vu
-              </>
-            ) : (
-              <>
-                <IconEye size={14} /> Marquer comme vu
-              </>
-            )}
-          </button>
+          {showSeenStatus ? (
+            <button className="btn btn-primary btn-sm" disabled={savingSeen} onClick={onToggleSeen}>
+              {seen.has(itemSeenKey(selectedType, selected.id)) ? (
+                <>
+                  <IconCheck size={14} /> Marqué comme vu
+                </>
+              ) : (
+                <>
+                  <IconEye size={14} /> Marquer comme vu
+                </>
+              )}
+            </button>
+          ) : null}
           <VisitEditorPanel
             selected={selected}
             selectedType={selectedType}
