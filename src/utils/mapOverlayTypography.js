@@ -135,9 +135,10 @@ export function resolveMapOverlayMarkerCssTypography(mapSettings, fitHeightPx, o
   const sizePercent = readPlateauMarkerSizePercent(mapSettings);
   const overlayScale = resolveMapOverlayScaleCssValue({ fitHeightPx: fit, sizePercent });
   const scaleNum = Math.max(0.001, parseFloat(overlayScale) || 1);
-  // `compensateWorldScale` : les repères vivent DANS le calque zoomé (Visite) — on divise
-  // par l'échelle monde et on applique la même croissance douce que les noms de zones,
-  // au lieu de laisser les repères doubler linéairement pendant que les zones font ×1,27.
+  // `compensateWorldScale` : uniquement si les repères sont dans un calque zoomé SANS
+  // contre-échelle CSS (`--pct-inv`). SharedMapStage (Plan / Visite / Carte travail) pose
+  // déjà `scale(--pct-inv)` : activer les deux = double compensation (tailles fausses
+  // dès que s ≠ 1). Ancien calque Visite / GL hors SharedMapStage : true.
   const compensate = Boolean(options.compensateWorldScale);
   const t = resolveMapOverlayTypography(mapSettings, fit, {
     ...options,

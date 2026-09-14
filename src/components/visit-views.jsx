@@ -364,12 +364,10 @@ function VisitViewImpl({
     width: 0,
     height: 0,
   });
-  const [visitMapCommitted, setVisitMapCommitted] = useState({ x: 0, y: 0, s: 1 });
   const [visitImgNatural, setVisitImgNatural] = useState({ w: 0, h: 0 });
   const onVisitViewportChange = useCallback((api) => {
     visitViewportApiRef.current = { ...visitViewportApiRef.current, ...api };
     if (api.fitRect) setVisitMapFit(api.fitRect);
-    if (api.committed) setVisitMapCommitted(api.committed);
     if (api.imgSize) setVisitImgNatural(api.imgSize);
   }, []);
   const focusOnPct = useCallback((pct, opts) => {
@@ -381,7 +379,6 @@ function VisitViewImpl({
   const fitMap = useCallback(() => {
     visitViewportApiRef.current.fitMap?.();
   }, []);
-  const mapTransform = visitMapCommitted;
 
   const [placeSearchQuery, setPlaceSearchQuery] = useState('');
   const [selectedCategoryIds, setSelectedCategoryIds] = useState(() => new Set());
@@ -574,19 +571,23 @@ function VisitViewImpl({
   useOverlayHistoryBack(isGuestPublicVisit && !!selected, closeVisitSelection);
   useOverlayHistoryBack(!!visitMediaLightbox, () => setVisitMediaLightbox(null));
 
-  /** Styles typo overlay (taille Aa) fusionnés au calque fit de SharedMapStage. */
+  /**
+   * Styles typo overlay (taille Aa) sur le calque fit.
+   * Ne pas activer `compensateWorldScale` : SharedMapStage contre-échelle déjà via
+   * `--pct-inv`. L’ancien calque Visite (sans `--pct-inv`) le faisait dans les
+   * variables ; les combiner doublait la compensation et grossissait icônes/textes
+   * dès que l’échelle d’ajustement était < 1 (carte plus petite en session connectée).
+   */
   const visitFitExtraStyle = useMemo(() => {
     const mapSettings =
       publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
     const fitH =
       visitMapFit.height > 0 ? visitMapFit.height : MAP_OVERLAY_REFERENCE_BOARD_HEIGHT_PX;
     return resolveMapOverlayCssVariables(mapSettings, fitH, {
-      worldScale: Math.max(Number(mapTransform.s) || 1, 0.001),
       fitWidthPx: visitMapFit.width > 0 ? visitMapFit.width : 360,
       userTextSizePercent: mapTextSizePercent,
-      compensateWorldScale: true,
     });
-  }, [publicSettings, visitMapFit.width, visitMapFit.height, mapTransform.s, mapTextSizePercent]);
+  }, [publicSettings, visitMapFit.width, visitMapFit.height, mapTextSizePercent]);
 
   /** Sélection d'un lieu depuis la scène partagée (mascotte + fiche différée en vue). */
   const onSelectPlaceFromStage = useCallback(

@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Visite : icônes et textes trop gros une fois connecté
+
+- Après le passage à la scène carte partagée, la typo compensait le zoom **deux fois**
+  (variables overlay + `--pct-inv`). Sur une carte plus petite (session connectée),
+  emojis et libellés apparaissaient nettement plus grands qu'en visite anonyme.
+
 ### Ajouté — Visite : carte partagée, recherche et filtres par catégorie
 
 - Le plan de visite s'appuie sur la **même scène carte** que le Plan (zones, repères,
