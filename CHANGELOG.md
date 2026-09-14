@@ -11,8 +11,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Amélioré — Réseau trophique : couleurs, cadrage, tactile
 
-- Nouvelle palette de relations (familles sémantiques, contrastes projection /
-  daltonisme) ; sélection = halo vert sans écraser la couleur du type.
+- Nouvelle palette de relations (ambre, vermillon, pourpre, cyan… — tables type
+  Okabe–Ito) ; sélection = halo vert sans écraser la couleur du type.
 - Presets Réseau alimentaire / Autres / Tout partagés liste + graphe ; filtre Type
   seulement en « Tout » ; bouton « Flux trophiques » retiré.
 - Disposition Niveaux : étiquettes Producteurs / Consommateurs / Décomposeurs.
