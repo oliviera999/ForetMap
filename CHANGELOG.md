@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Orientation boussole : plus de fond vide après rotation
+
+- Avec **« Orienter »** actif, la carte **se recentre sur la position GPS** et **grossit**
+  assez (facteur √2) pour que le plan tourné remplisse encore le cadre — Visite, Plan
+  Lyautey et carte de travail (scène partagée).
+
 ### Corrigé — Visite : plus de double illustration dans l'encart lieu
 
 - Quand la photo carte (`map_lead_photo`) et la première image média visite sont le

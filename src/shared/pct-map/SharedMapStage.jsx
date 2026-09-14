@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
-import { headingUpOrientationDeg } from './pctMapOrientation.js';
+import { headingUpOrientationDeg, HEADING_UP_COVER_SCALE } from './pctMapOrientation.js';
 import { MapScaleCompassOverlay } from './MapScaleCompassOverlay.jsx';
 
 import { MapActionButton } from '../ui/MapActionButton.jsx';
@@ -132,6 +132,12 @@ export function SharedMapStage({
   onBackgroundClick = null,
 }) {
   const imageSrc = String(map?.map_image_url || '');
+  const headingUpEffectiveRef = useRef(headingUpEffective);
+  headingUpEffectiveRef.current = headingUpEffective;
+  const positionRef = useRef(position);
+  positionRef.current = position;
+  const stickCameraRef = useRef(() => {});
+
   const viewport = usePctMapViewport({
     imageSrc,
     contentMode: 'stage',
@@ -139,8 +145,16 @@ export function SharedMapStage({
     onResize: 'clamp',
     resetKey: String(map?.id || ''),
     isGestureTarget: gestureIgnoreSelector,
-    // Un déplacement à la main quitte le suivi de position sans couper le point bleu.
-    onGestureStart: position?.notifyManualPan || null,
+    // Hors orientation : un pan manuel quitte le suivi. Avec orientation active, on
+    // recolle le GPS au centre en fin de geste (évite le fond vide après rotation).
+    onGestureStart: () => {
+      if (!headingUpEffectiveRef.current) {
+        positionRef.current?.notifyManualPan?.();
+      }
+    },
+    onGestureEnd: () => {
+      if (headingUpEffectiveRef.current) stickCameraRef.current();
+    },
   });
   const {
     containerRef,
@@ -161,6 +175,18 @@ export function SharedMapStage({
     setMapOrientation,
     orientStyle,
   } = viewport;
+
+  const committedSRef = useRef(committed.s);
+  committedSRef.current = committed.s;
+  const fitScaleRef = useRef(fitScale);
+  fitScaleRef.current = fitScale;
+
+  stickCameraRef.current = () => {
+    const pct = positionRef.current?.displayPct;
+    if (!pct || !headingUpEffectiveRef.current) return;
+    const minS = (fitScaleRef.current || 1) * HEADING_UP_COVER_SCALE;
+    focusOnPct({ xp: pct.xp, yp: pct.yp }, { targetScale: Math.max(committedSRef.current, minS) });
+  };
 
   const positionLabels = useMemo(
     () =>
@@ -346,13 +372,26 @@ export function SharedMapStage({
     setMapOrientation,
   ]);
 
-  // Suivi de position : la carte se recentre à chaque nouvelle position tant que l'état
-  // « suivi » dure. Hors suivi, la position ne bouge jamais la vue.
-  const followPct = position?.following ? position.displayPct : null;
+  // Suivi de position : recentrage à chaque nouvelle position en mode « suivi ».
+  // Orientation boussole : coller le GPS au centre + grossir assez pour couvrir le
+  // viewport après rotation (√2), sinon le plan tourné laisse un fond vide.
+  const stickPct = headingUpEffective
+    ? position?.displayPct
+    : position?.following
+      ? position.displayPct
+      : null;
   useEffect(() => {
-    if (!followPct) return;
-    focusOnPct({ xp: followPct.xp, yp: followPct.yp });
-  }, [followPct, focusOnPct]);
+    if (!stickPct) return;
+    if (headingUpEffective) {
+      const minS = (fitScale || 1) * HEADING_UP_COVER_SCALE;
+      focusOnPct(
+        { xp: stickPct.xp, yp: stickPct.yp },
+        { targetScale: Math.max(committedSRef.current, minS) },
+      );
+      return;
+    }
+    focusOnPct({ xp: stickPct.xp, yp: stickPct.yp });
+  }, [stickPct?.xp, stickPct?.yp, headingUpEffective, fitScale, focusOnPct]);
 
   // Centrage sur le lieu sélectionné : une fois par lieu, jamais pendant que l'on manipule
   // la carte (sinon la vue « saute » sous le doigt à chaque re-rendu de la fiche).
@@ -608,7 +647,11 @@ export function SharedMapStage({
             active={headingUpEffective}
             ariaPressed={headingUpEffective}
             disabled={!position.headingAvailable}
-            onClick={onHeadingUpToggle}
+            onClick={() => {
+              // Activer l'orientation : passer en suivi pour coller le GPS au centre.
+              if (!headingUpEffective) position?.ensureFollow?.();
+              onHeadingUpToggle?.();
+            }}
           />
         ) : null}
         {scaleCompassAllowed ? (
