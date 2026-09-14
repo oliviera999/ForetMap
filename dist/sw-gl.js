@@ -1,6 +1,6 @@
 /* Service worker « gl » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-gl-c596725e";
+const CACHE_NAME = "foretmap-gl-11a274bd";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -9,28 +9,28 @@ const PRECACHE_URLS = [
   "/manifest.json",
   "/gl/favicon.svg",
   "/gl/logo.png",
-  "/assets/gl-CUeL600n.js",
+  "/assets/gl-Fy-p-Bw8.js",
   "/assets/gl-Dodi2eF7.css",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-BI6NgtJK.js",
-  "/assets/react-vendor-NSwws4_t.js",
-  "/assets/icons-DN-Q6DZk.js",
-  "/assets/ErrorBoundary-BbOTEqfX.js",
+  "/assets/VisitMascotFallbackSvg-B6vmFU8o.js",
+  "/assets/react-vendor-CQHei-en.js",
+  "/assets/icons-NoInAXCv.js",
+  "/assets/ErrorBoundary-DPF-c2vG.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-ZIS7oO9K.js",
+  "/assets/ImageLightboxProvider-C9AZs578.js",
   "/assets/ImageLightboxProvider-B1dCJcHH.css",
-  "/assets/spriteCutCatalogEntry-DEPH3HaP.js",
+  "/assets/spriteCutCatalogEntry-CzU-cKGb.js",
   "/assets/markdown-B5dU4qij.js",
-  "/assets/socket-io-D_2T_oRH.js",
-  "/assets/GuidedTourOverlay-DgWVgnkv.js",
-  "/assets/HelpDock-SIv7-ym0.js",
+  "/assets/socket-io-vr1n1Td3.js",
+  "/assets/GuidedTourOverlay-D_yICDAJ.js",
+  "/assets/HelpDock-DPiTUWmM.js",
   "/assets/HelpDock-607GLmvi.css",
-  "/assets/apiGL-DIYHq7JS.js",
-  "/assets/presenceListPatch-BNySRXhd.js",
-  "/assets/useJournalEmbedTitles--iMHYRfJ.js",
-  "/assets/FoodWebGraph-1kb0-mQs.js",
-  "/assets/mascotBehaviorEngine-Dh8NCJd-.js",
-  "/assets/MediaLibraryMenu-CYRMl1ow.js",
+  "/assets/apiGL-C-DrGWn2.js",
+  "/assets/presenceListPatch-Cc3BJYJu.js",
+  "/assets/useJournalEmbedTitles-Bu0b3NMh.js",
+  "/assets/FoodWebGraph-hTVD799e.js",
+  "/assets/mascotBehaviorEngine-DIhc33K8.js",
+  "/assets/MediaLibraryMenu-CZLn9-7x.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).
