@@ -182,3 +182,34 @@ describe('VisitDetailPanel — glossaire et biodiversité du lieu', () => {
     expect(screen.queryByRole('heading', { name: /Biodiversité/i })).toBeNull();
   });
 });
+
+describe('VisitDetailPanel — photo lead sans doublon', () => {
+  test('même URL carte + média visite → une seule vignette lead', () => {
+    const { container } = setup({
+      selected: {
+        id: 3,
+        name: 'Verger',
+        visit_short_description: 'Intro du lieu.',
+        map_lead_photo: { id: 10, image_url: '/uploads/zones/3/a.jpg', caption: 'Lead carte' },
+        visit_media: [{ id: 20, image_url: '/uploads/zones/3/a.jpg', caption: 'Même fichier' }],
+      },
+    });
+    const leadGalleries = container.querySelectorAll('.visit-media-gallery--lead');
+    expect(leadGalleries).toHaveLength(1);
+    expect(leadGalleries[0].querySelectorAll('img')).toHaveLength(1);
+  });
+
+  test('URLs distinctes → photo carte puis photo visite sous l’intro', () => {
+    const { container } = setup({
+      selected: {
+        id: 3,
+        name: 'Verger',
+        visit_short_description: 'Intro du lieu.',
+        map_lead_photo: { id: 10, image_url: '/uploads/zones/3/a.jpg' },
+        visit_media: [{ id: 20, image_url: '/uploads/visit/b.jpg' }],
+      },
+    });
+    const leadGalleries = container.querySelectorAll('.visit-media-gallery--lead');
+    expect(leadGalleries).toHaveLength(2);
+  });
+});

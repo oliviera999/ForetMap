@@ -33,10 +33,12 @@ familles.
   case « Visite »), une puce **« Parcours »** les liste. En choisir un affiche une barre d'étape
   en bas (Précédent / Suivant) : la carte se recentre sur chaque lieu, reste utilisable, et rien
   n'est enregistré — comme sur le Plan Lyautey. On peut quitter et reprendre.
-- **La fiche d'un lieu** : titre, sous-titre, photo principale, contenu éditorial
-  (paragraphes, intertitres, blocs d'images légendées), la **biodiversité du lieu**, un volet
-  Tuto (les fiches pratiques associées), un mode « lecture confortable », et un bouton
-  **« Marquer comme vu »** — qui fait fêter la mascotte et met à jour la progression.
+- **La fiche d'un lieu** : titre, sous-titre, **une** photo principale (celle de la carte
+  si elle existe, sinon la première image visite — jamais les deux si c'est la même
+  image), contenu éditorial (paragraphes, intertitres, blocs d'images légendées), la
+  **biodiversité du lieu**, un volet Tuto (les fiches pratiques associées), un mode
+  « lecture confortable », et un bouton **« Marquer comme vu »** — qui fait fêter la
+  mascotte et met à jour la progression.
 - **La biodiversité du lieu est visible d'emblée**, sous le texte : une vignette par espèce
   (photo de la fiche ou pictogramme, nom courant, nom scientifique, une ligne sur son rôle).
   Toucher une vignette ouvre la **fiche complète de l'espèce** — la même que dans l'onglet
