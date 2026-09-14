@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Visite : le plein écran remplissait à nouveau l'écran
+
+- Après l'unification sur `SharedMapStage`, `VisitMapStage` écrasait la classe
+  `visit-map-stage--fullscreen` : le plan restait en bande 16:10 au lieu de
+  remplir l'overlay. Le modificateur passé par la vue est conservé.
+
 ### Ajouté — Visite : carte partagée, recherche et filtres par catégorie
 
 - Le plan de visite s'appuie sur la **même scène carte** que le Plan (zones, repères,
