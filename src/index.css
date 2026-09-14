@@ -502,6 +502,7 @@
       box-shadow:0 -2px 20px rgba(26,71,49,.06);
       padding-bottom:var(--safe-bottom);
       min-height:calc(var(--bottom-nav-height) + var(--safe-bottom));
+      -webkit-backdrop-filter:blur(8px);
       backdrop-filter:blur(8px);
     }
     .nav-btn {
@@ -518,10 +519,10 @@
       line-height:1.05;
       transition:color .2s var(--ease-out), transform var(--motion-fast) var(--spring), background var(--motion-fast) var(--ease-out);
     }
-    /* Mobile / tactile : éviter une barre à plusieurs lignes (onglets étroits + texte wrappé
-       = hauteur énorme et zone carte écrasée / invisible). Défilement horizontal, hauteur stable. */
+    /* Mobile / tactile : sans mode Plus (barre complète desktop coarse rare), éviter une
+       barre à plusieurs lignes. Avec `.bottom-nav--compact` (primaires + Plus), pas de scroll H. */
     @media (max-width:1023px), (pointer:coarse) {
-      .bottom-nav {
+      .bottom-nav:not(.bottom-nav--compact) {
         flex-wrap:nowrap;
         justify-content:flex-start;
         overflow-x:auto;
@@ -532,13 +533,31 @@
         min-height:calc(56px + var(--safe-bottom));
         max-height:calc(72px + var(--safe-bottom));
       }
-      .bottom-nav::-webkit-scrollbar { display:none; }
-      .nav-btn {
+      .bottom-nav:not(.bottom-nav--compact)::-webkit-scrollbar { display:none; }
+      .bottom-nav:not(.bottom-nav--compact) .nav-btn {
         flex:0 0 auto;
         min-width:0;
         max-width:none;
         min-height:48px;
         padding:8px 10px;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      .bottom-nav--compact {
+        flex-wrap:nowrap;
+        justify-content:stretch;
+        overflow-x:hidden;
+        overflow-y:hidden;
+        align-items:stretch;
+        min-height:calc(56px + var(--safe-bottom));
+        max-height:calc(72px + var(--safe-bottom));
+      }
+      .bottom-nav--compact .nav-btn {
+        flex:1 1 0;
+        min-width:0;
+        min-height:48px;
+        padding:8px 6px;
         white-space:nowrap;
         overflow:hidden;
         text-overflow:ellipsis;
@@ -570,6 +589,46 @@
     .map-bubble:focus-visible {
       outline:3px solid rgba(82,183,136,.45);
       outline-offset:2px;
+    }
+
+    /* Tiroir « Plus » navigation élève (audit iPhone) — thème forêt, pas gl-* */
+    .fm-nav-drawer-overlay {
+      --fm-bottom-sheet-z: var(--fm-z-drawer);
+    }
+    .fm-nav-drawer-tabs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      padding: 4px 0 8px;
+    }
+    .fm-nav-drawer-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--outline-soft);
+      border-radius: 10px;
+      background: var(--surface-soft);
+      color: var(--forest);
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: var(--text-sm);
+      text-align: left;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .fm-nav-drawer-tab.is-active {
+      border-color: var(--sage);
+      background: rgba(183, 228, 199, 0.35);
+      font-weight: var(--fw-semibold);
+    }
+    .fm-nav-drawer-tab__icon {
+      display: inline-flex;
+      flex-shrink: 0;
+    }
+    .fm-nav-drawer-tab__label {
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
 
     /* ── FOOTER VERSION ── */
@@ -780,6 +839,7 @@
       -webkit-overflow-scrolling:touch; scrollbar-width:none;
       border:1px solid rgba(107,66,38,.16);
       box-shadow:0 6px 16px rgba(107,66,38,.08);
+      -webkit-backdrop-filter:blur(8px);
       backdrop-filter:blur(8px);
     }
     .top-tabs::-webkit-scrollbar { display:none; }
@@ -2439,18 +2499,20 @@
     }
 
     @media (max-width:1023px), (pointer:coarse) {
-      /* En-tête : une seule ligne, hauteur fixe (évite tout agrandissement parasite sur mobile). */
+      /* En-tête : une seule ligne, hauteur fixe (évite tout agrandissement parasite sur mobile).
+         Cibles ≥ 44px (HIG Apple / convention projet) — le pseudo ::after élargit aussi la
+         zone, mais la boîte visible doit déjà respecter le minimum tactile. */
       header .lock-btn {
-        min-height:36px;
-        min-width:36px;
-        padding:6px 8px;
+        min-height:44px;
+        min-width:44px;
+        padding:8px 10px;
         font-size:var(--text-sm);
       }
       /* PWA : libellé « Installer » masqué (icône + aria-label / title suffisent, gain de place). */
       header .install-btn .lock-label { display: none; }
       header .user-badge {
-        min-height:36px;
-        padding:3px 8px;
+        min-height:44px;
+        padding:6px 10px;
         font-size:var(--text-xs);
       }
       header .app-version-badge {
@@ -2458,7 +2520,8 @@
         padding:2px 6px;
       }
       header .realtime-prof-wrap {
-        min-height:28px;
+        min-height:44px;
+        min-width:44px;
       }
       /* Barre d’outils carte : plus compacte que le défaut inline (7px / min 50px),
          pour libérer de la hauteur utile — uniquement sur l’écran carte. */

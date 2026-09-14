@@ -50,4 +50,9 @@ describe('index.css — hauteur de la navigation prof et calage du split', () =>
     expect(body).not.toBeNull();
     expect(body).toMatch(/--fm-maptasks-sticky-top:\s*0px\s*;/);
   });
+
+  test('chrome compact iPhone : flou WebKit et cibles lock-btn ≥ 44px', () => {
+    expect(css).toMatch(/\.bottom-nav[\s\S]*?-webkit-backdrop-filter:\s*blur\(8px\)/);
+    expect(css).toMatch(/header \.lock-btn\s*\{[\s\S]*?min-height:\s*44px/);
+  });
 });
