@@ -171,9 +171,17 @@ d'observation** pour l'écriture naturaliste libre.
   plus loin — qui mange qui mange qui. C'est là que se lit une chaîne alimentaire.
 - **Deux relations entre les deux mêmes espèces ne se cachent plus l'une l'autre** : elles
   sont légèrement écartées, chacune cliquable.
-- **Herbivorie et prédation se distinguent au trait**, et non plus seulement à la couleur :
-  les deux rouges étaient trop proches pour être différenciés par un élève daltonien, alors
-  que ce sont les deux relations les plus importantes du réseau.
+- **Herbivorie, prédation et décomposition** se distinguent à la fois par la
+  **couleur** (ambre, orange-rouge, pourpre) et par le **trait** (tirets ou plein) :
+  on ne s’appuie plus sur deux rouges proches. **Plante hôte** (vert) et
+  **symbiose** (cyan) sont aussi écartées. Une relation sélectionnée garde sa
+  couleur et s’entoure d’un halo vert, sans devenir toute verte.
+- **Le cadrage** (Réseau alimentaire / Autres relations / Tout) s’applique au
+  graphe **et** à la liste. Le filtre fin par type n’apparaît que dans « Tout ».
+- **Disposition Niveaux** : les colonnes Producteurs, Consommateurs, Décomposeurs
+  (et Autres) sont étiquetées au-dessus du graphe.
+- Une fois une espèce isolée, le bouton **« Voir la fiche »** ouvre sa fiche —
+  utile sur tablette, où le double-clic est peu naturel.
 - **Filtrer par zone ne coupe plus les liens qui en sortent.** Une espèce de la zone mangée
   par un prédateur de la zone voisine faisait disparaître la relation entière ; elle est
   désormais affichée, l'espèce extérieure étant signalée par un contour orangé pointillé.

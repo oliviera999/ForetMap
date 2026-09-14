@@ -104,6 +104,17 @@ describe('FoodWebView — détail de la relation sélectionnée', () => {
     expect(container.querySelector('.pedago-foodweb__aside .pedago-foodweb__selected')).toBeNull();
   });
 
+  it('filtre aussi la liste selon le cadrage (preset)', async () => {
+    mockFoodWeb([['/api/food-web', [PREDATION, POLLINISATION]]]);
+    render(<FoodWebView />);
+
+    await waitFor(() => expect(screen.getByText('arête 1')).toBeTruthy());
+    expect(screen.queryByText('arête 2')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Tout$/ }));
+    await waitFor(() => expect(screen.getByText('arête 2')).toBeTruthy());
+  });
+
   it('abandonne la sélection quand la relation sort du jeu filtré', async () => {
     mockFoodWeb([['/api/food-web', [PREDATION, POLLINISATION]]]);
     const { container } = render(<FoodWebView />);
@@ -111,6 +122,9 @@ describe('FoodWebView — détail de la relation sélectionnée', () => {
     await waitFor(() => expect(screen.getByText('arête 1')).toBeTruthy());
     fireEvent.click(screen.getByText('arête 1'));
     await waitFor(() => expect(container.querySelector('.pedago-foodweb__selected')).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: /^Tout$/ }));
+    await waitFor(() => expect(screen.getByLabelText("Type d'interaction")).toBeTruthy());
 
     fireEvent.change(screen.getByLabelText("Type d'interaction"), {
       target: { value: 'pollinisation' },
@@ -128,8 +142,7 @@ describe('FoodWebView — filtres périmés', () => {
     ]);
     render(<FoodWebView maps={[{ id: 'm1', label: 'Forêt' }]} />);
 
-    // Le menu est re-interrogé à chaque assertion : le composant se re-rend
-    // plusieurs fois pendant les chargements.
+    fireEvent.click(await screen.findByRole('button', { name: /^Tout$/ }));
     const typeSelect = () => screen.getByLabelText("Type d'interaction");
 
     await waitFor(() => expect(screen.getByText('arête 1')).toBeTruthy());
@@ -138,8 +151,6 @@ describe('FoodWebView — filtres périmés', () => {
 
     fireEvent.change(screen.getByLabelText('Carte'), { target: { value: 'm1' } });
 
-    // La prédation n'existe plus sur cette carte : le filtre revient à « Tous »
-    // au lieu d'afficher un menu vide et « Aucune interaction enregistrée ».
     await waitFor(() => expect(typeSelect().value).toBe(''));
     await waitFor(() => expect(screen.getByText('arête 2')).toBeTruthy());
   });

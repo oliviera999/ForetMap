@@ -8747,30 +8747,32 @@
 .pedago-foodweb-graph__arrowhead.active {
   fill: #16a34a;
 }
-/* Herbivorie et prédation ne doivent pas se distinguer que par la teinte
-   (rouges voisins, illisibles en vision deutan/protan) : figuré et épaisseur
-   propres. Voir INTERACTION_EDGE_STYLES, qui fait foi. */
+/* Palette unique : INTERACTION_EDGE_STYLES (foodWebEdgeStyle.js) fait foi.
+   Second canal (tirets / épaisseur) obligatoire — ne pas distinguer par teinte seule. */
 .pedago-foodweb-graph__line--herbivorie,
-.pedago-foodweb-graph__arrowhead--herbivorie { stroke: #c2410c; fill: #c2410c; stroke-dasharray: 12 5; }
+.pedago-foodweb-graph__arrowhead--herbivorie { stroke: #e69f00; fill: #e69f00; stroke-dasharray: 12 5; }
 .pedago-foodweb-graph__line--predation,
-.pedago-foodweb-graph__arrowhead--predation { stroke: #b91c1c; fill: #b91c1c; stroke-width: 2.4; }
+.pedago-foodweb-graph__arrowhead--predation { stroke: #d55e00; fill: #d55e00; stroke-width: 2.4; }
 .pedago-foodweb-graph__line--decomposition,
-.pedago-foodweb-graph__arrowhead--decomposition { stroke: #78350f; fill: #78350f; stroke-dasharray: 8 4; }
+.pedago-foodweb-graph__arrowhead--decomposition { stroke: #cc79a7; fill: #cc79a7; stroke-dasharray: 8 4; }
 .pedago-foodweb-graph__line--pollinisation,
-.pedago-foodweb-graph__arrowhead--pollinisation { stroke: #ca8a04; fill: #ca8a04; stroke-dasharray: 6 3; }
+.pedago-foodweb-graph__arrowhead--pollinisation { stroke: #f0e442; fill: #f0e442; stroke-dasharray: 6 3; }
 .pedago-foodweb-graph__line--plante_hote,
-.pedago-foodweb-graph__arrowhead--plante_hote { stroke: #15803d; fill: #15803d; stroke-dasharray: 2 4; }
+.pedago-foodweb-graph__arrowhead--plante_hote { stroke: #009e73; fill: #009e73; stroke-dasharray: 2 4; }
 .pedago-foodweb-graph__line--nitrification,
-.pedago-foodweb-graph__arrowhead--nitrification { stroke: #1d4ed8; fill: #1d4ed8; stroke-dasharray: 10 3 2 3; }
+.pedago-foodweb-graph__arrowhead--nitrification { stroke: #0072b2; fill: #0072b2; stroke-dasharray: 10 3 2 3; }
 .pedago-foodweb-graph__line--symbiose,
-.pedago-foodweb-graph__arrowhead--symbiose { stroke: #0f766e; fill: #0f766e; }
+.pedago-foodweb-graph__arrowhead--symbiose { stroke: #56b4e9; fill: #56b4e9; }
 .pedago-foodweb-graph__line--competition,
-.pedago-foodweb-graph__arrowhead--competition { stroke: #4b5563; fill: #4b5563; stroke-dasharray: 4 4; }
+.pedago-foodweb-graph__arrowhead--competition { stroke: #666666; fill: #666666; stroke-dasharray: 4 4; }
 .pedago-foodweb-graph__line--default,
 .pedago-foodweb-graph__arrowhead--default { stroke: #94a3b8; fill: #94a3b8; }
-.pedago-foodweb-graph__line.active {
+.pedago-foodweb-graph__line-halo {
+  fill: none;
   stroke: #16a34a;
-  stroke-width: 2.6;
+  stroke-linecap: round;
+  opacity: 0.45;
+  pointer-events: none;
 }
 .pedago-foodweb-graph__edge-hit {
   fill: none;
@@ -8960,8 +8962,8 @@
   border: 1px solid transparent;
   background: transparent;
   border-radius: 6px;
-  padding: 6px 10px;
-  min-height: 36px;
+  padding: 8px 12px;
+  min-height: 44px;
   font-size: var(--text-sm);
   cursor: pointer;
   color: var(--forest, #1a3d2e);
@@ -8982,13 +8984,56 @@
   font-size: var(--text-sm);
   margin: 0;
 }
+.pedago-foodweb-graph__col-label {
+  font: 600 11px var(--font-sans, sans-serif);
+  fill: #4b5563;
+  pointer-events: none;
+}
+.pedago-foodweb-graph__more {
+  position: relative;
+}
+.pedago-foodweb-graph__more-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  background: #eef4f0;
+  border-radius: 8px;
+  border: 1px solid #d6e8dc;
+  min-width: 120px;
+}
+.pedago-foodweb-graph__export--mobile {
+  display: none;
+}
+.pedago-foodweb__preset-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pedago-foodweb__preset-btns .pedago-chip-btn.active {
+  background: var(--sage, #7aab8a);
+  color: #fff;
+  border-color: var(--forest, #1a3d2e);
+}
+@media (max-width: 768px) {
+  .pedago-foodweb-graph__export--desktop {
+    display: none;
+  }
+  .pedago-foodweb-graph__export--mobile {
+    display: inline-flex;
+  }
+}
 .pedago-foodweb-graph__search {
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 .pedago-foodweb-graph__search-input {
-  min-height: 36px;
+  min-height: 44px;
   min-width: 0;
   width: clamp(120px, 22vw, 200px);
   padding: 6px 10px;
