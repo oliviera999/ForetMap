@@ -27,7 +27,7 @@
     "pino": "^10.3.1",
     "qrcode": "^1.5.4",
     "socket.io": "^4.8.1",
-    "zod": "^4.5.4"
+    "zod": "^4.6.2"
   },
   "optionalDependencies": {
     "sharp": "^0.35.4"
@@ -196,7 +196,7 @@
     "@axe-core/playwright": "^4.13.0",
     "@fontsource/noto-color-emoji": "^5.3.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "@playwright/test": "^1.62.1",
+    "@playwright/test": "^1.63.0",
     "@rive-app/react-canvas": "^4.34.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.1",
@@ -207,22 +207,22 @@
     "artillery": "^2.0.34",
     "better-sqlite3": "^13.0.3",
     "cross-env": "^10.1.0",
-    "eslint": "^10.9.1",
+    "eslint": "^10.10.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.12.0",
-    "isomorphic-dompurify": "^4.1.0",
+    "isomorphic-dompurify": "^4.2.0",
     "jsdom": "^30.0.1",
-    "lucide-react": "^1.40.0",
-    "marked": "^18.0.11",
+    "lucide-react": "^1.44.0",
+    "marked": "^18.0.12",
     "nodemon": "^3.0.2",
     "prettier": "^3.9.6",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "socket.io-client": "^4.8.1",
     "supertest": "^7.2.2",
     "turndown": "^7.2.4",
-    "vite": "^8.2.1",
+    "vite": "^8.3.0",
     "vitest": "^5.0.0",
     "xlsx": "^0.18.5"
   }
