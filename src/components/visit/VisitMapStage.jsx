@@ -57,6 +57,7 @@ export function VisitMapStage({
   mascot = null,
   children = null,
   overlaySlot = null,
+  className = '',
   ...rest
 }) {
   const getIsSeen = useCallback(
@@ -80,10 +81,16 @@ export function VisitMapStage({
     [overlaySlot, children, mascot],
   );
 
+  const stageClassName = ['visit-map-stage', className]
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
   return (
     <SharedMapStage
       {...rest}
-      className="visit-map-stage"
+      className={stageClassName}
       worldClassName="visit-map-world"
       fitClassName="visit-map-fit-layer"
       imgClassName="visit-map-img"
