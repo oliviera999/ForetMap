@@ -65,8 +65,9 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
 | **Administrateur**      | Compte aux pleins pouvoirs établissement        | Tout le n3boss (y compris carnet personnel), plus réglages, rôles, secrets, prise de contrôle, audit technique          |
 
 - La montée de palier est **automatique** (nombre de tâches validées) et saluée par une
-  fenêtre de félicitations. Le vocabulaire « n3beur / n3boss » se personnalise dans les
-  réglages.
+  fenêtre de félicitations. Les **noms affichés** des profils (dont « n3beur » /
+  « n3boss ») se règlent dans **Profils & utilisateurs** ; ce n'est pas un réglage
+  séparé dans Paramètres.
 - Les rôles et leurs **permissions sont configurables** : un administrateur peut créer
   des profils sur mesure et ajuster finement qui a le droit de faire quoi (valider des
   tâches, gérer les plantes, lire les statistiques, exporter, modérer le forum…).

@@ -153,8 +153,10 @@ Une catégorie peut être **désactivée** plutôt que supprimée : elle reste p
 lieux mais disparaît des filtres et des formulaires. La supprimer la retire en revanche
 de toutes les zones et de tous les repères qui la portaient.
 
-**Où les créer** : Réglages administrateur → « Catégories de lieux ». Il faut la
-permission « Gestion zones ».
+**Où les créer** : Paramètres → Cartographie → Catégories de lieux. Il faut la
+permission « Gestion zones ». Un n3boss qui a cette permission (sans être
+administrateur des réglages) ouvre quand même Paramètres et n'y voit que la
+Cartographie.
 
 **Où les poser** : dans la fiche d'une zone ou d'un repère, onglet « Modifier », bloc
 « Catégories » (cases à cocher — plusieurs catégories possibles sur un même lieu).
@@ -469,11 +471,12 @@ la même recherche en lecture seule.
 
 ## L'inventaire admin « Zones & repères »
 
-Dans **Réglages administrateur → sous-onglet « Zones & repères »**, un inventaire
+Dans **Réglages administrateur → Cartographie → Zones & repères**, un inventaire
 liste **toutes les zones et tous les repères, toutes cartes confondues** — là où la
 recherche de la carte ne couvre que le plan affiché. C'est l'outil de relecture
 d'ensemble : repérer les doublons, les fiches sans description, les lieux restés sur
-la mauvaise carte.
+la mauvaise carte. Les personnes qui ont seulement le droit de gérer les zones ou les
+repères voient cet onglet Cartographie (sans les réglages généraux).
 
 - **Recherche libre** : même moteur que la barre de la carte (nom, espèces,
   catégories, textes de visite, note d'un repère — plusieurs mots combinables).
