@@ -70,8 +70,9 @@ familles.
   **taille du texte** et **choix de la mascotte** (bouton à patte 🐾 qui ouvre un menu
   compact). Sous cette barre : une **recherche de lieux** et, s'il y a des catégories,
   des **puces de filtre** (comme sur le plan de l'établissement) pour n'afficher que
-  certains types de lieux. Les commandes de zoom et « Me situer » restent sur le plan
-  lui-même.
+  certains types de lieux — sur téléphone, la rangée de puces **défile horizontalement**
+  dans le bandeau, sans élargir l'écran. Les commandes de zoom et « Me situer » restent
+  sur le plan lui-même.
 - **Le bouton « Présentation du lieu » ne clignote plus** au premier passage. Il reste mis
   en avant (c'est le seul bouton plein de la barre). Le plan n'a plus de libellés de
   découverte animés : la progression se lit par l'atténuation des lieux déjà vus et le

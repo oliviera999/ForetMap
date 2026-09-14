@@ -9,6 +9,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Visite : puces catégories sans scroll horizontal de page (mobile)
+
+- Rangée de filtres alignée sur le Plan Lyautey : défilement **dans** le bandeau
+  (`min-width: 0`, `overflow-x` sur la rangée, carte qui ne s'élargit plus).
+
 ### Corrigé — Visite : icônes et textes trop gros une fois connecté
 
 - Après le passage à la scène carte partagée, la typo compensait le zoom **deux fois**
