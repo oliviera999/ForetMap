@@ -4223,6 +4223,8 @@
       padding-bottom:8px;
       margin-bottom:2px;
       border-bottom:1px solid rgba(82,183,136,.15);
+      min-width:0;
+      max-width:100%;
     }
     .visit-map-card__chrome-top {
       display:flex;
@@ -4684,11 +4686,22 @@
       gap:8px;
       margin-top:8px;
       width:100%;
+      min-width:0;
+      max-width:100%;
     }
+    /* Même rôle que `.plan-filters__row` : la rangée scrolle, pas la fenêtre. */
     .visit-map-card__chrome-chips {
+      display:flex;
+      align-items:center;
+      gap:var(--space-2, 8px);
+      width:100%;
+      min-width:0;
+      max-width:100%;
       overflow-x:auto;
+      overflow-y:hidden;
       -webkit-overflow-scrolling:touch;
       scrollbar-width:none;
+      overscroll-behavior-x:contain;
     }
     .visit-map-card__chrome-chips::-webkit-scrollbar {
       display:none;
@@ -4704,7 +4717,10 @@
       background:#fff;
       border:1px solid rgba(82,183,136,.45);
       color:#1a4731;
-      max-width:28rem;
+      width:100%;
+      max-width:min(28rem, 100%);
+      box-sizing:border-box;
+      min-width:0;
     }
     .visit-search:focus-within {
       outline:2px solid var(--forest, #1a4731);
@@ -4917,6 +4933,10 @@
       background:var(--surface-1); border-radius:14px; border:1px solid var(--outline-soft);
       box-shadow:var(--shadow-soft); padding:10px;
       transition:box-shadow var(--motion-base), border-color var(--motion-base);
+      min-width:0;
+      max-width:100%;
+      /* Comme `.plan-shell` : les puces défilent dans leur rangée, pas hors carte. */
+      overflow-x:hidden;
     }
     .visit-map-stage {
       position:relative; border-radius:10px; overflow:hidden;
