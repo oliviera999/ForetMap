@@ -15,6 +15,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `visit-map-stage--fullscreen` : le plan restait en bande 16:10 au lieu de
   remplir l'overlay. Le modificateur passé par la vue est conservé.
 
+### Corrigé — Biodiversité : rattachements carte sans lieu plus atomiques
+
+- `PUT /api/plants/:id` avec un `map_id` inconnu (carte supprimée pendant
+  l'édition) faisait un `DELETE` puis un `INSERT` hors transaction : tous les
+  rattachements directs de la fiche disparaissaient. Les ids inconnus sont
+  ignorés, et le sync passe par `withTransaction`.
+
 ### Ajouté — Visite : carte partagée, recherche et filtres par catégorie
 
 - Le plan de visite s'appuie sur la **même scène carte** que le Plan (zones, repères,
