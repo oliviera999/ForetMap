@@ -210,14 +210,16 @@ export function TeacherTopTabs({
         hasPermissionInRole('groups.manage') ||
         hasPermissionInRole('groups.read'),
     },
-    /* `tours.manage` ouvre l'onglet sans `admin.settings.read` : un prof à qui l'on
-       délègue la réécriture des visites guidées n'y voit que ce sous-onglet. */
     {
       id: 'settings',
       pole: 'admin',
       Icon: IconSettings,
       label: 'Paramètres',
-      visible: hasPermissionInRole('admin.settings.read') || hasPermissionInRole('tours.manage'),
+      visible:
+        hasPermissionInRole('admin.settings.read') ||
+        hasPermissionInRole('tours.manage') ||
+        hasPermissionInRole('zones.manage') ||
+        hasPermissionInRole('map.manage_markers'),
     },
     { id: 'about', pole: 'admin', Icon: IconAbout, label: 'À propos', visible: true },
   ];

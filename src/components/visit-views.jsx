@@ -59,6 +59,7 @@ import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx'
 import { VisitMapMascot } from './VisitMapMascot.jsx';
 import { buildPlaceIndex, searchPlaces } from '../shared/search/placeSearch.js';
 import { countPlacesByCategory, filterPlacesByCategories } from '../plan/utils/planPlaces.js';
+import { parseCategoryIdsSetting } from '../utils/categoryIdsSetting.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { DataProvider, useData } from '../contexts/DataContext.jsx';
@@ -382,6 +383,7 @@ function VisitViewImpl({
 
   const [placeSearchQuery, setPlaceSearchQuery] = useState('');
   const [selectedCategoryIds, setSelectedCategoryIds] = useState(() => new Set());
+  const [categoryDefaultsApplied, setCategoryDefaultsApplied] = useState(false);
   const categoryCatalog = useMemo(
     () => (Array.isArray(content.categories) ? content.categories : []),
     [content.categories],
@@ -390,6 +392,19 @@ function VisitViewImpl({
     () => new Map(categoryCatalog.map((c) => [String(c.id), c])),
     [categoryCatalog],
   );
+
+  // Catégories cochées d'office (réglage admin `ui.visit.default_category_ids`).
+  useEffect(() => {
+    if (categoryDefaultsApplied || !categoryCatalog.length) return;
+    const raw =
+      publicSettings?.visit?.default_category_ids ??
+      publicSettings?.ui?.visit?.default_category_ids ??
+      '';
+    const ids = parseCategoryIdsSetting(raw).filter((id) => categoriesById.has(id));
+    if (ids.length) setSelectedCategoryIds(new Set(ids));
+    setCategoryDefaultsApplied(true);
+  }, [categoryDefaultsApplied, categoryCatalog, categoriesById, publicSettings]);
+
   const visitPlaces = useMemo(() => {
     const zones = (content.zones || []).map((zone) => ({
       ...zone,

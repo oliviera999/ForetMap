@@ -9,6 +9,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Assainissement console admin ForetMap
+
+- **Permissions UI** alignées sur l’API : lecture seule, Moodle (`integrations.moodle.manage`),
+  secrets/restart, Cartographie accessible avec `zones.manage` / `map.manage_markers`.
+- **Sous-onglets thématiques** : Accueil & modules, Pédagogie, Cartographie, Plan Lyautey,
+  Identité visuelle, Visite, Intégrations, Aide & découverte, Usage & exploitation.
+- **Éditeur de marque** ForetMap / Plan ; catégories par défaut carte & visite branchées ;
+  multi-sélection de catégories (Plan inclus).
+- **Hygiène grille** : clés plan / brand / hash / dialogues mascotte / flag seed exclus ;
+  titre audit À propos réglable (`content.about.site_issues_title`).
+- **Profils & groupes** : modales multi-champs (plus d’enchaînements de prompts) ; types de
+  groupes en français.
+- Doc de référence mise à jour (Carnet dans Suivi, chemins Paramètres, terminologie,
+  Moodle).
+
 ### Amélioré — Réseau trophique : couleurs, cadrage, tactile
 
 - Nouvelle palette de relations (ambre, vermillon, pourpre, cyan… — tables type

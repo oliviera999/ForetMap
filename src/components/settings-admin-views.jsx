@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../services/api';
-import { compressImageWithPreset } from '../shared/platform/image';
 import { scopeLabel, buildConstraintHelp } from '../utils/settingDisplay.js';
 import {
   resolveSettingLabel,
@@ -9,17 +8,18 @@ import {
   countSectionRows,
 } from '../utils/settingsAdminSections.js';
 import { getRoleTerms } from '../utils/n3-terminology';
-import { MediaLibraryMenu } from './MediaLibraryMenu.jsx';
 import { AdminTextSettingField, AdminNumberSettingField } from './settings/AdminSettingFields.jsx';
 import { MapCategoriesPanel } from './settings/MapCategoriesPanel.jsx';
 import { MapRoutesPanel } from './settings/MapRoutesPanel.jsx';
 import { PlanSettingsPanel } from './settings/PlanSettingsPanel.jsx';
 import { UsagePanel } from './settings/UsagePanel.jsx';
 import { MapLocationsAdminPanel } from './settings/MapLocationsAdminPanel.jsx';
-import { MapGeorefPanel } from './settings/MapGeorefPanel.jsx';
+import { MapsAdminPanel } from './settings/MapsAdminPanel.jsx';
 import { VisitMascotSettingsPanel } from './settings/VisitMascotSettingsPanel.jsx';
 import { FMLearningGatingSettings } from './settings/FMLearningGatingSettings.jsx';
 import { MoodleAdminPanel } from './settings/MoodleAdminPanel.jsx';
+import { CategoryIdsMultiSelect } from './settings/CategoryIdsMultiSelect.jsx';
+import { ForetBrandEditor } from './settings/ForetBrandEditor.jsx';
 import { ForetMapHelpContentAdminPanel } from './help/ForetMapHelpContentAdminPanel.jsx';
 import { HelpNarratorAdminPanel } from './help/HelpNarratorAdminPanel.jsx';
 import { ForetMapReferenceDocsPanel } from './help/ForetMapReferenceDocsPanel.jsx';
@@ -27,20 +27,158 @@ import { DiscoveryTourAdminPanel } from './help/DiscoveryTourAdminPanel.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { AdminSection } from '../shared/components/AdminSection.jsx';
-import { IconCamera, IconGallery, IconSettings, IconWarning } from '../shared/icons.jsx';
+import { IconSettings, IconWarning } from '../shared/icons.jsx';
+import { FORETMAP_BRAND_DEFAULTS } from '../constants/brand.js';
+import { PLAN_BRAND_DEFAULTS } from '../plan/utils/planBrand.js';
+
+const ACCUEIL_SECTION_IDS = ['auth', 'modules', 'content'];
+const PEDAGO_SECTION_IDS = ['tasks', 'progression', 'imports'];
+const OPS_SECTION_IDS = ['operations', 'security', 'other'];
+
+const SEARCH_INDEX = [
+  {
+    id: 'accueil',
+    label: 'Accueil & modules',
+    keywords: ['accueil', 'auth', 'modules', 'connexion', 'authentification', 'contenu'],
+  },
+  {
+    id: 'pedago',
+    label: 'Pédagogie',
+    keywords: [
+      'pédagogie',
+      'pedagogie',
+      'pedago',
+      'gating',
+      'conditionnement',
+      'progression',
+      'tâches',
+      'taches',
+      'imports',
+    ],
+  },
+  {
+    id: 'carto',
+    label: 'Cartographie',
+    keywords: [
+      'carto',
+      'cartographie',
+      'carte',
+      'cartes',
+      'calage',
+      'catégories',
+      'categories',
+      'zones',
+      'repères',
+      'reperes',
+      'parcours',
+      'lieux',
+    ],
+  },
+  {
+    id: 'plan',
+    label: 'Plan Lyautey',
+    keywords: ['plan', 'lyautey', 'qr'],
+  },
+  {
+    id: 'brand',
+    label: 'Identité visuelle',
+    keywords: ['identité', 'identite', 'marque', 'brand', 'logo', 'couleurs', 'charte'],
+  },
+  {
+    id: 'visit',
+    label: 'Visite',
+    keywords: ['visite', 'mascotte', 'mascot', 'boussole', 'orienter'],
+  },
+  {
+    id: 'integs',
+    label: 'Intégrations',
+    keywords: ['intégrations', 'integrations', 'moodle', 'lti'],
+  },
+  {
+    id: 'aide',
+    label: 'Aide & découverte',
+    keywords: [
+      'aide',
+      'découverte',
+      'decouverte',
+      'narrateur',
+      'olu',
+      'tours',
+      'visites guidées',
+      'référence',
+      'reference',
+    ],
+  },
+  {
+    id: 'ops',
+    label: 'Usage & exploitation',
+    keywords: [
+      'usage',
+      'exploitation',
+      'ops',
+      'logs',
+      'diagnostic',
+      'redémarrage',
+      'redemarrage',
+      'oauth',
+      'sécurité',
+      'securite',
+    ],
+  },
+];
+
+function pickSections(sections, ids) {
+  const allowed = new Set(ids);
+  return (sections || []).filter((s) => allowed.has(s.id));
+}
+
+function resolveInitialSection({ canReadSettings, canCarto }) {
+  if (canReadSettings) return 'accueil';
+  if (canCarto) return 'carto';
+  return 'aide';
+}
+
+function summarizeDiagnostics(diag) {
+  if (!diag || typeof diag !== 'object') return 'Diagnostic chargé.';
+  const parts = [];
+  if (diag.ok === true) parts.push('État global : OK');
+  else if (diag.ok === false) parts.push('État global : problème détecté');
+  if (diag.status != null && String(diag.status).trim()) {
+    parts.push(`Statut : ${diag.status}`);
+  }
+  if (diag.summary != null && String(diag.summary).trim()) {
+    parts.push(String(diag.summary));
+  }
+  if (diag.message != null && String(diag.message).trim()) {
+    parts.push(String(diag.message));
+  }
+  return parts.length ? parts.join(' — ') : 'Diagnostic chargé (détail JSON ci-dessous).';
+}
 
 /**
  * Console de réglages administrateur.
  *
- * Deux droits distincts y donnent accès : `admin.settings.read` ouvre la console
- * entière ; `tours.manage`, délégable à un profil prof, n'ouvre que le sous-onglet
- * « Visites guidées ». Les droits arrivent en props — `SessionContext` les exclut
- * volontairement pour ne pas réafficher des contrôles prof en vue élève.
+ * Droits : `admin.settings.read` / `.write`, `tours.manage`, `zones.manage`,
+ * `map.manage_markers`, `integrations.moodle.manage`, `admin.settings.secrets.write`.
+ * Les droits arrivent en props — `SessionContext` les exclut volontairement pour ne pas
+ * réafficher des contrôles prof en vue élève.
  */
-function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
+function SettingsAdminView({
+  canReadSettings = true,
+  canWriteSettings = true,
+  canManageTours = false,
+  canManageMoodle = false,
+  canManageZones = false,
+  canManageMarkers = false,
+  canWriteSecrets = false,
+}) {
   const { confirm } = useAppDialogs();
   const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
+
+  const canCarto = canReadSettings || canManageZones || canManageMarkers;
+  const canAccessConsole = canReadSettings || canManageTours || canCarto;
+
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState('');
   const [settings, setSettings] = useState([]);
@@ -52,12 +190,13 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [adminSection, setAdminSection] = useState(canReadSettings ? 'general' : 'tours');
-  const mapGalleryFileRefs = useRef({});
-  const mapCameraFileRefs = useRef({});
-  const [newMapId, setNewMapId] = useState('');
-  const [newMapLabel, setNewMapLabel] = useState('');
-  const [newMapSort, setNewMapSort] = useState('3');
+  const [adminSection, setAdminSection] = useState(() =>
+    resolveInitialSection({ canReadSettings, canCarto }),
+  );
+  const [cartoSub, setCartoSub] = useState('maps');
+  const [aideSub, setAideSub] = useState(() =>
+    canManageTours && !canReadSettings ? 'tours' : 'help',
+  );
 
   const settingByKey = useMemo(() => {
     const out = {};
@@ -77,37 +216,81 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
     [searchQuery, settingSections, roleTerms],
   );
 
-  const filteredCount = useMemo(
-    () => countSectionRows(filteredSettingSections),
-    [filteredSettingSections],
-  );
-
-  // Recherche active → les sections de la grille sont forcées ouvertes (sans persister),
-  // pour que les résultats filtrés restent visibles.
   const searchActive = searchQuery.trim().length > 0;
+
+  const searchTabHints = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return SEARCH_INDEX.filter((entry) => {
+      if (entry.id === 'integs' && !canManageMoodle) return false;
+      if (entry.id === 'carto' && !canCarto) return false;
+      if (entry.id === 'aide' && !(canReadSettings || canManageTours)) return false;
+      if (
+        ['accueil', 'pedago', 'plan', 'brand', 'visit', 'ops'].includes(entry.id) &&
+        !canReadSettings
+      ) {
+        return false;
+      }
+      const hay = [entry.label, ...entry.keywords].join(' ').toLowerCase();
+      return hay.includes(q) || entry.keywords.some((k) => q.includes(k));
+    });
+  }, [searchQuery, canManageMoodle, canCarto, canReadSettings, canManageTours]);
+
+  const topTabs = useMemo(() => {
+    const tabs = [];
+    if (canReadSettings) {
+      tabs.push({ id: 'accueil', label: 'Accueil & modules' });
+      tabs.push({ id: 'pedago', label: 'Pédagogie' });
+    }
+    if (canCarto) tabs.push({ id: 'carto', label: 'Cartographie' });
+    if (canReadSettings) {
+      tabs.push({ id: 'plan', label: 'Plan Lyautey' });
+      tabs.push({ id: 'brand', label: 'Identité visuelle' });
+      tabs.push({ id: 'visit', label: 'Visite' });
+    }
+    if (canManageMoodle) tabs.push({ id: 'integs', label: 'Intégrations' });
+    if (canReadSettings || canManageTours) {
+      tabs.push({ id: 'aide', label: 'Aide & découverte' });
+    }
+    if (canReadSettings) tabs.push({ id: 'ops', label: 'Usage & exploitation' });
+    return tabs;
+  }, [canReadSettings, canCarto, canManageMoodle, canManageTours]);
 
   const load = async () => {
     setErr('');
     setLoading(true);
-    // Sans `admin.settings.read`, cet appel répondrait 403 : on ne le tente pas, et
-    // l'écran se limite au(x) sous-onglet(s) que le droit délégué autorise.
-    if (!canReadSettings) {
-      setSettings([]);
-      setMaps([]);
+    if (canReadSettings) {
+      try {
+        const data = await api('/api/settings/admin');
+        setSettings(Array.isArray(data?.settings) ? data.settings : []);
+        setMaps(Array.isArray(data?.maps) ? data.maps : []);
+      } catch (e) {
+        setErr(e.message || 'Impossible de charger les paramètres');
+      }
       setLoading(false);
       return;
     }
-    try {
-      const data = await api('/api/settings/admin');
-      setSettings(Array.isArray(data?.settings) ? data.settings : []);
-      setMaps(Array.isArray(data?.maps) ? data.maps : []);
-    } catch (e) {
-      setErr(e.message || 'Impossible de charger les paramètres');
+    if (canCarto) {
+      try {
+        const data = await api('/api/maps');
+        setSettings([]);
+        setMaps(Array.isArray(data) ? data : Array.isArray(data?.maps) ? data.maps : []);
+      } catch (e) {
+        setErr(e.message || 'Impossible de charger les cartes');
+      }
+      setLoading(false);
+      return;
     }
+    setSettings([]);
+    setMaps([]);
     setLoading(false);
   };
 
   const saveSetting = async (key, value, okMsg = 'Paramètre enregistré') => {
+    if (!canWriteSettings) {
+      setErr('Lecture seule…');
+      return;
+    }
     setErr('');
     setMsg('');
     setSavingKey(key);
@@ -137,9 +320,8 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
   const renderSettingField = (row) => {
     const key = String(row.key || '');
     const value = get(key, row.default_value);
-    const disabled = savingKey === key;
+    const disabled = savingKey === key || !canWriteSettings;
     const label = resolveSettingLabel(key, roleTerms);
-    const maxLength = row?.constraints?.maxLength;
     const min = row?.constraints?.min;
     const max = row?.constraints?.max;
     const enumValues = Array.isArray(row?.constraints?.values) ? row.constraints.values : [];
@@ -232,13 +414,87 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
     );
   };
 
+  const renderSettingsSearch = (scopedSections) => {
+    const filtered = pickSections(filteredSettingSections, scopedSections);
+    const count = countSectionRows(filtered);
+    const totalInScope = countSectionRows(pickSections(settingSections, scopedSections));
+    return (
+      <>
+        <div className="settings-admin-card" style={{ marginBottom: 12 }}>
+          <div className="field" style={{ marginBottom: 8 }}>
+            <label>Recherche dans les paramètres</label>
+            <input
+              type="text"
+              value={searchQuery}
+              placeholder="Ex: maintenance, oauth, jwt, carte, public..."
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          {searchTabHints.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
+                Aller à :
+              </span>
+              {searchTabHints.map((hint) => (
+                <button
+                  key={hint.id}
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setAdminSection(hint.id)}
+                >
+                  {hint.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
+              {count} paramètre(s) affiché(s) sur {totalInScope}
+            </div>
+            {searchQuery && (
+              <button className="btn btn-secondary btn-sm" onClick={() => setSearchQuery('')}>
+                Réinitialiser le filtre
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="settings-admin-grid">
+          {filtered.map((section) => (
+            <AdminSection
+              key={section.id}
+              id={section.id ?? section.title}
+              title={section.title}
+              defaultOpen={false}
+              forceOpen={searchActive}
+            >
+              {section.rows.map((row) => renderSettingField(row))}
+            </AdminSection>
+          ))}
+        </div>
+        {count === 0 && (
+          <div className="empty" style={{ marginTop: 12 }}>
+            <p>Aucun paramètre ne correspond au filtre saisi.</p>
+          </div>
+        )}
+      </>
+    );
+  };
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canReadSettings]);
+  }, [canReadSettings, canCarto]);
 
   useEffect(() => {
-    if (loading || adminSection !== 'general') return;
+    if (loading) return;
     let focus = null;
     try {
       focus = sessionStorage.getItem('foretmap:settings:focus');
@@ -250,6 +506,10 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
       sessionStorage.removeItem('foretmap:settings:focus');
     } catch (_) {
       /* ignore */
+    }
+    if (adminSection !== 'pedago') {
+      setAdminSection('pedago');
+      return;
     }
     requestAnimationFrame(() => {
       const target = document.getElementById('settings-learning-gating');
@@ -263,118 +523,6 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
       });
     });
   }, [loading, adminSection]);
-
-  /**
-   * Remplace une carte dans l'état local avec la version renvoyée par le serveur,
-   * en conservant l'ordre serveur (`listMaps` : sort_order ASC, label ASC).
-   */
-  const upsertMapLocally = (updated) => {
-    setMaps((prev) =>
-      prev
-        .map((m) => (m.id === updated.id ? updated : m))
-        .sort(
-          (a, b) =>
-            (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) ||
-            String(a.label || '').localeCompare(String(b.label || ''), 'fr'),
-        ),
-    );
-  };
-
-  const saveMap = async (mapId, patch, okMsg = 'Carte mise à jour') => {
-    setErr('');
-    setMsg('');
-    setSavingKey(`map:${mapId}`);
-    try {
-      // PUT /api/settings/admin/maps/:id renvoie la carte normalisée complète.
-      const updated = await api(
-        `/api/settings/admin/maps/${encodeURIComponent(mapId)}`,
-        'PUT',
-        patch,
-      );
-      if (updated?.id) upsertMapLocally(updated);
-      else await load();
-      setMsg(okMsg);
-    } catch (e) {
-      await load();
-      setErr(e.message || 'Échec mise à jour carte');
-    }
-    setSavingKey('');
-  };
-
-  const uploadMapImage = async (mapId, file) => {
-    if (!file) return;
-    setErr('');
-    setMsg('');
-    setSavingKey(`map-image:${mapId}`);
-    try {
-      const dataUrl = await compressImageWithPreset(file, 'adminProfile');
-      // POST .../image renvoie aussi la carte normalisée complète.
-      const updated = await api(
-        `/api/settings/admin/maps/${encodeURIComponent(mapId)}/image`,
-        'POST',
-        {
-          image_data: dataUrl,
-        },
-      );
-      if (updated?.id) upsertMapLocally(updated);
-      else await load();
-      setMsg('Image de plan mise à jour');
-    } catch (e) {
-      await load();
-      setErr(e.message || 'Échec upload image');
-    }
-    setSavingKey('');
-  };
-
-  const createMap = async () => {
-    const id = String(newMapId || '')
-      .trim()
-      .toLowerCase();
-    const label = String(newMapLabel || '').trim();
-    if (!id || !label) {
-      setErr('Identifiant et libellé sont requis pour créer une carte');
-      return;
-    }
-    setErr('');
-    setMsg('');
-    setSavingKey('map:create');
-    try {
-      const sortOrder = parseInt(newMapSort, 10);
-      await api('/api/settings/admin/maps', 'POST', {
-        id,
-        label,
-        sort_order: Number.isFinite(sortOrder) ? sortOrder : 99,
-        map_image_url: '/map.png',
-        is_active: true,
-      });
-      setNewMapId('');
-      setNewMapLabel('');
-      setNewMapSort(String(Math.max(3, (maps?.length || 2) + 1)));
-      await load();
-      setMsg('Carte créée — configure l’URL ou l’image ci-dessous si besoin.');
-    } catch (e) {
-      setErr(e.message || 'Échec création carte');
-    }
-    setSavingKey('');
-  };
-
-  const fetchMediaLibrary = async () => {
-    const data = await api('/api/settings/admin/media-library?limit=400');
-    return Array.isArray(data?.items) ? data.items : [];
-  };
-
-  const uploadMediaLibrary = async (mediaData, options = {}) => {
-    await api('/api/settings/admin/media-library', 'POST', {
-      media_data: mediaData,
-      original_name: options.originalName || null,
-    });
-    setMsg('Média ajouté à la bibliothèque');
-  };
-
-  const deleteMediaLibrary = async (relativePath) => {
-    await api('/api/settings/admin/media-library', 'DELETE', { relative_path: relativePath });
-    setMsg('Média supprimé de la bibliothèque');
-  };
 
   const fetchLogs = async () => {
     setErr('');
@@ -451,6 +599,14 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
     setSavingKey('');
   };
 
+  if (!canAccessConsole) {
+    return (
+      <div className="empty">
+        <p>Vous n’avez pas accès à la console de paramètres.</p>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="empty">
@@ -458,6 +614,134 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
       </div>
     );
   }
+
+  const allowRemoteLogs = get('ops.allow_remote_logs', true);
+  const allowRemoteRestart = get('ops.allow_remote_restart', true);
+
+  const renderCarto = () => {
+    const cartoTabs = [
+      ...(canReadSettings ? [{ id: 'maps', label: 'Cartes' }] : []),
+      { id: 'locations', label: 'Zones & repères' },
+      { id: 'categories', label: 'Catégories' },
+      { id: 'routes', label: 'Parcours' },
+    ];
+    const activeCarto = cartoTabs.some((t) => t.id === cartoSub)
+      ? cartoSub
+      : cartoTabs[0]?.id || 'locations';
+    return (
+      <>
+        <div
+          className="gl-subtabs settings-admin-subtabs"
+          role="tablist"
+          aria-label="Sous-sections cartographie"
+          style={{ marginBottom: 12, flexWrap: 'wrap' }}
+        >
+          {cartoTabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={activeCarto === t.id}
+              className={activeCarto === t.id ? 'is-active' : ''}
+              onClick={() => setCartoSub(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {activeCarto === 'maps' && canReadSettings ? (
+          <MapsAdminPanel
+            maps={maps}
+            get={get}
+            saveSetting={saveSetting}
+            savingKey={savingKey}
+            canWrite={canWriteSettings}
+            onMessage={(okMsg) => {
+              setMsg(okMsg);
+              setErr('');
+            }}
+            onError={(errMsg) => setErr(errMsg)}
+            onMapsChanged={load}
+          />
+        ) : null}
+        {activeCarto === 'locations' ? (
+          <MapLocationsAdminPanel
+            maps={maps}
+            onMessage={(okMsg) => {
+              setMsg(okMsg);
+              setErr('');
+            }}
+            onError={(errMsg) => setErr(errMsg)}
+          />
+        ) : null}
+        {activeCarto === 'categories' ? (
+          <MapCategoriesPanel
+            maps={maps}
+            onMessage={(okMsg) => {
+              setMsg(okMsg);
+              setErr('');
+            }}
+            onError={(errMsg) => setErr(errMsg)}
+          />
+        ) : null}
+        {activeCarto === 'routes' ? (
+          <MapRoutesPanel
+            maps={maps}
+            onMessage={(okMsg) => {
+              setMsg(okMsg);
+              setErr('');
+            }}
+            onError={(errMsg) => setErr(errMsg)}
+          />
+        ) : null}
+      </>
+    );
+  };
+
+  const renderAide = () => {
+    const aideTabs = [];
+    if (canReadSettings) aideTabs.push({ id: 'help', label: "Bulles d'aide" });
+    if (canReadSettings) aideTabs.push({ id: 'narrator', label: 'Narrateur OLU' });
+    if (canManageTours) aideTabs.push({ id: 'tours', label: 'Visites guidées' });
+    if (canReadSettings) aideTabs.push({ id: 'reference', label: 'Doc de référence' });
+    const activeAide = aideTabs.some((t) => t.id === aideSub) ? aideSub : aideTabs[0]?.id || 'help';
+
+    return (
+      <>
+        <div
+          className="gl-subtabs settings-admin-subtabs"
+          role="tablist"
+          aria-label="Sous-sections aide"
+          style={{ marginBottom: 12, flexWrap: 'wrap' }}
+        >
+          {aideTabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={activeAide === t.id}
+              className={activeAide === t.id ? 'is-active' : ''}
+              onClick={() => setAideSub(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {activeAide === 'help' && canReadSettings ? <ForetMapHelpContentAdminPanel /> : null}
+        {activeAide === 'narrator' && canReadSettings ? <HelpNarratorAdminPanel /> : null}
+        {activeAide === 'tours' ? (
+          canManageTours ? (
+            <DiscoveryTourAdminPanel />
+          ) : (
+            <div className="empty">
+              <p>Cette section demande la permission « Édition visites guidées ».</p>
+            </div>
+          )
+        ) : null}
+        {activeAide === 'reference' && canReadSettings ? <ForetMapReferenceDocsPanel /> : null}
+      </>
+    );
+  };
 
   return (
     <div className="fade-in settings-admin">
@@ -467,97 +751,147 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
       <p className="section-sub">
         Tout ce qui fait tourner l’app proprement : accueil, cartes, sécurité, exploitation.
       </p>
+      {!canReadSettings && canManageTours ? (
+        <div className="auth-success" role="status" style={{ marginBottom: 8 }}>
+          Vous n’avez accès qu’aux Visites guidées.
+        </div>
+      ) : null}
+      {!canReadSettings && canCarto ? (
+        <div className="auth-success" role="status" style={{ marginBottom: 8 }}>
+          Vous n’avez accès qu’à la Cartographie.
+        </div>
+      ) : null}
+      {canReadSettings && !canWriteSettings ? (
+        <div className="auth-success" role="status" style={{ marginBottom: 8 }}>
+          Lecture seule : vous pouvez consulter les paramètres mais pas les modifier.
+        </div>
+      ) : null}
       {err && (
         <div className="auth-error">
           <IconWarning size={14} /> {err}
         </div>
       )}
       {msg && <div className="auth-success">{msg}</div>}
-      <nav className="gl-subtabs" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
-        {canReadSettings && (
-          <>
-            <button
-              type="button"
-              className={adminSection === 'general' ? 'is-active' : ''}
-              onClick={() => setAdminSection('general')}
-            >
-              Paramètres généraux
-            </button>
-            <button
-              type="button"
-              className={adminSection === 'locations' ? 'is-active' : ''}
-              onClick={() => setAdminSection('locations')}
-            >
-              Zones & repères
-            </button>
-            <button
-              type="button"
-              className={adminSection === 'help' ? 'is-active' : ''}
-              onClick={() => setAdminSection('help')}
-            >
-              Bulles d'aide
-            </button>
-            <button
-              type="button"
-              className={adminSection === 'narrator' ? 'is-active' : ''}
-              onClick={() => setAdminSection('narrator')}
-            >
-              Narrateur OLU
-            </button>
-            <button
-              type="button"
-              className={adminSection === 'moodle' ? 'is-active' : ''}
-              onClick={() => setAdminSection('moodle')}
-            >
-              Moodle
-            </button>
-          </>
-        )}
-        {canManageTours && (
+      <div
+        className="gl-subtabs settings-admin-subtabs"
+        role="tablist"
+        aria-label="Sections paramètres"
+        style={{ marginBottom: 12, flexWrap: 'wrap' }}
+      >
+        {topTabs.map((t) => (
           <button
+            key={t.id}
             type="button"
-            className={adminSection === 'tours' ? 'is-active' : ''}
-            onClick={() => setAdminSection('tours')}
+            role="tab"
+            aria-selected={adminSection === t.id}
+            className={adminSection === t.id ? 'is-active' : ''}
+            onClick={() => setAdminSection(t.id)}
           >
-            Visites guidées
+            {t.label}
           </button>
-        )}
-        {canReadSettings && (
-          <button
-            type="button"
-            className={adminSection === 'reference' ? 'is-active' : ''}
-            onClick={() => setAdminSection('reference')}
-          >
-            Doc de référence
-          </button>
-        )}
-      </nav>
-      {adminSection === 'tours' ? (
-        canManageTours ? (
-          <DiscoveryTourAdminPanel />
-        ) : (
-          <div className="empty">
-            <p>Cette section demande la permission « Édition visites guidées ».</p>
-          </div>
-        )
-      ) : !canReadSettings ? (
-        <div className="empty">
-          <p>Cette section demande la permission « Lecture paramètres admin ».</p>
-        </div>
-      ) : adminSection === 'locations' ? (
-        <MapLocationsAdminPanel
+        ))}
+      </div>
+
+      {adminSection === 'accueil' && canReadSettings
+        ? renderSettingsSearch(ACCUEIL_SECTION_IDS)
+        : null}
+
+      {adminSection === 'pedago' && canReadSettings ? (
+        <>
+          {renderSettingsSearch(PEDAGO_SECTION_IDS)}
+          <AdminSection id="gating" title="Conditionnement pédagogique" defaultOpen={false}>
+            <FMLearningGatingSettings get={get} saveSetting={saveSetting} savingKey={savingKey} />
+          </AdminSection>
+        </>
+      ) : null}
+
+      {adminSection === 'carto' && canCarto ? renderCarto() : null}
+
+      {adminSection === 'plan' && canReadSettings ? (
+        <PlanSettingsPanel
           maps={maps}
+          get={get}
+          saveSetting={saveSetting}
+          savingKey={savingKey}
+          canWrite={canWriteSettings}
           onMessage={(okMsg) => {
             setMsg(okMsg);
             setErr('');
+            load();
           }}
           onError={(errMsg) => setErr(errMsg)}
         />
-      ) : adminSection === 'reference' ? (
-        <ForetMapReferenceDocsPanel />
-      ) : adminSection === 'narrator' ? (
-        <HelpNarratorAdminPanel />
-      ) : adminSection === 'moodle' ? (
+      ) : null}
+
+      {adminSection === 'brand' && canReadSettings ? (
+        <div className="settings-admin-grid">
+          <ForetBrandEditor
+            title="Marque ForetMap"
+            value={get('ui.foret.brand', {})}
+            defaults={FORETMAP_BRAND_DEFAULTS}
+            disabled={!canWriteSettings}
+            saving={savingKey === 'ui.foret.brand'}
+            onSave={(next) => saveSetting('ui.foret.brand', next, 'Identité ForetMap enregistrée')}
+          />
+          <ForetBrandEditor
+            title="Marque Plan Lyautey"
+            value={get('ui.plan.brand', {})}
+            defaults={PLAN_BRAND_DEFAULTS}
+            disabled={!canWriteSettings}
+            saving={savingKey === 'ui.plan.brand'}
+            onSave={(next) => saveSetting('ui.plan.brand', next, 'Identité Plan enregistrée')}
+          />
+        </div>
+      ) : null}
+
+      {adminSection === 'visit' && canReadSettings ? (
+        <AdminSection id="mascots" title="Mascottes de visite" defaultOpen>
+          <label
+            className="field"
+            style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}
+            data-testid="visit-heading-up-setting"
+          >
+            <input
+              type="checkbox"
+              checked={Boolean(get('ui.visit.heading_up_enabled', false))}
+              disabled={savingKey === 'ui.visit.heading_up_enabled' || !canWriteSettings}
+              onChange={(e) =>
+                saveSetting(
+                  'ui.visit.heading_up_enabled',
+                  e.target.checked,
+                  e.target.checked
+                    ? 'Orientation boussole autorisée sur la Visite'
+                    : 'Orientation boussole désactivée sur la Visite',
+                )
+              }
+            />
+            <span>
+              Autoriser « Me situer » / « Orienter » sur la Visite (la carte affichée doit aussi
+              l’autoriser dans son calage GPS).
+            </span>
+          </label>
+          <CategoryIdsMultiSelect
+            label="Catégories cochées d’office sur la Visite"
+            value={get('ui.visit.default_category_ids', '')}
+            disabled={!canWriteSettings || savingKey === 'ui.visit.default_category_ids'}
+            hint="Les catégories sélectionnées sont pré-cochées pour les visiteurs."
+            testId="visit-default-category-ids"
+            onSave={(next) =>
+              saveSetting(
+                'ui.visit.default_category_ids',
+                next,
+                'Catégories Visite par défaut enregistrées',
+              )
+            }
+          />
+          <VisitMascotSettingsPanel
+            defaultValue={get('ui.visit.mascot.default_id', '')}
+            onSave={(key, value) => saveSetting(key, value, 'Réglages mascottes enregistrés')}
+          />
+        </AdminSection>
+      ) : null}
+
+      {adminSection === 'integs' && canManageMoodle ? (
         <MoodleAdminPanel
           get={get}
           saveSetting={saveSetting}
@@ -568,413 +902,16 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
           }}
           onError={(errMsg) => setErr(errMsg)}
         />
-      ) : adminSection === 'help' ? (
-        <ForetMapHelpContentAdminPanel />
-      ) : (
+      ) : null}
+
+      {adminSection === 'aide' && (canReadSettings || canManageTours) ? renderAide() : null}
+
+      {adminSection === 'ops' && canReadSettings ? (
         <>
-          <div className="settings-admin-card" style={{ marginBottom: 12 }}>
-            <div className="field" style={{ marginBottom: 8 }}>
-              <label>Recherche dans les paramètres</label>
-              <input
-                type="text"
-                value={searchQuery}
-                placeholder="Ex: maintenance, oauth, jwt, carte, public..."
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 8,
-                flexWrap: 'wrap',
-              }}
-            >
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
-                {filteredCount} paramètre(s) affiché(s) sur {settings.length}
-              </div>
-              {searchQuery && (
-                <button className="btn btn-secondary btn-sm" onClick={() => setSearchQuery('')}>
-                  Réinitialiser le filtre
-                </button>
-              )}
-            </div>
-          </div>
-
-          <AdminSection id="gating" title="Conditionnement pédagogique" defaultOpen={false}>
-            <FMLearningGatingSettings get={get} saveSetting={saveSetting} savingKey={savingKey} />
-          </AdminSection>
-
-          <div className="settings-admin-grid">
-            {filteredSettingSections.map((section) => (
-              <AdminSection
-                key={section.id}
-                id={section.id ?? section.title}
-                title={section.title}
-                defaultOpen={false}
-                forceOpen={searchActive}
-              >
-                {section.rows.map((row) => renderSettingField(row))}
-              </AdminSection>
-            ))}
-          </div>
-          {filteredCount === 0 && (
-            <div className="empty" style={{ marginTop: 12 }}>
-              <p>Aucun paramètre ne correspond au filtre saisi.</p>
-            </div>
-          )}
-
-          {/* Réglages mascottes : panneau dédié (vignettes + choix du défaut) — la clé
-              correspondante est retirée de la grille texte libre ci-dessus. */}
-          <AdminSection id="mascots" title="Mascottes de visite" defaultOpen={false}>
-            <label
-              className="field"
-              style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}
-              data-testid="visit-heading-up-setting"
-            >
-              <input
-                type="checkbox"
-                checked={Boolean(get('ui.visit.heading_up_enabled', false))}
-                disabled={savingKey === 'ui.visit.heading_up_enabled'}
-                onChange={(e) =>
-                  saveSetting(
-                    'ui.visit.heading_up_enabled',
-                    e.target.checked,
-                    e.target.checked
-                      ? 'Orientation boussole autorisée sur la Visite'
-                      : 'Orientation boussole désactivée sur la Visite',
-                  )
-                }
-              />
-              <span>
-                Autoriser « Me situer » / « Orienter » sur la Visite (la carte affichée doit aussi
-                l’autoriser dans son calage GPS).
-              </span>
-            </label>
-            <VisitMascotSettingsPanel
-              defaultValue={get('ui.visit.mascot.default_id', '')}
-              onSave={(key, value) => saveSetting(key, value, 'Réglages mascottes enregistrés')}
-            />
-          </AdminSection>
-
-          <AdminSection id="maps" title="Cartes & plans" defaultOpen={false}>
-            <p
-              style={{
-                fontSize: 'var(--text-sm)',
-                color: 'var(--ink-soft)',
-                marginBottom: 10,
-                lineHeight: 'var(--lh-normal)',
-              }}
-            >
-              Nouveau plan : identifiant technique stable (ex. <code>potager</code>), libellé
-              affiché dans l’app, puis image (URL ou upload). Les élèves « les deux espaces » voient
-              toutes les cartes actives ; une affiliation peut cibler un seul plan (y compris ceux
-              ajoutés ici).
-            </p>
-            <label
-              className="field"
-              style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}
-              data-testid="map-heading-up-setting"
-            >
-              <input
-                type="checkbox"
-                checked={Boolean(get('ui.map.heading_up_enabled', false))}
-                disabled={savingKey === 'ui.map.heading_up_enabled'}
-                onChange={(e) =>
-                  saveSetting(
-                    'ui.map.heading_up_enabled',
-                    e.target.checked,
-                    e.target.checked
-                      ? 'Orientation boussole autorisée sur la carte'
-                      : 'Orientation boussole désactivée sur la carte',
-                  )
-                }
-              />
-              <span>
-                Autoriser « Orienter » sur la carte de travail (chaque carte doit aussi l’autoriser
-                dans son calage GPS).
-              </span>
-            </label>
-            <label
-              className="field"
-              style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}
-              data-testid="map-show-tutorial-dots-setting"
-            >
-              <input
-                type="checkbox"
-                checked={Boolean(get('ui.map.show_tutorial_dots', false))}
-                disabled={savingKey === 'ui.map.show_tutorial_dots'}
-                onChange={(e) =>
-                  saveSetting(
-                    'ui.map.show_tutorial_dots',
-                    e.target.checked,
-                    e.target.checked
-                      ? 'Pastilles tutoriel visibles sur la carte'
-                      : 'Pastilles tutoriel masquées sur la carte',
-                  )
-                }
-              />
-              <span>
-                Afficher le point violet sur les zones et repères liés à un tutoriel (désactivé par
-                défaut : le point reste invisible).
-              </span>
-            </label>
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 8,
-                alignItems: 'flex-end',
-                marginBottom: 12,
-                paddingBottom: 12,
-                borderBottom: '1px solid #e5e7eb',
-              }}
-            >
-              <div className="field" style={{ margin: 0, flex: '1 1 120px' }}>
-                <label>Identifiant (slug)</label>
-                <input
-                  value={newMapId}
-                  onChange={(e) => setNewMapId(e.target.value)}
-                  placeholder="ex. potager"
-                  autoComplete="off"
-                />
-              </div>
-              <div className="field" style={{ margin: 0, flex: '1 1 180px' }}>
-                <label>Libellé</label>
-                <input
-                  value={newMapLabel}
-                  onChange={(e) => setNewMapLabel(e.target.value)}
-                  placeholder="ex. Potager pédagogique"
-                  autoComplete="off"
-                />
-              </div>
-              <div className="field" style={{ margin: 0, width: 96 }}>
-                <label>Ordre</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={newMapSort}
-                  onChange={(e) => setNewMapSort(e.target.value)}
-                />
-              </div>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={createMap}
-                disabled={savingKey === 'map:create'}
-              >
-                {savingKey === 'map:create' ? '…' : '+ Ajouter la carte'}
-              </button>
-            </div>
-            <div className="settings-admin-maps-list">
-              {maps.map((m) => (
-                <div
-                  key={m.id}
-                  style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 10 }}
-                >
-                  <div className="settings-admin-map-row">
-                    <div>
-                      <div style={{ fontWeight: 'var(--fw-bold)' }}>{m.label}</div>
-                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}>
-                        {m.id}
-                      </div>
-                    </div>
-                    {/* Champs pilotés (resynchronisés si le serveur normalise la valeur). */}
-                    <AdminTextSettingField
-                      rowKey={`map:${m.id}:label`}
-                      label="Libellé"
-                      row={{ type: 'string', scope: 'admin' }}
-                      serverValue={m.label || ''}
-                      disabled={savingKey === `map:${m.id}`}
-                      onSave={(_key, next) => {
-                        const label = String(next || '').trim();
-                        if (label) saveMap(m.id, { label });
-                      }}
-                    />
-                    <AdminNumberSettingField
-                      rowKey={`map:${m.id}:sort_order`}
-                      label="Ordre"
-                      row={{ type: 'number', scope: 'admin' }}
-                      serverValue={m.sort_order ?? 0}
-                      disabled={savingKey === `map:${m.id}`}
-                      fallback={0}
-                      onSave={(_key, next) => saveMap(m.id, { sort_order: next })}
-                    />
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={!!m.is_active}
-                        onChange={(e) => saveMap(m.id, { is_active: e.target.checked })}
-                      />{' '}
-                      Active
-                    </label>
-                  </div>
-                  <div style={{ marginTop: 8 }}>
-                    <AdminTextSettingField
-                      rowKey={`map:${m.id}:map_image_url`}
-                      label="URL image du plan"
-                      row={{ type: 'string', scope: 'admin' }}
-                      serverValue={m.map_image_url || ''}
-                      disabled={savingKey === `map:${m.id}`}
-                      onSave={(_key, next) => saveMap(m.id, { map_image_url: next || '' })}
-                    />
-                  </div>
-                  <MediaLibraryMenu
-                    title="Bibliothèque globale (images, audio, vidéo)"
-                    fetchItems={fetchMediaLibrary}
-                    uploadDataUrl={uploadMediaLibrary}
-                    removeItem={deleteMediaLibrary}
-                    onPickUrl={(url) =>
-                      saveMap(
-                        m.id,
-                        { map_image_url: url },
-                        'URL de carte définie depuis la bibliothèque',
-                      )
-                    }
-                  />
-                  <div className="settings-admin-map-tools">
-                    <div className="field">
-                      <label>Padding cadre (0-32 px)</label>
-                      {/* Champ non piloté (vide = null « hérite ») : la clé force le remontage
-                          quand le serveur renvoie une valeur normalisée, comme le faisait
-                          l'ancien rechargement complet. */}
-                      <input
-                        key={`frame-padding-${m.id}-${m.frame_padding_px ?? ''}`}
-                        type="number"
-                        min={0}
-                        max={32}
-                        defaultValue={m.frame_padding_px ?? ''}
-                        onBlur={(e) =>
-                          saveMap(m.id, {
-                            frame_padding_px:
-                              e.target.value === '' ? null : parseInt(e.target.value || '0', 10),
-                          })
-                        }
-                      />
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => {
-                          const el = mapGalleryFileRefs.current[m.id];
-                          if (el) el.value = '';
-                          el?.click();
-                        }}
-                        disabled={savingKey === `map-image:${m.id}`}
-                      >
-                        {savingKey === `map-image:${m.id}` ? (
-                          'Envoi…'
-                        ) : (
-                          <>
-                            <IconGallery size={15} /> Galerie
-                          </>
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => {
-                          const el = mapCameraFileRefs.current[m.id];
-                          if (el) el.value = '';
-                          el?.click();
-                        }}
-                        disabled={savingKey === `map-image:${m.id}`}
-                      >
-                        {savingKey === `map-image:${m.id}` ? (
-                          'Envoi…'
-                        ) : (
-                          <>
-                            <IconCamera size={15} /> Appareil photo
-                          </>
-                        )}
-                      </button>
-                      <input
-                        ref={(el) => {
-                          mapGalleryFileRefs.current[m.id] = el;
-                        }}
-                        type="file"
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          e.target.value = '';
-                          uploadMapImage(m.id, f);
-                        }}
-                      />
-                      <input
-                        ref={(el) => {
-                          mapCameraFileRefs.current[m.id] = el;
-                        }}
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        style={{ display: 'none' }}
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          e.target.value = '';
-                          uploadMapImage(m.id, f);
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <MapGeorefPanel
-                    map={m}
-                    imageUrl={m.map_image_url}
-                    onSaved={(okMsg) => {
-                      setMsg(okMsg);
-                      setErr('');
-                      load();
-                    }}
-                    onError={(errMsg) => setErr(errMsg)}
-                  />
-                </div>
-              ))}
-            </div>
-          </AdminSection>
-
-          <AdminSection id="plan" title="Plan Lyautey" defaultOpen={false}>
-            <PlanSettingsPanel
-              maps={maps}
-              get={get}
-              saveSetting={saveSetting}
-              savingKey={savingKey}
-              onMessage={(okMsg) => {
-                setMsg(okMsg);
-                setErr('');
-                load();
-              }}
-              onError={(errMsg) => setErr(errMsg)}
-            />
-          </AdminSection>
-
-          <AdminSection id="routes" title="Parcours" defaultOpen={false}>
-            <MapRoutesPanel
-              maps={maps}
-              onMessage={(okMsg) => {
-                setMsg(okMsg);
-                setErr('');
-              }}
-              onError={(errMsg) => setErr(errMsg)}
-            />
-          </AdminSection>
-
+          {renderSettingsSearch(OPS_SECTION_IDS)}
           <AdminSection id="usage" title="Usage (compteurs anonymes)" defaultOpen={false}>
             <UsagePanel onError={(errMsg) => setErr(errMsg)} />
           </AdminSection>
-
-          <AdminSection id="categories" title="Catégories de lieux" defaultOpen={false}>
-            <MapCategoriesPanel
-              maps={maps}
-              onMessage={(okMsg) => {
-                setMsg(okMsg);
-                setErr('');
-              }}
-              onError={(errMsg) => setErr(errMsg)}
-            />
-          </AdminSection>
-
           <div
             className="settings-admin-grid settings-admin-grid--single-on-mobile"
             style={{ marginTop: 12 }}
@@ -984,9 +921,11 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                 <button className="btn btn-secondary btn-sm" onClick={fetchSystemDiagnostics}>
                   Diagnostic complet
                 </button>
-                <button className="btn btn-secondary btn-sm" onClick={fetchLogs}>
-                  Charger logs
-                </button>
+                {allowRemoteLogs ? (
+                  <button className="btn btn-secondary btn-sm" onClick={fetchLogs}>
+                    Charger logs
+                  </button>
+                ) : null}
                 <button className="btn btn-secondary btn-sm" onClick={fetchOauthDebug}>
                   Diagnostic OAuth
                 </button>
@@ -1000,13 +939,15 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
                     ? 'Test…'
                     : 'Test connectivité (Pl@ntNet / OpenAI)'}
                 </button>
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={triggerRestart}
-                  disabled={savingKey === 'restart'}
-                >
-                  {savingKey === 'restart' ? '...' : 'Redémarrer'}
-                </button>
+                {canWriteSecrets && allowRemoteRestart ? (
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={triggerRestart}
+                    disabled={savingKey === 'restart'}
+                  >
+                    {savingKey === 'restart' ? '...' : 'Redémarrer'}
+                  </button>
+                ) : null}
               </div>
               <p
                 style={{ margin: '8px 0 0', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}
@@ -1021,20 +962,33 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
           {(logs.length > 0 || oauthDebug || speciesAutofillTest || systemDiagnostics) && (
             <AdminSection id="diagnostics" title="Diagnostics" defaultOpen={false}>
               {systemDiagnostics && (
-                <pre
+                <div
                   style={{
-                    whiteSpace: 'pre-wrap',
-                    maxHeight: 280,
-                    overflow: 'auto',
-                    fontSize: 'var(--text-sm)',
-                    background: '#eff6ff',
-                    borderRadius: 8,
-                    padding: 8,
                     marginBottom: oauthDebug || logs.length > 0 || speciesAutofillTest ? 8 : 0,
                   }}
                 >
-                  {JSON.stringify(systemDiagnostics, null, 2)}
-                </pre>
+                  <p style={{ marginTop: 0, fontSize: 'var(--text-sm)' }}>
+                    {summarizeDiagnostics(systemDiagnostics)}
+                  </p>
+                  <details>
+                    <summary style={{ cursor: 'pointer', minHeight: 44 }}>
+                      Détail technique (JSON)
+                    </summary>
+                    <pre
+                      style={{
+                        whiteSpace: 'pre-wrap',
+                        maxHeight: 280,
+                        overflow: 'auto',
+                        fontSize: 'var(--text-sm)',
+                        background: '#eff6ff',
+                        borderRadius: 8,
+                        padding: 8,
+                      }}
+                    >
+                      {JSON.stringify(systemDiagnostics, null, 2)}
+                    </pre>
+                  </details>
+                </div>
               )}
               {speciesAutofillTest && (
                 <pre
@@ -1086,7 +1040,7 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
             </AdminSection>
           )}
         </>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -196,23 +196,28 @@ d'observation** pour l'écriture naturaliste libre.
 - **Qui peut tenir un carnet** : **tout compte ForetMap connecté** (élève, visiteur,
   personnel, prof de classe, n3boss, administrateur) — chacun le sien. La visite anonyme
   sans compte n’a pas de carnet.
-- **Articles** : texte enrichi (titres, listes, liens…), une ou plusieurs photos, titre
-  optionnel, et éventuellement une **zone** de la forêt. L’enregistrement est automatique
-  pendant la saisie. On peut épingler un article, rechercher, filtrer (articles / imports)
-  et trier le fil.
-- **Imports** : depuis une fiche espèce, un terme du glossaire ou un tutoriel, après l’avoir
-  marqué comme appris / découvert / lu, on peut l’**ajouter au carnet**. Il apparaît dans le
-  même fil, avec un lien pour le rouvrir.
-- **Encarts** : dans un article, on peut aussi coller un rappel vers une espèce, un terme, un
-  tutoriel ou un module de l’application.
-- **Aide contextuelle** : le bouton « ? » dans l’en-tête du carnet ouvre une courte aide
-  (écrire un article, importer un élément appris, épingler / rechercher ; conseil de lecture
-  pour les professeurs). Ses textes se modifient dans l’administration de l’aide (« Mon carnet »).
-- **Le professeur** consulte les carnets (panneau dans les statistiques) : aperçu du texte
-  enrichi, ouverture du carnet complet — nombre d’articles et d’imports, dates de création et
-  de modification et volume de chaque article, illustrations, éléments importés filtrables par
-  type — et export en fichier texte (Markdown) reprenant ces dates. La lecture d’un carnet est
-  réservée à son propriétaire et aux professeurs selon leur périmètre (groupe ou global).
+- **Lecture d’abord** : le carnet se **feuillette** comme un livre. Chaque article s’affiche
+  en page lisible (texte mis en forme, photos). On passe en **écriture** seulement pour
+  l’article qu’on veut modifier (ou un nouvel article). L’enregistrement reste automatique
+  pendant la saisie. On peut épingler, rechercher, filtrer (articles / éléments appris) et
+  trier le fil. Une zone de la forêt peut être associée à un article.
+- **Éléments appris** : depuis une fiche espèce, un terme du glossaire ou un tutoriel, après
+  l’avoir marqué comme appris / découvert / lu, on peut l’**ajouter au carnet**. Il apparaît
+  dans le même fil, avec un lien pour le rouvrir.
+- **Encarts** : dans un article, on peut coller un rappel vers une espèce, un terme, un
+  tutoriel ou un module — choisi **par son nom** (recherche), pas par un numéro technique.
+  À la lecture, l’encart s’affiche comme une **planche** (titre, courte présentation, image
+  si disponible).
+- **Impression / livre** : le propriétaire peut ouvrir une vue « livre » (couverture,
+  sommaire, pages, annexes des découvertes) puis imprimer ou enregistrer en PDF depuis le
+  navigateur. Options de fin d’année : période, épinglés seulement, préface courte.
+- **Aide contextuelle** : le bouton « ? » dans l’en-tête du carnet ouvre une courte aide.
+  Ses textes se modifient dans l’administration de l’aide (« Mon carnet »).
+- **Le professeur** consulte les carnets (panneau dans les statistiques, chargement
+  automatique) : aperçu regroupé par élève, ouverture du carnet complet en fil chronologique
+  (articles et éléments appris), impression / PDF, et export texte (Markdown). La lecture
+  d’un carnet est réservée à son propriétaire et aux professeurs selon leur périmètre
+  (groupe ou global).
 - Chaque action est faite au nom du compte connecté : on ne peut pas modifier le carnet d’un
   camarade.
 - L’affichage côté propriétaire charge l’ensemble du carnet ; la vue groupe des professeurs

@@ -109,8 +109,8 @@ familles.
   la visite est enregistré dans le compte, donc retrouvé sur un autre poste ou téléphone —
   et une tablette partagée ne transmet plus le choix d'un élève au suivant. Sans compte,
   le choix est simplement mémorisé sur l'appareil.
-- L'administrateur choisit la **mascotte par défaut** dans **Paramètres → Mascottes de
-  visite** : la page présente les mascottes proposées avec leur vignette animée, et un bouton
+- L'administrateur choisit la **mascotte par défaut** dans **Paramètres → Visite** : la page
+  présente les mascottes proposées avec leur vignette animée, et un bouton
   « par défaut ». Si la mascotte par défaut choisie a depuis été retirée de la visite, la page
   le signale plutôt que de laisser deviner pourquoi les visiteurs en voient une autre.
 - **Proposer une mascotte aux visiteurs, c'est la publier**, et cela se fait au studio, là où
@@ -304,13 +304,13 @@ l'autre.
 
 Deux endroits, deux droits :
 
-- **Paramètres → Bulles d'aide** : les panneaux « ? » et les infobulles. Demande la permission
-  « Lecture / Édition paramètres admin ».
-- **Paramètres → Visites guidées** : les textes des visites guidées, étape par étape. Demande la
-  permission **« Édition visites guidées »**, accordée d'office à l'administrateur et
-  **attribuable à un profil professeur** depuis « Profils & utilisateurs → Profils RBAC ». Un
-  professeur qui ne reçoit que ce droit voit l'onglet Paramètres, mais **uniquement** cette
-  section.
+- **Paramètres → Aide & découverte → Bulles d'aide** : les panneaux « ? » et les infobulles.
+  Demande la permission « Lecture / Édition paramètres admin ».
+- **Paramètres → Aide & découverte → Visites guidées** : les textes des visites guidées, étape
+  par étape. Demande la permission **« Édition visites guidées »**, accordée d'office à
+  l'administrateur et **attribuable à un profil professeur** depuis « Profils & utilisateurs →
+  Profils RBAC ». Un professeur qui ne reçoit que ce droit voit l'onglet Paramètres, mais
+  **uniquement** cette section.
 
 Dans l'écran des visites guidées :
 
@@ -333,9 +333,9 @@ Dans l'écran des visites guidées :
 
 ### Ce que règle l'administrateur
 
-Onglet **Paramètres → Narrateur OLU**. **Ce réglage vaut pour les deux applications** :
-ForetMap et Gnomes & Licornes affichent le même OLU, avec les mêmes portraits, et il n'y a donc
-qu'une seule saisie à faire — ici.
+Onglet **Paramètres → Aide & découverte → Narrateur OLU**. **Ce réglage vaut pour les deux
+applications** : ForetMap et Gnomes & Licornes affichent le même OLU, avec les mêmes portraits,
+et il n'y a donc qu'une seule saisie à faire — ici.
 
 - **L'interrupteur** : éteindre OLU retire portrait et nom partout — GL compris —, sans toucher
   aux textes. Les images affectées sont conservées : on peut le rallumer à tout moment.

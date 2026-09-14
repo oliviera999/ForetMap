@@ -37,7 +37,8 @@ leurs permissions sont configurables par les administrateurs) :
 
 Les paliers « n3beur » montent **automatiquement** avec le nombre de tâches validées ;
 une fenêtre de félicitations s'affiche à chaque promotion. Le vocabulaire
-« n3beur / n3boss » est personnalisable dans les réglages.
+« n3beur / n3boss » est celui de l'établissement ; les **noms affichés des profils**
+(y compris ces libellés) se règlent dans **Paramètres → Profils & utilisateurs**.
 
 Deux métiers d'enseignant coexistent : le **n3boss** pilote la forêt et les tâches
 (vue globale des élèves) ; le **prof de classe** suit sa classe avec la **même
@@ -180,9 +181,15 @@ actions sensibles.
   déploient chacun leur rangée d'onglets :
   - **Contenus** — Carte & Zones, Biodiversité, Quiz, Glossaire, Réseau trophique,
     Tuto, Visite, Packs mascotte, Médiathèque ;
-  - **Suivi** — Tâches, Stats, Forum, Audit (le nombre de tâches « à valider »
+  - **Suivi** — Tâches, Stats, Carnet, Forum, Audit (le nombre de tâches « à valider »
     s'affiche en pastille sur le pôle et sur l'onglet) ;
   - **Administration** — Profils & utilisateurs, Paramètres, À propos.
+
+  Dans **Paramètres**, la console est découpée en sous-onglets : Accueil & modules,
+  Pédagogie, Cartographie (cartes, zones & repères, catégories, parcours), Plan Lyautey,
+  Identité visuelle, Visite, Intégrations (Moodle), Aide & découverte, Usage &
+  exploitation. Un professeur avec seulement la gestion des zones y voit la
+  Cartographie ; un délégué « visites guidées » n'y voit que l'aide dédiée.
 
   Cliquer un pôle ouvre son premier onglet ; les onglets et les pôles portent des
   icônes uniformes (fini les emojis d'interface, réservés désormais au contenu :
