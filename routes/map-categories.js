@@ -22,6 +22,7 @@ const {
   serializeSurfaceSet,
   readSurfaceQuery,
 } = require('../lib/locationSurfaces');
+const { mapExists } = require('../lib/mapQueries');
 
 const db = { queryAll, queryOne, execute, withTransaction };
 
@@ -31,11 +32,6 @@ const COLOR_RE = /^#[0-9a-fA-F]{3,8}$/;
 const DEFAULT_COLOR = '#86efac90';
 const LABEL_MAX = 120;
 const DESCRIPTION_MAX = 512;
-
-async function mapExists(mapId) {
-  const row = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [mapId]);
-  return !!row;
-}
 
 /**
  * `map_id` d'une catégorie : `null` = globale (toutes cartes). Retourne `{ error }`

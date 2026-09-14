@@ -29,6 +29,7 @@ const SCRIPT = path.join(ROOT, 'scripts', 'sync-shared-cores.js');
 test('la liste des paires couvre bien les six noyaux attendus', () => {
   assert.deepStrictEqual(PAIRS.map(([, outName]) => outName).sort(), [
     'emojiMojibakeCore.js',
+    'glBiomesRegistryCore.js',
     'glBoardPathCore.js',
     'glImageFrameCore.js',
     'glMarkerAppearanceCore.js',
@@ -50,7 +51,7 @@ test('aucun miroir lib/shared/ ne diverge de sa source ESM (génération en mém
 test('`node scripts/sync-shared-cores.js --check` sort en 0 et n’écrit rien', () => {
   const r = spawnSync(process.execPath, [SCRIPT, '--check'], { cwd: ROOT, encoding: 'utf8' });
   assert.strictEqual(r.status, 0, `sortie : ${r.stdout}\n${r.stderr}`);
-  assert.match(r.stdout, /OK — 6 miroirs/);
+  assert.match(r.stdout, new RegExp(`OK — ${PAIRS.length} miroirs`));
 });
 
 test('chaque miroir porte l’en-tête « généré » et le mode strict', () => {
@@ -66,7 +67,7 @@ test('chaque miroir porte l’en-tête « généré » et le mode strict', () =>
   }
 });
 
-test('les exports ESM et CJS ont exactement les mêmes clés, pour les six paires', async () => {
+test('les exports ESM et CJS ont exactement les mêmes clés, pour toutes les paires', async () => {
   for (const [relSrc, outName] of PAIRS) {
     const esm = await import(pathToFileURL(path.join(ROOT, relSrc)).href);
     const cjs = require(path.join(outDir, outName));

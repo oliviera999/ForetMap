@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useLatestRequest } from '../../shared/hooks/useLatestRequest.js';
 import { api, AccountDeletedError } from '../../services/api';
 import { toggleIdInList } from '../../utils/visitSyncSelection.js';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
@@ -32,20 +33,28 @@ export function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
     [options, sourceKey],
   );
 
+  // Garde anti-course : changer de carte pendant un chargement ne doit pas proposer les
+  // éléments de la carte précédente (audit 2026-09-13 §2.5).
+  const latest = useLatestRequest();
   const loadOptions = useCallback(async () => {
     if (!isTeacher) return;
+    const isCurrent = latest();
     setLoading(true);
     try {
       const res = await api(`/api/visit/sync/options?map_id=${encodeURIComponent(mapId)}`);
+      if (!isCurrent()) return;
       setOptions(res || null);
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
-      else notify(err.message || 'Erreur chargement synchronisation');
+      if (!isCurrent()) return;
+      if (!(err instanceof AccountDeletedError)) {
+        notify(err.message || 'Erreur chargement synchronisation');
+      }
       setOptions(null);
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
-  }, [isTeacher, mapId, onForceLogout, notify]);
+  }, [isTeacher, mapId, onForceLogout, notify, latest]);
 
   useEffect(() => {
     loadOptions();

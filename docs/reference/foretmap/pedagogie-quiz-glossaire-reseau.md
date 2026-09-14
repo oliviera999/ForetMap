@@ -197,8 +197,13 @@ d'observation** pour l'écriture naturaliste libre.
   même fil, avec un lien pour le rouvrir.
 - **Encarts** : dans un article, on peut aussi coller un rappel vers une espèce, un terme, un
   tutoriel ou un module de l’application.
+- **Aide contextuelle** : le bouton « ? » dans l’en-tête du carnet ouvre une courte aide
+  (écrire un article, importer un élément appris, épingler / rechercher ; conseil de lecture
+  pour les professeurs). Ses textes se modifient dans l’administration de l’aide (« Mon carnet »).
 - **Le professeur** consulte les carnets (panneau dans les statistiques) : aperçu du texte
-  enrichi, ouverture du carnet complet, export en fichier texte. La lecture d’un carnet est
+  enrichi, ouverture du carnet complet — nombre d’articles et d’imports, dates de création et
+  de modification et volume de chaque article, illustrations, éléments importés filtrables par
+  type — et export en fichier texte (Markdown) reprenant ces dates. La lecture d’un carnet est
   réservée à son propriétaire et aux professeurs selon leur périmètre (groupe ou global).
 - Chaque action est faite au nom du compte connecté : on ne peut pas modifier le carnet d’un
   camarade.

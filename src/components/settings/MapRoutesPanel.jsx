@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLatestRequest } from '../../shared/hooks/useLatestRequest.js';
 
 import { api } from '../../services/api';
 import { downloadApiFile } from '../../utils/downloadApiFile.js';
@@ -71,7 +72,11 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
     if (!mapId && activeMaps.length > 0) setMapId(String(activeMaps[0].id));
   }, [mapId, activeMaps]);
 
+  // Gardes anti-course : changer de carte pendant un chargement ne doit pas afficher les
+  // parcours ou les lieux de la carte précédente (audit 2026-09-13 §2.5).
+  const latestRoutes = useLatestRequest();
   const loadRoutes = useCallback(async () => {
+    const isCurrent = latestRoutes();
     if (!mapId) {
       setRoutes([]);
       return;
@@ -79,15 +84,18 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
     setLoading(true);
     try {
       const data = await api(`/api/map-routes/manage?map_id=${encodeURIComponent(mapId)}`);
+      if (!isCurrent()) return;
       setRoutes(Array.isArray(data) ? data : []);
     } catch (e) {
-      onError?.(e?.message || 'Lecture des parcours impossible.');
+      if (isCurrent()) onError?.(e?.message || 'Lecture des parcours impossible.');
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
-  }, [mapId, onError]);
+  }, [mapId, onError, latestRoutes]);
 
+  const latestPlaces = useLatestRequest();
   const loadPlaces = useCallback(async () => {
+    const isCurrent = latestPlaces();
     if (!mapId) {
       setPlaces([]);
       return;
@@ -101,11 +109,12 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
         api(`/api/map/markers${scope}`),
         api('/api/map-categories'),
       ]);
+      if (!isCurrent()) return;
       setPlaces(routePlaceOptions({ zones, markers, categories }, mapId));
     } catch (e) {
-      onError?.(e?.message || 'Lecture des lieux impossible.');
+      if (isCurrent()) onError?.(e?.message || 'Lecture des lieux impossible.');
     }
-  }, [mapId, onError]);
+  }, [mapId, onError, latestPlaces]);
 
   useEffect(() => {
     loadRoutes();

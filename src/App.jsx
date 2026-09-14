@@ -1466,6 +1466,7 @@ function App() {
                             <TabSuspense>
                               <ObservationNotebookLazy
                                 zones={zones}
+                                isTeacher={isTeacher}
                                 onForceLogout={forceLogout}
                                 onNavigateTab={(nav) => {
                                   if (nav?.tab) setTab(nav.tab);
@@ -1578,6 +1579,7 @@ function App() {
                               <TabSuspense>
                                 <ObservationNotebookLazy
                                   zones={zones}
+                                  isTeacher={isTeacher}
                                   onForceLogout={forceLogout}
                                   onNavigateTab={(nav) => {
                                     if (nav?.tab) setTab(nav.tab);

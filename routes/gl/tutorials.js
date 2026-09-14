@@ -11,8 +11,12 @@ const {
   listLearningAcks,
   groupLearningAcksByType,
 } = require('../../lib/shared/learningAckCore');
+const { slugify } = require('../../lib/shared/slug');
 
 const db = { queryAll, queryOne, execute };
+
+/** Slug de tutoriel : points autorisés (`intro.v2`), chaîne vide si rien ne subsiste. */
+const normalizeSlug = (value) => slugify(value, { allowDots: true }) || '';
 
 const router = express.Router();
 
@@ -30,13 +34,6 @@ const MIN_TITLE = 3;
 const MAX_TITLE = 200;
 const MIN_BODY = 1;
 const MAX_BODY = 50000;
-
-function normalizeSlug(value) {
-  const raw = String(value || '')
-    .trim()
-    .toLowerCase();
-  return raw.replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
-}
 
 router.get(
   '/',
