@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Visite : plus de double illustration dans l'encart lieu
+
+- Quand la photo carte (`map_lead_photo`) et la première image média visite sont le
+  même fichier, une seule vignette s'affiche (sous le titre), plus de doublon sous
+  le texte d'intro ni dans les blocs éditoriaux.
+
 ### Corrigé — Visite : puces catégories sans scroll horizontal de page (mobile)
 
 - Rangée de filtres alignée sur le Plan Lyautey : défilement **dans** le bandeau

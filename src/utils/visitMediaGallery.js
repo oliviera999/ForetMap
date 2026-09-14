@@ -34,6 +34,24 @@ export function visitMediaGalleryLightboxSrc(m) {
 }
 
 /**
+ * Compare deux URL d'image visite/carte (hors query/hash) pour éviter un double affichage
+ * quand la photo lead carte et un média visite pointent vers le même fichier.
+ * @param {unknown} a
+ * @param {unknown} b
+ * @returns {boolean}
+ */
+export function sameVisitImageUrl(a, b) {
+  const na = String(a || '')
+    .trim()
+    .split(/[?#]/)[0];
+  const nb = String(b || '')
+    .trim()
+    .split(/[?#]/)[0];
+  if (!na || !nb) return false;
+  return na === nb;
+}
+
+/**
  * Réordonne une liste de médias après un glisser-déposer : déplace l'élément `draggedId` à la
  * position de `dropTargetId`. Retourne la liste inchangée (même référence) si l'un des ids est
  * introuvable ou si source == cible ; sinon une nouvelle liste (référence neuve).
