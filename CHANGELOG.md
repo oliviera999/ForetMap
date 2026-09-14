@@ -220,11 +220,6 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `group_scopes` entre dans la version d'écriture du scope groupes (`database.js`), sans quoi
   un changement de périmètre ne périmerait pas le cache d'accès.
 
-### Corrigé — Visite : progression allégée (atténuation + donut, sans libellés)
-
-- Sur le plan : **atténuation** des lieux déjà vus et **donut** de progression, pour
-  tous les publics ; bouton **« Marquer comme vu »** conservé dans la fiche.
-- Plus de libellés « À découvrir » / « Vu » collés sur chaque lieu au survol (surcharge).
 ### Ajouté — cloisonnement par rôles sur la couche visite
 
 - Migration `240_visit_location_audience_roles.sql` : `visible_role_slugs`,
