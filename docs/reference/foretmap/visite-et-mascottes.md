@@ -67,9 +67,11 @@ familles.
 - **La barre au-dessus du plan** réunit, à gauche, le titre, la pastille de progression,
   « Présentation du lieu » et — s'il y a plusieurs cartes — le **choix de la carte** ; à
   droite, un petit bloc encadré rassemble les trois réglages d'affichage : **plein écran**,
-  **taille du texte** et **choix de la mascotte**. Les deux premiers sont des icônes : leur
-  nom s'affiche au survol. Sur grand écran, tout tient désormais sur une seule ligne ; sur
-  téléphone, la barre occupe environ deux fois moins de place qu'avant, au profit de la carte.
+  **taille du texte** et **choix de la mascotte** (bouton à patte 🐾 qui ouvre un menu
+  compact). Sous cette barre : une **recherche de lieux** et, s'il y a des catégories,
+  des **puces de filtre** (comme sur le plan de l'établissement) pour n'afficher que
+  certains types de lieux. Les commandes de zoom et « Me situer » restent sur le plan
+  lui-même.
 - **Le bouton « Présentation du lieu » ne clignote plus** au premier passage. Il reste mis
   en avant (c'est le seul bouton plein de la barre). Le plan n'a plus de libellés de
   découverte animés : la progression se lit par l'atténuation des lieux déjà vus et le

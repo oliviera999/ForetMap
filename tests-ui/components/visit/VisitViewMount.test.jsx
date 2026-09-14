@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render, waitFor, fireEvent } from '@testing-library/react';
+import { render, waitFor, fireEvent, screen } from '@testing-library/react';
 
 /**
  * Test de montage de `VisitView` — filet posé pour le rebranchement de la scène de visite sur
@@ -91,8 +91,9 @@ const { VisitView } = await import('../../../src/components/visit-views.jsx');
 const { PublicSettingsProvider } = await import('../../../src/contexts/PublicSettingsContext.jsx');
 const { SessionProvider } = await import('../../../src/contexts/SessionContext.jsx');
 const { DataProvider } = await import('../../../src/contexts/DataContext.jsx');
-const { AppDialogsProvider } =
-  await import('../../../src/shared/components/AppDialogsProvider.jsx');
+const { AppDialogsProvider } = await import(
+  '../../../src/shared/components/AppDialogsProvider.jsx'
+);
 const { resetVisitPlantCatalogCache } = await import('../../../src/hooks/useVisitPlantCatalog.js');
 const { resetGlossaryLinkIndexCache } = await import('../../../src/hooks/useGlossaryLinkIndex.js');
 
@@ -139,8 +140,10 @@ describe('VisitView — montage sur le moteur de carte partagé', () => {
     const img = world.querySelector('img.visit-map-img');
     expect(img).not.toBeNull();
     expect(img.getAttribute('src')).toContain('map-foret');
-    expect(view.container.querySelector('.visit-map-controls')).not.toBeNull();
-    expect(view.container.querySelectorAll('.visit-marker-btn').length).toBeGreaterThan(0);
+    // Commandes zoom / position : stack SharedMapStage (plus `.visit-map-controls`).
+    expect(view.container.querySelector('.fm-pct-map-controls')).not.toBeNull();
+    expect(screen.getByTestId('visit-zoom-in')).toBeInTheDocument();
+    expect(view.container.querySelectorAll('.fm-pct-marker').length).toBeGreaterThan(0);
     expect(stage.style.touchAction).toBe('none');
   });
 

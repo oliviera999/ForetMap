@@ -11,6 +11,7 @@ import { PctOverlayCaption } from './PctOverlayCaption.jsx';
 export const PctMarkerButton = React.memo(function PctMarkerButton({
   marker,
   isActive,
+  isSeen = null,
   onMarkerClick,
   labelOf,
   nameOf = defaultName,
@@ -24,12 +25,14 @@ export const PctMarkerButton = React.memo(function PctMarkerButton({
   // anonyme au lecteur d'écran.
   const label = labelOf(marker);
   const accessibleName = nameOf(marker) || label;
+  const seenClass = isSeen === true ? ' is-seen' : isSeen === false ? ' is-unseen' : '';
+  const statusSuffix = isSeen === true ? ' — Vu' : isSeen === false ? ' — À découvrir' : '';
   return (
     <button
       type="button"
-      className={`fm-pct-marker${isActive ? ' is-active' : ''}`}
+      className={`fm-pct-marker${isActive ? ' is-active' : ''}${seenClass}`}
       style={{ left: `${marker.x_pct}%`, top: `${marker.y_pct}%` }}
-      aria-label={accessibleName || 'Lieu'}
+      aria-label={`${accessibleName || 'Lieu'}${statusSuffix}`}
       onClick={handleClick}
     >
       <PctOverlayCaption
@@ -55,6 +58,7 @@ function defaultName(marker) {
  * @param {Array<object>} props.markers repères `{ id, x_pct, y_pct, label, emoji }`.
  * @param {(marker: object, event: object) => void} props.onMarkerClick handler stable.
  * @param {string|null} [props.activeMarkerId]
+ * @param {(marker: object) => boolean|null} [props.getIsSeen] progression Visite.
  * @param {(marker: object) => string} [props.labelOf] étiquette **visible** (le produit peut
  *   la masquer au dézoom sans rendre le repère anonyme : voir `nameOf`).
  * @param {(marker: object) => string} [props.nameOf] nom **accessible** du bouton.
@@ -63,6 +67,7 @@ function PctMarkersLayerImpl({
   markers,
   onMarkerClick,
   activeMarkerId = null,
+  getIsSeen = null,
   labelOf = defaultName,
   nameOf = defaultName,
 }) {
@@ -71,6 +76,7 @@ function PctMarkersLayerImpl({
       key={marker.id}
       marker={marker}
       isActive={activeMarkerId != null && String(activeMarkerId) === String(marker.id)}
+      isSeen={typeof getIsSeen === 'function' ? getIsSeen(marker) : null}
       onMarkerClick={onMarkerClick}
       labelOf={labelOf}
       nameOf={nameOf}

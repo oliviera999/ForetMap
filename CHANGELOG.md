@@ -9,6 +9,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Visite : carte partagée, recherche et filtres par catégorie
+
+- Le plan de visite s'appuie sur la **même scène carte** que le Plan (zones, repères,
+  zoom, position, échelle) : commandes unifiées, mascotte en calque.
+- **Recherche de lieux** et **puces de catégorie** dans le bandeau (styles partagés avec
+  le Plan). Le contenu public de visite expose désormais les catégories rattachées.
+- Sélecteur de mascotte **compact** (bouton 🐾 + menu) à la place du grand menu déroulant.
+
+### Partiel — Carte de travail : scène partagée en consultation
+
+- En **navigation** (élève ou prof hors tracé / édition de contour / glisser de repères),
+  la carte de travail s'appuie sur la **même scène** que le Plan et la Visite
+  (`WorkMapStage` → zones, repères, regroupements, zoom, « Me suivre »).
+- La **barre d'outils** et les **filtres de lieux** ForetMap restent ; pas de puces de
+  recherche/catégorie façon Plan. L'édition géométrie garde les calques historiques
+  (tracé, sommets, alignement).
+
 ### Corrigé — Visite : progression allégée (atténuation + donut, sans libellés)
 
 - Sur le plan : **atténuation** des lieux déjà vus et **donut** de progression, pour
