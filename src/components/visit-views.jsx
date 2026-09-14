@@ -572,11 +572,11 @@ function VisitViewImpl({
   useOverlayHistoryBack(!!visitMediaLightbox, () => setVisitMediaLightbox(null));
 
   /**
-   * Styles typo overlay (taille Aa) sur le calque fit.
-   * Ne pas activer `compensateWorldScale` : SharedMapStage contre-échelle déjà via
-   * `--pct-inv`. L’ancien calque Visite (sans `--pct-inv`) le faisait dans les
-   * variables ; les combiner doublait la compensation et grossissait icônes/textes
-   * dès que l’échelle d’ajustement était < 1 (carte plus petite en session connectée).
+   * Styles typo overlay (taille Aa) sur le calque fit SharedMapStage.
+   * `plateauAsTransform: false` : tailles en px écran (le plateau est déjà dans la
+   * typo) ; `--pct-inv` gère le zoom. Sans cela, les fontes sont divisées par le
+   * facteur plateau (prévu pour `scale(--map-overlay-scale)` de l’ancien calque) et
+   * une carte plus basse qu’en visite anonyme gonfle icônes et libellés.
    */
   const visitFitExtraStyle = useMemo(() => {
     const mapSettings =
@@ -586,6 +586,7 @@ function VisitViewImpl({
     return resolveMapOverlayCssVariables(mapSettings, fitH, {
       fitWidthPx: visitMapFit.width > 0 ? visitMapFit.width : 360,
       userTextSizePercent: mapTextSizePercent,
+      plateauAsTransform: false,
     });
   }, [publicSettings, visitMapFit.width, visitMapFit.height, mapTextSizePercent]);
 

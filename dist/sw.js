@@ -1,6 +1,6 @@
 /* Service worker « foret » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-foret-9c376837";
+const CACHE_NAME = "foretmap-foret-195f4c33";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -17,14 +17,14 @@ const PRECACHE_URLS = [
   "/pwa-maskable-512.png",
   "/pwa-screenshot-mobile.png",
   "/pwa-screenshot-wide.png",
-  "/assets/main-DRhm41x7.js",
+  "/assets/main-CXHLn5CV.js",
   "/assets/rolldown-runtime-hePW80VL.js",
   "/assets/VisitMascotFallbackSvg-BI6NgtJK.js",
   "/assets/react-vendor-NSwws4_t.js",
   "/assets/icons-DN-Q6DZk.js",
   "/assets/ErrorBoundary-BbOTEqfX.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-ZIS7oO9K.js",
+  "/assets/ImageLightboxProvider-BVJ--O07.js",
   "/assets/ImageLightboxProvider-B1dCJcHH.css",
   "/assets/spriteCutCatalogEntry-DEPH3HaP.js",
   "/assets/markdown-B5dU4qij.js",
@@ -32,12 +32,12 @@ const PRECACHE_URLS = [
   "/assets/visitMascotPackExtras-D3NMW-RT.css",
   "/assets/mascotPack-CAWYMj9h.js",
   "/assets/socket-io-D_2T_oRH.js",
-  "/assets/MarkdownTextarea-B4q4IYAW.js",
-  "/assets/GlossaryMarkdown-BeLPy71m.js",
-  "/assets/FmLearnAndImportSlot-BWDgfG35.js",
+  "/assets/MarkdownTextarea-B0wuYnwy.js",
+  "/assets/GlossaryMarkdown-CaiWZK8G.js",
+  "/assets/FmLearnAndImportSlot-D_F8Hy0A.js",
   "/assets/PublicSettingsContext-D_o6wGyF.js",
-  "/assets/journalUi-CbT8u8nc.js",
-  "/assets/GuidedTourOverlay-DgWVgnkv.js",
+  "/assets/journalUi-a7FbaNF_.js",
+  "/assets/GuidedTourOverlay-OChVdoMn.js",
   "/assets/useBrandTheme-CAshDcsd.js",
   "/assets/useLatestRequest-COqdbGl0.js",
   "/assets/downloadApiFile-2Z2V1cLb.js",

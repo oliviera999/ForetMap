@@ -14,6 +14,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Après le passage à la scène carte partagée, la typo compensait le zoom **deux fois**
   (variables overlay + `--pct-inv`). Sur une carte plus petite (session connectée),
   emojis et libellés apparaissaient nettement plus grands qu'en visite anonyme.
+- Second correctif : les tailles CSS n'étaient plus multipliées par
+  `--map-overlay-scale` (absent sur SharedMapStage) alors qu'elles étaient encore
+  **divisées** par le facteur plateau — effet inverse et encore plus marqué sur
+  une carte basse.
 
 ### Ajouté — Visite : carte partagée, recherche et filtres par catégorie
 

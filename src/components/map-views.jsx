@@ -794,6 +794,17 @@ function MapViewImpl({
       }),
     [mapSettings, mapFitHeightPx, mapFitWidthPx, isCoarsePointer, mapTextSizePercent],
   );
+  /** SharedMapStage : plateau dans la taille de police, pas via `scale(--map-overlay-scale)`. */
+  const workFitExtraStyle = useMemo(
+    () =>
+      resolveMapOverlayCssVariables(mapSettings, mapFitHeightPx, {
+        fitWidthPx: mapFitWidthPx,
+        isCoarsePointer,
+        userTextSizePercent: mapTextSizePercent,
+        plateauAsTransform: false,
+      }),
+    [mapSettings, mapFitHeightPx, mapFitWidthPx, isCoarsePointer, mapTextSizePercent],
+  );
 
   // Zones pré-parsées (JSON.parse des points + emoji/nom d'étiquette) : recalculées uniquement
   // quand les données changent, plus à chaque rendu de la carte (zoom, pan, mascotte…).
@@ -1064,11 +1075,6 @@ function MapViewImpl({
     if (selectedMarker) return { ...selectedMarker, kind: 'marker' };
     return null;
   }, [selectedZone, selectedMarker]);
-
-  const workFitExtraStyle = useMemo(() => {
-    if (!mapOverlayCssVars || typeof mapOverlayCssVars !== 'object') return null;
-    return mapOverlayCssVars;
-  }, [mapOverlayCssVars]);
 
   const workTargetPct = useMemo(
     () => (activeRoute ? routeEntryFocusPct(currentRouteEntry) : null),
