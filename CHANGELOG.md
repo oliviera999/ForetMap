@@ -9,6 +9,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Amélioré — Réseau trophique : couleurs, cadrage, tactile
+
+- Nouvelle palette de relations (familles sémantiques, contrastes projection /
+  daltonisme) ; sélection = halo vert sans écraser la couleur du type.
+- Presets Réseau alimentaire / Autres / Tout partagés liste + graphe ; filtre Type
+  seulement en « Tout » ; bouton « Flux trophiques » retiré.
+- Disposition Niveaux : étiquettes Producteurs / Consommateurs / Décomposeurs.
+- Bouton « Voir la fiche » quand une espèce est isolée ; toolbar ≥ 44 px ; export
+  regroupé sous « Plus… » sur petit écran.
+
+### Amélioré — Navigation iPhone / mobile (barre élève « Plus »)
+
+- Sur téléphone et écrans tactiles, la barre basse élève n’affiche plus une douzaine
+  d’onglets en scroll opaque : raccourcis **Carte · Tâches · Biodiversité · Visite**
+  (ou Quiz) + bouton **Plus** ouvrant une feuille de navigation (pattern aligné sur
+  G&L). Encoches / flou WebKit / cibles header ≥ 44 px.
+- Chrome professeur sur petit écran : pôles seuls ; les onglets du pôle s’ouvrent dans
+  une feuille bas. Smoke e2e **WebKit** (`mobile-webkit`) ajouté en CI bloquante.
+
 ### Corrigé — Orientation boussole : plus de fond vide après rotation
 
 - Avec **« Orienter »** actif, la carte **se recentre sur la position GPS** et **grossit**

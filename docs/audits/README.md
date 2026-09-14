@@ -40,6 +40,7 @@ casser les liens existants.
 | [`AUDIT_BRANCHES_2026-09.md`](../AUDIT_BRANCHES_2026-09.md)                       | Passe de fusion / triage des branches (`moodle-sync` + `cursor/*`)                  | Instantané 8 sept. 2026            |
 | [`AUDIT_EVOLUTION_V1_V2_2026-09.md`](../AUDIT_EVOLUTION_V1_V2_2026-09.md)         | Évolution v1.0.0 → v1.151.3 et arbitrage « poser une V2 ? »                         | Instantané 9 sept. 2026            |
 | [`AUDIT_CODE_2026-09-13.md`](../AUDIT_CODE_2026-09-13.md)                         | Audit du code (bugs, incohérences, doublons mesurés, perf / charge) — base réelle   | À traiter (13 sept. 2026)          |
+| [`AUDIT_NAVIGATION_IPHONE_2026-09.md`](../AUDIT_NAVIGATION_IPHONE_2026-09.md)     | Navigation iPhone / Apple (ForetMap, GL, Plan) — safe-area, bottom-nav, filet e2e   | Instantané 14 sept. 2026           |
 
 ## Chantiers / specs encore utiles comme consigne
 

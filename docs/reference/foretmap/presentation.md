@@ -170,9 +170,12 @@ actions sensibles.
 
 ## Comment l'écran s'organise
 
-- **L'élève** navigue par une barre d'onglets en bas d'écran : Carte, Tâches,
-  Biodiversité, Quiz, Glossaire, Réseau, Tuto, Carnet, Visite, Forum… (l'application
-  fonctionne très bien sur téléphone et peut s'installer comme une appli).
+- **L'élève** navigue par une barre d'onglets en bas d'écran. Sur téléphone, les
+  raccourcis principaux (Carte, Tâches, Biodiversité, Visite — ou Quiz si la Visite
+  est désactivée) restent visibles ; le bouton **Plus** ouvre le reste des onglets
+  (Glossaire, Réseau, Tuto, Carnet, Forum, À propos…). Sur grand écran, toute la
+  barre reste déployée. L'application fonctionne très bien sur téléphone et peut
+  s'installer comme une appli.
 - **Le professeur** navigue par une barre en haut, organisée en **trois pôles** qui
   déploient chacun leur rangée d'onglets :
   - **Contenus** — Carte & Zones, Biodiversité, Quiz, Glossaire, Réseau trophique,
@@ -183,14 +186,18 @@ actions sensibles.
 
   Cliquer un pôle ouvre son premier onglet ; les onglets et les pôles portent des
   icônes uniformes (fini les emojis d'interface, réservés désormais au contenu :
-  zones, plantes, repères…).
+  zones, plantes, repères…). Sur petit écran, les onglets du pôle s'ouvrent dans
+  un menu bas (feuille) pour laisser de la place à la carte.
 
-- **Le visiteur** voit une version réduite, centrée sur la Visite et la Biodiversité.
+- **Le visiteur** voit une version réduite : Visite, Biodiversité et Quiz en
+  raccourcis, le reste via **Plus**.
 
 > ℹ️ **Navigation** — Les onglets sont stables : Tâches et Tuto sont toujours séparés.
 > Deux variations légitimes subsistent : sur grand écran, une vue « Cartes & tâches »
 > (pôle Contenus) affiche la carte et les tâches côte à côte ; et un onglet disparaît
-> si son module est désactivé dans les réglages.
+> si son module est désactivé dans les réglages. Sur téléphone, l'élève passe par
+> **Plus** pour les onglets secondaires ; le professeur ouvre les onglets d'un pôle
+> dans un menu bas.
 >
 > Les demandes de confirmation et de saisie (« Supprimer… ? », titre d'un élément…)
 > s'affichent désormais dans des fenêtres au thème de l'application, non bloquantes —
