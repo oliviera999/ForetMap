@@ -129,14 +129,13 @@ describe('VisitMapChrome — commandes compactées', () => {
     expect(btn.getAttribute('aria-label')).toContain('A+');
   });
 
-  test('le sélecteur de mascotte perd son libellé visible mais garde son nom accessible', () => {
+  test('le sélecteur de mascotte est un bouton discret avec menu', () => {
     const { props } = setup({ visitMascotOptions: MASCOTS, visitMascotId: 'gnome' });
     const picker = screen.getByTestId('visit-mascot-picker');
-    // Le mot « Mascotte » doublait la valeur affichée : il ne doit plus occuper de place.
-    expect(picker).not.toHaveTextContent('Mascotte');
-    const select = screen.getByLabelText('Choisir la mascotte affichée sur le plan');
-    expect(select).toHaveValue('gnome');
-    fireEvent.change(select, { target: { value: 'spore' } });
+    expect(picker.tagName).toBe('BUTTON');
+    expect(picker).toHaveAccessibleName(/Choisir la mascotte/);
+    fireEvent.click(picker);
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Spore' }));
     expect(props.onChangeVisitMascotId).toHaveBeenCalledWith('spore');
   });
 
@@ -144,5 +143,23 @@ describe('VisitMapChrome — commandes compactées', () => {
     setup({ visitMascotOptions: [] });
     expect(screen.queryByTestId('visit-mascot-picker')).toBeNull();
     expect(screen.getByRole('group', { name: 'Affichage du plan' })).toBeInTheDocument();
+  });
+
+  test('recherche et puces de catégorie apparaissent sous le bandeau', () => {
+    setup({
+      searchQuery: 'mare',
+      onSearchQueryChange: vi.fn(),
+      searchResults: [{ place: { id: 1, kind: 'zone', name: 'Mare centrale' } }],
+      onSelectSearchResult: vi.fn(),
+      categoryCatalog: [{ id: 'c1', label: 'Eau', emoji: '💧', color: '#38bdf8' }],
+      selectedCategoryIds: new Set(),
+      onToggleCategory: vi.fn(),
+      onResetCategories: vi.fn(),
+      categoryCounts: new Map([['c1', 2]]),
+    });
+    expect(screen.getByTestId('visit-map-discover')).toBeInTheDocument();
+    expect(screen.getByTestId('visit-place-search')).toHaveValue('mare');
+    expect(screen.getByRole('group', { name: 'Filtrer par catégorie' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Mare centrale/ })).toBeInTheDocument();
   });
 });

@@ -47,6 +47,7 @@ export function useVisitContent({ mapId, setMapId, onForceLogout, onProgressLoad
     tutorials: [],
     mascot_packs: [],
     routes: [],
+    categories: [],
   });
   const [loading, setLoading] = useState(true);
   /** Un chargement au moins est allé au bout : les suivants ne masquent plus la vue. */
@@ -97,11 +98,13 @@ export function useVisitContent({ mapId, setMapId, onForceLogout, onProgressLoad
               tutorials: [],
               mascot_packs: [],
               routes: [],
+              categories: [],
               map_id: requestedMapId,
             };
       setContent({
         ...visitPayload,
         routes: Array.isArray(visitPayload.routes) ? visitPayload.routes : [],
+        categories: Array.isArray(visitPayload.categories) ? visitPayload.categories : [],
       });
       onProgressLoadedRef.current?.(progressBody);
     } catch (err) {

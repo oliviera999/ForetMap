@@ -431,6 +431,10 @@ En **mode consultation** (carte ouverte sans tracé ni édition de contour), une
   Contrairement à l'ancien filtre « état », les catégories s'appliquent **aussi aux
   repères** : cocher une catégorie ne fait plus disparaître les repères de la carte.
 
+> L'**affichage** du plan en consultation (zones, repères, regroupements au dézoom,
+> boutons zoom / « Me suivre ») est aligné sur le Plan Lyautey et la Visite. La carte de
+> travail garde en revanche sa **barre d'outils** et ses **filtres de lieux** — sans les
+> puces de recherche ni de catégories du Plan.
 > Seules les tâches **encore en jeu** comptent sur la carte : terminées (en attente
 > de validation), validées, archivées, ou rattachées à un projet terminé/validé n'affichent
 > plus de pastille de tâche et ne font plus hériter leurs tutoriels au lieu. Les tutoriels
