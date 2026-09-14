@@ -1,7 +1,4 @@
-function joinClassNames(...parts) {
-  return parts.filter(Boolean).join(' ');
-}
-
+import { joinClassNames } from '../../../shared/utils/classNames.js';
 export function GLField({ label, htmlFor, hint = '', error = '', className = '', children }) {
   return (
     <label

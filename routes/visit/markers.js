@@ -18,45 +18,13 @@ const {
 const { normalizeMarkerEmoji } = require('../../lib/markerEmoji');
 const { normalizeCoord } = require('../../lib/visitContentHelpers');
 const { logAudit } = require('../../lib/auditLog');
+const { withLocationAudienceFields } = require('../../lib/locationAudience');
 const {
-  readAudienceWriteFields,
-  serializeRoleSlugList,
-  withLocationAudienceFields,
-} = require('../../lib/locationAudience');
+  resolveAudienceForInsert,
+  resolveAudienceForUpdate,
+} = require('../../lib/visitAudienceWrite');
 
 const router = express.Router();
-
-function resolveAudienceForInsert(body) {
-  const audienceInput = readAudienceWriteFields(body);
-  if (!audienceInput.ok) return audienceInput;
-  return {
-    ok: true,
-    visible_role_slugs: serializeRoleSlugList(audienceInput.visible_role_slugs || []) || null,
-    restricted_note: audienceInput.restricted_note || null,
-    restricted_note_role_slugs:
-      serializeRoleSlugList(audienceInput.restricted_note_role_slugs || []) || null,
-  };
-}
-
-function resolveAudienceForUpdate(body, exists) {
-  const audienceInput = readAudienceWriteFields(body);
-  if (!audienceInput.ok) return audienceInput;
-  return {
-    ok: true,
-    visible_role_slugs:
-      audienceInput.visible_role_slugs === null
-        ? (exists.visible_role_slugs ?? null)
-        : serializeRoleSlugList(audienceInput.visible_role_slugs) || null,
-    restricted_note:
-      audienceInput.restricted_note === null
-        ? (exists.restricted_note ?? null)
-        : audienceInput.restricted_note || null,
-    restricted_note_role_slugs:
-      audienceInput.restricted_note_role_slugs === null
-        ? (exists.restricted_note_role_slugs ?? null)
-        : serializeRoleSlugList(audienceInput.restricted_note_role_slugs) || null,
-  };
-}
 
 router.post(
   '/markers',

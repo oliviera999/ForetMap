@@ -4,7 +4,7 @@
 // replaceTaskJoinRows (DELETE + INSERT dans une transaction quand appelé seul,
 // exécution directe quand un `tx` est fourni).
 require('./helpers/setup');
-const { describe, it, before } = require('node:test');
+const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert');
 const { initSchema, queryAll, execute, withTransaction } = require('../database');
 const { setTaskZones, syncLegacyLocationColumns } = require('../lib/tasks/taskQueries');
@@ -35,6 +35,16 @@ before(async () => {
      VALUES (?, 'Tâche taskQueries', '', 1, 'single_done', 'available', ?)`,
     [TASK_ID, new Date().toISOString()],
   );
+});
+
+// Nettoyage : sans lui, la carte `tq-atomic` (sort_order 0, sans fond publié) restait en
+// base et devenait la première carte active servie par `/api/plan/content` — le plan
+// affichait « Aucun fond de plan » et les e2e `plan-mobile` échouaient après `npm test`.
+after(async () => {
+  await execute('DELETE FROM task_zones WHERE task_id = ?', [TASK_ID]).catch(() => {});
+  await execute('DELETE FROM tasks WHERE id = ?', [TASK_ID]).catch(() => {});
+  await execute('DELETE FROM zones WHERE id = ?', [ZONE_ID]).catch(() => {});
+  await execute('DELETE FROM maps WHERE id = ?', [MAP_ID]).catch(() => {});
 });
 
 describe('lib/tasks/taskQueries — atomicité des jointures', () => {

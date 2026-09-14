@@ -334,14 +334,10 @@ VALUES
  'Non. Hors sujet.',
  NULL,'Bois mort.','bois mort, champignon, lignine','actif',NOW(),NOW());
 
--- Purge glossaire : libellé absent de l’énoncé, de la bonne réponse et des tags.
-DELETE qqg
-  FROM quiz_question_glossary qqg
-  INNER JOIN quiz_questions q ON q.question_code = qqg.question_code
-  INNER JOIN glossary_terms g ON g.glossary_code = qqg.glossary_code
- WHERE CHAR_LENGTH(TRIM(g.terme)) >= 5
-   AND LOWER(CONCAT_WS(' ', q.question, IFNULL(q.reponse_texte, ''), IFNULL(q.tags, ''), q.choix_a))
-       NOT LIKE CONCAT('%', LOWER(g.terme), '%');
+-- (Audit 2026-09-13 §2.1) Un bloc « purge glossaire » visait ici `quiz_question_glossary`,
+-- table supprimée par la migration 186 : l'énoncé échouait en ER_NO_SUCH_TABLE sur toute base
+-- et le moteur l'avalait comme « déjà appliqué ». Retiré ; la purge équivalente porte sur
+-- `resource_question_links` ci-dessous.
 
 DELETE rql
   FROM resource_question_links rql
@@ -500,29 +496,8 @@ SELECT 'plant', CAST(p.id AS CHAR) COLLATE utf8mb4_unicode_ci, v.question_code, 
   INNER JOIN plants p ON p.name = v.name
   INNER JOIN quiz_questions q ON q.question_code = v.question_code;
 
--- Glossaire : on rattache par le mot du terme (après purge, ces liens repassent le filtre).
-INSERT IGNORE INTO quiz_question_glossary (question_code, glossary_code)
-SELECT v.question_code, g.glossary_code
-  FROM (
-    SELECT 'QF9250' AS question_code, 'nodosité' AS needle
-    UNION ALL SELECT 'QF9250', 'Rhizobium'
-    UNION ALL SELECT 'QF9250', 'légumineuse'
-    UNION ALL SELECT 'QF9256', 'mycorhize'
-    UNION ALL SELECT 'QF9256', 'symbiose'
-    UNION ALL SELECT 'QF9261', 'détritivore'
-    UNION ALL SELECT 'QF9268', 'détritivore'
-    UNION ALL SELECT 'QF9271', 'détritivore'
-    UNION ALL SELECT 'QF9271', 'compost'
-    UNION ALL SELECT 'QF9272', 'décomposeur'
-    UNION ALL SELECT 'QF9240', 'humus'
-    UNION ALL SELECT 'QF9237', 'nitrification'
-    UNION ALL SELECT 'QF9209', 'mycorhize'
-    UNION ALL SELECT 'QF9217', 'compagnonnage'
-  ) v
-  INNER JOIN glossary_terms g
-    ON LOWER(g.terme) LIKE CONCAT('%', LOWER(v.needle), '%')
-  INNER JOIN quiz_questions q ON q.question_code = v.question_code;
-
+-- (Audit 2026-09-13 §2.1) Le rattachement `quiz_question_glossary` qui précédait visait la
+-- même table supprimée (migration 186) ; seul le rattachement `resource_question_links` compte.
 INSERT IGNORE INTO resource_question_links
   (resource_type, resource_ref, question_code, origin, status, is_gating)
 SELECT 'glossary', g.glossary_code, v.question_code, 'import', 'approved', 1

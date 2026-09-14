@@ -1,11 +1,5 @@
 import { forwardRef } from 'react';
-
-function joinClassNames(...parts) {
-  return parts
-    .map((v) => String(v || '').trim())
-    .filter(Boolean)
-    .join(' ');
-}
+import { joinClassNames } from '../utils/classNames.js';
 
 /** Variantes connues (toute autre valeur retombe sur `secondary`). */
 export const BUTTON_VARIANTS = Object.freeze(['primary', 'secondary', 'ghost', 'danger']);

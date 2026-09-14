@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLatestRequest } from '../../shared/hooks/useLatestRequest.js';
 
 import { api } from '../../services/api';
 import { Button } from '../../shared/ui/Button.jsx';
@@ -50,19 +51,24 @@ export function UsagePanel({ onError = null }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // Garde anti-course : un changement de période ou de produit pendant un appel ne doit pas
+  // laisser la réponse précédente s'afficher en dernier (audit 2026-09-13 §2.5).
+  const latest = useLatestRequest();
   const load = useCallback(async () => {
+    const isCurrent = latest();
     setLoading(true);
     try {
       const params = new URLSearchParams({ from, to });
       if (product) params.set('product', product);
       const data = await api(`/api/admin/usage?${params}`);
+      if (!isCurrent()) return;
       setRows(Array.isArray(data?.rows) ? data.rows : []);
     } catch (err) {
-      onError?.(err?.message || 'Lecture des compteurs impossible.');
+      if (isCurrent()) onError?.(err?.message || 'Lecture des compteurs impossible.');
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
-  }, [from, to, product, onError]);
+  }, [from, to, product, onError, latest]);
 
   useEffect(() => {
     load();

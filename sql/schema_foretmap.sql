@@ -660,6 +660,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
   occurred_at DATETIME DEFAULT NULL,
   payload_json JSON DEFAULT NULL,
   INDEX idx_audit_actor (actor_user_type, actor_user_id, id),
+  INDEX idx_audit_log_created (created_at),
   INDEX idx_audit_action (action, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

@@ -18,6 +18,7 @@ const { assertGatingSatisfiedForAcknowledge } = require('../lib/learningGatingAc
 const { glossaryTermMatchesQuery } = require('../lib/glossarySearch');
 
 const { getNamedMemoryTtlCache } = require('../lib/memoryTtlCache');
+const { normalizeOptionalString: normalizeOptionalFilter } = require('../lib/shared/httpHelpers');
 
 /**
  * Liste complète des termes actifs — le cas de très loin le plus fréquent : `useGlossaryLinkIndex`
@@ -33,12 +34,6 @@ const glossaryTermsCache = getNamedMemoryTtlCache('glossary:terms:v1', {
 const GLOSSARY_TERMS_CACHE_KEY = 'all';
 
 const router = express.Router();
-
-function normalizeOptionalFilter(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
 
 const glossaryCodeParamsSchema = z.unknown().superRefine((p, ctx) => {
   const code = String((p == null ? '' : p.code) || '').trim();

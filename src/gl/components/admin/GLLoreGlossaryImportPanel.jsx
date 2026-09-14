@@ -2,15 +2,7 @@ import { useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { downloadGlFile } from '../../utils/downloadGlFile.js';
 import { GLButton } from '../ui/GLButton.jsx';
-
-async function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
-    reader.readAsDataURL(file);
-  });
-}
+import { fileToDataUrl } from '../../../shared/platform/fileToDataUrl.js';
 
 export function GLLoreGlossaryImportPanel() {
   const [file, setFile] = useState(null);

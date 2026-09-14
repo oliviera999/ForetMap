@@ -1,13 +1,7 @@
 import { createPortal } from 'react-dom';
 import { useDialogA11y } from '../platform/useDialogA11y';
 import { IconClose } from '../icons.jsx';
-
-function joinClassNames(...values) {
-  return values
-    .map((v) => String(v || '').trim())
-    .filter(Boolean)
-    .join(' ');
-}
+import { joinClassNames } from '../utils/classNames.js';
 
 /**
  * Shell unifié pour modales ForetMap et GL.
