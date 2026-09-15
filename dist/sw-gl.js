@@ -1,6 +1,6 @@
 /* Service worker « gl » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-gl-c6156f87";
+const CACHE_NAME = "foretmap-gl-06f881c4";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -9,28 +9,28 @@ const PRECACHE_URLS = [
   "/manifest.json",
   "/gl/favicon.svg",
   "/gl/logo.png",
-  "/assets/gl-B-1LpBTL.js",
+  "/assets/gl-By06Z0vO.js",
   "/assets/gl-CGYxiSaK.css",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-BI6NgtJK.js",
-  "/assets/react-vendor-NSwws4_t.js",
-  "/assets/icons-DN-Q6DZk.js",
-  "/assets/ErrorBoundary-Dl-UX9X0.js",
+  "/assets/VisitMascotFallbackSvg-DG9xUeT2.js",
+  "/assets/react-vendor-ClBrELym.js",
+  "/assets/icons-BBfebeWE.js",
+  "/assets/ErrorBoundary-C__5v0o8.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-0ieTqTH-.js",
+  "/assets/ImageLightboxProvider-CdkUG3Zo.js",
   "/assets/ImageLightboxProvider-B1dCJcHH.css",
-  "/assets/spriteCutCatalogEntry-DEPH3HaP.js",
-  "/assets/markdown-B5dU4qij.js",
-  "/assets/socket-io-D_2T_oRH.js",
-  "/assets/GuidedTourOverlay-D-fWAloE.js",
-  "/assets/HelpDock-BZ7Mjee9.js",
+  "/assets/spriteCutCatalogEntry-DjaX1zkf.js",
+  "/assets/markdown-DaBuaikX.js",
+  "/assets/socket-io-SGWxBABF.js",
+  "/assets/GuidedTourOverlay-Cpnl7uV4.js",
+  "/assets/HelpDock-DMLMe-eO.js",
   "/assets/HelpDock-607GLmvi.css",
-  "/assets/apiGL-DIYHq7JS.js",
-  "/assets/presenceListPatch-PbPRC3KV.js",
-  "/assets/JournalBookView-CKwkpqFR.js",
-  "/assets/FoodWebGraph-54iKxgKL.js",
-  "/assets/mascotBehaviorEngine-Dh8NCJd-.js",
-  "/assets/MediaLibraryMenu-nNzsEj1x.js",
+  "/assets/apiGL-DT6awfJh.js",
+  "/assets/presenceListPatch-DJo7kpOw.js",
+  "/assets/JournalBookView-Bs-bdtcV.js",
+  "/assets/FoodWebGraph-D6LOm4I0.js",
+  "/assets/mascotBehaviorEngine-BnBHjtei.js",
+  "/assets/MediaLibraryMenu-CkZHVQr1.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).

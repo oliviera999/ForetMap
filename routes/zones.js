@@ -1,7 +1,7 @@
 const express = require('express');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
-const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
+const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
 const { requirePermission, authenticate } = require('../middleware/requireTeacher');
 const { resolveScopedMapFilter, canAccessMapId, MAP_OUT_OF_SCOPE } = require('../lib/mapAccess');
 const {
@@ -123,7 +123,7 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
       : parseVisitEditorialBlocksInput(existing?.body_json);
   const bodyJson = serializeVisitEditorialBlocks(normalizedBlocks);
   const audience = mapZoneToVisitWhitelistFields(zoneRow);
-  const now = nowIsoUtc();
+  const now = nowDbTimestamp();
   await execute(
     `INSERT INTO visit_zones
       (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json,
@@ -173,7 +173,7 @@ async function mirrorZoneAudienceToVisit(zoneRow) {
       audience.visible_role_slugs,
       audience.restricted_note,
       audience.restricted_note_role_slugs,
-      nowIsoUtc(),
+      nowDbTimestamp(),
       zoneRow.id,
       zoneRow.map_id,
     ],

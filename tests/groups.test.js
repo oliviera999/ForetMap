@@ -322,7 +322,7 @@ test('Tasks: affectation rapide par groupe', async () => {
   await execute(
     `INSERT INTO tasks (id, title, description, map_id, group_id, required_students, completion_mode, status, created_at)
      VALUES (?, ?, '', 'foret', ?, 5, 'single_done', 'available', ?)`,
-    [taskId, `Task group ${Date.now()}`, groupId, new Date().toISOString()],
+    [taskId, `Task group ${Date.now()}`, groupId, new Date()],
   );
 
   const res = await request(app)
@@ -349,7 +349,7 @@ test('Groupes: la suppression détache (NULL) les group_id sans FK', async () =>
   await execute(
     `INSERT INTO tasks (id, title, description, map_id, group_id, required_students, completion_mode, status, created_at)
      VALUES (?, ?, '', 'foret', ?, 1, 'single_done', 'available', ?)`,
-    [taskId, `Task del ${Date.now()}`, groupId, new Date().toISOString()],
+    [taskId, `Task del ${Date.now()}`, groupId, new Date()],
   );
 
   await request(app)

@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../../database');
-const { nowIsoUtc } = require('../../lib/shared/isoTimestamp');
+const { nowDbTimestamp } = require('../../lib/shared/isoTimestamp');
 const {
   assignmentIdentityMatch,
   assignmentRowMatchesStudent,
@@ -109,7 +109,7 @@ router.post(
           studentId: action.studentId,
           firstName: action.firstName,
           lastName: action.lastName,
-          assignedAt: nowIsoUtc(),
+          assignedAt: nowDbTimestamp(),
         }),
       );
       if (!outcome.ok) {
@@ -195,7 +195,7 @@ router.post(
         toAssign.push(student);
       }
       if (toAssign.length > 0) {
-        const assignedAt = nowIsoUtc();
+        const assignedAt = nowDbTimestamp();
         const placeholders = toAssign.map(() => '(?, ?, ?, ?, ?)').join(', ');
         const params = [];
         for (const student of toAssign) {
@@ -285,7 +285,7 @@ router.post(
           action.lastName,
           comment || '',
           null,
-          nowIsoUtc(),
+          nowDbTimestamp(),
         ],
       );
       const logId = result.insertId;
@@ -304,7 +304,7 @@ router.post(
     if (completionMode === 'all_assignees_done') {
       if (!assignment.done_at) {
         await execute('UPDATE task_assignments SET done_at = ? WHERE id = ?', [
-          nowIsoUtc(),
+          nowDbTimestamp(),
           assignment.id,
         ]);
       }

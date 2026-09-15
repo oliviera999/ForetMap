@@ -28,13 +28,28 @@ export const TROPHIC_COLUMN_LABELS = Object.freeze([
 
 /** Présélections de graphe : séparer réseau alimentaire et autres relations. */
 export const GRAPH_PRESETS = Object.freeze({
-  alimentaire: Object.freeze(['herbivorie', 'predation', 'decomposition']),
+  // Réseau alimentaire : tout ce qui transporte de la matière d'un être vivant vers celui
+  // qui le consomme (`matterFlow: 'to_from'`, cf. `foodWebTypes.js`).
+  alimentaire: Object.freeze([
+    'herbivorie',
+    'predation',
+    'decomposition',
+    'detritivorie',
+    'frugivorie',
+    'granivorie',
+    'parasitisme',
+  ]),
+  // Autres relations : services, rapports, et apports de matière minérale — excrétion et
+  // assimilation, détachées de `nitrification` par la migration 255, y rejoignent le
+  // cycle de l'azote plutôt que le réseau alimentaire.
   relations: Object.freeze([
     'pollinisation',
     'plante_hote',
     'symbiose',
     'competition',
     'nitrification',
+    'excretion',
+    'assimilation',
   ]),
   all: null,
 });
