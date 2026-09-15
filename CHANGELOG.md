@@ -16,6 +16,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   clics arrivaient avant la fin de l’enregistrement précédent. La carte / la visite
   / le Plan pouvaient alors n’afficher qu’une catégorie.
 
+### Ajouté — Fiches espèces : section « Détermination »
+
+- **Trois champs** sur la fiche (migration `243`) : `identification_criteria` (critères de
+  détermination), `lookalike_species` (confusions possibles), `identification_period`
+  (période d’observation). Libellés **neutres vis-à-vis du règne** — le catalogue mêle
+  végétaux, animaux, champignons, micro-organismes et fiches-ressources.
+- **Section repliable** dans la fiche, placée juste après la photo, avec auto-liens du
+  glossaire comme les textes d’écologie. Elle reste **absente** tant qu’aucun des trois
+  champs n’est renseigné.
+- **Confusions en encadré d’alerte** : la forêt est comestible et les élèves récoltent, une
+  ressemblance avec une espèce toxique ne doit pas se lire comme une métadonnée ordinaire.
+- **Réglage de site** `ui.biodiv.determination_always_open` (défaut `false`) pour déplier la
+  section d’office — Réglages → Modules UI.
+- **Saisie prof** : section dédiée dans le formulaire de fiche ; **import en masse** étendu
+  (clés canoniques et alias français : « Critères de détermination », « Confusions
+  possibles », « Période d’observation »…). Le pré-remplissage automatique est inchangé, ses
+  sources ne fournissent pas de critères de détermination.
+
 ### Ajouté — Assainissement console admin ForetMap
 
 - **Permissions UI** alignées sur l’API : lecture seule, Moodle (`integrations.moodle.manage`),

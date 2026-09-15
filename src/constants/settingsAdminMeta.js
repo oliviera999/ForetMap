@@ -246,6 +246,11 @@ export const KEY_META = {
     section: 'modules',
     order: 40,
   },
+  'ui.biodiv.determination_always_open': {
+    label: 'Fiches espèces — section « Détermination » toujours dépliée',
+    section: 'modules',
+    order: 41,
+  },
   'observations.journal_max_chars': {
     label: 'Carnet — max. caractères par article (0 = illimité)',
     section: 'modules',
