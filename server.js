@@ -511,6 +511,8 @@ app.use('/api', (req, res, next) => {
 // Compteur d'usage anonyme (public) et sa lecture admin — lot 1, `lib/usage.js`.
 app.use('/api/usage', usageRouters.publicRouter);
 app.use('/api/admin/usage', usageRouters.adminRouter);
+// Suivi utilisateurs admin : présence, activité légère, passage identifié.
+app.use('/api/admin', require('./routes/userTracking'));
 app.use('/api/auth', authRouter);
 app.use('/api/lti', ltiRouter);
 app.use('/api/zones', zonesRouter);

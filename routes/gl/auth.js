@@ -469,6 +469,17 @@ async function touchGlPlayerLastSeen(player) {
       player.user_id,
     ]);
   }
+  try {
+    const { recordAuthenticatedTouch } = require('../../lib/userTracking');
+    void recordAuthenticatedTouch({
+      product: 'gl',
+      userType: 'gl_player',
+      userId: String(player.id),
+      action: 'login',
+    });
+  } catch (_) {
+    /* ignore */
+  }
 }
 
 const FORGOT_PASSWORD_NEUTRAL_MESSAGE =
