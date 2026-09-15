@@ -9,6 +9,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Garde-fous statiques : CI de `main` au vert
+
+- **`MapActionButton` : le prop `role` devient `variant`.** Ce prop ne pilote qu'une classe
+  CSS et n'atteint jamais le DOM (il est déstructuré hors de `...props`, le rendu est un
+  `<button>` natif). Sous son ancien nom, `jsx-a11y/aria-role` le prenait pour un attribut
+  ARIA et signalait **seize fausses violations** sur des boutons parfaitement accessibles.
+  Renommage pur, sans changement de comportement, sur 16 sites d'appel ForetMap, G&L et Plan.
+- **Menu mascotte de la Visite** : `eslint-disable` justifié sur `ul[role=menu]`, qui suit le
+  patron de menu recommandé par l'APG du W3C — la règle jsx-a11y y est plus stricte que la
+  recommandation, et restructurer casserait le patron.
+- **Inventaire d'accessibilité** régénéré : **88 → 76** violations, 51 → 45 fichiers. Toute la
+  famille `jsx-a11y/aria-role` disparaît, ainsi que deux entrées devenues caduques sur
+  `visit-views.jsx`.
+- **`typography-tokens-guard`** : le `font-size` littéral du sélecteur de mascotte Visite
+  passe au token `--text-lg`.
+
+Ces trois garde-fous échouaient sur `main` depuis plusieurs lots et faisaient échouer la CI de
+toutes les PR. Le job `quality` refusait alors d'exécuter l'étape Vitest.
+
 ### Ajouté — Fiches espèces : section « Détermination »
 
 - **Trois champs** sur la fiche (migration `243`) : `identification_criteria` (critères de
