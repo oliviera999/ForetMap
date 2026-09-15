@@ -113,6 +113,7 @@ export function TaskTileMeta({
               : t.recurrence === 'monthly'
                 ? 'Mensuel'
                 : t.recurrence}
+          {t.parent_task_id ? ' · suite' : ''}
         </span>
       )}
     </div>

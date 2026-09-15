@@ -111,7 +111,7 @@ Le moteur pédagogique de l'application :
    le palier suivant.
 
 Le professeur peut aussi affecter un groupe entier à une tâche, importer des tâches en
-masse, et programmer des **tâches récurrentes** (générées automatiquement chaque jour).
+masse, et programmer des **tâches récurrentes** (générées automatiquement les jours ouvrés scolaires).
 
 ### Les modules pédagogiques
 

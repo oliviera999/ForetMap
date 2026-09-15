@@ -1,6 +1,6 @@
 'use strict';
 
-// Les deux types sont acceptés depuis la migration 250 : elle a séparé les DÉCOMPOSEURS
+// Les deux types sont acceptés depuis la migration 255 : elle a séparé les DÉCOMPOSEURS
 // (bactéries, champignons, qui minéralisent) des DÉTRITIVORES (animaux qui fragmentent la
 // matière morte sans la minéraliser). La règle testée ici — « tout détritivore connu pointe
 // au moins une nourriture nommée » — porte sur le lien, pas sur son étiquette.

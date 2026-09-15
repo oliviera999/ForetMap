@@ -103,6 +103,33 @@ async function getTaskMarkerIds(taskId) {
 /** Récurrences pour lesquelles on conserve un snapshot zones/repères à la validation (job récurrence). */
 const RECURRENCE_WITH_TEMPLATE_LOCS = new Set(['weekly', 'biweekly', 'monthly']);
 
+/**
+ * Normalise recurrence pour POST/PUT JSON (whitelist).
+ * @returns {{ value: string|null } | { error: string }}
+ */
+function normalizeTaskRecurrenceInput(raw, { requiredPresent = false } = {}) {
+  if (raw === undefined || raw === null || raw === '') {
+    if (requiredPresent) return { value: null };
+    return { value: null };
+  }
+  const r = String(raw).trim().toLowerCase();
+  if (!r) return { value: null };
+  if (!RECURRENCE_WITH_TEMPLATE_LOCS.has(r)) {
+    return { error: 'Récurrence invalide (weekly, biweekly ou monthly)' };
+  }
+  return { value: r };
+}
+
+/** Dates tâche : YYYY-MM-DD ou vide/null. */
+function normalizeTaskDateInput(raw, fieldLabel) {
+  if (raw === undefined || raw === null || raw === '') return { value: null };
+  const s = String(raw).trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    return { error: `${fieldLabel} invalide (format AAAA-MM-JJ attendu)` };
+  }
+  return { value: s };
+}
+
 let recurrenceTemplateColumnsReady = null;
 
 async function hasRecurrenceTemplateColumns() {
@@ -205,7 +232,7 @@ const TASK_LIST_SQL_BASE = `
            t.zone_id, t.marker_id, t.start_date, t.due_date, t.required_students, t.completion_mode,
            t.danger_level, t.difficulty_level, t.importance_level, t.sort_order, t.status,
            t.archived_at, t.archived_via_project, t.validated_at, t.created_at,
-           t.recurrence,
+           t.recurrence, t.parent_task_id, t.recurrence_series_id,
            tp.map_id AS project_map_id, tp.title AS project_title, tp.status AS project_status,
            m.id AS map_id_resolved_join, m.label AS map_label,
            t.image_path AS task_cover_image_path
@@ -651,14 +678,21 @@ router.post(
     if (parsedDifficulty.error) return res.status(400).json({ error: parsedDifficulty.error });
     const parsedImportance = parseTaskImportanceLevelFromClient(importance_level);
     if (parsedImportance.error) return res.status(400).json({ error: parsedImportance.error });
+    const parsedRecurrence = normalizeTaskRecurrenceInput(recurrence);
+    if (parsedRecurrence.error) return res.status(400).json({ error: parsedRecurrence.error });
+    const parsedStart = normalizeTaskDateInput(start_date, 'Date de début');
+    if (parsedStart.error) return res.status(400).json({ error: parsedStart.error });
+    const parsedDue = normalizeTaskDateInput(due_date, "Date d'échéance");
+    if (parsedDue.error) return res.status(400).json({ error: parsedDue.error });
     const normalizedGroupId = normalizeOptionalId(group_id);
     const id = crypto.randomUUID();
+    const seriesId = parsedRecurrence.value ? crypto.randomUUID() : null;
     // Écritures atomiques (audit §2.5) : INSERT tasks + jointures + colonnes legacy + espèces
     // + image dans UNE transaction — en cas d'échec (image comprise), tout est annulé
     // et le fichier image éventuellement écrit est supprimé.
     await withTransaction(async (tx) => {
       await tx.execute(
-        'INSERT INTO tasks (id, title, description, map_id, project_id, group_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO tasks (id, title, description, map_id, project_id, group_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, recurrence, recurrence_series_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           id,
           title,
@@ -668,14 +702,15 @@ router.post(
           normalizedGroupId,
           zIds[0] || null,
           mIds[0] || null,
-          start_date || null,
-          due_date || null,
+          parsedStart.value,
+          parsedDue.value,
           reqStudents,
           completionMode,
           parsedDanger.level,
           parsedDifficulty.level,
           parsedImportance.level,
-          recurrence || null,
+          parsedRecurrence.value,
+          seriesId,
           nowDbTimestamp(),
         ],
       );
@@ -923,6 +958,26 @@ router.put('/:id', async (req, res) => {
       nextImportanceLevel = task.importance_level;
     }
 
+    let nextRecurrence = task.recurrence || null;
+    if (isTeacherManageAction && Object.prototype.hasOwnProperty.call(req.body, 'recurrence')) {
+      const pRec = normalizeTaskRecurrenceInput(recurrence);
+      if (pRec.error) return res.status(400).json({ error: pRec.error });
+      nextRecurrence = pRec.value;
+    }
+
+    let nextStartDate = task.start_date || null;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'start_date')) {
+      const pStart = normalizeTaskDateInput(start_date, 'Date de début');
+      if (pStart.error) return res.status(400).json({ error: pStart.error });
+      nextStartDate = pStart.value;
+    }
+    let nextDueDate = task.due_date || null;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'due_date')) {
+      const pDue = normalizeTaskDateInput(due_date, "Date d'échéance");
+      if (pDue.error) return res.status(400).json({ error: pDue.error });
+      nextDueDate = pDue.value;
+    }
+
     const currentStatus = normalizeTaskStatusForRead(task.status);
     const becameValidated = nextStatus === 'validated' && currentStatus !== 'validated';
     const currentZoneIds = await getTaskZoneIds(task.id);
@@ -930,16 +985,12 @@ router.put('/:id', async (req, res) => {
     const locationChanged =
       !sameIdSet(nextZoneIds, currentZoneIds) || !sameIdSet(nextMarkerIds, currentMarkerIds);
 
+    const zonesForSnapshot = nextZoneIds.length ? nextZoneIds : currentZoneIds;
+    const markersForSnapshot = nextMarkerIds.length ? nextMarkerIds : currentMarkerIds;
+
     // Règle métier: une tâche validée ne doit pas être liée à des zones/repères.
+    // Le snapshot récurrence est posé DANS la transaction ci-dessous (récurrence effective).
     if (nextStatus === 'validated') {
-      if (currentStatus !== 'validated') {
-        await persistRecurringTemplateLocations(
-          task.id,
-          task.recurrence,
-          currentZoneIds,
-          currentMarkerIds,
-        );
-      }
       nextZoneIds = [];
       nextMarkerIds = [];
     } else if (currentStatus === 'validated' && locationChanged) {
@@ -966,13 +1017,27 @@ router.put('/:id', async (req, res) => {
       Object.prototype.hasOwnProperty.call(bodyPut, 'remove_task_image') &&
       bodyPut.remove_task_image === true;
 
+    const nextSeriesId =
+      nextRecurrence && !task.recurrence_series_id
+        ? crypto.randomUUID()
+        : task.recurrence_series_id || null;
+
     // Écritures atomiques (même garantie que le POST, audit §2.5) : UPDATE tasks + jointures
     // + colonnes legacy + espèces + image dans UNE transaction — un échec au milieu ne doit
     // pas laisser statut/map_id désynchronisés des jonctions.
     let obsoleteImagePath = null;
     await withTransaction(async (tx) => {
+      if (becameValidated) {
+        await persistRecurringTemplateLocations(
+          task.id,
+          nextRecurrence,
+          zonesForSnapshot,
+          markersForSnapshot,
+          tx,
+        );
+      }
       await tx.execute(
-        'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, group_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, importance_level=?, recurrence=? WHERE id=?',
+        'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, group_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, importance_level=?, recurrence=?, recurrence_series_id=COALESCE(?, recurrence_series_id) WHERE id=?',
         [
           title ?? task.title,
           description ?? task.description,
@@ -981,19 +1046,16 @@ router.put('/:id', async (req, res) => {
           nextGroupId,
           nextZoneIds[0] || null,
           nextMarkerIds[0] || null,
-          start_date ?? task.start_date,
-          due_date ?? task.due_date,
+          nextStartDate,
+          nextDueDate,
           reqStudents,
           nextStatus,
           nextCompletionMode,
           nextDangerLevel,
           nextDifficultyLevel,
           nextImportanceLevel,
-          isTeacherManageAction
-            ? recurrence !== undefined
-              ? recurrence || null
-              : task.recurrence || null
-            : task.recurrence || null,
+          nextRecurrence,
+          nextSeriesId,
           task.id,
         ],
       );

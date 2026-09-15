@@ -97,6 +97,23 @@ describe('taskMatchesFilters', () => {
     ).toBe(true);
   });
 
+  test('filtre récurrence', () => {
+    const weekly = { title: 'a', map_id: 'foret', recurrence: 'weekly' };
+    const none = { title: 'b', map_id: 'foret', recurrence: null };
+    expect(taskMatchesFilters(weekly, { ...BASE_FILTERS, filterRecurrence: 'recurring' })).toBe(
+      true,
+    );
+    expect(taskMatchesFilters(none, { ...BASE_FILTERS, filterRecurrence: 'recurring' })).toBe(
+      false,
+    );
+    expect(taskMatchesFilters(weekly, { ...BASE_FILTERS, filterRecurrence: 'weekly' })).toBe(true);
+    expect(taskMatchesFilters(weekly, { ...BASE_FILTERS, filterRecurrence: 'monthly' })).toBe(
+      false,
+    );
+    expect(taskMatchesFilters(none, { ...BASE_FILTERS, filterRecurrence: 'none' })).toBe(true);
+    expect(taskMatchesFilters(weekly, { ...BASE_FILTERS, filterRecurrence: 'none' })).toBe(false);
+  });
+
   test('applyTaskFilters conserve l’ordre d’origine', () => {
     const list = [
       { id: 1, title: 'mare nettoyage' },

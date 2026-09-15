@@ -6,7 +6,7 @@ import {
 } from '../../src/components/biodiv/PlantHazardSection.jsx';
 
 /**
- * Encadré « Danger » des fiches espèces (migration 246).
+ * Encadré « Danger » des fiches espèces (migration 251).
  *
  * Deux règles tenues par ces tests, parce que ce sont celles qui coûteraient cher si elles
  * se perdaient dans un refactor :

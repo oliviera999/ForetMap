@@ -11,7 +11,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Ajouté — Fiches espèces : champ « danger » distinct de la détermination
 
-- Quatre colonnes `plants` (migration `246`) : `toxicity_level` (aucune / irritation /
+- Quatre colonnes `plants` (migration `251`) : `toxicity_level` (aucune / irritation /
   toxique / mortel), `hazard_exposure` (SET de voies d'exposition), `hazard_notes` et
   `hazard_reviewed`. La détermination répond à « qu'est-ce que c'est » ; une espèce
   parfaitement identifiée — ricin, laurier-rose, tabac glauque, jusquiame — peut rester
@@ -28,7 +28,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Ajouté — Attribution des photos du catalogue, et correction de la fiche « Laitue »
 
-- Colonnes `photo_credit` / `photo_licence` sur `plants` (migration `247`), aux mêmes noms
+- Colonnes `photo_credit` / `photo_licence` sur `plants` (migration `252`), aux mêmes noms
   que sur `quiz_questions`. Les licences du catalogue (CC BY-SA 3.0/4.0, CC BY, GFDL)
   imposent toutes de nommer l'auteur ; 225 photos Wikimedia n'en portaient aucun.
 - **195 attributions récupérées depuis l'API Wikimedia Commons** (champs `Artist` et
@@ -55,7 +55,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Ajouté — Intégrité référentielle : huit clés étrangères
 
-- Migration `248`. `map_species.first_record_by` était `INT UNSIGNED` face à un
+- Migration `253`. `map_species.first_record_by` était `INT UNSIGNED` face à un
   `users.id VARCHAR(64)` : aucune clé n'était possible et aucune valeur n'aurait pu y être
   écrite. Colonne convertie (NULL sur les 452 lignes), puis contrainte posée.
 - Sept autres liens sur `audit_log`, `sync_runs`, `sync_conflicts`, `tasks`,
@@ -70,7 +70,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Changé — Les 30 colonnes de dates en texte deviennent des types SQL
 
-- Migration `249` : 26 horodatages `VARCHAR(32)` → `DATETIME(3)`, 4 dates seules → `DATE`.
+- Migration `254` : 26 horodatages `VARCHAR(32)` → `DATETIME(3)`, 4 dates seules → `DATE`.
   Formats vérifiés homogènes colonne par colonne avant conversion.
 - Trois pièges traités, qu'une conversion naïve manque : l'`ALTER` direct **échoue** en mode
   strict sur une chaîne ISO (`ERROR 1292` — `CAST()` accepte le `T` et le `Z`, l'affectation
@@ -87,7 +87,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Changé — Réseau trophique : six types d'interaction, et le sens du flux de matière
 
-- Migration `250`. `nitrification` désignait trois relations distinctes — excrétion des
+- Migration `255`. `nitrification` désignait trois relations distinctes — excrétion des
   poissons, oxydation bactérienne, assimilation des nitrates par les plantes ;
   `decomposition` mêlait décomposeurs (qui minéralisent) et détritivores (qui fragmentent).
   Un merle y « décomposait » les fruits tombés.
@@ -97,6 +97,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   les flux trophiques, `from_to` pour les apports minéraux, `none` pour les services. **Pas
   de colonne SQL** — ce serait une troisième copie à synchroniser ; un test tient l'invariant
   et la parité entre les deux fichiers.
+### Ajouté — Récurrence des tâches + calendrier scolaire
+
+- Calendrier scolaire **2026-2027** (tables `school_calendar_*`, seed depuis le calendrier
+  de travail annualisé Lyautey) : jours ouverts / week-ends / vacances.
+- Job de duplication : **pas de spawn auto un jour fermé** ; prochaine échéance accrochée au
+  **prochain jour ouvré** ; rattrapage = **une seule** occurrence « à jour » (pas N clones).
+- Anti-doublon BDD `UNIQUE (recurrence_series_id, due_date)` : relancer
+  `npm run tasks:spawn-recurring` N fois ne recrée pas la même occurrence.
+- API : whitelist `recurrence` / dates `AAAA-MM-JJ` ; snapshot PUT aligné sur la récurrence
+  effective ; `GET /api/school-calendar` (`tasks.manage`).
+- UI n3boss/admin : filtre récurrence + panneau « Séries récurrentes » (caractéristiques +
+  statut du jour scolaire).
+- Migrations `247_school_calendar.sql`, `248_task_recurrence_series.sql`.
+
+### Ajouté — Carte du Complexe Nawal El Moutawakel (site de Beaulieu)
+
+- La carte `beaulieu` est renommée **« Complexe Nawal El Moutawakel (Beaulieu) »** et reçoit
+  son contenu : **8 zones** (piste d'athlétisme en anneau, terrain de football, terrains de
+  basket, plateau central multisports, beach-volley, courts de tennis, bâtiment des
+  installations couvertes, plateau extérieur ouest), **10 repères** (gymnase, piscine, salle de
+  musculation, mur d'escalade, vestiaires, infirmerie, entrée, liaison vers le site Lyautey,
+  local technique, hommage à Nawal El Moutawakel) et **6 catégories de lieux** propres à la
+  carte, chacun avec sa description et ses alias de recherche.
+- Migration `246_beaulieu_complexe_nawal_el_moutawakel.sql`, idempotente et **gardée par
+  l'existence de la carte** : sans effet sur une base neuve (CI, poste de dev), où la carte
+  `beaulieu` et son image de fond n'existent pas.
 
 ### Ajouté — Suivi utilisateurs admin (présence, activité, passage)
 

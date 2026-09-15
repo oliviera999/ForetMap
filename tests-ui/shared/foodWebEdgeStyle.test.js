@@ -22,7 +22,7 @@ const DUAL_CHANNEL_PAIRS = [
 /**
  * Familles de teintes : plusieurs types partagent délibérément une couleur.
  *
- * Jusqu'à la migration 250, les 8 types avaient 8 teintes distinctes. Les 14 types
+ * Jusqu'à la migration 255, les 8 types avaient 8 teintes distinctes. Les 14 types
  * actuels ne peuvent plus : la table Okabe–Ito, choisie pour rester lisible en vision
  * deutan/protan et en vidéoprojection, ne compte que 8 teintes sûres. En inventer six de
  * plus reviendrait à rapprocher les couleurs jusqu'à ce qu'elles cessent d'être

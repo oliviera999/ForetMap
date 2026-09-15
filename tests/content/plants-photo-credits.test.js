@@ -6,7 +6,7 @@ const assert = require('node:assert');
 const { initSchema, queryAll, queryOne } = require('../../database');
 
 /**
- * Attribution des photos du catalogue (migration 247).
+ * Attribution des photos du catalogue (migration 252).
  *
  * Test de **contenu** et non de code : il porte sur les données semées par les migrations,
  * pas sur une fonction. Une dérive du corpus — une photo Wikimedia ajoutée sans crédit —
