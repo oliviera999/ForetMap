@@ -80,5 +80,25 @@ module.exports = defineConfig({
       use: { ...devices['iPhone 13'] },
       testMatch: /mobile-webkit-smoke\.spec\.js/,
     },
+    {
+      // Plan Lyautey (lot 4) : produit servi par host, ciblé ici avec l'en-tête de surcharge
+      // `X-Foretmap-Product` (`lib/productResolver.js`) — pas de sous-domaine en local.
+      // Téléphone tactile : c'est le seul usage réel du plan.
+      //
+      // Ne pas retirer sans retirer aussi l'étape « Playwright Plan smoke » de
+      // `.github/workflows/ci.yml` : elle lance `--project=plan-mobile`, et Playwright
+      // échoue sur un projet inconnu. C'est ce qui a mis la CI au rouge le 14/09 — et,
+      // plus silencieusement, laissé les quatre specs `plan-*` sans aucun projet pour
+      // les exécuter (`chromium` et `mobile-chromium` les ignorent toutes deux).
+      name: 'plan-mobile',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 390, height: 844 },
+        hasTouch: true,
+        isMobile: true,
+        extraHTTPHeaders: { 'X-Foretmap-Product': 'plan' },
+      },
+      testMatch: /plan-.*\.spec\.js/,
+    },
   ],
 });
