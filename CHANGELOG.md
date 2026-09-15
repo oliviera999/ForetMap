@@ -21,6 +21,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   l'édition) faisait un `DELETE` puis un `INSERT` hors transaction : tous les
   rattachements directs de la fiche disparaissaient. Les ids inconnus sont
   ignorés, et le sync passe par `withTransaction`.
+
 ### Corrigé — CI verte : les trois garde-fous d'interface qui bloquaient `main`
 
 - **Faux positifs `jsx-a11y/aria-role`** : la prop de variante du kit bouton de carte
