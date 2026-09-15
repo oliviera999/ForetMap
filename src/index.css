@@ -4707,7 +4707,7 @@
       border-radius:9px;
       background:#fff;
       color:#1a4731;
-      font-size:1.15rem;
+      font-size:var(--text-lg);
       cursor:pointer;
     }
     .visit-mascot-picker__trigger:focus-visible {

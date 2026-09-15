@@ -19,7 +19,11 @@ export const MAP_ACTION_CLASS_NAMES = Object.freeze({
 /**
  * Bouton d'action superposé à une carte (kit d'interface, lot 3) — issu de
  * `GLBoardActionButton` (plateaux G&L), pour la barre de la carte ForetMap et le plan.
- * Rôles : `primary` (action principale), `display` (plein écran…), `tool` (bascules).
+ * Variantes : `primary` (action principale), `display` (plein écran…), `tool` (bascules).
+ *
+ * La prop s'appelle `variant` et **non** `role` : ce n'est pas un rôle ARIA, et le nom
+ * d'origine faisait lire à `jsx-a11y/aria-role` un rôle invalide sur chaque appel — bruit
+ * qui masquait la vraie dette d'accessibilité dans l'inventaire `tests/a11y-static-guard`.
  *
  * Point de passage unique des commandes en icône seule : l'infobulle (`Tooltip`) se pose ici,
  * remplace l'attribut `title` natif (lent, absent au clavier et au toucher) et double
@@ -30,7 +34,7 @@ export const MAP_ACTION_CLASS_NAMES = Object.freeze({
  */
 export const MapActionButton = forwardRef(function MapActionButton(
   {
-    role = 'tool',
+    variant = 'tool',
     active = false,
     muted = false,
     icon = null,
@@ -58,12 +62,12 @@ export const MapActionButton = forwardRef(function MapActionButton(
 
   const rootClass = joinClassNames(
     base.root,
-    base.role(role),
+    base.role(variant),
     active ? base.active : '',
     muted ? base.muted : '',
     iconOnly ? base.iconOnly : '',
     extra?.root,
-    extra?.role ? extra.role(role) : '',
+    extra?.role ? extra.role(variant) : '',
     iconOnly ? extra?.iconOnly : '',
     className,
   );
