@@ -99,7 +99,16 @@ function VisitMascotPickerPopover({ visitMascotId, visitMascotOptions, onChangeV
         <span aria-hidden>🐾</span>
       </button>
       {open ? (
-        <ul className="visit-mascot-picker__menu" role="menu" aria-label="Mascottes disponibles">
+        <ul
+          className="visit-mascot-picker__menu"
+          // `ul[role=menu] > li[role=none] > button[role=menuitem]` est le patron de menu
+          // recommandé par l'APG du W3C : la liste porte la sémantique de menu, les `li`
+          // s'effacent, et seuls les boutons sont les éléments de menu. La règle jsx-a11y
+          // est ici plus stricte que la recommandation ; restructurer casserait le patron.
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role
+          role="menu"
+          aria-label="Mascottes disponibles"
+        >
           {visitMascotOptions.map((m) => {
             const selected = m.id === visitMascotId;
             return (

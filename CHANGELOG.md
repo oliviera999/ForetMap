@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Garde-fous CI (a11y `variant`, token mascotte)
+
+- `MapActionButton` : la variante visuelle s'appelle `variant` (plus `role`, faux
+  positif `jsx-a11y/aria-role` sur les zooms unifiés). Menu mascotte Visite : patron
+  APG `ul[role=menu]` conservé, lint justifié. Token `--text-lg` sur le déclencheur.
+  Inventaire a11y 88 → 76.
+
 ### Corrigé — Visite : le plein écran remplissait à nouveau l'écran
 
 - Après l'unification sur `SharedMapStage`, `VisitMapStage` écrasait la classe

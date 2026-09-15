@@ -4,7 +4,7 @@ export function GLZoneMusicMuteButton({ visible = true, muted = false, onToggle,
   if (!visible) return null;
   return (
     <GLBoardActionButton
-      role="tool"
+      variant="tool"
       muted={muted}
       icon={muted ? '🔇' : '🎵'}
       label={muted ? 'Son off' : 'Son on'}
