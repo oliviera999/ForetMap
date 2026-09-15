@@ -22,6 +22,85 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   rattachements directs de la fiche disparaissaient. Les ids inconnus sont
   ignorés, et le sync passe par `withTransaction`.
 
+### Ajouté — Fiches espèces : section « Détermination »
+
+- **Trois champs** sur la fiche (migration `243`) : `identification_criteria` (critères de
+  détermination), `lookalike_species` (confusions possibles), `identification_period`
+  (période d’observation). Libellés **neutres vis-à-vis du règne** — le catalogue mêle
+  végétaux, animaux, champignons, micro-organismes et fiches-ressources.
+- **Section repliable** dans la fiche, placée juste après la photo, avec auto-liens du
+  glossaire comme les textes d’écologie. Elle reste **absente** tant qu’aucun des trois
+  champs n’est renseigné.
+- **Confusions en encadré d’alerte** : la forêt est comestible et les élèves récoltent, une
+  ressemblance avec une espèce toxique ne doit pas se lire comme une métadonnée ordinaire.
+- **Réglage de site** `ui.biodiv.determination_always_open` (défaut `false`) pour déplier la
+  section d’office — Réglages → Modules UI.
+- **Saisie prof** : section dédiée dans le formulaire de fiche ; **import en masse** étendu
+  (clés canoniques et alias français : « Critères de détermination », « Confusions
+  possibles », « Période d’observation »…). Le pré-remplissage automatique est inchangé, ses
+  sources ne fournissent pas de critères de détermination.
+
+### Ajouté — Assainissement console admin ForetMap
+
+- **Permissions UI** alignées sur l’API : lecture seule, Moodle (`integrations.moodle.manage`),
+  secrets/restart, Cartographie accessible avec `zones.manage` / `map.manage_markers`.
+- **Sous-onglets thématiques** : Accueil & modules, Pédagogie, Cartographie, Plan Lyautey,
+  Identité visuelle, Visite, Intégrations, Aide & découverte, Usage & exploitation.
+- **Éditeur de marque** ForetMap / Plan ; catégories par défaut carte & visite branchées ;
+  multi-sélection de catégories (Plan inclus).
+- **Hygiène grille** : clés plan / brand / hash / dialogues mascotte / flag seed exclus ;
+  titre audit À propos réglable (`content.about.site_issues_title`).
+- **Profils & groupes** : modales multi-champs (plus d’enchaînements de prompts) ; types de
+  groupes en français.
+- Doc de référence mise à jour (Carnet dans Suivi, chemins Paramètres, terminologie,
+  Moodle).
+
+### Amélioré — Réseau trophique : couleurs, cadrage, tactile
+
+- Nouvelle palette de relations (ambre, vermillon, pourpre, cyan… — tables type
+  Okabe–Ito) ; sélection = halo vert sans écraser la couleur du type.
+- Presets Réseau alimentaire / Autres / Tout partagés liste + graphe ; filtre Type
+  seulement en « Tout » ; bouton « Flux trophiques » retiré.
+- Disposition Niveaux : étiquettes Producteurs / Consommateurs / Décomposeurs.
+- Bouton « Voir la fiche » quand une espèce est isolée ; toolbar ≥ 44 px ; export
+  regroupé sous « Plus… » sur petit écran.
+
+### Amélioré — Navigation iPhone / mobile (barre élève « Plus »)
+
+- Sur téléphone et écrans tactiles, la barre basse élève n’affiche plus une douzaine
+  d’onglets en scroll opaque : raccourcis **Carte · Tâches · Biodiversité · Visite**
+  (ou Quiz) + bouton **Plus** ouvrant une feuille de navigation (pattern aligné sur
+  G&L). Encoches / flou WebKit / cibles header ≥ 44 px.
+- Chrome professeur sur petit écran : pôles seuls ; les onglets du pôle s’ouvrent dans
+  une feuille bas. Smoke e2e **WebKit** (`mobile-webkit`) ajouté en CI bloquante.
+
+### Corrigé — Orientation boussole : plus de fond vide après rotation
+
+- Avec **« Orienter »** actif, la carte **se recentre sur la position GPS** et **grossit**
+  assez (facteur √2) pour que le plan tourné remplisse encore le cadre — Visite, Plan
+  Lyautey et carte de travail (scène partagée).
+
+### Corrigé — Visite : plus de double illustration dans l'encart lieu
+
+- Quand la photo carte (`map_lead_photo`) et la première image média visite sont le
+  même fichier, une seule vignette s'affiche (sous le titre), plus de doublon sous
+  le texte d'intro ni dans les blocs éditoriaux.
+
+### Corrigé — Visite : puces catégories sans scroll horizontal de page (mobile)
+
+- Rangée de filtres alignée sur le Plan Lyautey : défilement **dans** le bandeau
+  (`min-width: 0`, `overflow-x` sur la rangée, carte qui ne s'élargit plus).
+
+### Corrigé — Visite : icônes et textes trop gros une fois connecté
+
+- Après le passage à la scène carte partagée, la typo compensait le zoom **deux fois**
+  (variables overlay + `--pct-inv`). Sur une carte plus petite (session connectée),
+  emojis et libellés apparaissaient nettement plus grands qu'en visite anonyme.
+- Second correctif : les tailles CSS n'étaient plus multipliées par
+  `--map-overlay-scale` (absent sur SharedMapStage) alors qu'elles étaient encore
+  **divisées** par le facteur plateau — effet inverse et encore plus marqué sur
+  une carte basse.
+
 ### Ajouté — Visite : carte partagée, recherche et filtres par catégorie
 
 - Le plan de visite s'appuie sur la **même scène carte** que le Plan (zones, repères,

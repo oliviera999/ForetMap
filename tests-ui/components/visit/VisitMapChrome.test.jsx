@@ -146,7 +146,7 @@ describe('VisitMapChrome — commandes compactées', () => {
   });
 
   test('recherche et puces de catégorie apparaissent sous le bandeau', () => {
-    setup({
+    const { container } = setup({
       searchQuery: 'mare',
       onSearchQueryChange: vi.fn(),
       searchResults: [{ place: { id: 1, kind: 'zone', name: 'Mare centrale' } }],
@@ -161,5 +161,8 @@ describe('VisitMapChrome — commandes compactées', () => {
     expect(screen.getByTestId('visit-place-search')).toHaveValue('mare');
     expect(screen.getByRole('group', { name: 'Filtrer par catégorie' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Mare centrale/ })).toBeInTheDocument();
+    // Conteneur de scroll horizontal (homologue `.plan-filters__row`).
+    expect(container.querySelector('.visit-map-card__chrome-chips')).toBeTruthy();
+    expect(container.querySelector('.visit-chips')).toBeTruthy();
   });
 });

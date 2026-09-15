@@ -88,6 +88,7 @@ import {
   collectMapSpeciesOptions,
   isMapLocationFilterActive,
 } from '../utils/mapLocationFilters.js';
+import { parseCategoryIdsSetting } from '../utils/categoryIdsSetting.js';
 import { collectMapCategoryOptions } from '../utils/locationCategories.js';
 import { useMapCategories } from '../hooks/useMapCategories.js';
 import { markerFocusPct, zoneFocusPctFromPoints } from '../utils/mapFocusLocation.js';
@@ -227,6 +228,7 @@ function MapViewImpl({
   const [mapLocationFilters, setMapLocationFilters] = useState(() => ({
     ...MAP_LOCATION_FILTER_DEFAULTS,
   }));
+  const [mapCategoryDefaultsApplied, setMapCategoryDefaultsApplied] = useState(false);
   const mapLocationSearchRef = useRef(null);
   const { mapFullscreen, setMapFullscreen, openMapFullscreen, closeMapFullscreen } =
     useMapFullscreen({
@@ -794,6 +796,17 @@ function MapViewImpl({
       }),
     [mapSettings, mapFitHeightPx, mapFitWidthPx, isCoarsePointer, mapTextSizePercent],
   );
+  /** SharedMapStage : plateau dans la taille de police, pas via `scale(--map-overlay-scale)`. */
+  const workFitExtraStyle = useMemo(
+    () =>
+      resolveMapOverlayCssVariables(mapSettings, mapFitHeightPx, {
+        fitWidthPx: mapFitWidthPx,
+        isCoarsePointer,
+        userTextSizePercent: mapTextSizePercent,
+        plateauAsTransform: false,
+      }),
+    [mapSettings, mapFitHeightPx, mapFitWidthPx, isCoarsePointer, mapTextSizePercent],
+  );
 
   // Zones pré-parsées (JSON.parse des points + emoji/nom d'étiquette) : recalculées uniquement
   // quand les données changent, plus à chaque rendu de la carte (zoom, pan, mascotte…).
@@ -808,6 +821,21 @@ function MapViewImpl({
     () => new Map((mapCategoryCatalog || []).map((c) => [String(c.id), c])),
     [mapCategoryCatalog],
   );
+
+  // Catégories cochées d'office (réglage admin `ui.map.default_category_ids`).
+  useEffect(() => {
+    if (mapCategoryDefaultsApplied || !(mapCategoryCatalog || []).length) return;
+    const raw =
+      publicSettings?.map?.default_category_ids ??
+      publicSettings?.ui?.map?.default_category_ids ??
+      '';
+    const ids = parseCategoryIdsSetting(raw).filter((id) => mapCategoriesById.has(id));
+    if (ids.length) {
+      setMapLocationFilters((prev) => ({ ...prev, categoryIds: ids }));
+    }
+    setMapCategoryDefaultsApplied(true);
+  }, [mapCategoryDefaultsApplied, mapCategoryCatalog, mapCategoriesById, publicSettings]);
+
   /**
    * Regroupement des repères au dézoom (lot 5, `docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.3) :
    * même module que le plan. Les repères dont les pastilles se recouvrent à l'écran sont
@@ -1064,11 +1092,6 @@ function MapViewImpl({
     if (selectedMarker) return { ...selectedMarker, kind: 'marker' };
     return null;
   }, [selectedZone, selectedMarker]);
-
-  const workFitExtraStyle = useMemo(() => {
-    if (!mapOverlayCssVars || typeof mapOverlayCssVars !== 'object') return null;
-    return mapOverlayCssVars;
-  }, [mapOverlayCssVars]);
 
   const workTargetPct = useMemo(
     () => (activeRoute ? routeEntryFocusPct(currentRouteEntry) : null),

@@ -124,32 +124,43 @@ export function resolveMapOverlayTypography(mapSettings, fitHeightPx, options = 
 
 /**
  * Typo pour repères HTML sur calque fit (Visite / GL) : font-size local + `--map-overlay-scale`.
- * Évite le double grossissement plateau (scale CSS × font).
+ * Évite le double grossissement plateau (scale CSS × font) quand le consommateur applique
+ * `transform: scale(var(--map-overlay-scale))` (ancien Visite, GL).
  *
  * @param {Record<string, unknown>|null|undefined} mapSettings
  * @param {number} fitHeightPx
- * @param {Parameters<typeof resolveMapOverlayTypography>[2] & { compensateWorldScale?: boolean }} [options]
+ * @param {Parameters<typeof resolveMapOverlayTypography>[2] & {
+ *   compensateWorldScale?: boolean,
+ *   plateauAsTransform?: boolean,
+ * }} [options]
+ * `plateauAsTransform` (défaut `true`) : les tailles CSS sont divisées par le facteur
+ * plateau et le consommateur doit appliquer `scale(--map-overlay-scale)`.
+ * Mettre `false` pour SharedMapStage (contre-échelle via `--pct-inv` seulement) —
+ * sinon une carte plus petite que 480 px gonfle icônes/textes (session connectée).
  */
 export function resolveMapOverlayMarkerCssTypography(mapSettings, fitHeightPx, options = {}) {
   const fit = Number(fitHeightPx) > 0 ? Number(fitHeightPx) : MAP_OVERLAY_REFERENCE_BOARD_HEIGHT_PX;
   const sizePercent = readPlateauMarkerSizePercent(mapSettings);
-  const overlayScale = resolveMapOverlayScaleCssValue({ fitHeightPx: fit, sizePercent });
-  const scaleNum = Math.max(0.001, parseFloat(overlayScale) || 1);
-  // `compensateWorldScale` : les repères vivent DANS le calque zoomé (Visite) — on divise
-  // par l'échelle monde et on applique la même croissance douce que les noms de zones,
-  // au lieu de laisser les repères doubler linéairement pendant que les zones font ×1,27.
+  const overlayScaleCss = resolveMapOverlayScaleCssValue({ fitHeightPx: fit, sizePercent });
+  const scaleNum = Math.max(0.001, parseFloat(overlayScaleCss) || 1);
+  // `compensateWorldScale` : uniquement si les repères sont dans un calque zoomé SANS
+  // contre-échelle CSS (`--pct-inv`). SharedMapStage (Plan / Visite / Carte travail) pose
+  // déjà `scale(--pct-inv)` : activer les deux = double compensation (tailles fausses
+  // dès que s ≠ 1). Ancien calque Visite / GL hors SharedMapStage : true.
   const compensate = Boolean(options.compensateWorldScale);
+  const plateauAsTransform = options.plateauAsTransform !== false;
   const t = resolveMapOverlayTypography(mapSettings, fit, {
     ...options,
     worldScale: compensate && Number(options.worldScale) > 0 ? Number(options.worldScale) : 1,
     zoomRatio: compensate ? options.zoomRatio : 1,
   });
+  const plateauDiv = plateauAsTransform ? scaleNum : 1;
   return {
-    overlayScale,
-    emojiFontSizePx: t.mapEmojiFontPx / scaleNum,
-    labelFontSizePx: t.mapLabelFontPx / scaleNum,
-    labelGapPx: t.mapEmojiLabelCenterGap / scaleNum,
-    labelMarginTopPx: t.markerLabelMarginTop / scaleNum,
+    overlayScale: plateauAsTransform ? overlayScaleCss : '1',
+    emojiFontSizePx: t.mapEmojiFontPx / plateauDiv,
+    labelFontSizePx: t.mapLabelFontPx / plateauDiv,
+    labelGapPx: t.mapEmojiLabelCenterGap / plateauDiv,
+    labelMarginTopPx: t.markerLabelMarginTop / plateauDiv,
     zoomCompensation: t.zoomCompensation,
     worldInv: t.worldScale > 0 ? 1 / t.worldScale : 1,
   };

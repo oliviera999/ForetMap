@@ -706,6 +706,15 @@ async function clickTasksTab(page) {
     .catch(() => {});
 
   await openTeacherPole(page, 'Suivi');
+  // Mode compact prof : les onglets du pôle sont dans une feuille BottomSheet.
+  const poleSheet = page.getByRole('dialog', { name: 'Suivi' });
+  if (await poleSheet.isVisible().catch(() => false)) {
+    await poleSheet
+      .getByRole('button', { name: /Tâches/i })
+      .first()
+      .click({ timeout: 25_000 });
+    return;
+  }
   const teacherTasksTab = page
     .locator('.teacher-main .top-tabs')
     .getByRole('button', { name: /Tâches/i })
@@ -745,11 +754,35 @@ async function openVisitTab(page) {
   await dismissProfilePromotionModalIfPresent(page);
   await dismissDiscoveryTourIfPresent(page);
   await openTeacherPole(page, 'Contenus');
+  const contentsSheet = page.getByRole('dialog', { name: 'Contenus' });
+  if (await contentsSheet.isVisible().catch(() => false)) {
+    const visitInSheet = contentsSheet.getByRole('button', { name: /Visite/i });
+    if ((await visitInSheet.count()) > 0) {
+      await visitInSheet.first().click({ timeout: 25_000 });
+      return;
+    }
+  }
   const teacherVisit = page
     .locator('.teacher-main .top-tabs')
     .getByRole('button', { name: /Visite/i });
   if ((await teacherVisit.count()) > 0) {
     await teacherVisit.first().click({ timeout: 25_000 });
+    return;
+  }
+  const studentVisit = page
+    .locator('nav.bottom-nav')
+    .getByRole('button', { name: 'Visite', exact: true });
+  if ((await studentVisit.count()) > 0) {
+    await studentVisit.click({ timeout: 25_000 });
+    return;
+  }
+  const plus = page.locator('nav.bottom-nav').getByRole('button', { name: /Plus d'onglets/ });
+  if ((await plus.count()) > 0) {
+    await plus.click({ timeout: 15_000 });
+    await page
+      .getByRole('dialog', { name: 'Navigation' })
+      .getByRole('button', { name: 'Visite', exact: true })
+      .click({ timeout: 15_000 });
     return;
   }
   await page.getByRole('button', { name: 'Visite', exact: true }).click({ timeout: 25_000 });

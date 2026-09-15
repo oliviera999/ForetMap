@@ -68,7 +68,9 @@ documentation ForetMap), un bouton **« Me situer »** apparaît en bas à droit
 Quand l'établissement l'autorise (réglage Plan **et** case sur la carte dans le calage GPS),
 un bouton **« Orienter »** apparaît à côté de « Me situer » une fois la position active. Il fait
 **tourner le plan** pour que le regard pointe vers le haut de l'écran (boussole du téléphone).
-Chacun peut le couper ; le choix est retenu sur l'appareil. Sans boussole exploitable, le bouton
+Tant qu'il est actif, la vue **reste centrée sur votre position** et **grossit un peu** pour
+que le plan tourné remplisse l'écran (pas de bandes vides sur les côtés). Chacun peut le couper ;
+le choix est retenu sur l'appareil. Sans boussole exploitable, le bouton
 reste inactif. En intérieur, la boussole peut être fantaisiste : mieux vaut alors s'en passer.
 **Les noms restent droits** quand le plan tourne : seul le fond de plan pivote, les étiquettes
 et les pastilles se redressent d'elles-mêmes et restent lisibles quel que soit le cap.

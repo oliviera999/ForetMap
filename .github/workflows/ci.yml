@@ -151,7 +151,7 @@ jobs:
         # dépende d'un réseau externe, et donc la seule à pouvoir rester suspendue.
         # Elle prend ~1 min quand tout va bien.
         timeout-minutes: 10
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
 
       - name: Start app server for e2e
         run: |
@@ -193,6 +193,12 @@ jobs:
         # retournement des étiquettes sous « cap en haut » avait traversé la CI parce que le
         # seul scénario qui exerce la position n'était pas bloquant.
         run: npx playwright test --project=plan-mobile e2e/plan-mobile-shell.spec.js e2e/plan-routes-mode.spec.js e2e/plan-mobile-position.spec.js e2e/plan-mobile-orientation.spec.js
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3000
+
+      - name: Run Playwright mobile-webkit smoke (bloquant)
+        # Audit navigation iPhone — WebKit ≠ Safari iOS, mais filet CSS/touch manquant avant.
+        run: npx playwright test --project=mobile-webkit
         env:
           E2E_BASE_URL: http://127.0.0.1:3000
 

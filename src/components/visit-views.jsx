@@ -59,6 +59,7 @@ import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx'
 import { VisitMapMascot } from './VisitMapMascot.jsx';
 import { buildPlaceIndex, searchPlaces } from '../shared/search/placeSearch.js';
 import { countPlacesByCategory, filterPlacesByCategories } from '../plan/utils/planPlaces.js';
+import { parseCategoryIdsSetting } from '../utils/categoryIdsSetting.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { DataProvider, useData } from '../contexts/DataContext.jsx';
@@ -364,12 +365,10 @@ function VisitViewImpl({
     width: 0,
     height: 0,
   });
-  const [visitMapCommitted, setVisitMapCommitted] = useState({ x: 0, y: 0, s: 1 });
   const [visitImgNatural, setVisitImgNatural] = useState({ w: 0, h: 0 });
   const onVisitViewportChange = useCallback((api) => {
     visitViewportApiRef.current = { ...visitViewportApiRef.current, ...api };
     if (api.fitRect) setVisitMapFit(api.fitRect);
-    if (api.committed) setVisitMapCommitted(api.committed);
     if (api.imgSize) setVisitImgNatural(api.imgSize);
   }, []);
   const focusOnPct = useCallback((pct, opts) => {
@@ -381,10 +380,10 @@ function VisitViewImpl({
   const fitMap = useCallback(() => {
     visitViewportApiRef.current.fitMap?.();
   }, []);
-  const mapTransform = visitMapCommitted;
 
   const [placeSearchQuery, setPlaceSearchQuery] = useState('');
   const [selectedCategoryIds, setSelectedCategoryIds] = useState(() => new Set());
+  const [categoryDefaultsApplied, setCategoryDefaultsApplied] = useState(false);
   const categoryCatalog = useMemo(
     () => (Array.isArray(content.categories) ? content.categories : []),
     [content.categories],
@@ -393,6 +392,19 @@ function VisitViewImpl({
     () => new Map(categoryCatalog.map((c) => [String(c.id), c])),
     [categoryCatalog],
   );
+
+  // Catégories cochées d'office (réglage admin `ui.visit.default_category_ids`).
+  useEffect(() => {
+    if (categoryDefaultsApplied || !categoryCatalog.length) return;
+    const raw =
+      publicSettings?.visit?.default_category_ids ??
+      publicSettings?.ui?.visit?.default_category_ids ??
+      '';
+    const ids = parseCategoryIdsSetting(raw).filter((id) => categoriesById.has(id));
+    if (ids.length) setSelectedCategoryIds(new Set(ids));
+    setCategoryDefaultsApplied(true);
+  }, [categoryDefaultsApplied, categoryCatalog, categoriesById, publicSettings]);
+
   const visitPlaces = useMemo(() => {
     const zones = (content.zones || []).map((zone) => ({
       ...zone,
@@ -574,19 +586,24 @@ function VisitViewImpl({
   useOverlayHistoryBack(isGuestPublicVisit && !!selected, closeVisitSelection);
   useOverlayHistoryBack(!!visitMediaLightbox, () => setVisitMediaLightbox(null));
 
-  /** Styles typo overlay (taille Aa) fusionnés au calque fit de SharedMapStage. */
+  /**
+   * Styles typo overlay (taille Aa) sur le calque fit SharedMapStage.
+   * `plateauAsTransform: false` : tailles en px écran (le plateau est déjà dans la
+   * typo) ; `--pct-inv` gère le zoom. Sans cela, les fontes sont divisées par le
+   * facteur plateau (prévu pour `scale(--map-overlay-scale)` de l’ancien calque) et
+   * une carte plus basse qu’en visite anonyme gonfle icônes et libellés.
+   */
   const visitFitExtraStyle = useMemo(() => {
     const mapSettings =
       publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
     const fitH =
       visitMapFit.height > 0 ? visitMapFit.height : MAP_OVERLAY_REFERENCE_BOARD_HEIGHT_PX;
     return resolveMapOverlayCssVariables(mapSettings, fitH, {
-      worldScale: Math.max(Number(mapTransform.s) || 1, 0.001),
       fitWidthPx: visitMapFit.width > 0 ? visitMapFit.width : 360,
       userTextSizePercent: mapTextSizePercent,
-      compensateWorldScale: true,
+      plateauAsTransform: false,
     });
-  }, [publicSettings, visitMapFit.width, visitMapFit.height, mapTransform.s, mapTextSizePercent]);
+  }, [publicSettings, visitMapFit.width, visitMapFit.height, mapTextSizePercent]);
 
   /** Sélection d'un lieu depuis la scène partagée (mascotte + fiche différée en vue). */
   const onSelectPlaceFromStage = useCallback(

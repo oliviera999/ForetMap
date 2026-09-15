@@ -1107,6 +1107,16 @@ par `GET /api/settings/public` et éditables par `PUT /api/settings/admin/:key` 
 | `ui.map.show_tutorial_dots`    | boolean | `false`                            | Pastilles violettes tutoriel sur zones/repères (carte)  |
 | `ui.visit.heading_up_enabled`  | boolean | `false`                            | Idem sur la Visite                                      |
 
+| Clé                                   | Type    | Défaut  | Effet                                                         |
+| ------------------------------------- | ------- | ------- | ------------------------------------------------------------- |
+| `ui.biodiv.determination_always_open` | boolean | `false` | Section « Détermination » des fiches espèces dépliée d’office |
+
+Par défaut la section est repliée, comme les autres sections de la fiche. Le réglage la rend
+permanente pour les sites qui travaillent beaucoup l’identification sur le terrain. Il ne crée
+aucun contenu : la section reste absente tant qu’aucun des trois champs de détermination n’est
+renseigné. Côté front, `ui.biodiv` est replié en `biodiv` par `mergePublicSettings`
+(`src/utils/appPublicSettings.js`), comme `ui.map` → `map`.
+
 En plus du réglage de surface, chaque carte doit autoriser l'orientation via
 `PUT /api/settings/admin/maps/:id/georef` (`heading_up_enabled`, seulement si `gps_enabled`).
 Sans les deux (surface + carte), le bouton « Orienter » n'apparaît pas.
@@ -1357,6 +1367,19 @@ Pour une mascotte spritesheet (ex. OLU), vérifier aussi l’asset statique serv
 `photo_flower`, `photo_fruit`, `photo_harvest_part`, ainsi que **`map_ids`** (tableaux d’identifiants
 de cartes au rattachement **direct**, table `map_species` — complète la présence via zones / repères).
 
+S’y ajoutent les trois champs de **détermination** (aide à l’identification rigoureuse, migration `243`) :
+
+| Champ                     | Type                   | Contenu                                                                       |
+| ------------------------- | ---------------------- | ----------------------------------------------------------------------------- |
+| `identification_criteria` | texte libre (Markdown) | Caractères observables qui permettent de trancher                             |
+| `lookalike_species`       | texte libre (Markdown) | Espèces ressemblantes et critère de distinction (affiché en encadré d’alerte) |
+| `identification_period`   | chaîne (255)           | Période / conditions où la détermination est possible                         |
+
+Ces trois champs sont **neutres vis-à-vis du règne** : le catalogue mêle végétaux, animaux,
+champignons, micro-organismes et fiches-ressources. Ils ne sont **pas produits par la pré-saisie
+automatique** (`GET /api/plants/autofill`), dont les sources n’exposent pas de critères de
+détermination : ils se saisissent à la main ou par import.
+
 `POST /api/plants` et `PUT /api/plants/:id` acceptent ces mêmes champs en JSON. Les champs texte vides
 des métadonnées biodiversité sont normalisés en `null`. Le champ optionnel **`map_ids`** remplace le
 rattachement direct à la carte lorsqu’il est présent ; s’il est omis, les liens `map_species`
@@ -1385,6 +1408,12 @@ Stratégies:
 - `upsert_name` : met à jour si `name` existe déjà, sinon crée.
 - `insert_only` : crée uniquement les nouvelles entrées.
 - `replace_all` : remplace entièrement le catalogue (bloqué si lignes invalides).
+
+En-têtes de colonne : la clé canonique est toujours acceptée, et des alias français usuels sont
+reconnus (accents, apostrophes et espaces sont ramenés à des `_` avant comparaison). Pour la
+détermination : `Critères de détermination` / `Critères d’identification` → `identification_criteria`,
+`Confusions possibles` / `Espèces ressemblantes` / `Risques de confusion` → `lookalike_species`,
+`Période d’observation` / `Quand l’observer` → `identification_period`.
 
 Réponse:
 
