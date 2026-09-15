@@ -4,6 +4,8 @@ import { userJournalAdapter } from '../../services/userJournalAdapter.js';
 import { useJournalArticleEditor } from '../../shared/journal/useJournalArticleEditor.js';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { useFmJournalEmbedTitles } from '../../hooks/useFmJournalEmbedTitles.js';
+import { useAuthedHtmlImages } from '../../hooks/useAuthedHtmlImages.js';
+import { AuthedImage } from '../AuthedImage.jsx';
 import { UserJournalEmbedPicker } from './UserJournalEmbedPicker.jsx';
 import { formatDateTime } from '../../shared/utils/formatDateTime.js';
 
@@ -45,6 +47,9 @@ export function UserJournalArticleCard({
     onTogglePin,
   });
   const hydratedPreview = useFmJournalEmbedTitles(ed.previewHtml);
+  // Les illustrations sont servies derrière JWT : un `dangerouslySetInnerHTML` n'envoie
+  // pas le Bearer, d'où la réécriture en URL blob.
+  const previewWithImages = useAuthedHtmlImages(hydratedPreview);
 
   return (
     <article className={`card fm-journal__article fade-in${ed.pinned ? ' is-pinned' : ''}`}>
@@ -161,7 +166,7 @@ export function UserJournalArticleCard({
           <h3>Aperçu</h3>
           <div
             className="fm-journal-markdown"
-            dangerouslySetInnerHTML={{ __html: hydratedPreview }}
+            dangerouslySetInnerHTML={{ __html: previewWithImages }}
           />
         </div>
       ) : null}
@@ -172,7 +177,12 @@ export function UserJournalArticleCard({
           <ul>
             {ed.assets.map((asset) => (
               <li key={asset.id}>
-                <img src={asset.url} alt="" loading="lazy" className="fm-journal__asset-thumb" />
+                <AuthedImage
+                  src={asset.url}
+                  alt=""
+                  loading="lazy"
+                  className="fm-journal__asset-thumb"
+                />
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"

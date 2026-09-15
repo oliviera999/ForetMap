@@ -219,7 +219,8 @@ d'observation** pour l'écriture naturaliste libre.
   d’un carnet est réservée à son propriétaire et aux professeurs selon leur périmètre
   (groupe ou global).
 - Chaque action est faite au nom du compte connecté : on ne peut pas modifier le carnet d’un
-  camarade.
+  camarade. Les **photos** d’un article ne sont visibles que par son auteur et par les
+  professeurs autorisés à lire ce carnet — pas par un lien public.
 - L’affichage côté propriétaire charge l’ensemble du carnet ; la vue groupe des professeurs
   montre les **100 articles les plus récents** du périmètre (borne de lecture, pas une
   suppression).
