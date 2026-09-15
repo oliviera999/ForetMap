@@ -9,6 +9,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — CI : la partie e2e ne s'exécutait plus du tout
+
+- **Projet Playwright `plan-mobile` disparu** (`6e17108`, lot navigation iPhone) alors que
+  `.github/workflows/ci.yml` lance toujours `--project=plan-mobile` pour son smoke Plan
+  **bloquant** : Playwright échoue sur un projet inconnu, donc le job `test` tombait juste
+  après la suite backend. Plus discret : les quatre specs `plan-*` n'étaient plus rattachées
+  à aucun projet (`chromium` et `mobile-chromium` les ignorent toutes deux) — elles ne
+  tournaient nulle part. Le projet est restauré, avec un avertissement dans le fichier.
+- **`e2e/visit-mascot.spec.js` : `packLabel` déclaré deux fois** dans le même test
+  (`afef21e`) — un `SyntaxError` au chargement qui empêchait Playwright de collecter
+  **toute** la suite (`Total: 0 tests in 0 files`). La seconde déclaration devient
+  `publishedLabel`. La suite recharge ses 120 tests dans 53 fichiers.
+
 ### Corrigé — CI verte : les trois garde-fous d'interface qui bloquaient `main`
 
 - **Faux positifs `jsx-a11y/aria-role`** : la prop de variante du kit bouton de carte
