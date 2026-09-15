@@ -1,5 +1,7 @@
 import { JournalReadModal } from '../../shared/journal/JournalReadModal.jsx';
 import { userJournalAdapter } from '../../services/userJournalAdapter.js';
+import { useAuthedHtmlImages } from '../../hooks/useAuthedHtmlImages.js';
+import { AuthedImage } from '../AuthedImage.jsx';
 import { importTypeMeta } from '../../utils/fmJournalMeta.js';
 import { FM_JOURNAL_UI } from './journalUi.js';
 
@@ -38,6 +40,8 @@ export function UserJournalReadModal({ userId, open, onClose }) {
       ui={FM_JOURNAL_UI}
       texts={TEXTS}
       articleExtraLine={zoneLine}
+      ImageComponent={AuthedImage}
+      useHtmlImages={useAuthedHtmlImages}
     />
   );
 }

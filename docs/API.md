@@ -1724,7 +1724,7 @@ Module `ui.modules.observations_enabled` ; sinon **503**. Détail : `docs/FORETM
 | DELETE  | `/api/user-journal/me/articles/:id`                 | propriétaire                          |                                                             |
 | POST    | `/api/user-journal/me/articles/:id/assets`          | propriétaire                          | `{ imageData }`                                             |
 | DELETE  | `/api/user-journal/me/articles/:id/assets/:assetId` | propriétaire                          |                                                             |
-| GET     | `/api/user-journal/assets/:assetId/file`            | propriétaire ou `observations.read.*` | fichier (legacy observations)                               |
+| GET     | `/api/user-journal/assets/:assetId/file`            | propriétaire ou `observations.read.*` | fichier (illustrations privées, y compris `user-journal/`)  |
 | POST    | `/api/user-journal/me/imports`                      | propriétaire                          | `{ resourceType, resourceRef, title? }` — 403 si non appris |
 | PUT     | `/api/user-journal/me/imports/:id/pin`              | propriétaire                          |                                                             |
 | DELETE  | `/api/user-journal/me/imports/:id`                  | propriétaire                          |                                                             |
@@ -1756,16 +1756,17 @@ Les fichiers envoyés sont stockés sous `uploads/`. Le montage statique **`/upl
 directement les familles **publiques** (chargement navigateur sans passer par `/api`) :
 
 `zones/` · `markers/` · `tasks/` · `forum-posts/` · `context-comments/` · `students/` ·
-`media-library/` · `visit_media/` · `gl_*` · `gl-player-journal/` · `user-journal/`
+`media-library/` · `visit_media/` · `gl_*` · `gl-player-journal/`
 
-Deux familles sont **privées** : elles restent stockées au même endroit mais `/uploads` les
+Trois familles sont **privées** : elles restent stockées au même endroit mais `/uploads` les
 refuse en **403** (`{"code": "PRIVATE_UPLOAD"}`), car leur lecture est soumise à autorisation
 applicative et les noms de fichiers sont prédictibles :
 
-| Famille         | Contenu                   | Route de lecture autorisée             |
-| --------------- | ------------------------- | -------------------------------------- |
-| `observations/` | Photos du carnet n3beur   | `GET /api/observations/:id/image`      |
-| `task-logs/`    | Photos des journaux tâche | `GET /api/tasks/:id/logs/:logId/image` |
+| Famille         | Contenu                        | Route de lecture autorisée                   |
+| --------------- | ------------------------------ | -------------------------------------------- |
+| `observations/` | Photos du carnet n3beur        | `GET /api/observations/:id/image`            |
+| `task-logs/`    | Photos des journaux tâche      | `GET /api/tasks/:id/logs/:logId/image`       |
+| `user-journal/` | Illustrations du carnet unifié | `GET /api/user-journal/assets/:assetId/file` |
 
 > Toute nouvelle famille de médias soumise à autorisation doit être ajoutée à
 > `PRIVATE_UPLOAD_PREFIXES` (`lib/uploadsPrivatePaths.js`), sans quoi elle serait servie en
@@ -1949,6 +1950,12 @@ step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `
   repère est supprimé, masqué (`hidden_surfaces`) ou hors des catégories du plan ne sort pas de
   la charge — ni son identifiant, ni son texte. Les `position` restantes peuvent donc présenter
   des trous ; le client renumérote à l'affichage.
+- **`GET /api/map-routes`** (surfaces `map` / `visit` / `plan`) et **`GET /:idOrSlug`**
+  appliquent le même filtre au catalogue public : une étape dont le lieu est hors audience
+  (`visible_role_slugs`) ou masqué sur la surface demandée n'est pas renvoyée (`step_text`
+  compris). `authenticate` est optionnel pour appliquer le rôle du jeton ; un gestionnaire
+  (`zones.manage` / `map.manage_markers`) reçoit toutes les étapes. La vue `/manage` n'est
+  pas filtrée.
 
 ### Accès du plan par code
 

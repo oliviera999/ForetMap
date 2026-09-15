@@ -25,3 +25,5 @@ historique ; l’UI et le panneau Stats utilisent le carnet unifié.
 - `lib/fmUserJournal.js`, `routes/user-journal.js`, `migrations/237_user_journal.sql`
 - UI : `src/components/journal/*`
 - Import : `FmLearnAndImportSlot` + `FmJournalImportButton` sur espèce / glossaire / tuto
+- Illustrations : famille privée `user-journal/` (garde `/uploads` → 403) ; lecture via
+  `GET /api/user-journal/assets/:id/file` (propriétaire ou `observations.read.*`)

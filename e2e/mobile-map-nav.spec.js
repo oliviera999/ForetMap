@@ -9,6 +9,12 @@ const { loginAsNewStudent, dismissDiscoveryTourIfPresent } = require('./fixtures
  * feuille de filtres carte (bottom sheet, réparée par le lot A) s'ouvre et se ferme.
  */
 
+// Depuis l'unification des scènes sur `SharedMapStage`, la carte de travail **en
+// consultation** est rendue par `WorkMapStage` avec la classe `map-view-stage` ; le
+// `map-view-canvas` historique ne subsiste que pour le mode édition (marqueur déverrouillé).
+// Les deux sélecteurs sont donc visés ensemble : « l'écran carte est monté ».
+const MAP_STAGE = '.map-view-stage, .map-view-canvas';
+
 test('mobile : carte, navigation basse et feuille de filtres', async ({ page }) => {
   test.setTimeout(240_000);
   await loginAsNewStudent(page);
@@ -23,7 +29,7 @@ test('mobile : carte, navigation basse et feuille de filtres', async ({ page }) 
   }
 
   // L'écran carte se monte : canevas + barre d'outils.
-  await expect(page.locator('.map-view-canvas').first()).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator(MAP_STAGE).first()).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('.map-view-toolbar').first()).toBeVisible({ timeout: 30_000 });
 
   // La feuille de filtres carte s'ouvre en bottom sheet et se referme.
@@ -41,10 +47,10 @@ test('mobile : carte, navigation basse et feuille de filtres', async ({ page }) 
 
   // Navigation entre onglets par la barre basse (Biodiversité ↔ retour Carte).
   await bottomNav.getByRole('button', { name: 'Biodiversité' }).click();
-  await expect(page.locator('.map-view-canvas')).toHaveCount(0, { timeout: 30_000 });
+  await expect(page.locator(MAP_STAGE)).toHaveCount(0, { timeout: 30_000 });
   if ((await mapBtn.count()) > 0) {
     await mapBtn.click();
-    await expect(page.locator('.map-view-canvas').first()).toBeVisible({ timeout: 60_000 });
+    await expect(page.locator(MAP_STAGE).first()).toBeVisible({ timeout: 60_000 });
   }
 });
 
@@ -80,7 +86,7 @@ test('mobile : double-tap zoome la carte, le bouton recentrer la réajuste', asy
   await expect(bottomNav).toBeVisible({ timeout: 60_000 });
   const mapBtn = bottomNav.getByRole('button', { name: 'Carte', exact: true });
   if ((await mapBtn.count()) > 0) await mapBtn.click();
-  const canvas = page.locator('.map-view-canvas').first();
+  const canvas = page.locator(MAP_STAGE).first();
   await expect(canvas).toBeVisible({ timeout: 60_000 });
   const world = canvas.locator(':scope > div').first();
   const readScale = async () => {
