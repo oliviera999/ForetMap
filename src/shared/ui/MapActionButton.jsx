@@ -30,7 +30,10 @@ export const MAP_ACTION_CLASS_NAMES = Object.freeze({
  */
 export const MapActionButton = forwardRef(function MapActionButton(
   {
-    role = 'tool',
+    // `variant` et non `role` : ce prop pilote une classe CSS, jamais un rôle ARIA. Sous son
+    // ancien nom, `jsx-a11y/aria-role` le prenait pour un attribut ARIA et signalait seize
+    // fausses violations sur des `<button>` natifs parfaitement accessibles.
+    variant = 'tool',
     active = false,
     muted = false,
     icon = null,
@@ -58,12 +61,12 @@ export const MapActionButton = forwardRef(function MapActionButton(
 
   const rootClass = joinClassNames(
     base.root,
-    base.role(role),
+    base.role(variant),
     active ? base.active : '',
     muted ? base.muted : '',
     iconOnly ? base.iconOnly : '',
     extra?.root,
-    extra?.role ? extra.role(role) : '',
+    extra?.role ? extra.role(variant) : '',
     iconOnly ? extra?.iconOnly : '',
     className,
   );

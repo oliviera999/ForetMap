@@ -7,7 +7,7 @@ export function GLGameBoardHud({ chapterTitle, canSpellCast, onLaunchSpell, onOp
       <div className="gl-game-board-head__actions">
         {canSpellCast ? (
           <GLBoardActionButton
-            role="primary"
+            variant="primary"
             icon="✨"
             label="Lancer un sortilège"
             testId="gl-board-header-spell"
@@ -16,7 +16,7 @@ export function GLGameBoardHud({ chapterTitle, canSpellCast, onLaunchSpell, onOp
           />
         ) : null}
         <GLBoardActionButton
-          role="display"
+          variant="display"
           icon="⛶"
           label="Plein écran"
           testId="gl-map-fullscreen-open"
