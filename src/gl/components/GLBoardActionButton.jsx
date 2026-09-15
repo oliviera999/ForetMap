@@ -15,7 +15,7 @@ const GL_BOARD_ACTION_CLASS_NAMES = Object.freeze({
 
 /**
  * Bouton d'action du plateau G&L — enveloppe du `MapActionButton` partagé (lot 3) : même
- * API (`role`, `active`, `muted`, `icon`, `label`, `labelShort`, `testId`, `title`,
+ * API (`variant`, `active`, `muted`, `icon`, `label`, `labelShort`, `testId`, `title`,
  * `ariaLabel`…), infobulle sur les boutons en icône seule, classes G&L conservées.
  */
 export const GLBoardActionButton = forwardRef(function GLBoardActionButton(props, ref) {
