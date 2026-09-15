@@ -7,7 +7,19 @@ import { downloadTextFile } from '../utils/downloadTextFile.js';
 import { buildJournalExport } from './journalExport.js';
 import { useJournalEmbedTitles } from './useJournalEmbedTitles.js';
 
-function ReadArticle({ article, adapter, ui, articleExtraLine }) {
+/** Repli neutre : aucun produit ne fournit de réécriture d'images. */
+function useHtmlAsIs(html) {
+  return html;
+}
+
+function ReadArticle({
+  article,
+  adapter,
+  ui,
+  articleExtraLine,
+  ImageComponent = 'img',
+  useHtmlImages = useHtmlAsIs,
+}) {
   const html = useMemo(
     () =>
       article?.bodyMarkdown
@@ -19,6 +31,10 @@ function ReadArticle({ article, adapter, ui, articleExtraLine }) {
     [article?.bodyMarkdown],
   );
   const hydratedHtml = useJournalEmbedTitles(html, adapter.resolveEmbeds);
+  // ForetMap sert ses illustrations derrière JWT : le produit passe alors un hook de
+  // réécriture (blob) et son composant image. Par défaut, rien n'est transformé.
+  const displayHtml = useHtmlImages(hydratedHtml);
+  const Img = ImageComponent;
   const p = ui.classPrefix;
   const extra = typeof articleExtraLine === 'function' ? articleExtraLine(article) : null;
   const usage = article.usage && typeof article.usage === 'object' ? article.usage : null;
@@ -43,7 +59,7 @@ function ReadArticle({ article, adapter, ui, articleExtraLine }) {
       {html ? (
         <div
           className={ui.markdownClassName || ''}
-          dangerouslySetInnerHTML={{ __html: hydratedHtml }}
+          dangerouslySetInnerHTML={{ __html: displayHtml }}
         />
       ) : (
         <p className={ui.hintClassName || ''}>Article sans texte.</p>
@@ -51,7 +67,7 @@ function ReadArticle({ article, adapter, ui, articleExtraLine }) {
       {assets.length > 0 ? (
         <div className={`${p}__assets-inline`}>
           {assets.map((a) => (
-            <img key={a.id} src={a.url} alt="" loading="lazy" className={`${p}__asset-thumb`} />
+            <Img key={a.id} src={a.url} alt="" loading="lazy" className={`${p}__asset-thumb`} />
           ))}
         </div>
       ) : null}
@@ -77,6 +93,10 @@ function ReadArticle({ article, adapter, ui, articleExtraLine }) {
  * @param {(subject: object|null, subjectId) => string} props.texts.fileName nom du fichier exporté
  * @param {string} props.texts.empty message quand le carnet est vide
  * @param {(article: object) => string|null} [props.articleExtraLine] ligne produit sous le titre (zone…)
+ * @param {import('react').ElementType} [props.ImageComponent] composant des illustrations
+ *        (ForetMap : `AuthedImage`, les fichiers du carnet étant servis derrière JWT)
+ * @param {(html: string) => string} [props.useHtmlImages] hook de réécriture des `<img>` du
+ *        Markdown rendu (même raison ; identité par défaut)
  */
 export function JournalReadModal({
   subjectId,
@@ -87,6 +107,8 @@ export function JournalReadModal({
   ui,
   texts,
   articleExtraLine = null,
+  ImageComponent = 'img',
+  useHtmlImages = useHtmlAsIs,
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -180,6 +202,8 @@ export function JournalReadModal({
                   adapter={adapter}
                   ui={ui}
                   articleExtraLine={articleExtraLine}
+                  ImageComponent={ImageComponent}
+                  useHtmlImages={useHtmlImages}
                 />
               ))}
               {imports.length > 0 ? (

@@ -8,6 +8,9 @@ const {
   countJournalChars,
   extractJournalEmbeds,
   isImportableResourceType,
+  isAllowedJournalImageUrl,
+  rewriteJournalImageUrls,
+  journalAssetFileUrl,
   EMBED_TYPES,
 } = require('../lib/fmUserJournal');
 
@@ -45,4 +48,20 @@ test('isImportableResourceType — types FM', () => {
   assert.strictEqual(isImportableResourceType('tutorial'), true);
   assert.strictEqual(isImportableResourceType('spell'), false);
   assert.ok(EMBED_TYPES.has('module_stub'));
+});
+
+test('isAllowedJournalImageUrl — préfixe disque et route API', () => {
+  const userId = 'u-journal-1';
+  assert.strictEqual(
+    isAllowedJournalImageUrl(`/uploads/user-journal/${userId}/12-0.png`, userId),
+    true,
+  );
+  assert.strictEqual(isAllowedJournalImageUrl('/api/user-journal/assets/9/file', userId), true);
+  assert.strictEqual(isAllowedJournalImageUrl('/uploads/other/x.png', userId), false);
+});
+
+test('rewriteJournalImageUrls — /uploads → route API', () => {
+  const body = '![p](/uploads/user-journal/u1/12-0.png)';
+  const out = rewriteJournalImageUrls(body, [{ id: 9, asset_path: 'user-journal/u1/12-0.png' }]);
+  assert.strictEqual(out, `![p](${journalAssetFileUrl(9)})`);
 });
