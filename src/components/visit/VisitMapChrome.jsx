@@ -98,12 +98,15 @@ function VisitMascotPickerPopover({ visitMascotId, visitMascotOptions, onChangeV
       >
         <span aria-hidden>🐾</span>
       </button>
+      {/* `div` plutôt que `ul` : un menu ARIA n'est pas une liste de contenu, et
+          `role="menu"` sur une liste est refusé par jsx-a11y (le lecteur d'écran annonce
+          « liste » là où il faut « menu »). */}
       {open ? (
-        <ul className="visit-mascot-picker__menu" role="menu" aria-label="Mascottes disponibles">
+        <div className="visit-mascot-picker__menu" role="menu" aria-label="Mascottes disponibles">
           {visitMascotOptions.map((m) => {
             const selected = m.id === visitMascotId;
             return (
-              <li key={m.id} role="none">
+              <div key={m.id} role="none">
                 <button
                   type="button"
                   role="menuitemradio"
@@ -116,10 +119,10 @@ function VisitMascotPickerPopover({ visitMascotId, visitMascotOptions, onChangeV
                 >
                   {m.label}
                 </button>
-              </li>
+              </div>
             );
           })}
-        </ul>
+        </div>
       ) : null}
     </div>
   );
