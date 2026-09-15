@@ -1,6 +1,6 @@
 /* Service worker « gl » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-gl-59aefa09";
+const CACHE_NAME = "foretmap-gl-c5e4a838";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -9,28 +9,28 @@ const PRECACHE_URLS = [
   "/manifest.json",
   "/gl/favicon.svg",
   "/gl/logo.png",
-  "/assets/gl-4O7tlkkQ.js",
+  "/assets/gl-iN4rPo64.js",
   "/assets/gl-BoGAENKy.css",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-BI6NgtJK.js",
-  "/assets/react-vendor-NSwws4_t.js",
-  "/assets/icons-DN-Q6DZk.js",
-  "/assets/ErrorBoundary-BrVIR0et.js",
+  "/assets/VisitMascotFallbackSvg-DG9xUeT2.js",
+  "/assets/react-vendor-ClBrELym.js",
+  "/assets/icons-BBfebeWE.js",
+  "/assets/ErrorBoundary-DPX31mmB.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-CTqufN84.js",
+  "/assets/ImageLightboxProvider-CQOe3MFv.js",
   "/assets/ImageLightboxProvider-B1dCJcHH.css",
-  "/assets/spriteCutCatalogEntry-DEPH3HaP.js",
-  "/assets/markdown-B5dU4qij.js",
-  "/assets/socket-io-D_2T_oRH.js",
-  "/assets/GuidedTourOverlay-Yd9rGrVw.js",
-  "/assets/HelpDock-DuwDfXP2.js",
+  "/assets/spriteCutCatalogEntry-DjaX1zkf.js",
+  "/assets/markdown-DaBuaikX.js",
+  "/assets/socket-io-SGWxBABF.js",
+  "/assets/GuidedTourOverlay-0IGVMvc0.js",
+  "/assets/HelpDock-BtTUOO-1.js",
   "/assets/HelpDock-607GLmvi.css",
-  "/assets/apiGL-DIYHq7JS.js",
-  "/assets/presenceListPatch-BasYOKsM.js",
-  "/assets/useJournalEmbedTitles--iMHYRfJ.js",
-  "/assets/FoodWebGraph-54iKxgKL.js",
-  "/assets/mascotBehaviorEngine-Dh8NCJd-.js",
-  "/assets/MediaLibraryMenu-DRzEysQr.js",
+  "/assets/apiGL-DT6awfJh.js",
+  "/assets/presenceListPatch-C2K2l26X.js",
+  "/assets/useJournalEmbedTitles-CYN3ktPY.js",
+  "/assets/FoodWebGraph-CzMANET3.js",
+  "/assets/mascotBehaviorEngine-BnBHjtei.js",
+  "/assets/MediaLibraryMenu-CF3zfmda.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).
