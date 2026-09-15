@@ -21,6 +21,7 @@ describe('uploadsPrivatePaths — classification des chemins', () => {
   it('marque les familles privées comme privées', () => {
     assert.strictEqual(isPrivateUploadPath('/observations/12_345.jpg'), true);
     assert.strictEqual(isPrivateUploadPath('/task-logs/7_99.jpg'), true);
+    assert.strictEqual(isPrivateUploadPath('/user-journal/abc/1-0.png'), true);
     assert.strictEqual(isPrivateUploadPath('observations/12_345.jpg'), true);
   });
 
@@ -64,7 +65,11 @@ describe('uploadsPrivatePaths — classification des chemins', () => {
   });
 
   it('expose la liste des préfixes privés', () => {
-    assert.deepStrictEqual([...PRIVATE_UPLOAD_PREFIXES].sort(), ['observations', 'task-logs']);
+    assert.deepStrictEqual([...PRIVATE_UPLOAD_PREFIXES].sort(), [
+      'observations',
+      'task-logs',
+      'user-journal',
+    ]);
   });
 });
 
@@ -84,6 +89,11 @@ describe('createPrivateUploadsGuard — middleware express', () => {
 
   it('renvoie 403 sur une photo de journal de tâche', async () => {
     await request(buildApp()).get('/uploads/task-logs/7_99.jpg').expect(403);
+  });
+
+  it('renvoie 403 sur une illustration du carnet unifié', async () => {
+    const res = await request(buildApp()).get('/uploads/user-journal/u1/12-0.png').expect(403);
+    assert.strictEqual(res.body.code, 'PRIVATE_UPLOAD');
   });
 
   it('sert normalement une photo de zone', async () => {
