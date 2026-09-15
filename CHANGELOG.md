@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+
+- **Catégories par défaut (Paramètres)** : cocher plusieurs catégories à la suite
+  n’écrase plus la sélection — seule la dernière case restait enregistrée si les
+  clics arrivaient avant la fin de l’enregistrement précédent. La carte / la visite
+  / le Plan pouvaient alors n’afficher qu’une catégorie.
+
 ### Corrigé — CI verte : les trois garde-fous d'interface qui bloquaient `main`
 
 - **Faux positifs `jsx-a11y/aria-role`** : la prop de variante du kit bouton de carte
