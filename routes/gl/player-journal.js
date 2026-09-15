@@ -19,7 +19,8 @@ const {
   getPlayerJournalImportRefs,
   setArticlePinned,
   setImportPinned,
-  resolveJournalEmbedTitles,
+  resolveJournalEmbedCards,
+  searchJournalEmbeds,
   hasLearnedResource,
   canStaffAccessPlayer,
 } = require('../../lib/glPlayerJournal');
@@ -101,7 +102,7 @@ router.get(
   }),
 );
 
-// Résolution batch des titres réels des encarts `gl-journal-embed` d'un article,
+// Résolution batch des titres + cartes enrichies des encarts `gl-journal-embed`,
 // pour l'affichage hydraté (le corps stocke seulement type + ref). Accessible aux
 // joueurs comme au MJ (lecture des carnets), en lecture seule.
 router.post(
@@ -109,8 +110,19 @@ router.post(
   asyncHandler(async (req, res) => {
     if (!(await ensurePlayerJournalModuleEnabled(res))) return;
     const raw = Array.isArray(req.body?.embeds) ? req.body.embeds.slice(0, 200) : [];
-    const titles = await resolveJournalEmbedTitles(raw);
-    return res.json({ titles });
+    const { titles, cards } = await resolveJournalEmbedCards(raw);
+    return res.json({ titles, cards });
+  }),
+);
+
+router.get(
+  '/embeds/search',
+  asyncHandler(async (req, res) => {
+    if (!(await ensurePlayerJournalModuleEnabled(res))) return;
+    const type = String(req.query?.type || '').trim();
+    const q = String(req.query?.q || '').trim();
+    const results = await searchJournalEmbeds(type, q, 20);
+    return res.json({ results });
   }),
 );
 

@@ -28,7 +28,8 @@ const {
   getUserJournalImportRefs,
   setArticlePinned,
   setImportPinned,
-  resolveJournalEmbedTitles,
+  resolveJournalEmbedCards,
+  searchJournalEmbeds,
   hasLearnedResource,
   resourceExists,
   resolveResourceTitle,
@@ -144,8 +145,19 @@ router.post(
   asyncHandler(async (req, res) => {
     if (!(await ensureJournalModuleEnabled(res))) return;
     const raw = Array.isArray(req.body?.embeds) ? req.body.embeds.slice(0, 200) : [];
-    const titles = await resolveJournalEmbedTitles(raw);
-    return res.json({ titles });
+    const { titles, cards } = await resolveJournalEmbedCards(raw);
+    return res.json({ titles, cards });
+  }),
+);
+
+router.get(
+  '/embeds/search',
+  asyncHandler(async (req, res) => {
+    if (!(await ensureJournalModuleEnabled(res))) return;
+    const type = String(req.query?.type || '').trim();
+    const q = String(req.query?.q || '').trim();
+    const results = await searchJournalEmbeds(type, q, 20);
+    return res.json({ results });
   }),
 );
 

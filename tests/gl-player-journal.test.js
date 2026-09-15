@@ -356,9 +356,11 @@ test('POST /embeds/resolve — titre réel des encarts (espèce + module_stub)',
   const speciesCode = `EMB${stamp}`.slice(0, 64);
   await execute(
     `INSERT INTO gl_species (
-      species_code, biome_slug, type, nom_commun, nom_scientifique, statut, created_at, updated_at
-    ) VALUES (?, 'savane', 'faune', 'Renard des encarts', 'Vulpes embedii', 'actif', NOW(), NOW())`,
-    [speciesCode],
+      species_code, biome_slug, type, nom_commun, nom_scientifique,
+      description_courte, photo_url, statut, created_at, updated_at
+    ) VALUES (?, 'savane', 'faune', 'Renard des encarts', 'Vulpes embedii',
+      ?, ?, 'actif', NOW(), NOW())`,
+    [speciesCode, 'Petit canidé rusé des savanes.', 'https://cdn.example.com/renard.jpg'],
   );
 
   const res = await request(app)
@@ -377,6 +379,20 @@ test('POST /embeds/resolve — titre réel des encarts (espèce + module_stub)',
   assert.strictEqual(res.body.titles['module_stub|narrative'], 'Module narratif (à venir)');
   // Ref introuvable : omise (repli client sur « type · ref »)
   assert.ok(!(`species|absent-${stamp}` in res.body.titles));
+
+  assert.ok(res.body.cards);
+  assert.strictEqual(res.body.cards[`species|${speciesCode}`].title, 'Renard des encarts');
+  assert.strictEqual(res.body.cards[`species|${speciesCode}`].label, 'Espèce');
+  assert.strictEqual(
+    res.body.cards[`species|${speciesCode}`].imageUrl,
+    'https://cdn.example.com/renard.jpg',
+  );
+  assert.strictEqual(
+    res.body.cards[`species|${speciesCode}`].excerpt,
+    'Petit canidé rusé des savanes.',
+  );
+  assert.strictEqual(res.body.cards['module_stub|narrative'].label, 'Module');
+  assert.strictEqual(res.body.cards['module_stub|narrative'].excerpt, null);
 
   await execute('DELETE FROM gl_species WHERE species_code = ?', [speciesCode]).catch(() => {});
 });

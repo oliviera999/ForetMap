@@ -36,29 +36,29 @@ export const MODULE_STUB_OPTIONS = [
 ];
 
 /**
- * Registre des encarts insérables dans un article (sélecteur partagé
- * `src/shared/journal/JournalEmbedPicker.jsx`) : une fiche espèce, un terme, un tutoriel ou
- * un rappel de module (choix dans une liste).
  * @type {import('../shared/journal/JournalEmbedPicker.jsx').JournalEmbedType[]}
  */
 export const JOURNAL_EMBED_TYPES = [
   {
     value: 'plant',
-    label: 'Espèce (id fiche)',
-    fieldLabel: 'Identifiant de fiche espèce',
-    placeholder: 'ex. 12',
+    label: 'Espèce',
+    input: 'search',
+    fieldLabel: 'Rechercher une espèce',
+    placeholder: 'ex. Noisetier',
   },
   {
     value: 'glossary',
     label: 'Terme de glossaire',
-    fieldLabel: 'Code glossaire',
-    placeholder: 'ex. COMPOST',
+    input: 'search',
+    fieldLabel: 'Rechercher un terme',
+    placeholder: 'ex. Compost',
   },
   {
     value: 'tutorial',
-    label: 'Tutoriel (id)',
-    fieldLabel: 'Identifiant du tutoriel',
-    placeholder: 'ex. 12',
+    label: 'Tutoriel',
+    input: 'search',
+    fieldLabel: 'Rechercher un tutoriel',
+    placeholder: 'ex. Arrosage',
   },
   {
     value: 'module_stub',

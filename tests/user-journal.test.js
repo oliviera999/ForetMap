@@ -217,6 +217,37 @@ test('DELETE article', async () => {
     .expect(200);
 });
 
+test('POST /embeds/resolve — titles + cards (plant + module_stub)', async () => {
+  assert.ok(plantId, 'plante de fixture requise');
+  await execute('UPDATE plants SET description = ?, photo = ? WHERE id = ?', [
+    'Courte description pour carte journal',
+    '/uploads/plants/resolve-test.jpg',
+    plantId,
+  ]);
+
+  const res = await request(app)
+    .post('/api/user-journal/embeds/resolve')
+    .set('Authorization', `Bearer ${studentToken}`)
+    .send({
+      embeds: [
+        { type: 'plant', ref: String(plantId) },
+        { type: 'module_stub', ref: 'glossary' },
+        { type: 'plant', ref: '999999999' },
+      ],
+    })
+    .expect(200);
+
+  const plantKey = `plant|${plantId}`;
+  assert.ok(res.body.titles[plantKey]);
+  assert.ok(res.body.cards);
+  assert.strictEqual(res.body.cards[plantKey].label, 'Espèce');
+  assert.strictEqual(res.body.cards[plantKey].imageUrl, '/uploads/plants/resolve-test.jpg');
+  assert.strictEqual(res.body.cards[plantKey].excerpt, 'Courte description pour carte journal');
+  assert.strictEqual(res.body.cards['module_stub|glossary'].title, 'Glossaire');
+  assert.strictEqual(res.body.cards['module_stub|glossary'].label, 'Module');
+  assert.ok(!(`plant|999999999` in res.body.titles));
+});
+
 /**
  * `observation_logs.created_at` est un `VARCHAR(32)` portant de l'ISO-8601 UTC (`…Z`), la
  * cible `user_journal_articles.created_at` un vrai `DATETIME`. Passer la chaîne telle quelle

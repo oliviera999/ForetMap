@@ -19,6 +19,7 @@ const TEXTS = {
   subjectLabel: userLabel,
   fileName: (_user, userId) => `carnet-${userId}.md`,
   empty: 'Ce compte n’a pas encore rédigé d’article dans son carnet.',
+  productLabel: 'ForetMap',
 };
 
 function zoneLine(article) {

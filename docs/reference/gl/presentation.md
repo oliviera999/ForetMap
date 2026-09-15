@@ -128,9 +128,11 @@ distinct du glossaire scientifique) et tutoriels.
 
 - **Journal de partie** : le fil des événements de la partie (narration du MJ, scores,
   découvertes, sorts…). Le MJ écrit, les joueurs lisent.
-- **Mon journal** (carnet personnel) : chaque joueur y rédige ses articles (texte et
-  images) et y importe ce qu'il a appris. Il est personnel et suit l'élève d'une partie
-  à l'autre. Le MJ peut le consulter en lecture seule et l'exporter.
+- **Mon journal** (carnet personnel) : chaque joueur y feuillette ses articles (texte et
+  photos) en lecture d’abord, écrit un article à la fois, importe des éléments appris, et
+  peut imprimer son carnet en forme de livre (couverture, sommaire, annexes). Il est
+  personnel et suit l’élève d’une partie à l’autre. Le MJ consulte le même carnet en
+  lecture, export et impression.
 
 ### L'habillage
 

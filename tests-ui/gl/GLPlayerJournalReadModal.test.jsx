@@ -55,17 +55,12 @@ describe('GLPlayerJournalReadModal (vue MJ enrichie)', () => {
       expect(screen.getByText('Mon premier article')).toBeInTheDocument();
     });
 
-    // Comptages
-    expect(screen.getByText('1')).toBeInTheDocument(); // articles
-    // Deux imports présents → titre de section « Éléments importés (2) »
-    expect(screen.getByText(/Éléments importés \(2\)/)).toBeInTheDocument();
-
-    // Filtre par type disponible (2 types distincts)
+    expect(screen.getByText(/élément\(s\) appris/)).toBeInTheDocument();
+    expect(screen.getByText('Renard')).toBeInTheDocument();
     expect(
       screen.getByRole('combobox', { name: /Filtrer les imports par type/i }),
     ).toBeInTheDocument();
-
-    // Bouton export
     expect(screen.getByRole('button', { name: /Exporter/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Imprimer \/ PDF/i })).toBeInTheDocument();
   });
 });

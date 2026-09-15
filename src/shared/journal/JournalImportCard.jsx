@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAppDialogs } from '../components/AppDialogsProvider.jsx';
 import { Button } from '../ui/Button.jsx';
 import { formatDateTime } from '../utils/formatDateTime.js';
 
@@ -31,6 +32,7 @@ export function JournalImportCard({
   meta,
   ui,
 }) {
+  const { confirm } = useAppDialogs();
   const [removing, setRemoving] = useState(false);
   const [pinning, setPinning] = useState(false);
   const typeMeta = meta.importTypeMeta(item.resourceType);
@@ -43,6 +45,9 @@ export function JournalImportCard({
 
   async function handleRemove() {
     if (removing) return;
+    if (!(await confirm({ message: `Retirer « ${label} » du carnet ?`, danger: true }))) {
+      return;
+    }
     setRemoving(true);
     try {
       await onDelete?.(item.id);
@@ -76,7 +81,7 @@ export function JournalImportCard({
           </p>
           <h3 className={`${p}__import-title`}>{label}</h3>
           {item.createdAt ? (
-            <p className={ui.hintClassName || ''}>Importé le {formatDateTime(item.createdAt)}</p>
+            <p className={ui.hintClassName || ''}>Ajouté le {formatDateTime(item.createdAt)}</p>
           ) : null}
         </div>
       </div>

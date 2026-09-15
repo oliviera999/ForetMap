@@ -3,6 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import {
   parseJournalEmbeds,
   hydrateJournalEmbedTitles,
+  hydrateJournalEmbedCards,
   useJournalEmbedTitles,
 } from '../../../src/shared/journal/useJournalEmbedTitles.js';
 
@@ -54,5 +55,32 @@ describe('useJournalEmbedTitles — les deux dialectes d’encart, un seul hook'
     const { result } = renderHook(() => useJournalEmbedTitles(GL, resolve));
     await waitFor(() => expect(resolve).toHaveBeenCalled());
     expect(result.current).toBe(GL);
+  });
+
+  test('hydrateJournalEmbedCards remplit une planche (titre + extrait)', () => {
+    const out = hydrateJournalEmbedCards(FM, {
+      'plant|12': {
+        title: 'Noisetier',
+        label: 'Espèce',
+        excerpt: 'Arbuste des haies',
+        imageUrl: null,
+      },
+    });
+    expect(out).toContain('data-journal-title="Noisetier"');
+    expect(out).toContain('journal-embed--plate');
+    expect(out).toContain('Arbuste des haies');
+    expect(out).toContain('Espèce');
+  });
+
+  test('le hook préfère les cards enrichies', async () => {
+    const resolve = vi.fn().mockResolvedValue({
+      titles: { 'plant|12': 'Noisetier' },
+      cards: {
+        'plant|12': { title: 'Noisetier', label: 'Espèce', excerpt: 'Haie', imageUrl: null },
+      },
+    });
+    const { result } = renderHook(() => useJournalEmbedTitles(FM, resolve));
+    await waitFor(() => expect(result.current).toContain('journal-embed--plate'));
+    expect(result.current).toContain('Haie');
   });
 });

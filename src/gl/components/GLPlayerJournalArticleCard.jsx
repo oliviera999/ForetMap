@@ -4,19 +4,56 @@ import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLPlayerJournalEmbedPicker } from './GLPlayerJournalEmbedPicker.jsx';
 import { useGlJournalEmbedTitles } from '../hooks/useGlJournalEmbedTitles.js';
-import { formatDateTime } from '../../shared/utils/formatDateTime.js';
+import { buildEditorMetaParts } from '../../shared/journal/journalArticleMeta.js';
+import { JournalArticleReadCard } from '../../shared/journal/JournalArticleReadCard.jsx';
+import { GL_JOURNAL_UI } from './journalUi.js';
 
 /**
- * Éditeur d'un article de carnet : titre optionnel, texte markdown et/ou illustrations.
- * Logique dans `useJournalArticleEditor` (partagée avec ForetMap) ; ici l'habillage G&L et
- * le champ propre au produit — les sorts du chapitre proposés à l'insertion.
+ * Article du carnet G&L : lecture par défaut, édition sur demande.
+ * Champ propre — sorts du chapitre pour l’insertion.
  */
 export function GLPlayerJournalArticleCard({
   article,
   limits,
   chapterSpells = [],
+  editing = false,
+  onStartEdit = null,
+  onStopEdit = null,
   onDelete,
   onTogglePin,
+}) {
+  if (!editing) {
+    return (
+      <JournalArticleReadCard
+        article={article}
+        adapter={playerJournalAdapter}
+        ui={GL_JOURNAL_UI}
+        onEdit={onStartEdit}
+        onDelete={onDelete}
+        onTogglePin={onTogglePin}
+      />
+    );
+  }
+
+  return (
+    <GLPlayerJournalArticleEditor
+      article={article}
+      limits={limits}
+      chapterSpells={chapterSpells}
+      onDelete={onDelete}
+      onTogglePin={onTogglePin}
+      onStopEdit={onStopEdit}
+    />
+  );
+}
+
+function GLPlayerJournalArticleEditor({
+  article,
+  limits,
+  chapterSpells = [],
+  onDelete,
+  onTogglePin,
+  onStopEdit = null,
 }) {
   const ed = useJournalArticleEditor({
     article,
@@ -26,10 +63,17 @@ export function GLPlayerJournalArticleCard({
     onTogglePin,
   });
   const hydratedPreview = useGlJournalEmbedTitles(ed.previewHtml);
+  const metaParts = buildEditorMetaParts({
+    updatedAt: ed.updatedAt,
+    createdAt: article.createdAt,
+    maxChars: ed.maxChars,
+    charCount: ed.charCount,
+  });
 
   return (
     <article
       className={`gl-panel gl-player-journal__article fade-in${ed.pinned ? ' is-pinned' : ''}`}
+      data-testid="journal-article-edit"
     >
       <header className="gl-player-journal__article-head">
         <input
@@ -41,6 +85,16 @@ export function GLPlayerJournalArticleCard({
           placeholder="Titre de l’article (optionnel)"
           aria-label="Titre de l’article"
         />
+        {onStopEdit ? (
+          <GLButton
+            type="button"
+            variant="secondary"
+            onClick={onStopEdit}
+            aria-label="Terminer l’édition"
+          >
+            Terminer
+          </GLButton>
+        ) : null}
         {onTogglePin ? (
           <GLButton
             type="button"
@@ -50,7 +104,7 @@ export function GLPlayerJournalArticleCard({
             aria-pressed={ed.pinned}
             aria-label={ed.pinned ? 'Désépingler l’article' : 'Épingler l’article'}
           >
-            {ed.pinned ? '📌 Épinglé' : 'Épingler'}
+            {ed.pinned ? 'Épinglé' : 'Épingler'}
           </GLButton>
         ) : null}
         <GLButton
@@ -65,14 +119,7 @@ export function GLPlayerJournalArticleCard({
       </header>
 
       <p className="gl-hint gl-player-journal__article-meta">
-        {ed.updatedAt ? <>Modifié le {formatDateTime(ed.updatedAt)}</> : null}
-        {article.createdAt ? <> · créé le {formatDateTime(article.createdAt)}</> : null}
-        {ed.maxChars > 0 ? (
-          <>
-            {' '}
-            · {ed.charCount} / {ed.maxChars} caractères
-          </>
-        ) : null}
+        {metaParts.length ? metaParts.join(' · ') : null}
         {ed.saveStatus === 'saving' || ed.saveStatus === 'pending' ? (
           <> · Enregistrement…</>
         ) : (

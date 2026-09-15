@@ -12,6 +12,8 @@ const {
   rewriteJournalImageUrls,
   journalAssetFileUrl,
   EMBED_TYPES,
+  resolveJournalEmbedCards,
+  resolveJournalEmbedTitles,
 } = require('../lib/fmUserJournal');
 
 test('normalizeArticleTitle — tronque et vide → null', () => {
@@ -64,4 +66,17 @@ test('rewriteJournalImageUrls — /uploads → route API', () => {
   const body = '![p](/uploads/user-journal/u1/12-0.png)';
   const out = rewriteJournalImageUrls(body, [{ id: 9, asset_path: 'user-journal/u1/12-0.png' }]);
   assert.strictEqual(out, `![p](${journalAssetFileUrl(9)})`);
+});
+
+test('resolveJournalEmbedCards — module_stub sans BDD (titres dérivés)', async () => {
+  const { titles, cards } = await resolveJournalEmbedCards([
+    { type: 'module_stub', ref: 'plants' },
+    { type: 'module_stub', ref: 'quiz' },
+  ]);
+  assert.strictEqual(titles['module_stub|plants'], 'Biodiversité');
+  assert.strictEqual(cards['module_stub|plants'].label, 'Module');
+  assert.strictEqual(cards['module_stub|plants'].excerpt, null);
+  assert.strictEqual(titles['module_stub|quiz'], 'Quiz');
+  const titlesOnly = await resolveJournalEmbedTitles([{ type: 'module_stub', ref: 'visit' }]);
+  assert.strictEqual(titlesOnly['module_stub|visit'], 'Visite');
 });

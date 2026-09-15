@@ -7,6 +7,8 @@ const {
   countJournalChars,
   isAllowedJournalImageUrl,
   stripDisallowedImageUrls,
+  resolveJournalEmbedCards,
+  resolveJournalEmbedTitles,
 } = require('../lib/glPlayerJournal');
 
 test('extractJournalEmbeds parse les balises aside', () => {
@@ -33,4 +35,13 @@ test('stripDisallowedImageUrls retire les images hors préfixe', () => {
   );
   assert.ok(!out.includes('/uploads/other/'));
   assert.ok(out.includes('/uploads/gl-player-journal/3/'));
+});
+
+test('resolveJournalEmbedTitles dérive des cards (module_stub sans BDD)', async () => {
+  const titles = await resolveJournalEmbedTitles([{ type: 'module_stub', ref: 'narrative' }]);
+  assert.strictEqual(titles['module_stub|narrative'], 'Module narratif (à venir)');
+  const { cards } = await resolveJournalEmbedCards([{ type: 'module_stub', ref: 'narrative' }]);
+  assert.strictEqual(cards['module_stub|narrative'].label, 'Module');
+  assert.strictEqual(cards['module_stub|narrative'].excerpt, null);
+  assert.strictEqual(cards['module_stub|narrative'].imageUrl, null);
 });

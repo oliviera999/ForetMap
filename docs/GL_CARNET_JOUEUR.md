@@ -72,12 +72,11 @@ Un encart est une balise `<aside class="gl-journal-embed" data-gl-embed-type="�
 insérée dans le corps. Types disponibles : `spell`, `species`, `glossary`, `chapter`,
 `module_stub`. La validité de la référence est contrôlée côté serveur à l'enregistrement.
 
-**Hydratation du titre** : le corps markdown ne stocke que le **type + la référence** (round-trip
-d'édition intact). À l'affichage (aperçu de l'article et lecture MJ), le hook
-`useGlJournalEmbedTitles` résout le **titre réel** de chaque encart via
-`POST /player-journal/embeds/resolve` et l'injecte en attribut `data-gl-title` sur le HTML déjà
-sécurisé ; le CSS affiche alors le vrai titre (repli sur « type · ref » tant que non résolu ou si
-la référence est introuvable). Le markdown stocké **n'est jamais modifié**.
+**Hydratation / planches** : le corps markdown ne stocke que le **type + la référence**
+(round-trip d'édition intact). À l'affichage, `POST /player-journal/embeds/resolve` renvoie
+`{ titles, cards }` (titre, label, image, extrait) pour afficher des **planches**. Insertion
+via recherche `GET /embeds/search?type=&q=` (par nom). Le markdown stocké **n'est jamais
+modifié**.
 
 > Distinction : les **encarts** sont saisis _dans_ le texte d'un article. Les **imports**
 > (section 4) sont des entrées autonomes du fil, avec un rendu titré et un lien.
@@ -345,12 +344,12 @@ Toutes les routes sont préfixées `/api/gl` et exigent une auth GL. Détail exh
 
 **Carnet — imports**
 
-| Méthode  | URL                                    | Rôle                                                                                  |
-| -------- | -------------------------------------- | ------------------------------------------------------------------------------------- |
-| `GET`    | `/player-journal/me/imports/refs`      | Refs légères des éléments importés (`refs: [{ resourceType, resourceRef }]`).         |
-| `POST`   | `/player-journal/embeds/resolve`       | Titres réels des encarts (`{ embeds:[{type,ref}] }` → `titles`). Lecture (joueur/MJ). |
-| `POST`   | `/player-journal/me/imports`           | Importer un élément **appris** (`{ resourceType, resourceRef, title? }`) — 403 sinon. |
-| `DELETE` | `/player-journal/me/imports/:importId` | Retirer un élément importé.                                                           |
+| Méthode  | URL                                    | Rôle                                                                                                                |
+| -------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/player-journal/me/imports/refs`      | Refs légères des éléments importés (`refs: [{ resourceType, resourceRef }]`).                                       |
+| `POST`   | `/player-journal/embeds/resolve`       | `{ titles, cards }` pour encarts (`cards[type\|ref]` = `{ title, label, imageUrl, excerpt }`). Lecture (joueur/MJ). |
+| `POST`   | `/player-journal/me/imports`           | Importer un élément **appris** (`{ resourceType, resourceRef, title? }`) — 403 sinon.                               |
+| `DELETE` | `/player-journal/me/imports/:importId` | Retirer un élément importé.                                                                                         |
 
 **Carnet — lecture MJ**
 
