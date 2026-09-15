@@ -11,6 +11,7 @@ const {
   visitMediaGalleryThumbDisplaySrc,
   visitMediaGalleryLightboxSrc,
   reorderVisitMediaRows,
+  sameVisitImageUrl,
 } = await import('../../src/utils/visitMediaGallery.js');
 
 describe('itemSeenKey', () => {
@@ -41,6 +42,14 @@ describe('sources média de visite', () => {
     );
     expect(visitMediaGalleryLightboxSrc({ thumb_url: '/t.png' })).toBe('BASE//t.png');
     expect(visitMediaGalleryLightboxSrc({})).toBe('');
+  });
+
+  test('sameVisitImageUrl ignore query/hash et les vides', () => {
+    expect(sameVisitImageUrl('/a.png', '/a.png?v=1')).toBe(true);
+    expect(sameVisitImageUrl('/a.png#x', '/a.png')).toBe(true);
+    expect(sameVisitImageUrl('/a.png', '/b.png')).toBe(false);
+    expect(sameVisitImageUrl('', '/a.png')).toBe(false);
+    expect(sameVisitImageUrl(null, null)).toBe(false);
   });
 });
 

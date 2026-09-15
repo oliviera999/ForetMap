@@ -24,6 +24,7 @@ import {
   PlantPedagoFetchedSections,
 } from './PlantSummaryBlocks.jsx';
 import { PlantBiodivHeroPhoto, PlantMetaSections } from './PlantMetaSections.jsx';
+import { PlantDeterminationSection } from './PlantDeterminationSection.jsx';
 import { PlantLocationPreviewMaps } from './BiodivLocationMaps.jsx';
 import {
   IconBiodiv,
@@ -90,6 +91,8 @@ export function PlantBiodiversityCatalogPreviewCard({
           </p>
         )}
         <PlantBiodivHeroPhoto plant={plant} />
+        {/* Placée avant l'écologie : devant l'être vivant, on cherche d'abord ce que c'est. */}
+        <PlantDeterminationSection plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
         <PlantEcosystemHumanLead plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
         <PlantTaxonomyLine plant={plant} />
         <PlantPedagoTraitBadges plant={plant} />

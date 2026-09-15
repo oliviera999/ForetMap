@@ -15,13 +15,8 @@ const asyncHandler = require('../../lib/asyncHandler');
 
 const router = express.Router();
 
-function normalizeSlug(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase();
-}
-
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
+const { lowerTrim } = require('../../lib/shared/slug');
 
 /** GET /api/gl/content/intro — config publique (textes + URLs média résolues). */
 router.get(
@@ -120,7 +115,7 @@ router.get(
   '/:slug',
   requireGlPermission('gl.read'),
   asyncHandler(async (req, res) => {
-    const slug = normalizeSlug(req.params.slug);
+    const slug = lowerTrim(req.params.slug);
     if (!slug) return res.status(400).json({ error: 'Slug invalide' });
     const row = await queryOne(
       `SELECT slug, title, body_markdown, updated_at
@@ -143,7 +138,7 @@ router.put(
   '/:slug',
   requireGlPermission('gl.content.manage'),
   asyncHandler(async (req, res) => {
-    const slug = normalizeSlug(req.params.slug);
+    const slug = lowerTrim(req.params.slug);
     if (!slug) return res.status(400).json({ error: 'Slug invalide' });
     const title = normalizeOptionalString(req.body?.title);
     const bodyMarkdown = String(req.body?.bodyMarkdown || '');

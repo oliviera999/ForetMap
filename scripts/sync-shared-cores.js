@@ -27,6 +27,7 @@ const TAG = '[sync-shared-cores]';
 /** Paires source ESM (relative à la racine) → nom du miroir dans lib/shared/. */
 const PAIRS = Object.freeze([
   ['src/shared/emojiMojibakeCore.js', 'emojiMojibakeCore.js'],
+  ['src/shared/glBiomesRegistryCore.js', 'glBiomesRegistryCore.js'],
   ['src/shared/glBoardPathCore.js', 'glBoardPathCore.js'],
   ['src/shared/glMarkerAppearanceCore.js', 'glMarkerAppearanceCore.js'],
   ['src/shared/glMarkerBackgroundsCore.js', 'glMarkerBackgroundsCore.js'],

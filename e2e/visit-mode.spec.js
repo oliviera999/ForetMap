@@ -5,7 +5,7 @@ const VISIT_MAP_MASCOT_MOVE_MS = 560;
 
 /** Clic fiable sur la première zone visite (polygon ou hitbox). */
 async function clickFirstVisitZone(stage) {
-  const zoneHit = stage.locator('.visit-zone-hit').first();
+  const zoneHit = stage.locator('.fm-pct-zone').first();
   const poly = zoneHit.locator('polygon').first();
   if (await poly.count()) {
     const box = await poly.boundingBox();
@@ -121,8 +121,8 @@ test('visite connectée : mascotte visible si au moins une zone ou un repère su
   await expect(stage).toBeVisible({ timeout: 30_000 });
   await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 15_000 });
 
-  const zoneCount = await stage.locator('.visit-zone-hit').count();
-  const markerCount = await stage.locator('.visit-marker-btn').count();
+  const zoneCount = await stage.locator('.fm-pct-zone').count();
+  const markerCount = await stage.locator('.fm-pct-marker').count();
   if (zoneCount + markerCount > 0) {
     await expect(stage.locator('.visit-map-mascot')).toBeAttached({ timeout: 15_000 });
     await expect(stage.locator('.visit-map-mascot-inner')).toBeVisible({ timeout: 15_000 });
@@ -158,7 +158,7 @@ test('visite connectée : clic sur une zone ouvre le panneau détail', async ({ 
 
   const stage = page.locator('.visit-map-stage');
   await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 15_000 });
-  const zoneHit = stage.locator('.visit-zone-hit').first();
+  const zoneHit = stage.locator('.fm-pct-zone').first();
   if ((await zoneHit.count()) === 0) {
     test.skip();
     return;
@@ -179,7 +179,7 @@ test('visite prof : aperçu comme élève masque le panneau d’édition', async
 
   const stage = page.locator('.visit-map-stage');
   await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 15_000 });
-  const zoneHit = stage.locator('.visit-zone-hit').first();
+  const zoneHit = stage.locator('.fm-pct-zone').first();
   if ((await zoneHit.count()) === 0) {
     test.skip();
     return;
@@ -217,8 +217,8 @@ test('visite publique : marquage vu hors ligne puis synchronisation', async ({ p
   const stage = page.locator('.visit-map-stage');
   await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 15_000 });
 
-  const markerBtn = stage.locator('.visit-marker-btn').first();
-  const zoneHit = stage.locator('.visit-zone-hit').first();
+  const markerBtn = stage.locator('.fm-pct-marker').first();
+  const zoneHit = stage.locator('.fm-pct-zone').first();
   if ((await markerBtn.count()) === 0 && (await zoneHit.count()) === 0) {
     test.skip();
     return;

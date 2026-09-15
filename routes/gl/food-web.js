@@ -6,6 +6,7 @@ const asyncHandler = require('../../lib/asyncHandler');
 const { z, validate } = require('../../lib/validate');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const { INTERACTION_TYPES, makeFoodWebStore } = require('../../lib/shared/foodWebCore');
+const { normalizeOptionalString: normalizeBiomeSlug } = require('../../lib/shared/httpHelpers');
 
 const router = express.Router();
 
@@ -34,12 +35,6 @@ const FOOD_WEB_SELECT = `si.id, si.interaction_type,
                 st.id AS to_id, st.nom_commun AS to_name, NULL AS to_emoji,
                 ${trophicRoleSql('st')} AS to_role,
                 si.description`;
-
-function normalizeBiomeSlug(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
 
 async function loadEnrichedInteraction(id) {
   return queryOne(

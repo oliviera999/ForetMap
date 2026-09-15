@@ -40,49 +40,31 @@ const {
   serializeSurfaceSet,
   readSurfaceQuery,
   isVisibleOnSurface,
-  withLocationSurfaceFields,
 } = require('../lib/locationSurfaces');
 const {
   readAudienceWriteFields,
   serializeRoleSlugList,
-  withLocationAudienceFields,
   filterLocationsForViewer,
   projectLocationAudienceForViewer,
   canViewLocation,
 } = require('../lib/locationAudience');
 const { resolveZoneEmojiForWrite } = require('../lib/zoneEmoji');
 const { mapZoneToVisitWhitelistFields } = require('../lib/visitMapToVisitFields');
-
-function serializeLocationRow(row) {
-  return withLocationAudienceFields(withLocationSurfaceFields(row));
-}
+const { mapExists } = require('../lib/mapQueries');
+const { normalizeLivingBeings, serializeLocationRow } = require('../lib/locationRowHelpers');
 
 const db = { queryAll, queryOne, execute, withTransaction };
 
 const router = express.Router();
 
-async function mapExists(mapId) {
-  if (!mapId) return false;
-  const row = await queryOne('SELECT id FROM maps WHERE id = ?', [mapId]);
-  return !!row;
-}
-
-function normalizeLivingBeings(input, fallback = '') {
-  const base = Array.isArray(input)
-    ? input
-    : typeof input === 'string' && input.trim()
-      ? (() => {
-          try {
-            const parsed = JSON.parse(input);
-            if (Array.isArray(parsed)) return parsed;
-          } catch (_) {}
-          return input.split(',');
-        })()
-      : [];
-  const cleaned = [...new Set(base.map((v) => String(v || '').trim()).filter(Boolean))];
-  if (cleaned.length === 0 && fallback && String(fallback).trim()) return [String(fallback).trim()];
-  return cleaned;
-}
+/**
+ * Historique de récoltes d'une zone : colonnes explicites et borne haute. Sans `LIMIT`, une
+ * zone très récoltée renvoyait l'historique entier à chaque ouverture de fiche
+ * (`docs/AUDIT_CODE_2026-09-13.md` §2.4) ; 500 lignes couvrent plusieurs années de récoltes
+ * quotidiennes, la purge (`scripts/purge-audit-logs.js`, 730 j) borne le reste.
+ */
+const ZONE_HISTORY_MAX_ROWS = 500;
+const ZONE_HISTORY_SQL = 'SELECT id, zone_id, plant, harvested_at FROM zone_history';
 
 /**
  * Catégories effectives d'une zone après application d'un patch partiel :
@@ -343,7 +325,7 @@ router.get(
       return res.status(403).json(MAP_OUT_OF_SCOPE);
     }
     const history = await queryAll(
-      'SELECT * FROM zone_history WHERE zone_id = ? ORDER BY harvested_at DESC',
+      `${ZONE_HISTORY_SQL} WHERE zone_id = ? ORDER BY harvested_at DESC LIMIT ${ZONE_HISTORY_MAX_ROWS}`,
       [req.params.id],
     );
     const speciesRows = await loadZoneSpeciesMap(db, [zone.id]);
@@ -521,7 +503,7 @@ router.put(
     }
     const updated = await queryOne(`${ZONES_DETAIL_SQL} WHERE z.id = ?`, [zone.id]);
     const history = await queryAll(
-      'SELECT * FROM zone_history WHERE zone_id=? ORDER BY harvested_at DESC',
+      `${ZONE_HISTORY_SQL} WHERE zone_id = ? ORDER BY harvested_at DESC LIMIT ${ZONE_HISTORY_MAX_ROWS}`,
       [zone.id],
     );
     if (hasVisitZoneContentPatch(req.body)) {

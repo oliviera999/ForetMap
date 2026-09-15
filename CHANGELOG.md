@@ -7,6 +7,110 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 > **Le cycle 1.x est clos** depuis le 11 septembre 2026 : la section [`[1.152.1]`](#11521---2026-09-11) fige les cinq mois et demi de notes qui s’étaient accumulées sous `[Non publié]` depuis la v1.2.0, et s’ouvre sur un sommaire thématique. `[Non publié]` recommence donc à zéro.
 
+## [Non publié]
+
+### Ajouté — Fiches espèces : section « Détermination »
+
+- **Trois champs** sur la fiche (migration `243`) : `identification_criteria` (critères de
+  détermination), `lookalike_species` (confusions possibles), `identification_period`
+  (période d’observation). Libellés **neutres vis-à-vis du règne** — le catalogue mêle
+  végétaux, animaux, champignons, micro-organismes et fiches-ressources.
+- **Section repliable** dans la fiche, placée juste après la photo, avec auto-liens du
+  glossaire comme les textes d’écologie. Elle reste **absente** tant qu’aucun des trois
+  champs n’est renseigné.
+- **Confusions en encadré d’alerte** : la forêt est comestible et les élèves récoltent, une
+  ressemblance avec une espèce toxique ne doit pas se lire comme une métadonnée ordinaire.
+- **Réglage de site** `ui.biodiv.determination_always_open` (défaut `false`) pour déplier la
+  section d’office — Réglages → Modules UI.
+- **Saisie prof** : section dédiée dans le formulaire de fiche ; **import en masse** étendu
+  (clés canoniques et alias français : « Critères de détermination », « Confusions
+  possibles », « Période d’observation »…). Le pré-remplissage automatique est inchangé, ses
+  sources ne fournissent pas de critères de détermination.
+
+### Ajouté — Assainissement console admin ForetMap
+
+- **Permissions UI** alignées sur l’API : lecture seule, Moodle (`integrations.moodle.manage`),
+  secrets/restart, Cartographie accessible avec `zones.manage` / `map.manage_markers`.
+- **Sous-onglets thématiques** : Accueil & modules, Pédagogie, Cartographie, Plan Lyautey,
+  Identité visuelle, Visite, Intégrations, Aide & découverte, Usage & exploitation.
+- **Éditeur de marque** ForetMap / Plan ; catégories par défaut carte & visite branchées ;
+  multi-sélection de catégories (Plan inclus).
+- **Hygiène grille** : clés plan / brand / hash / dialogues mascotte / flag seed exclus ;
+  titre audit À propos réglable (`content.about.site_issues_title`).
+- **Profils & groupes** : modales multi-champs (plus d’enchaînements de prompts) ; types de
+  groupes en français.
+- Doc de référence mise à jour (Carnet dans Suivi, chemins Paramètres, terminologie,
+  Moodle).
+
+### Amélioré — Réseau trophique : couleurs, cadrage, tactile
+
+- Nouvelle palette de relations (ambre, vermillon, pourpre, cyan… — tables type
+  Okabe–Ito) ; sélection = halo vert sans écraser la couleur du type.
+- Presets Réseau alimentaire / Autres / Tout partagés liste + graphe ; filtre Type
+  seulement en « Tout » ; bouton « Flux trophiques » retiré.
+- Disposition Niveaux : étiquettes Producteurs / Consommateurs / Décomposeurs.
+- Bouton « Voir la fiche » quand une espèce est isolée ; toolbar ≥ 44 px ; export
+  regroupé sous « Plus… » sur petit écran.
+
+### Amélioré — Navigation iPhone / mobile (barre élève « Plus »)
+
+- Sur téléphone et écrans tactiles, la barre basse élève n’affiche plus une douzaine
+  d’onglets en scroll opaque : raccourcis **Carte · Tâches · Biodiversité · Visite**
+  (ou Quiz) + bouton **Plus** ouvrant une feuille de navigation (pattern aligné sur
+  G&L). Encoches / flou WebKit / cibles header ≥ 44 px.
+- Chrome professeur sur petit écran : pôles seuls ; les onglets du pôle s’ouvrent dans
+  une feuille bas. Smoke e2e **WebKit** (`mobile-webkit`) ajouté en CI bloquante.
+
+### Corrigé — Orientation boussole : plus de fond vide après rotation
+
+- Avec **« Orienter »** actif, la carte **se recentre sur la position GPS** et **grossit**
+  assez (facteur √2) pour que le plan tourné remplisse encore le cadre — Visite, Plan
+  Lyautey et carte de travail (scène partagée).
+
+### Corrigé — Visite : plus de double illustration dans l'encart lieu
+
+- Quand la photo carte (`map_lead_photo`) et la première image média visite sont le
+  même fichier, une seule vignette s'affiche (sous le titre), plus de doublon sous
+  le texte d'intro ni dans les blocs éditoriaux.
+
+### Corrigé — Visite : puces catégories sans scroll horizontal de page (mobile)
+
+- Rangée de filtres alignée sur le Plan Lyautey : défilement **dans** le bandeau
+  (`min-width: 0`, `overflow-x` sur la rangée, carte qui ne s'élargit plus).
+
+### Corrigé — Visite : icônes et textes trop gros une fois connecté
+
+- Après le passage à la scène carte partagée, la typo compensait le zoom **deux fois**
+  (variables overlay + `--pct-inv`). Sur une carte plus petite (session connectée),
+  emojis et libellés apparaissaient nettement plus grands qu'en visite anonyme.
+- Second correctif : les tailles CSS n'étaient plus multipliées par
+  `--map-overlay-scale` (absent sur SharedMapStage) alors qu'elles étaient encore
+  **divisées** par le facteur plateau — effet inverse et encore plus marqué sur
+  une carte basse.
+
+### Ajouté — Visite : carte partagée, recherche et filtres par catégorie
+
+- Le plan de visite s'appuie sur la **même scène carte** que le Plan (zones, repères,
+  zoom, position, échelle) : commandes unifiées, mascotte en calque.
+- **Recherche de lieux** et **puces de catégorie** dans le bandeau (styles partagés avec
+  le Plan). Le contenu public de visite expose désormais les catégories rattachées.
+- Sélecteur de mascotte **compact** (bouton 🐾 + menu) à la place du grand menu déroulant.
+
+### Partiel — Carte de travail : scène partagée en consultation
+
+- En **navigation** (élève ou prof hors tracé / édition de contour / glisser de repères),
+  la carte de travail s'appuie sur la **même scène** que le Plan et la Visite
+  (`WorkMapStage` → zones, repères, regroupements, zoom, « Me suivre »).
+- La **barre d'outils** et les **filtres de lieux** ForetMap restent ; pas de puces de
+  recherche/catégorie façon Plan. L'édition géométrie garde les calques historiques
+  (tracé, sommets, alignement).
+
+### Corrigé — Visite : progression allégée (atténuation + donut, sans libellés)
+
+- Sur le plan : **atténuation** des lieux déjà vus et **donut** de progression, pour
+  tous les publics ; bouton **« Marquer comme vu »** conservé dans la fiche.
+- Plus de libellés « À découvrir » / « Vu » collés sur chaque lieu au survol (surcharge).
+
 ### Corrigé — Plan : l'adresse gardait le lieu… puis le perdait
 
 - **Après un résultat de recherche, l'adresse revenait à `/`.** Les feuilles basses empilent une
@@ -44,7 +148,83 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 > rien de ce côté. Lui donner de la matière demande de compléter le semis, pas de toucher aux
 > scénarios.
 
-## [Non publié]
+### Corrigé — CI de `main` rouge depuis le 11 septembre, et lien profond du plan
+
+- **Scénarios e2e `plan-mobile`** (job `test`) : rouges sur tous les runs de `main` depuis le
+  11/09. Deux suites backend « restauraient » `ui.plan.map_id` à `'lyautey'`, une carte absente
+  de la base de test, et une troisième laissait sa carte de fixture sans fond publié ; le plan
+  retombait dessus et n'affichait jamais la scène carte. Un test restaure désormais l'état qu'il
+  a trouvé (`tests/helpers/settingsSnapshot.js`) et nettoie ses cartes. Le scénario d'orientation
+  émettait un événement que Chromium n'écoute pas (`deviceorientation` au lieu de
+  `deviceorientationabsolute`), celui de position visait une zone héritée sans polygone.
+- **Plan Lyautey — lien profond `?lieu=` effacé** à l'ouverture d'une fiche depuis la feuille de
+  résultats : constaté ici aussi, corrigé en parallèle par la PR #459 (section « l'adresse
+  gardait le lieu… puis le perdait ») dont l'implémentation est conservée.
+- **Moteur de migrations** : « table inexistante » (`ER_NO_SUCH_TABLE`) n'est plus classé
+  « déjà appliquée » pour un énoncé d'écriture — la migration `237` semait deux réglages du
+  carnet dans une table `settings` qui n'existe pas (`app_settings`) sans que rien ne le dise, et
+  la `227` visait une table supprimée par la `186`. Les deux migrations sont corrigées, la `242`
+  rattrape les bases déjà passées, et l'erreur est désormais tolérée seulement pour une
+  suppression, pour les tables de l'ancien modèle de comptes, ou — en `warn` — dans une
+  migration antérieure à la 242 (`tests/migrations-error-classifier.test.js`).
+- Un octet NUL littéral dans `lib/usage.js` rendait le fichier « binaire » pour `grep` ;
+  `validateTutorialLocations` faisait une requête par lieu ; l'historique de récoltes d'une zone
+  était renvoyé sans borne (projection explicite et `LIMIT 500`).
+
+### Modifié — audit du code du 13 septembre (dette, performance, dépendances)
+
+- **Index** `created_at` sur `audit_log`, `gl_game_events` et `task_logs` (migration `242`) :
+  la purge (`scripts/purge-audit-logs.js`) filtrait ces tables par date sans index.
+- **Import carte ↔ visite** (`POST /api/visit/sync`) : lots de 100 lignes dans une seule
+  transaction au lieu d'une requête par élément hors transaction (import partiel possible avant).
+- **Helpers partagés** à la place des copies locales : `lib/shared/slug.js` (`lowerTrim`,
+  `slugify` — sept `normalizeSlug` aux sémantiques divergentes), `lib/shared/httpError.js`
+  (`status` **et** `statusCode` — neuf copies en deux conventions), `lib/mapQueries.js`
+  (`mapExists` ×7), `normalizeEmail` de `lib/identity.js` (×5), `lib/locationRowHelpers.js`
+  (`routes/map.js` ↔ `routes/zones.js`), `lib/visitAudienceWrite.js` (`routes/visit/*`),
+  `lib/importRows.js` (parseur CSV, décodage base64 et `resolveImportRows` des importeurs
+  élèves / joueurs / tâches / groupes / plantes, `resolveWorkbookImportRows` des importeurs
+  G&L par classeur), `readSheetRows` / `asOptionalText` / `normalizeOptionalString` depuis
+  `lib/shared/`. Côté front : `src/shared/utils/classNames.js`, `formatDateTime.js` et
+  `fileToDataUrl` partagé (24 copies retirées). Aucun changement de comportement visé ; suites
+  backend, Vitest et e2e plan vertes.
+- **Carnet : noyau commun ForetMap / G&L** (`src/shared/journal/`) — adaptateur produit,
+  fil unifié en fonction pure, hooks du fil et de l'éditeur d'article, carte d'import et barre
+  d'outils partagées ; « Mon carnet » et « Mon journal » ne gardent que leur rendu (textes, aide
+  G&L, zone / sorts du chapitre). Un correctif du fil, de l'auto-save ou des illustrations vaut
+  désormais pour les deux produits. ForetMap affiche aussi le compteur de caractères quand un
+  plafond est réglé, et étiquette ses boutons d'épinglage pour les lecteurs d'écran. Détail et
+  reste à faire : `docs/PLAN_CARNET_PARITE_GL.md` §9.
+- **Carnet : fin de la mutualisation.** Sélecteur d'encarts, modale de lecture (professeur / MJ),
+  hydratation des titres d'encarts et bouton « Ajouter au carnet » ne sont plus écrits qu'une
+  fois (`src/shared/journal/`) ; chaque produit fournit son registre de types d'encart, son
+  adaptateur, ses textes et son thème. **Visible côté ForetMap** : la lecture d'un carnet par le
+  professeur affiche désormais, comme côté G&L, les dates et volumes de chaque article, un filtre
+  des éléments importés par type (dès deux types présents) et un export Markdown daté ; le
+  panneau d'aide `?` apparaît dans l'en-tête de « Mon carnet » (section « Aide carnet »,
+  éditable dans l'administration de l'aide). **Visible côté G&L** : la lecture d'un carnet par
+  le MJ montre les vignettes d'illustrations des articles. Détail :
+  `docs/PLAN_CARNET_PARITE_GL.md` §9.3.
+- **Rapport d'import** : forme commune `createImportReport` (`lib/importRows.js`) ; les sept
+  fabriques locales ne déclarent plus que leurs compteurs propres.
+- **Garde anti-course des chargements** (`src/shared/hooks/useLatestRequest.js`) sur la galerie
+  photos d'un lieu, le panneau d'usage, les carnets des statistiques, les parcours et lieux du
+  panneau cartes et la synchronisation visite : une réponse arrivée après un changement de
+  lieu, de carte, de groupe ou de période n'écrase plus la plus récente.
+- **Registre des biomes G&L** : une seule source, `src/shared/glBiomesRegistryCore.js`, miroir
+  CJS généré par `sync:shared-cores` ; les deux copies manuelles (client et serveur) ne font
+  plus que réexporter.
+- **Dépendances** : `adm-zip` 0.6.1 et `qs` 6.16.0 (`npm audit fix`, sans changement cassant).
+
+### Documentation — audit du code du 13 septembre 2026
+
+- **`docs/AUDIT_CODE_2026-09-13.md`** : audit transversal (bugs, incohérences, doublons mesurés,
+  performance et charge serveur) mené avec une base MariaDB réelle, constats marqués « Traité »
+  dans la même PR, et §9 sur les causes de la CI rouge trouvées en chemin. Indexé dans
+  `docs/audits/README.md`.
+- **`docs/API.md`** : quatorze routes d'administration du lore G&L (glossaire, questions QCM,
+  réordonnancement des feuillets) documentées ; **`tests/api-doc-coverage.test.js`** rapproche
+  désormais chaque route montée de la documentation (job `quality`, sans base).
 
 ### Non publié, en attente — variables admin du serveur e2e
 
@@ -59,45 +239,6 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   1 passé / 1 ignoré / 2 échecs. Il faut les deux — les variables **et** une fixture apportant
   un lieu placé avec un fond de carte. Détail : PR #458.
 
-### Corrigé — Plan : l'adresse gardait le lieu… puis le perdait
-
-- **Après un résultat de recherche, l'adresse revenait à `/`.** Les feuilles basses empilent une
-  entrée d'historique à l'ouverture et la dépilent en se fermant (`useOverlayHistoryBack`). Or
-  `openPlace` écrivait `?lieu=` **sur l'entrée de la feuille de résultats** : la refermer
-  déclenchait `history.back()`, et l'adresse repartait avec elle. Recharger la page ou copier
-  l'URL de la barre d'adresse perdait donc la sélection. Le bouton « Partager » construisant son
-  lien depuis l'état, il n'était pas touché — ce qui explique que le défaut soit passé inaperçu.
-  Le paramètre est maintenant réaffirmé après le retour d'historique.
-- **Pourquoi les tests ne le voyaient pas.** Le test de montage existant observe l'adresse
-  **avant** que ce retour n'ait lieu ; et en jsdom, `popstate` ne restaure pas l'URL de l'entrée
-  précédente. Le nouveau test rejoue explicitement cette restauration — vérifié dans les deux
-  sens : il échoue sans le correctif, passe avec.
-
-### Corrigé — CI : le smoke Plan bloquant s'arrête au lieu de tomber quand la base n'a pas de compte admin
-
-- `plan-mobile-position.spec.js` et `plan-mobile-orientation.spec.js` levaient une exception
-  quand la connexion professeur e2e échouait. Tant qu'ils n'étaient qu'informatifs, cela ne
-  gênait personne ; devenus **bloquants**, ils transformaient une base sans compte admin en
-  échec d'intégration — et, les tentatives se répétant, en verrou `429` sur le scénario suivant.
-  Ils se mettent désormais de côté (`test.skip`), comme le fait déjà `plan-routes-mode.spec.js`
-  dans le même filet : une absence de compte n'est pas une régression d'affichage.
-- **Gardes posées avant les assertions qu'elles protègent.** Les trois scénarios du plan
-  assertaient la présence de contrôles de la carte (« Voir tout le plan », « Me situer ») avant
-  de vérifier que la base avait de quoi les afficher. Or `AppPlan` ne monte `PlanMapStage` que
-  si la carte a un **fond d'image** (`hasMapImage`) : sur une base qui n'en a pas — le cas en
-  intégration —, les trois échouaient sur des boutons absents, là où il n'y avait rien à
-  vérifier. `plan-routes-mode.spec.js`, qui garde en tête de scénario, tenait pour cette raison.
-  Les gardes sont désormais au même endroit. Aucune assertion n'est retirée : là où le plan a un
-  fond, les scénarios s'exécutent en entier.
-- Smoke bloquant rejoué en local sur base neuve : **0 échec**.
-
-> **À noter, et à traiter à part :** tant que la carte du plan semée en intégration n'a pas de
-> fond d'image, ces scénarios s'y **abstiennent** — le filet est donc en place mais ne vérifie
-> rien de ce côté. Lui donner de la matière demande de compléter le semis, pas de toucher aux
-> scénarios.
-
-## [Non publié]
-
 ### Corrigé — le lien profond `?lieu=` survit à l'ouverture depuis la recherche
 
 - **Plan Lyautey** : ouvrir un lieu depuis la recherche perdait aussitôt son `?lieu=`. La
@@ -110,7 +251,6 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   n'auto-sème le compte enseignant que si les deux sont présentes ; sans elles, aucun
   enseignant n'existait et les specs Plan qui calent la carte via l'API admin échouaient en
   401 — pas sur ce qu'elles testent.
-
 
 ### Corrigé — semis RBAC sur base neuve, et reprise des observations héritées
 
@@ -175,6 +315,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Écran de gestion des groupes : le champ *Périmètre cartes* explique désormais sa portée.
   `group_scopes` entre dans la version d'écriture du scope groupes (`database.js`), sans quoi
   un changement de périmètre ne périmerait pas le cache d'accès.
+
 ### Ajouté — cloisonnement par rôles sur la couche visite
 
 - Migration `240_visit_location_audience_roles.sql` : `visible_role_slugs`,

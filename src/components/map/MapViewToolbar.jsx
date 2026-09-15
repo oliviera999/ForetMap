@@ -38,9 +38,8 @@ import {
   IconUnlock,
   IconWarning,
   IconZoomIn,
-  IconZoomOut,
-  IconZoomReset,
 } from '../../shared/icons.jsx';
+import { MapActionButton } from '../../shared/ui/MapActionButton.jsx';
 
 /** Style « pilule » des bascules d'édition de contour (aligné sur le verrou repères). */
 function editTogglePillStyle(on) {
@@ -126,6 +125,8 @@ export function MapViewToolbar({
   animateZoomTowardScale,
   onOpenFullscreen,
   routesSlot = null,
+  /** Quand la scène partagée porte déjà zoom / position / boussole (mode consultation). */
+  stageOwnsViewportControls = false,
 }) {
   const publicSettings = usePublicSettings();
   const {
@@ -546,7 +547,7 @@ export function MapViewToolbar({
               </button>
             </Tooltip>
           )}
-          {gps?.available && mode === 'view' ? (
+          {!stageOwnsViewportControls && gps?.available && mode === 'view' ? (
             <Tooltip text="Faire suivre votre position GPS par la mascotte">
               <button
                 type="button"
@@ -594,7 +595,7 @@ export function MapViewToolbar({
               </button>
             </Tooltip>
           ) : null}
-          {gps?.headingUpAllowed && gps?.active && mode === 'view' ? (
+          {!stageOwnsViewportControls && gps?.headingUpAllowed && gps?.active && mode === 'view' ? (
             <Tooltip
               text={
                 !gps.headingAvailable
@@ -622,7 +623,7 @@ export function MapViewToolbar({
               </button>
             </Tooltip>
           ) : null}
-          {scaleCompass?.allowed && mode === 'view' ? (
+          {!stageOwnsViewportControls && scaleCompass?.allowed && mode === 'view' ? (
             <Tooltip
               text={
                 scaleCompass.effective
@@ -693,38 +694,49 @@ export function MapViewToolbar({
               </button>
             </Tooltip>
           ) : null}
-          <div className="map-toolbar-zoom-group">
-            {[
-              [IconZoomIn, 1.28, 'map.zoomIn', 'Zoomer la carte'],
-              [IconZoomOut, 0.78, 'map.zoomOut', 'Dézoomer la carte'],
-              [IconZoomReset, 0, 'map.zoomReset', 'Recentrer la carte'],
-            ].map(([ZoomGlyph, factor, helpEntry, ariaLabel]) => (
-              <Tooltip key={helpEntry} text={tooltipText(helpEntry)}>
-                <button
-                  type="button"
-                  className="map-toolbar-zoom-btn"
-                  onClick={() => {
-                    if (factor === 0) {
-                      fitMap();
-                      return;
-                    }
-                    const c = containerRef.current;
-                    if (!c) return;
-                    const mx = c.clientWidth / 2;
-                    const my = c.clientHeight / 2;
-                    const ns =
-                      factor > 1
-                        ? Math.min(txRef.current.s * factor, MAP_VIEW_SCALE_MAX)
-                        : Math.max(txRef.current.s * factor, MAP_VIEW_SCALE_MIN);
-                    animateZoomTowardScale(ns, mx, my);
-                  }}
-                  aria-label={ariaLabel}
-                >
-                  <ZoomGlyph size={15} />
-                </button>
-              </Tooltip>
-            ))}
-          </div>
+          {!stageOwnsViewportControls ? (
+            <div
+              className="map-toolbar-zoom-group fm-pct-map-controls"
+              role="group"
+              aria-label="Zoom"
+            >
+              <MapActionButton
+                role="display"
+                icon="＋"
+                label="Zoomer la carte"
+                testId="map-zoom-in"
+                onClick={() => {
+                  const c = containerRef.current;
+                  if (!c) return;
+                  const mx = c.clientWidth / 2;
+                  const my = c.clientHeight / 2;
+                  const ns = Math.min(txRef.current.s * 1.28, MAP_VIEW_SCALE_MAX);
+                  animateZoomTowardScale(ns, mx, my);
+                }}
+              />
+              <MapActionButton
+                role="display"
+                icon="－"
+                label="Dézoomer la carte"
+                testId="map-zoom-out"
+                onClick={() => {
+                  const c = containerRef.current;
+                  if (!c) return;
+                  const mx = c.clientWidth / 2;
+                  const my = c.clientHeight / 2;
+                  const ns = Math.max(txRef.current.s * 0.78, MAP_VIEW_SCALE_MIN);
+                  animateZoomTowardScale(ns, mx, my);
+                }}
+              />
+              <MapActionButton
+                role="display"
+                icon="⊡"
+                label="Recentrer la carte"
+                testId="map-zoom-reset"
+                onClick={() => fitMap()}
+              />
+            </div>
+          ) : null}
           {isHelpEnabled && (
             <HelpPanel
               sectionId="map"

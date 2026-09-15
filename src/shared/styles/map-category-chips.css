@@ -1,0 +1,81 @@
+/* Puces de filtre par catégorie — partagées Plan / Visite (extrait de plan.css).
+   Classes historiques `.plan-chips` / `.plan-chip` ; alias `.visit-chips` / `.visit-chip`.
+
+   Le défilement horizontal est sur le **conteneur parent** (`.plan-filters__row` /
+   `.visit-map-card__chrome-chips`), pas sur cette rangée : les puces restent
+   `width: max-content` pour ne pas forcer la largeur de la fenêtre. */
+
+.plan-chips,
+.visit-chips {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  gap: var(--space-2, 8px);
+  padding: 0;
+  width: max-content;
+  max-width: none;
+  overflow: visible;
+  background: transparent;
+  border: 0;
+}
+
+.plan-chips::-webkit-scrollbar,
+.visit-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.plan-chip,
+.visit-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap-target, 44px);
+  padding: 0 var(--space-3, 12px);
+  border: 1px solid rgba(24, 48, 88, 0.25);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--plan-ink, var(--ink, #14233d));
+  font: inherit;
+  font-size: var(--text-sm, 0.9rem);
+  cursor: pointer;
+}
+
+.visit-chip {
+  border-color: color-mix(in srgb, var(--forest, #1a4731) 28%, transparent);
+  color: var(--forest, #1a4731);
+}
+
+.plan-chip.is-active,
+.visit-chip.is-active {
+  background: var(--leaf, #2d6a4f);
+  border-color: var(--leaf, #2d6a4f);
+  color: #fff;
+  font-weight: var(--fw-semibold, 600);
+}
+
+.plan-chip:focus-visible,
+.visit-chip:focus-visible {
+  outline: 2px solid var(--forest, #1a4731);
+  outline-offset: 2px;
+}
+
+.plan-chip__swatch,
+.visit-chip__swatch {
+  width: 10px;
+  height: 10px;
+  border: 1px solid rgba(24, 48, 88, 0.35);
+  border-radius: 3px;
+  background: transparent;
+}
+
+.plan-chip__count,
+.visit-chip__count {
+  opacity: 0.75;
+  font-size: var(--text-xs, 0.8rem);
+}
+
+.plan-chip--routes {
+  width: auto;
+  justify-content: flex-start;
+}
