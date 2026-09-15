@@ -28,6 +28,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   WebKit, bloquant en CI, échouait donc à l'assertion finale (retour sur l'onglet Carte).
   Les deux sélecteurs sont désormais visés ensemble. Défaut jamais vu jusqu'ici : ces specs
   n'avaient pas pu s'exécuter une seule fois depuis leur ajout.
+### Corrigé
+
+- **Catégories par défaut (Paramètres)** : cocher plusieurs catégories à la suite
+  n’écrase plus la sélection — seule la dernière case restait enregistrée si les
+  clics arrivaient avant la fin de l’enregistrement précédent. La carte / la visite
+  / le Plan pouvaient alors n’afficher qu’une catégorie.
 
 ### Corrigé — CI verte : les trois garde-fous d'interface qui bloquaient `main`
 
