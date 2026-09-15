@@ -9,6 +9,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Plan Lyautey : la couverture e2e mobile était muette
+
+- **Projet Playwright `plan-mobile` restauré.** Il avait été **écrasé** par `mobile-webkit`
+  au lieu d'être conservé à côté. Deux conséquences : l'étape bloquante de la CI pointait sur
+  un projet inexistant (`Project(s) "plan-mobile" not found`), et surtout les quatre specs
+  `plan-*` n'étaient plus jouées par **aucun** projet — `chromium` et `mobile-chromium` les
+  excluent explicitement, `mobile-webkit` ne prend que son propre smoke.
+- Aucun autre projet ne pouvait les reprendre : `plan-mobile` est le seul à porter
+  l'en-tête `X-Foretmap-Product: plan`, sans lequel le serveur ne sert pas le produit Plan.
+- Concerne `plan-mobile-shell`, `plan-routes-mode`, `plan-mobile-position` et
+  `plan-mobile-orientation` — dont les deux derniers avaient justement été rendus bloquants
+  après l'audit du 13 septembre, parce qu'un retournement d'étiquettes sous « cap en haut »
+  avait traversé la CI.
+
 ### Ajouté — Fiches espèces : section « Détermination »
 
 - **Trois champs** sur la fiche (migration `243`) : `identification_criteria` (critères de

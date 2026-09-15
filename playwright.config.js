@@ -80,5 +80,25 @@ module.exports = defineConfig({
       use: { ...devices['iPhone 13'] },
       testMatch: /mobile-webkit-smoke\.spec\.js/,
     },
+    {
+      // Plan Lyautey (lot 4) : produit servi par host, ciblé ici avec l'en-tête de surcharge
+      // `X-Foretmap-Product` (`lib/productResolver.js`) — pas de sous-domaine en local.
+      // Téléphone tactile : c'est le seul usage réel du plan.
+      //
+      // Ce projet avait été **écrasé** par `mobile-webkit` au lieu d'être conservé à côté :
+      // les quatre specs `plan-*` n'étaient alors jouées par aucun projet (les deux autres
+      // les excluent explicitement), et l'étape bloquante de la CI pointait sur un nom
+      // inexistant. L'en-tête ci-dessous est ce qui rend ce projet irremplaçable : sans lui
+      // le serveur ne sert pas le produit Plan.
+      name: 'plan-mobile',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 390, height: 844 },
+        hasTouch: true,
+        isMobile: true,
+        extraHTTPHeaders: { 'X-Foretmap-Product': 'plan' },
+      },
+      testMatch: /plan-.*\.spec\.js/,
+    },
   ],
 });
