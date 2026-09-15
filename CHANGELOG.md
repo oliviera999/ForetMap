@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+
+- **Catégories par défaut (Paramètres)** : cocher plusieurs catégories à la suite
+  n’écrase plus la sélection — seule la dernière case restait enregistrée si les
+  clics arrivaient avant la fin de l’enregistrement précédent. La carte / la visite
+  / le Plan pouvaient alors n’afficher qu’une catégorie.
+
 ### Ajouté — Assainissement console admin ForetMap
 
 - **Permissions UI** alignées sur l’API : lecture seule, Moodle (`integrations.moodle.manage`),
