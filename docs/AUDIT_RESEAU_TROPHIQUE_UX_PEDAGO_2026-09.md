@@ -79,10 +79,10 @@ Sources code : `foodWebGraphModel.js` (`GRAPH_PRESETS`, layouts),
 | PED-03  | Pédagogie     | Un seul rôle « consommateur » (pas C1/C2) — pyramide grossière.                                            | complexe |
 | UX-03   | Densité UI    | Toolbar trop riche sur tablette (hauteur graphe réduite).                                                  | moyen    |
 | A11Y-02 | Accessibilité | Tabulation nœud×arête sans roving tabindex (déjà hors périmètre sept. 2026).                               | moyen    |
-| PED-04  | Parcours      | Pas de pont Quiz ↔ réseau après exploration.                                                              | moyen    |
+| PED-04  | Parcours      | Pas de pont Quiz ↔ réseau après exploration.                                                               | moyen    |
 | TEST-01 | Couverture    | e2e `pedago-food-web.spec.js` cible `.pedago-foodweb__edge` (liste) alors que le défaut est le **graphe**. | rapide   |
 | PED-05  | Lisibilité    | Cercle saturé au-delà ~30 espèces (force-directed = lot séparé).                                           | complexe |
-| WORD-01 | Wording       | Intro / hint incomplets (pincement, clavier, Voisins↔Chaîne, panneau relation).                           | rapide   |
+| WORD-01 | Wording       | Intro / hint incomplets (pincement, clavier, Voisins↔Chaîne, panneau relation).                            | rapide   |
 
 ---
 
