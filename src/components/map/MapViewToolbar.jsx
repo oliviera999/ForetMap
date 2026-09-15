@@ -701,7 +701,7 @@ export function MapViewToolbar({
               aria-label="Zoom"
             >
               <MapActionButton
-                role="display"
+                variant="display"
                 icon="＋"
                 label="Zoomer la carte"
                 testId="map-zoom-in"
@@ -715,7 +715,7 @@ export function MapViewToolbar({
                 }}
               />
               <MapActionButton
-                role="display"
+                variant="display"
                 icon="－"
                 label="Dézoomer la carte"
                 testId="map-zoom-out"
@@ -729,7 +729,7 @@ export function MapViewToolbar({
                 }}
               />
               <MapActionButton
-                role="display"
+                variant="display"
                 icon="⊡"
                 label="Recentrer la carte"
                 testId="map-zoom-reset"
