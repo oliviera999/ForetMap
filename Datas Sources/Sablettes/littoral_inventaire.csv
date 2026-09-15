@@ -1,0 +1,110 @@
+name;scientific_name;taxon_kingdom;taxon_group;taxon_family;habitat;habitat_type;trophic_role;origin_status;iucn_status;site;niveau_preuve;source_ou_remarque
+Gélidium;Gelidium corneum (syn. G. sesquipedale);Algue rouge (Rhodophytes);Rhodophytes;Gelidiaceae;Platier, infralittoral;aquatique;producteur;indigène;;El Jadida, façade;documenté;"CHM-CBD Maroc ; Sabour et al."
+Sargasse japonaise;Sargassum muticum;Algue brune (Straménopiles);Phéophycées;Sargassaceae;Platier, cuvettes;aquatique;producteur;envahissante;;Doukkala, El Jadida;documenté;Sabour et al. 2013
+Cystoseire tamariscifoliée;Ericaria tamariscifolia (syn. Cystoseira tamariscifolia);Algue brune (Straménopiles);Phéophycées;Sargassaceae;Médiolittoral inférieur;aquatique;producteur;indigène;;façade;documenté;CHM-CBD Maroc
+Fucus spiralé;Fucus spiralis;Algue brune (Straménopiles);Phéophycées;Fucaceae;Médiolittoral supérieur;aquatique;producteur;indigène;;façade;documenté;CHM-CBD Maroc
+Gigartine;Gigartina pistillata;Algue rouge (Rhodophytes);Rhodophytes;Gigartinaceae;Médiolittoral inférieur;aquatique;producteur;indigène;;façade;documenté;CHM-CBD Maroc
+Bifurcaire;Bifurcaria bifurcata;Algue brune (Straménopiles);Phéophycées;Sargassaceae;Cuvettes;aquatique;producteur;indigène;;façade;attendu;
+Laitue de mer;Ulva spp.;Algue verte (Chlorophytes);Chlorophytes;Ulvaceae;Platier, zones enrichies;aquatique;producteur;indigène;;Mohammedia, El Jadida;attendu;bio-indicatrice d'enrichissement
+Codium;Codium tomentosum;Algue verte (Chlorophytes);Chlorophytes;Codiaceae;Cuvettes;aquatique;producteur;indigène;;façade;attendu;
+Coralline;Ellisolandia elongata;Algue rouge (Rhodophytes);Rhodophytes;Corallinaceae;Cuvettes;aquatique;producteur;indigène;;façade;attendu;
+Asparagopsis;Asparagopsis armata;Algue rouge (Rhodophytes);Rhodophytes;Bonnemaisoniaceae;Infralittoral;aquatique;producteur;introduite;;façade;attendu;à confirmer localement
+Pterocladiella;Pterocladiella capillacea;Algue rouge (Rhodophytes);Rhodophytes;Pterocladiaceae;Médiolittoral inférieur;aquatique;producteur;indigène;;façade;attendu;
+Laminaire dorée;Laminaria ochroleuca;Algue brune (Straménopiles);Phéophycées;Laminariaceae;Infralittoral;aquatique;producteur;indigène;;Tanger, détroit;attendu;
+Zostère naine;Zostera noltei;Végétal (Chlorobiontes);Angiospermes;Zosteraceae;Vasières lagunaires;aquatique;producteur;indigène;;Merja Zerga, Sidi Moussa, Oualidia;documenté;"Bououarour ; PMC10149629"
+Lichen noir des rochers;Hydropunctaria maura;Champignon (Fungi);Lichens;Verrucariaceae;Supralittoral;terrestre;producteur;indigène;;façade;attendu;symbiose champignon-algue
+Moule méditerranéenne;Mytilus galloprovincialis;Animal (Métazoaires);Mollusques;Mytilidae;Médiolittoral moyen;aquatique;consommateur;indigène;;Azemmour→Essaouira;documenté;"RSMA 2024 ; Mannas 2014"
+Moule africaine;Perna perna;Animal (Métazoaires);Mollusques;Mytilidae;Médiolittoral battu;aquatique;consommateur;indigène;;"Agadir (sud) ; à rechercher";documenté;Agadir, littérature
+Patelle rustique;Patella rustica;Animal (Métazoaires);Mollusques;Patellidae;Médiolittoral supérieur;aquatique;consommateur;indigène;;façade;attendu;
+Patelle déprimée;Patella depressa;Animal (Métazoaires);Mollusques;Patellidae;Médiolittoral;aquatique;consommateur;indigène;;façade;attendu;
+Patelle d'Ulysse;Patella ulyssiponensis;Animal (Métazoaires);Mollusques;Patellidae;Médiolittoral inférieur;aquatique;consommateur;indigène;;façade;attendu;
+Siphonaire;Siphonaria pectinata;Animal (Métazoaires);Mollusques;Siphonariidae;Médiolittoral;aquatique;consommateur;indigène;;façade;attendu;pulmoné, faux « chapeau chinois »
+Bigorneau perceur;Stramonita haemastoma;Animal (Métazoaires);Mollusques;Muricidae;Médiolittoral inférieur;aquatique;consommateur;indigène;;façade;attendu;prédateur de moules
+Gibbule ombiliquée;Steromphala umbilicalis;Animal (Métazoaires);Mollusques;Trochidae;Algues, platier;aquatique;consommateur;indigène;;NW Atlantique marocain;documenté;ESPR 2020
+Gibbule de Pennant;Steromphala pennanti;Animal (Métazoaires);Mollusques;Trochidae;Algues, platier;aquatique;consommateur;indigène;;NW Atlantique marocain;documenté;ESPR 2020
+Rissoa;Rissoa parva;Animal (Métazoaires);Mollusques;Rissoidae;Épiphyte des algues;aquatique;consommateur;indigène;;NW Atlantique marocain;documenté;ESPR 2020
+Monodonte;Phorcus lineatus;Animal (Métazoaires);Mollusques;Trochidae;Médiolittoral;aquatique;consommateur;indigène;;façade;attendu;
+Littorine des rochers;Melarhaphe neritoides;Animal (Métazoaires);Mollusques;Littorinidae;Supralittoral;aquatique;consommateur;indigène;;façade;attendu;
+Pouce-pied;Pollicipes pollicipes;Animal (Métazoaires);Arthropodes;Pollicipedidae;Rochers battus;aquatique;consommateur;indigène;;façade exposée;attendu;crustacé cirripède
+Poulpe commun;Octopus vulgaris;Animal (Métazoaires);Mollusques;Octopodidae;Cuvettes, infralittoral;aquatique;consommateur;indigène;;façade;attendu;
+Lièvre de mer;Aplysia spp.;Animal (Métazoaires);Mollusques;Aplysiidae;Cuvettes;aquatique;consommateur;indigène;;façade;attendu;
+Coque;Cerastoderma edule;Animal (Métazoaires);Mollusques;Cardiidae;Vasières lagunaires;aquatique;consommateur;indigène;;Merja Zerga;documenté;C. R. Biologies 2005
+Scrobiculaire;Scrobicularia plana;Animal (Métazoaires);Mollusques;Semelidae;Vasières lagunaires;aquatique;consommateur;indigène;;Merja Zerga;documenté;C. R. Biologies 2005
+Olive de mer / flion;Donax trunculus;Animal (Métazoaires);Mollusques;Donacidae;Plage sableuse;aquatique;consommateur;indigène;;plages atlantiques;attendu;
+Chthamale;Chthamalus montagui / C. stellatus;Animal (Métazoaires);Arthropodes;Chthamalidae;Médiolittoral supérieur;aquatique;consommateur;indigène;;façade;attendu;balanes
+Crabe marbré;Pachygrapsus marmoratus;Animal (Métazoaires);Arthropodes;Grapsidae;Médiolittoral;aquatique;consommateur;indigène;;façade;attendu;
+Crabe vert;Carcinus maenas;Animal (Métazoaires);Arthropodes;Carcinidae;Estuaires, lagunes;aquatique;consommateur;indigène;;façade;attendu;
+Crabe violoniste;Afruca tangeri;Animal (Métazoaires);Arthropodes;Ocypodidae;Vasières estuariennes;aquatique;consommateur;indigène;;Loukkos, Merja Zerga;attendu;
+Crevette des cuvettes;Palaemon elegans;Animal (Métazoaires);Arthropodes;Palaemonidae;Cuvettes;aquatique;consommateur;indigène;;façade;attendu;
+Dynamène;Dynamene bidentata;Animal (Métazoaires);Arthropodes;Sphaeromatidae;Algues, moulières;aquatique;consommateur;indigène;;NW Atlantique marocain;documenté;ESPR 2020
+Talitre;Talitrus saltator;Animal (Métazoaires);Arthropodes;Talitridae;Laisse de mer;terrestre;decomposeur;indigène;;plages;attendu;puce de mer
+Hermelle;Sabellaria alveolata;Animal (Métazoaires);Annélides;Sabellariidae;Récifs sableux, médiolittoral;aquatique;consommateur;indigène;;façade;attendu;espèce ingénieure
+Diopatre marocaine;Diopatra marocensis;Animal (Métazoaires);Annélides;Onuphidae;Sables et vases;aquatique;consommateur;endémique régionale;;côtes marocaines;documenté;Gillet 2017
+Néréis;Hediste diversicolor;Animal (Métazoaires);Annélides;Nereididae;Vasières;aquatique;decomposeur;indigène;;lagunes, estuaires;attendu;
+Anémone tomate;Actinia equina;Animal (Métazoaires);Cnidaires;Actiniidae;Médiolittoral;aquatique;consommateur;indigène;;façade;attendu;
+Anémone verte;Anemonia viridis;Animal (Métazoaires);Cnidaires;Actiniidae;Cuvettes;aquatique;consommateur;indigène;;façade;attendu;
+Oursin violet;Paracentrotus lividus;Animal (Métazoaires);Échinodermes;Parechinidae;Cuvettes, infralittoral;aquatique;consommateur;indigène;;façade;attendu;
+Oursin noir;Arbacia lixula;Animal (Métazoaires);Échinodermes;Arbaciidae;Infralittoral;aquatique;consommateur;indigène;;façade;attendu;
+Étoile de mer glaciaire;Marthasterias glacialis;Animal (Métazoaires);Échinodermes;Asteriidae;Infralittoral;aquatique;consommateur;indigène;;façade;attendu;
+Ligie;Ligia sp.;Animal (Métazoaires);Arthropodes;Ligiidae;Supralittoral;terrestre;decomposeur;indigène;;façade;attendu;espèce à déterminer
+Sar commun;Diplodus sargus;Animal (Métazoaires);Poissons;Sparidae;Rochers, infralittoral;aquatique;consommateur;indigène;;façade;attendu;
+Sar à tête noire;Diplodus vulgaris;Animal (Métazoaires);Poissons;Sparidae;Rochers;aquatique;consommateur;indigène;;façade;attendu;
+Dorade royale;Sparus aurata;Animal (Métazoaires);Poissons;Sparidae;Lagunes, côtes;aquatique;consommateur;indigène;;lagunes;attendu;
+Bar tacheté;Dicentrarchus punctatus;Animal (Métazoaires);Poissons;Moronidae;Estuaires, côtes;aquatique;consommateur;indigène;;façade;attendu;
+Mulet lippu;Chelon labrosus;Animal (Métazoaires);Poissons;Mugilidae;Estuaires, ports;aquatique;consommateur;indigène;;Mohammedia;attendu;victime des mortalités du Nfifikh ?
+Sardine;Sardina pilchardus;Animal (Métazoaires);Poissons;Clupeidae;Pélagique côtier;aquatique;consommateur;indigène;;façade;attendu;
+Blennie paon / cabot;Coryphoblennius galerita;Animal (Métazoaires);Poissons;Blenniidae;Cuvettes;aquatique;consommateur;indigène;;façade;attendu;
+Gobie paganel;Gobius paganellus;Animal (Métazoaires);Poissons;Gobiidae;Cuvettes;aquatique;consommateur;indigène;;façade;attendu;
+Faucon d'Éléonore;Falco eleonorae;Animal (Métazoaires);Oiseaux;Falconidae;Îles, falaises;terrestre;consommateur;indigène (migrateur);LC;"Mogador ; falaises nord de Salé";documenté;GREPOM 2021
+Goéland leucophée;Larus michahellis;Animal (Métazoaires);Oiseaux;Laridae;Côte, ports;les_deux;consommateur;indigène;LC;façade;attendu;
+Goéland brun;Larus fuscus;Animal (Métazoaires);Oiseaux;Laridae;Côte;les_deux;consommateur;hivernant;LC;façade;attendu;
+Sterne caugek;Thalasseus sandvicensis;Animal (Métazoaires);Oiseaux;Laridae;Côte;les_deux;consommateur;migrateur;LC;façade;attendu;
+Bécasseau sanderling;Calidris alba;Animal (Métazoaires);Oiseaux;Scolopacidae;Plage;les_deux;consommateur;hivernant;LC;plages;attendu;
+Tournepierre à collier;Arenaria interpres;Animal (Métazoaires);Oiseaux;Scolopacidae;Platier;les_deux;consommateur;hivernant;LC;platiers;attendu;
+Gravelot à collier interrompu;Charadrius alexandrinus;Animal (Métazoaires);Oiseaux;Charadriidae;Haut de plage;terrestre;consommateur;indigène;LC;plages;attendu;nicheur sensible au piétinement
+Courlis corlieu;Numenius phaeopus;Animal (Métazoaires);Oiseaux;Scolopacidae;Platier;les_deux;consommateur;migrateur;LC;platiers;attendu;
+Huîtrier pie;Haematopus ostralegus;Animal (Métazoaires);Oiseaux;Haematopodidae;Platier;les_deux;consommateur;hivernant;NT;platiers;attendu;
+Grand Cormoran;Phalacrocorax carbo;Animal (Métazoaires);Oiseaux;Phalacrocoracidae;Côte, zones humides;les_deux;consommateur;hivernant;LC;façade;attendu;
+Fou de Bassan;Morus bassanus;Animal (Métazoaires);Oiseaux;Sulidae;Large;les_deux;consommateur;hivernant;LC;au large;attendu;
+Aigrette garzette;Egretta garzetta;Animal (Métazoaires);Oiseaux;Ardeidae;Zones humides;les_deux;consommateur;indigène;LC;Nfifikh, Dar Bouazza;documenté;Go-South 11
+Grande Aigrette;Ardea alba;Animal (Métazoaires);Oiseaux;Ardeidae;Zones humides;les_deux;consommateur;visiteur;LC;oued Nfifikh;documenté;Go-South 11
+Héron cendré;Ardea cinerea;Animal (Métazoaires);Oiseaux;Ardeidae;Zones humides;les_deux;consommateur;nicheur;LC;Mohammedia;documenté;El Hamoumi & Qninba 2008
+Flamant rose;Phoenicopterus roseus;Animal (Métazoaires);Oiseaux;Phoenicopteridae;Daya, lagunes;les_deux;consommateur;migrateur;LC;Dar Bouazza;documenté;Go-South 14
+Spatule blanche;Platalea leucorodia;Animal (Métazoaires);Oiseaux;Threskiornithidae;Daya;les_deux;consommateur;migrateur;LC;Dar Bouazza;documenté;Go-South 14
+Blongios nain;Ixobrychus minutus;Animal (Métazoaires);Oiseaux;Ardeidae;Typhaie;les_deux;consommateur;nicheur estival;LC;Dar Bouazza;documenté;Go-South 14
+Bihoreau gris;Nycticorax nycticorax;Animal (Métazoaires);Oiseaux;Ardeidae;Roselière, eucalyptus;les_deux;consommateur;visiteur d'été;LC;Dar Bouazza;documenté;Go-South 14
+Sarcelle marbrée;Marmaronetta angustirostris;Animal (Métazoaires);Oiseaux;Anatidae;Daya;aquatique;consommateur;indigène;VU;Dar Bouazza;documenté;Go-South 15
+Bergeronnette du Maroc;Motacilla subpersonata;Animal (Métazoaires);Oiseaux;Motacillidae;Berges;terrestre;consommateur;indigène;LC;Dar Bouazza;documenté;Go-South 14
+Moineau espagnol;Passer hispaniolensis;Animal (Métazoaires);Oiseaux;Passeridae;Abords;terrestre;consommateur;indigène;LC;Dar Bouazza;documenté;Go-South 14
+Discoglosse peint du Maroc;Discoglossus scovazzi;Animal (Métazoaires);Amphibiens;Alytidae;Daya;les_deux;consommateur;endémique Maroc;LC;Dar Bouazza;documenté;Bouazza 2018
+Pleurodèle de Waltl;Pleurodeles waltl;Animal (Métazoaires);Amphibiens;Salamandridae;Daya;les_deux;consommateur;indigène;NT;Dar Bouazza;documenté;Bouazza 2018
+Rainette méridionale;Hyla meridionalis;Animal (Métazoaires);Amphibiens;Hylidae;Daya;les_deux;consommateur;indigène;LC;Dar Bouazza;documenté;Bouazza 2018
+Grenouille verte d'Afrique du Nord;Pelophylax saharicus;Animal (Métazoaires);Amphibiens;Ranidae;Daya;les_deux;consommateur;indigène;LC;Dar Bouazza;documenté;Bouazza 2018
+Crapaud vert;Bufotes boulengeri;Animal (Métazoaires);Amphibiens;Bufonidae;Daya;les_deux;consommateur;indigène;LC;Dar Bouazza;documenté;Bouazza 2018
+Crapaud de Mauritanie;Sclerophrys mauritanica;Animal (Métazoaires);Amphibiens;Bufonidae;Daya;les_deux;consommateur;indigène;LC;Dar Bouazza;documenté;Bouazza 2018 (fiche existante dans l'app)
+Émyde lépreuse;Mauremys leprosa;Animal (Métazoaires);Reptiles;Geoemydidae;Daya;aquatique;consommateur;indigène;LC;Dar Bouazza;documenté;Bouazza 2018
+Tortue mauresque;Testudo graeca;Animal (Métazoaires);Reptiles;Testudinidae;Abords;terrestre;consommateur;indigène;VU;Dar Bouazza;documenté;Bouazza 2018
+Couleuvre vipérine;Natrix maura;Animal (Métazoaires);Reptiles;Natricidae;Berges;les_deux;consommateur;indigène;LC;Dar Bouazza;documenté;Bouazza 2018
+Grand dauphin;Tursiops truncatus;Animal (Métazoaires);Mammifères;Delphinidae;Côtier;aquatique;consommateur;indigène;LC;façade;attendu;
+Dauphin commun;Delphinus delphis;Animal (Métazoaires);Mammifères;Delphinidae;Large;aquatique;consommateur;indigène;LC;façade;attendu;
+Marsouin commun;Phocoena phocoena;Animal (Métazoaires);Mammifères;Phocoenidae;Côtier;aquatique;consommateur;indigène;LC;façade;attendu;
+Tortue caouanne;Caretta caretta;Animal (Métazoaires);Reptiles;Cheloniidae;Large, échouages;aquatique;consommateur;indigène (de passage);VU;façade;attendu;
+Oyat;Ammophila arenaria;Végétal (Chlorobiontes);Angiospermes;Poaceae;Dune vive;terrestre;producteur;indigène;;dunes;attendu;fixation des dunes
+Roquette de mer;Cakile maritima;Végétal (Chlorobiontes);Angiospermes;Brassicaceae;Haut de plage;terrestre;producteur;indigène;;plages;attendu;
+Euphorbe maritime;Euphorbia paralias;Végétal (Chlorobiontes);Angiospermes;Euphorbiaceae;Dune vive;terrestre;producteur;indigène;;dunes;attendu;latex irritant
+Lis de mer;Pancratium maritimum;Végétal (Chlorobiontes);Angiospermes;Amaryllidaceae;Dune;terrestre;producteur;indigène;;dunes;attendu;toxique
+Diotis maritime;Achillea maritima;Végétal (Chlorobiontes);Angiospermes;Asteraceae;Dune;terrestre;producteur;indigène;;dunes;attendu;
+Panicaut maritime;Eryngium maritimum;Végétal (Chlorobiontes);Angiospermes;Apiaceae;Dune;terrestre;producteur;indigène;;dunes;attendu;
+Liseron des sables;Calystegia soldanella;Végétal (Chlorobiontes);Angiospermes;Convolvulaceae;Dune;terrestre;producteur;indigène;;dunes;attendu;
+Rétame à un grain;Retama monosperma;Végétal (Chlorobiontes);Angiospermes;Fabaceae;Dune consolidée;terrestre;producteur;indigène;;dunes;documenté;"Fdil et al. ; fixation des dunes, toxique"
+Genévrier turbiné;Juniperus turbinata;Végétal (Chlorobiontes);Gymnospermes;Cupressaceae;Dune consolidée;terrestre;producteur;indigène;;dunes;attendu;
+Griffe de sorcière;Carpobrotus edulis;Végétal (Chlorobiontes);Angiospermes;Aizoaceae;Dunes, talus;terrestre;producteur;envahissante;;littoral urbain;attendu;
+Acacia à feuilles de saule;Acacia saligna;Végétal (Chlorobiontes);Angiospermes;Fabaceae;Dunes plantées;terrestre;producteur;envahissante;;littoral;attendu;
+Eucalyptus;Eucalyptus spp.;Végétal (Chlorobiontes);Angiospermes;Myrtaceae;Plantation;terrestre;producteur;introduite;;Dar Bouazza;documenté;Bouazza 2018 (bois d'eucalyptus)
+Massette;Typha domingensis;Végétal (Chlorobiontes);Angiospermes;Typhaceae;Typhaie;les_deux;producteur;indigène;;Dar Bouazza, Merja Zerga;documenté;Merja Zerga (Qninba et al.)
+Roseau commun;Phragmites australis;Végétal (Chlorobiontes);Angiospermes;Poaceae;Phragmitaie;les_deux;producteur;indigène;;Dar Bouazza, Merja Zerga;documenté;Merja Zerga (Qninba et al.)
+Jonc piquant;Juncus rigidus;Végétal (Chlorobiontes);Angiospermes;Juncaceae;Prés salés;les_deux;producteur;indigène;;Merja Zerga;documenté;Merja Zerga (Qninba et al.)
+Salicorne vivace;Sarcocornia perennis;Végétal (Chlorobiontes);Angiospermes;Amaranthaceae;Prés salés;les_deux;producteur;indigène;;Merja Zerga;documenté;Merja Zerga (Qninba et al.)
+Iris des marais;Iris pseudacorus;Végétal (Chlorobiontes);Angiospermes;Iridaceae;Marais doux;les_deux;producteur;indigène;;Merja Zerga;documenté;Merja Zerga (Qninba et al.)
+Potamot pectiné;Stuckenia pectinata;Végétal (Chlorobiontes);Angiospermes;Potamogetonaceae;Eaux saumâtres;aquatique;producteur;indigène;;Merja Zerga;documenté;Merja Zerga (Qninba et al.)
+Astéracée américaine « odeur de chocolat »;à déterminer;Végétal (Chlorobiontes);Angiospermes;Asteraceae;Remblais;terrestre;producteur;naturalisée;;Dar Bouazza;documenté;livret Fête de la nature Dar Bouazza — identifier l'espèce

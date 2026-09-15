@@ -16,6 +16,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   clics arrivaient avant la fin de l’enregistrement précédent. La carte / la visite
   / le Plan pouvaient alors n’afficher qu’une catégorie.
 
+### Corrigé — CI verte : les trois garde-fous d'interface qui bloquaient `main`
+
+- **Faux positifs `jsx-a11y/aria-role`** : la prop de variante du kit bouton de carte
+  (`MapActionButton`, `GLBoardActionButton`) s'appelait `role` — chaque appel
+  (`role="display"`, `"tool"`, `"primary"`) était lu comme un rôle ARIA invalide, alors que
+  la prop ne sort jamais dans le DOM. Elle s'appelle désormais **`variant`** : classes,
+  rendu et infobulles inchangés, et l'inventaire `tests/fixtures/a11y-static-baseline.json`
+  perd 19 lignes de bruit qui masquaient la dette réelle.
+- **Menu mascotte (Visite)** : `role="menu"` était posé sur un `<ul>` — annoncé « liste »
+  au lieu de « menu ». La liste devient un `div role="menu"` (options inchangées).
+- **Typographie** : le dernier `font-size` littéral (`1.15rem`, déclencheur du picker
+  mascotte) passe par le token `--text-lg`.
+
 ### Ajouté — Fiches espèces : section « Détermination »
 
 - **Trois champs** sur la fiche (migration `243`) : `identification_criteria` (critères de
