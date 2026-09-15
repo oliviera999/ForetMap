@@ -6,8 +6,10 @@ import { compressImageWithPreset } from '../../shared/platform/image';
 import { disarmNativeFilePickerGuard } from '../../shared/platform/overlayHistory';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import {
+  HAZARD_EXPOSURE_OPTIONS,
   PLANT_DETERMINATION_FIELDS,
   PLANT_PHOTO_FIELD_OPTIONS,
+  TOXICITY_LEVEL_OPTIONS,
 } from '../../constants/plantMetaSections.js';
 import {
   filterNonEmptyFiles,
@@ -264,6 +266,90 @@ function PlantEditForm({
               )}
             </div>
           ))}
+        </div>
+      </details>
+      {/* Danger : ouvert d'office, y compris en édition. La détermination répond à
+          « qu'est-ce que c'est », le danger à « qu'est-ce que ça peut me faire » — et une
+          espèce parfaitement identifiée peut rester dangereuse (ricin, laurier-rose). */}
+      <details className="plant-more" open>
+        <summary>Danger</summary>
+        <div className="plant-meta-grid">
+          <p className="section-sub" style={{ margin: 0 }}>
+            Ce que l’espèce peut faire à un élève qui la touche, la cueille ou la porte à la bouche.
+            Tout niveau autre que « aucun danger connu » s’affiche en encadré rouge en tête de
+            fiche, avant même la description.
+          </p>
+          <div className="field">
+            <label htmlFor="plant-toxicity-level">Niveau de danger</label>
+            <select
+              id="plant-toxicity-level"
+              value={form.toxicity_level || ''}
+              onChange={set('toxicity_level')}
+            >
+              <option value="">— pas encore regardé</option>
+              {TOXICITY_LEVEL_OPTIONS.map((entry) => (
+                <option key={entry.value} value={entry.value}>
+                  {entry.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label>Voies d’exposition</label>
+            <div className="plant-hazard-exposure-choices">
+              {HAZARD_EXPOSURE_OPTIONS.map((entry) => {
+                const selected = String(form.hazard_exposure || '')
+                  .split(',')
+                  .map((value) => value.trim())
+                  .filter(Boolean);
+                const checked = selected.includes(entry.value);
+                return (
+                  <label key={entry.value} className="plant-hazard-exposure-choice">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        const next = checked
+                          ? selected.filter((value) => value !== entry.value)
+                          : [...selected, entry.value];
+                        // Ordre canonique réimposé : deux fiches aux mêmes voies produisent
+                        // la même chaîne, comme le fait `normalizeHazardExposure` côté serveur.
+                        const ordered = HAZARD_EXPOSURE_OPTIONS.map((row) => row.value).filter(
+                          (value) => next.includes(value),
+                        );
+                        set('hazard_exposure')({ target: { value: ordered.join(',') } });
+                      }}
+                    />
+                    <span>{entry.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+          <div className="field">
+            <label>Quel danger, et quoi faire</label>
+            <MarkdownTextarea
+              value={form.hazard_notes}
+              onChange={set('hazard_notes')}
+              rows={3}
+              placeholder="Partie dangereuse, circonstances, conduite à tenir. Ex. : « Graines très toxiques ; ne jamais manipuler les fruits épineux. »"
+            />
+          </div>
+          <div className="field">
+            <label className="plant-hazard-reviewed">
+              <input
+                type="checkbox"
+                checked={form.hazard_reviewed === '1' || form.hazard_reviewed === 1}
+                onChange={(event) =>
+                  set('hazard_reviewed')({ target: { value: event.target.checked ? '1' : '' } })
+                }
+              />
+              <span>
+                Danger relu et validé. Tant que la case est décochée, la fiche affiche la mention «
+                à valider » à côté de l’avertissement.
+              </span>
+            </label>
+          </div>
         </div>
       </details>
       {/* Fiche technique : repliée en édition ; ouverte en création (`plantId` absent,

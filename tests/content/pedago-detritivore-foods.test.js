@@ -1,5 +1,10 @@
 'use strict';
 
+// Les deux types sont acceptés depuis la migration 250 : elle a séparé les DÉCOMPOSEURS
+// (bactéries, champignons, qui minéralisent) des DÉTRITIVORES (animaux qui fragmentent la
+// matière morte sans la minéraliser). La règle testée ici — « tout détritivore connu pointe
+// au moins une nourriture nommée » — porte sur le lien, pas sur son étiquette.
+
 require('../helpers/setup');
 const { test, before } = require('node:test');
 const assert = require('node:assert');
@@ -92,10 +97,10 @@ test('chaque détritivore connu a au moins une nourriture nommée', async () => 
          FROM species_interactions si
          JOIN plants f ON f.id = si.from_plant_id
          JOIN plants t ON t.id = si.to_plant_id
-        WHERE f.name = ? AND si.interaction_type = 'decomposition'`,
+        WHERE f.name = ? AND si.interaction_type IN ('decomposition', 'detritivorie')`,
       [name],
     );
-    assert.ok(Number(row.n) >= 1, `${name} sans nourriture de décomposition`);
+    assert.ok(Number(row.n) >= 1, `${name} sans nourriture nommée`);
   }
 });
 
@@ -104,7 +109,7 @@ test('exemples de nourritures couvrent litière, compost, bois, biofilm et carto
     `SELECT t.name AS food, COUNT(*) AS n
        FROM species_interactions si
        JOIN plants t ON t.id = si.to_plant_id
-      WHERE si.interaction_type = 'decomposition'
+      WHERE si.interaction_type IN ('decomposition', 'detritivorie')
         AND t.name IN (${FOOD_RESOURCES.map(() => '?').join(',')})
       GROUP BY t.name`,
     FOOD_RESOURCES,

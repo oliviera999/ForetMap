@@ -39,7 +39,7 @@ const {
   serializeRoleSlugList,
   filterLocationsForViewer,
 } = require('../lib/locationAudience');
-const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
+const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
 const { logAudit } = require('../lib/auditLog');
 const { mapMarkerToVisitWhitelistFields } = require('../lib/visitMapToVisitFields');
 const {
@@ -97,7 +97,7 @@ async function upsertVisitMarkerEditorial(reqBody, markerRow) {
       : parseVisitEditorialBlocksInput(existing?.body_json);
   const bodyJson = serializeVisitEditorialBlocks(normalizedBlocks);
   const audience = mapMarkerToVisitWhitelistFields(markerRow);
-  const now = nowIsoUtc();
+  const now = nowDbTimestamp();
   await execute(
     `INSERT INTO visit_markers
       (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json,
@@ -150,7 +150,7 @@ async function mirrorMarkerAudienceToVisit(markerRow) {
       audience.visible_role_slugs,
       audience.restricted_note,
       audience.restricted_note_role_slugs,
-      nowIsoUtc(),
+      nowDbTimestamp(),
       markerRow.id,
       markerRow.map_id,
     ],
@@ -290,7 +290,7 @@ router.post(
         nextPlantName,
         note || '',
         normalizeMarkerEmoji(emoji, { allowEmpty: true, fallback: '' }),
-        nowIsoUtc(),
+        nowDbTimestamp(),
         serializeSurfaceSet(hiddenSurfacesInput.value || []),
         normalizeSearchAliases(search_aliases) || null,
         serializeRoleSlugList(audienceInput.visible_role_slugs || []) || null,
