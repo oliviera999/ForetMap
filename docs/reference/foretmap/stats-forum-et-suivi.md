@@ -60,6 +60,13 @@ commentaires) et rester informé (notifications, temps réel).
   prises de main sur un compte, tentatives de connexion douteuses…) sont consignées
   avec leur auteur et leur date. Sa lecture est réservée aux profils disposant de la
   permission dédiée.
+- **Suivi utilisateurs (administrateur)** : dans les paramètres d’administration,
+  un panneau dédié montre (1) qui est **en ligne** ou **vu récemment** (sans surcharger
+  le serveur : pas de battement de cœur permanent), (2) le **passage** dans les
+  applications du lycée — compteurs anonymes pour tout le monde, et pour les comptes
+  connectés quels produits ont été touchés —, (3) un **journal d’activité léger**
+  (connexions, débuts de session) distinct de l’audit sensible, conservé moins longtemps.
+  Les visiteurs sans compte n’apparaissent que dans les compteurs anonymes.
 - **Médiathèque** : une bibliothèque d'images (et de pistes audio ou vidéo)
   réutilisables pour illustrer les contenus, gérée par les professeurs.
 - **Importer depuis un téléphone** : deux boutons, « 📁 Importer » (galerie ou

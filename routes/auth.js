@@ -711,6 +711,20 @@ router.post(
       targetId: account.id,
       payload: { via: 'identifier' },
     });
+    try {
+      const { recordAuthenticatedTouch } = require('../lib/userTracking');
+      const productHeader = String(req.headers['x-foretmap-product'] || '')
+        .trim()
+        .toLowerCase();
+      void recordAuthenticatedTouch({
+        product: productHeader || 'foret',
+        userType: session.tokenPayload.userType,
+        userId: account.id,
+        action: 'login',
+      });
+    } catch (_) {
+      /* ignore */
+    }
     res.json({
       ...toPublicUserRow(account),
       discoveryTourSeen: parseDiscoveryTourSeen(account.discovery_tour_seen_json),
@@ -872,6 +886,17 @@ router.get('/google/callback', async (req, res) => {
         targetType: 'teacher',
         targetId: teacher.id,
       });
+      try {
+        const { recordAuthenticatedTouch } = require('../lib/userTracking');
+        void recordAuthenticatedTouch({
+          product: 'foret',
+          userType: 'teacher',
+          userId: teacher.id,
+          action: 'login',
+        });
+      } catch (_) {
+        /* ignore */
+      }
       return res.redirect(
         buildOAuthFrontendRedirect(cfg.frontendOrigin, {
           type: 'teacher',
@@ -930,6 +955,17 @@ router.get('/google/callback', async (req, res) => {
       targetType: 'student',
       targetId: student.id,
     });
+    try {
+      const { recordAuthenticatedTouch } = require('../lib/userTracking');
+      void recordAuthenticatedTouch({
+        product: 'foret',
+        userType: 'student',
+        userId: student.id,
+        action: 'login',
+      });
+    } catch (_) {
+      /* ignore */
+    }
     return res.redirect(
       buildOAuthFrontendRedirect(cfg.frontendOrigin, {
         type: 'student',

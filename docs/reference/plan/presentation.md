@@ -10,7 +10,9 @@ Le **Plan Lyautey** (`planlyautey.olution.info`) est une application à part, tr
 
 Elle ne demande **aucun compte** et ne conserve **aucune donnée personnelle**. On l'ouvre,
 on cherche, on trouve. Il n'y a ni tâche, ni validation, ni progression : ces choses-là
-restent dans ForetMap et dans la Visite.
+restent dans ForetMap et dans la Visite. L’administrateur peut toutefois consulter des
+**compteurs anonymes** de fréquentation (ouvertures, recherches sans résultat…) dans le
+suivi d’usage du monorepo — sans jamais identifier un visiteur du plan.
 
 Dans l'onglet du navigateur (et si on installe le plan sur l'écran d'accueil), l'icône
 reprend la **charte graphique du Lycée Lyautey** : fond bleu marine et monogramme en traits

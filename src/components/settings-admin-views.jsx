@@ -13,6 +13,7 @@ import { MapCategoriesPanel } from './settings/MapCategoriesPanel.jsx';
 import { MapRoutesPanel } from './settings/MapRoutesPanel.jsx';
 import { PlanSettingsPanel } from './settings/PlanSettingsPanel.jsx';
 import { UsagePanel } from './settings/UsagePanel.jsx';
+import { UserTrackingPanel } from './settings/UserTrackingPanel.jsx';
 import { MapLocationsAdminPanel } from './settings/MapLocationsAdminPanel.jsx';
 import { MapsAdminPanel } from './settings/MapsAdminPanel.jsx';
 import { VisitMascotSettingsPanel } from './settings/VisitMascotSettingsPanel.jsx';
@@ -909,6 +910,9 @@ function SettingsAdminView({
       {adminSection === 'ops' && canReadSettings ? (
         <>
           {renderSettingsSearch(OPS_SECTION_IDS)}
+          <AdminSection id="user-tracking" title="Suivi utilisateurs" defaultOpen={false}>
+            <UserTrackingPanel onError={(errMsg) => setErr(errMsg)} />
+          </AdminSection>
           <AdminSection id="usage" title="Usage (compteurs anonymes)" defaultOpen={false}>
             <UsagePanel onError={(errMsg) => setErr(errMsg)} />
           </AdminSection>

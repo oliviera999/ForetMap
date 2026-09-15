@@ -9,6 +9,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Suivi utilisateurs admin (présence, activité, passage)
+
+- Panneau **Paramètres → Exploitation → Suivi utilisateurs** : connectés (Socket +
+  dernière activité, sans heartbeat HTTP), passage anonyme enrichi + passage identifié
+  multi-produits (`user_product_visits`), journal d’activité légère
+  (`user_activity_events`, rétention 90 j) distinct de l’audit sensible.
+- API : `GET /api/admin/presence`, `/api/admin/activity`, `/api/admin/user-passage`
+  (`admin.settings.read`). Migration `245_user_tracking.sql`.
+
 ### Corrigé — Visite : le plein écran remplissait à nouveau l'écran
 
 - Après l'unification sur `SharedMapStage`, `VisitMapStage` écrasait la classe

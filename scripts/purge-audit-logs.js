@@ -7,7 +7,7 @@
  *
  *   node scripts/purge-audit-logs.js                 # à blanc : compte, ne supprime rien
  *   node scripts/purge-audit-logs.js --apply         # supprime au-delà des rétentions par défaut
- *   node scripts/purge-audit-logs.js --days=180 --history-days=730 --apply
+ *   node scripts/purge-audit-logs.js --days=180 --history-days=730 --activity-days=90 --apply
  *
  * Pourquoi : `security_events` conserve sans limite l'adresse IP et le user-agent de chaque
  * connexion — des données personnelles, dans un établissement scolaire, sur des comptes de
@@ -16,10 +16,10 @@
  * (historique des récoltes) — sans purge, elles pèsent sur les sauvegardes (`db-backup.sh`),
  * la durée des `mysqldump` et l'espace disque du compte.
  *
- * Deux rétentions DISTINCTES, chacune configurable :
- *   --days=N          journaux de sécurité (`audit_log`, `security_events`) — défaut 365 j ;
- *   --history-days=N  historiques de jeu et de jardin (`gl_game_events`, `zone_history`) —
- *                     défaut 365 j (« un an de partie »).
+ * Rétentions DISTINCTES, chacune configurable :
+ *   --days=N           journaux de sécurité (`audit_log`, `security_events`) — défaut 365 j ;
+ *   --history-days=N   historiques de jeu et de jardin — défaut 365 j ;
+ *   --activity-days=N  journal d'activité légère (`user_activity_events`) — défaut 90 j.
  *
  * À BLANC PAR DÉFAUT : une purge est irréversible. Prévu pour un cron mensuel une fois la
  * durée validée (voir docs/CRONTAB.md — la ligne de purge n'y est PAS optionnelle).
@@ -33,6 +33,7 @@
 
 const DEFAULT_RETENTION_DAYS = 365;
 const DEFAULT_HISTORY_RETENTION_DAYS = 365;
+const DEFAULT_ACTIVITY_RETENTION_DAYS = 90;
 const MIN_RETENTION_DAYS = 30;
 
 function parseArgs(argv) {
@@ -40,6 +41,7 @@ function parseArgs(argv) {
     apply: false,
     days: DEFAULT_RETENTION_DAYS,
     historyDays: DEFAULT_HISTORY_RETENTION_DAYS,
+    activityDays: DEFAULT_ACTIVITY_RETENTION_DAYS,
   };
   for (const raw of argv) {
     const arg = String(raw || '').trim();
@@ -47,14 +49,15 @@ function parseArgs(argv) {
     else if (arg.startsWith('--days=')) out.days = Number.parseInt(arg.slice('--days='.length), 10);
     else if (arg.startsWith('--history-days=')) {
       out.historyDays = Number.parseInt(arg.slice('--history-days='.length), 10);
+    } else if (arg.startsWith('--activity-days=')) {
+      out.activityDays = Number.parseInt(arg.slice('--activity-days='.length), 10);
     }
   }
   return out;
 }
 
 /**
- * Quatre journaux, deux rétentions (`retention`), et des référentiels de temps propres :
- * chaque table porte SA condition.
+ * Journaux et historiques, rétentions (`retention`) distinctes, référentiels de temps propres.
  */
 const TARGETS = [
   {
@@ -70,6 +73,11 @@ const TARGETS = [
     where: 'occurred_at < (NOW() - INTERVAL ? DAY)',
   },
   {
+    table: 'user_activity_events',
+    retention: 'activity',
+    where: 'occurred_at < (NOW() - INTERVAL ? DAY)',
+  },
+  {
     table: 'gl_game_events',
     retention: 'history',
     // DATETIME en heure locale serveur (migration 081).
@@ -82,18 +90,12 @@ const TARGETS = [
     where: "harvested_at < DATE_FORMAT(CURDATE() - INTERVAL ? DAY, '%Y-%m-%d')",
   },
   // --- Conditionnement des lectures (docs/AUDIT_VALIDATION_QUIZ_2026-09.md, C6) ---------------
-  // Trois tables croissaient sans purge. Cette purge est bien celle du MONOREPO : elle vise
-  // déjà `gl_game_events`, et couvre ici les deux produits.
   {
-    // Jetons de présentation consommés (anti-rejeu, migration 193/197) : un jeton vit 15 min,
-    // sa trace n'a plus d'utilité passé un jour.
     table: 'gl_qcm_presentation_uses',
     retention: 'transient',
     where: 'used_at < (NOW() - INTERVAL ? DAY)',
   },
   {
-    // Lignes de verrou échues ou de simple comptage (sentinelle 1970) que plus rien ne
-    // relit depuis longtemps. Un verrou qui court (`locked_until` futur) n'est jamais touché.
     table: 'resource_gating_cooldowns',
     retention: 'history',
     where: 'locked_until < NOW() AND updated_at < (NOW() - INTERVAL ? DAY)',
@@ -108,8 +110,9 @@ const TARGETS = [
 /** Rétention des traces transitoires (jetons consommés) : fixe, non paramétrable. */
 const TRANSIENT_RETENTION_DAYS = 1;
 
-function retentionDaysFor(target, { days, historyDays }) {
+function retentionDaysFor(target, { days, historyDays, activityDays }) {
   if (target.retention === 'transient') return TRANSIENT_RETENTION_DAYS;
+  if (target.retention === 'activity') return activityDays;
   return target.retention === 'history' ? historyDays : days;
 }
 
@@ -124,20 +127,21 @@ function assertRetention(label, days) {
 
 async function main() {
   const { queryOne, execute, endPool } = require('../database');
-  const { apply, days, historyDays } = parseArgs(process.argv.slice(2));
+  const { apply, days, historyDays, activityDays } = parseArgs(process.argv.slice(2));
 
   assertRetention('sécurité (--days)', days);
   assertRetention('historiques (--history-days)', historyDays);
+  assertRetention('activité (--activity-days)', activityDays);
 
   console.log(
-    `[purge-logs] Conservation : sécurité ${days} j, historiques ${historyDays} j. ` +
-      `Mode : ${apply ? 'APPLICATION' : 'à blanc'}.`,
+    `[purge-logs] Conservation : sécurité ${days} j, historiques ${historyDays} j, ` +
+      `activité ${activityDays} j. Mode : ${apply ? 'APPLICATION' : 'à blanc'}.`,
   );
 
   try {
     let totalDeleted = 0;
     for (const target of TARGETS) {
-      const retentionDays = retentionDaysFor(target, { days, historyDays });
+      const retentionDays = retentionDaysFor(target, { days, historyDays, activityDays });
       const row = await queryOne(
         `SELECT COUNT(*) AS n FROM ${target.table} WHERE ${target.where}`,
         [retentionDays],
@@ -185,6 +189,7 @@ if (require.main === module) {
 module.exports = {
   DEFAULT_RETENTION_DAYS,
   DEFAULT_HISTORY_RETENTION_DAYS,
+  DEFAULT_ACTIVITY_RETENTION_DAYS,
   MIN_RETENTION_DAYS,
   parseArgs,
   TARGETS,

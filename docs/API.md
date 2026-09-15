@@ -2011,6 +2011,22 @@ event, key, count }] }`, triée par jour décroissant puis produit, événement,
 
 Produits reconnus : `lib/products.js` (registre : `foret`, `gl`, `plan`).
 
+## Suivi utilisateurs admin (présence, activité, passage)
+
+Réservé à la permission **`admin.settings.read`**. Trois couches distinctes :
+compteurs anonymes (`/api/admin/usage`), journal d’audit sensible (`/api/audit`), et ce
+suivi authentifié (sans heartbeat HTTP — Socket.IO + `last_seen`).
+
+| Méthode | URL                                                | Description                                                                                                                                                                                                                                                                               |
+| ------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/admin/presence?product=foret\|gl\|plan`      | Snapshot `{ generatedAt, recentWindowMs, counts: { online, recent, total }, users: [{ product, userId, userType, status, presence_label, lastSeen, label }] }`. `online` = socket actif ; `recent` = `last_seen` dans la fenêtre (~15 min). Produit inconnu → tous.                       |
+| GET     | `/api/admin/activity?from&to&product&userId&limit` | Journal léger `user_activity_events` (actions en liste blanche : `session_start`, `login`, `product_open`). Bornes jour tolérantes (défaut 30 j). Réponse `{ from, to, product, userId, rows }`. `limit` 1–200 (défaut 100). Pas d’IP / UA. Rétention purge **90 j** (`--activity-days`). |
+| GET     | `/api/admin/user-passage?from&to&product`          | Passage **identifié** : `{ from, to, product, byProduct: [{ product, users, opens, activeInRange }], multiProductUsers, recent[] }`. Table compacte `user_product_visits` (1 ligne / compte / produit). Invités sans compte exclus (usage anonyme seulement).                             |
+
+Écriture : à la connexion (login / OAuth / joueur GL) et à la **première** connexion Socket
+d’une session (`session_start`, anti-spam 1 h / user / produit). L’audit sensible
+(`logAudit` / `security_events`) n’est pas enrichi avec la navigation.
+
 ## Lien Moodle (`/api/admin/integrations/moodle`)
 
 Synchronisation d'annuaire Moodle ↔ ForetMap / G&L (spécification :

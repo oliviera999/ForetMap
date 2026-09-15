@@ -87,6 +87,34 @@ export function UsagePanel({ onError = null }) {
     return [...map.values()].sort((a, b) => b.count - a.count);
   }, [rows]);
 
+  /** Proxy DAU : somme des `open` par jour et par produit (pas d’identité). */
+  const openByDay = useMemo(() => {
+    const map = new Map();
+    for (const row of rows) {
+      if (row.event !== 'open') continue;
+      const key = `${row.day}|${row.product}`;
+      map.set(key, (map.get(key) || 0) + (Number(row.count) || 0));
+    }
+    return [...map.entries()]
+      .map(([key, count]) => {
+        const [day, productId] = key.split('|');
+        return { day, product: productId, count };
+      })
+      .sort(
+        (a, b) => String(b.day).localeCompare(String(a.day)) || a.product.localeCompare(b.product),
+      );
+  }, [rows]);
+
+  const openTotalsByProduct = useMemo(() => {
+    const map = new Map();
+    for (const row of openByDay) {
+      map.set(row.product, (map.get(row.product) || 0) + row.count);
+    }
+    return [...map.entries()]
+      .map(([productId, count]) => ({ product: productId, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [openByDay]);
+
   /** Recherches restées sans résultat : la liste la plus actionnable du tableau. */
   const emptySearches = useMemo(() => {
     const map = new Map();
@@ -104,7 +132,8 @@ export function UsagePanel({ onError = null }) {
     <div className="usage-panel">
       <p className="section-sub">
         Compteurs <strong>anonymes</strong> : aucun identifiant, aucune adresse IP, aucun parcours
-        individuel. Seuls des événements nommés sont agrégés par jour.
+        individuel. Seuls des événements nommés sont agrégés par jour. Les ouvertures (`open`)
+        servent de proxy de fréquentation quotidienne par produit.
       </p>
 
       <div className="usage-panel__filters">
@@ -128,6 +157,19 @@ export function UsagePanel({ onError = null }) {
           Actualiser
         </Button>
       </div>
+
+      {openTotalsByProduct.length > 0 ? (
+        <section className="usage-panel__dau">
+          <h4>Ouvertures par produit (période)</h4>
+          <ul>
+            {openTotalsByProduct.map((entry) => (
+              <li key={entry.product}>
+                <strong>{entry.product}</strong> — {entry.count}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <DataList
         caption="Compteurs par produit et événement"
