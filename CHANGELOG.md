@@ -9,6 +9,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — CI : la partie e2e ne s'exécutait plus du tout
+
+- **Projet Playwright `plan-mobile` disparu** (`6e17108`, lot navigation iPhone) alors que
+  `.github/workflows/ci.yml` lance toujours `--project=plan-mobile` pour son smoke Plan
+  **bloquant** : Playwright échoue sur un projet inconnu, donc le job `test` tombait juste
+  après la suite backend. Plus discret : les quatre specs `plan-*` n'étaient plus rattachées
+  à aucun projet (`chromium` et `mobile-chromium` les ignorent toutes deux) — elles ne
+  tournaient nulle part. Le projet est restauré, avec un avertissement dans le fichier.
+- **`e2e/visit-mascot.spec.js` : `packLabel` déclaré deux fois** dans le même test
+  (`afef21e`) — un `SyntaxError` au chargement qui empêchait Playwright de collecter
+  **toute** la suite (`Total: 0 tests in 0 files`). La seconde déclaration devient
+  `publishedLabel`. La suite recharge ses 120 tests dans 53 fichiers.
+- **Smoke WebKit et navigation mobile : sélecteur de carte périmé.** Les deux specs
+  attendaient `.map-view-canvas` ; depuis l'unification sur `SharedMapStage`, la carte de
+  travail **en consultation** est rendue par `WorkMapStage` avec la classe
+  `map-view-stage`, et `map-view-canvas` ne subsiste que pour le mode édition. Le smoke
+  WebKit, bloquant en CI, échouait donc à l'assertion finale (retour sur l'onglet Carte).
+  Les deux sélecteurs sont désormais visés ensemble. Défaut jamais vu jusqu'ici : ces specs
+  n'avaient pas pu s'exécuter une seule fois depuis leur ajout.
 ### Corrigé
 
 - **Catégories par défaut (Paramètres)** : cocher plusieurs catégories à la suite

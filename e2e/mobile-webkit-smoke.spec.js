@@ -7,6 +7,12 @@ const { loginAsNewStudent, dismissDiscoveryTourIfPresent } = require('./fixtures
  * Validé surtout en CI Linux ; sous Windows local, installer webkit peut être fragile.
  */
 
+// Depuis l'unification des scènes sur `SharedMapStage`, la carte de travail **en
+// consultation** est rendue par `WorkMapStage` avec la classe `map-view-stage` ; le
+// `map-view-canvas` historique ne subsiste que pour le mode édition (marqueur déverrouillé).
+// Les deux sélecteurs sont donc visés ensemble : « l'écran carte est monté ».
+const MAP_STAGE = '.map-view-stage, .map-view-canvas';
+
 test('webkit : barre Plus puis retour Carte', async ({ page }) => {
   test.setTimeout(240_000);
   await loginAsNewStudent(page);
@@ -24,5 +30,5 @@ test('webkit : barre Plus puis retour Carte', async ({ page }) => {
   await expect(sheet).toBeHidden({ timeout: 15_000 });
 
   await bottomNav.getByRole('button', { name: 'Carte', exact: true }).click();
-  await expect(page.locator('.map-view-canvas').first()).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator(MAP_STAGE).first()).toBeVisible({ timeout: 60_000 });
 });
