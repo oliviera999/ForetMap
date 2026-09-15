@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 const path = require('path');
 const fs = require('fs');
 const logger = require('./lib/logger');
-const { nowIsoUtc } = require('./lib/shared/isoTimestamp');
+const { nowDbTimestamp } = require('./lib/shared/isoTimestamp');
 const { inlineLegacyTutorialHtmlToDb } = require('./lib/inlineLegacyTutorialHtml');
 const { dropLegacyScaffolding } = require('./lib/legacySchemaCleanup');
 
@@ -1089,7 +1089,7 @@ async function seedData() {
     d.setDate(d.getDate() + n);
     return d.toISOString().split('T')[0];
   };
-  const now = nowIsoUtc();
+  const now = nowDbTimestamp();
   const tasks = [
     [
       crypto.randomUUID(),
