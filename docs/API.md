@@ -1383,7 +1383,8 @@ détermination : ils se saisissent à la main ou par import.
 `POST /api/plants` et `PUT /api/plants/:id` acceptent ces mêmes champs en JSON. Les champs texte vides
 des métadonnées biodiversité sont normalisés en `null`. Le champ optionnel **`map_ids`** remplace le
 rattachement direct à la carte lorsqu’il est présent ; s’il est omis, les liens `map_species`
-existants sont conservés.
+existants sont conservés. Les identifiants de carte inconnus sont **ignorés** (pas d’erreur 500) :
+seuls les `map_id` encore présents dans `maps` sont réécrits, dans une transaction.
 
 `POST /api/plants/:id/photo-upload` (n3boss):
 
