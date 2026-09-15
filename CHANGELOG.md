@@ -21,6 +21,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   (`afef21e`) — un `SyntaxError` au chargement qui empêchait Playwright de collecter
   **toute** la suite (`Total: 0 tests in 0 files`). La seconde déclaration devient
   `publishedLabel`. La suite recharge ses 120 tests dans 53 fichiers.
+- **Smoke WebKit et navigation mobile : sélecteur de carte périmé.** Les deux specs
+  attendaient `.map-view-canvas` ; depuis l'unification sur `SharedMapStage`, la carte de
+  travail **en consultation** est rendue par `WorkMapStage` avec la classe
+  `map-view-stage`, et `map-view-canvas` ne subsiste que pour le mode édition. Le smoke
+  WebKit, bloquant en CI, échouait donc à l'assertion finale (retour sur l'onglet Carte).
+  Les deux sélecteurs sont désormais visés ensemble. Défaut jamais vu jusqu'ici : ces specs
+  n'avaient pas pu s'exécuter une seule fois depuis leur ajout.
 
 ### Corrigé — CI verte : les trois garde-fous d'interface qui bloquaient `main`
 
