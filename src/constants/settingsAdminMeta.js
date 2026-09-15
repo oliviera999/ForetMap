@@ -384,7 +384,7 @@ export const KEY_META = {
   },
   'tasks.recurring_automation_enabled': {
     label:
-      'Duplication automatique des tâches récurrentes (job quotidien). Désactiver pendant les vacances pour bloquer la création auto ; le rattrapage manuel via `npm run tasks:spawn-recurring` reste possible.',
+      'Duplication automatique des tâches récurrentes (job quotidien, jours ouvrés scolaires). Désactiver pour un coupe-circuit manuel ; le calendrier bloque déjà les jours fermés. Rattrapage `npm run tasks:spawn-recurring` (idempotent).',
     section: 'tasks',
     order: 20,
   },

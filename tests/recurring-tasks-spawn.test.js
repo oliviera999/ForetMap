@@ -129,11 +129,17 @@ test('Job recurrence : clone sans assignations et idempotence', async () => {
   const child = await queryOne('SELECT * FROM tasks WHERE id = ?', [childId]);
   assert.ok(child);
   assert.strictEqual(child.status, 'available');
-  assert.strictEqual(child.due_date, '2020-01-15');
-  assert.strictEqual(child.start_date, '2020-01-08');
+  // Rattrapage « à jour » : due >= aujourd'hui (fuseau récurrence), jour ouvré.
+  assert.ok(String(child.due_date) >= String(r1.today), `due ${child.due_date} >= ${r1.today}`);
+  assert.ok(child.start_date);
+  assert.ok(String(child.start_date) <= String(child.due_date));
   assert.strictEqual(String(child.parent_task_id || ''), String(taskId));
   assert.strictEqual(child.recurrence, 'weekly');
-
+  assert.ok(child.recurrence_series_id, 'série attendue sur le clone');
+  const sourceSeries = await queryOne('SELECT recurrence_series_id FROM tasks WHERE id = ?', [
+    taskId,
+  ]);
+  assert.strictEqual(child.recurrence_series_id, sourceSeries.recurrence_series_id);
   const assigns = await queryAll('SELECT * FROM task_assignments WHERE task_id = ?', [childId]);
   assert.strictEqual(assigns.length, 0);
 
@@ -162,9 +168,47 @@ test('Job recurrence : clone sans assignations et idempotence', async () => {
   ]);
   assert.strictEqual(source.recurrence_spawned_for_due_date, '2020-01-08');
 
-  const r2 = await runRecurringTaskSpawnJob({ force: true });
+  await runRecurringTaskSpawnJob({ force: true });
   const children2 = await queryAll('SELECT id FROM tasks WHERE parent_task_id = ?', [taskId]);
   assert.strictEqual(children2.length, 1);
+
+  // Relance N fois : toujours 1 enfant (anti-doublon série + due).
+  await runRecurringTaskSpawnJob({ force: true });
+  await runRecurringTaskSpawnJob({ force: true });
+  const childrenN = await queryAll('SELECT id FROM tasks WHERE parent_task_id = ?', [taskId]);
+  assert.strictEqual(childrenN.length, 1);
+});
+
+test('PUT validate + récurrence : snapshot lieux avec récurrence effective', async () => {
+  const teacherToken = await getAdminAuthToken();
+  const zones = await request(app).get('/api/zones').expect(200);
+  const zoneId = zones.body[0]?.id || 'pg';
+  const title = `RecPutSnap ${Date.now()}`;
+  const created = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({
+      title,
+      zone_id: zoneId,
+      required_students: 1,
+      due_date: '2026-09-10',
+    })
+    .expect(201);
+  const taskId = created.body.id;
+  await request(app)
+    .put(`/api/tasks/${taskId}`)
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({ status: 'validated', recurrence: 'weekly' })
+    .expect(200);
+  const row = await queryOne(
+    'SELECT recurrence, recurrence_template_zone_ids, recurrence_series_id FROM tasks WHERE id = ?',
+    [taskId],
+  );
+  assert.strictEqual(row.recurrence, 'weekly');
+  assert.ok(row.recurrence_template_zone_ids, 'snapshot attendu malgré récurrence posée au PUT');
+  const tmpl = JSON.parse(row.recurrence_template_zone_ids);
+  assert.ok(Array.isArray(tmpl) && tmpl.includes(zoneId));
+  assert.ok(row.recurrence_series_id);
 });
 
 test('Utilitaires dates : +1 mois fin de mois', async () => {

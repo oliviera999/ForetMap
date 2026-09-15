@@ -163,7 +163,7 @@ const pool = mysql.createPool({
   // faisait s'empiler les requêtes longuement avant de remonter une erreur.
   connectTimeout: parseConnectTimeoutMs(),
   charset: 'utf8mb4',
-  // Fuseau — indissociable de la migration 249, qui a converti 29 colonnes de dates texte
+  // Fuseau — indissociable de la migration 254, qui a converti 29 colonnes de dates texte
   // en DATETIME(3) / DATE.
   //
   // Avant 249, l'API renvoyait la chaîne stockée telle quelle, suffixée `Z`, donc non
@@ -803,7 +803,7 @@ async function initSchema() {
   } catch (err) {
     logger.warn({ err }, 'Incorporation fichiers tutoriels HTML (après schéma) ignorée');
   }
-  // Normalisation des horodatages hérités : retirée avec la migration 249.
+  // Normalisation des horodatages hérités : retirée avec la migration 254.
   //
   // Elle convergeait vers l'ISO-8601 UTC les colonnes temporelles en VARCHAR, où deux
   // écritures concurrentes — `toISOString()` côté application, `NOW()` côté SQL —

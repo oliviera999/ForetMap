@@ -22,7 +22,7 @@ import { IconWarning } from '../../shared/icons.jsx';
  * rouge sur la moitié du catalogue.
  *
  * `hazard_reviewed` ne conditionne PAS l'affichage — seulement la mention « à valider »
- * qui l'accompagne. Le pré-remplissage de la migration 246 est bibliographique : masquer
+ * qui l'accompagne. Le pré-remplissage de la migration 251 est bibliographique : masquer
  * un avertissement jusqu'à relecture serait le seul choix réellement dangereux des deux.
  */
 

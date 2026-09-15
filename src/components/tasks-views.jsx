@@ -46,6 +46,7 @@ import { TaskFormModal } from './tasks/TaskFormModal.jsx';
 import { TaskTileCard } from './tasks/TaskTileCard.jsx';
 import { TaskTileSection } from './tasks/TaskTileSection.jsx';
 import { TaskUrgencyBanner } from './tasks/TaskUrgencyBanner.jsx';
+import { RecurringSeriesOverview } from './tasks/RecurringSeriesOverview.jsx';
 import { TaskConfirmDialog } from './tasks/TaskConfirmDialog.jsx';
 import { TaskProjectsBlock, compareProjectsForDisplay } from './tasks/TaskProjectsBlock.jsx';
 import { TaskImportPanel } from './tasks/TaskImportPanel.jsx';
@@ -161,6 +162,8 @@ function TasksViewImpl({
     setFilterGroupId,
     filterUrgentCategory,
     setFilterUrgentCategory,
+    filterRecurrence,
+    setFilterRecurrence,
   } = useTaskFilters(activeMapId, mapLocationFocus);
   // Sans préférence mémorisée, les petits écrans démarrent en « condensé » : une tâche
   // y tient en ~48 px, donc la liste reste visible sans défiler (O6bis).
@@ -535,6 +538,7 @@ function TasksViewImpl({
         filterProject,
         filterGroupId,
         filterUrgentCategory,
+        filterRecurrence,
       }),
     [
       sourceTasks,
@@ -546,6 +550,7 @@ function TasksViewImpl({
       filterProject,
       filterGroupId,
       filterUrgentCategory,
+      filterRecurrence,
     ],
   );
   /**
@@ -984,8 +989,18 @@ function TasksViewImpl({
         filterStatus={filterStatus}
         setFilterStatus={setFilterStatus}
         setHasTouchedStatusFilter={setHasTouchedStatusFilter}
+        filterRecurrence={filterRecurrence}
+        setFilterRecurrence={setFilterRecurrence}
         resultCount={allFiltered.length}
       />
+
+      {isTeacher && (
+        <RecurringSeriesOverview
+          isTeacher={isTeacher}
+          tasks={sourceTasks}
+          onFocusRecurring={() => setFilterRecurrence('recurring')}
+        />
+      )}
 
       {filterZone && tutorialsModuleEnabled && (
         <TaskTutorialsAtFocusBlock

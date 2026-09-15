@@ -17,6 +17,11 @@ export function useTaskFilters(activeMapId, mapLocationFocus = null) {
   const [filterGroupId, setFilterGroupId] = useState('');
   /** '' = toutes, 'urgent' = importance absolute uniquement, 'non_urgent' = exclure les urgent */
   const [filterUrgentCategory, setFilterUrgentCategory] = useState('');
+  /**
+   * Récurrence : '' = toutes, 'recurring' = toute récurrence, 'weekly'|'biweekly'|'monthly',
+   * 'none' = sans récurrence.
+   */
+  const [filterRecurrence, setFilterRecurrence] = useState('');
 
   const mapLocationFocusKey = mapLocationFocus
     ? `${mapLocationFocus.kind}:${mapLocationFocus.id}`
@@ -47,5 +52,7 @@ export function useTaskFilters(activeMapId, mapLocationFocus = null) {
     setFilterGroupId,
     filterUrgentCategory,
     setFilterUrgentCategory,
+    filterRecurrence,
+    setFilterRecurrence,
   };
 }

@@ -65,6 +65,8 @@ export function TaskFiltersBar({
   filterStatus,
   setFilterStatus,
   setHasTouchedStatusFilter,
+  filterRecurrence = '',
+  setFilterRecurrence = () => {},
   resultCount = null,
 }) {
   const { compact, open, toggle, close } = useTaskFiltersPanel();
@@ -84,6 +86,7 @@ export function TaskFiltersBar({
         groupOptions,
         filterUrgentCategory,
         filterStatus,
+        filterRecurrence,
       }),
     [
       filterMap,
@@ -98,6 +101,7 @@ export function TaskFiltersBar({
       groupOptions,
       filterUrgentCategory,
       filterStatus,
+      filterRecurrence,
     ],
   );
 
@@ -110,6 +114,7 @@ export function TaskFiltersBar({
     if (key === 'project') setFilterProject('');
     if (key === 'group') setFilterGroupId('');
     if (key === 'urgent') setFilterUrgentCategory('');
+    if (key === 'recurrence') setFilterRecurrence('');
     if (key === 'status') {
       setFilterStatus('');
       setHasTouchedStatusFilter(true);
@@ -154,6 +159,8 @@ export function TaskFiltersBar({
       filterStatus={filterStatus}
       setFilterStatus={setFilterStatus}
       setHasTouchedStatusFilter={setHasTouchedStatusFilter}
+      filterRecurrence={filterRecurrence}
+      setFilterRecurrence={setFilterRecurrence}
     />
   );
 

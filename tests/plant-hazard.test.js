@@ -17,7 +17,7 @@ const { syncNormalizedAndLegacyPlantFields } = require('../lib/plantPayloadSync'
 const { PLANT_HAZARD_FIELDS } = require('../lib/plantsRouteHelpers');
 
 /**
- * Danger des fiches espèces (migration 246).
+ * Danger des fiches espèces (migration 251).
  *
  * L'enjeu de la normalisation n'est pas cosmétique : `hazard_exposure` alimente un SET SQL,
  * qui rejette toute valeur hors liste. Une valeur non canonique laissée passer ferait

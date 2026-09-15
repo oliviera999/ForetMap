@@ -28,7 +28,7 @@ export const INTERACTION_EDGE_STYLES = Object.freeze({
   // Cycles / stress.
   nitrification: { color: '#0072b2', dash: '10 3 2 3', width: 1.8 },
   competition: { color: '#666666', dash: '4 4', width: 1.8 },
-  // Flux trophiques ajoutés (migration 250) : même famille chaude que l'herbivorie et la
+  // Flux trophiques ajoutés (migration 255) : même famille chaude que l'herbivorie et la
   // prédation, distingués par le motif de tirets — jamais par la seule teinte.
   detritivorie: { color: '#cc79a7', dash: '3 3', width: 1.8 },
   frugivorie: { color: '#e69f00', dash: '2 3', width: 2 },

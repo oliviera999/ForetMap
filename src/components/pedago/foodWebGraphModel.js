@@ -40,7 +40,7 @@ export const GRAPH_PRESETS = Object.freeze({
     'parasitisme',
   ]),
   // Autres relations : services, rapports, et apports de matière minérale — excrétion et
-  // assimilation, détachées de `nitrification` par la migration 250, y rejoignent le
+  // assimilation, détachées de `nitrification` par la migration 255, y rejoignent le
   // cycle de l'azote plutôt que le réseau alimentaire.
   relations: Object.freeze([
     'pollinisation',
