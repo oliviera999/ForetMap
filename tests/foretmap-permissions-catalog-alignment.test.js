@@ -29,11 +29,22 @@ describe('Permissions ForetMap : matrices catalogue', () => {
     assert.ok(ROLE_PERMISSION_MATRIX.admin.includes('admin.impersonate'));
   });
 
+  it('admin a admin.settings.read/write et tours.manage', () => {
+    assert.ok(ROLE_PERMISSION_MATRIX.admin.includes('admin.settings.read'));
+    assert.ok(ROLE_PERMISSION_MATRIX.admin.includes('admin.settings.write'));
+    assert.ok(ROLE_PERMISSION_MATRIX.admin.includes('tours.manage'));
+  });
+
   it('prof (n3boss) a media.manage et forum.group.moderate, pas admin.impersonate', () => {
     assert.ok(ROLE_PERMISSION_MATRIX.prof.includes('media.manage'));
     assert.ok(ROLE_PERMISSION_MATRIX.prof.includes('forum.group.moderate'));
     assert.ok(!ROLE_PERMISSION_MATRIX.prof.includes('admin.impersonate'));
     assert.ok(ROLE_PERMISSION_MATRIX.prof.includes('stats.read.all'));
+  });
+
+  it('prof a zones.manage mais pas admin.settings.read', () => {
+    assert.ok(ROLE_PERMISSION_MATRIX.prof.includes('zones.manage'));
+    assert.ok(!ROLE_PERMISSION_MATRIX.prof.includes('admin.settings.read'));
   });
 
   it('prof_classe : socle tuteur sans tâches ni vue globale ni création comptes', () => {

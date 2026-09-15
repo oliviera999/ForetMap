@@ -39,6 +39,8 @@ casser les liens existants.
 | [`AUDIT_CHARGE_BIODIVERSITE_2026-09.md`](../AUDIT_CHARGE_BIODIVERSITE_2026-09.md) | Pic d’ouverture listes / biodiversité — complète la stabilité                       | Constats encore signalés ouverts   |
 | [`AUDIT_BRANCHES_2026-09.md`](../AUDIT_BRANCHES_2026-09.md)                       | Passe de fusion / triage des branches (`moodle-sync` + `cursor/*`)                  | Instantané 8 sept. 2026            |
 | [`AUDIT_EVOLUTION_V1_V2_2026-09.md`](../AUDIT_EVOLUTION_V1_V2_2026-09.md)         | Évolution v1.0.0 → v1.151.3 et arbitrage « poser une V2 ? »                         | Instantané 9 sept. 2026            |
+| [`AUDIT_CODE_2026-09-13.md`](../AUDIT_CODE_2026-09-13.md)                         | Audit du code (bugs, incohérences, doublons mesurés, perf / charge) — base réelle   | À traiter (13 sept. 2026)          |
+| [`AUDIT_NAVIGATION_IPHONE_2026-09.md`](../AUDIT_NAVIGATION_IPHONE_2026-09.md)     | Navigation iPhone / Apple (ForetMap, GL, Plan) — safe-area, bottom-nav, filet e2e   | Instantané 14 sept. 2026           |
 
 ## Chantiers / specs encore utiles comme consigne
 
@@ -83,23 +85,25 @@ décision passée.
 
 ### ForetMap — domaines
 
-| Document                                                                        |
-| ------------------------------------------------------------------------------- |
-| [`AUDIT_ARCHIVAGE_TACHES_2026-08.md`](../AUDIT_ARCHIVAGE_TACHES_2026-08.md)     |
-| [`AUDIT_ECHEANCES_2026-09.md`](../AUDIT_ECHEANCES_2026-09.md)                   |
-| [`AUDIT_GATING_2026-08.md`](../AUDIT_GATING_2026-08.md)                         |
-| [`AUDIT_GLOSSAIRE_FORETMAP_2026-08.md`](../AUDIT_GLOSSAIRE_FORETMAP_2026-08.md) |
-| [`AUDIT_GEOLOCALISATION_2026-09.md`](../AUDIT_GEOLOCALISATION_2026-09.md)       |
-| [`AUDIT_ICONES_FLOTTANTES_2026-08.md`](../AUDIT_ICONES_FLOTTANTES_2026-08.md)   |
-| [`AUDIT_MASCOTTES_2026-08.md`](../AUDIT_MASCOTTES_2026-08.md)                   |
-| [`AUDIT_PARCOURS_2026-09.md`](../AUDIT_PARCOURS_2026-09.md)                     |
-| [`AUDIT_PHOTOS_BIODIVERSITE.md`](../AUDIT_PHOTOS_BIODIVERSITE.md)               |
-| [`AUDIT_PLAN_AFFICHAGE_2026-09.md`](../AUDIT_PLAN_AFFICHAGE_2026-09.md)         |
-| [`AUDIT_RESEAU_TROPHIQUE_2026-09.md`](../AUDIT_RESEAU_TROPHIQUE_2026-09.md)     |
-| [`AUDIT_ROLE_PROFESSEUR_2026-09.md`](../AUDIT_ROLE_PROFESSEUR_2026-09.md)       |
-| [`AUDIT_UI_HOMOGENEITE_2026-09.md`](../AUDIT_UI_HOMOGENEITE_2026-09.md)         |
-| [`AUDIT_UX_ELEVE.md`](../AUDIT_UX_ELEVE.md)                                     |
-| [`AUDIT_VISITE_UI_UX_2026-09.md`](../AUDIT_VISITE_UI_UX_2026-09.md)             |
+| Document                                                                                        |
+| ----------------------------------------------------------------------------------------------- |
+| [`AUDIT_ARCHIVAGE_TACHES_2026-08.md`](../AUDIT_ARCHIVAGE_TACHES_2026-08.md)                     |
+| [`AUDIT_ECHEANCES_2026-09.md`](../AUDIT_ECHEANCES_2026-09.md)                                   |
+| [`AUDIT_GATING_2026-08.md`](../AUDIT_GATING_2026-08.md)                                         |
+| [`AUDIT_GLOSSAIRE_FORETMAP_2026-08.md`](../AUDIT_GLOSSAIRE_FORETMAP_2026-08.md)                 |
+| [`AUDIT_GEOLOCALISATION_2026-09.md`](../AUDIT_GEOLOCALISATION_2026-09.md)                       |
+| [`AUDIT_ICONES_FLOTTANTES_2026-08.md`](../AUDIT_ICONES_FLOTTANTES_2026-08.md)                   |
+| [`AUDIT_MASCOTTES_2026-08.md`](../AUDIT_MASCOTTES_2026-08.md)                                   |
+| [`AUDIT_PARCOURS_2026-09.md`](../AUDIT_PARCOURS_2026-09.md)                                     |
+| [`AUDIT_PHOTOS_BIODIVERSITE.md`](../AUDIT_PHOTOS_BIODIVERSITE.md)                               |
+| [`AUDIT_PLAN_AFFICHAGE_2026-09.md`](../AUDIT_PLAN_AFFICHAGE_2026-09.md)                         |
+| [`AUDIT_RESEAU_TROPHIQUE_2026-09.md`](../AUDIT_RESEAU_TROPHIQUE_2026-09.md)                     |
+| [`AUDIT_RESEAU_TROPHIQUE_UX_PEDAGO_2026-09.md`](../AUDIT_RESEAU_TROPHIQUE_UX_PEDAGO_2026-09.md) |
+| [`PLAN_RESEAU_TROPHIQUE_UX_PEDAGO_2026-09.md`](../PLAN_RESEAU_TROPHIQUE_UX_PEDAGO_2026-09.md)   |
+| [`AUDIT_ROLE_PROFESSEUR_2026-09.md`](../AUDIT_ROLE_PROFESSEUR_2026-09.md)                       |
+| [`AUDIT_UI_HOMOGENEITE_2026-09.md`](../AUDIT_UI_HOMOGENEITE_2026-09.md)                         |
+| [`AUDIT_UX_ELEVE.md`](../AUDIT_UX_ELEVE.md)                                                     |
+| [`AUDIT_VISITE_UI_UX_2026-09.md`](../AUDIT_VISITE_UI_UX_2026-09.md)                             |
 
 ### Gnomes & Licornes
 

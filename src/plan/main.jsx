@@ -12,6 +12,8 @@ import '../shared/styles/tooltip.css';
 import '../shared/styles/map-action.css';
 import '../shared/styles/map-overlay-labels.css';
 import '../shared/styles/map-scale-compass.css';
+import '../shared/styles/pct-map-layers.css';
+import '../shared/styles/map-category-chips.css';
 import '../shared/styles/bottom-sheet.css';
 import './styles/plan.css';
 import { AppPlan } from './AppPlan.jsx';

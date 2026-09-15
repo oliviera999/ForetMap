@@ -14,7 +14,7 @@ function makeMarker(overrides = {}) {
 }
 
 describe('VisitMapMarkerButton', () => {
-  test('affiche emoji, libellé accessible et position en %', () => {
+  test('affiche emoji, libellé accessible et position en % (sans texte visible par défaut)', () => {
     const { container } = render(
       <VisitMapMarkerButton marker={makeMarker()} isSeen={false} onClick={vi.fn()} />,
     );
@@ -26,16 +26,44 @@ describe('VisitMapMarkerButton', () => {
     expect(container.querySelector('.visit-marker-emoji')).toHaveTextContent('🌳');
     expect(btn).toHaveClass('is-unseen');
     expect(container.querySelector('.visit-marker-indicator')).toBeNull();
+    expect(container.querySelector('.visit-marker-status')).toBeNull();
+  });
+
+  test('showSeenLabels → libellé À découvrir visible', () => {
+    const { container } = render(
+      <VisitMapMarkerButton
+        marker={makeMarker()}
+        isSeen={false}
+        showSeenLabels
+        onClick={vi.fn()}
+      />,
+    );
     expect(container.querySelector('.visit-marker-status')).toHaveTextContent('À découvrir');
   });
 
-  test('repère vu → classe is-seen et libellé Vu', () => {
+  test('repère vu → classe is-seen', () => {
     const { container } = render(
       <VisitMapMarkerButton marker={makeMarker()} isSeen onClick={vi.fn()} />,
     );
     expect(container.querySelector('.visit-marker-btn')).toHaveClass('is-seen');
-    expect(container.querySelector('.visit-marker-status')).toHaveTextContent('Vu');
+    expect(container.querySelector('.visit-marker-status')).toBeNull();
     expect(screen.getByRole('button', { name: /Vu$/ })).toBeInTheDocument();
+  });
+
+  test('showSeenStatus=false → pas de statut ni classe vu/non-vu', () => {
+    const { container } = render(
+      <VisitMapMarkerButton
+        marker={makeMarker()}
+        isSeen={false}
+        showSeenStatus={false}
+        onClick={vi.fn()}
+      />,
+    );
+    const btn = container.querySelector('.visit-marker-btn');
+    expect(btn).toHaveAttribute('aria-label', 'Vieux chêne');
+    expect(btn).not.toHaveClass('is-unseen');
+    expect(btn).not.toHaveClass('is-seen');
+    expect(container.querySelector('.visit-marker-status')).toBeNull();
   });
 
   test('sans emoji → pastille de repli et libellé par défaut', () => {

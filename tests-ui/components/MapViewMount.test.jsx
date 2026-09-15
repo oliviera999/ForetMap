@@ -125,26 +125,29 @@ beforeEach(() => {
 });
 
 describe('MapView — montage sur le moteur de carte partagé', () => {
-  test('élève : cadre, monde, image et barre d’outils montés ; repères de la carte active seulement', async () => {
+  test('élève : scène partagée, barre d’outils ; repères de la carte active seulement', async () => {
     const view = renderMapView();
-    const canvas = view.container.querySelector('.map-view-canvas');
-    expect(canvas).not.toBeNull();
-    const img = canvas.querySelector('img');
+    const stage = view.container.querySelector('.map-view-stage');
+    expect(stage).not.toBeNull();
+    const img = stage.querySelector('img');
     expect(img).not.toBeNull();
     expect(img.getAttribute('src')).toContain('map-foret');
     await waitFor(() => expect(view.container.querySelector('.map-view-toolbar')).not.toBeNull());
-    // Le repère de l'autre carte (CDI, map lyautey) n'est plus rendu sur la carte active.
-    expect(view.container.querySelectorAll('.map-bubble')).toHaveLength(1);
+    // Repères via calque partagé (PctMarkersLayer) — pas les bulles historique en consultation.
+    expect(view.container.querySelectorAll('.fm-pct-marker')).toHaveLength(1);
     expect(view.container.textContent).toContain('Compost');
     expect(view.container.textContent).not.toContain('CDI');
     // Le moteur applique la transformation sur le calque monde (transform-origin 0 0).
-    const world = canvas.firstElementChild;
+    const world = stage.querySelector('.map-view-world');
+    expect(world).not.toBeNull();
     expect(world.style.transformOrigin).toBe('0 0');
+    // Commandes zoom / position : stack SharedMapStage.
+    expect(view.container.querySelector('[data-testid="map-zoom-in"]')).not.toBeNull();
   });
 
   test('prof : montage sans erreur avec les outils d’édition', async () => {
     const view = renderMapView({ isTeacher: true });
     await waitFor(() => expect(view.container.querySelector('.map-view-toolbar')).not.toBeNull());
-    expect(view.container.querySelector('.map-view-canvas')).not.toBeNull();
+    expect(view.container.querySelector('.map-view-stage')).not.toBeNull();
   });
 });

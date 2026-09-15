@@ -31,6 +31,9 @@ const {
 } = require('../../lib/shared/learningAckCore');
 const { z, validate } = require('../../lib/validate');
 const asyncHandler = require('../../lib/asyncHandler');
+const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
+/** Filtres de requête optionnels (`?q=`, `?categorie=`…) : chaîne rognée ou `null`. */
+const normalizeOptionalFilter = normalizeOptionalString;
 
 const db = { queryAll, queryOne, execute };
 
@@ -52,18 +55,6 @@ async function loadGlossaryLearnedCodes(glAuth) {
 }
 
 const router = express.Router();
-
-function normalizeBiomeSlug(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
-
-function normalizeOptionalFilter(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
 
 async function loadActiveGlossaryForBiomes(biomeSlugs) {
   const slugs = normalizeBiomeSlugList(biomeSlugs);

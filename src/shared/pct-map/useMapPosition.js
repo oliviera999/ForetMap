@@ -129,6 +129,14 @@ export function useMapPosition({
     setMode((prev) => (prev === 'follow' ? 'on' : prev));
   }, []);
 
+  /**
+   * Passe en suivi si la position est déjà active (ex. activation de l'orientation
+   * boussole : coller le GPS au centre). Sans effet si inactif / en acquisition.
+   */
+  const ensureFollow = useCallback(() => {
+    setMode((prev) => (prev === 'on' ? 'follow' : prev));
+  }, []);
+
   // La carte perd son éligibilité (changement de carte, calage retiré) : on coupe.
   useEffect(() => {
     if (!available && mode !== 'off') stop();
@@ -216,5 +224,6 @@ export function useMapPosition({
     toggle,
     stop,
     notifyManualPan,
+    ensureFollow,
   };
 }

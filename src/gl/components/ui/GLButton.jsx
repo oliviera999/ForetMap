@@ -1,10 +1,7 @@
 import { forwardRef } from 'react';
 
 import { Button } from '../../../shared/ui/Button.jsx';
-
-function joinClassNames(...parts) {
-  return parts.filter(Boolean).join(' ');
-}
+import { joinClassNames } from '../../../shared/utils/classNames.js';
 
 /**
  * Bouton G&L — enveloppe du `Button` partagé (lot 3) : même API (`variant`, `size`,

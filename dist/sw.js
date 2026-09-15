@@ -1,6 +1,6 @@
 /* Service worker « foret » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-foret-f55001a4";
+const CACHE_NAME = "foretmap-foret-b7c6fa5f";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -17,28 +17,30 @@ const PRECACHE_URLS = [
   "/pwa-maskable-512.png",
   "/pwa-screenshot-mobile.png",
   "/pwa-screenshot-wide.png",
-  "/assets/main-C9KExYI0.js",
+  "/assets/main-B5xLYNFU.js",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-gz2GNLdX.js",
+  "/assets/VisitMascotFallbackSvg-DG9xUeT2.js",
   "/assets/react-vendor-ClBrELym.js",
   "/assets/icons-BBfebeWE.js",
-  "/assets/ErrorBoundary-C887DOFP.js",
+  "/assets/ErrorBoundary-BReimS-P.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-BRaogOnt.js",
+  "/assets/ImageLightboxProvider-4OlKNxFf.js",
   "/assets/ImageLightboxProvider-B1dCJcHH.css",
-  "/assets/spriteCutCatalogEntry-DjiOhfyZ.js",
+  "/assets/spriteCutCatalogEntry-DjaX1zkf.js",
   "/assets/markdown-DaBuaikX.js",
-  "/assets/visitMascotPackExtras-B045warL.js",
-  "/assets/visitMascotPackExtras-BjKeik1r.css",
-  "/assets/mascotPack-D5Tf_sIk.js",
+  "/assets/visitMascotPackExtras-MnOYOfsh.js",
+  "/assets/visitMascotPackExtras-BBqISHtt.css",
+  "/assets/mascotPack-CUxvBBYJ.js",
   "/assets/socket-io-SGWxBABF.js",
-  "/assets/MarkdownTextarea-C29lGR4v.js",
-  "/assets/GlossaryMarkdown-D7-8I_Iq.js",
-  "/assets/FmLearnAndImportSlot-BzAcfuin.js",
+  "/assets/MarkdownTextarea-DgBXUdDS.js",
+  "/assets/GlossaryMarkdown-DQbEotxc.js",
+  "/assets/FmLearnAndImportSlot-D47JfQzq.js",
   "/assets/PublicSettingsContext-B_o2_Q4Y.js",
-  "/assets/GuidedTourOverlay-Ds8KzMV1.js",
-  "/assets/useBrandTheme-BMF5yqtv.js",
-  "/assets/downloadApiFile-XWNO_4g2.js",
+  "/assets/journalUi-D99fKXRW.js",
+  "/assets/GuidedTourOverlay-B8wJzP_A.js",
+  "/assets/useBrandTheme-BasI-8g6.js",
+  "/assets/useLatestRequest-Jt5PGB1F.js",
+  "/assets/downloadApiFile-D32Z69Hc.js",
   "/assets/downloadAuthedFile-BRkwVwdZ.js",
 ];
 

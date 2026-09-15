@@ -1,7 +1,4 @@
-function joinClassNames(...parts) {
-  return parts.filter(Boolean).join(' ');
-}
-
+import { joinClassNames } from '../../../shared/utils/classNames.js';
 export function GLSurface({
   as: Tag = 'section',
   variant = 'elevated',

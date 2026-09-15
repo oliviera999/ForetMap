@@ -1451,7 +1451,12 @@ function App() {
                           <TabSuspense>
                             <SettingsAdminViewLazy
                               canReadSettings={hasPermissionInRole('admin.settings.read')}
+                              canWriteSettings={hasPermissionInRole('admin.settings.write')}
                               canManageTours={hasPermissionInRole('tours.manage')}
+                              canManageMoodle={hasPermissionInRole('integrations.moodle.manage')}
+                              canManageZones={hasPermissionInRole('zones.manage')}
+                              canManageMarkers={hasPermissionInRole('map.manage_markers')}
+                              canWriteSecrets={hasPermissionInRole('admin.settings.secrets.write')}
                             />
                           </TabSuspense>
                         )}
@@ -1466,6 +1471,7 @@ function App() {
                             <TabSuspense>
                               <ObservationNotebookLazy
                                 zones={zones}
+                                isTeacher={isTeacher}
                                 onForceLogout={forceLogout}
                                 onNavigateTab={(nav) => {
                                   if (nav?.tab) setTab(nav.tab);
@@ -1578,6 +1584,7 @@ function App() {
                               <TabSuspense>
                                 <ObservationNotebookLazy
                                   zones={zones}
+                                  isTeacher={isTeacher}
                                   onForceLogout={forceLogout}
                                   onNavigateTab={(nav) => {
                                     if (nav?.tab) setTab(nav.tab);

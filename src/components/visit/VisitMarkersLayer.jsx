@@ -9,10 +9,20 @@ import { itemSeenKey } from '../../utils/visitMediaGallery.js';
 const VisitMarkersLayerItem = React.memo(function VisitMarkersLayerItem({
   marker,
   isSeen,
+  showSeenStatus,
+  showSeenLabels,
   onMarkerClick,
 }) {
   const handleClick = useCallback((event) => onMarkerClick(marker, event), [marker, onMarkerClick]);
-  return <VisitMapMarkerButton marker={marker} isSeen={isSeen} onClick={handleClick} />;
+  return (
+    <VisitMapMarkerButton
+      marker={marker}
+      isSeen={isSeen}
+      showSeenStatus={showSeenStatus}
+      showSeenLabels={showSeenLabels}
+      onClick={handleClick}
+    />
+  );
 });
 
 /**
@@ -23,14 +33,24 @@ const VisitMarkersLayerItem = React.memo(function VisitMarkersLayerItem({
  * @param {object} props
  * @param {Array<object>} props.markers repères de la visite (`content.markers`).
  * @param {Set<string>} props.seen clés `itemSeenKey` des éléments vus.
+ * @param {boolean} [props.showSeenStatus=true] atténuation vu/non-vu.
+ * @param {boolean} [props.showSeenLabels=false] libellé visible au survol.
  * @param {(marker: object, event: object) => void} props.onMarkerClick clic sur un repère (handler stable).
  */
-function VisitMarkersLayerImpl({ markers, seen, onMarkerClick }) {
+function VisitMarkersLayerImpl({
+  markers,
+  seen,
+  onMarkerClick,
+  showSeenStatus = true,
+  showSeenLabels = false,
+}) {
   return (markers || []).map((m) => (
     <VisitMarkersLayerItem
       key={m.id}
       marker={m}
       isSeen={seen.has(itemSeenKey('marker', m.id))}
+      showSeenStatus={showSeenStatus}
+      showSeenLabels={showSeenLabels}
       onMarkerClick={onMarkerClick}
     />
   ));

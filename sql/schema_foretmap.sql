@@ -105,6 +105,9 @@ CREATE TABLE IF NOT EXISTS plants (
   harvest_part VARCHAR(255) DEFAULT NULL,
   planting_recommendations TEXT DEFAULT NULL,
   preferred_nutrients TEXT DEFAULT NULL,
+  identification_criteria TEXT DEFAULT NULL COMMENT 'Caractères observables qui permettent de trancher',
+  lookalike_species TEXT DEFAULT NULL COMMENT 'Espèces ressemblantes et critère de distinction',
+  identification_period VARCHAR(255) DEFAULT NULL COMMENT 'Période / conditions où la détermination est possible',
   photo_species TEXT DEFAULT NULL,
   photo_leaf TEXT DEFAULT NULL,
   photo_flower TEXT DEFAULT NULL,
@@ -660,6 +663,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
   occurred_at DATETIME DEFAULT NULL,
   payload_json JSON DEFAULT NULL,
   INDEX idx_audit_actor (actor_user_type, actor_user_id, id),
+  INDEX idx_audit_log_created (created_at),
   INDEX idx_audit_action (action, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

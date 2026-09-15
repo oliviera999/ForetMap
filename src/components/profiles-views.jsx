@@ -8,7 +8,6 @@ import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions
 import { GroupsAdminView } from './groups-views.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
-import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import {
   pickUserField,
   mergeRbacUserRowsForEdit,
@@ -24,6 +23,7 @@ import { ProfilesAdminFeedback } from './profiles/ProfilesAdminFeedback.jsx';
 import { ProfilesAdminSubTabs } from './profiles/ProfilesAdminSubTabs.jsx';
 import { ProfilesAccountsPanel } from './profiles/ProfilesAccountsPanel.jsx';
 import { ProfilesImportsPanel } from './profiles/ProfilesImportsPanel.jsx';
+import { ProfileRoleFormDialog } from './profiles/ProfileRoleFormDialog.jsx';
 import {
   isN3beurTierConfigurableProfile as isN3beurTierConfigurableRole,
   sortRolesForDisplay,
@@ -32,11 +32,6 @@ import {
   parseMaxConcurrentTasksLimit,
   parseMinDoneTasksThreshold,
 } from '../utils/profilesRbacHelpers.js';
-import {
-  promptRoleDetailsPatch,
-  promptNewRoleProfile,
-  promptDuplicateRoleProfile,
-} from '../utils/profilesRolePrompts.js';
 import { resolveProfilesSubTab } from '../utils/profilesUserListFilters.js';
 import {
   safeLocalStorageGetItem,
@@ -47,12 +42,6 @@ const PROFILES_SUB_TAB_KEY = 'foretmap.profiles.subTab';
 
 function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   const publicSettings = usePublicSettings();
-  const { prompt: appDialogPrompt } = useAppDialogs();
-  /** Adaptateur (texte, valeur par défaut) → dialogue applicatif, injecté dans les flux profilesRolePrompts. */
-  const promptFn = useCallback(
-    (text, defaultValue) => appDialogPrompt({ message: text, defaultValue }),
-    [appDialogPrompt],
-  );
   const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
   const affiliationOptions = useMemo(() => buildAffiliationSelectOptions(maps), [maps]);
@@ -85,6 +74,8 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   );
   const [pendingVisitorsCount, setPendingVisitorsCount] = useState(0);
   const [accountsFilteredCount, setAccountsFilteredCount] = useState(null);
+  /** Modale créer / éditer / dupliquer un profil RBAC. */
+  const [roleForm, setRoleForm] = useState(null);
 
   const load = async () => {
     setErr('');
@@ -222,23 +213,8 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   }, [students, searchStudent]);
 
   /** `fields` : { roleEmoji, roleMinDoneTasks, roleDisplayOrder } saisis dans la section RBAC. */
-  const saveRoleDetails = async (role, fields) => {
-    const result = await promptRoleDetailsPatch(role, fields, promptFn);
-    if (!result) return;
-    if (result.error) {
-      setErr(result.error);
-      return;
-    }
-    setLoading(true);
-    setErr('');
-    try {
-      await api(`/api/rbac/profiles/${role.id}`, 'PATCH', result.payload);
-      setMsg('Profil mis à jour');
-      await load();
-    } catch (e) {
-      setErr(e.message || 'Erreur mise à jour du profil');
-    }
-    setLoading(false);
+  const saveRoleDetails = (role, fields) => {
+    setRoleForm({ mode: 'edit', role, drafts: fields });
   };
 
   const toggleProgressionByValidatedTasks = async (enabled) => {
@@ -321,39 +297,49 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     setLoading(false);
   };
 
-  const createRoleProfile = async () => {
-    const result = await promptNewRoleProfile(promptFn);
-    if (!result) return;
-    if (result.error) {
-      setErr(result.error);
-      return;
-    }
-    setLoading(true);
-    setErr('');
-    try {
-      const created = await api('/api/rbac/profiles', 'POST', result.payload);
-      setMsg('Profil créé');
-      await load();
-      if (created?.id != null) setSelectedRoleId(created.id);
-    } catch (e) {
-      setErr(e.message || 'Erreur création profil');
-    }
-    setLoading(false);
+  const createRoleProfile = () => {
+    setRoleForm({ mode: 'create' });
   };
 
-  const duplicateRoleProfile = async (role) => {
+  const duplicateRoleProfile = (role) => {
     if (!role?.id) return;
-    const result = await promptDuplicateRoleProfile(role, promptFn);
-    if (!result) return;
+    setRoleForm({ mode: 'duplicate', role });
+  };
+
+  /** Soumission de la modale profil : PATCH / POST / duplicate selon le mode. */
+  const submitRoleForm = async (payload) => {
+    if (!roleForm) return;
+    const { mode, role } = roleForm;
     setLoading(true);
     setErr('');
     try {
-      const created = await api(`/api/rbac/profiles/${role.id}/duplicate`, 'POST', result.payload);
-      setMsg(`Profil dupliqué : ${created.display_name || result.payload.slug}`);
-      await load();
-      if (created?.id != null) setSelectedRoleId(created.id);
+      if (mode === 'edit') {
+        await api(`/api/rbac/profiles/${role.id}`, 'PATCH', payload);
+        setMsg('Profil mis à jour');
+        setRoleForm(null);
+        await load();
+      } else if (mode === 'duplicate') {
+        const created = await api(`/api/rbac/profiles/${role.id}/duplicate`, 'POST', payload);
+        setMsg(`Profil dupliqué : ${created.display_name || payload.slug}`);
+        setRoleForm(null);
+        await load();
+        if (created?.id != null) setSelectedRoleId(created.id);
+      } else {
+        const created = await api('/api/rbac/profiles', 'POST', payload);
+        setMsg('Profil créé');
+        setRoleForm(null);
+        await load();
+        if (created?.id != null) setSelectedRoleId(created.id);
+      }
     } catch (e) {
-      setErr(e.message || 'Erreur duplication du profil');
+      setErr(
+        e.message ||
+          (mode === 'edit'
+            ? 'Erreur mise à jour du profil'
+            : mode === 'duplicate'
+              ? 'Erreur duplication du profil'
+              : 'Erreur création profil'),
+      );
     }
     setLoading(false);
   };
@@ -656,6 +642,15 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
         roleTerms={roleTerms}
         onConfirm={confirmDelete}
         onCancel={() => setConfirmStudent(null)}
+      />
+
+      <ProfileRoleFormDialog
+        open={!!roleForm}
+        mode={roleForm?.mode || 'create'}
+        role={roleForm?.role || null}
+        drafts={roleForm?.drafts || {}}
+        onClose={() => setRoleForm(null)}
+        onSubmit={submitRoleForm}
       />
 
       {(canManageProfiles || canManageStudents || canImportGroups) && (

@@ -1,6 +1,7 @@
 import { describe, test, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { StudentBottomNav } from '../../../src/components/app/StudentBottomNav.jsx';
+import { resolveStudentMobilePrimaryIds } from '../../../src/constants/app-runtime.js';
 
 const baseProps = {
   tab: 'map',
@@ -13,7 +14,40 @@ const baseProps = {
   observationsEnabled: true,
   visitEnabled: true,
   canAccessForum: true,
+  layoutMode: 'full',
 };
+
+describe('resolveStudentMobilePrimaryIds', () => {
+  test('élève avec visite : map, tasks, plants, visit', () => {
+    expect(
+      resolveStudentMobilePrimaryIds({
+        canAccessStudentMapTasks: true,
+        visitEnabled: true,
+        visibleIds: ['map', 'tasks', 'plants', 'quiz', 'visit', 'forum', 'about'],
+      }),
+    ).toEqual(['map', 'tasks', 'plants', 'visit']);
+  });
+
+  test('élève sans visite : quiz en repli', () => {
+    expect(
+      resolveStudentMobilePrimaryIds({
+        canAccessStudentMapTasks: true,
+        visitEnabled: false,
+        visibleIds: ['map', 'tasks', 'plants', 'quiz', 'about'],
+      }),
+    ).toEqual(['map', 'tasks', 'plants', 'quiz']);
+  });
+
+  test('visiteur : visit, plants, quiz', () => {
+    expect(
+      resolveStudentMobilePrimaryIds({
+        canAccessStudentMapTasks: false,
+        visitEnabled: true,
+        visibleIds: ['visit', 'plants', 'quiz', 'glossary', 'about'],
+      }),
+    ).toEqual(['visit', 'plants', 'quiz']);
+  });
+});
 
 describe('StudentBottomNav', () => {
   test('rend les boutons de base, marque l’actif et notifie le clic', () => {
@@ -102,5 +136,48 @@ describe('StudentBottomNav', () => {
     expect(screen.queryByText('Forum')).toBeNull();
     expect(screen.getByText('Stats')).toBeInTheDocument();
     expect(screen.getByText('Tâches')).toBeInTheDocument();
+  });
+
+  test('mode compact : primaires + Plus, Forum via le tiroir', async () => {
+    const onTabChange = vi.fn();
+    render(
+      <StudentBottomNav {...baseProps} layoutMode="compact" onTabChange={onTabChange} tab="map" />,
+    );
+    const nav = screen.getByRole('navigation', { name: 'Navigation principale' });
+    expect(within(nav).getByText('Carte')).toBeInTheDocument();
+    expect(within(nav).getByText('Tâches · tuto')).toBeInTheDocument();
+    expect(within(nav).getByText('Biodiversité')).toBeInTheDocument();
+    expect(within(nav).getByText('Visite')).toBeInTheDocument();
+    expect(within(nav).getByRole('button', { name: /Plus d'onglets/ })).toBeInTheDocument();
+    expect(within(nav).queryByText('Forum')).toBeNull();
+
+    fireEvent.click(within(nav).getByRole('button', { name: /Plus d'onglets/ }));
+    const sheet = await screen.findByRole('dialog', { name: 'Navigation' });
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Forum' }));
+    expect(onTabChange).toHaveBeenCalledWith('forum');
+  });
+
+  test('mode compact : Plus actif quand l’onglet courant est hors primary', () => {
+    render(<StudentBottomNav {...baseProps} layoutMode="compact" tab="about" />);
+    const more = screen.getByRole('button', { name: /Plus d'onglets/ });
+    expect(more).toHaveClass('active');
+  });
+
+  test('mode compact visiteur : visit, plants, quiz + Plus', () => {
+    render(
+      <StudentBottomNav
+        {...baseProps}
+        layoutMode="compact"
+        canAccessStudentMapTasks={false}
+        isVisitor
+        tab="visit"
+      />,
+    );
+    const nav = screen.getByRole('navigation', { name: 'Navigation principale' });
+    expect(within(nav).getByText('Visite')).toBeInTheDocument();
+    expect(within(nav).getByText('Biodiversité')).toBeInTheDocument();
+    expect(within(nav).getByText('Quiz')).toBeInTheDocument();
+    expect(within(nav).queryByText('Carte')).toBeNull();
+    expect(within(nav).getByRole('button', { name: /Plus d'onglets/ })).toBeInTheDocument();
   });
 });

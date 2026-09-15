@@ -171,9 +171,17 @@ d'observation** pour l'écriture naturaliste libre.
   plus loin — qui mange qui mange qui. C'est là que se lit une chaîne alimentaire.
 - **Deux relations entre les deux mêmes espèces ne se cachent plus l'une l'autre** : elles
   sont légèrement écartées, chacune cliquable.
-- **Herbivorie et prédation se distinguent au trait**, et non plus seulement à la couleur :
-  les deux rouges étaient trop proches pour être différenciés par un élève daltonien, alors
-  que ce sont les deux relations les plus importantes du réseau.
+- **Herbivorie, prédation et décomposition** se distinguent à la fois par la
+  **couleur** (ambre, orange-rouge, pourpre) et par le **trait** (tirets ou plein) :
+  on ne s’appuie plus sur deux rouges proches. **Plante hôte** (vert) et
+  **symbiose** (cyan) sont aussi écartées. Une relation sélectionnée garde sa
+  couleur et s’entoure d’un halo vert, sans devenir toute verte.
+- **Le cadrage** (Réseau alimentaire / Autres relations / Tout) s’applique au
+  graphe **et** à la liste. Le filtre fin par type n’apparaît que dans « Tout ».
+- **Disposition Niveaux** : les colonnes Producteurs, Consommateurs, Décomposeurs
+  (et Autres) sont étiquetées au-dessus du graphe.
+- Une fois une espèce isolée, le bouton **« Voir la fiche »** ouvre sa fiche —
+  utile sur tablette, où le double-clic est peu naturel.
 - **Filtrer par zone ne coupe plus les liens qui en sortent.** Une espèce de la zone mangée
   par un prédateur de la zone voisine faisait disparaître la relation entière ; elle est
   désormais affichée, l'espèce extérieure étant signalée par un contour orangé pointillé.
@@ -188,18 +196,28 @@ d'observation** pour l'écriture naturaliste libre.
 - **Qui peut tenir un carnet** : **tout compte ForetMap connecté** (élève, visiteur,
   personnel, prof de classe, n3boss, administrateur) — chacun le sien. La visite anonyme
   sans compte n’a pas de carnet.
-- **Articles** : texte enrichi (titres, listes, liens…), une ou plusieurs photos, titre
-  optionnel, et éventuellement une **zone** de la forêt. L’enregistrement est automatique
-  pendant la saisie. On peut épingler un article, rechercher, filtrer (articles / imports)
-  et trier le fil.
-- **Imports** : depuis une fiche espèce, un terme du glossaire ou un tutoriel, après l’avoir
-  marqué comme appris / découvert / lu, on peut l’**ajouter au carnet**. Il apparaît dans le
-  même fil, avec un lien pour le rouvrir.
-- **Encarts** : dans un article, on peut aussi coller un rappel vers une espèce, un terme, un
-  tutoriel ou un module de l’application.
-- **Le professeur** consulte les carnets (panneau dans les statistiques) : aperçu du texte
-  enrichi, ouverture du carnet complet, export en fichier texte. La lecture d’un carnet est
-  réservée à son propriétaire et aux professeurs selon leur périmètre (groupe ou global).
+- **Lecture d’abord** : le carnet se **feuillette** comme un livre. Chaque article s’affiche
+  en page lisible (texte mis en forme, photos). On passe en **écriture** seulement pour
+  l’article qu’on veut modifier (ou un nouvel article). L’enregistrement reste automatique
+  pendant la saisie. On peut épingler, rechercher, filtrer (articles / éléments appris) et
+  trier le fil. Une zone de la forêt peut être associée à un article.
+- **Éléments appris** : depuis une fiche espèce, un terme du glossaire ou un tutoriel, après
+  l’avoir marqué comme appris / découvert / lu, on peut l’**ajouter au carnet**. Il apparaît
+  dans le même fil, avec un lien pour le rouvrir.
+- **Encarts** : dans un article, on peut coller un rappel vers une espèce, un terme, un
+  tutoriel ou un module — choisi **par son nom** (recherche), pas par un numéro technique.
+  À la lecture, l’encart s’affiche comme une **planche** (titre, courte présentation, image
+  si disponible).
+- **Impression / livre** : le propriétaire peut ouvrir une vue « livre » (couverture,
+  sommaire, pages, annexes des découvertes) puis imprimer ou enregistrer en PDF depuis le
+  navigateur. Options de fin d’année : période, épinglés seulement, préface courte.
+- **Aide contextuelle** : le bouton « ? » dans l’en-tête du carnet ouvre une courte aide.
+  Ses textes se modifient dans l’administration de l’aide (« Mon carnet »).
+- **Le professeur** consulte les carnets (panneau dans les statistiques, chargement
+  automatique) : aperçu regroupé par élève, ouverture du carnet complet en fil chronologique
+  (articles et éléments appris), impression / PDF, et export texte (Markdown). La lecture
+  d’un carnet est réservée à son propriétaire et aux professeurs selon leur périmètre
+  (groupe ou global).
 - Chaque action est faite au nom du compte connecté : on ne peut pas modifier le carnet d’un
   camarade.
 - L’affichage côté propriétaire charge l’ensemble du carnet ; la vue groupe des professeurs

@@ -1,10 +1,7 @@
 import { forwardRef } from 'react';
 
 import { Tooltip } from '../components/Tooltip.jsx';
-
-function joinClassNames(...parts) {
-  return parts.filter(Boolean).join(' ');
-}
+import { joinClassNames } from '../utils/classNames.js';
 
 /** Classes neutres (feuille `src/shared/styles/map-action.css`, chargée par les deux entrées). */
 export const MAP_ACTION_CLASS_NAMES = Object.freeze({

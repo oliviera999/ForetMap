@@ -19,11 +19,17 @@ async function ouvrirOngletEleve(page, libelle) {
   await dismissProfilePromotionModalIfPresent(page);
   await dismissDiscoveryTourIfPresent(page);
   await page.locator('nav.bottom-nav').waitFor({ state: 'visible', timeout: 30_000 });
-  await page
-    .locator('nav.bottom-nav')
-    .getByRole('button', { name: libelle })
-    .first()
-    .click({ timeout: 25_000 });
+  const nav = page.locator('nav.bottom-nav');
+  const direct = nav.getByRole('button', { name: libelle }).first();
+  if ((await direct.count()) > 0) {
+    await direct.click({ timeout: 25_000 });
+  } else {
+    // Mode compact (Plus) : l'onglet est dans la feuille de navigation.
+    await nav.getByRole('button', { name: /Plus d'onglets/ }).click({ timeout: 15_000 });
+    const sheet = page.getByRole('dialog', { name: 'Navigation' });
+    await sheet.waitFor({ state: 'visible', timeout: 15_000 });
+    await sheet.getByRole('button', { name: libelle }).first().click({ timeout: 15_000 });
+  }
   // Les vues chargent leurs données après le clic : sans cette pause, `axe` mesure un
   // squelette et l'inventaire décrit un écran qui n'existe pas.
   await page.waitForTimeout(1_500);
@@ -106,8 +112,8 @@ test.describe('Accessibilité — écrans élève', () => {
     await openVisitTab(page);
     const stage = page.locator('.visit-map-stage');
     await stage.locator('img.visit-map-img').waitFor({ state: 'visible', timeout: 30_000 });
-    const marker = stage.locator('.visit-marker-btn').first();
-    const zone = stage.locator('.visit-zone-hit').first();
+    const marker = stage.locator('.fm-pct-marker, .visit-marker-btn').first();
+    const zone = stage.locator('.fm-pct-zone, .visit-zone-hit').first();
     if ((await marker.count()) === 0 && (await zone.count()) === 0) {
       test.skip();
       return;

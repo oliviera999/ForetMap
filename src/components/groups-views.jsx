@@ -4,7 +4,9 @@ import { HelpPanel } from './HelpPanel';
 import { resolveHelpPanelSection } from '../utils/helpResolve';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
+import { DialogShell } from './DialogShell';
 import { slugify } from '../utils/slugify';
+import { GROUP_KIND_LABELS } from '../utils/profilesRoleForm.js';
 import { IconClock, IconWarning } from '../shared/icons.jsx';
 import {
   buildGroupForest,
@@ -25,6 +27,8 @@ import {
 
 const GROUPS_HIDE_INACTIVE_KEY = 'foretmap.groups.hideInactive';
 const GROUPS_PAGE_SIZE_KEY = 'foretmap.profiles.pageSize';
+
+const EMPTY_CREATE_DRAFT = { name: '', slug: '', kind: 'class' };
 
 function normalizeIds(values = []) {
   return [...new Set(values.map((v) => String(v || '').trim()).filter(Boolean))];
@@ -492,7 +496,10 @@ function GroupTreeNode({
             )}
             <div>
               <strong>{node.name}</strong>
-              <span style={{ color: 'var(--ink-soft)' }}> · {node.kind}</span>
+              <span style={{ color: 'var(--ink-soft)' }}>
+                {' '}
+                · {GROUP_KIND_LABELS[node.kind] || node.kind}
+              </span>
               {node.parent_group_id && <span style={{ color: '#94a3b8' }}> · sous-groupe</span>}
               {Number(node.is_active) === 0 && (
                 <span style={{ color: '#b45309', fontSize: 'var(--text-xs)' }}> · inactif</span>
@@ -557,7 +564,7 @@ function GroupTreeNode({
 
 export function GroupsAdminView({ onPendingCountChange } = {}) {
   const publicSettings = usePublicSettings();
-  const { confirm, prompt } = useAppDialogs();
+  const { confirm } = useAppDialogs();
   const [groups, setGroups] = useState([]);
   const [users, setUsers] = useState([]);
   const [maps, setMaps] = useState([]);
@@ -578,6 +585,9 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
     return raw !== '0';
   });
   const [collapsedIds, setCollapsedIds] = useState(() => new Set());
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createDraft, setCreateDraft] = useState(EMPTY_CREATE_DRAFT);
+  const [slugTouched, setSlugTouched] = useState(false);
   const helpGroups = resolveHelpPanelSection('groups', publicSettings);
 
   const load = async () => {
@@ -677,28 +687,48 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
 
   const forest = useMemo(() => buildGroupForest(filteredGroups), [filteredGroups]);
 
-  const createGroup = async () => {
-    const name = await prompt({ message: 'Nom du groupe (ex: 2nde A)' });
-    if (!name || !name.trim()) return;
-    // slugify() translittère les accents au lieu de les supprimer : « 2nde A — Éco » donne
-    // « 2nde-a-eco » et non « 2nde-a-co » (audit docs/AUDIT_BDD_2026-08.md §5.5).
-    const slug = await prompt({
-      message: 'Slug technique (optionnel)',
-      defaultValue: slugify(name),
-    });
-    const kind = await prompt({ message: 'Type (class|team|unit|club)', defaultValue: 'class' });
+  const openCreateGroup = () => {
+    setCreateDraft(EMPTY_CREATE_DRAFT);
+    setSlugTouched(false);
+    setCreateOpen(true);
+  };
+
+  const closeCreateGroup = () => {
+    setCreateOpen(false);
+    setCreateDraft(EMPTY_CREATE_DRAFT);
+    setSlugTouched(false);
+  };
+
+  const updateCreateName = (name) => {
+    setCreateDraft((prev) => ({
+      ...prev,
+      name,
+      // slugify() translittère les accents : « 2nde A — Éco » → « 2nde-a-eco »
+      // (audit docs/AUDIT_BDD_2026-08.md §5.5).
+      slug: slugTouched ? prev.slug : slugify(name),
+    }));
+  };
+
+  const submitCreateGroup = async (e) => {
+    e.preventDefault();
+    const name = String(createDraft.name || '').trim();
+    if (!name) {
+      setErr('Le nom du groupe est requis');
+      return;
+    }
     setLoading(true);
     setErr('');
     try {
       await api('/api/groups', 'POST', {
-        name: name.trim(),
-        slug: slug || undefined,
-        kind: kind || 'class',
+        name,
+        slug: String(createDraft.slug || '').trim() || undefined,
+        kind: createDraft.kind || 'class',
       });
       setMsg('Groupe créé');
+      closeCreateGroup();
       await load();
-    } catch (e) {
-      setErr(e.message || 'Erreur création groupe');
+    } catch (errCreate) {
+      setErr(errCreate.message || 'Erreur création groupe');
     }
     setLoading(false);
   };
@@ -907,7 +937,7 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
           <option value="">Tous les types</option>
           {GROUP_KINDS.map((k) => (
             <option key={k} value={k}>
-              {k}
+              {GROUP_KIND_LABELS[k] || k}
             </option>
           ))}
         </select>
@@ -929,7 +959,7 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
         </label>
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <button className="btn btn-secondary btn-sm" onClick={createGroup} disabled={loading}>
+        <button className="btn btn-secondary btn-sm" onClick={openCreateGroup} disabled={loading}>
           + Nouveau groupe
         </button>
         <span style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
@@ -981,6 +1011,61 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
           />
         </div>
       )}
+
+      <DialogShell
+        open={createOpen}
+        onClose={closeCreateGroup}
+        ariaLabel="Créer un groupe"
+        showCloseButton
+        dialogClassName="log-modal fade-in"
+        dialogStyle={{ maxWidth: 440, width: '92vw' }}
+      >
+        <h3 style={{ marginTop: 0 }}>Créer un groupe</h3>
+        <form onSubmit={submitCreateGroup}>
+          <label className="field">
+            <span>Nom</span>
+            <input
+              value={createDraft.name}
+              onChange={(e) => updateCreateName(e.target.value)}
+              placeholder="ex. 2nde A"
+              autoComplete="off"
+              required
+            />
+          </label>
+          <label className="field">
+            <span>Slug technique (optionnel)</span>
+            <input
+              value={createDraft.slug}
+              onChange={(e) => {
+                setSlugTouched(true);
+                setCreateDraft((prev) => ({ ...prev, slug: e.target.value }));
+              }}
+              autoComplete="off"
+            />
+          </label>
+          <label className="field">
+            <span>Type</span>
+            <select
+              value={createDraft.kind}
+              onChange={(e) => setCreateDraft((prev) => ({ ...prev, kind: e.target.value }))}
+            >
+              {GROUP_KINDS.map((k) => (
+                <option key={k} value={k}>
+                  {GROUP_KIND_LABELS[k] || k}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
+            <button type="button" className="btn btn-secondary" onClick={closeCreateGroup}>
+              Annuler
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Création…' : 'Créer'}
+            </button>
+          </div>
+        </form>
+      </DialogShell>
     </div>
   );
 }

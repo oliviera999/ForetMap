@@ -113,14 +113,30 @@ describe('FoodWebGraph', () => {
     expect(onSelectEdge).toHaveBeenCalledWith(1);
   });
 
-  test('masque les flux trophiques au clic sur le bouton dédié', () => {
-    const { getByRole, container } = render(<FoodWebGraph items={ITEMS} />);
-    const btn = getByRole('button', { name: /Flux trophiques/i });
-    expect(container.querySelectorAll('.pedago-foodweb-graph__line').length).toBe(2);
-    fireEvent.click(btn);
-    expect(container.querySelectorAll('.pedago-foodweb-graph__line').length).toBe(0);
-    fireEvent.click(btn);
-    expect(container.querySelectorAll('.pedago-foodweb-graph__line').length).toBe(2);
+  test('affiche les étiquettes de colonnes en disposition Niveaux', () => {
+    const { getByText, queryByText } = render(<FoodWebGraph items={ITEMS} />);
+    expect(queryByText('Producteurs')).toBeNull();
+    fireEvent.click(getByText(/Niveaux/));
+    expect(getByText('Producteurs')).toBeTruthy();
+    expect(getByText('Consommateurs')).toBeTruthy();
+    expect(getByText('Décomposeurs')).toBeTruthy();
+  });
+
+  test('bouton Voir la fiche ouvre l’espèce isolée', () => {
+    const onOpenPlant = vi.fn();
+    const { container, getByRole } = render(
+      <FoodWebGraph items={ITEMS} onOpenPlant={onOpenPlant} />,
+    );
+    fireEvent.pointerUp(container.querySelector('.pedago-foodweb-graph__node-group'));
+    fireEvent.click(getByRole('button', { name: /Voir la fiche/i }));
+    expect(onOpenPlant).toHaveBeenCalledWith(10);
+  });
+
+  test('halo vert sur l’arête sélectionnée sans écraser sa couleur', () => {
+    const { container } = render(<FoodWebGraph items={ITEMS} selectedEdgeId={1} />);
+    expect(container.querySelector('.pedago-foodweb-graph__line-halo')).toBeTruthy();
+    const line = container.querySelector('.pedago-foodweb-graph__line--predation');
+    expect(line.getAttribute('stroke')).toBe('#d55e00');
   });
 
   test('masque un type via la légende cliquable', () => {

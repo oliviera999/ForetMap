@@ -3,6 +3,9 @@
  * Administration, chacun déployant sa rangée d'onglets — les onglets ne défilent plus
  * hors écran dans une barre unique au débordement invisible.
  *
+ * Mobile (≤640px / coarse, `layoutMode` compact) : rangée pôles seule ; tap sur un pôle
+ * ouvre une feuille BottomSheet avec les onglets de ce pôle (audit iPhone UX-IOS-004).
+ *
  * Composant feuille purement piloté par props : l'onglet actif, les permissions et les
  * modules restent calculés dans `App` (aucun état déplacé — le pôle actif est DÉRIVÉ de
  * l'onglet courant, rien de nouveau n'est persisté). Cliquer un pôle ouvre son premier
@@ -13,6 +16,9 @@
  ** Accessibilité : l'onglet actif porte `aria-current="page"`, le pôle actif
  * `aria-current="true"` ; les icônes (src/shared/icons.jsx) sont décoratives.
  */
+import { useMemo, useState } from 'react';
+
+import { useMediaQuery } from '../../shared/hooks/useMediaQuery.js';
 import {
   IconAbout,
   IconAudit,
@@ -35,12 +41,16 @@ import {
   IconTuto,
   IconVisit,
 } from '../../shared/icons.jsx';
+import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
 
 const POLES = [
   { id: 'contents', label: 'Contenus', Icon: IconPoleContents },
   { id: 'tracking', label: 'Suivi', Icon: IconPoleTracking },
   { id: 'admin', label: 'Administration', Icon: IconPoleAdmin },
 ];
+
+const COMPACT_WIDTH_QUERY = '(max-width: 640px)';
+const COMPACT_POINTER_QUERY = '(pointer: coarse)';
 
 function TopTab({ id, tab, onTabChange, children }) {
   const isActive = tab === id;
@@ -78,7 +88,19 @@ export function TeacherTopTabs({
   isN3Affiliated,
   hasPermission,
   hasPermissionInRole,
+  /**
+   * `auto` : compact si max-width 640px ou pointeur coarse.
+   * `compact` / `full` : forçage (tests).
+   */
+  layoutMode = 'auto',
 }) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sheetPoleId, setSheetPoleId] = useState(null);
+  const widthCompact = useMediaQuery(COMPACT_WIDTH_QUERY);
+  const pointerCompact = useMediaQuery(COMPACT_POINTER_QUERY);
+  const isCompact =
+    layoutMode === 'compact' || (layoutMode === 'auto' && (widthCompact || pointerCompact));
+
   const pendingCount = teacherPendingValidationCount > 0 ? teacherPendingValidationCount : 0;
   const tasksText = tutorialsModuleEnabled ? 'Tâches et tuto' : 'Tâches';
   const mapTasksText = tutorialsModuleEnabled ? 'Cartes, tâches et tuto' : 'Cartes & tâches';
@@ -188,14 +210,16 @@ export function TeacherTopTabs({
         hasPermissionInRole('groups.manage') ||
         hasPermissionInRole('groups.read'),
     },
-    /* `tours.manage` ouvre l'onglet sans `admin.settings.read` : un prof à qui l'on
-       délègue la réécriture des visites guidées n'y voit que ce sous-onglet. */
     {
       id: 'settings',
       pole: 'admin',
       Icon: IconSettings,
       label: 'Paramètres',
-      visible: hasPermissionInRole('admin.settings.read') || hasPermissionInRole('tours.manage'),
+      visible:
+        hasPermissionInRole('admin.settings.read') ||
+        hasPermissionInRole('tours.manage') ||
+        hasPermissionInRole('zones.manage') ||
+        hasPermissionInRole('map.manage_markers'),
     },
     { id: 'about', pole: 'admin', Icon: IconAbout, label: 'À propos', visible: true },
   ];
@@ -204,39 +228,101 @@ export function TeacherTopTabs({
   const activePoleId = tabsSpec.find((t) => t.id === tab)?.pole ?? 'contents';
   const firstTabOfPole = (poleId) => visibleTabs.find((t) => t.pole === poleId)?.id;
 
+  const sheetPole = sheetPoleId || activePoleId;
+  const sheetTabs = useMemo(
+    () => visibleTabs.filter((t) => t.pole === sheetPole),
+    [visibleTabs, sheetPole],
+  );
+  const sheetTitle = POLES.find((p) => p.id === sheetPole)?.label || 'Onglets';
+
+  function openPoleSheet(poleId) {
+    setSheetPoleId(poleId);
+    setDrawerOpen(true);
+  }
+
+  function handlePoleClick(poleId, first, isActive) {
+    if (!isActive && first) onTabChange(first);
+    if (isCompact) openPoleSheet(poleId);
+  }
+
+  function handleSelectFromSheet(id) {
+    onTabChange(id);
+    setDrawerOpen(false);
+  }
+
   return (
-    <nav className="teacher-nav" aria-label="Navigation professeur">
-      <div className="top-tabs app-tabs-surface teacher-nav__poles">
-        {POLES.map(({ id, label, Icon }) => {
-          const isActive = activePoleId === id;
-          const first = firstTabOfPole(id);
-          if (!first) return null;
-          return (
-            <button
-              key={id}
-              type="button"
-              className={`top-tab top-tab--pole ${isActive ? 'active' : ''}`}
-              aria-current={isActive ? 'true' : undefined}
-              onClick={() => {
-                if (!isActive) onTabChange(first);
-              }}
-            >
-              <Icon size={16} /> {label}
-              {id === 'tracking' && <PendingBadge count={pendingCount} />}
-            </button>
-          );
-        })}
-      </div>
-      <div className="top-tabs app-tabs-surface top-tabs--secondary">
-        {visibleTabs
-          .filter((t) => t.pole === activePoleId)
-          .map(({ id, Icon, label, badge }) => (
-            <TopTab key={id} id={id} tab={tab} onTabChange={onTabChange}>
-              <Icon size={15} /> {label}
-              {badge && <PendingBadge count={pendingCount} />}
-            </TopTab>
-          ))}
-      </div>
-    </nav>
+    <>
+      <nav
+        className={`teacher-nav${isCompact ? ' teacher-nav--compact' : ''}`}
+        aria-label="Navigation professeur"
+      >
+        <div className="top-tabs app-tabs-surface teacher-nav__poles">
+          {POLES.map(({ id, label, Icon }) => {
+            const isActive = activePoleId === id;
+            const first = firstTabOfPole(id);
+            if (!first) return null;
+            return (
+              <button
+                key={id}
+                type="button"
+                className={`top-tab top-tab--pole ${isActive ? 'active' : ''}`}
+                aria-current={isActive ? 'true' : undefined}
+                aria-haspopup={isCompact ? 'dialog' : undefined}
+                onClick={() => handlePoleClick(id, first, isActive)}
+              >
+                <Icon size={16} /> {label}
+                {id === 'tracking' && <PendingBadge count={pendingCount} />}
+              </button>
+            );
+          })}
+        </div>
+        {!isCompact ? (
+          <div className="top-tabs app-tabs-surface top-tabs--secondary">
+            {visibleTabs
+              .filter((t) => t.pole === activePoleId)
+              .map(({ id, Icon, label, badge }) => (
+                <TopTab key={id} id={id} tab={tab} onTabChange={onTabChange}>
+                  <Icon size={15} /> {label}
+                  {badge && <PendingBadge count={pendingCount} />}
+                </TopTab>
+              ))}
+          </div>
+        ) : null}
+      </nav>
+      {isCompact ? (
+        <BottomSheet
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          title={sheetTitle}
+          closeLabel="Fermer le menu"
+          className="fm-nav-drawer"
+          overlayClassName="fm-nav-drawer-overlay"
+          initialSnap="half"
+        >
+          <div className="fm-nav-drawer-tabs" role="list" aria-label={`Onglets ${sheetTitle}`}>
+            {sheetTabs.map(({ id, Icon, label, badge }) => {
+              const isActive = tab === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={`fm-nav-drawer-tab${isActive ? ' is-active' : ''}`}
+                  aria-current={isActive ? 'page' : undefined}
+                  onClick={() => handleSelectFromSheet(id)}
+                >
+                  <span className="fm-nav-drawer-tab__icon" aria-hidden="true">
+                    <Icon size={18} />
+                  </span>
+                  <span className="fm-nav-drawer-tab__label">
+                    {label}
+                    {badge ? <PendingBadge count={pendingCount} /> : null}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </BottomSheet>
+      ) : null}
+    </>
   );
 }

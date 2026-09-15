@@ -33,12 +33,10 @@ const {
   serializeSurfaceSet,
   readSurfaceQuery,
   isVisibleOnSurface,
-  withLocationSurfaceFields,
 } = require('../lib/locationSurfaces');
 const {
   readAudienceWriteFields,
   serializeRoleSlugList,
-  withLocationAudienceFields,
   filterLocationsForViewer,
 } = require('../lib/locationAudience');
 const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
@@ -49,37 +47,12 @@ const {
   reorderPhotosBodySchema,
   addPhotoBodySchema,
 } = require('../lib/entityPhotoRoutes');
+const { mapExists } = require('../lib/mapQueries');
+const { normalizeLivingBeings, serializeLocationRow } = require('../lib/locationRowHelpers');
 
 const db = { queryAll, queryOne, execute, withTransaction };
 
-function serializeLocationRow(row) {
-  return withLocationAudienceFields(withLocationSurfaceFields(row));
-}
-
 const router = express.Router();
-
-async function mapExists(mapId) {
-  if (!mapId) return false;
-  const row = await queryOne('SELECT id FROM maps WHERE id = ?', [mapId]);
-  return !!row;
-}
-
-function normalizeLivingBeings(input, fallback = '') {
-  const base = Array.isArray(input)
-    ? input
-    : typeof input === 'string' && input.trim()
-      ? (() => {
-          try {
-            const parsed = JSON.parse(input);
-            if (Array.isArray(parsed)) return parsed;
-          } catch (_) {}
-          return input.split(',');
-        })()
-      : [];
-  const cleaned = [...new Set(base.map((v) => String(v || '').trim()).filter(Boolean))];
-  if (cleaned.length === 0 && fallback && String(fallback).trim()) return [String(fallback).trim()];
-  return cleaned;
-}
 
 function hasVisitMarkerContentPatch(body) {
   if (!body || typeof body !== 'object') return false;

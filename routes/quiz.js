@@ -49,16 +49,11 @@ const {
 } = require('../lib/quizQuestionStats');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
+const { normalizeOptionalString: normalizeOptionalFilter } = require('../lib/shared/httpHelpers');
 
 const router = express.Router();
 const FM_QCM_JWT_KIND = 'fm_quiz_present';
 const QCM_OPTIONS = { jwtKind: FM_QCM_JWT_KIND };
-
-function normalizeOptionalFilter(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
 
 const questionCodeParamsSchema = z.unknown().superRefine((p, ctx) => {
   const code = normalizeQuestionCode(p == null ? '' : p.code);

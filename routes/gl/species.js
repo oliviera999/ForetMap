@@ -24,6 +24,10 @@ const {
 } = require('../../lib/shared/learningAckCore');
 const { z, validate } = require('../../lib/validate');
 const asyncHandler = require('../../lib/asyncHandler');
+const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
+/** Filtres de requête optionnels (`?q=`, `?categorie=`…) : chaîne rognée ou `null`. */
+const normalizeOptionalFilter = normalizeOptionalString;
+const normalizeBiomeSlug = normalizeOptionalString;
 
 const db = { queryAll, queryOne, execute };
 
@@ -56,12 +60,6 @@ async function loadSpeciesLearnedCodes(glAuth) {
 }
 
 const router = express.Router();
-
-function normalizeBiomeSlug(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
 
 /** GET /api/gl/biomes — liste des biomes avec effectifs espèces. */
 router.get(
@@ -143,12 +141,6 @@ router.get(
 );
 
 const ADMIN_SPECIES_LIST_LIMIT = 500;
-
-function normalizeOptionalFilter(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
 
 function handleSpeciesCrudError(res, err) {
   const status = err.statusCode || 400;

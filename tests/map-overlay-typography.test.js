@@ -128,4 +128,20 @@ describe('resolveMapOverlayMarkerCssTypography — compensation du calque zoomé
     const maxW = parseFloat(vars['--map-overlay-label-max-width']);
     assert.ok(Math.abs(maxW - 96 * (2 ** (DEFAULT_ZOOM_GROWTH_PERCENT / 100) / 2)) < 1e-9);
   });
+
+  test('plateauAsTransform false (SharedMapStage) : taille écran, pas de division plateau', () => {
+    const halfFit = REF / 2;
+    const legacy = resolveMapOverlayMarkerCssTypography({}, halfFit, {});
+    const pctInv = resolveMapOverlayMarkerCssTypography({}, halfFit, {
+      plateauAsTransform: false,
+    });
+    // Ancien mode : fontes / scale → plus grosses que la taille écran voulue.
+    assert.ok(legacy.emojiFontSizePx > pctInv.emojiFontSizePx);
+    assert.strictEqual(pctInv.overlayScale, '1');
+    const vars = resolveMapOverlayCssVariables({}, halfFit, { plateauAsTransform: false });
+    assert.strictEqual(vars['--map-overlay-scale'], '1');
+    assert.ok(
+      Math.abs(parseFloat(vars['--map-overlay-emoji-font-size']) - pctInv.emojiFontSizePx) < 1e-9,
+    );
+  });
 });

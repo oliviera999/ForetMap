@@ -39,7 +39,9 @@ observations.
 
 ## Où ça se passe
 
-Dans **Paramètres administrateur → onglet Moodle**. L'onglet s'ouvre sur l'**état du lien** :
+Dans **Paramètres → Intégrations**. L'onglet n'apparaît que pour les comptes qui ont
+la permission dédiée Moodle (pas seulement la lecture des réglages). Il s'ouvre sur
+l'**état du lien** :
 
 - **Configuré** / **Non configuré** : le lien technique avec Moodle est-il en place ? (C'est un
   réglage de serveur, pas un bouton ; voir l'encadré « Pour les curieux ».)
