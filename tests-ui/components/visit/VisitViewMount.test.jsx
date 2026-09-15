@@ -91,9 +91,8 @@ const { VisitView } = await import('../../../src/components/visit-views.jsx');
 const { PublicSettingsProvider } = await import('../../../src/contexts/PublicSettingsContext.jsx');
 const { SessionProvider } = await import('../../../src/contexts/SessionContext.jsx');
 const { DataProvider } = await import('../../../src/contexts/DataContext.jsx');
-const { AppDialogsProvider } = await import(
-  '../../../src/shared/components/AppDialogsProvider.jsx'
-);
+const { AppDialogsProvider } =
+  await import('../../../src/shared/components/AppDialogsProvider.jsx');
 const { resetVisitPlantCatalogCache } = await import('../../../src/hooks/useVisitPlantCatalog.js');
 const { resetGlossaryLinkIndexCache } = await import('../../../src/hooks/useGlossaryLinkIndex.js');
 

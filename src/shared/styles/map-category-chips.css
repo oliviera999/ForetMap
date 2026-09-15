@@ -1,13 +1,19 @@
 /* Puces de filtre par catégorie — partagées Plan / Visite (extrait de plan.css).
-   Classes historiques `.plan-chips` / `.plan-chip` conservées ; alias `.visit-chips`
-   / `.visit-chip` pour le thème forêt de la Visite. */
+   Classes historiques `.plan-chips` / `.plan-chip` ; alias `.visit-chips` / `.visit-chip`.
+
+   Le défilement horizontal est sur le **conteneur parent** (`.plan-filters__row` /
+   `.visit-map-card__chrome-chips`), pas sur cette rangée : les puces restent
+   `width: max-content` pour ne pas forcer la largeur de la fenêtre. */
 
 .plan-chips,
 .visit-chips {
   display: flex;
   flex: 0 0 auto;
+  flex-wrap: nowrap;
   gap: var(--space-2, 8px);
   padding: 0;
+  width: max-content;
+  max-width: none;
   overflow: visible;
   background: transparent;
   border: 0;

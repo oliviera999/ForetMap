@@ -1,5 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import {
+  HEADING_UP_COVER_SCALE,
+  headingUpCoverScaleMultiplier,
   headingUpOrientationDeg,
   mapOrientationStyle,
   rotatePointAround,
@@ -34,6 +36,14 @@ describe('pctMapOrientation', () => {
     const back = unrotatePointAround(p.x, p.y, 0, 0, 90);
     expect(back.x).toBeCloseTo(10);
     expect(back.y).toBeCloseTo(0);
+  });
+
+  test('headingUpCoverScaleMultiplier : 0° → 1, 45° → √2, 90° → 1', () => {
+    expect(headingUpCoverScaleMultiplier(0)).toBeCloseTo(1, 5);
+    expect(headingUpCoverScaleMultiplier(45)).toBeCloseTo(Math.SQRT2, 5);
+    expect(headingUpCoverScaleMultiplier(90)).toBeCloseTo(1, 5);
+    expect(headingUpCoverScaleMultiplier(-45)).toBeCloseTo(Math.SQRT2, 5);
+    expect(HEADING_UP_COVER_SCALE).toBeCloseTo(Math.SQRT2, 5);
   });
 });
 

@@ -39,6 +39,37 @@ export const POLLING_COARSE_TABS = new Set([
   'media_library',
 ]);
 export const IOS_INSTALL_HINT_DISMISSED_KEY = 'foretmap_ios_install_hint_dismissed';
+
+/**
+ * Onglets épinglés sur la barre mobile élève (pattern « Plus », audit iPhone 2026-09).
+ * Ordre : Carte · Tâches · Biodiversité · Visite (sinon Quiz en repli).
+ * Visiteur sans carte/tâches : Visite · Biodiversité · Quiz.
+ */
+export const FM_MOBILE_PRIMARY_TAB_IDS = ['map', 'tasks', 'plants', 'visit'];
+export const FM_MOBILE_PRIMARY_TAB_IDS_FALLBACK_QUIZ = ['map', 'tasks', 'plants', 'quiz'];
+export const FM_MOBILE_PRIMARY_TAB_IDS_VISITOR = ['visit', 'plants', 'quiz'];
+
+/**
+ * Résout les IDs primary réellement affichables parmi les onglets visibles.
+ * @param {{ canAccessStudentMapTasks: boolean, visitEnabled: boolean, visibleIds: string[] }} opts
+ * @returns {string[]}
+ */
+export function resolveStudentMobilePrimaryIds({
+  canAccessStudentMapTasks,
+  visitEnabled,
+  visibleIds,
+}) {
+  const visible = new Set(visibleIds);
+  let candidates;
+  if (!canAccessStudentMapTasks) {
+    candidates = FM_MOBILE_PRIMARY_TAB_IDS_VISITOR;
+  } else if (visitEnabled && visible.has('visit')) {
+    candidates = FM_MOBILE_PRIMARY_TAB_IDS;
+  } else {
+    candidates = FM_MOBILE_PRIMARY_TAB_IDS_FALLBACK_QUIZ;
+  }
+  return candidates.filter((id) => visible.has(id));
+}
 export const GUEST_VISIT_MASCOT_CONFIRMED_KEY = 'foretmap_visit_guest_mascot_confirmed_v1';
 /**
  * Liste d'ids autorisés par défaut : **vide = aucune restriction** (toutes les mascottes

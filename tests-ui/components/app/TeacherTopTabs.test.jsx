@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { TeacherTopTabs } from '../../../src/components/app/TeacherTopTabs.jsx';
 
 /**
@@ -37,6 +37,7 @@ const baseProps = {
   isN3Affiliated: false,
   hasPermission: (perm) => TEACHER_PERMISSIONS.has(perm),
   hasPermissionInRole: () => false,
+  layoutMode: 'full',
 };
 
 describe('TeacherTopTabs — navigation en 3 pôles (audit D-4)', () => {
@@ -167,5 +168,19 @@ describe('TeacherTopTabs — navigation en 3 pôles (audit D-4)', () => {
     // Sans module tutoriels, l'onglet Tâches (pôle Suivi) redevient « Tâches ».
     render(<TeacherTopTabs {...baseProps} tab="tasks" tutorialsModuleEnabled={false} />);
     expect(screen.getByRole('button', { name: 'Tâches' })).toHaveClass('active');
+  });
+
+  test('mode compact : pôles seuls, onglets du pôle dans la feuille', async () => {
+    const onTabChange = vi.fn();
+    render(<TeacherTopTabs {...baseProps} layoutMode="compact" onTabChange={onTabChange} />);
+    expect(screen.getByRole('navigation', { name: 'Navigation professeur' })).toHaveClass(
+      'teacher-nav--compact',
+    );
+    expect(screen.queryByRole('button', { name: 'Carte & Zones' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Contenus' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Contenus' });
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Biodiversité' }));
+    expect(onTabChange).toHaveBeenCalledWith('plants');
   });
 });

@@ -19,11 +19,17 @@ async function ouvrirOngletEleve(page, libelle) {
   await dismissProfilePromotionModalIfPresent(page);
   await dismissDiscoveryTourIfPresent(page);
   await page.locator('nav.bottom-nav').waitFor({ state: 'visible', timeout: 30_000 });
-  await page
-    .locator('nav.bottom-nav')
-    .getByRole('button', { name: libelle })
-    .first()
-    .click({ timeout: 25_000 });
+  const nav = page.locator('nav.bottom-nav');
+  const direct = nav.getByRole('button', { name: libelle }).first();
+  if ((await direct.count()) > 0) {
+    await direct.click({ timeout: 25_000 });
+  } else {
+    // Mode compact (Plus) : l'onglet est dans la feuille de navigation.
+    await nav.getByRole('button', { name: /Plus d'onglets/ }).click({ timeout: 15_000 });
+    const sheet = page.getByRole('dialog', { name: 'Navigation' });
+    await sheet.waitFor({ state: 'visible', timeout: 15_000 });
+    await sheet.getByRole('button', { name: libelle }).first().click({ timeout: 15_000 });
+  }
   // Les vues chargent leurs données après le clic : sans cette pause, `axe` mesure un
   // squelette et l'inventaire décrit un écran qui n'existe pas.
   await page.waitForTimeout(1_500);
