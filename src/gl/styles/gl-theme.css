@@ -6952,3 +6952,50 @@ fieldset .media-library-menu__gallery {
   border-left: 3px solid var(--gl-ink-danger, #b91c1c);
   padding-left: 8px;
 }
+
+.gl-player-journal__article-title-read {
+  margin: 0;
+  flex: 1 1 220px;
+  font-size: var(--text-md);
+  font-weight: var(--fw-semibold);
+}
+.gl-journal-embed.journal-embed--plate::before,
+.gl-journal-embed[data-plate='1']::before {
+  display: none;
+}
+.gl-journal-embed.journal-embed--plate,
+.gl-journal-embed[data-plate='1'] {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 12px;
+  align-items: start;
+}
+.journal-embed-plate__thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.journal-embed-plate__label {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gl-color-primary);
+}
+.journal-embed-plate__title {
+  margin: 2px 0 4px;
+  font-weight: var(--fw-semibold);
+}
+.journal-embed-plate__excerpt {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: #4b5563;
+}
+.gl-player-journal-book,
+.gl-journal-book {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 16px;
+}

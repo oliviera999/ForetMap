@@ -153,7 +153,7 @@ Nouveau routeur : [`routes/user-journal.js`](routes/user-journal.js) (ou évolut
 | POST    | `/me/imports`                      | `{ resourceType, resourceRef, title? }` — 403 si non appris |
 | PUT     | `/me/imports/:id/pin`              |                                                             |
 | DELETE  | `/me/imports/:id`                  |                                                             |
-| POST    | `/embeds/resolve`                  | `{ embeds:[{type,ref}] }` → titres                          |
+| POST    | `/embeds/resolve`                  | `{ embeds:[{type,ref}] }` → `{ titles, cards }`             |
 | GET     | `/users/:userId`                   | lecture staff (`observations.read.*` + périmètre)           |
 
 Auth : `requireAuth` ; module off → **503** (comme GL).  

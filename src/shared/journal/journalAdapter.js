@@ -17,7 +17,8 @@
  * @property {(importId: string|number) => Promise<unknown>} deleteImport
  * @property {(importId: string|number, pinned: boolean) => Promise<unknown>} pinImport
  * @property {(payload: { resourceType: string, resourceRef: string, title?: string }) => Promise<{ import?: object }>} importResource
- * @property {(embeds: { type: string, ref: string }[]) => Promise<{ titles?: Record<string, string> }>} resolveEmbeds
+ * @property {(embeds: { type: string, ref: string }[]) => Promise<{ titles?: Record<string, string>, cards?: Record<string, object> }>} resolveEmbeds
+ * @property {(type: string, q: string) => Promise<{ results?: { type: string, ref: string, title: string }[] }>} searchEmbeds
  * @property {(subjectId: string|number) => Promise<{ user?: object, player?: object, articles?: object[], imports?: object[] }>} fetchSubjectJournal
  *   lecture par un professeur / MJ du carnet d'un autre compte
  */
@@ -50,6 +51,7 @@ export function createJournalAdapter({ request, basePath, subjectsSegment = 'use
       request(`${base}/imports/${enc(importId)}/pin`, 'PUT', { pinned }),
     importResource: (payload) => request(`${base}/imports`, 'POST', payload),
     resolveEmbeds: (embeds) => request(`${root}/embeds/resolve`, 'POST', { embeds }),
+    searchEmbeds: (type, q) => request(`${root}/embeds/search?type=${enc(type)}&q=${enc(q)}`),
     fetchSubjectJournal: (subjectId) => request(`${root}/${subjectsSegment}/${enc(subjectId)}`),
   };
 }

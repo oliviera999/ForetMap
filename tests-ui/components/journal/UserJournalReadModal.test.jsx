@@ -24,12 +24,23 @@ const PAYLOAD = {
     },
   ],
   imports: [
-    { id: 10, resourceType: 'plant', resourceRef: '12', title: 'Noisetier' },
-    { id: 11, resourceType: 'glossary', resourceRef: 'HUMUS', title: 'Humus' },
+    {
+      id: 10,
+      resourceType: 'plant',
+      resourceRef: '12',
+      title: 'Noisetier',
+      createdAt: '2026-05-03T10:00:00Z',
+    },
+    {
+      id: 11,
+      resourceType: 'glossary',
+      resourceRef: 'HUMUS',
+      title: 'Humus',
+      createdAt: '2026-05-04T10:00:00Z',
+    },
   ],
 };
 
-/** Miroir ForetMap du test G&L « vue MJ enrichie » : même modale partagée, lecture par le prof. */
 describe('UserJournalReadModal — lecture professeur alignée sur la vue MJ', () => {
   beforeEach(() => {
     apiMock.mockReset();
@@ -47,13 +58,16 @@ describe('UserJournalReadModal — lecture professeur alignée sur la vue MJ', (
     expect(screen.getByRole('heading', { name: 'Carnet de Éva Test' })).toBeInTheDocument();
     expect(screen.getByText('Zone : Mare')).toBeInTheDocument();
     expect(screen.getByText(/7 caractères/)).toBeInTheDocument();
-    expect(screen.getByText(/Éléments importés \(2\)/)).toBeInTheDocument();
+    expect(screen.getByText(/élément\(s\) appris/)).toBeInTheDocument();
+    expect(screen.getByText('Noisetier')).toBeInTheDocument();
+    expect(screen.getByText('Humus')).toBeInTheDocument();
 
     const filter = screen.getByRole('combobox', { name: /Filtrer les imports par type/i });
     fireEvent.change(filter, { target: { value: 'glossary' } });
-    expect(screen.getByText(/Éléments importés \(1\)/)).toBeInTheDocument();
     expect(screen.queryByText('Noisetier')).not.toBeInTheDocument();
+    expect(screen.getByText('Humus')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Exporter/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Imprimer \/ PDF/i })).toBeInTheDocument();
   });
 
   test('carnet vide : message, pas de bouton export', async () => {

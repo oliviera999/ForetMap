@@ -1,8 +1,9 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { AccountDeletedError } from '../../services/api';
 import { userJournalAdapter } from '../../services/userJournalAdapter.js';
 import { useJournalFeed } from '../../shared/journal/useJournalFeed.js';
 import { JournalFeedToolbar } from '../../shared/journal/JournalFeedToolbar.jsx';
+import { JournalBookView } from '../../shared/journal/JournalBookView.jsx';
 import { UserJournalArticleCard } from './UserJournalArticleCard.jsx';
 import { UserJournalImportCard } from './UserJournalImportCard.jsx';
 import { FM_JOURNAL_UI } from './journalUi.js';
@@ -10,23 +11,24 @@ import { HelpPanel } from '../HelpPanel.jsx';
 import { useHelp } from '../../hooks/useHelp.js';
 import { resolveHelpPanelSection } from '../../utils/helpResolve.js';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
+import { importTypeMeta } from '../../utils/fmJournalMeta.js';
 
 /**
- * Carnet ForetMap (parité « Mon journal » G&L) : fil unifié articles + imports.
- * Données et actions dans `useJournalFeed` (partagé) ; ici les textes, l'aide contextuelle
- * (panneau `?` de la section `journal`, pendant du `GLHelpPanel` sur `tab:my-journal`) et
- * l'habillage.
+ * Carnet ForetMap : fil lecture-first (articles + éléments appris), édition ciblée,
+ * impression livre.
  */
 export function UserJournalView({
   zones = [],
   onForceLogout = null,
   onNavigateTab = null,
   isTeacher = false,
+  bookOwnerLabel = 'Mon carnet',
 }) {
   const publicSettings = usePublicSettings();
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
     useHelp({ publicSettings, isTeacher });
   const helpJournal = resolveHelpPanelSection('journal', publicSettings);
+  const [bookOpen, setBookOpen] = useState(false);
   const onError = useCallback(
     (err) => {
       if (err instanceof AccountDeletedError) onForceLogout?.();
@@ -34,6 +36,22 @@ export function UserJournalView({
     [onForceLogout],
   );
   const feed = useJournalFeed(userJournalAdapter, { onError });
+
+  if (bookOpen) {
+    return (
+      <JournalBookView
+        articles={feed.articles}
+        imports={feed.imports}
+        adapter={userJournalAdapter}
+        ui={FM_JOURNAL_UI}
+        ownerLabel={bookOwnerLabel}
+        productLabel="ForetMap"
+        yearbook
+        onClose={() => setBookOpen(false)}
+        importTypeMeta={importTypeMeta}
+      />
+    );
+  }
 
   return (
     <section className="fm-journal fade-in" data-testid="user-journal">
@@ -53,10 +71,9 @@ export function UserJournalView({
             />
           ) : null}
         </div>
-        <p className="hint">
-          Ton carnet personnel : articles (texte enrichi et photos), et imports des espèces, termes
-          de glossaire et tutoriels que tu as marqués comme appris. Les professeurs peuvent le
-          consulter pour t’accompagner.
+        <p className="hint fm-journal__intro">
+          Feuillette ton carnet : articles et éléments appris. Écris un article, importe une espèce
+          ou un terme marqué comme appris. Les professeurs peuvent le consulter pour t’accompagner.
         </p>
       </header>
 
@@ -69,6 +86,11 @@ export function UserJournalView({
         >
           {feed.creating ? 'Création…' : '+ Nouvel article'}
         </button>
+        {feed.totalCount > 0 ? (
+          <button type="button" className="btn btn-secondary" onClick={() => setBookOpen(true)}>
+            Imprimer mon carnet
+          </button>
+        ) : null}
         {feed.error ? (
           <button type="button" className="btn btn-secondary" onClick={feed.reload}>
             Réessayer
@@ -108,6 +130,9 @@ export function UserJournalView({
                 article={entry.data}
                 limits={feed.limits}
                 zones={zones}
+                editing={String(feed.editingId) === String(entry.data.id)}
+                onStartEdit={(id) => feed.setEditingId(id)}
+                onStopEdit={() => feed.setEditingId(null)}
                 onDelete={feed.deleteArticle}
                 onTogglePin={feed.pinArticle}
                 onForceLogout={onForceLogout}

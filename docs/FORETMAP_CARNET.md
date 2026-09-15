@@ -6,24 +6,24 @@ Produit isolé : tables `user_journal_*`, API `/api/user-journal`, pas de coupla
 ## Fonctionnalités
 
 - Articles (titre optionnel, markdown, multi-photos, zone optionnelle, auto-save UI, épinglage)
+- **Lecture-first** : cartes lecture + édition ciblée (`editingId` dans `useJournalFeed`)
 - Encarts inline (`plant`, `glossary`, `tutorial`, `module_stub`) — format `journal-embed`
-- Imports catalogue après apprentissage : `plant` (événements d’observation), `glossary`
-  (`learning_acknowledgements`), `tutorial` (`user_tutorial_reads`)
-- Recherche / filtre / tri côté client
-- Lecture staff (`observations.read.*`) + export `.md`
-- Module `ui.modules.observations_enabled` ; limites `observations.journal_max_chars` /
-  `observations.journal_max_assets` (0 = illimité)
+  - Resolve enrichi `{ titles, cards }` ; planches à l’affichage
+  - Picker par **recherche** (`GET /embeds/search`)
+- Imports catalogue après apprentissage : `plant`, `glossary`, `tutorial`
+- Recherche / filtre (« Éléments appris ») / tri côté client
+- Lecture staff + export `.md` + **vue livre** impression/PDF navigateur
+- Module `ui.modules.observations_enabled` ; limites chars/assets (0 = illimité)
 
 ## Public
 
-Tout compte ForetMap connecté (élève, visiteur, personnel, prof de classe, n3boss, admin)
-tient **son** carnet personnel. Les routes `/api/observations` restent pour compatibilité
-historique ; l’UI et le panneau Stats utilisent le carnet unifié.
+Tout compte ForetMap connecté tient **son** carnet personnel. Les routes `/api/observations`
+restent pour compatibilité historique ; l’UI et le panneau Stats utilisent le carnet unifié.
 
 ## Fichiers
 
 - `lib/fmUserJournal.js`, `routes/user-journal.js`, `migrations/237_user_journal.sql`
-- UI : `src/components/journal/*`
+- UI : `src/components/journal/*` + `src/shared/journal/*` (`JournalBookView`, `JournalArticleReadCard`)
 - Import : `FmLearnAndImportSlot` + `FmJournalImportButton` sur espèce / glossaire / tuto
 - Illustrations : famille privée `user-journal/` (garde `/uploads` → 403) ; lecture via
   `GET /api/user-journal/assets/:id/file` (propriétaire ou `observations.read.*`)

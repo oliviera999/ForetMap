@@ -21,6 +21,8 @@ export function useJournalFeed(adapter, { onError } = {}) {
   const [kindFilter, setKindFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [sortOrder, setSortOrder] = useState('recent');
+  /** Article ouvert en édition (null = tout le fil en lecture). */
+  const [editingId, setEditingId] = useState(null);
   const latest = useLatestRequest();
 
   const fail = useCallback(
@@ -58,7 +60,10 @@ export function useJournalFeed(adapter, { onError } = {}) {
     setError('');
     try {
       const data = await adapter.createArticle();
-      if (data?.article) setArticles((prev) => [data.article, ...prev]);
+      if (data?.article) {
+        setArticles((prev) => [data.article, ...prev]);
+        setEditingId(data.article.id);
+      }
     } catch (err) {
       fail(err, 'Création impossible');
     } finally {
@@ -70,6 +75,7 @@ export function useJournalFeed(adapter, { onError } = {}) {
     async (articleId) => {
       await adapter.deleteArticle(articleId);
       setArticles((prev) => prev.filter((a) => a.id !== articleId));
+      setEditingId((cur) => (String(cur) === String(articleId) ? null : cur));
     },
     [adapter],
   );
@@ -119,6 +125,8 @@ export function useJournalFeed(adapter, { onError } = {}) {
     timeline,
     totalCount: articles.length + imports.length,
     reload,
+    editingId,
+    setEditingId,
     createArticle,
     deleteArticle,
     deleteImport,

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { useAppDialogs } from '../components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../hooks/useDebouncedAutoSave.js';
 import {
   applyJournalEmbed,
@@ -36,6 +37,7 @@ export function useJournalArticleEditor({
   onDelete,
   onTogglePin,
 }) {
+  const { confirm } = useAppDialogs();
   const textareaRef = useRef(null);
   const [title, setTitle] = useState(article.title || '');
   const [body, setBody] = useState(article.bodyMarkdown || '');
@@ -174,6 +176,9 @@ export function useJournalArticleEditor({
 
   const removeAsset = useCallback(
     async (assetId) => {
+      if (!(await confirm({ message: 'Supprimer cette illustration ?', danger: true }))) {
+        return;
+      }
       try {
         const res = await adapter.removeArticleAsset(article.id, assetId);
         setAssets((prev) => prev.filter((a) => a.id !== assetId));
@@ -186,18 +191,26 @@ export function useJournalArticleEditor({
         setSaveError(err.message || 'Suppression impossible');
       }
     },
-    [adapter, article.id, onApiError],
+    [adapter, article.id, onApiError, confirm],
   );
 
   const handleDelete = useCallback(async () => {
     if (deleting) return;
+    if (
+      !(await confirm({
+        message: 'Supprimer cet article ? Cette action est définitive.',
+        danger: true,
+      }))
+    ) {
+      return;
+    }
     setDeleting(true);
     try {
       await onDelete?.(article.id);
     } finally {
       setDeleting(false);
     }
-  }, [deleting, onDelete, article.id]);
+  }, [deleting, onDelete, article.id, confirm]);
 
   const handleTogglePin = useCallback(async () => {
     if (pinning) return;

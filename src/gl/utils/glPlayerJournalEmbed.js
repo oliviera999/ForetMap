@@ -1,35 +1,36 @@
 /**
- * Registre des encarts insérables dans un article du journal G&L (sélecteur partagé
- * `src/shared/journal/JournalEmbedPicker.jsx`) : sort (avec les codes du chapitre courant en
- * suggestions), espèce, terme du glossaire, chapitre, ou rappel « module narratif à venir ».
+ * Registre des encarts insérables dans un article du journal G&L.
  * @type {import('../../shared/journal/JournalEmbedPicker.jsx').JournalEmbedType[]}
  */
 export const JOURNAL_EMBED_TYPES = [
   {
     value: 'spell',
     label: 'Sortilège',
-    fieldLabel: 'Code sort (ex. SL001) ou choix chapitre',
-    placeholder: 'SL001',
+    input: 'search',
+    fieldLabel: 'Rechercher un sortilège',
+    placeholder: 'ex. Clairière',
     suggestions: (context) => (Array.isArray(context?.chapterSpells) ? context.chapterSpells : []),
   },
   {
     value: 'species',
     label: 'Espèce (biodiversité)',
-    fieldLabel: 'Code espèce (ex. SP0001)',
-    placeholder: 'SP0001',
+    input: 'search',
+    fieldLabel: 'Rechercher une espèce',
+    placeholder: 'ex. Renard',
   },
   {
     value: 'glossary',
     label: 'Terme du glossaire scientifique',
-    fieldLabel: 'Code glossaire (ex. GL001)',
-    placeholder: 'GL001',
+    input: 'search',
+    fieldLabel: 'Rechercher un terme',
+    placeholder: 'ex. Biome',
   },
   {
     value: 'chapter',
     label: 'Chapitre / scène',
-    input: 'number',
-    fieldLabel: 'Identifiant chapitre',
-    placeholder: '1',
+    input: 'search',
+    fieldLabel: 'Rechercher un chapitre',
+    placeholder: 'ex. Seuil',
   },
   {
     value: 'module_stub',

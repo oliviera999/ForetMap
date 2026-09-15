@@ -17,6 +17,7 @@ const TEXTS = {
   subjectLabel: playerLabel,
   fileName: (player) => `carnet-${player?.pseudo || player?.id || 'joueur'}.md`,
   empty: 'Ce joueur n’a pas encore rédigé d’article dans son carnet.',
+  productLabel: 'Gnomes & Licornes',
 };
 
 /**

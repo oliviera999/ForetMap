@@ -1,10 +1,29 @@
-import { describe, test, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+
+const apiMock = vi.fn();
+vi.mock('../../../src/services/api', () => ({
+  api: (...args) => apiMock(...args),
+  getAuthToken: () => 'jwt',
+  AccountDeletedError: class AccountDeletedError extends Error {},
+}));
+
 import { UserJournalEmbedPicker } from '../../../src/components/journal/UserJournalEmbedPicker.jsx';
 
-/** Miroir ForetMap du test G&L : même dialogue partagé, registre de types et thème du produit. */
 describe('UserJournalEmbedPicker — sélecteur d’encarts partagé, habillage ForetMap', () => {
-  test('affiche les types ForetMap, insère une fiche espèce puis se ferme', () => {
+  beforeEach(() => {
+    apiMock.mockReset();
+    apiMock.mockImplementation((url) => {
+      if (String(url).includes('/embeds/search')) {
+        return Promise.resolve({
+          results: [{ type: 'plant', ref: '12', title: 'Noisetier' }],
+        });
+      }
+      return Promise.resolve({});
+    });
+  });
+
+  test('affiche les types ForetMap, recherche une espèce puis l’insère', async () => {
     const onInsert = vi.fn();
     const onClose = vi.fn();
     render(<UserJournalEmbedPicker open onClose={onClose} onInsert={onInsert} />);
@@ -17,13 +36,16 @@ describe('UserJournalEmbedPicker — sélecteur d’encarts partagé, habillage 
       'module_stub',
     ]);
 
-    // Référence vide : rien n'est inséré.
     fireEvent.click(screen.getByRole('button', { name: 'Insérer' }));
     expect(onInsert).not.toHaveBeenCalled();
 
-    fireEvent.change(screen.getByLabelText('Identifiant de fiche espèce'), {
-      target: { value: ' 12 ' },
+    fireEvent.change(screen.getByLabelText('Rechercher une espèce'), {
+      target: { value: 'Nois' },
     });
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Noisetier' })).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Noisetier' }));
     fireEvent.click(screen.getByRole('button', { name: 'Insérer' }));
     expect(onInsert).toHaveBeenCalledWith('plant', '12');
     expect(onClose).toHaveBeenCalledTimes(1);

@@ -79,8 +79,8 @@
 
 - **Scores et statistiques** : le score des équipes, la progression individuelle et de
   classe (contenus appris, feuillets découverts).
-- **Les carnets personnels** : consultables en lecture (et exportables) pour valoriser
-  le travail d'écriture des élèves.
+- **Les carnets personnels** : consultables en lecture, exportables et imprimables en
+  forme de livre pour valoriser le travail d'écriture des élèves.
 - **Le journal de partie** garde la trace narrative de la séance.
 
 ## OLU, le narrateur, entre dans le jeu
@@ -202,7 +202,7 @@ change pas.
 | Vérifier ce que voit un élève               | —                                                                                                            | Prendre la main sur son compte (bandeau affiché, action tracée) ou basculer en « vue joueur »          |
 | Les sorts ne se lancent pas                 | Module Sortilèges désactivé, ou lancement réservé au MJ par le profil de séance                              | Réglages → modules / gameplay                                                                          |
 | OLU n'apparaît pas sur les feuillets        | Le narrateur a été éteint côté ForetMap (le réglage est commun)                                              | ForetMap → Paramètres → Narrateur OLU → rallumer l'interrupteur                                        |
-| Une visite guidée ne se relance pas         | L'onglet affiché n'en a pas (les écrans d'administration), ou le module d'aide est éteint                    | Ouvrir le « ? » : le bouton « ▶ Visite guidée » n'apparaît que si un parcours existe                   |
+| Une visite guidée ne se relance pas         | L'onglet affiché n'en a pas (les écrans d'administration), ou le module d'aide est éteint                    | Ouvrir le « ? » : le bouton « ▶ Visite guidée » n'apparaît que si un parcours existe                  |
 | Un texte de visite réécrit ne s'affiche pas | La réécriture est enregistrée mais la page n'a pas rechargé le parcours                                      | Rouvrir l'onglet ; en cas de doute, vérifier le champ dans Contenus → Visites guidées                  |
 | Un élève veut revoir l'accueil d'OLU        | Il n'est joué qu'une fois par navigateur                                                                     | Effacer les données du site dans le navigateur, ou passer par un autre profil                          |
 | Un élève ne peut pas payer pour un camarade | C'est le réglage par défaut (chacun sa part, sa propre équipe) — le MJ, lui, répartit toujours librement     | Réglages → gameplay → « Mode de contribution » / « Équipes pouvant lancer »                            |

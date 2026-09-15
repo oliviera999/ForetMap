@@ -1,32 +1,22 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DialogShell } from '../components/DialogShell.jsx';
 import { Button } from '../ui/Button.jsx';
 
 /**
- * Dialogue « Insérer un élément » du carnet : un type d'encart, une référence, insertion
- * dans l'article. Composant unique pour ForetMap et G&L ; le produit fournit son registre de
- * types (`types`) et son habillage (`ui`). Le champ de saisie découle du type choisi :
+ * Dialogue « Insérer un élément » : recherche par titre (input=search) ou saisie manuelle.
  *
  * @typedef {object} JournalEmbedType
- * @property {string} value type d'encart (`plant`, `spell`, `module_stub`…)
- * @property {string} label libellé de l'option
- * @property {'text'|'number'|'select'|'none'} [input='text'] `none` : référence fixe, sans champ
- * @property {string} [fieldLabel] libellé du champ de saisie
+ * @property {string} value
+ * @property {string} label
+ * @property {'text'|'number'|'select'|'none'|'search'} [input='text']
+ * @property {string} [fieldLabel]
  * @property {string} [placeholder]
- * @property {{ value: string, label: string }[]} [options] choix d'un `select`
- * @property {string} [defaultRef] référence retenue quand le champ est vide (`select`, `none`)
- * @property {(context: object) => string[]} [suggestions] valeurs proposées en `datalist`
- * @property {string} [hint] texte explicatif affiché sous le type
- *
- * @param {object} props
- * @param {boolean} props.open
- * @param {() => void} [props.onClose]
- * @param {(type: string, ref: string) => void} [props.onInsert]
- * @param {JournalEmbedType[]} props.types
- * @param {object} [props.context] données produit passées aux `suggestions` (sorts du chapitre…)
- * @param {string} [props.title='Insérer un élément']
- * @param {object} props.ui habillage produit (`FM_JOURNAL_UI` / `GL_JOURNAL_UI`)
+ * @property {{ value: string, label: string }[]} [options]
+ * @property {string} [defaultRef]
+ * @property {(context: object) => string[]} [suggestions]
+ * @property {string} [hint]
  */
+
 export function JournalEmbedPicker({
   open,
   onClose,
@@ -35,9 +25,13 @@ export function JournalEmbedPicker({
   context = null,
   title = 'Insérer un élément',
   ui,
+  searchEmbeds = null,
 }) {
   const [embedType, setEmbedType] = useState(() => types[0]?.value || '');
   const [embedRef, setEmbedRef] = useState('');
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
   const p = ui.classPrefix;
   const Btn = ui.Button || Button;
   const Field = ui.Field || DefaultField;
@@ -50,6 +44,36 @@ export function JournalEmbedPicker({
   const suggestions =
     current && typeof current.suggestions === 'function' ? current.suggestions(context) || [] : [];
 
+  useEffect(() => {
+    if (!open || input !== 'search' || typeof searchEmbeds !== 'function') {
+      setResults([]);
+      return undefined;
+    }
+    const q = query.trim();
+    if (q.length < 1) {
+      setResults([]);
+      return undefined;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setSearching(true);
+      Promise.resolve(searchEmbeds(embedType, q))
+        .then((res) => {
+          if (!cancelled) setResults(Array.isArray(res?.results) ? res.results : []);
+        })
+        .catch(() => {
+          if (!cancelled) setResults([]);
+        })
+        .finally(() => {
+          if (!cancelled) setSearching(false);
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [open, input, query, embedType, searchEmbeds]);
+
   function handleInsert() {
     if (!current) return;
     let ref = String(embedRef || '').trim();
@@ -58,7 +82,14 @@ export function JournalEmbedPicker({
     if (!ref) return;
     onInsert?.(current.value, ref);
     setEmbedRef('');
+    setQuery('');
+    setResults([]);
     onClose?.();
+  }
+
+  function pickResult(item) {
+    setEmbedRef(String(item.ref));
+    setQuery(String(item.title || item.ref));
   }
 
   return (
@@ -82,6 +113,8 @@ export function JournalEmbedPicker({
             onChange={(e) => {
               setEmbedType(e.target.value);
               setEmbedRef('');
+              setQuery('');
+              setResults([]);
             }}
           >
             {types.map((t) => (
@@ -103,6 +136,50 @@ export function JournalEmbedPicker({
                 </option>
               ))}
             </Select>
+          </Field>
+        ) : null}
+        {current && input === 'search' ? (
+          <Field label={current.fieldLabel || 'Rechercher'} className={ui.fieldClassName}>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setEmbedRef('');
+              }}
+              placeholder={current.placeholder || 'Tape un nom…'}
+              aria-label={current.fieldLabel || 'Rechercher'}
+            />
+            {searching ? <p className={ui.hintClassName || ''}>Recherche…</p> : null}
+            {results.length > 0 ? (
+              <ul
+                className={`${p}-embed-search-results`}
+                style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: '8px 0 0',
+                  display: 'grid',
+                  gap: 4,
+                }}
+              >
+                {results.map((item) => (
+                  <li key={`${item.type}-${item.ref}`}>
+                    <Btn
+                      {...secondaryProps}
+                      onClick={() => pickResult(item)}
+                      aria-pressed={embedRef === String(item.ref)}
+                    >
+                      {item.title || item.ref}
+                    </Btn>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {embedRef ? (
+              <p className={ui.hintClassName || ''} style={{ marginTop: 6 }}>
+                Sélection : {query || embedRef}
+              </p>
+            ) : null}
           </Field>
         ) : null}
         {current && (input === 'text' || input === 'number') ? (
@@ -130,7 +207,7 @@ export function JournalEmbedPicker({
         <Btn {...secondaryProps} onClick={onClose}>
           Annuler
         </Btn>
-        <Btn {...primaryProps} onClick={handleInsert}>
+        <Btn {...primaryProps} onClick={handleInsert} disabled={input === 'search' && !embedRef}>
           Insérer
         </Btn>
       </div>
@@ -138,7 +215,6 @@ export function JournalEmbedPicker({
   );
 }
 
-/** Champ par défaut : `<label>` englobant, libellé puis contrôle (habillage ForetMap). */
 function DefaultField({ label, className = '', children }) {
   return (
     <label className={className}>

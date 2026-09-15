@@ -1,22 +1,23 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { playerJournalAdapter } from '../services/playerJournalAdapter.js';
 import { useJournalFeed } from '../../shared/journal/useJournalFeed.js';
 import { JournalFeedToolbar } from '../../shared/journal/JournalFeedToolbar.jsx';
+import { JournalBookView } from '../../shared/journal/JournalBookView.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLPlayerJournalArticleCard } from './GLPlayerJournalArticleCard.jsx';
 import { GLPlayerJournalImportCard } from './GLPlayerJournalImportCard.jsx';
 import { GL_JOURNAL_UI } from './journalUi.js';
 import { GLHelpPanel } from './GLHelpPanel.jsx';
 import { useGlHelpContent } from '../hooks/useGlHelpContent.js';
+import { importTypeMeta } from '../utils/glJournalImportMeta.js';
 
 /**
- * « Mon journal » G&L : fil unifié articles + imports. Données et actions dans
- * `useJournalFeed` (partagé avec ForetMap) ; ici les textes, l'aide contextuelle et
- * l'habillage G&L, plus les sorts du chapitre courant proposés à l'insertion.
+ * « Mon journal » G&L : lecture-first, édition ciblée, impression livre.
  */
 export function GLPlayerJournalView({ gameState, onNavigateTab }) {
   const feed = useJournalFeed(playerJournalAdapter);
   const { title: helpTitle, body: helpBody } = useGlHelpContent('tab:my-journal');
+  const [bookOpen, setBookOpen] = useState(false);
 
   const chapterSpells = useMemo(() => {
     const rows = Array.isArray(gameState?.game?.chapter_spells)
@@ -25,16 +26,37 @@ export function GLPlayerJournalView({ gameState, onNavigateTab }) {
     return rows.map((r) => String(r.spell_code || r.spellCode || '').trim()).filter(Boolean);
   }, [gameState?.game?.chapter_spells]);
 
+  const ownerLabel =
+    gameState?.player?.display_name ||
+    gameState?.player?.pseudo ||
+    gameState?.me?.pseudo ||
+    'Mon journal';
+
+  if (bookOpen) {
+    return (
+      <JournalBookView
+        articles={feed.articles}
+        imports={feed.imports}
+        adapter={playerJournalAdapter}
+        ui={GL_JOURNAL_UI}
+        ownerLabel={ownerLabel}
+        productLabel="Gnomes & Licornes"
+        yearbook
+        onClose={() => setBookOpen(false)}
+        importTypeMeta={importTypeMeta}
+      />
+    );
+  }
+
   return (
     <section className="gl-panel gl-player-journal fade-in">
       <header className="gl-player-journal__header">
         <div>
           <h2>Mon journal</h2>
           <p className="gl-hint gl-player-journal__intro">
-            Ton carnet personnel, en ordre chronologique : clique sur « Nouvel article » pour noter
-            ce que tu veux (texte, images ou médias seuls). Tu peux aussi importer ici les éléments
-            du site que tu as appris (feuillets, écosystèmes, fiches biodiversité, tutos,
-            définitions…) depuis leur page. Le maître du jeu peut te consulter pour t’accompagner.
+            Feuillette ton carnet : articles et éléments appris. Écris ce que tu veux, ou importe un
+            feuillet, une espèce, une définition… une fois marqué comme appris. Le maître du jeu
+            peut te consulter pour t’accompagner.
           </p>
         </div>
       </header>
@@ -45,6 +67,11 @@ export function GLPlayerJournalView({ gameState, onNavigateTab }) {
         <GLButton type="button" onClick={feed.createArticle} disabled={feed.creating}>
           {feed.creating ? 'Création…' : '+ Nouvel article'}
         </GLButton>
+        {feed.totalCount > 0 ? (
+          <GLButton type="button" variant="secondary" onClick={() => setBookOpen(true)}>
+            Imprimer mon journal
+          </GLButton>
+        ) : null}
         {feed.error ? (
           <GLButton type="button" variant="secondary" onClick={feed.reload}>
             Réessayer
@@ -74,8 +101,7 @@ export function GLPlayerJournalView({ gameState, onNavigateTab }) {
             </li>
             <li>
               <strong>Importe un élément appris</strong> — sur la page d’un feuillet, d’une espèce,
-              d’une définition… clique « Marquer comme appris » (parfois après un petit quiz qui
-              valide ta lecture), puis « + Ajouter à mon journal ». Il apparaîtra ici.
+              d’une définition… clique « Marquer comme appris », puis « + Ajouter à mon journal ».
             </li>
           </ul>
         </div>
@@ -92,6 +118,9 @@ export function GLPlayerJournalView({ gameState, onNavigateTab }) {
                 article={entry.data}
                 limits={feed.limits}
                 chapterSpells={chapterSpells}
+                editing={String(feed.editingId) === String(entry.data.id)}
+                onStartEdit={(id) => feed.setEditingId(id)}
+                onStopEdit={() => feed.setEditingId(null)}
                 onDelete={feed.deleteArticle}
                 onTogglePin={feed.pinArticle}
               />

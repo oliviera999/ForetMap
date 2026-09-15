@@ -7,21 +7,63 @@ import { useFmJournalEmbedTitles } from '../../hooks/useFmJournalEmbedTitles.js'
 import { useAuthedHtmlImages } from '../../hooks/useAuthedHtmlImages.js';
 import { AuthedImage } from '../AuthedImage.jsx';
 import { UserJournalEmbedPicker } from './UserJournalEmbedPicker.jsx';
-import { formatDateTime } from '../../shared/utils/formatDateTime.js';
+import { buildEditorMetaParts } from '../../shared/journal/journalArticleMeta.js';
+import { JournalArticleReadCard } from '../../shared/journal/JournalArticleReadCard.jsx';
+import { FM_JOURNAL_UI } from './journalUi.js';
 
 const EMBED_OPTIONS = { variant: 'fm' };
 
 /**
- * Article du carnet ForetMap : logique dans `useJournalArticleEditor` (partagée avec G&L),
- * ici seulement l'habillage `.fm-journal` et le champ propre au produit — la zone.
+ * Article du carnet ForetMap : lecture par défaut, édition sur demande.
+ * Champ propre au produit — la zone.
  */
 export function UserJournalArticleCard({
+  article,
+  limits,
+  zones = [],
+  editing = false,
+  onStartEdit = null,
+  onStopEdit = null,
+  onDelete,
+  onTogglePin,
+  onForceLogout,
+}) {
+  if (!editing) {
+    const zoneName = article.zoneName || null;
+    return (
+      <JournalArticleReadCard
+        article={article}
+        adapter={userJournalAdapter}
+        ui={FM_JOURNAL_UI}
+        onEdit={onStartEdit}
+        onDelete={onDelete}
+        onTogglePin={onTogglePin}
+        extraMetaLine={zoneName}
+      />
+    );
+  }
+
+  return (
+    <UserJournalArticleEditor
+      article={article}
+      limits={limits}
+      zones={zones}
+      onDelete={onDelete}
+      onTogglePin={onTogglePin}
+      onForceLogout={onForceLogout}
+      onStopEdit={onStopEdit}
+    />
+  );
+}
+
+function UserJournalArticleEditor({
   article,
   limits,
   zones = [],
   onDelete,
   onTogglePin,
   onForceLogout,
+  onStopEdit = null,
 }) {
   const [zoneId, setZoneId] = useState(article.zoneId || '');
   const extraValue = useMemo(() => ({ zoneId: zoneId || null }), [zoneId]);
@@ -50,9 +92,18 @@ export function UserJournalArticleCard({
   // Les illustrations sont servies derrière JWT : un `dangerouslySetInnerHTML` n'envoie
   // pas le Bearer, d'où la réécriture en URL blob.
   const previewWithImages = useAuthedHtmlImages(hydratedPreview);
+  const metaParts = buildEditorMetaParts({
+    updatedAt: ed.updatedAt,
+    createdAt: article.createdAt,
+    maxChars: ed.maxChars,
+    charCount: ed.charCount,
+  });
 
   return (
-    <article className={`card fm-journal__article fade-in${ed.pinned ? ' is-pinned' : ''}`}>
+    <article
+      className={`card fm-journal__article fade-in${ed.pinned ? ' is-pinned' : ''}`}
+      data-testid="journal-article-edit"
+    >
       <header className="fm-journal__article-head">
         <input
           type="text"
@@ -63,6 +114,16 @@ export function UserJournalArticleCard({
           placeholder="Titre de l’article (optionnel)"
           aria-label="Titre de l’article"
         />
+        {onStopEdit ? (
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={onStopEdit}
+            aria-label="Terminer l’édition"
+          >
+            Terminer
+          </button>
+        ) : null}
         {onTogglePin ? (
           <button
             type="button"
@@ -72,7 +133,7 @@ export function UserJournalArticleCard({
             aria-pressed={ed.pinned}
             aria-label={ed.pinned ? 'Désépingler l’article' : 'Épingler l’article'}
           >
-            {ed.pinned ? '📌 Épinglé' : 'Épingler'}
+            {ed.pinned ? 'Épinglé' : 'Épingler'}
           </button>
         ) : null}
         <button
@@ -101,15 +162,7 @@ export function UserJournalArticleCard({
       ) : null}
 
       <p className="hint fm-journal__article-meta">
-        {ed.updatedAt ? <>Modifié le {formatDateTime(ed.updatedAt)}</> : null}
-        {article.createdAt ? <> · créé le {formatDateTime(article.createdAt)}</> : null}
-        {article.zoneName ? <> · {article.zoneName}</> : null}
-        {ed.maxChars > 0 ? (
-          <>
-            {' '}
-            · {ed.charCount} / {ed.maxChars} caractères
-          </>
-        ) : null}{' '}
+        {metaParts.length ? metaParts.join(' · ') : null}{' '}
         <AutoSaveStatus status={ed.saveStatus} className="fm-journal__saved" />
       </p>
 

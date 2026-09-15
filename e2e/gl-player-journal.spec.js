@@ -75,6 +75,9 @@ test.describe('GL carnet personnel (Mon journal)', () => {
     await page.reload();
     await reloadGet;
 
+    // Après reload : mode lecture (JournalArticleReadCard) ; rouvrir l’édition.
+    await expect(page.getByText(note)).toBeVisible({ timeout: 10000 });
+    await page.getByRole('button', { name: /Modifier l’article/i }).click();
     await expect(page.getByLabel(/Contenu de l’article/i)).toHaveValue(note);
   });
 

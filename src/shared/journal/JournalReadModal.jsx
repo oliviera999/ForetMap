@@ -5,7 +5,9 @@ import { renderMarkdownToSafeHtml } from '../platform/markdown.js';
 import { formatDateTime } from '../utils/formatDateTime.js';
 import { downloadTextFile } from '../utils/downloadTextFile.js';
 import { buildJournalExport } from './journalExport.js';
+import { buildJournalTimeline } from './journalFeed.js';
 import { useJournalEmbedTitles } from './useJournalEmbedTitles.js';
+import { JournalBookView } from './JournalBookView.jsx';
 
 /** Repli neutre : aucun produit ne fournit de réécriture d'images. */
 function useHtmlAsIs(html) {
@@ -75,11 +77,32 @@ function ReadArticle({
   );
 }
 
+function ReadImport({ item, meta, ui }) {
+  const typeMeta = meta.importTypeMeta(item.resourceType);
+  const p = ui.classPrefix;
+  return (
+    <article className={`${ui.cardClassName || ''} ${p}__import`.trim()}>
+      <div className={`${p}__import-main`}>
+        <span className={`${p}__import-icon`} aria-hidden="true">
+          {typeMeta.icon}
+        </span>
+        <div>
+          <p className={`${p}__import-kind`}>{typeMeta.label}</p>
+          <h3 className={`${p}__import-title`}>{item.title || item.resourceRef}</h3>
+          {item.createdAt ? (
+            <p className={ui.hintClassName || ''}>Importé le {formatDateTime(item.createdAt)}</p>
+          ) : null}
+        </div>
+      </div>
+    </article>
+  );
+}
+
 /**
  * Lecture d'un carnet par un professeur (ForetMap) ou le maître du jeu (G&L) : comptages,
  * articles (dates, volumes, texte enrichi, illustrations), éléments importés filtrables par
- * type, export Markdown. Composant unique ; le produit fournit son adaptateur (route de
- * lecture), ses métadonnées d'imports, ses libellés et son habillage.
+ * type, export Markdown / vue livre. Composant unique ; le produit fournit son adaptateur
+ * (route de lecture), ses métadonnées d'imports, ses libellés et son habillage.
  *
  * @param {object} props
  * @param {string|number} props.subjectId identifiant du propriétaire du carnet
@@ -114,6 +137,7 @@ export function JournalReadModal({
   const [error, setError] = useState('');
   const [data, setData] = useState(null);
   const [importFilter, setImportFilter] = useState('all');
+  const [bookOpen, setBookOpen] = useState(false);
   const p = ui.classPrefix;
   const Btn = ui.Button || Button;
   const btnProps = { type: 'button', variant: 'secondary', ...(ui.modalButtonProps || {}) };
@@ -123,6 +147,7 @@ export function JournalReadModal({
     let cancelled = false;
     setLoading(true);
     setError('');
+    setBookOpen(false);
     adapter
       .fetchSubjectJournal(subjectId)
       .then((payload) => {
@@ -145,10 +170,20 @@ export function JournalReadModal({
   const articles = useMemo(() => (Array.isArray(data?.articles) ? data.articles : []), [data]);
   const imports = useMemo(() => (Array.isArray(data?.imports) ? data.imports : []), [data]);
   const importTypes = useMemo(() => [...new Set(imports.map((i) => i.resourceType))], [imports]);
-  const filteredImports = useMemo(
+  const timeline = useMemo(
     () =>
-      importFilter === 'all' ? imports : imports.filter((i) => i.resourceType === importFilter),
-    [imports, importFilter],
+      buildJournalTimeline({
+        articles,
+        imports:
+          importFilter === 'all' ? imports : imports.filter((i) => i.resourceType === importFilter),
+        kindFilter: importFilter === 'all' ? 'all' : 'all',
+        sortOrder: 'recent',
+      }).filter((entry) => {
+        if (importFilter === 'all') return true;
+        if (entry.kind === 'import') return entry.data.resourceType === importFilter;
+        return true;
+      }),
+    [articles, imports, importFilter],
   );
   const subjectLabel = texts.subjectLabel(subject, subjectId);
 
@@ -163,6 +198,31 @@ export function JournalReadModal({
         articleExtraLine,
       }),
       'text/markdown;charset=utf-8',
+    );
+  }
+
+  if (bookOpen && data) {
+    return (
+      <DialogShell
+        open={open}
+        onClose={onClose}
+        overlayClassName={`fm-modal-overlay ${p}-read-modal`}
+        dialogClassName={`fm-modal-panel animate-pop ${ui.modalBodyClassName || ''} ${p}-read-modal__body`}
+        ariaLabelledBy={`${p}-read-title`}
+      >
+        <JournalBookView
+          articles={articles}
+          imports={imports}
+          adapter={adapter}
+          ui={ui}
+          ownerLabel={subjectLabel}
+          productLabel={texts.productLabel || 'Carnet'}
+          yearbook
+          onClose={() => setBookOpen(false)}
+          importTypeMeta={meta.importTypeMeta}
+          articleExtraLine={articleExtraLine}
+        />
+      </DialogShell>
     );
   }
 
@@ -189,58 +249,49 @@ export function JournalReadModal({
               <div className={`${p}-read-summary ${ui.actionsClassName || ''}`.trim()}>
                 <p className={ui.hintClassName || ''} style={{ margin: 0 }}>
                   <strong>{articles.length}</strong> article(s) · <strong>{imports.length}</strong>{' '}
-                  import(s)
+                  élément(s) appris
                 </p>
-                <Btn {...btnProps} onClick={handleExport}>
-                  Exporter (.md)
-                </Btn>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {importTypes.length > 1 ? (
+                    <label className={ui.hintClassName || ''}>
+                      Filtrer :{' '}
+                      <select
+                        value={importFilter}
+                        onChange={(e) => setImportFilter(e.target.value)}
+                        aria-label="Filtrer les imports par type"
+                      >
+                        <option value="all">Tous les types</option>
+                        {importTypes.map((t) => (
+                          <option key={t} value={t}>
+                            {meta.importTypeMeta(t).label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
+                  <Btn {...btnProps} onClick={() => setBookOpen(true)}>
+                    Imprimer / PDF
+                  </Btn>
+                  <Btn {...btnProps} onClick={handleExport}>
+                    Exporter (.md)
+                  </Btn>
+                </div>
               </div>
-              {articles.map((article) => (
-                <ReadArticle
-                  key={`a-${article.id}`}
-                  article={article}
-                  adapter={adapter}
-                  ui={ui}
-                  articleExtraLine={articleExtraLine}
-                  ImageComponent={ImageComponent}
-                  useHtmlImages={useHtmlImages}
-                />
-              ))}
-              {imports.length > 0 ? (
-                <section className={`${p}-read-imports`}>
-                  <div className={ui.actionsClassName || ''}>
-                    <h3 style={{ margin: 0 }}>Éléments importés ({filteredImports.length})</h3>
-                    {importTypes.length > 1 ? (
-                      <label className={ui.hintClassName || ''}>
-                        Filtrer :{' '}
-                        <select
-                          value={importFilter}
-                          onChange={(e) => setImportFilter(e.target.value)}
-                          aria-label="Filtrer les imports par type"
-                        >
-                          <option value="all">Tous les types</option>
-                          {importTypes.map((t) => (
-                            <option key={t} value={t}>
-                              {meta.importTypeMeta(t).label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    ) : null}
-                  </div>
-                  <ul>
-                    {filteredImports.map((item) => {
-                      const typeMeta = meta.importTypeMeta(item.resourceType);
-                      return (
-                        <li key={`i-${item.id}`}>
-                          <span aria-hidden="true">{typeMeta.icon}</span> {typeMeta.label} —{' '}
-                          <strong>{item.title || item.resourceRef}</strong>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </section>
-              ) : null}
+              {timeline.map((entry) =>
+                entry.kind === 'article' ? (
+                  <ReadArticle
+                    key={`a-${entry.data.id}`}
+                    article={entry.data}
+                    adapter={adapter}
+                    ui={ui}
+                    articleExtraLine={articleExtraLine}
+                    ImageComponent={ImageComponent}
+                    useHtmlImages={useHtmlImages}
+                  />
+                ) : (
+                  <ReadImport key={`i-${entry.data.id}`} item={entry.data} meta={meta} ui={ui} />
+                ),
+              )}
             </div>
           ) : (
             <p className={ui.hintClassName || ''}>{texts.empty}</p>

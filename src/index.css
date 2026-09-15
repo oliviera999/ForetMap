@@ -9567,3 +9567,41 @@ header .lock-btn::after,
   line-height: 1;
   text-shadow: 0 0 3px #fff;
 }
+
+.journal-embed.journal-embed--plate::before,
+.journal-embed[data-plate='1']::before {
+  display: none;
+}
+.journal-embed.journal-embed--plate,
+.journal-embed[data-plate='1'] {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 12px;
+  align-items: start;
+}
+.journal-embed-plate__thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--mint);
+}
+.journal-embed-plate__label {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--leaf);
+}
+.journal-embed-plate__title {
+  margin: 2px 0 4px;
+  font-weight: var(--fw-semibold);
+  color: var(--forest);
+}
+.journal-embed-plate__excerpt {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: #4b5563;
+  line-height: var(--lh-normal);
+}

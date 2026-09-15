@@ -33,7 +33,7 @@ export function JournalFeedToolbar({ feed, ui, searchLabel = 'Rechercher dans mo
         >
           <option value="all">Tout</option>
           <option value="article">Articles</option>
-          <option value="import">Imports</option>
+          <option value="import">Éléments appris</option>
         </select>
       </label>
       <label className={ui.hintClassName || ''}>
