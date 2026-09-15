@@ -2,6 +2,7 @@ import { describe, test, expect } from 'vitest';
 import {
   parseCategoryIdsSetting,
   formatCategoryIdsSetting,
+  createLatestWriteQueue,
 } from '../../src/utils/categoryIdsSetting.js';
 
 describe('parseCategoryIdsSetting', () => {
@@ -29,5 +30,29 @@ describe('formatCategoryIdsSetting', () => {
     expect(formatCategoryIdsSetting([1, 2, 1])).toBe('1;2');
     expect(formatCategoryIdsSetting([])).toBe('');
     expect(formatCategoryIdsSetting(null)).toBe('');
+  });
+});
+
+describe('createLatestWriteQueue', () => {
+  test('n’envoie que la dernière valeur si plusieurs push pendant un write', async () => {
+    const writes = [];
+    const releases = [];
+    const queue = createLatestWriteQueue(async (value) => {
+      writes.push(value);
+      await new Promise((resolve) => {
+        releases.push(resolve);
+      });
+    });
+    const done = Promise.all([queue.push('A'), queue.push('B'), queue.push('C')]);
+    await Promise.resolve();
+    expect(writes).toEqual(['A']);
+    expect(releases).toHaveLength(1);
+    releases[0]();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(writes).toEqual(['A', 'C']);
+    releases[1]();
+    await done;
+    expect(writes).toEqual(['A', 'C']);
   });
 });
