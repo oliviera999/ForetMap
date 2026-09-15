@@ -1402,7 +1402,9 @@
       font-family:var(--font-sans-with-emoji);
     }
     .task-chip.urgent { background:#fff1f2; color:#e11d48; }
+    /* Pastilles statut biogéographique + UICN (catalogue biodiversité) */
     .task-chip.plant-origin-status--indigene {
+      --fm-origin-chip: 1;
       background:#e8f5e9;
       color:#1b5e20;
       border:1px solid #a5d6a7;
