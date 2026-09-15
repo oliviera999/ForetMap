@@ -5,7 +5,10 @@ import { PLANT_EMOJIS } from '../../constants/emojis';
 import { compressImageWithPreset } from '../../shared/platform/image';
 import { disarmNativeFilePickerGuard } from '../../shared/platform/overlayHistory';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
-import { PLANT_PHOTO_FIELD_OPTIONS } from '../../constants/plantMetaSections.js';
+import {
+  PLANT_DETERMINATION_FIELDS,
+  PLANT_PHOTO_FIELD_OPTIONS,
+} from '../../constants/plantMetaSections.js';
 import {
   filterNonEmptyFiles,
   planGalleryPhotoSlots,
@@ -230,6 +233,37 @@ function PlantEditForm({
               </div>
             </div>
           ) : null}
+        </div>
+      </details>
+      {/* Détermination : placée juste après l'identité, dans le prolongement de la
+          « Description d'identification ». Champs neutres vis-à-vis du règne — le
+          catalogue mêle végétaux, animaux, champignons et fiches-ressources. */}
+      <details className="plant-more" open={!plantId}>
+        <summary>Détermination</summary>
+        <div className="plant-meta-grid">
+          <p className="section-sub" style={{ margin: 0 }}>
+            Ce qui permet à un élève d’affirmer que c’est bien cette espèce. Les confusions
+            renseignées ici s’affichent en encadré d’alerte sur la fiche.
+          </p>
+          {PLANT_DETERMINATION_FIELDS.map((fieldDef) => (
+            <div key={fieldDef.key} className="field">
+              <label>{fieldDef.label}</label>
+              {fieldDef.long ? (
+                <MarkdownTextarea
+                  value={form[fieldDef.key]}
+                  onChange={set(fieldDef.key)}
+                  rows={fieldDef.rows}
+                  placeholder={fieldDef.placeholder}
+                />
+              ) : (
+                <input
+                  value={form[fieldDef.key]}
+                  onChange={set(fieldDef.key)}
+                  placeholder={fieldDef.placeholder}
+                />
+              )}
+            </div>
+          ))}
         </div>
       </details>
       {/* Fiche technique : repliée en édition ; ouverte en création (`plantId` absent,
