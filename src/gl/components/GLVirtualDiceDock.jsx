@@ -106,7 +106,7 @@ export function GLVirtualDiceDock({
     <div className="gl-board-chrome-dock gl-board-chrome-dock--left">
       <GLBoardActionButton
         ref={fabRef}
-        role="tool"
+        variant="tool"
         active={open}
         icon="🎲"
         label={showLabel ? 'Dés' : null}

@@ -63,18 +63,11 @@
   "src/components/tutorials-views.jsx": {
     "jsx-a11y/no-noninteractive-element-interactions": 1
   },
-  "src/components/visit-views.jsx": {
-    "jsx-a11y/click-events-have-key-events": 1,
-    "jsx-a11y/no-static-element-interactions": 1
-  },
   "src/components/visit/VisitMediaEditor.jsx": {
     "jsx-a11y/no-static-element-interactions": 1
   },
   "src/gl/components/GLAdventureView.jsx": {
     "jsx-a11y/no-noninteractive-element-to-interactive-role": 1
-  },
-  "src/gl/components/GLBoardChrome.jsx": {
-    "jsx-a11y/aria-role": 3
   },
   "src/gl/components/GLFeuilletDiscoveryPopover.jsx": {
     "jsx-a11y/click-events-have-key-events": 1,
@@ -82,9 +75,6 @@
   },
   "src/gl/components/GLGameBoard.jsx": {
     "jsx-a11y/role-supports-aria-props": 1
-  },
-  "src/gl/components/GLGameBoardHud.jsx": {
-    "jsx-a11y/aria-role": 2
   },
   "src/gl/components/GLGameMasterConsole.jsx": {
     "jsx-a11y/no-noninteractive-element-to-interactive-role": 1
@@ -132,9 +122,6 @@
   "src/gl/components/GLTopBar.jsx": {
     "jsx-a11y/no-noninteractive-element-to-interactive-role": 1
   },
-  "src/gl/components/GLVirtualDiceDock.jsx": {
-    "jsx-a11y/aria-role": 1
-  },
   "src/gl/components/GLVitalityDisplay.jsx": {
     "jsx-a11y/no-interactive-element-to-noninteractive-role": 1
   },
@@ -142,14 +129,8 @@
     "jsx-a11y/click-events-have-key-events": 1,
     "jsx-a11y/no-noninteractive-element-interactions": 1
   },
-  "src/gl/components/GLZoneMusicMuteButton.jsx": {
-    "jsx-a11y/aria-role": 1
-  },
   "src/gl/components/admin/GLFeuilletLiasseReorder.jsx": {
     "jsx-a11y/no-noninteractive-element-interactions": 1
-  },
-  "src/plan/components/PlanMapStage.jsx": {
-    "jsx-a11y/aria-role": 3
   },
   "src/shared/components/AppDialogsProvider.jsx": {
     "jsx-a11y/no-autofocus": 2
