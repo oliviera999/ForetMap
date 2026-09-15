@@ -28,10 +28,28 @@ export const INTERACTION_EDGE_STYLES = Object.freeze({
   // Cycles / stress.
   nitrification: { color: '#0072b2', dash: '10 3 2 3', width: 1.8 },
   competition: { color: '#666666', dash: '4 4', width: 1.8 },
+  // Flux trophiques ajoutés (migration 250) : même famille chaude que l'herbivorie et la
+  // prédation, distingués par le motif de tirets — jamais par la seule teinte.
+  detritivorie: { color: '#cc79a7', dash: '3 3', width: 1.8 },
+  frugivorie: { color: '#e69f00', dash: '2 3', width: 2 },
+  granivorie: { color: '#e69f00', dash: '9 3 2 3', width: 1.8 },
+  parasitisme: { color: '#d55e00', dash: '5 3 1 3', width: 1.8 },
+  // Apports de matière minérale : même bleu que la nitrification, dont ils ont été
+  // détachés, motifs distincts.
+  excretion: { color: '#0072b2', dash: '2 2', width: 1.8 },
+  assimilation: { color: '#0072b2', dash: '6 2 2 2', width: 1.8 },
 });
 
 /** Types « flux trophique » (sens écologique « est mangée par »). */
-export const TROPHIC_EDGE_TYPES = Object.freeze(['herbivorie', 'predation', 'decomposition']);
+export const TROPHIC_EDGE_TYPES = Object.freeze([
+  'herbivorie',
+  'predation',
+  'decomposition',
+  'detritivorie',
+  'frugivorie',
+  'granivorie',
+  'parasitisme',
+]);
 
 const DEFAULT_EDGE_STYLE = Object.freeze({ color: '#94a3b8', dash: null, width: 1.6 });
 

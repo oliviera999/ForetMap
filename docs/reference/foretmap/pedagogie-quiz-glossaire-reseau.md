@@ -114,12 +114,28 @@ d'observation** pour l'écriture naturaliste libre.
   chaînes alimentaires réelles de la forêt comestible.
 - Le professeur (gestionnaire des plantes) crée et modifie les liens entre espèces —
   le graphe s'appuie sur le catalogue de biodiversité.
-- **Trois vues du graphe.** Par défaut, **Réseau alimentaire** ne montre que qui mange
-  qui et qui décompose (herbivorie, prédation, décomposition) : c’est la vue à
-  présenter en classe pour une chaîne alimentaire. **Autres relations** isole
-  pollinisation, plante hôte, symbiose, compétition et nitrification. **Tout**
-  superpose les deux pour l’exploration complète. Les filtres par type et le mode
-  « isoler une espèce » restent disponibles dans chaque vue.
+- **Trois vues du graphe.** Par défaut, **Réseau alimentaire** ne montre que ce qui
+  transporte de la matière d’un être vivant vers celui qui le consomme : herbivorie,
+  prédation, décomposition, détritivorie, frugivorie, granivorie, parasitisme. C’est la
+  vue à présenter en classe pour une chaîne alimentaire. **Autres relations** isole
+  pollinisation, plante hôte, symbiose, compétition, et le cycle de l’azote
+  (nitrification, excrétion, assimilation). **Tout** superpose les deux pour
+  l’exploration complète. Les filtres par type et le mode « isoler une espèce » restent
+  disponibles dans chaque vue.
+- **Quatorze types d’interaction.** Six ont été ajoutés pour cesser de ranger sous un
+  mot des relations différentes. Deux cas concrets :
+  - Un merle qui picore une figue tombée était noté « décomposition ». Il fait de la
+    **frugivorie** : il mange le fruit, il ne le minéralise pas. De même, un cloporte ou
+    un ver de compost fait de la **détritivorie** — il fragmente la matière morte, ce
+    sont les bactéries et les champignons qui décomposent vraiment. La distinction est
+    au programme.
+  - « Nitrification » désignait trois choses à la fois : les déjections de poisson qui
+    fournissent l’ammonium (**excrétion**), l’oxydation par les bactéries
+    (**nitrification** au sens strict) et la reprise des nitrates par les plantes
+    aquatiques (**assimilation**). Les trois étapes du cycle de l’azote sont maintenant
+    lisibles séparément sur le graphe.
+  - S’y ajoutent **granivorie** et **parasitisme**, disponibles à la saisie même si
+    aucune interaction ne les utilise encore.
 - **Les détritivores ont des nourritures nommées.** Vers, cloportes, collemboles,
   escargots d’eau, fourmis ou blattes pointent vers des fiches-ressources du
   catalogue — litière de feuilles, compost et épluchures, bois mort, biofilm, fruits
@@ -239,6 +255,20 @@ y sont liées : voir [Tâches, tutoriels et validation](taches-tutoriels-et-vali
 > ⚠️ **Point d'attention** — La qualité du Réseau trophique dépend entièrement des
 > liens saisis par le professeur : un graphe vide ou clairsemé n'est pas une panne,
 > c'est un contenu à construire (idéalement avec les élèves).
+
+> ⚠️ **Point d'attention — le quiz est devinable à la longueur des réponses.** Sur les
+> 513 questions du corpus, la bonne réponse fait en moyenne **49 caractères contre 29**
+> pour les propositions fausses. Un élève qui choisirait systématiquement la proposition
+> la plus longue, sans rien connaître, en réussirait **66 %** — pour 25 % au hasard.
+>
+> La position, elle, n'est pas un problème : les propositions sont mélangées à chaque
+> affichage, donc le fait que la bonne réponse soit stockée en « A » une fois sur deux
+> est invisible pour l'élève.
+>
+> **285 questions** ont une bonne réponse nettement plus longue que ses distracteurs. Le
+> rapport d'audit du contenu pédagogique les liste sous l'intitulé `length_bias_answer`,
+> et affiche le taux de réussite de la stratégie « choisir la plus longue ». La
+> correction est éditoriale : étoffer les propositions fausses, ou resserrer la bonne.
 
 ## Pour aller plus loin
 
