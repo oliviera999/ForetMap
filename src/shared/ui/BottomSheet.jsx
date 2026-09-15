@@ -16,19 +16,13 @@ import {
   resolveInitialSnap,
   resolveSnapRelease,
 } from './bottomSheetSnap.js';
+import { joinClassNames } from '../utils/classNames.js';
 
 /** À partir de cette largeur, `wideAsDialog` rend la feuille comme un panneau centré. */
 export const BOTTOM_SHEET_WIDE_QUERY = '(min-width: 1024px)';
 
 /** Éléments qui ne démarrent jamais un glisser depuis l'en-tête (le clic doit leur parvenir). */
 const NO_DRAG_SELECTOR = 'button, a, input, select, textarea, [role="button"]';
-
-function joinClassNames(...values) {
-  return values
-    .map((v) => String(v || '').trim())
-    .filter(Boolean)
-    .join(' ');
-}
 
 function now() {
   return typeof performance !== 'undefined' && typeof performance.now === 'function'

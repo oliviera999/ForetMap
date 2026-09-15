@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useLatestRequest } from '../../shared/hooks/useLatestRequest.js';
 import { api } from '../../services/api';
 import { compressImage } from '../../shared/platform/image';
 import {
@@ -36,17 +37,22 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
   const listBase = zoneId ? `/api/zones/${zoneId}/photos` : `/api/map/markers/${markerId}/photos`;
   const emptyLabel = zoneId ? 'zone' : 'repère';
 
+  // Garde anti-course : changer de lieu pendant un chargement ne doit pas afficher les
+  // photos du précédent (audit 2026-09-13 §2.5).
+  const latest = useLatestRequest();
   const load = useCallback(async () => {
+    const isCurrent = latest();
     setLoading(true);
     try {
       const list = await api(listBase);
+      if (!isCurrent()) return;
       setPhotos(list);
     } catch (e) {
       console.error('[ForetMap] chargement photos lieu', e);
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
-  }, [listBase]);
+  }, [listBase, latest]);
 
   useEffect(() => {
     load();

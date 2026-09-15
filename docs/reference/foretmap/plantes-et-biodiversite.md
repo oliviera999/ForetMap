@@ -34,6 +34,8 @@ Chaque fiche peut porter (tous les champs sont facultatifs sauf le nom) :
   partie récoltée, valeur nutritive, plante ornementale ou non ;
 - la **culture** : conseils de plantation, températures supportées, acidité du sol
   préférée, nutriments préférés ;
+- la **détermination** : critères d'identification, confusions possibles, période
+  d'observation (voir ci-dessous) ;
 - des **remarques** libres (trois champs) et une description générale ;
 - des **photos multiples**, rangées en six cases : illustration principale, espèce,
   feuille, fleur, fruit, partie récoltée — chaque case peut contenir plusieurs images
@@ -72,14 +74,50 @@ automatiquement** : l'élève qui bute sur un mot ouvre sa définition d'un clic
 que le professeur ait rien à saisir. Les termes du glossaire rattachés explicitement à
 la fiche restent affichés à part, en pastilles.
 
+## La section « Détermination »
+
+Une description générale ne suffit pas à affirmer qu'on a bien affaire à telle espèce.
+La fiche porte donc une section **Détermination**, dédiée à l'identification rigoureuse,
+avec trois champs :
+
+- **Critères de détermination** — ce qu'il faut observer pour être sûr : silhouette,
+  taille, couleurs, nervures, nombre de pattes, lames, odeur, traces…
+- **Confusions possibles** — les espèces ressemblantes et le critère qui tranche.
+- **Quand l'observer** — saison, moment de la journée, stade (floraison, fructification,
+  mue…), c'est-à-dire la période où la détermination est réellement possible.
+
+Ces champs sont écrits pour **tous les êtres vivants du catalogue**, pas seulement les
+plantes : le catalogue mêle végétaux, animaux, champignons, micro-organismes et
+fiches-ressources. On parle donc de « caractères observables » et de « stade », jamais de
+feuille ni de fleur.
+
+Les **confusions possibles** s'affichent dans un **encadré d'alerte**, visuellement
+distinct du reste de la fiche. C'est voulu : la forêt est comestible et les élèves
+récoltent. Une ressemblance avec une espèce toxique ou piquante ne doit pas se lire comme
+une ligne de métadonnée parmi d'autres.
+
+La section est **repliée par défaut**, comme les autres sections de la fiche, et placée
+juste après la photo : devant l'être vivant, on cherche d'abord à savoir ce que c'est. Un
+site peut la faire afficher **dépliée d'office** pour tout le monde : Réglages → Modules
+UI → « Fiches espèces — section « Détermination » toujours dépliée ».
+
+La section n'apparaît que si le professeur a renseigné au moins un des trois champs. Elle
+reste donc invisible sur les fiches non documentées, plutôt que d'ajouter un bandeau vide
+sur tout le catalogue. Ces trois champs ne sont **pas** remplis par le pré-remplissage
+automatique : les bases naturalistes interrogées ne fournissent pas de critères de
+détermination. Ils se saisissent à la main, ou par l'import en masse.
+
 ## Comment ça se passe — côté élève
 
 1. L'élève ouvre l'onglet **Biodiversité** : le catalogue s'affiche en **vignettes** —
    photo, nom, nom scientifique, quelques pastilles (rôle trophique, comestibilité,
    milieu) et le bouton d'observation. S'y ajoutent une **recherche** par nom et un
    filtre par **règne**, puis des **filtres avancés** par grand groupe, famille,
-   habitat, rôle trophique, milieu, et par **présence sur la carte** (espèces liées à
-   au moins une zone ou un repère, ou au contraire sans lieu).
+   habitat, rôle trophique, milieu, et par **présence sur la carte**. Par défaut, seules
+   les espèces **présentes sur la carte active** sont montrées : celles liées à une zone
+   ou un repère de cette carte, **ou** rattachées à la carte elle-même (sans lieu précis —
+   par exemple les oiseaux du site). L'élève peut élargir à « Toutes les fiches » ou
+   n'afficher que les absentes de la carte.
 2. Il clique une vignette : la **fiche complète** s'ouvre en fenêtre — photos,
    informations, mini-cartes d'emplacement, interactions, termes de glossaire,
    questions de quiz et commentaires. C'est la même fenêtre que celle ouverte depuis la
@@ -102,11 +140,12 @@ questions (les observations suivantes de la même espèce ne redemandent rien).
 ### Créer et modifier une fiche
 
 Le professeur ajoute une fiche depuis l'onglet Biodiversité et remplit le formulaire
-(seul le nom est obligatoire). Il voit le même catalogue en vignettes que les élèves,
-avec deux boutons par vignette : **modifier** (le formulaire s'ouvre en fenêtre, avec
-l'enregistrement automatique habituel) et **supprimer**. Cliquer la vignette elle-même
-ouvre la fiche telle que les élèves la voient. Les changements apparaissent en temps
-réel chez les utilisateurs connectés.
+(seul le nom est obligatoire). Il peut aussi cocher les **cartes** sur lesquelles
+l'espèce est présente sans être liée à une zone ou un repère précis. Il voit le même
+catalogue en vignettes que les élèves, avec deux boutons par vignette : **modifier**
+(le formulaire s'ouvre en fenêtre, avec l'enregistrement automatique habituel) et
+**supprimer**. Cliquer la vignette elle-même ouvre la fiche telle que les élèves la
+voient. Les changements apparaissent en temps réel chez les utilisateurs connectés.
 
 ### Le pré-remplissage automatique (multi-sources)
 
@@ -149,6 +188,11 @@ fichier (simple et complet) sont téléchargeables. Trois stratégies au choix :
 Un mode **simulation** montre d'abord un rapport (lignes valides, erreurs, aperçu)
 sans rien enregistrer ; on lance l'import réel ensuite.
 
+Les champs de détermination s'importent comme les autres : les colonnes « Critères de
+détermination », « Confusions possibles » et « Période d'observation » sont reconnues,
+avec quelques variantes courantes (« Critères d'identification », « Espèces
+ressemblantes », « Risques de confusion », « Quand l'observer »).
+
 ### Les alias de noms
 
 Une même espèce peut être désignée par plusieurs noms (« pomme de terre » /
@@ -184,6 +228,6 @@ retrouve automatiquement la bonne fiche.
 - Retour au [sommaire de la documentation](../README.md) ;
 - [Présentation générale de ForetMap](presentation.md) ;
 - [La carte et les zones](carte-et-zones.md) — où l'on associe les espèces aux lieux
-  du jardin ;
+  du jardin (et, pour les espèces sans lieu précis, directement à la carte) ;
 - Le réseau trophique, le glossaire et les quiz reliés aux fiches sont détaillés dans
   le document « pédagogie : quiz, glossaire, réseau » (voir sommaire).

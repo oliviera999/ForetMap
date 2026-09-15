@@ -26,6 +26,8 @@ const DEFAULT_ZONE_FILL = '#86efac90';
  * @param {object} props
  * @param {Array<object>} props.zones zones de la visite (`content.zones`).
  * @param {Set<string>} props.seen clés `itemSeenKey` des éléments vus.
+ * @param {boolean} [props.showSeenStatus=true] atténuation vu/non-vu + libellé accessible.
+ * @param {boolean} [props.showSeenLabels=false] libellé visible « À découvrir » / « Vu » au survol.
  * @param {Array<string>} props.markerEmojis emojis « lieu » configurés (détection préfixe).
  * @param {{ emojiU: number, labelU: number, gapU: number, strokeU: number, labelFontPx: number, emojiFontPx: number, minSideFactor: number, labelMaxTextLengthU: number, inv: number }} props.typography tailles en unités SVG + seuils masquage.
  * @param {number} props.fitWidth largeur du rect « contain » (px).
@@ -38,6 +40,8 @@ const DEFAULT_ZONE_FILL = '#86efac90';
 function VisitZonesSvgLayerImpl({
   zones,
   seen,
+  showSeenStatus = true,
+  showSeenLabels = false,
   markerEmojis,
   typography,
   fitWidth,
@@ -89,10 +93,10 @@ function VisitZonesSvgLayerImpl({
   return (
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="visit-map-zones">
       {parsedZones.map(({ zone: z, ptsPct, pointsAttr, mx, my }) => {
-        const isSeen = seen.has(itemSeenKey('zone', z.id));
+        const isSeen = showSeenStatus && seen.has(itemSeenKey('zone', z.id));
         const isSelected = hasSelection && String(z.id) === String(selectedZoneId);
         const isRecessed = hasSelection && !isSelected;
-        const statusLabel = isSeen ? 'Vu' : 'À découvrir';
+        const statusLabel = showSeenStatus ? (isSeen ? 'Vu' : 'À découvrir') : null;
         const zoneEmoji =
           String(z.emoji || '').trim() || detectLeadingMarkerEmoji(z.name || '', markerEmojis);
         const zoneLabel = stripLeadingMarkerEmoji(z.name || '', markerEmojis);
@@ -125,17 +129,18 @@ function VisitZonesSvgLayerImpl({
           maxWidth: labelMaxTextLengthU,
         });
         const zoneAccessibleName = String(zoneNameText).trim() || 'Zone de visite';
-        const statusY =
-          titleY + (showZoneEmoji ? gapU : 0) + (showZoneName ? labelU * 0.95 : labelU * 0.55);
         const fillColor = String(z.color || '').trim() || DEFAULT_ZONE_FILL;
         const hitClass = [
           'visit-zone-hit',
-          isSeen ? 'is-seen' : 'is-unseen',
+          showSeenStatus ? (isSeen ? 'is-seen' : 'is-unseen') : '',
           isSelected ? 'is-selected' : '',
           isRecessed ? 'is-recessed' : '',
         ]
           .filter(Boolean)
           .join(' ');
+        const polySeenClass = showSeenStatus ? (isSeen ? 'is-seen' : 'is-unseen') : '';
+        const statusY =
+          titleY + (showZoneEmoji ? gapU : 0) + (showZoneName ? labelU * 0.95 : labelU * 0.55);
         return (
           <g
             key={z.id}
@@ -147,7 +152,7 @@ function VisitZonesSvgLayerImpl({
             role="button"
             tabIndex={0}
             aria-current={isSelected ? 'true' : undefined}
-            aria-label={`${zoneAccessibleName} — ${statusLabel}`}
+            aria-label={statusLabel ? `${zoneAccessibleName} — ${statusLabel}` : zoneAccessibleName}
             onKeyDown={(event) => {
               if (event.key !== 'Enter' && event.key !== ' ') return;
               event.preventDefault();
@@ -156,9 +161,7 @@ function VisitZonesSvgLayerImpl({
           >
             <polygon
               points={pointsAttr}
-              className={`visit-zone-poly ${isSeen ? 'is-seen' : 'is-unseen'}${
-                isSelected ? ' is-selected' : ''
-              }`}
+              className={`visit-zone-poly ${polySeenClass}${isSelected ? ' is-selected' : ''}`.trim()}
               style={{ fill: fillColor }}
             />
             {showZoneEmoji || showZoneName ? (
@@ -191,19 +194,21 @@ function VisitZonesSvgLayerImpl({
                 ) : null}
               </g>
             ) : null}
-            {/* Statut au survol / focus uniquement (A+E) — pas de pastille permanente. */}
-            <g transform={titleUniform} pointerEvents="none" aria-hidden="true">
-              <text
-                x={mx}
-                y={statusY}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fontSize={Math.max(1.6, labelU * 0.72)}
-                className="visit-zone-status"
-              >
-                {statusLabel}
-              </text>
-            </g>
+            {/* Libellé visible optionnel (désactivé par défaut : atténuation + aria suffisent). */}
+            {showSeenLabels && statusLabel ? (
+              <g transform={titleUniform} pointerEvents="none" aria-hidden="true">
+                <text
+                  x={mx}
+                  y={statusY}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize={Math.max(1.6, labelU * 0.72)}
+                  className="visit-zone-status"
+                >
+                  {statusLabel}
+                </text>
+              </g>
+            ) : null}
           </g>
         );
       })}

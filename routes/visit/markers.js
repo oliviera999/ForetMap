@@ -18,6 +18,11 @@ const {
 const { normalizeMarkerEmoji } = require('../../lib/markerEmoji');
 const { normalizeCoord } = require('../../lib/visitContentHelpers');
 const { logAudit } = require('../../lib/auditLog');
+const { withLocationAudienceFields } = require('../../lib/locationAudience');
+const {
+  resolveAudienceForInsert,
+  resolveAudienceForUpdate,
+} = require('../../lib/visitAudienceWrite');
 
 const router = express.Router();
 
@@ -33,11 +38,15 @@ router.post(
       return res.status(400).json({ error: 'Carte introuvable' });
     if (!label) return res.status(400).json({ error: 'Nom du repère requis' });
     if (x == null || y == null) return res.status(400).json({ error: 'Position repère invalide' });
+    const audience = resolveAudienceForInsert(req.body);
+    if (!audience.ok) return res.status(400).json({ error: audience.error });
     const id = crypto.randomUUID();
     await execute(
       `INSERT INTO visit_markers
-      (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json, sort_order, is_active, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json,
+       visible_role_slugs, restricted_note, restricted_note_role_slugs,
+       sort_order, is_active, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         mapId,
@@ -52,6 +61,9 @@ router.post(
         serializeVisitEditorialBlocks(
           parseVisitEditorialBlocksInput(req.body.visit_editorial_blocks ?? req.body.body_json),
         ),
+        audience.visible_role_slugs,
+        audience.restricted_note,
+        audience.restricted_note_role_slugs,
         Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0,
         req.body.is_active === false ? 0 : 1,
         nowIso(),
@@ -59,7 +71,7 @@ router.post(
       ],
     );
     const row = await queryOne('SELECT * FROM visit_markers WHERE id = ?', [id]);
-    res.status(201).json(row);
+    res.status(201).json(withLocationAudienceFields(row));
   }),
 );
 
@@ -76,6 +88,8 @@ router.put(
     const x = req.body.x_pct !== undefined ? normalizeCoord(req.body.x_pct) : Number(exists.x_pct);
     const y = req.body.y_pct !== undefined ? normalizeCoord(req.body.y_pct) : Number(exists.y_pct);
     if (x == null || y == null) return res.status(400).json({ error: 'Position repère invalide' });
+    const audience = resolveAudienceForUpdate(req.body, exists);
+    if (!audience.ok) return res.status(400).json({ error: audience.error });
     const emoji =
       req.body.emoji !== undefined
         ? normalizeMarkerEmoji(req.body.emoji, { allowEmpty: true, fallback: '' })
@@ -117,6 +131,7 @@ router.put(
     await execute(
       `UPDATE visit_markers
      SET label = ?, x_pct = ?, y_pct = ?, emoji = ?, subtitle = ?, short_description = ?, details_title = ?, details_text = ?, body_json = ?,
+         visible_role_slugs = ?, restricted_note = ?, restricted_note_role_slugs = ?,
          is_active = ?, sort_order = ?, updated_at = ?
      WHERE id = ?`,
       [
@@ -129,6 +144,9 @@ router.put(
         detailsTitle,
         detailsText,
         bodyJson,
+        audience.visible_role_slugs,
+        audience.restricted_note,
+        audience.restricted_note_role_slugs,
         isActive,
         sortOrder,
         nowIso(),
@@ -136,7 +154,7 @@ router.put(
       ],
     );
     const row = await queryOne('SELECT * FROM visit_markers WHERE id = ?', [markerId]);
-    res.json(row);
+    res.json(withLocationAudienceFields(row));
   }),
 );
 

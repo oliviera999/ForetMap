@@ -38,8 +38,11 @@ const {
 } = require('../lib/speciesAutofill');
 const { plantnetIdentifyFromImages } = require('../lib/speciesAutofillPlantnet');
 const { enrichPlantRow } = require('../lib/biodivReadModel');
+const { loadPlantMapIdsMap, syncPlantMaps, normalizeMapIds } = require('../lib/speciesJunction');
 const { logAudit } = require('../lib/auditLog');
 const { z, validate } = require('../lib/validate');
+
+const dbApi = { queryAll, queryOne, execute };
 
 const router = express.Router();
 
@@ -460,7 +463,14 @@ router.get(
     // (PlantMetaSections, FoodWebView…) sont rendus depuis les lignes de cette liste — toutes les
     // colonnes du catalogue (photos, remarques, écologie…) sont donc consommées. Table sans donnée sensible.
     const rows = await queryAll('SELECT * FROM plants ORDER BY name');
-    const enriched = rows.map(enrichPlantRow);
+    const mapIdsByPlant = await loadPlantMapIdsMap(
+      dbApi,
+      rows.map((row) => row.id),
+    );
+    const enriched = rows.map((row) => ({
+      ...enrichPlantRow(row),
+      map_ids: mapIdsByPlant.get(Number(row.id)) || [],
+    }));
     plantsListCache.set('all', enriched);
     res.json(enriched);
   }),
@@ -662,10 +672,14 @@ router.post(
       `INSERT INTO plants (${PLANT_COLUMNS.join(', ')}) VALUES (${placeholders})`,
       values,
     );
+    let mapIds = [];
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'map_ids')) {
+      ({ mapIds } = await syncPlantMaps(dbApi, result.insertId, req.body.map_ids));
+    }
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [result.insertId]);
     invalidatePlantsListCache();
     emitGardenChanged({ reason: 'create_plant', plantId: result.insertId });
-    res.status(201).json(plant);
+    res.status(201).json({ ...enrichPlantRow(plant), map_ids: mapIds });
   }),
 );
 
@@ -682,10 +696,17 @@ router.put(
     const setClause = PLANT_COLUMNS.map((col) => `${col}=?`).join(', ');
     const values = [...PLANT_COLUMNS.map((col) => payload[col]), plant.id];
     await execute(`UPDATE plants SET ${setClause} WHERE id=?`, values);
+    let mapIds;
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'map_ids')) {
+      ({ mapIds } = await syncPlantMaps(dbApi, plant.id, req.body.map_ids));
+    } else {
+      const existing = await loadPlantMapIdsMap(dbApi, [plant.id]);
+      mapIds = existing.get(Number(plant.id)) || [];
+    }
     const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plant.id]);
     invalidatePlantsListCache();
     emitGardenChanged({ reason: 'update_plant', plantId: plant.id });
-    res.json(updated);
+    res.json({ ...enrichPlantRow(updated), map_ids: normalizeMapIds(mapIds) });
   }),
 );
 

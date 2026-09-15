@@ -72,6 +72,13 @@ export function acquireGlSocket(token) {
   entry = { socket, refs: 1, games: new Map(), classes: new Map() };
   byToken.set(key, entry);
   socket.on('connect', () => emitCurrentRooms(entry));
+  socket.on('presence:update', (payload) => {
+    try {
+      window.dispatchEvent(new CustomEvent('foretmap_presence', { detail: payload }));
+    } catch {
+      /* ignore */
+    }
+  });
   socket.on('connect_error', (err) => {
     if (!isSocketAuthRejection(err)) return;
     socket.disconnect();

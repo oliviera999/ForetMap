@@ -71,21 +71,14 @@ module.exports = defineConfig({
         isMobile: true,
       },
       testMatch: /mobile-.*\.spec\.js/,
-      testIgnore: /plan-.*\.spec\.js/,
+      testIgnore: /(plan-|mobile-webkit).*\.spec\.js/,
     },
     {
-      // Plan Lyautey (lot 4) : produit servi par host, ciblé ici avec l'en-tête de surcharge
-      // `X-Foretmap-Product` (`lib/productResolver.js`) — pas de sous-domaine en local.
-      // Téléphone tactile : c'est le seul usage réel du plan.
-      name: 'plan-mobile',
-      use: {
-        ...devices['Desktop Chrome'],
-        viewport: { width: 390, height: 844 },
-        hasTouch: true,
-        isMobile: true,
-        extraHTTPHeaders: { 'X-Foretmap-Product': 'plan' },
-      },
-      testMatch: /plan-.*\.spec\.js/,
+      // Audit iPhone : smoke WebKit (≠ Safari iOS réel, mais meilleur filet CSS/touch).
+      // Périmètre étroit — workers:1 + BDD partagée ; ne pas dupliquer toute la suite.
+      name: 'mobile-webkit',
+      use: { ...devices['iPhone 13'] },
+      testMatch: /mobile-webkit-smoke\.spec\.js/,
     },
   ],
 });

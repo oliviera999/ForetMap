@@ -19,11 +19,7 @@ import {
   resolveHelpQuickTip,
 } from '../utils/helpResolve';
 import { getContentText } from '../utils/content';
-import { resolveMapOverlayLabelLayout } from '../utils/mapOverlayZoneLabels.js';
-import {
-  resolveMapOverlayTypography,
-  resolveMapOverlayCssVariables,
-} from '../utils/mapOverlayTypography';
+import { resolveMapOverlayCssVariables } from '../utils/mapOverlayTypography';
 import { useMapOverlayTextSizePreference } from '../hooks/useMapOverlayTextSizePreference.js';
 import { MAP_OVERLAY_REFERENCE_BOARD_HEIGHT_PX } from '../shared/mapOverlayScale.js';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
@@ -40,9 +36,8 @@ import { VisitTutorialsSection } from './visit/VisitTutorialsSection.jsx';
 import { VisitMapChrome } from './visit/VisitMapChrome.jsx';
 import { VisitProfToolsPanel } from './visit/VisitProfToolsPanel.jsx';
 import { VisitGuestMascotOnboarding } from './visit/VisitGuestMascotOnboarding.jsx';
-import { VisitZonesSvgLayer } from './visit/VisitZonesSvgLayer.jsx';
-import { VisitMarkersLayer } from './visit/VisitMarkersLayer.jsx';
-import { VisitMapZoomControls } from './visit/VisitMapZoomControls.jsx';
+import { VisitMapStage } from './visit/VisitMapStage.jsx';
+import { VisitDrawZonePreview } from './VisitDrawZonePreview.jsx';
 import { MapRoutePicker } from '../shared/map-routes/MapRoutePicker.jsx';
 import { MapRouteBar } from '../shared/map-routes/MapRouteBar.jsx';
 import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
@@ -55,18 +50,16 @@ import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
   getVisitMascotVisibilityReason,
 } from '../utils/visitMascotVisibility.js';
-import { usePctMapViewport } from '../shared/pct-map/usePctMapViewport.js';
 import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
 import { useHeadingUpPreference } from '../shared/pct-map/useHeadingUpPreference.js';
 import { useScaleCompassPreference } from '../shared/pct-map/useScaleCompassPreference.js';
-import { MapScaleCompassOverlay } from '../shared/pct-map/MapScaleCompassOverlay.jsx';
-import { headingUpOrientationDeg } from '../shared/pct-map/pctMapOrientation.js';
-import { PctPositionLayer } from '../shared/pct-map/PctPositionLayer.jsx';
-import { accuracyHaloDiameterPx } from '../shared/pct-map/positionGeometry.js';
 import { useMapFullscreen } from '../shared/hooks/useMapFullscreen.js';
 import { usePrefersReducedMotion } from '../shared/hooks/usePrefersReducedMotion.js';
 import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx';
 import { VisitMapMascot } from './VisitMapMascot.jsx';
+import { buildPlaceIndex, searchPlaces } from '../shared/search/placeSearch.js';
+import { countPlacesByCategory, filterPlacesByCategories } from '../plan/utils/planPlaces.js';
+import { parseCategoryIdsSetting } from '../utils/categoryIdsSetting.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { DataProvider, useData } from '../contexts/DataContext.jsx';
@@ -261,19 +254,11 @@ function VisitViewImpl({
   const [mode, setMode] = useState('view');
   const [drawPoints, setDrawPoints] = useState([]);
   const [creating, setCreating] = useState(false);
-  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
   const {
     percent: mapTextSizePercent,
     label: mapTextSizeLabel,
     cycle: cycleMapTextSize,
   } = useMapOverlayTextSizePreference();
-  useEffect(() => {
-    const media = window.matchMedia('(pointer: coarse)');
-    const update = () => setIsCoarsePointer(media.matches);
-    update();
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, []);
   const prefersReducedMotion = usePrefersReducedMotion();
   const {
     isHelpEnabled,
@@ -321,6 +306,8 @@ function VisitViewImpl({
 
   /** Tutoriels sous la carte : réservés au prof en édition (pas invité, pas élève, pas aperçu élève). */
   const showVisitMapTutorialsSection = isTeacher && !teacherPreviewAsStudent;
+  /** Progression : atténuation + donut + « Marquer comme vu » ; pas de libellés « À découvrir » sur le plan. */
+  const showVisitSeenStatus = true;
 
   useEffect(() => {
     const next = String(initialMapId || '').trim();
@@ -356,45 +343,118 @@ function VisitViewImpl({
   const visitMapImageSrc =
     visitMapImageCandidates[Math.min(visitMapImageIdx, visitMapImageCandidates.length - 1)];
   const canPanAndZoom = mode === 'view';
+
   /**
-   * Moteur de carte partagé (lot 2) en mode « scène » : le calque monde mesure la scène, l'image
-   * est en `object-fit: contain` dans le calque « fit » (`visitMapFit`). Le moteur porte pan,
-   * molette, pinch + déplacement, double-tap, inertie et bornes : à l'échelle ≥ 1 les bornes sont
-   * celles de l'ancien `visitMapTransform.js` (jamais de bord visible) ; le dézoom est désormais
-   * possible jusqu'à 0,5× (plan centré dans le cadre). Pendant un geste la valeur vit dans
-   * `mapTransformLiveRef` (aucun re-render) ; `mapTransform` (état) n'est resynchronisé qu'en
-   * fin de geste.
+   * Pont viewport depuis VisitMapStage / SharedMapStage : mascotte, parcours et édition
+   * (toImagePct) restent pilotés ici sans dupliquer usePctMapViewport.
    */
-  const isVisitGestureTarget = useCallback(
-    (target) => Boolean(target?.closest?.('.visit-map-controls')),
-    [],
-  );
-  const visitPositionNotifyRef = useRef(null);
-  const {
-    containerRef: stageRef,
-    worldRef: visitWorldRef,
-    imgRef,
-    committed: mapTransform,
-    imgSize: visitImgNatural,
-    fitRect: visitMapFit,
-    consumeSkipClick,
-    fitMap,
-    fitMapAnimated,
-    zoomBy,
-    toImagePct,
-    touchAction: visitStageTouchAction,
-    focusOnPct,
-    setMapOrientation,
-    orientStyle,
-  } = usePctMapViewport({
-    imageSrc: visitMapImageSrc,
-    contentMode: 'stage',
-    enabled: canPanAndZoom,
-    onResize: 'clamp',
-    resetKey: mapId,
-    isGestureTarget: isVisitGestureTarget,
-    onGestureStart: () => visitPositionNotifyRef.current?.(),
+  const visitViewportApiRef = useRef({
+    fitRect: { offsetX: 0, offsetY: 0, width: 0, height: 0 },
+    committed: { x: 0, y: 0, s: 1 },
+    focusOnPct: () => {},
+    consumeSkipClick: () => false,
+    toImagePct: () => null,
+    fitMap: () => {},
+    fitMapAnimated: () => {},
+    zoomBy: () => {},
+    imgSize: { w: 0, h: 0 },
   });
+  const [visitMapFit, setVisitMapFit] = useState({
+    offsetX: 0,
+    offsetY: 0,
+    width: 0,
+    height: 0,
+  });
+  const [visitImgNatural, setVisitImgNatural] = useState({ w: 0, h: 0 });
+  const onVisitViewportChange = useCallback((api) => {
+    visitViewportApiRef.current = { ...visitViewportApiRef.current, ...api };
+    if (api.fitRect) setVisitMapFit(api.fitRect);
+    if (api.imgSize) setVisitImgNatural(api.imgSize);
+  }, []);
+  const focusOnPct = useCallback((pct, opts) => {
+    visitViewportApiRef.current.focusOnPct?.(pct, opts);
+  }, []);
+  const toImagePct = useCallback((clientX, clientY, opts) => {
+    return visitViewportApiRef.current.toImagePct?.(clientX, clientY, opts) || null;
+  }, []);
+  const fitMap = useCallback(() => {
+    visitViewportApiRef.current.fitMap?.();
+  }, []);
+
+  const [placeSearchQuery, setPlaceSearchQuery] = useState('');
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState(() => new Set());
+  const [categoryDefaultsApplied, setCategoryDefaultsApplied] = useState(false);
+  const categoryCatalog = useMemo(
+    () => (Array.isArray(content.categories) ? content.categories : []),
+    [content.categories],
+  );
+  const categoriesById = useMemo(
+    () => new Map(categoryCatalog.map((c) => [String(c.id), c])),
+    [categoryCatalog],
+  );
+
+  // Catégories cochées d'office (réglage admin `ui.visit.default_category_ids`).
+  useEffect(() => {
+    if (categoryDefaultsApplied || !categoryCatalog.length) return;
+    const raw =
+      publicSettings?.visit?.default_category_ids ??
+      publicSettings?.ui?.visit?.default_category_ids ??
+      '';
+    const ids = parseCategoryIdsSetting(raw).filter((id) => categoriesById.has(id));
+    if (ids.length) setSelectedCategoryIds(new Set(ids));
+    setCategoryDefaultsApplied(true);
+  }, [categoryDefaultsApplied, categoryCatalog, categoriesById, publicSettings]);
+
+  const visitPlaces = useMemo(() => {
+    const zones = (content.zones || []).map((zone) => ({
+      ...zone,
+      kind: 'zone',
+      name: String(zone.name || '').trim(),
+    }));
+    const markers = (content.markers || []).map((marker) => ({
+      ...marker,
+      kind: 'marker',
+      name: String(marker.label || '').trim(),
+    }));
+    return [...zones, ...markers];
+  }, [content.zones, content.markers]);
+  const filteredPlaces = useMemo(
+    () => filterPlacesByCategories(visitPlaces, selectedCategoryIds),
+    [visitPlaces, selectedCategoryIds],
+  );
+  const filteredZones = useMemo(
+    () => filteredPlaces.filter((p) => p.kind === 'zone'),
+    [filteredPlaces],
+  );
+  const filteredMarkers = useMemo(
+    () => filteredPlaces.filter((p) => p.kind === 'marker'),
+    [filteredPlaces],
+  );
+  const categoryCounts = useMemo(() => countPlacesByCategory(visitPlaces), [visitPlaces]);
+  const placeSearchIndex = useMemo(
+    () =>
+      buildPlaceIndex(filteredPlaces, {
+        getCategoryLabels: (place) =>
+          (place.category_ids || [])
+            .map((id) => categoriesById.get(String(id))?.label || '')
+            .filter(Boolean),
+      }),
+    [filteredPlaces, categoriesById],
+  );
+  const placeSearchResults = useMemo(() => {
+    if (!String(placeSearchQuery || '').trim()) return [];
+    return searchPlaces(placeSearchIndex, placeSearchQuery, { limit: 12 });
+  }, [placeSearchIndex, placeSearchQuery]);
+  const onToggleCategory = useCallback((id) => {
+    setSelectedCategoryIds((prev) => {
+      const next = new Set(prev);
+      const key = String(id);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+  const onResetCategories = useCallback(() => setSelectedCategoryIds(new Set()), []);
 
   const routePlaces = useMemo(
     () => placesFromZonesAndMarkers(content.zones || [], content.markers || []),
@@ -450,7 +510,6 @@ function VisitViewImpl({
     georef: currentMap?.georef ?? null,
     gpsEnabled: !!currentMap?.gps_enabled && mode === 'view',
   });
-  visitPositionNotifyRef.current = visitPosition.notifyManualPan;
   const visitRouteDistanceLabel = useMemo(() => {
     const targetPct = routeEntryFocusPct(currentRouteEntry);
     if (!visitPosition.positionPct || !targetPct || !visitPosition.planSize) return '';
@@ -477,37 +536,8 @@ function VisitViewImpl({
     storageKey: 'visit:scale-compass',
     allowed: visitScaleCompassAllowed,
   });
-  const visitMapOrientationDeg = visitHeadingUpEffective
-    ? headingUpOrientationDeg(
-        visitPosition.smoothedScreenHeadingDeg ?? visitPosition.screenHeadingDeg ?? null,
-      )
-    : 0;
+  // Heading-up / suivi de position : gérés dans SharedMapStage (plus de useEffect locaux).
 
-  useEffect(() => {
-    if (!visitHeadingUpEffective) {
-      setMapOrientation({ deg: 0, originPct: null });
-      return;
-    }
-    const heading =
-      visitPosition.smoothedScreenHeadingDeg ?? visitPosition.screenHeadingDeg ?? null;
-    setMapOrientation({
-      deg: headingUpOrientationDeg(heading),
-      originPct: visitPosition.displayPct || null,
-    });
-  }, [
-    visitHeadingUpEffective,
-    visitPosition.displayPct?.xp,
-    visitPosition.displayPct?.yp,
-    visitPosition.smoothedScreenHeadingDeg,
-    visitPosition.screenHeadingDeg,
-    setMapOrientation,
-  ]);
-
-  const visitFollowPct = visitPosition.following ? visitPosition.displayPct : null;
-  useEffect(() => {
-    if (!visitFollowPct) return;
-    focusOnPct({ xp: visitFollowPct.xp, yp: visitFollowPct.yp });
-  }, [visitFollowPct, focusOnPct]);
   const visitMapImageReady = visitImgNatural.w > 1 && visitImgNatural.h > 1;
   /** Rect « contain » courant en lecture impérative (contrôleur de la mascotte). */
   const visitMapFitRef = useRef(visitMapFit);
@@ -556,75 +586,63 @@ function VisitViewImpl({
   useOverlayHistoryBack(isGuestPublicVisit && !!selected, closeVisitSelection);
   useOverlayHistoryBack(!!visitMediaLightbox, () => setVisitMediaLightbox(null));
 
-  /** Tailles emoji / libellé zone en unités SVG (viewBox 0–100), ratio constant repère/plateau. */
-  const visitZoneSvgTypography = useMemo(() => {
+  /**
+   * Styles typo overlay (taille Aa) sur le calque fit SharedMapStage.
+   * `plateauAsTransform: false` : tailles en px écran (le plateau est déjà dans la
+   * typo) ; `--pct-inv` gère le zoom. Sans cela, les fontes sont divisées par le
+   * facteur plateau (prévu pour `scale(--map-overlay-scale)` de l’ancien calque) et
+   * une carte plus basse qu’en visite anonyme gonfle icônes et libellés.
+   */
+  const visitFitExtraStyle = useMemo(() => {
     const mapSettings =
       publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
     const fitH =
       visitMapFit.height > 0 ? visitMapFit.height : MAP_OVERLAY_REFERENCE_BOARD_HEIGHT_PX;
-    const fw = visitMapFit.width > 0 ? visitMapFit.width : 360;
-    const uPerPx = 100 / Math.max(1, fw);
-    const worldScale = Math.max(Number(mapTransform.s) || 1, 0.001);
-    const typoOpts = {
-      worldScale,
-      fitWidthPx: fw,
-      isCoarsePointer,
+    return resolveMapOverlayCssVariables(mapSettings, fitH, {
+      fitWidthPx: visitMapFit.width > 0 ? visitMapFit.width : 360,
       userTextSizePercent: mapTextSizePercent,
-      // Les repères Visite vivent dans le calque zoomé : même compensation que les zones.
-      compensateWorldScale: true,
-    };
-    const t = resolveMapOverlayTypography(mapSettings, fitH, typoOpts);
-    const inv = 1 / worldScale;
-    const labelLayout = resolveMapOverlayLabelLayout(mapSettings, { inv, isCoarsePointer });
-    const overlayCssVars = resolveMapOverlayCssVariables(mapSettings, fitH, typoOpts);
-    return {
-      emojiU: t.mapEmojiFontPx * uPerPx,
-      labelU: t.mapLabelFontPx * uPerPx,
-      gapU: t.mapEmojiLabelCenterGap * uPerPx,
-      strokeU: Math.max(0.06, (3 / worldScale) * uPerPx),
-      labelFontPx: t.mapLabelFontPx,
-      emojiFontPx: t.mapEmojiFontPx,
-      minSideFactor: labelLayout.minSideFactor,
-      labelMaxWorldLength: labelLayout.maxWorldLength,
-      labelMaxTextLengthU: labelLayout.maxWorldLength * uPerPx,
-      inv,
-      overlayCssVars,
-    };
-  }, [
-    publicSettings,
-    visitMapFit.width,
-    visitMapFit.height,
-    mapTransform.s,
-    isCoarsePointer,
-    mapTextSizePercent,
-  ]);
+      plateauAsTransform: false,
+    });
+  }, [publicSettings, visitMapFit.width, visitMapFit.height, mapTextSizePercent]);
 
-  /** Clic zone (calque SVG mémoïsé) : identité stable hors changement de `mode`. */
-  const onVisitZoneClick = useCallback(
-    (z, event) => {
-      event.stopPropagation();
+  /** Sélection d'un lieu depuis la scène partagée (mascotte + fiche différée en vue). */
+  const onSelectPlaceFromStage = useCallback(
+    (place) => {
       if (activeRoute) return;
-      if (consumeSkipClick()) return;
+      if (!place) return;
+      const kind = place.kind === 'marker' ? 'marker' : 'zone';
       if (mode === 'view') {
-        const c = visitZoneCentroidPct(z);
         const fromPct = { ...visitMapMascotPctRef.current };
-        if (c) moveVisitMapMascotTo(c.xp, c.yp);
-        emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MAP_READ_OPEN);
-        showMascotDialog('map_read');
-        if (c) scheduleVisitDetailPanelOpen(z, 'zone', c.xp, c.yp, fromPct);
-        else {
-          setSelected(z);
-          setSelectedType('zone');
+        if (kind === 'zone') {
+          const c = visitZoneCentroidPct(place);
+          if (c) moveVisitMapMascotTo(c.xp, c.yp);
+          emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MAP_READ_OPEN);
+          showMascotDialog('map_read');
+          if (c) scheduleVisitDetailPanelOpen(place, 'zone', c.xp, c.yp, fromPct);
+          else {
+            setSelected(place);
+            setSelectedType('zone');
+          }
+        } else {
+          moveVisitMapMascotTo(Number(place.x_pct), Number(place.y_pct));
+          emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MARKER_INSPECT_OPEN);
+          showMascotDialog('inspect');
+          scheduleVisitDetailPanelOpen(
+            place,
+            'marker',
+            Number(place.x_pct),
+            Number(place.y_pct),
+            fromPct,
+          );
         }
       } else {
-        setSelected(z);
-        setSelectedType('zone');
+        setSelected(place);
+        setSelectedType(kind);
       }
     },
     [
       activeRoute,
       mode,
-      consumeSkipClick,
       moveVisitMapMascotTo,
       emitMascotEvent,
       showMascotDialog,
@@ -635,41 +653,20 @@ function VisitViewImpl({
     ],
   );
 
-  /** Clic repère (calque mémoïsé) : identité stable hors changement de `mode`. */
-  const onVisitMarkerClick = useCallback(
-    (m, event) => {
-      event.stopPropagation();
-      if (activeRoute) return;
-      if (consumeSkipClick()) return;
-      if (mode === 'view') {
-        const fromPct = { ...visitMapMascotPctRef.current };
-        moveVisitMapMascotTo(Number(m.x_pct), Number(m.y_pct));
-        emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MARKER_INSPECT_OPEN);
-        showMascotDialog('inspect');
-        scheduleVisitDetailPanelOpen(m, 'marker', Number(m.x_pct), Number(m.y_pct), fromPct);
-      } else {
-        setSelected(m);
-        setSelectedType('marker');
-      }
+  const onSelectSearchResult = useCallback(
+    (place) => {
+      setPlaceSearchQuery('');
+      onSelectPlaceFromStage(place);
     },
-    [
-      activeRoute,
-      mode,
-      consumeSkipClick,
-      moveVisitMapMascotTo,
-      emitMascotEvent,
-      showMascotDialog,
-      scheduleVisitDetailPanelOpen,
-      setSelected,
-      setSelectedType,
-      visitMapMascotPctRef,
-    ],
+    [onSelectPlaceFromStage],
   );
 
-  // Changement de carte : le moteur réajuste la vue (`resetKey`), la vue repasse en consultation.
+  // Changement de carte : la vue repasse en consultation ; filtres recherche remis à zéro.
   useEffect(() => {
     setDrawPoints([]);
     setMode('view');
+    setPlaceSearchQuery('');
+    setSelectedCategoryIds(new Set());
   }, [mapId]);
 
   // Immersion (plein écran) : réajustement une fois le portail posé (double rAF, comme avant).
@@ -757,13 +754,12 @@ function VisitViewImpl({
     }
   };
 
-  const onMapClick = async (event) => {
-    if (consumeSkipClick()) return;
+  const onMapBackgroundClick = async (event) => {
     if (!visitMapImageReady) return;
     const p = toImagePct(event.clientX, event.clientY, { clamp: true, decimals: 2 });
     if (!p) return;
 
-    /* Clic sur le fond du plan (hors zone/repère : stopPropagation côté SVG/boutons) : déplace la mascotte — élève et prof en mode vue. */
+    /* Clic sur le fond du plan : déplace la mascotte — élève et prof en mode vue. */
     if (mode === 'view') {
       moveVisitMapMascotTo(p.xp, p.yp);
       return;
@@ -903,6 +899,7 @@ function VisitViewImpl({
                 visitMascotOptions={visitMascotOptions}
                 onChangeVisitMascotId={onChangeVisitMascotId}
                 cartographyProgress={visitCartographyProgress}
+                showSeenProgress={showVisitSeenStatus}
                 helpPanelSlot={
                   isHelpEnabled ? (
                     <HelpPanel
@@ -936,6 +933,15 @@ function VisitViewImpl({
                     onStart={startRoute}
                   />
                 }
+                searchQuery={placeSearchQuery}
+                onSearchQueryChange={setPlaceSearchQuery}
+                searchResults={placeSearchResults}
+                onSelectSearchResult={onSelectSearchResult}
+                categoryCatalog={categoryCatalog}
+                selectedCategoryIds={selectedCategoryIds}
+                onToggleCategory={onToggleCategory}
+                onResetCategories={onResetCategories}
+                categoryCounts={categoryCounts}
               />
             ) : null}
             <MapFullscreenShell
@@ -944,9 +950,7 @@ function VisitViewImpl({
               layerClassName="visit-map-fullscreen-shell"
             >
               <div
-                ref={stageRef}
-                className={`visit-map-stage${visitImmersion ? ' visit-map-stage--fullscreen' : ''}`}
-                onClick={onMapClick}
+                className={`visit-map-stage-host${visitImmersion ? ' visit-map-stage-host--fullscreen' : ''}`}
                 data-visit-mascot-visibility={showVisitMapMascot ? 'visible' : 'hidden'}
                 data-visit-mascot-reason={visitMascotVisibilityReason}
                 style={{
@@ -958,98 +962,31 @@ function VisitViewImpl({
                         : canPanAndZoom
                           ? 'grab'
                           : 'default',
-                  touchAction: visitStageTouchAction,
+                  position: 'relative',
+                  flex: 1,
+                  minHeight: 0,
                 }}
               >
-                <div ref={visitWorldRef} className="visit-map-world">
-                  <div
-                    className="visit-map-fit-layer"
-                    style={{
-                      // Toujours aligner le calque (image + SVG zones + repères + mascotte) sur le
-                      // rectangle réel de l'image « object-fit:contain » — y compris en plein écran,
-                      // sinon le SVG (preserveAspectRatio="none") et les % s'étirent sur toute la
-                      // scène letterboxée et ne suivent plus la taille du fond de carte.
-                      ...(visitMapFit.width > 0 && visitMapFit.height > 0
-                        ? {
-                            left: visitMapFit.offsetX,
-                            top: visitMapFit.offsetY,
-                            width: visitMapFit.width,
-                            height: visitMapFit.height,
-                          }
-                        : { left: 0, top: 0, width: '100%', height: '100%' }),
-                      ...visitZoneSvgTypography.overlayCssVars,
-                      ...(orientStyle || {}),
-                    }}
-                  >
-                    <img
-                      ref={imgRef}
-                      src={visitMapImageSrc}
-                      alt={`Plan ${currentMap?.label || 'Forêt'}`}
-                      className="visit-map-img"
-                      draggable={false}
-                      onError={() =>
-                        setVisitMapImageIdx((idx) =>
-                          idx < visitMapImageCandidates.length - 1 ? idx + 1 : idx,
-                        )
-                      }
-                    />
-
-                    <VisitZonesSvgLayer
-                      zones={content.zones}
-                      seen={seen}
-                      markerEmojis={markerEmojis}
-                      typography={visitZoneSvgTypography}
-                      fitWidth={visitMapFit.width}
-                      fitHeight={visitMapFit.height}
-                      mode={mode}
-                      drawPoints={drawPoints}
-                      onZoneClick={onVisitZoneClick}
-                      selectedZoneId={selected && selectedType === 'zone' ? selected.id : null}
-                    />
-
-                    {showVisitMapMascot ? (
-                      <VisitMapMascot
-                        renderPct={visitMapMascotRenderPct}
-                        walking={visitMapMascotWalking}
-                        happy={visitMapMascotHappy}
-                        prefersReducedMotion={prefersReducedMotion}
-                        faceRight={visitMapMascotFaceRight}
-                        mascotState={visitMascotAnimationState}
-                        mascotId={visitMascotId}
-                        extraCatalogEntries={visitMascotCatalogExtras}
-                        dialogVisible={visitMascotDialogVisible}
-                        dialog={visitMascotDialog}
-                        onMascotTap={onMascotTap}
-                      />
-                    ) : null}
-
-                    <VisitMarkersLayer
-                      markers={content.markers}
-                      seen={seen}
-                      onMarkerClick={onVisitMarkerClick}
-                    />
-                    {visitPosition.displayPct ? (
-                      <PctPositionLayer
-                        position={visitPosition.displayPct}
-                        haloPx={accuracyHaloDiameterPx(visitPosition.haloPct, visitMapFit.width)}
-                        headingDeg={visitHeadingUpEffective ? null : visitPosition.screenHeadingDeg}
-                        accuracyM={visitPosition.accuracyM}
-                      />
-                    ) : null}
-                  </div>
-                </div>
-                <MapScaleCompassOverlay
-                  visible={visitScaleCompassPref.effective}
-                  georef={currentMap?.georef}
-                  contentWidthPx={visitMapFit.width}
-                  scale={mapTransform.s}
-                  orientationDeg={visitMapOrientationDeg}
-                />
-                <VisitMapZoomControls
-                  onZoomIn={() => zoomBy(1.2)}
-                  onZoomOut={() => zoomBy(0.84)}
-                  onReset={fitMapAnimated}
+                <VisitMapStage
+                  map={{
+                    id: mapId,
+                    map_image_url: visitMapImageSrc,
+                    label: currentMap?.label,
+                    georef: currentMap?.georef,
+                    geo_anchors: currentMap?.georef,
+                  }}
+                  zones={filteredZones}
+                  markers={filteredMarkers}
+                  categoriesById={categoriesById}
+                  selectedPlace={
+                    selected && selectedType ? { ...selected, kind: selectedType } : null
+                  }
+                  onSelectPlace={onSelectPlaceFromStage}
+                  seen={showVisitSeenStatus ? seen : null}
                   position={visitPosition}
+                  onLocateToggle={visitPosition.toggle}
+                  editMode={mode !== 'view'}
+                  gesturesEnabled={canPanAndZoom}
                   headingUpAllowed={visitHeadingUpAllowed}
                   headingUpEffective={visitHeadingUpEffective}
                   headingUpUserEnabled={visitHeadingUpPref.userEnabled}
@@ -1059,6 +996,54 @@ function VisitViewImpl({
                   scaleCompassAllowed={visitScaleCompassAllowed}
                   scaleCompassEffective={visitScaleCompassPref.effective}
                   onScaleCompassToggle={visitScaleCompassPref.toggle}
+                  fitExtraStyle={visitFitExtraStyle}
+                  focusInsets={activeRoute ? { bottom: 96 } : null}
+                  targetPct={activeRoute ? routeEntryFocusPct(currentRouteEntry) : null}
+                  onViewportChange={onVisitViewportChange}
+                  onBackgroundClick={onMapBackgroundClick}
+                  onMapImageError={() =>
+                    setVisitMapImageIdx((idx) =>
+                      idx < visitMapImageCandidates.length - 1 ? idx + 1 : idx,
+                    )
+                  }
+                  className={`visit-map-stage${visitImmersion ? ' visit-map-stage--fullscreen' : ''}`}
+                  overlaySlot={
+                    <>
+                      {showVisitMapMascot ? (
+                        <VisitMapMascot
+                          renderPct={visitMapMascotRenderPct}
+                          walking={visitMapMascotWalking}
+                          happy={visitMapMascotHappy}
+                          prefersReducedMotion={prefersReducedMotion}
+                          faceRight={visitMapMascotFaceRight}
+                          mascotState={visitMascotAnimationState}
+                          mascotId={visitMascotId}
+                          extraCatalogEntries={visitMascotCatalogExtras}
+                          dialogVisible={visitMascotDialogVisible}
+                          dialog={visitMascotDialog}
+                          onMascotTap={onMascotTap}
+                        />
+                      ) : null}
+                      {mode === 'draw-zone' && drawPoints.length > 0 ? (
+                        <svg
+                          className="visit-draw-preview-svg"
+                          viewBox="0 0 100 100"
+                          preserveAspectRatio="none"
+                          aria-hidden
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
+                            pointerEvents: 'none',
+                            overflow: 'visible',
+                          }}
+                        >
+                          <VisitDrawZonePreview points={drawPoints} />
+                        </svg>
+                      ) : null}
+                    </>
+                  }
                 />
                 {!activeRoute && resumableRouteSlug ? (
                   <div className="map-route-resume">
@@ -1105,6 +1090,7 @@ function VisitViewImpl({
             seen={seen}
             savingSeen={savingSeen}
             onToggleSeen={onToggleSeen}
+            showSeenStatus={showVisitSeenStatus}
             plants={plants}
             onOpenPlantCatalogPreview={openPlantFromVisit}
             glossaryItems={glossaryItems}

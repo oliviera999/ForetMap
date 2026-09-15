@@ -347,7 +347,8 @@ Ce qu'il faut réunir pour qu'un tutoriel soit réellement soumis à questions :
    jamais de question — c'est le cas le plus fréquent quand « rien ne se passe ».
 
 Les réglages qui accompagnent l'interrupteur (panneau dédié **Validation des lectures** dans
-**Paramètres administrateur**, plus préréglages par type tutoriel / fiche espèce / glossaire) :
+**Paramètres administrateur → Pédagogie**, plus préréglages par type tutoriel / fiche espèce /
+glossaire) :
 
 | Réglage                                         | Effet                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

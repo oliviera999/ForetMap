@@ -3,6 +3,7 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../../database');
 const { requireGlAuth } = require('../../middleware/requireGlAuth');
+const { requireModuleEnabled } = require('../../lib/shared/moduleGate');
 const { normalizeOptionalString, parsePageQuery } = require('../../lib/shared/httpHelpers');
 const { z, validate } = require('../../lib/validate');
 
@@ -33,6 +34,7 @@ function canModerate(auth) {
 }
 
 router.use(requireGlAuth);
+router.use(requireModuleEnabled('gl', 'forum', 'Forum désactivé'));
 
 router.get('/threads', validate({ query: glForumPageQuerySchema }), async (req, res) => {
   const { page, pageSize, offset } = req.validatedQuery;

@@ -53,20 +53,21 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
 
 ## Les rôles et les paliers
 
-| Rôle                    | Qui                                             | Ce qu'il peut faire                                                                                   |
-| ----------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| **Visiteur**            | Compte non promu (classe sans tâches, passage…) | Visite et Biodiversité seulement — **pas** de carte de travail ni de tâches                           |
-| **Personnel**           | Staff non enseignant (AED, vie scolaire…)       | Même parcours que le visiteur — Visite et Biodiversité seulement                                      |
-| **n3beur novice** 🪨    | Élève rattaché, 0 tâche validée                 | Carte, tâches, quiz, carnet, forum                                                                    |
-| **n3beur avancé** 🌿    | 5 tâches validées                               | Idem — le palier marque la progression                                                                |
-| **n3beur chevronné** 🏆 | 10 tâches validées                              | Idem                                                                                                  |
-| **Prof de classe**      | Enseignant tuteur d'une ou plusieurs classes    | Gérer les élèves **de ses groupes** (voir ci-dessous) — **pas** la gestion des tâches ni du jardin    |
-| **n3boss**              | Animateur / responsable pédagogique forêt       | Gestion pédagogique large (zones, plantes, tâches, visite, élèves, stats…) — **ce n'est pas** l'admin |
-| **Administrateur**      | Compte aux pleins pouvoirs établissement        | Tout le n3boss, plus réglages, rôles, secrets, prise de contrôle, audit technique                     |
+| Rôle                    | Qui                                             | Ce qu'il peut faire                                                                                                     |
+| ----------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Visiteur**            | Compte non promu (classe sans tâches, passage…) | Visite et Biodiversité seulement — **pas** de carte de travail ni de tâches                                             |
+| **Personnel**           | Staff non enseignant (AED, vie scolaire…)       | Même parcours que le visiteur — Visite et Biodiversité seulement                                                        |
+| **n3beur novice** 🪨    | Élève rattaché, 0 tâche validée                 | Carte, tâches, quiz, carnet, forum                                                                                      |
+| **n3beur avancé** 🌿    | 5 tâches validées                               | Idem — le palier marque la progression                                                                                  |
+| **n3beur chevronné** 🏆 | 10 tâches validées                              | Idem                                                                                                                    |
+| **Prof de classe**      | Enseignant tuteur d'une ou plusieurs classes    | Gérer les élèves **de ses groupes** (voir ci-dessous) — **pas** la gestion des tâches ni du jardin                      |
+| **n3boss**              | Animateur / responsable pédagogique forêt       | Gestion pédagogique large (zones, plantes, tâches, visite, élèves, stats…), carnet personnel — **ce n'est pas** l'admin |
+| **Administrateur**      | Compte aux pleins pouvoirs établissement        | Tout le n3boss (y compris carnet personnel), plus réglages, rôles, secrets, prise de contrôle, audit technique          |
 
 - La montée de palier est **automatique** (nombre de tâches validées) et saluée par une
-  fenêtre de félicitations. Le vocabulaire « n3beur / n3boss » se personnalise dans les
-  réglages.
+  fenêtre de félicitations. Les **noms affichés** des profils (dont « n3beur » /
+  « n3boss ») se règlent dans **Profils & utilisateurs** ; ce n'est pas un réglage
+  séparé dans Paramètres.
 - Les rôles et leurs **permissions sont configurables** : un administrateur peut créer
   des profils sur mesure et ajuster finement qui a le droit de faire quoi (valider des
   tâches, gérer les plantes, lire les statistiques, exporter, modérer le forum…).
@@ -147,7 +148,23 @@ Les groupes structurent la vie pédagogique :
   (par exemple « n3beur novice » pour une classe) — c'est ce qui promeut un visiteur en
   élève dès son rattachement. Un bouton « Appliquer à tous les membres » force le
   recalcul.
-- **Périmètre** : un groupe peut être limité à certaines cartes et certains projets.
+- **Périmètre** : un groupe peut être limité à certaines cartes et certains projets. Le
+  périmètre **cartes** est une vraie restriction d'accès : les membres du groupe (et de ses
+  sous-groupes) ne voient plus que ces cartes — ni dans le sélecteur de carte, ni par un lien
+  direct vers une zone, un repère ou un parcours d'une autre carte. Trois précisions qui
+  comptent au moment de composer les groupes :
+  - **Vide = aucune restriction.** Tant qu'aucun périmètre n'est posé, rien ne change.
+  - **Les appartenances s'additionnent.** Un élève d'une classe bornée à la forêt qui est
+    aussi membre d'un club **sans** périmètre retrouve toutes les cartes : le groupe le plus
+    ouvert l'emporte. Pour cloisonner réellement, tous les groupes de l'élève doivent porter
+    un périmètre.
+  - **Sans effet sur les professeurs**, ni sur la visite publique (qui se consulte sans
+    compte). Le périmètre cloisonne des classes entre elles, il ne ferme pas le site.
+
+  Un élève peut aussi être limité individuellement par son **espace** (champ _Affiliation_ de
+  sa fiche) : les deux restrictions se cumulent, l'élève ne voit que les cartes autorisées
+  par les deux.
+
 - **Code de classe** : chaque groupe peut générer son code d'inscription dans son
   panneau de réglages — affichable/imprimable pour la classe, **régénérable** (l'ancien
   code devient alors invalide) ou supprimable.

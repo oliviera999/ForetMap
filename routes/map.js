@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission, authenticate } = require('../middleware/requireTeacher');
+const { resolveScopedMapFilter, MAP_OUT_OF_SCOPE } = require('../lib/mapAccess');
 const asyncHandler = require('../lib/asyncHandler');
 const { emitGardenChanged } = require('../lib/realtime');
 const {
@@ -32,52 +33,26 @@ const {
   serializeSurfaceSet,
   readSurfaceQuery,
   isVisibleOnSurface,
-  withLocationSurfaceFields,
 } = require('../lib/locationSurfaces');
 const {
   readAudienceWriteFields,
   serializeRoleSlugList,
-  withLocationAudienceFields,
   filterLocationsForViewer,
 } = require('../lib/locationAudience');
 const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const { logAudit } = require('../lib/auditLog');
+const { mapMarkerToVisitWhitelistFields } = require('../lib/visitMapToVisitFields');
 const {
   registerEntityPhotoRoutes,
   reorderPhotosBodySchema,
   addPhotoBodySchema,
 } = require('../lib/entityPhotoRoutes');
+const { mapExists } = require('../lib/mapQueries');
+const { normalizeLivingBeings, serializeLocationRow } = require('../lib/locationRowHelpers');
 
 const db = { queryAll, queryOne, execute, withTransaction };
 
-function serializeLocationRow(row) {
-  return withLocationAudienceFields(withLocationSurfaceFields(row));
-}
-
 const router = express.Router();
-
-async function mapExists(mapId) {
-  if (!mapId) return false;
-  const row = await queryOne('SELECT id FROM maps WHERE id = ?', [mapId]);
-  return !!row;
-}
-
-function normalizeLivingBeings(input, fallback = '') {
-  const base = Array.isArray(input)
-    ? input
-    : typeof input === 'string' && input.trim()
-      ? (() => {
-          try {
-            const parsed = JSON.parse(input);
-            if (Array.isArray(parsed)) return parsed;
-          } catch (_) {}
-          return input.split(',');
-        })()
-      : [];
-  const cleaned = [...new Set(base.map((v) => String(v || '').trim()).filter(Boolean))];
-  if (cleaned.length === 0 && fallback && String(fallback).trim()) return [String(fallback).trim()];
-  return cleaned;
-}
 
 function hasVisitMarkerContentPatch(body) {
   if (!body || typeof body !== 'object') return false;
@@ -121,11 +96,14 @@ async function upsertVisitMarkerEditorial(reqBody, markerRow) {
       ? parseVisitEditorialBlocksInput(patchBlocksInput)
       : parseVisitEditorialBlocksInput(existing?.body_json);
   const bodyJson = serializeVisitEditorialBlocks(normalizedBlocks);
+  const audience = mapMarkerToVisitWhitelistFields(markerRow);
   const now = nowIsoUtc();
   await execute(
     `INSERT INTO visit_markers
-      (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json, is_active, sort_order, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
+      (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json,
+       visible_role_slugs, restricted_note, restricted_note_role_slugs,
+       is_active, sort_order, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
      ON DUPLICATE KEY UPDATE
        map_id = VALUES(map_id),
        x_pct = VALUES(x_pct),
@@ -137,6 +115,9 @@ async function upsertVisitMarkerEditorial(reqBody, markerRow) {
        details_title = VALUES(details_title),
        details_text = VALUES(details_text),
        body_json = VALUES(body_json),
+       visible_role_slugs = VALUES(visible_role_slugs),
+       restricted_note = VALUES(restricted_note),
+       restricted_note_role_slugs = VALUES(restricted_note_role_slugs),
        updated_at = VALUES(updated_at)`,
     [
       markerRow.id,
@@ -150,8 +131,28 @@ async function upsertVisitMarkerEditorial(reqBody, markerRow) {
       detailsTitle,
       detailsText,
       bodyJson,
+      audience.visible_role_slugs,
+      audience.restricted_note,
+      audience.restricted_note_role_slugs,
       now,
       now,
+    ],
+  );
+}
+
+async function mirrorMarkerAudienceToVisit(markerRow) {
+  const audience = mapMarkerToVisitWhitelistFields(markerRow);
+  await execute(
+    `UPDATE visit_markers
+     SET visible_role_slugs = ?, restricted_note = ?, restricted_note_role_slugs = ?, updated_at = ?
+     WHERE id = ? AND map_id = ?`,
+    [
+      audience.visible_role_slugs,
+      audience.restricted_note,
+      audience.restricted_note_role_slugs,
+      nowIsoUtc(),
+      markerRow.id,
+      markerRow.map_id,
     ],
   );
 }
@@ -186,6 +187,8 @@ registerEntityPhotoRoutes(router, {
   },
 });
 
+// `authenticate` : session facultative (lecture publique conservée), mais hydratée quand
+// elle existe — c'est elle qui porte le périmètre cartes.
 router.get(
   '/markers',
   authenticate,
@@ -198,8 +201,15 @@ router.get(
     const surfaceQuery = readSurfaceQuery(req.query.surface);
     if (!surfaceQuery.ok) return res.status(400).json({ error: surfaceQuery.error });
     const publicSurface = surfaceQuery.value === 'visit' || surfaceQuery.value === 'plan';
-    const rows = mapId
-      ? await queryAll(`${MARKERS_LIST_SQL} WHERE m.map_id = ? ORDER BY m.created_at`, [mapId])
+    // Périmètre cartes : sans `map_id`, la liste est ramenée aux cartes autorisées. Se cumule
+    // au filtre d'audience appliqué plus bas, qui trie les lieux d'une même carte par rôle.
+    const scope = await resolveScopedMapFilter(req.auth || null, mapId);
+    if (scope.forbidden) return res.status(403).json(MAP_OUT_OF_SCOPE);
+    const rows = scope.mapIds
+      ? await queryAll(
+          `${MARKERS_LIST_SQL} WHERE m.map_id IN (${scope.mapIds.map(() => '?').join(',')}) ORDER BY m.created_at`,
+          scope.mapIds,
+        )
       : await queryAll(`${MARKERS_LIST_SQL} ORDER BY m.created_at`);
     const markerIds = rows.map((row) => row.id);
     const speciesMap = await loadMarkerSpeciesMap(db, markerIds);
@@ -438,6 +448,12 @@ router.put(
     if (hasVisitMarkerContentPatch(req.body)) {
       await upsertVisitMarkerEditorial(req.body, updated);
       updated = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [m.id]);
+    } else if (
+      audienceInput.visible_role_slugs !== null ||
+      audienceInput.restricted_note !== null ||
+      audienceInput.restricted_note_role_slugs !== null
+    ) {
+      await mirrorMarkerAudienceToVisit(updated);
     }
     const speciesRows = await loadMarkerSpeciesMap(db, [m.id]);
     const categoriesRows = await loadCategoriesMap(db, 'marker', [m.id]);

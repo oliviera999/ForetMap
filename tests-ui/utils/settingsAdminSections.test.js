@@ -5,6 +5,7 @@ import {
   filterSettingSections,
   countSectionRows,
 } from '../../src/utils/settingsAdminSections.js';
+import { KEYS_HANDLED_BY_PANEL } from '../../src/constants/settingsAdminMeta.js';
 
 const ROLE_TERMS = {
   studentSingular: 'n3beur',
@@ -141,5 +142,24 @@ describe('réglages du verrou pédagogique (learning.gating.*)', () => {
     // dédié les édite ; les laisser dans buildSettingSections exposerait deux UI.
     const sections = buildSettingSections(KEYS.map((key) => ({ key, scope: 'teacher' })));
     expect(sections).toEqual([]);
+  });
+});
+
+describe('KEYS_HANDLED_BY_PANEL (panneaux dédiés)', () => {
+  test('exclut plan map_id, code d’accès plan et marque forêt', () => {
+    expect(KEYS_HANDLED_BY_PANEL.has('ui.plan.map_id')).toBe(true);
+    expect(KEYS_HANDLED_BY_PANEL.has('security.plan_access_code_hash')).toBe(true);
+    expect(KEYS_HANDLED_BY_PANEL.has('ui.foret.brand')).toBe(true);
+    const sections = buildSettingSections([
+      { key: 'ui.plan.map_id', type: 'string' },
+      { key: 'security.plan_access_code_hash', type: 'string' },
+      { key: 'ui.foret.brand', type: 'string' },
+      { key: 'ui.auth.allow_register', type: 'boolean' },
+    ]);
+    const keys = sections.flatMap((s) => s.rows.map((r) => r.key));
+    expect(keys).toContain('ui.auth.allow_register');
+    expect(keys).not.toContain('ui.plan.map_id');
+    expect(keys).not.toContain('security.plan_access_code_hash');
+    expect(keys).not.toContain('ui.foret.brand');
   });
 });

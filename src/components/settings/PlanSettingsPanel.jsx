@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 
 import { api } from '../../services/api';
 import { Button } from '../../shared/ui/Button.jsx';
+import { CategoryIdsMultiSelect } from './CategoryIdsMultiSelect.jsx';
 
 const PLAN_KEYS = Object.freeze({
   mapId: 'ui.plan.map_id',
@@ -24,6 +25,7 @@ const PLAN_KEYS = Object.freeze({
  * @param {(key: string, fallback?: unknown) => unknown} props.get
  * @param {(key: string, value: unknown, okMsg?: string) => Promise<void>} props.saveSetting
  * @param {string} [props.savingKey]
+ * @param {boolean} [props.canWrite] — désactive l’édition si faux
  * @param {(msg: string) => void} [props.onMessage]
  * @param {(msg: string) => void} [props.onError]
  */
@@ -32,6 +34,7 @@ export function PlanSettingsPanel({
   get,
   saveSetting,
   savingKey = '',
+  canWrite = true,
   onMessage = null,
   onError = null,
 }) {
@@ -39,8 +42,10 @@ export function PlanSettingsPanel({
   const [savingCode, setSavingCode] = useState(false);
   const hasHash = Boolean(String(get('security.plan_access_code_hash', '') || '').trim());
   const accessMode = String(get(PLAN_KEYS.accessMode, 'public') || 'public');
+  const readOnly = !canWrite;
 
   const saveAccessCode = useCallback(async () => {
+    if (readOnly) return;
     const code = String(accessCode || '').trim();
     if (!code) {
       onError?.('Saisissez un code d’accès.');
@@ -56,9 +61,10 @@ export function PlanSettingsPanel({
     } finally {
       setSavingCode(false);
     }
-  }, [accessCode, onError, onMessage]);
+  }, [accessCode, onError, onMessage, readOnly]);
 
   const clearAccessCode = useCallback(async () => {
+    if (readOnly) return;
     setSavingCode(true);
     try {
       await api('/api/settings/admin/plan-access-code', 'POST', { code: '' });
@@ -69,7 +75,7 @@ export function PlanSettingsPanel({
     } finally {
       setSavingCode(false);
     }
-  }, [onError, onMessage]);
+  }, [onError, onMessage, readOnly]);
 
   return (
     <div className="plan-settings-panel" data-testid="plan-settings-panel">
@@ -82,7 +88,7 @@ export function PlanSettingsPanel({
         <span>Carte du plan</span>
         <select
           value={String(get(PLAN_KEYS.mapId, 'lyautey') || 'lyautey')}
-          disabled={savingKey === PLAN_KEYS.mapId}
+          disabled={readOnly || savingKey === PLAN_KEYS.mapId}
           onChange={(e) =>
             saveSetting(PLAN_KEYS.mapId, e.target.value, 'Carte du plan enregistrée')
           }
@@ -101,7 +107,7 @@ export function PlanSettingsPanel({
           type="text"
           defaultValue={String(get(PLAN_KEYS.title, 'Plan Lyautey') || '')}
           key={`title:${get(PLAN_KEYS.title, '')}`}
-          disabled={savingKey === PLAN_KEYS.title}
+          disabled={readOnly || savingKey === PLAN_KEYS.title}
           onBlur={(e) => saveSetting(PLAN_KEYS.title, e.target.value, 'Titre du plan enregistré')}
         />
       </label>
@@ -112,7 +118,7 @@ export function PlanSettingsPanel({
           type="text"
           defaultValue={String(get(PLAN_KEYS.welcomeHint, '') || '')}
           key={`welcome:${get(PLAN_KEYS.welcomeHint, '')}`}
-          disabled={savingKey === PLAN_KEYS.welcomeHint}
+          disabled={readOnly || savingKey === PLAN_KEYS.welcomeHint}
           onBlur={(e) =>
             saveSetting(PLAN_KEYS.welcomeHint, e.target.value, 'Message d’accueil enregistré')
           }
@@ -125,7 +131,7 @@ export function PlanSettingsPanel({
           type="text"
           defaultValue={String(get(PLAN_KEYS.attribution, '') || '')}
           key={`attr:${get(PLAN_KEYS.attribution, '')}`}
-          disabled={savingKey === PLAN_KEYS.attribution}
+          disabled={readOnly || savingKey === PLAN_KEYS.attribution}
           onBlur={(e) =>
             saveSetting(PLAN_KEYS.attribution, e.target.value, 'Mention de source enregistrée')
           }
@@ -139,7 +145,7 @@ export function PlanSettingsPanel({
           placeholder="https://planlyautey.example.org"
           defaultValue={String(get(PLAN_KEYS.publicBaseUrl, '') || '')}
           key={`url:${get(PLAN_KEYS.publicBaseUrl, '')}`}
-          disabled={savingKey === PLAN_KEYS.publicBaseUrl}
+          disabled={readOnly || savingKey === PLAN_KEYS.publicBaseUrl}
           onBlur={(e) =>
             saveSetting(
               PLAN_KEYS.publicBaseUrl,
@@ -150,45 +156,33 @@ export function PlanSettingsPanel({
         />
       </label>
 
-      <label className="field">
-        <span>Catégories cochées d’office (ids séparés par ;)</span>
-        <input
-          type="text"
-          defaultValue={String(get(PLAN_KEYS.defaultCategoryIds, '') || '')}
-          key={`def:${get(PLAN_KEYS.defaultCategoryIds, '')}`}
-          disabled={savingKey === PLAN_KEYS.defaultCategoryIds}
-          onBlur={(e) =>
-            saveSetting(
-              PLAN_KEYS.defaultCategoryIds,
-              e.target.value,
-              'Catégories par défaut enregistrées',
-            )
-          }
-        />
-      </label>
+      <CategoryIdsMultiSelect
+        label="Catégories cochées d’office"
+        value={get(PLAN_KEYS.defaultCategoryIds, '')}
+        disabled={readOnly || savingKey === PLAN_KEYS.defaultCategoryIds}
+        hint="Sélection multiple — enregistrée immédiatement."
+        testId="plan-default-category-ids"
+        onSave={(next) =>
+          saveSetting(PLAN_KEYS.defaultCategoryIds, next, 'Catégories par défaut enregistrées')
+        }
+      />
 
-      <label className="field">
-        <span>Catégories masquées (ids séparés par ;)</span>
-        <input
-          type="text"
-          defaultValue={String(get(PLAN_KEYS.hiddenCategoryIds, '') || '')}
-          key={`hid:${get(PLAN_KEYS.hiddenCategoryIds, '')}`}
-          disabled={savingKey === PLAN_KEYS.hiddenCategoryIds}
-          onBlur={(e) =>
-            saveSetting(
-              PLAN_KEYS.hiddenCategoryIds,
-              e.target.value,
-              'Catégories masquées enregistrées',
-            )
-          }
-        />
-      </label>
+      <CategoryIdsMultiSelect
+        label="Catégories masquées"
+        value={get(PLAN_KEYS.hiddenCategoryIds, '')}
+        disabled={readOnly || savingKey === PLAN_KEYS.hiddenCategoryIds}
+        hint="Ces catégories n’apparaissent pas sur le Plan."
+        testId="plan-hidden-category-ids"
+        onSave={(next) =>
+          saveSetting(PLAN_KEYS.hiddenCategoryIds, next, 'Catégories masquées enregistrées')
+        }
+      />
 
       <label className="field">
         <span>Mode d’accès</span>
         <select
           value={accessMode}
-          disabled={savingKey === PLAN_KEYS.accessMode}
+          disabled={readOnly || savingKey === PLAN_KEYS.accessMode}
           onChange={(e) =>
             saveSetting(PLAN_KEYS.accessMode, e.target.value, 'Mode d’accès du plan enregistré')
           }
@@ -206,7 +200,7 @@ export function PlanSettingsPanel({
         <input
           type="checkbox"
           checked={Boolean(get(PLAN_KEYS.headingUpEnabled, false))}
-          disabled={savingKey === PLAN_KEYS.headingUpEnabled}
+          disabled={readOnly || savingKey === PLAN_KEYS.headingUpEnabled}
           onChange={(e) =>
             saveSetting(
               PLAN_KEYS.headingUpEnabled,
@@ -232,14 +226,14 @@ export function PlanSettingsPanel({
             placeholder="Nouveau code"
             value={accessCode}
             onChange={(e) => setAccessCode(e.target.value)}
-            disabled={savingCode}
+            disabled={readOnly || savingCode}
             style={{ flex: '1 1 12rem' }}
           />
-          <Button variant="primary" disabled={savingCode} onClick={saveAccessCode}>
+          <Button variant="primary" disabled={readOnly || savingCode} onClick={saveAccessCode}>
             Enregistrer le code
           </Button>
           {hasHash ? (
-            <Button variant="secondary" disabled={savingCode} onClick={clearAccessCode}>
+            <Button variant="secondary" disabled={readOnly || savingCode} onClick={clearAccessCode}>
               Effacer le code
             </Button>
           ) : null}

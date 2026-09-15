@@ -21,6 +21,7 @@ const {
 } = require('../lib/groupRole');
 const { addStudentToGroup } = require('../lib/groupMembers');
 const { logAudit } = require('../lib/auditLog');
+const { slugify } = require('../lib/shared/slug');
 
 const router = express.Router();
 
@@ -33,15 +34,6 @@ function requireGroupManagement(req, res, next) {
     return res.status(403).json({ error: 'Permission insuffisante' });
   }
   return next();
-}
-
-function normalizeSlug(value) {
-  const s = String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  return s || null;
 }
 
 function normalizeKind(value) {
@@ -125,7 +117,7 @@ async function enrichGroupRow(row) {
 }
 
 // O7 — Schéma zod du corps de POST / (création de groupe). Reproduit exactement la validation
-// manuelle : normalisation permissive de chaque champ (`normalizeSlug(slug || name)`, `name` trimé,
+// manuelle : normalisation permissive de chaque champ (`slugify(slug || name)`, `name` trimé,
 // `description`/`parent_group_id` via `normalizeId`, `kind` via `normalizeKind`), puis les gardes 400
 // dans l'ordre d'origine — `!slug || !name` → 'slug et name requis', sinon `!kind` →
 // 'kind invalide (class|team|unit|club)'. Les messages restent au niveau racine (path vide) pour que
@@ -135,7 +127,7 @@ const createGroupBodySchema = z
   .object({})
   .loose()
   .transform((b) => ({
-    slug: normalizeSlug(b.slug || b.name),
+    slug: slugify(b.slug || b.name),
     name: String(b.name || '').trim(),
     description: normalizeId(b.description),
     kind: normalizeKind(b.kind),
@@ -427,7 +419,7 @@ router.patch(
       return res.status(403).json({ error: 'Groupe hors périmètre' });
     }
 
-    const slug = req.body?.slug !== undefined ? normalizeSlug(req.body.slug) : group.slug;
+    const slug = req.body?.slug !== undefined ? slugify(req.body.slug) : group.slug;
     const name = req.body?.name !== undefined ? String(req.body.name || '').trim() : group.name;
     const description =
       req.body?.description !== undefined ? normalizeId(req.body.description) : group.description;

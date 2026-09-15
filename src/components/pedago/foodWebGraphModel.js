@@ -18,6 +18,14 @@ export const ENV_NODE_EMOJI = '🌍';
 /** Ordre des colonnes pour la disposition par niveau trophique. */
 export const TROPHIC_ORDER = ['producteur', 'consommateur', 'decomposeur'];
 
+/** Libellés visibles des colonnes (disposition Niveaux + colonne « Autres »). */
+export const TROPHIC_COLUMN_LABELS = Object.freeze([
+  'Producteurs',
+  'Consommateurs',
+  'Décomposeurs',
+  'Autres',
+]);
+
 /** Présélections de graphe : séparer réseau alimentaire et autres relations. */
 export const GRAPH_PRESETS = Object.freeze({
   alimentaire: Object.freeze(['herbivorie', 'predation', 'decomposition']),
@@ -267,6 +275,16 @@ export function trophicColumn(role) {
 }
 
 /**
+ * Abscisses des colonnes de la disposition par niveau (même formule que
+ * `computeTrophicLayout`) — sert aux étiquettes Producteurs / …
+ */
+export function trophicColumnXs({ width = 640 } = {}) {
+  const colCount = TROPHIC_ORDER.length + 1;
+  const usableW = width - 120;
+  return Array.from({ length: colCount }, (_, col) => 70 + (usableW * col) / (colCount - 1));
+}
+
+/**
  * Disposition par niveau trophique : producteurs → consommateurs →
  * décomposeurs (→ rôle inconnu), répartis verticalement dans chaque colonne.
  */
@@ -277,11 +295,10 @@ export function computeTrophicLayout(nodes, { width = 640, height = 440 } = {}) 
     if (!columns.has(col)) columns.set(col, []);
     columns.get(col).push(node);
   }
-  const colCount = TROPHIC_ORDER.length + 1;
-  const usableW = width - 120;
+  const xs = trophicColumnXs({ width });
   const map = new Map();
   for (const [col, colNodes] of columns) {
-    const x = 70 + (usableW * col) / (colCount - 1);
+    const x = xs[col];
     const n = colNodes.length;
     colNodes.forEach((node, i) => {
       const y = n === 1 ? height / 2 : 60 + ((height - 120) * i) / (n - 1);

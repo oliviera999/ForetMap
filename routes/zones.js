@@ -3,6 +3,7 @@ const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const { requirePermission, authenticate } = require('../middleware/requireTeacher');
+const { resolveScopedMapFilter, canAccessMapId, MAP_OUT_OF_SCOPE } = require('../lib/mapAccess');
 const {
   serializeZonePhotoListRow,
   redirectIfPublicZonePhotoDataUrl,
@@ -39,48 +40,31 @@ const {
   serializeSurfaceSet,
   readSurfaceQuery,
   isVisibleOnSurface,
-  withLocationSurfaceFields,
 } = require('../lib/locationSurfaces');
 const {
   readAudienceWriteFields,
   serializeRoleSlugList,
-  withLocationAudienceFields,
   filterLocationsForViewer,
   projectLocationAudienceForViewer,
   canViewLocation,
 } = require('../lib/locationAudience');
 const { resolveZoneEmojiForWrite } = require('../lib/zoneEmoji');
-
-function serializeLocationRow(row) {
-  return withLocationAudienceFields(withLocationSurfaceFields(row));
-}
+const { mapZoneToVisitWhitelistFields } = require('../lib/visitMapToVisitFields');
+const { mapExists } = require('../lib/mapQueries');
+const { normalizeLivingBeings, serializeLocationRow } = require('../lib/locationRowHelpers');
 
 const db = { queryAll, queryOne, execute, withTransaction };
 
 const router = express.Router();
 
-async function mapExists(mapId) {
-  if (!mapId) return false;
-  const row = await queryOne('SELECT id FROM maps WHERE id = ?', [mapId]);
-  return !!row;
-}
-
-function normalizeLivingBeings(input, fallback = '') {
-  const base = Array.isArray(input)
-    ? input
-    : typeof input === 'string' && input.trim()
-      ? (() => {
-          try {
-            const parsed = JSON.parse(input);
-            if (Array.isArray(parsed)) return parsed;
-          } catch (_) {}
-          return input.split(',');
-        })()
-      : [];
-  const cleaned = [...new Set(base.map((v) => String(v || '').trim()).filter(Boolean))];
-  if (cleaned.length === 0 && fallback && String(fallback).trim()) return [String(fallback).trim()];
-  return cleaned;
-}
+/**
+ * Historique de récoltes d'une zone : colonnes explicites et borne haute. Sans `LIMIT`, une
+ * zone très récoltée renvoyait l'historique entier à chaque ouverture de fiche
+ * (`docs/AUDIT_CODE_2026-09-13.md` §2.4) ; 500 lignes couvrent plusieurs années de récoltes
+ * quotidiennes, la purge (`scripts/purge-audit-logs.js`, 730 j) borne le reste.
+ */
+const ZONE_HISTORY_MAX_ROWS = 500;
+const ZONE_HISTORY_SQL = 'SELECT id, zone_id, plant, harvested_at FROM zone_history';
 
 /**
  * Catégories effectives d'une zone après application d'un patch partiel :
@@ -138,11 +122,14 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
       ? parseVisitEditorialBlocksInput(patchBlocksInput)
       : parseVisitEditorialBlocksInput(existing?.body_json);
   const bodyJson = serializeVisitEditorialBlocks(normalizedBlocks);
+  const audience = mapZoneToVisitWhitelistFields(zoneRow);
   const now = nowIsoUtc();
   await execute(
     `INSERT INTO visit_zones
-      (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json, is_active, sort_order, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
+      (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json,
+       visible_role_slugs, restricted_note, restricted_note_role_slugs,
+       is_active, sort_order, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
      ON DUPLICATE KEY UPDATE
        map_id = VALUES(map_id),
        name = VALUES(name),
@@ -152,6 +139,9 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
        details_title = VALUES(details_title),
        details_text = VALUES(details_text),
        body_json = VALUES(body_json),
+       visible_role_slugs = VALUES(visible_role_slugs),
+       restricted_note = VALUES(restricted_note),
+       restricted_note_role_slugs = VALUES(restricted_note_role_slugs),
        updated_at = VALUES(updated_at)`,
     [
       zoneRow.id,
@@ -163,8 +153,29 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
       detailsTitle,
       detailsText,
       bodyJson,
+      audience.visible_role_slugs,
+      audience.restricted_note,
+      audience.restricted_note_role_slugs,
       now,
       now,
+    ],
+  );
+}
+
+/** Miroir audience carte → visite si une ligne visit_zones existe (sans toucher l'éditorial). */
+async function mirrorZoneAudienceToVisit(zoneRow) {
+  const audience = mapZoneToVisitWhitelistFields(zoneRow);
+  await execute(
+    `UPDATE visit_zones
+     SET visible_role_slugs = ?, restricted_note = ?, restricted_note_role_slugs = ?, updated_at = ?
+     WHERE id = ? AND map_id = ?`,
+    [
+      audience.visible_role_slugs,
+      audience.restricted_note,
+      audience.restricted_note_role_slugs,
+      nowIsoUtc(),
+      zoneRow.id,
+      zoneRow.map_id,
     ],
   );
 }
@@ -199,6 +210,8 @@ LEFT JOIN visit_zones vz ON vz.id = z.id`;
 /** Historique affiché sur la liste carte (le reste via GET /api/zones/:id). */
 const ZONE_LIST_HISTORY_LIMIT = 5;
 
+// `authenticate` : session facultative (la visite publique lit les zones sans compte),
+// hydratée quand elle existe — c'est elle qui porte le périmètre cartes.
 router.get(
   '/',
   authenticate,
@@ -211,8 +224,17 @@ router.get(
     const surfaceQuery = readSurfaceQuery(req.query.surface);
     if (!surfaceQuery.ok) return res.status(400).json({ error: surfaceQuery.error });
     const publicSurface = surfaceQuery.value === 'visit' || surfaceQuery.value === 'plan';
-    const zones = mapId
-      ? await queryAll(`${ZONES_LIST_SQL} WHERE z.map_id = ?`, [mapId])
+    // Périmètre cartes : carte demandée hors périmètre → 403 ; sans `map_id`, la liste
+    // complète est ramenée aux cartes autorisées (sinon la garde tiendrait à l'omission
+    // du paramètre). Se cumule au filtre d'audience appliqué plus bas, qui trie les lieux
+    // d'une même carte selon le rôle.
+    const scope = await resolveScopedMapFilter(req.auth || null, mapId);
+    if (scope.forbidden) return res.status(403).json(MAP_OUT_OF_SCOPE);
+    const zones = scope.mapIds
+      ? await queryAll(
+          `${ZONES_LIST_SQL} WHERE z.map_id IN (${scope.mapIds.map(() => '?').join(',')})`,
+          scope.mapIds,
+        )
       : await queryAll(ZONES_LIST_SQL);
     const zoneIds = zones.map((z) => z.id);
     // Historique : seules les `ZONE_LIST_HISTORY_LIMIT` dernières lignes par zone sont
@@ -297,8 +319,13 @@ router.get(
     if (!canViewLocation(zone, req.auth)) {
       return res.status(404).json({ error: 'Zone introuvable' });
     }
+    // Accès direct par identifiant : la carte de la zone est relue en base, pas déduite
+    // d'un paramètre de requête.
+    if (!(await canAccessMapId(req.auth || null, zone.map_id))) {
+      return res.status(403).json(MAP_OUT_OF_SCOPE);
+    }
     const history = await queryAll(
-      'SELECT * FROM zone_history WHERE zone_id = ? ORDER BY harvested_at DESC',
+      `${ZONE_HISTORY_SQL} WHERE zone_id = ? ORDER BY harvested_at DESC LIMIT ${ZONE_HISTORY_MAX_ROWS}`,
       [req.params.id],
     );
     const speciesRows = await loadZoneSpeciesMap(db, [zone.id]);
@@ -476,11 +503,17 @@ router.put(
     }
     const updated = await queryOne(`${ZONES_DETAIL_SQL} WHERE z.id = ?`, [zone.id]);
     const history = await queryAll(
-      'SELECT * FROM zone_history WHERE zone_id=? ORDER BY harvested_at DESC',
+      `${ZONE_HISTORY_SQL} WHERE zone_id = ? ORDER BY harvested_at DESC LIMIT ${ZONE_HISTORY_MAX_ROWS}`,
       [zone.id],
     );
     if (hasVisitZoneContentPatch(req.body)) {
       await upsertVisitZoneEditorial(req.body, updated);
+    } else if (
+      audienceInput.visible_role_slugs !== null ||
+      audienceInput.restricted_note !== null ||
+      audienceInput.restricted_note_role_slugs !== null
+    ) {
+      await mirrorZoneAudienceToVisit(updated);
     }
     const updatedWithVisit = await queryOne(`${ZONES_DETAIL_SQL} WHERE z.id = ?`, [zone.id]);
     const speciesRows = await loadZoneSpeciesMap(db, [zone.id]);

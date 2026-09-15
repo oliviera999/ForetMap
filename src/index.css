@@ -18,6 +18,8 @@
     @import './shared/styles/map-action.css';
     @import './shared/styles/map-overlay-labels.css';
     @import './shared/styles/map-scale-compass.css';
+    @import './shared/styles/pct-map-layers.css';
+    @import './shared/styles/map-category-chips.css';
     @import './shared/styles/data-list.css';
     @import './shared/styles/learning-gating.css';
 
@@ -500,6 +502,7 @@
       box-shadow:0 -2px 20px rgba(26,71,49,.06);
       padding-bottom:var(--safe-bottom);
       min-height:calc(var(--bottom-nav-height) + var(--safe-bottom));
+      -webkit-backdrop-filter:blur(8px);
       backdrop-filter:blur(8px);
     }
     .nav-btn {
@@ -516,10 +519,10 @@
       line-height:1.05;
       transition:color .2s var(--ease-out), transform var(--motion-fast) var(--spring), background var(--motion-fast) var(--ease-out);
     }
-    /* Mobile / tactile : éviter une barre à plusieurs lignes (onglets étroits + texte wrappé
-       = hauteur énorme et zone carte écrasée / invisible). Défilement horizontal, hauteur stable. */
+    /* Mobile / tactile : sans mode Plus (barre complète desktop coarse rare), éviter une
+       barre à plusieurs lignes. Avec `.bottom-nav--compact` (primaires + Plus), pas de scroll H. */
     @media (max-width:1023px), (pointer:coarse) {
-      .bottom-nav {
+      .bottom-nav:not(.bottom-nav--compact) {
         flex-wrap:nowrap;
         justify-content:flex-start;
         overflow-x:auto;
@@ -530,13 +533,31 @@
         min-height:calc(56px + var(--safe-bottom));
         max-height:calc(72px + var(--safe-bottom));
       }
-      .bottom-nav::-webkit-scrollbar { display:none; }
-      .nav-btn {
+      .bottom-nav:not(.bottom-nav--compact)::-webkit-scrollbar { display:none; }
+      .bottom-nav:not(.bottom-nav--compact) .nav-btn {
         flex:0 0 auto;
         min-width:0;
         max-width:none;
         min-height:48px;
         padding:8px 10px;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      .bottom-nav--compact {
+        flex-wrap:nowrap;
+        justify-content:stretch;
+        overflow-x:hidden;
+        overflow-y:hidden;
+        align-items:stretch;
+        min-height:calc(56px + var(--safe-bottom));
+        max-height:calc(72px + var(--safe-bottom));
+      }
+      .bottom-nav--compact .nav-btn {
+        flex:1 1 0;
+        min-width:0;
+        min-height:48px;
+        padding:8px 6px;
         white-space:nowrap;
         overflow:hidden;
         text-overflow:ellipsis;
@@ -568,6 +589,46 @@
     .map-bubble:focus-visible {
       outline:3px solid rgba(82,183,136,.45);
       outline-offset:2px;
+    }
+
+    /* Tiroir « Plus » navigation élève (audit iPhone) — thème forêt, pas gl-* */
+    .fm-nav-drawer-overlay {
+      --fm-bottom-sheet-z: var(--fm-z-drawer);
+    }
+    .fm-nav-drawer-tabs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      padding: 4px 0 8px;
+    }
+    .fm-nav-drawer-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--outline-soft);
+      border-radius: 10px;
+      background: var(--surface-soft);
+      color: var(--forest);
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: var(--text-sm);
+      text-align: left;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .fm-nav-drawer-tab.is-active {
+      border-color: var(--sage);
+      background: rgba(183, 228, 199, 0.35);
+      font-weight: var(--fw-semibold);
+    }
+    .fm-nav-drawer-tab__icon {
+      display: inline-flex;
+      flex-shrink: 0;
+    }
+    .fm-nav-drawer-tab__label {
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
 
     /* ── FOOTER VERSION ── */
@@ -778,6 +839,7 @@
       -webkit-overflow-scrolling:touch; scrollbar-width:none;
       border:1px solid rgba(107,66,38,.16);
       box-shadow:0 6px 16px rgba(107,66,38,.08);
+      -webkit-backdrop-filter:blur(8px);
       backdrop-filter:blur(8px);
     }
     .top-tabs::-webkit-scrollbar { display:none; }
@@ -893,6 +955,51 @@
       height:auto;
       flex-shrink:0;
       align-self:center;
+    }
+    /* Scène consultation (`WorkMapStage` / SharedMapStage) : remplit le slot comme Visite/Plan. */
+    .map-view-stage {
+      position:relative;
+      box-sizing:border-box;
+      width:100%;
+      height:100%;
+      min-height:160px;
+      border-radius:10px;
+      overflow:hidden;
+      background:#eef2ee;
+      border:1px solid rgba(0,0,0,.06);
+      cursor:grab;
+      align-self:stretch;
+      flex:1 1 auto;
+    }
+    .map-view-stage:active { cursor:grabbing; }
+    .map-view-world {
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      transform-origin:0 0;
+    }
+    .map-view-fit-layer {
+      position:absolute;
+      box-sizing:border-box;
+    }
+    .map-view-fit-layer .map-view-img {
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+      user-select:none;
+      pointer-events:none;
+      -webkit-user-drag:none;
+    }
+    /* Filtre lieux : atténuation via classes seen/unseen du noyau partagé. */
+    .map-view-stage .fm-pct-zone.is-seen:not(.is-active) .fm-pct-zone__poly,
+    .map-view-stage .fm-pct-marker.is-seen:not(.is-active) {
+      opacity:0.35;
+      pointer-events:none;
+    }
+    .map-view-stage .fm-pct-zone.is-unseen:not(.is-active) .fm-pct-zone__poly {
+      fill-opacity:0.78;
     }
     /* (styles échelle / rose des vents → shared/styles/map-scale-compass.css) */
     .desktop-split-pane--map {
@@ -2371,7 +2478,18 @@
     /* Le « ? » était exclu de la compaction (48px) : en portrait il impose une barre plus haute que sur les autres onglets. */
     .main.main--map-visible .map-view-toolbar .fm-help-btn,
     .teacher-main.teacher-main--map-visible .map-view-toolbar .fm-help-btn,
-    .map-view-root--solo .map-view-toolbar .fm-help-btn {
+    .map-view-root--solo .map-view-toolbar /* En-tête de « Mon carnet » : titre à gauche, bouton d'aide `?` à droite (parité GLHelpPanel). */
+.fm-journal__header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.fm-journal__header-row h2 {
+  margin: 0;
+}
+
+.fm-help-btn {
       min-width:36px;
       min-height:36px;
       width:36px;
@@ -2381,18 +2499,20 @@
     }
 
     @media (max-width:1023px), (pointer:coarse) {
-      /* En-tête : une seule ligne, hauteur fixe (évite tout agrandissement parasite sur mobile). */
+      /* En-tête : une seule ligne, hauteur fixe (évite tout agrandissement parasite sur mobile).
+         Cibles ≥ 44px (HIG Apple / convention projet) — le pseudo ::after élargit aussi la
+         zone, mais la boîte visible doit déjà respecter le minimum tactile. */
       header .lock-btn {
-        min-height:36px;
-        min-width:36px;
-        padding:6px 8px;
+        min-height:44px;
+        min-width:44px;
+        padding:8px 10px;
         font-size:var(--text-sm);
       }
       /* PWA : libellé « Installer » masqué (icône + aria-label / title suffisent, gain de place). */
       header .install-btn .lock-label { display: none; }
       header .user-badge {
-        min-height:36px;
-        padding:3px 8px;
+        min-height:44px;
+        padding:6px 10px;
         font-size:var(--text-xs);
       }
       header .app-version-badge {
@@ -2400,7 +2520,8 @@
         padding:2px 6px;
       }
       header .realtime-prof-wrap {
-        min-height:28px;
+        min-height:44px;
+        min-width:44px;
       }
       /* Barre d’outils carte : plus compacte que le défaut inline (7px / min 50px),
          pour libérer de la hauteur utile — uniquement sur l’écran carte. */
@@ -2540,6 +2661,26 @@
       border-top:1px solid rgba(183,228,199,.6);
       display:grid; gap:8px; padding:10px;
     }
+    /* Section « Détermination » : même cadre que les autres sections de la fiche,
+       titre porté par un span pour laisser la flèche de `summary::after` à droite. */
+    .plant-determination__summary { display:inline-flex; align-items:center; gap:6px; }
+    /* Confusions possibles : encadré d'alerte. La forêt est comestible et les élèves
+       récoltent — une ressemblance avec une espèce toxique ne se lit pas comme une
+       métadonnée ordinaire. Palette alignée sur `.notif-level-important`. */
+    .plant-determination__alert {
+      display:flex; flex-direction:column; gap:4px;
+      border:1px solid #f59e0b; border-left-width:4px; border-radius:8px;
+      background:#fffbeb; padding:8px 10px;
+    }
+    .plant-determination__alert-label {
+      display:flex; align-items:center; gap:6px;
+      font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.05em;
+      color:#92400e; font-weight:var(--fw-bold);
+    }
+    .plant-determination__alert-text {
+      font-size:var(--text-sm); color:#7c3a06; line-height:var(--lh-normal); word-break:break-word;
+    }
+    .plant-determination__alert-text a { color:#92400e; }
     .plant-meta-item { display:flex; flex-direction:column; gap:3px; }
     .plant-meta-label { font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.05em; color:#8aa193; font-weight:var(--fw-bold); }
     .plant-meta-value, .plant-links { font-size:var(--text-sm); color:#42544a; line-height:var(--lh-normal); word-break:break-word; }
@@ -4165,6 +4306,8 @@
       padding-bottom:8px;
       margin-bottom:2px;
       border-bottom:1px solid rgba(82,183,136,.15);
+      min-width:0;
+      max-width:100%;
     }
     .visit-map-card__chrome-top {
       display:flex;
@@ -4541,18 +4684,70 @@
       gap:4px;
       max-width:260px;
     }
-    /* Variante bandeau : rangée compacte, sans libellé visible ni marge haute.
-       `.visit-mascot-picker` impose `flex-direction: column` (sa disposition dans les
-       réglages et le studio) ; le style en ligne du bandeau ne la réinitialisait jamais,
-       si bien que le libellé se posait AU-DESSUS du menu et décalait toute la rangée
-       de ~30px. Cf. `docs/AUDIT_VISITE_UI_UX_2026-09.md` §5.1. */
-    .visit-mascot-picker--visit-chrome {
+    /* Variante bandeau : bouton icône + menu compact (plus de grand <select>). */
+    .visit-mascot-picker--popover {
+      position:relative;
       flex-direction:row;
       align-items:center;
       margin-top:0;
       gap:0;
       max-width:none;
       min-width:0;
+    }
+    .visit-mascot-picker__trigger {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:var(--tap-target, 44px);
+      height:var(--tap-target, 44px);
+      min-width:var(--tap-target, 44px);
+      min-height:var(--tap-target, 44px);
+      padding:0;
+      border:1px solid rgba(82,183,136,.55);
+      border-radius:9px;
+      background:#fff;
+      color:#1a4731;
+      font-size:1.15rem;
+      cursor:pointer;
+    }
+    .visit-mascot-picker__trigger:focus-visible {
+      outline:2px solid var(--forest, #1a4731);
+      outline-offset:2px;
+    }
+    .visit-mascot-picker__menu {
+      position:absolute;
+      top:calc(100% + 4px);
+      right:0;
+      z-index:6;
+      margin:0;
+      padding:6px;
+      list-style:none;
+      min-width:11rem;
+      max-height:min(50vh, 16rem);
+      overflow:auto;
+      border:1px solid rgba(82,183,136,.4);
+      border-radius:10px;
+      background:#fff;
+      box-shadow:0 8px 24px rgba(26,71,49,.18);
+    }
+    .visit-mascot-picker__option {
+      display:block;
+      width:100%;
+      min-height:var(--tap-target, 44px);
+      padding:8px 12px;
+      border:0;
+      border-radius:8px;
+      background:transparent;
+      color:#1a4731;
+      font:inherit;
+      font-size:var(--text-sm);
+      text-align:left;
+      cursor:pointer;
+    }
+    .visit-mascot-picker__option.is-selected,
+    .visit-mascot-picker__option:hover {
+      background:rgba(45,106,79,.12);
+      font-weight:var(--fw-semibold, 600);
     }
     .visit-mascot-picker span {
       font-size:var(--text-sm);
@@ -4568,17 +4763,117 @@
       font-weight:var(--fw-semibold);
       padding:4px 8px;
     }
-    /* Même spécificité que `.visit-mascot-picker select` (0,1,1), déclarée plus bas :
-       sans cela la règle générique reprenait la main sur `min-height`. `.form-select`
-       n'existe pas dans cette feuille — sans taille explicite le menu héritait de celle
-       du corps et « Gnome des bois » se coupait. */
-    .visit-mascot-picker--visit-chrome select {
+    .visit-map-card__chrome-discover {
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:8px;
+      width:100%;
       min-width:0;
-      max-width:200px;
-      min-height:44px;
+      max-width:100%;
+    }
+    /* Même rôle que `.plan-filters__row` : la rangée scrolle, pas la fenêtre. */
+    .visit-map-card__chrome-chips {
+      display:flex;
+      align-items:center;
+      gap:var(--space-2, 8px);
+      width:100%;
+      min-width:0;
+      max-width:100%;
+      overflow-x:auto;
+      overflow-y:hidden;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
+      overscroll-behavior-x:contain;
+    }
+    .visit-map-card__chrome-chips::-webkit-scrollbar {
+      display:none;
+    }
+    .visit-search {
+      position:relative;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      min-height:var(--tap-target, 44px);
+      padding:0 12px;
+      border-radius:999px;
+      background:#fff;
+      border:1px solid rgba(82,183,136,.45);
+      color:#1a4731;
+      width:100%;
+      max-width:min(28rem, 100%);
+      box-sizing:border-box;
+      min-width:0;
+    }
+    .visit-search:focus-within {
+      outline:2px solid var(--forest, #1a4731);
+      outline-offset:2px;
+    }
+    .visit-search__icon {
+      flex:0 0 auto;
+      font-size:var(--text-md, 1.05rem);
+    }
+    .visit-search__input {
+      flex:1 1 auto;
+      min-width:0;
+      min-height:var(--tap-target, 44px);
+      border:0;
+      background:transparent;
+      color:inherit;
+      font:inherit;
+      font-size:var(--text-base, 1rem);
+    }
+    .visit-search__input:focus {
+      outline:none;
+    }
+    .visit-search__clear {
+      flex:0 0 auto;
+      width:var(--tap-target, 44px);
+      height:var(--tap-target, 44px);
+      border:0;
+      border-radius:50%;
+      background:transparent;
+      color:#365314;
+      font-size:var(--text-md, 1.05rem);
+      cursor:pointer;
+    }
+    .visit-search__results {
+      position:absolute;
+      top:calc(100% + 4px);
+      left:0;
+      right:0;
+      z-index:5;
+      margin:0;
+      padding:6px;
+      list-style:none;
+      max-height:min(40vh, 14rem);
+      overflow:auto;
+      border:1px solid rgba(82,183,136,.35);
+      border-radius:12px;
+      background:#fff;
+      box-shadow:0 8px 24px rgba(26,71,49,.16);
+    }
+    .visit-search__result {
+      display:block;
+      width:100%;
+      min-height:var(--tap-target, 44px);
+      padding:8px 12px;
+      border:0;
+      border-radius:8px;
+      background:transparent;
+      color:#1a4731;
+      font:inherit;
+      text-align:left;
+      cursor:pointer;
+    }
+    .visit-search__result:hover,
+    .visit-search__result:focus-visible {
+      background:rgba(45,106,79,.12);
+    }
+    .visit-search__empty {
+      padding:10px 12px;
+      color:#365314;
       font-size:var(--text-sm);
-      border-radius:9px;
-      text-overflow:ellipsis;
     }
     /* Seuils responsive du bandeau — il n'en avait aucun : sous 560px tout s'empilait
        aligné à droite, en escalier. Placé APRÈS les règles de base qu'il écrase : à
@@ -4602,9 +4897,6 @@
       }
       .visit-map-card__chrome-title-line {
         gap:8px 10px;
-      }
-      .visit-mascot-picker--visit-chrome select {
-        max-width:148px;
       }
       /* Le donut cède la place au titre : lisible dès 40px, il laisse le bouton
          « Présentation du lieu » remonter sur la même ligne. */
@@ -4724,6 +5016,10 @@
       background:var(--surface-1); border-radius:14px; border:1px solid var(--outline-soft);
       box-shadow:var(--shadow-soft); padding:10px;
       transition:box-shadow var(--motion-base), border-color var(--motion-base);
+      min-width:0;
+      max-width:100%;
+      /* Comme `.plan-shell` : les puces défilent dans leur rangée, pas hors carte. */
+      overflow-x:hidden;
     }
     .visit-map-stage {
       position:relative; border-radius:10px; overflow:hidden;
@@ -8471,30 +8767,32 @@
 .pedago-foodweb-graph__arrowhead.active {
   fill: #16a34a;
 }
-/* Herbivorie et prédation ne doivent pas se distinguer que par la teinte
-   (rouges voisins, illisibles en vision deutan/protan) : figuré et épaisseur
-   propres. Voir INTERACTION_EDGE_STYLES, qui fait foi. */
+/* Palette unique : INTERACTION_EDGE_STYLES (foodWebEdgeStyle.js) fait foi.
+   Second canal (tirets / épaisseur) obligatoire — ne pas distinguer par teinte seule. */
 .pedago-foodweb-graph__line--herbivorie,
-.pedago-foodweb-graph__arrowhead--herbivorie { stroke: #c2410c; fill: #c2410c; stroke-dasharray: 12 5; }
+.pedago-foodweb-graph__arrowhead--herbivorie { stroke: #e69f00; fill: #e69f00; stroke-dasharray: 12 5; }
 .pedago-foodweb-graph__line--predation,
-.pedago-foodweb-graph__arrowhead--predation { stroke: #b91c1c; fill: #b91c1c; stroke-width: 2.4; }
+.pedago-foodweb-graph__arrowhead--predation { stroke: #d55e00; fill: #d55e00; stroke-width: 2.4; }
 .pedago-foodweb-graph__line--decomposition,
-.pedago-foodweb-graph__arrowhead--decomposition { stroke: #78350f; fill: #78350f; stroke-dasharray: 8 4; }
+.pedago-foodweb-graph__arrowhead--decomposition { stroke: #cc79a7; fill: #cc79a7; stroke-dasharray: 8 4; }
 .pedago-foodweb-graph__line--pollinisation,
-.pedago-foodweb-graph__arrowhead--pollinisation { stroke: #ca8a04; fill: #ca8a04; stroke-dasharray: 6 3; }
+.pedago-foodweb-graph__arrowhead--pollinisation { stroke: #f0e442; fill: #f0e442; stroke-dasharray: 6 3; }
 .pedago-foodweb-graph__line--plante_hote,
-.pedago-foodweb-graph__arrowhead--plante_hote { stroke: #15803d; fill: #15803d; stroke-dasharray: 2 4; }
+.pedago-foodweb-graph__arrowhead--plante_hote { stroke: #009e73; fill: #009e73; stroke-dasharray: 2 4; }
 .pedago-foodweb-graph__line--nitrification,
-.pedago-foodweb-graph__arrowhead--nitrification { stroke: #1d4ed8; fill: #1d4ed8; stroke-dasharray: 10 3 2 3; }
+.pedago-foodweb-graph__arrowhead--nitrification { stroke: #0072b2; fill: #0072b2; stroke-dasharray: 10 3 2 3; }
 .pedago-foodweb-graph__line--symbiose,
-.pedago-foodweb-graph__arrowhead--symbiose { stroke: #0f766e; fill: #0f766e; }
+.pedago-foodweb-graph__arrowhead--symbiose { stroke: #56b4e9; fill: #56b4e9; }
 .pedago-foodweb-graph__line--competition,
-.pedago-foodweb-graph__arrowhead--competition { stroke: #4b5563; fill: #4b5563; stroke-dasharray: 4 4; }
+.pedago-foodweb-graph__arrowhead--competition { stroke: #666666; fill: #666666; stroke-dasharray: 4 4; }
 .pedago-foodweb-graph__line--default,
 .pedago-foodweb-graph__arrowhead--default { stroke: #94a3b8; fill: #94a3b8; }
-.pedago-foodweb-graph__line.active {
+.pedago-foodweb-graph__line-halo {
+  fill: none;
   stroke: #16a34a;
-  stroke-width: 2.6;
+  stroke-linecap: round;
+  opacity: 0.45;
+  pointer-events: none;
 }
 .pedago-foodweb-graph__edge-hit {
   fill: none;
@@ -8684,8 +8982,8 @@
   border: 1px solid transparent;
   background: transparent;
   border-radius: 6px;
-  padding: 6px 10px;
-  min-height: 36px;
+  padding: 8px 12px;
+  min-height: 44px;
   font-size: var(--text-sm);
   cursor: pointer;
   color: var(--forest, #1a3d2e);
@@ -8706,13 +9004,56 @@
   font-size: var(--text-sm);
   margin: 0;
 }
+.pedago-foodweb-graph__col-label {
+  font: 600 11px var(--font-sans, sans-serif);
+  fill: #4b5563;
+  pointer-events: none;
+}
+.pedago-foodweb-graph__more {
+  position: relative;
+}
+.pedago-foodweb-graph__more-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  background: #eef4f0;
+  border-radius: 8px;
+  border: 1px solid #d6e8dc;
+  min-width: 120px;
+}
+.pedago-foodweb-graph__export--mobile {
+  display: none;
+}
+.pedago-foodweb__preset-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pedago-foodweb__preset-btns .pedago-chip-btn.active {
+  background: var(--sage, #7aab8a);
+  color: #fff;
+  border-color: var(--forest, #1a3d2e);
+}
+@media (max-width: 768px) {
+  .pedago-foodweb-graph__export--desktop {
+    display: none;
+  }
+  .pedago-foodweb-graph__export--mobile {
+    display: inline-flex;
+  }
+}
 .pedago-foodweb-graph__search {
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 .pedago-foodweb-graph__search-input {
-  min-height: 36px;
+  min-height: 44px;
   min-width: 0;
   width: clamp(120px, 22vw, 200px);
   padding: 6px 10px;

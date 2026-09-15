@@ -5,7 +5,7 @@
 // Monté sans préfixe via router.use(...) côté visit.js : chemins inchangés.
 // N'importe AUCUN symbole de visit.js (zéro import circulaire) — uniquement lib/, database, middleware.
 const express = require('express');
-const { queryAll, execute, withTransaction } = require('../../database');
+const { queryAll, withTransaction } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const asyncHandler = require('../../lib/asyncHandler');
 const { emitGardenChanged } = require('../../lib/realtime');
@@ -16,8 +16,12 @@ const {
   parseVisitEditorialBlocksStored,
   serializeVisitEditorialBlocks,
 } = require('../../lib/visitEditorialBlocks');
-const { normalizeMarkerEmoji } = require('../../lib/markerEmoji');
 const { normalizeIdList } = require('../../lib/visitContentHelpers');
+const { normalizeMarkerEmoji } = require('../../lib/markerEmoji');
+const {
+  mapZoneToVisitWhitelistFields,
+  mapMarkerToVisitWhitelistFields,
+} = require('../../lib/visitMapToVisitFields');
 
 const router = express.Router();
 
@@ -96,14 +100,21 @@ router.post(
 
     const sourceZones =
       direction === 'map_to_visit'
-        ? await queryAll('SELECT id, map_id, name, points FROM zones WHERE map_id = ?', [mapId])
+        ? await queryAll(
+            `SELECT id, map_id, name, points, description,
+                    visible_role_slugs, restricted_note, restricted_note_role_slugs
+             FROM zones WHERE map_id = ?`,
+            [mapId],
+          )
         : await queryAll('SELECT id, map_id, name, points FROM visit_zones WHERE map_id = ?', [
             mapId,
           ]);
     const sourceMarkers =
       direction === 'map_to_visit'
         ? await queryAll(
-            'SELECT id, map_id, x_pct, y_pct, label, emoji FROM map_markers WHERE map_id = ?',
+            `SELECT id, map_id, x_pct, y_pct, label, emoji, note,
+                    visible_role_slugs, restricted_note, restricted_note_role_slugs
+             FROM map_markers WHERE map_id = ?`,
             [mapId],
           )
         : await queryAll(
@@ -125,91 +136,164 @@ router.post(
     }
 
     const now = nowIso();
+
+    // Audit 2026-09-13 §5.5 : une requête par élément, hors transaction, laissait un import
+    // partiel en cas d'échec au milieu. Lots multi-lignes dans une transaction : atomique, et
+    // deux à quatre requêtes au lieu de N.
+    const insertInBatches = async (tx, { head, tail, rowParams }) => {
+      const BATCH = 100;
+      const width = rowParams.length ? rowParams[0].length : 0;
+      const placeholderRow = `(${Array.from({ length: width }, () => '?').join(', ')})`;
+      for (let i = 0; i < rowParams.length; i += BATCH) {
+        const chunk = rowParams.slice(i, i + BATCH);
+        const placeholders = chunk.map(() => placeholderRow).join(',\n           ');
+        await tx.execute(
+          `${head}\n         VALUES ${placeholders}\n         ${tail}`,
+          chunk.flat(),
+        );
+      }
+      return rowParams.length;
+    };
+
     let importedZones = 0;
     let importedMarkers = 0;
 
-    if (direction === 'map_to_visit') {
-      for (const zoneId of zoneIds) {
-        const z = zoneById.get(zoneId);
-        await execute(
-          `INSERT INTO visit_zones
-          (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json, is_active, sort_order, created_at, updated_at)
-         VALUES (?, ?, ?, ?, '', '', 'Détails', '', NULL, 1, 0, ?, ?)
-         ON DUPLICATE KEY UPDATE
+    await withTransaction(async (tx) => {
+      if (direction === 'map_to_visit') {
+        importedZones = await insertInBatches(tx, {
+          head: `INSERT INTO visit_zones
+          (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json,
+           visible_role_slugs, restricted_note, restricted_note_role_slugs,
+           is_active, sort_order, created_at, updated_at)`,
+          tail: `ON DUPLICATE KEY UPDATE
            map_id = VALUES(map_id),
            name = VALUES(name),
            points = VALUES(points),
+           short_description = VALUES(short_description),
+           visible_role_slugs = VALUES(visible_role_slugs),
+           restricted_note = VALUES(restricted_note),
+           restricted_note_role_slugs = VALUES(restricted_note_role_slugs),
            updated_at = VALUES(updated_at)`,
-          [z.id, z.map_id, z.name, z.points || '[]', now, now],
-        );
-        importedZones += 1;
-      }
-      for (const markerId of markerIds) {
-        const m = markerById.get(markerId);
-        await execute(
-          `INSERT INTO visit_markers
-          (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json, is_active, sort_order, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, '', '', 'Détails', '', NULL, 1, 0, ?, ?)
-         ON DUPLICATE KEY UPDATE
+          rowParams: zoneIds.map((zoneId) => {
+            const w = mapZoneToVisitWhitelistFields(zoneById.get(zoneId));
+            // (id, map_id, name, points, subtitle '', short_description, details_title 'Détails',
+            //  details_text '', body_json NULL, audience ×3, is_active 1, sort_order 0, created, updated)
+            return [
+              w.id,
+              w.map_id,
+              w.name,
+              w.points,
+              '',
+              w.short_description,
+              'Détails',
+              '',
+              null,
+              w.visible_role_slugs,
+              w.restricted_note,
+              w.restricted_note_role_slugs,
+              1,
+              0,
+              now,
+              now,
+            ];
+          }),
+        });
+        importedMarkers = await insertInBatches(tx, {
+          head: `INSERT INTO visit_markers
+          (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json,
+           visible_role_slugs, restricted_note, restricted_note_role_slugs,
+           is_active, sort_order, created_at, updated_at)`,
+          tail: `ON DUPLICATE KEY UPDATE
            map_id = VALUES(map_id),
            x_pct = VALUES(x_pct),
            y_pct = VALUES(y_pct),
            label = VALUES(label),
            emoji = VALUES(emoji),
+           short_description = VALUES(short_description),
+           visible_role_slugs = VALUES(visible_role_slugs),
+           restricted_note = VALUES(restricted_note),
+           restricted_note_role_slugs = VALUES(restricted_note_role_slugs),
            updated_at = VALUES(updated_at)`,
-          [
-            m.id,
-            m.map_id,
-            m.x_pct,
-            m.y_pct,
-            m.label,
-            normalizeMarkerEmoji(m.emoji, { allowEmpty: true, fallback: '' }),
-            now,
-            now,
-          ],
-        );
-        importedMarkers += 1;
-      }
-    } else {
-      for (const zoneId of zoneIds) {
-        const z = zoneById.get(zoneId);
-        await execute(
-          `INSERT INTO zones
-          (id, map_id, name, x, y, width, height, current_plant, stage, special, shape, points, color, description)
-         VALUES (?, ?, ?, 0, 0, 0, 0, '', 'empty', 0, 'polygon', ?, '#86efac80', '')
-         ON DUPLICATE KEY UPDATE
+          rowParams: markerIds.map((markerId) => {
+            const w = mapMarkerToVisitWhitelistFields(markerById.get(markerId));
+            return [
+              w.id,
+              w.map_id,
+              w.x_pct,
+              w.y_pct,
+              w.label,
+              w.emoji,
+              '',
+              w.short_description,
+              'Détails',
+              '',
+              null,
+              w.visible_role_slugs,
+              w.restricted_note,
+              w.restricted_note_role_slugs,
+              1,
+              0,
+              now,
+              now,
+            ];
+          }),
+        });
+      } else {
+        importedZones = await insertInBatches(tx, {
+          head: `INSERT INTO zones
+          (id, map_id, name, x, y, width, height, current_plant, stage, special, shape, points, color, description)`,
+          tail: `ON DUPLICATE KEY UPDATE
            map_id = VALUES(map_id),
            name = VALUES(name),
            shape = VALUES(shape),
            points = VALUES(points)`,
-          [z.id, z.map_id, z.name, z.points || '[]'],
-        );
-        importedZones += 1;
-      }
-      for (const markerId of markerIds) {
-        const m = markerById.get(markerId);
-        await execute(
-          `INSERT INTO map_markers
-          (id, map_id, x_pct, y_pct, label, plant_name, note, emoji, created_at)
-         VALUES (?, ?, ?, ?, ?, '', '', ?, ?)
-         ON DUPLICATE KEY UPDATE
+          rowParams: zoneIds.map((zoneId) => {
+            const z = zoneById.get(zoneId);
+            return [
+              z.id,
+              z.map_id,
+              z.name,
+              0,
+              0,
+              0,
+              0,
+              '',
+              'empty',
+              0,
+              'polygon',
+              z.points || '[]',
+              '#86efac80',
+              '',
+            ];
+          }),
+        });
+        importedMarkers = await insertInBatches(tx, {
+          head: `INSERT INTO map_markers
+          (id, map_id, x_pct, y_pct, label, plant_name, note, emoji, created_at)`,
+          tail: `ON DUPLICATE KEY UPDATE
            map_id = VALUES(map_id),
            x_pct = VALUES(x_pct),
            y_pct = VALUES(y_pct),
            label = VALUES(label),
            emoji = VALUES(emoji)`,
-          [
-            m.id,
-            m.map_id,
-            m.x_pct,
-            m.y_pct,
-            m.label,
-            normalizeMarkerEmoji(m.emoji, { allowEmpty: true, fallback: '' }),
-            now,
-          ],
-        );
-        importedMarkers += 1;
+          rowParams: markerIds.map((markerId) => {
+            const m = markerById.get(markerId);
+            return [
+              m.id,
+              m.map_id,
+              m.x_pct,
+              m.y_pct,
+              m.label,
+              '',
+              '',
+              normalizeMarkerEmoji(m.emoji, { allowEmpty: true, fallback: '' }),
+              now,
+            ];
+          }),
+        });
       }
+    });
+    if (direction !== 'map_to_visit') {
       emitGardenChanged({ reason: 'visit_sync_to_map', mapId });
     }
 
@@ -230,6 +314,8 @@ router.post(
  * recrée les lignes `visit_zones` / `visit_markers` à partir de `zones` / `map_markers`,
  * en réinjectant pour chaque id conservé les champs éditoriaux et l’ordre issus de l’ancienne visite.
  * Les cibles visite disparues (ids hors carte) sont retirées avec nettoyage médias / progression.
+ * Audience + short_description (liste blanche) viennent de la carte ; restricted_note
+ * n’est jamais injecté dans les champs publics.
  */
 router.post(
   '/rebuild-from-map',
@@ -240,11 +326,15 @@ router.post(
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
 
     const mapZones = await queryAll(
-      `SELECT id, map_id, name, points FROM zones WHERE map_id = ? ORDER BY name ASC, id ASC`,
+      `SELECT id, map_id, name, points, description,
+              visible_role_slugs, restricted_note, restricted_note_role_slugs
+       FROM zones WHERE map_id = ? ORDER BY name ASC, id ASC`,
       [mapId],
     );
     const mapMarkers = await queryAll(
-      `SELECT id, map_id, x_pct, y_pct, label, emoji FROM map_markers WHERE map_id = ? ORDER BY label ASC, id ASC`,
+      `SELECT id, map_id, x_pct, y_pct, label, emoji, note,
+              visible_role_slugs, restricted_note, restricted_note_role_slugs
+       FROM map_markers WHERE map_id = ? ORDER BY label ASC, id ASC`,
       [mapId],
     );
 
@@ -316,15 +406,9 @@ router.post(
       await tx.execute('DELETE FROM visit_markers WHERE map_id = ?', [mapId]);
 
       for (const z of mapZones) {
+        const w = mapZoneToVisitWhitelistFields(z);
         const saved = savedZoneById.get(String(z.id));
-        const pointsStr =
-          z.points != null
-            ? typeof z.points === 'string'
-              ? z.points
-              : JSON.stringify(z.points)
-            : '[]';
         const subtitle = saved ? String(saved.subtitle ?? '') : '';
-        const shortDescription = saved ? String(saved.short_description ?? '') : '';
         const detailsTitle = saved
           ? String(saved.details_title || 'Détails').trim() || 'Détails'
           : 'Détails';
@@ -343,18 +427,23 @@ router.post(
 
         await tx.execute(
           `INSERT INTO visit_zones
-          (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json, is_active, sort_order, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json,
+           visible_role_slugs, restricted_note, restricted_note_role_slugs,
+           is_active, sort_order, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            z.id,
-            z.map_id,
-            String(z.name || '').trim() || z.id,
-            pointsStr,
+            w.id,
+            w.map_id,
+            w.name,
+            w.points,
             subtitle,
-            shortDescription,
+            w.short_description,
             detailsTitle,
             detailsText,
             bodyJson,
+            w.visible_role_slugs,
+            w.restricted_note,
+            w.restricted_note_role_slugs,
             isActive,
             sortOrder,
             createdAt,
@@ -365,9 +454,9 @@ router.post(
       }
 
       for (const m of mapMarkers) {
+        const w = mapMarkerToVisitWhitelistFields(m);
         const saved = savedMarkerById.get(String(m.id));
         const subtitle = saved ? String(saved.subtitle ?? '') : '';
-        const shortDescription = saved ? String(saved.short_description ?? '') : '';
         const detailsTitle = saved
           ? String(saved.details_title || 'Détails').trim() || 'Détails'
           : 'Détails';
@@ -383,24 +472,28 @@ router.post(
             ? Math.max(0, Number(saved.sort_order))
             : 0;
         const createdAt = saved && saved.created_at ? String(saved.created_at) : now;
-        const emoji = normalizeMarkerEmoji(m.emoji, { allowEmpty: true, fallback: '' });
 
         await tx.execute(
           `INSERT INTO visit_markers
-          (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json, is_active, sort_order, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json,
+           visible_role_slugs, restricted_note, restricted_note_role_slugs,
+           is_active, sort_order, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            m.id,
-            m.map_id,
-            Number(m.x_pct),
-            Number(m.y_pct),
-            String(m.label || '').trim() || m.id,
-            emoji,
+            w.id,
+            w.map_id,
+            w.x_pct,
+            w.y_pct,
+            w.label,
+            w.emoji,
             subtitle,
-            shortDescription,
+            w.short_description,
             detailsTitle,
             detailsText,
             bodyJson,
+            w.visible_role_slugs,
+            w.restricted_note,
+            w.restricted_note_role_slugs,
             isActive,
             sortOrder,
             createdAt,

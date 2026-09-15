@@ -153,8 +153,10 @@ Une catégorie peut être **désactivée** plutôt que supprimée : elle reste p
 lieux mais disparaît des filtres et des formulaires. La supprimer la retire en revanche
 de toutes les zones et de tous les repères qui la portaient.
 
-**Où les créer** : Réglages administrateur → « Catégories de lieux ». Il faut la
-permission « Gestion zones ».
+**Où les créer** : Paramètres → Cartographie → Catégories de lieux. Il faut la
+permission « Gestion zones ». Un n3boss qui a cette permission (sans être
+administrateur des réglages) ouvre quand même Paramètres et n'y voit que la
+Cartographie.
 
 **Où les poser** : dans la fiche d'une zone ou d'un repère, onglet « Modifier », bloc
 « Catégories » (cases à cocher — plusieurs catégories possibles sur un même lieu).
@@ -269,7 +271,9 @@ la position comme avant.
 
 Si l'orientation boussole est autorisée (réglage Carte **et** case sur cette carte dans le
 calage GPS), le bouton **« Orienter »** fait tourner le plan pour aligner le regard vers le
-haut de l'écran. Chacun peut l'activer ou le couper ; le choix reste sur l'appareil.
+haut de l'écran. La vue **se recentre sur votre position** et **grossit un peu** pour que le
+plan tourné remplisse encore tout l'écran (sinon des bandes vides apparaîtraient sur les côtés).
+Chacun peut l'activer ou le couper ; le choix reste sur l'appareil.
 
 Dès que le plan est **calé** (même sans suivi GPS), une **barre d'échelle** et une **rose des
 vents** (N) s'affichent en bas à gauche. Un professeur peut les désactiver pour cette carte
@@ -315,6 +319,11 @@ Sur la même fiche, un champ **« Complément réservé »** permet d'ajouter un
 seulement par certains rôles (par exemple une consigne de classe ou une note pour les
 enseignants). Le lieu peut rester visible pour tout le monde ; seul ce complément est
 masqué. Sans rôle coché pour le complément, seuls les gestionnaires du jardin le voient.
+
+Ce cloisonnement s'applique aussi à la **Visite** (lieux de la visite guidée) : un
+complément réservé n'y apparaît pas pour un visiteur anonyme, et la copie d'un lieu
+depuis la carte vers la visite ne place jamais ce complément dans les textes publics
+de la fiche visite.
 
 > 🔧 **À implémenter (suite possible)** — Restreindre aussi par **groupes** (classe, club,
 > équipe), pas seulement par rôle ; plusieurs compléments (un par public) ; héritage
@@ -427,6 +436,10 @@ En **mode consultation** (carte ouverte sans tracé ni édition de contour), une
   Contrairement à l'ancien filtre « état », les catégories s'appliquent **aussi aux
   repères** : cocher une catégorie ne fait plus disparaître les repères de la carte.
 
+> L'**affichage** du plan en consultation (zones, repères, regroupements au dézoom,
+> boutons zoom / « Me suivre ») est aligné sur le Plan Lyautey et la Visite. La carte de
+> travail garde en revanche sa **barre d'outils** et ses **filtres de lieux** — sans les
+> puces de recherche ni de catégories du Plan.
 > Seules les tâches **encore en jeu** comptent sur la carte : terminées (en attente
 > de validation), validées, archivées, ou rattachées à un projet terminé/validé n'affichent
 > plus de pastille de tâche et ne font plus hériter leurs tutoriels au lieu. Les tutoriels
@@ -459,11 +472,12 @@ la même recherche en lecture seule.
 
 ## L'inventaire admin « Zones & repères »
 
-Dans **Réglages administrateur → sous-onglet « Zones & repères »**, un inventaire
+Dans **Réglages administrateur → Cartographie → Zones & repères**, un inventaire
 liste **toutes les zones et tous les repères, toutes cartes confondues** — là où la
 recherche de la carte ne couvre que le plan affiché. C'est l'outil de relecture
 d'ensemble : repérer les doublons, les fiches sans description, les lieux restés sur
-la mauvaise carte.
+la mauvaise carte. Les personnes qui ont seulement le droit de gérer les zones ou les
+repères voient cet onglet Cartographie (sans les réglages généraux).
 
 - **Recherche libre** : même moteur que la barre de la carte (nom, espèces,
   catégories, textes de visite, note d'un repère — plusieurs mots combinables).

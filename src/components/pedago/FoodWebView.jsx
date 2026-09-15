@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import { useData } from '../../contexts/DataContext.jsx';
 import { FoodWebGraph } from './FoodWebGraph.jsx';
+import { GRAPH_PRESET_LABELS, itemsForPreset } from './foodWebGraphModel.js';
 import {
   INTERACTION_TYPES,
   interactionTypeLabel as interactionLabel,
@@ -35,6 +36,7 @@ export function FoodWebView({
   const [zoneId, setZoneId] = useState('');
   const [filterZones, setFilterZones] = useState([]);
   const [interactionFilter, setInteractionFilter] = useState('');
+  const [graphPreset, setGraphPreset] = useState('alimentaire');
   const [viewMode, setViewMode] = useState('graph');
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [edgeGlossary, setEdgeGlossary] = useState([]);
@@ -196,9 +198,10 @@ export function FoodWebView({
   );
 
   const filteredItems = useMemo(() => {
-    if (!interactionFilter) return items;
-    return items.filter((row) => String(row.interaction_type || '') === interactionFilter);
-  }, [items, interactionFilter]);
+    const byPreset = itemsForPreset(items, graphPreset);
+    if (!interactionFilter || graphPreset !== 'all') return byPreset;
+    return byPreset.filter((row) => String(row.interaction_type || '') === interactionFilter);
+  }, [items, interactionFilter, graphPreset]);
 
   const grouped = useMemo(() => {
     const map = new Map();
@@ -211,16 +214,25 @@ export function FoodWebView({
   }, [filteredItems]);
 
   const interactionTypes = useMemo(() => {
-    const set = new Set(items.map((row) => String(row.interaction_type || 'autre')));
+    const set = new Set(
+      itemsForPreset(items, graphPreset).map((row) => String(row.interaction_type || 'autre')),
+    );
     return [...set].sort((a, b) => a.localeCompare(b, 'fr'));
-  }, [items]);
+  }, [items, graphPreset]);
 
-  // Changement de carte/zone : un type d'interaction absent du nouveau jeu laissait
-  // le menu vide et la vue annonçait « aucune interaction » à tort.
+  // Changement de carte/zone/preset : un type d'interaction absent du nouveau jeu
+  // laissait le menu vide et la vue annonçait « aucune interaction » à tort.
   useEffect(() => {
     if (loading || !interactionFilter) return;
-    if (!interactionTypes.includes(interactionFilter)) setInteractionFilter('');
-  }, [loading, interactionFilter, interactionTypes]);
+    if (graphPreset !== 'all' || !interactionTypes.includes(interactionFilter)) {
+      setInteractionFilter('');
+    }
+  }, [loading, interactionFilter, interactionTypes, graphPreset]);
+
+  const changeGraphPreset = useCallback((key) => {
+    setGraphPreset(key);
+    if (key !== 'all') setInteractionFilter('');
+  }, []);
 
   /** Ligne de l'arête sélectionnée (null si elle a disparu du jeu courant). */
   const selectedRow = useMemo(
@@ -599,8 +611,9 @@ export function FoodWebView({
           <IconFoodweb size={20} /> Réseau trophique
         </h2>
         <p className="section-sub pedago-foodweb__intro">
-          Relations entre espèces du site — clique une flèche pour le glossaire, une espèce pour sa
-          fiche.
+          Qui mange qui, qui aide qui — choisis un cadrage (réseau alimentaire ou autres relations),
+          clique une flèche pour le détail, une espèce pour isoler sa chaîne. Une fois isolée, «
+          Voir la fiche » ouvre sa fiche espèce.
         </p>
       </header>
 
@@ -632,6 +645,26 @@ export function FoodWebView({
           ) : null}
 
           <div className="pedago-filters card pedago-foodweb__filters">
+            <div
+              className="pedago-filter-field pedago-foodweb__presets"
+              role="group"
+              aria-label="Cadrage du réseau"
+            >
+              <span>Cadrage</span>
+              <div className="pedago-foodweb__preset-btns">
+                {['alimentaire', 'relations', 'all'].map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`pedago-chip-btn${graphPreset === key ? ' active' : ''}`}
+                    aria-pressed={graphPreset === key}
+                    onClick={() => changeGraphPreset(key)}
+                  >
+                    {GRAPH_PRESET_LABELS[key]}
+                  </button>
+                ))}
+              </div>
+            </div>
             {maps.length > 0 ? (
               <label className="pedago-filter-field">
                 <span>Carte</span>
@@ -666,21 +699,23 @@ export function FoodWebView({
                 </select>
               </label>
             ) : null}
-            <label className="pedago-filter-field">
-              <span>Type d&apos;interaction</span>
-              <select
-                className="form-select"
-                value={interactionFilter}
-                onChange={(e) => setInteractionFilter(e.target.value)}
-              >
-                <option value="">Tous</option>
-                {interactionTypes.map((t) => (
-                  <option key={t} value={t}>
-                    {interactionLabel(t)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {graphPreset === 'all' ? (
+              <label className="pedago-filter-field">
+                <span>Type d&apos;interaction</span>
+                <select
+                  className="form-select"
+                  value={interactionFilter}
+                  onChange={(e) => setInteractionFilter(e.target.value)}
+                >
+                  <option value="">Tous</option>
+                  {interactionTypes.map((t) => (
+                    <option key={t} value={t}>
+                      {interactionLabel(t)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <label className="pedago-filter-field">
               <span>Affichage</span>
               <select
@@ -688,8 +723,8 @@ export function FoodWebView({
                 value={viewMode}
                 onChange={(e) => setViewMode(e.target.value)}
               >
-                <option value="list">Liste</option>
                 <option value="graph">Graphe</option>
+                <option value="list">Liste</option>
               </select>
             </label>
           </div>
@@ -722,6 +757,8 @@ export function FoodWebView({
                 onSelectEdge={selectEdge}
                 onOpenPlant={onOpenPlant}
                 legendCompact
+                preset={graphPreset}
+                onPresetChange={changeGraphPreset}
               />
             </div>
             {selectedEdgePanel}

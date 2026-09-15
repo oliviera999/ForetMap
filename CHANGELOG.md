@@ -20,6 +20,348 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - `GET /api/map-routes` (surfaces Carte / Visite / Plan) renvoyait `step_text` d’un lieu
   masqué ou réservé. Filtre aligné sur la charge Visite / Plan : le catalogue public
   n’expose que les étapes visibles pour le lecteur.
+### Ajouté — Fiches espèces : section « Détermination »
+
+- **Trois champs** sur la fiche (migration `243`) : `identification_criteria` (critères de
+  détermination), `lookalike_species` (confusions possibles), `identification_period`
+  (période d’observation). Libellés **neutres vis-à-vis du règne** — le catalogue mêle
+  végétaux, animaux, champignons, micro-organismes et fiches-ressources.
+- **Section repliable** dans la fiche, placée juste après la photo, avec auto-liens du
+  glossaire comme les textes d’écologie. Elle reste **absente** tant qu’aucun des trois
+  champs n’est renseigné.
+- **Confusions en encadré d’alerte** : la forêt est comestible et les élèves récoltent, une
+  ressemblance avec une espèce toxique ne doit pas se lire comme une métadonnée ordinaire.
+- **Réglage de site** `ui.biodiv.determination_always_open` (défaut `false`) pour déplier la
+  section d’office — Réglages → Modules UI.
+- **Saisie prof** : section dédiée dans le formulaire de fiche ; **import en masse** étendu
+  (clés canoniques et alias français : « Critères de détermination », « Confusions
+  possibles », « Période d’observation »…). Le pré-remplissage automatique est inchangé, ses
+  sources ne fournissent pas de critères de détermination.
+
+### Ajouté — Assainissement console admin ForetMap
+
+- **Permissions UI** alignées sur l’API : lecture seule, Moodle (`integrations.moodle.manage`),
+  secrets/restart, Cartographie accessible avec `zones.manage` / `map.manage_markers`.
+- **Sous-onglets thématiques** : Accueil & modules, Pédagogie, Cartographie, Plan Lyautey,
+  Identité visuelle, Visite, Intégrations, Aide & découverte, Usage & exploitation.
+- **Éditeur de marque** ForetMap / Plan ; catégories par défaut carte & visite branchées ;
+  multi-sélection de catégories (Plan inclus).
+- **Hygiène grille** : clés plan / brand / hash / dialogues mascotte / flag seed exclus ;
+  titre audit À propos réglable (`content.about.site_issues_title`).
+- **Profils & groupes** : modales multi-champs (plus d’enchaînements de prompts) ; types de
+  groupes en français.
+- Doc de référence mise à jour (Carnet dans Suivi, chemins Paramètres, terminologie,
+  Moodle).
+
+### Amélioré — Réseau trophique : couleurs, cadrage, tactile
+
+- Nouvelle palette de relations (ambre, vermillon, pourpre, cyan… — tables type
+  Okabe–Ito) ; sélection = halo vert sans écraser la couleur du type.
+- Presets Réseau alimentaire / Autres / Tout partagés liste + graphe ; filtre Type
+  seulement en « Tout » ; bouton « Flux trophiques » retiré.
+- Disposition Niveaux : étiquettes Producteurs / Consommateurs / Décomposeurs.
+- Bouton « Voir la fiche » quand une espèce est isolée ; toolbar ≥ 44 px ; export
+  regroupé sous « Plus… » sur petit écran.
+
+### Amélioré — Navigation iPhone / mobile (barre élève « Plus »)
+
+- Sur téléphone et écrans tactiles, la barre basse élève n’affiche plus une douzaine
+  d’onglets en scroll opaque : raccourcis **Carte · Tâches · Biodiversité · Visite**
+  (ou Quiz) + bouton **Plus** ouvrant une feuille de navigation (pattern aligné sur
+  G&L). Encoches / flou WebKit / cibles header ≥ 44 px.
+- Chrome professeur sur petit écran : pôles seuls ; les onglets du pôle s’ouvrent dans
+  une feuille bas. Smoke e2e **WebKit** (`mobile-webkit`) ajouté en CI bloquante.
+
+### Corrigé — Orientation boussole : plus de fond vide après rotation
+
+- Avec **« Orienter »** actif, la carte **se recentre sur la position GPS** et **grossit**
+  assez (facteur √2) pour que le plan tourné remplisse encore le cadre — Visite, Plan
+  Lyautey et carte de travail (scène partagée).
+
+### Corrigé — Visite : plus de double illustration dans l'encart lieu
+
+- Quand la photo carte (`map_lead_photo`) et la première image média visite sont le
+  même fichier, une seule vignette s'affiche (sous le titre), plus de doublon sous
+  le texte d'intro ni dans les blocs éditoriaux.
+
+### Corrigé — Visite : puces catégories sans scroll horizontal de page (mobile)
+
+- Rangée de filtres alignée sur le Plan Lyautey : défilement **dans** le bandeau
+  (`min-width: 0`, `overflow-x` sur la rangée, carte qui ne s'élargit plus).
+
+### Corrigé — Visite : icônes et textes trop gros une fois connecté
+
+- Après le passage à la scène carte partagée, la typo compensait le zoom **deux fois**
+  (variables overlay + `--pct-inv`). Sur une carte plus petite (session connectée),
+  emojis et libellés apparaissaient nettement plus grands qu'en visite anonyme.
+- Second correctif : les tailles CSS n'étaient plus multipliées par
+  `--map-overlay-scale` (absent sur SharedMapStage) alors qu'elles étaient encore
+  **divisées** par le facteur plateau — effet inverse et encore plus marqué sur
+  une carte basse.
+
+### Ajouté — Visite : carte partagée, recherche et filtres par catégorie
+
+- Le plan de visite s'appuie sur la **même scène carte** que le Plan (zones, repères,
+  zoom, position, échelle) : commandes unifiées, mascotte en calque.
+- **Recherche de lieux** et **puces de catégorie** dans le bandeau (styles partagés avec
+  le Plan). Le contenu public de visite expose désormais les catégories rattachées.
+- Sélecteur de mascotte **compact** (bouton 🐾 + menu) à la place du grand menu déroulant.
+
+### Partiel — Carte de travail : scène partagée en consultation
+
+- En **navigation** (élève ou prof hors tracé / édition de contour / glisser de repères),
+  la carte de travail s'appuie sur la **même scène** que le Plan et la Visite
+  (`WorkMapStage` → zones, repères, regroupements, zoom, « Me suivre »).
+- La **barre d'outils** et les **filtres de lieux** ForetMap restent ; pas de puces de
+  recherche/catégorie façon Plan. L'édition géométrie garde les calques historiques
+  (tracé, sommets, alignement).
+
+### Corrigé — Visite : progression allégée (atténuation + donut, sans libellés)
+
+- Sur le plan : **atténuation** des lieux déjà vus et **donut** de progression, pour
+  tous les publics ; bouton **« Marquer comme vu »** conservé dans la fiche.
+- Plus de libellés « À découvrir » / « Vu » collés sur chaque lieu au survol (surcharge).
+
+### Corrigé — Plan : l'adresse gardait le lieu… puis le perdait
+
+- **Après un résultat de recherche, l'adresse revenait à `/`.** Les feuilles basses empilent une
+  entrée d'historique à l'ouverture et la dépilent en se fermant (`useOverlayHistoryBack`). Or
+  `openPlace` écrivait `?lieu=` **sur l'entrée de la feuille de résultats** : la refermer
+  déclenchait `history.back()`, et l'adresse repartait avec elle. Recharger la page ou copier
+  l'URL de la barre d'adresse perdait donc la sélection. Le bouton « Partager » construisant son
+  lien depuis l'état, il n'était pas touché — ce qui explique que le défaut soit passé inaperçu.
+  Le paramètre est maintenant réaffirmé après le retour d'historique.
+- **Pourquoi les tests ne le voyaient pas.** Le test de montage existant observe l'adresse
+  **avant** que ce retour n'ait lieu ; et en jsdom, `popstate` ne restaure pas l'URL de l'entrée
+  précédente. Le nouveau test rejoue explicitement cette restauration — vérifié dans les deux
+  sens : il échoue sans le correctif, passe avec.
+
+### Corrigé — CI : le smoke Plan bloquant s'arrête au lieu de tomber quand la base n'a pas de compte admin
+
+- `plan-mobile-position.spec.js` et `plan-mobile-orientation.spec.js` levaient une exception
+  quand la connexion professeur e2e échouait. Tant qu'ils n'étaient qu'informatifs, cela ne
+  gênait personne ; devenus **bloquants**, ils transformaient une base sans compte admin en
+  échec d'intégration — et, les tentatives se répétant, en verrou `429` sur le scénario suivant.
+  Ils se mettent désormais de côté (`test.skip`), comme le fait déjà `plan-routes-mode.spec.js`
+  dans le même filet : une absence de compte n'est pas une régression d'affichage.
+- **Gardes posées avant les assertions qu'elles protègent.** Les trois scénarios du plan
+  assertaient la présence de contrôles de la carte (« Voir tout le plan », « Me situer ») avant
+  de vérifier que la base avait de quoi les afficher. Or `AppPlan` ne monte `PlanMapStage` que
+  si la carte a un **fond d'image** (`hasMapImage`) : sur une base qui n'en a pas — le cas en
+  intégration —, les trois échouaient sur des boutons absents, là où il n'y avait rien à
+  vérifier. `plan-routes-mode.spec.js`, qui garde en tête de scénario, tenait pour cette raison.
+  Les gardes sont désormais au même endroit. Aucune assertion n'est retirée : là où le plan a un
+  fond, les scénarios s'exécutent en entier.
+- Smoke bloquant rejoué en local sur base neuve : **0 échec**.
+
+> **À noter, et à traiter à part :** tant que la carte du plan semée en intégration n'a pas de
+> fond d'image, ces scénarios s'y **abstiennent** — le filet est donc en place mais ne vérifie
+> rien de ce côté. Lui donner de la matière demande de compléter le semis, pas de toucher aux
+> scénarios.
+
+### Corrigé — CI de `main` rouge depuis le 11 septembre, et lien profond du plan
+
+- **Scénarios e2e `plan-mobile`** (job `test`) : rouges sur tous les runs de `main` depuis le
+  11/09. Deux suites backend « restauraient » `ui.plan.map_id` à `'lyautey'`, une carte absente
+  de la base de test, et une troisième laissait sa carte de fixture sans fond publié ; le plan
+  retombait dessus et n'affichait jamais la scène carte. Un test restaure désormais l'état qu'il
+  a trouvé (`tests/helpers/settingsSnapshot.js`) et nettoie ses cartes. Le scénario d'orientation
+  émettait un événement que Chromium n'écoute pas (`deviceorientation` au lieu de
+  `deviceorientationabsolute`), celui de position visait une zone héritée sans polygone.
+- **Plan Lyautey — lien profond `?lieu=` effacé** à l'ouverture d'une fiche depuis la feuille de
+  résultats : constaté ici aussi, corrigé en parallèle par la PR #459 (section « l'adresse
+  gardait le lieu… puis le perdait ») dont l'implémentation est conservée.
+- **Moteur de migrations** : « table inexistante » (`ER_NO_SUCH_TABLE`) n'est plus classé
+  « déjà appliquée » pour un énoncé d'écriture — la migration `237` semait deux réglages du
+  carnet dans une table `settings` qui n'existe pas (`app_settings`) sans que rien ne le dise, et
+  la `227` visait une table supprimée par la `186`. Les deux migrations sont corrigées, la `242`
+  rattrape les bases déjà passées, et l'erreur est désormais tolérée seulement pour une
+  suppression, pour les tables de l'ancien modèle de comptes, ou — en `warn` — dans une
+  migration antérieure à la 242 (`tests/migrations-error-classifier.test.js`).
+- Un octet NUL littéral dans `lib/usage.js` rendait le fichier « binaire » pour `grep` ;
+  `validateTutorialLocations` faisait une requête par lieu ; l'historique de récoltes d'une zone
+  était renvoyé sans borne (projection explicite et `LIMIT 500`).
+
+### Modifié — audit du code du 13 septembre (dette, performance, dépendances)
+
+- **Index** `created_at` sur `audit_log`, `gl_game_events` et `task_logs` (migration `242`) :
+  la purge (`scripts/purge-audit-logs.js`) filtrait ces tables par date sans index.
+- **Import carte ↔ visite** (`POST /api/visit/sync`) : lots de 100 lignes dans une seule
+  transaction au lieu d'une requête par élément hors transaction (import partiel possible avant).
+- **Helpers partagés** à la place des copies locales : `lib/shared/slug.js` (`lowerTrim`,
+  `slugify` — sept `normalizeSlug` aux sémantiques divergentes), `lib/shared/httpError.js`
+  (`status` **et** `statusCode` — neuf copies en deux conventions), `lib/mapQueries.js`
+  (`mapExists` ×7), `normalizeEmail` de `lib/identity.js` (×5), `lib/locationRowHelpers.js`
+  (`routes/map.js` ↔ `routes/zones.js`), `lib/visitAudienceWrite.js` (`routes/visit/*`),
+  `lib/importRows.js` (parseur CSV, décodage base64 et `resolveImportRows` des importeurs
+  élèves / joueurs / tâches / groupes / plantes, `resolveWorkbookImportRows` des importeurs
+  G&L par classeur), `readSheetRows` / `asOptionalText` / `normalizeOptionalString` depuis
+  `lib/shared/`. Côté front : `src/shared/utils/classNames.js`, `formatDateTime.js` et
+  `fileToDataUrl` partagé (24 copies retirées). Aucun changement de comportement visé ; suites
+  backend, Vitest et e2e plan vertes.
+- **Carnet : noyau commun ForetMap / G&L** (`src/shared/journal/`) — adaptateur produit,
+  fil unifié en fonction pure, hooks du fil et de l'éditeur d'article, carte d'import et barre
+  d'outils partagées ; « Mon carnet » et « Mon journal » ne gardent que leur rendu (textes, aide
+  G&L, zone / sorts du chapitre). Un correctif du fil, de l'auto-save ou des illustrations vaut
+  désormais pour les deux produits. ForetMap affiche aussi le compteur de caractères quand un
+  plafond est réglé, et étiquette ses boutons d'épinglage pour les lecteurs d'écran. Détail et
+  reste à faire : `docs/PLAN_CARNET_PARITE_GL.md` §9.
+- **Carnet : fin de la mutualisation.** Sélecteur d'encarts, modale de lecture (professeur / MJ),
+  hydratation des titres d'encarts et bouton « Ajouter au carnet » ne sont plus écrits qu'une
+  fois (`src/shared/journal/`) ; chaque produit fournit son registre de types d'encart, son
+  adaptateur, ses textes et son thème. **Visible côté ForetMap** : la lecture d'un carnet par le
+  professeur affiche désormais, comme côté G&L, les dates et volumes de chaque article, un filtre
+  des éléments importés par type (dès deux types présents) et un export Markdown daté ; le
+  panneau d'aide `?` apparaît dans l'en-tête de « Mon carnet » (section « Aide carnet »,
+  éditable dans l'administration de l'aide). **Visible côté G&L** : la lecture d'un carnet par
+  le MJ montre les vignettes d'illustrations des articles. Détail :
+  `docs/PLAN_CARNET_PARITE_GL.md` §9.3.
+- **Rapport d'import** : forme commune `createImportReport` (`lib/importRows.js`) ; les sept
+  fabriques locales ne déclarent plus que leurs compteurs propres.
+- **Garde anti-course des chargements** (`src/shared/hooks/useLatestRequest.js`) sur la galerie
+  photos d'un lieu, le panneau d'usage, les carnets des statistiques, les parcours et lieux du
+  panneau cartes et la synchronisation visite : une réponse arrivée après un changement de
+  lieu, de carte, de groupe ou de période n'écrase plus la plus récente.
+- **Registre des biomes G&L** : une seule source, `src/shared/glBiomesRegistryCore.js`, miroir
+  CJS généré par `sync:shared-cores` ; les deux copies manuelles (client et serveur) ne font
+  plus que réexporter.
+- **Dépendances** : `adm-zip` 0.6.1 et `qs` 6.16.0 (`npm audit fix`, sans changement cassant).
+
+### Documentation — audit du code du 13 septembre 2026
+
+- **`docs/AUDIT_CODE_2026-09-13.md`** : audit transversal (bugs, incohérences, doublons mesurés,
+  performance et charge serveur) mené avec une base MariaDB réelle, constats marqués « Traité »
+  dans la même PR, et §9 sur les causes de la CI rouge trouvées en chemin. Indexé dans
+  `docs/audits/README.md`.
+- **`docs/API.md`** : quatorze routes d'administration du lore G&L (glossaire, questions QCM,
+  réordonnancement des feuillets) documentées ; **`tests/api-doc-coverage.test.js`** rapproche
+  désormais chaque route montée de la documentation (job `quality`, sans base).
+
+### Non publié, en attente — variables admin du serveur e2e
+
+- `.github/workflows/ci.yml` pose `TEACHER_ADMIN_EMAIL` / `TEACHER_ADMIN_PASSWORD` sur le
+  serveur e2e. `lib/env.js` n'auto-sème le compte enseignant que si les deux sont présentes ;
+  sans elles, la garde `test.skip(!token, …)` des specs Plan se déclenche et **trois specs sur
+  quatre sont ignorées à chaque passage** — position, orientation et parcours ne sont jamais
+  exercés, le job restant vert.
+- **À ne pas fusionner seul** : poser ces variables fait s'exécuter les specs… et échouer, faute
+  de tout lieu placé sur la carte du plan (`points` vide partout, aucun repère), ce qui rend la
+  distance incalculable. Mesuré sur base vierge : sans les variables 1 passé / 3 ignorés ; avec,
+  1 passé / 1 ignoré / 2 échecs. Il faut les deux — les variables **et** une fixture apportant
+  un lieu placé avec un fond de carte. Détail : PR #458.
+
+### Corrigé — le lien profond `?lieu=` survit à l'ouverture depuis la recherche
+
+- **Plan Lyautey** : ouvrir un lieu depuis la recherche perdait aussitôt son `?lieu=`. La
+  feuille de résultats se ferme à cette occasion, et `removeOverlayClose` recule alors d'une
+  entrée d'historique — celle-là même que `openPlace` venait de réécrire. Le `popstate`
+  arrivait après et ramenait l'URL à `/`. Le lien profond du lieu, celui que porte un QR code
+  interne, n'était donc jamais formé par ce chemin. La valeur attendue est désormais
+  réaffirmée, comme le fait déjà `?parcours=`.
+- **CI** : le serveur e2e reçoit `TEACHER_ADMIN_EMAIL` / `TEACHER_ADMIN_PASSWORD`. `lib/env.js`
+  n'auto-sème le compte enseignant que si les deux sont présentes ; sans elles, aucun
+  enseignant n'existait et les specs Plan qui calent la carte via l'API admin échouaient en
+  401 — pas sur ce qu'elles testent.
+
+### Corrigé — semis RBAC sur base neuve, et reprise des observations héritées
+
+- **Semis RBAC** (migration `241`) : sur une **installation neuve**, `admin` démarrait sans
+  `forum.group.moderate` — donc **plus personne ne pouvait modérer le forum** — ni
+  `admin.impersonate`, ni `tours.manage`, ni les variantes `.group` ; `prof` perdait en plus
+  `groups.read`, `groups.manage` et `tasks.assign.group`, c'est-à-dire le périmètre de groupes
+  sur lequel repose « Prof de classe ». Mesuré sur base vierge : 27 permissions sur 36 pour
+  `admin`, 21 sur 28 pour `prof`. La garde « ne semer que si le profil n'a encore aucune
+  permission » visait le bon but — qu'une révocation admin survive aux redémarrages — avec un
+  mauvais critère : les migrations remplissent déjà `role_permissions` avant le semis, qui était
+  donc entièrement sauté. `rbac_seeded_permissions` mémorise désormais ce qui a été **proposé**,
+  ce qui distingue « révoqué » de « jamais accordé » — et fait que toute permission ajoutée plus
+  tard au catalogue est bien déployée sur les profils existants. Les installations existantes
+  n'étaient pas touchées ; seules les neuves l'étaient, d'où l'invisibilité hors CI.
+- **Reprise des observations héritées** : `observation_logs.created_at` est un `VARCHAR(32)`
+  portant de l'ISO-8601 UTC, la cible un vrai `DATETIME` — `GET /api/user-journal/me` répondait
+  **500** dès qu'une observation restait à migrer. L'horodatage est converti, à l'article comme
+  à sa pièce jointe.
+- **Note réservée jamais servie à son audience** : deux tests appelaient `signAuthToken` sans
+  `await`, l'en-tête valant `Bearer [object Promise]` — le jeton était rejeté et le lecteur
+  résolu en « visiteur ». Le code de projection était sain. L'un des deux passait pour la
+  mauvaise raison : il affirmait un refus faute de permission alors que le jeton seul suffisait.
+- **Garde-fou** : la matrice RBAC déclarée est désormais vérifiée **en base**, et non plus
+  seulement contre le catalogue JS — c'est ce trou qui avait laissé passer le semis muet.
+  `modules.presence_enabled` rejoint le gel des clés de réglages GL ; deux fixtures backend qui
+  s'en remettaient au semis global paresseux posent maintenant leurs rôles explicitement.
+
+### Corrigé — la suite Vitest repasse au vert, et une régression de charge du carnet
+
+- **Catalogue de biodiversité** : chaque vignette montait un `FmLearnAndImportSlot` qui
+  demandait pour son compte `GET /api/user-journal/me/imports/refs` — la liste **complète**
+  des imports, identique pour tous. Soit une requête par fiche affichée : 78 espèces, 78
+  requêtes à chaque ouverture du catalogue, le symptôme même que la garde de charge
+  `PlantCatalogTiles` devait empêcher de revenir
+  (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`, §1). La liste passe par
+  `src/services/userJournalImports.js` : une requête par écran, partagée entre les slots,
+  invalidée à chaque import.
+- **Tests restés en arrière de leurs lots** (la suite Vitest ne tournait plus en intégration
+  depuis le 12 septembre — `format:check` rouge fait sauter `test:ui` dans le job `quality`) :
+  libellés du panneau carnets, filtre carte des tutoriels devenu un filtre d'affichage,
+  champs d'audience du formulaire repère, `map_ids` du formulaire espèce, normalisation des
+  ids de lieux, et fixtures du catalogue que le filtre « carte active » laissait sans vignette.
+  Aucun de ces tests ne décrivait plus le comportement livré.
+
+### Ajouté — le périmètre cartes d'un groupe restreint vraiment l'accès
+
+- **Périmètre cartes** (`lib/shared/mapScopeCore.js`, `lib/mapAccess.js`) : `group_scopes.map_id`,
+  qui ne servait qu'à filtrer des élèves dans les statistiques, borne désormais l'accès aux
+  cartes des membres du groupe — et de ses sous-groupes, qui en héritent quand ils n'en
+  déclarent pas. L'**affiliation** d'un élève (`users.affiliation`), jusqu'ici appliquée par le
+  seul client, est vérifiée côté serveur et s'intersecte avec le périmètre de groupe.
+- **Routes bornées** : `GET /api/maps` (réponse filtrée), `GET /api/zones`, `GET /api/zones/:id`,
+  `GET /api/map/markers`, `GET /api/map-routes`, `GET /api/map-routes/:idOrSlug`,
+  `GET /api/map-categories`. Une carte hors périmètre répond `403 { code: 'MAP_OUT_OF_SCOPE' }` ;
+  une liste sans `map_id` est ramenée au périmètre, pour que la garde ne tienne pas à
+  l'omission d'un paramètre.
+- **Ne change rien sans configuration** : un groupe sans périmètre n'est pas borné, et comme
+  les appartenances s'additionnent, un seul groupe sans périmètre suffit à ne rien borner.
+  Les lectures **sans session** (visite publique, plan public) et les comptes `teacher.access`
+  ou `admin` ne sont jamais bornés.
+- Écran de gestion des groupes : le champ *Périmètre cartes* explique désormais sa portée.
+  `group_scopes` entre dans la version d'écriture du scope groupes (`database.js`), sans quoi
+  un changement de périmètre ne périmerait pas le cache d'accès.
+
+### Ajouté — cloisonnement par rôles sur la couche visite
+
+- Migration `240_visit_location_audience_roles.sql` : `visible_role_slugs`,
+  `restricted_note`, `restricted_note_role_slugs` sur `visit_zones` / `visit_markers`
+  (même contrat que la 236 sur la carte) + reprise des valeurs déjà saisies côté carte.
+- `GET /api/visit/content` lit l’audience sur `visit_*` (repli carte si pas encore sync).
+- Bascule `POST /api/visit/sync` et `rebuild-from-map` : liste blanche uniquement
+  (`name`/`label`, `emoji`, `description`/`note` → `short_description`, audience) —
+  `restricted_note` ne peut pas atterrir dans les champs publics.
+- Tests : `tests/location-audience-api.test.js`, `tests/visit-map-to-visit-fields.test.js`.
+
+### Ajouté — présence « en ligne » staff (ForetMap + GL)
+
+- Pastilles En ligne / Vu récemment / Hors ligne sur le classement prof et les stats
+  MJ/admin GL (staff uniquement ; pas d’exposition élève↔élève).
+- Cœur partagé `lib/shared/presenceCore.js` + refcount Socket.IO dans `lib/realtime.js`
+  (sans heartbeat HTTP périodique — adapté o2switch / 1 instance).
+- Réglages : `ui.modules.presence_enabled` / `modules.presence_enabled` ; knobs charge
+  `runtime.*` (filet REST, coupe-circuit emits Socket, coalescence présence).
+- Forum / commentaires GL refusés en API (503) quand le module est coupé (aligné FM).
+
+### Ajouté — carnet personnel pour admin et n3boss
+
+- Onglet « Carnet » dans la barre haute (pôle Suivi) : tout compte ForetMap connecté
+  peut tenir son carnet personnel (élèves / visiteurs / personnel / prof de classe
+  l’avaient déjà ; admin et n3boss manquaient l’entrée UI).
+
+### Ajouté — espèces rattachées à une carte (sans lieu précis)
+
+- Jonction `map_species` : une fiche peut être présente sur une carte sans zone ni
+  repère (oiseaux, etc.). Les liens zones / repères restent inchangés.
+- Catalogue biodiversité élève : filtre « Présente sur cette carte » par défaut
+  (union lieux + rattachement direct).
+- Réseau trophique `?mapId=` : inventaire élargi (zones + repères + `map_species`).
+- Formulaire fiche : cases « Présente sur ces cartes » (prof).
 
 ### Corrigé — barre de parcours Plan : styles enfants orphelins
 
@@ -178,6 +520,78 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   corps, la remplaçant par les puces de « Prof de classe ». Numéro de migration corrigé au
   passage — `231_rbac_prof_classe_media.sql`, renuméroté depuis, était encore cité en `230`.
 
+### Audit — Affichage du Plan Lyautey, second relevé (13 septembre)
+
+- **Nouveau document `docs/AUDIT_PLAN_AFFICHAGE_2026-09-13.md`** (relevé seul, aucun code
+  modifié) : reprise de l'audit du 4 septembre sur la tête de `main` (1.153.39) confrontée à la
+  charge publique réelle (33 zones, 26 repères, 9 catégories, fond recapturé en 1210 × 1437).
+  **Sept constats sur neuf sont réglés**, dont le certificat TLS, la collision des noms, le fond
+  de plan et le halo de position ; le moteur d'étiquettes tient sur les données d'aujourd'hui
+  (0 ancre hors polygone, 0 recouvrement, tout nommé à ×2,5). Deux constats majeurs nouveaux :
+  **« Orienter la carte selon la boussole » retourne les étiquettes** (la rotation est posée sur
+  le calque qui porte aussi le texte — mesuré à 180° dans Chromium), et **les cinq entrées du
+  lycée sont au dernier rang de priorité d'affichage** parce que `sort_order`, lu comme
+  importance par le moteur, sert désormais d'ordre d'audience côté établissement (les tables
+  d'échecs passent devant). S'y ajoutent : `main` rouge sur un seul fichier — cinq tableaux de
+  `docs/API.md` hors alignement Prettier — ce qui saute la suite Vitest **et** le smoke e2e Plan
+  pourtant rendu bloquant ; cinq « WC »
+  indiscernables dans la recherche ; un parcours publié à une seule étape. Plan d'action en neuf
+  points.
+
+### Corrigé — Plan : le texte reste droit quand la carte tourne (audit N1)
+
+- **« Orienter la carte selon la boussole » retournait toutes les étiquettes.** La rotation
+  était posée sur `.plan-map__fit`, le calque qui porte **aussi** les noms de zones, les
+  repères et les pastilles de groupe. Rien ne contre-tournait le texte : mesuré dans Chromium
+  en cumulant les matrices jusqu'au viewport, un cap de 180° donnait un texte à 180° — les noms
+  de bâtiments étaient littéralement à l'envers. La fonction est opt-in, mais son usage même
+  consiste à pivoter sur soi : elle devenait illisible dès que l'on quittait le nord.
+- **Correction en deux temps, parce qu'une ligne de CSS n'aurait pas suffi.** Le calque expose
+  désormais son angle (`--pct-orient`) et chaque habillage lisible le défait sur lui-même,
+  exactement comme `--pct-inv` défait le zoom. Mais une fois les étiquettes redressées, leurs
+  boîtes redeviennent alignées sur l'écran alors que leurs ancres, elles, tournent : deux noms
+  qui ne se gênaient pas au nord pouvaient se recouvrir à 45°. `resolveVisibleLabels` reçoit
+  donc l'angle et son pivot, et tourne les ancres avant de construire les boîtes. L'écart de
+  26 px entre un repère et son nom, lui, reste vertical **à l'écran** : il s'ajoute après la
+  rotation.
+- **Vérifié en vrai.** Mesure refaite dans Chromium : sans la correction, carte à −90° → texte
+  à −90°, carte à −180° → texte à 180° ; avec, texte à 0° à tous les caps, l'étiquette restant
+  ancrée au pixel près sur son point. Scénario `e2e/plan-mobile-orientation.spec.js` : cap
+  simulé par `deviceorientation`, bouton 🧭 réellement cliqué, et l'assertion vérifie **d'abord
+  que la carte a tourné** — sans quoi elle passerait sur une carte restée au nord, sans rien
+  prouver.
+
+### Corrigé — Plan : un lieu sans catégorie retrouve un rang d'affichage intermédiaire (audit N2)
+
+- **Les cinq entrées du lycée étaient au dernier rang de priorité, les tables d'échecs au
+  premier.** Le moteur d'étiquettes lit `sort_order` comme importance, et donnait le rang 50 aux
+  lieux sans catégorie. Ce 50 était intermédiaire quand les catégories de production valaient 10
+  et 100 ; l'établissement les a renumérotées par **audience** (Elèves 0, Parents 1… Sanitaire
+  14), et la constante s'est retrouvée dernière. Le code n'avait pas bougé : sa donnée d'entrée
+  avait changé de sens sous lui.
+- **Le rang de repli est maintenant calculé sur les catégories présentes** (`defaultLabelPriority`),
+  à mi-chemin entre le rang médian et le rang distinct suivant. Il reste intermédiaire quelle que
+  soit l'échelle de numérotation retenue — 6,5 sur la numérotation actuelle, 55 sur l'ancienne —
+  et reste **strictement supérieur** à la médiane : à rang nominal égal, une catégorie réelle
+  l'emporte toujours sur une absence de catégorie, qui serait sinon départagée par l'ordre
+  d'itération.
+- Cela ne remplace pas le rangement des cinq entrées dans une catégorie « Entrées / Accès » en
+  tête, ni la séparation à terme de `sort_order` (ordre des puces) et de la priorité d'affichage.
+
+### Ajouté — Plan : distance dans la liste de résultats (audit N4)
+
+- Cinq repères « WC » s'affichaient en cinq lignes strictement identiques — même emoji, même
+  nom, ni sous-titre ni catégorie distinctive : il fallait ouvrir les cinq fiches l'une après
+  l'autre pour savoir laquelle était la plus proche. Quand la position est active, chaque ligne
+  porte désormais sa distance à vol d'oiseau, déjà calculée pour « Y aller ». Elle est **dans le
+  bouton**, donc dans son nom accessible : « WC 40 m » se distingue de « WC 120 m » au lecteur
+  d'écran comme à l'œil.
+
+### Modifié — CI : position et orientation du plan entrent dans le filet bloquant
+
+- `plan-mobile-position.spec.js` et `plan-mobile-orientation.spec.js` rejoignent le smoke
+  Playwright bloquant. Le retournement des étiquettes avait traversé l'intégration parce que le
+  seul scénario exerçant la position n'était pas bloquant.
 ---
 
 ## [1.152.1] - 2026-09-11

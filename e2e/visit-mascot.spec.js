@@ -657,11 +657,15 @@ test.describe('pack mascotte serveur (GUI)', () => {
       .toBe(catalogId);
 
     await page.getByRole('button', { name: 'Visite', exact: true }).click();
-    const visitPicker = page.locator('.visit-view .visit-mascot-picker select').first();
+    const visitPicker = page.getByTestId('visit-mascot-picker').first();
     await expect(visitPicker).toBeVisible({ timeout: 20_000 });
-    const visitOptionCount = await visitPicker.locator(`option[value="${catalogId}"]`).count();
-    if (visitOptionCount > 0) {
-      await visitPicker.selectOption(catalogId);
+    await visitPicker.click();
+    const packLabel = String(publishedPack?.label || '').trim();
+    const visitOption = packLabel
+      ? page.getByRole('menuitemradio', { name: packLabel })
+      : page.locator('.visit-mascot-picker__option').first();
+    if ((await visitOption.count()) > 0) {
+      await visitOption.click();
       await expect
         .poll(async () =>
           page.locator('.visit-map-stage [data-mascot-id]').first().getAttribute('data-mascot-id'),
