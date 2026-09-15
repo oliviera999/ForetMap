@@ -13,6 +13,15 @@ export const TASK_URGENT_CATEGORY_LABELS = {
   non_urgent: 'Hors urgent',
 };
 
+/** Libellés du filtre récurrence (n3boss / admin). */
+export const TASK_RECURRENCE_FILTER_LABELS = {
+  recurring: 'Récurrentes seulement',
+  weekly: 'Hebdomadaire',
+  biweekly: 'Toutes les 2 semaines',
+  monthly: 'Mensuelle',
+  none: 'Sans récurrence',
+};
+
 /** Libellé lisible d'un statut, y compris la vue « Archivés » réservée au n3boss. */
 export function taskStatusFilterLabel(value) {
   if (!value) return '';
@@ -65,6 +74,7 @@ export function activeTaskFilterChips({
   groupOptions = [],
   filterUrgentCategory = '',
   filterStatus = '',
+  filterRecurrence = '',
 } = {}) {
   const chips = [];
   if (filterMap && filterMap !== 'active') {
@@ -102,6 +112,13 @@ export function activeTaskFilterChips({
       key: 'urgent',
       label: TASK_URGENT_CATEGORY_LABELS[filterUrgentCategory] || filterUrgentCategory,
       removeLabel: 'Retirer le filtre urgence',
+    });
+  }
+  if (isTeacher && filterRecurrence) {
+    chips.push({
+      key: 'recurrence',
+      label: `Récurrence : ${TASK_RECURRENCE_FILTER_LABELS[filterRecurrence] || filterRecurrence}`,
+      removeLabel: 'Retirer le filtre récurrence',
     });
   }
   if (filterStatus) {

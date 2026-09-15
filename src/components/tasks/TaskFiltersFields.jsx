@@ -46,6 +46,8 @@ export function TaskFiltersFields({
   filterStatus,
   setFilterStatus,
   setHasTouchedStatusFilter,
+  filterRecurrence = '',
+  setFilterRecurrence = () => {},
 }) {
   const publicSettings = usePublicSettings();
   const helpGroupFilters = resolveHelpPanelSection('groupFilters', publicSettings);
@@ -167,6 +169,20 @@ export function TaskFiltersFields({
         <option value="urgent">Urgent ! uniquement</option>
         <option value="non_urgent">Hors urgent</option>
       </select>
+      {isTeacher && (
+        <select
+          value={filterRecurrence}
+          onChange={(e) => setFilterRecurrence(e.target.value)}
+          aria-label="Filtrer les tâches par récurrence"
+        >
+          <option value="">Toute récurrence</option>
+          <option value="recurring">Récurrentes seulement</option>
+          <option value="weekly">Hebdomadaire</option>
+          <option value="biweekly">Toutes les 2 semaines</option>
+          <option value="monthly">Mensuelle</option>
+          <option value="none">Sans récurrence</option>
+        </select>
+      )}
       <select
         value={filterStatus}
         aria-label="Filtrer les tâches par statut"

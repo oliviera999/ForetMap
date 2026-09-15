@@ -9,6 +9,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Récurrence des tâches + calendrier scolaire
+
+- Calendrier scolaire **2026-2027** (tables `school_calendar_*`, seed depuis le calendrier
+  de travail annualisé Lyautey) : jours ouverts / week-ends / vacances.
+- Job de duplication : **pas de spawn auto un jour fermé** ; prochaine échéance accrochée au
+  **prochain jour ouvré** ; rattrapage = **une seule** occurrence « à jour » (pas N clones).
+- Anti-doublon BDD `UNIQUE (recurrence_series_id, due_date)` : relancer
+  `npm run tasks:spawn-recurring` N fois ne recrée pas la même occurrence.
+- API : whitelist `recurrence` / dates `AAAA-MM-JJ` ; snapshot PUT aligné sur la récurrence
+  effective ; `GET /api/school-calendar` (`tasks.manage`).
+- UI n3boss/admin : filtre récurrence + panneau « Séries récurrentes » (caractéristiques +
+  statut du jour scolaire).
+- Migrations `247_school_calendar.sql`, `248_task_recurrence_series.sql`.
+
 ### Ajouté — Carte du Complexe Nawal El Moutawakel (site de Beaulieu)
 
 - La carte `beaulieu` est renommée **« Complexe Nawal El Moutawakel (Beaulieu) »** et reçoit

@@ -168,7 +168,8 @@ Ouvrir **http://localhost:3000** : Express sert le contenu de **`dist/`** (SPA c
 `npm run dev` démarre le même serveur Node qu'en production : sauf `NODE_ENV=test`, il planifie
 donc aussi les jobs quotidiens (premier passage 45 à 165 s après le boot, puis toutes les 24 h) :
 
-- duplication des tâches récurrentes validées arrivées à échéance ;
+- duplication des tâches récurrentes validées arrivées à échéance (jours ouvrés scolaires
+  uniquement ; une occurrence « à jour » par série) ;
 - archivage automatique des tâches et projets validés anciens.
 
 Pour éviter toute écriture automatique pendant une démo, un import de dump ou une session de

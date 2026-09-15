@@ -103,6 +103,7 @@ export function taskMatchesFilters(
     filterProject = '',
     filterGroupId = '',
     filterUrgentCategory = '',
+    filterRecurrence = '',
   } = {},
 ) {
   if (!taskMapIdMatchesFilter(taskEffectiveMapId(t), filterMap, activeMapId)) return false;
@@ -131,6 +132,18 @@ export function taskMatchesFilters(
   if (filterGroupId && String(t.group_id || '') !== String(filterGroupId)) return false;
   if (filterUrgentCategory === 'urgent' && !isTaskUrgentCategory(t)) return false;
   if (filterUrgentCategory === 'non_urgent' && isTaskUrgentCategory(t)) return false;
+  if (filterRecurrence) {
+    const r = String(t.recurrence || '')
+      .trim()
+      .toLowerCase();
+    if (filterRecurrence === 'none') {
+      if (r) return false;
+    } else if (filterRecurrence === 'recurring') {
+      if (!r) return false;
+    } else if (r !== filterRecurrence) {
+      return false;
+    }
+  }
   return true;
 }
 

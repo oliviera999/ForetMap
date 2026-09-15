@@ -3184,6 +3184,55 @@
       flex-shrink:0;
       margin:0 0 6px;
     }
+
+    /* Séries récurrentes (n3boss / admin) */
+    .recurring-series-overview {
+      margin: 0 0 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--sage, #a8c5a0);
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--leaf, #4a7c59) 8%, transparent);
+    }
+    .recurring-series-overview-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 12px;
+      margin-bottom: 6px;
+    }
+    .recurring-series-overview-head span {
+      font-size: var(--text-sm);
+      color: var(--muted, #5a6b5d);
+    }
+    .recurring-series-overview-calendar {
+      margin: 0 0 8px;
+      font-size: var(--text-sm);
+    }
+    .recurring-series-overview-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 6px;
+    }
+    .recurring-series-overview-list li {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-height: 44px;
+      justify-content: center;
+    }
+    .recurring-series-title {
+      font-weight: 600;
+    }
+    .recurring-series-meta {
+      font-size: var(--text-sm);
+      color: var(--muted, #5a6b5d);
+    }
+    .recurring-series-overview-more {
+      margin: 8px 0 0;
+      font-size: var(--text-sm);
+    }
     .map-location-filters-bar {
       min-height:44px;
     }
