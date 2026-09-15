@@ -660,9 +660,12 @@ test.describe('pack mascotte serveur (GUI)', () => {
     const visitPicker = page.getByTestId('visit-mascot-picker').first();
     await expect(visitPicker).toBeVisible({ timeout: 20_000 });
     await visitPicker.click();
-    const packLabel = String(publishedPack?.label || '').trim();
-    const visitOption = packLabel
-      ? page.getByRole('menuitemradio', { name: packLabel })
+    // `packLabel` est déjà déclaré plus haut dans ce test (nom donné au pack créé) : le
+    // redéclarer ici levait un SyntaxError qui empêchait Playwright de charger *toute*
+    // la suite e2e. Le libellé publié est le même, par construction (`find` ci-dessus).
+    const publishedLabel = String(publishedPack?.label || '').trim();
+    const visitOption = publishedLabel
+      ? page.getByRole('menuitemradio', { name: publishedLabel })
       : page.locator('.visit-mascot-picker__option').first();
     if ((await visitOption.count()) > 0) {
       await visitOption.click();

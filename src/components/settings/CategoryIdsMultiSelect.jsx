@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import {
+  createLatestWriteQueue,
   formatCategoryIdsSetting,
   parseCategoryIdsSetting,
 } from '../../utils/categoryIdsSetting.js';
@@ -18,7 +19,30 @@ export function CategoryIdsMultiSelect({
 }) {
   const [categories, setCategories] = useState([]);
   const [loadErr, setLoadErr] = useState('');
-  const selected = useMemo(() => new Set(parseCategoryIdsSetting(value)), [value]);
+  const [selected, setSelected] = useState(() => new Set(parseCategoryIdsSetting(value)));
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
+  const dirtyRef = useRef(false);
+  const queueRef = useRef(null);
+  if (!queueRef.current) {
+    queueRef.current = createLatestWriteQueue(
+      async (next) => {
+        await onSaveRef.current?.(next);
+      },
+      {
+        onIdle: () => {
+          dirtyRef.current = false;
+        },
+      },
+    );
+  }
+
+  useEffect(() => {
+    if (dirtyRef.current) return;
+    setSelected(new Set(parseCategoryIdsSetting(value)));
+  }, [value]);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,11 +69,14 @@ export function CategoryIdsMultiSelect({
 
   const toggle = (id) => {
     if (disabled) return;
-    const next = new Set(selected);
+    const next = new Set(selectedRef.current);
     const key = String(id);
     if (next.has(key)) next.delete(key);
     else next.add(key);
-    onSave?.(formatCategoryIdsSetting(next));
+    selectedRef.current = next;
+    dirtyRef.current = true;
+    setSelected(next);
+    queueRef.current.push(formatCategoryIdsSetting(next));
   };
 
   return (
