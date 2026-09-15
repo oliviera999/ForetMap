@@ -43,6 +43,7 @@ export const GL_TAXON_RANK_LABELS = {
   genus: 'genre',
   family: 'famille',
   clade: 'clade',
+  breed: 'Race',
 };
 
 /** Sections de la fiche modale : titre + clés affichées si non vides. */

@@ -1381,6 +1381,19 @@ champignons, micro-organismes et fiches-ressources. Ils ne sont **pas produits p
 automatique** (`GET /api/plants/autofill`), dont les sources n’exposent pas de critères de
 détermination : ils se saisissent à la main ou par import.
 
+S’y ajoutent aussi les **statuts écologiques** pédagogiques (migration `244`) et le rang
+taxonomique (dont **`breed`**, race d’élevage) :
+
+| Champ           | Type                                                       | Contenu                                                                                |
+| --------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `origin_status` | ENUM `indigene` \| `introduit` \| `envahissant` (nullable) | Statut biogéographique — pastille catalogue + filtre ; distinct de `geographic_origin` |
+| `iucn_status`   | ENUM `EX`…`NE` (nullable)                                  | Statut Liste rouge UICN (évaluation mondiale) — pastille « UICN XX » + filtre          |
+| `taxon_rank`    | `VARCHAR(16)`                                              | `species` \| `genus` \| `family` \| `clade` \| **`breed`** (libellé UI FR « Race »)    |
+
+Alias d’import : `statut_biogeographique` / `statut_origine` → `origin_status` ; `statut_iucn` /
+`uicn` / `liste_rouge` → `iucn_status` ; `rang_taxonomique` → `taxon_rank` ; valeurs
+`race` / `races` → `breed`. Libellés FR/EN acceptés pour les statuts ; valeurs invalides → `null`.
+
 `POST /api/plants` et `PUT /api/plants/:id` acceptent ces mêmes champs en JSON. Les champs texte vides
 des métadonnées biodiversité sont normalisés en `null`. Le champ optionnel **`map_ids`** remplace le
 rattachement direct à la carte lorsqu’il est présent ; s’il est omis, les liens `map_species`

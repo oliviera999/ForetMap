@@ -41,7 +41,7 @@ export function GLBoardChrome({
         // ce logement qui se place en haut à droite du plateau, pas le bouton lui-même.
         <div className="gl-map-fullscreen-close-slot">
           <GLBoardActionButton
-            variant="display"
+            tone="display"
             className="gl-map-fullscreen-close"
             icon={<IconClose size={16} />}
             label="Fermer"
@@ -79,7 +79,7 @@ export function GLBoardChrome({
         <div className="gl-board-chrome-bar" role="toolbar" aria-label="Actions carte">
           {canSpellCast ? (
             <GLBoardActionButton
-              variant="primary"
+              tone="primary"
               icon="✨"
               label="Lancer un sortilège"
               labelShort="Sortilège"
@@ -89,7 +89,7 @@ export function GLBoardChrome({
             />
           ) : null}
           <GLBoardActionButton
-            variant="display"
+            tone="display"
             icon="⛶"
             label="Plein écran"
             testId="gl-board-hud-fullscreen"

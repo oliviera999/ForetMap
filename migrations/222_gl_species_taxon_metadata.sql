@@ -1,5 +1,5 @@
 -- Métadonnées taxonomiques additives (aucun ENUM, aucun changement de PK).
--- NULL = non renseigné. Valeurs attendues pour taxon_rank : species|genus|family|clade.
+-- NULL = non renseigné. Valeurs attendues pour taxon_rank : species|genus|family|clade|breed.
 
 ALTER TABLE gl_species
   ADD COLUMN IF NOT EXISTS taxon_rank VARCHAR(16) DEFAULT NULL AFTER nom_scientifique;

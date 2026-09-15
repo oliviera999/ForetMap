@@ -144,6 +144,8 @@ export function plantMatchesStructuredFilters(plant, f) {
   if (f.habitat && nv(plant.habitat) !== f.habitat) return false;
   if (f.trophicRole && nv(plant.trophic_role) !== f.trophicRole) return false;
   if (f.habitatType && nv(plant.habitat_type) !== f.habitatType) return false;
+  if (f.originStatus && nv(plant.origin_status) !== f.originStatus) return false;
+  if (f.iucnStatus && nv(plant.iucn_status) !== f.iucnStatus) return false;
   if (f.agroecosystemCategory && nv(plant.agroecosystem_category) !== f.agroecosystemCategory) {
     return false;
   }

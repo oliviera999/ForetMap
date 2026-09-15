@@ -4,8 +4,9 @@ import { ZONE_PRESENCE_FILTER, plantMatchesAllFilters } from '../utils/plantFilt
 /**
  * État partagé des filtres du catalogue biodiversité (PlantManager / PlantViewer).
  *
- * Regroupe les 7 états de filtre (recherche + taxonomie + habitat/rôle/milieu + présence
- * sur la carte), le memo `structured` et le calcul mémoïsé de `filteredPlants`.
+ * Regroupe les états de filtre (recherche + taxonomie + habitat/rôle/milieu/statuts
+ * biogéographique et UICN + présence sur la carte), le memo `structured` et le calcul
+ * mémoïsé de `filteredPlants`.
  * `defaultZonePresence` permet d’ouvrir le catalogue élève déjà filtré sur la carte active
  * sans exposer un second modèle de rattachement.
  *
@@ -24,6 +25,8 @@ export function usePlantCatalogFilters(
   const [habitat, setHabitat] = useState('');
   const [trophicRole, setTrophicRole] = useState('');
   const [habitatType, setHabitatType] = useState('');
+  const [originStatus, setOriginStatus] = useState('');
+  const [iucnStatus, setIucnStatus] = useState('');
   const [zonePresence, setZonePresence] = useState(defaultZonePresence);
 
   const structured = useMemo(
@@ -34,8 +37,10 @@ export function usePlantCatalogFilters(
       habitat,
       trophicRole,
       habitatType,
+      originStatus,
+      iucnStatus,
     }),
-    [group1, group2, group3, habitat, trophicRole, habitatType],
+    [group1, group2, group3, habitat, trophicRole, habitatType, originStatus, iucnStatus],
   );
 
   const queryTrimmedLower = search.trim().toLowerCase();
@@ -71,6 +76,10 @@ export function usePlantCatalogFilters(
       setTrophicRole,
       habitatType,
       setHabitatType,
+      originStatus,
+      setOriginStatus,
+      iucnStatus,
+      setIucnStatus,
       zonePresence,
       setZonePresence,
       defaultZonePresence,

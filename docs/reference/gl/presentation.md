@@ -87,7 +87,8 @@ placer les repères et y associer textes, images et questions.
 - **Biodiversité** : les fiches espèces à découvrir et à apprendre, et un **réseau**
   des relations entre espèces du catalogue (qui mange qui, pollinisation, etc.). On
   peut afficher le **réseau alimentaire**, les **autres relations**, ou **tout**. Une
-  fiche peut préciser le **rang** (espèce, genre…) et un lien vers une source
+  fiche peut préciser le **rang** (espèce, genre, famille, clade, ou **race** pour
+  une race d’élevage) et un lien vers une source
   (catalogue du vivant), sans remplacer le nom scientifique. Le catalogue des
   biomes tempérés, landes et Méditerranée inclut aussi des **lisières et mares**
   (merle, carabe, sureau, daphnie, libellule, gerris, pipistrelle) pour relier

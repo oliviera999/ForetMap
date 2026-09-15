@@ -15,6 +15,12 @@ import {
   IconThermometer,
   IconUtensils,
 } from '../../shared/icons.jsx';
+import { originStatusLabel, normalizeOriginStatus } from '../../utils/plantOriginStatus.js';
+import {
+  iucnStatusBadgeLabel,
+  iucnStatusLabel,
+  normalizeIucnStatus,
+} from '../../utils/plantIucnStatus.js';
 
 const TROPHIC_LABELS = {
   producteur: 'Producteur',
@@ -47,7 +53,7 @@ export function PlantTaxonomyLine({ plant }) {
   );
 }
 
-/** Badges rôle trophique, comestibilité, habitat. */
+/** Badges rôle trophique, comestibilité, habitat, statut biogéographique, UICN. */
 export function PlantPedagoTraitBadges({ plant }) {
   const chips = [];
   const trophic = String(plant?.trophic_role || '')
@@ -67,12 +73,41 @@ export function PlantPedagoTraitBadges({ plant }) {
   if (habitat && HABITAT_LABELS[habitat]) {
     chips.push({ key: 'habitat', label: HABITAT_LABELS[habitat], icon: <IconHabitat size={12} /> });
   }
+  const origin = normalizeOriginStatus(plant?.origin_status);
+  const originLabel = originStatusLabel(origin);
+  if (origin && originLabel) {
+    chips.push({
+      key: `origin-${origin}`,
+      label: originLabel,
+      className: `plant-origin-status plant-origin-status--${origin}`,
+    });
+  }
+  const iucn = normalizeIucnStatus(plant?.iucn_status);
+  const iucnBadge = iucnStatusBadgeLabel(iucn);
+  if (iucn && iucnBadge) {
+    chips.push({
+      key: `iucn-${iucn}`,
+      label: iucnBadge,
+      className: `plant-iucn-status plant-iucn-status--${iucn.toLowerCase()}`,
+      title: iucnStatusLabel(iucn),
+    });
+  }
   if (chips.length === 0) return null;
   return (
     <div className="task-meta plant-pedago-traits">
       {chips.map((chip) => (
-        <span key={chip.key} className="task-chip">
-          {chip.icon} {chip.label}
+        <span
+          key={chip.key}
+          className={`task-chip${chip.className ? ` ${chip.className}` : ''}`}
+          title={chip.title}
+        >
+          {chip.icon ? (
+            <>
+              {chip.icon} {chip.label}
+            </>
+          ) : (
+            chip.label
+          )}
         </span>
       ))}
     </div>

@@ -165,7 +165,12 @@ export function PlantMetaSections({ plant }) {
       )}
       {PLANT_META_SECTIONS.map((section) => {
         const values = section.items
-          .map((item) => ({ ...item, value: normalizedPlantValue(plant[item.key]) }))
+          .map((item) => {
+            const raw = normalizedPlantValue(plant[item.key]);
+            const value =
+              item.valueLabels && raw && item.valueLabels[raw] ? item.valueLabels[raw] : raw;
+            return { ...item, value };
+          })
           .filter((item) => !!item.value);
         if (values.length === 0) return null;
         return (
