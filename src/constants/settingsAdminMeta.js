@@ -12,7 +12,6 @@ export const SECTION_DEFS = {
   content: { title: 'Contenus du site', order: 22 },
   tasks: { title: 'Tâches & inscriptions n3beurs', order: 23 },
   progression: { title: 'Progression n3beurs', order: 25 },
-  learning: { title: 'Validation des lectures (contrôle de compréhension)', order: 26 },
   imports: { title: 'Imports de comptes', order: 28 },
   security: { title: 'Sécurité', order: 30 },
   operations: { title: 'Exploitation', order: 40 },
@@ -21,13 +20,31 @@ export const SECTION_DEFS = {
 
 /**
  * Clés retirées de la grille générique parce qu'un panneau dédié les édite mieux
- * (aperçu, cases à cocher, validation) — cf. `VisitMascotSettingsPanel`. Les laisser
- * en double exposerait deux éditeurs contradictoires pour le même réglage.
+ * (aperçu, cases à cocher, validation). Les laisser en double exposerait deux
+ * éditeurs contradictoires pour le même réglage.
  */
 export const KEYS_HANDLED_BY_PANEL = new Set([
   'ui.visit.mascot.default_id',
-  // Case à cocher dédiée dans Réglages → Cartes & plans (évite le doublon grille texte).
   'ui.map.show_tutorial_dots',
+  'ui.map.heading_up_enabled',
+  'ui.visit.heading_up_enabled',
+  'ui.map.default_category_ids',
+  'ui.visit.default_category_ids',
+  'ui.foret.brand',
+  'ui.plan.brand',
+  'ui.plan.map_id',
+  'ui.plan.title',
+  'ui.plan.welcome_hint',
+  'ui.plan.attribution',
+  'ui.plan.public_base_url',
+  'ui.plan.default_category_ids',
+  'ui.plan.hidden_category_ids',
+  'ui.plan.access_mode',
+  'ui.plan.heading_up_enabled',
+  'security.plan_access_code_hash',
+  'content.visit.mascot_dialog.defaults',
+  'content.visit.mascot_dialog.catalog_overrides',
+  'ops.visit_mascot_unrenderable_aligned_at',
   'learning.gating.enabled',
   'learning.gating.default_mode',
   'learning.gating.default_required_correct',
@@ -39,7 +56,6 @@ export const KEYS_HANDLED_BY_PANEL = new Set([
   'learning.gating.announce_on_button',
   'learning.gating.state_icons',
   'learning.gating.require_linked_tutorials_before_task_done',
-  // Onglet « Moodle » (MoodleAdminPanel) : politiques et table chapitre → cours sont des `json`.
   'integration.moodle.enabled',
   'integration.moodle.year_prefix',
   'integration.moodle.email_domains',
@@ -157,6 +173,11 @@ export const KEY_META = {
     section: 'content',
     order: 190,
   },
+  'content.about.site_issues_title': {
+    label: 'Titre bloc audit interne (À propos)',
+    section: 'content',
+    order: 200,
+  },
   'content.about.help_title': {
     label: 'Titre carte aide contextuelle',
     section: 'content',
@@ -225,6 +246,11 @@ export const KEY_META = {
     section: 'modules',
     order: 40,
   },
+  'ui.biodiv.determination_always_open': {
+    label: 'Fiches espèces — section « Détermination » toujours dépliée',
+    section: 'modules',
+    order: 41,
+  },
   'observations.journal_max_chars': {
     label: 'Carnet — max. caractères par article (0 = illimité)',
     section: 'modules',
@@ -250,6 +276,36 @@ export const KEY_META = {
     label: 'Signalements (forum et commentaires de contexte)',
     section: 'modules',
     order: 47.05,
+  },
+  'ui.modules.presence_enabled': {
+    label: 'Présence en ligne (pastilles stats prof — qui est connecté)',
+    section: 'modules',
+    order: 47.06,
+  },
+  'runtime.realtime_signals_enabled': {
+    label: 'Temps réel — émissions Socket (couper = filet REST seul, allège la charge)',
+    section: 'operations',
+    order: 10,
+  },
+  'runtime.rest_poll_floor_ms': {
+    label: 'Filet REST — intervalle min. si live (ms, défaut 90000)',
+    section: 'operations',
+    order: 11,
+  },
+  'runtime.rest_poll_background_floor_ms': {
+    label: 'Filet REST — intervalle min. onglet caché (ms, défaut 120000)',
+    section: 'operations',
+    order: 12,
+  },
+  'runtime.sync_state_enabled': {
+    label: 'Polling différentiel sync-state (recommandé)',
+    section: 'operations',
+    order: 13,
+  },
+  'runtime.socket_presence_emit_coalesce_ms': {
+    label: 'Présence — coalescence des mises à jour staff (ms)',
+    section: 'operations',
+    order: 14,
   },
   'ui.help.show_context_hints': {
     label: 'Afficher les mini-astuces contextuelles',

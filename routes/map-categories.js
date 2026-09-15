@@ -1,7 +1,8 @@
 const express = require('express');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
-const { requirePermission } = require('../middleware/requireTeacher');
+const { requirePermission, authenticate } = require('../middleware/requireTeacher');
+const { requireMapAccess } = require('../lib/mapAccess');
 const asyncHandler = require('../lib/asyncHandler');
 const { emitGardenChanged } = require('../lib/realtime');
 const { normalizeMarkerEmoji } = require('../lib/markerEmoji');
@@ -21,6 +22,7 @@ const {
   serializeSurfaceSet,
   readSurfaceQuery,
 } = require('../lib/locationSurfaces');
+const { mapExists } = require('../lib/mapQueries');
 
 const db = { queryAll, queryOne, execute, withTransaction };
 
@@ -30,11 +32,6 @@ const COLOR_RE = /^#[0-9a-fA-F]{3,8}$/;
 const DEFAULT_COLOR = '#86efac90';
 const LABEL_MAX = 120;
 const DESCRIPTION_MAX = 512;
-
-async function mapExists(mapId) {
-  const row = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [mapId]);
-  return !!row;
-}
 
 /**
  * `map_id` d'une catégorie : `null` = globale (toutes cartes). Retourne `{ error }`
@@ -95,9 +92,18 @@ async function pruneInvalidAssignments(categoryId) {
   );
 }
 
-/** Catalogue public : catégories actives, filtrables par carte et par type de lieu. */
+/**
+ * Catalogue public : catégories actives, filtrables par carte et par type de lieu.
+ *
+ * `requireMapAccess` refuse un `?map_id=` hors périmètre. La liste sans `map_id` n'est pas
+ * bornée : elle ne porte que des libellés, emojis et couleurs — des métadonnées d'habillage,
+ * pas du contenu de carte — et les catégories globales (`map_id IS NULL`) s'appliquent
+ * partout.
+ */
 router.get(
   '/',
+  authenticate,
+  requireMapAccess(),
   asyncHandler(async (req, res) => {
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
     if (mapId && !(await mapExists(mapId))) {

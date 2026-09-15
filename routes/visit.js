@@ -12,6 +12,11 @@ const {
   loadMarkerSpeciesMap,
   attachSpeciesToEntity,
 } = require('../lib/speciesJunction');
+const {
+  loadCategoriesMap,
+  attachCategoriesToEntity,
+  listCategories,
+} = require('../lib/locationCategories');
 const { nowIso, resolveVisitMapId, mapExists } = require('../lib/visitRouteShared');
 const {
   sanitizeTargetType,
@@ -223,6 +228,8 @@ router.get(
     // Requêtes indépendantes : lancées ensemble plutôt qu'en file (huit allers-retours
     // séquentiels sur un endpoint public, c'est autant de latence et de temps de connexion
     // MySQL retenue).
+    // Audience : source de vérité = visit_* ; COALESCE vers la carte si pas encore
+    // synchronisé (transition post-migration 240). Filtrage via filterLocationsForViewer.
     const zonesPromise = queryAll(
       `SELECT
        z.id, z.map_id, z.name, z.points,
@@ -230,9 +237,9 @@ router.get(
        zm.color AS color,
        zm.emoji AS emoji,
        zm.current_plant AS current_plant,
-       zm.visible_role_slugs AS visible_role_slugs,
-       zm.restricted_note AS restricted_note,
-       zm.restricted_note_role_slugs AS restricted_note_role_slugs,
+       COALESCE(z.visible_role_slugs, zm.visible_role_slugs) AS visible_role_slugs,
+       COALESCE(z.restricted_note, zm.restricted_note) AS restricted_note,
+       COALESCE(z.restricted_note_role_slugs, zm.restricted_note_role_slugs) AS restricted_note_role_slugs,
        z.subtitle AS visit_subtitle,
        z.short_description AS visit_short_description,
        z.details_title AS visit_details_title,
@@ -252,9 +259,9 @@ router.get(
        m.id, m.map_id, m.x_pct, m.y_pct, m.label, m.emoji,
        mm.note AS note,
        mm.plant_name AS plant_name,
-       mm.visible_role_slugs AS visible_role_slugs,
-       mm.restricted_note AS restricted_note,
-       mm.restricted_note_role_slugs AS restricted_note_role_slugs,
+       COALESCE(m.visible_role_slugs, mm.visible_role_slugs) AS visible_role_slugs,
+       COALESCE(m.restricted_note, mm.restricted_note) AS restricted_note,
+       COALESCE(m.restricted_note_role_slugs, mm.restricted_note_role_slugs) AS restricted_note_role_slugs,
        m.subtitle AS visit_subtitle,
        m.short_description AS visit_short_description,
        m.details_title AS visit_details_title,
@@ -377,6 +384,28 @@ router.get(
       );
     });
 
+    /** Catégories de lieux (surface Visite) + rattachements zone / repère. */
+    const categoriesPromise = listCategories({ queryAll }, { mapId, surface: 'visit' }).catch(
+      (catErr) => {
+        logRouteError(catErr, req);
+        return [];
+      },
+    );
+    const zoneCategoriesPromise = zonesPromise.then((rows) =>
+      loadCategoriesMap(
+        { queryAll },
+        'zone',
+        (rows || []).map((r) => r.id),
+      ),
+    );
+    const markerCategoriesPromise = markersPromise.then((rows) =>
+      loadCategoriesMap(
+        { queryAll },
+        'marker',
+        (rows || []).map((r) => r.id),
+      ),
+    );
+
     const [
       zones,
       markers,
@@ -390,6 +419,9 @@ router.get(
       markerSpeciesMap,
       routeRows,
       routeStepRows,
+      categoryCatalog,
+      zoneCategoriesMap,
+      markerCategoriesMap,
     ] = await Promise.all([
       zonesPromise,
       markersPromise,
@@ -403,6 +435,9 @@ router.get(
       markerSpeciesPromise,
       routeRowsPromise,
       routeStepsPromise,
+      categoriesPromise,
+      zoneCategoriesPromise,
+      markerCategoriesPromise,
     ]);
 
     const infrastructureZoneIds = new Set(
@@ -433,9 +468,12 @@ router.get(
       .filter((z) => visitContentRowIsPublicActive(z))
       .map((z) => {
         const visitMedia = mediaByTarget[`zone:${z.id}`] || [];
+        const withCats = attachCategoriesToEntity(z, zoneCategoriesMap.get(String(z.id)) || []);
         return {
-          ...withVisitLocationSpecies(z, zoneSpeciesMap.get(String(z.id)), z.current_plant),
-          is_infrastructure: infrastructureZoneIds.has(String(z.id)),
+          ...withVisitLocationSpecies(withCats, zoneSpeciesMap.get(String(z.id)), z.current_plant),
+          // Source de vérité infra déjà lue plus haut ; on la conserve si la jonction
+          // catégories est encore vide sur une zone miroir.
+          is_infrastructure: withCats.is_infrastructure || infrastructureZoneIds.has(String(z.id)),
           map_lead_photo: serializeMapLeadPhoto('zone', z.id, zoneMapLeadById.get(String(z.id))),
           map_extra_photos: serializeMapExtraPhotos('zone', z.id, zoneMapPhotoRows),
           visit_media: visitMedia,
@@ -446,8 +484,9 @@ router.get(
       .filter((m) => visitContentRowIsPublicActive(m))
       .map((m) => {
         const visitMedia = mediaByTarget[`marker:${m.id}`] || [];
+        const withCats = attachCategoriesToEntity(m, markerCategoriesMap.get(String(m.id)) || []);
         return {
-          ...withVisitLocationSpecies(m, markerSpeciesMap.get(String(m.id)), m.plant_name),
+          ...withVisitLocationSpecies(withCats, markerSpeciesMap.get(String(m.id)), m.plant_name),
           map_lead_photo: serializeMapLeadPhoto(
             'marker',
             m.id,
@@ -473,6 +512,7 @@ router.get(
     const payload = {
       map_id: mapId,
       mascot_packs: mascotPacks,
+      categories: categoryCatalog || [],
       zones: publicZones,
       markers: publicMarkers,
       tutorials,

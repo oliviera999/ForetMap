@@ -4,7 +4,7 @@ import { POLLING_COARSE_TABS } from '../constants/app-runtime';
 /** Intervalle plancher quand le temps réel Socket.IO est actif (filet REST si un événement a été manqué). */
 export const LIVE_MIN_INTERVAL_MS = 90000;
 /** Intervalle plancher quand l'onglet navigateur est en arrière-plan. */
-const BACKGROUND_MIN_INTERVAL_MS = 120000;
+export const BACKGROUND_MIN_INTERVAL_MS = 120000;
 
 /**
  * Cadence du rafraîchissement automatique des données, extraite de `src/App.jsx` :
@@ -18,17 +18,29 @@ const BACKGROUND_MIN_INTERVAL_MS = 120000;
  * @param {number} params.refreshMs Intervalle nominal courant (allongé si serveur indisponible).
  * @param {boolean} params.isTabVisible Onglet navigateur au premier plan.
  * @param {{ current: boolean }} params.pauseRef Pause du rafraîchissement (modales de tâches).
+ * @param {number} [params.liveMinIntervalMs] Plancher live (réglage `runtime.rest_poll_floor_ms`).
+ * @param {number} [params.backgroundMinIntervalMs] Plancher onglet caché.
  */
-export function useAppDataPolling({ fetchAll, tab, rtStatus, refreshMs, isTabVisible, pauseRef }) {
+export function useAppDataPolling({
+  fetchAll,
+  tab,
+  rtStatus,
+  refreshMs,
+  isTabVisible,
+  pauseRef,
+  liveMinIntervalMs = LIVE_MIN_INTERVAL_MS,
+  backgroundMinIntervalMs = BACKGROUND_MIN_INTERVAL_MS,
+}) {
   const prevTabRef = useRef(tab);
 
   // Auto-refresh adaptatif (ralenti quand le push est actif, ralenti en arrière-plan).
   const pollingIntervalMs = useMemo(() => {
+    const liveFloor = Math.max(60000, Number(liveMinIntervalMs) || LIVE_MIN_INTERVAL_MS);
+    const bgFloor = Math.max(90000, Number(backgroundMinIntervalMs) || BACKGROUND_MIN_INTERVAL_MS);
     const coarse = POLLING_COARSE_TABS.has(tab) ? 2 : 1;
-    const liveAdjusted =
-      rtStatus === 'live' ? Math.max(refreshMs, LIVE_MIN_INTERVAL_MS) : refreshMs * coarse;
-    return isTabVisible ? liveAdjusted : Math.max(liveAdjusted, BACKGROUND_MIN_INTERVAL_MS);
-  }, [isTabVisible, refreshMs, rtStatus, tab]);
+    const liveAdjusted = rtStatus === 'live' ? Math.max(refreshMs, liveFloor) : refreshMs * coarse;
+    return isTabVisible ? liveAdjusted : Math.max(liveAdjusted, bgFloor);
+  }, [isTabVisible, refreshMs, rtStatus, tab, liveMinIntervalMs, backgroundMinIntervalMs]);
 
   useEffect(() => {
     const id = setInterval(() => {

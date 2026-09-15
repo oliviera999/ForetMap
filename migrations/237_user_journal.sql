@@ -53,10 +53,13 @@ CREATE TABLE IF NOT EXISTS user_journal_observation_map (
   CONSTRAINT fk_ujom_article FOREIGN KEY (article_id) REFERENCES user_journal_articles(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO settings (`key`, value, updated_at)
-VALUES ('observations.journal_max_chars', '0', NOW())
+-- Réglages du carnet (0 = illimité). Corrigé le 2026-09-13 (audit §2.1) : la table s'appelle
+-- `app_settings` (clé, portée, `value_json`) — l'écriture dans `settings` échouait en silence.
+-- Les bases déjà en 237 sont rattrapées par la migration 242.
+INSERT INTO app_settings (`key`, scope, value_json)
+VALUES ('observations.journal_max_chars', 'teacher', '0')
 ON DUPLICATE KEY UPDATE `key` = `key`;
 
-INSERT INTO settings (`key`, value, updated_at)
-VALUES ('observations.journal_max_assets', '0', NOW())
+INSERT INTO app_settings (`key`, scope, value_json)
+VALUES ('observations.journal_max_assets', 'teacher', '0')
 ON DUPLICATE KEY UPDATE `key` = `key`;

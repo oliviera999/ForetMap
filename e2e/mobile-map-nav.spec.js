@@ -48,6 +48,29 @@ test('mobile : carte, navigation basse et feuille de filtres', async ({ page }) 
   }
 });
 
+/** Audit iPhone — pattern Plus (primaires + tiroir), projet mobile-chromium. */
+test('mobile : Plus ouvre le tiroir et bascule vers À propos', async ({ page }) => {
+  test.setTimeout(240_000);
+  await loginAsNewStudent(page);
+  await dismissDiscoveryTourIfPresent(page);
+
+  const bottomNav = page.locator('nav.bottom-nav');
+  await expect(bottomNav).toBeVisible({ timeout: 60_000 });
+  await expect(bottomNav).toHaveClass(/bottom-nav--compact/);
+  await expect(bottomNav.getByRole('button', { name: 'Carte', exact: true })).toBeVisible();
+  await expect(bottomNav.getByRole('button', { name: 'À propos', exact: true })).toHaveCount(0);
+
+  const plusBtn = bottomNav.getByRole('button', { name: /Plus d'onglets/ });
+  await expect(plusBtn).toBeVisible();
+  await plusBtn.click();
+
+  const sheet = page.getByRole('dialog', { name: 'Navigation' });
+  await expect(sheet).toBeVisible({ timeout: 15_000 });
+  await sheet.getByRole('button', { name: 'À propos', exact: true }).click();
+  await expect(sheet).toBeHidden({ timeout: 15_000 });
+  await expect(plusBtn).toHaveClass(/active/);
+});
+
 /** Lot 2 — moteur de carte partagé : double-tap tactile et recentrage sur la carte élève. */
 test('mobile : double-tap zoome la carte, le bouton recentrer la réajuste', async ({ page }) => {
   test.setTimeout(240_000);

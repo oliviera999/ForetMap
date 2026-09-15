@@ -15,6 +15,10 @@ const { app } = require('../server');
 const { ensureRbacBootstrap } = require('../lib/rbac');
 const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
 const { setSetting, invalidateSettingsCache } = require('../lib/settings');
+const { snapshotSetting, restoreSetting } = require('./helpers/settingsSnapshot');
+
+/** État de `ui.plan.map_id` avant la suite : restauré tel quel en `after()`. */
+let planMapSettingSnapshot = null;
 const fx = require('./helpers/fmFixtures');
 const { planContentCache } = require('../routes/plan');
 const {
@@ -45,6 +49,7 @@ test.before(async () => {
   map = await fx.createMap({ label: 'Carte parcours' });
   zone = await fx.createZone({ mapId: map.id, name: 'Accueil' });
   marker = await fx.createMarker({ mapId: map.id, label: 'Infirmerie' });
+  planMapSettingSnapshot = await snapshotSetting('ui.plan.map_id');
   await setSetting('ui.plan.map_id', map.id, { userType: 'teacher', userId: 'test' });
   invalidateSettingsCache();
 });
@@ -60,8 +65,7 @@ test.after(async () => {
   await execute('DELETE FROM zones WHERE map_id = ?', [map.id]);
   await execute('DELETE FROM map_markers WHERE map_id = ?', [map.id]);
   await execute('DELETE FROM maps WHERE id = ?', [map.id]);
-  await setSetting('ui.plan.map_id', 'lyautey', { userType: 'teacher', userId: 'test' });
-  invalidateSettingsCache();
+  await restoreSetting(planMapSettingSnapshot);
 });
 
 test('helpers purs : slug, étapes, lien profond', () => {

@@ -7,7 +7,7 @@ const SAMPLE_H = 14;
 
 function LegendSample({ type, symmetric, active = false }) {
   const style = edgeStyleForType(type);
-  const color = active ? '#16a34a' : style.color;
+  const color = style.color;
   const y = SAMPLE_H / 2;
   const x1 = symmetric ? 6 : 4;
   const x2 = symmetric ? SAMPLE_W - 6 : SAMPLE_W - 8;
@@ -34,13 +34,25 @@ function LegendSample({ type, symmetric, active = false }) {
           <path d="M0,0 L6,2.5 L0,5 Z" fill={color} />
         </marker>
       </defs>
+      {active ? (
+        <line
+          x1={x1}
+          y1={y}
+          x2={x2}
+          y2={y}
+          stroke="#16a34a"
+          strokeWidth={5}
+          strokeLinecap="round"
+          opacity={0.45}
+        />
+      ) : null}
       <line
         x1={x1}
         y1={y}
         x2={x2}
         y2={y}
         stroke={color}
-        strokeWidth={active ? 2.4 : style.width}
+        strokeWidth={active ? style.width + 0.4 : style.width}
         strokeDasharray={style.dash || undefined}
         markerEnd={`url(#${markerId})`}
         markerStart={symmetric ? `url(#${markerId})` : undefined}

@@ -7,7 +7,12 @@ import { HelpPanel } from './HelpPanel';
 import { usePlantObservationCounts } from '../hooks/usePlantObservationCounts';
 import { useGatingSummary } from '../hooks/useGatingSummary';
 import { resolveHelpPanelSection, resolveTooltipKey } from '../utils/helpResolve';
-import { plantLinkedToMapMarker, plantLinkedToMapZone } from '../utils/plantFilters';
+import {
+  plantLinkedToMapMarker,
+  plantLinkedToMapZone,
+  plantPresentOnActiveMap,
+  ZONE_PRESENCE_FILTER,
+} from '../utils/plantFilters';
 import { usePlantCatalogFilters } from '../hooks/usePlantCatalogFilters';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { ObservationCard } from './ObservationCard.jsx';
@@ -44,11 +49,11 @@ import {
 // s'ouvre dans la modale d'aperçu montée par `App` (`onOpenPlant`). L'édition, elle,
 // passe en modale plutôt qu'en place dans la grille — la fiche n'est plus rendue à deux
 // endroits (cf. docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md, lot 1).
-function PlantManager({ onRefresh, onForceLogout = null, onOpenPlant = null }) {
+function PlantManager({ onRefresh, onForceLogout = null, onOpenPlant = null, maps = [] }) {
   const { confirm } = useAppDialogs();
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
-  const { plants = [], zones = [], markers = [] } = useData();
+  const { plants = [], zones = [], markers = [], activeMapId = null } = useData();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_PLANT_FORM });
@@ -60,7 +65,9 @@ function PlantManager({ onRefresh, onForceLogout = null, onOpenPlant = null }) {
   const tooltipText = (path) => resolveTooltipKey(path, publicSettings, true);
   const helpPlants = resolveHelpPanelSection('plants', publicSettings);
 
-  const { filteredPlants, filterPanelProps } = usePlantCatalogFilters(plants, zones, markers);
+  const { filteredPlants, filterPanelProps } = usePlantCatalogFilters(plants, zones, markers, {
+    activeMapId,
+  });
 
   // Fiche en cours d'édition, relue depuis le catalogue : une fiche supprimée ou filtrée
   // pendant l'édition referme la modale au lieu de la laisser sur des données fantômes.
@@ -219,6 +226,7 @@ function PlantManager({ onRefresh, onForceLogout = null, onOpenPlant = null }) {
           saving={saving}
           plantId={null}
           onToast={setToast}
+          maps={maps}
           onEnsurePlantId={async () => {
             if (!form.name.trim()) {
               setToast("Indique un nom pour la fiche avant d'importer une photo.");
@@ -322,6 +330,7 @@ function PlantManager({ onRefresh, onForceLogout = null, onOpenPlant = null }) {
               saving={saving}
               plantId={editPlant.id}
               onToast={setToast}
+              maps={maps}
               autoSaveStatus={autoSaveStatus}
               autoSaveError={autoSaveError}
             />
@@ -555,7 +564,7 @@ function ObservationNotebook({ student, onForceLogout = null }) {
 function PlantViewer({ onForceLogout = null, onOpenPlant = null }) {
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
-  const { plants = [], zones = [], markers = [] } = useData();
+  const { plants = [], zones = [], markers = [], activeMapId = null } = useData();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
     useHelp({ publicSettings, isTeacher: false });
@@ -565,6 +574,10 @@ function PlantViewer({ onForceLogout = null, onOpenPlant = null }) {
     plants,
     zones,
     markers,
+    {
+      defaultZonePresence: ZONE_PRESENCE_FILTER.IN_MAP,
+      activeMapId,
+    },
   );
 
   const biodivObservationPlantIdsStudent = useMemo(() => {
@@ -585,13 +598,10 @@ function PlantViewer({ onForceLogout = null, onOpenPlant = null }) {
   const plantMapLinkedIds = useMemo(() => {
     const ids = new Set();
     for (const p of filtered) {
-      const linked =
-        zones.some((z) => plantLinkedToMapZone(p, z)) ||
-        markers.some((m) => plantLinkedToMapMarker(p, m));
-      if (linked) ids.add(p.id);
+      if (plantPresentOnActiveMap(p, zones, markers, activeMapId)) ids.add(p.id);
     }
     return ids;
-  }, [filtered, zones, markers]);
+  }, [filtered, zones, markers, activeMapId]);
 
   return (
     <div className="fade-in">

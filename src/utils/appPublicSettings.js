@@ -37,10 +37,23 @@ export const DEFAULT_PUBLIC_SETTINGS = {
     forum_enabled: true,
     context_comments_enabled: true,
     reports_enabled: true,
+    presence_enabled: true,
   },
   help: {
     show_context_hints: true,
     pulse_unseen_panels: true,
+  },
+  biodiv: {
+    // Section « Détermination » des fiches espèces : repliée d'office, comme les
+    // autres sections de la fiche. Un site peut la rendre permanente (`ui.biodiv`).
+    determination_always_open: false,
+  },
+  runtime: {
+    realtime_signals_enabled: true,
+    rest_poll_floor_ms: 90000,
+    rest_poll_background_floor_ms: 120000,
+    sync_state_enabled: true,
+    socket_presence_emit_coalesce_ms: 500,
   },
   visit: {
     mascot: {
@@ -64,6 +77,9 @@ export const DEFAULT_PUBLIC_SETTINGS = {
 export function mergePublicSettings(prev, settings) {
   if (!settings || typeof settings !== 'object') return prev;
   const next = { ...prev, ...settings };
+  if (settings.runtime && typeof settings.runtime === 'object') {
+    next.runtime = { ...(prev.runtime || {}), ...settings.runtime };
+  }
   const ui = settings.ui;
   if (ui && typeof ui === 'object') {
     if (ui.modules && typeof ui.modules === 'object') {
@@ -80,6 +96,9 @@ export function mergePublicSettings(prev, settings) {
     }
     if (ui.visit && typeof ui.visit === 'object') {
       next.visit = { ...prev.visit, ...ui.visit };
+    }
+    if (ui.biodiv && typeof ui.biodiv === 'object') {
+      next.biodiv = { ...(prev.biodiv || {}), ...ui.biodiv };
     }
     // Thème de marque du produit (lot 7) : `ui.foret.brand` → `foret.brand`.
     if (ui.foret && typeof ui.foret === 'object') {

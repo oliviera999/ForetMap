@@ -25,6 +25,8 @@ import { polygonPoleOfInaccessibilityPct } from './pctPolylabel.js';
  * @param {(zone: object, event: object) => void} props.onZoneClick handler stable.
  * @param {string|null} [props.activeZoneId] zone mise en avant (fiche ouverte).
  * @param {boolean} [props.showLabels=true] afficher emoji et nom au centre.
+ * @param {(zone: object) => boolean|null} [props.getIsSeen] progression Visite : true=vu,
+ *   false=non-vu, null/omit=pas de classe seen.
  * @param {string} [props.className]
  */
 function PctZonesLayerImpl({
@@ -32,6 +34,7 @@ function PctZonesLayerImpl({
   onZoneClick,
   activeZoneId = null,
   showLabels = true,
+  getIsSeen = null,
   className = 'fm-pct-zones',
 }) {
   const parsed = useMemo(
@@ -69,14 +72,18 @@ function PctZonesLayerImpl({
         const emoji = String(zone.emoji || '').trim();
         const accessibleName = name || String(zone.name || '').trim();
         const activate = onZoneClick ? (event) => onZoneClick(zone, event) : undefined;
+        const seenFlag = typeof getIsSeen === 'function' ? getIsSeen(zone) : null;
+        const seenClass = seenFlag === true ? ' is-seen' : seenFlag === false ? ' is-unseen' : '';
+        const statusSuffix =
+          seenFlag === true ? ' — Vu' : seenFlag === false ? ' — À découvrir' : '';
         return (
           <g
             key={zone.id}
-            className={`fm-pct-zone${isActive ? ' is-active' : ''}`}
+            className={`fm-pct-zone${isActive ? ' is-active' : ''}${seenClass}`}
             role={onZoneClick ? 'button' : undefined}
             tabIndex={onZoneClick ? 0 : undefined}
             aria-current={isActive ? 'true' : undefined}
-            aria-label={onZoneClick ? accessibleName || 'Zone' : undefined}
+            aria-label={onZoneClick ? `${accessibleName || 'Zone'}${statusSuffix}` : undefined}
             onClick={activate}
             onKeyDown={
               activate

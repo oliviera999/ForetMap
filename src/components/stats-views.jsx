@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useLatestRequest } from '../shared/hooks/useLatestRequest.js';
 import { api } from '../services/api';
 import { statusBadge } from '../utils/badges';
 import { getDicebearAvatarUrl, getStudentAvatarUrl } from '../utils/avatar';
@@ -23,6 +24,7 @@ import { StatCard, StatsSummaryGrid } from '../shared/components/StatsSummaryGri
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { TeacherObservationsPanel } from './stats/TeacherObservationsPanel.jsx';
 import { TeacherLeaderboard } from './stats/TeacherLeaderboard.jsx';
+import { applyPresenceUpdateToRows } from '../shared/presenceListPatch.js';
 import { deriveStudentProgressionView } from '../utils/studentStatsProgression.js';
 import { useSession } from '../contexts/SessionContext.jsx';
 import {
@@ -649,21 +651,27 @@ function TeacherStats() {
     [filterGroupId],
   );
 
+  // Garde anti-course : changer de groupe pendant un chargement ne doit pas afficher les
+  // carnets du groupe précédent (audit 2026-09-13 §2.5).
+  const latestObservations = useLatestRequest();
   const loadObservations = useCallback(async () => {
+    const isCurrent = latestObservations();
     setObsLoading(true);
     setObsError('');
     try {
       const payload = await api(
         `/api/user-journal/feed${filterGroupId ? `?group_id=${encodeURIComponent(filterGroupId)}` : ''}`,
       );
+      if (!isCurrent()) return;
       setObservations(Array.isArray(payload?.articles) ? payload.articles : []);
     } catch (err) {
+      if (!isCurrent()) return;
       setObservations([]);
       setObsError(err?.message || 'Impossible de charger les carnets.');
     } finally {
-      setObsLoading(false);
+      if (isCurrent()) setObsLoading(false);
     }
-  }, [filterGroupId]);
+  }, [filterGroupId, latestObservations]);
   useEffect(() => {
     load();
   }, [load]);
@@ -684,6 +692,16 @@ function TeacherStats() {
     window.addEventListener('foretmap_realtime', onRealtime);
     return () => window.removeEventListener('foretmap_realtime', onRealtime);
   }, [load, loadObservations]);
+
+  useEffect(() => {
+    const onPresence = (e) => {
+      const payload = e?.detail;
+      if (!payload || String(payload.product || 'foret') === 'gl') return;
+      setStudents((prev) => (prev ? applyPresenceUpdateToRows(prev, payload) : prev));
+    };
+    window.addEventListener('foretmap_presence', onPresence);
+    return () => window.removeEventListener('foretmap_presence', onPresence);
+  }, []);
 
   if (students === null)
     return (
@@ -841,7 +859,12 @@ function TeacherStats() {
         onLoad={loadObservations}
       />
 
-      <TeacherLeaderboard students={data} search={search} roleTerms={roleTerms} />
+      <TeacherLeaderboard
+        students={data}
+        search={search}
+        roleTerms={roleTerms}
+        presenceEnabled={publicSettings?.modules?.presence_enabled !== false}
+      />
     </div>
   );
 }

@@ -9,16 +9,90 @@ const { inlineLegacyTutorialHtmlToDb } = require('./lib/inlineLegacyTutorialHtml
 const { dropLegacyScaffolding } = require('./lib/legacySchemaCleanup');
 const { normalizeLegacyTimestamps } = require('./lib/legacyTimestampNormalization');
 
-/** Errnos MySQL souvent attendus lors de migrations idempotentes (table/colonne/index déjà présents ou legacy absent). */
+/**
+ * Errnos MySQL attendus lors de migrations idempotentes (table / colonne / index / contrainte
+ * déjà présents). Une base neuve rejoue tout le dossier après `schema_foretmap.sql`, qui
+ * intègre déjà l'état final : ces erreurs disent « déjà fait », pas « cassé ».
+ */
 const MYSQL_MIGRATION_EXPECTED_ERRNO = new Set([
   1050, // ER_TABLE_EXISTS_ERROR
   1060, // ER_DUP_FIELDNAME
   1061, // ER_DUP_KEYNAME
   1022, // ER_DUP_KEY (contrainte / index déjà présent — ex. FK déjà dans schema_foretmap.sql)
   1091, // ER_CANT_DROP_FIELD_OR_KEY
-  1146, // ER_NO_SUCH_TABLE
   1826, // ER_FK_DUP_NAME
 ]);
+
+/**
+ * `ER_NO_SUCH_TABLE` (1146) n'est toléré que pour un énoncé qui **supprime** quelque chose
+ * (`DROP TABLE`, `ALTER TABLE … DROP …`, `DROP INDEX`) : une table héritée qu'une base neuve
+ * n'a jamais eue. Pour un `INSERT` / `UPDATE` / `DELETE` / `CREATE INDEX`, une table absente
+ * est une faute de rédaction — la migration 237 écrivait dans `settings` au lieu
+ * d'`app_settings` sans que rien ne le signale (audit du 13/09/2026, §2.1).
+ */
+const REMOVAL_STATEMENT_RE =
+  /^\s*(?:DROP\s+(?:TABLE|INDEX|VIEW|TRIGGER)\b|ALTER\s+TABLE\s+[\s\S]*?\bDROP\b)/i;
+
+function isRemovalStatement(stmt) {
+  return REMOVAL_STATEMENT_RE.test(String(stmt || ''));
+}
+
+/**
+ * Vrai si l'erreur d'une étape de migration signifie « déjà appliquée » et peut être ignorée.
+ * @returns {{ ignore: boolean, reason: string|null }}
+ */
+/**
+ * Première migration soumise à la règle stricte sur `ER_NO_SUCH_TABLE`. Les fichiers
+ * antérieurs sont de l'histoire déjà appliquée en production : plusieurs touchent des tables
+ * héritées (`students`…) qu'une base neuve n'a jamais eues, et les rejouer ne doit pas casser
+ * `db:init`. Leur cas reste journalisé en `warn` pour rester visible.
+ */
+const MIGRATION_STRICT_NO_SUCH_TABLE_FROM = 242;
+
+/**
+ * Tables de l'ancien modèle de comptes, remplacées par `users` (migration 029) : les
+ * migrations 007, 008, 024 et 029 les modifient encore, et une base neuve ne les a jamais
+ * eues. Leur absence n'a rien à signaler.
+ */
+const LEGACY_TABLES_ABSENT_ON_FRESH_DB = new Set(['students', 'teachers']);
+
+/** Nom de table extrait d'un message `Table 'db.nom' doesn't exist`, sinon `null`. */
+function missingTableName(err) {
+  const msg = String(err?.sqlMessage || err?.message || '');
+  const m = /Table '(?:[^'.]+\.)?([^'.]+)' doesn't exist/i.exec(msg);
+  return m ? m[1].toLowerCase() : null;
+}
+
+function migrationNumber(migrationFile) {
+  const m = /^(\d{3})_/.exec(String(migrationFile || ''));
+  return m ? Number(m[1]) : Number.NaN;
+}
+
+function classifyMigrationStmtError(err, stmt, migrationFile) {
+  const num = typeof err?.errno === 'number' ? err.errno : null;
+  if (num != null && MYSQL_MIGRATION_EXPECTED_ERRNO.has(num)) {
+    return { ignore: true, reason: 'déjà appliquée' };
+  }
+  if (num === 1146 || err?.code === 'ER_NO_SUCH_TABLE') {
+    if (isRemovalStatement(stmt)) {
+      return { ignore: true, reason: 'table héritée absente (suppression)' };
+    }
+    const table = missingTableName(err);
+    if (table && LEGACY_TABLES_ABSENT_ON_FRESH_DB.has(table)) {
+      return { ignore: true, reason: `table héritée absente (${table})` };
+    }
+    const legacy = migrationNumber(migrationFile) < MIGRATION_STRICT_NO_SUCH_TABLE_FROM;
+    return legacy
+      ? { ignore: true, reason: 'table inexistante (migration historique)', warn: true }
+      : { ignore: false, reason: 'table inexistante sur un énoncé d’écriture' };
+  }
+  // Schéma initial (schema_foretmap.sql) peut déjà intégrer des objets d’anciennes migrations : FK/index dupliqués (errno 121 dans le message, code 1005).
+  const msg = String(err?.sqlMessage || err?.message || '');
+  if (num === 1005 && /\b121\b|Duplicate key on write/i.test(msg)) {
+    return { ignore: true, reason: 'contrainte ou index déjà présent' };
+  }
+  return { ignore: false, reason: null };
+}
 
 function migrationStmtSnippet(stmt) {
   const s = (stmt || '').replace(/\s+/g, ' ').trim();
@@ -26,25 +100,21 @@ function migrationStmtSnippet(stmt) {
 }
 
 function logMigrationStmtError(err, stmt, migrationFile) {
-  const num = typeof err.errno === 'number' ? err.errno : null;
-  if (num != null && MYSQL_MIGRATION_EXPECTED_ERRNO.has(num)) {
-    logger.debug(
-      { err, migrationFile, stmt: migrationStmtSnippet(stmt) },
-      'Étape migration ignorée (déjà appliquée)',
-    );
-    return true;
-  }
-  // Schéma initial (schema_foretmap.sql) peut déjà intégrer des objets d’anciennes migrations : FK/index dupliqués (errno 121 dans le message, code 1005).
-  const msg = String(err.sqlMessage || err.message || '');
-  if (num === 1005 && /\b121\b|Duplicate key on write/i.test(msg)) {
-    logger.debug(
-      { err, migrationFile, stmt: migrationStmtSnippet(stmt) },
-      'Étape migration ignorée (contrainte ou index déjà présent)',
+  const verdict = classifyMigrationStmtError(err, stmt, migrationFile);
+  if (verdict.ignore) {
+    const level = verdict.warn ? 'warn' : 'debug';
+    logger[level](
+      {
+        err: verdict.warn ? err.sqlMessage || err.message : err,
+        migrationFile,
+        stmt: migrationStmtSnippet(stmt),
+      },
+      `Étape migration ignorée (${verdict.reason})`,
     );
     return true;
   }
   logger.warn(
-    { err, migrationFile, stmt: migrationStmtSnippet(stmt) },
+    { err, migrationFile, stmt: migrationStmtSnippet(stmt), reason: verdict.reason },
     'Échec étape migration SQL',
   );
   return false;
@@ -137,9 +207,10 @@ function getRbacWriteVersion() {
 let dataWriteVersion = 0;
 let groupScopeWriteVersion = 0;
 const SQL_WRITE_RE = /^\s*(?:INSERT|UPDATE|DELETE|REPLACE|TRUNCATE)\b/i;
-// Tables dont dépendent getAllGroups() / getUserDirectGroupIds() (jointures comprises).
+// Tables dont dépendent getAllGroups() / getUserDirectGroupIds() (jointures comprises) et
+// le périmètre cartes de lib/mapAccess.js (`group_scopes`, qui ne matche pas `\bgroups\b`).
 const GROUP_SCOPE_WRITE_RE =
-  /^\s*(?:INSERT|UPDATE|DELETE|REPLACE|TRUNCATE)\b[\s\S]*\b(?:groups|group_members|roles|gl_classes)\b/i;
+  /^\s*(?:INSERT|UPDATE|DELETE|REPLACE|TRUNCATE)\b[\s\S]*\b(?:groups|group_scopes|group_members|roles|gl_classes)\b/i;
 function isSqlWrite(sql) {
   return typeof sql === 'string' && SQL_WRITE_RE.test(sql);
 }
@@ -1067,6 +1138,8 @@ async function endPool() {
 }
 
 module.exports = {
+  classifyMigrationStmtError,
+  isRemovalStatement,
   pool,
   queryAll,
   queryOne,

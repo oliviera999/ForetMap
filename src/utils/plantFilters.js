@@ -24,12 +24,24 @@ export function plantTaxonomyValue(plant, level) {
   return '';
 }
 
-/** Présence sur la carte (zone : `living_beings_list` ou `current_plant`). */
+/** Présence sur la carte (zones / repères / rattachement direct `map_ids`). */
 export const ZONE_PRESENCE_FILTER = {
   ALL: '',
   IN_MAP: 'in_map',
   NOT_IN_MAP: 'not_in_map',
 };
+
+function plantIdOf(plant) {
+  const id = Number(plant?.id);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+function entityHasPlantId(entity, plantId) {
+  if (plantId == null) return false;
+  const ids = entity?.species_ids;
+  if (!Array.isArray(ids) || ids.length === 0) return false;
+  return ids.some((x) => Number(x) === plantId);
+}
 
 /** Noms d’êtres vivants rattachés à une zone (`living_beings_list` + colonne legacy `current_plant` si présente). */
 export function mapZoneLivingNames(zone) {
@@ -60,15 +72,39 @@ export function mapMarkerLivingNames(marker) {
 }
 
 export function plantLinkedToMapZone(plant, zone) {
+  const plantId = plantIdOf(plant);
+  if (entityHasPlantId(zone, plantId)) return true;
   const name = nv(plant?.name);
   if (!name) return false;
   return mapZoneLivingNames(zone).has(name);
 }
 
 export function plantLinkedToMapMarker(plant, marker) {
+  const plantId = plantIdOf(plant);
+  if (entityHasPlantId(marker, plantId)) return true;
   const name = nv(plant?.name);
   if (!name) return false;
   return mapMarkerLivingNames(marker).has(name);
+}
+
+/** Rattachement direct fiche → carte (`plants.map_ids`). */
+export function plantLinkedToMapDirectly(plant, activeMapId) {
+  const mapId = nv(activeMapId);
+  if (!mapId) return false;
+  const ids = plant?.map_ids;
+  if (!Array.isArray(ids) || ids.length === 0) return false;
+  return ids.some((id) => String(id) === mapId);
+}
+
+/** Présente sur la carte active : lieu (zone/repère) ou rattachement direct. */
+export function plantPresentOnActiveMap(plant, zones, markers, activeMapId) {
+  if (plantLinkedToMapDirectly(plant, activeMapId)) return true;
+  const zl = Array.isArray(zones) ? zones : [];
+  const ml = Array.isArray(markers) ? markers : [];
+  return (
+    zl.some((z) => plantLinkedToMapZone(plant, z)) ||
+    ml.some((m) => plantLinkedToMapMarker(plant, m))
+  );
 }
 
 /**
@@ -133,13 +169,9 @@ export function plantTextMatchesQuery(plant, queryTrimmedLower) {
   return fields.some((field) => nv(field).toLowerCase().includes(queryTrimmedLower));
 }
 
-export function plantMatchesZonePresence(plant, zones, markers, presence) {
+export function plantMatchesZonePresence(plant, zones, markers, presence, activeMapId = null) {
   if (!presence) return true;
-  const zl = Array.isArray(zones) ? zones : [];
-  const ml = Array.isArray(markers) ? markers : [];
-  const has =
-    zl.some((z) => plantLinkedToMapZone(plant, z)) ||
-    ml.some((m) => plantLinkedToMapMarker(plant, m));
+  const has = plantPresentOnActiveMap(plant, zones, markers, activeMapId);
   if (presence === ZONE_PRESENCE_FILTER.IN_MAP) return has;
   if (presence === ZONE_PRESENCE_FILTER.NOT_IN_MAP) return !has;
   return true;
@@ -150,9 +182,10 @@ export function plantMatchesAllFilters(
   { structured, queryTrimmedLower, zonePresence },
   zones,
   markers,
+  activeMapId = null,
 ) {
   if (!plantMatchesStructuredFilters(plant, structured)) return false;
   if (!plantTextMatchesQuery(plant, queryTrimmedLower)) return false;
-  if (!plantMatchesZonePresence(plant, zones, markers, zonePresence)) return false;
+  if (!plantMatchesZonePresence(plant, zones, markers, zonePresence, activeMapId)) return false;
   return true;
 }

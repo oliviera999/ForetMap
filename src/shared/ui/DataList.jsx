@@ -1,7 +1,4 @@
-function joinClassNames(...parts) {
-  return parts.filter(Boolean).join(' ');
-}
-
+import { joinClassNames } from '../utils/classNames.js';
 /** Classes neutres (feuille `src/shared/styles/data-list.css`, chargée par les deux entrées). */
 export const DATA_LIST_CLASS_NAMES = Object.freeze({
   root: 'fm-data-list',

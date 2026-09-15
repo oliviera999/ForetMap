@@ -105,6 +105,9 @@ CREATE TABLE IF NOT EXISTS plants (
   harvest_part VARCHAR(255) DEFAULT NULL,
   planting_recommendations TEXT DEFAULT NULL,
   preferred_nutrients TEXT DEFAULT NULL,
+  identification_criteria TEXT DEFAULT NULL COMMENT 'Caractères observables qui permettent de trancher',
+  lookalike_species TEXT DEFAULT NULL COMMENT 'Espèces ressemblantes et critère de distinction',
+  identification_period VARCHAR(255) DEFAULT NULL COMMENT 'Période / conditions où la détermination est possible',
   photo_species TEXT DEFAULT NULL,
   photo_leaf TEXT DEFAULT NULL,
   photo_flower TEXT DEFAULT NULL,
@@ -129,6 +132,17 @@ CREATE TABLE IF NOT EXISTS zone_species (
   KEY idx_zone_species_plant (plant_id),
   CONSTRAINT fk_zone_species_zone FOREIGN KEY (zone_id) REFERENCES zones (id) ON DELETE CASCADE,
   CONSTRAINT fk_zone_species_plant FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Espèces liées à la carte entière (sans lieu précis) — ex. oiseaux du site
+CREATE TABLE IF NOT EXISTS map_species (
+  map_id VARCHAR(32) NOT NULL,
+  plant_id INT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (map_id, plant_id),
+  KEY idx_map_species_plant (plant_id),
+  CONSTRAINT fk_map_species_map FOREIGN KEY (map_id) REFERENCES maps (id) ON DELETE CASCADE,
+  CONSTRAINT fk_map_species_plant FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- task_projects (regroupement de tâches par projet)
@@ -649,6 +663,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
   occurred_at DATETIME DEFAULT NULL,
   payload_json JSON DEFAULT NULL,
   INDEX idx_audit_actor (actor_user_type, actor_user_id, id),
+  INDEX idx_audit_log_created (created_at),
   INDEX idx_audit_action (action, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -937,6 +952,9 @@ CREATE TABLE IF NOT EXISTS visit_zones (
   details_title VARCHAR(255) DEFAULT 'Détails',
   details_text TEXT DEFAULT NULL,
   body_json LONGTEXT DEFAULT NULL,
+  visible_role_slugs TEXT DEFAULT NULL,
+  restricted_note TEXT DEFAULT NULL,
+  restricted_note_role_slugs TEXT DEFAULT NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   sort_order INT UNSIGNED DEFAULT 0,
   created_at VARCHAR(32) DEFAULT NULL,
@@ -958,6 +976,9 @@ CREATE TABLE IF NOT EXISTS visit_markers (
   details_title VARCHAR(255) DEFAULT 'Détails',
   details_text TEXT DEFAULT NULL,
   body_json LONGTEXT DEFAULT NULL,
+  visible_role_slugs TEXT DEFAULT NULL,
+  restricted_note TEXT DEFAULT NULL,
+  restricted_note_role_slugs TEXT DEFAULT NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   sort_order INT UNSIGNED DEFAULT 0,
   created_at VARCHAR(32) DEFAULT NULL,

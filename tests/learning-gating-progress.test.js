@@ -10,7 +10,7 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const { app } = require('../server');
-const { initSchema, execute } = require('../database');
+const { initSchema, execute, queryOne } = require('../database');
 const { setSetting } = require('../lib/settings');
 const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
 
@@ -61,11 +61,25 @@ before(async () => {
   );
 
   // Trois élèves : un qui a réussi, un verrouillé, un qui n'a rien fait.
+  //
+  // Le rôle est posé explicitement : `getFmResourceProgressSummary` ne compte que les comptes
+  // JOINTS à `user_roles` sur un `eleve%`. Le semis par défaut (`ensureDefaultAssignments`) le
+  // ferait, mais il est mémoïsé par processus et a déjà tourné au moment où ce `before()`
+  // insère ses comptes — les élèves restaient donc sans rôle, et le résumé rendait
+  // `total_students = 0`. Un élève réel passe par l'inscription, qui lui attribue son palier.
+  const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
+  assert.ok(noviceRole?.id, 'le palier eleve_novice doit exister');
   for (const id of students) {
     await execute(
       `INSERT IGNORE INTO users (id, user_type, first_name, last_name, pseudo, display_name, affiliation, is_active, created_at, updated_at)
        VALUES (?, 'student', 'Pg', ?, ?, 'PG', 'both', 1, NOW(), NOW())`,
       [id, id.slice(0, 40), id.slice(0, 50)],
+    );
+    await execute(
+      `INSERT INTO user_roles (user_type, user_id, role_id, is_primary)
+       VALUES ('student', ?, ?, 1)
+       ON DUPLICATE KEY UPDATE is_primary = 1`,
+      [id, noviceRole.id],
     );
   }
   await execute(

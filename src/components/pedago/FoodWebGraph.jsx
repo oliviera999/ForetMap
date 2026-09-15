@@ -1,16 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { INTERACTION_TYPES, interactionTypeLabel } from '../../shared/foodWebTypes.js';
 import {
   buildEdgeExportCss,
   edgeStyleClass,
   resolveEdgeRenderStyle,
-  TROPHIC_EDGE_TYPES,
 } from '../../shared/foodWebEdgeStyle.js';
 import { FoodWebEdgeLegend } from './FoodWebEdgeLegend.jsx';
 import {
   ENV_NODE_ID,
   FOCUS_DEPTHS,
   GRAPH_PRESET_LABELS,
+  TROPHIC_COLUMN_LABELS,
   buildGraphModel,
   computeCircleLayout,
   computeTrophicLayout,
@@ -20,13 +20,13 @@ import {
   neighborIds,
   parallelEdgeOffset,
   parallelEdgeRanks,
+  trophicColumnXs,
   truncateNodeLabel,
 } from './foodWebGraphModel.js';
 import {
   IconClose,
   IconDownload,
   IconImage,
-  IconLeaf,
   IconStats,
   IconSearch,
   IconTarget,
@@ -51,6 +51,7 @@ const EXPORT_STYLE = `
   .pedago-foodweb-graph__node--outside{fill:#fff7ed;stroke:#ea9a5c;stroke-dasharray:5 3}
   .pedago-foodweb-graph__label{font:600 10px sans-serif;fill:#1f2937}
   .pedago-foodweb-graph__label.dim{opacity:.2}
+  .pedago-foodweb-graph__col-label{font:600 11px sans-serif;fill:#4b5563}
   .pedago-foodweb-graph__node-emoji{font:16px sans-serif}
 `;
 
@@ -80,6 +81,9 @@ export function FoodWebGraph({
   onOpenPlant,
   legendCompact = false,
   variant = 'foretmap',
+  /** Preset contrôlé par le parent (liste + graphe partagent le même cadrage). */
+  preset: presetProp = null,
+  onPresetChange = null,
 }) {
   const svgRef = useRef(null);
   const dragRef = useRef(null);
@@ -92,7 +96,9 @@ export function FoodWebGraph({
   }, []);
 
   const [layout, setLayout] = useState('circle');
-  const [preset, setPreset] = useState('alimentaire');
+  const [internalPreset, setInternalPreset] = useState('alimentaire');
+  const presetControlled = presetProp != null;
+  const preset = presetControlled ? presetProp : internalPreset;
   const [view, setView] = useState({ scale: 1, tx: 0, ty: 0 });
   const [overrides, setOverrides] = useState(() => new Map());
   const [hoverNode, setHoverNode] = useState(null);
@@ -101,6 +107,17 @@ export function FoodWebGraph({
   const [focusDepth, setFocusDepth] = useState(FOCUS_DEPTHS[0]);
   const [search, setSearch] = useState('');
   const [hiddenTypes, setHiddenTypes] = useState(() => new Set());
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  const changePreset = useCallback(
+    (key) => {
+      if (!presetControlled) setInternalPreset(key);
+      onPresetChange?.(key);
+      setOverrides(new Map());
+      setHiddenTypes(new Set());
+    },
+    [presetControlled, onPresetChange],
+  );
 
   const presetItems = useMemo(() => itemsForPreset(items, preset), [items, preset]);
   const { nodes, edges } = useMemo(() => buildGraphModel(presetItems), [presetItems]);
@@ -113,20 +130,6 @@ export function FoodWebGraph({
   /** Rang de chaque arête parmi ses parallèles, pour les écarter de l'axe. */
   const edgeRanks = useMemo(() => parallelEdgeRanks(visibleEdges), [visibleEdges]);
 
-  const presentTrophicTypes = useMemo(
-    () =>
-      TROPHIC_EDGE_TYPES.filter((type) =>
-        edges.some((e) => String(e.type || '').toLowerCase() === type),
-      ),
-    [edges],
-  );
-
-  const trophicVisible = useMemo(
-    () =>
-      presentTrophicTypes.length > 0 && presentTrophicTypes.every((type) => !hiddenTypes.has(type)),
-    [presentTrophicTypes, hiddenTypes],
-  );
-
   const toggleEdgeType = useCallback((type) => {
     const key = String(type || '').toLowerCase();
     setHiddenTypes((prev) => {
@@ -137,23 +140,18 @@ export function FoodWebGraph({
     });
   }, []);
 
-  const toggleTrophicEdges = useCallback(() => {
-    setHiddenTypes((prev) => {
-      const next = new Set(prev);
-      const hideAll = presentTrophicTypes.every((type) => !next.has(type));
-      for (const type of presentTrophicTypes) {
-        if (hideAll) next.add(type);
-        else next.delete(type);
-      }
-      return next;
-    });
-  }, [presentTrophicTypes]);
-
   const presentTypes = useMemo(
     () => [
       ...new Set((edges || []).map((e) => String(e.type || '').toLowerCase()).filter(Boolean)),
     ],
     [edges],
+  );
+
+  const trophicLabelXs = useMemo(() => trophicColumnXs({ width: BASE_W }), []);
+
+  const focusNode = useMemo(
+    () => (focusId == null ? null : nodes.find((n) => n.id === focusId) || null),
+    [nodes, focusId],
   );
 
   const baseLayout = useMemo(
@@ -619,23 +617,21 @@ export function FoodWebGraph({
       className={`pedago-foodweb-graph__wrap${variant === 'gl' ? ' pedago-foodweb-graph__wrap--gl' : ''}`}
     >
       <div className="pedago-foodweb-graph__toolbar" role="toolbar" aria-label="Outils du graphe">
-        <div className="pedago-foodweb-graph__tbgroup" role="group" aria-label="Type de graphe">
-          {['alimentaire', 'relations', 'all'].map((key) => (
-            <button
-              key={key}
-              type="button"
-              className={`pedago-foodweb-graph__tbtn${preset === key ? ' active' : ''}`}
-              onClick={() => {
-                setPreset(key);
-                setOverrides(new Map());
-                setHiddenTypes(new Set());
-              }}
-              aria-pressed={preset === key}
-            >
-              {GRAPH_PRESET_LABELS[key]}
-            </button>
-          ))}
-        </div>
+        {!presetControlled ? (
+          <div className="pedago-foodweb-graph__tbgroup" role="group" aria-label="Type de graphe">
+            {['alimentaire', 'relations', 'all'].map((key) => (
+              <button
+                key={key}
+                type="button"
+                className={`pedago-foodweb-graph__tbtn${preset === key ? ' active' : ''}`}
+                onClick={() => changePreset(key)}
+                aria-pressed={preset === key}
+              >
+                {GRAPH_PRESET_LABELS[key]}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <div className="pedago-foodweb-graph__tbgroup" role="group" aria-label="Disposition">
           <button
             type="button"
@@ -684,19 +680,6 @@ export function FoodWebGraph({
             <IconZoomIn size={14} />
           </button>
         </div>
-        {presentTrophicTypes.length > 0 ? (
-          <div className="pedago-foodweb-graph__tbgroup" role="group" aria-label="Flux trophiques">
-            <button
-              type="button"
-              className={`pedago-foodweb-graph__tbtn${trophicVisible ? ' active' : ''}`}
-              onClick={toggleTrophicEdges}
-              aria-pressed={trophicVisible}
-              title="Afficher ou masquer herbivorie, prédation et décomposition"
-            >
-              <IconLeaf size={14} /> Flux trophiques
-            </button>
-          </div>
-        ) : null}
         <form
           className="pedago-foodweb-graph__search"
           onSubmit={submitSearch}
@@ -759,13 +742,63 @@ export function FoodWebGraph({
             <IconClose size={14} /> Tout afficher
           </button>
         ) : null}
-        <div className="pedago-foodweb-graph__tbgroup" role="group" aria-label="Export">
+        {focusNode && !isEnvNodeId(focusNode.id) && onOpenPlant ? (
+          <button
+            type="button"
+            className="pedago-foodweb-graph__tbtn"
+            onClick={() => openNodePlant(focusNode.id)}
+          >
+            Voir la fiche
+          </button>
+        ) : null}
+        <div
+          className="pedago-foodweb-graph__tbgroup pedago-foodweb-graph__export--desktop"
+          role="group"
+          aria-label="Export"
+        >
           <button type="button" className="pedago-foodweb-graph__tbtn" onClick={exportPng}>
             <IconImage size={14} /> PNG
           </button>
           <button type="button" className="pedago-foodweb-graph__tbtn" onClick={exportSvg}>
             <IconDownload size={14} /> SVG
           </button>
+        </div>
+        <div className="pedago-foodweb-graph__more pedago-foodweb-graph__export--mobile">
+          <button
+            type="button"
+            className="pedago-foodweb-graph__tbtn"
+            aria-expanded={moreOpen}
+            aria-haspopup="true"
+            onClick={() => setMoreOpen((o) => !o)}
+          >
+            Plus…
+          </button>
+          {moreOpen ? (
+            <div className="pedago-foodweb-graph__more-menu" role="menu">
+              <button
+                type="button"
+                className="pedago-foodweb-graph__tbtn"
+                role="menuitem"
+                onClick={() => {
+                  exportPng();
+                  setMoreOpen(false);
+                }}
+              >
+                <IconImage size={14} /> PNG
+              </button>
+              <button
+                type="button"
+                className="pedago-foodweb-graph__tbtn"
+                role="menuitem"
+                onClick={() => {
+                  exportSvg();
+                  setMoreOpen(false);
+                }}
+              >
+                <IconDownload size={14} /> SVG
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -786,33 +819,21 @@ export function FoodWebGraph({
       >
         <defs>
           {INTERACTION_TYPES.map((type) => (
-            <React.Fragment key={type}>
-              <marker
-                id={`fw-arrow-${type}`}
-                markerWidth="9"
-                markerHeight="9"
-                refX="7.5"
-                refY="3"
-                orient="auto"
-                markerUnits="userSpaceOnUse"
-              >
-                <path
-                  d="M0,0 L8,3 L0,6 Z"
-                  className={`pedago-foodweb-graph__arrowhead pedago-foodweb-graph__arrowhead--${type}`}
-                />
-              </marker>
-              <marker
-                id={`fw-arrow-${type}-active`}
-                markerWidth="11"
-                markerHeight="11"
-                refX="8"
-                refY="3.5"
-                orient="auto"
-                markerUnits="userSpaceOnUse"
-              >
-                <path d="M0,0 L9,3.5 L0,7 Z" className="pedago-foodweb-graph__arrowhead active" />
-              </marker>
-            </React.Fragment>
+            <marker
+              key={type}
+              id={`fw-arrow-${type}`}
+              markerWidth="9"
+              markerHeight="9"
+              refX="7.5"
+              refY="3"
+              orient="auto"
+              markerUnits="userSpaceOnUse"
+            >
+              <path
+                d="M0,0 L8,3 L0,6 Z"
+                className={`pedago-foodweb-graph__arrowhead pedago-foodweb-graph__arrowhead--${type}`}
+              />
+            </marker>
           ))}
           <marker
             id="fw-arrow-default"
@@ -828,20 +849,22 @@ export function FoodWebGraph({
               className="pedago-foodweb-graph__arrowhead pedago-foodweb-graph__arrowhead--default"
             />
           </marker>
-          <marker
-            id="fw-arrow-default-active"
-            markerWidth="11"
-            markerHeight="11"
-            refX="8"
-            refY="3.5"
-            orient="auto"
-            markerUnits="userSpaceOnUse"
-          >
-            <path d="M0,0 L9,3.5 L0,7 Z" className="pedago-foodweb-graph__arrowhead active" />
-          </marker>
         </defs>
 
         <g data-fw-viewport transform={transform}>
+          {layout === 'trophic'
+            ? TROPHIC_COLUMN_LABELS.map((label, col) => (
+                <text
+                  key={label}
+                  className="pedago-foodweb-graph__col-label"
+                  x={trophicLabelXs[col]}
+                  y={22}
+                  textAnchor="middle"
+                >
+                  {label}
+                </text>
+              ))
+            : null}
           {visibleEdges.map((edge) => {
             const from = posOf(edge.tailId);
             const to = posOf(edge.headId);
@@ -873,12 +896,20 @@ export function FoodWebGraph({
             const dim = edgeDimmed(edge.id);
             const edgeType = String(edge.type || '').toLowerCase();
             const markerKey = INTERACTION_TYPES.includes(edgeType) ? edgeType : 'default';
-            const markerId = active
-              ? `url(#fw-arrow-${markerKey}-active)`
-              : `url(#fw-arrow-${markerKey})`;
+            const markerId = `url(#fw-arrow-${markerKey})`;
             const renderStyle = resolveEdgeRenderStyle(edge.type, { active });
             return (
               <g key={edge.id}>
+                {renderStyle.halo ? (
+                  <path
+                    d={d}
+                    className="pedago-foodweb-graph__line-halo"
+                    stroke={renderStyle.haloColor}
+                    strokeWidth={renderStyle.haloWidth}
+                    strokeDasharray={renderStyle.dash || undefined}
+                    aria-hidden="true"
+                  />
+                ) : null}
                 <path
                   d={d}
                   className={`pedago-foodweb-graph__line ${edgeStyleClass(edge.type)}${active ? ' active' : ''}${dim ? ' dim' : ''}`}
@@ -965,8 +996,9 @@ export function FoodWebGraph({
       />
 
       <p className="pedago-foodweb-graph__hint section-sub">
-        Clique une espèce pour isoler son réseau, double-clique pour sa fiche. Molette : zoom ·
-        glisser : déplacer.
+        Clique une espèce pour isoler son réseau (Voisins / Chaîne). Une fois isolée, « Voir la
+        fiche » ouvre sa fiche — ou Maj+Entrée au clavier. Clique une flèche pour le détail de la
+        relation. Molette ou pincement : zoom · glisser : déplacer.
       </p>
     </div>
   );

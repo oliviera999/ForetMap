@@ -93,3 +93,22 @@ export function headingUpOrientationDeg(screenHeadingDeg) {
   if (screenHeadingDeg == null || !Number.isFinite(Number(screenHeadingDeg))) return 0;
   return -Number(screenHeadingDeg);
 }
+
+/**
+ * Pire cas de couverture après rotation d'un rectangle dans un viewport axis-aligned :
+ * à 45° le contenu doit être grossi d'un facteur √2 pour ne pas laisser de fond vide.
+ * Facteur **stable** (indépendant du jitter boussole) à utiliser pour le zoom caméra.
+ */
+export const HEADING_UP_COVER_SCALE = Math.SQRT2;
+
+/**
+ * Facteur d'échelle minimal pour qu'un rectangle axis-aligned (le viewport) reste
+ * entièrement couvert après une rotation CSS de `orientationDeg` autour d'un pivot
+ * intérieur. Vaut `|cos| + |sin|` ∈ [1, √2].
+ * @param {number} orientationDeg
+ * @returns {number}
+ */
+export function headingUpCoverScaleMultiplier(orientationDeg) {
+  const rad = degToRad(num(orientationDeg));
+  return Math.abs(Math.cos(rad)) + Math.abs(Math.sin(rad));
+}

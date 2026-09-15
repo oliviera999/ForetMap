@@ -51,6 +51,44 @@ export const PLANT_META_SECTIONS = [
   },
 ];
 
+/**
+ * Champs de la section « Détermination » — partagés entre l'affichage
+ * (`PlantDeterminationSection`) et le formulaire d'édition (`PlantEditForm`).
+ *
+ * Volontairement neutres vis-à-vis du règne : le catalogue mêle végétaux, animaux,
+ * champignons, micro-organismes et fiches-ressources. Les libellés parlent de
+ * « caractères observables » et de « stade », jamais de feuille ni de fleur — un
+ * intitulé botanique rendrait la section inutilisable sur la moitié du catalogue.
+ *
+ * `lookalike_species` est mis en avant à l'affichage (encadré d'alerte) : la forêt est
+ * comestible et les élèves récoltent, la confusion est l'information à ne pas manquer.
+ */
+export const PLANT_DETERMINATION_FIELDS = [
+  {
+    key: 'identification_criteria',
+    label: 'Critères de détermination',
+    placeholder:
+      'Ce qu’il faut observer pour être sûr : silhouette, taille, couleurs, nervures, nombre de pattes, lames, odeur, traces…',
+    rows: 3,
+    long: true,
+  },
+  {
+    key: 'lookalike_species',
+    label: 'Confusions possibles',
+    placeholder:
+      'Espèces ressemblantes et critère qui tranche. Signaler toute ressemblance avec une espèce toxique ou piquante.',
+    rows: 3,
+    long: true,
+  },
+  {
+    key: 'identification_period',
+    label: 'Quand l’observer',
+    placeholder: 'Saison, moment de la journée, stade (floraison, fructification, mue…)',
+    rows: 1,
+    long: false,
+  },
+];
+
 export const PHOTO_FIELD_KEYS = new Set([
   'photo',
   'photo_species',

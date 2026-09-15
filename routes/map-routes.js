@@ -24,6 +24,7 @@ const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { getSettingValue } = require('../lib/settings');
 const { authenticate, requirePermission } = require('../middleware/requireTeacher');
 const { canViewLocation, isLocationManager } = require('../lib/locationAudience');
+const { resolveScopedMapFilter, canAccessMapId, MAP_OUT_OF_SCOPE } = require('../lib/mapAccess');
 const asyncHandler = require('../lib/asyncHandler');
 const { logAudit } = require('../lib/auditLog');
 const {
@@ -44,6 +45,7 @@ const {
   serializeSurfaceSet,
   slugifyRouteTitle,
 } = require('../lib/mapRoutes');
+const { mapExists } = require('../lib/mapQueries');
 
 const router = express.Router();
 
@@ -52,11 +54,6 @@ const ROUTE_SELECT = `SELECT id, map_id, slug, title, description, audience, sur
   FROM map_routes`;
 
 const ROUTE_ORDER = ' ORDER BY sort_order ASC, title ASC';
-
-async function mapExists(mapId) {
-  const row = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [mapId]);
-  return !!row;
-}
 
 /** Charge les parcours (avec leurs étapes) répondant à une clause SQL déjà paramétrée. */
 async function loadRoutes(where, params) {
@@ -224,9 +221,12 @@ router.get(
 
     const where = ['is_published = 1'];
     const params = [];
-    if (mapId) {
-      where.push('map_id = ?');
-      params.push(mapId);
+    // Périmètre cartes du compte : sans `map_id`, la liste est ramenée aux cartes autorisées.
+    const scope = await resolveScopedMapFilter(req.auth || null, mapId);
+    if (scope.forbidden) return res.status(403).json(MAP_OUT_OF_SCOPE);
+    if (scope.mapIds) {
+      where.push(`map_id IN (${scope.mapIds.map(() => '?').join(',')})`);
+      params.push(...scope.mapIds);
     }
     if (surface) {
       where.push('FIND_IN_SET(?, surfaces) > 0');
@@ -276,6 +276,10 @@ router.get(
     }
     const [route] = await loadRoutes(where.join(' AND '), params);
     if (!route) return res.status(404).json({ error: 'Parcours introuvable' });
+    // Lien profond par slug : la carte du parcours est relue en base, pas déduite de l'URL.
+    if (!(await canAccessMapId(req.auth || null, route.map_id))) {
+      return res.status(403).json(MAP_OUT_OF_SCOPE);
+    }
     const [filtered] = await filterPublicRouteSteps([route], req.auth, { surface: 'plan' });
     res.json(filtered);
   }),

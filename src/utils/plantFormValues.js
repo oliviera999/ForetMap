@@ -73,11 +73,15 @@ export const EMPTY_PLANT_FORM = {
   harvest_part: '',
   planting_recommendations: '',
   preferred_nutrients: '',
+  identification_criteria: '',
+  lookalike_species: '',
+  identification_period: '',
   photo_species: '',
   photo_leaf: '',
   photo_flower: '',
   photo_fruit: '',
   photo_harvest_part: '',
+  map_ids: [],
 };
 
 /**
@@ -87,8 +91,12 @@ export const EMPTY_PLANT_FORM = {
 export function extractPlantForm(plant = {}) {
   const form = { ...EMPTY_PLANT_FORM };
   Object.keys(form).forEach((k) => {
+    if (k === 'map_ids') return;
     form[k] = normalizedPlantValue(plant[k]);
   });
   if (!form.emoji) form.emoji = '🌱';
+  form.map_ids = Array.isArray(plant.map_ids)
+    ? [...new Set(plant.map_ids.map((id) => String(id || '').trim()).filter(Boolean))]
+    : [];
   return form;
 }

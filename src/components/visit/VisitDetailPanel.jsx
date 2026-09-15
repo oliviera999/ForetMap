@@ -7,6 +7,7 @@ import {
   itemSeenKey,
   visitMediaGalleryThumbDisplaySrc,
   visitMediaGalleryLightboxSrc,
+  sameVisitImageUrl,
 } from '../../utils/visitMediaGallery.js';
 // Imports directs (mêmes symboles que les ré-exports du barrel map-views) :
 // évite de tirer MarkerModal/ZoneDrawModal/useMapGestures dans le chunk visite.
@@ -42,6 +43,8 @@ function VisitEditorialRenderer({
   onOpenLightbox,
   glossaryItems,
   onOpenGlossaryTerm,
+  /** URL déjà affichée en tête (photo carte) : exclus des blocs image. */
+  excludeLeadImageUrl = '',
 }) {
   const mediaById = useMemo(() => {
     const m = new Map();
@@ -80,7 +83,11 @@ function VisitEditorialRenderer({
         if (block.type === 'image') {
           const images = (block.media_ids || [])
             .map((id) => mediaById.get(Number(id)))
-            .filter(Boolean);
+            .filter(Boolean)
+            .filter(
+              (media) =>
+                !sameVisitImageUrl(excludeLeadImageUrl, media.image_url || media.thumb_url),
+            );
           if (!images.length) return null;
           return (
             <div
@@ -129,6 +136,8 @@ export function VisitDetailPanel({
   seen,
   savingSeen,
   onToggleSeen,
+  /** Afficher « Marquer comme vu ». */
+  showSeenStatus = true,
   plants = [],
   onOpenPlantCatalogPreview = null,
   /**
@@ -179,8 +188,17 @@ export function VisitDetailPanel({
   const selectedVisitMedia = selected.visit_media || [];
   const selectedEditorialBlocks = normalizeEditorialBlocks(selected.visit_editorial_blocks || []);
   const hasEditorialBlocks = selectedEditorialBlocks.length > 0;
+  const mapLeadPhoto = selected.map_lead_photo?.image_url ? selected.map_lead_photo : null;
+  const mapLeadUrl = mapLeadPhoto?.image_url || '';
   const firstVisitPhoto = selectedVisitMedia[0] || null;
-  const restVisitPhotos = selectedVisitMedia.slice(1);
+  const firstVisitDuplicatesMapLead =
+    firstVisitPhoto &&
+    sameVisitImageUrl(firstVisitPhoto.image_url || firstVisitPhoto.thumb_url, mapLeadUrl);
+  /** Première photo visite en « lead » sous l'intro seulement si elle n'est pas déjà la photo carte. */
+  const showFirstVisitAsLead = Boolean(firstVisitPhoto && !firstVisitDuplicatesMapLead);
+  const restVisitPhotos = selectedVisitMedia
+    .slice(showFirstVisitAsLead ? 1 : 0)
+    .filter((m) => !sameVisitImageUrl(m.image_url || m.thumb_url, mapLeadUrl));
   const mapExtraPhotos = Array.isArray(selected.map_extra_photos) ? selected.map_extra_photos : [];
   const visitDetailsTextTrim = selected.visit_details_text
     ? String(selected.visit_details_text).trim()
@@ -232,12 +250,13 @@ export function VisitDetailPanel({
         </div>
         <div className="visit-detail-panel__body visit-selection-aside">
           {selected.visit_subtitle && <p className="visit-subtitle">{selected.visit_subtitle}</p>}
-          {selected.map_lead_photo?.image_url && (
+          {mapLeadPhoto && (
             <div className="visit-media-gallery visit-media-gallery--lead">
               <VisitMediaGalleryThumb
                 media={{
-                  image_url: selected.map_lead_photo.image_url,
-                  caption: selected.map_lead_photo.caption,
+                  image_url: mapLeadPhoto.image_url,
+                  thumb_url: mapLeadPhoto.thumb_url,
+                  caption: mapLeadPhoto.caption,
                 }}
                 onOpenLightbox={onOpenLightbox}
               />
@@ -250,6 +269,7 @@ export function VisitDetailPanel({
               onOpenLightbox={onOpenLightbox}
               glossaryItems={glossaryItems}
               onOpenGlossaryTerm={onOpenGlossaryTerm}
+              excludeLeadImageUrl={mapLeadUrl}
             />
           ) : (
             <>
@@ -261,7 +281,7 @@ export function VisitDetailPanel({
                   {selected.visit_short_description}
                 </GlossaryMarkdown>
               )}
-              {firstVisitPhoto && (
+              {showFirstVisitAsLead && (
                 <div className="visit-media-gallery visit-media-gallery--lead">
                   <VisitMediaGalleryThumb media={firstVisitPhoto} onOpenLightbox={onOpenLightbox} />
                 </div>
@@ -327,17 +347,19 @@ export function VisitDetailPanel({
               </div>
             </details>
           )}
-          <button className="btn btn-primary btn-sm" disabled={savingSeen} onClick={onToggleSeen}>
-            {seen.has(itemSeenKey(selectedType, selected.id)) ? (
-              <>
-                <IconCheck size={14} /> Marqué comme vu
-              </>
-            ) : (
-              <>
-                <IconEye size={14} /> Marquer comme vu
-              </>
-            )}
-          </button>
+          {showSeenStatus ? (
+            <button className="btn btn-primary btn-sm" disabled={savingSeen} onClick={onToggleSeen}>
+              {seen.has(itemSeenKey(selectedType, selected.id)) ? (
+                <>
+                  <IconCheck size={14} /> Marqué comme vu
+                </>
+              ) : (
+                <>
+                  <IconEye size={14} /> Marquer comme vu
+                </>
+              )}
+            </button>
+          ) : null}
           <VisitEditorPanel
             selected={selected}
             selectedType={selectedType}
