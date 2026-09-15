@@ -27,7 +27,7 @@ describe('infobulles GL', () => {
   });
 
   test('une commande du plateau en icône seule explique ce qu’elle fait', async () => {
-    render(<GLBoardActionButton variant="tool" icon="🎲" label="Lancer les dés" />);
+    render(<GLBoardActionButton tone="tool" icon="🎲" label="Lancer les dés" />);
     const button = screen.getByRole('button', { name: 'Lancer les dés' });
 
     // Avant le survol, rien : une infobulle permanente serait du bruit.
@@ -40,7 +40,7 @@ describe('infobulles GL', () => {
   });
 
   test('le `title` natif ne double pas l’infobulle', async () => {
-    render(<GLBoardActionButton variant="tool" icon="🔇" label="Couper la musique" />);
+    render(<GLBoardActionButton tone="tool" icon="🔇" label="Couper la musique" />);
     const button = screen.getByRole('button', { name: 'Couper la musique' });
     // Les deux affichées ensemble se superposeraient — l'une chasse l'autre.
     expect(button).not.toHaveAttribute('title');
@@ -48,7 +48,7 @@ describe('infobulles GL', () => {
 
   test('un bouton qui porte son libellé garde le `title` et n’est pas enrobé', () => {
     const { container } = render(
-      <GLBoardActionButton variant="primary" label="Terminer le tour" title="Terminer le tour" />,
+      <GLBoardActionButton tone="primary" label="Terminer le tour" title="Terminer le tour" />,
     );
     expect(container.querySelector('.fm-tooltip-wrap')).toBeNull();
     expect(screen.getByRole('button')).toHaveAttribute('title', 'Terminer le tour');

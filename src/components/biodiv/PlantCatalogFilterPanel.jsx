@@ -4,6 +4,8 @@ import {
   distinctPlantFieldValues,
   filterPlantsByTaxonomy,
 } from '../../utils/plantFilters';
+import { ORIGIN_STATUS_VALUES, ORIGIN_STATUS_LABELS } from '../../utils/plantOriginStatus.js';
+import { IUCN_STATUS_VALUES, IUCN_STATUS_LABELS } from '../../utils/plantIucnStatus.js';
 
 /**
  * Panneau de filtres du catalogue biodiversité — extrait de `foretmap-views.jsx` (O6).
@@ -31,6 +33,10 @@ export function PlantCatalogFilterPanel({
   setTrophicRole,
   habitatType,
   setHabitatType,
+  originStatus,
+  setOriginStatus,
+  iucnStatus,
+  setIucnStatus,
   zonePresence,
   setZonePresence,
   defaultZonePresence = ZONE_PRESENCE_FILTER.ALL,
@@ -102,6 +108,8 @@ export function PlantCatalogFilterPanel({
     if (setTrophicRole) setTrophicRole('');
     else if (setAgro) setAgro('');
     if (setHabitatType) setHabitatType('');
+    if (setOriginStatus) setOriginStatus('');
+    if (setIucnStatus) setIucnStatus('');
     setSearch('');
     if (showZonePresence && setZonePresence) setZonePresence(defaultZonePresence);
   };
@@ -110,6 +118,8 @@ export function PlantCatalogFilterPanel({
   /** Le `<label>` « Règne » n'était lié à rien : le menu n'avait aucun nom accessible
    *  (`axe` : `select-name`). `useId` évite toute collision si le panneau est monté deux fois. */
   const regneSelectId = useId();
+  const originStatusSelectId = useId();
+  const iucnStatusSelectId = useId();
 
   return (
     <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
@@ -225,6 +235,42 @@ export function PlantCatalogFilterPanel({
                   {habitatTypeOptions.map((h) => (
                     <option key={h} value={h}>
                       {h}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+            {setOriginStatus ? (
+              <div className="field" style={{ marginBottom: 0 }}>
+                <label htmlFor={originStatusSelectId}>Statut biogéographique</label>
+                <select
+                  id={originStatusSelectId}
+                  value={originStatus || ''}
+                  onChange={(e) => setOriginStatus(e.target.value)}
+                  style={selectStyle}
+                >
+                  <option value="">Tous</option>
+                  {ORIGIN_STATUS_VALUES.map((value) => (
+                    <option key={value} value={value}>
+                      {ORIGIN_STATUS_LABELS[value]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+            {setIucnStatus ? (
+              <div className="field" style={{ marginBottom: 0 }}>
+                <label htmlFor={iucnStatusSelectId}>Statut UICN</label>
+                <select
+                  id={iucnStatusSelectId}
+                  value={iucnStatus || ''}
+                  onChange={(e) => setIucnStatus(e.target.value)}
+                  style={selectStyle}
+                >
+                  <option value="">Tous</option>
+                  {IUCN_STATUS_VALUES.map((value) => (
+                    <option key={value} value={value}>
+                      {IUCN_STATUS_LABELS[value]}
                     </option>
                   ))}
                 </select>

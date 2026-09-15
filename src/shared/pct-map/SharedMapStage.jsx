@@ -623,7 +623,7 @@ export function SharedMapStage({
       <div className={controlsClassName}>
         {position?.available ? (
           <MapActionButton
-            variant={position.following ? 'primary' : 'display'}
+            tone={position.following ? 'primary' : 'display'}
             icon={POSITION_ICONS[position.mode] || POSITION_ICONS.off}
             label={positionLabels[position.mode] || positionLabels.off}
             testId={tid('locate')}
@@ -634,7 +634,7 @@ export function SharedMapStage({
         ) : null}
         {headingUpAllowed && position?.available && position?.active ? (
           <MapActionButton
-            variant={headingUpEffective ? 'primary' : 'display'}
+            tone={headingUpEffective ? 'primary' : 'display'}
             icon="🧭"
             label={
               !position.headingAvailable
@@ -656,7 +656,7 @@ export function SharedMapStage({
         ) : null}
         {scaleCompassAllowed ? (
           <MapActionButton
-            variant={scaleCompassEffective ? 'primary' : 'display'}
+            tone={scaleCompassEffective ? 'primary' : 'display'}
             icon="📏"
             label={
               scaleCompassEffective
@@ -670,21 +670,21 @@ export function SharedMapStage({
           />
         ) : null}
         <MapActionButton
-          variant="display"
+          tone="display"
           icon="＋"
           label="Zoomer"
           testId={tid('zoom-in')}
           onClick={() => zoomBy(1.2)}
         />
         <MapActionButton
-          variant="display"
+          tone="display"
           icon="－"
           label="Dézoomer"
           testId={tid('zoom-out')}
           onClick={() => zoomBy(0.84)}
         />
         <MapActionButton
-          variant="display"
+          tone="display"
           icon="⊡"
           label="Voir tout le plan"
           testId={tid('zoom-reset')}

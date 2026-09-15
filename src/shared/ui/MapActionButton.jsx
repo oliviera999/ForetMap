@@ -6,7 +6,7 @@ import { joinClassNames } from '../utils/classNames.js';
 /** Classes neutres (feuille `src/shared/styles/map-action.css`, chargée par les deux entrées). */
 export const MAP_ACTION_CLASS_NAMES = Object.freeze({
   root: 'fm-map-action',
-  role: (role) => `fm-map-action--${role}`,
+  tone: (tone) => `fm-map-action--${tone}`,
   icon: 'fm-map-action__icon',
   label: 'fm-map-action__label',
   labelShort: 'fm-map-action__label--short',
@@ -19,11 +19,7 @@ export const MAP_ACTION_CLASS_NAMES = Object.freeze({
 /**
  * Bouton d'action superposé à une carte (kit d'interface, lot 3) — issu de
  * `GLBoardActionButton` (plateaux G&L), pour la barre de la carte ForetMap et le plan.
- * Variantes : `primary` (action principale), `display` (plein écran…), `tool` (bascules).
- *
- * La prop s'appelle `variant` et **non** `role` : ce n'est pas un rôle ARIA, et le nom
- * d'origine faisait lire à `jsx-a11y/aria-role` un rôle invalide sur chaque appel — bruit
- * qui masquait la vraie dette d'accessibilité dans l'inventaire `tests/a11y-static-guard`.
+ * Tons : `primary` (action principale), `display` (plein écran…), `tool` (bascules).
  *
  * Point de passage unique des commandes en icône seule : l'infobulle (`Tooltip`) se pose ici,
  * remplace l'attribut `title` natif (lent, absent au clavier et au toucher) et double
@@ -34,7 +30,7 @@ export const MAP_ACTION_CLASS_NAMES = Object.freeze({
  */
 export const MapActionButton = forwardRef(function MapActionButton(
   {
-    variant = 'tool',
+    tone = 'tool',
     active = false,
     muted = false,
     icon = null,
@@ -62,12 +58,12 @@ export const MapActionButton = forwardRef(function MapActionButton(
 
   const rootClass = joinClassNames(
     base.root,
-    base.role(variant),
+    base.tone(tone),
     active ? base.active : '',
     muted ? base.muted : '',
     iconOnly ? base.iconOnly : '',
     extra?.root,
-    extra?.role ? extra.role(variant) : '',
+    extra?.tone ? extra.tone(tone) : '',
     iconOnly ? extra?.iconOnly : '',
     className,
   );

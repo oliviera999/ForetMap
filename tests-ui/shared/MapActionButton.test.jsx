@@ -6,7 +6,7 @@ import { GLBoardActionButton } from '../../src/gl/components/GLBoardActionButton
 
 describe('MapActionButton (kit partagé)', () => {
   test('bouton avec libellé : classes neutres par rôle, pas d’infobulle', () => {
-    render(<MapActionButton variant="primary" label="Explorer" labelShort="Expl." testId="act" />);
+    render(<MapActionButton tone="primary" label="Explorer" labelShort="Expl." testId="act" />);
     const btn = screen.getByTestId('act');
     expect(btn.className).toBe('fm-map-action fm-map-action--primary');
     expect(btn.getAttribute('aria-label')).toBe('Explorer');
@@ -16,9 +16,7 @@ describe('MapActionButton (kit partagé)', () => {
   });
 
   test('icône seule : infobulle, aria-label, pas de title natif', () => {
-    render(
-      <MapActionButton variant="tool" icon="🎲" label="Lancer les dés" active testId="dice" />,
-    );
+    render(<MapActionButton tone="tool" icon="🎲" label="Lancer les dés" active testId="dice" />);
     const btn = screen.getByTestId('dice');
     expect(btn.className).toContain('fm-map-action--icon-only');
     expect(btn.className).toContain('is-active');
@@ -28,7 +26,7 @@ describe('MapActionButton (kit partagé)', () => {
   });
 
   test('GLBoardActionButton : classes G&L historiques en plus des neutres', () => {
-    render(<GLBoardActionButton variant="display" icon="⛶" label="Plein écran" testId="fs" />);
+    render(<GLBoardActionButton tone="display" icon="⛶" label="Plein écran" testId="fs" />);
     const btn = screen.getByTestId('fs');
     expect(btn.className).toContain('fm-map-action fm-map-action--display');
     expect(btn.className).toContain('gl-board-action gl-board-action--display');

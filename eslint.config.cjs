@@ -73,6 +73,7 @@ module.exports = [
       'public/**',
       'lib/visit-pack/**',
       'e2e/**',
+      '.worktrees/**',
       '**/*.min.js',
     ],
   },

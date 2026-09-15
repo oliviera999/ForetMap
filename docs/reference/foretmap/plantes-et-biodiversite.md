@@ -29,7 +29,9 @@ Chaque fiche peut porter (tous les champs sont facultatifs sauf le nom) :
 - les **noms** : nom usuel, deuxième nom, nom scientifique, et un **emoji** ;
 - la **classification** : règne, grand groupe, famille, genre ;
 - l'**écologie** : habitat, milieu, rôle dans l'écosystème, rôle trophique,
-  origine géographique, cycle de vie / longévité, taille, reproduction ;
+  origine géographique, **statut biogéographique** (indigène / introduit /
+  envahissant), **statut UICN** (Liste rouge mondiale), cycle de vie / longévité,
+  taille, reproduction ;
 - l'**usage humain** : caractère **comestible** (oui / non / non renseigné), utilité,
   partie récoltée, valeur nutritive, plante ornementale ou non ;
 - la **culture** : conseils de plantation, températures supportées, acidité du sol
@@ -67,6 +69,21 @@ hirondelle, pipistrelle, crapaud), le **sol** (mycorhizes à Glomus, staphylin,
 lombric commun distinct du ver de compost Eisenia), la **mare** (daphnie,
 libellule, gerris — la gambusie n’est plus seule) et des **sauvages utiles**
 (sureau, lierre, pâquerette, plantain, violette).
+
+Certaines fiches portent un **statut biogéographique** : **indigène** (présente
+naturellement dans la région, comme l’arganier ou le hérisson d’Algérie),
+**introduite** (amenée par l’humain, comme le tilapia du Nil en aquaponie ou le
+figuier de Barbarie), ou **envahissante** (introduite et qui menace les espèces
+locales — la gambusie et l’élodée en sont des exemples du jardin). Ce statut
+apparaît en pastille sur les vignettes et la fiche, et on peut filtrer le
+catalogue dessus. Il complète l’origine géographique (texte libre) sans la
+remplacer.
+
+Elles peuvent aussi porter un **statut UICN** (Liste rouge mondiale) : codes
+EX, EW, CR, EN, VU, NT, LC, DD ou NE. La pastille affiche par exemple « UICN LC »
+(préoccupation mineure). Ce statut mondial est **indépendant** du statut
+biogéographique local : la gambusie peut être à la fois « envahissante » ici et
+« LC » sur la Liste rouge — un contraste pédagogique utile.
 
 Dans les textes **« rôle dans l'écosystème »** et **« utilité pour l'être humain »**,
 les mots qui correspondent à un terme du glossaire deviennent **cliquables
@@ -111,9 +128,10 @@ détermination. Ils se saisissent à la main, ou par l'import en masse.
 
 1. L'élève ouvre l'onglet **Biodiversité** : le catalogue s'affiche en **vignettes** —
    photo, nom, nom scientifique, quelques pastilles (rôle trophique, comestibilité,
-   milieu) et le bouton d'observation. S'y ajoutent une **recherche** par nom et un
-   filtre par **règne**, puis des **filtres avancés** par grand groupe, famille,
-   habitat, rôle trophique, milieu, et par **présence sur la carte**. Par défaut, seules
+   milieu, statut biogéographique, statut UICN) et le bouton d'observation. S'y
+   ajoutent une **recherche** par nom et un filtre par **règne**, puis des **filtres
+   avancés** par grand groupe, famille, habitat, rôle trophique, milieu, statut
+   biogéographique, statut UICN, et par **présence sur la carte**. Par défaut, seules
    les espèces **présentes sur la carte active** sont montrées : celles liées à une zone
    ou un repère de cette carte, **ou** rattachées à la carte elle-même (sans lieu précis —
    par exemple les oiseaux du site). L'élève peut élargir à « Toutes les fiches » ou

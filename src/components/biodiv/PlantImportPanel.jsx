@@ -37,6 +37,8 @@ const PLANTS_IMPORT_TEMPLATE_HEADERS_FULL = [
   'optimal_ph',
   'ecosystem_role',
   'geographic_origin',
+  'origin_status',
+  'iucn_status',
   'human_utility',
   'harvest_part',
   'planting_recommendations',

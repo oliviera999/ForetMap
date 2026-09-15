@@ -386,6 +386,30 @@ function PlantEditForm({
               />
             </div>
             <div className="field">
+              <label>Statut biogéographique</label>
+              <select value={form.origin_status || ''} onChange={set('origin_status')}>
+                <option value="">—</option>
+                <option value="indigene">Indigène</option>
+                <option value="introduit">Introduit</option>
+                <option value="envahissant">Envahissant</option>
+              </select>
+            </div>
+            <div className="field">
+              <label>Statut UICN</label>
+              <select value={form.iucn_status || ''} onChange={set('iucn_status')}>
+                <option value="">—</option>
+                <option value="EX">EX — Éteinte</option>
+                <option value="EW">EW — Éteinte à l’état sauvage</option>
+                <option value="CR">CR — En danger critique</option>
+                <option value="EN">EN — En danger</option>
+                <option value="VU">VU — Vulnérable</option>
+                <option value="NT">NT — Quasi menacée</option>
+                <option value="LC">LC — Préoccupation mineure</option>
+                <option value="DD">DD — Données insuffisantes</option>
+                <option value="NE">NE — Non évaluée</option>
+              </select>
+            </div>
+            <div className="field">
               <label>Partie à récolter</label>
               <input
                 value={form.harvest_part}

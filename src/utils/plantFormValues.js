@@ -54,6 +54,8 @@ export const EMPTY_PLANT_FORM = {
   trophic_role: '',
   life_cycle: '',
   is_edible: '',
+  origin_status: '',
+  iucn_status: '',
   temp_min_c: '',
   temp_max_c: '',
   ph_min: '',

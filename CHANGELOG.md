@@ -74,6 +74,42 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Typographie** : le dernier `font-size` littéral (`1.15rem`, déclencheur du picker
   mascotte) passe par le token `--text-lg`.
 
+### Modifié — boutons de carte : prop `tone`
+
+- `MapActionButton` / `GLBoardActionButton` : la prop de variante visuelle s’appelle
+  désormais **`tone`** (`primary` / `display` / `tool`) plutôt que `variant`, pour
+  éviter la confusion avec les boutons UI génériques (`Button` / `GLButton`).
+
+### Ajouté — Rang taxonomique `breed` (race d’élevage)
+
+- Whitelist `taxon_rank` étendue : `species` | `genus` | `family` | `clade` | **`breed`**
+  (libellé UI FR « Race »). Helper partagé `lib/taxonRank.js` ; import GL et plantes
+  acceptent les alias de valeur `race` / `races` / `breed`. Alignement catalogue FM
+  (`plantsRouteHelpers` + `plantPayloadSync`). Pas de nouvelle migration SQL (colonne
+  déjà `VARCHAR(16)` depuis `222`). Aucun semis mouton Sardi (note Oued Mellah : pas
+  d’import en base à ce stade).
+
+### Ajouté — Statuts biogéographique et UICN des fiches espèces
+
+- Champ **`origin_status`** (`indigene` / `introduit` / `envahissant`) et champ
+  **`iucn_status`** (codes Liste rouge `EX`…`NE`) sur le catalogue biodiversité
+  (migration `244`) : pastilles sur vignettes et fiches, filtres avancés, saisie
+  professeur, import CSV/XLSX (alias FR/EN).
+- Semis pédagogique `origin_status` : gambusie et élodée → envahissant ; tilapia /
+  figuier de Barbarie → introduit ; arganier, caroubier, hérisson d’Algérie, tarente,
+  criquet marocain → indigène.
+- Semis pédagogique `iucn_status` : gambusie, tilapia, hérisson d’Algérie, tarente,
+  arganier → `LC` (contraste voulu : la gambusie est LC mondialement tout en étant
+  envahissante localement).
+
+### Ajouté — Carnet comme livre (ForetMap + G&L)
+
+- Mode **lecture par défaut** : pages lisibles ; édition d’un article à la fois.
+- **Planches d’encarts** (`POST …/embeds/resolve` → `{ titles, cards }`) et picker par
+  **recherche** (`GET …/embeds/search`).
+- Vue **Imprimer / PDF** (couverture, sommaire, annexes, options livre de l’année).
+- Correctifs CSS carnet FM, confirmations de suppression, panneau Stats carnets.
+
 ### Ajouté — Fiches espèces : section « Détermination »
 
 - **Trois champs** sur la fiche (migration `243`) : `identification_criteria` (critères de

@@ -1402,6 +1402,55 @@
       font-family:var(--font-sans-with-emoji);
     }
     .task-chip.urgent { background:#fff1f2; color:#e11d48; }
+    .task-chip.plant-origin-status--indigene {
+      background:#e8f5e9;
+      color:#1b5e20;
+      border:1px solid #a5d6a7;
+    }
+    .task-chip.plant-origin-status--introduit {
+      background:#fff8e1;
+      color:#e65100;
+      border:1px solid #ffe082;
+    }
+    .task-chip.plant-origin-status--envahissant {
+      background:#fff1f2;
+      color:#9f1239;
+      border:1px solid #fda4af;
+      font-weight:var(--fw-semibold);
+    }
+    .task-chip.plant-iucn-status {
+      font-weight:var(--fw-semibold);
+      letter-spacing:0.02em;
+    }
+    .task-chip.plant-iucn-status--lc,
+    .task-chip.plant-iucn-status--ne,
+    .task-chip.plant-iucn-status--dd {
+      background:#eef2ff;
+      color:#3730a3;
+      border:1px solid #c7d2fe;
+    }
+    .task-chip.plant-iucn-status--nt {
+      background:#fff8e1;
+      color:#b45309;
+      border:1px solid #fde68a;
+    }
+    .task-chip.plant-iucn-status--vu {
+      background:#ffedd5;
+      color:#c2410c;
+      border:1px solid #fdba74;
+    }
+    .task-chip.plant-iucn-status--en,
+    .task-chip.plant-iucn-status--cr {
+      background:#fff1f2;
+      color:#9f1239;
+      border:1px solid #fda4af;
+    }
+    .task-chip.plant-iucn-status--ew,
+    .task-chip.plant-iucn-status--ex {
+      background:#1f2937;
+      color:#f9fafb;
+      border:1px solid #111827;
+    }
     .task-chip.proposal {
       background:#ede9fe;
       color:#5b21b6;

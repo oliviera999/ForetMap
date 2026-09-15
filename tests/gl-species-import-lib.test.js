@@ -60,3 +60,41 @@ test('buildSpeciesUpsertParams aligne 31 paramètres', () => {
   assert.strictEqual(params[0], 'SP9999');
   assert.strictEqual(params[5], 'genus');
 });
+
+test('buildSpeciesPayload normalise taxon_rank breed et alias race', () => {
+  const breed = buildSpeciesPayload({
+    id: 'SP9001',
+    biome_slug: 'mediterranee',
+    type: 'faune',
+    nom_commun: 'Mouton Sardi',
+    taxon_rank: 'breed',
+  });
+  assert.strictEqual(breed.taxon_rank, 'breed');
+
+  const fromRace = buildSpeciesPayload({
+    id: 'SP9002',
+    biome_slug: 'mediterranee',
+    type: 'faune',
+    nom_commun: 'Mouton Sardi',
+    taxon_rank: 'race',
+  });
+  assert.strictEqual(fromRace.taxon_rank, 'breed');
+
+  const fromRaces = buildSpeciesPayload({
+    id: 'SP9003',
+    biome_slug: 'mediterranee',
+    type: 'faune',
+    nom_commun: 'Mouton Sardi',
+    taxon_rank: 'Races',
+  });
+  assert.strictEqual(fromRaces.taxon_rank, 'breed');
+
+  const unknown = buildSpeciesPayload({
+    id: 'SP9004',
+    biome_slug: 'mediterranee',
+    type: 'faune',
+    nom_commun: 'Test',
+    taxon_rank: 'subspecies',
+  });
+  assert.strictEqual(unknown.taxon_rank, null);
+});
