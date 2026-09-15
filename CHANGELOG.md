@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — photos du carnet exposées sans authentification
+
+- Les illustrations `user-journal/` étaient servies par `/uploads` (public). Elles passent
+  par `GET /api/user-journal/assets/:id/file` (propriétaire ou lecture staff) ; le montage
+  statique répond **403**.
+
+### Corrigé — textes d’étapes de parcours hors audience
+
+- `GET /api/map-routes` (surfaces Carte / Visite / Plan) renvoyait `step_text` d’un lieu
+  masqué ou réservé. Filtre aligné sur la charge Visite / Plan : le catalogue public
+  n’expose que les étapes visibles pour le lecteur.
+
 ### Corrigé — CI : la partie e2e ne s'exécutait plus du tout
 
 - **Projet Playwright `plan-mobile` disparu** (`6e17108`, lot navigation iPhone) alors que
@@ -28,6 +40,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   WebKit, bloquant en CI, échouait donc à l'assertion finale (retour sur l'onglet Carte).
   Les deux sélecteurs sont désormais visés ensemble. Défaut jamais vu jusqu'ici : ces specs
   n'avaient pas pu s'exécuter une seule fois depuis leur ajout.
+
 ### Corrigé
 
 - **Catégories par défaut (Paramètres)** : cocher plusieurs catégories à la suite
@@ -700,6 +713,7 @@ release automatiques, cliquet d'accessibilité, audits datés indexés dans
   documentaires, avaient échoué sur cette seule liaison manquante le 09/09.
 - `npm run test:local` continue de parcourir les deux dossiers ; `npm run test:all` enchaîne
   code, contenu puis UI.
+
 ### Corrigé — import comptes : garde admin et cellules vides
 
 - Un n3boss ne peut plus, via l’import, changer le mot de passe ou le profil d’un
@@ -713,6 +727,7 @@ release automatiques, cliquet d'accessibilité, audits datés indexés dans
 - Un élève déjà reconnu n’est plus retiré de sa classe ni désactivé si Moodle
   signale un e-mail en double, hors domaine ou manquant : il reste dans le
   périmètre, le problème est seulement signalé.
+
 ### Ajouté — Carnet ForetMap à parité « Mon journal » GL
 
 - Articles markdown (multi-photos, auto-save, épinglage, encarts), imports après appris
@@ -922,6 +937,7 @@ release automatiques, cliquet d'accessibilité, audits datés indexés dans
   la partie (ou qu’un second apply tourne) ne réécrit plus les équipes d’une
   partie déjà en cours. La ligne de la partie est verrouillée le temps de
   l’écriture ; si elle n’est plus en préparation, le serveur refuse (409).
+
 ### Corrigé — contrôle Moodle : le refus global nomme ses causes
 
 - **`accessexception` sur toutes les fonctions** (sonde de repli comprise) : le conseil affiché
@@ -940,6 +956,7 @@ release automatiques, cliquet d'accessibilité, audits datés indexés dans
   refus déjà constaté y est reporté tel quel.
 - **Conseils repliés à 96 colonnes** dans `npm run moodle:check` : un paragraphe lisible plutôt
   qu'une ligne unique qui déborde du terminal.
+
 ### Documentation — audit du rôle professeur (n3boss)
 
 - **`docs/AUDIT_ROLE_PROFESSEUR_2026-09.md`** : audit complet du rôle n3boss — définition
@@ -949,6 +966,7 @@ release automatiques, cliquet d'accessibilité, audits datés indexés dans
   système sont annulées au redémarrage (semis `INSERT IGNORE`), et l'interface lit les
   permissions dans le JWT sans jamais les rafraîchir (le serveur, lui, applique la bonne
   règle). Indexé dans `docs/audits/README.md`.
+
 ### Corrigé — reprise GL après pause : plus de téléport à la case départ
 
 - **`POST /api/gl/games/:id/start`** : en parcours numéroté, les équipes n’étaient
@@ -957,6 +975,7 @@ release automatiques, cliquet d'accessibilité, audits datés indexés dans
   **téléportait toutes les mascottes** au départ et effaçait la progression du plateau.
   Les transitions hors cycle (démarrer une partie déjà en cours, mettre en pause un
   brouillon…) répondent désormais **409**.
+
 ### Ajouté — visite : biodiversité des lieux et mots du glossaire
 
 - **La biodiversité d'un lieu est visible d'emblée** dans sa fiche de visite : une vignette par
@@ -1251,6 +1270,7 @@ Clic depuis une activité Moodle vers un compte **déjà** reconnu (pas une 2ᵉ
   l'e-mail.
 - `env.local.example` : variables `MOODLE_*` et secrets LTI `LTI_*` documentés (toujours
   dans `.env`, jamais en base).
+
 ### Ajouté (GL) — composition automatique des équipes, lot v3 (verrous, politique, rotation, brassage)
 
 - **Politique d'équipes par classe** (migration `217_gl_classes_team_policy.sql` :
@@ -1415,6 +1435,7 @@ Clic depuis une activité Moodle vers un compte **déjà** reconnu (pas une 2ᵉ
   le cas « registre inconnu » ; une garde de câblage vérifie en plus que chaque écran qui propose
   des mascottes passe bien la liste du registre — c'est l'oubli de câblage, et non la mécanique,
   qui avait laissé passer le défaut.
+
 ### Conception — composition automatique des équipes GL au fil des chapitres
 
 - **Deux documents de conception, aucun code applicatif.**
@@ -1443,6 +1464,7 @@ Clic depuis une activité Moodle vers un compte **déjà** reconnu (pas une 2ᵉ
   profilage. Les scores dérivés se calculent à la volée (élèves mineurs : rien à conserver,
   rien à purger), et aucun numéro `NNN_` n'est réservé — donc aucune collision possible avec
   une PR parallèle.
+
 ### Documentation — lien Moodle : spécification d'implémentation complète
 
 - `docs/AUDIT_MOODLE_IDENTITES_2026-09.md` réécrit en **spécification exécutable**, destinée à
@@ -1829,6 +1851,7 @@ verrous actifs.
   lus sur le disque). Nombres désormais mesurés par un test plutôt qu'estimés, et
   l'affirmation « la route la plus chère de l'application », qu'aucune mesure n'appuyait,
   est retirée.
+
 ### Corrigé — « Importer les nouvelles fiches » (tutoriels) ne faisait rien
 
 - **Une fiche réellement nouvelle pouvait être classée « déjà en base ».** Le rapprochement
@@ -2032,6 +2055,7 @@ verrous actifs.
 - **Détails d'affichage** : noms tronqués marqués par une ellipse (« Consoude offici… » et non
   « Consoude officin »), icônes de zoom du design system avec nom accessible, et style d'export
   PNG/SVG réaligné sur le CSS de la page.
+
 ### Modifié
 
 - **Visite : plus de bandeau d’astuce au-dessus de la carte.** La mini-astuce « Coche les lieux au
@@ -2083,6 +2107,7 @@ verrous actifs.
   feuille du parcours rend déjà le reste du plan `inert`, il n'y avait pas de geste sans effet à
   expliquer.
 - `docs/API.md` et `docs/reference/` (carte et zones, plan) mis en accord avec ces corrections.
+
 ### Correctifs
 
 - **Parcours brouillon** : `GET /api/map-routes/:idOrSlug` (public) renvoyait un brouillon
@@ -2498,6 +2523,7 @@ verrous actifs.
   « Y aller » et mode boussole, parcours, garde d'accès, service worker et manifest par
   produit (hors ligne pour ForetMap, GL et le plan), compteur d'usage anonyme, matrice des
   bénéfices pour chaque application ; phasage en dix lots.
+
 ### Tâches et projets validés masqués par défaut
 
 - **Vue Tâches** : une tâche **validée** (ou rattachée à un projet validé) et un **projet
@@ -2786,6 +2812,7 @@ annule).
   serveur.
 
 Doc : `docs/reference/foretmap/carte-et-zones.md` (section réécrite).
+
 ### Emoji de zone en colonne dédiée (audit homogénéité UI — C4)
 
 La colonne `zones.emoji` (migration `206`) remplace l'extraction fragile du préfixe du nom
@@ -2869,6 +2896,7 @@ tailles différentes, interface parfois chargée ». Audit sans modification de 
   carte jamais stylée par props ignorées, onglet Médiathèque jamais restauré).
 - **Plan d'amélioration** en 4 lots priorisés (A corrections ciblées → D désencombrement),
   chaque constat référencé `fichier:ligne`.
+
 ### Réglages : un sélecteur de couleur pour les catégories de lieux
 
 La couleur d'une catégorie ne se saisissait qu'en hexadécimal, à l'aveugle. Un **sélecteur
@@ -2925,6 +2953,7 @@ réservé, n'a jamais été livré. S'y ajoutent deux erreurs d'acquisition invi
 l'élève (C2) et deux comportements mineurs (position périmée rejouée, calage dégénéré
 affiché comme « hors zone »). Plan d'action proposé en fin de document, points 1 à 4
 regroupables en un lot « robustesse du calage GPS ».
+
 ### Un inventaire « Zones & repères » dans les Réglages administrateur
 
 Nouveau sous-onglet **Réglages administrateur → « Zones & repères »** : la liste de
@@ -3152,6 +3181,7 @@ Détail : `lib/databaseInitRetry.js` (nouveau), `server.js`, `routes/admin-ops.j
 tests `tests/database-init-retry.test.js`, `tests/boot-journal.test.js`,
 `tests-ui/hooks/useAppDataSync.test.jsx` ; docs `docs/API.md`, `docs/EXPLOITATION.md`,
 `docs/reference/foretmap/presentation.md`.
+
 ### Catégories de zones et de repères
 
 Deux mécanismes hétérogènes classaient les lieux de la carte : un **état de culture**
@@ -3244,6 +3274,7 @@ par épuisement de ressources, un `report-uri` sans ces gardes aurait ajouté au
 Reste une décision, pas un développement : **promouvoir** la politique candidate en politique
 imposée quand les signalements se seront tus en usage réel. `tests/csp.test.js` (15 tests) contient
 un test qui échoue si quelqu'un le fait sans le décider.
+
 ### Anti-kills LVE — allègement mémoire polling
 
 Réduction des pics RSS (SIGKILL CloudLinux) sans retirer de fonctionnalité visible :
@@ -3272,6 +3303,7 @@ passée comme « série soldée, on recommence à zéro » : avec une tolérance
 3ᵉ et la 20ᵉ faute restaient la « première ». L’annonce promise à l’élève (« 2 erreurs
 permises, puis 3 jours ») n’avait donc aucun effet. Le comptage utilise désormais une
 date sentinelle (1970), distincte d’un vrai verrou expiré.
+
 ### Audit de refactoring : `src/App.jsx` remis à hauteur de vue
 
 **`src/App.jsx` passe de 1 808 à 1 457 lignes, sans changement de comportement.** Le shell de
@@ -3594,6 +3626,7 @@ texte que l'élève est en train de lire, et ce repli n'est écrit qu'une fois.
 Un garde-fou (`tests-ui/utils/zLayers.test.js`) verrouille l'ordre des paliers, interdit
 qu'une feuille redéclare l'un d'eux ou rechoisisse un `z-index` global en dur, et vérifie
 que les patchs de plein écran ne reviennent pas.
+
 ### Une seule liste, vraiment : plus de modèles, et tout se supprime
 
 Deux restes de l'ancienne organisation traînaient encore au studio, et se lisaient exactement
@@ -3649,6 +3682,7 @@ C'est le même défaut, sous la même forme, que celui déjà fermé sur `frames
 un moteur écrit pour tous. Le nouveau test porte donc sur la **propriété générale** — un pack valide
 le reste après le studio, quel que soit son moteur — de façon à attraper la prochaine fuite quel que
 soit le champ en cause.
+
 ### Savoir enfin pourquoi le serveur tombe (lot 30)
 
 Constat de départ : des indisponibilités régulières, y compris avec un seul utilisateur et
@@ -3692,6 +3726,7 @@ restent inchangés.
 Détail : `lib/bootJournal.js`, `docs/EXPLOITATION.md` (§ Indisponibilités récurrentes),
 `docs/CRONTAB.md`, `docs/API.md`, `docs/AUDIT_CHARGE_SERVEUR_2026-08.md` §2.E ;
 tests `tests/boot-journal.test.js`, `tests/api-availability.test.js`.
+
 ### Correctif — le délai après une erreur ne tombait jamais dans Gnomes & Licornes
 
 Une mauvaise réponse au contrôle de compréhension, dans le flux « marquer appris » de
@@ -3726,6 +3761,7 @@ reproduit exactement le comportement précédent : rien ne change pour qui n'y t
 - **Documentation** — les deux réglages sont décrits dans « Retoucher le contour d'une
   zone » (`docs/reference/foretmap/carte-et-zones.md`), et le point d'attention sur les
   photos peu contrastées indique désormais quoi régler.
+
 ### Le glossaire se valide, et ne donne plus la réponse (lot 28, suite)
 
 **Le glossaire ForetMap porte un bouton « J'ai appris ce terme ».** Il était purement
@@ -3806,6 +3842,7 @@ type et la feuille de style — que Gnomes & Licornes ne chargeait pas, alors qu
 les composants. G&L gagne au passage la route de résumé par lot qu'il n'avait pas.
 
 Aucun changement de comportement à réglages par défaut.
+
 ### Les mascottes livrées qui ne peuvent pas s'animer ne sont plus proposées
 
 Dix des seize mascottes livrées déclarent une animation **Rive** et pointent vers
@@ -3907,6 +3944,7 @@ concernés disent maintenant que ces trois opérations font partie des **migrati
 
 Aucune migration. Aucun changement de comportement du studio lui-même : ses routes ont été
 exercées une à une contre une base à jour, sans aucun 5xx.
+
 ### Le contrôle de compréhension prévient avant de frapper (lot 26)
 
 **Audit du dispositif** dans [docs/AUDIT_GATING_2026-08.md](docs/AUDIT_GATING_2026-08.md). Trois
@@ -4054,6 +4092,7 @@ conditionnement, la reprise initiale n'ayant eu lieu qu'une fois.
 Mesuré sur le catalogue réel (10 tutoriels, 131 questions actives) : 48 rattachements
 proposés, les mieux notés étant justes — compost → Compostage, mycorhize → Sol vivant,
 paillage → Eau au jardin, tomate et basilic → Associations de plantes.
+
 ### Audit du système de mascottes — pourquoi la mascotte importée n'apparaît pas (documentaire)
 
 Signalement : « la mascotte importée OLU n'est pas utilisable dans la carte ou les visites, j'ai
@@ -4159,6 +4198,7 @@ gagnent en lisibilité (couleurs dédiées enregistrement / succès / erreur).
 En complément, un **audit de la charge serveur** (mesures mémoire/boot, profil des
 requêtes, sources de redémarrage) et ses pistes de réduction sans perte
 fonctionnelle : `docs/AUDIT_CHARGE_SERVEUR_2026-08.md`.
+
 ### Les boutons de Gnomes & Licornes retrouvent la police du jeu (lot 18)
 
 **Ils s'affichaient en Arial 13 pixels**, la police par défaut du navigateur, alors que tout
@@ -4190,6 +4230,7 @@ commande — elle utilise désormais des contrôles neutres que chaque produit h
 
 Environ 80 lignes de styles morts ont été supprimées et un conflit de sélecteur corrigé.
 Audit complet et mesures : `docs/AUDIT_UI_BOUTONS_GL_2026-08.md`.
+
 ### Un contour de zone se retouche vraiment : on peut enfin ajouter et retirer des sommets (lot 15)
 
 **Jusqu'ici, « Modifier le contour » ne savait que déplacer.** Les sommets posés au dessin
@@ -4269,6 +4310,7 @@ tout le contour si rien n'est sélectionné ; **Alt maintenu** le suspend le tem
   de synthèse, plus la couverture du branchement dans le hook d'édition.
 - **Documentation** — mode d'emploi et point d'attention dans « Retoucher le contour d'une
   zone » ; aucune route ni table modifiée.
+
 ### Les mascottes livrées se gèrent depuis le studio (lot 14)
 
 Visualiser, modifier, exporter ou retirer une **mascotte livrée avec l'application** demandait
@@ -4378,6 +4420,7 @@ son effet — le délai de blocage après une erreur (3 jours par défaut) compr
 La documentation de référence explique en clair ce que ce dispositif fait, ce qu'il exige
 pour fonctionner, et pourquoi il reste aujourd'hui sans effet visible côté ForetMap : les
 questions ne peuvent pas encore être rattachées aux tutoriels depuis l'interface.
+
 ### Cinq mises à jour de dépendances npm (lot d'intégration)
 
 Les montées de version proposées automatiquement et restées en attente sont reprises
@@ -4499,6 +4542,7 @@ affiché qu'une fois l'aide reçue du serveur, alors que la visite démarre 650 
 l'affichage de l'onglet. Sur un premier onglet à froid, la bulle finale — celle qui
 montre où retrouver OLU — disparaissait sans un mot, et l'onglet étant compté comme vu,
 elle ne revenait plus. La visite attend désormais que l'aide soit là.
+
 ### Correctifs d'audit sans arbitrage (sécurité, BDD, a11y, docs)
 
 Suite de l'audit général (`docs/AUDIT_GENERAL_2026-08.md`), les correctifs qui ne
@@ -4518,6 +4562,7 @@ demandaient aucune décision de conception :
   `aria-current` sur l'onglet actif ; zones de la carte accessibles au clavier.
 - **Documentation de référence** : contradiction sur les « tours » levée, encadré « pas
   de lore » actualisé, dé virtuel documenté, renvois et terminologie corrigés.
+
 ### Le jeu tenait des promesses qu'il n'appliquait pas (audit des mécaniques G&L)
 
 **Aucun élève n'a jamais gagné un cœur ni une gemme en jouant.** Les quatre parties
@@ -4694,6 +4739,7 @@ publier un pack mascotte portant l'identifiant de catalogue `olu-spritesheet` : 
 identifiant égal, c'est l'entrée du pack qui est affichée. Le pack apporte son propre
 découpage, se retouche au studio sans déploiement, et respecte l'arbitrage §5.1 (aucun
 visuel figé au dépôt).
+
 ### Mises à jour npm du lot Dependabot (v1.107.0)
 
 Les 21 montées correctives et mineures proposées par #287 (`adm-zip`, `express-rate-limit`,
@@ -4831,6 +4877,7 @@ des deux côtés sans toucher aux textes.
 réécrit à la voix d'OLU — c'est le lot 6b, un lot d'écriture séparé (§13 : ne pas mélanger lot
 technique et lot corpus), qui suppose de trancher d'abord §11.7 (OLU est-il un personnage *du*
 lore GL ou un narrateur extérieur ?).
+
 ### Glossaire ForetMap — vrai popover, auto-liens partout, moteur corrigé
 
 Suite de l'audit `docs/AUDIT_GLOSSAIRE_FORETMAP_2026-08.md` : les cinq lots de son plan de
@@ -4899,6 +4946,7 @@ sanitizer).
 
 Plan de correction en 5 lots proposé au §4 ; aucun n'est implémenté. Fiche d'arbitrage
 **F8** ajoutée à `docs/reference/INCOHERENCES.md`.
+
 ### Tâches : une tâche « Urgent ! » validée rejoint enfin « Validées » — et audit de l'archivage
 
 L'encart « 🚨 Urgent ! » extrait ses tâches de **toutes** les autres sections de l'écran
@@ -5075,6 +5123,7 @@ et répond à la question posée — comment son effet s'applique-t-il aujourd'h
   charge du MJ.
 - **Registre d'arbitrage** : quatre points ouverts à trancher (G11 à G14) dans
   [docs/reference/INCOHERENCES.md](docs/reference/INCOHERENCES.md).
+
 ### Documentation technique remise au niveau du code
 
 Quatre lots de documentation restés en brouillon depuis juillet (PR #260, #271, #280, #289) ont été
@@ -5581,6 +5630,7 @@ qui divergent ; 3 230 lignes de tables de liaison remplacées mais jamais suppri
 (reprise vérifiée complète) ; un `.gitignore` qui ne couvre pas le nom de dump donné par
 `docs/LOCAL_DEV.md`. Un plan d'action en 13 points, classé par rapport bénéfice/risque,
 clôt le document.
+
 ### GL — les ressources rattachées au mauvais chapitre
 
 Dans GL, une ressource (espèce, terme de glossaire, question de QCM, feuillet) n'est
@@ -5669,6 +5719,7 @@ visite, et le studio n'a plus qu'**une seule liste**.
   **`tests/visit-mascot-sprite-library-files.test.js`**, `tests/visit-helpers.test.js`,
   `tests-ui/**`). Documentation : `docs/API.md`, `docs/MASCOT_PACK.md` et
   `docs/reference/foretmap/visite-et-mascottes.md`.
+
 ### ForetMap — les titres du studio narrateur OLU redeviennent lisibles
 
 Dans **Paramètres → Narrateur OLU**, les noms des comportements d'OLU (« Neutre », « Parle »,
@@ -5873,6 +5924,7 @@ bouts manquants sont livrés.
 **À savoir** : OLU est visible, mais le corpus n'est pas encore réécrit à sa voix (lot 4). Sans
 aucune image fournie, tout fonctionne — c'est la silhouette SVG qui tient la place, à coût réseau
 nul.
+
 ### Mascottes — le choix suit la personne, la carte de travail obéit aux packs
 
 Suite directe du lot précédent, sur ses trois angles morts.
@@ -6017,6 +6069,7 @@ modifié — le document analyse et propose.
   Marché, et un cœur perdu peut y être racheté à un camarade.
 - **Ordre des opérations révisé** isolant ce qui ne dépend d'aucune décision d'architecture, et
   réponses proposées aux 13 questions ouvertes du rapport.
+
 ### Doc — Audit : le remède aux conflits de PR existe déjà, mais ignore les brouillons
 
 Complément au §2.3/§2.4 de [`docs/AUDIT_APP_ET_JEU_2026-08.md`](docs/AUDIT_APP_ET_JEU_2026-08.md),
@@ -6161,6 +6214,7 @@ et toute portée solo/collective.
   valeur *présente mais illisible* est signalée ligne par ligne.
 - `spellToForm` retombe sur les valeurs du formulaire vierge plutôt que sur la chaîne
   vide : une liste déroulante ne se retrouve plus sur une option inexistante.
+
 ### Doc — Audit général de l'application et du jeu (août 2026)
 
 Nouveau document [`docs/AUDIT_APP_ET_JEU_2026-08.md`](docs/AUDIT_APP_ET_JEU_2026-08.md) :
@@ -6215,6 +6269,7 @@ audit transversal ForetMap + Gnomes & Licornes, centré sur **ce que le joueur p
   documentation de référence honnête, accessibilité de la navigation.
 - **Plan d'action en 6 lots**, classés par rendement, avec la liste explicite de ce que
   l'audit **n'a pas** couvert (aucune exécution : ni base, ni dépendances installées).
+
 ### OLU narrateur — lot 2 : le portrait et son réglage
 
 Deuxième lot du plan [`docs/MASCOT_NARRATEUR_OLU.md`](docs/MASCOT_NARRATEUR_OLU.md). Comme le
@@ -6395,6 +6450,7 @@ demande d'évolution (repère `🔧 À implémenter :`).
 - API : `GET/PUT /api/gl/admin/reference-docs[/:slug]` et `POST …/:slug/reset`. Le `slug` est
   restreint à `^[a-z0-9]+(-[a-z0-9]+)*$` — aucune traversée de chemin possible ; la création de
   document par l'API est refusée (404 hors des documents existants). Voir `docs/API.md`.
+
 ### GL — popover d'aperçu et d'édition des feuillets depuis la vue d'ensemble
 
 - **Contenus → Carnet de Sélène → Vue d'ensemble** : chaque ligne dispose désormais d'un bouton
@@ -6554,6 +6610,7 @@ Réalise les pistes UI restantes de l'éditeur de feuillets.
   vertical), sémantique `role="tablist"/"tab"` + `aria-selected`, cibles tactiles ≥ 44px, et
   panneau import/export stylé (carte, zone de dépôt, rapport JSON défilable, boutons pleine largeur
   sur mobile).
+
 ### GL — récupération des ancrages carte des feuillets après suppression d'un chapitre
 
 Supprimer un chapitre efface ses zones du royaume en cascade, ce qui détache (met à `NULL`) le
@@ -6575,6 +6632,7 @@ lot comble le maillon faible.
   bulk (ancrage, détachement, `404` zone inconnue, `400` sélection vide).
 - **Docs** : `docs/API.md` (routes overview + bulk kingdom-zone) et
   `docs/reference/gl/carte-du-royaume.md` (point d'attention suppression de chapitre).
+
 ### Archivage (soft-delete) des tâches et des projets de tâches
 
 Nouvelle fonctionnalité : archiver une tâche ou un projet pour le masquer des vues actives
@@ -7040,6 +7098,7 @@ changer le mot de passe d'un autre prof.
 - **Effet métier** : le profil `eleve_chevronne` peut proposer des tâches (`tasks.propose`) sans
   PIN ; tout profil dynamique dont une permission était « à élévation » l’obtient directement.
   Le profil `prof` est inchangé en pratique (il était déjà `nativePrivileged`, donc sans PIN).
+
 ### Sécurité — Audit de code (bugs, incohérences, logique)
 
 - **GL — élévation MJ → Admin** : `getGlRolePermissions('mj')` accordait les mêmes
@@ -7520,6 +7579,7 @@ changer le mot de passe d'un autre prof.
   ajout de `learning/mark/:resourceType/:ref`).
 - **Tests** : `tests/gl-learning-gating-newtypes.test.js` (challenge + accusé générique `mark` pour
   `content_page` et `ecosystem` : 403 sans bonne réponse, 200 après, accusé persisté).
+
 ### GL — Backfill biome des feuillets « cop-bio » (couverture d'acquisition)
 
 - **Données** : migration idempotente `159_gl_feuillet_copbio_biome_backfill.sql` — pose
@@ -7577,6 +7637,7 @@ changer le mot de passe d'un autre prof.
 - **Tests** : unitaires (`gl-lore-feuillet-preview`) + intégration (`gl-lore-feuillet-access` :
   scoping biomes, masquage/aperçu, révélation via réglage, accès MJ intégral, `404` hors périmètre).
 - **Doc** : `docs/API.md` (feuillets joueur/MJ, nouveau réglage), `docs/AUDIT_FEUILLETS_ACCES.md`.
+
 ### GL — Carnet personnel : import d'éléments appris
 
 - **Le joueur peut faire figurer dans son carnet les éléments du site qui l'intéressent** :
@@ -7632,6 +7693,7 @@ changer le mot de passe d'un autre prof.
 - **Tests** : backend (création spéciale, bascule du drapeau dans les deux sens, préservation
   quand `special` est omis) ; UI (case à cocher `ZoneDrawModal`, actions prof sur zone spéciale).
 - **Doc** : `docs/API.md` (colonnes `special` de `POST`/`PUT /api/zones`).
+
 ### ForetMap — Plein écran carte visite : les zones ne s'étirent plus hors du fond de carte
 
 - **Correctif** : en plein écran (immersion) pendant la visite, le calque `visit-map-fit-layer`
@@ -7679,6 +7741,7 @@ changer le mot de passe d'un autre prof.
 - **Migration `154_gl_player_journal_unlimited_default.sql`** : bascule à `0` les installations
   encore réglées sur l'ancien défaut seedé (20000 / 30), en conservant toute valeur déjà
   personnalisée.
+
 ### GL — Plateau : popovers de repères au-dessus des dés et boutons en icônes
 
 - **Popovers d'arrivée (QCM / effet de repère) lisibles à l'arrivée du pion.** Le lanceur de dés
@@ -7743,6 +7806,7 @@ changer le mot de passe d'un autre prof.
   recommandée (textes/médias conservés par `id`).
 - Tests : `tests/visit-target-cleanup.test.js` (cascade zone/repère, best-effort fichiers, no-op type
   inconnu). Docs : `docs/API.md` (notes `DELETE /api/zones/:id` et `DELETE /api/map/markers/:id`).
+
 ### ForetMap — Carte `lyautey` : zones « bâtiments » du centre importables
 
 - **Nouveau fichier importable `sql/zones_lyautey_batiments.sql`** : 12 zones polygonales
@@ -7767,6 +7831,7 @@ changer le mot de passe d'un autre prof.
   dans `useMapGestures` (activé sur molette/pinch/pan/boutons, retiré au commit/ajustement),
   `MapViewWorldLayer` ne pose plus le `will-change` en dur. Plan de visite : `markVisitInteracting()`
   (pose + retombée après ~180 ms d'inactivité), `.visit-map-world` sans `will-change` statique.
+
 ### Mascotte — Import souple : auto-déclaration des comportements personnalisés
 
 - **Problème** : un pack mascotte révisé (forme objet `stateFrames`) comportant des états
@@ -7944,6 +8009,7 @@ changer le mot de passe d'un autre prof.
   `tests-ui/hooks/useAmbientMascotBehavior.test.js`,
   `tests-ui/components/mascot/MascotPackCustomBehaviorsEditor.test.jsx`. Docs `docs/MASCOT_PACK.md`
   et `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
 ### GL — Édition du plateau : déplacement de repères enregistré de façon fiable (fix)
 
 - **Fin du glisser-déposer perdue** : lors du déplacement d'un repère sur la carte du chapitre
@@ -7969,6 +8035,7 @@ changer le mot de passe d'un autre prof.
   envoyée en `PUT`, puis disparaître au rechargement. La clé de reset de l'autosave est maintenant pilotée
   uniquement par les chargements explicites de fiche/brouillon, et un test UI couvre le second autosave
   attendu après création.
+
 ### ForetMap — Cartes : étiquettes plus grandes, grossissement au zoom configurable
 
 - **Étiquettes un peu plus grandes** : tailles de référence portées de 17→**19 px** (emoji) et 12→**14 px**
@@ -7985,6 +8052,7 @@ changer le mot de passe d'un autre prof.
   défaut public `src/utils/appPublicSettings.js`, libellé admin `src/constants/settingsAdminMeta.js`.
 - Tests : `tests/map-overlay-typography.test.js` (tailles de référence 19/14, grossissement 0 %/100 %/défaut,
   bornage `clampZoomGrowthPercent`). Doc : `docs/API.md` (réglages `ui.map.*`).
+
 ### ForetMap — Mode visite/découverte (onboarding guidé par onglet)
 
 - **Découverte « petit à petit » à la première ouverture de chaque onglet** : un nouveau mode visite
@@ -8118,6 +8186,7 @@ changer le mot de passe d'un autre prof.
 - **Groupes** : `default_role_id` refuse désormais les profils staff/GL ou avec permissions non élèves ; la synchronisation ignore aussi un rôle dangereux déjà présent en base.
 - **Pont GL → ForetMap** : un joueur GL non lié ne peut plus capturer un compte ForetMap par collision pseudo/email, et la synchronisation n’écrase plus le mot de passe d’un compte ForetMap existant.
 - **Imports bulk GL** : les archives ZIP avec plusieurs fichiers de même nom (dans des dossiers différents) sont refusées pour éviter qu’un fichier prévisualisé soit remplacé par un autre à l’application.
+
 ### Mascotte — suivi GPS (smartphone)
 
 - **Suivi de position** : sur un plan calé, la mascotte suit la position GPS réelle de l'élève via un bouton « 📍 Me suivre » (toolbar carte). Conversion lat/lng → % par transformation affine à 3 points (`src/utils/mapGeoTransform.js`). Position traitée 100 % côté client (jamais envoyée au serveur).
@@ -8248,6 +8317,7 @@ changer le mot de passe d'un autre prof.
   valeurs par défaut.
 - **Tests** : couverture ciblée dans `tests/gl-lore-import.test.js` sur les drapeaux de mise à
   jour générés pour une feuille `code,titre`.
+
 ### GL — page de garde de la connexion : titre, accroches tournantes, « Franchir le miroir », 4ᵉ de couverture
 
 - **Écran de connexion** (`src/gl/components/GLAuthView.jsx`) : nouvelle page de garde —
@@ -8270,6 +8340,7 @@ changer le mot de passe d'un autre prof.
 - **Tests** (`tests-ui/gl/glAuthCover.test.js`, `tests-ui/gl/GLAuthView.test.jsx`) : tirage des
   accroches, conformité CTA/baseline/4ᵉ de couverture, rendu de la page de garde ; libellé du
   submit mis à jour.
+
 ### Conditionnement « lu/appris » — phase 2 (pré-préparation : suggestion + validation des liens)
 
 - **Moteur de suggestion textuelle** `lib/shared/resourceQuestionMatch.js` (pur, sans BDD) :
@@ -8304,6 +8375,7 @@ changer le mot de passe d'un autre prof.
 - **Tests** : `tests/resource-question-gating-core.test.js` (unitaire pur),
   `tests/learning-links.test.js`, `tests/gl-learning-links.test.js` (intégration + isolement).
 - **Doc** : `docs/API.md` (section « Liens ressources ↔ questions & conditionnement »).
+
 ### GL — éditeur des feuillets du carnet de Sélène (liste + édition)
 
 - **Onglet Contenus → Carnet de Sélène** : sous-onglets « Feuillets » (éditeur) / « Import / export »
@@ -8392,10 +8464,12 @@ changer le mot de passe d'un autre prof.
   idempotente `143_food_web_trophic_roles.sql` (vue `v_food_web` enrichie). **Doc** : `docs/API.md`.
 - **Tests** : `tests/food-web-core.test.js` (méta + `orientInteraction`),
   `tests-ui/components/pedago/foodWebGraphModel.test.js` et `FoodWebGraph.test.jsx`.
+
 ### Carte — mascotte issue d'un pack serveur/importé (rendu)
 
 - **fix** : la carte (`map-views`) résout et rend désormais une mascotte issue d'un **pack serveur publié** (`catalog_id` `srv-…`, ex. pack importé), au lieu de retomber sur le catalogue statique. Nouveau hook `useVisitMascotCatalogExtras` (récupère `GET /api/visit/content` → `mascot_packs` publiés → `extraCatalogEntries`), passés à `useMapViewMascot` et à `MapViewMascotOverlay` → `VisitMapMascotRenderer`. Traite le constat **A** de `docs/MASCOT_AUDIT.md`.
 - **Tests** : `tests-ui/hooks/useVisitMascotCatalogExtras.test.jsx`, `tests-ui/utils/visitMascotPackExtras.test.js`.
+
 ### Visite — aperçu studio d'un pack mascotte brouillon (rendu tokenisé)
 
 - **fix** : l'**aperçu global** du studio (`VisitMascotStudioPreviewSection`) applique désormais les `preview_url` signées au pack **en cours d'édition** (`applyPackAssetPreviewUrlsToSpriteCut` + `assetPreviewByFilename` du manager) → un **brouillon** s'affiche au lieu de retomber sur la silhouette (les `<img>` ne portent pas le JWT → 403 sur assets non publiés). Suite de l'audit `docs/MASCOT_AUDIT.md` (constat B, partiel). Constat **A** (carte éditeur sans `extraCatalogEntries`) documenté, à traiter avec validation UI.
@@ -8459,6 +8533,7 @@ changer le mot de passe d'un autre prof.
 ### Correctif — `npm install` en production (hook `prepare`)
 
 - **fix** : le hook npm `prepare` (`node scripts/setup-git-hooks.js`) ne fait plus échouer `npm install` lorsque le script de hooks est introuvable ou exécuté hors dépôt Git (hébergement CloudLinux/cPanel `nodevenv/.../lib`, installation via tarball ou CI). Ajout d'un garde-fou `|| exit 0` : l'installation des dépendances aboutit toujours en production, tandis que la configuration des hooks Git versionnés (`core.hooksPath = .githooks`, pre-commit lint + format) reste active en développement.
+
 ### GL — déplacement automatique (effet de case)
 
 - **feat(gl)** : en parcours numéroté, les repères avec `deltaMove` déplacent automatiquement l'équipe le long du chemin lors de `present-arrival` / `apply-effects` ; les effets du repère d'arrivée ne sont pas déclenchés (`skipDestinationEffects`).
@@ -8493,6 +8568,7 @@ changer le mot de passe d'un autre prof.
 - **Script** : `scripts/auto-resolve-conflicts.js` (fonctions pures de résolution exportées et testées) ; option `AUTO_RESOLVE_DRY_RUN` pour simuler, `AUTO_MERGE_PAT` (secret optionnel) pour relancer la CI après push.
 - **`.gitattributes`** : `CHANGELOG.md merge=union` — réduit les conflits dès les merges locaux.
 - **Tests** : `tests/auto-resolve-conflicts.test.js` (union changelog, semver max, garde-fous version-only).
+
 ### GL — système de tour « mode classique »
 
 - **feat(gl)** : la rotation séquentielle (une seule équipe active) est remplacée par des **tours globaux**. Le MJ lance un tour (`POST /api/gl/games/:id/turn/next` ou `/turn/start`) → événement `round_start` `{ roundNumber }` ; toutes les équipes jouent simultanément.
@@ -10309,6 +10385,7 @@ requêtes de contrôle à passer avant activation figurent en fin de document.
   `tests/pedago-garden-auxiliaires.test.js` (liaison trophique manquante), les tests de
   contenu pédagogique n'étant pas découplés des tests de code.
 - Indexé dans `docs/audits/README.md`.
+
 ### Ajouté — visite : biodiversité des lieux et mots du glossaire
 
 - **La biodiversité d'un lieu est visible d'emblée** dans sa fiche de visite : une vignette par
