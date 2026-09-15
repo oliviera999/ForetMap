@@ -2,7 +2,14 @@ const express = require('express');
 const http = require('http');
 const https = require('https');
 const crypto = require('crypto');
-const { pool, queryAll, queryOne, execute, noteExternalDataWrite } = require('../database');
+const {
+  pool,
+  queryAll,
+  queryOne,
+  execute,
+  withTransaction,
+  noteExternalDataWrite,
+} = require('../database');
 const { purgeResourceGatingRows } = require('../lib/learningGatingOrphans');
 const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const { requirePermission, requireAuth } = require('../middleware/requireTeacher');
@@ -42,7 +49,7 @@ const { loadPlantMapIdsMap, syncPlantMaps, normalizeMapIds } = require('../lib/s
 const { logAudit } = require('../lib/auditLog');
 const { z, validate } = require('../lib/validate');
 
-const dbApi = { queryAll, queryOne, execute };
+const dbApi = { queryAll, queryOne, execute, withTransaction };
 
 const router = express.Router();
 
