@@ -9,6 +9,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Carte du Complexe Nawal El Moutawakel (site de Beaulieu)
+
+- La carte `beaulieu` est renommée **« Complexe Nawal El Moutawakel (Beaulieu) »** et reçoit
+  son contenu : **8 zones** (piste d'athlétisme en anneau, terrain de football, terrains de
+  basket, plateau central multisports, beach-volley, courts de tennis, bâtiment des
+  installations couvertes, plateau extérieur ouest), **10 repères** (gymnase, piscine, salle de
+  musculation, mur d'escalade, vestiaires, infirmerie, entrée, liaison vers le site Lyautey,
+  local technique, hommage à Nawal El Moutawakel) et **6 catégories de lieux** propres à la
+  carte, chacun avec sa description et ses alias de recherche.
+- Migration `246_beaulieu_complexe_nawal_el_moutawakel.sql`, idempotente et **gardée par
+  l'existence de la carte** : sans effet sur une base neuve (CI, poste de dev), où la carte
+  `beaulieu` et son image de fond n'existent pas.
+
 ### Ajouté — Suivi utilisateurs admin (présence, activité, passage)
 
 - Panneau **Paramètres → Exploitation → Suivi utilisateurs** : connectés (Socket +
