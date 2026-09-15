@@ -34,6 +34,8 @@ Chaque fiche peut porter (tous les champs sont facultatifs sauf le nom) :
   partie récoltée, valeur nutritive, plante ornementale ou non ;
 - la **culture** : conseils de plantation, températures supportées, acidité du sol
   préférée, nutriments préférés ;
+- la **détermination** : critères d'identification, confusions possibles, période
+  d'observation (voir ci-dessous) ;
 - des **remarques** libres (trois champs) et une description générale ;
 - des **photos multiples**, rangées en six cases : illustration principale, espèce,
   feuille, fleur, fruit, partie récoltée — chaque case peut contenir plusieurs images
@@ -71,6 +73,39 @@ les mots qui correspondent à un terme du glossaire deviennent **cliquables
 automatiquement** : l'élève qui bute sur un mot ouvre sa définition d'un clic, sans
 que le professeur ait rien à saisir. Les termes du glossaire rattachés explicitement à
 la fiche restent affichés à part, en pastilles.
+
+## La section « Détermination »
+
+Une description générale ne suffit pas à affirmer qu'on a bien affaire à telle espèce.
+La fiche porte donc une section **Détermination**, dédiée à l'identification rigoureuse,
+avec trois champs :
+
+- **Critères de détermination** — ce qu'il faut observer pour être sûr : silhouette,
+  taille, couleurs, nervures, nombre de pattes, lames, odeur, traces…
+- **Confusions possibles** — les espèces ressemblantes et le critère qui tranche.
+- **Quand l'observer** — saison, moment de la journée, stade (floraison, fructification,
+  mue…), c'est-à-dire la période où la détermination est réellement possible.
+
+Ces champs sont écrits pour **tous les êtres vivants du catalogue**, pas seulement les
+plantes : le catalogue mêle végétaux, animaux, champignons, micro-organismes et
+fiches-ressources. On parle donc de « caractères observables » et de « stade », jamais de
+feuille ni de fleur.
+
+Les **confusions possibles** s'affichent dans un **encadré d'alerte**, visuellement
+distinct du reste de la fiche. C'est voulu : la forêt est comestible et les élèves
+récoltent. Une ressemblance avec une espèce toxique ou piquante ne doit pas se lire comme
+une ligne de métadonnée parmi d'autres.
+
+La section est **repliée par défaut**, comme les autres sections de la fiche, et placée
+juste après la photo : devant l'être vivant, on cherche d'abord à savoir ce que c'est. Un
+site peut la faire afficher **dépliée d'office** pour tout le monde : Réglages → Modules
+UI → « Fiches espèces — section « Détermination » toujours dépliée ».
+
+La section n'apparaît que si le professeur a renseigné au moins un des trois champs. Elle
+reste donc invisible sur les fiches non documentées, plutôt que d'ajouter un bandeau vide
+sur tout le catalogue. Ces trois champs ne sont **pas** remplis par le pré-remplissage
+automatique : les bases naturalistes interrogées ne fournissent pas de critères de
+détermination. Ils se saisissent à la main, ou par l'import en masse.
 
 ## Comment ça se passe — côté élève
 
@@ -152,6 +187,11 @@ fichier (simple et complet) sont téléchargeables. Trois stratégies au choix :
 
 Un mode **simulation** montre d'abord un rapport (lignes valides, erreurs, aperçu)
 sans rien enregistrer ; on lance l'import réel ensuite.
+
+Les champs de détermination s'importent comme les autres : les colonnes « Critères de
+détermination », « Confusions possibles » et « Période d'observation » sont reconnues,
+avec quelques variantes courantes (« Critères d'identification », « Espèces
+ressemblantes », « Risques de confusion », « Quand l'observer »).
 
 ### Les alias de noms
 
