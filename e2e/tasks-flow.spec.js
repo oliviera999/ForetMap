@@ -16,7 +16,15 @@ test('parcours tâches: consultation élève puis consultation professeur', asyn
 
   await enableTeacherMode(page);
   await openTeacherTasksTab(page);
+  // Depuis la navigation par pôles, l'onglet actif peut s'appeler « Tâches » (pôle Suivi) ou
+  // « Cartes & tâches » / « Cartes, tâches et tuto » (vue scindée du pôle Contenus, celle
+  // qu'emprunte `openTeacherTasksTab`). Le `t` minuscule de ces libellés composés ne
+  // correspondait pas au motif `/Tâches/`, sensible à la casse : l'assertion échouait sans
+  // que rien ne soit cassé côté application.
   await expect(
-    page.locator('.teacher-main .top-tabs .top-tab.active').filter({ hasText: /Tâches/ }),
+    page
+      .locator('.teacher-main .top-tabs .top-tab.active')
+      .filter({ hasText: /t[âa]ches/i })
+      .first(),
   ).toBeVisible({ timeout: 15_000 });
 });
