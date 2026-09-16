@@ -555,6 +555,9 @@ le module tutoriels est désactivé). C'est la vue idéale pour lancer une séan
 montre le jardin et on distribue le travail sans changer d'écran. Sur écran étroit,
 les onglets restent séparés.
 
+La carte occupe **toute la hauteur disponible** de la vue, à côté de la colonne des
+tâches qui défile pour elle seule : plus l'écran est haut, plus le plan est grand.
+
 ## ⚠️ Points d'attention sur l'existant
 
 > ⚠️ **Point d'attention** — L'**historique des cultures** s'alimente tout seul : dès

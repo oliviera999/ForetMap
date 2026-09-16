@@ -27,6 +27,29 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Filet de régression : `tests-ui/components/MapViewMount.test.jsx` (montage réel de `MapView`)
   et `tests-ui/shared/pct-map/PctStatusDots.test.jsx`.
 - Doc de référence `carte-et-zones.md` : section « Pastilles colorées des tâches ».
+### Corrigé — Visite : la photo de tête n'apparaît plus en double
+
+- Dans l'encart d'un lieu (zone ou repère), la photo de la carte et la première image de
+  la visite s'affichaient deux fois dès qu'elles désignaient le **même cliché sous deux
+  adresses différentes** — cas courant d'une photo associée à la visite depuis la carte,
+  puis servie sous son chemin public après reprise des chemins d'images. La comparaison
+  se fait désormais sur l'**identité de la photo** (lieu + photo) et non sur le texte de
+  l'adresse : vignette, chemin public, ancienne adresse d'API et adresse absolue sont
+  reconnus comme une seule et même image.
+- Les photos de la galerie carte reprises sous « Détails » sont filtrées de la même
+  façon : plus de vignette déjà vue en haut de la fiche.
+
+### Corrigé — Carte : typographie du sélecteur de cartes alignée sur la barre d'outils
+
+- Le menu déroulant de choix de carte (`.map-switch-select`, affiché au-delà de 4 cartes)
+  n'avait aucune déclaration typographique propre : il retombait sur la règle globale
+  `input, select, textarea` (`--text-base`, et `16px !important` sous 1024px ou sur pointeur
+  grossier), soit ~40 % de plus que les pilules voisines réglées sur `--map-toolbar-font-size`
+  (`--text-xs`) — d'où une fonte visiblement différente du reste de la barre.
+- Le sélecteur porte désormais `--font-sans`, `--map-toolbar-font-size` et `--lh-tight`, et
+  suit la compaction de la barre carte (`main--map-visible` / `map-view-root--solo`), dont les
+  règles ne visaient que les `button`.
+- Cliquet de style `tests-ui/utils/mapToolbarTypography.test.js`.
 
 ### Corrigé — QCM : la bonne réponse n'est plus la proposition la plus longue
 
@@ -146,6 +169,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - À l’entrée d’une carte, un **halo bref** met en avant jusqu’à 5 lieux non vus proches
   du centre, puis s’éteint (respect de `prefers-reduced-motion`).
 - Doc de référence `visite-et-mascottes.md` alignée.
+
+### Corrigé — Grand écran : la carte de l'onglet « Cartes, tâches et tuto » occupe toute la hauteur
+
+- Le volet carte de la vue scindée était sorti du flux d'étirement de la grille
+  (`align-self:start` + volet « sticky ») : il retombait sur la hauteur de son contenu,
+  et la scène, dépourvue de hauteur intrinsèque, se figeait sur son plancher de 160 px —
+  quelle que soit la taille de l'écran (mesuré en 1600 × 900 : volet carte 254 px contre
+  750 px pour la colonne tâches).
+- Le volet s'étire désormais sur toute la ligne de grille, côté élève comme côté prof :
+  la carte suit la hauteur de l'écran (scène 160 px → 656 px en 1600 × 900, 836 px en
+  1920 × 1080), la colonne tâches continue de défiler pour elle seule.
+- Le `sticky` était sans effet (son conteneur de défilement est en `overflow:hidden`) et
+  les `max-height` en `dvh` redérivaient à la main une hauteur déjà imposée par la ligne
+  `minmax(0, 1fr)` : variables `--fm-maptasks-sticky-top`, `--fm-maptasks-map-max-h` et
+  `--fm-maptasks-teacher-tabs-h` supprimées, ainsi qu'un `min-height` du cadre carte que
+  le style en ligne du composant neutralisait déjà.
+- Garde-fou de style étendu (`tests-ui/utils/teacherNavLayoutGuard.test.js`).
 
 ### Ajouté — Récurrence des tâches + calendrier scolaire
 
