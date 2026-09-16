@@ -9,6 +9,30 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — les profs de classe ne pouvaient plus se connecter (aucun message)
+
+- **Symptôme** : identifiants acceptés (jeton émis, `200`), puis retour immédiat sur
+  l'écran de connexion, sans erreur — à l'identique en connexion classique et via
+  Google, parce que le blocage était **côté client, après le jeton**.
+- **Cause** : la porte d'entrée d'`App.jsx` était `!student && !isTeacher`, et
+  `isTeacher` signifie « porte `teacher.access` », pas « est connecté ». Un compte
+  `user_type = 'teacher'` n'a pas de fiche n3beur : privé de cette permission, il
+  n'avait plus rien à quoi se raccrocher. Elle est **révocable depuis la console
+  Profils & utilisateurs** sous le libellé « Accès interface n3boss » — case qu'on
+  décoche naturellement sur « Prof de classe », profil qui n'a justement pas cette
+  barre haute — et, depuis la migration `241`, la révocation est **durable** : le
+  redémarrage ne la rattrapait plus.
+- **Correctif client** : la porte regarde la **session** (`isTeacherAccount` : type de
+  compte enseignant, quelles que soient les permissions), plus le droit
+  d'administration. Même dérivation pour la fiche de profil et les statistiques
+  personnelles, qui disparaissaient dans le même cas.
+- **Correctif serveur** : `PUT /api/rbac/profiles/:id/permissions` refuse (`400`) de
+  retirer `teacher.access` à `admin`, `prof` et `prof_classe`. Migration
+  `259_rbac_teacher_access_door.sql` pour réparer les bases déjà touchées.
+- Tests : montage d'`App` avec une session prof de classe **sans** `teacher.access`
+  (`tests-ui/AppShellWiring.test.jsx`), garde pure `teacherAccessLockError` et gel de
+  la liste des profils verrouillés contre `ROLE_PERMISSION_MATRIX`.
+
 ### Corrigé — Google enseignant : plus de création silencieuse de visiteur + messages de causes
 
 - En mode connexion enseignant, Google ne crée plus un compte élève/visiteur si aucun
