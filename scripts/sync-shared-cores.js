@@ -144,7 +144,7 @@ function checkAll() {
   return diverged;
 }
 
-/** Écrit les six miroirs. Retourne les noms écrits. */
+/** Écrit tous les miroirs de `PAIRS`. Retourne les noms écrits. */
 function writeAll() {
   fs.mkdirSync(outDir, { recursive: true });
   const written = [];

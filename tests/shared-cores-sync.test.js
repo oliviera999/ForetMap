@@ -2,8 +2,8 @@
 
 // Garde-fou de non-divergence des noyaux partagés ESM ↔ CJS (lot 0, garde-fous).
 //
-// Six noyaux vivent en double : la source ESM `src/shared/*Core.js` (front) et son miroir CJS
-// `lib/shared/*Core.js` (API Express sans dossier src/). Avant ce lot, les deux copies étaient
+// Plusieurs noyaux vivent en double : la source ESM `src/shared/*Core.js` (front) et son miroir
+// CJS `lib/shared/*Core.js` (API Express sans dossier src/). Avant ce lot, les deux copies étaient
 // maintenues à la main — aucun script ne les régénérait et rien ne détectait une dérive.
 // Ces tests verrouillent la propriété qui rend la duplication sûre : le miroir est exactement
 // ce que `scripts/sync-shared-cores.js` produit depuis l'ESM, et les deux copies exposent la
@@ -26,7 +26,9 @@ const {
 const ROOT = path.join(__dirname, '..');
 const SCRIPT = path.join(ROOT, 'scripts', 'sync-shared-cores.js');
 
-test('la liste des paires couvre bien les six noyaux attendus', () => {
+// Inventaire explicite : ajouter un noyau partagé sans passer par `scripts/sync-shared-cores.js`
+// (donc sans miroir CJS régénéré) doit échouer ici plutôt qu'au démarrage de l'API.
+test('la liste des paires couvre bien les noyaux attendus', () => {
   assert.deepStrictEqual(PAIRS.map(([, outName]) => outName).sort(), [
     'emojiMojibakeCore.js',
     'glBiomesRegistryCore.js',
@@ -35,6 +37,7 @@ test('la liste des paires couvre bien les six noyaux attendus', () => {
     'glMarkerAppearanceCore.js',
     'glMarkerBackgroundsCore.js',
     'glMarkerEventConfigCore.js',
+    'n3beurRolesCore.js',
   ]);
 });
 
