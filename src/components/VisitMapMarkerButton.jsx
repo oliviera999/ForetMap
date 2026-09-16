@@ -32,7 +32,7 @@ export function VisitMapMarkerButton({
             width: 'calc(8px * var(--map-overlay-world-inv, 1))',
             height: 'calc(8px * var(--map-overlay-world-inv, 1))',
             borderRadius: '50%',
-            background: '#1a4731',
+            background: 'var(--forest)',
             opacity: 0.55,
           }}
         />

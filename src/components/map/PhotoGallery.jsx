@@ -116,7 +116,7 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
             padding: '16px 0',
           }}
         >
-          Chargement...
+          Chargement…
         </p>
       ) : photos.length === 0 ? (
         <p
@@ -300,7 +300,7 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
               }}
             >
               {uploading ? (
-                'Envoi...'
+                'Envoi…'
               ) : (
                 <>
                   <IconFolder size={14} /> Galerie
@@ -319,7 +319,7 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
               }}
             >
               {uploading ? (
-                'Envoi...'
+                'Envoi…'
               ) : (
                 <>
                   <IconCamera size={14} /> Appareil photo

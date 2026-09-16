@@ -744,7 +744,7 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher un tutoriel..."
+            placeholder="Rechercher un tutoriel…"
           />
           <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
             <option value="all">Tous les types</option>

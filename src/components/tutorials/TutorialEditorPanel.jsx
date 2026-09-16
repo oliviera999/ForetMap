@@ -159,7 +159,7 @@ export function TutorialEditorPanel({
             />
           </div>
           <div className="field">
-            <label>Ou fichier statique (chemin /tutos/...)</label>
+            <label>Ou fichier statique (chemin /tutos/…)</label>
             <input
               value={form.source_file_path}
               onChange={set('source_file_path')}
@@ -190,7 +190,7 @@ export function TutorialEditorPanel({
       <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
         <button className="btn btn-primary btn-sm" disabled={saving} onClick={onSave}>
           {saving ? (
-            'Sauvegarde...'
+            'Sauvegarde…'
           ) : (
             <>
               <IconSave size={14} /> Enregistrer

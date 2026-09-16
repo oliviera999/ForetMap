@@ -814,7 +814,7 @@ function VisitViewImpl({
         <div className="loader-leaf">
           <IconVisit size={48} />
         </div>
-        <p>Préparation de la visite...</p>
+        <p>Préparation de la visite…</p>
       </div>
     );
   }

@@ -29,7 +29,7 @@ export function TaskFormTutorialsField({
           <input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Rechercher un tutoriel..."
+            placeholder="Rechercher un tutoriel…"
           />
           <div
             style={{

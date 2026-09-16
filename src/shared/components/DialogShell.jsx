@@ -8,6 +8,10 @@ import { joinClassNames } from '../utils/classNames.js';
  * - portal sous body (évite les problèmes de clipping parent)
  * - fermeture overlay + Escape
  * - focus trap / restauration du focus via useDialogA11y
+ *
+ * `open` est transmis à `useDialogA11y` (`active`) : la coque reste souvent montée pendant que
+ * la modale est fermée, et sans cela l'accessibilité clavier ne s'armait jamais à l'ouverture
+ * (`docs/AUDIT_UI_2026-09-16.md` B1).
  */
 export function DialogShell({
   open = true,
@@ -26,9 +30,12 @@ export function DialogShell({
   dialogRef: externalDialogRef = null,
   children,
 }) {
-  const internalDialogRef = useDialogA11y(() => {
-    onClose?.();
-  });
+  const internalDialogRef = useDialogA11y(
+    () => {
+      onClose?.();
+    },
+    { active: open },
+  );
   const dialogRef = externalDialogRef || internalDialogRef;
 
   if (!open || typeof document === 'undefined' || !document.body) return null;

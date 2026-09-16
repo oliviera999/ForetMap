@@ -37,9 +37,14 @@ export function LearningQuizPopover({
   dialogRef: externalDialogRef = null,
   children,
 }) {
-  const internalDialogRef = useDialogA11y(() => {
-    onClose?.();
-  });
+  // `active` : la surcouche peut rester montée alors qu'elle est fermée — sans lui,
+  // l'accessibilité clavier ne s'arme jamais (`docs/AUDIT_UI_2026-09-16.md` B1).
+  const internalDialogRef = useDialogA11y(
+    () => {
+      onClose?.();
+    },
+    { active: open },
+  );
   const dialogRef = externalDialogRef || internalDialogRef;
 
   if (!open || typeof document === 'undefined' || !document.body) return null;
