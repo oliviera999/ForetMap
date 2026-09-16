@@ -58,11 +58,15 @@ familles.
   compte et durable ; pour un invité anonyme, elle est mémorisée environ **24 heures**
   puis s'efface. Les marquages faits hors connexion sont conservés et synchronisés au
   retour du réseau. Sur le plan, chaque zone garde **sa couleur** ; les lieux déjà
-  **vus sont un peu plus atténués** (remplissage plus transparent, contour plus fin),
-  les autres restent bien marqués. Le **donut** du bandeau indique le pourcentage de lieux
-  marqués. Il n'y a **pas** de libellé « À découvrir » / « Vu » collé sur chaque lieu au
-  survol — pour ne pas surcharger le plan. Quand on **ouvre la fiche d'une zone**,
-  celle-ci reste mise en avant et les autres s'estompent un peu — sans cadre noir.
+  **vus sont nettement plus atténués** (remplissage plus transparent, contour plus fin),
+  les lieux **pas encore vus** ont un **contour plus marqué**. Il n'y a **pas** de petites
+  pastilles de couleur sur chaque lieu. À l'entrée sur une carte, un **halo doux**
+  met brièvement en avant jusqu'à **cinq** lieux non vus les plus proches du centre du
+  plan, puis s'éteint — pour aider le premier regard sans allumer toute la carte. Le
+  **donut** du bandeau indique le pourcentage de lieux marqués. Il n'y a **pas** de
+  libellé « À découvrir » / « Vu » collé sur chaque lieu au survol — pour ne pas
+  surcharger le plan. Quand on **ouvre la fiche d'une zone**, celle-ci reste mise en
+  avant et les autres s'estompent un peu — sans cadre noir.
 - **Sans souris** : zones et repères se parcourent à la **tabulation** et s'ouvrent avec
   **Entrée** ou **Espace**, comme sur la carte de l'application. Une fois la fiche
   ouverte, le clavier reste à l'intérieur ; **Échap** ou un clic à côté la referme et
@@ -78,8 +82,8 @@ familles.
   sur le plan lui-même.
 - **Le bouton « Présentation du lieu » ne clignote plus** au premier passage. Il reste mis
   en avant (c'est le seul bouton plein de la barre). Le plan n'a plus de libellés de
-  découverte animés : la progression se lit par l'atténuation des lieux déjà vus et le
-  donut du bandeau.
+  découverte animés en permanence : la progression se lit par le contraste des contours
+  et de l'opacité, le halo d'accueil ciblé, et le donut du bandeau.
 - **Accessibilité** : l'application est désormais vérifiée automatiquement à chaque
   livraison sur douze écrans (connexion, visite, carte, tâches, biodiversité, glossaire,
   réseau, quiz et deux écrans G&L). Les défauts trouvés ont été corrigés : chaque page a
