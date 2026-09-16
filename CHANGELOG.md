@@ -17,6 +17,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   du centre, puis s’éteint (respect de `prefers-reduced-motion`).
 - Doc de référence `visite-et-mascottes.md` alignée.
 
+### Corrigé — Grand écran : la carte de l'onglet « Cartes, tâches et tuto » occupe toute la hauteur
+
+- Le volet carte de la vue scindée était sorti du flux d'étirement de la grille
+  (`align-self:start` + volet « sticky ») : il retombait sur la hauteur de son contenu,
+  et la scène, dépourvue de hauteur intrinsèque, se figeait sur son plancher de 160 px —
+  quelle que soit la taille de l'écran (mesuré en 1600 × 900 : volet carte 254 px contre
+  750 px pour la colonne tâches).
+- Le volet s'étire désormais sur toute la ligne de grille, côté élève comme côté prof :
+  la carte suit la hauteur de l'écran (scène 160 px → 656 px en 1600 × 900, 836 px en
+  1920 × 1080), la colonne tâches continue de défiler pour elle seule.
+- Le `sticky` était sans effet (son conteneur de défilement est en `overflow:hidden`) et
+  les `max-height` en `dvh` redérivaient à la main une hauteur déjà imposée par la ligne
+  `minmax(0, 1fr)` : variables `--fm-maptasks-sticky-top`, `--fm-maptasks-map-max-h` et
+  `--fm-maptasks-teacher-tabs-h` supprimées, ainsi qu'un `min-height` du cadre carte que
+  le style en ligne du composant neutralisait déjà.
+- Garde-fou de style étendu (`tests-ui/utils/teacherNavLayoutGuard.test.js`).
+
 ### Ajouté — Récurrence des tâches + calendrier scolaire
 
 - Calendrier scolaire **2026-2027** (tables `school_calendar_*`, seed depuis le calendrier

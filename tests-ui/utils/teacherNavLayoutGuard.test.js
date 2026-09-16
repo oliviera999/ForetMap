@@ -4,16 +4,24 @@ import { resolve } from 'node:path';
 import { describe, test, expect } from 'vitest';
 
 /**
- * Garde-fou de style : la navigation prof (`.teacher-nav`, deux rangées depuis D-4) ne doit
- * jamais s'étirer pour occuper la hauteur libre du conteneur.
+ * Garde-fous de style de l'onglet « Cartes, tâches et tuto » sur grand écran : ni la
+ * navigation prof ni la colonne tâches ne doivent manger la hauteur réservée à la carte.
  *
- * Le conteneur prof porte `main` ET `teacher-main` : la règle `.main > * { flex:1 }`
- * s'applique donc aussi à `.teacher-nav`. La barre unique d'avant D-4 était immunisée par le
- * `max-height` de `.top-tabs` ; le nouveau conteneur, lui, grandissait jusqu'à la moitié de la
- * hauteur utile (mesuré : 398 px pour 114 px de contenu en 1440×900), d'où un vide énorme
- * entre la rangée d'onglets et la carte / les tâches de l'onglet « Cartes, tâches et tuto ».
+ * 1. Le conteneur prof porte `main` ET `teacher-main` : la règle `.main > * { flex:1 }`
+ *    s'applique donc aussi à `.teacher-nav`. La barre unique d'avant D-4 était immunisée par
+ *    le `max-height` de `.top-tabs` ; le nouveau conteneur, lui, grandissait jusqu'à la moitié
+ *    de la hauteur utile (mesuré : 398 px pour 114 px de contenu en 1440×900), d'où un vide
+ *    énorme entre la rangée d'onglets et la carte / les tâches.
+ * 2. Le volet carte du split doit s'étirer sur toute la ligne de grille : sorti du flux
+ *    d'étirement, il retombe sur la hauteur de son contenu, qui est nulle.
  */
-const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
+// Commentaires CSS retirés : les garde-fous vérifient aussi l'ABSENCE de certaines
+// déclarations, et une note d'historique qui les cite ferait échouer l'assertion alors
+// qu'aucune règle ne s'applique réellement.
+const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8').replace(
+  /\/\*[\s\S]*?\*\//g,
+  '',
+);
 
 /**
  * Déclarations de la première règle (sans accolade imbriquée) contenant `needle`, que `needle`
@@ -37,18 +45,30 @@ describe('index.css — hauteur de la navigation prof et calage du split', () =>
     expect(body).toMatch(/flex:\s*0\s+0\s+auto\s*;/);
   });
 
-  // `.desktop-split-view` est en overflow:hidden → c'est lui le conteneur de défilement du
-  // volet sticky : un `top` non nul y pousse la carte vers le bas sans rien dégager.
-  test.each([
-    ['prof', '--fm-maptasks-teacher-tabs-h:'],
-    [
-      'élève',
-      '--fm-maptasks-map-max-h:calc(100dvh - 56px - var(--safe-top) - var(--bottom-nav-height)',
-    ],
-  ])('la carte du split %s ne se décale pas sous un en-tête inexistant', (_branche, ancre) => {
-    const body = ruleBodyContaining(ancre);
+  // Le volet carte du split doit occuper toute la hauteur de sa ligne de grille, comme la
+  // colonne tâches. `align-self:start` (ancien volet sticky) annule l'étirement et renvoie le
+  // volet à la hauteur de son contenu — or la scène n'a pas de hauteur intrinsèque et retombe
+  // sur son plancher de 160 px, quelle que soit la taille d'écran (mesuré : 254 px de volet
+  // carte contre 750 px de colonne tâches en 1600×900). Même effet avec un `max-height` en
+  // `dvh` sous-estimé : la ligne `minmax(0, 1fr)` borne déjà la hauteur.
+  test('le volet carte du split occupe toute la hauteur de la ligne', () => {
+    const body = ruleBodyContaining('.main--maptasks-split .desktop-split-pane--map');
     expect(body).not.toBeNull();
-    expect(body).toMatch(/--fm-maptasks-sticky-top:\s*0px\s*;/);
+    expect(body).toMatch(/align-self:\s*stretch\s*;/);
+    expect(body).not.toMatch(/align-self:\s*(start|flex-start|baseline)/);
+    expect(body).not.toMatch(/position:\s*sticky/);
+    expect(body).not.toMatch(/max-height:\s*(?!none)/);
+  });
+
+  // La scène carte est en `height:100%` : tout ancêtre à hauteur `auto` la fait retomber sur
+  // son plancher. La chaîne volet → racine → cadre → emplacement doit rester en flex étirable.
+  test('la chaîne de hauteur sous le volet carte reste étirable', () => {
+    expect(ruleBodyContaining('.map-view-root--embedded .map-view-canvas-outer')).toMatch(
+      /flex:\s*1\s*;/,
+    );
+    expect(ruleBodyContaining('.map-view-root--embedded .map-view-canvas-slot')).toMatch(
+      /flex:\s*1\s*;/,
+    );
   });
 
   test('chrome compact iPhone : flou WebKit et cibles lock-btn ≥ 44px', () => {
