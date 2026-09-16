@@ -51,7 +51,7 @@ function AuditHistoryPanel({ roleTerms }) {
         <div className="loader-leaf">
           <IconLeaf size={48} />
         </div>
-        <p>Chargement...</p>
+        <p>Chargement…</p>
       </div>
     );
   if (error) {
@@ -131,7 +131,7 @@ function VisitStatsPanel({ roleTerms }) {
         <div className="loader-leaf">
           <IconStats size={48} />
         </div>
-        <p>Chargement...</p>
+        <p>Chargement…</p>
       </div>
     );
   if (error) {

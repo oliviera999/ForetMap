@@ -32,9 +32,14 @@ export function GLLoreGlossaryPopover({
 
   // Accessibilité clavier : focus initial dans le popover, piège de focus (Tab/Shift+Tab),
   // fermeture sur Échap et retour du focus à l'élément déclencheur à la fermeture.
-  const dialogRef = useDialogA11y(() => {
-    onClose?.();
-  });
+  // Surcouche montée en permanence par l'application : `active` arme l'accessibilité
+  // clavier à l'ouverture (`docs/AUDIT_UI_2026-09-16.md` B1).
+  const dialogRef = useDialogA11y(
+    () => {
+      onClose?.();
+    },
+    { active: open },
+  );
 
   useEffect(() => {
     if (!open || !loreCode) {

@@ -82,7 +82,7 @@ export function usePwaInstall({ onToast } = {}) {
       await deferredInstallPrompt.prompt();
       const result = await deferredInstallPrompt.userChoice;
       if (result?.outcome === 'accepted') {
-        if (onToast) onToast('Installation en cours...');
+        if (onToast) onToast('Installation en cours…');
       } else if (onToast) {
         onToast('Installation annulée.');
       }

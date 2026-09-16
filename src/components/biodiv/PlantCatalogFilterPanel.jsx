@@ -16,7 +16,7 @@ import { IUCN_STATUS_VALUES, IUCN_STATUS_LABELS } from '../../utils/plantIucnSta
 export function PlantCatalogFilterPanel({
   plants,
   showZonePresence = false,
-  searchPlaceholder = 'Rechercher dans la biodiversité...',
+  searchPlaceholder = 'Rechercher dans la biodiversité…',
   search,
   setSearch,
   group1,

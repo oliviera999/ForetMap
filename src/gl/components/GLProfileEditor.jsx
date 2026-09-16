@@ -103,7 +103,7 @@ export function GLProfileEditor({ auth, profile, config, onSessionUpdated, onRel
   if (!profile) {
     return (
       <section className="gl-panel">
-        <p className="gl-hint">Chargement du profil...</p>
+        <p className="gl-hint">Chargement du profil…</p>
       </section>
     );
   }

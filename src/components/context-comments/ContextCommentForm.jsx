@@ -32,7 +32,7 @@ function ContextCommentForm({
         onNotify={onNotify}
       />
       <button type="submit" className="btn btn-secondary btn-sm" disabled={submitting}>
-        {submitting ? 'Envoi...' : 'Publier'}
+        {submitting ? 'Envoi…' : 'Publier'}
       </button>
     </form>
   );

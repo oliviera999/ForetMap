@@ -73,7 +73,7 @@ function StudentStats({ student }) {
         <div className="loader-leaf">
           <IconLeaf size={48} />
         </div>
-        <p>Chargement...</p>
+        <p>Chargement…</p>
       </div>
     );
   }
@@ -504,7 +504,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
         </div>
         {avatarProcessing && (
           <div style={{ fontSize: 'var(--text-sm)', color: '#4b5563', marginTop: 6 }}>
-            Traitement de la photo en cours...
+            Traitement de la photo en cours…
           </div>
         )}
       </div>
@@ -709,7 +709,7 @@ function TeacherStats() {
         <div className="loader-leaf">
           <IconLeaf size={48} />
         </div>
-        <p>Chargement...</p>
+        <p>Chargement…</p>
       </div>
     );
 
@@ -836,7 +836,7 @@ function TeacherStats() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={`Rechercher un(e) ${roleTerms.studentSingular}...`}
+          placeholder={`Rechercher un(e) ${roleTerms.studentSingular}…`}
           style={{ background: 'white' }}
         />
       </div>
