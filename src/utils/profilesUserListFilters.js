@@ -7,23 +7,25 @@ export const PROFILES_PAGE_SIZES = [25, 50, 100];
 export const DEFAULT_PROFILES_PAGE_SIZE = 25;
 
 /**
- * Construit une map `userId → Set(groupId)` à partir des groupes détaillés
- * (réponse `GET /api/groups` avec `members[]`).
- * @param {Array<{ id: string|number, members?: Array<{ user_id: string|number }> }>} groups
+ * Construit une map `userId → Set(groupId)` directement depuis les comptes renvoyés par
+ * `GET /api/rbac/users` (champ `groups[]`). Évite de recharger `GET /api/groups` — payload
+ * lourd (tous les membres + périmètres de tous les groupes) — juste pour filtrer la liste.
+ * @param {Array<{ id: string|number, groups?: Array<{ id: string|number }> }>} users
  * @returns {Map<string, Set<string>>}
  */
-export function buildUserGroupIdsMap(groups = []) {
+export function buildUserGroupIdsFromUsers(users = []) {
   const map = new Map();
-  for (const g of groups) {
-    const gid = String(g?.id ?? '').trim();
-    if (!gid) continue;
-    const members = Array.isArray(g.members) ? g.members : [];
-    for (const m of members) {
-      const uid = String(m?.user_id ?? '').trim();
-      if (!uid) continue;
-      if (!map.has(uid)) map.set(uid, new Set());
-      map.get(uid).add(gid);
+  for (const u of users) {
+    const uid = String(u?.id ?? '').trim();
+    if (!uid) continue;
+    const groups = Array.isArray(u?.groups) ? u.groups : [];
+    if (groups.length === 0) continue;
+    const set = map.get(uid) || new Set();
+    for (const g of groups) {
+      const gid = String(g?.id ?? '').trim();
+      if (gid) set.add(gid);
     }
+    if (set.size > 0) map.set(uid, set);
   }
   return map;
 }

@@ -3,8 +3,22 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { ProfilesUserAssignmentList } from '../../../src/components/profiles/ProfilesUserAssignmentList.jsx';
 
 const USERS = [
-  { user_type: 'student', id: 's1', display_name: 'Léa', role_id: 3, role_slug: 'eleve_novice' },
-  { user_type: 'teacher', id: 't1', display_name: 'Prof X', role_id: 2, role_slug: 'admin' },
+  {
+    user_type: 'student',
+    id: 's1',
+    display_name: 'Léa',
+    role_id: 3,
+    role_slug: 'eleve_novice',
+    groups: [{ id: 'g1', name: '2nde B', kind: 'class', role_in_group: 'member' }],
+  },
+  {
+    user_type: 'teacher',
+    id: 't1',
+    display_name: 'Prof X',
+    role_id: 2,
+    role_slug: 'admin',
+    groups: [],
+  },
 ];
 const ROLES = [
   { id: 2, display_name: 'Admin' },
@@ -30,10 +44,35 @@ describe('ProfilesUserAssignmentList', () => {
   test('rend une ligne par utilisateur (nom + type) avec sélecteur de profil', () => {
     setup();
     expect(screen.getByText('Léa')).toBeInTheDocument();
-    expect(screen.getByText('(student)')).toBeInTheDocument();
+    expect(screen.getByText('Élève')).toBeInTheDocument();
     const selects = screen.getAllByRole('combobox');
     expect(selects).toHaveLength(2);
     expect(selects[0]).toHaveValue('3'); // Léa → Novice
+  });
+
+  test('chaque ligne montre le rattachement groupes (ou son absence)', () => {
+    setup();
+    expect(screen.getByText('2nde B')).toBeInTheDocument();
+    expect(screen.getByTestId('user-groups-empty')).toHaveTextContent('Aucun groupe');
+    expect(screen.getByLabelText('Profil de Léa')).toBeInTheDocument();
+  });
+
+  test('au-delà de 3 groupes, la ligne résume le surplus par un compteur', () => {
+    setup({
+      users: [
+        {
+          ...USERS[0],
+          groups: ['A', 'B', 'C', 'D'].map((n) => ({
+            id: `g-${n}`,
+            name: n,
+            kind: 'class',
+            role_in_group: 'member',
+          })),
+        },
+      ],
+    });
+    expect(screen.getByText('+1')).toBeInTheDocument();
+    expect(screen.queryByText('D')).not.toBeInTheDocument();
   });
 
   test('changer le profil appelle onAssignRole(userType, id, roleId)', () => {

@@ -10,6 +10,7 @@ const { getSettingValue, setSetting } = require('../lib/settings');
 const { getPasswordMinLengthFor } = require('../lib/passwordReset');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
+const { resolveGroupVisibility, fetchGroupsByUserId } = require('../lib/rbacUserGroups');
 
 async function emitStudentsWithPrimaryRole(roleId) {
   const rows = await queryAll(
@@ -681,6 +682,11 @@ router.get(
     LEFT JOIN roles r ON r.id = ur.role_id
      ORDER BY u.user_type ASC, display_name ASC`,
     );
+    const visibility = await resolveGroupVisibility(req.auth);
+    const groupsByUserId = await fetchGroupsByUserId(
+      users.map((u) => u.id),
+      visibility,
+    );
     res.json(
       users.map((u) => ({
         id: u.id,
@@ -698,6 +704,7 @@ router.get(
         forum_participate: u.user_type === 'student' ? Number(u.forum_participate) !== 0 : true,
         context_comment_participate:
           u.user_type === 'student' ? Number(u.context_comment_participate) !== 0 : true,
+        groups: groupsByUserId.get(String(u.id)) || [],
       })),
     );
   }),
@@ -719,6 +726,8 @@ router.get(
         WHERE ur.user_type = ? AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
       [resolvedUserType, resolvedUserId],
     );
+    const visibility = await resolveGroupVisibility(req.auth);
+    const groupsByUserId = await fetchGroupsByUserId([resolvedUserId], visibility);
     const displayName =
       (u.display_name && String(u.display_name).trim()) ||
       `${u.first_name || ''} ${u.last_name || ''}`.trim() ||
@@ -742,6 +751,7 @@ router.get(
         resolvedUserType === 'student' ? Number(rj?.forum_participate) !== 0 : true,
       context_comment_participate:
         resolvedUserType === 'student' ? Number(rj?.context_comment_participate) !== 0 : true,
+      groups: groupsByUserId.get(String(resolvedUserId)) || [],
     });
   }),
 );

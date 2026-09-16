@@ -1,9 +1,15 @@
+import { UserGroupsChips } from './UserGroupsChips.jsx';
+import { userTypeLabel } from '../../utils/profilesUserGroups.js';
+
+const MAX_ROW_GROUP_CHIPS = 3;
+
 /**
  * Liste d'attribution des profils aux comptes — extraite de `ProfilesAdminView` (O5/O6).
  *
- * Pour chaque utilisateur : nom + type, un sélecteur de profil principal (`onAssignRole(userType, id, roleId)`)
- * et un bouton « Modifier » (`onOpenEditUser(user)`). Seul un admin peut modifier un autre admin
- * (`isAdmin`). Présentation pure.
+ * Pour chaque utilisateur : identité (nom, type, groupes de rattachement), un sélecteur de
+ * profil principal (`onAssignRole(userType, id, roleId)`) et un bouton « Modifier »
+ * (`onOpenEditUser(user)`). Seul un admin peut modifier un autre admin (`isAdmin`).
+ * Présentation pure.
  */
 export function ProfilesUserAssignmentList({
   users = [],
@@ -24,13 +30,19 @@ export function ProfilesUserAssignmentList({
           style={{ flexWrap: 'wrap', gap: 8, alignItems: 'center' }}
         >
           <div style={{ flex: '1 1 180px', minWidth: 0 }}>
-            <strong>{u.display_name}</strong>{' '}
-            <span style={{ color: 'var(--ink-soft)' }}>({u.user_type})</span>
+            <div className="profiles-admin-user-row__identity">
+              <strong>{u.display_name}</strong>
+              <span className="profiles-user-chip profiles-user-chip--type">
+                {userTypeLabel(u.user_type)}
+              </span>
+            </div>
+            <UserGroupsChips groups={u.groups} max={MAX_ROW_GROUP_CHIPS} />
           </div>
           <select
             value={u.role_id || ''}
             onChange={(e) => onAssignRole(u.user_type, u.id, parseInt(e.target.value, 10))}
             disabled={loading}
+            aria-label={`Profil de ${u.display_name}`}
           >
             <option value="">Aucun profil</option>
             {roles.map((r) => (

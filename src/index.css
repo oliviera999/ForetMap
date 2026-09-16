@@ -7987,6 +7987,123 @@
   margin-bottom: 8px;
   grid-template-columns: 1fr 180px;
 }
+.profiles-admin-user-row__identity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* Pastilles d'identité d'un compte (type, profil, groupes) — liste et fiche utilisateur. */
+.profiles-user-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.profiles-user-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #1f2937;
+  font-size: var(--text-xs);
+  font-weight: var(--fw-semibold);
+  line-height: 1.6;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.profiles-user-chip__meta {
+  font-weight: var(--fw-regular);
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+.profiles-user-chip--type {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #3730a3;
+}
+.profiles-user-chip--role {
+  background: #f0fdf4;
+  border-color: var(--sage);
+  color: #166534;
+}
+.profiles-user-chip--group {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #854d0e;
+}
+.profiles-user-chip--manager {
+  background: #fef3c7;
+  border-color: #f59e0b;
+}
+.profiles-user-chip--inactive {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+.profiles-user-chip--empty,
+.profiles-user-chip--more {
+  background: transparent;
+  border-style: dashed;
+  color: var(--ink-soft);
+  font-weight: var(--fw-regular);
+}
+
+/* Carte d'identité en tête de la fiche utilisateur (modale « Modifier le compte »). */
+.profiles-user-summary {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.profiles-user-summary__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.profiles-user-summary__name {
+  font-size: var(--text-base);
+}
+.profiles-user-summary__id {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+.profiles-user-summary__grid {
+  margin: 8px 0 0;
+  display: grid;
+  gap: 6px;
+}
+.profiles-user-summary__row {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+.profiles-user-summary__row dt {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+.profiles-user-summary__row dd {
+  margin: 0;
+  min-width: 0;
+}
+.profiles-user-summary__row .profiles-user-chips {
+  margin-top: 0;
+}
+
+@media (max-width: 480px) {
+  .profiles-user-summary__row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
 .profiles-admin-create-grid {
   display: grid;
   gap: 8px;
