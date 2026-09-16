@@ -198,15 +198,15 @@
       "_icons-BBfebeWE.js"
     ]
   },
-  "_MascotPackWysiwygEditor-BXzk_MhI.js": {
-    "file": "assets/MascotPackWysiwygEditor-BXzk_MhI.js",
+  "_MascotPackWysiwygEditor-C1J_i3OE.js": {
+    "file": "assets/MascotPackWysiwygEditor-C1J_i3OE.js",
     "name": "MascotPackWysiwygEditor",
     "imports": [
       "_rolldown-runtime-hePW80VL.js",
       "_VisitMascotFallbackSvg-DG9xUeT2.js",
       "_react-vendor-ClBrELym.js",
       "_icons-BBfebeWE.js",
-      "_visitMascotPackExtras-DF7DjcVv.js",
+      "_visitMascotPackExtras-CQ7WN_Ij.js",
       "_spriteCutCatalogEntry-DjaX1zkf.js",
       "_mascotPack-CUxvBBYJ.js",
       "_mascotPackEditorModel-DsskhNjO.js",
@@ -463,8 +463,12 @@
       "_icons-BBfebeWE.js"
     ]
   },
-  "_visitMascotPackExtras-DF7DjcVv.js": {
-    "file": "assets/visitMascotPackExtras-DF7DjcVv.js",
+  "_visitMascotPackExtras-BtaktozN.css": {
+    "file": "assets/visitMascotPackExtras-BtaktozN.css",
+    "src": "_visitMascotPackExtras-BtaktozN.css"
+  },
+  "_visitMascotPackExtras-CQ7WN_Ij.js": {
+    "file": "assets/visitMascotPackExtras-CQ7WN_Ij.js",
     "name": "visitMascotPackExtras",
     "imports": [
       "_rolldown-runtime-hePW80VL.js",
@@ -473,12 +477,8 @@
       "_mascotPack-CUxvBBYJ.js"
     ],
     "css": [
-      "assets/visitMascotPackExtras-DVQglLL-.css"
+      "assets/visitMascotPackExtras-BtaktozN.css"
     ]
-  },
-  "_visitMascotPackExtras-DVQglLL-.css": {
-    "file": "assets/visitMascotPackExtras-DVQglLL-.css",
-    "src": "_visitMascotPackExtras-DVQglLL-.css"
   },
   "gl.html": {
     "file": "assets/gl-By06Z0vO.js",
@@ -520,7 +520,11 @@
     ]
   },
   "index.vite.html": {
+<<<<<<< HEAD
     "file": "assets/main-L-GmkauG.js",
+=======
+    "file": "assets/main-g8j_nzM2.js",
+>>>>>>> origin/claude/gallant-clarke-n5lo57
     "name": "main",
     "src": "index.vite.html",
     "isEntry": true,
@@ -531,7 +535,7 @@
       "_icons-BBfebeWE.js",
       "_ErrorBoundary-C__5v0o8.js",
       "_ImageLightboxProvider-CdkUG3Zo.js",
-      "_visitMascotPackExtras-DF7DjcVv.js",
+      "_visitMascotPackExtras-CQ7WN_Ij.js",
       "_spriteCutCatalogEntry-DjaX1zkf.js",
       "_socket-io-SGWxBABF.js",
       "_MarkdownTextarea-Byf5UbHx.js",
@@ -560,7 +564,7 @@
     ]
   },
   "mascot-pack-tool.html": {
-    "file": "assets/mascotPackTool-Cz_YACds.js",
+    "file": "assets/mascotPackTool-VkA4sLyu.js",
     "name": "mascotPackTool",
     "src": "mascot-pack-tool.html",
     "isEntry": true,
@@ -569,9 +573,9 @@
       "_VisitMascotFallbackSvg-DG9xUeT2.js",
       "_react-vendor-ClBrELym.js",
       "_icons-BBfebeWE.js",
-      "_visitMascotPackExtras-DF7DjcVv.js",
+      "_visitMascotPackExtras-CQ7WN_Ij.js",
       "_mascotPackEditorModel-DsskhNjO.js",
-      "_MascotPackWysiwygEditor-BXzk_MhI.js"
+      "_MascotPackWysiwygEditor-C1J_i3OE.js"
     ]
   },
   "node_modules/@rive-app/canvas/rive.wasm": {
@@ -630,7 +634,11 @@
     ]
   },
   "src/components/VisitMascotPackManager.jsx": {
+<<<<<<< HEAD
     "file": "assets/VisitMascotPackManager-DzlM96S8.js",
+=======
+    "file": "assets/VisitMascotPackManager-XckM4OFb.js",
+>>>>>>> origin/claude/gallant-clarke-n5lo57
     "name": "VisitMascotPackManager",
     "src": "src/components/VisitMascotPackManager.jsx",
     "isDynamicEntry": true,
@@ -640,19 +648,23 @@
       "_react-vendor-ClBrELym.js",
       "_icons-BBfebeWE.js",
       "_ImageLightboxProvider-CdkUG3Zo.js",
-      "_visitMascotPackExtras-DF7DjcVv.js",
+      "_visitMascotPackExtras-CQ7WN_Ij.js",
       "_spriteCutCatalogEntry-DjaX1zkf.js",
       "_mascotPack-CUxvBBYJ.js",
       "_downloadApiFile-D32Z69Hc.js",
       "index.vite.html",
       "_mascotPackEditorModel-DsskhNjO.js",
-      "_MascotPackWysiwygEditor-BXzk_MhI.js",
+      "_MascotPackWysiwygEditor-C1J_i3OE.js",
       "_mascotStateLabels-D2prd1Oi.js",
       "_MascotPackArchiveImportDialog-BFst9sWj.js"
     ]
   },
   "src/components/about-views.jsx": {
+<<<<<<< HEAD
     "file": "assets/about-views-D-H4OSUf.js",
+=======
+    "file": "assets/about-views-BLsNpgWZ.js",
+>>>>>>> origin/claude/gallant-clarke-n5lo57
     "name": "about-views",
     "src": "src/components/about-views.jsx",
     "isDynamicEntry": true,
@@ -667,7 +679,11 @@
     ]
   },
   "src/components/audit-views.jsx": {
+<<<<<<< HEAD
     "file": "assets/audit-views-D13sDACe.js",
+=======
+    "file": "assets/audit-views-tQnVb3Do.js",
+>>>>>>> origin/claude/gallant-clarke-n5lo57
     "name": "audit-views",
     "src": "src/components/audit-views.jsx",
     "isDynamicEntry": true,
@@ -681,7 +697,11 @@
     ]
   },
   "src/components/biodiv/PlantCatalogPreview.jsx": {
+<<<<<<< HEAD
     "file": "assets/PlantCatalogPreview-B6_eZZZ6.js",
+=======
+    "file": "assets/PlantCatalogPreview-DYQv8YyP.js",
+>>>>>>> origin/claude/gallant-clarke-n5lo57
     "name": "PlantCatalogPreview",
     "src": "src/components/biodiv/PlantCatalogPreview.jsx",
     "isDynamicEntry": true,
@@ -703,7 +723,11 @@
     ]
   },
   "src/components/foretmap-views.jsx": {
+<<<<<<< HEAD
     "file": "assets/foretmap-views-BeDCLERV.js",
+=======
+    "file": "assets/foretmap-views-BNleomn9.js",
+>>>>>>> origin/claude/gallant-clarke-n5lo57
     "name": "foretmap-views",
     "src": "src/components/foretmap-views.jsx",
     "isDynamicEntry": true,
@@ -724,7 +748,11 @@
     ]
   },
   "src/components/forum-views.jsx": {
+<<<<<<< HEAD
     "file": "assets/forum-views-BkPynM6W.js",
+=======
+    "file": "assets/forum-views-DnbTshZZ.js",
+>>>>>>> origin/claude/gallant-clarke-n5lo57
     "name": "forum-views",
     "src": "src/components/forum-views.jsx",
     "isDynamicEntry": true,
@@ -740,7 +768,11 @@
     ]
   },
   "src/components/journal/UserJournalView.jsx": {
+<<<<<<< HEAD
     "file": "assets/UserJournalView-AW90D5Gv.js",
+=======
+    "file": "assets/UserJournalView-CYT2m0K_.js",
+>>>>>>> origin/claude/gallant-clarke-n5lo57
     "name": "UserJournalView",
     "src": "src/components/journal/UserJournalView.jsx",
     "isDynamicEntry": true,
@@ -773,7 +805,11 @@
     ]
   },
   "src/components/pedago-views.jsx": {
+<<<<<<< HEAD
     "file": "assets/pedago-views-BN8Zj03r.js",
+=======
+    "file": "assets/pedago-views-DJBapmAc.js",
+>>>>>>> origin/claude/gallant-clarke-n5lo57
     "name": "pedago-views",
     "src": "src/components/pedago-views.jsx",
     "isDynamicEntry": true,
@@ -795,7 +831,11 @@
     ]
   },
   "src/components/profiles-views.jsx": {
+<<<<<<< HEAD
     "file": "assets/profiles-views-CMDAeNxD.js",
+=======
+    "file": "assets/profiles-views-BxB5rlUu.js",
+>>>>>>> origin/claude/gallant-clarke-n5lo57
     "name": "profiles-views",
     "src": "src/components/profiles-views.jsx",
     "isDynamicEntry": true,
@@ -814,7 +854,11 @@
     ]
   },
   "src/components/settings-admin-views.jsx": {
+<<<<<<< HEAD
     "file": "assets/settings-admin-views-BcxlFZwc.js",
+=======
+    "file": "assets/settings-admin-views-BH_JXlN8.js",
+>>>>>>> origin/claude/gallant-clarke-n5lo57
     "name": "settings-admin-views",
     "src": "src/components/settings-admin-views.jsx",
     "isDynamicEntry": true,
@@ -840,7 +884,11 @@
     ]
   },
   "src/components/stats-views.jsx": {
+<<<<<<< HEAD
     "file": "assets/stats-views-WI5nzN3w.js",
+=======
+    "file": "assets/stats-views-CkFcqg21.js",
+>>>>>>> origin/claude/gallant-clarke-n5lo57
     "name": "stats-views",
     "src": "src/components/stats-views.jsx",
     "isDynamicEntry": true,
@@ -861,7 +909,11 @@
     ]
   },
   "src/components/tutorials-views.jsx": {
+<<<<<<< HEAD
     "file": "assets/tutorials-views-BZMgtHx-.js",
+=======
+    "file": "assets/tutorials-views-D_toEEGr.js",
+>>>>>>> origin/claude/gallant-clarke-n5lo57
     "name": "tutorials-views",
     "src": "src/components/tutorials-views.jsx",
     "isDynamicEntry": true,
@@ -880,7 +932,11 @@
     ]
   },
   "src/components/visit-views.jsx": {
+<<<<<<< HEAD
     "file": "assets/visit-views-3OBJu7hm.js",
+=======
+    "file": "assets/visit-views-BwcXxEnI.js",
+>>>>>>> origin/claude/gallant-clarke-n5lo57
     "name": "visit-views",
     "src": "src/components/visit-views.jsx",
     "isDynamicEntry": true,
@@ -891,7 +947,7 @@
       "_icons-BBfebeWE.js",
       "_ErrorBoundary-C__5v0o8.js",
       "_ImageLightboxProvider-CdkUG3Zo.js",
-      "_visitMascotPackExtras-DF7DjcVv.js",
+      "_visitMascotPackExtras-CQ7WN_Ij.js",
       "_spriteCutCatalogEntry-DjaX1zkf.js",
       "_MarkdownTextarea-Byf5UbHx.js",
       "_GlossaryMarkdown-CZcLxCFb.js",
