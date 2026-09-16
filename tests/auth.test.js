@@ -269,7 +269,7 @@ describe('Auth', () => {
     const teacherEmail = `prof_${Date.now()}@example.com`;
     const teacherPassword = 'teacherPwd123';
     const hash = await bcrypt.hash(teacherPassword, 10);
-    const now = new Date().toISOString();
+    const now = new Date();
     await execute(
       `INSERT INTO users
         (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
@@ -301,7 +301,7 @@ describe('Auth', () => {
     process.env.TEACHER_ADMIN_EMAIL = teacherEmail;
 
     const hash = await bcrypt.hash(teacherPassword, 10);
-    const now = new Date().toISOString();
+    const now = new Date();
     const teacherId = crypto.randomUUID();
     await execute(
       `INSERT INTO users
@@ -337,7 +337,7 @@ describe('Auth', () => {
     const teacherPassword = 'AdminElevPwd!1';
     const teacherId = crypto.randomUUID();
     const hash = await bcrypt.hash(teacherPassword, 10);
-    const now = new Date().toISOString();
+    const now = new Date();
     await execute(
       `INSERT INTO users
         (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
@@ -388,7 +388,7 @@ describe('Auth', () => {
 
   it('GET /api/auth/google/callback connecte un professeur existant', async () => {
     const teacherEmail = `oauth.prof.${Date.now()}@pedagolyautey.org`;
-    const now = new Date().toISOString();
+    const now = new Date();
     await execute(
       `INSERT INTO users
         (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
@@ -522,7 +522,7 @@ describe('Auth', () => {
     // indépendamment du réglage `security.password_min_length` (qui reste le plancher élève).
     const newPassword = 'nouveauMotDePasseProf2026';
     const hash = await bcrypt.hash(oldPassword, 10);
-    const now = new Date().toISOString();
+    const now = new Date();
     const teacherId = crypto.randomUUID();
     await execute(
       `INSERT INTO users
@@ -553,7 +553,7 @@ describe('Auth', () => {
   it('POST /api/auth/teacher/reset-password refuse un mot de passe sous le plancher prof', async () => {
     const teacherEmail = `prof_court_${Date.now()}@example.com`;
     const hash = await bcrypt.hash('oldPass1', 10);
-    const now = new Date().toISOString();
+    const now = new Date();
     const teacherId = crypto.randomUUID();
     await execute(
       `INSERT INTO users

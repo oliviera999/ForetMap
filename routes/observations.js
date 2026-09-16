@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../database');
-const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
+const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
 const { requireAuth } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
 const { emitObservationsChanged } = require('../lib/realtime');
@@ -143,7 +143,7 @@ router.post(
 
     const result = await execute(
       'INSERT INTO observation_logs (student_id, zone_id, content, image_path, created_at) VALUES (?, ?, ?, ?, ?)',
-      [resolvedStudentId, zone_id || null, content.trim(), null, nowIsoUtc()],
+      [resolvedStudentId, zone_id || null, content.trim(), null, nowDbTimestamp()],
     );
     const logId = result.insertId;
 

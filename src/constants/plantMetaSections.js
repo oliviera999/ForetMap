@@ -68,6 +68,8 @@ export const PLANT_META_SECTIONS = [
     items: [
       { key: 'sources', label: 'Sources', links: true },
       { key: 'photo', label: 'Photo', links: true },
+      { key: 'photo_credit', label: 'Crédit photo' },
+      { key: 'photo_licence', label: 'Licence photo' },
       { key: 'photo_species', label: 'Photo espèce', links: true },
       { key: 'photo_leaf', label: 'Photo feuille', links: true },
       { key: 'photo_flower', label: 'Photo fleur', links: true },
@@ -114,6 +116,36 @@ export const PLANT_DETERMINATION_FIELDS = [
     long: false,
   },
 ];
+
+/**
+ * Niveaux de gravité du danger — parité avec l'ENUM SQL `plants.toxicity_level` et
+ * `lib/plantHazard.js`. L'ordre est celui de la gravité croissante, pas celui du menu :
+ * le formulaire l'affiche tel quel, du moins grave au plus grave.
+ */
+export const TOXICITY_LEVEL_OPTIONS = [
+  { value: 'aucune', label: 'Aucun danger connu' },
+  { value: 'irritation', label: 'Irritation' },
+  { value: 'toxique', label: 'Toxique' },
+  { value: 'mortel', label: 'Potentiellement mortel' },
+];
+
+/** Voies d'exposition — parité avec le SET SQL `plants.hazard_exposure`. */
+export const HAZARD_EXPOSURE_OPTIONS = [
+  { value: 'ingestion', label: 'Ingestion' },
+  { value: 'contact', label: 'Contact avec la peau' },
+  { value: 'inhalation', label: 'Inhalation' },
+  { value: 'projection_oculaire', label: 'Projection dans l’œil' },
+  { value: 'piqure_morsure', label: 'Piqûre ou morsure' },
+  { value: 'seve_latex', label: 'Sève ou latex' },
+];
+
+export const TOXICITY_LEVEL_LABELS = Object.fromEntries(
+  TOXICITY_LEVEL_OPTIONS.map((entry) => [entry.value, entry.label]),
+);
+
+export const HAZARD_EXPOSURE_LABELS = Object.fromEntries(
+  HAZARD_EXPOSURE_OPTIONS.map((entry) => [entry.value, entry.label]),
+);
 
 export const PHOTO_FIELD_KEYS = new Set([
   'photo',
