@@ -1,6 +1,6 @@
 /* Service worker « gl » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-gl-a5a12ef5";
+const CACHE_NAME = "foretmap-gl-ddb07fc4";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -9,8 +9,8 @@ const PRECACHE_URLS = [
   "/manifest.json",
   "/gl/favicon.svg",
   "/gl/logo.png",
-  "/assets/gl-BMdsO2Qd.js",
-  "/assets/gl-CGYxiSaK.css",
+  "/assets/gl-4aDssHMn.js",
+  "/assets/gl-RO5hz0Bc.css",
   "/assets/rolldown-runtime-hePW80VL.js",
   "/assets/VisitMascotFallbackSvg-CCZ6taQQ.js",
   "/assets/react-vendor-ClBrELym.js",
@@ -28,7 +28,7 @@ const PRECACHE_URLS = [
   "/assets/apiGL-Bnv0qUTR.js",
   "/assets/presenceListPatch-B-G8ag25.js",
   "/assets/JournalBookView-BjvTtGgJ.js",
-  "/assets/FoodWebGraph-DG0wIuQ_.js",
+  "/assets/FoodWebGraph-COxRxMsi.js",
   "/assets/mascotBehaviorEngine-Dix-p0JV.js",
   "/assets/MediaLibraryMenu-CyxJQfRB.js",
 ];
