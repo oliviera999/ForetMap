@@ -9,6 +9,35 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — La récurrence ne meurt plus en silence
+
+Trois défauts relevés par `docs/AUDIT_ECHEANCES_2026-09.md` (§5 et §7) et laissés en l'état
+à l'époque (« durcissements possibles ; ils changeraient des réponses d'API »).
+
+- **Format de date contrôlé sur tous les chemins d'écriture.** `POST /api/tasks` et
+  `PUT /api/tasks/:id` validaient déjà `AAAA-MM-JJ` ; **`POST /api/tasks/proposals` ne
+  validait rien** et insérait `start_date || null` / `due_date || null` tels quels. La
+  colonne étant un `VARCHAR(32)`, une proposition portant `15/09/2026` était acceptée, puis
+  promue en tâche récurrente — et `parseISODateOnly` la rejetant, la série ne réapparaissait
+  **jamais**. Le helper est remonté dans `lib/taskRouteHelpers.js` et partagé par les trois
+  routes.
+- **Cohérence `due_date >= start_date`**, absente partout jusqu'ici : une tâche pouvait être
+  due avant d'avoir commencé, et s'affichait alors « en attente » et « en retard » à la fois.
+  Sur `PUT`, le contrôle porte sur les valeurs **effectives** (corps + existant) — envoyer
+  une seule des deux dates ne peut plus inverser le couple — mais seulement si la requête
+  touche aux dates : une tâche héritée déjà incohérente doit rester corrigible sur ses
+  autres champs.
+- **Trace des rejets.** Un candidat récurrent écarté pour donnée inexploitable émet un
+  `warn` Pino avec `taskId`, `recurrence`, `startDate`, `dueDate` et `reason`
+  (`due_date_unparsable` | `next_occurrence_uncomputable`). Les rejets légitimes (course
+  entre instances, doublon déjà créé, échéance encore future) restent silencieux : seul ce
+  qui condamne définitivement une série est journalisé.
+- Tests : logique pure dans `tests/tasks-helpers.test.js` (formats acceptés et refusés,
+  couples cohérents et inversés) ; bout en bout dans `tests/tasks-date-validation.test.js`
+  (400 sur `POST`, 400 sur `PUT` partiel sans modification de la ligne, décalage des deux
+  dates ensemble toujours possible).
+
+
 ### Modifié — La récurrence se cale sur la date de départ
 
 - **La date de départ porte désormais le rythme** des tâches récurrentes quand elle est

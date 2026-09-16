@@ -58,6 +58,8 @@ const {
   referentPublicLabel,
   normalizeArchivedFilter,
   archivedFilterSql,
+  normalizeTaskDateInput,
+  validateTaskDateRange,
 } = require('../lib/taskRouteHelpers');
 const {
   canReadAllAssignments,
@@ -118,16 +120,6 @@ function normalizeTaskRecurrenceInput(raw, { requiredPresent = false } = {}) {
     return { error: 'Récurrence invalide (weekly, biweekly ou monthly)' };
   }
   return { value: r };
-}
-
-/** Dates tâche : YYYY-MM-DD ou vide/null. */
-function normalizeTaskDateInput(raw, fieldLabel) {
-  if (raw === undefined || raw === null || raw === '') return { value: null };
-  const s = String(raw).trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    return { error: `${fieldLabel} invalide (format AAAA-MM-JJ attendu)` };
-  }
-  return { value: s };
 }
 
 let recurrenceTemplateColumnsReady = null;
@@ -684,6 +676,8 @@ router.post(
     if (parsedStart.error) return res.status(400).json({ error: parsedStart.error });
     const parsedDue = normalizeTaskDateInput(due_date, "Date d'échéance");
     if (parsedDue.error) return res.status(400).json({ error: parsedDue.error });
+    const rangeError = validateTaskDateRange(parsedStart.value, parsedDue.value);
+    if (rangeError) return res.status(400).json({ error: rangeError.error });
     const normalizedGroupId = normalizeOptionalId(group_id);
     const id = crypto.randomUUID();
     const seriesId = parsedRecurrence.value ? crypto.randomUUID() : null;
@@ -976,6 +970,17 @@ router.put('/:id', async (req, res) => {
       const pDue = normalizeTaskDateInput(due_date, "Date d'échéance");
       if (pDue.error) return res.status(400).json({ error: pDue.error });
       nextDueDate = pDue.value;
+    }
+    // Contrôle sur les valeurs EFFECTIVES : n'envoyer qu'une des deux dates ne doit pas
+    // permettre d'inverser le couple déjà en base. Mais seulement si ce PUT touche aux
+    // dates : une tâche héritée déjà incohérente (aucun contrôle avant ce lot) doit rester
+    // modifiable sur ses autres champs, sinon elle devient impossible à corriger.
+    const putTouchesDates =
+      Object.prototype.hasOwnProperty.call(req.body, 'start_date') ||
+      Object.prototype.hasOwnProperty.call(req.body, 'due_date');
+    if (putTouchesDates) {
+      const putRangeError = validateTaskDateRange(nextStartDate, nextDueDate);
+      if (putRangeError) return res.status(400).json({ error: putRangeError.error });
     }
 
     const currentStatus = normalizeTaskStatusForRead(task.status);
