@@ -17,8 +17,12 @@ import React from 'react';
  * lieu (bouton repère, polygone de zone), sinon un lecteur d'écran annoncerait deux fois la
  * même information.
  *
- * @typedef {{ variant: string, label?: string, placement?: 'top-right'|'bottom-left' }} PctStatusDot
+ * @typedef {{ variant: string, label?: string,
+ *   placement?: 'top-right'|'top-left'|'bottom-left'|'bottom-right' }} PctStatusDot
  */
+
+/** Coins où une pastille peut se poser (repli : en haut à droite). */
+const PLACEMENTS = new Set(['top-right', 'top-left', 'bottom-left', 'bottom-right']);
 
 /** Libellé accessible cumulé d'une liste de pastilles (à joindre au nom du lieu). */
 export function statusDotsLabel(dots) {
@@ -40,7 +44,7 @@ export function PctStatusDots({ dots, className = 'fm-pct-status-dots' }) {
   return (
     <span className={className} aria-hidden>
       {list.map((dot, index) => {
-        const placement = dot.placement === 'bottom-left' ? 'bottom-left' : 'top-right';
+        const placement = PLACEMENTS.has(dot.placement) ? dot.placement : 'top-right';
         return (
           <span
             key={`${dot.variant}:${placement}:${index}`}

@@ -369,9 +369,19 @@
   right: 0;
 }
 
+.fm-pct-status-dot--top-left {
+  top: 0;
+  left: 0;
+}
+
 .fm-pct-status-dot--bottom-left {
   bottom: 0;
   left: 0;
+}
+
+.fm-pct-status-dot--bottom-right {
+  bottom: 0;
+  right: 0;
 }
 
 /* Tons neutres : le produit décide de ce qu'ils signifient. */

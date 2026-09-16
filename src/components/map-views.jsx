@@ -1088,6 +1088,7 @@ function MapViewImpl({
   const getStageZoneStatusDots = useCallback(
     (zone) =>
       locationStatusDots({
+        kind: 'zone',
         taskVisual: zoneTaskVisualById.get(zone?.id),
         tutorialCount: showTutorialDots ? zoneTutorialCountById.get(zone?.id) || 0 : 0,
       }),
@@ -1097,6 +1098,7 @@ function MapViewImpl({
   const getStageMarkerStatusDots = useCallback(
     (marker) =>
       locationStatusDots({
+        kind: 'marker',
         taskVisual: markerTaskVisualById.get(marker?.id),
         tutorialCount: showTutorialDots ? markerTutorialCountById.get(marker?.id) || 0 : 0,
       }),
