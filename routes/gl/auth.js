@@ -71,7 +71,7 @@ const {
   resolveUserIdForGlClaims,
 } = require('../../lib/auth/tokenEpoch');
 const { loginThrottle, sendLoginThrottled } = require('../../lib/loginThrottle');
-const { nowIsoUtc } = require('../../lib/shared/isoTimestamp');
+const { nowDbTimestamp } = require('../../lib/shared/isoTimestamp');
 const { resolveGlPlayerActiveMembership } = require('../../lib/glPlayerMembership');
 
 const router = express.Router();
@@ -465,7 +465,7 @@ async function touchGlPlayerLastSeen(player) {
   ]);
   if (player.user_id) {
     await execute('UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ?', [
-      nowIsoUtc(),
+      nowDbTimestamp(),
       player.user_id,
     ]);
   }

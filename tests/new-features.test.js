@@ -408,11 +408,11 @@ test('projet : duplication structurelle sans assignations', async () => {
 
   await execute(
     'INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?, ?)',
-    [sourceTaskId, studentData.id, 'Test', 'Eleve', new Date().toISOString()],
+    [sourceTaskId, studentData.id, 'Test', 'Eleve', new Date()],
   );
   await execute(
     'INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-    [sourceTaskId, studentData.id, 'Test', 'Eleve', 'Log test', new Date().toISOString()],
+    [sourceTaskId, studentData.id, 'Test', 'Eleve', 'Log test', new Date()],
   );
   // Simule un ancien enregistrement avec localisation portée seulement par les colonnes legacy.
   await execute('DELETE FROM task_zones WHERE task_id = ?', [sourceTaskId]);

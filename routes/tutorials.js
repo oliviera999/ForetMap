@@ -6,7 +6,7 @@ const asyncHandler = require('../lib/asyncHandler');
 const { assertGatingSatisfiedForAcknowledge } = require('../lib/learningGatingAcknowledge');
 const { emitTasksChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
-const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
+const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
 const {
   resolveLocalTutorialFile,
   isAllowedSourceFilePath,
@@ -471,7 +471,7 @@ router.post(
       });
     }
 
-    const now = nowIsoUtc();
+    const now = nowDbTimestamp();
     await execute(
       `INSERT INTO user_tutorial_reads (user_id, tutorial_id, acknowledged_at)
      VALUES (?, ?, ?)
@@ -648,7 +648,7 @@ router.post(
 
     const baseSlug = slugify(req.body.slug || title);
     const slug = await uniqueSlug(baseSlug);
-    const now = nowIsoUtc();
+    const now = nowDbTimestamp();
     // Atomicité : INSERT tutoriel + liens zones/repères dans une seule transaction (§2.5 audit).
     // Les validations 400/403/404 ci-dessus restent hors transaction, à l'identique.
     const createdId = await withTransaction(async (tx) => {
@@ -727,7 +727,7 @@ router.post(
       deleteFile(previousRelativePath);
     }
 
-    const now = nowIsoUtc();
+    const now = nowDbTimestamp();
     await execute('UPDATE tutorials SET cover_image_url = ?, updated_at = ? WHERE id = ?', [
       publicUrl,
       now,
@@ -786,7 +786,7 @@ router.put(
       }
     }
 
-    const now = nowIsoUtc();
+    const now = nowDbTimestamp();
     await withTransaction(async (tx) => {
       for (let i = 0; i < normalized.length; i += 1) {
         await tx.execute('UPDATE tutorials SET sort_order = ?, updated_at = ? WHERE id = ?', [
@@ -904,7 +904,7 @@ router.put(
       if (rel) deleteFile(rel);
     }
 
-    const now = nowIsoUtc();
+    const now = nowDbTimestamp();
     await execute(
       `UPDATE tutorials
         SET title = ?, slug = ?, type = ?, summary = ?, cover_image_url = ?, html_content = ?, source_url = ?, source_file_path = ?,
@@ -953,7 +953,7 @@ router.delete(
     const existing = await queryOne('SELECT id FROM tutorials WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Tutoriel introuvable' });
     await execute('UPDATE tutorials SET is_active = 0, updated_at = ? WHERE id = ?', [
-      nowIsoUtc(),
+      nowDbTimestamp(),
       req.params.id,
     ]);
     clearTutorialViewCache();

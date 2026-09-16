@@ -8,6 +8,7 @@ import {
   commonsFilePageToDisplaySrc,
   parseCommonsCategoryFromUrl,
   getSourceLabel,
+  commonsFilePageFromPhotoUrl,
 } from '../../utils/plantSourceLinks.js';
 import { normalizedPlantValue, parseLinkCandidates } from '../../utils/plantFormValues.js';
 import { findFirstBiodivHeroPhotoCandidate } from '../../utils/biodivPlantForm.js';
@@ -48,6 +49,13 @@ export function PlantBiodivHeroPhoto({ plant }) {
   const [lightbox, setLightbox] = useState(null);
   const candidate = useMemo(() => findFirstBiodivHeroPhotoCandidate(plant), [plant]);
   const [categorySrc, setCategorySrc] = useState(null);
+  // 30 fiches du catalogue pointaient une image Wikimedia supprimée depuis (404). Sans ce
+  // garde-fou, la fiche affiche une icône d'image cassée ; on préfère ne rien afficher.
+  const [broken, setBroken] = useState(false);
+
+  useEffect(() => {
+    setBroken(false);
+  }, [candidate]);
 
   useEffect(() => {
     setCategorySrc(null);
@@ -64,9 +72,15 @@ export function PlantBiodivHeroPhoto({ plant }) {
 
   if (!candidate) return null;
   const src = candidate.kind === 'direct' ? candidate.src : categorySrc;
-  if (!src) return null;
+  if (!src || broken) return null;
 
   const name = normalizedPlantValue(plant.name) || 'Espèce';
+  const credit = normalizedPlantValue(plant.photo_credit);
+  const licence = normalizedPlantValue(plant.photo_licence);
+  // Lien d'attribution : les licences CC acceptent de renvoyer vers la page source, qui
+  // porte auteur, licence et historique. Il complète le crédit stocké, et le remplace pour
+  // les photos de la galerie, dont l'attribution n'est pas stockée en base.
+  const filePage = commonsFilePageFromPhotoUrl(src);
 
   return (
     <>
@@ -85,11 +99,27 @@ export function PlantBiodivHeroPhoto({ plant }) {
           className="biodiv-card-hero-photo"
           fetchPriority="high"
           decoding="async"
+          onError={() => setBroken(true)}
         />
         <span className="biodiv-card-hero-photo-hint" aria-hidden="true">
           <IconSearch size={14} /> Voir
         </span>
       </button>
+      {credit || filePage ? (
+        <p className="biodiv-card-hero-credit">
+          {credit ? <span className="biodiv-card-hero-credit__author">{credit}</span> : null}
+          {credit && licence ? ' — ' : null}
+          {licence ? <span className="biodiv-card-hero-credit__licence">{licence}</span> : null}
+          {filePage ? (
+            <>
+              {credit || licence ? ' · ' : null}
+              <a href={filePage} target="_blank" rel="noopener noreferrer">
+                Wikimedia Commons
+              </a>
+            </>
+          ) : null}
+        </p>
+      ) : null}
     </>
   );
 }
