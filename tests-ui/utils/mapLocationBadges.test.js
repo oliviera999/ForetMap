@@ -199,10 +199,13 @@ describe('locationStatusDots', () => {
     expect(locationStatusDots({ taskVisual: 'done' })[0].variant).toBe('ok');
   });
 
-  test('tutoriels liés → pastille en bas à gauche, accord du libellé', () => {
-    expect(locationStatusDots({ tutorialCount: 1 })).toEqual([
+  test('tutoriels liés : coin historique selon le type de lieu, accord du libellé', () => {
+    // Repère : en bas à gauche de l'épingle. Zone : en haut à gauche, le nom s'écrivant
+    // juste sous l'ancre (positions d'avant l'unification sur SharedMapStage).
+    expect(locationStatusDots({ tutorialCount: 1, kind: 'marker' })).toEqual([
       { variant: 'info', label: '1 tutoriel lié', placement: 'bottom-left' },
     ]);
+    expect(locationStatusDots({ tutorialCount: 1, kind: 'zone' })[0].placement).toBe('top-left');
     expect(locationStatusDots({ tutorialCount: 3 })[0].label).toBe('3 tutoriels liés');
   });
 

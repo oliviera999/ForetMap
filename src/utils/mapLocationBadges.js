@@ -109,14 +109,15 @@ export function tutorialDotLabel(count) {
 }
 
 /**
- * Pastilles d'état d'un lieu pour la scène partagée (`SharedMapStage`) : état des tâches en
- * haut à droite, tutoriels liés en bas à gauche — les mêmes positions que sur l'ancienne
- * carte de travail (`ZonePolygonsLayer` / `MapViewMarkerBubble`).
+ * Pastilles d'état d'un lieu pour la scène partagée (`SharedMapStage`), aux **positions
+ * historiques** de la carte de travail (`ZonePolygonsLayer` / `MapViewMarkerBubble`) : état
+ * des tâches en haut à droite ; tutoriels liés en haut à gauche d'une **zone** (le nom de la
+ * zone s'écrit juste en dessous de l'ancre) et en bas à gauche d'un **repère**.
  *
- * @param {{ taskVisual?: string|null, tutorialCount?: number }} params
+ * @param {{ taskVisual?: string|null, tutorialCount?: number, kind?: 'zone'|'marker' }} params
  * @returns {Array<{ variant: string, label: string, placement: string }>} vide si rien à poser.
  */
-export function locationStatusDots({ taskVisual, tutorialCount = 0 } = {}) {
+export function locationStatusDots({ taskVisual, tutorialCount = 0, kind = 'marker' } = {}) {
   const dots = [];
   const variant = TASK_STATUS_DOT_VARIANT[taskVisual];
   if (variant) {
@@ -130,7 +131,7 @@ export function locationStatusDots({ taskVisual, tutorialCount = 0 } = {}) {
     dots.push({
       variant: 'info',
       label: tutorialDotLabel(tutorialCount),
-      placement: 'bottom-left',
+      placement: kind === 'zone' ? 'top-left' : 'bottom-left',
     });
   }
   return dots;
