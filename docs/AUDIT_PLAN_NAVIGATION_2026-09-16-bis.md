@@ -10,6 +10,11 @@
 > (`lyautey-1789299489652.jpg`, 1210 × 1437 px), devant un navigateur pilotant ce bundle.
 > Ce qui est mesuré ici est donc ce que voit un visiteur aujourd'hui.
 >
+> **Note de suivi.** `main` a avancé depuis (`02f0f47`, v1.157.26) : le rehash des chunks a
+> renommé `plan-BBPVPU2y.js` en `plan-Dh87apJg.js`, mais **aucune source du plan n'a changé**
+> (`src/plan/`, `src/shared/pct-map/`, `src/shared/ui/BottomSheet.jsx` : diff vide entre
+> `1ffdd16` et `02f0f47`). Les constats ci-dessous valent donc tels quels sur la tête du jour.
+>
 > **Objet.** Deuxième relevé sur la navigation, après
 > [`AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md`](AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md) du même
 > jour, dont les seize constats sont traités. Les blocages d'hier (recherche neutralisée,
