@@ -20,6 +20,14 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   réglages d'accueil, la **création automatique à la première connexion Google** — un
   compte élève « visiteur » est alors créé. Tant que ce réglage est désactivé (valeur
   livrée), aucun utilisateur ne peut s'inscrire via Google.
+- **Enseignants (prof de classe, n3boss, admin)** : Google ne crée **jamais** un compte
+  enseignant. Le compte doit être créé avant (Profils → Comptes ou import), avec
+  **exactement** l'adresse Google du lycée. Si la connexion Google enseignant échoue,
+  un message explique les causes possibles (compte absent, e-mail différent, adresse
+  déjà liée à un compte élève/visiteur, domaine non autorisé, compte inactif…). Si la
+  création automatique élève est activée et qu'aucun compte enseignant ne correspond,
+  un **compte visiteur** peut être créé à la place : un avertissement le signale alors
+  clairement.
 - **L'inscription des élèves est autonome** : prénom, nom, mot de passe (pseudo,
   e-mail, description et affiliation optionnels). Un administrateur peut désactiver
   l'inscription libre dans les réglages. Le **pseudo** accepte les lettres (y compris

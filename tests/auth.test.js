@@ -454,6 +454,67 @@ describe('Auth', () => {
     }
   });
 
+  it('GET /api/auth/google/callback refuse la création élève en mode teacher (compte absent)', async () => {
+    await setSetting('ui.auth.allow_google_auto_register', true, {});
+    const teacherEmail = `oauth.teacher.missing.${Date.now()}@pedagolyautey.org`;
+    authRouter.__setGoogleOAuthHooks({
+      exchangeCode: async () => ({ id_token: 'token-teacher-missing' }),
+      verifyIdToken: async () => ({
+        aud: process.env.GOOGLE_OAUTH_CLIENT_ID,
+        iss: 'https://accounts.google.com',
+        email: teacherEmail,
+        email_verified: true,
+        hd: 'pedagolyautey.org',
+      }),
+    });
+    try {
+      const res = await request(app)
+        .get('/api/auth/google/callback?state=ok-tm&code=code-tm')
+        .set('Cookie', ['foretmap_oauth_state=ok-tm', 'foretmap_oauth_mode=teacher'])
+        .expect(302);
+      assert.ok(String(res.headers.location || '').includes('oauth_teacher_account_not_found'));
+      const createdStudent = await queryOne(
+        "SELECT id FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1",
+        [teacherEmail],
+      );
+      assert.ok(!createdStudent?.id);
+    } finally {
+      await setSetting('ui.auth.allow_google_auto_register', false, {});
+      authRouter.__setGoogleOAuthHooks();
+    }
+  });
+
+  it('GET /api/auth/google/callback mode teacher : e-mail déjà élève → oauth_teacher_email_is_student', async () => {
+    const email = `oauth.teacher.as.student.${Date.now()}@lyceelyautey.org`;
+    const now = new Date();
+    const studentId = crypto.randomUUID();
+    await execute(
+      `INSERT INTO users
+        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+       VALUES (?, 'student', NULL, ?, ?, 'Vis', 'Iteur', 'Vis Iteur', NULL, NULL, 'both', NULL, 'google', 1, ?, NOW(), NOW())`,
+      [studentId, email, `vis_${Date.now()}`, now],
+    );
+    authRouter.__setGoogleOAuthHooks({
+      exchangeCode: async () => ({ id_token: 'token-teacher-student' }),
+      verifyIdToken: async () => ({
+        aud: process.env.GOOGLE_OAUTH_CLIENT_ID,
+        iss: 'https://accounts.google.com',
+        email,
+        email_verified: true,
+        hd: 'lyceelyautey.org',
+      }),
+    });
+    try {
+      const res = await request(app)
+        .get('/api/auth/google/callback?state=ok-ts&code=code-ts')
+        .set('Cookie', ['foretmap_oauth_state=ok-ts', 'foretmap_oauth_mode=teacher'])
+        .expect(302);
+      assert.ok(String(res.headers.location || '').includes('oauth_teacher_email_is_student'));
+    } finally {
+      authRouter.__setGoogleOAuthHooks();
+    }
+  });
+
   it('GET /api/auth/google/callback crée un élève OAuth si absent et autorisé', async () => {
     await setSetting('ui.auth.allow_google_auto_register', true, {});
     const studentEmail = `oauth_student_${Date.now()}@lyceelyautey.org`;
@@ -477,6 +538,7 @@ describe('Auth', () => {
         .expect(302);
       const payload = decodeOAuthPayloadFromRedirect(res.headers.location);
       assert.strictEqual(payload?.type, 'student');
+      assert.strictEqual(payload?.accountCreated, true);
       assert.ok(payload?.student?.id);
       assert.ok(
         ['visiteur', 'eleve_novice'].includes(String(payload?.student?.auth?.roleSlug || '')),

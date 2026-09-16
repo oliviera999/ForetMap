@@ -6,6 +6,7 @@ import {
   detectIosDevice,
   pickVisibleMapId,
   shouldUseDesktopSplitLayout,
+  oauthFeedbackDurationMs,
 } from '../../src/utils/appShellHelpers';
 import { TAB_STORAGE_KEY } from '../../src/constants/app-runtime';
 
@@ -21,9 +22,26 @@ describe('resolveOauthErrorMessage', () => {
     expect(resolveOauthErrorMessage('oauth_google_refused')).toBe('Connexion Google annulée.');
   });
 
+  test('codes enseignant listent des causes', () => {
+    const missing = resolveOauthErrorMessage('oauth_teacher_account_not_found');
+    expect(missing).toMatch(/aucun compte enseignant/i);
+    expect(missing).toMatch(/Causes possibles/i);
+    const asStudent = resolveOauthErrorMessage('oauth_teacher_email_is_student');
+    expect(asStudent).toMatch(/élève ou visiteur/i);
+    expect(asStudent).toMatch(/Causes possibles/i);
+  });
+
   test('code inconnu ou absent → message générique', () => {
     expect(resolveOauthErrorMessage('oauth_mystere')).toBe('Connexion Google refusée.');
     expect(resolveOauthErrorMessage(undefined)).toBe('Connexion Google refusée.');
+  });
+});
+
+describe('oauthFeedbackDurationMs', () => {
+  test('allonge la durée pour les messages longs', () => {
+    expect(oauthFeedbackDurationMs('court')).toBe(5000);
+    expect(oauthFeedbackDurationMs('x'.repeat(150))).toBe(12000);
+    expect(oauthFeedbackDurationMs('x'.repeat(250))).toBe(20000);
   });
 });
 

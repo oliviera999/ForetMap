@@ -2,6 +2,7 @@ import { lazy } from 'react';
 import { PublicSettingsProvider } from '../../contexts/PublicSettingsContext.jsx';
 import { AppStatusSticky } from '../../shared/components/AppStatusSticky.jsx';
 import { TimedToast as Toast } from '../../shared/components/TimedToast.jsx';
+import { oauthFeedbackDurationMs } from '../../utils/appShellHelpers';
 import { TabSuspense } from '../TabSuspense.jsx';
 import { AuthScreen } from '../auth-views';
 import { AppFooter } from './AppFooter.jsx';
@@ -20,6 +21,8 @@ const GUEST_VISIT_TUTORIALS = [];
  * @param {object|null} props.publicSettings Réglages publics (contexte + textes).
  * @param {string|null} props.toast Message de toast courant.
  * @param {() => void} props.onToastDone Fin d'affichage du toast.
+ * @param {string|null} [props.oauthFeedback] Message OAuth long (bandeau persistant).
+ * @param {() => void} [props.onOauthFeedbackDismiss] Fermeture du bandeau OAuth.
  * @param {boolean} props.showPublicVisit Visite invitée active (sinon écran de connexion).
  * @param {string} props.visitInitialMapId Carte initiale de la visite invitée.
  * @param {boolean} props.guestVisitNeedsMascotChoice Onboarding mascotte invité en attente.
@@ -35,6 +38,8 @@ export function UnauthenticatedShell({
   publicSettings,
   toast,
   onToastDone,
+  oauthFeedback = null,
+  onOauthFeedbackDismiss,
   showPublicVisit,
   visitInitialMapId,
   guestVisitNeedsMascotChoice,
@@ -50,7 +55,9 @@ export function UnauthenticatedShell({
     <PublicSettingsProvider value={publicSettings}>
       <>
         <AppStatusSticky />
-        {toast && <Toast msg={toast} onDone={onToastDone} />}
+        {toast && (
+          <Toast msg={toast} onDone={onToastDone} durationMs={oauthFeedbackDurationMs(toast)} />
+        )}
         {showPublicVisit ? (
           <div id="app">
             {/* `<main>` : repère principal de la visite invitée (cf. audit §6). */}
@@ -76,6 +83,8 @@ export function UnauthenticatedShell({
             uiSettings={publicSettings}
             onVisitGuest={onVisitGuest}
             isN3Affiliated={isN3Affiliated}
+            oauthFeedback={oauthFeedback}
+            onOauthFeedbackDismiss={onOauthFeedbackDismiss}
           />
         )}
       </>

@@ -21,6 +21,7 @@ import {
 import { MASCOT_PACK_UNSAVED_LEAVE_MSG } from './constants/mascotPackEditor.js';
 import { TimedToast as Toast } from './shared/components/TimedToast.jsx';
 import { AppStatusSticky } from './shared/components/AppStatusSticky.jsx';
+import { oauthFeedbackDurationMs } from './utils/appShellHelpers';
 import { PinModal } from './components/auth-views';
 const StudentStatsLazy = lazy(() =>
   import('./components/stats-views').then((m) => ({ default: m.StudentStats })),
@@ -173,6 +174,8 @@ function App() {
   /** Synchronise le filtre lieu de l’onglet tâches avec la zone/repère ouvert(e) sur la carte. */
   const [tasksLocationFocus, setTasksLocationFocus] = useState(null);
   const [toast, setToast] = useState(null);
+  /** Feedback OAuth long (erreurs / avertissement création visiteur) — bandeau sur l’écran de connexion. */
+  const [oauthFeedback, setOauthFeedback] = useState(null);
   const [profilePromotion, setProfilePromotion] = useState(null);
   const [sessionValidationError, setSessionValidationError] = useState(false);
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
@@ -271,6 +274,7 @@ function App() {
   }, []);
   useOauthRedirectSession({
     onToast: setToast,
+    onOauthFeedback: setOauthFeedback,
     setSessionUser,
     setAuthClaims,
     setIsTeacher: syncAuthClaimsFromStoredToken,
@@ -1099,6 +1103,8 @@ function App() {
         publicSettings={publicSettings}
         toast={toast}
         onToastDone={handleToastDone}
+        oauthFeedback={oauthFeedback}
+        onOauthFeedbackDismiss={() => setOauthFeedback(null)}
         showPublicVisit={showPublicVisit}
         visitInitialMapId={publicSettings?.map?.default_map_visit || activeMapId}
         guestVisitNeedsMascotChoice={guestVisitNeedsMascotChoice}
@@ -1236,7 +1242,13 @@ function App() {
                   </NoticeBanner>
                 )}
                 <AppStatusSticky />
-                {toast && <Toast msg={toast} onDone={handleToastDone} />}
+                {toast && (
+                  <Toast
+                    msg={toast}
+                    onDone={handleToastDone}
+                    durationMs={oauthFeedbackDurationMs(toast)}
+                  />
+                )}
                 {profilePromotion &&
                   !effectiveIsTeacher &&
                   studentForUi &&
