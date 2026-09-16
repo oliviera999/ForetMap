@@ -122,8 +122,10 @@ describe('labelPriority / polygonAreaPct / zoneLabelMaxWidthPx', () => {
     const huge = { bounds: { minXPct: 0, maxXPct: 90, minYPct: 0, maxYPct: 10 } };
     expect(zoneLabelMaxWidthPx(tiny, 390, 1)).toBe(ZONE_LABEL_MIN_WIDTH_PX);
     expect(zoneLabelMaxWidthPx(huge, 390, 1)).toBe(ZONE_LABEL_MAX_WIDTH_PX);
-    // Le zoom élargit le bâtiment à l'écran, donc la place offerte à son nom.
-    expect(zoneLabelMaxWidthPx(tiny, 390, 20)).toBeGreaterThan(ZONE_LABEL_MIN_WIDTH_PX);
+    // Le zoom élargit le bâtiment à l'écran, donc la place offerte à son nom. Le plancher
+    // est à 96 px depuis l'audit navigation (N11) : il faut dépasser ×24 pour l'entamer.
+    expect(zoneLabelMaxWidthPx(tiny, 390, 20)).toBe(ZONE_LABEL_MIN_WIDTH_PX);
+    expect(zoneLabelMaxWidthPx(tiny, 390, 40)).toBeGreaterThan(ZONE_LABEL_MIN_WIDTH_PX);
   });
 });
 

@@ -82,6 +82,8 @@ const POSITION_ICONS = Object.freeze({
  * @param {boolean} [props.clusteringEnabled]
  * @param {boolean} [props.applyZoomOnlyCategories]
  * @param {boolean} [props.showLabels=true] afficher les noms (emojis de zone restent visibles)
+ * @param {boolean} [props.labelsClickable=false] l'étiquette d'une zone est aussi une cible
+ *   tactile pour cette zone (petits polygones : voir `PctLabelsLayer`)
  * @param {import('react').ReactNode} [props.overlaySlot]
  * @param {import('react').ReactNode} [props.chromeSlot]
  * @param {import('react').ReactNode} [props.emptySlot]
@@ -126,6 +128,8 @@ export function SharedMapStage({
   applyZoomOnlyCategories = true,
   /** Afficher les noms (zones via `PctLabelsLayer`, repères via pastilles). */
   showLabels = true,
+  /** L'étiquette d'une zone vaut cible tactile pour cette zone (audit navigation Plan, N12). */
+  labelsClickable = false,
   splitNameEmoji,
   focusPlacePct,
   overlaySlot = null,
@@ -543,6 +547,15 @@ export function SharedMapStage({
       orientPivot?.yp,
     ],
   );
+  /** Tap sur l'étiquette d'une zone → même effet qu'un tap sur son polygone (N12). */
+  const onZoneLabelClick = useCallback(
+    (zoneId) => {
+      const zone = (visibleZones || []).find((z) => String(z.id) === String(zoneId));
+      if (zone) onZoneClick(zone, null);
+    },
+    [visibleZones, onZoneClick],
+  );
+
   const zoneLabels = useMemo(() => {
     if (!showLabels) {
       // Emojis seuls : le nom est masqué (bascule « étiquettes » carte de travail).
@@ -550,6 +563,7 @@ export function SharedMapStage({
         .filter((spec) => spec.emoji)
         .map((spec) => ({
           id: spec.key,
+          zoneId: spec.id,
           xp: spec.anchor.xp,
           yp: spec.anchor.yp,
           emoji: spec.emoji,
@@ -562,6 +576,7 @@ export function SharedMapStage({
       .filter((spec) => spec.emoji || visibleLabelKeys.has(spec.key))
       .map((spec) => ({
         id: spec.key,
+        zoneId: spec.id,
         xp: spec.anchor.xp,
         yp: spec.anchor.yp,
         emoji: spec.emoji,
@@ -621,76 +636,10 @@ export function SharedMapStage({
       style={{ touchAction }}
       onClick={handleBackgroundClick}
     >
-      <div
-        ref={worldRef}
-        className={worldClassName}
-        style={{
-          transform: `translate3d(${committed.x}px, ${committed.y}px, 0) scale(${committed.s})`,
-          transformOrigin: '0 0',
-        }}
-      >
-        <div className={fitClassName} style={{ ...fitStyle, ...orientStyle }}>
-          <PctImageLayer
-            ref={imgRef}
-            src={imageSrc}
-            alt={`Plan ${map?.label || 'de l’établissement'}`}
-            className={imgClassName}
-            onLoad={fitMap}
-            onError={onMapImageError}
-          />
-          <PctZonesLayer
-            zones={visibleZones}
-            onZoneClick={onZoneClick}
-            activeZoneId={selectedZoneId}
-            showLabels={false}
-            getIsSeen={getIsSeen}
-            getDiscoverHalo={getDiscoverHalo}
-            getStatusLabel={getZoneStatusDots ? zoneStatusLabelOf : null}
-            className="fm-pct-zones plan-map__zones"
-          />
-          <PctLabelsLayer labels={zoneLabels} />
-          <PctStatusDotsLayer anchors={zoneStatusAnchors} />
-          {position?.displayPct && targetPct ? (
-            <PctDirectLine from={position.displayPct} to={targetPct} />
-          ) : null}
-          {clusteringEnabled ? (
-            <PctClusterLayer
-              clusters={clusters}
-              onClusterClick={onClusterClick}
-              renderMarker={renderMarker}
-              colorOf={clusterColorOf}
-            />
-          ) : (
-            <PctMarkersLayer
-              markers={visibleMarkers}
-              onMarkerClick={onMarkerClick}
-              activeMarkerId={selectedMarkerId}
-              getIsSeen={getIsSeen}
-              getDiscoverHalo={getDiscoverHalo}
-              getStatusDots={markerStatusDotsOf}
-              labelOf={markerLabelOf}
-            />
-          )}
-          {position?.displayPct ? (
-            <PctPositionLayer
-              position={position.displayPct}
-              haloPx={accuracyHaloDiameterPx(position.haloPct, fitRect.width)}
-              headingDeg={headingUpEffective ? null : position.screenHeadingDeg}
-              accuracyM={position.accuracyM}
-            />
-          ) : null}
-          {overlaySlot}
-        </div>
-      </div>
-
-      <MapScaleCompassOverlay
-        visible={scaleCompassEffective}
-        georef={mapGeoref}
-        contentWidthPx={fitRect.width}
-        scale={committed.s}
-        orientationDeg={mapOrientationDeg}
-      />
-
+      {/* Commandes avant le calque des lieux dans le DOM : posées en absolu avec leur propre
+          `z-index`, elles restent au-dessus ; mais au clavier, elles venaient après les 44
+          formes de la carte — il fallait traverser tout le plan pour atteindre « Voir tout le
+          plan » (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N15). */}
       <div className={controlsClassName}>
         {position?.available ? (
           <MapActionButton
@@ -762,6 +711,79 @@ export function SharedMapStage({
           onClick={fitMapAnimated}
         />
       </div>
+
+      <div
+        ref={worldRef}
+        className={worldClassName}
+        style={{
+          transform: `translate3d(${committed.x}px, ${committed.y}px, 0) scale(${committed.s})`,
+          transformOrigin: '0 0',
+        }}
+      >
+        <div className={fitClassName} style={{ ...fitStyle, ...orientStyle }}>
+          <PctImageLayer
+            ref={imgRef}
+            src={imageSrc}
+            alt={`Plan ${map?.label || 'de l’établissement'}`}
+            className={imgClassName}
+            onLoad={fitMap}
+            onError={onMapImageError}
+          />
+          <PctZonesLayer
+            zones={visibleZones}
+            onZoneClick={onZoneClick}
+            activeZoneId={selectedZoneId}
+            showLabels={false}
+            getIsSeen={getIsSeen}
+            getDiscoverHalo={getDiscoverHalo}
+            getStatusLabel={getZoneStatusDots ? zoneStatusLabelOf : null}
+            className="fm-pct-zones plan-map__zones"
+          />
+          <PctLabelsLayer
+            labels={zoneLabels}
+            onLabelClick={labelsClickable ? onZoneLabelClick : null}
+          />
+          <PctStatusDotsLayer anchors={zoneStatusAnchors} />
+          {position?.displayPct && targetPct ? (
+            <PctDirectLine from={position.displayPct} to={targetPct} />
+          ) : null}
+          {clusteringEnabled ? (
+            <PctClusterLayer
+              clusters={clusters}
+              onClusterClick={onClusterClick}
+              renderMarker={renderMarker}
+              colorOf={clusterColorOf}
+            />
+          ) : (
+            <PctMarkersLayer
+              markers={visibleMarkers}
+              onMarkerClick={onMarkerClick}
+              activeMarkerId={selectedMarkerId}
+              getIsSeen={getIsSeen}
+              getDiscoverHalo={getDiscoverHalo}
+              getStatusDots={markerStatusDotsOf}
+              labelOf={markerLabelOf}
+            />
+          )}
+          {position?.displayPct ? (
+            <PctPositionLayer
+              position={position.displayPct}
+              haloPx={accuracyHaloDiameterPx(position.haloPct, fitRect.width)}
+              headingDeg={headingUpEffective ? null : position.screenHeadingDeg}
+              accuracyM={position.accuracyM}
+            />
+          ) : null}
+          {overlaySlot}
+        </div>
+      </div>
+
+      <MapScaleCompassOverlay
+        visible={scaleCompassEffective}
+        georef={mapGeoref}
+        contentWidthPx={fitRect.width}
+        scale={committed.s}
+        orientationDeg={mapOrientationDeg}
+      />
 
       {chromeSlot}
       {emptySlot}
