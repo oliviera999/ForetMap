@@ -22,7 +22,7 @@ const encodePayload = (obj) => {
   return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 };
 
-const renderWithHash = (hash) => {
+const renderWithHash = (hash, extraHandlers = {}) => {
   window.history.replaceState({}, '', `/app${hash}`);
   const handlers = {
     onToast: vi.fn(),
@@ -30,6 +30,7 @@ const renderWithHash = (hash) => {
     setAuthClaims: vi.fn(),
     setIsTeacher: vi.fn(),
     setStudent: vi.fn(),
+    ...extraHandlers,
   };
   renderHook(() => useOauthRedirectSession(handlers));
   return handlers;
@@ -58,6 +59,16 @@ describe('useOauthRedirectSession', () => {
     expect(h.onToast).toHaveBeenCalledTimes(1);
     expect(apiMocks.saveStoredSession).not.toHaveBeenCalled();
     expect(window.location.hash).toBe('');
+  });
+
+  it('préfère onOauthFeedback pour les erreurs (bandeau)', () => {
+    const onOauthFeedback = vi.fn();
+    const h = renderWithHash('#oauth_error=oauth_teacher_account_not_found', {
+      onOauthFeedback,
+    });
+    expect(onOauthFeedback).toHaveBeenCalledTimes(1);
+    expect(String(onOauthFeedback.mock.calls[0][0])).toMatch(/aucun compte enseignant/i);
+    expect(h.onToast).not.toHaveBeenCalled();
   });
 
   it('reconstitue une session prof à partir du payload', () => {
@@ -89,6 +100,19 @@ describe('useOauthRedirectSession', () => {
       expect.objectContaining({ id: 'S1', authToken: 'jwt-student' }),
     );
     expect(h.setIsTeacher).toHaveBeenCalledWith(false);
+    expect(h.onToast).toHaveBeenCalledWith('Connexion Google réussie.');
+  });
+
+  it('avertit si un compte visiteur vient d’être créé via Google', () => {
+    const hash = `#oauth=${encodePayload({
+      type: 'student',
+      accountCreated: true,
+      student: { id: 'S2', authToken: 'jwt-new', first_name: 'New', last_name: 'User' },
+    })}`;
+    const h = renderWithHash(hash);
+    expect(h.setStudent).toHaveBeenCalled();
+    expect(String(h.onToast.mock.calls[0][0])).toMatch(/compte visiteur/i);
+    expect(String(h.onToast.mock.calls[0][0])).toMatch(/enseignant/i);
   });
 
   it('toaste un message d’erreur sur payload illisible', () => {

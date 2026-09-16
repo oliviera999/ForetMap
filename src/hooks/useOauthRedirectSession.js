@@ -7,7 +7,11 @@ import {
   saveStoredSession,
 } from '../services/api';
 import { safeLocalStorageSetItem } from '../shared/platform/browserStorage.js';
-import { resolveOauthErrorMessage, decodeBase64UrlJson } from '../utils/appShellHelpers';
+import {
+  resolveOauthErrorMessage,
+  decodeBase64UrlJson,
+  OAUTH_VISITOR_CREATED_WARNING,
+} from '../utils/appShellHelpers';
 
 /**
  * Traitement autonome du retour OAuth Google (extrait de App.jsx, O5) :
@@ -22,6 +26,7 @@ import { resolveOauthErrorMessage, decodeBase64UrlJson } from '../utils/appShell
  *
  * @param {object} handlers
  * @param {(msg: string) => void} handlers.onToast
+ * @param {(msg: string) => void} [handlers.onOauthFeedback] Bandeau / toast long (erreurs & avertissements).
  * @param {(user: object | null) => void} handlers.setSessionUser
  * @param {(claims: object | null) => void} handlers.setAuthClaims
  * @param {(isTeacher: boolean) => void} handlers.setIsTeacher
@@ -29,6 +34,7 @@ import { resolveOauthErrorMessage, decodeBase64UrlJson } from '../utils/appShell
  */
 export function useOauthRedirectSession({
   onToast,
+  onOauthFeedback,
   setSessionUser,
   setAuthClaims,
   setIsTeacher,
@@ -45,8 +51,13 @@ export function useOauthRedirectSession({
     const cleanUrl = `${window.location.pathname}${window.location.search}`;
     window.history.replaceState({}, document.title, cleanUrl);
 
+    const reportFeedback = (msg) => {
+      if (typeof onOauthFeedback === 'function') onOauthFeedback(msg);
+      else onToast(msg);
+    };
+
     if (oauthError) {
-      onToast(resolveOauthErrorMessage(oauthError));
+      reportFeedback(resolveOauthErrorMessage(oauthError));
       return;
     }
     try {
@@ -92,12 +103,17 @@ export function useOauthRedirectSession({
         setStudent(nextStudent);
         setSessionUser(getStoredSession()?.user || null);
         setIsTeacher(false);
-        onToast('Connexion Google réussie.');
+        if (payload.accountCreated) {
+          // Connecté en visiteur : le bandeau AuthScreen n'est plus monté → toast long.
+          onToast(OAUTH_VISITOR_CREATED_WARNING);
+        } else {
+          onToast('Connexion Google réussie.');
+        }
         return;
       }
-      onToast('Réponse Google invalide.');
+      reportFeedback('Réponse Google invalide.');
     } catch (_) {
-      onToast('Réponse Google illisible.');
+      reportFeedback('Réponse Google illisible.');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

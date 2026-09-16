@@ -16,22 +16,45 @@ import { safeLocalStorageGetItem } from '../shared/platform/browserStorage.js';
 export const OAUTH_ERROR_MESSAGES = {
   oauth_not_configured: 'Connexion Google indisponible (configuration serveur incomplète).',
   oauth_google_refused: 'Connexion Google annulée.',
-  oauth_invalid_state: 'Connexion Google invalide (session expirée).',
+  oauth_invalid_state: 'Connexion Google invalide (session expirée). Réessayez depuis ForetMap.',
   oauth_missing_code: 'Connexion Google impossible (code manquant).',
   oauth_missing_id_token: 'Connexion Google impossible (token manquant).',
   oauth_invalid_token: 'Connexion Google impossible (token invalide).',
-  oauth_claims_invalid: 'Connexion Google refusée (compte non vérifié).',
-  oauth_email_not_allowed: 'Adresse Google non autorisée pour ForetMap.',
+  oauth_claims_invalid:
+    'Connexion Google refusée : adresse non vérifiée chez Google, ou jeton invalide.',
+  oauth_email_not_allowed:
+    'Adresse Google non autorisée pour ForetMap. Causes possibles : domaine hors liste (ex. Gmail perso), ou adresse absente de la liste d’e-mails autorisés. Utilisez le compte Google du lycée, ou demandez à un administrateur d’autoriser votre adresse.',
   oauth_account_not_found:
-    'Aucun compte ForetMap pour cette adresse Google. Demandez à un professeur de créer votre compte.',
-  oauth_teacher_inactive: 'Compte n3boss inactif.',
-  oauth_teacher_no_role: 'Aucun rôle n3boss attribué à ce compte.',
-  oauth_server_error: 'Erreur serveur pendant la connexion Google.',
+    'Aucun compte ForetMap pour cette adresse Google. Causes possibles : compte pas encore créé, e-mail différent sur la fiche, ou création automatique Google désactivée. Demandez à un responsable de créer votre compte avec exactement cette adresse.',
+  oauth_teacher_account_not_found:
+    'Connexion enseignant Google refusée : aucun compte enseignant avec cette adresse. Causes possibles : le compte n’a pas encore été créé (Prof de classe / n3boss / admin), l’e-mail sur la fiche ForetMap est vide ou différent de Google, ou le compte a été créé comme élève/visiteur. Un administrateur doit créer (ou corriger) le compte enseignant avec exactement votre adresse Google, puis réessayez.',
+  oauth_teacher_email_is_student:
+    'Connexion enseignant Google refusée : cette adresse est déjà liée à un compte élève ou visiteur, pas à un compte enseignant. Causes possibles : une précédente connexion Google a créé un compte visiteur, ou le profil « Prof de classe » a été attribué à un compte élève. Un administrateur doit créer un vrai compte enseignant avec cette adresse (et éventuellement retirer le doublon visiteur), puis réessayez.',
+  oauth_teacher_inactive:
+    'Compte enseignant inactif. Un administrateur doit réactiver le compte dans Profils → Comptes.',
+  oauth_teacher_no_role:
+    'Compte enseignant sans profil de droits. Un administrateur doit attribuer un profil (ex. Prof de classe, n3boss) sur la fiche.',
+  oauth_server_error: 'Erreur serveur pendant la connexion Google. Réessayez plus tard.',
 };
+
+/**
+ * Avertissement après création automatique d’un compte visiteur via Google.
+ * Destiné aux enseignants qui croyaient se connecter à un compte déjà créé.
+ */
+export const OAUTH_VISITOR_CREATED_WARNING =
+  'Un compte visiteur vient d’être créé pour cette adresse Google. Si vous êtes enseignant (prof de classe, n3boss…), ce n’est pas le bon résultat. Causes fréquentes : compte enseignant pas encore créé, e-mail manquant ou différent sur la fiche ForetMap, ou création automatique Google activée. Demandez à un administrateur de créer (ou corriger) votre compte enseignant avec exactement cette adresse, puis reconnectez-vous avec Google.';
 
 /** Message utilisateur pour un code d'erreur OAuth (message générique si inconnu). */
 export function resolveOauthErrorMessage(code) {
   return OAUTH_ERROR_MESSAGES[code] || 'Connexion Google refusée.';
+}
+
+/** Durée d’affichage adaptée aux messages OAuth longs (causes d’échec). */
+export function oauthFeedbackDurationMs(message) {
+  const len = String(message || '').length;
+  if (len > 220) return 20000;
+  if (len > 100) return 12000;
+  return 5000;
 }
 
 /** Décode un payload base64url (retour OAuth dans le hash d'URL) en objet JSON. */

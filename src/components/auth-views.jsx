@@ -13,7 +13,15 @@ import { PinModal } from './auth/PinModal.jsx';
 import { startGoogleAuth } from './auth/startGoogleAuth.js';
 import { IconWarning } from '../shared/icons.jsx';
 
-function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affiliated = false }) {
+function AuthScreen({
+  onLogin,
+  appVersion,
+  onVisitGuest,
+  uiSettings,
+  isN3Affiliated = false,
+  oauthFeedback = null,
+  onOauthFeedbackDismiss,
+}) {
   const roleTerms = getRoleTerms(isN3Affiliated);
   const fieldIdPrefix = useId();
   const fieldIds = {
@@ -266,9 +274,17 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
         </div>
 
         {info && <div className="auth-success">{info}</div>}
-        {err && (
-          <div className="auth-error">
-            <IconWarning size={14} /> {err}
+        {(oauthFeedback || err) && (
+          <div className="auth-error" role="alert" data-testid="auth-oauth-feedback">
+            <div className="auth-error-body">
+              <IconWarning size={14} aria-hidden />
+              <span>{oauthFeedback || err}</span>
+            </div>
+            {oauthFeedback && typeof onOauthFeedbackDismiss === 'function' && (
+              <button type="button" className="auth-error-dismiss" onClick={onOauthFeedbackDismiss}>
+                Fermer
+              </button>
+            )}
           </div>
         )}
 

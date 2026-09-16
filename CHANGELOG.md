@@ -9,6 +9,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Google enseignant : plus de création silencieuse de visiteur + messages de causes
+
+- En mode connexion enseignant, Google ne crée plus un compte élève/visiteur si aucun
+  compte enseignant ne correspond : erreur explicite (`oauth_teacher_account_not_found`
+  ou `oauth_teacher_email_is_student` si l’e-mail est déjà un compte élève).
+- Messages d’échec OAuth enrichis (causes possibles : e-mail manquant/différent, domaine
+  non autorisé, compte inactif, etc.) ; bandeau fermable sur l’écran de connexion ;
+  toast long si un compte visiteur vient d’être créé via la création automatique.
+
 ### Corrigé — Visite : plus de double photo (lead + premier bloc éditorial)
 
 - Quand la photo carte est déjà en tête (`.visit-media-gallery--lead`), le premier grand

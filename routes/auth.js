@@ -870,7 +870,7 @@ router.get('/google/callback', async (req, res) => {
     }
 
     const teacher = await queryOne(
-      "SELECT id, email, is_active FROM users WHERE user_type = 'teacher' AND email = ? LIMIT 1",
+      "SELECT id, email, is_active FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
       [email],
     );
     if (teacher) {
@@ -919,10 +919,29 @@ router.get('/google/callback', async (req, res) => {
       );
     }
 
+    // Mode enseignant : ne jamais créer / connecter un élève par repli — message d'échec explicite.
+    if (mode === 'teacher') {
+      const studentSameEmail = await queryOne(
+        "SELECT id FROM users WHERE user_type = 'student' AND LOWER(email) = LOWER(?) LIMIT 1",
+        [email],
+      );
+      const errorCode = studentSameEmail
+        ? 'oauth_teacher_email_is_student'
+        : 'oauth_teacher_account_not_found';
+      await logSecurityEvent('auth.login.teacher.oauth_google', {
+        req,
+        result: 'failure',
+        reason: errorCode,
+        payload: { email },
+      });
+      return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, errorCode, mode));
+    }
+
     let student = await queryOne(
-      "SELECT * FROM users WHERE user_type = 'student' AND email = ? LIMIT 1",
+      "SELECT * FROM users WHERE user_type = 'student' AND LOWER(email) = LOWER(?) LIMIT 1",
       [email],
     );
+    let accountJustCreated = false;
     if (!student) {
       const allowGoogleAutoRegister = await getSettingValue(
         'ui.auth.allow_google_auto_register',
@@ -948,6 +967,7 @@ router.get('/google/callback', async (req, res) => {
       emitStudentsChanged({ reason: 'register_google', studentId: id });
       student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [id]);
       await syncStudentRoleFromGroups(id);
+      accountJustCreated = true;
     } else {
       await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [
         nowDbTimestamp(),
@@ -967,6 +987,7 @@ router.get('/google/callback', async (req, res) => {
       actorUserId: student.id,
       targetType: 'student',
       targetId: student.id,
+      payload: accountJustCreated ? { account_created: true } : undefined,
     });
     try {
       const { recordAuthenticatedTouch } = require('../lib/userTracking');
@@ -982,6 +1003,7 @@ router.get('/google/callback', async (req, res) => {
     return res.redirect(
       buildOAuthFrontendRedirect(cfg.frontendOrigin, {
         type: 'student',
+        accountCreated: accountJustCreated,
         student: {
           ...toPublicUserRow(student),
           discoveryTourSeen: parseDiscoveryTourSeen(student?.discovery_tour_seen_json),
