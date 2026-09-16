@@ -13,6 +13,7 @@ const {
   reorderVisitMediaRows,
   sameVisitImageUrl,
   visitImageIdentityKey,
+  mediaMatchesLeadPhoto,
 } = await import('../../src/utils/visitMediaGallery.js');
 
 describe('itemSeenKey', () => {
@@ -89,6 +90,16 @@ describe('visitImageIdentityKey — même cliché sous plusieurs formes d’URL'
     expect(sameVisitImageUrl('/uploads/zones/3/10.jpg', '/api/zones/3/photos/10/data')).toBe(true);
     expect(sameVisitImageUrl('/uploads/zones/3/10.jpg', '/api/zones/3/photos/11/data')).toBe(false);
     expect(sameVisitImageUrl('/uploads/zones/3/10.jpg', '/uploads/zones/4/10.jpg')).toBe(false);
+  });
+
+  test('mediaMatchesLeadPhoto croise image_url et thumb_url', () => {
+    const lead = {
+      image_url: '/uploads/zones/3/10.jpg',
+      thumb_url: '/uploads/zones/3/10.thumb.jpg',
+    };
+    expect(mediaMatchesLeadPhoto({ image_url: '/api/zones/3/photos/10/data' }, lead)).toBe(true);
+    expect(mediaMatchesLeadPhoto({ image_url: '/api/visit/media/20/data' }, lead)).toBe(false);
+    expect(mediaMatchesLeadPhoto(null, lead)).toBe(false);
   });
 });
 

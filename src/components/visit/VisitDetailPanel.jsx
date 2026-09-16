@@ -9,6 +9,7 @@ import {
   visitMediaGalleryLightboxSrc,
   sameVisitImageUrl,
   visitImageIdentityKey,
+  mediaMatchesLeadPhoto,
 } from '../../utils/visitMediaGallery.js';
 // Imports directs (mêmes symboles que les ré-exports du barrel map-views) :
 // évite de tirer MarkerModal/ZoneDrawModal/useMapGestures dans le chunk visite.
@@ -44,8 +45,15 @@ function VisitEditorialRenderer({
   onOpenLightbox,
   glossaryItems,
   onOpenGlossaryTerm,
-  /** URL déjà affichée en tête (photo carte) : exclus des blocs image. */
-  excludeLeadImageUrl = '',
+  /** Photo carte déjà en tête : exclus des blocs image (toutes formes d'URL). */
+  excludeLeadPhoto = null,
+  /**
+   * Photo carte déjà affichée en `.visit-media-gallery--lead` : masquer le premier bloc
+   * image « hero » (single + lg). En prod le média visite est souvent une copie sous
+   * `/api/visit/media/N/data` alors que la lead sert `/uploads/...` — même cliché, clés
+   * d'identité distinctes ; le filtre URL seul ne suffit pas.
+   */
+  suppressFirstHeroImage = false,
 }) {
   const mediaById = useMemo(() => {
     const m = new Map();
@@ -56,6 +64,7 @@ function VisitEditorialRenderer({
     }
     return m;
   }, [selectedVisitMedia]);
+  let heroSuppressed = false;
   return (
     <div className="visit-editorial">
       {blocks.map((block) => {
@@ -85,11 +94,13 @@ function VisitEditorialRenderer({
           const images = (block.media_ids || [])
             .map((id) => mediaById.get(Number(id)))
             .filter(Boolean)
-            .filter(
-              (media) =>
-                !sameVisitImageUrl(excludeLeadImageUrl, media.image_url || media.thumb_url),
-            );
+            .filter((media) => !mediaMatchesLeadPhoto(media, excludeLeadPhoto));
           if (!images.length) return null;
+          const isHero = images.length === 1 && String(block.size || 'md') === 'lg';
+          if (suppressFirstHeroImage && !heroSuppressed && isHero) {
+            heroSuppressed = true;
+            return null;
+          }
           return (
             <div
               key={block.id}
@@ -286,7 +297,8 @@ export function VisitDetailPanel({
               onOpenLightbox={onOpenLightbox}
               glossaryItems={glossaryItems}
               onOpenGlossaryTerm={onOpenGlossaryTerm}
-              excludeLeadImageUrl={mapLeadUrl}
+              excludeLeadPhoto={mapLeadPhoto}
+              suppressFirstHeroImage={Boolean(mapLeadPhoto)}
             />
           ) : (
             <>

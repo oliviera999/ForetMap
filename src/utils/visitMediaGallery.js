@@ -85,6 +85,25 @@ export function sameVisitImageUrl(a, b) {
 }
 
 /**
+ * Un média visite reprend-il la photo lead carte (toutes formes d'URL image/vignette) ?
+ * @param {object|null|undefined} media
+ * @param {object|null|undefined} leadPhoto `{ image_url?, thumb_url? }`
+ * @returns {boolean}
+ */
+export function mediaMatchesLeadPhoto(media, leadPhoto) {
+  if (!media || !leadPhoto) return false;
+  const leadUrls = [leadPhoto.image_url, leadPhoto.thumb_url].filter(Boolean);
+  const mediaUrls = [media.image_url, media.thumb_url].filter(Boolean);
+  if (!leadUrls.length || !mediaUrls.length) return false;
+  for (const leadUrl of leadUrls) {
+    for (const mediaUrl of mediaUrls) {
+      if (sameVisitImageUrl(leadUrl, mediaUrl)) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Réordonne une liste de médias après un glisser-déposer : déplace l'élément `draggedId` à la
  * position de `dropTargetId`. Retourne la liste inchangée (même référence) si l'un des ids est
  * introuvable ou si source == cible ; sinon une nouvelle liste (référence neuve).
