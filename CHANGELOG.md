@@ -9,6 +9,368 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — Audit UI/UX de la navigation sur `planlyautey.olution.info`
+
+- Nouveau `docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` : relevé de la navigation du Plan
+  Lyautey (interface **et** repérage), fait sur le bundle **réellement déployé** (empreintes
+  d'assets identiques à `dist/`) et sur la charge publique du jour (78 lieux, 11 catégories).
+- Constat bloquant **N1** : toucher le champ de recherche ouvre une feuille modale qui pose
+  `inert` sur toute l'application et déplace le focus — mesuré, la frappe ne s'inscrit pas et
+  la liste reste non filtrée. Même mécanisme pour **N2** (carte gelée sous une fiche ouverte).
+- **N3** : neuf lieux de production sans catégorie — dont quatre entrées et la loge — sont
+  retirés de la carte *et* de l'index de recherche par le filtre par défaut.
+- Treize autres constats (fiche ouverte sur 12 px de contenu, parcours muet, puces de filtre
+  hors écran, absence totale d'alias de recherche, doublons indiscernables, cibles < 44 px…),
+  chacun avec sa mesure, sa référence `fichier:ligne` et son correctif proposé.
+- Explique pourquoi les filets n'ont rien vu (`fill()` en e2e, `inert` ignoré par jsdom) et
+  liste les trois tests à ajouter avec le correctif. **Aucun code produit modifié.**
+- Index `docs/audits/README.md` mis à jour (nouvel audit en point d'entrée ; ajout du relevé
+  d'affichage du 13 septembre qui manquait à l'historique).
+
+
+### Modifié — Le calendrier décale une occurrence, plus jamais le rythme
+
+- **Le constat, mesuré sur le vrai calendrier du lycée** (`migrations/247`, 2026-2027) :
+  une tâche hebdomadaire du mardi 15/09 perdait son mardi dès la **5ᵉ occurrence** — le
+  20/10 tombe pendant les vacances de Toussaint, l'occurrence était reposée au lundi 02/11
+  de rentrée, et cette date accrochée devenait l'origine du calcul suivant. Résultat :
+  **33 occurrences sur 37 hors du jour d'origine**, et le lundi conservé jusqu'à l'été. En
+  bimensuel, 18 sur 20. Comme `nextSchoolOpenDay` renvoie toujours le **premier** jour de
+  réouverture, toutes les séries convergeaient en outre vers le même lundi de rentrée,
+  concentrant la charge sur un seul jour de la semaine.
+- **Migration `258`** : colonne `recurrence_anchor_date`. L'occurrence de rang `k` vaut
+  désormais `ancre + k × période` calculée sur la date **théorique** ; l'accrochage au jour
+  ouvré ne sert plus qu'à écrire la ligne et ne se réinjecte plus dans le calcul. Même
+  simulation, même calendrier : **5 occurrences sur 39** hors du jour d'ancre — les
+  semaines réellement fermées — et retour au mardi dès la suivante.
+- **Résolution de l'ancre** : `recurrence_anchor_date`, à défaut la **date de départ**, à
+  défaut la **date de création**. Une tâche récurrente a donc toujours une ancre, et il n'y
+  a plus qu'une seule règle d'ancrage — l'ancrage par l'échéance (`computeNextOccurrenceDue`,
+  `computeCloneStartDate`, `advanceDateByRecurrence`) est **supprimé** plutôt que laissé en
+  repli mort à côté du nouveau.
+- **Reprise en main** : modifier la **date de départ** d'une tâche récurrente redéfinit
+  l'ancre de sa série (`PUT /api/tasks/:id`). C'est la seule façon de déplacer le rythme —
+  le calendrier scolaire décale une occurrence sans jamais toucher à l'ancre. `POST` pose
+  l'ancre à la création, le clone en hérite.
+- **Backfill : un gel, pas un rattrapage.** Chaque tâche récurrente existante reçoit sa
+  propre date de départ comme ancre (à défaut sa date de création). Les séries déjà
+  décalées ne sautent donc pas d'un coup vers leur jour d'origine — elles cessent
+  simplement de dériver. Pour remettre une série sur son jour, il suffit d'en corriger la
+  date de départ.
+- **Nouvel invariant** : l'échéance du clone est **strictement postérieure** à celle de la
+  source. Une ancre ramenant exactement sur l'échéance courante aurait sinon buté sur
+  l'index unique `(recurrence_series_id, due_date)` et **bloqué la série**.
+- **Coût calendrier borné.** `isSchoolOpenDay` interroge la base **jour par jour** et n'a
+  aucun cache. Deux garde-fous : le rang de départ est estimé par arithmétique (une ancre
+  vieille de six ans ne déclenche plus ~300 tours de boucle) et le job mémoïse les jours
+  ouvrés pour la durée de son exécution, au lieu de refaire le même parcours pour chaque
+  série. Un test borne explicitement le nombre d'appels.
+- Tests : `tests/school-calendar-recurrence.test.js` réécrit autour de l'ancre (jour de
+  semaine conservé, non-contamination après vacances, repli sur la date de création,
+  rattrapage long, échéance strictement croissante, mensuel/bimensuel, entrées
+  inexploitables, borne de coût) ; `tests/recurring-tasks-spawn.test.js` vérifie bout en
+  bout que l'ancre est posée à la création, héritée par le clone, redéfinie par un
+  changement de date de départ et **insensible** aux autres modifications.
+- Documentation : `docs/API.md` et `docs/reference/foretmap/taches-tutoriels-et-validation.md`.
+
+
+### Corrigé — La récurrence ne meurt plus en silence
+
+Trois défauts relevés par `docs/AUDIT_ECHEANCES_2026-09.md` (§5 et §7) et laissés en l'état
+à l'époque (« durcissements possibles ; ils changeraient des réponses d'API »).
+
+- **Format de date contrôlé sur tous les chemins d'écriture.** `POST /api/tasks` et
+  `PUT /api/tasks/:id` validaient déjà `AAAA-MM-JJ` ; **`POST /api/tasks/proposals` ne
+  validait rien** et insérait `start_date || null` / `due_date || null` tels quels. Les
+  colonnes étant des `DATE` depuis la migration `254`, l'arbitrage revenait à MariaDB, dont
+  le `sql_mode` n'est fixé nulle part dans l'application : rejet brut (**500**) en mode
+  strict, troncature silencieuse sinon. Le helper est remonté dans
+  `lib/taskRouteHelpers.js` et partagé par les trois routes, pour une réponse **400**
+  explicite et identique partout.
+  <br>*(L'audit décrivait ces colonnes comme des `VARCHAR(32)` — c'était exact à sa date,
+  la migration `254` les a converties depuis. Le trou de validation sur `proposals`, lui,
+  était bien réel.)*
+- **Cohérence `due_date >= start_date`**, absente partout jusqu'ici : une tâche pouvait être
+  due avant d'avoir commencé, et s'affichait alors « en attente » et « en retard » à la fois.
+  Sur `PUT`, le contrôle porte sur les valeurs **effectives** (corps + existant) — envoyer
+  une seule des deux dates ne peut plus inverser le couple — mais seulement si la requête
+  touche aux dates : une tâche héritée déjà incohérente doit rester corrigible sur ses
+  autres champs.
+- **Trace des rejets.** Un candidat récurrent écarté pour donnée inexploitable émet un
+  `warn` Pino avec `taskId`, `recurrence`, `startDate`, `dueDate` et `reason`
+  (`due_date_unparsable` | `next_occurrence_uncomputable`). Les rejets légitimes (course
+  entre instances, doublon déjà créé, échéance encore future) restent silencieux : seul ce
+  qui condamne définitivement une série est journalisé.
+- Tests : logique pure dans `tests/tasks-helpers.test.js` (formats acceptés et refusés,
+  couples cohérents et inversés) ; bout en bout dans `tests/tasks-date-validation.test.js`
+  (400 sur `POST`, 400 sur `PUT` partiel sans modification de la ligne, décalage des deux
+  dates ensemble toujours possible).
+
+
+### Modifié — La récurrence se cale sur la date de départ
+
+- **La date de départ porte désormais le rythme** des tâches récurrentes quand elle est
+  renseignée. Jusqu'ici, seule l'**échéance** servait d'ancre : le clone recevait
+  `échéance + 1 période`, puis sa date de départ était reconstruite à rebours
+  (`nouvelle échéance − durée start→due`). Une tâche « du vendredi » dont l'échéance
+  s'accrochait au lundi ouvré voyait donc son **départ glisser au lundi avec elle**, et
+  la dérive se propageait d'occurrence en occurrence.
+- Nouvelle fonction `computeNextOccurrenceWindow` (`lib/recurringTasks.js`) : elle avance
+  la **date de départ** d'une période, l'accroche au prochain jour ouvré scolaire, puis
+  repose l'échéance à la **même distance** derrière (`due − start` conservé, elle aussi
+  sur un jour ouvré). Le mardi reste un mardi.
+- **Repli inchangé** sur l'ancrage par l'échéance quand la source n'a pas de date de
+  départ, ou quand elle est incohérente (`start_date > due_date`) : `computeNextOccurrenceDue`
+  et `computeCloneStartDate` restent en place et gardent leur comportement.
+- Le repli `created_at` de `computeCloneStartDate` **ne fait pas ancre** : seule une
+  `start_date` voulue par le professeur déplace le rythme.
+- Invariants conservés : échéance sur un **jour ouvré scolaire**, `due_date >= aujourd'hui`
+  (rattrapage « une seule occurrence à jour » après une coupure), idempotence
+  `(série, échéance)`, et aucune reprise des inscriptions élèves sur le clone.
+- Sept tests unitaires ajoutés (`tests/school-calendar-recurrence.test.js`) : jour de
+  semaine conservé, survie aux vacances, repli sans date de départ, départ postérieur à
+  l'échéance, rattrapage long, mensuel/bimensuel, entrées inexploitables.
+- Documentation : `docs/API.md` (section récurrence) et
+  `docs/reference/foretmap/taches-tutoriels-et-validation.md` (« Sur quelle date se cale le
+  rythme ? », dérive calendaire et non-reprise des inscriptions).
+### Modifié — Affectation rapide : les inscrits en haut de la liste
+
+- Le panneau « Affectation rapide » d'une tâche affiche désormais les utilisateurs **déjà
+  inscrits sur cette tâche en tête** de la liste à cocher (ils sont cochés d'office par le
+  préremplissage), les autres suivent. Tri **stable** : l'ordre d'origine est conservé à
+  l'intérieur de chaque groupe. L'équipe en place se lit sans faire défiler la liste.
+- La position dépend des inscriptions réelles, pas des cases cochées : décocher quelqu'un
+  ne le fait pas sauter de place tant que le delta n'est pas appliqué.
+- Helper pur `sortStudentsForQuickAssign` (`src/utils/taskQuickAssign.js`), couvert par
+  `tests-ui/utils/taskQuickAssign.test.js` et par un test de rendu du panneau ouvert dans
+  `tests-ui/components/TaskTileCard.test.jsx`.
+### Modifié — Le cadre « Séries récurrentes » arrive replié, sans filtre actif
+
+- Onglet Tâches (encadrement) : le cadre « Séries récurrentes » n'occupe plus le haut de la
+  liste à chaque visite. Il s'affiche **replié** (titre + nombre de séries et d'occurrences)
+  et se **déplie au clic** sur son en-tête, qui devient un bouton accessible
+  (`aria-expanded` / `aria-controls`, cible ≥ 44 px).
+- Le bouton « Filtrer récurrentes » vit désormais dans le corps déplié et devient un
+  **bascule** : « Retirer le filtre récurrentes » (`aria-pressed`) quand le filtre est posé.
+  Le filtre récurrence reste à « Toute récurrence » à l'arrivée sur l'onglet — il n'est
+  appliqué que sur action explicite, et se relâche du même bouton.
+- Le statut du calendrier scolaire (`GET /api/school-calendar`) n'est plus chargé qu'au
+  premier dépliage : replié, le cadre n'en affiche rien.
+- Test `tests-ui/components/RecurringSeriesOverview.test.jsx` : replié à l'arrivée, dépliage
+  et repliage au clic, filtre jamais déclenché tout seul et réversible.
+### Corrigé — Gestion des tâches : seuls les n3beurs sont proposés à l'affectation
+
+- Les listes d'utilisateurs de la gestion des tâches (affectation à la création, affectation
+  rapide, sélecteur de référents) ne proposaient **aucun filtre de profil** : elles
+  s'alimentaient à la liste des comptes `student` (`GET /api/stats/all`), qui contient aussi
+  les comptes porteurs d'un profil **visiteur**, **personnel**, **prof de classe** ou d'un
+  profil du sous-produit GL. Ces comptes n'ont pourtant aucune permission de tâche.
+- Nouvelle route **`GET /api/tasks/assignable-students`** (`tasks.manage`, `group_id`
+  optionnel) : les n3beurs actifs du périmètre, triés par nom. La vue Tâches s'y alimente
+  désormais à la place de la liste de stats.
+- `GET /api/tasks/referent-candidates` : la partie « n3beurs » est restreinte de la même
+  façon (l'équipe enseignante, elle, reste proposée comme avant).
+- Fermeture côté serveur, pas seulement dans l'écran : `POST /api/tasks/:id/assign` répond
+  **403** quand un n3boss vise un compte sans profil n3beur, et `POST /api/tasks/:id/assign-group`
+  ignore les membres du groupe qui n'en ont pas (`400` si le groupe n'en compte aucun).
+  Le chemin d'auto-inscription était déjà fermé par la permission `tasks.assign_self`.
+- La règle « profil n3beur » vit dans un noyau partagé unique, `src/shared/n3beurRolesCore.js`
+  (miroir CJS `lib/shared/n3beurRolesCore.js`) : paliers `eleve_*` et profils personnalisés
+  de rang inférieur à l'encadrement, jamais `admin` / `prof` / `prof_classe` / `visiteur` /
+  `personnel` / `gl_*`. Le statut reste acquis aussi bien à la main que par rattachement à
+  un groupe n3beur, celui-ci synchronisant déjà le profil principal.
+### Ajouté — L'onglet Comptes devient utilisable à l'échelle d'un établissement
+
+Mise en œuvre des dix-huit propositions de `docs/AUDIT_UX_GESTION_UTILISATEURS_2026-09.md`,
+ouvertes par l'audit du même jour puis arbitrées.
+
+- **Une seule liste de comptes** (P1). Le panneau « Suppression de … », qui doublait la liste
+  principale avec sa propre recherche, sans filtres ni pagination, disparaît : Supprimer et
+  Dupliquer sont des actions de ligne. On pouvait jusqu'ici filtrer sur une classe en haut de
+  page et travailler sur un tout autre ensemble en bas. Les statistiques par élève suivent
+  désormais le compte au lieu d'exiger une seconde recherche.
+- **Actions groupées** (P2). Cocher plusieurs lignes attribue un profil ou rattache à un groupe
+  en une fois — « tout sélectionner » porte sur l'ensemble des résultats filtrés, pas sur la
+  page affichée. Attribuer un profil à 30 élèves demandait 30 interactions, chacune suivie d'un
+  rechargement complet, alors que le sous-onglet Groupes savait déjà rattacher en lot.
+- **Les profils sensibles sont confirmés** (P3). Le sélecteur enregistrait au changement, sans
+  annulation : un clic de travers accordait `admin` en silence. Attribuer **ou retirer**
+  `admin` / `prof` passe maintenant par une confirmation, seul comme en lot ; les profils
+  élèves restent en application directe.
+- **Le retour d'information est sur la ligne** (P4). Succès et erreurs s'affichaient en tête de
+  vue, donc hors écran dès qu'on avait fait défiler, et sans `aria-live`. Chaque ligne porte
+  son propre statut (`role="status"` / `role="alert"`), et le résumé de résultats est annoncé.
+
+### Modifié — Fiche, filtres et tri de la gestion des utilisateurs
+
+- **Fiche structurée** (P11, P12, P13, P14) : « Fiche de … » en trois sections — *Droits &
+  groupes*, *Identité*, *Actions*. « Réinitialiser le mot de passe » devient une action à part,
+  repliée, avec sa propre validation : le champ n'était plus aligné entre Description et
+  Affiliation, d'où il partait avec un simple « Enregistrer ». L'impersonation quitte le
+  voisinage du bouton d'enregistrement. La fiche affiche les repères de support (compte actif,
+  origine, date de création, dernière visite) et, pour qui gère les groupes, permet de
+  rattacher ou retirer un élève sans quitter la fiche.
+- **Filtres, tri, état vide** (P5 à P10) : libellé visible sur chaque filtre (quatre `select`
+  alignés devenaient illisibles une fois une valeur choisie), menu « Trier par » (nom, profil,
+  sans profil d'abord, sans groupe d'abord), filtres et tri **portés par l'URL** — un
+  rechargement ne les perd plus et une vue filtrée se partage par simple copie du lien. La
+  liste n'est plus enfermée dans un cadre de 360 px à l'intérieur d'une pagination réglée
+  jusqu'à 100 lignes. Zéro résultat propose « Effacer les filtres ». Une seule ligne se met en
+  attente pendant son enregistrement, au lieu de toute la page.
+- **Sous-onglets** (P15, P16, P18) : « Comptes 12 / 350 » pour l'information, pastille d'alerte
+  nommée pour les comptes à rattacher — les deux compteurs avaient la même forme et deux sens
+  opposés. La première visite ouvre sur **Comptes** (l'usage quotidien) et non sur la
+  configuration RBAC. Filet de séparation entre les lignes en affichage mono-colonne.
+- **Vocabulaire** (P17) : « profil » côté interface et documentation, « rôle » réservé à l'API
+  et à la base.
+
+### Ajouté — API : attribution et rattachement en lot
+
+- `POST /api/rbac/users/bulk-role` — même profil pour plusieurs comptes (200 maximum). Chaque
+  ligne passe par la **garde anti-escalade de l'attribution unitaire**, extraite dans
+  `lib/rbacRoleAssignment.js` et désormais écrite une seule fois : un lot ne peut pas accorder
+  ce qu'une action unitaire refuserait. L'échec d'une ligne n'annule pas les autres.
+- `POST /api/groups/:id/members/bulk` — rattachement en lot d'élèves, mêmes contrôles et même
+  resynchronisation de rôle que le rattachement unitaire.
+- `DELETE /api/groups/:id/members/:userId` — retrait unitaire, symétrique du `POST`. Sans lui,
+  corriger un rattachement imposait de réécrire toute la liste des membres via
+  `PUT /:id/members`, donc de la connaître entièrement.
+- `GET /api/rbac/users/:type/:id` expose `is_active`, `auth_provider`, `created_at` et
+  `last_seen`.
+
+### Documentation
+
+- `docs/AUDIT_UX_GESTION_UTILISATEURS_2026-09.md` : constats d'origine conservés, chacun suivi
+  d'une ligne « Traité » ; section « Suivi » complétée par les écarts assumés entre proposition
+  et mise en œuvre, et par les deux pistes laissées ouvertes.
+- `docs/API.md` et `docs/reference/foretmap/comptes-roles-et-groupes.md` mis à jour.
+
+### Ajouté — La fiche utilisateur admin montre enfin le profil et les groupes
+
+- **Fiche d'un compte (« Modifier le compte »)** : une carte d'identité en lecture seule
+  ouvre désormais la fiche et récapitule le **profil** (rôle principal) et **le ou les
+  groupes** de rattachement — mention « Responsable » pour un encadrant, « archivé » pour un
+  groupe inactif. Jusqu'ici l'en-tête se limitait à `Nom (student)` : vérifier qu'un élève
+  était bien dans sa classe imposait de fermer la fiche et d'aller fouiller le sous-onglet
+  Groupes.
+- **Liste des comptes** : chaque ligne affiche les groupes de la personne (trois pastilles au
+  plus, puis « +N »). Le filtre par groupe existait déjà — on filtrait sans pouvoir lire le
+  résultat.
+- **Français partout** : `(student)` / `(teacher)` deviennent « Élève » / « Enseignant » ;
+  l'absence de profil ou de groupe s'écrit (« Aucun profil », « Aucun groupe ») au lieu de
+  laisser un champ muet.
+- Le périmètre est respecté : les groupes renvoyés sont limités à ceux que l'acteur peut voir
+  (`lib/groupScope.js`) — un prof de classe ne voit que les siens, un administrateur les voit
+  tous. La fiche reste en **lecture seule** sur les groupes ; le rattachement se modifie
+  toujours dans le sous-onglet Groupes.
+
+### Modifié — Un appel lourd de moins à l'ouverture du sous-onglet Comptes
+
+- `GET /api/rbac/users` et `GET /api/rbac/users/:type/:id` renvoient `groups[]`
+  (`docs/API.md`). Le panneau Comptes n'a donc plus besoin de charger `GET /api/groups`
+  **en entier** — tous les groupes, tous leurs membres, tous leurs périmètres — juste pour
+  alimenter son filtre par groupe. Seul `GET /api/groups/options` reste appelé.
+
+### Documentation
+
+- `docs/AUDIT_UX_GESTION_UTILISATEURS_2026-09.md` : revue UI/UX des sous-onglets de gestion
+  des utilisateurs et de la fiche utilisateur — 5 constats traités par ce lot, 18 propositions
+  (P1–P18) **ouvertes et non arbitrées**, classées par impact et regroupées en quatre lots.
+  Indexé dans `docs/audits/README.md`.
+### Corrigé — Le palier n3beur ne repart plus de zéro au rattachement à un groupe
+
+- **Le profil par défaut d'un groupe n3beur n'est plus qu'un plancher.** Chaque passage de
+  `syncStudentRoleFromGroups` (rattachement, import, connexion, synchronisation Moodle)
+  posait le profil par défaut du groupe — `n3beur novice` la plupart du temps — sans regarder
+  le compteur de tâches validées : un n3beur qui avait validé 60 tâches se retrouvait au
+  palier d'entrée. Le rôle de groupe est désormais suivi d'un alignement sur le nombre de
+  tâches validées, et le palier mérité est rendu aussitôt.
+- **Un compte visiteur rattaché à un groupe n3beur entre dans l'échelle** : il reçoit le
+  palier correspondant à ses tâches validées (palier d'entrée s'il n'a rien validé, ce qui
+  est le cas courant — un visiteur n'a pas accès aux tâches). Auparavant
+  `syncStudentPrimaryRoleFromProgress` refusait tout profil en lecture seule, et seul le
+  profil par défaut du groupe s'appliquait.
+- Ce chemin ne fait **jamais** redescendre un palier, pas même par le rattrapage historique
+  d'un palier attribué au-dessus du compteur réel (`allowOverAssignedCatchUp`) : un palier
+  posé à la main par un n3boss survit au rattachement. L'action explicite « appliquer le
+  profil par défaut du groupe » (`POST /api/groups/:id/apply-default-role`) n'est pas
+  doublée par ce recalage.
+- Réglage `rbac.progression_align_on_group_join` (défaut activé, `PATCH
+  /api/rbac/progression-align-on-group-join`, case à cocher dans **Profils & utilisateurs →
+  Permissions**, bloc « Progression par tâches validées », et dans Paramètres admin) pour
+  revenir au comportement « profil par défaut du groupe seulement ».
+
+### Ajouté — Attribuer les profils d'après les tâches validées, en masse ou compte par compte
+
+- Nouveau bloc **« Attribuer les profils d'après les tâches validées »** dans
+  **Profils & utilisateurs → Comptes** : périmètre **tous les n3beurs** ou **un groupe**,
+  bouton **Aperçu** (simulation, rien n'est écrit) puis **Appliquer le recalcul**, et liste nominative
+  des paliers qui changent (« Ada Lovelace — 60 tâches validées → n3beur chevronné (était
+  n3beur novice) »). De quoi rattraper d'un coup un parc de profils désaligné.
+- Bouton **« Niveau auto. »** sur chaque ligne d'élève de la liste d'attribution, pour le
+  même recalcul sur un seul compte.
+- Case **« Aligner strictement »** : par défaut le recalcul ne fait que **monter** les
+  paliers ; cochée, elle autorise aussi la **baisse** d'un palier attribué au-dessus du
+  nombre réel de tâches validées.
+- `POST /api/rbac/progression/recompute` (permission `admin.roles.manage`, `lib/studentProgressionSync.js`) :
+  `{ scope: 'all' | 'group' | 'user', group_id?, user_id?, allow_demotion?, dry_run? }`.
+  Périmètre limité aux comptes élèves **actifs membres d'au moins un groupe n3beur** ; les
+  profils hors échelle (n3boss, admin, MJ, prof de classe, profil sur mesure) ne sont jamais
+  modifiés et ressortent avec leur motif. L'aperçu emprunte exactement le même chemin de
+  décision que l'application, à l'écriture près : il ne peut pas diverger du résultat.
+  Journalisé (`rbac_progression_recompute`) et diffusé en temps réel aux vues élèves.
+- Tests : `tests/progression-recompute.test.js` (11 cas — rattachement avec historique,
+  visiteur sans tâche, palier manuel préservé, réglage désactivé, recalcul individuel, aperçu
+  sans écriture, masse par groupe, montée seule vs alignement strict, hors périmètre, profil
+  hors échelle, erreurs 400/404) et `tests-ui/utils/progressionRecompute.test.js` (14 cas).
+- **Fuite de seuils entre fichiers de test corrigée** au passage : `tests/api.test.js`
+  déplace volontairement les `min_done_tasks` sur la base partagée par toute la suite et ne
+  les restaurait pas, ce qui rendait le palier de départ des fichiers suivants dépendant de
+  l'ordre d'exécution. Nouveau helper `tests/helpers/progressionThresholds.js`, appelé en
+  sortie du fichier fautif et en entrée des fichiers qui raisonnent sur les paliers.
+### Corrigé — Plus de déconnexion toutes les 1 h 30, plus de rechargement d'autorité
+
+Deux symptômes distincts, souvent confondus parce qu'ils se produisaient ensemble : le
+message « Nouvelle version installée. » suivi d'une déconnexion. Diagnostic et correctifs
+séparés.
+
+- **Session qui expire en plein travail.** Le jeton vivait exactement
+  `security.jwt_ttl_base_seconds` (1 h 30 par défaut) et **rien ne le prolongeait** :
+  `/api/auth/me` ne ré-émettait qu'en cas de changement de rôle ou de permissions. Un
+  utilisateur actif était donc déconnecté toutes les 90 minutes, quoi qu'il fasse.
+  Désormais, un jeton entré dans le **dernier tiers** de sa durée de vie est ré-émis
+  (`lib/auth/slidingSession.js`), et le client le demande de lui-même quand l'échéance
+  approche (`useAuthTokenRenewal`) plutôt que d'attendre un cycle de synchronisation qui
+  pouvait ne jamais appeler `/api/auth/me`.
+- **Prolongation bornée, pas infinie.** Chaque jeton porte `sessionStartedAt`, posé à la
+  première émission et reconduit par les ré-émissions. Au-delà du nouveau réglage
+  `security.jwt_sliding_max_seconds` (Réglages › Sécurité, défaut **12 h**, `0` = sans
+  plafond), la prolongation est refusée. Sans ce repère, un jeton volé deviendrait éternel.
+- **Faux « Nouvelle version installée » à la première visite.** Le service worker appelle
+  `clients.claim()` à son activation ; sur une page pas encore contrôlée (navigateur neuf,
+  navigation privée, données de site effacées), cette **première** prise de contrôle
+  émettait `controllerchange` — et l'app la traitait comme une mise à jour : toast et
+  rechargement alors qu'aucune version n'avait été remplacée.
+- **Rechargement d'autorité supprimé.** Le déploiement automatique publie un nouveau `sw.js`
+  à chaque changement de bundle — 12 à 23 fois par jour sur le rythme de commits observé —
+  et chaque publication rechargeait la page sans prévenir, saisie en cours comprise.
+  L'application **annonce** maintenant la mise à jour par un bandeau « Une nouvelle version
+  est disponible » + bouton « Recharger », et ne recharge que sur ce clic. Le toast
+  « Nouvelle version installée. » s'affiche ensuite, comme avant.
+- **Un filet subsiste**, volontairement : sur `vite:preloadError` (chunk dynamique supprimé
+  du serveur par le déploiement, onglet resté ouvert), la page se recharge d'elle-même —
+  elle est déjà cassée à ce stade. Anti-boucle d'une minute par onglet.
+- **Limite connue, hors périmètre de ce lot** : le renouvellement glissant passe par
+  `/api/auth/me`, route ForetMap. Les sessions **Gnomes & Licornes** conservent le
+  comportement actuel (expiration sèche au bout du TTL) — à traiter dans un lot GL dédié.
+- Enregistrement du service worker extrait de `src/main.jsx` vers
+  `src/shared/pwa/registerServiceWorker.js`, testable et testé.
+- Tests : `tests/auth-sliding-session.test.js` (règle de renouvellement, plafond absolu,
+  jetons hérités sans le claim), `tests-ui/shared/registerServiceWorker.test.js`,
+  `tests-ui/hooks/useAuthTokenRenewal.test.jsx`, `tests-ui/hooks/useServiceWorkerUpdate.test.jsx`.
+- Docs : `docs/API.md` (renouvellement glissant, `sessionStartedAt`, nouveau réglage),
+  `docs/reference/foretmap/presentation.md` et `comptes-roles-et-groupes.md`.
+
 ### Ajouté — Les 30 fiches à photo morte sont réillustrées
 
 - Migration `257` : une photo Wikimedia Commons pour chacune des 30 fiches que la migration

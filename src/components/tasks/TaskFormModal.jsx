@@ -638,7 +638,8 @@ function TaskFormModal({
           <div className="task-form-pick-list">
             {students.length === 0 ? (
               <p className="task-form-pick-empty">
-                Aucun compte {terms.studentSingular} chargé (liste stats).
+                Aucun compte {terms.studentSingular} disponible (seuls les profils{' '}
+                {terms.studentSingular} sont inscriptibles).
               </p>
             ) : filteredStudentsForAssign.length === 0 ? (
               <p className="task-form-pick-empty">Aucun résultat pour ce filtre.</p>

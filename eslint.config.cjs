@@ -259,7 +259,9 @@ module.exports = [
   {
     // Gabarit PWA : module CommonJS consommé par scripts/build-pwa.js et lib/pwaRoutes.js
     // (Node), jamais par le bundle navigateur — globals Node et `require`/`module`.
-    files: ['src/shared/pwa/**/*.js'],
+    // Ciblé sur ce seul fichier : `src/shared/pwa/` héberge aussi du code navigateur en
+    // ESM (`registerServiceWorker.js`), qu'un `**/*.js` en commonjs rendrait illisible.
+    files: ['src/shared/pwa/swTemplate.js'],
     languageOptions: {
       sourceType: 'commonjs',
       globals: {

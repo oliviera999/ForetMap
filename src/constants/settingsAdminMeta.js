@@ -405,6 +405,12 @@ export const KEY_META = {
     section: 'progression',
     order: 5,
   },
+  'rbac.progression_align_on_group_join': {
+    label:
+      'Aligner le profil sur les tâches validées au rattachement à un groupe n3beur (sinon : profil par défaut du groupe seulement)',
+    section: 'progression',
+    order: 6,
+  },
   'security.password_min_length': {
     label: 'Longueur min mot de passe',
     section: 'security',
@@ -426,6 +432,11 @@ export const KEY_META = {
     label: 'Durée session standard (secondes)',
     section: 'security',
     order: 20,
+  },
+  'security.jwt_sliding_max_seconds': {
+    label: 'Durée max d’une session prolongée (secondes)',
+    section: 'security',
+    order: 25,
   },
   'integration.google.enabled': {
     label: 'Autoriser OAuth Google côté serveur',

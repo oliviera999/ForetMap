@@ -758,6 +758,92 @@ router.post(
   }),
 );
 
+/**
+ * Rattachement **en lot** d'élèves à un groupe (P2 / P14 de l'audit UX) — utilisé par la
+ * barre d'actions groupées de l'onglet Comptes et par la fiche utilisateur.
+ *
+ * Déclarée avant `/:id/members/:userId` : `bulk` est un segment littéral que la route
+ * paramétrée absorberait sinon (elle le prendrait pour un `userId`).
+ *
+ * Chaque élève passe par `addStudentToGroup` — mêmes contrôles et même resynchronisation de
+ * rôle que le rattachement unitaire. Un échec n'annule pas les autres : la réponse détaille
+ * chaque ligne.
+ */
+const BULK_MEMBERS_MAX = 200;
+
+router.post(
+  '/:id/members/bulk',
+  requireGroupManagement,
+  asyncHandler(async (req, res) => {
+    const groupId = normalizeId(req.params.id);
+    if (!groupId) return res.status(400).json({ error: 'Identifiant de groupe requis' });
+    const userIds = Array.isArray(req.body?.user_ids) ? req.body.user_ids : null;
+    if (!userIds || userIds.length === 0) {
+      return res.status(400).json({ error: 'user_ids[] requis (non vide)' });
+    }
+    if (userIds.length > BULK_MEMBERS_MAX) {
+      return res
+        .status(400)
+        .json({ error: `user_ids[] limité à ${BULK_MEMBERS_MAX} comptes par appel` });
+    }
+    if (!(await isGroupInManageScope(req.auth, groupId))) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
+
+    const results = [];
+    for (const raw of userIds) {
+      const userId = normalizeId(raw);
+      if (!userId) {
+        results.push({ user_id: String(raw ?? ''), ok: false, error: 'Identifiant invalide' });
+        continue;
+      }
+      const result = await addStudentToGroup(userId, groupId);
+      results.push(
+        result.ok
+          ? { user_id: userId, ok: true }
+          : { user_id: userId, ok: false, error: result.error },
+      );
+    }
+    const added = results.filter((r) => r.ok).length;
+    logAudit('groups_add_members_bulk', 'group', groupId, `${added}/${results.length}`, { req });
+    res.json({ ok: true, group_id: groupId, added, failed: results.length - added, results });
+  }),
+);
+
+/**
+ * Retrait unitaire d'un membre — symétrique du `POST /:id/members/:userId`. Sans lui, corriger
+ * un rattachement depuis la fiche utilisateur imposait de réécrire toute la liste des membres
+ * via `PUT /:id/members` (et donc de la connaître entièrement).
+ */
+router.delete(
+  '/:id/members/:userId',
+  requireGroupManagement,
+  asyncHandler(async (req, res) => {
+    const groupId = normalizeId(req.params.id);
+    const userId = normalizeId(req.params.userId);
+    if (!groupId || !userId) return res.status(400).json({ error: 'Identifiants requis' });
+    if (!(await isGroupInManageScope(req.auth, groupId))) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
+    const member = await queryOne(
+      'SELECT user_type FROM group_members WHERE group_id = ? AND user_id = ? LIMIT 1',
+      [groupId, userId],
+    );
+    if (!member) return res.status(404).json({ error: 'Rattachement introuvable' });
+    await execute('DELETE FROM group_members WHERE group_id = ? AND user_id = ?', [
+      groupId,
+      userId,
+    ]);
+    // Le rôle d'un élève peut dépendre de ses groupes (`grants_n3beur_access`) : le retrait
+    // doit le recalculer, comme le fait `PUT /:id/members`.
+    if (member.user_type === 'student') {
+      await syncStudentRoleFromGroups(userId);
+    }
+    logAudit('groups_remove_member', 'group', groupId, userId, { req });
+    res.json({ ok: true, group_id: groupId, user_id: userId });
+  }),
+);
+
 /** F2-B — rattachement unitaire d'un élève à un groupe (un clic côté prof). */
 router.post(
   '/:id/members/:userId',

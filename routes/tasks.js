@@ -18,6 +18,7 @@ const {
   normalizeTaskCompletionMode,
 } = require('../lib/taskStatusRecalc');
 const { getScopedStudentIds, getUserAccessibleGroupIds } = require('../lib/groupScope');
+const { listN3beurStudents, filterN3beurStudentIds } = require('../lib/n3beurStudents');
 const { normalizeImportTaskStatus } = require('../lib/tasks/taskImport');
 const {
   parseOptionalAuth,
@@ -58,6 +59,8 @@ const {
   referentPublicLabel,
   normalizeArchivedFilter,
   archivedFilterSql,
+  normalizeTaskDateInput,
+  validateTaskDateRange,
 } = require('../lib/taskRouteHelpers');
 const {
   canReadAllAssignments,
@@ -118,16 +121,6 @@ function normalizeTaskRecurrenceInput(raw, { requiredPresent = false } = {}) {
     return { error: 'Récurrence invalide (weekly, biweekly ou monthly)' };
   }
   return { value: r };
-}
-
-/** Dates tâche : YYYY-MM-DD ou vide/null. */
-function normalizeTaskDateInput(raw, fieldLabel) {
-  if (raw === undefined || raw === null || raw === '') return { value: null };
-  const s = String(raw).trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    return { error: `${fieldLabel} invalide (format AAAA-MM-JJ attendu)` };
-  }
-  return { value: s };
 }
 
 let recurrenceTemplateColumnsReady = null;
@@ -545,6 +538,35 @@ async function getScopedTeacherIds(auth) {
 }
 
 router.get(
+  '/assignable-students',
+  requirePermission('tasks.manage'),
+  asyncHandler(async (req, res) => {
+    const groupId = req.query.group_id ? String(req.query.group_id).trim() : '';
+    const scope = await getScopedStudentIds(req.auth, { groupId: groupId || null });
+    if (scope.unauthorizedGroup) return res.status(403).json({ error: 'Groupe hors périmètre' });
+    const rows = await listN3beurStudents(scope.all ? null : scope.studentIds);
+    rows.sort((a, b) =>
+      `${a.first_name || ''} ${a.last_name || ''}`
+        .trim()
+        .localeCompare(`${b.first_name || ''} ${b.last_name || ''}`.trim(), 'fr', {
+          sensitivity: 'base',
+        }),
+    );
+    res.json({
+      students: rows.map((row) => ({
+        id: row.id,
+        first_name: row.first_name,
+        last_name: row.last_name,
+        pseudo: row.pseudo,
+        avatar_path: row.avatar_path,
+        role_slug: row.role_slug ?? null,
+        role_display_name: row.role_display_name ?? null,
+      })),
+    });
+  }),
+);
+
+router.get(
   '/referent-candidates',
   requirePermission('tasks.manage'),
   asyncHandler(async (req, res) => {
@@ -573,8 +595,16 @@ router.get(
       if (scopedTeacherIds == null) return true;
       return scopedTeacherIds.includes(String(r.id));
     });
+    // Un compte `student` porteur d'un profil non n3beur (visiteur, personnel, prof de classe,
+    // profil GL) n'a aucune permission de tâche : il ne doit pas être proposé comme référent.
+    const n3beurIds = new Set(
+      await filterN3beurStudentIds(
+        rows.filter((r) => r.user_type === 'student').map((r) => String(r.id)),
+      ),
+    );
     const students = rows.filter((r) => {
       if (r.user_type !== 'student') return false;
+      if (!n3beurIds.has(String(r.id))) return false;
       if (scopedStudentIds == null) return true;
       return scopedStudentIds.includes(String(r.id));
     });
@@ -684,15 +714,21 @@ router.post(
     if (parsedStart.error) return res.status(400).json({ error: parsedStart.error });
     const parsedDue = normalizeTaskDateInput(due_date, "Date d'échéance");
     if (parsedDue.error) return res.status(400).json({ error: parsedDue.error });
+    const rangeError = validateTaskDateRange(parsedStart.value, parsedDue.value);
+    if (rangeError) return res.status(400).json({ error: rangeError.error });
     const normalizedGroupId = normalizeOptionalId(group_id);
     const id = crypto.randomUUID();
     const seriesId = parsedRecurrence.value ? crypto.randomUUID() : null;
+    // Ancre de récurrence posée dès la création (migration 258) : la date de départ porte
+    // le rythme de la série. Sans date de départ elle reste nulle, et le job la dérivera de
+    // la date de création au premier clone.
+    const anchorDate = parsedRecurrence.value ? parsedStart.value : null;
     // Écritures atomiques (audit §2.5) : INSERT tasks + jointures + colonnes legacy + espèces
     // + image dans UNE transaction — en cas d'échec (image comprise), tout est annulé
     // et le fichier image éventuellement écrit est supprimé.
     await withTransaction(async (tx) => {
       await tx.execute(
-        'INSERT INTO tasks (id, title, description, map_id, project_id, group_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, recurrence, recurrence_series_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO tasks (id, title, description, map_id, project_id, group_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, recurrence, recurrence_series_id, recurrence_anchor_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           id,
           title,
@@ -711,6 +747,7 @@ router.post(
           parsedImportance.level,
           parsedRecurrence.value,
           seriesId,
+          anchorDate,
           nowDbTimestamp(),
         ],
       );
@@ -977,6 +1014,17 @@ router.put('/:id', async (req, res) => {
       if (pDue.error) return res.status(400).json({ error: pDue.error });
       nextDueDate = pDue.value;
     }
+    // Contrôle sur les valeurs EFFECTIVES : n'envoyer qu'une des deux dates ne doit pas
+    // permettre d'inverser le couple déjà en base. Mais seulement si ce PUT touche aux
+    // dates : une tâche héritée déjà incohérente (aucun contrôle avant ce lot) doit rester
+    // modifiable sur ses autres champs, sinon elle devient impossible à corriger.
+    const putTouchesDates =
+      Object.prototype.hasOwnProperty.call(req.body, 'start_date') ||
+      Object.prototype.hasOwnProperty.call(req.body, 'due_date');
+    if (putTouchesDates) {
+      const putRangeError = validateTaskDateRange(nextStartDate, nextDueDate);
+      if (putRangeError) return res.status(400).json({ error: putRangeError.error });
+    }
 
     const currentStatus = normalizeTaskStatusForRead(task.status);
     const becameValidated = nextStatus === 'validated' && currentStatus !== 'validated';
@@ -1035,6 +1083,19 @@ router.put('/:id', async (req, res) => {
           markersForSnapshot,
           tx,
         );
+      }
+      // Reprise en main du rythme : déplacer la date de départ d'une tâche récurrente
+      // redéfinit l'ancre de sa série (migration 258). C'est la seule façon de déplacer le
+      // rythme — le calendrier scolaire, lui, décale une occurrence sans jamais toucher à
+      // l'ancre. Sans date de départ, l'ancre est effacée : elle sera reprise de la date de
+      // création au prochain passage du job.
+      const recurrenceAfterPut = String(nextRecurrence || '').trim();
+      const startDateChanged = String(task.start_date || '') !== String(nextStartDate || '');
+      if (recurrenceAfterPut && startDateChanged) {
+        await tx.execute('UPDATE tasks SET recurrence_anchor_date = ? WHERE id = ?', [
+          nextStartDate || null,
+          task.id,
+        ]);
       }
       await tx.execute(
         'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, group_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, importance_level=?, recurrence=?, recurrence_series_id=COALESCE(?, recurrence_series_id) WHERE id=?',

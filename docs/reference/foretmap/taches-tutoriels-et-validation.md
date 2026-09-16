@@ -206,12 +206,32 @@ description, lieux, dates, niveaux, places, image. Sa proposition apparaît avec
   complétant au besoin : projet, tutoriels, référents, récurrence) — elle devient alors
   une tâche ordinaire. Pour la refuser, il la supprime.
 
+## Qui peut être inscrit sur une tâche
+
+Seuls les **élèves** au sens de l'application — les comptes dont le profil est un palier
+élève, qu'il ait été attribué à la main ou hérité du rattachement à une classe — peuvent
+être inscrits sur une tâche. Les autres profils (**visiteur**, **personnel**, **prof de
+classe**, profils du jeu _Gnomes & Licornes_) n'apparaissent dans **aucune** liste de la
+gestion des tâches : ni l'affectation à la création, ni l'affectation rapide, ni le
+sélecteur de référents. Un compte de ce type présent dans une classe est également ignoré
+par « Affecter groupe », et l'application refuse toute tentative de l'inscrire.
+
+Pour rendre un compte inscriptible, il faut donc lui donner un profil élève (console des
+profils) ou le rattacher à une classe qui confère le statut élève — voir
+« Comptes, rôles et groupes ».
+
 ## Les outils collectifs du professeur
 
 - **Affecter un groupe** : « 👥 Affecter groupe » inscrit d'un coup les élèves d'un
-  groupe, dans la limite des places restantes de la tâche. Une **affectation rapide**
-  par cases à cocher et une **attribution dès la création** existent aussi (celle-ci
-  relève automatiquement le nombre de places si la sélection dépasse).
+  groupe, dans la limite des places restantes de la tâche — et seulement ceux qui ont un
+  profil élève. Une **affectation rapide** par cases à cocher et une **attribution dès la
+  création** existent aussi (celle-ci relève automatiquement le nombre de places si la
+  sélection dépasse).
+- **Affectation rapide, ordre de la liste** : les élèves **déjà inscrits sur la tâche**
+  sont affichés **en tête** de la liste à cocher (leur case est cochée d'office), les
+  autres suivent dans l'ordre habituel. L'équipe en place se lit donc d'un coup d'œil,
+  sans faire défiler. Décocher quelqu'un ne le déplace pas : l'ordre ne change qu'une
+  fois « Appliquer » validé.
 - **Marquer la part d'un élève** (mode collectif) : en cliquant sur le nom d'un inscrit,
   le professeur marque sa part terminée à sa place. Ce raccourci n'est proposé que pour
   les inscriptions **rattachées à un compte élève** ; une inscription ancienne, saisie
@@ -225,8 +245,22 @@ description, lieux, dates, niveaux, places, image. Sa proposition apparaît avec
   l'application vérifie les **jours ouvrés scolaires** et recrée **une** copie
   « Disponible » avec la prochaine échéance « à jour » (les périodes manquées pendant
   une coupure ne sont pas toutes recréées). Les lieux, tutoriels, référents, groupe et
-  réglages sont repris. Cette automatisation peut être suspendue globalement dans les
-  réglages.
+  réglages sont repris ; les **inscriptions des élèves ne le sont pas** — chaque
+  occurrence repart ouverte à tous. Cette automatisation peut être suspendue
+  globalement dans les réglages.
+- **Sur quelle date se cale le rythme ?** Sur la **date de départ**. Une tâche qui
+  démarre le mardi redémarre le mardi suivant, et son échéance est reposée à la même
+  distance derrière (départ mardi, échéance vendredi → départ mardi, échéance vendredi).
+  Si la tâche n'a pas de date de départ, c'est sa **date de création** qui sert de
+  référence. Jamais la date de validation : valider en avance ou en retard ne déplace
+  pas le rythme.
+- **Cadre « Séries récurrentes »** (encadrement) : en haut de l'onglet Tâches, un cadre
+  récapitule les séries en cours. Il arrive **replié** — seuls son titre et le nombre de
+  séries sont visibles — et se **déplie d'un clic** sur son en-tête (re-clic pour le
+  replier). Le bouton _« Filtrer récurrentes »_ qu'il contient n'est **jamais actif à
+  l'arrivée sur l'onglet** : la liste des tâches affiche tout tant que personne ne l'a
+  cliqué, et un second clic (_« Retirer le filtre récurrentes »_) revient à la liste
+  complète.
 
 ### Et pendant les vacances ?
 
@@ -235,11 +269,19 @@ week-ends, vacances et jours fermés issus du calendrier de travail du lycée).
 
 - Les **jours fermés** (week-ends, vacances, fériés) : aucune nouvelle occurrence n'est
   créée automatiquement.
-- La prochaine échéance est toujours posée sur un **jour ouvré scolaire** (jamais un
-  dimanche ou un jour de congé).
+- La prochaine échéance **et** la prochaine date de départ sont toujours posées sur un
+  **jour ouvré scolaire** (jamais un dimanche ou un jour de congé).
 - Après les vacances, au plus **une** nouvelle tâche « à jour » apparaît — pas une
   pile de clones pour chaque semaine manquée. Relancer un rattrapage serveur plusieurs
   fois ne crée pas de doublons.
+- Quand la date de départ tombe un jour fermé, l'occurrence glisse au premier jour
+  ouvré suivant — **mais seulement celle-là**. Le rythme, lui, ne bouge pas : une tâche
+  du mardi tombée en pleine coupure réapparaît au jour de la rentrée, puis **revient au
+  mardi dès la fois suivante**. Le calendrier décale une occurrence, il ne déplace
+  jamais la série.
+- **Pour déplacer réellement le rythme**, il faut changer la **date de départ** de la
+  tâche : c'est la seule action qui redéfinit le jour de référence de toute la série.
+  Renommer la tâche, changer son lieu ou son échéance seule n'y touche pas.
 
 L'interrupteur manuel des réglages (_« Duplication automatique des tâches récurrentes »_)
 reste disponible en coupe-circuit, au-dessus du calendrier. L'**archivage automatique**
