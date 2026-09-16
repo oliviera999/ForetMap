@@ -274,7 +274,7 @@ describe('VisitDetailPanel — blocs éditoriaux (forme renvoyée par /api/visit
     expect(srcs).toEqual(['/api/map/markers/m7/photos/4/data']);
   });
 
-  test('photos réellement différentes : les deux restent affichées', () => {
+  test('copie sous /api/visit/media/… (prod) : lead seule, pas de second hero lg', () => {
     const { container } = setup({
       selected: {
         id: 3,
@@ -282,7 +282,26 @@ describe('VisitDetailPanel — blocs éditoriaux (forme renvoyée par /api/visit
         map_lead_photo: { id: 10, image_url: '/uploads/zones/3/10.jpg' },
         visit_media: [{ id: 20, image_url: '/api/visit/media/20/data' }],
         visit_editorial_blocks: [
-          { id: 'img-1', type: 'image', media_ids: [20], layout: 'single', size: 'lg' },
+          { id: 'legacy-short', type: 'paragraph', markdown: 'Intro.' },
+          { id: 'legacy-img-1', type: 'image', media_ids: [20], layout: 'single', size: 'lg' },
+        ],
+      },
+    });
+    expect(container.querySelectorAll('.visit-media-gallery--lead')).toHaveLength(1);
+    expect(container.querySelector('.visit-editorial-image')).toBeNull();
+    const srcs = [...container.querySelectorAll('img')].map((img) => img.getAttribute('src'));
+    expect(srcs).toEqual(['/uploads/zones/3/10.jpg']);
+  });
+
+  test('photo différente en md : reste affichée sous la lead', () => {
+    const { container } = setup({
+      selected: {
+        id: 3,
+        name: 'Verger',
+        map_lead_photo: { id: 10, image_url: '/uploads/zones/3/10.jpg' },
+        visit_media: [{ id: 20, image_url: '/api/visit/media/20/data' }],
+        visit_editorial_blocks: [
+          { id: 'img-1', type: 'image', media_ids: [20], layout: 'single', size: 'md' },
         ],
       },
     });

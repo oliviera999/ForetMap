@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Visite : plus de double photo (lead + premier bloc éditorial)
+
+- Quand la photo carte est déjà en tête (`.visit-media-gallery--lead`), le premier grand
+  bloc image du texte (single + lg) n'est plus affiché. En production ce média est souvent
+  servi sous `/api/visit/media/…` alors que la lead utilise `/uploads/…` : même cliché,
+  adresses différentes — le filtre par URL seul ne suffisait pas.
+
 ### Corrigé — Plan Lyautey : la recherche remarche, la carte reste vivante, on ne quitte plus le plan
 
 - **La recherche était inutilisable sur un téléphone.** Toucher le champ ouvrait la feuille de
