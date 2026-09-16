@@ -9,6 +9,50 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Plan Lyautey : la recherche remarche, la carte reste vivante, on ne quitte plus le plan
+
+- **La recherche était inutilisable sur un téléphone.** Toucher le champ ouvrait la feuille de
+  résultats ; celle-ci, **modale**, posait `inert` sur toute l'application et déplaçait le focus
+  sur son bouton « Fermer » : le clavier s'ouvrait, puis plus une lettre ne s'inscrivait. Les
+  feuilles du Plan sont désormais **non bloquantes** (`blockBackground={false}`), et une feuille
+  non modale ne prend plus le focus initial ni ne piège la tabulation
+  (`useDialogA11y({ manageFocus })`).
+- **Fermer la fiche d'un lieu ouvert depuis les résultats faisait quitter le plan.** Quand une
+  feuille en remplace une autre dans le même rendu, le `history.back()` immédiat du démontage
+  partait avant le `pushState` du montage : la fermeture suivante reculait une entrée de trop et
+  le visiteur se retrouvait sur la page précédente. `overlayHistory` réconcilie maintenant la
+  profondeur d'historique **en différé**, sur le nombre de surcouches réellement ouvertes.
+- **La carte est restée manipulable sous une fiche** : plus de voile opaque ni d'`inert`, et les
+  commandes de carte (zoom, « Voir tout le plan », « Me situer ») remontent au-dessus de la
+  feuille ouverte (`--fm-bottom-sheet-inset`, plafonnée à 30 dvh).
+- **Les entrées du lycée étaient hors du plan par défaut** : neuf lieux de production n'ont
+  aucune catégorie — dont quatre entrées et la loge — et le filtre d'établissement les retirait
+  de la carte *et* de la recherche. Les lieux sans catégorie sont désormais conservés
+  (`keepUncategorized`, Plan uniquement), l'index de recherche porte sur **tous** les lieux, et
+  un résultat hors filtre est signalé « masqué par vos filtres » puis affiché sur la carte
+  lorsqu'on l'ouvre.
+- **La fiche d'un lieu s'ouvre à mi-hauteur** (186 px de contenu lisible au lieu de 12) et son
+  pied tient sur une ligne.
+- **Le mode parcours n'est plus muet** : toucher un lieu ouvre sa fiche avec « Revenir à
+  l'étape », au lieu de ne rien faire.
+- **Les filtres sont atteignables** : un bouton « Filtres (n) » ouvre la liste complète des
+  catégories, avec leurs comptes — la rangée de puces faisait cinq écrans de large sur un
+  téléphone, et onze catégories sur treize étaient hors champ.
+- **La recherche parle la langue du visiteur** : table de synonymes scolaires partagée
+  (`placeSearchSynonymsFr.js`) — « wc », « toilettes », « cantine », « bibliothèque »,
+  « photocopie » trouvent enfin *Sanitaires*, *Cafétéria*, *CDI*, *Reprographie*. Le mot
+  littéral passe devant son synonyme ; un résultat venu d'une description le dit.
+- **Les noms du plan ne finissent plus en moignons** : plancher de largeur à 96 px et repli sur
+  deux lignes, moteur de collisions aligné — 0 étiquette tronquée au cadrage d'ouverture contre
+  14 sur 43. Le nom écrit sur le plan est aussi une **cible tactile** de sa zone (44 px), ce qui
+  rend les petits bâtiments atteignables au pouce.
+- Le message d'accueil ne recouvre plus « Voir tout le plan » ni l'échelle ; la liste dit
+  combien de lieux elle montre sur combien ; « Y aller » a repris le marine du lycée (les
+  feuilles étant montées en portail, l'habillage du produit ne les atteignait pas) ; les
+  commandes de carte viennent avant les 44 formes du plan dans l'ordre de tabulation.
+- Filets ajoutés : frappe réelle et « on reste sur le plan » en e2e, profondeur d'historique,
+  vocabulaire de recherche, focus conservé, feuilles non bloquantes, résultat hors filtre.
+
 ### Documentation — Audit UI/UX de la navigation sur `planlyautey.olution.info`
 
 - Nouveau `docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` : relevé de la navigation du Plan

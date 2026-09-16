@@ -20,6 +20,8 @@ import { placeDisplayParts } from '../utils/planPlaces.js';
  * @param {boolean} [props.isTarget] ce lieu est déjà visé.
  * @param {string} [props.distanceLabel] distance à vol d'oiseau, déjà mise en forme.
  * @param {string} [props.shareUrl] lien profond du lieu (`?lieu=`).
+ * @param {{ label: string, onClick: () => void }|null} [props.secondaryAction] action de retour
+ *   contextuelle — en mode parcours, « Revenir à l'étape » (N5 de l'audit navigation).
  */
 export function PlanPlaceSheet({
   place,
@@ -30,6 +32,7 @@ export function PlanPlaceSheet({
   isTarget = false,
   distanceLabel = '',
   shareUrl = '',
+  secondaryAction = null,
 }) {
   if (!place) return null;
   // Le nom porte presque toujours l'emoji en tête, et la colonne `emoji` le répète : sans
@@ -54,13 +57,28 @@ export function PlanPlaceSheet({
       }
       ariaLabel={name}
       snapPoints={['peek', 'half', 'full']}
-      initialSnap="peek"
+      // Au cran bas, l'en-tête et le pied ne laissaient que 12 px de contenu visible pour
+      // 745 px de texte : on ouvrait la fiche sans rien pouvoir y lire
+      // (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N4).
+      initialSnap="half"
+      // Feuille non bloquante : la carte reste manipulable derrière (N2).
+      blockBackground={false}
       className="plan-sheet plan-place-sheet"
       testId="plan-place-sheet"
       closeLabel="Fermer la fiche du lieu"
       wideAsDialog
       footer={
         <div className="plan-place__actions">
+          {secondaryAction ? (
+            <Button
+              variant="secondary"
+              block
+              className="plan-place__back"
+              onClick={secondaryAction.onClick}
+            >
+              {secondaryAction.label}
+            </Button>
+          ) : null}
           <Button
             variant="primary"
             block
@@ -77,8 +95,8 @@ export function PlanPlaceSheet({
           </Button>
           <p className="plan-place__go-hint">
             {canLocate
-              ? 'Direction à vol d’oiseau depuis votre position, pas un itinéraire.'
-              : 'Ce plan n’est pas encore calé pour afficher votre position.'}
+              ? 'Direction à vol d’oiseau, pas un itinéraire.'
+              : 'Plan non calé : position indisponible.'}
           </p>
         </div>
       }

@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-const { planPlaceNamePattern } = require('./helpers/planPlaceName');
+const { planPlaceNamePattern, planSearchTerm } = require('./helpers/planPlaceName');
 
 /**
  * Plan Lyautey (lot 4) — filet e2e du produit servi par host : la coquille se monte sur un
@@ -43,9 +43,26 @@ test('plan : coquille, recherche et fiche d’un lieu', async ({ page, request }
 
   const first = places[0];
   const name = String(first.name || first.label || '').trim();
-  await search.fill(name);
+
+  /**
+   * Frappe **réelle** : toucher le champ puis taper, comme un visiteur.
+   *
+   * `fill()` ne suffit pas et ne suffisait pas : il posait la valeur d'un bloc sans passer par
+   * le focus, alors que c'est justement le focus qui ouvre la feuille de résultats. Quand
+   * celle-ci était modale, elle rendait le champ inerte et la frappe n'arrivait jamais — la
+   * recherche était morte en production et ce scénario restait vert, parce qu'il retrouvait
+   * ensuite son lieu dans la liste « Tous les lieux » affichée quand la saisie est vide
+   * (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N1 et §8).
+   */
+  const term = planSearchTerm(name);
+  test.skip(!term, 'Le premier lieu de cette base n’a aucun mot tapable.');
+  await search.click();
+  await search.pressSequentially(term);
   const results = page.getByTestId('plan-results-sheet');
   await expect(results).toBeVisible({ timeout: 15_000 });
+  // Le titre « Résultats (n) » ne s'affiche que si la saisie est bien arrivée dans le champ.
+  await expect(results.getByRole('heading', { name: /Résultats \(/ })).toBeVisible();
+  await expect(search).toHaveValue(term);
   await results
     .getByRole('button', { name: planPlaceNamePattern(name) })
     .first()
@@ -56,6 +73,20 @@ test('plan : coquille, recherche et fiche d’un lieu', async ({ page, request }
   await expect(placeSheet.getByRole('button', { name: 'Y aller' })).toBeDisabled();
   await expect(page).toHaveURL(/lieu=/);
 
+  // La carte reste vivante sous la fiche : surcouche traversante, aucun `inert` posé.
+  await expect(placeSheet).toHaveAttribute('data-block-background', 'false');
+  await expect(page.locator('#root')).not.toHaveAttribute('inert', /.*/);
+
   await placeSheet.getByRole('button', { name: 'Fermer la fiche du lieu' }).click();
   await expect(placeSheet).toBeHidden({ timeout: 15_000 });
+
+  /**
+   * Fermer cette fiche ne doit pas **quitter le plan**. Les feuilles empilent une entrée
+   * d'historique ; quand l'une remplace l'autre dans le même rendu (toucher un résultat ferme
+   * la liste et ouvre la fiche), le compte se décalait et la fermeture reculait une fois de
+   * trop — le visiteur se retrouvait sur la page précédente
+   * (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N16).
+   */
+  await expect(page.getByLabel('Rechercher un lieu')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Voir tout le plan/ })).toBeVisible();
 });

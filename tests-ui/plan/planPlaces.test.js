@@ -56,6 +56,27 @@ describe('filterPlacesByCategories', () => {
   test('les lieux sans catégorie sortent dès qu’un filtre est actif', () => {
     expect(filterPlacesByCategories(places, ['c1']).some((p) => p.id === 'z1')).toBe(false);
   });
+
+  /**
+   * Un lieu sans catégorie n'appartient à aucune case à cocher : sans cette option, aucune
+   * combinaison de puces ne peut le ramener. En production, ce sont quatre entrées du lycée et
+   * la loge des visiteurs (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N3).
+   */
+  test('keepUncategorized garde les lieux sans aucune catégorie', () => {
+    const sansCategorie = [
+      { id: 'entree', kind: 'marker', category_ids: [] },
+      { id: 'salle', kind: 'zone', category_ids: ['c1'] },
+      { id: 'autre', kind: 'zone', category_ids: ['c2'] },
+    ];
+    expect(filterPlacesByCategories(sansCategorie, ['c1']).map((p) => p.id)).toEqual(['salle']);
+    expect(
+      filterPlacesByCategories(sansCategorie, ['c1'], { keepUncategorized: true }).map((p) => p.id),
+    ).toEqual(['entree', 'salle']);
+    // Sans filtre actif, l'option ne change rien.
+    expect(filterPlacesByCategories(sansCategorie, [], { keepUncategorized: true })).toHaveLength(
+      3,
+    );
+  });
 });
 
 describe('countPlacesByCategory', () => {
