@@ -39,6 +39,11 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   professeurs. Un mot de passe changé (par e-mail, par l'utilisateur ou par un
   administrateur) **déconnecte toutes les sessions ouvertes** de ce compte, sur ForetMap
   comme dans Gnomes & Licornes.
+- **Combien de temps reste-t-on connecté ?** Une session dure 1 h 30 (réglage « Sécurité »),
+  mais elle **se prolonge toute seule tant qu'on se sert de l'application** : plus de
+  déconnexion en plein travail. En revanche, une session est close au bout de **12 heures**
+  au total (second réglage « Sécurité »), et un onglet laissé de côté plus de 1 h 30 sans
+  rien faire demande une reconnexion. Fermer l'onglet ne déconnecte pas.
 - **Trop d'essais** : cinq mots de passe faux sur le même identifiant bloquent ce compte
   30 secondes, puis de plus en plus longtemps (jusqu'à 15 minutes) — sans gêner les autres
   élèves de la classe qui partagent la même connexion.

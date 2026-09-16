@@ -433,6 +433,11 @@ export const KEY_META = {
     section: 'security',
     order: 20,
   },
+  'security.jwt_sliding_max_seconds': {
+    label: 'Durée max d’une session prolongée (secondes)',
+    section: 'security',
+    order: 25,
+  },
   'integration.google.enabled': {
     label: 'Autoriser OAuth Google côté serveur',
     section: 'security',
