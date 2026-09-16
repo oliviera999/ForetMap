@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Carte : typographie du sélecteur de cartes alignée sur la barre d'outils
+
+- Le menu déroulant de choix de carte (`.map-switch-select`, affiché au-delà de 4 cartes)
+  n'avait aucune déclaration typographique propre : il retombait sur la règle globale
+  `input, select, textarea` (`--text-base`, et `16px !important` sous 1024px ou sur pointeur
+  grossier), soit ~40 % de plus que les pilules voisines réglées sur `--map-toolbar-font-size`
+  (`--text-xs`) — d'où une fonte visiblement différente du reste de la barre.
+- Le sélecteur porte désormais `--font-sans`, `--map-toolbar-font-size` et `--lh-tight`, et
+  suit la compaction de la barre carte (`main--map-visible` / `map-view-root--solo`), dont les
+  règles ne visaient que les `button`.
+- Cliquet de style `tests-ui/utils/mapToolbarTypography.test.js`.
+
 ### Modifié — Visite : vu / non-vu sans pastilles, halo d’accueil ciblé
 
 - Sur le plan de visite, les lieux **vus** sont plus atténués et les **non vus** ont un
