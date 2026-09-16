@@ -9,6 +9,72 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — L'onglet Comptes devient utilisable à l'échelle d'un établissement
+
+Mise en œuvre des dix-huit propositions de `docs/AUDIT_UX_GESTION_UTILISATEURS_2026-09.md`,
+ouvertes par l'audit du même jour puis arbitrées.
+
+- **Une seule liste de comptes** (P1). Le panneau « Suppression de … », qui doublait la liste
+  principale avec sa propre recherche, sans filtres ni pagination, disparaît : Supprimer et
+  Dupliquer sont des actions de ligne. On pouvait jusqu'ici filtrer sur une classe en haut de
+  page et travailler sur un tout autre ensemble en bas. Les statistiques par élève suivent
+  désormais le compte au lieu d'exiger une seconde recherche.
+- **Actions groupées** (P2). Cocher plusieurs lignes attribue un profil ou rattache à un groupe
+  en une fois — « tout sélectionner » porte sur l'ensemble des résultats filtrés, pas sur la
+  page affichée. Attribuer un profil à 30 élèves demandait 30 interactions, chacune suivie d'un
+  rechargement complet, alors que le sous-onglet Groupes savait déjà rattacher en lot.
+- **Les profils sensibles sont confirmés** (P3). Le sélecteur enregistrait au changement, sans
+  annulation : un clic de travers accordait `admin` en silence. Attribuer **ou retirer**
+  `admin` / `prof` passe maintenant par une confirmation, seul comme en lot ; les profils
+  élèves restent en application directe.
+- **Le retour d'information est sur la ligne** (P4). Succès et erreurs s'affichaient en tête de
+  vue, donc hors écran dès qu'on avait fait défiler, et sans `aria-live`. Chaque ligne porte
+  son propre statut (`role="status"` / `role="alert"`), et le résumé de résultats est annoncé.
+
+### Modifié — Fiche, filtres et tri de la gestion des utilisateurs
+
+- **Fiche structurée** (P11, P12, P13, P14) : « Fiche de … » en trois sections — *Droits &
+  groupes*, *Identité*, *Actions*. « Réinitialiser le mot de passe » devient une action à part,
+  repliée, avec sa propre validation : le champ n'était plus aligné entre Description et
+  Affiliation, d'où il partait avec un simple « Enregistrer ». L'impersonation quitte le
+  voisinage du bouton d'enregistrement. La fiche affiche les repères de support (compte actif,
+  origine, date de création, dernière visite) et, pour qui gère les groupes, permet de
+  rattacher ou retirer un élève sans quitter la fiche.
+- **Filtres, tri, état vide** (P5 à P10) : libellé visible sur chaque filtre (quatre `select`
+  alignés devenaient illisibles une fois une valeur choisie), menu « Trier par » (nom, profil,
+  sans profil d'abord, sans groupe d'abord), filtres et tri **portés par l'URL** — un
+  rechargement ne les perd plus et une vue filtrée se partage par simple copie du lien. La
+  liste n'est plus enfermée dans un cadre de 360 px à l'intérieur d'une pagination réglée
+  jusqu'à 100 lignes. Zéro résultat propose « Effacer les filtres ». Une seule ligne se met en
+  attente pendant son enregistrement, au lieu de toute la page.
+- **Sous-onglets** (P15, P16, P18) : « Comptes 12 / 350 » pour l'information, pastille d'alerte
+  nommée pour les comptes à rattacher — les deux compteurs avaient la même forme et deux sens
+  opposés. La première visite ouvre sur **Comptes** (l'usage quotidien) et non sur la
+  configuration RBAC. Filet de séparation entre les lignes en affichage mono-colonne.
+- **Vocabulaire** (P17) : « profil » côté interface et documentation, « rôle » réservé à l'API
+  et à la base.
+
+### Ajouté — API : attribution et rattachement en lot
+
+- `POST /api/rbac/users/bulk-role` — même profil pour plusieurs comptes (200 maximum). Chaque
+  ligne passe par la **garde anti-escalade de l'attribution unitaire**, extraite dans
+  `lib/rbacRoleAssignment.js` et désormais écrite une seule fois : un lot ne peut pas accorder
+  ce qu'une action unitaire refuserait. L'échec d'une ligne n'annule pas les autres.
+- `POST /api/groups/:id/members/bulk` — rattachement en lot d'élèves, mêmes contrôles et même
+  resynchronisation de rôle que le rattachement unitaire.
+- `DELETE /api/groups/:id/members/:userId` — retrait unitaire, symétrique du `POST`. Sans lui,
+  corriger un rattachement imposait de réécrire toute la liste des membres via
+  `PUT /:id/members`, donc de la connaître entièrement.
+- `GET /api/rbac/users/:type/:id` expose `is_active`, `auth_provider`, `created_at` et
+  `last_seen`.
+
+### Documentation
+
+- `docs/AUDIT_UX_GESTION_UTILISATEURS_2026-09.md` : constats d'origine conservés, chacun suivi
+  d'une ligne « Traité » ; section « Suivi » complétée par les écarts assumés entre proposition
+  et mise en œuvre, et par les deux pistes laissées ouvertes.
+- `docs/API.md` et `docs/reference/foretmap/comptes-roles-et-groupes.md` mis à jour.
+
 ### Ajouté — La fiche utilisateur admin montre enfin le profil et les groupes
 
 - **Fiche d'un compte (« Modifier le compte »)** : une carte d'identité en lecture seule

@@ -1,5 +1,8 @@
 import { describe, test, expect } from 'vitest';
 import {
+  accountMetaEntries,
+  formatAccountDate,
+  isSensitiveRole,
   normalizeUserGroups,
   summarizeUserGroups,
   userRoleLabel,
@@ -66,5 +69,60 @@ describe('userRoleLabel / userTypeLabel', () => {
     expect(userTypeLabel('teacher')).toBe('Enseignant');
     expect(userTypeLabel('bot')).toBe('bot');
     expect(userTypeLabel(null)).toBe('');
+  });
+});
+
+describe('isSensitiveRole (P3)', () => {
+  test('admin et prof exigent une confirmation, pas les profils élèves', () => {
+    expect(isSensitiveRole('admin')).toBe(true);
+    expect(isSensitiveRole('prof')).toBe(true);
+    expect(isSensitiveRole('ADMIN')).toBe(true);
+    expect(isSensitiveRole('eleve_novice')).toBe(false);
+    expect(isSensitiveRole('prof_classe')).toBe(false);
+  });
+
+  test('accepte un objet profil ou une ligne utilisateur, et tolère l’absence', () => {
+    expect(isSensitiveRole({ slug: 'admin' })).toBe(true);
+    expect(isSensitiveRole({ role_slug: 'prof' })).toBe(true);
+    expect(isSensitiveRole(null)).toBe(false);
+    expect(isSensitiveRole({})).toBe(false);
+  });
+});
+
+describe('métadonnées de support (P13)', () => {
+  test('n’émet que les entrées renseignées', () => {
+    expect(accountMetaEntries({})).toEqual([]);
+    expect(accountMetaEntries(null)).toEqual([]);
+  });
+
+  test('état, origine, création et dernière visite', () => {
+    const entries = accountMetaEntries({
+      is_active: true,
+      auth_provider: 'moodle',
+      created_at: '2026-02-03T10:00:00.000Z',
+      last_seen: '2026-09-01T08:30:00.000Z',
+    });
+    expect(entries.map((e) => `${e.label}: ${e.value}`)).toEqual([
+      'État: Compte actif',
+      'Origine: Moodle',
+      'Créé le: 03/02/2026',
+      'Dernière visite: 01/09/2026',
+    ]);
+  });
+
+  test('un compte désactivé est signalé comme tel', () => {
+    const [first] = accountMetaEntries({ is_active: false });
+    expect(first).toEqual({ label: 'État', value: 'Compte désactivé', tone: 'warn' });
+  });
+
+  test('une origine inconnue est affichée telle quelle', () => {
+    const entries = accountMetaEntries({ auth_provider: 'saml' });
+    expect(entries[0]).toEqual({ label: 'Origine', value: 'saml' });
+  });
+
+  test('une date illisible n’est pas affichée', () => {
+    expect(formatAccountDate('pas-une-date')).toBe('');
+    expect(formatAccountDate(null)).toBe('');
+    expect(accountMetaEntries({ created_at: 'pas-une-date' })).toEqual([]);
   });
 });

@@ -6,7 +6,14 @@ import {
   normalizePageSize,
   paginateList,
   resolveProfilesSubTab,
+  sortProfilesUsers,
+  normalizeProfilesSort,
+  parseAccountsFilters,
+  serializeAccountsFilters,
+  hasActiveAccountsFilters,
+  profilesUserKey,
   DEFAULT_PROFILES_PAGE_SIZE,
+  DEFAULT_PROFILES_SUB_TAB,
 } from '../src/utils/profilesUserListFilters.js';
 
 describe('profilesUserListFilters', () => {
@@ -107,5 +114,143 @@ describe('profilesUserListFilters', () => {
       'comptes',
     );
     assert.equal(resolveProfilesSubTab('comptes', {}), 'comptes');
+  });
+
+  it('P16 — la première visite ouvre sur Comptes, pas sur la configuration RBAC', () => {
+    assert.equal(DEFAULT_PROFILES_SUB_TAB, 'comptes');
+    assert.equal(resolveProfilesSubTab('', { canManageProfiles: true }), 'comptes');
+    // Profils reste le repli quand Comptes n'est pas accessible.
+    assert.equal(
+      resolveProfilesSubTab('', { canManageProfiles: true, canManageStudents: false }),
+      'comptes',
+    );
+  });
+
+  it('clé de ligne composite (type + identifiant)', () => {
+    assert.equal(profilesUserKey({ user_type: 'student', id: '7' }), 'student:7');
+    assert.notEqual(
+      profilesUserKey({ user_type: 'teacher', id: '7' }),
+      profilesUserKey({ user_type: 'student', id: '7' }),
+    );
+  });
+});
+
+describe('tri de la liste des comptes (P6)', () => {
+  const users = [
+    {
+      id: '1',
+      user_type: 'student',
+      display_name: 'Zoé',
+      role_id: 2,
+      role_display_name: 'Novice',
+      groups: [{ id: 'a' }],
+    },
+    {
+      id: '2',
+      user_type: 'teacher',
+      display_name: 'Alice',
+      role_id: 1,
+      role_display_name: 'Admin',
+      groups: [],
+    },
+    {
+      id: '3',
+      user_type: 'student',
+      display_name: 'Bob',
+      role_id: null,
+      role_display_name: null,
+      groups: [{ id: 'a' }, { id: 'b' }],
+    },
+  ];
+
+  it('ne mute pas la liste d’entrée', () => {
+    const copy = [...users];
+    sortProfilesUsers(users, 'name');
+    assert.deepEqual(
+      users.map((u) => u.id),
+      copy.map((u) => u.id),
+    );
+  });
+
+  it('tri par nom', () => {
+    assert.deepEqual(
+      sortProfilesUsers(users, 'name').map((u) => u.display_name),
+      ['Alice', 'Bob', 'Zoé'],
+    );
+  });
+
+  it('tri par défaut : type puis nom', () => {
+    assert.deepEqual(
+      sortProfilesUsers(users, 'default').map((u) => u.display_name),
+      ['Bob', 'Zoé', 'Alice'],
+    );
+  });
+
+  it('tri par profil : les comptes sans profil ferment la marche', () => {
+    assert.deepEqual(
+      sortProfilesUsers(users, 'role').map((u) => u.display_name),
+      ['Alice', 'Zoé', 'Bob'],
+    );
+  });
+
+  it('« sans profil d’abord » et « sans groupe d’abord »', () => {
+    assert.equal(sortProfilesUsers(users, 'no-role')[0].display_name, 'Bob');
+    assert.equal(sortProfilesUsers(users, 'no-group')[0].display_name, 'Alice');
+  });
+
+  it('valeur de tri inconnue → tri par défaut', () => {
+    assert.equal(normalizeProfilesSort('n’importe quoi'), 'default');
+    assert.deepEqual(
+      sortProfilesUsers(users, 'bidon').map((u) => u.id),
+      sortProfilesUsers(users, 'default').map((u) => u.id),
+    );
+  });
+});
+
+describe('filtres portés par l’URL (P7)', () => {
+  it('lit une query string complète', () => {
+    const f = parseAccountsFilters('?q=lea&profil=2&type=student&groupe=g1&tri=name');
+    assert.deepEqual(f, {
+      query: 'lea',
+      roleId: '2',
+      userType: 'student',
+      groupId: 'g1',
+      sort: 'name',
+    });
+  });
+
+  it('query string vide → filtres vides', () => {
+    assert.deepEqual(parseAccountsFilters(''), {
+      query: '',
+      roleId: '',
+      userType: '',
+      groupId: '',
+      sort: 'default',
+    });
+  });
+
+  it('tri illisible dans l’URL → défaut', () => {
+    assert.equal(parseAccountsFilters('?tri=bidon').sort, 'default');
+  });
+
+  it('sérialise en omettant les valeurs par défaut', () => {
+    assert.equal(serializeAccountsFilters({ query: 'lea', sort: 'default' }), '?q=lea');
+    assert.equal(serializeAccountsFilters({}), '');
+    assert.equal(
+      serializeAccountsFilters({ query: '', roleId: '3', userType: '', groupId: '', sort: 'name' }),
+      '?profil=3&tri=name',
+    );
+  });
+
+  it('aller-retour stable', () => {
+    const f = { query: 'a b', roleId: '2', userType: 'teacher', groupId: 'g9', sort: 'no-group' };
+    assert.deepEqual(parseAccountsFilters(serializeAccountsFilters(f)), f);
+  });
+
+  it('détecte un filtre actif (P8 — proposer « Effacer les filtres »)', () => {
+    assert.equal(hasActiveAccountsFilters({}), false);
+    assert.equal(hasActiveAccountsFilters({ query: '', sort: 'default' }), false);
+    assert.equal(hasActiveAccountsFilters({ query: 'lea' }), true);
+    assert.equal(hasActiveAccountsFilters({ sort: 'name' }), true);
   });
 });

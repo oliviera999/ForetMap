@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { UserEditModal } from '../../../src/components/profiles/UserEditModal.jsx';
 
 function renderModal(overrides = {}) {
@@ -7,6 +7,9 @@ function renderModal(overrides = {}) {
     onClose: vi.fn(),
     onSave: vi.fn(),
     onImpersonate: vi.fn(),
+    onResetPassword: vi.fn().mockResolvedValue(undefined),
+    onAttachGroup: vi.fn().mockResolvedValue(undefined),
+    onDetachGroup: vi.fn().mockResolvedValue(undefined),
   };
   const props = {
     user: {
@@ -35,7 +38,7 @@ function renderModal(overrides = {}) {
 describe('UserEditModal', () => {
   test('état loading : message de chargement + bouton Annuler, pas de formulaire', () => {
     renderModal({ loadState: 'loading', user: null });
-    expect(screen.getByText('Modifier le compte')).toBeTruthy();
+    expect(screen.getByText('Fiche du compte')).toBeTruthy();
     expect(screen.getByText('Chargement des données du compte…')).toBeTruthy();
     expect(screen.queryByLabelText('Prénom (obligatoire)')).toBeNull();
     expect(screen.getByRole('button', { name: 'Annuler' })).toBeTruthy();
@@ -43,7 +46,7 @@ describe('UserEditModal', () => {
 
   test('état ready : champs préremplis depuis `user` (prénom/nom) et bouton Enregistrer', () => {
     renderModal();
-    expect(screen.getByText('Léa Martin')).toBeTruthy();
+    expect(screen.getByText('Fiche de Léa Martin')).toBeTruthy();
     expect(screen.getByLabelText('Prénom (obligatoire)').value).toBe('Léa');
     expect(screen.getByLabelText('Nom (obligatoire)').value).toBe('Martin');
     expect(screen.getByRole('button', { name: 'Enregistrer' })).toBeTruthy();
@@ -100,15 +103,13 @@ describe('UserEditModal', () => {
     expect(screen.getByRole('option', { name: 'ancienne (valeur en base)' })).toBeTruthy();
   });
 
-  test('soumettre le formulaire appelle onSave avec les champs saisis (mot de passe compris)', () => {
+  test('soumettre le formulaire appelle onSave avec les seuls champs d’identité', () => {
     const { onSave } = renderModal();
     fireEvent.change(screen.getByLabelText('Pseudo'), { target: { value: 'lea.m' } });
-    fireEvent.change(
-      screen.getByLabelText('Nouveau mot de passe (laisser vide pour ne pas changer)'),
-      { target: { value: 'nouveau-pass' } },
-    );
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect(onSave).toHaveBeenCalledTimes(1);
+    // P12 — le mot de passe a quitté le formulaire d'identité : il ne part plus par erreur
+    // avec un simple « Enregistrer ».
     expect(onSave).toHaveBeenCalledWith({
       firstName: 'Léa',
       lastName: 'Martin',
@@ -116,8 +117,74 @@ describe('UserEditModal', () => {
       email: '',
       description: '',
       affiliation: 'both',
-      password: 'nouveau-pass',
     });
+  });
+
+  test('P12 — le mot de passe est une action explicite, repliée par défaut', async () => {
+    const { onResetPassword } = renderModal();
+    expect(screen.queryByLabelText('Nouveau mot de passe')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Réinitialiser le mot de passe' }));
+    const field = screen.getByLabelText('Nouveau mot de passe');
+    // Tant que le champ est vide, l'action reste inapplicable.
+    expect(screen.getByRole('button', { name: 'Appliquer' })).toBeDisabled();
+    fireEvent.change(field, { target: { value: 'nouveau-pass' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Appliquer' }));
+    await waitFor(() => expect(onResetPassword).toHaveBeenCalledWith('nouveau-pass'));
+  });
+
+  test('P11 — la fiche est structurée en sections', () => {
+    renderModal();
+    expect(screen.getByText('Droits & groupes')).toBeInTheDocument();
+    expect(screen.getByText('Identité')).toBeInTheDocument();
+    expect(screen.getByText('Actions')).toBeInTheDocument();
+  });
+
+  test('P13 — les métadonnées de support sont affichées quand l’API les renvoie', () => {
+    renderModal({
+      user: {
+        id: '7',
+        user_type: 'student',
+        display_name: 'Léa Martin',
+        is_active: false,
+        auth_provider: 'moodle',
+        created_at: '2026-02-03T10:00:00.000Z',
+      },
+    });
+    const meta = screen.getByTestId('user-summary-meta');
+    expect(meta.textContent).toContain('Compte désactivé');
+    expect(meta.textContent).toContain('Moodle');
+    expect(meta.textContent).toContain('03/02/2026');
+  });
+
+  test('P13 — aucune ligne de métadonnées sans donnée à afficher', () => {
+    renderModal();
+    expect(screen.queryByTestId('user-summary-meta')).toBeNull();
+  });
+
+  test('P14 — un élève voit son rattachement modifiable quand l’acteur gère les groupes', async () => {
+    const { onAttachGroup } = renderModal({
+      canManageGroups: true,
+      groupOptions: [{ id: 'g9', name: 'Club jardin' }],
+    });
+    fireEvent.change(screen.getByLabelText('Rattacher à un groupe'), {
+      target: { value: 'g9' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Rattacher' }));
+    await waitFor(() => expect(onAttachGroup).toHaveBeenCalledWith('g9'));
+  });
+
+  test('P14 — sans la permission groupes, le rattachement reste en lecture seule', () => {
+    renderModal({ canManageGroups: false, groupOptions: [{ id: 'g9', name: 'Club jardin' }] });
+    expect(screen.queryByLabelText('Rattacher à un groupe')).toBeNull();
+  });
+
+  test('P14 — un compte enseignant n’expose pas le rattachement (route réservée aux élèves)', () => {
+    renderModal({
+      user: { id: '9', user_type: 'teacher', display_name: 'Sam Prof' },
+      canManageGroups: true,
+      groupOptions: [{ id: 'g9', name: 'Club jardin' }],
+    });
+    expect(screen.queryByLabelText('Rattacher à un groupe')).toBeNull();
   });
 
   test('le bouton Annuler appelle onClose', () => {

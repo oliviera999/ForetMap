@@ -82,6 +82,147 @@ export function filterProfilesUsers(users = [], filters = {}) {
 }
 
 /**
+ * Clé stable d'un compte dans la liste (`user_type` + `id`). Les identifiants sont uniques par
+ * type, pas globalement : la clé composite évite qu'un élève et un enseignant se confondent
+ * dans une sélection ou une map d'état par ligne.
+ * @param {{ user_type?: string, id?: string|number }} user
+ */
+export function profilesUserKey(user) {
+  return `${String(user?.user_type ?? '')}:${String(user?.id ?? '')}`;
+}
+
+/**
+ * Tris disponibles sur la liste des comptes (P6 de l'audit UX). Le serveur renvoie un ordre
+ * unique (type puis nom) : les questions courantes — « qui n'a pas de profil ? », « qui n'est
+ * dans aucun groupe ? », « qui vient d'être créé ? » — n'avaient aucune réponse directe.
+ */
+export const PROFILES_SORTS = Object.freeze([
+  { value: 'default', label: 'Type puis nom (défaut)' },
+  { value: 'name', label: 'Nom (A→Z)' },
+  { value: 'role', label: 'Profil' },
+  { value: 'no-role', label: 'Sans profil d’abord' },
+  { value: 'no-group', label: 'Sans groupe d’abord' },
+]);
+
+const PROFILES_SORT_VALUES = new Set(PROFILES_SORTS.map((s) => s.value));
+
+/** Normalise une valeur de tri mémorisée ou lue dans l'URL. */
+export function normalizeProfilesSort(raw) {
+  const v = String(raw || '').trim();
+  return PROFILES_SORT_VALUES.has(v) ? v : 'default';
+}
+
+function byName(a, b) {
+  return String(a?.display_name || '').localeCompare(String(b?.display_name || ''), 'fr');
+}
+
+function groupCount(u) {
+  return Array.isArray(u?.groups) ? u.groups.length : 0;
+}
+
+/**
+ * Trie une liste de comptes sans muter l'entrée. Le tri secondaire est toujours le nom,
+ * pour que deux rendus successifs donnent le même ordre.
+ * @param {object[]} users
+ * @param {string} sort valeur de `PROFILES_SORTS`
+ */
+export function sortProfilesUsers(users = [], sort = 'default') {
+  const list = Array.isArray(users) ? [...users] : [];
+  switch (normalizeProfilesSort(sort)) {
+    case 'name':
+      return list.sort(byName);
+    case 'role':
+      return list.sort((a, b) => {
+        const ra = String(a?.role_display_name || a?.role_slug || '');
+        const rb = String(b?.role_display_name || b?.role_slug || '');
+        // Les comptes sans profil ferment la marche plutôt que d'ouvrir sur une chaîne vide.
+        if (!ra !== !rb) return ra ? -1 : 1;
+        const cmp = ra.localeCompare(rb, 'fr');
+        return cmp !== 0 ? cmp : byName(a, b);
+      });
+    case 'no-role':
+      return list.sort((a, b) => {
+        const aEmpty = !a?.role_id;
+        const bEmpty = !b?.role_id;
+        if (aEmpty !== bEmpty) return aEmpty ? -1 : 1;
+        return byName(a, b);
+      });
+    case 'no-group':
+      return list.sort((a, b) => {
+        const diff = groupCount(a) - groupCount(b);
+        return diff !== 0 ? diff : byName(a, b);
+      });
+    default:
+      return list.sort((a, b) => {
+        const ta = String(a?.user_type || '');
+        const tb = String(b?.user_type || '');
+        const cmp = ta.localeCompare(tb);
+        return cmp !== 0 ? cmp : byName(a, b);
+      });
+  }
+}
+
+/** Filtres portés par l'URL (P7) — clé de requête ↔ clé d'état. */
+const ACCOUNTS_FILTER_KEYS = Object.freeze({
+  q: 'query',
+  profil: 'roleId',
+  type: 'userType',
+  groupe: 'groupId',
+  tri: 'sort',
+});
+
+export const EMPTY_ACCOUNTS_FILTERS = Object.freeze({
+  query: '',
+  roleId: '',
+  userType: '',
+  groupId: '',
+  sort: 'default',
+});
+
+/**
+ * Lit les filtres depuis une query string (`location.search`). Porter les filtres dans l'URL
+ * règle d'un coup la persistance (un rechargement ne les perd plus) et le partage d'une vue
+ * filtrée à un collègue.
+ * @param {string} search
+ */
+export function parseAccountsFilters(search) {
+  const params = new URLSearchParams(String(search || '').replace(/^\?/, ''));
+  const out = { ...EMPTY_ACCOUNTS_FILTERS };
+  for (const [param, key] of Object.entries(ACCOUNTS_FILTER_KEYS)) {
+    const raw = params.get(param);
+    if (raw == null) continue;
+    out[key] = key === 'sort' ? normalizeProfilesSort(raw) : String(raw);
+  }
+  return out;
+}
+
+/**
+ * Sérialise les filtres en query string, en omettant les valeurs par défaut pour garder une
+ * URL propre. Renvoie '' quand aucun filtre n'est actif.
+ * @param {object} filters
+ */
+export function serializeAccountsFilters(filters = {}) {
+  const params = new URLSearchParams();
+  for (const [param, key] of Object.entries(ACCOUNTS_FILTER_KEYS)) {
+    const value = filters[key];
+    if (value == null) continue;
+    const str = String(value).trim();
+    if (!str || str === EMPTY_ACCOUNTS_FILTERS[key]) continue;
+    params.set(param, str);
+  }
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+}
+
+/** Vrai si au moins un filtre est actif (pour proposer « Effacer les filtres », P8). */
+export function hasActiveAccountsFilters(filters = {}) {
+  // Une clé absente vaut sa valeur par défaut : un objet partiel n'est pas « filtré ».
+  return Object.keys(EMPTY_ACCOUNTS_FILTERS).some(
+    (key) => String(filters[key] ?? EMPTY_ACCOUNTS_FILTERS[key]) !== EMPTY_ACCOUNTS_FILTERS[key],
+  );
+}
+
+/**
  * Pagination 1-indexée. Retourne la tranche + métadonnées.
  * @param {unknown[]} items
  * @param {number} page
@@ -116,7 +257,12 @@ export function normalizePageSize(raw) {
 
 /** Sous-onglets connus de l'admin profils. */
 export const PROFILES_SUB_TABS = ['profils', 'comptes', 'groupes', 'imports'];
-export const DEFAULT_PROFILES_SUB_TAB = 'profils';
+/**
+ * P16 de l'audit UX — onglet d'arrivée. Le sous-onglet visité est mémorisé, mais la **première**
+ * visite ouvrait sur `Profils`, c'est-à-dire la configuration RBAC : une tâche rare, alors que
+ * l'usage quotidien est la gestion des comptes.
+ */
+export const DEFAULT_PROFILES_SUB_TAB = 'comptes';
 
 /**
  * @param {unknown} raw
@@ -145,8 +291,8 @@ export function resolveProfilesSubTab(raw, caps = {}) {
     allowed.add('imports');
   }
   if (value && allowed.has(value) && PROFILES_SUB_TABS.includes(value)) return value;
-  if (allowed.has('profils')) return 'profils';
   if (allowed.has('comptes')) return 'comptes';
+  if (allowed.has('profils')) return 'profils';
   if (allowed.has('groupes')) return 'groupes';
   if (allowed.has('imports')) return 'imports';
   return DEFAULT_PROFILES_SUB_TAB;
