@@ -7964,8 +7964,9 @@
   flex-wrap: wrap;
   gap: 8px;
   /* Bas aligné : avec les libellés au-dessus (P10), center faisait flotter les
-     champs à libellé court trop haut par rapport aux voisins. */
+     champs à libellé court trop haut par rapport aux voisins (toolbar profils). */
   align-items: flex-end;
+  align-content: flex-end;
   margin-bottom: 10px;
 }
 .profiles-admin-list-toolbar input[type='search'],
