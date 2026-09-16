@@ -225,8 +225,15 @@ description, lieux, dates, niveaux, places, image. Sa proposition apparaît avec
   l'application vérifie les **jours ouvrés scolaires** et recrée **une** copie
   « Disponible » avec la prochaine échéance « à jour » (les périodes manquées pendant
   une coupure ne sont pas toutes recréées). Les lieux, tutoriels, référents, groupe et
-  réglages sont repris. Cette automatisation peut être suspendue globalement dans les
-  réglages.
+  réglages sont repris ; les **inscriptions des élèves ne le sont pas** — chaque
+  occurrence repart ouverte à tous. Cette automatisation peut être suspendue
+  globalement dans les réglages.
+- **Sur quelle date se cale le rythme ?** Sur la **date de départ**. Une tâche qui
+  démarre le mardi redémarre le mardi suivant, et son échéance est reposée à la même
+  distance derrière (départ mardi, échéance vendredi → départ mardi, échéance vendredi).
+  Si la tâche n'a pas de date de départ, c'est sa **date de création** qui sert de
+  référence. Jamais la date de validation : valider en avance ou en retard ne déplace
+  pas le rythme.
 
 ### Et pendant les vacances ?
 
@@ -235,11 +242,19 @@ week-ends, vacances et jours fermés issus du calendrier de travail du lycée).
 
 - Les **jours fermés** (week-ends, vacances, fériés) : aucune nouvelle occurrence n'est
   créée automatiquement.
-- La prochaine échéance est toujours posée sur un **jour ouvré scolaire** (jamais un
-  dimanche ou un jour de congé).
+- La prochaine échéance **et** la prochaine date de départ sont toujours posées sur un
+  **jour ouvré scolaire** (jamais un dimanche ou un jour de congé).
 - Après les vacances, au plus **une** nouvelle tâche « à jour » apparaît — pas une
   pile de clones pour chaque semaine manquée. Relancer un rattrapage serveur plusieurs
   fois ne crée pas de doublons.
+- Quand la date de départ tombe un jour fermé, l'occurrence glisse au premier jour
+  ouvré suivant — **mais seulement celle-là**. Le rythme, lui, ne bouge pas : une tâche
+  du mardi tombée en pleine coupure réapparaît au jour de la rentrée, puis **revient au
+  mardi dès la fois suivante**. Le calendrier décale une occurrence, il ne déplace
+  jamais la série.
+- **Pour déplacer réellement le rythme**, il faut changer la **date de départ** de la
+  tâche : c'est la seule action qui redéfinit le jour de référence de toute la série.
+  Renommer la tâche, changer son lieu ou son échéance seule n'y touche pas.
 
 L'interrupteur manuel des réglages (_« Duplication automatique des tâches récurrentes »_)
 reste disponible en coupe-circuit, au-dessus du calendrier. L'**archivage automatique**
