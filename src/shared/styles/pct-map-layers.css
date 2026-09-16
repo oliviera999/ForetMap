@@ -321,3 +321,92 @@
   gap: var(--space-2, 8px);
   align-items: flex-end;
 }
+
+/* --- Pastilles d'état (ForetMap : tâches du lieu, tutoriels liés) ----------------------- *
+ * Posées en HTML et non dans le SVG des polygones : ce dernier est tracé en
+ * `preserveAspectRatio="none"`, il transformerait les disques en ellipses. Le groupe est une
+ * boîte centrée sur l'ancre (centre du repère, pôle d'inaccessibilité de la zone) dont les
+ * coins portent les pastilles — `--fm-pct-status-box` règle son écartement.                */
+
+.fm-pct-status-anchors {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Contre-échelle et contre-rotation comme les étiquettes : taille constante à l'écran. */
+.fm-pct-status-anchor {
+  --fm-pct-status-box: 34px;
+  position: absolute;
+  width: 0;
+  height: 0;
+  transform: scale(var(--pct-inv, 1)) rotate(calc(-1 * var(--pct-orient, 0deg)));
+  transform-origin: 50% 50%;
+}
+
+/* Dans un bouton repère, la contre-échelle est déjà portée par le bouton. */
+.fm-pct-status-dots {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--fm-pct-status-box, 26px);
+  height: var(--fm-pct-status-box, 26px);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.fm-pct-status-dot {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+
+.fm-pct-status-dot--top-right {
+  top: 0;
+  right: 0;
+}
+
+.fm-pct-status-dot--bottom-left {
+  bottom: 0;
+  left: 0;
+}
+
+/* Tons neutres : le produit décide de ce qu'ils signifient. */
+.fm-pct-status-dot--alert {
+  background: #dc2626;
+  animation: fmPctStatusPulse 2.2s ease-in-out infinite;
+}
+
+.fm-pct-status-dot--warn {
+  background: #f59e0b;
+  animation: fmPctStatusPulse 2.2s ease-in-out infinite;
+}
+
+.fm-pct-status-dot--ok {
+  background: #16a34a;
+}
+
+.fm-pct-status-dot--info {
+  background: #6366f1;
+}
+
+@keyframes fmPctStatusPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.42;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-pct-status-dot--alert,
+  .fm-pct-status-dot--warn {
+    animation: none;
+    opacity: 0.92;
+  }
+}
