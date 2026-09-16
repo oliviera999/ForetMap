@@ -206,12 +206,27 @@ description, lieux, dates, niveaux, places, image. Sa proposition apparaît avec
   complétant au besoin : projet, tutoriels, référents, récurrence) — elle devient alors
   une tâche ordinaire. Pour la refuser, il la supprime.
 
+## Qui peut être inscrit sur une tâche
+
+Seuls les **élèves** au sens de l'application — les comptes dont le profil est un palier
+élève, qu'il ait été attribué à la main ou hérité du rattachement à une classe — peuvent
+être inscrits sur une tâche. Les autres profils (**visiteur**, **personnel**, **prof de
+classe**, profils du jeu _Gnomes & Licornes_) n'apparaissent dans **aucune** liste de la
+gestion des tâches : ni l'affectation à la création, ni l'affectation rapide, ni le
+sélecteur de référents. Un compte de ce type présent dans une classe est également ignoré
+par « Affecter groupe », et l'application refuse toute tentative de l'inscrire.
+
+Pour rendre un compte inscriptible, il faut donc lui donner un profil élève (console des
+profils) ou le rattacher à une classe qui confère le statut élève — voir
+« Comptes, rôles et groupes ».
+
 ## Les outils collectifs du professeur
 
 - **Affecter un groupe** : « 👥 Affecter groupe » inscrit d'un coup les élèves d'un
-  groupe, dans la limite des places restantes de la tâche. Une **affectation rapide**
-  par cases à cocher et une **attribution dès la création** existent aussi (celle-ci
-  relève automatiquement le nombre de places si la sélection dépasse).
+  groupe, dans la limite des places restantes de la tâche — et seulement ceux qui ont un
+  profil élève. Une **affectation rapide** par cases à cocher et une **attribution dès la
+  création** existent aussi (celle-ci relève automatiquement le nombre de places si la
+  sélection dépasse).
 - **Marquer la part d'un élève** (mode collectif) : en cliquant sur le nom d'un inscrit,
   le professeur marque sa part terminée à sa place. Ce raccourci n'est proposé que pour
   les inscriptions **rattachées à un compte élève** ; une inscription ancienne, saisie

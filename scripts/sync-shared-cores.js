@@ -32,6 +32,7 @@ const PAIRS = Object.freeze([
   ['src/shared/glMarkerAppearanceCore.js', 'glMarkerAppearanceCore.js'],
   ['src/shared/glMarkerBackgroundsCore.js', 'glMarkerBackgroundsCore.js'],
   ['src/shared/glMarkerEventConfigCore.js', 'glMarkerEventConfigCore.js'],
+  ['src/shared/n3beurRolesCore.js', 'n3beurRolesCore.js'],
   ['src/shared/image-frame/glImageFrameCore.js', 'glImageFrameCore.js'],
 ]);
 
