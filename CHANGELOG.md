@@ -158,6 +158,27 @@ Trois défauts relevés par `docs/AUDIT_ECHEANCES_2026-09.md` (§5 et §7) et la
   premier dépliage : replié, le cadre n'en affiche rien.
 - Test `tests-ui/components/RecurringSeriesOverview.test.jsx` : replié à l'arrivée, dépliage
   et repliage au clic, filtre jamais déclenché tout seul et réversible.
+### Corrigé — Gestion des tâches : seuls les n3beurs sont proposés à l'affectation
+
+- Les listes d'utilisateurs de la gestion des tâches (affectation à la création, affectation
+  rapide, sélecteur de référents) ne proposaient **aucun filtre de profil** : elles
+  s'alimentaient à la liste des comptes `student` (`GET /api/stats/all`), qui contient aussi
+  les comptes porteurs d'un profil **visiteur**, **personnel**, **prof de classe** ou d'un
+  profil du sous-produit GL. Ces comptes n'ont pourtant aucune permission de tâche.
+- Nouvelle route **`GET /api/tasks/assignable-students`** (`tasks.manage`, `group_id`
+  optionnel) : les n3beurs actifs du périmètre, triés par nom. La vue Tâches s'y alimente
+  désormais à la place de la liste de stats.
+- `GET /api/tasks/referent-candidates` : la partie « n3beurs » est restreinte de la même
+  façon (l'équipe enseignante, elle, reste proposée comme avant).
+- Fermeture côté serveur, pas seulement dans l'écran : `POST /api/tasks/:id/assign` répond
+  **403** quand un n3boss vise un compte sans profil n3beur, et `POST /api/tasks/:id/assign-group`
+  ignore les membres du groupe qui n'en ont pas (`400` si le groupe n'en compte aucun).
+  Le chemin d'auto-inscription était déjà fermé par la permission `tasks.assign_self`.
+- La règle « profil n3beur » vit dans un noyau partagé unique, `src/shared/n3beurRolesCore.js`
+  (miroir CJS `lib/shared/n3beurRolesCore.js`) : paliers `eleve_*` et profils personnalisés
+  de rang inférieur à l'encadrement, jamais `admin` / `prof` / `prof_classe` / `visiteur` /
+  `personnel` / `gl_*`. Le statut reste acquis aussi bien à la main que par rattachement à
+  un groupe n3beur, celui-ci synchronisant déjà le profil principal.
 
 ### Ajouté — Les 30 fiches à photo morte sont réillustrées
 

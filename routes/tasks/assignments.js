@@ -20,6 +20,7 @@ const {
   normalizeTaskCompletionMode,
 } = require('../../lib/taskStatusRecalc');
 const { getScopedStudentIds } = require('../../lib/groupScope');
+const { isN3beurStudentId, listN3beurStudents } = require('../../lib/n3beurStudents');
 // Helpers du cluster « tasks » mutualisés dans lib/tasks/taskQueries.js (aucun import circulaire).
 const { recalculateTaskStatus, getTaskWithAssignments } = require('../../lib/tasks/taskQueries');
 const {
@@ -65,6 +66,15 @@ router.post(
       return res
         .status(action.errorStatus || 400)
         .json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
+    }
+
+    // Le chemin n3beur est déjà fermé par la permission `tasks.assign_self` ; celui-ci ferme
+    // l'inscription faite par un prof sur un compte `student` porteur d'un profil non n3beur
+    // (visiteur, personnel, prof de classe, profil GL), qui n'a rien à faire sur une tâche.
+    if (action.actorUserType !== 'student' && !(await isN3beurStudentId(action.studentId))) {
+      return res
+        .status(403)
+        .json({ error: 'Ce compte n’a pas de profil n3beur : inscription impossible' });
     }
 
     const already = task.assignments.find((a) =>
@@ -152,14 +162,9 @@ router.post(
     if (scope.unauthorizedGroup) return res.status(403).json({ error: 'Groupe hors périmètre' });
     if (!scope.studentIds.length)
       return res.status(400).json({ error: 'Aucun n3beur dans ce groupe' });
-    const students = await queryAll(
-      `SELECT id, first_name, last_name
-       FROM users
-      WHERE user_type = 'student'
-        AND is_active = 1
-        AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
-      scope.studentIds,
-    );
+    // Un groupe mêle souvent des profils : seuls les membres n3beurs sont inscriptibles.
+    const students = await listN3beurStudents(scope.studentIds);
+    if (!students.length) return res.status(400).json({ error: 'Aucun n3beur dans ce groupe' });
     // Toute l'inscription de groupe se fait **sous le verrou** de la ligne `tasks` : sans
     // cela, `maxSlots` était calculé à partir d'une lecture antérieure (getTaskWithAssignments)
     // et une inscription concurrente pouvait faire dépasser `required_students` (l'index unique

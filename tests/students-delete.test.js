@@ -7,6 +7,7 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne, execute } = require('../database');
+const { setStudentPrimaryRole } = require('./helpers/studentRoles');
 const { signAuthToken } = require('../middleware/requireTeacher');
 
 let teacherToken;
@@ -52,6 +53,8 @@ before(async () => {
     .send({ firstName, lastName, password: 'pass123' })
     .expect(201);
   studentId = reg.body.id;
+  // Seul un compte au statut n3beur est inscriptible sur une tâche.
+  await setStudentPrimaryRole(studentId, 'eleve_novice');
   const taskRes = await request(app)
     .post('/api/tasks')
     .set('Authorization', `Bearer ${teacherToken}`)

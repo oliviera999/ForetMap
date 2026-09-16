@@ -14,7 +14,7 @@ const STUDENTS = [
 function mockApiOk({ students = STUDENTS, groups = [{ id: 1, name: 'G1' }], referents = [] } = {}) {
   api.mockImplementation(async (url) => {
     if (url.startsWith('/api/groups/options')) return { groups };
-    if (url.startsWith('/api/stats/all')) return students;
+    if (url.startsWith('/api/tasks/assignable-students')) return students;
     if (url.startsWith('/api/tasks/referent-candidates')) return referents;
     throw new Error('URL inattendue : ' + url);
   });
@@ -52,7 +52,7 @@ describe('useTeacherTaskData', () => {
     expect(result.current.loadingTeacherStudents).toBe(false);
   });
 
-  it('accepte le format enveloppé `{ students: [...] }` de /api/stats/all', async () => {
+  it('accepte le format enveloppé `{ students: [...] }` de /api/tasks/assignable-students', async () => {
     mockApiOk({ students: { students: STUDENTS } });
     const { result } = setup();
     await waitFor(() => expect(result.current.teacherStudents).toHaveLength(2));
@@ -61,14 +61,16 @@ describe('useTeacherTaskData', () => {
   it('refetch des n3beurs avec ?group_id= quand le filtre groupe change', async () => {
     mockApiOk();
     const { rerender } = setup();
-    await waitFor(() => expect(api).toHaveBeenCalledWith('/api/stats/all'));
+    await waitFor(() => expect(api).toHaveBeenCalledWith('/api/tasks/assignable-students'));
     rerender({ isTeacher: true, filterGroupId: 'g 1' });
-    await waitFor(() => expect(api).toHaveBeenCalledWith('/api/stats/all?group_id=g%201'));
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith('/api/tasks/assignable-students?group_id=g%201'),
+    );
   });
 
-  it('échec /api/stats/all → toast d’erreur, loading redescend', async () => {
+  it('échec /api/tasks/assignable-students → toast d’erreur, loading redescend', async () => {
     api.mockImplementation(async (url) => {
-      if (url.startsWith('/api/stats/all')) throw new Error('boom');
+      if (url.startsWith('/api/tasks/assignable-students')) throw new Error('boom');
       if (url.startsWith('/api/groups/options')) return { groups: [] };
       return [];
     });
@@ -81,7 +83,7 @@ describe('useTeacherTaskData', () => {
 
   it('échec groupes / référents → listes vides sans toast', async () => {
     api.mockImplementation(async (url) => {
-      if (url.startsWith('/api/stats/all')) return STUDENTS;
+      if (url.startsWith('/api/tasks/assignable-students')) return STUDENTS;
       throw new Error('boom');
     });
     const setToast = vi.fn();

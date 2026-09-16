@@ -2,6 +2,7 @@ require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
 const { initDatabase, queryOne, queryAll, execute } = require('../database');
+const { setStudentPrimaryRole } = require('./helpers/studentRoles');
 const { app } = require('../server');
 const request = require('supertest');
 const { signAuthToken } = require('../middleware/requireTeacher');
@@ -86,6 +87,8 @@ test('Job recurrence : clone sans assignations et idempotence', async () => {
     })
     .expect(201);
   const { id: studentId, first_name: firstName, last_name: lastName } = studentRes.body;
+  // Seul un compte au statut n3beur est inscriptible sur une tâche.
+  await setStudentPrimaryRole(studentId, 'eleve_novice');
 
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
