@@ -998,7 +998,10 @@ function TasksViewImpl({
         <RecurringSeriesOverview
           isTeacher={isTeacher}
           tasks={sourceTasks}
-          onFocusRecurring={() => setFilterRecurrence('recurring')}
+          isRecurringFilterActive={filterRecurrence === 'recurring'}
+          onToggleRecurringFilter={() =>
+            setFilterRecurrence(filterRecurrence === 'recurring' ? '' : 'recurring')
+          }
         />
       )}
 
