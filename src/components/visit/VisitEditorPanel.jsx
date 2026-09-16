@@ -375,7 +375,7 @@ export function VisitEditorPanel({
       />
       <button className="btn btn-primary btn-sm" disabled={saving} onClick={save}>
         {saving ? (
-          'Enregistrement...'
+          'Enregistrement…'
         ) : (
           <>
             <IconSave size={14} /> Sauver

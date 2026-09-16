@@ -62,7 +62,7 @@ test('cycle complet tâche: création prof -> prise élève -> soumission -> val
   await openTeacherTasksTab(page);
   await tasksAfterElevate.catch(() => {});
 
-  const taskSearch = page.getByPlaceholder('Rechercher une tâche...');
+  const taskSearch = page.getByPlaceholder('Rechercher une tâche…');
   await taskSearch.waitFor({ state: 'visible', timeout: 20_000 });
   await taskSearch.fill(taskTitle);
 

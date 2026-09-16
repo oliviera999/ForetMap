@@ -100,7 +100,7 @@ export function AppHeader({
         {isTeacher && (
           <span
             className="app-version-badge"
-            title={`Version installée: ${appVersion != null ? appVersion : 'chargement...'}`}
+            title={`Version installée: ${appVersion != null ? appVersion : 'chargement…'}`}
             aria-label={`Version ${appVersion != null ? appVersion : 'en chargement'}`}
           >
             <span className="app-version-badge__version">

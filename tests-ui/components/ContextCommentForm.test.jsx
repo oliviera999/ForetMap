@@ -56,7 +56,7 @@ describe('ContextCommentForm', () => {
 
   test('en cours de soumission : bouton désactivé et libellé Envoi', () => {
     renderForm({ submitting: true });
-    const btn = screen.getByRole('button', { name: 'Envoi...' });
+    const btn = screen.getByRole('button', { name: 'Envoi…' });
     expect(btn.disabled).toBe(true);
   });
 });

@@ -436,7 +436,7 @@ function TaskTileCardImpl({
                   onClick={() => assign(t)}
                 >
                   {loading[t.id + 'assign'] ? (
-                    '...'
+                    '…'
                   ) : (
                     <>
                       <IconHand size={15} /> Je m&apos;en occupe
@@ -467,7 +467,7 @@ function TaskTileCardImpl({
                     title="Me retirer de cette tâche"
                   >
                     {loading[t.id + 'unassign'] ? (
-                      '...'
+                      '…'
                     ) : (
                       <>
                         <IconUndo size={15} /> Me retirer
@@ -518,7 +518,7 @@ function TaskTileCardImpl({
                 })()}
               >
                 {quickAssignBusy ? (
-                  '...'
+                  '…'
                 ) : (
                   <>
                     <IconQuickAssign size={15} /> Affectation rapide
@@ -541,7 +541,7 @@ function TaskTileCardImpl({
                 title="Affecter en masse les membres d’un groupe"
               >
                 {loading[`${t.id}assign-group`] ? (
-                  '...'
+                  '…'
                 ) : (
                   <>
                     <IconGroup size={15} /> Affecter groupe
@@ -553,7 +553,7 @@ function TaskTileCardImpl({
               <div style={{ display: 'grid', gap: 8, width: '100%' }}>
                 {loadingTeacherStudents ? (
                   <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
-                    Chargement n3beurs...
+                    Chargement n3beurs…
                   </p>
                 ) : (
                   <>
@@ -672,7 +672,7 @@ function TaskTileCardImpl({
                   onClick={() => runTeacherQuickAssign(t, quickAssignStudentIds)}
                   title={quickAssignTitle}
                 >
-                  {quickAssignBusy ? '...' : 'Appliquer'}
+                  {quickAssignBusy ? '…' : 'Appliquer'}
                 </button>
               </div>
             )}
@@ -700,7 +700,7 @@ function TaskTileCardImpl({
                       title={title}
                     >
                       {isBusy ? (
-                        '...'
+                        '…'
                       ) : (
                         <>
                           {STATUS_ACTION_ICONS[opt.value] || null} {opt.label}
@@ -801,7 +801,7 @@ function TaskTileCardImpl({
               contextType="task"
               contextId={t.id}
               title="Commentaires de la tâche"
-              placeholder="Partager une info utile sur cette tâche..."
+              placeholder="Partager une info utile sur cette tâche…"
               canParticipateContextComments={canParticipateContextComments}
             />
           )}

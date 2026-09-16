@@ -8,7 +8,7 @@ describe('ObservationNotebookStatus', () => {
       <ObservationNotebookStatus loading entryCount={0} onRetry={vi.fn()} />,
     );
     expect(container.querySelector('.loader')).toBeInTheDocument();
-    expect(screen.getByText('Chargement...')).toBeInTheDocument();
+    expect(screen.getByText('Chargement…')).toBeInTheDocument();
   });
 
   test('loadError → rend l’erreur et le bouton Réessayer', () => {

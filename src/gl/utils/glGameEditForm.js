@@ -81,7 +81,9 @@ export function buildGameEditPayload(form, status) {
 export function formatGameTimestamp(value) {
   if (!value) return '';
   try {
-    return new Date(value).toLocaleTimeString();
+    // Locale explicite : sans elle l'heure suivait la langue du navigateur (« 4:32:10 PM »
+    // au milieu d'un écran en français) — seule occurrence du dépôt, cf. AUDIT_UI_2026-09-16 B2.
+    return new Date(value).toLocaleTimeString('fr-FR');
   } catch (_) {
     return '';
   }

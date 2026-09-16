@@ -452,7 +452,7 @@ function TaskFormModal({
           value={form.description}
           onChange={set('description')}
           rows={2}
-          placeholder="Instructions détaillées..."
+          placeholder="Instructions détaillées…"
         />
       </div>
       <TaskFormImageField
@@ -711,7 +711,7 @@ function TaskFormModal({
       ) : null}
       <button className="btn btn-primary btn-full" onClick={submit} disabled={saving}>
         {saving
-          ? 'Sauvegarde...'
+          ? 'Sauvegarde…'
           : isDuplicate
             ? 'Créer la copie'
             : editTask

@@ -667,7 +667,7 @@ async function resetTaskFiltersInTasksView(page) {
         .catch(() => {});
     }
   }
-  const search = page.getByPlaceholder('Rechercher une tâche...');
+  const search = page.getByPlaceholder('Rechercher une tâche…');
   if (await search.isVisible({ timeout: 2500 }).catch(() => false)) {
     await search.fill('', { timeout: 8000, force: true }).catch(() => {});
   }
@@ -1071,7 +1071,7 @@ async function enrollOnTaskCard(page, taskCard, options = {}) {
   await dismissProfilePromotionModalIfPresent(page);
   if (taskTitle) {
     await resetTaskFiltersInTasksView(page);
-    const search = page.getByPlaceholder('Rechercher une tâche...');
+    const search = page.getByPlaceholder('Rechercher une tâche…');
     if (await search.isVisible({ timeout: 5000 }).catch(() => false)) {
       await search.fill(taskTitle, { force: true, timeout: 10_000 }).catch(() => {});
     }
@@ -1122,7 +1122,7 @@ async function enrollOnTaskCard(page, taskCard, options = {}) {
     await openStudentTasksTab(page);
     if (taskTitle) {
       await resetTaskFiltersInTasksView(page);
-      const search = page.getByPlaceholder('Rechercher une tâche...');
+      const search = page.getByPlaceholder('Rechercher une tâche…');
       if (await search.isVisible({ timeout: 5000 }).catch(() => false)) {
         await search.fill(taskTitle, { force: true, timeout: 10_000 }).catch(() => {});
       }
@@ -1151,7 +1151,7 @@ async function enrollOnTaskCard(page, taskCard, options = {}) {
 /** Attend qu’une carte tâche portant ce titre soit visible (filtres + recherche). */
 async function expectTaskCardWithTitle(page, taskTitle) {
   await resetTaskFiltersInTasksView(page);
-  const search = page.getByPlaceholder('Rechercher une tâche...');
+  const search = page.getByPlaceholder('Rechercher une tâche…');
   if (await search.isVisible({ timeout: 5000 }).catch(() => false)) {
     await search.fill(taskTitle, { force: true, timeout: 10_000 }).catch(() => {});
   }

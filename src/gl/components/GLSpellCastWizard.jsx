@@ -117,9 +117,14 @@ export function GLSpellCastWizard({
     }, CLOSE_MS);
   }, [isClosing, onClose, spellCast]);
 
-  const dialogRef = useDialogA11y(() => {
-    requestClose();
-  });
+  // Surcouche montée en permanence par l'application : `active` arme l'accessibilité
+  // clavier à l'ouverture (`docs/AUDIT_UI_2026-09-16.md` B1).
+  const dialogRef = useDialogA11y(
+    () => {
+      requestClose();
+    },
+    { active: open },
+  );
 
   useEffect(
     () => () => {
