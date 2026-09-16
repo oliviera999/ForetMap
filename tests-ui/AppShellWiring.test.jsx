@@ -100,6 +100,19 @@ const TEACHER_SESSION = {
   stored: { user: { id: 'T1', userType: 'teacher', displayName: 'Prof Martin' } },
   claims: { roleSlug: 'prof', userId: 'T1', permissions: ['teacher.access'] },
 };
+/**
+ * Prof de classe dont un administrateur a décoché « Accès interface n3boss » dans
+ * Profils & utilisateurs : session valide, jeton posé, mais plus de `teacher.access`.
+ */
+const CLASS_TEACHER_SESSION_WITHOUT_TEACHER_ACCESS = {
+  stored: { token: 'jwt', user: { id: 'T2', userType: 'teacher', displayName: 'Prof Classe' } },
+  claims: {
+    roleSlug: 'prof_classe',
+    userType: 'teacher',
+    userId: 'T2',
+    permissions: ['groups.read', 'groups.manage', 'stats.read.group'],
+  },
+};
 
 async function renderAppWith({ stored, claims }) {
   session.stored = stored;
@@ -135,6 +148,18 @@ describe('App — câblage de la persistance mascotte visite', () => {
     expect(apiMock).toHaveBeenCalledWith('/api/visit/mascot-preference', 'PUT', {
       visit_mascot_catalog_id: 'sprout',
     });
+  });
+
+  /**
+   * Régression : la porte d'entrée exigeait `teacher.access`, pas une session. Un compte
+   * enseignant sans cette permission se connectait (200, jeton posé) puis retombait sur
+   * `UnauthenticatedShell` — sans message, en connexion classique comme en OAuth Google,
+   * puisque le blocage est côté client, après le jeton.
+   */
+  test('prof de classe sans teacher.access : la session ouvre bien l’application', async () => {
+    const { mapTasks } = await renderAppWith(CLASS_TEACHER_SESSION_WITHOUT_TEACHER_ACCESS);
+    expect(probes.unauthenticated).toHaveLength(0);
+    expect(mapTasks).toBeTruthy();
   });
 
   test('sans session : le shell invité est rendu, sans persisteur de compte', async () => {
