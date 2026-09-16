@@ -225,8 +225,16 @@ description, lieux, dates, niveaux, places, image. Sa proposition apparaît avec
   l'application vérifie les **jours ouvrés scolaires** et recrée **une** copie
   « Disponible » avec la prochaine échéance « à jour » (les périodes manquées pendant
   une coupure ne sont pas toutes recréées). Les lieux, tutoriels, référents, groupe et
-  réglages sont repris. Cette automatisation peut être suspendue globalement dans les
-  réglages.
+  réglages sont repris ; les **inscriptions des élèves ne le sont pas** — chaque
+  occurrence repart ouverte à tous. Cette automatisation peut être suspendue
+  globalement dans les réglages.
+- **Sur quelle date se cale le rythme ?** Sur la **date de départ** dès qu'elle est
+  renseignée : une tâche qui démarre le mardi redémarre le mardi suivant, et son
+  échéance est reposée à la même distance derrière (départ mardi, échéance vendredi →
+  départ mardi, échéance vendredi). Sans date de départ, c'est l'**échéance** qui sert
+  de référence. Dans les deux cas le point de départ du calcul est la date **prévue**
+  de la tâche précédente, jamais sa date de validation ni sa date de création : valider
+  en avance ou en retard ne déplace pas le rythme.
 
 ### Et pendant les vacances ?
 
@@ -235,11 +243,16 @@ week-ends, vacances et jours fermés issus du calendrier de travail du lycée).
 
 - Les **jours fermés** (week-ends, vacances, fériés) : aucune nouvelle occurrence n'est
   créée automatiquement.
-- La prochaine échéance est toujours posée sur un **jour ouvré scolaire** (jamais un
-  dimanche ou un jour de congé).
+- La prochaine échéance **et** la prochaine date de départ sont toujours posées sur un
+  **jour ouvré scolaire** (jamais un dimanche ou un jour de congé).
 - Après les vacances, au plus **une** nouvelle tâche « à jour » apparaît — pas une
   pile de clones pour chaque semaine manquée. Relancer un rattrapage serveur plusieurs
   fois ne crée pas de doublons.
+- Quand la date de départ tombe un jour fermé, elle glisse au premier jour ouvré
+  suivant, et c'est **cette date décalée** qui sert de référence pour l'occurrence
+  d'après : une tâche du mardi tombée en pleine coupure peut donc devenir une tâche du
+  lundi ou du jeudi. Pour la remettre sur son jour, il suffit de corriger la date de
+  départ de l'occurrence en cours avant de la valider.
 
 L'interrupteur manuel des réglages (_« Duplication automatique des tâches récurrentes »_)
 reste disponible en coupe-circuit, au-dessus du calendrier. L'**archivage automatique**

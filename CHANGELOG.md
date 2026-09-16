@@ -9,6 +9,33 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — La récurrence se cale sur la date de départ
+
+- **La date de départ porte désormais le rythme** des tâches récurrentes quand elle est
+  renseignée. Jusqu'ici, seule l'**échéance** servait d'ancre : le clone recevait
+  `échéance + 1 période`, puis sa date de départ était reconstruite à rebours
+  (`nouvelle échéance − durée start→due`). Une tâche « du vendredi » dont l'échéance
+  s'accrochait au lundi ouvré voyait donc son **départ glisser au lundi avec elle**, et
+  la dérive se propageait d'occurrence en occurrence.
+- Nouvelle fonction `computeNextOccurrenceWindow` (`lib/recurringTasks.js`) : elle avance
+  la **date de départ** d'une période, l'accroche au prochain jour ouvré scolaire, puis
+  repose l'échéance à la **même distance** derrière (`due − start` conservé, elle aussi
+  sur un jour ouvré). Le mardi reste un mardi.
+- **Repli inchangé** sur l'ancrage par l'échéance quand la source n'a pas de date de
+  départ, ou quand elle est incohérente (`start_date > due_date`) : `computeNextOccurrenceDue`
+  et `computeCloneStartDate` restent en place et gardent leur comportement.
+- Le repli `created_at` de `computeCloneStartDate` **ne fait pas ancre** : seule une
+  `start_date` voulue par le professeur déplace le rythme.
+- Invariants conservés : échéance sur un **jour ouvré scolaire**, `due_date >= aujourd'hui`
+  (rattrapage « une seule occurrence à jour » après une coupure), idempotence
+  `(série, échéance)`, et aucune reprise des inscriptions élèves sur le clone.
+- Sept tests unitaires ajoutés (`tests/school-calendar-recurrence.test.js`) : jour de
+  semaine conservé, survie aux vacances, repli sans date de départ, départ postérieur à
+  l'échéance, rattrapage long, mensuel/bimensuel, entrées inexploitables.
+- Documentation : `docs/API.md` (section récurrence) et
+  `docs/reference/foretmap/taches-tutoriels-et-validation.md` (« Sur quelle date se cale le
+  rythme ? », dérive calendaire et non-reprise des inscriptions).
+
 ### Ajouté — Les 30 fiches à photo morte sont réillustrées
 
 - Migration `257` : une photo Wikimedia Commons pour chacune des 30 fiches que la migration
