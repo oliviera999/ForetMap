@@ -1,6 +1,6 @@
 /* Service worker « foret » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-foret-19338992";
+const CACHE_NAME = "foretmap-foret-c0416e5f";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -17,30 +17,30 @@ const PRECACHE_URLS = [
   "/pwa-maskable-512.png",
   "/pwa-screenshot-mobile.png",
   "/pwa-screenshot-wide.png",
-  "/assets/main-CeVKpQTv.js",
+  "/assets/main-PK0tr2Jm.js",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-CrKhZ6JF.js",
+  "/assets/VisitMascotFallbackSvg-CCZ6taQQ.js",
   "/assets/react-vendor-ClBrELym.js",
   "/assets/icons-BBfebeWE.js",
-  "/assets/ErrorBoundary-CSzRj17P.js",
+  "/assets/ErrorBoundary-CID3NeZ4.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-fcCp6a3x.js",
+  "/assets/ImageLightboxProvider-CJvbPsrB.js",
   "/assets/ImageLightboxProvider-B1dCJcHH.css",
-  "/assets/spriteCutCatalogEntry-CuuavQYI.js",
+  "/assets/spriteCutCatalogEntry-jsXf_bss.js",
   "/assets/markdown-DaBuaikX.js",
-  "/assets/visitMascotPackExtras-xKvHzmoE.js",
-  "/assets/visitMascotPackExtras-CjIRPrBX.css",
-  "/assets/mascotPack-CSbqyG2Y.js",
+  "/assets/visitMascotPackExtras-YznjfWy-.js",
+  "/assets/visitMascotPackExtras-BZfJlhnQ.css",
+  "/assets/mascotPack-DVPa5Jbk.js",
   "/assets/socket-io-SGWxBABF.js",
-  "/assets/MarkdownTextarea-B1PWlHvy.js",
-  "/assets/GlossaryMarkdown-ArZnajsD.js",
-  "/assets/FmLearnAndImportSlot-CiyjgB31.js",
+  "/assets/MarkdownTextarea-DUqA6OLV.js",
+  "/assets/GlossaryMarkdown-CKITXgHQ.js",
+  "/assets/FmLearnAndImportSlot-DWXiDI0F.js",
   "/assets/PublicSettingsContext-B_o2_Q4Y.js",
-  "/assets/journalUi-CLOmYQ4P.js",
-  "/assets/GuidedTourOverlay-DW-Py1aO.js",
-  "/assets/useBrandTheme-CpfgVWWX.js",
+  "/assets/journalUi-DPWCFc6s.js",
+  "/assets/GuidedTourOverlay-I1WUcnJg.js",
+  "/assets/useBrandTheme-PHHp2iYI.js",
   "/assets/useLatestRequest-Jt5PGB1F.js",
-  "/assets/downloadApiFile-C_oZ041-.js",
+  "/assets/downloadApiFile-D_cRgD1f.js",
   "/assets/downloadAuthedFile-BRkwVwdZ.js",
 ];
 
