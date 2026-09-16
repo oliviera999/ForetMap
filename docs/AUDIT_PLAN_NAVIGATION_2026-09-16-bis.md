@@ -460,6 +460,13 @@ plan peut monter dans la bande visible, et l'intervalle est inchangé sans bord 
 trois scénarios dans `tests-ui/plan/AppPlanMount.test.jsx` (« Y aller » referme la fiche et pose
 la barre, fermer la fiche n'arrête pas le guidage, commandes repliées en rangée).
 
+**Filet e2e remis à l'endroit.** `e2e/plan-mobile-position.spec.js` vérifiait la distance **dans
+le bouton « Y aller »** — le comportement que ce lot change ; il a donc légitimement cassé. Il
+vérifie désormais la chaîne complète : la barre de guidage apparaît avec une distance, la fiche
+se referme, le trait est tracé, **le point de position reste visible**, rouvrir puis refermer la
+fiche ne coupe pas le guidage, et « Arrêter » l'interrompt (B4, B5). Un scénario qui encode
+l'ancien comportement se met à jour — il ne se désactive pas.
+
 **Ce que ces filets ne voient toujours pas.** jsdom n'a pas de mise en page : aucun test Vitest
 ne peut constater un recouvrement. La preuve reste la mesure au navigateur (§8), et le filet
 e2e correspondant — `elementFromPoint` + clic sans `force` — reste à écrire (§6).
