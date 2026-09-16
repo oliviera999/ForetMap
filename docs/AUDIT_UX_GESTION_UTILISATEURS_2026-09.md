@@ -8,9 +8,11 @@
 `src/components/groups-views.jsx`, `src/utils/profilesUserListFilters.js`,
 `src/utils/profilesUserGroups.js`, `routes/rbac.js`, `lib/rbacUserGroups.js`.
 
-> Instantané daté : constats au 16/09/2026, sur la base du code de la branche. Les constats
-> traités par le lot associé sont marqués **Traité**. Le reste est une liste de propositions
-> **non implémentées** — aucune n'est engagée sans arbitrage.
+> **État au 16/09/2026 (2ᵉ lot) — tout est traité.** Ce document est resté un instantané :
+> les constats d'origine sont conservés tels quels, chacun suivi d'une ligne **Traité** qui dit
+> par quoi. Les cinq constats de la section 1 ont été corrigés dans un premier lot ; les
+> dix-huit propositions P1 à P18, d'abord ouvertes et non arbitrées, ont été **demandées puis
+> implémentées** dans un second lot (voir `CHANGELOG.md`).
 
 ---
 
@@ -37,6 +39,8 @@ Classées par rapport valeur / coût. Aucune n'est implémentée.
 
 ### P1 — Fusionner les deux listes de comptes _(impact fort, coût moyen)_
 
+> **Traité** — liste unique : `StudentDeletePanel` supprimé, Supprimer / Dupliquer sont des actions de ligne, et les statistiques par élève (`/api/stats/all`) sont fusionnées dans les lignes RBAC.
+
 Le sous-onglet affiche **deux listes d'utilisateurs superposées** avec deux modèles mentaux
 différents :
 
@@ -53,6 +57,8 @@ boutons secondaires) et la fiche, sous les mêmes permissions qu'aujourd'hui
 
 ### P2 — Actions en lot _(impact fort, coût moyen)_
 
+> **Traité** — cases à cocher + `AccountsBulkBar` ; `POST /api/rbac/users/bulk-role` et `POST /api/groups/:id/members/bulk` (200 lignes max, compte rendu par ligne). Les gardes anti-escalade sont partagées avec l'action unitaire (`lib/rbacRoleAssignment.js`).
+
 Attribuer un profil à 30 élèves demande aujourd'hui 30 interactions, chacune déclenchant un
 `PUT` et un rechargement complet de la liste. Le sous-onglet `Groupes` sait déjà rattacher
 **en lot** les visiteurs en attente : l'asymétrie est le vrai défaut.
@@ -63,6 +69,8 @@ groupe, exporter la sélection), avec un récapitulatif avant application
 
 ### P3 — Confirmer les attributions sensibles _(impact fort, coût faible)_
 
+> **Traité** — `ConfirmRoleChangeModal` intercepte l'attribution **et le retrait** d'un profil `admin` ou `prof`, à l'unité comme en lot. Les profils élèves restent en application directe.
+
 Le `<select>` de profil **enregistre au changement**, sans confirmation ni annulation — y compris
 pour passer un compte en `admin`. Une erreur de clic sur mobile accorde des droits
 d'administration silencieusement, et il n'y a pas d'annulation.
@@ -71,6 +79,8 @@ d'administration silencieusement, et il n'y a pas d'annulation.
 modèle de `DeleteUserConfirmModal`. Les profils élèves restent en application directe.
 
 ### P4 — Retour d'information au bon endroit _(impact moyen, coût faible)_
+
+> **Traité** — statut transitoire sur la ligne modifiée (`role="status"` / `role="alert"`), résumé de résultats en `role="status"`.
 
 Succès et erreurs s'affichent dans un bandeau **en tête de vue** (`ProfilesAdminFeedback`),
 c'est-à-dire hors écran dès qu'on a fait défiler la liste : on change un profil ligne 18 et
@@ -82,6 +92,8 @@ toast ; `role="status"` sur le résumé de résultats, `role="alert"` sur l'erre
 
 ### P5 — Double défilement _(impact moyen, coût très faible)_
 
+> **Traité** — `max-height: 360px` retiré ; la pagination borne seule la hauteur.
+
 La liste est enfermée dans `maxHeight: 360px; overflow: auto` **à l'intérieur** d'une page qui
 défile déjà et d'une pagination réglée à 25, 50 ou 100 lignes. Sur mobile, 360 px ≈ 4 lignes
 visibles : on choisit « 100 par page » pour scruter une liste dans un hublot.
@@ -90,6 +102,8 @@ visibles : on choisit « 100 par page » pour scruter une liste dans un hublot.
 est souhaité sur grand écran, le réserver à `min-width: 1024px` avec une hauteur en `vh`.
 
 ### P6 — Tri _(impact moyen, coût faible)_
+
+> **Traité** — menu « Trier par » : nom, profil, sans profil d'abord, sans groupe d'abord (`sortProfilesUsers`, tri secondaire toujours par nom pour un ordre stable).
 
 Aucun tri n'est disponible : l'ordre est imposé par le serveur (`user_type`, puis nom). Les
 questions courantes — « qui n'a pas de profil ? », « qui a été créé aujourd'hui ? », « qui n'est
@@ -100,6 +114,8 @@ sans groupe d'abord), côté client comme les filtres actuels.
 
 ### P7 — Filtres partageables et persistés _(impact faible, coût faible)_
 
+> **Traité** — filtres et tri portés par l'URL (`?q=&profil=&type=&groupe=&tri=`), lus au montage et réécrits par `history.replaceState`.
+
 Incohérence : la **taille de page** est mémorisée (`localStorage`), les **filtres** non. Après un
 rechargement ou un aller-retour vers `Groupes`, la recherche est perdue ; et une vue filtrée ne
 peut pas être transmise à un collègue.
@@ -109,6 +125,8 @@ persistance et partage d'un coup, et aligner sur le sous-onglet `Groupes`.
 
 ### P8 — États vides utiles _(impact faible, coût très faible)_
 
+> **Traité** — bloc d'état vide avec bouton « Effacer les filtres » ; le résumé rappelle le total quand un filtre est actif.
+
 Quand les filtres ne renvoient rien, le résumé affiche « Aucun compte » et la zone de liste est
 vide, sans issue proposée. Un compte peut aussi être absent parce qu'il est hors périmètre.
 
@@ -117,12 +135,16 @@ périmètre quand l'acteur n'a pas la vue globale.
 
 ### P9 — Un seul bouton « Modifier » bloque toute la page _(impact faible, coût très faible)_
 
+> **Traité** — `busyKeys` par ligne : seule la ligne en cours d'écriture est désactivée.
+
 `editUserLoadState === 'loading'` désactive **tous** les boutons « Modifier » de la page pendant
 le chargement d'une seule fiche.
 
 **Proposition** : ne désactiver que la ligne concernée (comparaison sur `user_type` + `id`).
 
 ### P10 — Libellés des filtres _(accessibilité, coût très faible)_
+
+> **Traité** — libellé visible au-dessus de chaque filtre (`AccountsFiltersToolbar`) et `aria-label` nominatif sur « Modifier », « Supprimer », « Dupliquer » et les cases à cocher.
 
 Quatre `<select>` alignés n'ont qu'un `aria-label` ; une fois une valeur choisie (« Novice »),
 plus rien à l'écran ne dit de quel filtre il s'agit. Les boutons « Modifier » partagent tous le
@@ -138,6 +160,8 @@ sélecteur de profil : `Profil de {nom}`).
 
 ### P11 — Une fiche, pas un formulaire _(impact fort, coût moyen)_
 
+> **Traité** — titre « Fiche de … » et trois sections : Droits & groupes, Identité, Actions.
+
 La modale s'intitule « Modifier le compte » et n'est **qu'**un formulaire, alors que le besoin
 réel est d'abord de **consulter** (qui est cette personne, quels droits, quel groupe). La carte
 d'identité ajoutée par ce lot est un premier pas ; la structure reste mono-bloc.
@@ -147,6 +171,8 @@ d'identité ajoutée par ce lot est un premier pas ; la structure reste mono-blo
 `Groupes` pré-filtré), **Activité** (voir P13).
 
 ### P12 — Isoler les actions sensibles _(impact fort, coût faible)_
+
+> **Traité** — « Réinitialiser le mot de passe » est une action repliée, avec sa propre validation et son propre appel (`PATCH` limité à `password`) ; l'impersonation est isolée en pied de fiche.
 
 Le champ « Nouveau mot de passe » est aligné entre « Description » et « Affiliation », et
 « Voir comme cet utilisateur » (impersonation, tracée au journal d'audit) se trouve juste
@@ -158,6 +184,8 @@ d'enregistrement.
 
 ### P13 — Métadonnées de support _(impact moyen, coût moyen)_
 
+> **Traité** — `is_active`, `auth_provider`, `created_at` et `last_seen` exposés par `GET /api/rbac/users/:type/:id` et affichés en pied de la carte d'identité.
+
 La fiche ne dit ni la date de création, ni la dernière connexion, ni si le compte est actif, ni
 d'où il vient (inscription libre, import CSV, Moodle / LTI). Ce sont précisément les questions
 posées en support (« il ne peut pas se connecter »).
@@ -166,6 +194,8 @@ posées en support (« il ne peut pas se connecter »).
 colonnes existent déjà en base (`users.created_at`, `is_active`, `auth_provider`).
 
 ### P14 — Rattacher un groupe depuis la fiche _(impact moyen, coût moyen)_
+
+> **Traité** — `UserGroupsEditor` : rattacher / retirer depuis la fiche, sous `groups.manage` et pour les comptes élèves seulement. Nouvelle route `DELETE /api/groups/:id/members/:userId`, symétrique du `POST`.
 
 Les groupes sont désormais **visibles** dans la fiche mais pas **modifiables** : corriger un
 rattachement impose de fermer, aller dans `Groupes`, retrouver le groupe, retrouver la personne.
@@ -180,6 +210,8 @@ proposition qui déplace une capacité d'écriture d'un onglet vers un autre.
 
 ### P15 — Deux compteurs, deux sens _(impact moyen, coût très faible)_
 
+> **Traité** — « Comptes 12 / 350 » pour l'information, pastille d'alerte orange nommée (« 3 comptes à rattacher ») pour ce qui appelle une action.
+
 `Comptes (128)` = nombre de résultats **filtrés** ; `Groupes (3)` = nombre de visiteurs **en
 attente de traitement**. Même pastille, deux significations : l'une informative, l'autre une
 alerte.
@@ -189,12 +221,16 @@ alerte.
 
 ### P16 — Onglet d'arrivée _(impact faible, coût très faible)_
 
+> **Traité** — `DEFAULT_PROFILES_SUB_TAB` passe à `comptes` ; `profils` reste le repli.
+
 Le sous-onglet est mémorisé (`foretmap.profiles.subTab`), mais la **première** visite arrive sur
 `Profils` — la configuration RBAC, tâche rare — alors que l'usage quotidien est `Comptes`.
 
 **Proposition** : défaut `Comptes` quand l'acteur en a le droit ; `Profils` reste en repli.
 
 ### P17 — Vocabulaire _(impact faible, coût faible)_
+
+> **Traité** — « profil » figé côté interface et documentation de référence, « rôle » réservé à l'API et à la base ; note de vocabulaire ajoutée à `docs/reference/foretmap/comptes-roles-et-groupes.md`.
 
 Trois mots circulent pour la même chose : « Profils » (onglet), « profil principal » (liste),
 « rôle » (API, `role_id`, `role_slug`). La doc de référence parle de « profil de droits ».
@@ -203,6 +239,8 @@ Trois mots circulent pour la même chose : « Profils » (onglet), « profil pri
 le noter dans `docs/reference/foretmap/comptes-roles-et-groupes.md`.
 
 ### P18 — Lisibilité des lignes _(impact faible, coût très faible)_
+
+> **Traité** — filet `border-bottom` entre les lignes ; en mono-colonne, la case à cocher reste sur la ligne d'identité.
 
 Sous 1024 px, `.profiles-admin-user-row` passe en colonne unique : nom, pastilles, sélecteur et
 bouton s'empilent **sans séparateur**, et rien ne distingue visuellement la fin d'un compte du
@@ -225,7 +263,24 @@ début du suivant.
 
 ## 6. Suivi
 
-- Constats 1 à 5 : **traités** (lot du 16/09/2026, voir `CHANGELOG.md`).
-- P1 à P18 : **ouverts**, non arbitrés. Ce document ne vaut pas décision : toute mise en œuvre
-  suppose une demande explicite (cf. `docs/EVOLUTION.md`, « ne pas modifier le comportement
-  métier sans demande »).
+- Constats 1 à 5 : **traités** (1ᵉʳ lot du 16/09/2026).
+- P1 à P18 : **traités** (2ᵉ lot du 16/09/2026), sur demande explicite — la mise en œuvre a
+  suivi l'ordre de la section 5. Détail dans `CHANGELOG.md`.
+
+### Ce que la mise en œuvre a changé par rapport à la proposition
+
+| #   | Écart assumé                                                                                                                                                                            |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P3  | La confirmation couvre aussi le **retrait** d'un profil sensible, pas seulement son attribution : rétrograder un administrateur est aussi lourd de conséquences que d'en promouvoir un. |
+| P7  | Le **tri** est porté par l'URL au même titre que les filtres — sans lui, un lien partagé ne rouvrait pas exactement la même vue.                                                        |
+| P14 | Le rattachement depuis la fiche est limité aux comptes **élèves**, comme les routes `groups/:id/members/:userId` qu'il appelle ; un retrait a demandé une route `DELETE` symétrique.    |
+| P2  | Une action groupée portant sur **un seul** compte reste un appel groupé : le compte rendu et l'entrée d'audit ne changent pas selon la taille de la sélection.                          |
+
+### Reste ouvert
+
+Rien de la liste P1–P18. Deux pistes apparues pendant la mise en œuvre, **non engagées** :
+
+- l'annulation d'une attribution (« annuler » après coup) reste impossible — seule la
+  confirmation préalable protège aujourd'hui ;
+- les actions groupées sont bornées à 200 comptes par appel ; au-delà, l'interface n'enchaîne
+  pas les lots automatiquement.

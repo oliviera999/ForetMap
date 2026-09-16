@@ -74,3 +74,62 @@ export function summarizeUserGroups(groups) {
   if (!Array.isArray(groups) || groups.length === 0) return 'Aucun groupe';
   return groups.map((g) => (g.isManager ? `${g.name} (${g.roleLabel})` : g.name)).join(', ');
 }
+
+/**
+ * Profils dont l'attribution demande une confirmation explicite (P3 de l'audit UX).
+ * Le sélecteur de la liste enregistre au changement : sans garde, un clic de travers accorde
+ * des droits d'administration en silence, et il n'y a pas d'annulation.
+ */
+export const SENSITIVE_ROLE_SLUGS = Object.freeze(['admin', 'prof']);
+
+/**
+ * Vrai si passer un compte à ce profil — ou l'en retirer — doit être confirmé.
+ * @param {{ slug?: string, role_slug?: string }|string|null} role profil visé ou son slug
+ */
+export function isSensitiveRole(role) {
+  const slug = String(typeof role === 'string' ? role : (role?.slug ?? role?.role_slug ?? ''))
+    .trim()
+    .toLowerCase();
+  return SENSITIVE_ROLE_SLUGS.includes(slug);
+}
+
+/** Libellés des origines de compte (`users.auth_provider`). */
+const AUTH_PROVIDER_LABELS = Object.freeze({
+  local: 'Inscription ou création locale',
+  google: 'Google',
+  moodle: 'Moodle',
+  lti: 'Moodle (LTI)',
+});
+
+/** Formate une date ISO en date courte fr-FR ; chaîne vide si absente ou illisible. */
+export function formatAccountDate(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+/**
+ * Métadonnées de support d'un compte (P13) : état, origine, création, dernière visite.
+ * Renvoie uniquement les entrées renseignées — une fiche ne doit pas afficher de ligne vide.
+ * @param {object} user fiche détaillée (`GET /api/rbac/users/:type/:id`)
+ * @returns {Array<{ label: string, value: string, tone?: 'warn' }>}
+ */
+export function accountMetaEntries(user) {
+  if (!user || typeof user !== 'object') return [];
+  const out = [];
+  if (user.is_active === false) {
+    out.push({ label: 'État', value: 'Compte désactivé', tone: 'warn' });
+  } else if (user.is_active === true) {
+    out.push({ label: 'État', value: 'Compte actif' });
+  }
+  const provider = String(user.auth_provider || '').trim();
+  if (provider) {
+    out.push({ label: 'Origine', value: AUTH_PROVIDER_LABELS[provider.toLowerCase()] || provider });
+  }
+  const created = formatAccountDate(user.created_at);
+  if (created) out.push({ label: 'Créé le', value: created });
+  const seen = formatAccountDate(user.last_seen);
+  if (seen) out.push({ label: 'Dernière visite', value: seen });
+  return out;
+}

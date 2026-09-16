@@ -31,17 +31,17 @@ casser les liens existants.
 
 ## Points d’entrée (à ouvrir en premier)
 
-| Document                                                                                  | Rôle                                                                                | Statut                                                        |
-| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| [`AUDIT_STABILITE_PERF_2026-09.md`](../AUDIT_STABILITE_PERF_2026-09.md)                   | Charge / stabilité serveur (ForetMap + GL) — **consolidé**                          | Entrée pour charge / perf                                     |
-| [`AUDIT_MOODLE_IDENTITES_2026-09.md`](../AUDIT_MOODLE_IDENTITES_2026-09.md)               | Lien Moodle : **spécification de chantier** (annuaire + LTI) + bandeau d’état dépôt | Chantier ouvert (M4 terrain, 21.7)                            |
-| [`AUDIT_COMPTES_2026-09.md`](../AUDIT_COMPTES_2026-09.md)                                 | Identités unifiées ForetMap × GL (préalable Moodle)                                 | Référence comptes                                             |
-| [`AUDIT_CHARGE_BIODIVERSITE_2026-09.md`](../AUDIT_CHARGE_BIODIVERSITE_2026-09.md)         | Pic d’ouverture listes / biodiversité — complète la stabilité                       | Constats encore signalés ouverts                              |
-| [`AUDIT_BRANCHES_2026-09.md`](../AUDIT_BRANCHES_2026-09.md)                               | Passe de fusion / triage des branches (`moodle-sync` + `cursor/*`)                  | Instantané 8 sept. 2026                                       |
-| [`AUDIT_EVOLUTION_V1_V2_2026-09.md`](../AUDIT_EVOLUTION_V1_V2_2026-09.md)                 | Évolution v1.0.0 → v1.151.3 et arbitrage « poser une V2 ? »                         | Instantané 9 sept. 2026                                       |
-| [`AUDIT_CODE_2026-09-13.md`](../AUDIT_CODE_2026-09-13.md)                                 | Audit du code (bugs, incohérences, doublons mesurés, perf / charge) — base réelle   | À traiter (13 sept. 2026)                                     |
-| [`AUDIT_NAVIGATION_IPHONE_2026-09.md`](../AUDIT_NAVIGATION_IPHONE_2026-09.md)             | Navigation iPhone / Apple (ForetMap, GL, Plan) — safe-area, bottom-nav, filet e2e   | Instantané 14 sept. 2026                                      |
-| [`AUDIT_UX_GESTION_UTILISATEURS_2026-09.md`](../AUDIT_UX_GESTION_UTILISATEURS_2026-09.md) | UI/UX de l'onglet « Profils & utilisateurs » et de la fiche utilisateur admin       | Instantané 16 sept. 2026 (5 constats traités, P1–P18 ouverts) |
+| Document                                                                                  | Rôle                                                                                | Statut                                                                  |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| [`AUDIT_STABILITE_PERF_2026-09.md`](../AUDIT_STABILITE_PERF_2026-09.md)                   | Charge / stabilité serveur (ForetMap + GL) — **consolidé**                          | Entrée pour charge / perf                                               |
+| [`AUDIT_MOODLE_IDENTITES_2026-09.md`](../AUDIT_MOODLE_IDENTITES_2026-09.md)               | Lien Moodle : **spécification de chantier** (annuaire + LTI) + bandeau d’état dépôt | Chantier ouvert (M4 terrain, 21.7)                                      |
+| [`AUDIT_COMPTES_2026-09.md`](../AUDIT_COMPTES_2026-09.md)                                 | Identités unifiées ForetMap × GL (préalable Moodle)                                 | Référence comptes                                                       |
+| [`AUDIT_CHARGE_BIODIVERSITE_2026-09.md`](../AUDIT_CHARGE_BIODIVERSITE_2026-09.md)         | Pic d’ouverture listes / biodiversité — complète la stabilité                       | Constats encore signalés ouverts                                        |
+| [`AUDIT_BRANCHES_2026-09.md`](../AUDIT_BRANCHES_2026-09.md)                               | Passe de fusion / triage des branches (`moodle-sync` + `cursor/*`)                  | Instantané 8 sept. 2026                                                 |
+| [`AUDIT_EVOLUTION_V1_V2_2026-09.md`](../AUDIT_EVOLUTION_V1_V2_2026-09.md)                 | Évolution v1.0.0 → v1.151.3 et arbitrage « poser une V2 ? »                         | Instantané 9 sept. 2026                                                 |
+| [`AUDIT_CODE_2026-09-13.md`](../AUDIT_CODE_2026-09-13.md)                                 | Audit du code (bugs, incohérences, doublons mesurés, perf / charge) — base réelle   | À traiter (13 sept. 2026)                                               |
+| [`AUDIT_NAVIGATION_IPHONE_2026-09.md`](../AUDIT_NAVIGATION_IPHONE_2026-09.md)             | Navigation iPhone / Apple (ForetMap, GL, Plan) — safe-area, bottom-nav, filet e2e   | Instantané 14 sept. 2026                                                |
+| [`AUDIT_UX_GESTION_UTILISATEURS_2026-09.md`](../AUDIT_UX_GESTION_UTILISATEURS_2026-09.md) | UI/UX de l'onglet « Profils & utilisateurs » et de la fiche utilisateur admin       | Instantané 16 sept. 2026 — **entièrement traité** (5 constats + P1–P18) |
 
 ## Chantiers / specs encore utiles comme consigne
 

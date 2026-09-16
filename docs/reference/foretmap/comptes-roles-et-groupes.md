@@ -199,19 +199,47 @@ et l'état du compte.
 ## La gestion des utilisateurs
 
 L'onglet **Profils & utilisateurs** est découpé en **sous-onglets** pour rester lisible
-quand l'établissement a beaucoup de comptes et de groupes :
+quand l'établissement a beaucoup de comptes et de groupes. À la première visite il
+s'ouvre sur **Comptes**, qui est l'usage quotidien ; ensuite, c'est le dernier
+sous-onglet consulté qui est rouvert.
+
+> **Vocabulaire.** Dans l'interface et dans cette documentation, on dit **profil** pour
+> l'ensemble de droits attribué à une personne (visiteur, n3beur novice, prof de classe,
+> administrateur…). Le mot « rôle » ne subsiste que côté technique (API, base de
+> données) ; il désigne exactement la même chose.
 
 - **Profils** : créer et régler les profils de droits (permissions, paliers, emoji…).
-- **Comptes** : attribuer un profil à chaque personne, créer un compte unitaire,
-  supprimer ou dupliquer. Une barre de recherche et des filtres (profil, type élève /
-  enseignant, groupe) réduisent la liste ; on peut choisir combien de lignes afficher
-  par page (25, 50 ou 100). **Chaque ligne indique les groupes de la personne**
-  (au plus trois pastilles, puis « +N » ; « Aucun groupe » si elle n'est rattachée
-  nulle part), et le type de compte est écrit en toutes lettres (« Élève »,
-  « Enseignant »).
+- **Comptes** : **une seule liste** pour tout ce qui concerne un compte — attribuer un
+  profil, ouvrir la fiche, dupliquer, supprimer. (Auparavant, supprimer ou dupliquer
+  supposait une seconde liste plus bas dans la page, avec sa propre recherche : on
+  pouvait filtrer sur une classe en haut et travailler sur un autre ensemble en bas.)
+  Une barre de recherche et des filtres **portant chacun son libellé** (profil, type
+  élève / enseignant, groupe) réduisent la liste, un menu **Trier par** la réordonne
+  (nom, profil, « sans profil d'abord », « sans groupe d'abord »), et on choisit
+  combien de lignes afficher par page (25, 50 ou 100). **Chaque ligne indique les
+  groupes de la personne** (au plus trois pastilles, puis « +N » ; « Aucun groupe » si
+  elle n'est rattachée nulle part), et le type de compte est écrit en toutes lettres
+  (« Élève », « Enseignant »).
+  - **Les filtres sont dans l'adresse de la page** : un rechargement ne les perd plus,
+    et le lien copié rouvre la même vue filtrée chez un collègue.
+  - **Actions groupées** : cocher plusieurs lignes fait apparaître une barre qui
+    attribue un profil ou rattache à un groupe **en une fois** (« tout sélectionner »
+    porte sur l'ensemble des résultats filtrés, pas seulement sur la page affichée).
+    Le rattachement ne concerne que les comptes élèves.
+  - **Les profils sensibles sont confirmés** : attribuer `administrateur` ou `n3boss`,
+    ou retirer un tel profil, demande une confirmation explicite — seul ou en lot. Les
+    profils élèves s'appliquent directement, comme avant.
+  - **Le résultat s'affiche sur la ligne concernée** (« Profil enregistré », ou le
+    motif du refus) plutôt qu'en haut de page, où il était invisible dès qu'on avait
+    fait défiler. Une seule ligne se met en attente pendant son enregistrement : les
+    autres restent utilisables.
+  - Quand aucun compte ne correspond aux filtres, un bouton **« Effacer les filtres »**
+    est proposé sur place.
 - **Groupes** : arborescence des classes et sous-groupes (recherche, filtre par type,
   masquage des inactifs). Les visiteurs en attente de rattachement apparaissent en tête ;
-  on peut les rattacher un par un ou **en lot** au groupe choisi.
+  on peut les rattacher un par un ou **en lot** au groupe choisi. Quand il y en a, une
+  **pastille d'alerte** orange sur l'onglet en donne le nombre — à ne pas confondre avec
+  le compteur discret de l'onglet Comptes, qui indique simplement « résultats / total ».
 - **Imports & exports** : importer des élèves ou des groupes, exporter les statistiques.
 
 - **Créer / importer** : un **n3boss** (selon ses droits) peut créer des comptes un par
@@ -256,17 +284,26 @@ quand l'établissement a beaucoup de comptes et de groupes :
   affectations et son historique de tâches, et recalcule les statuts des tâches
   concernées. C'est un pouvoir sensible ; il ne fait pas partie du socle minimal du
   prof de classe.
-- **Fiche d'un compte** : le bouton « Modifier » ouvre la fiche de la personne. Une
-  **carte d'identité** en tête récapitule, en lecture seule, son **profil** (rôle
-  principal) et **le ou les groupes** auxquels elle est rattachée — avec la mention
-  « Responsable » quand elle encadre le groupe, et « archivé » si le groupe ne
-  l'est plus. Plus besoin d'ouvrir le sous-onglet Groupes pour vérifier un
-  rattachement avant de changer un profil. Un profil ou un groupe manquant est écrit
-  explicitement (« Aucun profil », « Aucun groupe ») plutôt que laissé vide. Les
-  groupes affichés restent limités au **périmètre** de la personne connectée : un
-  prof de classe ne voit que les groupes qu'il encadre, un administrateur les voit
-  tous. La modification du rattachement elle-même se fait toujours dans le
-  sous-onglet **Groupes**.
+- **Fiche d'un compte** : le bouton « Modifier » ouvre la fiche de la personne
+  (« Fiche de … »), organisée en trois parties.
+  - **Droits & groupes** : son **profil** (rôle principal) et **le ou les groupes**
+    auxquels elle est rattachée — mention « Responsable » quand elle encadre le
+    groupe, « archivé » si le groupe ne l'est plus. Plus besoin d'ouvrir le
+    sous-onglet Groupes pour vérifier un rattachement avant de changer un profil. Un
+    profil ou un groupe manquant est écrit explicitement (« Aucun profil », « Aucun
+    groupe ») plutôt que laissé vide. Quelques **repères de support** complètent la
+    section : compte actif ou désactivé, origine (inscription locale, Google, Moodle),
+    date de création, dernière visite — ce qu'on cherche quand quelqu'un « n'arrive
+    pas à se connecter ». Les groupes affichés restent limités au **périmètre** de la
+    personne connectée : un prof de classe ne voit que les groupes qu'il encadre, un
+    administrateur les voit tous. Si elle a le droit de gérer les groupes, elle peut
+    **rattacher ou retirer** un élève directement depuis la fiche ; sinon l'affichage
+    reste en lecture seule et la modification se fait dans le sous-onglet **Groupes**.
+  - **Identité** : prénom, nom, pseudo, e-mail, description, affiliation.
+  - **Actions** : « Réinitialiser le mot de passe » est désormais une action à part,
+    repliée par défaut et avec sa propre validation — elle ne part plus par
+    inadvertance avec un simple « Enregistrer ». « Voir comme cet utilisateur » y est
+    également isolé, loin du bouton d'enregistrement.
 - **Prendre la main** : un administrateur peut temporairement se connecter « en tant
   que » un utilisateur pour l'aider — l'action est tracée dans le journal d'audit.
 - **Compte supprimé** : si un compte est supprimé pendant qu'il est connecté,
