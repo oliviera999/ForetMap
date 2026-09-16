@@ -35,6 +35,7 @@ const {
   EMAIL_RE,
   STUDENT_ROLE_SLUG_RE,
   reservedRoleSlugError,
+  teacherAccessLockError,
   PROFILE_PATCH_KEYS,
   canConfigureStudentTierForumContext,
   normalizeEmail,
@@ -704,6 +705,15 @@ router.put(
         .json({ error: 'Seul un administrateur peut modifier le profil admin' });
     }
     const entries = Array.isArray(req.body?.permissions) ? req.body.permissions : [];
+    // Garde « porte d'entrée » : un profil système d'enseignant ne peut pas perdre
+    // `teacher.access` ici. La révocation est durable depuis la migration 241 et le
+    // libellé du catalogue (« Accès interface n3boss ») invite à la décocher sur
+    // « Prof de classe », dont c'est pourtant le seul droit d'accès à l'API.
+    const doorLockError = teacherAccessLockError(
+      role.slug,
+      entries.map((item) => item?.key),
+    );
+    if (doorLockError) return res.status(400).json({ error: doorLockError });
     if (actorRoleSlug !== 'admin') {
       for (const item of entries) {
         const key = String(item?.key || '').trim();

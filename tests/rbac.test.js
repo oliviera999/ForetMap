@@ -211,6 +211,40 @@ test('RBAC: PATCH forum/commentaires pour palier perso. (rank < 400) ; refus sur
   await execute('DELETE FROM roles WHERE id = ?', [created.body.id]);
 });
 
+/**
+ * Régression « prof de classe bloqué à la connexion » : décocher « Accès interface
+ * n3boss » (`teacher.access`) sur ce profil le privait de sa seule porte d'entrée API,
+ * et la révocation est durable depuis la migration 241.
+ */
+test('RBAC: teacher.access ne peut pas être retiré aux profils enseignants', async () => {
+  const token = await getAdminToken();
+  for (const slug of ['prof_classe', 'prof', 'admin']) {
+    const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [slug]);
+    assert.ok(role?.id, slug);
+    const before = await queryAll('SELECT permission_key FROM role_permissions WHERE role_id = ?', [
+      role.id,
+    ]);
+    const withoutDoor = before
+      .map((row) => row.permission_key)
+      .filter((key) => key !== 'teacher.access')
+      .map((key) => ({ key }));
+    const res = await request(app)
+      .put(`/api/rbac/profiles/${role.id}/permissions`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ permissions: withoutDoor })
+      .expect(400);
+    assert.ok(String(res.body?.error || '').includes('teacher.access'), res.body?.error);
+    const after = await queryAll('SELECT permission_key FROM role_permissions WHERE role_id = ?', [
+      role.id,
+    ]);
+    // Refus AVANT écriture : la matrice du profil est intacte.
+    assert.deepStrictEqual(
+      after.map((row) => row.permission_key).sort(),
+      before.map((row) => row.permission_key).sort(),
+    );
+  }
+});
+
 test('RBAC admin: duplication de profil (permissions copiées)', async () => {
   const token = await getAdminToken();
   const profRole = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', ['prof']);
