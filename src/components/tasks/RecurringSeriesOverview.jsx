@@ -7,6 +7,38 @@ const RECURRENCE_LABELS = {
   monthly: 'Mensuelle',
 };
 
+/** « mar. 22 sept. » — le jour de semaine est l'information utile ici : c'est lui qui dérivait. */
+export function formatOccurrenceDate(value) {
+  const raw = String(value || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const parsed = new Date(`${raw}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return raw;
+  return parsed.toLocaleDateString('fr-FR', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+  });
+}
+
+/**
+ * Phrase de prévision d'une série : ce que le job posera, et ce qu'il attend pour le faire.
+ * Renvoie `null` quand le serveur n'a rien pu calculer (série sans échéance exploitable).
+ */
+export function previewLine(preview) {
+  if (!preview) return null;
+  const next = formatOccurrenceDate(preview.next_start);
+  const due = formatOccurrenceDate(preview.next_due);
+  if (!next) return null;
+  const fenetre = due && due !== next ? `${next} → ${due}` : next;
+  if (preview.pending === 'validation') {
+    return `Prochaine occurrence ${fenetre}, une fois celle-ci validée.`;
+  }
+  if (preview.pending === 'due_date') {
+    return `Prochaine occurrence ${fenetre}, une fois l’échéance atteinte.`;
+  }
+  return `Prochaine occurrence ${fenetre}.`;
+}
+
 /**
  * Panneau n3boss/admin : aperçu des tâches récurrentes + statut calendrier du jour.
  *
@@ -24,6 +56,7 @@ export function RecurringSeriesOverview({
   const [expanded, setExpanded] = useState(false);
   const [todayStatus, setTodayStatus] = useState(null);
   const bodyId = useId();
+  const [previews, setPreviews] = useState(null);
 
   // Le calendrier scolaire n'est lu qu'au premier dépliage : replié, le cadre n'a
   // rien à en afficher, inutile de payer la requête à chaque visite de l'onglet.
@@ -36,6 +69,31 @@ export function RecurringSeriesOverview({
         if (!cancelled) setTodayStatus(data?.today || null);
       } catch {
         if (!cancelled) setTodayStatus(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isTeacher, expanded]);
+
+  // Prévision des prochaines occurrences : le calcul dépend du calendrier scolaire, qui
+  // n'existe qu'en base — le front ne peut pas le refaire. Comme le statut du jour, elle
+  // n'est demandée qu'au premier dépliage : repliée, la liste ne l'affiche pas.
+  useEffect(() => {
+    if (!isTeacher || !expanded) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await api('/api/tasks/recurring-preview');
+        if (cancelled) return;
+        const bySeries = new Map();
+        for (const row of data?.series || []) {
+          if (row?.series_id) bySeries.set(String(row.series_id), row);
+        }
+        setPreviews(bySeries);
+      } catch {
+        // Prévision indisponible : le panneau reste utile sans elle.
+        if (!cancelled) setPreviews(null);
       }
     })();
     return () => {
@@ -75,6 +133,7 @@ export function RecurringSeriesOverview({
         latestDue: head.due_date || '—',
         status: head.status,
         archived: Boolean(head.archived_at),
+        preview: previews?.get(String(seriesId)) || null,
       };
     })
     .sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'fr'))
@@ -118,16 +177,31 @@ export function RecurringSeriesOverview({
           )}
           {calendarLine && <p className="recurring-series-overview-calendar">{calendarLine}</p>}
           <ul className="recurring-series-overview-list">
-            {rows.map((row) => (
-              <li key={row.seriesId}>
-                <span className="recurring-series-title">{row.title}</span>
-                <span className="recurring-series-meta">
-                  {RECURRENCE_LABELS[row.recurrence] || row.recurrence} · {row.count} occ. ·
-                  échéance {row.latestDue}
-                  {row.archived ? ' · archivée' : ` · ${row.status}`}
-                </span>
-              </li>
-            ))}
+            {rows.map((row) => {
+              const prevision = previewLine(row.preview);
+              const ancre = formatOccurrenceDate(row.preview?.anchor_date);
+              return (
+                <li key={row.seriesId}>
+                  <span className="recurring-series-title">{row.title}</span>
+                  <span className="recurring-series-meta">
+                    {RECURRENCE_LABELS[row.recurrence] || row.recurrence} · {row.count} occ. ·
+                    échéance {row.latestDue}
+                    {row.archived ? ' · archivée' : ` · ${row.status}`}
+                  </span>
+                  {!row.archived && prevision && (
+                    <span className="recurring-series-next">
+                      {prevision}
+                      {ancre && (
+                        <span className="recurring-series-anchor">
+                          {' '}
+                          Rythme calé sur le {ancre.split(' ')[0]}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
           {bySeries.size > rows.length && (
             <p className="recurring-series-overview-more">
