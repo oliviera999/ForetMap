@@ -32,6 +32,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Tests : montage d'`App` avec une session prof de classe **sans** `teacher.access`
   (`tests-ui/AppShellWiring.test.jsx`), garde pure `teacherAccessLockError` et gel de
   la liste des profils verrouillés contre `ROLE_PERMISSION_MATRIX`.
+### Corrigé — Suite e2e : trois défauts qui la faisaient échouer sans cause applicative
+
+- `e2e/fixtures/auth.fixture.js` : `waitForTeacherMapReady` était **défini mais pas exporté**
+  alors que `teacher-zone-contour-edit.spec.js` l'importe → `TypeError` avant la première
+  assertion.
+- Même fichier : `.teacher-main .top-tabs` attendu sans `.first()` dans `openTeacherTasksTab`
+  → `strict mode violation` (la navigation prof porte deux barres d'onglets depuis les trois
+  pôles). Les variantes tablette et bureau de `modals-responsive` repassent.
+- `e2e/tasks-flow.spec.js` : l'onglet actif était cherché avec `/Tâches/`, sensible à la
+  casse, alors que la vue empruntée s'appelle « Cartes & tâches » depuis la réorganisation
+  par pôles.
+- Ces trois défauts survivaient parce que la suite e2e complète est `continue-on-error` en
+  CI. Inventaire complet des deux exécutions de bout en bout (21 puis 24 échecs, dont 20
+  communs) et constats restants : `docs/AUDIT_ENVIRONNEMENT_TESTS_2026-09-16.md` § 7.
+
 ### Ajouté — Outillage : anonymisation d'une copie locale de la base de production
 
 - `scripts/anonymize-local-db.js` (+ `npm run db:anonymize:dry` / `db:anonymize` /

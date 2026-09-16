@@ -277,6 +277,58 @@ WebKit headless ne remplace pas Safari iOS (§ 4.5). Pour le plan mobile, un all
 humain — une capture, une description du geste qui échoue — vaut mieux que n'importe quel
 ajout d'outillage. C'est le seul point de cette liste qu'aucun script ne refermera.
 
+## 7. État réel de la suite e2e complète (mesuré, 16/09/2026)
+
+La suite e2e complète n'étant pas bloquante en CI (§ 4.7), personne ne regarde son résultat.
+Elle a donc été **exécutée deux fois de bout en bout** dans cette session, pour savoir ce
+qu'elle raconte réellement.
+
+| Exécution                                              | Durée         | Résultat                                |
+| ------------------------------------------------------ | ------------- | --------------------------------------- |
+| Base héritée des 3581 tests backend (l'ordre de la CI) | **20 min 17** | 89 réussites, **21 échecs**, 5 ignorés  |
+| Base **recréée** juste avant (`DROP` + `db:init`)      | **26 min 44** | 79 réussites, **24 échecs**, 12 ignorés |
+
+Enseignements, dans l'ordre d'importance :
+
+1. **20 échecs sont communs aux deux exécutions.** Ils ne dépendent pas de l'état de la base :
+   ce sont des constats stables, pas du bruit. Les tenir pour « instables » était une erreur
+   de diagnostic.
+2. **Repartir d'une base neuve ne « répare » pas la suite — c'est plus compliqué que ça.**
+   Quatre scénarios (trois GL, un pack mascotte) échouent **uniquement** sur base neuve :
+   ils dépendent de données accumulées par d'autres tests. Et les scénarios ignorés passent
+   de 5 à 12 : sept scénarios se **sautent eux-mêmes** quand la donnée attendue manque, sans
+   rien signaler. La dépendance à l'état joue donc dans les deux sens, et une partie de la
+   suite ne teste rien sans le dire.
+3. **Trois défauts francs, corrigés dans ce lot** — tous invisibles pour la CI puisqu'elle
+   n'échoue pas sur cette suite :
+   - `waitForTeacherMapReady` **défini mais jamais exporté** dans `e2e/fixtures/auth.fixture.js`,
+     alors que `teacher-zone-contour-edit.spec.js` l'importe → `TypeError` avant la première
+     assertion. Le scénario passe une fois l'export ajouté ;
+   - `page.locator('.teacher-main .top-tabs').waitFor(...)` sans `.first()` (fixture, ligne 794) → `strict mode violation` : la navigation prof porte **deux** barres d'onglets
+     depuis les trois pôles. Le commentaire voisin documentait déjà le piège pour un autre
+     point d'appel — celui-ci avait été oublié. Corrigé : les variantes tablette et bureau de
+     `modals-responsive` repassent ;
+   - `tasks-flow.spec.js` attendait un onglet actif correspondant à `/Tâches/`, **sensible à
+     la casse**, alors que la vue empruntée s'appelle « Cartes & tâches » depuis la
+     réorganisation par pôles. Rien n'était cassé côté application : l'assertion avait vieilli.
+     Corrigé et vérifié.
+4. **Un constat produit, laissé à arbitrer** (aucune modification) : deux boutons portant le
+   **même `data-testid` et le même `aria-label`** (« Couper la musique des zones ») sont
+   rendus simultanément côté GL — l'un par `GLBoardChrome`, l'autre par `MusicPlayer`. Le
+   test tombe en `strict mode violation`, mais le vrai sujet est en amont : deux commandes
+   identiques à l'écran, annoncées à l'identique par un lecteur d'écran. Masquer l'ambiguïté
+   côté test reviendrait à enterrer la question.
+5. **Les 17 échecs restants** se répartissent en trois familles : session élève non établie
+   pour les tâches (`token absent`), attentes de 25 s dépassées sur des vues carte/visite, et
+   scénarios GL tributaires de la médiathèque absente (§ 4.3).
+
+Conséquence pour la proposition § 5.5 : **rendre la suite e2e bloquante n'est pas qu'une
+affaire de shards.** Il faut d'abord que chaque scénario crée les données dont il dépend au
+lieu de les espérer — sans quoi l'ordre d'exécution et l'état de la base décident du
+résultat, dans un sens comme dans l'autre. Les trois correctifs ci-dessus montrent aussi ce
+que coûte le `continue-on-error` : un helper non exporté et un libellé d'onglet renommé ont
+survécu des semaines dans une suite que personne ne lit.
+
 ---
 
 _Index des audits : [`docs/audits/README.md`](audits/README.md). Mode d'emploi du script :
