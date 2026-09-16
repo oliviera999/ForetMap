@@ -36,8 +36,13 @@ function toFinite(value, fallback = 0) {
  * `max-width` + `text-overflow`), la boîte de collision doit être tronquée de la même façon,
  * sinon une étiquette courte à l'écran continue d'en masquer d'autres.
  *
+ * `maxLines` suit le rendu quand celui-ci **replie** le nom au lieu de le tronquer (noms de
+ * zones sur deux lignes, `docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N11) : la boîte doit
+ * alors réserver la hauteur des lignes réellement occupées, sans quoi une étiquette repliée
+ * recouvrirait sa voisine du dessous.
+ *
  * @param {{ x: number, y: number, text: string, fontSizePx: number, padding?: number,
- *   maxWidthPx?: number }} label
+ *   maxWidthPx?: number, maxLines?: number }} label
  * @returns {{ left: number, top: number, right: number, bottom: number }}
  */
 export function estimateLabelBox({
@@ -47,12 +52,18 @@ export function estimateLabelBox({
   fontSizePx,
   padding = LABEL_COLLISION_PADDING_PX,
   maxWidthPx = Number.POSITIVE_INFINITY,
+  maxLines = 1,
 }) {
   const size = Math.max(toFinite(fontSizePx, 12), 1);
   const chars = String(text ?? '').length;
   const cap = Number(maxWidthPx) > 0 ? Number(maxWidthPx) : Number.POSITIVE_INFINITY;
-  const width = Math.min(Math.max(chars * size * AVG_CHAR_WIDTH_RATIO, size), cap);
-  const height = size * 1.2;
+  const natural = Math.max(chars * size * AVG_CHAR_WIDTH_RATIO, size);
+  const width = Math.min(natural, cap);
+  const lines = Math.min(
+    Math.max(Math.round(toFinite(maxLines, 1)), 1),
+    Math.max(Math.ceil(natural / (cap > 0 && Number.isFinite(cap) ? cap : natural)), 1),
+  );
+  const height = size * 1.2 * lines;
   const cx = toFinite(x);
   const cy = toFinite(y);
   return {
