@@ -6,6 +6,7 @@ const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { setPrimaryRole, getPrimaryRoleForUser } = require('../lib/rbac');
+const { recomputeStudentProfilesFromValidatedTasks } = require('../lib/studentProgressionSync');
 const { getSettingValue, setSetting } = require('../lib/settings');
 const { getPasswordMinLengthFor } = require('../lib/passwordReset');
 const { emitStudentsChanged } = require('../lib/realtime');
@@ -288,9 +289,14 @@ router.get(
       'rbac.progression_by_validated_tasks',
       true,
     );
+    const progressionAlignOnGroupJoinEnabled = await getSettingValue(
+      'rbac.progression_align_on_group_join',
+      true,
+    );
     res.json({
       roles: rolesPayload,
       progressionByValidatedTasksEnabled: !!progressionByValidatedTasksEnabled,
+      progressionAlignOnGroupJoinEnabled: !!progressionAlignOnGroupJoinEnabled,
     });
   }),
 );
@@ -314,6 +320,68 @@ router.patch(
       payload: { enabled: updated },
     });
     res.json({ ok: true, progressionByValidatedTasksEnabled: updated });
+  }),
+);
+
+router.patch(
+  '/progression-align-on-group-join',
+  requirePermission('admin.roles.manage'),
+  asyncHandler(async (req, res) => {
+    const raw = req.body?.enabled;
+    if (typeof raw !== 'boolean') {
+      return res.status(400).json({ error: 'Champ « enabled » booléen requis' });
+    }
+    const updated = await setSetting('rbac.progression_align_on_group_join', raw, {
+      userType: req.auth?.userType,
+      userId: req.auth?.userId,
+    });
+    logAudit(
+      'rbac_progression_align_on_group_join',
+      'setting',
+      null,
+      'rbac.progression_align_on_group_join',
+      { req, payload: { enabled: updated } },
+    );
+    res.json({ ok: true, progressionAlignOnGroupJoinEnabled: updated });
+  }),
+);
+
+/**
+ * Recalcul du profil n3beur d'après les tâches validées — en masse (tous / un groupe) ou pour
+ * un compte. `dry_run` renvoie l'aperçu sans rien écrire ; `allow_demotion` autorise
+ * l'alignement strict (le palier peut redescendre), sinon montée seule.
+ */
+router.post(
+  '/progression/recompute',
+  requirePermission('admin.roles.manage'),
+  asyncHandler(async (req, res) => {
+    const body = req.body || {};
+    const result = await recomputeStudentProfilesFromValidatedTasks({
+      scope: body.scope ?? 'all',
+      groupId: body.group_id ?? body.groupId ?? null,
+      userId: body.user_id ?? body.userId ?? null,
+      allowDemotion: body.allow_demotion === true || body.allowDemotion === true,
+      dryRun: body.dry_run === true || body.dryRun === true,
+    });
+    if (!result.ok) return res.status(result.status).json({ error: result.error });
+    if (!result.dryRun && result.changed > 0) {
+      logAudit('rbac_progression_recompute', 'role', null, `scope=${result.scope}`, {
+        req,
+        payload: {
+          scope: result.scope,
+          group_id: body.group_id ?? body.groupId ?? null,
+          user_id: body.user_id ?? body.userId ?? null,
+          allow_demotion: result.allowDemotion,
+          scanned: result.scanned,
+          changed: result.changed,
+        },
+      });
+      for (const row of result.results) {
+        if (row.changed)
+          emitStudentsChanged({ reason: 'progression_recompute', studentId: row.userId });
+      }
+    }
+    res.json(result);
   }),
 );
 

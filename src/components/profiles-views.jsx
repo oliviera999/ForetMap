@@ -63,6 +63,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   const [authPerms, setAuthPerms] = useState([]);
   const [authRoleSlug, setAuthRoleSlug] = useState('');
   const [progressionByTasksEnabled, setProgressionByTasksEnabled] = useState(true);
+  const [alignOnGroupJoinEnabled, setAlignOnGroupJoinEnabled] = useState(true);
   const [editingUser, setEditingUser] = useState(null);
   const [editLoading, setEditLoading] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -103,8 +104,10 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
           : [];
       if (profilePayload && typeof profilePayload === 'object' && !Array.isArray(profilePayload)) {
         setProgressionByTasksEnabled(profilePayload.progressionByValidatedTasksEnabled !== false);
+        setAlignOnGroupJoinEnabled(profilePayload.progressionAlignOnGroupJoinEnabled !== false);
       } else {
         setProgressionByTasksEnabled(true);
+        setAlignOnGroupJoinEnabled(true);
       }
       setRoles(
         normalized.map((r) => ({
@@ -249,6 +252,23 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
         enabled
           ? 'Montée de niveau automatique selon les tâches validées : activée.'
           : 'Montée de niveau automatique : désactivée. Les profils affichés restent ceux attribués manuellement.',
+      );
+    } catch (e) {
+      setErr(e.message || 'Erreur lors de l’enregistrement du réglage');
+    }
+    setLoading(false);
+  };
+
+  const toggleAlignOnGroupJoin = async (enabled) => {
+    setLoading(true);
+    setErr('');
+    try {
+      await api('/api/rbac/progression-align-on-group-join', 'PATCH', { enabled: !!enabled });
+      setAlignOnGroupJoinEnabled(!!enabled);
+      setMsg(
+        enabled
+          ? 'Rattachement à un groupe n3beur : le profil est désormais aligné aussitôt sur le nombre de tâches validées.'
+          : 'Rattachement à un groupe n3beur : seul le profil par défaut du groupe est appliqué.',
       );
     } catch (e) {
       setErr(e.message || 'Erreur lors de l’enregistrement du réglage');
@@ -823,7 +843,9 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
           onEditRoleDetails={saveRoleDetails}
           onDuplicateRole={duplicateRoleProfile}
           onSaveEmoji={saveProfileEmoji}
+          alignOnGroupJoinEnabled={alignOnGroupJoinEnabled}
           onToggleProgression={toggleProgressionByValidatedTasks}
+          onToggleAlignOnGroupJoin={toggleAlignOnGroupJoin}
           onSaveMinDoneThreshold={saveStudentMinDoneThreshold}
           onTogglePermission={togglePermission}
           onSetForumParticipate={setRoleForumParticipate}
@@ -858,6 +880,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
           onOpenEditUser={openEditUser}
           onFilteredCountChange={setAccountsFilteredCount}
           onTotalCountChange={setAccountsTotalCount}
+          onProfilesRecomputed={load}
         />
       )}
 

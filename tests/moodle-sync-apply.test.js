@@ -13,6 +13,7 @@ const {
   groupScopedTables,
 } = require('./helpers/dbFingerprint');
 const fx = require('./helpers/moodleFixtures');
+const { restoreDefaultProgressionThresholds } = require('./helpers/progressionThresholds');
 
 let fake;
 let client;
@@ -35,6 +36,9 @@ async function dryRun(cohortIds) {
 
 test.before(async () => {
   await initSchema();
+  // Seuils de paliers remis à l'état de référence : d'autres fichiers de la suite les
+  // déplacent sur la base partagée (cf. helpers/progressionThresholds.js).
+  await restoreDefaultProgressionThresholds();
   await fx.purgeSyncArtifacts();
   ({ fake, client } = await fx.startFakeMoodle());
 });
