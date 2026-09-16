@@ -106,13 +106,35 @@ test('plan : « Me situer » affiche le point de position, « Y aller » donne u
       .first()
       .click();
 
-    // « Y aller » est actif et annonce une distance ; la ligne de direction est tracée.
+    // « Y aller » referme la fiche et passe la main à la **barre de guidage** : c'est elle qui
+    // porte la distance, et la carte reste entière au-dessus — le point bleu était jusqu'ici
+    // caché sous une fiche couvrant 55 % de l'écran, et refermer la fiche arrêtait le guidage
+    // (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B4 et B5).
     const sheet = page.getByTestId('plan-place-sheet');
     const goButton = sheet.getByRole('button', { name: /Y aller/ });
     await expect(goButton).toBeEnabled({ timeout: 15_000 });
     await goButton.click();
-    await expect(goButton).toContainText(/\d/, { timeout: 20_000 });
+
+    const guide = page.getByTestId('plan-guide-bar');
+    await expect(guide).toBeVisible({ timeout: 20_000 });
+    await expect(guide).toContainText(/\d/, { timeout: 20_000 });
+    await expect(sheet).toBeHidden({ timeout: 15_000 });
     await expect(page.locator('.fm-pct-direct-line')).toBeAttached({ timeout: 15_000 });
+
+    // Le point de position reste visible pendant le guidage : c'est tout l'objet du geste.
+    await expect(page.locator('.fm-pct-position').first()).toBeVisible();
+
+    // Rouvrir la fiche depuis la barre puis la refermer ne coupe pas le guidage (B5).
+    await guide.getByRole('button', { name: planPlaceNamePattern(name) }).click();
+    await expect(sheet).toBeVisible({ timeout: 15_000 });
+    await sheet.getByRole('button', { name: 'Fermer la fiche du lieu' }).click();
+    await expect(sheet).toBeHidden({ timeout: 15_000 });
+    await expect(guide).toBeVisible();
+
+    // Seul « Arrêter » l'interrompt.
+    await guide.getByRole('button', { name: 'Arrêter' }).click();
+    await expect(guide).toBeHidden({ timeout: 15_000 });
+    await expect(page.locator('.fm-pct-direct-line')).toHaveCount(0);
   } finally {
     await request
       .put(`/api/settings/admin/maps/${mapId}/georef`, {
