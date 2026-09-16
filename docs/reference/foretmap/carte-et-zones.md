@@ -185,7 +185,9 @@ Cartographie.
    lieu**, pour voir tout ce qui s'y rattache.
 5. Dans l'onglet **Info**, il lit la description, les espèces présentes (avec renvoi
    vers leurs fiches biodiversité), l'historique des cultures, et peut laisser un
-   commentaire d'observation.
+   commentaire d'observation. Quand l'**accroche de visite** reprend mot pour mot la
+   description du lieu — ce que fait la recopie « carte → visite » —, elle n'est
+   affichée qu'**une seule fois** : plus de paragraphe en double dans l'onglet Info.
 
 ## Comment ça se passe — côté professeur
 
@@ -318,7 +320,10 @@ Le professeur peut restreindre la **visibilité du lieu entier** à certains **r
 Sur la même fiche, un champ **« Complément réservé »** permet d'ajouter un texte lu
 seulement par certains rôles (par exemple une consigne de classe ou une note pour les
 enseignants). Le lieu peut rester visible pour tout le monde ; seul ce complément est
-masqué. Sans rôle coché pour le complément, seuls les gestionnaires du jardin le voient.
+masqué. **Sans aucune case cochée**, le complément est lu par l'**encadrement** :
+administrateurs, **n3boss** et **profs de classe** (ainsi que tout compte qui gère les
+zones ou les repères). Cocher des rôles remplace ce réglage par défaut — c'est aussi
+ainsi qu'on ouvre le complément à des élèves, au personnel ou aux visiteurs.
 
 Ce cloisonnement s'applique aussi à la **Visite** (lieux de la visite guidée) : un
 complément réservé n'y apparaît pas pour un visiteur anonyme, et la copie d'un lieu
