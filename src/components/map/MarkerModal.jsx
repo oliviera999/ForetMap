@@ -281,7 +281,7 @@ function MarkerModal({
               disabled={saving}
             >
               {saving ? (
-                '...'
+                '…'
               ) : (
                 <>
                   <IconMarker size={15} /> Placer
@@ -561,7 +561,7 @@ function MarkerModal({
               contextType="marker"
               contextId={marker.id}
               title="Commentaires du repère"
-              placeholder="Ajouter une observation sur ce repère..."
+              placeholder="Ajouter une observation sur ce repère…"
               canParticipateContextComments={canParticipateContextComments}
             />
           )}
@@ -598,7 +598,7 @@ function MarkerModal({
           />
           <button className="btn btn-primary btn-full" onClick={saveEdit} disabled={saving}>
             {saving ? (
-              '...'
+              '…'
             ) : (
               <>
                 <IconSave size={15} /> Sauvegarder

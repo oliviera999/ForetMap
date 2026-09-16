@@ -224,14 +224,14 @@ export function PlantImportPanel({ setToast, onRefresh }) {
             onClick={() => runImport({ dryRun: true })}
             disabled={importing}
           >
-            {importing ? 'Analyse...' : 'Analyser (prévisualisation)'}
+            {importing ? 'Analyse…' : 'Analyser (prévisualisation)'}
           </button>
           <button
             className="btn btn-primary btn-sm"
             onClick={() => runImport({ dryRun: false })}
             disabled={importing}
           >
-            {importing ? 'Import...' : "Lancer l'import"}
+            {importing ? 'Import…' : "Lancer l'import"}
           </button>
         </div>
 

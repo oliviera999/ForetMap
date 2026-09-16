@@ -21,7 +21,7 @@ export function ObservationNotebookStatus({ loading, loadError, entryCount = 0, 
         <div className="loader-leaf">
           <IconLeaf size={48} />
         </div>
-        <p>Chargement...</p>
+        <p>Chargement…</p>
       </div>
     );
   }

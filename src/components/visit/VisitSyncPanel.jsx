@@ -164,7 +164,7 @@ export function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
         </button>
       </div>
       {loading ? (
-        <p className="section-sub">Chargement des éléments disponibles...</p>
+        <p className="section-sub">Chargement des éléments disponibles…</p>
       ) : (
         <div className="visit-sync-grid">
           <div className="visit-sync-list">
@@ -211,7 +211,7 @@ export function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
           disabled={loading || syncing}
           onClick={runSync}
         >
-          {syncing ? 'Synchronisation...' : 'Lancer l’import sélectionné'}
+          {syncing ? 'Synchronisation…' : 'Lancer l’import sélectionné'}
         </button>
         <button
           type="button"

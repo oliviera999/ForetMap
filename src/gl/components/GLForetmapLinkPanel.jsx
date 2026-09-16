@@ -77,7 +77,7 @@ export function GLForetmapLinkPanel({ enabled, profile, onReload }) {
               />
             </GLField>
             <GLButton type="submit" variant="danger" disabled={busy}>
-              {busy ? '...' : 'Détacher mon compte élève'}
+              {busy ? '…' : 'Détacher mon compte élève'}
             </GLButton>
           </form>
         </>
@@ -99,7 +99,7 @@ export function GLForetmapLinkPanel({ enabled, profile, onReload }) {
             />
           </GLField>
           <GLButton type="submit" disabled={busy}>
-            {busy ? '...' : 'Rattacher mon compte élève ForetMap'}
+            {busy ? '…' : 'Rattacher mon compte élève ForetMap'}
           </GLButton>
         </form>
       )}

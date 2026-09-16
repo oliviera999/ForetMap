@@ -171,7 +171,7 @@ function TaskProjectFormModal({
           value={form.description}
           onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
           rows={4}
-          placeholder="Objectif du projet, consignes générales..."
+          placeholder="Objectif du projet, consignes générales…"
         />
       </div>
       <div className="field">
@@ -260,7 +260,7 @@ function TaskProjectFormModal({
         onClear={() => setForm((f) => ({ ...f, tutorial_ids: [] }))}
       />
       <button className="btn btn-primary btn-full" onClick={submit} disabled={saving}>
-        {saving ? 'Sauvegarde...' : isEdit ? 'Enregistrer le projet' : 'Créer le projet'}
+        {saving ? 'Sauvegarde…' : isEdit ? 'Enregistrer le projet' : 'Créer le projet'}
       </button>
     </DialogShell>
   );

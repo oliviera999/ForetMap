@@ -226,7 +226,7 @@ function TaskProjectsBlock({
                         title="Dupliquer le projet et ses tâches (structure uniquement)"
                       >
                         {loadingDuplicate ? (
-                          '...'
+                          '…'
                         ) : (
                           <>
                             <IconDuplicate size={14} /> Dupliquer
@@ -243,7 +243,7 @@ function TaskProjectsBlock({
                             title="Désarchiver le projet et ses tâches archivées avec lui"
                           >
                             {loadingArchive ? (
-                              '...'
+                              '…'
                             ) : (
                               <>
                                 <IconUnarchive size={14} /> Désarchiver
@@ -259,7 +259,7 @@ function TaskProjectsBlock({
                             title="Archiver le projet et ses tâches (masqués des vues actives)"
                           >
                             {loadingArchive ? (
-                              '...'
+                              '…'
                             ) : (
                               <>
                                 <IconArchive size={14} /> Archiver
@@ -275,7 +275,7 @@ function TaskProjectsBlock({
                         title="Supprimer le projet (les tâches sont conservées)"
                       >
                         {loadingDelete ? (
-                          '...'
+                          '…'
                         ) : (
                           <>
                             <IconDelete size={14} /> Supprimer
@@ -305,7 +305,7 @@ function TaskProjectsBlock({
                             disabled={loadingActive}
                             onClick={() => setProjectStatus(p, 'active')}
                           >
-                            {loadingActive ? '...' : 'Rouvrir (actif)'}
+                            {loadingActive ? '…' : 'Rouvrir (actif)'}
                           </button>
                         </>
                       ) : projectStatus === 'completed' ? (
@@ -319,7 +319,7 @@ function TaskProjectsBlock({
                             title="Valider le projet (clôture manuelle n3boss)"
                           >
                             {loadingValidate ? (
-                              '...'
+                              '…'
                             ) : (
                               <>
                                 <IconCheck size={14} /> Valider
@@ -332,7 +332,7 @@ function TaskProjectsBlock({
                             disabled={loadingActive}
                             onClick={() => setProjectStatus(p, 'active')}
                           >
-                            {loadingActive ? '...' : 'Rouvrir (actif)'}
+                            {loadingActive ? '…' : 'Rouvrir (actif)'}
                           </button>
                         </>
                       ) : (
@@ -343,7 +343,7 @@ function TaskProjectsBlock({
                             onClick={() => setProjectStatus(p, 'active')}
                           >
                             {loadingActive ? (
-                              '...'
+                              '…'
                             ) : (
                               <>
                                 <IconCheck size={14} /> Actif
@@ -356,7 +356,7 @@ function TaskProjectsBlock({
                             onClick={() => setProjectStatus(p, 'on_hold')}
                           >
                             {loadingHold ? (
-                              '...'
+                              '…'
                             ) : (
                               <>
                                 <IconPause size={14} /> En attente
@@ -371,7 +371,7 @@ function TaskProjectsBlock({
                             title="Valider le projet (clôture manuelle n3boss)"
                           >
                             {loadingValidate ? (
-                              '...'
+                              '…'
                             ) : (
                               <>
                                 <IconCheck size={14} /> Valider
@@ -406,7 +406,7 @@ function TaskProjectsBlock({
                       contextType="project"
                       contextId={p.id}
                       title="Commentaires du projet"
-                      placeholder="Partager une info utile sur ce projet..."
+                      placeholder="Partager une info utile sur ce projet…"
                     />
                   )}
                 </div>

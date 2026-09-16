@@ -16,7 +16,7 @@ body.gl-body {
   --gl-color-link-hover: #2c5959;
   --gl-color-topbar: #013a40;
   --gl-color-background: #f4fff5;
-  --gl-surface: #ffffff;
+  --gl-surface: #fff;
   --gl-surface-muted: #f5fbf8;
   --gl-border: rgba(1, 58, 64, 0.18);
   --gl-border-focus: #047c8c;
@@ -58,7 +58,7 @@ body.gl-body {
   --gl-select-surface-soft: color-mix(in srgb, var(--gl-color-accent) 7%, #fff);
   --gl-select-border: color-mix(in srgb, var(--gl-color-accent) 38%, #fff);
   --gl-select-ink: #075e6b;
-  --gl-surface-elevated: #ffffff;
+  --gl-surface-elevated: #fff;
   --gl-shadow-lg: 0 18px 42px rgba(1, 58, 64, 0.2);
   --gl-radius-pill: 999px;
   /* Échelle d'espacement : les 8 416 lignes de CSS G&L n'en avaient aucune. */
@@ -2687,7 +2687,7 @@ a.gl-glossary-inline-link:hover,
   padding: 0;
   border: 1px solid var(--gl-border);
   border-radius: var(--gl-radius-sm);
-  background: #ffffff;
+  background: #fff;
 }
 
 .gl-markers-list li.is-selected {
@@ -2940,7 +2940,7 @@ a.gl-glossary-inline-link:hover,
 .gl-rich-editor-tool {
   border: 1px solid var(--gl-border);
   border-radius: var(--gl-radius-sm);
-  background: #ffffff;
+  background: #fff;
   color: var(--gl-color-text);
   min-height: 36px;
   padding: 4px 10px;
@@ -2960,7 +2960,7 @@ a.gl-glossary-inline-link:hover,
   min-height: 240px;
   border: 1px solid var(--gl-border);
   border-radius: var(--gl-radius-md);
-  background: #ffffff;
+  background: #fff;
   padding: 10px 12px;
 }
 
@@ -3103,7 +3103,7 @@ a.gl-glossary-inline-link:hover,
   border: 1px dashed var(--gl-border);
   border-radius: var(--gl-radius-sm);
   padding: 10px;
-  background: #ffffff;
+  background: #fff;
 }
 
 /* Identifiants restitués une seule fois (création / import de joueurs). */
@@ -3201,7 +3201,7 @@ a.gl-glossary-inline-link:hover,
 .gl-help-panel > header button {
   border: 1px solid color-mix(in srgb, #fff 55%, var(--gl-color-primary) 45%);
   border-radius: var(--gl-radius-pill);
-  background: #ffffff;
+  background: #fff;
   color: var(--gl-color-primary);
   min-height: 36px;
   padding: 6px 12px;
@@ -3274,7 +3274,7 @@ a.gl-glossary-inline-link:hover,
   height: 44px;
   border-radius: var(--gl-radius-pill);
   border: 1.5px solid color-mix(in srgb, #fff 55%, var(--gl-color-primary) 45%);
-  background: #ffffff;
+  background: #fff;
   color: var(--gl-color-primary);
   font-size: var(--text-md);
   font-weight: var(--fw-bold);
@@ -3310,7 +3310,7 @@ a.gl-glossary-inline-link:hover,
 
 .gl-help-dialog__portrait {
   border: 1.5px solid var(--gl-select-border);
-  background: #ffffff;
+  background: #fff;
 }
 
 .gl-help-dialog__body {
@@ -3347,7 +3347,7 @@ a.gl-glossary-inline-link:hover,
 
 .gl-help-panel__portrait {
   border: 1.5px solid var(--gl-select-border);
-  background: #ffffff;
+  background: #fff;
 }
 
 /* Registre « visual novel léger » : portrait latéral + bulle (§4.5). */
@@ -3420,7 +3420,7 @@ a.gl-glossary-inline-link:hover,
   height: 20px;
   border-radius: var(--gl-radius-pill);
   background: #ef4444;
-  color: #ffffff;
+  color: #fff;
   font-size: var(--text-xs);
   display: inline-flex;
   align-items: center;
@@ -3435,7 +3435,7 @@ a.gl-glossary-inline-link:hover,
   width: min(92vw, 420px);
   max-height: 58vh;
   overflow: auto;
-  background: #ffffff;
+  background: #fff;
   border: 1px solid var(--gl-select-border);
   border-radius: var(--gl-radius-md);
   box-shadow: 0 16px 34px rgba(15, 23, 42, 0.2);
@@ -3531,7 +3531,7 @@ a.gl-glossary-inline-link:hover,
   border: 1px solid var(--gl-select-surface);
   border-radius: var(--gl-radius-md);
   padding: 12px;
-  background: #ffffff;
+  background: #fff;
 }
 
 .gl-forum-thread > header {
@@ -3549,7 +3549,7 @@ a.gl-glossary-inline-link:hover,
 .gl-journal-event {
   border: 1px solid var(--gl-select-surface);
   border-radius: var(--gl-radius-control);
-  background: #ffffff;
+  background: #fff;
   padding: 10px;
 }
 
@@ -3854,12 +3854,12 @@ a.gl-glossary-inline-link:hover,
   border: 1px solid var(--gl-select-border);
   border-radius: var(--gl-radius-md);
   overflow: hidden;
-  background: #ffffff;
+  background: #fff;
 }
 
 .gl-zone-edit-pt {
   fill: var(--gl-select-ink);
-  stroke: #ffffff;
+  stroke: #fff;
   stroke-width: 0.3;
   cursor: grab;
 }
@@ -4112,7 +4112,7 @@ a.gl-glossary-inline-link:hover,
   width: 100%;
   height: 100%;
   border-radius: var(--gl-radius-control);
-  background: linear-gradient(145deg, #ffffff 0%, var(--gl-surface-muted) 100%);
+  background: linear-gradient(145deg, #fff 0%, var(--gl-surface-muted) 100%);
   border: 2px solid var(--gl-border);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
@@ -4170,7 +4170,7 @@ a.gl-glossary-inline-link:hover,
   margin-top: 12px;
   border: 1px solid var(--gl-select-surface);
   border-radius: var(--gl-radius-md);
-  background: #ffffff;
+  background: #fff;
   padding: 12px;
 }
 

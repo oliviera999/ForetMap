@@ -260,7 +260,7 @@ export default function GLGameMasterConsoleLive({
           <GLTextarea
             rows={3}
             value={narration}
-            placeholder="Texte affiché en bandeau aux joueurs..."
+            placeholder="Texte affiché en bandeau aux joueurs…"
             onChange={(event) => setNarration(event.target.value)}
           />
           {narrationImageUrl ? (
