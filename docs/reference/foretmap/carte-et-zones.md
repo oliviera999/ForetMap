@@ -445,6 +445,25 @@ En **mode consultation** (carte ouverte sans tracé ni édition de contour), une
 > plus de pastille de tâche et ne font plus hériter leurs tutoriels au lieu. Les tutoriels
 > **directement** liés à une zone ou un repère restent visibles.
 
+### Pastilles colorées des tâches
+
+Sur la carte, un **point coloré** signale qu'une zone ou un repère porte au moins une tâche
+encore en jeu. Il se place **en haut à droite** du repère, ou à côté du nom de la zone :
+
+| Point                    | Ce qu'il veut dire                                    |
+| ------------------------ | ----------------------------------------------------- |
+| 🔴 **rouge clignotant**  | au moins une tâche **à faire** (des places restent)   |
+| 🟠 **orange clignotant** | au moins une tâche **en cours**                       |
+| 🟢 **vert fixe**         | les tâches du lieu sont **terminées** ou **validées** |
+
+Quand un lieu cumule plusieurs tâches, c'est la plus **actionnable** qui l'emporte
+(à faire > en cours > terminée) : un élève voit d'un coup d'œil où il reste quelque chose à
+prendre. Les tâches **en attente** (« on hold ») et celles détachées de leur lieu n'affichent
+aucun point.
+
+Ces pastilles sont **toujours visibles**, sans réglage à activer : elles n'ont pas de rapport
+avec le point violet des tutoriels décrit ci-dessous.
+
 ### Pastille violette des tutoriels
 
 Sur la carte, un **petit point violet** peut signaler qu'une zone ou un repère est lié à
@@ -535,6 +554,9 @@ côté**. L'onglet s'appelle alors « Cartes, tâches et tuto » (ou « Cartes &
 le module tutoriels est désactivé). C'est la vue idéale pour lancer une séance : on
 montre le jardin et on distribue le travail sans changer d'écran. Sur écran étroit,
 les onglets restent séparés.
+
+La carte occupe **toute la hauteur disponible** de la vue, à côté de la colonne des
+tâches qui défile pour elle seule : plus l'écran est haut, plus le plan est grand.
 
 ## ⚠️ Points d'attention sur l'existant
 

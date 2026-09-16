@@ -212,4 +212,81 @@ describe('VisitDetailPanel — photo lead sans doublon', () => {
     const leadGalleries = container.querySelectorAll('.visit-media-gallery--lead');
     expect(leadGalleries).toHaveLength(2);
   });
+
+  test('photo carte déjà en tête : écartée aussi des photos « Détails »', () => {
+    const { container } = setup({
+      selected: {
+        id: 3,
+        name: 'Verger',
+        visit_short_description: 'Intro du lieu.',
+        visit_details_text: 'Le détail.',
+        map_lead_photo: { id: 10, image_url: '/uploads/zones/3/10.jpg' },
+        map_extra_photos: [
+          { id: 10, image_url: '/uploads/zones/3/10.jpg' },
+          { id: 11, image_url: '/uploads/zones/3/11.jpg' },
+        ],
+        visit_media: [],
+      },
+    });
+    const srcs = [...container.querySelectorAll('img')].map((img) => img.getAttribute('src'));
+    expect(srcs).toEqual(['/uploads/zones/3/10.jpg', '/uploads/zones/3/11.jpg']);
+  });
+});
+
+describe('VisitDetailPanel — blocs éditoriaux (forme renvoyée par /api/visit/content)', () => {
+  /** Même cliché : chemin public côté carte, route API historique côté média visite. */
+  test('photo carte et bloc image = même photo sous deux URL → une seule vignette', () => {
+    const { container } = setup({
+      selected: {
+        id: 3,
+        name: 'Verger',
+        visit_short_description: 'Intro du lieu.',
+        map_lead_photo: {
+          id: 10,
+          image_url: '/uploads/zones/3/10.jpg',
+          thumb_url: '/uploads/zones/3/10.thumb.jpg',
+        },
+        visit_media: [{ id: 20, image_url: '/api/zones/3/photos/10/data' }],
+        visit_editorial_blocks: [
+          { id: 'legacy-short', type: 'paragraph', markdown: 'Intro du lieu.' },
+          { id: 'legacy-img-1', type: 'image', media_ids: [20], layout: 'single', size: 'lg' },
+        ],
+      },
+    });
+    const srcs = [...container.querySelectorAll('img')].map((img) => img.getAttribute('src'));
+    expect(srcs).toEqual(['/uploads/zones/3/10.thumb.jpg']);
+  });
+
+  test('repère : route API historique côté carte, chemin public côté visite', () => {
+    const { container } = setup({
+      selectedType: 'marker',
+      selected: {
+        id: 'm7',
+        label: 'Pommier',
+        map_lead_photo: { id: 4, image_url: '/api/map/markers/m7/photos/4/data' },
+        visit_media: [{ id: 21, image_url: '/uploads/markers/m7/4.jpg' }],
+        visit_editorial_blocks: [
+          { id: 'img-1', type: 'image', media_ids: [21], layout: 'single', size: 'lg' },
+        ],
+      },
+    });
+    const srcs = [...container.querySelectorAll('img')].map((img) => img.getAttribute('src'));
+    expect(srcs).toEqual(['/api/map/markers/m7/photos/4/data']);
+  });
+
+  test('photos réellement différentes : les deux restent affichées', () => {
+    const { container } = setup({
+      selected: {
+        id: 3,
+        name: 'Verger',
+        map_lead_photo: { id: 10, image_url: '/uploads/zones/3/10.jpg' },
+        visit_media: [{ id: 20, image_url: '/api/visit/media/20/data' }],
+        visit_editorial_blocks: [
+          { id: 'img-1', type: 'image', media_ids: [20], layout: 'single', size: 'lg' },
+        ],
+      },
+    });
+    const srcs = [...container.querySelectorAll('img')].map((img) => img.getAttribute('src'));
+    expect(srcs).toEqual(['/uploads/zones/3/10.jpg', '/api/visit/media/20/data']);
+  });
 });
