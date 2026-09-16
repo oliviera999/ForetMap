@@ -124,6 +124,65 @@ sur tout le catalogue. Ces trois champs ne sont **pas** remplis par le pré-remp
 automatique : les bases naturalistes interrogées ne fournissent pas de critères de
 détermination. Ils se saisissent à la main, ou par l'import en masse.
 
+## L'encadré « Danger »
+
+La détermination répond à « qu'est-ce que c'est ». Elle ne répond pas à « qu'est-ce que ça
+peut me faire ». Le ricin, le laurier-rose, le tabac glauque et la jusquiame sont
+cartographiés dans la forêt, identifiables sans la moindre ambiguïté — et dangereux quand
+même. La fiche porte donc, séparément, quatre champs de **danger** :
+
+- **Niveau de danger** — aucun danger connu, irritation, toxique, potentiellement mortel.
+- **Voies d'exposition** — ingestion, contact avec la peau, inhalation, projection dans
+  l'œil, piqûre ou morsure, sève ou latex. Plusieurs cases peuvent être cochées.
+- **Quel danger, et quoi faire** — la partie dangereuse, les circonstances, la conduite à
+  tenir. Ex. : « Graines très toxiques ; ne jamais manipuler les fruits épineux. »
+- **Danger relu et validé** — une case à cocher, décrite plus bas.
+
+Tout niveau autre que « aucun danger connu » s'affiche en **encadré rouge ou ambre, en tête
+de fiche, avant même la description** — et, contrairement à la détermination, **cet encadré
+ne se replie pas**. Un avertissement de toxicité derrière une section fermée n'avertit
+personne. La couleur suit la gravité.
+
+« Aucun danger connu » est une information utile, pas un encadré : elle distingue une fiche
+**vérifiée sans danger** d'une fiche **pas encore regardée**. Elle ne produit donc aucun
+bandeau rouge.
+
+### La mention « à valider »
+
+Un premier remplissage a été posé sur **107 fiches** du catalogue à partir de sources
+bibliographiques : 6 potentiellement mortelles, 36 toxiques, 51 irritantes, 14 marquées sans
+danger. **Ce remplissage n'est pas une validation.** Chaque fiche arrive avec la case
+« Danger relu et validé » décochée, et l'encadré porte alors la mention **« à valider »**.
+
+Le danger s'affiche quand même, décoché ou non — c'est délibéré. Masquer un avertissement de
+toxicité en attendant une relecture serait le seul choix vraiment dangereux des deux. La
+relecture reste à faire, fiche par fiche, avant toute utilisation en sortie encadrée.
+
+Cas à regarder en premier, parce qu'ils sont contre-intuitifs : le **laurier-sauce**
+(comestible) est le sosie du **laurier-rose** (mortel) ; la **fève** déclenche une crise
+grave chez les élèves porteurs d'un déficit en G6PD, fréquent sur le pourtour
+méditerranéen ; le latex du **figuier** brûle au soleil ; les glochides du **figuier de
+Barbarie** sont presque impossibles à retirer de la peau.
+
+## Crédit et licence des photos
+
+Les photos venues de Wikimedia Commons portent désormais le **nom de leur auteur** et leur
+**licence**, affichés sous la photo principale de la fiche, avec un lien vers la page du
+fichier. Ce n'est pas une politesse : les licences en présence au catalogue — CC BY-SA 3.0,
+CC BY-SA 4.0, CC BY — imposent toutes de nommer l'auteur.
+
+L'attribution de **195 fiches** a été récupérée automatiquement depuis Wikimedia Commons.
+Les photos ajoutées ensuite sont à créditer à la main, dans la section « Ressources » du
+formulaire.
+
+Au passage, **30 fiches pointaient une image supprimée de Wikimedia** (le merle, la figue,
+l'escargot petit-gris, la coccinelle à sept points…). Elles affichaient une image cassée ;
+le lien mort a été retiré et ces fiches sont **à réillustrer**.
+
+La fiche **Laitue** était illustrée par une planche de _Lactuca virosa_, la laitue vireuse —
+une espèce sauvage toxique — sur une fiche marquée comestible. La photo a été corrigée, et
+la confusion est désormais signalée dans les « confusions possibles » de la fiche.
+
 ## Comment ça se passe — côté élève
 
 1. L'élève ouvre l'onglet **Biodiversité** : le catalogue s'affiche en **vignettes** —
