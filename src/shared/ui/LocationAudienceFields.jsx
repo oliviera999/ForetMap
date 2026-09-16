@@ -15,6 +15,12 @@ export const FORETMAP_AUDIENCE_ROLE_OPTIONS = Object.freeze([
   { slug: 'admin', label: 'Administrateur' },
 ]);
 
+/**
+ * Audience par défaut du complément réservé (aucune case cochée) — miroir de
+ * `RESTRICTED_NOTE_DEFAULT_ROLE_SLUGS` (`lib/locationAudience.js`), qui fait foi côté API.
+ */
+export const RESTRICTED_NOTE_DEFAULT_ROLE_SLUGS = Object.freeze(['prof_classe', 'prof', 'admin']);
+
 const KNOWN = new Set(FORETMAP_AUDIENCE_ROLE_OPTIONS.map((r) => r.slug));
 
 /** Normalise une valeur API (tableau / JSON / CSV) en liste de slugs connus. */
@@ -111,8 +117,9 @@ export function LocationAudienceFields({
       <fieldset className="fm-surface-field" disabled={disabled || !(restrictedNote || '').trim()}>
         <legend className="fm-surface-field__legend">Qui peut lire le complément</legend>
         <p className="hint" style={{ marginTop: 0 }}>
-          Aucune case = réservé aux gestionnaires du jardin. Cocher « Visiteur » pour l’afficher
-          aussi en visite anonyme ou sur le Plan.
+          Aucune case = visible par les administrateurs, les n3boss et les profs de classe (plus les
+          gestionnaires du jardin). Cocher « Visiteur » pour l’afficher aussi en visite anonyme ou
+          sur le Plan.
         </p>
         <div className="fm-surface-field__options">
           {FORETMAP_AUDIENCE_ROLE_OPTIONS.map((role) => {

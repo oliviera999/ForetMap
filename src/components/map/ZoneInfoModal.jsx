@@ -191,6 +191,7 @@ function ZoneInfoModal({
     livingBeingsOnlyOnTasks,
     visitAsideTutorials,
     visitAsideSpecies,
+    visitAsideShortDesc,
     showVisitAsideBlock,
     showTasksTab,
     showTutorialsTab,
@@ -465,6 +466,7 @@ function ZoneInfoModal({
               livingBeingsOnlyOnTasks={livingBeingsOnlyOnTasks}
               visitAsideSpecies={visitAsideSpecies}
               visitAsideTutorials={visitAsideTutorials}
+              shortDescription={visitAsideShortDesc}
               tutorials={isTeacher ? linkedTutorialsAll : linkedTutorialsVisible}
               onOpenTutorialPreview={onOpenTutorialPreview}
               onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}

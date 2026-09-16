@@ -114,6 +114,7 @@ function MarkerModal({
     livingBeingsOnlyOnTasks,
     visitAsideTutorials,
     visitAsideSpecies,
+    visitAsideShortDesc,
     showVisitAsideBlock,
     showTasksTab,
     showTutorialsTab,
@@ -530,6 +531,7 @@ function MarkerModal({
               livingBeingsOnlyOnTasks={livingBeingsOnlyOnTasks}
               visitAsideSpecies={visitAsideSpecies}
               visitAsideTutorials={visitAsideTutorials}
+              shortDescription={visitAsideShortDesc}
               tutorials={isTeacher ? linkedTutorialsAll : linkedTutorialsVisible}
               onOpenTutorialPreview={onOpenTutorialPreview}
               onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
