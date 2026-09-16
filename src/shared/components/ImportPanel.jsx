@@ -82,7 +82,7 @@ export function ImportPanel({
   fileAccept = SPREADSHEET_IMPORT_ACCEPT,
   dryRunLabel = 'Simulation (sans création)',
   importLabel = 'Importer',
-  importBusyLabel = 'Import...',
+  importBusyLabel = 'Import…',
   /** Désactivation additionnelle du bouton Importer (ex. permission manquante). */
   importDisabled = false,
   /** Style du paragraphe « Fichier sélectionné ». */

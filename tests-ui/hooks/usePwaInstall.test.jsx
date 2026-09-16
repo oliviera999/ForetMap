@@ -84,7 +84,7 @@ describe('usePwaInstall', () => {
       await result.current.handleInstallClick();
     });
     expect(event.prompt).toHaveBeenCalled();
-    expect(onToast).toHaveBeenCalledWith('Installation en cours...');
+    expect(onToast).toHaveBeenCalledWith('Installation en cours…');
     expect(result.current.deferredInstallPrompt).toBeNull();
   });
 

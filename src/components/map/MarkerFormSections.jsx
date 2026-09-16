@@ -70,7 +70,7 @@ export function MarkerCommonFormFields({ form, setForm, plants, set, categoryCat
           value={form.note}
           onChange={set('note')}
           rows={3}
-          placeholder="Observations, entretien..."
+          placeholder="Observations, entretien…"
         />
       </div>
       <p

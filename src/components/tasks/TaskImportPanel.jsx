@@ -78,7 +78,7 @@ export function TaskImportPanel({ setToast, onRefresh }) {
         },
       ]}
       templatesDisabledWhenBusy
-      importBusyLabel="Import..."
+      importBusyLabel="Import…"
       selectedFileStyle={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}
       reportBoxStyle={{
         background: '#f8fafc',
@@ -96,7 +96,7 @@ export function TaskImportPanel({ setToast, onRefresh }) {
           <strong>{report?.totals?.skipped_invalid || 0}</strong>
         </>
       )}
-      errorsMoreLabel={(count) => `... ${count} erreur(s) supplémentaire(s)`}
+      errorsMoreLabel={(count) => `… ${count} erreur(s) supplémentaire(s)`}
       onMissingFile={() => setToast('Choisis d’abord un fichier CSV ou XLSX, stp.')}
       onImport={runImportTasksProjects}
     />

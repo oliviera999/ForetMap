@@ -67,7 +67,7 @@ export default function MascotPackToolView({
         maxWidth: maxW,
         margin: embedded ? 0 : '0 auto',
         fontFamily: 'var(--font-sans-with-emoji, DM Sans, system-ui)',
-        color: '#1a4731',
+        color: 'var(--forest)',
       }}
     >
       {embedded ? (

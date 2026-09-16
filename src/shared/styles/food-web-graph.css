@@ -114,6 +114,12 @@
 .pedago-foodweb-graph__label {
   font-size: 9px;
   fill: #1f2937;
+  /* Liseré blanc sous le texte : un nom posé sur une flèche restait illisible.
+     `paint-order` trace le contour avant le remplissage, sans l'épaissir. */
+  paint-order: stroke;
+  stroke: #fbfdfc;
+  stroke-width: 2.5px;
+  stroke-linejoin: round;
 }
 .pedago-foodweb__graph-wrap {
   padding: 12px;
@@ -315,6 +321,58 @@
   font: 600 11px var(--font-sans, sans-serif);
   fill: #4b5563;
   pointer-events: none;
+}
+/* Bandes de niveau trophique : libellé et filet de séparation. */
+.pedago-foodweb-graph__band-label {
+  font: 600 11px var(--font-sans, sans-serif);
+  fill: #4b5563;
+  pointer-events: none;
+}
+.pedago-foodweb-graph__band-rule {
+  stroke: #d7e3da;
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  pointer-events: none;
+}
+/* Puces de la sélection d'espèces isolées (sous le graphe, jamais dans la
+   barre d'outils : elle est déjà dense sur tablette). */
+.pedago-foodweb-graph__selection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+.pedago-foodweb-graph__selection-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--forest, #166534);
+}
+.pedago-foodweb-graph__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid var(--leaf, #86c79a);
+  border-radius: 999px;
+  background: #f0fdf4;
+  color: #14532d;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.pedago-foodweb-graph__chip:hover,
+.pedago-foodweb-graph__chip:focus-visible {
+  background: #dcfce7;
+}
+/* Résumé en toutes lettres de l'espèce isolée : trace écrite et lecteur d'écran. */
+.pedago-foodweb-graph__summary {
+  margin: 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--leaf, #86c79a);
+  background: #f7fbf8;
+  border-radius: 0 8px 8px 0;
+  line-height: var(--lh-normal, 1.5);
 }
 .pedago-foodweb-graph__more {
   position: relative;

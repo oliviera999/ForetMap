@@ -515,7 +515,7 @@ function ZoneInfoModal({
               contextType="zone"
               contextId={zone.id}
               title="Commentaires de la zone"
-              placeholder="Ajouter une observation sur cette zone..."
+              placeholder="Ajouter une observation sur cette zone…"
               canParticipateContextComments={canParticipateContextComments}
             />
           )}
@@ -583,7 +583,7 @@ function ZoneInfoModal({
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
               rows={3}
-              placeholder="Observations, conseils, notes sur cette zone..."
+              placeholder="Observations, conseils, notes sur cette zone…"
             />
           </div>
           <ColorPaletteField id="zone-info-color" value={zoneColor} onChange={setZoneColor} />
@@ -702,7 +702,7 @@ function ZoneInfoModal({
           </div>
           <button className="btn btn-primary btn-full" onClick={save} disabled={saving}>
             {saving ? (
-              '...'
+              '…'
             ) : (
               <>
                 <IconSave size={15} /> Enregistrer

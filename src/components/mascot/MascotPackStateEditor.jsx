@@ -219,7 +219,7 @@ export default function MascotPackStateEditor({
                         ? 'chargée'
                         : srcPreviewStatus[`${stateKey}:${idx}`] === 'error'
                           ? 'non trouvée'
-                          : 'test...'}
+                          : 'test…'}
                   </span>
                   <button
                     type="button"

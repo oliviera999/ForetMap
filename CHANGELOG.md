@@ -9,6 +9,121 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Échap, focus et tabulation revenus dans les fenêtres qui restaient montées
+
+- **Symptôme** : sur une quinzaine de fenêtres (confirmation de suppression d'une tâche,
+  suppression d'un compte, création d'un groupe, carnet d'observation d'un élève, import
+  d'un pack mascotte, et côté G&L profil joueur, feuillet de zone, fiche espèce, glossaire,
+  sortilèges…), **Échap ne fermait pas**, le focus restait sur le bouton qui avait ouvert la
+  fenêtre, `Tab` promenait le curseur dans la page masquée derrière, et le focus ne revenait
+  pas à son point de départ à la fermeture.
+- **Cause** : `useDialogA11y` armait son effet une seule fois, **au montage**, en lisant le
+  panneau dans un `ref`. Une fenêtre écrite `open={monEtat}` reste montée quand elle est
+  fermée : l'effet trouvait alors un `ref` vide, en sortait, et **ne se rejouait jamais** à
+  l'ouverture. Les fenêtres écrites `{monEtat && <Fenêtre/>}` n'étaient pas touchées, d'où un
+  comportement qui variait d'un écran à l'autre sans raison visible.
+- **Correctif** : le hook reçoit une option `active` et son effet en dépend — il s'arme à
+  l'ouverture, se désarme à la fermeture en rendant le focus au déclencheur. `DialogShell` lui
+  passe son `open` (ce qui répare d'un coup toutes les fenêtres qui l'utilisent), et les
+  surcouches qui gèrent leur propre `ref` passent leur état d'ouverture.
+- Détail et inventaire des surfaces concernées :
+  [`docs/AUDIT_UI_2026-09-16.md`](docs/AUDIT_UI_2026-09-16.md) B1. Tests de non-régression sur
+  le scénario « montée fermée puis ouverte » (`tests-ui/shared/DialogShell.test.jsx`,
+  `tests-ui/components/TaskConfirmDialog.test.jsx`).
+
+### Modifié — homogénéité de l'interface (suite de l'audit UI)
+
+- **Barre de filtres des tâches** : une seule hauteur de cible tactile, 44 px. Le même champ
+  mesurait 38 px sur tablette large, 42 px sur mobile et 44 px dans la feuille de filtres ; la
+  surcharge `@media (pointer:coarse)` manquait, alors qu'elle existait pour `.btn-sm`.
+- **Points de suspension** : 98 occurrences de `...` rendues en `…` dans les textes visibles
+  (43 fichiers) — « Chargement... » et « Chargement… » cohabitaient à l'écran. Le réglage
+  serveur `content.app.loader` suit (son défaut et le repli client disaient déjà deux choses
+  différentes), et le miroir CJS du pack mascotte est resynchronisé.
+- **Couleurs** : les hexadécimaux qui recopiaient un token de marque reviennent sur
+  `var(--forest)`, `var(--leaf)`, `var(--sage)`, `var(--parchment)` ; `#ffffff` s'écrit
+  partout `#fff` (G&L compris). Deux valeurs de repli `var()` se trompaient de token
+  (`var(--leaf, #52b788)`, `var(--forest, #2d6a4f)`) : corrigées, et les 72 replis morts de
+  `src/index.css` — où le token est défini par le fichier lui-même — sont supprimés.
+- **G&L** : l'heure d'une partie s'affiche en `fr-FR` et non plus selon la langue du
+  navigateur.
+
+### Ajouté — audit UI transverse
+
+- [`docs/AUDIT_UI_2026-09-16.md`](docs/AUDIT_UI_2026-09-16.md) : incohérences, homogénéité,
+  bugs. Constats chiffrés (192 champs de saisie sur 684 sans nom accessible, 363 + 116
+  couleurs distinctes en dur face à 17 tokens, 1 288 styles inline, 217 états vides ad hoc),
+  ce qui est sain et n'a pas à être réaudité, et un plan en quatre lots. Indexé dans
+  [`docs/audits/README.md`](docs/audits/README.md).
+### Ajouté — Réseau trophique : isolement utile, sélection d'espèces, niveaux de consommateurs
+
+Mise en œuvre des lots F1–F5 de
+[`docs/AUDIT_RESEAU_TROPHIQUE_DENSITE_2026-09-16.md`](docs/AUDIT_RESEAU_TROPHIQUE_DENSITE_2026-09-16.md).
+Aucune migration, aucune route touchée : tout est calculé côté client.
+
+- **Isoler recompose la scène** (F1). `baseLayout` était calculé sur *tous* les nœuds : isoler
+  une espèce estompait le reste sans rien déplacer, et ses voisins restaient dispersés parmi
+  les fantômes. La disposition est désormais recalculée sur le sous-réseau, qui est seul
+  rendu — donc seul cliquable et seul tabulable. Le bouton **« Reste en fond »** rétablit
+  l'ancien estompage quand on veut garder le contexte.
+- **Sélection de plusieurs espèces** (F3). `focusSubset()` accepte un **ensemble** de graines :
+  ⌘/Ctrl + clic, bouton « Ajouter à la sélection » (tablette) ou recherche empilent les
+  espèces ; des puces sous le graphe permettent de les retirer. Une troisième étendue,
+  **« Sélection »** (profondeur 0), ne garde que les espèces choisies et leurs relations
+  mutuelles — la chaîne d'une séance se compose au tableau, puis s'exporte en PNG.
+- **Niveaux de consommateurs calculés** (F4). `computeTrophicLevels()` calcule la position
+  trophique depuis le graphe affiché — `niveau = 1 + moyenne(niveau des proies)`, sur les
+  seules arêtes qui transportent de la matière (Levine, _J. Theor. Biol._ 83(2), 1980,
+  <https://doi.org/10.1016/0022-5193(80)90288-X> ; principe repris du paquet R `cheddar`,
+  BSD-2, <https://github.com/quicklizard99/cheddar>, sans emprunt de code). Pas de colonne
+  SQL : un omnivore garde une valeur fractionnaire (« niveau 2,5 — régime mixte ») au lieu
+  d'être rangé de force, et la valeur suit le périmètre affiché, ce que l'infobulle énonce
+  (« dans ce réseau »). Les **décomposeurs restent hors échelle**, dans une voie à part avec
+  les espèces sans niveau déterminable : ils ne sont pas un étage de plus.
+- **Disposition « Niveaux » refondue** (F2, F5) : producteurs **en bas**, consommateurs
+  au-dessus, chaque bande nommée ; un niveau trop fourni se répartit sur plusieurs rangées et
+  la scène s'allonge, au lieu d'empiler 78 producteurs sur une verticale de 440 px (pas de
+  5,7 px). C'est la disposition **par défaut** d'un réseau alimentaire ; sans flux de matière
+  (cadrage « Autres relations »), on retombe sur les colonnes de rôles. Le choix de
+  disposition est **mémorisé**.
+- **Disposition « Fiche »** (F5), proposée dès qu'une espèce est isolée : ce qu'elle mange à
+  gauche, l'espèce au centre, ce qui la mange à droite — plus un **résumé en toutes lettres**
+  sous le graphe (trace écrite, lecteurs d'écran).
+- **Lisibilité** : les étiquettes du cercle sont tracées **en rayon** (elles n'occupent plus
+  que leur hauteur : un réseau de 49 espèces reste entièrement nommé, contre un chevauchement
+  dès 15 auparavant), avec un liseré blanc à l'écran comme à l'export ; le rayon de l'anneau
+  suit le nombre d'espèces.
+- **Corrigé** : le nœud « Environnement », ancré en dur à (440, 28), tombait à 2 px du premier
+  nœud du cercle, son étiquette par-dessus la pastille. Il passe au centre de l'anneau (libre
+  par construction) et au bas de la voie latérale en disposition Niveaux.
+- GL bénéficie de tout le graphe partagé (`GLFoodWebPanel` monte le même composant).
+- Tests : 28 tests ajoutés (helpers purs + montage), `npm run test:ui` vert (4367 tests).
+  Le rendu a par ailleurs été **capturé dans un navigateur** sur le corpus versionné réel
+  (49 espèces, 69 relations), ce qui a révélé quatre défauts de cadrage invisibles en test.
+
+### Documentation — audit « Réseau trophique : densité d'affichage » (16 sept. 2026)
+
+- `docs/AUDIT_RESEAU_TROPHIQUE_DENSITE_2026-09-16.md` : audit **sans changement de code**, qui
+  mesure la densité de la vue et arbitre quatre questions ouvertes.
+- **Mesures** : sur le cercle, les étiquettes se chevauchent dès **15 espèces** (et non ~30 comme
+  l'estimait l'audit de septembre) et les pastilles dès **33** ; en disposition **Niveaux**, une
+  colonne sature à **10** alors que le corpus versionné compte ~78 producteurs. Le corpus
+  (seed + migrations `220`–`230`) totalise **~143 espèces / ~181 relations**, dont **50 espèces
+  pour les seules 69 relations du seed**.
+- **Constat principal (D3)** : isoler une espèce **estompe sans recomposer** — `baseLayout` est
+  calculé sur tous les nœuds, le focus ne change ni le placement ni le nombre d'éléments dessinés.
+  Le geste central du module ne désencombre donc pas.
+- **Arbitrages** : recomposer la scène sur le sous-réseau (lot F1) ; sélection **multiple**
+  d'espèces via `focusSubset()` généralisé à un ensemble de graines (F3) ; niveaux de
+  consommateurs **calculés depuis le graphe** (position trophique) plutôt que saisis en base —
+  aucune migration, pas de dette de contenu, omnivores correctement traités (F4) ; défaut
+  maintenu au **cercle** jusqu'à ce que la disposition Niveaux tienne au-delà de 10 espèces par
+  niveau (F5).
+- Références citées : Levine, _J. Theor. Biol._ 83(2), 1980 (position trophique) ; cheddar
+  (BSD-2) ; Cytoscape.js `concentric` (MIT) ; d3-force (ISC, piste écartée). Aucun code externe
+  repris.
+- Index `docs/audits/README.md` mis à jour.
+
 ### Corrigé — les profs de classe ne pouvaient plus se connecter (aucun message)
 
 - **Symptôme** : identifiants acceptés (jeton émis, `200`), puis retour immédiat sur

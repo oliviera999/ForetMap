@@ -211,7 +211,7 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
       <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
         <button className="btn btn-primary" style={{ flex: 1 }} onClick={submit} disabled={saving}>
           {saving ? (
-            'Envoi...'
+            'Envoi…'
           ) : (
             <>
               <IconCheck size={15} /> Marquer comme terminée

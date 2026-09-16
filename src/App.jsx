@@ -598,7 +598,7 @@ function App() {
   const studentAffiliation = (studentForUi?.affiliation || 'both').toLowerCase();
   const isN3Affiliated = isN3OnlyAffiliation(studentAffiliation);
   const roleTerms = getRoleTerms(isN3Affiliated);
-  const appLoaderText = getContentText(publicSettings, 'app.loader', 'Chargement de la forêt...');
+  const appLoaderText = getContentText(publicSettings, 'app.loader', 'Chargement de la forêt…');
   const appServerDownNotice = getContentText(
     publicSettings,
     'app.server_down_notice',
