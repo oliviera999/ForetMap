@@ -9,6 +9,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — La règle de récurrence est visible dans l'application
+
+- `GET /api/tasks/recurring-preview` (`tasks.manage`) : prochaine occurrence **prévue** de
+  chaque série active. Une ligne par série — celle dont l'échéance est la plus récente,
+  c'est-à-dire l'occurrence qui engendrera la suivante — avec l'ancre résolue, les dates
+  que le job posera, et `pending` : ce qui manque encore (`validation`, `due_date`, ou
+  rien). Lecture seule. Déclarée **avant** `/:id`, sinon Express prendrait
+  `recurring-preview` pour un identifiant de tâche.
+- Le panneau « Séries récurrentes » affiche la prévision en clair : « Prochaine occurrence
+  mar. 22 sept. → ven. 25 sept. », suivie du jour sur lequel le rythme est calé. Le **jour
+  de semaine** est affiché en premier parce que c'est précisément lui qui dérivait.
+- Le calcul reste serveur : il dépend du calendrier scolaire, qui n'existe qu'en base. Si
+  la requête échoue, le panneau retombe sur son affichage d'avant — la prévision est un
+  complément, pas une dépendance.
+- Cache calendrier partagé par toute la prévisualisation, même raison que pour le job :
+  `isSchoolOpenDay` interroge la base jour par jour.
+- Tests : `tests-ui/components/RecurringSeriesOverview.test.jsx` (formatage, les trois
+  états de `pending`, départ et échéance confondus, prévision en échec, rien hors profil
+  prof).
+
+
 ### Modifié — Le calendrier décale une occurrence, plus jamais le rythme
 
 - **Le constat, mesuré sur le vrai calendrier du lycée** (`migrations/247`, 2026-2027) :

@@ -3303,6 +3303,13 @@
       font-size: var(--text-sm);
       color: var(--muted, #5a6b5d);
     }
+    .recurring-series-next {
+      font-size: var(--text-sm);
+      color: var(--forest, #2d5016);
+    }
+    .recurring-series-anchor {
+      color: var(--muted, #5a6b5d);
+    }
     .recurring-series-overview-more {
       margin: 8px 0 0;
       font-size: var(--text-sm);
