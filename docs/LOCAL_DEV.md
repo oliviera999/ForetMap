@@ -593,3 +593,68 @@ Sur Windows uniquement, variante historique **robocopy** : `npm run deploy:prepa
 Le script produit d’abord un **dossier de staging** : `deploy/runtime/foretmap-runtime-YYYYMMDD-HHMMSS/` (même contenu que ce qui irait en prod : sources, `dist/`, `node_modules` après prune). Tu peux **uploader ce dossier tel quel** (`rsync`, SFTP récursif, etc.) vers le répertoire de l’app sur le serveur — **le ZIP est optionnel** ; il sert surtout à un seul fichier à transférer ou à archiver une livraison.
 
 Si les outils le permettent, un **ZIP** est aussi créé dans `deploy/` : `foretmap-runtime-YYYYMMDD-HHMMSS.zip` (commande **`zip`**, sinon **`tar -a`**, sinon **PowerShell** sous Windows). Si aucune archive n’est générée, le dossier `deploy/runtime/…` reste la source de vérité pour un envoi manuel ou une compression locale.
+
+## 10. Sessions Claude Code sur le web (conteneur éphémère)
+
+Une session Claude Code sur le web démarre dans un conteneur **vierge** : pas de
+`node_modules`, **pas de serveur MariaDB**, et un chromium préinstallé dont la révision ne
+correspond pas à la version épinglée de `@playwright/test`. Sans amorçage, **aucune** suite
+du dépôt ne peut tourner — l'agent ne peut alors que relire du code et déléguer la
+vérification à la CI (~20 min d'aller-retour).
+
+```bash
+bash scripts/bootstrap-web-session.sh
+```
+
+Le script est **idempotent** et non interactif (~2 min à froid, ~10 s à chaud). Il :
+
+1. installe les dépendances npm ;
+2. installe **et démarre** MariaDB, crée `foretmap_test` / `foretmap_local` et le compte
+   applicatif `foretmap` — `root@localhost` est en auth `unix_socket`, donc **inutilisable
+   en TCP par `mysql2`** (`ER_ACCESS_DENIED_NO_PASSWORD_ERROR`) ;
+3. joue `npm run db:init` (schéma + migrations + seed) ;
+4. installe les navigateurs Playwright **avec leurs paquets système** — sans
+   `--with-deps`, WebKit ne démarre pas (`libgtk-4.so.1` & co. manquants) et le projet
+   `mobile-webkit`, pourtant bloquant en CI, échoue avant le premier test ;
+5. écrit un `.env` de session (non versionné) et exporte les variables via
+   `$CLAUDE_ENV_FILE`.
+
+| Variable                           | Effet                                                                     |
+| ---------------------------------- | ------------------------------------------------------------------------- |
+| `FORETMAP_SESSION_DB=docker`       | Parité CI exacte : `dockerd` + `docker compose up -d` (`mariadb:11.4.10`) |
+| `FORETMAP_SESSION_SKIP_BROWSERS=1` | Saute les navigateurs (amorçage plus court, e2e indisponible)             |
+
+Par défaut le script installe MariaDB **10.11** (paquet Ubuntu, rapide) là où la CI utilise
+**11.4.10** : suffisant au quotidien, à basculer en `docker` pour instruire un doute propre
+au moteur.
+
+### Automatiser au démarrage de session (hook)
+
+Pour que **toutes** les sessions partent d'un environnement prêt, enregistrer le script en
+hook `SessionStart` dans `.claude/settings.json` (à créer / fusionner) :
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/scripts/bootstrap-web-session.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Le hook prend effet pour les sessions ouvertes **après** la fusion de ce fichier dans la
+branche par défaut. En mode synchrone (ci-dessus), la session ne démarre qu'une fois
+l'amorçage terminé : pas de course entre l'agent et l'installation, au prix de l'attente
+initiale.
+
+Limites qui subsistent même après amorçage (secrets tiers, données réelles, médiathèque GL,
+appareil iOS réel, e2e non bloquante en CI) : voir
+[`AUDIT_ENVIRONNEMENT_TESTS_2026-09-16.md`](AUDIT_ENVIRONNEMENT_TESTS_2026-09-16.md).

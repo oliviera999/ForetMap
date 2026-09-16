@@ -32,6 +32,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Tests : montage d'`App` avec une session prof de classe **sans** `teacher.access`
   (`tests-ui/AppShellWiring.test.jsx`), garde pure `teacherAccessLockError` et gel de
   la liste des profils verrouillés contre `ROLE_PERMISSION_MATRIX`.
+### Ajouté — Outillage : amorçage d'une session de développement en conteneur éphémère
+
+- `scripts/bootstrap-web-session.sh` (idempotent, non interactif, ~2 min à froid) : installe
+  les dépendances, **installe et démarre MariaDB**, crée `foretmap_test` / `foretmap_local`
+  et le compte applicatif, joue `db:init`, installe les navigateurs Playwright **avec leurs
+  paquets système** (sans quoi le projet `mobile-webkit`, bloquant en CI, ne démarre pas),
+  écrit un `.env` de session. `FORETMAP_SESSION_DB=docker` pour la parité CI exacte
+  (`mariadb:11.4.10`).
+- `docs/LOCAL_DEV.md` § 10 : mode d'emploi + enregistrement en hook `SessionStart`.
+- `docs/AUDIT_ENVIRONNEMENT_TESTS_2026-09-16.md` : mesures de ce qui est réellement
+  exécutable dans une session Claude Code sur le web (les quatre suites passent : 3581 tests
+  backend, 4336 tests UI, 64 tests de contenu, e2e chromium et webkit), limites qui
+  subsistent (secrets tiers, données réelles, médiathèque GL, appareil iOS, e2e non bloquante
+  en CI) et propositions classées.
 
 ### Corrigé — Google enseignant : plus de création silencieuse de visiteur + messages de causes
 
