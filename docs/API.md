@@ -836,6 +836,10 @@ S'applique à `/api/auth/login`, `/api/gl/auth/login`, `/api/gl/auth/staff/login
 
 **Durée de vie des JWT** : configurable par le réglage admin (portée enseignant) **`security.jwt_ttl_base_seconds`** (session standard, défaut **5 400** s = 1 h 30) ; plage min/max imposée par le serveur. S’applique à toutes les émissions de jeton (connexion, OAuth, rafraîchissement `refreshedToken`, impersonation).
 
+**Renouvellement glissant** (`lib/auth/slidingSession.js`) — un jeton entré dans le **dernier tiers** de sa durée de vie est ré-émis par **`GET /api/auth/me`**, qui renvoie alors `refreshedToken` sans qu’aucun rôle n’ait changé. Une session **utilisée** ne s’interrompt donc plus au bout de 1 h 30 ; une session abandonnée expire comme avant, au plus tard un TTL après la dernière requête. Le client (`useAuthTokenRenewal`) interroge `/api/auth/me` de lui-même quand l’échéance approche, sans attendre le cycle de synchronisation.
+
+Chaque jeton porte le claim **`sessionStartedAt`** (seconde epoch), posé à la **première** émission et **reconduit tel quel** par les ré-émissions. Au-delà de **`security.jwt_sliding_max_seconds`** (réglage admin, portée enseignant, défaut **43 200** s = 12 h, `0` = sans plafond) la prolongation est refusée : l’utilisateur se reconnecte. Un jeton émis avant cette évolution n’a pas le claim — son `iat` fait foi, ce qui lui accorde au plus une fenêtre supplémentaire. Le plafond borne la valeur d’un jeton volé : sans lui, prolonger serait prolonger sans fin.
+
 **`GET /api/auth/me`** — pour un compte **n3beur** authentifié (`auth.userType === 'student'`), la réponse peut inclure **`taskEnrollment`** (plafond d’auto-inscriptions actives) :
 
 - `maxActiveAssignments` : plafond effectif (entier 0–99, `0` = pas de limite) : si le profil principal du n3beur a une valeur `roles.max_concurrent_tasks` non `NULL`, elle s’applique ; sinon le réglage global `tasks.student_max_active_assignments` est utilisé.

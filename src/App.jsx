@@ -117,6 +117,8 @@ import { useAppDataSync } from './hooks/useAppDataSync';
 import { useAppDataPolling } from './hooks/useAppDataPolling';
 import { useTabNavigationGuards } from './hooks/useTabNavigationGuards';
 import { useAppStoragePersistence } from './hooks/useAppStoragePersistence';
+import { useAuthTokenRenewal } from './hooks/useAuthTokenRenewal';
+import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
 import { useSessionWindowSync } from './hooks/useSessionWindowSync';
 import { useToastNotificationBridge } from './hooks/useToastNotificationBridge';
 import { useRoleViewModeReset } from './hooks/useRoleViewModeReset';
@@ -456,6 +458,13 @@ function App() {
   });
 
   useAppStoragePersistence({ activeMapId, tab, onToast: setToast });
+
+  // Prolonge la session avant expiration : sans cela, 1 h 30 après la connexion,
+  // l'utilisateur était déconnecté en plein travail (cf. `useAuthTokenRenewal`).
+  useAuthTokenRenewal({ enabled: hasAuthenticatedShell, mergeAuthMeResponse });
+
+  // Mise à jour de l'app prête à être appliquée : proposée en bandeau, jamais imposée.
+  const swUpdate = useServiceWorkerUpdate();
 
   useDefaultActiveMapFromSettings({
     publicSettingsReady,
@@ -1186,6 +1195,22 @@ function App() {
                       disabled={retryingServer}
                     >
                       {appRetryNow}
+                    </button>
+                  </NoticeBanner>
+                )}
+                {!serverDown && swUpdate && (
+                  <NoticeBanner tone="info">
+                    <strong>Une nouvelle version est disponible.</strong> Rechargez quand cela vous
+                    arrange — votre travail en cours n’est pas interrompu.
+                    {/* Bouton rendu ici (plutôt que via `action`) pour garantir une cible
+                      tactile ≥ 44px, comme le bandeau « serveur indisponible ». */}
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      style={{ marginLeft: 10, verticalAlign: 'middle', minHeight: 44 }}
+                      onClick={swUpdate.apply}
+                    >
+                      Recharger
                     </button>
                   </NoticeBanner>
                 )}
