@@ -9,6 +9,29 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — audit « Réseau trophique : densité d'affichage » (16 sept. 2026)
+
+- `docs/AUDIT_RESEAU_TROPHIQUE_DENSITE_2026-09-16.md` : audit **sans changement de code**, qui
+  mesure la densité de la vue et arbitre quatre questions ouvertes.
+- **Mesures** : sur le cercle, les étiquettes se chevauchent dès **15 espèces** (et non ~30 comme
+  l'estimait l'audit de septembre) et les pastilles dès **33** ; en disposition **Niveaux**, une
+  colonne sature à **10** alors que le corpus versionné compte ~78 producteurs. Le corpus
+  (seed + migrations `220`–`230`) totalise **~143 espèces / ~181 relations**, dont **50 espèces
+  pour les seules 69 relations du seed**.
+- **Constat principal (D3)** : isoler une espèce **estompe sans recomposer** — `baseLayout` est
+  calculé sur tous les nœuds, le focus ne change ni le placement ni le nombre d'éléments dessinés.
+  Le geste central du module ne désencombre donc pas.
+- **Arbitrages** : recomposer la scène sur le sous-réseau (lot F1) ; sélection **multiple**
+  d'espèces via `focusSubset()` généralisé à un ensemble de graines (F3) ; niveaux de
+  consommateurs **calculés depuis le graphe** (position trophique) plutôt que saisis en base —
+  aucune migration, pas de dette de contenu, omnivores correctement traités (F4) ; défaut
+  maintenu au **cercle** jusqu'à ce que la disposition Niveaux tienne au-delà de 10 espèces par
+  niveau (F5).
+- Références citées : Levine, _J. Theor. Biol._ 83(2), 1980 (position trophique) ; cheddar
+  (BSD-2) ; Cytoscape.js `concentric` (MIT) ; d3-force (ISC, piste écartée). Aucun code externe
+  repris.
+- Index `docs/audits/README.md` mis à jour.
+
 ### Corrigé — les profs de classe ne pouvaient plus se connecter (aucun message)
 
 - **Symptôme** : identifiants acceptés (jeton émis, `200`), puis retour immédiat sur
