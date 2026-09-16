@@ -1031,9 +1031,10 @@
       overflow-y:auto;
       -webkit-overflow-scrolling:touch;
     }
-    .main--maptasks-split .map-view-root--embedded .map-view-canvas-outer {
-      min-height:clamp(120px, 28dvh, 240px);
-    }
+    /* Pas de `min-height` ici sur `.map-view-canvas-outer` : `map-views.jsx` lui pose
+       `minHeight:0` en style en ligne, qui l'emporte sur la feuille de styles — la règle qui
+       s'y trouvait (`clamp(120px, 28dvh, 240px)`) n'a jamais rien borné. La hauteur utile de
+       la carte vient du volet étiré (voir plus bas). */
     .main--maptasks-split .desktop-split-pane--tasks {
       overflow:hidden;
     }
@@ -1044,30 +1045,20 @@
       -webkit-overflow-scrolling:touch;
     }
     @media (min-width:1024px) {
-      .main.main--maptasks-split:not(.teacher-main) {
-        /* Même remarque que pour la branche prof plus bas : le volet sticky se cale sur
-           `.desktop-split-view` (overflow:hidden), pas sur le document — un décalage de la
-           hauteur d'en-tête n'y dégage rien et pousse la carte de 56 px sous la barre. */
-        --fm-maptasks-sticky-top:0px;
-        --fm-maptasks-map-max-h:calc(100dvh - 56px - var(--safe-top) - var(--bottom-nav-height) - var(--safe-bottom) - 32px);
-      }
-      .teacher-main.main--maptasks-split {
-        /* Deux rangées (pôles + onglets du pôle) depuis la navigation D-4. */
-        --fm-maptasks-teacher-tabs-h:calc(2 * (var(--top-tabs-row-inner-h) + 2 * var(--top-tabs-pad-y)) + 2px + clamp(4px, 1.2vw, 8px));
-        /* Le sticky se cale sur `.desktop-split-view` (overflow:hidden = conteneur de
-           défilement), pas sur le document : un décalage de la hauteur d'en-tête y pousse
-           la carte de 56 px vers le bas sans rien dégager — d'où un vide sous les onglets.
-           La marge sous l'en-tête reste prise en compte par `--fm-maptasks-map-max-h`.
-           Idem pour la branche élève ci-dessus. */
-        --fm-maptasks-sticky-top:0px;
-        --fm-maptasks-map-max-h:calc(100dvh - 56px - var(--safe-top) - var(--fm-maptasks-teacher-tabs-h) - 32px - 24px);
-      }
+      /* Le volet carte occupe TOUTE la hauteur de la ligne de grille, comme la colonne tâches.
+         Historique : il était `position:sticky; align-self:start; max-height:<calc dvh>`. Or
+         `align-self:start` annule l'étirement du `align-items:stretch` de `.desktop-split-view` :
+         le volet retombait sur la hauteur de son contenu, et le contenu n'a aucune hauteur
+         intrinsèque (`.map-view-stage` est en `height:100%` d'un parent auto) — la scène tombait
+         sur son plancher `min-height:160px`. Mesuré en 1600x900 : 254 px de volet carte (scène
+         160 px) contre 750 px pour la colonne tâches. Le sticky était par ailleurs sans effet,
+         son conteneur de défilement (`.desktop-split-view`) étant en `overflow:hidden`, et le
+         `max-height` en `dvh` ne faisait que redériver, à la main et de façon fragile, la
+         hauteur que la ligne `minmax(0, 1fr)` impose déjà. */
       .main--maptasks-split .desktop-split-pane--map {
-        position:sticky;
-        align-self:start;
-        top:var(--fm-maptasks-sticky-top);
-        max-height:var(--fm-maptasks-map-max-h);
-        z-index:1;
+        align-self:stretch;
+        min-height:0;
+        max-height:none;
       }
     }
     .map-legend { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
@@ -2468,6 +2459,13 @@
     .map-switch-inline::-webkit-scrollbar {
       display:none;
     }
+    /* Typographie alignée sur les boutons de la barre (`--map-toolbar-font-size`).
+       Sans ces deux déclarations le sélecteur retombe sur la règle globale
+       `input, select, textarea` : --text-base (≈14-16px), et même 16px !important sous
+       1024px / pointeur grossier — soit ~40 % de plus que les pilules voisines en --text-xs,
+       d'où l'impression de fonte différente. Le !important n'a pas d'autre moyen de battre
+       la règle anti-zoom iOS ; celle-ci ne protège rien ici, un `<select>` ouvrant un
+       sélecteur natif sans zoom du viewport (contrairement aux champs de saisie). */
     .map-switch-select {
       min-width:180px;
       max-width:min(100%, 300px);
@@ -2476,8 +2474,17 @@
       border-radius:10px;
       background:var(--parchment);
       color:var(--soil);
+      font-family:var(--font-sans);
+      font-size:var(--map-toolbar-font-size) !important;
       font-weight:var(--fw-bold);
+      line-height:var(--lh-tight);
       padding:4px 10px;
+    }
+    /* Liste déroulante ouverte : rendue par l'OS, la plupart des moteurs n'honorent que
+       family/weight — on pose au moins la fonte produit. */
+    .map-switch-select option {
+      font-family:var(--font-sans);
+      font-weight:var(--fw-semibold);
     }
     /* Carte (vue seule ou split) : barre d'outils compacte sur tous les viewports (comme mobile) pour gagner de la hauteur.
        `.map-view-root--solo` en plus de `main--map-visible` : évite un retour au wrap si la classe sur `main` manque un instant. */
@@ -2502,6 +2509,14 @@
     .map-view-root--solo .map-view-toolbar button:not(.fm-help-btn) {
       padding:4px 7px !important;
       font-size:var(--map-toolbar-font-size) !important;
+      min-height:30px;
+    }
+    /* Le sélecteur de carte suit la même compaction que les boutons : il gardait sa hauteur
+       et son padding pleins au milieu d'une barre ramenée à 34px. */
+    .main.main--map-visible .map-view-toolbar .map-switch-select,
+    .teacher-main.teacher-main--map-visible .map-view-toolbar .map-switch-select,
+    .map-view-root--solo .map-view-toolbar .map-switch-select {
+      padding:2px 8px !important;
       min-height:30px;
     }
     .main.main--map-visible .map-view-toolbar .map-gesture-toggle,
