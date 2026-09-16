@@ -9,6 +9,52 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Réseau trophique : isolement utile, sélection d'espèces, niveaux de consommateurs
+
+Mise en œuvre des lots F1–F5 de
+[`docs/AUDIT_RESEAU_TROPHIQUE_DENSITE_2026-09-16.md`](docs/AUDIT_RESEAU_TROPHIQUE_DENSITE_2026-09-16.md).
+Aucune migration, aucune route touchée : tout est calculé côté client.
+
+- **Isoler recompose la scène** (F1). `baseLayout` était calculé sur *tous* les nœuds : isoler
+  une espèce estompait le reste sans rien déplacer, et ses voisins restaient dispersés parmi
+  les fantômes. La disposition est désormais recalculée sur le sous-réseau, qui est seul
+  rendu — donc seul cliquable et seul tabulable. Le bouton **« Reste en fond »** rétablit
+  l'ancien estompage quand on veut garder le contexte.
+- **Sélection de plusieurs espèces** (F3). `focusSubset()` accepte un **ensemble** de graines :
+  ⌘/Ctrl + clic, bouton « Ajouter à la sélection » (tablette) ou recherche empilent les
+  espèces ; des puces sous le graphe permettent de les retirer. Une troisième étendue,
+  **« Sélection »** (profondeur 0), ne garde que les espèces choisies et leurs relations
+  mutuelles — la chaîne d'une séance se compose au tableau, puis s'exporte en PNG.
+- **Niveaux de consommateurs calculés** (F4). `computeTrophicLevels()` calcule la position
+  trophique depuis le graphe affiché — `niveau = 1 + moyenne(niveau des proies)`, sur les
+  seules arêtes qui transportent de la matière (Levine, _J. Theor. Biol._ 83(2), 1980,
+  <https://doi.org/10.1016/0022-5193(80)90288-X> ; principe repris du paquet R `cheddar`,
+  BSD-2, <https://github.com/quicklizard99/cheddar>, sans emprunt de code). Pas de colonne
+  SQL : un omnivore garde une valeur fractionnaire (« niveau 2,5 — régime mixte ») au lieu
+  d'être rangé de force, et la valeur suit le périmètre affiché, ce que l'infobulle énonce
+  (« dans ce réseau »). Les **décomposeurs restent hors échelle**, dans une voie à part avec
+  les espèces sans niveau déterminable : ils ne sont pas un étage de plus.
+- **Disposition « Niveaux » refondue** (F2, F5) : producteurs **en bas**, consommateurs
+  au-dessus, chaque bande nommée ; un niveau trop fourni se répartit sur plusieurs rangées et
+  la scène s'allonge, au lieu d'empiler 78 producteurs sur une verticale de 440 px (pas de
+  5,7 px). C'est la disposition **par défaut** d'un réseau alimentaire ; sans flux de matière
+  (cadrage « Autres relations »), on retombe sur les colonnes de rôles. Le choix de
+  disposition est **mémorisé**.
+- **Disposition « Fiche »** (F5), proposée dès qu'une espèce est isolée : ce qu'elle mange à
+  gauche, l'espèce au centre, ce qui la mange à droite — plus un **résumé en toutes lettres**
+  sous le graphe (trace écrite, lecteurs d'écran).
+- **Lisibilité** : les étiquettes du cercle sont tracées **en rayon** (elles n'occupent plus
+  que leur hauteur : un réseau de 49 espèces reste entièrement nommé, contre un chevauchement
+  dès 15 auparavant), avec un liseré blanc à l'écran comme à l'export ; le rayon de l'anneau
+  suit le nombre d'espèces.
+- **Corrigé** : le nœud « Environnement », ancré en dur à (440, 28), tombait à 2 px du premier
+  nœud du cercle, son étiquette par-dessus la pastille. Il passe au centre de l'anneau (libre
+  par construction) et au bas de la voie latérale en disposition Niveaux.
+- GL bénéficie de tout le graphe partagé (`GLFoodWebPanel` monte le même composant).
+- Tests : 28 tests ajoutés (helpers purs + montage), `npm run test:ui` vert (4367 tests).
+  Le rendu a par ailleurs été **capturé dans un navigateur** sur le corpus versionné réel
+  (49 espèces, 69 relations), ce qui a révélé quatre défauts de cadrage invisibles en test.
+
 ### Documentation — audit « Réseau trophique : densité d'affichage » (16 sept. 2026)
 
 - `docs/AUDIT_RESEAU_TROPHIQUE_DENSITE_2026-09-16.md` : audit **sans changement de code**, qui
