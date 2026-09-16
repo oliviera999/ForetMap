@@ -9,6 +9,43 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Plan Lyautey : la navigation ne se fait plus recouvrir
+
+- **Guidage « Y aller » sorti de la fiche.** Le bouton referme la fiche et pose une **barre de
+  guidage** d'une ligne (nom, distance, « Arrêter ») : la carte reste entière, donc le point
+  bleu est visible pendant qu'on marche. Fermer la fiche **n'arrête plus** le guidage — seul
+  « Arrêter » l'interrompt. Le lieu visé reste mis en avant sur la carte.
+- **Commandes de carte atteignables sous une feuille.** La colonne se replie en **rangée**
+  au-dessus de la feuille ouverte : de 3 à 4 commandes sur 5–6 étaient jusqu'ici sous la
+  feuille, visibles et intouchables (zoom, « Voir tout le plan », parfois « Me situer »).
+  Au cran plein, elles s'effacent au lieu de faire semblant.
+- **Le lieu ouvert depuis la recherche est visible.** Les bornes de la carte connaissent les
+  bords **recouverts** (`viewportInsets`) : le plan peut glisser sous la feuille, de sorte
+  qu'un lieu du bas du plan monte dans la bande encore visible. Il restait 19 à 24 % du plan
+  visible, et le lieu cherché tombait dedans trois fois sur quatre.
+- **Barre de parcours utilisable.** Elle remonte au-dessus de la feuille, et la fiche d'un lieu
+  consulté pendant un parcours s'ouvre au cran bas : « Quitter », « Précédent » et « Suivant »
+  répondent de nouveau.
+- **Bandeau de première visite** déplacé dans la carte : il recouvrait entièrement le bouton
+  d'aide de la barre haute.
+- **Lieu pris dans un groupe de repères** : le lieu mis en avant ne se fond plus dans le
+  groupe, sa fiche parlait sinon d'un endroit que rien sur la carte ne montrait.
+- Relevé, correctifs et mesures d'après-correctif :
+  [`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md`](docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md) §9.
+
+### Documentation — Plan Lyautey : deuxième audit de navigation (recouvrements)
+
+- Nouveau [`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md`](docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md),
+  relevé sur le bundle **effectivement déployé** et la charge publique de production.
+  Trois constats bloquants : une feuille ouverte rend 3 à 4 commandes de carte sur 5–6
+  **inatteignables** (remontée plafonnée à 30 dvh pour un cran d'ouverture à 55 dvh) ; le lieu
+  ouvert depuis la recherche est **sous sa propre fiche** (il ne reste que 19–24 % du plan
+  visible) ; pendant un parcours, ouvrir un lieu **gèle** la barre de parcours. Cinq constats
+  gênants (bandeau d'accueil sur le bouton d'aide, glissement sans effet au cadrage
+  d'ouverture, lieu groupé non dessiné, bruit de la recherche, puces hors écran).
+- Le **calage GPS de production est vérifié bon** (0,5 % d'écart entre paires d'ancres, nord à
+  0,17°) : les difficultés de repérage ne viennent pas de la géométrie.
+- Index des audits mis à jour. Aucun code produit modifié.
 ### Corrigé — Échap, focus et tabulation revenus dans les fenêtres qui restaient montées
 
 - **Symptôme** : sur une quinzaine de fenêtres (confirmation de suppression d'une tâche,

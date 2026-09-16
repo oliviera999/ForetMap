@@ -14,11 +14,13 @@ import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/po
 import { parsePctPolygonPoints } from '../shared/pct-map/pctPolygon.js';
 import { FixedToast } from '../shared/components/FixedToast.jsx';
 import { useTimedToastState } from '../shared/hooks/useTimedToastState.js';
+import { useBottomSheetInset } from '../shared/ui/useBottomSheetInset.js';
 import { PlanCategoryChips } from './components/PlanCategoryChips.jsx';
 import { PlanFiltersSheet } from './components/PlanFiltersSheet.jsx';
 import { PlanHelp } from './components/PlanHelp.jsx';
 import { PlanRoutePicker } from './components/PlanRoutePicker.jsx';
 import { PLAN_ROUTE_BAR_FOCUS_INSET_PX, PlanRouteBar } from './components/PlanRouteBar.jsx';
+import { PLAN_GUIDE_BAR_FOCUS_INSET_PX, PlanGuideBar } from './components/PlanGuideBar.jsx';
 import { AccessCodeGate } from '../shared/components/AccessCodeGate.jsx';
 import { PlanMapStage } from './components/PlanMapStage.jsx';
 import { PlanPlaceSheet } from './components/PlanPlaceSheet.jsx';
@@ -164,6 +166,12 @@ export function AppPlan() {
     storageKey: SCALE_COMPASS_STORAGE_KEY,
     allowed: scaleCompassAllowed,
   });
+  /**
+   * Hauteur des feuilles basses ouvertes : elle sert à **recadrer la carte** sur la bande qui
+   * reste visible. Sans elle, le lieu dont on venait d'ouvrir la fiche atterrissait dessous
+   * trois fois sur quatre (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B2).
+   */
+  const sheetInsetPx = useBottomSheetInset();
   const [positionToast, setPositionToast] = useTimedToastState();
   /**
    * Ce que le mode parcours a à dire au visiteur — aujourd'hui : le QR code d'une affiche qui
@@ -285,9 +293,15 @@ export function AppPlan() {
     [setSelectedPlace],
   );
 
+  /**
+   * Fermer la fiche ne **coupe plus le guidage** : « Y aller » vivait dans la fiche, donc
+   * refermer celle-ci arrêtait la direction en cours sans le dire — et la fiche, haute de
+   * 55 % de l'écran, cachait justement le point bleu qu'on cherchait à suivre
+   * (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B4 et B5). Le guidage s'arrête désormais
+   * sur « Arrêter », et nulle part ailleurs.
+   */
   const closePlace = useCallback(() => {
     setSelectedPlace(null);
-    setTargetPlaceId('');
     if (typeof window !== 'undefined' && window.history?.replaceState) {
       window.history.replaceState(null, '', buildPlaceUrl(window.location, ''));
     }
@@ -444,6 +458,38 @@ export function AppPlan() {
   );
 
   /**
+   * Lieu guidé hors parcours : c'est lui qui porte la barre de guidage. Pendant un parcours,
+   * la barre d'étape fait déjà ce travail.
+   */
+  const guidedPlace = activeRoute ? null : targetPlace;
+
+  /**
+   * Marges de recadrage de la carte : tout ce qui mange le bas de l'écran (feuille basse
+   * ouverte, barre d'étape, barre de guidage). Sans elles, la carte centrait le lieu
+   * sélectionné au milieu de la **scène** — c'est-à-dire sous la feuille
+   * (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B2).
+   */
+  /**
+   * Feuille si haute qu'aucune commande de carte ne tient plus au-dessus (cran plein) : mieux
+   * vaut les effacer que les laisser sous la feuille, visibles et intouchables (B1). Le seuil
+   * passe au-dessus du cran `half` (55 %), qui reste le cran d'ouverture des deux feuilles.
+   */
+  const controlsHidden =
+    sheetInsetPx > 0 &&
+    typeof window !== 'undefined' &&
+    sheetInsetPx > (window.innerHeight || 0) * 0.66;
+
+  const mapFocusInsets = useMemo(() => {
+    const bars = activeRoute
+      ? PLAN_ROUTE_BAR_FOCUS_INSET_PX
+      : guidedPlace
+        ? PLAN_GUIDE_BAR_FOCUS_INSET_PX
+        : 0;
+    const bottom = Math.max(bars, Math.round(sheetInsetPx) || 0);
+    return bottom > 0 ? { bottom } : null;
+  }, [activeRoute, guidedPlace, sheetInsetPx]);
+
+  /**
    * Distance à vol d'oiseau d'un lieu quelconque, formatée — pour la liste de résultats
    * (`docs/AUDIT_PLAN_AFFICHAGE_2026-09-13.md` N4). Chaîne vide tant que la position n'est
    * pas active : mieux vaut ne rien dire qu'annoncer une distance depuis un point inconnu.
@@ -460,15 +506,27 @@ export function AppPlan() {
     [position.positionPct, position.planSize],
   );
 
+  /**
+   * « Y aller » : on vise le lieu **et on rend la carte** — la fiche se referme, la barre de
+   * guidage la remplace. C'est tout l'objet du geste : voir où l'on est par rapport au lieu,
+   * ce qu'une feuille couvrant 55 % de l'écran interdisait (B4).
+   */
   const goToPlace = useCallback(
     (place) => {
       if (!place) return;
       setTargetPlaceId(String(place.id));
       reportPlanUsage('go', String(place.id));
       if (!position.active) position.toggle();
+      if (!activeRouteSlugRef.current) closePlace();
     },
-    [position],
+    [position, closePlace],
   );
+
+  /** Fin du guidage — le seul chemin qui l'arrête. */
+  const stopGuidance = useCallback(() => {
+    setTargetPlaceId('');
+    reportPlanUsage('go_stop', '');
+  }, []);
 
   const startRoute = useCallback((route) => {
     setRoutePickerOpen(false);
@@ -487,6 +545,7 @@ export function AppPlan() {
     setRouteIndex(0);
     setSelectedPlace(null);
     setRoutePeekPlace(null);
+    setTargetPlaceId('');
     if (slug) {
       setResumableRouteSlug(slug);
       setRouteToast('Pour reprendre : puce Parcours, ou Reprendre.');
@@ -700,7 +759,9 @@ export function AppPlan() {
             map={map}
             zones={mapZones}
             markers={mapMarkers}
-            selectedPlace={routePeekPlace || selectedPlace}
+            /* Le lieu visé reste mis en avant même fiche refermée : pendant le guidage, la
+               carte doit montrer *où l'on va*, pas seulement d'où part le trait (B4). */
+            selectedPlace={routePeekPlace || selectedPlace || guidedPlace}
             onSelectPlace={openPlace}
             onOpenGroup={openGroup}
             labelsClickable
@@ -722,23 +783,33 @@ export function AppPlan() {
             scaleCompassEffective={scaleCompassPref.effective}
             onScaleCompassToggle={scaleCompassPref.toggle}
             targetPct={targetPct}
-            focusInsets={activeRoute ? { bottom: PLAN_ROUTE_BAR_FOCUS_INSET_PX } : null}
+            focusInsets={mapFocusInsets}
             attribution={settings?.attribution || ''}
             schoolLogoUrl={PLAN_SCHOOL_LOGO_URL}
+            /* Feuille ouverte : la colonne de commandes ne tient pas dans la bande de carte
+               qui reste (122 px pour 252 px de colonne sur un iPhone 13) — elle se replie en
+               rangée juste au-dessus (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B1). */
+            controlsClassName={`plan-map-controls fm-pct-map-controls${
+              sheetInsetPx > 0 ? ' is-compact' : ''
+            }${controlsHidden ? ' is-hidden' : ''}`}
           />
         ) : (
           <p className="plan-state">Aucun fond de plan n’est encore publié pour ce lieu.</p>
         )}
-      </main>
 
-      {welcomeVisible && settings?.welcome_hint ? (
-        <div className="plan-welcome" role="status">
-          <p className="plan-welcome__text">{settings.welcome_hint}</p>
-          <button type="button" className="plan-welcome__close" onClick={dismissWelcome}>
-            J’ai compris
-          </button>
-        </div>
-      ) : null}
+        {/* Le bandeau d'accueil vit **dans la carte**, pas sur la coquille : posé sur
+            `.plan-shell`, il recouvrait intégralement le bouton d'aide de la barre haute — la
+            seule explication du produit, au moment exact où le visiteur est neuf
+            (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` G1). */}
+        {welcomeVisible && settings?.welcome_hint ? (
+          <div className="plan-welcome" role="status">
+            <p className="plan-welcome__text">{settings.welcome_hint}</p>
+            <button type="button" className="plan-welcome__close" onClick={dismissWelcome}>
+              J’ai compris
+            </button>
+          </div>
+        ) : null}
+      </main>
 
       {offline ? (
         <p className="plan-offline" role="status">
@@ -752,6 +823,21 @@ export function AppPlan() {
             Reprendre le parcours
           </button>
         </div>
+      ) : null}
+
+      {guidedPlace ? (
+        <PlanGuideBar
+          place={guidedPlace}
+          distanceLabel={position.positionPct ? formatDistanceFr(targetDistanceM) : ''}
+          positionActive={position.active && !!position.positionPct}
+          canLocate={position.available}
+          onStop={stopGuidance}
+          onOpenPlace={() => openPlace(guidedPlace)}
+          onLocate={() => {
+            reportPlanUsage('locate', 'on');
+            if (!position.active) position.toggle();
+          }}
+        />
       ) : null}
 
       {activeRoute ? (
@@ -814,6 +900,10 @@ export function AppPlan() {
             ? { label: 'Revenir à l’étape', onClick: () => setRoutePeekPlace(null) }
             : null
         }
+        /* Pendant un parcours, la fiche s'ouvre au cran bas : à mi-hauteur elle recouvrait
+           entièrement la barre d'étape (B3). La barre reste la commande principale ; la fiche
+           se tire vers le haut pour lire. */
+        initialSnap={activeRoute && routePeekPlace ? 'peek' : 'half'}
       />
 
       <FixedToast className="plan-toast">{positionToast || routeToast}</FixedToast>
