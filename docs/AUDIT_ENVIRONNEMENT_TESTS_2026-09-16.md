@@ -172,15 +172,26 @@ Une fois ce fichier fusionné dans `main`, **toutes** les sessions suivantes dé
 une base réelle et des navigateurs fonctionnels. Gain : une session peut vérifier son propre
 travail au lieu de déléguer la découverte des régressions à la CI.
 
-### 5.2 P1 — un jeu de données de test réaliste, anonymisé
+### 5.2 P1 — un jeu de données de test réaliste, anonymisé (outil livré)
 
-Le dépôt sait déjà le faire pour la biodiversité :
-`scripts/extract-biodiv-pedago-seed.js` refuse d'écrire s'il détecte un e-mail ou un
-hachage bcrypt. Étendre ce principe à un **échantillon structurel anonymisé** (zones,
-plantes, tâches, observations — identités remplacées, volumétrie conservée) donnerait ce qui
-manque le plus : des tests de liste, de pagination et de charge qui ressemblent à la prod.
-C'est le chantier le plus rentable après le hook, et le seul qui touche à des données
-sensibles : il demande une décision explicite.
+`scripts/anonymize-local-db.js` (livré dans ce lot) transforme une copie locale d'un dump de
+production en base de travail sans donnée personnelle, **à volumétrie conservée** :
+identités réécrites (`users`, `gl_players`, `gl_admins`, `external_identities`, noms
+dénormalisés des tâches), hachages remplacés par un mot de passe unique, purge des jetons /
+du journal d'audit / des charges utiles `security_events` / des rapports de synchronisation
+Moodle, et contenus libres remplacés par un texte **de même longueur** — le poids des
+réponses API reste donc représentatif.
+
+Le principe de `extract-biodiv-pedago-seed.js` (refuser d'écrire si un e-mail ou un bcrypt
+traîne) est repris et généralisé : après écriture, **toutes** les colonnes texte de la base
+sont balayées, et une colonne oubliée fait échouer la commande en la nommant. Vérifié à la
+construction : en ajoutant une table hors plan contenant une adresse, le script sort en
+code 1 et désigne `notes.txt`.
+
+Reste à décider côté humain : **fournir le dump**. Le script s'exécute en local (refus si
+`DB_HOST` n'est pas local ou si `NODE_ENV=production`), le dump n'est jamais versionné
+(`.gitignore`), et les fichiers `uploads/` ne doivent pas être copiés — ils ne sont pas dans
+le dump.
 
 ### 5.3 P1 — secrets de test cloisonnés
 
@@ -208,17 +219,63 @@ c'est l'instabilité, pas la durée, qui a motivé le `continue-on-error`.
 Une poignée d'images minuscules sous licence claire, suffisantes pour que le manifeste ne
 soit plus dégradé et que les scénarios GL visuels tournent.
 
-## 6. Ce qu'il faudrait me fournir, par ordre d'utilité
+## 6. Ce qu'il faudrait fournir à une session, précisément
 
-1. **Le hook `SessionStart`** (§ 5.1) — ou l'autorisation d'écrire dans `.claude/`.
-2. **Un jeu de données anonymisé** (§ 5.2) — décision à prendre, PII à exclure par
-   construction.
-3. **Des secrets de test** (§ 5.3) — Pl@ntNet, OAuth, SMTP capturé.
-4. **Un accès en lecture aux logs de production** (`/api/admin/logs`, `/api/admin/diagnostics`
-   — la prod est joignable depuis la session, seul le jeton manque) : aujourd'hui, un bug
-   signalé en prod ne peut être instruit qu'à partir du code et du récit de l'utilisateur.
-5. **Un appareil réel dans la boucle** (§ 4.5) — un aller-retour humain sur iPhone reste
-   irremplaçable pour le plan mobile ; aucun outil ne le remplacera à court terme.
+Ordre d'utilité décroissante. Pour chaque point : ce qu'il faut, sous quelle forme, ce que ça
+débloque, et ce qui ne doit **pas** être transmis.
+
+### 6.1 Le hook `SessionStart` (gratuit, immédiat)
+
+Créer `.claude/settings.json` (§ 5.1). Un agent ne peut pas l'écrire lui-même. Débloque :
+toute session part d'une base réelle et de navigateurs fonctionnels, sans intervention.
+
+### 6.2 Un dump de la base, à anonymiser dès l'import
+
+- **Forme** : un `.sql` (`mysqldump` ou export phpMyAdmin), déposé dans le conteneur de la
+  session ou accessible par une URL temporaire. Nom de fichier couvert par `.gitignore`
+  (`*_dump.sql`, `*-dump.sql`, `*_bdd_complete.sql`, `sql/dumps/`).
+- **Traitement imposé** : `npm run db:import:dump -- --file …` puis **`npm run db:anonymize`**
+  (§ 5.2) avant toute autre commande. Le balayage final refuse de conclure s'il reste un
+  e-mail ou un bcrypt.
+- **À ne pas transmettre** : le dossier `uploads/` (photos d'élèves) — il n'est pas dans le
+  dump et n'est nécessaire à aucun test ; les sauvegardes chiffrées ; les exports Moodle
+  nominatifs.
+- **Débloque** : listes longues, pagination, réseau trophique dense, profils de charge
+  (`npm run test:load`), reproduction des constats de
+  `AUDIT_CHARGE_BIODIVERSITE_2026-09.md` — aujourd'hui invérifiables sur une base semée.
+
+### 6.3 Un `.env` de travail — mais pas celui de production
+
+Le fichier de production contient les identifiants o2switch, `DEPLOY_SECRET`, les jetons
+Google et SMTP réels. Ce qui est utile à une session, c'est un `.env` **de test** :
+
+| Variable(s)                                            | Ce que ça débloque                                            | Forme attendue                                          |
+| ------------------------------------------------------ | ------------------------------------------------------------- | ------------------------------------------------------- |
+| `DB_*`                                                 | rien de plus — la session a déjà sa base locale               | **ne pas** fournir les identifiants de la base distante |
+| `PLANTNET_API_KEY`, `PLANTNET_PROJECT`, `TREFLE_TOKEN` | pré-saisie espèces testée contre l'API réelle                 | clé de test / quota réduit, révocable                   |
+| `OPENAI_API_KEY`, `SPECIES_AUTOFILL_OPENAI`            | branche IA de l'autofill                                      | clé dédiée, plafonnée                                   |
+| `SMTP_*` avec `SMTP_JSON_TRANSPORT=1`                  | parcours mot de passe oublié **sans envoyer** un seul message | aucun secret réel nécessaire                            |
+| `GOOGLE_OAUTH_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | OAuth enseignant de bout en bout                              | client de test, redirection `localhost`                 |
+| `MOODLE_*`, `LTI_*`                                    | annuaire + lancement LTI réels                                | instance de recette, pas la prod                        |
+| `JWT_SECRET`, `VISIT_COOKIE_SECRET`                    | déjà générés par le script d'amorçage                         | **ne pas** fournir ceux de production                   |
+
+Règle simple : **tout secret confié à une session doit être révocable et sans effet de bord
+sur la production**. Le conteneur est éphémère et `.env` est ignoré par Git, mais un secret
+de production transmis reste un secret de production exposé — il faudrait le considérer
+comme à renouveler.
+
+### 6.4 Un jeton d'administration en lecture seule sur la prod
+
+Les trois hôtes de production répondent depuis une session (`/api/health` → 200). Avec un
+compte admin dédié, `npm run prod:admin-diagnostics`, `npm run prod:admin-tail` et
+`npm run deploy:check:prod` deviennent exploitables : un incident signalé peut être instruit
+sur pièces au lieu d'être deviné. Sans lui, la seule source reste le code et le récit.
+
+### 6.5 Un appareil réel dans la boucle
+
+WebKit headless ne remplace pas Safari iOS (§ 4.5). Pour le plan mobile, un aller-retour
+humain — une capture, une description du geste qui échoue — vaut mieux que n'importe quel
+ajout d'outillage. C'est le seul point de cette liste qu'aucun script ne refermera.
 
 ---
 
