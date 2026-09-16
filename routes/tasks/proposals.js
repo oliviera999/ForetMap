@@ -94,8 +94,8 @@ router.post(
     const proposalImportanceParsed = parseTaskImportanceLevelFromClient(importance_level);
     if (proposalImportanceParsed.error)
       return res.status(400).json({ error: proposalImportanceParsed.error });
-    // Mêmes garde-fous de dates que POST /api/tasks : une proposition peut être promue en
-    // tâche récurrente, et une date hors AAAA-MM-JJ y casserait la duplication en silence.
+    // Mêmes garde-fous de dates que POST /api/tasks : ce chemin n'en avait aucun et
+    // laissait MariaDB arbitrer une valeur mal formée (rejet brut ou troncature).
     const proposalStartParsed = normalizeTaskDateInput(start_date, 'Date de début');
     if (proposalStartParsed.error)
       return res.status(400).json({ error: proposalStartParsed.error });

@@ -454,8 +454,8 @@ describe('normalizeTaskDateInput', () => {
   });
 
   it('refuse tout autre format', () => {
-    // Ces valeurs passaient jusqu'ici dans la colonne VARCHAR(32) et faisaient échouer la
-    // récurrence en silence (parseISODateOnly n'accepte que AAAA-MM-JJ).
+    // Sans ce contrôle, l'arbitrage revient au sql_mode de MariaDB (colonnes DATE depuis
+    // la migration 254) : rejet brut ou troncature selon le serveur, au lieu d'un 400.
     for (const mauvais of [
       '15/09/2026',
       '2026-9-15',

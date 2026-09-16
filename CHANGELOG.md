@@ -9,6 +9,52 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Le calendrier décale une occurrence, plus jamais le rythme
+
+- **Le constat, mesuré sur le vrai calendrier du lycée** (`migrations/247`, 2026-2027) :
+  une tâche hebdomadaire du mardi 15/09 perdait son mardi dès la **5ᵉ occurrence** — le
+  20/10 tombe pendant les vacances de Toussaint, l'occurrence était reposée au lundi 02/11
+  de rentrée, et cette date accrochée devenait l'origine du calcul suivant. Résultat :
+  **33 occurrences sur 37 hors du jour d'origine**, et le lundi conservé jusqu'à l'été. En
+  bimensuel, 18 sur 20. Comme `nextSchoolOpenDay` renvoie toujours le **premier** jour de
+  réouverture, toutes les séries convergeaient en outre vers le même lundi de rentrée,
+  concentrant la charge sur un seul jour de la semaine.
+- **Migration `258`** : colonne `recurrence_anchor_date`. L'occurrence de rang `k` vaut
+  désormais `ancre + k × période` calculée sur la date **théorique** ; l'accrochage au jour
+  ouvré ne sert plus qu'à écrire la ligne et ne se réinjecte plus dans le calcul. Même
+  simulation, même calendrier : **5 occurrences sur 39** hors du jour d'ancre — les
+  semaines réellement fermées — et retour au mardi dès la suivante.
+- **Résolution de l'ancre** : `recurrence_anchor_date`, à défaut la **date de départ**, à
+  défaut la **date de création**. Une tâche récurrente a donc toujours une ancre, et il n'y
+  a plus qu'une seule règle d'ancrage — l'ancrage par l'échéance (`computeNextOccurrenceDue`,
+  `computeCloneStartDate`, `advanceDateByRecurrence`) est **supprimé** plutôt que laissé en
+  repli mort à côté du nouveau.
+- **Reprise en main** : modifier la **date de départ** d'une tâche récurrente redéfinit
+  l'ancre de sa série (`PUT /api/tasks/:id`). C'est la seule façon de déplacer le rythme —
+  le calendrier scolaire décale une occurrence sans jamais toucher à l'ancre. `POST` pose
+  l'ancre à la création, le clone en hérite.
+- **Backfill : un gel, pas un rattrapage.** Chaque tâche récurrente existante reçoit sa
+  propre date de départ comme ancre (à défaut sa date de création). Les séries déjà
+  décalées ne sautent donc pas d'un coup vers leur jour d'origine — elles cessent
+  simplement de dériver. Pour remettre une série sur son jour, il suffit d'en corriger la
+  date de départ.
+- **Nouvel invariant** : l'échéance du clone est **strictement postérieure** à celle de la
+  source. Une ancre ramenant exactement sur l'échéance courante aurait sinon buté sur
+  l'index unique `(recurrence_series_id, due_date)` et **bloqué la série**.
+- **Coût calendrier borné.** `isSchoolOpenDay` interroge la base **jour par jour** et n'a
+  aucun cache. Deux garde-fous : le rang de départ est estimé par arithmétique (une ancre
+  vieille de six ans ne déclenche plus ~300 tours de boucle) et le job mémoïse les jours
+  ouvrés pour la durée de son exécution, au lieu de refaire le même parcours pour chaque
+  série. Un test borne explicitement le nombre d'appels.
+- Tests : `tests/school-calendar-recurrence.test.js` réécrit autour de l'ancre (jour de
+  semaine conservé, non-contamination après vacances, repli sur la date de création,
+  rattrapage long, échéance strictement croissante, mensuel/bimensuel, entrées
+  inexploitables, borne de coût) ; `tests/recurring-tasks-spawn.test.js` vérifie bout en
+  bout que l'ancre est posée à la création, héritée par le clone, redéfinie par un
+  changement de date de départ et **insensible** aux autres modifications.
+- Documentation : `docs/API.md` et `docs/reference/foretmap/taches-tutoriels-et-validation.md`.
+
+
 ### Corrigé — La récurrence ne meurt plus en silence
 
 Trois défauts relevés par `docs/AUDIT_ECHEANCES_2026-09.md` (§5 et §7) et laissés en l'état
@@ -16,11 +62,15 @@ Trois défauts relevés par `docs/AUDIT_ECHEANCES_2026-09.md` (§5 et §7) et la
 
 - **Format de date contrôlé sur tous les chemins d'écriture.** `POST /api/tasks` et
   `PUT /api/tasks/:id` validaient déjà `AAAA-MM-JJ` ; **`POST /api/tasks/proposals` ne
-  validait rien** et insérait `start_date || null` / `due_date || null` tels quels. La
-  colonne étant un `VARCHAR(32)`, une proposition portant `15/09/2026` était acceptée, puis
-  promue en tâche récurrente — et `parseISODateOnly` la rejetant, la série ne réapparaissait
-  **jamais**. Le helper est remonté dans `lib/taskRouteHelpers.js` et partagé par les trois
-  routes.
+  validait rien** et insérait `start_date || null` / `due_date || null` tels quels. Les
+  colonnes étant des `DATE` depuis la migration `254`, l'arbitrage revenait à MariaDB, dont
+  le `sql_mode` n'est fixé nulle part dans l'application : rejet brut (**500**) en mode
+  strict, troncature silencieuse sinon. Le helper est remonté dans
+  `lib/taskRouteHelpers.js` et partagé par les trois routes, pour une réponse **400**
+  explicite et identique partout.
+  <br>*(L'audit décrivait ces colonnes comme des `VARCHAR(32)` — c'était exact à sa date,
+  la migration `254` les a converties depuis. Le trou de validation sur `proposals`, lui,
+  était bien réel.)*
 - **Cohérence `due_date >= start_date`**, absente partout jusqu'ici : une tâche pouvait être
   due avant d'avoir commencé, et s'affichait alors « en attente » et « en retard » à la fois.
   Sur `PUT`, le contrôle porte sur les valeurs **effectives** (corps + existant) — envoyer
