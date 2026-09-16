@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../services/api';
 import {
-  buildUserGroupIdsMap,
+  buildUserGroupIdsFromUsers,
   filterProfilesUsers,
   normalizePageSize,
   paginateList,
@@ -61,36 +61,31 @@ export function ProfilesAccountsPanel({
   const [userType, setUserType] = useState('');
   const [groupId, setGroupId] = useState('');
   const [groupOptions, setGroupOptions] = useState([]);
-  const [userGroupIdsByUserId, setUserGroupIdsByUserId] = useState(() => new Map());
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(() =>
     normalizePageSize(safeLocalStorageGetItem(PAGE_SIZE_STORAGE_KEY, DEFAULT_PROFILES_PAGE_SIZE)),
   );
 
+  // Seules les options du filtre viennent de l'API groupes : l'appartenance est désormais
+  // portée par `users[].groups` (GET /api/rbac/users), ce qui évite de recharger la liste
+  // détaillée de tous les groupes (membres + périmètres) juste pour filtrer.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [opts, detailed] = await Promise.all([
-          api('/api/groups/options').catch(() => ({ groups: [] })),
-          api('/api/groups').catch(() => ({ groups: [] })),
-        ]);
+        const opts = await api('/api/groups/options').catch(() => ({ groups: [] }));
         if (cancelled) return;
-        const options = Array.isArray(opts?.groups) ? opts.groups : [];
-        setGroupOptions(options);
-        const groups = Array.isArray(detailed?.groups) ? detailed.groups : [];
-        setUserGroupIdsByUserId(buildUserGroupIdsMap(groups));
+        setGroupOptions(Array.isArray(opts?.groups) ? opts.groups : []);
       } catch {
-        if (!cancelled) {
-          setGroupOptions([]);
-          setUserGroupIdsByUserId(new Map());
-        }
+        if (!cancelled) setGroupOptions([]);
       }
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const userGroupIdsByUserId = useMemo(() => buildUserGroupIdsFromUsers(users), [users]);
 
   const filteredUsers = useMemo(
     () =>

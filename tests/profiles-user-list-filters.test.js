@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  buildUserGroupIdsMap,
+  buildUserGroupIdsFromUsers,
   filterProfilesUsers,
   normalizePageSize,
   paginateList,
@@ -56,13 +56,25 @@ describe('profilesUserListFilters', () => {
   });
 
   it('filtre par groupe via la map d’appartenance', () => {
-    const map = buildUserGroupIdsMap([
-      { id: 10, members: [{ user_id: '1' }, { user_id: '3' }] },
-      { id: 11, members: [{ user_id: '2' }] },
+    const map = buildUserGroupIdsFromUsers([
+      { id: '1', groups: [{ id: 10 }] },
+      { id: '2', groups: [{ id: 11 }] },
+      { id: '3', groups: [{ id: 10 }] },
     ]);
     assert.equal(filterProfilesUsers(users, { groupId: 10, userGroupIdsByUserId: map }).length, 2);
     assert.equal(filterProfilesUsers(users, { groupId: 11, userGroupIdsByUserId: map }).length, 1);
     assert.equal(filterProfilesUsers(users, { groupId: 99, userGroupIdsByUserId: map }).length, 0);
+  });
+
+  it('ignore les comptes sans groupe et les identifiants vides', () => {
+    const map = buildUserGroupIdsFromUsers([
+      { id: '1', groups: [{ id: 10 }, { id: '' }, null] },
+      { id: '2' },
+      { id: '', groups: [{ id: 10 }] },
+      { id: '3', groups: [] },
+    ]);
+    assert.equal(map.size, 1);
+    assert.deepEqual([...map.get('1')], ['10']);
   });
 
   it('pagine correctement', () => {

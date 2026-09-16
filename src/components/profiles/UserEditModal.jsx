@@ -6,6 +6,7 @@ import { resolveTooltipKey } from '../../utils/helpResolve';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { buildUserEditInitialFields } from '../../utils/profilesUserFields.js';
 import { IconWarning } from '../../shared/icons.jsx';
+import { UserIdentitySummary } from './UserIdentitySummary.jsx';
 
 const EMPTY_FIELDS = {
   firstName: '',
@@ -83,17 +84,7 @@ function UserEditModal({
       )}
       {loadState === 'ready' && user && (
         <>
-          <p
-            style={{
-              fontSize: 'var(--text-sm)',
-              color: 'var(--ink-soft)',
-              marginBottom: 12,
-              lineHeight: 'var(--lh-normal)',
-            }}
-          >
-            <strong>{user.display_name}</strong>
-            <span style={{ color: '#94a3b8' }}> ({user.user_type})</span>
-          </p>
+          <UserIdentitySummary user={user} />
           {err && (
             <div className="auth-error" style={{ marginBottom: 12 }} role="alert">
               <IconWarning size={14} /> {err}

@@ -9,6 +9,39 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — La fiche utilisateur admin montre enfin le profil et les groupes
+
+- **Fiche d'un compte (« Modifier le compte »)** : une carte d'identité en lecture seule
+  ouvre désormais la fiche et récapitule le **profil** (rôle principal) et **le ou les
+  groupes** de rattachement — mention « Responsable » pour un encadrant, « archivé » pour un
+  groupe inactif. Jusqu'ici l'en-tête se limitait à `Nom (student)` : vérifier qu'un élève
+  était bien dans sa classe imposait de fermer la fiche et d'aller fouiller le sous-onglet
+  Groupes.
+- **Liste des comptes** : chaque ligne affiche les groupes de la personne (trois pastilles au
+  plus, puis « +N »). Le filtre par groupe existait déjà — on filtrait sans pouvoir lire le
+  résultat.
+- **Français partout** : `(student)` / `(teacher)` deviennent « Élève » / « Enseignant » ;
+  l'absence de profil ou de groupe s'écrit (« Aucun profil », « Aucun groupe ») au lieu de
+  laisser un champ muet.
+- Le périmètre est respecté : les groupes renvoyés sont limités à ceux que l'acteur peut voir
+  (`lib/groupScope.js`) — un prof de classe ne voit que les siens, un administrateur les voit
+  tous. La fiche reste en **lecture seule** sur les groupes ; le rattachement se modifie
+  toujours dans le sous-onglet Groupes.
+
+### Modifié — Un appel lourd de moins à l'ouverture du sous-onglet Comptes
+
+- `GET /api/rbac/users` et `GET /api/rbac/users/:type/:id` renvoient `groups[]`
+  (`docs/API.md`). Le panneau Comptes n'a donc plus besoin de charger `GET /api/groups`
+  **en entier** — tous les groupes, tous leurs membres, tous leurs périmètres — juste pour
+  alimenter son filtre par groupe. Seul `GET /api/groups/options` reste appelé.
+
+### Documentation
+
+- `docs/AUDIT_UX_GESTION_UTILISATEURS_2026-09.md` : revue UI/UX des sous-onglets de gestion
+  des utilisateurs et de la fiche utilisateur — 5 constats traités par ce lot, 18 propositions
+  (P1–P18) **ouvertes et non arbitrées**, classées par impact et regroupées en quatre lots.
+  Indexé dans `docs/audits/README.md`.
+
 ### Ajouté — Les 30 fiches à photo morte sont réillustrées
 
 - Migration `257` : une photo Wikimedia Commons pour chacune des 30 fiches que la migration

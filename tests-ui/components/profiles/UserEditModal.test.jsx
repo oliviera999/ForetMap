@@ -49,6 +49,33 @@ describe('UserEditModal', () => {
     expect(screen.getByRole('button', { name: 'Enregistrer' })).toBeTruthy();
   });
 
+  test('la fiche expose le profil et les groupes de rattachement', () => {
+    renderModal({
+      user: {
+        id: '7',
+        user_type: 'student',
+        display_name: 'Léa Martin',
+        first_name: 'Léa',
+        last_name: 'Martin',
+        role_display_name: 'Élève novice',
+        groups: [
+          { id: 'g1', name: '2nde B', kind: 'class', role_in_group: 'member' },
+          { id: 'g2', name: 'Club jardin', kind: 'club', role_in_group: 'manager' },
+        ],
+      },
+    });
+    expect(screen.getByTestId('user-summary-role')).toHaveTextContent('Élève novice');
+    const chips = screen.getByTestId('user-groups-chips');
+    expect(chips.textContent).toContain('2nde B');
+    expect(chips.textContent).toContain('Club jardin');
+  });
+
+  test('compte sans profil ni groupe : états vides explicites', () => {
+    renderModal();
+    expect(screen.getByTestId('user-summary-role')).toHaveTextContent('Aucun profil');
+    expect(screen.getByTestId('user-groups-empty')).toHaveTextContent('Aucun groupe');
+  });
+
   test('affiliation affichée pour un compte student', () => {
     renderModal();
     expect(screen.getByLabelText('Affiliation')).toBeTruthy();

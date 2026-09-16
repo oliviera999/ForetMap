@@ -205,7 +205,10 @@ quand l'établissement a beaucoup de comptes et de groupes :
 - **Comptes** : attribuer un profil à chaque personne, créer un compte unitaire,
   supprimer ou dupliquer. Une barre de recherche et des filtres (profil, type élève /
   enseignant, groupe) réduisent la liste ; on peut choisir combien de lignes afficher
-  par page (25, 50 ou 100).
+  par page (25, 50 ou 100). **Chaque ligne indique les groupes de la personne**
+  (au plus trois pastilles, puis « +N » ; « Aucun groupe » si elle n'est rattachée
+  nulle part), et le type de compte est écrit en toutes lettres (« Élève »,
+  « Enseignant »).
 - **Groupes** : arborescence des classes et sous-groupes (recherche, filtre par type,
   masquage des inactifs). Les visiteurs en attente de rattachement apparaissent en tête ;
   on peut les rattacher un par un ou **en lot** au groupe choisi.
@@ -253,6 +256,17 @@ quand l'établissement a beaucoup de comptes et de groupes :
   affectations et son historique de tâches, et recalcule les statuts des tâches
   concernées. C'est un pouvoir sensible ; il ne fait pas partie du socle minimal du
   prof de classe.
+- **Fiche d'un compte** : le bouton « Modifier » ouvre la fiche de la personne. Une
+  **carte d'identité** en tête récapitule, en lecture seule, son **profil** (rôle
+  principal) et **le ou les groupes** auxquels elle est rattachée — avec la mention
+  « Responsable » quand elle encadre le groupe, et « archivé » si le groupe ne
+  l'est plus. Plus besoin d'ouvrir le sous-onglet Groupes pour vérifier un
+  rattachement avant de changer un profil. Un profil ou un groupe manquant est écrit
+  explicitement (« Aucun profil », « Aucun groupe ») plutôt que laissé vide. Les
+  groupes affichés restent limités au **périmètre** de la personne connectée : un
+  prof de classe ne voit que les groupes qu'il encadre, un administrateur les voit
+  tous. La modification du rattachement elle-même se fait toujours dans le
+  sous-onglet **Groupes**.
 - **Prendre la main** : un administrateur peut temporairement se connecter « en tant
   que » un utilisateur pour l'aider — l'action est tracée dans le journal d'audit.
 - **Compte supprimé** : si un compte est supprimé pendant qu'il est connecté,
