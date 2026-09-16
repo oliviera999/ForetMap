@@ -401,7 +401,11 @@ body.plan-body {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  /* Au-dessus d'une feuille non bloquante : la fiche d'un lieu consulté pendant un parcours
+     recouvrait intégralement « Quitter », « Précédent » et « Suivant »
+     (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B3). Plafonné pour ne pas envoyer la barre
+     par-dessus la barre de recherche quand la feuille est tirée au cran plein. */
+  bottom: min(var(--fm-bottom-sheet-inset, 0px), 45dvh);
   z-index: calc(var(--fm-z-modal, 40) - 1);
   display: flex;
   flex-direction: column;
@@ -475,6 +479,108 @@ body.plan-body {
   margin: 0;
   color: var(--plan-muted);
   font-size: var(--text-sm, 0.9rem);
+}
+
+/* --- Barre de guidage « Y aller » (B4/B5) ---------------------------------------------- *
+ * Le guidage vivait dans la fiche du lieu : la direction et la distance n'existaient que dans
+ * une feuille couvrant 55 % de l'écran — donc le point bleu était caché pendant qu'on marchait
+ * — et refermer la fiche arrêtait le guidage sans le dire. Une barre d'une ligne le sort de
+ * là : la carte reste entière au-dessus, et seul « Arrêter » l'interrompt.                 */
+
+.plan-guide-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: min(var(--fm-bottom-sheet-inset, 0px), 45dvh);
+  z-index: calc(var(--fm-z-modal, 40) - 1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+  padding: var(--space-2, 8px) var(--space-3, 12px)
+    calc(var(--space-2, 8px) + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  background: color-mix(in srgb, var(--plan-surface, #fff) 94%, transparent);
+  border-top: 1px solid var(--plan-border, rgba(0, 0, 0, 0.1));
+  box-shadow: 0 -8px 24px rgba(20, 54, 37, 0.12);
+  backdrop-filter: blur(8px);
+}
+
+.plan-guide-bar__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.plan-guide-bar__target {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  min-width: 0;
+  min-height: 44px;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.plan-guide-bar__target[disabled] {
+  cursor: default;
+}
+
+.plan-guide-bar__emoji {
+  flex: 0 0 auto;
+  font-size: var(--text-xl, 1.4rem);
+  line-height: var(--lh-tight, 1.2);
+}
+
+.plan-guide-bar__texts {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.plan-guide-bar__name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-guide-bar__distance {
+  color: var(--plan-muted);
+  font-size: var(--text-sm, 0.9rem);
+}
+
+.plan-guide-bar__stop {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 var(--space-3, 12px);
+  border: 1px solid var(--plan-border, rgba(0, 0, 0, 0.12));
+  border-radius: 999px;
+  background: transparent;
+  color: var(--plan-fg, inherit);
+  font: inherit;
+  cursor: pointer;
+}
+
+.plan-guide-bar__hint {
+  margin: 0;
+  color: var(--plan-muted);
+  font-size: var(--text-sm, 0.9rem);
+}
+
+.plan-guide-bar__locate {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--leaf, #406088);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .plan-route-resume {
@@ -958,16 +1064,39 @@ body.plan-body {
 
 /* Commandes de carte au-dessus d'une feuille non bloquante : la carte reste manipulable
    derrière une fiche, donc ses commandes doivent le rester aussi (N2).
-   La remontée est **plafonnée à 30 dvh** : la colonne mesure 252 px et la bande de carte est
-   courte sur un téléphone — sans plafond, une feuille à mi-hauteur la poussait par-dessus la
-   barre de recherche. Au cran bas, elle dégage entièrement la feuille ; aux crans hauts, on
-   fait glisser la feuille vers le bas pour retrouver le zoom. */
+
+   La remontée a d'abord été **plafonnée à 30 dvh** — alors que les deux feuilles s'ouvrent au
+   cran `half`, soit 55 dvh. Résultat mesuré : la colonne remontait de 199 px sous une feuille
+   haute de 365 px, et « Zoomer », « Dézoomer » et « Voir tout le plan » restaient *dans* la
+   feuille, visibles et intouchables (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B1).
+   Aucun plafond ne pouvait corriger cela : une colonne de cinq à six boutons mesure 252 à
+   304 px, pour une bande de carte de 122 px. La colonne se **replie donc en rangée** juste
+   au-dessus de la feuille — 6 × 44 px tiennent en largeur, même sur un iPhone SE. */
 .plan-map .plan-map-controls {
   bottom: calc(
-    min(var(--fm-bottom-sheet-inset, 0px), 30dvh) + env(safe-area-inset-bottom, 0px) +
-      var(--space-4, 16px)
+    var(--fm-bottom-sheet-inset, 0px) + env(safe-area-inset-bottom, 0px) + var(--space-4, 16px)
   );
-  transition: bottom var(--motion-base, 0.24s) var(--ease-out, ease-out);
+  transition:
+    bottom var(--motion-base, 0.24s) var(--ease-out, ease-out),
+    opacity var(--motion-base, 0.24s) var(--ease-out, ease-out);
+}
+
+.plan-map .plan-map-controls.is-compact {
+  left: var(--space-3, 12px);
+  flex-direction: row-reverse;
+  flex-wrap: wrap-reverse;
+  justify-content: flex-start;
+  gap: var(--space-2, 8px);
+  bottom: calc(
+    var(--fm-bottom-sheet-inset, 0px) + env(safe-area-inset-bottom, 0px) + var(--space-2, 8px)
+  );
+}
+
+/* Cran plein : plus aucune place au-dessus de la feuille. Un bouton visible qui ne répond pas
+   est pire que pas de bouton — ils reviennent dès que la feuille redescend. */
+.plan-map .plan-map-controls.is-hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

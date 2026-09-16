@@ -52,6 +52,11 @@ import { computeContainRect } from './pctMapFit.js';
  *   dérivée de l'échelle d'ajustement). Défaut : 0,15 en mode image, 0,5 × ajustement en mode scène.
  * @param {number} [options.maxScale=8]
  * @param {boolean} [options.bounds=true] bornes « contain » (+ élastique pendant le geste).
+ * @param {{ top?: number, right?: number, bottom?: number, left?: number }|null}
+ *   [options.viewportInsets] bords du cadre **recouverts** par une surcouche (feuille basse,
+ *   barre d'étape) : le contenu est autorisé à glisser dessous, de sorte qu'un point situé
+ *   dans la partie masquée puisse être amené dans la bande encore visible
+ *   (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B2).
  * @param {boolean} [options.doubleTapZoom=true]
  * @param {number} [options.doubleTapZoomFactor=2.5] échelle cible = ajustement × facteur.
  * @param {boolean} [options.inertia=true]
@@ -101,6 +106,7 @@ export function usePctMapViewport({
   minScale,
   maxScale = PCT_MAP_SCALE_MAX_DEFAULT,
   bounds = true,
+  viewportInsets = null,
   doubleTapZoom = true,
   doubleTapZoomFactor = 2.5,
   inertia = true,
@@ -183,6 +189,7 @@ export function usePctMapViewport({
     minScale,
     maxScale,
     bounds,
+    viewportInsets,
     doubleTapZoom,
     doubleTapZoomFactor,
     inertia,
@@ -223,6 +230,7 @@ export function usePctMapViewport({
     return {
       content: contentSize(),
       stage: opt.bounds && st.w > 0 && st.h > 0 ? { w: st.w, h: st.h } : null,
+      insets: opt.viewportInsets || null,
       min: resolveMinScale(),
       max: Number(opt.maxScale) > 0 ? Number(opt.maxScale) : PCT_MAP_SCALE_MAX_DEFAULT,
     };
@@ -344,6 +352,20 @@ export function usePctMapViewport({
     if (pctMapTransformEquals(clamped, tx.current, { epsilon: 0.01 })) commit();
     else animateTo(clamped, { duration: 160 });
   }, [animateTo, commit, currentBounds]);
+
+  /**
+   * Les bords recouverts changent (une feuille basse s'ouvre puis se referme) : les bornes
+   * redeviennent strictes, et la vue peut se retrouver dehors — on la ramène en butée.
+   */
+  const insetsKey = viewportInsets
+    ? `${viewportInsets.top || 0},${viewportInsets.right || 0},${viewportInsets.bottom || 0},${viewportInsets.left || 0}`
+    : '';
+  const settledInsetsRef = useRef(insetsKey);
+  useEffect(() => {
+    if (settledInsetsRef.current === insetsKey) return;
+    settledInsetsRef.current = insetsKey;
+    if (bounds) settle();
+  }, [insetsKey, bounds, settle]);
 
   /**
    * Mesure du cadre + ajustement. `mode: 'fit'` réajuste ; `'clamp'` conserve la vue et la

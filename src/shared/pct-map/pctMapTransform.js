@@ -62,18 +62,39 @@ export function fitPctMapTransform(content, stage, { maxFitScale = 1 } = {}) {
  * Intervalle autorisé d'une translation sur un axe : contenu plus grand que le cadre →
  * `[stage − content·s, 0]` (jamais de bord visible) ; plus petit → `[0, stage − content·s]`
  * (entièrement dans le cadre).
+ *
+ * `before` / `after` retirent de chaque bord la part du cadre **recouverte par autre chose**
+ * (une feuille basse posée en bas de l'écran, une barre d'étape). Le contenu est alors autorisé
+ * à glisser sous ce qui le recouvre : sans cela, un lieu situé dans le bas du plan ne pouvait
+ * **jamais** être amené dans la bande encore visible — la butée « contain » interdisait de
+ * dépasser le bord du plan, quel que soit le zoom
+ * (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B2). Par défaut (0, 0), l'intervalle est
+ * exactement celui d'avant.
+ *
+ * @param {number} contentPx taille du contenu à l'échelle 1
+ * @param {number} stagePx taille du cadre
+ * @param {number} scale
+ * @param {{ before?: number, after?: number }} [covered] bords recouverts, en px de cadre
  * @returns {{ lo: number, hi: number }}
  */
-export function pctMapAxisRange(contentPx, stagePx, scale) {
-  const overflow = num(stagePx, 0) - num(contentPx, 0) * num(scale, 1);
-  return { lo: Math.min(0, overflow), hi: Math.max(0, overflow) };
+export function pctMapAxisRange(contentPx, stagePx, scale, covered = null) {
+  const stage = num(stagePx, 0);
+  const content = num(contentPx, 0) * num(scale, 1);
+  const before = Math.max(0, num(covered?.before));
+  const after = Math.max(0, num(covered?.after));
+  // Le contenu doit couvrir la bande visible `[before, stage − after]`.
+  const lowest = stage - after - content;
+  return { lo: Math.min(before, lowest), hi: Math.max(before, lowest) };
 }
 
 /**
  * Borne une transformation candidate au cadre (« contain »).
  * Sans cadre exploitable, seule l'échelle est bornée.
  * @param {{ x?: number, y?: number, s?: number }} next
- * @param {{ content: { w: number, h: number }, stage: { w: number, h: number }|null, min?: number, max?: number }} bounds
+ * `bounds.insets` (`{ top, right, bottom, left }`, px de cadre) déclare les bords du cadre
+ * recouverts par une surcouche : le contenu peut y glisser (cf. `pctMapAxisRange`).
+ *
+ * @param {{ content: { w: number, h: number }, stage: { w: number, h: number }|null, min?: number, max?: number, insets?: { top?: number, right?: number, bottom?: number, left?: number }|null }} bounds
  * @returns {{ x: number, y: number, s: number }}
  */
 export function clampPctMapTransform(next, bounds) {
@@ -83,8 +104,15 @@ export function clampPctMapTransform(next, bounds) {
     return { x: num(next?.x), y: num(next?.y), s };
   }
   const content = bounds.content || stage;
-  const rx = pctMapAxisRange(content.w, stage.w, s);
-  const ry = pctMapAxisRange(content.h, stage.h, s);
+  const insets = bounds.insets || null;
+  const rx = pctMapAxisRange(content.w, stage.w, s, {
+    before: insets?.left,
+    after: insets?.right,
+  });
+  const ry = pctMapAxisRange(content.h, stage.h, s, {
+    before: insets?.top,
+    after: insets?.bottom,
+  });
   return {
     x: Math.min(rx.hi, Math.max(rx.lo, num(next?.x))),
     y: Math.min(ry.hi, Math.max(ry.lo, num(next?.y))),

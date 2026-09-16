@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { abandonAllOverlays } from '../../src/shared/platform/overlayHistory.js';
+import { resetBottomSheetInsets } from '../../src/shared/ui/bottomSheetInset.js';
 
 /**
  * Montage réel du shell du Plan Lyautey (lot 4), au patron de `AppShellWiring.test.jsx` :
@@ -127,8 +128,32 @@ beforeEach(() => {
   // La pile d'overlays (module) survit d'un test à l'autre : un history.back() différé
   // sinon efface le `?parcours=` posé par startRoute.
   abandonAllOverlays();
+  resetBottomSheetInsets();
+  // La sonde de position est un objet de module : un test qui la rend disponible la laisserait
+  // disponible pour les suivants.
+  Object.assign(positionStub, {
+    available: false,
+    mode: 'off',
+    active: false,
+    following: false,
+    positionPct: null,
+    displayPct: null,
+    planSize: null,
+  });
   window.history.replaceState(null, '', '/');
 });
+
+/** Position simulée au milieu du plan, calage connu : « Y aller » devient possible. */
+function givePosition() {
+  Object.assign(positionStub, {
+    available: true,
+    mode: 'on',
+    active: true,
+    positionPct: { xp: 50, yp: 50 },
+    displayPct: { xp: 50, yp: 50, offMap: false, bearingDeg: 0 },
+    planSize: { widthM: 280, heightM: 330 },
+  });
+}
 
 describe('AppPlan — montage', () => {
   test('charge le contenu, affiche titre, carte, puces et message d’accueil', async () => {
@@ -569,6 +594,71 @@ describe('AppPlan — affichage des repères et des zones (audit 2026-09)', () =
     expect(screen.getByRole('button', { name: /Catégorie vide/ })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Tout afficher' }));
     await waitFor(() => expect(screen.queryByText(/Aucun lieu dans cette sélection/)).toBe(null));
+  });
+
+  /**
+   * Les deux défauts signalés depuis le terrain
+   * (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B4 et B5) : le guidage vivait **dans** la
+   * fiche du lieu, qui couvre 55 % de l'écran — donc le point bleu était caché pendant qu'on
+   * marchait — et refermer la fiche **arrêtait** le guidage sans le dire.
+   */
+  test('« Y aller » referme la fiche et pose la barre de guidage', async () => {
+    givePosition();
+    const { container } = render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+
+    fireEvent.click(container.querySelector('.fm-pct-zone'));
+    const placeSheet = await screen.findByTestId('plan-place-sheet');
+    fireEvent.click(within(placeSheet).getByRole('button', { name: 'Y aller' }));
+
+    const guide = await screen.findByTestId('plan-guide-bar');
+    expect(guide.textContent).toContain('CDI');
+    expect(guide.textContent).toMatch(/à vol d’oiseau/);
+    // La fiche s'efface : c'est la carte que l'on veut voir en marchant.
+    await waitFor(() => expect(screen.queryByTestId('plan-place-sheet')).toBe(null));
+    expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith('go', 'z-cdi');
+  });
+
+  test('fermer la fiche n’arrête pas le guidage ; seul « Arrêter » l’arrête', async () => {
+    givePosition();
+    const { container } = render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+
+    fireEvent.click(container.querySelector('.fm-pct-zone'));
+    const placeSheet = await screen.findByTestId('plan-place-sheet');
+    fireEvent.click(within(placeSheet).getByRole('button', { name: 'Y aller' }));
+    const guide = await screen.findByTestId('plan-guide-bar');
+
+    // Rouvrir la fiche depuis la barre, puis la refermer : le guidage survit.
+    fireEvent.click(within(guide).getByRole('button', { name: /CDI/ }));
+    const reopened = await screen.findByTestId('plan-place-sheet');
+    fireEvent.click(within(reopened).getByRole('button', { name: 'Fermer la fiche du lieu' }));
+    await waitFor(() => expect(screen.queryByTestId('plan-place-sheet')).toBe(null));
+    expect(screen.getByTestId('plan-guide-bar')).toBeTruthy();
+
+    fireEvent.click(
+      within(screen.getByTestId('plan-guide-bar')).getByRole('button', { name: 'Arrêter' }),
+    );
+    await waitFor(() => expect(screen.queryByTestId('plan-guide-bar')).toBe(null));
+  });
+
+  /**
+   * Une colonne de cinq à six commandes ne tient pas dans la bande de carte que laisse une
+   * feuille ouverte (122 px pour 252 px) : elle se replie en rangée au-dessus d'elle (B1).
+   */
+  test('feuille ouverte : les commandes de carte se replient en rangée', async () => {
+    const { container } = render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+    const controls = container.querySelector('.plan-map-controls');
+    expect(controls.classList.contains('is-compact')).toBe(false);
+
+    fireEvent.focus(screen.getByLabelText('Rechercher un lieu'));
+    await screen.findByTestId('plan-results-sheet');
+    await waitFor(() =>
+      expect(container.querySelector('.plan-map-controls').classList.contains('is-compact')).toBe(
+        true,
+      ),
+    );
   });
 
   test('la fiche d’un lieu porte son lien direct (QR interne)', async () => {
