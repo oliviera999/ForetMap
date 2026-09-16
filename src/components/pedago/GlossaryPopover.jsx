@@ -132,7 +132,9 @@ export function GlossaryPopover({
     }, CLOSE_MS);
   }, [isClosing, onClose, prefersReducedMotion]);
 
-  const dialogRef = useDialogA11y(requestClose);
+  // `active` : la surcouche peut rester montée alors qu'elle est fermée — sans lui,
+  // l'accessibilité clavier ne s'arme jamais (`docs/AUDIT_UI_2026-09-16.md` B1).
+  const dialogRef = useDialogA11y(requestClose, { active: open });
 
   useEffect(
     () => () => {

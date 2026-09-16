@@ -190,7 +190,7 @@ function PlantEditForm({
               value={form.description}
               onChange={set('description')}
               rows={3}
-              placeholder="Comment reconnaître cet être vivant ? Feuilles, taille, odeur..."
+              placeholder="Comment reconnaître cet être vivant ? Feuilles, taille, odeur…"
             />
           </div>
           {Array.isArray(maps) && maps.length > 0 ? (
@@ -379,7 +379,7 @@ function PlantEditForm({
               <input
                 value={form.habitat}
                 onChange={set('habitat')}
-                placeholder="Aquarium, potager..."
+                placeholder="Aquarium, potager…"
               />
             </div>
             <div className="field">
@@ -432,7 +432,7 @@ function PlantEditForm({
               <input
                 value={form.nutrition}
                 onChange={set('nutrition')}
-                placeholder="Autotrophe, omnivore..."
+                placeholder="Autotrophe, omnivore…"
               />
             </div>
             <div className="field">
@@ -444,7 +444,7 @@ function PlantEditForm({
               <input
                 value={form.reproduction}
                 onChange={set('reproduction')}
-                placeholder="Sexuée, bouturage..."
+                placeholder="Sexuée, bouturage…"
               />
             </div>
             <div className="field">
@@ -500,7 +500,7 @@ function PlantEditForm({
               <input
                 value={form.harvest_part}
                 onChange={set('harvest_part')}
-                placeholder="Feuilles, fruits..."
+                placeholder="Feuilles, fruits…"
               />
             </div>
             <div className="field">
@@ -508,7 +508,7 @@ function PlantEditForm({
               <input
                 value={form.taxon_kingdom}
                 onChange={set('taxon_kingdom')}
-                placeholder="Animal, Végétal..."
+                placeholder="Animal, Végétal…"
               />
             </div>
             <div className="field">
@@ -516,7 +516,7 @@ function PlantEditForm({
               <input
                 value={form.taxon_group}
                 onChange={set('taxon_group')}
-                placeholder="Angiosperme..."
+                placeholder="Angiosperme…"
               />
             </div>
             <div className="field">
@@ -524,16 +524,12 @@ function PlantEditForm({
               <input
                 value={form.taxon_family}
                 onChange={set('taxon_family')}
-                placeholder="Famille..."
+                placeholder="Famille…"
               />
             </div>
             <div className="field">
               <label>Genre</label>
-              <input
-                value={form.taxon_genus}
-                onChange={set('taxon_genus')}
-                placeholder="Genre..."
-              />
+              <input value={form.taxon_genus} onChange={set('taxon_genus')} placeholder="Genre…" />
             </div>
             <div className="field">
               <label>Clé GBIF</label>
@@ -564,7 +560,7 @@ function PlantEditForm({
               value={form.human_utility}
               onChange={set('human_utility')}
               rows={2}
-              placeholder="Usages alimentaires, pédagogiques..."
+              placeholder="Usages alimentaires, pédagogiques…"
             />
           </div>
           <div className="field">
@@ -573,7 +569,7 @@ function PlantEditForm({
               value={form.planting_recommendations}
               onChange={set('planting_recommendations')}
               rows={2}
-              placeholder="Semis, exposition, espacement..."
+              placeholder="Semis, exposition, espacement…"
             />
           </div>
           <div className="field">
@@ -582,7 +578,7 @@ function PlantEditForm({
               value={form.preferred_nutrients}
               onChange={set('preferred_nutrients')}
               rows={2}
-              placeholder="Azote, phosphore, potassium..."
+              placeholder="Azote, phosphore, potassium…"
             />
           </div>
           <div className="field">
@@ -601,7 +597,7 @@ function PlantEditForm({
         <div className="plant-meta-grid">
           <p className="section-sub" style={{ margin: 0 }}>
             Photos : utiliser uniquement des liens directs vers image (`.jpg`, `.png`, `.webp`,
-            etc.) ou `.../wiki/Special:FilePath/...`.
+            etc.) ou `…/wiki/Special:FilePath/…`.
           </p>
           <div className="plant-form-grid">
             {photoFields.map((field) => (
@@ -686,7 +682,7 @@ function PlantEditForm({
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <button className="btn btn-primary btn-sm" onClick={onSave} disabled={saving}>
           {saving ? (
-            '...'
+            '…'
           ) : (
             <>
               <IconSave size={14} /> Enregistrer

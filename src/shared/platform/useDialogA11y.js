@@ -18,11 +18,19 @@ const FOCUSABLE_SELECTOR = [
  * l'ouvrir, et piéger la tabulation empêchait d'y revenir
  * (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N1).
  *
+ * `active` dit si la surcouche est **ouverte**. Une surcouche écrite en `open={monEtat}` reste
+ * montée quand elle est fermée : l'effet s'exécutait alors une seule fois, au montage, avec un
+ * ref encore nul — il en sortait aussitôt et ne se rejouait jamais, si bien qu'à l'ouverture il
+ * n'y avait ni Échap, ni focus initial, ni piège de tabulation, ni restauration du focus
+ * (`docs/AUDIT_UI_2026-09-16.md` B1). L'effet dépend donc de `active` : il s'arme à l'ouverture
+ * et se désarme à la fermeture, en rendant le focus au déclencheur. Valeur par défaut `true`
+ * (comportement inchangé) pour les surcouches qui ne sont montées que lorsqu'elles s'affichent.
+ *
  * @param {() => void} onClose
- * @param {{ manageFocus?: boolean }} [options]
+ * @param {{ manageFocus?: boolean, active?: boolean }} [options]
  */
 function useDialogA11y(onClose, options = {}) {
-  const { manageFocus = true } = options;
+  const { manageFocus = true, active = true } = options;
   const dialogRef = useRef(null);
   const manageFocusRef = useRef(manageFocus);
   manageFocusRef.current = manageFocus;
@@ -33,6 +41,7 @@ function useDialogA11y(onClose, options = {}) {
   onCloseRef.current = onClose;
 
   useEffect(() => {
+    if (!active) return undefined;
     const dialog = dialogRef.current;
     if (!dialog) return undefined;
 
@@ -81,7 +90,7 @@ function useDialogA11y(onClose, options = {}) {
         previousActive.focus();
       }
     };
-  }, []);
+  }, [active]);
 
   return dialogRef;
 }

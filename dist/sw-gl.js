@@ -1,6 +1,6 @@
 /* Service worker « gl » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-gl-bca665fc";
+const CACHE_NAME = "foretmap-gl-ddb07fc4";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -9,28 +9,28 @@ const PRECACHE_URLS = [
   "/manifest.json",
   "/gl/favicon.svg",
   "/gl/logo.png",
-  "/assets/gl-DKuf19VI.js",
+  "/assets/gl-4aDssHMn.js",
   "/assets/gl-RO5hz0Bc.css",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-CrKhZ6JF.js",
+  "/assets/VisitMascotFallbackSvg-CCZ6taQQ.js",
   "/assets/react-vendor-ClBrELym.js",
   "/assets/icons-BBfebeWE.js",
-  "/assets/ErrorBoundary-CSzRj17P.js",
+  "/assets/ErrorBoundary-CID3NeZ4.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-fcCp6a3x.js",
+  "/assets/ImageLightboxProvider-CJvbPsrB.js",
   "/assets/ImageLightboxProvider-B1dCJcHH.css",
-  "/assets/spriteCutCatalogEntry-CuuavQYI.js",
+  "/assets/spriteCutCatalogEntry-jsXf_bss.js",
   "/assets/markdown-DaBuaikX.js",
   "/assets/socket-io-SGWxBABF.js",
-  "/assets/GuidedTourOverlay-DW-Py1aO.js",
-  "/assets/HelpDock-DB7-LbJz.js",
+  "/assets/GuidedTourOverlay-I1WUcnJg.js",
+  "/assets/HelpDock-D0NvVDHr.js",
   "/assets/HelpDock-607GLmvi.css",
-  "/assets/apiGL-DG0Jdxlt.js",
-  "/assets/presenceListPatch-EqEzJrR4.js",
-  "/assets/JournalBookView-D9xVB1bT.js",
-  "/assets/FoodWebGraph-IB5s-nhW.js",
-  "/assets/mascotBehaviorEngine-By7E3P8r.js",
-  "/assets/MediaLibraryMenu-b744mxga.js",
+  "/assets/apiGL-Bnv0qUTR.js",
+  "/assets/presenceListPatch-B-G8ag25.js",
+  "/assets/JournalBookView-BjvTtGgJ.js",
+  "/assets/FoodWebGraph-COxRxMsi.js",
+  "/assets/mascotBehaviorEngine-Dix-p0JV.js",
+  "/assets/MediaLibraryMenu-CyxJQfRB.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).

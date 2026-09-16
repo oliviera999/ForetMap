@@ -427,7 +427,7 @@ function SettingsAdminView({
             <input
               type="text"
               value={searchQuery}
-              placeholder="Ex: maintenance, oauth, jwt, carte, public..."
+              placeholder="Ex: maintenance, oauth, jwt, carte, public…"
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
@@ -611,7 +611,7 @@ function SettingsAdminView({
   if (loading) {
     return (
       <div className="empty">
-        <p>Chargement des paramètres admin...</p>
+        <p>Chargement des paramètres admin…</p>
       </div>
     );
   }
@@ -949,7 +949,7 @@ function SettingsAdminView({
                     onClick={triggerRestart}
                     disabled={savingKey === 'restart'}
                   >
-                    {savingKey === 'restart' ? '...' : 'Redémarrer'}
+                    {savingKey === 'restart' ? '…' : 'Redémarrer'}
                   </button>
                 ) : null}
               </div>

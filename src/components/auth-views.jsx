@@ -431,7 +431,7 @@ function AuthScreen({
           disabled={loading}
           style={{ marginTop: 4 }}
         >
-          {loading ? '...' : mode === 'login' ? 'Se connecter' : 'Créer le compte'}
+          {loading ? '…' : mode === 'login' ? 'Se connecter' : 'Créer le compte'}
         </button>
         {allowGoogleStudent && (
           <button
