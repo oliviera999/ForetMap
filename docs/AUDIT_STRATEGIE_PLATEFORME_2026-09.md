@@ -50,10 +50,15 @@ qui tourne à `https://olution.info` et avec lequel le dépôt échange déjà d
    `MapActionButton` et les feuilles de tokens partagées existent ; l'échappement du glossaire
    lore passe par `renderMarkdownToSafeHtml`. Les lots 0 à 4 de
    `AUDIT_CONVERGENCE_APPS_2026-09.md` sont **livrés**. Il ne faut donc pas les reprogrammer.
-2. **Il reste exactement une faille de garde-fou**, petite et réparable en une heure :
-   `npm run sync:shared-cores:check` existe mais **n'est appelé dans aucun job CI**
-   (`.github/workflows/ci.yml`). Les six noyaux miroirs ESM/CJS peuvent diverger sans que rien ne
-   le signale. C'est le seul écart mesuré aujourd'hui entre l'architecture cible et le dépôt.
+2. **Les garde-fous de non-divergence sont complets**, y compris ceux qui n'apparaissent pas
+   dans les workflows sous forme de commande nommée. Les huit noyaux miroirs ESM/CJS de
+   `lib/shared/*Core.js` sont vérifiés **au caractère près** par `tests/shared-cores-sync.test.js`,
+   qui rejoue la génération en mémoire (`checkAll()`), relance `sync-shared-cores.js --check` dans
+   un sous-processus et compare les clés publiques exportées de part et d'autre ; ce fichier tourne
+   dans le job `test` via `npm run test:coverage`, sans `continue-on-error`. Les miroirs
+   `lib/visit-pack/`, `lib/gl-pack/` et `lib/term-autolink/` sont couverts par le workflow
+   **`frontend-dist.yml`**, qui rebâtit puis compare (`git diff --quiet`). **Aucun écart mesuré
+   aujourd'hui entre l'architecture cible et le dépôt** (cf. §6.0).
 3. **Le seul chantier à solde de code négatif est écarté du périmètre.** `routes/lti.js` déclare
    en tête : « Aucun AGS, aucun Deep Linking ». Ce sont précisément les deux mécanismes qui
    permettraient de **supprimer** du code (édition des liaisons, remontée des scores) au lieu d'en
@@ -188,21 +193,37 @@ Classement selon un critère unique, différent de celui de l'audit de convergen
 bénéfice produit) : **est-ce que cela réduit la surface à maintenir ou le risque de perte du
 projet ?**
 
+### 6.0 Un point candidat, écarté après vérification
+
+Une première lecture des workflows fait croire à un garde-fou manquant : `package.json` déclare
+`sync:shared-cores:check`, et **aucun job de `.github/workflows/ci.yml` n'appelle ce script par son
+nom**. La conclusion serait qu'un miroir CJS peut diverger de sa source ESM sans que la CI le
+signale. **Elle est fausse**, et la vérification mérite d'être consignée parce que l'erreur est
+facile à refaire :
+
+| Miroir                                                  | Contrôle de non-divergence                                                                                                                                                                     | Où il tourne                                                   |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `lib/shared/*Core.js` (8 paires)                        | `tests/shared-cores-sync.test.js` : régénération en mémoire (`checkAll()`), `--check` relancé en sous-processus, inventaire des paires figé, égalité des clés publiques et des types ESM ↔ CJS | job `test` → `npm run test:coverage`, sans `continue-on-error` |
+| `lib/visit-pack/`, `lib/gl-pack/`, `lib/term-autolink/` | `frontend-dist.yml` : `npm run build` (qui enchaîne les synchros via `scripts/build-safe.js`) puis `git diff --quiet` sur ces dossiers                                                         | workflow `Frontend dist`, sur chaque PR                        |
+
+Autrement dit, le contrôle existe et il est bloquant ; il passe simplement par la suite de tests
+plutôt que par une étape de workflow nommée. **Il n'y a donc aucun geste de code à faire ici**, et
+aucun écart mesuré entre l'architecture cible et le dépôt.
+
 ### 6.1 Nécessaires — sans quoi quelque chose casse ou se perd
 
-| #      | Point de convergence                                                                                                                                                                            | Pourquoi nécessaire                                                                                                                                                                                                                      | Effort   |
-| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| **N1** | **Brancher `npm run sync:shared-cores:check` dans le job `quality` de la CI.**                                                                                                                  | Le script existe, la CI ne l'appelle pas. Six noyaux miroirs ESM/CJS peuvent diverger silencieusement — un correctif appliqué d'un seul côté passe la CI au vert. C'est le **seul écart mesuré** entre l'architecture cible et le dépôt. | ~1 h     |
-| **N2** | **Déclarer Moodle source de vérité des identités et des groupes**, et l'écrire dans `docs/reference/`.                                                                                          | Deux annuaires sans maître déclaré, sur des comptes de mineurs, produisent des divergences qu'on répare mal. Le code du miroir existe déjà (`lib/moodle/teamsMirror.js`) ; ce qui manque est la **décision écrite**.                     | ~0,5 j   |
-| **N3** | **Clore le critère terrain M4 et la section 21.7** de la spécification Moodle.                                                                                                                  | Tout le reste (AGS, Deep Linking, gel des briques génériques) en dépend. Un chantier qui reste « presque fini » indéfiniment bloque la décision de ne plus construire.                                                                   | terrain  |
-| **N4** | **Charte du non-développement** (§7), versionnée et opposable.                                                                                                                                  | Sans règle écrite, la surface continuera de croître par décisions individuellement raisonnables. C'est le mécanisme, pas l'intention, qui manque.                                                                                        | ~0,5 j   |
-| **N5** | **Continuité : un second lecteur du code.** A minima, un `docs/reference/` complet pour l'exploitation courante et une personne de l'établissement capable de redémarrer, restaurer et publier. | 266 978 lignes applicatives, 160 tables, un mainteneur. C'est le risque le plus élevé du projet, et il n'est pas technique (cf. §8).                                                                                                     | à cadrer |
+| #      | Point de convergence                                                                                                                                                                            | Pourquoi nécessaire                                                                                                                                                                                                  | Effort   |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| **N1** | **Déclarer Moodle source de vérité des identités et des groupes**, et l'écrire dans `docs/reference/`.                                                                                          | Deux annuaires sans maître déclaré, sur des comptes de mineurs, produisent des divergences qu'on répare mal. Le code du miroir existe déjà (`lib/moodle/teamsMirror.js`) ; ce qui manque est la **décision écrite**. | ~0,5 j   |
+| **N2** | **Clore le critère terrain M4 et la section 21.7** de la spécification Moodle.                                                                                                                  | Tout le reste (AGS, Deep Linking, gel des briques génériques) en dépend. Un chantier qui reste « presque fini » indéfiniment bloque la décision de ne plus construire.                                               | terrain  |
+| **N3** | **Charte du non-développement** (§7), versionnée et opposable.                                                                                                                                  | Sans règle écrite, la surface continuera de croître par décisions individuellement raisonnables. C'est le mécanisme, pas l'intention, qui manque.                                                                    | ~0,5 j   |
+| **N4** | **Continuité : un second lecteur du code.** A minima, un `docs/reference/` complet pour l'exploitation courante et une personne de l'établissement capable de redémarrer, restaurer et publier. | 266 978 lignes applicatives, 160 tables, un mainteneur. C'est le risque le plus élevé du projet, et il n'est pas technique (cf. §8).                                                                                 | à cadrer |
 
 ### 6.2 Utiles — gain réel, différable sans dommage
 
 | #      | Point de convergence                                                                                                                 | Gain                                                                                                                      |
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| **U1** | **Deep Linking + AGS** (§5).                                                                                                         | Le seul chantier à solde de lignes négatif. Utile et non nécessaire **uniquement** parce que N3 le précède.               |
+| **U1** | **Deep Linking + AGS** (§5).                                                                                                         | Le seul chantier à solde de lignes négatif. Utile et non nécessaire **uniquement** parce que N2 le précède.               |
 | **U2** | **Registre de réglages unique** : fusionner `lib/settings.js` (déclaratif, 3 portées) et `lib/glSettings.js` + validateurs de route. | Deux conceptions opposées du même objet ; le produit doit être un paramètre, jamais une branche.                          |
 | **U3** | **Aide, thème de marque et centre de notifications convergés** (lot 7 de l'audit de convergence).                                    | ForetMap gagne l'aide à contenu serveur, G&L le centre de notifications, Plan l'identité de l'établissement.              |
 | **U4** | **Désencombrement de carte** (`clusterMarkers`, étiquettes au zoom, priorité par catégorie).                                         | Le noyau `pct-map` est déjà partagé : le gain profite aux quatre surfaces d'un seul coup.                                 |
@@ -217,7 +238,7 @@ projet ?**
 | **Fusionner fiches de glossaire, forum, stats et tutoriels FM ↔ GL**                               | Déjà tranché par `PARTAGE_FM_GL.md` ; la mesure du jour le confirme.                                                                                                                               |
 | **Faire de Plan Lyautey un quatrième produit à part entière** (back-office, auth, contenu propres) | Il doit rester une **surface** de la carte `lyautey`, alimentée par le contenu ForetMap. Chaque produit autonome multiplie le coût de la couche plateforme.                                        |
 | **Poser une V2 maintenant**                                                                        | Déjà tranché : clôture CHANGELOG et CI verte d'abord (`AUDIT_EVOLUTION_V1_V2_2026-09.md` §7).                                                                                                      |
-| **Mode sombre, scission `src/foret/`**                                                             | Confort. À reprendre quand N1–N5 sont tenus.                                                                                                                                                       |
+| **Mode sombre, scission `src/foret/`**                                                             | Confort. À reprendre quand N1–N4 sont tenus.                                                                                                                                                       |
 
 ---
 
@@ -238,8 +259,8 @@ projet ?**
 5. **Une dépendance éprouvée l'emporte sur 300 lignes maison**, en citant la source et en
    respectant la licence (`.cursor/rules/foretmap-external-inspiration.mdc`).
 6. **Tout code partagé arrive avec son garde-fou anti-retour** (test, règle ESLint, ou vérification
-   CI) — la règle d'étanchéité de `src/shared/` est le modèle à suivre ; N1 en est l'application
-   manquante.
+   CI) — la règle d'étanchéité de `src/shared/` et le contrôle de non-divergence des noyaux
+   miroirs (§6.0) sont les modèles à suivre.
 7. **Un chantier qui n'a pas de définition de terminé vérifiable ne démarre pas.** Un chantier
    « presque fini » bloque les décisions qui en dépendent (cas de M4).
 8. **Toute fonctionnalité nouvelle répond d'abord à : "que se passe-t-il si je ne suis plus là ?"**
@@ -261,8 +282,8 @@ de la « voie facile » — et il ne porte pas sur le passé : **il porte sur ch
 partir d'aujourd'hui.**
 
 Ce risque ne se traite pas par un outil. Il se traite par trois gestes, dans l'ordre :
-la charte (N4), la documentation de référence complète pour l'exploitation courante (N5), et le
-report vers Moodle de tout ce que Moodle sait faire (N2, U1).
+la charte (N3), la documentation de référence complète pour l'exploitation courante (N4), et le
+report vers Moodle de tout ce que Moodle sait faire (N1, U1).
 
 ---
 
@@ -272,8 +293,10 @@ report vers Moodle de tout ce que Moodle sait faire (N2, U1).
    de tout cela n'existait ailleurs, et un LMS aurait fait perdre l'objet du projet.
 2. **Il ne l'était pas sur la périphérie** — 52 433 lignes, 19,6 % du code, reconstruisent des
    fonctions du Moodle auquel le dépôt est déjà branché.
-3. **La convergence interne est faite** (noyau carte partagé sur quatre surfaces, `src/shared/`
-   étanche et gardée, kit d'interface commun) : il reste **un** garde-fou à brancher en CI.
+3. **La convergence interne est faite, garde-fous compris** — noyau carte partagé sur quatre
+   surfaces, `src/shared/` étanche et gardée par ESLint, kit d'interface commun, non-divergence des
+   miroirs ESM/CJS vérifiée au caractère près dans la suite de tests (§6.0). Rien à reprogrammer de
+   ce côté.
 4. **La seule voie plus facile encore disponible est la soustraction** : une charte du
    non-développement, Moodle déclaré maître des identités, et LTI poussé jusqu'à Deep Linking et
    AGS — le seul chantier qui retire du code au lieu d'en ajouter.
@@ -288,5 +311,5 @@ report vers Moodle de tout ce que Moodle sait faire (N2, U1).
   complète.
 - Il ne chiffre pas l'effort d'AGS et de Deep Linking : cela demande un audit court dédié, après
   la clôture du critère terrain M4.
-- Il ne propose **aucune** migration ni aucun renommage : le seul geste de code qu'il recommande
-  est N1 (une ligne de workflow CI).
+- Il ne propose **aucune** migration, aucun renommage et **aucun geste de code** : les points
+  N1 à N4 relèvent de la décision, de la documentation et du terrain.
