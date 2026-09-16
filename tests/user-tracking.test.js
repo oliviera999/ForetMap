@@ -18,7 +18,7 @@ const {
 } = require('../lib/userTracking');
 const { buildAdminPresenceSnapshot } = require('../lib/adminPresence');
 const { usageDay } = require('../lib/usage');
-const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
+const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
 
 before(async () => {
   await initSchema();
@@ -40,7 +40,7 @@ test('GET /api/admin/presence : 401 sans auth, 200 admin, snapshot cohérent', a
 
   const token = await ensureAdminTeacherAuthToken();
   const adminId = await getAdminTeacherUserId();
-  await execute('UPDATE users SET last_seen = ? WHERE id = ?', [nowIsoUtc(), adminId]);
+  await execute('UPDATE users SET last_seen = ? WHERE id = ?', [nowDbTimestamp(), adminId]);
 
   const res = await request(app).get('/api/admin/presence').set('Authorization', `Bearer ${token}`);
   assert.strictEqual(res.status, 200);
@@ -58,7 +58,7 @@ test('GET /api/admin/presence : 401 sans auth, 200 admin, snapshot cohérent', a
 
 test('buildAdminPresenceSnapshot : online via refcount, recent via last_seen', async () => {
   const adminId = await getAdminTeacherUserId();
-  await execute('UPDATE users SET last_seen = ? WHERE id = ?', [nowIsoUtc(), adminId]);
+  await execute('UPDATE users SET last_seen = ? WHERE id = ?', [nowDbTimestamp(), adminId]);
   const snapshot = await buildAdminPresenceSnapshot({
     listOnlineEntries: () => [{ product: 'foret', userId: String(adminId) }],
   });

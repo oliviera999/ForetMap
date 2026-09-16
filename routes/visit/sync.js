@@ -12,6 +12,7 @@ const { emitGardenChanged } = require('../../lib/realtime');
 const { deleteFile } = require('../../lib/uploads');
 const { visitContentRowIsPublicActive } = require('../../lib/visitContentPublicActive');
 const { nowIso, resolveVisitMapId, mapExists } = require('../../lib/visitRouteShared');
+const { toDbTimestamp } = require('../../lib/shared/isoTimestamp');
 const {
   parseVisitEditorialBlocksStored,
   serializeVisitEditorialBlocks,
@@ -423,7 +424,12 @@ router.post(
           saved != null && Number.isFinite(Number(saved.sort_order))
             ? Math.max(0, Number(saved.sort_order))
             : 0;
-        const createdAt = saved && saved.created_at ? String(saved.created_at) : now;
+        // `saved.created_at` est un DATETIME(3) depuis la migration 254 : mysql2 le relit en
+        // objet `Date`. Un `String(...)` dessus produisait « Tue Sep 15 2026 19:12:05 GMT+0000
+        // (Coordinated Universal Time) », que MySQL refuse en mode strict (ER_TRUNCATED_WRONG_VALUE)
+        // — la reconstruction de la visite répondait 500. `toDbTimestamp` accepte l'objet `Date`
+        // comme la chaîne d'un export antérieur à la migration.
+        const createdAt = (saved && toDbTimestamp(saved.created_at)) || now;
 
         await tx.execute(
           `INSERT INTO visit_zones
@@ -471,7 +477,12 @@ router.post(
           saved != null && Number.isFinite(Number(saved.sort_order))
             ? Math.max(0, Number(saved.sort_order))
             : 0;
-        const createdAt = saved && saved.created_at ? String(saved.created_at) : now;
+        // `saved.created_at` est un DATETIME(3) depuis la migration 254 : mysql2 le relit en
+        // objet `Date`. Un `String(...)` dessus produisait « Tue Sep 15 2026 19:12:05 GMT+0000
+        // (Coordinated Universal Time) », que MySQL refuse en mode strict (ER_TRUNCATED_WRONG_VALUE)
+        // — la reconstruction de la visite répondait 500. `toDbTimestamp` accepte l'objet `Date`
+        // comme la chaîne d'un export antérieur à la migration.
+        const createdAt = (saved && toDbTimestamp(saved.created_at)) || now;
 
         await tx.execute(
           `INSERT INTO visit_markers

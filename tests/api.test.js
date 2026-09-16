@@ -181,7 +181,7 @@ test('GET /api/stats/me/:studentId inclut biodiversité et tutoriels lus', async
   const p2 = plants[1] != null ? Number(plants[1].id) : p1;
   const tut = await queryOne('SELECT id FROM tutorials ORDER BY id ASC LIMIT 1');
   assert.ok(tut?.id, 'au moins un tutoriel en base de test');
-  const ts = new Date().toISOString();
+  const ts = new Date();
   await execute(
     'INSERT INTO user_plant_observation_events (user_id, plant_id, observed_at) VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?)',
     [studentId, p1, ts, studentId, p1, ts, studentId, p2, ts],

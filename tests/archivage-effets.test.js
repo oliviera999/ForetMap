@@ -32,7 +32,7 @@ async function makeTask({
     `INSERT INTO tasks (id, title, description, map_id, zone_id, required_students, status,
                         recurrence, due_date, archived_at, created_at)
      VALUES (?, ?, '', 'foret', ?, 1, ?, ?, ?, ${archived ? 'NOW()' : 'NULL'}, ?)`,
-    [id, title, zoneId, status, recurrence, dueDate, new Date().toISOString()],
+    [id, title, zoneId, status, recurrence, dueDate, new Date()],
   );
   return id;
 }
@@ -41,7 +41,7 @@ async function assign(taskId) {
   await execute(
     `INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at)
      VALUES (?, ?, 'Arch', 'Ivage', ?)`,
-    [taskId, studentId, new Date().toISOString()],
+    [taskId, studentId, new Date()],
   );
 }
 
@@ -108,7 +108,7 @@ test('duplication de projet : les tâches archivées ne ressuscitent pas', async
   await exec(
     `INSERT INTO task_projects (id, map_id, title, description, created_at)
      VALUES (?, 'foret', ?, '', ?)`,
-    [projectId, `Projet Arch ${stamp}`, new Date().toISOString()],
+    [projectId, `Projet Arch ${stamp}`, new Date()],
   );
   const vivante = await makeTask({ title: `Projet tâche vivante ${stamp}` });
   const rangee = await makeTask({ title: `Projet tâche rangée ${stamp}`, archived: true });
@@ -119,7 +119,7 @@ test('duplication de projet : les tâches archivées ne ressuscitent pas', async
   await exec(
     `INSERT INTO task_projects (id, map_id, title, description, created_at)
      VALUES (?, 'foret', ?, '', ?)`,
-    [targetId, `Projet Arch copie ${stamp}`, new Date().toISOString()],
+    [targetId, `Projet Arch copie ${stamp}`, new Date()],
   );
   const { copyProjectTasksForTests } = require('../routes/task-projects');
   if (typeof copyProjectTasksForTests === 'function') {

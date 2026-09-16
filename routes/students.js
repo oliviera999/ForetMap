@@ -54,7 +54,7 @@ const {
 const router = express.Router();
 
 const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
-const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
+const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
 
 // O7 — `POST /register` : remplace la validation manuelle `if (!studentId) -> 400 'studentId requis'`.
 // Le refine est au niveau racine (path vide) pour que `formatZodError` renvoie exactement
@@ -411,7 +411,7 @@ router.post(
 
         const hash = await bcrypt.hash(payload.password, 10);
         const id = crypto.randomUUID();
-        const now = nowIsoUtc();
+        const now = nowDbTimestamp();
         await execute(
           `INSERT INTO users
             (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
@@ -527,7 +527,7 @@ router.post(
     ]);
     if (!s) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
     await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [
-      nowIsoUtc(),
+      nowDbTimestamp(),
       askedStudentId,
     ]);
     res.json(toPublicUserRow(s));
@@ -603,7 +603,7 @@ router.post(
 
     const newId = crypto.randomUUID();
     const hash = await bcrypt.hash(password, 10);
-    const now = nowIsoUtc();
+    const now = nowDbTimestamp();
     let avatarPath = null;
 
     if (copyAvatar && source.avatar_path) {

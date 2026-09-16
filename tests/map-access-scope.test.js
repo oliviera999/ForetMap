@@ -83,7 +83,7 @@ test.before(async () => {
   ]);
   await execute(
     'INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, created_at) VALUES (?, ?, 10, 10, ?, ?)',
-    [MARKER_OUT, MAP_OUT, `Repère dehors ${stamp}`, new Date().toISOString()],
+    [MARKER_OUT, MAP_OUT, `Repère dehors ${stamp}`, new Date()],
   );
 
   groupId = `grp-scope-${stamp}`;
