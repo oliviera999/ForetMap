@@ -1,21 +1,43 @@
 import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
 import { placeDisplayParts } from '../utils/planPlaces.js';
 
+/** Champs de correspondance qui n'ont pas besoin d'être expliqués (le nom saute aux yeux). */
+const OBVIOUS_MATCH_FIELDS = new Set(['name', 'alias']);
+
+/** Libellé de la provenance d'une correspondance, quand ce n'est ni le nom ni un alias. */
+function matchOriginLabel(matchedFields) {
+  const fields = new Set(matchedFields || []);
+  for (const field of fields) if (OBVIOUS_MATCH_FIELDS.has(field)) return '';
+  if (fields.has('category')) return 'trouvé par sa catégorie';
+  if (fields.has('subtitle') || fields.has('text')) return 'trouvé dans la description';
+  return '';
+}
+
 /**
  * Résultats de recherche du plan (lot 4), en feuille basse : la liste occupe la moitié basse
  * de l'écran et laisse voir la carte, le pouce reste sur la zone atteignable.
+ *
+ * La feuille est **non bloquante** (`blockBackground={false}`) : la carte reste manipulable
+ * derrière et, surtout, le champ de recherche qui vient de l'ouvrir garde le curseur — sans
+ * quoi la saisie était purement et simplement impossible
+ * (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N1 et N2).
  *
  * @param {object} props
  * @param {boolean} props.open
  * @param {() => void} props.onClose
  * @param {string} props.query saisie en cours (message de liste vide).
  * @param {string|null} [props.title] titre imposé (liste des lieux d'un groupe, lot 5).
- * @param {Array<{ place: object }>} props.results résultats classés (`searchPlaces`).
+ * @param {Array<{ place: object, matchedFields?: string[], hiddenByFilter?: boolean }>} props.results
+ *   résultats classés (`searchPlaces`).
  * @param {(place: object) => void} props.onSelect
  * @param {(place: object) => Array<{ id: string, label: string, emoji: string }>} props.categoriesOf
  * @param {(place: object) => string} [props.distanceOf] distance à vol d'oiseau depuis la
  *   position, déjà formatée — chaîne vide quand la position n'est pas active. Voir le bloc
  *   ci-dessous : c'est ce qui distingue cinq « WC » autrement identiques.
+ * @param {number} [props.totalCount] nombre de lieux que la liste **pourrait** montrer : au-delà
+ *   de la limite d'affichage, le titre le dit au lieu de prétendre montrer « tous les lieux »
+ *   (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N9).
+ * @param {boolean} [props.filterActive] au moins une catégorie est cochée.
  */
 export function PlanResultsSheet({
   open,
@@ -26,15 +48,24 @@ export function PlanResultsSheet({
   categoriesOf,
   distanceOf = null,
   title = null,
+  totalCount = null,
+  filterActive = false,
 }) {
   const count = results.length;
+  const truncated = totalCount != null && totalCount > count;
+  const browseTitle = truncated
+    ? `${count} lieux sur ${totalCount}`
+    : filterActive
+      ? `Lieux affichés (${count})`
+      : 'Tous les lieux';
   return (
     <BottomSheet
       open={open}
       onClose={onClose}
-      title={title || (query ? `Résultats (${count})` : 'Tous les lieux')}
+      title={title || (query ? `Résultats (${count})` : browseTitle)}
       snapPoints={['peek', 'half', 'full']}
       initialSnap="half"
+      blockBackground={false}
       className="plan-sheet plan-results-sheet"
       testId="plan-results-sheet"
       closeLabel="Fermer les résultats"
@@ -48,7 +79,7 @@ export function PlanResultsSheet({
         </p>
       ) : (
         <ul className="plan-results">
-          {results.map(({ place }) => {
+          {results.map(({ place, matchedFields, hiddenByFilter }) => {
             const categories = categoriesOf(place);
             const { emoji, name } = placeDisplayParts(place);
             /**
@@ -63,6 +94,7 @@ export function PlanResultsSheet({
              * distingue de « WC 40 m » aussi bien au lecteur d'écran qu'à l'œil.
              */
             const distance = distanceOf ? distanceOf(place) : '';
+            const origin = query ? matchOriginLabel(matchedFields) : '';
             return (
               <li key={`${place.kind}:${place.id}`} className="plan-results__item">
                 <button type="button" className="plan-results__btn" onClick={() => onSelect(place)}>
@@ -82,6 +114,14 @@ export function PlanResultsSheet({
                         {categories.map((c) => c.label).join(' · ')}
                       </span>
                     ) : null}
+                    {hiddenByFilter || origin ? (
+                      <span className="plan-results__hints">
+                        {hiddenByFilter ? (
+                          <span className="plan-results__hidden">masqué par vos filtres</span>
+                        ) : null}
+                        {origin ? <span className="plan-results__origin">{origin}</span> : null}
+                      </span>
+                    ) : null}
                   </span>
                 </button>
               </li>
@@ -89,6 +129,11 @@ export function PlanResultsSheet({
           })}
         </ul>
       )}
+      {truncated ? (
+        <p className="plan-results__more">
+          Affinez la recherche pour atteindre les {totalCount - count} autres lieux.
+        </p>
+      ) : null}
     </BottomSheet>
   );
 }

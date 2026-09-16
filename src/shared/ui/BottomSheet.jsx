@@ -17,6 +17,7 @@ import {
   resolveSnapRelease,
 } from './bottomSheetSnap.js';
 import { joinClassNames } from '../utils/classNames.js';
+import { clearBottomSheetInset, setBottomSheetInset } from './bottomSheetInset.js';
 
 /** À partir de cette largeur, `wideAsDialog` rend la feuille comme un panneau centré. */
 export const BOTTOM_SHEET_WIDE_QUERY = '(min-width: 1024px)';
@@ -98,7 +99,10 @@ function BottomSheetSurface({
   onCloseRef.current = onClose;
   const onSnapChangeRef = useRef(onSnapChange);
   onSnapChangeRef.current = onSnapChange;
-  const dialogRef = useDialogA11y(() => onCloseRef.current?.());
+  // Feuille non bloquante : pas de focus initial, pas de piège de tabulation, pas de
+  // restauration — le champ qui vient de l'ouvrir doit garder le curseur
+  // (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N1). Échap reste actif dans les deux cas.
+  const dialogRef = useDialogA11y(() => onCloseRef.current?.(), { manageFocus: blockBackground });
   const overlayRef = useRef(null);
   const dragRef = useRef(null);
 
@@ -112,6 +116,31 @@ function BottomSheetSurface({
   // Sans blocage d'arrière-plan : pas de verrou de scroll (la carte doit pan/zoom).
   useBodyScrollLock(blockBackground);
   useInertSiblings(overlayRef, blockBackground);
+
+  /**
+   * Feuille non bloquante : publier sa hauteur pour que le produit puisse remonter ce qui est
+   * ancré en bas de la carte (commandes de zoom, « Voir tout le plan »), sinon masqué par la
+   * feuille alors même que la carte reste manipulable
+   * (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N2).
+   */
+  const insetId = useId();
+  useEffect(() => {
+    if (blockBackground || typeof window === 'undefined') return undefined;
+    const publish = () => {
+      const heights = computeSnapHeights({
+        viewportHeight: window.innerHeight,
+        safeTop: readSafeTopPx(),
+        snapPoints: points,
+      });
+      setBottomSheetInset(insetId, heights[snap] || 0);
+    };
+    publish();
+    window.addEventListener('resize', publish);
+    return () => {
+      window.removeEventListener('resize', publish);
+      clearBottomSheetInset(insetId);
+    };
+  }, [blockBackground, insetId, points, snap]);
 
   // Notifie les changements de cran (jamais le cran initial).
   const firstSnapNotify = useRef(true);

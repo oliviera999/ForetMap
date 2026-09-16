@@ -28,4 +28,18 @@ function planPlaceNamePattern(rawName, maxChars = 20) {
   return new RegExp(shown.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
 }
 
-module.exports = { planDisplayName, planPlaceNamePattern };
+/**
+ * Terme **tapable** pour retrouver ce lieu : premier mot d'au moins trois lettres, sans emoji
+ * ni ponctuation. Taper le nom brut ne convient pas — un nom qui commence par un emoji se
+ * normalise en chaîne vide, et la recherche retomberait sur la liste complète.
+ */
+function planSearchTerm(rawName) {
+  const words = planDisplayName(rawName)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .split(/[^A-Za-z0-9]+/u)
+    .filter((word) => word.length >= 3);
+  return words[0] || '';
+}
+
+module.exports = { planDisplayName, planPlaceNamePattern, planSearchTerm };

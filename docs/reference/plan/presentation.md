@@ -24,13 +24,24 @@ du lycée apparaît discrètement en bas à gauche du plan.
 1. **Le plan en plein écran.** On le déplace avec un doigt, on zoome à deux doigts ou avec
    les boutons `＋`, `－` et « Voir tout le plan » en bas à droite.
 2. **Une barre de recherche en haut.** On tape un mot ; les lieux correspondants
-   apparaissent dans une liste qui glisse depuis le bas de l'écran, sans cacher le plan.
-   La recherche ignore les accents et les majuscules, et connaît les **autres noms** d'un
-   lieu (chercher « bibliothèque » trouve le CDI).
+   apparaissent dans une liste qui glisse depuis le bas de l'écran, sans cacher le plan —
+   **le plan reste manipulable et le champ garde le curseur** : on peut corriger sa saisie
+   sans refermer la liste. La recherche ignore les accents et les majuscules, connaît les
+   **autres noms** d'un lieu (les alias saisis par l'établissement) et comprend le
+   **vocabulaire courant** : « wc » ou « toilettes » trouvent les _Sanitaires_, « cantine »
+   la _Cafétéria_, « bibliothèque » le _CDI_, « photocopie » la _Reprographie_. Elle porte
+   sur **tous** les lieux du plan, même ceux qu'un filtre de catégorie masque : un tel
+   résultat est signalé « masqué par vos filtres » et s'ouvre quand même, le lieu
+   réapparaissant alors sur la carte. Quand un résultat ne vient ni du nom ni d'un alias, la
+   liste le dit (« trouvé dans la description »).
 3. **Des étiquettes de catégories** juste sous la recherche (Salles, Sport, Administration…),
    dans la même rangée que la puce **Parcours** s'il y en a. En toucher une n'affiche que
    les lieux de cette catégorie ; « Tout » remet tout. Le choix est retenu sur l'appareil
-   pour la prochaine visite.
+   pour la prochaine visite. Comme la rangée peut être longue, un bouton **« Filtres »**
+   ouvre la **liste complète des catégories**, avec le nombre de lieux de chacune et le
+   nombre de lieux affichés ; le chiffre porté par le bouton rappelle combien de filtres
+   sont actifs. Les lieux **sans catégorie** (entrées, loge, repères de service) restent
+   affichés quel que soit le filtre : aucune case à cocher ne pourrait les ramener.
 4. **Des lieux regroupés quand c'est trop dense.** Vu de loin, des repères qui se
    chevauchent sont remplacés par une **pastille chiffrée**. La toucher zoome sur le groupe ;
    si les lieux sont exactement au même endroit (deux salles d'un même bâtiment, par
@@ -41,15 +52,21 @@ du lycée apparaît discrètement en bas à gauche du plan.
    plus important est écrit : d'abord le lieu dont la fiche est ouverte, puis l'ordre des
    catégories (voir « Rendre le plan lisible »), puis le plus grand bâtiment. Les noms
    masqués **réapparaissent d'eux-mêmes en zoomant**, sans réglage : les étiquettes gardent
-   la même taille à l'écran, c'est le plan qui s'écarte sous elles. Un nom trop long pour
-   son bâtiment est raccourci par des points de suspension ; la fiche du lieu en donne
-   toujours le nom complet.
+   la même taille à l'écran, c'est le plan qui s'écarte sous elles. Un nom qui ne tient pas
+   sur une ligne passe sur **deux lignes** plutôt que de finir en points de suspension ;
+   au-delà, il est raccourci et la fiche du lieu en donne toujours le nom complet. Le nom
+   écrit sur le plan est aussi une **cible tactile** : le toucher ouvre son lieu, ce qui rend
+   les petits bâtiments atteignables au pouce.
 6. **La fiche d'un lieu.** Toucher un lieu sur le plan ou dans la liste ouvre une fiche en
-   bas d'écran : nom, sous-titre, photo, description, horaires ou précisions. On la fait
-   glisser vers le haut pour tout lire, vers le bas pour la refermer. Pour une **zone**,
-   celle-ci reste mise en avant sur le plan et les autres zones s'estompent un peu tant
-   que la fiche est ouverte.
+   bas d'écran : nom, sous-titre, photo, description, horaires ou précisions. Elle s'ouvre à
+   **mi-hauteur**, assez haut pour qu'on lise l'essentiel sans rien faire ; on la fait
+   glisser vers le haut pour tout lire, vers le bas pour la réduire puis la refermer.
+   **Le plan reste vivant derrière elle** : on peut le déplacer et le zoomer sans fermer la
+   fiche, et les commandes de la carte remontent au-dessus d'elle dès qu'il y a la place.
+   Pour une **zone**, celle-ci reste mise en avant sur le plan et les autres zones
+   s'estompent un peu tant que la fiche est ouverte.
 7. **Un message d'accueil**, affiché une seule fois par appareil, dont le texte est réglable.
+   Il apparaît **en haut de la carte**, pour ne masquer ni les commandes de zoom ni l'échelle.
 8. **Un lien direct par lieu** : l'adresse de la page contient `?lieu=…` quand une fiche est
    ouverte, et la fiche affiche ce lien en toutes lettres. Il peut être partagé ou transformé
    en QR code pour amener quelqu'un directement sur le bon lieu.
@@ -178,6 +195,10 @@ choisir un affiche une **barre d'étape en bas d'écran**, avec « Précédent �
 carte reste utilisable (on peut la déplacer et zoomer) et se recentre sur chaque étape, au-dessus
 de la barre, pour que le lieu reste visible. Sans calage GPS, on se repère sur le plan puis on
 avance avec « Suivant » ; avec le calage, « Y aller » vise l'étape en cours.
+
+Pendant un parcours, le plan reste **explorable** : toucher un autre lieu (sur la carte ou dans
+les résultats de recherche) ouvre sa fiche, avec un bouton **« Revenir à l'étape »** qui rend la
+main au parcours. Auparavant, ces touchers restaient sans effet et sans explication.
 
 Rien n'est enregistré : personne ne coche, personne n'est suivi. On peut sauter une étape ou
 quitter le parcours à tout moment. Après avoir quitté, on le reprend via la puce **Parcours**
