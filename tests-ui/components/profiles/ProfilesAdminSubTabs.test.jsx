@@ -17,10 +17,53 @@ describe('ProfilesAdminSubTabs', () => {
     );
     expect(screen.getByRole('tab', { name: 'Profils' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: 'Comptes' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Groupes (3)' })).toBeInTheDocument();
+    // P15 — la pastille « à traiter » est une alerte nommée, pas un compteur de résultats.
+    expect(screen.getByLabelText('3 comptes à rattacher')).toHaveClass('profiles-subtab-alert');
     expect(screen.getByRole('tab', { name: 'Imports & exports' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: 'Comptes' }));
     expect(onChange).toHaveBeenCalledWith('comptes');
+  });
+
+  test('P15 — le compteur Comptes distingue les résultats filtrés du total', () => {
+    render(
+      <ProfilesAdminSubTabs
+        active="comptes"
+        onChange={() => {}}
+        canManageProfiles
+        canManageStudents
+        accountsFilteredCount={12}
+        accountsTotalCount={350}
+      />,
+    );
+    expect(screen.getByRole('tab', { name: /Comptes/ })).toHaveTextContent('Comptes 12 / 350');
+  });
+
+  test('P15 — sans filtre actif, un seul nombre suffit', () => {
+    render(
+      <ProfilesAdminSubTabs
+        active="comptes"
+        onChange={() => {}}
+        canManageProfiles
+        canManageStudents
+        accountsFilteredCount={350}
+        accountsTotalCount={350}
+      />,
+    );
+    expect(screen.getByRole('tab', { name: /Comptes/ })).toHaveTextContent('Comptes 350');
+  });
+
+  test('P15 — aucun visiteur en attente : pas de pastille d’alerte', () => {
+    render(
+      <ProfilesAdminSubTabs
+        active="comptes"
+        onChange={() => {}}
+        canManageProfiles
+        canManageStudents
+        pendingVisitorsCount={0}
+      />,
+    );
+    expect(screen.getByRole('tab', { name: /Groupes/ })).toBeInTheDocument();
+    expect(document.querySelector('.profiles-subtab-alert')).toBeNull();
   });
 
   test('sans gestion profils : Comptes + Imports seulement', () => {

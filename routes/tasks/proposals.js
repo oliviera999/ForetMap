@@ -25,6 +25,8 @@ const {
   decodeTaskImageBuffer,
   sanitizeRequiredStudents,
   normalizeIdArray,
+  normalizeTaskDateInput,
+  validateTaskDateRange,
 } = require('../../lib/taskRouteHelpers');
 const { isVisitorRole } = require('../../lib/taskAuthzHelpers');
 const { resolveStudentActionContext } = require('../../lib/tasks/studentActionContext');
@@ -92,6 +94,18 @@ router.post(
     const proposalImportanceParsed = parseTaskImportanceLevelFromClient(importance_level);
     if (proposalImportanceParsed.error)
       return res.status(400).json({ error: proposalImportanceParsed.error });
+    // Mêmes garde-fous de dates que POST /api/tasks : ce chemin n'en avait aucun et
+    // laissait MariaDB arbitrer une valeur mal formée (rejet brut ou troncature).
+    const proposalStartParsed = normalizeTaskDateInput(start_date, 'Date de début');
+    if (proposalStartParsed.error)
+      return res.status(400).json({ error: proposalStartParsed.error });
+    const proposalDueParsed = normalizeTaskDateInput(due_date, "Date d'échéance");
+    if (proposalDueParsed.error) return res.status(400).json({ error: proposalDueParsed.error });
+    const proposalRangeError = validateTaskDateRange(
+      proposalStartParsed.value,
+      proposalDueParsed.value,
+    );
+    if (proposalRangeError) return res.status(400).json({ error: proposalRangeError.error });
 
     let proposalDecodedImage = null;
     const bodyProposal = req.body || {};
@@ -132,8 +146,8 @@ router.post(
           loc.mapId,
           zIds[0] || null,
           mIds[0] || null,
-          start_date || null,
-          due_date || null,
+          proposalStartParsed.value,
+          proposalDueParsed.value,
           reqStudents,
           'single_done',
           proposalDangerParsed.level,

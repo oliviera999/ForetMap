@@ -1,5 +1,10 @@
 /**
  * Sous-onglets de l'admin « Profils & utilisateurs » (pattern Audit `top-tabs`).
+ *
+ * P15 de l'audit UX : les deux compteurs avaient la même forme et deux sens opposés —
+ * « Comptes (128) » informait du nombre de résultats filtrés, « Groupes (3) » alertait sur
+ * des visiteurs à rattacher. Le premier devient « 128 / 350 » (résultats sur total), le second
+ * une pastille d'alerte distincte, annoncée comme telle aux lecteurs d'écran.
  */
 export function ProfilesAdminSubTabs({
   active,
@@ -9,21 +14,31 @@ export function ProfilesAdminSubTabs({
   canShowImports = false,
   pendingVisitorsCount = 0,
   accountsFilteredCount = null,
+  accountsTotalCount = null,
 }) {
   const tabs = [];
   if (canManageProfiles) {
     tabs.push({ id: 'profils', label: 'Profils' });
   }
   if (canManageProfiles || canManageStudents) {
-    tabs.push({
-      id: 'comptes',
-      label: accountsFilteredCount != null ? `Comptes (${accountsFilteredCount})` : 'Comptes',
-    });
+    let count = null;
+    if (accountsFilteredCount != null) {
+      count =
+        accountsTotalCount != null && accountsTotalCount !== accountsFilteredCount
+          ? `${accountsFilteredCount} / ${accountsTotalCount}`
+          : String(accountsFilteredCount);
+    }
+    tabs.push({ id: 'comptes', label: 'Comptes', count });
   }
   if (canManageProfiles) {
     tabs.push({
       id: 'groupes',
-      label: pendingVisitorsCount > 0 ? `Groupes (${pendingVisitorsCount})` : 'Groupes',
+      label: 'Groupes',
+      alert: pendingVisitorsCount > 0 ? pendingVisitorsCount : null,
+      alertLabel:
+        pendingVisitorsCount > 0
+          ? `${pendingVisitorsCount} compte${pendingVisitorsCount > 1 ? 's' : ''} à rattacher`
+          : null,
     });
   }
   if (canShowImports) {
@@ -43,6 +58,12 @@ export function ProfilesAdminSubTabs({
           onClick={() => onChange(t.id)}
         >
           {t.label}
+          {t.count != null && <span className="profiles-subtab-count"> {t.count}</span>}
+          {t.alert != null && (
+            <span className="profiles-subtab-alert" aria-label={t.alertLabel}>
+              {t.alert}
+            </span>
+          )}
         </button>
       ))}
     </div>

@@ -13,6 +13,7 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne, execute } = require('../database');
+const { setStudentPrimaryRole } = require('./helpers/studentRoles');
 const { signAuthToken } = require('../middleware/requireTeacher');
 const { ensureRbacBootstrap } = require('../lib/rbac');
 const { runAutoArchiveJob, normalizeAfterDays } = require('../lib/autoArchive');
@@ -90,6 +91,9 @@ before(async () => {
     .expect(201);
   studentToken = reg.body.authToken;
   studentId = reg.body.id;
+  // L'affectation par un n3boss exige un compte au **statut n3beur** (profil `eleve_*` ou
+  // groupe n3beur) : un compte fraîchement inscrit est sinon `visiteur`.
+  await setStudentPrimaryRole(studentId, 'eleve_novice');
 });
 
 describe('Archivage des tâches', () => {

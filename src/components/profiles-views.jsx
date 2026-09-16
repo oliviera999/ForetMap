@@ -59,21 +59,24 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
-  const [searchStudent, setSearchStudent] = useState('');
   const [confirmStudent, setConfirmStudent] = useState(null);
   const [authPerms, setAuthPerms] = useState([]);
   const [authRoleSlug, setAuthRoleSlug] = useState('');
   const [progressionByTasksEnabled, setProgressionByTasksEnabled] = useState(true);
+  const [alignOnGroupJoinEnabled, setAlignOnGroupJoinEnabled] = useState(true);
   const [editingUser, setEditingUser] = useState(null);
   const [editLoading, setEditLoading] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editUserLoadState, setEditUserLoadState] = useState('idle');
   const [impersonateLoading, setImpersonateLoading] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
   const [subTab, setSubTab] = useState(() =>
     resolveProfilesSubTab(safeLocalStorageGetItem(PROFILES_SUB_TAB_KEY, '')),
   );
   const [pendingVisitorsCount, setPendingVisitorsCount] = useState(0);
   const [accountsFilteredCount, setAccountsFilteredCount] = useState(null);
+  const [accountsTotalCount, setAccountsTotalCount] = useState(null);
+  const [groupOptions, setGroupOptions] = useState([]);
   /** Modale créer / éditer / dupliquer un profil RBAC. */
   const [roleForm, setRoleForm] = useState(null);
 
@@ -101,8 +104,10 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
           : [];
       if (profilePayload && typeof profilePayload === 'object' && !Array.isArray(profilePayload)) {
         setProgressionByTasksEnabled(profilePayload.progressionByValidatedTasksEnabled !== false);
+        setAlignOnGroupJoinEnabled(profilePayload.progressionAlignOnGroupJoinEnabled !== false);
       } else {
         setProgressionByTasksEnabled(true);
+        setAlignOnGroupJoinEnabled(true);
       }
       setRoles(
         normalized.map((r) => ({
@@ -133,6 +138,20 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     load().catch((e) => setErr(e.message));
   }, []);
 
+  // Options de groupes (léger) : partagées par le filtre de la liste, la barre d'actions
+  // groupées et la fiche utilisateur — un seul chargement pour les trois.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const opts = await api('/api/groups/options').catch(() => ({ groups: [] }));
+      if (cancelled) return;
+      setGroupOptions(Array.isArray(opts?.groups) ? opts.groups : []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const selectedRole = useMemo(
     () => roles.find((r) => Number(r.id) === Number(selectedRoleId)) || null,
     [roles, selectedRoleId],
@@ -152,8 +171,8 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     canExport,
     canImport,
     canImportGroups,
+    canManageGroups,
     canCreateUsers,
-    canReadAllStats,
     canDuplicateStudents,
     isAdmin,
     canManageStudents,
@@ -204,13 +223,19 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     setLoading(false);
   };
 
-  const filteredStudents = useMemo(() => {
-    const needle = searchStudent.trim().toLowerCase();
-    if (!needle) return students;
-    return students.filter((s) =>
-      `${s.first_name || ''} ${s.last_name || ''}`.toLowerCase().includes(needle),
-    );
-  }, [students, searchStudent]);
+  /**
+   * P1 — une seule liste de comptes. Les statistiques par élève (`/api/stats/all`), qui ne
+   * vivaient que dans l'ancien panneau « Suppression de … », sont fusionnées dans les lignes
+   * RBAC : l'information suit le compte au lieu d'exiger une seconde recherche.
+   */
+  const usersWithStats = useMemo(() => {
+    if (students.length === 0) return users;
+    const statsById = new Map(students.map((s) => [String(s.id), s.stats || null]));
+    return users.map((u) => {
+      const stats = statsById.get(String(u.id));
+      return stats ? { ...u, stats } : u;
+    });
+  }, [users, students]);
 
   /** `fields` : { roleEmoji, roleMinDoneTasks, roleDisplayOrder } saisis dans la section RBAC. */
   const saveRoleDetails = (role, fields) => {
@@ -227,6 +252,23 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
         enabled
           ? 'Montée de niveau automatique selon les tâches validées : activée.'
           : 'Montée de niveau automatique : désactivée. Les profils affichés restent ceux attribués manuellement.',
+      );
+    } catch (e) {
+      setErr(e.message || 'Erreur lors de l’enregistrement du réglage');
+    }
+    setLoading(false);
+  };
+
+  const toggleAlignOnGroupJoin = async (enabled) => {
+    setLoading(true);
+    setErr('');
+    try {
+      await api('/api/rbac/progression-align-on-group-join', 'PATCH', { enabled: !!enabled });
+      setAlignOnGroupJoinEnabled(!!enabled);
+      setMsg(
+        enabled
+          ? 'Rattachement à un groupe n3beur : le profil est désormais aligné aussitôt sur le nombre de tâches validées.'
+          : 'Rattachement à un groupe n3beur : seul le profil par défaut du groupe est appliqué.',
       );
     } catch (e) {
       setErr(e.message || 'Erreur lors de l’enregistrement du réglage');
@@ -361,19 +403,6 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     setLoading(false);
   };
 
-  const assignRole = async (userType, userId, roleId) => {
-    setLoading(true);
-    setErr('');
-    try {
-      await api(`/api/rbac/users/${userType}/${userId}/role`, 'PUT', { role_id: roleId });
-      setMsg('Profil utilisateur mis à jour');
-      await load();
-    } catch (e) {
-      setErr(e.message || 'Erreur attribution');
-    }
-    setLoading(false);
-  };
-
   const openEditUser = async (u) => {
     setErr('');
     setEditingUser(null);
@@ -453,10 +482,14 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     }
   };
 
-  /** `fields` : champs saisis dans la modale — { firstName, lastName, pseudo, email, description, affiliation, password }. */
+  /**
+   * `fields` : champs d'identité saisis dans la fiche — { firstName, lastName, pseudo, email,
+   * description, affiliation }. Le mot de passe a sa propre action (`resetUserPassword`, P12
+   * de l'audit UX) : ce n'est plus un champ noyé dans le formulaire d'identité.
+   */
   const saveEditUser = async (fields) => {
     if (!editingUser) return;
-    const { firstName, lastName, pseudo, email, description, affiliation, password } = fields;
+    const { firstName, lastName, pseudo, email, description, affiliation } = fields;
     const fieldError = validateUserIdentityFields({
       firstName,
       lastName,
@@ -478,7 +511,6 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
         email,
         description,
         affiliation,
-        password,
         isStudent: editingUser.user_type === 'student',
       });
       await api(
@@ -497,6 +529,129 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
       setErr(e.message || 'Erreur lors de la mise à jour du compte');
     }
     setEditLoading(false);
+  };
+
+  /**
+   * P12 — réinitialisation du mot de passe : action explicite de la fiche, avec son propre
+   * appel (`PATCH` limité au champ `password`). Elle ne touche à aucun champ d'identité, et
+   * la fiche reste ouverte : l'administrateur voit l'opération aboutir sans tout revalider.
+   */
+  const resetUserPassword = async (password) => {
+    if (!editingUser) return;
+    const value = String(password || '');
+    if (!value.trim()) {
+      setErr('Mot de passe requis');
+      throw new Error('Mot de passe requis');
+    }
+    setPasswordSaving(true);
+    setErr('');
+    try {
+      await api(
+        `/api/rbac/users/${String(editingUser.user_type || '').toLowerCase()}/${encodeURIComponent(String(editingUser.id))}`,
+        'PATCH',
+        { password: value },
+      );
+      setMsg(`Mot de passe réinitialisé : ${editingUser.display_name}`);
+    } catch (e) {
+      setErr(e.message || 'Erreur lors du changement de mot de passe');
+      throw e;
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
+  /** Recharge la fiche ouverte après une écriture sur ses groupes (P14). */
+  const refreshEditingUserGroups = async () => {
+    if (!editingUser) return;
+    const ut = String(editingUser.user_type || '').toLowerCase();
+    const uid = encodeURIComponent(String(editingUser.id));
+    const detail = await api(`/api/rbac/users/${ut}/${uid}`).catch(() => null);
+    if (isLikelyApiUserPayload(detail)) {
+      setEditingUser((prev) => (prev ? { ...prev, groups: detail.groups || [] } : prev));
+    }
+    await load().catch(() => {});
+  };
+
+  const attachEditingUserToGroup = async (groupId) => {
+    if (!editingUser || !groupId) return;
+    await api(
+      `/api/groups/${encodeURIComponent(String(groupId))}/members/${encodeURIComponent(String(editingUser.id))}`,
+      'POST',
+      {},
+    );
+    await refreshEditingUserGroups();
+  };
+
+  const detachEditingUserFromGroup = async (groupId) => {
+    if (!editingUser || !groupId) return;
+    await api(
+      `/api/groups/${encodeURIComponent(String(groupId))}/members/${encodeURIComponent(String(editingUser.id))}`,
+      'DELETE',
+    );
+    await refreshEditingUserGroups();
+  };
+
+  /**
+   * Attribution unitaire depuis la liste. Propage l'erreur : la ligne affiche elle-même son
+   * statut (P4), le bandeau de tête étant hors écran dès qu'on a fait défiler.
+   */
+  const assignRoleToUser = async (user, roleId) => {
+    const target = roleId === '' || roleId == null ? null : parseInt(roleId, 10);
+    if (target == null || !Number.isFinite(target)) {
+      throw new Error('Retirer un profil n’est pas possible depuis la liste');
+    }
+    await api(
+      `/api/rbac/users/${user.user_type}/${encodeURIComponent(String(user.id))}/role`,
+      'PUT',
+      { role_id: target },
+    );
+    await load();
+  };
+
+  /** P2 — attribution groupée : un appel, un compte rendu par ligne. */
+  const bulkAssignRole = async (targets, roleId) => {
+    setErr('');
+    try {
+      const payload = {
+        role_id: parseInt(roleId, 10),
+        users: targets.map((u) => ({ user_type: u.user_type, id: u.id })),
+      };
+      const res = await api('/api/rbac/users/bulk-role', 'POST', payload);
+      const failed = Number(res?.failed || 0);
+      setMsg(
+        failed === 0
+          ? `Profil attribué à ${res?.updated ?? targets.length} compte(s).`
+          : `Profil attribué à ${res?.updated ?? 0} compte(s) ; ${failed} refusé(s).`,
+      );
+      if (failed > 0) {
+        const first = (res?.results || []).find((r) => !r.ok);
+        if (first?.error) setErr(`Premier refus : ${first.error}`);
+      }
+      await load();
+    } catch (e) {
+      setErr(e.message || 'Attribution groupée impossible');
+    }
+  };
+
+  /** P2 — rattachement groupé à un groupe (élèves uniquement, comme la route appelée). */
+  const bulkAddToGroup = async (targets, groupId) => {
+    setErr('');
+    try {
+      const res = await api(
+        `/api/groups/${encodeURIComponent(String(groupId))}/members/bulk`,
+        'POST',
+        { user_ids: targets.map((u) => u.id) },
+      );
+      const failed = Number(res?.failed || 0);
+      setMsg(
+        failed === 0
+          ? `${res?.added ?? targets.length} compte(s) rattaché(s) au groupe.`
+          : `${res?.added ?? 0} compte(s) rattaché(s) ; ${failed} refusé(s).`,
+      );
+      await load();
+    } catch (e) {
+      setErr(e.message || 'Rattachement groupé impossible');
+    }
   };
 
   const setRoleForumParticipate = async (roleId, forumParticipate) => {
@@ -579,23 +734,19 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     setErr('');
     try {
       await api(`/api/students/${target.id}`, 'DELETE');
-      setMsg(`${target.first_name} ${target.last_name} supprimé`);
+      setMsg(`${target.display_name || `${target.first_name} ${target.last_name}`} supprimé`);
       await load();
     } catch (e) {
       setErr(e.message || 'Erreur suppression');
     }
   };
 
+  /** Propage l'erreur : la ligne affiche son propre statut (P4). */
   const duplicateStudent = async (studentRow) => {
     if (!studentRow?.id) return;
     setErr('');
-    try {
-      await api(`/api/students/${studentRow.id}/duplicate`, 'POST', {});
-      setMsg(`${studentRow.first_name} ${studentRow.last_name} dupliqué`);
-      await load();
-    } catch (e) {
-      setErr(e.message || 'Erreur duplication');
-    }
+    await api(`/api/students/${studentRow.id}/duplicate`, 'POST', {});
+    await load();
   };
 
   return (
@@ -631,9 +782,15 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
           authPerms={authPerms}
           saving={editLoading}
           impersonateLoading={impersonateLoading}
+          passwordSaving={passwordSaving}
+          groupOptions={groupOptions}
+          canManageGroups={canManageGroups}
           onClose={closeEditUser}
           onSave={saveEditUser}
+          onResetPassword={resetUserPassword}
           onImpersonate={startImpersonation}
+          onAttachGroup={attachEditingUserToGroup}
+          onDetachGroup={detachEditingUserFromGroup}
         />
       )}
 
@@ -664,6 +821,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
           accountsFilteredCount={
             subTab === 'comptes' || accountsFilteredCount != null ? accountsFilteredCount : null
           }
+          accountsTotalCount={accountsTotalCount}
         />
       )}
 
@@ -685,7 +843,9 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
           onEditRoleDetails={saveRoleDetails}
           onDuplicateRole={duplicateRoleProfile}
           onSaveEmoji={saveProfileEmoji}
+          alignOnGroupJoinEnabled={alignOnGroupJoinEnabled}
           onToggleProgression={toggleProgressionByValidatedTasks}
+          onToggleAlignOnGroupJoin={toggleAlignOnGroupJoin}
           onSaveMinDoneThreshold={saveStudentMinDoneThreshold}
           onTogglePermission={togglePermission}
           onSetForumParticipate={setRoleForumParticipate}
@@ -697,29 +857,30 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
       {(canManageProfiles || canManageStudents) && subTab === 'comptes' && (
         <ProfilesAccountsPanel
           roles={sortedRoles}
-          users={users}
+          users={usersWithStats}
           loading={loading}
-          editUserLoadState={editUserLoadState}
           isAdmin={isAdmin}
           canCreateUsers={canCreateUsers}
           canCreateTeacherRoles={isAdmin || authRoleSlug === 'prof'}
           canManageProfiles={canManageProfiles}
-          canReadAllStats={canReadAllStats}
+          canManageGroups={canManageGroups}
+          groupOptions={groupOptions}
           canDeleteUi={canDeleteUi}
           canDuplicateStudents={canDuplicateStudents}
           roleTerms={roleTerms}
           affiliationOptions={affiliationOptions}
-          searchStudent={searchStudent}
-          filteredStudents={filteredStudents}
-          setSearchStudent={setSearchStudent}
-          setConfirmStudent={setConfirmStudent}
-          duplicateStudent={duplicateStudent}
           setErr={setErr}
           setMsg={setMsg}
           onCreated={load}
-          onAssignRole={assignRole}
+          onAssignRole={assignRoleToUser}
+          onBulkAssignRole={bulkAssignRole}
+          onBulkAddToGroup={bulkAddToGroup}
+          onDeleteUser={setConfirmStudent}
+          onDuplicateUser={duplicateStudent}
           onOpenEditUser={openEditUser}
           onFilteredCountChange={setAccountsFilteredCount}
+          onTotalCountChange={setAccountsTotalCount}
+          onProfilesRecomputed={load}
         />
       )}
 

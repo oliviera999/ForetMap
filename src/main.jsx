@@ -7,7 +7,7 @@ import { App } from './App.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { ImageLightboxProvider } from './shared/components/ImageLightboxProvider.jsx';
 import { withAppBase } from './services/api';
-import { safeSessionStorageSetItem } from './shared/platform/browserStorage.js';
+import { registerServiceWorker } from './shared/pwa/registerServiceWorker.js';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
@@ -17,47 +17,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </ErrorBoundary>,
 );
 
-if ('serviceWorker' in navigator) {
-  let hasReloadedForUpdate = false;
-
-  const triggerReloadOnControllerChange = () => {
-    if (hasReloadedForUpdate) return;
-    hasReloadedForUpdate = true;
-    safeSessionStorageSetItem('foretmap_sw_updated', '1');
-    window.location.reload();
-  };
-
-  const activateWaitingWorker = (registration) => {
-    if (registration.waiting) {
-      registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-    }
-  };
-
-  navigator.serviceWorker.addEventListener('controllerchange', triggerReloadOnControllerChange);
-
-  navigator.serviceWorker
-    .register(withAppBase('/sw.js'))
-    .then((registration) => {
-      activateWaitingWorker(registration);
-
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        if (!newWorker) return;
-
-        newWorker.addEventListener('statechange', () => {
-          // Le SW est prêt et attend l'activation : on l'active immédiatement.
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            activateWaitingWorker(registration);
-          }
-        });
-      });
-
-      // Forcer une vérification d'update au retour au premier plan.
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-          registration.update().catch(() => {});
-        }
-      });
-    })
-    .catch(() => {});
-}
+// Politique de mise à jour : annonce (bandeau) plutôt que rechargement d'autorité.
+// Détail et raisons dans `src/shared/pwa/registerServiceWorker.js`.
+registerServiceWorker({ swUrl: withAppBase('/sw.js') });

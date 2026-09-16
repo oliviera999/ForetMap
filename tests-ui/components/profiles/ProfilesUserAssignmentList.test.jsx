@@ -3,8 +3,22 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { ProfilesUserAssignmentList } from '../../../src/components/profiles/ProfilesUserAssignmentList.jsx';
 
 const USERS = [
-  { user_type: 'student', id: 's1', display_name: 'Léa', role_id: 3, role_slug: 'eleve_novice' },
-  { user_type: 'teacher', id: 't1', display_name: 'Prof X', role_id: 2, role_slug: 'admin' },
+  {
+    user_type: 'student',
+    id: 's1',
+    display_name: 'Léa',
+    role_id: 3,
+    role_slug: 'eleve_novice',
+    groups: [{ id: 'g1', name: '2nde B', kind: 'class', role_in_group: 'member' }],
+  },
+  {
+    user_type: 'teacher',
+    id: 't1',
+    display_name: 'Prof X',
+    role_id: 2,
+    role_slug: 'admin',
+    groups: [],
+  },
 ];
 const ROLES = [
   { id: 2, display_name: 'Admin' },
@@ -16,10 +30,11 @@ function setup(overrides = {}) {
     users: USERS,
     roles: ROLES,
     loading: false,
-    editUserLoadState: 'idle',
     isAdmin: false,
     onAssignRole: vi.fn(),
     onOpenEditUser: vi.fn(),
+    onDeleteUser: vi.fn(),
+    onDuplicateUser: vi.fn(),
     ...overrides,
   };
   render(<ProfilesUserAssignmentList {...props} />);
@@ -30,31 +45,106 @@ describe('ProfilesUserAssignmentList', () => {
   test('rend une ligne par utilisateur (nom + type) avec sélecteur de profil', () => {
     setup();
     expect(screen.getByText('Léa')).toBeInTheDocument();
-    expect(screen.getByText('(student)')).toBeInTheDocument();
-    const selects = screen.getAllByRole('combobox');
-    expect(selects).toHaveLength(2);
-    expect(selects[0]).toHaveValue('3'); // Léa → Novice
+    expect(screen.getByText('Élève')).toBeInTheDocument();
+    expect(screen.getByLabelText('Profil de Léa')).toHaveValue('3');
+    expect(screen.getByLabelText('Profil de Prof X')).toHaveValue('2');
   });
 
-  test('changer le profil appelle onAssignRole(userType, id, roleId)', () => {
+  test('chaque ligne montre le rattachement groupes (ou son absence)', () => {
+    setup();
+    expect(screen.getByText('2nde B')).toBeInTheDocument();
+    expect(screen.getByTestId('user-groups-empty')).toHaveTextContent('Aucun groupe');
+  });
+
+  test('au-delà de 3 groupes, la ligne résume le surplus par un compteur', () => {
+    setup({
+      users: [
+        {
+          ...USERS[0],
+          groups: ['A', 'B', 'C', 'D'].map((n) => ({
+            id: `g-${n}`,
+            name: n,
+            kind: 'class',
+            role_in_group: 'member',
+          })),
+        },
+      ],
+    });
+    expect(screen.getByText('+1')).toBeInTheDocument();
+    expect(screen.queryByText('D')).not.toBeInTheDocument();
+  });
+
+  test('changer le profil remonte l’utilisateur et la valeur choisie', () => {
     const { onAssignRole } = setup();
-    fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: '2' } });
-    expect(onAssignRole).toHaveBeenCalledWith('student', 's1', 2);
+    fireEvent.change(screen.getByLabelText('Profil de Léa'), { target: { value: '2' } });
+    expect(onAssignRole).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }), '2');
   });
 
-  test('non-admin ne peut pas modifier un admin (bouton désactivé + titre)', () => {
+  test('non-admin ne peut ni modifier ni reclasser un admin', () => {
     setup({ isAdmin: false });
-    const editButtons = screen.getAllByRole('button', { name: 'Modifier' });
-    expect(editButtons[0]).not.toBeDisabled(); // Léa (non-admin)
-    expect(editButtons[1]).toBeDisabled(); // Prof X (admin)
-    expect(editButtons[1]).toHaveAttribute('title', expect.stringContaining('administrateur'));
+    expect(screen.getByLabelText('Modifier Léa')).not.toBeDisabled();
+    expect(screen.getByLabelText('Modifier Prof X')).toBeDisabled();
+    expect(screen.getByLabelText('Profil de Prof X')).toBeDisabled();
   });
 
   test('admin peut modifier un admin ; clic appelle onOpenEditUser', () => {
     const { onOpenEditUser } = setup({ isAdmin: true });
-    const editButtons = screen.getAllByRole('button', { name: 'Modifier' });
-    expect(editButtons[1]).not.toBeDisabled();
-    fireEvent.click(editButtons[0]);
+    expect(screen.getByLabelText('Modifier Prof X')).not.toBeDisabled();
+    fireEvent.click(screen.getByLabelText('Modifier Léa'));
     expect(onOpenEditUser).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }));
+  });
+
+  test('P1 — supprimer et dupliquer sont des actions de ligne, réservées aux élèves', () => {
+    const { onDeleteUser, onDuplicateUser } = setup({ canDelete: true, canDuplicate: true });
+    fireEvent.click(screen.getByLabelText('Supprimer Léa'));
+    expect(onDeleteUser).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }));
+    fireEvent.click(screen.getByLabelText('Dupliquer Léa'));
+    expect(onDuplicateUser).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }));
+    // Un compte enseignant n'expose aucune de ces deux actions.
+    expect(screen.queryByLabelText('Supprimer Prof X')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Dupliquer Prof X')).not.toBeInTheDocument();
+  });
+
+  test('sans les permissions, ni Supprimer ni Dupliquer ne sont rendus', () => {
+    setup({ canDelete: false, canDuplicate: false });
+    expect(screen.queryByLabelText('Supprimer Léa')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Dupliquer Léa')).not.toBeInTheDocument();
+  });
+
+  test('P2 — les cases à cocher n’apparaissent que si le parent gère la sélection', () => {
+    const onToggleSelect = vi.fn();
+    setup({ onToggleSelect, selectedKeys: new Set(['student:s1']) });
+    const box = screen.getByLabelText('Sélectionner Léa');
+    expect(box).toBeChecked();
+    expect(screen.getByLabelText('Sélectionner Prof X')).not.toBeChecked();
+    fireEvent.click(screen.getByLabelText('Sélectionner Prof X'));
+    expect(onToggleSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 't1' }));
+  });
+
+  test('sélection non gérée → aucune case à cocher', () => {
+    setup({ onToggleSelect: undefined });
+    expect(screen.queryByLabelText('Sélectionner Léa')).not.toBeInTheDocument();
+  });
+
+  test('P9 — seule la ligne occupée est désactivée, pas toute la page', () => {
+    setup({ isAdmin: true, busyKeys: new Set(['student:s1']) });
+    expect(screen.getByLabelText('Modifier Léa')).toBeDisabled();
+    expect(screen.getByLabelText('Modifier Prof X')).not.toBeDisabled();
+  });
+
+  test('P4 — le statut s’affiche sur la ligne concernée, avec le bon rôle ARIA', () => {
+    setup({
+      rowStatus: new Map([
+        ['student:s1', { state: 'done', message: 'Profil enregistré' }],
+        ['teacher:t1', { state: 'error', message: 'Refusé' }],
+      ]),
+    });
+    expect(screen.getByText('Profil enregistré')).toHaveAttribute('role', 'status');
+    expect(screen.getByText('Refusé')).toHaveAttribute('role', 'alert');
+  });
+
+  test('les statistiques fusionnées s’affichent quand elles existent (P1)', () => {
+    setup({ users: [{ ...USERS[0], stats: { done: 4, pending: 2 } }] });
+    expect(screen.getByText(/4 validée\(s\) · 2 en cours/)).toBeInTheDocument();
   });
 });
