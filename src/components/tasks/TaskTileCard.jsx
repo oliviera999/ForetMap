@@ -22,6 +22,7 @@ import {
   toQuickAssignStudentId,
 } from '../../utils/taskDisplayHelpers.js';
 import { teacherStatusActionDisabled } from '../../utils/taskActionErrors.js';
+import { sortStudentsForQuickAssign } from '../../utils/taskQuickAssign.js';
 import { TEACHER_STATUS_ACTIONS } from './taskViewHelpers.js';
 import { TaskTileMeta } from './TaskTileMeta.jsx';
 import { assignmentMatchesStudent, isStudentAssignedToTask } from '../../utils/task-assignments';
@@ -154,6 +155,10 @@ function TaskTileCardImpl({
   const canQuickAssign = isQuickAssignOpen && teacherQuickAssignCanApply(t, quickAssignStudentIds);
   const quickAssignBusy = !!loading[`${t.id}assign_teacher_quick`];
   const quickAssignTitle = isQuickAssignOpen ? quickAssignHint(t, quickAssignStudentIds) : '';
+  /** Déjà inscrits en tête de la liste sélectionnable (tri stable, cf. sortStudentsForQuickAssign). */
+  const quickAssignStudents = isQuickAssignOpen
+    ? sortStudentsForQuickAssign(t, teacherStudents)
+    : teacherStudents;
   const referentBriefing = taskRequiresReferentBriefingBeforeStart(t);
   const referentsLinked = t.referents_linked || [];
   const coverSrc = t.image_url ? withAppBase(t.image_url) : null;
@@ -619,7 +624,7 @@ function TaskTileCardImpl({
                         textAlign: 'left',
                       }}
                     >
-                      {teacherStudents.map((s) => {
+                      {quickAssignStudents.map((s) => {
                         const fullName = `${s.first_name || ''} ${s.last_name || ''}`.trim();
                         const sid = toQuickAssignStudentId(s.id);
                         const checked = quickAssignStudentIds.includes(sid);

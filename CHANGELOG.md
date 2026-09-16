@@ -133,6 +133,17 @@ Trois défauts relevés par `docs/AUDIT_ECHEANCES_2026-09.md` (§5 et §7) et la
 - Documentation : `docs/API.md` (section récurrence) et
   `docs/reference/foretmap/taches-tutoriels-et-validation.md` (« Sur quelle date se cale le
   rythme ? », dérive calendaire et non-reprise des inscriptions).
+### Modifié — Affectation rapide : les inscrits en haut de la liste
+
+- Le panneau « Affectation rapide » d'une tâche affiche désormais les utilisateurs **déjà
+  inscrits sur cette tâche en tête** de la liste à cocher (ils sont cochés d'office par le
+  préremplissage), les autres suivent. Tri **stable** : l'ordre d'origine est conservé à
+  l'intérieur de chaque groupe. L'équipe en place se lit sans faire défiler la liste.
+- La position dépend des inscriptions réelles, pas des cases cochées : décocher quelqu'un
+  ne le fait pas sauter de place tant que le delta n'est pas appliqué.
+- Helper pur `sortStudentsForQuickAssign` (`src/utils/taskQuickAssign.js`), couvert par
+  `tests-ui/utils/taskQuickAssign.test.js` et par un test de rendu du panneau ouvert dans
+  `tests-ui/components/TaskTileCard.test.jsx`.
 
 ### Ajouté — Les 30 fiches à photo morte sont réillustrées
 
