@@ -81,7 +81,7 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   Comptes**, le bloc « Attribuer les profils d'après les tâches validées » attribue à
   chacun le palier mérité — pour tous les n3beurs, pour un groupe, ou pour un seul
   compte (bouton « Niveau auto. » sur sa ligne). Le bouton **Aperçu** montre qui
-  changerait avant d'appliquer. Par défaut, seules les **montées** sont appliquées ; la
+  changerait avant que **« Appliquer le recalcul »** n'écrive quoi que ce soit. Par défaut, seules les **montées** sont appliquées ; la
   case « Aligner strictement » autorise aussi la baisse d'un palier attribué au-dessus
   du nombre réel de tâches validées. Les profils hors échelle n3beur (n3boss, admin,
   MJ, prof de classe, profil sur mesure) ne sont jamais touchés. Les **noms affichés** des profils (dont « n3beur » /
