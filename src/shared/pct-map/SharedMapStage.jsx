@@ -72,6 +72,7 @@ const POSITION_ICONS = Object.freeze({
  * @param {string} [props.testIdPrefix]
  * @param {string} [props.locateLabel]
  * @param {(zoneOrMarker: object) => boolean|null} [props.getIsSeen]
+ * @param {(zoneOrMarker: object) => boolean} [props.getDiscoverHalo]
  * @param {boolean} [props.clusteringEnabled]
  * @param {boolean} [props.applyZoomOnlyCategories]
  * @param {boolean} [props.showLabels=true] afficher les noms (emojis de zone restent visibles)
@@ -112,6 +113,7 @@ export function SharedMapStage({
   testIdPrefix = 'plan',
   locateLabel = 'Me situer',
   getIsSeen = null,
+  getDiscoverHalo = null,
   clusteringEnabled = true,
   applyZoomOnlyCategories = true,
   /** Afficher les noms (zones via `PctLabelsLayer`, repères via pastilles). */
@@ -533,11 +535,12 @@ export function SharedMapStage({
         marker={marker}
         isActive={selectedMarkerId != null && String(selectedMarkerId) === String(marker.id)}
         isSeen={typeof getIsSeen === 'function' ? getIsSeen(marker) : null}
+        isDiscoverHalo={typeof getDiscoverHalo === 'function' ? !!getDiscoverHalo(marker) : false}
         onMarkerClick={onMarkerClick}
         labelOf={markerLabelOf}
       />
     ),
-    [onMarkerClick, selectedMarkerId, markerLabelOf, getIsSeen],
+    [onMarkerClick, selectedMarkerId, markerLabelOf, getIsSeen, getDiscoverHalo],
   );
 
   const tid = (suffix) => `${testIdPrefix}-${suffix}`;
@@ -578,6 +581,7 @@ export function SharedMapStage({
             activeZoneId={selectedZoneId}
             showLabels={false}
             getIsSeen={getIsSeen}
+            getDiscoverHalo={getDiscoverHalo}
             className="fm-pct-zones plan-map__zones"
           />
           <PctLabelsLayer labels={zoneLabels} />
@@ -597,6 +601,7 @@ export function SharedMapStage({
               onMarkerClick={onMarkerClick}
               activeMarkerId={selectedMarkerId}
               getIsSeen={getIsSeen}
+              getDiscoverHalo={getDiscoverHalo}
               labelOf={markerLabelOf}
             />
           )}
