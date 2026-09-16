@@ -7963,7 +7963,9 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  align-items: center;
+  /* Bas aligné : avec les libellés au-dessus (P10), center faisait flotter les
+     champs à libellé court trop haut par rapport aux voisins. */
+  align-items: flex-end;
   margin-bottom: 10px;
 }
 .profiles-admin-list-toolbar input[type='search'],
