@@ -304,7 +304,7 @@ ouvertes par l'audit du même jour puis arbitrées.
 
 - Nouveau bloc **« Attribuer les profils d'après les tâches validées »** dans
   **Profils & utilisateurs → Comptes** : périmètre **tous les n3beurs** ou **un groupe**,
-  bouton **Aperçu** (simulation, rien n'est écrit) puis **Appliquer**, et liste nominative
+  bouton **Aperçu** (simulation, rien n'est écrit) puis **Appliquer le recalcul**, et liste nominative
   des paliers qui changent (« Ada Lovelace — 60 tâches validées → n3beur chevronné (était
   n3beur novice) »). De quoi rattraper d'un coup un parc de profils désaligné.
 - Bouton **« Niveau auto. »** sur chaque ligne d'élève de la liste d'attribution, pour le

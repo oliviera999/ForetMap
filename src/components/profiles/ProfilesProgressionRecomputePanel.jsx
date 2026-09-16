@@ -18,7 +18,7 @@ const cardStyle = {
 /**
  * Attribution en masse du profil d'après le nombre de tâches validées.
  *
- * Deux temps volontairement séparés : « Aperçu » (dry run, rien n'est écrit) puis « Appliquer ».
+ * Deux temps volontairement séparés : « Aperçu » (dry run, rien n'est écrit) puis « Appliquer le recalcul ».
  * Un recalcul de parc entier touche des dizaines de comptes — le n3boss voit qui change avant
  * de valider. Le recalcul d'un seul compte se fait depuis la liste d'attribution ci-dessus.
  */
@@ -162,7 +162,7 @@ export function ProfilesProgressionRecomputePanel({
           onClick={() => run(false)}
           disabled={disabled}
         >
-          Appliquer
+          Appliquer le recalcul
         </button>
       </div>
       {error && (
