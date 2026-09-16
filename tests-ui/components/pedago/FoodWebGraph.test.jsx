@@ -1,4 +1,4 @@
-import { describe, test, expect, vi } from 'vitest';
+import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import { FoodWebGraph } from '../../../src/components/pedago/FoodWebGraph.jsx';
 
@@ -60,6 +60,16 @@ const ITEMS = [
 ];
 
 describe('FoodWebGraph', () => {
+  // La disposition choisie est mémorisée d'une session à l'autre : sans remise à
+  // zéro, un test hériterait du choix du précédent.
+  beforeEach(() => {
+    try {
+      window.localStorage.clear();
+    } catch (_) {
+      /* stockage indisponible */
+    }
+  });
+
   test('rend des têtes de flèche orientées (markers par type)', () => {
     const { container } = render(<FoodWebGraph items={ITEMS} />);
     expect(container.querySelector('marker#fw-arrow-predation')).toBeTruthy();
@@ -113,13 +123,30 @@ describe('FoodWebGraph', () => {
     expect(onSelectEdge).toHaveBeenCalledWith(1);
   });
 
-  test('affiche les étiquettes de colonnes en disposition Niveaux', () => {
+  test('les niveaux sont la disposition par défaut d’un réseau alimentaire, et sont nommés', () => {
+    // Renard → Lapin → Trèfle : trois niveaux calculés depuis le graphe.
     const { getByText, queryByText } = render(<FoodWebGraph items={ITEMS} />);
+    expect(getByText('Producteurs')).toBeTruthy();
+    expect(getByText('Consommateurs primaires')).toBeTruthy();
+    expect(getByText('Consommateurs secondaires')).toBeTruthy();
+    fireEvent.click(getByText(/Cercle/));
     expect(queryByText('Producteurs')).toBeNull();
+  });
+
+  test('sans flux de matière, « Niveaux » retombe sur les colonnes de rôles', () => {
+    // Cadrage « Autres relations » : aucun niveau trophique n'a de sens.
+    const { getByText } = render(<FoodWebGraph items={[NITRI_ITEM, ENV_ITEM]} />);
+    fireEvent.click(getByText(/^Autres relations$/));
     fireEvent.click(getByText(/Niveaux/));
     expect(getByText('Producteurs')).toBeTruthy();
     expect(getByText('Consommateurs')).toBeTruthy();
     expect(getByText('Décomposeurs')).toBeTruthy();
+  });
+
+  test('l’infobulle d’une espèce porte son niveau, situé dans ce réseau', () => {
+    const { getByLabelText } = render(<FoodWebGraph items={ITEMS} />);
+    expect(getByLabelText(/Renard.*niveau 3 dans ce réseau/)).toBeTruthy();
+    expect(getByLabelText(/Trèfle.*niveau 1 dans ce réseau/)).toBeTruthy();
   });
 
   test('bouton Voir la fiche ouvre l’espèce isolée', () => {
@@ -234,6 +261,7 @@ describe('FoodWebGraph', () => {
 
   test('changer de disposition abandonne les positions déplacées à la main', () => {
     const { container, getByText } = render(<FoodWebGraph items={ITEMS} />);
+    fireEvent.click(getByText(/Cercle/));
     const svg = container.querySelector('svg.pedago-foodweb-graph');
     svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 880, height: 560 });
     const node = container.querySelector('.pedago-foodweb-graph__node-group');
@@ -297,12 +325,74 @@ describe('FoodWebGraph', () => {
   });
 
   test('« Chaîne » élargit le sous-réseau isolé', () => {
-    // Renard → Lapin → Trèfle : isoler Trèfle en profondeur 2 doit rendre le Renard actif.
+    // Renard → Lapin → Trèfle : isoler Trèfle en profondeur 2 doit ramener le Renard.
     const { container, getByText } = render(<FoodWebGraph items={ITEMS} highlightPlantId={30} />);
-    const dimmedAtDepth1 = container.querySelectorAll('.pedago-foodweb-graph__node.dim').length;
+    const atDepth1 = container.querySelectorAll('.pedago-foodweb-graph__node').length;
     fireEvent.click(getByText('Chaîne'));
-    const dimmedAtDepth2 = container.querySelectorAll('.pedago-foodweb-graph__node.dim').length;
-    expect(dimmedAtDepth2).toBeLessThan(dimmedAtDepth1);
+    const atDepth2 = container.querySelectorAll('.pedago-foodweb-graph__node').length;
+    expect(atDepth2).toBeGreaterThan(atDepth1);
+  });
+
+  test('isoler recompose la scène : le hors-sujet est retiré, pas seulement estompé', () => {
+    const { container } = render(<FoodWebGraph items={ITEMS} highlightPlantId={30} />);
+    // Trèfle + son voisin Lapin : le Renard n'est plus dessiné du tout.
+    expect(container.querySelectorAll('.pedago-foodweb-graph__node').length).toBe(2);
+    expect(container.querySelectorAll('.pedago-foodweb-graph__node.dim').length).toBe(0);
+  });
+
+  test('« Reste en fond » rétablit le contexte estompé', () => {
+    const { container, getByText } = render(<FoodWebGraph items={ITEMS} highlightPlantId={30} />);
+    fireEvent.click(getByText(/Reste en fond/));
+    expect(container.querySelectorAll('.pedago-foodweb-graph__node').length).toBe(3);
+    expect(container.querySelectorAll('.pedago-foodweb-graph__node.dim').length).toBe(1);
+  });
+
+  test('⌘/Ctrl + clic compose une sélection de plusieurs espèces', () => {
+    const { container, getByText, getByRole } = render(<FoodWebGraph items={ITEMS} />);
+    const groups = () => [...container.querySelectorAll('.pedago-foodweb-graph__node-group')];
+    fireEvent.pointerUp(groups()[0]); // Renard
+    expect(getByText('Espèce isolée')).toBeTruthy();
+    const lapin = groups().find((g) => /Lapin/.test(g.getAttribute('aria-label')));
+    fireEvent.pointerUp(lapin, { ctrlKey: true });
+    expect(getByText('2 espèces isolées')).toBeTruthy();
+    // La profondeur « Sélection » n'apparaît qu'à partir de deux espèces.
+    expect(getByRole('button', { name: 'Sélection' })).toBeTruthy();
+  });
+
+  test('« Sélection » ne garde que les espèces choisies et leurs relations', () => {
+    const { container, getByRole, getByLabelText } = render(<FoodWebGraph items={ITEMS} />);
+    fireEvent.click(getByRole('button', { name: /Ajouter à la sélection/ }));
+    fireEvent.change(getByLabelText('Rechercher une espèce'), { target: { value: 'renard' } });
+    fireEvent.click(getByRole('button', { name: /^Ajouter$/ }));
+    fireEvent.change(getByLabelText('Rechercher une espèce'), { target: { value: 'lapin' } });
+    fireEvent.click(getByRole('button', { name: /^Ajouter$/ }));
+    fireEvent.click(getByRole('button', { name: 'Sélection' }));
+    expect(container.querySelectorAll('.pedago-foodweb-graph__node').length).toBe(2);
+    expect(container.querySelectorAll('.pedago-foodweb-graph__line').length).toBe(1);
+  });
+
+  test('une puce retire l’espèce de la sélection', () => {
+    const { container, getByText, getByLabelText } = render(<FoodWebGraph items={ITEMS} />);
+    fireEvent.pointerUp(container.querySelector('.pedago-foodweb-graph__node-group'));
+    fireEvent.click(getByLabelText(/Retirer Renard de la sélection/));
+    expect(() => getByText(/Tout afficher/)).toThrow();
+  });
+
+  test('l’espèce isolée est résumée en toutes lettres', () => {
+    const { getByText } = render(<FoodWebGraph items={ITEMS} highlightPlantId={20} />);
+    // Lapin : mange le trèfle, est mangé par le renard.
+    expect(getByText(/mange\s*:\s*Trèfle/)).toBeTruthy();
+    expect(getByText(/est mangée par\s*:\s*Renard/)).toBeTruthy();
+  });
+
+  test('la disposition « Fiche » n’est proposée qu’une fois une espèce isolée', () => {
+    // Lapin : il mange (le trèfle) et il est mangé (par le renard) — les deux colonnes.
+    const { queryByText, getByText } = render(<FoodWebGraph items={ITEMS} highlightPlantId={20} />);
+    fireEvent.click(getByText('Fiche'));
+    expect(getByText('Ce qu’elle mange')).toBeTruthy();
+    expect(getByText('Ce qui la mange')).toBeTruthy();
+    fireEvent.click(getByText(/Tout afficher/));
+    expect(queryByText('Fiche')).toBeNull();
   });
 
   test('une espèce hors périmètre est marquée', () => {
