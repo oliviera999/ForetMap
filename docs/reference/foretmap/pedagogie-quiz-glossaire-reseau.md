@@ -256,19 +256,32 @@ y sont liées : voir [Tâches, tutoriels et validation](taches-tutoriels-et-vali
 > liens saisis par le professeur : un graphe vide ou clairsemé n'est pas une panne,
 > c'est un contenu à construire (idéalement avec les élèves).
 
-> ⚠️ **Point d'attention — le quiz est devinable à la longueur des réponses.** Sur les
-> 513 questions du corpus, la bonne réponse fait en moyenne **49 caractères contre 29**
-> pour les propositions fausses. Un élève qui choisirait systématiquement la proposition
-> la plus longue, sans rien connaître, en réussirait **66 %** — pour 25 % au hasard.
+> ⚠️ **Point d'attention — le quiz était devinable à la longueur des réponses ; le corpus
+> livré a été repris, les questions ajoutées depuis restent à reprendre.**
 >
-> La position, elle, n'est pas un problème : les propositions sont mélangées à chaque
-> affichage, donc le fait que la bonne réponse soit stockée en « A » une fois sur deux
-> est invisible pour l'élève.
+> La bonne réponse était rédigée avec soin, les propositions fausses expédiées en deux ou
+> trois mots. Un élève qui choisissait systématiquement la proposition la plus longue, sans
+> rien connaître, réussissait **66 %** des questions — pour 25 % au hasard. La position,
+> elle, n'a jamais été un problème : les propositions sont mélangées à chaque affichage,
+> donc le fait que la bonne réponse soit stockée en « A » une fois sur deux est invisible
+> pour l'élève.
 >
-> **285 questions** ont une bonne réponse nettement plus longue que ses distracteurs. Le
-> rapport d'audit du contenu pédagogique les liste sous l'intitulé `length_bias_answer`,
-> et affiche le taux de réussite de la stratégie « choisir la plus longue ». La
-> correction est éditoriale : étoffer les propositions fausses, ou resserrer la bonne.
+> **426 propositions fausses ont été réécrites sur 142 questions du corpus livré**, en
+> gardant l'erreur que chacune représente (les explications par proposition restent donc
+> justes) et en lui donnant le même niveau de détail que la bonne réponse. Sur le corpus
+> livré, la stratégie « choisir la plus longue » tombe de **78 % à 39 %** ; à un écart
+> réellement visible — plus de 20 caractères — elle ne marche plus du tout (52 % avant,
+> **0 % après**).
+>
+> **Ce qui reste à faire : les questions saisies depuis le panneau prof.** Elles n'ont pas
+> été touchées, et environ **143** d'entre elles restent concernées. Le rapport d'audit du
+> contenu pédagogique les liste sous l'intitulé `length_bias_answer`, avec le taux de
+> réussite de la stratégie « choisir la plus longue ».
+>
+> **La règle en écrivant une question :** une proposition fausse doit être aussi développée
+> que la bonne, et il faut accepter que la plus longue des quatre soit parfois la bonne
+> réponse — sinon la règle « choisir la plus longue » devient simplement « éviter la plus
+> longue », et le quiz reste devinable.
 
 ## Pour aller plus loin
 

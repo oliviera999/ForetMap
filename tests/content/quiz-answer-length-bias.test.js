@@ -13,24 +13,27 @@ const { summarizeAnswerLengthBias } = require('../../lib/pedagoContentAudit');
  * ne peut donc pas exiger un corpus donné, et se tait quand la table est vide (base de CI
  * fraîche). Sur une base réellement peuplée, il vérifie que la situation ne s'aggrave pas.
  *
- * Deux mesures de référence, parce que les deux corpus diffèrent :
+ * Deux mesures de référence, parce que les deux corpus diffèrent. La migration `256` a
+ * réécrit 426 propositions sur les 142 questions du corpus semé que ce test signalait :
  *
- *   - export de production du 15/09/2026 : 513 questions, « choisir la proposition la plus
- *     longue » réussit **65,7 %** des questions, rapport de longueur 1,71 ;
- *   - corpus semé par `sql/schema_foretmap.sql`, celui que la CI exécute : 203 questions,
- *     **78,8 %**, rapport 1,92. Le corpus de référence versionné est donc *plus* biaisé que
- *     la production — c'est lui qu'il faut reprendre en premier, puisque c'est lui qui part
- *     sur toute nouvelle installation.
+ *                                      avant 256      après 256
+ *   corpus semé (204 q., celui de la CI)   78,4 %         38,7 %   rapport 1,92 → 1,11
+ *   export de production (513 q.)          65,7 %         49,9 %   rapport 1,71 → 1,34
  *
  * Pour 25 % au hasard sur quatre propositions, dans les deux cas.
  *
+ * La production reste en retrait parce que la migration ne touche que le corpus livré : les
+ * questions ajoutées depuis le panneau prof gardent leur rédaction d'origine, et ce sont
+ * elles — 143 encore signalées — qu'il reste à reprendre.
+ *
  * Le plafond est calé sur le corpus le plus défavorable des deux, juste au-dessus : il
  * interdit l'aggravation sans bloquer aujourd'hui. **Il a vocation à être abaissé** au fur
- * et à mesure des reprises éditoriales — c'est le seul intérêt d'un cliquet.
+ * et à mesure des reprises éditoriales — c'est le seul intérêt d'un cliquet, et c'est ce
+ * qu'a permis la migration 256 (0,80 → 0,55 ; 1,95 → 1,40).
  */
 
-const PLAFOND_STRATEGIE_PLUS_LONGUE = 0.8;
-const PLAFOND_RAPPORT_LONGUEUR = 1.95;
+const PLAFOND_STRATEGIE_PLUS_LONGUE = 0.55;
+const PLAFOND_RAPPORT_LONGUEUR = 1.4;
 const CORPUS_MINIMUM = 50;
 
 let questions = [];
@@ -65,7 +68,7 @@ test('l’écart moyen de longueur reste borné', (t) => {
     return;
   }
   const summary = summarizeAnswerLengthBias(questions);
-  // Références : production 1,71 (49,0 car. contre 28,6) ; corpus semé 1,92.
+  // Références après la migration 256 : production 1,34 ; corpus semé 1,11.
   const ratio = summary.meanCorrectLength / summary.meanDistractorLength;
   assert.ok(
     ratio <= PLAFOND_RAPPORT_LONGUEUR,

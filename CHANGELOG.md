@@ -9,6 +9,29 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — QCM : la bonne réponse n'est plus la proposition la plus longue
+
+- **426 propositions fausses réécrites sur 142 questions** du corpus livré (migration `256`).
+  Le biais de position était déjà neutralisé à l'affichage par le mélange Fisher-Yates de
+  `lib/qcmChoices.js` ; le biais de **longueur**, lui, voyage avec le texte et survit au
+  mélange.
+- Sur le corpus semé, la stratégie « choisir la proposition la plus longue » passe de
+  **78,4 % à 38,7 %** de réussite (25 % au hasard) ; plus aucune question n'est signalée
+  `length_bias_answer` (142 auparavant). À un écart réellement perceptible — plus de
+  20 caractères d'avance sur le meilleur distracteur — l'indice disparaît complètement :
+  52,5 % des questions avant, **0 % après**. Sur l'export de production, 65,7 % → 49,9 %,
+  le reliquat étant les questions saisies depuis le panneau prof, hors corpus livré.
+- Ce sont les **distracteurs** qui ont été étoffés, jamais les bonnes réponses : la bonne
+  réponse porte le contenu enseigné, et chaque distracteur a son propre `feedback_<lettre>`
+  adossé à l'erreur qu'il représente. Le sens de chaque proposition fausse est conservé,
+  seul son niveau de détail change — les feedbacks existants restent donc exacts.
+- La bonne réponse reste volontairement la plus longue dans une partie des questions : si
+  la plus longue était toujours fausse, la règle deviendrait simplement « éviter la plus
+  longue ».
+- Chaque `UPDATE` est gardé par l'ancienne valeur : une question déjà retouchée depuis le
+  panneau prof n'est jamais écrasée, et rejouer la migration ne fait rien. Cliquet du test
+  de contenu resserré en conséquence (0,80 → 0,55 ; rapport 1,95 → 1,40).
+
 ### Ajouté — Fiches espèces : champ « danger » distinct de la détermination
 
 - Quatre colonnes `plants` (migration `251`) : `toxicity_level` (aucune / irritation /
