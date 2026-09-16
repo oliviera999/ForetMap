@@ -532,8 +532,8 @@ body.plan-body {
 
 .plan-guide-bar__emoji {
   flex: 0 0 auto;
-  font-size: 1.4rem;
-  line-height: 1;
+  font-size: var(--text-xl, 1.4rem);
+  line-height: var(--lh-tight, 1.2);
 }
 
 .plan-guide-bar__texts {
