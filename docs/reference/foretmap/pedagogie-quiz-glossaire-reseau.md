@@ -185,6 +185,20 @@ d'observation** pour l'écriture naturaliste libre.
 - **Voir la chaîne, pas seulement les voisins.** Quand une espèce est isolée, deux boutons
   apparaissent : « Voisins » (les espèces directement reliées) et « Chaîne », qui va un cran
   plus loin — qui mange qui mange qui. C'est là que se lit une chaîne alimentaire.
+- **Isoler une espèce recompose la scène autour d'elle.** Le reste du réseau n'est plus
+  seulement estompé : il est retiré, et les espèces retenues se réorganisent pour occuper
+  toute la place. Le bouton « Reste en fond » ramène le contexte estompé quand on veut
+  montrer où l'on se situe dans l'ensemble.
+- **Isoler plusieurs espèces à la fois.** ⌘/Ctrl + clic (ou le bouton « Ajouter à la
+  sélection », pensé pour la tablette) ajoute une espèce à celles déjà isolées ; les espèces
+  retenues s'affichent en puces sous le graphe, où l'on peut les retirer une à une. Avec deux
+  espèces ou plus, un troisième bouton d'étendue apparaît : « Sélection » ne garde que les
+  espèces choisies et leurs relations mutuelles — de quoi composer au tableau la chaîne
+  exacte d'une séance, puis l'exporter en PNG.
+- **La disposition « Fiche »** (proposée dès qu'une seule espèce est isolée) présente la
+  lecture attendue : ce qu'elle mange à gauche, l'espèce au centre, ce qui la mange à droite.
+  Sous le graphe, la même chose est écrite en toutes lettres — utile pour la trace écrite et
+  pour les lecteurs d'écran.
 - **Deux relations entre les deux mêmes espèces ne se cachent plus l'une l'autre** : elles
   sont légèrement écartées, chacune cliquable.
 - **Herbivorie, prédation et décomposition** se distinguent à la fois par la
@@ -194,8 +208,25 @@ d'observation** pour l'écriture naturaliste libre.
   couleur et s’entoure d’un halo vert, sans devenir toute verte.
 - **Le cadrage** (Réseau alimentaire / Autres relations / Tout) s’applique au
   graphe **et** à la liste. Le filtre fin par type n’apparaît que dans « Tout ».
-- **Disposition Niveaux** : les colonnes Producteurs, Consommateurs, Décomposeurs
-  (et Autres) sont étiquetées au-dessus du graphe.
+- **Disposition Niveaux : la pyramide se lit de bas en haut**, avec les niveaux de
+  consommateurs nommés. Les producteurs forment la bande du bas, puis les **consommateurs
+  primaires**, **secondaires** et **tertiaires**. Trois points à connaître :
+  - le niveau est **calculé sur le réseau affiché** (un niveau = un cran au-dessus de la
+    moyenne de ses proies), pas saisi espèce par espèce : changer de carte, de zone ou de
+    cadrage peut donc le changer, et l'infobulle le dit (« niveau 2,4 dans ce réseau ») ;
+  - un **omnivore** garde une valeur intermédiaire — le merle qui mange des vers _et_ des
+    baies est annoncé « régime mixte, entre deux niveaux » — au lieu d'être rangé de force ;
+  - les **décomposeurs ne sont pas un étage de plus** : ils occupent une voie à part, sur le
+    côté, avec les espèces dont le niveau n'est pas déterminable (aucune relation « mange »
+    enregistrée). C'est un point scientifique, pas un détail d'affichage.
+    Quand un niveau compte plus d'espèces que la largeur n'en porte, la bande se poursuit sur
+    plusieurs rangées et la scène s'allonge, au lieu d'empiler les pastilles.
+- **Le cercle affiche les noms en rayon**, autour de l'anneau : ils tiennent alors même sur
+  un réseau de plusieurs dizaines d'espèces, là où les noms posés sous les pastilles se
+  chevauchaient à partir d'une quinzaine.
+- **La disposition choisie est mémorisée** : un professeur qui projette en « Niveaux » la
+  retrouve à la séance suivante. Sur un réseau alimentaire, c'est « Niveaux » par défaut ;
+  sur « Autres relations », où aucun niveau n'a de sens, on revient aux colonnes de rôles.
 - Une fois une espèce isolée, le bouton **« Voir la fiche »** ouvre sa fiche —
   utile sur tablette, où le double-clic est peu naturel.
 - **Filtrer par zone ne coupe plus les liens qui en sortent.** Une espèce de la zone mangée

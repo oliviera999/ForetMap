@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { INTERACTION_TYPES, interactionTypeLabel } from '../../shared/foodWebTypes.js';
+import {
+  INTERACTION_TYPES,
+  interactionMatterFlow,
+  interactionTypeLabel,
+} from '../../shared/foodWebTypes.js';
 import {
   buildEdgeExportCss,
   edgeStyleClass,
@@ -9,11 +13,19 @@ import { FoodWebEdgeLegend } from './FoodWebEdgeLegend.jsx';
 import {
   ENV_NODE_ID,
   FOCUS_DEPTHS,
+  FOCUS_DEPTH_LABELS,
+  FOCUS_DEPTH_TITLES,
   GRAPH_PRESET_LABELS,
+  LABEL_CROWD_THRESHOLD,
   TROPHIC_COLUMN_LABELS,
   buildGraphModel,
+  circleLayoutSize,
+  computeChainLayout,
   computeCircleLayout,
+  computeEnvAnchor,
   computeTrophicLayout,
+  computeTrophicLevelLayout,
+  computeTrophicLevels,
   focusSubset,
   isEnvNodeId,
   itemsForPreset,
@@ -21,10 +33,13 @@ import {
   parallelEdgeOffset,
   parallelEdgeRanks,
   trophicColumnXs,
+  trophicLevelTitle,
   truncateNodeLabel,
 } from './foodWebGraphModel.js';
 import {
+  IconAdd,
   IconClose,
+  IconFoodweb,
   IconDownload,
   IconImage,
   IconStats,
@@ -38,8 +53,33 @@ import {
 const BASE_W = 880;
 const BASE_H = 560;
 const NODE_R = 20;
-const ENV_POS = { x: BASE_W / 2, y: 28 };
 const CLICK_MOVE_THRESHOLD = 4;
+
+/** Clé de mémorisation de la disposition choisie (par produit). */
+const LAYOUT_STORAGE_KEY = 'foretmap.foodweb.layout';
+
+/** Dispositions proposées. `levels` retombe sur les rôles faute de niveaux calculables. */
+const LAYOUT_CIRCLE = 'circle';
+const LAYOUT_LEVELS = 'levels';
+const LAYOUT_CHAIN = 'chain';
+
+/** Lecture tolérante du dernier choix de disposition (stockage indisponible, valeur inconnue). */
+function readStoredLayout(variant) {
+  try {
+    const raw = window.localStorage.getItem(`${LAYOUT_STORAGE_KEY}.${variant}`);
+    return raw === LAYOUT_CIRCLE || raw === LAYOUT_LEVELS ? raw : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function storeLayout(variant, value) {
+  try {
+    window.localStorage.setItem(`${LAYOUT_STORAGE_KEY}.${variant}`, value);
+  } catch (_) {
+    /* stockage indisponible (navigation privée, quota) : sans conséquence */
+  }
+}
 
 /** Styles embarqués pour l'export SVG/PNG (le CSS de la page ne s'applique pas hors DOM). */
 const EXPORT_STYLE = `
@@ -49,9 +89,11 @@ const EXPORT_STYLE = `
   .pedago-foodweb-graph__node.dim{opacity:.18}
   .pedago-foodweb-graph__node--env{fill:#f3f4f6;stroke:#94a3b8;stroke-dasharray:3 3}
   .pedago-foodweb-graph__node--outside{fill:#fff7ed;stroke:#ea9a5c;stroke-dasharray:5 3}
-  .pedago-foodweb-graph__label{font:600 10px sans-serif;fill:#1f2937}
+  .pedago-foodweb-graph__label{font:600 10px sans-serif;fill:#1f2937;paint-order:stroke;stroke:#ffffff;stroke-width:2.5px;stroke-linejoin:round}
   .pedago-foodweb-graph__label.dim{opacity:.2}
   .pedago-foodweb-graph__col-label{font:600 11px sans-serif;fill:#4b5563}
+  .pedago-foodweb-graph__band-label{font:600 11px sans-serif;fill:#4b5563}
+  .pedago-foodweb-graph__band-rule{stroke:#d7e3da;stroke-width:1;stroke-dasharray:4 4}
   .pedago-foodweb-graph__node-emoji{font:16px sans-serif}
 `;
 
@@ -95,7 +137,11 @@ export function FoodWebGraph({
     setSvgEl(node);
   }, []);
 
-  const [layout, setLayout] = useState('circle');
+  // Disposition : le dernier choix explicite est mémorisé (un prof qui projette
+  // en niveaux ne doit pas le redemander à chaque séance). À défaut, le défaut
+  // dépend du cadrage — voir `defaultLayout` plus bas.
+  const [storedLayout] = useState(() => readStoredLayout(variant));
+  const [layout, setLayout] = useState(storedLayout);
   const [internalPreset, setInternalPreset] = useState('alimentaire');
   const presetControlled = presetProp != null;
   const preset = presetControlled ? presetProp : internalPreset;
@@ -103,8 +149,13 @@ export function FoodWebGraph({
   const [overrides, setOverrides] = useState(() => new Map());
   const [hoverNode, setHoverNode] = useState(null);
   const [hoverEdge, setHoverEdge] = useState(null);
-  const [focusId, setFocusId] = useState(null);
-  const [focusDepth, setFocusDepth] = useState(FOCUS_DEPTHS[0]);
+  /** Sélection d'espèces isolées : un ensemble, pas un identifiant (lot F3). */
+  const [focusIds, setFocusIds] = useState(() => new Set());
+  const [focusDepth, setFocusDepth] = useState(1);
+  /** Vrai : garder le reste du réseau estompé en fond plutôt que de le retirer. */
+  const [showContext, setShowContext] = useState(false);
+  /** Mode « ajouter » : un simple appui ajoute à la sélection (tablette). */
+  const [addMode, setAddMode] = useState(false);
   const [search, setSearch] = useState('');
   const [hiddenTypes, setHiddenTypes] = useState(() => new Set());
   const [moreOpen, setMoreOpen] = useState(false);
@@ -149,31 +200,122 @@ export function FoodWebGraph({
 
   const trophicLabelXs = useMemo(() => trophicColumnXs({ width: BASE_W }), []);
 
+  /**
+   * Position trophique calculée sur le réseau **affiché** (lot F4) : elle change
+   * avec la carte, la zone et le cadrage, et l'interface le dit.
+   */
+  const trophicLevels = useMemo(() => computeTrophicLevels(nodes, edges), [nodes, edges]);
+
+  const focusActive = focusIds.size > 0;
+  const soleFocusId = focusIds.size === 1 ? [...focusIds][0] : null;
+
   const focusNode = useMemo(
-    () => (focusId == null ? null : nodes.find((n) => n.id === focusId) || null),
-    [nodes, focusId],
+    () => (soleFocusId == null ? null : nodes.find((n) => n.id === soleFocusId) || null),
+    [nodes, soleFocusId],
   );
 
-  const baseLayout = useMemo(
+  /** Sous-réseau isolé (null hors focus). */
+  const subset = useMemo(
+    () => (focusActive ? focusSubset(visibleEdges, focusIds, focusDepth) : null),
+    [focusActive, visibleEdges, focusIds, focusDepth],
+  );
+
+  /**
+   * Isoler **recompose** la scène : sans cela, les voisins restaient dispersés
+   * aux quatre coins d'un cercle peuplé de fantômes estompés (constat D3).
+   * « Garder le reste en fond » rétablit l'ancien comportement à la demande.
+   */
+  const recomposed = focusActive && !showContext;
+
+  const layoutNodes = useMemo(
+    () => (recomposed && subset ? nodes.filter((node) => subset.visibleNodes.has(node.id)) : nodes),
+    [recomposed, subset, nodes],
+  );
+
+  const layoutEdges = useMemo(
     () =>
-      layout === 'trophic'
-        ? computeTrophicLayout(nodes, { width: BASE_W, height: BASE_H })
-        : computeCircleLayout(nodes, { width: BASE_W, height: BASE_H }),
-    [nodes, layout],
+      recomposed && subset
+        ? visibleEdges.filter((edge) => subset.visibleEdges.has(edge.id))
+        : visibleEdges,
+    [recomposed, subset, visibleEdges],
+  );
+
+  /** Défaut : les niveaux quand le cadrage porte un flux de matière, sinon le cercle. */
+  const defaultLayout = trophicLevels.size > 0 ? LAYOUT_LEVELS : LAYOUT_CIRCLE;
+  const requestedLayout = layout || defaultLayout;
+  /** La « fiche » n'a de sens que sur une espèce isolée. */
+  const chainAvailable = soleFocusId != null && !isEnvNodeId(soleFocusId);
+  const layoutKind =
+    requestedLayout === LAYOUT_CHAIN && !chainAvailable ? defaultLayout : requestedLayout;
+
+  const scene = useMemo(() => {
+    if (layoutKind === LAYOUT_CHAIN && chainAvailable) {
+      const chain = computeChainLayout(layoutNodes, layoutEdges, soleFocusId, {
+        width: BASE_W,
+        height: BASE_H,
+      });
+      return { ...chain, bands: [], lanes: [], kind: LAYOUT_CHAIN };
+    }
+    if (layoutKind === LAYOUT_LEVELS) {
+      const levels = computeTrophicLevelLayout(layoutNodes, trophicLevels, {
+        width: BASE_W,
+        height: BASE_H,
+      });
+      // Aucun niveau calculable (cadrage « Autres relations ») : on retombe sur
+      // les colonnes de rôles, qui restent justes — il n'y a alors pas de niveau.
+      if (levels.bands.length === 0) {
+        return {
+          positions: computeTrophicLayout(layoutNodes, { width: BASE_W, height: BASE_H }),
+          height: BASE_H,
+          bands: [],
+          lanes: [],
+          columns: [],
+          kind: 'roles',
+        };
+      }
+      return { ...levels, columns: [], kind: LAYOUT_LEVELS };
+    }
+    // Le cercle réserve la couronne des étiquettes radiales : sa hauteur suit
+    // donc le nombre d'espèces, comme celle des bandes suit les rangées.
+    const size = circleLayoutSize(layoutNodes.filter((node) => !isEnvNodeId(node.id)).length);
+    return {
+      positions: computeCircleLayout(layoutNodes, {
+        width: BASE_W,
+        height: size.height,
+        radius: size.radius,
+      }),
+      height: size.height,
+      bands: [],
+      lanes: [],
+      columns: [],
+      kind: LAYOUT_CIRCLE,
+    };
+  }, [layoutKind, chainAvailable, layoutNodes, layoutEdges, soleFocusId, trophicLevels]);
+
+  const baseLayout = scene.positions;
+  const sceneHeight = scene.height || BASE_H;
+
+  /**
+   * Ancrage du nœud « environnement » quand la disposition ne le place pas :
+   * sur le cercle, il tombait à 2 px du premier nœud, étiquette par-dessus la
+   * pastille (constat D4). Il passe au centre, libre par construction.
+   */
+  const envAnchor = useMemo(
+    () => computeEnvAnchor(scene.kind, { width: BASE_W, height: sceneHeight }),
+    [scene.kind, sceneHeight],
   );
 
   const posOf = useCallback(
     (id) => {
-      if (id == null) return ENV_POS;
-      return overrides.get(id) || baseLayout.get(id) || ENV_POS;
+      if (id == null) return envAnchor;
+      return overrides.get(id) || baseLayout.get(id) || envAnchor;
     },
-    [overrides, baseLayout],
+    [overrides, baseLayout, envAnchor],
   );
 
-  // Ensembles « actifs » (pleine opacité). Le reste est estompé.
+  // Ensembles « actifs » (pleine opacité). Le reste est estompé — ou retiré.
   const { activeNodes, activeEdges, hasFilter } = useMemo(() => {
-    if (focusId != null) {
-      const subset = focusSubset(visibleEdges, focusId, focusDepth);
+    if (subset) {
       return {
         activeNodes: subset.visibleNodes,
         activeEdges: subset.visibleEdges,
@@ -196,7 +338,38 @@ export function FoodWebGraph({
       return { activeNodes: ns, activeEdges: new Set(edge ? [edge.id] : []), hasFilter: true };
     }
     return { activeNodes: null, activeEdges: null, hasFilter: false };
-  }, [visibleEdges, focusId, focusDepth, hoverNode, hoverEdge]);
+  }, [visibleEdges, subset, hoverNode, hoverEdge]);
+
+  /**
+   * Nœuds et arêtes réellement dessinés. En mode recomposé, le hors-sujet n'est
+   * pas estompé mais **retiré** : il ne prend plus de place, ne capte plus les
+   * clics et sort de la séquence de tabulation.
+   */
+  const renderedNodes = useMemo(
+    () => (recomposed && subset ? nodes.filter((n) => subset.visibleNodes.has(n.id)) : nodes),
+    [recomposed, subset, nodes],
+  );
+  const renderedEdges = useMemo(
+    () =>
+      recomposed && subset
+        ? visibleEdges.filter((e) => subset.visibleEdges.has(e.id))
+        : visibleEdges,
+    [recomposed, subset, visibleEdges],
+  );
+
+  /**
+   * Au-delà du seuil de saturation, seules les étiquettes des nœuds actifs sont
+   * tracées : un nom illisible parce qu'empilé sur trois autres n'apprend rien.
+   */
+  const labelsAlwaysVisible = renderedNodes.length <= LABEL_CROWD_THRESHOLD;
+  const labelVisible = useCallback(
+    (id) =>
+      labelsAlwaysVisible ||
+      hoverNode === id ||
+      focusIds.has(id) ||
+      (activeNodes?.has(id) ?? false),
+    [labelsAlwaysVisible, hoverNode, focusIds, activeNodes],
+  );
 
   const nodeLabelById = useMemo(
     () => new Map(nodes.map((node) => [node.id, node.name || 'Espèce'])),
@@ -220,24 +393,27 @@ export function FoodWebGraph({
       const rect = svg.getBoundingClientRect();
       if (!rect.width || !rect.height) return null;
       const vbX = ((evt.clientX - rect.left) / rect.width) * BASE_W;
-      const vbY = ((evt.clientY - rect.top) / rect.height) * BASE_H;
+      const vbY = ((evt.clientY - rect.top) / rect.height) * sceneHeight;
       return { x: (vbX - view.tx) / view.scale, y: (vbY - view.ty) / view.scale };
     },
-    [view],
+    [view, sceneHeight],
   );
 
   // --- Zoom ---
-  const zoomBy = useCallback((factor, center) => {
-    setView((v) => {
-      const scale = Math.min(4, Math.max(0.4, v.scale * factor));
-      const cx = center ? center.x : BASE_W / 2;
-      const cy = center ? center.y : BASE_H / 2;
-      // garde le point (cx,cy) fixe à l'écran
-      const tx = cx - ((cx - v.tx) * scale) / v.scale;
-      const ty = cy - ((cy - v.ty) * scale) / v.scale;
-      return { scale, tx, ty };
-    });
-  }, []);
+  const zoomBy = useCallback(
+    (factor, center) => {
+      setView((v) => {
+        const scale = Math.min(4, Math.max(0.4, v.scale * factor));
+        const cx = center ? center.x : BASE_W / 2;
+        const cy = center ? center.y : sceneHeight / 2;
+        // garde le point (cx,cy) fixe à l'écran
+        const tx = cx - ((cx - v.tx) * scale) / v.scale;
+        const ty = cy - ((cy - v.ty) * scale) / v.scale;
+        return { scale, tx, ty };
+      });
+    },
+    [sceneHeight],
+  );
 
   // React enregistre `wheel` en écouteur **passif** sur la racine : un `onWheel`
   // JSX ne peut donc pas annuler le défilement de la page pendant le zoom. On pose
@@ -251,14 +427,14 @@ export function FoodWebGraph({
         rect && rect.width && rect.height
           ? {
               x: ((evt.clientX - rect.left) / rect.width) * BASE_W,
-              y: ((evt.clientY - rect.top) / rect.height) * BASE_H,
+              y: ((evt.clientY - rect.top) / rect.height) * sceneHeight,
             }
           : null;
       zoomBy(evt.deltaY < 0 ? 1.12 : 1 / 1.12, center);
     };
     svgEl.addEventListener('wheel', handleWheel, { passive: false });
     return () => svgEl.removeEventListener('wheel', handleWheel);
-  }, [svgEl, zoomBy]);
+  }, [svgEl, zoomBy, sceneHeight]);
 
   const resetView = useCallback(() => {
     setView({ scale: 1, tx: 0, ty: 0 });
@@ -267,12 +443,18 @@ export function FoodWebGraph({
 
   /** Changer de disposition recompose la scène : les positions déplacées à la
    *  main sont abandonnées, sinon « Niveaux » laissait des nœuds au cercle. */
-  const changeLayout = useCallback((next) => {
-    setLayout((cur) => {
-      if (cur !== next) setOverrides(new Map());
-      return next;
-    });
-  }, []);
+  const changeLayout = useCallback(
+    (next) => {
+      setLayout((cur) => {
+        if (cur !== next) setOverrides(new Map());
+        return next;
+      });
+      // Seule la « fiche » reste contextuelle : elle dépend d'une espèce isolée
+      // et n'a pas à devenir le défaut de la prochaine séance.
+      if (next !== LAYOUT_CHAIN) storeLayout(variant, next);
+    },
+    [variant],
+  );
 
   // --- Zoom au pincement (les élèves travaillent sur tablette) ---
   // `touch-action: none` est nécessaire au déplacement mais neutralise le
@@ -280,14 +462,17 @@ export function FoodWebGraph({
   const pointersRef = useRef(new Map());
   const pinchRef = useRef(null);
 
-  const clientToViewbox = useCallback((clientX, clientY) => {
-    const rect = svgRef.current?.getBoundingClientRect?.();
-    if (!rect || !rect.width || !rect.height) return null;
-    return {
-      x: ((clientX - rect.left) / rect.width) * BASE_W,
-      y: ((clientY - rect.top) / rect.height) * BASE_H,
-    };
-  }, []);
+  const clientToViewbox = useCallback(
+    (clientX, clientY) => {
+      const rect = svgRef.current?.getBoundingClientRect?.();
+      if (!rect || !rect.width || !rect.height) return null;
+      return {
+        x: ((clientX - rect.left) / rect.width) * BASE_W,
+        y: ((clientY - rect.top) / rect.height) * sceneHeight,
+      };
+    },
+    [sceneHeight],
+  );
 
   /** Enregistre un doigt ; au deuxième, bascule en pincement et annule tout glissement. */
   const trackPointer = useCallback((evt) => {
@@ -402,7 +587,7 @@ export function FoodWebGraph({
         const rect = svg?.getBoundingClientRect?.();
         if (!rect) return;
         const dx = ((evt.clientX - drag.startClient.x) / rect.width) * BASE_W;
-        const dy = ((evt.clientY - drag.startClient.y) / rect.height) * BASE_H;
+        const dy = ((evt.clientY - drag.startClient.y) / rect.height) * sceneHeight;
         if (Math.abs(dx) > 2 || Math.abs(dy) > 2) drag.moved = true;
         drag.pending = {
           scale: drag.startView.scale,
@@ -414,7 +599,7 @@ export function FoodWebGraph({
       }
       if (!dragRafRef.current) dragRafRef.current = requestAnimationFrame(commitPendingDrag);
     },
-    [clientToBase, commitPendingDrag, handlePinchMove],
+    [clientToBase, commitPendingDrag, handlePinchMove, sceneHeight],
   );
 
   const onPointerUp = useCallback(
@@ -426,8 +611,29 @@ export function FoodWebGraph({
     [flushPendingDrag, releasePointer],
   );
 
-  const toggleFocus = useCallback((id) => {
-    setFocusId((cur) => (cur === id ? null : id));
+  /**
+   * Isole une espèce. `additive` (⌘/Ctrl, mode « Ajouter », ⌘/Ctrl+Entrée)
+   * l'ajoute à la sélection au lieu de la remplacer : c'est ce qui permet de
+   * composer un réseau avec plusieurs espèces et d'exclure tout le reste.
+   */
+  const toggleFocus = useCallback((id, additive = false) => {
+    setFocusIds((cur) => {
+      const next = new Set(cur);
+      if (additive) {
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      }
+      if (next.size === 1 && next.has(id)) return new Set();
+      return new Set([id]);
+    });
+  }, []);
+
+  const clearFocus = useCallback(() => {
+    setFocusIds(new Set());
+    setShowContext(false);
+    setAddMode(false);
+    setFocusDepth(1);
   }, []);
 
   /** Dernière espèce mise en avant déjà appliquée (évite de re-focaliser à chaque rendu). */
@@ -445,15 +651,17 @@ export function FoodWebGraph({
     if (!Number.isFinite(id) || appliedHighlightRef.current === id) return;
     if (!nodes.some((node) => node.id === id)) return;
     appliedHighlightRef.current = id;
-    setFocusId(id);
+    setFocusIds(new Set([id]));
   }, [highlightPlantId, nodes]);
 
   // Le jeu de données a changé (carte, zone, filtre de type) : un focus sur un nœud
   // disparu vidait la scène sans que rien ne l'explique.
   useEffect(() => {
-    if (focusId == null) return;
-    if (!nodes.some((node) => node.id === focusId)) setFocusId(null);
-  }, [nodes, focusId]);
+    if (focusIds.size === 0) return;
+    const present = new Set(nodes.map((node) => node.id));
+    if ([...focusIds].every((id) => present.has(id))) return;
+    setFocusIds((cur) => new Set([...cur].filter((id) => present.has(id))));
+  }, [nodes, focusIds]);
 
   const onNodePointerUp = useCallback(
     (evt, id) => {
@@ -464,9 +672,9 @@ export function FoodWebGraph({
       const moved = drag?.kind === 'node' && drag.moved;
       dragRef.current = null;
       // Lever un doigt d'un pincement ne doit pas être compris comme un clic.
-      if (!moved && !wasPinching) toggleFocus(id);
+      if (!moved && !wasPinching) toggleFocus(id, addMode || evt.ctrlKey || evt.metaKey);
     },
-    [flushPendingDrag, releasePointer, toggleFocus],
+    [flushPendingDrag, releasePointer, toggleFocus, addMode],
   );
 
   /** Le nœud « environnement » n'a pas de fiche espèce à ouvrir. */
@@ -478,15 +686,16 @@ export function FoodWebGraph({
     [onOpenPlant],
   );
 
-  // Clavier : Entrée/Espace isole le réseau du nœud, Maj+Entrée ouvre sa fiche.
+  // Clavier : Entrée/Espace isole le réseau du nœud, Maj+Entrée ouvre sa fiche,
+  // ⌘/Ctrl+Entrée ajoute (ou retire) l'espèce de la sélection.
   const onNodeKeyDown = useCallback(
     (evt, id) => {
       if (evt.key !== 'Enter' && evt.key !== ' ' && evt.key !== 'Spacebar') return;
       evt.preventDefault();
       if (evt.shiftKey) openNodePlant(id);
-      else toggleFocus(id);
+      else toggleFocus(id, addMode || evt.ctrlKey || evt.metaKey);
     },
-    [openNodePlant, toggleFocus],
+    [openNodePlant, toggleFocus, addMode],
   );
 
   const onEdgeKeyDown = useCallback(
@@ -519,29 +728,82 @@ export function FoodWebGraph({
       evt.preventDefault();
       const first = searchMatches[0];
       if (!first) return;
-      setFocusId(first.id);
+      // Le champ sert aussi à composer une sélection : en mode « Ajouter »,
+      // « Isoler » empile au lieu de remplacer.
+      toggleFocus(first.id, addMode && !focusIds.has(first.id));
       setSearch('');
     },
-    [searchMatches],
+    [searchMatches, toggleFocus, addMode, focusIds],
   );
 
   // --- Intitulés (infobulle souris + nom accessible clavier/lecteur d'écran) ---
 
-  const nodeTitle = useCallback((node) => {
-    if (isEnvNodeId(node.id)) {
-      return `${node.name} (sol, air, lumière) — clic : isoler ses liens`;
-    }
-    const scope = node.outOfScope ? ' — hors du périmètre filtré' : '';
-    return `${node.name}${node.role ? ` (${node.role})` : ''}${scope} — clic : focus, double-clic : fiche`;
-  }, []);
+  const nodeTitle = useCallback(
+    (node) => {
+      if (isEnvNodeId(node.id)) {
+        return `${node.name} (sol, air, lumière) — clic : isoler ses liens`;
+      }
+      const scope = node.outOfScope ? ' — hors du périmètre filtré' : '';
+      const level = trophicLevels.get(node.id);
+      const levelPart = Number.isFinite(level) ? ` — ${trophicLevelTitle(level)}` : '';
+      return `${node.name}${node.role ? ` (${node.role})` : ''}${levelPart}${scope} — clic : focus, double-clic : fiche`;
+    },
+    [trophicLevels],
+  );
 
-  const nodeAriaLabel = useCallback((node) => {
-    if (isEnvNodeId(node.id)) {
-      return `${node.name} — Entrée : isoler ses liens`;
+  const nodeAriaLabel = useCallback(
+    (node) => {
+      if (isEnvNodeId(node.id)) {
+        return `${node.name} — Entrée : isoler ses liens`;
+      }
+      const scope = node.outOfScope ? ', hors du périmètre filtré' : '';
+      const level = trophicLevels.get(node.id);
+      const levelPart = Number.isFinite(level) ? `, ${trophicLevelTitle(level)}` : '';
+      const selected = focusIds.has(node.id) ? ', sélectionnée' : '';
+      return `${node.name}${node.role ? `, ${node.role}` : ''}${levelPart}${scope}${selected} — Entrée : isoler son réseau, Ctrl+Entrée : ajouter à la sélection, Maj+Entrée : ouvrir la fiche`;
+    },
+    [trophicLevels, focusIds],
+  );
+
+  /** Espèces de la sélection, dans l'ordre d'affichage des puces. */
+  const selectedNodes = useMemo(
+    () =>
+      nodes
+        .filter((node) => focusIds.has(node.id))
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'fr')),
+    [nodes, focusIds],
+  );
+
+  /**
+   * Résumé texte de l'espèce isolée (« mange … · est mangée par … ») : la
+   * phrase que l'élève doit produire, lisible par un lecteur d'écran et
+   * recopiable dans un cahier, même quand la scène reste chargée.
+   */
+  const focusSummary = useMemo(() => {
+    if (soleFocusId == null || isEnvNodeId(soleFocusId)) return null;
+    const node = nodes.find((n) => n.id === soleFocusId);
+    if (!node) return null;
+    const eats = [];
+    const eatenBy = [];
+    const others = [];
+    for (const edge of visibleEdges) {
+      const trophic = interactionMatterFlow(edge.type) === 'to_from';
+      if (edge.headId === soleFocusId) {
+        (trophic ? eats : others).push(nodeLabelById.get(edge.tailId) || 'Espèce');
+      } else if (edge.tailId === soleFocusId) {
+        (trophic ? eatenBy : others).push(nodeLabelById.get(edge.headId) || 'Espèce');
+      }
     }
-    const scope = node.outOfScope ? ', hors du périmètre filtré' : '';
-    return `${node.name}${node.role ? `, ${node.role}` : ''}${scope} — Entrée : isoler son réseau, Maj+Entrée : ouvrir la fiche`;
-  }, []);
+    const uniq = (list) => [...new Set(list)];
+    return {
+      name: node.name,
+      emoji: node.emoji,
+      level: trophicLevels.get(node.id),
+      eats: uniq(eats),
+      eatenBy: uniq(eatenBy),
+      others: uniq(others),
+    };
+  }, [soleFocusId, nodes, visibleEdges, nodeLabelById, trophicLevels]);
 
   /** Phrase de l'arête : « Prédation : Lapin est mangée par Renard ». */
   const edgeSentence = useCallback(
@@ -570,7 +832,7 @@ export function FoodWebGraph({
     const clone = svg.cloneNode(true);
     clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
     clone.setAttribute('width', String(BASE_W));
-    clone.setAttribute('height', String(BASE_H));
+    clone.setAttribute('height', String(sceneHeight));
     // neutralise pan/zoom pour un export cadré
     const inner = clone.querySelector('[data-fw-viewport]');
     if (inner) inner.setAttribute('transform', 'translate(0,0) scale(1)');
@@ -578,7 +840,7 @@ export function FoodWebGraph({
     style.textContent = EXPORT_STYLE;
     clone.insertBefore(style, clone.firstChild);
     return new window.XMLSerializer().serializeToString(clone);
-  }, []);
+  }, [sceneHeight]);
 
   const exportSvg = useCallback(() => {
     const str = serializeSvg();
@@ -594,7 +856,7 @@ export function FoodWebGraph({
     img.onload = () => {
       const canvas = document.createElement('canvas');
       canvas.width = BASE_W * scale;
-      canvas.height = BASE_H * scale;
+      canvas.height = sceneHeight * scale;
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -604,7 +866,7 @@ export function FoodWebGraph({
       }, 'image/png');
     };
     img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(str)))}`;
-  }, [serializeSvg]);
+  }, [serializeSvg, sceneHeight]);
 
   if ((items || []).length === 0) {
     return <p className="section-sub">Aucun nœud à afficher.</p>;
@@ -635,21 +897,33 @@ export function FoodWebGraph({
         <div className="pedago-foodweb-graph__tbgroup" role="group" aria-label="Disposition">
           <button
             type="button"
-            className={`pedago-foodweb-graph__tbtn${layout === 'circle' ? ' active' : ''}`}
-            onClick={() => changeLayout('circle')}
-            aria-pressed={layout === 'circle'}
+            className={`pedago-foodweb-graph__tbtn${layoutKind === LAYOUT_CIRCLE ? ' active' : ''}`}
+            onClick={() => changeLayout(LAYOUT_CIRCLE)}
+            aria-pressed={layoutKind === LAYOUT_CIRCLE}
+            title="Toutes les espèces sur un anneau, groupées par rôle"
           >
             <IconTarget size={14} /> Cercle
           </button>
           <button
             type="button"
-            className={`pedago-foodweb-graph__tbtn${layout === 'trophic' ? ' active' : ''}`}
-            onClick={() => changeLayout('trophic')}
-            aria-pressed={layout === 'trophic'}
-            title="Producteurs → consommateurs → décomposeurs"
+            className={`pedago-foodweb-graph__tbtn${layoutKind === LAYOUT_LEVELS || scene.kind === 'roles' ? ' active' : ''}`}
+            onClick={() => changeLayout(LAYOUT_LEVELS)}
+            aria-pressed={layoutKind === LAYOUT_LEVELS}
+            title="Producteurs en bas, consommateurs au-dessus — décomposeurs à part"
           >
             <IconStats size={14} /> Niveaux
           </button>
+          {chainAvailable ? (
+            <button
+              type="button"
+              className={`pedago-foodweb-graph__tbtn${layoutKind === LAYOUT_CHAIN ? ' active' : ''}`}
+              onClick={() => changeLayout(LAYOUT_CHAIN)}
+              aria-pressed={layoutKind === LAYOUT_CHAIN}
+              title="Ce qu’elle mange à gauche, ce qui la mange à droite"
+            >
+              <IconFoodweb size={14} /> Fiche
+            </button>
+          ) : null}
         </div>
         <div className="pedago-foodweb-graph__tbgroup" role="group" aria-label="Zoom">
           <button
@@ -706,38 +980,54 @@ export function FoodWebGraph({
             className="pedago-foodweb-graph__tbtn"
             disabled={searchMatches.length === 0}
           >
-            <IconSearch size={14} /> Isoler
+            <IconSearch size={14} /> {addMode ? 'Ajouter' : 'Isoler'}
           </button>
         </form>
-        {focusId != null ? (
+        <button
+          type="button"
+          className={`pedago-foodweb-graph__tbtn${addMode ? ' active' : ''}`}
+          onClick={() => setAddMode((mode) => !mode)}
+          aria-pressed={addMode}
+          title="Un appui ajoute l’espèce à la sélection au lieu de la remplacer (⌘/Ctrl + clic fait de même)"
+        >
+          <IconAdd size={14} /> Ajouter à la sélection
+        </button>
+        {focusActive ? (
           <div
             className="pedago-foodweb-graph__tbgroup"
             role="group"
             aria-label="Étendue du réseau isolé"
           >
-            {FOCUS_DEPTHS.map((depth) => (
+            {FOCUS_DEPTHS.filter((depth) => depth > 0 || focusIds.size > 1).map((depth) => (
               <button
                 key={depth}
                 type="button"
                 className={`pedago-foodweb-graph__tbtn${focusDepth === depth ? ' active' : ''}`}
                 onClick={() => setFocusDepth(depth)}
                 aria-pressed={focusDepth === depth}
-                title={
-                  depth === 1
-                    ? 'Voisins directs de l’espèce'
-                    : 'Deux crans : la chaîne alimentaire autour de l’espèce'
-                }
+                title={FOCUS_DEPTH_TITLES[depth]}
               >
-                {depth === 1 ? 'Voisins' : 'Chaîne'}
+                {FOCUS_DEPTH_LABELS[depth]}
               </button>
             ))}
           </div>
         ) : null}
-        {focusId != null ? (
+        {focusActive ? (
+          <button
+            type="button"
+            className={`pedago-foodweb-graph__tbtn${showContext ? ' active' : ''}`}
+            onClick={() => setShowContext((on) => !on)}
+            aria-pressed={showContext}
+            title="Remettre le reste du réseau en fond, estompé, au lieu de le retirer"
+          >
+            Reste en fond
+          </button>
+        ) : null}
+        {focusActive ? (
           <button
             type="button"
             className="pedago-foodweb-graph__tbtn pedago-foodweb-graph__tbtn--focus"
-            onClick={() => setFocusId(null)}
+            onClick={clearFocus}
           >
             <IconClose size={14} /> Tout afficher
           </button>
@@ -809,7 +1099,7 @@ export function FoodWebGraph({
       <svg
         ref={attachSvg}
         className="pedago-foodweb-graph"
-        viewBox={`0 0 ${BASE_W} ${BASE_H}`}
+        viewBox={`0 0 ${BASE_W} ${sceneHeight}`}
         role="group"
         aria-label="Graphe interactif du réseau trophique"
         onPointerDown={onBackgroundPointerDown}
@@ -852,7 +1142,7 @@ export function FoodWebGraph({
         </defs>
 
         <g data-fw-viewport transform={transform}>
-          {layout === 'trophic'
+          {scene.kind === 'roles'
             ? TROPHIC_COLUMN_LABELS.map((label, col) => (
                 <text
                   key={label}
@@ -865,7 +1155,67 @@ export function FoodWebGraph({
                 </text>
               ))
             : null}
-          {visibleEdges.map((edge) => {
+          {/* Bandes de niveau : producteurs en bas, chaque étage nommé. */}
+          {scene.bands.map((band) => (
+            <g key={`band-${band.level}`}>
+              <line
+                className="pedago-foodweb-graph__band-rule"
+                x1={8}
+                y1={band.top}
+                x2={scene.laneLeft ?? BASE_W - 8}
+                y2={band.top}
+                aria-hidden="true"
+              />
+              <text className="pedago-foodweb-graph__band-label" x={12} y={band.labelY}>
+                {band.label}
+              </text>
+            </g>
+          ))}
+          {/* Voies hors échelle : décomposeurs, espèces sans niveau connu. */}
+          {scene.laneLeft != null ? (
+            <line
+              className="pedago-foodweb-graph__band-rule"
+              x1={scene.laneLeft}
+              y1={16}
+              x2={scene.laneLeft}
+              y2={sceneHeight - 12}
+              aria-hidden="true"
+            />
+          ) : null}
+          {scene.lanes.map((lane) => (
+            <text
+              key={`lane-${lane.key}`}
+              className="pedago-foodweb-graph__band-label"
+              x={lane.x}
+              y={lane.labelY}
+              textAnchor="middle"
+            >
+              {lane.label}
+            </text>
+          ))}
+          {/* Fiche trophique : les trois colonnes de lecture. */}
+          {scene.columns.map((column) => (
+            <text
+              key={`col-${column.key}`}
+              className="pedago-foodweb-graph__col-label"
+              x={column.x}
+              y={28}
+              textAnchor="middle"
+            >
+              {column.label}
+            </text>
+          ))}
+          {scene.othersLabel ? (
+            <text
+              className="pedago-foodweb-graph__col-label"
+              x={BASE_W / 2}
+              y={scene.othersY}
+              textAnchor="middle"
+            >
+              {scene.othersLabel}
+            </text>
+          ) : null}
+          {renderedEdges.map((edge) => {
             const from = posOf(edge.tailId);
             const to = posOf(edge.headId);
             if (!from || !to) return null;
@@ -941,14 +1291,23 @@ export function FoodWebGraph({
             );
           })}
 
-          {nodes.map((node) => {
+          {renderedNodes.map((node) => {
             const pos = posOf(node.id);
             if (!pos) return null;
             const isEnv = isEnvNodeId(node.id);
             const highlighted =
               !isEnv && highlightPlantId != null && Number(highlightPlantId) === node.id;
-            const focused = focusId === node.id;
+            const focused = focusIds.has(node.id);
             const dim = nodeDimmed(node.id);
+            const showLabel = labelVisible(node.id);
+            // Sur le cercle, l'étiquette part **en rayon** vers l'extérieur : posée
+            // sous la pastille, elle n'a que le pas de l'anneau (49 px à 27 espèces)
+            // pour ~88 px de large. En rayon, elle n'occupe que sa hauteur.
+            const radial = scene.kind === LAYOUT_CIRCLE && !isEnv;
+            const angle = radial
+              ? (Math.atan2(pos.y - sceneHeight / 2, pos.x - BASE_W / 2) * 180) / Math.PI
+              : 0;
+            const flip = radial && (angle > 90 || angle < -90);
             return (
               <g
                 key={node.id}
@@ -974,19 +1333,69 @@ export function FoodWebGraph({
                 <text className="pedago-foodweb-graph__node-emoji" textAnchor="middle" y={5}>
                   {node.emoji || '🌱'}
                 </text>
-                <text
-                  className={`pedago-foodweb-graph__label${dim ? ' dim' : ''}`}
-                  textAnchor="middle"
-                  y={NODE_R + 14}
-                >
-                  {truncateNodeLabel(node.name)}
-                </text>
+                {showLabel ? (
+                  <text
+                    className={`pedago-foodweb-graph__label${dim ? ' dim' : ''}`}
+                    textAnchor={radial ? (flip ? 'end' : 'start') : 'middle'}
+                    x={radial ? 0 : undefined}
+                    y={radial ? 0 : NODE_R + 14}
+                    dy={radial ? '0.32em' : undefined}
+                    transform={
+                      radial
+                        ? `rotate(${flip ? angle + 180 : angle}) translate(${flip ? -(NODE_R + 8) : NODE_R + 8}, 0)`
+                        : undefined
+                    }
+                  >
+                    {truncateNodeLabel(node.name)}
+                  </text>
+                ) : null}
                 <title>{nodeTitle(node)}</title>
               </g>
             );
           })}
         </g>
       </svg>
+
+      {focusActive ? (
+        <div className="pedago-foodweb-graph__selection" aria-label="Espèces isolées">
+          <span className="pedago-foodweb-graph__selection-title">
+            {focusIds.size === 1 ? 'Espèce isolée' : `${focusIds.size} espèces isolées`}
+          </span>
+          {selectedNodes.map((node) => (
+            <button
+              key={node.id}
+              type="button"
+              className="pedago-foodweb-graph__chip"
+              onClick={() => toggleFocus(node.id, true)}
+              title={`Retirer ${node.name} de la sélection`}
+              aria-label={`Retirer ${node.name} de la sélection`}
+            >
+              <span aria-hidden="true">{node.emoji || '🌱'}</span> {node.name}
+              <IconClose size={12} />
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {focusSummary ? (
+        <p className="pedago-foodweb-graph__summary section-sub">
+          <strong>
+            {focusSummary.emoji ? `${focusSummary.emoji} ` : ''}
+            {focusSummary.name}
+          </strong>
+          {Number.isFinite(focusSummary.level) ? ` — ${trophicLevelTitle(focusSummary.level)}` : ''}
+          {' · '}
+          <span>mange&nbsp;: {focusSummary.eats.length ? focusSummary.eats.join(', ') : '—'}</span>
+          {' · '}
+          <span>
+            est mangée par&nbsp;:{' '}
+            {focusSummary.eatenBy.length ? focusSummary.eatenBy.join(', ') : '—'}
+          </span>
+          {focusSummary.others.length
+            ? ` · autres relations : ${focusSummary.others.join(', ')}`
+            : ''}
+        </p>
+      ) : null}
 
       <FoodWebEdgeLegend
         presentTypes={presentTypes}
@@ -996,9 +1405,11 @@ export function FoodWebGraph({
       />
 
       <p className="pedago-foodweb-graph__hint section-sub">
-        Clique une espèce pour isoler son réseau (Voisins / Chaîne). Une fois isolée, « Voir la
-        fiche » ouvre sa fiche — ou Maj+Entrée au clavier. Clique une flèche pour le détail de la
-        relation. Molette ou pincement : zoom · glisser : déplacer.
+        Clique une espèce pour isoler son réseau — la scène se recompose autour d’elle (Voisins /
+        Chaîne). ⌘/Ctrl + clic, ou le bouton « Ajouter à la sélection », en isole plusieurs à la
+        fois ; « Sélection » ne garde alors qu’elles. « Voir la fiche » ouvre la fiche espèce (ou
+        Maj+Entrée au clavier). Clique une flèche pour le détail de la relation. Molette ou
+        pincement : zoom · glisser : déplacer.
       </p>
     </div>
   );

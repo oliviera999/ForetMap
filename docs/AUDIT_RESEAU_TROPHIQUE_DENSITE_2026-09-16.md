@@ -11,10 +11,15 @@ affichage / navigation — traités) et
 [`PLAN_RESEAU_TROPHIQUE_UX_PEDAGO_2026-09.md`](PLAN_RESEAU_TROPHIQUE_UX_PEDAGO_2026-09.md)
 (lots A–D livrés : palette Okabe–Ito, presets liftés, étiquettes de colonnes, toolbar 44 px).
 
-> **Portée.** Ce lot ne modifie **aucun code** : c'est un audit de la **densité d'affichage**,
-> suivi de quatre arbitrages demandés (options d'isolement, sélection multiple d'espèces,
-> sous-niveaux de consommateurs, disposition par défaut). Il prend le relais des trois constats
-> restés ouverts : `PED-05` (cercle saturé), `PED-03` (pas de C1/C2), `E3` (disposition dirigée).
+> **Portée.** Audit de la **densité d'affichage**, suivi de quatre arbitrages demandés
+> (options d'isolement, sélection multiple d'espèces, sous-niveaux de consommateurs,
+> disposition par défaut). Il prend le relais des trois constats restés ouverts :
+> `PED-05` (cercle saturé), `PED-03` (pas de C1/C2), `E3` (disposition dirigée).
+
+> **État au 16 septembre 2026, même jour : les lots F1 à F5 sont livrés.** L'audit est
+> conservé tel qu'il a été écrit (constats, mesures, arbitrages) ; ce qui a changé depuis est
+> consigné en **§11 — Suite donnée**, et la vérité vivante est
+> `docs/reference/foretmap/pedagogie-quiz-glossaire-reseau.md` + `CHANGELOG.md` + les tests.
 
 ---
 
@@ -475,3 +480,49 @@ Aucun code externe n'est repris dans ce lot : il ne contient que de la documenta
   constats.
 - **GL non mesuré séparément** : `GLFoodWebPanel` monte le même graphe, donc hérite de D1–D7,
   mais son corpus (par biome) n'a pas été compté ici.
+
+---
+
+## 11. Suite donnée (16 septembre 2026, même jour)
+
+Les cinq lots ont été livrés dans la foulée de l'audit. Rien n'est réécrit plus haut : le
+tableau ci-dessous dit seulement ce que chaque constat est devenu.
+
+| Constat | État                    | Ce qui a été fait                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1      | **Traité**              | Les étiquettes du cercle partent **en rayon** ; elles n'occupent plus que leur hauteur, et le rayon de l'anneau suit le nombre d'espèces (46 px entre pastilles, borné).                                                                                                                                                                                                                                               |
+| D2      | **Traité**              | Un niveau trop fourni se répartit sur **plusieurs rangées**, et la scène s'allonge d'autant.                                                                                                                                                                                                                                                                                                                           |
+| D3      | **Traité**              | Isoler **recompose** la scène sur le sous-réseau ; le hors-sujet est retiré du rendu (et de la tabulation). « Reste en fond » rétablit l'estompage.                                                                                                                                                                                                                                                                    |
+| D4      | **Traité**              | Le nœud « Environnement » est ancré au **centre** du cercle (libre par construction) et au bas de la voie latérale en disposition Niveaux.                                                                                                                                                                                                                                                                             |
+| D5      | **Traité**              | En mode isolé, seuls les nœuds et arêtes du sous-réseau sont rendus : le DOM suit la taille du sujet, plus celle du catalogue.                                                                                                                                                                                                                                                                                         |
+| D6      | **Requalifié + traité** | La mesure initiale était juste mais la conclusion incomplète : **élargir** le `viewBox` ne gagne rien (le rendu est mis à l'échelle du conteneur, donc tout rapetisse d'autant). Seule la **hauteur** apporte de la place réelle, le conteneur étant en `height: auto`. Les deux dispositions dimensionnent donc leur scène en hauteur, et le cercle mise sur les étiquettes radiales plutôt que sur l'agrandissement. |
+| D7      | **Traité**              | Liseré blanc sous les étiquettes (`paint-order: stroke`), à l'écran **et** à l'export ; masquage conditionnel conservé comme garde-fou au-delà de 80 nœuds.                                                                                                                                                                                                                                                            |
+
+| Lot | État      | Livré                                                                                                                        |
+| --- | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| F1  | **Livré** | `focusSubset` recompose la scène ; masquage du contexte ; ancrage Environnement corrigé.                                     |
+| F2  | **Livré** | Rangées multiples par niveau, halo d'étiquette, hauteur de scène adaptative, étiquettes radiales sur le cercle.              |
+| F3  | **Livré** | Sélection multiple (`focusIds`), ⌘/Ctrl + clic, mode « Ajouter », puces de retrait, étendue « Sélection » (profondeur 0).    |
+| F4  | **Livré** | `computeTrophicLevels()` (position trophique de Levine), bandes nommées, décomposeurs hors échelle, infobulle fractionnaire. |
+| F5  | **Livré** | Disposition « Fiche » (mange ← espèce → est mangée par), résumé en toutes lettres, bascule du défaut vers « Niveaux ».       |
+
+**Ce qui n'a pas été fait**, et pourquoi :
+
+- **Test de contenu sur les niveaux** (`tests/content/`, job CI `contenu`) : proposé en §5 comme
+  bénéfice annexe. Non écrit dans ce lot — il suppose une base MySQL peuplée, qu'aucun des deux
+  environnements de rédaction n'avait sous la main ; l'écrire sans pouvoir l'exécuter aurait
+  livré une assertion non vérifiée dans un job bloquant. Le calcul, lui, est couvert par neuf
+  tests purs (producteur / herbivore / prédateur, omnivore fractionnaire, décomposeur sans
+  niveau, cycle borné, absence totale de flux).
+- **Roving tabindex** (`A11Y-02`) : inchangé, mais le retrait du hors-sujet en mode isolé
+  raccourcit la séquence de tabulation dans le cas qui la rendait pénible.
+- **Disposition dirigée par les forces** (`E3`) : toujours écartée, pour la raison donnée en §8.
+
+### Vérification
+
+Le rendu a été **regardé**, pas seulement testé : les cinq dispositions ont été sérialisées puis
+capturées dans un navigateur (Chromium via Playwright) sur le **corpus versionné réel**
+(49 espèces, 69 relations extraites de `sql/biodiv_pedago_seed.sql`). Quatre défauts qu'aucun
+test n'aurait vus ont été corrigés à ce moment-là : étiquettes coupées par le bord de la scène,
+intitulés des deux voies latérales superposés, nœud « Environnement » sur l'étiquette de son
+voisin, dernière espèce de la fiche hors cadre.
