@@ -25,6 +25,7 @@ import {
 } from './PlantSummaryBlocks.jsx';
 import { PlantBiodivHeroPhoto, PlantMetaSections } from './PlantMetaSections.jsx';
 import { PlantDeterminationSection } from './PlantDeterminationSection.jsx';
+import { PlantHazardSection } from './PlantHazardSection.jsx';
 import { PlantLocationPreviewMaps } from './BiodivLocationMaps.jsx';
 import {
   IconBiodiv,
@@ -91,6 +92,9 @@ export function PlantBiodiversityCatalogPreviewCard({
           </p>
         )}
         <PlantBiodivHeroPhoto plant={plant} />
+        {/* Le danger passe avant tout le reste, et hors d'un <details> : un avertissement
+            de toxicité derrière un repli fermé n'avertit personne. */}
+        <PlantHazardSection plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
         {/* Placée avant l'écologie : devant l'être vivant, on cherche d'abord ce que c'est. */}
         <PlantDeterminationSection plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
         <PlantEcosystemHumanLead plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />

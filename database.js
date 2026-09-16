@@ -4,10 +4,9 @@ const crypto = require('node:crypto');
 const path = require('path');
 const fs = require('fs');
 const logger = require('./lib/logger');
-const { nowIsoUtc } = require('./lib/shared/isoTimestamp');
+const { nowDbTimestamp } = require('./lib/shared/isoTimestamp');
 const { inlineLegacyTutorialHtmlToDb } = require('./lib/inlineLegacyTutorialHtml');
 const { dropLegacyScaffolding } = require('./lib/legacySchemaCleanup');
-const { normalizeLegacyTimestamps } = require('./lib/legacyTimestampNormalization');
 
 /**
  * Errnos MySQL attendus lors de migrations idempotentes (table / colonne / index / contrainte
@@ -164,6 +163,27 @@ const pool = mysql.createPool({
   // faisait s'empiler les requêtes longuement avant de remonter une erreur.
   connectTimeout: parseConnectTimeoutMs(),
   charset: 'utf8mb4',
+  // Fuseau — indissociable de la migration 254, qui a converti 29 colonnes de dates texte
+  // en DATETIME(3) / DATE.
+  //
+  // Avant 249, l'API renvoyait la chaîne stockée telle quelle, suffixée `Z`, donc non
+  // ambiguë. Un DATETIME, lui, ne porte pas de fuseau : sans ce réglage, mysql2 construit
+  // l'objet Date en interprétant la valeur dans le fuseau du processus Node. Mesuré sur
+  // `audit_log.created_at` après conversion, pour une même ligne :
+  //
+  //     TZ=UTC              -> 2026-03-21T17:48:26.126Z   (juste, par hasard)
+  //     TZ=America/New_York -> 2026-03-21T21:48:26.126Z   (4 h d'écart)
+  //     TZ=Asia/Tokyo       -> 2026-03-21T08:48:26.126Z   (9 h d'écart)
+  //
+  // Les valeurs en base sont de l'heure UTC : `timezone: 'Z'` le dit à mysql2, et
+  // l'aller-retour redonne exactement la chaîne d'avant migration, quel que soit le fuseau
+  // du serveur. Un déploiement hors UTC décalerait sinon silencieusement chaque horodatage.
+  timezone: 'Z',
+  // `DATE` seul (échéance de tâche, date de récolte) reste une chaîne `YYYY-MM-DD`, comme
+  // avant la migration. Sans cela mysql2 en ferait un Date, que `JSON.stringify` rendrait
+  // en `2026-04-23T00:00:00.000Z` — et les champs `<input type="date">` du formulaire de
+  // tâche cesseraient de se remplir.
+  dateStrings: ['DATE'],
 });
 
 // Empêche les erreurs de connexion idle de devenir des uncaughtException
@@ -783,14 +803,13 @@ async function initSchema() {
   } catch (err) {
     logger.warn({ err }, 'Incorporation fichiers tutoriels HTML (après schéma) ignorée');
   }
-  try {
-    // Horodatages hérités en heure locale dans des colonnes VARCHAR : convergence vers
-    // l'ISO-8601 UTC, sans quoi le tri lexicographique de MySQL entrelace les deux formats
-    // (voir lib/legacyTimestampNormalization.js). Ne touche que les lignes encore héritées.
-    await normalizeLegacyTimestamps({ execute });
-  } catch (err) {
-    logger.warn({ err }, 'Normalisation des horodatages hérités ignorée');
-  }
+  // Normalisation des horodatages hérités : retirée avec la migration 254.
+  //
+  // Elle convergeait vers l'ISO-8601 UTC les colonnes temporelles en VARCHAR, où deux
+  // écritures concurrentes — `toISOString()` côté application, `NOW()` côté SQL —
+  // s'entrelaçaient au tri lexicographique de MySQL. Les 30 colonnes concernées sont
+  // désormais des `DATETIME(3)` et des `DATE` : il n'y a plus de chaîne à trier, donc plus
+  // rien à normaliser. Le module et son test ont été supprimés avec cette migration.
   try {
     // Fusion catalogue / packs : les mascottes livrées deviennent des lignes de
     // `visit_mascot_packs` (`origin = 'builtin'`), donc éditables et exportables comme les
@@ -1070,7 +1089,7 @@ async function seedData() {
     d.setDate(d.getDate() + n);
     return d.toISOString().split('T')[0];
   };
-  const now = nowIsoUtc();
+  const now = nowDbTimestamp();
   const tasks = [
     [
       crypto.randomUUID(),

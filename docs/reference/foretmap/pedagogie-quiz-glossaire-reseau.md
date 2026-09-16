@@ -114,12 +114,28 @@ d'observation** pour l'écriture naturaliste libre.
   chaînes alimentaires réelles de la forêt comestible.
 - Le professeur (gestionnaire des plantes) crée et modifie les liens entre espèces —
   le graphe s'appuie sur le catalogue de biodiversité.
-- **Trois vues du graphe.** Par défaut, **Réseau alimentaire** ne montre que qui mange
-  qui et qui décompose (herbivorie, prédation, décomposition) : c’est la vue à
-  présenter en classe pour une chaîne alimentaire. **Autres relations** isole
-  pollinisation, plante hôte, symbiose, compétition et nitrification. **Tout**
-  superpose les deux pour l’exploration complète. Les filtres par type et le mode
-  « isoler une espèce » restent disponibles dans chaque vue.
+- **Trois vues du graphe.** Par défaut, **Réseau alimentaire** ne montre que ce qui
+  transporte de la matière d’un être vivant vers celui qui le consomme : herbivorie,
+  prédation, décomposition, détritivorie, frugivorie, granivorie, parasitisme. C’est la
+  vue à présenter en classe pour une chaîne alimentaire. **Autres relations** isole
+  pollinisation, plante hôte, symbiose, compétition, et le cycle de l’azote
+  (nitrification, excrétion, assimilation). **Tout** superpose les deux pour
+  l’exploration complète. Les filtres par type et le mode « isoler une espèce » restent
+  disponibles dans chaque vue.
+- **Quatorze types d’interaction.** Six ont été ajoutés pour cesser de ranger sous un
+  mot des relations différentes. Deux cas concrets :
+  - Un merle qui picore une figue tombée était noté « décomposition ». Il fait de la
+    **frugivorie** : il mange le fruit, il ne le minéralise pas. De même, un cloporte ou
+    un ver de compost fait de la **détritivorie** — il fragmente la matière morte, ce
+    sont les bactéries et les champignons qui décomposent vraiment. La distinction est
+    au programme.
+  - « Nitrification » désignait trois choses à la fois : les déjections de poisson qui
+    fournissent l’ammonium (**excrétion**), l’oxydation par les bactéries
+    (**nitrification** au sens strict) et la reprise des nitrates par les plantes
+    aquatiques (**assimilation**). Les trois étapes du cycle de l’azote sont maintenant
+    lisibles séparément sur le graphe.
+  - S’y ajoutent **granivorie** et **parasitisme**, disponibles à la saisie même si
+    aucune interaction ne les utilise encore.
 - **Les détritivores ont des nourritures nommées.** Vers, cloportes, collemboles,
   escargots d’eau, fourmis ou blattes pointent vers des fiches-ressources du
   catalogue — litière de feuilles, compost et épluchures, bois mort, biofilm, fruits
@@ -239,6 +255,33 @@ y sont liées : voir [Tâches, tutoriels et validation](taches-tutoriels-et-vali
 > ⚠️ **Point d'attention** — La qualité du Réseau trophique dépend entièrement des
 > liens saisis par le professeur : un graphe vide ou clairsemé n'est pas une panne,
 > c'est un contenu à construire (idéalement avec les élèves).
+
+> ⚠️ **Point d'attention — le quiz était devinable à la longueur des réponses ; le corpus
+> livré a été repris, les questions ajoutées depuis restent à reprendre.**
+>
+> La bonne réponse était rédigée avec soin, les propositions fausses expédiées en deux ou
+> trois mots. Un élève qui choisissait systématiquement la proposition la plus longue, sans
+> rien connaître, réussissait **66 %** des questions — pour 25 % au hasard. La position,
+> elle, n'a jamais été un problème : les propositions sont mélangées à chaque affichage,
+> donc le fait que la bonne réponse soit stockée en « A » une fois sur deux est invisible
+> pour l'élève.
+>
+> **426 propositions fausses ont été réécrites sur 142 questions du corpus livré**, en
+> gardant l'erreur que chacune représente (les explications par proposition restent donc
+> justes) et en lui donnant le même niveau de détail que la bonne réponse. Sur le corpus
+> livré, la stratégie « choisir la plus longue » tombe de **78 % à 39 %** ; à un écart
+> réellement visible — plus de 20 caractères — elle ne marche plus du tout (52 % avant,
+> **0 % après**).
+>
+> **Ce qui reste à faire : les questions saisies depuis le panneau prof.** Elles n'ont pas
+> été touchées, et environ **143** d'entre elles restent concernées. Le rapport d'audit du
+> contenu pédagogique les liste sous l'intitulé `length_bias_answer`, avec le taux de
+> réussite de la stratégie « choisir la plus longue ».
+>
+> **La règle en écrivant une question :** une proposition fausse doit être aussi développée
+> que la bonne, et il faut accepter que la plus longue des quatre soit parfois la bonne
+> réponse — sinon la règle « choisir la plus longue » devient simplement « éviter la plus
+> longue », et le quiz reste devinable.
 
 ## Pour aller plus loin
 
