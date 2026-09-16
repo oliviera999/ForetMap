@@ -2,6 +2,7 @@ import { describe, test, expect } from 'vitest';
 import {
   computeTaskVisualByLocation,
   computeTutorialCountByLocation,
+  locationStatusDots,
 } from '../../src/utils/mapLocationBadges.js';
 
 describe('computeTaskVisualByLocation', () => {
@@ -180,5 +181,33 @@ describe('computeTutorialCountByLocation', () => {
       tasks,
     });
     expect(zoneTutorialCountById.get('z1')).toBe(1);
+  });
+});
+
+describe('locationStatusDots', () => {
+  test('rien à poser → tableau vide', () => {
+    expect(locationStatusDots()).toEqual([]);
+    expect(locationStatusDots({ taskVisual: null, tutorialCount: 0 })).toEqual([]);
+    expect(locationStatusDots({ taskVisual: 'inconnu' })).toEqual([]);
+  });
+
+  test('statut de tâche → pastille colorée en haut à droite', () => {
+    expect(locationStatusDots({ taskVisual: 'todo' })).toEqual([
+      { variant: 'alert', label: 'Tâche à faire', placement: 'top-right' },
+    ]);
+    expect(locationStatusDots({ taskVisual: 'progress' })[0].variant).toBe('warn');
+    expect(locationStatusDots({ taskVisual: 'done' })[0].variant).toBe('ok');
+  });
+
+  test('tutoriels liés → pastille en bas à gauche, accord du libellé', () => {
+    expect(locationStatusDots({ tutorialCount: 1 })).toEqual([
+      { variant: 'info', label: '1 tutoriel lié', placement: 'bottom-left' },
+    ]);
+    expect(locationStatusDots({ tutorialCount: 3 })[0].label).toBe('3 tutoriels liés');
+  });
+
+  test('tâche et tutoriels : la pastille de tâche vient en premier', () => {
+    const dots = locationStatusDots({ taskVisual: 'progress', tutorialCount: 2 });
+    expect(dots.map((d) => d.variant)).toEqual(['warn', 'info']);
   });
 });

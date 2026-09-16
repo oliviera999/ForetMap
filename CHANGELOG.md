@@ -9,6 +9,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Carte : retour des pastilles colorées d’état des tâches
+
+- Les **points colorés d’état des tâches** (rouge « à faire », orange « en cours », vert
+  « terminée ») avaient disparu des zones et des repères en **consultation** depuis
+  l’unification de la carte de travail sur `SharedMapStage` : la scène partagée ne recevait
+  aucune information de tâche. Ils sont de nouveau affichés, aux mêmes couleurs et aux mêmes
+  emplacements qu’avant (haut-droite du lieu).
+- Nouveau calque neutre `PctStatusDotsLayer` (`fm-pct-status-dot`) dans le noyau carte
+  partagé : pastilles contre-échelonnées et contre-tournées comme les étiquettes, posées en
+  HTML plutôt que dans le SVG des polygones (déformé par `preserveAspectRatio="none"`). Une
+  zone dont le nom est masqué par la résolution de collisions **garde** sa pastille.
+- Le **point violet des tutoriels** (réglage `ui.map.show_tutorial_dots`, éteint par défaut),
+  perdu au même moment, repasse par le même mécanisme.
+- Accessibilité : les pastilles sont décoratives, leur libellé complète le **nom accessible**
+  du repère ou du polygone de zone — plus d’annonce en double.
+- Filet de régression : `tests-ui/components/MapViewMount.test.jsx` (montage réel de `MapView`)
+  et `tests-ui/shared/pct-map/PctStatusDots.test.jsx`.
+- Doc de référence `carte-et-zones.md` : section « Pastilles colorées des tâches ».
+
 ### Modifié — Visite : vu / non-vu sans pastilles, halo d’accueil ciblé
 
 - Sur le plan de visite, les lieux **vus** sont plus atténués et les **non vus** ont un
