@@ -119,7 +119,7 @@ describe('TutorialEditorPanel', () => {
 
   test('boutons : Enregistrer → onSave, Annuler → onCancel, désactivé pendant la sauvegarde', () => {
     const { handlers } = renderPanel({}, { saving: true });
-    const saveBtn = screen.getByRole('button', { name: 'Sauvegarde...' });
+    const saveBtn = screen.getByRole('button', { name: 'Sauvegarde…' });
     expect(saveBtn.disabled).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
     expect(handlers.onCancel).toHaveBeenCalled();

@@ -281,3 +281,67 @@ describe('DialogShell — piège de focus vivant', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Dernier' }));
   });
 });
+
+// B1 (docs/AUDIT_UI_2026-09-16.md) : une coque écrite en `open={monEtat}` reste MONTÉE pendant
+// que la modale est fermée. L'effet d'accessibilité ne s'exécutait alors qu'une fois, au
+// montage, avec un panneau encore absent : à l'ouverture, plus d'Échap, plus de focus initial,
+// plus de piège de tabulation, plus de restauration du focus.
+describe('DialogShell — coque montée fermée puis ouverte', () => {
+  function Shell({ open, onClose }) {
+    return (
+      <DialogShell open={open} ariaLabel="Boîte différée" onClose={onClose}>
+        <input aria-label="Premier" />
+        <input aria-label="Dernier" />
+      </DialogShell>
+    );
+  }
+
+  test('Échap ferme la modale ouverte après le montage', () => {
+    const onClose = vi.fn();
+    const { rerender } = render(<Shell open={false} onClose={onClose} />);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    rerender(<Shell open onClose={onClose} />);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test('le focus initial est posé à l’ouverture, pas au montage', () => {
+    const { rerender } = render(<Shell open={false} onClose={() => {}} />);
+    rerender(<Shell open onClose={() => {}} />);
+    expect(screen.getByLabelText('Premier')).toHaveFocus();
+  });
+
+  test('le piège de tabulation est actif à l’ouverture', () => {
+    const { rerender } = render(<Shell open={false} onClose={() => {}} />);
+    rerender(<Shell open onClose={() => {}} />);
+
+    screen.getByLabelText('Dernier').focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(screen.getByLabelText('Premier')).toHaveFocus();
+  });
+
+  test('le focus revient sur le déclencheur à la fermeture, sans démontage', () => {
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    trigger.focus();
+
+    const { rerender } = render(<Shell open={false} onClose={() => {}} />);
+    rerender(<Shell open onClose={() => {}} />);
+    expect(screen.getByLabelText('Premier')).toHaveFocus();
+
+    rerender(<Shell open={false} onClose={() => {}} />);
+    expect(trigger).toHaveFocus();
+    trigger.remove();
+  });
+
+  test('refermée, la coque ne capte plus Échap', () => {
+    const onClose = vi.fn();
+    const { rerender } = render(<Shell open={false} onClose={onClose} />);
+    rerender(<Shell open onClose={onClose} />);
+    rerender(<Shell open={false} onClose={onClose} />);
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});

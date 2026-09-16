@@ -46,3 +46,29 @@ describe('TaskConfirmDialog', () => {
     expect(action).not.toHaveBeenCalled();
   });
 });
+
+// B1 (docs/AUDIT_UI_2026-09-16.md) : le dialogue est monté en permanence par `TasksView`, donc
+// son effet d'accessibilité s'exécutait au montage — sans panneau — et ne se rejouait jamais.
+describe('TaskConfirmDialog — accessibilité clavier après ouverture différée', () => {
+  test('Échap ferme le dialogue ouvert après le montage', () => {
+    const onClose = vi.fn();
+    const { rerender } = render(<TaskConfirmDialog confirmTask={null} onClose={onClose} />);
+    rerender(<TaskConfirmDialog confirmTask={confirmTask()} onClose={onClose} />);
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test('le focus entre dans le dialogue, sans rester sur le déclencheur', () => {
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    trigger.focus();
+
+    const { rerender } = render(<TaskConfirmDialog confirmTask={null} onClose={vi.fn()} />);
+    rerender(<TaskConfirmDialog confirmTask={confirmTask()} onClose={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Confirmer' })).toHaveFocus();
+    trigger.remove();
+  });
+});

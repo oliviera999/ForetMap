@@ -130,7 +130,7 @@ function ZoneDrawModal({
           value={form.description}
           onChange={set('description')}
           rows={2}
-          placeholder="Notes, observations sur cette zone..."
+          placeholder="Notes, observations sur cette zone…"
         />
       </div>
       <ColorPaletteField
@@ -177,7 +177,7 @@ function ZoneDrawModal({
         style={{ marginTop: 4 }}
       >
         {saving ? (
-          '...'
+          '…'
         ) : (
           <>
             <IconCheck size={15} /> Créer la zone

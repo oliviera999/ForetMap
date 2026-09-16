@@ -174,10 +174,10 @@ export function ZoneTasksStudentPanel({
         onClick={onAssign}
       >
         {assigning ? (
-          'Inscription...'
+          'Inscription…'
         ) : (
           <>
-            <IconHand size={14} /> {`M'inscrire à ${selectedTaskIds.length || '...'} tâche(s)`}
+            <IconHand size={14} /> {`M'inscrire à ${selectedTaskIds.length || '…'} tâche(s)`}
           </>
         )}
       </button>

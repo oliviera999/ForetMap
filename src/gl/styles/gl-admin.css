@@ -116,7 +116,7 @@
 .gl-content-admin-list button.is-active {
   border-color: var(--gl-select-ink);
   background: var(--gl-select-ink);
-  color: #ffffff;
+  color: #fff;
 }
 
 .gl-gameplay-toggles {
@@ -212,7 +212,7 @@
   padding: 6px 10px;
   border-radius: var(--gl-radius-pill);
   border: 2px solid var(--gl-color-text-muted);
-  background: #ffffff;
+  background: #fff;
   cursor: pointer;
 }
 
@@ -265,7 +265,7 @@
   margin: 6px 0;
   padding: 6px 8px;
   border-left: 3px solid var(--gl-color-accent);
-  background: #ffffff;
+  background: #fff;
   border-radius: 0 6px 6px 0;
   font-size: var(--text-base);
   line-height: var(--lh-normal);
@@ -295,7 +295,7 @@
   padding: 6px 10px;
   border: 1px solid var(--gl-border);
   border-radius: var(--gl-radius-control);
-  background: #ffffff;
+  background: #fff;
 }
 
 .gl-scoreboard-team {

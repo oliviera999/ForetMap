@@ -293,7 +293,7 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Rechercher un utilisateur..."
+          placeholder="Rechercher un utilisateur…"
           aria-label="Rechercher un utilisateur"
         />
         <select
@@ -440,7 +440,7 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <button className="btn btn-primary" disabled={saving} onClick={save} style={{ flex: 1 }}>
-          {saving ? 'Enregistrement...' : 'Enregistrer'}
+          {saving ? 'Enregistrement…' : 'Enregistrer'}
         </button>
         <button className="btn btn-ghost" onClick={onClose} disabled={saving} style={{ flex: 1 }}>
           Fermer

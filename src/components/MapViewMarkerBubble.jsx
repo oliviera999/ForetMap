@@ -112,7 +112,7 @@ export function MapViewMarkerBubble({
               width: 8,
               height: 8,
               borderRadius: '50%',
-              background: '#1a4731',
+              background: 'var(--forest)',
               opacity: 0.55,
             }}
           />

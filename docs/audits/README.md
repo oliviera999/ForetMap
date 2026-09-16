@@ -44,6 +44,7 @@ casser les liens existants.
 | [`AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md`](../AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md)             | UI/UX de la navigation sur `planlyautey.olution.info` — recherche neutralisée, carte gelée, entrées absentes                              | 15 constats traités + N16 (16 sept. 2026)                               |
 | [`AUDIT_UX_GESTION_UTILISATEURS_2026-09.md`](../AUDIT_UX_GESTION_UTILISATEURS_2026-09.md)         | UI/UX de l'onglet « Profils & utilisateurs » et de la fiche utilisateur admin                                                             | Instantané 16 sept. 2026 — **entièrement traité** (5 constats + P1–P18) |
 | [`AUDIT_RESEAU_TROPHIQUE_DENSITE_2026-09-16.md`](../AUDIT_RESEAU_TROPHIQUE_DENSITE_2026-09-16.md) | Réseau trophique : densité d'affichage mesurée, options d'isolement, sélection multiple, niveaux de consommateurs, disposition par défaut | Instantané 16 sept. 2026 — **arbitrages proposés**, lots F1–F5 à ouvrir |
+| [`AUDIT_UI_2026-09-16.md`](../AUDIT_UI_2026-09-16.md)                                             | UI transverse : bugs d'accessibilité des surcouches, association des champs, tokenisation de la couleur                                   | Instantané 16 sept. 2026 — lot A traité, lots B/C/D ouverts             |
 
 ## Chantiers / specs encore utiles comme consigne
 

@@ -11,7 +11,9 @@ import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBa
  * (`{ task, label, action }`). `onClose` remet `confirmTask` à null côté parent.
  */
 export function TaskConfirmDialog({ confirmTask, onClose }) {
-  const confirmDialogRef = useDialogA11y(onClose);
+  // Monté en permanence : sans `active`, l'accessibilité clavier (Échap, focus initial, piège
+  // de tabulation) ne s'armerait jamais — `docs/AUDIT_UI_2026-09-16.md` B1.
+  const confirmDialogRef = useDialogA11y(onClose, { active: !!confirmTask });
   useOverlayHistoryBack(!!confirmTask, onClose);
   if (!confirmTask) return null;
   return (
