@@ -303,7 +303,11 @@ describe('MoodleAdminPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter un chapitre' }));
     // La ligne ajoutée est cherchée en asynchrone : une requête synchrone juste après un clic
     // suppose que React a déjà repeint, ce qui ne tient plus sur un exécuteur CI chargé.
-    fireEvent.change(await screen.findByLabelText('Cours de la ligne 2'), {
+    // Le délai par défaut de `findBy*` (1 s) n'y suffit pas non plus : le job `quality` est
+    // tombé ici à 1 156 ms sur un exécuteur saturé, alors que le fichier passe en local.
+    // Même budget que les autres attentes sensibles à la charge du dépôt (cf.
+    // `tests-ui/gl/GLGameMasterConsole.test.jsx`).
+    fireEvent.change(await screen.findByLabelText('Cours de la ligne 2', {}, { timeout: 5000 }), {
       target: { value: '43' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer la table' }));
