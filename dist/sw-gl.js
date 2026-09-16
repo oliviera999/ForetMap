@@ -1,6 +1,6 @@
 /* Service worker « gl » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-gl-06f881c4";
+const CACHE_NAME = "foretmap-gl-f8db4300";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -9,28 +9,28 @@ const PRECACHE_URLS = [
   "/manifest.json",
   "/gl/favicon.svg",
   "/gl/logo.png",
-  "/assets/gl-By06Z0vO.js",
+  "/assets/gl-BgSBWxK7.js",
   "/assets/gl-CGYxiSaK.css",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-DG9xUeT2.js",
-  "/assets/react-vendor-ClBrELym.js",
-  "/assets/icons-BBfebeWE.js",
-  "/assets/ErrorBoundary-C__5v0o8.js",
+  "/assets/VisitMascotFallbackSvg-p6nm31dH.js",
+  "/assets/react-vendor-DyU5Vns3.js",
+  "/assets/icons-foIiYRd8.js",
+  "/assets/ErrorBoundary-CuB4NJxF.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-CdkUG3Zo.js",
+  "/assets/ImageLightboxProvider-DoPsZzs2.js",
   "/assets/ImageLightboxProvider-B1dCJcHH.css",
-  "/assets/spriteCutCatalogEntry-DjaX1zkf.js",
+  "/assets/spriteCutCatalogEntry-CwpFMZAn.js",
   "/assets/markdown-DaBuaikX.js",
-  "/assets/socket-io-SGWxBABF.js",
-  "/assets/GuidedTourOverlay-Cpnl7uV4.js",
-  "/assets/HelpDock-DMLMe-eO.js",
+  "/assets/socket-io-CQ0Cr98w.js",
+  "/assets/GuidedTourOverlay-BoWB2icq.js",
+  "/assets/HelpDock-D2yR4MeC.js",
   "/assets/HelpDock-607GLmvi.css",
-  "/assets/apiGL-DT6awfJh.js",
-  "/assets/presenceListPatch-DJo7kpOw.js",
-  "/assets/JournalBookView-Bs-bdtcV.js",
-  "/assets/FoodWebGraph-D6LOm4I0.js",
-  "/assets/mascotBehaviorEngine-BnBHjtei.js",
-  "/assets/MediaLibraryMenu-CkZHVQr1.js",
+  "/assets/apiGL-Op0ShHXV.js",
+  "/assets/presenceListPatch-CGzcTqUf.js",
+  "/assets/JournalBookView-DUwTgUV7.js",
+  "/assets/FoodWebGraph-B_xfCYRk.js",
+  "/assets/mascotBehaviorEngine-ClBiGTRG.js",
+  "/assets/MediaLibraryMenu-DAcaD0W0.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).

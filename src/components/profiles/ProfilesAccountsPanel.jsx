@@ -13,6 +13,12 @@ import {
   safeLocalStorageSetItem,
 } from '../../shared/platform/browserStorage.js';
 import { ProfilesUserAssignmentList } from './ProfilesUserAssignmentList.jsx';
+import { ProfilesProgressionRecomputePanel } from './ProfilesProgressionRecomputePanel.jsx';
+import {
+  buildRecomputeBody,
+  formatRecomputeRow,
+  summarizeRecompute,
+} from '../../utils/progressionRecompute.js';
 import { CreateUserPanel } from './CreateUserPanel.jsx';
 import { StudentDeletePanel } from './StudentDeletePanel.jsx';
 
@@ -55,7 +61,9 @@ export function ProfilesAccountsPanel({
   onAssignRole,
   onOpenEditUser,
   onFilteredCountChange,
+  onProfilesRecomputed,
 }) {
+  const [recomputingUserId, setRecomputingUserId] = useState(null);
   const [query, setQuery] = useState('');
   const [roleId, setRoleId] = useState('');
   const [userType, setUserType] = useState('');
@@ -118,6 +126,28 @@ export function ProfilesAccountsPanel({
     () => paginateList(filteredUsers, page, pageSize),
     [filteredUsers, page, pageSize],
   );
+
+  /** Recalcul du profil d'un seul compte (bouton « Niveau auto. » de la ligne). */
+  const recomputeOneProfile = async (user) => {
+    setErr('');
+    setMsg('');
+    setRecomputingUserId(user.id);
+    try {
+      const payload = await api(
+        '/api/rbac/progression/recompute',
+        'POST',
+        buildRecomputeBody({ scope: 'user', userId: user.id }),
+      );
+      const row = Array.isArray(payload?.results) ? payload.results[0] : null;
+      setMsg(row ? formatRecomputeRow(row) : summarizeRecompute(payload));
+      if (payload?.changed > 0 && typeof onProfilesRecomputed === 'function') {
+        await onProfilesRecomputed(payload);
+      }
+    } catch (e) {
+      setErr(e.message || 'Erreur lors du recalcul du profil');
+    }
+    setRecomputingUserId(null);
+  };
 
   const changePageSize = (next) => {
     const size = normalizePageSize(next);
@@ -216,8 +246,10 @@ export function ProfilesAccountsPanel({
             loading={loading}
             editUserLoadState={editUserLoadState}
             isAdmin={isAdmin}
+            recomputingUserId={recomputingUserId}
             onAssignRole={onAssignRole}
             onOpenEditUser={onOpenEditUser}
+            onRecomputeProfile={recomputeOneProfile}
           />
           {pageData.pageCount > 1 && (
             <div className="profiles-admin-pagination">
@@ -243,6 +275,15 @@ export function ProfilesAccountsPanel({
             </div>
           )}
         </div>
+      )}
+
+      {canManageProfiles && (
+        <ProfilesProgressionRecomputePanel
+          groupOptions={groupOptions}
+          roleTerms={roleTerms}
+          loading={loading}
+          onApplied={onProfilesRecomputed}
+        />
       )}
 
       <CreateUserPanel

@@ -1,9 +1,10 @@
 /**
  * Liste d'attribution des profils aux comptes — extraite de `ProfilesAdminView` (O5/O6).
  *
- * Pour chaque utilisateur : nom + type, un sélecteur de profil principal (`onAssignRole(userType, id, roleId)`)
- * et un bouton « Modifier » (`onOpenEditUser(user)`). Seul un admin peut modifier un autre admin
- * (`isAdmin`). Présentation pure.
+ * Pour chaque utilisateur : nom + type, un sélecteur de profil principal (`onAssignRole(userType, id, roleId)`),
+ * un bouton « Niveau auto. » qui aligne le profil sur le nombre de tâches validées
+ * (`onRecomputeProfile(user)`, élèves uniquement) et un bouton « Modifier » (`onOpenEditUser(user)`).
+ * Seul un admin peut modifier un autre admin (`isAdmin`). Présentation pure.
  */
 export function ProfilesUserAssignmentList({
   users = [],
@@ -11,10 +12,14 @@ export function ProfilesUserAssignmentList({
   loading = false,
   editUserLoadState = 'idle',
   isAdmin = false,
+  recomputingUserId = null,
   onAssignRole,
   onOpenEditUser,
+  onRecomputeProfile,
 }) {
   const canEditUserRow = (u) => isAdmin || String(u.role_slug || '').toLowerCase() !== 'admin';
+  const canRecomputeRow = (u) =>
+    typeof onRecomputeProfile === 'function' && String(u.user_type) === 'student';
   return (
     <div style={{ maxHeight: 360, overflow: 'auto' }}>
       {users.map((u) => (
@@ -39,6 +44,17 @@ export function ProfilesUserAssignmentList({
               </option>
             ))}
           </select>
+          {canRecomputeRow(u) && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => onRecomputeProfile(u)}
+              disabled={loading || recomputingUserId === u.id}
+              title="Attribuer le profil correspondant au nombre de tâches validées de ce compte"
+            >
+              {recomputingUserId === u.id ? 'Recalcul…' : 'Niveau auto.'}
+            </button>
+          )}
           <button
             type="button"
             className="btn btn-secondary btn-sm"

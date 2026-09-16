@@ -9,9 +9,13 @@ const {
   syncStudentRoleFromGroups,
 } = require('../lib/groupRole');
 const { getPrimaryRoleForUser } = require('../lib/rbac');
+const { restoreDefaultProgressionThresholds } = require('./helpers/progressionThresholds');
 
 test.before(async () => {
   await initSchema();
+  // Seuils de paliers remis à l'état de référence : d'autres fichiers de la suite les
+  // déplacent sur la base partagée (cf. helpers/progressionThresholds.js).
+  await restoreDefaultProgressionThresholds();
 });
 
 async function createStudent(label) {
