@@ -67,7 +67,7 @@ describe('Tâches — image illustrative', () => {
     await execute(
       `INSERT INTO tasks (id, title, description, image_path, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, status, recurrence, created_at)
        VALUES (?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, 1, 'single_done', NULL, NULL, NULL, 'available', NULL, ?)`,
-      [taskId, 'Sans image bientôt', '', `tasks/${taskId}.jpg`, new Date().toISOString()],
+      [taskId, 'Sans image bientôt', '', `tasks/${taskId}.jpg`, new Date()],
     );
 
     const put = await request(app)
@@ -92,7 +92,7 @@ describe('Tâches — image illustrative', () => {
     await execute(
       `INSERT INTO tasks (id, title, description, image_path, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, status, recurrence, created_at)
        VALUES (?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, 1, 'single_done', NULL, NULL, NULL, 'available', NULL, ?)`,
-      [taskId, 'Chemin privé', '', 'observations/secret-eleve.jpg', new Date().toISOString()],
+      [taskId, 'Chemin privé', '', 'observations/secret-eleve.jpg', new Date()],
     );
 
     // Sans authentification : c'est le cas qui compte, la route étant publique.
@@ -116,7 +116,7 @@ describe('Tâches — image illustrative', () => {
         'Chemin public absent du disque',
         '',
         'tasks/inexistant-mais-public.jpg',
-        new Date().toISOString(),
+        new Date(),
       ],
     );
 

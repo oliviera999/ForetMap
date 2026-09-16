@@ -11,7 +11,7 @@ const {
   noteExternalDataWrite,
 } = require('../database');
 const { purgeResourceGatingRows } = require('../lib/learningGatingOrphans');
-const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
+const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
 const { requirePermission, requireAuth } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
@@ -263,7 +263,7 @@ router.post(
         });
       }
 
-      const now = nowIsoUtc();
+      const now = nowDbTimestamp();
       await execute(
         'INSERT INTO user_plant_observation_events (user_id, plant_id, observed_at) VALUES (?, ?, ?)',
         [String(userId), pid, now],
