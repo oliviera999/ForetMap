@@ -46,7 +46,7 @@ before(async () => {
   // Lecture attestée UNIQUEMENT sur le doublon : elle doit migrer.
   await execute(
     'INSERT INTO user_tutorial_reads (user_id, tutorial_id, acknowledged_at) VALUES (?, ?, ?)',
-    [USER_ID, dropId, new Date().toISOString()],
+    [USER_ID, dropId, new Date()],
   );
   // Référence polymorphe sur le doublon : elle doit migrer aussi.
   await execute(

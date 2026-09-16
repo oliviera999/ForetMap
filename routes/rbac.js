@@ -3,7 +3,7 @@ const { bumpUserTokenEpoch } = require('../lib/auth/tokenEpoch');
 const bcrypt = require('bcryptjs');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
-const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
+const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { setPrimaryRole, getPrimaryRoleForUser } = require('../lib/rbac');
 const { getSettingValue, setSetting } = require('../lib/settings');
@@ -185,7 +185,7 @@ router.post(
 
     const hash = await bcrypt.hash(password, 10);
     const id = crypto.randomUUID();
-    const now = nowIsoUtc();
+    const now = nowDbTimestamp();
     try {
       await execute(
         `INSERT INTO users

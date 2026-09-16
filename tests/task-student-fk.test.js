@@ -90,7 +90,7 @@ describe('Intégrité référentielle task_*/users (FK student)', () => {
     const ins = await execute(
       `INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, created_at)
        VALUES (?, ?, 'FK', 'Test', ?)`,
-      [taskId, userId, new Date().toISOString()],
+      [taskId, userId, new Date()],
     );
     const logId = ins.insertId;
 

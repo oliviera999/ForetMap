@@ -34,21 +34,54 @@ export function visitMediaGalleryLightboxSrc(m) {
 }
 
 /**
- * Compare deux URL d'image visite/carte (hors query/hash) pour éviter un double affichage
- * quand la photo lead carte et un média visite pointent vers le même fichier.
+ * Clé d'identité d'une photo de lieu, **indépendante de la forme de l'URL**.
+ *
+ * Un même cliché est servi sous plusieurs URL selon son stockage et son ancienneté :
+ * `/uploads/zones/3/10.jpg` (chemin canonique), `/uploads/zones/3/10.thumb.jpg` (vignette
+ * dérivée) et `/api/zones/3/photos/10/data` (route historique, servie tant que
+ * `zone_photos.image_path` n'est pas au format public). `visit_media.image_url` fige la forme
+ * qui avait cours **au moment de l'association** : après une reprise des chemins, la photo
+ * carte et le média visite désignent le même fichier sous deux URL différentes — et l'encart
+ * de visite affichait deux fois la même image. On compare donc `(type, lieu, photo)` plutôt
+ * que la chaîne.
+ *
+ * @param {unknown} url
+ * @returns {string} clé stable ('' si URL vide)
+ */
+export function visitImageIdentityKey(url) {
+  const raw = String(url || '').trim();
+  if (!raw) return '';
+  // Origine (déploiement sous domaine) et query/hash (cache-busting) hors identité.
+  const path = raw.split(/[?#]/)[0].replace(/^https?:\/\/[^/]+/i, '');
+  if (!path) return '';
+  // `/uploads/zones/<zoneId>/<photoId>[.thumb].ext` — préfixe de base éventuel toléré.
+  const uploaded = /\/uploads\/(zones|markers)\/([^/]+)\/(\d+)(?:\.thumb)?\.[a-z0-9]+$/i.exec(path);
+  if (uploaded) {
+    const kind = uploaded[1].toLowerCase() === 'zones' ? 'zone' : 'marker';
+    return `${kind}:${decodeURIComponent(uploaded[2])}:${uploaded[3]}`;
+  }
+  const zoneApi = /\/api\/zones\/([^/]+)\/photos\/(\d+)\/data$/i.exec(path);
+  if (zoneApi) return `zone:${decodeURIComponent(zoneApi[1])}:${zoneApi[2]}`;
+  const markerApi = /\/api\/map\/markers\/([^/]+)\/photos\/(\d+)\/data$/i.exec(path);
+  if (markerApi) return `marker:${decodeURIComponent(markerApi[1])}:${markerApi[2]}`;
+  const visitApi = /\/api\/visit\/media\/(\d+)\/data$/i.exec(path);
+  if (visitApi) return `visit-media:${visitApi[1]}`;
+  return `url:${path}`;
+}
+
+/**
+ * Deux URL désignent-elles la **même photo** ? Évite le double affichage quand la photo lead
+ * carte et un média visite pointent vers le même fichier, quelle que soit la forme d'URL
+ * (chemin public, vignette, route API historique, URL absolue, query/hash).
  * @param {unknown} a
  * @param {unknown} b
  * @returns {boolean}
  */
 export function sameVisitImageUrl(a, b) {
-  const na = String(a || '')
-    .trim()
-    .split(/[?#]/)[0];
-  const nb = String(b || '')
-    .trim()
-    .split(/[?#]/)[0];
-  if (!na || !nb) return false;
-  return na === nb;
+  const ka = visitImageIdentityKey(a);
+  const kb = visitImageIdentityKey(b);
+  if (!ka || !kb) return false;
+  return ka === kb;
 }
 
 /**
