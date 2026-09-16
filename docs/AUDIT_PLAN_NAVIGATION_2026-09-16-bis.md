@@ -10,6 +10,14 @@
 > (`lyautey-1789299489652.jpg`, 1210 × 1437 px), devant un navigateur pilotant ce bundle.
 > Ce qui est mesuré ici est donc ce que voit un visiteur aujourd'hui.
 >
+> **Suite donnée (même lot).** Les trois constats bloquants, `G1` et `G3` sont **traités**,
+> ainsi que **deux défauts du guidage** signalés depuis le terrain après le relevé et ajoutés
+> ici sous `B4` et `B5` : pendant un « Y aller », la position était cachée sous la fiche, et
+> refermer la fiche **arrêtait** le guidage. Le détail constat par constat est en §9 ; les
+> mesures d'après-correctif ont été refaites dans le même navigateur, sur les mêmes profils
+> d'appareil et la même charge publique. `G2`, `G4`, `G5` et les constats de donnée restent
+> ouverts.
+>
 > **Note de suivi.** `main` a avancé depuis (`02f0f47`, v1.157.26) : le rehash des chunks a
 > renommé `plan-BBPVPU2y.js` en `plan-Dh87apJg.js`, mais **aucune source du plan n'a changé**
 > (`src/plan/`, `src/shared/pct-map/`, `src/shared/ui/BottomSheet.jsx` : diff vide entre
@@ -233,6 +241,25 @@ parcours n'est pas cassé — il est inaccessible tant qu'une fiche est ouverte.
 barre de parcours doit remonter au-dessus d'elle (elle publie déjà sa hauteur), ou la fiche
 « consultée pendant un parcours » doit s'ouvrir au cran `peek`.
 
+### B4 — Pendant un « Y aller », la position est cachée par la fiche
+
+**Signalé depuis le terrain**, après le relevé ci-dessus, et vérifié : « Y aller » n'affichait
+la direction et la distance **que dans la fiche du lieu**. Or cette fiche couvre 55 % de
+l'écran : au moment précis où l'on marche vers le lieu en regardant le point bleu, le point
+bleu est dessous. Le trait de direction est tracé sur la carte, mais on n'en voit que le tiers
+haut. Le geste « montre-moi comment y aller » rendait donc l'écran **moins** utile qu'avant.
+
+C'est le même mécanisme que B1 et B2, appliqué à la fonction qui en souffre le plus : tout ce
+qui compte est en bas de l'écran, et la feuille est en bas de l'écran.
+
+### B5 — Fermer la fiche arrête le guidage, sans le dire
+
+**Signalé depuis le terrain** et confirmé dans le code : `closePlace` faisait
+`setTargetPlaceId('')`, c'est-à-dire que **refermer la fiche annulait le « Y aller »** — le
+trait disparaissait, la distance aussi, sans un mot. Or refermer la fiche est exactement ce
+qu'on fait pour voir la carte. Les deux seules manières de garder le guidage étaient donc de
+garder la fiche ouverte (B4 : on ne voit plus rien) ou de ne pas y toucher.
+
 ---
 
 ## 4. Constats gênants
@@ -370,6 +397,8 @@ la cible est interceptée, c'est exactement le filet manquant. Pour B2, asserter
 
 ## 7. Correctifs proposés, par ordre de valeur
 
+> Les lignes marquées **Traité** l'ont été dans le même lot (détail et mesures en §9).
+
 | #   | Constat | Nature du correctif                                                                                    | Ampleur           |
 | --- | ------- | ------------------------------------------------------------------------------------------------------ | ----------------- |
 | 1   | **B1**  | borner la remontée par le **haut réel disponible** au lieu de `30dvh`, ou replier la colonne en rangée | CSS + 1 mesure    |
@@ -402,3 +431,35 @@ l'écran** et de **seuil**.
 Les captures d'écran de la session (bandeau d'accueil, commandes sous la feuille, barre de
 parcours recouverte, lieu caché) ne sont pas versionnées : elles se régénèrent par la procédure
 ci-dessus.
+
+---
+
+## 9. Traitement (même lot)
+
+Mesures d'après-correctif, mêmes conditions qu'en §2 (bundle reconstruit, charge publique du
+16 septembre, `elementFromPoint` **et** clic réel sans `force`).
+
+| Constat                                       | État        | Vérification d'après-correctif                                                                                                                                                                                                                                                                                                       |
+| --------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **B1** commandes enterrées                    | **Traité**  | La colonne se **replie en rangée** au-dessus de la feuille (`is-compact`). **0 commande inatteignable** sur les trois profils, feuille de résultats comme fiche, à cinq comme à six boutons (position active : les six sur une rangée à `y = 247`). Au cran plein, elles s'effacent au lieu de rester sous la feuille (`is-hidden`). |
+| **B2** lieu caché sous sa fiche               | **Traité**  | Les bornes de la carte connaissent désormais les **bords recouverts** (`viewportInsets`) : le plan peut glisser sous la feuille, donc un lieu du bas peut monter dans la bande visible. Les cinq recherches du §3 ouvrent leur lieu **dans la bande** (`y` 235 à 256, bande 177–299) contre quatre sur cinq cachés avant.            |
+| **B3** barre de parcours gelée                | **Traité**  | La barre remonte au-dessus de la feuille et la fiche consultée pendant un parcours s'ouvre au cran `peek` : barre à `y = 259`, « Quitter », « Précédent » et « Suivant » atteignables, clic réel passant.                                                                                                                            |
+| **B4** position cachée pendant un « Y aller » | **Traité**  | « Y aller » referme la fiche et pose une **barre de guidage** de 61 px : point bleu visible (`y = 281`), lieu visé visible et mis en avant (`y = 372`), trait de direction tracé, distance annoncée (« à 93 m à vol d'oiseau »).                                                                                                     |
+| **B5** fermer la fiche arrêtait le guidage    | **Traité**  | Rouvrir la fiche depuis la barre puis la refermer : le guidage est **intact**. Seul « Arrêter » l'interrompt.                                                                                                                                                                                                                        |
+| **G1** bandeau sur le bouton d'aide           | **Traité**  | Le bandeau est passé **dans la carte** (`y = 189`) : le centre du bouton d'aide répond, le clic réel passe, le champ de recherche n'est plus mordu.                                                                                                                                                                                  |
+| **G3** lieu groupé non dessiné                | **Traité**  | Le repère mis en avant ne se fond plus dans un groupe (`keepApartId`) : « infirmerie » est désormais dessiné et visible (`y = 238`).                                                                                                                                                                                                 |
+| **G2** glissement sans effet                  | **Ouvert**  | Inchangé : au cadrage d'ouverture, le plan tient entier dans le cadre.                                                                                                                                                                                                                                                               |
+| **G4** bruit de la recherche                  | **Ouvert**  | Inchangé : pas de plancher de pertinence.                                                                                                                                                                                                                                                                                            |
+| **G5** puces hors écran                       | **Ouvert**  | Inchangé.                                                                                                                                                                                                                                                                                                                            |
+| constats de **donnée**                        | **Ouverts** | Parcours à une étape, homonymes, « (copie) » en production.                                                                                                                                                                                                                                                                          |
+
+**Filets ajoutés.** `tests-ui/shared/bottomSheetInset.test.js` (hauteur publiée sans plafond,
+abonnement) ; `tests-ui/shared/pctMapTransform.test.js` (bords recouverts : un lieu du bas du
+plan peut monter dans la bande visible, et l'intervalle est inchangé sans bord déclaré) ;
+`tests-ui/shared/clusterMarkers.test.js` (`keepApartId`) ; `tests-ui/plan/PlanGuideBar.test.jsx` ;
+trois scénarios dans `tests-ui/plan/AppPlanMount.test.jsx` (« Y aller » referme la fiche et pose
+la barre, fermer la fiche n'arrête pas le guidage, commandes repliées en rangée).
+
+**Ce que ces filets ne voient toujours pas.** jsdom n'a pas de mise en page : aucun test Vitest
+ne peut constater un recouvrement. La preuve reste la mesure au navigateur (§8), et le filet
+e2e correspondant — `elementFromPoint` + clic sans `force` — reste à écrire (§6).

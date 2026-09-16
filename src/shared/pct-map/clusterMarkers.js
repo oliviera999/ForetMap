@@ -81,17 +81,26 @@ export function clusterMarkers(markers, options = {}) {
     cellPx = CLUSTER_CELL_PX_DEFAULT,
     categoriesById = null,
     enabled = true,
+    keepApartId = '',
   } = options;
-  const list = (markers || []).filter(
+  const all = (markers || []).filter(
     (m) => m && Number.isFinite(Number(m.x_pct)) && Number.isFinite(Number(m.y_pct)),
   );
+  /**
+   * Le repère mis en avant (fiche ouverte, lieu visé) ne se fond jamais dans un groupe : sa
+   * fiche parlait sinon d'un lieu que **rien** sur la carte ne montrait
+   * (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` G3).
+   */
+  const apartKey = String(keepApartId || '');
+  const apart = apartKey ? all.filter((m) => String(m.id) === apartKey) : [];
+  const list = apart.length > 0 ? all.filter((m) => String(m.id) !== apartKey) : all;
   const width = toFinite(contentWidthPx);
   const height = toFinite(contentHeightPx);
   const s = toFinite(scale, 1);
   const cell = toFinite(cellPx, CLUSTER_CELL_PX_DEFAULT);
   // Sans mesure exploitable, ou regroupement coupé : un groupe par repère (rendu inchangé).
   if (!enabled || !(width > 0) || !(height > 0) || !(s > 0) || !(cell > 0)) {
-    return list.map((marker) => singleton(marker, categoriesById));
+    return all.map((marker) => singleton(marker, categoriesById));
   }
 
   const buckets = new Map();
@@ -138,6 +147,7 @@ export function clusterMarkers(markers, options = {}) {
       bounds: { minXPct, minYPct, maxXPct, maxYPct },
     });
   }
+  for (const marker of apart) clusters.push(singleton(marker, categoriesById));
   // Ordre stable : de haut en bas puis de gauche à droite (les clés de `Map` suivent l'ordre
   // d'insertion, donc l'ordre d'entrée ; on impose un ordre géométrique pour le rendu).
   clusters.sort((a, b) => a.y_pct - b.y_pct || a.x_pct - b.x_pct);

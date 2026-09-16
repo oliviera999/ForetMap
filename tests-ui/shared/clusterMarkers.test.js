@@ -120,3 +120,38 @@ describe('tap sur un groupe', () => {
     expect(clusterCenterPct(null)).toEqual({ xp: 0, yp: 0 });
   });
 });
+
+/**
+ * Le repère mis en avant (fiche ouverte, lieu visé par « Y aller ») ne doit jamais rester
+ * fondu dans un groupe : la fiche parlait sinon d'un lieu que rien sur la carte ne montrait
+ * (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` G3).
+ */
+describe('keepApartId — le lieu mis en avant sort du groupe', () => {
+  const superposes = [
+    { id: 'a', x_pct: 50, y_pct: 50 },
+    { id: 'b', x_pct: 50.1, y_pct: 50.1 },
+    { id: 'c', x_pct: 50.2, y_pct: 50.2 },
+  ];
+  const opts = { contentWidthPx: 1000, contentHeightPx: 1000, scale: 1 };
+
+  test('sans option, les trois repères ne font qu’un groupe', () => {
+    const clusters = clusterMarkers(superposes, opts);
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0].count).toBe(3);
+  });
+
+  test('avec l’option, le repère visé est rendu seul et les autres restent groupés', () => {
+    const clusters = clusterMarkers(superposes, { ...opts, keepApartId: 'b' });
+    expect(clusters).toHaveLength(2);
+    const seul = clusters.find((c) => c.count === 1);
+    const groupe = clusters.find((c) => c.count === 2);
+    expect(seul.lead.id).toBe('b');
+    expect(groupe.markers.map((m) => m.id).sort()).toEqual(['a', 'c']);
+  });
+
+  test('un identifiant inconnu ne change rien', () => {
+    const clusters = clusterMarkers(superposes, { ...opts, keepApartId: 'inexistant' });
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0].count).toBe(3);
+  });
+});

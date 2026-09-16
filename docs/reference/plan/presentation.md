@@ -111,10 +111,17 @@ Tant que la position est affichée, la **liste de résultats** indique la distan
 — ce qui permet de distinguer d'un coup d'œil plusieurs lieux portant le même nom (les
 différents « WC », par exemple) et de choisir le plus proche sans ouvrir les fiches une à une.
 
-Le bouton **« Y aller »** d'une fiche trace alors une **ligne droite** entre la position et le
-lieu, et affiche la distance. Ce n'est pas un itinéraire : le plan ne connaît pas encore les
-chemins de l'établissement, et une direction honnête vaut mieux qu'un trajet inventé. Sans
-calage, le bouton reste désactivé et dit pourquoi.
+Le bouton **« Y aller »** d'une fiche **referme la fiche** et lance le **guidage** : une ligne
+droite est tracée entre la position et le lieu, et une **barre d'une ligne** s'installe en bas
+de l'écran avec le nom du lieu, la distance et un bouton « Arrêter ». Toucher le nom rouvre la
+fiche ; la refermer ne coupe pas le guidage — seul « Arrêter » l'interrompt. Tout le reste de
+l'écran est la carte : c'est ce qu'on veut voir en marchant. Auparavant la direction n'existait
+que dans la fiche, qui couvrait la moitié basse de l'écran — donc le point bleu — et refermer
+la fiche annulait le guidage sans le dire.
+
+Ce n'est pas un itinéraire : le plan ne connaît pas encore les chemins de l'établissement, et
+une direction honnête vaut mieux qu'un trajet inventé. Sans calage, le bouton reste désactivé
+et dit pourquoi.
 
 La position est calculée **dans le téléphone** et n'est jamais envoyée au serveur.
 
@@ -197,8 +204,10 @@ de la barre, pour que le lieu reste visible. Sans calage GPS, on se repère sur 
 avance avec « Suivant » ; avec le calage, « Y aller » vise l'étape en cours.
 
 Pendant un parcours, le plan reste **explorable** : toucher un autre lieu (sur la carte ou dans
-les résultats de recherche) ouvre sa fiche, avec un bouton **« Revenir à l'étape »** qui rend la
-main au parcours. Auparavant, ces touchers restaient sans effet et sans explication.
+les résultats de recherche) ouvre sa fiche **en aperçu bas**, avec un bouton **« Revenir à
+l'étape »** qui rend la main au parcours. La barre d'étape remonte au-dessus de cette fiche et
+reste utilisable : auparavant la fiche la recouvrait entièrement, « Quitter », « Précédent » et
+« Suivant » compris.
 
 Rien n'est enregistré : personne ne coche, personne n'est suivi. On peut sauter une étape ou
 quitter le parcours à tout moment. Après avoir quitté, on le reprend via la puce **Parcours**
@@ -285,6 +294,10 @@ plan ne connaît pas encore — donc quels **alias de recherche** ajouter.
   plan.
 - **Sans calage GPS, pas de position.** Le bouton « Me situer » n'apparaît pas tant qu'un
   professeur n'a pas posé les points de repère du plan.
+- **Quand une feuille est ouverte** (résultats, fiche, filtres), les commandes de la carte se
+  replient en **rangée** juste au-dessus d'elle, et la carte se recadre pour garder le lieu
+  concerné dans la bande encore visible. Au cran plein, la feuille occupant tout l'écran, les
+  commandes s'effacent : elles reviennent dès qu'on la redescend.
 - **En intérieur, le signal est mauvais.** Le halo le dit honnêtement ; les QR codes aux
   portes restent le moyen le plus fiable de savoir où l'on est.
 - **Le code d'accès n'est pas un mot de passe.** Il est court, partagé, et retenu 30 jours par
