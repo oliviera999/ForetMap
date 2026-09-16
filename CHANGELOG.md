@@ -46,6 +46,52 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Le **calage GPS de production est vérifié bon** (0,5 % d'écart entre paires d'ancres, nord à
   0,17°) : les difficultés de repérage ne viennent pas de la géométrie.
 - Index des audits mis à jour. Aucun code produit modifié.
+### Corrigé — Échap, focus et tabulation revenus dans les fenêtres qui restaient montées
+
+- **Symptôme** : sur une quinzaine de fenêtres (confirmation de suppression d'une tâche,
+  suppression d'un compte, création d'un groupe, carnet d'observation d'un élève, import
+  d'un pack mascotte, et côté G&L profil joueur, feuillet de zone, fiche espèce, glossaire,
+  sortilèges…), **Échap ne fermait pas**, le focus restait sur le bouton qui avait ouvert la
+  fenêtre, `Tab` promenait le curseur dans la page masquée derrière, et le focus ne revenait
+  pas à son point de départ à la fermeture.
+- **Cause** : `useDialogA11y` armait son effet une seule fois, **au montage**, en lisant le
+  panneau dans un `ref`. Une fenêtre écrite `open={monEtat}` reste montée quand elle est
+  fermée : l'effet trouvait alors un `ref` vide, en sortait, et **ne se rejouait jamais** à
+  l'ouverture. Les fenêtres écrites `{monEtat && <Fenêtre/>}` n'étaient pas touchées, d'où un
+  comportement qui variait d'un écran à l'autre sans raison visible.
+- **Correctif** : le hook reçoit une option `active` et son effet en dépend — il s'arme à
+  l'ouverture, se désarme à la fermeture en rendant le focus au déclencheur. `DialogShell` lui
+  passe son `open` (ce qui répare d'un coup toutes les fenêtres qui l'utilisent), et les
+  surcouches qui gèrent leur propre `ref` passent leur état d'ouverture.
+- Détail et inventaire des surfaces concernées :
+  [`docs/AUDIT_UI_2026-09-16.md`](docs/AUDIT_UI_2026-09-16.md) B1. Tests de non-régression sur
+  le scénario « montée fermée puis ouverte » (`tests-ui/shared/DialogShell.test.jsx`,
+  `tests-ui/components/TaskConfirmDialog.test.jsx`).
+
+### Modifié — homogénéité de l'interface (suite de l'audit UI)
+
+- **Barre de filtres des tâches** : une seule hauteur de cible tactile, 44 px. Le même champ
+  mesurait 38 px sur tablette large, 42 px sur mobile et 44 px dans la feuille de filtres ; la
+  surcharge `@media (pointer:coarse)` manquait, alors qu'elle existait pour `.btn-sm`.
+- **Points de suspension** : 98 occurrences de `...` rendues en `…` dans les textes visibles
+  (43 fichiers) — « Chargement... » et « Chargement… » cohabitaient à l'écran. Le réglage
+  serveur `content.app.loader` suit (son défaut et le repli client disaient déjà deux choses
+  différentes), et le miroir CJS du pack mascotte est resynchronisé.
+- **Couleurs** : les hexadécimaux qui recopiaient un token de marque reviennent sur
+  `var(--forest)`, `var(--leaf)`, `var(--sage)`, `var(--parchment)` ; `#ffffff` s'écrit
+  partout `#fff` (G&L compris). Deux valeurs de repli `var()` se trompaient de token
+  (`var(--leaf, #52b788)`, `var(--forest, #2d6a4f)`) : corrigées, et les 72 replis morts de
+  `src/index.css` — où le token est défini par le fichier lui-même — sont supprimés.
+- **G&L** : l'heure d'une partie s'affiche en `fr-FR` et non plus selon la langue du
+  navigateur.
+
+### Ajouté — audit UI transverse
+
+- [`docs/AUDIT_UI_2026-09-16.md`](docs/AUDIT_UI_2026-09-16.md) : incohérences, homogénéité,
+  bugs. Constats chiffrés (192 champs de saisie sur 684 sans nom accessible, 363 + 116
+  couleurs distinctes en dur face à 17 tokens, 1 288 styles inline, 217 états vides ad hoc),
+  ce qui est sain et n'a pas à être réaudité, et un plan en quatre lots. Indexé dans
+  [`docs/audits/README.md`](docs/audits/README.md).
 ### Ajouté — Réseau trophique : isolement utile, sélection d'espèces, niveaux de consommateurs
 
 Mise en œuvre des lots F1–F5 de

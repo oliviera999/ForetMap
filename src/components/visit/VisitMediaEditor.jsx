@@ -89,7 +89,7 @@ export function VisitMediaEditor({
         onClick={() => mediaFileRef.current?.click()}
       >
         {mediaUploading ? (
-          'Envoi...'
+          'Envoi…'
         ) : (
           <>
             <IconCamera size={14} /> Ajouter des photos (fichiers, sélection multiple)
@@ -109,7 +109,7 @@ export function VisitMediaEditor({
         disabled={mediaSaving || !mediaUrl.trim()}
         onClick={onAddFromUrl}
       >
-        {mediaSaving ? 'Ajout...' : '+ Ajouter depuis URL'}
+        {mediaSaving ? 'Ajout…' : '+ Ajouter depuis URL'}
       </button>
       <div
         className="visit-media-list"

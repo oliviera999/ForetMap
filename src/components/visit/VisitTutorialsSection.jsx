@@ -95,7 +95,7 @@ export function VisitTutorialsSection({
             disabled={savingTutorials}
           >
             {savingTutorials ? (
-              'Sauvegarde...'
+              'Sauvegarde…'
             ) : (
               <>
                 <IconSave size={14} /> Enregistrer la sélection des tutos

@@ -171,7 +171,7 @@ export function TaskFiltersBar({
           className="task-filters-search"
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
-          placeholder="Rechercher une tâche..."
+          placeholder="Rechercher une tâche…"
           aria-label="Rechercher une tâche"
         />
         <button

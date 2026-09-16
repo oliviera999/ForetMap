@@ -497,7 +497,7 @@ function ObservationNotebook({ student, onForceLogout = null }) {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={3}
-              placeholder="Qu'as-tu observé ? Croissance, insectes, couleur des feuilles..."
+              placeholder="Qu'as-tu observé ? Croissance, insectes, couleur des feuilles…"
               autoFocus
             />
           </div>
@@ -521,7 +521,7 @@ function ObservationNotebook({ student, onForceLogout = null }) {
               disabled={saving || !content.trim()}
             >
               {saving ? (
-                '...'
+                '…'
               ) : (
                 <>
                   <IconSave size={14} /> Enregistrer
@@ -631,7 +631,7 @@ function PlantViewer({ onForceLogout = null, onOpenPlant = null }) {
       <PlantCatalogFilterPanel
         plants={plants}
         showZonePresence
-        searchPlaceholder="Chercher un être vivant..."
+        searchPlaceholder="Chercher un être vivant…"
         {...filterPanelProps}
       />
 

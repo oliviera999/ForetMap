@@ -27,7 +27,7 @@ function ContextComments({
   contextType,
   contextId,
   title = 'Commentaires',
-  placeholder = 'Ajouter un commentaire...',
+  placeholder = 'Ajouter un commentaire…',
   defaultOpen = false,
   canParticipateContextComments = true,
 }) {

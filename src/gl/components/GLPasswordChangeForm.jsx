@@ -55,7 +55,7 @@ export function GLPasswordChangeForm({ isAdmin, onChanged }) {
         />
       </GLField>
       <GLButton type="submit" loading={busy}>
-        {busy ? '...' : 'Mettre à jour'}
+        {busy ? '…' : 'Mettre à jour'}
       </GLButton>
     </GLSurface>
   );
