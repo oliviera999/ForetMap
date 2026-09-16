@@ -11,6 +11,7 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne, execute } = require('../database');
+const { setStudentPrimaryRole } = require('./helpers/studentRoles');
 const { signAuthToken } = require('../middleware/requireTeacher');
 
 let teacherToken;
@@ -64,6 +65,9 @@ before(async () => {
     .send({ firstName: firstNameB, lastName: lastNameB, password: 'pass123' })
     .expect(201);
   studentIdB = regB.body.id;
+  // Seuls des comptes au statut n3beur sont inscriptibles sur une tâche.
+  await setStudentPrimaryRole(studentIdA, 'eleve_novice');
+  await setStudentPrimaryRole(studentIdB, 'eleve_novice');
 });
 
 describe('Suppression élève — tâche collective', () => {

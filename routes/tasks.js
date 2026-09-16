@@ -18,6 +18,7 @@ const {
   normalizeTaskCompletionMode,
 } = require('../lib/taskStatusRecalc');
 const { getScopedStudentIds, getUserAccessibleGroupIds } = require('../lib/groupScope');
+const { listN3beurStudents, filterN3beurStudentIds } = require('../lib/n3beurStudents');
 const { normalizeImportTaskStatus } = require('../lib/tasks/taskImport');
 const {
   parseOptionalAuth,
@@ -545,6 +546,35 @@ async function getScopedTeacherIds(auth) {
 }
 
 router.get(
+  '/assignable-students',
+  requirePermission('tasks.manage'),
+  asyncHandler(async (req, res) => {
+    const groupId = req.query.group_id ? String(req.query.group_id).trim() : '';
+    const scope = await getScopedStudentIds(req.auth, { groupId: groupId || null });
+    if (scope.unauthorizedGroup) return res.status(403).json({ error: 'Groupe hors périmètre' });
+    const rows = await listN3beurStudents(scope.all ? null : scope.studentIds);
+    rows.sort((a, b) =>
+      `${a.first_name || ''} ${a.last_name || ''}`
+        .trim()
+        .localeCompare(`${b.first_name || ''} ${b.last_name || ''}`.trim(), 'fr', {
+          sensitivity: 'base',
+        }),
+    );
+    res.json({
+      students: rows.map((row) => ({
+        id: row.id,
+        first_name: row.first_name,
+        last_name: row.last_name,
+        pseudo: row.pseudo,
+        avatar_path: row.avatar_path,
+        role_slug: row.role_slug ?? null,
+        role_display_name: row.role_display_name ?? null,
+      })),
+    });
+  }),
+);
+
+router.get(
   '/referent-candidates',
   requirePermission('tasks.manage'),
   asyncHandler(async (req, res) => {
@@ -573,8 +603,16 @@ router.get(
       if (scopedTeacherIds == null) return true;
       return scopedTeacherIds.includes(String(r.id));
     });
+    // Un compte `student` porteur d'un profil non n3beur (visiteur, personnel, prof de classe,
+    // profil GL) n'a aucune permission de tâche : il ne doit pas être proposé comme référent.
+    const n3beurIds = new Set(
+      await filterN3beurStudentIds(
+        rows.filter((r) => r.user_type === 'student').map((r) => String(r.id)),
+      ),
+    );
     const students = rows.filter((r) => {
       if (r.user_type !== 'student') return false;
+      if (!n3beurIds.has(String(r.id))) return false;
       if (scopedStudentIds == null) return true;
       return scopedStudentIds.includes(String(r.id));
     });
