@@ -27,6 +27,38 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Filet de régression : `tests-ui/components/MapViewMount.test.jsx` (montage réel de `MapView`)
   et `tests-ui/shared/pct-map/PctStatusDots.test.jsx`.
 - Doc de référence `carte-et-zones.md` : section « Pastilles colorées des tâches ».
+### Modifié — Complément réservé : l'encadrement le voit par défaut
+
+- Le **complément réservé** d'une zone ou d'un repère laissé **sans aucun rôle coché** est
+  désormais lu par l'**encadrement** : **administrateurs**, **n3boss** et **profs de
+  classe** (`RESTRICTED_NOTE_DEFAULT_ROLE_SLUGS`), en plus des comptes qui gèrent les zones
+  ou les repères. Auparavant, seules les permissions `zones.manage` / `map.manage_markers`
+  ouvraient ce texte : un **prof de classe** ne voyait jamais un complément laissé au
+  réglage par défaut.
+- Une liste de rôles explicitement cochée reste **prioritaire** : elle remplace le défaut,
+  y compris pour restreindre le complément à moins de monde que l'encadrement.
+- Inchangé : visite anonyme et Plan Lyautey ne voient toujours rien sans le rôle
+  **Visiteur** coché ; les lecteurs non autorisés ne reçoivent pas les champs.
+- Libellé du formulaire mis à jour (« Qui peut lire le complément »), `docs/API.md` et la
+  doc de référence `carte-et-zones.md`. Filet : `tests/location-audience.test.js`.
+
+### Corrigé — Fiches de lieu : la description publique ne s'affiche plus deux fois
+
+- Dans l'onglet **Info** d'une zone ou d'un repère, la description apparaissait **en
+  double** : une fois comme description de travail, une fois comme accroche de visite. La
+  bascule **carte → visite** (`POST /api/visit/sync`, `rebuild-from-map`) recopie en effet
+  `description` (zone) / `note` (repère) dans l'accroche publique, qui revient sur la fiche
+  carte sous `visit_short_description`.
+- L'accroche de visite n'est plus affichée dans l'onglet Info quand elle **reprend le même
+  texte** que la description juste au-dessus (comparaison à espaces et casse ignorés). Le
+  bloc « visite » disparaît complètement s'il ne lui restait que ce doublon.
+- Le mode **Visite** et le **Plan** sont inchangés : ils continuent d'afficher l'accroche
+  publique, qui reste modifiable séparément dans l'onglet « Modifier ».
+- Nouvel utilitaire `src/utils/locationInfoTexts.js` ; filets
+  `tests-ui/utils/locationInfoTexts.test.js`,
+  `tests-ui/components/map/useLocationModalData.test.jsx` et
+  `tests-ui/components/map/LocationVisitAside.test.jsx`.
+
 ### Corrigé — Visite : la photo de tête n'apparaît plus en double
 
 - Dans l'encart d'un lieu (zone ou repère), la photo de la carte et la première image de

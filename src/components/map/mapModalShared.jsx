@@ -107,6 +107,10 @@ export function LocationTutorialPreviewList({
  * (audit §5.3) — seuls le titre de section (« Sur cette zone » / « Sur ce repère »)
  * et les champs de l'entité varient. Le parent garde la condition d'affichage
  * (`showVisitAsideBlock`) et fournit les listes déjà dérivées.
+ *
+ * `shortDescription` : accroche de visite **dédoublonnée** par
+ * `useLocationModalData` (vide quand elle reprend la description déjà affichée
+ * au-dessus). Non fourni, on retombe sur le champ brut de l'entité.
  */
 export function LocationVisitAside({
   entity,
@@ -117,9 +121,12 @@ export function LocationVisitAside({
   visitAsideSpecies,
   visitAsideTutorials,
   tutorials,
+  shortDescription = undefined,
   onOpenTutorialPreview = null,
   onOpenPlantCatalogPreview = null,
 }) {
+  const shortDesc =
+    shortDescription === undefined ? entity.visit_short_description : shortDescription;
   return (
     <div style={{ marginBottom: 12 }}>
       {entity.visit_subtitle && (
@@ -127,9 +134,9 @@ export function LocationVisitAside({
           {entity.visit_subtitle}
         </p>
       )}
-      {entity.visit_short_description && (
+      {shortDesc && (
         <MarkdownContent style={{ margin: '0 0 8px', fontSize: 'var(--text-sm)', color: '#333' }}>
-          {entity.visit_short_description}
+          {shortDesc}
         </MarkdownContent>
       )}
       {entity.visit_details_text && (

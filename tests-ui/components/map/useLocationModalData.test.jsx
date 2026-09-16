@@ -90,6 +90,49 @@ describe('useLocationModalData', () => {
     expect(result.current.showVisitAsideBlock).toBe(true); // tutoriels liés restent affichés
   });
 
+  test('accroche visite recopiée depuis la description : dédoublonnée (visitAsideShortDesc vide)', () => {
+    const zone = renderData(
+      'zone',
+      {
+        id: 'z-solo',
+        map_id: 'map1',
+        description: 'Le verger commun.',
+        visit_short_description: 'Le verger  commun.',
+      },
+      { isTeacher: true, tutorials: [], tasks: [] },
+    );
+    expect(zone.result.current.visitAsideShortDesc).toBe('');
+    expect(zone.result.current.showVisitAsideBlock).toBe(false);
+
+    const marker = renderData(
+      'marker',
+      {
+        id: 'm-solo',
+        map_id: 'map1',
+        note: 'Composteur.',
+        visit_short_description: 'Composteur.',
+      },
+      { isTeacher: true, tutorials: [], tasks: [] },
+    );
+    expect(marker.result.current.visitAsideShortDesc).toBe('');
+    expect(marker.result.current.showVisitAsideBlock).toBe(false);
+  });
+
+  test('accroche visite distincte de la description : conservée et bloc visite affiché', () => {
+    const { result } = renderData(
+      'zone',
+      {
+        id: 'z-solo',
+        map_id: 'map1',
+        description: 'Notes d’entretien.',
+        visit_short_description: 'Bienvenue au verger !',
+      },
+      { isTeacher: true, tutorials: [], tasks: [] },
+    );
+    expect(result.current.visitAsideShortDesc).toBe('Bienvenue au verger !');
+    expect(result.current.showVisitAsideBlock).toBe(true);
+  });
+
   test('repère en création (isNew) : onglets et bloc visite masqués', () => {
     const { result } = renderData('marker', MARKER, { isTeacher: true, isNew: true });
     expect(result.current.showTasksTab).toBe(false);

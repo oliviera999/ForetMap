@@ -43,6 +43,23 @@ describe('LocationVisitAside', () => {
     expect(screen.getByText('Contenu détaillé.')).toBeTruthy();
   });
 
+  test('shortDescription vide (doublon de la description) : accroche non rendue', () => {
+    renderAside({
+      entity: { id: 'z1', description: 'Le verger.', visit_short_description: 'Le verger.' },
+      shortDescription: '',
+    });
+    expect(screen.queryByText('Le verger.')).toBeNull();
+  });
+
+  test('shortDescription fourni : prioritaire sur le champ brut de l’entité', () => {
+    renderAside({
+      entity: { id: 'z1', visit_short_description: 'Accroche brute.' },
+      shortDescription: 'Accroche dédoublonnée.',
+    });
+    expect(screen.getByText('Accroche dédoublonnée.')).toBeTruthy();
+    expect(screen.queryByText('Accroche brute.')).toBeNull();
+  });
+
   test('titre de repli « Détails » quand visit_details_title est vide', () => {
     renderAside({ entity: { id: 'z1', visit_details_text: 'Texte.' } });
     expect(screen.getByText('Détails')).toBeTruthy();
