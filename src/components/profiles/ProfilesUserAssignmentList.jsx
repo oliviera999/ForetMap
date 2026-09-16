@@ -18,6 +18,9 @@ const MAX_ROW_GROUP_CHIPS = 3;
  * retour d'information **sur la ligne** modifiée plutôt qu'en tête de page (P4), et désactivation
  * limitée à la ligne en cours de chargement au lieu de toute la page (P9).
  *
+ * Un bouton « Niveau auto. » (élèves uniquement, `onRecomputeProfile(user)`) aligne le profil
+ * sur le nombre de tâches validées du compte.
+ *
  * Présentation pure : sélection, statuts et appels API restent au parent.
  */
 export function ProfilesUserAssignmentList({
@@ -28,6 +31,7 @@ export function ProfilesUserAssignmentList({
   rowStatus = null,
   selectedKeys = null,
   isAdmin = false,
+  recomputingUserId = null,
   canDelete = false,
   canDuplicate = false,
   onToggleSelect,
@@ -35,9 +39,13 @@ export function ProfilesUserAssignmentList({
   onOpenEditUser,
   onDeleteUser,
   onDuplicateUser,
+  onRecomputeProfile,
 }) {
   const canEditUserRow = (u) => isAdmin || String(u.role_slug || '').toLowerCase() !== 'admin';
   const isBusy = (key) => Boolean(busyKeys && busyKeys.has(key));
+  const canRecomputeRow = (u) =>
+    typeof onRecomputeProfile === 'function' &&
+    String(u.user_type || '').toLowerCase() === 'student';
   const selectable = typeof onToggleSelect === 'function';
 
   return (
@@ -110,6 +118,17 @@ export function ProfilesUserAssignmentList({
               >
                 Modifier
               </button>
+              {canRecomputeRow(u) && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => onRecomputeProfile(u)}
+                  disabled={busy || recomputingUserId === u.id}
+                  title="Attribuer le profil correspondant au nombre de tâches validées de ce compte"
+                >
+                  {recomputingUserId === u.id ? 'Recalcul…' : 'Niveau auto.'}
+                </button>
+              )}
               {canDuplicate && isStudent && (
                 <button
                   type="button"

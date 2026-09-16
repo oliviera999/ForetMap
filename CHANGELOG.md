@@ -277,6 +277,57 @@ ouvertes par l'audit du même jour puis arbitrées.
   des utilisateurs et de la fiche utilisateur — 5 constats traités par ce lot, 18 propositions
   (P1–P18) **ouvertes et non arbitrées**, classées par impact et regroupées en quatre lots.
   Indexé dans `docs/audits/README.md`.
+### Corrigé — Le palier n3beur ne repart plus de zéro au rattachement à un groupe
+
+- **Le profil par défaut d'un groupe n3beur n'est plus qu'un plancher.** Chaque passage de
+  `syncStudentRoleFromGroups` (rattachement, import, connexion, synchronisation Moodle)
+  posait le profil par défaut du groupe — `n3beur novice` la plupart du temps — sans regarder
+  le compteur de tâches validées : un n3beur qui avait validé 60 tâches se retrouvait au
+  palier d'entrée. Le rôle de groupe est désormais suivi d'un alignement sur le nombre de
+  tâches validées, et le palier mérité est rendu aussitôt.
+- **Un compte visiteur rattaché à un groupe n3beur entre dans l'échelle** : il reçoit le
+  palier correspondant à ses tâches validées (palier d'entrée s'il n'a rien validé, ce qui
+  est le cas courant — un visiteur n'a pas accès aux tâches). Auparavant
+  `syncStudentPrimaryRoleFromProgress` refusait tout profil en lecture seule, et seul le
+  profil par défaut du groupe s'appliquait.
+- Ce chemin ne fait **jamais** redescendre un palier, pas même par le rattrapage historique
+  d'un palier attribué au-dessus du compteur réel (`allowOverAssignedCatchUp`) : un palier
+  posé à la main par un n3boss survit au rattachement. L'action explicite « appliquer le
+  profil par défaut du groupe » (`POST /api/groups/:id/apply-default-role`) n'est pas
+  doublée par ce recalage.
+- Réglage `rbac.progression_align_on_group_join` (défaut activé, `PATCH
+  /api/rbac/progression-align-on-group-join`, case à cocher dans **Profils & utilisateurs →
+  Permissions**, bloc « Progression par tâches validées », et dans Paramètres admin) pour
+  revenir au comportement « profil par défaut du groupe seulement ».
+
+### Ajouté — Attribuer les profils d'après les tâches validées, en masse ou compte par compte
+
+- Nouveau bloc **« Attribuer les profils d'après les tâches validées »** dans
+  **Profils & utilisateurs → Comptes** : périmètre **tous les n3beurs** ou **un groupe**,
+  bouton **Aperçu** (simulation, rien n'est écrit) puis **Appliquer**, et liste nominative
+  des paliers qui changent (« Ada Lovelace — 60 tâches validées → n3beur chevronné (était
+  n3beur novice) »). De quoi rattraper d'un coup un parc de profils désaligné.
+- Bouton **« Niveau auto. »** sur chaque ligne d'élève de la liste d'attribution, pour le
+  même recalcul sur un seul compte.
+- Case **« Aligner strictement »** : par défaut le recalcul ne fait que **monter** les
+  paliers ; cochée, elle autorise aussi la **baisse** d'un palier attribué au-dessus du
+  nombre réel de tâches validées.
+- `POST /api/rbac/progression/recompute` (permission `admin.roles.manage`, `lib/studentProgressionSync.js`) :
+  `{ scope: 'all' | 'group' | 'user', group_id?, user_id?, allow_demotion?, dry_run? }`.
+  Périmètre limité aux comptes élèves **actifs membres d'au moins un groupe n3beur** ; les
+  profils hors échelle (n3boss, admin, MJ, prof de classe, profil sur mesure) ne sont jamais
+  modifiés et ressortent avec leur motif. L'aperçu emprunte exactement le même chemin de
+  décision que l'application, à l'écriture près : il ne peut pas diverger du résultat.
+  Journalisé (`rbac_progression_recompute`) et diffusé en temps réel aux vues élèves.
+- Tests : `tests/progression-recompute.test.js` (11 cas — rattachement avec historique,
+  visiteur sans tâche, palier manuel préservé, réglage désactivé, recalcul individuel, aperçu
+  sans écriture, masse par groupe, montée seule vs alignement strict, hors périmètre, profil
+  hors échelle, erreurs 400/404) et `tests-ui/utils/progressionRecompute.test.js` (14 cas).
+- **Fuite de seuils entre fichiers de test corrigée** au passage : `tests/api.test.js`
+  déplace volontairement les `min_done_tasks` sur la base partagée par toute la suite et ne
+  les restaurait pas, ce qui rendait le palier de départ des fichiers suivants dépendant de
+  l'ordre d'exécution. Nouveau helper `tests/helpers/progressionThresholds.js`, appelé en
+  sortie du fichier fautif et en entrée des fichiers qui raisonnent sur les paliers.
 
 ### Ajouté — Les 30 fiches à photo morte sont réillustrées
 

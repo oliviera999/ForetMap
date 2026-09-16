@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { api } from '../../services/api';
 import {
   buildUserGroupIdsFromUsers,
   filterProfilesUsers,
@@ -22,6 +23,12 @@ import { ProfilesUserAssignmentList } from './ProfilesUserAssignmentList.jsx';
 import { AccountsFiltersToolbar } from './AccountsFiltersToolbar.jsx';
 import { AccountsBulkBar } from './AccountsBulkBar.jsx';
 import { ConfirmRoleChangeModal } from './ConfirmRoleChangeModal.jsx';
+import { ProfilesProgressionRecomputePanel } from './ProfilesProgressionRecomputePanel.jsx';
+import {
+  buildRecomputeBody,
+  formatRecomputeRow,
+  summarizeRecompute,
+} from '../../utils/progressionRecompute.js';
 import { CreateUserPanel } from './CreateUserPanel.jsx';
 
 const PAGE_SIZE_STORAGE_KEY = 'foretmap.profiles.pageSize';
@@ -71,6 +78,7 @@ export function ProfilesAccountsPanel({
   onOpenEditUser,
   onFilteredCountChange,
   onTotalCountChange,
+  onProfilesRecomputed,
 }) {
   const [filters, setFilters] = useState(readInitialFilters);
   const [page, setPage] = useState(1);
@@ -82,6 +90,7 @@ export function ProfilesAccountsPanel({
   const [rowStatus, setRowStatus] = useState(() => new Map());
   const [pendingRoleChange, setPendingRoleChange] = useState(null);
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [recomputingUserId, setRecomputingUserId] = useState(null);
   const statusTimers = useRef(new Map());
 
   // P7 — les filtres vivent dans l'URL : un rechargement ne les perd plus, et une vue filtrée
@@ -131,6 +140,28 @@ export function ProfilesAccountsPanel({
     () => paginateList(filteredUsers, page, pageSize),
     [filteredUsers, page, pageSize],
   );
+
+  /** Recalcul du profil d'un seul compte (bouton « Niveau auto. » de la ligne). */
+  const recomputeOneProfile = async (user) => {
+    setErr('');
+    setMsg('');
+    setRecomputingUserId(user.id);
+    try {
+      const payload = await api(
+        '/api/rbac/progression/recompute',
+        'POST',
+        buildRecomputeBody({ scope: 'user', userId: user.id }),
+      );
+      const row = Array.isArray(payload?.results) ? payload.results[0] : null;
+      setMsg(row ? formatRecomputeRow(row) : summarizeRecompute(payload));
+      if (payload?.changed > 0 && typeof onProfilesRecomputed === 'function') {
+        await onProfilesRecomputed(payload);
+      }
+    } catch (e) {
+      setErr(e.message || 'Erreur lors du recalcul du profil');
+    }
+    setRecomputingUserId(null);
+  };
 
   const changePageSize = (next) => {
     const size = normalizePageSize(next);
@@ -366,6 +397,7 @@ export function ProfilesAccountsPanel({
               rowStatus={rowStatus}
               selectedKeys={selectedKeys}
               isAdmin={isAdmin}
+              recomputingUserId={recomputingUserId}
               canDelete={canDeleteUi}
               canDuplicate={canDuplicateStudents}
               onToggleSelect={toggleSelect}
@@ -375,6 +407,7 @@ export function ProfilesAccountsPanel({
               onDuplicateUser={(user) =>
                 withRowBusy(profilesUserKey(user), () => onDuplicateUser(user), 'Compte dupliqué')
               }
+              onRecomputeProfile={recomputeOneProfile}
             />
           )}
 
@@ -410,6 +443,15 @@ export function ProfilesAccountsPanel({
         onConfirm={confirmPendingRoleChange}
         onCancel={() => setPendingRoleChange(null)}
       />
+
+      {canManageProfiles && (
+        <ProfilesProgressionRecomputePanel
+          groupOptions={groupOptions}
+          roleTerms={roleTerms}
+          loading={loading}
+          onApplied={onProfilesRecomputed}
+        />
+      )}
 
       <CreateUserPanel
         roleTerms={roleTerms}

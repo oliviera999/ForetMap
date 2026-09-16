@@ -65,7 +65,21 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
 | **Administrateur**      | Compte aux pleins pouvoirs établissement        | Tout le n3boss (y compris carnet personnel), plus réglages, rôles, secrets, prise de contrôle, audit technique          |
 
 - La montée de palier est **automatique** (nombre de tâches validées) et saluée par une
-  fenêtre de félicitations. Les **noms affichés** des profils (dont « n3beur » /
+  fenêtre de félicitations.
+- **Au rattachement à un groupe n3beur**, le profil est aussitôt mis au palier qui
+  correspond aux tâches déjà validées : un compte visiteur qui rejoint une classe passe
+  donc en n3beur (palier d'entrée s'il n'a encore rien validé), et un élève qui revient
+  avec 60 tâches validées retrouve son palier au lieu de repartir de novice. Cet
+  alignement ne fait jamais **baisser** un palier. Il se désactive dans
+  **Profils & utilisateurs → Permissions**, bloc « Progression par tâches validées ».
+- **Rattrapage en masse ou compte par compte** : dans **Profils & utilisateurs →
+  Comptes**, le bloc « Attribuer les profils d'après les tâches validées » attribue à
+  chacun le palier mérité — pour tous les n3beurs, pour un groupe, ou pour un seul
+  compte (bouton « Niveau auto. » sur sa ligne). Le bouton **Aperçu** montre qui
+  changerait avant d'appliquer. Par défaut, seules les **montées** sont appliquées ; la
+  case « Aligner strictement » autorise aussi la baisse d'un palier attribué au-dessus
+  du nombre réel de tâches validées. Les profils hors échelle n3beur (n3boss, admin,
+  MJ, prof de classe, profil sur mesure) ne sont jamais touchés. Les **noms affichés** des profils (dont « n3beur » /
   « n3boss ») se règlent dans **Profils & utilisateurs** ; ce n'est pas un réglage
   séparé dans Paramètres.
 - Les rôles et leurs **permissions sont configurables** : un administrateur peut créer
