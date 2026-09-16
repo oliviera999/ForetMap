@@ -10,6 +10,8 @@ const { getSettingValue, setSetting } = require('../lib/settings');
 const { getPasswordMinLengthFor } = require('../lib/passwordReset');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
+const { resolveGroupVisibility, fetchGroupsByUserId } = require('../lib/rbacUserGroups');
+const { assignPrimaryRole } = require('../lib/rbacRoleAssignment');
 
 async function emitStudentsWithPrimaryRole(roleId) {
   const rows = await queryAll(
@@ -681,6 +683,11 @@ router.get(
     LEFT JOIN roles r ON r.id = ur.role_id
      ORDER BY u.user_type ASC, display_name ASC`,
     );
+    const visibility = await resolveGroupVisibility(req.auth);
+    const groupsByUserId = await fetchGroupsByUserId(
+      users.map((u) => u.id),
+      visibility,
+    );
     res.json(
       users.map((u) => ({
         id: u.id,
@@ -698,6 +705,7 @@ router.get(
         forum_participate: u.user_type === 'student' ? Number(u.forum_participate) !== 0 : true,
         context_comment_participate:
           u.user_type === 'student' ? Number(u.context_comment_participate) !== 0 : true,
+        groups: groupsByUserId.get(String(u.id)) || [],
       })),
     );
   }),
@@ -719,6 +727,8 @@ router.get(
         WHERE ur.user_type = ? AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
       [resolvedUserType, resolvedUserId],
     );
+    const visibility = await resolveGroupVisibility(req.auth);
+    const groupsByUserId = await fetchGroupsByUserId([resolvedUserId], visibility);
     const displayName =
       (u.display_name && String(u.display_name).trim()) ||
       `${u.first_name || ''} ${u.last_name || ''}`.trim() ||
@@ -742,7 +752,93 @@ router.get(
         resolvedUserType === 'student' ? Number(rj?.forum_participate) !== 0 : true,
       context_comment_participate:
         resolvedUserType === 'student' ? Number(rj?.context_comment_participate) !== 0 : true,
+      groups: groupsByUserId.get(String(resolvedUserId)) || [],
+      // Métadonnées de support (P13 de l'audit UX) : les questions posées quand « il ne peut
+      // pas se connecter » — compte actif ? créé quand ? venu d'où ? vu pour la dernière fois ?
+      is_active: Number(u.is_active) !== 0,
+      auth_provider: jsonTextField(u.auth_provider) || 'local',
+      created_at: u.created_at ? new Date(u.created_at).toISOString() : null,
+      last_seen: jsonTextField(u.last_seen) || null,
     });
+  }),
+);
+
+/**
+ * Attribution du profil principal **en lot** (P2 de l'audit UX).
+ *
+ * Déclarée avant `/users/:userType/:userId` : `bulk-role` est un segment littéral, la
+ * route paramétrée ne doit pas l'absorber.
+ *
+ * Chaque compte passe par la **même garde** que l'attribution unitaire
+ * (`lib/rbacRoleAssignment.js`) : un lot ne peut pas accorder un rôle qu'une action unitaire
+ * refuserait. L'échec d'un compte n'annule pas les autres — la réponse détaille chaque ligne
+ * pour que l'interface dise exactement qui a été refusé et pourquoi.
+ */
+const BULK_ROLE_MAX_USERS = 200;
+
+const bulkRoleBodySchema = z.unknown().superRefine((b, ctx) => {
+  const roleId = parseInt(b && b.role_id, 10);
+  if (!Number.isFinite(roleId) || roleId <= 0) {
+    ctx.addIssue({ code: 'custom', message: 'role_id invalide', path: [] });
+  }
+  const users = b && b.users;
+  if (!Array.isArray(users) || users.length === 0) {
+    ctx.addIssue({ code: 'custom', message: 'users[] requis (non vide)', path: [] });
+    return;
+  }
+  if (users.length > BULK_ROLE_MAX_USERS) {
+    ctx.addIssue({
+      code: 'custom',
+      message: `users[] limité à ${BULK_ROLE_MAX_USERS} comptes par appel`,
+      path: [],
+    });
+  }
+});
+
+router.post(
+  '/users/bulk-role',
+  requirePermission('admin.users.assign_roles'),
+  validate({ body: bulkRoleBodySchema }),
+  asyncHandler(async (req, res) => {
+    const roleId = parseInt(req.body.role_id, 10);
+    const role = await queryOne('SELECT id, slug FROM roles WHERE id = ? LIMIT 1', [roleId]);
+    if (!role) return res.status(404).json({ error: 'Profil introuvable' });
+
+    const results = [];
+    for (const entry of req.body.users) {
+      const userType = String(entry?.user_type ?? entry?.userType ?? '').trim();
+      const userId = entry?.id ?? entry?.user_id;
+      const resolved = await resolveRbacSubjectForMutation(userType, userId);
+      if (!resolved.ok) {
+        results.push({
+          user_type: userType,
+          id: String(userId ?? ''),
+          ok: false,
+          error: resolved.error,
+        });
+        continue;
+      }
+      const applied = await assignPrimaryRole({
+        auth: req.auth,
+        userType: resolved.resolvedUserType,
+        userId: resolved.resolvedUserId,
+        roleId,
+        nextRole: role,
+      });
+      results.push({
+        user_type: resolved.resolvedUserType,
+        id: String(resolved.resolvedUserId),
+        ok: applied.ok,
+        ...(applied.ok ? {} : { error: applied.error }),
+      });
+    }
+
+    const updated = results.filter((r) => r.ok).length;
+    logAudit('rbac_assign_role_bulk', 'role', String(roleId), `${updated}/${results.length}`, {
+      req,
+      payload: { role_id: roleId, requested: results.length, updated },
+    });
+    res.json({ ok: true, role_id: roleId, updated, failed: results.length - updated, results });
   }),
 );
 
@@ -990,35 +1086,15 @@ router.put(
     if (!resolved.ok) return res.status(resolved.status).json({ error: resolved.error });
     const { resolvedUserType, resolvedUserId: resolvedLegacyUserId } = resolved;
 
-    const currentRole = await getPrimaryRoleForUser(resolvedUserType, resolvedLegacyUserId);
-    const nextRole = await queryOne('SELECT slug FROM roles WHERE id = ? LIMIT 1', [roleId]);
-    // Seul un admin peut attribuer le rôle admin ou modifier le rôle d'un admin existant
-    // (symétrie avec POST/PATCH /users qui interdisent déjà à un prof de toucher un admin).
-    const actorRoleSlug = String(req.auth?.roleSlug || '')
-      .trim()
-      .toLowerCase();
-    if (
-      actorRoleSlug !== 'admin' &&
-      (nextRole?.slug === 'admin' || currentRole?.slug === 'admin')
-    ) {
-      return res
-        .status(403)
-        .json({ error: 'Seul un admin peut attribuer ou retirer le rôle admin' });
-    }
-    const leavingAdmin = currentRole?.slug === 'admin' && nextRole?.slug !== 'admin';
-    if (leavingAdmin) {
-      const adminCountRow = await queryOne(
-        `SELECT COUNT(*) AS c
-           FROM user_roles ur
-           INNER JOIN roles r ON r.id = ur.role_id
-          WHERE ur.is_primary = 1 AND ur.user_type = 'teacher' AND r.slug = 'admin'`,
-      );
-      const adminCount = Number(adminCountRow?.c || 0);
-      if (adminCount <= 1) {
-        return res.status(409).json({ error: 'Action refusée: dernier administrateur actif' });
-      }
-    }
-    await setPrimaryRole(resolvedUserType, resolvedLegacyUserId, roleId);
+    // Garde anti-escalade partagée avec l'attribution en lot (lib/rbacRoleAssignment.js) :
+    // une action groupée ne peut pas contourner ce qu'une action unitaire refuse.
+    const applied = await assignPrimaryRole({
+      auth: req.auth,
+      userType: resolvedUserType,
+      userId: resolvedLegacyUserId,
+      roleId,
+    });
+    if (!applied.ok) return res.status(applied.status).json({ error: applied.error });
     logAudit(
       'rbac_assign_role',
       'role',

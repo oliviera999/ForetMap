@@ -135,6 +135,14 @@ export function mergeRbacUserRowsForEdit(listRow, detailRow) {
     context_comment_participate:
       pickUserField(b, 'context_comment_participate', 'contextCommentParticipate') ??
       pickUserField(a, 'context_comment_participate', 'contextCommentParticipate'),
+    // Rattachements groupes : la fiche détaillée fait foi ; repli sur la ligne de liste
+    // (API plus ancienne ou acteur hors périmètre → tableau vide, jamais `undefined`).
+    groups: (() => {
+      const fromDetail = pickUserField(b, 'groups');
+      if (Array.isArray(fromDetail)) return fromDetail;
+      const fromList = pickUserField(a, 'groups');
+      return Array.isArray(fromList) ? fromList : [];
+    })(),
   };
 }
 

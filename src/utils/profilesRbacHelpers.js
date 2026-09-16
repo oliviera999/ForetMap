@@ -60,6 +60,9 @@ export function deriveProfilesCapabilities(auth = {}) {
     canExport,
     canImport,
     canImportGroups,
+    // Même permission que l'import de groupes : `groups.manage` est ce qui autorise le
+    // rattachement (en lot depuis la liste, unitaire depuis la fiche).
+    canManageGroups: canImportGroups,
     canDelete,
     canCreateUsers,
     canReadAllStats,
