@@ -268,6 +268,24 @@ Au-delà de la pastille, l'application protège ce qui est déjà affiché :
   sans fin. Les données continuent d'arriver par le rafraîchissement périodique, et le
   temps réel revient de lui-même à la reconnexion.
 
+### Quand une nouvelle version est publiée
+
+L'application est mise à jour plusieurs fois par jour. Ce qu'un utilisateur en voit :
+
+- **Un bandeau « Une nouvelle version est disponible »**, avec un bouton **« Recharger »**.
+  Rien ne bouge tant qu'on ne clique pas : une saisie en cours (formulaire de plante,
+  description de tâche, message du forum) n'est plus interrompue. On recharge quand cela
+  arrange.
+- **Après le rechargement**, le message « Nouvelle version installée. » confirme le
+  passage à la nouvelle version.
+- **Auparavant**, la page se rechargeait d'elle-même dès la publication — parfois une
+  vingtaine de fois par jour — et le message apparaissait aussi à la toute première visite
+  dans un navigateur neuf, alors qu'aucune version n'avait été remplacée. Les deux
+  comportements ont disparu.
+- **Une seule exception** : si un onglet resté ouvert très longtemps ne parvient plus à
+  charger un morceau de l'application (supprimé du serveur par la mise à jour), la page se
+  recharge d'elle-même — à ce stade elle ne fonctionnerait plus de toute façon.
+
 ## ⚠️ Points d'attention sur l'existant
 
 État des lieux honnête, relevé en examinant le fonctionnement actuel :

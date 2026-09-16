@@ -328,6 +328,48 @@ ouvertes par l'audit du même jour puis arbitrées.
   les restaurait pas, ce qui rendait le palier de départ des fichiers suivants dépendant de
   l'ordre d'exécution. Nouveau helper `tests/helpers/progressionThresholds.js`, appelé en
   sortie du fichier fautif et en entrée des fichiers qui raisonnent sur les paliers.
+### Corrigé — Plus de déconnexion toutes les 1 h 30, plus de rechargement d'autorité
+
+Deux symptômes distincts, souvent confondus parce qu'ils se produisaient ensemble : le
+message « Nouvelle version installée. » suivi d'une déconnexion. Diagnostic et correctifs
+séparés.
+
+- **Session qui expire en plein travail.** Le jeton vivait exactement
+  `security.jwt_ttl_base_seconds` (1 h 30 par défaut) et **rien ne le prolongeait** :
+  `/api/auth/me` ne ré-émettait qu'en cas de changement de rôle ou de permissions. Un
+  utilisateur actif était donc déconnecté toutes les 90 minutes, quoi qu'il fasse.
+  Désormais, un jeton entré dans le **dernier tiers** de sa durée de vie est ré-émis
+  (`lib/auth/slidingSession.js`), et le client le demande de lui-même quand l'échéance
+  approche (`useAuthTokenRenewal`) plutôt que d'attendre un cycle de synchronisation qui
+  pouvait ne jamais appeler `/api/auth/me`.
+- **Prolongation bornée, pas infinie.** Chaque jeton porte `sessionStartedAt`, posé à la
+  première émission et reconduit par les ré-émissions. Au-delà du nouveau réglage
+  `security.jwt_sliding_max_seconds` (Réglages › Sécurité, défaut **12 h**, `0` = sans
+  plafond), la prolongation est refusée. Sans ce repère, un jeton volé deviendrait éternel.
+- **Faux « Nouvelle version installée » à la première visite.** Le service worker appelle
+  `clients.claim()` à son activation ; sur une page pas encore contrôlée (navigateur neuf,
+  navigation privée, données de site effacées), cette **première** prise de contrôle
+  émettait `controllerchange` — et l'app la traitait comme une mise à jour : toast et
+  rechargement alors qu'aucune version n'avait été remplacée.
+- **Rechargement d'autorité supprimé.** Le déploiement automatique publie un nouveau `sw.js`
+  à chaque changement de bundle — 12 à 23 fois par jour sur le rythme de commits observé —
+  et chaque publication rechargeait la page sans prévenir, saisie en cours comprise.
+  L'application **annonce** maintenant la mise à jour par un bandeau « Une nouvelle version
+  est disponible » + bouton « Recharger », et ne recharge que sur ce clic. Le toast
+  « Nouvelle version installée. » s'affiche ensuite, comme avant.
+- **Un filet subsiste**, volontairement : sur `vite:preloadError` (chunk dynamique supprimé
+  du serveur par le déploiement, onglet resté ouvert), la page se recharge d'elle-même —
+  elle est déjà cassée à ce stade. Anti-boucle d'une minute par onglet.
+- **Limite connue, hors périmètre de ce lot** : le renouvellement glissant passe par
+  `/api/auth/me`, route ForetMap. Les sessions **Gnomes & Licornes** conservent le
+  comportement actuel (expiration sèche au bout du TTL) — à traiter dans un lot GL dédié.
+- Enregistrement du service worker extrait de `src/main.jsx` vers
+  `src/shared/pwa/registerServiceWorker.js`, testable et testé.
+- Tests : `tests/auth-sliding-session.test.js` (règle de renouvellement, plafond absolu,
+  jetons hérités sans le claim), `tests-ui/shared/registerServiceWorker.test.js`,
+  `tests-ui/hooks/useAuthTokenRenewal.test.jsx`, `tests-ui/hooks/useServiceWorkerUpdate.test.jsx`.
+- Docs : `docs/API.md` (renouvellement glissant, `sessionStartedAt`, nouveau réglage),
+  `docs/reference/foretmap/presentation.md` et `comptes-roles-et-groupes.md`.
 
 ### Ajouté — Les 30 fiches à photo morte sont réillustrées
 
