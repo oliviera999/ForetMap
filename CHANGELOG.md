@@ -9,6 +9,141 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Visite : la photo de tête n'apparaît plus en double
+
+- Dans l'encart d'un lieu (zone ou repère), la photo de la carte et la première image de
+  la visite s'affichaient deux fois dès qu'elles désignaient le **même cliché sous deux
+  adresses différentes** — cas courant d'une photo associée à la visite depuis la carte,
+  puis servie sous son chemin public après reprise des chemins d'images. La comparaison
+  se fait désormais sur l'**identité de la photo** (lieu + photo) et non sur le texte de
+  l'adresse : vignette, chemin public, ancienne adresse d'API et adresse absolue sont
+  reconnus comme une seule et même image.
+- Les photos de la galerie carte reprises sous « Détails » sont filtrées de la même
+  façon : plus de vignette déjà vue en haut de la fiche.
+
+### Corrigé — Carte : typographie du sélecteur de cartes alignée sur la barre d'outils
+
+- Le menu déroulant de choix de carte (`.map-switch-select`, affiché au-delà de 4 cartes)
+  n'avait aucune déclaration typographique propre : il retombait sur la règle globale
+  `input, select, textarea` (`--text-base`, et `16px !important` sous 1024px ou sur pointeur
+  grossier), soit ~40 % de plus que les pilules voisines réglées sur `--map-toolbar-font-size`
+  (`--text-xs`) — d'où une fonte visiblement différente du reste de la barre.
+- Le sélecteur porte désormais `--font-sans`, `--map-toolbar-font-size` et `--lh-tight`, et
+  suit la compaction de la barre carte (`main--map-visible` / `map-view-root--solo`), dont les
+  règles ne visaient que les `button`.
+- Cliquet de style `tests-ui/utils/mapToolbarTypography.test.js`.
+
+### Corrigé — QCM : la bonne réponse n'est plus la proposition la plus longue
+
+- **426 propositions fausses réécrites sur 142 questions** du corpus livré (migration `256`).
+  Le biais de position était déjà neutralisé à l'affichage par le mélange Fisher-Yates de
+  `lib/qcmChoices.js` ; le biais de **longueur**, lui, voyage avec le texte et survit au
+  mélange.
+- Sur le corpus semé, la stratégie « choisir la proposition la plus longue » passe de
+  **78,4 % à 38,7 %** de réussite (25 % au hasard) ; plus aucune question n'est signalée
+  `length_bias_answer` (142 auparavant). À un écart réellement perceptible — plus de
+  20 caractères d'avance sur le meilleur distracteur — l'indice disparaît complètement :
+  52,5 % des questions avant, **0 % après**. Sur l'export de production, 65,7 % → 49,9 %,
+  le reliquat étant les questions saisies depuis le panneau prof, hors corpus livré.
+- Ce sont les **distracteurs** qui ont été étoffés, jamais les bonnes réponses : la bonne
+  réponse porte le contenu enseigné, et chaque distracteur a son propre `feedback_<lettre>`
+  adossé à l'erreur qu'il représente. Le sens de chaque proposition fausse est conservé,
+  seul son niveau de détail change — les feedbacks existants restent donc exacts.
+- La bonne réponse reste volontairement la plus longue dans une partie des questions : si
+  la plus longue était toujours fausse, la règle deviendrait simplement « éviter la plus
+  longue ».
+- Chaque `UPDATE` est gardé par l'ancienne valeur : une question déjà retouchée depuis le
+  panneau prof n'est jamais écrasée, et rejouer la migration ne fait rien. Cliquet du test
+  de contenu resserré en conséquence (0,80 → 0,55 ; rapport 1,95 → 1,40).
+
+### Ajouté — Fiches espèces : champ « danger » distinct de la détermination
+
+- Quatre colonnes `plants` (migration `251`) : `toxicity_level` (aucune / irritation /
+  toxique / mortel), `hazard_exposure` (SET de voies d'exposition), `hazard_notes` et
+  `hazard_reviewed`. La détermination répond à « qu'est-ce que c'est » ; une espèce
+  parfaitement identifiée — ricin, laurier-rose, tabac glauque, jusquiame — peut rester
+  dangereuse, et n'avait nulle part où le dire.
+- Affichage en **encadré d'alerte non repliable, en tête de fiche** : un avertissement de
+  toxicité derrière un `<details>` fermé n'avertit personne. La couleur suit la gravité.
+- Pré-remplissage bibliographique de **107 fiches** (6 mortelles, 36 toxiques, 51
+  irritantes, 14 sans danger), toutes posées `hazard_reviewed = 0`. Le danger s'affiche
+  quand même, accompagné de la mention **« à valider »** : masquer un avertissement en
+  attendant relecture serait le choix le plus dangereux des deux. **La relecture par un
+  enseignant reste à faire.**
+- Normalisation serveur (`lib/plantHazard.js`), alias d'import FR/EN, champs au formulaire
+  prof, `docs/API.md` et doc de référence.
+
+### Ajouté — Attribution des photos du catalogue, et correction de la fiche « Laitue »
+
+- Colonnes `photo_credit` / `photo_licence` sur `plants` (migration `252`), aux mêmes noms
+  que sur `quiz_questions`. Les licences du catalogue (CC BY-SA 3.0/4.0, CC BY, GFDL)
+  imposent toutes de nommer l'auteur ; 225 photos Wikimedia n'en portaient aucun.
+- **195 attributions récupérées depuis l'API Wikimedia Commons** (champs `Artist` et
+  `LicenseShortName`, repli sur `Credit`/`Attribution` puis le téléverseur). Aucun auteur
+  inventé. Affichées sous la photo, avec lien vers la page du fichier.
+- **30 fiches pointaient un fichier supprimé de Commons** (404 vérifié sur les 30) : le lien
+  mort est retiré, les fiches sont à réillustrer. `PlantBiodivHeroPhoto` gère désormais
+  l'erreur de chargement plutôt que d'afficher une image cassée.
+- Fiche **Laitue** : la photo principale était une planche de *Lactuca virosa*, laitue
+  sauvage toxique, sur une fiche marquée comestible. Corrigée, et la confusion est passée
+  dans les « confusions possibles ».
+
+### Ajouté — Détection du biais de longueur des QCM
+
+- `lib/pedagoContentAudit.js` mesure l'écart de longueur entre la bonne réponse et ses
+  distracteurs (`answerLengthProfile`, `hasAnswerLengthBias`, `summarizeAnswerLengthBias`)
+  et remonte les questions concernées sous `length_bias_answer`.
+- Sur le corpus de 513 questions : la bonne réponse fait **49 caractères contre 29**, et
+  « choisir la proposition la plus longue » réussit **66 %** des questions — pour 25 % au
+  hasard. 285 questions sont à rééquilibrer ; la correction est éditoriale.
+- Le biais de **position** (bonne réponse stockée en « A » une fois sur deux) n'est pas
+  concerné : `lib/qcmChoices.js` mélange déjà les propositions à chaque affichage.
+- Test de contenu à cliquet : le taux ne peut plus augmenter.
+
+### Ajouté — Intégrité référentielle : huit clés étrangères
+
+- Migration `253`. `map_species.first_record_by` était `INT UNSIGNED` face à un
+  `users.id VARCHAR(64)` : aucune clé n'était possible et aucune valeur n'aurait pu y être
+  écrite. Colonne convertie (NULL sur les 452 lignes), puis contrainte posée.
+- Sept autres liens sur `audit_log`, `sync_runs`, `sync_conflicts`, `tasks`,
+  `forum_threads`, `observation_logs`, `rbac_seeded_permissions`, règle `ON DELETE` alignée
+  sur l'existant. Zéro orphelin vérifié avant chaque ajout.
+- **Sept colonnes de `map_species` n'avaient jamais été versionnées** (`presence_status`,
+  `validation_status`, `detection_mode`…) : présentes en production, absentes de la
+  migration `239` et donc de toute base neuve. La migration les rattrape.
+- Écartée volontairement : `password_reset_tokens.user_id`. La table est **polymorphe**
+  (`user_type` vaut aussi `gl_player`, hors de `users`) ; l'absence d'orphelin dans l'export
+  ne le montrait pas.
+
+### Changé — Les 30 colonnes de dates en texte deviennent des types SQL
+
+- Migration `254` : 26 horodatages `VARCHAR(32)` → `DATETIME(3)`, 4 dates seules → `DATE`.
+  Formats vérifiés homogènes colonne par colonne avant conversion.
+- Trois pièges traités, qu'une conversion naïve manque : l'`ALTER` direct **échoue** en mode
+  strict sur une chaîne ISO (`ERROR 1292` — `CAST()` accepte le `T` et le `Z`, l'affectation
+  de colonne non), d'où une normalisation textuelle préalable ; `DATETIME` sans précision
+  tronque les millisecondes, d'où `DATETIME(3)` ; et un `DATETIME` ne porte pas de fuseau.
+- **`database.js` : `timezone: 'Z'` et `dateStrings: ['DATE']` sur le pool** — indissociables
+  de la migration. Sans eux, mesuré sur `audit_log.created_at` : 4 h d'écart avec
+  `TZ=America/New_York`, 9 h avec `TZ=Asia/Tokyo`. Avec eux, l'API renvoie exactement les
+  mêmes chaînes qu'avant la migration, quel que soit le fuseau du serveur.
+- `lib/shared/isoTimestamp.js` rend désormais un `Date` (`nowDbTimestamp` / `toDbTimestamp`) :
+  seul type correct à la fois pour MySQL et pour `JSON.stringify`.
+- `lib/legacyTimestampNormalization.js` **supprimé** : il faisait converger deux formats de
+  chaînes dans des colonnes VARCHAR. Il n'y a plus de chaîne à trier.
+
+### Changé — Réseau trophique : six types d'interaction, et le sens du flux de matière
+
+- Migration `255`. `nitrification` désignait trois relations distinctes — excrétion des
+  poissons, oxydation bactérienne, assimilation des nitrates par les plantes ;
+  `decomposition` mêlait décomposeurs (qui minéralisent) et détritivores (qui fragmentent).
+  Un merle y « décomposait » les fruits tombés.
+- Nouveaux types : `detritivorie`, `frugivorie`, `granivorie`, `parasitisme`, `excretion`,
+  `assimilation`. 323 interactions conservées, 105 reclassées.
+- `matterFlow` déclaré dans `lib/shared/foodWebCore.js` et son miroir ESM : `to_from` pour
+  les flux trophiques, `from_to` pour les apports minéraux, `none` pour les services. **Pas
+  de colonne SQL** — ce serait une troisième copie à synchroniser ; un test tient l'invariant
+  et la parité entre les deux fichiers.
 ### Modifié — Visite : vu / non-vu sans pastilles, halo d’accueil ciblé
 
 - Sur le plan de visite, les lieux **vus** sont plus atténués et les **non vus** ont un

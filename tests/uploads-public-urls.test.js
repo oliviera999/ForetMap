@@ -57,7 +57,7 @@ test('GET /uploads/... image pose Cache-Control public', async () => {
   );
   const created = await execute(
     'INSERT INTO zone_photos (zone_id, image_path, caption, uploaded_at) VALUES (?, ?, ?, ?)',
-    [zoneId, null, 'c', new Date().toISOString()],
+    [zoneId, null, 'c', new Date()],
   );
   const photoId = created.insertId;
   const relativePath = `zones/${zoneId}/${photoId}.jpg`;
@@ -78,7 +78,7 @@ test('GET /api/zones/:id/photos/:pid/data redirige vers /uploads (302, sans suiv
   );
   const created = await execute(
     'INSERT INTO zone_photos (zone_id, image_path, caption, uploaded_at) VALUES (?, ?, ?, ?)',
-    [zoneId, null, 'r', new Date().toISOString()],
+    [zoneId, null, 'r', new Date()],
   );
   const photoId = created.insertId;
   const relativePath = `zones/${zoneId}/${photoId}.jpg`;
@@ -101,7 +101,7 @@ test('GET /api/zones/:id/photos/:pid/data sans token renvoie 401', async () => {
   );
   const created = await execute(
     'INSERT INTO zone_photos (zone_id, image_path, caption, uploaded_at) VALUES (?, ?, ?, ?)',
-    [zoneId, `zones/${zoneId}/1.jpg`, 'a', new Date().toISOString()],
+    [zoneId, `zones/${zoneId}/1.jpg`, 'a', new Date()],
   );
   await request(app)
     .get(`/api/zones/${zoneId}/photos/${created.insertId}/data`)

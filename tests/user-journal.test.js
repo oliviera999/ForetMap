@@ -42,7 +42,7 @@ before(async () => {
   // Deux lignes, dont une AVEC image : l'horodatage hérité est réécrit à deux endroits
   // (l'article et sa pièce jointe), et n'en corriger qu'un laissait la 500 intacte dès qu'une
   // observation portait une photo.
-  const isoHérité = new Date(Date.now() - 3600_000).toISOString();
+  const isoHérité = new Date(Date.now() - 3600_000);
   await execute(
     'INSERT INTO observation_logs (student_id, zone_id, content, created_at) VALUES (?, NULL, ?, ?)',
     [studentId, `Observation héritée ${stamp}`, isoHérité],

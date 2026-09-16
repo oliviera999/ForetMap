@@ -2459,6 +2459,13 @@
     .map-switch-inline::-webkit-scrollbar {
       display:none;
     }
+    /* Typographie alignée sur les boutons de la barre (`--map-toolbar-font-size`).
+       Sans ces deux déclarations le sélecteur retombe sur la règle globale
+       `input, select, textarea` : --text-base (≈14-16px), et même 16px !important sous
+       1024px / pointeur grossier — soit ~40 % de plus que les pilules voisines en --text-xs,
+       d'où l'impression de fonte différente. Le !important n'a pas d'autre moyen de battre
+       la règle anti-zoom iOS ; celle-ci ne protège rien ici, un `<select>` ouvrant un
+       sélecteur natif sans zoom du viewport (contrairement aux champs de saisie). */
     .map-switch-select {
       min-width:180px;
       max-width:min(100%, 300px);
@@ -2467,8 +2474,17 @@
       border-radius:10px;
       background:var(--parchment);
       color:var(--soil);
+      font-family:var(--font-sans);
+      font-size:var(--map-toolbar-font-size) !important;
       font-weight:var(--fw-bold);
+      line-height:var(--lh-tight);
       padding:4px 10px;
+    }
+    /* Liste déroulante ouverte : rendue par l'OS, la plupart des moteurs n'honorent que
+       family/weight — on pose au moins la fonte produit. */
+    .map-switch-select option {
+      font-family:var(--font-sans);
+      font-weight:var(--fw-semibold);
     }
     /* Carte (vue seule ou split) : barre d'outils compacte sur tous les viewports (comme mobile) pour gagner de la hauteur.
        `.map-view-root--solo` en plus de `main--map-visible` : évite un retour au wrap si la classe sur `main` manque un instant. */
@@ -2493,6 +2509,14 @@
     .map-view-root--solo .map-view-toolbar button:not(.fm-help-btn) {
       padding:4px 7px !important;
       font-size:var(--map-toolbar-font-size) !important;
+      min-height:30px;
+    }
+    /* Le sélecteur de carte suit la même compaction que les boutons : il gardait sa hauteur
+       et son padding pleins au milieu d'une barre ramenée à 34px. */
+    .main.main--map-visible .map-view-toolbar .map-switch-select,
+    .teacher-main.teacher-main--map-visible .map-view-toolbar .map-switch-select,
+    .map-view-root--solo .map-view-toolbar .map-switch-select {
+      padding:2px 8px !important;
       min-height:30px;
     }
     .main.main--map-visible .map-view-toolbar .map-gesture-toggle,
@@ -2723,6 +2747,65 @@
       font-size:var(--text-sm); color:#7c3a06; line-height:var(--lh-normal); word-break:break-word;
     }
     .plant-determination__alert-text a { color:#92400e; }
+    /* Encadré « Danger » : hors `<details>`, en tête de fiche. Trois paliers de couleur
+       pour que la gravité se lise avant le texte. `irritation` reprend l'ambre des
+       confusions possibles ; `toxique` et `mortel` montent vers le rouge. */
+    .plant-hazard {
+      display:flex; flex-direction:column; gap:6px;
+      border:1px solid #f59e0b; border-left-width:5px; border-radius:8px;
+      background:#fffbeb; padding:9px 11px; margin:8px 0;
+    }
+    .plant-hazard--toxique { border-color:#ea580c; background:#fff5ed; }
+    .plant-hazard--mortel { border-color:#b91c1c; background:#fef2f2; }
+    .plant-hazard__head {
+      display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;
+    }
+    .plant-hazard__label {
+      display:flex; align-items:center; gap:6px;
+      font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.05em;
+      color:#92400e; font-weight:var(--fw-bold);
+    }
+    .plant-hazard--toxique .plant-hazard__label { color:#9a3412; }
+    .plant-hazard--mortel .plant-hazard__label { color:#991b1b; }
+    /* « à valider » : le pré-remplissage de la migration 246 est bibliographique. La
+       mention accompagne l'avertissement, elle ne le remplace pas et ne le masque pas. */
+    .plant-hazard__unreviewed {
+      font-size:var(--text-xs); font-weight:var(--fw-bold);
+      color:#78716c; background:rgba(255,255,255,.75);
+      border:1px dashed #a8a29e; border-radius:999px; padding:1px 8px;
+    }
+    .plant-hazard__exposures {
+      list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:5px;
+    }
+    .plant-hazard__exposure {
+      font-size:var(--text-xs); color:#7c3a06; font-weight:var(--fw-bold);
+      background:rgba(255,255,255,.8); border:1px solid rgba(146,64,14,.28);
+      border-radius:999px; padding:2px 9px;
+    }
+    .plant-hazard--mortel .plant-hazard__exposure { color:#991b1b; border-color:rgba(153,27,27,.28); }
+    .plant-hazard__notes {
+      font-size:var(--text-sm); color:#7c3a06; line-height:var(--lh-normal); word-break:break-word;
+    }
+    .plant-hazard--mortel .plant-hazard__notes { color:#7f1d1d; }
+    .plant-hazard__notes a { color:#92400e; }
+    /* Formulaire : cases à cocher des voies d'exposition — cible tactile >= 44px. */
+    .plant-hazard-exposure-choices { display:flex; flex-wrap:wrap; gap:4px 14px; }
+    .plant-hazard-exposure-choice,
+    .plant-hazard-reviewed {
+      display:flex; align-items:center; gap:7px; min-height:44px;
+      font-size:var(--text-sm); color:#42544a; cursor:pointer;
+    }
+    .plant-hazard-reviewed { align-items:flex-start; padding-top:6px; }
+    .plant-hazard-exposure-choice input,
+    .plant-hazard-reviewed input { width:18px; height:18px; flex:none; }
+    /* Attribution sous la photo « héro ». Les licences CC en présence au catalogue
+       (CC BY-SA 3.0/4.0, CC BY, GFDL) imposent toutes de nommer l'auteur. */
+    .biodiv-card-hero-credit {
+      margin:3px 0 0; font-size:var(--text-xs); color:#8aa193; line-height:var(--lh-normal);
+      word-break:break-word;
+    }
+    .biodiv-card-hero-credit__author { font-weight:var(--fw-bold); }
+    .biodiv-card-hero-credit a { color:var(--leaf); text-decoration:underline; text-underline-offset:2px; }
     .plant-meta-item { display:flex; flex-direction:column; gap:3px; }
     .plant-meta-label { font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.05em; color:#8aa193; font-weight:var(--fw-bold); }
     .plant-meta-value, .plant-links { font-size:var(--text-sm); color:#42544a; line-height:var(--lh-normal); word-break:break-word; }

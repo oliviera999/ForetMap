@@ -73,7 +73,7 @@ test('Route image zone lit bien depuis disque', async () => {
   );
   const created = await execute(
     'INSERT INTO zone_photos (zone_id, image_path, caption, uploaded_at) VALUES (?, ?, ?, ?)',
-    [zoneId, null, 'disk', new Date().toISOString()],
+    [zoneId, null, 'disk', new Date()],
   );
   const photoId = created.insertId;
   const relativePath = `zones/${zoneId}/${photoId}.jpg`;
@@ -96,7 +96,7 @@ test('Route image zone renvoie 404 si image_path absent', async () => {
   );
   const result = await execute(
     'INSERT INTO zone_photos (zone_id, image_path, caption, uploaded_at) VALUES (?, ?, ?, ?)',
-    [zoneId, null, 'none', new Date().toISOString()],
+    [zoneId, null, 'none', new Date()],
   );
 
   await request(app)
@@ -110,18 +110,11 @@ test('Route image task log renvoie 404 si image_path pointe vers un fichier abse
   const taskId = `task-missing-file-${Date.now()}`;
   await execute(
     'INSERT INTO tasks (id, title, description, zone_id, due_date, required_students, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [taskId, 'Task missing file', '', null, null, 1, 'available', new Date().toISOString()],
+    [taskId, 'Task missing file', '', null, null, 1, 'available', new Date()],
   );
   const result = await execute(
     'INSERT INTO task_logs (task_id, student_first_name, student_last_name, comment, image_path, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-    [
-      taskId,
-      'Missing',
-      'File',
-      'log',
-      `task-logs/${taskId}_${Date.now()}_missing.jpg`,
-      new Date().toISOString(),
-    ],
+    [taskId, 'Missing', 'File', 'log', `task-logs/${taskId}_${Date.now()}_missing.jpg`, new Date()],
   );
 
   const res = await request(app)
@@ -135,11 +128,11 @@ test('Route image task log lit bien depuis disque (mode disk-only)', async () =>
   const taskId = `task-clear-${Date.now()}`;
   await execute(
     'INSERT INTO tasks (id, title, description, zone_id, due_date, required_students, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [taskId, 'Task clear scenario', '', null, null, 1, 'available', new Date().toISOString()],
+    [taskId, 'Task clear scenario', '', null, null, 1, 'available', new Date()],
   );
   const created = await execute(
     'INSERT INTO task_logs (task_id, student_first_name, student_last_name, comment, image_path, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-    [taskId, 'Disk', 'Only', 'log', null, new Date().toISOString()],
+    [taskId, 'Disk', 'Only', 'log', null, new Date()],
   );
   const logId = created.insertId;
   const relativePath = `task-logs/${taskId}_${logId}.jpg`;

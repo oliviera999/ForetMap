@@ -155,7 +155,7 @@ test('colonne `origin` absente : le studio nomme la migration au lieu d’un 500
 test('la liste du studio porte les livrées **et** les mascottes créées ici, avec leur origine', async () => {
   const token = await studioToken();
   const perso = crypto.randomUUID();
-  const now = new Date().toISOString();
+  const now = new Date();
   await execute(
     `INSERT INTO visit_mascot_packs (id, catalog_id, label, pack_json, is_published, origin, created_at, updated_at, created_by)
      VALUES (?, ?, 'Mascotte de test', '{}', 0, 'custom', ?, ?, NULL)`,
@@ -494,7 +494,7 @@ test('réinitialiser rend son état d’origine à une mascotte livrée, sans to
 test('réinitialiser une mascotte créée ici est refusé : elle n’a pas d’origine', async () => {
   const token = await studioToken();
   const perso = crypto.randomUUID();
-  const now = new Date().toISOString();
+  const now = new Date();
   await execute(
     `INSERT INTO visit_mascot_packs (id, catalog_id, label, pack_json, is_published, origin, created_at, updated_at, created_by)
      VALUES (?, ?, 'Perso', '{}', 0, 'custom', ?, ?, NULL)`,
@@ -606,7 +606,7 @@ test('la restauration rend les mascottes livrées supprimées', async () => {
 test('supprimer une mascotte créée ici reste possible', async () => {
   const token = await studioToken();
   const perso = crypto.randomUUID();
-  const now = new Date().toISOString();
+  const now = new Date();
   await execute(
     `INSERT INTO visit_mascot_packs (id, catalog_id, label, pack_json, is_published, origin, created_at, updated_at, created_by)
      VALUES (?, ?, 'À supprimer', '{}', 0, 'custom', ?, ?, NULL)`,
