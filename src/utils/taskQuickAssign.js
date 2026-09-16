@@ -144,3 +144,22 @@ export function quickAssignOutcomeToast(task, outcome) {
     return `Aucune mise à jour : ${firstRemoveError || firstAddError}`;
   return 'Aucun changement appliqué — déjà à jour.';
 }
+
+/**
+ * Ordonne la liste sélectionnable du panneau d'affectation rapide : les n3beurs déjà inscrits
+ * sur la tâche remontent en tête, les autres suivent. Tri stable — l'ordre relatif d'origine
+ * (alphabétique côté API) est conservé à l'intérieur de chaque groupe. La position ne dépend
+ * que des inscriptions réelles (`task.assignments`), pas des cases cochées : décocher quelqu'un
+ * ne le fait donc pas sauter de place avant l'application du delta.
+ */
+export function sortStudentsForQuickAssign(task, teacherStudents) {
+  const list = Array.isArray(teacherStudents) ? teacherStudents : [];
+  if (!task) return list.slice();
+  const assigned = [];
+  const others = [];
+  for (const s of list) {
+    if (isStudentAlreadyAssignedToTask(task, s)) assigned.push(s);
+    else others.push(s);
+  }
+  return [...assigned, ...others];
+}
