@@ -10,6 +10,7 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 
 const { ROLE_PERMISSION_MATRIX, PERMISSIONS } = require('../lib/rbac');
+const { TEACHER_ACCESS_LOCKED_ROLE_SLUGS } = require('../lib/rbacRouteHelpers');
 
 const catalogKeys = new Set(PERMISSIONS.map((row) => row[0]));
 
@@ -70,5 +71,20 @@ describe('Permissions ForetMap : matrices catalogue', () => {
   it('visiteur et personnel : aucune permission d’action', () => {
     assert.deepEqual(ROLE_PERMISSION_MATRIX.visiteur, []);
     assert.deepEqual(ROLE_PERMISSION_MATRIX.personnel, []);
+  });
+
+  /**
+   * `teacher.access` est la porte d'entrée API des comptes sans fiche n3beur. La console
+   * refuse de la retirer aux profils de `TEACHER_ACCESS_LOCKED_ROLE_SLUGS` ; cette liste
+   * doit rester exactement celle des profils système dont la matrice la porte, sinon un
+   * profil ajouté plus tard serait de nouveau « décochable » jusqu'au verrouillage total.
+   */
+  it('verrou teacher.access : la liste couvre exactement les profils système concernés', () => {
+    const fromMatrix = Object.entries(ROLE_PERMISSION_MATRIX)
+      .filter(([, keys]) => keys.includes('teacher.access'))
+      .map(([slug]) => slug)
+      .sort();
+    assert.deepEqual([...TEACHER_ACCESS_LOCKED_ROLE_SLUGS].sort(), fromMatrix);
+    assert.deepEqual(fromMatrix, ['admin', 'prof', 'prof_classe']);
   });
 });
