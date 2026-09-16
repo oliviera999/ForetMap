@@ -583,7 +583,7 @@
     "src": "node_modules/@rive-app/canvas/rive_fallback.wasm"
   },
   "plan.html": {
-    "file": "assets/plan-BvcF96qQ.js",
+    "file": "assets/plan-JHhK8qRZ.js",
     "name": "plan",
     "src": "plan.html",
     "isEntry": true,
@@ -600,7 +600,7 @@
       "_planPlaces-DKmJqgLg.js"
     ],
     "css": [
-      "assets/plan-Dz8NfUrK.css"
+      "assets/plan-DoeaC5je.css"
     ]
   },
   "src/components/VisitMapMascotRive.jsx": {
