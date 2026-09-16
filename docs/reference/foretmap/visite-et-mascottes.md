@@ -35,8 +35,8 @@ familles.
   en bas (Précédent / Suivant) : la carte se recentre sur chaque lieu, reste utilisable, et rien
   n'est enregistré — comme sur le Plan Lyautey. On peut quitter et reprendre.
 - **La fiche d'un lieu** : titre, sous-titre, **une** photo principale (celle de la carte
-  si elle existe, sinon la première image visite — jamais les deux si c'est la même
-  image), contenu éditorial (paragraphes, intertitres, blocs d'images légendées), la
+  si elle existe, sinon la première image visite — jamais les deux si c'est le même
+  cliché, y compris quand il a été associé à la visite depuis la carte), contenu éditorial (paragraphes, intertitres, blocs d'images légendées), la
   **biodiversité du lieu**, un volet Tuto (les fiches pratiques associées), un mode
   « lecture confortable », et un bouton **« Marquer comme vu »** — qui fait fêter la
   mascotte et met à jour la progression.

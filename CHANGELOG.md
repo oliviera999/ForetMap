@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Visite : la photo de tête n'apparaît plus en double
+
+- Dans l'encart d'un lieu (zone ou repère), la photo de la carte et la première image de
+  la visite s'affichaient deux fois dès qu'elles désignaient le **même cliché sous deux
+  adresses différentes** — cas courant d'une photo associée à la visite depuis la carte,
+  puis servie sous son chemin public après reprise des chemins d'images. La comparaison
+  se fait désormais sur l'**identité de la photo** (lieu + photo) et non sur le texte de
+  l'adresse : vignette, chemin public, ancienne adresse d'API et adresse absolue sont
+  reconnus comme une seule et même image.
+- Les photos de la galerie carte reprises sous « Détails » sont filtrées de la même
+  façon : plus de vignette déjà vue en haut de la fiche.
+
 ### Corrigé — Carte : typographie du sélecteur de cartes alignée sur la barre d'outils
 
 - Le menu déroulant de choix de carte (`.map-switch-select`, affiché au-delà de 4 cartes)

@@ -12,6 +12,7 @@ const {
   visitMediaGalleryLightboxSrc,
   reorderVisitMediaRows,
   sameVisitImageUrl,
+  visitImageIdentityKey,
 } = await import('../../src/utils/visitMediaGallery.js');
 
 describe('itemSeenKey', () => {
@@ -50,6 +51,44 @@ describe('sources média de visite', () => {
     expect(sameVisitImageUrl('/a.png', '/b.png')).toBe(false);
     expect(sameVisitImageUrl('', '/a.png')).toBe(false);
     expect(sameVisitImageUrl(null, null)).toBe(false);
+  });
+});
+
+describe('visitImageIdentityKey — même cliché sous plusieurs formes d’URL', () => {
+  test('photo de zone : chemin public, vignette et route API historique', () => {
+    expect(visitImageIdentityKey('/uploads/zones/3/10.jpg')).toBe('zone:3:10');
+    expect(visitImageIdentityKey('/uploads/zones/3/10.thumb.jpg')).toBe('zone:3:10');
+    expect(visitImageIdentityKey('/api/zones/3/photos/10/data')).toBe('zone:3:10');
+  });
+
+  test('photo de repère : chemin public, vignette et route API historique', () => {
+    expect(visitImageIdentityKey('/uploads/markers/m7/4.webp')).toBe('marker:m7:4');
+    expect(visitImageIdentityKey('/uploads/markers/m7/4.thumb.jpg')).toBe('marker:m7:4');
+    expect(visitImageIdentityKey('/api/map/markers/m7/photos/4/data')).toBe('marker:m7:4');
+  });
+
+  test('média de visite téléversé : identité propre (pas confondu avec une photo carte)', () => {
+    expect(visitImageIdentityKey('/api/visit/media/20/data')).toBe('visit-media:20');
+    expect(sameVisitImageUrl('/api/visit/media/20/data', '/uploads/zones/3/10.jpg')).toBe(false);
+  });
+
+  test('origine absolue et préfixe de base ignorés', () => {
+    expect(visitImageIdentityKey('https://foret.exemple.fr/uploads/zones/3/10.jpg')).toBe(
+      'zone:3:10',
+    );
+    expect(visitImageIdentityKey('/foretmap/uploads/zones/3/10.jpg')).toBe('zone:3:10');
+  });
+
+  test('URL hors format connu : repli sur le chemin normalisé', () => {
+    expect(visitImageIdentityKey('/uploads/divers/a.png?v=2')).toBe('url:/uploads/divers/a.png');
+    expect(visitImageIdentityKey('   ')).toBe('');
+  });
+
+  test('photo carte associée à la visite avant reprise des chemins : plus de doublon', () => {
+    // `visit_media.image_url` fige la route API, `map_lead_photo` sert le chemin public.
+    expect(sameVisitImageUrl('/uploads/zones/3/10.jpg', '/api/zones/3/photos/10/data')).toBe(true);
+    expect(sameVisitImageUrl('/uploads/zones/3/10.jpg', '/api/zones/3/photos/11/data')).toBe(false);
+    expect(sameVisitImageUrl('/uploads/zones/3/10.jpg', '/uploads/zones/4/10.jpg')).toBe(false);
   });
 });
 
