@@ -58,6 +58,8 @@ const {
   referentPublicLabel,
   normalizeArchivedFilter,
   archivedFilterSql,
+  normalizeTaskDateInput,
+  validateTaskDateRange,
 } = require('../lib/taskRouteHelpers');
 const {
   canReadAllAssignments,
@@ -118,16 +120,6 @@ function normalizeTaskRecurrenceInput(raw, { requiredPresent = false } = {}) {
     return { error: 'Récurrence invalide (weekly, biweekly ou monthly)' };
   }
   return { value: r };
-}
-
-/** Dates tâche : YYYY-MM-DD ou vide/null. */
-function normalizeTaskDateInput(raw, fieldLabel) {
-  if (raw === undefined || raw === null || raw === '') return { value: null };
-  const s = String(raw).trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    return { error: `${fieldLabel} invalide (format AAAA-MM-JJ attendu)` };
-  }
-  return { value: s };
 }
 
 let recurrenceTemplateColumnsReady = null;
@@ -684,15 +676,21 @@ router.post(
     if (parsedStart.error) return res.status(400).json({ error: parsedStart.error });
     const parsedDue = normalizeTaskDateInput(due_date, "Date d'échéance");
     if (parsedDue.error) return res.status(400).json({ error: parsedDue.error });
+    const rangeError = validateTaskDateRange(parsedStart.value, parsedDue.value);
+    if (rangeError) return res.status(400).json({ error: rangeError.error });
     const normalizedGroupId = normalizeOptionalId(group_id);
     const id = crypto.randomUUID();
     const seriesId = parsedRecurrence.value ? crypto.randomUUID() : null;
+    // Ancre de récurrence posée dès la création (migration 258) : la date de départ porte
+    // le rythme de la série. Sans date de départ elle reste nulle, et le job la dérivera de
+    // la date de création au premier clone.
+    const anchorDate = parsedRecurrence.value ? parsedStart.value : null;
     // Écritures atomiques (audit §2.5) : INSERT tasks + jointures + colonnes legacy + espèces
     // + image dans UNE transaction — en cas d'échec (image comprise), tout est annulé
     // et le fichier image éventuellement écrit est supprimé.
     await withTransaction(async (tx) => {
       await tx.execute(
-        'INSERT INTO tasks (id, title, description, map_id, project_id, group_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, recurrence, recurrence_series_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO tasks (id, title, description, map_id, project_id, group_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, recurrence, recurrence_series_id, recurrence_anchor_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           id,
           title,
@@ -711,6 +709,7 @@ router.post(
           parsedImportance.level,
           parsedRecurrence.value,
           seriesId,
+          anchorDate,
           nowDbTimestamp(),
         ],
       );
@@ -977,6 +976,17 @@ router.put('/:id', async (req, res) => {
       if (pDue.error) return res.status(400).json({ error: pDue.error });
       nextDueDate = pDue.value;
     }
+    // Contrôle sur les valeurs EFFECTIVES : n'envoyer qu'une des deux dates ne doit pas
+    // permettre d'inverser le couple déjà en base. Mais seulement si ce PUT touche aux
+    // dates : une tâche héritée déjà incohérente (aucun contrôle avant ce lot) doit rester
+    // modifiable sur ses autres champs, sinon elle devient impossible à corriger.
+    const putTouchesDates =
+      Object.prototype.hasOwnProperty.call(req.body, 'start_date') ||
+      Object.prototype.hasOwnProperty.call(req.body, 'due_date');
+    if (putTouchesDates) {
+      const putRangeError = validateTaskDateRange(nextStartDate, nextDueDate);
+      if (putRangeError) return res.status(400).json({ error: putRangeError.error });
+    }
 
     const currentStatus = normalizeTaskStatusForRead(task.status);
     const becameValidated = nextStatus === 'validated' && currentStatus !== 'validated';
@@ -1035,6 +1045,19 @@ router.put('/:id', async (req, res) => {
           markersForSnapshot,
           tx,
         );
+      }
+      // Reprise en main du rythme : déplacer la date de départ d'une tâche récurrente
+      // redéfinit l'ancre de sa série (migration 258). C'est la seule façon de déplacer le
+      // rythme — le calendrier scolaire, lui, décale une occurrence sans jamais toucher à
+      // l'ancre. Sans date de départ, l'ancre est effacée : elle sera reprise de la date de
+      // création au prochain passage du job.
+      const recurrenceAfterPut = String(nextRecurrence || '').trim();
+      const startDateChanged = String(task.start_date || '') !== String(nextStartDate || '');
+      if (recurrenceAfterPut && startDateChanged) {
+        await tx.execute('UPDATE tasks SET recurrence_anchor_date = ? WHERE id = ?', [
+          nextStartDate || null,
+          task.id,
+        ]);
       }
       await tx.execute(
         'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, group_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, importance_level=?, recurrence=?, recurrence_series_id=COALESCE(?, recurrence_series_id) WHERE id=?',

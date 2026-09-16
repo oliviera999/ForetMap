@@ -28,6 +28,112 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   d'affichage du 13 septembre qui manquait à l'historique).
 
 
+### Modifié — Le calendrier décale une occurrence, plus jamais le rythme
+
+- **Le constat, mesuré sur le vrai calendrier du lycée** (`migrations/247`, 2026-2027) :
+  une tâche hebdomadaire du mardi 15/09 perdait son mardi dès la **5ᵉ occurrence** — le
+  20/10 tombe pendant les vacances de Toussaint, l'occurrence était reposée au lundi 02/11
+  de rentrée, et cette date accrochée devenait l'origine du calcul suivant. Résultat :
+  **33 occurrences sur 37 hors du jour d'origine**, et le lundi conservé jusqu'à l'été. En
+  bimensuel, 18 sur 20. Comme `nextSchoolOpenDay` renvoie toujours le **premier** jour de
+  réouverture, toutes les séries convergeaient en outre vers le même lundi de rentrée,
+  concentrant la charge sur un seul jour de la semaine.
+- **Migration `258`** : colonne `recurrence_anchor_date`. L'occurrence de rang `k` vaut
+  désormais `ancre + k × période` calculée sur la date **théorique** ; l'accrochage au jour
+  ouvré ne sert plus qu'à écrire la ligne et ne se réinjecte plus dans le calcul. Même
+  simulation, même calendrier : **5 occurrences sur 39** hors du jour d'ancre — les
+  semaines réellement fermées — et retour au mardi dès la suivante.
+- **Résolution de l'ancre** : `recurrence_anchor_date`, à défaut la **date de départ**, à
+  défaut la **date de création**. Une tâche récurrente a donc toujours une ancre, et il n'y
+  a plus qu'une seule règle d'ancrage — l'ancrage par l'échéance (`computeNextOccurrenceDue`,
+  `computeCloneStartDate`, `advanceDateByRecurrence`) est **supprimé** plutôt que laissé en
+  repli mort à côté du nouveau.
+- **Reprise en main** : modifier la **date de départ** d'une tâche récurrente redéfinit
+  l'ancre de sa série (`PUT /api/tasks/:id`). C'est la seule façon de déplacer le rythme —
+  le calendrier scolaire décale une occurrence sans jamais toucher à l'ancre. `POST` pose
+  l'ancre à la création, le clone en hérite.
+- **Backfill : un gel, pas un rattrapage.** Chaque tâche récurrente existante reçoit sa
+  propre date de départ comme ancre (à défaut sa date de création). Les séries déjà
+  décalées ne sautent donc pas d'un coup vers leur jour d'origine — elles cessent
+  simplement de dériver. Pour remettre une série sur son jour, il suffit d'en corriger la
+  date de départ.
+- **Nouvel invariant** : l'échéance du clone est **strictement postérieure** à celle de la
+  source. Une ancre ramenant exactement sur l'échéance courante aurait sinon buté sur
+  l'index unique `(recurrence_series_id, due_date)` et **bloqué la série**.
+- **Coût calendrier borné.** `isSchoolOpenDay` interroge la base **jour par jour** et n'a
+  aucun cache. Deux garde-fous : le rang de départ est estimé par arithmétique (une ancre
+  vieille de six ans ne déclenche plus ~300 tours de boucle) et le job mémoïse les jours
+  ouvrés pour la durée de son exécution, au lieu de refaire le même parcours pour chaque
+  série. Un test borne explicitement le nombre d'appels.
+- Tests : `tests/school-calendar-recurrence.test.js` réécrit autour de l'ancre (jour de
+  semaine conservé, non-contamination après vacances, repli sur la date de création,
+  rattrapage long, échéance strictement croissante, mensuel/bimensuel, entrées
+  inexploitables, borne de coût) ; `tests/recurring-tasks-spawn.test.js` vérifie bout en
+  bout que l'ancre est posée à la création, héritée par le clone, redéfinie par un
+  changement de date de départ et **insensible** aux autres modifications.
+- Documentation : `docs/API.md` et `docs/reference/foretmap/taches-tutoriels-et-validation.md`.
+
+
+### Corrigé — La récurrence ne meurt plus en silence
+
+Trois défauts relevés par `docs/AUDIT_ECHEANCES_2026-09.md` (§5 et §7) et laissés en l'état
+à l'époque (« durcissements possibles ; ils changeraient des réponses d'API »).
+
+- **Format de date contrôlé sur tous les chemins d'écriture.** `POST /api/tasks` et
+  `PUT /api/tasks/:id` validaient déjà `AAAA-MM-JJ` ; **`POST /api/tasks/proposals` ne
+  validait rien** et insérait `start_date || null` / `due_date || null` tels quels. Les
+  colonnes étant des `DATE` depuis la migration `254`, l'arbitrage revenait à MariaDB, dont
+  le `sql_mode` n'est fixé nulle part dans l'application : rejet brut (**500**) en mode
+  strict, troncature silencieuse sinon. Le helper est remonté dans
+  `lib/taskRouteHelpers.js` et partagé par les trois routes, pour une réponse **400**
+  explicite et identique partout.
+  <br>*(L'audit décrivait ces colonnes comme des `VARCHAR(32)` — c'était exact à sa date,
+  la migration `254` les a converties depuis. Le trou de validation sur `proposals`, lui,
+  était bien réel.)*
+- **Cohérence `due_date >= start_date`**, absente partout jusqu'ici : une tâche pouvait être
+  due avant d'avoir commencé, et s'affichait alors « en attente » et « en retard » à la fois.
+  Sur `PUT`, le contrôle porte sur les valeurs **effectives** (corps + existant) — envoyer
+  une seule des deux dates ne peut plus inverser le couple — mais seulement si la requête
+  touche aux dates : une tâche héritée déjà incohérente doit rester corrigible sur ses
+  autres champs.
+- **Trace des rejets.** Un candidat récurrent écarté pour donnée inexploitable émet un
+  `warn` Pino avec `taskId`, `recurrence`, `startDate`, `dueDate` et `reason`
+  (`due_date_unparsable` | `next_occurrence_uncomputable`). Les rejets légitimes (course
+  entre instances, doublon déjà créé, échéance encore future) restent silencieux : seul ce
+  qui condamne définitivement une série est journalisé.
+- Tests : logique pure dans `tests/tasks-helpers.test.js` (formats acceptés et refusés,
+  couples cohérents et inversés) ; bout en bout dans `tests/tasks-date-validation.test.js`
+  (400 sur `POST`, 400 sur `PUT` partiel sans modification de la ligne, décalage des deux
+  dates ensemble toujours possible).
+
+
+### Modifié — La récurrence se cale sur la date de départ
+
+- **La date de départ porte désormais le rythme** des tâches récurrentes quand elle est
+  renseignée. Jusqu'ici, seule l'**échéance** servait d'ancre : le clone recevait
+  `échéance + 1 période`, puis sa date de départ était reconstruite à rebours
+  (`nouvelle échéance − durée start→due`). Une tâche « du vendredi » dont l'échéance
+  s'accrochait au lundi ouvré voyait donc son **départ glisser au lundi avec elle**, et
+  la dérive se propageait d'occurrence en occurrence.
+- Nouvelle fonction `computeNextOccurrenceWindow` (`lib/recurringTasks.js`) : elle avance
+  la **date de départ** d'une période, l'accroche au prochain jour ouvré scolaire, puis
+  repose l'échéance à la **même distance** derrière (`due − start` conservé, elle aussi
+  sur un jour ouvré). Le mardi reste un mardi.
+- **Repli inchangé** sur l'ancrage par l'échéance quand la source n'a pas de date de
+  départ, ou quand elle est incohérente (`start_date > due_date`) : `computeNextOccurrenceDue`
+  et `computeCloneStartDate` restent en place et gardent leur comportement.
+- Le repli `created_at` de `computeCloneStartDate` **ne fait pas ancre** : seule une
+  `start_date` voulue par le professeur déplace le rythme.
+- Invariants conservés : échéance sur un **jour ouvré scolaire**, `due_date >= aujourd'hui`
+  (rattrapage « une seule occurrence à jour » après une coupure), idempotence
+  `(série, échéance)`, et aucune reprise des inscriptions élèves sur le clone.
+- Sept tests unitaires ajoutés (`tests/school-calendar-recurrence.test.js`) : jour de
+  semaine conservé, survie aux vacances, repli sans date de départ, départ postérieur à
+  l'échéance, rattrapage long, mensuel/bimensuel, entrées inexploitables.
+- Documentation : `docs/API.md` (section récurrence) et
+  `docs/reference/foretmap/taches-tutoriels-et-validation.md` (« Sur quelle date se cale le
+  rythme ? », dérive calendaire et non-reprise des inscriptions).
+
 ### Ajouté — Les 30 fiches à photo morte sont réillustrées
 
 - Migration `257` : une photo Wikimedia Commons pour chacune des 30 fiches que la migration

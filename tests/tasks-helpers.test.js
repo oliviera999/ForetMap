@@ -22,6 +22,8 @@ const {
   attachTaskLivingBeingsApiFields,
   taskImageExtensionFromBuffer,
   decodeTaskImageBuffer,
+  normalizeTaskDateInput,
+  validateTaskDateRange,
   attachTaskImagePublicFields,
   countDoneAssignments,
   normalizeDateOnly,
@@ -435,5 +437,51 @@ describe('taskRouteHelpers — filtre d’archivage', () => {
     assert.equal(archivedFilterSql('archived', 't.archived_at'), 't.archived_at IS NOT NULL');
     assert.equal(archivedFilterSql('all', 't.archived_at'), '');
     assert.equal(archivedFilterSql('active'), 'archived_at IS NULL');
+  });
+});
+
+describe('normalizeTaskDateInput', () => {
+  it('accepte AAAA-MM-JJ et le vide', () => {
+    assert.deepEqual(normalizeTaskDateInput('2026-09-15', 'Date de début'), {
+      value: '2026-09-15',
+    });
+    assert.deepEqual(normalizeTaskDateInput('  2026-09-15  ', 'Date de début'), {
+      value: '2026-09-15',
+    });
+    for (const vide of [undefined, null, '', '   ']) {
+      assert.deepEqual(normalizeTaskDateInput(vide, 'Date de début'), { value: null });
+    }
+  });
+
+  it('refuse tout autre format', () => {
+    // Sans ce contrôle, l'arbitrage revient au sql_mode de MariaDB (colonnes DATE depuis
+    // la migration 254) : rejet brut ou troncature selon le serveur, au lieu d'un 400.
+    for (const mauvais of [
+      '15/09/2026',
+      '2026-9-15',
+      '2026-09-15T10:00:00Z',
+      'demain',
+      '20260915',
+    ]) {
+      const r = normalizeTaskDateInput(mauvais, "Date d'échéance");
+      assert.ok(r.error, `attendu une erreur pour ${mauvais}`);
+      assert.match(r.error, /AAAA-MM-JJ/);
+    }
+  });
+});
+
+describe('validateTaskDateRange', () => {
+  it('laisse passer un couple cohérent ou incomplet', () => {
+    assert.equal(validateTaskDateRange('2026-09-15', '2026-09-18'), null);
+    assert.equal(validateTaskDateRange('2026-09-15', '2026-09-15'), null);
+    assert.equal(validateTaskDateRange(null, '2026-09-18'), null);
+    assert.equal(validateTaskDateRange('2026-09-15', null), null);
+    assert.equal(validateTaskDateRange(null, null), null);
+  });
+
+  it('refuse une échéance antérieure au début', () => {
+    const r = validateTaskDateRange('2026-09-18', '2026-09-15');
+    assert.ok(r?.error);
+    assert.match(r.error, /échéance/);
   });
 });
