@@ -1935,8 +1935,11 @@ Migration `236_location_audience_roles.sql` (carte) + `240_visit_location_audien
   **absent** des listes (pas grisé). Slugs acceptés : `visiteur`, `personnel`,
   `eleve_novice`, `eleve_avance`, `eleve_chevronne`, `prof_classe`, `prof`, `admin`.
 - **`restricted_note`** + **`restricted_note_role_slugs`** : complément de texte optionnel.
-  Slugs vides pour le complément = réservé aux gestionnaires (`zones.manage` /
-  `map.manage_markers`). Les lecteurs non autorisés ne reçoivent **pas** ces champs.
+  Slugs vides pour le complément = **audience par défaut** `prof_classe`, `prof`, `admin`
+  (`RESTRICTED_NOTE_DEFAULT_ROLE_SLUGS`), en plus des gestionnaires (`zones.manage` /
+  `map.manage_markers`) qui voient toujours tout. Une liste explicite remplace ce défaut
+  (y compris pour en exclure l'encadrement). Les lecteurs non autorisés ne reçoivent
+  **pas** ces champs.
 - **Gestionnaires** : voient toujours tous les lieux et les métadonnées d'audience.
 - **Visite anonyme / Plan** : un anonyme compte comme `visiteur` ; un lieu restreint sans
   `visiteur` dans l'audience n'y apparaît pas.

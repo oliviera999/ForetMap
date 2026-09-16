@@ -19,6 +19,7 @@ import {
 import { markerTaskMapId } from '../../utils/markerModalForm.js';
 import { canStudentAssignTask } from '../../utils/taskEnrollment.js';
 import { isInfrastructureLocation } from '../../utils/locationCategories.js';
+import { visitAsideShortDescription } from '../../utils/locationInfoTexts.js';
 
 /**
  * @param {'marker'|'zone'} kind - type de lieu
@@ -92,11 +93,14 @@ export function useLocationModalData(
   const visitAsideSpecies =
     (kind === 'marker' ? !isNew : !isInfrastructureLocation(entity)) &&
     (livingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0);
+  // Accroche de visite déjà affichée plus haut comme description de travail
+  // (la bascule carte → visite la recopie) : on ne la répète pas dans l'onglet Info.
+  const visitAsideShortDesc = visitAsideShortDescription(entity, kind);
   const showVisitAsideBlock =
     !isNew &&
     !!(
       entity.visit_subtitle ||
-      entity.visit_short_description ||
+      visitAsideShortDesc ||
       entity.visit_details_text ||
       visitAsideSpecies ||
       visitAsideTutorials
@@ -118,6 +122,7 @@ export function useLocationModalData(
     livingBeingsOnlyOnTasks,
     visitAsideTutorials,
     visitAsideSpecies,
+    visitAsideShortDesc,
     showVisitAsideBlock,
     showTasksTab,
     showTutorialsTab,

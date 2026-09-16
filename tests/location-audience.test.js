@@ -15,6 +15,7 @@ const {
   filterLocationsForViewer,
   resolveViewerRoleSlug,
   RESTRICTED_NOTE_MAX_LENGTH,
+  RESTRICTED_NOTE_DEFAULT_ROLE_SLUGS,
 } = require('../lib/locationAudience');
 
 describe('locationAudience — parse / sérialisation', () => {
@@ -84,13 +85,31 @@ describe('locationAudience — droits de lecture', () => {
     assert.equal(canViewRestrictedNote(restricted, manager), true);
     assert.equal(canViewRestrictedNote(restricted, { roleSlug: 'prof' }), true);
     assert.equal(canViewRestrictedNote(restricted, { roleSlug: 'eleve_novice' }), false);
+  });
+
+  it('complément sans rôle coché : encadrement par défaut (admin / n3boss / prof de classe)', () => {
+    const byDefault = { restricted_note: 'Consigne', restricted_note_role_slugs: [] };
+    assert.deepEqual([...RESTRICTED_NOTE_DEFAULT_ROLE_SLUGS], ['prof_classe', 'prof', 'admin']);
+    for (const roleSlug of RESTRICTED_NOTE_DEFAULT_ROLE_SLUGS) {
+      assert.equal(canViewRestrictedNote(byDefault, { roleSlug }), true, roleSlug);
+    }
+    for (const roleSlug of ['eleve_chevronne', 'personnel', 'visiteur']) {
+      assert.equal(canViewRestrictedNote(byDefault, { roleSlug }), false, roleSlug);
+    }
+    // Surface publique : l'anonyme compte comme visiteur, donc toujours pas d'accès.
+    assert.equal(canViewRestrictedNote(byDefault, null, { publicSurface: true }), false);
+    // Une liste explicite reste prioritaire sur le défaut.
     assert.equal(
       canViewRestrictedNote(
-        { restricted_note: 'x', restricted_note_role_slugs: [] },
-        { roleSlug: 'prof' },
+        { restricted_note: 'x', restricted_note_role_slugs: ['visiteur'] },
+        { roleSlug: 'prof_classe' },
       ),
       false,
     );
+    // Prof de classe : le complément lui est transmis (pas de strip côté projection).
+    const projected = projectLocationAudienceForViewer(byDefault, { roleSlug: 'prof_classe' });
+    assert.equal(projected.restricted_note, 'Consigne');
+    assert.equal(projected.restricted_note_role_slugs, undefined);
   });
 
   it('projectLocationAudienceForViewer : null / strip / filtre liste', () => {
