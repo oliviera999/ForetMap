@@ -45,8 +45,25 @@ export const LABEL_FONT_SIZE_PX = 12;
 /** Taille des emojis d'étiquette (zones et repères), en pixels **écran**. */
 export const LABEL_EMOJI_SIZE_PX = 16;
 
-/** Largeur minimale d'un nom de zone : en dessous, le nom serait illisible plutôt que court. */
-export const ZONE_LABEL_MIN_WIDTH_PX = 56;
+/**
+ * Largeur minimale d'un nom de zone : en dessous, le nom serait illisible plutôt que court.
+ *
+ * Portée de 56 à 96 px (≈ 9 → ≈ 16 caractères à 12 px) : à 56 px, des noms pourtant courts
+ * étaient rendus en moignons dès le cadrage d'ouverture — « Cour du lycée » en
+ * « Cour du… », « Bât.D — collège » en « Bât.D… », 14 étiquettes sur 43 tronquées en
+ * production (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N11). Le moteur de collisions
+ * lit cette largeur : une étiquette qui ne tient plus est **masquée** plutôt que tronquée, et
+ * revient au zoom. Mieux vaut moins de noms, tous lisibles, que beaucoup de moignons.
+ */
+export const ZONE_LABEL_MIN_WIDTH_PX = 96;
+
+/**
+ * Lignes autorisées pour un nom de zone. Le nom se replie plutôt que de finir en moignon :
+ * « Cour du lycée », « Salle Delacroix » ou « Potager du bâtiment M » ne tiennent pas sur une
+ * ligne de 96 px, mais tiennent sur deux. Au-delà de deux lignes, l'étiquette mangerait le
+ * plan : les noms plus longs restent tronqués (N11 de l'audit navigation).
+ */
+export const ZONE_LABEL_MAX_LINES = 2;
 
 /** Largeur maximale d'un nom de zone (au-delà, troncature avec points de suspension). */
 export const ZONE_LABEL_MAX_WIDTH_PX = 168;
@@ -256,6 +273,7 @@ export function resolveVisibleLabels({
         text: spec.name,
         fontSizePx,
         maxWidthPx: maxWidth,
+        maxLines: ZONE_LABEL_MAX_LINES,
       }),
     });
   }

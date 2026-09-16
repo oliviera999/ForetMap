@@ -61,19 +61,31 @@ export function planPlacesFromContent(content) {
 
 /**
  * Filtre par catégories sélectionnées : aucune sélection = tout, sinon un lieu est gardé dès
- * qu'il porte **au moins une** des catégories retenues. Les lieux sans catégorie ne sont
- * jamais montrés quand un filtre est actif (ils n'appartiennent à aucune des cases cochées).
+ * qu'il porte **au moins une** des catégories retenues.
+ *
+ * `keepUncategorized` garde en plus les lieux **sans aucune catégorie**. Un tel lieu
+ * n'appartient à aucune case à cocher : sans cette option, aucune combinaison de puces ne
+ * peut le faire apparaître, seul « Tout » le ramène. En production, ce sont quatre entrées du
+ * lycée et la loge des visiteurs qui disparaissaient ainsi dès le premier lancement, filtre
+ * d'établissement appliqué (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N3).
+ *
+ * Le défaut reste l'ancien comportement : la Visite, qui partage cet utilitaire, n'est pas
+ * modifiée par ce lot.
  *
  * @param {Array<object>} places
  * @param {Array<string>|Set<string>} selectedCategoryIds
+ * @param {{ keepUncategorized?: boolean }} [options]
  */
-export function filterPlacesByCategories(places, selectedCategoryIds) {
+export function filterPlacesByCategories(places, selectedCategoryIds, options = {}) {
+  const { keepUncategorized = false } = options;
   const selected =
     selectedCategoryIds instanceof Set ? selectedCategoryIds : new Set(selectedCategoryIds || []);
   if (selected.size === 0) return places || [];
-  return (places || []).filter((place) =>
-    (place.category_ids || []).some((id) => selected.has(String(id))),
-  );
+  return (places || []).filter((place) => {
+    const ids = place.category_ids || [];
+    if (ids.length === 0) return keepUncategorized;
+    return ids.some((id) => selected.has(String(id)));
+  });
 }
 
 /** Compte des lieux par catégorie (pastilles des puces de filtre). */

@@ -15,6 +15,7 @@ import { parsePctPolygonPoints } from '../shared/pct-map/pctPolygon.js';
 import { FixedToast } from '../shared/components/FixedToast.jsx';
 import { useTimedToastState } from '../shared/hooks/useTimedToastState.js';
 import { PlanCategoryChips } from './components/PlanCategoryChips.jsx';
+import { PlanFiltersSheet } from './components/PlanFiltersSheet.jsx';
 import { PlanHelp } from './components/PlanHelp.jsx';
 import { PlanRoutePicker } from './components/PlanRoutePicker.jsx';
 import { PLAN_ROUTE_BAR_FOCUS_INSET_PX, PlanRouteBar } from './components/PlanRouteBar.jsx';
@@ -82,6 +83,8 @@ export function AppPlan() {
   const [activeRouteSlug, setActiveRouteSlug] = useState('');
   const [routeIndex, setRouteIndex] = useState(0);
   const [routePickerOpen, setRoutePickerOpen] = useState(false);
+  /** Liste complète des catégories (feuille basse) — la rangée de puces n'en montre que 3. */
+  const [filtersOpen, setFiltersOpen] = useState(false);
   /** Dernier parcours quitté (slug) — bouton « Reprendre » jusqu'à un autre démarrage. */
   const [resumableRouteSlug, setResumableRouteSlug] = useState('');
   const [offline, setOffline] = useState(
@@ -94,10 +97,20 @@ export function AppPlan() {
   const [welcomeVisible, setWelcomeVisible] = useState(false);
   /** Lieux d'un groupe de repères ouvert depuis la carte (désencombrement, lot 5). */
   const [groupPlaces, setGroupPlaces] = useState(null);
+  /**
+   * Lieu consulté **pendant un parcours**. Sans lui, toucher un lieu (sur la carte comme dans
+   * les résultats) ne produisait rien du tout : ni fiche, ni message
+   * (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N5).
+   */
+  const [routePeekPlace, setRoutePeekPlace] = useState(null);
   /** Lieu visé par « Y aller » (ligne droite depuis la position, lot 6). */
   const [targetPlaceId, setTargetPlaceId] = useState('');
   const deepLinkAppliedRef = useRef(false);
+  /** Parcours actif, lu par les gestionnaires stables (`openPlace`). */
+  const activeRouteSlugRef = useRef('');
   const openedOnceRef = useRef(false);
+
+  activeRouteSlugRef.current = activeRouteSlug;
 
   const title = settings?.title || 'Plan Lyautey';
 
@@ -110,6 +123,27 @@ export function AppPlan() {
     defaults: PLAN_BRAND_DEFAULTS,
     fontFallback: "'DM Sans', sans-serif",
   });
+
+  /**
+   * Les feuilles basses sont montées **en portail sous `body`**, donc hors de `.plan-shell` :
+   * les variables de marque posées sur la coquille ne les atteignaient pas, et une identité
+   * visuelle d'établissement s'arrêtait au bord de la carte
+   * (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N14). On les repose sur la racine du
+   * document, d'où tout descend — portail compris.
+   */
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    const root = document.documentElement;
+    const entries = Object.entries(brandStyle || {});
+    for (const [name, value] of entries) {
+      if (name.startsWith('--')) root.style.setProperty(name, String(value));
+    }
+    return () => {
+      for (const [name] of entries) {
+        if (name.startsWith('--')) root.style.removeProperty(name);
+      }
+    };
+  }, [brandStyle]);
 
   /**
    * Position de la personne sur le plan (lot 6) : le point bleu, son halo de précision et le
@@ -164,35 +198,56 @@ export function AppPlan() {
     reportPlanUsage('open', String(map?.id || ''));
   }, [content, map]);
 
+  /**
+   * Lieux retenus par les puces de catégories. Les lieux **sans catégorie** restent affichés :
+   * aucune case à cocher ne peut les ramener, et ce sont en production quatre entrées du lycée
+   * et la loge des visiteurs (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N3).
+   */
   const filteredPlaces = useMemo(
-    () => filterPlacesByCategories(places, selectedCategoryIds),
+    () => filterPlacesByCategories(places, selectedCategoryIds, { keepUncategorized: true }),
     [places, selectedCategoryIds],
   );
-  const counts = useMemo(() => countPlacesByCategory(places), [places]);
-  // Identités stables pour la carte : `filter` recrée un tableau à chaque rendu, ce qui
-  // relancerait le regroupement et le rendu des repères pour rien.
-  const mapZones = useMemo(() => filteredPlaces.filter((p) => p.kind === 'zone'), [filteredPlaces]);
-  const mapMarkers = useMemo(
-    () => filteredPlaces.filter((p) => p.kind === 'marker'),
+  const filteredKeys = useMemo(
+    () => new Set(filteredPlaces.map((place) => `${place.kind}:${place.id}`)),
     [filteredPlaces],
   );
+  const counts = useMemo(() => countPlacesByCategory(places), [places]);
+  /**
+   * L'index de recherche porte sur **tous** les lieux, pas seulement sur ceux que le filtre
+   * laisse passer : un filtre doit retirer des lieux de la carte, jamais les rendre
+   * introuvables. Les résultats hors filtre sont signalés comme tels et restent ouvrables
+   * (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N3).
+   */
   const searchIndex = useMemo(
     () =>
-      buildPlaceIndex(filteredPlaces, {
+      buildPlaceIndex(places, {
         getCategoryLabels: (place) =>
           (place.category_ids || [])
             .map((id) => categoriesById.get(String(id))?.label || '')
             .filter(Boolean),
       }),
-    [filteredPlaces, categoriesById],
+    [places, categoriesById],
+  );
+  const searchMatches = useMemo(
+    () => (query.trim() ? searchPlaces(searchIndex, query) : null),
+    [query, searchIndex],
   );
   const results = useMemo(() => {
     if (groupPlaces) return groupPlaces.map((place) => ({ place }));
-    if (!query.trim()) {
+    if (!searchMatches) {
       return filteredPlaces.slice(0, RESULTS_LIMIT).map((place) => ({ place }));
     }
-    return searchPlaces(searchIndex, query, { limit: RESULTS_LIMIT });
-  }, [groupPlaces, query, searchIndex, filteredPlaces]);
+    return searchMatches.slice(0, RESULTS_LIMIT).map((match) => ({
+      place: match.place,
+      matchedFields: match.matchedFields,
+      hiddenByFilter: !filteredKeys.has(`${match.place.kind}:${match.place.id}`),
+    }));
+  }, [groupPlaces, searchMatches, filteredPlaces, filteredKeys]);
+  /** Nombre de lieux que la liste pourrait montrer, limite d'affichage mise à part (N9). */
+  const resultsTotal = useMemo(() => {
+    if (groupPlaces) return groupPlaces.length;
+    return searchMatches ? searchMatches.length : filteredPlaces.length;
+  }, [groupPlaces, searchMatches, filteredPlaces]);
 
   const categoriesOf = useCallback(
     (place) =>
@@ -210,6 +265,15 @@ export function AppPlan() {
 
   const openPlace = useCallback(
     (place) => {
+      // Pendant un parcours, l'étape courante garde la sélection : le lieu consulté passe par
+      // `routePeekPlace`, sans quoi le tap restait sans effet visible (N5).
+      if (activeRouteSlugRef.current) {
+        setRoutePeekPlace(place);
+        setResultsOpen(false);
+        setGroupPlaces(null);
+        reportPlanUsage('place_open', String(place?.id || ''));
+        return;
+      }
       setSelectedPlace(place);
       setResultsOpen(false);
       setGroupPlaces(null);
@@ -347,6 +411,30 @@ export function AppPlan() {
     () => (targetPlace ? planPlaceFocusPct(targetPlace, parsePctPolygonPoints) : null),
     [targetPlace],
   );
+  /**
+   * Lieux dessinés sur la carte : ceux du filtre, **plus** le lieu ouvert et le lieu visé s'ils
+   * en sortent. Ouvrir un résultat hors filtre (ou un lien profond) montrait sinon une fiche
+   * sans rien sur la carte (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N3).
+   *
+   * Identités stables : `filter` recrée un tableau à chaque rendu, ce qui relancerait le
+   * regroupement et le rendu des repères pour rien.
+   */
+  const shownPlaces = useMemo(() => {
+    const extra = [selectedPlace, routePeekPlace, targetPlace].filter(
+      (place) => place && !filteredKeys.has(`${place.kind}:${place.id}`),
+    );
+    if (extra.length === 0) return filteredPlaces;
+    const seen = new Set();
+    return [...filteredPlaces, ...extra].filter((place) => {
+      const key = `${place.kind}:${place.id}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [filteredPlaces, filteredKeys, selectedPlace, routePeekPlace, targetPlace]);
+  const mapZones = useMemo(() => shownPlaces.filter((p) => p.kind === 'zone'), [shownPlaces]);
+  const mapMarkers = useMemo(() => shownPlaces.filter((p) => p.kind === 'marker'), [shownPlaces]);
+
   const targetDistanceM = useMemo(
     () =>
       position.positionPct && targetPct
@@ -386,6 +474,7 @@ export function AppPlan() {
     setRoutePickerOpen(false);
     setResultsOpen(false);
     setGroupPlaces(null);
+    setRoutePeekPlace(null);
     setResumableRouteSlug('');
     setRouteIndex(0);
     setActiveRouteSlug(route.slug);
@@ -397,6 +486,7 @@ export function AppPlan() {
     setActiveRouteSlug('');
     setRouteIndex(0);
     setSelectedPlace(null);
+    setRoutePeekPlace(null);
     if (slug) {
       setResumableRouteSlug(slug);
       setRouteToast('Pour reprendre : puce Parcours, ou Reprendre.');
@@ -431,6 +521,7 @@ export function AppPlan() {
   useEffect(() => {
     if (!currentRouteEntry) return;
     setSelectedPlace(currentRouteEntry.place);
+    setRoutePeekPlace(null);
   }, [currentRouteEntry]);
 
   /**
@@ -532,11 +623,16 @@ export function AppPlan() {
   }
 
   const hasMapImage = Boolean(map?.map_image_url);
+  /**
+   * Lieu dont la fiche est ouverte : l'étape d'un parcours reste pilotée par sa barre, mais un
+   * lieu consulté en cours de parcours a droit à sa fiche (N5).
+   */
+  const sheetPlace = activeRoute ? routePeekPlace : selectedPlace;
   // Lien direct du lieu ouvert : c'est l'URL que porte un QR code interne, la fiche doit
   // pouvoir la montrer (`PlanPlaceSheet` savait l'afficher, personne ne la lui passait).
   const shareUrl =
-    selectedPlace && typeof window !== 'undefined'
-      ? `${window.location.origin}${buildPlaceUrl(window.location, String(selectedPlace.id))}`
+    sheetPlace && typeof window !== 'undefined'
+      ? `${window.location.origin}${buildPlaceUrl(window.location, String(sheetPlace.id))}`
       : '';
 
   return (
@@ -566,6 +662,20 @@ export function AppPlan() {
             open={routePickerOpen}
             onToggle={setRoutePickerOpen}
           />
+          {(categories || []).length > 0 ? (
+            <button
+              type="button"
+              className={`plan-chip plan-chip--filters${selectedCategoryIds.size > 0 ? ' is-active' : ''}`}
+              aria-expanded={filtersOpen}
+              data-testid="plan-filters-button"
+              onClick={() => setFiltersOpen((open) => !open)}
+            >
+              Filtres
+              {selectedCategoryIds.size > 0 ? (
+                <span className="plan-chip__count">{selectedCategoryIds.size}</span>
+              ) : null}
+            </button>
+          ) : null}
           <PlanCategoryChips
             categories={categories}
             selectedIds={selectedCategoryIds}
@@ -590,9 +700,10 @@ export function AppPlan() {
             map={map}
             zones={mapZones}
             markers={mapMarkers}
-            selectedPlace={selectedPlace}
-            onSelectPlace={activeRoute ? () => {} : openPlace}
-            onOpenGroup={activeRoute ? null : openGroup}
+            selectedPlace={routePeekPlace || selectedPlace}
+            onSelectPlace={openPlace}
+            onOpenGroup={openGroup}
+            labelsClickable
             categoriesById={categoriesById}
             position={position}
             onLocateToggle={() => {
@@ -669,20 +780,39 @@ export function AppPlan() {
         onSelect={openPlace}
         categoriesOf={categoriesOf}
         distanceOf={distanceOfPlace}
+        totalCount={resultsTotal}
+        filterActive={selectedCategoryIds.size > 0}
+      />
+
+      <PlanFiltersSheet
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        categories={categories}
+        selectedIds={selectedCategoryIds}
+        onToggle={toggleCategory}
+        onReset={resetCategories}
+        counts={counts}
+        shownCount={filteredPlaces.length}
+        totalCount={places.length}
       />
 
       <PlanPlaceSheet
-        place={activeRoute ? null : selectedPlace}
-        onClose={closePlace}
+        place={sheetPlace}
+        onClose={activeRoute ? () => setRoutePeekPlace(null) : closePlace}
         shareUrl={shareUrl}
-        categories={categoriesOf(selectedPlace)}
+        categories={categoriesOf(sheetPlace)}
         canLocate={position.available}
         onGoTo={goToPlace}
-        isTarget={Boolean(selectedPlace && String(selectedPlace.id) === targetPlaceId)}
+        isTarget={Boolean(sheetPlace && String(sheetPlace.id) === targetPlaceId)}
         distanceLabel={
-          selectedPlace && String(selectedPlace.id) === targetPlaceId
+          sheetPlace && String(sheetPlace.id) === targetPlaceId
             ? formatDistanceFr(targetDistanceM)
             : ''
+        }
+        secondaryAction={
+          activeRoute && routePeekPlace
+            ? { label: 'Revenir à l’étape', onClick: () => setRoutePeekPlace(null) }
+            : null
         }
       />
 

@@ -41,7 +41,7 @@ casser les liens existants.
 | [`AUDIT_EVOLUTION_V1_V2_2026-09.md`](../AUDIT_EVOLUTION_V1_V2_2026-09.md)                 | Évolution v1.0.0 → v1.151.3 et arbitrage « poser une V2 ? »                                                  | Instantané 9 sept. 2026                                                 |
 | [`AUDIT_CODE_2026-09-13.md`](../AUDIT_CODE_2026-09-13.md)                                 | Audit du code (bugs, incohérences, doublons mesurés, perf / charge) — base réelle                            | À traiter (13 sept. 2026)                                               |
 | [`AUDIT_NAVIGATION_IPHONE_2026-09.md`](../AUDIT_NAVIGATION_IPHONE_2026-09.md)             | Navigation iPhone / Apple (ForetMap, GL, Plan) — safe-area, bottom-nav, filet e2e                            | Instantané 14 sept. 2026                                                |
-| [`AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md`](../AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md)     | UI/UX de la navigation sur `planlyautey.olution.info` — recherche neutralisée, carte gelée, entrées absentes | À traiter (16 sept. 2026)                                               |
+| [`AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md`](../AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md)     | UI/UX de la navigation sur `planlyautey.olution.info` — recherche neutralisée, carte gelée, entrées absentes | 15 constats traités + N16 (16 sept. 2026)                               |
 | [`AUDIT_UX_GESTION_UTILISATEURS_2026-09.md`](../AUDIT_UX_GESTION_UTILISATEURS_2026-09.md) | UI/UX de l'onglet « Profils & utilisateurs » et de la fiche utilisateur admin                                | Instantané 16 sept. 2026 — **entièrement traité** (5 constats + P1–P18) |
 
 ## Chantiers / specs encore utiles comme consigne
