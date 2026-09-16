@@ -185,6 +185,22 @@ function App() {
       Array.isArray(authClaims?.permissions) && authClaims.permissions.includes('teacher.access'),
     [authClaims],
   );
+  /**
+   * Compte enseignant **au sens de la session** — indépendamment de `teacher.access`.
+   *
+   * `isTeacher` répond « cette session peut-elle ouvrir l'interface n3boss ? », pas
+   * « y a-t-il quelqu'un de connecté ? ». Les deux ont longtemps coïncidé parce qu'un
+   * compte `user_type = 'teacher'` portait toujours la permission. Ce n'est plus vrai :
+   * un prof de classe dont un administrateur a décoché « Accès interface n3boss » dans
+   * Profils & utilisateurs ouvre une session valide sans cette permission. La porte
+   * d'entrée doit donc regarder la session, pas le droit d'administration.
+   */
+  const isTeacherAccount = useMemo(() => {
+    if (isTeacher) return true;
+    const fromSession = String(sessionUser?.userType || '').toLowerCase();
+    if (fromSession === 'teacher') return true;
+    return String(authClaims?.userType || '').toLowerCase() === 'teacher';
+  }, [authClaims?.userType, isTeacher, sessionUser?.userType]);
   const [roleViewMode, setRoleViewMode] = useState('native'); // native | student | teacher
   const { appVersion, publicSettings, publicSettingsReady } = useAppBootstrap();
   /**
@@ -653,13 +669,17 @@ function App() {
   const canViewOtherUsersIdentity = !isVisitor;
   const isPreviewStudentView = !!previewStudent;
   const profileTargetUserId = useMemo(() => {
-    if (effectiveIsTeacher || isTeacher) return sessionUser?.id || authClaims?.userId || null;
+    // `isTeacherAccount` et non `isTeacher` : sans fiche n3beur, un compte enseignant
+    // dépourvu de `teacher.access` n'avait plus aucune cible de profil — donc ni fiche
+    // ni statistiques personnelles.
+    if (effectiveIsTeacher || isTeacherAccount)
+      return sessionUser?.id || authClaims?.userId || null;
     return student?.id || null;
-  }, [authClaims?.userId, effectiveIsTeacher, isTeacher, sessionUser?.id, student?.id]);
+  }, [authClaims?.userId, effectiveIsTeacher, isTeacherAccount, sessionUser?.id, student?.id]);
   const canOpenUserDialogs = !!profileTargetUserId && !isPreviewStudentView;
   const profileTargetUser = useMemo(() => {
     if (!canOpenUserDialogs) return null;
-    if (!effectiveIsTeacher && !isTeacher && student) return student;
+    if (!effectiveIsTeacher && !isTeacherAccount && student) return student;
     const fallbackName = resolveSessionDisplayName(
       sessionUser?.displayName,
       authClaims?.roleDisplayName,
@@ -687,7 +707,7 @@ function App() {
     authClaims?.userType,
     canOpenUserDialogs,
     effectiveIsTeacher,
-    isTeacher,
+    isTeacherAccount,
     profileTargetUserId,
     sessionUser?.avatar_path,
     sessionUser?.displayName,
@@ -759,13 +779,13 @@ function App() {
   /** Profil enregistré : la session prof et la session élève ne se mettent pas à jour pareil. */
   const handleProfileUpdated = useCallback(
     (updated) => {
-      if (isTeacher || String(sessionUser?.userType || '').toLowerCase() === 'teacher') {
+      if (isTeacherAccount) {
         updateTeacherSession(updated);
         return;
       }
       updateStudentSession(updated);
     },
-    [isTeacher, sessionUser?.userType, updateStudentSession, updateTeacherSession],
+    [isTeacherAccount, updateStudentSession, updateTeacherSession],
   );
 
   /** Bascule de vue rôle (natif / élève / prof) : réinitialise onglet et dialogues. */
@@ -1097,7 +1117,15 @@ function App() {
     );
   }
 
-  if (!student && !isTeacher)
+  /*
+   * Porte d'entrée de l'application : une session ouverte suffit. Le critère précédent
+   * (`!student && !isTeacher`) exigeait `teacher.access` pour tout compte sans fiche
+   * n3beur : un prof de classe privé de cette permission se reconnectait avec succès
+   * (jeton posé, 200 côté serveur) puis se retrouvait sur l'écran de connexion, sans
+   * message — le symptôme était identique en connexion classique et en OAuth Google,
+   * parce que le blocage est ici, après le jeton.
+   */
+  if (!student && !isTeacherAccount)
     return (
       <UnauthenticatedShell
         publicSettings={publicSettings}

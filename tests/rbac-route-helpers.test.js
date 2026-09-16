@@ -11,6 +11,7 @@ const {
   STUDENT_ROLE_SLUG_RE,
   RESERVED_ROLE_SLUGS,
   reservedRoleSlugError,
+  teacherAccessLockError,
   PROFILE_PATCH_KEYS,
   isStaffRoleSlug,
   canConfigureStudentTierForumContext,
@@ -63,6 +64,31 @@ describe('rbacRouteHelpers (logique pure de routes/rbac.js, sans DB)', () => {
     assert.equal(reservedRoleSlugError(''), null);
     assert.equal(reservedRoleSlugError(null), null);
     assert.equal(reservedRoleSlugError(undefined), null);
+  });
+
+  /**
+   * Régression « prof de classe bloqué à la connexion » : décocher « Accès interface
+   * n3boss » sur ce profil le privait de sa seule porte d'entrée API, et la révocation
+   * était durable (migration 241). La console doit refuser le retrait.
+   */
+  it('teacherAccessLockError : refuse de retirer teacher.access aux profils enseignants', () => {
+    for (const slug of ['admin', 'PROF', '  prof_classe ']) {
+      const msg = teacherAccessLockError(slug, ['groups.read', 'stats.read.group']);
+      assert.equal(typeof msg, 'string');
+      assert.match(msg, /teacher\.access/);
+    }
+  });
+
+  it('teacherAccessLockError : null si la permission est conservée', () => {
+    assert.equal(teacherAccessLockError('prof_classe', ['groups.read', 'TEACHER.ACCESS']), null);
+    assert.equal(teacherAccessLockError('prof', ['teacher.access']), null);
+  });
+
+  it('teacherAccessLockError : null hors profils verrouillés (profils dérivés libres)', () => {
+    assert.equal(teacherAccessLockError('prof_delegue', []), null);
+    assert.equal(teacherAccessLockError('visiteur', []), null);
+    assert.equal(teacherAccessLockError('', []), null);
+    assert.equal(teacherAccessLockError(null, null), null);
   });
 
   it('PROFILE_PATCH_KEYS : clés snake_case et alias camelCase reconnus', () => {

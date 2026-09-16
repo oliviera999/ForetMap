@@ -153,6 +153,14 @@ Le profil système **« Prof de classe »** est distinct du n3boss. En pratique 
    exige de rattacher l'élève à un groupe du périmètre du professeur.
 5. **Pas d'escalade** : ce profil ne donne pas les pouvoirs administrateur, ni la
    totalité des pouvoirs n3boss.
+6. **« Accès interface n3boss » reste coché** : malgré son libellé, cette permission
+   (`teacher.access`) n'affiche **aucune** barre haute n3boss sur ce profil — le prof de
+   classe garde la navigation basse d'un visiteur connecté. C'est le droit d'entrée des
+   comptes **enseignants**, qui n'ont pas de fiche élève à laquelle se raccrocher : sans
+   lui, la connexion réussissait mais renvoyait immédiatement sur l'écran de connexion,
+   sans message. La console **refuse désormais** de le décocher sur « Admin », « n3boss »
+   et « Prof de classe ». Pour un profil d'encadrement plus étroit, **dupliquer** un
+   profil et retirer les autres droits.
 
 ### Portée de groupe
 
