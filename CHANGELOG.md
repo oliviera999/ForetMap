@@ -9,6 +9,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — Audit UI/UX de la navigation sur `planlyautey.olution.info`
+
+- Nouveau `docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` : relevé de la navigation du Plan
+  Lyautey (interface **et** repérage), fait sur le bundle **réellement déployé** (empreintes
+  d'assets identiques à `dist/`) et sur la charge publique du jour (78 lieux, 11 catégories).
+- Constat bloquant **N1** : toucher le champ de recherche ouvre une feuille modale qui pose
+  `inert` sur toute l'application et déplace le focus — mesuré, la frappe ne s'inscrit pas et
+  la liste reste non filtrée. Même mécanisme pour **N2** (carte gelée sous une fiche ouverte).
+- **N3** : neuf lieux de production sans catégorie — dont quatre entrées et la loge — sont
+  retirés de la carte *et* de l'index de recherche par le filtre par défaut.
+- Treize autres constats (fiche ouverte sur 12 px de contenu, parcours muet, puces de filtre
+  hors écran, absence totale d'alias de recherche, doublons indiscernables, cibles < 44 px…),
+  chacun avec sa mesure, sa référence `fichier:ligne` et son correctif proposé.
+- Explique pourquoi les filets n'ont rien vu (`fill()` en e2e, `inert` ignoré par jsdom) et
+  liste les trois tests à ajouter avec le correctif. **Aucun code produit modifié.**
+- Index `docs/audits/README.md` mis à jour (nouvel audit en point d'entrée ; ajout du relevé
+  d'affichage du 13 septembre qui manquait à l'historique).
+
+
 ### Ajouté — Les 30 fiches à photo morte sont réillustrées
 
 - Migration `257` : une photo Wikimedia Commons pour chacune des 30 fiches que la migration
