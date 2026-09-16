@@ -7,9 +7,13 @@ const { app } = require('../server');
 const { initSchema, queryOne, queryAll, execute } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
 const { ensureAdminTeacherAuthToken, getAdminTeacherUserId } = require('./helpers/adminAuth');
+const { restoreDefaultProgressionThresholds } = require('./helpers/progressionThresholds');
 
 test.before(async () => {
   await initSchema();
+  // Seuils de paliers remis à l'état de référence : d'autres fichiers de la suite les
+  // déplacent sur la base partagée (cf. helpers/progressionThresholds.js).
+  await restoreDefaultProgressionThresholds();
 });
 
 async function getAdminToken() {
