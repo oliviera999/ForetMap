@@ -9,6 +9,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Les 30 fiches à photo morte sont réillustrées
+
+- Migration `257` : une photo Wikimedia Commons pour chacune des 30 fiches que la migration
+  `252` avait laissées nues après retrait de leur lien mort, avec auteur et licence
+  (13 CC BY-SA 4.0, 6 CC BY-SA 3.0, 3 CC BY 2.0, 3 CC0, 2 CC BY-SA 2.0, et une chacune en
+  CC BY 3.0, CC BY 4.0 et CC BY-SA 2.5). Aucune fiche sans auteur.
+- **Le premier choix automatique a été jeté.** Fondé sur l'image de tête de l'article
+  Wikipédia, il rendait bien 29 fiches sur 30 — et attribuait au criquet marocain une photo
+  d'*Aiolopus thalassinus*, à l'arganier une photo d'huile d'argan, et à neuf fiches des
+  planches botaniques du XIXᵉ. C'est mot pour mot le défaut que la migration `252` venait de
+  corriger sur la fiche « Laitue ».
+- La sélection retenue part de la **catégorie Commons du taxon** — y être classé vaut
+  détermination — et écarte planches, gravures et figures d'articles, cartes de répartition,
+  bonsaïs, kokedamas et spécimens de musée, photos de produit plutôt que d'espèce, cultivars
+  au feuillage atypique et cadres à deux espèces. Six passes ont été nécessaires.
+- Test de contenu `tests/content/plants-reillustration.test.js` : photo présente, auteur et
+  licence présents, hébergement Wikimedia, nom de fichier cohérent avec le taxon de la fiche,
+  et aucune planche ancienne ni carte de répartition.
+- Deux faux négatifs silencieux corrigés en route : le contrôle de lien traitait le 429 de
+  `upload.wikimedia.org` comme un « lien mort » — il fabriquait les liens morts qu'il devait
+  détecter ; et `Category:Argania spinosa` est une redirection de catégorie que l'API rend
+  comme une catégorie vide, sans erreur (l'arganier est sous `Category:Sideroxylon spinosum`).
+- Indexée par nom, gardée par `photo IS NULL OR photo = ''` : la migration ne repose une
+  photo que là où il n'y en a pas, n'écrase jamais une illustration choisie par un
+  enseignant, et la rejouer ne fait rien. 30 fiches concernées sur le dump de production,
+  16 sur une base neuve.
 ### Corrigé — Carte : retour des pastilles colorées d’état des tâches
 
 - Les **points colorés d’état des tâches** (rouge « à faire », orange « en cours », vert

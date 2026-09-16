@@ -177,7 +177,22 @@ formulaire.
 
 Au passage, **30 fiches pointaient une image supprimée de Wikimedia** (le merle, la figue,
 l'escargot petit-gris, la coccinelle à sept points…). Elles affichaient une image cassée ;
-le lien mort a été retiré et ces fiches sont **à réillustrer**.
+le lien mort a été retiré, et **les 30 fiches ont depuis été réillustrées**, chacune avec
+son auteur et sa licence.
+
+> ⚠️ **Point d'attention — une photo plausible mais fausse est pire qu'une fiche sans
+> image.** Le premier choix automatique de ces 30 photos, fait à partir de l'image de tête
+> de l'article Wikipédia, a dû être jeté : il attribuait au **criquet marocain** la photo
+> d'une autre espèce de criquet, à l'**arganier** une photo d'huile d'argan, et à neuf
+> fiches des planches dessinées du XIXᵉ siècle — exactement le défaut de la fiche Laitue
+> décrit ci-dessous.
+>
+> Les photos ont donc été reprises à partir de la **catégorie Wikimedia de l'espèce**, où
+> le classement vaut déjà détermination, en écartant les planches et gravures, les cartes
+> de répartition, les bonsaïs et spécimens de musée, les photos de produit (une coopérative
+> d'huile d'argan n'est pas un arganier) et les cadres où deux espèces se disputent la
+> vedette. **En ajoutant une photo à une fiche, appliquer la même règle :** elle doit
+> montrer l'espèce telle qu'un élève la rencontrera sur le terrain.
 
 La fiche **Laitue** était illustrée par une planche de _Lactuca virosa_, la laitue vireuse —
 une espèce sauvage toxique — sur une fiche marquée comestible. La photo a été corrigée, et
