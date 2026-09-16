@@ -8,6 +8,7 @@ import {
   visitMediaGalleryThumbDisplaySrc,
   visitMediaGalleryLightboxSrc,
   sameVisitImageUrl,
+  visitImageIdentityKey,
 } from '../../utils/visitMediaGallery.js';
 // Imports directs (mêmes symboles que les ré-exports du barrel map-views) :
 // évite de tirer MarkerModal/ZoneDrawModal/useMapGestures dans le chunk visite.
@@ -199,7 +200,23 @@ export function VisitDetailPanel({
   const restVisitPhotos = selectedVisitMedia
     .slice(showFirstVisitAsLead ? 1 : 0)
     .filter((m) => !sameVisitImageUrl(m.image_url || m.thumb_url, mapLeadUrl));
-  const mapExtraPhotos = Array.isArray(selected.map_extra_photos) ? selected.map_extra_photos : [];
+  /**
+   * Autres photos de la galerie carte : la photo lead et les médias visite déjà affichés
+   * plus haut sont écartés (même cliché servi sous deux formes d'URL, cf.
+   * `visitImageIdentityKey`).
+   */
+  const alreadyShownImageKeys = new Set(
+    [
+      mapLeadUrl,
+      ...(showFirstVisitAsLead ? [firstVisitPhoto.image_url || firstVisitPhoto.thumb_url] : []),
+      ...restVisitPhotos.map((m) => m.image_url || m.thumb_url),
+    ]
+      .map((url) => visitImageIdentityKey(url))
+      .filter(Boolean),
+  );
+  const mapExtraPhotos = (
+    Array.isArray(selected.map_extra_photos) ? selected.map_extra_photos : []
+  ).filter((ph) => !alreadyShownImageKeys.has(visitImageIdentityKey(ph.image_url || ph.thumb_url)));
   const visitDetailsTextTrim = selected.visit_details_text
     ? String(selected.visit_details_text).trim()
     : '';
