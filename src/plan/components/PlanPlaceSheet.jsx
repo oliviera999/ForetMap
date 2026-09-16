@@ -22,6 +22,10 @@ import { placeDisplayParts } from '../utils/planPlaces.js';
  * @param {string} [props.shareUrl] lien profond du lieu (`?lieu=`).
  * @param {{ label: string, onClick: () => void }|null} [props.secondaryAction] action de retour
  *   contextuelle — en mode parcours, « Revenir à l'étape » (N5 de l'audit navigation).
+ * @param {'peek'|'half'|'full'} [props.initialSnap] cran d'ouverture. `peek` sert pendant un
+ *   parcours : une fiche à mi-hauteur recouvrait entièrement la barre d'étape, « Quitter »,
+ *   « Précédent » et « Suivant » compris
+ *   (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B3).
  */
 export function PlanPlaceSheet({
   place,
@@ -33,6 +37,7 @@ export function PlanPlaceSheet({
   distanceLabel = '',
   shareUrl = '',
   secondaryAction = null,
+  initialSnap = 'half',
 }) {
   if (!place) return null;
   // Le nom porte presque toujours l'emoji en tête, et la colonne `emoji` le répète : sans
@@ -60,7 +65,7 @@ export function PlanPlaceSheet({
       // Au cran bas, l'en-tête et le pied ne laissaient que 12 px de contenu visible pour
       // 745 px de texte : on ouvrait la fiche sans rien pouvoir y lire
       // (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N4).
-      initialSnap="half"
+      initialSnap={initialSnap}
       // Feuille non bloquante : la carte reste manipulable derrière (N2).
       blockBackground={false}
       className="plan-sheet plan-place-sheet"
@@ -91,12 +96,14 @@ export function PlanPlaceSheet({
             className="plan-place__go"
             onClick={() => onGoTo?.(place)}
           >
-            {isTarget && distanceLabel ? `Y aller · ${distanceLabel}` : 'Y aller'}
+            {isTarget ? 'Revoir la direction' : 'Y aller'}
           </Button>
           <p className="plan-place__go-hint">
-            {canLocate
-              ? 'Direction à vol d’oiseau, pas un itinéraire.'
-              : 'Plan non calé : position indisponible.'}
+            {!canLocate
+              ? 'Plan non calé : position indisponible.'
+              : isTarget && distanceLabel
+                ? `À ${distanceLabel} à vol d’oiseau. La fiche se referme : le guidage reste en bas.`
+                : 'Direction à vol d’oiseau, pas un itinéraire. La fiche se referme.'}
           </p>
         </div>
       }

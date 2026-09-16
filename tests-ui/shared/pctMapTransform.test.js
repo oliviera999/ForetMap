@@ -216,3 +216,54 @@ test('pctMapTransformEquals tolère les écarts sous-pixel', () => {
   expect(pctMapTransformEquals({ x: 2, y: 0, s: 1 }, { x: 0, y: 0, s: 1 })).toBe(false);
   expect(pctMapTransformEquals(null, { x: 0, y: 0, s: 1 })).toBe(false);
 });
+
+/**
+ * Bords recouverts par une surcouche (feuille basse du Plan, barre d'étape).
+ *
+ * Sans eux, un lieu situé dans le bas du plan ne pouvait **jamais** être amené dans la bande
+ * encore visible : la butée « contain » interdit de dépasser le bord du contenu, et aucun zoom
+ * n'y change rien (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B2).
+ */
+describe('bords recouverts (viewport insets)', () => {
+  test('sans bord recouvert, l’intervalle est inchangé', () => {
+    expect(pctMapAxisRange(300, 300, 1)).toEqual({ lo: 0, hi: 0 });
+    expect(pctMapAxisRange(300, 300, 2)).toEqual({ lo: -300, hi: 0 });
+    expect(pctMapAxisRange(300, 300, 1, { before: 0, after: 0 })).toEqual({ lo: 0, hi: 0 });
+  });
+
+  test('un bas recouvert laisse le contenu glisser dessous, d’exactement sa hauteur', () => {
+    // Contenu exactement à la taille du cadre : sans inset, aucune translation possible.
+    expect(pctMapAxisRange(300, 300, 1, { after: 120 })).toEqual({ lo: -120, hi: 0 });
+    // Et le contenu couvre toujours la bande visible : jamais de vide en haut.
+    expect(pctMapAxisRange(300, 300, 2, { after: 120 })).toEqual({ lo: -420, hi: 0 });
+  });
+
+  test('un haut recouvert décale la butée haute d’autant', () => {
+    expect(pctMapAxisRange(300, 300, 1, { before: 50 })).toEqual({ lo: 0, hi: 50 });
+  });
+
+  test('clampPctMapTransform lit les bords recouverts dans les bornes', () => {
+    const covered = { ...sceneBounds, insets: { bottom: 120 } };
+    // Sans inset, la vue est bloquée à 0 ; avec, elle peut monter de 120 px.
+    expect(clampPctMapTransform({ x: 0, y: -90, s: 1 }, sceneBounds).y).toBe(0);
+    expect(clampPctMapTransform({ x: 0, y: -90, s: 1 }, covered).y).toBe(-90);
+    expect(clampPctMapTransform({ x: 0, y: -200, s: 1 }, covered).y).toBe(-120);
+  });
+
+  test('un lieu du bas du plan peut être amené dans la bande visible', () => {
+    const covered = { ...sceneBounds, insets: { bottom: 180 } };
+    // Lieu à 95 % de la hauteur, feuille couvrant 180 px des 300 px de cadre.
+    const withInsets = centerPctMapTransformOnPct({ xp: 50, yp: 95 }, 1, covered, null, {
+      bottom: 180,
+    });
+    const visibleY = 95 * 3 + withInsets.y; // 3 px de cadre par % (contenu = cadre, échelle 1)
+    expect(visibleY).toBeGreaterThan(0);
+    expect(visibleY).toBeLessThan(300 - 180);
+
+    // Bornes d'avant (aucun bord déclaré recouvert) : le même lieu reste sous la feuille.
+    const without = centerPctMapTransformOnPct({ xp: 50, yp: 95 }, 1, sceneBounds, null, {
+      bottom: 180,
+    });
+    expect(95 * 3 + without.y).toBeGreaterThan(300 - 180);
+  });
+});

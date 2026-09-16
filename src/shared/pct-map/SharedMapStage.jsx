@@ -159,6 +159,10 @@ export function SharedMapStage({
     onResize: 'clamp',
     resetKey: String(map?.id || ''),
     isGestureTarget: gestureIgnoreSelector,
+    // Ce qui recouvre le bas de l'écran (feuille basse, barre d'étape) : la carte peut y
+    // glisser, sinon un lieu du bas du plan ne peut jamais monter dans la bande visible
+    // (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B2).
+    viewportInsets: focusInsets,
     // Hors orientation : un pan manuel quitte le suivi. Avec orientation active, on
     // recolle le GPS au centre en fin de geste (évite le fond vide après rotation).
     onGestureStart: () => {
@@ -342,9 +346,19 @@ export function SharedMapStage({
             contentHeightPx: fitRect.height,
             scale: committed.s,
             categoriesById,
+            // Le repère mis en avant reste visible individuellement (G3).
+            keepApartId: selectedPlace?.kind === 'marker' ? String(selectedPlace.id) : '',
           })
         : [],
-    [clusteringEnabled, visibleMarkers, fitRect.width, fitRect.height, committed.s, categoriesById],
+    [
+      clusteringEnabled,
+      visibleMarkers,
+      fitRect.width,
+      fitRect.height,
+      committed.s,
+      categoriesById,
+      selectedPlace,
+    ],
   );
 
   const onClusterClick = useCallback(
