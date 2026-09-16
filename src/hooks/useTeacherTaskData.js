@@ -3,11 +3,14 @@ import { useEffect, useState } from 'react';
 import { api } from '../services/api';
 
 /**
- * Données prof de la vue Tâches (P2, extrait de tasks-views.jsx, iso-comportement) :
- * options de groupes (`GET /api/groups/options`), liste des n3beurs triée fr
- * (`GET /api/stats/all`, refiltrée par groupe) et candidats référents
+ * Données prof de la vue Tâches (P2, extrait de tasks-views.jsx) :
+ * options de groupes (`GET /api/groups/options`), liste des n3beurs affectables triée fr
+ * (`GET /api/tasks/assignable-students`, filtrée par groupe) et candidats référents
  * (`GET /api/tasks/referent-candidates`). Rien n'est chargé hors mode prof.
  * `setToast` sert uniquement à signaler un échec de chargement de la liste n3beurs.
+ *
+ * Seuls les comptes à profil n3beur sont renvoyés : un `student` porteur d'un profil
+ * visiteur / personnel / prof de classe / GL n'est ni affiché ni sélectionnable.
  */
 export function useTeacherTaskData(isTeacher, filterGroupId, setToast) {
   const [teacherStudents, setTeacherStudents] = useState([]);
@@ -29,7 +32,9 @@ export function useTeacherTaskData(isTeacher, filterGroupId, setToast) {
       setLoadingTeacherStudents(true);
       try {
         const payload = await api(
-          `/api/stats/all${filterGroupId ? `?group_id=${encodeURIComponent(filterGroupId)}` : ''}`,
+          `/api/tasks/assignable-students${
+            filterGroupId ? `?group_id=${encodeURIComponent(filterGroupId)}` : ''
+          }`,
         );
         if (cancelled) return;
         const rows = Array.isArray(payload) ? payload : (payload?.students ?? []);

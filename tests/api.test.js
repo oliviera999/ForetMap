@@ -43,6 +43,15 @@ async function loginStudentAfterRole(studentRes, password, identifier) {
   return loginRes.body;
 }
 
+const { restoreDefaultProgressionThresholds } = require('./helpers/progressionThresholds');
+
+// Ce fichier déplace volontairement les seuils de paliers (`allowStudentProposalsAtZeroDone`,
+// scénarios de progression) sur la base partagée par toute la suite : il les restaure en
+// sortie pour ne pas dicter le palier de départ des fichiers suivants.
+test.after(async () => {
+  await restoreDefaultProgressionThresholds();
+});
+
 async function allowStudentProposalsAtZeroDone() {
   await execute('UPDATE roles SET min_done_tasks = ? WHERE slug = ?', [1, 'eleve_novice']);
   await execute('UPDATE roles SET min_done_tasks = ? WHERE slug = ?', [0, 'eleve_avance']);

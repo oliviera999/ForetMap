@@ -2,6 +2,7 @@ require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
 const { initDatabase, queryOne, queryAll, execute } = require('../database');
+const { setStudentPrimaryRole } = require('./helpers/studentRoles');
 const { app } = require('../server');
 const request = require('supertest');
 const { signAuthToken } = require('../middleware/requireTeacher');
@@ -86,6 +87,8 @@ test('Job recurrence : clone sans assignations et idempotence', async () => {
     })
     .expect(201);
   const { id: studentId, first_name: firstName, last_name: lastName } = studentRes.body;
+  // Seul un compte au statut n3beur est inscriptible sur une tâche.
+  await setStudentPrimaryRole(studentId, 'eleve_novice');
 
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
@@ -163,10 +166,27 @@ test('Job recurrence : clone sans assignations et idempotence', async () => {
   );
   assert.strictEqual(child.map_id, sourceAfterValidate.map_id);
 
-  const source = await queryOne('SELECT recurrence_spawned_for_due_date FROM tasks WHERE id = ?', [
-    taskId,
-  ]);
+  const source = await queryOne(
+    'SELECT recurrence_spawned_for_due_date, recurrence_anchor_date FROM tasks WHERE id = ?',
+    [taskId],
+  );
   assert.strictEqual(source.recurrence_spawned_for_due_date, '2020-01-08');
+
+  // Ancre de récurrence (migration 258) : posée à la création depuis la date de départ,
+  // puis recopiée telle quelle sur le clone. C'est elle qui porte le rythme — le clone
+  // tombe donc sur le même jour de semaine que l'ancre, quel que soit le décalage que le
+  // calendrier scolaire a pu imposer entre-temps.
+  assert.strictEqual(String(source.recurrence_anchor_date), '2020-01-01');
+  const childAnchor = await queryOne('SELECT recurrence_anchor_date FROM tasks WHERE id = ?', [
+    childId,
+  ]);
+  assert.strictEqual(String(childAnchor.recurrence_anchor_date), '2020-01-01');
+  const jourAncre = new Date('2020-01-01T00:00:00Z').getUTCDay();
+  assert.strictEqual(
+    new Date(`${child.start_date}T00:00:00Z`).getUTCDay(),
+    jourAncre,
+    `départ ${child.start_date} attendu sur le jour de l'ancre`,
+  );
 
   await runRecurringTaskSpawnJob({ force: true });
   const children2 = await queryAll('SELECT id FROM tasks WHERE parent_task_id = ?', [taskId]);
@@ -292,4 +312,52 @@ test('Réglage global récurrence : désactive auto, force conserve le rattrapag
     });
     process.env.NODE_ENV = originalNodeEnv;
   }
+});
+
+test("Récurrence : modifier la date de départ redéfinit l'ancre de la série", async () => {
+  const teacherToken = await getAdminAuthToken();
+  const zones = await request(app).get('/api/zones').expect(200);
+  const zoneId = zones.body[0]?.id || 'pg';
+
+  const created = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({
+      title: `RecAncre ${Date.now()}`,
+      zone_id: zoneId,
+      required_students: 1,
+      recurrence: 'weekly',
+      start_date: '2026-09-15',
+      due_date: '2026-09-18',
+    })
+    .expect(201);
+  const taskId = created.body.id;
+
+  const apresCreation = await queryOne('SELECT recurrence_anchor_date FROM tasks WHERE id = ?', [
+    taskId,
+  ]);
+  assert.strictEqual(String(apresCreation.recurrence_anchor_date), '2026-09-15');
+
+  // Déplacer la date de départ est la seule façon de déplacer le rythme : le calendrier
+  // scolaire, lui, décale une occurrence sans jamais toucher à l'ancre.
+  await request(app)
+    .put(`/api/tasks/${taskId}`)
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({ start_date: '2026-09-17', due_date: '2026-09-18' })
+    .expect(200);
+  const apresDeplacement = await queryOne('SELECT recurrence_anchor_date FROM tasks WHERE id = ?', [
+    taskId,
+  ]);
+  assert.strictEqual(String(apresDeplacement.recurrence_anchor_date), '2026-09-17');
+
+  // Modifier un autre champ ne touche pas à l'ancre.
+  await request(app)
+    .put(`/api/tasks/${taskId}`)
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({ title: `RecAncre renommee ${Date.now()}` })
+    .expect(200);
+  const apresRenommage = await queryOne('SELECT recurrence_anchor_date FROM tasks WHERE id = ?', [
+    taskId,
+  ]);
+  assert.strictEqual(String(apresRenommage.recurrence_anchor_date), '2026-09-17');
 });

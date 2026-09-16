@@ -39,6 +39,11 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   professeurs. Un mot de passe changé (par e-mail, par l'utilisateur ou par un
   administrateur) **déconnecte toutes les sessions ouvertes** de ce compte, sur ForetMap
   comme dans Gnomes & Licornes.
+- **Combien de temps reste-t-on connecté ?** Une session dure 1 h 30 (réglage « Sécurité »),
+  mais elle **se prolonge toute seule tant qu'on se sert de l'application** : plus de
+  déconnexion en plein travail. En revanche, une session est close au bout de **12 heures**
+  au total (second réglage « Sécurité »), et un onglet laissé de côté plus de 1 h 30 sans
+  rien faire demande une reconnexion. Fermer l'onglet ne déconnecte pas.
 - **Trop d'essais** : cinq mots de passe faux sur le même identifiant bloquent ce compte
   30 secondes, puis de plus en plus longtemps (jusqu'à 15 minutes) — sans gêner les autres
   élèves de la classe qui partagent la même connexion.
@@ -65,7 +70,21 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
 | **Administrateur**      | Compte aux pleins pouvoirs établissement        | Tout le n3boss (y compris carnet personnel), plus réglages, rôles, secrets, prise de contrôle, audit technique          |
 
 - La montée de palier est **automatique** (nombre de tâches validées) et saluée par une
-  fenêtre de félicitations. Les **noms affichés** des profils (dont « n3beur » /
+  fenêtre de félicitations.
+- **Au rattachement à un groupe n3beur**, le profil est aussitôt mis au palier qui
+  correspond aux tâches déjà validées : un compte visiteur qui rejoint une classe passe
+  donc en n3beur (palier d'entrée s'il n'a encore rien validé), et un élève qui revient
+  avec 60 tâches validées retrouve son palier au lieu de repartir de novice. Cet
+  alignement ne fait jamais **baisser** un palier. Il se désactive dans
+  **Profils & utilisateurs → Permissions**, bloc « Progression par tâches validées ».
+- **Rattrapage en masse ou compte par compte** : dans **Profils & utilisateurs →
+  Comptes**, le bloc « Attribuer les profils d'après les tâches validées » attribue à
+  chacun le palier mérité — pour tous les n3beurs, pour un groupe, ou pour un seul
+  compte (bouton « Niveau auto. » sur sa ligne). Le bouton **Aperçu** montre qui
+  changerait avant que **« Appliquer le recalcul »** n'écrive quoi que ce soit. Par défaut, seules les **montées** sont appliquées ; la
+  case « Aligner strictement » autorise aussi la baisse d'un palier attribué au-dessus
+  du nombre réel de tâches validées. Les profils hors échelle n3beur (n3boss, admin,
+  MJ, prof de classe, profil sur mesure) ne sont jamais touchés. Les **noms affichés** des profils (dont « n3beur » /
   « n3boss ») se règlent dans **Profils & utilisateurs** ; ce n'est pas un réglage
   séparé dans Paramètres.
 - Les rôles et leurs **permissions sont configurables** : un administrateur peut créer
@@ -199,16 +218,47 @@ et l'état du compte.
 ## La gestion des utilisateurs
 
 L'onglet **Profils & utilisateurs** est découpé en **sous-onglets** pour rester lisible
-quand l'établissement a beaucoup de comptes et de groupes :
+quand l'établissement a beaucoup de comptes et de groupes. À la première visite il
+s'ouvre sur **Comptes**, qui est l'usage quotidien ; ensuite, c'est le dernier
+sous-onglet consulté qui est rouvert.
+
+> **Vocabulaire.** Dans l'interface et dans cette documentation, on dit **profil** pour
+> l'ensemble de droits attribué à une personne (visiteur, n3beur novice, prof de classe,
+> administrateur…). Le mot « rôle » ne subsiste que côté technique (API, base de
+> données) ; il désigne exactement la même chose.
 
 - **Profils** : créer et régler les profils de droits (permissions, paliers, emoji…).
-- **Comptes** : attribuer un profil à chaque personne, créer un compte unitaire,
-  supprimer ou dupliquer. Une barre de recherche et des filtres (profil, type élève /
-  enseignant, groupe) réduisent la liste ; on peut choisir combien de lignes afficher
-  par page (25, 50 ou 100).
+- **Comptes** : **une seule liste** pour tout ce qui concerne un compte — attribuer un
+  profil, ouvrir la fiche, dupliquer, supprimer. (Auparavant, supprimer ou dupliquer
+  supposait une seconde liste plus bas dans la page, avec sa propre recherche : on
+  pouvait filtrer sur une classe en haut et travailler sur un autre ensemble en bas.)
+  Une barre de recherche et des filtres **portant chacun son libellé** (profil, type
+  élève / enseignant, groupe) réduisent la liste, un menu **Trier par** la réordonne
+  (nom, profil, « sans profil d'abord », « sans groupe d'abord »), et on choisit
+  combien de lignes afficher par page (25, 50 ou 100). **Chaque ligne indique les
+  groupes de la personne** (au plus trois pastilles, puis « +N » ; « Aucun groupe » si
+  elle n'est rattachée nulle part), et le type de compte est écrit en toutes lettres
+  (« Élève », « Enseignant »).
+  - **Les filtres sont dans l'adresse de la page** : un rechargement ne les perd plus,
+    et le lien copié rouvre la même vue filtrée chez un collègue.
+  - **Actions groupées** : cocher plusieurs lignes fait apparaître une barre qui
+    attribue un profil ou rattache à un groupe **en une fois** (« tout sélectionner »
+    porte sur l'ensemble des résultats filtrés, pas seulement sur la page affichée).
+    Le rattachement ne concerne que les comptes élèves.
+  - **Les profils sensibles sont confirmés** : attribuer `administrateur` ou `n3boss`,
+    ou retirer un tel profil, demande une confirmation explicite — seul ou en lot. Les
+    profils élèves s'appliquent directement, comme avant.
+  - **Le résultat s'affiche sur la ligne concernée** (« Profil enregistré », ou le
+    motif du refus) plutôt qu'en haut de page, où il était invisible dès qu'on avait
+    fait défiler. Une seule ligne se met en attente pendant son enregistrement : les
+    autres restent utilisables.
+  - Quand aucun compte ne correspond aux filtres, un bouton **« Effacer les filtres »**
+    est proposé sur place.
 - **Groupes** : arborescence des classes et sous-groupes (recherche, filtre par type,
   masquage des inactifs). Les visiteurs en attente de rattachement apparaissent en tête ;
-  on peut les rattacher un par un ou **en lot** au groupe choisi.
+  on peut les rattacher un par un ou **en lot** au groupe choisi. Quand il y en a, une
+  **pastille d'alerte** orange sur l'onglet en donne le nombre — à ne pas confondre avec
+  le compteur discret de l'onglet Comptes, qui indique simplement « résultats / total ».
 - **Imports & exports** : importer des élèves ou des groupes, exporter les statistiques.
 
 - **Créer / importer** : un **n3boss** (selon ses droits) peut créer des comptes un par
@@ -253,6 +303,26 @@ quand l'établissement a beaucoup de comptes et de groupes :
   affectations et son historique de tâches, et recalcule les statuts des tâches
   concernées. C'est un pouvoir sensible ; il ne fait pas partie du socle minimal du
   prof de classe.
+- **Fiche d'un compte** : le bouton « Modifier » ouvre la fiche de la personne
+  (« Fiche de … »), organisée en trois parties.
+  - **Droits & groupes** : son **profil** (rôle principal) et **le ou les groupes**
+    auxquels elle est rattachée — mention « Responsable » quand elle encadre le
+    groupe, « archivé » si le groupe ne l'est plus. Plus besoin d'ouvrir le
+    sous-onglet Groupes pour vérifier un rattachement avant de changer un profil. Un
+    profil ou un groupe manquant est écrit explicitement (« Aucun profil », « Aucun
+    groupe ») plutôt que laissé vide. Quelques **repères de support** complètent la
+    section : compte actif ou désactivé, origine (inscription locale, Google, Moodle),
+    date de création, dernière visite — ce qu'on cherche quand quelqu'un « n'arrive
+    pas à se connecter ». Les groupes affichés restent limités au **périmètre** de la
+    personne connectée : un prof de classe ne voit que les groupes qu'il encadre, un
+    administrateur les voit tous. Si elle a le droit de gérer les groupes, elle peut
+    **rattacher ou retirer** un élève directement depuis la fiche ; sinon l'affichage
+    reste en lecture seule et la modification se fait dans le sous-onglet **Groupes**.
+  - **Identité** : prénom, nom, pseudo, e-mail, description, affiliation.
+  - **Actions** : « Réinitialiser le mot de passe » est désormais une action à part,
+    repliée par défaut et avec sa propre validation — elle ne part plus par
+    inadvertance avec un simple « Enregistrer ». « Voir comme cet utilisateur » y est
+    également isolé, loin du bouton d'enregistrement.
 - **Prendre la main** : un administrateur peut temporairement se connecter « en tant
   que » un utilisateur pour l'aider — l'action est tracée dans le journal d'audit.
 - **Compte supprimé** : si un compte est supprimé pendant qu'il est connecté,

@@ -40,7 +40,13 @@ function requireJwtConfigured(res) {
 // il n'existe plus de session « élevée », toutes les sessions utilisent la même durée de base.
 async function signAuthToken(payload, _legacyElevated = false) {
   const ttls = await getAuthJwtTtls();
-  return signJwtToken(payload, JWT_SECRET, { expiresIn: ttls.baseSeconds });
+  // `sessionStartedAt` : repère de début de session, posé à la PREMIÈRE émission et reconduit
+  // tel quel par les ré-émissions (cf. `carrySessionStart` dans `lib/auth/slidingSession.js`).
+  // C'est lui qui borne le renouvellement glissant — sans lui, prolonger serait sans fin.
+  const startedAt = Number(payload?.sessionStartedAt) || Math.floor(Date.now() / 1000);
+  return signJwtToken({ ...payload, sessionStartedAt: startedAt }, JWT_SECRET, {
+    expiresIn: ttls.baseSeconds,
+  });
 }
 
 function parseBearerToken(req) {
