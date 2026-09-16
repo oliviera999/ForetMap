@@ -43,6 +43,7 @@ casser les liens existants.
 | [`AUDIT_NAVIGATION_IPHONE_2026-09.md`](../AUDIT_NAVIGATION_IPHONE_2026-09.md)             | Navigation iPhone / Apple (ForetMap, GL, Plan) — safe-area, bottom-nav, filet e2e                            | Instantané 14 sept. 2026                                                |
 | [`AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md`](../AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md)     | UI/UX de la navigation sur `planlyautey.olution.info` — recherche neutralisée, carte gelée, entrées absentes | 15 constats traités + N16 (16 sept. 2026)                               |
 | [`AUDIT_UX_GESTION_UTILISATEURS_2026-09.md`](../AUDIT_UX_GESTION_UTILISATEURS_2026-09.md) | UI/UX de l'onglet « Profils & utilisateurs » et de la fiche utilisateur admin                                | Instantané 16 sept. 2026 — **entièrement traité** (5 constats + P1–P18) |
+| [`AUDIT_ENVIRONNEMENT_TESTS_2026-09-16.md`](../AUDIT_ENVIRONNEMENT_TESTS_2026-09-16.md)   | Environnement d'exécution des sessions Claude Code & CI GitHub — ce qui est testable, à quel coût            | Instantané 16 sept. 2026 — amorçage livré, P1–P3 ouverts                |
 
 ## Chantiers / specs encore utiles comme consigne
 
