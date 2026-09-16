@@ -9,6 +9,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — Plan Lyautey : deuxième audit de navigation (recouvrements)
+
+- Nouveau [`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md`](docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md),
+  relevé sur le bundle **effectivement déployé** et la charge publique de production.
+  Trois constats bloquants : une feuille ouverte rend 3 à 4 commandes de carte sur 5–6
+  **inatteignables** (remontée plafonnée à 30 dvh pour un cran d'ouverture à 55 dvh) ; le lieu
+  ouvert depuis la recherche est **sous sa propre fiche** (il ne reste que 19–24 % du plan
+  visible) ; pendant un parcours, ouvrir un lieu **gèle** la barre de parcours. Cinq constats
+  gênants (bandeau d'accueil sur le bouton d'aide, glissement sans effet au cadrage
+  d'ouverture, lieu groupé non dessiné, bruit de la recherche, puces hors écran).
+- Le **calage GPS de production est vérifié bon** (0,5 % d'écart entre paires d'ancres, nord à
+  0,17°) : les difficultés de repérage ne viennent pas de la géométrie.
+- Index des audits mis à jour. Aucun code produit modifié.
+
 ### Corrigé — Google enseignant : plus de création silencieuse de visiteur + messages de causes
 
 - En mode connexion enseignant, Google ne crée plus un compte élève/visiteur si aucun
