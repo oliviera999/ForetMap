@@ -9,8 +9,23 @@ const FOCUSABLE_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(',');
 
-function useDialogA11y(onClose) {
+/**
+ * Accessibilité d'une surcouche : Échap, et — seulement si elle est **modale** — focus
+ * initial, piège de tabulation et restauration du focus à la fermeture.
+ *
+ * `manageFocus: false` sert aux feuilles **non bloquantes** (carte du Plan encore utilisable
+ * derrière) : y prendre le focus arrachait le curseur du champ de recherche qui venait de
+ * l'ouvrir, et piéger la tabulation empêchait d'y revenir
+ * (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N1).
+ *
+ * @param {() => void} onClose
+ * @param {{ manageFocus?: boolean }} [options]
+ */
+function useDialogA11y(onClose, options = {}) {
+  const { manageFocus = true } = options;
   const dialogRef = useRef(null);
+  const manageFocusRef = useRef(manageFocus);
+  manageFocusRef.current = manageFocus;
   // Ne pas mettre onClose dans les deps de l'effet ci-dessous : les parents passent souvent
   // une fonction inline, donc chaque re-render réexécutait le focus initial (1er focusable)
   // et faisait remonter le défilement des modales longues pendant la saisie.
@@ -21,10 +36,13 @@ function useDialogA11y(onClose) {
     const dialog = dialogRef.current;
     if (!dialog) return undefined;
 
-    const previousActive = document.activeElement;
-    const initialFocusables = dialog.querySelectorAll(FOCUSABLE_SELECTOR);
-    const target = initialFocusables[0] || dialog;
-    target.focus();
+    const managed = manageFocusRef.current;
+    const previousActive = managed ? document.activeElement : null;
+    if (managed) {
+      const initialFocusables = dialog.querySelectorAll(FOCUSABLE_SELECTOR);
+      const target = initialFocusables[0] || dialog;
+      target.focus();
+    }
 
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
@@ -32,7 +50,7 @@ function useDialogA11y(onClose) {
         onCloseRef.current?.();
         return;
       }
-      if (e.key !== 'Tab') return;
+      if (e.key !== 'Tab' || !manageFocusRef.current) return;
       // Recalculé à chaque Tab, pas capturé au montage : le contenu d'une fenêtre change
       // (chargement → question → réponse → confirmation) et les bornes du piège avec lui.
       // Figées au montage, elles pointaient sur des éléments démontés et le focus

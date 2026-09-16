@@ -164,6 +164,77 @@ describe('AppPlan — montage', () => {
     expect(window.location.search).toContain('lieu=z-cdi');
   });
 
+  /**
+   * Le défaut qui a rendu la recherche inutilisable en production
+   * (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N1) : la feuille de résultats s'ouvre sur le
+   * `focus` du champ ; **modale**, elle posait `inert` sur toute l'application et déplaçait le
+   * focus sur son bouton « Fermer ». Le clavier s'ouvrait, puis plus une lettre ne s'inscrivait.
+   *
+   * Deux garde-fous complémentaires : le focus reste au champ (ce que jsdom sait voir), et la
+   * feuille se déclare non bloquante (ce qui, en navigateur, évite `inert` et le voile).
+   */
+  test('toucher la recherche n’arrache pas le curseur du champ', async () => {
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+
+    const input = screen.getByLabelText('Rechercher un lieu');
+    input.focus();
+    fireEvent.focus(input);
+    const sheet = await screen.findByTestId('plan-results-sheet');
+    expect(document.activeElement).toBe(input);
+    expect(sheet.dataset.blockBackground).toBe('false');
+    expect(sheet.getAttribute('aria-modal')).toBe('false');
+
+    // Et la saisie qui suit filtre bien la liste.
+    fireEvent.change(input, { target: { value: 'CDI' } });
+    await waitFor(() =>
+      expect(
+        within(screen.getByTestId('plan-results-sheet')).getByRole('heading').textContent,
+      ).toContain('Résultats'),
+    );
+  });
+
+  test('la fiche d’un lieu laisse la carte utilisable et s’ouvre sur du contenu lisible', async () => {
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+
+    fireEvent.change(screen.getByLabelText('Rechercher un lieu'), { target: { value: 'CDI' } });
+    const results = await screen.findByTestId('plan-results-sheet');
+    fireEvent.click(within(results).getByRole('button', { name: /CDI/ }));
+    const placeSheet = await screen.findByTestId('plan-place-sheet');
+
+    // N2 : surcouche traversante, aucun `inert` posé sur l'application.
+    expect(placeSheet.dataset.blockBackground).toBe('false');
+    expect(document.getElementById('root')?.hasAttribute('inert')).not.toBe(true);
+    // N4 : cran d'ouverture à mi-hauteur — au cran bas, il ne restait que 12 px de contenu.
+    expect(placeSheet.dataset.snap).toBe('half');
+  });
+
+  /**
+   * Un lieu sans catégorie reste trouvable et affiché quel que soit le filtre (N3), et la
+   * recherche porte sur **tous** les lieux, en signalant ceux que le filtre courant masque.
+   */
+  test('un lieu hors du filtre courant reste trouvable, et le dit', async () => {
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: /Sport/ }));
+    fireEvent.change(screen.getByLabelText('Rechercher un lieu'), { target: { value: 'CDI' } });
+    const results = await screen.findByTestId('plan-results-sheet');
+    expect(within(results).getByRole('button', { name: /CDI/ })).toBeTruthy();
+    expect(results.textContent).toContain('masqué par vos filtres');
+  });
+
+  test('la feuille de filtres liste toutes les catégories', async () => {
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId('plan-filters-button'));
+    const sheet = await screen.findByTestId('plan-filters-sheet');
+    expect(within(sheet).getByRole('button', { name: /Salles/ })).toBeTruthy();
+    expect(within(sheet).getByRole('button', { name: /Sport/ })).toBeTruthy();
+  });
+
   test('l’adresse garde le lieu une fois la feuille de résultats refermée', async () => {
     // Régression réelle, vue seulement en navigateur : les feuilles basses empilent une entrée
     // d'historique et la dépilent en se fermant (`useOverlayHistoryBack`). `openPlace` écrivait
@@ -202,9 +273,7 @@ describe('AppPlan — montage', () => {
     fireEvent.click(within(results).getByRole('button', { name: /CDI/ }));
     const goButton = await screen.findByRole('button', { name: 'Y aller' });
     expect(goButton.disabled).toBe(true);
-    expect(
-      screen.getByText('Ce plan n’est pas encore calé pour afficher votre position.'),
-    ).toBeTruthy();
+    expect(screen.getByText('Plan non calé : position indisponible.')).toBeTruthy();
   });
 
   test('carte calée : « Me situer » apparaît et « Y aller » devient actif (lot 6)', async () => {

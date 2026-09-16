@@ -282,6 +282,10 @@ week-ends, vacances et jours fermés issus du calendrier de travail du lycée).
 - **Pour déplacer réellement le rythme**, il faut changer la **date de départ** de la
   tâche : c'est la seule action qui redéfinit le jour de référence de toute la série.
   Renommer la tâche, changer son lieu ou son échéance seule n'y touche pas.
+- **Pas besoin de faire confiance à cette page** : le panneau « Séries récurrentes »
+  affiche, pour chaque série, la **prochaine occurrence prévue** (« Prochaine occurrence
+  mar. 22 sept. → ven. 25 sept. »), le **jour sur lequel le rythme est calé**, et ce qui
+  manque encore pour qu'elle arrive — une validation, ou l'échéance à atteindre.
 
 L'interrupteur manuel des réglages (_« Duplication automatique des tâches récurrentes »_)
 reste disponible en coupe-circuit, au-dessus du calendrier. L'**archivage automatique**

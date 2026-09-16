@@ -69,6 +69,12 @@ const {
   assertCanTeacherSetTaskStatus,
   isVisitorRole,
 } = require('../lib/taskAuthzHelpers');
+const {
+  getRecurrenceToday,
+  resolveRecurrenceAnchor,
+  computeNextOccurrenceWindow,
+  createOpenDayResolver,
+} = require('../lib/recurringTasks');
 
 const router = express.Router();
 const MAX_TASK_REFERENTS = 15;
@@ -618,6 +624,66 @@ router.get(
       labelForSort(a).localeCompare(labelForSort(b), 'fr', { sensitivity: 'base' }),
     );
     res.json([...teachers, ...students]);
+  }),
+);
+
+/**
+ * Prochaine occurrence prévue de chaque série récurrente.
+ *
+ * Rend visible la règle d'ancrage plutôt que de la laisser à la documentation : le panneau
+ * prof affiche la date que le job posera, et sur quelle ancre elle est calculée. Déclarée
+ * AVANT `/:id`, sinon Express prendrait « recurring-preview » pour un identifiant.
+ */
+router.get(
+  '/recurring-preview',
+  requirePermission('tasks.manage'),
+  asyncHandler(async (req, res) => {
+    const today = getRecurrenceToday();
+    // Une seule occurrence par série : la plus récente, celle qui engendrera la suivante.
+    const rows = await queryAll(
+      `SELECT t.id, t.title, t.recurrence, t.recurrence_series_id, t.recurrence_anchor_date,
+              t.start_date, t.due_date, t.status, t.created_at
+         FROM tasks t
+        WHERE t.recurrence IN ('weekly','biweekly','monthly')
+          AND t.archived_at IS NULL
+          AND t.due_date IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM tasks p
+             WHERE p.recurrence_series_id = t.recurrence_series_id
+               AND p.recurrence_series_id IS NOT NULL
+               AND p.archived_at IS NULL
+               AND p.due_date > t.due_date
+          )
+        ORDER BY t.due_date DESC
+        LIMIT 60`,
+    );
+
+    // Cache calendrier partagé par toute la prévisualisation : `isSchoolOpenDay` interroge
+    // la base jour par jour, et les séries partagent largement les mêmes dates.
+    const nextOpenDay = createOpenDayResolver();
+    const series = [];
+    for (const row of rows) {
+      const anchor = resolveRecurrenceAnchor(row);
+      const window = await computeNextOccurrenceWindow(row, String(row.recurrence || ''), today, {
+        nextOpenDay,
+      });
+      const validated = String(row.status || '').trim() === 'validated';
+      const dueReached = String(row.due_date || '') <= today;
+      series.push({
+        series_id: row.recurrence_series_id || row.id,
+        task_id: row.id,
+        title: row.title,
+        recurrence: row.recurrence,
+        anchor_date: anchor,
+        // Ce que le professeur doit faire pour que l'occurrence suivante arrive.
+        pending: !validated ? 'validation' : dueReached ? null : 'due_date',
+        current_start: row.start_date || null,
+        current_due: row.due_date || null,
+        next_start: window?.startDate || null,
+        next_due: window?.dueDate || null,
+      });
+    }
+    res.json({ today, series });
   }),
 );
 

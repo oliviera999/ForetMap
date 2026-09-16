@@ -9,6 +9,8 @@
  * alias, enfin le reste. Aucun index externe : la liste des lieux d'un plan tient en mémoire.
  */
 
+import { buildSynonymIndex, FR_PLACE_SYNONYM_GROUPS } from './placeSearchSynonymsFr.js';
+
 /** Poids de champ (plus haut = plus pertinent). */
 const FIELD_WEIGHTS = Object.freeze({
   name: 100,
@@ -25,6 +27,12 @@ const MATCH_BONUS = Object.freeze({
   wordStart: 18,
   contains: 0,
 });
+
+/**
+ * Décote d'une correspondance obtenue par **synonyme** plutôt que par le mot tapé : « wc »
+ * trouve « Sanitaires », mais un lieu qui contient littéralement « wc » passe devant.
+ */
+const SYNONYM_PENALTY = 25;
 
 /**
  * Normalise une chaîne pour la comparaison : minuscules, accents retirés, ponctuation et
@@ -91,6 +99,23 @@ export function buildPlaceIndex(places, options = {}) {
   });
 }
 
+/** Index `terme → variantes` du vocabulaire courant, construit une fois. */
+const DEFAULT_SYNONYMS = buildSynonymIndex(FR_PLACE_SYNONYM_GROUPS, normalizeSearchText);
+
+/**
+ * Le mot tapé, puis ses synonymes (décotés). Un mot sans synonyme connu ne coûte rien.
+ * @param {string} token
+ * @param {Map<string, string[]>|null} synonyms
+ * @returns {Array<{ text: string, penalty: number }>}
+ */
+function expandToken(token, synonyms) {
+  const variants = [{ text: token, penalty: 0 }];
+  for (const other of synonyms?.get(token) || []) {
+    variants.push({ text: other, penalty: SYNONYM_PENALTY });
+  }
+  return variants;
+}
+
 /** Meilleur score d'un mot dans un champ, ou `null` si le mot est absent du champ. */
 function scoreTokenInField(field, token) {
   if (!field.text.includes(token)) return null;
@@ -109,10 +134,12 @@ function scoreTokenInField(field, token) {
  * @param {string} query
  * @param {object} [options]
  * @param {number} [options.limit] nombre maximal de résultats (défaut : tous).
+ * @param {Map<string, string[]>|null} [options.synonyms] index `terme → variantes` ; défaut :
+ *   le vocabulaire scolaire français (`placeSearchSynonymsFr.js`). `null` le désactive.
  * @returns {Array<{ place: object, score: number, matchedFields: string[] }>}
  */
 export function searchPlaces(index, query, options = {}) {
-  const { limit } = options;
+  const { limit, synonyms = DEFAULT_SYNONYMS } = options;
   const tokens = tokenizeSearchQuery(query);
   if (tokens.length === 0) return [];
   const results = [];
@@ -122,10 +149,12 @@ export function searchPlaces(index, query, options = {}) {
     let allMatched = true;
     for (const token of tokens) {
       let best = null;
-      for (const field of entry.fields) {
-        const score = scoreTokenInField(field, token);
-        if (score != null && (best == null || score > best.score)) {
-          best = { score, kind: field.kind };
+      for (const variant of expandToken(token, synonyms)) {
+        for (const field of entry.fields) {
+          const raw = scoreTokenInField(field, variant.text);
+          if (raw == null) continue;
+          const score = raw - variant.penalty;
+          if (best == null || score > best.score) best = { score, kind: field.kind };
         }
       }
       if (best == null) {
