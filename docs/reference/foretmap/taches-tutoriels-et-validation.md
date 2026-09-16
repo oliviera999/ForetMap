@@ -227,6 +227,13 @@ description, lieux, dates, niveaux, places, image. Sa proposition apparaît avec
   une coupure ne sont pas toutes recréées). Les lieux, tutoriels, référents, groupe et
   réglages sont repris. Cette automatisation peut être suspendue globalement dans les
   réglages.
+- **Cadre « Séries récurrentes »** (encadrement) : en haut de l'onglet Tâches, un cadre
+  récapitule les séries en cours. Il arrive **replié** — seuls son titre et le nombre de
+  séries sont visibles — et se **déplie d'un clic** sur son en-tête (re-clic pour le
+  replier). Le bouton _« Filtrer récurrentes »_ qu'il contient n'est **jamais actif à
+  l'arrivée sur l'onglet** : la liste des tâches affiche tout tant que personne ne l'a
+  cliqué, et un second clic (_« Retirer le filtre récurrentes »_) revient à la liste
+  complète.
 
 ### Et pendant les vacances ?
 
