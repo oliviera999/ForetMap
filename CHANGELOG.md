@@ -9,6 +9,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Le cadre « Séries récurrentes » arrive replié, sans filtre actif
+
+- Onglet Tâches (encadrement) : le cadre « Séries récurrentes » n'occupe plus le haut de la
+  liste à chaque visite. Il s'affiche **replié** (titre + nombre de séries et d'occurrences)
+  et se **déplie au clic** sur son en-tête, qui devient un bouton accessible
+  (`aria-expanded` / `aria-controls`, cible ≥ 44 px).
+- Le bouton « Filtrer récurrentes » vit désormais dans le corps déplié et devient un
+  **bascule** : « Retirer le filtre récurrentes » (`aria-pressed`) quand le filtre est posé.
+  Le filtre récurrence reste à « Toute récurrence » à l'arrivée sur l'onglet — il n'est
+  appliqué que sur action explicite, et se relâche du même bouton.
+- Le statut du calendrier scolaire (`GET /api/school-calendar`) n'est plus chargé qu'au
+  premier dépliage : replié, le cadre n'en affiche rien.
+- Test `tests-ui/components/RecurringSeriesOverview.test.jsx` : replié à l'arrivée, dépliage
+  et repliage au clic, filtre jamais déclenché tout seul et réversible.
+
 ### Ajouté — Les 30 fiches à photo morte sont réillustrées
 
 - Migration `257` : une photo Wikimedia Commons pour chacune des 30 fiches que la migration
