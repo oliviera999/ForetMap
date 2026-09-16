@@ -87,11 +87,11 @@ const MARKERS = [
   { id: 12, map_id: 'lyautey', label: 'CDI', x_pct: 60, y_pct: 70, category_ids: [] },
 ];
 
-function renderMapView({ isTeacher = false } = {}) {
+function renderMapView({ isTeacher = false, tasks = [] } = {}) {
   const dataValue = {
     zones: ZONES,
     markers: MARKERS,
-    tasks: [],
+    tasks,
     tutorials: [],
     plants: [],
     activeMapId: 'foret',
@@ -143,6 +143,32 @@ describe('MapView — montage sur le moteur de carte partagé', () => {
     expect(world.style.transformOrigin).toBe('0 0');
     // Commandes zoom / position : stack SharedMapStage.
     expect(view.container.querySelector('[data-testid="map-zoom-in"]')).not.toBeNull();
+  });
+
+  test('pastilles de tâche sur la zone et le repère liés', async () => {
+    // Régression : l'unification sur `SharedMapStage` (septembre 2026) avait fait disparaître
+    // les pastilles colorées d'état des tâches en consultation.
+    const view = renderMapView({
+      tasks: [
+        { id: 101, status: 'available', zone_ids: [1] },
+        { id: 102, status: 'in_progress', marker_ids: [11] },
+      ],
+    });
+    await waitFor(() => expect(view.container.querySelector('.map-view-toolbar')).not.toBeNull());
+    // Zone « à faire » : pastille rouge posée par le calque d'ancres.
+    const zoneDot = view.container.querySelector('.fm-pct-status-anchor .fm-pct-status-dot--alert');
+    expect(zoneDot).not.toBeNull();
+    expect(zoneDot.getAttribute('title')).toBe('Tâche à faire');
+    // Repère « en cours » : pastille orange dans le bouton du repère.
+    const markerButton = view.container.querySelector('.fm-pct-marker');
+    expect(markerButton.querySelector('.fm-pct-status-dot--warn')).not.toBeNull();
+    expect(markerButton.getAttribute('aria-label')).toContain('Tâche en cours');
+  });
+
+  test('sans tâche liée : aucune pastille d’état', async () => {
+    const view = renderMapView();
+    await waitFor(() => expect(view.container.querySelector('.map-view-toolbar')).not.toBeNull());
+    expect(view.container.querySelector('.fm-pct-status-dot')).toBeNull();
   });
 
   test('prof : montage sans erreur avec les outils d’édition', async () => {

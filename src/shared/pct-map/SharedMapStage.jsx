@@ -8,6 +8,9 @@ import { PctClusterLayer } from './PctClusterLayer.jsx';
 import { PctImageLayer } from './PctImageLayer.jsx';
 import { PctMarkerButton, PctMarkersLayer } from './PctMarkersLayer.jsx';
 import { PctZonesLayer } from './PctZonesLayer.jsx';
+import { PctStatusDotsLayer, statusDotsLabel } from './PctStatusDotsLayer.jsx';
+import { parsePctPolygonPoints } from './pctPolygon.js';
+import { polygonPoleOfInaccessibilityPct } from './pctPolylabel.js';
 import { usePctMapViewport } from './usePctMapViewport.js';
 import {
   clusterCenterPct,
@@ -73,6 +76,9 @@ const POSITION_ICONS = Object.freeze({
  * @param {string} [props.locateLabel]
  * @param {(zoneOrMarker: object) => boolean|null} [props.getIsSeen]
  * @param {(zoneOrMarker: object) => boolean} [props.getDiscoverHalo]
+ * @param {(zone: object) => Array<object>|null} [props.getZoneStatusDots] pastilles d'état d'une
+ *   zone (voir `PctStatusDotsLayer`) — ForetMap y pose l'état des tâches du lieu.
+ * @param {(marker: object) => Array<object>|null} [props.getMarkerStatusDots] idem, pour un repère.
  * @param {boolean} [props.clusteringEnabled]
  * @param {boolean} [props.applyZoomOnlyCategories]
  * @param {boolean} [props.showLabels=true] afficher les noms (emojis de zone restent visibles)
@@ -114,6 +120,8 @@ export function SharedMapStage({
   locateLabel = 'Me situer',
   getIsSeen = null,
   getDiscoverHalo = null,
+  getZoneStatusDots = null,
+  getMarkerStatusDots = null,
   clusteringEnabled = true,
   applyZoomOnlyCategories = true,
   /** Afficher les noms (zones via `PctLabelsLayer`, repères via pastilles). */
@@ -271,6 +279,53 @@ export function SharedMapStage({
   const visibleMarkers = useMemo(
     () => (markers || []).filter(isVisibleAtScale),
     [markers, isVisibleAtScale],
+  );
+
+  /**
+   * Pastilles d'état (ForetMap : tâches du lieu). Calculées une fois par jeu de lieux, pas à
+   * chaque rendu : les tableaux gardent ainsi une identité stable et la mémoïsation des
+   * repères (`PctMarkerButton`) tient.
+   *
+   * Les zones portent les leurs dans un calque HTML ancré au **pôle d'inaccessibilité** du
+   * polygone — le même point que l'étiquette, mais indépendant d'elle : une zone dont le nom
+   * est masqué par la résolution de collisions garde sa pastille.
+   */
+  const zoneStatusAnchors = useMemo(() => {
+    if (typeof getZoneStatusDots !== 'function') return [];
+    const anchors = [];
+    for (const zone of visibleZones) {
+      const dots = getZoneStatusDots(zone);
+      if (!dots || !dots.length) continue;
+      const points = parsePctPolygonPoints(zone.points);
+      if (points.length < 3) continue;
+      const anchor = polygonPoleOfInaccessibilityPct(points) || {
+        xp: points.reduce((sum, p) => sum + p.xp, 0) / points.length,
+        yp: points.reduce((sum, p) => sum + p.yp, 0) / points.length,
+      };
+      anchors.push({ id: labelKey('zone', zone.id), xp: anchor.xp, yp: anchor.yp, dots });
+    }
+    return anchors;
+  }, [visibleZones, getZoneStatusDots]);
+
+  const zoneStatusLabelOf = useCallback(
+    (zone) =>
+      typeof getZoneStatusDots === 'function' ? statusDotsLabel(getZoneStatusDots(zone)) : '',
+    [getZoneStatusDots],
+  );
+
+  const markerStatusDotsById = useMemo(() => {
+    const byId = new Map();
+    if (typeof getMarkerStatusDots !== 'function') return byId;
+    for (const marker of visibleMarkers) {
+      const dots = getMarkerStatusDots(marker);
+      if (dots && dots.length) byId.set(String(marker.id), dots);
+    }
+    return byId;
+  }, [visibleMarkers, getMarkerStatusDots]);
+
+  const markerStatusDotsOf = useCallback(
+    (marker) => markerStatusDotsById.get(String(marker?.id)) || null,
+    [markerStatusDotsById],
   );
 
   // Désencombrement : au dézoom, les repères dont les pastilles se recouvrent sont
@@ -536,11 +591,19 @@ export function SharedMapStage({
         isActive={selectedMarkerId != null && String(selectedMarkerId) === String(marker.id)}
         isSeen={typeof getIsSeen === 'function' ? getIsSeen(marker) : null}
         isDiscoverHalo={typeof getDiscoverHalo === 'function' ? !!getDiscoverHalo(marker) : false}
+        statusDots={markerStatusDotsOf(marker)}
         onMarkerClick={onMarkerClick}
         labelOf={markerLabelOf}
       />
     ),
-    [onMarkerClick, selectedMarkerId, markerLabelOf, getIsSeen, getDiscoverHalo],
+    [
+      onMarkerClick,
+      selectedMarkerId,
+      markerLabelOf,
+      getIsSeen,
+      getDiscoverHalo,
+      markerStatusDotsOf,
+    ],
   );
 
   const tid = (suffix) => `${testIdPrefix}-${suffix}`;
@@ -582,9 +645,11 @@ export function SharedMapStage({
             showLabels={false}
             getIsSeen={getIsSeen}
             getDiscoverHalo={getDiscoverHalo}
+            getStatusLabel={getZoneStatusDots ? zoneStatusLabelOf : null}
             className="fm-pct-zones plan-map__zones"
           />
           <PctLabelsLayer labels={zoneLabels} />
+          <PctStatusDotsLayer anchors={zoneStatusAnchors} />
           {position?.displayPct && targetPct ? (
             <PctDirectLine from={position.displayPct} to={targetPct} />
           ) : null}
@@ -602,6 +667,7 @@ export function SharedMapStage({
               activeMarkerId={selectedMarkerId}
               getIsSeen={getIsSeen}
               getDiscoverHalo={getDiscoverHalo}
+              getStatusDots={markerStatusDotsOf}
               labelOf={markerLabelOf}
             />
           )}

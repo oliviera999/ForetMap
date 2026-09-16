@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 
 import { PctOverlayCaption } from './PctOverlayCaption.jsx';
+import { PctStatusDots, statusDotsLabel } from './PctStatusDotsLayer.jsx';
 
 /**
  * Repère ponctuel d'une carte « % image » : bouton positionné en pourcentage, mémoïsé avec
@@ -13,6 +14,7 @@ export const PctMarkerButton = React.memo(function PctMarkerButton({
   isActive,
   isSeen = null,
   isDiscoverHalo = false,
+  statusDots = null,
   onMarkerClick,
   labelOf,
   nameOf = defaultName,
@@ -29,12 +31,14 @@ export const PctMarkerButton = React.memo(function PctMarkerButton({
   const seenClass = isSeen === true ? ' is-seen' : isSeen === false ? ' is-unseen' : '';
   const haloClass = isDiscoverHalo ? ' is-discover-halo' : '';
   const statusSuffix = isSeen === true ? ' — Vu' : isSeen === false ? ' — À découvrir' : '';
+  // Les pastilles sont décoratives : leur libellé rejoint le nom accessible du bouton.
+  const dotsSuffix = statusDotsLabel(statusDots);
   return (
     <button
       type="button"
       className={`fm-pct-marker${isActive ? ' is-active' : ''}${seenClass}${haloClass}`}
       style={{ left: `${marker.x_pct}%`, top: `${marker.y_pct}%` }}
-      aria-label={`${accessibleName || 'Lieu'}${statusSuffix}`}
+      aria-label={`${accessibleName || 'Lieu'}${statusSuffix}${dotsSuffix ? ` — ${dotsSuffix}` : ''}`}
       onClick={handleClick}
     >
       <PctOverlayCaption
@@ -43,6 +47,7 @@ export const PctMarkerButton = React.memo(function PctMarkerButton({
         emojiClassName="fm-pct-marker__pin"
         nameClassName="fm-pct-marker__label"
       />
+      <PctStatusDots dots={statusDots} />
     </button>
   );
 });
@@ -62,6 +67,8 @@ function defaultName(marker) {
  * @param {string|null} [props.activeMarkerId]
  * @param {(marker: object) => boolean|null} [props.getIsSeen] progression Visite.
  * @param {(marker: object) => boolean} [props.getDiscoverHalo] halo bref « à découvrir ».
+ * @param {(marker: object) => Array<object>|null} [props.getStatusDots] pastilles d'état
+ *   (`PctStatusDotsLayer`) — ForetMap y pose l'état des tâches du lieu.
  * @param {(marker: object) => string} [props.labelOf] étiquette **visible** (le produit peut
  *   la masquer au dézoom sans rendre le repère anonyme : voir `nameOf`).
  * @param {(marker: object) => string} [props.nameOf] nom **accessible** du bouton.
@@ -72,6 +79,7 @@ function PctMarkersLayerImpl({
   activeMarkerId = null,
   getIsSeen = null,
   getDiscoverHalo = null,
+  getStatusDots = null,
   labelOf = defaultName,
   nameOf = defaultName,
 }) {
@@ -82,6 +90,7 @@ function PctMarkersLayerImpl({
       isActive={activeMarkerId != null && String(activeMarkerId) === String(marker.id)}
       isSeen={typeof getIsSeen === 'function' ? getIsSeen(marker) : null}
       isDiscoverHalo={typeof getDiscoverHalo === 'function' ? !!getDiscoverHalo(marker) : false}
+      statusDots={typeof getStatusDots === 'function' ? getStatusDots(marker) : null}
       onMarkerClick={onMarkerClick}
       labelOf={labelOf}
       nameOf={nameOf}
