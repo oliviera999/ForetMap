@@ -12,6 +12,7 @@ export const PctMarkerButton = React.memo(function PctMarkerButton({
   marker,
   isActive,
   isSeen = null,
+  isDiscoverHalo = false,
   onMarkerClick,
   labelOf,
   nameOf = defaultName,
@@ -26,11 +27,12 @@ export const PctMarkerButton = React.memo(function PctMarkerButton({
   const label = labelOf(marker);
   const accessibleName = nameOf(marker) || label;
   const seenClass = isSeen === true ? ' is-seen' : isSeen === false ? ' is-unseen' : '';
+  const haloClass = isDiscoverHalo ? ' is-discover-halo' : '';
   const statusSuffix = isSeen === true ? ' — Vu' : isSeen === false ? ' — À découvrir' : '';
   return (
     <button
       type="button"
-      className={`fm-pct-marker${isActive ? ' is-active' : ''}${seenClass}`}
+      className={`fm-pct-marker${isActive ? ' is-active' : ''}${seenClass}${haloClass}`}
       style={{ left: `${marker.x_pct}%`, top: `${marker.y_pct}%` }}
       aria-label={`${accessibleName || 'Lieu'}${statusSuffix}`}
       onClick={handleClick}
@@ -59,6 +61,7 @@ function defaultName(marker) {
  * @param {(marker: object, event: object) => void} props.onMarkerClick handler stable.
  * @param {string|null} [props.activeMarkerId]
  * @param {(marker: object) => boolean|null} [props.getIsSeen] progression Visite.
+ * @param {(marker: object) => boolean} [props.getDiscoverHalo] halo bref « à découvrir ».
  * @param {(marker: object) => string} [props.labelOf] étiquette **visible** (le produit peut
  *   la masquer au dézoom sans rendre le repère anonyme : voir `nameOf`).
  * @param {(marker: object) => string} [props.nameOf] nom **accessible** du bouton.
@@ -68,6 +71,7 @@ function PctMarkersLayerImpl({
   onMarkerClick,
   activeMarkerId = null,
   getIsSeen = null,
+  getDiscoverHalo = null,
   labelOf = defaultName,
   nameOf = defaultName,
 }) {
@@ -77,6 +81,7 @@ function PctMarkersLayerImpl({
       marker={marker}
       isActive={activeMarkerId != null && String(activeMarkerId) === String(marker.id)}
       isSeen={typeof getIsSeen === 'function' ? getIsSeen(marker) : null}
+      isDiscoverHalo={typeof getDiscoverHalo === 'function' ? !!getDiscoverHalo(marker) : false}
       onMarkerClick={onMarkerClick}
       labelOf={labelOf}
       nameOf={nameOf}

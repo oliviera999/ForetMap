@@ -60,4 +60,17 @@ describe('PctZonesLayer — statut vu', () => {
     fireEvent.click(screen.getByRole('button', { name: /Verger/ }));
     expect(onZoneClick).toHaveBeenCalledTimes(1);
   });
+
+  test('getDiscoverHalo true → classe is-discover-halo', () => {
+    const { container } = render(
+      <PctZonesLayer
+        zones={[makeZone()]}
+        onZoneClick={vi.fn()}
+        showLabels={false}
+        getIsSeen={() => false}
+        getDiscoverHalo={() => true}
+      />,
+    );
+    expect(container.querySelector('.fm-pct-zone')).toHaveClass('is-discover-halo');
+  });
 });

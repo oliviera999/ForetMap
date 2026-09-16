@@ -97,6 +97,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   les flux trophiques, `from_to` pour les apports minéraux, `none` pour les services. **Pas
   de colonne SQL** — ce serait une troisième copie à synchroniser ; un test tient l'invariant
   et la parité entre les deux fichiers.
+### Modifié — Visite : vu / non-vu sans pastilles, halo d’accueil ciblé
+
+- Sur le plan de visite, les lieux **vus** sont plus atténués et les **non vus** ont un
+  contour plus marqué ; les pastilles ambre/vert (et leur pulse) sont retirées.
+- À l’entrée d’une carte, un **halo bref** met en avant jusqu’à 5 lieux non vus proches
+  du centre, puis s’éteint (respect de `prefers-reduced-motion`).
+- Doc de référence `visite-et-mascottes.md` alignée.
+
 ### Ajouté — Récurrence des tâches + calendrier scolaire
 
 - Calendrier scolaire **2026-2027** (tables `school_calendar_*`, seed depuis le calendrier
