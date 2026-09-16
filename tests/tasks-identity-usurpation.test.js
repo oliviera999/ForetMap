@@ -225,7 +225,7 @@ describe('Anti-usurpation assign/done/unassign (B1)', () => {
     // si les noms d'action venaient du corps client.
     await execute(
       'INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at) VALUES (?, NULL, ?, ?, ?)',
-      [taskId, victim.firstName, victim.lastName, new Date().toISOString()],
+      [taskId, victim.firstName, victim.lastName, new Date()],
     );
 
     await request(app)
@@ -252,7 +252,7 @@ describe('Anti-usurpation assign/done/unassign (B1)', () => {
 
     await execute(
       'INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at) VALUES (?, NULL, ?, ?, ?)',
-      [taskId, victim.firstName, victim.lastName, new Date().toISOString()],
+      [taskId, victim.firstName, victim.lastName, new Date()],
     );
 
     const doneRes = await request(app)

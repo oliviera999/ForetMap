@@ -33,7 +33,7 @@ before(async () => {
   await execute(
     `INSERT INTO tasks (id, title, description, required_students, completion_mode, status, created_at)
      VALUES (?, 'Tâche taskQueries', '', 1, 'single_done', 'available', ?)`,
-    [TASK_ID, new Date().toISOString()],
+    [TASK_ID, new Date()],
   );
 });
 
