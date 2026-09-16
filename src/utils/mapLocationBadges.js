@@ -4,7 +4,7 @@
  */
 
 import { taskEffectiveStatus } from './taskListHelpers.js';
-import { taskVisualStatus, mergeTaskVisualStatus } from './taskEnrollment.js';
+import { taskVisualStatus, mergeTaskVisualStatus, TASK_VISUAL_LABEL } from './taskEnrollment.js';
 import {
   taskLocationIds,
   tutorialLocationIds,
@@ -90,4 +90,49 @@ export function computeTutorialCountByLocation({ tutorials, tasks, zones, marker
     }
   }
   return { zoneTutorialCountById, markerTutorialCountById };
+}
+
+/**
+ * Ton de pastille (`PctStatusDotsLayer`, neutre produit) par statut visuel de tâche.
+ * Mêmes couleurs que les pastilles historiques de la carte de travail : rouge « à faire »,
+ * orange « en cours », vert « terminée ».
+ */
+export const TASK_STATUS_DOT_VARIANT = Object.freeze({
+  todo: 'alert',
+  progress: 'warn',
+  done: 'ok',
+});
+
+/** Libellé accessible de la pastille « tutoriels liés ». */
+export function tutorialDotLabel(count) {
+  return count === 1 ? '1 tutoriel lié' : `${count} tutoriels liés`;
+}
+
+/**
+ * Pastilles d'état d'un lieu pour la scène partagée (`SharedMapStage`), aux **positions
+ * historiques** de la carte de travail (`ZonePolygonsLayer` / `MapViewMarkerBubble`) : état
+ * des tâches en haut à droite ; tutoriels liés en haut à gauche d'une **zone** (le nom de la
+ * zone s'écrit juste en dessous de l'ancre) et en bas à gauche d'un **repère**.
+ *
+ * @param {{ taskVisual?: string|null, tutorialCount?: number, kind?: 'zone'|'marker' }} params
+ * @returns {Array<{ variant: string, label: string, placement: string }>} vide si rien à poser.
+ */
+export function locationStatusDots({ taskVisual, tutorialCount = 0, kind = 'marker' } = {}) {
+  const dots = [];
+  const variant = TASK_STATUS_DOT_VARIANT[taskVisual];
+  if (variant) {
+    dots.push({
+      variant,
+      label: TASK_VISUAL_LABEL[taskVisual] || '',
+      placement: 'top-right',
+    });
+  }
+  if (tutorialCount > 0) {
+    dots.push({
+      variant: 'info',
+      label: tutorialDotLabel(tutorialCount),
+      placement: kind === 'zone' ? 'top-left' : 'bottom-left',
+    });
+  }
+  return dots;
 }

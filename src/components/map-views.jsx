@@ -22,6 +22,7 @@ import { TASK_VISUAL_LABEL } from '../utils/taskEnrollment.js';
 import {
   computeTaskVisualByLocation,
   computeTutorialCountByLocation,
+  locationStatusDots,
 } from '../utils/mapLocationBadges.js';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 
@@ -1078,6 +1079,32 @@ function MapViewImpl({
     [mapFilterActive, matchingZoneIds, matchingMarkerIds],
   );
 
+  /**
+   * Pastilles d'état des lieux sur la scène partagée (consultation) : état des tâches, et
+   * tutoriels liés si l'admin les affiche. Ce sont les pastilles historiques de la carte de
+   * travail, rendues par `PctStatusDotsLayer` depuis l'unification sur `SharedMapStage` —
+   * sans ce branchement, la scène n'en affichait plus aucune.
+   */
+  const getStageZoneStatusDots = useCallback(
+    (zone) =>
+      locationStatusDots({
+        kind: 'zone',
+        taskVisual: zoneTaskVisualById.get(zone?.id),
+        tutorialCount: showTutorialDots ? zoneTutorialCountById.get(zone?.id) || 0 : 0,
+      }),
+    [zoneTaskVisualById, zoneTutorialCountById, showTutorialDots],
+  );
+
+  const getStageMarkerStatusDots = useCallback(
+    (marker) =>
+      locationStatusDots({
+        kind: 'marker',
+        taskVisual: markerTaskVisualById.get(marker?.id),
+        tutorialCount: showTutorialDots ? markerTutorialCountById.get(marker?.id) || 0 : 0,
+      }),
+    [markerTaskVisualById, markerTutorialCountById, showTutorialDots],
+  );
+
   const onWorkBackgroundClick = useCallback(
     (event) => {
       if (!showMapMascot) return;
@@ -1440,6 +1467,8 @@ function MapViewImpl({
                 clusteringEnabled={clusterMarkersEnabled}
                 showLabels={showLabels}
                 getIsSeen={getFilterDimSeen}
+                getZoneStatusDots={getStageZoneStatusDots}
+                getMarkerStatusDots={getStageMarkerStatusDots}
                 gesturesEnabled={mapInteractionEnabled || !isCoarsePointer}
                 headingUpAllowed={headingUpAllowed}
                 headingUpEffective={headingUpEffective}
