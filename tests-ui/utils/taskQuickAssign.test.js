@@ -5,6 +5,7 @@ import {
   quickAssignHintText,
   executeQuickAssignPlan,
   quickAssignOutcomeToast,
+  sortStudentsForQuickAssign,
 } from '../../src/utils/taskQuickAssign.js';
 
 const STUDENTS = [
@@ -233,5 +234,36 @@ describe('quickAssignOutcomeToast', () => {
 
   test('rien à signaler : message neutre', () => {
     expect(quickAssignOutcomeToast(t, {})).toBe('Aucun changement appliqué — déjà à jour.');
+  });
+});
+
+describe('sortStudentsForQuickAssign', () => {
+  test('les n3beurs déjà inscrits remontent en tête, les autres suivent', () => {
+    const t = task({ assignments: [{ student_id: '3' }] });
+    expect(sortStudentsForQuickAssign(t, STUDENTS).map((s) => s.id)).toEqual([3, 1, 2]);
+  });
+
+  test('tri stable : l’ordre d’origine est conservé dans chaque groupe', () => {
+    const t = task({ assignments: [{ student_id: '3' }, { student_id: '1' }] });
+    expect(sortStudentsForQuickAssign(t, STUDENTS).map((s) => s.id)).toEqual([1, 3, 2]);
+  });
+
+  test('inscrits reconnus par (prénom, nom) sans student_id', () => {
+    const t = task({ assignments: [{ student_first_name: 'tom', student_last_name: 'ROY' }] });
+    expect(sortStudentsForQuickAssign(t, STUDENTS).map((s) => s.id)).toEqual([2, 1, 3]);
+  });
+
+  test('aucune inscription → ordre inchangé (nouveau tableau, source non mutée)', () => {
+    const source = [...STUDENTS];
+    const sorted = sortStudentsForQuickAssign(task(), source);
+    expect(sorted.map((s) => s.id)).toEqual([1, 2, 3]);
+    expect(sorted).not.toBe(source);
+    expect(source.map((s) => s.id)).toEqual([1, 2, 3]);
+  });
+
+  test('tâche absente ou liste non tableau → liste sûre', () => {
+    expect(sortStudentsForQuickAssign(null, STUDENTS).map((s) => s.id)).toEqual([1, 2, 3]);
+    expect(sortStudentsForQuickAssign(task(), null)).toEqual([]);
+    expect(sortStudentsForQuickAssign(null, undefined)).toEqual([]);
   });
 });

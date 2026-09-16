@@ -212,6 +212,11 @@ description, lieux, dates, niveaux, places, image. Sa proposition apparaît avec
   groupe, dans la limite des places restantes de la tâche. Une **affectation rapide**
   par cases à cocher et une **attribution dès la création** existent aussi (celle-ci
   relève automatiquement le nombre de places si la sélection dépasse).
+- **Affectation rapide, ordre de la liste** : les élèves **déjà inscrits sur la tâche**
+  sont affichés **en tête** de la liste à cocher (leur case est cochée d'office), les
+  autres suivent dans l'ordre habituel. L'équipe en place se lit donc d'un coup d'œil,
+  sans faire défiler. Décocher quelqu'un ne le déplace pas : l'ordre ne change qu'une
+  fois « Appliquer » validé.
 - **Marquer la part d'un élève** (mode collectif) : en cliquant sur le nom d'un inscrit,
   le professeur marque sa part terminée à sa place. Ce raccourci n'est proposé que pour
   les inscriptions **rattachées à un compte élève** ; une inscription ancienne, saisie

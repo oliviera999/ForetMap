@@ -308,4 +308,35 @@ describe('TaskTileCard — React.memo (pas de re-rendu quand l’état parent no
     expect(screen.queryByRole('button', { name: /Grace Hopper/ })).toBeNull();
     expect(teacherMarkCollectiveAssignmentDone).not.toHaveBeenCalled();
   });
+  test('affectation rapide : les inscrits apparaissent en tête de la liste sélectionnable', () => {
+    render(
+      <TaskTileCard
+        {...makeProps({
+          t: {
+            id: 'task-1',
+            title: 'Arroser les tomates',
+            description: '',
+            status: 'available',
+            required_students: 3,
+            assignments: [
+              { id: 1, student_id: 3, student_first_name: 'Zoé', student_last_name: 'Petit' },
+            ],
+          },
+          quickAssignTaskId: 'task-1',
+          quickAssignStudentIds: ['3'],
+          teacherStudents: [
+            { id: 1, first_name: 'Léa', last_name: 'Martin' },
+            { id: 2, first_name: 'Tom', last_name: 'Roy' },
+            { id: 3, first_name: 'Zoé', last_name: 'Petit' },
+          ],
+        })}
+      />,
+    );
+    const noms = screen
+      .getAllByRole('checkbox')
+      .map((cb) => cb.closest('label')?.textContent?.trim());
+    expect(noms).toEqual(['Zoé Petit', 'Léa Martin', 'Tom Roy']);
+    // L'inscrit remonté en tête est bien celui qui est coché.
+    expect(screen.getAllByRole('checkbox')[0]).toBeChecked();
+  });
 });
