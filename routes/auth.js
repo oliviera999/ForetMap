@@ -38,7 +38,7 @@ const {
   consumePendingAutoProfilePromotion,
   ensurePrimaryRole,
 } = require('../lib/rbac');
-const { getSettingValue } = require('../lib/settings');
+const { getSettingValue, getAuthJwtTtls } = require('../lib/settings');
 const {
   countStudentActiveTaskAssignments,
   getEffectiveMaxActiveTaskAssignments,
@@ -46,6 +46,7 @@ const {
 const { logAudit, logSecurityEvent } = require('../lib/auditLog');
 const { ensureCanonicalUserByAuth, resolveLoginAccountByIdentifier } = require('../lib/identity');
 const { getUserTokenEpoch, bumpUserTokenEpoch } = require('../lib/auth/tokenEpoch');
+const { shouldRenewAuthToken, carrySessionStart } = require('../lib/auth/slidingSession');
 const { loginThrottle, sendLoginThrottled } = require('../lib/loginThrottle');
 const { syncStudentRoleFromGroups } = require('../lib/groupRole');
 const { addStudentToGroup } = require('../lib/groupMembers');
@@ -202,10 +203,14 @@ async function resolveLoginUserType(user) {
 
 router.get('/me', requireAuth, async (req, res) => {
   const body = { auth: exposeAuth(req.auth) };
+  // Claims du jeton présenté, partagés par les deux chemins de ré-émission ci-dessous
+  // (renouvellement / resynchronisation de groupe) pour leur reconduire `sessionStartedAt`.
+  let tokenClaims = null;
   try {
     const tokenIn = parseBearerToken(req);
     if (tokenIn && req.auth) {
       const claims = verifyJwtToken(tokenIn, JWT_SECRET);
+      tokenClaims = claims;
       const roleChanged =
         String(claims.roleId) !== String(req.auth.roleId) ||
         String(claims.roleSlug || '').toLowerCase() !==
@@ -217,10 +222,15 @@ router.get('/me', requireAuth, async (req, res) => {
         ? [...req.auth.permissions].map(String).sort()
         : [];
       const permissionsChanged = JSON.stringify(claimPerms) !== JSON.stringify(authPerms);
-      if (roleChanged || permissionsChanged) {
+      // Renouvellement glissant : un jeton entré dans son dernier tiers de vie est ré-émis,
+      // tant que la session n'a pas dépassé son plafond absolu. Sans cela une session active
+      // mourait à `security.jwt_ttl_base_seconds` (1 h 30 par défaut), en plein travail.
+      const { slidingMaxSeconds } = await getAuthJwtTtls();
+      const slidingRenewal = shouldRenewAuthToken(claims, { slidingMaxSeconds });
+      if (roleChanged || permissionsChanged || slidingRenewal) {
         const session = await buildSessionPayload(req.auth.userType, req.auth.userId);
         if (session) {
-          const tp = { ...session.tokenPayload };
+          const tp = carrySessionStart(session.tokenPayload, claims);
           if (claims.impersonating && claims.actorUserType && claims.actorUserId != null) {
             tp.impersonating = true;
             tp.actorUserType = claims.actorUserType;
@@ -244,8 +254,11 @@ router.get('/me', requireAuth, async (req, res) => {
     if (groupSync.changed) {
       const session = await buildSessionPayload(req.auth.userType, req.auth.userId);
       if (session) {
-        body.refreshedToken = await signAuthToken(session.tokenPayload);
-        body.auth = exposeAuth(session.tokenPayload);
+        // `carrySessionStart` seulement : ce chemin n'a jamais reconduit l'impersonation,
+        // le changer relèverait d'un autre lot.
+        const tp = carrySessionStart(session.tokenPayload, tokenClaims);
+        body.refreshedToken = await signAuthToken(tp);
+        body.auth = exposeAuth(tp);
       }
     }
     const promo = consumePendingAutoProfilePromotion(req.auth.userId);
