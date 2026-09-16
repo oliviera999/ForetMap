@@ -130,6 +130,33 @@ Important :
 npm run db:seed:teacher
 ```
 
+#### Anonymiser la copie locale (recommandé)
+
+Un dump de production porte des données personnelles d'élèves. Pour travailler sur la
+**volumétrie réelle** sans les conserver :
+
+```bash
+npm run db:anonymize:dry     # simulation : affiche les instructions, n'écrit rien
+npm run db:anonymize         # applique, puis balaye toute la base
+npm run db:seed:teacher      # recrée un compte prof exploitable
+```
+
+Le script (`scripts/anonymize-local-db.js`) réécrit les identités (`users`, `gl_players`,
+`gl_admins`, `external_identities`, noms dénormalisés des tâches), remplace les hachages par
+un mot de passe unique, vide jetons, journal d'audit, charges utiles de `security_events` et
+rapports de synchronisation Moodle, et remplace les contenus libres par un texte **de même
+longueur** (le poids des réponses API est conservé, donc les mesures de charge restent
+valables ; `--keep-text` désactive cette réécriture).
+
+Garde-fous : refus si `DB_HOST` n'est pas local ou si `NODE_ENV=production`, simulation par
+défaut, et surtout **balayage final de toutes les colonnes texte** de la base à la recherche
+d'adresses e-mail et de hachages bcrypt résiduels. Une colonne oubliée (une migration ajoute
+un champ, un nouveau module stocke du texte libre) fait **échouer** la commande en la
+nommant, au lieu de laisser croire que la base est propre. Ce que le script ne peut pas
+faire : les fichiers déposés (`uploads/`) ne sont pas dans le dump — ne les copiez pas.
+
+Diagnostic seul, sur une base déjà importée : `npm run db:anonymize:scan`.
+
 > Note historique : l'ancien systeme d'elevation par PIN (`role_pin_secrets`,
 > `TEACHER_PIN`, `npm run db:reset:role-pins:local`) a ete supprime — les droits
 > viennent des roles RBAC attribues a la connexion.

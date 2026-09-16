@@ -32,6 +32,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Tests : montage d'`App` avec une session prof de classe **sans** `teacher.access`
   (`tests-ui/AppShellWiring.test.jsx`), garde pure `teacherAccessLockError` et gel de
   la liste des profils verrouillés contre `ROLE_PERMISSION_MATRIX`.
+### Ajouté — Outillage : anonymisation d'une copie locale de la base de production
+
+- `scripts/anonymize-local-db.js` (+ `npm run db:anonymize:dry` / `db:anonymize` /
+  `db:anonymize:scan`) : permet de travailler sur la **volumétrie réelle** sans conserver de
+  donnée personnelle. Réécrit les identités (`users`, `gl_players`, `gl_admins`,
+  `external_identities`, noms dénormalisés des tâches), remplace les hachages par un mot de
+  passe unique, purge jetons / journal d'audit / charges utiles `security_events` / rapports
+  de synchronisation Moodle, et remplace les contenus libres par un texte **de même
+  longueur** (mesures de charge toujours représentatives ; `--keep-text` pour conserver).
+- Garde-fous : refus si `DB_HOST` n'est pas local ou si `NODE_ENV=production`, simulation par
+  défaut, et **balayage final de toutes les colonnes texte** — une colonne oubliée fait
+  échouer la commande en la nommant, plutôt que de laisser croire que la base est propre.
+  Les crédits d'illustration externes (`plants.photo_credit`) sont signalés comme tolérés.
+- `docs/LOCAL_DEV.md` § 3 (import d'un dump) et `tests/anonymize-local-db.test.js`.
+
 ### Ajouté — Outillage : amorçage d'une session de développement en conteneur éphémère
 
 - `scripts/bootstrap-web-session.sh` (idempotent, non interactif, ~2 min à froid) : installe
