@@ -19,21 +19,67 @@ const DUAL_CHANNEL_PAIRS = [
   ['herbivorie', 'decomposition'],
 ];
 
+/**
+ * Familles de teintes : plusieurs types partagent délibérément une couleur.
+ *
+ * Jusqu'à la migration 255, les 8 types avaient 8 teintes distinctes. Les 14 types
+ * actuels ne peuvent plus : la table Okabe–Ito, choisie pour rester lisible en vision
+ * deutan/protan et en vidéoprojection, ne compte que 8 teintes sûres. En inventer six de
+ * plus reviendrait à rapprocher les couleurs jusqu'à ce qu'elles cessent d'être
+ * distinguables — exactement ce que la règle des 0,18 protège.
+ *
+ * Le parti pris est donc : la teinte porte la FAMILLE (flux trophique animal, cycle de
+ * l'azote…), le motif de tirets porte le TYPE à l'intérieur de la famille. Les tests
+ * ci-dessous vérifient les deux moitiés de cette règle — les teintes réellement utilisées
+ * restent écartées, et deux types d'une même famille ne partagent jamais leur trait.
+ */
+
 describe('foodWebEdgeStyle', () => {
-  test('chaque type d’interaction a un style distinct', () => {
+  test('chaque type d’interaction a un style, et deux types n’ont jamais le même', () => {
     expect(Object.keys(INTERACTION_EDGE_STYLES).sort()).toEqual([...INTERACTION_TYPES].sort());
-    const colors = new Set(Object.values(INTERACTION_EDGE_STYLES).map((s) => s.color));
-    expect(colors.size).toBe(INTERACTION_TYPES.length);
+    // La signature complète — teinte + tirets + épaisseur — doit rester unique : c'est
+    // elle que l'œil distingue, pas la teinte seule.
+    const signatures = new Set(
+      Object.values(INTERACTION_EDGE_STYLES).map((s) => `${s.color}|${s.dash}|${s.width}`),
+    );
+    expect(signatures.size).toBe(INTERACTION_TYPES.length);
   });
 
-  test('les couleurs sont suffisamment écartées (distance RGB)', () => {
-    const entries = Object.entries(INTERACTION_EDGE_STYLES);
-    for (let i = 0; i < entries.length; i += 1) {
-      for (let j = i + 1; j < entries.length; j += 1) {
-        const dist = colorDistanceRgb(entries[i][1].color, entries[j][1].color);
-        expect(dist, `${entries[i][0]} vs ${entries[j][0]}`).toBeGreaterThan(0.18);
+  test('deux types de la même famille de teinte ne partagent jamais leur trait', () => {
+    const byColor = new Map();
+    for (const [type, style] of Object.entries(INTERACTION_EDGE_STYLES)) {
+      if (!byColor.has(style.color)) byColor.set(style.color, []);
+      byColor.get(style.color).push([type, style]);
+    }
+    for (const [color, members] of byColor) {
+      for (let i = 0; i < members.length; i += 1) {
+        for (let j = i + 1; j < members.length; j += 1) {
+          const [ta, sa] = members[i];
+          const [tb, sb] = members[j];
+          expect(
+            sa.dash === sb.dash && sa.width === sb.width,
+            `${ta}/${tb} partagent la teinte ${color} : il leur faut un trait différent`,
+          ).toBe(false);
+        }
       }
     }
+  });
+
+  test('les teintes réellement utilisées restent suffisamment écartées (distance RGB)', () => {
+    // Porte sur l'ensemble des teintes distinctes, pas sur les paires de types : deux
+    // types d'une même famille partagent leur teinte par construction (distance 0).
+    const palette = [...new Set(Object.values(INTERACTION_EDGE_STYLES).map((s) => s.color))];
+    for (let i = 0; i < palette.length; i += 1) {
+      for (let j = i + 1; j < palette.length; j += 1) {
+        const dist = colorDistanceRgb(palette[i], palette[j]);
+        expect(dist, `${palette[i]} vs ${palette[j]}`).toBeGreaterThan(0.18);
+      }
+    }
+  });
+
+  test('la palette reste bornée à la table Okabe–Ito (8 teintes sûres)', () => {
+    const palette = new Set(Object.values(INTERACTION_EDGE_STYLES).map((s) => s.color));
+    expect(palette.size).toBeLessThanOrEqual(8);
   });
 
   test('paires critiques : second canal (dash ou width) en plus de la couleur', () => {
@@ -78,8 +124,21 @@ describe('foodWebEdgeStyle', () => {
   });
 
   test('isTrophicEdgeType identifie les flux trophiques', () => {
-    expect(TROPHIC_EDGE_TYPES).toEqual(['herbivorie', 'predation', 'decomposition']);
+    expect(TROPHIC_EDGE_TYPES).toEqual([
+      'herbivorie',
+      'predation',
+      'decomposition',
+      'detritivorie',
+      'frugivorie',
+      'granivorie',
+      'parasitisme',
+    ]);
     expect(isTrophicEdgeType('predation')).toBe(true);
+    expect(isTrophicEdgeType('detritivorie')).toBe(true);
     expect(isTrophicEdgeType('pollinisation')).toBe(false);
+    // Excrétion et assimilation transportent de la matière, mais dans l'autre sens : ce
+    // sont des apports minéraux, pas des flux trophiques (cf. `matterFlow`).
+    expect(isTrophicEdgeType('excretion')).toBe(false);
+    expect(isTrophicEdgeType('assimilation')).toBe(false);
   });
 });

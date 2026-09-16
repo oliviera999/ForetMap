@@ -14,13 +14,21 @@ const {
 } = require('../lib/shared/foodWebCore');
 
 test('INTERACTION_TYPES — parité avec l’ENUM SQL', () => {
+  // Les six derniers viennent de la migration 255, qui a démêlé `nitrification`
+  // (excrétion / assimilation / oxydation) et `decomposition` (détritivorie, frugivorie).
   assert.deepStrictEqual(
     [...INTERACTION_TYPES].sort(),
     [
+      'assimilation',
       'competition',
       'decomposition',
+      'detritivorie',
+      'excretion',
+      'frugivorie',
+      'granivorie',
       'herbivorie',
       'nitrification',
+      'parasitisme',
       'plante_hote',
       'pollinisation',
       'predation',
