@@ -15,6 +15,12 @@ export const INTERACTION_TYPES = [
   'nitrification',
   'symbiose',
   'competition',
+  'detritivorie',
+  'frugivorie',
+  'granivorie',
+  'parasitisme',
+  'excretion',
+  'assimilation',
 ];
 
 export const INTERACTION_TYPE_LABELS = {
@@ -26,27 +32,54 @@ export const INTERACTION_TYPE_LABELS = {
   nitrification: 'Nitrification',
   symbiose: 'Symbiose',
   competition: 'Compétition',
+  detritivorie: 'Détritivorie',
+  frugivorie: 'Frugivorie',
+  granivorie: 'Granivorie',
+  parasitisme: 'Parasitisme',
+  excretion: 'Excrétion',
+  assimilation: 'Assimilation',
 };
 
 /**
- * Orientation + libellé de relation par type — voir `lib/shared/foodWebCore.js`.
+ * Orientation, libellé de relation et sens du flux de matière par type — miroir de
+ * `lib/shared/foodWebCore.js`, qui porte la documentation complète de `matterFlow`.
  *
  * Convention : `from` = acteur, `to` = cible. La flèche affichée suit le sens
  * écologique « est mangée par » (flux d'énergie de la ressource vers le
  * consommateur), d'où l'inversion sur les types trophiques (`consumed`).
+ *
+ * `matterFlow` dit dans quel sens la matière circule le long du lien stocké :
+ * `to_from` pour les flux trophiques ordinaires, `from_to` quand l'acteur alimente sa
+ * cible (excrétion, nitrification, assimilation), `none` pour un service. C'est cette
+ * inversion, invisible tant que `nitrification` mélangeait trois relations, que le type
+ * rend désormais explicite.
  */
 export const INTERACTION_TYPE_META = {
-  pollinisation: { orientation: 'directed', relation: 'pollinise' },
-  herbivorie: { orientation: 'consumed', relation: 'est mangée par' },
-  predation: { orientation: 'consumed', relation: 'est mangée par' },
-  plante_hote: { orientation: 'directed', relation: 'héberge' },
-  decomposition: { orientation: 'consumed', relation: 'est décomposée par' },
-  nitrification: { orientation: 'directed', relation: 'enrichit' },
-  symbiose: { orientation: 'mutual', relation: 'en symbiose avec' },
-  competition: { orientation: 'mutual', relation: 'en compétition avec' },
+  pollinisation: { orientation: 'directed', relation: 'pollinise', matterFlow: 'none' },
+  herbivorie: { orientation: 'consumed', relation: 'est mangée par', matterFlow: 'to_from' },
+  predation: { orientation: 'consumed', relation: 'est mangée par', matterFlow: 'to_from' },
+  plante_hote: { orientation: 'directed', relation: 'héberge', matterFlow: 'none' },
+  decomposition: { orientation: 'consumed', relation: 'est décomposée par', matterFlow: 'to_from' },
+  nitrification: { orientation: 'directed', relation: 'enrichit', matterFlow: 'from_to' },
+  symbiose: { orientation: 'mutual', relation: 'en symbiose avec', matterFlow: 'none' },
+  competition: { orientation: 'mutual', relation: 'en compétition avec', matterFlow: 'none' },
+  detritivorie: { orientation: 'consumed', relation: 'est fragmentée par', matterFlow: 'to_from' },
+  frugivorie: { orientation: 'consumed', relation: 'est mangée par', matterFlow: 'to_from' },
+  granivorie: { orientation: 'consumed', relation: 'est mangée par', matterFlow: 'to_from' },
+  parasitisme: { orientation: 'consumed', relation: 'est parasitée par', matterFlow: 'to_from' },
+  excretion: {
+    orientation: 'directed',
+    relation: 'enrichit par ses déjections',
+    matterFlow: 'from_to',
+  },
+  assimilation: { orientation: 'directed', relation: 'est assimilé par', matterFlow: 'from_to' },
 };
 
-const DEFAULT_INTERACTION_META = { orientation: 'directed', relation: 'interagit avec' };
+const DEFAULT_INTERACTION_META = {
+  orientation: 'directed',
+  relation: 'interagit avec',
+  matterFlow: 'none',
+};
 
 export function interactionTypeLabel(type) {
   const key = String(type || '')
@@ -61,6 +94,11 @@ export function interactionTypeMeta(type) {
     .trim()
     .toLowerCase();
   return INTERACTION_TYPE_META[key] || DEFAULT_INTERACTION_META;
+}
+
+/** Sens du flux de matière d'un type (`to_from` / `from_to` / `none`). */
+export function interactionMatterFlow(type) {
+  return interactionTypeMeta(type).matterFlow || 'none';
 }
 
 /**

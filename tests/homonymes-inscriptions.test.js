@@ -45,12 +45,12 @@ async function makeTaskAssignedTo(studentId, title) {
   await execute(
     `INSERT INTO tasks (id, title, description, map_id, zone_id, required_students, status, created_at)
      VALUES (?, ?, '', 'foret', ?, 1, 'available', ?)`,
-    [taskId, title, zoneId, new Date().toISOString()],
+    [taskId, title, zoneId, new Date()],
   );
   await execute(
     `INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at)
      VALUES (?, ?, ?, ?, ?)`,
-    [taskId, studentId, FIRST, LAST, new Date().toISOString()],
+    [taskId, studentId, FIRST, LAST, new Date()],
   );
   return taskId;
 }
@@ -80,12 +80,12 @@ test('les lignes héritées, sans identifiant, restent reconnues par le nom', as
   await execute(
     `INSERT INTO tasks (id, title, description, map_id, zone_id, required_students, status, created_at)
      VALUES (?, ?, '', 'foret', ?, 1, 'available', ?)`,
-    [taskId, `Homo héritée ${stamp}`, zoneId, new Date().toISOString()],
+    [taskId, `Homo héritée ${stamp}`, zoneId, new Date()],
   );
   await execute(
     `INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at)
      VALUES (?, NULL, ?, ?, ?)`,
-    [taskId, FIRST, LAST, new Date().toISOString()],
+    [taskId, FIRST, LAST, new Date()],
   );
 
   // Sans identifiant sur la ligne, le nom fait foi : les deux la voient. C'est le
