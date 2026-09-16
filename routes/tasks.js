@@ -681,12 +681,16 @@ router.post(
     const normalizedGroupId = normalizeOptionalId(group_id);
     const id = crypto.randomUUID();
     const seriesId = parsedRecurrence.value ? crypto.randomUUID() : null;
+    // Ancre de récurrence posée dès la création (migration 258) : la date de départ porte
+    // le rythme de la série. Sans date de départ elle reste nulle, et le job la dérivera de
+    // la date de création au premier clone.
+    const anchorDate = parsedRecurrence.value ? parsedStart.value : null;
     // Écritures atomiques (audit §2.5) : INSERT tasks + jointures + colonnes legacy + espèces
     // + image dans UNE transaction — en cas d'échec (image comprise), tout est annulé
     // et le fichier image éventuellement écrit est supprimé.
     await withTransaction(async (tx) => {
       await tx.execute(
-        'INSERT INTO tasks (id, title, description, map_id, project_id, group_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, recurrence, recurrence_series_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO tasks (id, title, description, map_id, project_id, group_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, recurrence, recurrence_series_id, recurrence_anchor_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           id,
           title,
@@ -705,6 +709,7 @@ router.post(
           parsedImportance.level,
           parsedRecurrence.value,
           seriesId,
+          anchorDate,
           nowDbTimestamp(),
         ],
       );
@@ -1040,6 +1045,19 @@ router.put('/:id', async (req, res) => {
           markersForSnapshot,
           tx,
         );
+      }
+      // Reprise en main du rythme : déplacer la date de départ d'une tâche récurrente
+      // redéfinit l'ancre de sa série (migration 258). C'est la seule façon de déplacer le
+      // rythme — le calendrier scolaire, lui, décale une occurrence sans jamais toucher à
+      // l'ancre. Sans date de départ, l'ancre est effacée : elle sera reprise de la date de
+      // création au prochain passage du job.
+      const recurrenceAfterPut = String(nextRecurrence || '').trim();
+      const startDateChanged = String(task.start_date || '') !== String(nextStartDate || '');
+      if (recurrenceAfterPut && startDateChanged) {
+        await tx.execute('UPDATE tasks SET recurrence_anchor_date = ? WHERE id = ?', [
+          nextStartDate || null,
+          task.id,
+        ]);
       }
       await tx.execute(
         'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, group_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, importance_level=?, recurrence=?, recurrence_series_id=COALESCE(?, recurrence_series_id) WHERE id=?',

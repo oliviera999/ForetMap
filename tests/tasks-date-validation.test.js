@@ -2,8 +2,9 @@
 
 // Garde-fous de dates à l'écriture (audit échéances §7, restés non appliqués jusqu'ici) :
 // format AAAA-MM-JJ strict et cohérence début ≤ échéance sur POST et PUT /api/tasks.
-// Sans eux, une date d'un autre format se glisse dans la colonne VARCHAR(32) et fait
-// échouer la duplication récurrente EN SILENCE (parseISODateOnly n'accepte que ce format).
+// Sans eux, l'arbitrage d'une date mal formée revient au sql_mode de MariaDB (colonnes
+// DATE depuis la migration 254), que l'application ne fixe pas : rejet brut ou troncature
+// selon le serveur, au lieu d'une réponse 400 explicite et identique sur les trois routes.
 // Le même couple de contrôles couvre POST /api/tasks/proposals ; la logique pure est
 // testée dans tests/tasks-helpers.test.js.
 require('./helpers/setup');
