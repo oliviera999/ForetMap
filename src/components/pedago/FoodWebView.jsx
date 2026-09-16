@@ -612,8 +612,10 @@ export function FoodWebView({
         </h2>
         <p className="section-sub pedago-foodweb__intro">
           Qui mange qui, qui aide qui — choisis un cadrage (réseau alimentaire ou autres relations),
-          clique une flèche pour le détail, une espèce pour isoler sa chaîne. Une fois isolée, «
-          Voir la fiche » ouvre sa fiche espèce.
+          clique une flèche pour le détail, une espèce pour isoler sa chaîne : la scène se recompose
+          autour d&apos;elle. ⌘/Ctrl + clic (ou «&nbsp;Ajouter à la sélection&nbsp;») en retient
+          plusieurs à la fois. En disposition «&nbsp;Niveaux&nbsp;», les producteurs sont en bas et
+          les consommateurs au-dessus, à leur niveau calculé dans ce réseau.
         </p>
       </header>
 
