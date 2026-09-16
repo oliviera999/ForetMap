@@ -2468,6 +2468,13 @@
     .map-switch-inline::-webkit-scrollbar {
       display:none;
     }
+    /* Typographie alignée sur les boutons de la barre (`--map-toolbar-font-size`).
+       Sans ces deux déclarations le sélecteur retombe sur la règle globale
+       `input, select, textarea` : --text-base (≈14-16px), et même 16px !important sous
+       1024px / pointeur grossier — soit ~40 % de plus que les pilules voisines en --text-xs,
+       d'où l'impression de fonte différente. Le !important n'a pas d'autre moyen de battre
+       la règle anti-zoom iOS ; celle-ci ne protège rien ici, un `<select>` ouvrant un
+       sélecteur natif sans zoom du viewport (contrairement aux champs de saisie). */
     .map-switch-select {
       min-width:180px;
       max-width:min(100%, 300px);
@@ -2476,8 +2483,17 @@
       border-radius:10px;
       background:var(--parchment);
       color:var(--soil);
+      font-family:var(--font-sans);
+      font-size:var(--map-toolbar-font-size) !important;
       font-weight:var(--fw-bold);
+      line-height:var(--lh-tight);
       padding:4px 10px;
+    }
+    /* Liste déroulante ouverte : rendue par l'OS, la plupart des moteurs n'honorent que
+       family/weight — on pose au moins la fonte produit. */
+    .map-switch-select option {
+      font-family:var(--font-sans);
+      font-weight:var(--fw-semibold);
     }
     /* Carte (vue seule ou split) : barre d'outils compacte sur tous les viewports (comme mobile) pour gagner de la hauteur.
        `.map-view-root--solo` en plus de `main--map-visible` : évite un retour au wrap si la classe sur `main` manque un instant. */
@@ -2502,6 +2518,14 @@
     .map-view-root--solo .map-view-toolbar button:not(.fm-help-btn) {
       padding:4px 7px !important;
       font-size:var(--map-toolbar-font-size) !important;
+      min-height:30px;
+    }
+    /* Le sélecteur de carte suit la même compaction que les boutons : il gardait sa hauteur
+       et son padding pleins au milieu d'une barre ramenée à 34px. */
+    .main.main--map-visible .map-view-toolbar .map-switch-select,
+    .teacher-main.teacher-main--map-visible .map-view-toolbar .map-switch-select,
+    .map-view-root--solo .map-view-toolbar .map-switch-select {
+      padding:2px 8px !important;
       min-height:30px;
     }
     .main.main--map-visible .map-view-toolbar .map-gesture-toggle,
