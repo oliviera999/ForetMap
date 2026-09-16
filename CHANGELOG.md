@@ -9,6 +9,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — audit de stratégie de plateforme (construire / déléguer / remplacer)
+
+- **Nouvel audit `docs/AUDIT_STRATEGIE_PLATEFORME_2026-09.md`** : arbitrage mesuré entre ce que le
+  projet doit écrire lui-même et ce qu'il peut déléguer au Moodle de l'établissement. Part
+  générique du code chiffrée (**52 433 lignes applicatives, 19,6 %**, 261 fichiers, + 29 903 lignes
+  de tests) brique par brique, avec un verdict par brique (garder / geler / déléguer) ; **charte du
+  non-développement** en huit règles ; **points de convergence classés** en nécessaires (N1–N5),
+  utiles (U1–U5) et à écarter.
+- **Constat vérifiable** : `npm run sync:shared-cores:check` existe mais **n'est appelé dans aucun
+  job de `.github/workflows/ci.yml`** — les six noyaux miroirs ESM/CJS peuvent diverger sans que la
+  CI le signale (point N1, seul geste de code recommandé par l'audit).
+- **Constat de convergence** : les lots 0 à 4 de `docs/AUDIT_CONVERGENCE_APPS_2026-09.md` sont
+  **livrés** (noyau `src/shared/pct-map/` consommé par les quatre surfaces, étanchéité de
+  `src/shared/` à zéro import remontant et gardée par ESLint, kit d'interface commun, échappement
+  du glossaire lore) — l'audit le mesure pour éviter de les reprogrammer.
+- Index des audits (`docs/audits/README.md`) complété.
+
 ### Corrigé — Plan Lyautey : la navigation ne se fait plus recouvrir
 
 - **Guidage « Y aller » sorti de la fiche.** Le bouton referme la fiche et pose une **barre de
