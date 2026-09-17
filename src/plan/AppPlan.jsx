@@ -118,9 +118,13 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   const deepLinkAppliedRef = useRef(false);
   /** Parcours actif, lu par les gestionnaires stables (`openPlace`). */
   const activeRouteSlugRef = useRef('');
+  /** Étape courante et étape où l'on a quitté, en lecture impérative (reprise, §2.2). */
+  const routeIndexRef = useRef(0);
+  const resumableRouteIndexRef = useRef(0);
   const openedOnceRef = useRef(false);
 
   activeRouteSlugRef.current = activeRouteSlug;
+  routeIndexRef.current = routeIndex;
 
   const title = settings?.title || variant.defaultTitle;
 
@@ -566,12 +570,14 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     [position.positionPct, position.planSize],
   );
 
+  /** Départ d'un parcours : toujours à la première étape (c'est « Reprendre » qui restitue). */
   const startRoute = useCallback((route) => {
     setRoutePickerOpen(false);
     setResultsOpen(false);
     setGroupPlaces(null);
     setRoutePeekPlace(null);
     setResumableRouteSlug('');
+    resumableRouteIndexRef.current = 0;
     setRouteIndex(0);
     setActiveRouteSlug(route.slug);
     reportPlanUsage('route_start', route.slug);
@@ -579,6 +585,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
 
   const exitRoute = useCallback(() => {
     const slug = activeRouteSlug;
+    resumableRouteIndexRef.current = slug ? routeIndexRef.current : 0;
     setActiveRouteSlug('');
     setRouteIndex(0);
     setSelectedPlace(null);
@@ -590,10 +597,24 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     }
   }, [activeRouteSlug, resetGuidance, setRouteToast]);
 
+  /**
+   * Reprise : on retrouve l'étape quittée, et non la première — le bouton s'appelle « Reprendre
+   * le parcours » et l'aide le promet (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.2). Le rebornage
+   * sur les étapes réellement résolues est fait par l'effet plus bas.
+   */
   const resumeRoute = useCallback(() => {
     const route = routes.find((r) => r.slug === resumableRouteSlug);
-    if (route) startRoute(route);
-  }, [routes, resumableRouteSlug, startRoute]);
+    if (!route) return;
+    const resumeIndex = resumableRouteIndexRef.current;
+    setRoutePickerOpen(false);
+    setResultsOpen(false);
+    setGroupPlaces(null);
+    setRoutePeekPlace(null);
+    setResumableRouteSlug('');
+    setActiveRouteSlug(route.slug);
+    setRouteIndex(resumeIndex);
+    reportPlanUsage('route_start', route.slug);
+  }, [routes, resumableRouteSlug]);
 
   const goToRouteIndex = useCallback(
     (next) => {

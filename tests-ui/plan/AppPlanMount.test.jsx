@@ -452,7 +452,10 @@ describe('AppPlan — montage', () => {
     expect(await screen.findByText(/Pour reprendre/)).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Reprendre le parcours' }));
-    expect(await screen.findByTestId('plan-route-sheet')).toBeTruthy();
+    const resumed = await screen.findByTestId('plan-route-sheet');
+    // « Reprendre » reprend : on avait quitté à l'étape 2, on y revient — le bouton ne
+    // redémarre pas au début (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.2).
+    await waitFor(() => expect(resumed.textContent).toContain('Étape 2 sur 2'));
   });
 
   test('lien profond ?parcours= : ouvre le parcours annoncé par le QR code', async () => {

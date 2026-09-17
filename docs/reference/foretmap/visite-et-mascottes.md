@@ -33,7 +33,9 @@ familles.
 - **Parcours fléchés** : si des parcours ont été publiés pour la Visite (_Réglages → Parcours_,
   case « Visite »), une puce **« Parcours »** les liste. En choisir un affiche une barre d'étape
   en bas (Précédent / Suivant) : la carte se recentre sur chaque lieu, reste utilisable, et rien
-  n'est enregistré — comme sur le Plan Lyautey. On peut quitter et reprendre. Quand le plan est
+  n'est enregistré — comme sur le Plan Lyautey. On peut quitter, puis **reprendre à l'étape où
+  l'on s'était arrêté** (« Reprendre le parcours ») ; relancer le parcours depuis la puce repart
+  du début. Quand le plan est
   calé et la position active, la barre d'étape indique aussi **la distance à l'étape en cours**,
   et un trait relie la position au lieu visé.
 - **« Y aller »** : la fiche d'un lieu porte un bouton **« Y aller »**. Il **referme la fiche**
