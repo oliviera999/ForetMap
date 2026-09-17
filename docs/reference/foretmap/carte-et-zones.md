@@ -243,6 +243,10 @@ Composer un parcours :
   vise le **Plan** seul ; on peut aussi le proposer sur la **Carte** (feuille de séance dans
   ForetMap) et la **Visite** (parcours fléché grand public). Chaque surface n'affiche que les
   parcours qui la ciblent, avec une barre d'étape en bas et la carte restée utilisable.
+- **Quitter n'efface pas l'avancement** : le bouton « Reprendre le parcours » revient à l'étape
+  où l'on s'était arrêté, sur les trois surfaces. Relancer le parcours depuis la liste, lui,
+  repart de la première étape. L'avancement vit sur l'appareil et le temps de la page : il n'est
+  ni enregistré, ni transmis, et un rechargement le perd.
 - Rien n'est dupliqué : une étape **pointe** vers un lieu existant. Renommer le lieu renomme
   l'étape ; supprimer le lieu laisse une étape signalée « lieu introuvable », à retirer.
 - Une étape dont le lieu est **masqué** sur la surface consultée (Carte, Visite ou Plan — par
