@@ -9,6 +9,45 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — le build frontend quitte le dépôt : la CI le livre au serveur
+
+- **La cause des conflits de merge à répétition est supprimée.** `dist/` était versionné parce
+  que le serveur n'installe que les dépendances de production (`npm ci --omit=dev`) : Vite n'y
+  est pas disponible, le build devait donc arriver tout fait par `git pull`. Mais les noms de
+  chunks portent un hash de contenu : **chaque build renomme tous les fichiers**, et deux
+  branches touchant le frontend produisaient un conflit **rename/delete** sur `dist/` — que git
+  ne peut structurellement pas résoudre (les pilotes de merge de `.gitattributes` ne traitent
+  que les conflits de contenu). Chaque fusion sur `main` remettait donc toutes les PR ouvertes
+  en conflit. Accessoirement, c'étaient ~30 Mo de blobs neufs à chaque build commité, sur un
+  pack de 126 Mo.
+- **Nouveau circuit.** `.github/workflows/dist-publish.yml` construit `main` et publie le build
+  sur la branche d'artefacts `dist-artifact/main` (un seul commit, force-push, donc l'historique
+  ne grossit pas), avec un `BUILD_INFO.json` qui note le **commit source**.
+  `scripts/fetch-dist-artifact.js` le récupère côté serveur et ne le pose **que** s'il
+  correspond au commit déployé : l'invariant « le build servi correspond aux sources déployées »,
+  jusqu'ici gratuit puisque tout était dans le même commit, est désormais vérifié explicitement.
+- **Un artefact en retard reporte le déploiement, il ne le casse pas.** Le contrôle a lieu
+  **avant** le `git pull` : si la CI n'a pas fini de publier, le cron sort proprement et repasse
+  au tick suivant, sources intactes. Un artefact étranger à l'historique déployé, ou incomplet
+  (entrée produit manquante — le repli SPA servirait ForetMap en silence sur `gl.*` et
+  `planlyautey.*`), est refusé avec alerte. Le rollback restaure le build précédent depuis
+  `dist.prev/`, sans nouvel accès réseau.
+- **Auto-réparation.** Un `dist/` versionné se réparait tout seul au `git pull` suivant ; ce n'est
+  plus le cas. Le cron contrôle donc le build à **chaque** passage, même sans nouveau commit
+  (`--mode repair`, sans effet ni accès réseau quand `dist/` est complet) : un dossier effacé ou
+  un clone serveur tout neuf est rattrapé au lieu de laisser le site sans front.
+- **Quatre déclencheurs de publication, dont un indispensable** : `version-bump.yml` pousse
+  `chore(release)` sur `main` avec le `GITHUB_TOKEN`, et un push par `GITHUB_TOKEN` ne déclenche
+  aucun workflow. Sans le crochet `workflow_run`, l'artefact serait en permanence un commit en
+  retard et le serveur reporterait indéfiniment son déploiement.
+- **Rien ne change en production à la fusion** : `DEPLOY_DIST_SOURCE` vaut `repo` par défaut, le
+  cron se comporte comme avant. La bascule est une action opérateur en trois étapes, dont un
+  essai à blanc en production (l'artefact est validé mais non posé tant que `dist/` est suivi
+  par git) : runbook dans **`docs/DEPLOY_DIST_ARTIFACT.md`**. Les étapes ne peuvent pas être
+  fusionnées en une seule — le cron s'exécute depuis le script qu'elle modifie.
+- Tests : `tests/fetch-dist-artifact.test.js` (validation de `BUILD_INFO`, arbitrage
+  `apply`/`defer`/`stale`, intégrité du build, garde de recouvrement, rollback).
+
 ### Ajouté — liens dans les descriptions de repères et de zones (3 lots)
 
 **Lot 1 — parité d'édition, d'affichage et de surface.**
