@@ -47,6 +47,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   fusionnées en une seule — le cron s'exécute depuis le script qu'elle modifie.
 - Tests : `tests/fetch-dist-artifact.test.js` (validation de `BUILD_INFO`, arbitrage
   `apply`/`defer`/`stale`, intégrité du build, garde de recouvrement, rollback).
+### Corrigé — Prof de classe : l'application ne reste plus figée au chargement
+
+- Un compte enseignant **sans** la permission « Accès interface n3boss » (profil dérivé,
+  ou case décochée avant le verrouillage de la console) passait bien la connexion, puis
+  restait sur « Chargement de la forêt… » : les cartes et les tâches n'étaient jamais
+  demandées, et la session n'était plus prolongée (déconnexion au bout d'1 h 30).
+  Le chargement et le renouvellement de session suivent désormais la session ouverte,
+  pas ce droit d'encadrement. Tests de montage d'`App` mis à jour.
 
 ### Ajouté — liens dans les descriptions de repères et de zones (3 lots)
 

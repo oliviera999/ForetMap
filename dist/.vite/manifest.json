@@ -544,7 +544,7 @@
     ]
   },
   "index.vite.html": {
-    "file": "assets/main-acySBwvL.js",
+    "file": "assets/main-IiqZUnLn.js",
     "name": "main",
     "src": "index.vite.html",
     "isEntry": true,
@@ -647,7 +647,7 @@
     ]
   },
   "src/components/VisitMascotPackManager.jsx": {
-    "file": "assets/VisitMascotPackManager-DAk-P_Yg.js",
+    "file": "assets/VisitMascotPackManager-Z3Zz7AO7.js",
     "name": "VisitMascotPackManager",
     "src": "src/components/VisitMascotPackManager.jsx",
     "isDynamicEntry": true,
@@ -669,7 +669,7 @@
     ]
   },
   "src/components/about-views.jsx": {
-    "file": "assets/about-views-BF1gs5pY.js",
+    "file": "assets/about-views-CWLaNd_c.js",
     "name": "about-views",
     "src": "src/components/about-views.jsx",
     "isDynamicEntry": true,
@@ -683,7 +683,7 @@
     ]
   },
   "src/components/audit-views.jsx": {
-    "file": "assets/audit-views-0N_w-VO7.js",
+    "file": "assets/audit-views-D198z-pl.js",
     "name": "audit-views",
     "src": "src/components/audit-views.jsx",
     "isDynamicEntry": true,
@@ -696,7 +696,7 @@
     ]
   },
   "src/components/biodiv/PlantCatalogPreview.jsx": {
-    "file": "assets/PlantCatalogPreview-BocGkfKV.js",
+    "file": "assets/PlantCatalogPreview-tyJGPSsV.js",
     "name": "PlantCatalogPreview",
     "src": "src/components/biodiv/PlantCatalogPreview.jsx",
     "isDynamicEntry": true,
@@ -717,7 +717,7 @@
     ]
   },
   "src/components/foretmap-views.jsx": {
-    "file": "assets/foretmap-views-BmY6hdVl.js",
+    "file": "assets/foretmap-views-CcSTcYn7.js",
     "name": "foretmap-views",
     "src": "src/components/foretmap-views.jsx",
     "isDynamicEntry": true,
@@ -737,7 +737,7 @@
     ]
   },
   "src/components/forum-views.jsx": {
-    "file": "assets/forum-views-DmWmyx25.js",
+    "file": "assets/forum-views-DdRBhUHP.js",
     "name": "forum-views",
     "src": "src/components/forum-views.jsx",
     "isDynamicEntry": true,
@@ -752,7 +752,7 @@
     ]
   },
   "src/components/journal/UserJournalView.jsx": {
-    "file": "assets/UserJournalView-DE8EQ9no.js",
+    "file": "assets/UserJournalView-CA3ohrJi.js",
     "name": "UserJournalView",
     "src": "src/components/journal/UserJournalView.jsx",
     "isDynamicEntry": true,
@@ -784,7 +784,7 @@
     ]
   },
   "src/components/pedago-views.jsx": {
-    "file": "assets/pedago-views-BcTqDFzP.js",
+    "file": "assets/pedago-views-3Qz3rITB.js",
     "name": "pedago-views",
     "src": "src/components/pedago-views.jsx",
     "isDynamicEntry": true,
@@ -805,7 +805,7 @@
     ]
   },
   "src/components/profiles-views.jsx": {
-    "file": "assets/profiles-views-CWrl7qJC.js",
+    "file": "assets/profiles-views-DI4Ogw_M.js",
     "name": "profiles-views",
     "src": "src/components/profiles-views.jsx",
     "isDynamicEntry": true,
@@ -823,7 +823,7 @@
     ]
   },
   "src/components/settings-admin-views.jsx": {
-    "file": "assets/settings-admin-views-C6W9wDfL.js",
+    "file": "assets/settings-admin-views-Ci9kyaw2.js",
     "name": "settings-admin-views",
     "src": "src/components/settings-admin-views.jsx",
     "isDynamicEntry": true,
@@ -849,7 +849,7 @@
     ]
   },
   "src/components/stats-views.jsx": {
-    "file": "assets/stats-views-CiRJhkph.js",
+    "file": "assets/stats-views-DXOAokCy.js",
     "name": "stats-views",
     "src": "src/components/stats-views.jsx",
     "isDynamicEntry": true,
@@ -870,7 +870,7 @@
     ]
   },
   "src/components/tutorials-views.jsx": {
-    "file": "assets/tutorials-views-ByzgP8gr.js",
+    "file": "assets/tutorials-views-Cae3bHRY.js",
     "name": "tutorials-views",
     "src": "src/components/tutorials-views.jsx",
     "isDynamicEntry": true,
@@ -888,7 +888,7 @@
     ]
   },
   "src/components/visit-views.jsx": {
-    "file": "assets/visit-views-CU7mE5gs.js",
+    "file": "assets/visit-views-DdNrC_cK.js",
     "name": "visit-views",
     "src": "src/components/visit-views.jsx",
     "isDynamicEntry": true,
