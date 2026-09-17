@@ -247,7 +247,11 @@ describe('AppPlan — montage', () => {
     fireEvent.change(screen.getByLabelText('Rechercher un lieu'), { target: { value: 'CDI' } });
     const results = await screen.findByTestId('plan-results-sheet');
     expect(within(results).getByRole('button', { name: /CDI/ })).toBeTruthy();
-    expect(results.textContent).toContain('masqué par vos filtres');
+    // `findByText` et non une lecture de `textContent` : `findByTestId` rend la main dès que la
+    // feuille existe, alors que la mention dépend de `hiddenByFilter` (AppPlan.jsx), donc du
+    // rendu qui suit l'application du filtre « Sport ». Échantillonner une seule fois passait en
+    // local et tombait sur un runner chargé (job `quality`, 17/09/2026).
+    expect(await within(results).findByText('masqué par vos filtres')).toBeTruthy();
   });
 
   test('la feuille de filtres liste toutes les catégories', async () => {
