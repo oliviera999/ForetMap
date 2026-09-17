@@ -2001,6 +2001,21 @@ Audit et décisions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDI
 
 Audit, mesures d'écart perceptuel et décisions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md) (§6, lot C).
 
+### Corrigé — le panneau « Séries récurrentes » perdait la prévision des séries bloquées
+
+- **Le tri du plafond était à l'envers.** Le calcul de la prochaine occurrence coûtant
+  plusieurs requêtes par série, la liste est bornée. Elle l'était par « échéance la plus
+  lointaine d'abord » : on gardait les séries qui roulent toutes seules et on jetait les
+  plus anciennes. Or **une série bloquée garde une vieille échéance parce qu'elle est
+  bloquée** — les séries en attente de validation étaient donc les premières à sortir de
+  la fenêtre, et le panneau perdait leur ligne de prévision précisément quand elle
+  réclamait une action. Le tri suit désormais ce qui appelle le professeur : non validées
+  d'abord, puis échéance la plus ancienne.
+- **La troncature ne se fait plus passer pour une absence.** Une série hors fenêtre
+  s'affichait exactement comme une série sans prochaine occurrence. La réponse expose
+  maintenant `truncated` et `limit` (200, contre 60), et le panneau dit
+  _« Prévision non calculée »_ au lieu de laisser conclure qu'il n'y en a pas.
+
 ---
 
 ## [1.152.1] - 2026-09-11

@@ -171,3 +171,100 @@ test('recurring-preview : réservé à `tasks.manage`', async () => {
     .set('Authorization', `Bearer ${studentToken}`)
     .expect(403);
 });
+
+/**
+ * Régression : le plafond de la liste coupait exactement les séries qu'il fallait montrer.
+ *
+ * Le calcul par série coûte plusieurs allers-retours en base, la liste est donc bornée.
+ * Elle l'était par `ORDER BY due_date DESC` : on gardait les échéances les plus lointaines,
+ * c'est-à-dire les séries qui roulent toutes seules, et on jetait les plus anciennes. Or
+ * une série bloquée garde une vieille échéance *parce qu'*elle est bloquée — les séries en
+ * attente de validation étaient les premières à tomber hors fenêtre, et le panneau perdait
+ * leur ligne de prévision sans rien dire.
+ */
+test('recurring-preview : les séries bloquées passent avant celles qui roulent', async () => {
+  const token = await getAdminAuthToken();
+  const marqueur = Date.now();
+  // Bloquée : vieille échéance, jamais validée — c'est elle qui réclame une action.
+  const bloqueeId = await createRecurringTask(token, `RecPreview bloquee ${marqueur}`, {
+    start_date: '2020-02-03',
+    due_date: '2020-02-07',
+  });
+  // Saine : échéance très lointaine et validée — elle n'attend rien de personne.
+  const saineId = await createRecurringTask(token, `RecPreview saine ${marqueur}`, {
+    start_date: '2099-12-28',
+    due_date: '2099-12-31',
+  });
+  await execute("UPDATE tasks SET status = 'validated' WHERE id = ?", [saineId]);
+
+  const res = await request(app)
+    .get('/api/tasks/recurring-preview')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+
+  const ids = (res.body.series || []).map((s) => String(s.task_id));
+  const rangBloquee = ids.indexOf(String(bloqueeId));
+  const rangSaine = ids.indexOf(String(saineId));
+  assert.ok(rangBloquee >= 0, 'la série bloquée figure dans la prévision');
+  assert.ok(rangSaine >= 0, 'la série saine figure dans la prévision');
+  assert.ok(
+    rangBloquee < rangSaine,
+    `la série bloquée (rang ${rangBloquee}) doit précéder la série validée (rang ${rangSaine})`,
+  );
+});
+
+test('recurring-preview : l’ordre annoncé est celui qui survit au plafond', async () => {
+  const token = await getAdminAuthToken();
+  await createRecurringTask(token, `RecPreview ordre ${Date.now()}`, {
+    start_date: '2020-03-02',
+    due_date: '2020-03-06',
+  });
+
+  const res = await request(app)
+    .get('/api/tasks/recurring-preview')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+
+  const lignes = res.body.series || [];
+  assert.ok(lignes.length > 0, 'la prévision n’est pas vide');
+  // L'invariant porte sur toute la réponse, pas seulement sur les séries du test : c'est
+  // lui, et pas le contenu, qui décide de ce que le plafond garde.
+  let dejaValidee = false;
+  let echeancePrecedente = '';
+  for (const ligne of lignes) {
+    const bloquee = ligne.pending === 'validation';
+    if (bloquee) {
+      assert.ok(!dejaValidee, `série en attente après une série validée : ${ligne.title}`);
+    } else if (!dejaValidee) {
+      dejaValidee = true;
+      echeancePrecedente = '';
+    }
+    const echeance = String(ligne.current_due || '');
+    assert.ok(
+      echeance >= echeancePrecedente,
+      `échéances non croissantes dans le groupe : ${echeancePrecedente} puis ${echeance}`,
+    );
+    echeancePrecedente = echeance;
+  }
+});
+
+test('recurring-preview : la troncature est annoncée, jamais silencieuse', async () => {
+  const token = await getAdminAuthToken();
+  const res = await request(app)
+    .get('/api/tasks/recurring-preview')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+
+  assert.strictEqual(typeof res.body.truncated, 'boolean', '`truncated` est toujours présent');
+  assert.strictEqual(typeof res.body.limit, 'number', '`limit` dit où la liste s’arrête');
+  assert.ok(res.body.limit > 0);
+  assert.ok(
+    (res.body.series || []).length <= res.body.limit,
+    'la liste ne dépasse jamais le plafond annoncé',
+  );
+  // Sans troncature, `series` est complète : le front peut alors conclure qu'une série
+  // absente de la réponse n'a réellement pas de prochaine occurrence.
+  if (!res.body.truncated) {
+    assert.ok((res.body.series || []).length < res.body.limit + 1);
+  }
+});
