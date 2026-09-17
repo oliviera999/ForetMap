@@ -9,6 +9,35 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — préparation du passage du dépôt en privé
+
+- **`.cursorignore`** à la racine : `.gitignore` ne protège que git, un fichier ignoré reste
+  présent sur le disque et donc **indexable par l'éditeur**. Cursor embarquait ainsi `.env`
+  (`JWT_SECRET`, `DB_PASS`, `DEPLOY_SECRET`, SMTP), `backups/` et `sql/dumps/` (dumps bruts
+  avec données personnelles d'élèves), `uploads/` (photos déposées) et `logs/`. Ces chemins
+  sont désormais exclus de l'indexation ; le fixture anonymisé versionné reste accessible.
+- **Plus d'adresse personnelle dans le code.** `GOOGLE_ALLOWED_EMAILS_DEFAULT` ne porte plus
+  l'adresse Gmail de l'administrateur : elle la publiait dans un dépôt **et** désignait le
+  compte à privilèges. La liste par défaut est vide ; les dérogations hors des domaines de
+  l'établissement passent par `GOOGLE_OAUTH_ALLOWED_EMAILS` (CSV).
+  **⚠ Action requise avant déploiement** : renseigner cette variable côté serveur, sinon la
+  connexion *Google* d'un compte hors domaine cesse de fonctionner (l'identifiant + mot de
+  passe reste disponible). L'avertissement de `lib/env.js` au démarrage le rappelle.
+- **Gabarit d'import joueurs GL** : l'adresse d'exemple passe de `@pedagolyautey.org` à
+  `@example.org` (domaine réservé RFC 2606). Le nom était fictif, mais le domaine réel
+  publiait la convention `prénom.nom@` de l'établissement — de quoi énumérer des adresses
+  valides sans rien deviner.
+- **`auto-resolve-conflicts.yml`** : filet de sécurité planifié de **toutes les heures** à
+  **toutes les 6 heures**. Sur un dépôt privé les minutes Actions sont décomptées du quota du
+  plan, et 720 exécutions mensuelles pour ne rien faire la plupart du temps en consommaient
+  une part majeure — quota épuisé, c'est aussi `version-bump` et `frontend-dist` qui
+  s'arrêtent, donc la chaîne de release. Le cas réel (`main` avance et met une PR en conflit)
+  reste couvert par le déclencheur `push`.
+- **`docs/EXPLOITATION.md` § 11 « Dépôt privé »** : accès du serveur au dépôt par clé de
+  déploiement en lecture seule — `scripts/auto-deploy-cron.sh` tire aujourd'hui en HTTPS
+  **anonyme** et s'arrêterait en silence dès la bascule —, quota Actions, et rappel de ce que
+  la bascule ne répare pas (elle ferme l'accès futur, elle n'efface pas le passé).
+
 ### Corrigé — connexion Google impossible depuis proflyautey
 
 - « **Connexion Google invalide (session expirée). Réessayez depuis ForetMap.** » à chaque

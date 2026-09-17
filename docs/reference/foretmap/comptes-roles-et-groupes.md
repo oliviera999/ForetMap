@@ -28,6 +28,15 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   création automatique élève est activée et qu'aucun compte enseignant ne correspond,
   un **compte visiteur** peut être créé à la place : un avertissement le signale alors
   clairement.
+- **Seules les adresses des domaines du lycée sont acceptées par Google.** Une adresse
+  Google **hors** de ces domaines — typiquement l'adresse personnelle d'un administrateur —
+  est refusée tant qu'elle n'a pas été **déclarée explicitement** dans la configuration du
+  serveur (variable `GOOGLE_OAUTH_ALLOWED_EMAILS`, plusieurs adresses séparées par des
+  virgules). Aucune adresse personnelle n'est inscrite d'avance : c'est volontaire, le code
+  du projet étant hébergé sur un dépôt. Si un administrateur se connectait jusqu'ici avec
+  une adresse personnelle, cette variable doit être renseignée sur le serveur, sinon sa
+  connexion Google échouera (la connexion par identifiant + mot de passe reste, elle,
+  disponible).
 - **L'inscription des élèves est autonome** : prénom, nom, mot de passe (pseudo,
   e-mail, description et affiliation optionnels). Un administrateur peut désactiver
   l'inscription libre dans les réglages. Le **pseudo** accepte les lettres (y compris
