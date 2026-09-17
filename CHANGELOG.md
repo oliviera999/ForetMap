@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — lancer l'e2e casse `npm test` sur la même base, et c'est mesuré
+
+- `npm test` lancé **juste après** la suite e2e donne **32 échecs** ; le même `npm test` sur une
+  base reconstruite par `npm run db:init` en donne **0** (3 677 réussites). `foretmap_test` est
+  partagée entre les deux suites, et la CI ne le voit jamais puisqu'elle part d'une base neuve.
+- Le § 4 de `docs/AUDIT_SUITE_E2E_2026-09-17.md` listait ce partage comme risque ; il porte
+  désormais la mesure. Réserve consignée : le journal du run fautif a été écrasé avant relevé
+  des noms, donc le phénomène est documenté, pas la liste des tests concernés.
+- **Pratique à connaître en attendant** : après un `npm run test:e2e` local, rejouer
+  `npm run db:init` avant `npm test`.
+
+
 ### Corrigé — la suite e2e était rouge depuis des semaines, sans que personne le voie
 
 **Résultat : 88 réussites / 14 échecs / 1 fragile / 5 jamais exécutés → 109 réussites, 5 sautés,
