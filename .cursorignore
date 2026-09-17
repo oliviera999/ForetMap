@@ -1,0 +1,46 @@
+# ForetMap — fichiers que Cursor ne doit ni indexer, ni envoyer au modèle.
+#
+# Le dépôt porte du code et du contenu pédagogique ; les données personnelles
+# (élèves mineurs) et les secrets de production vivent uniquement dans des
+# fichiers NON versionnés, donc invisibles pour `.gitignore` côté Cursor.
+# Sans ce fichier, l'indexation du workspace les embarque malgré tout.
+#
+# Complément indispensable de `.gitignore` : un fichier ignoré par git reste
+# présent sur le disque, donc indexable. Voir docs/EXPLOITATION.md § « Dépôt
+# privé ».
+
+# Secrets de production (JWT_SECRET, DB_PASS, DEPLOY_SECRET, SMTP…)
+.env
+.env.*
+!.env.example
+
+# Sauvegardes et exports de base : dumps BRUTS avec PII (users, gl_players,
+# password_reset_tokens, audit_log, forum_*). Le fixture anonymisé versionné
+# (sql/fixtures/) reste, lui, indexable.
+backups/
+sql/dumps/
+*.sql.gz
+!sql/fixtures/*.sql.gz
+*.prod-dump.sql
+
+# Photos déposées par les élèves et les professeurs (zones, task-logs, forum)
+uploads/
+
+# Médias GL importés localement
+médias/
+medias/
+
+# Journaux applicatifs : peuvent contenir pseudos, e-mails, identifiants de requête
+logs/
+*.log
+startup.log
+startup-diag.log
+
+# Artefacts lourds sans valeur de contexte
+node_modules/
+dist/
+deploy/
+coverage/
+playwright-report/
+test-results/
+blob-report/
