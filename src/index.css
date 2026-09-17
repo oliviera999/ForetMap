@@ -60,15 +60,17 @@
       --leaf:     #2d6a4f;
       --sage:     #52b788;
       --mint:     #b7e4c7;
-      /* Un SEUL ordre de pile emoji partout : 'ForetMapColorEmoji' (Noto auto-hébergé,
-         unicode-range emoji) AVANT les polices système → le même caractère sort de la même
-         fonte sur tous les appareils et dans tous les écrans. Avant, --font-sans le plaçait
-         en dernier : une épingle (pile emoji) et un emoji resté dans un nom de zone
-         (pile sans) affichaient deux dessins différents sur le même plan.
+      /* Un SEUL ordre de pile emoji partout, dans le même ordre que --font-emoji-stack :
+         'Apple Color Emoji' d'abord (seul dessin fiable sur WebKit), puis 'ForetMapColorEmoji'
+         pour tout le reste du parc. Ce qui compte est que les DEUX piles — celle des emojis et
+         celle du texte — citent les mêmes familles dans le même ordre : sinon une épingle
+         (pile emoji) et un emoji resté dans un nom de zone (pile sans) sortent de deux fontes
+         différentes sur le même plan, le défaut corrigé par AUDIT_UI_HOMOGENEITE_2026-09 § A3.
+         Ordre inversé le 17/09 : docs/AUDIT_EMOJIS_APPLE_2026-09-17.md § 7, option A.
          Seule --font-sans est propre au produit ; --font-emoji-stack, --font-sans-with-emoji
          et les tokens typographiques (--text-*, --fw-*, --lh-*, --ink-*) viennent de
          shared/styles/typography-tokens.css (@import en tête), commune aux deux entrées. */
-      --font-sans: 'DM Sans', 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+      --font-sans: 'DM Sans', 'Apple Color Emoji', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
       --cream:    #fefae0;
       --parchment:#f4e9d0;
       --soil:     #6b4226;
@@ -121,7 +123,7 @@
       overflow-x:hidden;
       overflow-y:auto;
     }
-    h1,h2,h3 { font-family:'Playfair Display', 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', serif; }
+    h1,h2,h3 { font-family:'Playfair Display', 'Apple Color Emoji', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Noto Color Emoji', serif; }
     /* min-width:0 sur la chaîne flex : évite qu’un enfant (grille, texte long) impose une largeur
        minimale au document et déclenche un scroll horizontal sur mobile. */
     #root { display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; width:100%; max-width:100%; min-width:0; overflow-x:hidden; }
@@ -334,7 +336,8 @@
       box-shadow:0 10px 26px rgba(0,0,0,.14);
     }
     header .logo {
-      display:flex; align-items:center; gap:8px; font-family:'Playfair Display',serif; font-size:var(--text-md);
+      display:flex; align-items:center; gap:8px; font-size:var(--text-md);
+      font-family:'Playfair Display', 'Apple Color Emoji', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Noto Color Emoji', serif;
       min-width:0; flex-shrink:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
       flex-wrap:nowrap;
     }
@@ -3138,7 +3141,7 @@
     .stat-card:nth-child(3) { animation-delay:.15s }
     .stat-card:nth-child(4) { animation-delay:.2s }
     .stat-card.highlight { border-color:var(--sage); background:#f7fef9; }
-    .stat-number { font-family:'Playfair Display',serif; font-size:clamp(1.85rem, 1.45rem + 1vw, 2.2rem); font-weight:var(--fw-bold); color:var(--forest); line-height:1; }
+    .stat-number { font-family:'Playfair Display', 'Apple Color Emoji', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Noto Color Emoji', serif; font-size:clamp(1.85rem, 1.45rem + 1vw, 2.2rem); font-weight:var(--fw-bold); color:var(--forest); line-height:1; }
     .stat-label { font-size:var(--text-xs); color:var(--ink-muted); margin-top:4px; text-transform:uppercase; letter-spacing:.07em; }
     .stat-icon { font-size:var(--text-lg); margin-bottom:6px; }
     .activity-list { background:white; border-radius:14px; padding:14px; box-shadow:0 1px 6px rgba(0,0,0,.05); }
@@ -3162,7 +3165,9 @@
       animation:fadeIn .22s var(--ease-out) both;
     }
     .lb-row:last-child { border-bottom:none; }
-    .lb-rank { font-family:'Playfair Display',serif; font-size:var(--text-md); font-weight:var(--fw-bold); color:var(--leaf); width:28px; text-align:center; flex-shrink:0; }
+    /* 🥇🥈🥉 du classement : sans la pile emoji, la médaille sortait de la police SYSTÈME,
+       pas de celle du reste de l'écran (EMO-APL-006). */
+    .lb-rank { font-family:'Playfair Display', 'Apple Color Emoji', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Noto Color Emoji', serif; font-size:var(--text-md); font-weight:var(--fw-bold); color:var(--leaf); width:28px; text-align:center; flex-shrink:0; }
     .lb-rank.gold   { color:#b45309; }
     .lb-rank.silver { color:var(--ink-muted); }
     .lb-rank.bronze { color:var(--ink-warning); }
@@ -5315,13 +5320,20 @@
     .map-view-canvas-outer .map-route-bar{position:absolute;}
     .map-route-bar__head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
     .map-route-bar__titles{min-width:0;flex:1;}
-    .map-route-bar__route{margin:0 0 2px;color:var(--ink-soft);font-size:var(--text-sm);}
+    /* Rappel du parcours : **une ligne** (un titre long repoussait l'étape et les commandes
+       hors de l'écran — `docs/AUDIT_PARCOURS_2026-09-17.md` §2.7). */
+    .map-route-bar__route{
+      margin:0 0 2px;color:var(--ink-soft);font-size:var(--text-sm);
+      display:-webkit-box;-webkit-line-clamp:1;line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;
+    }
     .map-route-bar__step{display:flex;align-items:center;gap:8px;margin:0;font-size:var(--text-md);line-height:1.3;}
     .map-route-bar__quit{
       flex-shrink:0;min-height:44px;padding:0 12px;border:1px solid var(--line-soft);border-radius:999px;
       background:transparent;color:inherit;font:inherit;cursor:pointer;
     }
     .map-route-bar__text{margin:0;line-height:1.5;}
+    /* Texte déplié : il défile plutôt que de pousser la barre sur la moitié de l'écran. */
+    .map-route-bar__text.is-expanded{max-height:28vh;overflow-y:auto;}
     .map-route-bar__more{
       margin-left:8px;border:0;padding:0;background:none;color:var(--leaf);
       font:inherit;font-weight:600;cursor:pointer;text-decoration:underline;

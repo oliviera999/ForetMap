@@ -37,6 +37,113 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   déploiement en lecture seule — `scripts/auto-deploy-cron.sh` tire aujourd'hui en HTTPS
   **anonyme** et s'arrêterait en silence dès la bascule —, quota Actions, et rappel de ce que
   la bascule ne répare pas (elle ferme l'accès futur, elle n'efface pas le passé).
+### Corrigé — « Reprendre le parcours » redémarrait à l'étape 1
+
+- Sur les trois surfaces (Plan Lyautey, plan des personnels, Visite, carte de travail), quitter
+  un parcours à l'étape 7 puis le reprendre rendait la main à l'étape **1** : « Reprendre »
+  appelait le démarrage, qui remet la position à zéro. Le bouton promet pourtant l'inverse, et
+  l'aide du plan aussi.
+- La sortie mémorise désormais le parcours **et l'étape**, et la reprise repart de là. Relancer
+  le parcours depuis la liste repart bien du début, et un parcours dont des lieux ont disparu
+  entre-temps reprend à sa dernière étape encore existante.
+- L'étape est en outre écrite sur l'appareil (une clé par surface et par carte) : elle survit à
+  un rechargement de page — la situation du visiteur qui a scanné un QR code et verrouille son
+  téléphone entre deux étapes. Rien ne part vers le serveur, conformément à la promesse faite
+  au visiteur. Une reprise qui ne désigne plus aucun parcours publié s'efface d'elle-même.
+- Tests : `tests-ui/shared/useMapRouteMode.test.jsx` (14 cas — le noyau partagé n'avait aucun
+  test direct), l'assertion manquante après le clic sur « Reprendre » dans
+  `tests-ui/plan/AppPlanMount.test.jsx`, et le scénario e2e du Plan, qui reprend puis recharge
+  la page.
+
+### Corrigé — barre d'étape : titre débordant, texte sans plafond, carte recadrée dessous
+
+- Le **titre du parcours**, rappelé au-dessus de l'étape, n'était pas borné : trois lignes pour
+  un titre de 75 caractères, six pour les 180 que le serveur accepte, autant de moins pour
+  l'étape et les commandes. Il tient sur une ligne, avec ellipse.
+- Le **texte d'une étape déplié** n'avait pas de plafond : quatre phrases donnaient à la barre
+  la moitié d'un écran de téléphone. Il défile au-delà de 28 % de la hauteur.
+- La carte **recadrait l'étape courante sous la barre** : le décalage annoncé était une
+  constante de 148 px, quand la barre en occupe 275 repliée et 383 dépliée (mesuré à
+  390 × 844). La barre mesure maintenant sa propre hauteur et la remonte ; la Visite et la carte
+  de travail, qui ne passaient aucun décalage, le passent aussi.
+- La puce « Parcours » compte désormais les étapes **affichables**, comme la barre, et non
+  celles servies par l'API.
+
+### Modifié — le mode parcours n'existe plus qu'en un exemplaire
+
+- `src/plan/AppPlan.jsx` portait sa propre copie de l'état du mode parcours, là où la Visite et
+  la carte de travail passaient déjà par `useMapRouteMode`. Les deux avaient divergé (toast de
+  sortie, mesure d'usage, aperçu d'un lieu pendant le parcours) et tout défaut commun était à
+  corriger deux fois.
+- Le plan passe au noyau partagé ; ses trois apports y montent en rappels optionnels
+  (`onExit`, `onUsage`, `onStartExtra`) et l'aperçu devient une fonction du hook. Les surfaces
+  qui ne fournissent pas ces rappels se comportent exactement comme avant.
+- Le noyau, qui n'avait aucun test direct, en a sept ; l'aperçu « Revenir à l'étape » a son test
+  de montage, et le scénario e2e du plan exerce la reprise, rechargement compris.
+
+### Corrigé — éditeur de parcours : identifiant effacé, doublons, bornes de saisie
+
+- Effacer le champ « Identifiant du lien » à la modification répondait **400** (« Slug
+  invalide »), alors que le champ annonce « laissé vide : dérivé du titre ». Le slug est
+  re-dérivé du titre, comme à la création ; le champ **absent**, lui, conserve toujours la
+  valeur existante.
+- Un lieu **déjà présent** dans le parcours était refusé en silence par l'éditeur, alors que le
+  serveur l'accepte — un parcours repasse légitimement par l'accueil. Il est ajouté, et la
+  suggestion indique « déjà à l'étape 2 ».
+- La limite de 60 étapes était muette : le clic ne faisait rien. Les suggestions se désactivent
+  et le compteur l'annonce.
+- `maxLength` sur les cinq champs bornés par le serveur (titre, public visé, description, titre
+  et texte d'étape), compteur près de la limite pour la description, bornes sur le champ
+  « Ordre » : on n'apprend plus une limite au refus, après un aller-retour.
+- `GET /api/map-routes/manage` applique le périmètre de cartes du compte, comme le catalogue
+  public — sans effet pratique, mais la dissymétrie se lisait comme une garde.
+
+### Corrigé — la suite e2e laissait l'inscription fermée derrière elle
+
+- `e2e/global-setup.js` force `ui.auth.allow_register` à `false` (la configuration de
+  production) sans jamais le restaurer : tout `npm test` lancé ensuite sur la même base
+  échouait en masse — 32 cas, tous en 403 sur la création de compte, sans que le code y soit
+  pour rien. Un `e2e/global-teardown.js` repose la valeur d'origine.
+
+### Sécurité — les catalogues de parcours des surfaces internes se lisaient sans compte
+
+- `GET /api/map-routes?surface=staff` servait à un visiteur **non authentifié** le titre, la
+  description, le public visé et le **texte des étapes** des parcours réservés aux personnels,
+  quand `GET /api/staff-plan/content` répond 401 sur le même contenu. Idem `?surface=map`
+  (carte de travail) et `GET /api/map-routes/:idOrSlug`, qui ne regardait aucune surface. La
+  surface `staff`, ajoutée par la migration `260`, n'avait jamais été prise en compte par la
+  garde du routeur : seule celle du Plan Lyautey y existait.
+- Chaque surface porte désormais la garde de sa propre charge (`guardSurfaceRead`) : `plan` →
+  garde du plan (inchangé), `visit` → ouvert (inchangé), `map` → compte requis, `staff` →
+  `resolveStaffPlanViewer`, exactement ce qu'exige `/api/staff-plan/content`. Le détail
+  `/:idOrSlug`, porte du lien profond imprimé, ne sert plus que les parcours publiés sur une
+  surface publique : un parcours interne y répond **404**, comme une affiche périmée.
+- `sort_order` hors des bornes d'un `INT` répondait **500** (`ER_WARN_DATA_OUT_OF_RANGE`) : le
+  champ « Ordre » de l'éditeur est un `<input type="number">` sans butée. C'est un **400**
+  lisible, et un champ vide conserve le rang existant.
+- Tests : trois cas de non-régression dans `tests/map-routes.test.js` (catalogue `staff` / `map`
+  anonyme, détail d'un parcours interne, rang hors bornes). `docs/API.md` mis à jour — la
+  surface `staff` y manquait aussi.
+
+### Documentation — audit du système de parcours (deuxième passe)
+
+- `docs/AUDIT_PARCOURS_2026-09-17.md` : audit de bout en bout des parcours, de la table
+  `map_routes` aux trois fronts. Reprend l'état des neuf constats du premier audit (2026-09-04,
+  tous tenus) et en pose six nouveaux, dont deux corrigés dans le même lot (ci-dessus).
+- Restent ouverts et documentés : « Reprendre le parcours » redémarre à l'étape 1 sur les trois
+  surfaces (§2.2), effacer l'identifiant du lien refuse l'enregistrement contre ce qu'annonce le
+  champ (§2.3), et le mode parcours existe en deux exemplaires — `useMapRouteMode` pour la
+  Visite et la carte, une copie propre dans `AppPlan.jsx` (§2.5).
+- Indexé dans `docs/audits/README.md`.
+### Corrigé — Prof de classe : l'application ne reste plus figée au chargement
+
+- Un compte enseignant **sans** la permission « Accès interface n3boss » (profil dérivé,
+  ou case décochée avant le verrouillage de la console) passait bien la connexion, puis
+  restait sur « Chargement de la forêt… » : les cartes et les tâches n'étaient jamais
+  demandées, et la session n'était plus prolongée (déconnexion au bout d'1 h 30).
+  Le chargement et le renouvellement de session suivent désormais la session ouverte,
+  pas ce droit d'encadrement. Tests de montage d'`App` mis à jour.
+
 ### Ajouté — liens dans les descriptions de repères et de zones (3 lots)
 
 **Lot 1 — parité d'édition, d'affichage et de surface.**
@@ -127,6 +234,58 @@ lieu », avec l'avertissement qu'un lien n'est confidentiel que si sa cible l'es
 - Le correctif précédent (mémoriser l'origine de départ) était incomplet : il ne servait à rien
   tant que son propre cookie restait sur un hôte que le rappel ne voit jamais.
 
+### Corrigé — emojis illisibles sur iPhone, iPad et Mac
+
+- **Les appareils Apple utilisent désormais leurs propres emojis.** La pile de polices plaçait
+  partout `ForetMapColorEmoji` (Noto auto-hébergé) **avant** `Apple Color Emoji`. Or WebKit
+  n'implémente ni COLRv1 ni COLRv0 : un iPhone ne pouvait dessiner cette police que par sa table
+  OT-SVG — 20,1 Mo des 25,1 Mo décompressés — voie documentée comme instable, les glyphes
+  disparaissant au zoom. Or l'écran principal est une carte que l'on zoome, couverte d'emojis.
+  `'Apple Color Emoji'` passe en tête des quatre piles (`typography-tokens.css`, `index.css`,
+  `gl-base.css`, `plan.css`) : aucune détection de plateforme, les machines non-Apple n'ont pas
+  cette police et tombent sur `ForetMapColorEmoji` comme avant — **leur rendu ne change pas**.
+- **5,7 Mo de moins à télécharger sur Apple**, et le `preload` de la police disparaît des deux
+  entrées HTML. Un `preload` de police est inconditionnel et part avant l'analyse du CSS : il
+  annulait l'`unicode-range` du `@font-face` et imposait le fichier à tous les appareils — soit
+  **11× le bundle principal** (498 Ko). Mesuré (Chromium et WebKit) : une police emoji résidente
+  placée devant fait tomber la webfont à **zéro requête**.
+- Trois piles affichaient des emojis sans repli emoji déclaré, dont `.lb-rank` (🥇🥈🥉 du
+  classement) : la médaille sortait de la police **système**, pas de celle du reste de l'écran.
+- Cliquet `tests-ui/utils/emojiFontStacks.test.js` : interdit de replacer la police
+  auto-hébergée devant celle d'Apple, ou de réintroduire un `preload`, sans que le test tombe.
+- L'arbitrage revient sur la décision A3 de `AUDIT_UI_HOMOGENEITE_2026-09.md` (« même dessin
+  d'emoji sur tous les appareils ») : il reste tenu **à l'intérieur d'un même écran** — le vrai
+  défaut d'origine, une épingle et un emoji de nom de zone dessinés différemment côte à côte —
+  mais plus **entre** un iPhone et un Android. Détail : `AUDIT_EMOJIS_APPLE_2026-09-17.md` § 7.
+
+### Documentation — audit de l'affichage des emojis sur appareils Apple
+
+- [`docs/AUDIT_EMOJIS_APPLE_2026-09-17.md`](docs/AUDIT_EMOJIS_APPLE_2026-09-17.md) : chaîne
+  complète d'affichage d'un emoji (fichier de police, `@font-face`, ordre des piles, livraison
+  HTTP, cache hors ligne), avec mesures — lecture table par table du WOFF2 livré et sondes de
+  rendu Chromium/WebKit pilotées par Playwright.
+- **Constat principal (EMO-APL-001)** : la pile impose `ForetMapColorEmoji` (Noto auto-hébergé)
+  avant `Apple Color Emoji` sur tous les appareils. WebKit n'implémentant ni COLRv1 ni COLRv0,
+  un iPhone ne peut dessiner cette police que par sa table OT-SVG — 20,1 Mo des 25,1 Mo
+  décompressés — voie documentée comme instable (glyphes qui disparaissent au zoom, or l'écran
+  principal est une carte que l'on zoome). Le rendu Chrome/Android, qui passe par COLRv1, n'est
+  pas concerné. Aucun bug dans le code ForetMap : c'est un choix de police, et l'arbitrage
+  (§ 7 de l'audit) revient à l'équipe.
+- **EMO-APL-003** : le `<link rel="preload">` des deux entrées HTML annule l'optimisation
+  `unicode-range` documentée juste à côté — 5,7 Mo téléchargés inconditionnellement à la
+  première visite, soit **11× le bundle principal** (498 Ko). Mesuré : une police système placée
+  devant fait tomber la webfont à **zéro requête** (Chromium et WebKit).
+- Écartés après vérification : réparation du mojibake, détection du préfixe emoji
+  (`Intl.Segmenter`), rendu des `<text>` SVG de la carte, CSP, divergence des trois
+  `unicode-range`.
+
+### Corrigé — polices servies sans en-tête de cache
+
+- `/fonts/*` sortait avec les défauts d'`express.static` (`max-age=0` + ETag) : une revalidation
+  réseau à chaque chargement de page pour 5,7 Mo, et un re-téléchargement complet dès purge du
+  cache HTTP. `lib/staticCacheHeaders.js` pose désormais 30 jours sur `dist/fonts/` — sans
+  `immutable`, le nom du fichier n'étant pas haché (il change à chaque
+  `npm run fonts:sync-noto-emoji`). Test : `tests/static-cache-headers.test.js`.
 ### Corrigé — « Reprendre le parcours » redémarrait à l'étape 1
 
 - Sur les trois surfaces (Visite, carte de travail, Plan Lyautey), le bouton **« Reprendre le
