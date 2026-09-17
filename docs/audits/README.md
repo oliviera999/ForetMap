@@ -48,6 +48,7 @@ casser les liens existants.
 | [`AUDIT_UI_2026-09-16.md`](../AUDIT_UI_2026-09-16.md)                                             | UI transverse : bugs d'accessibilité des surcouches, association des champs, tokenisation de la couleur                                             | Instantané 16 sept. 2026 — lot A traité, lots B/C/D ouverts                                      |
 | [`AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](../AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md)           | UI : apparence des champs, des listes déroulantes et des barres d'onglets (six rendus de `<select>`, quatre barres d'onglets, classes CSS fantômes) | Instantané 17 sept. 2026 — **champs et onglets traités**, surfaces / tableaux / libellés ouverts |
 | [`AUDIT_ENVIRONNEMENT_TESTS_2026-09-16.md`](../AUDIT_ENVIRONNEMENT_TESTS_2026-09-16.md)           | Environnement d'exécution des sessions Claude Code & CI GitHub — ce qui est testable, à quel coût, et l'état réel de la suite e2e                   | Instantané 16 sept. 2026 — amorçage et anonymisation livrés, P1–P3 ouverts                       |
+| [`AUDIT_CHARGE_VOLUMETRIE_REELLE_2026-09-17.md`](../AUDIT_CHARGE_VOLUMETRIE_REELLE_2026-09-17.md) | Charge des listes rejouée sur la volumétrie de production (fixture anonymisé) — poids réels, N+1, campagne Artillery                                | Instantané 17 sept. 2026 — **infirme** l'alerte « 912 Ko », confirme le correctif de septembre   |
 
 ## Chantiers / specs encore utiles comme consigne
 
