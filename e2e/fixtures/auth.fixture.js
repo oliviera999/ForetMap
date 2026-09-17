@@ -677,6 +677,59 @@ async function openFirstZoneModalFromMap(page) {
   throw new Error('Aucune modale zone ouverte depuis la carte');
 }
 
+/**
+ * Ouvre la fiche d'une zone **nommée** depuis la carte prof.
+ *
+ * Cliquer le bouton accessible qui porte le nom de la zone n'ouvre pas la fiche : la cible
+ * cliquable est le `polygon` du `.map-zone-hit`, et il faut parfois retomber sur un `MouseEvent`
+ * distribué à la main — c'est déjà ce que fait `openFirstZoneModalFromMap`, qui ne savait pas
+ * viser une zone précise. `teacher-zone-contour-edit` cliquait le bouton et attendait en vain.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string} zoneName nom exact de la zone
+ */
+async function openZoneModalByName(page, zoneName) {
+  await waitForTeacherMapReady(page);
+  const zoneDlg = page.getByRole('dialog', {
+    name: new RegExp(`^Zone ${escapeForRegExp(zoneName)}`),
+  });
+  // Le `<g class="map-zone-hit">` **est** le bouton : rôle, `aria-label` et `onKeyDown` sont
+  // portés par le groupe lui-même (`ZonePolygonsLayer.jsx`), pas par un enfant. D'où deux
+  // pièges : un `filter({ has: … })` ne trouve rien, et un clic « forcé » vise le centre de la
+  // boîte englobante du groupe — qui, pour un polygone, peut tomber hors de la forme ou sur une
+  // zone voisine. `Enter` sur le groupe focalisé passe outre tout le test de survol.
+  const zoneButton = page.getByRole('button', { name: zoneName, exact: true }).first();
+  await zoneButton.waitFor({ state: 'attached', timeout: 20_000 });
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await zoneButton.focus().catch(() => {});
+    await zoneButton.press('Enter').catch(() => {});
+    if (
+      await zoneDlg
+        .waitFor({ state: 'visible', timeout: 3_000 })
+        .then(() => true)
+        .catch(() => false)
+    ) {
+      return zoneDlg;
+    }
+    await zoneButton.locator('polygon').first().click({ force: true, timeout: 5_000 });
+    if (
+      await zoneDlg
+        .waitFor({ state: 'visible', timeout: 3_000 })
+        .then(() => true)
+        .catch(() => false)
+    ) {
+      return zoneDlg;
+    }
+    await page.keyboard.press('Escape');
+  }
+  throw new Error(`Fiche de la zone « ${zoneName} » non ouverte depuis la carte`);
+}
+
+/** Échappe une chaîne destinée à une `RegExp` (noms de zones e2e horodatés). */
+function escapeForRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /** Réinitialise les filtres liste tâches (évite les listes vides e2e après vue élève + filtres carte/statut). */
 async function resetTaskFiltersInTasksView(page) {
   let openedFiltersSheet = false;
@@ -1403,6 +1456,7 @@ module.exports = {
   syncStudentSessionToken,
   waitForTeacherMapReady,
   openFirstZoneModalFromMap,
+  openZoneModalByName,
   openTeacherTasksTab,
   openStudentTasksTab,
   teacherTasksViewLocator,

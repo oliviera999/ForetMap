@@ -5,9 +5,10 @@
 Tous venaient de specs restées sur une interface ou une règle qui avait changé sous elles — et
 que rien ne rattrapait, parce que personne ne lance la suite en entier.
 
-**Verdict** : les quatorze sont réparés. La cause n'est pas la qualité des specs prises une à
-une, c'est qu'un refactor d'interface ne casse pas le build, ne casse pas les tests unitaires, et
-ne se voit qu'au moment où quelqu'un joue la suite complète.
+**Verdict** : les quatorze sont réparés, et le test fragile avec eux — **113 réussites, 0 échec**.
+La cause n'est pas la qualité des specs prises une à une, c'est qu'un refactor d'interface ne
+casse pas le build, ne casse pas les tests unitaires, et ne se voit qu'au moment où quelqu'un joue
+la suite complète.
 
 ---
 
@@ -78,14 +79,25 @@ retrouvaient sur l'écran de connexion. Elle reconnecte maintenant le profil qu'
   connecté ne lit plus. Le CHANGELOG le dit, avec l'effet de bord assumé. La spec vérifiait la
   promesse inverse. Elle est scindée en deux tests, un par mécanisme.
 
-### 3.5 Un drapeau désactivé par défaut
+### 3.5 Un budget de temps jamais relevé
+
+`teacher-zone-contour-edit` était le seul scénario de son poids — création de compte, élévation
+prof, carte complète — à garder le budget par défaut de 60 s, là où `tasks-full-cycle` et
+`modals-responsive` se donnent 300 s et plus. Il tient en 2 min 20 sur une base un peu chargée.
+Deux pièges s'y ajoutaient : le `<g class="map-zone-hit">` **est** le bouton (rôle et `aria-label`
+portés par le groupe), si bien qu'un `filter({ has: … })` ne trouve rien ; et un clic « forcé »
+vise le centre de la boîte englobante, qui pour un polygone peut tomber hors de la forme. Le
+nouvel helper `openZoneModalByName` active la zone au clavier — `Enter` passe outre tout le test
+de survol.
+
+### 3.6 Un drapeau désactivé par défaut
 
 `gameplay.market_hearts_enabled` vaut `false` : le champ « Cœurs » n'est pas rendu, et le serveur
 refuse tout montant en cœurs. Le scénario « échange 1 cœur contre 1 gemme » attendait une
 interface que personne ne sert. Un test qui couvre une fonctionnalité derrière un drapeau doit
 l'activer lui-même — et le remettre comme il l'a trouvé.
 
-### 3.6 Le run précédent cassait le suivant
+### 3.7 Le run précédent cassait le suivant
 
 C'est le seul cas où la volumétrie compte, et il est instructif. Les `afterEach` de nettoyage sont
 conditionnés à la réussite du `beforeEach` : **un run en échec ne nettoie rien**. Sept exemplaires
@@ -108,6 +120,12 @@ Rien de ce qui précède ne dit que la suite restera verte. Trois points, aucun 
    pas le mécanisme.
 3. **`foretmap_test` est partagée** entre `npm test` et l'e2e. Une base par suite supprimerait
    toute une classe d'interférences, au prix d'un peu d'outillage.
+4. **Un `data-testid` et un `aria-label` en double.** `GLBoardChrome.jsx` et `MusicPlayer.jsx`
+   montent tous deux `GLZoneMusicMuteButton` : selon l'ordre de rendu, le mode strict de
+   Playwright voyait un élément ou deux — d'où le test fragile. La spec est rendue déterministe,
+   mais le doublon reste : deux commandes annoncées **à l'identique** sur un même écran est
+   d'abord un défaut d'accessibilité. Lequel des deux doit disparaître est une décision
+   d'interface, pas de test.
 
 ---
 
