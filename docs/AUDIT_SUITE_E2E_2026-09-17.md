@@ -123,8 +123,13 @@ Rien de ce qui précède ne dit que la suite restera verte. Trois points, aucun 
 2. **Le nettoyage conditionnel.** Tant qu'un `afterEach` dépend de la réussite du `beforeEach`,
    un échec continuera d'en produire d'autres. La purge au démarrage compense ; elle ne corrige
    pas le mécanisme.
-3. **`foretmap_test` est partagée** entre `npm test` et l'e2e. Une base par suite supprimerait
-   toute une classe d'interférences, au prix d'un peu d'outillage.
+3. **`foretmap_test` est partagée** entre `npm test` et l'e2e, et ce n'est pas théorique :
+   `npm test` lancé **juste après** la suite e2e a donné **32 échecs**, quand le même `npm test`
+   sur une base reconstruite par `npm run db:init` en donne **0** (3 677 réussites). La CI ne le
+   voit jamais, puisqu'elle part d'une base neuve. Réserve d'honnêteté : le journal du run
+   fautif a été écrasé avant que j'en relève les noms, donc je documente le phénomène, pas la
+   liste. Une base par suite supprimerait toute cette classe d'interférences, au prix d'un peu
+   d'outillage.
 4. **Un `data-testid` et un `aria-label` en double.** `GLBoardChrome.jsx` et `MusicPlayer.jsx`
    montent tous deux `GLZoneMusicMuteButton` : selon l'ordre de rendu, le mode strict de
    Playwright voyait un élément ou deux — d'où le test fragile. La spec est rendue déterministe,
