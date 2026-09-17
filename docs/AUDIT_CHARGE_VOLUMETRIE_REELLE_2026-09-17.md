@@ -1,9 +1,15 @@
 # Audit — charge des listes sur volumétrie réelle (17 septembre 2026)
 
 **Ce que cet audit vérifie** : les constats de charge des listes (`AUDIT_CHARGE_BIODIVERSITE_2026-09.md`,
-`AUDIT_STABILITE_PERF_2026-09.md`) reposaient sur une base **semée**. Depuis le fixture
-anonymisé versionné (`sql/fixtures/foretmap-anonymise.sql.gz`), ils peuvent être rejoués sur
-la volumétrie de production. C'est ce que fait cet audit.
+`AUDIT_STABILITE_PERF_2026-09.md`) reposaient sur une base **semée**. Un dump de production
+importé puis anonymisé permet de les rejouer sur la volumétrie réelle. C'est ce que fait cet
+audit.
+
+> **Reproduire ces mesures.** La chaîne d'outillage est livrée
+> (`npm run db:import:dump` → `db:anonymize` → `db:fixture:export` / `db:fixture:load`), mais
+> l'archive `sql/fixtures/foretmap-anonymise.sql.gz` **n'est pas versionnée à ce jour** : le
+> risque de ré-identification par les textes libres demande un arbitrage explicite. En
+> attendant, il faut réimporter un dump pour rejouer ces chiffres.
 
 **Verdict** : à la volumétrie d'aujourd'hui, **la charge des listes n'est pas un problème
 mesurable**. L'alerte que j'avais formulée la veille — « près d'un mégaoctet pour ouvrir
@@ -15,7 +21,7 @@ lui, se confirme et se quantifie enfin : **61 requêtes par ouverture avant, 4 a
 
 ## 1. Méthode
 
-Base : fixture anonymisé chargé dans `foretmap_local` — **480 comptes, 118 zones, 534 plantes,
+Base : copie anonymisée d'un dump de production, chargée dans `foretmap_local` — **480 comptes, 118 zones, 534 plantes,
 94 tâches, 650 questions de quiz, 31 groupes**. Application démarrée en `NODE_ENV=production`
 (SPA servie depuis `dist/`), machine 4 vCPU / 15 Gio, MariaDB locale.
 
