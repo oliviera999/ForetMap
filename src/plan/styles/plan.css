@@ -925,6 +925,28 @@ body.plan-body {
   line-height: var(--lh-relaxed, 1.6);
 }
 
+/*
+ * Liens des textes éditoriaux du Plan (`PlanLinkedText`). Même grammaire que
+ * `.markdown-content a` côté ForetMap : souligné, et une flèche quand le lien quitte
+ * l'application. `target='_blank'` n'est posé que sur la famille « externe », donc le
+ * sélecteur ne peut pas marquer un lien interne par erreur.
+ */
+.plan-place__link {
+  color: var(--plan-primary, var(--plan-navy));
+  text-decoration: underline;
+}
+.plan-place__link[target='_blank']::after {
+  content: ' ↗' / '';
+  font-size: 0.85em;
+  text-decoration: none;
+  display: inline-block;
+}
+@supports not (content: 'x' / '') {
+  .plan-place__link[target='_blank']::after {
+    content: ' ↗';
+  }
+}
+
 .plan-place__details-title {
   margin: 0 0 var(--space-2, 8px);
   font-size: var(--text-md, 1.05rem);
@@ -1116,4 +1138,24 @@ body.plan-body {
   .plan-map .plan-map-controls {
     transition: none;
   }
+}
+
+/* Liens documentaires d'un lieu (migration 261), côté Plan. */
+.plan-place__links {
+  margin: 0 0 var(--space-3, 12px);
+}
+
+.plan-place__links-title {
+  margin: 0 0 var(--space-2, 8px);
+  font-size: var(--text-md, 1.05rem);
+}
+
+.plan-place__links-list {
+  margin: 0;
+  padding-left: 1.1em;
+}
+
+.plan-place__links-list li {
+  margin: 0.2em 0;
+  min-height: 28px;
 }
