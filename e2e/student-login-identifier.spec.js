@@ -1,12 +1,12 @@
 const { test, expect } = require('@playwright/test');
 const {
-  registerStudentWithProfile,
+  createStudentWithProfileViaAdmin,
   logoutToAuth,
   loginByIdentifier,
 } = require('./fixtures/auth.fixture');
 
 test('connexion élève via identifiant pseudo ou email', async ({ page }) => {
-  const profile = await registerStudentWithProfile(page);
+  const profile = await createStudentWithProfileViaAdmin(page);
 
   await logoutToAuth(page);
   await loginByIdentifier(page, profile.pseudo, profile.password);
