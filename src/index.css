@@ -10312,6 +10312,17 @@ header .lock-btn::after,
   height: 22px;
   pointer-events: none;
   transform: translate(-50%, -50%);
+  /* Le repère n'est publié qu'une douzaine de fois par seconde (`useMapPosition`) : la
+     transition relie deux publications sur le compositeur, sans rendu supplémentaire. */
+  transition:
+    left 90ms linear,
+    top 90ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-pct-position {
+    transition: none;
+  }
 }
 
 .fm-pct-position__halo {
