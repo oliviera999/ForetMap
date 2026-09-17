@@ -309,3 +309,34 @@ describe('VisitDetailPanel — blocs éditoriaux (forme renvoyée par /api/visit
     expect(srcs).toEqual(['/uploads/zones/3/10.jpg', '/api/visit/media/20/data']);
   });
 });
+
+describe('VisitDetailPanel — « Y aller »', () => {
+  test('sans guidage câblé, aucun bouton n’est proposé', () => {
+    setup();
+    expect(screen.queryByTestId('visit-detail-go')).toBe(null);
+  });
+
+  test('le bouton annonce une direction, pas un itinéraire, et vise le lieu ouvert', () => {
+    const onGoTo = vi.fn();
+    const { props } = setup({ onGoTo, canGuide: true });
+
+    const go = screen.getByTestId('visit-detail-go');
+    expect(go).toHaveTextContent('Y aller');
+    expect(screen.getByText(/pas un itinéraire/)).toBeTruthy();
+
+    fireEvent.click(go);
+    expect(onGoTo).toHaveBeenCalledWith(props.selected);
+  });
+
+  test('carte non calée : le bouton est éteint et la raison est écrite', () => {
+    setup({ onGoTo: vi.fn(), canGuide: false });
+    expect(screen.getByTestId('visit-detail-go')).toBeDisabled();
+    expect(screen.getByText(/Carte non calée/)).toBeTruthy();
+  });
+
+  test('lieu déjà visé : le bouton rouvre la direction et donne la distance', () => {
+    setup({ onGoTo: vi.fn(), canGuide: true, isGuideTarget: true, guideDistanceLabel: '120 m' });
+    expect(screen.getByTestId('visit-detail-go')).toHaveTextContent('Revoir la direction');
+    expect(screen.getByText(/120 m à vol d’oiseau/)).toBeTruthy();
+  });
+});
