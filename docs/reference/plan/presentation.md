@@ -84,14 +84,26 @@ documentation ForetMap), un bouton **« Me situer »** apparaît en bas à droit
 
 1. **inactif** : rien n'est affiché ;
 2. **recherche** : le navigateur demande la position ;
-3. **position affichée** : un point bleu, entouré d'un **halo** d'autant plus large que le
-   signal est imprécis, et d'une flèche de direction si le téléphone a une boussole ;
-4. **suivi** : la carte se recentre à chaque nouvelle position. Déplacer la carte à la main
-   quitte le suivi sans éteindre le point.
+3. **position affichée** : un repère bleu entouré d'un **halo** d'autant plus large que le
+   signal est imprécis. Le repère prend la forme d'une **flèche orientée vers là où l'on va**
+   dès qu'une direction est connue — la route suivie quand on marche, la boussole du téléphone
+   quand on est à l'arrêt. Sans aucune direction exploitable (ni boussole, ni marche), il reste
+   un **disque** : mieux vaut ne rien dire qu'indiquer un côté au hasard ;
+4. **suivi** : la carte **glisse** en continu pour garder le repère au centre, au lieu de sauter
+   à chaque nouvelle mesure. Déplacer la carte à la main quitte le suivi sans éteindre le
+   repère.
+
+Le repère ne tremble plus à l'arrêt : les mesures du téléphone sont **lissées** avant d'être
+affichées, et un saut impossible à pied (un « téléport » de cent mètres sur un reflet de signal)
+est écarté au lieu d'emporter la carte avec lui. La contrepartie est assumée : quand on se
+remet à marcher, le repère peut avoir un ou deux mètres de retard le temps de reprendre la
+mesure exacte.
 
 Quand l'établissement l'autorise (réglage Plan **et** case sur la carte dans le calage GPS),
 un bouton **« Orienter »** apparaît à côté de « Me situer » une fois la position active. Il fait
-**tourner le plan** pour que le regard pointe vers le haut de l'écran (boussole du téléphone).
+**tourner le plan** pour que la direction suivie pointe vers le haut de l'écran (route GPS en
+marche, boussole à l'arrêt). La rotation est **continue** : le plan pivote doucement au lieu de
+sauter d'un cap à l'autre à chaque frémissement de la boussole.
 Tant qu'il est actif, la vue **reste centrée sur votre position** et **grossit un peu** pour
 que le plan tourné remplisse l'écran (pas de bandes vides sur les côtés). Chacun peut le couper ;
 le choix est retenu sur l'appareil. Sans boussole exploitable, le bouton
@@ -106,7 +118,9 @@ calage GPS.
 
 > **Points d'attention.** Sur iPhone, le navigateur demande une permission pour la boussole au
 > premier « Me situer ». L'orientation ne remplace pas un itinéraire : elle aide à lire le plan
-> dans le sens de la marche.
+> dans le sens de la marche. Si l'appareil est réglé en **mouvement réduit**, la carte se pose
+> directement sur la position au lieu d'y glisser : c'est le réglage du téléphone qui est
+> respecté, pas une panne.
 
 Si le visiteur est **hors du plan**, le point ne disparaît pas : il se colle au bord le plus
 proche avec une flèche vers l'endroit réel. Les messages d'état (autorisation refusée, signal
