@@ -1,5 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../shared/platform/markdown.js';
+import {
+  LINK_INPUT_HELP,
+  classifyLinkHref,
+  renderMarkdownToSafeHtml,
+  sanitizeRichHtml,
+} from '../shared/platform/markdown.js';
 import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import {
   createRichTextTurndownService,
@@ -40,7 +45,7 @@ export const RichTextEditor = React.forwardRef(function RichTextEditor(
     onChange,
     className = '',
     placeholder = 'Saisissez votre texte…',
-    hint = 'Mise en forme enrichie : titres, listes, citations et liens.',
+    hint = `Mise en forme enrichie : titres, listes, citations et liens. ${LINK_INPUT_HELP}`,
     allowImages = false,
     toolbar = true,
     disabled = false,
@@ -56,7 +61,7 @@ export const RichTextEditor = React.forwardRef(function RichTextEditor(
 ) {
   const editableRef = useRef(null);
   const lastMarkdownRef = useRef(null);
-  const { prompt } = useAppDialogs();
+  const { notify, prompt } = useAppDialogs();
 
   const setEditableRef = useCallback(
     (element) => {
@@ -133,8 +138,19 @@ export const RichTextEditor = React.forwardRef(function RichTextEditor(
         const selection = typeof window !== 'undefined' ? window.getSelection() : null;
         const savedRange =
           selection && selection.rangeCount > 0 ? selection.getRangeAt(0).cloneRange() : null;
-        const url = await prompt({ message: 'URL du lien', defaultValue: 'https://' });
+        const url = await prompt({
+          message: `URL du lien. ${LINK_INPUT_HELP}`,
+          defaultValue: 'https://',
+        });
         if (!url) return;
+        // Une URL hors politique de lien (`ftp:`, `//autre-site`, chemin relatif…) perdrait
+        // son `href` à l'assainissement, donc son ancre à la conversion en Markdown : le lien
+        // disparaîtrait sans un mot. On le dit maintenant plutôt que de laisser l'auteur
+        // croire son lien posé.
+        if (classifyLinkHref(url.trim()) === null) {
+          notify(`Lien non enregistré : adresse non reconnue. ${LINK_INPUT_HELP}`);
+          return;
+        }
         if (selection && savedRange) {
           selection.removeAllRanges();
           selection.addRange(savedRange);
@@ -148,7 +164,7 @@ export const RichTextEditor = React.forwardRef(function RichTextEditor(
       }
       applyCommand(action.command);
     },
-    [applyCommand, prompt],
+    [applyCommand, notify, prompt],
   );
 
   const editorClassName = useMemo(

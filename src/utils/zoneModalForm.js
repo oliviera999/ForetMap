@@ -13,6 +13,7 @@ import {
 } from '../constants/emojis';
 import { normalizeSurfaceList } from '../shared/ui/SurfaceVisibilityField.jsx';
 import { normalizeAudienceRoleList } from '../shared/ui/LocationAudienceFields.jsx';
+import { buildLocationLinksPayload } from '../shared/ui/LocationLinksFields.jsx';
 import { normalizeVisitEditorialBlocksForSave } from './visitEditorialBlocks.js';
 
 export {
@@ -97,6 +98,7 @@ export function buildZonePayload(name, form, visitEditorialBlocks, options = {})
     visible_role_slugs: normalizeAudienceRoleList(form.visibleRoleSlugs),
     restricted_note: String(form.restrictedNote || '').trim(),
     restricted_note_role_slugs: normalizeAudienceRoleList(form.restrictedNoteRoleSlugs),
+    links: buildLocationLinksPayload(form.links),
     visit_editorial_blocks: normalizeVisitEditorialBlocksForSave(visitEditorialBlocks),
   };
   if (options.omitVisitEditorialBlocks) {

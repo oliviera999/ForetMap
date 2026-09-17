@@ -1,6 +1,6 @@
 /* Service worker « plan » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-plan-6ffb67d9";
+const CACHE_NAME = "foretmap-plan-bc6bea39";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -15,21 +15,21 @@ const PRECACHE_URLS = [
   "/plan/apple-touch-icon.png",
   "/plan/favicon-32.png",
   "/plan/favicon-16.png",
-  "/assets/plan-CXPB0l4l.js",
+  "/assets/plan-Y5gaJM3f.js",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-2i84oDbI.js",
-  "/assets/react-vendor-ClBrELym.js",
-  "/assets/icons-BBfebeWE.js",
-  "/assets/ErrorBoundary-DFvm5CO1.js",
+  "/assets/VisitMascotFallbackSvg-DX0_Ddx9.js",
+  "/assets/react-vendor-DyU5Vns3.js",
+  "/assets/icons-foIiYRd8.js",
+  "/assets/ErrorBoundary-26IlTJQk.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/HelpDock-BxIrgqEi.js",
-  "/assets/HelpDock-BgtXlO9K.css",
-  "/assets/AppPlan-BRldi45f.js",
-  "/assets/AppPlan-2ihTQ_ob.css",
-  "/assets/useBrandTheme-F851Qy_v.js",
+  "/assets/HelpDock-emtzmIol.js",
+  "/assets/HelpDock-b0OL94s6.css",
+  "/assets/AppPlan-DXsYq_0D.js",
+  "/assets/AppPlan-G_OTqPkq.css",
+  "/assets/useBrandTheme-C_dxUXZ4.js",
   "/assets/placeSearch-oEXvS_TX.js",
   "/assets/planBrand-3VW5Kkzd.js",
-  "/assets/useMapGuidance-DK8QGGMp.js",
+  "/assets/useMapGuidance-B9OOjBmg.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).

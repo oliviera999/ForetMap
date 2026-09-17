@@ -1987,6 +1987,53 @@ Migration `236_location_audience_roles.sql` (carte) + `240_visit_location_audien
   colonnes d’audience. **`restricted_note` n’est jamais écrit** dans `subtitle`,
   `short_description`, `details_text` ou `body_json`.
 
+### Liens d'un lieu (`links`)
+
+Migration `261_location_links.sql`, table `location_links`, règles dans `lib/locationLinks.js`
+(validation, SQL) et `lib/locationAudience.js` (filtrage par rôle).
+
+Un lien porte **sa propre audience** : la confidentialité descend du bloc de texte
+(description publique / complément réservé) au lien lui-même.
+
+- **Lecture** — `GET /api/zones`, `GET /api/zones/:id`, `GET /api/map/markers` et
+  `GET /api/plan/content` exposent `links: [{ id, label, url, is_external, sort_order }]`,
+  trié par `sort_order`. `audience_role_slugs` n'est ajouté **que pour les gestionnaires**
+  (`zones.manage` / `map.manage_markers`) : il révèle la cartographie des rôles du lieu.
+  `is_external` est **dérivé de l'URL** à la lecture, jamais stocké.
+- **Filtrage** — un lien dont `audience_role_slugs` est **vide** suit le lieu (visible par
+  quiconque voit la fiche) ; renseigné, il est réservé à ces rôles. Le filtre est appliqué par
+  `projectLocationAudienceForViewer`, donc sur **toutes** les surfaces (carte, visite, plan
+  public, plan des personnels) : un lien hors audience ne quitte jamais le serveur.
+  Contrairement à `restricted_note`, **pas d'audience par défaut de repli** — un complément
+  réservé est confidentiel par nature, un lien ne l'est pas.
+- **Écriture** — `POST` / `PUT` zones et repères acceptent `links`. `undefined` (champ omis)
+  = **inchangé** ; `[]` ou `null` = **tous retirés**. Remplacement complet et réordonnancement
+  par la position dans le tableau.
+- **Validation** — `label` requis, 160 caractères max ; `url` requise, 2048 max, et restreinte
+  à la même politique que le rendu Markdown : `http(s)://…`, chemin absolu de l'application
+  (`/tutoriels/3`), `mailto:` ou `tel:`. `//exemple.org` et `/\exemple.org` sont **refusés**
+  (origine externe déguisée en chemin). 12 liens max par lieu. Toute violation → **400**.
+- **Suppression** — la cible est polymorphe (`location_kind` = `zone` | `marker`), donc sans
+  clé étrangère : `DELETE /api/zones/:id` et `DELETE /api/map/markers/:id` retirent les liens
+  dans la même transaction.
+
+### Politique de lien du contenu éditorial
+
+`src/shared/platform/markdown.js` (`classifyLinkHref`, exporté) décide du sort de tout `href`
+dans un contenu rendu en Markdown — descriptions, compléments réservés, textes de visite,
+contenus GL, et la conversion inverse de l'éditeur riche :
+
+| Famille    | Exemples                                                                | Rendu                                                                                       |
+| ---------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `external` | `https://…`, `http://…`                                                 | `target="_blank"` + `rel="noopener noreferrer"` + `aria-label` « (ouvre un nouvel onglet) » |
+| `internal` | `/tutoriels/3`, `/visite?zone=z1`                                       | `href` conservé, **même onglet**                                                            |
+| `contact`  | `mailto:…`, `tel:…`                                                     | `href` conservé, même onglet                                                                |
+| refusé     | `//exemple.org`, `/\exemple.org`, `ftp:`, `javascript:`, chemin relatif | `href`, `target` et `rel` retirés                                                           |
+
+La même politique s'applique **à l'enregistrement** : `htmlToMarkdownWith` assainit avant
+Turndown, donc une famille refusée perd son ancre et n'est pas stockée. L'éditeur riche
+avertit désormais l'auteur au lieu de laisser le lien disparaître en silence.
+
 ---
 
 ## Parcours de carte (`/api/map-routes`)
