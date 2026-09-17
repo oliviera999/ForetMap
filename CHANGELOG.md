@@ -9,51 +9,6 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Modifié — Une seule apparence pour les champs, les listes déroulantes et les onglets
-
-- **Six apparences de liste déroulante ramenées à une.** Le même `<select>` se présentait
-  différemment selon l'écran : bordure menthe et coins à 10 px dans les formulaires, coins à
-  8 px dans la barre de filtres, bordure gris ardoise (hors palette) dans la bibliothèque de
-  médias, et **aucune bordure du tout** dans plusieurs écrans d'administration. Tous portent
-  désormais la même bordure, le même rayon, le même fond et le même **chevron dessiné par
-  l'application** — donc le même rendu sur iPhone, Android et ordinateur. Le menu qui s'ouvre
-  reste celui du système : son accessibilité et son ergonomie tactile sont conservées.
-- **84 champs qui sortaient au rendu natif sont habillés.** Les classes `form-input` et
-  `form-select`, posées sur 31 fichiers, n'existaient dans aucune feuille de style : les
-  champs concernés s'affichaient avec le widget du système d'exploitation, différent d'un
-  appareil à l'autre. Écrans touchés : réglages de validation des lectures, rattachement des
-  questions aux contenus, catalogue et éditeur de QCM, glossaire, réseau trophique, studio
-  mascotte et studio des dialogues.
-- **186 champs sans conteneur habillé rattrapés** (barres d'outils de profils, tableaux
-  Moodle, bibliothèque de médias, éditeurs de packs, panneaux d'usage et de suivi) par une
-  couche de base qui s'applique à tout champ de ForetMap, y compris ceux à venir.
-- **Cible tactile de 44 px garantie** sur tous les champs. Ceux laissés au rendu du système
-  tombaient à une vingtaine de pixels.
-- **Quatre barres d'onglets ramenées à une.** L'administration mélangeait le rail de la
-  navigation **principale** réemployé un niveau plus bas (Profils, Audit), des pilules venues
-  de Gnomes & Licornes (Paramètres), des boutons déguisés en onglets (studio mascotte,
-  rattachement des questions) et un segment dédié (connexion / inscription). Une seule barre
-  secondaire, dérivée de la barre principale, les remplace : la hiérarchie entre onglet
-  principal et sous-section redevient lisible.
-- **Textes d'aide et d'erreur des formulaires visibles.** `.hint`, `.muted`, `.form-error` et
-  `.text-danger` n'étaient définies nulle part ; l'erreur d'enregistrement automatique de la
-  fiche espèce et de l'éditeur de tutoriel s'affichait dans l'encre du corps de texte.
-
-### Corrigé
-
-- **Huit boutons sans forme.** Une variante `btn-primary` / `btn-ghost` / `btn-secondary`
-  posée sans la classe de base `btn` ne donne qu'un aplat de couleur sur un bouton natif :
-  ni marge intérieure, ni coins arrondis, ni hauteur de 44 px. Six dans l'écran de
-  rattachement des questions, un dans les séries récurrentes, un dans l'éditeur de visite
-  guidée — ce dernier étant **entièrement nu** dans Gnomes & Licornes, qui ne charge pas la
-  feuille de ForetMap.
-- **Accessibilité des sous-onglets de l'Audit** : la barre n'annonçait ni `tablist`, ni
-  `tab`, ni l'onglet courant, et ses boutons n'avaient pas de `type`.
-- **Le focus au clavier reste visible** sur les cases à cocher, boutons radio, curseurs,
-  sélecteurs de couleur et de fichier.
-
-Audit et décisions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md).
-
 ### Corrigé — Plan Lyautey : la navigation ne se fait plus recouvrir
 
 - **Guidage « Y aller » sorti de la fiche.** Le bouton referme la fiche et pose une **barre de
@@ -1668,6 +1623,52 @@ séparés.
 - `plan-mobile-position.spec.js` et `plan-mobile-orientation.spec.js` rejoignent le smoke
   Playwright bloquant. Le retournement des étiquettes avait traversé l'intégration parce que le
   seul scénario exerçant la position n'était pas bloquant.
+
+### Modifié — Une seule apparence pour les champs, les listes déroulantes et les onglets
+
+- **Six apparences de liste déroulante ramenées à une.** Le même `<select>` se présentait
+  différemment selon l'écran : bordure menthe et coins à 10 px dans les formulaires, coins à
+  8 px dans la barre de filtres, bordure gris ardoise (hors palette) dans la bibliothèque de
+  médias, et **aucune bordure du tout** dans plusieurs écrans d'administration. Tous portent
+  désormais la même bordure, le même rayon, le même fond et le même **chevron dessiné par
+  l'application** — donc le même rendu sur iPhone, Android et ordinateur. Le menu qui s'ouvre
+  reste celui du système : son accessibilité et son ergonomie tactile sont conservées.
+- **84 champs qui sortaient au rendu natif sont habillés.** Les classes `form-input` et
+  `form-select`, posées sur 31 fichiers, n'existaient dans aucune feuille de style : les
+  champs concernés s'affichaient avec le widget du système d'exploitation, différent d'un
+  appareil à l'autre. Écrans touchés : réglages de validation des lectures, rattachement des
+  questions aux contenus, catalogue et éditeur de QCM, glossaire, réseau trophique, studio
+  mascotte et studio des dialogues.
+- **186 champs sans conteneur habillé rattrapés** (barres d'outils de profils, tableaux
+  Moodle, bibliothèque de médias, éditeurs de packs, panneaux d'usage et de suivi) par une
+  couche de base qui s'applique à tout champ de ForetMap, y compris ceux à venir.
+- **Cible tactile de 44 px garantie** sur tous les champs. Ceux laissés au rendu du système
+  tombaient à une vingtaine de pixels.
+- **Quatre barres d'onglets ramenées à une.** L'administration mélangeait le rail de la
+  navigation **principale** réemployé un niveau plus bas (Profils, Audit), des pilules venues
+  de Gnomes & Licornes (Paramètres), des boutons déguisés en onglets (studio mascotte,
+  rattachement des questions) et un segment dédié (connexion / inscription). Une seule barre
+  secondaire, dérivée de la barre principale, les remplace : la hiérarchie entre onglet
+  principal et sous-section redevient lisible.
+- **Textes d'aide et d'erreur des formulaires visibles.** `.hint`, `.muted`, `.form-error` et
+  `.text-danger` n'étaient définies nulle part ; l'erreur d'enregistrement automatique de la
+  fiche espèce et de l'éditeur de tutoriel s'affichait dans l'encre du corps de texte.
+
+### Corrigé — Boutons sans forme, onglets muets, focus perdu
+
+- **Huit boutons sans forme.** Une variante `btn-primary` / `btn-ghost` / `btn-secondary`
+  posée sans la classe de base `btn` ne donne qu'un aplat de couleur sur un bouton natif :
+  ni marge intérieure, ni coins arrondis, ni hauteur de 44 px. Six dans l'écran de
+  rattachement des questions, un dans les séries récurrentes, un dans l'éditeur de visite
+  guidée — ce dernier étant **entièrement nu** dans Gnomes & Licornes, qui ne charge pas la
+  feuille de ForetMap.
+- **Accessibilité des sous-onglets de l'Audit** : la barre n'annonçait ni `tablist`, ni
+  `tab`, ni l'onglet courant, et ses boutons n'avaient pas de `type`.
+- **Le focus au clavier reste visible** sur les cases à cocher, boutons radio, curseurs,
+  sélecteurs de couleur et de fichier.
+
+Audit et décisions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md).
+
 ---
 
 ## [1.152.1] - 2026-09-11
