@@ -213,6 +213,14 @@ Aucune migration, aucune route touchée : tout est calculé côté client.
   échouer la commande en la nommant, plutôt que de laisser croire que la base est propre.
   Les crédits d'illustration externes (`plants.photo_credit`) sont signalés comme tolérés.
 - `docs/LOCAL_DEV.md` § 3 (import d'un dump) et `tests/anonymize-local-db.test.js`.
+- **Complété après passage sur un vrai dump de production** : `sync_actions.before_json` /
+  `after_json` (état nominatif d'une synchronisation Moodle, action par action) et les
+  `restricted_note` de `zones` / `visit_zones` / `map_markers` / `visit_markers` (consigne
+  d'accès en texte libre) échappaient au plan initial — c'est le balayage final qui les a
+  signalées. Les exceptions ne portent plus sur une colonne entière mais sur une **condition
+  SQL** (`app_settings.value_json` n'est toléré que pour les clés `content.%`, c'est-à-dire
+  l'adresse de contact de la page « À propos »), et le balayage compte désormais deux fois
+  par colonne : ce qui correspond, puis ce qui reste après exception.
 
 ### Ajouté — Outillage : amorçage d'une session de développement en conteneur éphémère
 

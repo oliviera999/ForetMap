@@ -101,10 +101,30 @@ test('anonymize-local-db : plan construit à partir du schéma réel', async (t)
 });
 
 test('anonymize-local-db : requête de balayage', async (t) => {
-  await t.test('trois paramètres par colonne', () => {
+  await t.test('deux compteurs (total, bloquant) et six paramètres par colonne', () => {
     const sql = buildScanQuery('users', ['email', 'first_name']);
-    assert.strictEqual((sql.match(/\?/g) || []).length, 6);
+    assert.strictEqual((sql.match(/\?/g) || []).length, 12);
+    assert.match(sql, /AS `email`/);
+    assert.match(sql, /AS `email__bloquant`/);
     assert.match(sql, /FROM `users`$/);
+  });
+
+  await t.test('une exception déclarée ne retire pas la colonne du contrôle', () => {
+    // `app_settings.value_json` porte l'adresse de contact de la page « À propos ». Le
+    // compteur total continue de la voir ; seul le compteur bloquant l'exclut, via la
+    // condition déclarée — un e-mail dans un réglage technique reste donc bloquant.
+    const sql = buildScanQuery('app_settings', ['value_json']);
+    assert.match(sql, /AS `value_json`/);
+    assert.match(sql, /AND NOT \(`key` LIKE 'content\.%'\)/);
+    assert.ok(
+      sql.indexOf('AND NOT') > sql.indexOf('AS `value_json`'),
+      'la condition ne doit porter que sur le compteur bloquant',
+    );
+  });
+
+  await t.test('sans exception, les deux compteurs sont identiques', () => {
+    const sql = buildScanQuery('users', ['email']);
+    assert.doesNotMatch(sql, /AND NOT \(/);
   });
 
   await t.test('le motif e-mail exclut le domaine d’anonymisation', () => {

@@ -188,10 +188,47 @@ sont balayées, et une colonne oubliée fait échouer la commande en la nommant.
 construction : en ajoutant une table hors plan contenant une adresse, le script sort en
 code 1 et désigne `notes.txt`.
 
-Reste à décider côté humain : **fournir le dump**. Le script s'exécute en local (refus si
-`DB_HOST` n'est pas local ou si `NODE_ENV=production`), le dump n'est jamais versionné
-(`.gitignore`), et les fichiers `uploads/` ne doivent pas être copiés — ils ne sont pas dans
-le dump.
+Le script s'exécute en local (refus si `DB_HOST` n'est pas local ou si `NODE_ENV=production`),
+le dump n'est jamais versionné (`.gitignore`), et les fichiers `uploads/` ne doivent pas être
+copiés — ils ne sont pas dans le dump.
+
+#### Ce que le premier vrai dump a révélé (17/09/2026)
+
+Un export phpMyAdmin de la production (8,7 Mo, MariaDB 11.4.13) a été importé puis anonymisé.
+**Le plan d'anonymisation écrit à l'aveugle était incomplet** — et c'est le balayage final,
+pas la relecture, qui l'a montré. Six colonnes portaient encore des motifs :
+
+| Colonne                                                                     | Nature                                               | Traitement retenu                                    |
+| --------------------------------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------- |
+| `sync_actions.before_json` / `after_json`                                   | état nominatif du compte, action par action (Moodle) | vidées ; la ligne (type, horodatage) est conservée   |
+| `zones` / `visit_zones` / `map_markers` / `visit_markers`.`restricted_note` | consigne d'accès en texte libre saisie par un prof   | texte de même longueur                               |
+| `app_settings.value_json`                                                   | adresse de contact du corps éditorial « À propos »   | **exception déclarée**, limitée aux clés `content.%` |
+
+Ce dernier cas a fait évoluer le contrôle : une exception ne porte plus sur une colonne
+entière mais sur une **condition SQL**. Le balayage compte désormais deux fois par colonne —
+tout ce qui correspond, puis ce qui reste une fois l'exception appliquée. Une adresse qui
+apparaîtrait dans un réglage technique (SMTP, alertes) continue donc de faire échouer la
+commande, alors qu'une tolérance posée sur `app_settings.value_json` en bloc l'aurait masquée.
+
+**Leçon** : sur ce genre de tâche, la valeur n'est pas dans l'exhaustivité du plan écrit à
+l'avance — elle est dans le contrôle qui refuse de conclure. Le plan initial couvrait
+l'essentiel (comptes, hachages, jetons, journaux) et manquait quand même six colonnes.
+
+#### Premières mesures sur volumétrie réelle
+
+L'application démarrée sur cette base (481 comptes, 118 zones, 534 plantes, 94 tâches,
+650 questions de quiz) donne immédiatement ce qu'une base semée ne peut pas donner :
+
+| Route             | Éléments | Poids de la réponse | Élément le plus lourd |
+| ----------------- | -------- | ------------------- | --------------------- |
+| `GET /api/plants` | 534      | **912 Ko**          | 3,0 Ko                |
+| `GET /api/zones`  | 118      | **369 Ko**          | 15,4 Ko               |
+| `GET /api/tasks`  | 84       | 159 Ko              | 7,1 Ko                |
+
+Les temps de réponse sont bons en local (37 à 49 ms), mais ce n'est pas le sujet : ces routes
+renvoient **tout**, sans pagination. Nous sommes sur un usage lycée, en 4G, souvent sur des
+téléphones — près d'un mégaoctet pour ouvrir l'onglet Biodiversité. Cela recoupe directement
+`AUDIT_CHARGE_BIODIVERSITE_2026-09.md`, qui restait jusqu'ici invérifiable faute de données.
 
 ### 5.3 P1 — secrets de test cloisonnés
 
