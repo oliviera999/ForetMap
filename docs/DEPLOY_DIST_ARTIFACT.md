@@ -16,15 +16,16 @@ déploiement par `git pull` suppose un build **déjà présent dans l'arbre**. D
 
 Cette contrainte coûte deux choses, toutes deux mesurées sur le dépôt :
 
-**Des conflits de merge systématiques, sur _toutes_ les PR.** Les noms de chunks portent un hash
-de contenu, et surtout **le build n'est pas reproductible** : deux exécutions de la même source,
-sur deux runners CI identiques, renomment l'essentiel des chunks. Le job `frontend-dist` constate
-donc une dérive à **chaque** push de PR et auto-commite un `dist/` régénéré — y compris sur une
-PR qui ne touche pas une seule ligne de frontend.
+**Des conflits de merge sur les PR qui touchent au frontend.** Les noms de chunks portent un
+hash de contenu : deux branches qui modifient `src/` renomment chacune les mêmes fichiers, et le
+conflit est un **rename/delete** que git ne sait pas résoudre. Le job `frontend-dist` constate la
+dérive au push et auto-commite un `dist/` régénéré.
 
-> Mesuré sur la PR qui porte ce document : deux fichiers modifiés (`CHANGELOG.md`,
-> `docs/DEPLOY_DIST_ARTIFACT.md`), zéro fichier de `src/` — et un auto-commit de **159 fichiers
-> de `dist/`** par-dessus.
+> ⚠️ Une version antérieure de ce document affirmait que la dérive tombait sur **toutes** les PR,
+> y compris purement documentaires, parce que « le build n'est pas reproductible ». C'était une
+> erreur de diagnostic : un `dist/` construit avec `NODE_ENV=test` (build de développement) avait
+> été poussé sur `main` le 17/09/2026, et toute branche en héritait. Le build **est**
+> reproductible — voir l'encadré de l'étape 2.
 
 Chaque PR ouverte porte donc un commit `dist/`, et **n'importe quelle paire** de PR entre en
 conflit **rename/delete** sur `dist/` — que git ne peut structurellement pas résoudre : les
@@ -164,16 +165,21 @@ node scripts/fetch-dist-artifact.js --mode verify --expect-source "$(git rev-par
 Attendu : `artefact complet (N fichiers)` et un **nombre** de fichiers égal à celui de `dist/`.
 Un `artefact incomplet`, ou un nombre de fichiers nettement différent, **arrête la bascule ici**.
 
-> ⚠️ **Ne pas comparer les noms de fichiers, ils diffèrent toujours.** Le build Vite/rolldown
-> n'est **pas reproductible** : deux exécutions du même commit, sur deux runners CI identiques,
-> produisent des hachages de contenu différents pour l'essentiel des chunks. Mesuré le
-> 17/09/2026 sur `a4c0849` — 356 fichiers de part et d'autre, ~80 chunks renommés, `.vite/manifest.json`,
-> les entrées HTML et les service workers référençant chacun son propre jeu.
+> ✅ **Le build est reproductible — un écart de noms est donc un signal, pas du bruit.** Deux
+> exécutions du même commit produisent le même `dist/`, fichier par fichier : vérifié sur
+> `a9a9956` par le run `frontend-dist` **1079** (rebuild CI identique au `dist/` commité) et par
+> un `NODE_ENV=production npm run build` lancé hors CI, sur une autre machine, qui reproduit les
+> mêmes noms de chunks (`main-BSLTciXE.js`, `react-vendor-ClBrELym.js`) et les mêmes empreintes
+> PWA (`foret-93d16d65`, `gl-9cb3d42c`, `plan-5b782279`, `staff-5f2a79c3`).
 >
-> Ce qui compte n'est donc pas l'égalité avec un autre build, mais la **cohérence interne** de
-> l'artefact : c'est ce que vérifie `findDistGaps`, et c'est suffisant puisque le serveur
-> remplace `dist/` d'un bloc. Un `diff -rq` entre l'artefact et le `dist/` commité listera
-> toujours des dizaines d'écarts — ce n'est **pas** un signal d'alarme.
+> La mesure inverse du 17/09/2026 sur `a4c0849` (« ~80 chunks renommés ») comparait un artefact
+> de production à un `dist/` commité **construit en mode développement** (`NODE_ENV=test` hérité
+> du shell). L'écart ne venait pas du build, mais du mode.
+>
+> Conséquence pratique : `findDistGaps` (cohérence interne, nombre de fichiers) reste le contrôle
+> de base, mais un `diff -rq` entre l'artefact et le `dist/` commité du **même commit** doit
+> ressortir **vide**. S'il liste des chunks renommés, l'un des deux builds n'a pas tourné en mode
+> production — arrêter la bascule et chercher l'`NODE_ENV`.
 
 Nettoyer ensuite : `rm -rf dist.candidate`.
 
@@ -207,10 +213,13 @@ Nettoyer ensuite : `rm -rf dist.candidate`.
    - ajoute `dist/` à `.gitignore` ;
    - `git rm -r --cached dist` ;
    - supprime `.github/workflows/frontend-dist.yml` (l'auto-commit de `dist/` sur les branches de
-     PR — la source même des conflits). Accessoirement, son garde-fou **échoue déjà** sur `main`
-     (runs `1066`, `1072` du 17/09/2026) : il compare un rebuild au `dist/` commité, une égalité
-     que la non-reproductibilité du build rend inatteignable. Ce workflow ne peut pas passer au
-     vert, il ne fait que du bruit rouge ;
+     PR — la source même des conflits). Ses échecs des 17/09/2026 (runs `1066`, `1072`, `1074`)
+     n'étaient **pas** du bruit : ils signalaient un `dist/` construit en mode développement sur
+     `main`, et le run `1079` est repassé au vert une fois le build de production reposé. Ce
+     workflow fait son travail — le retirer fait perdre le seul filet qui rattrape un `dist/`
+     commité non conforme aux sources. C'est acceptable **parce que** `dist/` cesse au même
+     moment d'être servi depuis le dépôt : après l'étape 3, c'est `dist-publish.yml` qui
+     construit, et son artefact ne peut pas être construit à la main dans un mauvais mode ;
    - retire la garde `dist/` de `.githooks/pre-push` ;
    - retire du `README`/`docs` les consignes « lancer `npm run build` avant de pousser ».
 
