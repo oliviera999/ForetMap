@@ -13,7 +13,10 @@ describe('normalizeSurfaceList', () => {
     expect(normalizeSurfaceList([' VISIT ', 'plan', 'inconnu'])).toEqual(['visit', 'plan']);
     expect(normalizeSurfaceList(null)).toEqual([]);
     expect(normalizeSurfaceList('')).toEqual([]);
-    expect(normalizeSurfaceList(ALL_SURFACES)).toEqual(['map', 'visit', 'plan']);
+    // L'ordre canonique est celui du `SET` SQL, surface personnels comprise et **en dernier** :
+    // MySQL encode un SET par position de bit (migration `260`).
+    expect(normalizeSurfaceList(ALL_SURFACES)).toEqual(['map', 'visit', 'plan', 'staff']);
+    expect(normalizeSurfaceList('staff,map')).toEqual(['map', 'staff']);
   });
 });
 
@@ -23,10 +26,13 @@ describe('SurfaceVisibilityField', () => {
     render(<SurfaceVisibilityField value={['map', 'visit']} onChange={onChange} idPrefix="lieu" />);
     expect(screen.getByText('Masquer sur')).toBeTruthy();
     expect(screen.getByLabelText(/Carte/).checked).toBe(true);
-    expect(screen.getByLabelText(/Plan/).checked).toBe(false);
+    // « Plan public » et « Plan personnels » sont deux surfaces distinctes : les viser par un
+    // libellé exact, sinon le test coche l'une en croyant cocher l'autre.
+    expect(screen.getByLabelText(/Plan public/).checked).toBe(false);
+    expect(screen.getByLabelText(/Plan personnels/).checked).toBe(false);
     expect(screen.queryByRole('status')).toBeNull();
 
-    fireEvent.click(screen.getByLabelText(/Plan/));
+    fireEvent.click(screen.getByLabelText(/Plan public/));
     expect(onChange).toHaveBeenCalledWith(['map', 'visit', 'plan']);
   });
 
@@ -48,6 +54,9 @@ describe('SurfaceVisibilityField', () => {
     );
     fireEvent.click(screen.getByLabelText(/Visite/));
     expect(onChange).toHaveBeenCalledWith(['map', 'plan']);
+    // Cocher le plan des personnels l'ajoute en fin, dans l'ordre canonique.
+    fireEvent.click(screen.getByLabelText(/Plan personnels/));
+    expect(onChange).toHaveBeenCalledWith(['map', 'visit', 'plan', 'staff']);
     expect(screen.queryByRole('status')).toBeNull();
   });
 

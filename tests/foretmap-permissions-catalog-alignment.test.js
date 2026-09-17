@@ -58,6 +58,8 @@ describe('Permissions ForetMap : matrices catalogue', () => {
         'observations.read.group',
         'stats.read.group',
         'teacher.access',
+        // Plan des personnels : un prof de classe est un personnel du lycée, il y entre.
+        'staff_plan.access',
       ].sort(),
     );
     assert.ok(!keys.includes('users.create'));
@@ -68,9 +70,11 @@ describe('Permissions ForetMap : matrices catalogue', () => {
     assert.ok(!keys.includes('visit.manage'));
   });
 
-  it('visiteur et personnel : aucune permission d’action', () => {
+  it('visiteur : aucune permission ; personnel : la seule lecture du plan des personnels', () => {
     assert.deepEqual(ROLE_PERMISSION_MATRIX.visiteur, []);
-    assert.deepEqual(ROLE_PERMISSION_MATRIX.personnel, []);
+    // `personnel` reste sans aucune action métier — `staff_plan.access` n'ouvre qu'une
+    // lecture, celle du sous-domaine proflyautey, et c'est le profil qu'il vise.
+    assert.deepEqual(ROLE_PERMISSION_MATRIX.personnel, ['staff_plan.access']);
   });
 
   /**
