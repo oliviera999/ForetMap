@@ -1,11 +1,28 @@
 /**
- * Purge les données laissées par les runs e2e précédents (tâches E2E*, assignations).
- * Accélère les specs tâches quand la BDD locale accumule des centaines de projets/tâches.
+ * Préparation commune de la suite e2e :
+ *
+ * 1. **Configuration de production.** `ui.auth.allow_register` est forcé à `false`, la valeur
+ *    servie en production. Sans cela la suite tourne sur une configuration que personne ne
+ *    sert : n'importe qui y crée son compte par le formulaire public, alors qu'en production
+ *    les comptes naissent d'un import de liste de classe fait par un enseignant. La spec
+ *    `auth-registration.spec.js` rouvre le réglage le temps de couvrir le formulaire, puis le
+ *    referme.
+ * 2. **Purge** des données laissées par les runs précédents (tâches E2E*, assignations).
+ *    Accélère les specs tâches quand la BDD locale accumule des centaines de projets/tâches.
  */
 require('dotenv').config();
 
 module.exports = async function globalSetup() {
   const { pool } = require('../database');
+
+  try {
+    const { setSetting } = require('../lib/settings');
+    await setSetting('ui.auth.allow_register', false);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[e2e global-setup] ui.auth.allow_register non forcé:', err.message);
+  }
+
   const conn = await pool.getConnection();
   try {
     await conn.query(
