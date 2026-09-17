@@ -10,13 +10,16 @@ const path = require('path');
 const {
   createDistStaticServeOptions,
   IMMUTABLE_CACHE_CONTROL,
+  FONT_CACHE_CONTROL,
 } = require('../lib/staticCacheHeaders');
 
 function buildDistFixture() {
   const distDir = fs.mkdtempSync(path.join(os.tmpdir(), 'foretmap-dist-'));
   fs.mkdirSync(path.join(distDir, 'assets'));
+  fs.mkdirSync(path.join(distDir, 'fonts'));
   fs.writeFileSync(path.join(distDir, 'index.vite.html'), '<!doctype html><title>fm</title>');
   fs.writeFileSync(path.join(distDir, 'assets', 'main-AbCd1234.js'), '// hashé par Rollup');
+  fs.writeFileSync(path.join(distDir, 'fonts', 'noto-color-emoji.woff2'), 'wOF2-factice');
   fs.writeFileSync(path.join(distDir, 'robots.txt'), 'User-agent: *');
   return distDir;
 }
@@ -51,5 +54,20 @@ test("index: false — la racine n'est pas résolue en index.html par express.st
   const res = await request(mini).get('/');
   // Le SPA fallback (hors périmètre de ce test) prend le relais dans server.js.
   assert.strictEqual(res.status, 404);
+  fs.rmSync(distDir, { recursive: true, force: true });
+});
+
+test('dist/fonts/* reçoit un cache long borné (30 j), sans immutable', async () => {
+  const distDir = buildDistFixture();
+  const mini = express();
+  mini.use(express.static(distDir, createDistStaticServeOptions(distDir)));
+
+  const font = await request(mini).get('/fonts/noto-color-emoji.woff2');
+  assert.strictEqual(font.status, 200);
+  assert.strictEqual(font.headers['cache-control'], FONT_CACHE_CONTROL);
+  // Nom de fichier non haché : `immutable` figerait la police pour un an chez les visiteurs
+  // (cf. docs/AUDIT_EMOJIS_APPLE_2026-09-17.md, EMO-APL-004 et R6).
+  assert.doesNotMatch(String(font.headers['cache-control'] || ''), /immutable/);
+
   fs.rmSync(distDir, { recursive: true, force: true });
 });

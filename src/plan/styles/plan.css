@@ -15,7 +15,7 @@
 :root {
   color-scheme: light;
   --font-sans:
-    'DM Sans', 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji',
+    'DM Sans', 'Apple Color Emoji', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Noto Color Emoji',
     sans-serif;
   /* Charte Lycée Lyautey : bleu marine du logo et variantes. */
   --plan-navy: #183058;

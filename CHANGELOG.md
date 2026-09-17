@@ -206,6 +206,73 @@ lieu », avec l'avertissement qu'un lien n'est confidentiel que si sa cible l'es
 - Le correctif précédent (mémoriser l'origine de départ) était incomplet : il ne servait à rien
   tant que son propre cookie restait sur un hôte que le rappel ne voit jamais.
 
+### Corrigé — emojis illisibles sur iPhone, iPad et Mac
+
+- **Les appareils Apple utilisent désormais leurs propres emojis.** La pile de polices plaçait
+  partout `ForetMapColorEmoji` (Noto auto-hébergé) **avant** `Apple Color Emoji`. Or WebKit
+  n'implémente ni COLRv1 ni COLRv0 : un iPhone ne pouvait dessiner cette police que par sa table
+  OT-SVG — 20,1 Mo des 25,1 Mo décompressés — voie documentée comme instable, les glyphes
+  disparaissant au zoom. Or l'écran principal est une carte que l'on zoome, couverte d'emojis.
+  `'Apple Color Emoji'` passe en tête des quatre piles (`typography-tokens.css`, `index.css`,
+  `gl-base.css`, `plan.css`) : aucune détection de plateforme, les machines non-Apple n'ont pas
+  cette police et tombent sur `ForetMapColorEmoji` comme avant — **leur rendu ne change pas**.
+- **5,7 Mo de moins à télécharger sur Apple**, et le `preload` de la police disparaît des deux
+  entrées HTML. Un `preload` de police est inconditionnel et part avant l'analyse du CSS : il
+  annulait l'`unicode-range` du `@font-face` et imposait le fichier à tous les appareils — soit
+  **11× le bundle principal** (498 Ko). Mesuré (Chromium et WebKit) : une police emoji résidente
+  placée devant fait tomber la webfont à **zéro requête**.
+- Trois piles affichaient des emojis sans repli emoji déclaré, dont `.lb-rank` (🥇🥈🥉 du
+  classement) : la médaille sortait de la police **système**, pas de celle du reste de l'écran.
+- Cliquet `tests-ui/utils/emojiFontStacks.test.js` : interdit de replacer la police
+  auto-hébergée devant celle d'Apple, ou de réintroduire un `preload`, sans que le test tombe.
+- L'arbitrage revient sur la décision A3 de `AUDIT_UI_HOMOGENEITE_2026-09.md` (« même dessin
+  d'emoji sur tous les appareils ») : il reste tenu **à l'intérieur d'un même écran** — le vrai
+  défaut d'origine, une épingle et un emoji de nom de zone dessinés différemment côte à côte —
+  mais plus **entre** un iPhone et un Android. Détail : `AUDIT_EMOJIS_APPLE_2026-09-17.md` § 7.
+
+### Documentation — audit de l'affichage des emojis sur appareils Apple
+
+- [`docs/AUDIT_EMOJIS_APPLE_2026-09-17.md`](docs/AUDIT_EMOJIS_APPLE_2026-09-17.md) : chaîne
+  complète d'affichage d'un emoji (fichier de police, `@font-face`, ordre des piles, livraison
+  HTTP, cache hors ligne), avec mesures — lecture table par table du WOFF2 livré et sondes de
+  rendu Chromium/WebKit pilotées par Playwright.
+- **Constat principal (EMO-APL-001)** : la pile impose `ForetMapColorEmoji` (Noto auto-hébergé)
+  avant `Apple Color Emoji` sur tous les appareils. WebKit n'implémentant ni COLRv1 ni COLRv0,
+  un iPhone ne peut dessiner cette police que par sa table OT-SVG — 20,1 Mo des 25,1 Mo
+  décompressés — voie documentée comme instable (glyphes qui disparaissent au zoom, or l'écran
+  principal est une carte que l'on zoome). Le rendu Chrome/Android, qui passe par COLRv1, n'est
+  pas concerné. Aucun bug dans le code ForetMap : c'est un choix de police, et l'arbitrage
+  (§ 7 de l'audit) revient à l'équipe.
+- **EMO-APL-003** : le `<link rel="preload">` des deux entrées HTML annule l'optimisation
+  `unicode-range` documentée juste à côté — 5,7 Mo téléchargés inconditionnellement à la
+  première visite, soit **11× le bundle principal** (498 Ko). Mesuré : une police système placée
+  devant fait tomber la webfont à **zéro requête** (Chromium et WebKit).
+- Écartés après vérification : réparation du mojibake, détection du préfixe emoji
+  (`Intl.Segmenter`), rendu des `<text>` SVG de la carte, CSP, divergence des trois
+  `unicode-range`.
+
+### Corrigé — polices servies sans en-tête de cache
+
+- `/fonts/*` sortait avec les défauts d'`express.static` (`max-age=0` + ETag) : une revalidation
+  réseau à chaque chargement de page pour 5,7 Mo, et un re-téléchargement complet dès purge du
+  cache HTTP. `lib/staticCacheHeaders.js` pose désormais 30 jours sur `dist/fonts/` — sans
+  `immutable`, le nom du fichier n'étant pas haché (il change à chaque
+  `npm run fonts:sync-noto-emoji`). Test : `tests/static-cache-headers.test.js`.
+### Corrigé — « Reprendre le parcours » redémarrait à l'étape 1
+
+- Sur les trois surfaces (Visite, carte de travail, Plan Lyautey), le bouton **« Reprendre le
+  parcours »** rejouait le parcours **depuis le début** : quitter à l'étape 7 sur 9 pour regarder
+  un autre lieu obligeait à toucher « Suivant » six fois. Le bouton promet pourtant la reprise, et
+  l'aide du Plan aussi (« Après "Quitter", reprenez via la puce ou "Reprendre" ») — constat §2.2 de
+  `docs/AUDIT_PARCOURS_2026-09-17.md`.
+- L'étape quittée est désormais retenue et restituée, dans le hook partagé
+  (`shared/map-routes/useMapRouteMode`) **et** dans la copie du Plan, pour que les deux ne
+  divergent pas. Relancer le parcours depuis la liste repart bien du début, et un parcours dont
+  des lieux ont disparu entre-temps reprend à sa dernière étape encore existante.
+- Tests : `tests-ui/shared/useMapRouteMode.test.jsx` (8 cas — le noyau partagé n'avait aucun test
+  direct) et l'assertion manquante après le clic sur « Reprendre » dans
+  `tests-ui/plan/AppPlanMount.test.jsx`.
+
 ### Documentation — audit de stratégie de plateforme (construire / déléguer / remplacer)
 
 - **Nouvel audit `docs/AUDIT_STRATEGIE_PLATEFORME_2026-09.md`** : arbitrage mesuré entre ce que le
