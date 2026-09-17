@@ -9,6 +9,35 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — audit de l'affichage des emojis sur appareils Apple
+
+- [`docs/AUDIT_EMOJIS_APPLE_2026-09-17.md`](docs/AUDIT_EMOJIS_APPLE_2026-09-17.md) : chaîne
+  complète d'affichage d'un emoji (fichier de police, `@font-face`, ordre des piles, livraison
+  HTTP, cache hors ligne), avec mesures — lecture table par table du WOFF2 livré et sondes de
+  rendu Chromium/WebKit pilotées par Playwright.
+- **Constat principal (EMO-APL-001)** : la pile impose `ForetMapColorEmoji` (Noto auto-hébergé)
+  avant `Apple Color Emoji` sur tous les appareils. WebKit n'implémentant ni COLRv1 ni COLRv0,
+  un iPhone ne peut dessiner cette police que par sa table OT-SVG — 20,1 Mo des 25,1 Mo
+  décompressés — voie documentée comme instable (glyphes qui disparaissent au zoom, or l'écran
+  principal est une carte que l'on zoome). Le rendu Chrome/Android, qui passe par COLRv1, n'est
+  pas concerné. Aucun bug dans le code ForetMap : c'est un choix de police, et l'arbitrage
+  (§ 7 de l'audit) revient à l'équipe.
+- **EMO-APL-003** : le `<link rel="preload">` des deux entrées HTML annule l'optimisation
+  `unicode-range` documentée juste à côté — 5,7 Mo téléchargés inconditionnellement à la
+  première visite, soit **11× le bundle principal** (498 Ko). Mesuré : une police système placée
+  devant fait tomber la webfont à **zéro requête** (Chromium et WebKit).
+- Écartés après vérification : réparation du mojibake, détection du préfixe emoji
+  (`Intl.Segmenter`), rendu des `<text>` SVG de la carte, CSP, divergence des trois
+  `unicode-range`.
+
+### Corrigé — polices servies sans en-tête de cache
+
+- `/fonts/*` sortait avec les défauts d'`express.static` (`max-age=0` + ETag) : une revalidation
+  réseau à chaque chargement de page pour 5,7 Mo, et un re-téléchargement complet dès purge du
+  cache HTTP. `lib/staticCacheHeaders.js` pose désormais 30 jours sur `dist/fonts/` — sans
+  `immutable`, le nom du fichier n'étant pas haché (il change à chaque
+  `npm run fonts:sync-noto-emoji`). Test : `tests/static-cache-headers.test.js`.
+
 ### Corrigé — connexion Google impossible depuis proflyautey
 
 - « **Connexion Google invalide (session expirée). Réessayez depuis ForetMap.** » à chaque
