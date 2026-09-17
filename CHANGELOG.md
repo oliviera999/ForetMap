@@ -2188,6 +2188,42 @@ Audit et décisions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDI
 
 Audit, mesures d'écart perceptuel et décisions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md) (§6, lot C).
 
+### Corrigé — le panneau « Séries récurrentes » perdait la prévision des séries bloquées
+
+- **Le tri du plafond était à l'envers.** Le calcul de la prochaine occurrence coûtant
+  plusieurs requêtes par série, la liste est bornée. Elle l'était par « échéance la plus
+  lointaine d'abord » : on gardait les séries qui roulent toutes seules et on jetait les
+  plus anciennes. Or **une série bloquée garde une vieille échéance parce qu'elle est
+  bloquée** — les séries en attente de validation étaient donc les premières à sortir de
+  la fenêtre, et le panneau perdait leur ligne de prévision précisément quand elle
+  réclamait une action. Le tri suit désormais ce qui appelle le professeur : non validées
+  d'abord, puis échéance la plus ancienne.
+- **La troncature ne se fait plus passer pour une absence.** Une série hors fenêtre
+  s'affichait exactement comme une série sans prochaine occurrence. La réponse expose
+  maintenant `truncated` et `limit` (200, contre 60), et le panneau dit
+  _« Prévision non calculée »_ au lieu de laisser conclure qu'il n'y en a pas.
+
+### Modifié — les deux familles de gris n'en font plus qu'une
+
+- **Le gris pur rejoint l'échelle ardoise.** ForetMap employait deux familles de gris sans
+  le savoir : une neutre (`#222` à `#888`, écrite à la main) et une ardoise (`--ink-*`,
+  légèrement bleutée, déjà employée 52 fois). Les **18 encres de texte** et les **2 filets**
+  de la première prennent le rôle correspondant dans la seconde. Le reflet bleu est réel et
+  assumé (ΔE de 8 à 12) ; **aucun texte ne bascule de part et d'autre du seuil de contraste
+  AA** qu'il tenait déjà.
+- **Le garde-fou n'a plus de mou** : le plafond de littéraux hexadécimaux passe de 745 à
+  **669**, la valeur exacte — le prochain écrit en dur le fait échouer.
+- **Trois familles restent volontairement à part** et le document le dit : les blancs cassés
+  teintés vert du thème forêt (les fusionner ferait pencher le thème vers le bleu), les
+  traits du graphe trophique (data-visualisation, pas texte d'interface) et les noirs de
+  G&L (palette de marque d'un sous-produit isolé).
+- **Un défaut d'accessibilité devient corrigeable** : le rôle « texte tertiaire »
+  (`--ink-faint`) vaut 3,08:1 sur blanc, sous le seuil AA. Les gris qui viennent de le
+  rejoindre étaient déjà en dessous — le lot ne crée pas le défaut, il le rassemble en un
+  seul endroit où il pourra être tranché.
+
+Mesures, écarts perceptuels et exceptions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md) (§7, lot D).
+
 ---
 
 ## [1.152.1] - 2026-09-11

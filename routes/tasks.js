@@ -639,7 +639,21 @@ router.get(
   requirePermission('tasks.manage'),
   asyncHandler(async (req, res) => {
     const today = getRecurrenceToday();
-    // Une seule occurrence par série : la plus récente, celle qui engendrera la suivante.
+    // Le calcul par série coûte plusieurs allers-retours en base (`nextOpenDay` scanne le
+    // calendrier jour par jour) : la liste reste donc bornée. Mais l'ORDRE de ce plafond
+    // décide de CE QU'ON PERD, et il était exactement à l'envers.
+    //
+    // `ORDER BY due_date DESC` gardait les séries dont l'échéance est la plus LOINTAINE —
+    // celles qui roulent toutes seules — et coupait les plus anciennes. Or une série
+    // bloquée garde une vieille échéance *parce qu'*elle est bloquée : les séries en
+    // attente de validation étaient donc les premières à sortir de la fenêtre. Le panneau
+    // perdait silencieusement sa ligne de prévision (le front la masque quand la série est
+    // absente de la réponse) précisément pour les séries qui réclamaient une action.
+    //
+    // On classe donc par ce qui appelle le professeur : non validée d'abord, puis échéance
+    // la plus ancienne. Et on demande une ligne de plus que le plafond pour pouvoir DIRE
+    // que la liste est tronquée, au lieu de l'amputer en silence.
+    const PREVIEW_LIMIT = 200;
     const rows = await queryAll(
       `SELECT t.id, t.title, t.recurrence, t.recurrence_series_id, t.recurrence_anchor_date,
               t.start_date, t.due_date, t.status, t.created_at
@@ -654,9 +668,12 @@ router.get(
                AND p.archived_at IS NULL
                AND p.due_date > t.due_date
           )
-        ORDER BY t.due_date DESC
-        LIMIT 60`,
+        ORDER BY (t.status = 'validated') ASC, t.due_date ASC
+        LIMIT ?`,
+      [PREVIEW_LIMIT + 1],
     );
+    const truncated = rows.length > PREVIEW_LIMIT;
+    if (truncated) rows.length = PREVIEW_LIMIT;
 
     // Cache calendrier partagé par toute la prévisualisation : `isSchoolOpenDay` interroge
     // la base jour par jour, et les séries partagent largement les mêmes dates.
@@ -683,7 +700,9 @@ router.get(
         next_due: window?.dueDate || null,
       });
     }
-    res.json({ today, series });
+    // `truncated` permet au panneau de dire « prévision non calculée pour ces séries-là »
+    // au lieu de laisser croire qu'elles n'en ont pas.
+    res.json({ today, series, truncated, limit: PREVIEW_LIMIT });
   }),
 );
 
