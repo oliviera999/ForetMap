@@ -149,10 +149,14 @@ export function TourOverridesEditor({
               ? 'Aucun texte réécrit'
               : `${rewrittenCount} texte${rewrittenCount > 1 ? 's' : ''} réécrit${rewrittenCount > 1 ? 's' : ''}`}
           </span>
+          {/* Ce composant est rendu par les DEUX produits. `.btn-secondary` seule n'existe
+              nulle part : c'est `.btn` qui porte la boîte du bouton, et G&L ne charge
+              jamais `index.css`. Le bouton sortait donc sans padding ni hauteur d'un côté,
+              et entièrement nu de l'autre. `.shared-btn` est la famille prévue pour ça. */}
           {resetRegistry ? (
             <button
               type="button"
-              className="btn-secondary"
+              className="shared-btn"
               onClick={resetDefaults}
               disabled={busy || rewrittenCount === 0}
             >
