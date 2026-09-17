@@ -276,7 +276,15 @@ router.get(
   }),
 );
 
-/** Vue de gestion : inclut les brouillons (permission `zones.manage`). */
+/**
+ * Vue de gestion : inclut les brouillons (permission `zones.manage`).
+ *
+ * Le **périmètre de cartes** du compte s'y applique comme au catalogue public : sans `map_id`,
+ * la liste est ramenée aux cartes autorisées, et un `map_id` hors périmètre est refusé. Sans
+ * effet pour les comptes qui portent `teacher.access` — ils sortent du périmètre par
+ * construction (`lib/shared/mapScopeCore.js`) — mais la dissymétrie d'avant se lisait comme
+ * une garde là où il n'y en avait pas (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.6 b).
+ */
 router.get(
   '/manage',
   requirePermission('zones.manage'),
@@ -285,7 +293,12 @@ router.get(
     if (mapId && !(await mapExists(mapId))) {
       return res.status(400).json({ error: 'Carte introuvable' });
     }
-    res.json(await loadRoutes(mapId ? 'map_id = ?' : '', mapId ? [mapId] : []));
+    const scope = await resolveScopedMapFilter(req.auth || null, mapId);
+    if (scope.forbidden) return res.status(403).json(MAP_OUT_OF_SCOPE);
+    if (!scope.mapIds) return res.json(await loadRoutes('', []));
+    return res.json(
+      await loadRoutes(`map_id IN (${scope.mapIds.map(() => '?').join(', ')})`, scope.mapIds),
+    );
   }),
 );
 
@@ -306,6 +319,13 @@ router.get(
  *
  * `?map_id=` lève l'ambiguïté quand deux cartes portent le même slug : il n'est unique que
  * par carte.
+ *
+ * **Aucun front ne l'appelle** : le plan lit ses parcours dans `/api/plan/content`, la Visite
+ * dans `/api/visit/content`, la carte de travail dans le catalogue. Elle est conservée
+ * délibérément — c'est un contrat public documenté (`docs/API.md`), la voie d'un lien profond
+ * résolu côté serveur et d'une intégration tierce — mais c'est une porte ouverte sans usage
+ * interne : toute évolution des parcours doit passer ici aussi
+ * (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.6 a).
  */
 router.get(
   '/:idOrSlug',
@@ -419,8 +439,16 @@ router.put(
     if (title.length > ROUTE_TITLE_MAX) {
       return res.status(400).json({ error: `Titre trop long (${ROUTE_TITLE_MAX} maximum)` });
     }
+    // Champ « Identifiant du lien » **effacé** : on le re-dérive du titre, comme à la création
+    // et comme l'annonce le champ (« laissé vide : dérivé du titre »). L'éditeur envoie le
+    // champ à chaque enregistrement, vide compris : le repli d'origine portait sur l'absence
+    // du champ, si bien qu'effacer l'identifiant valait 400 sans dire quoi faire
+    // (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.3).
+    const slugInput = req.body?.slug;
     const slug =
-      req.body?.slug !== undefined ? slugifyRouteTitle(req.body.slug) : String(current.slug);
+      slugInput === undefined
+        ? String(current.slug)
+        : slugifyRouteTitle(String(slugInput).trim() ? slugInput : title);
     if (!slug) return res.status(400).json({ error: 'Slug invalide (lettres ou chiffres requis)' });
     if (await slugTaken(current.map_id, slug, current.id)) {
       return res.status(409).json({ error: 'Un parcours porte déjà ce slug sur cette carte' });

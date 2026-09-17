@@ -22,11 +22,16 @@
 > `src/plan/utils/planRoutes.js`, `tests/map-routes.test.js`, `tests-ui/**`,
 > `e2e/plan-routes-mode.spec.js`, `docs/API.md`, `docs/reference/plan/presentation.md`.
 >
+> **État au 2026-09-17 (second passage, même jour)** : les six constats sont **traités**.
+> §2.1 et §2.4 l'ont été dans le premier lot ; §2.2, §2.3, §2.5, §2.6 et le §2.7 ajouté par la
+> passe d'affichage dans le second. Chaque section porte une ligne **« Corrigé »** qui dit où.
+> Le document reste rédigé au présent de l'audit : c'est l'état constaté qui est décrit.
+>
 > **Note d'exécution** : contrairement au premier audit, la base était disponible ici. Les
 > constats §2.1 et §2.4 ont été **reproduits par requête réelle** (supertest sur l'application
-> montée), pas seulement lus ; les traces figurent dans chaque section. `npm test` (suite
-> parcours + plan + staff + visite), `npm run test:ui`, `npm run lint` et
-> `npm run format:check` sont verts après correction.
+> montée), et §2.7 **mesuré dans un navigateur** (Playwright, 390 × 844) — les chiffres sont
+> ceux relevés, pas des estimations. `npm test`, `npm run test:ui`, `npm run lint`,
+> `npm run format:check` et le scénario e2e du plan sont verts après correction.
 
 ---
 
@@ -126,7 +131,11 @@ imprimé n'a pas à être celle des surfaces internes.
 
 ### 2.2 P3 — « Reprendre le parcours » ne reprend pas : il redémarre à l'étape 1
 
-**Ouvert.** Les trois surfaces sont touchées, par deux chemins de code différents.
+**Corrigé** (`src/shared/map-routes/useMapRouteMode.js` ; tests
+`tests-ui/shared/useMapRouteMode.test.jsx`, `tests-ui/plan/AppPlanMount.test.jsx`,
+`e2e/plan-routes-mode.spec.js`).
+
+Les trois surfaces étaient touchées, par deux chemins de code différents.
 
 Sur la Visite et la carte de travail (`src/shared/map-routes/useMapRouteMode.js`) :
 
@@ -150,20 +159,24 @@ pourtant **« Reprendre le parcours »** sur les trois écrans, et `PlanHelp` pr
 regarder autre chose retrouve l'étape 1 — et n'a aucun moyen de revenir à la 7 autrement qu'en
 touchant « Suivant » six fois.
 
-Deux corrections possibles, l'une n'excluant pas l'autre : mémoriser l'index au moment de
-`exitRoute` et le restituer dans `resumeRoute` (quelques lignes, aucun effet de bord) ; et, si
-l'on veut tenir la promesse de la doc de référence (« l'avancement vit sur l'appareil »), le
-persister dans `localStorage` par slug, car aujourd'hui il ne survit pas non plus à un
-rafraîchissement de page — ce qui est précisément la situation d'un visiteur qui a scanné un
-QR code et verrouille son téléphone entre deux étapes.
+Le trou de couverture était visible dans `e2e/plan-routes-mode.spec.js` : le scénario quittait
+le parcours **à l'étape 2 sur 2**, vérifiait que le bouton « Reprendre le parcours »
+apparaissait… et s'arrêtait là, sans jamais cliquer dessus.
 
-Le trou de couverture est visible dans `e2e/plan-routes-mode.spec.js` : le scénario quitte le
-parcours **à l'étape 2 sur 2**, vérifie que le bouton « Reprendre le parcours » apparaît… et
-s'arrête là, sans jamais cliquer dessus.
+**Correction.** `exitRoute` mémorise le parcours **et l'étape** ; `resumeRoute` repart de là.
+La reprise est en outre écrite sur l'appareil (`storageKey`, une clé par surface et par carte),
+ce qui tient la promesse de la doc de référence — « l'avancement vit sur l'appareil » — alors
+qu'il ne survivait même pas à un rafraîchissement de page, la situation exacte du visiteur qui
+a scanné un QR code et verrouille son téléphone entre deux étapes. Une reprise qui ne désigne
+plus aucun parcours publié s'efface d'elle-même, pour ne pas laisser un bouton sans effet.
+Le scénario e2e clique désormais sur « Reprendre », vérifie l'étape, recharge la page et
+recommence.
 
 ### 2.3 P3 — Effacer l'identifiant du lien refuse l'enregistrement, contre ce qu'annonce le champ
 
-**Ouvert.** Le champ « Identifiant du lien » de l'éditeur porte le texte indicatif
+**Corrigé** (`routes/map-routes.js`, `PUT /:id` ; test dans `tests/map-routes.test.js`).
+
+Le champ « Identifiant du lien » de l'éditeur porte le texte indicatif
 « laissé vide : dérivé du titre » (`MapRoutesPanel.jsx`). C'est vrai à la création :
 
 ```js
@@ -184,10 +197,13 @@ PUT /api/map-routes/:id   { "title": "…", "slug": "" }   → 400
 {"error":"Slug invalide (lettres ou chiffres requis)"}
 ```
 
-Un professeur qui efface le champ pour le faire regénérer depuis un titre corrigé reçoit un
-refus qui ne lui dit pas quoi faire. Deux issues : re-dériver du titre quand `slug` est fourni
-vide (le plus proche de ce qu'annonce le champ), ou ne pas envoyer le champ vide côté éditeur.
-La première est préférable — le contrat doit tenir à l'API, pas au client.
+Un professeur qui efface le champ pour le faire regénérer depuis un titre corrigé recevait un
+refus qui ne lui disait pas quoi faire.
+
+**Correction.** Un `slug` fourni **vide** est re-dérivé du titre, comme à la création : le
+contrat tient à l'API, pas au client. Le champ **absent** conserve toujours le slug existant —
+ce n'est pas la même chose, et les deux cas sont testés. Un titre sans lettre ni chiffre reste
+un refus explicite.
 
 ### 2.4 P3 — Un rang d'affichage extrême rendait une 500
 
@@ -207,7 +223,10 @@ la création le rang vaut `100`, à la modification le rang existant est conserv
 
 ### 2.5 P4 — Le mode parcours existe en deux exemplaires
 
-**Ouvert.** `src/shared/map-routes/useMapRouteMode.js` a été extrait pour la Visite et la carte
+**Corrigé** (`src/shared/map-routes/useMapRouteMode.js`, `src/plan/AppPlan.jsx` ; tests
+`tests-ui/shared/useMapRouteMode.test.jsx`).
+
+`src/shared/map-routes/useMapRouteMode.js` avait été extrait pour la Visite et la carte
 de travail. Le Plan Lyautey — la surface d'origine, celle où les parcours servent le plus — ne
 l'utilise pas : `AppPlan.jsx` porte sa propre copie de l'état (`activeRouteSlug`, `routeIndex`,
 `routePickerOpen`, `resumableRouteSlug`, `startRoute`, `exitRoute`, `resumeRoute`,
@@ -223,42 +242,93 @@ Les deux copies ont déjà divergé, faiblement mais réellement :
 | Mesure d'usage                             | `reportPlanUsage('route_start' / 'route_step')` | aucune                             |
 | Aperçu d'un autre lieu pendant le parcours | `routePeekPlace` + « Revenir à l'étape »        | absent                             |
 
-Rien de cassé aujourd'hui ; mais §2.2 est un bug **unique** qu'il faudra corriger **deux
-fois**, et c'est la définition de la dette. Migrer `AppPlan` sur le hook partagé demande d'y
-faire remonter les trois lignes du tableau (un `onExitExtra` et deux rappels optionnels
-suffisent) — le hook a déjà les points d'entrée pour cela.
+Rien n'était cassé ; mais §2.2 était un bug **unique** qu'il aurait fallu corriger **deux
+fois**, et c'est la définition de la dette.
+
+**Correction.** `AppPlan` passe au hook partagé, et les trois lignes du tableau y montent en
+**rappels optionnels** : `onExit` (le toast), `onUsage` (la mesure), `onStartExtra` (fermer la
+liste de résultats), plus l'aperçu `peekPlace` désormais porté par le hook. Une surface qui ne
+fournit pas ces rappels se comporte exactement comme avant — la Visite et la carte de travail
+n'ont pas changé. Le noyau, qui ne portait aucun test direct alors qu'il servait déjà deux
+surfaces, en a maintenant sept ; et l'aperçu « Revenir à l'étape », l'apport le plus fragile du
+plan, a son test de montage.
 
 ### 2.6 P4 — Détails à ramasser
 
+**Traités.** Chaque point porte ci-dessous ce qui a été décidé — y compris le seul qui se
+règle par une décision plutôt que par du code.
+
 a. **`GET /api/map-routes/:idOrSlug` n'a aucun appelant.** Aucun front ne l'utilise : le plan
 lit ses parcours dans `/api/plan/content`, la visite dans `/api/visit/content`, la carte dans
-le catalogue. C'est une porte publique entretenue pour personne — elle était d'ailleurs la
-troisième fuite de §2.1. À conserver si l'on veut un jour un lien profond résolu côté serveur,
-à supprimer sinon ; dans les deux cas, cela mérite d'être décidé plutôt que subi.
+le catalogue. C'était d'ailleurs la troisième fuite de §2.1. → **Conservée**, délibérément :
+c'est un contrat public documenté (`docs/API.md`), la voie d'un lien profond résolu côté
+serveur et d'une intégration tierce, et elle est désormais gardée comme les autres. La décision
+est écrite en tête de la route, avec ce qu'elle coûte : une porte sans usage interne, que toute
+évolution des parcours devra penser aussi.
 
-b. **`GET /manage` ignore le périmètre de cartes**, là où `GET /` applique
+b. **`GET /manage` ignorait le périmètre de cartes**, là où `GET /` applique
 `resolveScopedMapFilter`. Sans conséquence pratique — `canBypassMapScope` laisse passer tout
-compte portant `teacher.access`, donc tout détenteur de `zones.manage` en pratique — et
-conforme à ce que fait `routes/zones.js`. Noté pour que la dissymétrie ne soit pas prise un
-jour pour une garde.
+compte portant `teacher.access`, donc tout détenteur de `zones.manage` en pratique. →
+**Aligné** : le périmètre s'y applique comme au catalogue public. Une dissymétrie pareille finit
+par se lire comme une garde.
 
-c. **Le serveur accepte deux étapes consécutives vers le même lieu**, que l'éditeur empêche
-(`addStep` dédoublonne). Ce n'est pas forcément un défaut — un parcours peut légitimement
-repasser par la cour — mais l'éditeur, lui, ne permet pas de l'exprimer : le lieu déjà présent
-est simplement ignoré, sans message. Choisir : autoriser des deux côtés, ou refuser des deux.
+c. **Le serveur acceptait deux étapes vers le même lieu, l'éditeur non** (`addStep`
+dédoublonnait, sans message). → **Autorisé des deux côtés** : un parcours repasse
+légitimement par l'accueil ou par la cour, et c'est au serveur que le contrat se décide. La
+suggestion indique désormais « déjà à l'étape 2 » quand le lieu est repris, pour que le doublon
+soit un choix et non une méprise.
 
-d. **`addStep` est muet quand la limite de 60 étapes est atteinte** : le clic ne fait rien, et
-aucun message n'explique pourquoi. Le compteur `aria-live` annonce bien le total, mais ne dit
-pas qu'on vient de buter sur une borne.
+d. **`addStep` était muet à la limite de 60 étapes** : le clic ne faisait rien, sans un mot. →
+La borne atteinte **désactive** les suggestions, le compteur d'étapes l'annonce (« limite
+atteinte ») et une tentative d'ajout le dit.
 
-e. **L'éditeur ne borne pas `description` (2 000) ni `step_text` (4 000) côté client.** Les
-bornes serveur du premier audit (§2.8) n'ont pas de pendant dans le formulaire : on peut saisir
-5 000 caractères, et ne l'apprendre qu'au refus, après un aller-retour. Un `maxLength` sur les
-deux champs suffirait.
+e. **L'éditeur ne bornait ni `description` (2 000) ni `step_text` (4 000) côté client.** On
+pouvait saisir cinq mille caractères et ne l'apprendre qu'au refus. → `maxLength` sur les cinq
+champs bornés par le serveur, compteur affiché près de la limite pour la description,
+validation cliente alignée, et bornes `min`/`max` sur le champ « Ordre » (§2.4).
 
 f. **`docs/API.md` ignorait la surface `staff`** (« `plan`/`map`/`visit` ») alors que la
-migration `260` l'a ajoutée au `SET` et que l'éditeur la propose. Corrigé dans ce lot, avec la
-garde par surface de §2.1 et les bornes de §2.4.
+migration `260` l'a ajoutée au `SET` et que l'éditeur la propose. → Corrigé avec la garde par
+surface de §2.1 et les bornes de §2.4.
+
+### 2.7 P3 — La barre d'étape mangeait l'écran, et la carte recadrait dessous
+
+**Corrigé** (`src/index.css`, `src/plan/styles/plan.css`, `src/shared/map-routes/MapRouteBar.jsx`,
+les trois surfaces). Constaté dans un navigateur, pas par lecture : Playwright sur un écran de
+390 × 844, le format d'un téléphone — le seul usage réel du plan.
+
+Trois mesures, trois défauts :
+
+| Mesuré                        | Avant  | Après   |
+| ----------------------------- | ------ | ------- |
+| Barre repliée (texte d'étape) | 275 px | 237 px  |
+| Barre dépliée                 | 420 px | 383 px  |
+| Recadrage annoncé à la carte  | 148 px | mesurée |
+
+1. **Le titre du parcours n'était pas borné.** Il s'affiche en rappel au-dessus de l'étape, en
+   petit et en gris — mais sur trois lignes pour un titre de 75 caractères, et jusqu'à six pour
+   les 180 que le serveur accepte. Il pousse d'autant le nom de l'étape, son texte et les
+   commandes. → Une ligne, avec ellipse.
+
+2. **Le texte d'étape déplié n'avait pas de plafond.** Quatre phrases suffisaient à donner à la
+   barre la moitié de l'écran ; `step_text` en autorise 4 000 caractères. → `max-height: 28vh`
+   et défilement : le texte long reste lisible sans chasser la carte.
+
+3. **Le recadrage de la carte reposait sur une constante fausse.** `MAP_ROUTE_BAR_FOCUS_INSET_PX`
+   annonçait 148 px de barre là où elle en occupait 275 : la carte centrait le lieu de l'étape
+   courante dans la scène entière, donc **sous la barre** — le défaut B2 déjà corrigé pour les
+   feuilles basses (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md`), jamais transposé ici. →
+   La barre **mesure sa propre hauteur** (`ResizeObserver`) et la remonte ; la constante ne sert
+   plus que le premier rendu. Vérifié dans le navigateur : l'étiquette du lieu de l'étape 2 se
+   pose à 446 px, la barre commence à 675 px.
+
+   La Visite et la carte de travail ne passaient **aucun** écart de recadrage — `focusOnPct`
+   accepte pourtant `insets`. Elles le passent maintenant, avec la même hauteur mesurée.
+
+4. Au passage : le compteur de la puce « Parcours » comptait les étapes **servies par l'API**,
+   là où la barre compte celles qui sont **affichables**. Le filtrage serveur les aligne
+   aujourd'hui, mais rien ne le garantissait côté client — c'est le §2.4 du premier audit, dont
+   seul le versant serveur avait été traité. La puce compte désormais comme la barre.
 
 ---
 
@@ -266,22 +336,29 @@ garde par surface de §2.1 et les bornes de §2.4.
 
 | Niveau               | Fichier                                                    | État                                                            |
 | -------------------- | ---------------------------------------------------------- | --------------------------------------------------------------- |
-| API                  | `tests/map-routes.test.js`                                 | 17 cas, verts ; **+3** dans ce lot (§2.1 ×2, §2.4)              |
+| API                  | `tests/map-routes.test.js`                                 | 19 cas verts (**+5** : §2.1 ×2, §2.3, §2.4, §2.6 c)             |
 | Charge plan / staff  | `tests/plan-content.test.js`, `staff-plan-content.test.js` | verts                                                           |
-| Logique pure éditeur | `tests-ui/utils/mapRoutesEditor.test.js`                   | vert                                                            |
+| Noyau mode parcours  | `tests-ui/shared/useMapRouteMode.test.jsx`                 | **nouveau** — 7 cas (reprise, persistance, rebornage)           |
+| Logique pure éditeur | `tests-ui/utils/mapRoutesEditor.test.js`                   | vert (**+1** : rangs d'un lieu répété)                          |
 | Logique pure plan    | `tests-ui/plan/planRoutes.test.js`                         | vert                                                            |
+| Plan (montage)       | `tests-ui/plan/AppPlanMount.test.jsx`                      | vert (**+1** : aperçu et « Revenir à l'étape » ; reprise)       |
 | Éditeur (montage)    | `tests-ui/components/settings/MapRoutesPanel.test.jsx`     | vert                                                            |
-| e2e                  | `e2e/plan-routes-mode.spec.js`                             | puce, lien profond, affiche périmée — **pas la reprise** (§2.2) |
+| e2e                  | `e2e/plan-routes-mode.spec.js`                             | puce, lien profond, affiche périmée, **reprise + rechargement** |
 
-Trois manques, dans l'ordre où ils coûteraient :
+Les trois manques relevés en début d'audit sont comblés :
 
-1. **La reprise** (§2.2) : aucun test, ni UI ni e2e, ne clique sur « Reprendre le parcours ».
-   Le scénario e2e existant s'arrête juste avant. Un `expect(sheet.getByText('Étape 2 sur 2'))`
-   après le clic aurait suffi à faire tomber le constat.
-2. **Le mode parcours du plan** n'a pas de test de montage propre : `AppPlanMount.test.jsx`
-   monte la coquille, mais la copie d'état de §2.5 n'est exercée qu'en e2e.
-3. **`useMapRouteMode`** n'a aucun test direct — c'est pourtant le noyau désormais partagé par
-   deux surfaces.
+1. **La reprise** (§2.2) : aucun test ne cliquait sur « Reprendre le parcours » — le scénario
+   e2e s'arrêtait juste avant. Il clique, vérifie l'étape, recharge la page et recommence ; le
+   test de montage du plan fait de même, et le hook a ses propres cas.
+2. **Le mode parcours du plan** : son apport le plus fragile — l'aperçu d'un lieu et « Revenir
+   à l'étape » — a désormais un test de montage, là où il n'était exercé qu'en e2e.
+3. **`useMapRouteMode`** : le noyau, qui n'avait aucun test direct alors qu'il servait déjà deux
+   surfaces et en sert trois maintenant, en a sept.
+
+Ce qui reste sans filet automatique : la **hauteur** de la barre d'étape (§2.7) a été mesurée à
+la main dans un navigateur, pas figée dans un test — un test de non-régression sur une hauteur
+en pixels serait fragile, et le vrai garde-fou est le recadrage mesuré, qui n'a plus de
+constante à démentir.
 
 ---
 
@@ -309,7 +386,15 @@ Vérifié un par un sur le code d'aujourd'hui. Aucune régression.
   personne n'a regardé la page. Un titre de 180 caractères et soixante étapes tiennent-ils sur
   l'A4 unique, ou le contenu déborde-t-il ? `PDFDocument` pagine seul, sans que le code s'en
   soucie — ni test, ni relecture visuelle.
-- **Le scénario e2e** (`plan-routes-mode.spec.js`) n'a pas été rejoué : il demande un `dist/`
-  construit et un serveur en mode production.
+- **Le rendu des autres surfaces** : les mesures d'affichage du §2.7 ont été relevées sur le
+  Plan Lyautey. La Visite et la carte de travail partagent la barre, son CSS et désormais son
+  écart de recadrage, mais leur rendu n'a pas été photographié.
 - **Le comportement hors ligne** (service worker) des parcours : la doc de référence annonce
   que le plan garde lieux et parcours sans réseau ; non vérifié.
+
+**Trouvé en chemin, hors périmètre parcours.** `e2e/global-setup.js` force
+`ui.auth.allow_register` à `false` — la configuration de production — et ne le restaurait
+jamais. Tout `npm test` lancé après une suite e2e sur la même base échouait donc en masse :
+**32 cas**, tous en 403 sur `POST /api/auth/register` ou sur le compte élève qu'ils créent au
+préalable, sans que rien dans le code soit en cause. C'est ce qui est arrivé ici entre deux
+vérifications. Un `e2e/global-teardown.js` repose désormais la valeur d'origine.

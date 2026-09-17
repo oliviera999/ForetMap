@@ -228,9 +228,13 @@ l'étape »** qui rend la main au parcours. La barre d'étape remonte au-dessus 
 reste utilisable : auparavant la fiche la recouvrait entièrement, « Quitter », « Précédent » et
 « Suivant » compris.
 
-Rien n'est enregistré : personne ne coche, personne n'est suivi. On peut sauter une étape ou
-quitter le parcours à tout moment. Après avoir quitté, on le reprend via la puce **Parcours**
-(un court message le rappelle). Un lien direct par parcours (`?parcours=…`) permet d'imprimer
+Rien n'est enregistré **côté serveur** : personne ne coche, personne n'est suivi. On peut
+sauter une étape ou quitter le parcours à tout moment. Après avoir quitté, le bouton
+**« Reprendre le parcours »** rend la main **à l'étape où l'on s'était arrêté** — et non au
+début —, et la puce **Parcours** reste une autre entrée (un court message le rappelle). Cette
+position est mémorisée sur l'appareil, et sur lui seul : elle survit à la fermeture de la page,
+elle ne quitte jamais le téléphone. Démarrer un parcours depuis la puce repart de l'étape 1 ;
+un parcours dépublié entre-temps ne laisse pas de bouton qui ne mènerait nulle part. Un lien direct par parcours (`?parcours=…`) permet d'imprimer
 un **QR code** à l'accueil : le visiteur scanne et démarre le parcours. Si l'affiche a survécu au
 parcours — dépublié, supprimé, renommé — le plan le **dit** (« Ce parcours n'est plus
 disponible. ») plutôt que de s'ouvrir sans rien annoncer.

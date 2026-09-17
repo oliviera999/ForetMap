@@ -38,12 +38,8 @@ import {
   readPlaceIdFromLocation,
 } from './utils/planPlaces.js';
 import { PLAN_POSITION_MESSAGES } from './utils/planPositionMessages.js';
-import {
-  buildRouteUrl,
-  nextRouteIndex,
-  readRouteSlugFromLocation,
-  resolveRouteSteps,
-} from './utils/planRoutes.js';
+import { buildRouteUrl, readRouteSlugFromLocation } from './utils/planRoutes.js';
+import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
 
 /**
  * Préférences d'appareil : catégories retenues d'une visite à l'autre, message d'accueil déjà
@@ -68,6 +64,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     welcome: WELCOME_STORAGE_KEY,
     headingUp: HEADING_UP_STORAGE_KEY,
     scaleCompass: SCALE_COMPASS_STORAGE_KEY,
+    route: ROUTE_RESUME_STORAGE_KEY,
   } = storageKeys;
   /** Code d'accès porté par un lien profond (`?code=`, QR interne) — lot 8. */
   const [accessCode, setAccessCode] = useState(() =>
@@ -90,14 +87,10 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     viewer,
     reload,
   } = usePlanContent('', accessCode, variant);
-  /** Parcours en cours (lot 8) : slug actif et position, mémorisés sur l'appareil seulement. */
-  const [activeRouteSlug, setActiveRouteSlug] = useState('');
-  const [routeIndex, setRouteIndex] = useState(0);
-  const [routePickerOpen, setRoutePickerOpen] = useState(false);
   /** Liste complète des catégories (feuille basse) — la rangée de puces n'en montre que 3. */
   const [filtersOpen, setFiltersOpen] = useState(false);
-  /** Dernier parcours quitté (slug) — bouton « Reprendre » jusqu'à un autre démarrage. */
-  const [resumableRouteSlug, setResumableRouteSlug] = useState('');
+  /** Hauteur réellement occupée par la barre d'étape, mesurée par elle (voir `MapRouteBar`). */
+  const [routeBarHeight, setRouteBarHeight] = useState(0);
   const [offline, setOffline] = useState(
     () => typeof navigator !== 'undefined' && navigator.onLine === false,
   );
@@ -108,18 +101,74 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   const [welcomeVisible, setWelcomeVisible] = useState(false);
   /** Lieux d'un groupe de repères ouvert depuis la carte (désencombrement, lot 5). */
   const [groupPlaces, setGroupPlaces] = useState(null);
-  /**
-   * Lieu consulté **pendant un parcours**. Sans lui, toucher un lieu (sur la carte comme dans
-   * les résultats) ne produisait rien du tout : ni fiche, ni message
-   * (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N5).
-   */
-  const [routePeekPlace, setRoutePeekPlace] = useState(null);
   /** Lieu visé par « Y aller » (ligne droite depuis la position, lot 6). */
   const [targetPlaceId, setTargetPlaceId] = useState('');
   const deepLinkAppliedRef = useRef(false);
   /** Parcours actif, lu par les gestionnaires stables (`openPlace`). */
   const activeRouteSlugRef = useRef('');
   const openedOnceRef = useRef(false);
+
+  /**
+   * Ce que le mode parcours a à dire au visiteur — aujourd'hui : le QR code d'une affiche qui
+   * annonce un parcours disparu. Sans lui, ce cas était silencieux
+   * (`docs/AUDIT_PARCOURS_2026-09.md` §2.6).
+   */
+  const [routeToast, setRouteToast] = useTimedToastState();
+
+  /**
+   * Mode parcours — le **noyau partagé** avec la Visite et la carte de travail
+   * (`src/shared/map-routes/useMapRouteMode.js`). Le plan portait sa propre copie de cet
+   * état ; les trois choses qu'il faisait en plus lui restent, passées en rappels : le toast
+   * de rappel après « Quitter », la mesure d'usage, et la fermeture de la liste de résultats
+   * au démarrage (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.5).
+   *
+   * `onStepPlace` : l'étape courante **est** le lieu sélectionné — la carte recadre dessus et
+   * sa fiche suit.
+   */
+  const onRouteStepPlace = useCallback((entry) => {
+    if (entry?.place) setSelectedPlace(entry.place);
+  }, []);
+  const onRouteStartExtra = useCallback(() => {
+    setResultsOpen(false);
+    setGroupPlaces(null);
+  }, []);
+  const onRouteExitExtra = useCallback(() => {
+    setSelectedPlace(null);
+    setTargetPlaceId('');
+  }, []);
+  const onRouteExit = useCallback(() => {
+    setRouteToast('Pour reprendre : puce Parcours, ou Reprendre.');
+  }, [setRouteToast]);
+  const onRouteUsage = useCallback(
+    (event, detail) => reportPlanUsage(event, detail, variant),
+    [variant],
+  );
+  const {
+    activeRoute,
+    activeRouteSlug,
+    routeSteps,
+    routeIndex,
+    currentRouteEntry,
+    routePickerOpen,
+    setRoutePickerOpen,
+    resumableRouteSlug,
+    peekPlace: routePeekPlace,
+    setPeekPlace: setRoutePeekPlace,
+    startRoute,
+    exitRoute,
+    resumeRoute,
+    goToRouteIndex,
+    startRouteAt,
+  } = useMapRouteMode({
+    routes,
+    places,
+    onStepPlace: onRouteStepPlace,
+    onStartExtra: onRouteStartExtra,
+    onExitExtra: onRouteExitExtra,
+    onExit: onRouteExit,
+    onUsage: onRouteUsage,
+    storageKey: ROUTE_RESUME_STORAGE_KEY,
+  });
 
   activeRouteSlugRef.current = activeRouteSlug;
 
@@ -210,12 +259,6 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    */
   const sheetInsetPx = useBottomSheetInset();
   const [positionToast, setPositionToast] = useTimedToastState();
-  /**
-   * Ce que le mode parcours a à dire au visiteur — aujourd'hui : le QR code d'une affiche qui
-   * annonce un parcours disparu. Sans lui, ce cas était silencieux
-   * (`docs/AUDIT_PARCOURS_2026-09.md` §2.6).
-   */
-  const [routeToast, setRouteToast] = useTimedToastState();
   const categoriesById = useMemo(
     () => new Map((categories || []).map((c) => [String(c.id), c])),
     [categories],
@@ -327,7 +370,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         window.history.replaceState(null, '', buildPlaceUrl(window.location, String(place.id)));
       }
     },
-    [setSelectedPlace],
+    [setRoutePeekPlace],
   );
 
   /**
@@ -440,17 +483,6 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     safeLocalStorageWriteJson(CATEGORIES_STORAGE_KEY, []);
   }, [CATEGORIES_STORAGE_KEY]);
 
-  /** Parcours actif et ses étapes résolues en lieux réels. */
-  const activeRoute = useMemo(
-    () => (activeRouteSlug ? routes.find((r) => r.slug === activeRouteSlug) || null : null),
-    [activeRouteSlug, routes],
-  );
-  const routeSteps = useMemo(
-    () => (activeRoute ? resolveRouteSteps(activeRoute, places) : []),
-    [activeRoute, places],
-  );
-  const currentRouteEntry = routeSteps[routeIndex] || null;
-
   /**
    * « Y aller » : la carte trace une **ligne droite** entre la position et le lieu, avec la
    * distance. Ce n'est pas un itinéraire — le plan ne connaît pas encore les chemins, et
@@ -520,14 +552,16 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     sheetInsetPx > (window.innerHeight || 0) * 0.66;
 
   const mapFocusInsets = useMemo(() => {
+    // Barre d'étape : sa hauteur **mesurée**, qui varie avec le texte de l'étape et son
+    // dépliage. La constante ne sert que le premier rendu, avant la première mesure.
     const bars = activeRoute
-      ? PLAN_ROUTE_BAR_FOCUS_INSET_PX
+      ? routeBarHeight || PLAN_ROUTE_BAR_FOCUS_INSET_PX
       : guidedPlace
         ? PLAN_GUIDE_BAR_FOCUS_INSET_PX
         : 0;
     const bottom = Math.max(bars, Math.round(sheetInsetPx) || 0);
     return bottom > 0 ? { bottom } : null;
-  }, [activeRoute, guidedPlace, sheetInsetPx]);
+  }, [activeRoute, guidedPlace, sheetInsetPx, routeBarHeight]);
 
   /**
    * Distance à vol d'oiseau d'un lieu quelconque, formatée — pour la liste de résultats
@@ -568,61 +602,6 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     reportPlanUsage('go_stop', '');
   }, []);
 
-  const startRoute = useCallback((route) => {
-    setRoutePickerOpen(false);
-    setResultsOpen(false);
-    setGroupPlaces(null);
-    setRoutePeekPlace(null);
-    setResumableRouteSlug('');
-    setRouteIndex(0);
-    setActiveRouteSlug(route.slug);
-    reportPlanUsage('route_start', route.slug);
-  }, []);
-
-  const exitRoute = useCallback(() => {
-    const slug = activeRouteSlug;
-    setActiveRouteSlug('');
-    setRouteIndex(0);
-    setSelectedPlace(null);
-    setRoutePeekPlace(null);
-    setTargetPlaceId('');
-    if (slug) {
-      setResumableRouteSlug(slug);
-      setRouteToast('Pour reprendre : puce Parcours, ou Reprendre.');
-    }
-  }, [activeRouteSlug, setRouteToast]);
-
-  const resumeRoute = useCallback(() => {
-    const route = routes.find((r) => r.slug === resumableRouteSlug);
-    if (route) startRoute(route);
-  }, [routes, resumableRouteSlug, startRoute]);
-
-  const goToRouteIndex = useCallback(
-    (next) => {
-      const index = nextRouteIndex(next, routeSteps.length, 0);
-      setRouteIndex(index);
-      reportPlanUsage('route_step', `${activeRouteSlug}#${index + 1}`);
-    },
-    [routeSteps.length, activeRouteSlug],
-  );
-
-  /**
-   * Un rafraîchissement du contenu peut raccourcir un parcours en cours (une étape dont le
-   * lieu vient d'être retiré du plan). Sans rebornage, la position restait au-delà de la
-   * dernière étape et la feuille basculait sur « pas encore d'étape affichable »
-   * (`docs/AUDIT_PARCOURS_2026-09.md` §2.6).
-   */
-  useEffect(() => {
-    setRouteIndex((current) => nextRouteIndex(current, routeSteps.length, 0));
-  }, [routeSteps.length]);
-
-  // L'étape courante est le lieu sélectionné : la carte recadre dessus et sa fiche suit.
-  useEffect(() => {
-    if (!currentRouteEntry) return;
-    setSelectedPlace(currentRouteEntry.place);
-    setRoutePeekPlace(null);
-  }, [currentRouteEntry]);
-
   /**
    * Lien profond `?parcours=` : ouvre le parcours dès que le contenu est là — et **le dit**
    * quand le slug ne correspond à rien. Une affiche imprimée survit à la dépublication, à la
@@ -641,12 +620,11 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     if (!wanted) return;
     const found = routes.find((route) => route.slug === wanted);
     if (found) {
-      setActiveRouteSlug(found.slug);
-      setRouteIndex(0);
+      startRouteAt(found, 0);
       return;
     }
     setRouteToast('Ce parcours n’est plus disponible.');
-  }, [content, routes, setRouteToast]);
+  }, [content, routes, setRouteToast, startRouteAt]);
 
   /**
    * Aligne `?parcours=` après les history.back() des feuilles qui se ferment au démarrage.
@@ -775,6 +753,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         <div className="plan-filters__row">
           <PlanRoutePicker
             routes={routes}
+            places={places}
             onStart={startRoute}
             open={routePickerOpen}
             onToggle={setRoutePickerOpen}
@@ -906,6 +885,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
           onGoToIndex={goToRouteIndex}
           onExit={exitRoute}
           canLocate={position.available}
+          onHeight={setRouteBarHeight}
           distanceLabel={
             currentRouteEntry && position.positionPct ? formatDistanceFr(targetDistanceM) : ''
           }

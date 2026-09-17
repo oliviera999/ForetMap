@@ -678,3 +678,58 @@ test('ordre d’affichage hors bornes : 400 lisible, jamais 500', async () => {
     .expect(200);
   assert.equal(kept.body.sort_order, 7);
 });
+
+/**
+ * Le champ « Identifiant du lien » annonce « laissé vide : dérivé du titre ». C'était vrai à
+ * la création seulement : le repli du `PUT` portait sur l'absence du champ, pas sur sa
+ * vacuité, et l'éditeur envoie toujours le champ (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.3).
+ */
+test('modification : un identifiant de lien effacé est re-dérivé du titre', async () => {
+  const created = await auth(request(app).post('/api/map-routes'))
+    .send({ map_id: map.id, title: 'Tour des serres', slug: 'ancien-lien' })
+    .expect(201);
+  createdRouteIds.push(created.body.id);
+  assert.equal(created.body.slug, 'ancien-lien');
+
+  const renamed = await auth(request(app).put(`/api/map-routes/${created.body.id}`))
+    .send({ title: 'Tour des vergers', slug: '' })
+    .expect(200);
+  assert.equal(renamed.body.slug, 'tour-des-vergers');
+
+  // Champ non fourni : le slug existant est conservé (ce n'est pas la même chose que vide).
+  const kept = await auth(request(app).put(`/api/map-routes/${created.body.id}`))
+    .send({ title: 'Tour des vergers et des serres' })
+    .expect(200);
+  assert.equal(kept.body.slug, 'tour-des-vergers');
+
+  // Un titre sans lettre ni chiffre ne donne aucun slug : le refus reste explicite.
+  const unusable = await auth(request(app).put(`/api/map-routes/${created.body.id}`))
+    .send({ title: '???', slug: '' })
+    .expect(400);
+  assert.match(unusable.body.error, /Slug invalide/);
+});
+
+/**
+ * Le serveur accepte deux étapes vers le même lieu — un parcours repasse par l'accueil.
+ * L'éditeur l'interdisait, seul de toute la chaîne (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.6 c).
+ */
+test('un lieu peut figurer deux fois dans un parcours', async () => {
+  const created = await auth(request(app).post('/api/map-routes'))
+    .send({
+      map_id: map.id,
+      title: 'Aller-retour',
+      steps: [
+        { target_type: 'zone', target_id: zone.id, step_title: 'Départ' },
+        { target_type: 'marker', target_id: marker.id },
+        { target_type: 'zone', target_id: zone.id, step_title: 'Retour au point de départ' },
+      ],
+    })
+    .expect(201);
+  createdRouteIds.push(created.body.id);
+  assert.equal(created.body.steps.length, 3);
+  assert.deepEqual(
+    created.body.steps.map((s) => s.position),
+    [0, 1, 2],
+  );
+  assert.equal(created.body.steps[2].step_title, 'Retour au point de départ');
+});

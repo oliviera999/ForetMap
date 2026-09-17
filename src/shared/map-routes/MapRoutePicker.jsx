@@ -1,10 +1,27 @@
+import { useMemo } from 'react';
+
+import { resolveRouteSteps } from './mapRouteSteps.js';
+
 /**
  * Puce « Parcours » et liste des parcours publiés sur une surface (Plan, Visite, Carte).
  *
- * Un parcours **sans étape affichable** n'est pas proposé.
+ * Un parcours **sans étape affichable** n'est pas proposé, et le nombre annoncé est celui des
+ * étapes **réellement affichables** : celles dont le lieu est présent dans `places`, exactement
+ * ce que comptera la barre d'étape. Sans `places`, on retombe sur les étapes servies par
+ * l'API — ce que faisait cette liste jusqu'ici, au risque d'annoncer « 5 étapes » là où la
+ * barre en montrait 3 (`docs/AUDIT_PARCOURS_2026-09.md` §2.4, versant client).
  */
-export function MapRoutePicker({ routes, onStart, open, onToggle, className = '' }) {
-  const offered = (routes || []).filter((route) => (route?.steps || []).length > 0);
+export function MapRoutePicker({ routes, places, onStart, open, onToggle, className = '' }) {
+  const offered = useMemo(
+    () =>
+      (routes || [])
+        .map((route) => ({
+          route,
+          count: places ? resolveRouteSteps(route, places).length : (route?.steps || []).length,
+        }))
+        .filter((entry) => entry.count > 0),
+    [routes, places],
+  );
   if (offered.length === 0) return null;
   return (
     <div className={`map-routes plan-routes${className ? ` ${className}` : ''}`}>
@@ -20,7 +37,7 @@ export function MapRoutePicker({ routes, onStart, open, onToggle, className = ''
       </button>
       {open ? (
         <ul className="map-routes__list plan-routes__list">
-          {offered.map((route) => (
+          {offered.map(({ route, count }) => (
             <li key={route.id}>
               <button
                 type="button"
@@ -34,7 +51,7 @@ export function MapRoutePicker({ routes, onStart, open, onToggle, className = ''
                   </span>
                 ) : null}
                 <span className="map-routes__steps plan-routes__steps">
-                  {route.steps.length} étape{route.steps.length > 1 ? 's' : ''}
+                  {count} étape{count > 1 ? 's' : ''}
                 </span>
               </button>
             </li>

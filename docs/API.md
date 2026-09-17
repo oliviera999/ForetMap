@@ -2041,6 +2041,14 @@ step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `
   (« Ordre hors bornes »), au lieu de la **500** SQL d'avant. Un champ vide ou illisible n'est
   pas une valeur : à la création le rang vaut `100`, à la modification le rang existant est
   conservé.
+- **`slug` à la modification** : le champ **absent** conserve le slug existant ; fourni **vide**,
+  il est re-dérivé du titre — comme à la création, et comme l'annonce le champ « Identifiant du
+  lien » de l'éditeur. Un titre sans lettre ni chiffre reste un **400**.
+- **Étapes en double** : deux étapes peuvent viser le même lieu (un parcours repasse par
+  l'accueil). Les positions restent l'ordre du tableau.
+- **`GET /api/map-routes/manage`** applique le **périmètre de cartes** du compte, comme le
+  catalogue public : sans `map_id`, la liste est ramenée aux cartes autorisées ; un `map_id` hors
+  périmètre répond **403** `MAP_OUT_OF_SCOPE`.
 - **`map_id`** n'est pas modifiable par `PUT` : un parcours reste sur sa carte, ses étapes ne
   visent que les lieux de celle-ci. Un `map_id` envoyé à la modification est ignoré.
 - **`GET /api/map-routes/:id/pdf`** : une page A4 avec le titre, le public visé, la liste des
