@@ -107,6 +107,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   champ (§2.3), et le mode parcours existe en deux exemplaires — `useMapRouteMode` pour la
   Visite et la carte, une copie propre dans `AppPlan.jsx` (§2.5).
 - Indexé dans `docs/audits/README.md`.
+### Corrigé — Prof de classe : l'application ne reste plus figée au chargement
+
+- Un compte enseignant **sans** la permission « Accès interface n3boss » (profil dérivé,
+  ou case décochée avant le verrouillage de la console) passait bien la connexion, puis
+  restait sur « Chargement de la forêt… » : les cartes et les tâches n'étaient jamais
+  demandées, et la session n'était plus prolongée (déconnexion au bout d'1 h 30).
+  Le chargement et le renouvellement de session suivent désormais la session ouverte,
+  pas ce droit d'encadrement. Tests de montage d'`App` mis à jour.
+
 ### Ajouté — liens dans les descriptions de repères et de zones (3 lots)
 
 **Lot 1 — parité d'édition, d'affichage et de surface.**
