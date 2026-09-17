@@ -29,7 +29,7 @@ const ALLOWED_TAGS = [
   'blockquote',
   'hr',
 ];
-const ALLOWED_ATTR = ['href', 'rel', 'target', 'title'];
+const ALLOWED_ATTR = ['href', 'rel', 'target', 'title', 'aria-label'];
 const ALLOWED_TAGS_WITH_IMAGES = [...ALLOWED_TAGS, 'img', 'figure'];
 const ALLOWED_ATTR_WITH_IMAGES = [
   ...ALLOWED_ATTR,
@@ -61,6 +61,59 @@ const ALLOWED_ATTR_WITH_JOURNAL = [
  * - `data-gl-lore-code`     : glossaire lore G&L (lot B5 — même traitement, pour
  *   que le texte brut lore puisse être échappé puis assaini comme les autres).
  */
+/**
+ * Politique de lien du contenu éditorial (descriptions de zones et de repères, compléments
+ * réservés, textes de visite, contenus GL…).
+ *
+ * Trois familles seulement, tout le reste perd son `href` :
+ * - `external` : `http(s):` — sort de l'application, donc **nouvel onglet**
+ *   (`target="_blank"`) et `rel="noopener noreferrer"` (l'onglet ouvert ne peut pas piloter
+ *   celui d'origine, et l'URL de l'application ne fuit pas dans le `Referer`) ;
+ * - `internal` : chemin absolu de l'application (`/tutoriels/3`, `/visite?zone=z1`) — on
+ *   **reste dans l'onglet**, comme n'importe quelle navigation interne ;
+ * - `contact` : `mailto:` / `tel:` — pas de nouvel onglet, c'est l'appareil qui prend la main.
+ *
+ * Avant ce lot, tout ce qui n'était pas `http(s)` perdait son `href` : un lien interne saisi
+ * dans une description devenait muet à l'affichage **et disparaissait à l'enregistrement**
+ * (`htmlToMarkdownWith` assainit avant Turndown : sans `href`, plus d'ancre, donc plus de
+ * lien dans le Markdown stocké). Silencieux pour l'auteur, qui croyait son lien posé.
+ *
+ * `//exemple.org` et `/\exemple.org` sont refusés : les deux valent une origine externe
+ * déguisée en chemin (le second parce que les navigateurs normalisent `\` en `/`).
+ */
+const INTERNAL_HREF_RE = /^\/(?![/\\])[^\s<>"'`]*$/;
+const CONTACT_HREF_RE = /^(?:mailto|tel):[^\s<>"'`]+$/i;
+
+/**
+ * @param {string} href
+ * @returns {'external' | 'internal' | 'contact' | null} `null` = à neutraliser.
+ */
+function classifyLinkHref(href) {
+  const raw = String(href || '').trim();
+  if (!raw) return null;
+  if (/^https?:/i.test(raw)) return 'external';
+  if (CONTACT_HREF_RE.test(raw)) return 'contact';
+  if (INTERNAL_HREF_RE.test(raw)) return 'internal';
+  return null;
+}
+
+/** Suffixe annoncé aux lecteurs d'écran sur un lien qui ouvre un onglet. */
+const EXTERNAL_LINK_HINT = '(ouvre un nouvel onglet)';
+
+/**
+ * Nom accessible d'un lien externe : son propre texte, suivi de l'avertissement. L'icône « ↗ »
+ * ajoutée en CSS (`.markdown-content a[target='_blank']::after`) ne porte que le signal visuel ;
+ * sans ce libellé, rien n'annonce le changement d'onglet hors de l'écran.
+ */
+function externalLinkAriaLabel(node) {
+  const text = String(node.textContent || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!text) return EXTERNAL_LINK_HINT;
+  if (text.endsWith(EXTERNAL_LINK_HINT)) return text;
+  return `${text} ${EXTERNAL_LINK_HINT}`;
+}
+
 const GLOSSARY_LINK_KINDS = [
   { attr: 'data-gl-glossary-code', cssClass: 'gl-glossary-inline-link' },
   { attr: 'data-glossary-code', cssClass: 'fm-glossary-inline-link' },
@@ -195,11 +248,22 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
       return;
     }
     const href = node.getAttribute('href') || '';
-    if (/^https?:/i.test(href)) {
+    const kind = classifyLinkHref(href);
+    if (kind === 'external') {
       node.setAttribute('rel', 'noopener noreferrer');
       node.setAttribute('target', '_blank');
+      node.setAttribute('aria-label', externalLinkAriaLabel(node));
+    } else if (kind === 'internal' || kind === 'contact') {
+      // Navigation interne / appel / courriel : même onglet, et pas de `rel` d'isolement
+      // hérité d'un HTML collé.
+      node.removeAttribute('target');
+      node.removeAttribute('rel');
+      node.removeAttribute('aria-label');
     } else {
       node.removeAttribute('href');
+      node.removeAttribute('target');
+      node.removeAttribute('rel');
+      node.removeAttribute('aria-label');
     }
   }
   if (node.tagName === 'IMG') {
@@ -269,6 +333,17 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
  * @param {{ allowImages?: boolean }} [options]
  * @returns {string} HTML sécurisé (chaîne vide si entrée vide)
  */
+export { classifyLinkHref, EXTERNAL_LINK_HINT };
+
+/**
+ * Message d'aide unique pour la saisie d'une URL (barre d'outils de l'éditeur riche,
+ * documentation d'API). Aligné mot pour mot sur `classifyLinkHref` — un seul endroit à
+ * corriger si la politique de lien bouge.
+ */
+export const LINK_INPUT_HELP =
+  'Adresse externe (https://…, ouverte dans un nouvel onglet), page de l’application ' +
+  '(/tutoriels/3) ou contact (mailto: / tel:).';
+
 export function renderMarkdownToSafeHtml(markdown, options = {}) {
   const raw = repairSupplementaryPlaneEmojiMojibake(String(markdown ?? '').trim());
   if (!raw) return '';

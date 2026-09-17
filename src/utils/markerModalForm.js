@@ -5,6 +5,10 @@
 import { MAP_MARKER_EMOJI_MAX_CHARS, clampEmojiInput } from '../constants/emojis';
 import { normalizeSurfaceList } from '../shared/ui/SurfaceVisibilityField.jsx';
 import { normalizeAudienceRoleList } from '../shared/ui/LocationAudienceFields.jsx';
+import {
+  buildLocationLinksPayload,
+  normalizeLocationLinksForForm,
+} from '../shared/ui/LocationLinksFields.jsx';
 import { orderedLivingBeingsForForm } from './livingBeings';
 import { locationCategoryIds } from './locationCategories.js';
 import {
@@ -40,6 +44,7 @@ export function markerFormFromMarker(marker, { defaultEmoji = '' } = {}) {
     visible_role_slugs: normalizeAudienceRoleList(m.visible_role_slugs),
     restricted_note: m.restricted_note || '',
     restricted_note_role_slugs: normalizeAudienceRoleList(m.restricted_note_role_slugs),
+    links: normalizeLocationLinksForForm(m.links),
   };
 }
 
@@ -68,6 +73,7 @@ export function buildMarkerPayload(marker, form, visitEditorialBlocks) {
     visible_role_slugs: normalizeAudienceRoleList(form.visible_role_slugs),
     restricted_note: String(form.restricted_note || '').trim(),
     restricted_note_role_slugs: normalizeAudienceRoleList(form.restricted_note_role_slugs),
+    links: buildLocationLinksPayload(form.links),
     visit_editorial_blocks: normalizeVisitEditorialBlocksForSave(visitEditorialBlocks),
   };
 }

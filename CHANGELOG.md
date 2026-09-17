@@ -55,6 +55,77 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   pour administrateurs, avec le tableau de ce qui reste à traiter), `.env.example` et
   `docs/EXPLOITATION.md` § variables d'environnement.
 
+### Ajouté — liens dans les descriptions de repères et de zones (3 lots)
+
+**Lot 1 — parité d'édition, d'affichage et de surface.**
+
+- Le **complément réservé** (`restricted_note`) passe du `<textarea>` nu à l'éditeur riche,
+  bouton **« Lien »** compris : le confidentiel avait jusqu'ici le seul champ de texte sans
+  aucun moyen guidé d'y poser un lien, alors que la description publique en avait un.
+  `LocationAudienceFields` vit dans `src/shared/**`, qui ne peut pas importer de code produit :
+  l'éditeur est donc **injecté** (prop `NoteEditor`), pas importé.
+- Un lien qui **quitte l'application** le dit avant le clic : flèche `↗` en CSS, et
+  « (ouvre un nouvel onglet) » dans le nom accessible du lien. Le sélecteur porte sur
+  `target="_blank"`, que seule la politique de lien pose — un lien interne n'est jamais marqué.
+- Le **Plan Lyautey** affichait le Markdown littéralement : `[Fiche PDF](https://…)`, crochets
+  compris, pour la description publique comme pour le complément réservé. Nouveau rendu
+  `PlanLinkedText` (~90 lignes, sans dépendance) plutôt que `MarkdownContent`, qui aurait
+  embarqué `marked` + `DOMPurify` dans un bundle chargé sur le téléphone d'un visiteur.
+
+**Lot 2 — les liens internes ne disparaissent plus en silence.**
+
+- Un lien vers une page de l'application (`/tutoriels/3`), un `mailto:` ou un `tel:` perdait
+  son `href` à l'assainissement — donc son ancre à la conversion en Markdown
+  (`htmlToMarkdownWith` assainit avant Turndown). L'auteur enregistrait un texte nu en croyant
+  avoir posé un lien, **sans le moindre message**. Ces trois familles sont désormais
+  conservées, dans l'onglet courant (`classifyLinkHref`, `src/shared/platform/markdown.js`).
+- Les origines externes déguisées en chemin restent refusées : `//exemple.org` et
+  `/\exemple.org` (les navigateurs normalisent `\` en `/`), comme `javascript:`, `data:` et
+  tout schéma hors politique — `href`, `target` et `rel` sont retirés ensemble.
+- L'éditeur riche (ForetMap **et** GL) **avertit** quand l'adresse saisie est hors politique,
+  au lieu de laisser le lien s'évaporer à l'enregistrement.
+
+**Lot 3 — « Liens du lieu » : une audience par lien.**
+
+- Nouvelle table `location_links` (migration `261`) : jusqu'à 12 liens par zone ou repère,
+  chacun avec son libellé, sa cible et **sa propre audience de rôles**. La confidentialité
+  descend du bloc de texte (description publique / complément réservé) au lien : « cette fiche
+  pour les profs, celle-là pour tout le monde », sur un seul lieu, sans couper le texte en deux.
+- Le filtrage passe par `projectLocationAudienceForViewer`, donc **toutes** les surfaces en
+  héritent (carte de travail, Visite, Plan public, plan des personnels) : un lien hors audience
+  ne quitte jamais le serveur, et `audience_role_slugs` n'est servi qu'aux gestionnaires.
+- `links` omis en `PUT` = inchangé, `[]` = tous retirés. Cible polymorphe donc sans clé
+  étrangère : la suppression d'un lieu retire ses liens dans la même transaction.
+- Affichage en boutons sur la fiche de zone / de repère et sur le Plan ; édition par le bloc
+  « Liens du lieu » (réordonnancement, retrait, cases de rôles par ligne).
+
+Documentation : `docs/API.md` (liens d'un lieu + tableau de la politique de lien) et
+`docs/reference/foretmap/carte-et-zones.md` (« Liens dans les descriptions », « Liens du
+lieu », avec l'avertissement qu'un lien n'est confidentiel que si sa cible l'est).
+### Ajouté — « Y aller » dans la Visite, et la distance sur la barre de parcours
+
+- **La fiche d'un lieu de la Visite porte un bouton « Y aller »**, comme celle du Plan Lyautey :
+  il referme la fiche (qui recouvrait la carte au moment précis où l'on cherche à s'orienter) et
+  ouvre en bas une **barre de guidage** — nom du lieu, distance à vol d'oiseau, trait droit entre
+  la position et le lieu sur la carte. Le guidage ne s'arrête que sur **« Arrêter »**, jamais en
+  refermant une fiche ni en déplaçant la carte, et « Revoir la direction » ramène le guidage sur
+  un lieu déjà visé. Ce n'est **pas un itinéraire** : la Visite ne connaît pas les allées, et le
+  bouton reste éteint (avec la raison en clair) tant que la carte n'est pas calée.
+- **Le lieu visé reste dessiné** même quand les filtres de catégories l'excluent : sans cela, on
+  était guidé vers un repère invisible.
+- **La barre d'étape d'un parcours affiche désormais la distance** à l'étape en cours dès que la
+  position est active — elle ne l'affichait que sur le Plan. Pendant un parcours, c'est elle qui
+  guide : jamais deux barres à la fois. Le bouton « Reprendre le parcours » remonte au-dessus de
+  la barre de guidage au lieu de passer dessous.
+- **Socle partagé `src/shared/map-guide/`** (barre, état du guidage, identité d'un lieu) : le Plan
+  s'appuie sur le même code, `PlanGuideBar` n'est plus qu'une enveloppe — même convention que
+  `MapRouteBar` / `PlanRouteBar`. L'identité d'un lieu visé inclut son type (`zone:3` ≠
+  `marker:3`) : le Plan comparait les seuls identifiants, qui sont pourtant indépendants d'une
+  table à l'autre.
+- Tests : `tests-ui/shared/useMapGuidance.test.jsx`, `tests-ui/shared/MapGuideBar.test.jsx`,
+  `tests-ui/shared/mapGuidePlace.test.js`, et deux scénarios de bout en bout dans
+  `tests-ui/components/visit/VisitViewMount.test.jsx` (carte calée / carte non calée).
+  Documentation : `docs/reference/foretmap/visite-et-mascottes.md`.
 
 ### Corrigé — connexion Google impossible depuis proflyautey
 
@@ -73,6 +144,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `GOOGLE_OAUTH_REDIRECT_URI`, aucun rebond : comportement inchangé.
 - Le correctif précédent (mémoriser l'origine de départ) était incomplet : il ne servait à rien
   tant que son propre cookie restait sur un hôte que le rappel ne voit jamais.
+
+### Corrigé — « Reprendre le parcours » redémarrait à l'étape 1
+
+- Sur les trois surfaces (Visite, carte de travail, Plan Lyautey), le bouton **« Reprendre le
+  parcours »** rejouait le parcours **depuis le début** : quitter à l'étape 7 sur 9 pour regarder
+  un autre lieu obligeait à toucher « Suivant » six fois. Le bouton promet pourtant la reprise, et
+  l'aide du Plan aussi (« Après "Quitter", reprenez via la puce ou "Reprendre" ») — constat §2.2 de
+  `docs/AUDIT_PARCOURS_2026-09-17.md`.
+- L'étape quittée est désormais retenue et restituée, dans le hook partagé
+  (`shared/map-routes/useMapRouteMode`) **et** dans la copie du Plan, pour que les deux ne
+  divergent pas. Relancer le parcours depuis la liste repart bien du début, et un parcours dont
+  des lieux ont disparu entre-temps reprend à sa dernière étape encore existante.
+- Tests : `tests-ui/shared/useMapRouteMode.test.jsx` (8 cas — le noyau partagé n'avait aucun test
+  direct) et l'assertion manquante après le clic sur « Reprendre » dans
+  `tests-ui/plan/AppPlanMount.test.jsx`.
 
 ### Documentation — audit de stratégie de plateforme (construire / déléguer / remplacer)
 
