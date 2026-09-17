@@ -182,6 +182,35 @@ test('GET /api/plan/content : carte réglée, lieux visibles sur le plan seuleme
   assert.equal(after.body.zones.find((z) => z.id === visible.id).name, 'CDI renommé');
 });
 
+test('GET /api/plan/content : liens du lieu servis, et lien réservé filtré côté serveur', async () => {
+  // Le Plan est une surface publique lue par un anonyme : un lien à audience restreinte ne
+  // doit pas y descendre du tout — le front ne peut pas « oublier » de le cacher s'il ne
+  // l'a jamais reçu (même garantie que `restricted_note`).
+  const zone = await auth(request(app).post('/api/zones'))
+    .send({
+      name: 'Zone à liens',
+      points: POLYGON,
+      map_id: mapId,
+      links: [
+        { label: 'Fiche publique', url: 'https://exemple.org/fiche' },
+        { label: 'Consignes internes', url: '/interne/x', audience_role_slugs: ['prof'] },
+      ],
+    })
+    .expect(201);
+  createdIds.zones.push(zone.body.id);
+  planContentCache.clear();
+
+  const res = await request(app).get('/api/plan/content').expect(200);
+  const row = (res.body.zones || []).find((z) => z.id === zone.body.id);
+  assert.ok(row, 'la zone est publiée sur le plan');
+  assert.deepEqual(
+    (row.links || []).map((l) => l.label),
+    ['Fiche publique'],
+  );
+  assert.equal(row.links[0].is_external, true);
+  assert.equal(row.links[0].audience_role_slugs, undefined);
+});
+
 test('GET /api/plan/content : ?map_id explicite, carte inconnue → 400, catégories masquées par réglage', async () => {
   await request(app).get('/api/plan/content?map_id=nope-plan').expect(400);
   const other = await fx.createMap({ label: 'Autre' });
