@@ -60,5 +60,7 @@ export function planStorageKeys(variant) {
     welcome: `${prefix}:welcome-seen`,
     headingUp: `${prefix}:heading-up`,
     scaleCompass: `${prefix}:scale-compass`,
+    // Parcours quitté : le slug **et** l'étape, pour que « Reprendre » reprenne.
+    route: `${prefix}:route-resume`,
   };
 }

@@ -82,6 +82,22 @@ test('plan : parcours par la puce, par lien profond, et sortie', async ({ page, 
     await expect(page).not.toHaveURL(/parcours=/);
     await expect(page.getByRole('button', { name: 'Reprendre le parcours' })).toBeVisible();
 
+    // Reprendre rend la main **à l'étape quittée**, pas à la première : on est sorti à la 2.
+    await page.getByRole('button', { name: 'Reprendre le parcours' }).click();
+    await expect(sheet).toBeVisible({ timeout: 15_000 });
+    await expect(sheet.getByText('Étape 2 sur 2')).toBeVisible();
+    await sheet.getByRole('button', { name: 'Quitter' }).click();
+    await expect(sheet).toBeHidden({ timeout: 15_000 });
+
+    // Et elle survit à un rechargement : le visiteur qui verrouille son téléphone entre deux
+    // étapes retrouve son parcours là où il l'a laissé.
+    await page.reload();
+    await expect(page.getByLabel('Rechercher un lieu')).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('button', { name: 'Reprendre le parcours' }).click();
+    await expect(sheet).toBeVisible({ timeout: 15_000 });
+    await expect(sheet.getByText('Étape 2 sur 2')).toBeVisible();
+    await sheet.getByRole('button', { name: 'Quitter' }).click();
+
     // 2) Par le lien profond : ce que voit un visiteur qui scanne l'affiche.
     await page.goto(`/?parcours=${slug}`);
     const deepSheet = page.getByTestId('plan-route-sheet');

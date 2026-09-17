@@ -244,9 +244,10 @@ Composer un parcours :
   ForetMap) et la **Visite** (parcours fléché grand public). Chaque surface n'affiche que les
   parcours qui la ciblent, avec une barre d'étape en bas et la carte restée utilisable.
 - **Quitter n'efface pas l'avancement** : le bouton « Reprendre le parcours » revient à l'étape
-  où l'on s'était arrêté, sur les trois surfaces. Relancer le parcours depuis la liste, lui,
-  repart de la première étape. L'avancement vit sur l'appareil et le temps de la page : il n'est
-  ni enregistré, ni transmis, et un rechargement le perd.
+  où l'on s'était arrêté, sur les trois surfaces, et **même après un rechargement de page**.
+  Relancer le parcours depuis la liste, lui, repart de la première étape. L'avancement vit sur
+  l'appareil, et sur lui seul : il n'est ni enregistré côté serveur, ni transmis à quiconque.
+  Un parcours dépublié entre-temps ne laisse pas de bouton qui ne mènerait nulle part.
 - Rien n'est dupliqué : une étape **pointe** vers un lieu existant. Renommer le lieu renomme
   l'étape ; supprimer le lieu laisse une étape signalée « lieu introuvable », à retirer.
 - Une étape dont le lieu est **masqué** sur la surface consultée (Carte, Visite ou Plan — par
@@ -650,6 +651,14 @@ le texte jusqu'à l'illisible. Sur tablette et téléphone, les étiquettes sont
 **agrandies** automatiquement. Un **nom de zone** et un **nom de repère** s'écrivent de
 la même façon (même police, même graisse, même halo) : seule la place change — le nom
 d'une zone est dans la forme, celui d'un repère juste sous l'épingle.
+
+**Le dessin des emojis dépend de l'appareil, volontairement.** Sur iPhone, iPad et Mac,
+ce sont les emojis d'Apple qui s'affichent — les mêmes que dans les messages et les
+applications du téléphone. Partout ailleurs (Android, Windows, Chromebook), l'application
+fournit elle-même un jeu d'emojis unique, pour que deux élèves sur deux machines
+différentes voient le même dessin. Un emoji peut donc ne pas avoir exactement la même
+allure d'un appareil à l'autre : c'est normal, et c'est ce qui garantit qu'il s'affiche
+toujours, y compris pendant un zoom sur la carte.
 
 **Côté utilisateur** : le bouton **Aa** de la barre d'outils carte permet trois niveaux
 locaux (Normal / Grand / Très grand), mémorisés sur l'appareil. Le même bouton est
