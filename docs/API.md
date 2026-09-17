@@ -1987,6 +1987,41 @@ Migration `236_location_audience_roles.sql` (carte) + `240_visit_location_audien
   colonnes d’audience. **`restricted_note` n’est jamais écrit** dans `subtitle`,
   `short_description`, `details_text` ou `body_json`.
 
+### Audience par groupes et héritage par catégorie
+
+Migration `262_location_audience_groups_and_category_inheritance.sql`. Complète les rôles
+(migration `236`) ; règles dans `lib/locationAudience.js`.
+
+- **Colonnes jumelles** — chaque liste de rôles reçoit sa liste de groupes :
+  `visible_group_ids` ↔ `visible_role_slugs`, `restricted_note_group_ids` ↔
+  `restricted_note_role_slugs`, et `location_links.audience_group_ids` ↔
+  `audience_role_slugs`. Acceptées en `POST` / `PUT` zones, repères et visite ; tableau en
+  réponse ; omises = inchangées, `[]` = effacées.
+- **Union, jamais intersection** — le lecteur passe s'il a l'un des rôles **ou** s'il est
+  membre de l'un des groupes. Les deux listes vides = public (comportement inchangé). Avec
+  une intersection, cocher un rôle sans cocher de groupe — le cas courant — aurait rendu le
+  lieu invisible pour tout le monde.
+- **Groupes du lecteur** — `req.auth.groupIds` (`lib/groupScope.js` : appartenances directes
+  - sous-groupes), déjà posé par l'hydratation de session : aucune requête supplémentaire par
+    lecture. Un anonyme n'a aucun groupe, donc un lieu restreint à un groupe n'apparaît jamais
+    sur une surface publique.
+- **Existence vérifiée à l'écriture** (`assertKnownGroupIds`) : un identifiant inconnu →
+  **400**. À la lecture, un groupe supprimé se comporte comme un identifiant inconnu (il ne
+  matche plus), jamais comme une erreur en pleine consultation.
+- **Héritage par catégorie** — `location_categories.visible_role_slugs` /
+  `visible_group_ids`. Un lieu qui ne déclare **aucune** audience propre prend l'union des
+  audiences de ses catégories **qui en déclarent une**. Une catégorie aux listes vides reste
+  **neutre** : sans cette règle, ranger un lieu réservé dans une catégorie ordinaire l'aurait
+  rendu public (l'union avec « public » vaut « public »). Une audience posée sur le lieu
+  l'emporte : le plus spécifique gagne.
+- **Où l'héritage est lu** — sur `entity.categories`, que `attachCategoriesToEntity` pose sur
+  toute réponse zone / repère. L'héritage suit donc les entités plutôt qu'un index que chaque
+  surface devrait penser à transmettre.
+- **Fuite de métadonnées** — `GET /api/map-categories` (catalogue, servi jusqu'au visiteur
+  anonyme) **n'expose pas** `visible_role_slugs` / `visible_group_ids`. Seul
+  `GET /api/map-categories/manage` (permission `zones.manage`) les renvoie, ainsi que les
+  catégories attachées à un lieu pour un gestionnaire.
+
 ### Liens d'un lieu (`links`)
 
 Migration `261_location_links.sql`, table `location_links`, règles dans `lib/locationLinks.js`
@@ -1997,7 +2032,8 @@ Un lien porte **sa propre audience** : la confidentialité descend du bloc de te
 
 - **Lecture** — `GET /api/zones`, `GET /api/zones/:id`, `GET /api/map/markers` et
   `GET /api/plan/content` exposent `links: [{ id, label, url, is_external, sort_order }]`,
-  trié par `sort_order`. `audience_role_slugs` n'est ajouté **que pour les gestionnaires**
+  trié par `sort_order`. `audience_role_slugs` et `audience_group_ids` ne sont ajoutés
+  **que pour les gestionnaires**
   (`zones.manage` / `map.manage_markers`) : il révèle la cartographie des rôles du lieu.
   `is_external` est **dérivé de l'URL** à la lecture, jamais stocké.
 - **Filtrage** — un lien dont `audience_role_slugs` est **vide** suit le lieu (visible par

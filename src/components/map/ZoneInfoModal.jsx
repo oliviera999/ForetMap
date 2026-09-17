@@ -5,6 +5,7 @@ import {
 } from '../../shared/ui/SurfaceVisibilityField.jsx';
 import {
   LocationAudienceFields,
+  normalizeAudienceGroupList,
   normalizeAudienceRoleList,
 } from '../../shared/ui/LocationAudienceFields.jsx';
 import { api } from '../../services/api';
@@ -38,6 +39,7 @@ import {
   normalizeLocationLinksForForm,
 } from '../../shared/ui/LocationLinksFields.jsx';
 import { LocationLinksBlock } from './LocationLinksBlock.jsx';
+import { useAudienceGroupOptions } from '../../hooks/useAudienceGroupOptions.js';
 import { ContextComments } from '../context-comments';
 import { LivingBeingsCatalogPanel } from './LivingBeingsCatalogPanel.jsx';
 import { MarkerVisitImageBuilder } from './MarkerFormSections.jsx';
@@ -148,6 +150,12 @@ function ZoneInfoModal({
   );
   const [restrictedNote, setRestrictedNote] = useState(zone.restricted_note || '');
   const [links, setLinks] = useState(() => normalizeLocationLinksForForm(zone.links));
+  const [visibleGroupIds, setVisibleGroupIds] = useState(() =>
+    normalizeAudienceGroupList(zone.visible_group_ids),
+  );
+  const [restrictedNoteGroupIds, setRestrictedNoteGroupIds] = useState(() =>
+    normalizeAudienceGroupList(zone.restricted_note_group_ids),
+  );
   const [restrictedNoteRoleSlugs, setRestrictedNoteRoleSlugs] = useState(() =>
     normalizeAudienceRoleList(zone.restricted_note_role_slugs),
   );
@@ -202,6 +210,9 @@ function ZoneInfoModal({
     showTasksTab,
     showTutorialsTab,
   } = useLocationModalData('zone', zone, { tasks, tutorials, student, isTeacher });
+  // Groupes proposables dans les réglages d'audience (migration 262) : chargés seulement
+  // pour un compte qui édite.
+  const audienceGroupOptions = useAudienceGroupOptions(isTeacher);
 
   useEffect(() => {
     if (!showTasksTab && tab === 'tasks') {
@@ -235,6 +246,8 @@ function ZoneInfoModal({
     setVisibleRoleSlugs(normalizeAudienceRoleList(zone.visible_role_slugs));
     setRestrictedNote(zone.restricted_note || '');
     setLinks(normalizeLocationLinksForForm(zone.links));
+    setVisibleGroupIds(normalizeAudienceGroupList(zone.visible_group_ids));
+    setRestrictedNoteGroupIds(normalizeAudienceGroupList(zone.restricted_note_group_ids));
     setRestrictedNoteRoleSlugs(normalizeAudienceRoleList(zone.restricted_note_role_slugs));
   }, [
     zone.id,
@@ -256,6 +269,8 @@ function ZoneInfoModal({
     zone.restricted_note,
     zone.restricted_note_role_slugs,
     zone.links,
+    zone.visible_group_ids,
+    zone.restricted_note_group_ids,
     emojiParsingList,
     markerEmojis,
   ]);
@@ -296,6 +311,8 @@ function ZoneInfoModal({
             visibleRoleSlugs,
             restrictedNote,
             restrictedNoteRoleSlugs,
+            visibleGroupIds,
+            restrictedNoteGroupIds,
             links,
           },
           visitEditorialBlocks,
@@ -667,8 +684,18 @@ function ZoneInfoModal({
             onRestrictedNoteChange={setRestrictedNote}
             restrictedNoteRoleSlugs={restrictedNoteRoleSlugs}
             onRestrictedNoteRoleSlugsChange={setRestrictedNoteRoleSlugs}
+            groupOptions={audienceGroupOptions}
+            visibleGroupIds={visibleGroupIds}
+            onVisibleGroupIdsChange={setVisibleGroupIds}
+            restrictedNoteGroupIds={restrictedNoteGroupIds}
+            onRestrictedNoteGroupIdsChange={setRestrictedNoteGroupIds}
           />
-          <LocationLinksFields idPrefix="zone" links={links} onChange={setLinks} />
+          <LocationLinksFields
+            idPrefix="zone"
+            groupOptions={audienceGroupOptions}
+            links={links}
+            onChange={setLinks}
+          />
           <MarkerVisitImageBuilder
             imageBlocks={imageBlocks}
             visitMediaOptions={visitMediaOptions}

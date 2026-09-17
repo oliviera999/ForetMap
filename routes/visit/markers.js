@@ -44,9 +44,10 @@ router.post(
     await execute(
       `INSERT INTO visit_markers
       (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json,
-       visible_role_slugs, restricted_note, restricted_note_role_slugs,
+       visible_role_slugs, visible_group_ids, restricted_note, restricted_note_role_slugs,
+       restricted_note_group_ids,
        sort_order, is_active, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         mapId,
@@ -62,8 +63,10 @@ router.post(
           parseVisitEditorialBlocksInput(req.body.visit_editorial_blocks ?? req.body.body_json),
         ),
         audience.visible_role_slugs,
+        audience.visible_group_ids,
         audience.restricted_note,
         audience.restricted_note_role_slugs,
+        audience.restricted_note_group_ids,
         Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0,
         req.body.is_active === false ? 0 : 1,
         nowIso(),
@@ -131,7 +134,8 @@ router.put(
     await execute(
       `UPDATE visit_markers
      SET label = ?, x_pct = ?, y_pct = ?, emoji = ?, subtitle = ?, short_description = ?, details_title = ?, details_text = ?, body_json = ?,
-         visible_role_slugs = ?, restricted_note = ?, restricted_note_role_slugs = ?,
+         visible_role_slugs = ?, visible_group_ids = ?, restricted_note = ?,
+         restricted_note_role_slugs = ?, restricted_note_group_ids = ?,
          is_active = ?, sort_order = ?, updated_at = ?
      WHERE id = ?`,
       [
@@ -145,8 +149,10 @@ router.put(
         detailsText,
         bodyJson,
         audience.visible_role_slugs,
+        audience.visible_group_ids,
         audience.restricted_note,
         audience.restricted_note_role_slugs,
+        audience.restricted_note_group_ids,
         isActive,
         sortOrder,
         nowIso(),
