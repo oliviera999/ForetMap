@@ -129,14 +129,30 @@ const IDENTITY_PLAN = [
     table: 'sync_runs',
     columns: { report_json: 'NULL' },
   },
+  {
+    // Détail action par action d'une synchronisation Moodle : `before_json` / `after_json`
+    // portent l'état nominatif du compte concerné. La ligne (type d'action, horodatage) est
+    // conservée — c'est elle qui a une valeur pour rejouer un écran d'historique.
+    table: 'sync_actions',
+    columns: { before_json: 'NULL', after_json: 'NULL' },
+  },
 ];
 
 /**
- * Colonnes où un motif « e-mail » est **légitime** et n'a rien de personnel : crédits
- * d'illustration repris de sources externes (Wikimedia & co.). Signalées à part par le
- * balayage, elles ne font pas échouer la commande.
+ * Colonnes où un motif « e-mail » est **légitime** et n'a rien de personnel. La valeur est
+ * la condition SQL qui décrit les lignes tolérées : elles sont comptées à part et ne font pas
+ * échouer la commande, tout ce qui sort de cette condition reste bloquant.
+ *
+ * `app_settings` illustre l'intérêt d'une condition plutôt que d'une colonne entière : le
+ * corps éditorial de la page « À propos » contient une adresse de contact publiée sur le site,
+ * mais un e-mail qui apparaîtrait dans un réglage technique (SMTP, alertes) doit continuer de
+ * faire échouer le contrôle.
  */
-const ALLOWED_RESIDUAL_COLUMNS = new Set(['plants.photo_credit', 'gl_species.photo_credit']);
+const RESIDUAL_EXCEPTIONS = new Map([
+  ['plants.photo_credit', 'TRUE'],
+  ['gl_species.photo_credit', 'TRUE'],
+  ['app_settings.value_json', "`key` LIKE 'content.%'"],
+]);
 
 /**
  * Tables purgées : jetons, journaux d'audit et cookies de visite ne portent aucune valeur
@@ -164,6 +180,12 @@ const TEXT_PLAN = [
   { table: 'user_journal_articles', columns: ['title', 'body_markdown'] },
   { table: 'gl_player_journal_articles', columns: ['title', 'body_markdown'] },
   { table: 'observation_logs', columns: ['content'] },
+  // Consigne d'accès saisie par un prof sur une zone ou un repère : texte libre, donc
+  // susceptible de nommer un élève ou de porter un contact.
+  { table: 'zones', columns: ['restricted_note'] },
+  { table: 'visit_zones', columns: ['restricted_note'] },
+  { table: 'map_markers', columns: ['restricted_note'] },
+  { table: 'visit_markers', columns: ['restricted_note'] },
 ];
 
 function parseArgs(argv) {
@@ -263,13 +285,20 @@ function buildStatements(schema, options) {
  * ignorer (celui que le script vient de poser ; chaîne vide en mode diagnostic).
  */
 function buildScanQuery(table, columns) {
-  const tests = columns.map((column) => {
+  const tests = [];
+  for (const column of columns) {
     const col = quoteIdent(column);
-    return (
-      `SUM(CASE WHEN ${col} REGEXP ? OR (${col} REGEXP ? AND ${col} <> ?) THEN 1 ELSE 0 END) ` +
-      `AS ${col}`
+    const match = `(${col} REGEXP ? OR (${col} REGEXP ? AND ${col} <> ?))`;
+    const exception = RESIDUAL_EXCEPTIONS.get(`${table}.${column}`);
+    // Deux compteurs par colonne : tout ce qui correspond, puis ce qui reste après exception.
+    // Une exception qui cesserait de s'appliquer (réglage renommé, colonne déplacée) redevient
+    // donc bloquante d'elle-même, au lieu de disparaître du contrôle.
+    tests.push(`SUM(CASE WHEN ${match} THEN 1 ELSE 0 END) AS ${quoteIdent(column)}`);
+    tests.push(
+      `SUM(CASE WHEN ${match}${exception ? ` AND NOT (${exception})` : ''} THEN 1 ELSE 0 END) ` +
+        `AS ${quoteIdent(`${column}__bloquant`)}`,
     );
-  });
+  }
   return `SELECT ${tests.join(', ')} FROM ${quoteIdent(table)}`;
 }
 
@@ -299,6 +328,8 @@ async function scanResiduals(textColumns, anonymizedHash = '') {
     // Les requêtes restent bornées : une par table, agrégée côté serveur.
     const params = [];
     for (let i = 0; i < columns.length; i += 1) {
+      // Deux compteurs par colonne (total puis bloquant) → deux jeux de paramètres.
+      params.push(EMAIL_SQL_REGEXP, BCRYPT_SQL_REGEXP, anonymizedHash);
       params.push(EMAIL_SQL_REGEXP, BCRYPT_SQL_REGEXP, anonymizedHash);
     }
     let row;
@@ -311,13 +342,9 @@ async function scanResiduals(textColumns, anonymizedHash = '') {
     if (!row) continue;
     for (const column of columns) {
       const count = Number(row[column] || 0);
+      const blocking = Number(row[`${column}__bloquant`] || 0);
       if (count > 0) {
-        findings.push({
-          table,
-          column,
-          count,
-          tolerated: ALLOWED_RESIDUAL_COLUMNS.has(`${table}.${column}`),
-        });
+        findings.push({ table, column, count, blocking, tolerated: blocking === 0 });
       }
     }
   }
@@ -388,7 +415,8 @@ async function main() {
 
   for (const f of tolerated) {
     console.log(
-      `\nToléré : ${f.table}.${f.column} — ${f.count} ligne(s) (crédit d’illustration externe).`,
+      `\nToléré : ${f.table}.${f.column} — ${f.count} ligne(s) couverte(s) par une exception ` +
+        `déclarée (contenu éditorial ou crédit d’illustration externe).`,
     );
   }
 
@@ -401,7 +429,7 @@ async function main() {
   console.error('\nBalayage final — motifs encore présents :');
   for (const f of blocking) {
     console.error(
-      `  ${f.table}.${f.column} : ${f.error ? `erreur (${f.error})` : `${f.count} ligne(s)`}`,
+      `  ${f.table}.${f.column} : ${f.error ? `erreur (${f.error})` : `${f.blocking} ligne(s) sur ${f.count}`}`,
     );
   }
   console.error(
@@ -431,7 +459,7 @@ module.exports = {
   IDENTITY_PLAN,
   TEXT_PLAN,
   PURGE_TABLES,
-  ALLOWED_RESIDUAL_COLUMNS,
+  RESIDUAL_EXCEPTIONS,
   EMAIL_SQL_REGEXP,
   BCRYPT_SQL_REGEXP,
 };
