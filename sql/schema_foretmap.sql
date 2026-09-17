@@ -894,6 +894,22 @@ VALUES
    'Bâtiment ou aménagement (mare, ruches, compostage, cuve…) plutôt qu''une culture.',
    'both', 1, 10, 1);
 
+-- location_links (liens documentaires d'un lieu, avec audience propre — migration 261)
+-- Chaque lien porte son audience : la confidentialité descend du bloc de texte au lien.
+-- Cible polymorphe (`zone` / `marker`), donc pas de clé étrangère : le nettoyage à la
+-- suppression d'un lieu est fait par les routeurs (`lib/locationLinks.js`).
+CREATE TABLE IF NOT EXISTS location_links (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  location_kind ENUM('zone','marker') NOT NULL,
+  location_id VARCHAR(64) NOT NULL,
+  label VARCHAR(160) NOT NULL,
+  url VARCHAR(2048) NOT NULL,
+  audience_role_slugs TEXT DEFAULT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_location_links_target (location_kind, location_id, sort_order, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- map_routes / map_route_steps (parcours : listes ordonnées de lieux, lot 8)
 CREATE TABLE IF NOT EXISTS map_routes (
   id VARCHAR(64) NOT NULL PRIMARY KEY,

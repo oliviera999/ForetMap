@@ -1,6 +1,7 @@
 import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
 import { Button } from '../../shared/ui/Button.jsx';
 import { placeDisplayParts } from '../utils/planPlaces.js';
+import { PlanLinkedText } from '../utils/planLinkedText.jsx';
 import { PlaceSuggestionForm } from './PlaceSuggestionForm.jsx';
 
 /**
@@ -140,15 +141,43 @@ export function PlanPlaceSheet({
           loading="lazy"
         />
       ) : null}
-      {shortDescription ? <p className="plan-place__lead">{shortDescription}</p> : null}
+      {shortDescription ? (
+        <PlanLinkedText className="plan-place__lead" text={shortDescription} />
+      ) : null}
       {detailsText ? (
         <section className="plan-place__details">
           <h3 className="plan-place__details-title">{detailsTitle}</h3>
-          <p className="plan-place__details-text">{detailsText}</p>
+          <PlanLinkedText className="plan-place__details-text" text={detailsText} />
         </section>
       ) : null}
       {!shortDescription && !detailsText && description ? (
-        <p className="plan-place__lead">{description}</p>
+        <PlanLinkedText className="plan-place__lead" text={description} />
+      ) : null}
+      {Array.isArray(place.links) && place.links.length ? (
+        <section className="plan-place__links">
+          <h3 className="plan-place__links-title">Liens</h3>
+          <ul className="plan-place__links-list">
+            {place.links
+              .filter((link) => link && link.url && link.label)
+              .map((link) => (
+                <li key={link.id ?? `${link.label}-${link.url}`}>
+                  <a
+                    className="plan-place__link"
+                    href={link.url}
+                    {...(link.is_external
+                      ? {
+                          target: '_blank',
+                          rel: 'noopener noreferrer',
+                          'aria-label': `${link.label} (ouvre un nouvel onglet)`,
+                        }
+                      : {})}
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+          </ul>
+        </section>
       ) : null}
       {place.search_aliases?.length ? (
         <p className="plan-place__aliases">Aussi appelé : {place.search_aliases.join(', ')}</p>
@@ -158,7 +187,7 @@ export function PlanPlaceSheet({
           <h3 className="plan-place__restricted-title">
             <span aria-hidden>🔒</span> Réservé aux personnels
           </h3>
-          <p className="plan-place__restricted-text">{restrictedNote}</p>
+          <PlanLinkedText className="plan-place__restricted-text" text={restrictedNote} />
         </section>
       ) : null}
       {shareUrl ? <p className="plan-place__share">Lien direct : {shareUrl}</p> : null}

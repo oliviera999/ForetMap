@@ -8724,6 +8724,27 @@
   color: var(--forest);
   text-decoration: underline;
 }
+/*
+ * Lien qui quitte l'application : l'icône annonce le nouvel onglet AVANT le clic, ce qui
+ * compte d'autant plus sur la carte et la visite, où l'on lit sur téléphone et où revenir
+ * coûte cher. `target="_blank"` n'est posé que par la politique de lien de
+ * `src/shared/platform/markdown.js` (jamais par l'auteur) : le sélecteur ne peut pas se
+ * tromper de famille — un lien interne ou un `mailto:` n'a pas l'icône.
+ * Le `/ ''` donne un texte de remplacement vide : l'icône n'est pas annoncée deux fois, le
+ * nom accessible du lien portant déjà « (ouvre un nouvel onglet) ».
+ */
+.markdown-content a[target='_blank']::after {
+  content: ' ↗' / '';
+  font-size: 0.85em;
+  /* Ni souligné ni coloré comme le texte du lien : c'est une marque, pas un mot. */
+  text-decoration: none;
+  display: inline-block;
+}
+@supports not (content: 'x' / '') {
+  .markdown-content a[target='_blank']::after {
+    content: ' ↗';
+  }
+}
 .markdown-content strong,
 .markdown-content b {
   font-weight: var(--fw-bold);
@@ -10377,4 +10398,58 @@ header .lock-btn::after,
   font-size: var(--text-sm);
   color: var(--ink-base);
   line-height: var(--lh-normal);
+}
+
+/*
+ * Liens documentaires d'un lieu, à l'affichage (`LocationLinksBlock`). La liste arrive déjà
+ * filtrée par le serveur : le cadenas n'y cache rien, il signale à l'auteur (seul à recevoir
+ * `audience_role_slugs`) que ce lien-là n'est pas vu par tout le monde.
+ */
+.location-links-block {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-muted);
+  border-radius: 10px;
+  background: var(--surface-plain);
+}
+
+.location-links-block__title {
+  display: block;
+  margin-bottom: 6px;
+  font-size: var(--text-sm);
+}
+
+.location-links-block__list {
+  margin: 0;
+  padding-left: 1.1em;
+  font-size: var(--text-sm);
+}
+
+.location-links-block__list li {
+  margin: 0.2em 0;
+  /* Cible tactile : une liste de liens se tape au doigt sur la carte. */
+  min-height: 28px;
+}
+
+.location-links-block__link {
+  color: var(--forest);
+  text-decoration: underline;
+}
+
+.location-links-block__link[target='_blank']::after {
+  content: ' ↗' / '';
+  font-size: 0.85em;
+  text-decoration: none;
+  display: inline-block;
+}
+
+@supports not (content: 'x' / '') {
+  .location-links-block__link[target='_blank']::after {
+    content: ' ↗';
+  }
+}
+
+.location-links-block__badge {
+  margin-left: 6px;
+  font-size: var(--text-xs);
 }
