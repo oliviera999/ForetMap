@@ -7,8 +7,16 @@
  *    les comptes naissent d'un import de liste de classe fait par un enseignant. La spec
  *    `auth-registration.spec.js` rouvre le réglage le temps de couvrir le formulaire, puis le
  *    referme.
- * 2. **Purge** des données laissées par les runs précédents (tâches E2E*, assignations).
- *    Accélère les specs tâches quand la BDD locale accumule des centaines de projets/tâches.
+ * 2. **Purge** des données laissées par les runs précédents. Ce n'est pas qu'une question de
+ *    vitesse : les `afterEach` de nettoyage sont conditionnés à la réussite du `beforeEach`,
+ *    donc un run en échec laisse tout derrière lui. Sept exemplaires du repère
+ *    « E2E mascotte A » au même point du plan finissent **agrégés** par le clustering de
+ *    `SharedMapStage`, et le repère que la spec cherche n'existe alors plus comme bouton.
+ *    Une base locale doit donc repartir propre — la CI, elle, part d'une base neuve.
+ *
+ *    Périmètre : uniquement ce que l'e2e sème (`E2E %`, groupes `e2e-n3-*`). Les jeux laissés
+ *    par `npm test`, qui partage `foretmap_test`, ne sont pas touchés : les supprimer ici
+ *    masquerait des fuites appartenant à la suite backend.
  */
 require('dotenv').config();
 
@@ -31,6 +39,19 @@ module.exports = async function globalSetup() {
        WHERE t.title LIKE 'E2E %'`,
     );
     await conn.query(`DELETE FROM tasks WHERE title LIKE 'E2E %'`);
+
+    // Contenu de visite semé par `e2e/fixtures/visit-api.fixture.js`.
+    await conn.query(`DELETE FROM visit_markers WHERE label LIKE 'E2E %'`);
+    await conn.query(`DELETE FROM visit_zones WHERE name LIKE 'E2E %'`);
+
+    // Groupes jetables de l'ancienne fixture d'inscription (un par élève créé).
+    // La fixture actuelle n'en crée plus qu'un, partagé et stable : `e2e-n3beur`.
+    await conn.query(
+      `DELETE gm FROM group_members gm
+       INNER JOIN \`groups\` g ON g.id = gm.group_id
+       WHERE g.slug LIKE 'e2e-n3-%'`,
+    );
+    await conn.query(`DELETE FROM \`groups\` WHERE slug LIKE 'e2e-n3-%'`);
     await conn.query(
       `DELETE ur FROM user_roles ur
        INNER JOIN roles r ON r.id = ur.role_id

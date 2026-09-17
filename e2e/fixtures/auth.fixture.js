@@ -391,14 +391,29 @@ async function enableTeacherMode(page, _legacyPin, _legacyOptions = {}) {
 }
 
 /**
- * Quitte le « mode professeur ». Il n'y a plus de désélévation (session unique) : on se déconnecte
- * pour revenir à l'écran d'authentification. La signature reste stable pour les specs appelants.
+ * Quitte le « mode professeur » et **rend la session élève**.
+ *
+ * Il n'y a plus de désélévation (session unique) : `enableTeacherMode` remplace la session
+ * élève par celle du compte admin, et en sortir passe par une déconnexion. Les specs
+ * appelantes, elles, enchaînent toutes sur un geste d'élève (onglet Tâches, carte de visite) —
+ * leur rendre l'écran d'authentification les fait expirer sur un bouton qui n'existe pas pour
+ * un visiteur anonyme. Passer le profil rendu par `loginAsNewStudent` reconnecte donc l'élève.
+ *
+ * Sans profil, le comportement historique est conservé : déconnexion seule.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {{ email: string, password: string } | null} [student] profil à reconnecter
  */
-async function disableTeacherMode(page) {
+async function disableTeacherMode(page, student = null) {
   if (page.isClosed()) {
     throw new Error('Page fermée avant disableTeacherMode');
   }
   await logoutToAuth(page).catch(() => {});
+  if (student?.email && student?.password) {
+    await page.goto('/');
+    await markAllDiscoveryToursSeen(page);
+    await loginByIdentifier(page, student.email, student.password);
+  }
 }
 
 /** Réaligne token + profil élève après désélévation (JWT / localStorage / droits tâches). */
@@ -706,14 +721,50 @@ async function resetTaskFiltersInTasksView(page) {
  * Navigation prof en 3 pôles (audit D-4) : ouvre le pôle demandé s'il existe, pour rendre
  * visibles ses onglets avant de les cliquer. Sans effet côté élève (pas de pôles).
  */
+/**
+ * Ouvre un pôle de la navigation prof (« Contenus », « Suivi », « Administration »).
+ *
+ * L'appariement est **préfixe, pas exact** : un pôle qui porte un badge de travail à faire
+ * s'appelle « Suivi 9 à valider » côté nom accessible, et un `exact: true` n'y correspondait
+ * jamais — le clic était silencieusement sauté (`.catch`), et les specs échouaient bien plus
+ * loin, sur un onglet qu'on n'avait en réalité jamais demandé.
+ */
 async function openTeacherPole(page, poleName) {
   const pole = page
     .locator('.teacher-nav__poles')
-    .getByRole('button', { name: poleName, exact: true })
+    .getByRole('button', { name: new RegExp(`^${poleName}\\b`) })
     .first();
   if ((await pole.count()) > 0) {
     await pole.click({ timeout: 15_000 }).catch(() => {});
   }
+}
+
+/**
+ * Ouvre un onglet prof d'un pôle donné, quelle que soit la disposition.
+ *
+ * Desktop : les onglets du pôle s'étalent dans `.teacher-main .top-tabs`. Compact (≤ 640px ou
+ * pointeur grossier) : ils vivent dans une feuille `BottomSheet` titrée du nom du pôle. Les
+ * specs mobile et tablette cherchaient l'onglet dans la barre desktop et expiraient.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string} poleName nom du pôle (« Contenus », « Suivi », « Administration »)
+ * @param {RegExp|string} tabName nom de l'onglet à ouvrir
+ */
+async function openTeacherTabInPole(page, poleName, tabName) {
+  await openTeacherPole(page, poleName);
+  const sheet = page.getByRole('dialog', { name: poleName });
+  if (await sheet.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await sheet
+      .getByRole('button', { name: tabName })
+      .first()
+      .click({ force: true, timeout: 25_000 });
+    return;
+  }
+  await page
+    .locator('.teacher-main .top-tabs')
+    .getByRole('button', { name: tabName })
+    .first()
+    .click({ force: true, timeout: 25_000 });
 }
 
 /**
@@ -828,6 +879,14 @@ async function openTeacherTasksTab(page) {
     .waitFor({ state: 'visible', timeout: 60_000 });
   const tasksView = teacherTasksViewLocator(page);
   if (!(await tasksView.isVisible().catch(() => false))) {
+    // Deux dispositions, et l'onglet Tâches n'est pas au même endroit (`TeacherTopTabs.jsx`) :
+    //  - desktop : un onglet fusionné « Cartes, tâches et tuto » (`maptasks`, pôle Contenus),
+    //    visible seulement si `shouldUseDesktopSplit` ;
+    //  - compact (≤ 640px ou pointeur grossier) : cet onglet fusionné n'existe pas, les tâches
+    //    vivent dans le pôle **Suivi**, et ouvrir un pôle n'étale pas ses onglets dans
+    //    `.top-tabs` — il ouvre une feuille `BottomSheet` titrée du nom du pôle.
+    // La fixture ne connaissait que la disposition desktop : les specs mobile et tablette
+    // cherchaient donc l'onglet dans une barre qui ne le contient jamais.
     await openTeacherPole(page, 'Contenus');
     const splitTab = page
       .locator('.teacher-main .top-tabs')
@@ -837,7 +896,29 @@ async function openTeacherTasksTab(page) {
       await splitTab.scrollIntoViewIfNeeded().catch(() => {});
       await splitTab.click({ force: true, timeout: 25_000 });
     } else {
-      await clickTasksTab(page);
+      // La feuille du pôle « Contenus » est modale : elle recouvre la barre des pôles, donc
+      // cliquer « Suivi » sans la fermer ne fait rien (le clic est avalé par la surcouche).
+      const openSheetClose = page
+        .getByRole('dialog')
+        .getByRole('button', { name: 'Fermer le menu' })
+        .first();
+      if (await openSheetClose.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await openSheetClose.click({ timeout: 10_000 }).catch(() => {});
+        await page.getByRole('dialog', { name: 'Contenus' }).waitFor({
+          state: 'hidden',
+          timeout: 10_000,
+        });
+      }
+      await openTeacherPole(page, 'Suivi');
+      const poleSheet = page.getByRole('dialog', { name: 'Suivi' });
+      if (await poleSheet.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await poleSheet
+          .getByRole('button', { name: /Tâches/i })
+          .first()
+          .click({ force: true, timeout: 25_000 });
+      } else {
+        await clickTasksTab(page);
+      }
     }
   }
   await tasksView.waitFor({ state: 'visible', timeout: 90_000 });
@@ -1305,6 +1386,8 @@ async function clickTeacherNewTask(page) {
 
 module.exports = {
   loginAsNewStudent,
+  openTeacherPole,
+  openTeacherTabInPole,
   createStudentWithProfileViaAdmin,
   loginAsTeacherAdminApi,
   createStudentViaAdminImport,
