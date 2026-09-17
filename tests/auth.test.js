@@ -369,7 +369,14 @@ describe('Auth', () => {
   });
 
   it('GET /api/auth/google/start redirige vers Google avec state', async () => {
-    const res = await request(app).get('/api/auth/google/start?mode=student').expect(302);
+    // `Host` aligné sur `GOOGLE_OAUTH_REDIRECT_URI` : c'est l'hôte où un vrai navigateur se
+    // trouve sur ce déploiement. Depuis un hôte différent, `/start` rebondit d'abord par
+    // celui du rappel pour y poser les cookies (cf. `oauth-cross-product-start.test.js`) —
+    // supertest, lui, appelle par défaut `127.0.0.1:<port éphémère>`.
+    const res = await request(app)
+      .get('/api/auth/google/start?mode=student')
+      .set('Host', 'localhost:3000')
+      .expect(302);
     assert.ok(
       String(res.headers.location || '').startsWith(
         'https://accounts.google.com/o/oauth2/v2/auth?',
