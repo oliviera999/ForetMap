@@ -133,6 +133,21 @@ test('les compteurs par domaine ciblent les tables concernées', async () => {
   }
 });
 
+test('location_links vise les domaines zones + repères, pas le repli conservateur', async () => {
+  // Les liens d'un lieu (migration 261) sont servis par `GET /api/zones` et
+  // `GET /api/map/markers` : ces deux domaines doivent bumper pour que la carte se
+  // rafraîchisse. Sans rattachement, la table serait « hors mapping » et déclencherait le
+  // repli qui invalide TOUS les domaines — le catalogue complet rechargé chez toute la
+  // classe à chaque ajout de lien (symptôme B6 de l'audit biodiversité).
+  const before = (await getSyncState().expect(200)).body.domains;
+  await execute(`DELETE FROM location_links WHERE 1 = 0`);
+  const after = (await getSyncState().expect(200)).body.domains;
+  assert.ok(after.zones > before.zones, 'zones doit bumper');
+  assert.ok(after.markers > before.markers, 'markers doit bumper');
+  assert.strictEqual(after.plants, before.plants, 'plants ne doit pas bumper');
+  assert.strictEqual(after.authMe, before.authMe, 'authMe ne doit pas bumper');
+});
+
 test('les écritures en transaction et hors helpers avancent aussi le compteur', async () => {
   const before = getDataWriteVersion();
   await withTransaction(async (tx) => {

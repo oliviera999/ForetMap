@@ -39,6 +39,13 @@ const {
   serializeRoleSlugList,
   filterLocationsForViewer,
 } = require('../lib/locationAudience');
+const {
+  normalizeLocationLinksInput,
+  loadLocationLinksMap,
+  attachLinksToEntity,
+  replaceLocationLinks,
+  deleteLocationLinks,
+} = require('../lib/locationLinks');
 const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
 const { logAudit } = require('../lib/auditLog');
 const { mapMarkerToVisitWhitelistFields } = require('../lib/visitMapToVisitFields');
@@ -214,13 +221,19 @@ router.get(
     const markerIds = rows.map((row) => row.id);
     const speciesMap = await loadMarkerSpeciesMap(db, markerIds);
     const categoriesMap = await loadCategoriesMap(db, 'marker', markerIds);
+    // Liens documentaires (migration 261) : posés bruts, filtrés par rôle en même temps que
+    // le complément réservé (`filterLocationsForViewer` plus bas).
+    const linksMap = await loadLocationLinksMap(db, 'marker', markerIds);
     const result = rows.map((row) =>
       serializeLocationRow(
-        attachCategoriesToEntity(
-          attachSpeciesToEntity(row, speciesMap.get(String(row.id)) || [], {
-            legacySingleName: row.plant_name,
-          }),
-          categoriesMap.get(String(row.id)) || [],
+        attachLinksToEntity(
+          attachCategoriesToEntity(
+            attachSpeciesToEntity(row, speciesMap.get(String(row.id)) || [], {
+              legacySingleName: row.plant_name,
+            }),
+            categoriesMap.get(String(row.id)) || [],
+          ),
+          linksMap.get(String(row.id)) || [],
         ),
       ),
     );
@@ -251,6 +264,7 @@ router.post(
       visible_role_slugs,
       restricted_note,
       restricted_note_role_slugs,
+      links,
     } = req.body;
     const mapId = String(map_id || '').trim() || (await resolveDefaultMapId('teacher'));
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
@@ -266,6 +280,8 @@ router.post(
       restricted_note_role_slugs,
     });
     if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
+    const linksInput = normalizeLocationLinksInput(links);
+    if (!linksInput.ok) return res.status(400).json({ error: linksInput.error });
     // Coordonnées en pourcentage : bornées 0-100 (sinon un repère hors carte, ou NaN, était
     // inséré tel quel — paramétré donc sans injection, mais qualité de données non garantie).
     const xPct = Number(x_pct);
@@ -299,6 +315,9 @@ router.post(
       ],
     );
     await syncMarkerSpecies(db, id, species_ids, nextLiving);
+    if (linksInput.value !== null) {
+      await replaceLocationLinks(db, 'marker', id, linksInput.value);
+    }
     await syncEntityCategories(db, {
       kind: 'marker',
       entityId: id,
@@ -312,14 +331,18 @@ router.post(
     }
     const speciesRows = await loadMarkerSpeciesMap(db, [id]);
     const categoriesRows = await loadCategoriesMap(db, 'marker', [id]);
+    const linksRows = await loadLocationLinksMap(db, 'marker', [id]);
     emitGardenChanged({ reason: 'create_marker', markerId: id, mapId });
     res.status(201).json(
       serializeLocationRow(
-        attachCategoriesToEntity(
-          attachSpeciesToEntity(row, speciesRows.get(String(id)) || [], {
-            legacySingleName: row.plant_name,
-          }),
-          categoriesRows.get(String(id)) || [],
+        attachLinksToEntity(
+          attachCategoriesToEntity(
+            attachSpeciesToEntity(row, speciesRows.get(String(id)) || [], {
+              legacySingleName: row.plant_name,
+            }),
+            categoriesRows.get(String(id)) || [],
+          ),
+          linksRows.get(String(id)) || [],
         ),
       ),
     );
@@ -348,6 +371,7 @@ router.put(
       visible_role_slugs,
       restricted_note,
       restricted_note_role_slugs,
+      links,
     } = req.body;
     if (label !== undefined && !String(label).trim()) {
       return res.status(400).json({ error: 'Label requis' });
@@ -363,6 +387,9 @@ router.put(
       restricted_note_role_slugs,
     });
     if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
+    // Liens documentaires : omis = inchangés, `[]` = tous retirés.
+    const linksInput = normalizeLocationLinksInput(links);
+    if (!linksInput.ok) return res.status(400).json({ error: linksInput.error });
     const nextHiddenSurfaces =
       hiddenSurfacesInput.value === null
         ? String(m.hidden_surfaces ?? '')
@@ -430,6 +457,9 @@ router.put(
     if (living_beings !== undefined || species_ids !== undefined) {
       await syncMarkerSpecies(db, m.id, species_ids, nextLiving);
     }
+    if (linksInput.value !== null) {
+      await replaceLocationLinks(db, 'marker', m.id, linksInput.value);
+    }
     // `category_ids` absent ⇒ affectations conservées, mais réévaluées si la carte change
     // (une catégorie propre à l'ancienne carte n'est plus assignable).
     const currentCategoryIds =
@@ -457,14 +487,18 @@ router.put(
     }
     const speciesRows = await loadMarkerSpeciesMap(db, [m.id]);
     const categoriesRows = await loadCategoriesMap(db, 'marker', [m.id]);
+    const linksRows = await loadLocationLinksMap(db, 'marker', [m.id]);
     emitGardenChanged({ reason: 'update_marker', markerId: m.id, mapId: updated.map_id });
     res.json(
       serializeLocationRow(
-        attachCategoriesToEntity(
-          attachSpeciesToEntity(updated, speciesRows.get(String(m.id)) || [], {
-            legacySingleName: updated.plant_name,
-          }),
-          categoriesRows.get(String(m.id)) || [],
+        attachLinksToEntity(
+          attachCategoriesToEntity(
+            attachSpeciesToEntity(updated, speciesRows.get(String(m.id)) || [], {
+              legacySingleName: updated.plant_name,
+            }),
+            categoriesRows.get(String(m.id)) || [],
+          ),
+          linksRows.get(String(m.id)) || [],
         ),
       ),
     );
@@ -482,6 +516,8 @@ router.delete(
     ]);
     await withTransaction(async (tx) => {
       await tx.execute('DELETE FROM marker_photos WHERE marker_id = ?', [req.params.id]);
+      // Cible polymorphe : aucune clé étrangère ne peut nettoyer ces lignes.
+      await deleteLocationLinks(tx, 'marker', req.params.id);
       await tx.execute('DELETE FROM map_markers WHERE id = ?', [req.params.id]);
       // La couche visite partage le même id : on retire la cible visite « fantôme »
       // (ligne, médias, progression) dans la même transaction que la suppression carte.
