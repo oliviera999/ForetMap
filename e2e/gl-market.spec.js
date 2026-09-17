@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const { execute, queryOne } = require('../database');
+const { upsertGlSetting, getGameplaySettings } = require('../lib/glSettings');
 const { signAuthToken } = require('../middleware/requireTeacher');
 const { mountGlSession } = require('./fixtures/gl.fixture');
 const bcrypt = require('bcryptjs');
@@ -101,6 +102,24 @@ async function loginGlPlayer(page, seeded, which) {
 }
 
 test.describe('GL marché', () => {
+  /**
+   * L'échange de cœurs est derrière un drapeau, **désactivé par défaut**
+   * (`gameplay.market_hearts_enabled`, cf. `lib/glSettings.js`) : sans lui le champ « Cœurs ❤️ »
+   * n'est pas rendu du tout (`GLMarketView.jsx`) et le serveur refuse tout montant en cœurs
+   * (`lib/glMarket.js`). Un scénario qui prétend échanger un cœur doit donc l'activer lui-même
+   * — il attendait jusqu'ici une interface que personne ne sert par défaut.
+   */
+  let heartsWereEnabled = false;
+
+  test.beforeAll(async () => {
+    heartsWereEnabled = (await getGameplaySettings())?.marketHeartsEnabled === true;
+    if (!heartsWereEnabled) await upsertGlSetting('gameplay.market_hearts_enabled', true);
+  });
+
+  test.afterAll(async () => {
+    if (!heartsWereEnabled) await upsertGlSetting('gameplay.market_hearts_enabled', false);
+  });
+
   test('disclaimer visible et échange 1 cœur contre 1 gemme', async ({ browser }) => {
     const seeded = await seedGlMarketE2E('flow');
     const contextA = await browser.newContext();

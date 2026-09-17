@@ -22,12 +22,12 @@ test('cycle complet tâche: création prof -> prise élève -> soumission -> val
   test.setTimeout(600_000);
   const taskTitle = `E2E Cycle ${Date.now()}`;
 
-  await loginAsNewStudent(page);
+  const student = await loginAsNewStudent(page);
   await enableTeacherMode(page);
   const taskId = await createTeacherTask(page, taskTitle);
   await assignStudentToTaskAsTeacher(page, taskId);
 
-  await disableTeacherMode(page);
+  await disableTeacherMode(page, student);
   await waitForStudentAssignedTask(page, taskTitle);
   const studentTasksLoad = page.waitForResponse(
     (r) => r.url().includes('/api/tasks') && r.request().method() === 'GET' && r.status() === 200,

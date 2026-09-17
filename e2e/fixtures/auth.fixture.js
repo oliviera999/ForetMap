@@ -391,14 +391,29 @@ async function enableTeacherMode(page, _legacyPin, _legacyOptions = {}) {
 }
 
 /**
- * Quitte le « mode professeur ». Il n'y a plus de désélévation (session unique) : on se déconnecte
- * pour revenir à l'écran d'authentification. La signature reste stable pour les specs appelants.
+ * Quitte le « mode professeur » et **rend la session élève**.
+ *
+ * Il n'y a plus de désélévation (session unique) : `enableTeacherMode` remplace la session
+ * élève par celle du compte admin, et en sortir passe par une déconnexion. Les specs
+ * appelantes, elles, enchaînent toutes sur un geste d'élève (onglet Tâches, carte de visite) —
+ * leur rendre l'écran d'authentification les fait expirer sur un bouton qui n'existe pas pour
+ * un visiteur anonyme. Passer le profil rendu par `loginAsNewStudent` reconnecte donc l'élève.
+ *
+ * Sans profil, le comportement historique est conservé : déconnexion seule.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {{ email: string, password: string } | null} [student] profil à reconnecter
  */
-async function disableTeacherMode(page) {
+async function disableTeacherMode(page, student = null) {
   if (page.isClosed()) {
     throw new Error('Page fermée avant disableTeacherMode');
   }
   await logoutToAuth(page).catch(() => {});
+  if (student?.email && student?.password) {
+    await page.goto('/');
+    await markAllDiscoveryToursSeen(page);
+    await loginByIdentifier(page, student.email, student.password);
+  }
 }
 
 /** Réaligne token + profil élève après désélévation (JWT / localStorage / droits tâches). */
@@ -662,6 +677,59 @@ async function openFirstZoneModalFromMap(page) {
   throw new Error('Aucune modale zone ouverte depuis la carte');
 }
 
+/**
+ * Ouvre la fiche d'une zone **nommée** depuis la carte prof.
+ *
+ * Cliquer le bouton accessible qui porte le nom de la zone n'ouvre pas la fiche : la cible
+ * cliquable est le `polygon` du `.map-zone-hit`, et il faut parfois retomber sur un `MouseEvent`
+ * distribué à la main — c'est déjà ce que fait `openFirstZoneModalFromMap`, qui ne savait pas
+ * viser une zone précise. `teacher-zone-contour-edit` cliquait le bouton et attendait en vain.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string} zoneName nom exact de la zone
+ */
+async function openZoneModalByName(page, zoneName) {
+  await waitForTeacherMapReady(page);
+  const zoneDlg = page.getByRole('dialog', {
+    name: new RegExp(`^Zone ${escapeForRegExp(zoneName)}`),
+  });
+  // Le `<g class="map-zone-hit">` **est** le bouton : rôle, `aria-label` et `onKeyDown` sont
+  // portés par le groupe lui-même (`ZonePolygonsLayer.jsx`), pas par un enfant. D'où deux
+  // pièges : un `filter({ has: … })` ne trouve rien, et un clic « forcé » vise le centre de la
+  // boîte englobante du groupe — qui, pour un polygone, peut tomber hors de la forme ou sur une
+  // zone voisine. `Enter` sur le groupe focalisé passe outre tout le test de survol.
+  const zoneButton = page.getByRole('button', { name: zoneName, exact: true }).first();
+  await zoneButton.waitFor({ state: 'attached', timeout: 20_000 });
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await zoneButton.focus().catch(() => {});
+    await zoneButton.press('Enter').catch(() => {});
+    if (
+      await zoneDlg
+        .waitFor({ state: 'visible', timeout: 3_000 })
+        .then(() => true)
+        .catch(() => false)
+    ) {
+      return zoneDlg;
+    }
+    await zoneButton.locator('polygon').first().click({ force: true, timeout: 5_000 });
+    if (
+      await zoneDlg
+        .waitFor({ state: 'visible', timeout: 3_000 })
+        .then(() => true)
+        .catch(() => false)
+    ) {
+      return zoneDlg;
+    }
+    await page.keyboard.press('Escape');
+  }
+  throw new Error(`Fiche de la zone « ${zoneName} » non ouverte depuis la carte`);
+}
+
+/** Échappe une chaîne destinée à une `RegExp` (noms de zones e2e horodatés). */
+function escapeForRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /** Réinitialise les filtres liste tâches (évite les listes vides e2e après vue élève + filtres carte/statut). */
 async function resetTaskFiltersInTasksView(page) {
   let openedFiltersSheet = false;
@@ -706,14 +774,50 @@ async function resetTaskFiltersInTasksView(page) {
  * Navigation prof en 3 pôles (audit D-4) : ouvre le pôle demandé s'il existe, pour rendre
  * visibles ses onglets avant de les cliquer. Sans effet côté élève (pas de pôles).
  */
+/**
+ * Ouvre un pôle de la navigation prof (« Contenus », « Suivi », « Administration »).
+ *
+ * L'appariement est **préfixe, pas exact** : un pôle qui porte un badge de travail à faire
+ * s'appelle « Suivi 9 à valider » côté nom accessible, et un `exact: true` n'y correspondait
+ * jamais — le clic était silencieusement sauté (`.catch`), et les specs échouaient bien plus
+ * loin, sur un onglet qu'on n'avait en réalité jamais demandé.
+ */
 async function openTeacherPole(page, poleName) {
   const pole = page
     .locator('.teacher-nav__poles')
-    .getByRole('button', { name: poleName, exact: true })
+    .getByRole('button', { name: new RegExp(`^${poleName}\\b`) })
     .first();
   if ((await pole.count()) > 0) {
     await pole.click({ timeout: 15_000 }).catch(() => {});
   }
+}
+
+/**
+ * Ouvre un onglet prof d'un pôle donné, quelle que soit la disposition.
+ *
+ * Desktop : les onglets du pôle s'étalent dans `.teacher-main .top-tabs`. Compact (≤ 640px ou
+ * pointeur grossier) : ils vivent dans une feuille `BottomSheet` titrée du nom du pôle. Les
+ * specs mobile et tablette cherchaient l'onglet dans la barre desktop et expiraient.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string} poleName nom du pôle (« Contenus », « Suivi », « Administration »)
+ * @param {RegExp|string} tabName nom de l'onglet à ouvrir
+ */
+async function openTeacherTabInPole(page, poleName, tabName) {
+  await openTeacherPole(page, poleName);
+  const sheet = page.getByRole('dialog', { name: poleName });
+  if (await sheet.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await sheet
+      .getByRole('button', { name: tabName })
+      .first()
+      .click({ force: true, timeout: 25_000 });
+    return;
+  }
+  await page
+    .locator('.teacher-main .top-tabs')
+    .getByRole('button', { name: tabName })
+    .first()
+    .click({ force: true, timeout: 25_000 });
 }
 
 /**
@@ -828,6 +932,14 @@ async function openTeacherTasksTab(page) {
     .waitFor({ state: 'visible', timeout: 60_000 });
   const tasksView = teacherTasksViewLocator(page);
   if (!(await tasksView.isVisible().catch(() => false))) {
+    // Deux dispositions, et l'onglet Tâches n'est pas au même endroit (`TeacherTopTabs.jsx`) :
+    //  - desktop : un onglet fusionné « Cartes, tâches et tuto » (`maptasks`, pôle Contenus),
+    //    visible seulement si `shouldUseDesktopSplit` ;
+    //  - compact (≤ 640px ou pointeur grossier) : cet onglet fusionné n'existe pas, les tâches
+    //    vivent dans le pôle **Suivi**, et ouvrir un pôle n'étale pas ses onglets dans
+    //    `.top-tabs` — il ouvre une feuille `BottomSheet` titrée du nom du pôle.
+    // La fixture ne connaissait que la disposition desktop : les specs mobile et tablette
+    // cherchaient donc l'onglet dans une barre qui ne le contient jamais.
     await openTeacherPole(page, 'Contenus');
     const splitTab = page
       .locator('.teacher-main .top-tabs')
@@ -837,7 +949,29 @@ async function openTeacherTasksTab(page) {
       await splitTab.scrollIntoViewIfNeeded().catch(() => {});
       await splitTab.click({ force: true, timeout: 25_000 });
     } else {
-      await clickTasksTab(page);
+      // La feuille du pôle « Contenus » est modale : elle recouvre la barre des pôles, donc
+      // cliquer « Suivi » sans la fermer ne fait rien (le clic est avalé par la surcouche).
+      const openSheetClose = page
+        .getByRole('dialog')
+        .getByRole('button', { name: 'Fermer le menu' })
+        .first();
+      if (await openSheetClose.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await openSheetClose.click({ timeout: 10_000 }).catch(() => {});
+        await page.getByRole('dialog', { name: 'Contenus' }).waitFor({
+          state: 'hidden',
+          timeout: 10_000,
+        });
+      }
+      await openTeacherPole(page, 'Suivi');
+      const poleSheet = page.getByRole('dialog', { name: 'Suivi' });
+      if (await poleSheet.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await poleSheet
+          .getByRole('button', { name: /Tâches/i })
+          .first()
+          .click({ force: true, timeout: 25_000 });
+      } else {
+        await clickTasksTab(page);
+      }
     }
   }
   await tasksView.waitFor({ state: 'visible', timeout: 90_000 });
@@ -1305,6 +1439,8 @@ async function clickTeacherNewTask(page) {
 
 module.exports = {
   loginAsNewStudent,
+  openTeacherPole,
+  openTeacherTabInPole,
   createStudentWithProfileViaAdmin,
   loginAsTeacherAdminApi,
   createStudentViaAdminImport,
@@ -1320,6 +1456,7 @@ module.exports = {
   syncStudentSessionToken,
   waitForTeacherMapReady,
   openFirstZoneModalFromMap,
+  openZoneModalByName,
   openTeacherTasksTab,
   openStudentTasksTab,
   teacherTasksViewLocator,
