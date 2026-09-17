@@ -157,6 +157,35 @@ faire : les fichiers déposés (`uploads/`) ne sont pas dans le dump — ne les 
 
 Diagnostic seul, sur une base déjà importée : `npm run db:anonymize:scan`.
 
+#### Le fixture anonymisé versionné
+
+Une fois la base anonymisée, elle peut être **figée dans le dépôt** pour que n'importe quel
+poste — ou n'importe quelle session éphémère — retrouve la volumétrie réelle sans qu'un dump
+de production circule :
+
+```bash
+npm run db:fixture:export    # → sql/fixtures/foretmap-anonymise.sql.gz (~1,4 Mo)
+npm run db:fixture:load      # dans une autre session / sur un autre poste
+npm run db:seed:teacher      # compte prof
+```
+
+C'est la **seule** exception à l'interdiction de versionner du SQL de base, et elle tient à
+trois contrôles superposés :
+
+1. `db:fixture:export` refuse d'écrire tant que le balayage de l'anonymiseur signale un motif
+   bloquant, et vérifie en plus que `users` ne porte aucune adresse hors
+   `@exemple.invalid` ni plus d'un hachage distinct ;
+2. le flux de sortie **neutralise** les adresses que l'anonymiseur tolère par ailleurs (crédit
+   d'illustration Wikimedia, contact de la page « À propos ») : elles n'ont aucune utilité
+   dans un jeu de test ;
+3. `tests/fixture-anonymise.test.js` relit l'archive **versionnée** à chaque CI, sans faire
+   confiance au script qui l'a produite.
+
+Un dump **brut** reste interdit dans le dépôt, sans exception.
+
+`db:fixture:load` refuse de viser `foretmap_test` : cette base appartient aux suites
+automatisées et doit rester construite par `db:init`.
+
 > Note historique : l'ancien systeme d'elevation par PIN (`role_pin_secrets`,
 > `TEACHER_PIN`, `npm run db:reset:role-pins:local`) a ete supprime — les droits
 > viennent des roles RBAC attribues a la connexion.
@@ -645,6 +674,10 @@ Le script est **idempotent** et non interactif (~2 min à froid, ~10 s à chaud)
    `mobile-webkit`, pourtant bloquant en CI, échoue avant le premier test ;
 5. écrit un `.env` de session (non versionné) et exporte les variables via
    `$CLAUDE_ENV_FILE`.
+
+Depuis le lot « base réelle », il charge aussi le **fixture anonymisé** dans
+`foretmap_local` et sème le compte prof : une session démarre donc sur la volumétrie de
+production, pas sur un seed. `FORETMAP_SESSION_SKIP_FIXTURE=1` saute cette étape.
 
 | Variable                           | Effet                                                                     |
 | ---------------------------------- | ------------------------------------------------------------------------- |
