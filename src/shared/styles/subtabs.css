@@ -101,7 +101,7 @@
 .fm-subtab.active,
 .fm-subtab[aria-selected='true'] {
   background: linear-gradient(160deg, var(--forest), var(--leaf));
-  color: #fff;
+  color: var(--surface-plain);
   font-weight: var(--fw-bold);
   box-shadow: 0 6px 14px rgba(26, 71, 49, 0.22);
 }

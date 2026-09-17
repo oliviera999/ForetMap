@@ -11,7 +11,7 @@
   padding: 8px 14px;
   border: 1px solid transparent;
   border-radius: 999px;
-  background: var(--gl-surface, #fff);
+  background: var(--gl-surface, var(--surface-plain));
   color: var(--gl-color-primary, #1a4731);
   font: inherit;
   font-size: var(--text-sm);
@@ -32,12 +32,12 @@
 
 .fm-map-action--primary {
   background: var(--gl-color-primary, #1a4731);
-  color: #fff;
+  color: var(--surface-plain);
 }
 
 .fm-map-action--display {
   background: rgba(15, 23, 42, 0.82);
-  color: #f8fafc;
+  color: var(--surface-cool);
 }
 
 .fm-map-action.is-active {

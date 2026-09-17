@@ -167,7 +167,13 @@ function TaskProjectsBlock({
                       </MarkdownContent>
                     )}
                     {p.status === 'on_hold' && (
-                      <div style={{ fontSize: 'var(--text-sm)', color: '#92400e', marginTop: 4 }}>
+                      <div
+                        style={{
+                          fontSize: 'var(--text-sm)',
+                          color: 'var(--ink-warning)',
+                          marginTop: 4,
+                        }}
+                      >
                         {isTeacher ? (
                           <>
                             <IconPause size={14} /> Projet en pause : plus de nouvelles inscriptions
@@ -184,14 +190,26 @@ function TaskProjectsBlock({
                       </div>
                     )}
                     {p.status === 'completed' && (
-                      <div style={{ fontSize: 'var(--text-sm)', color: '#166534', marginTop: 4 }}>
+                      <div
+                        style={{
+                          fontSize: 'var(--text-sm)',
+                          color: 'var(--ink-success)',
+                          marginTop: 4,
+                        }}
+                      >
                         {isTeacher
                           ? 'Toutes les tâches du projet sont terminées ou validées (fin automatique). Tu peux valider le projet, le rouvrir ou ajouter une nouvelle tâche.'
                           : 'Toutes les tâches de ce projet sont terminées ou validées.'}
                       </div>
                     )}
                     {p.status === 'validated' && (
-                      <div style={{ fontSize: 'var(--text-sm)', color: '#166534', marginTop: 4 }}>
+                      <div
+                        style={{
+                          fontSize: 'var(--text-sm)',
+                          color: 'var(--ink-success)',
+                          marginTop: 4,
+                        }}
+                      >
                         {isTeacher
                           ? 'Projet validé manuellement : inscriptions fermées. Tu peux le rouvrir en « Actif » ou « En attente ».'
                           : 'Projet validé par les n3boss : inscriptions fermées.'}

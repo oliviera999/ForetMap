@@ -28,7 +28,7 @@
 .plan-access-gate__intro,
 .plan-access-gate__hint {
   margin: 0 0 16px;
-  color: var(--ink-muted, #4b5563);
+  color: var(--ink-muted, var(--ink-base));
   font-size: var(--text-base);
   line-height: 1.45;
 }
@@ -121,7 +121,7 @@
 .plan-place__suggest-field {
   width: 100%;
   padding: 10px;
-  border: 1px solid var(--line, #d1d5db);
+  border: 1px solid var(--line, var(--line-muted));
   border-radius: 8px;
   font: inherit;
   resize: vertical;

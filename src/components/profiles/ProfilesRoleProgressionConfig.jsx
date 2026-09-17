@@ -32,7 +32,7 @@ export function ProfilesRoleProgressionConfig({
         className="profiles-admin-progression-block"
         style={{
           border: '1px solid #e0e7ff',
-          background: '#f8fafc',
+          background: 'var(--surface-cool)',
           borderRadius: 10,
           padding: 12,
           marginBottom: 14,
@@ -231,7 +231,7 @@ export function ProfilesRoleProgressionConfig({
         <div
           style={{
             border: '1px solid #e0e7ff',
-            background: '#f8fafc',
+            background: 'var(--surface-cool)',
             borderRadius: 10,
             padding: 12,
             marginBottom: 14,
@@ -309,7 +309,7 @@ export function ProfilesRoleProgressionConfig({
         <div
           style={{
             border: '1px solid #fde68a',
-            background: '#fffbeb',
+            background: 'var(--tint-warning)',
             borderRadius: 10,
             padding: 12,
             marginBottom: 14,
@@ -319,7 +319,7 @@ export function ProfilesRoleProgressionConfig({
             style={{
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--fw-bold)',
-              color: '#92400e',
+              color: 'var(--ink-warning)',
               marginBottom: 8,
             }}
           >

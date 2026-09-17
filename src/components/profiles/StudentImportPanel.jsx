@@ -72,7 +72,9 @@ function StudentImportPanel({ roleTerms, canImport, setErr, setMsg, onImported }
             réglable dans Réglages → Imports de comptes (ignorer, ou autoriser des mots de passe
             courts).
           </p>
-          <p style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: '#9a3412' }}>
+          <p
+            style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: 'var(--ink-warning)' }}
+          >
             Remplacez ou supprimez les lignes d&apos;exemple avant l&apos;import. Les e-mails du
             fichier ne sont pas limités aux domaines Google / Moodle de l&apos;établissement. À la
             mise à jour, un mot de passe vide dans le fichier laisse le mot de passe actuel

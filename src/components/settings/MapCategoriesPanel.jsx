@@ -339,7 +339,8 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
               padding: '8px 0',
               borderTop: '1px solid #f1f5f9',
               opacity: dragIndex === idx ? 0.55 : 1,
-              background: dragIndex >= 0 && dragIndex !== idx ? '#f8fafc' : 'transparent',
+              background:
+                dragIndex >= 0 && dragIndex !== idx ? 'var(--surface-cool)' : 'transparent',
             }}
           >
             <button
