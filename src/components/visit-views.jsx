@@ -41,6 +41,9 @@ import { VisitDrawZonePreview } from './VisitDrawZonePreview.jsx';
 import { MapRoutePicker } from '../shared/map-routes/MapRoutePicker.jsx';
 import { MapRouteBar } from '../shared/map-routes/MapRouteBar.jsx';
 import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
+import { MAP_GUIDE_BAR_FOCUS_INSET_PX, MapGuideBar } from '../shared/map-guide/MapGuideBar.jsx';
+import { useMapGuidance } from '../shared/map-guide/useMapGuidance.js';
+import { mapPlaceKey } from '../shared/map-guide/mapGuidePlace.js';
 import {
   placesFromZonesAndMarkers,
   routeEntryFocusPct,
@@ -510,16 +513,6 @@ function VisitViewImpl({
     georef: currentMap?.georef ?? null,
     gpsEnabled: !!currentMap?.gps_enabled && mode === 'view',
   });
-  const visitRouteDistanceLabel = useMemo(() => {
-    const targetPct = routeEntryFocusPct(currentRouteEntry);
-    if (!visitPosition.positionPct || !targetPct || !visitPosition.planSize) return '';
-    const meters = distanceMetersBetweenPct(
-      visitPosition.positionPct,
-      targetPct,
-      visitPosition.planSize,
-    );
-    return meters != null ? formatDistanceFr(meters) : '';
-  }, [currentRouteEntry, visitPosition.positionPct, visitPosition.planSize]);
   const visitHeadingUpAllowed =
     !!publicSettings?.visit?.heading_up_enabled &&
     !!currentMap?.heading_up_enabled &&
@@ -585,6 +578,84 @@ function VisitViewImpl({
   }, [cancelScheduledDetailPanelOpen, setSelected, setSelectedType]);
   useOverlayHistoryBack(isGuestPublicVisit && !!selected, closeVisitSelection);
   useOverlayHistoryBack(!!visitMediaLightbox, () => setVisitMediaLightbox(null));
+
+  /**
+   * Guidage « Y aller » : depuis la fiche d'un lieu, la carte trace une **ligne droite** entre
+   * la position et ce lieu, avec la distance. Ce n'est pas un itinéraire — la visite ne connaît
+   * pas les chemins de la parcelle, et une direction honnête vaut mieux qu'un trajet inventé.
+   * Même socle que le Plan Lyautey (`shared/map-guide`), mêmes mots, mêmes gestes.
+   *
+   * Viser un lieu **rend la carte** : le panneau de détail est modal et la recouvre, donc il se
+   * referme et la barre de guidage le remplace. Seul « Arrêter » interrompt le guidage
+   * (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B4/B5).
+   */
+  const onVisitGuidanceStart = useCallback(() => {
+    if (visitPosition.available && !visitPosition.active) visitPosition.toggle();
+    closeVisitSelection();
+  }, [visitPosition, closeVisitSelection]);
+  const {
+    guidedPlace: visitGuidedPlaceRaw,
+    goTo: goToVisitPlace,
+    stop: stopVisitGuidance,
+    isTarget: isVisitGuidanceTarget,
+    reset: resetVisitGuidance,
+  } = useMapGuidance({ places: visitPlaces, onGoTo: onVisitGuidanceStart });
+
+  /** Lieu de la fiche ouverte, au format « lieu » (`kind` + `name`) attendu par le guidage. */
+  const visitSelectedPlace = useMemo(
+    () => (selected ? { ...selected, kind: selectedType === 'marker' ? 'marker' : 'zone' } : null),
+    [selected, selectedType],
+  );
+  const goToVisitSelection = useCallback(() => {
+    if (visitSelectedPlace) goToVisitPlace(visitSelectedPlace);
+  }, [visitSelectedPlace, goToVisitPlace]);
+
+  /**
+   * Pendant un parcours, c'est la barre d'étape qui guide : pas deux barres à la fois. Hors
+   * consultation (tracé de zone, pose de repère), la position est coupée : une barre de guidage
+   * qui survivrait au passage en édition promettrait une direction que plus rien n'alimente.
+   */
+  const visitGuidedPlace = activeRoute || mode !== 'view' ? null : visitGuidedPlaceRaw;
+  /** Cible de la ligne droite : l'étape courante en parcours, sinon le lieu visé. */
+  const visitTargetPct = useMemo(
+    () =>
+      activeRoute
+        ? routeEntryFocusPct(currentRouteEntry)
+        : routeEntryFocusPct(visitGuidedPlace ? { place: visitGuidedPlace } : null),
+    [activeRoute, currentRouteEntry, visitGuidedPlace],
+  );
+  const visitTargetDistanceLabel = useMemo(() => {
+    if (!visitPosition.positionPct || !visitTargetPct || !visitPosition.planSize) return '';
+    const meters = distanceMetersBetweenPct(
+      visitPosition.positionPct,
+      visitTargetPct,
+      visitPosition.planSize,
+    );
+    return meters != null ? formatDistanceFr(meters) : '';
+  }, [visitTargetPct, visitPosition.positionPct, visitPosition.planSize]);
+  /** Recadrage de la carte au-dessus de la barre affichée (étape de parcours ou guidage). */
+  const visitMapFocusInsets = useMemo(() => {
+    if (activeRoute) return { bottom: 96 };
+    return visitGuidedPlace ? { bottom: MAP_GUIDE_BAR_FOCUS_INSET_PX } : null;
+  }, [activeRoute, visitGuidedPlace]);
+  /**
+   * Le lieu visé reste dessiné même si les filtres de catégories l'excluent : sans cela, « Y
+   * aller » guidait vers un repère invisible (même constat que `shownPlaces` côté Plan).
+   */
+  const visitShownZones = useMemo(() => {
+    if (!visitGuidedPlace || visitGuidedPlace.kind !== 'zone') return filteredZones;
+    const key = mapPlaceKey(visitGuidedPlace);
+    return filteredZones.some((zone) => mapPlaceKey({ ...zone, kind: 'zone' }) === key)
+      ? filteredZones
+      : [...filteredZones, visitGuidedPlace];
+  }, [filteredZones, visitGuidedPlace]);
+  const visitShownMarkers = useMemo(() => {
+    if (!visitGuidedPlace || visitGuidedPlace.kind !== 'marker') return filteredMarkers;
+    const key = mapPlaceKey(visitGuidedPlace);
+    return filteredMarkers.some((marker) => mapPlaceKey({ ...marker, kind: 'marker' }) === key)
+      ? filteredMarkers
+      : [...filteredMarkers, visitGuidedPlace];
+  }, [filteredMarkers, visitGuidedPlace]);
 
   /**
    * Styles typo overlay (taille Aa) sur le calque fit SharedMapStage.
@@ -667,7 +738,8 @@ function VisitViewImpl({
     setMode('view');
     setPlaceSearchQuery('');
     setSelectedCategoryIds(new Set());
-  }, [mapId]);
+    resetVisitGuidance();
+  }, [mapId, resetVisitGuidance]);
 
   // Immersion (plein écran) : réajustement une fois le portail posé (double rAF, comme avant).
   useLayoutEffect(() => {
@@ -975,8 +1047,8 @@ function VisitViewImpl({
                     georef: currentMap?.georef,
                     geo_anchors: currentMap?.georef,
                   }}
-                  zones={filteredZones}
-                  markers={filteredMarkers}
+                  zones={visitShownZones}
+                  markers={visitShownMarkers}
                   categoriesById={categoriesById}
                   selectedPlace={
                     selected && selectedType ? { ...selected, kind: selectedType } : null
@@ -997,8 +1069,8 @@ function VisitViewImpl({
                   scaleCompassEffective={visitScaleCompassPref.effective}
                   onScaleCompassToggle={visitScaleCompassPref.toggle}
                   fitExtraStyle={visitFitExtraStyle}
-                  focusInsets={activeRoute ? { bottom: 96 } : null}
-                  targetPct={activeRoute ? routeEntryFocusPct(currentRouteEntry) : null}
+                  focusInsets={visitMapFocusInsets}
+                  targetPct={visitTargetPct}
                   onViewportChange={onVisitViewportChange}
                   onBackgroundClick={onMapBackgroundClick}
                   onMapImageError={() =>
@@ -1046,7 +1118,9 @@ function VisitViewImpl({
                   }
                 />
                 {!activeRoute && resumableRouteSlug ? (
-                  <div className="map-route-resume">
+                  <div
+                    className={`map-route-resume${visitGuidedPlace ? ' map-route-resume--above-guide' : ''}`}
+                  >
                     <button
                       type="button"
                       className="btn btn-sm btn-primary map-route-resume__btn"
@@ -1064,9 +1138,25 @@ function VisitViewImpl({
                     onGoToIndex={goToRouteIndex}
                     onExit={exitRoute}
                     canLocate={!!visitPosition.available}
-                    distanceLabel={visitRouteDistanceLabel}
+                    distanceLabel={visitTargetDistanceLabel}
                     hintLocate="Le lieu est mis en avant sur la carte. Utilisez « Me situer » puis avancez."
                     hintManual="Le lieu est mis en avant sur la carte. Avance puis Suivant."
+                  />
+                ) : null}
+                {visitGuidedPlace ? (
+                  <MapGuideBar
+                    place={visitGuidedPlace}
+                    distanceLabel={visitTargetDistanceLabel}
+                    positionActive={!!visitPosition.active}
+                    canLocate={!!visitPosition.available}
+                    onStop={stopVisitGuidance}
+                    onOpenPlace={() => {
+                      setSelected(visitGuidedPlace);
+                      setSelectedType(visitGuidedPlace.kind === 'marker' ? 'marker' : 'zone');
+                    }}
+                    onLocate={visitPosition.toggle}
+                    unavailableHint="Le lieu est mis en avant sur la carte ; la localisation n’est pas disponible ici."
+                    testId="visit-guide-bar"
                   />
                 ) : null}
               </div>
@@ -1101,6 +1191,10 @@ function VisitViewImpl({
             tasks={tasks}
             catalogTutorials={catalogTutorials}
             isTeacher={isTeacher}
+            canGuide={!!visitPosition.available}
+            onGoTo={mode === 'view' && !activeRoute ? goToVisitSelection : null}
+            isGuideTarget={isVisitGuidanceTarget(visitSelectedPlace)}
+            guideDistanceLabel={visitTargetDistanceLabel}
             canEditVisit={isTeacher && !teacherPreviewAsStudent}
             onSaved={loadData}
             onForceLogout={onForceLogout}

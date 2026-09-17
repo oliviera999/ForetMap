@@ -21,6 +21,7 @@ import { PlanHelp } from './components/PlanHelp.jsx';
 import { PlanRoutePicker } from './components/PlanRoutePicker.jsx';
 import { PLAN_ROUTE_BAR_FOCUS_INSET_PX, PlanRouteBar } from './components/PlanRouteBar.jsx';
 import { PLAN_GUIDE_BAR_FOCUS_INSET_PX, PlanGuideBar } from './components/PlanGuideBar.jsx';
+import { useMapGuidance } from '../shared/map-guide/useMapGuidance.js';
 import { AccessCodeGate } from '../shared/components/AccessCodeGate.jsx';
 import { PlanMapStage } from './components/PlanMapStage.jsx';
 import { PlanPlaceSheet } from './components/PlanPlaceSheet.jsx';
@@ -114,14 +115,16 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    * (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N5).
    */
   const [routePeekPlace, setRoutePeekPlace] = useState(null);
-  /** Lieu visé par « Y aller » (ligne droite depuis la position, lot 6). */
-  const [targetPlaceId, setTargetPlaceId] = useState('');
   const deepLinkAppliedRef = useRef(false);
   /** Parcours actif, lu par les gestionnaires stables (`openPlace`). */
   const activeRouteSlugRef = useRef('');
+  /** Étape courante et étape où l'on a quitté, en lecture impérative (reprise, §2.2). */
+  const routeIndexRef = useRef(0);
+  const resumableRouteIndexRef = useRef(0);
   const openedOnceRef = useRef(false);
 
   activeRouteSlugRef.current = activeRouteSlug;
+  routeIndexRef.current = routeIndex;
 
   const title = settings?.title || variant.defaultTitle;
 
@@ -454,13 +457,34 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   /**
    * « Y aller » : la carte trace une **ligne droite** entre la position et le lieu, avec la
    * distance. Ce n'est pas un itinéraire — le plan ne connaît pas encore les chemins, et
-   * mieux vaut une direction honnête qu'un trajet inventé.
+   * mieux vaut une direction honnête qu'un trajet inventé. L'état vit dans le hook partagé
+   * `shared/map-guide/useMapGuidance` (la Visite ForetMap montre le même guidage).
+   *
+   * Viser un lieu **rend la carte** : la fiche se referme, la barre de guidage la remplace.
+   * C'est tout l'objet du geste — voir où l'on est par rapport au lieu, ce qu'une feuille
+   * couvrant 55 % de l'écran interdisait (B4).
    */
-  const targetPlace = useMemo(() => {
-    // En mode parcours, la cible est l'étape courante : « Y aller » suit le parcours.
-    if (currentRouteEntry) return currentRouteEntry.place;
-    return targetPlaceId ? places.find((p) => String(p.id) === targetPlaceId) || null : null;
-  }, [currentRouteEntry, targetPlaceId, places]);
+  const onGuidanceStart = useCallback(
+    (place) => {
+      reportPlanUsage('go', String(place.id));
+      if (!position.active) position.toggle();
+      if (!activeRouteSlugRef.current) closePlace();
+    },
+    [position, closePlace],
+  );
+  const onGuidanceStop = useCallback(() => {
+    reportPlanUsage('go_stop', '');
+  }, []);
+  const {
+    guidedPlace: guidanceTargetPlace,
+    goTo: goToPlace,
+    stop: stopGuidance,
+    isTarget: isGuidanceTarget,
+    reset: resetGuidance,
+  } = useMapGuidance({ places, onGoTo: onGuidanceStart, onStop: onGuidanceStop });
+
+  // En mode parcours, la cible est l'étape courante : « Y aller » suit le parcours.
+  const targetPlace = currentRouteEntry ? currentRouteEntry.place : guidanceTargetPlace;
   const targetPct = useMemo(
     () => (targetPlace ? planPlaceFocusPct(targetPlace, parsePctPolygonPoints) : null),
     [targetPlace],
@@ -546,34 +570,14 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     [position.positionPct, position.planSize],
   );
 
-  /**
-   * « Y aller » : on vise le lieu **et on rend la carte** — la fiche se referme, la barre de
-   * guidage la remplace. C'est tout l'objet du geste : voir où l'on est par rapport au lieu,
-   * ce qu'une feuille couvrant 55 % de l'écran interdisait (B4).
-   */
-  const goToPlace = useCallback(
-    (place) => {
-      if (!place) return;
-      setTargetPlaceId(String(place.id));
-      reportPlanUsage('go', String(place.id));
-      if (!position.active) position.toggle();
-      if (!activeRouteSlugRef.current) closePlace();
-    },
-    [position, closePlace],
-  );
-
-  /** Fin du guidage — le seul chemin qui l'arrête. */
-  const stopGuidance = useCallback(() => {
-    setTargetPlaceId('');
-    reportPlanUsage('go_stop', '');
-  }, []);
-
+  /** Départ d'un parcours : toujours à la première étape (c'est « Reprendre » qui restitue). */
   const startRoute = useCallback((route) => {
     setRoutePickerOpen(false);
     setResultsOpen(false);
     setGroupPlaces(null);
     setRoutePeekPlace(null);
     setResumableRouteSlug('');
+    resumableRouteIndexRef.current = 0;
     setRouteIndex(0);
     setActiveRouteSlug(route.slug);
     reportPlanUsage('route_start', route.slug);
@@ -581,21 +585,36 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
 
   const exitRoute = useCallback(() => {
     const slug = activeRouteSlug;
+    resumableRouteIndexRef.current = slug ? routeIndexRef.current : 0;
     setActiveRouteSlug('');
     setRouteIndex(0);
     setSelectedPlace(null);
     setRoutePeekPlace(null);
-    setTargetPlaceId('');
+    resetGuidance();
     if (slug) {
       setResumableRouteSlug(slug);
       setRouteToast('Pour reprendre : puce Parcours, ou Reprendre.');
     }
-  }, [activeRouteSlug, setRouteToast]);
+  }, [activeRouteSlug, resetGuidance, setRouteToast]);
 
+  /**
+   * Reprise : on retrouve l'étape quittée, et non la première — le bouton s'appelle « Reprendre
+   * le parcours » et l'aide le promet (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.2). Le rebornage
+   * sur les étapes réellement résolues est fait par l'effet plus bas.
+   */
   const resumeRoute = useCallback(() => {
     const route = routes.find((r) => r.slug === resumableRouteSlug);
-    if (route) startRoute(route);
-  }, [routes, resumableRouteSlug, startRoute]);
+    if (!route) return;
+    const resumeIndex = resumableRouteIndexRef.current;
+    setRoutePickerOpen(false);
+    setResultsOpen(false);
+    setGroupPlaces(null);
+    setRoutePeekPlace(null);
+    setResumableRouteSlug('');
+    setActiveRouteSlug(route.slug);
+    setRouteIndex(resumeIndex);
+    reportPlanUsage('route_start', route.slug);
+  }, [routes, resumableRouteSlug]);
 
   const goToRouteIndex = useCallback(
     (next) => {
@@ -947,12 +966,8 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         categories={categoriesOf(sheetPlace)}
         canLocate={position.available}
         onGoTo={goToPlace}
-        isTarget={Boolean(sheetPlace && String(sheetPlace.id) === targetPlaceId)}
-        distanceLabel={
-          sheetPlace && String(sheetPlace.id) === targetPlaceId
-            ? formatDistanceFr(targetDistanceM)
-            : ''
-        }
+        isTarget={isGuidanceTarget(sheetPlace)}
+        distanceLabel={isGuidanceTarget(sheetPlace) ? formatDistanceFr(targetDistanceM) : ''}
         secondaryAction={
           activeRoute && routePeekPlace
             ? { label: 'Revenir à l’étape', onClick: () => setRoutePeekPlace(null) }
