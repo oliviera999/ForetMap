@@ -11,7 +11,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
  *   d'un état neuf au lieu de rejouer un point périmé (audit C3).
  * - La position reste **100 % côté client** : elle n'est jamais envoyée au serveur.
  *
- * @typedef {{ lat: number, lng: number, accuracy: number, timestamp: number }} GeoPosition
+ * Les mesures portent aussi, quand le capteur les donne, la **vitesse** et la **route suivie**
+ * (`coords.speed` / `coords.heading`) : c'est la seule source qui dise vers où l'on se *dirige*,
+ * là où la boussole dit seulement vers où l'appareil est *tourné*. Toutes deux valent `null` à
+ * l'arrêt ou sur un capteur qui ne les calcule pas.
+ *
+ * @typedef {{ lat: number, lng: number, accuracy: number, timestamp: number,
+ *   speed: number|null, heading: number|null }} GeoPosition
+ * `maximumAge` est volontairement court (1 s) : en navigation, une mesure vieille de cinq
+ * secondes place la personne cinq mètres en arrière, et le suivi de carte part en saccades pour
+ * rattraper un retard qui n'existe pas.
+ *
  * @param {{ enableHighAccuracy?: boolean, maximumAge?: number, timeout?: number }} [options]
  * @returns {{
  *   supported: boolean,
@@ -24,7 +34,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
  */
 export function useGeolocation({
   enableHighAccuracy = true,
-  maximumAge = 5000,
+  maximumAge = 1000,
   timeout = 15000,
 } = {}) {
   const supported = typeof navigator !== 'undefined' && !!navigator.geolocation;
@@ -65,6 +75,8 @@ export function useGeolocation({
           lng: pos.coords.longitude,
           accuracy: pos.coords.accuracy,
           timestamp: pos.timestamp,
+          speed: Number.isFinite(pos.coords.speed) ? pos.coords.speed : null,
+          heading: Number.isFinite(pos.coords.heading) ? pos.coords.heading : null,
         });
       },
       (err) => {

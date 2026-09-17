@@ -186,6 +186,7 @@ function useMapGestures({
     prefersPageScroll,
     touchAction,
     setMapOrientation,
+    mapOrientation,
     orientStyle,
   } = viewport;
 
@@ -253,6 +254,7 @@ function useMapGestures({
       endPan,
       panByScreenDelta,
       setMapOrientation,
+      mapOrientation,
       orientStyle,
     }),
     [
@@ -284,6 +286,7 @@ function useMapGestures({
       endPan,
       panByScreenDelta,
       setMapOrientation,
+      mapOrientation,
       orientStyle,
     ],
   );
