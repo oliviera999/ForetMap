@@ -2472,6 +2472,36 @@ Audit, mesures d'écart perceptuel et décisions : [`docs/AUDIT_UI_FORMULAIRES_O
 
 Mesures, écarts perceptuels et exceptions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md) (§7, lot D).
 
+### Ajouté — Plan Lyautey : le repère avance entre deux mesures GPS
+
+- **Prolongation du déplacement** (`positionSmoothing.js`). Le capteur ne se situe qu'une fois par
+  seconde environ : le repère restait immobile puis bondissait, et la carte suivie avec lui. Chaque
+  mesure déplace désormais une **cible** que le rendu rejoint en glissant, et cette cible avance
+  seule le long de la route annoncée par le capteur. La vitesse est projetée par le **calage** de
+  la carte (le point atteint en une seconde, passé par la transformation affine), donc juste même
+  sur un plan tourné ou d'échelle différente en x et en y.
+- **Deux bornes, parce que prolonger est une affirmation sur le présent** : la prolongation
+  s'arrête après 2,5 s de silence du capteur et ne dépasse jamais 8 m. Au-delà, le repère
+  s'immobilise plutôt que d'inventer un trajet. Sous 0,6 m/s, il n'y a rien à prolonger.
+- **Plus de saut à l'arrivée d'une mesure** : elle déplace la cible, elle ne téléporte pas le
+  repère. Même sans vitesse annoncée, le rattrapage seul supprime le bond d'une mesure sur l'autre.
+- Le repère est publié ~12 fois par seconde et la **transition CSS** comble les intervalles :
+  marcher ne coûte pas soixante rendus par seconde. Réglage « mouvement réduit » respecté (le
+  repère se pose sur chaque mesure, sans glissé ni prolongation).
+
+### Corrigé — Plan Lyautey : les filtres de catégories ne se remettent plus seuls au défaut
+
+- La sélection était **posée par un effet** relisant les réglages et le choix mémorisé. Cet effet
+  se rejouait à chaque nouvelle identité de `settings` / `categoriesById` — un rechargement du
+  contenu suffisait — et pouvait même, sur un appareil chargé, s'exécuter **après** un appui sur
+  une puce : les filtres revenaient au défaut sans que rien ne l'explique à l'écran.
+- La sélection est désormais **dérivée au rendu** (`defaultCategoryIds`) et l'état ne porte que le
+  choix explicite de la personne. Une bascule part de la sélection effective, jamais d'un ensemble
+  vide invisible.
+- Ce défaut se voyait en intégration : deux tests du Plan portaient des contournements pour
+  l'ordonnancement des effets (job `quality`, 17/09/2026). Ils redeviennent des assertions
+  directes, et gardent le correctif.
+
 ---
 
 ## [1.152.1] - 2026-09-11

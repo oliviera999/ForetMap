@@ -124,6 +124,75 @@ describe('useMapPosition', () => {
     expect(result.current.screenHeadingUnwrappedDeg).toBeGreaterThan(355);
   });
 
+  /**
+   * Entre deux mesures, le repère ne reste pas figé : il prolonge le déplacement annoncé par le
+   * capteur. C'est ce qui sépare un point qui avance à la vitesse de la marche d'un point qui
+   * saute une fois par seconde — et, en mode suivi, une carte qui glisse d'une carte qui tressaute.
+   */
+  it('prolonge le déplacement entre deux mesures, le long de la route suivie', () => {
+    const { result } = start();
+    emit({
+      latitude: CENTER.lat,
+      longitude: CENTER.lng,
+      accuracy: 8,
+      speed: 2,
+      heading: 90, // plein est : le plan étant calé nord en haut, xp doit croître
+    });
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    const posé = result.current.displayPct.xp;
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(result.current.displayPct.xp).toBeGreaterThan(posé);
+    expect(result.current.displayPct.yp).toBeCloseTo(50, 1);
+  });
+
+  it('cesse de prolonger quand le capteur se tait : on n’invente pas un trajet', () => {
+    const { result } = start();
+    emit({ latitude: CENTER.lat, longitude: CENTER.lng, accuracy: 8, speed: 2, heading: 90 });
+    act(() => {
+      vi.advanceTimersByTime(4000);
+    });
+    const arrêté = result.current.displayPct.xp;
+    act(() => {
+      vi.advanceTimersByTime(30_000);
+    });
+    expect(result.current.displayPct.xp).toBeCloseTo(arrêté, 3);
+  });
+
+  /**
+   * L'arrivée d'une mesure déplace une **cible**, elle ne téléporte pas le repère : sans cela,
+   * chaque mesure produirait un saut d'un mètre, une fois par seconde, sous les yeux de la
+   * personne qui marche.
+   */
+  it('rejoint une nouvelle mesure en glissant, sans saut', () => {
+    const { result } = start();
+    emit({ latitude: CENTER.lat, longitude: CENTER.lng, accuracy: 8, speed: 0 }, 1000);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    const départ = result.current.displayPct.xp;
+
+    // ~40 m à l'est : plausible pour le filtre (dix secondes plus tard), franc à l'écran.
+    emit({ latitude: CENTER.lat, longitude: CENTER.lng + 0.0005, accuracy: 8, speed: 0 }, 11_000);
+    act(() => {
+      vi.advanceTimersByTime(80);
+    });
+    const juste = result.current.displayPct.xp;
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+    const arrivé = result.current.displayPct.xp;
+
+    expect(arrivé).toBeGreaterThan(départ);
+    // Un pas après la mesure, le repère est en route mais pas encore arrivé.
+    expect(juste).toBeGreaterThan(départ);
+    expect(juste).toBeLessThan(arrivé - (arrivé - départ) * 0.5);
+  });
+
   it('couper la position remet tout à zéro : rien ne survit d’une session à l’autre', () => {
     const { result } = start();
     emit({ latitude: CENTER.lat, longitude: CENTER.lng, accuracy: 8 });

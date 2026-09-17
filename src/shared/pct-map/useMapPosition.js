@@ -21,7 +21,14 @@ import {
   smoothHeadingOverTime,
   unwrapHeadingDeg,
 } from './pctMapOrientation.js';
-import { nextFilteredGeoFix } from './geoPositionFilter.js';
+import { destinationLatLng, nextFilteredGeoFix } from './geoPositionFilter.js';
+import {
+  POSITION_EXTRAPOLATION_MAX_M,
+  POSITION_EXTRAPOLATION_MIN_SPEED_MS,
+  easePctToward,
+  extrapolatedPct,
+  pctDistance,
+} from './positionSmoothing.js';
 
 /**
  * Cadence de publication du cap (ms). La boussole émet jusqu'à 60 fois par seconde : republier
@@ -36,6 +43,19 @@ const HEADING_PUBLISH_INTERVAL_MS = 120;
  * revient à la boussole plutôt que de figer une flèche sur une direction périmée.
  */
 const GPS_HEADING_STALE_MS = 4000;
+
+/**
+ * Cadence de publication du repère (ms). Même raisonnement que pour le cap : on calcule dans
+ * une ref, on publie une douzaine de fois par seconde, et la transition CSS du repère comble
+ * les intervalles. Marcher ne coûte donc pas soixante rendus par seconde.
+ */
+const POSITION_PUBLISH_INTERVAL_MS = 80;
+
+/**
+ * Déplacement (en % de plan) sous lequel republier ne montrerait rien : à cette échelle, le
+ * repère n'a pas bougé d'un pixel.
+ */
+const POSITION_PUBLISH_DEAD_BAND_PCT = 0.02;
 
 /**
  * Position de la personne sur une carte « % image » — noyau carte partagé (lot 6 du plan de
@@ -72,6 +92,26 @@ export function useMapPosition({
   fixRef.current = fix;
   /** Dernier échantillon boussole brut, hors React : il arrive trop vite pour un rendu. */
   const compassRef = useRef(null);
+  /** Dernière mesure projetée et sa vitesse sur le plan : l'ancre du rendu continu. */
+  const anchorRef = useRef(null);
+  /** Position réellement dessinée, rattrapée image après image. */
+  const renderRef = useRef(null);
+  const [smoothPct, setSmoothPct] = useState(null);
+  /**
+   * Réglage « mouvement réduit » de l'appareil : la personne a demandé qu'on ne fasse rien
+   * glisser. Le repère se pose alors sur chaque mesure, sans rattrapage ni prolongation.
+   */
+  const reducedMotionRef = useRef(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const apply = () => {
+      reducedMotionRef.current = !!media.matches;
+    };
+    apply();
+    media.addEventListener?.('change', apply);
+    return () => media.removeEventListener?.('change', apply);
+  }, []);
   /** Cap lissé courant (géographique), sa version écran continue, et la source retenue. */
   const headingRef = useRef({ geoDeg: null, unwrapped: null, source: null, at: 0 });
   const [heading, setHeading] = useState({
@@ -134,6 +174,9 @@ export function useMapPosition({
     setMode('off');
     setFeedback(null);
     setFix(null);
+    anchorRef.current = null;
+    renderRef.current = null;
+    setSmoothPct(null);
     compassRef.current = null;
     headingRef.current = { geoDeg: null, unwrapped: null, source: null, at: 0 };
     setHeading({ geoDeg: null, screenDeg: null, unwrapped: null, source: null });
@@ -201,14 +244,85 @@ export function useMapPosition({
     if (!pct) return { code: 'bad_georef' };
     const placed = clampPositionToMap(pct);
     const lowAccuracy = Number.isFinite(accuracy) && accuracy > accuracyThresholdM;
+    // Vitesse **sur le plan** : le point atteint en une seconde le long de la route suivie,
+    // passé par le même calage. Le plan peut être tourné ou d'échelle différente en x et en y,
+    // la projection s'en charge — un calcul d'angle à la main s'y serait trompé.
+    const speed = Number(fix.speed);
+    const course = Number(fix.heading);
+    let velocityPct = null;
+    if (
+      Number.isFinite(speed) &&
+      speed >= POSITION_EXTRAPOLATION_MIN_SPEED_MS &&
+      Number.isFinite(course)
+    ) {
+      const ahead = destinationLatLng({ lat, lng }, course, speed);
+      const pctAhead = ahead && applyGeoTransform(georefState.transform, ahead.lat, ahead.lng);
+      if (pctAhead) velocityPct = { xp: pctAhead.xp - pct.xp, yp: pctAhead.yp - pct.yp };
+    }
     return {
       code: placed.offMap ? 'out_of_bounds' : lowAccuracy ? 'low_accuracy' : 'ok',
       pct,
+      velocityPct,
       display: placed,
       accuracy: Number.isFinite(accuracy) ? accuracy : null,
       haloPct: accuracyRadiusPct(accuracy, georefState.planSize),
     };
   }, [active, available, fix, georefState, accuracyThresholdM]);
+
+  /**
+   * Continuité du repère (`positionSmoothing.js`) : chaque mesure **déplace une cible** que le
+   * rendu rejoint en douceur, et cette cible avance seule entre deux mesures tant que le
+   * capteur annonce un déplacement. Le repère cesse donc de sauter une fois par seconde — et,
+   * en mode suivi, la carte avec lui.
+   *
+   * La borne de distance est exprimée en % de plan à partir de sa taille réelle : huit mètres
+   * de prolongation, jamais plus, quelle que soit la vitesse annoncée.
+   */
+  const maxExtrapolationPct = useMemo(() => {
+    const widthM = Number(georefState?.planSize?.widthM);
+    const heightM = Number(georefState?.planSize?.heightM);
+    if (!(widthM > 0) || !(heightM > 0)) return 0;
+    return POSITION_EXTRAPOLATION_MAX_M * Math.max(100 / widthM, 100 / heightM);
+  }, [georefState]);
+
+  useEffect(() => {
+    if (!projected?.pct) return;
+    anchorRef.current = {
+      pct: projected.pct,
+      velocityPct: reducedMotionRef.current ? null : projected.velocityPct,
+      at: Date.now(),
+    };
+    // Mouvement réduit : la personne a demandé qu'on ne fasse pas glisser les choses.
+    if (reducedMotionRef.current) {
+      renderRef.current = { pct: projected.pct, at: Date.now() };
+      setSmoothPct(projected.pct);
+    }
+  }, [projected]);
+
+  useEffect(() => {
+    if (!active || reducedMotionRef.current) return undefined;
+    const tick = () => {
+      const anchor = anchorRef.current;
+      if (!anchor) return;
+      const now = Date.now();
+      const target = extrapolatedPct(anchor, now, { maxPct: maxExtrapolationPct });
+      const previous = renderRef.current;
+      const next = easePctToward(previous?.pct || null, target, now - (previous?.at || now));
+      renderRef.current = { pct: next, at: now };
+      setSmoothPct((prev) =>
+        pctDistance(prev, next) < POSITION_PUBLISH_DEAD_BAND_PCT ? prev : next,
+      );
+    };
+    const timer = setInterval(tick, POSITION_PUBLISH_INTERVAL_MS);
+    tick();
+    return () => clearInterval(timer);
+  }, [active, maxExtrapolationPct]);
+
+  /** Position à dessiner : la position lissée tant qu'on en a une, la mesure sinon. */
+  const displayPct = useMemo(() => {
+    if (!projected?.pct) return null;
+    return clampPositionToMap(smoothPct || projected.pct);
+  }, [projected, smoothPct]);
 
   // Diagnostic affiché : refus, calage incohérent, erreur d'acquisition, acquisition en
   // cours, hors plan, signal faible — les six états repris de la bannière ForetMap.
@@ -291,8 +405,11 @@ export function useMapPosition({
     error: geo.error,
     /** Position réelle sur le plan (peut être hors [0, 100]). */
     positionPct: projected?.pct || null,
-    /** Position à dessiner : collée au bord et fléchée quand on est hors du plan. */
-    displayPct: projected?.display || null,
+    /**
+     * Position à dessiner : lissée et prolongée entre deux mesures (`positionSmoothing.js`),
+     * collée au bord et fléchée quand on est hors du plan.
+     */
+    displayPct,
     accuracyM: projected?.accuracy ?? null,
     haloPct: projected?.haloPct || 0,
     /** Cap géographique lissé (déplacement si le GPS le donne, boussole sinon). */

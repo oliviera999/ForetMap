@@ -246,20 +246,15 @@ describe('AppPlan — montage', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
 
     /**
-     * Le filtre doit être **effectif** avant d'interroger la recherche, et pas seulement
-     * cliqué. `AppPlan` initialise les catégories depuis les réglages dans un effet
-     * (`CATEGORIES_STORAGE_KEY`) : sur une machine chargée, cet effet peut être exécuté
-     * **après** le clic et remettre la sélection à son défaut. La mention n'apparaît alors
-     * jamais — les résultats sont calculés de façon synchrone, aucune attente ne la fera
-     * venir. Attendre `aria-pressed`, en recliquant si la sélection a été écrasée, ferme cette
-     * course au lieu de la jouer (job `quality` : 17/09/2026, deuxième occurrence de la même
-     * assertion, après le passage à `findByText`).
+     * Le filtre est effectif **dès le clic**, et le reste : la sélection est un état, plus une
+     * valeur qu'un effet d'initialisation peut écraser après coup (`defaultCategoryIds`,
+     * AppPlan.jsx). Cette assertion tient donc lieu de garde : si l'initialisation redevenait
+     * un effet, elle tomberait ici, avec un message clair, au lieu de faire osciller le job
+     * `quality` sur l'assertion suivante (17/09/2026, deux occurrences).
      */
-    await waitFor(() => {
-      const chip = screen.getByRole('button', { name: /Sport/ });
-      if (chip.getAttribute('aria-pressed') !== 'true') fireEvent.click(chip);
-      expect(chip.getAttribute('aria-pressed')).toBe('true');
-    });
+    const chip = screen.getByRole('button', { name: /Sport/ });
+    fireEvent.click(chip);
+    expect(chip.getAttribute('aria-pressed')).toBe('true');
     fireEvent.change(screen.getByLabelText('Rechercher un lieu'), { target: { value: 'CDI' } });
     const results = await screen.findByTestId('plan-results-sheet');
     expect(within(results).getByRole('button', { name: /CDI/ })).toBeTruthy();
@@ -348,12 +343,9 @@ describe('AppPlan — montage', () => {
     // affiché avant même que la charge n'arrive, donc l'attendre ne prouve rien. On attend ici
     // la puce de catégorie, qui n'existe qu'une fois le contenu chargé.
     //
-    // Sans cette attente, le clic ci-dessous court contre l'effet de restauration des
-    // catégories (`AppPlan.jsx` : lecture de `localStorage` puis `setSelectedCategoryIds` à
-    // **valeur directe**), qui écrase une sélection concurrente — la puce retombe à
-    // « Tout » et le filtrage ne s'applique jamais. Le créneau ne s'ouvre que lorsque
-    // l'ordonnancement des effets se décale, d'où des échecs seulement sous la charge de la
-    // suite complète (CI), jamais en isolation.
+    // La restauration des catégories ne peut plus écraser une sélection concurrente : elle est
+    // **dérivée au rendu** (`defaultCategoryIds`) et non posée par un effet. L'attente ci-dessous
+    // ne sert donc plus qu'à ce que la puce existe.
     await waitFor(() => expect(screen.getByRole('button', { name: /Sport/ })).toBeTruthy());
 
     // Sur la carte : le repère est un bouton (`aria-label`), la zone un libellé HTML.
@@ -367,6 +359,30 @@ describe('AppPlan — montage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Tout' }));
     await waitFor(() => expect(screen.getByText('CDI')).toBeTruthy());
+  });
+
+  /**
+   * Le choix mémorisé n'est plus restauré par un effet mais **dérivé** des réglages : il est
+   * donc en place dès le premier rendu utile, et un appui sur une puce part de ce choix-là. Sans
+   * cela, la première bascule repartirait d'un ensemble vide — les catégories déjà cochées
+   * sauteraient d'un coup, sans que rien ne l'explique.
+   */
+  test('le choix mémorisé est en place dès l’affichage, et la première bascule part de lui', async () => {
+    window.localStorage.setItem('plan:categories', JSON.stringify(['c-salles']));
+    render(<AppPlan />);
+
+    const salles = await screen.findByRole('button', { name: /Salles/ });
+    expect(salles.getAttribute('aria-pressed')).toBe('true');
+
+    const sport = screen.getByRole('button', { name: /Sport/ });
+    fireEvent.click(sport);
+    expect(sport.getAttribute('aria-pressed')).toBe('true');
+    // La catégorie mémorisée n'a pas sauté : la bascule s'ajoute au choix, elle ne le remplace pas.
+    expect(salles.getAttribute('aria-pressed')).toBe('true');
+    expect(JSON.parse(window.localStorage.getItem('plan:categories')).sort()).toEqual([
+      'c-salles',
+      'c-sport',
+    ]);
   });
 
   test('recherche sans résultat : message et événement de compteur', async () => {
