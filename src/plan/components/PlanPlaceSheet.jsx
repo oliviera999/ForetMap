@@ -1,6 +1,7 @@
 import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
 import { Button } from '../../shared/ui/Button.jsx';
 import { placeDisplayParts } from '../utils/planPlaces.js';
+import { PlaceSuggestionForm } from './PlaceSuggestionForm.jsx';
 
 /**
  * Fiche d'un lieu du plan (lot 4), en feuille basse à crans : un aperçu (nom + accroche)
@@ -22,6 +23,10 @@ import { placeDisplayParts } from '../utils/planPlaces.js';
  * @param {string} [props.shareUrl] lien profond du lieu (`?lieu=`).
  * @param {{ label: string, onClick: () => void }|null} [props.secondaryAction] action de retour
  *   contextuelle — en mode parcours, « Revenir à l'étape » (N5 de l'audit navigation).
+ * @param {string} [props.editUrl] lien vers la console ForetMap, affiché seulement aux comptes
+ *   qui peuvent réellement éditer les lieux (plan des personnels).
+ * @param {((body: string) => Promise<void>)|null} [props.onSuggest] envoi d'un message à
+ *   l'équipe à propos de ce lieu (plan des personnels, comptes authentifiés).
  * @param {'peek'|'half'|'full'} [props.initialSnap] cran d'ouverture. `peek` sert pendant un
  *   parcours : une fiche à mi-hauteur recouvrait entièrement la barre d'étape, « Quitter »,
  *   « Précédent » et « Suivant » compris
@@ -37,6 +42,8 @@ export function PlanPlaceSheet({
   distanceLabel = '',
   shareUrl = '',
   secondaryAction = null,
+  editUrl = '',
+  onSuggest = null,
   initialSnap = 'half',
 }) {
   if (!place) return null;
@@ -48,6 +55,13 @@ export function PlanPlaceSheet({
   const shortDescription = String(place.visit_short_description || '').trim();
   const description = String(place.description || place.note || '').trim();
   const photo = place.map_lead_photo;
+  /**
+   * Complément réservé (`restricted_note`) : il n'arrive dans la charge que si le serveur a
+   * jugé que ce lecteur-ci y a droit (`lib/locationAudience.js`). Le front n'a donc aucun
+   * filtrage à refaire — seulement à le distinguer nettement du texte public, pour que
+   * personne ne lise une consigne interne en croyant lire la fiche du plan public.
+   */
+  const restrictedNote = String(place.restricted_note || '').trim();
   return (
     <BottomSheet
       open
@@ -139,7 +153,23 @@ export function PlanPlaceSheet({
       {place.search_aliases?.length ? (
         <p className="plan-place__aliases">Aussi appelé : {place.search_aliases.join(', ')}</p>
       ) : null}
+      {restrictedNote ? (
+        <section className="plan-place__restricted">
+          <h3 className="plan-place__restricted-title">
+            <span aria-hidden>🔒</span> Réservé aux personnels
+          </h3>
+          <p className="plan-place__restricted-text">{restrictedNote}</p>
+        </section>
+      ) : null}
       {shareUrl ? <p className="plan-place__share">Lien direct : {shareUrl}</p> : null}
+      {onSuggest ? <PlaceSuggestionForm onSubmit={onSuggest} /> : null}
+      {editUrl ? (
+        <p className="plan-place__edit">
+          <a href={editUrl} target="_blank" rel="noopener noreferrer">
+            Ouvrir la console ForetMap pour corriger ce lieu
+          </a>
+        </p>
+      ) : null}
     </BottomSheet>
   );
 }

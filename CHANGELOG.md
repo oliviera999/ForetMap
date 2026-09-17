@@ -28,6 +28,51 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `src/shared/` à zéro import remontant et gardée par ESLint, kit d'interface commun, échappement
   du glossaire lore) — l'audit le mesure pour éviter de les reprogrammer.
 - Index des audits (`docs/audits/README.md`) complété.
+### Ajouté — proflyautey : un plan des personnels, à côté du plan public
+
+- **Nouveau sous-produit `staff`** servi sur `proflyautey.*` : la **même** carte et le **même**
+  écran que le Plan Lyautey public (`AppPlan` est monté avec une variante, pas dupliqué), mais
+  pour un lecteur identifié. Il y voit en plus les lieux retirés du plan public et le
+  **complément réservé** des fiches (`restricted_note`) — un champ qui existait déjà et ne
+  sortait jusqu'ici que dans la console.
+- **Quatrième surface d'affichage `staff`** (migration `260`), à côté de `map`, `visit` et
+  `plan`. Ajoutée **en fin** du `SET` SQL : MySQL encode un `SET` par position de bit, une
+  insertion au milieu réécrirait toutes les lignes. À la migration, toutes les catégories et
+  les parcours déjà publiés sur `plan` reçoivent `staff` — un personnel voit au minimum ce que
+  voit le public ; seuls les lieux masqués partout le restent.
+- **Permission RBAC `staff_plan.access`**, accordée d'office à `admin`, `prof`, `prof_classe` et
+  `personnel`, attribuable à n'importe quel profil depuis « Profils RBAC ». Distincte de
+  `teacher.access` : un agent entre sur le plan sans qu'on lui ouvre la console n3boss.
+- **Entrée par code partagé**, livrée **désactivée** (`ui.staff_plan.access_mode = disabled`) et
+  activable par un admin. Laissez-passer de 7 jours (contre 30 sur le plan public), profil
+  endossé réglable (défaut « Personnel »), et chaque ouverture — accordée comme refusée —
+  inscrite au journal d'audit. Mode `code` sans code configuré : la porte reste **fermée**,
+  contrairement au plan public.
+- **Sur une fiche de lieu** : bouton « Signaler un problème ou proposer une correction »,
+  branché sur les commentaires de contexte du lieu (`context_comments`) plutôt que sur une
+  boîte de réception — le message arrive attaché au repère concerné. Et un lien retour vers la
+  console, affiché aux seuls comptes portant `zones.manage` / `map.manage_markers`.
+- **Revue des surfaces** dans « Zones & repères » : filtres **Surface** (avec le nombre de lieux
+  publiés par chacune) et **Sur cette surface** (Affichés / Retirés), indication par ligne des
+  surfaces où le lieu sort, et actions par lot « Afficher sur une surface » / « Retirer d'une
+  surface ». Restreindre le plan public se fait en trois gestes au lieu d'une fiche à la fois.
+
+### Corrigé — retour Google sur le bon sous-domaine
+
+- Google ne rappelle que sur les `redirect_uri` enregistrées, donc toujours sur le même hôte :
+  une connexion lancée depuis un sous-domaine produit renvoyait l'utilisateur sur l'origine de
+  ForetMap, avec un jeton inutilisable là où il l'avait demandé. Le flux mémorise désormais
+  l'origine de départ et y revient — **uniquement** si c'est celle d'un produit du registre sur
+  le même domaine parent que le rappel (`resolveProductReturnOrigin`), pour ne pas transformer
+  un flux porteur de jeton en redirection ouverte.
+
+### Sécurité
+
+- La charge de `/api/staff-plan/content` n'est **jamais** mise en cache : ni côté serveur
+  (contrairement au plan public, dont la charge est la même pour tout le monde), ni dans le
+  service worker du produit, et `Cache-Control: private, no-store` + `X-Robots-Tag: noindex`
+  sur toutes ses réponses. Elle dépend du rôle du lecteur : un cache mémoïsé par carte servirait
+  la charge d'un administrateur au porteur de code suivant.
 
 ### Corrigé — Plan Lyautey : la navigation ne se fait plus recouvrir
 

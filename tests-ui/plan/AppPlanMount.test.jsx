@@ -59,6 +59,8 @@ const planApiMock = vi.hoisted(() => ({
   fetchPlanContent: vi.fn(async () => content),
   reportPlanUsage: vi.fn(),
   submitPlanAccessCode: vi.fn(async () => ({ ok: true })),
+  submitPlaceSuggestion: vi.fn(async () => ({ ok: true })),
+  fetchPlanShellSettings: vi.fn(async () => ({})),
 }));
 vi.mock('../../src/plan/planApi.js', () => planApiMock);
 
@@ -519,7 +521,14 @@ describe('AppPlan — montage', () => {
     planApiMock.submitPlanAccessCode.mockResolvedValueOnce({ ok: true });
     fireEvent.change(screen.getByLabelText('Code d’accès'), { target: { value: 'OUVRE-TOI' } });
     fireEvent.click(screen.getByRole('button', { name: 'Entrer' }));
-    await waitFor(() => expect(planApiMock.submitPlanAccessCode).toHaveBeenCalledWith('OUVRE-TOI'));
+    // La variante est passée avec le code : c'est elle qui choisit l'API visée
+    // (`/api/plan` ici, `/api/staff-plan` pour le plan des personnels).
+    await waitFor(() =>
+      expect(planApiMock.submitPlanAccessCode).toHaveBeenCalledWith(
+        'OUVRE-TOI',
+        expect.objectContaining({ id: 'plan', apiBase: '/api/plan' }),
+      ),
+    );
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
   });
 
