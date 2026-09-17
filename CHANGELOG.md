@@ -11,6 +11,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé — la suite e2e était rouge depuis des semaines, sans que personne le voie
 
+**Résultat : 88 réussites / 14 échecs / 1 fragile → 113 réussites, 0 échec.**
+
 **Mesure de départ : 88 réussites, 14 échecs, 1 fragile**, sur base locale. La CI joue la suite
 sur une base neuve à chaque fois et ne rencontrait donc pas une partie de ces cas ; en local,
 `foretmap_test` accumule. Chaque échec a été rejoué sur l'arbre d'**avant** ce lot, même base et
@@ -45,6 +47,16 @@ une règle qui avaient changé — et que rien ne rattrapait, faute de lancer la
   n'est pas rendu et le serveur refuse tout montant en cœurs. Le scénario « échange 1 cœur contre
   1 gemme » attendait une interface que personne ne sert — il active le drapeau et le remet
   comme il l'a trouvé.
+- **Budget de temps.** `teacher-zone-contour-edit` était le seul scénario de son poids à garder
+  les 60 s par défaut (ses voisins se donnent 300 s) ; il tient en 2 min 20. S'y ajoutaient deux
+  pièges : le `<g class="map-zone-hit">` **est** le bouton, donc un `filter({ has: … })` ne trouve
+  rien, et un clic forcé vise le centre d'une boîte englobante qui, pour un polygone, peut tomber
+  hors de la forme. Nouvel helper `openZoneModalByName`, qui active la zone au clavier.
+- **Test fragile `gl-zone-music`.** `GLBoardChrome.jsx` et `MusicPlayer.jsx` montent tous deux
+  `GLZoneMusicMuteButton` : même `data-testid`, même `aria-label`. Selon l'ordre de rendu, le mode
+  strict voyait un élément ou deux. La spec est rendue déterministe ; **le doublon reste à
+  arbitrer** — deux commandes annoncées à l'identique sur un écran est d'abord un défaut
+  d'accessibilité, et choisir laquelle retirer est une décision d'interface.
 - **Module groupes.** Trois assertions périmées d'un coup : pôle « Administration » à ouvrir,
   sous-onglet « Groupes » à cliquer, et un texte (« Module dédié: structure pédagogique ») qui
   n'existe plus dans le code.
