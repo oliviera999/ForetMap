@@ -18,6 +18,17 @@ import { normalizeSurfaceList } from '../shared/ui/SurfaceVisibilityField.jsx';
 export const ROUTE_STEPS_MAX = 60;
 
 /**
+ * Miroirs des bornes de texte du serveur (`lib/mapRoutes.js`). Elles n'existaient que
+ * là-bas : on pouvait saisir cinq mille caractères et ne l'apprendre qu'au refus, après un
+ * aller-retour (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.6 e).
+ */
+export const ROUTE_DESCRIPTION_MAX = 2000;
+export const STEP_TEXT_MAX = 4000;
+export const ROUTE_TITLE_MAX = 180;
+export const ROUTE_AUDIENCE_MAX = 120;
+export const STEP_TITLE_MAX = 180;
+
+/**
  * Rang par défaut, miroir du repli serveur. Le champ « Ordre » vidé produisait `0`
  * (`Number('') || 0`) : le parcours remontait en tête de liste sans que personne l'ait demandé
  * (`docs/AUDIT_PARCOURS_2026-09.md` §2.9 a).
@@ -99,9 +110,26 @@ export function routePayloadFromDraft(draft, { mapId } = {}) {
 export function validateRouteDraft(draft, { mapId } = {}) {
   if (!String(draft?.title || '').trim()) return { ok: false, error: 'Titre requis' };
   if (!mapId) return { ok: false, error: 'Choisissez une carte' };
+  if (String(draft?.title || '').trim().length > ROUTE_TITLE_MAX) {
+    return { ok: false, error: `Titre trop long (${ROUTE_TITLE_MAX} caractères maximum)` };
+  }
+  if (String(draft?.description || '').length > ROUTE_DESCRIPTION_MAX) {
+    return {
+      ok: false,
+      error: `Description trop longue (${ROUTE_DESCRIPTION_MAX} caractères maximum)`,
+    };
+  }
   const steps = draft?.steps || [];
   if (steps.length > ROUTE_STEPS_MAX) {
     return { ok: false, error: `Un parcours ne peut pas dépasser ${ROUTE_STEPS_MAX} étapes` };
+  }
+  for (const [index, step] of steps.entries()) {
+    if (String(step?.step_text || '').length > STEP_TEXT_MAX) {
+      return {
+        ok: false,
+        error: `Étape ${index + 1} : texte trop long (${STEP_TEXT_MAX} caractères maximum)`,
+      };
+    }
   }
   return { ok: true };
 }
@@ -161,12 +189,18 @@ export function stepDisplayLabel(step, index, byKey) {
   return `Étape ${index + 1} (lieu introuvable)`;
 }
 
-/** Ajoute un lieu en fin de parcours ; un lieu déjà présent n'est pas ajouté deux fois. */
+/**
+ * Ajoute un lieu en fin de parcours.
+ *
+ * Un lieu **déjà présent** est ajouté quand même : un parcours repasse légitimement par la
+ * cour ou par l'accueil, le serveur l'accepte, et l'éditeur était seul à l'interdire — sans
+ * le dire (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.6 c). Seule la borne de longueur arrête
+ * l'ajout ; la liste est alors renvoyée **telle quelle**, ce que l'appelant reconnaît à sa
+ * longueur inchangée pour l'annoncer.
+ */
 export function addStep(steps, place) {
   const list = steps || [];
   if (!place?.target_type || !place?.target_id) return list;
-  const key = `${place.target_type}:${place.target_id}`;
-  if (list.some((step) => stepKey(step) === key)) return list;
   if (list.length >= ROUTE_STEPS_MAX) return list;
   return [
     ...list,
@@ -177,6 +211,14 @@ export function addStep(steps, place) {
       step_text: '',
     },
   ];
+}
+
+/** Rangs (1-based) auxquels un lieu figure déjà dans le parcours — « déjà à l'étape 3 ». */
+export function stepPositionsOf(steps, key) {
+  return (steps || []).reduce((acc, step, index) => {
+    if (stepKey(step) === key) acc.push(index + 1);
+    return acc;
+  }, []);
 }
 
 /** Retire l'étape d'un rang. */
