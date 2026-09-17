@@ -17,6 +17,7 @@ import {
   routeSummaryLine,
   stepDisplayLabel,
   stepKey,
+  stepPositionsOf,
   validateRouteDraft,
 } from '../../src/utils/mapRoutesEditor.js';
 
@@ -161,8 +162,19 @@ describe('manipulation des étapes', () => {
     expect(next).toEqual([{ target_type: 'zone', target_id: 'z9', step_title: '', step_text: '' }]);
   });
 
-  test('addStep ignore un lieu déjà présent', () => {
-    expect(addStep(base, { target_type: 'zone', target_id: 'z1' })).toBe(base);
+  test('addStep accepte un lieu déjà présent (un parcours repasse par le même endroit)', () => {
+    // L'éditeur refusait le doublon en silence, seul de toute la chaîne : le serveur l'accepte
+    // (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.6 c). Il est désormais ajouté, et la suggestion
+    // dit à quelle étape le lieu figure déjà — `stepPositionsOf` ci-dessous.
+    const next = addStep(base, { target_type: 'zone', target_id: 'z1' });
+    expect(next).toHaveLength(base.length + 1);
+    expect(next[next.length - 1].target_id).toBe('z1');
+  });
+
+  test('stepPositionsOf donne les rangs 1-based d’un lieu déjà utilisé', () => {
+    const twice = addStep(base, { target_type: 'zone', target_id: 'z1' });
+    expect(stepPositionsOf(twice, 'zone:z1')).toEqual([2, 4]);
+    expect(stepPositionsOf(base, 'zone:jamais-vue')).toEqual([]);
   });
 
   test('addStep ignore un lieu incomplet', () => {

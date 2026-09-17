@@ -41,6 +41,15 @@ function auth(req) {
   return req.set('Authorization', 'Bearer ' + teacherToken);
 }
 
+/** Jeton d'un compte élève fraîchement inscrit : un lecteur identifié sans aucune permission. */
+async function registerStudentToken(tag) {
+  const res = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Parcours', lastName: `${tag}${Date.now()}`, password: 'pass1234' })
+    .expect(201);
+  return res.body.authToken;
+}
+
 test.before(async () => {
   await initSchema();
   await initDatabase();
@@ -272,9 +281,11 @@ test('surfaces map et visit : catalogue lisible sans code d’accès du plan', a
   invalidateSettingsCache();
   try {
     await request(app).get('/api/map-routes?surface=plan').expect(401);
-    const onMap = await request(app)
-      .get(`/api/map-routes?map_id=${map.id}&surface=map`)
-      .expect(200);
+    // `map` est une surface interne : un compte suffit, mais il en faut un — la garde du
+    // plan, elle, ne s'y applique pas (c'est tout l'objet de ce test).
+    const onMap = await auth(
+      request(app).get(`/api/map-routes?map_id=${map.id}&surface=map`),
+    ).expect(200);
     assert.ok(onMap.body.some((r) => r.id === route.body.id));
     const onVisit = await request(app)
       .get(`/api/map-routes?map_id=${map.id}&surface=visit`)
@@ -531,8 +542,14 @@ test('GET /api/map-routes?surface=map — étape hors audience / masquée absent
   createdRouteIds.push(route.body.id);
 
   try {
-    const anon = await request(app).get(`/api/map-routes?map_id=${map.id}&surface=map`).expect(200);
-    const published = anon.body.find((r) => r.id === route.body.id);
+    // Lecteur non gestionnaire, mais identifié : la carte de travail n'est pas une surface
+    // publique, et son catalogue ne se lit plus sans compte (§2.1 de l'audit 2026-09-17).
+    const studentToken = await registerStudentToken('Filtre');
+    const reader = await request(app)
+      .get(`/api/map-routes?map_id=${map.id}&surface=map`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .expect(200);
+    const published = reader.body.find((r) => r.id === route.body.id);
     assert.ok(published);
     const texts = (published.steps || []).map((s) => s.step_text);
     assert.ok(texts.includes('Accueil public'));
@@ -552,4 +569,167 @@ test('GET /api/map-routes?surface=map — étape hors audience / masquée absent
   } finally {
     await execute('DELETE FROM zones WHERE id IN (?, ?)', [restricted.id, hiddenOnMap.id]);
   }
+});
+
+/**
+ * Surfaces internes (`map`, `staff`) : le catalogue se lit comme la charge de sa surface.
+ * Avant la garde par surface, `GET /api/map-routes?surface=staff` servait à un anonyme le
+ * titre, la description, le public visé et le **texte des étapes** d'un parcours réservé aux
+ * personnels — quand `GET /api/staff-plan/content` répond 401 sur le même contenu
+ * (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.1).
+ */
+test('surfaces internes : le catalogue staff / map ne se lit pas sans compte', async () => {
+  const route = await auth(request(app).post('/api/map-routes'))
+    .send({
+      map_id: map.id,
+      title: 'Tour des personnels',
+      description: 'Circuit de sécurité réservé aux personnels.',
+      audience: 'Personnels',
+      is_published: true,
+      surfaces: ['staff'],
+      steps: [{ target_type: 'zone', target_id: zone.id, step_text: 'SECRET_STAFF_ROUTE_STEP' }],
+    })
+    .expect(201);
+  createdRouteIds.push(route.body.id);
+
+  const anonStaff = await request(app).get(`/api/map-routes?map_id=${map.id}&surface=staff`);
+  assert.equal(anonStaff.status, 401);
+  assert.equal(anonStaff.body.auth_required, true);
+
+  const anonMap = await request(app).get(`/api/map-routes?map_id=${map.id}&surface=map`);
+  assert.equal(anonMap.status, 401);
+
+  // Sans `map_id` non plus : la garde ne doit pas tenir à l'omission d'un paramètre.
+  assert.equal((await request(app).get('/api/map-routes?surface=staff')).status, 401);
+
+  // Un compte élève ne suffit pas pour la surface personnels (permission `staff_plan.access`).
+  const studentToken = await registerStudentToken('Staff');
+  const asStudent = await request(app)
+    .get(`/api/map-routes?map_id=${map.id}&surface=staff`)
+    .set('Authorization', `Bearer ${studentToken}`);
+  assert.equal(asStudent.status, 401);
+
+  // Le gestionnaire, lui, lit sa surface.
+  const asTeacher = await auth(
+    request(app).get(`/api/map-routes?map_id=${map.id}&surface=staff`),
+  ).expect(200);
+  assert.ok(asTeacher.body.some((r) => r.id === route.body.id));
+});
+
+/**
+ * Le détail public est la porte du lien profond imprimé : il ne sert que des parcours publiés
+ * sur une surface **publique**. Un parcours interne y répond 404, comme une affiche périmée
+ * (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.1).
+ */
+test('détail public : un parcours de surface interne répond 404', async () => {
+  const internal = await auth(request(app).post('/api/map-routes'))
+    .send({
+      map_id: map.id,
+      title: 'Consignes internes',
+      is_published: true,
+      surfaces: ['map', 'staff'],
+      steps: [{ target_type: 'zone', target_id: zone.id, step_text: 'SECRET_INTERNAL_STEP' }],
+    })
+    .expect(201);
+  createdRouteIds.push(internal.body.id);
+
+  await request(app).get(`/api/map-routes/${internal.body.slug}`).expect(404);
+  await request(app).get(`/api/map-routes/${internal.body.id}`).expect(404);
+
+  const published = await auth(request(app).post('/api/map-routes'))
+    .send({
+      map_id: map.id,
+      title: 'Consignes publiques',
+      is_published: true,
+      surfaces: ['plan'],
+      steps: [{ target_type: 'zone', target_id: zone.id }],
+    })
+    .expect(201);
+  createdRouteIds.push(published.body.id);
+  const seen = await request(app).get(`/api/map-routes/${published.body.slug}`).expect(200);
+  assert.equal(seen.body.id, published.body.id);
+});
+
+/**
+ * `sort_order` est un `INT` : un rang hors bornes doit être refusé, pas remonter en 500
+ * (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.4).
+ */
+test('ordre d’affichage hors bornes : 400 lisible, jamais 500', async () => {
+  const res = await auth(request(app).post('/api/map-routes'))
+    .send({ map_id: map.id, title: 'Ordre extrême', sort_order: 99999999999 })
+    .expect(400);
+  assert.match(res.body.error, /Ordre hors bornes/);
+
+  const created = await auth(request(app).post('/api/map-routes'))
+    .send({ map_id: map.id, title: 'Ordre normal', sort_order: 7 })
+    .expect(201);
+  createdRouteIds.push(created.body.id);
+  assert.equal(created.body.sort_order, 7);
+
+  const put = await auth(request(app).put(`/api/map-routes/${created.body.id}`))
+    .send({ sort_order: -99999999999 })
+    .expect(400);
+  assert.match(put.body.error, /Ordre hors bornes/);
+
+  // Champ vidé : le rang existant est conservé (l'éditeur envoie le champ à chaque
+  // enregistrement, y compris quand l'utilisateur l'a effacé).
+  const kept = await auth(request(app).put(`/api/map-routes/${created.body.id}`))
+    .send({ sort_order: '' })
+    .expect(200);
+  assert.equal(kept.body.sort_order, 7);
+});
+
+/**
+ * Le champ « Identifiant du lien » annonce « laissé vide : dérivé du titre ». C'était vrai à
+ * la création seulement : le repli du `PUT` portait sur l'absence du champ, pas sur sa
+ * vacuité, et l'éditeur envoie toujours le champ (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.3).
+ */
+test('modification : un identifiant de lien effacé est re-dérivé du titre', async () => {
+  const created = await auth(request(app).post('/api/map-routes'))
+    .send({ map_id: map.id, title: 'Tour des serres', slug: 'ancien-lien' })
+    .expect(201);
+  createdRouteIds.push(created.body.id);
+  assert.equal(created.body.slug, 'ancien-lien');
+
+  const renamed = await auth(request(app).put(`/api/map-routes/${created.body.id}`))
+    .send({ title: 'Tour des vergers', slug: '' })
+    .expect(200);
+  assert.equal(renamed.body.slug, 'tour-des-vergers');
+
+  // Champ non fourni : le slug existant est conservé (ce n'est pas la même chose que vide).
+  const kept = await auth(request(app).put(`/api/map-routes/${created.body.id}`))
+    .send({ title: 'Tour des vergers et des serres' })
+    .expect(200);
+  assert.equal(kept.body.slug, 'tour-des-vergers');
+
+  // Un titre sans lettre ni chiffre ne donne aucun slug : le refus reste explicite.
+  const unusable = await auth(request(app).put(`/api/map-routes/${created.body.id}`))
+    .send({ title: '???', slug: '' })
+    .expect(400);
+  assert.match(unusable.body.error, /Slug invalide/);
+});
+
+/**
+ * Le serveur accepte deux étapes vers le même lieu — un parcours repasse par l'accueil.
+ * L'éditeur l'interdisait, seul de toute la chaîne (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.6 c).
+ */
+test('un lieu peut figurer deux fois dans un parcours', async () => {
+  const created = await auth(request(app).post('/api/map-routes'))
+    .send({
+      map_id: map.id,
+      title: 'Aller-retour',
+      steps: [
+        { target_type: 'zone', target_id: zone.id, step_title: 'Départ' },
+        { target_type: 'marker', target_id: marker.id },
+        { target_type: 'zone', target_id: zone.id, step_title: 'Retour au point de départ' },
+      ],
+    })
+    .expect(201);
+  createdRouteIds.push(created.body.id);
+  assert.equal(created.body.steps.length, 3);
+  assert.deepEqual(
+    created.body.steps.map((s) => s.position),
+    [0, 1, 2],
+  );
+  assert.equal(created.body.steps[2].step_title, 'Retour au point de départ');
 });

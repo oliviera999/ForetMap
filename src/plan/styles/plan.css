@@ -430,10 +430,26 @@ body.plan-body {
   flex: 1;
 }
 
+/* Rappel du parcours en cours : **une ligne**. C'est un repère, pas le contenu — un titre
+   long (la borne est à 180 caractères) prenait jusqu'à six lignes en tête de barre et
+   repoussait l'étape, le texte et les commandes hors de l'écran
+   (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.7). */
 .plan-route-bar__route {
   margin: 0 0 2px;
   color: var(--plan-muted);
   font-size: var(--text-sm, 0.9rem);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Texte d'étape déplié : il défile plutôt que de pousser la barre sur la moitié de l'écran.
+   Mesuré à 420 px de haut sur un téléphone de 844 px avec un texte de quatre phrases. */
+.plan-route-bar__text.is-expanded {
+  max-height: 28vh;
+  overflow-y: auto;
 }
 
 .plan-route-bar__step {
