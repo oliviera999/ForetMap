@@ -2,59 +2,137 @@ import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+import { createRequire } from 'module';
+
 import { GL_AUTH_BACK_COVER } from './src/gl/constants/authCover.js';
+
+// `lib/brand.js` et `lib/products.js` sont en CommonJS (ils sont consommés par le serveur) :
+// on les charge ici pour que le build HTML et le serveur lisent **la même** identité de marque.
+const require = createRequire(import.meta.url);
+const { getBrand } = require('./lib/brand.js');
+const { PRODUCTS, PRODUCT_IDS } = require('./lib/products.js');
+
+const brand = getBrand();
 
 // Description publique de Gnomes & Licornes (aperçus de lien, SEO) : on réutilise
 // la quatrième de couverture comme source unique du texte.
-const GL_SHARE_TITLE = 'Gnomes & Licornes';
 const GL_SHARE_DESCRIPTION = GL_AUTH_BACK_COVER.join(' ');
 
-/**
- * Métadonnées de partage par entrée HTML (clé = nom de fichier de l'entrée). Les entrées
- * absentes de cette table (index.vite.html, mascot-pack-tool.html) ne sont pas modifiées.
- */
-const SHARE_META_BY_ENTRY = {
-  'gl.html': { title: GL_SHARE_TITLE, description: GL_SHARE_DESCRIPTION },
-  'plan.html': {
-    title: 'Plan Lyautey',
-    description: 'Plan du Lycée Lyautey : se repérer dans les lieux avec son smartphone',
-  },
-};
+/** Échappe une valeur destinée à du texte HTML ou à un attribut `content="…"`. */
+function escapeHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 /**
- * Injecte les métadonnées de partage (description, Open Graph, Twitter Card) dans les
- * entrées HTML déclarées, en dev comme au build.
- * @param {Record<string, { title: string, description: string }>} metaByEntry
+ * Jetons de marque communs à toutes les entrées HTML. Les jetons propres à un produit
+ * (`%BRAND_PRODUCT_*%`) sont ajoutés par entrée, depuis le registre `lib/products.js`.
  */
-function shareMetaPlugin(metaByEntry) {
+const GLOBAL_BRAND_TOKENS = {
+  BRAND_APP_NAME: brand.appName,
+  BRAND_APP_SHORT_NAME: brand.appShortName,
+  BRAND_ORG_NAME: brand.orgName,
+  BRAND_ORG_SHORT_NAME: brand.orgShortName,
+  BRAND_GL_NAME: brand.glName,
+  BRAND_GL_SHORT_NAME: brand.glShortName,
+};
+
+/** Produit dont l'entrée HTML correspond au fichier transformé, ou `null`. */
+function resolveProductForEntry(target) {
+  const id = PRODUCT_IDS.find((productId) => target.endsWith(PRODUCTS[productId].htmlEntry));
+  return id ? PRODUCTS[id] : null;
+}
+
+/**
+ * Métadonnées de partage (Open Graph, Twitter Card) par produit. G&L garde sa quatrième de
+ * couverture ; les autres produits réutilisent le titre et la description de leur manifeste
+ * PWA, déjà dérivés de la marque.
+ */
+function shareMetaForProduct(product) {
+  if (!product) return null;
+  if (product.id === 'gl') {
+    return { title: product.pwa.name, description: GL_SHARE_DESCRIPTION };
+  }
+  if (product.id === 'plan') {
+    return { title: product.pwa.name, description: product.pwa.description };
+  }
+  return null;
+}
+
+/**
+ * Marque et métadonnées de partage injectées dans les entrées HTML, en dev comme au build.
+ *
+ * Trois effets :
+ *  1. substitution des jetons `%BRAND_*%` (titres, `application-name`, descriptions) ;
+ *  2. exposition de `window.__FORETMAP_BRAND__` pour les composants front qui affichent le
+ *     nom de l'établissement sans passer par l'API (le carnet, notamment) ;
+ *  3. injection des métadonnées de partage, comme avant, mais dérivées du registre produits.
+ *
+ * Le nom du logiciel et celui de l'établissement viennent de `lib/brand.js` : rebrander une
+ * installation, c'est poser des variables d'environnement avant `npm run build`, pas éditer
+ * ces fichiers HTML.
+ */
+function brandHtmlPlugin() {
   return {
-    name: 'share-meta',
+    name: 'foretmap-brand-html',
     transformIndexHtml(html, ctx) {
       const target = ctx?.path || ctx?.filename || '';
-      const entryName = Object.keys(metaByEntry).find((name) => target.endsWith(name));
-      if (!entryName) return html;
-      const { title, description } = metaByEntry[entryName];
-      const meta = [
-        { name: 'description', content: description },
-        { property: 'og:type', content: 'website' },
-        { property: 'og:site_name', content: title },
-        { property: 'og:locale', content: 'fr_FR' },
-        { property: 'og:title', content: title },
-        { property: 'og:description', content: description },
-        { name: 'twitter:card', content: 'summary' },
-        { name: 'twitter:title', content: title },
-        { name: 'twitter:description', content: description },
-      ];
-      return {
-        html,
-        tags: meta.map((attrs) => ({ tag: 'meta', attrs, injectTo: 'head' })),
+      const product = resolveProductForEntry(target);
+      const tokens = {
+        ...GLOBAL_BRAND_TOKENS,
+        ...(product
+          ? {
+              BRAND_PRODUCT_NAME: product.pwa.name,
+              BRAND_PRODUCT_SHORT_NAME: product.pwa.shortName,
+              BRAND_PRODUCT_LABEL: product.label,
+              BRAND_PRODUCT_DESCRIPTION: product.pwa.description,
+            }
+          : {}),
       };
+      const rendered = html.replace(/%(BRAND_[A-Z_]+)%/g, (match, key) =>
+        Object.prototype.hasOwnProperty.call(tokens, key) ? escapeHtml(tokens[key]) : match,
+      );
+
+      const tags = [
+        {
+          tag: 'script',
+          injectTo: 'head-prepend',
+          // `<` échappé : une marque contenant `</script>` ne doit pas pouvoir fermer la balise.
+          children: `window.__FORETMAP_BRAND__=${JSON.stringify({
+            appName: brand.appName,
+            appShortName: brand.appShortName,
+            orgName: brand.orgName,
+            orgShortName: brand.orgShortName,
+          }).replace(/</g, '\\u003c')};`,
+        },
+      ];
+
+      const share = shareMetaForProduct(product);
+      if (share) {
+        const meta = [
+          { name: 'description', content: share.description },
+          { property: 'og:type', content: 'website' },
+          { property: 'og:site_name', content: share.title },
+          { property: 'og:locale', content: 'fr_FR' },
+          { property: 'og:title', content: share.title },
+          { property: 'og:description', content: share.description },
+          { name: 'twitter:card', content: 'summary' },
+          { name: 'twitter:title', content: share.title },
+          { name: 'twitter:description', content: share.description },
+        ];
+        tags.push(...meta.map((attrs) => ({ tag: 'meta', attrs, injectTo: 'head' })));
+      }
+
+      return { html: rendered, tags };
     },
   };
 }
 
 export default defineConfig({
-  plugins: [react(), shareMetaPlugin(SHARE_META_BY_ENTRY)],
+  plugins: [react(), brandHtmlPlugin()],
   root: '.',
   optimizeDeps: {
     // lucide-react expose ~1500 modules ESM : pré-bundlé en dev pour éviter l'avalanche

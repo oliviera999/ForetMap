@@ -8,10 +8,16 @@
 //   1. UN LITTÉRAL QUI VAUT DÉJÀ UN TOKEN EST INTERDIT. C'est le contrat fort : réécrire
 //      `#6b7280` plutôt que `var(--ink-muted)` recrée exactement la dispersion qu'on vient
 //      de résorber, et cette assertion-là n'a aucune tolérance.
-//   2. LE RESTE EST UN CLIQUET. Il subsiste une longue traîne de teintes uniques, et deux
-//      familles de gris (neutre `#333`…`#bbb`, ardoise `--ink-*`) qu'on ne peut pas
-//      rapprocher sans bleuir la première. Le test plafonne leur nombre : la dette ne peut
-//      plus grandir, et chaque lot qui en résorbe abaisse le plafond.
+//   2. LE RESTE EST UN CLIQUET. Il subsiste une longue traîne de teintes uniques. Le test
+//      plafonne leur nombre : la dette ne peut plus grandir, et chaque lot qui en résorbe
+//      abaisse le plafond.
+//
+// Les DEUX FAMILLES DE GRIS (neutre `#222`…`#888`, ardoise `--ink-*`) que ce commentaire
+// disait irréconciliables ont été fusionnées : les 18 encres de texte en gris pur et les
+// 2 filets de `src/index.css` sont passés à l'échelle ardoise. Le bleutage est réel et
+// assumé (ΔE 8 à 12), mais il ne dégrade aucun contraste sous le seuil AA qu'il tenait
+// déjà. Reste la traîne d'off-whites teintés vert du thème forêt : les fusionner
+// changerait la direction de teinte du thème, ce qui est une autre décision.
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
@@ -38,7 +44,7 @@ const PRODUCT_ENTRIES = [
  * Plafonds. À BAISSER quand un lot résorbe, jamais à monter : une hausse signifie qu'une
  * couleur a été écrite en dur là où un rôle existait.
  */
-const CEILING_CSS_HEX = 745;
+const CEILING_CSS_HEX = 669;
 const CEILING_CSS_RGBA = 580;
 const CEILING_INLINE_COLOR = 147;
 

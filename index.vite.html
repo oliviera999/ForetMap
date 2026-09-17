@@ -11,19 +11,16 @@
     <!-- iOS PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="ForêtMap" />
+    <meta name="apple-mobile-web-app-title" content="%BRAND_PRODUCT_SHORT_NAME%" />
 
     <!-- Android / Chrome -->
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="application-name" content="ForêtMap" />
+    <meta name="application-name" content="%BRAND_PRODUCT_SHORT_NAME%" />
 
     <!-- SEO / description -->
-    <meta
-      name="description"
-      content="Gestion et cartographie de la forêt comestible du Lycée Lyautey"
-    />
+    <meta name="description" content="%BRAND_PRODUCT_DESCRIPTION%" />
 
-    <title>ForêtMap – Lycée Lyautey</title>
+    <title>%BRAND_PRODUCT_NAME%</title>
 
     <!-- Icons -->
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
@@ -32,15 +29,12 @@
     <link rel="apple-touch-icon" sizes="192x192" href="/pwa-icon-192.png" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <!-- Police emoji auto-hébergée : préchargée comme côté GL (gl.html) pour éviter le FOUT
-         (bascule visible police système → Noto) sur les épingles et emojis de zone. -->
-    <link
-      rel="preload"
-      href="/fonts/noto-color-emoji.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
+    <!-- PAS de preload de la police emoji auto-hébergée : un preload de police est
+         inconditionnel et prioritaire (il part avant même l'analyse du CSS), ce qui annulait
+         l'`unicode-range` du @font-face et imposait 5,7 Mo à tous les appareils — dont ceux
+         qui, depuis que 'Apple Color Emoji' est en tête de pile, ne la demandent jamais.
+         Le FOUT que ce preload évitait ne concerne plus que le parc non-Apple, où
+         `font-display: swap` fait le travail. docs/AUDIT_EMOJIS_APPLE_2026-09-17.md § 4. -->
     <link
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"

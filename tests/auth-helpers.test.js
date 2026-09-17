@@ -33,7 +33,8 @@ describe('authRouteHelpers (logique pure de routes/auth.js, sans DB)', () => {
     assert.ok(!PSEUDO_RE.test('a'.repeat(51)));
     assert.ok(!PSEUDO_RE.test('avec espace'));
     assert.deepEqual(GOOGLE_ALLOWED_DOMAINS_DEFAULT, ['pedagolyautey.org', 'lyceelyautey.org']);
-    assert.deepEqual(GOOGLE_ALLOWED_EMAILS_DEFAULT, ['oliv.arn.lau@gmail.com']);
+    // Aucune adresse en dur : les dérogations passent par GOOGLE_OAUTH_ALLOWED_EMAILS.
+    assert.deepEqual(GOOGLE_ALLOWED_EMAILS_DEFAULT, []);
   });
 
   it('normalizeEmail : trim, minuscule, null si vide', () => {

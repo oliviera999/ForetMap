@@ -1,0 +1,158 @@
+name: Publish dist artifact
+
+# Publie le build frontend de `main` sur une branche d'artefacts dédiée, pour que le serveur
+# puisse le récupérer sans que `dist/` soit versionné dans l'historique du dépôt.
+#
+# ## Pourquoi
+#
+# Le déploiement se fait par `git pull` depuis un hébergement mutualisé qui n'installe que les
+# dépendances de production (`npm ci --omit=dev`) : Vite n'y est pas disponible, donc le build
+# doit arriver tout fait. Le faire par `dist/` commité coûte deux choses :
+#
+#   - les noms de chunks portent un hash de contenu, donc chaque build renomme tous les
+#     fichiers → **toute** paire de PR touchant le frontend entre en conflit rename/delete sur
+#     `dist/`, un conflit que git ne peut structurellement pas résoudre ;
+#   - ~30 Mo de blobs neufs à chaque build commité.
+#
+# En publiant sur une branche à un seul commit (force-push), l'artefact reste accessible par
+# `git`/`git archive` avec les identifiants déjà présents sur le serveur, sans faire grossir
+# l'historique et sans qu'aucune PR ne porte de `dist/`.
+#
+# ## Déclencheurs, et pourquoi il en faut quatre
+#
+#   - `push` sur `main` : le cas courant (fusion d'une PR).
+#   - `workflow_run` après « Version bump on merge » : ce workflow pousse `chore(release): vX`
+#     sur `main` avec le `GITHUB_TOKEN`, et **un push par GITHUB_TOKEN ne déclenche aucun
+#     workflow** (anti-boucle GitHub). Sans ce crochet, l'artefact resterait en permanence un
+#     commit en retard sur `main`, et le serveur reporterait indéfiniment son déploiement.
+#   - `schedule` horaire : filet de sécurité si un déclencheur a été manqué (`[skip ci]` dans un
+#     message de commit, run annulé, incident Actions).
+#   - `workflow_dispatch` : republication manuelle.
+#
+# Le job construit toujours **la tête courante de `main`**, pas le SHA déclencheur : si `main` a
+# avancé entre-temps, autant publier le plus récent. Le passage suivant rattrapera l'écart.
+
+on:
+  push:
+    branches: [main]
+  workflow_run:
+    workflows: ['Version bump on merge']
+    types: [completed]
+  schedule:
+    - cron: '25 * * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Republier même si l’artefact est déjà à jour'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+# Dernier arrivé gagne : un build en cours pour un `main` déjà dépassé n'a plus d'intérêt.
+concurrency:
+  group: dist-publish
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DIST_BRANCH: dist-artifact/main
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: L’artefact est-il déjà à jour ?
+        id: state
+        env:
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force || false }}
+        run: |
+          source_sha="$(git rev-parse HEAD)"
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p 'require("./package.json").version')" >> "$GITHUB_OUTPUT"
+
+          published=""
+          if git fetch --force --quiet origin "$DIST_BRANCH:refs/remotes/origin/$DIST_BRANCH" 2>/dev/null; then
+            published="$(git show "origin/$DIST_BRANCH:BUILD_INFO.json" 2>/dev/null |
+              node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).sourceCommit||""))}catch{}})' || true)"
+          fi
+
+          if [ "$published" = "$source_sha" ] && [ "$FORCE" != "true" ]; then
+            echo "Artefact déjà publié pour $source_sha — rien à faire."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            [ -n "$published" ] && echo "Artefact publié : $published → à reconstruire pour $source_sha."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies
+        if: steps.state.outputs.skip == 'false'
+        run: npm ci
+
+      - name: Build (front + miroirs CJS)
+        if: steps.state.outputs.skip == 'false'
+        run: npm run build
+
+      - name: Contrôler l’intégrité du build
+        if: steps.state.outputs.skip == 'false'
+        # Une entrée produit manquante ne casse rien de visible : le repli SPA servirait
+        # ForetMap en silence sur gl.* et planlyautey.*. Mieux vaut ne rien publier.
+        run: |
+          node -e '
+            const { findDistGaps } = require("./scripts/fetch-dist-artifact.js");
+            const gaps = findDistGaps("dist");
+            if (gaps.length) {
+              console.error("Build incomplet, publication annulée. Manque : " + gaps.join(", "));
+              process.exit(1);
+            }
+            console.log("Build complet.");
+          '
+
+      - name: Publier sur la branche d’artefacts
+        if: steps.state.outputs.skip == 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_SHA: ${{ steps.state.outputs.source_sha }}
+          APP_VERSION: ${{ steps.state.outputs.version }}
+        run: |
+          stage="$(mktemp -d)"
+          cp -R dist "$stage/dist"
+
+          # `BUILD_INFO.json` vit à la RACINE de la branche, pas dans `dist/` : le serveur le lit
+          # séparément (`git show <ref>:BUILD_INFO.json`) et n'extrait que `dist/`, donc le
+          # contenu servi reste exactement celui du build.
+          node -e '
+            const fs = require("fs");
+            fs.writeFileSync(process.argv[1], JSON.stringify({
+              sourceCommit: process.env.SOURCE_SHA,
+              version: process.env.APP_VERSION,
+              builtAt: new Date().toISOString(),
+              branch: "main",
+              runId: process.env.GITHUB_RUN_ID || null,
+            }, null, 2) + "\n");
+          ' "$stage/BUILD_INFO.json"
+
+          cd "$stage"
+          # Dépôt neuf à chaque publication : la branche ne porte donc QU'UN commit, et
+          # l'historique du dépôt ne grossit pas d'un build à l'autre.
+          git init --quiet
+          git checkout --quiet -b artifact
+          git add -A
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit --quiet -m "build(dist): $SOURCE_SHA (v$APP_VERSION)"
+          git push --force --quiet \
+            "https://x-access-token:$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY.git" \
+            "HEAD:refs/heads/$DIST_BRANCH"
+          echo "Artefact publié sur $DIST_BRANCH pour $SOURCE_SHA (v$APP_VERSION)."

@@ -18,7 +18,14 @@ import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
  * Feuille pilotée par props ; état détenu par le parent (`form`/`setForm`).
  * Extrait de `MarkerModal.jsx` (O6, 2e niveau).
  */
-export function MarkerCommonFormFields({ form, setForm, plants, set, categoryCatalog = [] }) {
+export function MarkerCommonFormFields({
+  form,
+  setForm,
+  plants,
+  set,
+  categoryCatalog = [],
+  groupOptions = [],
+}) {
   return (
     <>
       <div className="field">
@@ -136,6 +143,13 @@ export function MarkerCommonFormFields({ form, setForm, plants, set, categoryCat
       <LocationAudienceFields
         idPrefix="marker"
         NoteEditor={MarkdownTextarea}
+        groupOptions={groupOptions}
+        visibleGroupIds={form.visible_group_ids || []}
+        onVisibleGroupIdsChange={(next) => setForm((f) => ({ ...f, visible_group_ids: next }))}
+        restrictedNoteGroupIds={form.restricted_note_group_ids || []}
+        onRestrictedNoteGroupIdsChange={(next) =>
+          setForm((f) => ({ ...f, restricted_note_group_ids: next }))
+        }
         visibleRoleSlugs={form.visible_role_slugs || []}
         onVisibleRoleSlugsChange={(next) => setForm((f) => ({ ...f, visible_role_slugs: next }))}
         restrictedNote={form.restricted_note || ''}
@@ -147,6 +161,7 @@ export function MarkerCommonFormFields({ form, setForm, plants, set, categoryCat
       />
       <LocationLinksFields
         idPrefix="marker"
+        groupOptions={groupOptions}
         links={form.links || []}
         onChange={(next) => setForm((f) => ({ ...f, links: next }))}
       />

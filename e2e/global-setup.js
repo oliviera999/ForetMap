@@ -24,7 +24,11 @@ module.exports = async function globalSetup() {
   const { pool } = require('../database');
 
   try {
-    const { setSetting } = require('../lib/settings');
+    const { setSetting, getSettingValue } = require('../lib/settings');
+    // Valeur d'origine mémorisée pour `global-teardown.js` : la suite ne doit pas laisser
+    // l'inscription fermée derrière elle (`npm test` s'y casse les dents, 32 cas en 403).
+    const previous = await getSettingValue('ui.auth.allow_register', true);
+    process.env.FORETMAP_E2E_PREVIOUS_ALLOW_REGISTER = previous ? 'true' : 'false';
     await setSetting('ui.auth.allow_register', false);
   } catch (err) {
     // eslint-disable-next-line no-console
