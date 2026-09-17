@@ -1,0 +1,1 @@
+var e=Object.freeze({appName:``,appShortName:``,orgName:``,orgShortName:``});function t(){try{let t=globalThis.__FORETMAP_BRAND__;return!t||typeof t!=`object`?e:{appName:String(t.appName||``),appShortName:String(t.appShortName||``),orgName:String(t.orgName||``),orgShortName:String(t.orgShortName||``)}}catch{return e}}function n(){return t().orgName}export{t as n,n as t};
