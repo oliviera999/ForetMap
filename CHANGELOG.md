@@ -11,7 +11,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Corrigé — la suite e2e était rouge depuis des semaines, sans que personne le voie
 
-**Résultat : 88 réussites / 14 échecs / 1 fragile → 113 réussites, 0 échec.**
+**Résultat : 88 réussites / 14 échecs / 1 fragile / 5 jamais exécutés → 109 réussites, 5 sautés,
+0 échec** (114 tests, un scénario ayant été scindé en deux). Plus aucun test « jamais exécuté »,
+et la suite passe de 21 min 36 à 12 min 48.
 
 **Mesure de départ : 88 réussites, 14 échecs, 1 fragile**, sur base locale. La CI joue la suite
 sur une base neuve à chaque fois et ne rencontrait donc pas une partie de ces cas ; en local,
