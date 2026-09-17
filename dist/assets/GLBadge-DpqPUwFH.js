@@ -1,1 +1,0 @@
-import{s as e}from"./VisitMascotFallbackSvg-C4pv6EAy.js";import{t}from"./react-vendor-DyU5Vns3.js";var n=t(),r=`/home/user/ForetMap/src/gl/components/ui/GLBadge.jsx`;function i({tone:t=`neutral`,className:i=``,children:a}){return(0,n.jsxDEV)(`span`,{className:e(`gl-badge`,`gl-badge--${t}`,i),children:a},void 0,!1,{fileName:r,lineNumber:4,columnNumber:5},this)}export{i as t};
