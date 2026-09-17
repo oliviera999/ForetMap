@@ -152,9 +152,19 @@ npm run deploy:dist:verify
 node scripts/fetch-dist-artifact.js --mode verify --expect-source "$(git rev-parse HEAD)"
 ```
 
-Attendu : `artefact complet (N fichiers)` et un nombre de fichiers comparable à `dist/`. Un écart
-de quelques fichiers est normal si `main` a avancé entre-temps ; un écart massif ou un
-`artefact incomplet` **arrête la bascule ici**.
+Attendu : `artefact complet (N fichiers)` et un **nombre** de fichiers égal à celui de `dist/`.
+Un `artefact incomplet`, ou un nombre de fichiers nettement différent, **arrête la bascule ici**.
+
+> ⚠️ **Ne pas comparer les noms de fichiers, ils diffèrent toujours.** Le build Vite/rolldown
+> n'est **pas reproductible** : deux exécutions du même commit, sur deux runners CI identiques,
+> produisent des hachages de contenu différents pour l'essentiel des chunks. Mesuré le
+> 17/09/2026 sur `a4c0849` — 356 fichiers de part et d'autre, ~80 chunks renommés, `.vite/manifest.json`,
+> les entrées HTML et les service workers référençant chacun son propre jeu.
+>
+> Ce qui compte n'est donc pas l'égalité avec un autre build, mais la **cohérence interne** de
+> l'artefact : c'est ce que vérifie `findDistGaps`, et c'est suffisant puisque le serveur
+> remplace `dist/` d'un bloc. Un `diff -rq` entre l'artefact et le `dist/` commité listera
+> toujours des dizaines d'écarts — ce n'est **pas** un signal d'alarme.
 
 Nettoyer ensuite : `rm -rf dist.candidate`.
 
@@ -188,7 +198,10 @@ Nettoyer ensuite : `rm -rf dist.candidate`.
    - ajoute `dist/` à `.gitignore` ;
    - `git rm -r --cached dist` ;
    - supprime `.github/workflows/frontend-dist.yml` (l'auto-commit de `dist/` sur les branches de
-     PR — la source même des conflits) ;
+     PR — la source même des conflits). Accessoirement, son garde-fou **échoue déjà** sur `main`
+     (runs `1066`, `1072` du 17/09/2026) : il compare un rebuild au `dist/` commité, une égalité
+     que la non-reproductibilité du build rend inatteignable. Ce workflow ne peut pas passer au
+     vert, il ne fait que du bruit rouge ;
    - retire la garde `dist/` de `.githooks/pre-push` ;
    - retire du `README`/`docs` les consignes « lancer `npm run build` avant de pousser ».
 

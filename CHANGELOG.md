@@ -9,6 +9,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — runbook de bascule `dist/` : ne pas comparer les noms de fichiers
+
+- **Le build Vite/rolldown n'est pas reproductible** : deux exécutions du même commit, sur deux
+  runners CI identiques, produisent des hachages de contenu différents pour l'essentiel des
+  chunks (mesuré sur `a4c0849` : 356 fichiers de part et d'autre, ~80 chunks renommés).
+  `docs/DEPLOY_DIST_ARTIFACT.md` laissait entendre qu'un écart devait rester marginal — un
+  opérateur comparant les deux arborescences aurait vu des dizaines d'écarts et abandonné la
+  bascule à tort. Le contrôle porte sur la **cohérence interne** de l'artefact et sur le nombre
+  de fichiers, pas sur l'égalité avec un autre build.
+- Conséquence notée dans le même document : le garde-fou de `frontend-dist.yml` **échoue déjà**
+  sur `main`, puisqu'il exige précisément cette égalité inatteignable. Son retrait, prévu à
+  l'étape 3 de la bascule, supprime donc aussi un workflow durablement rouge.
+
 ### Corrigé — la suite e2e était rouge depuis des semaines, sans que personne le voie
 
 **Résultat : 88 réussites / 14 échecs / 1 fragile / 5 jamais exécutés → 109 réussites, 5 sautés,
