@@ -11,6 +11,7 @@ import {
   formatDistanceFr,
   headingFromDeviceOrientation,
   northOffsetFromProjection,
+  pickTravelHeadingDeg,
   screenHeadingDeg,
 } from '../../src/shared/pct-map/positionGeometry.js';
 
@@ -160,5 +161,60 @@ describe('accuracyHaloDiameterPx', () => {
     expect(accuracyHaloDiameterPx(4, 0)).toBe(0);
     expect(accuracyHaloDiameterPx(Number.NaN, 390)).toBe(0);
     expect(accuracyHaloDiameterPx(4, undefined)).toBe(0);
+  });
+});
+
+/**
+ * « Vers où je vais » n'est pas « vers où je tiens mon téléphone ». Le repère de navigation
+ * s'appuie sur la route GPS dès que la marche lui donne un sens, et sur la boussole sinon.
+ */
+describe('pickTravelHeadingDeg', () => {
+  test('en marche, la route GPS l’emporte sur la boussole', () => {
+    const picked = pickTravelHeadingDeg({
+      gpsHeadingDeg: 120,
+      speedMs: 1.4,
+      compassHeadingDeg: 40,
+    });
+    expect(picked).toEqual({ headingDeg: 120, source: 'gps' });
+  });
+
+  test('à l’arrêt, le GPS n’a plus de direction : la boussole reprend la main', () => {
+    const picked = pickTravelHeadingDeg({
+      gpsHeadingDeg: 120,
+      speedMs: 0.1,
+      compassHeadingDeg: 40,
+    });
+    expect(picked).toEqual({ headingDeg: 40, source: 'compass' });
+  });
+
+  test('hystérésis : un ralentissement passager ne fait pas basculer la source', () => {
+    // 0,6 m/s : sous le seuil d'entrée (0,9), au-dessus du seuil de sortie (0,5).
+    const entering = pickTravelHeadingDeg({
+      gpsHeadingDeg: 120,
+      speedMs: 0.6,
+      compassHeadingDeg: 40,
+      previousSource: 'compass',
+    });
+    expect(entering.source).toBe('compass');
+    const keeping = pickTravelHeadingDeg({
+      gpsHeadingDeg: 120,
+      speedMs: 0.6,
+      compassHeadingDeg: 40,
+      previousSource: 'gps',
+    });
+    expect(keeping.source).toBe('gps');
+  });
+
+  test('aucune source exploitable : pas de cap inventé', () => {
+    expect(pickTravelHeadingDeg({})).toEqual({ headingDeg: null, source: null });
+    expect(pickTravelHeadingDeg({ gpsHeadingDeg: 120, speedMs: null })).toEqual({
+      headingDeg: null,
+      source: null,
+    });
+  });
+
+  test('le cap renvoyé est toujours normalisé dans [0, 360[', () => {
+    expect(pickTravelHeadingDeg({ compassHeadingDeg: -30 }).headingDeg).toBe(330);
+    expect(pickTravelHeadingDeg({ gpsHeadingDeg: 400, speedMs: 2 }).headingDeg).toBe(40);
   });
 });

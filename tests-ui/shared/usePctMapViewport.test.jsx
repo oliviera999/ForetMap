@@ -314,6 +314,65 @@ describe('usePctMapViewport', () => {
     expect(apiRef.current.committed).toEqual({ x: -600, y: -200, s: 1 });
   });
 
+  /**
+   * `focusOnPct` joue une animation de 200 ms puis s'arrête net : une mesure GPS par seconde
+   * donnait donc une saccade par seconde. `followPct` déplace une cible que la caméra rattrape
+   * en continu — et n'écrit dans React qu'une fois arrivée.
+   */
+  it('followPct : glissé continu vers une cible mobile, sans un rendu par mesure', () => {
+    const { apiRef, world } = setup();
+    const start = apiRef.current.committed;
+    act(() => {
+      apiRef.current.followPct({ xp: 100, yp: 100 }, { targetScale: 1 });
+    });
+
+    // Une image : la caméra a commencé à glisser, mais n'a pas sauté sur la cible…
+    now += 16;
+    act(() => {
+      flushRaf(1);
+    });
+    const x = Number(/translate\((-?[\d.]+)px/.exec(world.style.transform)?.[1]);
+    expect(x).toBeLessThan(0);
+    expect(x).toBeGreaterThan(-600);
+    // … et rien n'a encore été écrit dans l'état React : marcher ne coûte pas de rendu.
+    expect(apiRef.current.committed).toEqual(start);
+
+    // Déplacer la cible ne relance pas de seconde boucle.
+    const inFlight = rafQueue.filter(Boolean).length;
+    act(() => {
+      apiRef.current.followPct({ xp: 100, yp: 100 }, { targetScale: 1 });
+    });
+    expect(rafQueue.filter(Boolean).length).toBe(inFlight);
+
+    // Cible immobile : la boucle finit par se poser dessus, et publie alors son état.
+    for (let i = 0; i < 40; i += 1) {
+      now += 100;
+      act(() => {
+        flushRaf(1);
+      });
+    }
+    expect(apiRef.current.committed).toEqual({ x: -600, y: -200, s: 1 });
+    expect(rafQueue.filter(Boolean).length).toBe(0);
+  });
+
+  it('followPct : un geste reprend la main sur le suivi', () => {
+    const { apiRef, canvas } = setup();
+    act(() => {
+      apiRef.current.followPct({ xp: 100, yp: 100 }, { targetScale: 1 });
+    });
+    act(() => {
+      canvas.dispatchEvent(pointer('pointerdown', { clientX: 10, clientY: 10 }));
+    });
+    const before = { ...apiRef.current.committed };
+    for (let i = 0; i < 10; i += 1) {
+      now += 100;
+      act(() => {
+        flushRaf(1);
+      });
+    }
+    expect(apiRef.current.committed).toEqual(before);
+  });
+
   it('glisser externe : suit le pointeur en % image et rend la position finale', () => {
     const { apiRef, canvas } = setup();
     const onMove = vi.fn();
