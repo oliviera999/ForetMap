@@ -49,7 +49,9 @@ casser les liens existants.
 | [`AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](../AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md)           | UI : apparence des champs, des listes déroulantes et des barres d'onglets (six rendus de `<select>`, quatre barres d'onglets, classes CSS fantômes) | Instantané 17 sept. 2026 — **champs et onglets traités**, surfaces / tableaux / libellés ouverts                                                     |
 | [`AUDIT_ENVIRONNEMENT_TESTS_2026-09-16.md`](../AUDIT_ENVIRONNEMENT_TESTS_2026-09-16.md)           | Environnement d'exécution des sessions Claude Code & CI GitHub — ce qui est testable, à quel coût, et l'état réel de la suite e2e                   | Instantané 16 sept. 2026 — amorçage et anonymisation livrés, P1–P3 ouverts                                                                           |
 | [`AUDIT_CHARGE_VOLUMETRIE_REELLE_2026-09-17.md`](../AUDIT_CHARGE_VOLUMETRIE_REELLE_2026-09-17.md) | Charge des listes rejouée sur la volumétrie de production (fixture anonymisé) — poids réels, N+1, campagne Artillery                                | Instantané 17 sept. 2026 — **infirme** l'alerte « 912 Ko », confirme le correctif de septembre ; § 7 **traité** (e2e en configuration de production) |
+| [`AUDIT_EMOJIS_APPLE_2026-09-17.md`](../AUDIT_EMOJIS_APPLE_2026-09-17.md)                         | Affichage des emojis : police auto-hébergée (COLRv1/OT-SVG) face au moteur d'Apple, poids et cache de la police, ordre des piles `font-family`      | Instantané 17 sept. 2026 — EMO-APL-004 traité, **arbitrage EMO-APL-001/003 ouvert** (§ 7)                                                            |
 | [`AUDIT_STRATEGIE_PLATEFORME_2026-09.md`](../AUDIT_STRATEGIE_PLATEFORME_2026-09.md)               | Arbitrage construire / déléguer / remplacer : part générique du code, briques délégables à Moodle, charte du non-développement                      | Instantané 16 sept. 2026 — **cadrage**, N1–N4 à ouvrir                                                                                               |
+| [`AUDIT_PARCOURS_2026-09-17.md`](../AUDIT_PARCOURS_2026-09-17.md)                                 | Deuxième passe « parcours » : garde par surface (`staff` / `map`), reprise d'un parcours quitté, rang d'affichage, mode parcours en double          | Instantané 17 sept. 2026 — **entièrement traité** (7 constats : garde par surface, reprise, slug, rang, unification du mode, détails, affichage)     |
 
 ## Chantiers / specs encore utiles comme consigne
 
@@ -104,6 +106,7 @@ décision passée.
 | [`AUDIT_ICONES_FLOTTANTES_2026-08.md`](../AUDIT_ICONES_FLOTTANTES_2026-08.md)                   |
 | [`AUDIT_MASCOTTES_2026-08.md`](../AUDIT_MASCOTTES_2026-08.md)                                   |
 | [`AUDIT_PARCOURS_2026-09.md`](../AUDIT_PARCOURS_2026-09.md)                                     |
+| [`AUDIT_PARCOURS_2026-09-17.md`](../AUDIT_PARCOURS_2026-09-17.md)                               |
 | [`AUDIT_PHOTOS_BIODIVERSITE.md`](../AUDIT_PHOTOS_BIODIVERSITE.md)                               |
 | [`AUDIT_PLAN_AFFICHAGE_2026-09.md`](../AUDIT_PLAN_AFFICHAGE_2026-09.md)                         |
 | [`AUDIT_PLAN_AFFICHAGE_2026-09-13.md`](../AUDIT_PLAN_AFFICHAGE_2026-09-13.md)                   |
