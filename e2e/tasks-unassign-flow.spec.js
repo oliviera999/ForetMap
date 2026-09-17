@@ -17,12 +17,12 @@ test('élève peut se retirer d’une tâche prise en charge', async ({ page }) 
   test.setTimeout(600_000);
   const taskTitle = `E2E Unassign ${Date.now()}`;
 
-  await loginAsNewStudent(page);
+  const student = await loginAsNewStudent(page);
   await enableTeacherMode(page);
   const taskId = await createTeacherTask(page, taskTitle);
   await assignStudentToTaskAsTeacher(page, taskId);
 
-  await disableTeacherMode(page);
+  await disableTeacherMode(page, student);
   await waitForStudentAssignedTask(page, taskTitle);
 
   const studentTasksLoad = page.waitForResponse(

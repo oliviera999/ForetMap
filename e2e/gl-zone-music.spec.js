@@ -90,6 +90,12 @@ test.describe('GL musique des zones', () => {
     );
     await page.reload();
 
-    await expect(page.getByTestId('gl-zone-music-toggle')).toBeVisible();
+    // `.first()` : deux boutons portent le même `data-testid` **et** le même `aria-label`
+    // (`GLBoardChrome.jsx` et `MusicPlayer.jsx` montent tous deux `GLZoneMusicMuteButton`).
+    // Selon l'ordre de rendu, le mode strict voyait tantôt un élément, tantôt deux — d'où un
+    // test fragile qui échouait puis passait au retry. Le doublon lui-même reste à arbitrer
+    // (lequel des deux est le bon), et c'est aussi un défaut d'accessibilité : deux commandes
+    // annoncées à l'identique sur un même écran. Cf. `docs/AUDIT_SUITE_E2E_2026-09-17.md` § 4.
+    await expect(page.getByTestId('gl-zone-music-toggle').first()).toBeVisible();
   });
 });

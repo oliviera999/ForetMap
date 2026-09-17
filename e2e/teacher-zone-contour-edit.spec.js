@@ -3,6 +3,7 @@ const {
   loginAsNewStudent,
   enableTeacherMode,
   waitForTeacherMapReady,
+  openZoneModalByName,
 } = require('./fixtures/auth.fixture');
 
 /**
@@ -34,6 +35,10 @@ const SQUARE = [
 ];
 
 test('parcours prof : ajouter puis retirer un sommet du contour d’une zone', async ({ page }) => {
+  /* Même parcours lourd que `tasks-full-cycle` et `modals-responsive` (création de compte,
+     élévation prof, carte complète) : ce scénario était le seul à garder le budget par défaut
+     de 60 s, qu'il dépasse dès que la base porte un peu de volume. */
+  test.setTimeout(180_000);
   await loginAsNewStudent(page);
   await enableTeacherMode(page);
 
@@ -51,9 +56,9 @@ test('parcours prof : ajouter puis retirer un sommet du contour d’une zone', a
     await page.getByRole('button', { name: /Carte & Zones/ }).click();
     await waitForTeacherMapReady(page);
 
-    // Ouvrir la fiche de la zone créée (les polygones exposent leur nom en rôle bouton).
-    await page.getByRole('button', { name: zoneName, exact: true }).first().click({ force: true });
-    const dialog = page.getByRole('dialog', { name: new RegExp(`^Zone ${zoneName}`) });
+    // Ouvrir la fiche de la zone créée : la cible cliquable est le polygone du `.map-zone-hit`,
+    // pas le bouton qui porte son nom (cf. `openZoneModalByName`).
+    const dialog = await openZoneModalByName(page, zoneName);
     await expect(dialog).toBeVisible();
 
     await dialog.getByRole('button', { name: 'Modifier', exact: true }).click();

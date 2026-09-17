@@ -97,16 +97,13 @@ test('visite connectée : scène carte, image chargée et contrôles zoom', asyn
   await expect(mapImg).toBeVisible({ timeout: 15_000 });
   await expect(mapImg).toHaveAttribute('src', /./);
 
-  const controls = stage.locator('.visit-map-controls');
-  await expect(
-    controls.getByRole('button', { name: 'Zoomer la carte de visite', exact: true }),
-  ).toBeVisible();
-  await expect(
-    controls.getByRole('button', { name: 'Dézoomer la carte de visite', exact: true }),
-  ).toBeVisible();
-  await expect(
-    controls.getByRole('button', { name: 'Recentrer la carte de visite', exact: true }),
-  ).toBeVisible();
+  // Depuis l'unification sur `SharedMapStage` (14 sept. 2026), la visite n'a plus ses propres
+  // contrôles (`VisitMapZoomControls`, devenu code mort) : elle emprunte ceux de la pile
+  // partagée, dans `.fm-pct-map-controls` et repérés par `data-testid` préfixés `visit-`.
+  const controls = stage.locator('.fm-pct-map-controls');
+  await expect(controls.getByTestId('visit-zoom-in')).toBeVisible();
+  await expect(controls.getByTestId('visit-zoom-out')).toBeVisible();
+  await expect(controls.getByTestId('visit-zoom-reset')).toBeVisible();
 });
 
 test('visite connectée : mascotte visible si au moins une zone ou un repère sur le plan', async ({
@@ -264,16 +261,10 @@ test('visite connectée : zoom bouton, double-clic et recentrage sur le moteur p
   };
   await expect.poll(readScale, { timeout: 10_000 }).toBeCloseTo(1, 1);
 
-  await stage
-    .locator('.visit-map-controls')
-    .getByRole('button', { name: 'Zoomer la carte de visite', exact: true })
-    .click();
+  await stage.locator('.fm-pct-map-controls').getByTestId('visit-zoom-in').click();
   await expect.poll(readScale, { timeout: 5_000 }).toBeGreaterThan(1.1);
 
-  await stage
-    .locator('.visit-map-controls')
-    .getByRole('button', { name: 'Recentrer la carte de visite', exact: true })
-    .click();
+  await stage.locator('.fm-pct-map-controls').getByTestId('visit-zoom-reset').click();
   await expect.poll(readScale, { timeout: 5_000 }).toBeCloseTo(1, 1);
 
   // Double-clic sur le fond : zoom vers le point visé ; le plan reste dans son cadre.

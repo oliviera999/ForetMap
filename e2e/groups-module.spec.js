@@ -1,5 +1,9 @@
 const { test, expect } = require('@playwright/test');
-const { loginByIdentifier, enableTeacherMode } = require('./fixtures/auth.fixture');
+const {
+  loginByIdentifier,
+  enableTeacherMode,
+  openTeacherPole,
+} = require('./fixtures/auth.fixture');
 
 test('module groupes visible dans l’espace profils prof/admin', async ({ page }) => {
   let pageError = null;
@@ -27,13 +31,24 @@ test('module groupes visible dans l’espace profils prof/admin', async ({ page 
   await loginByIdentifier(page, adminEmail, adminPassword);
   await enableTeacherMode(page);
 
-  await page.getByRole('button', { name: /Profils & utilisateurs|n3boss & utilisateurs/ }).click();
+  // La navigation prof est organisée en pôles (`TeacherTopTabs.jsx`, POLES) : l'onglet
+  // `profiles` vit dans « Administration » et n'existe pas tant que ce pôle n'est pas ouvert.
+  await openTeacherPole(page, 'Administration');
+  await page
+    .getByRole('button', { name: /Profils & utilisateurs|n3boss & utilisateurs/ })
+    .first()
+    .click();
   if (pageError) {
     throw new Error(`Erreur frontend: ${pageError.stack || pageError.message}`);
   }
   if (boundaryError) {
     throw new Error(`Erreur ErrorBoundary: ${boundaryError}`);
   }
-  await expect(page.getByText('Groupes & sous-groupes')).toBeVisible();
-  await expect(page.getByText('Module dédié: structure pédagogique')).toBeVisible();
+  // La vue « Profils & utilisateurs » est découpée en sous-onglets (`ProfilesAdminSubTabs.jsx`) :
+  // le module groupes vit derrière l'onglet « Groupes ».
+  await page.getByRole('tab', { name: 'Groupes' }).click();
+  await expect(page.getByRole('heading', { name: 'Groupes & sous-groupes' })).toBeVisible();
+  await expect(
+    page.getByText('Structure pédagogique, membres, responsables et périmètre carte/projet.'),
+  ).toBeVisible();
 });

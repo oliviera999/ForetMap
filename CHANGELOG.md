@@ -9,6 +9,71 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — la suite e2e était rouge depuis des semaines, sans que personne le voie
+
+**Résultat : 88 réussites / 14 échecs / 1 fragile / 5 jamais exécutés → 109 réussites, 5 sautés,
+0 échec** (114 tests, un scénario ayant été scindé en deux). Plus aucun test « jamais exécuté »,
+et la suite passe de 21 min 36 à 12 min 48.
+
+**Mesure de départ : 88 réussites, 14 échecs, 1 fragile**, sur base locale. La CI joue la suite
+sur une base neuve à chaque fois et ne rencontrait donc pas une partie de ces cas ; en local,
+`foretmap_test` accumule. Chaque échec a été rejoué sur l'arbre d'**avant** ce lot, même base et
+même build, pour établir qu'aucun n'appartenait au lot précédent : les quatorze s'y reproduisent
+à l'identique.
+
+Aucun n'était un bug applicatif. Toutes les causes sont des specs restées sur une interface ou
+une règle qui avaient changé — et que rien ne rattrapait, faute de lancer la suite en entier.
+
+- **Navigation prof en pôles.** `openTeacherPole` appariait le nom du pôle en `exact: true`,
+  alors qu'un pôle portant un badge s'appelle « Suivi 9 à valider ». Le clic était sauté en
+  silence (`.catch`) et les specs échouaient bien plus loin, sur un onglet jamais demandé.
+  Appariement par préfixe désormais.
+- **Mode compact.** Ouvrir un pôle sous 640px n'étale pas ses onglets dans `.top-tabs` : il ouvre
+  une feuille `BottomSheet`. Les fixtures ne connaissaient que la disposition desktop, d'où
+  quatre échecs `modals-responsive` (mobile et tablette ; desktop passait). Nouveau helper
+  `openTeacherTabInPole`, et `openTeacherTasksTab` sait que les tâches vivent dans le pôle
+  **Suivi** en compact, l'onglet fusionné « Cartes, tâches et tuto » étant desktop seulement.
+- **`disableTeacherMode` ne rendait plus la session élève.** Réduit à une déconnexion lors du
+  retrait de l'élévation par PIN, avec la mention « la signature reste stable pour les specs
+  appelantes » — mais ses quatre appelants enchaînent tous sur un geste d'élève. Il reconnecte
+  désormais le profil qu'on lui passe (`tasks-full-cycle`, `tasks-unassign-flow`,
+  `visit-mascot` ×2).
+- **Contrôles de zoom de la visite.** L'unification sur `SharedMapStage` (14 sept.) a laissé
+  `VisitMapZoomControls` **importé nulle part** ; trois specs visaient encore ses libellés.
+  Elles ciblent la pile partagée (`.fm-pct-map-controls`, `data-testid` `visit-zoom-*`).
+- **Sélecteur de mascotte.** Depuis que « la mascotte suit le compte », le studio ne pilote plus
+  le plan : son sélecteur est étiqueté « à prévisualiser » et n'écrit qu'un stockage local que le
+  plan d'un compte connecté ne lit plus. La spec vérifiait la promesse inverse. Elle est scindée
+  en deux : le studio pilote son aperçu, le sélecteur du plan pilote le plan.
+- **Marché G&L.** `gameplay.market_hearts_enabled` vaut `false` par défaut : le champ « Cœurs »
+  n'est pas rendu et le serveur refuse tout montant en cœurs. Le scénario « échange 1 cœur contre
+  1 gemme » attendait une interface que personne ne sert — il active le drapeau et le remet
+  comme il l'a trouvé.
+- **Budget de temps.** `teacher-zone-contour-edit` était le seul scénario de son poids à garder
+  les 60 s par défaut (ses voisins se donnent 300 s) ; il tient en 2 min 20. S'y ajoutaient deux
+  pièges : le `<g class="map-zone-hit">` **est** le bouton, donc un `filter({ has: … })` ne trouve
+  rien, et un clic forcé vise le centre d'une boîte englobante qui, pour un polygone, peut tomber
+  hors de la forme. Nouvel helper `openZoneModalByName`, qui active la zone au clavier.
+- **Test fragile `gl-zone-music`.** `GLBoardChrome.jsx` et `MusicPlayer.jsx` montent tous deux
+  `GLZoneMusicMuteButton` : même `data-testid`, même `aria-label`. Selon l'ordre de rendu, le mode
+  strict voyait un élément ou deux. La spec est rendue déterministe ; **le doublon reste à
+  arbitrer** — deux commandes annoncées à l'identique sur un écran est d'abord un défaut
+  d'accessibilité, et choisir laquelle retirer est une décision d'interface.
+- **Module groupes.** Trois assertions périmées d'un coup : pôle « Administration » à ouvrir,
+  sous-onglet « Groupes » à cliquer, et un texte (« Module dédié: structure pédagogique ») qui
+  n'existe plus dans le code.
+
+### Modifié — purge e2e élargie aux données que les runs en échec laissent derrière eux
+
+- Les `afterEach` de nettoyage sont conditionnés à la réussite du `beforeEach` : un run en échec
+  ne nettoie rien. Sept exemplaires du repère « E2E mascotte A » au même point du plan finissaient
+  **agrégés** par le clustering de `SharedMapStage`, et le repère que la spec cherche n'existait
+  alors plus comme bouton — un échec dont la cause est le run précédent.
+- `e2e/global-setup.js` purge donc aussi les repères et zones de visite `E2E %` et les groupes
+  jetables `e2e-n3-*` de l'ancienne fixture d'inscription. **Périmètre volontairement étroit** :
+  les jeux laissés par `npm test`, qui partage `foretmap_test`, ne sont pas touchés — les
+  supprimer ici masquerait des fuites appartenant à la suite backend.
+
 ### Modifié — le build frontend quitte le dépôt : la CI le livre au serveur
 
 - **La cause des conflits de merge à répétition est supprimée.** `dist/` était versionné parce
