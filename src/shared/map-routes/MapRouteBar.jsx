@@ -1,10 +1,19 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Button } from '../ui/Button.jsx';
 
 import { routeStepTitle } from './mapRouteSteps.js';
 
-/** Hauteur approximative de la barre (px scène) pour le recentrage carte au-dessus. */
+/**
+ * Hauteur de repli de la barre, en px, pour le recadrage de la carte au-dessus.
+ *
+ * Ce n'est qu'un **repli** : la barre mesure sa propre hauteur et la remonte par `onHeight`.
+ * La constante seule sous-estimait la réalité de près du double — 148 px annoncés contre 275
+ * mesurés sur un téléphone de 844 px, et 420 le texte d'étape déplié —, si bien que la carte
+ * recadrait l'étape courante **sous** la barre, le défaut déjà corrigé pour les feuilles
+ * basses (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B2,
+ * `docs/AUDIT_PARCOURS_2026-09-17.md` §2.7).
+ */
 export const MAP_ROUTE_BAR_FOCUS_INSET_PX = 148;
 
 /**
@@ -22,8 +31,31 @@ export function MapRouteBar({
   hintLocate = 'Le lieu est mis en avant sur le plan. Utilisez « Me situer » puis avancez.',
   hintManual = 'Repère-toi sur le plan (lieu mis en avant), puis Suivant.',
   testId = 'map-route-bar',
+  onHeight,
 }) {
   const [textExpanded, setTextExpanded] = useState(false);
+
+  /**
+   * Hauteur réelle occupée, remontée à la surface qui recadre la carte. Elle change avec le
+   * texte d'étape, son dépliage et la largeur de l'écran : une constante ne peut pas suivre.
+   */
+  const barRef = useRef(null);
+  const reportHeight = useCallback(() => {
+    if (!onHeight || !barRef.current) return;
+    onHeight(Math.round(barRef.current.getBoundingClientRect().height));
+  }, [onHeight]);
+  useEffect(() => {
+    if (!onHeight) return undefined;
+    reportHeight();
+    const node = barRef.current;
+    if (!node || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(reportHeight);
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+      onHeight(0);
+    };
+  }, [onHeight, reportHeight]);
   const total = steps.length;
   const entry = steps[index] || null;
   const title = entry ? routeStepTitle(entry) : route.title;
@@ -32,6 +64,7 @@ export function MapRouteBar({
 
   return (
     <aside
+      ref={barRef}
       className="map-route-bar plan-route-bar"
       data-testid={testId}
       aria-label={`Parcours ${route.title}`}

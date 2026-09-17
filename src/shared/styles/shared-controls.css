@@ -314,3 +314,35 @@ details.admin-section > summary {
   color: var(--ink-warning, #b45309);
   font-size: var(--text-sm);
 }
+
+/*
+ * Cases « groupes » d'une audience (migration 262), sous les rôles. Le décalage et le
+ * libellé « …ou membres de ces groupes » disent l'union : rôle **ou** groupe, jamais les
+ * deux exigés.
+ */
+.fm-audience-groups {
+  margin-top: 10px;
+  padding-top: 8px;
+  /* Jeton partagé plutôt qu'un littéral rgba() : le cliquet `tests/color-tokens-guard.test.js`
+     interdit d'en ajouter, et `--line-muted` est défini par `shared/styles/color-tokens.css`,
+     chargé par les deux produits. */
+  border-top: 1px dashed var(--line-muted);
+}
+
+.fm-audience-groups__legend {
+  margin: 0 0 6px;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+/* Audience d'un lien : repliée tant que le lien est public, pour garder le formulaire lisible. */
+.fm-location-links__audience > summary {
+  cursor: pointer;
+  padding: 6px 0;
+  font-size: var(--text-sm);
+  min-height: 32px;
+}
+
+.fm-location-links__audience[open] > summary {
+  margin-bottom: 4px;
+}

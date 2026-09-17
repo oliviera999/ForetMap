@@ -1,0 +1,92 @@
+ForetMap — Licence propriétaire / Proprietary License
+=====================================================
+
+Copyright (c) 2026 Olivier ARNOULD-LAURENT. Tous droits réservés.
+Copyright (c) 2026 Olivier ARNOULD-LAURENT. All rights reserved.
+
+
+FRANÇAIS
+--------
+
+Le présent dépôt, son code source, sa documentation, ses schémas de base de
+données, ses contenus pédagogiques et ses ressources graphiques (ci-après
+« le Logiciel ») sont la propriété exclusive du titulaire du droit d'auteur
+désigné ci-dessus.
+
+Aucune licence, expresse ou tacite, n'est accordée. En particulier, sont
+interdits sans autorisation écrite préalable et distincte du titulaire :
+
+  1. la reproduction, totale ou partielle, du Logiciel ;
+  2. sa modification, son adaptation, sa traduction ou la création d'œuvres
+     dérivées ;
+  3. sa distribution, sa publication, sa mise à disposition du public, sa
+     revente, sa location ou son sous-licenciement ;
+  4. son exploitation, y compris sous forme de service hébergé (SaaS), pour le
+     compte d'un tiers ;
+  5. la rétro-ingénierie, la décompilation ou le désassemblage, sauf dans la
+     stricte mesure permise par une disposition légale impérative.
+
+La consultation du dépôt, y compris lorsqu'il est hébergé sur une plateforme
+publique, ne vaut pas concession de droits. La mise à disposition du code en
+lecture ne constitue ni une publication sous licence libre, ni une renonciation
+aux droits du titulaire.
+
+Des droits d'usage peuvent être concédés par contrat séparé (licence
+d'exploitation, convention avec un établissement, contrat de prestation). Seul
+un tel écrit fait foi. Toute demande : oliv.arn.lau@gmail.com
+
+COMPOSANTS TIERS. Le Logiciel s'appuie sur des bibliothèques tierces, chacune
+régie par sa propre licence. La présente licence ne s'applique pas à ces
+composants et n'en modifie pas les conditions. Elle ne s'applique pas davantage
+aux contenus tiers éventuellement intégrés (données naturalistes, ressources
+iconographiques, corpus importés), qui restent soumis aux conditions de leurs
+ayants droit respectifs.
+
+MARQUES. Les dénominations d'établissements, logos et signes distinctifs de
+tiers pouvant apparaître dans le Logiciel ou sa configuration appartiennent à
+leurs propriétaires respectifs. La présente licence n'emporte aucune cession ni
+aucun droit d'usage sur ces signes.
+
+ABSENCE DE GARANTIE. Le Logiciel est fourni « en l'état », sans garantie
+d'aucune sorte, expresse ou implicite, y compris sans garantie de qualité
+marchande, d'adéquation à un usage particulier ou d'absence de contrefaçon.
+Le titulaire du droit d'auteur ne saurait être tenu responsable de tout
+dommage, direct ou indirect, résultant de l'utilisation du Logiciel ou de
+l'impossibilité de l'utiliser.
+
+
+ENGLISH
+-------
+
+This repository, including its source code, documentation, database schemas,
+educational content and graphical assets (the "Software"), is the exclusive
+property of the copyright holder named above.
+
+No license is granted, whether express or implied. Without prior, separate and
+written permission from the copyright holder, you may not copy, modify, adapt,
+translate, create derivative works from, distribute, publish, make available,
+resell, rent, sublicense or operate the Software, including as a hosted service
+(SaaS), on behalf of any third party. Reverse engineering, decompilation and
+disassembly are prohibited except to the extent such restriction is void under
+mandatory applicable law.
+
+Public visibility of this repository does not grant any rights and does not
+constitute open-source publication or a waiver of the copyright holder's
+rights. Usage rights may be granted under a separate written agreement only.
+Enquiries: oliv.arn.lau@gmail.com
+
+THIRD-PARTY COMPONENTS. The Software depends on third-party libraries, each
+governed by its own license; this license neither applies to nor alters them.
+The same applies to any third-party content bundled with the Software, which
+remains subject to the terms of its respective rights holders.
+
+TRADEMARKS. Third-party institution names, logos and distinctive signs that may
+appear in the Software or its configuration belong to their respective owners.
+This license grants no rights over such signs.
+
+NO WARRANTY. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
