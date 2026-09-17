@@ -46,6 +46,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   ligne « sandbox mode » propre à MariaDB est retirée.
 - `db:fixture:load` refuse de viser `foretmap_test`, qui doit rester construite par `db:init`.
 
+### Modifié — la suite e2e tourne désormais dans la configuration de production
+
+- `e2e/global-setup.js` force **`ui.auth.allow_register = false`**, la valeur servie en
+  production. Le formulaire public n'est donc plus exercé incidemment par la centaine de
+  scénarios qui créent un élève.
+- Les fixtures créent les comptes par l'**import d'administration**
+  (`POST /api/students/import`, rattachement au groupe `e2e-n3beur` qui accorde l'accès
+  n3beur) — comme un enseignant important sa liste de classe. Le rattachement synchronisant le
+  rôle, le va-et-vient inscription → ajout au groupe → déconnexion → reconnexion disparaît.
+- Nouvelle spec **`e2e/auth-registration.spec.js`** : seule à couvrir le formulaire public, et
+  des deux côtés du réglage — fermé, le bouton « Créer un compte » est absent **et**
+  `POST /api/auth/register` répond **403** (masquer n'est pas interdire) ; ouvert, le parcours
+  crée un compte réutilisable après déconnexion. Elle remet le réglage à `false` derrière elle.
+- Fixtures exportées pour les scénarios qui en ont besoin : `loginAsTeacherAdminApi`,
+  `createStudentViaAdminImport`, `buildE2eStudentProfile`. `registerStudentWithProfile` devient
+  `createStudentWithProfileViaAdmin` : elle n'inscrit plus, le nom le dit.
+
 ### Documentation — la suite e2e ne teste pas la configuration de production
 
 - Rejouée sur une base à la volumétrie réelle, `e2e/a11y.spec.js` donne 8 échecs pour 4
@@ -54,10 +71,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Cause : **`ui.auth.allow_register` vaut `false` en production**, et le réglage est absent de
   la base semée (donc actif par défaut). Vérifié par bascule : le scénario qui expirait à 60 s
   passe en 8,2 s une fois le réglage à `true`.
-- Portée : **toute spec qui passe par `loginAsNewStudent` suppose l'inscription libre ouverte**.
-  La suite ne vérifie donc jamais l'application telle qu'elle tourne réellement. Deux sorties
-  proposées (forcer le réglage dans `global-setup`, ou créer les élèves par l'API
-  d'administration) — arbitrage laissé au mainteneur, détail dans
+- Portée : **toute spec qui passait par `loginAsNewStudent` supposait l'inscription libre
+  ouverte**. La suite ne vérifiait donc jamais l'application telle qu'elle tourne réellement.
+  **Corrigé** ci-dessous ; détail de l'arbitrage dans
   `docs/AUDIT_CHARGE_VOLUMETRIE_REELLE_2026-09-17.md` § 7.
 
 ### Documentation — charge des listes rejouée sur la volumétrie de production

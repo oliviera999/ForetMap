@@ -1,6 +1,42 @@
 const { expect } = require('@playwright/test');
 
-async function ensureStudentInN3beurGroup(page, studentId) {
+/**
+ * Création des comptes élèves e2e — par l'API d'administration, comme en production.
+ *
+ * En production `ui.auth.allow_register` vaut `false` : le bouton « Créer un compte » n'existe
+ * pas, et les comptes naissent d'un import de liste de classe fait par un enseignant
+ * (`POST /api/students/import`). Tant que les fixtures passaient par le formulaire public, la
+ * suite e2e vérifiait une configuration que personne ne sert — et échouait en cascade dès
+ * qu'on la lançait sur une base réelle (audit `AUDIT_CHARGE_VOLUMETRIE_REELLE_2026-09-17.md` § 7).
+ *
+ * `e2e/global-setup.js` force donc le réglage à `false` pour toute la suite, et le formulaire
+ * public garde sa couverture dans son unique spec dédiée (`auth-registration.spec.js`), qui
+ * l'ouvre puis le referme.
+ */
+
+/** Groupe accordant l'accès n3beur, partagé par tous les comptes e2e (créé une fois). */
+const E2E_N3BEUR_GROUP_SLUG = 'e2e-n3beur';
+const E2E_N3BEUR_GROUP_NAME = 'E2E n3beur';
+
+/** Colonnes du modèle d'import élèves (`lib/studentRouteHelpers.js`, `TEMPLATE_COLUMNS`). */
+const IMPORT_COLUMNS = [
+  'Rôle',
+  'Prénom',
+  'Nom',
+  'Mot de passe',
+  'Affiliation (n3|foret|both|id_carte)',
+  'Groupes (noms/slugs | chemin Parent>Enfant)',
+  'Pseudo (optionnel)',
+  'Email (optionnel)',
+  'Description (optionnel)',
+];
+
+function csvCell(value) {
+  const s = String(value ?? '');
+  return s.includes(';') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+async function loginAsTeacherAdminApi(page) {
   const teacherEmail = process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local';
   const teacherPassword = process.env.TEACHER_ADMIN_PASSWORD || 'admin1234';
   const loginResp = await page.request.post('/api/auth/login', {
@@ -15,11 +51,30 @@ async function ensureStudentInN3beurGroup(page, studentId) {
   const loginBody = await loginResp.json();
   const token = loginBody?.authToken;
   if (!token) throw new Error('Connexion admin e2e : authToken absent');
+  return token;
+}
 
-  const slug = `e2e-n3-${Date.now()}`;
+/**
+ * Groupe n3beur partagé : réutilisé s'il existe déjà (la suite tourne sur une base persistante).
+ */
+async function ensureE2eN3beurGroup(page, token) {
+  const headers = { Authorization: `Bearer ${token}` };
+  const listResp = await page.request.get('/api/groups/options', { headers });
+  if (listResp.ok()) {
+    const body = await listResp.json().catch(() => ({}));
+    const found = (body?.groups || []).find(
+      (g) => String(g.slug || '').toLowerCase() === E2E_N3BEUR_GROUP_SLUG,
+    );
+    if (found) return found;
+  }
   const groupResp = await page.request.post('/api/groups', {
-    headers: { Authorization: `Bearer ${token}` },
-    data: { name: `E2E n3beur ${slug}`, slug, kind: 'class', grants_n3beur_access: true },
+    headers,
+    data: {
+      name: E2E_N3BEUR_GROUP_NAME,
+      slug: E2E_N3BEUR_GROUP_SLUG,
+      kind: 'class',
+      grants_n3beur_access: true,
+    },
   });
   if (!groupResp.ok()) {
     const snippet = await groupResp.text().catch(() => '');
@@ -27,109 +82,83 @@ async function ensureStudentInN3beurGroup(page, studentId) {
       `Création groupe e2e impossible (HTTP ${groupResp.status()}). ${snippet.slice(0, 200)}`,
     );
   }
-  const group = await groupResp.json();
-  const membersResp = await page.request.put(`/api/groups/${group.id}/members`, {
+  return groupResp.json();
+}
+
+/**
+ * Crée un compte élève par l'import d'administration et le rattache au groupe n3beur.
+ * Le rattachement synchronise le rôle (`lib/groupImport.js`), donc pas de reconnexion à vide.
+ */
+async function createStudentViaAdminImport(page, profile) {
+  const token = await loginAsTeacherAdminApi(page);
+  await ensureE2eN3beurGroup(page, token);
+
+  const row = [
+    'visiteur',
+    profile.firstName,
+    profile.lastName,
+    profile.password,
+    'both',
+    E2E_N3BEUR_GROUP_SLUG,
+    profile.pseudo || '',
+    profile.email || '',
+    'Compte e2e (import administration).',
+  ];
+  const csv = `${IMPORT_COLUMNS.map(csvCell).join(';')}\r\n${row.map(csvCell).join(';')}\r\n`;
+
+  const importResp = await page.request.post('/api/students/import', {
     headers: { Authorization: `Bearer ${token}` },
     data: {
-      member_user_ids: [studentId],
-      manager_user_ids: [],
-      scope_map_ids: [],
-      scope_project_ids: [],
+      fileName: 'e2e-eleves.csv',
+      fileDataBase64: Buffer.from(csv, 'utf8').toString('base64'),
     },
   });
-  if (!membersResp.ok()) {
-    const snippet = await membersResp.text().catch(() => '');
+  if (!importResp.ok()) {
+    const snippet = await importResp.text().catch(() => '');
     throw new Error(
-      `Ajout membre groupe e2e impossible (HTTP ${membersResp.status()}). ${snippet.slice(0, 200)}`,
+      `Import élève e2e refusé (HTTP ${importResp.status()}). ${snippet.slice(0, 240)}`,
     );
   }
+  const { report } = await importResp.json();
+  if (report?.totals?.created !== 1) {
+    throw new Error(
+      `Import élève e2e sans création (créés=${report?.totals?.created}). ` +
+        `Erreurs: ${JSON.stringify(report?.errors || []).slice(0, 240)}`,
+    );
+  }
+  return profile;
+}
+
+function buildE2eStudentProfile({ withPseudo = false } = {}) {
+  const nonce = `${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
+  const safeNonce = String(nonce).replace(/[^a-zA-Z0-9]/g, '_');
+  return {
+    firstName: `E2E${nonce}`,
+    lastName: 'Eleve',
+    password: '1234',
+    pseudo: withPseudo ? `e2e_${safeNonce}` : '',
+    email: `e2e_${safeNonce}@example.com`,
+  };
 }
 
 async function loginAsNewStudent(page) {
-  const nonce = `${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
-  const firstName = `E2E${nonce}`;
-  const lastName = 'Eleve';
-  const password = '1234';
-  const email = `e2e_${String(nonce).replace(/[^a-zA-Z0-9]/g, '_')}@example.com`;
-
+  const profile = await createStudentViaAdminImport(page, buildE2eStudentProfile());
   await page.goto('/');
   await markAllDiscoveryToursSeen(page);
-  await page.getByRole('button', { name: 'Créer un compte' }).click();
-  await page.getByLabel('Prénom', { exact: true }).waitFor({ state: 'visible' });
-  await page.getByLabel('Prénom', { exact: true }).fill(firstName);
-  await page.getByLabel('Nom', { exact: true }).fill(lastName);
-  await page.getByLabel('Mot de passe', { exact: true }).fill(password);
-  await page.getByLabel('Email (optionnel)').fill(email);
-  await page.getByLabel('Mon espace', { exact: true }).selectOption('both');
-  await page.getByLabel('Confirmer le mot de passe', { exact: true }).fill(password);
-  const registerDone = page.waitForResponse(
-    (r) => r.url().includes('/api/auth/register') && r.request().method() === 'POST',
-    { timeout: 90_000 },
-  );
-  await page.getByRole('button', { name: 'Créer le compte' }).click();
-  const registerResp = await registerDone;
-  if (!registerResp.ok()) {
-    const snippet = await registerResp.text().catch(() => '');
-    throw new Error(
-      `Inscription élève refusée (HTTP ${registerResp.status()}). ${snippet.slice(0, 240)}`,
-    );
-  }
-  const registerBody = await registerResp.json().catch(() => ({}));
-  const studentId = registerBody?.id;
-  if (studentId) {
-    await ensureStudentInN3beurGroup(page, studentId);
-  }
-
-  await page
-    .getByRole('button', { name: /Déconnexion/ })
-    .waitFor({ state: 'visible', timeout: 60_000 });
-  // Inscription = visiteur ; ajout au groupe n3beur e2e puis reconnexion pour droits tâches.
-  await logoutToAuth(page);
-  await page.goto('/');
-  await loginByIdentifier(page, email, password);
-  return { firstName, lastName, password, pseudo: '', email };
+  await loginByIdentifier(page, profile.email, profile.password);
+  return profile;
 }
 
-async function registerStudentWithProfile(page) {
-  const nonce = `${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
-  const firstName = `E2E${nonce}`;
-  const lastName = 'Eleve';
-  const pseudo = `e2e_${nonce}`;
-  const email = `e2e_${nonce}@example.com`;
-  const password = '1234';
-
+async function createStudentWithProfileViaAdmin(page) {
+  const profile = await createStudentViaAdminImport(
+    page,
+    buildE2eStudentProfile({ withPseudo: true }),
+  );
   await page.goto('/');
   await markAllDiscoveryToursSeen(page);
-  await page.getByRole('button', { name: 'Créer un compte' }).click();
-  await page.getByLabel('Prénom', { exact: true }).waitFor({ state: 'visible' });
-  await page.getByLabel('Prénom', { exact: true }).fill(firstName);
-  await page.getByLabel('Nom', { exact: true }).fill(lastName);
-  await page.getByLabel('Mot de passe', { exact: true }).fill(password);
-  await page.getByLabel('Mon espace', { exact: true }).selectOption('both');
-  await page.getByLabel('Pseudo (optionnel)').fill(pseudo);
-  await page.getByLabel('Email (optionnel)').fill(email);
-  await page.getByLabel('Confirmer le mot de passe', { exact: true }).fill(password);
-  const registerDone = page.waitForResponse(
-    (r) => r.url().includes('/api/auth/register') && r.request().method() === 'POST',
-    { timeout: 90_000 },
-  );
-  await page.getByRole('button', { name: 'Créer le compte' }).click();
-  const registerResp = await registerDone;
-  if (!registerResp.ok()) {
-    const snippet = await registerResp.text().catch(() => '');
-    throw new Error(
-      `Inscription élève refusée (HTTP ${registerResp.status()}). ${snippet.slice(0, 240)}`,
-    );
-  }
-  const registerBody = await registerResp.json().catch(() => ({}));
-  if (registerBody?.id) {
-    await ensureStudentInN3beurGroup(page, registerBody.id);
-  }
-  await page
-    .getByRole('button', { name: /Déconnexion/ })
-    .waitFor({ state: 'visible', timeout: 60_000 });
+  await loginByIdentifier(page, profile.email, profile.password);
   await dismissProfilePromotionModalIfPresent(page);
-  return { firstName, lastName, pseudo, email, password };
+  return profile;
 }
 
 async function logoutToAuth(page) {
@@ -1276,7 +1305,10 @@ async function clickTeacherNewTask(page) {
 
 module.exports = {
   loginAsNewStudent,
-  registerStudentWithProfile,
+  createStudentWithProfileViaAdmin,
+  loginAsTeacherAdminApi,
+  createStudentViaAdminImport,
+  buildE2eStudentProfile,
   logoutToAuth,
   loginByIdentifier,
   dismissProfilePromotionModalIfPresent,

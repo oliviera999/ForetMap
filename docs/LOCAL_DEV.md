@@ -394,6 +394,16 @@ Si **`NODE_ENV=production`** dans l’environnement du serveur (souvent via **`.
 
 Vous pouvez cibler une autre URL avec **`E2E_BASE_URL`**.
 
+**Comptes élèves : la suite tourne dans la configuration de production.** `e2e/global-setup.js`
+force **`ui.auth.allow_register = false`**, la valeur servie en production, et les fixtures
+créent les comptes par l'**import d'administration** (`POST /api/students/import`, rattachement
+au groupe `e2e-n3beur` qui accorde l'accès n3beur) — comme un enseignant important sa liste de
+classe. Auparavant tout passait par le formulaire public : la suite ne vérifiait donc jamais
+l'application telle qu'elle tourne, et s'effondrait dès qu'on la lançait sur une base réelle
+(audit `AUDIT_CHARGE_VOLUMETRIE_REELLE_2026-09-17.md` § 7). Le formulaire public garde sa
+couverture dans **`e2e/auth-registration.spec.js`**, seule spec à rouvrir le réglage — et à le
+refermer derrière elle.
+
 **Visite / mascotte** : scénario dédié **`e2e/visit-mascot.spec.js`** (seed API prof sur la carte **n3** via **`e2e/fixtures/visit-api.fixture.js`**, clics en % sur **`.visit-map-fit-layer`**, `prefers-reduced-motion`, sélection mascotte OLU spritesheet et contrôle des comportements en preview prof/admin). Voir aussi skills **foretmap-e2e**, **foretmap-mascot-catalog** et **`docs/VISIT_MAP_GEOMETRY.md`**.
 
 **Biodiversité** : scénario dédié **`e2e/plants-biodiversity.spec.js`** pour contrôler le catalogue en vignettes et l'ouverture d'une fiche complète côté navigateur. Après une modification frontend sur ce parcours, combiner ce scénario avec le test de charge ciblé `load/artillery-biodiv.yml` décrit au § **5quinquies**.

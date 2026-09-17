@@ -5,11 +5,11 @@
 importé puis anonymisé permet de les rejouer sur la volumétrie réelle. C'est ce que fait cet
 audit.
 
-> **Reproduire ces mesures.** La chaîne d'outillage est livrée
-> (`npm run db:import:dump` → `db:anonymize` → `db:fixture:export` / `db:fixture:load`), mais
-> l'archive `sql/fixtures/foretmap-anonymise.sql.gz` **n'est pas versionnée à ce jour** : le
-> risque de ré-identification par les textes libres demande un arbitrage explicite. En
-> attendant, il faut réimporter un dump pour rejouer ces chiffres.
+> **Reproduire ces mesures.** L'archive `sql/fixtures/foretmap-anonymise.sql.gz` est
+> **versionnée** depuis le 17 septembre 2026 : `npm run db:fixture:load` puis
+> `npm run db:seed:teacher` suffisent, et l'amorçage de session le fait tout seul. Aucun dump
+> de production n'a besoin de circuler. La régénérer :
+> `npm run db:import:dump` → `db:anonymize` → `db:fixture:export`.
 
 **Verdict** : à la volumétrie d'aujourd'hui, **la charge des listes n'est pas un problème
 mesurable**. L'alerte que j'avais formulée la veille — « près d'un mégaoctet pour ouvrir
@@ -17,9 +17,9 @@ l'onglet Biodiversité » — **ne survit pas à la mesure** : elle portait sur 
 alors que toute réponse part compressée. Le correctif de septembre sur la rafale du catalogue,
 lui, se confirme et se quantifie enfin : **61 requêtes par ouverture avant, 4 après**.
 
-Troisième résultat, inattendu : la suite e2e **ne teste pas la configuration de
-production**. Toute spec qui crée un élève suppose l'inscription libre ouverte, alors que
-`ui.auth.allow_register` vaut `false` en production (§ 7).
+Troisième résultat, inattendu : la suite e2e **ne testait pas la configuration de
+production**. Toute spec qui créait un élève supposait l'inscription libre ouverte, alors que
+`ui.auth.allow_register` vaut `false` en production. C'est corrigé (§ 7).
 
 ---
 
@@ -150,16 +150,23 @@ qu'elle tourne réellement — elle vérifie une configuration où n'importe qui
 C'est aussi l'explication des échecs en cascade observés lors de la première tentative de
 suite complète sur cette base.
 
-Deux sorties possibles, à arbitrer (aucune n'est engagée ici) :
+**Arbitrage rendu le 17 septembre : la suite adopte la configuration de production.**
 
-1. **Forcer le réglage dans `e2e/global-setup.js`.** Une ligne, la suite redevient jouable sur
-   n'importe quelle base. Mais elle continue de ne pas tester la configuration réelle.
-2. **Créer les élèves par l'API d'administration** plutôt que par le formulaire public. Plus de
-   travail sur les fixtures, et la suite se rapproche de la production — c'est ainsi que les
-   comptes naissent réellement.
+`e2e/global-setup.js` force désormais `ui.auth.allow_register` à **`false`**, et les fixtures
+créent les comptes par l'**import d'administration** (`POST /api/students/import`, rattachement
+au groupe `e2e-n3beur` qui accorde l'accès n3beur). C'est ainsi que les comptes naissent
+réellement : un enseignant importe sa liste de classe. Le rattachement synchronise le rôle, ce
+qui supprime au passage le va-et-vient inscription → ajout au groupe → déconnexion →
+reconnexion que le formulaire imposait.
 
-La deuxième est la bonne à terme ; la première débloque immédiatement. Le choix appartient au
-mainteneur, parce qu'il engage ce que la suite e2e est censée démontrer.
+Le formulaire public n'est donc plus exercé incidemment. Il ne perd pas sa couverture pour
+autant : `e2e/auth-registration.spec.js` la lui rend **explicitement**, et des deux côtés du
+réglage — fermé, le bouton « Créer un compte » est absent _et_ `POST /api/auth/register` répond
+403 (masquer n'est pas interdire) ; ouvert, le parcours complet crée un compte réutilisable
+après déconnexion. La spec remet le réglage à `false` derrière elle.
+
+L'autre sortie envisagée — forcer le réglage à `true` — aurait débloqué la suite en une ligne
+sans rien prouver de plus. Elle est écartée.
 
 ## 8. Recommandation
 
