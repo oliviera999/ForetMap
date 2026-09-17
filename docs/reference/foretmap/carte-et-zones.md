@@ -331,9 +331,55 @@ depuis la carte vers la visite ne place jamais ce complément dans les textes pu
 de la fiche visite.
 
 > 🔧 **À implémenter (suite possible)** — Restreindre aussi par **groupes** (classe, club,
-> équipe), pas seulement par rôle ; plusieurs compléments (un par public) ; héritage
-> d'audience au niveau d'une **catégorie** de lieux. La V1 couvre les rôles, un lieu
-> absent hors audience, et un seul complément réservé.
+> équipe), pas seulement par rôle ; plusieurs compléments de **texte** (un par public) ;
+> héritage d'audience au niveau d'une **catégorie** de lieux. La V1 couvre les rôles, un lieu
+> absent hors audience, et un seul complément réservé. Pour les **liens**, la restriction par
+> lien existe désormais (voir « Liens du lieu » ci-dessous).
+
+### Liens dans les descriptions
+
+Les descriptions de zones et de repères, les textes de visite **et le complément réservé**
+acceptent des **liens**. Trois formes sont reconnues :
+
+| Ce qu'on écrit                                               | Résultat                                 |
+| ------------------------------------------------------------ | ---------------------------------------- |
+| `https://…` (ou une adresse collée telle quelle)             | **nouvel onglet**, marqué d'une flèche ↗ |
+| `/tutoriels/3`, `/visite?zone=…` — une page de l'application | même onglet, comme un clic normal        |
+| `mailto:…`, `tel:…`                                          | ouvre la messagerie ou l'appel           |
+
+Le bouton **« Lien »** de la barre d'outils fait le travail : on sélectionne le texte, on
+clique, on colle l'adresse. Une adresse non reconnue est **refusée avec un message** au lieu
+d'être enregistrée à moitié — avant, un lien interne disparaissait en silence à
+l'enregistrement.
+
+Un lien écrit dans la **description** est lu par tous ceux qui voient le lieu ; un lien écrit
+dans le **complément réservé** ne l'est que par l'audience de ce complément. C'est la façon
+la plus simple de partager un document confidentiel, sans réglage supplémentaire.
+
+> ⚠️ **Un lien n'est confidentiel que si sa cible l'est.** Mettre une adresse Google Drive
+> dans un complément réservé cache l'adresse aux autres comptes ForetMap, mais ne protège
+> pas le document : si le partage Drive est « toute personne disposant du lien », quiconque
+> obtient l'adresse y accède. Régler les droits **sur le document lui-même**.
+
+### Liens du lieu (boutons, avec audience par lien)
+
+Sous la description, un bloc **« Liens du lieu »** permet d'attacher jusqu'à **12 liens**
+présentés en boutons, chacun avec son **libellé** et **sa propre audience**. C'est ce qu'il
+faut quand un même lieu porte des ressources de publics différents : la fiche d'activité pour
+tout le monde, la procédure d'ouverture des locaux pour les seuls enseignants — sans avoir à
+couper le texte en deux blocs.
+
+- **Aucune case cochée** = lien visible par tous ceux qui voient déjà le lieu.
+- **Des rôles cochés** = lien réservé, signalé par un 🔒 dans l'écran d'édition.
+- Les liens se **réordonnent** (↑ / ↓) et se retirent (✕) ligne par ligne.
+- Mêmes adresses acceptées que ci-dessus ; les adresses externes s'ouvrent en nouvel onglet.
+
+Un lien réservé n'est **pas simplement caché à l'écran** : il n'est pas envoyé du tout à un
+lecteur qui n'y a pas droit, sur aucune surface — carte, Visite, Plan Lyautey, plan des
+personnels. La même règle que pour le complément réservé.
+
+Les liens du lieu s'affichent sur la **carte de travail** et sur le **Plan**. Sur la Visite,
+les liens passent par les textes (description, détails), comme décrit plus haut.
 
 ### Où apparaît un lieu (carte, visite, plan)
 
