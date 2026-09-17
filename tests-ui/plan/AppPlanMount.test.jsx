@@ -344,7 +344,17 @@ describe('AppPlan — montage', () => {
 
   test('filtre par catégorie : ne garde que les lieux de la catégorie cochée', async () => {
     render(<AppPlan />);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+    // `Plan Lyautey` est AUSSI le titre par défaut de la variante (`planVariants.js`) : il est
+    // affiché avant même que la charge n'arrive, donc l'attendre ne prouve rien. On attend ici
+    // la puce de catégorie, qui n'existe qu'une fois le contenu chargé.
+    //
+    // Sans cette attente, le clic ci-dessous court contre l'effet de restauration des
+    // catégories (`AppPlan.jsx` : lecture de `localStorage` puis `setSelectedCategoryIds` à
+    // **valeur directe**), qui écrase une sélection concurrente — la puce retombe à
+    // « Tout » et le filtrage ne s'applique jamais. Le créneau ne s'ouvre que lorsque
+    // l'ordonnancement des effets se décale, d'où des échecs seulement sous la charge de la
+    // suite complète (CI), jamais en isolation.
+    await waitFor(() => expect(screen.getByRole('button', { name: /Sport/ })).toBeTruthy());
 
     // Sur la carte : le repère est un bouton (`aria-label`), la zone un libellé HTML.
     expect(screen.getByText('CDI')).toBeTruthy();

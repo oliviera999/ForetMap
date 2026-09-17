@@ -52,8 +52,10 @@ CREATE TABLE IF NOT EXISTS zones (
   hidden_surfaces SET('map','visit','plan','staff') NOT NULL DEFAULT '',
   search_aliases TEXT DEFAULT NULL,
   visible_role_slugs TEXT DEFAULT NULL,
+  visible_group_ids TEXT DEFAULT NULL,
   restricted_note TEXT DEFAULT NULL,
   restricted_note_role_slugs TEXT DEFAULT NULL,
+  restricted_note_group_ids TEXT DEFAULT NULL,
   INDEX idx_zones_map_id (map_id),
   CONSTRAINT fk_zones_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -837,8 +839,10 @@ CREATE TABLE IF NOT EXISTS map_markers (
   hidden_surfaces SET('map','visit','plan','staff') NOT NULL DEFAULT '',
   search_aliases TEXT DEFAULT NULL,
   visible_role_slugs TEXT DEFAULT NULL,
+  visible_group_ids TEXT DEFAULT NULL,
   restricted_note TEXT DEFAULT NULL,
   restricted_note_role_slugs TEXT DEFAULT NULL,
+  restricted_note_group_ids TEXT DEFAULT NULL,
   INDEX idx_map_markers_map_id (map_id),
   CONSTRAINT fk_map_markers_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT,
   INDEX idx_map_markers_created (created_at)
@@ -882,6 +886,10 @@ CREATE TABLE IF NOT EXISTS location_categories (
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   surfaces SET('map','visit','plan','staff') NOT NULL DEFAULT 'map,visit,plan,staff',
   zoom_only TINYINT(1) NOT NULL DEFAULT 0,
+  -- Audience héritée par les lieux de la catégorie qui n'ont pas d'audience propre
+  -- (migration 262). Vide = catégorie neutre : elle n'ouvre ni ne ferme rien.
+  visible_role_slugs TEXT DEFAULT NULL,
+  visible_group_ids TEXT DEFAULT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_location_categories_map (map_id),
   INDEX idx_location_categories_slug (slug),
@@ -905,6 +913,7 @@ CREATE TABLE IF NOT EXISTS location_links (
   label VARCHAR(160) NOT NULL,
   url VARCHAR(2048) NOT NULL,
   audience_role_slugs TEXT DEFAULT NULL,
+  audience_group_ids TEXT DEFAULT NULL,
   sort_order INT NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_location_links_target (location_kind, location_id, sort_order, id)
@@ -972,8 +981,10 @@ CREATE TABLE IF NOT EXISTS visit_zones (
   details_text TEXT DEFAULT NULL,
   body_json LONGTEXT DEFAULT NULL,
   visible_role_slugs TEXT DEFAULT NULL,
+  visible_group_ids TEXT DEFAULT NULL,
   restricted_note TEXT DEFAULT NULL,
   restricted_note_role_slugs TEXT DEFAULT NULL,
+  restricted_note_group_ids TEXT DEFAULT NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   sort_order INT UNSIGNED DEFAULT 0,
   created_at VARCHAR(32) DEFAULT NULL,
@@ -996,8 +1007,10 @@ CREATE TABLE IF NOT EXISTS visit_markers (
   details_text TEXT DEFAULT NULL,
   body_json LONGTEXT DEFAULT NULL,
   visible_role_slugs TEXT DEFAULT NULL,
+  visible_group_ids TEXT DEFAULT NULL,
   restricted_note TEXT DEFAULT NULL,
   restricted_note_role_slugs TEXT DEFAULT NULL,
+  restricted_note_group_ids TEXT DEFAULT NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   sort_order INT UNSIGNED DEFAULT 0,
   created_at VARCHAR(32) DEFAULT NULL,
