@@ -9,6 +9,38 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Plan Lyautey : navigation lissée et repère directionnel
+
+- **Le repère de position indique la direction.** Un disque ne dit pas de quel côté on part :
+  dès qu'une direction est connue, le repère devient une **flèche orientée**. Elle suit la
+  **route GPS** quand on marche (`coords.heading`) et la **boussole** à l'arrêt, avec hystérésis
+  sur la vitesse pour ne pas basculer d'une source à l'autre à chaque pas. Sans aucune direction
+  exploitable, le disque reste : une flèche pointée au hasard mentirait. Carte orientée, la
+  flèche pointe vers le haut de l'écran — le calque tourne de `−cap`, la flèche de `+cap`.
+- **Suivi de carte continu** (`followPct`). Le suivi rejouait une animation de 200 ms à chaque
+  mesure puis s'arrêtait net : une saccade par seconde. La caméra rattrape désormais une cible
+  mobile en continu (ressort amorti, τ ≈ 380 ms), ne se relance pas quand la cible bouge, et
+  n'écrit dans React **qu'une fois arrivée** — marcher ne coûte plus un rendu par mesure.
+- **Mesures GPS filtrées avant affichage** (`geoPositionFilter.js`) : rejet des sauts
+  invraisemblables (le « téléport » sur reflet de signal, qui emportait la carte à l'autre bout
+  du plan), puis filtre de Kalman 1-D dont le gain suit la précision annoncée — et s'ouvre avec
+  la vitesse, pour coller à la marche sans retrouver le tremblement de l'arrêt. La précision
+  affichée par le halo reste celle du capteur.
+- **Lissage du cap à constante de temps** (`smoothHeadingOverTime`) : le lissage à alpha fixe
+  dépendait de la cadence du capteur — nerveux à 60 Hz, mou à 5 Hz. Le cap est désormais lissé
+  dans une ref et publié **huit fois par seconde au plus**, avec bande morte d'un degré ; la
+  **transition CSS** du calque d'orientation comble les intervalles sur le compositeur. La
+  boussole ne déclenche plus un rendu de toute la carte par événement.
+- **Angle d'orientation continu** (`unwrapHeadingDeg`) : sans lui, une transition CSS entre
+  359° et 1° ferait faire à la carte un tour complet, à l'envers.
+- **Acquisition plus fraîche** : `maximumAge` passe de 5 s à 1 s. Une mesure vieille de cinq
+  secondes place la personne cinq mètres en arrière, et le suivi part en saccades pour rattraper
+  un retard qui n'existe pas. `coords.speed` et `coords.heading` sont désormais exposés.
+- **Mouvement réduit respecté** : la carte se pose sur la position au lieu d'y glisser, et la
+  flèche ne s'anime pas.
+- Noyau carte **partagé** : ForetMap (visite, carte de travail) profite des mêmes changements.
+  Inspiration citée dans `geoPositionFilter.js` (filtre de Kalman 1-D pour traces GPS).
+
 ### Corrigé — Plan Lyautey : la navigation ne se fait plus recouvrir
 
 - **Guidage « Y aller » sorti de la fiche.** Le bouton referme la fiche et pose une **barre de
