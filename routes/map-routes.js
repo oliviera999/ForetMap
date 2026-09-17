@@ -28,16 +28,19 @@ const { resolveScopedMapFilter, canAccessMapId, MAP_OUT_OF_SCOPE } = require('..
 const asyncHandler = require('../lib/asyncHandler');
 const { logAudit } = require('../lib/auditLog');
 const {
+  PUBLIC_SURFACES,
   parseSurfaceSet,
   readSurfaceQuery,
   normalizeSurfaceInput,
 } = require('../lib/locationSurfaces');
 const { isPlanAccessGranted, requirePlanAccess } = require('../lib/planAccess');
+const { resolveStaffPlanViewer } = require('../lib/staffPlanAccess');
 const {
   ROUTE_AUDIENCE_MAX,
   ROUTE_TITLE_MAX,
   attachStepsToRoutes,
   normalizeRouteDescription,
+  normalizeRouteSortOrder,
   normalizeRouteSteps,
   resolveRouteBaseUrl,
   routeDeepLink,
@@ -193,13 +196,53 @@ async function checkStepTargets(mapId, steps) {
 }
 
 /**
- * Catalogue **public** : parcours publiés, filtrables par carte et par surface.
+ * Garde de lecture du catalogue, **par surface**.
  *
- * La **garde d'accès du plan** ne s'applique qu'au catalogue du plan (surface absente ou
- * `plan`) : les surfaces `map` et `visit` ont leurs propres écrans dans ForetMap, et ne
- * doivent pas dépendre du code d'accès du Plan Lyautey. Sans laissez-passer plan, un
- * établissement en `access_mode = code` fermait aussi la liste destinée à la Visite / carte
- * (`docs/AUDIT_PARCOURS_2026-09.md` §2.2, étendu aux surfaces hors plan).
+ * Une surface se lit comme sa charge se lit. `plan` suit la garde du Plan Lyautey ; `visit`
+ * est ouverte ; `map` (carte de travail) et `staff` (plan des personnels) ne le sont pas —
+ * `PUBLIC_SURFACES` ne retient que `visit` et `plan`. Avant ce partage, la seule garde posée
+ * était celle du plan : `GET /api/map-routes?surface=staff` (et `?surface=map`) servait à un
+ * anonyme le titre, la description, le public visé et le **texte des étapes** de parcours
+ * réservés aux personnels, quand `GET /api/staff-plan/content` répond 401 sur le même contenu
+ * (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.1).
+ *
+ * @returns {Promise<boolean>} vrai si la lecture est autorisée ; sinon la réponse est déjà écrite.
+ */
+async function guardSurfaceRead(req, res, surface) {
+  if (!surface || surface === 'plan') {
+    if (await isPlanAccessGranted(req)) return true;
+    res.status(401).json({ error: 'Code d’accès requis', access_required: true });
+    return false;
+  }
+  if (surface === 'staff') {
+    const viewer = await resolveStaffPlanViewer(req);
+    if (viewer.ok) return true;
+    res.status(401).json({
+      error: 'Connexion requise',
+      auth_required: true,
+      code_available: viewer.codeAvailable,
+    });
+    return false;
+  }
+  if (surface === 'map') {
+    // La carte de travail est un écran interne : un compte suffit (c'est ce qu'exige déjà
+    // l'application qui l'affiche), aucune permission particulière n'est demandée ici.
+    if (req.auth?.userId) return true;
+    res.status(401).json({ error: 'Connexion requise', auth_required: true });
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Catalogue : parcours publiés, filtrables par carte et par surface.
+ *
+ * Chaque surface porte la garde de sa propre charge (`guardSurfaceRead`). La garde du Plan
+ * Lyautey ne s'applique donc qu'au catalogue du plan (surface absente ou `plan`) : `visit`
+ * reste ouverte, et les surfaces internes `map` / `staff` demandent ce que demandent leurs
+ * écrans. Sans ce partage, un établissement en `access_mode = code` fermait aussi la liste
+ * destinée à la Visite (`docs/AUDIT_PARCOURS_2026-09.md` §2.2) — et, dans l'autre sens, les
+ * surfaces internes restaient ouvertes à tous (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.1).
  */
 router.get(
   '/',
@@ -213,11 +256,7 @@ router.get(
     if (!surfaceQuery.ok) return res.status(400).json({ error: surfaceQuery.error });
 
     const surface = surfaceQuery.value;
-    if (!surface || surface === 'plan') {
-      if (!(await isPlanAccessGranted(req))) {
-        return res.status(401).json({ error: 'Code d’accès requis', access_required: true });
-      }
-    }
+    if (!(await guardSurfaceRead(req, res, surface))) return;
 
     const where = ['is_published = 1'];
     const params = [];
@@ -237,7 +276,15 @@ router.get(
   }),
 );
 
-/** Vue de gestion : inclut les brouillons (permission `zones.manage`). */
+/**
+ * Vue de gestion : inclut les brouillons (permission `zones.manage`).
+ *
+ * Le **périmètre de cartes** du compte s'y applique comme au catalogue public : sans `map_id`,
+ * la liste est ramenée aux cartes autorisées, et un `map_id` hors périmètre est refusé. Sans
+ * effet pour les comptes qui portent `teacher.access` — ils sortent du périmètre par
+ * construction (`lib/shared/mapScopeCore.js`) — mais la dissymétrie d'avant se lisait comme
+ * une garde là où il n'y en avait pas (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.6 b).
+ */
 router.get(
   '/manage',
   requirePermission('zones.manage'),
@@ -246,7 +293,12 @@ router.get(
     if (mapId && !(await mapExists(mapId))) {
       return res.status(400).json({ error: 'Carte introuvable' });
     }
-    res.json(await loadRoutes(mapId ? 'map_id = ?' : '', mapId ? [mapId] : []));
+    const scope = await resolveScopedMapFilter(req.auth || null, mapId);
+    if (scope.forbidden) return res.status(403).json(MAP_OUT_OF_SCOPE);
+    if (!scope.mapIds) return res.json(await loadRoutes('', []));
+    return res.json(
+      await loadRoutes(`map_id IN (${scope.mapIds.map(() => '?').join(', ')})`, scope.mapIds),
+    );
   }),
 );
 
@@ -258,8 +310,22 @@ router.get(
  * (« le publié, sinon le premier venu ») livrait le brouillon à un visiteur anonyme qui
  * devinait le slug — celui-ci dérive du titre (`docs/AUDIT_PARCOURS_2026-09.md` §2.1).
  *
+ * Et seulement les parcours publiés sur une **surface publique** (`visit`, `plan`). Ce
+ * détail est la porte du lien profond imprimé : il passe la garde du plan, mais ne regardait
+ * aucune surface, si bien qu'un parcours réservé à la carte de travail ou aux personnels s'y
+ * lisait en entier, textes d'étape compris (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.1). Un
+ * parcours interne répond ici **404**, comme un parcours inexistant : l'affiche périmée et le
+ * parcours qui n'a jamais été public disent la même chose au visiteur.
+ *
  * `?map_id=` lève l'ambiguïté quand deux cartes portent le même slug : il n'est unique que
  * par carte.
+ *
+ * **Aucun front ne l'appelle** : le plan lit ses parcours dans `/api/plan/content`, la Visite
+ * dans `/api/visit/content`, la carte de travail dans le catalogue. Elle est conservée
+ * délibérément — c'est un contrat public documenté (`docs/API.md`), la voie d'un lien profond
+ * résolu côté serveur et d'une intégration tierce — mais c'est une porte ouverte sans usage
+ * interne : toute évolution des parcours doit passer ici aussi
+ * (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.6 a).
  */
 router.get(
   '/:idOrSlug',
@@ -268,8 +334,12 @@ router.get(
   asyncHandler(async (req, res) => {
     const key = String(req.params.idOrSlug || '').trim();
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
-    const where = ['is_published = 1', '(id = ? OR slug = ?)'];
-    const params = [key, key];
+    const where = [
+      'is_published = 1',
+      '(id = ? OR slug = ?)',
+      `(${PUBLIC_SURFACES.map(() => 'FIND_IN_SET(?, surfaces) > 0').join(' OR ')})`,
+    ];
+    const params = [key, key, ...PUBLIC_SURFACES];
     if (mapId) {
       where.push('map_id = ?');
       params.push(mapId);
@@ -320,7 +390,8 @@ router.post(
     const description = normalizeRouteDescription(req.body?.description);
     if (!description.ok) return res.status(400).json({ error: description.error });
 
-    const sortOrderRaw = parseInt(req.body?.sort_order, 10);
+    const sortOrder = normalizeRouteSortOrder(req.body?.sort_order);
+    if (!sortOrder.ok) return res.status(400).json({ error: sortOrder.error });
     const id = crypto.randomUUID();
     await execute(
       `INSERT INTO map_routes
@@ -337,7 +408,7 @@ router.post(
           .slice(0, ROUTE_AUDIENCE_MAX),
         serializeSurfaceSet(surfaces.value === null ? ['plan'] : surfaces.value),
         req.body?.is_published ? 1 : 0,
-        Number.isFinite(sortOrderRaw) ? sortOrderRaw : 100,
+        sortOrder.value === undefined ? 100 : sortOrder.value,
       ],
     );
     if (steps.value) await replaceSteps(id, steps.value);
@@ -368,8 +439,16 @@ router.put(
     if (title.length > ROUTE_TITLE_MAX) {
       return res.status(400).json({ error: `Titre trop long (${ROUTE_TITLE_MAX} maximum)` });
     }
+    // Champ « Identifiant du lien » **effacé** : on le re-dérive du titre, comme à la création
+    // et comme l'annonce le champ (« laissé vide : dérivé du titre »). L'éditeur envoie le
+    // champ à chaque enregistrement, vide compris : le repli d'origine portait sur l'absence
+    // du champ, si bien qu'effacer l'identifiant valait 400 sans dire quoi faire
+    // (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.3).
+    const slugInput = req.body?.slug;
     const slug =
-      req.body?.slug !== undefined ? slugifyRouteTitle(req.body.slug) : String(current.slug);
+      slugInput === undefined
+        ? String(current.slug)
+        : slugifyRouteTitle(String(slugInput).trim() ? slugInput : title);
     if (!slug) return res.status(400).json({ error: 'Slug invalide (lettres ou chiffres requis)' });
     if (await slugTaken(current.map_id, slug, current.id)) {
       return res.status(409).json({ error: 'Un parcours porte déjà ce slug sur cette carte' });
@@ -382,7 +461,8 @@ router.put(
     if (!targets.ok) return res.status(400).json({ error: targets.error });
     const description = normalizeRouteDescription(req.body?.description);
     if (!description.ok) return res.status(400).json({ error: description.error });
-    const sortOrderRaw = parseInt(req.body?.sort_order, 10);
+    const sortOrder = normalizeRouteSortOrder(req.body?.sort_order);
+    if (!sortOrder.ok) return res.status(400).json({ error: sortOrder.error });
 
     await execute(
       `UPDATE map_routes
@@ -402,7 +482,7 @@ router.put(
             ? 1
             : 0
           : current.is_published,
-        Number.isFinite(sortOrderRaw) ? sortOrderRaw : current.sort_order,
+        sortOrder.value === undefined ? current.sort_order : sortOrder.value,
         current.id,
       ],
     );

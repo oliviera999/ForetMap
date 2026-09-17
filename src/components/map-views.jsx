@@ -5,6 +5,7 @@ import { MapRoutePicker } from '../shared/map-routes/MapRoutePicker.jsx';
 import { MapRouteBar } from '../shared/map-routes/MapRouteBar.jsx';
 import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
 import {
+  mapRouteResumeStorageKey,
   placesFromZonesAndMarkers,
   routeEntryFocusPct,
 } from '../shared/map-routes/mapRouteSteps.js';
@@ -367,22 +368,33 @@ function MapViewImpl({
     [useSharedViewStage, focusOnPct],
   );
 
+  /**
+   * Hauteur réellement occupée par la barre d'étape (elle se mesure elle-même) : la carte
+   * recadre **au-dessus** d'elle, sans quoi le lieu de l'étape courante était centré dans la
+   * scène entière, donc sous la barre (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.7).
+   */
+  const [routeBarHeight, setRouteBarHeight] = useState(0);
+  const routeFocusInsets = useMemo(
+    () => (routeBarHeight > 0 ? { bottom: routeBarHeight } : null),
+    [routeBarHeight],
+  );
   const onRouteStepPlace = useCallback(
     (entry) => {
       if (!entry?.place) return;
       const place = entry.place;
+      const focusOptions = routeFocusInsets ? { insets: routeFocusInsets } : undefined;
       if (place.kind === 'zone') {
         setSelectedMarker(null);
         setSelectedZone(place);
         const pct = zoneFocusPctFromPoints(place.points);
-        if (pct) focusMapPct(pct);
+        if (pct) focusMapPct(pct, focusOptions);
       } else {
         setSelectedZone(null);
         setSelectedMarker(place);
-        focusMapPct(markerFocusPct(place));
+        focusMapPct(markerFocusPct(place), focusOptions);
       }
     },
-    [focusMapPct],
+    [focusMapPct, routeFocusInsets],
   );
   const onRouteExitExtra = useCallback(() => {
     setSelectedZone(null);
@@ -406,6 +418,9 @@ function MapViewImpl({
     places: routePlaces,
     onStepPlace: onRouteStepPlace,
     onExitExtra: onRouteExitExtra,
+    // Reprise mémorisée sur l'appareil : « Reprendre » rend la main à l'étape quittée, même
+    // après un rechargement (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.2).
+    storageKey: mapRouteResumeStorageKey('map', activeMapId),
   });
   useEffect(() => {
     resetForMapChange();
@@ -1397,6 +1412,7 @@ function MapViewImpl({
             mode === 'view' ? (
               <MapRoutePicker
                 routes={mapRoutes}
+                places={routePlaces}
                 open={routePickerOpen}
                 onToggle={setRoutePickerOpen}
                 onStart={startRoute}
@@ -1743,6 +1759,7 @@ function MapViewImpl({
               index={routeIndex}
               onGoToIndex={goToRouteIndex}
               onExit={exitRoute}
+              onHeight={setRouteBarHeight}
               canLocate={!!mapPosition?.available}
               distanceLabel={routeDistanceLabel}
               hintLocate="Le lieu est mis en avant sur la carte. Utilisez « Me suivre » puis avancez."
