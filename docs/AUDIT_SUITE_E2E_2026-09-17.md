@@ -1,11 +1,16 @@
 # Audit — pourquoi la suite e2e était rouge, et depuis quand (17 septembre 2026)
 
 **Ce que cet audit établit** : lancée en entier sur une base locale, la suite Playwright donnait
-**88 réussites, 14 échecs et 1 test fragile**. Aucun de ces échecs n'était un bug applicatif.
+**88 réussites, 14 échecs, 1 test fragile, 5 sautés et 5 jamais exécutés** (ces derniers tombant
+derrière un échec dans le même fichier). Aucun de ces échecs n'était un bug applicatif.
 Tous venaient de specs restées sur une interface ou une règle qui avait changé sous elles — et
 que rien ne rattrapait, parce que personne ne lance la suite en entier.
 
-**Verdict** : les quatorze sont réparés, et le test fragile avec eux — **113 réussites, 0 échec**.
+**Verdict** : les quatorze sont réparés, et le test fragile avec eux — **109 réussites, 5 sautés,
+0 échec** sur 114 tests (un test en a été scindé en deux). Plus aucun test « jamais exécuté », et
+la suite passe de 21 min 36 à 12 min 48. Les cinq sautés le sont par décision propre à chaque
+spec (`test.skip`), pas par un échec : `admin-impersonation`, deux scénarios
+`gl-player-journal`, `map-gps-follow` et `photos-upload-delete`.
 La cause n'est pas la qualité des specs prises une à une, c'est qu'un refactor d'interface ne
 casse pas le build, ne casse pas les tests unitaires, et ne se voit qu'au moment où quelqu'un joue
 la suite complète.
