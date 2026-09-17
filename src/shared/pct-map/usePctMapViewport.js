@@ -93,6 +93,13 @@ function useElementRef() {
   return [ref, el];
 }
 
+/**
+ * Constante de temps (ms) du suivi continu de position. Trop courte, la caméra colle au bruit
+ * du capteur ; trop longue, elle traîne derrière la personne. ~380 ms : le point reste au
+ * centre à l'allure d'un piéton, sans transmettre les tremblements du GPS.
+ */
+export const PCT_MAP_FOLLOW_TAU_MS = 380;
+
 /** Annulation d'un rAF tolérante aux environnements sans `cancelAnimationFrame` (SSR, jsdom nu). */
 function cancelRaf(id) {
   if (id != null && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(id);
@@ -145,6 +152,8 @@ export function usePctMapViewport({
   const pinchStart = useRef(null);
   const lastTap = useRef({ t: 0, x: 0, y: 0 });
   const animRafRef = useRef(null);
+  const followRafRef = useRef(null);
+  const followRef = useRef(null);
   const applyRafRef = useRef(null);
   const commitRafRef = useRef(null);
   const commitTimerRef = useRef(null);
@@ -177,8 +186,16 @@ export function usePctMapViewport({
     });
   }, []);
 
+  /**
+   * Le cap n'est publié que quelques fois par seconde (`useMapPosition`) : la transition CSS
+   * relie deux angles successifs sur le compositeur, sans le moindre rendu React. C'est ce qui
+   * remplace la rotation « par à-coups » d'un calque re-rendu à la cadence de la boussole.
+   */
   const orientStyle = useMemo(
-    () => mapOrientationStyle(mapOrientation.deg, mapOrientation.originPct) || undefined,
+    () =>
+      mapOrientationStyle(mapOrientation.deg, mapOrientation.originPct, {
+        animated: !reducedMotionRef.current,
+      }) || undefined,
     [mapOrientation],
   );
 
@@ -295,13 +312,24 @@ export function usePctMapViewport({
     [commit],
   );
 
+  /**
+   * Annule tout mouvement automatique en cours — animation ponctuelle **et** suivi continu.
+   * Appelée à chaque entrée de geste : la main a toujours la priorité sur la caméra.
+   */
   const cancelAnimation = useCallback(() => {
+    let cancelled = false;
+    if (followRafRef.current != null) {
+      cancelRaf(followRafRef.current);
+      followRafRef.current = null;
+      cancelled = true;
+    }
+    followRef.current = null;
     if (animRafRef.current != null) {
       cancelRaf(animRafRef.current);
       animRafRef.current = null;
-      return true;
+      cancelled = true;
     }
-    return false;
+    return cancelled;
   }, []);
 
   /** Animation courte (200 ms, ease-out cubique) entre deux transformations, puis commit. */
@@ -544,6 +572,7 @@ export function usePctMapViewport({
       cancelAnimation();
       cancelRaf(applyRafRef.current);
       cancelRaf(commitRafRef.current);
+      cancelRaf(followRafRef.current);
       if (commitTimerRef.current != null) clearTimeout(commitTimerRef.current);
     },
     [cancelAnimation],
@@ -612,6 +641,92 @@ export function usePctMapViewport({
       animateTo(centerPctMapTransformOnPct(pct, s, b, fr, insets));
     },
     [animateTo, currentBounds],
+  );
+
+  /**
+   * Suivi **continu** d'un point mobile (navigation GPS) : la caméra glisse en permanence vers
+   * la cible, façon ressort amorti, au lieu de jouer une animation de 200 ms à chaque mesure
+   * puis de s'arrêter net jusqu'à la suivante — c'est ce « stop-and-go », une saccade par point
+   * reçu, que voyait la personne qui marche avec le plan à la main.
+   *
+   * Appeler `followPct` à chaque nouvelle mesure ne relance rien : cela **déplace la cible**
+   * d'une boucle déjà en vol. La boucle s'arrête d'elle-même une fois la cible atteinte (donc
+   * dès que la personne s'arrête), et n'écrit son état dans React qu'à ce moment-là : marcher
+   * ne coûte aucun rendu.
+   *
+   * @param {{ xp: number, yp: number }} pct point à garder au centre.
+   * @param {{ targetScale?: number|null, insets?: object|null, tauMs?: number }} [options]
+   *   `tauMs` est la constante de temps du rattrapage : ~63 % de l'écart est comblé en `tauMs`.
+   */
+  const followPct = useCallback(
+    (pct, { targetScale = null, insets = null, tauMs = PCT_MAP_FOLLOW_TAU_MS } = {}) => {
+      if (!Number.isFinite(Number(pct?.xp)) || !Number.isFinite(Number(pct?.yp))) return;
+      followRef.current = {
+        pct: { xp: Number(pct.xp), yp: Number(pct.yp) },
+        targetScale,
+        insets,
+        tauMs: Number(tauMs) > 0 ? Number(tauMs) : PCT_MAP_FOLLOW_TAU_MS,
+      };
+      const resolveTarget = (f) => {
+        const b = currentBounds();
+        const desired = f.targetScale != null ? Number(f.targetScale) : tx.current.s;
+        const fr = optionsRef.current.contentMode === 'stage' ? fitRectRef.current : null;
+        return centerPctMapTransformOnPct(f.pct, clampPctMapScale(desired, b), b, fr, f.insets);
+      };
+      // Mouvement réduit : pas de glissé du tout, la carte se pose sur la cible.
+      if (reducedMotionRef.current) {
+        const target = resolveTarget(followRef.current);
+        followRef.current = null;
+        if (followRafRef.current != null) {
+          cancelRaf(followRafRef.current);
+          followRafRef.current = null;
+        }
+        commit(target);
+        return;
+      }
+      if (followRafRef.current != null) return;
+      // Une animation ponctuelle (recentrage sur un lieu) devient caduque : on prend la main.
+      if (animRafRef.current != null) {
+        cancelRaf(animRafRef.current);
+        animRafRef.current = null;
+      }
+      setWorldWillChange(true);
+      let last = performance.now();
+      const step = (now) => {
+        const f = followRef.current;
+        if (!f) {
+          followRafRef.current = null;
+          commit();
+          return;
+        }
+        // Onglet revenu au premier plan : un `dt` d'une minute ferait un saut. Plafonné.
+        const dt = Math.max(0, Math.min(100, now - last));
+        last = now;
+        const target = resolveTarget(f);
+        const k = 1 - Math.exp(-dt / f.tauMs);
+        const cur = tx.current;
+        const next = {
+          x: cur.x + (target.x - cur.x) * k,
+          y: cur.y + (target.y - cur.y) * k,
+          s: cur.s + (target.s - cur.s) * k,
+        };
+        const settled =
+          Math.abs(target.x - next.x) < 0.25 &&
+          Math.abs(target.y - next.y) < 0.25 &&
+          Math.abs(target.s - next.s) < 5e-4;
+        tx.current = settled ? target : next;
+        applyTransform();
+        if (settled) {
+          followRafRef.current = null;
+          followRef.current = null;
+          commit(target);
+          return;
+        }
+        followRafRef.current = requestAnimationFrame(step);
+      };
+      followRafRef.current = requestAnimationFrame(step);
+    },
+    [applyTransform, commit, currentBounds, setWorldWillChange],
   );
 
   const applyLive = useCallback(
@@ -1020,6 +1135,7 @@ export function usePctMapViewport({
       animateZoomTowardScale,
       zoomBy,
       focusOnPct,
+      followPct,
       animateTo,
       cancelAnimation,
       beginPan,
@@ -1058,6 +1174,7 @@ export function usePctMapViewport({
       animateZoomTowardScale,
       zoomBy,
       focusOnPct,
+      followPct,
       animateTo,
       cancelAnimation,
       beginPan,

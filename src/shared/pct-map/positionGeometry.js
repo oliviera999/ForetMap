@@ -25,6 +25,13 @@ function toFinite(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+/** `Number(null)` vaut 0 : une absence de mesure ne doit pas se lire comme un cap plein nord. */
+function numberOrNull(value) {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 /**
  * Rayon du halo de précision, en % du plan, à partir de la précision du capteur (mètres) et
  * de la taille réelle du plan. Sans taille connue, pas de halo : mieux vaut aucun cercle
@@ -186,4 +193,54 @@ export function northOffsetFromProjection(project, reference) {
   const north = project(lat + 0.001, lng);
   if (!here || !north) return 0;
   return bearingBetweenPct(here, north);
+}
+
+/** Vitesse (m/s) à partir de laquelle le cap GPS (route suivie) devient exploitable. */
+export const TRAVEL_HEADING_MIN_SPEED_MS = 0.9;
+
+/**
+ * Vitesse (m/s) sous laquelle on abandonne le cap GPS une fois qu'on l'a adopté. L'écart avec
+ * `TRAVEL_HEADING_MIN_SPEED_MS` est l'hystérésis : sans elle, un piéton qui ralentit à un
+ * carrefour ferait basculer la source de cap à chaque mesure, et la carte oscillerait entre
+ * deux orientations.
+ */
+export const TRAVEL_HEADING_KEEP_SPEED_MS = 0.5;
+
+/**
+ * Cap **de déplacement** : vers où la personne se dirige, et non vers où elle regarde.
+ *
+ * Deux capteurs le disent, aucun des deux tout le temps :
+ *   - le **GPS** (`coords.heading`, route suivie) est stable dès qu'on marche, mais vaut `NaN`
+ *     à l'arrêt — un point immobile n'a pas de direction ;
+ *   - la **boussole** répond toujours, mais donne l'orientation de l'appareil, pas celle de la
+ *     marche, et tremble (masses métalliques, main qui bouge).
+ *
+ * On prend donc le GPS dès que la vitesse le rend crédible, la boussole sinon, avec hystérésis
+ * sur la vitesse pour ne pas basculer d'une source à l'autre à chaque pas.
+ *
+ * @param {object} input
+ * @param {number|null} [input.gpsHeadingDeg] cap GPS (degrés depuis le nord).
+ * @param {number|null} [input.speedMs] vitesse annoncée par le capteur (m/s).
+ * @param {number|null} [input.compassHeadingDeg] cap boussole (degrés depuis le nord).
+ * @param {'gps'|'compass'|null} [input.previousSource] source retenue au coup précédent.
+ * @returns {{ headingDeg: number|null, source: 'gps'|'compass'|null }}
+ */
+export function pickTravelHeadingDeg({
+  gpsHeadingDeg = null,
+  speedMs = null,
+  compassHeadingDeg = null,
+  previousSource = null,
+} = {}) {
+  const gps = numberOrNull(gpsHeadingDeg);
+  const speed = numberOrNull(speedMs);
+  const threshold =
+    previousSource === 'gps' ? TRAVEL_HEADING_KEEP_SPEED_MS : TRAVEL_HEADING_MIN_SPEED_MS;
+  if (gps != null && speed != null && speed >= threshold) {
+    return { headingDeg: ((gps % 360) + 360) % 360, source: 'gps' };
+  }
+  const compass = numberOrNull(compassHeadingDeg);
+  if (compass != null) {
+    return { headingDeg: ((compass % 360) + 360) % 360, source: 'compass' };
+  }
+  return { headingDeg: null, source: null };
 }
