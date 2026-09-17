@@ -15,6 +15,8 @@
     @import './shared/styles/guided-tour.css';
     @import './shared/styles/tour-editor.css';
     @import './shared/styles/shared-controls.css';
+    @import './shared/styles/form-controls.css';
+    @import './shared/styles/subtabs.css';
     @import './shared/styles/map-action.css';
     @import './shared/styles/map-overlay-labels.css';
     @import './shared/styles/map-scale-compass.css';
@@ -141,6 +143,103 @@
       input, select, textarea { font-size:16px !important; }
     }
 
+    /* ── COUCHE DE BASE DES CHAMPS (ForetMap seul) ──────────────────────────────
+     * `shared/styles/form-controls.css` habille les champs QUI PORTENT une classe
+     * (`.fm-input`, `.form-select`…). Restaient 186 champs répartis sur 72 fichiers — barres
+     * d'outils, panneaux d'administration, éditeurs de packs — qui n'en portaient aucune et
+     * sortaient donc avec le widget natif du système. Cette couche-ci les rattrape par leur
+     * seul nom d'élément : plus aucun champ de ForetMap ne peut échapper à l'habillage,
+     * présent ou à venir.
+     *
+     * SPÉCIFICITÉ VOLONTAIREMENT MINIMALE : le sélecteur pèse (0,0,1), donc `.field select`
+     * (0,1,1) ou `.task-filters select` continuent de gagner. Les écarts de rendu restants
+     * ont été traités un par un, en redéfinissant les tokens `--fm-control-*` sur le
+     * CONTENEUR plutôt qu'en réécrivant le champ — voir `.task-filters`, `.moodle-table`…
+     * Ajouter une variante ne demande donc plus d'écrire une bordure.
+     *
+     * Les contrôles à rendu propre (cases, radios, curseurs, sélecteurs de couleur et de
+     * fichier) sont remis à plat PLUS BAS : `input[type='checkbox']` pèse (0,1,1) et bat
+     * cette couche-ci, quel que soit l'ordre d'écriture. Les habiller en boîte de saisie
+     * les casserait.
+     */
+    input, select, textarea {
+      box-sizing:border-box;
+      min-height:var(--fm-control-min-h);
+      padding:var(--fm-control-pad-y) var(--fm-control-pad-x);
+      border:var(--fm-control-border-width) solid var(--fm-control-border);
+      border-radius:var(--fm-control-radius);
+      /* `background-color`, jamais le raccourci `background` : celui-ci remettrait
+         `background-image` à `none` et effacerait le chevron de la liste déroulante. */
+      background-color:var(--fm-control-bg);
+      color:var(--fm-control-ink);
+      line-height:1.25;
+      outline:none;
+      transition:
+        border-color var(--motion-fast) var(--ease-out),
+        background var(--motion-fast) var(--ease-out),
+        box-shadow var(--motion-fast) var(--ease-out);
+    }
+    textarea { resize:vertical; }
+    select {
+      appearance:none;
+      -webkit-appearance:none;
+      -moz-appearance:none;
+      cursor:pointer;
+      padding-right:var(--fm-control-chevron-gutter);
+      background-image:var(--fm-control-chevron);
+      background-repeat:no-repeat;
+      background-position:right 12px center;
+      background-size:12px 8px;
+    }
+    select[multiple],
+    select[size]:not([size='1']) {
+      min-height:0;
+      padding-right:var(--fm-control-pad-x);
+      background-image:none;
+      cursor:auto;
+    }
+    select:disabled { background-image:var(--fm-control-chevron-disabled); }
+    input:focus, select:focus, textarea:focus {
+      border-color:var(--fm-control-border-focus);
+      background-color:var(--fm-control-bg-focus);
+      box-shadow:var(--fm-control-ring);
+    }
+    input:disabled, select:disabled, textarea:disabled {
+      background-color:var(--fm-control-bg-disabled);
+      color:var(--fm-control-ink-disabled);
+      cursor:not-allowed;
+    }
+    @media (hover:hover) {
+      input:hover:not(:disabled):not([readonly]),
+      select:hover:not(:disabled),
+      textarea:hover:not(:disabled):not([readonly]) {
+        border-color:var(--fm-control-border-hover);
+      }
+    }
+    /* Ces cinq-là gardent leur rendu propre : (0,1,1) contre (0,0,1), ils battent la couche
+       ci-dessus quel que soit l'ordre — y compris ses règles de focus et de survol, qui ne
+       filtrent pas par type. Les habiller en boîte de saisie les casserait. */
+    input[type='checkbox'], input[type='radio'], input[type='range'],
+    input[type='color'], input[type='file'] {
+      min-height:auto;
+      padding:0;
+      border:none;
+      border-radius:0;
+      background:none;
+      box-shadow:none;
+    }
+    input[type='color'] { min-height:var(--fm-control-min-h-sm); }
+    input[type='file'] { padding:6px 0; }
+    /* La couche de base pose `outline:none` (elle lui substitue un anneau `box-shadow`).
+       Ces contrôles-là n'ont pas d'anneau : sans cette règle, ils perdraient toute marque
+       de focus au clavier. */
+    input[type='checkbox']:focus-visible, input[type='radio']:focus-visible,
+    input[type='range']:focus-visible, input[type='color']:focus-visible,
+    input[type='file']:focus-visible {
+      outline:2px solid var(--leaf);
+      outline-offset:2px;
+    }
+
     /* ── LOADER ── */
     .loader { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; gap:16px; background:var(--cream); }
     .loader-leaf { font-size:3rem; animation:sway 1.5s ease-in-out infinite; }
@@ -150,16 +249,12 @@
     /* ── FORMS ── */
     .field { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
     .field label { font-size:var(--text-sm); font-weight:var(--fw-bold); color:var(--leaf); letter-spacing:.07em; text-transform:uppercase; }
+    /* Bordure, rayon, fond, focus et chevron viennent désormais de la couche de base
+       (« COUCHE DE BASE DES CHAMPS », plus haut) : `.field` ne garde que ce qui lui est
+       propre, la largeur pleine. Une seule définition de l'apparence, donc un seul endroit
+       à modifier — c'est ce qui manquait quand six contextes la réécrivaient chacun. */
     .field input, .field select, .field textarea {
-      padding:13px 14px;
-      border:1.5px solid var(--mint); border-radius:10px;
-      color:var(--forest); background:var(--cream);
-      outline:none; width:100%;
-      transition:border-color .18s var(--ease-out), background .18s, box-shadow .18s;
-    }
-    .field input:focus, .field select:focus, .field textarea:focus {
-      border-color:var(--sage); background:white;
-      box-shadow:0 0 0 3px rgba(82,183,136,.15);
+      width:100%;
     }
 
     /* ── BUTTONS ── */
@@ -1159,7 +1254,16 @@
     /* Réglages admin : couleur d'une catégorie — sélecteur natif + saisie hexadécimale. */
     /* Champ couleur commun aux zones et aux catégories de zones/repères. */
     .color-palette-field { display:flex; align-items:center; gap:8px; }
-    .color-palette-field__picker { width:44px; height:44px; min-width:44px; padding:2px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; cursor:pointer; }
+    /* Sélecteur `input[type='color']` : la couche de base remet ce type de contrôle à plat
+       (`input[type='color']` pèse (0,1,1), donc plus qu'une simple classe). On préfixe par
+       `input` pour reprendre la main, et on en profite pour reprendre la bordure de la
+       famille — c'était l'un des deux derniers `#cbd5e1`, un gris ardoise hors palette. */
+    input.color-palette-field__picker {
+      width:44px; height:44px; min-width:44px; padding:2px;
+      border:var(--fm-control-border-width) solid var(--fm-control-border);
+      border-radius:var(--fm-control-radius-sm);
+      background:#fff; cursor:pointer;
+    }
     .color-palette-field__hex { flex:1; min-width:0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
     .color-palette-field__hint { margin:6px 0 0; font-size:var(--text-xs); color:#64748b; line-height:var(--lh-normal); }
     .color-palette-field__swatches { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
@@ -1941,9 +2045,6 @@
         flex:1 1 100% !important;
         min-width:0 !important;
       }
-      .visit-mascot-pack-manager__tabs .btn-sm {
-        min-height:44px;
-      }
       .mascot-pack-wysiwyg__frame-row {
         flex-direction:column;
         align-items:flex-start;
@@ -2170,15 +2271,14 @@
     @media(max-width:400px) { .auth-card { border-radius:16px; } }
     .auth-card h1 { font-size:clamp(1.45rem, 1.25rem + .8vw, 1.8rem); color:var(--forest); margin-bottom:4px; }
     .auth-card .sub { color:var(--leaf); font-size:var(--text-sm); margin-bottom:24px; }
-    .auth-tabs { display:flex; background:var(--parchment); border-radius:10px; padding:3px; margin-bottom:20px; }
-    .auth-tab {
-      flex:1; padding:10px; border:none; background:transparent; border-radius:8px;
-      cursor:pointer; font-family:var(--font-sans); font-size:var(--text-base); font-weight:var(--fw-medium);
-      color:var(--soil); transition:background .2s var(--ease-out), color .2s, transform .1s var(--spring);
-      -webkit-tap-highlight-color:transparent;
-    }
-    .auth-tab.active { background:var(--forest); color:white; font-weight:var(--fw-bold); }
-    .auth-tab:active { transform:scale(.95); }
+    /* Bascule connexion / inscription : c'était le quatrième style d'onglets du produit
+       (`.auth-tabs` / `.auth-tab`), très proche des trois autres sans leur être identique.
+       Elle passe sur `.fm-subtabs` comme le reste ; il ne reste ici que ses marges et le
+       corps de texte, plus généreux qu'ailleurs parce que la carte de connexion est le
+       tout premier écran. */
+    .auth-tabs { margin-bottom:20px; }
+    .auth-tabs > button { font-size:var(--text-base); }
+    .auth-tabs--forgot { margin-bottom:8px; }
     .auth-error {
       background:#fff1f2; color:#e11d48; border-radius:8px;
       padding:10px 14px; font-size:var(--text-sm); margin-bottom:12px;
@@ -2482,16 +2582,20 @@
     .map-switch-select {
       min-width:180px;
       max-width:min(100%, 300px);
-      min-height:34px;
-      border:1px solid var(--mint);
-      border-radius:10px;
-      background:var(--parchment);
-      color:var(--soil);
+      /* Contrôle de chrome cartographique : la hauteur est contrainte par la surface de la
+         carte, d'où la variante compacte. Bordure, rayon et chevron restent ceux de la
+         couche de base — seule la densité change. */
+      --fm-control-min-h:34px;
+      --fm-control-pad-y:4px;
+      --fm-control-pad-x:10px;
+      --fm-control-chevron-gutter:26px;
+      --fm-control-bg:var(--parchment);
+      --fm-control-ink:var(--soil);
+      background-position:right 8px center;
       font-family:var(--font-sans);
       font-size:var(--map-toolbar-font-size) !important;
       font-weight:var(--fw-bold);
       line-height:var(--lh-tight);
-      padding:4px 10px;
     }
     /* Liste déroulante ouverte : rendue par l'OS, la plupart des moteurs n'honorent que
        family/weight — on pose au moins la fonte produit. */
@@ -2529,8 +2633,13 @@
     .main.main--map-visible .map-view-toolbar .map-switch-select,
     .teacher-main.teacher-main--map-visible .map-view-toolbar .map-switch-select,
     .map-view-root--solo .map-view-toolbar .map-switch-select {
-      padding:2px 8px !important;
-      min-height:30px;
+      /* Par les tokens : un `padding` en raccourci (a fortiori `!important`) écraserait la
+         gouttière du chevron et la flèche viendrait sur le libellé de l'option. */
+      --fm-control-pad-y:2px;
+      --fm-control-pad-x:8px;
+      --fm-control-chevron-gutter:24px;
+      --fm-control-min-h:30px;
+      background-position:right 7px center;
     }
     .main.main--map-visible .map-view-toolbar .map-gesture-toggle,
     .teacher-main.teacher-main--map-visible .map-view-toolbar .map-gesture-toggle,
@@ -2640,9 +2749,9 @@
       .nav-btn .nav-icon { font-size:var(--text-lg); }
       .nav-btn::after { bottom:4px; }
       .field label { font-size:var(--text-xs); }
-      .field input, .field select, .field textarea {
-        padding:10px 12px;
-      }
+      /* Densité resserrée sur très petit écran : on baisse les TOKENS, pas la règle du
+         champ — la gouttière du chevron suit toute seule. */
+      .field { --fm-control-pad-y:10px; --fm-control-pad-x:12px; }
       .btn {
         min-height:40px;
         padding:10px 16px;
@@ -2998,7 +3107,7 @@
     /* ── STATS ── */
     .stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(140px, 100%), 1fr)); gap:10px; margin-bottom:20px; }
     .audit-subtabs { margin-bottom:14px; }
-    .audit-subtabs .top-tab { flex:0 0 auto; min-width:150px; }
+    .audit-subtabs > button { flex:0 0 auto; min-width:150px; }
     .audit-stats-grid { margin-bottom:14px; }
     .audit-stats-details .activity-title { white-space:normal; }
     @media (max-width:620px) {
@@ -3129,24 +3238,27 @@
       display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;
       animation:fadeIn .22s var(--ease-out);
     }
-    .task-filters input, .task-filters select {
-      padding:9px 12px; border:1.5px solid var(--mint); border-radius:8px;
-      background:white; color:var(--forest); font-family:var(--font-sans);
-      font-size:var(--text-sm); outline:none; min-height:38px;
-      transition:border-color .18s, box-shadow .18s;
+    /* Barre de filtres : la seule chose qui la distingue d'un champ de formulaire est la
+       densité. On la règle par les TOKENS, pas en réécrivant la bordure et le fond — sinon
+       le raccourci `padding` écraserait la gouttière du chevron et la flèche chevaucherait
+       le libellé de l'option. */
+    .task-filters {
+      --fm-control-pad-y:9px;
+      --fm-control-pad-x:12px;
+      --fm-control-chevron-gutter:30px;
+      --fm-control-radius:8px;
+      --fm-control-min-h:38px;
     }
+    .task-filters input, .task-filters select { font-size:var(--text-sm); }
     .task-filters input { flex:1; min-width:120px; }
     .task-filters select { min-width:100px; }
-    .task-filters input:focus, .task-filters select:focus {
-      border-color:var(--sage); box-shadow:0 0 0 3px rgba(82,183,136,.12);
-    }
     /* Cible tactile : même règle que `.btn-sm` plus haut (ligne ~204). Sans elle, une tablette
        large (pointeur grossier mais écran au-dessus du point de bascule mobile) gardait des
        filtres de 38 px, alors que les mêmes champs font 42 px sur mobile et 44 px dans la
        feuille de filtres — trois hauteurs pour un seul contrôle
        (`docs/AUDIT_UI_2026-09-16.md` H5). */
     @media (pointer:coarse) {
-      .task-filters input, .task-filters select { min-height:var(--tap-target, 44px); }
+      .task-filters { --fm-control-min-h:var(--tap-target, 44px); }
     }
 
     /* ── BARRE DE FILTRES COMPACTE (vue Tâches) ──
@@ -4434,15 +4546,20 @@
     .visit-map-switch::-webkit-scrollbar {
       display:none;
     }
+    /* Chrome posé SUR la carte : fond blanc opaque volontaire — la cartographie derrière
+       rendrait un fond crème illisible. Même raison pour `.map-switch-select` (parchemin)
+       et `.visit-mascot-picker`. Partout ailleurs, le fond du champ est celui de la couche
+       de base. */
     .visit-map-switch-select {
       width:min(100%, 360px);
-      min-height:40px;
-      border:1px solid rgba(82,183,136,.45);
-      border-radius:10px;
-      background:#fff;
-      color:var(--soil);
+      --fm-control-min-h:40px;
+      --fm-control-pad-y:8px;
+      --fm-control-pad-x:10px;
+      --fm-control-chevron-gutter:28px;
+      --fm-control-bg:#fff;
+      --fm-control-ink:var(--soil);
+      background-position:right 9px center;
       font-weight:var(--fw-semibold);
-      padding:8px 10px;
     }
     .visit-progress {
       display:flex;
@@ -4975,14 +5092,17 @@
       color:#365314;
       font-weight:var(--fw-bold);
     }
+    .visit-mascot-picker {
+      --fm-control-min-h:32px;
+      --fm-control-pad-y:4px;
+      --fm-control-pad-x:8px;
+      --fm-control-chevron-gutter:24px;
+      --fm-control-radius:8px;
+      --fm-control-bg:#fff;
+    }
     .visit-mascot-picker select {
-      min-height:32px;
-      border:1px solid rgba(82,183,136,.55);
-      border-radius:8px;
-      background:#fff;
-      color:var(--forest);
+      background-position:right 7px center;
       font-weight:var(--fw-semibold);
-      padding:4px 8px;
     }
     .visit-map-card__chrome-discover {
       display:flex;
@@ -6289,17 +6409,21 @@
   .task-filters {
     gap:6px;
   }
+  /* Une seule hauteur pour ce contrôle : 44 px, comme la feuille de filtres et comme la
+     surcharge tactile de `.task-filters` (audit UI 2026-09-16, H5). Ce bloc est plus bas
+     dans la cascade que la surcharge `pointer:coarse`, donc c'est lui qui gagne sur
+     mobile : il ne peut pas rester à 42 px. */
+  .task-filters {
+    --fm-control-min-h:var(--tap-target, 44px);
+    --fm-control-radius:10px;
+    --fm-control-pad-y:10px;
+    --fm-control-pad-x:12px;
+    --fm-control-chevron-gutter:30px;
+  }
   .task-filters input,
   .task-filters select {
     flex:1 1 100%;
     min-width:0;
-    /* Une seule hauteur pour ce contrôle : 44 px, comme la feuille de filtres et comme la
-       surcharge tactile de `.task-filters` (audit UI 2026-09-16, H5). Cette règle est plus
-       bas dans la cascade que la surcharge `pointer:coarse`, donc c'est elle qui gagne sur
-       mobile : elle ne peut pas rester à 42 px. */
-    min-height:var(--tap-target, 44px);
-    border-radius:10px;
-    padding:10px 12px;
   }
   .tasks-view-switch {
     width:100%;
@@ -6341,12 +6465,16 @@
     display:none;
   }
   /* Feuille de filtres : champs pleine largeur, cibles tactiles ≥ 44 px. */
+  .task-filters-sheet .task-filters-fields {
+    --fm-control-min-h:44px;
+    --fm-control-radius:10px;
+    --fm-control-pad-y:10px;
+    --fm-control-pad-x:12px;
+    --fm-control-chevron-gutter:30px;
+  }
   .task-filters-sheet .task-filters-fields select {
     flex:1 1 100%;
     min-width:0;
-    min-height:44px;
-    border-radius:10px;
-    padding:10px 12px;
   }
   .tasks-header-sub__compact,
   .tasks-quota__compact {
@@ -6571,11 +6699,13 @@
   min-width:0;
   max-width:100%;
 }
+.forum-post-actions {
+  --fm-control-radius:8px;
+  --fm-control-pad-y:8px;
+  --fm-control-pad-x:10px;
+  --fm-control-min-h:36px;
+}
 .forum-post-actions input {
-  border:1.5px solid var(--mint);
-  border-radius:8px;
-  padding:8px 10px;
-  min-height:36px;
   min-width:0;
   width:100%;
   max-width:100%;
@@ -6692,11 +6822,21 @@
   min-width:0;
   max-width:100%;
 }
+.context-comments-form {
+  --fm-control-radius:8px;
+  --fm-control-pad-y:8px;
+  --fm-control-pad-x:10px;
+}
+/* `.rich-text-editor` n'est pas un champ natif : il lui faut la bordure en propre, alors
+   que le `textarea` voisin la tient déjà de la couche de base. Les deux doivent rester
+   indiscernables à l'écran — ils occupent la même place dans le même formulaire. */
+.context-comments-form .rich-text-editor {
+  border:var(--fm-control-border-width) solid var(--fm-control-border);
+  border-radius:var(--fm-control-radius);
+  padding:var(--fm-control-pad-y) var(--fm-control-pad-x);
+}
 .context-comments-form textarea,
 .context-comments-form .rich-text-editor {
-  border:1.5px solid var(--mint);
-  border-radius:8px;
-  padding:8px 10px;
   min-height:64px;
   resize:vertical;
   width:100%;
@@ -6856,11 +6996,13 @@
   min-width:0;
   max-width:100%;
 }
+.context-comment-actions {
+  --fm-control-radius:8px;
+  --fm-control-pad-y:8px;
+  --fm-control-pad-x:10px;
+  --fm-control-min-h:36px;
+}
 .context-comment-actions input {
-  border:1.5px solid var(--mint);
-  border-radius:8px;
-  padding:8px 10px;
-  min-height:36px;
   min-width:0;
   width:100%;
   max-width:100%;
@@ -7453,10 +7595,17 @@
 .moodle-table tr.is-selected td {
   background: #f3f7f3;
 }
-.moodle-table input[type='text'],
-.moodle-table input[type='number'],
+/* Tableau dense : densité réglée par les tokens, apparence héritée de la couche de base.
+   Les champs y étaient laissés au rendu natif du système. */
+.moodle-table {
+  --fm-control-min-h: 36px;
+  --fm-control-pad-y: 6px;
+  --fm-control-pad-x: 10px;
+  --fm-control-chevron-gutter: 26px;
+  --fm-control-radius: 8px;
+}
 .moodle-table select {
-  min-height: 36px;
+  background-position: right 8px center;
 }
 .moodle-totals {
   display: grid;
@@ -7708,13 +7857,18 @@
 }
 
 .media-library-menu__search input,
+/* La bordure était en `#cbd5e1` — un gris ardoise étranger à la palette forêt, seul cas du
+   dépôt. Elle vient maintenant de la couche de base ; il ne reste ici que la densité. */
+.media-library-menu__filter {
+  --fm-control-min-h: 34px;
+  --fm-control-pad-y: 6px;
+  --fm-control-pad-x: 10px;
+  --fm-control-chevron-gutter: 26px;
+  --fm-control-radius: 8px;
+}
 .media-library-menu__filter select {
   width: 100%;
-  min-height: 34px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 6px 10px;
-  background: #fff;
+  background-position: right 8px center;
 }
 
 .media-library-menu__count {
@@ -7983,7 +8137,7 @@
 .profiles-admin-subtabs {
   margin-bottom: 14px;
 }
-.profiles-admin-subtabs .top-tab {
+.profiles-admin-subtabs > button {
   flex: 0 0 auto;
   min-width: 120px;
 }
@@ -8390,6 +8544,11 @@
   font-weight: var(--fw-regular);
   color: var(--ink-soft);
   font-size: var(--text-xs);
+}
+/* Sur l'onglet courant, le libellé passe en blanc sur vert : le gris du compteur y serait
+   illisible. */
+.fm-subtabs > button.is-active .profiles-subtab-count {
+  color: rgba(255, 255, 255, 0.85);
 }
 .profiles-subtab-alert {
   display: inline-flex;
@@ -8972,11 +9131,9 @@
 
 /* Écran de rattachement contenu ↔ questions (FMLearningLinksPanel). */
 .pedago-quiz-admin__links .pedago-links { padding: 14px; }
+/* Disposition seule : l'habillage vient de `.fm-subtabs`. */
 .pedago-links__tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 10px 0;
+  margin: 10px 0 12px;
 }
 /* État du dispositif en une ligne : discret, mais toujours visible — c'est la
    première chose à savoir avant de rattacher quoi que ce soit. */

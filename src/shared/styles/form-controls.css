@@ -1,0 +1,239 @@
+/*
+ * Contrôles de formulaire partagés ForetMap / G&L — une seule apparence de champ.
+ *
+ * POURQUOI CE FICHIER (audit UI « homogénéité des formulaires », septembre 2026).
+ * Le même `<select>` se présentait de six façons selon l'écran : bordure menthe 1,5 px et
+ * rayon 10 px dans `.field`, bordure 1,5 px et rayon 8 px dans `.task-filters`, bordure
+ * `#cbd5e1` (gris ardoise hors palette) dans la bibliothèque de médias, et **aucune bordure
+ * du tout** dans la console d'administration — 84 champs portaient `form-input` /
+ * `form-select`, deux classes qui n'existaient dans aucune feuille du dépôt. Ces champs-là
+ * sortaient donc avec le widget natif du système : un rendu qui changeait non seulement
+ * d'un écran à l'autre, mais d'un appareil à l'autre pour le MÊME écran.
+ *
+ * CE QU'IL POSE :
+ *   `.fm-field`  — libellé + contrôle + aide/erreur (colonne)
+ *   `.fm-input` / `.fm-select` / `.fm-textarea` — le contrôle lui-même
+ *   `.fm-control--sm` — variante compacte pour les barres d'outils de carte (34 px)
+ *   `.form-input` / `.form-select` — alias des précédentes, pour que les 84 champs
+ *      existants soient habillés sans réécrire leur balisage
+ *
+ * LA LISTE DÉROULANTE. `appearance:none` + chevron dessiné (SVG en `background-image`) :
+ * c'est le seul moyen d'obtenir le même champ fermé sur iOS, Android et Windows. Seule la
+ * *liste ouverte* reste native — donc toujours servie par le sélecteur de l'OS, avec son
+ * accessibilité et son ergonomie tactile. C'est volontaire : un menu recréé en JavaScript
+ * se paie en accessibilité mobile pour un gain purement esthétique.
+ *
+ * PORTÉE. Chargé par les deux produits (`src/index.css` et `src/gl/main.jsx`). Les tokens
+ * lisent la palette de l'hôte avec un repli neutre, comme `shared-controls.css` : G&L ne
+ * définit ni `--mint` ni `--cream`, ses champs partagés tombent donc sur le repli au lieu
+ * d'emprunter la palette forêt. Ce fichier n'habille QUE `.fm-*` et `.form-*` : `.gl-input`
+ * et consorts gardent leurs propres règles.
+ */
+
+:root {
+  --fm-control-bg: var(--cream, var(--gl-surface, #fff));
+  --fm-control-bg-focus: #fff;
+  --fm-control-bg-disabled: var(--gl-surface-muted, rgba(0, 0, 0, 0.04));
+  --fm-control-ink: var(--forest, var(--gl-color-text, #1a4731));
+  --fm-control-ink-disabled: var(--ink-soft, #64748b);
+  --fm-control-border: var(--mint, var(--gl-border, rgba(26, 71, 49, 0.22)));
+  --fm-control-border-hover: var(--sage, var(--gl-color-primary, #2d6a4f));
+  --fm-control-border-focus: var(--sage, var(--gl-border-focus, #2d6a4f));
+  --fm-control-border-width: 1.5px;
+  --fm-control-ring: 0 0 0 3px rgba(82, 183, 136, 0.18);
+  --fm-control-radius: 10px;
+  --fm-control-radius-sm: 8px;
+  /* Convention projet : cible tactile >= 44px. La variante `--sm` est réservée aux barres
+     d'outils posées SUR la carte, où la hauteur est contrainte par la surface cartographique. */
+  --fm-control-min-h: 44px;
+  --fm-control-min-h-sm: 34px;
+  --fm-control-pad-y: 11px;
+  --fm-control-pad-x: 14px;
+  /* Gouttière du chevron : largeur du dessin (12px) + marge droite (12px) + respiration. */
+  --fm-control-chevron-gutter: 34px;
+  --fm-control-chevron: url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%228%22%20viewBox%3D%220%200%2012%208%22%3E%3Cpath%20d%3D%22M1.4%201.6%206%206.2l4.6-4.6%22%20fill%3D%22none%22%20stroke%3D%22%231a4731%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E');
+  --fm-control-chevron-disabled: url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%228%22%20viewBox%3D%220%200%2012%208%22%3E%3Cpath%20d%3D%22M1.4%201.6%206%206.2l4.6-4.6%22%20fill%3D%22none%22%20stroke%3D%22%238aa79a%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E');
+}
+
+/* ── Le champ (libellé + contrôle) ───────────────────────────────────────── */
+
+.fm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fm-field__label {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--leaf, var(--gl-color-primary, #2d6a4f));
+}
+
+.fm-field__hint {
+  font-size: var(--text-xs);
+  color: var(--ink-soft, #64748b);
+  line-height: var(--lh-normal, 1.45);
+}
+
+.fm-field__error {
+  font-size: var(--text-sm);
+  color: var(--ink-danger, #991b1b);
+}
+
+/* ── Le contrôle ─────────────────────────────────────────────────────────── */
+
+.fm-input,
+.fm-select,
+.fm-textarea,
+.form-input,
+.form-select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--fm-control-min-h);
+  padding: var(--fm-control-pad-y) var(--fm-control-pad-x);
+  border: var(--fm-control-border-width) solid var(--fm-control-border);
+  border-radius: var(--fm-control-radius);
+  /* `background-color`, jamais le raccourci `background` : celui-ci remettrait
+     `background-image` à `none` et effacerait le chevron de la liste déroulante. */
+  background-color: var(--fm-control-bg);
+  color: var(--fm-control-ink);
+  font-family: inherit;
+  font-size: var(--text-base);
+  line-height: 1.25;
+  outline: none;
+  transition:
+    border-color var(--motion-fast, 0.12s) var(--ease-out, ease),
+    background var(--motion-fast, 0.12s) var(--ease-out, ease),
+    box-shadow var(--motion-fast, 0.12s) var(--ease-out, ease);
+}
+
+@media (hover: hover) {
+  .fm-input:hover:not(:disabled):not([readonly]),
+  .fm-select:hover:not(:disabled),
+  .fm-textarea:hover:not(:disabled):not([readonly]),
+  .form-input:hover:not(:disabled):not([readonly]),
+  .form-select:hover:not(:disabled) {
+    border-color: var(--fm-control-border-hover);
+  }
+}
+
+.fm-input:focus,
+.fm-select:focus,
+.fm-textarea:focus,
+.form-input:focus,
+.form-select:focus {
+  border-color: var(--fm-control-border-focus);
+  background-color: var(--fm-control-bg-focus);
+  box-shadow: var(--fm-control-ring);
+}
+
+.fm-input:disabled,
+.fm-select:disabled,
+.fm-textarea:disabled,
+.form-input:disabled,
+.form-select:disabled {
+  background-color: var(--fm-control-bg-disabled);
+  color: var(--fm-control-ink-disabled);
+  cursor: not-allowed;
+}
+
+.fm-input::placeholder,
+.fm-textarea::placeholder,
+.form-input::placeholder {
+  color: var(--ink-soft, #64748b);
+  opacity: 0.8;
+}
+
+.fm-textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+/* ── La liste déroulante ─────────────────────────────────────────────────── */
+
+.fm-select,
+.form-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  padding-right: var(--fm-control-chevron-gutter);
+  background-image: var(--fm-control-chevron);
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px 8px;
+}
+
+.fm-select:disabled,
+.form-select:disabled {
+  background-image: var(--fm-control-chevron-disabled);
+  cursor: not-allowed;
+}
+
+/* Liste ouverte : rendue par l'OS, qui n'honore en général que family/weight — on pose au
+   moins la fonte du produit pour que les options ne sortent pas en Times. */
+.fm-select option,
+.form-select option {
+  font-family: inherit;
+}
+
+/* Une liste multi-sélection ou à taille imposée n'ouvre pas de menu : pas de chevron,
+   et pas de hauteur minimale de bouton. */
+.fm-select[multiple],
+.form-select[multiple],
+.fm-select[size]:not([size='1']),
+.form-select[size]:not([size='1']) {
+  min-height: 0;
+  padding-right: var(--fm-control-pad-x);
+  background-image: none;
+  cursor: auto;
+}
+
+/* ── Variante compacte (barres d'outils posées sur la carte) ─────────────── */
+
+.fm-control--sm {
+  min-height: var(--fm-control-min-h-sm);
+  padding: 6px 10px;
+  border-radius: var(--fm-control-radius-sm);
+  font-size: var(--text-sm);
+}
+
+.fm-control--sm.fm-select,
+.fm-control--sm.form-select {
+  padding-right: 28px;
+  background-position: right 9px center;
+}
+
+/* ── Champ en ligne (largeur au contenu, pas pleine largeur) ─────────────── */
+
+.fm-control--auto {
+  width: auto;
+}
+
+/* ── Textes d'accompagnement des champs ──────────────────────────────────────
+ * Quatre classes d'aide et d'erreur étaient posées dans le balisage sans exister nulle part
+ * dans les feuilles du dépôt : `.hint` (5 fichiers), `.muted` (4), `.form-error` (2) et
+ * `.text-danger` (6). Le cas le plus gênant : l'erreur d'enregistrement automatique de la
+ * fiche espèce et de l'éditeur de tutoriel (`.form-error`) sortait dans l'encre du corps de
+ * texte — rien ne la distinguait d'une phrase ordinaire. Elles sont définies ici, au plus
+ * près des champs qu'elles accompagnent.
+ */
+
+.hint,
+.muted {
+  font-size: var(--text-sm);
+  color: var(--ink-soft, #64748b);
+  line-height: var(--lh-normal, 1.45);
+}
+
+.form-error,
+.text-danger {
+  color: var(--ink-danger, #991b1b);
+}
+
+.form-error {
+  font-size: var(--text-sm);
+  line-height: var(--lh-normal, 1.45);
+}

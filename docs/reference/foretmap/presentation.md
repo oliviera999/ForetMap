@@ -218,6 +218,33 @@ actions sensibles.
 > ouvert/fermé est mémorisé sur l'appareil), et une recherche active déplie
 > automatiquement les sections contenant des résultats.
 
+### Les champs et les onglets se ressemblent partout
+
+Jusqu'ici, la même liste déroulante pouvait prendre **six apparences différentes** selon
+l'écran, et certains champs de l'administration — réglages de validation des lectures,
+rattachement des questions, catalogue de QCM, glossaire, réseau trophique, studio
+mascotte — sortaient carrément avec le menu déroulant **du système d'exploitation**. Le
+même écran ne se présentait donc pas pareil sur un iPhone, sur une tablette Android et
+sur un ordinateur de la salle informatique.
+
+Désormais :
+
+- **Une seule apparence de champ** — bordure vert menthe, coins arrondis, fond crème,
+  anneau vert au moment de la saisie. Les listes déroulantes portent toutes le même
+  **chevron dessiné par l'application** : le champ fermé est identique sur tous les
+  appareils. Le menu qui s'ouvre au clic, lui, reste celui du système — c'est voulu, il
+  est plus simple à manipuler au doigt et mieux servi par les lecteurs d'écran.
+- **Tous les champs font au moins 44 pixels de haut**, la taille d'une cible tactile
+  confortable. Les champs laissés au rendu du système tombaient à une vingtaine de pixels.
+- **Une seule barre de sous-onglets.** La barre du haut reste celle de la navigation
+  principale ; à l'intérieur d'un écran, les sous-sections (Paramètres, Profils &
+  utilisateurs, Audit, studio mascotte, rattachement des questions, connexion /
+  inscription) emploient toutes la même barre, un cran plus fine. On voit ainsi d'un coup
+  d'œil ce qui est un onglet principal et ce qui est une sous-section.
+- **Les messages d'erreur des formulaires sont en rouge** — notamment celui de
+  l'enregistrement automatique de la fiche espèce et de l'éditeur de tutoriel, qui
+  s'affichait dans la même encre que le reste du texte et passait inaperçu.
+
 ### La pastille d'état en bas d'écran
 
 Une petite **pastille discrète**, fixe en bas d'écran (dans ForetMap comme dans
