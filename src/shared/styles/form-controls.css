@@ -51,6 +51,10 @@
   --fm-control-pad-x: 14px;
   /* Gouttière du chevron : largeur du dessin (12px) + marge droite (12px) + respiration. */
   --fm-control-chevron-gutter: 34px;
+  /* Le chevron est une image : sa couleur est cuite dans le SVG et ne peut pas venir d'une
+     variable. Un produit à une autre palette (le Plan est en bleu marine) le remplace donc
+     EN ENTIER, en redéfinissant `--fm-control-chevron` sur son `:root` avec le même SVG et
+     son propre `stroke`. C'est le seul token de ce fichier qui ne se dérive pas. */
   --fm-control-chevron: url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%228%22%20viewBox%3D%220%200%2012%208%22%3E%3Cpath%20d%3D%22M1.4%201.6%206%206.2l4.6-4.6%22%20fill%3D%22none%22%20stroke%3D%22%231a4731%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E');
   --fm-control-chevron-disabled: url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%228%22%20viewBox%3D%220%200%2012%208%22%3E%3Cpath%20d%3D%22M1.4%201.6%206%206.2l4.6-4.6%22%20fill%3D%22none%22%20stroke%3D%22%238aa79a%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E');
 }
@@ -64,10 +68,36 @@
   min-width: 0;
 }
 
+/*
+ * LE LIBELLÉ DE CHAMP — un seul dialecte (audit UI « homogénéité », §5 B3).
+ *
+ * Il y en avait sept : `.field label` en capitales interlettrées vert feuille,
+ * `.pedago-filter-field` en minuscules gris-vert, `.profiles-admin-filter > label` en
+ * capitales `--text-xs` gris, `.media-library-menu__filter-label` en capitales gris ardoise,
+ * et trois autres encore — plusieurs cohabitant dans le même écran.
+ *
+ * LE CHOIX : minuscules, demi-gras, vert feuille. Les capitales interlettrées étaient la
+ * forme dominante (249 blocs `.field`), mais elles se lisent plus mal — d'autant plus pour
+ * un élève dyslexique, et ForetMap est une application de lycée. Les systèmes de design
+ * actuels ont abandonné le micro-libellé en capitales pour la même raison. Le texte lui-même
+ * est déjà écrit en minuscules dans le balisage : seule la règle `text-transform` disparaît,
+ * aucun libellé n'est réécrit.
+ *
+ * Revenir en arrière tiendrait en une ligne (`text-transform: uppercase` ici).
+ */
+.fm-label,
 .fm-field__label {
   font-size: var(--text-sm);
   font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight, 1.25);
   color: var(--leaf, var(--gl-color-primary, #2d6a4f));
+}
+
+/* Libellé d'une barre de filtres : même famille, un cran plus discret — il accompagne un
+   contrôle dense, pas un champ de formulaire. */
+.fm-label--filter {
+  font-size: var(--text-xs);
+  color: var(--ink-soft, #64748b);
 }
 
 .fm-field__hint {

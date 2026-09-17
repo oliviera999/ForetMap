@@ -62,8 +62,8 @@ export function MoodlePoliciesEditor({ value, onSave, saving }) {
         Une ligne par famille de cohortes. La première politique dont le motif correspond gagne ;
         une cohorte de l’année sans politique est listée dans le rapport et ignorée.
       </p>
-      <div className="moodle-table-wrap">
-        <table className="moodle-table">
+      <div className="fm-table-wrap moodle-table-wrap">
+        <table className="fm-table fm-table--dense moodle-table">
           <thead>
             <tr>
               <th scope="col">Ordre</th>

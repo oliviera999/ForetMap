@@ -244,6 +244,21 @@ Désormais :
 - **Les messages d'erreur des formulaires sont en rouge** — notamment celui de
   l'enregistrement automatique de la fiche espèce et de l'éditeur de tutoriel, qui
   s'affichait dans la même encre que le reste du texte et passait inaperçu.
+- **Les libellés de champ ne sont plus en CAPITALES.** Ils s'écrivent en minuscules, en
+  demi-gras : c'est plus facile à lire, en particulier pour un élève dyslexique. Les textes
+  eux-mêmes n'ont pas changé.
+- **Les encadrés blancs existent.** Plusieurs écrans — catalogue de QCM, réseau trophique,
+  rattachement des questions, réglages de validation des lectures, stats, carnet — croyaient
+  poser un encadré et affichaient en réalité un bloc transparent. Ils ont maintenant tous la
+  même carte : fond blanc, coins arrondis, ombre légère.
+- **Les tableaux se ressemblent.** Celui des stats et la fiche d'un pack de mascotte
+  s'affichaient sans marges ni traits de séparation, au rendu brut du navigateur. Tous les
+  tableaux partagent désormais la même présentation, et un tableau trop large défile sur
+  lui-même au lieu d'élargir la page — utile sur téléphone.
+- **Les quatre applications partagent la même base.** ForetMap, Gnomes & Licornes, le Plan
+  Lyautey et le plan des personnels emploient les mêmes règles de champs et d'encadrés,
+  chacune avec ses couleurs (forêt, médiévale, marine). Un écran nouveau part donc de la
+  bonne apparence au lieu d'être à réhabiller après coup.
 
 ### La pastille d'état en bas d'écran
 

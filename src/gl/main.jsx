@@ -20,6 +20,7 @@ import '../shared/styles/learning-gating.css';
 import '../shared/styles/food-web-graph.css';
 import '../shared/styles/shared-controls.css';
 import '../shared/styles/form-controls.css';
+import '../shared/styles/surfaces.css';
 import '../shared/styles/presence-badge.css';
 import '../shared/styles/map-action.css';
 import '../shared/styles/data-list.css';

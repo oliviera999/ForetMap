@@ -186,8 +186,8 @@ export function MoodleLtiSection({
         ))}
       </fieldset>
       <h3 className="moodle-lti-h">Liaisons cours → application</h3>
-      <div className="moodle-table-wrap">
-        <table className="moodle-table">
+      <div className="fm-table-wrap moodle-table-wrap">
+        <table className="fm-table fm-table--dense moodle-table">
           <thead>
             <tr>
               <th>Cours Moodle</th>
