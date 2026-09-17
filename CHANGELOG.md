@@ -20,24 +20,43 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Pratique à connaître en attendant** : après un `npm run test:e2e` local, rejouer
   `npm run db:init` avant `npm test`.
 
-### Corrigé — runbook de bascule `dist/` : ne pas comparer les noms de fichiers
+### Corrigé — le build *est* reproductible : `NODE_ENV=test` avait faussé le diagnostic
 
-- **Le build Vite/rolldown n'est pas reproductible** : deux exécutions du même commit, sur deux
-  runners CI identiques, produisent des hachages de contenu différents pour l'essentiel des
-  chunks (mesuré sur `a4c0849` : 356 fichiers de part et d'autre, ~80 chunks renommés).
-  `docs/DEPLOY_DIST_ARTIFACT.md` laissait entendre qu'un écart devait rester marginal — un
-  opérateur comparant les deux arborescences aurait vu des dizaines d'écarts et abandonné la
-  bascule à tort. Le contrôle porte sur la **cohérence interne** de l'artefact et sur le nombre
-  de fichiers, pas sur l'égalité avec un autre build.
-- Conséquence notée dans le même document : le garde-fou de `frontend-dist.yml` **échoue déjà**
-  sur `main`, puisqu'il exige précisément cette égalité inatteignable. Son retrait, prévu à
-  l'étape 3 de la bascule, supprime donc aussi un workflow durablement rouge.
-- **Le diagnostic était sous-estimé, et il est corrigé.** Il annonçait un conflit entre « deux
-  branches qui touchent le frontend ». En réalité, la non-reproductibilité fait constater une
-  dérive à **chaque** push de PR : l'auto-commit `dist/` tombe même sur une PR purement
-  documentaire — mesuré sur celle-ci, deux fichiers modifiés et **159 fichiers de `dist/`**
-  ajoutés par-dessus. Toute PR ouverte porte donc un commit `dist/`, et **n'importe quelle
-  paire** de PR entre en conflit, quoi qu'elles modifient.
+L'entrée précédente concluait que le build Vite/rolldown n'était pas reproductible, et que le
+garde-fou de `frontend-dist.yml` exigeait donc « une égalité inatteignable ». **Les deux
+affirmations sont fausses**, et la mesure qui les portait était contaminée.
+
+**La vraie cause.** Les fusions en série des neuf PR ouvertes du 17 septembre ont demandé de
+régénérer `dist/` cinq fois (les conflits ne portaient que sur les noms de bundles hachés). Ces
+rebuilds ont tourné dans un shell portant `NODE_ENV=test` : Vite produit alors un **build de
+développement** — `react-vendor` non minifié (230 lignes), avertissements de développement
+embarqués, empreintes PWA différentes. Ce `dist/` de développement est arrivé sur `main` à
+21 h 08 avec la fusion de la PR #512.
+
+Tout ce qui a été observé ensuite en découle :
+
+- les échecs de `frontend-dist` sur `main` (runs `1066`, `1072`, `1074`) — le garde-fou faisait
+  exactement son travail, il signalait un front de développement sur `main` ;
+- les « ~80 chunks renommés » entre l'artefact publié et le `dist/` commité de `a4c0849` — la
+  comparaison opposait un build de production à ce build de développement ;
+- les 159 fichiers auto-commités sur une PR purement documentaire — sa branche portait le
+  `dist/` de développement hérité de `main`, que la CI a reconstruit en production.
+
+**Vérification.** Sur `main` à `a9a9956`, une fois le `dist/` de production auto-commité par la
+CI, le run `frontend-dist` **1079 passe au vert** : un rebuild en CI égale le `dist/` commité,
+fichier par fichier. Et un `NODE_ENV=production npm run build` lancé sur une *autre* machine
+(hors CI) reproduit ce même `dist/` à l'octet près — mêmes noms de chunks (`main-BSLTciXE.js`,
+`react-vendor-ClBrELym.js`), mêmes empreintes PWA (`foret-93d16d65`, `gl-9cb3d42c`,
+`plan-5b782279`, `staff-5f2a79c3`). Le build est reproductible d'une machine à l'autre.
+
+**Ce qui reste vrai.** Les conflits `dist/` entre PR qui touchent au frontend, le poids des
+blobs, et donc l'intérêt de la bascule décrite dans `docs/DEPLOY_DIST_ARTIFACT.md` : ces raisons
+tiennent d'elles-mêmes. Ce qui est retiré, c'est l'argument « le garde-fou ne peut pas passer au
+vert » — il le peut, et il vient de rattraper un vrai défaut de livraison.
+
+**À retenir.** `npm run build` ne doit jamais hériter d'un `NODE_ENV=test` : c'est silencieux au
+build, invisible aux tests, et seul `frontend-dist` le rattrape — jusqu'à ce que ce workflow soit
+retiré à l'étape 3 de la bascule, après quoi plus rien ne le verra.
 
 ### Corrigé — la suite e2e était rouge depuis des semaines, sans que personne le voie
 
