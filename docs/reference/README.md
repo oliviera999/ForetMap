@@ -42,9 +42,10 @@ Il poursuit trois objectifs, dans l'ordre :
 
 ### Transverse
 
-| Document                           | Contenu                                                             | Statut    |
-| ---------------------------------- | ------------------------------------------------------------------- | --------- |
-| [INCOHERENCES.md](INCOHERENCES.md) | Registre d'arbitrage : incohérences relevées, options de correction | ✅ Rédigé |
+| Document                                                                 | Contenu                                                                                                                                       | Statut    |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| [INCOHERENCES.md](INCOHERENCES.md)                                       | Registre d'arbitrage : incohérences relevées, options de correction                                                                           | ✅ Rédigé |
+| [exploitation/marque-et-domaines.md](exploitation/marque-et-domaines.md) | Installer l'application pour un autre établissement : nom du logiciel, nom de l'établissement, ce qui reste attaché à Lyautey, droits d'usage | ✅ Rédigé |
 
 ### ForetMap
 
