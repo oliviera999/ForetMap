@@ -9,6 +9,53 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — liens dans les descriptions de repères et de zones (3 lots)
+
+**Lot 1 — parité d'édition, d'affichage et de surface.**
+
+- Le **complément réservé** (`restricted_note`) passe du `<textarea>` nu à l'éditeur riche,
+  bouton **« Lien »** compris : le confidentiel avait jusqu'ici le seul champ de texte sans
+  aucun moyen guidé d'y poser un lien, alors que la description publique en avait un.
+  `LocationAudienceFields` vit dans `src/shared/**`, qui ne peut pas importer de code produit :
+  l'éditeur est donc **injecté** (prop `NoteEditor`), pas importé.
+- Un lien qui **quitte l'application** le dit avant le clic : flèche `↗` en CSS, et
+  « (ouvre un nouvel onglet) » dans le nom accessible du lien. Le sélecteur porte sur
+  `target="_blank"`, que seule la politique de lien pose — un lien interne n'est jamais marqué.
+- Le **Plan Lyautey** affichait le Markdown littéralement : `[Fiche PDF](https://…)`, crochets
+  compris, pour la description publique comme pour le complément réservé. Nouveau rendu
+  `PlanLinkedText` (~90 lignes, sans dépendance) plutôt que `MarkdownContent`, qui aurait
+  embarqué `marked` + `DOMPurify` dans un bundle chargé sur le téléphone d'un visiteur.
+
+**Lot 2 — les liens internes ne disparaissent plus en silence.**
+
+- Un lien vers une page de l'application (`/tutoriels/3`), un `mailto:` ou un `tel:` perdait
+  son `href` à l'assainissement — donc son ancre à la conversion en Markdown
+  (`htmlToMarkdownWith` assainit avant Turndown). L'auteur enregistrait un texte nu en croyant
+  avoir posé un lien, **sans le moindre message**. Ces trois familles sont désormais
+  conservées, dans l'onglet courant (`classifyLinkHref`, `src/shared/platform/markdown.js`).
+- Les origines externes déguisées en chemin restent refusées : `//exemple.org` et
+  `/\exemple.org` (les navigateurs normalisent `\` en `/`), comme `javascript:`, `data:` et
+  tout schéma hors politique — `href`, `target` et `rel` sont retirés ensemble.
+- L'éditeur riche (ForetMap **et** GL) **avertit** quand l'adresse saisie est hors politique,
+  au lieu de laisser le lien s'évaporer à l'enregistrement.
+
+**Lot 3 — « Liens du lieu » : une audience par lien.**
+
+- Nouvelle table `location_links` (migration `261`) : jusqu'à 12 liens par zone ou repère,
+  chacun avec son libellé, sa cible et **sa propre audience de rôles**. La confidentialité
+  descend du bloc de texte (description publique / complément réservé) au lien : « cette fiche
+  pour les profs, celle-là pour tout le monde », sur un seul lieu, sans couper le texte en deux.
+- Le filtrage passe par `projectLocationAudienceForViewer`, donc **toutes** les surfaces en
+  héritent (carte de travail, Visite, Plan public, plan des personnels) : un lien hors audience
+  ne quitte jamais le serveur, et `audience_role_slugs` n'est servi qu'aux gestionnaires.
+- `links` omis en `PUT` = inchangé, `[]` = tous retirés. Cible polymorphe donc sans clé
+  étrangère : la suppression d'un lieu retire ses liens dans la même transaction.
+- Affichage en boutons sur la fiche de zone / de repère et sur le Plan ; édition par le bloc
+  « Liens du lieu » (réordonnancement, retrait, cases de rôles par ligne).
+
+Documentation : `docs/API.md` (liens d'un lieu + tableau de la politique de lien) et
+`docs/reference/foretmap/carte-et-zones.md` (« Liens dans les descriptions », « Liens du
+lieu », avec l'avertissement qu'un lien n'est confidentiel que si sa cible l'est).
 ### Ajouté — « Y aller » dans la Visite, et la distance sur la barre de parcours
 
 - **La fiche d'un lieu de la Visite porte un bouton « Y aller »**, comme celle du Plan Lyautey :

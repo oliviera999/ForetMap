@@ -275,3 +275,42 @@ details.admin-section > summary {
   color: var(--ink-warning, var(--ink-warning));
   font-size: var(--text-sm);
 }
+
+/*
+ * Liens documentaires d'un lieu (`LocationLinksFields`, migration 261) : une ligne = un lien,
+ * avec son libellé, sa cible et sa propre audience. Les lignes sont visuellement séparées
+ * parce que chacune porte un réglage de confidentialité distinct — les confondre ferait
+ * cocher les rôles du mauvais lien.
+ */
+.fm-location-links__row {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--gl-border, rgba(26, 71, 49, 0.18));
+  border-radius: var(--gl-radius-control, 10px);
+  background: var(--tint-neutral, rgba(0, 0, 0, 0.02));
+}
+
+.fm-location-links__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.fm-location-links__rank {
+  font-weight: var(--fw-semibold);
+  font-size: var(--text-sm);
+}
+
+.fm-location-links__badge {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.fm-location-links__error {
+  margin: 4px 0 6px;
+  color: var(--ink-warning, #b45309);
+  font-size: var(--text-sm);
+}

@@ -33,6 +33,11 @@ import { isInfrastructureLocation, locationCategoryIds } from '../../utils/locat
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
+import {
+  LocationLinksFields,
+  normalizeLocationLinksForForm,
+} from '../../shared/ui/LocationLinksFields.jsx';
+import { LocationLinksBlock } from './LocationLinksBlock.jsx';
 import { ContextComments } from '../context-comments';
 import { LivingBeingsCatalogPanel } from './LivingBeingsCatalogPanel.jsx';
 import { MarkerVisitImageBuilder } from './MarkerFormSections.jsx';
@@ -142,6 +147,7 @@ function ZoneInfoModal({
     normalizeAudienceRoleList(zone.visible_role_slugs),
   );
   const [restrictedNote, setRestrictedNote] = useState(zone.restricted_note || '');
+  const [links, setLinks] = useState(() => normalizeLocationLinksForForm(zone.links));
   const [restrictedNoteRoleSlugs, setRestrictedNoteRoleSlugs] = useState(() =>
     normalizeAudienceRoleList(zone.restricted_note_role_slugs),
   );
@@ -228,6 +234,7 @@ function ZoneInfoModal({
     setSearchAliases(zone.search_aliases || '');
     setVisibleRoleSlugs(normalizeAudienceRoleList(zone.visible_role_slugs));
     setRestrictedNote(zone.restricted_note || '');
+    setLinks(normalizeLocationLinksForForm(zone.links));
     setRestrictedNoteRoleSlugs(normalizeAudienceRoleList(zone.restricted_note_role_slugs));
   }, [
     zone.id,
@@ -248,6 +255,7 @@ function ZoneInfoModal({
     zone.visible_role_slugs,
     zone.restricted_note,
     zone.restricted_note_role_slugs,
+    zone.links,
     emojiParsingList,
     markerEmojis,
   ]);
@@ -288,6 +296,7 @@ function ZoneInfoModal({
             visibleRoleSlugs,
             restrictedNote,
             restrictedNoteRoleSlugs,
+            links,
           },
           visitEditorialBlocks,
           {
@@ -457,6 +466,7 @@ function ZoneInfoModal({
               <MarkdownContent>{zone.restricted_note}</MarkdownContent>
             </div>
           )}
+          <LocationLinksBlock links={zone.links} />
           {showVisitAsideBlock && (
             <LocationVisitAside
               entity={zone}
@@ -496,6 +506,7 @@ function ZoneInfoModal({
             livingBeingsOnlyOnTasks.length === 0 &&
             !zone.description &&
             !zone.restricted_note &&
+            !zone.links?.length &&
             !(zoneDetail.history || zone.history)?.length &&
             !showVisitAsideBlock && (
               <p
@@ -649,6 +660,7 @@ function ZoneInfoModal({
           />
           <LocationAudienceFields
             idPrefix="zone"
+            NoteEditor={MarkdownTextarea}
             visibleRoleSlugs={visibleRoleSlugs}
             onVisibleRoleSlugsChange={setVisibleRoleSlugs}
             restrictedNote={restrictedNote}
@@ -656,6 +668,7 @@ function ZoneInfoModal({
             restrictedNoteRoleSlugs={restrictedNoteRoleSlugs}
             onRestrictedNoteRoleSlugsChange={setRestrictedNoteRoleSlugs}
           />
+          <LocationLinksFields idPrefix="zone" links={links} onChange={setLinks} />
           <MarkerVisitImageBuilder
             imageBlocks={imageBlocks}
             visitMediaOptions={visitMediaOptions}
