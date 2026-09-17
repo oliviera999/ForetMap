@@ -9,7 +9,6 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Corrigé — le build *est* reproductible : `NODE_ENV=test` avait faussé le diagnostic
 ### Documentation — lancer l'e2e casse `npm test` sur la même base, et c'est mesuré
 
 - `npm test` lancé **juste après** la suite e2e donne **32 échecs** ; le même `npm test` sur une
@@ -21,7 +20,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Pratique à connaître en attendant** : après un `npm run test:e2e` local, rejouer
   `npm run db:init` avant `npm test`.
 
-### Corrigé — runbook de bascule `dist/` : ne pas comparer les noms de fichiers
+### Corrigé — le build *est* reproductible : `NODE_ENV=test` avait faussé le diagnostic
 
 L'entrée précédente concluait que le build Vite/rolldown n'était pas reproductible, et que le
 garde-fou de `frontend-dist.yml` exigeait donc « une égalité inatteignable ». **Les deux
