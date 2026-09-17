@@ -3,6 +3,7 @@ import { useHelp } from '../hooks/useHelp';
 import { getContentText } from '../utils/content';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { getAuthToken, withAppBase } from '../services/api';
+import { getBuildBrand } from '../shared/brand/brandNames.js';
 
 /**
  * Rapports d'audit interne, servis par des routes protégées par `admin.settings.read`
@@ -57,11 +58,14 @@ function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false })
     }
   }
   const { resetHelp, metrics, resetHelpMetrics } = useHelp({ publicSettings, isTeacher });
+  // Replis affichés seulement si le réglage correspondant est vide en base : ils suivent la
+  // marque du build (`lib/brand.js`) plutôt que d'y réécrire « ForetMap » et l'établissement.
+  const { appName: brandAppName, orgName: brandOrgName } = getBuildBrand();
   const aboutTitle = getContentText(publicSettings, 'about.title', 'ℹ️ À propos');
   const aboutSubtitle = getContentText(
     publicSettings,
     'about.subtitle',
-    'Informations du projet ForetMap',
+    `Informations du projet ${brandAppName}`,
   );
   const aboutPurposeTitle = getContentText(
     publicSettings,
@@ -71,7 +75,9 @@ function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false })
   const aboutPurposeBody = getContentText(
     publicSettings,
     'about.purpose_body',
-    'ForetMap aide les n3beurs et les n3boss du Lycée Lyautey à organiser les activités de la forêt comestible: suivi des zones, de la biodiversité, des tâches et des observations.',
+    brandOrgName
+      ? `${brandAppName} aide les n3beurs et les n3boss du ${brandOrgName} à organiser les activités de la forêt comestible: suivi des zones, de la biodiversité, des tâches et des observations.`
+      : `${brandAppName} aide à organiser les activités de la forêt comestible: suivi des zones, de la biodiversité, des tâches et des observations.`,
   );
   const aboutDocsTitle = getContentText(publicSettings, 'about.docs_title', 'Documentation');
   const aboutSiteIssuesTitle = getContentText(

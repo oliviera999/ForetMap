@@ -9,6 +9,53 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — licence propriétaire et découplage de la marque
+
+- **`LICENSE` à la racine** (absent jusqu'ici) : logiciel **propriétaire**, tous droits
+  réservés à Olivier ARNOULD-LAURENT, bilingue français / anglais. Sans ce fichier, un dépôt
+  public est lisible par tous mais juridiquement muet : rien n'énonçait qui détient les droits
+  ni ce qui est interdit. Le texte réserve expressément la reproduction, la modification, la
+  redistribution et l'exploitation en SaaS, réserve les composants et contenus tiers à leurs
+  licences propres, et réserve les noms et logos d'établissements à leurs propriétaires.
+  `package.json` déclare `"license": "UNLICENSED"` et `"private": true` (garde-fou contre une
+  publication npm accidentelle).
+- **`lib/brand.js` — source unique des noms affichés.** « ForêtMap » et « Lycée Lyautey »
+  étaient écrits en dur dans le registre produits, les défauts de réglages et les quatre
+  entrées HTML. Six variables d'environnement (`FORETMAP_BRAND_APP_NAME`,
+  `…_APP_SHORT_NAME`, `…_ORG_NAME`, `…_ORG_SHORT_NAME`, `…_GL_NAME`, `…_GL_SHORT_NAME`)
+  suffisent désormais à installer l'application pour un autre établissement, sous un autre
+  nom de logiciel, sans toucher au code.
+- **Non-régression vérifiée** : sans aucune variable, les titres, manifestes PWA,
+  descriptions et défauts de réglages restent identiques **au caractère près** —
+  `tests/brand.test.js` fige les libellés historiques des quatre produits.
+- **Deux lectures, les mêmes valeurs** : au build (plugin Vite `foretmap-brand-html` →
+  titres des entrées HTML, métadonnées de partage, global `window.__FORETMAP_BRAND__`) et à
+  l'exécution (`lib/products.js` pour les manifestes, `lib/settings.js` pour les défauts).
+  Changer la marque impose donc un **rebuild**, pas seulement un redémarrage.
+- **Un établissement vidé est un cas valide**, pas une dégradation : `brandText()` prend une
+  formulation de repli sans établissement plutôt que de recoudre une phrase à coups de regex,
+  et `joinBrandSegments()` ignore les segments vides. Aucun « Plan du  : … » ni tiret
+  orphelin — c'est vérifié par un test sur les quatre produits.
+- **Un nom court non déclaré suit son nom long** dès que celui-ci est redéfini : déclarer le
+  seul `FORETMAP_BRAND_ORG_NAME` laissait autrement « Lyautey » (défaut du nom court) dans le
+  titre du Plan, soit deux établissements dans la même installation.
+- **Réglages publics `content.brand.app_name` / `content.brand.org_name`** : un administrateur
+  peut surcharger la marque en base, sans reconstruire. Le colophon du carnet
+  (`JournalBookView`), le texte « À propos » et l'éditeur de politique de conditionnement
+  lisent la marque au lieu de l'écrire en dur.
+- **Périmètre volontairement borné aux noms affichés.** Les identifiants techniques homonymes
+  ne bougent pas — identifiants de produit, en-tête `X-Foretmap-Product`, claim JWT `product`,
+  préfixes `/api/gl`, variables `FORETMAP_*`, nom npm : jamais montrés à un utilisateur, et
+  les renommer casserait les sessions en cours pour un gain nul.
+- **Restent attachés au Lycée Lyautey**, et documentés comme tels : les préfixes de host
+  `planlyautey.` / `proflyautey.` (routage de déploiement — servir le Plan sur un autre
+  domaine demande un champ `hosts` exact, non fait ici) et `ui.plan.map_id` (identifiant de
+  ligne dans `maps`, donc une donnée).
+- Documentation : `docs/reference/exploitation/marque-et-domaines.md` (guide non technique
+  pour administrateurs, avec le tableau de ce qui reste à traiter), `.env.example` et
+  `docs/EXPLOITATION.md` § variables d'environnement.
+
+
 ### Corrigé — connexion Google impossible depuis proflyautey
 
 - « **Connexion Google invalide (session expirée). Réessayez depuis ForetMap.** » à chaque
