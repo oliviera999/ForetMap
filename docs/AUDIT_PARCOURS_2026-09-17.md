@@ -27,6 +27,13 @@
 > passe d'affichage dans le second. Chaque section porte une ligne **« Corrigé »** qui dit où.
 > Le document reste rédigé au présent de l'audit : c'est l'état constaté qui est décrit.
 >
+> **§2.2 a été corrigé deux fois**, en parallèle : une autre session a livré sa propre correction
+> sur `main` (commit `deffe1f`) pendant que celle-ci se faisait. À la fusion, la version retenue
+> est celle qui porte la reprise dans le **seul** noyau partagé — l'autre la posait dans le hook
+> _et_ dans la copie du Plan, faute d'avoir §2.5 sous la main. Ses huit cas de test, eux, sont
+> conservés et complétés : le fichier en compte quatorze. C'est une illustration involontaire de
+> §2.5 : la même correction a bien dû s'écrire deux fois.
+>
 > **Note d'exécution** : contrairement au premier audit, la base était disponible ici. Les
 > constats §2.1 et §2.4 ont été **reproduits par requête réelle** (supertest sur l'application
 > montée), et §2.7 **mesuré dans un navigateur** (Playwright, 390 × 844) — les chiffres sont

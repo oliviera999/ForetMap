@@ -15,11 +15,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   un parcours à l'étape 7 puis le reprendre rendait la main à l'étape **1** : « Reprendre »
   appelait le démarrage, qui remet la position à zéro. Le bouton promet pourtant l'inverse, et
   l'aide du plan aussi.
-- La sortie mémorise désormais le parcours **et l'étape**, et la reprise repart de là. Elle est
-  en outre écrite sur l'appareil (une clé par surface et par carte) : elle survit à un
-  rechargement de page — la situation du visiteur qui a scanné un QR code et verrouille son
+- La sortie mémorise désormais le parcours **et l'étape**, et la reprise repart de là. Relancer
+  le parcours depuis la liste repart bien du début, et un parcours dont des lieux ont disparu
+  entre-temps reprend à sa dernière étape encore existante.
+- L'étape est en outre écrite sur l'appareil (une clé par surface et par carte) : elle survit à
+  un rechargement de page — la situation du visiteur qui a scanné un QR code et verrouille son
   téléphone entre deux étapes. Rien ne part vers le serveur, conformément à la promesse faite
   au visiteur. Une reprise qui ne désigne plus aucun parcours publié s'efface d'elle-même.
+- Tests : `tests-ui/shared/useMapRouteMode.test.jsx` (14 cas — le noyau partagé n'avait aucun
+  test direct), l'assertion manquante après le clic sur « Reprendre » dans
+  `tests-ui/plan/AppPlanMount.test.jsx`, et le scénario e2e du Plan, qui reprend puis recharge
+  la page.
 
 ### Corrigé — barre d'étape : titre débordant, texte sans plafond, carte recadrée dessous
 
@@ -101,6 +107,30 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   champ (§2.3), et le mode parcours existe en deux exemplaires — `useMapRouteMode` pour la
   Visite et la carte, une copie propre dans `AppPlan.jsx` (§2.5).
 - Indexé dans `docs/audits/README.md`.
+### Ajouté — « Y aller » dans la Visite, et la distance sur la barre de parcours
+
+- **La fiche d'un lieu de la Visite porte un bouton « Y aller »**, comme celle du Plan Lyautey :
+  il referme la fiche (qui recouvrait la carte au moment précis où l'on cherche à s'orienter) et
+  ouvre en bas une **barre de guidage** — nom du lieu, distance à vol d'oiseau, trait droit entre
+  la position et le lieu sur la carte. Le guidage ne s'arrête que sur **« Arrêter »**, jamais en
+  refermant une fiche ni en déplaçant la carte, et « Revoir la direction » ramène le guidage sur
+  un lieu déjà visé. Ce n'est **pas un itinéraire** : la Visite ne connaît pas les allées, et le
+  bouton reste éteint (avec la raison en clair) tant que la carte n'est pas calée.
+- **Le lieu visé reste dessiné** même quand les filtres de catégories l'excluent : sans cela, on
+  était guidé vers un repère invisible.
+- **La barre d'étape d'un parcours affiche désormais la distance** à l'étape en cours dès que la
+  position est active — elle ne l'affichait que sur le Plan. Pendant un parcours, c'est elle qui
+  guide : jamais deux barres à la fois. Le bouton « Reprendre le parcours » remonte au-dessus de
+  la barre de guidage au lieu de passer dessous.
+- **Socle partagé `src/shared/map-guide/`** (barre, état du guidage, identité d'un lieu) : le Plan
+  s'appuie sur le même code, `PlanGuideBar` n'est plus qu'une enveloppe — même convention que
+  `MapRouteBar` / `PlanRouteBar`. L'identité d'un lieu visé inclut son type (`zone:3` ≠
+  `marker:3`) : le Plan comparait les seuls identifiants, qui sont pourtant indépendants d'une
+  table à l'autre.
+- Tests : `tests-ui/shared/useMapGuidance.test.jsx`, `tests-ui/shared/MapGuideBar.test.jsx`,
+  `tests-ui/shared/mapGuidePlace.test.js`, et deux scénarios de bout en bout dans
+  `tests-ui/components/visit/VisitViewMount.test.jsx` (carte calée / carte non calée).
+  Documentation : `docs/reference/foretmap/visite-et-mascottes.md`.
 
 ### Corrigé — connexion Google impossible depuis proflyautey
 

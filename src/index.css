@@ -5334,10 +5334,52 @@
       font:inherit;font-weight:600;cursor:pointer;text-decoration:underline;
     }
     .map-route-bar__hint{margin:0;color:var(--ink-soft);font-size:var(--text-sm);}
+    /* --- Barre de guidage « Y aller » (partagée Visite / Plan : `shared/map-guide`) -------
+       Le guidage ne vit pas dans la fiche du lieu : la fiche couvre la carte, donc elle cache
+       le point bleu au moment précis où l'on marche, et la refermer arrêtait la direction sans
+       le dire (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B4/B5). Une barre d'une ligne le
+       sort de là ; seul « Arrêter » l'interrompt. Mêmes règles que `.map-route-bar`. */
+    /* Bouton « Y aller » de la fiche de lieu (Visite) : même geste et mêmes mots que la
+       feuille du Plan — viser le lieu referme la fiche et laisse la barre de guidage. */
+    .visit-detail-panel__go{display:flex;flex-direction:column;gap:4px;}
+    .visit-detail-panel__go-btn{align-self:flex-start;min-height:44px;}
+    .visit-detail-panel__go-hint{margin:0;}
+    .map-guide-bar{
+      position:fixed;left:0;right:0;bottom:0;z-index:calc(var(--fm-z-modal) - 1);
+      display:flex;flex-direction:column;gap:4px;
+      padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));
+      background:color-mix(in srgb,var(--surface-plain) 94%,transparent);
+      border-top:1px solid var(--line-soft);box-shadow:0 -8px 24px rgba(20,54,37,.12);
+      backdrop-filter:blur(8px);
+    }
+    .visit-view--map-forward .map-guide-bar,
+    .map-view-canvas-outer .map-guide-bar{position:absolute;}
+    .map-guide-bar__row{display:flex;align-items:center;gap:8px;}
+    .map-guide-bar__target{
+      flex:1 1 auto;display:flex;align-items:center;gap:8px;min-width:0;min-height:44px;
+      border:0;padding:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;
+    }
+    .map-guide-bar__target[disabled]{cursor:default;}
+    .map-guide-bar__emoji{flex:0 0 auto;font-size:var(--text-xl);line-height:var(--lh-tight);}
+    .map-guide-bar__texts{display:flex;flex-direction:column;min-width:0;}
+    .map-guide-bar__name{overflow:hidden;font-weight:var(--fw-semibold);text-overflow:ellipsis;white-space:nowrap;}
+    .map-guide-bar__distance{color:var(--ink-soft);font-size:var(--text-sm);}
+    .map-guide-bar__stop{
+      flex:0 0 auto;min-height:44px;padding:0 12px;border:1px solid var(--line-soft);border-radius:999px;
+      background:transparent;color:inherit;font:inherit;cursor:pointer;
+    }
+    .map-guide-bar__hint{margin:0;color:var(--ink-soft);font-size:var(--text-sm);}
+    .map-guide-bar__locate{
+      border:0;padding:0;background:none;color:var(--leaf);
+      font:inherit;font-weight:var(--fw-semibold);cursor:pointer;text-decoration:underline;
+    }
     .map-route-resume{
       position:absolute;left:50%;bottom:16px;z-index:4;transform:translateX(-50%);
     }
     .map-route-resume__btn{min-height:44px;}
+    /* Guidage en cours : la reprise de parcours remonte au-dessus de la barre, plutôt que
+       de disparaître sous elle (les deux affordances restent atteignables). */
+    .map-route-resume--above-guide{bottom:calc(16px + 96px);}
     .visit-map-card__chrome-routes{flex:0 0 auto;}
     .map-view-toolbar-routes{display:inline-flex;align-items:center;}
     .visit-mascot-preview-body .visit-map-mascot-rive-shell,

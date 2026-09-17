@@ -33,14 +33,27 @@ familles.
 - **Parcours fléchés** : si des parcours ont été publiés pour la Visite (_Réglages → Parcours_,
   case « Visite »), une puce **« Parcours »** les liste. En choisir un affiche une barre d'étape
   en bas (Précédent / Suivant) : la carte se recentre sur chaque lieu, reste utilisable, et rien
-  n'est enregistré — comme sur le Plan Lyautey. On peut quitter et reprendre.
+  n'est enregistré côté serveur — comme sur le Plan Lyautey. On peut quitter, puis **reprendre à
+  l'étape où l'on s'était arrêté** (« Reprendre le parcours »), même après avoir rechargé la
+  page : la position est retenue sur l'appareil, et sur lui seul. Relancer le parcours depuis la
+  puce repart du début. Quand le plan est
+  calé et la position active, la barre d'étape indique aussi **la distance à l'étape en cours**,
+  et un trait relie la position au lieu visé.
+- **« Y aller »** : la fiche d'un lieu porte un bouton **« Y aller »**. Il **referme la fiche**
+  (qui recouvrait la carte) et affiche en bas une **barre de guidage** : le nom du lieu, la
+  **distance à vol d'oiseau**, et sur la carte un **trait droit** entre votre position et lui.
+  Le guidage ne s'arrête que sur **« Arrêter »** — ni en refermant la fiche, ni en se déplaçant
+  sur la carte. Le lieu visé reste affiché même si les filtres de catégories l'excluent, et le
+  bouton « Revoir la direction » ramène le guidage sur un lieu déjà visé. Pendant un parcours,
+  c'est la barre d'étape qui guide : il n'y a jamais deux barres à la fois. Même geste, mêmes
+  mots et même comportement que sur le Plan Lyautey.
 - **La fiche d'un lieu** : titre, sous-titre, **une** photo principale (celle de la carte
   si elle existe — alors le premier grand bloc image du texte n'est pas répété en dessous ;
   sinon la première image visite), contenu éditorial (paragraphes, intertitres, autres
   blocs d'images légendées), la
   **biodiversité du lieu**, un volet Tuto (les fiches pratiques associées), un mode
-  « lecture confortable », et un bouton **« Marquer comme vu »** — qui fait fêter la
-  mascotte et met à jour la progression.
+  « lecture confortable », un bouton **« Y aller »** (voir ci-dessus) et un bouton
+  **« Marquer comme vu »** — qui fait fêter la mascotte et met à jour la progression.
 - **La biodiversité du lieu est visible d'emblée**, sous le texte : une vignette par espèce
   (photo de la fiche ou pictogramme, nom courant, nom scientifique, une ligne sur son rôle).
   Toucher une vignette ouvre la **fiche complète de l'espèce** — la même que dans l'onglet
@@ -370,6 +383,12 @@ Au-delà, l'application le signale : sur le réseau d'un lycée, le poids se pai
 > l'échelle si les réglages le permettent), comme sur la carte de travail et le Plan
 > Lyautey. Une visite « guidée pas à pas par la position » (mascotte qui avance toute
 > seule sur le terrain) reste une évolution à demander.
+
+> ⚠️ **Point d'attention** — **« Y aller » n'est pas un itinéraire.** C'est une direction à vol
+> d'oiseau et une distance : la Visite ne connaît pas les chemins du jardin, et une direction
+> honnête vaut mieux qu'un trajet inventé. Le bouton reste **éteint si la carte n'est pas calée**
+> (la raison est écrite sous lui) : sans calage, aucune position ne peut être placée sur le plan.
+> Un vrai calcul de trajet supposerait de tracer les allées : c'est une évolution à demander.
 
 > ⚠️ **Point d'attention** — Les contenus de visite n'acceptent que des **images**
 > (pas d'audio ni de vidéo), et la progression d'un invité anonyme est **éphémère**
