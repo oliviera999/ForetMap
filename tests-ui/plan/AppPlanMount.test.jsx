@@ -243,14 +243,27 @@ describe('AppPlan — montage', () => {
     render(<AppPlan />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
 
-    fireEvent.click(screen.getByRole('button', { name: /Sport/ }));
+    /**
+     * Le filtre doit être **effectif** avant d'interroger la recherche, et pas seulement
+     * cliqué. `AppPlan` initialise les catégories depuis les réglages dans un effet
+     * (`CATEGORIES_STORAGE_KEY`) : sur une machine chargée, cet effet peut être exécuté
+     * **après** le clic et remettre la sélection à son défaut. La mention n'apparaît alors
+     * jamais — les résultats sont calculés de façon synchrone, aucune attente ne la fera
+     * venir. Attendre `aria-pressed`, en recliquant si la sélection a été écrasée, ferme cette
+     * course au lieu de la jouer (job `quality` : 17/09/2026, deuxième occurrence de la même
+     * assertion, après le passage à `findByText`).
+     */
+    await waitFor(() => {
+      const chip = screen.getByRole('button', { name: /Sport/ });
+      if (chip.getAttribute('aria-pressed') !== 'true') fireEvent.click(chip);
+      expect(chip.getAttribute('aria-pressed')).toBe('true');
+    });
     fireEvent.change(screen.getByLabelText('Rechercher un lieu'), { target: { value: 'CDI' } });
     const results = await screen.findByTestId('plan-results-sheet');
     expect(within(results).getByRole('button', { name: /CDI/ })).toBeTruthy();
     // `findByText` et non une lecture de `textContent` : `findByTestId` rend la main dès que la
     // feuille existe, alors que la mention dépend de `hiddenByFilter` (AppPlan.jsx), donc du
-    // rendu qui suit l'application du filtre « Sport ». Échantillonner une seule fois passait en
-    // local et tombait sur un runner chargé (job `quality`, 17/09/2026).
+    // rendu qui suit l'application du filtre « Sport ».
     expect(await within(results).findByText('masqué par vos filtres')).toBeTruthy();
   });
 

@@ -10269,16 +10269,37 @@ header .lock-btn::after,
   transform: translate(-50%, -50%);
 }
 
-.fm-pct-position__heading {
+.fm-pct-position__bearing {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 0;
-  height: 0;
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
-  border-bottom: 14px solid #2563eb;
-  transform-origin: 50% 100%;
+  width: 26px;
+  height: 26px;
+  transform-origin: 50% 50%;
+  /* Le cap n'est publié que huit fois par seconde : la transition relie deux angles successifs
+     sans rendu supplémentaire. L'angle reçu est continu, jamais replié sur [0, 360[ — sans quoi
+     le passage de 359° à 1° ferait tourner la flèche d'un tour complet, à l'envers. */
+  transition: transform 180ms linear;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.45));
+}
+
+.fm-pct-position__bearing svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.fm-pct-position__bearing path {
+  fill: #2563eb;
+  stroke: #fff;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-pct-position__bearing {
+    transition: none;
+  }
 }
 
 .fm-pct-position__arrow {
