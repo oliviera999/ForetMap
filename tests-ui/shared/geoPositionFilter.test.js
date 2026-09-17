@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import {
   GEO_FILTER_DEFAULTS,
+  destinationLatLng,
   distanceMetersBetweenLatLng,
   nextFilteredGeoFix,
 } from '../../src/shared/pct-map/geoPositionFilter.js';
@@ -146,5 +147,40 @@ describe('nextFilteredGeoFix', () => {
     const base = nextFilteredGeoFix(null, first);
     expect(nextFilteredGeoFix(base, { lat: null, lng: null }).lat).toBe(base.lat);
     expect(nextFilteredGeoFix(null, { lat: null, lng: null })).toBe(null);
+  });
+});
+
+/**
+ * Sert à projeter une vitesse : le point atteint en une seconde, passé par le calage, donne le
+ * déplacement par seconde sur le plan.
+ */
+describe('destinationLatLng', () => {
+  const from = { lat: 48.85, lng: 2.3 };
+
+  test('cap nord : la latitude monte, la longitude ne bouge pas', () => {
+    const to = destinationLatLng(from, 0, 111);
+    expect(to.lat).toBeGreaterThan(from.lat);
+    expect(to.lng).toBeCloseTo(from.lng, 9);
+    expect(distanceMetersBetweenLatLng(from, to)).toBeCloseTo(111, 1);
+  });
+
+  test('cap est : la longitude monte, la latitude ne bouge pas', () => {
+    const to = destinationLatLng(from, 90, 50);
+    expect(to.lng).toBeGreaterThan(from.lng);
+    expect(to.lat).toBeCloseTo(from.lat, 9);
+    expect(distanceMetersBetweenLatLng(from, to)).toBeCloseTo(50, 1);
+  });
+
+  test('cap sud-ouest : la distance parcourue est bien celle demandée', () => {
+    const to = destinationLatLng(from, 225, 80);
+    expect(to.lat).toBeLessThan(from.lat);
+    expect(to.lng).toBeLessThan(from.lng);
+    expect(distanceMetersBetweenLatLng(from, to)).toBeCloseTo(80, 1);
+  });
+
+  test('une entrée inexploitable ne produit pas de point inventé', () => {
+    expect(destinationLatLng(null, 0, 10)).toBe(null);
+    expect(destinationLatLng(from, null, 10)).toBe(null);
+    expect(destinationLatLng(from, 0, null)).toBe(null);
   });
 });
