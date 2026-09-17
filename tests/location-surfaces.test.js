@@ -23,7 +23,7 @@ describe('locationSurfaces — parse / sérialisation', () => {
     assert.deepEqual(parseSurfaceSet(['VISIT ', 'plan', 'zzz']), ['visit', 'plan']);
     assert.deepEqual(parseSurfaceSet(''), []);
     assert.deepEqual(parseSurfaceSet(null), []);
-    assert.deepEqual(parseSurfaceSet('map,map,visit,plan'), SURFACES);
+    assert.deepEqual(parseSurfaceSet('map,map,visit,plan,staff'), SURFACES);
   });
 
   it('serializeSurfaceSet → valeur SET', () => {

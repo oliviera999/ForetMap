@@ -78,6 +78,7 @@ export default defineConfig({
         mascotPackTool: path.resolve(process.cwd(), 'mascot-pack-tool.html'),
         gl: path.resolve(process.cwd(), 'gl.html'),
         plan: path.resolve(process.cwd(), 'plan.html'),
+        staff: path.resolve(process.cwd(), 'staff.html'),
       },
       output: {
         manualChunks(id) {

@@ -8,6 +8,11 @@ Le **Plan Lyautey** (`planlyautey.olution.info`) est une application à part, tr
 **un plan de l'établissement, sur téléphone, pour trouver un lieu**. Elle s'adresse aux
 élèves, aux familles, aux visiteurs et aux nouveaux personnels.
 
+> **Il existe une seconde version de ce plan, réservée aux personnels** :
+> [`proflyautey`](plan-des-personnels.md). Même carte, mêmes fiches, mais elle montre en plus
+> les lieux retirés d'ici et les compléments réservés. Ce document-ci décrit ce que voit
+> **le public**.
+
 Elle ne demande **aucun compte** et ne conserve **aucune donnée personnelle**. On l'ouvre,
 on cherche, on trouve. Il n'y a ni tâche, ni validation, ni progression : ces choses-là
 restent dans ForetMap et dans la Visite. L’administrateur peut toutefois consulter des
