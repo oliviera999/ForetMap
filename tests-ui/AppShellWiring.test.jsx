@@ -18,6 +18,8 @@ import { render, waitFor } from '@testing-library/react';
 
 const probes = vi.hoisted(() => ({ mapTasks: [], pedago: [], unauthenticated: [] }));
 const session = vi.hoisted(() => ({ stored: null, claims: null }));
+const dataSyncCalls = vi.hoisted(() => []);
+const tokenRenewalCalls = vi.hoisted(() => []);
 
 vi.mock('../src/components/app/MapTasksArea.jsx', () => ({
   MapTasksArea: (props) => {
@@ -51,34 +53,44 @@ vi.mock('../src/services/api', async (importOriginal) => ({
 }));
 
 // Le cycle de données et le temps réel sont testés ailleurs : neutralisés ici pour que le
-// rendu reste synchrone et sans minuterie.
+// rendu reste synchrone et sans minuterie. On conserve les arguments : `hasAuthenticatedShell`
+// mal câblé (session enseignante sans `teacher.access`) laissait l'écran sur le loader.
 vi.mock('../src/hooks/useAppDataSync', () => ({
-  useAppDataSync: () => ({
-    maps: [],
-    activeMapId: 'm1',
-    setActiveMapId: vi.fn(),
-    zones: [],
-    setZones: vi.fn(),
-    tasks: [],
-    setTasks: vi.fn(),
-    taskProjects: [],
-    setTaskProjects: vi.fn(),
-    archivedTasks: [],
-    setArchivedTasks: vi.fn(),
-    archivedTaskProjects: [],
-    setArchivedTaskProjects: vi.fn(),
-    plants: [],
-    setPlants: vi.fn(),
-    markers: [],
-    setMarkers: vi.fn(),
-    tutorials: [],
-    loading: false,
-    refreshMs: 60000,
-    serverDown: false,
-    retryingServer: false,
-    fetchAll: vi.fn(),
-    retryServerNow: vi.fn(),
-  }),
+  useAppDataSync: (params) => {
+    dataSyncCalls.push(params);
+    return {
+      maps: [],
+      activeMapId: 'm1',
+      setActiveMapId: vi.fn(),
+      zones: [],
+      setZones: vi.fn(),
+      tasks: [],
+      setTasks: vi.fn(),
+      taskProjects: [],
+      setTaskProjects: vi.fn(),
+      archivedTasks: [],
+      setArchivedTasks: vi.fn(),
+      archivedTaskProjects: [],
+      setArchivedTaskProjects: vi.fn(),
+      plants: [],
+      setPlants: vi.fn(),
+      markers: [],
+      setMarkers: vi.fn(),
+      tutorials: [],
+      loading: false,
+      refreshMs: 60000,
+      serverDown: false,
+      retryingServer: false,
+      fetchAll: vi.fn(),
+      retryServerNow: vi.fn(),
+    };
+  },
+}));
+vi.mock('../src/hooks/useAuthTokenRenewal', () => ({
+  useAuthTokenRenewal: (params) => {
+    tokenRenewalCalls.push(params);
+  },
+  shouldAskTokenRenewal: () => false,
 }));
 vi.mock('../src/hooks/useAppDataPolling', () => ({ useAppDataPolling: () => {} }));
 vi.mock('../src/hooks/useForetmapRealtime', () => ({ useForetmapRealtime: () => 'off' }));
@@ -126,6 +138,8 @@ beforeEach(() => {
   probes.mapTasks.length = 0;
   probes.pedago.length = 0;
   probes.unauthenticated.length = 0;
+  dataSyncCalls.length = 0;
+  tokenRenewalCalls.length = 0;
   apiMock.mockClear();
 });
 
@@ -160,6 +174,12 @@ describe('App — câblage de la persistance mascotte visite', () => {
     const { mapTasks } = await renderAppWith(CLASS_TEACHER_SESSION_WITHOUT_TEACHER_ACCESS);
     expect(probes.unauthenticated).toHaveLength(0);
     expect(mapTasks).toBeTruthy();
+    // Régression du correctif incomplet : la porte d'entrée passait, mais le cycle
+    // de données (`loading` reste true tant que `fetchAll` n'a pas fini) et le
+    // renouvellement de jeton restaient calés sur `teacher.access` — écran figé
+    // sur « Chargement de la forêt… », session morte au bout d'1 h 30.
+    expect(dataSyncCalls.at(-1)?.hasAuthenticatedShell).toBe(true);
+    expect(tokenRenewalCalls.at(-1)?.enabled).toBe(true);
   });
 
   test('sans session : le shell invité est rendu, sans persisteur de compte', async () => {
@@ -168,6 +188,8 @@ describe('App — câblage de la persistance mascotte visite', () => {
     render(<App />);
     await waitFor(() => expect(probes.unauthenticated.length).toBeGreaterThan(0));
     expect(probes.mapTasks).toHaveLength(0);
+    expect(dataSyncCalls.at(-1)?.hasAuthenticatedShell).toBe(false);
+    expect(tokenRenewalCalls.at(-1)?.enabled).toBe(false);
     // Le choix d'un visiteur reste local à son appareil : aucune route compte n'est appelée.
     expect(apiMock).not.toHaveBeenCalledWith(
       '/api/visit/mascot-preference',

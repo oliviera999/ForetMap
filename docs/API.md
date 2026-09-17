@@ -2047,7 +2047,7 @@ Tables `map_routes` et `map_route_steps` (migration `210`).
 
 | Méthode | URL                         | n3boss | Description                                                                                                                             |
 | ------- | --------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/map-routes`           | non    | Parcours **publiés**, filtrables par `map_id` et `surface` (`plan`/`map`/`visit`)                                                       |
+| GET     | `/api/map-routes`           | non    | Parcours **publiés**, filtrables par `map_id` et `surface` (`plan`/`map`/`visit`/`staff`)                                               |
 | GET     | `/api/map-routes/manage`    | oui    | Vue de gestion : inclut les brouillons (`zones.manage`)                                                                                 |
 | GET     | `/api/map-routes/:idOrSlug` | non    | Détail **d'un parcours publié**, par identifiant ou par slug (le lien profond porte le slug) ; `?map_id=` lève l'ambiguïté entre cartes |
 | POST    | `/api/map-routes`           | oui    | Créer un parcours (et ses étapes)                                                                                                       |
@@ -2067,12 +2067,35 @@ step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `
   fautive (le couple est polymorphe : aucune clé étrangère ne peut le tenir).
 - **Longueurs** : `description` ≤ **2 000** caractères, `step_text` ≤ **4 000** — au-delà, **400**.
   Sans ces bornes, une entrée trop longue faisait remonter une erreur SQL en 500.
-- **Garde d'accès** : les lectures **plan** (`?surface=plan` ou sans `surface`) et le détail
-  `/:idOrSlug` passent par la garde du plan (`lib/planAccess.js`). Quand
-  `ui.plan.access_mode` vaut `code` et qu'un code est configuré, elles répondent **401**
-  `{ access_required: true }` sans laissez-passer, comme `GET /api/plan/content`. Les catalogues
-  `?surface=map` et `?surface=visit` **ne** sont **pas** soumis à cette garde (la Visite embarque
-  aussi ses parcours dans `GET /api/visit/content`). La vue de gestion n'est pas concernée.
+- **Garde d'accès, par surface** : chaque surface se lit comme se lit sa charge.
+  - `?surface=plan` (ou sans `surface`) et le détail `/:idOrSlug` → garde du plan
+    (`lib/planAccess.js`) : **401** `{ access_required: true }` quand `ui.plan.access_mode`
+    vaut `code` et qu'un code est configuré, comme `GET /api/plan/content`.
+  - `?surface=visit` → ouvert (la Visite embarque aussi ses parcours dans
+    `GET /api/visit/content`).
+  - `?surface=map` → **compte requis** (la carte de travail est un écran interne) : **401**
+    `{ auth_required: true }` sans jeton, aucune permission particulière au-delà.
+  - `?surface=staff` → même garde que `GET /api/staff-plan/content`
+    (`resolveStaffPlanViewer` : permission `staff_plan.access` ou laissez-passer de code) :
+    **401** `{ auth_required: true, code_available }` sinon.
+
+  Les deux dernières règles ont été posées après coup : seule la garde du plan existait, et
+  `?surface=staff` livrait à un anonyme le titre, la description, le public visé et le texte
+  des étapes de parcours réservés aux personnels (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.1).
+  La vue de gestion (`/manage`, `zones.manage`) n'est pas concernée.
+
+- **`sort_order`** est un `INT` : un rang hors de `[-2147483648, 2147483647]` répond **400**
+  (« Ordre hors bornes »), au lieu de la **500** SQL d'avant. Un champ vide ou illisible n'est
+  pas une valeur : à la création le rang vaut `100`, à la modification le rang existant est
+  conservé.
+- **`slug` à la modification** : le champ **absent** conserve le slug existant ; fourni **vide**,
+  il est re-dérivé du titre — comme à la création, et comme l'annonce le champ « Identifiant du
+  lien » de l'éditeur. Un titre sans lettre ni chiffre reste un **400**.
+- **Étapes en double** : deux étapes peuvent viser le même lieu (un parcours repasse par
+  l'accueil). Les positions restent l'ordre du tableau.
+- **`GET /api/map-routes/manage`** applique le **périmètre de cartes** du compte, comme le
+  catalogue public : sans `map_id`, la liste est ramenée aux cartes autorisées ; un `map_id` hors
+  périmètre répond **403** `MAP_OUT_OF_SCOPE`.
 - **`map_id`** n'est pas modifiable par `PUT` : un parcours reste sur sa carte, ses étapes ne
   visent que les lieux de celle-ci. Un `map_id` envoyé à la modification est ignoré.
 - **`GET /api/map-routes/:id/pdf`** : une page A4 avec le titre, le public visé, la liste des
@@ -2082,16 +2105,18 @@ step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `
   autre domaine que le plan — sans le réglage, le QR code renverrait le visiteur vers un écran
   de connexion. QR généré localement (`qrcode`, MIT) : une affiche d'établissement ne doit
   dépendre d'aucun service tiers.
-- **`GET /api/map-routes/:idOrSlug`** ne sert que les parcours **publiés**. Un brouillon
-  (défaut à la création) répond **404**, que l'on interroge par identifiant ou par slug —
-  le slug se déduit du titre et ne doit pas servir de porte dérobée. Les brouillons restent
-  visibles via `GET /manage` (`zones.manage`).
+- **`GET /api/map-routes/:idOrSlug`** ne sert que les parcours **publiés** sur une surface
+  **publique** (`visit`, `plan`). Un brouillon (défaut à la création) répond **404**, que l'on
+  interroge par identifiant ou par slug — le slug se déduit du titre et ne doit pas servir de
+  porte dérobée ; un parcours publié seulement sur `map` ou `staff` répond **404** lui aussi,
+  c'est la porte du lien profond imprimé, pas celle des surfaces internes. Les brouillons et
+  les parcours internes restent visibles via `GET /manage` (`zones.manage`).
 - **`GET /api/plan/content`** publie les parcours de la surface `plan` sous la clé `routes`.
   Les **étapes sont confrontées aux lieux réellement publiés** : une étape dont la zone ou le
   repère est supprimé, masqué (`hidden_surfaces`) ou hors des catégories du plan ne sort pas de
   la charge — ni son identifiant, ni son texte. Les `position` restantes peuvent donc présenter
   des trous ; le client renumérote à l'affichage.
-- **`GET /api/map-routes`** (surfaces `map` / `visit` / `plan`) et **`GET /:idOrSlug`**
+- **`GET /api/map-routes`** (toutes surfaces) et **`GET /:idOrSlug`**
   appliquent le même filtre au catalogue public : une étape dont le lieu est hors audience
   (`visible_role_slugs`) ou masqué sur la surface demandée n'est pas renvoyée (`step_text`
   compris). `authenticate` est optionnel pour appliquer le rôle du jeton ; un gestionnaire
