@@ -50,6 +50,9 @@ import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
 /** Nombre de résultats affichés (au-delà, affiner la recherche est plus rapide que défiler). */
 const RESULTS_LIMIT = 40;
 
+/** « Aucun filtre », d'identité stable : un `new Set()` par rendu relancerait tous les memos. */
+const EMPTY_CATEGORY_IDS = new Set();
+
 /**
  * Plan Lyautey (lot 4 du plan de convergence, `docs/AUDIT_PLAN_LYAUTEY_2026-09.md`).
  *
@@ -98,7 +101,11 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   const [query, setQuery] = useState('');
   const [resultsOpen, setResultsOpen] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState(null);
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState(() => new Set());
+  /**
+   * Filtres de catégories : `null` tant que la personne n'a rien choisi dans cette session —
+   * la sélection effective est alors **dérivée** des réglages (voir `defaultCategoryIds`).
+   */
+  const [chosenCategoryIds, setChosenCategoryIds] = useState(null);
   const [welcomeVisible, setWelcomeVisible] = useState(false);
   /** Lieux d'un groupe de repères ouvert depuis la carte (désencombrement, lot 5). */
   const [groupPlaces, setGroupPlaces] = useState(null);
@@ -211,14 +218,25 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     [categories],
   );
 
-  // Catégories : choix mémorisé sur l'appareil, sinon défauts d'établissement.
-  useEffect(() => {
-    if (!settings) return;
+  /**
+   * Catégories : choix mémorisé sur l'appareil, sinon défauts d'établissement — **dérivé au
+   * rendu**, et non posé par un effet.
+   *
+   * Posé par un effet, il écrasait le choix que la personne venait de faire : l'effet se
+   * rejouait à chaque nouvelle identité de `settings` / `categoriesById` (un rechargement du
+   * contenu suffit), et, sur un appareil chargé, il pouvait même être exécuté **après** un
+   * appui sur une puce. Les filtres se remettaient alors tout seuls au défaut, sans que rien
+   * ne l'explique à l'écran (vu en intégration le 17/09/2026, job `quality`).
+   */
+  const defaultCategoryIds = useMemo(() => {
+    if (!settings) return EMPTY_CATEGORY_IDS;
     const stored = safeLocalStorageReadJson(CATEGORIES_STORAGE_KEY, null);
     const initial = Array.isArray(stored) ? stored : settings.default_category_ids || [];
-    const known = initial.map(String).filter((id) => categoriesById.has(id));
-    setSelectedCategoryIds(new Set(known));
+    return new Set(initial.map(String).filter((id) => categoriesById.has(id)));
   }, [settings, categoriesById, CATEGORIES_STORAGE_KEY]);
+  const selectedCategoryIds = chosenCategoryIds ?? defaultCategoryIds;
+  const selectedCategoryIdsRef = useRef(selectedCategoryIds);
+  selectedCategoryIdsRef.current = selectedCategoryIds;
 
   useEffect(() => {
     if (!settings?.welcome_hint) return;
@@ -472,20 +490,21 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
 
   const toggleCategory = useCallback(
     (id) => {
-      setSelectedCategoryIds((prev) => {
-        const next = new Set(prev);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        safeLocalStorageWriteJson(CATEGORIES_STORAGE_KEY, [...next]);
-        return next;
-      });
+      // Part de la sélection **effective** (choix explicite ou défaut dérivé), jamais d'un
+      // état qui serait encore `null` : le premier appui doit ajouter une catégorie au défaut
+      // affiché, pas à un ensemble vide invisible.
+      const next = new Set(selectedCategoryIdsRef.current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      safeLocalStorageWriteJson(CATEGORIES_STORAGE_KEY, [...next]);
+      setChosenCategoryIds(next);
     },
     [CATEGORIES_STORAGE_KEY],
   );
 
   const resetCategories = useCallback(() => {
-    setSelectedCategoryIds(new Set());
     safeLocalStorageWriteJson(CATEGORIES_STORAGE_KEY, []);
+    setChosenCategoryIds(EMPTY_CATEGORY_IDS);
   }, [CATEGORIES_STORAGE_KEY]);
 
   /**

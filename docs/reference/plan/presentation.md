@@ -46,7 +46,9 @@ du lycée apparaît discrètement en bas à gauche du plan.
    ouvre la **liste complète des catégories**, avec le nombre de lieux de chacune et le
    nombre de lieux affichés ; le chiffre porté par le bouton rappelle combien de filtres
    sont actifs. Les lieux **sans catégorie** (entrées, loge, repères de service) restent
-   affichés quel que soit le filtre : aucune case à cocher ne pourrait les ramener.
+   affichés quel que soit le filtre : aucune case à cocher ne pourrait les ramener. Le choix
+   fait tient : il n'est plus remis au défaut tout seul quand le plan se recharge, ni quand
+   l'appareil est lent au moment où l'on touche une puce.
 4. **Des lieux regroupés quand c'est trop dense.** Vu de loin, des repères qui se
    chevauchent sont remplacés par une **pastille chiffrée**. La toucher zoome sur le groupe ;
    si les lieux sont exactement au même endroit (deux salles d'un même bâtiment, par
@@ -98,6 +100,15 @@ affichées, et un saut impossible à pied (un « téléport » de cent mètres s
 est écarté au lieu d'emporter la carte avec lui. La contrepartie est assumée : quand on se
 remet à marcher, le repère peut avoir un ou deux mètres de retard le temps de reprendre la
 mesure exacte.
+
+**Entre deux mesures, le repère continue d'avancer.** Le téléphone ne se situe qu'une fois par
+seconde environ ; plutôt que de laisser le repère immobile puis de le faire bondir, le plan
+prolonge le déplacement en cours — la direction et la vitesse que le capteur vient d'annoncer.
+La marche est donc continue, à l'écran comme sur le terrain. Cette prolongation est **bornée** :
+elle s'arrête au bout de deux secondes et demie de silence du capteur, et ne dépasse jamais huit
+mètres. Passé cela, le repère s'immobilise et attend : prolonger plus longtemps reviendrait à
+inventer un trajet. L'arrivée d'une nouvelle mesure ne fait jamais sauter le repère non plus —
+il la rejoint en glissant.
 
 Quand l'établissement l'autorise (réglage Plan **et** case sur la carte dans le calage GPS),
 un bouton **« Orienter »** apparaît à côté de « Me situer » une fois la position active. Il fait

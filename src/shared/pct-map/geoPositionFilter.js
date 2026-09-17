@@ -92,6 +92,35 @@ export function distanceMetersBetweenLatLng(a, b) {
 }
 
 /**
+ * Point atteint depuis `from` en suivant `bearingDeg` (degrés horaires depuis le nord) sur
+ * `meters`. Même approximation de plan local que `distanceMetersBetweenLatLng`, et même domaine
+ * de validité : à l'échelle d'un établissement, l'écart est négligeable.
+ *
+ * Sert à projeter une **vitesse** : le point atteint en une seconde, passé par le calage de la
+ * carte, donne le déplacement par seconde en pourcentage de plan — y compris quand le plan est
+ * tourné ou d'échelle différente en x et en y.
+ *
+ * @param {{ lat: number, lng: number }|null} from
+ * @param {number} bearingDeg
+ * @param {number} meters
+ * @returns {{ lat: number, lng: number }|null}
+ */
+export function destinationLatLng(from, bearingDeg, meters) {
+  const lat = finiteOrNull(from?.lat);
+  const lng = finiteOrNull(from?.lng);
+  const bearing = finiteOrNull(bearingDeg);
+  const distance = finiteOrNull(meters);
+  if (lat == null || lng == null || bearing == null || distance == null) return null;
+  const rad = Math.PI / 180;
+  const north = (distance * Math.cos(bearing * rad)) / EARTH_RADIUS_M / rad;
+  const cosLat = Math.cos(lat * rad);
+  // Aux pôles, la longitude n'a plus de sens local : on s'abstient plutôt que de diverger.
+  if (Math.abs(cosLat) < 1e-9) return { lat: lat + north, lng };
+  const east = (distance * Math.sin(bearing * rad)) / (EARTH_RADIUS_M * cosLat) / rad;
+  return { lat: lat + north, lng: lng + east };
+}
+
+/**
  * Nouvel état du filtre après une mesure. Fonction **pure** : l'état précédent est donné, le
  * suivant est renvoyé (l'appelant le range où il veut — une ref, un état React, un test).
  *
