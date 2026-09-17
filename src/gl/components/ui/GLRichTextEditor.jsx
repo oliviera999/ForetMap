@@ -1,5 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../../../shared/platform/markdown.js';
+import {
+  LINK_INPUT_HELP,
+  classifyLinkHref,
+  renderMarkdownToSafeHtml,
+  sanitizeRichHtml,
+} from '../../../shared/platform/markdown.js';
 import {
   createRichTextTurndownService,
   htmlToMarkdownWith,
@@ -115,7 +120,7 @@ export const GLRichTextEditor = React.forwardRef(function GLRichTextEditor(
   },
   forwardedRef,
 ) {
-  const { prompt } = useAppDialogs();
+  const { notify, prompt } = useAppDialogs();
   const editableRef = useRef(null);
   const lastMarkdownRef = useRef(null);
   const [imageStatus, setImageStatus] = useState('');
@@ -278,8 +283,18 @@ export const GLRichTextEditor = React.forwardRef(function GLRichTextEditor(
             const selection = typeof window !== 'undefined' ? window.getSelection() : null;
             const savedRange =
               selection && selection.rangeCount > 0 ? selection.getRangeAt(0).cloneRange() : null;
-            const url = await prompt({ message: 'URL du lien', defaultValue: 'https://' });
+            const url = await prompt({
+              message: `URL du lien. ${LINK_INPUT_HELP}`,
+              defaultValue: 'https://',
+            });
             if (!url) return;
+            // Hors politique de lien, l'ancre serait perdue à l'assainissement puis à la
+            // conversion en Markdown — sans un mot pour l'auteur (même garde que
+            // `RichTextEditor` côté ForetMap).
+            if (classifyLinkHref(url.trim()) === null) {
+              notify(`Lien non enregistré : adresse non reconnue. ${LINK_INPUT_HELP}`);
+              return;
+            }
             if (selection && savedRange) {
               selection.removeAllRanges();
               selection.addRange(savedRange);

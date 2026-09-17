@@ -48,6 +48,13 @@ const {
   projectLocationAudienceForViewer,
   canViewLocation,
 } = require('../lib/locationAudience');
+const {
+  normalizeLocationLinksInput,
+  loadLocationLinksMap,
+  attachLinksToEntity,
+  replaceLocationLinks,
+  deleteLocationLinks,
+} = require('../lib/locationLinks');
 const { resolveZoneEmojiForWrite } = require('../lib/zoneEmoji');
 const { mapZoneToVisitWhitelistFields } = require('../lib/visitMapToVisitFields');
 const { mapExists } = require('../lib/mapQueries');
@@ -280,23 +287,30 @@ router.get(
     }
     const speciesMap = await loadZoneSpeciesMap(db, zoneIds);
     const categoriesMap = await loadCategoriesMap(db, 'zone', zoneIds);
+    // Liens documentaires (migration 261) : posés bruts ici, puis filtrés par rôle en même
+    // temps que le complément réservé (`filterLocationsForViewer` plus bas). Un lien hors
+    // audience ne sort donc jamais du serveur.
+    const linksMap = await loadLocationLinksMap(db, 'zone', zoneIds);
     const result = zones.map((z) => {
       const key = String(z.id);
       const totalHist = historyTotalByZoneId.get(key) || 0;
       return serializeLocationRow(
-        attachCategoriesToEntity(
-          attachSpeciesToEntity(
-            {
-              ...z,
-              has_visit_body: !!Number(z.has_visit_body),
-              visit_body_json: undefined,
-              history: historyByZoneId.get(key) || [],
-              history_truncated: totalHist > ZONE_LIST_HISTORY_LIMIT,
-            },
-            speciesMap.get(key) || [],
-            { legacySingleName: z.current_plant },
+        attachLinksToEntity(
+          attachCategoriesToEntity(
+            attachSpeciesToEntity(
+              {
+                ...z,
+                has_visit_body: !!Number(z.has_visit_body),
+                visit_body_json: undefined,
+                history: historyByZoneId.get(key) || [],
+                history_truncated: totalHist > ZONE_LIST_HISTORY_LIMIT,
+              },
+              speciesMap.get(key) || [],
+              { legacySingleName: z.current_plant },
+            ),
+            categoriesMap.get(key) || [],
           ),
-          categoriesMap.get(key) || [],
+          linksMap.get(key) || [],
         ),
       );
     });
@@ -330,20 +344,24 @@ router.get(
     );
     const speciesRows = await loadZoneSpeciesMap(db, [zone.id]);
     const categoriesRows = await loadCategoriesMap(db, 'zone', [zone.id]);
+    const linksRows = await loadLocationLinksMap(db, 'zone', [zone.id]);
     const payload = projectLocationAudienceForViewer(
       serializeLocationRow(
-        attachCategoriesToEntity(
-          attachSpeciesToEntity(
-            {
-              ...zone,
-              has_visit_body: !!Number(zone.has_visit_body),
-              history,
-              history_truncated: false,
-            },
-            speciesRows.get(String(zone.id)) || [],
-            { legacySingleName: zone.current_plant },
+        attachLinksToEntity(
+          attachCategoriesToEntity(
+            attachSpeciesToEntity(
+              {
+                ...zone,
+                has_visit_body: !!Number(zone.has_visit_body),
+                history,
+                history_truncated: false,
+              },
+              speciesRows.get(String(zone.id)) || [],
+              { legacySingleName: zone.current_plant },
+            ),
+            categoriesRows.get(String(zone.id)) || [],
           ),
-          categoriesRows.get(String(zone.id)) || [],
+          linksRows.get(String(zone.id)) || [],
         ),
       ),
       req.auth,
@@ -374,6 +392,7 @@ router.put(
       visible_role_slugs,
       restricted_note,
       restricted_note_role_slugs,
+      links,
     } = req.body;
     if (name !== undefined && !String(name).trim()) {
       return res.status(400).json({ error: 'Nom requis' });
@@ -389,6 +408,10 @@ router.put(
       restricted_note_role_slugs,
     });
     if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
+    // Liens documentaires : omis = inchangés, `[]` = tous retirés (c'est ce qu'envoie
+    // l'interface quand on supprime la dernière ligne).
+    const linksInput = normalizeLocationLinksInput(links);
+    if (!linksInput.ok) return res.status(400).json({ error: linksInput.error });
     const nextHiddenSurfaces =
       hiddenSurfacesInput.value === null
         ? String(zone.hidden_surfaces ?? '')
@@ -501,6 +524,9 @@ router.put(
     if (living_beings !== undefined || species_ids !== undefined) {
       await syncZoneSpecies(db, zone.id, species_ids, nextLiving);
     }
+    if (linksInput.value !== null) {
+      await replaceLocationLinks(db, 'zone', zone.id, linksInput.value);
+    }
     const updated = await queryOne(`${ZONES_DETAIL_SQL} WHERE z.id = ?`, [zone.id]);
     const history = await queryAll(
       `${ZONE_HISTORY_SQL} WHERE zone_id = ? ORDER BY harvested_at DESC LIMIT ${ZONE_HISTORY_MAX_ROWS}`,
@@ -518,19 +544,23 @@ router.put(
     const updatedWithVisit = await queryOne(`${ZONES_DETAIL_SQL} WHERE z.id = ?`, [zone.id]);
     const speciesRows = await loadZoneSpeciesMap(db, [zone.id]);
     const categoriesRows = await loadCategoriesMap(db, 'zone', [zone.id]);
+    const linksRows = await loadLocationLinksMap(db, 'zone', [zone.id]);
     emitGardenChanged({ reason: 'update_zone', zoneId: zone.id, mapId: updatedWithVisit.map_id });
     res.json(
       serializeLocationRow(
-        attachCategoriesToEntity(
-          attachSpeciesToEntity(
-            {
-              ...updatedWithVisit,
-              history,
-            },
-            speciesRows.get(String(zone.id)) || [],
-            { legacySingleName: updatedWithVisit.current_plant },
+        attachLinksToEntity(
+          attachCategoriesToEntity(
+            attachSpeciesToEntity(
+              {
+                ...updatedWithVisit,
+                history,
+              },
+              speciesRows.get(String(zone.id)) || [],
+              { legacySingleName: updatedWithVisit.current_plant },
+            ),
+            categoriesRows.get(String(zone.id)) || [],
           ),
-          categoriesRows.get(String(zone.id)) || [],
+          linksRows.get(String(zone.id)) || [],
         ),
       ),
     );
@@ -578,6 +608,7 @@ router.post(
       visible_role_slugs,
       restricted_note,
       restricted_note_role_slugs,
+      links,
     } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
     const hiddenSurfacesInput = normalizeSurfaceInput(hidden_surfaces, {
@@ -590,6 +621,8 @@ router.post(
       restricted_note_role_slugs,
     });
     if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
+    const linksInput = normalizeLocationLinksInput(links);
+    if (!linksInput.ok) return res.status(400).json({ error: linksInput.error });
     // `points` doit être un vrai polygone : tableau de sommets {xp, yp} numériques (en %)
     // (une chaîne a aussi une `length` et passerait, stockant une géométrie corrompue).
     if (
@@ -626,6 +659,9 @@ router.post(
       ],
     );
     await syncZoneSpecies(db, id, species_ids, nextLiving);
+    if (linksInput.value !== null) {
+      await replaceLocationLinks(db, 'zone', id, linksInput.value);
+    }
     // `special` est dérivé des catégories (drapeau `is_infrastructure`), jamais du corps.
     const nextCategoryIds = await syncEntityCategories(db, {
       kind: 'zone',
@@ -639,14 +675,18 @@ router.post(
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [id]);
     const speciesRows = await loadZoneSpeciesMap(db, [id]);
     const categoriesRows = await loadCategoriesMap(db, 'zone', [id]);
+    const linksRows = await loadLocationLinksMap(db, 'zone', [id]);
     emitGardenChanged({ reason: 'create_zone', zoneId: id, mapId });
     res.status(201).json(
       serializeLocationRow(
-        attachCategoriesToEntity(
-          attachSpeciesToEntity({ ...zone, history: [] }, speciesRows.get(id) || [], {
-            legacySingleName: zone.current_plant,
-          }),
-          categoriesRows.get(id) || [],
+        attachLinksToEntity(
+          attachCategoriesToEntity(
+            attachSpeciesToEntity({ ...zone, history: [] }, speciesRows.get(id) || [], {
+              legacySingleName: zone.current_plant,
+            }),
+            categoriesRows.get(id) || [],
+          ),
+          linksRows.get(id) || [],
         ),
       ),
     );
@@ -665,6 +705,9 @@ router.delete(
     await withTransaction(async (tx) => {
       await tx.execute('DELETE FROM zone_history WHERE zone_id = ?', [req.params.id]);
       await tx.execute('DELETE FROM zone_photos WHERE zone_id = ?', [req.params.id]);
+      // Liens documentaires : cible polymorphe (`location_kind`), donc aucune clé étrangère
+      // ne peut s'en charger — même situation que `map_route_steps`.
+      await deleteLocationLinks(tx, 'zone', req.params.id);
       await tx.execute('DELETE FROM zones WHERE id = ?', [req.params.id]);
       // La couche visite partage le même id : on retire la cible visite « fantôme »
       // (ligne, médias, progression) dans la même transaction que la suppression carte.

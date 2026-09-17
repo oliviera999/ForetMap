@@ -64,7 +64,14 @@ export function LocationAudienceFields({
   onRestrictedNoteRoleSlugsChange,
   idPrefix = 'audience',
   disabled = false,
+  NoteEditor = null,
 }) {
+  // Éditeur du complément réservé : injecté par le produit (ForetMap passe
+  // `MarkdownTextarea`, pour que le confidentiel ait la même barre d'outils — bouton
+  // « Lien » compris — que la description publique). `src/shared/**` ne peut pas importer
+  // de code produit (étanchéité ForetMap / GL), d'où l'injection plutôt qu'un import.
+  // Sans injection : textarea nu, comportement historique.
+  const NoteEditorComponent = NoteEditor || 'textarea';
   const visible = normalizeAudienceRoleList(visibleRoleSlugs);
   const noteRoles = normalizeAudienceRoleList(restrictedNoteRoleSlugs);
   const toggle = (list, slug, checked, onChange) => {
@@ -104,8 +111,9 @@ export function LocationAudienceFields({
 
       <div className="field">
         <label htmlFor={`${idPrefix}-restricted-note`}>Complément réservé</label>
-        <textarea
+        <NoteEditorComponent
           id={`${idPrefix}-restricted-note`}
+          aria-label="Complément réservé"
           value={restrictedNote || ''}
           onChange={(e) => onRestrictedNoteChange?.(e.target.value)}
           rows={3}
