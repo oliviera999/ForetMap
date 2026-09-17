@@ -26,10 +26,10 @@ html {
 }
 
 body.gl-body {
-  /* 'ForetMapColorEmoji' AVANT les polices système (unicode-range emoji) : même dessin
-     d'emoji sur tous les appareils, téléchargé seulement si un emoji est rendu. */
+  /* 'Apple Color Emoji' en tête, puis la police auto-hébergée pour tout le reste du parc
+     (cf. typography-tokens.css et docs/AUDIT_EMOJIS_APPLE_2026-09-17.md § 7). */
   font-family:
-    'Caudex', 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', serif;
+    'Caudex', 'Apple Color Emoji', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Noto Color Emoji', serif;
   min-height: 100vh;
   min-height: 100dvh;
   width: 100%;
@@ -74,12 +74,13 @@ button {
 /* Bannières aperçu rôle / impersonation : shared/styles/role-preview-banner.css (commune). */
 
 :root {
-  /* Un seul ordre de pile emoji (aligné sur src/index.css) : 'ForetMapColorEmoji' avant les
-     polices système, téléchargement borné aux emojis par l'unicode-range du @font-face.
+  /* Un seul ordre de pile emoji (aligné sur src/index.css) : 'Apple Color Emoji' d'abord,
+     puis 'ForetMapColorEmoji' — téléchargement borné aux emojis par l'unicode-range du
+     @font-face, et nul sur Apple (docs/AUDIT_EMOJIS_APPLE_2026-09-17.md § 7, option A).
      Seule --font-sans est propre au produit : --font-emoji-stack, --font-sans-with-emoji et
      les tokens typographiques communs (--text-*, --fw-*, --lh-*, --ink-*) viennent de
      src/shared/styles/typography-tokens.css, importée par src/gl/main.jsx avant cette feuille
      (les pages G&L ne chargent pas index.css). */
   --font-sans:
-    'Caudex', 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', serif;
+    'Caudex', 'Apple Color Emoji', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Noto Color Emoji', serif;
 }

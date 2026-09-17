@@ -652,6 +652,14 @@ le texte jusqu'à l'illisible. Sur tablette et téléphone, les étiquettes sont
 la même façon (même police, même graisse, même halo) : seule la place change — le nom
 d'une zone est dans la forme, celui d'un repère juste sous l'épingle.
 
+**Le dessin des emojis dépend de l'appareil, volontairement.** Sur iPhone, iPad et Mac,
+ce sont les emojis d'Apple qui s'affichent — les mêmes que dans les messages et les
+applications du téléphone. Partout ailleurs (Android, Windows, Chromebook), l'application
+fournit elle-même un jeu d'emojis unique, pour que deux élèves sur deux machines
+différentes voient le même dessin. Un emoji peut donc ne pas avoir exactement la même
+allure d'un appareil à l'autre : c'est normal, et c'est ce qui garantit qu'il s'affiche
+toujours, y compris pendant un zoom sur la carte.
+
 **Côté utilisateur** : le bouton **Aa** de la barre d'outils carte permet trois niveaux
 locaux (Normal / Grand / Très grand), mémorisés sur l'appareil. Le même bouton est
 disponible dans le bandeau du plan de **Visite**, et le niveau choisi s'applique aussi
