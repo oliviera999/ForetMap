@@ -259,6 +259,17 @@ Désormais :
   Lyautey et le plan des personnels emploient les mêmes règles de champs et d'encadrés,
   chacune avec ses couleurs (forêt, médiévale, marine). Un écran nouveau part donc de la
   bonne apparence au lieu d'être à réhabiller après coup.
+- **Tous les encadrés se ressemblent**, y compris les plus anciens : la fiche « À propos »,
+  les tuiles de statistiques, le panneau de notifications et celui du forum. Chacun garde ce
+  qui lui est propre — le liseré vert de la fiche, l'ombre plus marquée du panneau qui flotte
+  au-dessus de l'écran — mais plus rien ne diffère par accident.
+- **Les longs tableaux sont plus faciles à suivre** : une ligne sur deux est légèrement
+  teintée, et la ligne survolée ressort. C'était le cas dans Gnomes & Licornes seulement ;
+  c'est désormais disponible partout.
+- **Une seule couleur par type de message.** Quatre rouges différents servaient à dire
+  « erreur » selon l'écran, trois verts à dire « enregistré ». Il n'en reste qu'un de chaque.
+  Les pastilles et les aplats colorés gardent leurs teintes vives, qui doivent rester
+  franches.
 
 ### La pastille d'état en bas d'écran
 

@@ -1,6 +1,6 @@
 /* Service worker « gl » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-gl-bac5a0e9";
+const CACHE_NAME = "foretmap-gl-038f1259";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -9,28 +9,28 @@ const PRECACHE_URLS = [
   "/manifest.json",
   "/gl/favicon.svg",
   "/gl/logo.png",
-  "/assets/gl-BROP0Mxo.js",
-  "/assets/gl-RO5hz0Bc.css",
+  "/assets/gl-C6cQCOp1.js",
+  "/assets/gl-dvXajAgs.css",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-2i84oDbI.js",
-  "/assets/react-vendor-ClBrELym.js",
-  "/assets/icons-BBfebeWE.js",
-  "/assets/ErrorBoundary-DFvm5CO1.js",
+  "/assets/VisitMascotFallbackSvg-DX0_Ddx9.js",
+  "/assets/react-vendor-DyU5Vns3.js",
+  "/assets/icons-foIiYRd8.js",
+  "/assets/ErrorBoundary-26IlTJQk.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-C76VV_yS.js",
-  "/assets/ImageLightboxProvider-B1dCJcHH.css",
+  "/assets/ImageLightboxProvider-DgPMc0EM.js",
+  "/assets/ImageLightboxProvider-BQXMtgsx.css",
   "/assets/markdown-DaBuaikX.js",
-  "/assets/spriteCutCatalogEntry-Dj7DsM1A.js",
-  "/assets/socket-io-SGWxBABF.js",
-  "/assets/GuidedTourOverlay-Co-Osi1K.js",
-  "/assets/HelpDock-C2bNeoLN.js",
-  "/assets/HelpDock-BiKYwk_Z.css",
-  "/assets/apiGL-CILUaOzh.js",
-  "/assets/presenceListPatch-Bnw_pYo0.js",
-  "/assets/JournalBookView-C2vSRxzE.js",
-  "/assets/FoodWebGraph-Bxxhf411.js",
-  "/assets/mascotBehaviorEngine-J2w4O_Us.js",
-  "/assets/MediaLibraryMenu-Den_A7YL.js",
+  "/assets/spriteCutCatalogEntry-IAGxO7SE.js",
+  "/assets/socket-io-CQ0Cr98w.js",
+  "/assets/GuidedTourOverlay-B83vnhp2.js",
+  "/assets/HelpDock-B74fi9NJ.js",
+  "/assets/HelpDock-BgtXlO9K.css",
+  "/assets/apiGL-CXhGPD67.js",
+  "/assets/presenceListPatch-cOpDvh8Z.js",
+  "/assets/JournalBookView-x2PpcfT0.js",
+  "/assets/FoodWebGraph-DpRHauIJ.js",
+  "/assets/mascotBehaviorEngine-Dszivq3O.js",
+  "/assets/MediaLibraryMenu-YB6i7VK9.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).

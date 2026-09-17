@@ -67,12 +67,12 @@
 }
 .pedago-foodweb-graph__line--default,
 .pedago-foodweb-graph__arrowhead--default {
-  stroke: #94a3b8;
-  fill: #94a3b8;
+  stroke: var(--ink-dim);
+  fill: var(--ink-dim);
 }
 .pedago-foodweb-graph__line-halo {
   fill: none;
-  stroke: #16a34a;
+  stroke: var(--accent-success-solid);
   stroke-linecap: round;
   opacity: 0.45;
   pointer-events: none;
@@ -103,8 +103,8 @@
   font-weight: var(--fw-semibold);
 }
 .pedago-foodweb-graph__node {
-  fill: #dcfce7;
-  stroke: #16a34a;
+  fill: var(--tint-success-strong);
+  stroke: var(--accent-success-solid);
   stroke-width: 1.5;
 }
 .pedago-foodweb-graph__node.highlight {
@@ -113,7 +113,7 @@
 }
 .pedago-foodweb-graph__label {
   font-size: 9px;
-  fill: #1f2937;
+  fill: var(--ink-strong);
   /* Liseré blanc sous le texte : un nom posé sur une flèche restait illisible.
      `paint-order` trace le contour avant le remplissage, sans l'épaissir. */
   paint-order: stroke;
@@ -228,8 +228,8 @@
   transition: opacity 0.15s ease;
 }
 .pedago-foodweb-graph__node--env {
-  fill: #f3f4f6;
-  stroke: #94a3b8;
+  fill: var(--surface-sunken);
+  stroke: var(--ink-dim);
   stroke-dasharray: 3 3;
 }
 /* Espèce conservée pour ne pas amputer une relation, mais située hors de la
@@ -278,10 +278,10 @@
   color: var(--forest, #1a3d2e);
 }
 .pedago-foodweb-graph__tbtn:hover {
-  background: #fff;
+  background: var(--surface-plain);
 }
 .pedago-foodweb-graph__tbtn.active {
-  background: #fff;
+  background: var(--surface-plain);
   border-color: var(--sage, #7aab8a);
   font-weight: var(--fw-semibold);
 }
@@ -304,9 +304,9 @@
   width: clamp(120px, 22vw, 200px);
   padding: 6px 10px;
   font-size: var(--text-sm);
-  border: 1px solid #d6e8dc;
+  border: 1px solid var(--line-leaf);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface-plain);
   color: inherit;
 }
 .pedago-foodweb-graph__search-input:focus-visible {
@@ -319,13 +319,13 @@
 }
 .pedago-foodweb-graph__col-label {
   font: 600 11px var(--font-sans, sans-serif);
-  fill: #4b5563;
+  fill: var(--ink-base);
   pointer-events: none;
 }
 /* Bandes de niveau trophique : libellé et filet de séparation. */
 .pedago-foodweb-graph__band-label {
   font: 600 11px var(--font-sans, sans-serif);
-  fill: #4b5563;
+  fill: var(--ink-base);
   pointer-events: none;
 }
 .pedago-foodweb-graph__band-rule {
@@ -346,7 +346,7 @@
 .pedago-foodweb-graph__selection-title {
   font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--forest, #166534);
+  color: var(--forest, var(--ink-success));
 }
 .pedago-foodweb-graph__chip {
   display: inline-flex;
@@ -356,14 +356,14 @@
   padding: 4px 10px;
   border: 1px solid var(--leaf, #86c79a);
   border-radius: 999px;
-  background: #f0fdf4;
+  background: var(--tint-success);
   color: #14532d;
   font-size: var(--text-sm);
   cursor: pointer;
 }
 .pedago-foodweb-graph__chip:hover,
 .pedago-foodweb-graph__chip:focus-visible {
-  background: #dcfce7;
+  background: var(--tint-success-strong);
 }
 /* Résumé en toutes lettres de l'espèce isolée : trace écrite et lecteur d'écran. */
 .pedago-foodweb-graph__summary {
@@ -388,7 +388,7 @@
   padding: 4px;
   background: #eef4f0;
   border-radius: 8px;
-  border: 1px solid #d6e8dc;
+  border: 1px solid var(--line-leaf);
   min-width: 120px;
 }
 .pedago-foodweb-graph__export--mobile {
@@ -405,7 +405,7 @@
 .pedago-foodweb-legend {
   padding: 10px 12px;
   background: #f1f8f3;
-  border: 1px solid #d6e8dc;
+  border: 1px solid var(--line-leaf);
   border-radius: 8px;
   font-size: var(--text-sm);
 }
@@ -464,7 +464,7 @@
 }
 .pedago-foodweb-legend__item--toggle:hover {
   background: #e8f3ec;
-  border-color: #d6e8dc;
+  border-color: var(--line-leaf);
 }
 .pedago-foodweb-legend__item--toggle:focus-visible {
   outline: 2px solid var(--sage, #7aab8a);
@@ -481,7 +481,7 @@
 }
 .pedago-foodweb-legend__label {
   line-height: var(--lh-tight);
-  color: #1f2937;
+  color: var(--ink-strong);
 }
 .pedago-foodweb-legend--compact .pedago-foodweb-legend__hint {
   display: none;

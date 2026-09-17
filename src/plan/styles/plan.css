@@ -101,7 +101,7 @@ body.plan-body {
   padding: calc(env(safe-area-inset-top, 0px) + var(--space-3, 12px)) var(--space-3, 12px)
     var(--space-2, 8px);
   background: var(--plan-brand-color-topbar, var(--forest));
-  color: #fff;
+  color: var(--surface-plain);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
 }
 
@@ -149,7 +149,7 @@ body.plan-body {
   min-height: var(--tap-target);
   padding: 0 var(--space-3, 12px);
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface-plain);
   color: var(--plan-ink);
 }
 
@@ -204,7 +204,7 @@ body.plan-body {
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.18);
-  color: #fff;
+  color: var(--surface-plain);
   font: inherit;
   font-size: var(--text-md, 1.05rem);
   font-weight: var(--fw-bold, 700);
@@ -212,7 +212,7 @@ body.plan-body {
 }
 
 .plan-help-btn:focus-visible {
-  outline: 2px solid #fff;
+  outline: 2px solid var(--surface-plain);
   outline-offset: 2px;
 }
 
@@ -311,7 +311,7 @@ body.plan-body {
   list-style: none;
   border: 1px solid rgba(24, 48, 88, 0.18);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface-plain);
   overflow: hidden;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
 }
@@ -375,7 +375,7 @@ body.plan-body {
   height: 26px;
   border-radius: 50%;
   background: var(--leaf);
-  color: #fff;
+  color: var(--surface-plain);
   font-size: var(--text-sm, 0.9rem);
 }
 
@@ -412,7 +412,7 @@ body.plan-body {
   gap: var(--space-2, 8px);
   padding: var(--space-3, 12px) var(--space-3, 12px)
     calc(var(--space-3, 12px) + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
-  background: color-mix(in srgb, var(--plan-surface, #fff) 94%, transparent);
+  background: color-mix(in srgb, var(--plan-surface, var(--surface-plain)) 94%, transparent);
   border-top: 1px solid var(--plan-border, rgba(0, 0, 0, 0.1));
   box-shadow: 0 -8px 24px rgba(20, 54, 37, 0.12);
   backdrop-filter: blur(8px);
@@ -498,7 +498,7 @@ body.plan-body {
   gap: var(--space-1, 4px);
   padding: var(--space-2, 8px) var(--space-3, 12px)
     calc(var(--space-2, 8px) + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
-  background: color-mix(in srgb, var(--plan-surface, #fff) 94%, transparent);
+  background: color-mix(in srgb, var(--plan-surface, var(--surface-plain)) 94%, transparent);
   border-top: 1px solid var(--plan-border, rgba(0, 0, 0, 0.1));
   box-shadow: 0 -8px 24px rgba(20, 54, 37, 0.12);
   backdrop-filter: blur(8px);
@@ -597,7 +597,7 @@ body.plan-body {
   border: 0;
   border-radius: 999px;
   background: var(--leaf, #406088);
-  color: #fff;
+  color: var(--surface-plain);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -660,7 +660,7 @@ body.plan-body {
   padding: 4px 12px;
   border-radius: 999px;
   background: rgba(31, 42, 34, 0.88);
-  color: #fff;
+  color: var(--surface-plain);
   font-size: var(--text-sm, 0.9rem);
   transform: translateX(-50%);
 }
@@ -786,7 +786,7 @@ body.plan-body {
   padding: var(--space-3, 12px);
   border-radius: 14px;
   background: var(--forest);
-  color: #fff;
+  color: var(--surface-plain);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.24);
 }
 
@@ -803,7 +803,7 @@ body.plan-body {
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 999px;
   background: transparent;
-  color: #fff;
+  color: var(--surface-plain);
   font: inherit;
   cursor: pointer;
 }

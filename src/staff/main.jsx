@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client';
 import '../shared/styles/typography-tokens.css';
 import '../shared/styles/spacing-tokens.css';
 import '../shared/styles/state-inks.css';
+import '../shared/styles/color-tokens.css';
 import '../shared/styles/z-layers.css';
 import '../shared/styles/motion.css';
 import '../shared/styles/shared-controls.css';

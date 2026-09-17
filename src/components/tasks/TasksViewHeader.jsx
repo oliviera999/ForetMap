@@ -154,8 +154,8 @@ export function TasksViewHeader({
             marginTop: 6,
             padding: '8px 12px',
             borderRadius: 10,
-            background: student.taskEnrollment?.atLimit ? '#fef3c7' : '#f0fdf4',
-            color: student.taskEnrollment?.atLimit ? '#92400e' : '#166534',
+            background: student.taskEnrollment?.atLimit ? '#fef3c7' : 'var(--tint-success)',
+            color: student.taskEnrollment?.atLimit ? 'var(--ink-warning)' : 'var(--ink-success)',
             fontSize: 'var(--text-sm)',
             lineHeight: 'var(--lh-normal)',
           }}

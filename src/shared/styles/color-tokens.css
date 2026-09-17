@@ -1,0 +1,75 @@
+/*
+ * Échelle de couleur commune — feuille chargée par les QUATRE produits.
+ *
+ * POURQUOI (lot C de `docs/AUDIT_UI_2026-09-16.md`, §H2 : « la couleur est la dernière
+ * couche non tokenisée »). Au moment d'écrire ce fichier : 1 233 littéraux hexadécimaux en
+ * CSS pour 357 valeurs distinctes, plus 577 `rgb()/rgba()`. Les tokens de marque existaient
+ * (`--forest`, `--leaf`…) et les encres d'état aussi (`state-inks.css`), mais il manquait
+ * toute la couche NEUTRE : surfaces, filets et encres de texte. Faute de nom pour « le gris
+ * d'un libellé secondaire », chaque écran en réinventait un — on comptait 206 gris distincts.
+ *
+ * DEUX RÉGIMES, ET C'EST VOLONTAIRE.
+ *
+ * 1. La couche neutre ci-dessous reprend les valeurs EXACTEMENT telles qu'elles étaient
+ *    employées. Les remplacer par ces tokens ne repeint rien : c'est une opération
+ *    vérifiable, pas un choix esthétique. Ce qui change, c'est qu'un écran neuf pioche
+ *    désormais un RÔLE (« encre secondaire ») au lieu d'inventer un hexadécimal.
+ *
+ * 2. Les couleurs d'ÉTAT, elles, ne peuvent pas être unifiées sans repeindre : quatre rouges
+ *    se disputaient le même rôle, et l'écart entre eux est perceptible (ΔE CIE76 de 14 entre
+ *    `#b91c1c` et `#991b1b`, de 26 avec `#dc2626`). Les rapprocher est donc une DÉCISION,
+ *    pas un nettoyage. Elle est prise ici — une valeur par rôle, celle déjà déclarée dans
+ *    `state-inks.css` puisque G&L l'aliase — et elle est réversible en changeant ce seul
+ *    token. Le détail des écarts est dans l'audit.
+ *
+ * CE QUI N'EST PAS ICI : les palettes de marque (vert forêt, or licorne, marine Lyautey)
+ * restent par produit, et les illustrations SVG gardent la leur — une mascotte n'obéit pas
+ * à l'échelle d'interface.
+ */
+
+:root {
+  /* ── Surfaces neutres ───────────────────────────────────────────────────
+     `--surface-plain` est le blanc opaque : 219 occurrences, de loin le littéral le plus
+     fréquent du dépôt. `--surface-1/2/soft` (ForetMap) restent les surfaces TRANSLUCIDES
+     posées sur le fond dégradé ; celle-ci est le blanc franc des cartes et des champs. */
+  --surface-plain: #fff;
+  --surface-sunken: #f3f4f6;
+  --surface-cool: #f8fafc;
+
+  /* ── Filets ─────────────────────────────────────────────────────────────
+     Du plus discret au plus marqué. `--line-leaf` et `--line-sage` sont les deux verts très
+     pâles employés comme filets dans les écrans biodiversité et pédago. */
+  --line-soft: #e5e7eb;
+  --line-muted: #d1d5db;
+  --line-cool: #cbd5e1;
+  --line-leaf: #d6e8dc;
+  --line-sage: #e2ebe5;
+
+  /* ── Encres de texte ────────────────────────────────────────────────────
+     `--ink-soft` (#64748b) et `--ink-faint` (#8a94a0) sont déjà posées par
+     `typography-tokens.css` ; celles-ci complètent l'échelle vers le foncé et vers les
+     gris chauds du thème forêt. */
+  --ink-strong: #1f2937;
+  --ink-base: #4b5563;
+  --ink-muted: #6b7280;
+  --ink-dim: #94a3b8;
+  --ink-moss: #4c5b52;
+  --ink-lichen: #8aa193;
+
+  /* ── Teintes d'état ─────────────────────────────────────────────────────
+     Fonds très pâles, distincts des `--accent-*` de `state-inks.css` : ceux-là habillent une
+     bannière, ceux-ci une ligne de tableau ou une zone de dépôt. */
+  --tint-success: #f0fdf4;
+  --tint-success-strong: #dcfce7;
+  --tint-danger: #fff1f2;
+  --tint-warning: #fffbeb;
+
+  /* ── Couleurs d'état pleines ────────────────────────────────────────────
+     Un aplat ou un trait vif — là où `--ink-success` / `--ink-danger` sont des encres de
+     TEXTE, faites pour être lues sur fond clair. Les confondre donnerait soit un aplat
+     terne, soit un texte illisible. */
+  --accent-success-solid: #16a34a;
+  --accent-warning-solid: #f59e0b;
+  --accent-info-solid: #2563eb;
+  --accent-danger-solid: #dc2626;
+}

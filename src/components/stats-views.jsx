@@ -503,7 +503,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
           </button>
         </div>
         {avatarProcessing && (
-          <div style={{ fontSize: 'var(--text-sm)', color: '#4b5563', marginTop: 6 }}>
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-base)', marginTop: 6 }}>
             Traitement de la photo en cours…
           </div>
         )}

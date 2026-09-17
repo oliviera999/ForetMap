@@ -1850,6 +1850,36 @@ Audit et décisions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDI
 
 Audit et décisions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md) (§5, lot B).
 
+### Modifié — Surfaces, tableaux et couleurs : la fin de l'homogénéisation de l'interface
+
+- **Les encadrés de toute l'application se ressemblent.** Les cinq surfaces héritées —
+  la fiche « À propos », la tuile de statistique, le panneau de notifications, le panneau du
+  forum et la carte de connexion — redéfinissaient chacune son fond, ses coins et son ombre.
+  Elles partagent désormais le même encadré, et ne gardent que leurs écarts voulus : le filet
+  menthe de la fiche, l'absence de filet sur une tuile au repos, l'ombre plus portée du
+  panneau qui flotte au-dessus de l'écran.
+- **Les tableaux de Gnomes & Licornes rejoignent les autres.** Le tableau d'administration
+  était quadrillé sur ses quatre côtés là où les deux autres n'avaient qu'un filet sous
+  chaque ligne. En échange, sa **zébrure** — une ligne sur deux teintée, la ligne survolée
+  mise en avant — devient disponible partout : sur un long tableau, c'est ce qui évite de
+  suivre une ligne à la règle.
+- **Les couleurs ont enfin des noms.** Il n'existait aucun nom pour « le gris d'un libellé
+  secondaire », d'où **206 gris différents** dans l'application. Une échelle commune (surfaces,
+  filets, encres de texte, teintes d'état) est posée et chargée par les quatre applications ;
+  **497 couleurs écrites en dur** la rejoignent, dont les 219 blancs. Le blanc, les filets et
+  les gris **n'ont pas changé d'un pixel** : ils ont seulement pris un nom.
+- **Une seule encre par état.** Quatre rouges, trois verts et trois ambres se disputaient le
+  rôle de « couleur du message d'erreur / de succès / d'avertissement ». Il n'en reste qu'un
+  de chaque pour le **texte**. Les aplats et les pastilles gardent leur couleur vive : un fond
+  et une encre lisible sur fond clair ne sont pas le même rôle.
+
+### Ajouté
+
+- **Un garde-fou empêche la couleur de se disperser à nouveau** : écrire une couleur en dur
+  alors qu'un nom existe pour elle fait échouer l'intégration continue.
+
+Audit, mesures d'écart perceptuel et décisions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md) (§6, lot C).
+
 ---
 
 ## [1.152.1] - 2026-09-11

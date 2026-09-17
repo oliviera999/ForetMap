@@ -623,7 +623,7 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
             padding: 8,
             border: '1px solid #d1d5db',
             borderRadius: 10,
-            background: '#f8fafc',
+            background: 'var(--surface-cool)',
             marginBottom: 8,
           }}
         >

@@ -245,7 +245,7 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
             border: armTarget != null ? '2px solid #2563eb' : '1px solid #e5e7eb',
             borderRadius: 8,
             overflow: 'hidden',
-            background: '#f8fafc',
+            background: 'var(--surface-cool)',
           }}
         >
           <img
@@ -290,7 +290,7 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
                   width: 22,
                   height: 22,
                   borderRadius: '50%',
-                  background: '#2563eb',
+                  background: 'var(--accent-info-solid)',
                   color: 'white',
                   fontSize: 'var(--text-xs)',
                   fontWeight: 'var(--fw-bold)',
@@ -337,7 +337,10 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
                   onChange={(e) => handleCoordInput(i, 'lat', e.target.value)}
                   onBlur={() => handleCoordBlur(i, 'lat')}
                   disabled={disabled}
-                  style={{ width: 120, borderColor: latError ? '#dc2626' : undefined }}
+                  style={{
+                    width: 120,
+                    borderColor: latError ? 'var(--accent-danger-solid)' : undefined,
+                  }}
                   aria-label={`Latitude point ${i + 1}`}
                   aria-invalid={latError ? 'true' : undefined}
                 />
@@ -350,7 +353,10 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
                   onChange={(e) => handleCoordInput(i, 'lng', e.target.value)}
                   onBlur={() => handleCoordBlur(i, 'lng')}
                   disabled={disabled}
-                  style={{ width: 120, borderColor: lngError ? '#dc2626' : undefined }}
+                  style={{
+                    width: 120,
+                    borderColor: lngError ? 'var(--accent-danger-solid)' : undefined,
+                  }}
                   aria-label={`Longitude point ${i + 1}`}
                   aria-invalid={lngError ? 'true' : undefined}
                 />
@@ -372,7 +378,11 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
               {latError || lngError ? (
                 <p
                   role="alert"
-                  style={{ margin: '0 0 2px 82px', fontSize: 'var(--text-xs)', color: '#dc2626' }}
+                  style={{
+                    margin: '0 0 2px 82px',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--accent-danger-solid)',
+                  }}
                 >
                   {latError || lngError}
                 </p>
@@ -441,7 +451,13 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
       </label>
 
       {geo.position ? (
-        <p style={{ margin: '6px 0 0', fontSize: 'var(--text-xs)', color: '#16a34a' }}>
+        <p
+          style={{
+            margin: '6px 0 0',
+            fontSize: 'var(--text-xs)',
+            color: 'var(--accent-success-solid)',
+          }}
+        >
           Position actuelle : {geo.position.lat.toFixed(5)}, {geo.position.lng.toFixed(5)} (±
           {Math.round(geo.position.accuracy)} m)
         </p>
@@ -458,7 +474,14 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
         </p>
       ) : null}
       {plausibilityError ? (
-        <p role="alert" style={{ margin: '6px 0 0', fontSize: 'var(--text-xs)', color: '#dc2626' }}>
+        <p
+          role="alert"
+          style={{
+            margin: '6px 0 0',
+            fontSize: 'var(--text-xs)',
+            color: 'var(--accent-danger-solid)',
+          }}
+        >
           <IconWarning size={14} /> {plausibilityError}
         </p>
       ) : null}
