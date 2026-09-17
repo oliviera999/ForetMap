@@ -244,7 +244,7 @@ function isSqlWrite(sql) {
 // (GL hors gl_classes, forum, commentaires contextuels) bumpe TOUS les domaines.
 const SYNC_DOMAIN_TABLES = {
   maps: ['maps'],
-  zones: ['zones', 'zone_photos', 'zone_history', 'visit_zones', 'maps'],
+  zones: ['zones', 'zone_photos', 'zone_history', 'visit_zones', 'maps', 'location_links'],
   // Couvre /api/tasks ET /api/task-projects (routes/tasks.js + routes/task-projects.js).
   tasks: [
     'tasks',
@@ -280,7 +280,7 @@ const SYNC_DOMAIN_TABLES = {
   //     les routes **par fiche** (`/:id/glossary-terms`, `/:id/quiz-questions`), jamais par
   //     la liste. Elles restent suivies par le domaine `tutorials`.
   plants: ['plants'],
-  markers: ['map_markers', 'marker_photos', 'visit_markers', 'maps'],
+  markers: ['map_markers', 'marker_photos', 'visit_markers', 'maps', 'location_links'],
   tutorials: [
     'tutorials',
     'tutorial_markers',
