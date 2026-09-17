@@ -258,15 +258,22 @@ function AuditLog() {
       <p className="section-sub">
         Historique des actions {roleTerms.teacherShort} et indicateurs de visite.
       </p>
-      <div className="top-tabs audit-subtabs">
+      {/* Barre secondaire commune. Elle empruntait `.top-tabs` (navigation principale) et
+          n'annonçait rien aux lecteurs d'écran : ni `tablist`, ni `tab`, ni `aria-selected`,
+          ni `type="button"`. */}
+      <div className="fm-subtabs audit-subtabs" role="tablist" aria-label="Sections audit">
         <button
-          className={`top-tab ${subTab === 'history' ? 'active' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={subTab === 'history'}
           onClick={() => setSubTab('history')}
         >
           <IconAudit size={14} /> Historique
         </button>
         <button
-          className={`top-tab ${subTab === 'visit-stats' ? 'active' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={subTab === 'visit-stats'}
           onClick={() => setSubTab('visit-stats')}
         >
           <IconStats size={14} /> Stats visite

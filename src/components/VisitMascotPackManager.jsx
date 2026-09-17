@@ -916,10 +916,9 @@ export default function VisitMascotPackManager({
             ) : (
               <>
                 <div
-                  className="visit-mascot-pack-manager__tabs"
+                  className="fm-subtabs visit-mascot-pack-manager__tabs"
                   role="tablist"
                   aria-label="Sections d’édition du pack"
-                  style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}
                 >
                   {RIGHT_TABS.map((t) => (
                     <button
@@ -929,7 +928,6 @@ export default function VisitMascotPackManager({
                       id={`mascot-pack-tab-${t.id}`}
                       aria-selected={editorTab === t.id}
                       aria-controls={`mascot-pack-tabpanel-${t.id}`}
-                      className={`btn btn-sm ${editorTab === t.id ? 'btn-primary' : 'btn-ghost'}`}
                       onClick={() => requestEditorTab(t.id)}
                     >
                       {t.label}

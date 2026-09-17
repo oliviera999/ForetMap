@@ -1,0 +1,139 @@
+/*
+ * Sous-onglets ForetMap — une seule barre secondaire pour toute l'application.
+ *
+ * POURQUOI CE FICHIER (audit UI « homogénéité des formulaires », septembre 2026).
+ * Quatre barres d'onglets cohabitaient dans la seule console d'administration :
+ *   - `.top-tabs` / `.top-tab` — rail parchemin + pastille dégradée (Profils, Audit) ;
+ *   - `.gl-subtabs` — pilules arrondies libres, style emprunté à Gnomes & Licornes
+ *     (Paramètres : Cartographie, Aide, Sections) ;
+ *   - `btn btn-sm btn-primary/btn-ghost` — des boutons déguisés en onglets, sans rail
+ *     (Studio mascotte, outil de packs, rattachement des questions) ;
+ *   - `.auth-tabs` — segment compact (connexion / inscription).
+ * Passer d'un onglet de premier niveau à un autre changeait donc la forme même de la
+ * barre de second niveau.
+ *
+ * LA RÈGLE POSÉE ICI : `.top-tabs` reste réservée à la navigation PRINCIPALE (barre
+ * professeur). Tout ce qui est secondaire — sous-sections d'un écran, modes d'un éditeur,
+ * bascules de contenu — passe par `.fm-subtabs`, qui en est une déclinaison plus fine :
+ * mêmes formes, même vert actif, même parchemin, une hauteur en dessous. La hiérarchie
+ * redevient lisible au premier coup d'œil.
+ *
+ * MIGRATION SANS TOUCHER CHAQUE BOUTON. Les `<button>` enfants directs de `.fm-subtabs`
+ * sont habillés par un sélecteur descendant : une barre qui marquait déjà son bouton
+ * courant avec `is-active` (convention `.gl-subtabs`), `active` (convention `.top-tab`)
+ * ou le seul `aria-selected` s'affiche correctement sans modification supplémentaire.
+ *
+ * PORTÉE : ForetMap uniquement (`src/index.css`). G&L garde `.gl-subtabs`.
+ */
+
+.fm-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 2px;
+  box-sizing: border-box;
+  margin: 0 0 12px;
+  padding: 3px;
+  border: 1px solid rgba(107, 66, 38, 0.16);
+  border-radius: 12px;
+  background: rgba(244, 233, 208, 0.72);
+  box-shadow: 0 4px 12px rgba(107, 66, 38, 0.06);
+}
+
+/* Barre longue (beaucoup de sections) : une seule rangée qui défile, comme `.top-tabs`. */
+.fm-subtabs--scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.fm-subtabs--scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Barre pleine largeur : les onglets se partagent la place (bascule à deux ou trois états). */
+.fm-subtabs--stretch > button,
+.fm-subtabs--stretch > .fm-subtab {
+  flex: 1 1 auto;
+}
+
+.fm-subtabs > button,
+.fm-subtab {
+  flex: 0 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--soil);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-tight);
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background var(--motion-base, 0.18s) var(--ease-out, ease),
+    color var(--motion-base, 0.18s),
+    box-shadow var(--motion-base, 0.18s),
+    transform var(--motion-fast, 0.12s) var(--spring, ease);
+}
+
+/* Convention projet : cible tactile >= 44px sur pointeur grossier. */
+@media (pointer: coarse) {
+  .fm-subtabs > button,
+  .fm-subtab {
+    min-height: 44px;
+  }
+}
+
+.fm-subtabs > button.is-active,
+.fm-subtabs > button.active,
+.fm-subtabs > button[aria-selected='true'],
+.fm-subtab.is-active,
+.fm-subtab.active,
+.fm-subtab[aria-selected='true'] {
+  background: linear-gradient(160deg, var(--forest), var(--leaf));
+  color: #fff;
+  font-weight: var(--fw-bold);
+  box-shadow: 0 6px 14px rgba(26, 71, 49, 0.22);
+}
+
+@media (hover: hover) {
+  .fm-subtabs > button:not(.is-active):not(.active):not([aria-selected='true']):hover,
+  .fm-subtab:not(.is-active):not(.active):not([aria-selected='true']):hover {
+    background: rgba(255, 255, 255, 0.62);
+  }
+}
+
+.fm-subtabs > button:active,
+.fm-subtab:active {
+  transform: scale(0.96);
+}
+
+.fm-subtabs > button:focus-visible,
+.fm-subtab:focus-visible {
+  outline: 2px solid var(--leaf);
+  outline-offset: 2px;
+}
+
+.fm-subtabs > button:disabled,
+.fm-subtab:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Compteur discret accolé au libellé (« Comptes 128 / 350 »). */
+.fm-subtab__count {
+  font-size: var(--text-xs);
+  font-weight: var(--fw-medium);
+  opacity: 0.8;
+}

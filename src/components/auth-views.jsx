@@ -246,9 +246,10 @@ function AuthScreen({
           </p>
         )}
 
-        <div className="auth-tabs">
+        <div className="fm-subtabs fm-subtabs--stretch auth-tabs">
           <button
-            className={`auth-tab ${mode === 'login' ? 'active' : ''}`}
+            type="button"
+            className={mode === 'login' ? 'is-active' : ''}
             onClick={() => {
               userChoseAuthTabRef.current = true;
               setMode('login');
@@ -260,7 +261,8 @@ function AuthScreen({
           </button>
           {allowRegister && (
             <button
-              className={`auth-tab ${mode === 'register' ? 'active' : ''}`}
+              type="button"
+              className={mode === 'register' ? 'is-active' : ''}
               onClick={() => {
                 userChoseAuthTabRef.current = true;
                 setMode('register');
@@ -458,15 +460,17 @@ function AuthScreen({
         )}
         {showForgot && (
           <div style={{ marginTop: 10, borderTop: '1px solid var(--line)', paddingTop: 10 }}>
-            <div className="auth-tabs" style={{ marginBottom: 8 }}>
+            <div className="fm-subtabs fm-subtabs--stretch auth-tabs auth-tabs--forgot">
               <button
-                className={`auth-tab ${forgotRole === 'student' ? 'active' : ''}`}
+                type="button"
+                className={forgotRole === 'student' ? 'is-active' : ''}
                 onClick={() => setForgotRole('student')}
               >
                 {roleTerms.studentSingular}
               </button>
               <button
-                className={`auth-tab ${forgotRole === 'teacher' ? 'active' : ''}`}
+                type="button"
+                className={forgotRole === 'teacher' ? 'is-active' : ''}
                 onClick={() => setForgotRole('teacher')}
               >
                 {roleTerms.teacherSingular}

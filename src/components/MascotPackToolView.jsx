@@ -82,16 +82,11 @@ export default function MascotPackToolView({
         {embedded && !hideIntegrationSection ? ' — page autonome : /mascot-pack-tool.html' : null}
       </p>
 
-      <div
-        className="visit-mascot-pack-manager__tabs"
-        role="tablist"
-        style={{ display: 'flex', gap: 6, marginBottom: 12 }}
-      >
+      <div className="fm-subtabs visit-mascot-pack-manager__tabs" role="tablist">
         <button
           type="button"
           role="tab"
           aria-selected={editorTab === 'visual'}
-          className={`btn btn-sm ${editorTab === 'visual' ? 'btn-primary' : 'btn-ghost'}`}
           onClick={() => {
             setEditorTab('visual');
             setJsonError('');
@@ -103,7 +98,6 @@ export default function MascotPackToolView({
           type="button"
           role="tab"
           aria-selected={editorTab === 'json'}
-          className={`btn btn-sm ${editorTab === 'json' ? 'btn-primary' : 'btn-ghost'}`}
           onClick={() => {
             setEditorTab('json');
             setJsonDraft(stringifyPack(pack, 2));

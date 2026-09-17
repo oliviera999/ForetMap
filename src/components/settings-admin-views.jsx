@@ -633,10 +633,9 @@ function SettingsAdminView({
     return (
       <>
         <div
-          className="gl-subtabs settings-admin-subtabs"
+          className="fm-subtabs settings-admin-subtabs"
           role="tablist"
           aria-label="Sous-sections cartographie"
-          style={{ marginBottom: 12, flexWrap: 'wrap' }}
         >
           {cartoTabs.map((t) => (
             <button
@@ -711,10 +710,9 @@ function SettingsAdminView({
     return (
       <>
         <div
-          className="gl-subtabs settings-admin-subtabs"
+          className="fm-subtabs settings-admin-subtabs"
           role="tablist"
           aria-label="Sous-sections aide"
-          style={{ marginBottom: 12, flexWrap: 'wrap' }}
         >
           {aideTabs.map((t) => (
             <button
@@ -775,10 +773,9 @@ function SettingsAdminView({
       )}
       {msg && <div className="auth-success">{msg}</div>}
       <div
-        className="gl-subtabs settings-admin-subtabs"
+        className="fm-subtabs settings-admin-subtabs"
         role="tablist"
         aria-label="Sections paramètres"
-        style={{ marginBottom: 12, flexWrap: 'wrap' }}
       >
         {topTabs.map((t) => (
           <button
