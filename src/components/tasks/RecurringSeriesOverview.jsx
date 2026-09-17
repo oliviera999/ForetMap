@@ -57,6 +57,9 @@ export function RecurringSeriesOverview({
   const [todayStatus, setTodayStatus] = useState(null);
   const bodyId = useId();
   const [previews, setPreviews] = useState(null);
+  // Le serveur borne sa liste : quand il le signale, une série sans prévision n'est pas une
+  // série sans prochaine occurrence — c'est une série que le calcul n'a pas atteinte.
+  const [previewTruncated, setPreviewTruncated] = useState(false);
 
   // Le calendrier scolaire n'est lu qu'au premier dépliage : replié, le cadre n'a
   // rien à en afficher, inutile de payer la requête à chaque visite de l'onglet.
@@ -91,9 +94,13 @@ export function RecurringSeriesOverview({
           if (row?.series_id) bySeries.set(String(row.series_id), row);
         }
         setPreviews(bySeries);
+        setPreviewTruncated(Boolean(data?.truncated));
       } catch {
         // Prévision indisponible : le panneau reste utile sans elle.
-        if (!cancelled) setPreviews(null);
+        if (!cancelled) {
+          setPreviews(null);
+          setPreviewTruncated(false);
+        }
       }
     })();
     return () => {
@@ -197,6 +204,13 @@ export function RecurringSeriesOverview({
                           Rythme calé sur le {ancre.split(' ')[0]}
                         </span>
                       )}
+                    </span>
+                  )}
+                  {/* Sans ce repère, une série hors de la fenêtre de calcul s'affichait
+                      exactement comme une série sans prochaine occurrence. */}
+                  {!row.archived && !prevision && previewTruncated && (
+                    <span className="recurring-series-next recurring-series-next--unknown">
+                      Prévision non calculée : trop de séries à traiter d’un coup.
                     </span>
                   )}
                 </li>

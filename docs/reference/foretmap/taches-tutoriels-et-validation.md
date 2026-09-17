@@ -286,6 +286,13 @@ week-ends, vacances et jours fermés issus du calendrier de travail du lycée).
   affiche, pour chaque série, la **prochaine occurrence prévue** (« Prochaine occurrence
   mar. 22 sept. → ven. 25 sept. »), le **jour sur lequel le rythme est calé**, et ce qui
   manque encore pour qu'elle arrive — une validation, ou l'échéance à atteindre.
+- **Les séries qui attendent quelque chose passent en tête** de ce panneau : celles qui
+  réclament une validation d'abord, puis les échéances les plus anciennes. Le calcul
+  étant limité à 200 séries, ce sont les séries « qui roulent toutes seules » qui
+  sortent de la liste en premier, jamais celles qui attendent une action. Quand la
+  limite est atteinte, les séries non calculées l'affichent en toutes lettres
+  (_« Prévision non calculée »_) : une ligne sans prévision veut dire « pas de prochaine
+  occurrence », elle ne cache jamais un calcul qui n'a pas eu lieu.
 
 L'interrupteur manuel des réglages (_« Duplication automatique des tâches récurrentes »_)
 reste disponible en coupe-circuit, au-dessus du calendrier. L'**archivage automatique**
