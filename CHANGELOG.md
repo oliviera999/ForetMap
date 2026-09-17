@@ -9,6 +9,68 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — « Reprendre le parcours » redémarrait à l'étape 1
+
+- Sur les trois surfaces (Plan Lyautey, plan des personnels, Visite, carte de travail), quitter
+  un parcours à l'étape 7 puis le reprendre rendait la main à l'étape **1** : « Reprendre »
+  appelait le démarrage, qui remet la position à zéro. Le bouton promet pourtant l'inverse, et
+  l'aide du plan aussi.
+- La sortie mémorise désormais le parcours **et l'étape**, et la reprise repart de là. Elle est
+  en outre écrite sur l'appareil (une clé par surface et par carte) : elle survit à un
+  rechargement de page — la situation du visiteur qui a scanné un QR code et verrouille son
+  téléphone entre deux étapes. Rien ne part vers le serveur, conformément à la promesse faite
+  au visiteur. Une reprise qui ne désigne plus aucun parcours publié s'efface d'elle-même.
+
+### Corrigé — barre d'étape : titre débordant, texte sans plafond, carte recadrée dessous
+
+- Le **titre du parcours**, rappelé au-dessus de l'étape, n'était pas borné : trois lignes pour
+  un titre de 75 caractères, six pour les 180 que le serveur accepte, autant de moins pour
+  l'étape et les commandes. Il tient sur une ligne, avec ellipse.
+- Le **texte d'une étape déplié** n'avait pas de plafond : quatre phrases donnaient à la barre
+  la moitié d'un écran de téléphone. Il défile au-delà de 28 % de la hauteur.
+- La carte **recadrait l'étape courante sous la barre** : le décalage annoncé était une
+  constante de 148 px, quand la barre en occupe 275 repliée et 383 dépliée (mesuré à
+  390 × 844). La barre mesure maintenant sa propre hauteur et la remonte ; la Visite et la carte
+  de travail, qui ne passaient aucun décalage, le passent aussi.
+- La puce « Parcours » compte désormais les étapes **affichables**, comme la barre, et non
+  celles servies par l'API.
+
+### Modifié — le mode parcours n'existe plus qu'en un exemplaire
+
+- `src/plan/AppPlan.jsx` portait sa propre copie de l'état du mode parcours, là où la Visite et
+  la carte de travail passaient déjà par `useMapRouteMode`. Les deux avaient divergé (toast de
+  sortie, mesure d'usage, aperçu d'un lieu pendant le parcours) et tout défaut commun était à
+  corriger deux fois.
+- Le plan passe au noyau partagé ; ses trois apports y montent en rappels optionnels
+  (`onExit`, `onUsage`, `onStartExtra`) et l'aperçu devient une fonction du hook. Les surfaces
+  qui ne fournissent pas ces rappels se comportent exactement comme avant.
+- Le noyau, qui n'avait aucun test direct, en a sept ; l'aperçu « Revenir à l'étape » a son test
+  de montage, et le scénario e2e du plan exerce la reprise, rechargement compris.
+
+### Corrigé — éditeur de parcours : identifiant effacé, doublons, bornes de saisie
+
+- Effacer le champ « Identifiant du lien » à la modification répondait **400** (« Slug
+  invalide »), alors que le champ annonce « laissé vide : dérivé du titre ». Le slug est
+  re-dérivé du titre, comme à la création ; le champ **absent**, lui, conserve toujours la
+  valeur existante.
+- Un lieu **déjà présent** dans le parcours était refusé en silence par l'éditeur, alors que le
+  serveur l'accepte — un parcours repasse légitimement par l'accueil. Il est ajouté, et la
+  suggestion indique « déjà à l'étape 2 ».
+- La limite de 60 étapes était muette : le clic ne faisait rien. Les suggestions se désactivent
+  et le compteur l'annonce.
+- `maxLength` sur les cinq champs bornés par le serveur (titre, public visé, description, titre
+  et texte d'étape), compteur près de la limite pour la description, bornes sur le champ
+  « Ordre » : on n'apprend plus une limite au refus, après un aller-retour.
+- `GET /api/map-routes/manage` applique le périmètre de cartes du compte, comme le catalogue
+  public — sans effet pratique, mais la dissymétrie se lisait comme une garde.
+
+### Corrigé — la suite e2e laissait l'inscription fermée derrière elle
+
+- `e2e/global-setup.js` force `ui.auth.allow_register` à `false` (la configuration de
+  production) sans jamais le restaurer : tout `npm test` lancé ensuite sur la même base
+  échouait en masse — 32 cas, tous en 403 sur la création de compte, sans que le code y soit
+  pour rien. Un `e2e/global-teardown.js` repose la valeur d'origine.
+
 ### Sécurité — les catalogues de parcours des surfaces internes se lisaient sans compte
 
 - `GET /api/map-routes?surface=staff` servait à un visiteur **non authentifié** le titre, la
