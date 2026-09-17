@@ -6,6 +6,10 @@ import '../shared/styles/state-inks.css';
 import '../shared/styles/z-layers.css';
 import '../shared/styles/motion.css';
 import '../shared/styles/shared-controls.css';
+// Contrat commun champs / surfaces : le Plan ne l'utilise pas encore, mais un champ ou
+// un panneau écrit ici demain doit sortir habillé, pas nu (audit UI « homogénéité »).
+import '../shared/styles/form-controls.css';
+import '../shared/styles/surfaces.css';
 import '../shared/styles/modal-shell.css';
 import '../shared/styles/toast-shell.css';
 import '../shared/styles/tooltip.css';

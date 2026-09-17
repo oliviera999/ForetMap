@@ -7,6 +7,8 @@ import '../shared/styles/state-inks.css';
 import '../shared/styles/z-layers.css';
 import '../shared/styles/motion.css';
 import '../shared/styles/shared-controls.css';
+import '../shared/styles/form-controls.css';
+import '../shared/styles/surfaces.css';
 import '../shared/styles/modal-shell.css';
 import '../shared/styles/toast-shell.css';
 import '../shared/styles/tooltip.css';

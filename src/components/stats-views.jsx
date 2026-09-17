@@ -800,8 +800,8 @@ function TeacherStats() {
         </h3>
         {quizStatsError ? <p className="section-sub">{quizStatsError}</p> : null}
         {quizStats?.byCategory?.length > 0 ? (
-          <div className="table-wrap">
-            <table className="data-table">
+          <div className="fm-table-wrap">
+            <table className="fm-table">
               <thead>
                 <tr>
                   <th>Catégorie</th>

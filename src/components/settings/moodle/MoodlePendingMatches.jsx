@@ -12,8 +12,8 @@ export function MoodlePendingMatches({ items, onDecide, busyId }) {
     return <p style={{ color: 'var(--ink-soft)' }}>Aucun rapprochement en attente.</p>;
   }
   return (
-    <div className="moodle-table-wrap" data-testid="moodle-pending">
-      <table className="moodle-table">
+    <div className="fm-table-wrap moodle-table-wrap" data-testid="moodle-pending">
+      <table className="fm-table fm-table--dense moodle-table">
         <thead>
           <tr>
             <th scope="col">Membre Moodle</th>

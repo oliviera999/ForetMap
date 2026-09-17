@@ -1819,6 +1819,37 @@ Audit et décisions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDI
 - Noyau carte **partagé** : ForetMap (visite, carte de travail) profite des mêmes changements.
   Inspiration citée dans `geoPositionFilter.js` (filtre de Kalman 1-D pour traces GPS).
 
+### Modifié — Panneaux, tableaux et libellés : la suite de l'homogénéisation
+
+- **Les cartes blanches existent enfin.** Huit écrans posaient `className="card"`, une classe
+  qui n'existait dans aucune feuille de style : le catalogue de QCM, le réseau trophique, le
+  rattachement des questions, les réglages de validation des lectures, les stats et le carnet
+  croyaient poser une carte et rendaient un bloc **transparent**. Plus largement, ForetMap
+  n'avait aucune surface commune — chaque écran réinventait la sienne. Il y en a désormais
+  une (`.fm-panel`), dont `card` est l'alias.
+- **Un seul habillage de tableau.** Cinq coexistaient, dont deux inexistants : le tableau des
+  stats et la fiche de pack mascotte sortaient au rendu par défaut du navigateur, sans marges
+  ni filets. Tous portent la même apparence, avec une variante dense pour les écrans
+  d'administration. Un tableau large défile désormais dans sa propre boîte au lieu d'élargir
+  la page.
+- **Un seul libellé de champ.** Il y en avait sept. Les **capitales interlettrées
+  disparaissent** au profit des minuscules en demi-gras : elles se lisent plus facilement, en
+  particulier pour un élève dyslexique. Aucun libellé n'est réécrit — seule la mise en
+  capitales automatique est retirée.
+- **Les quatre applications partagent le même contrat.** ForetMap, Gnomes & Licornes, le Plan
+  Lyautey et le plan des personnels chargent les mêmes feuilles de champs et de surfaces. Le
+  plan des personnels, arrivé la veille, repartait d'une page blanche ; le Plan public aussi,
+  alors même que sa feuille déclarait vouloir réutiliser les contrôles partagés. Le Plan
+  teinte maintenant ces contrôles à sa charte marine au lieu de réécrire ses bordures.
+
+### Corrigé
+
+- **Fiche de pack mascotte** : son tableau réécrivait toute son apparence en styles inline
+  (largeur, filets, marges de cellule, taille de texte), donc hors de portée de toute feuille
+  de style. Il suit maintenant l'habillage commun.
+
+Audit et décisions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md) (§5, lot B).
+
 ---
 
 ## [1.152.1] - 2026-09-11
