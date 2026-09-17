@@ -157,7 +157,7 @@ test('buildProductPwa : seuls les bundles de la bonne entrée sont précachés',
   assert.ok(foret.serviceWorker.includes('"/api/zones"'));
 });
 
-test('buildPwa écrit les SW et manifests des trois produits + copies sw.js/manifest.json', () => {
+test('buildPwa écrit les SW et manifests de tous les produits + copies sw.js/manifest.json', () => {
   const { distDir, publicDir } = makeTempDirs();
   fs.writeFileSync(
     path.join(distDir, '.vite', 'manifest.json'),
@@ -170,13 +170,23 @@ test('buildPwa écrit les SW et manifests des trois produits + copies sw.js/mani
     'manifest-foret.webmanifest',
     'manifest-gl.webmanifest',
     'manifest-plan.webmanifest',
+    'manifest-staff.webmanifest',
     'manifest.json',
     'sw-foret.js',
     'sw-gl.js',
     'sw-plan.js',
+    'sw-staff.js',
     'sw.js',
   ]);
   for (const name of names) assert.ok(fs.existsSync(path.join(distDir, name)), name);
+
+  // Le plan des personnels précache sa coquille mais **aucune** API : sa charge contient des
+  // lieux internes et des consignes filtrées par rôle, qu'un service worker garderait sur
+  // l'appareil après un changement de rôle ou un prêt de téléphone.
+  const staffSw = fs.readFileSync(path.join(distDir, 'sw-staff.js'), 'utf8');
+  assert.ok(!staffSw.includes('/api/staff-plan/content'));
+  assert.ok(!staffSw.includes('/api/plan/content'));
+  assert.ok(builds.staff.precache.includes('/staff.html'));
 
   // Copies ForetMap identiques aux fichiers nommés.
   assert.strictEqual(

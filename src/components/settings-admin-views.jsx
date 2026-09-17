@@ -12,6 +12,7 @@ import { AdminTextSettingField, AdminNumberSettingField } from './settings/Admin
 import { MapCategoriesPanel } from './settings/MapCategoriesPanel.jsx';
 import { MapRoutesPanel } from './settings/MapRoutesPanel.jsx';
 import { PlanSettingsPanel } from './settings/PlanSettingsPanel.jsx';
+import { StaffPlanSettingsPanel } from './settings/StaffPlanSettingsPanel.jsx';
 import { UsagePanel } from './settings/UsagePanel.jsx';
 import { UserTrackingPanel } from './settings/UserTrackingPanel.jsx';
 import { MapLocationsAdminPanel } from './settings/MapLocationsAdminPanel.jsx';
@@ -78,7 +79,7 @@ const SEARCH_INDEX = [
   {
     id: 'plan',
     label: 'Plan Lyautey',
-    keywords: ['plan', 'lyautey', 'qr'],
+    keywords: ['plan', 'lyautey', 'qr', 'proflyautey', 'personnels', 'prof', 'code'],
   },
   {
     id: 'brand',
@@ -809,19 +810,36 @@ function SettingsAdminView({
       {adminSection === 'carto' && canCarto ? renderCarto() : null}
 
       {adminSection === 'plan' && canReadSettings ? (
-        <PlanSettingsPanel
-          maps={maps}
-          get={get}
-          saveSetting={saveSetting}
-          savingKey={savingKey}
-          canWrite={canWriteSettings}
-          onMessage={(okMsg) => {
-            setMsg(okMsg);
-            setErr('');
-            load();
-          }}
-          onError={(errMsg) => setErr(errMsg)}
-        />
+        <>
+          <PlanSettingsPanel
+            maps={maps}
+            get={get}
+            saveSetting={saveSetting}
+            savingKey={savingKey}
+            canWrite={canWriteSettings}
+            onMessage={(okMsg) => {
+              setMsg(okMsg);
+              setErr('');
+              load();
+            }}
+            onError={(errMsg) => setErr(errMsg)}
+          />
+          {/* Les deux plans partagent leur carte et leurs lieux : les régler au même endroit
+              évite d'avoir à se souvenir lequel des deux onglets on cherche. */}
+          <h3 style={{ marginTop: 32 }}>Plan des personnels (proflyautey)</h3>
+          <StaffPlanSettingsPanel
+            get={get}
+            saveSetting={saveSetting}
+            savingKey={savingKey}
+            canWrite={canWriteSettings}
+            onMessage={(okMsg) => {
+              setMsg(okMsg);
+              setErr('');
+              load();
+            }}
+            onError={(errMsg) => setErr(errMsg)}
+          />
+        </>
       ) : null}
 
       {adminSection === 'brand' && canReadSettings ? (

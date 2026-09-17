@@ -27,18 +27,40 @@ function fakeReq({ hostname = '', override = '' } = {}) {
   };
 }
 
-test('le registre déclare foret, gl et plan avec leurs entrées HTML', () => {
-  assert.deepStrictEqual(products.PRODUCT_IDS, ['foret', 'gl', 'plan']);
+test('le registre déclare foret, gl, plan et staff avec leurs entrées HTML', () => {
+  assert.deepStrictEqual(products.PRODUCT_IDS, ['foret', 'gl', 'plan', 'staff']);
   assert.strictEqual(products.getProduct('gl').htmlEntry, 'gl.html');
   assert.strictEqual(products.getProduct('plan').htmlEntry, 'plan.html');
+  assert.strictEqual(products.getProduct('staff').htmlEntry, 'staff.html');
   assert.strictEqual(products.getProduct('inconnu').id, 'foret');
   assert.strictEqual(products.getProduct('plan').shareFaviconWith, undefined);
   assert.strictEqual(products.getProduct('plan').pwa.themeColor, '#183058');
+  // Le plan des personnels réutilise le dossier d'icônes du plan public (même établissement,
+  // aucun binaire dupliqué) mais garde sa propre teinte et son propre manifest.
+  assert.strictEqual(products.getProduct('staff').assetsDir, 'plan');
+  assert.notStrictEqual(
+    products.getProduct('staff').pwa.themeColor,
+    products.getProduct('plan').pwa.themeColor,
+  );
+  assert.strictEqual(products.getProduct('staff').manifestFile, 'manifest-staff.webmanifest');
   assert.deepStrictEqual(products.listHtmlEntryBasenames(), [
     'index.vite.html',
     'gl.html',
     'plan.html',
+    'staff.html',
   ]);
+});
+
+test('résolution par host : proflyautey est distinct de planlyautey', () => {
+  assert.strictEqual(products.resolveProductIdFromHost('proflyautey.olution.info'), 'staff');
+  assert.strictEqual(products.resolveProductIdFromHost('planlyautey.olution.info'), 'plan');
+  assert.strictEqual(
+    resolveProductFromRequest(fakeReq({ hostname: 'www.proflyautey.olution.info:3000' })),
+    'staff',
+  );
+  // Le code d'accès du plan des personnels est un secret court : il doit tomber sous le
+  // limiteur strict au même titre qu'un mot de passe.
+  assert.ok(products.listAuthRateLimitPaths().includes('/api/staff-plan/access'));
 });
 
 test('résolution par host : préfixes du registre, www. retiré, défaut foret', () => {

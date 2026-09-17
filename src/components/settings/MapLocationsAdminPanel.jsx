@@ -21,6 +21,11 @@ import {
   zoneParts,
 } from '../../utils/adminLocationsGrid.js';
 import { locationCategoryIds } from '../../utils/locationCategories.js';
+import { SURFACE_OPTIONS } from '../../shared/ui/SurfaceVisibilityField.jsx';
+import {
+  countLocationsBySurface,
+  visibleSurfacesOfLocation,
+} from '../../utils/locationSurfaceVisibility.js';
 
 const KIND_OPTIONS = [
   { value: 'both', label: 'Zones et repères' },
@@ -178,6 +183,13 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
   const [text, setText] = useState('');
   const [kinds, setKinds] = useState('both');
   const [mapId, setMapId] = useState('');
+  /**
+   * Revue des surfaces : « surface » + « état » (visible / retiré). Séparé du reste des
+   * filtres parce qu'il sert une tâche à part — la passe de tri avant d'ouvrir un plan au
+   * public — et qu'il se combine avec tous les autres (par catégorie, par carte, par texte).
+   */
+  const [surface, setSurface] = useState('');
+  const [surfaceState, setSurfaceState] = useState('');
 
   const [selectedKeys, setSelectedKeys] = useState(() => new Set());
   const [expandedKeys, setExpandedKeys] = useState(() => new Set());
@@ -190,6 +202,7 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
     find: '',
     replace: '',
     includeText: false,
+    surface: 'plan',
   });
   const [bulkRun, setBulkRun] = useState(null);
 
@@ -232,10 +245,21 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
       applyMapLocationFilters({
         zones: mapId ? zones.filter((z) => String(z.map_id) === mapId) : zones,
         markers: mapId ? markers.filter((m) => String(m.map_id) === mapId) : markers,
-        filters: { ...MAP_LOCATION_FILTER_DEFAULTS, text, kinds },
+        filters: { ...MAP_LOCATION_FILTER_DEFAULTS, text, kinds, surface, surfaceState },
       }),
-    [zones, markers, mapId, text, kinds],
+    [zones, markers, mapId, text, kinds, surface, surfaceState],
   );
+
+  /**
+   * Compteurs par surface sur le **périmètre de carte courant**, filtres de recherche exclus :
+   * la question à laquelle ils répondent est « combien de lieux cette surface publie-t-elle ? »,
+   * pas « combien en reste-t-il après ma recherche ».
+   */
+  const surfaceCounts = useMemo(() => {
+    const scopedZones = mapId ? zones.filter((z) => String(z.map_id) === mapId) : zones;
+    const scopedMarkers = mapId ? markers.filter((m) => String(m.map_id) === mapId) : markers;
+    return countLocationsBySurface([...scopedZones, ...scopedMarkers]);
+  }, [zones, markers, mapId]);
 
   const zoneCount = resultItems.filter((r) => r.kind === 'zone').length;
   const markerCount = resultItems.length - zoneCount;
@@ -312,6 +336,7 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
     find: bulk.find,
     replace: bulk.replace,
     includeText: bulk.includeText,
+    surface: bulk.surface,
   };
   const bulkTargetCount = countBulkTargets(bulk.action, bulkParams, selectedTargets);
 
@@ -428,6 +453,21 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
             onChange={(e) => setBulk((b) => ({ ...b, emoji: e.target.value }))}
           />
         );
+      case 'show_on_surface':
+      case 'hide_on_surface':
+        return (
+          <select
+            aria-label="Surface du lot"
+            value={bulk.surface}
+            onChange={(e) => setBulk((b) => ({ ...b, surface: e.target.value }))}
+          >
+            {SURFACE_OPTIONS.map((surface) => (
+              <option key={surface.id} value={surface.id}>
+                {surface.label}
+              </option>
+            ))}
+          </select>
+        );
       case 'find_replace':
         return (
           <>
@@ -503,6 +543,34 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
                 {opt.label}
               </option>
             ))}
+          </select>
+        </div>
+        <div className="field" style={{ flex: '1 1 170px', minWidth: 0 }}>
+          <label htmlFor="map-locations-surface">Surface</label>
+          <select
+            id="map-locations-surface"
+            value={surface}
+            onChange={(e) => setSurface(e.target.value)}
+          >
+            <option value="">Toutes les surfaces</option>
+            {SURFACE_OPTIONS.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {opt.label} ({surfaceCounts[opt.id] ?? 0})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="field" style={{ flex: '1 1 150px', minWidth: 0 }}>
+          <label htmlFor="map-locations-surface-state">Sur cette surface</label>
+          <select
+            id="map-locations-surface-state"
+            value={surfaceState}
+            disabled={!surface}
+            onChange={(e) => setSurfaceState(e.target.value)}
+          >
+            <option value="">Peu importe</option>
+            <option value="visible">Affichés</option>
+            <option value="hidden">Retirés</option>
           </select>
         </div>
         <div className="field" style={{ flex: '1 1 150px', minWidth: 0 }}>
@@ -656,6 +724,18 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
                 )}
               </select>
               <span style={HINT_STYLE}>{isZone ? 'Zone' : 'Repère'}</span>
+              {/* Surfaces où ce lieu sort réellement (masquage **et** catégories pris en
+                  compte) : sans ce repère, rien ne distingue à l'œil un lieu publié sur le
+                  plan public d'un lieu réservé aux personnels. */}
+              <span style={HINT_STYLE} title="Surfaces où ce lieu est affiché">
+                {(() => {
+                  const shown = visibleSurfacesOfLocation(item);
+                  if (shown.length === 0) return '👁 nulle part';
+                  return `👁 ${SURFACE_OPTIONS.filter((o) => shown.includes(o.id))
+                    .map((o) => o.label)
+                    .join(', ')}`;
+                })()}
+              </span>
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"

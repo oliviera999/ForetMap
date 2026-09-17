@@ -25,7 +25,7 @@ describe('PctPositionLayer', () => {
     expect(container.querySelector('.fm-pct-position__halo')).toBe(null);
   });
 
-  test('hors du plan : flèche de direction, ni halo (il ne voudrait rien dire) ni cap', () => {
+  test('hors du plan : flèche vers l’endroit réel, ni halo (il ne voudrait rien dire) ni cap', () => {
     const { container } = render(
       <PctPositionLayer
         position={{ ...position, offMap: true, bearingDeg: 45 }}
@@ -34,9 +34,47 @@ describe('PctPositionLayer', () => {
       />,
     );
     expect(container.querySelector('.fm-pct-position__halo')).toBe(null);
-    expect(container.querySelector('.fm-pct-position__heading')).toBe(null);
+    expect(container.querySelector('.fm-pct-position__bearing')).toBe(null);
     expect(container.querySelector('.fm-pct-position__arrow')).toBeTruthy();
     expect(container.querySelector('.fm-pct-position').classList.contains('is-off-map')).toBe(true);
+  });
+
+  /**
+   * Un disque ne dit pas de quel côté on part. Sur un plan d'établissement, où deux allées se
+   * ressemblent, c'est pourtant la seule chose qu'on demande à son téléphone avant de marcher.
+   */
+  test('avec un cap : une flèche orientée remplace le disque', () => {
+    const { container } = render(
+      <PctPositionLayer position={position} headingDeg={37} headingSource="gps" accuracyM={9} />,
+    );
+    const bearing = container.querySelector('.fm-pct-position__bearing');
+    expect(bearing).toBeTruthy();
+    expect(bearing.style.transform).toContain('rotate(37deg)');
+    expect(container.querySelector('.fm-pct-position__dot')).toBe(null);
+    const root = container.querySelector('.fm-pct-position');
+    expect(root.classList.contains('has-bearing')).toBe(true);
+    expect(root.dataset.headingSource).toBe('gps');
+    expect(
+      screen.getByRole('img', { name: 'Votre position et votre direction à 9 mètres près' }),
+    ).toBeTruthy();
+  });
+
+  test('sans cap connu, le disque reste : une flèche au hasard mentirait', () => {
+    const { container } = render(<PctPositionLayer position={position} headingDeg={null} />);
+    expect(container.querySelector('.fm-pct-position__bearing')).toBe(null);
+    expect(container.querySelector('.fm-pct-position__dot')).toBeTruthy();
+  });
+
+  /**
+   * L'angle reçu est **continu** (`unwrapHeadingDeg`) : il doit être posé tel quel, sans être
+   * replié sur [0, 360[, sinon la transition CSS ferait faire un tour complet à la flèche au
+   * passage du nord.
+   */
+  test('un angle continu est posé tel quel', () => {
+    const { container } = render(<PctPositionLayer position={position} headingDeg={-725} />);
+    expect(container.querySelector('.fm-pct-position__bearing').style.transform).toContain(
+      'rotate(-725deg)',
+    );
   });
 
   test('le point est posé en % et annoncé avec sa précision', () => {

@@ -63,6 +63,51 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Le script affichait son message puis restait suspendu : le pool `mysql2` gardait la boucle
   d'évènements ouverte. Il fallait l'interrompre à la main — et il bloquait tout script
   d'amorçage qui l'enchaînait. Sortie explicite, comme le fait déjà `db:init`.
+### Ajouté — proflyautey : un plan des personnels, à côté du plan public
+
+- **Nouveau sous-produit `staff`** servi sur `proflyautey.*` : la **même** carte et le **même**
+  écran que le Plan Lyautey public (`AppPlan` est monté avec une variante, pas dupliqué), mais
+  pour un lecteur identifié. Il y voit en plus les lieux retirés du plan public et le
+  **complément réservé** des fiches (`restricted_note`) — un champ qui existait déjà et ne
+  sortait jusqu'ici que dans la console.
+- **Quatrième surface d'affichage `staff`** (migration `260`), à côté de `map`, `visit` et
+  `plan`. Ajoutée **en fin** du `SET` SQL : MySQL encode un `SET` par position de bit, une
+  insertion au milieu réécrirait toutes les lignes. À la migration, toutes les catégories et
+  les parcours déjà publiés sur `plan` reçoivent `staff` — un personnel voit au minimum ce que
+  voit le public ; seuls les lieux masqués partout le restent.
+- **Permission RBAC `staff_plan.access`**, accordée d'office à `admin`, `prof`, `prof_classe` et
+  `personnel`, attribuable à n'importe quel profil depuis « Profils RBAC ». Distincte de
+  `teacher.access` : un agent entre sur le plan sans qu'on lui ouvre la console n3boss.
+- **Entrée par code partagé**, livrée **désactivée** (`ui.staff_plan.access_mode = disabled`) et
+  activable par un admin. Laissez-passer de 7 jours (contre 30 sur le plan public), profil
+  endossé réglable (défaut « Personnel »), et chaque ouverture — accordée comme refusée —
+  inscrite au journal d'audit. Mode `code` sans code configuré : la porte reste **fermée**,
+  contrairement au plan public.
+- **Sur une fiche de lieu** : bouton « Signaler un problème ou proposer une correction »,
+  branché sur les commentaires de contexte du lieu (`context_comments`) plutôt que sur une
+  boîte de réception — le message arrive attaché au repère concerné. Et un lien retour vers la
+  console, affiché aux seuls comptes portant `zones.manage` / `map.manage_markers`.
+- **Revue des surfaces** dans « Zones & repères » : filtres **Surface** (avec le nombre de lieux
+  publiés par chacune) et **Sur cette surface** (Affichés / Retirés), indication par ligne des
+  surfaces où le lieu sort, et actions par lot « Afficher sur une surface » / « Retirer d'une
+  surface ». Restreindre le plan public se fait en trois gestes au lieu d'une fiche à la fois.
+
+### Corrigé — retour Google sur le bon sous-domaine
+
+- Google ne rappelle que sur les `redirect_uri` enregistrées, donc toujours sur le même hôte :
+  une connexion lancée depuis un sous-domaine produit renvoyait l'utilisateur sur l'origine de
+  ForetMap, avec un jeton inutilisable là où il l'avait demandé. Le flux mémorise désormais
+  l'origine de départ et y revient — **uniquement** si c'est celle d'un produit du registre sur
+  le même domaine parent que le rappel (`resolveProductReturnOrigin`), pour ne pas transformer
+  un flux porteur de jeton en redirection ouverte.
+
+### Sécurité
+
+- La charge de `/api/staff-plan/content` n'est **jamais** mise en cache : ni côté serveur
+  (contrairement au plan public, dont la charge est la même pour tout le monde), ni dans le
+  service worker du produit, et `Cache-Control: private, no-store` + `X-Robots-Tag: noindex`
+  sur toutes ses réponses. Elle dépend du rôle du lecteur : un cache mémoïsé par carte servirait
+  la charge d'un administrateur au porteur de code suivant.
 
 ### Corrigé — Plan Lyautey : la navigation ne se fait plus recouvrir
 
@@ -1678,6 +1723,39 @@ séparés.
 - `plan-mobile-position.spec.js` et `plan-mobile-orientation.spec.js` rejoignent le smoke
   Playwright bloquant. Le retournement des étiquettes avait traversé l'intégration parce que le
   seul scénario exerçant la position n'était pas bloquant.
+
+### Ajouté — Plan Lyautey : navigation lissée et repère directionnel
+
+- **Le repère de position indique la direction.** Un disque ne dit pas de quel côté on part :
+  dès qu'une direction est connue, le repère devient une **flèche orientée**. Elle suit la
+  **route GPS** quand on marche (`coords.heading`) et la **boussole** à l'arrêt, avec hystérésis
+  sur la vitesse pour ne pas basculer d'une source à l'autre à chaque pas. Sans aucune direction
+  exploitable, le disque reste : une flèche pointée au hasard mentirait. Carte orientée, la
+  flèche pointe vers le haut de l'écran — le calque tourne de `−cap`, la flèche de `+cap`.
+- **Suivi de carte continu** (`followPct`). Le suivi rejouait une animation de 200 ms à chaque
+  mesure puis s'arrêtait net : une saccade par seconde. La caméra rattrape désormais une cible
+  mobile en continu (ressort amorti, τ ≈ 380 ms), ne se relance pas quand la cible bouge, et
+  n'écrit dans React **qu'une fois arrivée** — marcher ne coûte plus un rendu par mesure.
+- **Mesures GPS filtrées avant affichage** (`geoPositionFilter.js`) : rejet des sauts
+  invraisemblables (le « téléport » sur reflet de signal, qui emportait la carte à l'autre bout
+  du plan), puis filtre de Kalman 1-D dont le gain suit la précision annoncée — et s'ouvre avec
+  la vitesse, pour coller à la marche sans retrouver le tremblement de l'arrêt. La précision
+  affichée par le halo reste celle du capteur.
+- **Lissage du cap à constante de temps** (`smoothHeadingOverTime`) : le lissage à alpha fixe
+  dépendait de la cadence du capteur — nerveux à 60 Hz, mou à 5 Hz. Le cap est désormais lissé
+  dans une ref et publié **huit fois par seconde au plus**, avec bande morte d'un degré ; la
+  **transition CSS** du calque d'orientation comble les intervalles sur le compositeur. La
+  boussole ne déclenche plus un rendu de toute la carte par événement.
+- **Angle d'orientation continu** (`unwrapHeadingDeg`) : sans lui, une transition CSS entre
+  359° et 1° ferait faire à la carte un tour complet, à l'envers.
+- **Acquisition plus fraîche** : `maximumAge` passe de 5 s à 1 s. Une mesure vieille de cinq
+  secondes place la personne cinq mètres en arrière, et le suivi part en saccades pour rattraper
+  un retard qui n'existe pas. `coords.speed` et `coords.heading` sont désormais exposés.
+- **Mouvement réduit respecté** : la carte se pose sur la position au lieu d'y glisser, et la
+  flèche ne s'anime pas.
+- Noyau carte **partagé** : ForetMap (visite, carte de travail) profite des mêmes changements.
+  Inspiration citée dans `geoPositionFilter.js` (filtre de Kalman 1-D pour traces GPS).
+
 ---
 
 ## [1.152.1] - 2026-09-11
