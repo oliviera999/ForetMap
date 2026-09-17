@@ -12,6 +12,13 @@
 > polices **couleur**. Les mesures ci-dessous valident la mécanique CSS (chargement, ordre de
 > pile, requêtes réseau) ; elles ne valident **pas** le dessin des glyphes sur iPhone. Ce point
 > précis est le seul qui demande un appareil physique (§ 6).
+>
+> **Statut remédiation (17 sept. 2026, soir)** : **option A retenue** et livrée dans le même
+> lot — `'Apple Color Emoji'` passe en tête des quatre piles, le `preload` est retiré des deux
+> entrées HTML, les trois piles sans repli emoji sont complétées, et un cliquet
+> (`tests-ui/utils/emojiFontStacks.test.js`) interdit de revenir en arrière sans le voir.
+> Reste ouvert : le précache PWA (EMO-APL-005), le nom de fichier haché (R6), les keycaps (R7),
+> la factorisation du `@font-face` (R8) — et la **vérification sur iPhone physique** (§ 6).
 
 ## Réponse courte
 
@@ -30,17 +37,17 @@ fonctionne. Le problème est donc **strictement Apple**.
 
 ## Tableau de statut
 
-| ID          | Sévérité           | Constat                                                                | Statut                     |
-| ----------- | ------------------ | ---------------------------------------------------------------------- | -------------------------- |
-| EMO-APL-001 | **Bloquant** Apple | Police imposée avant `Apple Color Emoji`, voie OT-SVG instable sur iOS | Ouvert — **arbitrage § 7** |
-| EMO-APL-002 | Majeur             | 5,7 Mo sur le fil, **25,1 Mo décompressés**, dont 20,1 Mo de SVG       | Ouvert (lié à 001)         |
-| EMO-APL-003 | Majeur             | Le `preload` annule l'optimisation `unicode-range` documentée          | Ouvert — **arbitrage § 7** |
-| EMO-APL-004 | Majeur             | `/fonts/*` servi **sans en-tête de cache**                             | **Traité** (ce lot)        |
-| EMO-APL-005 | Moyen              | Police absente du précache PWA (cache-first seulement à l'usage)       | Ouvert                     |
-| EMO-APL-006 | Moyen              | Trois piles `font-family` sans repli emoji (dont `.lb-rank` 🥇🥈🥉)    | Ouvert (lié à 001)         |
-| EMO-APL-007 | Mineur             | `font-variant-emoji` n'est pas « Baseline »                            | Constat, sans correctif    |
-| EMO-APL-008 | Mineur             | `unicode-range` sans les keycaps (`U+23`, `U+2A`, `U+30-39`)           | Risque dormant             |
-| EMO-APL-009 | Mineur             | `@font-face` identique triplé dans trois feuilles                      | Dette de maintenance       |
+| ID          | Sévérité           | Constat                                                                | Statut                  |
+| ----------- | ------------------ | ---------------------------------------------------------------------- | ----------------------- |
+| EMO-APL-001 | **Bloquant** Apple | Police imposée avant `Apple Color Emoji`, voie OT-SVG instable sur iOS | **Traité** — option A   |
+| EMO-APL-002 | Majeur             | 5,7 Mo sur le fil, **25,1 Mo décompressés**, dont 20,1 Mo de SVG       | **Traité** par R1+R2    |
+| EMO-APL-003 | Majeur             | Le `preload` annule l'optimisation `unicode-range` documentée          | **Traité** par R2       |
+| EMO-APL-004 | Majeur             | `/fonts/*` servi **sans en-tête de cache**                             | **Traité** (ce lot)     |
+| EMO-APL-005 | Moyen              | Police absente du précache PWA (cache-first seulement à l'usage)       | Ouvert                  |
+| EMO-APL-006 | Moyen              | Trois piles `font-family` sans repli emoji (dont `.lb-rank` 🥇🥈🥉)    | **Traité** par R4       |
+| EMO-APL-007 | Mineur             | `font-variant-emoji` n'est pas « Baseline »                            | Constat, sans correctif |
+| EMO-APL-008 | Mineur             | `unicode-range` sans les keycaps (`U+23`, `U+2A`, `U+30-39`)           | Risque dormant          |
+| EMO-APL-009 | Mineur             | `@font-face` identique triplé dans trois feuilles                      | Dette de maintenance    |
 
 ## 1. Ce que contient réellement le fichier de police
 

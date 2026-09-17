@@ -32,44 +32,41 @@
     <link rel="apple-touch-icon" sizes="192x192" href="/pwa-icon-192.png" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <!-- Police emoji auto-hébergée : préchargée comme côté GL (gl.html) pour éviter le FOUT
-         (bascule visible police système → Noto) sur les épingles et emojis de zone. -->
-    <link
-      rel="preload"
-      href="/fonts/noto-color-emoji.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
+    <!-- PAS de preload de la police emoji auto-hébergée : un preload de police est
+         inconditionnel et prioritaire (il part avant même l'analyse du CSS), ce qui annulait
+         l'`unicode-range` du @font-face et imposait 5,7 Mo à tous les appareils — dont ceux
+         qui, depuis que 'Apple Color Emoji' est en tête de pile, ne la demandent jamais.
+         Le FOUT que ce preload évitait ne concerne plus que le parc non-Apple, où
+         `font-display: swap` fait le travail. docs/AUDIT_EMOJIS_APPLE_2026-09-17.md § 4. -->
     <link
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <script type="module" crossorigin src="/assets/main-D-DHIFUu.js"></script>
+    <script type="module" crossorigin src="/assets/main-BTZ0nNGC.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-hePW80VL.js">
-    <link rel="modulepreload" crossorigin href="/assets/icons-BBfebeWE.js">
-    <link rel="modulepreload" crossorigin href="/assets/react-vendor-ClBrELym.js">
-    <link rel="modulepreload" crossorigin href="/assets/VisitMascotFallbackSvg-2i84oDbI.js">
-    <link rel="modulepreload" crossorigin href="/assets/ErrorBoundary-DFvm5CO1.js">
+    <link rel="modulepreload" crossorigin href="/assets/icons-foIiYRd8.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-vendor-DyU5Vns3.js">
+    <link rel="modulepreload" crossorigin href="/assets/VisitMascotFallbackSvg-DX0_Ddx9.js">
+    <link rel="modulepreload" crossorigin href="/assets/ErrorBoundary-26IlTJQk.js">
     <link rel="modulepreload" crossorigin href="/assets/markdown-DaBuaikX.js">
-    <link rel="modulepreload" crossorigin href="/assets/spriteCutCatalogEntry-Dj7DsM1A.js">
-    <link rel="modulepreload" crossorigin href="/assets/ImageLightboxProvider-Dkh-3Sbp.js">
-    <link rel="modulepreload" crossorigin href="/assets/mascotPack-BRWprWBJ.js">
-    <link rel="modulepreload" crossorigin href="/assets/visitMascotPackExtras-C8bQYkpX.js">
-    <link rel="modulepreload" crossorigin href="/assets/socket-io-SGWxBABF.js">
-    <link rel="modulepreload" crossorigin href="/assets/MarkdownTextarea-BVEM_N9a.js">
-    <link rel="modulepreload" crossorigin href="/assets/useBrandTheme-UM9va5Cd.js">
-    <link rel="modulepreload" crossorigin href="/assets/GlossaryMarkdown-eY2VpM9e.js">
-    <link rel="modulepreload" crossorigin href="/assets/PublicSettingsContext-B_o2_Q4Y.js">
-    <link rel="modulepreload" crossorigin href="/assets/journalUi-BWpUO86a.js">
-    <link rel="modulepreload" crossorigin href="/assets/FmLearnAndImportSlot-BDNmRw8i.js">
-    <link rel="modulepreload" crossorigin href="/assets/GuidedTourOverlay-g36ccyFh.js">
-    <link rel="modulepreload" crossorigin href="/assets/useLatestRequest-Jt5PGB1F.js">
+    <link rel="modulepreload" crossorigin href="/assets/spriteCutCatalogEntry-IAGxO7SE.js">
+    <link rel="modulepreload" crossorigin href="/assets/ImageLightboxProvider-DgPMc0EM.js">
+    <link rel="modulepreload" crossorigin href="/assets/mascotPack-yOWxNPpK.js">
+    <link rel="modulepreload" crossorigin href="/assets/visitMascotPackExtras-DVNxZQob.js">
+    <link rel="modulepreload" crossorigin href="/assets/socket-io-CQ0Cr98w.js">
+    <link rel="modulepreload" crossorigin href="/assets/MarkdownTextarea-ClhT3WAp.js">
+    <link rel="modulepreload" crossorigin href="/assets/useBrandTheme-Bd_JPpqM.js">
+    <link rel="modulepreload" crossorigin href="/assets/GlossaryMarkdown-Lp7EwflA.js">
+    <link rel="modulepreload" crossorigin href="/assets/PublicSettingsContext-DLi1aKsj.js">
+    <link rel="modulepreload" crossorigin href="/assets/journalUi-DW23GMyY.js">
+    <link rel="modulepreload" crossorigin href="/assets/FmLearnAndImportSlot-De15lEDa.js">
+    <link rel="modulepreload" crossorigin href="/assets/GuidedTourOverlay-B83vnhp2.js">
+    <link rel="modulepreload" crossorigin href="/assets/useLatestRequest-D4Mh0gos.js">
     <link rel="modulepreload" crossorigin href="/assets/downloadAuthedFile-BRkwVwdZ.js">
-    <link rel="modulepreload" crossorigin href="/assets/downloadApiFile-DeURCQvB.js">
+    <link rel="modulepreload" crossorigin href="/assets/downloadApiFile-C4NzuSvg.js">
     <link rel="stylesheet" crossorigin href="/assets/ErrorBoundary-1Md48zKX.css">
     <link rel="stylesheet" crossorigin href="/assets/ImageLightboxProvider-BQXMtgsx.css">
-    <link rel="stylesheet" crossorigin href="/assets/visitMascotPackExtras-D14NibPv.css">
+    <link rel="stylesheet" crossorigin href="/assets/visitMascotPackExtras-C_EqNHVI.css">
   </head>
   <body>
     <div id="root"></div>

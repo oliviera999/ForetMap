@@ -52,6 +52,30 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Le correctif précédent (mémoriser l'origine de départ) était incomplet : il ne servait à rien
   tant que son propre cookie restait sur un hôte que le rappel ne voit jamais.
 
+### Corrigé — emojis illisibles sur iPhone, iPad et Mac
+
+- **Les appareils Apple utilisent désormais leurs propres emojis.** La pile de polices plaçait
+  partout `ForetMapColorEmoji` (Noto auto-hébergé) **avant** `Apple Color Emoji`. Or WebKit
+  n'implémente ni COLRv1 ni COLRv0 : un iPhone ne pouvait dessiner cette police que par sa table
+  OT-SVG — 20,1 Mo des 25,1 Mo décompressés — voie documentée comme instable, les glyphes
+  disparaissant au zoom. Or l'écran principal est une carte que l'on zoome, couverte d'emojis.
+  `'Apple Color Emoji'` passe en tête des quatre piles (`typography-tokens.css`, `index.css`,
+  `gl-base.css`, `plan.css`) : aucune détection de plateforme, les machines non-Apple n'ont pas
+  cette police et tombent sur `ForetMapColorEmoji` comme avant — **leur rendu ne change pas**.
+- **5,7 Mo de moins à télécharger sur Apple**, et le `preload` de la police disparaît des deux
+  entrées HTML. Un `preload` de police est inconditionnel et part avant l'analyse du CSS : il
+  annulait l'`unicode-range` du `@font-face` et imposait le fichier à tous les appareils — soit
+  **11× le bundle principal** (498 Ko). Mesuré (Chromium et WebKit) : une police emoji résidente
+  placée devant fait tomber la webfont à **zéro requête**.
+- Trois piles affichaient des emojis sans repli emoji déclaré, dont `.lb-rank` (🥇🥈🥉 du
+  classement) : la médaille sortait de la police **système**, pas de celle du reste de l'écran.
+- Cliquet `tests-ui/utils/emojiFontStacks.test.js` : interdit de replacer la police
+  auto-hébergée devant celle d'Apple, ou de réintroduire un `preload`, sans que le test tombe.
+- L'arbitrage revient sur la décision A3 de `AUDIT_UI_HOMOGENEITE_2026-09.md` (« même dessin
+  d'emoji sur tous les appareils ») : il reste tenu **à l'intérieur d'un même écran** — le vrai
+  défaut d'origine, une épingle et un emoji de nom de zone dessinés différemment côte à côte —
+  mais plus **entre** un iPhone et un Android. Détail : `AUDIT_EMOJIS_APPLE_2026-09-17.md` § 7.
+
 ### Documentation — audit de l'affichage des emojis sur appareils Apple
 
 - [`docs/AUDIT_EMOJIS_APPLE_2026-09-17.md`](docs/AUDIT_EMOJIS_APPLE_2026-09-17.md) : chaîne
