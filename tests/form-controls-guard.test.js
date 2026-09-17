@@ -19,24 +19,48 @@ const path = require('node:path');
 
 const SRC = path.join(__dirname, '..', 'src');
 
-/** Classes qui forment le contrat visuel des champs et des onglets. */
+/** Classes qui forment le contrat visuel : champs, onglets, surfaces. */
 const CONTRACT_CLASSES = [
   'fm-field',
   'fm-input',
   'fm-select',
   'fm-textarea',
+  'fm-label',
   'form-input',
   'form-select',
   'fm-subtabs',
   'fm-subtab',
+  'fm-panel',
+  'fm-table',
+  'fm-table-wrap',
+  'card',
   'hint',
   'muted',
   'form-error',
   'text-danger',
 ];
 
+/**
+ * Les feuilles du contrat, et les entrées qui doivent les charger. Le « pattern commun
+ * partout » ne tient que si CHAQUE produit consomme les mêmes feuilles : sans ce contrôle,
+ * un nouveau produit (le plan des personnels est arrivé ainsi) repart d'une page blanche et
+ * réinvente ses champs et ses surfaces.
+ */
+const CONTRACT_SHEETS = ['form-controls.css', 'surfaces.css'];
+const PRODUCT_ENTRIES = [
+  'index.css', // ForetMap (+ l'outil de packs mascotte, qui l'importe)
+  path.join('gl', 'main.jsx'),
+  path.join('plan', 'main.jsx'),
+  path.join('staff', 'main.jsx'),
+];
+
 /** Tokens que la couche de base et ses variantes consomment. */
 const CONTROL_TOKENS = [
+  '--fm-panel-bg',
+  '--fm-panel-border',
+  '--fm-panel-radius',
+  '--fm-table-rule',
+  '--fm-table-pad-y',
   '--fm-control-bg',
   '--fm-control-border',
   '--fm-control-border-focus',
@@ -229,5 +253,80 @@ test('le chevron de la liste déroulante n’est effacé par aucune règle', () 
     [],
     `Règles qui effacent le chevron :\n  ${offenders.join('\n  ')}\n` +
       'Utiliser background-color, et --fm-control-pad-y/-pad-x/-chevron-gutter au lieu de padding.',
+  );
+});
+
+test('chaque produit charge les feuilles du contrat', () => {
+  // C'est ce test qui fait tenir « le même pattern partout » : il échoue dès qu'une entrée
+  // nouvelle ou modifiée cesse de consommer le contrat commun.
+  const offenders = [];
+  for (const entry of PRODUCT_ENTRIES) {
+    const full = path.join(SRC, entry);
+    if (!fs.existsSync(full)) {
+      offenders.push(`${entry} → entrée introuvable (renommée ?)`);
+      continue;
+    }
+    const source = fs.readFileSync(full, 'utf8');
+    for (const sheet of CONTRACT_SHEETS) {
+      if (!source.includes(sheet)) offenders.push(`${entry} ne charge pas ${sheet}`);
+    }
+  }
+  assert.deepStrictEqual(
+    offenders,
+    [],
+    `Produits hors contrat :\n  ${offenders.join('\n  ')}\n` +
+      'Un produit qui ne charge pas ces feuilles rend ses champs et ses surfaces au naturel.',
+  );
+});
+
+test('aucun écran ne réécrit l’apparence d’un tableau pour son seul compte', () => {
+  // Cinq habillages coexistaient, dont deux inexistants (`.data-table`,
+  // `.visit-mascot-pack-detail-table` ne renvoyaient à aucune règle). `.fm-table` porte
+  // désormais filets, en-têtes et densité ; un écran ne garde que ce qui lui est propre.
+  const ALLOWED = /(^|[\s,>])\.fm-table\b/;
+  const offenders = [];
+  for (const file of walk(SRC, '.css').filter(isForetMap)) {
+    const content = fs.readFileSync(file, 'utf8');
+    for (const match of content.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const selector = match[1].replace(/\/\*[\s\S]*?\*\//g, '').trim();
+      if (!/(^|[\s>+~,])(table|th|td)\b/.test(selector)) continue;
+      if (ALLOWED.test(selector)) continue;
+      // `border-collapse` et les filets de cellule sont l'apparence ; la largeur d'une
+      // colonne ou un `vertical-align` restent légitimement propres à l'écran.
+      if (!/(^|;|\s)(border-collapse|border-bottom|border-top)\s*:/.test(match[2])) continue;
+      const line = content.slice(0, match.index).split('\n').length;
+      offenders.push(`${path.relative(SRC, file)}:${line} → ${selector.replace(/\s+/g, ' ')}`);
+    }
+  }
+  assert.deepStrictEqual(
+    offenders,
+    [],
+    `Apparence de tableau réécrite hors de .fm-table :\n  ${offenders.join('\n  ')}\n` +
+      'Régler la densité par --fm-table-pad-y/-pad-x/-rule sur le conteneur.',
+  );
+});
+
+test('le libellé de champ n’a qu’un dialecte', () => {
+  // Il y en avait sept. Le signe le plus visible était les capitales interlettrées : on
+  // interdit `text-transform: uppercase` sur un LIBELLÉ DE CHAMP (les autres rôles —
+  // sur-titres, pastilles d'état, étiquettes de carte — le gardent légitimement).
+  const FIELD_LABEL =
+    /(\.field\s+label|\.fm-label|\.fm-field__label|__filter-label|filter-field|-filter\s*>\s*label)/;
+  const offenders = [];
+  for (const file of walk(SRC, '.css').filter(isForetMap)) {
+    const content = fs.readFileSync(file, 'utf8');
+    for (const match of content.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const selector = match[1].replace(/\/\*[\s\S]*?\*\//g, '').trim();
+      if (!FIELD_LABEL.test(selector)) continue;
+      if (!/text-transform\s*:\s*uppercase/.test(match[2])) continue;
+      const line = content.slice(0, match.index).split('\n').length;
+      offenders.push(`${path.relative(SRC, file)}:${line} → ${selector.replace(/\s+/g, ' ')}`);
+    }
+  }
+  assert.deepStrictEqual(
+    offenders,
+    [],
+    `Libellé de champ en capitales :\n  ${offenders.join('\n  ')}\n` +
+      'Un seul dialecte : minuscules, demi-gras, vert feuille (.fm-label).',
   );
 });

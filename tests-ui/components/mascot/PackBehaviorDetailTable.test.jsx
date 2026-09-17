@@ -42,4 +42,37 @@ describe('PackBehaviorDetailTable', () => {
     const idleRow = screen.getByText('(idle)').closest('tr');
     expect(idleRow.textContent).toContain('2');
   });
+
+  /*
+   * Contrat du tableau commun (audit UI « homogénéité », §5 B2).
+   *
+   * Cinq habillages de tableau coexistaient côté ForetMap, dont deux qui n'existaient dans
+   * aucune feuille : `.data-table` (stats) et `.visit-mascot-pack-detail-table`, celui-ci.
+   * Il s'en tirait en réécrivant toute son apparence en **styles inline** — largeur, filets,
+   * marges de cellule, taille de texte — donc à une spécificité qu'aucune feuille ne peut
+   * reprendre. Ces deux tests figent le retour de l'apparence dans `.fm-table`
+   * (`shared/styles/surfaces.css`), non chargée par jsdom : on vérifie le balisage.
+   */
+  test('porte `.fm-table` et son conteneur défilant', () => {
+    const { container } = render(<PackBehaviorDetailTable pack={VALID_PACK} />);
+    const table = container.querySelector('table');
+    expect(table).toHaveClass('fm-table');
+    expect(table).toHaveClass('fm-table--dense');
+    expect(table.closest('.fm-table-wrap')).not.toBeNull();
+  });
+
+  test('ne réécrit plus l’apparence du tableau en style inline', () => {
+    const { container } = render(<PackBehaviorDetailTable pack={VALID_PACK} />);
+    const table = container.querySelector('table');
+    for (const prop of ['width', 'borderCollapse', 'fontSize']) {
+      expect(table.style[prop]).toBe('');
+    }
+    for (const cell of container.querySelectorAll('th, td')) {
+      expect(cell.style.padding).toBe('');
+      expect(cell.style.borderBottom).toBe('');
+    }
+    for (const row of container.querySelectorAll('tr')) {
+      expect(row.style.borderBottom).toBe('');
+    }
+  });
 });

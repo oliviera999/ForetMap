@@ -591,8 +591,8 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
               {links.length === 0 ? (
                 <p className="section-sub">Aucune question rattachée à ce {tab.one}.</p>
               ) : (
-                <div className="pedago-links__table-wrap">
-                  <table className="pedago-links__table">
+                <div className="fm-table-wrap pedago-links__table-wrap">
+                  <table className="fm-table pedago-links__table">
                     <thead>
                       <tr>
                         <th>Question</th>

@@ -45,8 +45,8 @@ export function MoodleChapterCoursesTable({ value, courses, chapters, onSave, sa
         Sert aux miroirs d’équipes (groupes de cours) et à l’entrée depuis le cours. Un cours ne
         correspond qu’à un seul chapitre.
       </p>
-      <div className="moodle-table-wrap">
-        <table className="moodle-table">
+      <div className="fm-table-wrap moodle-table-wrap">
+        <table className="fm-table fm-table--dense moodle-table">
           <thead>
             <tr>
               <th scope="col">Chapitre</th>

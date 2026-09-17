@@ -1,0 +1,146 @@
+/*
+ * Surfaces partagées ForetMap / G&L : le panneau et le tableau.
+ *
+ * POURQUOI CE FICHIER (audit UI « homogénéité », §5 B1 et B2). Le lot précédent a unifié les
+ * champs et les onglets ; restaient les deux conteneurs qui les portent.
+ *
+ * LE PANNEAU. ForetMap n'avait **aucune primitive de surface** : chaque écran réinventait la
+ * sienne (`.about-card`, `.stat-card`, `.pin-card`, `.notif-panel`, `.forum-panel`…), avec à
+ * chaque fois son fond, son rayon, son ombre et sa marge intérieure. Pire, huit endroits
+ * posaient `className="card"` — une classe qui n'existait dans aucune feuille : le catalogue
+ * de QCM, le réseau trophique, le rattachement des questions, les réglages de validation, les
+ * stats et le carnet croyaient poser une carte blanche et rendaient un bloc **transparent**.
+ * `.card` est ici l'alias de `.fm-panel` : ces huit écrans retrouvent une surface sans que
+ * leur balisage change.
+ *
+ * LE TABLEAU. Cinq habillages coexistaient côté ForetMap, dont deux inexistants :
+ * `.data-table` (stats) et `.visit-mascot-pack-detail-table` (packs mascotte) ne renvoyaient
+ * à aucune règle — ces deux tableaux sortaient au rendu par défaut du navigateur, sans
+ * marges ni filets. `.moodle-table` et `.pedago-links__table` avaient chacun le leur, et deux
+ * tableaux n'avaient aucune classe.
+ *
+ * LA RÈGLE POSÉE : `.fm-panel` et `.fm-table` portent l'apparence ; les classes d'écran ne
+ * gardent que ce qui leur est propre (largeur de colonne, densité), et se règlent par les
+ * tokens `--fm-panel-*` / `--fm-table-*` posés sur le conteneur — jamais en réécrivant un
+ * fond ou un filet.
+ *
+ * PORTÉE. Chargé par tous les produits. Les tokens lisent la palette de l'hôte avec un repli
+ * neutre, comme `form-controls.css` : G&L et le Plan habillent donc ces surfaces avec leur
+ * propre palette sans que le composant ait à savoir où il est.
+ */
+
+:root {
+  --fm-panel-bg: var(--surface-1, #fff);
+  --fm-panel-border: var(--outline-soft, rgba(26, 71, 49, 0.15));
+  --fm-panel-radius: 14px;
+  --fm-panel-shadow: var(--shadow-soft, 0 10px 26px rgba(26, 71, 49, 0.08));
+  --fm-panel-pad: var(--space-card, 14px);
+
+  --fm-table-rule: var(--outline-soft, rgba(26, 71, 49, 0.15));
+  --fm-table-pad-y: 8px;
+  --fm-table-pad-x: 10px;
+  --fm-table-font: var(--text-sm);
+}
+
+/* ── Panneau ─────────────────────────────────────────────────────────────── */
+
+.fm-panel,
+.card {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--fm-panel-pad);
+  border: 1px solid var(--fm-panel-border);
+  border-radius: var(--fm-panel-radius);
+  /* `background-color`, pas le raccourci : un panneau peut porter une image de fond
+     (illustration d'en-tête) sans que la surface l'efface. */
+  background-color: var(--fm-panel-bg);
+  box-shadow: var(--fm-panel-shadow);
+}
+
+/* Panneau sans marge intérieure : le contenu gère la sienne (tableau pleine largeur,
+   liste à filets, carte). */
+.fm-panel--flush {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Panneau discret : posé DANS un autre panneau, il ne doit pas empiler deux ombres. */
+.fm-panel--quiet {
+  box-shadow: none;
+  background-color: transparent;
+}
+
+.fm-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.fm-panel__title {
+  margin: 0;
+  font-size: var(--text-md);
+  color: var(--forest, var(--gl-color-text, #1a4731));
+}
+
+.fm-panel__body {
+  min-width: 0;
+}
+
+/* ── Tableau ─────────────────────────────────────────────────────────────── */
+
+/* Un tableau large ne doit jamais élargir la page : il défile dans sa propre boîte. */
+.fm-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.fm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fm-table-font);
+}
+
+.fm-table th,
+.fm-table td {
+  padding: var(--fm-table-pad-y) var(--fm-table-pad-x);
+  border-bottom: 1px solid var(--fm-table-rule);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.fm-table th {
+  color: var(--ink-soft, #64748b);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+}
+
+/* Le dernier filet double la bordure du panneau qui contient le tableau. */
+.fm-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.fm-table tr.is-muted td {
+  color: var(--ink-soft, #64748b);
+}
+
+.fm-table tr.is-selected td {
+  background-color: color-mix(in srgb, var(--leaf, #2d6a4f) 8%, transparent);
+}
+
+/* Colonne d'actions : boutons serrés, jamais coupés. */
+.fm-table td.fm-table__actions {
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* Variante dense (tableaux d'administration à beaucoup de colonnes). */
+.fm-table--dense {
+  --fm-table-pad-y: 6px;
+  --fm-table-pad-x: 8px;
+}

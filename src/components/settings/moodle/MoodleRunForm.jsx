@@ -45,8 +45,8 @@ export function MoodleRunForm({
           {selectedIds.length === cohorts.length ? 'Tout décocher' : 'Tout cocher'}
         </button>
       </div>
-      <div className="moodle-table-wrap">
-        <table className="moodle-table">
+      <div className="fm-table-wrap moodle-table-wrap">
+        <table className="fm-table fm-table--dense moodle-table">
           <thead>
             <tr>
               <th scope="col"> </th>
